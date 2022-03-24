@@ -18,6 +18,7 @@ sealed trait Ast extends JSElem {
   def idx: Int = this match
     case lex: Lexical               => 0
     case Syntactic(_, _, rhsIdx, _) => rhsIdx
+    case abs: AbsSyntactic          => -1
 
   /** production chains */
   lazy val chains: List[Ast] = this match
@@ -26,6 +27,7 @@ sealed trait Ast extends JSElem {
       syn.children.flatten match
         case child :: Nil => this :: child.chains
         case _            => List(this)
+    case asy: AbsSyntactic => List(this)
 
   /** children */
   def getChildren(kind: String): List[Ast] = this match
@@ -36,11 +38,13 @@ sealed trait Ast extends JSElem {
         found <- child.getChildren(kind)
       } yield found).toList
       if (k == kind) this :: founded else founded
+    case abs: AbsSyntactic => List()
 
   /** types */
   lazy val types: Set[String] =
     Set(name, s"$name$idx") union (this match
       case Syntactic(_, _, _, List(Some(child))) => child.types + "Nonterminal"
+      case abs: AbsSyntactic                     => Set("Abstract")
       case _                                     => Set("Terminal")
     )
 
@@ -68,6 +72,11 @@ case class Syntactic(
   args: List[Boolean],
   rhsIdx: Int,
   children: List[Option[Ast]],
+) extends Ast
+
+/** ASTs constructed by abstract productions */
+case class AbsSyntactic(
+  name: String,
 ) extends Ast
 
 /** ASTs constructed by lexical productions */

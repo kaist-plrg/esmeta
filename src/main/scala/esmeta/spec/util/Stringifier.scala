@@ -216,7 +216,11 @@ object Stringifier {
     app >> lhsName >> "[" >> idx >> ", " >> subIdx >> "]" >> rhsParams
 
   // TODO: for algorithm parameters
-  given paramRule: Rule[Param] = (app, param) => app >> param.name
+  given paramRule: Rule[Param] = (app, param) =>
+    param.kind match
+      case Param.Kind.Optional => app >> param.name >> "?"
+      case Param.Kind.Variadic => app >> "..." >> param.name
+      case _                   => app >> param.name
 
   // TODO: for algorithm parameter kinds
   given paramKindRule: Rule[Param.Kind] = (app, param) => ???

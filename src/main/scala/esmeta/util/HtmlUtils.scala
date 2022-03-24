@@ -65,6 +65,12 @@ object HtmlUtils {
     def getFirstSiblingContent: String =
       elem.getFirstSiblingElem.getContent
 
+    /** get second child element */
+    def getSecondChildElem: Element = elem.child(1)
+
+    /** get second child content */
+    def getSecondChildContent: String = elem.child(1).getContent
+
     /** get previous sibling element */
     def getPrevElem: Element = elem.previousElementSibling
 

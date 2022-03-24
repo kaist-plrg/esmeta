@@ -42,7 +42,7 @@ object Parser extends Parsers {
         (src, name, hash)
       case None =>
         (readFile(SPEC_HTML), cur, cur)
-    parseSpec(src, Some(Spec.Version(cur, cur)))
+    parseSpec(src, Some(Spec.Version(name, hash)))
 
   /** parses a grammar */
   def parseGrammar(document: Document): Grammar = {
@@ -90,6 +90,7 @@ object Parser extends Parsers {
     "sec-tear-free-aligned-reads",
     "sec-races",
     "sec-data-races",
+    "sec-%typedarray%.prototype.sort",
   )
 
   /** parses algorithm heads */
@@ -110,23 +111,45 @@ object Parser extends Parsers {
     // checks whether an element is of Chapter 5. Notational Conventions
     if (elem.isNotation) return Nil
 
-    // consider algorithm head types using `type` attributes
-    parent.attr("type") match {
-      case "abstract operation" =>
+    // handles NormalCompletion and ThrowCompletion in es2021
+    if (
+      (parent.id == "sec-normalcompletion" || parent.id == "sec-throwcompletion") &&
+      parent.attr("type") != "abstract operation"
+    )
+      return if (shorthandPattern.matches(elem.getPrevText))
         parseAbsOpHead(parent, elem, false)
-      case "host-defined abstract operation" =>
-        parseAbsOpHead(parent, elem, true)
-      case "numeric method" =>
-        parseNumMethodHead(parent, elem)
-      case "sdo" =>
-        parseSdoHead(parent, elem, idxMap)
-      case "concrete method" =>
-        parseConcMethodHead(parent, elem)
-      case "internal method" =>
-        parseInMethodHead(parent, elem)
+      else Nil
+
+    // consider algorithm head types using `type` attributes
+    elem.getPrevText match
+      // unusual patterns
+      case thisValuePattern(name, param) =>
+        List(
+          AbstractOperationHead(false, name, List(Param(param)), UnknownType),
+        )
+      case aliasPattern() =>
+        parseAbsOpHead(parent, elem, false)
+      case aliasPatternExample() => Nil
+      case anonBuiltinPattern(name, param) =>
+        val rname = name.trim.split(" ").map(_.capitalize).mkString
+        val ref = BuiltinHead.Ref.YetRef(rname)
+        List(BuiltinHead(ref, List(Param(param)), UnknownType))
+      // normal patterns
       case _ =>
-        parseUnusualHead(parent, elem)
-    }
+        if (isNumericMethod(parent, elem))
+          parseNumMethodHead(parent, elem)
+        else if (isAbstractOperation(parent, elem))
+          parseAbsOpHead(parent, elem, false)
+        else if (isHostDefinedOp(parent, elem))
+          parseAbsOpHead(parent, elem, true)
+        else if (isSDO(parent, elem))
+          parseSdoHead(parent, elem, idxMap)
+        else if (isConcreteMethod(parent, elem))
+          parseConcMethodHead(parent, elem)
+        else if (isInternalMethod(parent, elem))
+          parseInMethodHead(parent, elem)
+        else
+          parseBuiltinHead(parent, elem)
   }
 
   /** parses tables */
@@ -141,8 +164,75 @@ object Parser extends Parsers {
   } yield id -> Table(id, datas.head, datas.tail)).toMap
 
   // ///////////////////////////////////////////////////////////////////////////
+  // classify algorithm heads
+  // ///////////////////////////////////////////////////////////////////////////
+
+  // handle unusual heads
+  private lazy val thisValuePattern =
+    "The abstract operation (this\\w+Value) takes argument _(\\w+)_.*".r
+  private lazy val aliasPatternExample = "Algorithm steps that say".r
+  private lazy val aliasPattern =
+    "means? the same thing as:".r
+  private lazy val anonBuiltinPattern =
+    "When (?:a|an) ([A-Za-z.`\\- ]+) is called with argument _(\\w+)_,.*".r
+  private lazy val shorthandPattern = "Is a shorthand that is defined as.*".r
+
+  // numeric method
+  private lazy val numericMethodPattern =
+    "The abstract operation (Number::|BigInt::).*".r
+  private def isNumericMethod(parent: Element, elem: Element): Boolean =
+    parent.attr("type") == "numeric method" ||
+    numericMethodPattern.matches(elem.getPrevText)
+
+  // host-defined abstract operation
+  private lazy val hostDefinedOpPattern =
+    "The host-defined abstract operation.*".r
+  private def isHostDefinedOp(parent: Element, elem: Element): Boolean =
+    parent.attr("type") == "host-defined abstract operation" ||
+    hostDefinedOpPattern.matches(elem.getPrevText)
+
+  // abstract operation
+  private lazy val abstractOpPattern = "The abstract operation.*".r
+  private def isAbstractOperation(parent: Element, elem: Element): Boolean =
+    parent.attr("type") == "abstract operation" ||
+    ((abstractOpPattern.matches(
+      parent.getSecondChildContent,
+    ) || abstractOpPattern.matches(
+      elem.getPrevText,
+    )) && parent.getFirstChildElem.tagName == "h1")
+
+  // syntax-directed operation
+  private def isSDO(parent: Element, elem: Element): Boolean =
+    val prev = elem.getPrevElem
+    parent.attr("type") == "sdo" ||
+    prev.tagName == "emu-grammar" ||
+    isRegexpSDO(parent, elem)
+
+  // regular expression section for es2021
+  private lazy val regexpPattern = "The |\\w+| productions.*".r
+  private def isRegexpSDO(parent: Element, elem: Element): Boolean =
+    val prev = elem.getPrevElem
+    (prev.tagName == "p" && !prev.getElems("emu-grammar").isEmpty) ||
+    (regexpPattern.matches(parent.getFirstChildContent))
+
+  // concrete method operation
+  private lazy val concretePattern =
+    "The \\w+ concrete method of ((?:[^_,:()]|, )+) _([^_]+)_.*".r
+  private def isConcreteMethod(parent: Element, elem: Element): Boolean =
+    parent.attr("type") == "concrete method" ||
+    concretePattern.matches(parent.getSecondChildContent)
+
+  // internal method operation
+  private lazy val internalPattern =
+    "The [A-Za-z0-9\\[\\]]+ internal method of ((?:[^_,:()]|, )+) _([^_]+)_.*".r
+  private def isInternalMethod(parent: Element, elem: Element): Boolean =
+    parent.attr("type") == "internal method" ||
+    internalPattern.matches(parent.getSecondChildContent)
+
+  // ///////////////////////////////////////////////////////////////////////////
   // Private Helpers
   // ///////////////////////////////////////////////////////////////////////////
+
   // get abstract operation heads
   private def parseAbsOpHead(
     parent: Element,
@@ -162,16 +252,51 @@ object Parser extends Parsers {
     List(parseBy(numMethodHead)(headContent))
 
   // get syntax-directed operation (SDO) heads
+  private lazy val oldWithParamPattern = "With (optional )?parameter(s)?.*".r
   private def parseSdoHead(
     parent: Element,
     elem: Element,
     idxMap: Map[String, (Int, Int)],
   ): List[SyntaxDirectedOperationHead] = {
-    val headContent = getHeadContent(parent)
-    val prevContent = elem.getPrevContent
+    val (generator, prevContent) =
+      if (isRegexpSDO(parent, elem)) {
+        // handle regexp section in es2021
+        val prev = elem.getPrevElem
+        val ps =
+          // parse <p>With parameter... </p>
+          if (oldWithParamPattern.matches(parent.getSecondChildContent))
+            parseBy(withParams)(parent.getSecondChildContent)
+          else List()
+        val prevContent =
+          if (prev.tagName == "p" && !prev.getElems("emu-grammar").isEmpty)
+            elem.getPrevElem.getElems("emu-grammar")(0).text
+          else elem.getPrevContent
+        (
+          SyntaxDirectedOperationHead(_, "Evaluation", false, ps, UnknownType),
+          prevContent,
+        )
+      } else if (
+        parent.getSecondChildElem.tagName == "p" &&
+        oldWithParamPattern.matches(parent.getSecondChildContent)
+      ) {
+        // handle SDO with parameter in es2021
+        // parse <h1> ... </h1>
+        val isStatic ~ x =
+          parseBy(semanticsKind ~ name)(parent.getFirstChildContent)
+        // parse <p>With parameter... </p>
+        val ps = parseBy(withParams)(parent.getSecondChildContent)
+        (
+          SyntaxDirectedOperationHead(_, x, isStatic, ps, UnknownType),
+          elem.getPrevContent,
+        )
+      } else {
+        // handle recent
+        val headContent = getHeadContent(parent)
+        (parseBy(sdoHeadGen)(headContent), elem.getPrevContent)
+      }
     val defaultCaseStr =
       "Every grammar production alternative in this specification which is not listed below implicitly has the following default definition of"
-    val generator = parseBy(sdoHeadGen)(headContent)
+
     // to hande "default" case algorithms
     if (!prevContent.startsWith(defaultCaseStr)) {
       // normal case
@@ -202,10 +327,19 @@ object Parser extends Parsers {
     elem: Element,
   ): List[ConcreteMethodHead] =
     val headContent = getHeadContent(parent)
-    val generator = parseBy(concMethodHeadGen)(headContent)
-    val dataMap = elem.getPrevElem.toDataMap
-    val forData = dataMap("for")
-    val receiverParam = parseBy(paramDesc)(forData)
+    val generator =
+      parseBy(concMethodHeadGen <~ opt("Concrete Method"))(headContent)
+    val receiverParam =
+      if (concretePattern.matches(parent.getSecondChildContent)) {
+        // handle es2021
+        val concretePattern(t, receiver) = parent.getSecondChildContent
+        Param(receiver, ty = Type(t))
+      } else {
+        // handle recent
+        val dataMap = elem.getPrevElem.toDataMap
+        val forData = dataMap("for")
+        parseBy(paramDesc)(forData)
+      }
     List(generator(receiverParam))
 
   // get internal method heads
@@ -214,10 +348,19 @@ object Parser extends Parsers {
     elem: Element,
   ): List[InternalMethodHead] =
     val headContent = getHeadContent(parent)
-    val generator = parseBy(inMethodHeadGen)(headContent)
-    val dataMap = elem.getPrevElem.toDataMap
-    val forData = dataMap("for")
-    val receiverParam = parseBy(paramDesc)(forData)
+    val generator =
+      parseBy(inMethodHeadGen)(headContent)
+    val receiverParam =
+      if (internalPattern.matches(parent.getSecondChildContent)) {
+        // handle es2021
+        val internalPattern(t, receiver) = parent.getSecondChildContent
+        Param(receiver, ty = Type(t))
+      } else {
+        // handle recent
+        val dataMap = elem.getPrevElem.toDataMap
+        val forData = dataMap("for")
+        parseBy(paramDesc)(forData)
+      }
     List(generator(receiverParam))
 
   // get built-in heads
@@ -232,32 +375,18 @@ object Parser extends Parsers {
   def parseBuiltinRef(str: String): BuiltinHead.Ref =
     parseBy(ref)(str)
 
-  // handle unusual heads
-  lazy val thisValuePattern =
-    "The abstract operation (this\\w+Value) takes argument _(\\w+)_.*".r
-  lazy val aliasPattern =
-    "means? the same thing as:".r
-  lazy val anonBuiltinPattern =
-    "When a ([A-Za-z.` ]+) is called with argument _(\\w+)_,.*".r
-  private def parseUnusualHead(
-    parent: Element,
-    elem: Element,
-  ): List[Head] = elem.getPrevText match
-    case thisValuePattern(name, param) =>
-      List(AbstractOperationHead(false, name, List(Param(param)), UnknownType))
-    case aliasPattern() => parseAbsOpHead(parent, elem, false)
-    case anonBuiltinPattern(name, param) =>
-      val rname = name.trim.split(" ").map(_.capitalize).mkString
-      val ref = BuiltinHead.Ref.YetRef(rname)
-      List(BuiltinHead(ref, List(Param(param)), UnknownType))
-    case _ if parent.hasAttr("aoid") => Nil
-    case _                           => parseBuiltinHead(parent, elem)
-
   // get head contents from parent elements
   private def getHeadContent(parent: Element): String =
     val headContent = parent.getFirstChildContent
-    if (parent.id == "await") "Await (_value_)"
-    else headContent
+    parent.id match
+      case "await" => "Await (_value_)"
+      case "sec-normalcompletion"
+          if parent.attr("type") != "abstract operation" =>
+        "NormalCompletion (_argument_)"
+      case "sec-throwcompletion"
+          if parent.attr("type") != "abstract operation" =>
+        "ThrowCompletion (_argument_)"
+      case _ => headContent
 }
 
 /** specification parsers */
@@ -401,7 +530,9 @@ trait Parsers extends BasicParsers {
     import BuiltinHead.Ref
     import BuiltinHead.Ref.*
     lazy val name: Parser[String] = "[_`a-zA-Z0-9]+".r ^^ { _.trim }
-    lazy val yet: Parser[String] = "[_`%a-zA-Z0-9.\\[\\]@: ]+".r ^^ { _.trim }
+    lazy val yet: Parser[String] = "[_`%a-zA-Z0-9.\\[\\]@:\\- ]+".r ^^ {
+      _.trim
+    }
     lazy val pre: Parser[Ref => Ref] =
       "get " ^^^ { Getter(_) } | "set " ^^^ { Setter(_) } | "" ^^^ { x => x }
     lazy val base: Parser[Ref] =
@@ -449,11 +580,26 @@ trait Parsers extends BasicParsers {
       case Some(ps ~ ops) => ps ++ ops
     }
 
+  // old parameters in <p> ... </p>
+  lazy val withParams: Parser[List[Param]] =
+    lazy val wTy: Parser[Type] = opt("(" ~> "([^_,:()]|, )+".r <~ ")") ^^ {
+      _.map(s => Type(s)).getOrElse(UnknownType)
+    }
+    lazy val wParam: Parser[Param] =
+      (opt("optional") <~ opt("parameters" | "parameter")) ~ id ~ wTy ^^ {
+        case None ~ n ~ t    => Param(n, ty = t)
+        case Some(_) ~ n ~ t => Param(n, kind = Param.Kind.Optional, ty = t)
+      }
+    "With" ~> repsep(wParam, ", and" | "and" | ",") <~ "."
+
   // TODO remove this legacy parser later
   lazy val oldOptParams: Parser[List[Param]] =
     import Param.Kind.*
     "[" ~> opt(",") ~> param ~ opt(oldOptParams) <~ "]" ^^ {
       case p ~ psOpt => p.copy(kind = Optional) :: psOpt.getOrElse(Nil)
+    } |
+    "," ~> param ^^ {
+      case p => List(p.copy(kind = Optional))
     } | opt(",") ~ "..." ~> param ^^ {
       case p => List(p.copy(kind = Variadic))
     } | success(Nil)

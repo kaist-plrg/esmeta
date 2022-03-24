@@ -21,7 +21,7 @@ trait EditorElem {
 object EditorElem {
   val getStringifier = {
     cached[(Boolean, Boolean), Stringifier](
-      new Stringifier(_, _)
+      new Stringifier(_, _),
     )
   }
 }

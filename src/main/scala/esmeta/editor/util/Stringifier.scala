@@ -9,9 +9,10 @@ import esmeta.editor.*
 /** stringifier for editor */
 class Stringifier(detail: Boolean, location: Boolean) {
   // Editor elements
-  given elemRule: Rule[EditorElem] = (app, elem) => elem match {
-    case view: SyntacticView => syntacticViewRule(app, view)
-  }
+  given elemRule: Rule[EditorElem] = (app, elem) =>
+    elem match {
+      case view: SyntacticView => syntacticViewRule(app, view)
+    }
 
   // TODO syntactic views
   given syntacticViewRule: Rule[SyntacticView] = (app, view) => {

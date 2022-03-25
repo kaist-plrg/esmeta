@@ -1,0 +1,3 @@
+def <SYNTAX>:Script[0,0].LexicallyScopedDeclarations(this: Unknown): Unknown {
+  return (new [])
+}

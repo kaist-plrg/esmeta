@@ -1,0 +1,4 @@
+def <NUM>:BigInt::equal(x: BigInt, y: BigInt): Unknown {
+  if (== ([math] x) ([math] y)) return true
+  else return false
+}

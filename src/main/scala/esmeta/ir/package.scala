@@ -52,6 +52,7 @@ val ECONST_FULFILL = EConst("Fulfill")
 val ECONST_REJECT = EConst("Reject")
 
 /** predefined globals identifiers */
+val GLOBAL_PRIMITIVE = Global("PRIMITIVE")
 val GLOBAL_REALM = Global("REALM")
 val GLOBAL_EXECUTION_STACK = Global("EXECUTION_STACK")
 val GLOBAL_CONTEXT = Prop(GLOBAL_EXECUTION_STACK, EMathVal(0))
@@ -66,6 +67,7 @@ val GLOBAL_BIGINT_TYPE = Global("BigInt")
 val GLOBAL_OBJECT_TYPE = Global("Object")
 
 /** predefined globals identifier expressions */
+val EGLOBAL_PRIMITIVE = ERef(GLOBAL_PRIMITIVE)
 val EGLOBAL_EXECUTION_STACK = ERef(GLOBAL_EXECUTION_STACK)
 val EGLOBAL_CONTEXT = ERef(GLOBAL_CONTEXT)
 val EGLOBAL_SYMBOL = ERef(GLOBAL_SYMBOL)

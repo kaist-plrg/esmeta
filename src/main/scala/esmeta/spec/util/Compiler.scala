@@ -275,6 +275,9 @@ class Compiler(val spec: Spec) {
           elseStep.fold(emptyInst)(compileWithScope(fb, _)),
         ),
       )
+    case AppendToStep(ref, expr) =>
+      val (x, xExpr) = compileWithExpr(ref)
+      fb.addInst(IAssign(x, EListConcat(List(xExpr, compile(fb, expr)))))
     case ReturnStep(expr) =>
       val e = expr.fold(EUndef)(compile(fb, _))
       fb.returnContext match
@@ -525,6 +528,8 @@ class Compiler(val spec: Spec) {
         toEIntrinsic(currentIntrinsics, intr)
       case SourceTextExpression(expr) =>
         ESourceText(compile(fb, expr))
+      case NumericPropertyExpression(tyExpr, name) =>
+        toERef(GLOBAL_PRIMITIVE, compile(fb, tyExpr), EStr(name))
       case CoveredByExpression(code, rule) =>
         EParse(compile(fb, code), compile(fb, rule))
       case GetChildrenExpression(nt, expr) =>
@@ -538,10 +543,9 @@ class Compiler(val spec: Spec) {
           val f = EClo(name, Nil)
           fb.addInst(ICall(x, f, as))
           xExpr
-      case InvokeNumericMethodExpression(ty, name, args) =>
+      case InvokeNumericMethodExpression(expr, args) =>
         val (x, xExpr) = fb.newTIdWithExpr
-        val f = EClo(s"$ty::$name", Nil)
-        fb.addInst(ICall(x, f, args.map(compile(fb, _))))
+        fb.addInst(ICall(x, compile(fb, expr), args.map(compile(fb, _))))
         xExpr
       case InvokeAbstractClosureExpression(ref, args) =>
         val (x, xExpr) = fb.newTIdWithExpr

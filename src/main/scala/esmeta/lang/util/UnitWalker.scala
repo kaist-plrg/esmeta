@@ -48,6 +48,8 @@ trait UnitWalker extends BasicUnitWalker {
       walk(x); walk(expr)
     case IfStep(cond, thenStep, elseStep) =>
       walk(cond); walk(thenStep); walkOpt(elseStep, walk)
+    case AppendToStep(x, expr) =>
+      walk(x); walk(expr)
     case ReturnStep(expr) =>
       walkOpt(expr, walk)
     case AssertStep(cond) =>
@@ -99,6 +101,8 @@ trait UnitWalker extends BasicUnitWalker {
       walk(nt); walk(expr)
     case IntrinsicExpression(intr) =>
       walk(intr)
+    case NumericPropertyExpression(tyExpr, name) =>
+      walk(tyExpr)
     case expr: CalcExpression =>
       walk(expr)
     case invoke: InvokeExpression =>
@@ -154,8 +158,8 @@ trait UnitWalker extends BasicUnitWalker {
   def walk(invoke: InvokeExpression): Unit = invoke match {
     case InvokeAbstractOperationExpression(name, args) =>
       walkList(args, walk)
-    case InvokeNumericMethodExpression(ty, name, args) =>
-      walk(ty); walkList(args, walk)
+    case InvokeNumericMethodExpression(expr, args) =>
+      walk(expr); walkList(args, walk)
     case InvokeAbstractClosureExpression(x, args) =>
       walk(x); walkList(args, walk)
     case InvokeMethodExpression(ref, args) =>

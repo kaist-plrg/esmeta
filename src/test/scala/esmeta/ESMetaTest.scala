@@ -160,6 +160,8 @@ trait ESMetaTest extends funsuite.AnyFunSuite with BeforeAndAfterAll {
 }
 object ESMetaTest {
   // extract specifications
-  lazy val specOpt = optional(SpecParser.parseSpecWithVersion(None))
+  lazy val specOpt = optional(
+    SpecParser.parseSpecWithVersion(Some("origin/es2021")),
+  )
   def spec = ESMetaTest.specOpt.getOrElse(error("invalid spec"))
 }

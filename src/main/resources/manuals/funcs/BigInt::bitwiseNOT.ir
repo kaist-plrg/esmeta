@@ -1,0 +1,3 @@
+def <NUM>:BigInt::bitwiseNOT(x: BigInt): Unknown {
+  return (- (- x) 1n)
+}

@@ -200,8 +200,7 @@ class StringifyTinyTest extends LangTest {
       InvokeAbstractOperationExpression("ToObject", List(addExpr, unExpr))
     lazy val invokeNumericExpr =
       InvokeNumericMethodExpression(
-        Type("Number"),
-        "add",
+        NumericPropertyExpression(NumberTypeLiteral(), "add"),
         List(refExpr, refExpr),
       )
     lazy val invokeClosureExpr =

@@ -69,6 +69,10 @@ case object XRefExpression:
 // the sole element expressions
 case class SoleElementExpression(list: Expression) extends Expression
 
+// numeric property expressions
+case class NumericPropertyExpression(tyExpr: Expression, name: String)
+  extends Expression
+
 // not yet supported expressions
 case class YetExpression(str: String, block: Option[Block]) extends Expression
 
@@ -85,8 +89,7 @@ case class InvokeAbstractOperationExpression(
 
 // numeric method invocation expression
 case class InvokeNumericMethodExpression(
-  ty: Type,
-  name: String,
+  expr: Expression,
   args: List[Expression],
 ) extends InvokeExpression
 

@@ -48,6 +48,8 @@ trait Walker extends BasicWalker {
       SetStep(walk(x), walk(expr))
     case IfStep(cond, thenStep, elseStep) =>
       IfStep(walk(cond), walk(thenStep), walkOpt(elseStep, walk))
+    case AppendToStep(x, expr) =>
+      AppendToStep(walk(x), walk(expr))
     case ReturnStep(expr) =>
       ReturnStep(walkOpt(expr, walk))
     case AssertStep(cond) =>
@@ -128,6 +130,8 @@ trait Walker extends BasicWalker {
       GetChildrenExpression(walk(nt), walk(expr))
     case IntrinsicExpression(intr) =>
       IntrinsicExpression(walk(intr))
+    case NumericPropertyExpression(tyExpr, name) =>
+      NumericPropertyExpression(walk(tyExpr), name)
     case expr: CalcExpression =>
       walk(expr)
     case invoke: InvokeExpression =>
@@ -187,8 +191,8 @@ trait Walker extends BasicWalker {
   def walk(invoke: InvokeExpression): InvokeExpression = invoke match {
     case InvokeAbstractOperationExpression(name, args) =>
       InvokeAbstractOperationExpression(name, walkList(args, walk))
-    case InvokeNumericMethodExpression(ty, name, args) =>
-      InvokeNumericMethodExpression(walk(ty), name, walkList(args, walk))
+    case InvokeNumericMethodExpression(expr, args) =>
+      InvokeNumericMethodExpression(walk(expr), walkList(args, walk))
     case InvokeAbstractClosureExpression(x, args) =>
       InvokeAbstractClosureExpression(walk(x), walkList(args, walk))
     case InvokeMethodExpression(ref, args) =>

@@ -16,6 +16,9 @@ case class SetStep(ref: Reference, expr: Expression) extends Step
 case class IfStep(cond: Condition, thenStep: Step, elseStep: Option[Step])
   extends Step
 
+// append to steps
+case class AppendToStep(variable: Variable, expr: Expression) extends Step
+
 // return steps
 case class ReturnStep(expr: Option[Expression]) extends Step
 

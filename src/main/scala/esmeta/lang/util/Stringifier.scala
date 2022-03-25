@@ -78,6 +78,9 @@ class Stringifier(detail: Boolean, location: Boolean) {
           case Some(step)            => app :> "1. Else, " >> step
           case None                  => app
         }
+      case AppendToStep(x, expr) =>
+        given Rule[Expression] = endWithExprRule
+        app >> First("append to ") >> x >> " the elements of " >> expr
       case ReturnStep(expr) =>
         given Rule[Expression] = endWithExprRule
         app >> First("return")
@@ -206,6 +209,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> "the List of " >> nt >> " items in " >> expr >> ", in source text order"
       case IntrinsicExpression(intr) =>
         app >> intr
+      case NumericPropertyExpression(tyExpr, name) =>
+        app >> tyExpr >> "::" >> name
       case XRefExpression(kind, id) =>
         app >> kind >> " <emu-xref href=\"#" >> id >> "\"></emu-xref>"
       case expr: CalcExpression =>
@@ -370,9 +375,9 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case InvokeAbstractOperationExpression(name, args) =>
         given Rule[Iterable[Expression]] = iterableRule("(", ", ", ")")
         app >> name >> args
-      case InvokeNumericMethodExpression(ty, name, args) =>
+      case InvokeNumericMethodExpression(expr, args) =>
         given Rule[Iterable[Expression]] = iterableRule("(", ", ", ")")
-        app >> ty >> "::" >> name >> args
+        app >> expr >> args
       case InvokeAbstractClosureExpression(x, args) =>
         given Rule[Iterable[Expression]] = iterableRule("(", ", ", ")")
         app >> x >> args

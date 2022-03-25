@@ -278,7 +278,8 @@ class Interp(
       )
     case ETypeCheck(expr, ty) =>
       val v = interp(expr)
-      if (v.isAbruptCompletion) Bool(false)
+      if (v.isCompletion && ty.name == "CompletionRecord") Bool(true)
+      else if (v.isAbruptCompletion) Bool(false)
       else
         Bool(v.escaped match
           case _: Number => ty.name == "Number"

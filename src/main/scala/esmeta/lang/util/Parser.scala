@@ -50,6 +50,7 @@ trait Parsers extends IndentParsers {
     letStep |
     setEvalStateStep |
     setStep |
+    appendToStep |
     performStep |
     performBlockstep |
     returnToResumedStep |
@@ -85,6 +86,12 @@ trait Parsers extends IndentParsers {
     ("if" ~> cond <~ "," ~ opt("then")) ~ step ~ opt(
       opt(subStepPrefix) ~ ("else" | "otherwise") ~ opt(",") ~> step,
     ) ^^ { case c ~ t ~ e => IfStep(c, t, e) }
+
+  // append-to steps
+  lazy val appendToStep: PL[AppendToStep] =
+    ("append to" ~> variable <~ opt("the elements of")) ~ endWithExpr ^^ {
+      case x ~ e => AppendToStep(x, e)
+    }
 
   // return steps
   lazy val returnStep: PL[ReturnStep] =
@@ -205,7 +212,9 @@ trait Parsers extends IndentParsers {
   // resume the suspended evaluation steps
   lazy val resumeStep: PL[ResumeEvaluationStep] =
     lazy val context: P[Variable] =
-      tagStart ~ "Resume the suspended evaluation of" ~> variable <~ tagEnd
+      opt(tagStart) ~ "Resume the suspended evaluation of" ~> variable <~ opt(
+        tagEnd,
+      )
     lazy val arg: P[Option[Expression]] =
       "using" ~> expr <~ "as the result of the operation that suspended it." ^^ {
         Some(_)
@@ -255,6 +264,7 @@ trait Parsers extends IndentParsers {
     sourceTextExpr |||
     coveredByExpr |||
     getChildrenExpr |||
+    numericPropExpr |||
     intrExpr |||
     calcExpr |||
     invokeExpr |||
@@ -317,7 +327,7 @@ trait Parsers extends IndentParsers {
 
   // `source text` expressions
   lazy val sourceTextExpr: PL[SourceTextExpression] =
-    ("the source text matched by" ~> expr) ^^ {
+    (("the source text matched by" | "the code matched by" | "the source text matching") ~> expr) ^^ {
       case e =>
         SourceTextExpression(e)
     }
@@ -355,6 +365,12 @@ trait Parsers extends IndentParsers {
   lazy val intrExpr: PL[IntrinsicExpression] = intr ^^ {
     IntrinsicExpression(_)
   }
+
+  // numeric property expression
+  lazy val numericPropExpr: P[NumericPropertyExpression] =
+    (invokeAOExpr | refExpr | literal) ~ ("::" ~> "[A-Za-z]+".r) ^^ {
+      case e ~ x => NumericPropertyExpression(e, x)
+    }
 
   // calculation expressions
   lazy val calcExpr: PL[CalcExpression] = {
@@ -480,7 +496,7 @@ trait Parsers extends IndentParsers {
     lazy val flags: P[List[String]] =
       "[" ~> repsep("^[~+][A-Z][a-z]+".r, ",") <~ "]" | "" ^^^ List()
     opt("the grammar symbol" | "the" | "this") ~> opt(ordinal) ~
-    ("|" ~> word <~ opt("?")) ~ flags <~ "|" ^^ {
+    ("|" ~> "[A-Za-z0-9]+".r <~ opt("_opt")) ~ flags <~ "|" ^^ {
       case ord ~ x ~ fs => NonterminalLiteral(ord, x, fs)
     }
 
@@ -528,9 +544,8 @@ trait Parsers extends IndentParsers {
 
   // numeric method invocation expression
   lazy val invokeNumericExpr: PL[InvokeNumericMethodExpression] =
-    guard(not("Return")) ~> ty ~ ("::" ~> "[A-Za-z]+".r) ~ invokeArgs ^^ {
-      case t ~ op ~ as =>
-        InvokeNumericMethodExpression(t, op, as)
+    numericPropExpr ~ invokeArgs ^^ {
+      case e ~ as => InvokeNumericMethodExpression(e, as)
     }
 
   // abstract closure invocation expression
@@ -553,7 +568,7 @@ trait Parsers extends IndentParsers {
       (opt("the result of performing" | "the result of" | "the") ~ guard(
         not(component),
       ) ~> camel)
-    lazy val base = ("of" ~> expr)
+    lazy val base = (("of" | "for") ~> expr)
     lazy val args = repsep(expr, sep("and"))
     lazy val argsPart = (
       ("using" | "with" | "passing") ~> args <~
@@ -605,7 +620,24 @@ trait Parsers extends IndentParsers {
     // CreateDynamicFunction
     strLiteral <~ "\\([^)]*\\)".r |
     // MethodDefinitionEvaluation, ClassFieldDefinitionEvaluation
-    "an instance of the production" ~> prodLiteral
+    "an instance of the production" ~> prodLiteral |
+    // invoke comparison AO in es2021
+    "the result of performing" ~> rep(camel) ~ repsep(
+      expr,
+      "===" | "==" | "<",
+    ) ~ opt("with _LeftFirst_ equal to" ~> expr) ^^ {
+      case ws ~ as ~ leftOpt =>
+        val opName = ws.mkString
+        val fixedArgs =
+          if (opName == "AbstractRelationalComparison")
+            as ++ List(leftOpt.getOrElse(TrueLiteral()))
+          else as
+        InvokeAbstractOperationExpression(opName, fixedArgs)
+    } |
+    "the result of the comparison" ~> repsep(expr, "===" | "==" | "<") ^^ {
+      case as =>
+        InvokeAbstractOperationExpression("AbstractEqualityComparison", as)
+    }
 
   // not yet supported expressions
   lazy val yetExpr: PL[YetExpression] =
@@ -899,9 +931,16 @@ trait Parsers extends IndentParsers {
   // ---------------------------------------------------------------------------
   // metalanguage types
   // ---------------------------------------------------------------------------
+  private val fixTypes = List("Completion", "PromiseReaction")
   given ty: PL[Type] = {
-    rep1(camel) ^^ { case ss => Type(ss.mkString(" ")) } |||
+    rep1(camel) ^^ {
+      case ss =>
+        val str = ss.mkString(" ")
+        Type(if (fixTypes.contains(str)) str + " Record" else str)
+    } |||
     "[a-zA-Z ]+ object".r ^^ { Type(_) } |||
+    "ECMAScript function" ^^! { Type("ECMAScript function object") } |||
+    "built-in function object" ^^! { Type("builtin function object") } |||
     "\\w+ Environment Record".r ^^ { Type(_) } |||
     opt("ECMAScript code") ~ "execution context" ^^! {
       Type("ExecutionContext")

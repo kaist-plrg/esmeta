@@ -120,6 +120,22 @@ object Parser extends Parsers {
         parseAbsOpHead(parent, elem, false)
       else Nil
 
+    // handle anonymous built-in patterns in es2021
+    if (anonBuiltinPattern.matches(parent.getSecondChildContent)) {
+      val anonBuiltinPattern(name) = parent.getSecondChildContent
+      val rname = name.trim.split(" ").map(_.capitalize).mkString
+      val ref = BuiltinHead.Ref.YetRef(rname)
+      val ps =
+        if (anonBuiltinParamTextPattern.matches(elem.getPrevText)) {
+          builtinParamPattern
+            .findAllMatchIn(elem.getPrevText)
+            .toList
+            .map(m => Param(m.group(1).toString))
+        } else
+          List()
+      return List(BuiltinHead(ref, ps, UnknownType))
+    }
+
     // consider algorithm head types using `type` attributes
     elem.getPrevText match
       // unusual patterns
@@ -129,11 +145,13 @@ object Parser extends Parsers {
         )
       case aliasPattern() =>
         parseAbsOpHead(parent, elem, false)
+      case comparisonPattern() =>
+        parseAbsOpHead(parent, elem, false)
       case aliasPatternExample() => Nil
-      case anonBuiltinPattern(name, param) =>
+      case anonBuiltinPattern(name) => // MakeArg{Getter, Setter}
         val rname = name.trim.split(" ").map(_.capitalize).mkString
         val ref = BuiltinHead.Ref.YetRef(rname)
-        List(BuiltinHead(ref, List(Param(param)), UnknownType))
+        List(BuiltinHead(ref, List(), UnknownType))
       // normal patterns
       case _ =>
         if (isNumericMethod(parent, elem))
@@ -171,11 +189,14 @@ object Parser extends Parsers {
   private lazy val thisValuePattern =
     "The abstract operation (this\\w+Value) takes argument _(\\w+)_.*".r
   private lazy val aliasPatternExample = "Algorithm steps that say".r
-  private lazy val aliasPattern =
-    "means? the same thing as:".r
+  private lazy val aliasPattern = "means? the same thing as:".r
   private lazy val anonBuiltinPattern =
-    "When (?:a|an) ([A-Za-z.`\\- ]+) is called with argument _(\\w+)_,.*".r
+    "(?:A|An) ([A-Za-z.`\\- ]+) is an anonymous built-in function.*".r
+  private lazy val anonBuiltinParamTextPattern =
+    "When (?:a|an) [A-Za-z.`\\- ]+ is called with argument.*".r
+  private lazy val builtinParamPattern = "_(\\w+)_".r
   private lazy val shorthandPattern = "Is a shorthand that is defined as.*".r
+  private lazy val comparisonPattern = "The comparison.*".r
 
   // numeric method
   private lazy val numericMethodPattern =
@@ -187,9 +208,12 @@ object Parser extends Parsers {
   // host-defined abstract operation
   private lazy val hostDefinedOpPattern =
     "The host-defined abstract operation.*".r
+  private lazy val defaultImplPattern =
+    "The default implementation of.*".r
   private def isHostDefinedOp(parent: Element, elem: Element): Boolean =
     parent.attr("type") == "host-defined abstract operation" ||
-    hostDefinedOpPattern.matches(elem.getPrevText)
+    hostDefinedOpPattern.matches(elem.getPrevText) ||
+    defaultImplPattern.matches(elem.getPrevText)
 
   // abstract operation
   private lazy val abstractOpPattern = "The abstract operation.*".r
@@ -386,6 +410,12 @@ object Parser extends Parsers {
       case "sec-throwcompletion"
           if parent.attr("type") != "abstract operation" =>
         "ThrowCompletion (_argument_)"
+      case "sec-abstract-equality-comparison" =>
+        "AbstractEqualityComparison (_x_, _y_)"
+      case "sec-strict-equality-comparison" =>
+        "StrictEqualityComparison (_x_, _y_)"
+      case "sec-abstract-relational-comparison" =>
+        "AbstractRelationalComparison (_x_, _y_, _LeftFirst_)"
       case _ => headContent
 }
 

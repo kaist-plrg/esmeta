@@ -1,0 +1,3 @@
+def <NUM>:BigInt::subtract(x: BigInt, y: BigInt): Unknown {
+  return (- x y)
+}

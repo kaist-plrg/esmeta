@@ -5,8 +5,8 @@ class PartialEvalTinyTest extends EditorTest {
 
   // registration
   def init: Unit =
-      val peval = PartialEval(EditorTest.cfg)
-      peval(SyntacticView(EditorTest.parse("42 ?? #Identifier")))
+    val peval = PartialEval(EditorTest.cfg)
+    peval(SyntacticView(EditorTest.parse("42 ?? #Identifier")))
   init
 
 }

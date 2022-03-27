@@ -5,10 +5,10 @@ class ParseTinyTest extends EditorTest {
 
   // registration
   def init: Unit =
-      EditorTest.parseTest("42 ?? #Identifier")
-      EditorTest.parseTest("#Identifier + #Identifier")
-      EditorTest.parseTest("for (var #Identifier of [1, 2, 3] ) #Statement")
-  
+    EditorTest.parseTest("42 ?? #Identifier")
+    EditorTest.parseTest("#Identifier + #Identifier")
+    EditorTest.parseTest("for (var #Identifier of [1, 2, 3] ) #Statement")
+
   init
 
 }

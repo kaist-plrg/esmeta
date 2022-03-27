@@ -8,7 +8,7 @@ import esmeta.interp.State
 import esmeta.js.*
 
 class AbsSemantics(
-    val cfg: CFG
+  val cfg: CFG,
 ) {
 
   /** get syntax-directed operation(SDO) */
@@ -28,10 +28,10 @@ class AbsSemantics(
       }
   }
 
-    /** get sub index of parsed Ast */
+  /** get sub index of parsed Ast */
   val getSubIdx = cached[Ast, Int] {
     case abs: AbsSyntactic => -1
-    case lex: Lexical => 0
+    case lex: Lexical      => 0
     case Syntactic(name, _, rhsIdx, children) =>
       val rhs = cfg.grammar.nameMap(name).rhsList(rhsIdx)
       val optionals = (for {
@@ -42,7 +42,6 @@ class AbsSemantics(
         case (acc, _)           => acc
       }
   }
-
 
 }
 

@@ -327,7 +327,7 @@ trait Parsers extends IndentParsers {
 
   // `source text` expressions
   lazy val sourceTextExpr: PL[SourceTextExpression] =
-    (("the source text matched by" | "the code matched by" | "the source text matching") ~> expr) ^^ {
+    (("the source text matched by" | "the code matched by" | "the source text matching" | "the source code matching") ~> expr) ^^ {
       case e =>
         SourceTextExpression(e)
     }

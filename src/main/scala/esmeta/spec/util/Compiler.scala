@@ -52,7 +52,7 @@ class Compiler(val spec: Spec) {
   // list of function names which need to replace return step return to resumed step
   // since they have no note step for that return
   private val fixReturnAOs =
-    List("GeneratorStart", "AsyncBlockStart", "AsyncGeneratorStart")
+    List("GeneratorStart", "AsyncFunctionStart", "AsyncGeneratorStart")
 
   // list of function names which need to replace head to built-in
   // when creating closure (ex: Await)

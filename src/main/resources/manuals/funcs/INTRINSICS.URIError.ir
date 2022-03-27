@@ -12,7 +12,8 @@ def <BUILTIN>:INTRINSICS.URIError(this: Any, argumentsList: Any, NewTarget: Any)
   if %2 {
     call %3 = clo<ToString>(message)
     let msg = [? %3]
-    call %4 = clo<CreateNonEnumerableDataPropertyOrThrow>(O, "message", msg)
+    let msgDesc = (new PropertyDescriptor("Value" -> msg, "Writable" -> true, "Enumerable" -> false, "Configurable" -> true))
+    call %4 = clo<DefinePropertyOrThrow>(O, "message", msgDesc)
     [! %4]
   } else {}
   return O

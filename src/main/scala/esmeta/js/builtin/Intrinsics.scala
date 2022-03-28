@@ -67,6 +67,12 @@ case class Intrinsics(cfg: CFG) {
       ),
       nmap = List(
         "length" -> DataProperty(Number(1.0), F, F, T),
+        "name" -> DataProperty(
+          Str("Object"),
+          F,
+          F,
+          T,
+        ), // TODO consider property order
         "prototype" -> DataProperty(intrAddr("Object.prototype"), F, F, F),
       ),
     ),
@@ -93,6 +99,12 @@ case class Intrinsics(cfg: CFG) {
       ),
       nmap = List(
         "length" -> DataProperty(Number(1.0), F, F, T),
+        "name" -> DataProperty(
+          Str("Function"),
+          F,
+          F,
+          T,
+        ), // TODO consider property order
         "prototype" -> DataProperty(intrAddr("Function.prototype"), F, F, F),
       ),
     ),

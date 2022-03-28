@@ -718,7 +718,7 @@ class Compiler(val spec: Spec) {
             val tv = toERef(fb, x, EStr("Type"))
             and(EIsCompletion(x), is(tv, ECONST_NORMAL))
           case Finite =>
-            not(or(is(x, posInf), is(x, negInf)))
+            not(or(or(is(x, posInf), is(x, negInf)), is(x, nan)))
           case Duplicated =>
             EDuplicated(x)
           case Present =>
@@ -882,6 +882,7 @@ class Compiler(val spec: Spec) {
   private val one = EMathVal(BigDecimal.exact(1))
   private val posInf = ENumber(Double.PositiveInfinity)
   private val negInf = ENumber(Double.NegativeInfinity)
+  private val nan = ENumber(Double.NaN)
   private val T = EBool(true)
   private val F = EBool(false)
 

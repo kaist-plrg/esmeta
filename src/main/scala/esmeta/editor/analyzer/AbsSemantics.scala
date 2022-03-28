@@ -1,54 +1,65 @@
 package esmeta.editor.analyzer
 
+import esmeta.{DEBUG}
 import esmeta.cfg.CFG
 import esmeta.js.Ast
-import esmeta.cfg.Func
+import esmeta.cfg.{Func, Node, Call}
 import esmeta.util.BaseUtils.*
 import esmeta.interp.State
 import esmeta.editor.sview.*
+import esmeta.editor.util.{Worklist, QueueWorklist}
+import scala.annotation.tailrec
+import esmeta.editor.util.CFGHelper
+import esmeta.error.AnalysisTimeoutError
 
-class AbsSemantics(
-  val cfg: CFG,
+case class AbsSemantics[AbsState, AbsRet](
+  val cfgHelper: CFGHelper,
+  var npMap: Map[NodePoint[Node], AbsState] = Map(),
+  var rpMap: Map[ReturnPoint, AbsRet] = Map(),
+  var callInfo: Map[NodePoint[Call], AbsState] = Map(),
+  var retEdges: Map[ReturnPoint, Set[NodePoint[Call]]] = Map(),
+  var loopOut: Map[View, Set[View]] = Map(),
+  timeLimit: Option[Long] = None,
 ) {
 
-  /** get syntax-directed operation(SDO) */
-  val getSDO = cached[(SyntacticView, String), Option[(SyntacticView, Func)]] {
-    case (ast, operation) =>
-      val fnameMap = cfg.fnameMap
-      ast.chains.foldLeft[Option[(SyntacticView, Func)]](None) {
-        case (None, ast0) =>
-          val subIdx = getSubIdx(ast0)
-          val fname = s"${ast0.name}[${ast0.idx},${subIdx}].$operation"
-          fnameMap.get(fname) match
-            case Some(sdo) => Some(ast0, sdo)
-            case None if AbsSemantics.defaultCases contains operation =>
-              Some(ast0, fnameMap(s"<DEFAULT>.$operation"))
-            case _ => None
-        case (res: Some[_], _) => res
-      }
+  // the number of iterations
+  def getIter: Int = iter
+  private var iter: Int = 0
+
+  // set start time of analyzer
+  val startTime: Long = System.currentTimeMillis
+
+  // iteration period for check
+  val CHECK_PERIOD = 10000
+
+  // a worklist of control points
+  val worklist: Worklist[ControlPoint] = new QueueWorklist(npMap.keySet)
+
+  val transfer: AbsTransfer[AbsState, AbsRet] = AbsTransfer(this)
+
+  // fixpiont computation
+  @tailrec
+  final def fixpoint: AbsSemantics[AbsState, AbsRet] = worklist.next match {
+    case Some(cp) => {
+      iter += 1
+
+      // check time limit
+      if (iter % CHECK_PERIOD == 0) timeLimit.map(limit => {
+        val duration = (System.currentTimeMillis - startTime) / 1000
+        if (duration > limit) throw AnalysisTimeoutError
+      })
+
+      // text-based debugging
+      if (DEBUG) println(s"${cp.func.name}:$cp")
+
+      // abstract transfer for the current control point
+      transfer(cp)
+
+      // keep going
+      fixpoint
+    }
+    case None =>
+      // final result
+      this
   }
-
-  /** get sub index of parsed Ast */
-  val getSubIdx = cached[SyntacticView, Int] {
-    case abs: AbsSyntactic => -1
-    case lex: Lexical      => 0
-    case Syntactic(name, _, rhsIdx, children) =>
-      val rhs = cfg.grammar.nameMap(name).rhsList(rhsIdx)
-      val optionals = (for {
-        (opt, child) <- rhs.nts.map(_.optional) zip children if opt
-      } yield !child.isEmpty)
-      optionals.reverse.zipWithIndex.foldLeft(0) {
-        case (acc, (true, idx)) => acc + scala.math.pow(2, idx).toInt
-        case (acc, _)           => acc
-      }
-  }
-
-}
-
-object AbsSemantics {
-  val defaultCases = List(
-    "Contains",
-    "AllPrivateIdentifiersValid",
-  )
-
 }

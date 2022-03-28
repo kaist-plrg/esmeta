@@ -1,0 +1,76 @@
+def AbstractRelationalComparison(x: Unknown, y: Unknown, LeftFirst: Unknown): Unknown {
+  if (= LeftFirst true) {
+    call %0 = clo<ToPrimitive>(x, ~number~)
+    let px = [? %0]
+    call %1 = clo<ToPrimitive>(y, ~number~)
+    let py = [? %1]
+  } else {
+    nop
+    call %2 = clo<ToPrimitive>(y, ~number~)
+    let py = [? %2]
+    call %3 = clo<ToPrimitive>(x, ~number~)
+    let px = [? %3]
+  }
+  if (&& (= (typeof px) @String) (= (typeof py) @String)) {
+    call %4 = clo<IsStringPrefix>(py, px)
+    if (= %4 true) {
+      return false
+    } else {}
+    call %5 = clo<IsStringPrefix>(px, py)
+    if (= %5 true) {
+      return true
+    } else {}
+    let k = 0
+    loop[repeat] (= px[k] py[k]) k = (+ k 1)
+    let m = ([math] px[k])
+    let n = ([math] py[k])
+    if (< m n) {
+      return true
+    } else {
+      return false
+    }
+  } else {
+    if (&& (= (typeof px) @BigInt) (= (typeof py) @String)) {
+      call %6 = clo<StringToBigInt>(py)
+      let ny = [! %6]
+      if (= ny NaN) {
+        return undefined
+      } else {}
+      call %7 = @PRIMITIVE[@BigInt].lessThan(px, ny)
+      return %7
+    } else {}
+    if (&& (= (typeof px) @String) (= (typeof py) @BigInt)) {
+      call %8 = clo<StringToBigInt>(px)
+      let nx = [! %8]
+      if (= nx NaN) {
+        return undefined
+      } else {}
+      call %9 = @PRIMITIVE[@BigInt].lessThan(nx, py)
+      return %9
+    } else {}
+    nop
+    call %10 = clo<ToNumeric>(px)
+    let nx = [? %10] // BUG
+    call %11 = clo<ToNumeric>(py)
+    let ny = [? %11] // BUG
+    if (= (typeof nx) (typeof ny)) {
+      call %12 = @PRIMITIVE[(typeof nx)].lessThan(nx, ny)
+      return %12
+    } else {}
+    assert (|| (&& (= (typeof nx) @BigInt) (= (typeof ny) @Number)) (&& (= (typeof nx) @Number) (= (typeof ny) @BigInt)))
+    if (|| (= nx NaN) (= ny NaN)) {
+      return undefined
+    } else {}
+    if (|| (= nx -INF) (= ny +INF)) {
+      return true
+    } else {}
+    if (|| (= nx +INF) (= ny -INF)) {
+      return false
+    } else {}
+    if (< ([math] nx) ([math] ny)) {
+      return true
+    } else {
+      return false
+    }
+  }
+}

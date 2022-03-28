@@ -123,17 +123,18 @@ object Parser extends Parsers {
     // handle anonymous built-in patterns in es2021
     if (anonBuiltinPattern.matches(parent.getSecondChildContent)) {
       val anonBuiltinPattern(name) = parent.getSecondChildContent
-      val rname = name.trim.split(" ").map(_.capitalize).mkString
-      val ref = BuiltinHead.Ref.YetRef(rname)
       val ps =
         if (anonBuiltinParamTextPattern.matches(elem.getPrevText)) {
           builtinParamPattern
             .findAllMatchIn(elem.getPrevText)
             .toList
             .map(m => Param(m.group(1).toString))
-        } else
-          List()
-      return List(BuiltinHead(ref, ps, UnknownType))
+        } else List()
+      return List(BuiltinHead(getAnonBuiltinRef(name), ps, UnknownType))
+    } else if (anonBuiltinRestParamTextPattern.matches(elem.getPrevText)) {
+      val anonBuiltinRestParamTextPattern(name, p) = elem.getPrevText
+      val ps = List(Param(p, kind = Param.Kind.Variadic))
+      return List(BuiltinHead(getAnonBuiltinRef(name), ps, UnknownType))
     }
 
     // consider algorithm head types using `type` attributes
@@ -149,9 +150,7 @@ object Parser extends Parsers {
         parseAbsOpHead(parent, elem, false)
       case aliasPatternExample() => Nil
       case anonBuiltinPattern(name) => // MakeArg{Getter, Setter}
-        val rname = name.trim.split(" ").map(_.capitalize).mkString
-        val ref = BuiltinHead.Ref.YetRef(rname)
-        List(BuiltinHead(ref, List(), UnknownType))
+        List(BuiltinHead(getAnonBuiltinRef(name), List(), UnknownType))
       // normal patterns
       case _ =>
         if (isNumericMethod(parent, elem))
@@ -194,6 +193,8 @@ object Parser extends Parsers {
     "(?:A|An) ([A-Za-z.`\\- ]+) is an anonymous built-in function.*".r
   private lazy val anonBuiltinParamTextPattern =
     "When (?:a|an) [A-Za-z.`\\- ]+ is called with argument.*".r
+  private lazy val anonBuiltinRestParamTextPattern =
+    "When (?:a|an) ([A-Za-z.`\\- ]+) is called with zero or more argument.*_(\\w+)_.*".r
   private lazy val builtinParamPattern = "_(\\w+)_".r
   private lazy val shorthandPattern = "Is a shorthand that is defined as.*".r
   private lazy val comparisonPattern = "The comparison.*".r
@@ -417,6 +418,11 @@ object Parser extends Parsers {
       case "sec-abstract-relational-comparison" =>
         "AbstractRelationalComparison (_x_, _y_, _LeftFirst_)"
       case _ => headContent
+
+  // normalize anonymous builtin function name
+  private def getAnonBuiltinRef(name: String): BuiltinHead.Ref =
+    val normalized = name.trim.split(" ").map(_.capitalize).mkString
+    BuiltinHead.Ref.YetRef(normalized)
 }
 
 /** specification parsers */

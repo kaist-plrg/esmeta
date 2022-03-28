@@ -1,0 +1,32 @@
+def <NUM>:Number::multiply(x: Unknown, y: Unknown): Unknown {
+  if (|| (= x NaN) (= y NaN)) {
+    return NaN
+  } else {}
+  if (|| (= x +INF) (= x -INF)) {
+    if (|| (= y 0.0f) (= y -0.0f)) {
+      return NaN
+    } else {}
+    if (< 0.0f y) {
+      return x
+    } else {}
+    return (- x)
+  } else {}
+  if (|| (= y +INF) (= y -INF)) {
+    if (|| (= x 0.0f) (= x -0.0f)) {
+      return NaN
+    } else {}
+    if (< 0.0f x) {
+      return y
+    } else {}
+    return (- y)
+  } else {}
+  if (= x -0.0f) {
+    if (|| (= y -0.0f) (< y -0.0f)) return 0.0f
+    else return -0.0f
+  } else {}
+  if (= y -0.0f) {
+    if (|| (= x -0.0f) (< x -0.0f)) return 0.0f
+    else return -0.0f
+  } else {}
+  return ([number] (* ([math] x) ([math] y)))
+}

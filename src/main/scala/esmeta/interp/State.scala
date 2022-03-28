@@ -74,7 +74,6 @@ case class State(
         val propStr = prop.asStr
         if (propStr == "parent") ast.parent.map(AstValue(_)).getOrElse(Absent)
         else throw LexicalCalled(apply(lex, propStr))
-      case abs: AbsSyntactic => error("abs")
 
   def apply(str: String, prop: PureValue): PureValue = prop match
     case Str("length") => Math(BigDecimal.exact(str.length))

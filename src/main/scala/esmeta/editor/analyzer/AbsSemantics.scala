@@ -5,17 +5,17 @@ import esmeta.js.Ast
 import esmeta.cfg.Func
 import esmeta.util.BaseUtils.*
 import esmeta.interp.State
-import esmeta.js.*
+import esmeta.editor.sview.*
 
 class AbsSemantics(
   val cfg: CFG,
 ) {
 
   /** get syntax-directed operation(SDO) */
-  val getSDO = cached[(Ast, String), Option[(Ast, Func)]] {
+  val getSDO = cached[(SyntacticView, String), Option[(SyntacticView, Func)]] {
     case (ast, operation) =>
       val fnameMap = cfg.fnameMap
-      ast.chains.foldLeft[Option[(Ast, Func)]](None) {
+      ast.chains.foldLeft[Option[(SyntacticView, Func)]](None) {
         case (None, ast0) =>
           val subIdx = getSubIdx(ast0)
           val fname = s"${ast0.name}[${ast0.idx},${subIdx}].$operation"
@@ -29,7 +29,7 @@ class AbsSemantics(
   }
 
   /** get sub index of parsed Ast */
-  val getSubIdx = cached[Ast, Int] {
+  val getSubIdx = cached[SyntacticView, Int] {
     case abs: AbsSyntactic => -1
     case lex: Lexical      => 0
     case Syntactic(name, _, rhsIdx, children) =>
@@ -50,4 +50,5 @@ object AbsSemantics {
     "Contains",
     "AllPrivateIdentifiersValid",
   )
+
 }

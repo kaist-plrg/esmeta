@@ -1,6 +1,7 @@
 package esmeta.editor
 
 import esmeta.editor.util.*
+import esmeta.spec.Grammar
 import esmeta.util.BaseUtils.*
 
 /** editor elements */
@@ -11,17 +12,17 @@ trait EditorElem {
   def toString(
     detail: Boolean = true,
     location: Boolean = false,
+    grammar: Option[Grammar] = None,
   ): String = {
-    val stringifier = EditorElem.getStringifier((detail, location))
+    val stringifier = EditorElem.getStringifier(detail, location, grammar)
     import stringifier.elemRule
     stringify(this)
   }
 }
 
 object EditorElem {
-  val getStringifier = {
-    cached[(Boolean, Boolean), Stringifier](
-      new Stringifier(_, _),
-    )
-  }
+  val getStringifier =
+    cached[(Boolean, Boolean, Option[Grammar]), Stringifier] {
+      new Stringifier(_, _, _)
+    }
 }

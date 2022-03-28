@@ -1,8 +1,7 @@
-package esmeta.js.util
+package esmeta.editor.util
 
 import esmeta.*
 import esmeta.error.*
-import esmeta.js.*
 import esmeta.spec.*
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
@@ -10,6 +9,8 @@ import esmeta.util.SystemUtils.*
 import scala.util.parsing.combinator.*
 import scala.util.parsing.input.*
 import scala.util.matching.Regex
+import esmeta.js.util.LAParsers
+import esmeta.editor.sview.*
 
 /** JavaScript parser */
 case class Parser(val grammar: Grammar) extends LAParsers {
@@ -21,8 +22,8 @@ case class Parser(val grammar: Grammar) extends LAParsers {
     * @param args
     *   boolean arguments
     */
-  def apply(name: String, args: List[Boolean] = Nil): LAFrom[Ast] =
-    given LAParser[Ast] = parsers(name)(args)
+  def apply(name: String, args: List[Boolean] = Nil): LAFrom[SyntacticView] =
+    given LAParser[SyntacticView] = parsers(name)(args)
     new LAFrom
 
   class LAFrom[T](using parser: LAParser[T]) {
@@ -31,7 +32,7 @@ case class Parser(val grammar: Grammar) extends LAParsers {
   }
 
   // parsers
-  lazy val parsers: Map[String, ESParser[Ast]] = (for {
+  lazy val parsers: Map[String, ESParser[SyntacticView]] = (for {
     prod <- grammar.prods
     if prod.kind == Production.Kind.Syntactic
     name = prod.lhs.name
@@ -50,7 +51,7 @@ case class Parser(val grammar: Grammar) extends LAParsers {
     name: String,
     args: List[Boolean],
     idx: Int,
-    children: List[Option[Ast]],
+    children: List[Option[SyntacticView]],
   ): Syntactic =
     val syn = Syntactic(name, args, idx, children)
     // set parent edge
@@ -59,7 +60,7 @@ case class Parser(val grammar: Grammar) extends LAParsers {
     syn
 
   // get a parser
-  private def getParser(prod: Production): ESParser[Ast] = memo(args => {
+  private def getParser(prod: Production): ESParser[SyntacticView] = memo(args => {
     val Production(lhs, _, _, rhsList) = prod
     val Lhs(name, params) = lhs
     val argsSet = getArgs(params, args)
@@ -72,8 +73,10 @@ case class Parser(val grammar: Grammar) extends LAParsers {
       .filter { case (r, _) => !isLR(name, r) }
       .map { case (r, i) => getParsers(name, args, argsSet, i, r) }
 
-    if (lrs.isEmpty) log(nlrs.reduce(_ | _))(name)
-    else log(resolveLR(nlrs.reduce(_ | _), lrs.reduce(_ | _)))(name)
+    val abs =
+      nt(name, parser2packrat(literal(s"#$name"))) ^^^ AbsSyntactic(name)
+    if (lrs.isEmpty) log(abs | nlrs.reduce(_ | _))(name)
+    else log(abs | resolveLR(nlrs.reduce(_ | _), lrs.reduce(_ | _)))(name)
   })
 
   // get a sub parser for direct left-recursive cases
@@ -83,14 +86,14 @@ case class Parser(val grammar: Grammar) extends LAParsers {
     argsSet: Set[String],
     idx: Int,
     rhs: Rhs,
-  ): FLAParser[Ast] = log(rhs.condition match {
+  ): FLAParser[SyntacticView] = log(rhs.condition match {
     case Some(RhsCond(name, pass)) if (argsSet contains name) != pass =>
       MISMATCH
     case _ =>
-      val base: LAParser[List[Option[Ast]]] = MATCH ^^^ Nil
+      val base: LAParser[List[Option[SyntacticView]]] = MATCH ^^^ Nil
       rhs.symbols.drop(1).foldLeft(base)(appendParser(name, _, _, argsSet)) ^^ {
         case cs =>
-          (base: Ast) => syntactic(name, args, idx, Some(base) :: cs.reverse)
+          (base: SyntacticView) => syntactic(name, args, idx, Some(base) :: cs.reverse)
       }
   })(s"$name$idx")
 
@@ -101,11 +104,11 @@ case class Parser(val grammar: Grammar) extends LAParsers {
     argsSet: Set[String],
     idx: Int,
     rhs: Rhs,
-  ): LAParser[Ast] = log(rhs.condition match {
+  ): LAParser[SyntacticView] = log(rhs.condition match {
     case Some(RhsCond(name, pass)) if (argsSet contains name) != pass =>
       MISMATCH
     case _ =>
-      val base: LAParser[List[Option[Ast]]] = MATCH ^^^ Nil
+      val base: LAParser[List[Option[SyntacticView]]] = MATCH ^^^ Nil
       rhs.symbols.foldLeft(base)(appendParser(name, _, _, argsSet)) ^^ {
         case cs => syntactic(name, args, idx, cs.reverse)
       }
@@ -114,10 +117,10 @@ case class Parser(val grammar: Grammar) extends LAParsers {
   // append a parser
   private def appendParser(
     name: String,
-    prev: LAParser[List[Option[Ast]]],
+    prev: LAParser[List[Option[SyntacticView]]],
     symbol: Symbol,
     argsSet: Set[String],
-  ): LAParser[List[Option[Ast]]] =
+  ): LAParser[List[Option[SyntacticView]]] =
     symbol match {
       case Terminal("(") if name == "DoWhileStatement" => prev <~ doWhileCloseT
       case Terminal(term)                              => prev <~ t(term)
@@ -209,7 +212,7 @@ case class Parser(val grammar: Grammar) extends LAParsers {
         if (curChar == ';') return None
 
         // 1-1. The offending token is separated from the previous token
-        //      by at least one LineTerminator
+        //      by at leSyntacticView one LineTerminator
         if (!parse(strNoLineTerminator, revStr).successful) return insert
 
         // 1-2. The offending token is '}'
@@ -223,7 +226,7 @@ case class Parser(val grammar: Grammar) extends LAParsers {
         }
 
         // 3. the restricted token is separated from the previous token
-        //    by at least one LineTerminator, then a semicolon is automatically
+        //    by at leSyntacticView one LineTerminator, then a semicolon is automatically
         //    inserted before the restricted token.
         // TODO
 
@@ -397,8 +400,12 @@ case class Parser(val grammar: Grammar) extends LAParsers {
 
   // TODO more general rule
   // handle indirect left-recursive case
-  private def handleLR: ESParser[Ast] = memo(args => {
+  private def handleLR: ESParser[SyntacticView] = memo(args => {
     log(
+      nt(
+        "CoalesceExpressionHead",
+        parser2packrat(literal("#CoalesceExpressionHead")),
+      ) ^^^ AbsSyntactic("CoalesceExpressionHead") |
       resolveLR(
         log(MATCH ~ parsers("BitwiseORExpression")(args) ^^ {
           case _ ~ x0 =>
@@ -407,7 +414,7 @@ case class Parser(val grammar: Grammar) extends LAParsers {
         log(
           (MATCH <~ t("??")) ~ parsers("BitwiseORExpression")(args) ^^ {
             case _ ~ x0 => (
-              (x: Ast) =>
+              (x: SyntacticView) =>
                 val expr = syntactic(
                   "CoalesceExpression",
                   args,

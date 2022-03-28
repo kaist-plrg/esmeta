@@ -30,7 +30,6 @@ class Stringifier(
     val nameMap = grammar.nameMap
     def aux(ast: Ast): Unit = ast match
       case Lexical(name, str) => app >> str >> " "
-      case AbsSyntactic(name) => app >> "#" >> name >> " "
       case Syntactic(name, args, rhsIdx, children) =>
         var cs = children
         for (symbol <- nameMap(name).rhsList(rhsIdx).symbols) symbol match
@@ -55,6 +54,4 @@ class Stringifier(
         if (detail) app.wrap("(", ")")(children.map(app :> _ >> ",")) else app
       case Lexical(name, str) =>
         app >> "|" >> name >> "|(" >> str >> ")"
-      case AbsSyntactic(name) =>
-        app >> "#" >> name
 }

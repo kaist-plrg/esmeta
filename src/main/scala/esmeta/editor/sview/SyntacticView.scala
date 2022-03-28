@@ -5,6 +5,7 @@ import esmeta.editor.*
 
 // syntactic view: can be changed at future
 sealed trait SyntacticView extends EditorElem {
+
   /** production names */
   val name: String
 
@@ -49,7 +50,7 @@ sealed trait SyntacticView extends EditorElem {
 
 /** ASTs constructed by abstract productions */
 case class AbsSyntactic(
-  name: String
+  name: String,
 ) extends SyntacticView
 
 /** ASTs constructed by syntatic productions */

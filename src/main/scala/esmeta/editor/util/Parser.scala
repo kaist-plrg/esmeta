@@ -60,24 +60,25 @@ case class Parser(val grammar: Grammar) extends LAParsers {
     syn
 
   // get a parser
-  private def getParser(prod: Production): ESParser[SyntacticView] = memo(args => {
-    val Production(lhs, _, _, rhsList) = prod
-    val Lhs(name, params) = lhs
-    val argsSet = getArgs(params, args)
+  private def getParser(prod: Production): ESParser[SyntacticView] =
+    memo(args => {
+      val Production(lhs, _, _, rhsList) = prod
+      val Lhs(name, params) = lhs
+      val argsSet = getArgs(params, args)
 
-    val lrs = rhsList.zipWithIndex
-      .filter { case (r, _) => isLR(name, r) }
-      .map { case (r, i) => getSubParsers(name, args, argsSet, i, r) }
+      val lrs = rhsList.zipWithIndex
+        .filter { case (r, _) => isLR(name, r) }
+        .map { case (r, i) => getSubParsers(name, args, argsSet, i, r) }
 
-    val nlrs = rhsList.zipWithIndex
-      .filter { case (r, _) => !isLR(name, r) }
-      .map { case (r, i) => getParsers(name, args, argsSet, i, r) }
+      val nlrs = rhsList.zipWithIndex
+        .filter { case (r, _) => !isLR(name, r) }
+        .map { case (r, i) => getParsers(name, args, argsSet, i, r) }
 
-    val abs =
-      nt(name, parser2packrat(literal(s"#$name"))) ^^^ AbsSyntactic(name)
-    if (lrs.isEmpty) log(abs | nlrs.reduce(_ | _))(name)
-    else log(abs | resolveLR(nlrs.reduce(_ | _), lrs.reduce(_ | _)))(name)
-  })
+      val abs =
+        nt(name, parser2packrat(literal(s"#$name"))) ^^^ AbsSyntactic(name)
+      if (lrs.isEmpty) log(abs | nlrs.reduce(_ | _))(name)
+      else log(abs | resolveLR(nlrs.reduce(_ | _), lrs.reduce(_ | _)))(name)
+    })
 
   // get a sub parser for direct left-recursive cases
   private def getSubParsers(
@@ -93,7 +94,8 @@ case class Parser(val grammar: Grammar) extends LAParsers {
       val base: LAParser[List[Option[SyntacticView]]] = MATCH ^^^ Nil
       rhs.symbols.drop(1).foldLeft(base)(appendParser(name, _, _, argsSet)) ^^ {
         case cs =>
-          (base: SyntacticView) => syntactic(name, args, idx, Some(base) :: cs.reverse)
+          (base: SyntacticView) =>
+            syntactic(name, args, idx, Some(base) :: cs.reverse)
       }
   })(s"$name$idx")
 

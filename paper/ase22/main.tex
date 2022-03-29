@@ -1,0 +1,134 @@
+\documentclass[sigconf,review,anonymous]{acmart}
+
+% TODO copyright
+\setcopyright{none}
+% \setcopyright{acmcopyright}
+% \copyrightyear{2018}
+% \acmYear{2018}
+% \acmDOI{XXXXXXX.XXXXXXX}
+
+% TODO conference
+% \acmConference[Conference acronym 'XX]{Make sure to enter the correct
+%   conference title from your rights confirmation emai}{June 03--05,
+%   2018}{Woodstock, NY}
+% \acmPrice{15.00}
+% \acmISBN{978-1-4503-XXXX-X/18/06}
+
+%% Bibliography style
+\bibliographystyle{ACM-Reference-Format}
+
+%% macros with packages
+\input{macros}
+
+%% start document
+\begin{document}
+
+%% Title information
+\title[Reducing Language JavaScript Specification and Tests
+with Syntactic Views]
+{Reducing Language JavaScript Specification and Tests\\
+with Syntactic Views}
+
+% \author{Seungmin An}
+% \authornote{These authors contributed equally to this work.}
+% \orcid{0000-0002-4281-9386}
+% \affiliation{
+%   \department{School of Computing}
+%   \institution{KAIST}
+%   \city{Daejeon}
+%   \country{South Korea}
+% }
+% \email{h2oche@kaist.ac.kr}
+% 
+% \author{Jihee Park}
+% \authornotemark[1]
+% \orcid{0000-0001-6792-5161}
+% \affiliation{
+%   \department{School of Computing}
+%   \institution{KAIST}
+%   \city{Daejeon}
+%   \country{South Korea}
+% }
+% \email{jiheepark@kaist.ac.kr}
+% 
+% \author{Jihyeok Park}
+% \authornotemark[1]
+% \orcid{0000-0001-8387-1984}
+% \affiliation{
+%   \institution{Oracle Labs}
+%   \city{Brisbane}
+%   \country{Australia}
+% }
+% \email{jihyeok.park@oracle.com}
+% 
+% \author{Sukyoung Ryu}
+% \orcid{0000-0002-0019-9772}
+% \affiliation{
+%   \department{School of Computing}
+%   \institution{KAIST}
+%   \city{Daejeon}
+%   \country{South Korea}
+% }
+% \email{sryu.cs@kaist.ac.kr}
+
+\input{abstract}
+
+% TODO 2012 ACM Computing Classification System (CSS) concepts
+% \begin{CCSXML}
+% <ccs2012>
+%  <concept>
+%   <concept_id>10010520.10010553.10010562</concept_id>
+%   <concept_desc>Computer systems organization~Embedded systems</concept_desc>
+%   <concept_significance>500</concept_significance>
+%  </concept>
+%  <concept>
+%   <concept_id>10010520.10010575.10010755</concept_id>
+%   <concept_desc>Computer systems organization~Redundancy</concept_desc>
+%   <concept_significance>300</concept_significance>
+%  </concept>
+%  <concept>
+%   <concept_id>10010520.10010553.10010554</concept_id>
+%   <concept_desc>Computer systems organization~Robotics</concept_desc>
+%   <concept_significance>100</concept_significance>
+%  </concept>
+%  <concept>
+%   <concept_id>10003033.10003083.10003095</concept_id>
+%   <concept_desc>Networks~Network reliability</concept_desc>
+%   <concept_significance>100</concept_significance>
+%  </concept>
+% </ccs2012>
+% \end{CCSXML}
+%
+% \ccsdesc[500]{Computer systems organization~Embedded systems}
+% \ccsdesc[300]{Computer systems organization~Redundancy}
+% \ccsdesc{Computer systems organization~Robotics}
+% \ccsdesc[100]{Networks~Network reliability}
+
+\keywords{JavaScript, syntactic view, partial evaluation}
+
+\maketitle
+
+%% body of the paper
+\input{intro}
+\input{motivation}
+\input{syn-view}
+\input{spec-reduce}
+\input{test-reduce}
+\input{impl}
+\input{eval}
+\input{related}
+\input{conclusion}
+
+%% Bibliography
+
+%% the bibliography file.
+\balance
+\bibliography{ref}
+
+%% Appendix
+\appendix
+
+\input{formal}
+
+\end{document}
+\endinput

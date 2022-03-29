@@ -11,16 +11,28 @@ import esmeta.editor.util.{Worklist, QueueWorklist}
 import scala.annotation.tailrec
 import esmeta.editor.util.CFGHelper
 import esmeta.error.AnalysisTimeoutError
+import esmeta.cfg.Branch
 
-case class AbsSemantics[AbsState, AbsRet](
+class AbsSemantics(
+  val avd: AbsValueDomain,
+  val asd: AbsStateDomain[avd.type],
+  val ard: RetDomain[avd.type, asd.type],
+)(
   val cfgHelper: CFGHelper,
-  var npMap: Map[NodePoint[Node], AbsState] = Map(),
-  var rpMap: Map[ReturnPoint, AbsRet] = Map(),
-  var callInfo: Map[NodePoint[Call], AbsState] = Map(),
+  var npMap: Map[NodePoint[Node], asd.Elem] = Map(),
+  var rpMap: Map[ReturnPoint, ard.Elem] = Map(),
+  var callInfo: Map[NodePoint[Call], asd.Elem] = Map(),
   var retEdges: Map[ReturnPoint, Set[NodePoint[Call]]] = Map(),
   var loopOut: Map[View, Set[View]] = Map(),
   timeLimit: Option[Long] = None,
 ) {
+
+  type AValue = avd.Elem
+  type AState = asd.Elem
+  type AReturn = ard.Elem
+  val AValue: avd.type = avd
+  val AState: asd.type = asd
+  val AReturn: ard.type = ard
 
   // the number of iterations
   def getIter: Int = iter
@@ -35,11 +47,11 @@ case class AbsSemantics[AbsState, AbsRet](
   // a worklist of control points
   val worklist: Worklist[ControlPoint] = new QueueWorklist(npMap.keySet)
 
-  val transfer: AbsTransfer[AbsState, AbsRet] = AbsTransfer(this)
+  val transfer: AbsTransfer = AbsTransfer(this)
 
   // fixpiont computation
   @tailrec
-  final def fixpoint: AbsSemantics[AbsState, AbsRet] = worklist.next match {
+  final def fixpoint: this.type = worklist.next match {
     case Some(cp) => {
       iter += 1
 
@@ -61,5 +73,20 @@ case class AbsSemantics[AbsState, AbsRet](
     case None =>
       // final result
       this
+  }
+
+  def apply(np: NodePoint[Node]): AState =
+    npMap.getOrElse(np, AState.Bot)
+  def apply(rp: ReturnPoint): AReturn = rpMap.getOrElse(rp, AReturn.Bot)
+
+  def loopNext(view: View): View = ???
+  def loopEnter(view: View, loop: Branch): View = ???
+  def loopExit(view: View): View = ???
+
+  // update internal map
+  def +=(pair: (NodePoint[Node], AState)): Boolean = true
+
+  def initialize(view: SyntacticView): Map[NodePoint[Node], AState] = {
+    Map()
   }
 }

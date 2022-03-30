@@ -73,7 +73,7 @@ case object Extract extends Phase[Unit, Spec] {
   )
   case class Config(
     var json: Option[String] = None,
-    var version: Option[String] = None,
+    var version: Option[String] = Some("origin/es2021"),
     var log: Boolean = false,
     var stat: Boolean = false,
   )

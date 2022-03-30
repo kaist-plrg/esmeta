@@ -24,6 +24,7 @@ case object BuildCFG extends Phase[Program, CFG] {
       .replace("`", "")
     val cfg = program.toCFG
 
+    if (LOG) cfg.dumpTo(CFG_LOG_DIR)
     if (config.dot) {
       mkdir(CFG_LOG_DIR)
       // dump dot format

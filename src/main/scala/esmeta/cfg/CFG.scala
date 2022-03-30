@@ -5,6 +5,7 @@ import esmeta.cfg.util.*
 import esmeta.ir.Program
 import esmeta.spec.{Spec, TypeModel, Grammar}
 import esmeta.util.BaseUtils.*
+import esmeta.util.SystemUtils.*
 import scala.collection.mutable.ListBuffer
 
 /** control-flow graphs (CFGs) */
@@ -49,4 +50,13 @@ case class CFG(
 
   /** get the corresponding grammar */
   def grammar: Grammar = spec.grammar
+
+  /** dump funcs of cfg */
+  def dumpTo(baseDir: String): Unit =
+    mkdir(baseDir)
+    for {
+      func <- funcs
+      name = func.name
+      filename = s"$baseDir/${name.replace("/", "")}.cfg"
+    } dumpFile(func.toString(location = false), filename)
 }

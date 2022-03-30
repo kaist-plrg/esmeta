@@ -3,19 +3,25 @@ import esmeta.util.Appender.*
 import esmeta.util.Appender
 
 class RetDomain[
-  AVD <: AbsValueDomain with Singleton,
-  ASD <: AbsStateDomain[AVD] with Singleton,
-](val avd: AVD, val asd: ASD)
+  ASD <: AbsStateDomain[_] with Singleton,
+](val asd: ASD)
   extends Domain {
+
+  val AbsValue: asd.aod.avd.type = asd.aod.avd
+  type AbsValue = AbsValue.Elem
+
+  val AbsState: asd.type = asd
+  type AbsState = AbsState.Elem
+
   val Bot = Elem(
-    value = avd.Bot,
+    value = asd.aod.avd.Bot,
     state = asd.Bot,
   )
 
   // constructors
   def apply(
-    value: avd.Elem = avd.Bot,
-    state: asd.Elem = asd.Bot,
+    value: AbsValue = AbsValue.Bot,
+    state: AbsState = AbsState.Bot,
   ): Elem = Elem(value, state)
 
   // extractors
@@ -31,8 +37,8 @@ class RetDomain[
 
   // elements
   case class Elem(
-    value: avd.Elem,
-    state: asd.Elem,
+    value: AbsValue,
+    state: AbsState,
   ) extends ElemTrait {
     // partial order
     def ⊑(that: Elem): Boolean = (

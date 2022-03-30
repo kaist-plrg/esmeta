@@ -17,15 +17,12 @@ class PartialEval(cfgHelper: CFGHelper) {
   def apply(view: SyntacticView): List[IRFunc] = {
     //
     val avd: AbsValueDomain = BasicValueDomain()
-    object absStateMake extends Make[AbsStateDomain, avd.type] {
-      def apply(avd_ : avd.type): AbsStateDomain[avd_.type] =
-        BasicStateDomain(avd_)
-    }
-    val asd = absStateMake(avd)
-    val ard = RetDomain(avd, asd)
+    val aod = BasicObjDomain(avd)
+    val asd = BasicStateDomain(aod, cfgHelper.cfg)
+    val ard = RetDomain(asd)
 
     val absinit =
-      new AbsSemantics(avd, asd, ard)(
+      new AbsSemantics(ard)(
         cfgHelper,
       )
 

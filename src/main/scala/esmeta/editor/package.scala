@@ -3,6 +3,7 @@ package esmeta.editor
 import esmeta.editor.util.*
 import esmeta.spec.Grammar
 import esmeta.util.BaseUtils.*
+import esmeta.error.AnalysisImpreciseError
 
 /** editor elements */
 trait EditorElem {
@@ -26,3 +27,6 @@ object EditorElem {
       new Stringifier(_, _, _)
     }
 }
+
+// Exploded
+def exploded(msg: String = ""): Nothing = throw AnalysisImpreciseError(msg)

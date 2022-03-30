@@ -5,12 +5,6 @@ import esmeta.util.BaseUtils.*
 import esmeta.editor.analyzer.AbsValueDomain
 import esmeta.editor.analyzer.AbsStateDomain
 
-trait Make[F[
-  _ <: AbsValueDomain with Singleton,
-], AVD <: AbsValueDomain with Singleton] {
-  def apply(avd: AVD): F[avd.type]
-}
-
 // domain
 trait Domain {
   // bottom element

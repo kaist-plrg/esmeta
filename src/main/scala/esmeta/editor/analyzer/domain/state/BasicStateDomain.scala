@@ -3,15 +3,25 @@ package esmeta.editor.analyzer
 import esmeta.editor.analyzer.*
 import esmeta.util.Appender.*
 import esmeta.util.Appender
-import esmeta.ir.Id
+import esmeta.ir.{Id, Global, Local}
 import esmeta.js.Initialize
 import esmeta.cfg.CFG
 import esmeta.ir.Type
+import esmeta.interp.Str
+import esmeta.js.Syntactic
+import esmeta.js.Lexical
+import esmeta.editor.util.CFGHelper
+import esmeta.editor.sview
+import esmeta.editor.sview.SyntacticView
+import esmeta.interp.LiteralValue
+import esmeta.interp.Absent
+import esmeta.interp.*
+import esmeta.js
 
 class BasicStateDomain[AOD <: AbsObjDomain[_] with Singleton](
   aod_ : AOD,
-  cfg_ : CFG,
-) extends AbsStateDomain[AOD](aod_, cfg_) {
+  cfgHelper_ : CFGHelper,
+) extends AbsStateDomain[AOD](aod_, cfgHelper_) {
 
   type AbsValue = aod.avd.Elem
   import AbsValue.{Elem as _, *}
@@ -76,7 +86,16 @@ class BasicStateDomain[AOD <: AbsObjDomain[_] with Singleton](
     }
 
     // join operator
-    def ⊔(that: Elem): Elem = this
+    def ⊔(that: Elem): Elem = {
+      Elem(
+        reachable = this.reachable || that.reachable,
+        locals = (this.locals.keySet ++ that.locals.keySet).toList
+          .map(x => {
+            x -> this.lookupLocal(x) ⊔ that.lookupLocal(x)
+          })
+          .toMap,
+      )
+    }
 
     // handle returns (this: return states / to: caller states)
     def doReturn(to: Elem, defs: Iterable[(Id, AbsValue)]): Elem = Elem(
@@ -91,12 +110,86 @@ class BasicStateDomain[AOD <: AbsObjDomain[_] with Singleton](
     def reachableLocs: Set[Loc] = Set()
 
     // lookup variable directly
-    def directLookup(x: Id): AbsValue = AbsValue.Bot
+    def directLookup(x: Id): AbsValue = x match {
+      case x: Global => lookupGlobal(x)
+      case x: Local  => lookupLocal(x)
+    }
 
     // getters
-    def apply(rv: AbsRefValue, cp: ControlPoint): AbsValue = AbsValue.Bot
-    def apply(x: Id, cp: ControlPoint): AbsValue = AbsValue.Bot
-    def apply(base: AbsValue, prop: AbsValue): AbsValue = AbsValue.Bot
+    def apply(rv: AbsRefValue, cp: ControlPoint): AbsValue = rv match {
+      case AbsIdValue(id) => directLookup(id)
+      case AbsPropValue(base, prop) => {
+        apply(base, prop) // println(s"base: $base, prop: $prop");
+      }
+    }
+    def apply(x: Id, cp: ControlPoint): AbsValue = directLookup(x)
+    def apply(base: AbsValue, prop: AbsValue): AbsValue =
+      (base.getSingle(AstKind), prop.getSingle(LiteralKind)) match {
+        case (FlatElem(ASView(view)), FlatElem(ALiteral(a))) => {
+          apply(view, a)
+        }
+        case (FlatElem(AAst(ast: Syntactic)), FlatElem(ALiteral(a))) => {
+          apply(ast, a)
+        }
+        case (FlatElem(AAst(ast: Lexical)), FlatElem(ALiteral(a))) => {
+          apply(ast, a)
+        }
+        case (_, _) => AbsValue.Top
+      }
+
+    def apply(view: SyntacticView, lit: LiteralValue): AbsValue = view match
+      case syn: sview.Syntactic =>
+        lit match
+          case Str("parent") =>
+            syn.parent
+              .map((x) => AbsValue(ASView(x)))
+              .getOrElse(AbsValue(ALiteral(Absent)))
+          case Str("children") =>
+            AbsValue.Top
+          case Str(propStr) =>
+            apply(syn, propStr)
+          case Math(n) if n.isValidInt =>
+            syn.children(n.toInt) match
+              case Some(child) => AbsValue(ASView(child))
+              case None        => AbsValue(ALiteral(Absent))
+          case _ => AbsValue.Bot
+      case lex: sview.Lexical =>
+        val propStr = lit.asStr
+        if (propStr == "parent")
+          view.parent
+            .map((x) => AbsValue(ASView(x)))
+            .getOrElse(AbsValue(ALiteral(Absent)))
+        else throw LexicalCalled(apply(js.Lexical(lex.name, lex.str), propStr))
+      case abs: sview.AbsSyntactic =>
+        lit match
+          case Str("parent") =>
+            view.parent
+              .map((x) => AbsValue(ASView(x)))
+              .getOrElse(AbsValue(ALiteral(Absent)))
+          case _ => AbsValue.Top
+
+    def apply(ast: Syntactic, lit: LiteralValue): AbsValue = lit match
+      case Str("parent") =>
+        ast.parent
+          .map((x) => AbsValue(AAst(x)))
+          .getOrElse(AbsValue(ALiteral(Absent)))
+      case Str("children") =>
+        AbsValue.Top
+      case Str(propStr) =>
+        apply(ast, propStr)
+      case Math(n) if n.isValidInt =>
+        ast.children(n.toInt) match
+          case Some(child) => AbsValue(AAst(child))
+          case None        => AbsValue(ALiteral(Absent))
+      case _ => AbsValue.Bot
+
+    def apply(ast: Lexical, lit: LiteralValue): AbsValue =
+      val propStr = lit.asStr
+      if (propStr == "parent")
+        ast.parent
+          .map((x) => AbsValue(AAst(ast)))
+          .getOrElse(AbsValue(ALiteral(Absent)))
+      else throw LexicalCalled(apply(ast, propStr))
 
     // NOT sound
     def apply(loc: Loc): AbsObj = AbsObj.Bot
@@ -111,39 +204,43 @@ class BasicStateDomain[AOD <: AbsObjDomain[_] with Singleton](
 
     // setters
     def update(refV: AbsRefValue, value: AbsValue): Elem = this
-    def update(id: Id, av: AbsValue): Elem = this
+    def update(id: Id, av: AbsValue): Elem = id match {
+      case id: Id => Elem(reachable, locals + (id -> av))
+    }
     def update(aloc: AbsValue, prop: AbsValue, value: AbsValue): Elem = this
 
     // existence checks
-    def exists(ref: AbsRefValue): AbsValue = ???
+    def exists(ref: AbsRefValue): AbsValue = AbsValue.Top
 
     // delete a property from a map
     def delete(refV: AbsRefValue): Elem = this
 
     // object operators
-    def append(loc: AbsValue, value: AbsValue): Elem = Bot
-    def prepend(loc: AbsValue, value: AbsValue): Elem = Bot
-    def remove(loc: AbsValue, value: AbsValue): Elem = Bot
+    def append(loc: AbsValue, value: AbsValue): Elem = this
+    def prepend(loc: AbsValue, value: AbsValue): Elem = this
+    def remove(loc: AbsValue, value: AbsValue): Elem = this
     def pop(loc: AbsValue, front: Boolean): (AbsValue, Elem) =
       (AbsValue.Bot, this)
 
-    def copyObj(from: AbsValue)(to: AllocSite): Elem = Bot
-    def keys(loc: AbsValue, intSorted: Boolean)(to: AllocSite): Elem = Bot
+    def copyObj(from: AbsValue)(to: AllocSite): Elem = this
+    def keys(loc: AbsValue, intSorted: Boolean)(to: AllocSite): Elem = this
     def allocMap(ty: Type, pairs: List[(AbsValue, AbsValue)])(
       to: AllocSite,
-    ): Elem = Bot
+    ): Elem = this
 
-    def allocSymbol(desc: AbsValue)(to: AllocSite): Elem = Bot
-    def allocList(list: List[AbsValue])(to: AllocSite): Elem = Bot
-    def setType(loc: AbsValue, ty: Type): Elem = Bot
-    def contains(loc: AbsValue, value: AbsValue): AbsValue = AbsValue.Bot
+    def allocSymbol(desc: AbsValue)(to: AllocSite): Elem = this
+    def allocList(list: List[AbsValue])(to: AllocSite): Elem = this
+    def setType(loc: AbsValue, ty: Type): Elem = this
+    def contains(loc: AbsValue, value: AbsValue): AbsValue = AbsValue.Top
 
     // define global variables
-    def defineGlobal(pairs: (Id, AbsValue)*): Elem = Bot
+    def defineGlobal(pairs: (Id, AbsValue)*): Elem = this
 
     // define local variables
-    def defineLocal(pairs: (Id, AbsValue)*): Elem = Bot
-    def replaceLocal(pairs: (Id, AbsValue)*): Elem = Bot
+    def defineLocal(pairs: (Id, AbsValue)*): Elem =
+      this.copy(locals = this.locals ++ pairs.toMap)
+    def replaceLocal(pairs: (Id, AbsValue)*): Elem =
+      this.copy(locals = pairs.toMap)
 
     // conversion to string
     def toString(detail: Boolean): String =
@@ -152,11 +249,12 @@ class BasicStateDomain[AOD <: AbsObjDomain[_] with Singleton](
       app.toString
 
     // get string wth detailed shapes of locations
-    def getString(value: AbsValue): String = "TODO"
+    def getString(value: AbsValue): String = this.toString
 
   }
 
   // appender
-  implicit val app: Rule[Elem] = (app, elem) => app >> "TODO" >> " "
+  implicit val app: Rule[Elem] = (app, elem) =>
+    app >> elem.reachable >> " " >> elem.locals.toString >> " "
 
 }

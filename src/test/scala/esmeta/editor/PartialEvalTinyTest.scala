@@ -10,7 +10,11 @@ class PartialEvalTinyTest extends EditorTest {
   def init: Unit =
     check("peval") {
       val peval = PartialEval(CFGHelper(EditorTest.cfg))
-      peval(EditorTest.parse("42 ?? #Identifier"))
+      peval(
+        EditorTest.parse(
+          "#MultiplicativeExpression + #MultiplicativeExpression",
+        ),
+      )
     }
   init
 

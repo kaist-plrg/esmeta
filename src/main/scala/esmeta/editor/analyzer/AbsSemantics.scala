@@ -104,13 +104,11 @@ class AbsSemantics(
     func: Func,
     st: AbsState,
   ): Unit = {
+    // println("E")
+    // println(func.toString)
     val callerNp = NodePoint(cfgHelper.cfg.funcOf(call), call, callerView)
     this.callInfo += callerNp -> callerSt
 
-    val isJsCall = func.name match {
-      case "Call" | "Construct" => true
-      case _                    => false
-    }
     val calleeView = viewCall(callerView, call)
     func.entry.map(entry =>
       this += NodePoint(func, entry, calleeView) -> st.doCall,
@@ -191,22 +189,22 @@ class AbsSemantics(
     case rp: ReturnPoint  => this(rp).state
   }
 
-  def initialize(view: SyntacticView): Map[NodePoint[Node], AbsState] = {
-    cfgHelper.getSDO(view, "Evaluation") match {
+  def initialize(view: SyntacticView): Unit = {
+    cfgHelper.getSDOView(view, "Evaluation") match {
       case Some((s, f)) =>
         f.entry
-          .map(n =>
-            Map(
+          .foreach(n =>
+            this +=
               NodePoint(f, n, View()) -> AbsState.Empty.update(
                 f.irFunc.params.head.lhs,
                 sviewToAbsValue(s),
               ),
-            ),
           )
-          .getOrElse(Map())
-      case None => Map()
+      case None => ()
     }
   }
 
-  def sviewToAbsValue(view: SyntacticView): AbsValue = AbsValue.Bot
+  def sviewToAbsValue(view: SyntacticView): AbsValue = AbsValue(
+    AbsValue.ASView(view),
+  )
 }

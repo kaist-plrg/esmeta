@@ -8,12 +8,16 @@ import esmeta.interp.{AstValue, PureValue, Bool, Str}
 import esmeta.util.BaseUtils.*
 import esmeta.util.StateMonad
 import esmeta.error.{NotSupported, InvalidAstProp}
+import esmeta.editor.util.CFGHelper
+import esmeta.editor.sview.SyntacticView
+import esmeta.editor.sview
 
 trait AbsStateDomain[AOD <: AbsObjDomain[_] with Singleton](
   val aod: AOD,
-  val cfg: CFG,
+  val cfgHelper: CFGHelper,
 ) extends Domain {
 
+  val cfg = cfgHelper.cfg
   // monad helper
   val monad: StateMonad[Elem] = new StateMonad[Elem]
 
@@ -58,47 +62,34 @@ trait AbsStateDomain[AOD <: AbsObjDomain[_] with Singleton](
     def apply(loc: Loc): AbsObj
 
     /** syntactic SDO */
-    case class SyntacticCalled(ast: Ast, sdo: Func) extends Throwable
-    def apply(syn: Syntactic, propStr: String): PureValue =
-      getSDO((syn, propStr)) match
-        case Some((ast0, sdo)) => throw SyntacticCalled(ast0, sdo)
+    case class SyntacticCalled(v: AbsValue, sdo: Func) extends Throwable
+    def apply(syn: Syntactic, propStr: String): AbsValue =
+      cfgHelper.getSDO((syn, propStr)) match
+        case Some((ast0, sdo)) =>
+          throw SyntacticCalled(AbsValue(AAst(ast0)), sdo)
         case None => // XXX access to child -> handle this in compiler?
           val Syntactic(name, _, rhsIdx, children) = syn
           val rhs = cfg.grammar.nameMap(name).rhsList(rhsIdx)
           rhs.getNtIndex(propStr).flatMap(children(_)) match
-            case Some(child) => AstValue(child)
+            case Some(child) => AbsValue(AstValue(child))
             case _           => throw InvalidAstProp(syn, Str(propStr))
 
-    /** get syntax-directed operation(SDO) */
-    private val getSDO = cached[(Ast, String), Option[(Ast, Func)]] {
-      case (ast, operation) =>
-        val fnameMap = cfg.fnameMap
-        ast.chains.foldLeft[Option[(Ast, Func)]](None) {
-          case (None, ast0) =>
-            val subIdx = getSubIdx(ast0)
-            val fname = s"${ast0.name}[${ast0.idx},${subIdx}].$operation"
-            fnameMap.get(fname) match
-              case Some(sdo) => Some(ast0, sdo)
-              case None if defaultCases contains operation =>
-                Some(ast0, fnameMap(s"<DEFAULT>.$operation"))
-              case _ => None
-          case (res: Some[_], _) => res
-        }
-    }
+    def apply(syn: SyntacticView, propStr: String): AbsValue =
+      cfgHelper.getSDOView((syn, propStr)) match
+        case Some((ast0, sdo)) =>
+          throw SyntacticCalled(AbsValue(ASView(ast0)), sdo)
+        case None => // XXX access to child -> handle this in compiler?
+          syn match {
+            case sview.Syntactic(name, _, rhsIdx, children) => {
+              val rhs = cfg.grammar.nameMap(name).rhsList(rhsIdx)
+              rhs.getNtIndex(propStr).flatMap(children(_)) match
+                case Some(child) => AbsValue(ASView(child))
+                case _           => AbsValue.Top
 
-    /** get sub index of parsed Ast */
-    private val getSubIdx = cached[Ast, Int] {
-      case lex: Lexical => 0
-      case Syntactic(name, _, rhsIdx, children) =>
-        val rhs = cfg.grammar.nameMap(name).rhsList(rhsIdx)
-        val optionals = (for {
-          (opt, child) <- rhs.nts.map(_.optional) zip children if opt
-        } yield !child.isEmpty)
-        optionals.reverse.zipWithIndex.foldLeft(0) {
-          case (acc, (true, idx)) => acc + scala.math.pow(2, idx).toInt
-          case (acc, _)           => acc
-        }
-    }
+            }
+            case sview.AbsSyntactic(_) => AbsValue.Top
+            case sview.Lexical(_, _)   => AbsValue.Top
+          }
 
     /** lexical SDO */
     case class LexicalCalled(value: PureValue) extends Throwable

@@ -31,6 +31,7 @@ class AbsTransfer(val sem: AbsSemantics) {
   }
 
   def apply[T <: Node](np: NodePoint[T]): Unit = {
+    // println(s"APPLY ${np.node.id}")
     val st = sem(np)
     val NodePoint(func, node, view) = np
     val helper = Helper(np)
@@ -193,41 +194,50 @@ class AbsTransfer(val sem: AbsSemantics) {
     // transfer function for calls
     def transfer(call: Call): Updater = (st: AbsState) =>
       try {
+        // println(s"A ${call.fexpr}")
         val (value, st2) = escape(transfer(call.fexpr))(st)
         (for {
           vs <- join(call.args.map(transfer))
           st <- get
-          _ = {
-            // closures
-            for (AClo(func, captured) <- value.getSet(CloKind)) {
-              val newLocals = captured ++ getLocals(func.irFunc.params, vs)
-              val newSt = st.replaceLocal(newLocals.toSeq: _*)
-              sem.doCall(call, view, st, func, newSt)
-            }
-            for (ACont(func, captured, target) <- value.getSet(ContKind)) {
-              val newLocals = captured ++ getLocals(func.irFunc.params, vs)
-              val newSt = st.replaceLocal(newLocals.toSeq: _*)
-              sem += target -> newSt
-            }
+          isCalled = {
+            if (!vs.forall(AbsValue.Top ⊑ _)) {
+              // closures
+              for (AClo(func, captured) <- value.getSet(CloKind)) {
+                val newLocals = captured ++ getLocals(func.irFunc.params, vs)
+                val newSt = st.replaceLocal(newLocals.toSeq: _*)
+                sem.doCall(call, view, st, func, newSt)
+              }
+              for (ACont(func, captured, target) <- value.getSet(ContKind)) {
+                val newLocals = captured ++ getLocals(func.irFunc.params, vs)
+                val newSt = st.replaceLocal(newLocals.toSeq: _*)
+                sem += target -> newSt
+              }
+              true
+            } else false
           }
-          _ <- put(AbsState.Bot)
-          // modify(_.defineLocal(call.lhs -> v))
-
+          _ <-
+            if (!(AbsValue.Top ⊑ value) && isCalled)
+              put(AbsState.Bot)
+            else modify(_.defineLocal(call.lhs -> AbsValue.Top))
         } yield ())(st2)._2
       } catch {
-        case st.SyntacticCalled(ast, sdo) =>
-          (for {
-            vs <- join(call.args.map(transfer))
-            _ = {
-              val vs2 = vs match
-                case h :: tail => AbsValue(AstValue(ast)) :: tail
-                case _         => error("invalid SDO call")
-              val newLocals = getLocals(func.irFunc.params, vs2)
-              val newSt = st.replaceLocal(newLocals.toSeq: _*)
-              sem.doCall(call, view, st, func, newSt)
-            }
-            _ <- put(AbsState.Bot)
-          } yield ())(st)._2
+        case st.SyntacticCalled(absv, sdo) =>
+          ({
+            // println("B");
+            for {
+              vs <- join(call.args.map(transfer))
+              _ = {
+                val vs2 = vs match
+                  case h :: tail => absv :: tail
+                  case _         => error("invalid SDO call")
+                val newLocals = getLocals(func.irFunc.params, vs2)
+                val newSt = st.replaceLocal(newLocals.toSeq: _*)
+                // println("C");
+                sem.doCall(call, view, st, sdo, newSt)
+              }
+              _ <- put(AbsState.Bot)
+            } yield ()
+          })(st)._2
         case st.LexicalCalled(v) =>
           (for {
             _ <- modify(_.defineLocal(call.lhs -> AbsValue(v)))
@@ -401,16 +411,24 @@ class AbsTransfer(val sem: AbsSemantics) {
       }
 
       // TODO
-      case EParse(_, _)           => AbsValue.Bot
-      case EGrammar(_, _)         => AbsValue.Bot
-      case ESourceText(_)         => AbsValue.Bot
-      case EYet(_)                => AbsValue.Bot
-      case ESubstring(_, _, _)    => AbsValue.Bot
-      case EVariadic(_, _)        => AbsValue.Bot
-      case EConvert(_, _)         => AbsValue.Bot
-      case EDuplicated(_)         => AbsValue.Bot
-      case EIsArrayIndex(_)       => AbsValue.Bot
-      case EClo(_, _)             => AbsValue.Bot
+      case EParse(_, _)        => AbsValue.Bot
+      case EGrammar(_, _)      => AbsValue.Bot
+      case ESourceText(_)      => AbsValue.Bot
+      case EYet(_)             => AbsValue.Bot
+      case ESubstring(_, _, _) => AbsValue.Bot
+      case EVariadic(_, _)     => AbsValue.Bot
+      case EConvert(_, _)      => AbsValue.Bot
+      case EDuplicated(_)      => AbsValue.Bot
+      case EIsArrayIndex(_)    => AbsValue.Bot
+      case EClo(fname, captured) =>
+        for {
+          st <- get
+          v = {
+            val func = sem.cfgHelper.cfg.fnameMap
+              .getOrElse(fname, error("invalid function name"))
+            AbsValue(AClo(func, Map.from(captured.map(x => x -> st(x, cp)))))
+          }
+        } yield v
       case ECont(_)               => AbsValue.Bot
       case ESyntactic(_, _, _, _) => AbsValue.Bot
       case ELexical(_, _)         => AbsValue.Bot
@@ -434,15 +452,13 @@ class AbsTransfer(val sem: AbsSemantics) {
 
     // transfer function for references
     def transfer(ref: Ref): Result[AbsRefValue] = ref match {
-      case Global(id) => AbsRefGlobal(id)
-      case Name(id)   => AbsRefName(id)
-      case Temp(id)   => AbsRefTemp(id)
+      case id: Id => AbsIdValue(id)
       case Prop(ref, expr) =>
         for {
           rv <- transfer(ref)
           b <- transfer(rv)
           p <- escape(transfer(expr))
-        } yield AbsRefProp(b, p)
+        } yield AbsPropValue(b, p)
     }
 
     // unary operators

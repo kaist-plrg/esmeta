@@ -7,9 +7,11 @@ import esmeta.cfg.Func
 import esmeta.ir.Name
 import esmeta.js.Ast
 import esmeta.cfg.Node
+import esmeta.editor.sview.SyntacticView
 
 trait AbsValueDomain extends Domain {
 
+  val Top: Elem
   type Elem <: AbsValueTrait
   def apply(value: Value): Elem = this(AValue.from(value))
   def apply(value: AValue): Elem
@@ -18,10 +20,8 @@ trait AbsValueDomain extends Domain {
   def mkAbsComp(name: String, value: Elem, target: Elem): Elem
 
   sealed trait AbsRefValue
-  case class AbsRefGlobal(id: String) extends AbsRefValue
-  case class AbsRefName(id: String) extends AbsRefValue
-  case class AbsRefTemp(id: Int) extends AbsRefValue
-  case class AbsRefProp(r: Elem, p: Elem) extends AbsRefValue
+  case class AbsIdValue(id: Id) extends AbsRefValue
+  case class AbsPropValue(r: Elem, p: Elem) extends AbsRefValue
 
   // values used in analysis
   sealed trait AValue {
@@ -45,6 +45,11 @@ trait AbsValueDomain extends Domain {
         var str = ast.toString
         if (str.length > max) str = str.substring(0, max - 3) + "..."
         f"☊[${ast.name}]($str) @ 0x${ast.hashCode}%08x"
+      case ASView(view) =>
+        val max = AValue.AST_MAX_LENGTH
+        var str = view.toString
+        if (str.length > max) str = str.substring(0, max - 3) + "..."
+        f"☊[${view.name}]($str)"
       case ALiteral(literal) => literal.toString
     }
   }
@@ -120,29 +125,68 @@ trait AbsValueDomain extends Domain {
     target: NodePoint[Node],
   ) extends AValue
 
+  sealed trait ASyntactic extends AValue
   // AST values
-  case class AAst(ast: Ast) extends AValue
+  case class AAst(ast: Ast) extends ASyntactic
+
+  // Syntacticview values
+  case class ASView(view: SyntacticView) extends ASyntactic
 
   // literal values
   case class ALiteral[+T <: LiteralValue](simple: T) extends AValue
 
-  sealed trait AValueKind[+T <: AValue]
-  case object AllKind extends AValueKind[AValue]
-  case object CompKind extends AValueKind[AComp]
-  case object ConstKind extends AValueKind[AConst]
-  case object LocKind extends AValueKind[Loc]
-  case object CloKind extends AValueKind[AClo]
-  case object ContKind extends AValueKind[ACont]
-  case object AstKind extends AValueKind[AAst]
-  case object LiteralKind extends AValueKind[ALiteral[LiteralValue]]
-  case object MathKind extends AValueKind[ALiteral[Math]]
-  case object NumKind extends AValueKind[ALiteral[Number]]
-  case object BigIntKind extends AValueKind[ALiteral[BigInt]]
-  case object StrKind extends AValueKind[ALiteral[Str]]
-  case object BoolKind extends AValueKind[ALiteral[Bool]]
-  case object UndefKind extends AValueKind[ALiteral[Undef.type]]
-  case object NullKind extends AValueKind[ALiteral[Null.type]]
-  case object AbsentKind extends AValueKind[ALiteral[Absent.type]]
+  sealed trait AValueKind[+T <: AValue] {
+    def extract: PartialFunction[AValue, T]
+    def extractLift = extract.lift
+  }
+  case object AllKind extends AValueKind[AValue] {
+    def extract = { case x: AValue => x }
+  }
+  case object CompKind extends AValueKind[AComp] {
+    def extract = { case x: AComp => x }
+  }
+  case object ConstKind extends AValueKind[AConst] {
+    def extract = { case x: AConst => x }
+  }
+  case object LocKind extends AValueKind[Loc] {
+    def extract = { case x: Loc => x }
+  }
+  case object CloKind extends AValueKind[AClo] {
+    def extract = { case x: AClo => x }
+  }
+  case object ContKind extends AValueKind[ACont] {
+    def extract = { case x: ACont => x }
+  }
+  case object AstKind extends AValueKind[ASyntactic] {
+    def extract = { case x: ASyntactic => x }
+  }
+  case object LiteralKind extends AValueKind[ALiteral[LiteralValue]] {
+    def extract = { case x @ ALiteral(_) => x }
+  }
+  case object MathKind extends AValueKind[ALiteral[Math]] {
+    def extract = { case ALiteral(Math(x)) => ALiteral(Math(x)) }
+  }
+  case object NumKind extends AValueKind[ALiteral[Number]] {
+    def extract = { case ALiteral(Number(x)) => ALiteral(Number(x)) }
+  }
+  case object BigIntKind extends AValueKind[ALiteral[BigInt]] {
+    def extract = { case ALiteral(BigInt(x)) => ALiteral(BigInt(x)) }
+  }
+  case object StrKind extends AValueKind[ALiteral[Str]] {
+    def extract = { case ALiteral(Str(x)) => ALiteral(Str(x)) }
+  }
+  case object BoolKind extends AValueKind[ALiteral[Bool]] {
+    def extract = { case ALiteral(Bool(x)) => ALiteral(Bool(x)) }
+  }
+  case object UndefKind extends AValueKind[ALiteral[Undef.type]] {
+    def extract = { case ALiteral(Undef) => ALiteral(Undef) }
+  }
+  case object NullKind extends AValueKind[ALiteral[Null.type]] {
+    def extract = { case ALiteral(Null) => ALiteral(Null) }
+  }
+  case object AbsentKind extends AValueKind[ALiteral[Absent.type]] {
+    def extract = { case ALiteral(Absent) => ALiteral(Absent) }
+  }
 
   trait AbsValueTrait extends ElemTrait { this: Elem =>
 

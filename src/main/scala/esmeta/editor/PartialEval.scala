@@ -18,7 +18,7 @@ class PartialEval(cfgHelper: CFGHelper) {
     //
     val avd: AbsValueDomain = BasicValueDomain()
     val aod = BasicObjDomain(avd)
-    val asd = BasicStateDomain(aod, cfgHelper.cfg)
+    val asd = BasicStateDomain(aod, cfgHelper)
     val ard = RetDomain(asd)
 
     val absinit =
@@ -26,10 +26,10 @@ class PartialEval(cfgHelper: CFGHelper) {
         cfgHelper,
       )
 
-    absinit.npMap = absinit.initialize(view)
+    absinit.initialize(view)
     val absfin = absinit.fixpoint
 
     // Mockup, TODO
-    cfgHelper.getSDO(view, "Evaluation").map(_._2.irFunc).toList
+    cfgHelper.getSDOView(view, "Evaluation").map(_._2.irFunc).toList
   }
 }

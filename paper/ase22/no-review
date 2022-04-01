@@ -1,5 +1,5 @@
 #/bin/bash
-cp main.tex .orig
+cp main.tex .orig.log
 sed -i "" '1s/,review//g' main.tex
 make
-mv .orig main.tex
+mv .orig.log main.tex

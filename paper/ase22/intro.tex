@@ -3,42 +3,45 @@
 In the beginning, JavaScript was a simple scripting language designed in a
 ten-day hack. However, it has become a de facto Web standard and eventually
 becomes one of the dominating programming languages in various fields. For
-example, Node.js\footnote{https://nodejs.org/} introduced full-stack JavaScript
-by supporting server-side programming.  Developers can develop even mobile and
-desktop applications for many platforms in JavaScript with React
-Native\footnote{https://reactnative.dev/}.  Furthermore, according to the annual
-report of GitHub\footnote{\url{https://octoverse.github.com/}}, JavaScript has
-consistently been the most popular programming language based on the number of
-contributors to GitHub projects.
+example, Node.js~\cite{nodejs} introduced full-stack JavaScript by supporting
+server-side programming.  React Native~\cite{react-native} provides a way to
+deploy JavaScript programs as mobile and desktop applications in different
+platforms.  Furthermore, according to the annual report of GitHub, JavaScript
+has consistently been the most popular programming language based on the number
+of contributors to GitHub
+projects.\footnote{\url{https://octoverse.github.com/}}
 
-Developers and researchers have presented diverse tools for JavaScript.  In
-industry, developers develop and maintain various JavaScript engines in
-different fields, such as Google V8\cite{v8}, Oracle GraalJS\cite{graaljs}, and
-Moddable XS\cite{xs}.  Beyond the JavaScript engine, developers actively develop
-compilers as well; Babel\cite{babel} compiles modern >ES6 JavaScript code to
-ES5.1 code, TypeScript compiler compiles TypeScript code to JavaScript code.  In
-academia, researchers have presented various techniques for JavaScript,
-including static analysis~\cite{safe, safe2, tajs, wala, jsai}, double
-debuggers~\cite{jsexplain}, verification~\cite{javert, javert2, ad-safety,
-javanni}, symbolic execution~\cite{symbolic-js, sym-js, expo-se}, and concolic
+Many developers and researchers have presented diverse tools for a better
+development environment for JavaScript. In industry, developers develop
+commercial JavaScript engines, such as Google V8~\cite{v8} and Oracle
+GraalJS~\cite{graaljs}, to execute JavaScript programs.  They continuously
+improve performance of the engines using optimization techniques (e.g., JIT
+compilation) and update them to support annually introduced new language
+features of JavaScript.  Besides, JavaScript compilers are also actively
+developed as well; Babel~\cite{babel} compiles ES6+ JavaScript code to ES5.1
+code for legacy web browsers, and the TypeScript compiler compiles TypeScript
+programs to JavaScript programs.  In academia, researchers have presented
+diverse techniques to check and enhance the code quality for JavaScript,
+such as static analysis~\cite{safe, safe2, tajs, wala, jsai},
+verification~\cite{javert, javert2, ad-safety, javanni}, symbolic
+execution~\cite{symbolic-js, sym-js, expo-se}, and concolic
 testing~\cite{jalangi, type-conc-test}.
 
-Therefore, they have striven to understand the detailed semantics of JavaScript
-to design their own tools and techniques correctly.
-
-Therefore, 
-For the developement of such tools, It is reuiqred 
-To understand 
-
-However, it is infeasible to know all the detailed complex semantics by reading
-the specification even to language designers. For example, consider a JavaScript
-logical nullish assignment
-\jscode{x ??= y} newly introduced in the latest ECMAScript (ES12,
-2021)~\cite{es12}. Its basic semantics is to assign \jscode{y} to \jscode{x}
-only if \jscode{x} is nullish (\jscode{undefined} or \jscode{null}). Therefore,
-it seems to have exactly same semantics with an assignment \jscode{x = x ?? y}
-with a nullish coalescing operator \jscode{??}.  However, it is not true because
-of the short-circuiting for assignments:
+Therefore, they always desire to understand the detailed semantics of
+JavaScript.  Common JavaScript programmers usually learn the language by reading
+non-standard materials, such as MDN Web Docs~\cite{mdn-doc}, blog posts, or
+Stack Overflow~\cite{stackoverflow}, because they explain high-level concepts of
+language features more friendly with simple examples.  However, such informal
+reading materials are not for developers or researchers who design the tools for
+JavaScript.  Beyond high-level concepts, they desire to understand the detailed
+semantics of each language feature, including special edge-cases, interactions
+with other language features, or implicit side effects.  For example, consider a
+JavaScript logical nullish assignment \jscode{x ??= y} newly introduced in ES12.
+It assigns \jscode{y} to \jscode{x} only if \jscode{x} is nullish
+(\jscode{undefined} or \jscode{null}). Therefore, it seems to have exactly same
+semantics with an assignment \jscode{x = x ?? y} with a nullish coalescing
+operator \jscode{??}.  However, it is not true because of the short-circuiting
+for assignments:
 \begin{lstlisting}[style=JS]
        const x = 0;  x ??= 1;    // x === 0
        const y = 0;  y = y ?? 1; // TypeError
@@ -48,8 +51,18 @@ and the named evaluation for anonymous functions:
    let f;  f ??= () => {};      // f.name === "f"
    let g;  g = g ?? (() => {}); // g.name === ""
 \end{lstlisting}
-Such misunderstanding of complex semantics in various language features causes
-the wrong implementation of JavaScript applications or even JavaScript engines.
+Such misunderstanding of complex semantics in JavaScript causes the wrong
+implementation of the tools for JavaScript.
+
+To understand the detailed JavaScript semantics, developers and researchers
+refer to its standard language specification and conformance test suite.  First,
+ECMA-262 is the standard that defines the ECMAScript, aka JavaScript.
+
+
+
+
+% However, it is infeasible to know all the detailed complex semantics by
+% reading the specification or test suite even to language designers.
 
 % Thus, researchers have presented several tools for a better understanding of
 % JavaScript semantics. For example, JSExplain~\cite{jsexplain} is a reference

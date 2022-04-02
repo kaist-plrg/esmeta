@@ -34,7 +34,7 @@ Stack Overflow~\cite{stackoverflow}, because they explain high-level concepts of
 language features more friendly with simple examples.  However, such informal
 reading materials are not for developers or researchers who design the tools for
 JavaScript.  Beyond high-level concepts, they desire to understand the detailed
-semantics of each language feature, including special edge-cases, interactions
+semantics of each language feature, including special corner cases, interactions
 with other language features, or implicit side effects.  For example, consider a
 JavaScript logical nullish assignment \jscode{x ??= y} newly introduced in ES12.
 It assigns \jscode{y} to \jscode{x} only if \jscode{x} is nullish
@@ -54,13 +54,24 @@ and the named evaluation for anonymous functions:
 Such misunderstanding of complex semantics in JavaScript causes the wrong
 implementation of the tools for JavaScript.
 
-To understand the detailed JavaScript semantics, developers and researchers
-refer to its standard language specification and conformance test suite.  First,
-ECMA-262 is the standard that defines the ECMAScript, aka JavaScript.
+To understand the detailed semantics of JavaScript, developers and researchers
+refer to its standard language specification and conformance test suite.
+ECMA-262~\cite{es12} is the standard specification defining ECMAScript, the
+official name of JavaScript.  It describes syntax using a variant of the
+extended Backus–Naur form (EBNF) and its semantics as abstract algorithms in
+English.  On the other hand, Test262~\cite{test262} is a conformance test suite,
+and it consists of JavaScript programs containing assertions to check specific
+syntax and semantics.  The Ecma Technical Committee 39 (TC39) has maintained
+both as open-source GitHub projects.  The committee continuously updates them
+with new language features to quickly adapt to users' demands.  Therefore,
+developers and researchers strive to keep up with the recent version of ECMA-262
+to support new language features correctly in their tools or techniques.
 
-
-
-
+However, it is nontrivial to understand all the detailed semantics by reading
+the specification or conformance tests even to language designers.  First, they
+are massive because of the fast-evolving nature of JavaScript.  The latest
+ECMA-262 (ES12, 2021) is 879 pages with \inred{2,640} algorithms, and Test262
+contains 41,415 test programs.
 % However, it is infeasible to know all the detailed complex semantics by
 % reading the specification or test suite even to language designers.
 

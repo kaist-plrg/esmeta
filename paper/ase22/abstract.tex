@@ -1,23 +1,26 @@
 \begin{abstract}\label{sec:abstract}
-  JavaScript is a widely-used programming language in diverse fields.  Many
-  developers and researchers have striven to construct a better development
-  environment for JavaScript by developing various tools and techniques.  Thus,
-  they have understood the detailed semantics of JavaScript by reading 1)
+  JavaScript is a widely-used programming language in diverse fields.  Thus,
+  many developers and researchers have striven to construct a better development
+  environment for JavaScript by developing various tools and techniques.  They
+  usually understand the detailed semantics of JavaScript by reading 1)
   ECMA-262, a JavaScript standard language specification written in English, or
   2) Test262, an official JavaScript conformance test suite.  However, since the
   specification and test suite are massive and fast-evolving, it is challenging
   to localize which specification parts or test programs are related to the
-  semantics they want to understand.
+  semantics they want to understand.  Moreover, the lack of connection between
+  them hinders their synergy for a better understanding of JavaScript semantics.
 
-  In this paper, we present \textit{syntactic views} to help users indicate
-  which parts of JavaScript semantics they want to understand.  Then, we
-  introduce a novel way to 1) reduce the language specification for a given
-  syntactic view and 2) search the conformance test programs related to each
-  algorithm step in the reduced specification.  For evaluation, we developed
-  $\tool$ to actualize our technique and experimentally demonstrated its
-  effectiveness with the latest ECMA-262 (ES12, 2021) and Test262.  For
-  \inred{177} basic syntactic views, our tool reduced \inred{18.9\%} of steps in
-  \inred{8.4} algorithms for ES12 and showed that only \inred{30.4} test programs
-  are related to each branch in the reduced specification on average.  Moreover,
-  we conducted \inred{three} case studies with more advanced syntactic views.
+  In this paper, we first introduce \textit{syntactic views} to help users
+  indicate which parts of JavaScript semantics they want to understand.  Then,
+  we present an automatic way to 1) reduce the language specification and test
+  suite for a given syntactic view and 2) connect each branch in the reduced
+  specification to related test programs.  To actualize our technique, we
+  developed $\tool$ and evaluated it with the latest ECMA-262 (ES12 or ES2021)
+  consisting of \inred{2,640} algorithms, and Test262 consisting of
+  \inred{41,415} test programs.  First, we evaluated our tool with \inred{177}
+  basic syntactic views.  For each syntactic view, it reduced ES12 and Test262
+  to \inred{30.4} algorithms with \inred{18.9\%} reduced steps and \inred{530.2}
+  test programs on average, and it found \inred{42.3} test programs related to
+  each branch on average.  Besides, we conducted \inred{three} case studies with
+  more advanced syntactic views.
 \end{abstract}

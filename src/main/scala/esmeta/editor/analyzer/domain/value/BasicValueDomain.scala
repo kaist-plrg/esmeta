@@ -39,10 +39,22 @@ class BasicValueDomain() extends AbsValueDomain {
     def isAbruptCompletion: Elem = this
 
     def unary_! : Elem = this
-    def ||(that: Elem): Elem = this
+    def ||(that: Elem): Elem = Elem((this.f, that.f) match {
+      case (FlatTop, _) | (_, FlatTop) => FlatTop
+      case (FlatElem(Bool(true)), _) | (_, FlatElem(Bool(true))) =>
+        FlatElem(Bool(true))
+      case (FlatElem(Bool(false)), FlatElem(Bool(false))) =>
+        FlatElem(Bool(false))
+      case (FlatBot, _) | (_, FlatBot) => FlatBot
+      case (_, _)                      => FlatElem(Bool(false))
+    })
     def &&(that: Elem): Elem = this
 
-    def =^=(that: Elem): Elem = this
+    def =^=(that: Elem): Elem = Elem((this.f, that.f) match {
+      case (FlatTop, _) | (_, FlatTop) => FlatTop
+      case (FlatElem(x), FlatElem(y))  => FlatElem(Bool(x == y))
+      case (FlatBot, _) | (_, FlatBot) => FlatBot
+    })
 
     def mul(that: Elem): Elem = this
     def plus(that: Elem): Elem = this

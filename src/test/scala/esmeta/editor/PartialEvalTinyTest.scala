@@ -15,6 +15,16 @@ class PartialEvalTinyTest extends EditorTest {
           "#MultiplicativeExpression + #MultiplicativeExpression",
         ),
       )
+      peval(
+        EditorTest.parse(
+          "#RelationalExpression == #RelationalExpression",
+        ),
+      )
+      peval(
+        EditorTest.parse(
+          "for ( var #ForBinding in #Expression ) #Statement",
+        ),
+      )
     }
   init
 

@@ -11,5 +11,11 @@ sealed trait ControlPoint {
 }
 
 case class NodePoint[+T <: Node](func: Func, node: T, view: View)
-  extends ControlPoint
-case class ReturnPoint(func: Func, view: View) extends ControlPoint
+  extends ControlPoint {
+  override def toString =
+    s"(${func.name} ${node} ${view._1.length} ${view._2.length} ${view._3})"
+}
+case class ReturnPoint(func: Func, view: View) extends ControlPoint {
+  override def toString =
+    s"R(${func.name} ${view._1.length} ${view._2.length} ${view._3})"
+}

@@ -11,7 +11,9 @@ import esmeta.error.ESMetaError
 import scala.annotation.tailrec
 import esmeta.util.BaseUtils.*
 
-class AbsTransfer(val sem: AbsSemantics) {
+class AbsTransfer[ASD <: AbsStateDomain[_] with Singleton, T <: AbsSemantics[
+  ASD,
+] with Singleton](val sem: T) {
 
   type AbsValue = sem.AbsValue
   type AbsState = sem.AbsState
@@ -49,16 +51,15 @@ class AbsTransfer(val sem: AbsSemantics) {
       case Branch(id, kind, cond, thenNode, elseNode) =>
         (for {
           v <- escape(transfer(cond))
-          b = v.getSet(BoolKind)
           st <- get
         } yield {
-          if (b contains ALiteral(Bool(true)))
+          if (AbsValue(Bool(true)) ⊑ v)
             thenNode.map((thenNode: Node) =>
               sem += getNextNp(np, thenNode) -> st,
             )
-          if (b contains ALiteral(Bool(false)))
+          if (AbsValue(Bool(false)) ⊑ v)
             elseNode.map((elseNode: Node) =>
-              sem += getNextNp(np, elseNode, true) -> st,
+              sem += getNextNp(np, elseNode, kind == Branch.Kind.Loop) -> st,
             )
         })(st)
     }
@@ -71,17 +72,18 @@ class AbsTransfer(val sem: AbsSemantics) {
     loopOut: Boolean = false,
   ): NodePoint[Node] = {
     val NodePoint(func, from, view) = fromCp
-    val toView = (from, to) match {
+    val toView = to match {
       case (
-            Branch(id1, Branch.Kind.Loop(_), _, _, _),
-            loop @ Branch(id2, Branch.Kind.Loop(_), _, _, _),
+            loop @ Branch(id, Branch.Kind.Loop(_), _, _, _),
           ) =>
-        if (id1 == id2) sem.loopNext(view)
+        if (
+          sem.maxIJK._2 == 0 || view.loops.headOption
+            .map((x) => x.loopId == id)
+            .getOrElse(false)
+        ) sem.loopNext(view)
         else if (loopOut) sem.loopExit(view)
         else sem.loopEnter(view, loop)
-      case (_, loop @ Branch(_, Branch.Kind.Loop(_), _, _, _)) =>
-        sem.loopEnter(view, loop)
-      case (Branch(_, Branch.Kind.Loop(_), _, _, _), _) if loopOut =>
+      case (_) if loopOut =>
         sem.loopExit(view)
       case _ => view
     }
@@ -108,7 +110,7 @@ class AbsTransfer(val sem: AbsSemantics) {
         nextNode,
         nextNode match {
           case loop @ Branch(_, Branch.Kind.Loop(_), _, _, _) =>
-            sem.loopEnter(view, loop)
+            sem.loopNext(view)
           case _ => view
         },
       )
@@ -129,7 +131,7 @@ class AbsTransfer(val sem: AbsSemantics) {
     helper.transfer(expr)(st)._1
   }
 
-  private class Helper(val cp: ControlPoint) {
+  class Helper(val cp: ControlPoint) {
     lazy val func = cp.func
     lazy val view = cp.view
     lazy val rp = ReturnPoint(func, view)
@@ -230,9 +232,8 @@ class AbsTransfer(val sem: AbsSemantics) {
                 val vs2 = vs match
                   case h :: tail => absv :: tail
                   case _         => error("invalid SDO call")
-                val newLocals = getLocals(func.irFunc.params, vs2)
+                val newLocals = getLocals(sdo.irFunc.params, vs2)
                 val newSt = st.replaceLocal(newLocals.toSeq: _*)
-                // println("C");
                 sem.doCall(call, view, st, sdo, newSt)
               }
               _ <- put(AbsState.Bot)
@@ -571,7 +572,8 @@ class AbsTransfer(val sem: AbsSemantics) {
           } else RemainingParams(ps)
         case (Nil, args) =>
           // XXX Handle GeneratorStart <-> GeneratorResume arith mismatch
-          if (!cont) throw ESMetaError(args.mkString(" "))
+          if (!cont)
+            throw ESMetaError(s"$cp, $params, $args, ${args.mkString(" ")}")
         case (param :: pl, arg :: al) =>
           map += param.lhs -> arg
           aux(pl, al)

@@ -200,7 +200,7 @@ class BasicStateDomain[AOD <: AbsObjDomain[_] with Singleton](
         locals.getOrElse(x, AbsValue.Bot)
     }
     // lookup global variables
-    def lookupGlobal(x: Id): AbsValue = AbsValue.Bot
+    def lookupGlobal(x: Id): AbsValue = AbsValue.Top
 
     // setters
     def update(refV: AbsRefValue, value: AbsValue): Elem = this
@@ -255,6 +255,8 @@ class BasicStateDomain[AOD <: AbsObjDomain[_] with Singleton](
 
   // appender
   implicit val app: Rule[Elem] = (app, elem) =>
-    app >> elem.reachable >> " " >> elem.locals.toString >> " "
+    app >> elem.reachable >> " " >> elem.locals.toList
+      .sortWith { case (a, b) => a._1.toString < b._1.toString }
+      .mkString(" | ") >> " "
 
 }

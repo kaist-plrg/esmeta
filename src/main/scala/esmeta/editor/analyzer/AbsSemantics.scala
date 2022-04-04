@@ -15,8 +15,8 @@ import esmeta.error.AnalysisTimeoutError
 import esmeta.cfg.Branch
 import esmeta.ir.Id
 
-class AbsSemantics(
-  val ard: RetDomain[_],
+class AbsSemantics[ASD <: AbsStateDomain[_] with Singleton](
+  val ard: RetDomain[ASD],
 )(
   val cfgHelper: CFGHelper,
   var npMap: Map[NodePoint[Node], ard.asd.Elem] = Map(),
@@ -48,7 +48,7 @@ class AbsSemantics(
   // a worklist of control points
   val worklist: Worklist[ControlPoint] = new QueueWorklist(npMap.keySet)
 
-  val transfer: AbsTransfer = AbsTransfer(this)
+  val transfer: AbsTransfer[ASD, this.type] = AbsTransfer(this)
 
   // fixpiont computation
   @tailrec

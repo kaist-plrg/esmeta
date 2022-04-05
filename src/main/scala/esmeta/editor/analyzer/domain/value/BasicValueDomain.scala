@@ -109,6 +109,13 @@ class BasicValueDomain() extends AbsValueDomain {
   }
 
   // appender
-  implicit val app: Rule[Elem] = (app, elem) => app >> elem.f.toString >> ""
+  implicit val app: Rule[Elem] = (app, elem) =>
+    app >> {
+      elem.f match {
+        case FlatTop     => "⊤"
+        case FlatBot     => "⊥"
+        case FlatElem(v) => v.toString
+      }
+    } >> ""
 
 }

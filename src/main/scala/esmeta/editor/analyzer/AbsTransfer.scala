@@ -59,7 +59,11 @@ class AbsTransfer[ASD <: AbsStateDomain[_] with Singleton, T <: AbsSemantics[
             )
           if (AbsValue(Bool(false)) ⊑ v)
             elseNode.map((elseNode: Node) =>
-              sem += getNextNp(np, elseNode, kind == Branch.Kind.Loop) -> st,
+              sem += getNextNp(
+                np,
+                elseNode,
+                kind.isInstanceOf[Branch.Kind.Loop],
+              ) -> st,
             )
         })(st)
     }
@@ -265,7 +269,7 @@ class AbsTransfer[ASD <: AbsStateDomain[_] with Singleton, T <: AbsSemantics[
           origT <- escape(transfer(target))
           t = origT.project(StrKind, ConstKind)
         } yield ((for {
-          AConst(name) <- y.getSet(ConstKind)
+          ALiteral(Const(name)) <- y.getSet(ConstKind)
         } yield AbsValue.mkAbsComp(name, v, t)).foldLeft(AbsValue.Bot)(_ ⊔ _))
       case map @ EMap(ty, props) => {
         val loc: AllocSite = AllocSite(map.asite, cp.view)
@@ -412,15 +416,15 @@ class AbsTransfer[ASD <: AbsStateDomain[_] with Singleton, T <: AbsSemantics[
       }
 
       // TODO
-      case EParse(_, _)        => AbsValue.Bot
-      case EGrammar(_, _)      => AbsValue.Bot
-      case ESourceText(_)      => AbsValue.Bot
-      case EYet(_)             => AbsValue.Bot
-      case ESubstring(_, _, _) => AbsValue.Bot
-      case EVariadic(_, _)     => AbsValue.Bot
-      case EConvert(_, _)      => AbsValue.Bot
-      case EDuplicated(_)      => AbsValue.Bot
-      case EIsArrayIndex(_)    => AbsValue.Bot
+      case EParse(_, _)        => AbsValue.Top
+      case EGrammar(_, _)      => AbsValue.Top
+      case ESourceText(_)      => AbsValue.Top
+      case EYet(_)             => AbsValue.Top
+      case ESubstring(_, _, _) => AbsValue.Top
+      case EVariadic(_, _)     => AbsValue.Top
+      case EConvert(_, _)      => AbsValue.Top
+      case EDuplicated(_)      => AbsValue.Top
+      case EIsArrayIndex(_)    => AbsValue.Top
       case EClo(fname, captured) =>
         for {
           st <- get
@@ -430,11 +434,11 @@ class AbsTransfer[ASD <: AbsStateDomain[_] with Singleton, T <: AbsSemantics[
             AbsValue(AClo(func, Map.from(captured.map(x => x -> st(x, cp)))))
           }
         } yield v
-      case ECont(_)               => AbsValue.Bot
-      case ESyntactic(_, _, _, _) => AbsValue.Bot
-      case ELexical(_, _)         => AbsValue.Bot
-      case EListConcat(_)         => AbsValue.Bot
-      case EGetChildren(_, _)     => AbsValue.Bot
+      case ECont(_)               => AbsValue.Top
+      case ESyntactic(_, _, _, _) => AbsValue.Top
+      case ELexical(_, _)         => AbsValue.Top
+      case EListConcat(_)         => AbsValue.Top
+      case EGetChildren(_, _)     => AbsValue.Top
     }
 
     // return if abrupt completion
@@ -507,24 +511,24 @@ class AbsTransfer[ASD <: AbsStateDomain[_] with Singleton, T <: AbsSemantics[
       case _ =>
         bop match {
           case BOp.And     => left.project(BoolKind) && right.project(BoolKind)
-          case BOp.BAnd    => exploded(s"bop: ($bop $left $right)")
-          case BOp.BOr     => exploded(s"bop: ($bop $left $right)")
-          case BOp.BXOr    => exploded(s"bop: ($bop $left $right)")
-          case BOp.Div     => exploded(s"bop: ($bop $left $right)")
+          case BOp.BAnd    => AbsValue.Top
+          case BOp.BOr     => AbsValue.Top
+          case BOp.BXOr    => AbsValue.Top
+          case BOp.Div     => AbsValue.Top
           case BOp.Eq      => left =^= right
-          case BOp.Equal   => exploded(s"bop: ($bop $left $right)")
-          case BOp.LShift  => exploded(s"bop: ($bop $left $right)")
-          case BOp.Lt      => exploded(s"bop: ($bop $left $right)")
-          case BOp.Mod     => exploded(s"bop: ($bop $left $right)")
+          case BOp.Equal   => AbsValue.Top
+          case BOp.LShift  => AbsValue.Top
+          case BOp.Lt      => AbsValue.Top
+          case BOp.Mod     => AbsValue.Top
           case BOp.Mul     => left mul right
           case BOp.Or      => left.project(BoolKind) || right.project(BoolKind)
           case BOp.Plus    => left plus right
-          case BOp.Pow     => exploded(s"bop: ($bop $left $right)")
-          case BOp.SRShift => exploded(s"bop: ($bop $left $right)")
-          case BOp.Sub     => exploded(s"bop: ($bop $left $right)")
-          case BOp.UMod    => exploded(s"bop: ($bop $left $right)")
-          case BOp.URShift => exploded(s"bop: ($bop $left $right)")
-          case BOp.Xor     => exploded(s"bop: ($bop $left $right)")
+          case BOp.Pow     => AbsValue.Top
+          case BOp.SRShift => AbsValue.Top
+          case BOp.Sub     => AbsValue.Top
+          case BOp.UMod    => AbsValue.Top
+          case BOp.URShift => AbsValue.Top
+          case BOp.Xor     => AbsValue.Top
         }
     }
 

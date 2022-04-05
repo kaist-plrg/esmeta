@@ -27,12 +27,12 @@ trait AbsValueDomain extends Domain {
   sealed trait AValue {
     // conversion to string
     override def toString: String = this match {
-      case AComp(AConst("noraml"), value, _) => s"N($value)"
-      case AComp(ty, value, target)          => s"C($ty, $value, $target)"
-      case AConst(name)                      => s"~$name~"
-      case NamedLoc(name)                    => s"#$name"
-      case AllocSite(k, view)                => s"#$k:$view"
-      case SubMapLoc(baseLoc)                => s"$baseLoc:SubMap"
+      case AComp(ALiteral(Const("noraml")), value, _) => s"N($value)"
+      case AComp(ty, value, target) => s"C($ty, $value, $target)"
+      // case AConst(name)                      => s"~$name~"
+      case NamedLoc(name)     => s"#$name"
+      case AllocSite(k, view) => s"#$k:$view"
+      case SubMapLoc(baseLoc) => s"$baseLoc:SubMap"
       case AClo(func, captured) => (
         func.irFunc.params.mkString("(", ", ", ")") +
         (for ((x, v) <- captured) yield s"$x -> $v").mkString("[", ", ", "]") +
@@ -60,12 +60,13 @@ trait AbsValueDomain extends Domain {
     def from(value: Value): AValue = value match {
       case Comp(Const(name), value, targetOpt) =>
         AComp(
-          AConst(name),
+          ALiteral(Const(name)),
           from(value),
-          targetOpt.fold[AValue](AConst("empty"))(str => ALiteral(Str(str))),
+          targetOpt.fold[AValue](ALiteral(Const("empty")))(str =>
+            ALiteral(Str(str)),
+          ),
         )
-      case Const(name) => AConst(name)
-      case addr: Addr  => Loc.from(addr)
+      case addr: Addr => Loc.from(addr)
       case Clo(func, captured) =>
         AClo(func, captured.map((k, v) => (k, apply(from(v)))))
       case AstValue(ast)         => AAst(ast)
@@ -76,10 +77,8 @@ trait AbsValueDomain extends Domain {
   }
 
   // completions
-  case class AComp(ty: AConst, value: AValue, target: AValue) extends AValue
-
-  // constants
-  case class AConst(name: String) extends AValue
+  case class AComp(ty: ALiteral[Const], value: AValue, target: AValue)
+    extends AValue
 
   // abstract locations for addresses
   sealed trait Loc extends AValue {
@@ -145,8 +144,8 @@ trait AbsValueDomain extends Domain {
   case object CompKind extends AValueKind[AComp] {
     def extract = { case x: AComp => x }
   }
-  case object ConstKind extends AValueKind[AConst] {
-    def extract = { case x: AConst => x }
+  case object ConstKind extends AValueKind[ALiteral[Const]] {
+    def extract = { case ALiteral(Const(name)) => ALiteral(Const(name)) }
   }
   case object LocKind extends AValueKind[Loc] {
     def extract = { case x: Loc => x }

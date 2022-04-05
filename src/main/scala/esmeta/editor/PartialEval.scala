@@ -16,7 +16,7 @@ import esmeta.interp.Bool
 import esmeta.interp.LiteralValue
 import esmeta.interp
 
-class IRCFGWalker[ASD <: AbsStateDomain[_] with Singleton, T <: AbsSemantics[
+trait IRCFGWalker[ASD <: AbsStateDomain[_] with Singleton, T <: AbsSemantics[
   ASD,
 ] with Singleton](val sem: T)(
   cfg: CFG,
@@ -222,20 +222,43 @@ class IRCFGWalker[ASD <: AbsStateDomain[_] with Singleton, T <: AbsSemantics[
     inst: Inst,
     currnp: NodePoint[Node],
     prevst: sem.AbsState.Elem,
-  ): Inst = {
-    ISeq(List(inst, IExpr(EStr(prevst.toString))))
-  }
+  ): Inst
 
+}
+
+class AnnotationWalker[ASD <: AbsStateDomain[
+  _,
+] with Singleton, T <: AbsSemantics[
+  ASD,
+] with Singleton](sem_ : T)(
+  cfg: CFG,
+  npMap: Map[NodePoint[Node], sem_.AbsState],
+) extends IRCFGWalker[ASD, T](sem_)(cfg, npMap) {
+  def walk(
+    inst: Inst,
+    currnp: NodePoint[Node],
+    prevst: sem.AbsState.Elem,
+  ): Inst = inst match {
+    case inst: NormalInst =>
+      IExpr(EBinary(BOp.Xor, EStr(inst.toString), EStr(prevst.toString)))
+    case ISeq(insts) => ISeq(insts)
+    case IIf(cond, thenInst, elseInst) =>
+      IIf(EBinary(BOp.Xor, cond, EStr(prevst.toString)), thenInst, elseInst)
+    case ILoop(kind, cond, body) =>
+      ILoop(kind, EBinary(BOp.Xor, cond, EStr(prevst.toString)), body)
+    case ICall(lhs, fexpr, args) =>
+      ICall(lhs, EBinary(BOp.Xor, fexpr, EStr(prevst.toString)), args)
+  }
 }
 
 class ReplaceExprWalker[BSD <: BasicStateDomain[
   _,
 ] with Singleton, T <: AbsSemantics[
   BSD,
-] with Singleton](val absfin: T)(
+] with Singleton](sem_ : T)(
   cfg: CFG,
-  npMap: Map[NodePoint[Node], absfin.AbsState],
-) extends IRCFGWalker(absfin)(cfg, npMap) {
+  npMap: Map[NodePoint[Node], sem_.AbsState],
+) extends IRCFGWalker[BSD, T](sem_)(cfg, npMap) {
 
   def literalToExpr(v: LiteralValue): Expr = v match
     case interp.Math(n)     => EMathVal(n)
@@ -252,16 +275,16 @@ class ReplaceExprWalker[BSD <: BasicStateDomain[
   def replaceExpr(
     expr: Expr,
     currnp: NodePoint[Node],
-    prevst: absfin.AbsState.Elem,
+    prevst: sem.AbsState.Elem,
   ): Expr = {
     val helper = sem.transfer.Helper(currnp)
     try {
       helper
         .transfer(expr)(prevst)
         ._1
-        .getSingle(absfin.AbsValue.LiteralKind) match {
-        case FlatElem(absfin.AbsValue.ALiteral(v)) => literalToExpr(v)
-        case _                                     => expr
+        .getSingle(sem.AbsValue.LiteralKind) match {
+        case FlatElem(sem.AbsValue.ALiteral(v)) => literalToExpr(v)
+        case _                                  => expr
       }
     } catch {
       case prevst.SyntacticCalled(_, _) => expr
@@ -280,7 +303,7 @@ class ReplaceExprWalker[BSD <: BasicStateDomain[
   override def walk(
     inst: Inst,
     currnp: NodePoint[Node],
-    prevst: absfin.AbsState.Elem,
+    prevst: sem.AbsState.Elem,
   ): Inst = {
     if (!prevst.reachable) markUnreachable(inst)
     else
@@ -396,6 +419,7 @@ class PartialEval(cfgHelper: CFGHelper) {
     val fList = absfin.npMap.keySet.map(_.func.name).toList
     // absfin.npMap.keySet.map(_.func.irFunc).toList.map(println(_))
 
+    // val replaceExprWalker = AnnotationWalker[asd.type, absfin.type](absfin)(
     val replaceExprWalker = ReplaceExprWalker[asd.type, absfin.type](absfin)(
       cfgHelper.cfg,
       absfin.npMap,
@@ -406,7 +430,9 @@ class PartialEval(cfgHelper: CFGHelper) {
       case (name, irFunc) => (name, setOfUsedVar(irFunc))
     }.toMap
 
-    val esd = EmptyStateDomain(aod, cfgHelper)
+    val evd: AbsValueDomain = EmptyValueDomain()
+    val eod = BasicObjDomain(evd)
+    val esd = EmptyStateDomain(eod, cfgHelper)
     val erd = RetDomain(esd)
     val emptyAbs = new AbsSemantics[esd.type](erd)(cfgHelper)
     val unreachableRemoveWalker =

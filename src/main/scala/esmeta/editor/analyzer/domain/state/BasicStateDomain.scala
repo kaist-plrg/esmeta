@@ -255,8 +255,16 @@ class BasicStateDomain[AOD <: AbsObjDomain[_] with Singleton](
 
   // appender
   implicit val app: Rule[Elem] = (app, elem) =>
-    app >> elem.reachable >> " " >> elem.locals.toList
+    val (topElems, nonTopElems) = elem.locals.toList.partition {
+      case (id, value) => AbsValue.Top ⊑ value
+    }
+    app >> elem.reachable >> " " >> nonTopElems
       .sortWith { case (a, b) => a._1.toString < b._1.toString }
-      .mkString(" | ") >> " "
+      .map(kv => s"${kv._1} -> ${kv._2}")
+      .mkString("{", ", ", "}") >>
+    topElems
+      .sortWith { case (a, b) => a._1.toString < b._1.toString }
+      .map(kv => kv._1.toString)
+      .mkString(" TOP[", ",", "]") >> " "
 
 }

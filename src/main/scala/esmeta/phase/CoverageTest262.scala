@@ -9,7 +9,7 @@ import esmeta.util.BaseUtils.*
 import esmeta.js.*
 import esmeta.test262.*
 import esmeta.test262.util.*
-import esmeta.editor.util.{Coverage => Cov}
+import esmeta.editor.util.*
 
 /** `coverage-test262` phase */
 case object CoverageTest262 extends Phase[CFG, Unit] {
@@ -52,7 +52,7 @@ case object CoverageTest262 extends Phase[CFG, Unit] {
           val (sourceText, ast) =
             test262.loadTestFromFile(s"$TEST262_TEST_DIR/$name")
           config.load match
-            case None          => Cov(cfg, sourceText, Some(ast))
+            case None          => measureCoverage(cfg, sourceText, Some(ast))
             case Some(loadDir) => readJson[Set[Int]](s"$loadDir/data/$idx.json")
         } catch { case _: Throwable => Set() }
       config.dump.foreach { dumpDir =>

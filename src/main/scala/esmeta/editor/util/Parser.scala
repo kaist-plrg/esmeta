@@ -124,7 +124,7 @@ case class Parser(val grammar: Grammar) extends LAParsers {
     argsSet: Set[String],
   ): LAParser[List[Option[SyntacticView]]] =
     symbol match {
-      case Terminal("(") if name == "DoWhileStatement" => prev <~ doWhileCloseT
+      case Terminal(")") if name == "DoWhileStatement" => prev <~ doWhileCloseT
       case Terminal(term)                              => prev <~ t(term)
       case Nonterminal(name, args, optional) =>
         lazy val parser =

@@ -59,6 +59,14 @@ lazy val test262ParseTest =
 lazy val test262EvalTest =
   taskKey[Unit]("Launch eval tests for Test262 (large)")
 
+// editor
+lazy val editorParseTest =
+  taskKey[Unit]("Launch parse tests for editor (tiny)")
+lazy val editorPartialEvalTest =
+  taskKey[Unit]("Launch partial eval tests for editor (tiny)")
+lazy val editorContainTest =
+  taskKey[Unit]("Launch contain tests for editor (tiny)")
+
 // assembly setting
 ThisBuild / assemblyPrependShellScript :=
   Some(defaultUniversalScript(shebang = false))
@@ -152,6 +160,10 @@ lazy val root = project
     // test262
     test262ParseTest := (Test / testOnly).toTask(" *.test262.Parse*Test").value,
     test262EvalTest := (Test / testOnly).toTask(" *.test262.Eval*Test").value,
+    // editor
+    editorParseTest := (Test / testOnly).toTask(" *.editor.Parse*Test").value,
+    editorPartialEvalTest := (Test / testOnly).toTask(" *.editor.PartialEval*Test").value,
+    editorContainTest := (Test / testOnly).toTask(" *.editor.Contain*Test").value,
   )
 
 // create the `.completion` file for autocompletion in shell

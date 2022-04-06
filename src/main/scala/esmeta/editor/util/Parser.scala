@@ -76,8 +76,8 @@ case class Parser(val grammar: Grammar) extends LAParsers {
 
       val abs =
         nt(name, parser2packrat(literal(s"#$name"))) ^^^ AbsSyntactic(name)
-      if (lrs.isEmpty) log(abs | nlrs.reduce(_ | _))(name)
-      else log(abs | resolveLR(nlrs.reduce(_ | _), lrs.reduce(_ | _)))(name)
+      if (lrs.isEmpty) log(nlrs.reduce(_ | _) | abs)(name)
+      else log(resolveLR(nlrs.reduce(_ | _) | abs, lrs.reduce(_ | _)))(name)
     })
 
   // get a sub parser for direct left-recursive cases
@@ -404,15 +404,15 @@ case class Parser(val grammar: Grammar) extends LAParsers {
   // handle indirect left-recursive case
   private def handleLR: ESParser[SyntacticView] = memo(args => {
     log(
-      nt(
-        "CoalesceExpressionHead",
-        parser2packrat(literal("#CoalesceExpressionHead")),
-      ) ^^^ AbsSyntactic("CoalesceExpressionHead") |
       resolveLR(
         log(MATCH ~ parsers("BitwiseORExpression")(args) ^^ {
           case _ ~ x0 =>
             syntactic("CoalesceExpressionHead", args, 1, List(Some(x0)))
-        })("CoalesceExpressionHead1"),
+        })("CoalesceExpressionHead1") |
+        nt(
+          "CoalesceExpressionHead",
+          parser2packrat(literal("#CoalesceExpressionHead")),
+        ) ^^^ AbsSyntactic("CoalesceExpressionHead"),
         log(
           (MATCH <~ t("??")) ~ parsers("BitwiseORExpression")(args) ^^ {
             case _ ~ x0 => (

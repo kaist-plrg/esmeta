@@ -85,3 +85,9 @@ case object CmdFilterTest262
   extends Command("filter-test262", CmdBase >> FilterTest262) {
   def help = "extracts and filters out metadata of Test262 tests."
 }
+
+/** `coverage-test262` command */
+case object CmdCoverageTest262
+  extends Command("coverage-test262", CmdBuildCFG >> CoverageTest262) {
+  def help = "measure coverage of ECMA-262 (spec.html) from Test262 tests."
+}

@@ -30,9 +30,13 @@ object TestFilter {
     )
     .summary
 
-  // TODO
-  // lazy val test262ManualconfigSummary =
-  //   readJson[Test262ConfigSummary](s"$TEST_DIR/test262.json")
+  /** load configuration from list of test name */
+  def fromFile(path: String): ConfigSummary =
+    readFile(path)
+      .split(LINE_SEP)
+      .toList
+      .map(t => MetaData(s"$TEST_DIR/test262/test/$t"))
+      .summary
 
   /** all Test262 tests */
   lazy val allTests = walkTree(test262Dir).toList

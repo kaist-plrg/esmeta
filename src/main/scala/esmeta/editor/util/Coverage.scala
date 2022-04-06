@@ -4,28 +4,29 @@ import esmeta.error.*
 import esmeta.interp.*
 import esmeta.cfg.*
 import esmeta.js.*
+import esmeta.util.BaseUtils.*
 
-/** measure branch coverage of given JS program */
-// TODO consider EReturnIfAbrupt
-class Coverage(st: State, var covered: Set[(Int, Boolean)] = Set())
-  extends Interp(st, Nil) {
-
-  /** override transition for nodes for measure coverage */
-  override def interp(node: Node): Unit = node match
-    case Branch(id, _, cond, thenNode, elseNode) =>
-      // evaluate cond and set cursor
-      val b = interp(cond).escaped match
-        case Bool(b) => b
-        case v       => throw NoBoolean(cond, v)
-      st.context.cursor = Cursor(if (b) thenNode else elseNode, st.func)
-      covered += ((id, b)) // record
-    case _ => super.interp(node)
-}
-
+/** measure statement coverage of given JS program */
 object Coverage {
-  def apply(cfg: CFG, sourceText: String): Set[(Int, Boolean)] =
-    val st = Initialize(cfg, sourceText)
-    val cov = new Coverage(st)
-    cov.fixpoint
-    cov.covered
+  def apply(
+    cfg: CFG,
+    sourceText: String,
+    cachedAst: Option[Ast] = None,
+    checkExit: Boolean = true,
+  ): Set[Int] =
+    val st = Initialize(cfg, sourceText, cachedAst)
+    var touched: Set[Int] = Set()
+
+    // run interp
+    new Interp(st, Nil) {
+      override def interp(node: Node): Unit =
+        touched += node.id
+        super.interp(node)
+    }.fixpoint
+
+    // check exit and return result
+    if (checkExit) st(GLOBAL_RESULT) match
+      case comp: Comp if comp.ty == CONST_NORMAL =>
+      case v                                     => error(s"not normal exit")
+    touched
 }

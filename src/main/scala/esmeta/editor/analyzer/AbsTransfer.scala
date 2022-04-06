@@ -18,8 +18,10 @@ class AbsTransfer[ASD <: AbsStateDomain[_] with Singleton, T <: AbsSemantics[
   type AbsValue = sem.AbsValue
   type AbsState = sem.AbsState
   type AbsRet = sem.AbsRet
+  type AbsObj = sem.AbsState.AbsObj
   val AbsValue: sem.AbsValue.type = sem.AbsValue
   val AbsState: sem.AbsState.type = sem.AbsState
+  val AbsObj: sem.AbsState.AbsObj.type = sem.AbsState.AbsObj
   val AbsRet: sem.AbsRet.type = sem.AbsRet
 
   import AbsValue.*
@@ -76,21 +78,24 @@ class AbsTransfer[ASD <: AbsStateDomain[_] with Singleton, T <: AbsSemantics[
     loopOut: Boolean = false,
   ): NodePoint[Node] = {
     val NodePoint(func, from, view) = fromCp
-    val toView = to match {
-      case (
-            loop @ Branch(id, Branch.Kind.Loop(_), _, _, _),
-          ) =>
-        if (
-          sem.maxIJK._2 == 0 || view.loops.headOption
-            .map((x) => x.loopId == id)
-            .getOrElse(false)
-        ) sem.loopNext(view)
-        else if (loopOut) sem.loopExit(view)
-        else sem.loopEnter(view, loop)
-      case (_) if loopOut =>
-        sem.loopExit(view)
-      case _ => view
-    }
+    val toView =
+      if (sem.maxIJK.maxLoopDepth == 0) view
+      else
+        to match {
+          case (
+                loop @ Branch(id, Branch.Kind.Loop(_), _, _, _),
+              ) =>
+            if (
+              view.loops.headOption
+                .map((x) => x.loopId == id)
+                .getOrElse(false)
+            ) sem.loopNext(view)
+            else if (loopOut) sem.loopExit(view)
+            else sem.loopEnter(view, loop)
+          case (_) if (loopOut) =>
+            sem.loopExit(view)
+          case _ => view
+        }
     NodePoint(func, to, toView)
   }
 
@@ -213,10 +218,10 @@ class AbsTransfer[ASD <: AbsStateDomain[_] with Singleton, T <: AbsSemantics[
                 val newSt = st.replaceLocal(newLocals.toSeq: _*)
                 sem.doCall(call, view, st, func, newSt)
               }
-              for (ACont(func, captured, target) <- value.getSet(ContKind)) {
+              for (ACont(func, captured) <- value.getSet(ContKind)) {
                 val newLocals = captured ++ getLocals(func.irFunc.params, vs)
                 val newSt = st.replaceLocal(newLocals.toSeq: _*)
-                sem += target -> newSt
+                sem += NodePoint(func, func.entry.get, view) -> newSt
               }
               true
             } else false
@@ -289,6 +294,19 @@ class AbsTransfer[ASD <: AbsStateDomain[_] with Singleton, T <: AbsSemantics[
         for {
           vs <- join(exprs.map(transfer))
           _ <- modify(_.allocList(vs.map(_.escaped))(loc))
+        } yield AbsValue(loc)
+      }
+      case lconcat @ EListConcat(exprs) => {
+        val loc: AllocSite = AllocSite(lconcat.asite, cp.view)
+        for {
+          vs <- join(exprs.map((v) => (escape(transfer(v)))))
+          st <- get
+          obj = vs
+            .map((v) =>
+              v.getSet(LocKind).map(st(_)).foldLeft(AbsObj.Bot)(_ ⊔ _),
+            )
+            .foldLeft(AbsObj.Bot)(_ concat _)
+          _ <- modify(_.alloc(obj)(loc))
         } yield AbsValue(loc)
       }
       case symbol @ ESymbol(desc) => {
@@ -416,15 +434,24 @@ class AbsTransfer[ASD <: AbsStateDomain[_] with Singleton, T <: AbsSemantics[
       }
 
       // TODO
-      case EParse(_, _)        => AbsValue.Top
-      case EGrammar(_, _)      => AbsValue.Top
-      case ESourceText(_)      => AbsValue.Top
-      case EYet(_)             => AbsValue.Top
-      case ESubstring(_, _, _) => AbsValue.Top
-      case EVariadic(_, _)     => AbsValue.Top
-      case EConvert(_, _)      => AbsValue.Top
-      case EDuplicated(_)      => AbsValue.Top
-      case EIsArrayIndex(_)    => AbsValue.Top
+      case EParse(_, _)           => AbsValue.Top
+      case EGrammar(name, params) => AbsValue(Grammar(name, params))
+      case ESourceText(_)         => AbsValue.Top
+      case EYet(_)                => AbsValue.Bot
+      case ESubstring(expr, from, to) =>
+        for {
+          s <- escape(transfer(expr))
+          f <- escape(transfer(from))
+          t <- escape(transfer(to))
+        } yield AbsValue.Top // TODO
+      case EVariadic(vop, exprs) =>
+        for {
+          vs <- join(exprs.map((e) => escape(transfer(e))))
+          v <- transfer(vop, vs)
+        } yield v
+      case EConvert(_, _)   => AbsValue.Top
+      case EDuplicated(_)   => AbsValue.Top
+      case EIsArrayIndex(_) => AbsValue.Top
       case EClo(fname, captured) =>
         for {
           st <- get
@@ -434,12 +461,66 @@ class AbsTransfer[ASD <: AbsStateDomain[_] with Singleton, T <: AbsSemantics[
             AbsValue(AClo(func, Map.from(captured.map(x => x -> st(x, cp)))))
           }
         } yield v
-      case ECont(_)               => AbsValue.Top
-      case ESyntactic(_, _, _, _) => AbsValue.Top
-      case ELexical(_, _)         => AbsValue.Top
-      case EListConcat(_)         => AbsValue.Top
-      case EGetChildren(_, _)     => AbsValue.Top
+      case ECont(fname) =>
+        for {
+          st <- get
+          v = {
+            val func = sem.cfgHelper.cfg.fnameMap
+              .getOrElse(fname, error("invalid function name"))
+            val captured: Map[Name, AbsValue] = st.getLocal.collect {
+              case (id: Name, v) => (id, v)
+            }
+            AbsValue(ACont(func, captured))
+          }
+        } yield v
+      case ESyntactic(name, args, rhsIdx, children) =>
+        for {
+          childrens <- join(
+            children.map((o: Option[Expr]) =>
+              o.map((e) =>
+                e.flatMap((e) => transfer(e).map[Option[AbsValue]](Some(_))),
+              ).getOrElse(pure[Option[AbsValue]](None)),
+            ),
+          )
+        } yield AbsValue.Top // TODO
+      case ELexical(name, expr) =>
+        for {
+          str <- escape(transfer(expr))
+        } yield AbsValue.Top // TODO
+      case EGetChildren(kind, ast) =>
+        for {
+          k <- escape(transfer(kind))
+          a <- escape(transfer(ast))
+        } yield AbsValue.Top // TODO
     }
+
+    def transfer(vop: VOp, vs: List[AbsValue]): AbsValue =
+      import VOp.*
+      if (vs.isEmpty) error(s"no arguments for: $vop")
+      vop match
+        case Min =>
+          val set = scala.collection.mutable.Set[AbsValue]()
+          if (vs.exists(AbsValue(NEG_INF) ⊑ _)) set += AbsValue(NEG_INF)
+          val filtered = vs.filter((v) => !(AbsValue(POS_INF) ⊑ v))
+          if (filtered.isEmpty) set += AbsValue(POS_INF)
+          set += vopInterp(_.project(MathKind), _ min _, filtered)
+          set.foldLeft(AbsValue.Bot)(_ ⊔ _)
+        case Max =>
+          val set = scala.collection.mutable.Set[AbsValue]()
+          if (vs.exists(AbsValue(POS_INF) ⊑ _)) set += AbsValue(POS_INF)
+          val filtered = vs.filter((v) => !(AbsValue(NEG_INF) ⊑ v))
+          if (filtered.isEmpty) set += AbsValue(NEG_INF)
+          set += vopInterp(_.project(MathKind), _ min _, filtered)
+          set.foldLeft(AbsValue.Bot)(_ ⊔ _)
+        case Concat => vopInterp(_.project(StrKind), _ plus _, vs)
+
+    /** helpers for make transition for variadic operators */
+
+    private def vopInterp(
+      f: AbsValue => AbsValue,
+      op: (AbsValue, AbsValue) => AbsValue,
+      vs: List[AbsValue],
+    ) = vs.map(f).foldLeft(AbsValue.Bot)(op)
 
     // return if abrupt completion
     def returnIfAbrupt(

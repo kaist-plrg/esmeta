@@ -10,5 +10,6 @@ trait AbsObjDomain[AVD <: AbsValueDomain with Singleton](
 
   trait AbsObjTrait extends ElemTrait { this: Elem =>
     def getType: Type
+    def concat(that: Elem): Elem
   }
 }

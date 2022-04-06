@@ -24,7 +24,7 @@ class AbsSemantics[ASD <: AbsStateDomain[_] with Singleton](
   var callInfo: Map[NodePoint[Call], ard.asd.Elem] = Map(),
   var retEdges: Map[ReturnPoint, Set[NodePoint[Call]]] = Map(),
   var loopOut: Map[View, Set[View]] = Map(),
-  val maxIJK: (Int, Int, Int) = (0, 0, 0),
+  val maxIJK: ViewConfig = ViewConfig(0, 0, 0),
   timeLimit: Option[Long] = None,
 ) {
 
@@ -129,7 +129,7 @@ class AbsSemantics[ASD <: AbsStateDomain[_] with Singleton](
   ): View = {
     val View(calls, _, _) = callerView
     val view = callerView.copy(
-      calls = (call :: calls).take(maxIJK._3),
+      calls = (call :: calls).take(maxIJK.maxCallDepth),
       intraLoopDepth = 0,
     )
     view
@@ -151,12 +151,12 @@ class AbsSemantics[ASD <: AbsStateDomain[_] with Singleton](
   // loop transition
   def loopNext(view: View): View = view.loops match {
     case LoopCtxt(loop, k) :: rest =>
-      view.copy(loops = LoopCtxt(loop, (k + 1) min maxIJK._1) :: rest)
+      view.copy(loops = LoopCtxt(loop, (k + 1) min maxIJK.maxLoopIter) :: rest)
     case _ => view
   }
   def loopEnter(view: View, loop: Branch): View = {
     val loopView = view.copy(
-      loops = (LoopCtxt(loop.id, 0) :: view.loops).take(maxIJK._2),
+      loops = (LoopCtxt(loop.id, 0) :: view.loops).take(maxIJK.maxLoopDepth),
       intraLoopDepth = view.intraLoopDepth + 1,
     )
     loopOut += loopView -> (loopOut.getOrElse(loopView, Set()) + view)

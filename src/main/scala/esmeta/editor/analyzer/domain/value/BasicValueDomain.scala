@@ -14,8 +14,8 @@ class BasicValueDomain() extends AbsValueDomain {
     case AAst(ast)            => Elem(FlatElem(AstValue(ast)))
     case ASView(view)         => Elem(FlatElem(view))
     case AClo(name, captured) => Elem(FlatElem(AClo(name, captured)))
-    case ACont(name, captured, target) =>
-      Elem(FlatElem(ACont(name, captured, target)))
+    case ACont(name, captured) =>
+      Elem(FlatElem(ACont(name, captured)))
     case _ => Elem(FlatTop)
 
   def fromAValues[T <: AValue](kind: AValueKind[T])(items: T*): Elem = Elem(
@@ -58,6 +58,8 @@ class BasicValueDomain() extends AbsValueDomain {
 
     def mul(that: Elem): Elem = this
     def plus(that: Elem): Elem = this
+    def min(that: Elem): Elem = this
+    def max(that: Elem): Elem = this
 
     def isCompletion: Elem = this
     def project(kinds: AValueKind[AValue]*): Elem = this

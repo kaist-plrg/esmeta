@@ -12,6 +12,7 @@ class BasicObjDomain[AVD <: AbsValueDomain with Singleton](avd_ : AVD)
     def ⊔(that: Elem): Elem = ???
 
     def getType: Type = ???
+    def concat(that: Elem): Elem = this
   }
 
   // appender

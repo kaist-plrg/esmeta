@@ -29,6 +29,8 @@ class EmptyValueDomain() extends AbsValueDomain {
 
     def mul(that: Elem): Elem = this
     def plus(that: Elem): Elem = this
+    def min(that: Elem): Elem = this
+    def max(that: Elem): Elem = this
 
     def isCompletion: Elem = this
     def project(kinds: AValueKind[AValue]*): Elem = this

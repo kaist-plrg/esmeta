@@ -38,8 +38,8 @@ trait AbsValueDomain extends Domain {
         (for ((x, v) <- captured) yield s"$x -> $v").mkString("[", ", ", "]") +
         s" => ${func.name}"
       )
-      case ACont(func, captured, target) =>
-        s"${func.irFunc.params.mkString("(", ", ", ")")} [=>] $target"
+      case ACont(func, captured) =>
+        s"${func.irFunc.params.mkString("(", ", ", ")")} [=>] ${func.name}"
       case AAst(ast) =>
         val max = AValue.AST_MAX_LENGTH
         var str = ast.toString
@@ -121,7 +121,6 @@ trait AbsValueDomain extends Domain {
   case class ACont(
     func: Func,
     captured: Map[Name, Elem],
-    target: NodePoint[Node],
   ) extends AValue
 
   sealed trait ASyntactic extends AValue
@@ -201,6 +200,8 @@ trait AbsValueDomain extends Domain {
 
     def mul(that: Elem): Elem
     def plus(that: Elem): Elem
+    def min(that: Elem): Elem
+    def max(that: Elem): Elem
 
     def isCompletion: Elem
     def project(kinds: AValueKind[AValue]*): Elem

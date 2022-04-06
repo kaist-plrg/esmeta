@@ -230,6 +230,7 @@ class BasicStateDomain[AOD <: AbsObjDomain[_] with Singleton](
 
     def allocSymbol(desc: AbsValue)(to: AllocSite): Elem = this
     def allocList(list: List[AbsValue])(to: AllocSite): Elem = this
+    def alloc(obj: AbsObj)(to: AllocSite): Elem = this
     def setType(loc: AbsValue, ty: Type): Elem = this
     def contains(loc: AbsValue, value: AbsValue): AbsValue = AbsValue.Top
 
@@ -241,6 +242,8 @@ class BasicStateDomain[AOD <: AbsObjDomain[_] with Singleton](
       this.copy(locals = this.locals ++ pairs.toMap)
     def replaceLocal(pairs: (Id, AbsValue)*): Elem =
       this.copy(locals = pairs.toMap)
+
+    def getLocal = locals
 
     // conversion to string
     def toString(detail: Boolean): String =

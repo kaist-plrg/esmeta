@@ -159,6 +159,7 @@ trait AbsStateDomain[AOD <: AbsObjDomain[_] with Singleton](
 
     def allocSymbol(desc: AbsValue)(to: AllocSite): Elem
     def allocList(list: List[AbsValue])(to: AllocSite): Elem
+    def alloc(obj: AbsObj)(to: AllocSite): Elem
     def setType(loc: AbsValue, ty: Type): Elem
     def contains(loc: AbsValue, value: AbsValue): AbsValue
 
@@ -168,6 +169,7 @@ trait AbsStateDomain[AOD <: AbsObjDomain[_] with Singleton](
     // define local variables
     def defineLocal(pairs: (Id, AbsValue)*): Elem
     def replaceLocal(pairs: (Id, AbsValue)*): Elem
+    def getLocal: Map[Id, AbsValue]
 
     // conversion to string
     def toString(detail: Boolean): String

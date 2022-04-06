@@ -162,8 +162,12 @@ lazy val root = project
     test262EvalTest := (Test / testOnly).toTask(" *.test262.Eval*Test").value,
     // editor
     editorParseTest := (Test / testOnly).toTask(" *.editor.Parse*Test").value,
-    editorPartialEvalTest := (Test / testOnly).toTask(" *.editor.PartialEval*Test").value,
-    editorContainTest := (Test / testOnly).toTask(" *.editor.Contain*Test").value,
+    editorPartialEvalTest := (Test / testOnly)
+      .toTask(" *.editor.PartialEval*Test")
+      .value,
+    editorContainTest := (Test / testOnly)
+      .toTask(" *.editor.Contain*Test")
+      .value,
   )
 
 // create the `.completion` file for autocompletion in shell

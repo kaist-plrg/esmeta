@@ -404,7 +404,7 @@ class UnreachableRemoveWalker[ESD <: EmptyStateDomain[
 }
 
 // partial evaluator for IR functions with a given syntactic view
-class PartialEval(cfgHelper: CFGHelper) {
+class PartialEval(cfgHelper: CFGHelper, verbose: Boolean = false) {
 
   def setOfUsedVar(irFunc: IRFunc): Set[Id] = {
     def aux(inst: Inst): Set[Id] = {
@@ -463,17 +463,17 @@ class PartialEval(cfgHelper: CFGHelper) {
     }
 
     // println(absfin.npMap)
-    /*
-    ret2.foreach{ case (name, func) =>
-        println(s"PRINT original $name")
-        println("=============================================")
-        println(cfgHelper.cfg.fnameMap(name).irFunc)
-        println(s"PRINT reduced $name")
-        println("=============================================")
-        println(func)
-        println("---------------------------------------------")
+    if (verbose)
+      ret2.foreach {
+        case (name, func) =>
+          println(s"PRINT original $name")
+          println("=============================================")
+          println(cfgHelper.cfg.fnameMap(name).irFunc)
+          println(s"PRINT reduced $name")
+          println("=============================================")
+          println(func)
+          println("---------------------------------------------")
       }
-     */
 
     ret2.map(_._2)
   }

@@ -91,3 +91,9 @@ case object CmdCoverageTest262
   extends Command("coverage-test262", CmdBuildCFG >> CoverageTest262) {
   def help = "measure coverage of ECMA-262 (spec.html) from Test262 tests."
 }
+
+/** `peval' command * */
+case object CmdPEval
+  extends Command("peval", CmdBuildCFG >> ViewParse >> ViewPEval) {
+  def help = "partial evaluates a Syntactic View file."
+}

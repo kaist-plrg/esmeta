@@ -56,7 +56,6 @@ extension (ast: Ast) {
         jsLex.str.trim == absLex.str.trim
       case (jsSyn: JsSyntactic, absSyn: Syntactic) =>
         jsSyn.name == absSyn.name &&
-        jsSyn.args == absSyn.args &&
         jsSyn.rhsIdx == absSyn.rhsIdx &&
         (jsSyn.children zip absSyn.children).forall {
           case (None, None)                    => true
@@ -77,6 +76,7 @@ extension (ast: Ast) {
               case (false, Some(child)) => aux(child, s)
             }
           case _ => false
+
     aux(ast, sviewRoot)
   }
 }

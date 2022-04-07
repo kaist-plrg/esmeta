@@ -20,8 +20,8 @@ class ContainTinyTest extends EditorTest {
     sviewStr: String,
     expected: Boolean = true,
   ): Unit =
-    val result = parseJs(jsStr).contains(parse(sviewStr))
-    assert(result == expected)
+    val (ast, sview) = (parseJs(jsStr), parse(sviewStr))
+    assert(ast.contains(sview) == expected)
 
   // registration
   def init: Unit = {
@@ -44,6 +44,11 @@ class ContainTinyTest extends EditorTest {
       containTest(
         "x == x",
         "#RelationalExpression == #RelationalExpression",
+      )
+
+      containTest(
+        "async function f() { var x; }",
+        "var #BindingIdentifier;",
       )
 
       containTest(

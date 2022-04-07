@@ -82,8 +82,8 @@ case object CmdWeb extends Command("web", CmdBuildCFG >> Web) {
 
 /** filter-test262 commmand */
 case object CmdFilterTest262
-  extends Command("filter-test262", CmdBase >> FilterTest262) {
-  def help = "extracts and filters out metadata of Test262 tests."
+  extends Command("filter-test262", CmdBuildCFG >> FilterTest262) {
+  def help = "filters Test262 tests for using syntactic view."
 }
 
 /** `coverage-test262` command */

@@ -74,7 +74,7 @@ case object CoverageTest262 extends Phase[CFG, Unit] {
     (
       "test262-list",
       StrOption((c, s) => c.test262List = Some(s)),
-      "path of test262 list to measure coverage.",
+      "use given test262 tests list.",
     ),
     (
       "load",

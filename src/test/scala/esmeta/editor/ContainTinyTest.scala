@@ -34,6 +34,14 @@ class ContainTinyTest extends EditorTest {
       )
 
       containTest(
+        """
+        |var acc = 0;
+        |for ( var x in [1,2,3] ) { acc += x; }""".stripMargin,
+        "for ( var #BindingPattern in #Expression ) #Statement",
+        expected = false,
+      )
+
+      containTest(
         "x == x",
         "#RelationalExpression == #RelationalExpression",
       )

@@ -16,6 +16,18 @@ import esmeta.interp.Bool
 import esmeta.interp.LiteralValue
 import esmeta.interp
 
+extension (node: Node)
+  def asBranch = node match {
+    case node: Branch => node
+    case _            => assert(false)
+  }
+  def asCall = node match {
+    case node: Call => node
+    case _          => assert(false)
+  }
+extension (kind: Branch.Kind)
+  def isLoop = kind match { case Branch.Kind.Loop(_) => true; case _ => false }
+
 trait IRCFGWalker[ASD <: AbsStateDomain[_] with Singleton, T <: AbsSemantics[
   ASD,
 ] with Singleton](val sem: T)(
@@ -92,8 +104,7 @@ trait IRCFGWalker[ASD <: AbsStateDomain[_] with Singleton, T <: AbsSemantics[
           val nid = nextNId
           // val branch = Branch(nid, Branch.Kind.If, cond)
           val currnp = NodePoint(func, cfg.nodeMap(nid), View(Nil, Nil, 0))
-          assert(currnp.node.isInstanceOf[Branch])
-          val bnode = currnp.node.asInstanceOf[Branch]
+          val bnode = currnp.node.asBranch
           assert(bnode.kind == Branch.Kind.If)
 
           val (tnp, fnp) = (
@@ -140,9 +151,8 @@ trait IRCFGWalker[ASD <: AbsStateDomain[_] with Singleton, T <: AbsSemantics[
           val nid = nextNId
           // val branch = Branch(nid, Branch.Kind.Loop(kind), cond)
           val currnp = NodePoint(func, cfg.nodeMap(nid), View(Nil, Nil, 0))
-          assert(currnp.node.isInstanceOf[Branch])
-          val bnode = currnp.node.asInstanceOf[Branch]
-          assert(bnode.kind.isInstanceOf[Branch.Kind.Loop])
+          val bnode = currnp.node.asBranch
+          assert(bnode.kind.isLoop)
           val (tnp, fnp) = (
             bnode.thenNode.map(tnode =>
               NodePoint(
@@ -186,8 +196,7 @@ trait IRCFGWalker[ASD <: AbsStateDomain[_] with Singleton, T <: AbsSemantics[
           val nid = nextNId
           // val call = Call(nid, lhs, fexpr, args)
           val currnp = NodePoint(func, cfg.nodeMap(nid), View(Nil, Nil, 0))
-          assert(currnp.node.isInstanceOf[Call])
-          val bnode = currnp.node.asInstanceOf[Call]
+          val bnode = currnp.node.asCall
 
           // connect(call.setInst(inst))
           // prev = List((call, true))
@@ -386,7 +395,11 @@ class UnreachableRemoveWalker[ESD <: EmptyStateDomain[
       case ICall(_, EStr("unreachable"), _)       => INop()
       case IExpr(EStr("unreachable"))             => INop()
       case ILoop(kind, EBool(false), body)        => body
-      case _                                      => inst
+      case ISeq(insts) =>
+        ISeq(insts.filterNot {
+          case INop() => true; case ISeq(Nil) => true; case _ => false
+        })
+      case _ => inst
   }
 }
 

@@ -11,6 +11,9 @@ import esmeta.error.ESMetaError
 import scala.annotation.tailrec
 import esmeta.util.BaseUtils.*
 
+extension (kind: Branch.Kind)
+  def isLoop = kind match { case Branch.Kind.Loop(_) => true; case _ => false }
+
 class AbsTransfer[ASD <: AbsStateDomain[_] with Singleton, T <: AbsSemantics[
   ASD,
 ] with Singleton](val sem: T) {
@@ -64,7 +67,7 @@ class AbsTransfer[ASD <: AbsStateDomain[_] with Singleton, T <: AbsSemantics[
               sem += getNextNp(
                 np,
                 elseNode,
-                kind.isInstanceOf[Branch.Kind.Loop],
+                kind.isLoop,
               ) -> st,
             )
         })(st)

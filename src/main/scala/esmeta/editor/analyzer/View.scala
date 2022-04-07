@@ -20,4 +20,5 @@ case class View(
 // contexts
 case class LoopCtxt(loopId: Int, depth: Int)
 
+// config
 case class ViewConfig(maxLoopIter: Int, maxLoopDepth: Int, maxCallDepth: Int)

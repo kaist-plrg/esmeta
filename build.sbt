@@ -38,6 +38,9 @@ lazy val langTest = taskKey[Unit]("Launch lang tests")
 lazy val langStringifyTest =
   taskKey[Unit]("Launch stringify tests for lang (tiny)")
 
+// editor
+lazy val pevalTest = taskKey[Unit]("Launch partial evaluation tests")
+
 // ir
 lazy val irTest = taskKey[Unit]("Launch ir tests")
 lazy val irStringifyTest = taskKey[Unit]("Launch stringify tests for ir (tiny)")
@@ -143,6 +146,10 @@ lazy val root = project
     langTest := (Test / testOnly).toTask(" *.lang.*Test").value,
     langStringifyTest := (Test / testOnly)
       .toTask(" *.lang.Stringify*Test")
+      .value,
+    // editor
+    pevalTest := (Test / testOnly)
+      .toTask(" *.editor.BasicSyntacticViewTest")
       .value,
     // ir
     irTest := (Test / testOnly).toTask(" *.ir.*Test").value,

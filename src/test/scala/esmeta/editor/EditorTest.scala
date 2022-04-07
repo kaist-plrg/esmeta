@@ -3,9 +3,15 @@ package esmeta.editor
 import esmeta.ESMetaTest
 import esmeta.editor.sview.*
 import esmeta.editor.util.*
+import esmeta.*
+import esmeta.util.BaseUtils.*
+import esmeta.util.SystemUtils.*
 
 trait EditorTest extends ESMetaTest {
   def category: String = "editor"
+
+  // predefined data
+  lazy val logDir = s"$LOG_DIR/editor_$dateStr"
 }
 
 object EditorTest {

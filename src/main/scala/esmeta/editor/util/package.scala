@@ -10,8 +10,8 @@ import esmeta.js.{
   Syntactic => JsSyntactic,
   Lexical => JsLexical,
 }
+import esmeta.ir.{Func => IRFunc, NAME_THIS}
 import esmeta.editor.sview.*
-import scala.annotation.tailrec
 
 /** measure statement coverage of given JS program */
 def measureCoverage(
@@ -19,7 +19,7 @@ def measureCoverage(
   sourceText: String,
   cachedAst: Option[Ast] = None,
   checkExit: Boolean = true,
-): Set[Int] =
+): Set[Int] = {
   val st = Initialize(cfg, sourceText, cachedAst)
   var touched: Set[Int] = Set()
 
@@ -35,48 +35,66 @@ def measureCoverage(
     case comp: Comp if comp.ty == CONST_NORMAL =>
     case v                                     => error(s"not normal exit")
   touched
+}
 
 /** extension for ast */
 extension (ast: Ast) {
 
-  /** check whether given JS program contains sytactic view */
-  def contains(sview: SyntacticView): Boolean = {
-    // find actual root of syntactic view
-    @tailrec
-    def getRoot(sv: SyntacticView): SyntacticView = sv match
-      case Syntactic(_, _, _, List(Some(child))) => getRoot(child)
-      case _                                     => sv
-    val sviewRoot = getRoot(sview)
+  /** get all parents */
+  def getParents: List[Ast] = ast.parent match
+    case None         => List(ast)
+    case Some(parent) => ast :: parent.getParents
 
-    // check if given ast and sview are exactly matched
-    def matched(a: Ast, s: SyntacticView): Boolean = (a, s) match
-      case (_, AbsSyntactic(absName)) => a.name == absName
-      case (jsLex: JsLexical, absLex: Lexical) =>
-        jsLex.name == absLex.name &&
-        jsLex.str.trim == absLex.str.trim
-      case (jsSyn: JsSyntactic, absSyn: Syntactic) =>
-        jsSyn.name == absSyn.name &&
-        jsSyn.rhsIdx == absSyn.rhsIdx &&
-        (jsSyn.children zip absSyn.children).forall {
-          case (None, None)                    => true
-          case (Some(jsChild), Some(absChild)) => matched(jsChild, absChild)
-          case _                               => false
-        }
-      case _ => false
+  /** filter by node id */
+  def covered(cfg: CFG, sview: SyntacticView, nid: Int): Boolean =
+    if (ast contains sview) {
+      val sourceText = ast.toString(grammar = Some(cfg.grammar))
+      val st = Initialize(cfg, sourceText, Some(ast))
 
-    // aux function for contains
-    def aux(a: Ast, s: SyntacticView): Boolean =
-      if (matched(a, s)) true
-      else
-        a match
-          case jsSyn: JsSyntactic =>
-            jsSyn.children.foldLeft(false) {
-              case (true, _)            => true
-              case (false, None)        => false
-              case (false, Some(child)) => aux(child, s)
-            }
-          case _ => false
+      // run interp
+      var result = false
+      new Interp(st, Nil) {
+        override def step: Boolean = if (result) false else super.step
+        override def interp(node: Node): Unit =
+          if (node.id == nid) {
+            val contexts = this.st.context :: this.st.callStack.map(_.context)
+            contexts.flatMap(_.astOpt) match
+              case a :: _ =>
+                for { parent <- a.getParents }
+                  if (parent matches sview) result = true
+              case _ =>
+          }
+          super.interp(node)
+      }.fixpoint
+      result
+    } else false
 
-    aux(ast, sviewRoot)
-  }
+  /** check whether given JS ast matches syntactic view */
+  def matches(sview: SyntacticView): Boolean = (ast, sview) match
+    case (_, AbsSyntactic(absName)) => ast.name == absName
+    case (jsLex: JsLexical, absLex: Lexical) =>
+      jsLex.name == absLex.name &&
+      jsLex.str.trim == absLex.str.trim
+    case (jsSyn: JsSyntactic, absSyn: Syntactic) =>
+      jsSyn.name == absSyn.name &&
+      jsSyn.rhsIdx == absSyn.rhsIdx &&
+      (jsSyn.children zip absSyn.children).forall {
+        case (None, None)                    => true
+        case (Some(jsChild), Some(absChild)) => jsChild matches absChild
+        case _                               => false
+      }
+    case _ => false
+
+  /** check whether given JS ast contains sytactic view */
+  def contains(sview: SyntacticView): Boolean =
+    if (ast matches sview) true
+    else
+      ast match
+        case jsSyn: JsSyntactic =>
+          jsSyn.children.foldLeft(false) {
+            case (true, _)            => true
+            case (false, None)        => false
+            case (false, Some(child)) => child contains sview
+          }
+        case _ => false
 }

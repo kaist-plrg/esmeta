@@ -21,7 +21,15 @@ class ContainTinyTest extends EditorTest {
     expected: Boolean = true,
   ): Unit =
     val (ast, sview) = (parseJs(jsStr), parse(sviewStr))
-    assert(ast.contains(sview) == expected)
+
+    // find actual root of syntactic view
+    // TODO remove
+    def getRoot(sv: SyntacticView): SyntacticView = sv match
+      case Syntactic(_, _, _, List(Some(child))) => getRoot(child)
+      case _                                     => sv
+    val sviewRoot = getRoot(sview)
+
+    assert(ast.contains(sviewRoot) == expected)
 
   // registration
   def init: Unit = {

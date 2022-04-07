@@ -45,7 +45,6 @@ sealed trait SyntacticView extends EditorElem {
       case abs: AbsSyntactic                     => Set("Abstract")
       case _                                     => Set("Terminal")
     )
-
 }
 
 /** ASTs constructed by abstract productions */

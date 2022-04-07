@@ -2,57 +2,43 @@ package esmeta.phase
 
 import esmeta.*
 import esmeta.test262.*
+import esmeta.cfg.CFG
 import esmeta.test262.util.*
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
-import esmeta.cfg.CFG
 import esmeta.editor.util.*
-import scala.collection.mutable.ListBuffer
+import esmeta.editor.sview.{SyntacticView, Syntactic}
 
 /** `filter-test262` phase */
 case object FilterTest262 extends Phase[CFG, List[String]] {
   val name = "filter-test262"
-  val help = "filters Test262 tests for using syntactic view."
+  val help = "filters Test262 tests using syntactic view."
   def apply(
     cfg: CFG,
     globalConfig: GlobalConfig,
     config: Config,
   ): List[String] = {
-    val svParser = Parser(cfg.grammar)("Script")
-    val filename = getFirstFilename(globalConfig, this.name)
-    val sview = svParser.fromFile(filename)
-
     // test262 configuration
     val test262 = Test262(cfg.spec)
     val test262Config =
       config.test262List.fold(test262.config)(TestFilter.fromFile)
 
-    // progress bar
-    val progress =
-      ProgressBar("filter test262", test262Config.normal)
+    // get syntactic view
+    val svParser = Parser(cfg.grammar)("Script") // TODO goal symbol
+    val filename = getFirstFilename(globalConfig, this.name)
+    val sview = svParser.fromFile(filename)
 
-    // filtered tests
-    var parseTime = 0L
-    var containsTime = 0L
-    val filtered: ListBuffer[String] = ListBuffer()
-    for (c <- progress) {
-      val NormalConfig(name, _) = c
-      val (ptime, ast) = time(
-        cfg.jsParser("Script").fromFile(s"$TEST262_TEST_DIR/$name"),
-      )
-      val (ctime, contained) = time(ast contains sview)
-      if (contained) filtered += name
+    // find actual root of syntactic view
+    // TODO remove
+    def getRoot(sv: SyntacticView): SyntacticView = sv match
+      case Syntactic(_, _, _, List(Some(child))) => getRoot(child)
+      case _                                     => sv
+    val sviewRoot = getRoot(sview)
 
-      parseTime += ptime
-      containsTime += ctime
-    }
-
-    println(parseTime)
-    println(containsTime)
-    println(filtered.size)
-
-    filtered.toList
+    // filter using syntactic view
+    val filter = Filter(cfg, test262Config, config.useRegex)
+    filter(sviewRoot)
   }
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(
@@ -61,8 +47,14 @@ case object FilterTest262 extends Phase[CFG, List[String]] {
       StrOption((c, s) => c.test262List = Some(s)),
       "use given test262 tests list.",
     ),
+    (
+      "useRegex",
+      BoolOption(c => c.useRegex = true),
+      "use regex for fast filtering.",
+    ),
   )
   case class Config(
     var test262List: Option[String] = None,
+    var useRegex: Boolean = false,
   )
 }

@@ -51,6 +51,10 @@ class EmptyValueDomain() extends AbsValueDomain {
       app >> this
       app.toString
     }
+
+    override def toString(grammar: Option[esmeta.spec.Grammar]): String = {
+      "Elem "
+    }
   }
 
   // appender

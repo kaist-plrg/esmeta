@@ -26,32 +26,35 @@ trait AbsValueDomain extends Domain {
   // values used in analysis
   sealed trait AValue {
     // conversion to string
-    override def toString: String = this match {
-      case AComp(ALiteral(Const("noraml")), value, _) => s"N($value)"
-      case AComp(ty, value, target) => s"C($ty, $value, $target)"
-      // case AConst(name)                      => s"~$name~"
-      case NamedLoc(name)     => s"#$name"
-      case AllocSite(k, view) => s"#$k:$view"
-      case SubMapLoc(baseLoc) => s"$baseLoc:SubMap"
-      case AClo(func, captured) => (
-        func.irFunc.params.mkString("(", ", ", ")") +
-        (for ((x, v) <- captured) yield s"$x -> $v").mkString("[", ", ", "]") +
-        s" => ${func.name}"
-      )
-      case ACont(func, captured) =>
-        s"${func.irFunc.params.mkString("(", ", ", ")")} [=>] ${func.name}"
-      case AAst(ast) =>
-        val max = AValue.AST_MAX_LENGTH
-        var str = ast.toString
-        if (str.length > max) str = str.substring(0, max - 3) + "..."
-        f"☊[${ast.name}]($str) @ 0x${ast.hashCode}%08x"
-      case ASView(view) =>
-        val max = AValue.AST_MAX_LENGTH
-        var str = view.toString
-        if (str.length > max) str = str.substring(0, max - 3) + "..."
-        f"☊[${view.name}]($str)"
-      case ALiteral(literal) => literal.toString
-    }
+    def toString(grammar: Option[esmeta.spec.Grammar] = None): String =
+      this match {
+        case AComp(ALiteral(Const("noraml")), value, _) => s"N($value)"
+        case AComp(ty, value, target) => s"C($ty, $value, $target)"
+        // case AConst(name)                      => s"~$name~"
+        case NamedLoc(name)     => s"#$name"
+        case AllocSite(k, view) => s"#$k:$view"
+        case SubMapLoc(baseLoc) => s"$baseLoc:SubMap"
+        case AClo(func, captured) => (
+          func.irFunc.params.mkString("(", ", ", ")") +
+          (for ((x, v) <- captured)
+            yield s"$x -> $v").mkString("[", ", ", "]") +
+          s" => ${func.name}"
+        )
+        case ACont(func, captured) =>
+          s"${func.irFunc.params.mkString("(", ", ", ")")} [=>] ${func.name}"
+        case AAst(ast) =>
+          val max = AValue.AST_MAX_LENGTH
+          var str = ast.toString
+          if (str.length > max) str = str.substring(0, max - 3) + "..."
+          f"☊[${ast.name}]($str) @ 0x${ast.hashCode}%08x"
+        case ASView(view) =>
+          val max = AValue.AST_MAX_LENGTH
+          var str = view.toString(grammar = grammar)
+          if (str.length > max) str = str.substring(0, max - 3) + "..."
+          f"☊[${view.name}]($str)"
+        case ALiteral(literal)     => literal.toString
+        case AGrammar(name, flags) => s"Grammar($name, $flags)"
+      }
   }
   object AValue {
     val AST_MAX_LENGTH = 10
@@ -71,6 +74,7 @@ trait AbsValueDomain extends Domain {
         AClo(func, captured.map((k, v) => (k, apply(from(v)))))
       case AstValue(ast)         => AAst(ast)
       case literal: LiteralValue => ALiteral(literal)
+      case Grammar(str, flags)   => AGrammar(str, flags)
       case _ =>
         throw new ESMetaError(s"impossible to convert to AValue: $value")
     }
@@ -133,6 +137,9 @@ trait AbsValueDomain extends Domain {
   // literal values
   case class ALiteral[+T <: LiteralValue](simple: T) extends AValue
 
+  // grammar values
+  case class AGrammar(name: String, flags: List[Boolean]) extends AValue
+
   sealed trait AValueKind[+T <: AValue] {
     def extract: PartialFunction[AValue, T]
     def extractLift = extract.lift
@@ -185,8 +192,12 @@ trait AbsValueDomain extends Domain {
   case object AbsentKind extends AValueKind[ALiteral[Absent.type]] {
     def extract = { case ALiteral(Absent) => ALiteral(Absent) }
   }
-
+  case object GrammarKind extends AValueKind[AGrammar] {
+    def extract = { case AGrammar(name, flags) => AGrammar(name, flags) }
+  }
   trait AbsValueTrait extends ElemTrait { this: Elem =>
+
+    override def toString(grammar: Option[esmeta.spec.Grammar] = None): String
 
     def removeNormal: Elem
     def normal: Elem

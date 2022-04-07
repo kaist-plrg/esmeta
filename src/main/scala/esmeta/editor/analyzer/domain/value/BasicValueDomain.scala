@@ -95,9 +95,8 @@ class BasicValueDomain() extends AbsValueDomain {
 
     // join operator
     def ⊔(that: Elem): Elem = (this.f, that.f) match {
-      case (_, FlatBot)                             => this
-      case (FlatBot, _)                             => that
-      case (FlatTop, _) | (_, FlatTop)              => that
+      case (_, FlatBot) | (FlatTop, _)              => this
+      case (FlatBot, _) | (_, FlatTop)              => that
       case (FlatElem(v1), FlatElem(v2)) if v1 == v2 => this
       case (FlatElem(_), FlatElem(_))               => Elem(FlatTop)
     }
@@ -107,6 +106,15 @@ class BasicValueDomain() extends AbsValueDomain {
       val app = new Appender
       app >> this
       app.toString
+    }
+
+    override def toString(grammar: Option[esmeta.spec.Grammar]): String = {
+      f match {
+        case FlatTop                    => "⊤"
+        case FlatBot                    => "⊥"
+        case FlatElem(s: SyntacticView) => s.toString(true, false, grammar)
+        case FlatElem(v)                => v.toString
+      }
     }
   }
 

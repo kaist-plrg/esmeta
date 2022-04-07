@@ -43,6 +43,7 @@ class BasicSyntacticViewTest extends EditorTest {
       check(
         s"${v.name}${v.rhsIdx}: ${v.toString(true, false, Some(EditorTest.cfg.grammar))}",
       ) {
+        // println(v.toString(true, false,Some(EditorTest.cfg.grammar)))
         val flist = peval(v)
         val summaries = flist.map((f) => {
           val origF = EditorTest.cfg.fnameMap(f.name).irFunc

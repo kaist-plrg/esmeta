@@ -203,7 +203,10 @@ class BasicStateDomain[AOD <: AbsObjDomain[_] with Singleton](
     def lookupGlobal(x: Id): AbsValue = AbsValue.Top
 
     // setters
-    def update(refV: AbsRefValue, value: AbsValue): Elem = this
+    def update(refV: AbsRefValue, value: AbsValue): Elem = refV match
+      case AbsIdValue(id: Local) => Elem(reachable, locals + (id -> value))
+      case _                     => this
+
     def update(id: Id, av: AbsValue): Elem = id match {
       case id: Id => Elem(reachable, locals + (id -> av))
     }
@@ -263,7 +266,7 @@ class BasicStateDomain[AOD <: AbsObjDomain[_] with Singleton](
     }
     app >> elem.reachable >> " " >> nonTopElems
       .sortWith { case (a, b) => a._1.toString < b._1.toString }
-      .map(kv => s"${kv._1} -> ${kv._2}")
+      .map(kv => s"${kv._1} -> ${kv._2.toString(grammar = Some(cfg.grammar))}")
       .mkString("{", ", ", "}") >>
     topElems
       .sortWith { case (a, b) => a._1.toString < b._1.toString }

@@ -38,8 +38,9 @@ class AbsTransfer[ASD <: AbsStateDomain[_] with Singleton, T <: AbsSemantics[
   }
 
   def apply[T <: Node](np: NodePoint[T]): Unit = {
-    // println(s"APPLY ${np.node.id}")
+    // println(s"APPLY ${np.func.name} ${np.view}: ${np.node}")
     val st = sem(np)
+    // println(st)
     val NodePoint(func, node, view) = np
     val helper = Helper(np)
 

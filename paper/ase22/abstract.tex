@@ -1,28 +1,28 @@
 \begin{abstract}\label{sec:abstract}
-  JavaScript is a widely-used programming language in diverse fields.  Thus,
-  developers have presented various tools for JavaScript programmers, including
-  basic interpreters and even linters, compilers, debuggers, and program
-  analyzers.  Because such developers treat JavaScript programs as inputs of
-  their tools, they desire to deeply understand language semantics and refer to
-  ECAM-262, a standard JavaScript language specification written in English.
-  However, it is challenging to understand each language feature's possible or
-  impossible behaviors by only referring to ECMA-262.  Besides, even if tool
-  developers recognize a specific behavior, finding JavaScript programs that
-  trigger the behavior is not trivial.
+  JavaScript is a widely-used programming language in diverse fields.  However,
+  despite its popularity, developers and even JavaScript experts often suffer
+  from its highly dynamic nature and complex semantics.  Thus, when they desire
+  to understand the detailed semantics of JavaScript, they refer to ECAM-262, a
+  standard JavaScript language specification written in English.  However, it is
+  challenging to understand each language feature's possible or impossible
+  behaviors by only referring to the specification.  Besides, even if developers
+  recognize a specific behavior, finding JavaScript programs that trigger the
+  behavior is also not trivial.
 
   To alleviate this problem, we present $\tool$, which automatically reduces
   JavaScript language specification with a given \textit{syntactic view}.  A
-  syntactic view is a way to indicate which language features tool developers
-  want to understand by restricting program syntax and types of evaluation
-  results.  Then, our tool automatically reduces ECMA-262 so that it consists of
-  only abstract algorithms reachable from a given syntactic view.  Our insight
-  is that reachable algorithms represent possible behaviors of each language
+  syntactic view is a way to indicate which language features developers want to
+  understand by restricting program syntax and types of evaluation results.
+  Then, our tool automatically reduces ECMA-262 so that it consists of only
+  abstract algorithms reachable from a given syntactic view.  Our insight is
+  that reachable algorithms represent possible behaviors of each language
   feature.  Furthermore, for each algorithm, our tool automatically finds
   example programs that use the selected language feature and the algorithm in
   Test262, an official JavaScript conformance test suite.  We evaluated $\tool$
-  with 177 basic syntactic views and the latest ECMA-262 (ES12 or ES2021),
-  including 2,640 algorithms. As a result, our tool reduced ES12 to 30.4
-  algorithms with 42.3 Test262 programs for each algorithm in 3.2s on average.
-  In addition, we conducted \inred{three} case studies with advanced syntactic
-  views to show the practicality of $\tool$.
+  with \inred{177} basic syntactic views and the latest ECMA-262 (ES12 or
+  ES2021), including \inred{2,640} algorithms. As a result, our tool reduced
+  ES12 to \inred{30.4} algorithms with \inred{42.3} Test262 programs for each
+  algorithm in \inred{3.2s} on average.  In addition, we conducted \inred{three}
+  case studies with advanced syntactic views to show the practicality of
+  $\tool$.
 \end{abstract}

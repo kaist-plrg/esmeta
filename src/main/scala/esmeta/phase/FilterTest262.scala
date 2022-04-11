@@ -1,13 +1,11 @@
 package esmeta.phase
 
 import esmeta.*
-import esmeta.test262.*
 import esmeta.cfg.CFG
-import esmeta.test262.util.*
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
-import esmeta.editor.util.*
+import esmeta.editor.util.{Filter, Parser}
 import esmeta.editor.sview.{SyntacticView, Syntactic}
 
 /** `filter-test262` phase */
@@ -19,11 +17,6 @@ case object FilterTest262 extends Phase[CFG, List[String]] {
     globalConfig: GlobalConfig,
     config: Config,
   ): List[String] = {
-    // test262 configuration
-    val test262 = Test262(cfg.spec)
-    val test262Config =
-      config.test262List.fold(test262.config)(TestFilter.fromFile)
-
     // get syntactic view
     val svParser = Parser(cfg.grammar)("Script") // TODO goal symbol
     val filename = getFirstFilename(globalConfig, this.name)
@@ -37,7 +30,7 @@ case object FilterTest262 extends Phase[CFG, List[String]] {
     val sviewRoot = getRoot(sview)
 
     // filter using syntactic view
-    val filter = Filter(cfg, test262Config, config.useRegex)
+    val filter = Filter(cfg, config.test262List, config.useRegex, config.nid)
     filter(sviewRoot)
   }
   def defaultConfig: Config = Config()
@@ -52,9 +45,15 @@ case object FilterTest262 extends Phase[CFG, List[String]] {
       BoolOption(c => c.useRegex = true),
       "use regex for fast filtering.",
     ),
+    (
+      "nid",
+      NumOption((c, n) => c.nid = Some(n)),
+      "find tests with syntactic view and given node id",
+    ),
   )
   case class Config(
     var test262List: Option[String] = None,
     var useRegex: Boolean = false,
+    var nid: Option[Int] = None,
   )
 }

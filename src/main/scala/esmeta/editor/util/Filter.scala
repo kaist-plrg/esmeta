@@ -1,21 +1,29 @@
 package esmeta.editor.util
 
-import esmeta.test262.*
-import esmeta.editor.sview.*
-import esmeta.cfg.CFG
-import esmeta.spec.*
-import esmeta.util.*
-import esmeta.util.SystemUtils.*
-import esmeta.util.BaseUtils.*
-import esmeta.js.Ast
 import esmeta.*
+import esmeta.cfg.CFG
+import esmeta.editor.sview.*
+import esmeta.js.Ast
+import esmeta.spec.*
+import esmeta.test262.*
+import esmeta.test262.util.*
+import esmeta.util.*
+import esmeta.util.BaseUtils.*
+import esmeta.util.SystemUtils.*
 import scala.collection.mutable.ListBuffer
 
 case class Filter(
   cfg: CFG,
-  config: ConfigSummary,
+  test262List: Option[String] = None,
   useRegex: Boolean = false,
+  nidOpt: Option[Int] = None,
 ) {
+  lazy val test262 = Test262(cfg.spec)
+  lazy val test262Config =
+    test262List.fold(test262.config)(TestFilter.fromFile)
+  lazy val tests = test262Config.normal.toArray
+  lazy val jsParser = cfg.jsParser("Script")
+
   // generate regexp that matches syntactic view
   private def genRegex(sv: SyntacticView): String = sv match
     case _: AbsSyntactic => ".*"
@@ -38,10 +46,6 @@ case class Filter(
         .mkString("\\s*")
     case lex: Lexical => s"\\Q${lex.str}\\E"
 
-  // caching ast of given test262 tests
-  private val tests = config.normal.toArray
-  private val jsParser = cfg.jsParser("Script")
-
   // filter function
   def apply(sview: SyntacticView): List[String] = {
     val progress = ProgressBar("filter test262", 0 until tests.size)
@@ -49,7 +53,7 @@ case class Filter(
 
     val filtered: ListBuffer[String] = ListBuffer()
     for (idx <- progress) {
-      val NormalConfig(name, _) = tests(idx)
+      val NormalConfig(name, includes) = tests(idx)
       val jsName = s"$TEST262_TEST_DIR/$name"
       for {
         ast <- regexOpt match
@@ -58,7 +62,12 @@ case class Filter(
             regex.findFirstIn(sourceText).map(m => jsParser.from(sourceText))
           case None => Some(jsParser.fromFile(jsName))
         if ast contains sview
-      } filtered += name
+      } nidOpt match {
+        case None => filtered += name
+        case Some(nid) =>
+          val (_, testAst) = test262.loadTest(ast, includes)
+          if (testAst.touched(cfg, sview, nid)) filtered += name
+      }
     }
     dumpFile(filtered.toList.sorted.mkString(LINE_SEP), ".filtered.log")
     filtered.toList

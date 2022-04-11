@@ -46,28 +46,27 @@ extension (ast: Ast) {
     case Some(parent) => ast :: parent.getParents
 
   /** filter by node id */
-  def covered(cfg: CFG, sview: SyntacticView, nid: Int): Boolean =
-    if (ast contains sview) {
-      val sourceText = ast.toString(grammar = Some(cfg.grammar))
-      val st = Initialize(cfg, sourceText, Some(ast))
+  def touched(cfg: CFG, sview: SyntacticView, nid: Int): Boolean =
+    val sourceText = ast.toString(grammar = Some(cfg.grammar))
+    val st = Initialize(cfg, sourceText, Some(ast))
 
-      // run interp
-      var result = false
-      new Interp(st, Nil) {
-        override def step: Boolean = if (result) false else super.step
-        override def interp(node: Node): Unit =
-          if (node.id == nid) {
-            val contexts = this.st.context :: this.st.callStack.map(_.context)
-            contexts.flatMap(_.astOpt) match
-              case a :: _ =>
-                for { parent <- a.getParents }
-                  if (parent matches sview) result = true
-              case _ =>
-          }
-          super.interp(node)
-      }.fixpoint
-      result
-    } else false
+    // run interp
+    var result = false
+    new Interp(st, Nil) {
+      override def step: Boolean = if (result) false else super.step
+      override def interp(node: Node): Unit =
+        if (node.id == nid) {
+          println("!!!")
+          val contexts = this.st.context :: this.st.callStack.map(_.context)
+          contexts.flatMap(_.astOpt) match
+            case a :: _ =>
+              for { parent <- a.getParents }
+                if (parent matches sview) result = true
+            case _ =>
+        }
+        super.interp(node)
+    }.fixpoint
+    result
 
   /** check whether given JS ast matches syntactic view */
   def matches(sview: SyntacticView): Boolean = (ast, sview) match

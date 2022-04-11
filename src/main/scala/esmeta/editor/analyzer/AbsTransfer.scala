@@ -215,23 +215,24 @@ class AbsTransfer[ASD <: AbsStateDomain[_] with Singleton, T <: AbsSemantics[
           vs <- join(call.args.map(transfer))
           st <- get
           isCalled = {
-            if (!vs.forall(AbsValue.Top ⊑ _)) {
-              // closures
-              for (AClo(func, captured) <- value.getSet(CloKind)) {
-                val newLocals = captured ++ getLocals(func.irFunc.params, vs)
-                val newSt = st.replaceLocal(newLocals.toSeq: _*)
-                sem.doCall(call, view, st, func, newSt)
-              }
-              for (ACont(func, captured) <- value.getSet(ContKind)) {
-                val newLocals = captured ++ getLocals(func.irFunc.params, vs)
-                val newSt = st.replaceLocal(newLocals.toSeq: _*)
-                sem += NodePoint(func, func.entry.get, view) -> newSt
-              }
-              true
-            } else false
+            var v = false
+            // closures
+            // if (AbsValue.Top ⊑ value) println(s"${cp.func.name}, ${cp.func.irFunc}, $call, $value")
+            for (AClo(func, captured) <- value.getSet(CloKind)) {
+              val newLocals = captured ++ getLocals(func.irFunc.params, vs)
+              val newSt = st.replaceLocal(newLocals.toSeq: _*)
+              sem.doCall(call, view, st, func, newSt)
+              v = true
+            }
+            for (ACont(func, captured) <- value.getSet(ContKind)) {
+              val newLocals = captured ++ getLocals(func.irFunc.params, vs)
+              val newSt = st.replaceLocal(newLocals.toSeq: _*)
+              sem += NodePoint(func, func.entry.get, view) -> newSt
+            }
+            v
           }
           _ <-
-            if (!(AbsValue.Top ⊑ value) && isCalled)
+            if (isCalled)
               put(AbsState.Bot)
             else modify(_.defineLocal(call.lhs -> AbsValue.Top))
         } yield ())(st2)._2
@@ -276,7 +277,7 @@ class AbsTransfer[ASD <: AbsStateDomain[_] with Singleton, T <: AbsSemantics[
           y <- escape(transfer(ty))
           v <- escape(transfer(value))
           origT <- escape(transfer(target))
-          t = origT.project(StrKind, ConstKind)
+          t = origT.project(StrKind).project(ConstKind)
         } yield ((for {
           ALiteral(Const(name)) <- y.getSet(ConstKind)
         } yield AbsValue.mkAbsComp(name, v, t)).foldLeft(AbsValue.Bot)(_ ⊔ _))
@@ -317,7 +318,7 @@ class AbsTransfer[ASD <: AbsStateDomain[_] with Singleton, T <: AbsSemantics[
         val loc: AllocSite = AllocSite(symbol.asite, cp.view)
         for {
           v <- transfer(desc)
-          newV = v.project(StrKind, UndefKind)
+          newV = v.project(StrKind).project(UndefKind)
           _ <- modify(_.allocSymbol(newV)(loc))
         } yield AbsValue(loc)
       }
@@ -399,7 +400,11 @@ class AbsTransfer[ASD <: AbsStateDomain[_] with Singleton, T <: AbsSemantics[
                     .subType(st(loc).getType.name, ty.name) ||
                   st(loc).getType.name == ty.name
               val otherV =
-                b.project(CompKind, ConstKind, CloKind, ContKind, LiteralKind)
+                b.project(CompKind)
+                  .project(ConstKind)
+                  .project(CloKind)
+                  .project(ContKind)
+                  .project(LiteralKind)
               if (!otherV.isBottom) set += false
               set
             }
@@ -536,7 +541,11 @@ class AbsTransfer[ASD <: AbsStateDomain[_] with Singleton, T <: AbsSemantics[
         if (check) doReturn(comp.removeNormal)
         else ()
       val newValue =
-        comp.normal ⊔ value.project(LocKind, CloKind, ContKind, LiteralKind)
+        comp.normal ⊔ value
+          .project(LocKind)
+          .project(CloKind)
+          .project(ContKind)
+          .project(LiteralKind)
       for (_ <- checkReturn) yield newValue
     }
 
@@ -562,11 +571,11 @@ class AbsTransfer[ASD <: AbsStateDomain[_] with Singleton, T <: AbsSemantics[
         AbsValue(Interp.interp(uop, x))
       case FlatTop =>
         uop match {
-          case UOp.Neg   => exploded(s"uop: ($uop $operand)")
+          case UOp.Neg   => AbsValue.Top
           case UOp.Not   => !operand.project(BoolKind)
-          case UOp.BNot  => exploded(s"uop: ($uop $operand)")
-          case UOp.Abs   => exploded(s"uop: ($uop $operand)")
-          case UOp.Floor => exploded(s"uop: ($uop $operand)")
+          case UOp.BNot  => AbsValue.Top
+          case UOp.Abs   => AbsValue.Top
+          case UOp.Floor => AbsValue.Top
         }
     }
 
@@ -579,7 +588,8 @@ class AbsTransfer[ASD <: AbsStateDomain[_] with Singleton, T <: AbsSemantics[
     ): AbsValue = (left.getSingle(), right.getSingle()) match {
       case (FlatBot, _) | (_, FlatBot) => AbsValue.Bot
       case (FlatElem(ALiteral(l)), FlatElem(ALiteral(r))) =>
-        AbsValue(Interp.interp(bop, l, r))
+        try { AbsValue(Interp.interp(bop, l, r)) }
+        catch { case e: ESMetaError => AbsValue.Bot }
       case (FlatElem(l), FlatElem(r)) if bop == BOp.Eq || bop == BOp.Equal =>
         (l, r) match {
           case (lloc: Loc, rloc: Loc) =>
@@ -629,7 +639,7 @@ class AbsTransfer[ASD <: AbsStateDomain[_] with Singleton, T <: AbsSemantics[
       right: Expr,
     ): Result[AbsValue] = for {
       l <- escape(transfer(left))
-      v <- (bop, l.getSet[ALiteral[Bool]](BoolKind)) match {
+      v <- (bop, l.getSingle[ALiteral[Bool]](BoolKind)) match {
         case (BOp.And, FlatElem(ALiteral(Bool(false)))) =>
           pure(AbsValue(Bool(false)))
         case (BOp.Or, FlatElem(ALiteral(Bool(true)))) =>

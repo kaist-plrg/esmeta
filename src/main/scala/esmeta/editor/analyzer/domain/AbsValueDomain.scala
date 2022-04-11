@@ -42,6 +42,8 @@ trait AbsValueDomain extends Domain {
         )
         case ACont(func, captured) =>
           s"${func.irFunc.params.mkString("(", ", ", ")")} [=>] ${func.name}"
+        case ATopClo =>
+          s"() [=>] ATopClo"
         case AAst(ast) =>
           val max = AValue.AST_MAX_LENGTH
           var str = ast.toString
@@ -127,6 +129,8 @@ trait AbsValueDomain extends Domain {
     captured: Map[Name, Elem],
   ) extends AValue
 
+  case object ATopClo extends AValue
+
   sealed trait ASyntactic extends AValue
   // AST values
   case class AAst(ast: Ast) extends ASyntactic
@@ -140,7 +144,7 @@ trait AbsValueDomain extends Domain {
   // grammar values
   case class AGrammar(name: String, flags: List[Boolean]) extends AValue
 
-  sealed trait AValueKind[+T <: AValue] {
+  sealed trait AValueKind[T <: AValue] {
     def extract: PartialFunction[AValue, T]
     def extractLift = extract.lift
   }
@@ -199,6 +203,9 @@ trait AbsValueDomain extends Domain {
 
     override def toString(grammar: Option[esmeta.spec.Grammar] = None): String
 
+    def setAllowTopClo(b: Boolean = true): Elem
+    def isAllowTopClo: Boolean
+
     def removeNormal: Elem
     def normal: Elem
     def isAbruptCompletion: Elem
@@ -215,7 +222,7 @@ trait AbsValueDomain extends Domain {
     def max(that: Elem): Elem
 
     def isCompletion: Elem
-    def project(kinds: AValueKind[AValue]*): Elem
+    def project[T <: AValue](kind: AValueKind[T]): Elem
     def getSingle[T <: AValue](kind: AValueKind[T] = AllKind): Flat[T]
     def getSet[T <: AValue](kind: AValueKind[T] = AllKind): Set[T]
     def escaped: Elem

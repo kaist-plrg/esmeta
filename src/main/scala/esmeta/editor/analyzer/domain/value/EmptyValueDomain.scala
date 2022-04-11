@@ -33,10 +33,13 @@ class EmptyValueDomain() extends AbsValueDomain {
     def max(that: Elem): Elem = this
 
     def isCompletion: Elem = this
-    def project(kinds: AValueKind[AValue]*): Elem = this
+    def project[T <: AValue](kind: AValueKind[T]): Elem = this
     def getSingle[T <: AValue](kind: AValueKind[T]): Flat[T] = FlatTop
 
     def getSet[T <: AValue](kind: AValueKind[T]): Set[T] = Set()
+
+    def isAllowTopClo = true
+    def setAllowTopClo(b: Boolean) = this
 
     // join operator
     def ⊔(that: Elem): Elem = this

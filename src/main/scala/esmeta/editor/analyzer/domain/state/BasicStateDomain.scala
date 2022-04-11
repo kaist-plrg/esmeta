@@ -17,6 +17,7 @@ import esmeta.interp.LiteralValue
 import esmeta.interp.Absent
 import esmeta.interp.*
 import esmeta.js
+import scala.util.matching.Regex
 
 class BasicStateDomain[AOD <: AbsObjDomain[_] with Singleton](
   aod_ : AOD,
@@ -25,6 +26,68 @@ class BasicStateDomain[AOD <: AbsObjDomain[_] with Singleton](
 
   type AbsValue = aod.avd.Elem
   import AbsValue.{Elem as _, *}
+
+  val heapFieldCloNameMap: Map[String, Set[String]] = Map(
+    ("unaryMinus") -> Set("Number::unaryMinus", "BigInt::unaryMinus"),
+    ("bitwiseNOT") -> Set("Number::bitwiseNOT", "BigInt::bitwiseNOT"),
+    ("exponentiate") -> Set("Number::exponentiate", "BigInt::exponentiate"),
+    ("multiply") -> Set("Number::multiply", "BigInt::multiply"),
+    ("divide") -> Set("Number::divide", "BigInt::divide"),
+    ("remainder") -> Set("Number::remainder", "BigInt::remainder"),
+    ("add") -> Set("Number::add", "BigInt::add"),
+    ("subtract") -> Set("Number::subtract", "BigInt::subtract"),
+    ("leftShift") -> Set("Number::leftShift", "BigInt::leftShift"),
+    ("signedRightShift") -> Set(
+      "Number::signedRightShift",
+      "BigInt::signedRightShift",
+    ),
+    ("unsignedRightShift") -> Set(
+      "Number::unsignedRightShift",
+      "BigInt::unsignedRightShift",
+    ),
+    ("lessThan") -> Set("Number::lessThan", "BigInt::lessThan"),
+    ("equal") -> Set("Number::equal", "BigInt::equal"),
+    ("sameValue") -> Set("Number::sameValue", "BigInt::sameValue"),
+    ("sameValueZero") -> Set("Number::sameValueZero", "BigInt::sameValueZero"),
+    ("bitwiseAND") -> Set("Number::bitwiseAND", "BigInt::bitwiseAND"),
+    ("bitwiseXOR") -> Set("Number::bitwiseXOR", "BigInt::bitwiseXOR"),
+    ("bitwiseOR") -> Set("Number::bitwiseOR", "BigInt::bitwiseOR"),
+    ("toString") -> Set("Number::toString", "BigInt::toString"),
+  )
+
+  val objFieldCloNameMap: Map[String, Set[String]] = cfg.typeModel.infos.toList
+    .map {
+      case (_, ti) =>
+        ti.methods.map {
+          case (name, fname) => (name, Set(fname))
+        }
+    }
+    .foldLeft(Map[String, Set[String]]()) {
+      case (m1, m2) =>
+        (m1.keySet ++ m2.keySet).map {
+          case key =>
+            key -> ((m1.get(key), m2.get(key)) match {
+              case (Some(p1), Some(p2)) => p1 ++ p2
+              case (None, Some(p2))     => p2
+              case (Some(p1), None)     => p1
+              case (None, None)         => Set()
+            })
+        }.toMap
+    }
+
+  val sdoPattern: Regex = """[a-zA-Z]+\[\d+,\d+].([a-zA-Z]+)""".r
+  val sdoCloNameMap: Map[String, Set[String]] = cfg.fnameMap.keySet
+    .map(s => (s, sdoPattern.findFirstMatchIn(s).map(_.group(1))))
+    .collect { case (s, Some(k)) => (k, s) }
+    .foldLeft(Map[String, Set[String]]()) {
+      case (m1, (k, v)) =>
+        if (m1 contains k) m1 + (k -> (m1(k) + v)) else m1 + (k -> Set(v))
+    }
+
+  val fieldCloMap: Map[String, Set[AClo]] =
+    (heapFieldCloNameMap ++ objFieldCloNameMap).map {
+      case (k, v) => (k, v.map((name) => AClo(cfg.fnameMap(name), Map())))
+    }
 
   val Bot = Elem(false, Map())
   val Empty = Elem(true, Map())
@@ -119,7 +182,22 @@ class BasicStateDomain[AOD <: AbsObjDomain[_] with Singleton](
     def apply(rv: AbsRefValue, cp: ControlPoint): AbsValue = rv match {
       case AbsIdValue(id) => directLookup(id)
       case AbsPropValue(base, prop) => {
-        apply(base, prop) // println(s"base: $base, prop: $prop");
+        // println(s"base: $base, prop: $prop");
+        (prop.getSingle(StrKind) match {
+          case FlatElem(ALiteral(Str("Code"))) => AbsValue.Top.setAllowTopClo()
+          case FlatElem(ALiteral(Str("ECMAScriptCode"))) =>
+            AbsValue.Top.setAllowTopClo()
+          case FlatElem(ALiteral(Str(s))) =>
+            fieldCloMap.get(s) match {
+              case Some(v: Set[AClo]) =>
+                AbsValue.fromAValues(CloKind)(v.toSeq: _*)
+              case None => {
+                val v = apply(base, prop);
+                if (sdoCloNameMap contains s) v.setAllowTopClo() else v
+              }
+            }
+          case _ => apply(base, prop)
+        })
       }
     }
     def apply(x: Id, cp: ControlPoint): AbsValue = directLookup(x)
@@ -134,7 +212,9 @@ class BasicStateDomain[AOD <: AbsObjDomain[_] with Singleton](
         case (FlatElem(AAst(ast: Lexical)), FlatElem(ALiteral(a))) => {
           apply(ast, a)
         }
-        case (_, _) => AbsValue.Top
+        case (_, _) =>
+          if (base.isAllowTopClo) AbsValue.Top.setAllowTopClo()
+          else AbsValue.Top
       }
 
     def apply(view: SyntacticView, lit: LiteralValue): AbsValue = view match
@@ -145,7 +225,7 @@ class BasicStateDomain[AOD <: AbsObjDomain[_] with Singleton](
               .map((x) => AbsValue(ASView(x)))
               .getOrElse(AbsValue(ALiteral(Absent)))
           case Str("children") =>
-            AbsValue.Top
+            AbsValue.Top.setAllowTopClo()
           case Str(propStr) =>
             apply(syn, propStr)
           case Math(n) if n.isValidInt =>
@@ -166,7 +246,7 @@ class BasicStateDomain[AOD <: AbsObjDomain[_] with Singleton](
             view.parent
               .map((x) => AbsValue(ASView(x)))
               .getOrElse(AbsValue(ALiteral(Absent)))
-          case _ => AbsValue.Top
+          case _ => AbsValue.Top.setAllowTopClo()
 
     def apply(ast: Syntactic, lit: LiteralValue): AbsValue = lit match
       case Str("parent") =>
@@ -174,7 +254,7 @@ class BasicStateDomain[AOD <: AbsObjDomain[_] with Singleton](
           .map((x) => AbsValue(AAst(x)))
           .getOrElse(AbsValue(ALiteral(Absent)))
       case Str("children") =>
-        AbsValue.Top
+        AbsValue.Top.setAllowTopClo()
       case Str(propStr) =>
         apply(ast, propStr)
       case Math(n) if n.isValidInt =>
@@ -213,7 +293,15 @@ class BasicStateDomain[AOD <: AbsObjDomain[_] with Singleton](
     def update(aloc: AbsValue, prop: AbsValue, value: AbsValue): Elem = this
 
     // existence checks
-    def exists(ref: AbsRefValue): AbsValue = AbsValue.Top
+    def existsLocal(x: Id): AbsValue = if (!locals.contains(x))
+      AbsValue(ALiteral(Bool(false)))
+    else !(lookupLocal(x) =^= AbsValue(ALiteral(Absent)))
+
+    def exists(ref: AbsRefValue): AbsValue = ref match
+      case AbsIdValue(id: Local)  => existsLocal(id)
+      case AbsIdValue(id: Global) => AbsValue.Top
+      case AbsPropValue(base, prop) =>
+        !(apply(base.escaped, prop) =^= AbsValue(ALiteral(Absent)))
 
     // delete a property from a map
     def delete(refV: AbsRefValue): Elem = this

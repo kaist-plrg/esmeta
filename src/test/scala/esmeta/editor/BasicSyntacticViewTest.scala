@@ -35,7 +35,7 @@ class BasicSyntacticViewTest extends EditorTest {
   // registration
   def init: Unit =
     val peval = PartialEval(CFGHelper(EditorTest.cfg))
-    val viewSet = BasicSyntacticView(CFGHelper(EditorTest.cfg)).viewSet
+    val viewSet = BasicSyntacticView(CFGHelper(EditorTest.cfg)).viewSet2
     mkdir(logDir)
     pw = Some(getPrintWriter(s"${logDir}/${name}.log"))
 
@@ -60,15 +60,22 @@ class BasicSyntacticViewTest extends EditorTest {
           pw.println(s"${v.name}${v.rhsIdx}: ${v
             .toString(true, false, Some(EditorTest.cfg.grammar))}")
           pw.println(
-            s"    ${origSummary._1}/${origSummary._2} -> ${redSummary._1}/${redSummary._2}",
+            s"    ${origSummary._1}/${origSummary._2}/${EditorTest.cfg.funcs.length} -> ${redSummary._1}/${redSummary._2}/${flist.length}",
           ),
         )
-        summaries.foreach {
-          case (name, (a, b), (c, d)) => {
-            pw.foreach(_.println(s"  - ${name}"))
-            pw.foreach(_.println(s"    $a/$b -> $c/$d"))
-          }
-        }
+        // mv = math.min(mv, origSummary._1 - redSummary._1)
+        // if (Mv < origSummary._1 - redSummary._1)
+        //  println(v.toString(true, false, Some(EditorTest.cfg.grammar)))
+        // Mv = math.max(Mv, origSummary._1 - redSummary._1)
+        // z += (origSummary._1 - redSummary._1)
+        // s += 1
+        // summaries.foreach {
+        // case (name, (a, b), (c, d)) => {
+        //   pw.foreach(_.println(s"  - ${name}"))
+        //    pw.foreach(_.println(s"    $a/$b -> $c/$d"))
+        //  }
+        // }
+        // println((mv, Mv, z / s))
       },
     )
 

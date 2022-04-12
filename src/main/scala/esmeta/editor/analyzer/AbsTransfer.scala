@@ -466,8 +466,14 @@ class AbsTransfer[ASD <: AbsStateDomain[_] with Singleton, T <: AbsSemantics[
           st <- get
           v = {
             val func = sem.cfgHelper.cfg.fnameMap
-              .getOrElse(fname, error("invalid function name"))
-            AbsValue(AClo(func, Map.from(captured.map(x => x -> st(x, cp)))))
+              .get(fname)
+            func
+              .map((func) =>
+                AbsValue(
+                  AClo(func, Map.from(captured.map(x => x -> st(x, cp)))),
+                ),
+              )
+              .getOrElse(AbsValue.Top.setAllowTopClo())
           }
         } yield v
       case ECont(fname) =>

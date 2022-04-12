@@ -84,6 +84,13 @@ class BasicStateDomain[AOD <: AbsObjDomain[_] with Singleton](
         if (m1 contains k) m1 + (k -> (m1(k) + v)) else m1 + (k -> Set(v))
     }
 
+  val topCloNameSet = sdoCloNameMap.keySet ++ Set(
+    "ResumeCont",
+    "ReturnCont",
+    "Code",
+    "ECMAScriptCode",
+  )
+
   val fieldCloMap: Map[String, Set[AClo]] =
     (heapFieldCloNameMap ++ objFieldCloNameMap).map {
       case (k, v) => (k, v.map((name) => AClo(cfg.fnameMap(name), Map())))
@@ -184,16 +191,13 @@ class BasicStateDomain[AOD <: AbsObjDomain[_] with Singleton](
       case AbsPropValue(base, prop) => {
         // println(s"base: $base, prop: $prop");
         (prop.getSingle(StrKind) match {
-          case FlatElem(ALiteral(Str("Code"))) => AbsValue.Top.setAllowTopClo()
-          case FlatElem(ALiteral(Str("ECMAScriptCode"))) =>
-            AbsValue.Top.setAllowTopClo()
           case FlatElem(ALiteral(Str(s))) =>
             fieldCloMap.get(s) match {
               case Some(v: Set[AClo]) =>
                 AbsValue.fromAValues(CloKind)(v.toSeq: _*)
               case None => {
                 val v = apply(base, prop);
-                if (sdoCloNameMap contains s) v.setAllowTopClo() else v
+                if (topCloNameSet contains s) v.setAllowTopClo() else v
               }
             }
           case _ => apply(base, prop)

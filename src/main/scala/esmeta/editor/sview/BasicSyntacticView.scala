@@ -193,7 +193,8 @@ class BasicSyntacticView(cfgHelper: CFGHelper) {
       .flatMap {
         case Production(lhs, Production.Kind.Syntactic, _, rhsList) =>
           findDeriv(lhs.name, true).filter((ast) =>
-            cfgHelper.cfg.fnameMap contains s"${ast.name}[${ast.idx},${cfgHelper.getSubIdxView(ast)}].Evaluation",
+            cfgHelper.cfg.fnameMap contains s"${ast.name}[${ast.idx},${cfgHelper
+              .getSubIdxView(ast)}].Evaluation",
           )
         case _ => List()
       }

@@ -47,9 +47,19 @@ sealed trait SyntacticView extends EditorElem {
     )
 }
 
+sealed trait Annotation
+case object AObj extends Annotation
+case object ANum extends Annotation
+case object AStr extends Annotation
+case object ABool extends Annotation
+case object AUndef extends Annotation
+case object ANull extends Annotation
+case object AAll extends Annotation
+
 /** ASTs constructed by abstract productions */
 case class AbsSyntactic(
   name: String,
+  annotation: Annotation = AAll,
 ) extends SyntacticView
 
 /** ASTs constructed by syntatic productions */

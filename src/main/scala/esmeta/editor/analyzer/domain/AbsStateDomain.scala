@@ -87,8 +87,8 @@ trait AbsStateDomain[AOD <: AbsObjDomain[_] with Singleton](
                 case _           => AbsValue.Top
 
             }
-            case sview.AbsSyntactic(_) => AbsValue.Top
-            case sview.Lexical(_, _)   => AbsValue.Top
+            case sview.AbsSyntactic(_, _) => AbsValue.Top
+            case sview.Lexical(_, _)      => AbsValue.Top
           }
 
     /** lexical SDO */

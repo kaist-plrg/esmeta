@@ -71,7 +71,7 @@ extension (ast: Ast) {
 
   /** check whether given JS ast matches syntactic view */
   def matches(sview: SyntacticView): Boolean = (ast, sview) match
-    case (_, AbsSyntactic(absName)) => ast.name == absName
+    case (_, AbsSyntactic(absName, _)) => ast.name == absName
     case (jsLex: JsLexical, absLex: Lexical) =>
       jsLex.name == absLex.name &&
       jsLex.str.trim == absLex.str.trim

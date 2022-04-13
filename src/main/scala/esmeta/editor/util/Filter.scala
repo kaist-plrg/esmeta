@@ -52,6 +52,7 @@ case class Filter(
     val regexOpt = if (useRegex) Some(s"(?s)${genRegex(sview)}".r) else None
 
     val filtered: ListBuffer[String] = ListBuffer()
+    var totalSize: Long = 0L
     for (idx <- progress) {
       val NormalConfig(name, includes) = tests(idx)
       val jsName = s"$TEST262_TEST_DIR/$name"
@@ -60,15 +61,20 @@ case class Filter(
           case Some(regex) =>
             val sourceText = readFile(jsName)
             regex.findFirstIn(sourceText).map(m => jsParser.from(sourceText))
-          case None => Some(jsParser.fromFile(jsName))
+          case None =>
+            val parsed = jsParser.fromFile(jsName)
+            totalSize += parsed.size
+            Some(parsed)
         if ast contains sview
       } nidOpt match {
         case None => filtered += name
         case Some(nid) =>
           val (_, testAst) = test262.loadTest(ast, includes)
-          if (testAst.touched(cfg, sview, nid)) filtered += name
+          ???
+        // if (testAst.touched(cfg, sview, nid)) filtered += name
       }
     }
+    // println(("!!!", totalSize / tests.size.toFloat))
     dumpFile(filtered.toList.sorted.mkString(LINE_SEP), ".filtered.log")
     filtered.toList
   }

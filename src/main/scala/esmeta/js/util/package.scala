@@ -1,6 +1,7 @@
 package esmeta.js.util
 
 import esmeta.js.*
+import esmeta.cfg.CFG
 
 /** merge statements to script */
 // TODO refactoring
@@ -35,3 +36,56 @@ def flattenStmt(s: Ast): List[Ast] = s match
         flattenStmtList(stmtList)
       case _ => Nil
   case _ => Nil
+
+/** extensions for ast */
+extension (ast: Ast) {
+
+  /** dump */
+  def dumpTo(filename: String): Unit = ???
+
+  /** get cover map */
+  def coverMap(cfg: CFG): Map[Ast, Ast] = ast match {
+    case syn @ Syntactic(name, args, _, children) =>
+      val currentMap = syn.parent match {
+        case Some(parent: Syntactic) =>
+          inline def getParser(pname: String) = Some(cfg.jsParser(pname, args))
+          val parserOpt = name match {
+            case "CoverParenthesizedExpressionAndArrowParameterList" =>
+              parent.name match
+                case "PrimaryExpression" => getParser("ParenthesizedExpression")
+                case "ArrowParameters"   => getParser("ArrowFormalParameters")
+                case _                   => None
+            case "CoverCallExpressionAndAsyncArrowHead" =>
+              parent.name match
+                case "CallExpression"     => getParser("CallMemberExpression")
+                case "AsyncArrowFunction" => getParser("AsyncArrowHead")
+                case _                    => None
+            // AssignmentExpression: LeftHandSideExpression = AssignmentExpression
+            // DestructuringAssignmentTarget: LeftHandSideExpression
+            case "LeftHandSideExpression" =>
+              parent.name match
+                case "AssignmentExpression" if parent.rhsIdx == 4 =>
+                  if (
+                    syn.types.contains("ArrayLiteral") ||
+                    syn.types.contains("ObjectLiteral")
+                  ) getParser("AssignmentPattern")
+                  else None
+                case "DestructuringAssignmentTarget" =>
+                  getParser("AssignmentPattern")
+                case _ => None
+            case _ => None
+          }
+          parserOpt.fold(Map())(parser => {
+            val reparsed =
+              parser.from(syn.toString(grammar = Some(cfg.grammar)))
+            reparsed.coverMap(cfg) + (syn -> reparsed)
+          })
+        case _ => Map()
+      }
+      children.foldLeft(currentMap) {
+        case (m, Some(child)) => m ++ child.coverMap(cfg)
+        case (m, None)        => m
+      }
+    case _ => Map()
+  }
+}

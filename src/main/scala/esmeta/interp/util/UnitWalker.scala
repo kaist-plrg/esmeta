@@ -19,7 +19,7 @@ trait UnitWalker extends BasicUnitWalker {
 
   // states
   def walk(st: State): Unit =
-    val State(_, context, _, _, callStack, globals, heap) = st
+    val State(_, context, _, _, _, callStack, globals, heap) = st
     walk(context)
     walkList(callStack, walk)
     walkMMap(globals, walk, walk)

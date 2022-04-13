@@ -6,9 +6,9 @@ import esmeta.ir.*
 import esmeta.js.builtin.*
 import esmeta.spec.*
 import esmeta.spec.util.{Parser => SpecParser}
+import esmeta.test262.*
 import esmeta.util.SystemUtils.*
 import scala.collection.mutable.{Map => MMap}
-import esmeta.test262.*
 
 class Initialize(
   cfg: CFG,
@@ -253,7 +253,9 @@ object Initialize {
     cfg: CFG,
     sourceText: String,
     cachedAst: Option[Ast] = None,
-  ): State = new Initialize(cfg, sourceText, cachedAst).result
+  ): State = {
+    new Initialize(cfg, sourceText, cachedAst).result
+  }
 
   /** initialize from file */
   def fromFile(cfg: CFG, filename: String, test262: Boolean = false): State =

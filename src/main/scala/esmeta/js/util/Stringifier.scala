@@ -43,6 +43,7 @@ class Stringifier(
     app
 
   lazy val basicAstRule: Rule[Ast] = (app, ast) =>
+    for { id <- ast.idOpt } app >> "[#" >> id >> "]"
     ast match
       case Syntactic(name, args, rhsIdx, children) =>
         given Rule[Boolean] = (app, bool) => app >> (if (bool) "T" else "F")

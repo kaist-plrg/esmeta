@@ -15,6 +15,7 @@ case class State(
   var context: Context,
   val sourceText: Option[String] = None,
   val cachedAst: Option[Ast] = None,
+  val coverMap: Map[Ast, Ast] = Map(),
   var callStack: List[CallContext] = Nil,
   val globals: MMap[Global, Value] = MMap(),
   val heap: Heap = Heap(),

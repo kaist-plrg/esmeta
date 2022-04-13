@@ -4,6 +4,8 @@ import esmeta.ir.Type
 import esmeta.js.util.*
 import esmeta.spec.*
 import scala.annotation.tailrec
+import io.circe.*, io.circe.syntax.*, io.circe.parser.*,
+io.circe.generic.semiauto._
 
 /** abstract syntax tree (AST) values */
 sealed trait Ast extends JSElem {
@@ -13,6 +15,9 @@ sealed trait Ast extends JSElem {
 
   /** parent */
   var parent: Option[Ast] = None
+
+  /** id */
+  var idOpt: Option[Int] = None
 
   /** idx of production */
   def idx: Int = this match
@@ -44,12 +49,8 @@ sealed trait Ast extends JSElem {
       case _                                     => Set("Terminal")
     )
 
-  // TODO tweak equality for fast caching
-  // /** equality */
-  // override def hashCode: Int = super.hashCode
-  // override def equals(any: Any): Boolean = any match
-  //   case that: Ast => this eq that
-  //   case _         => false
+  /** not use case class' hash code */
+  override def hashCode: Int = super.hashCode
 
   /** flatten statements */
   // TODO refactoring

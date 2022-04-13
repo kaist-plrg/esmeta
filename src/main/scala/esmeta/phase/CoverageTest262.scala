@@ -20,54 +20,23 @@ case object CoverageTest262 extends Phase[CFG, Unit] {
     globalConfig: GlobalConfig,
     config: Config,
   ): Unit = {
-    // test262 configuration
-    val test262 = Test262(cfg.spec)
-    val test262Config =
-      config.test262List.fold(test262.config)(TestFilter.fromFile)
+    val cov =
+      Coverage(cfg, config.test262List, config.dump, config.load)
 
-    // progress bar
-    val progress =
-      ProgressBar("measure test262 coverage", test262Config.normal.zipWithIndex)
+    if (config.astSens) {
+      cov.touchedAlgos
+      ???
+    } else {
+      val touched = cov.touchedNodes
 
-    // prepare to dump data
-    config.dump.foreach { dumpDir =>
-      mkdir(dumpDir)
-      mkdir(s"$dumpDir/data")
-      dumpFile(
-        progress.seq.map(_._1.name).mkString(LINE_SEP),
-        s"$dumpDir/test262-list",
+      // TODO print stat?
+      cfg.spec.version.foreach(v => println(s"* version: $v"))
+      println("* coverage:")
+      println(
+        s"  - node: ${touched.size}/${cfg.nodeMap.size}" +
+        ratioSimpleString(touched.size, cfg.nodeMap.size),
       )
-      dumpFile(cfg.spec.version, s"$dumpDir/ecma262-version")
-      dumpFile(currentVersion(BASE_DIR), s"$dumpDir/esmeta-version")
     }
-
-    // total covered node id
-    var covered: Set[Int] = Set()
-
-    // run test262 and measure coverage
-    for (pair <- progress) {
-      val (NormalConfig(name, includes), idx) = pair
-      val touched =
-        try {
-          val (sourceText, ast) =
-            test262.loadTestFromFile(s"$TEST262_TEST_DIR/$name")
-          config.load match
-            case None          => measureCoverage(cfg, sourceText, Some(ast))
-            case Some(loadDir) => readJson[Set[Int]](s"$loadDir/data/$idx.json")
-        } catch { case _: Throwable => Set() }
-      config.dump.foreach { dumpDir =>
-        dumpJson(touched, s"$dumpDir/data/$idx.json", noSpace = true)
-      }
-      covered ++= touched
-    }
-
-    // TODO print stat?
-    cfg.spec.version.foreach(v => println(s"* version: $v"))
-    println("* coverage:")
-    println(
-      s"  - node: ${covered.size}/${cfg.nodeMap.size}" +
-      ratioSimpleString(covered.size, cfg.nodeMap.size),
-    )
   }
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(
@@ -86,10 +55,16 @@ case object CoverageTest262 extends Phase[CFG, Unit] {
       StrOption((c, s) => c.dump = Some(s)),
       "dump coverage data.",
     ),
+    (
+      "ast-sensitive",
+      BoolOption(c => c.astSens = true),
+      "measure algorithm coverage per ast node",
+    ),
   )
   case class Config(
     var test262List: Option[String] = None,
     var load: Option[String] = None,
     var dump: Option[String] = Some(s"$LOG_DIR/coverage_$dateStr"),
+    var astSens: Boolean = false,
   )
 }

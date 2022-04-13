@@ -30,15 +30,15 @@ case object FilterTest262 extends Phase[CFG, List[String]] {
     val sviewRoot = getRoot(sview)
 
     // filter using syntactic view
-    val filter = Filter(cfg, config.test262List, config.useRegex, config.nid)
+    val filter = Filter(cfg, config.test262Data, config.useRegex, config.nid)
     filter(sviewRoot)
   }
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(
     (
-      "test262-list",
-      StrOption((c, s) => c.test262List = Some(s)),
-      "use given test262 tests list.",
+      "test262-data",
+      StrOption((c, s) => c.test262Data = Some(s)),
+      "use given test262 tests data.",
     ),
     (
       "useRegex",
@@ -46,13 +46,13 @@ case object FilterTest262 extends Phase[CFG, List[String]] {
       "use regex for fast filtering.",
     ),
     (
-      "nid",
+      "algo",
       NumOption((c, n) => c.nid = Some(n)),
-      "find tests with syntactic view and given node id",
+      "find tests with syntactic view and given algo id",
     ),
   )
   case class Config(
-    var test262List: Option[String] = None,
+    var test262Data: Option[String] = None,
     var useRegex: Boolean = false,
     var nid: Option[Int] = None,
   )

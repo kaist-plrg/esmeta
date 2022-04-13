@@ -23,9 +23,8 @@ case object CoverageTest262 extends Phase[CFG, Unit] {
     val cov =
       Coverage(cfg, config.test262List, config.dump, config.load)
 
-    if (config.astSens) {
+    if (config.astAlgo) {
       cov.touchedAlgos
-      ???
     } else {
       val touched = cov.touchedNodes
 
@@ -56,15 +55,15 @@ case object CoverageTest262 extends Phase[CFG, Unit] {
       "dump coverage data.",
     ),
     (
-      "ast-sensitive",
-      BoolOption(c => c.astSens = true),
-      "measure algorithm coverage per ast node",
+      "ast-algo",
+      BoolOption(c => c.astAlgo = true),
+      "record touched algorithms per ast node",
     ),
   )
   case class Config(
     var test262List: Option[String] = None,
     var load: Option[String] = None,
     var dump: Option[String] = Some(s"$LOG_DIR/coverage_$dateStr"),
-    var astSens: Boolean = false,
+    var astAlgo: Boolean = false,
   )
 }

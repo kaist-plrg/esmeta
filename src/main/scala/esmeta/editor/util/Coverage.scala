@@ -152,16 +152,6 @@ case class Coverage(
         case v                                     => error(s"not normal exit")
     }
 
-    // val NormalConfig(name, includes) = tests(0)
-    // val testBody = jsParser.fromFile(s"$TEST262_TEST_DIR/$name")
-    // val (map, astSet) = getTouched(testBody, includes)
-    // println(map)
-    // for { ast <- astSet } {
-    //   println("----------------------------------------")
-    //   println(ast)
-    // }
-    // println(astSet.size)
-
     // progress bar
     val progress =
       ProgressBar("measure algorithms per ast", 0 until tests.size)

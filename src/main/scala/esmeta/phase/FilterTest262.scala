@@ -9,14 +9,14 @@ import esmeta.editor.util.{Filter, Parser}
 import esmeta.editor.sview.{SyntacticView, Syntactic}
 
 /** `filter-test262` phase */
-case object FilterTest262 extends Phase[CFG, List[String]] {
+case object FilterTest262 extends Phase[CFG, Unit] {
   val name = "filter-test262"
   val help = "filters Test262 tests using syntactic view."
   def apply(
     cfg: CFG,
     globalConfig: GlobalConfig,
     config: Config,
-  ): List[String] = {
+  ): Unit = {
     // get syntactic view
     val svParser = Parser(cfg.grammar)("Script") // TODO goal symbol
     val filename = getFirstFilename(globalConfig, this.name)
@@ -30,8 +30,22 @@ case object FilterTest262 extends Phase[CFG, List[String]] {
     val sviewRoot = getRoot(sview)
 
     // filter using syntactic view
-    val filter = Filter(cfg, config.test262Data, config.useRegex, config.nid)
-    filter(sviewRoot)
+    config.test262Data match
+      case Some(path) =>
+        // TODO use algo id
+        val filter = Filter(cfg, path)
+        var algoSet = Set[Int]()
+        var cnt = 0
+        for {
+          (name, touched) <- filter(sviewRoot)
+        } {
+          println(name)
+          cnt += 1
+          algoSet ++= touched
+        }
+        println(algoSet)
+        println(cnt)
+      case None => ???
   }
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(
@@ -41,19 +55,14 @@ case object FilterTest262 extends Phase[CFG, List[String]] {
       "use given test262 tests data.",
     ),
     (
-      "useRegex",
-      BoolOption(c => c.useRegex = true),
-      "use regex for fast filtering.",
-    ),
-    (
-      "algo",
-      NumOption((c, n) => c.nid = Some(n)),
+      "aid",
+      NumOption((c, n) => c.aid = Some(n)),
       "find tests with syntactic view and given algo id",
     ),
   )
   case class Config(
     var test262Data: Option[String] = None,
     var useRegex: Boolean = false,
-    var nid: Option[Int] = None,
+    var aid: Option[Int] = None,
   )
 }

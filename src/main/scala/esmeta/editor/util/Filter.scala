@@ -4,78 +4,65 @@ import esmeta.*
 import esmeta.cfg.CFG
 import esmeta.editor.sview.*
 import esmeta.js.Ast
+import esmeta.js.util.JsonProtocol
 import esmeta.spec.*
 import esmeta.test262.*
 import esmeta.test262.util.*
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
-import scala.collection.mutable.ListBuffer
+import scala.collection.mutable.ArrayBuffer
 
 case class Filter(
   cfg: CFG,
-  test262List: Option[String] = None,
-  useRegex: Boolean = false,
-  nidOpt: Option[Int] = None,
+  dataDir: String,
 ) {
-  lazy val test262 = Test262(cfg.spec)
-  lazy val test262Config =
-    test262List.fold(test262.config)(TestFilter.fromFile)
-  lazy val tests = test262Config.normal.toArray
-  lazy val jsParser = cfg.jsParser("Script")
-
-  // generate regexp that matches syntactic view
-  private def genRegex(sv: SyntacticView): String = sv match
-    case _: AbsSyntactic => ".*"
-    case Syntactic(name, _, rhsIdx, children) =>
-      val prod = cfg.grammar.nameMap(name)
-      val rhs = prod.rhsList(rhsIdx)
-      val arr = children.toArray
-      var ntIdx = 0
-      (rhs.symbols
-        .flatMap {
-          case Terminal(term) => Some(s"\\Q$term\\E")
-          case sym =>
-            sym.getNt match
-              case Some(nt) =>
-                val res = arr(ntIdx).fold("")(genRegex)
-                ntIdx += 1
-                Some(res)
-              case None => None
-        })
-        .mkString("\\s*")
-    case lex: Lexical => s"\\Q${lex.str}\\E"
+  // load test262 data
+  // val TODOs = List(18252)
+  val tests = readFile(s"$dataDir/test262-list").split(LINE_SEP)
+  val test262Data = {
+    import JsonProtocol.given
+    val buf = ArrayBuffer[(Map[Int, Set[Int]], Set[Ast])]()
+    val progress = ProgressBar("load test262 data", 0 until tests.size)
+    for (idx <- progress)
+      // if (TODOs contains idx)
+      buf.append(
+        readJson[(Map[Int, Set[Int]], Set[Ast])](s"$dataDir/data/$idx.json"),
+      )
+    buf.toArray
+  }
 
   // filter function
-  def apply(sview: SyntacticView): List[String] = {
-    val progress = ProgressBar("filter test262", 0 until tests.size)
-    val regexOpt = if (useRegex) Some(s"(?s)${genRegex(sview)}".r) else None
+  def apply(sview: SyntacticView): List[(String, Set[Int])] = {
+    val filtered: ArrayBuffer[(String, Set[Int])] = ArrayBuffer()
 
-    val filtered: ListBuffer[String] = ListBuffer()
-    var totalSize: Long = 0L
+    val progress = ProgressBar("filter test262", 0 until tests.size)
     for (idx <- progress) {
-      val NormalConfig(name, includes) = tests(idx)
-      val jsName = s"$TEST262_TEST_DIR/$name"
-      for {
-        ast <- regexOpt match
-          case Some(regex) =>
-            val sourceText = readFile(jsName)
-            regex.findFirstIn(sourceText).map(m => jsParser.from(sourceText))
-          case None =>
-            val parsed = jsParser.fromFile(jsName)
-            totalSize += parsed.size
-            Some(parsed)
-        if ast contains sview
-      } nidOpt match {
-        case None => filtered += name
-        case Some(nid) =>
-          val (_, testAst) = test262.loadTest(ast, includes)
-          ???
-        // if (testAst.touched(cfg, sview, nid)) filtered += name
+      // if (TODOs contains idx) {
+      val name = tests(idx)
+      // val (algoMap, astSet) = test262Data(TODOs.indexOf(idx))
+      val (algoMap, astSet) = test262Data(idx)
+
+      def getTouched(ast: Ast, view: SyntacticView): Set[Int] =
+        for {
+          conc <- ast.getConcreteParts(view)
+          algoId <- conc.idOpt match
+            case Some(astId) => algoMap.getOrElse(astId, Set())
+            case None        => Set()
+        } yield algoId
+
+      val matched = astSet.filter(_ contains sview)
+      if (matched.size != 0) {
+        val touched = matched.flatMap(getTouched(_, sview))
+        filtered += ((name, touched))
+
+        // println("----------------------------------------")
+        // println((name, touched))
       }
+      // }
     }
-    // println(("!!!", totalSize / tests.size.toFloat))
-    dumpFile(filtered.toList.sorted.mkString(LINE_SEP), ".filtered.log")
+
+    // dumpFile(filtered.toList.sorted.mkString(LINE_SEP), ".filtered.log")
     filtered.toList
   }
 

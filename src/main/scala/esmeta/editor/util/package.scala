@@ -30,6 +30,37 @@ extension (ast: Ast) {
       }
     case lex: JsLexical => 1
 
+  /** get ast that matches concrete part of syntactic view */
+  def getConcreteParts(sview: SyntacticView): Set[Ast] =
+    def aux(ast0: Ast): List[Ast] =
+      if (ast0 matches sview) List(ast0)
+      else
+        ast0 match
+          case jsSyn: JsSyntactic =>
+            (for {
+              childOpt <- jsSyn.children
+              child <- childOpt
+            } yield aux(child)).flatten
+          case _ => List()
+
+    def aux2(ast0: Ast, sview: SyntacticView): List[Ast] = (ast0, sview) match
+      case (_, AbsSyntactic(absName))          => List()
+      case (jsLex: JsLexical, absLex: Lexical) => List(jsLex)
+      case (jsSyn: JsSyntactic, absSyn: Syntactic) =>
+        jsSyn :: (jsSyn.children zip absSyn.children).flatMap {
+          case (Some(jsChild), Some(absChild)) => aux2(jsChild, absChild)
+          case _                               => List()
+        }
+      case _ => List()
+    aux(ast).flatMap(aux2(_, sview)).toSet
+  // val matched = aux(ast)
+  // println("****************************************")
+  // println(matched)
+  // val res = matched.flatMap(aux2(_, sview)).toSet
+  // println("****************************************")
+  // println(res)
+  // res
+
   /** check whether given JS ast matches syntactic view */
   def matches(sview: SyntacticView): Boolean = (ast, sview) match
     case (_, AbsSyntactic(absName, _)) => ast.name == absName

@@ -11,7 +11,7 @@ import esmeta.test262.util.*
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
-import scala.collection.mutable.ArrayBuffer
+import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 
 case class Filter(
   cfg: CFG,
@@ -22,26 +22,26 @@ case class Filter(
   val tests = readFile(s"$dataDir/test262-list").split(LINE_SEP)
   val test262Data = {
     import JsonProtocol.given
-    val buf = ArrayBuffer[(Map[Int, Set[Int]], Set[Ast])]()
+    val buf = ArrayBuffer[(Map[Int, Set[Int]], List[Ast])]()
     val progress = ProgressBar("load test262 data", 0 until tests.size)
     for (idx <- progress)
       // if (TODOs contains idx)
       buf.append(
-        readJson[(Map[Int, Set[Int]], Set[Ast])](s"$dataDir/data/$idx.json"),
+        readJson[(Map[Int, Set[Int]], List[Ast])](s"$dataDir/data/$idx.json"),
       )
     buf.toArray
   }
 
   // filter function
   def apply(sview: SyntacticView): List[(String, Set[Int])] = {
-    val filtered: ArrayBuffer[(String, Set[Int])] = ArrayBuffer()
+    val filtered: ListBuffer[(String, Set[Int])] = ListBuffer()
 
     val progress = ProgressBar("filter test262", 0 until tests.size)
     for (idx <- progress) {
       // if (TODOs contains idx) {
       val name = tests(idx)
-      // val (algoMap, astSet) = test262Data(TODOs.indexOf(idx))
-      val (algoMap, astSet) = test262Data(idx)
+      // val (algoMap, astList) = test262Data(TODOs.indexOf(idx))
+      val (algoMap, astList) = test262Data(idx)
 
       def getTouched(ast: Ast, view: SyntacticView): Set[Int] =
         for {
@@ -51,9 +51,9 @@ case class Filter(
             case None        => Set()
         } yield algoId
 
-      val matched = astSet.filter(_ contains sview)
-      if (matched.size != 0) {
-        val touched = matched.flatMap(getTouched(_, sview))
+      val matched = astList.filter(_ contains sview).toSet
+      val touched = matched.flatMap(getTouched(_, sview))
+      if (touched.size > 0) {
         filtered += ((name, touched))
 
         // println("----------------------------------------")

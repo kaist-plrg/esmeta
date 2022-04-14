@@ -1,20 +1,20 @@
 package esmeta.editor.util
 
-import esmeta.{TEST262_TEST_DIR, BASE_DIR, LINE_SEP}
+import esmeta.cfg.*
 import esmeta.cfg.CFG
 import esmeta.editor.sview.*
-import esmeta.js.{Ast, Initialize}
+import esmeta.interp.*
+import esmeta.ir.*
 import esmeta.js.util.JsonProtocol
+import esmeta.js.{Ast, Initialize}
 import esmeta.spec.*
 import esmeta.test262.*
 import esmeta.test262.util.*
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
+import esmeta.{TEST262_TEST_DIR, BASE_DIR, LINE_SEP}
 import scala.collection.mutable.ListBuffer
-import esmeta.interp.*
-import esmeta.cfg.*
-import esmeta.ir.*
 
 case class Coverage(
   cfg: CFG,
@@ -100,7 +100,7 @@ case class Coverage(
 
       // run interp
       var map: Map[Int, Set[Int]] = Map()
-      var astSet: Set[Ast] = Set(testBody)
+      var astList: ListBuffer[Ast] = ListBuffer(testBody)
       new Interp(st, Nil) {
         private def contexts =
           this.st.context :: this.st.callStack.map(_.context)
@@ -111,9 +111,9 @@ case class Coverage(
           val v = super.interp(expr)
           (expr, v) match
             case (_: EParse, AstValue(ast))
-                if astStack.exists(_.idOpt.isDefined) =>
+                if astStack.headOption.fold(false)(_.idOpt.isDefined) =>
               nextAstId += ast.setId(nextAstId)
-              astSet += ast
+              astList.append(ast)
               AstValue(ast)
             case _ => v
         }
@@ -148,7 +148,7 @@ case class Coverage(
 
       // check exit and return result
       st(GLOBAL_RESULT) match
-        case comp: Comp if comp.ty == CONST_NORMAL => (map, astSet)
+        case comp: Comp if comp.ty == CONST_NORMAL => (map, astList.toList)
         case v                                     => error(s"not normal exit")
     }
 
@@ -158,15 +158,15 @@ case class Coverage(
 
     for (idx <- progress) {
       val NormalConfig(name, includes) = tests(idx)
-      val (touchedMap, astSet) = loadDirOpt match
+      val (touchedMap, astList) = loadDirOpt match
         case None =>
           val testBody = jsParser.fromFile(s"$TEST262_TEST_DIR/$name")
           getTouched(testBody, includes)
         case Some(loadDir) =>
-          readJson[(Map[Int, Set[Int]], Set[Ast])](s"$loadDir/data/$idx.json")
+          readJson[(Map[Int, Set[Int]], List[Ast])](s"$loadDir/data/$idx.json")
       dumpDirOpt.foreach { dumpDir =>
         dumpJson(
-          (touchedMap, astSet),
+          (touchedMap, astList),
           s"$dumpDir/data/$idx.json",
           noSpace = true,
         )

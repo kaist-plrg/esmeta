@@ -12,17 +12,17 @@ class PartialEvalTinyTest extends EditorTest {
       val peval = PartialEval(CFGHelper(EditorTest.cfg))
       peval(
         EditorTest.parse(
-          "#MultiplicativeExpression + #MultiplicativeExpression",
+          "#MultiplicativeExpression# + #MultiplicativeExpression#",
         ),
       )
       peval(
         EditorTest.parse(
-          "#RelationalExpression == #RelationalExpression",
+          "#RelationalExpression# == #RelationalExpression#",
         ),
       )
       peval(
         EditorTest.parse(
-          "for ( var #ForBinding in #Expression ) #Statement",
+          "for ( var #ForBinding# in #Expression# ) #Statement#",
         ),
       )
     }

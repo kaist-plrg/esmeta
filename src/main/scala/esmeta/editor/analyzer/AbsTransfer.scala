@@ -16,7 +16,7 @@ extension (kind: Branch.Kind)
 
 class AbsTransfer[ASD <: AbsStateDomain[_] with Singleton, T <: AbsSemantics[
   ASD,
-] with Singleton](val sem: T) {
+] with Singleton](val sem: T, ignoreCond: Boolean = false) {
 
   type AbsValue = sem.AbsValue
   type AbsState = sem.AbsState
@@ -59,11 +59,11 @@ class AbsTransfer[ASD <: AbsStateDomain[_] with Singleton, T <: AbsSemantics[
           v <- escape(transfer(cond))
           st <- get
         } yield {
-          if (AbsValue(Bool(true)) ⊑ v)
+          if (ignoreCond || AbsValue(Bool(true)) ⊑ v)
             thenNode.map((thenNode: Node) =>
               sem += getNextNp(np, thenNode) -> st,
             )
-          if (AbsValue(Bool(false)) ⊑ v)
+          if (ignoreCond || AbsValue(Bool(false)) ⊑ v)
             elseNode.map((elseNode: Node) =>
               sem += getNextNp(
                 np,

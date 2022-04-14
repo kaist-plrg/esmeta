@@ -24,7 +24,7 @@ import esmeta.interp.{
 // (AstValue | Grammar | LiteralValue | SyntacticView)
 // Bot
 
-class PureValueDomain extends Domain {
+class PureValueDomain extends Domain:
   val Bot = EBot
 
   val Top = EKind(
@@ -42,8 +42,9 @@ class PureValueDomain extends Domain {
   )
   enum ValueKind:
     case Ast, Num, Bool, Str, Addr, Comp, Undef, Null, Etc
+  end ValueKind
 
-  sealed trait Elem extends ElemTrait {
+  sealed trait Elem extends ElemTrait:
     def ⊑(that: Elem): Boolean = (this, that) match
       case (EBot, _)              => true
       case (_, EBot)              => false
@@ -59,10 +60,11 @@ class PureValueDomain extends Domain {
       case (a: EFlat, EKind(s))   => EKind(s + a.kind)
       case (EKind(s), a: EFlat)   => EKind(s + a.kind)
       case (EKind(s1), EKind(s2)) => EKind(s1 ++ s2)
-  }
+  end Elem
+
   case object EBot extends Elem
   case class EFlat(v: AstValue | Comp | Grammar | LiteralValue | SyntacticView)
-    extends Elem {
+    extends Elem:
     def kind = v match
       case _: AstValue                                  => ValueKind.Ast
       case _: Comp                                      => ValueKind.Comp
@@ -73,10 +75,9 @@ class PureValueDomain extends Domain {
       case Undef                                        => ValueKind.Undef
       case Null                                         => ValueKind.Null
       case _: Grammar | _: Const | Absent | _: CodeUnit => ValueKind.Etc
-  }
+  end EFlat
   case class EKind(s: Set[ValueKind]) extends Elem
 
   // appender
   implicit val app: Rule[Elem] = (app, elem) => app >> elem.toString
-
-}
+end PureValueDomain

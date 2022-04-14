@@ -6,7 +6,7 @@ import esmeta.editor.analyzer.AbsValueDomain
 import esmeta.editor.analyzer.AbsStateDomain
 
 // domain
-trait Domain {
+trait Domain:
   // bottom element
   val Bot: Elem
 
@@ -17,7 +17,8 @@ trait Domain {
   implicit val app: Rule[Elem]
 
   // element traits
-  trait ElemTrait { this: Elem =>
+  trait ElemTrait:
+    this: Elem =>
     // partial order
     def ⊑(that: Elem): Boolean
 
@@ -33,5 +34,5 @@ trait Domain {
     // conversion to string
     override def toString: String = toString(None)
     def toString(grammar: Option[esmeta.spec.Grammar]): String = stringify(this)
-  }
-}
+  end ElemTrait
+end Domain

@@ -59,6 +59,36 @@ case class Parser(val grammar: Grammar) extends LAParsers {
       childOpt.foreach(_.parent = Some(syn))
     syn
 
+  private def getAbsSyntacticParser(name: String): LAParser[AbsSyntactic] =
+    val lexicalParser =
+      (if (name == "Literal") (literal(s"#$name") | literal("#e"))
+       else literal(s"#$name")) ~ opt(
+        literal(":") ~ (literal("String") | literal("Number") | literal(
+          "Object",
+        ) | literal("Bool") | literal("Null") | literal("Undef") | literal(
+          "Throw",
+        )),
+      ) ~ literal("#") ^^ {
+        case i ~ jk ~ l => i + jk.map { case j ~ k => j + k }.getOrElse("")
+      }
+    nt(name, parser2packrat(lexicalParser)) ^^ {
+      case ann =>
+        val isFold = ann.str.startsWith("#e")
+        val annot =
+          if (ann.str.indexOf(":") < 0) esmeta.editor.sview.AAll
+          else
+            ann.str.substring(ann.str.indexOf(":")) match
+              case ":String" => esmeta.editor.sview.AStr
+              case ":Number" => esmeta.editor.sview.ANum
+              case ":Object" => esmeta.editor.sview.AObj
+              case ":Bool"   => esmeta.editor.sview.ABool
+              case ":Null"   => esmeta.editor.sview.ANull
+              case ":Undef"  => esmeta.editor.sview.AUndef
+              case ":Throw"  => esmeta.editor.sview.AThrow
+              case _         => esmeta.editor.sview.AAll
+        AbsSyntactic(name, annot, isFold)
+    }
+
   // get a parser
   private def getParser(prod: Production): ESParser[SyntacticView] =
     memo(args => {
@@ -74,8 +104,7 @@ case class Parser(val grammar: Grammar) extends LAParsers {
         .filter { case (r, _) => !isLR(name, r) }
         .map { case (r, i) => getParsers(name, args, argsSet, i, r) }
 
-      val abs =
-        nt(name, parser2packrat(literal(s"#$name"))) ^^^ AbsSyntactic(name)
+      val abs = getAbsSyntacticParser(name)
       if (lrs.isEmpty) log(nlrs.reduce(_ | _) | abs)(name)
       else log(resolveLR(nlrs.reduce(_ | _) | abs, lrs.reduce(_ | _)))(name)
     })
@@ -409,10 +438,7 @@ case class Parser(val grammar: Grammar) extends LAParsers {
           case _ ~ x0 =>
             syntactic("CoalesceExpressionHead", args, 1, List(Some(x0)))
         })("CoalesceExpressionHead1") |
-        nt(
-          "CoalesceExpressionHead",
-          parser2packrat(literal("#CoalesceExpressionHead")),
-        ) ^^^ AbsSyntactic("CoalesceExpressionHead"),
+        getAbsSyntacticParser("CoalesceExpressionHead"),
         log(
           (MATCH <~ t("??")) ~ parsers("BitwiseORExpression")(args) ^^ {
             case _ ~ x0 => (

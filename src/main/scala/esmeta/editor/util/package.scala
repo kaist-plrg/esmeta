@@ -45,7 +45,7 @@ extension (ast: Ast) {
           case _ => List()
 
     def aux2(ast0: Ast, sview: SyntacticView): List[Ast] = (ast0, sview) match
-      case (_, AbsSyntactic(absName, _))       => List()
+      case (_, AbsSyntactic(absName, _, _))    => List()
       case (jsLex: JsLexical, absLex: Lexical) => List(jsLex)
       case (jsSyn: JsSyntactic, absSyn: Syntactic) =>
         jsSyn :: (jsSyn.children zip absSyn.children).flatMap {
@@ -58,7 +58,7 @@ extension (ast: Ast) {
   /** check whether given JS ast matches syntactic view */
   // TODO handle annotation
   def matches(sview: SyntacticView): Boolean = (ast, sview) match
-    case (_, AbsSyntactic(absName, _)) => ast.name == absName
+    case (_, AbsSyntactic(absName, _, _)) => ast.name == absName
     case (jsLex: JsLexical, absLex: Lexical) =>
       jsLex.name == absLex.name &&
       jsLex.str.trim == absLex.str.trim

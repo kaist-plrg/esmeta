@@ -54,12 +54,14 @@ case object AStr extends Annotation
 case object ABool extends Annotation
 case object AUndef extends Annotation
 case object ANull extends Annotation
+case object AThrow extends Annotation
 case object AAll extends Annotation
 
 /** ASTs constructed by abstract productions */
 case class AbsSyntactic(
   name: String,
   annotation: Annotation = AAll,
+  fold: Boolean = false,
 ) extends SyntacticView
 
 /** ASTs constructed by syntatic productions */

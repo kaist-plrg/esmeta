@@ -13,14 +13,19 @@ class BasicValueDomain() extends AbsValueDomain {
   val Bot = Elem(purd.Bot, clod.Bot, contd.Bot)
   val Top = Elem(purd.Top, clod.ETopClo, contd.ETopCont)
 
+  val banMethods: Set[String] =
+    Set("GetValue", "Get", "GetV", "GetMethod", "Call", "OrdinaryToPrimitive")
+
   def apply(value: AValue): Elem = value match
     case ALiteral(literal) => Elem(purd.EFlat(literal), clod.Bot, contd.Bot)
     case AAst(ast)    => Elem(purd.EFlat(AstValue(ast)), clod.Bot, contd.Bot)
     case ASView(view) => Elem(purd.EFlat(view), clod.Bot, contd.Bot)
-    case AClo(name, captured) =>
-      Elem(purd.Bot, clod.ESet(Set(AClo(name, captured))), contd.Bot)
-    case ACont(name, captured) =>
-      Elem(purd.Bot, clod.Bot, contd.ESet(Set(ACont(name, captured))))
+    case AClo(func, _) if banMethods contains func.name =>
+      Elem(purd.Bot, clod.EIgnoreClo, contd.Bot)
+    case AClo(func, captured) =>
+      Elem(purd.Bot, clod.ESet(Set(AClo(func, captured))), contd.Bot)
+    case ACont(func, captured) =>
+      Elem(purd.Bot, clod.Bot, contd.ESet(Set(ACont(func, captured))))
     case _ => Elem(purd.Top, clod.ETopClo, contd.ETopCont)
 
   def fromAValues[T <: AValue](kind: AValueKind[T])(items: T*): Elem =

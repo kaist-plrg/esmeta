@@ -26,6 +26,7 @@ class AbsSemantics[ASD <: AbsStateDomain[_] with Singleton](
   var loopOut: Map[View, Set[View]] = Map(),
   val maxIJK: ViewConfig = ViewConfig(0, 0, 0),
   timeLimit: Option[Long] = None,
+  ignoreCond: Boolean = false,
 ) {
 
   type AbsValue = ard.asd.aod.avd.Elem
@@ -48,7 +49,7 @@ class AbsSemantics[ASD <: AbsStateDomain[_] with Singleton](
   // a worklist of control points
   val worklist: Worklist[ControlPoint] = new QueueWorklist(npMap.keySet)
 
-  val transfer: AbsTransfer[ASD, this.type] = AbsTransfer(this)
+  val transfer: AbsTransfer[ASD, this.type] = AbsTransfer(this, ignoreCond)
 
   // fixpiont computation
   @tailrec

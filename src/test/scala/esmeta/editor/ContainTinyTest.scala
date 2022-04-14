@@ -38,25 +38,25 @@ class ContainTinyTest extends EditorTest {
         """
         |var acc = 0;
         |for ( var x in [1,2,3] ) { acc += x; }""".stripMargin,
-        "for ( var #ForBinding in #Expression ) #Statement",
+        "for ( var #ForBinding# in #Expression# ) #Statement#",
       )
 
       containTest(
         """
         |var acc = 0;
         |for ( var x in [1,2,3] ) { acc += x; }""".stripMargin,
-        "for ( var #BindingPattern in #Expression ) #Statement",
+        "for ( var #BindingPattern# in #Expression# ) #Statement#",
         expected = false,
       )
 
       containTest(
         "x == x",
-        "#RelationalExpression == #RelationalExpression",
+        "#RelationalExpression# == #RelationalExpression#",
       )
 
       containTest(
         "async function f() { var x; }",
-        "var #BindingIdentifier;",
+        "var #BindingIdentifier#;",
       )
 
       containTest(
@@ -66,10 +66,10 @@ class ContainTinyTest extends EditorTest {
         |async function* f () {}
         |function* f () {}""".stripMargin,
         """
-        |#FunctionDeclaration
-        |#AsyncFunctionDeclaration
-        |#AsyncGeneratorDeclaration
-        |#GeneratorDeclaration""".stripMargin,
+        |#FunctionDeclaration#
+        |#AsyncFunctionDeclaration#
+        |#AsyncGeneratorDeclaration#
+        |#GeneratorDeclaration#""".stripMargin,
       )
     }
   }

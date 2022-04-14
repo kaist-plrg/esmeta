@@ -6,13 +6,16 @@ class ParseTinyTest extends EditorTest {
   // registration
   def init: Unit =
     check("parse") {
-      EditorTest.parseTest("42 ?? #Identifier")
-      EditorTest.parseTest("#Identifier + #Identifier")
-      EditorTest.parseTest("for (var #Identifier of [1, 2, 3] ) #Statement")
+      EditorTest.parseTest("42 ?? #Identifier#")
+      EditorTest.parseTest("42 ?? #Identifier:String#")
+      EditorTest.parseTest("#Identifier# + #Identifier#")
+      EditorTest.parseTest("#Identifier:Number# + #Identifier:Number#")
+      EditorTest.parseTest("#e:Throw# + #e:Number#")
+      EditorTest.parseTest("for (var #Identifier# of [1, 2, 3] ) #Statement#")
       EditorTest.parseTest(
-        "#MultiplicativeExpression + #MultiplicativeExpression",
+        "#MultiplicativeExpression# + #MultiplicativeExpression#",
       )
-      EditorTest.parseTest("#AdditiveExpression + #MultiplicativeExpression")
+      EditorTest.parseTest("#AdditiveExpression# + #MultiplicativeExpression#")
     }
   init
 

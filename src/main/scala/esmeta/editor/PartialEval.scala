@@ -413,6 +413,29 @@ class PartialEval(cfgHelper: CFGHelper, verbose: Boolean = false) {
     aux(irFunc.body) ++ irFunc.params.map(_.lhs)
   }
 
+  def getReachables(view: SyntacticView): List[IRFunc] = {
+    val avd: AbsValueDomain = BasicValueDomain()
+    val aod = BasicObjDomain(avd)
+    val asd = BasicStateDomain(aod, cfgHelper)
+    val ard = RetDomain(asd)
+
+    val absinit =
+      new AbsSemantics[asd.type](ard)(
+        cfgHelper,
+        ignoreCond = true,
+      )
+
+    absinit.initialize(view)
+
+    val absfin = absinit.fixpoint
+
+    val fList = absfin.npMap.keySet
+      .map(_.func.name)
+      .map(cfgHelper.cfg.fnameMap(_).irFunc)
+      .toList
+    fList
+  }
+
   def apply(view: SyntacticView): List[IRFunc] = {
     //
     val avd: AbsValueDomain = BasicValueDomain()

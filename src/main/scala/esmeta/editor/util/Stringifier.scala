@@ -32,8 +32,18 @@ class Stringifier(
       val (grammar, origView) = pair
       val nameMap = grammar.nameMap
       def aux(view: SyntacticView): Unit = view match
-        case Lexical(name, str)             => app >> str >> " "
-        case AbsSyntactic(name, annotation) => app >> "#" >> name >> " "
+        case Lexical(name, str) => app >> str >> " "
+        case AbsSyntactic(name, annotation, isFold) =>
+          app >> (if (isFold) "#e" else (s"#$name")) >> (annotation match
+            case AAll   => ""
+            case ABool  => ":Bool"
+            case AStr   => ":String"
+            case ANum   => ":Number"
+            case AObj   => ":Object"
+            case AThrow => ":Throw"
+            case AUndef => ":Undef"
+            case ANull  => ":Null"
+          ) >> "# "
         case Syntactic(name, args, rhsIdx, children) =>
           var cs = children
           for (symbol <- nameMap(name).rhsList(rhsIdx).symbols) symbol match
@@ -58,6 +68,6 @@ class Stringifier(
         if (detail) app.wrap("(", ")")(children.map(app :> _ >> ",")) else app
       case Lexical(name, str) =>
         app >> "|" >> name >> "|(" >> str >> ")"
-      case AbsSyntactic(name, annotation) =>
+      case AbsSyntactic(name, annotation, _) =>
         app >> "#" >> name
 }

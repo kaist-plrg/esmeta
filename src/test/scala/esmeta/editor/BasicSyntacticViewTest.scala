@@ -44,8 +44,10 @@ class BasicSyntacticViewTest extends EditorTest {
         s"${v.name}${v.rhsIdx}: ${v.toString(true, false, Some(EditorTest.cfg.grammar))}",
       ) {
         // println(v.toString(true, false,Some(EditorTest.cfg.grammar)))
-        val flist = peval(v)
-        val summaries = flist.map((f) => {
+        val flist_reachable = peval.getReachables(v)
+        val flist_peval = peval(v)
+        /*
+        val summaries = flist_peval.map((f) => {
           val origF = EditorTest.cfg.fnameMap(f.name).irFunc
           val o1 = InstCounter()
           val o2 = InstCounter()
@@ -63,6 +65,15 @@ class BasicSyntacticViewTest extends EditorTest {
             s"    ${origSummary._1}/${origSummary._2}/${EditorTest.cfg.funcs.length} -> ${redSummary._1}/${redSummary._2}/${flist.length}",
           ),
         )
+         */
+        pw.foreach((pw) => {
+          pw.println(s"${v.name}${v.rhsIdx}: ${v
+            .toString(true, false, Some(EditorTest.cfg.grammar))}")
+          pw.println(
+            s"    ${EditorTest.cfg.funcs.length} -> ${flist_reachable.length} -> ${flist_peval.length}",
+          )
+          flist_reachable.foreach((v) => pw.println(v.name))
+        })
         // mv = math.min(mv, origSummary._1 - redSummary._1)
         // if (Mv < origSummary._1 - redSummary._1)
         //  println(v.toString(true, false, Some(EditorTest.cfg.grammar)))

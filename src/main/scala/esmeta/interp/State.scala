@@ -15,7 +15,6 @@ case class State(
   var context: Context,
   val sourceText: Option[String] = None,
   val cachedAst: Option[Ast] = None,
-  val coverMap: Map[Ast, Ast] = Map(),
   var callStack: List[CallContext] = Nil,
   val globals: MMap[Global, Value] = MMap(),
   val heap: Heap = Heap(),
@@ -253,6 +252,22 @@ case class State(
     case addr: Addr => addr.toString + " -> " + heap(addr).toString
     case _          => value.toString
   }
+
+  /** copied */
+  def copied: State =
+    val newGlobals = MMap.from(globals)
+    val newHeap = heap.copied
+    val newContext = context.copied
+    val newCallStack = callStack.map(_.copied)
+    State(
+      cfg,
+      newContext,
+      sourceText,
+      cachedAst,
+      newCallStack,
+      newGlobals,
+      newHeap,
+    )
 }
 object State {
 

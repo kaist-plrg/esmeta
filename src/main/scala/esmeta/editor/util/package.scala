@@ -2,7 +2,9 @@ package esmeta.editor.util
 
 import esmeta.editor.sview.*
 import esmeta.js.{Ast, Syntactic => JsSyntactic, Lexical => JsLexical}
-import scala.collection.mutable.ListBuffer
+import scala.collection.mutable.{ListBuffer, Map => MMap}
+import esmeta.interp.*
+import esmeta.ir.*
 import scala.annotation.tailrec
 
 /** extension for ast */
@@ -101,4 +103,40 @@ extension (ast: Ast) {
             case (false, Some(child)) => child contains sview
           }
         case _ => false
+}
+
+/** extension for values */
+extension (value: Value) {
+  def toAnnotation(st: State): Option[Annotation] = value match
+    case NormalComp(v0)                       => v0.toAnnotation(st)
+    case comp: Comp if comp.ty == CONST_THROW => Some(AThrow)
+    case _: Comp                              => None // ignore return, break
+    case _: Number                            => Some(ANum)
+    case _: BigInt                            => Some(ABigInt)
+    case _: Str                               => Some(AStr)
+    case _: Bool                              => Some(ABool)
+    case Undef                                => Some(AUndef)
+    case Null                                 => Some(ANull)
+    case addr: Addr =>
+      st(addr) match
+        case m: MapObj if st.cfg.typeModel.subType(m.ty, "Object") => Some(AObj)
+        case m: MapObj if m.ty == "ReferenceRecord"                =>
+          // GetValue result
+          val newSt = st.copied
+          newSt.context =
+            Context(st.cfg.fnameMap("GetValue"), MMap(Name("V") -> value))
+          newSt.callStack = Nil
+          Interp(newSt)
+          newSt(GLOBAL_RESULT).toAnnotation(newSt)
+        case s: SymbolObj => Some(ASymbol)
+        case _            => ???
+    case CONST_EMPTY => None
+    case _: Const    => ???
+    case _: Clo      => ???
+    case _: Cont     => ???
+    case _: AstValue => ???
+    case _: Grammar  => ???
+    case _: Math     => ???
+    case Absent      => ???
+    case _: CodeUnit => ???
 }

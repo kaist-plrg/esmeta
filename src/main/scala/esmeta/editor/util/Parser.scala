@@ -67,7 +67,7 @@ case class Parser(val grammar: Grammar) extends LAParsers {
           "Object",
         ) | literal("Bool") | literal("Null") | literal("Undef") | literal(
           "Throw",
-        )),
+        ) | literal("Symbol") | literal("BigInt")),
       ) ~ literal("#") ^^ {
         case i ~ jk ~ l => i + jk.map { case j ~ k => j + k }.getOrElse("")
       }
@@ -80,7 +80,9 @@ case class Parser(val grammar: Grammar) extends LAParsers {
             ann.str.substring(ann.str.indexOf(":")) match
               case ":String" => esmeta.editor.sview.AStr
               case ":Number" => esmeta.editor.sview.ANum
+              case ":BigInt" => esmeta.editor.sview.ABigInt
               case ":Object" => esmeta.editor.sview.AObj
+              case ":Symbol" => esmeta.editor.sview.ASymbol
               case ":Bool"   => esmeta.editor.sview.ABool
               case ":Null"   => esmeta.editor.sview.ANull
               case ":Undef"  => esmeta.editor.sview.AUndef

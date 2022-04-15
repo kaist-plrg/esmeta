@@ -49,7 +49,9 @@ sealed trait SyntacticView extends EditorElem {
 
 sealed trait Annotation
 case object AObj extends Annotation
+case object ASymbol extends Annotation
 case object ANum extends Annotation
+case object ABigInt extends Annotation
 case object AStr extends Annotation
 case object ABool extends Annotation
 case object AUndef extends Annotation

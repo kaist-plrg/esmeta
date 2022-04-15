@@ -5,11 +5,11 @@ import esmeta.cfg.CFG
 import esmeta.editor.sview.*
 import esmeta.interp.*
 import esmeta.ir.*
-import esmeta.js.util.JsonProtocol
+import esmeta.js.util.{JsonProtocol => JsJsonProtocol}
 import esmeta.js.{Ast, Initialize}
 import esmeta.spec.*
 import esmeta.test262.*
-import esmeta.test262.util.*
+import esmeta.test262.util.TestFilter
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
@@ -91,6 +91,7 @@ case class Coverage(
 
   // get touched algorithms per ast
   def touchedAlgos = {
+    import JsJsonProtocol.given
     import JsonProtocol.given
 
     def getTouched(testBody: Ast, includes: List[String]) = {
@@ -99,7 +100,8 @@ case class Coverage(
       val st = initState(sourceText, ast)
 
       // run interp
-      var map: Map[Int, Set[Int]] = Map()
+      var algoMap: Map[Int, Set[Int]] = Map()
+      var annoMap: Map[Int, Set[Annotation]] = Map()
       var astList: ListBuffer[Ast] = ListBuffer(testBody)
       new Interp(st, Nil) {
         private def contexts =
@@ -133,23 +135,32 @@ case class Coverage(
               for {
                 ast <- targets.headOption
                 astId <- ast.idOpt
-                algoIds = map.getOrElse(astId, Set())
-              } map += (astId -> (algoIds + this.st.context.func.id))
+                algoIds = algoMap.getOrElse(astId, Set())
+              } algoMap += (astId -> (algoIds + this.st.context.func.id))
             case _ => /* do nothing */
           }
         }
 
-        // TODO
         // if current context is evaluation, save type of value
         override def setReturn(value: Value): Unit = {
           super.setReturn(value)
+
+          if (this.st.context.name endsWith ".Evaluation") {
+            for {
+              ast <- this.st.context.astOpt
+              astId <- ast.idOpt
+              annotation <- value.toAnnotation(this.st)
+              annotationSet = annoMap.getOrElse(astId, Set())
+            } annoMap += (astId -> (annotationSet + annotation))
+          }
         }
       }.fixpoint
 
       // check exit and return result
       st(GLOBAL_RESULT) match
-        case comp: Comp if comp.ty == CONST_NORMAL => (map, astList.toList)
-        case v                                     => error(s"not normal exit")
+        case comp: Comp if comp.ty == CONST_NORMAL =>
+          (annoMap, algoMap, astList.toList)
+        case v => error(s"not normal exit")
     }
 
     // progress bar
@@ -158,15 +169,17 @@ case class Coverage(
 
     for (idx <- progress) {
       val NormalConfig(name, includes) = tests(idx)
-      val (touchedMap, astList) = loadDirOpt match
+      val (annoMap, algoMap, astList) = loadDirOpt match
         case None =>
           val testBody = jsParser.fromFile(s"$TEST262_TEST_DIR/$name")
           getTouched(testBody, includes)
         case Some(loadDir) =>
-          readJson[(Map[Int, Set[Int]], List[Ast])](s"$loadDir/data/$idx.json")
+          readJson[(Map[Int, Set[Annotation]], Map[Int, Set[Int]], List[Ast])](
+            s"$loadDir/data/$idx.json",
+          )
       dumpDirOpt.foreach { dumpDir =>
         dumpJson(
-          (touchedMap, astList),
+          (annoMap, algoMap, astList),
           s"$dumpDir/data/$idx.json",
           noSpace = true,
         )

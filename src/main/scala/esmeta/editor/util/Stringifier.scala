@@ -35,14 +35,16 @@ class Stringifier(
         case Lexical(name, str) => app >> str >> " "
         case AbsSyntactic(name, annotation, isFold) =>
           app >> (if (isFold) "#e" else (s"#$name")) >> (annotation match
-            case AAll   => ""
-            case ABool  => ":Bool"
-            case AStr   => ":String"
-            case ANum   => ":Number"
-            case AObj   => ":Object"
-            case AThrow => ":Throw"
-            case AUndef => ":Undef"
-            case ANull  => ":Null"
+            case AAll    => ""
+            case ABool   => ":Bool"
+            case AStr    => ":String"
+            case ANum    => ":Number"
+            case ABigInt => ":BigInt"
+            case AObj    => ":Object"
+            case ASymbol => ":Symbol"
+            case AThrow  => ":Throw"
+            case AUndef  => ":Undef"
+            case ANull   => ":Null"
           ) >> "# "
         case Syntactic(name, args, rhsIdx, children) =>
           var cs = children

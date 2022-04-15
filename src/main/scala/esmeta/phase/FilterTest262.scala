@@ -33,18 +33,10 @@ case object FilterTest262 extends Phase[CFG, Unit] {
     config.test262Data match
       case Some(path) =>
         // TODO use algo id
-        val filter = Filter(cfg, path)
-        var algoSet = Set[Int]()
-        var cnt = 0
-        for {
-          (name, touched) <- filter(sviewRoot)
-        } {
-          println(name)
-          cnt += 1
-          algoSet ++= touched
-        }
+        val (testNames, algoSet) = Filter(cfg, path, sviewRoot)
+        for { name <- testNames } println(name)
         println(algoSet)
-        println(cnt)
+        println(testNames.size)
       case None => ???
   }
   def defaultConfig: Config = Config()

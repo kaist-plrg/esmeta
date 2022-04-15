@@ -13,57 +13,44 @@ import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 
-case class Filter(
-  cfg: CFG,
-  dataDir: String,
-) {
-  // load test262 data
-  // val TODOs = List(18252)
-  val tests = readFile(s"$dataDir/test262-list").split(LINE_SEP)
-  val test262Data = {
-    import JsonProtocol.given
-    val buf = ArrayBuffer[(Map[Int, Set[Int]], List[Ast])]()
-    val progress = ProgressBar("load test262 data", 0 until tests.size)
-    for (idx <- progress)
-      // if (TODOs contains idx)
-      buf.append(
-        readJson[(Map[Int, Set[Int]], List[Ast])](s"$dataDir/data/$idx.json"),
-      )
-    buf.toArray
-  }
+object Filter {
+  import JsonProtocol.given
 
-  // filter function
-  def apply(sview: SyntacticView): List[(String, Set[Int])] = {
-    val filtered: ListBuffer[(String, Set[Int])] = ListBuffer()
-
+  def apply(
+    cfg: CFG,
+    dataDir: String,
+    sview: SyntacticView,
+  ): (List[String], Set[Int]) = {
+    val tests = readFile(s"$dataDir/test262-list").split(LINE_SEP)
+    var testSet: Set[String] = Set()
+    var algoSet: Set[Int] = Set()
     val progress = ProgressBar("filter test262", 0 until tests.size)
+
+    var t0 = 0L
+    var t1 = 0L
+
     for (idx <- progress) {
-      // if (TODOs contains idx) {
-      val name = tests(idx)
-      // val (algoMap, astList) = test262Data(TODOs.indexOf(idx))
-      val (algoMap, astList) = test262Data(idx)
+      val (ltime, (algoMap, astList)) =
+        time(
+          readJson[(Map[Int, Set[Int]], List[Ast])](s"$dataDir/data/$idx.json"),
+        )
 
-      def getTouched(ast: Ast, view: SyntacticView): Set[Int] =
+      val (ctime, _) = time(
         for {
-          conc <- ast.getConcreteParts(view)
-          algoId <- conc.idOpt match
-            case Some(astId) => algoMap.getOrElse(astId, Set())
-            case None        => Set()
-        } yield algoId
+          ast <- astList
+          conc <- ast.getConcreteParts(sview)
+          astId <- conc.idOpt
+          aids <- algoMap.get(astId)
+        } { algoSet ++= aids; testSet += tests(idx) },
+      )
 
-      val matched = astList.filter(_ contains sview).toSet
-      val touched = matched.flatMap(getTouched(_, sview))
-      if (touched.size > 0) {
-        filtered += ((name, touched))
-
-        // println("----------------------------------------")
-        // println((name, touched))
-      }
-      // }
+      t0 += ltime
+      t1 += ctime
     }
 
-    // dumpFile(filtered.toList.sorted.mkString(LINE_SEP), ".filtered.log")
-    filtered.toList
-  }
+    println(t0)
+    println(t1)
 
+    (testSet.toList.sorted, algoSet)
+  }
 }

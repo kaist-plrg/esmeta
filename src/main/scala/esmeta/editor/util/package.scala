@@ -1,8 +1,9 @@
 package esmeta.editor.util
 
+import esmeta.editor.sview.*
 import esmeta.js.{Ast, Syntactic => JsSyntactic, Lexical => JsLexical}
 import scala.collection.mutable.ListBuffer
-import esmeta.editor.sview.*
+import scala.annotation.tailrec
 
 /** extension for ast */
 extension (ast: Ast) {
@@ -32,28 +33,44 @@ extension (ast: Ast) {
 
   /** get ast that matches concrete part of syntactic view */
   // TODO handle annotation
-  def getConcreteParts(sview: SyntacticView): Set[Ast] =
-    def aux(ast0: Ast): List[Ast] =
-      if (ast0 matches sview) List(ast0)
-      else
+  def getConcreteParts(sview: SyntacticView): List[Ast] =
+    val matched: ListBuffer[Ast] = ListBuffer()
+    val concretes: ListBuffer[Ast] = ListBuffer()
+
+    @tailrec
+    def aux(astList: List[Ast]): Unit = if (!astList.isEmpty) {
+      var next: List[Ast] = List()
+      for { ast0 <- astList } {
+        if (ast0 matches sview) matched += ast0
         ast0 match
           case jsSyn: JsSyntactic =>
-            (for {
+            for {
               childOpt <- jsSyn.children
               child <- childOpt
-            } yield aux(child)).flatten
-          case _ => List()
+            } next ::= child
+          case _ =>
+      }
+      aux(next)
+    }
 
-    def aux2(ast0: Ast, sview: SyntacticView): List[Ast] = (ast0, sview) match
-      case (_, AbsSyntactic(absName, _, _))    => List()
-      case (jsLex: JsLexical, absLex: Lexical) => List(jsLex)
-      case (jsSyn: JsSyntactic, absSyn: Syntactic) =>
-        jsSyn :: (jsSyn.children zip absSyn.children).flatMap {
-          case (Some(jsChild), Some(absChild)) => aux2(jsChild, absChild)
-          case _                               => List()
-        }
-      case _ => List()
-    aux(ast).flatMap(aux2(_, sview)).toSet
+    @tailrec
+    def aux2(queue: List[(Ast, SyntacticView)]): Unit = if (!queue.isEmpty) {
+      var next: List[(Ast, SyntacticView)] = List()
+      for { (ast0, sview0) <- queue } (ast0, sview0) match
+        case (jsLex: JsLexical, absLex: Lexical) =>
+          concretes += jsLex
+        case (jsSyn: JsSyntactic, absSyn: Syntactic) =>
+          concretes += jsSyn
+          (jsSyn.children.flatten zip absSyn.children.flatten).foreach {
+            case (jsChild, absChild) => next ::= (jsChild, absChild)
+          }
+        case _ =>
+      aux2(next)
+    }
+
+    aux(List(ast))
+    aux2(matched.toList.map((_, sview)))
+    concretes.toList
 
   /** check whether given JS ast matches syntactic view */
   // TODO handle annotation

@@ -141,13 +141,27 @@ case class Coverage(
           }
         }
 
+        def getAncestors(ast: Ast, until: Option[Ast]): List[Ast] =
+          ast.parent match
+            case Some(parent) =>
+              if (until.fold(false)(_ == parent)) List(ast)
+              else ast :: getAncestors(parent, until)
+            case None => List(ast)
+
         // if current context is evaluation, save type of value
         override def setReturn(value: Value): Unit = {
           super.setReturn(value)
 
           if (this.st.context.name endsWith ".Evaluation") {
+            // handle evaluation chain
+            val parentEvalAstOpt =
+              contexts.tail
+                .filter(c => c.name endsWith ".Evaluation")
+                .flatMap(_.astOpt)
+                .headOption
             for {
-              ast <- this.st.context.astOpt
+              currentAst <- this.st.context.astOpt
+              ast <- getAncestors(currentAst, parentEvalAstOpt)
               astId <- ast.idOpt
               annotation <- value.toAnnotation(this.st)
               annotationSet = annoMap.getOrElse(astId, Set())

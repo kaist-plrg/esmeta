@@ -35,7 +35,10 @@ extension (ast: Ast) {
 
   /** get ast that matches concrete part of syntactic view */
   // TODO handle annotation
-  def getConcreteParts(sview: SyntacticView): List[Ast] =
+  def getConcreteParts(
+    sview: SyntacticView,
+    annoMap: Map[Int, Set[Annotation]],
+  ): List[Ast] =
     val matched: ListBuffer[Ast] = ListBuffer()
     val concretes: ListBuffer[Ast] = ListBuffer()
 
@@ -43,7 +46,7 @@ extension (ast: Ast) {
     def aux(astList: List[Ast]): Unit = if (!astList.isEmpty) {
       var next: List[Ast] = List()
       for { ast0 <- astList } {
-        if (ast0 matches sview) matched += ast0
+        if (ast0.matches(sview, annoMap)) matched += ast0
         ast0 match
           case jsSyn: JsSyntactic =>
             for {
@@ -76,8 +79,17 @@ extension (ast: Ast) {
 
   /** check whether given JS ast matches syntactic view */
   // TODO handle annotation
-  def matches(sview: SyntacticView): Boolean = (ast, sview) match
-    case (_, AbsSyntactic(absName, _, _)) => ast.name == absName
+  def matches(
+    sview: SyntacticView,
+    annoMap: Map[Int, Set[Annotation]],
+  ): Boolean = (ast, sview) match
+    case (_, AbsSyntactic(absName, anno, _)) =>
+      ast.name == absName &&
+      ast.idOpt
+        .map(id => annoMap.getOrElse(id, Set()))
+        .fold(true)(annoSet =>
+          annoSet.isEmpty || annoSet.exists(_.subType(anno)),
+        )
     case (jsLex: JsLexical, absLex: Lexical) =>
       jsLex.name == absLex.name &&
       jsLex.str.trim == absLex.str.trim
@@ -85,15 +97,19 @@ extension (ast: Ast) {
       jsSyn.name == absSyn.name &&
       jsSyn.rhsIdx == absSyn.rhsIdx &&
       (jsSyn.children zip absSyn.children).forall {
-        case (None, None)                    => true
-        case (Some(jsChild), Some(absChild)) => jsChild matches absChild
-        case _                               => false
+        case (None, None) => true
+        case (Some(jsChild), Some(absChild)) =>
+          jsChild.matches(absChild, annoMap)
+        case _ => false
       }
     case _ => false
 
   /** check whether given JS ast contains sytactic view */
-  def contains(sview: SyntacticView): Boolean =
-    if (ast matches sview) true
+  def contains(
+    sview: SyntacticView,
+    annoMap: Map[Int, Set[Annotation]] = Map(),
+  ): Boolean =
+    if (ast.matches(sview, annoMap)) true
     else
       ast match
         case jsSyn: JsSyntactic =>
@@ -103,6 +119,13 @@ extension (ast: Ast) {
             case (false, Some(child)) => child contains sview
           }
         case _ => false
+}
+
+/** extension for annotation */
+extension (anno: Annotation) {
+  def subType(anno0: Annotation): Boolean = (anno, anno0) match
+    case (_, AAll) => true
+    case _         => anno == anno0
 }
 
 /** extension for values */

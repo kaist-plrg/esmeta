@@ -4,17 +4,14 @@ import esmeta.*
 import esmeta.cfg.CFG
 import esmeta.editor.sview.*
 import esmeta.js.Ast
-import esmeta.js.util.JsonProtocol
-import esmeta.spec.*
-import esmeta.test262.*
-import esmeta.test262.util.*
+import esmeta.js.util.{JsonProtocol => JsJsonProtocol}
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
-import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 
 object Filter {
   import JsonProtocol.given
+  import JsJsonProtocol.given
 
   def apply(
     cfg: CFG,
@@ -30,15 +27,17 @@ object Filter {
     var t1 = 0L
 
     for (idx <- progress) {
-      val (ltime, (algoMap, astList)) =
+      val (ltime, (annoMap, algoMap, astList)) =
         time(
-          readJson[(Map[Int, Set[Int]], List[Ast])](s"$dataDir/data/$idx.json"),
+          readJson[(Map[Int, Set[Annotation]], Map[Int, Set[Int]], List[Ast])](
+            s"$dataDir/data/$idx.json",
+          ),
         )
 
       val (ctime, _) = time(
         for {
           ast <- astList
-          conc <- ast.getConcreteParts(sview)
+          conc <- ast.getConcreteParts(sview, annoMap)
           astId <- conc.idOpt
           aids <- algoMap.get(astId)
         } { algoSet ++= aids; testSet += tests(idx) },

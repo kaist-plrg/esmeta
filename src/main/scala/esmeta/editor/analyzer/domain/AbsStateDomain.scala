@@ -74,22 +74,25 @@ trait AbsStateDomain[AOD <: AbsObjDomain[_] with Singleton](
             case Some(child) => AbsValue(AstValue(child))
             case _           => throw InvalidAstProp(syn, Str(propStr))
 
-    def apply(syn: SyntacticView, propStr: String): AbsValue =
+    def apply(syn: sview.Syntactic, propStr: String): AbsValue =
       cfgHelper.getSDOView((syn, propStr)) match
         case Some((ast0, sdo)) =>
           throw SyntacticCalled(AbsValue(ASView(ast0)), sdo)
         case None => // XXX access to child -> handle this in compiler?
-          syn match {
-            case sview.Syntactic(name, _, rhsIdx, children) => {
-              val rhs = cfg.grammar.nameMap(name).rhsList(rhsIdx)
-              rhs.getNtIndex(propStr).flatMap(children(_)) match
-                case Some(child) => AbsValue(ASView(child))
-                case _           => AbsValue.Top
-
-            }
+          if (propStr == "Evaluation") syn.chains.last match {
             case sview.AbsSyntactic(_, _, _) => AbsValue.Top
-            case sview.Lexical(_, _)         => AbsValue.Top
+            case _                           => AbsValue.Top
           }
+          else
+            syn match {
+              case sview.Syntactic(name, _, rhsIdx, children) => {
+                val rhs = cfg.grammar.nameMap(name).rhsList(rhsIdx)
+                rhs.getNtIndex(propStr).flatMap(children(_)) match
+                  case Some(child) => AbsValue(ASView(child))
+                  case _           => AbsValue.Top
+
+              }
+            }
 
     /** lexical SDO */
     case class LexicalCalled(value: PureValue) extends Throwable

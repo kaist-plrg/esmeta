@@ -5,6 +5,16 @@ import esmeta.util.Appender.*
 import esmeta.util.Appender
 import esmeta.ir.{Id, Global, Local}
 import esmeta.js.Initialize
+import esmeta.js.builtin.{
+  UNDEF_TYPE,
+  NULL_TYPE,
+  BOOL_TYPE,
+  STRING_TYPE,
+  SYMBOL_TYPE,
+  NUMBER_TYPE,
+  BIGINT_TYPE,
+  OBJECT_TYPE,
+}
 import esmeta.cfg.CFG
 import esmeta.ir.Type
 import esmeta.interp.Str
@@ -250,6 +260,8 @@ class BasicStateDomain[AOD <: AbsObjDomain[_] with Singleton](
             view.parent
               .map((x) => AbsValue(ASView(x)))
               .getOrElse(AbsValue(ALiteral(Absent)))
+          case Str("Evaluation") =>
+            AbsValue.findHandler(abs.annotation.toString)
           case _ => AbsValue.Top.setAllowTopClo()
 
     def apply(ast: Syntactic, lit: LiteralValue): AbsValue = lit match
@@ -284,7 +296,19 @@ class BasicStateDomain[AOD <: AbsObjDomain[_] with Singleton](
         locals.getOrElse(x, AbsValue.Bot)
     }
     // lookup global variables
-    def lookupGlobal(x: Id): AbsValue = AbsValue.Top
+    def lookupGlobal(x: Id): AbsValue = x match
+      case x: Global =>
+        x.name match
+          case UNDEF_TYPE  => AbsValue(Str("Undefined"))
+          case NULL_TYPE   => AbsValue(Str("Null"))
+          case BOOL_TYPE   => AbsValue(Str("Boolean"))
+          case STRING_TYPE => AbsValue(Str("String"))
+          case SYMBOL_TYPE => AbsValue(Str("Symbol"))
+          case NUMBER_TYPE => AbsValue(Str("Number"))
+          case BIGINT_TYPE => AbsValue(Str("BigInt"))
+          case OBJECT_TYPE => AbsValue(Str("Object"))
+          case _           => AbsValue.Top
+      case _ => AbsValue.Top
 
     // setters
     def update(refV: AbsRefValue, value: AbsValue): Elem = refV match

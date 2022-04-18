@@ -72,16 +72,36 @@ sealed trait SyntacticView extends EditorElem {
 }
 
 sealed trait Annotation
-case object AObj extends Annotation
-case object ASymbol extends Annotation
-case object ANum extends Annotation
-case object ABigInt extends Annotation
-case object AStr extends Annotation
-case object ABool extends Annotation
-case object AUndef extends Annotation
-case object ANull extends Annotation
-case object AThrow extends Annotation
-case object AAll extends Annotation
+case object AObj extends Annotation {
+  override def toString = "AObj"
+}
+case object ASymbol extends Annotation {
+  override def toString = "ASymbol"
+}
+case object ANum extends Annotation {
+  override def toString = "ANum"
+}
+case object ABigInt extends Annotation {
+  override def toString = "ABigInt"
+}
+case object AStr extends Annotation {
+  override def toString = "AStr"
+}
+case object ABool extends Annotation {
+  override def toString = "ABool"
+}
+case object AUndef extends Annotation {
+  override def toString = "AUndef"
+}
+case object ANull extends Annotation {
+  override def toString = "ANull"
+}
+case object AThrow extends Annotation {
+  override def toString = "AThrow"
+}
+case object AAll extends Annotation {
+  override def toString = "AAll"
+}
 
 /** ASTs constructed by abstract productions */
 case class AbsSyntactic(

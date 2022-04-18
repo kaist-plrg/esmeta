@@ -10,11 +10,16 @@ class ACloDomain[T <: AbsValueDomain with Singleton](val avd: T)
 
   sealed trait Elem extends ElemTrait {
     def ⊑(that: Elem): Boolean = (this, that) match
-      case (_, ETopClo)             => true
-      case (ETopClo, _)             => false
-      case (_: ESet, EIgnoreClo)    => true
-      case (EIgnoreClo, _: ESet)    => false
-      case (EIgnoreClo, EIgnoreClo) => true
+      case (_, ETopClo)                => true
+      case (ETopClo, _)                => false
+      case (_: ESet, EIgnoreClo)       => true
+      case (_: EHandler, EIgnoreClo)   => true
+      case (_: EHandler, _: ESet)      => false
+      case (s: ESet, _: EHandler)      => s.s.size == 0
+      case (h: EHandler, h2: EHandler) => h.name == h2.name
+      case (EIgnoreClo, _: EHandler)   => false
+      case (EIgnoreClo, _: ESet)       => false
+      case (EIgnoreClo, EIgnoreClo)    => true
       case (ESet(s1), ESet(s2)) =>
         (s1.map(_.func.name) ++ s2.map(_.func.name)).forall {
           case key =>
@@ -34,11 +39,15 @@ class ACloDomain[T <: AbsValueDomain with Singleton](val avd: T)
         }
 
     def ⊔(that: Elem): Elem = (this, that) match
-      case (_, ETopClo)             => that
-      case (ETopClo, _)             => this
-      case (_: ESet, EIgnoreClo)    => that
-      case (EIgnoreClo, _: ESet)    => this
+      case (_, ETopClo)                                      => that
+      case (ETopClo, _)                                      => this
+      case (_: ESet, EIgnoreClo) | (_: EHandler, EIgnoreClo) => that
+      case (EIgnoreClo, _: ESet) | (EIgnoreClo, _: EHandler) => this
+      case (h: EHandler, s: ESet)   => if (s.s.size == 0) h else EIgnoreClo
+      case (s: ESet, h: EHandler)   => if (s.s.size == 0) h else EIgnoreClo
       case (EIgnoreClo, EIgnoreClo) => this
+      case (h1: EHandler, h2: EHandler) =>
+        if (h1.name == h2.name) this else EIgnoreClo
       case (ESet(s1), ESet(s2)) =>
         ESet((s1.map(_.func.name) ++ s2.map(_.func.name)).map {
           case key =>
@@ -66,6 +75,7 @@ class ACloDomain[T <: AbsValueDomain with Singleton](val avd: T)
         })
 
   }
+  case class EHandler(name: String, f: List[avd.Elem] => avd.Elem) extends Elem
   case class ESet(s: Set[avd.AClo]) extends Elem
   case object EIgnoreClo extends Elem
   case object ETopClo extends Elem

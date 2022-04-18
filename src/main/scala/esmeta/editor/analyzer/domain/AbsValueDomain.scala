@@ -18,6 +18,7 @@ trait AbsValueDomain extends Domain {
 
   def fromAValues[T <: AValue](kind: AValueKind[T])(items: T*): Elem
   def mkAbsComp(name: String, value: Elem, target: Elem): Elem
+  def findHandler(s: String): Elem
 
   sealed trait AbsRefValue
   case class AbsIdValue(id: Id) extends AbsRefValue
@@ -209,6 +210,8 @@ trait AbsValueDomain extends Domain {
     def removeNormal: Elem
     def normal: Elem
     def isAbruptCompletion: Elem
+
+    def getHandler: Option[(List[Elem] => Elem)]
 
     def unary_! : Elem
     def ||(that: Elem): Elem

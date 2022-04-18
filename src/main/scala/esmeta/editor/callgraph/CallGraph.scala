@@ -15,7 +15,14 @@ trait CallGraph:
 digraph {
 ${mlist.keySet.map((s) => s"\"X${mlist(s)}\" [label=\"$s\"]").mkString("\n")}
 
-${funcs.map((s) => func_targets.getOrElse(s, Set()).map((t) => s"X${mlist(s)} -> X${mlist(t)}").mkString("\n")).mkString("\n")}
+${funcs
+      .map((s) =>
+        func_targets
+          .getOrElse(s, Set())
+          .map((t) => s"X${mlist(s)} -> X${mlist(t)}")
+          .mkString("\n"),
+      )
+      .mkString("\n")}
 }
 """
 end CallGraph

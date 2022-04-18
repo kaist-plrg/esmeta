@@ -235,7 +235,11 @@ class AbsTransfer[ASD <: AbsStateDomain[_] with Singleton, T <: AbsSemantics[
           _ <-
             if (isCalled)
               put(AbsState.Bot)
-            else modify(_.defineLocal(call.lhs -> AbsValue.Top))
+            else
+              value.getHandler match {
+                case Some(f) => modify(_.defineLocal(call.lhs -> f(vs)))
+                case None    => modify(_.defineLocal(call.lhs -> AbsValue.Top))
+              }
         } yield ())(st2)._2
       } catch {
         case st.SyntacticCalled(absv, sdo) =>
@@ -401,11 +405,11 @@ class AbsTransfer[ASD <: AbsStateDomain[_] with Singleton, T <: AbsSemantics[
                     .subType(st(loc).getType.name, ty.name) ||
                   st(loc).getType.name == ty.name
               val otherV =
-                b.project(CompKind)
-                  .project(ConstKind)
-                  .project(CloKind)
-                  .project(ContKind)
-                  .project(LiteralKind)
+                b.project(CompKind) ⊔
+                b.project(ConstKind) ⊔
+                b.project(CloKind) ⊔
+                b.project(ContKind) ⊔
+                b.project(LiteralKind)
               if (!otherV.isBottom) set += false
               set
             }
@@ -549,10 +553,10 @@ class AbsTransfer[ASD <: AbsStateDomain[_] with Singleton, T <: AbsSemantics[
         else ()
       val newValue =
         comp.normal ⊔ value
-          .project(LocKind)
-          .project(CloKind)
-          .project(ContKind)
-          .project(LiteralKind)
+          .project(LocKind) ⊔
+        value.project(CloKind) ⊔
+        value.project(ContKind) ⊔
+        value.project(LiteralKind)
       for (_ <- checkReturn) yield newValue
     }
 

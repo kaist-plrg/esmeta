@@ -13,17 +13,36 @@ class BasicValueDomain() extends AbsValueDomain {
   val Bot = Elem(purd.Bot, clod.Bot, contd.Bot)
   val Top = Elem(purd.Top, clod.ETopClo, contd.ETopCont)
 
-  val banMethods: Set[String] =
-    Set(
-      "GetValue",
-    ) // , "Get", "GetV", "GetMethod", "Call", "OrdinaryToPrimitive")
+  val handlerMethods: Map[String, (List[Elem] => Elem)] =
+    Map(
+      "GetValue" -> (ls => ls(0)),
+      "ANum" -> ((ls: List[Elem]) =>
+        Elem(purd.EKind(Set(purd.ValueKind.Num)), clod.Bot, contd.Bot),
+      ),
+      "AStr" -> ((ls: List[Elem]) =>
+        Elem(purd.EKind(Set(purd.ValueKind.Str)), clod.Bot, contd.Bot),
+      ),
+      "ABool" -> ((ls: List[Elem]) =>
+        Elem(purd.EKind(Set(purd.ValueKind.Bool)), clod.Bot, contd.Bot),
+      ),
+    )
+  // , "Get", "GetV", "GetMethod", "Call", "OrdinaryToPrimitive")
+
+  def findHandler(s: String): Elem = handlerMethods
+    .get(s)
+    .map((f) => Elem(purd.Bot, clod.EHandler(s, f), contd.Bot))
+    .getOrElse(Top)
 
   def apply(value: AValue): Elem = value match
     case ALiteral(literal) => Elem(purd.EFlat(literal), clod.Bot, contd.Bot)
     case AAst(ast)    => Elem(purd.EFlat(AstValue(ast)), clod.Bot, contd.Bot)
     case ASView(view) => Elem(purd.EFlat(view), clod.Bot, contd.Bot)
-    case AClo(func, _) if banMethods contains func.name =>
-      Elem(purd.Bot, clod.EIgnoreClo, contd.Bot)
+    case AClo(func, _) if handlerMethods contains func.name =>
+      Elem(
+        purd.Bot,
+        clod.EHandler(func.name, handlerMethods(func.name)),
+        contd.Bot,
+      )
     case AClo(func, captured) =>
       Elem(purd.Bot, clod.ESet(Set(AClo(func, captured))), contd.Bot)
     case ACont(func, captured) =>
@@ -34,7 +53,11 @@ class BasicValueDomain() extends AbsValueDomain {
     kind match
       case CloKind  => Elem(purd.Bot, clod.ESet(items.toSet), contd.Bot)
       case ContKind => Elem(purd.Bot, clod.Bot, contd.ESet(items.toSet))
-      case _        => Elem(purd.Top, clod.Bot, contd.Bot)
+      case StrKind =>
+        if (items.length == 1)
+          Elem(purd.EFlat(items.head.simple), clod.Bot, contd.Bot)
+        else Elem(purd.Top, clod.Bot, contd.Bot)
+      case _ => Elem(purd.Top, clod.Bot, contd.Bot)
 
   def mkAbsComp(name: String, value: Elem, target: Elem): Elem =
     (value, target) match {
@@ -70,6 +93,11 @@ class BasicValueDomain() extends AbsValueDomain {
     def removeNormal: Elem = this
     def normal: Elem = this
     def isAbruptCompletion: Elem = this
+
+    def getHandler = clo match {
+      case clod.EHandler(_, f) => Some(f)
+      case _                   => None
+    }
 
     def unary_! : Elem = Elem(
       pure match
@@ -113,7 +141,38 @@ class BasicValueDomain() extends AbsValueDomain {
     def max(that: Elem): Elem = this
 
     def isCompletion: Elem = this
-    def project[T <: AValue](kinds: AValueKind[T]): Elem = this
+
+    def projValueKind(v: purd.ValueKind) = pure match {
+      case f: purd.EFlat =>
+        if (f.kind == v)
+          this.copy(pure = f, cont = contd.Bot, clo = clod.Bot)
+        else Bot
+      case s: purd.EKind =>
+        if (s.s contains v)
+          this.copy(
+            pure = purd.EKind(Set(v)),
+            cont = contd.Bot,
+            clo = clod.Bot,
+          )
+        else Bot
+      case purd.EBot => Bot
+    }
+
+    def project[T <: AValue](kinds: AValueKind[T]): Elem =
+      kinds match
+        case CloKind    => this.copy(pure = purd.Bot, cont = contd.Bot)
+        case ContKind   => this.copy(pure = purd.Bot, clo = clod.Bot)
+        case CompKind   => projValueKind(purd.ValueKind.Comp)
+        case LocKind    => projValueKind(purd.ValueKind.Addr)
+        case StrKind    => projValueKind(purd.ValueKind.Str)
+        case NumKind    => projValueKind(purd.ValueKind.Num)
+        case AllKind    => this
+        case BoolKind   => projValueKind(purd.ValueKind.Bool)
+        case BigIntKind => projValueKind(purd.ValueKind.Etc)
+        case NullKind   => projValueKind(purd.ValueKind.Null)
+        case UndefKind  => projValueKind(purd.ValueKind.Undef)
+        case _          => this
+
     def getSingle[T <: AValue](kind: AValueKind[T]): Flat[T] =
       kind match
         case CloKind =>
@@ -126,6 +185,7 @@ class BasicValueDomain() extends AbsValueDomain {
               if (v.size == 1) FlatElem(v.head)
               else if (v.size == 0) FlatBot
               else FlatTop
+            case clod.EHandler(_, _) => FlatTop
         case ContKind =>
           cont match
             case contd.ETopCont =>
@@ -155,6 +215,7 @@ class BasicValueDomain() extends AbsValueDomain {
             case clod.EIgnoreClo =>
               Set()
             case clod.ESet(v: Set[AClo]) => v
+            case clod.EHandler(_, _)     => Set()
         case ContKind =>
           cont match
             case contd.ETopCont =>

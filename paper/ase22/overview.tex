@@ -26,8 +26,8 @@ functions and instructions, respectively.  Therefore, the extracted mechanized
 specification form a given ECMA-262 is an $\ires$ program consisting of
 functions corresponding to abstract algorithms in the language specification.
 In this paper, we use its newer platform $\esmeta$~\cite{esmeta} an
-\underline{E}CMAScript \underline{S}pecification \underline{M}etalnaguage,
-because it is more actively mainitained rather than $\jiset$.
+\underline{E}CMAScript \underline{S}pecification \underline{M}etalanguage,
+because it is more actively maintained rather than $\jiset$.
 
 
 \subsection{Behavior Inference}\label{sec:reduce-spec}
@@ -62,7 +62,7 @@ example, assume that we want to understand the detailed semantics of JavaScript
 addition operator (\code{+}) by referring to the latest ECMA-262 (ES12, 2021).
 Then, we can utilize a syntactic view $\svhole{\expr_1} \; \code{+} \;
 \svhole{\expr_2}$ where $\svhole{\expr_1}$ and $\svhole{\expr_2}$ denote
-arbitrary expressions wihtout any type bounds.  For this syntactic view, the
+arbitrary expressions without any type bounds.  For this syntactic view, the
 reachability analyzer first finds \esalg{Evaluation} algorithm of the addition
 operator shown in Figure~\ref{fig:add-eval-algo} as the initial point of the
 analysis.  Then, it builds reduced call graphs consisting of the algorithms only
@@ -84,7 +84,7 @@ However, this call graph contains invalid edges for the evaluation of the
 addition operator, and red dotted arrows in Figure~\ref{fig:add-basic} denote
 such cases.  For example, \esalg{ApplyStringOrNumericBinaryOperator} only
 invokes two different numeric methods \esalg{BigInt::add} and
-\esalg{Number::add} for the evaluation of the addition oeprator.  Other 22
+\esalg{Number::add} for the evaluation of the addition operator.  Other 22
 numeric methods, such as \esalg{BigInt::subtract} and \esalg{Number::divide},
 are unreachable.  Moreover, \esval{TypeError} is throwable only in
 \esalg{ToPrimitive} and \esalg{ToString} but not in \esalg{ToNumber} for the
@@ -96,7 +96,7 @@ features.  For instance, assume that we want to understand the addition between
 string values.  Then, the syntactic view $\svhole{\expr_1: \text{String}} \;
 \code{+} \; \svhole{\expr_2: \text{String}}$ represents such cases, and
 Figure~\ref{fig:add-graph}(b) depicts the reduced call graph with this syntactic
-view, and gives more information of the addition oeprator.  First, the addition
+view, and gives more information of the addition operator.  First, the addition
 between string values never throws exceptions because there is no reachable
 exceptions in this call graph.  Second, the string addition never invoke other
 JavaScript functions because the \esalg{Call} algorithm is no longer reachable

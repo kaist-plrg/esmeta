@@ -6,6 +6,7 @@ import esmeta.cfg.Func
 import esmeta.editor.sview.*
 import esmeta.js
 import esmeta.js.Ast
+import scala.util.matching.Regex
 
 case class CFGHelper(cfg: CFG) {
 
@@ -72,6 +73,91 @@ case class CFGHelper(cfg: CFG) {
         case (acc, _)           => acc
       }
   }
+
+  val heapFieldCloNameMap: Map[String, Set[String]] = Map(
+    ("unaryMinus") -> Set("Number::unaryMinus", "BigInt::unaryMinus"),
+    ("bitwiseNOT") -> Set("Number::bitwiseNOT", "BigInt::bitwiseNOT"),
+    ("exponentiate") -> Set("Number::exponentiate", "BigInt::exponentiate"),
+    ("multiply") -> Set("Number::multiply", "BigInt::multiply"),
+    ("divide") -> Set("Number::divide", "BigInt::divide"),
+    ("remainder") -> Set("Number::remainder", "BigInt::remainder"),
+    ("add") -> Set("Number::add", "BigInt::add"),
+    ("subtract") -> Set("Number::subtract", "BigInt::subtract"),
+    ("leftShift") -> Set("Number::leftShift", "BigInt::leftShift"),
+    ("signedRightShift") -> Set(
+      "Number::signedRightShift",
+      "BigInt::signedRightShift",
+    ),
+    ("unsignedRightShift") -> Set(
+      "Number::unsignedRightShift",
+      "BigInt::unsignedRightShift",
+    ),
+    ("lessThan") -> Set("Number::lessThan", "BigInt::lessThan"),
+    ("equal") -> Set("Number::equal", "BigInt::equal"),
+    ("sameValue") -> Set("Number::sameValue", "BigInt::sameValue"),
+    ("sameValueZero") -> Set("Number::sameValueZero", "BigInt::sameValueZero"),
+    ("bitwiseAND") -> Set("Number::bitwiseAND", "BigInt::bitwiseAND"),
+    ("bitwiseXOR") -> Set("Number::bitwiseXOR", "BigInt::bitwiseXOR"),
+    ("bitwiseOR") -> Set("Number::bitwiseOR", "BigInt::bitwiseOR"),
+    ("toString") -> Set("Number::toString", "BigInt::toString"),
+  )
+
+  val objFieldCloNameMap: Map[String, Set[String]] = cfg.typeModel.infos.toList
+    .map {
+      case (_, ti) =>
+        ti.methods.map {
+          case (name, fname) => (name, Set(fname))
+        }
+    }
+    .foldLeft(Map[String, Set[String]]()) {
+      case (m1, m2) =>
+        (m1.keySet ++ m2.keySet).map {
+          case key =>
+            key -> ((m1.get(key), m2.get(key)) match {
+              case (Some(p1), Some(p2)) => p1 ++ p2
+              case (None, Some(p2))     => p2
+              case (Some(p1), None)     => p1
+              case (None, None)         => Set()
+            })
+        }.toMap
+    }
+
+  val sdoPattern: Regex = """[a-zA-Z]+\[\d+,\d+].([a-zA-Z]+)""".r
+  val sdoCloNameMap: Map[String, Set[String]] = cfg.fnameMap.keySet
+    .map(s => (s, sdoPattern.findFirstMatchIn(s).map(_.group(1))))
+    .collect { case (s, Some(k)) => (k, s) }
+    .foldLeft(Map[String, Set[String]]()) {
+      case (m1, (k, v)) =>
+        if (m1 contains k) m1 + (k -> (m1(k) + v)) else m1 + (k -> Set(v))
+    }
+
+  val topCloNameSet = sdoCloNameMap.keySet ++ Set(
+    "ResumeCont",
+    "ReturnCont",
+    "Code",
+    "ECMAScriptCode",
+    "Job",
+    "SV",
+    "TV",
+    "TRV",
+    "MV",
+    // Modules
+    "Link",
+    "Evaluate",
+    "ParseModule",
+    "GetExportedNames",
+    "ResolveExport",
+    "InitializeEnvironment",
+    "ExecuteModule",
+    "CreateImportBinding",
+    // Memory Model
+    "ReadsBytesFrom",
+  )
+
+  val fieldCloMap: Map[String, Set[String]] =
+    (heapFieldCloNameMap ++ objFieldCloNameMap)
+
+  val nameCloMap: Map[String, Set[String]] = fieldCloMap ++ sdoCloNameMap
 }
 
 object CFGHelper {

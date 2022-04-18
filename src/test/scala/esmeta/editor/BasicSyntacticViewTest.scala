@@ -34,8 +34,13 @@ class BasicSyntacticViewTest extends EditorTest {
 
   // registration
   def init: Unit =
-    val peval = PartialEval(CFGHelper(EditorTest.cfg))
-    val viewSet = BasicSyntacticView(CFGHelper(EditorTest.cfg)).viewSet2
+    val cfgHelper = CFGHelper(EditorTest.cfg)
+    val peval = PartialEval(cfgHelper)
+    val viewSet = BasicSyntacticView(cfgHelper).viewSet2
+    val mcgs = EditorTest.cfg.funcs
+      .map((f) => f.name -> SyntacticCallGraph(cfgHelper, f.irFunc))
+      .toMap
+    val mergeCG = SyntacticMergedCallGraph(mcgs, cfgHelper)
     mkdir(logDir)
     pw = Some(getPrintWriter(s"${logDir}/${name}.log"))
 
@@ -43,50 +48,29 @@ class BasicSyntacticViewTest extends EditorTest {
       check(
         s"${v.name}${v.rhsIdx}: ${v.toString(true, false, Some(EditorTest.cfg.grammar))}",
       ) {
-        // println(v.toString(true, false,Some(EditorTest.cfg.grammar)))
-        val flist_reachable = peval.getReachables(v)
-        val flist_peval = peval(v)
-        /*
-        val summaries = flist_peval.map((f) => {
-          val origF = EditorTest.cfg.fnameMap(f.name).irFunc
-          val o1 = InstCounter()
-          val o2 = InstCounter()
-          o1.walk(f); o2.walk(origF)
-          (f.name, o2.summary, o1.summary)
-        })
-        val (origSummary, redSummary) = summaries.foldLeft(((0, 0), (0, 0))) {
-          case (((i, j), (k, l)), (_, (a, b), (c, d))) =>
-            ((i + a, j + b), (k + c, l + d))
-        }
-        pw.foreach((pw) =>
-          pw.println(s"${v.name}${v.rhsIdx}: ${v
-            .toString(true, false, Some(EditorTest.cfg.grammar))}")
-          pw.println(
-            s"    ${origSummary._1}/${origSummary._2}/${EditorTest.cfg.funcs.length} -> ${redSummary._1}/${redSummary._2}/${flist.length}",
-          ),
+        val transitiveCG = SyntacticTransitiveClosedCallGraph(
+          mcgs,
+          cfgHelper.getSDOView(v, "Evaluation").get._2.name,
         )
-         */
+        val analysisCG = peval.cg(v)
         pw.foreach((pw) => {
           pw.println(s"${v.name}${v.rhsIdx}: ${v
             .toString(true, false, Some(EditorTest.cfg.grammar))}")
           pw.println(
-            s"    ${EditorTest.cfg.funcs.length} -> ${flist_reachable.length} -> ${flist_peval.length}",
+            s"    ${mergeCG.funcs.size}/${mergeCG.func_targets
+              .map { case (i, j) => j.map((k) => (i -> k)) }
+              .toSet
+              .size}  -> ${transitiveCG.funcs.size}/${transitiveCG.func_targets
+              .map { case (i, j) => j.map((k) => (i -> k)) }
+              .toSet
+              .size} -> ${analysisCG.funcs.size}/${analysisCG.func_targets
+              .map {
+                case (i, j) => j.map((k) => (i -> k))
+              }
+              .toSet
+              .size}",
           )
-          // flist_peval.foreach((v) => pw.println(v.name))
         })
-        // mv = math.min(mv, origSummary._1 - redSummary._1)
-        // if (Mv < origSummary._1 - redSummary._1)
-        //  println(v.toString(true, false, Some(EditorTest.cfg.grammar)))
-        // Mv = math.max(Mv, origSummary._1 - redSummary._1)
-        // z += (origSummary._1 - redSummary._1)
-        // s += 1
-        // summaries.foreach {
-        // case (name, (a, b), (c, d)) => {
-        //   pw.foreach(_.println(s"  - ${name}"))
-        //    pw.foreach(_.println(s"    $a/$b -> $c/$d"))
-        //  }
-        // }
-        // println((mv, Mv, z / s))
       },
     )
 

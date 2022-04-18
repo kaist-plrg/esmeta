@@ -436,6 +436,23 @@ class PartialEval(cfgHelper: CFGHelper, verbose: Boolean = false) {
     fList
   }
 
+  def cg(view: SyntacticView): CallGraph = {
+    val avd: AbsValueDomain = BasicValueDomain()
+    val aod = BasicObjDomain(avd)
+    val asd = BasicStateDomain(aod, cfgHelper)
+    val ard = RetDomain(asd)
+
+    val absinit =
+      new AbsSemantics[asd.type](ard)(
+        cfgHelper,
+      )
+
+    absinit.initialize(view)
+
+    val absfin = absinit.fixpoint
+    absfin.getCG
+  }
+
   def apply(view: SyntacticView): List[IRFunc] = {
     //
     val avd: AbsValueDomain = BasicValueDomain()
@@ -453,52 +470,6 @@ class PartialEval(cfgHelper: CFGHelper, verbose: Boolean = false) {
     val absfin = absinit.fixpoint
 
     val fList = absfin.npMap.keySet.map(_.func.name).toList
-    // absfin.npMap.keySet.map(_.func.irFunc).toList.map(println(_))
-
-    /*
-    // val replaceExprWalker = AnnotationWalker[asd.type, absfin.type](absfin)(
-    val replaceExprWalker = ReplaceExprWalker[asd.type, absfin.type](absfin)(
-      cfgHelper.cfg,
-      absfin.npMap,
-    )
-    val ret1 = fList.map((name) => (name, replaceExprWalker.walk(name)))
-
-    val usedVarSet = ret1.map {
-      case (name, irFunc) => (name, setOfUsedVar(irFunc))
-    }.toMap
-
-    val evd: AbsValueDomain = EmptyValueDomain()
-    val eod = BasicObjDomain(evd)
-    val esd = EmptyStateDomain(eod, cfgHelper)
-    val erd = RetDomain(esd)
-    val emptyAbs = new AbsSemantics[esd.type](erd)(cfgHelper)
-    val unreachableRemoveWalker =
-      UnreachableRemoveWalker[esd.type, emptyAbs.type](emptyAbs, usedVarSet)(
-        cfgHelper.cfg,
-        emptyAbs.npMap,
-      )
-
-    val ret2 = ret1.map {
-      case (name, irFunc) =>
-        (
-          name,
-          unreachableRemoveWalker.walkModified(name, irFunc),
-        )
-    }
-
-    // println(absfin.npMap)
-    if (verbose)
-      ret2.foreach {
-        case (name, func) =>
-          println(s"PRINT original $name")
-          println("=============================================")
-          println(cfgHelper.cfg.fnameMap(name).irFunc)
-          println(s"PRINT reduced $name")
-          println("=============================================")
-          println(func)
-          println("---------------------------------------------")
-      }*/
-
     fList.map(cfgHelper.cfg.fnameMap(_).irFunc)
   }
 }

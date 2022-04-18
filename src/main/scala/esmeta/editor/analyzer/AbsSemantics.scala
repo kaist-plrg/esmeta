@@ -14,6 +14,7 @@ import esmeta.editor.util.CFGHelper
 import esmeta.error.AnalysisTimeoutError
 import esmeta.cfg.Branch
 import esmeta.ir.Id
+import esmeta.editor.CallGraph
 
 class AbsSemantics[ASD <: AbsStateDomain[_] with Singleton](
   val ard: RetDomain[ASD],
@@ -51,6 +52,16 @@ class AbsSemantics[ASD <: AbsStateDomain[_] with Singleton](
 
   val transfer: AbsTransfer[ASD, this.type] = AbsTransfer(this, ignoreCond)
 
+  def getCG: CallGraph = new CallGraph {
+    val funcs = npMap.keySet.map(_.func.name)
+    val func_targets = retEdges.toList.foldLeft(Map[String, Set[String]]()) {
+      case (m, (ReturnPoint(rf, _), s)) =>
+        s.foldLeft(m) {
+          case (m, NodePoint(cf, _, _)) =>
+            m + (cf.name -> (m.get(cf.name).getOrElse(Set()) + rf.name))
+        }
+    }
+  }
   // fixpiont computation
   @tailrec
   final def fixpoint: this.type = worklist.next match {

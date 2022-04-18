@@ -217,7 +217,8 @@ class AbsTransfer[ASD <: AbsStateDomain[_] with Singleton, T <: AbsSemantics[
           isCalled = {
             var v = false
             // closures
-            // if (AbsValue.Top ⊑ value) println(s"${cp.func.name}, ${cp.func.irFunc}, $call, $value")
+            if (AbsValue.Top ⊑ value)
+              println(s"${cp.func.name}, ${cp.func.irFunc}, $call, $value")
             for (AClo(func, captured) <- value.getSet(CloKind)) {
               val newLocals = captured ++ getLocals(func.irFunc.params, vs)
               val newSt = st.replaceLocal(newLocals.toSeq: _*)

@@ -127,8 +127,7 @@ class BasicSyntacticView(cfgHelper: CFGHelper) {
                               .getOrElse(Set(AbsSyntactic(nt.name)))
                               .filter((v) => notexists(v, name))
                         if (nt.optional)
-                          sl.flatMap(s => ns.map(s :+ Some(_)) + (s :+ None),
-                          )
+                          sl.flatMap(s => ns.map(s :+ Some(_)) + (s :+ None))
                         else sl.flatMap(s => ns.map(s :+ Some(_)))
                     }.map(ls =>
                       Syntactic(
@@ -164,8 +163,7 @@ class BasicSyntacticView(cfgHelper: CFGHelper) {
                       val ns =
                         nm.get(nt.name).getOrElse(Set(AbsSyntactic(nt.name)))
                       if (nt.optional)
-                        sl.flatMap(s => ns.map(s :+ Some(_)) + (s :+ None),
-                        )
+                        sl.flatMap(s => ns.map(s :+ Some(_)) + (s :+ None))
                       else sl.flatMap(s => ns.map(s :+ Some(_)))
                   }.map(ls =>
                     Syntactic(

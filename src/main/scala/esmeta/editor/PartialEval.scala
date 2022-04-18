@@ -455,6 +455,7 @@ class PartialEval(cfgHelper: CFGHelper, verbose: Boolean = false) {
     val fList = absfin.npMap.keySet.map(_.func.name).toList
     // absfin.npMap.keySet.map(_.func.irFunc).toList.map(println(_))
 
+    /*
     // val replaceExprWalker = AnnotationWalker[asd.type, absfin.type](absfin)(
     val replaceExprWalker = ReplaceExprWalker[asd.type, absfin.type](absfin)(
       cfgHelper.cfg,
@@ -496,8 +497,8 @@ class PartialEval(cfgHelper: CFGHelper, verbose: Boolean = false) {
           println("=============================================")
           println(func)
           println("---------------------------------------------")
-      }
+      }*/
 
-    ret2.map(_._2)
+    fList.map(cfgHelper.cfg.fnameMap(_).irFunc)
   }
 }

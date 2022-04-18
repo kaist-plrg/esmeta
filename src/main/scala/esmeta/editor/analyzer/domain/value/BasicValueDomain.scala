@@ -14,7 +14,9 @@ class BasicValueDomain() extends AbsValueDomain {
   val Top = Elem(purd.Top, clod.ETopClo, contd.ETopCont)
 
   val banMethods: Set[String] =
-    Set("GetValue", "Get", "GetV", "GetMethod", "Call", "OrdinaryToPrimitive")
+    Set(
+      "GetValue",
+    ) // , "Get", "GetV", "GetMethod", "Call", "OrdinaryToPrimitive")
 
   def apply(value: AValue): Elem = value match
     case ALiteral(literal) => Elem(purd.EFlat(literal), clod.Bot, contd.Bot)

@@ -72,7 +72,7 @@ class BasicSyntacticViewTest extends EditorTest {
           pw.println(
             s"    ${EditorTest.cfg.funcs.length} -> ${flist_reachable.length} -> ${flist_peval.length}",
           )
-          flist_reachable.foreach((v) => pw.println(v.name))
+          // flist_peval.foreach((v) => pw.println(v.name))
         })
         // mv = math.min(mv, origSummary._1 - redSummary._1)
         // if (Mv < origSummary._1 - redSummary._1)

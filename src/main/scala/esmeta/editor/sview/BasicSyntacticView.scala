@@ -8,93 +8,15 @@ import esmeta.spec.Nonterminal
 
 class BasicSyntacticView(cfgHelper: CFGHelper) {
 
-  lazy val viewSet: List[Syntactic] =
-    // name, k, AST representation
-    def initAAST(
-      name: String,
-      paramLen: Int,
-      rhsIdx: Int,
-      rhs: Rhs,
-    ): List[Syntactic] = {
-      val xs = for {
-        symbol <- rhs.symbols
-        nt <- symbol.getNt
-      } yield nt
-      val initList = List[List[Option[SyntacticView]]](List())
-      xs.foldLeft(initList) {
-        case (sl, nt) =>
-          sl.flatMap(s =>
-            if (nt.optional) List(s :+ Some(AbsSyntactic(nt.name)), s :+ None)
-            else List(s :+ Some(AbsSyntactic(nt.name))),
-          )
-      }.filter(_.length > 1)
-        .map(s => Syntactic(name, List.fill(paramLen)(false), rhsIdx, s))
-    }
-    def injectAAST(lhs: Lhs, rhsIdx: Int, rhs: Rhs, ast: Syntactic) = {
-      val xs = for {
-        symbol <- rhs.symbols
-        nt <- symbol.getNt
-      } yield nt
-      if (xs.length == 1 && xs(0).name == ast.name && xs(0).optional == false) {
-        List(
-          Syntactic(
-            lhs.name,
-            List.fill(lhs.params.length)(false),
-            rhsIdx,
-            List(Some(ast)),
-          ),
-        )
-      } else {
-        List()
-      }
-    }
-    def nextAAST(ast: Syntactic): (Boolean, List[Syntactic]) = {
-      val fname =
-        s"${ast.name}[${ast.idx},${cfgHelper.getSubIdxView(ast)}].Evaluation"
-      if (cfgHelper.cfg.fnameMap contains fname) {
-        (true, Nil)
-      } else {
-        (
-          false,
-          cfgHelper.cfg.grammar.prods.flatMap {
-            case Production(lhs, Production.Kind.Syntactic, _, rhsList) =>
-              rhsList.zipWithIndex.flatMap {
-                case (rhs, k) => injectAAST(lhs, k, rhs, ast)
-              }
-            case _ => List()
-          },
-        )
-      }
-    }
-    def aux(l: List[Syntactic], r: List[Syntactic]): List[Syntactic] = l match {
-      case head :: next =>
-        nextAAST(head) match {
-          case (true, xs)  => aux(next ++ xs, r :+ head)
-          case (false, xs) => aux(next ++ xs, r)
-        }
-      case Nil => r
-    }
-    val initSeed = cfgHelper.cfg.grammar.prods.flatMap {
-      case Production(
-            Lhs(name, rawParams),
-            Production.Kind.Syntactic,
-            _,
-            rhsList,
-          ) =>
-        rhsList.zipWithIndex.flatMap {
-          case (rhs, rhsIdx) => initAAST(name, rawParams.length, rhsIdx, rhs)
-        }
-      case _ => List()
-    }
-    val fixpoint = aux(initSeed, List())
-    fixpoint
-
   lazy val viewSet2: List[Syntactic] =
-    val (initEvalSeed, parentMap) = cfgHelper.cfg.grammar.prods
-      .foldLeft((Set[String](), Map[String, Set[String]]())) {
-        case ((s, m), Production(lhs, Production.Kind.Syntactic, _, rhsList)) =>
-          rhsList.zipWithIndex.foldLeft((s, m)) {
-            case ((s, m), (rhs, rhsIdx)) => {
+    val (initEvalSeed, otherSeed, parentMap) = cfgHelper.cfg.grammar.prods
+      .foldLeft((Set[String](), Set[String](), Map[String, Set[String]]())) {
+        case (
+              (s, s2, m),
+              Production(lhs, Production.Kind.Syntactic, _, rhsList),
+            ) =>
+          rhsList.zipWithIndex.foldLeft((s, s2, m)) {
+            case ((s, s2, m), (rhs, rhsIdx)) => {
               val xs = for {
                 symbol <- rhs.symbols
                 nt <- symbol.getNt
@@ -109,7 +31,7 @@ class BasicSyntacticView(cfgHelper: CFGHelper) {
                           List(s :+ Some(AbsSyntactic(nt.name)), s :+ None)
                         else List(s :+ Some(AbsSyntactic(nt.name))),
                       ),
-                      (if (rhs.symbols.length == 1)
+                      (if (rhsList.forall((rhs) => rhs.symbols.length == 1))
                          m + (nt.name -> (m.getOrElse(
                            nt.name,
                            Set(),
@@ -127,30 +49,154 @@ class BasicSyntacticView(cfgHelper: CFGHelper) {
               )
               // val tmpSView = Syntactic(lhs.name, List.fill(lhs.params.length)(false), rhsIdx)
               val hasEval = nviews.exists((ast) =>
-                (cfgHelper.cfg.fnameMap exists {
-                  case (k, _) =>
-                    k.startsWith(
-                      s"${ast.name}[${ast.idx},${cfgHelper.getSubIdxView(ast)}].",
-                    )
-                }),
+                (cfgHelper.cfg.fnameMap contains
+                s"${ast.name}[${ast.idx},${cfgHelper.getSubIdxView(ast)}].Evaluation"),
+              )
+              val hasOther = nviews.exists((ast) =>
+                (cfgHelper.cfg.fnameMap contains
+                s"${ast.name}[${ast.idx},${cfgHelper.getSubIdxView(ast)}].PropertyBindingInitialization",
+                ) || (cfgHelper.cfg.fnameMap contains
+                s"${ast.name}[${ast.idx},${cfgHelper.getSubIdxView(ast)}].RestBindingInitialization",
+                ) || (cfgHelper.cfg.fnameMap contains
+                s"${ast.name}[${ast.idx},${cfgHelper.getSubIdxView(ast)}].KeyedBindingInitialization",
+                ),
               )
               val ns = if (hasEval) s + lhs.name else s
-              (ns, nm)
+              val ns2 = if (hasOther) s2 + lhs.name else s2
+              (ns, ns2, nm)
             }
           }
-        case ((s, m), _) => (s, m)
+        case ((s, s2, m), _) => (s, s2, m)
       }
-    val evalSet =
+    val (evalSet, otherSet) =
       def aux(i: Set[String]): Set[String] =
         val ni = i ++ (i.map((s) => parentMap.getOrElse(s, Set())).flatten)
         if (ni == i) i else aux(ni)
-      aux(initEvalSeed)
+      (aux(initEvalSeed), aux(otherSeed))
 
     // val exceptionSet = Set("Elision", "ArgumentList", "ExportsList", "ImportsList", "AssignmentElementList", "AssignmentPropertyList", "BindingPropertyList", "BindingElementList", "BindingRestElement", "ElementList", "FormalParameterList", "PropertySetParameterList", "ClassElementList")
 
+    val initSeed: Map[String, Set[SyntacticView]] =
+      cfgHelper.cfg.grammar.prods.flatMap {
+        case Production(lhs, Production.Kind.Syntactic, _, _) =>
+          List(lhs.name -> Set(AbsSyntactic(lhs.name)))
+        case _ => List()
+      }.toMap
+    def notexists(v: SyntacticView, n: String): Boolean =
+      v match
+        case Syntactic(name, _, _, children) =>
+          name != n && children.forall((v) =>
+            v.map((s) => notexists(s, n)).getOrElse(true),
+          )
+        case _ => v.name != n
+
+    def stepP(
+      nm: Map[String, Set[SyntacticView]],
+      cyclic: Boolean = false,
+    ): Map[String, Set[SyntacticView]] =
+      nm.keySet.toList.map {
+        case name =>
+          cfgHelper.cfg.grammar.prods.find(_.lhs.name == name) match
+            case Some(
+                  Production(lhs, Production.Kind.Syntactic, _, rhsList),
+                )
+                if !((evalSet contains lhs.name) || (Set(
+                  "BindingPattern",
+                  "BindingIdentifier",
+                  "BindingRestElement",
+                  "BindingElement",
+                  "FormalParameters",
+                ) contains lhs.name)) => {
+              name -> (rhsList.zipWithIndex.toSet.flatMap {
+                case (rhs, rhsIdx) =>
+                  val xs = for {
+                    symbol <- rhs.symbols
+                    nt <- symbol.getNt
+                  } yield nt
+                  if (!cyclic && xs.exists(_.name == name)) List()
+                  else
+                    val initList = List[List[Option[SyntacticView]]](List())
+                    xs.foldLeft(initList) {
+                      case (sl, nt) =>
+                        val ns =
+                          if (cyclic)
+                            nm.get(nt.name)
+                              .getOrElse(Set(AbsSyntactic(nt.name)))
+                          else
+                            nm.get(nt.name)
+                              .getOrElse(Set(AbsSyntactic(nt.name)))
+                              .filter((v) => notexists(v, name))
+                        if (nt.optional)
+                          sl.flatMap(s => ns.map(s :+ Some(_)) + (s :+ None),
+                          )
+                        else sl.flatMap(s => ns.map(s :+ Some(_)))
+                    }.map(ls =>
+                      Syntactic(
+                        lhs.name,
+                        List.fill(lhs.params.length)(false),
+                        rhsIdx,
+                        ls,
+                      ),
+                    )
+              })
+            }
+            case _ => (name -> Set(AbsSyntactic(name)))
+      }.toMap
+
+    def finiP(
+      nm: Map[String, Set[SyntacticView]],
+    ): Map[String, Set[SyntacticView]] =
+      nm.keySet.toList.map {
+        case name =>
+          cfgHelper.cfg.grammar.prods.find(_.lhs.name == name) match
+            case Some(
+                  Production(lhs, Production.Kind.Syntactic, _, rhsList),
+                ) if (evalSet contains lhs.name) => {
+              name -> (rhsList.zipWithIndex.toSet.flatMap {
+                case (rhs, rhsIdx) =>
+                  val xs = for {
+                    symbol <- rhs.symbols
+                    nt <- symbol.getNt
+                  } yield nt
+                  val initList = List[List[Option[SyntacticView]]](List())
+                  xs.foldLeft(initList) {
+                    case (sl, nt) =>
+                      val ns =
+                        nm.get(nt.name).getOrElse(Set(AbsSyntactic(nt.name)))
+                      if (nt.optional)
+                        sl.flatMap(s => ns.map(s :+ Some(_)) + (s :+ None),
+                        )
+                      else sl.flatMap(s => ns.map(s :+ Some(_)))
+                  }.map(ls =>
+                    Syntactic(
+                      lhs.name,
+                      List.fill(lhs.params.length)(false),
+                      rhsIdx,
+                      ls,
+                    ),
+                  )
+              })
+            }
+            case _ => (name -> Set())
+      }.toMap
+
+    val finalSeed =
+      def aux(
+        nm: Map[String, Set[SyntacticView]],
+      ): Map[String, Set[SyntacticView]] =
+        val nnm = stepP(nm)
+        // nm.toList.map(_._2).flatten.foreach((s) => println(s.toString(false, false, Some(cfgHelper.cfg.grammar))))
+        // nm.map{ case (i, j) => (i, j.size)}.foreach(println(_))
+        // println(s"size: ${nm.toList.map(_._2).flatten.length}")
+
+        if (nnm == nm) nm else aux(nnm)
+      finiP(stepP(aux(initSeed), cyclic = true))
+    /*
     def findDeriv(
       name: String,
       forceUnfold: Boolean = false,
+      touchedChain: List[String] = List.empty,
+      ignoreDup: Boolean = false,
     ): List[SyntacticView] = {
       cfgHelper.cfg.grammar.prods.flatMap {
         case Production(lhs, Production.Kind.Syntactic, _, rhsList)
@@ -170,7 +216,25 @@ class BasicSyntacticView(cfgHelper: CFGHelper) {
                   xs.foldLeft(initList) {
                     case (sl, nt) =>
                       sl.flatMap(s =>
-                        val recSyn = findDeriv(nt.name)
+                        val recSyn = {
+                          println(touchedChain :+ nt.name);
+                          if (touchedChain contains nt.name) {
+                            if (ignoreDup) List()
+                            else
+                              findDeriv(
+                                nt.name,
+                                false,
+                                touchedChain :+ nt.name,
+                                true,
+                              )
+                          } else
+                            findDeriv(
+                              nt.name,
+                              false,
+                              touchedChain :+ nt.name,
+                              ignoreDup,
+                            )
+                        }
                         if (nt.optional) recSyn.map(s :+ Some(_)) :+ (s :+ None)
                         else recSyn.map(s :+ Some(_)),
                       )
@@ -192,12 +256,23 @@ class BasicSyntacticView(cfgHelper: CFGHelper) {
     cfgHelper.cfg.grammar.prods
       .flatMap {
         case Production(lhs, Production.Kind.Syntactic, _, rhsList) =>
-          findDeriv(lhs.name, true).filter((ast) =>
+          findDeriv(lhs.name, true, List.empty, true).filter((ast) =>
             cfgHelper.cfg.fnameMap contains s"${ast.name}[${ast.idx},${cfgHelper
               .getSubIdxView(ast)}].Evaluation",
           )
         case _ => List()
       }
       .collect { case n: Syntactic => n }
+
+     */
+    finalSeed.toList
+      .map(_._2)
+      .flatten
+      .collect { case n: Syntactic => n }
+      .filter((ast) =>
+        cfgHelper.cfg.fnameMap contains s"${ast.name}[${ast.idx},${cfgHelper
+          .getSubIdxView(ast)}].Evaluation",
+      )
+      .sortBy(_.toString)
   // viewSet2.map(_.toString(false, false, Some(cfgHelper.cfg.grammar))).foreach(println)
 }

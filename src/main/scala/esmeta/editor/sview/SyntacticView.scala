@@ -2,6 +2,8 @@ package esmeta.editor.sview
 
 import esmeta.js.Ast
 import esmeta.editor.*
+import esmeta.cfg.CFG
+import esmeta.editor.util.CFGHelper
 
 // syntactic view: can be changed at future
 sealed trait SyntacticView extends EditorElem {
@@ -45,6 +47,28 @@ sealed trait SyntacticView extends EditorElem {
       case abs: AbsSyntactic                     => Set("Abstract")
       case _                                     => Set("Terminal")
     )
+
+  def folded: SyntacticView = this match
+    case s: Syntactic =>
+      s.children match
+        case Some(child) :: Nil =>
+          val f = child.folded
+          f match
+            case a: AbsSyntactic =>
+              if (a.fold) AbsSyntactic(s.name, a.annotation, true)
+              else s.copy(children = List(Some(f)))
+            case _ => s.copy(children = List(Some(f)))
+        case _ => s.copy(children = s.children.map((vo) => vo.map(_.folded)))
+    case _ => this
+
+  def refined(cfgHelper: CFGHelper): SyntacticView = this match
+    case s: Syntactic =>
+      s.children match
+        case Some(child) :: Nil =>
+          if (cfgHelper.getSDOView((child, "Evaluation")).isEmpty) this
+          else child.refined(cfgHelper)
+        case _ => this
+    case _ => this
 }
 
 sealed trait Annotation

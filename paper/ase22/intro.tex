@@ -1,122 +1,129 @@
 \section{Introduction}\label{sec:intro}
 
+\begin{figure}
+  \centering
+  \includegraphics[width=\columnwidth]{img/add-eval.png}
+  \caption{The \esalg{Evaluation} algorithm of the addition operator
+  ($\code{+}$) in ES12}
+  \vspace*{-1em}
+  \label{fig:add-eval}
+\end{figure}
+
 In the beginning, JavaScript was a simple scripting language designed in a
 ten-day hack. However, it has become a de facto Web standard and eventually
 became one of the dominating programming languages in various fields. For
 example, Node.js~\cite{nodejs} introduced full-stack JavaScript by supporting
-server-side programming.  React Native~\cite{react-native} provides a way to
-deploy JavaScript programs as mobile and desktop applications even running on
-different platforms.  Furthermore, according to the annual report of GitHub,
-JavaScript has consistently been the most popular programming language based on
-the number of contributors to GitHub
+server-side programming.  In addition, React Native~\cite{react-native} provides
+a way to deploy JavaScript programs as mobile and desktop applications even
+running on different platforms.  Furthermore, according to the annual report of
+GitHub, JavaScript has consistently been the most popular programming language
+based on the number of contributors to GitHub
 projects.\footnote{\url{https://octoverse.github.com/}}
 
-Many developers and researchers have presented diverse tools for a better
-development environment for JavaScript. In the industry, developers develop
-commercial JavaScript engines, such as Google V8~\cite{v8} and Oracle
-GraalJS~\cite{graaljs}, to execute JavaScript programs.  They continuously
-improve the performance of the engines using optimization techniques (e.g., JIT
-compilation) and update them to support newly introduced language features of
-JavaScript.  Besides, JavaScript compilers are also actively developed as well;
-Babel~\cite{babel} compiles ES6+ JavaScript code to ES5.1 code for legacy web
-browsers, and the TypeScript compiler gives developers a chance to use a static
-type system when developing JavaScript programs.  In the academia, researchers
-have presented various techniques to check and enhance the code quality for
-JavaScript, such as static analysis~\cite{safe, safe2, tajs, wala, jsai},
-verification~\cite{javert, javert2, ad-safety, javanni}, symbolic
-execution~\cite{symbolic-js, sym-js, expo-se}, and concolic
-testing~\cite{jalangi, type-conc-test}.
+However, despite its popularity, developers and even JavaScript experts often
+suffer from its highly dynamic nature.  JavaScript supports diverse dynamic and
+complex language features, including higher-order functions, property accessors
+with accessors, mutable prototypes chain, and asynchronous functions.  For
+instance, the addition operator is not commutative, and even its result type
+might be dependent on the order of the operands as follows:
+\begin{center}
+  \begin{tabular}{c}
+    \begin{lstlisting}[style=JS]
+{} + "" // 0
+"" + {} // "[object Object]"
+    \end{lstlisting}
+  \end{tabular}
+\end{center}
+The result of the addition between an empty object $\;\jscode{\{\}}$ and an empty
+string $\jscode{""}$ is a number $\jscode{0}$, but it becomes a string
+$\jscode{"[object Object]"}$ with the reversed order of operands.  It happens
+because the addition operator has complex rules for implicit type conversions in
+JavaScript while it simply represents numeric additions or string concatenation
+in most other languages.  Such a dynamic nature of JavaScript causes pain to
+developers in understanding the language semantics.  Besides, it is challenging
+to understand the detailed semantics even for the JavaScript experts.  For
+example, while V8 is the most widely-used JavaScript engine developed by Google
+for Node.js and Chrome web browsers, its semantic bugs have consistently been
+reported to its issue tracker.\footnote{\url{https://bugs.chromium.org/p/v8}}
 
-Therefore, they carefully read its standard \textit{language specification} and
-\textit{conformance test suite} to understand JavaScript semantics.  Ordinary
-JavaScript programmers usually learn the language by referring to non-standard
-materials, such as MDN Web Docs~\cite{mdn-doc}, blog posts, or Stack
-Overflow~\cite{stackoverflow}.  They explain high-level concepts of language
-features more friendly with simple examples.  However, such informal reading
-materials are not enough for developers or researchers who design the tools for
-JavaScript.  Beyond high-level concepts, they desire to understand the detailed
-semantics of each language feature, including corner cases, interactions with
-other language features, or implicit side effects. Thus, they read the language
-specification, ECMA-262~\cite{es12}, and the conformance test suite,
-Test262~\cite{test262}.  ECMA-262 is the standard specification defining
-ECMAScript, the official name of JavaScript.  It describes syntax using a
-variant of the extended Backus–Naur form (EBNF) and its semantics as abstract
-algorithms in English.  On the other hand, Test262~\cite{test262} is a
-conformance test suite, and it consists of JavaScript programs containing
-assertions to check specific language semantics.
+Therefore, when they desire to understand the detailed semantics of JavaScript,
+they refer to \textit{ECMA-262}.  It is the standard specification written in
+English defining ECMAScript, which is the official name of JavaScript.  It
+describes the syntax via a variant of the extended Backus–Naur form and the
+semantics via abstract algorithms consisting of structured steps.  For example,
+Figure~\ref{fig:add-eval} shows the \esalg{Evaluation} algorithm of the addition
+operator in the latest ECMA-262 (ES12, 2021)~\cite{es12}.
+\footnote{\url{https://262.ecma-international.org/12.0/\#sec-addition-operator-plus}}
+It consists of a single step that invokes another algorithm,
+\esalg{EvaluateStringOrNumericBinaryExpression}; the first and third arguments
+are the left and right subtrees of the abstract syntax tree (AST) for a given
+additive expression, and the second one is a text \code{+} to represent the
+additive operation.  The \esalg{EvaluateStringOrNumericBinaryExpression} is a
+generic algorithm for string or numeric binary operations (e.g., \code{-},
+\code{*}, \code{<}, etc.).
 
-However, reading the language specification and conformance tests is often
-burdensome or prone to misunderstanding the semantics even to language
-designers.  First, they became massive materials because of the fast-evolving
-nature of JavaScript.  The Ecma Technical Committee 39 (TC39) has maintained
-ECMA-262 and Test262.  Until 2015, JavaScript was a stable and rarely updated
-programming language, but JavaScript's prevalency in diverse fields increased
-the users' demands for new language features.  To adapt to their requests, TC39
-decided to release the specification annually with heavy updates for the
-ECMAScript 6 (ES6 or ES2015)~\cite{es6} in 2015.  Besides, they published the
-specification and the test suite as open-source projects in GitHub repositories.
-Therefore, developers and researchers strive to keep up with their recent
-versions to support new language features correctly in their tools or
-techniques.  However, The latest ECMA-262 (ES12, 2021) becomes \inred{879}
-pages with \inred{2,640} algorithms, and Test262 contains \inred{41,415} test
-programs because of the fast-evolving nature of JavaScript.  In this setting, it
-is troublesome to find which specification parts or test programs are related to
-the semantics developers or researchers want to understand.
+Unfortunately, it is still challenging to 1) understand all the \textit{possible
+behaviors} of language features and 2) find \textit{example programs} that
+trigger each behavior by only referring to the language specification.  First,
+it is not an easy task to answer which behaviors are possible in language
+features.  For example, a language feature in JavaScript often has unexpected
+behaviors, such as implicit function calls, implicit property reads/writes, or
+runtime exceptions with different typed errors.  Besides, the problem becomes
+more complicated if we want to know possible behaviors of language features used
+with specific types of values or other language features.  Second, even if users
+realize a specific behavior of a language feature, it is nontrivial to find
+example programs that trigger the behavior.  For instance, Assume that we
+realize that the addition operator might cause implicit function calls.
+However, we should make an additional effort to grasp when it is triggered if we
+want to find example programs as follows:
+\begin{center}
+  \begin{tabular}{c}
+    \begin{lstlisting}[style=JS]
+var x = { toString: () => "a" };
+x + "b"; // "ab" with an implicit call of `x.toString()`
+    \end{lstlisting}
+  \end{tabular}
+\end{center}
+In this code, the left and right operands have different types \code{Object} and
+\code{String}, respectively.  It causes an implicit conversion from the object
+in the variable \code{x} to a string value with an implicit call of the function
+in \code{x.toString}.
 
-Another obstacle to understanding the JavaScript semantics is the lack of
-connection between the specification and test suite.  Both ECAM-262 and Test262
-complement each other even though they describe the same JavaScript semantics.
-ECMA-262 explains how JavaScript works in detail using abstract algorithms
-written in English, but it has a steep learning curve because of its intricated
-structures with many jargons.  For example, we should learn numerous concepts
-and terminologies to understand only the addition operator in ECMA-262:
-completion records, references, environment records, implicit conversion helpers
-(e.g., \esalg{ToPrimitive}, \esalg{ToString}), syntax-directed algorithms,
-numeric method algorithms, or how mathematical values, Numbers, and BigInts
-differ.  On the other hand, Test262 gives straightforward examples with
-JavaScript programs and assertions, but it does not explain why each program
-behaves like that.  Thus, it is helpful for readers to inform which parts of the
-specification are related to which test programs.  Unfortunately, Test262,
-however, provides only coarse relation to ECMA-262 using directory structures,
-file names, and comments.  Furthermore, since TC39 manually maintains such
-connections, the references to the specification are often wrong and even
-deprecated when ECMA-262 is updated.
-
-To alleviate this problem, we present an automatic way to reduce language
-specification and test suite and connect each other.  We first introduce
-\textit{syntactic views} to help users indicate which parts of JavaScript
-semantics they want to understand.  A syntactic view is an extension of a
-JavaScript abstract syntax tree (AST) consisting of both concrete and abstract
-nodes.  Users can freely construct syntactic views depending on which semantics
-they want to understand; concrete nodes denote the semantics they want to
-understand, and abstract ones denote the parts they do not.  Using a given
-syntactic view, we can reduce the language specification and test suite.  To
-handle JavaScript syntax and semantics mechanically, we extract a JavaScript
-definitional interpreter in an intermediate representation from ECMA-262.  Then,
-we 1) reduce the specification using partial evaluation on the extracted
-definitional interpreter and 2) filter out irrelevant test programs using their
-execution traces on it.  Finally, we also present a way to connect each branch
-in the reduced specification to related test programs.
-
-To actualize our approach, we develop $\tool$, which stands for
-\underline{J}avaScript \underline{Syn}tactic \underline{View}er.  It utilizes an
-existing tool named $\jiset$~\cite{jiset} to extract a JavaScript definitional
-interpreter from the language specification.  We evaluated our tool with the
-latest ECMA-262 (ES12, 2021) and Test262.  First, we defined \inred{177}
-basic syntactic views and showed how much it could reduce the specification and
-conformance test suite for a given syntactic view. Then, we conducted
-\inred{three} case studies with more advanced syntactic views.
+To alleviate this problem, we present $\tool$, which automatically infers
+possible behaviors of JavaScript language features from ECMA-262 and finds
+corresponding example programs.  We first introduce \textit{syntactic views}, an
+extension of a JavaScript abstract syntax tree (AST) consisting of both concrete
+and abstract nodes with a type bound.  Users can freely construct syntactic
+views depending on which semantics they want to understand; concrete nodes
+denote the language features they want to understand, and abstract ones denote
+the parts they do not.  Then, our tool reduces ECMA-262 to consist of only
+abstract algorithms reachable from a given syntactic view.  Our key observation
+is that the reachability of specific algorithms in the language specification
+implies possible behaviors of language features.  For example, the \esalg{Call}
+algorithm in ECMA-262 represents function calls.  Thus, if we want to know
+whether the addition operator can cause implicit function calls, we should check
+that it is reachable from the \esalg{Evaluation} algorithm of the addition
+operator.  Finally, $\tool$ searches example programs in Test262~\cite{test262},
+an official JavaScript conformance test suite, for each algorithm in the reduced
+specification.  Our tool searches example programs in Test262 using program
+execution traces on the specification collected before the search.  We evaluated
+the effectiveness of $\tool$ with the latest ECMA-262 (ES12, 2021) and showed
+its practicality with \inred{three} advanced syntactic views.
 
 Our contributions are as follows:
 \begin{itemize}
-  \item We introduce \textit{syntactic views} to help users indicate which parts
-    of JavaScript semantics they want to understand.
+  \item We introduce a \textit{syntactic view}, an extension of a JavaScript
+    abstract syntax tree (AST) consisting of both concrete and abstract nodes
+    with a type bound, to help users indicate which language features they want
+    to understand.
 
-  \item We present an automatic way to 1) reduce the language specification and
-    conformance test suite for a given syntactic view and 2) connect each branch
-    in the reduced specification to related test programs.
+  \item We present an automatic way to 1) infer \textit{possible behaviors} of
+    JavaScript language features by reducing ECMA-262 and checking the
+    reachability of algorithms and 2) search \textit{example programs} in
+    Test262 using program execution traces on the specification collected before
+    the search.
 
-  \item We actualize our techniques by implementing $\tool$ and experimentally
-    demonstrate its effectiveness with the latest language specification and
-    conformance test suite.
+  \item We actualize our techniques in $\tool$ and evaluate its effectiveness
+    using the latest ECMA-262 with \inred{177} basic syntactic views and discuss
+    its practicality with \inred{three} advanced syntactic views.
 \end{itemize}

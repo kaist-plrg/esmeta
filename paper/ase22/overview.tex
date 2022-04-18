@@ -1,4 +1,10 @@
-\section{Motivation}\label{sec:motivation}
+\section{Overview}\label{sec:overview}
+
+% However, because the specification is written in
+% English, we should manually construct call graphs from the \esalg{Evaluation}
+% algorithm to check the reachability.  % As a result, the call graph consists of
+% \inred{107} algorithms, including the \esalg{Call} algorithm, which means that
+% the addition operator might cause implicit function calls.  
 
 This section explains the motivation of this work.  We first shows how we can
 understand the detailed semantics by reducing the language specification with a
@@ -7,14 +13,6 @@ conformance test suite for each algorithm in the reduced specification.
 
 
 \subsection{Language Specification Reduction}\label{sec:reduce-spec}
-
-\begin{figure}
-  \centering
-  \includegraphics[width=\columnwidth]{img/add-eval.png}
-  \caption{The \esalg{Evaluation} algorithm of the addition operator
-  (\code{+}) in ES12}
-  \label{fig:add-eval}
-\end{figure}
 
 \begin{figure}
   \centering

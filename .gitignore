@@ -3,6 +3,7 @@
 *.log
 *.swo
 *.swp
+*.bak
 .bloop/
 .bsp/
 .cache/

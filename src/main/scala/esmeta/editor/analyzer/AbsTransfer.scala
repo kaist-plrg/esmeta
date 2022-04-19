@@ -451,7 +451,7 @@ class AbsTransfer[ASD <: AbsStateDomain[_] with Singleton, T <: AbsSemantics[
       case EParse(_, _)           => AbsValue.Top
       case EGrammar(name, params) => AbsValue(Grammar(name, params))
       case ESourceText(_)         => AbsValue.Top
-      case EYet(_)                => AbsValue.Bot
+      case EYet(_)                => AbsValue.Top
       case ESubstring(expr, from, to) =>
         for {
           s <- escape(transfer(expr))

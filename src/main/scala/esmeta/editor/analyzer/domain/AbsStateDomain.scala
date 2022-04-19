@@ -4,7 +4,15 @@ import esmeta.ir.{Type, Id}
 import esmeta.js.util.ESValueParser
 import esmeta.js.{Lexical, Syntactic, Ast}
 import esmeta.cfg.{CFG, Func}
-import esmeta.interp.{AstValue, PureValue, Bool, Str}
+import esmeta.interp.{
+  AstValue,
+  PureValue,
+  Bool,
+  Str,
+  LiteralValue,
+  Absent,
+  Math,
+}
 import esmeta.util.BaseUtils.*
 import esmeta.util.StateMonad
 import esmeta.error.{NotSupported, InvalidAstProp}
@@ -80,8 +88,9 @@ trait AbsStateDomain[AOD <: AbsObjDomain[_] with Singleton](
           throw SyntacticCalled(AbsValue(ASView(ast0)), sdo)
         case None => // XXX access to child -> handle this in compiler?
           if (propStr == "Evaluation") syn.chains.last match {
-            case sview.AbsSyntactic(_, _, _) => AbsValue.Top
-            case _                           => AbsValue.Top
+            case sview.AbsSyntactic(_, annotation, _) =>
+              AbsValue.findHandler(annotation.toString)
+            case _ => AbsValue.Top
           }
           else
             syn match {
@@ -130,6 +139,62 @@ trait AbsStateDomain[AOD <: AbsObjDomain[_] with Singleton](
           throw NotSupported(s"RegularExpressionLiteral.$sdoName")
         case _ => error(s"invalid Lexical access: $name.$sdoName")
       }
+
+    def apply(view: SyntacticView, lit: LiteralValue): AbsValue = view match
+      case syn: sview.Syntactic =>
+        lit match
+          case Str("parent") =>
+            syn.parent
+              .map((x) => AbsValue(ASView(x)))
+              .getOrElse(AbsValue(ALiteral(Absent)))
+          case Str("children") =>
+            AbsValue.Top.setAllowTopClo()
+          case Str(propStr) =>
+            apply(syn, propStr)
+          case Math(n) if n.isValidInt =>
+            syn.children(n.toInt) match
+              case Some(child) => AbsValue(ASView(child))
+              case None        => AbsValue(ALiteral(Absent))
+          case _ => AbsValue.Bot
+      case lex: sview.Lexical =>
+        val propStr = lit.asStr
+        if (propStr == "parent")
+          view.parent
+            .map((x) => AbsValue(ASView(x)))
+            .getOrElse(AbsValue(ALiteral(Absent)))
+        else throw LexicalCalled(apply(Lexical(lex.name, lex.str), propStr))
+      case abs: sview.AbsSyntactic =>
+        lit match
+          case Str("parent") =>
+            view.parent
+              .map((x) => AbsValue(ASView(x)))
+              .getOrElse(AbsValue(ALiteral(Absent)))
+          case Str("Evaluation") =>
+            AbsValue.findHandler(abs.annotation.toString)
+          case _ => AbsValue.Top.setAllowTopClo()
+
+    def apply(ast: Syntactic, lit: LiteralValue): AbsValue = lit match
+      case Str("parent") =>
+        ast.parent
+          .map((x) => AbsValue(AAst(x)))
+          .getOrElse(AbsValue(ALiteral(Absent)))
+      case Str("children") =>
+        AbsValue.Top.setAllowTopClo()
+      case Str(propStr) =>
+        apply(ast, propStr)
+      case Math(n) if n.isValidInt =>
+        ast.children(n.toInt) match
+          case Some(child) => AbsValue(AAst(child))
+          case None        => AbsValue(ALiteral(Absent))
+      case _ => AbsValue.Bot
+
+    def apply(ast: Lexical, lit: LiteralValue): AbsValue =
+      val propStr = lit.asStr
+      if (propStr == "parent")
+        ast.parent
+          .map((x) => AbsValue(AAst(ast)))
+          .getOrElse(AbsValue(ALiteral(Absent)))
+      else throw LexicalCalled(apply(ast, propStr))
 
     // lookup local variables
     def lookupLocal(x: Id): AbsValue

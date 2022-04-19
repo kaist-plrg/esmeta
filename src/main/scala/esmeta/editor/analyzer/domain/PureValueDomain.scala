@@ -34,14 +34,13 @@ class PureValueDomain extends Domain:
       ValueKind.Bool,
       ValueKind.Str,
       ValueKind.Addr,
-      ValueKind.Comp,
       ValueKind.Undef,
       ValueKind.Null,
       ValueKind.Etc,
     ),
   )
   enum ValueKind:
-    case Ast, Num, Bool, Str, Addr, Comp, Undef, Null, Etc
+    case Ast, Num, Bool, Str, Addr, Undef, Null, Etc
   end ValueKind
 
   sealed trait Elem extends ElemTrait:
@@ -63,11 +62,10 @@ class PureValueDomain extends Domain:
   end Elem
 
   case object EBot extends Elem
-  case class EFlat(v: AstValue | Comp | Grammar | LiteralValue | SyntacticView)
+  case class EFlat(v: AstValue | Grammar | LiteralValue | SyntacticView)
     extends Elem:
     def kind = v match
       case _: AstValue                                  => ValueKind.Ast
-      case _: Comp                                      => ValueKind.Comp
       case _: Str                                       => ValueKind.Str
       case _: SyntacticView                             => ValueKind.Ast
       case _: Math | _: BigInt | _: Number              => ValueKind.Num

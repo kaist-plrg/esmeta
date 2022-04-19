@@ -231,62 +231,6 @@ class BasicStateDomain[AOD <: AbsObjDomain[_] with Singleton](
           else AbsValue.Top
       }
 
-    def apply(view: SyntacticView, lit: LiteralValue): AbsValue = view match
-      case syn: sview.Syntactic =>
-        lit match
-          case Str("parent") =>
-            syn.parent
-              .map((x) => AbsValue(ASView(x)))
-              .getOrElse(AbsValue(ALiteral(Absent)))
-          case Str("children") =>
-            AbsValue.Top.setAllowTopClo()
-          case Str(propStr) =>
-            apply(syn, propStr)
-          case Math(n) if n.isValidInt =>
-            syn.children(n.toInt) match
-              case Some(child) => AbsValue(ASView(child))
-              case None        => AbsValue(ALiteral(Absent))
-          case _ => AbsValue.Bot
-      case lex: sview.Lexical =>
-        val propStr = lit.asStr
-        if (propStr == "parent")
-          view.parent
-            .map((x) => AbsValue(ASView(x)))
-            .getOrElse(AbsValue(ALiteral(Absent)))
-        else throw LexicalCalled(apply(js.Lexical(lex.name, lex.str), propStr))
-      case abs: sview.AbsSyntactic =>
-        lit match
-          case Str("parent") =>
-            view.parent
-              .map((x) => AbsValue(ASView(x)))
-              .getOrElse(AbsValue(ALiteral(Absent)))
-          case Str("Evaluation") =>
-            AbsValue.findHandler(abs.annotation.toString)
-          case _ => AbsValue.Top.setAllowTopClo()
-
-    def apply(ast: Syntactic, lit: LiteralValue): AbsValue = lit match
-      case Str("parent") =>
-        ast.parent
-          .map((x) => AbsValue(AAst(x)))
-          .getOrElse(AbsValue(ALiteral(Absent)))
-      case Str("children") =>
-        AbsValue.Top.setAllowTopClo()
-      case Str(propStr) =>
-        apply(ast, propStr)
-      case Math(n) if n.isValidInt =>
-        ast.children(n.toInt) match
-          case Some(child) => AbsValue(AAst(child))
-          case None        => AbsValue(ALiteral(Absent))
-      case _ => AbsValue.Bot
-
-    def apply(ast: Lexical, lit: LiteralValue): AbsValue =
-      val propStr = lit.asStr
-      if (propStr == "parent")
-        ast.parent
-          .map((x) => AbsValue(AAst(ast)))
-          .getOrElse(AbsValue(ALiteral(Absent)))
-      else throw LexicalCalled(apply(ast, propStr))
-
     // NOT sound
     def apply(loc: Loc): AbsObj = AbsObj.Bot
 

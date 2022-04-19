@@ -23,7 +23,8 @@ case object ViewPEval extends Phase[(CFG, SyntacticView), Unit] {
     val cfgHelper = CFGHelper(cfg)
     val peval = PartialEval(cfgHelper, verbose = true)
     val writer = PrintWriter("peval.dot")
-    writer.println(peval.cg(view.refined(cfgHelper)).toDot)
+    val nview = view.refined(cfgHelper).folded.invalidateFold
+    writer.println(peval.cg(nview).toDot)
     writer.close
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List()

@@ -36,7 +36,11 @@ class BasicSyntacticViewTest extends EditorTest {
   def init: Unit =
     val cfgHelper = CFGHelper(EditorTest.cfg)
     val peval = PartialEval(cfgHelper)
-    val viewSet = BasicSyntacticView(cfgHelper).viewSet2
+    val viewList = BasicSyntacticView(cfgHelper).viewSet.toList
+      .map(_.refined(cfgHelper))
+      .collect { case s: Syntactic => s }
+      .filter(cfgHelper.getSDOView(_, "Evaluation").isDefined)
+      .sortBy((x) => (x.name, x.rhsIdx))
     val mcgs = EditorTest.cfg.funcs
       .map((f) => f.name -> SyntacticCallGraph(cfgHelper, f.irFunc))
       .toMap
@@ -44,7 +48,7 @@ class BasicSyntacticViewTest extends EditorTest {
     mkdir(logDir)
     pw = Some(getPrintWriter(s"${logDir}/${name}.log"))
 
-    viewSet.foreach((v) =>
+    viewList.foreach((v) =>
       check(
         s"${v.name}${v.rhsIdx}: ${v.toString(true, false, Some(EditorTest.cfg.grammar))}",
       ) {

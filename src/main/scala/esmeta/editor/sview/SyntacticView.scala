@@ -61,6 +61,12 @@ sealed trait SyntacticView extends EditorElem {
         case _ => s.copy(children = s.children.map((vo) => vo.map(_.folded)))
     case _ => this
 
+  def invalidateFold: SyntacticView = this match
+    case s: Syntactic =>
+      s.copy(children = s.children.map(_.map(_.invalidateFold)))
+    case a: AbsSyntactic => a.copy(fold = false)
+    case l: Lexical      => this
+
   def refined(cfgHelper: CFGHelper): SyntacticView = this match
     case s: Syntactic =>
       s.children match

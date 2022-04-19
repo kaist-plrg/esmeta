@@ -67,10 +67,6 @@ class EmptyStateDomain[AOD <: AbsObjDomain[_] with Singleton](
     def apply(x: Id, cp: ControlPoint): AbsValue = AbsValue.Top
     def apply(base: AbsValue, prop: AbsValue): AbsValue = AbsValue.Top
 
-    def apply(view: SyntacticView, lit: LiteralValue): AbsValue = AbsValue.Top
-
-    def apply(ast: Syntactic, lit: LiteralValue): AbsValue = AbsValue.Top
-
     // NOT sound
     def apply(loc: Loc): AbsObj = AbsObj.Bot
 

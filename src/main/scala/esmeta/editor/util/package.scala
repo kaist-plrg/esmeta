@@ -126,6 +126,18 @@ extension (anno: Annotation) {
   def subType(anno0: Annotation): Boolean = (anno, anno0) match
     case (_, AAll) => true
     case _         => anno == anno0
+
+  def toInt: Int = anno match
+    case AObj    => 0
+    case ASymbol => 1
+    case ANum    => 2
+    case ABigInt => 3
+    case AStr    => 4
+    case ABool   => 5
+    case AUndef  => 6
+    case ANull   => 7
+    case AThrow  => 8
+    case AAll    => 9
 }
 
 /** extension for values */

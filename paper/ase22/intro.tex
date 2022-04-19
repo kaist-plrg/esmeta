@@ -1,14 +1,5 @@
 \section{Introduction}\label{sec:intro}
 
-\begin{figure}
-  \centering
-  \includegraphics[width=\columnwidth]{img/add-eval-algo.png}
-  \caption{The \esalg{Evaluation} algorithm of the addition operator
-  ($\code{+}$) in ES12}
-  \vspace*{-1em}
-  \label{fig:add-eval-algo}
-\end{figure}
-
 In the beginning, JavaScript was a simple scripting language designed in a
 ten-day hack. However, it has become a de facto Web standard and eventually
 became one of the dominating programming languages in various fields. For
@@ -22,23 +13,23 @@ projects.\footnote{\url{https://octoverse.github.com/}}
 
 However, despite its popularity, developers and even JavaScript experts often
 suffer from its highly dynamic and complex nature.  It supports diverse language
-features having complicated semantics, including higher-order functions, mutable
-prototypes chain, dynamic code generation, and asynchronous functions.  For
-instance, semantic of the addition operator is also not simple. It is not
-commutative, and even its result type might be dependent on the order of the
-operands as follows:
+features with complicated semantics, including higher-order functions, mutable
+prototype chains, dynamic code generation, and asynchronous functions.  For
+instance, the semantics of the addition operation is also not straightforward; it
+is not commutative, and even its result type might be dependent on the order of
+the operands as follows:
 \begin{center}
   \begin{tabular}{c}
     \begin{lstlisting}[style=JS]
-{} + "" // 0
-"" + {} // "[object Object]"
+{} + "" // result: 0
+"" + {} // result: "[object Object]"
     \end{lstlisting}
   \end{tabular}
 \end{center}
 The result of the addition between an empty object $\;\jscode{\{\}}$ and an empty
 string $\jscode{""}$ is a number $\jscode{0}$, but it becomes a string
 $\jscode{"[object Object]"}$ with the reversed order of operands.  It happens
-because the addition operator has complex rules for implicit type conversions
+because the addition operation has complex rules for implicit type conversions
 while it simply represents numeric additions or string concatenation in most
 other languages.  Such a complex language feature causes pain even to JavaScript
 experts in understanding the language semantics.  For example, while V8 is the
@@ -47,79 +38,85 @@ web browsers, its semantic bugs have consistently been reported to its issue
 tracker.\footnote{\url{https://bugs.chromium.org/p/v8}}
 
 Therefore, when they desire to understand the detailed semantics of JavaScript,
-they refer to \textit{ECMA-262}.  It is the standard specification written in
-English defining ECMAScript, which is the official name of JavaScript.  It
-describes the syntax via a variant of the extended Backus–Naur form and the
-semantics via abstract algorithms consisting of structured steps.
-
-For example, Figure~\ref{fig:add-eval-algo} shows the \esalg{Evaluation}
-algorithm of the addition operator in the latest ECMA-262 (ES12,
-2021)~\cite{es12}.
-\footnote{\url{https://262.ecma-international.org/12.0/\#sec-addition-operator-plus}}
-It consists of a single step that invokes another algorithm,
-\esalg{EvaluateStringOrNumericBinaryExpression}; the first and third arguments
-are the left and right subtrees of the abstract syntax tree (AST) for a given
-additive expression, and the second one is a text \code{+} to represent the
-additive operation.  The \esalg{EvaluateStringOrNumericBinaryExpression} is a
-generic algorithm for string or numeric binary operations (e.g., \code{-},
-\code{*}, \code{<}, etc.).
+they refer to ECMA-262, the standard JavaScript language specification written
+in English.  It describes the syntax using a variant of the extended Backus–Naur
+form and the semantics as abstract algorithms.  Each algorithm describes the
+language semantics in with ordered and structured steps.  The Ecma Technical
+Committee 39 (TC39) has officially maintained ECMA-262 as an open-source GitHub
+project,\footnote{\url{https://github.com/tc39/ecma262}} and it annually updates
+the specification with new language features to quickly adapt to the users'
+demands.  Thus, JavaScript developers should read this specification if they
+want to learn the detailed semantics of new language features introduced every
+year.  Especially, developers of JavaScript tools (e.g.,
+interpreters~\cite{v8, jscore, spidermonkey, graaljs},
+transpilers~\cite{babel},
+code analysis tools~\cite{safe, safe2, tajs, wala, jsai},
+verification tools~\cite{javert, javert2, ad-safety, javanni},
+symbolic execution engines~\cite{symbolic-js, sym-js, expo-se},
+or concolic testing engines~\cite{jalangi, type-conc-test})
+must carefully read the detailed semantics of all language features described in
+the JavaScript language specification.
 
 Unfortunately, it is still challenging to 1) understand all the \textit{possible
-behaviors} of language features and 2) find concrete \textit{example programs}
-that trigger such behaviors by only referring to the language specification.
+behaviors} of language features and 2) find \textit{example programs} that
+trigger such behaviors by only referring to ECMA-262.
+
 First, it is not an easy task to answer which behaviors are possible in each
 language feature.  It often provides hidden implicit behaviors unusual in other
 languages, such as implicit function calls, implicit property reads/writes, or
-runtime exceptions under special conditions.  Besides, the problem becomes more
-complicated if we want to know possible behaviors of a language feature used
-with specific types of values or other language features.  Second, even if users
-realize its specific behavior, it is nontrivial to find example programs that
-trigger the behavior.
+runtime exceptions under special conditions.  For example, we can call functions
+even using the addition operation without any function application syntax.  If
+we want to understand all possible behaviors of the addition operation, we need
+to read \inred{802} algorithms consisting of \inred{3,235} steps.  Besides, the
+problem becomes more complicated if we want to know possible behaviors of a
+language feature used with specific types of values or other language features.
 
-For instance, Assume that we realize that the addition operator might cause
-implicit function calls.  Then, we should make an additional effort to grasp
-when it is triggered if we want to find the following example programs:
+Second, even if users realize its specific behavior, it is nontrivial to find
+example programs that trigger the behavior.  For example, assume that we want to
+find an example program having an addition operation that causes implicit
+function calls.  Then, we should first grasp the condition when the addition
+operation implicitly invokes functions and then find a JavaScript program that
+satisfies the condition like this:
 \begin{center}
   \begin{tabular}{c}
     \begin{lstlisting}[style=JS]
-var x = { toString: () => "a" };
-x + "b"; // "ab" with an implicit call of `x.toString()`
+{ toString: () => "a" } + "b"; // result: "ab"
     \end{lstlisting}
   \end{tabular}
 \end{center}
-In this code, the left and right operands have different types \code{Object} and
-\code{String}, respectively.  It causes an implicit conversion from the object
-in the variable \code{x} to a string value with an implicit call of the user
-function in \code{x.toString}.
+In this code, the left and right operands have different types \jscode{Object}
+and \jscode{String}, respectively.  The addition between them causes an implicit
+conversion of the object to a string value, and the function in the
+\jscode{toString} property is implicitly invoked during the conversion.
 
-To alleviate this problem, we present $\tool$, which 1) automatically infers
-possible behaviors of JavaScript language features from ECMA-262 and 2) finds
-corresponding example programs in Test262~\cite{test262}, an official JavaScript
-conformance test suite.
-
-We first introduce a \textit{syntactic view}, an extension of a JavaScript
+To alleviate this problem, this paper presents $\tool$ for the advanced
+understanding of JavaScript language specification with \textit{syntactic
+views}.  We introduce a \textit{syntactic view}, an extension of a JavaScript
 abstract syntax tree (AST) consisting of both concrete and abstract nodes with
 optional type bounds.  Users can freely construct syntactic views depending on
 which semantics they want to understand; concrete nodes denote the language
 features they want to understand, and abstract ones denote the parts they do
 not.
 
-Then, our tool performs reachability analysis to soundly reduce the call graph
-of ECMA-262 with a given syntactic view to infer possible behaviors.  Our key
-observation is that the reachability of specific algorithms in the language
-specification implies possible behaviors of language features.  For example, the
-\esalg{Call} algorithm in ECMA-262 represents function calls.  Thus, if the
-reduced call graph of ECMA-262 with a syntactic view for the addition operator
-contains the \esalg{Call} algorithm, the addition operator might cause implicit
-function calls.
+For a given syntactic view, the tool performs reachability analysis to
+automatically reduce the call graph of ECMA-262 with a given syntactic view to
+soundly infer \textit{possible behaviors}.  Our key observation is that the
+reachability of specific algorithms in the language specification implies
+possible behaviors of language features.  For example, the \esalg{Call}
+algorithm in ECMA-262 represents the invocation of functions.  Thus, if the
+reduced call graph of ECMA-262 with a syntactic view for the addition operation
+contains the \esalg{Call} algorithm, it might cause implicit function calls.
 
-In addition, $\tool$ searches concrete example programs in Test262 that trigger
-such behaviors.  Our tool collects execution traces of all Test262 programs in a
-database only once at initialization time and utilizes the database to quickly
-search programs with a given syntactic view and a selected algorithm.
-
-We evaluate the effectiveness of $\tool$ with the latest ECMA-262 (ES12, 2021)
-and demonstrate its practicality with \inred{three} advanced syntactic views.
+In addition, $\tool$ searches for \textit{example programs} that trigger
+possible behaviors in a given program pool.  The tool first collects execution
+traces of all the programs in the pool and builds a database only once at
+initialization time.  Then, if a user selects an algorithm as the target
+behavior with a syntactic view, $\tool$ utilizes the database to quickly search for
+example programs in the pool that touches the selected algorithm in the
+semantics of the given syntactic view.  For example, if we selects the
+\esalg{Call} algorithm with a syntactic view for addition operation, the tool
+automatically searches for example programs having an addition operation that
+causes implicit function calls.
 
 Our contributions are as follows:
 \begin{itemize}
@@ -129,12 +126,11 @@ Our contributions are as follows:
     they want to understand.
 
   \item We present an automatic way to 1) infer \textit{possible behaviors} of
-    JavaScript language features using a reachability analysis in ECMA-262 from
-    a given syntactic view and 2) search concrete \textit{example programs} in
-    Test262 that trigger such behaviors using their pre-collected execution
-    traces on the specification.
+    JavaScript language features using a reachability analysis in ECMA-262 and
+    2) search \textit{example programs} that trigger such behaviors in a given
+    program pool using their pre-collected execution traces.
 
-  \item We actualize our techniques in $\tool$ and evaluate its effectiveness
-    using the latest ECMA-262 with \inred{177} basic syntactic views and discuss
+  \item We actualize our techniques in $\tool$, evaluate its effectiveness using
+    the latest ECMA-262 with \inred{177} basic syntactic views, and demonstrate
     its practicality with \inred{three} advanced syntactic views.
 \end{itemize}

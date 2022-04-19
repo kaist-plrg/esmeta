@@ -12,29 +12,25 @@ based on the number of contributors to GitHub
 projects.\footnote{\url{https://octoverse.github.com/}}
 
 However, despite its popularity, developers and even JavaScript experts often
-suffer from its highly dynamic and complex nature.  It supports diverse language
-features with complicated semantics, including higher-order functions, mutable
-prototype chains, dynamic code generation, and asynchronous functions.  For
-instance, the semantics of the addition operation is also not straightforward; it
-is not commutative, and even its result type might be dependent on the order of
-the operands as follows:
+suffer from its highly dynamic nature.  It supports diverse language features
+with complex semantics, including higher-order functions, mutable prototype
+chains, dynamic code generation, and asynchronous functions.  For instance, even
+addition and subtraction operations are not straightforward with complicated
+implicit conversion rules.  Consider the following simple program:
 \begin{center}
   \begin{tabular}{c}
     \begin{lstlisting}[style=JS]
-{} + "" // result: 0
-"" + {} // result: "[object Object]"
+'42' + 1 - 1 // result: 420
     \end{lstlisting}
   \end{tabular}
 \end{center}
-The result of the addition between an empty object $\;\jscode{\{\}}$ and an empty
-string $\jscode{""}$ is a number $\jscode{0}$, but it becomes a string
-$\jscode{"[object Object]"}$ with the reversed order of operands.  It happens
-because the addition operation has complex rules for implicit type conversions
-while it simply represents numeric additions or string concatenation in most
-other languages.  Such a complex language feature causes pain even to JavaScript
-experts in understanding the language semantics.  For example, while V8 is the
-most widely-used JavaScript engine developed by Google for Node.js and Chrome
-web browsers, its semantic bugs have consistently been reported to its issue
+Surprisingly, it produces a number $\code{420}$ because the $\code{+}$
+operator between string and number values denotes a string concatenation while
+the $\code{-}$ operator between them denotes a numerical subtraction.  Such a
+highly dynamic nature of JavaScript causes pain even to JavaScript experts in
+understanding the language semantics.  For example, while V8 is the most
+widely-used JavaScript engine developed by Google for Node.js and Chrome web
+browsers, its semantic bugs have consistently been reported to its issue
 tracker.\footnote{\url{https://bugs.chromium.org/p/v8}}
 
 Therefore, when they desire to understand the detailed semantics of JavaScript,
@@ -67,9 +63,10 @@ languages, such as implicit function calls, implicit property reads/writes, or
 runtime exceptions under special conditions.  For example, we can call functions
 even using the addition operation without any function application syntax.  If
 we want to understand all possible behaviors of the addition operation, we need
-to read \inred{802} algorithms consisting of \inred{3,235} steps.  Besides, the
-problem becomes more complicated if we want to know possible behaviors of a
-language feature used with specific types of values or other language features.
+to read \inred{109} algorithms reachable from its evaluation algorithm.
+Besides, the problem becomes more complicated if we want to know possible
+behaviors of a language feature used with specific types of values or other
+language features.
 
 Second, even if users realize its specific behavior, it is nontrivial to find
 example programs that trigger the behavior.  For example, assume that we want to
@@ -80,23 +77,23 @@ satisfies the condition like this:
 \begin{center}
   \begin{tabular}{c}
     \begin{lstlisting}[style=JS]
-{ toString: () => "a" } + "b"; // result: "ab"
+"a" + {toString: ()=>"b"} // result: "ab"
     \end{lstlisting}
   \end{tabular}
 \end{center}
-In this code, the left and right operands have different types \jscode{Object}
-and \jscode{String}, respectively.  The addition between them causes an implicit
-conversion of the object to a string value, and the function in the
-\jscode{toString} property is implicitly invoked during the conversion.
+In this code, the left and right operands have different types $\code{String}$
+and $\code{Object}$, respectively.  The addition between them causes an
+implicit conversion of the object to a string value, and the function in the
+$\code{toString}$ property is implicitly invoked during the conversion.
 
 To alleviate this problem, this paper presents $\tool$ for the advanced
 understanding of JavaScript language specification with \textit{syntactic
 views}.  We introduce a \textit{syntactic view}, an extension of a JavaScript
 abstract syntax tree (AST) consisting of both concrete and abstract nodes with
 optional type bounds.  Users can freely construct syntactic views depending on
-which semantics they want to understand; concrete nodes denote the language
-features they want to understand, and abstract ones denote the parts they do
-not.
+which combination of language features they want to understand; concrete nodes
+denote the parts they want to understand, and abstract ones denote the parts
+they do not.
 
 For a given syntactic view, the tool performs reachability analysis to
 automatically reduce the call graph of ECMA-262 with a given syntactic view to

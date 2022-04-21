@@ -276,12 +276,15 @@ class BasicSyntacticView(cfgHelper: CFGHelper) {
       .map {
         case (s, v) =>
           (
-            s,
-            v.map(_.removeParamArg)
+            s, {
+              val o = v.toList
+              val k = o.map(_.removeParamArg)
+              v.filter((x) => o.indexOf(x) == k.indexOf(x.removeParamArg))
+            }
               .filter(_.getNormal(cfgHelper).isDefined)
               .filter(syntacticMeasure(_) == v.map(syntacticMeasure).min)
               .toList
-              .sortBy(_.toString),
+              .sortBy((syn) => (syn.name, syn.rhsIdx)),
           )
       }
       .flatMap {

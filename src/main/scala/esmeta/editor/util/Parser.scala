@@ -59,36 +59,40 @@ case class Parser(val grammar: Grammar) extends LAParsers {
       childOpt.foreach(_.parent = Some(syn))
     syn
 
+  private def getAbsSyntacticLexer(name: String): Parser[String] =
+    (if (name == "Literal") (literal(s"#$name") | literal("#e"))
+     else literal(s"#$name")) ~ opt(
+      literal(":") ~ (literal("String") | literal("Number") | literal(
+        "Object",
+      ) | literal("Bool") | literal("Null") | literal("Undef") | literal(
+        "Throw",
+      ) | literal("Symbol") | literal("BigInt")),
+    ) ~ literal("#") ^^ {
+      case i ~ jk ~ l => i + jk.map { case j ~ k => j + k }.getOrElse("")
+    }
+
+  private def translateStrToAbsSyntacic(s: String, name: String): AbsSyntactic =
+    val isFold = s.startsWith("#e")
+    val annot =
+      if (s.indexOf(":") < 0) esmeta.editor.sview.AAll
+      else
+        s.substring(s.indexOf(":")) match
+          case ":String" => esmeta.editor.sview.AStr
+          case ":Number" => esmeta.editor.sview.ANum
+          case ":BigInt" => esmeta.editor.sview.ABigInt
+          case ":Object" => esmeta.editor.sview.AObj
+          case ":Symbol" => esmeta.editor.sview.ASymbol
+          case ":Bool"   => esmeta.editor.sview.ABool
+          case ":Null"   => esmeta.editor.sview.ANull
+          case ":Undef"  => esmeta.editor.sview.AUndef
+          case ":Throw"  => esmeta.editor.sview.AThrow
+          case _         => esmeta.editor.sview.AAll
+    AbsSyntactic(name, annot, isFold)
+
   private def getAbsSyntacticParser(name: String): LAParser[AbsSyntactic] =
-    val lexicalParser =
-      (if (name == "Literal") (literal(s"#$name") | literal("#e"))
-       else literal(s"#$name")) ~ opt(
-        literal(":") ~ (literal("String") | literal("Number") | literal(
-          "Object",
-        ) | literal("Bool") | literal("Null") | literal("Undef") | literal(
-          "Throw",
-        ) | literal("Symbol") | literal("BigInt")),
-      ) ~ literal("#") ^^ {
-        case i ~ jk ~ l => i + jk.map { case j ~ k => j + k }.getOrElse("")
-      }
-    nt(name, parser2packrat(lexicalParser)) ^^ {
-      case ann =>
-        val isFold = ann.str.startsWith("#e")
-        val annot =
-          if (ann.str.indexOf(":") < 0) esmeta.editor.sview.AAll
-          else
-            ann.str.substring(ann.str.indexOf(":")) match
-              case ":String" => esmeta.editor.sview.AStr
-              case ":Number" => esmeta.editor.sview.ANum
-              case ":BigInt" => esmeta.editor.sview.ABigInt
-              case ":Object" => esmeta.editor.sview.AObj
-              case ":Symbol" => esmeta.editor.sview.ASymbol
-              case ":Bool"   => esmeta.editor.sview.ABool
-              case ":Null"   => esmeta.editor.sview.ANull
-              case ":Undef"  => esmeta.editor.sview.AUndef
-              case ":Throw"  => esmeta.editor.sview.AThrow
-              case _         => esmeta.editor.sview.AAll
-        AbsSyntactic(name, annot, isFold)
+    val lexicalParser = getAbsSyntacticLexer(name)
+    nt(name, (lexicalParser)) ^^ {
+      case ann => translateStrToAbsSyntacic(ann.str, name)
     }
 
   // get a parser
@@ -107,8 +111,8 @@ case class Parser(val grammar: Grammar) extends LAParsers {
         .map { case (r, i) => getParsers(name, args, argsSet, i, r) }
 
       val abs = getAbsSyntacticParser(name)
-      if (lrs.isEmpty) log(nlrs.reduce(_ | _) | abs)(name)
-      else log(resolveLR(nlrs.reduce(_ | _) | abs, lrs.reduce(_ | _)))(name)
+      if (lrs.isEmpty) log(nlrs.reduce(_ | _))(name)
+      else log(resolveLR(abs | nlrs.reduce(_ | _), lrs.reduce(_ | _)))(name)
     })
 
   // get a sub parser for direct left-recursive cases
@@ -159,13 +163,33 @@ case class Parser(val grammar: Grammar) extends LAParsers {
       case Terminal(term)                              => prev <~ t(term)
       case Nonterminal(name, args, optional) =>
         lazy val parser =
-          if (lexNames contains name) nt(name, lexers(name, 0))
-          else parsers(name)(toBools(argsSet, args))
+          if (lexNames contains name)
+            val ll = lexers(name, 0) | getAbsSyntacticLexer(name)
+            log(
+              new LAParser(
+                follow =>
+                  (Skip ~> ((lexers(name, 0) ^^ {
+                    case s => Lexical(name, s)
+                  }) | getAbsSyntacticLexer(name) ^^ {
+                    case s => Lexical("Abs", s)
+                  }) <~ +follow.parser),
+                FirstTerms() + (name -> (ll: Lexer)),
+              ) ^^ {
+                case Lexical("Abs", s) => translateStrToAbsSyntacic(s, name)
+                case l: Lexical        => l
+              },
+            )(name)
+          else
+            getAbsSyntacticParser(name) | parsers(name)(toBools(argsSet, args))
         if (optional) prev ~ opt(parser) ^^ { case l ~ s => s :: l }
         else prev ~ parser ^^ { case l ~ s => Some(s) :: l }
       case ButNot(base, cases) =>
         val name = s"$base \\ ${cases.mkString("(", ", ", ")")}"
-        lazy val parser = nt(name, getSymbolParser(symbol, argsSet))
+        lazy val parser =
+          getAbsSyntacticParser(base.name) | nt(
+            name,
+            getSymbolParser(symbol, argsSet),
+          )
         prev ~ parser ^^ { case l ~ s => Some(s) :: l }
       case ButOnlyIf(base, methodName, cond) => ???
       case Lookahead(contains, cases) =>
@@ -440,7 +464,12 @@ case class Parser(val grammar: Grammar) extends LAParsers {
           case _ ~ x0 =>
             syntactic("CoalesceExpressionHead", args, 1, List(Some(x0)))
         })("CoalesceExpressionHead1") |
-        getAbsSyntacticParser("CoalesceExpressionHead"),
+        getAbsSyntacticParser("CoalesceExpressionHead") | getAbsSyntacticParser(
+          "CoalesceExpression",
+        ) ^^ {
+          case x0 =>
+            syntactic("CoalesceExpressionHead", args, 0, List(Some(x0)))
+        },
         log(
           (MATCH <~ t("??")) ~ parsers("BitwiseORExpression")(args) ^^ {
             case _ ~ x0 => (

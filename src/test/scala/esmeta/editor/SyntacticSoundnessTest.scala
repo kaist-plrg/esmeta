@@ -39,8 +39,6 @@ class SyntacticSoundnessTest extends EditorTest {
         check(
           s"$name (${v.name}): ${v.toString(true, false, Some(EditorTest.cfg.grammar))}",
         ) {
-          // Parser(EditorTest.cfg.grammar)(v.name, v.args)
-          //  .from(v.toString(grammar = Some(EditorTest.cfg.grammar)))
           val transitiveCG = SyntacticTransitiveClosedCallGraph(
             mcgs,
             cfgHelper.getSDOView(v, "Evaluation").get._2.name,

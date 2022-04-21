@@ -1,8 +1,8 @@
 package esmeta.editor.util
 
 import esmeta.cfg.*
+import esmeta.cfg.CFG
 import esmeta.editor.sview.*
-import esmeta.editor.models.*
 import esmeta.interp.*
 import esmeta.ir.*
 import esmeta.js.util.{JsonProtocol => JsJsonProtocol}
@@ -20,6 +20,7 @@ case class Coverage(
   cfg: CFG,
   test262List: Option[String] = None,
   dumpDirOpt: Option[String] = None,
+  loadDirOpt: Option[String] = None,
 ) {
   lazy val test262 = Test262(cfg.spec)
   lazy val test262Config =
@@ -30,7 +31,7 @@ case class Coverage(
   // prepare to dump data
   dumpDirOpt.foreach { dumpDir =>
     mkdir(dumpDir)
-    // mkdir(s"$dumpDir/data")
+    mkdir(s"$dumpDir/data")
     dumpFile(
       tests.map(_.name).mkString(LINE_SEP),
       s"$dumpDir/test262-list",
@@ -52,7 +53,7 @@ case class Coverage(
     var totalTouched: Set[Int] = Set()
 
     // run interp
-    def run(sourceText: String, ast: Ast): Set[Int] = {
+    def getTouched(sourceText: String, ast: Ast): Set[Int] = {
       val st = initState(sourceText, ast)
       var touched: Set[Int] = Set()
 
@@ -76,7 +77,9 @@ case class Coverage(
         try {
           val (sourceText, ast) =
             test262.loadTestFromFile(s"$TEST262_TEST_DIR/$name")
-          run(sourceText, ast)
+          loadDirOpt match
+            case None          => getTouched(sourceText, ast)
+            case Some(loadDir) => readJson[Set[Int]](s"$loadDir/data/$idx.json")
         } catch { case _: Throwable => Set() }
       dumpDirOpt.foreach { dumpDir =>
         dumpJson(touched, s"$dumpDir/data/$idx.json", noSpace = true)
@@ -91,12 +94,8 @@ case class Coverage(
     import JsJsonProtocol.given
     import JsonProtocol.given
 
-    // initialize
-    val dumpDir = dumpDirOpt.get
-    var nextAstId = 0
-
-    def run(testBody: Ast, includes: List[String]) = {
-      nextAstId += testBody.setId(nextAstId)
+    def getTouched(testBody: Ast, includes: List[String]) = {
+      var nextAstId = testBody.setId(0)
       val (sourceText, ast) = test262.loadTest(testBody, includes)
       val st = initState(sourceText, ast)
 
@@ -170,6 +169,7 @@ case class Coverage(
           }
         }
       }.fixpoint
+
       // check exit and return result
       st(GLOBAL_RESULT) match
         case comp: Comp if comp.ty == CONST_NORMAL =>
@@ -177,39 +177,27 @@ case class Coverage(
         case v => error(s"not normal exit")
     }
 
-    val conn = SqliteConnection(s"$dumpDir/data.db")
+    // progress bar
     val progress =
       ProgressBar("measure algorithms per ast", 0 until tests.size)
 
     for (idx <- progress) {
       val NormalConfig(name, includes) = tests(idx)
-      val testBody = jsParser.fromFile(s"$TEST262_TEST_DIR/$name")
-      val (annoMap, algoMap, astList) = run(testBody, includes)
-
-      // store execution info to database
-      for { ast <- astList } { conn.storeAst(ast, idx) }
-      for {
-        (astId, annoSet) <- annoMap
-        anno <- annoSet
-      } conn.storeAstAnno(astId, anno.toInt)
-      for {
-        (astId, algoSet) <- algoMap
-        algoId <- algoSet
-      } conn.storeAstAlgo(astId, algoId)
-
-      // dumpDirOpt.foreach { dumpDir =>
-      //   dumpJson(
-      //     (annoMap, algoMap, astList),
-      //     s"$dumpDir/data/$idx.json",
-      //     noSpace = true,
-      //   )
-      // }
+      val (annoMap, algoMap, astList) = loadDirOpt match
+        case None =>
+          val testBody = jsParser.fromFile(s"$TEST262_TEST_DIR/$name")
+          getTouched(testBody, includes)
+        case Some(loadDir) =>
+          readJson[(Map[Int, Set[Annotation]], Map[Int, Set[Int]], List[Ast])](
+            s"$loadDir/data/$idx.json",
+          )
+      dumpDirOpt.foreach { dumpDir =>
+        dumpJson(
+          (annoMap, algoMap, astList),
+          s"$dumpDir/data/$idx.json",
+          noSpace = true,
+        )
+      }
     }
-
-    // close connection
-    conn.executeAndCommit(
-      "CREATE INDEX name_idx ON Ast(name)",
-    )
-    conn.close()
   }
 }

@@ -10,7 +10,6 @@ import esmeta.js.*
 import esmeta.test262.*
 import esmeta.test262.util.*
 import esmeta.editor.util.*
-import esmeta.editor.models.*
 
 /** `coverage-test262` phase */
 case object CoverageTest262 extends Phase[CFG, Unit] {
@@ -22,10 +21,11 @@ case object CoverageTest262 extends Phase[CFG, Unit] {
     config: Config,
   ): Unit = {
     val cov =
-      Coverage(cfg, config.test262List, config.dump)
+      Coverage(cfg, config.test262List, config.dump, config.load)
 
-    if (config.astAlgo) cov.touchedAlgos
-    else {
+    if (config.astAlgo) {
+      cov.touchedAlgos
+    } else {
       val touched = cov.touchedNodes
 
       // TODO print stat?
@@ -45,6 +45,11 @@ case object CoverageTest262 extends Phase[CFG, Unit] {
       "use given test262 tests list.",
     ),
     (
+      "load",
+      StrOption((c, s) => c.load = Some(s)),
+      "load coverage data.",
+    ),
+    (
       "dump",
       StrOption((c, s) => c.dump = Some(s)),
       "dump coverage data.",
@@ -59,7 +64,6 @@ case object CoverageTest262 extends Phase[CFG, Unit] {
     var test262List: Option[String] = None,
     var load: Option[String] = None,
     var dump: Option[String] = Some(s"$LOG_DIR/coverage_$dateStr"),
-    // var dump: Option[String] = None,
     var astAlgo: Boolean = false,
   )
 }

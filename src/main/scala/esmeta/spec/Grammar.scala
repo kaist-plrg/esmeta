@@ -13,6 +13,7 @@ case class Grammar(
   /** a mappging from names to productions */
   lazy val nameMap: Map[String, Production] =
     (for (prod <- prods) yield prod.lhs.name -> prod).toMap
+  lazy val names: Array[String] = nameMap.keys.toArray.sorted
 
   /** get the lexical production names reachable by syntactic productions */
   lazy val topLevelLexicals: Set[String] = (for {

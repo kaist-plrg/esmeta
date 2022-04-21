@@ -6,7 +6,12 @@ import esmeta.editor.sview.*
 import esmeta.interp.*
 import esmeta.ir.*
 import esmeta.js.util.{JsonProtocol => JsJsonProtocol}
-import esmeta.js.{Ast, Initialize}
+import esmeta.js.{
+  Ast,
+  Initialize,
+  Syntactic => JsSyntactic,
+  Lexical => JsLexical,
+}
 import esmeta.spec.*
 import esmeta.test262.*
 import esmeta.test262.util.TestFilter
@@ -14,7 +19,7 @@ import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
 import esmeta.{TEST262_TEST_DIR, BASE_DIR, LINE_SEP}
-import scala.collection.mutable.ListBuffer
+import scala.collection.mutable.{ListBuffer, Map => MMap, Set => MSet}
 
 case class Coverage(
   cfg: CFG,
@@ -89,11 +94,63 @@ case class Coverage(
     totalTouched
   }
 
+  // simplifying evaluation info
+  class Simplifier(
+    annoMap: Map[Int, Set[Annotation]],
+    algoMap: Map[Int, Set[Int]],
+    astList: List[Ast],
+  ) {
+    lazy val result = {
+      val simplified = astList.map(simplifyAst(_))
+      ProgramInfo(
+        for { (origId, annoSet) <- annoMap } yield idMap(origId) -> annoSet,
+        for { (origId, algoSet) <- algoMap } yield idMap(origId) -> algoSet,
+        simplified,
+      )
+    }
+
+    private var nextId = 0
+    private def reassign(origId: Int): Int =
+      val newId = nextId;
+      nextId += 1
+      idMap += origId -> newId
+      newId
+    private var idMap: Map[Int, Int] = Map()
+
+    // trim until *.Evaluation
+    private def trim(ast: Ast): Ast =
+      ast match
+        case syn @ JsSyntactic(name, _, rhsIdx, List(Some(child))) =>
+          val fname = s"${name}[${rhsIdx},${syn.subIdx(cfg)}].Evaluation"
+          cfg.fnameMap.get(fname) match
+            case _: Some[_] => ast
+            case None       => trim(child)
+        case _ => ast
+
+    // simplify ast and re-assign id
+    private def simplifyAst(ast: Ast): SimpleAst = {
+      val newId = reassign(ast.idOpt.get)
+      val subIdx = ast.subIdx(cfg)
+      val nameIdx = cfg.grammar.names.indexOf(ast.name)
+      ast match
+        case JsLexical(_, str) => SimpleLexical(newId, nameIdx, str)
+        case JsSyntactic(_, _, idx, children) =>
+          SimpleSyntactic(
+            newId,
+            nameIdx,
+            idx,
+            subIdx,
+            children.flatten.map(trim(_)).map(simplifyAst(_)),
+          )
+    }
+  }
+
   // get touched algorithms per ast
   def touchedAlgos = {
     import JsJsonProtocol.given
     import JsonProtocol.given
 
+    // fix interp for collection evaluation info
     def getTouched(testBody: Ast, includes: List[String]) = {
       var nextAstId = testBody.setId(0)
       val (sourceText, ast) = test262.loadTest(testBody, includes)
@@ -132,10 +189,6 @@ case class Coverage(
         override def interp(node: Node): Unit = {
           // interp node
           super.interp(node)
-
-          // // handle get value
-          // if (!inGetValue && this.st.context.name == "GetValue")
-          //   inGetValue = true
 
           node match {
             case _: Call if !inGetValue =>
@@ -198,23 +251,32 @@ case class Coverage(
     val progress =
       ProgressBar("measure algorithms per ast", 0 until tests.size)
 
+    // create global index of programs
+    val pIndex = ProgramIndex()
+
+    // runner
     for (idx <- progress) {
       val NormalConfig(name, includes) = tests(idx)
-      val (annoMap, algoMap, astList) = loadDirOpt match
-        case None =>
-          val testBody = jsParser.fromFile(s"$TEST262_TEST_DIR/$name")
-          getTouched(testBody, includes)
-        case Some(loadDir) =>
-          readJson[(Map[Int, Set[Annotation]], Map[Int, Set[Int]], List[Ast])](
-            s"$loadDir/data/$idx.json",
-          )
-      dumpDirOpt.foreach { dumpDir =>
-        dumpJson(
-          (annoMap, algoMap, astList),
-          s"$dumpDir/data/$idx.json",
-          noSpace = true,
-        )
-      }
+      val testBody = jsParser.fromFile(s"$TEST262_TEST_DIR/$name")
+      val (annoMap, algoMap, astList) = getTouched(testBody, includes)
+
+      // simplify result and update global index
+      val info = new Simplifier(annoMap, algoMap, astList).result
+      pIndex.update(idx, info)
+
+      // dump result
+      for { dumpDir <- dumpDirOpt } dumpJson(
+        info,
+        s"$dumpDir/data/$idx.json",
+        noSpace = true,
+      )
     }
+
+    // dump index result
+    for { dumpDir <- dumpDirOpt } dumpJson(
+      pIndex,
+      s"$dumpDir/data/index.json",
+      noSpace = true,
+    )
   }
 }

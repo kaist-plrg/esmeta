@@ -10,6 +10,75 @@ object JsonProtocol {
   def decodeFail[T](msg: String, c: HCursor): Decoder.Result[T] =
     Left(DecodingFailure(msg, c.history))
 
+  // conversion helpers
+  given Conversion[Json, Int] with
+    def apply(json: Json): Int = json.as[Int].toOption.get
+  given Conversion[Json, String] with
+    def apply(json: Json): String = json.as[String].toOption.get
+  given Conversion[Int, Json] with
+    def apply(i: Int): Json = i.asJson
+  given Conversion[String, Json] with
+    def apply(s: String): Json = s.asJson
+
+  // program index
+  given Encoder[ProgramIndex] = deriveEncoder
+  given Decoder[ProgramIndex] = deriveDecoder
+
+  // program info
+  given Encoder[ProgramInfo] = deriveEncoder
+  given Decoder[ProgramInfo] = deriveDecoder
+
+  // simplified ast
+  given Encoder[SimpleAst] = Encoder.instance {
+    case syn: SimpleSyntactic => syn.asJson
+    case lex: SimpleLexical   => lex.asJson
+  }
+  given Decoder[SimpleAst] = new Decoder[SimpleAst] {
+    final def apply(c: HCursor): Decoder.Result[SimpleAst] = {
+      val arr = c.value.asArray.get
+      if (arr.length == 5) synDecoder(c)
+      else if (arr.length == 3) lexDecoder(c)
+      else decodeFail(s"unknown simple Ast: ${c.value}", c)
+    }
+  }
+
+  // simplified syntactic
+  given Encoder[SimpleSyntactic] = new Encoder[SimpleSyntactic] {
+    final def apply(syn: SimpleSyntactic): Json =
+      Json.arr(syn.id, syn.nameIdx, syn.idx, syn.subIdx, syn.children.asJson)
+  }
+  given synDecoder: Decoder[SimpleSyntactic] = new Decoder[SimpleSyntactic] {
+    final def apply(c: HCursor): Decoder.Result[SimpleSyntactic] =
+      (for {
+        data <- c.value.asArray
+        syn <- data match
+          case Vector(i, n, idx, subIdx, cs) =>
+            val children = cs.as[List[SimpleAst]].toOption.get
+            Some(SimpleSyntactic(i, n, idx, subIdx, children))
+          case _ => None
+      } yield Right(syn)).getOrElse {
+        decodeFail(s"unknown Lexical: ${c.value}", c)
+      }
+  }
+
+  // simplified lexical
+  given Encoder[SimpleLexical] = new Encoder[SimpleLexical] {
+    final def apply(lex: SimpleLexical): Json =
+      Json.arr(lex.id, lex.nameIdx, lex.str)
+  }
+  given lexDecoder: Decoder[SimpleLexical] = new Decoder[SimpleLexical] {
+    final def apply(c: HCursor): Decoder.Result[SimpleLexical] =
+      (for {
+        data <- c.value.asArray
+        lex <- data match
+          case Vector(i, n, s) => Some(SimpleLexical(i, n, s))
+          case _               => None
+      } yield Right(lex)).getOrElse {
+        decodeFail(s"unknown SimpleLexical: ${c.value}", c)
+      }
+  }
+
+  // annotation
   given Encoder[Annotation] = Encoder.instance {
     case AObj    => 0.asJson
     case ASymbol => 1.asJson
@@ -22,7 +91,6 @@ object JsonProtocol {
     case AThrow  => 8.asJson
     case AAll    => 9.asJson
   }
-
   given Decoder[Annotation] = new Decoder[Annotation] {
     final def apply(c: HCursor): Decoder.Result[Annotation] = {
       c.value.asNumber.get.toInt.get match {
@@ -40,4 +108,5 @@ object JsonProtocol {
       }
     }
   }
+
 }

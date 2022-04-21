@@ -29,15 +29,18 @@ case object FilterTest262 extends Phase[CFG, Unit] {
       case _                                     => sv
     val sviewRoot = getRoot(sview)
 
-    // // filter using syntactic view
-    // config.test262Data match
-    //   case Some(path) =>
-    //     // TODO use algo id
-    //     val (testNames, algoSet) = Filter(cfg, path, sviewRoot)
-    //     for { name <- testNames } println(name)
-    //     println(algoSet)
-    //     println(testNames.size)
-    //   case None => ???
+    // filter using syntactic view
+    config.test262Data match
+      case Some(path) =>
+        Filter.dumpBasicResult(cfg, path)
+      // Filter.experiment1(cfg, path)
+
+      // // TODO use algo id
+      // val (testNames, algoSet) = Filter(cfg, path, sviewRoot)
+      // for { name <- testNames } println(name)
+      // println(algoSet)
+      // println(testNames.size)
+      case None => ???
   }
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(

@@ -5,10 +5,24 @@ import esmeta.js.{Ast, Syntactic => JsSyntactic, Lexical => JsLexical}
 import scala.collection.mutable.{ListBuffer, Map => MMap}
 import esmeta.interp.*
 import esmeta.ir.*
+import esmeta.cfg.CFG
 import scala.annotation.tailrec
 
 /** extension for ast */
 extension (ast: Ast) {
+
+  /** get sub-index */
+  def subIdx(cfg: CFG): Int = ast match
+    case _: JsLexical => 0
+    case JsSyntactic(name, _, rhsIdx, children) =>
+      val rhs = cfg.grammar.nameMap(name).rhsList(rhsIdx)
+      val optionals = (for {
+        (opt, child) <- rhs.nts.map(_.optional) zip children if opt
+      } yield !child.isEmpty)
+      optionals.reverse.zipWithIndex.foldLeft(0) {
+        case (acc, (true, idx)) => acc + scala.math.pow(2, idx).toInt
+        case (acc, _)           => acc
+      }
 
   /** set id */
   def setId(id: Int): Int = {
@@ -34,7 +48,6 @@ extension (ast: Ast) {
     case lex: JsLexical => 1
 
   /** get ast that matches concrete part of syntactic view */
-  // TODO handle annotation
   def getConcreteParts(
     sview: SyntacticView,
     annoMap: Map[Int, Set[Annotation]],
@@ -78,7 +91,6 @@ extension (ast: Ast) {
     concretes.toList
 
   /** check whether given JS ast matches syntactic view */
-  // TODO handle annotation
   def matches(
     sview: SyntacticView,
     annoMap: Map[Int, Set[Annotation]],

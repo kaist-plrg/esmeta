@@ -21,6 +21,7 @@ case object ViewPEval extends Phase[(CFG, SyntacticView), Unit] {
   ): Unit =
     val (cfg, view) = cfgWithview
     val cfgHelper = CFGHelper(cfg)
+    // BasicSyntacticView(cfgHelper).viewSet.foreach{ case (s, v) => println(s"$s -> ${v.map((x) => x.name + " " + x.toString(false, false, Some(cfg.grammar))).mkString(", ")}")}
     val peval = PartialEval(cfgHelper, verbose = true)
     val writer = PrintWriter("peval.dot")
     val nview = view.getNormal(cfgHelper).get.folded.invalidateFold

@@ -93,18 +93,22 @@ class BasicSyntacticView(cfgHelper: CFGHelper) {
       case Syntactic(name, _, rhsIdx, child) =>
         child.foldLeft(0) {
           case (x, i) =>
-            x + rhsMap((name, rhsIdx)).symbols
-              .filter(_.getNt.isEmpty)
-              .length + i.map(countAllSymbol).getOrElse(0)
+            x + rhsMap((name, rhsIdx)).symbols.filter {
+              case _: Terminal =>
+                true
+              case _ => false
+            }.length + i.map(countAllSymbol).getOrElse(0)
         }
       case _ => 1
     def countTerminalSymbol(s: SyntacticView): Int = s match
       case Syntactic(name, _, rhsIdx, child) =>
         child.foldLeft(0) {
           case (x, i) =>
-            x + rhsMap((name, rhsIdx)).symbols
-              .filter(_.getNt.isEmpty)
-              .length + i.map(countTerminalSymbol).getOrElse(0)
+            x + rhsMap((name, rhsIdx)).symbols.filter {
+              case _: Terminal =>
+                true
+              case _ => false
+            }.length + i.map(countTerminalSymbol).getOrElse(0)
         }
       case _ => 0
     def syntacticMeasure(s: SyntacticView): (Int, Int) =
@@ -253,7 +257,13 @@ class BasicSyntacticView(cfgHelper: CFGHelper) {
                 (
                   v._1,
                   e.foldRight[Syntactic](v._2) {
-                    case (edge, ab) => edge.mkChain(ab)
+                    case (edge, ab) =>
+                      val subIdx = cfgHelper.getSubIdxView(ab)
+                      if (
+                        (cfgHelper.cfg.fnameMap contains (s"${ab.name}[${ab.idx},${subIdx}].Evaluation"))
+                      ) ab
+                      else
+                        edge.mkChain(ab)
                   },
                 ),
               ),
@@ -263,9 +273,24 @@ class BasicSyntacticView(cfgHelper: CFGHelper) {
         case (m, (s, syn)) => m + (s -> (m.getOrElse(s, Set()) + syn))
       }
     finalSet
-      .map { case (k, v) => (k, v.minBy(syntacticMeasure)) }
-      .flatMap { case (k, v) => v.getNormal(cfgHelper).map((k, _)) }
-      .collect { case (v, s: Syntactic) => (v, s) }
+      .map {
+        case (s, v) =>
+          (
+            s,
+            v.map(_.removeParamArg)
+              .filter(_.getNormal(cfgHelper).isDefined)
+              .filter(syntacticMeasure(_) == v.map(syntacticMeasure).min)
+              .toList
+              .sortBy(_.toString),
+          )
+      }
+      .flatMap {
+        case (s, l) =>
+          l.zipWithIndex.map { case (sv, idx) => (s"${s}_$idx", sv) }
+      }
+      .toMap
+//      .map { case (k, v) => (k, v.minBy(syntacticMeasure)) }
+//      .flatMap { case (k, v) => v.getNormal(cfgHelper).map((k, _)) }
   // println(np.toList.length)
   // println(finalList.length)
   // finalList.foreach{ case (i, j) => println(s"${i.toString(false, false, Some(cfgHelper.cfg.grammar))} ---- ${j.toString(false, false, Some(cfgHelper.cfg.grammar))}") }

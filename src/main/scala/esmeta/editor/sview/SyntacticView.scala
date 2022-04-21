@@ -127,7 +127,16 @@ case class Syntactic(
   args: List[Boolean],
   rhsIdx: Int,
   children: List[Option[SyntacticView]],
-) extends SyntacticView
+) extends SyntacticView {
+  def removeParamArg: Syntactic = this.copy(
+    args = List.fill(args.length)(false),
+    children = children.map {
+      case None               => None
+      case Some(k: Syntactic) => Some(k.removeParamArg)
+      case Some(k)            => Some(k)
+    },
+  )
+}
 
 /** ASTs constructed by lexical productions */
 case class Lexical(

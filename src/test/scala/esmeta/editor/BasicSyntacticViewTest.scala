@@ -51,8 +51,10 @@ class BasicSyntacticViewTest extends EditorTest {
     viewList.foreach {
       case (name, v) =>
         check(
-          s"$name: ${v.toString(true, false, Some(EditorTest.cfg.grammar))}",
+          s"$name (${v.name}): ${v.toString(true, false, Some(EditorTest.cfg.grammar))}",
         ) {
+          // Parser(EditorTest.cfg.grammar)(v.name, v.args)
+          //  .from(v.toString(grammar = Some(EditorTest.cfg.grammar)))
           val transitiveCG = SyntacticTransitiveClosedCallGraph(
             mcgs,
             cfgHelper.getSDOView(v, "Evaluation").get._2.name,

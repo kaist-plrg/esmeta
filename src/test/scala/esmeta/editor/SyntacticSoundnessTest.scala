@@ -13,29 +13,16 @@ import esmeta.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
 import java.io.PrintWriter
+import java.io.FileReader
 
-class InstCounter extends UnitWalker {
-  var instCount = 0
-  var branchCount = 0
-  override def walk(i: Inst) = i match
-    case IIf(_, trueInst, falseInst) => {
-      instCount += 1; branchCount += 1; walk(trueInst); walk(falseInst)
-    }
-    case ILoop(_, _, body) => { instCount += 1; branchCount += 1; walk(body) }
-    case ISeq(insts)       => insts.foreach(walk)
-    case _                 => instCount += 1
-
-  def summary: (Int, Int) = (instCount, branchCount)
-}
-
-class BasicSyntacticViewTest extends EditorTest {
-  val name: String = "basicSyntacticViewTest"
+class SyntacticSoundnessTest extends EditorTest {
+  val name: String = "syntacticSoundnessTest"
   var pw: Option[PrintWriter] = None
 
   // registration
   def init: Unit =
     val cfgHelper = CFGHelper(EditorTest.cfg)
-    val peval = PartialEval(cfgHelper)
+    val idMap = cfgHelper.cfg.fnameMap.map { case (s, f) => (f.id, s) }.toMap
     val viewList = BasicSyntacticView(cfgHelper).viewSet.toList
       // .map((x) => (x._1, x._2.refined(cfgHelper)))
       // .collect { case (i, s: Syntactic) => (i, s) }
@@ -44,7 +31,6 @@ class BasicSyntacticViewTest extends EditorTest {
     val mcgs = EditorTest.cfg.funcs
       .map((f) => f.name -> SyntacticCallGraph(cfgHelper, f.irFunc))
       .toMap
-    val mergeCG = SyntacticMergedCallGraph(mcgs, cfgHelper)
     mkdir(logDir)
     pw = Some(getPrintWriter(s"${logDir}/${name}.log"))
 
@@ -59,25 +45,26 @@ class BasicSyntacticViewTest extends EditorTest {
             mcgs,
             cfgHelper.getSDOView(v, "Evaluation").get._2.name,
           )
-          val analysisCG = peval.cg(v)
+          val actualSet = readFile(s"./basic_result/$name")
+            .split("\n")
+            .filter((s) => s.length != 0)
+            .map((s) => idMap(s.toInt))
+            .toSet
           pw.foreach((pw) => {
             pw.println(s"$name: ${v
               .toString(true, false, Some(EditorTest.cfg.grammar))}")
-            pw.println(
-              s"    ${mergeCG.funcs.size}/${mergeCG.func_targets
-                .flatMap { case (i, j) => j.map((k) => (i -> k)) }
-                .toSet
-                .size}  -> ${transitiveCG.funcs.size}/${transitiveCG.func_targets
-                .flatMap { case (i, j) => j.map((k) => (i -> k)) }
-                .toSet
-                .size} -> ${analysisCG.funcs.size}/${analysisCG.func_targets
-                .flatMap {
-                  case (i, j) => j.map((k) => (i -> k))
-                }
-                .toSet
-                .size}",
-            )
+            pw.println(s"transitiveCG missed func: ${actualSet
+              .filter((s) =>
+                (s != "GetValue") &&
+                (!transitiveCG.funcs.contains(s)),
+              )
+              .mkString(", ")}")
           })
+          assert(
+            actualSet.forall((s) =>
+              (s == "GetValue") || transitiveCG.funcs.contains(s),
+            ),
+          )
         },
     }
 

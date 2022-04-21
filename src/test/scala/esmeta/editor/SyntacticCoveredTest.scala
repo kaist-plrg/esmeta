@@ -14,22 +14,8 @@ import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
 import java.io.PrintWriter
 
-class InstCounter extends UnitWalker {
-  var instCount = 0
-  var branchCount = 0
-  override def walk(i: Inst) = i match
-    case IIf(_, trueInst, falseInst) => {
-      instCount += 1; branchCount += 1; walk(trueInst); walk(falseInst)
-    }
-    case ILoop(_, _, body) => { instCount += 1; branchCount += 1; walk(body) }
-    case ISeq(insts)       => insts.foreach(walk)
-    case _                 => instCount += 1
-
-  def summary: (Int, Int) = (instCount, branchCount)
-}
-
-class BasicSyntacticViewTest extends EditorTest {
-  val name: String = "basicSyntacticViewTest"
+class SyntacticCoveredTest extends EditorTest {
+  val name: String = "syntacticCoveredTest"
   var pw: Option[PrintWriter] = None
 
   // registration
@@ -44,7 +30,6 @@ class BasicSyntacticViewTest extends EditorTest {
     val mcgs = EditorTest.cfg.funcs
       .map((f) => f.name -> SyntacticCallGraph(cfgHelper, f.irFunc))
       .toMap
-    val mergeCG = SyntacticMergedCallGraph(mcgs, cfgHelper)
     mkdir(logDir)
     pw = Some(getPrintWriter(s"${logDir}/${name}.log"))
 
@@ -60,24 +45,31 @@ class BasicSyntacticViewTest extends EditorTest {
             cfgHelper.getSDOView(v, "Evaluation").get._2.name,
           )
           val analysisCG = peval.cg(v)
+          val tedges = transitiveCG.func_targets.toList.flatMap {
+            case (i, s) => s.map((i, _))
+          }
+          val aedges = analysisCG.func_targets.toList.flatMap {
+            case (i, s) => s.map((i, _))
+          }
           pw.foreach((pw) => {
             pw.println(s"$name: ${v
               .toString(true, false, Some(EditorTest.cfg.grammar))}")
+            pw.println(s"transitiveCG missed func: ${analysisCG.funcs
+              .filter((s) => (!transitiveCG.funcs.contains(s)))
+              .mkString(", ")}")
             pw.println(
-              s"    ${mergeCG.funcs.size}/${mergeCG.func_targets
-                .flatMap { case (i, j) => j.map((k) => (i -> k)) }
-                .toSet
-                .size}  -> ${transitiveCG.funcs.size}/${transitiveCG.func_targets
-                .flatMap { case (i, j) => j.map((k) => (i -> k)) }
-                .toSet
-                .size} -> ${analysisCG.funcs.size}/${analysisCG.func_targets
-                .flatMap {
-                  case (i, j) => j.map((k) => (i -> k))
-                }
-                .toSet
-                .size}",
+              s"transitiveCG missed edge: ${aedges.filter((v) => (!tedges.contains(v))).mkString(", ")}",
             )
           })
+          assert(
+            analysisCG.funcs.forall((s) => transitiveCG.funcs.contains(s),
+            ) && analysisCG.func_targets.forall {
+              case (f, set) =>
+                (transitiveCG.func_targets contains f) && set.forall((v) =>
+                  transitiveCG.func_targets(f).contains(v),
+                )
+            },
+          )
         },
     }
 

@@ -39,7 +39,11 @@ lazy val langStringifyTest =
   taskKey[Unit]("Launch stringify tests for lang (tiny)")
 
 // editor
-lazy val pevalTest = taskKey[Unit]("Launch partial evaluation tests")
+lazy val sviewTest = taskKey[Unit]("Launch BasicSyntacticView tests")
+lazy val scovTest = taskKey[Unit]("Launch Syntactic Covered tests")
+lazy val ssoundTest =
+  taskKey[Unit]("Launch Syntactic CallGraph Soundness tests")
+lazy val asoundTest = taskKey[Unit]("Launch Analysis CallGraph Soundness tests")
 
 // ir
 lazy val irTest = taskKey[Unit]("Launch ir tests")
@@ -148,8 +152,17 @@ lazy val root = project
       .toTask(" *.lang.Stringify*Test")
       .value,
     // editor
-    pevalTest := (Test / testOnly)
+    sviewTest := (Test / testOnly)
       .toTask(" *.editor.BasicSyntacticViewTest")
+      .value,
+    scovTest := (Test / testOnly)
+      .toTask(" *.editor.SyntacticCoveredTest")
+      .value,
+    ssoundTest := (Test / testOnly)
+      .toTask(" *.editor.SyntacticSoundnessTest")
+      .value,
+    asoundTest := (Test / testOnly)
+      .toTask(" *.editor.AnalysisSoundnessTest")
       .value,
     // ir
     irTest := (Test / testOnly).toTask(" *.ir.*Test").value,

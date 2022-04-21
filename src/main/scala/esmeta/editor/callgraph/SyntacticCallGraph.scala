@@ -17,6 +17,15 @@ class SyntacticSearch(cfgHelper: CFGHelper) extends UnitWalker:
       else if (cfgHelper.topCloNameSet contains something) ()
       else
         throw new Error()
+    case ILet(
+          Name("operation"),
+          ERef(Prop(_, EStr(something))),
+        ) => // special rule for ApplyStringOrNumberBinaryOperator
+      if (cfgHelper.nameCloMap contains something)
+        target ++= cfgHelper.nameCloMap(something)
+      else if (cfgHelper.topCloNameSet contains something) ()
+      else
+        throw new Error()
     case _ => super.walk(i)
 end SyntacticSearch
 

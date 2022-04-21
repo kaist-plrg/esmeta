@@ -106,7 +106,15 @@ case class Coverage(
       new Interp(st, Nil) {
         private def contexts =
           this.st.context :: this.st.callStack.map(_.context)
+        private def evalAstList =
+          contexts.flatMap { c =>
+            if (c.name endsWith ".Evaluation") c.astOpt
+            else None
+          }
         private def astStack = contexts.flatMap(_.astOpt)
+
+        // track GetValue
+        private var inGetValue = false
 
         // handle dynamically created ast
         override def interp(expr: Expr): Value = {
@@ -122,21 +130,27 @@ case class Coverage(
 
         // save algo id of top-most evaluation
         override def interp(node: Node): Unit = {
+          // interp node
           super.interp(node)
+
+          // // handle get value
+          // if (!inGetValue && this.st.context.name == "GetValue")
+          //   inGetValue = true
+
           node match {
-            case _: Call =>
+            case _: Call if !inGetValue =>
               // get top-most ast
-              val targets = contexts.flatMap { c =>
-                if (c.name endsWith ".Evaluation") c.astOpt
-                else None
-              }
+              val currAstOpt = evalAstList.headOption
 
               // save algo id of current context
               for {
-                ast <- targets.headOption
+                ast <- currAstOpt
                 astId <- ast.idOpt
                 algoIds = algoMap.getOrElse(astId, Set())
               } algoMap += (astId -> (algoIds + this.st.context.func.id))
+
+              // handle GetValue call
+              if (this.st.context.name == "GetValue") inGetValue = true
             case _ => /* do nothing */
           }
         }
@@ -152,6 +166,7 @@ case class Coverage(
         override def setReturn(value: Value): Unit = {
           super.setReturn(value)
 
+          // save evaluation result
           if (this.st.context.name endsWith ".Evaluation") {
             // handle evaluation chain
             val parentEvalAstOpt =
@@ -167,6 +182,8 @@ case class Coverage(
               annotationSet = annoMap.getOrElse(astId, Set())
             } annoMap += (astId -> (annotationSet + annotation))
           }
+          // handle GetValue call
+          else if (this.st.context.name == "GetValue") inGetValue = false
         }
       }.fixpoint
 

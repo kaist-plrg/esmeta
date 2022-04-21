@@ -37,10 +37,10 @@ class BasicSyntacticViewTest extends EditorTest {
     val cfgHelper = CFGHelper(EditorTest.cfg)
     val peval = PartialEval(cfgHelper)
     val viewList = BasicSyntacticView(cfgHelper).viewSet.toList
-      .map(_.refined(cfgHelper))
-      .collect { case s: Syntactic => s }
-      .filter(cfgHelper.getSDOView(_, "Evaluation").isDefined)
-      .sortBy((x) => (x.name, x.rhsIdx))
+      // .map((x) => (x._1, x._2.refined(cfgHelper)))
+      // .collect { case (i, s: Syntactic) => (i, s) }
+      // .filter(cfgHelper.getSDOView(_, "Evaluation").isDefined)
+      .sortBy(_._1)
     val mcgs = EditorTest.cfg.funcs
       .map((f) => f.name -> SyntacticCallGraph(cfgHelper, f.irFunc))
       .toMap
@@ -48,35 +48,36 @@ class BasicSyntacticViewTest extends EditorTest {
     mkdir(logDir)
     pw = Some(getPrintWriter(s"${logDir}/${name}.log"))
 
-    viewList.foreach((v) =>
-      check(
-        s"${v.name}${v.rhsIdx}: ${v.toString(true, false, Some(EditorTest.cfg.grammar))}",
-      ) {
-        val transitiveCG = SyntacticTransitiveClosedCallGraph(
-          mcgs,
-          cfgHelper.getSDOView(v, "Evaluation").get._2.name,
-        )
-        val analysisCG = peval.cg(v)
-        pw.foreach((pw) => {
-          pw.println(s"${v.name}${v.rhsIdx}: ${v
-            .toString(true, false, Some(EditorTest.cfg.grammar))}")
-          pw.println(
-            s"    ${mergeCG.funcs.size}/${mergeCG.func_targets
-              .map { case (i, j) => j.map((k) => (i -> k)) }
-              .toSet
-              .size}  -> ${transitiveCG.funcs.size}/${transitiveCG.func_targets
-              .map { case (i, j) => j.map((k) => (i -> k)) }
-              .toSet
-              .size} -> ${analysisCG.funcs.size}/${analysisCG.func_targets
-              .map {
-                case (i, j) => j.map((k) => (i -> k))
-              }
-              .toSet
-              .size}",
+    viewList.foreach {
+      case (name, v) =>
+        check(
+          s"$name: ${v.toString(true, false, Some(EditorTest.cfg.grammar))}",
+        ) {
+          val transitiveCG = SyntacticTransitiveClosedCallGraph(
+            mcgs,
+            cfgHelper.getSDOView(v, "Evaluation").get._2.name,
           )
-        })
-      },
-    )
+          val analysisCG = peval.cg(v)
+          pw.foreach((pw) => {
+            pw.println(s"$name: ${v
+              .toString(true, false, Some(EditorTest.cfg.grammar))}")
+            pw.println(
+              s"    ${mergeCG.funcs.size}/${mergeCG.func_targets
+                .map { case (i, j) => j.map((k) => (i -> k)) }
+                .toSet
+                .size}  -> ${transitiveCG.funcs.size}/${transitiveCG.func_targets
+                .map { case (i, j) => j.map((k) => (i -> k)) }
+                .toSet
+                .size} -> ${analysisCG.funcs.size}/${analysisCG.func_targets
+                .map {
+                  case (i, j) => j.map((k) => (i -> k))
+                }
+                .toSet
+                .size}",
+            )
+          })
+        },
+    }
 
   override def afterAll(): Unit = {
     pw.map(_.close)

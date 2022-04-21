@@ -67,14 +67,19 @@ sealed trait SyntacticView extends EditorElem {
     case a: AbsSyntactic => a.copy(fold = false)
     case l: Lexical      => this
 
-  def refined(cfgHelper: CFGHelper): SyntacticView = this match
-    case s: Syntactic =>
-      s.children match
-        case Some(child) :: Nil =>
-          if (cfgHelper.getSDOView((child, "Evaluation")).isEmpty) this
-          else child.refined(cfgHelper)
-        case _ => this
-    case _ => this
+  def getNormal(cfgHelper: CFGHelper): Option[SyntacticView] =
+    val subIdx = cfgHelper.getSubIdxView(this)
+    if (
+      (cfgHelper.cfg.fnameMap contains (s"${name}[${idx},${subIdx}].Evaluation")) && name != "ExpressionStatement"
+    ) Some(this)
+    else
+      this match
+        case s: Syntactic =>
+          s.children match
+            case Some(child) :: Nil => child.getNormal(cfgHelper)
+            case _                  => None
+        case _ => None
+
 }
 
 sealed trait Annotation

@@ -30,8 +30,9 @@ object JsonProtocol {
 
   // simplified ast
   given Encoder[SimpleAst] = Encoder.instance {
-    case syn: SimpleSyntactic => syn.asJson
-    case lex: SimpleLexical   => lex.asJson
+    case syn: SimpleSyntactic    => syn.asJson
+    case lex: SimpleLexical      => lex.asJson
+    case abs: SimpleAbsSyntactic => ???
   }
   given Decoder[SimpleAst] = new Decoder[SimpleAst] {
     final def apply(c: HCursor): Decoder.Result[SimpleAst] = {
@@ -52,9 +53,9 @@ object JsonProtocol {
       (for {
         data <- c.value.asArray
         syn <- data match
-          case Vector(i, n, idx, subIdx, cs) =>
+          case Vector(id, n, idx, subIdx, cs) =>
             val children = cs.as[List[SimpleAst]].toOption.get
-            Some(SimpleSyntactic(i, n, idx, subIdx, children))
+            Some(SimpleSyntactic(n, idx, subIdx, children).setId(id))
           case _ => None
       } yield Right(syn)).getOrElse {
         decodeFail(s"unknown Lexical: ${c.value}", c)
@@ -71,8 +72,8 @@ object JsonProtocol {
       (for {
         data <- c.value.asArray
         lex <- data match
-          case Vector(i, n, s) => Some(SimpleLexical(i, n, s))
-          case _               => None
+          case Vector(id, n, s) => Some(SimpleLexical(n, s).setId(id))
+          case _                => None
       } yield Right(lex)).getOrElse {
         decodeFail(s"unknown SimpleLexical: ${c.value}", c)
       }

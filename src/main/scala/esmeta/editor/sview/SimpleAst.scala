@@ -4,7 +4,8 @@ package esmeta.editor.sview
 sealed trait SimpleAst {
 
   /** id */
-  val id: Int
+  var id: Int = -1
+  def setId(i: Int): this.type = { id = i; this }
 
   /** index of production name */
   val nameIdx: Int
@@ -18,7 +19,6 @@ sealed trait SimpleAst {
 
 /** simplified syntactic ast */
 case class SimpleSyntactic(
-  id: Int,
   nameIdx: Int,
   idx: Int,
   subIdx: Int,
@@ -26,9 +26,19 @@ case class SimpleSyntactic(
 ) extends SimpleAst
 
 /** simplified lexical ast */
-case class SimpleLexical(id: Int, nameIdx: Int, str: String) extends SimpleAst {
+case class SimpleLexical(nameIdx: Int, str: String) extends SimpleAst {
   val idx = 0
   val subIdx = 0
+}
+
+/** simplified abstract ast */
+case class SimpleAbsSyntactic(
+  nameIdx: Int,
+  annotation: Annotation = AAll,
+  fold: Boolean = false,
+) extends SimpleAst {
+  val idx = -1
+  val subIdx = -1
 }
 
 /** unit walker for simplified ast */

@@ -1,3 +1,4 @@
 {
-  "contains" : true
+  "contains" : true,
+  "matches after simplify" : true
 }

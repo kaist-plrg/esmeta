@@ -11,6 +11,32 @@ import scala.annotation.tailrec
 /** extension for ast */
 extension (ast: Ast) {
 
+  /** simplify */
+  def simplify(cfg: CFG): SimpleAst = {
+    // trim until *.Evaluation
+    def aux(ast0: Ast): Ast = {
+      ast0 match
+        case syn @ JsSyntactic(name, _, rhsIdx, List(Some(child))) =>
+          val fname = s"${name}[${rhsIdx},${syn.subIdx(cfg)}].Evaluation"
+          val hasEval = cfg.fnameMap contains fname
+          if (hasEval) ast0 else aux(child)
+        case _ => ast0
+    }
+
+    val subIdx = ast.subIdx(cfg)
+    val nameIdx = cfg.getNameIdx(ast.name)
+
+    ast match
+      case JsLexical(_, str) => SimpleLexical(nameIdx, str)
+      case JsSyntactic(_, _, idx, children) =>
+        SimpleSyntactic(
+          nameIdx,
+          idx,
+          subIdx,
+          children.flatten.map(aux(_)).map(_.simplify(cfg)),
+        )
+  }
+
   /** get sub-index */
   def subIdx(cfg: CFG): Int = ast match
     case _: JsLexical => 0
@@ -93,7 +119,7 @@ extension (ast: Ast) {
   /** check whether given JS ast matches syntactic view */
   def matches(
     sview: SyntacticView,
-    annoMap: Map[Int, Set[Annotation]],
+    annoMap: Map[Int, Set[Annotation]] = Map(),
   ): Boolean = (ast, sview) match
     case (_, AbsSyntactic(absName, identifier, anno, _)) =>
       ast.name == absName &&
@@ -131,6 +157,85 @@ extension (ast: Ast) {
             case (false, Some(child)) => child contains sview
           }
         case _ => false
+}
+
+/** extension for syntactic view */
+extension (sview: SyntacticView) {
+
+  /** simplify */
+  def simplify(cfg: CFG): SimpleAst =
+    // trim until *.Evaluation
+    def aux(sview0: SyntacticView): SyntacticView = {
+      sview0 match
+        case syn @ Syntactic(name, _, rhsIdx, List(Some(child))) =>
+          val fname = s"${name}[${rhsIdx},${syn.subIdx(cfg)}].Evaluation"
+          cfg.fnameMap.get(fname) match
+            case _: Some[_] => sview0
+            case None       => aux(child)
+        case _ => sview0
+    }
+
+    val subIdx = sview.subIdx(cfg)
+    val nameIdx = cfg.getNameIdx(sview.name)
+    sview match
+      case AbsSyntactic(_, _, a, f) => SimpleAbsSyntactic(nameIdx, a, f)
+      case Syntactic(_, _, idx, children) =>
+        SimpleSyntactic(
+          nameIdx,
+          idx,
+          subIdx,
+          children.flatten.map(aux(_)).map(_.simplify(cfg)),
+        )
+      case Lexical(_, str) => SimpleLexical(nameIdx, str)
+
+  /** get sub-index */
+  def subIdx(cfg: CFG): Int = sview match
+    case _: Lexical      => 0
+    case _: AbsSyntactic => -1
+    case Syntactic(name, _, rhsIdx, children) =>
+      val rhs = cfg.grammar.nameMap(name).rhsList(rhsIdx)
+      val optionals = (for {
+        (opt, child) <- rhs.nts.map(_.optional) zip children if opt
+      } yield !child.isEmpty)
+      optionals.reverse.zipWithIndex.foldLeft(0) {
+        case (acc, (true, idx)) => acc + scala.math.pow(2, idx).toInt
+        case (acc, _)           => acc
+      }
+}
+
+/** extension for simple ast */
+extension (ast: SimpleAst) {
+
+  // TODO matching evaluation type
+  def matches(ast0: SimpleAst, cfg: CFG): Boolean = (ast, ast0) match {
+    // impossible in our use cases
+    case (_: SimpleAbsSyntactic, _: SimpleAbsSyntactic) =>
+      ast.nameIdx == ast0.nameIdx
+    case (_: SimpleAbsSyntactic, _) => ast0.matches(ast, cfg)
+
+    // possible cases
+    case (lex: SimpleLexical, lex0: SimpleLexical) =>
+      lex.nameIdx == lex0.nameIdx &&
+      lex.str.trim == lex0.str.trim
+    case (syn: SimpleSyntactic, syn0: SimpleSyntactic) =>
+      syn.nameIdx == syn0.nameIdx &&
+      syn.idx == syn0.idx &&
+      syn.subIdx == syn0.subIdx &&
+      (syn.children zip syn0.children).forall {
+        case (child, child0) => child.matches(child0, cfg)
+      }
+    case (lex: SimpleLexical, absSyn0: SimpleAbsSyntactic) =>
+      lex.nameIdx == absSyn0.nameIdx ||
+      cfg
+        .getSimplified(absSyn0.nameIdx)
+        .exists(_._1 == lex.nameIdx)
+    case (syn: SimpleSyntactic, absSyn0: SimpleAbsSyntactic) =>
+      syn.nameIdx == absSyn0.nameIdx ||
+      cfg
+        .getSimplified(absSyn0.nameIdx)
+        .contains((syn.nameIdx, syn.idx, syn.subIdx))
+    case _ => false
+  }
 }
 
 /** extension for annotation */

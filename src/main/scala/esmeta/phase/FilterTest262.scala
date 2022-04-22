@@ -32,7 +32,9 @@ case object FilterTest262 extends Phase[CFG, Unit] {
     // filter using syntactic view
     config.test262Data match
       case Some(path) =>
-        Filter.dumpBasicResult(cfg, path)
+        val filter = Filter(cfg, path)
+        filter(sviewRoot, config.aid.get)
+      // filter.dumpBasicResult()
       // Filter.experiment1(cfg, path)
 
       // // TODO use algo id

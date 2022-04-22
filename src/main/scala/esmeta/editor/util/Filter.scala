@@ -9,9 +9,32 @@ import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
 
-object Filter {
+case class Filter(cfg: CFG, dataDir: String) {
   import JsonProtocol.given
   import JsJsonProtocol.given
+
+  // filter function
+  def apply(sview: SyntacticView, algoId: Int): Set[String] = {
+    val tests = readFile(s"$dataDir/test262-list").split(LINE_SEP)
+
+    val (t0, pIndex) = time(readJson[ProgramIndex](s"$dataDir/data/index.json"))
+    val (t1, pData) = time {
+      var map: Map[Int, ProgramInfo] = Map()
+      for (idx <- 0 until tests.size) {
+        val path = s"$dataDir/data/$idx.json"
+        map += (idx -> readJson[ProgramInfo](path))
+      }
+      map
+    }
+    println(t0)
+    println(t1)
+
+    println("----------------------------------------")
+    println(sview)
+    println("----------------------------------------")
+    println(sview.simplify(cfg))
+    ???
+  }
 
   // def experiment1(
   //   cfg: CFG,
@@ -63,11 +86,7 @@ object Filter {
   //   algoSet
   // }
 
-  def getAlgos(
-    cfg: CFG,
-    dataDir: String,
-    sview: SyntacticView,
-  ): Set[Int] = {
+  def getAlgos(sview: SyntacticView): Set[Int] = {
     val tests = readFile(s"$dataDir/test262-list").split(LINE_SEP)
     var algoSet: Set[Int] = Set()
 
@@ -89,13 +108,9 @@ object Filter {
     algoSet
   }
 
-  def dumpBasicResult(cfg: CFG, dataDir: String): Unit = {
+  def dumpBasicResult(): Unit = {
     val cfgHelper = CFGHelper(cfg)
     val viewSet = (new BasicSyntacticView(cfgHelper)).viewSet
-
-    // for { (viewName, sview) <- viewSet }
-    //   println((viewName, sview))
-    // ???
 
     mkdir(s"$dataDir/basic_result")
 

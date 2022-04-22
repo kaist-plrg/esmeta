@@ -24,6 +24,8 @@ case class Production(
     rhs <- rhsList
     nt <- rhs.nts
   } yield nt
+
+  def isSyntactic: Boolean = kind == Production.Kind.Syntactic
 }
 object Production extends Parser.From[Production]:
   enum Kind extends SpecElem:

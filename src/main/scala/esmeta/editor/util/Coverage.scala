@@ -131,17 +131,16 @@ case class Coverage(
     private def simplifyAst(ast: Ast): SimpleAst = {
       val newId = reassign(ast.idOpt.get)
       val subIdx = ast.subIdx(cfg)
-      val nameIdx = cfg.grammar.names.indexOf(ast.name)
+      val nameIdx = cfg.getNameIdx(ast.name)
       ast match
-        case JsLexical(_, str) => SimpleLexical(newId, nameIdx, str)
+        case JsLexical(_, str) => SimpleLexical(nameIdx, str).setId(newId)
         case JsSyntactic(_, _, idx, children) =>
           SimpleSyntactic(
-            newId,
             nameIdx,
             idx,
             subIdx,
             children.flatten.map(trim(_)).map(simplifyAst(_)),
-          )
+          ).setId(newId)
     }
   }
 
@@ -208,28 +207,14 @@ case class Coverage(
           }
         }
 
-        // def getAncestors(ast: Ast, until: Option[Ast]): List[Ast] =
-        //   ast.parent match
-        //     case Some(parent) =>
-        //       if (until.fold(false)(_ == parent)) List(ast)
-        //       else ast :: getAncestors(parent, until)
-        //     case None => List(ast)
-
         // if current context is evaluation, save type of value
         override def setReturn(value: Value): Unit = {
           super.setReturn(value)
 
           // save evaluation result
           if (this.st.context.name endsWith ".Evaluation") {
-            // // handle evaluation chain
-            // val parentEvalAstOpt =
-            //   contexts.tail
-            //     .filter(c => c.name endsWith ".Evaluation")
-            //     .flatMap(_.astOpt)
-            //     .headOption
             for {
               currentAst <- this.st.context.astOpt
-              // ast <- getAncestors(currentAst, parentEvalAstOpt)
               astId <- currentAst.idOpt
               annotation <- value.toAnnotation(this.st)
               annotationSet = annoMap.getOrElse(astId, Set())

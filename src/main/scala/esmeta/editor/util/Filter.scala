@@ -93,9 +93,9 @@ object Filter {
     val cfgHelper = CFGHelper(cfg)
     val viewSet = (new BasicSyntacticView(cfgHelper)).viewSet
 
-    for { (viewName, sview) <- viewSet }
-      println((viewName, sview))
-    ???
+    // for { (viewName, sview) <- viewSet }
+    //   println((viewName, sview))
+    // ???
 
     mkdir(s"$dataDir/basic_result")
 
@@ -123,16 +123,16 @@ object Filter {
       }
     }
 
-    // for { (viewName, algoSet) <- data } {
-    //   val algoList = algoSet.toList.sorted
-    //   println("----------------------------------------")
-    //   println((viewName, algoList.size))
+    println("----------------------------------------")
+    for { (viewName, algoSet) <- data } {
+      val algoList = algoSet.toList.sorted
+      println((viewName, algoList.size))
 
-    //   dumpFile(
-    //     algoList.mkString(LINE_SEP),
-    //     s"$dataDir/basic_result/$viewName",
-    //   )
-    // }
+      dumpFile(
+        algoList.mkString(LINE_SEP),
+        s"$dataDir/basic_result/$viewName",
+      )
+    }
 
   }
 }

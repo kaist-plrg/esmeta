@@ -28,7 +28,7 @@ class Compiler(val spec: Spec) {
     } compile(algo)
 
     // result
-    val program = Program(funcs.toList)
+    val program = Program(funcs.toList.sortBy(_.name))
 
     // connect backward edge to a given specification
     program.spec = spec

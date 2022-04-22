@@ -55,7 +55,7 @@ sealed trait SyntacticView extends EditorElem {
           val f = child.folded
           f match
             case a: AbsSyntactic =>
-              if (a.fold) AbsSyntactic(s.name, a.annotation, true)
+              if (a.fold) AbsSyntactic(s.name, a.identifier, a.annotation, true)
               else s.copy(children = List(Some(f)))
             case _ => s.copy(children = List(Some(f)))
         case _ => s.copy(children = s.children.map((vo) => vo.map(_.folded)))
@@ -117,6 +117,7 @@ case object AAll extends Annotation {
 /** ASTs constructed by abstract productions */
 case class AbsSyntactic(
   name: String,
+  identifier: Option[String] = None,
   annotation: Annotation = AAll,
   fold: Boolean = false,
 ) extends SyntacticView

@@ -95,7 +95,7 @@ extension (ast: Ast) {
     sview: SyntacticView,
     annoMap: Map[Int, Set[Annotation]],
   ): Boolean = (ast, sview) match
-    case (_, AbsSyntactic(absName, anno, _)) =>
+    case (_, AbsSyntactic(absName, identifier, anno, _)) =>
       ast.name == absName &&
       ast.idOpt
         .map(id => annoMap.getOrElse(id, Set()))

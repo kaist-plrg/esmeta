@@ -24,9 +24,6 @@ class SyntacticSoundnessTest extends EditorTest {
     val cfgHelper = CFGHelper(EditorTest.cfg)
     val idMap = cfgHelper.cfg.fnameMap.map { case (s, f) => (f.id, s) }.toMap
     val viewList = BasicSyntacticView(cfgHelper).viewSet.toList
-      // .map((x) => (x._1, x._2.refined(cfgHelper)))
-      // .collect { case (i, s: Syntactic) => (i, s) }
-      // .filter(cfgHelper.getSDOView(_, "Evaluation").isDefined)
       .sortBy(_._1)
     val mcgs = EditorTest.cfg.funcs
       .map((f) => f.name -> SyntacticCallGraph(cfgHelper, f.irFunc))
@@ -56,6 +53,7 @@ class SyntacticSoundnessTest extends EditorTest {
                 (s != "GetValue") &&
                 (!transitiveCG.funcs.contains(s)),
               )
+              .map((s) => (s, cfgHelper.cfg.fnameMap(s).id))
               .mkString(", ")}")
           })
           assert(

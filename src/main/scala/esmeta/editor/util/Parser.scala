@@ -61,33 +61,35 @@ case class Parser(val grammar: Grammar) extends LAParsers {
 
   private def getAbsSyntacticLexer(name: String): Parser[String] =
     (if (name == "Literal") (literal(s"#$name") | literal("#e"))
-     else literal(s"#$name")) ~ opt(
-      literal(":") ~ (literal("String") | literal("Number") | literal(
+     else
+       literal(s"#$name")) ~ opt(literal("/") ~> regex("[1-9a-zA-Z]+".r)) ~ opt(
+      literal("/:") ~> (literal("String") | literal("Number") | literal(
         "Object",
       ) | literal("Bool") | literal("Null") | literal("Undef") | literal(
         "Throw",
       ) | literal("Symbol") | literal("BigInt")),
-    ) ~ literal("#") ^^ {
-      case i ~ jk ~ l => i + jk.map { case j ~ k => j + k }.getOrElse("")
+    ) <~ literal("#") ^^ {
+      case i ~ j ~ k => i + "/" + j.getOrElse("") + "/" + k.getOrElse("")
     }
 
   private def translateStrToAbsSyntacic(s: String, name: String): AbsSyntactic =
-    val isFold = s.startsWith("#e")
+    val arr = s.split("/", -1)
+    assert(arr.length == 3)
+    val isFold = arr(0) == ("#e")
+    val ident = if (arr(1).length == 0) None else Some(arr(1))
     val annot =
-      if (s.indexOf(":") < 0) esmeta.editor.sview.AAll
-      else
-        s.substring(s.indexOf(":")) match
-          case ":String" => esmeta.editor.sview.AStr
-          case ":Number" => esmeta.editor.sview.ANum
-          case ":BigInt" => esmeta.editor.sview.ABigInt
-          case ":Object" => esmeta.editor.sview.AObj
-          case ":Symbol" => esmeta.editor.sview.ASymbol
-          case ":Bool"   => esmeta.editor.sview.ABool
-          case ":Null"   => esmeta.editor.sview.ANull
-          case ":Undef"  => esmeta.editor.sview.AUndef
-          case ":Throw"  => esmeta.editor.sview.AThrow
-          case _         => esmeta.editor.sview.AAll
-    AbsSyntactic(name, annot, isFold)
+      arr(2) match
+        case "String" => esmeta.editor.sview.AStr
+        case "Number" => esmeta.editor.sview.ANum
+        case "BigInt" => esmeta.editor.sview.ABigInt
+        case "Object" => esmeta.editor.sview.AObj
+        case "Symbol" => esmeta.editor.sview.ASymbol
+        case "Bool"   => esmeta.editor.sview.ABool
+        case "Null"   => esmeta.editor.sview.ANull
+        case "Undef"  => esmeta.editor.sview.AUndef
+        case "Throw"  => esmeta.editor.sview.AThrow
+        case _        => esmeta.editor.sview.AAll
+    AbsSyntactic(name, ident, annot, isFold)
 
   private def getAbsSyntacticParser(name: String): LAParser[AbsSyntactic] =
     val lexicalParser = getAbsSyntacticLexer(name)

@@ -88,7 +88,7 @@ trait AbsStateDomain[AOD <: AbsObjDomain[_] with Singleton](
           throw SyntacticCalled(AbsValue(ASView(ast0)), sdo)
         case None => // XXX access to child -> handle this in compiler?
           if (propStr == "Evaluation") syn.chains.last match {
-            case sview.AbsSyntactic(_, annotation, _) =>
+            case sview.AbsSyntactic(_, _, annotation, _) =>
               AbsValue.findHandler(annotation.toString)
             case _ => AbsValue.Top
           }

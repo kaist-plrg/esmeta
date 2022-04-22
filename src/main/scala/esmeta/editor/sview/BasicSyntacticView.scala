@@ -284,7 +284,13 @@ class BasicSyntacticView(cfgHelper: CFGHelper) {
               .filter(_.getNormal(cfgHelper).isDefined)
               .filter(syntacticMeasure(_) == v.map(syntacticMeasure).min)
               .toList
-              .sortBy((syn) => (syn.name, syn.rhsIdx)),
+              .sortBy((syn) =>
+                (
+                  syn.name,
+                  syn.rhsIdx,
+                  syn.toString(false, false, Some(cfgHelper.cfg.grammar)),
+                ),
+              ),
           )
       }
       .flatMap {

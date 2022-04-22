@@ -7,10 +7,10 @@ class ParseTinyTest extends EditorTest {
   def init: Unit =
     check("parse") {
       EditorTest.parseTest("42 ?? #Identifier#")
-      EditorTest.parseTest("42 ?? #Identifier:String#")
+      EditorTest.parseTest("42 ?? #Identifier/:String#")
       EditorTest.parseTest("#Identifier# + #Identifier#")
-      EditorTest.parseTest("#Identifier:Number# + #Identifier:Number#")
-      EditorTest.parseTest("#e:Throw# + #e:Number#")
+      EditorTest.parseTest("#Identifier/:Number# + #Identifier/:Number#")
+      EditorTest.parseTest("#e/1/:Throw# + #e/2/:Number#")
       EditorTest.parseTest("for (var #Identifier# of [1, 2, 3] ) #Statement#")
       EditorTest.parseTest(
         "#MultiplicativeExpression# + #MultiplicativeExpression#",

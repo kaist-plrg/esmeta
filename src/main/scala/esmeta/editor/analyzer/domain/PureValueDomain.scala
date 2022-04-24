@@ -44,6 +44,14 @@ class PureValueDomain extends Domain:
   end ValueKind
 
   sealed trait Elem extends ElemTrait:
+
+    override def beautify(grammar: Option[esmeta.spec.Grammar]) =
+      this match
+        case EKind(s)                => s"⊤ (${s})"
+        case EBot                    => "⊥"
+        case EFlat(s: SyntacticView) => s.toString(true, false, grammar)
+        case EFlat(v)                => v.toString
+
     def ⊑(that: Elem): Boolean = (this, that) match
       case (EBot, _)              => true
       case (_, EBot)              => false
@@ -77,5 +85,5 @@ class PureValueDomain extends Domain:
   case class EKind(s: Set[ValueKind]) extends Elem
 
   // appender
-  implicit val app: Rule[Elem] = (app, elem) => app >> elem.toString
+  implicit val app: Rule[Elem] = (app, elem) => app >> elem.beautify(None)
 end PureValueDomain

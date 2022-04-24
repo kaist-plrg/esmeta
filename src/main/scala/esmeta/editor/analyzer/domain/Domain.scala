@@ -32,7 +32,6 @@ trait Domain:
     def isBottom: Boolean = this == Bot
 
     // conversion to string
-    override def toString: String = toString(None)
-    def toString(grammar: Option[esmeta.spec.Grammar]): String = stringify(this)
+    def beautify(grammar: Option[esmeta.spec.Grammar]): String = toString
   end ElemTrait
 end Domain

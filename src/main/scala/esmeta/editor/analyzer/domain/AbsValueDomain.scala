@@ -202,8 +202,6 @@ trait AbsValueDomain extends Domain {
   }
   trait AbsValueTrait extends ElemTrait { this: Elem =>
 
-    override def toString(grammar: Option[esmeta.spec.Grammar] = None): String
-
     def setAllowTopClo(b: Boolean = true): Elem
     def isAllowTopClo: Boolean
 

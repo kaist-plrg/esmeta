@@ -65,6 +65,13 @@ class AContDomain[T <: AbsValueDomain with Singleton](val avd: T)
             }
         })
 
+    override def beautify(grammar: Option[esmeta.spec.Grammar]): String =
+      this match
+        case ESet(s) =>
+          if (s.size == 0) "⊥" else s.map(_.toString).mkString("{", ", ", "}")
+        case EIgnoreCont => "!⊤!"
+        case ETopCont    => "⊤"
+
   }
   case class ESet(s: Set[avd.ACont]) extends Elem
   case object EIgnoreCont extends Elem

@@ -132,7 +132,7 @@ class BasicStateDomain[AOD <: AbsObjDomain[_] with Singleton](
     // globals: Map[Id, AbsValue]
   ) extends AbsStateTrait {
 
-    override def isBottom = !this.reachable
+    override def isBottom = !this.reachable || locals.values.exists(_.isBottom)
     // singleton checks
     def isSingle: Boolean = false
 
@@ -178,10 +178,16 @@ class BasicStateDomain[AOD <: AbsObjDomain[_] with Singleton](
     }
 
     // handle returns (this: return states / to: caller states)
-    def doReturn(to: Elem, defs: Iterable[(Id, AbsValue)]): Elem = Elem(
-      reachable = true,
-      locals = to.locals ++ defs,
-    )
+    def doReturn(to: Elem, defs: Iterable[(Id, AbsValue)]): Elem =
+      val mdefs = defs.toMap
+      Elem(
+        reachable = true,
+        locals = (to.locals.keySet ++ mdefs.keySet).toList
+          .map(x => {
+            x -> to.lookupLocal(x) ⊔ mdefs.getOrElse(x, AbsValue.Bot)
+          })
+          .toMap,
+      )
 
     // garbage collection
     def garbageCollected: Elem = this
@@ -317,6 +323,9 @@ class BasicStateDomain[AOD <: AbsObjDomain[_] with Singleton](
     // get string wth detailed shapes of locations
     def getString(value: AbsValue): String = this.toString
 
+    override def beautify(grammar: Option[esmeta.spec.Grammar]): String =
+      toString(false)
+
   }
 
   // appender
@@ -326,7 +335,7 @@ class BasicStateDomain[AOD <: AbsObjDomain[_] with Singleton](
     }
     app >> elem.reachable >> " " >> nonTopElems
       .sortWith { case (a, b) => a._1.toString < b._1.toString }
-      .map(kv => s"${kv._1} -> ${kv._2.toString(grammar = Some(cfg.grammar))}")
+      .map(kv => s"${kv._1} -> ${kv._2.beautify(grammar = Some(cfg.grammar))}")
       .mkString("{", ", ", "}") >>
     topElems
       .sortWith { case (a, b) => a._1.toString < b._1.toString }

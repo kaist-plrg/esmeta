@@ -450,6 +450,14 @@ class PartialEval(cfgHelper: CFGHelper, verbose: Boolean = false) {
     absinit.initialize(view)
 
     val absfin = absinit.fixpoint
+    /*
+    val scanner = new java.util.Scanner(System.in)
+    while (true)
+      val nid = scanner.nextInt
+      val node = cfgHelper.cfg.nodeMap(nid)
+      val np = NodePoint(cfgHelper.cfg.funcOf(node), node, View(Nil, Nil, 0))
+      println(absfin.npMap(np).beautify(Some(cfgHelper.cfg.grammar)))
+     */
     absfin.getCG
   }
 

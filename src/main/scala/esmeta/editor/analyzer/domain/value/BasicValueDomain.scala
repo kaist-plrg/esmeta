@@ -45,11 +45,11 @@ class BasicValueDomain() extends AbsValueDomain {
     )
   // , "Get", "GetV", "GetMethod", "Call", "OrdinaryToPrimitive")
 
-  def findHandler(s: String): Elem = handlerMethods
-    .get(s)
+  def findHandler(name: String, kind: String): Elem = handlerMethods
+    .get(kind)
     .map((f) =>
       Elem(
-        clo = clod.EHandler(s, f),
+        clo = clod.EHandler(name, kind, f),
       ),
     )
     .getOrElse(Top)
@@ -69,7 +69,7 @@ class BasicValueDomain() extends AbsValueDomain {
       )
     case AClo(func, _) if handlerMethods contains func.name =>
       Elem(
-        clo = clod.EHandler(func.name, handlerMethods(func.name)),
+        clo = clod.EHandler(func.name, func.name, handlerMethods(func.name)),
       )
     case AClo(func, captured) =>
       Elem(
@@ -205,8 +205,8 @@ class BasicValueDomain() extends AbsValueDomain {
       )
 
     def getHandler = clo match {
-      case clod.EHandler(_, f) => Some(f)
-      case _                   => None
+      case clod.EHandler(name, _, f) => Some((name, f))
+      case _                         => None
     }
 
     def unary_! : Elem = Elem(
@@ -294,7 +294,7 @@ class BasicValueDomain() extends AbsValueDomain {
               if (v.size == 1) FlatElem(v.head)
               else if (v.size == 0) FlatBot
               else FlatTop
-            case clod.EHandler(_, _) => FlatTop
+            case clod.EHandler(_, _, _) => FlatTop
         case ContKind =>
           cont match
             case contd.ETopCont =>
@@ -324,7 +324,7 @@ class BasicValueDomain() extends AbsValueDomain {
             case clod.EIgnoreClo =>
               Set()
             case clod.ESet(v: Set[AClo]) => v
-            case clod.EHandler(_, _)     => Set()
+            case clod.EHandler(_, _, _)  => Set()
         case ContKind =>
           cont match
             case contd.ETopCont =>

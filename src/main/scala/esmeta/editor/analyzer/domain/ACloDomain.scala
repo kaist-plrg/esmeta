@@ -77,12 +77,13 @@ class ACloDomain[T <: AbsValueDomain with Singleton](val avd: T)
     override def beautify(grammar: Option[esmeta.spec.Grammar]) = this match
       case ESet(s) =>
         if (s.size == 0) "⊥" else s.map(_.toString).mkString("{", ", ", "}")
-      case EHandler(name, _) => name
-      case EIgnoreClo        => "!⊤!"
-      case ETopClo           => "⊤"
+      case EHandler(name, kind, _) => s"${name}[$kind]"
+      case EIgnoreClo              => "!⊤!"
+      case ETopClo                 => "⊤"
 
   }
-  case class EHandler(name: String, f: List[avd.Elem] => avd.Elem) extends Elem
+  case class EHandler(name: String, kind: String, f: List[avd.Elem] => avd.Elem)
+    extends Elem
   case class ESet(s: Set[avd.AClo]) extends Elem
   case object EIgnoreClo extends Elem
   case object ETopClo extends Elem

@@ -237,8 +237,14 @@ class AbsTransfer[ASD <: AbsStateDomain[_] with Singleton, T <: AbsSemantics[
               put(AbsState.Bot)
             else
               value.getHandler match {
-                case Some(f) => modify(_.defineLocal(call.lhs -> f(vs)))
-                case None    => modify(_.defineLocal(call.lhs -> AbsValue.Top))
+                case Some(name, f) => {
+                  sem.ignoreRetEdges += (name -> (sem.ignoreRetEdges.getOrElse(
+                    name,
+                    Set(),
+                  ) + NodePoint(func, call, view)));
+                  modify(_.defineLocal(call.lhs -> f(vs)))
+                }
+                case None => modify(_.defineLocal(call.lhs -> AbsValue.Top))
               }
         } yield ())(st2)._2
       } catch {

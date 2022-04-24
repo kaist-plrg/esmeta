@@ -24,6 +24,7 @@ class AbsSemantics[ASD <: AbsStateDomain[_] with Singleton](
   var rpMap: Map[ReturnPoint, ard.Elem] = Map(),
   var callInfo: Map[NodePoint[Call], ard.asd.Elem] = Map(),
   var retEdges: Map[ReturnPoint, Set[NodePoint[Call]]] = Map(),
+  var ignoreRetEdges: Map[String, Set[NodePoint[Call]]] = Map(),
   var loopOut: Map[View, Set[View]] = Map(),
   val maxIJK: ViewConfig = ViewConfig(0, 0, 0),
   timeLimit: Option[Long] = None,
@@ -54,13 +55,21 @@ class AbsSemantics[ASD <: AbsStateDomain[_] with Singleton](
 
   def getCG: CallGraph = new CallGraph {
     val funcs = npMap.keySet.map(_.func.name)
-    val func_targets = retEdges.toList.foldLeft(Map[String, Set[String]]()) {
-      case (m, (ReturnPoint(rf, _), s)) =>
-        s.foldLeft(m) {
-          case (m, NodePoint(cf, _, _)) =>
-            m + (cf.name -> (m.get(cf.name).getOrElse(Set()) + rf.name))
-        }
-    }
+    val func_targets =
+      val fe1 = retEdges.toList.foldLeft(Map[String, Set[String]]()) {
+        case (m, (ReturnPoint(rf, _), s)) =>
+          s.foldLeft(m) {
+            case (m, NodePoint(cf, _, _)) =>
+              m + (cf.name -> (m.get(cf.name).getOrElse(Set()) + rf.name))
+          }
+      }
+      ignoreRetEdges.toList.foldLeft(fe1) {
+        case (m, (rs, s)) =>
+          s.foldLeft(m) {
+            case (m, NodePoint(cf, _, _)) =>
+              m + (cf.name -> (m.get(cf.name).getOrElse(Set()) + rs))
+          }
+      }
   }
   // fixpiont computation
   @tailrec

@@ -206,12 +206,37 @@ extension (sview: SyntacticView) {
 /** extension for simple ast */
 extension (ast: SimpleAst) {
 
-  // TODO matching evaluation type
-  def matches(ast0: SimpleAst, cfg: CFG): Boolean = (ast, ast0) match {
+  def getConcreteParts(sview: SimpleAst): List[Int] = {
+    val concretes: ListBuffer[Int] = ListBuffer()
+
+    @tailrec
+    def aux(queue: List[(SimpleAst, SimpleAst)]): Unit = if (!queue.isEmpty) {
+      var next: List[(SimpleAst, SimpleAst)] = List()
+      for { (ast0, sview0) <- queue } (ast0, sview0) match
+        case (lex: SimpleLexical, lex0: SimpleLexical) =>
+          concretes += lex.id
+        case (syn: SimpleSyntactic, syn0: SimpleSyntactic) =>
+          concretes += syn.id
+          for { (child, child0) <- (syn.children zip syn0.children) }
+            next ::= (child, child0)
+        case _ =>
+      aux(next)
+    }
+
+    aux(List((ast, sview)))
+    concretes.toList
+  }
+
+  /** check whether given JS ast matches syntactic view */
+  def matches(
+    ast0: SimpleAst,
+    annoMap: Map[Int, Set[Annotation]],
+    cfg: CFG,
+  ): Boolean = (ast, ast0) match {
     // impossible in our use cases
     case (_: SimpleAbsSyntactic, _: SimpleAbsSyntactic) =>
       ast.nameIdx == ast0.nameIdx
-    case (_: SimpleAbsSyntactic, _) => ast0.matches(ast, cfg)
+    case (_: SimpleAbsSyntactic, _) => ast0.matches(ast, annoMap, cfg)
 
     // possible cases
     case (lex: SimpleLexical, lex0: SimpleLexical) =>
@@ -222,18 +247,16 @@ extension (ast: SimpleAst) {
       syn.idx == syn0.idx &&
       syn.subIdx == syn0.subIdx &&
       (syn.children zip syn0.children).forall {
-        case (child, child0) => child.matches(child0, cfg)
+        case (child, child0) => child.matches(child0, annoMap, cfg)
       }
-    case (lex: SimpleLexical, absSyn0: SimpleAbsSyntactic) =>
-      lex.nameIdx == absSyn0.nameIdx ||
-      cfg
-        .simplifiedMap(absSyn0.nameIdx)
-        .exists(_._1 == lex.nameIdx)
-    case (syn: SimpleSyntactic, absSyn0: SimpleAbsSyntactic) =>
-      syn.nameIdx == absSyn0.nameIdx ||
-      cfg
-        .simplifiedMap(absSyn0.nameIdx)
-        .contains((syn.nameIdx, syn.idx, syn.subIdx))
+    case (_, absSyn0: SimpleAbsSyntactic) =>
+      val prodMatched =
+        ast.nameIdx == absSyn0.nameIdx ||
+        cfg
+          .simplifiedMap(absSyn0.nameIdx)
+          .contains((ast.nameIdx, ast.idx, ast.subIdx))
+      val annoSet = annoMap.getOrElse(ast.id, Set())
+      prodMatched && absSyn0.evalTypeMatched(annoSet)
     case _ => false
   }
 }

@@ -27,13 +27,18 @@ case class ProgramInfo(
     (m0, m1)
   }
 
-  def matches(sview: SimpleAst, cfg: CFG): Boolean =
+  def matches(sview: SimpleAst, algoId: Int, cfg: CFG): Boolean =
     val idxMap = prodMap.getOrElseUpdate(sview.nameIdx, MMap())
     val subIdxMap = idxMap.getOrElseUpdate(sview.idx, MMap())
     val astSet = subIdxMap.getOrElseUpdate(sview.subIdx, MSet())
+
     for {
       astId <- astSet if algoMap.contains(astId)
       ast <- astMap.get(astId)
-    } if (ast.matches(sview, cfg)) return true
+      if ast.matches(sview, annoMap, cfg)
+      conc <- ast.getConcreteParts(sview)
+      concAlgoSet <- algoMap.get(conc)
+    } if (concAlgoSet contains algoId) return true
+
     false
 }

@@ -1,5 +1,7 @@
 package esmeta.editor.sview
 
+import esmeta.editor.util.*
+
 /** simplified ast */
 sealed trait SimpleAst {
 
@@ -27,8 +29,8 @@ case class SimpleSyntactic(
 
 /** simplified lexical ast */
 case class SimpleLexical(nameIdx: Int, str: String) extends SimpleAst {
-  val idx = 0
-  val subIdx = 0
+  val idx = -1
+  val subIdx = -1
 }
 
 /** simplified abstract ast */
@@ -39,6 +41,10 @@ case class SimpleAbsSyntactic(
 ) extends SimpleAst {
   val idx = -1
   val subIdx = -1
+
+  def evalTypeMatched(annotationSet: Set[Annotation]): Boolean =
+    annotationSet.isEmpty || annotationSet.exists(_.subType(annotation))
+
 }
 
 /** unit walker for simplified ast */

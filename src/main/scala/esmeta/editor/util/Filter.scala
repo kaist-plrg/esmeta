@@ -34,28 +34,20 @@ case class Filter(cfg: CFG, dataDir: String) {
 
     val simplified = sview.simplify(cfg)
     val programIdxSet = pIndex.getProgramSet(simplified)
+
     for {
       idx <- programIdxSet
       (tload, pdata) = time(readJson[ProgramInfo](s"$dataDir/data/$idx.json"))
     } {
       t1 += tload
-      val (tmatch, matched) = time(pdata.matches(simplified, cfg))
+      val (tmatch, matched) = time(pdata.matches(simplified, algoId, cfg))
       t2 += tmatch
       if (matched) result += idx
     }
     println(programIdxSet.size)
     println((t0, t1, t2, result.size))
 
-    ???
-
-    // println(t0)
-    // println(t1)
-
-    // println("----------------------------------------")
-    // println(sview)
-    // println("----------------------------------------")
-    // println(sview.simplify(cfg))
-    // ???
+    result.map(tests(_))
   }
 
   // def experiment1(

@@ -228,7 +228,8 @@ case class Coverage(
             } annoMap += (astId -> (annotationSet + annotation))
           }
           // handle GetValue call
-          else if (isUntracked) untrackedStack = untrackedStack.tail
+          else if (isUntracked && !untrackedStack.isEmpty)
+            untrackedStack = untrackedStack.tail
         }
       }.fixpoint
 

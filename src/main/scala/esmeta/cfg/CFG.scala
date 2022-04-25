@@ -6,6 +6,7 @@ import esmeta.ir.Program
 import esmeta.spec.{Spec, TypeModel, Grammar, Nonterminal}
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
+import esmeta.util.PerformanceRecorder
 import scala.collection.mutable.ListBuffer
 
 /** control-flow graphs (CFGs) */
@@ -51,20 +52,18 @@ case class CFG(
   /** get the corresponding grammar */
   def grammar: Grammar = spec.grammar
 
-  /** production name helper */
-  lazy val names: Array[String] = grammar.nameMap.keys.toArray.sorted
-  def getNameIdx(name: String): Int =
-    names.indexOf(
-      if (name == "IdentifierName \\ (ReservedWord)") "IdentifierName"
-      else name,
-    )
-
   /** get direct simplified forms of nonterminal */
-  private lazy val getDirectSimplified =
-    cached[Int, (Set[Int], Set[(Int, Int, Int)])] { nameIdx =>
+  private lazy val getDirectSimplified: Map[
+    Int,
+    (Set[Int], Set[(Int, Int, Int)]),
+  ] = PerformanceRecorder("direct simplified") {
+    var map: Map[Int, (Set[Int], Set[(Int, Int, Int)])] = Map()
+    for { nameIdx <- 0 until grammar.names.size } {
+
+      // cached[Int, (Set[Int], Set[(Int, Int, Int)])] { nameIdx =>
       var chainProds: Set[Int] = Set()
       var simplified: Set[(Int, Int, Int)] = Set()
-      val prodName = names(nameIdx)
+      val prodName = grammar.names(nameIdx)
       val prod = grammar.nameMap(prodName)
 
       if (prod.isSyntactic) {
@@ -97,39 +96,45 @@ case class CFG(
               }
             }
         }.toSet
-        chainProds = chainProdNames.map(names.indexOf(_))
+        chainProds = chainProdNames.map(grammar.names.indexOf(_))
       } else simplified += ((nameIdx, -1, -1))
+      map += (nameIdx -> (chainProds, simplified))
 
-      (chainProds, simplified)
+      // yield nameIdx -> (chainProds, simplified)
     }
+    map
+  }
 
   /** get all simplified forms of nonterminal */
-  lazy val simplifiedMap: Map[Int, Set[(Int, Int, Int)]] = {
-    // get direct chains for each nonterminal
-    var chains =
+  lazy val simplifiedMap: Map[Int, Set[(Int, Int, Int)]] =
+    PerformanceRecorder("simplifiedMap") {
+      // get direct chains for each nonterminal
+      var chains =
+        (for {
+          i <- 0 until grammar.names.size
+          name = grammar.names(i)
+          direct <- getDirectSimplified(i)._1
+        } yield i -> direct).toSet
+
+      PerformanceRecorder("transitive closure") {
+        // get transitive closure of production chain
+        for {
+          k <- 0 until grammar.names.size
+          i <- 0 until grammar.names.size
+          j <- 0 until grammar.names.size
+        } {
+          if (
+            !chains.contains((i, j)) &&
+            (chains.contains((i, k)) && chains.contains((k, j)))
+          ) chains += ((i, j))
+        }
+      }
+
+      // get simplified production for each nonterminal
       (for {
-        i <- 0 until names.size
-        name = names(i)
-        direct <- getDirectSimplified(i)._1
-      } yield i -> direct).toSet
-
-    // get transitive closure of production chain
-    for {
-      k <- 0 until names.size
-      i <- 0 until names.size
-      j <- 0 until names.size
-    } {
-      if (
-        !chains.contains((i, j)) &&
-        (chains.contains((i, k)) && chains.contains((k, j)))
-      ) chains += ((i, j))
+        (from, toSet) <- chains.groupMap(_._1)(_._2)
+      } yield from -> (toSet + from).flatMap(getDirectSimplified(_)._2)).toMap
     }
-
-    // get simplified production for each nonterminal
-    (for {
-      (from, toSet) <- chains.groupMap(_._1)(_._2)
-    } yield from -> (toSet + from).flatMap(getDirectSimplified(_)._2)).toMap
-  }
 
   /** dump funcs of cfg */
   def dumpTo(baseDir: String): Unit =

@@ -16,15 +16,23 @@ extension (ast: Ast) {
     // trim until *.Evaluation
     def aux(ast0: Ast): Ast = {
       ast0 match
-        case syn @ JsSyntactic(name, _, rhsIdx, List(Some(child))) =>
-          val fname = s"${name}[${rhsIdx},${syn.subIdx(cfg)}].Evaluation"
-          val hasEval = cfg.fnameMap contains fname
-          if (hasEval) ast0 else aux(child)
+        case syn @ JsSyntactic(name, _, rhsIdx, children) =>
+          val cs = children.flatten
+          cs match {
+            case List(child) =>
+              val rhs = cfg.grammar.nameMap(name).rhsList(rhsIdx)
+              if (rhs.terminals.isEmpty) {
+                val fname = s"${name}[${rhsIdx},${syn.subIdx(cfg)}].Evaluation"
+                val hasEval = cfg.fnameMap contains fname
+                if (hasEval) ast0 else aux(child)
+              } else ast0
+            case _ => ast0
+          }
         case _ => ast0
     }
 
     val subIdx = ast.subIdx(cfg)
-    val nameIdx = cfg.getNameIdx(ast.name)
+    val nameIdx = cfg.grammar.getNameIdx(ast.name)
 
     ast match
       case JsLexical(_, str) => SimpleLexical(nameIdx, str)
@@ -167,16 +175,24 @@ extension (sview: SyntacticView) {
     // trim until *.Evaluation
     def aux(sview0: SyntacticView): SyntacticView = {
       sview0 match
-        case syn @ Syntactic(name, _, rhsIdx, List(Some(child))) =>
-          val fname = s"${name}[${rhsIdx},${syn.subIdx(cfg)}].Evaluation"
-          cfg.fnameMap.get(fname) match
-            case _: Some[_] => sview0
-            case None       => aux(child)
+        case syn @ Syntactic(name, _, rhsIdx, children) =>
+          val cs = children.flatten
+          cs match {
+            case List(child) =>
+              val rhs = cfg.grammar.nameMap(name).rhsList(rhsIdx)
+              if (rhs.terminals.isEmpty) {
+                val fname = s"${name}[${rhsIdx},${syn.subIdx(cfg)}].Evaluation"
+                cfg.fnameMap.get(fname) match
+                  case _: Some[_] => sview0
+                  case None       => aux(child)
+              } else sview0
+            case _ => sview0
+          }
         case _ => sview0
     }
 
     val subIdx = sview.subIdx(cfg)
-    val nameIdx = cfg.getNameIdx(sview.name)
+    val nameIdx = cfg.grammar.getNameIdx(sview.name)
     sview match
       case AbsSyntactic(_, _, a, f) => SimpleAbsSyntactic(nameIdx, a, f)
       case Syntactic(_, _, idx, children) =>

@@ -122,18 +122,27 @@ case class Coverage(
     // trim until *.Evaluation
     private def trim(ast: Ast): Ast =
       ast match
-        case syn @ JsSyntactic(name, _, rhsIdx, List(Some(child))) =>
-          val fname = s"${name}[${rhsIdx},${syn.subIdx(cfg)}].Evaluation"
-          cfg.fnameMap.get(fname) match
-            case _: Some[_] => ast
-            case None       => trim(child)
+        case syn @ JsSyntactic(name, _, rhsIdx, children) =>
+          val cs = children.flatten
+
+          cs match {
+            case List(child) =>
+              val rhs = cfg.grammar.nameMap(name).rhsList(rhsIdx)
+              if (rhs.terminals.isEmpty) {
+                val fname = s"${name}[${rhsIdx},${syn.subIdx(cfg)}].Evaluation"
+                cfg.fnameMap.get(fname) match
+                  case _: Some[_] => ast
+                  case None       => trim(child)
+              } else ast
+            case _ => ast
+          }
         case _ => ast
 
     // simplify ast and re-assign id
     private def simplifyAst(ast: Ast): SimpleAst = {
       val newId = reassign(ast.idOpt.get)
       val subIdx = ast.subIdx(cfg)
-      val nameIdx = cfg.getNameIdx(ast.name)
+      val nameIdx = cfg.grammar.getNameIdx(ast.name)
       ast match
         case JsLexical(_, str) => SimpleLexical(nameIdx, str).setId(newId)
         case JsSyntactic(_, _, idx, children) =>

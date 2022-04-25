@@ -1,9 +1,10 @@
 package esmeta.editor.sview
 
 import esmeta.editor.util.*
+import esmeta.editor.*
 
 /** simplified ast */
-sealed trait SimpleAst {
+sealed trait SimpleAst extends EditorElem {
 
   /** id */
   var id: Int = -1

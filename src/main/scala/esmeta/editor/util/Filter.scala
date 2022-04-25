@@ -27,9 +27,6 @@ case class Filter(cfg: CFG, dataDir: String) {
     //   map
     // }
 
-    var t1 = 0L
-    var t2 = 0L
-
     var result: Set[Int] = Set()
 
     val simplified = sview.simplify(cfg)
@@ -37,17 +34,21 @@ case class Filter(cfg: CFG, dataDir: String) {
 
     for {
       idx <- programIdxSet
-      (tload, pdata) = time(readJson[ProgramInfo](s"$dataDir/data/$idx.json"))
+      pdata = PerformanceRecorder("load")(
+        readJson[ProgramInfo](s"$dataDir/data/$idx.json"),
+      )
     } {
-      t1 += tload
-      val (tmatch, matched) = time(pdata.matches(simplified, algoId, cfg))
-      t2 += tmatch
+      val matched =
+        PerformanceRecorder("matching")(pdata.matches(simplified, algoId, cfg))
       if (matched) result += idx
     }
     println(programIdxSet.size)
-    println((t0, t1, t2, result.size))
+    println(result.size)
 
-    result.map(tests(_))
+    PerformanceRecorder.printStat()
+    ???
+
+    // result.map(tests(_))
   }
 
   // def experiment1(

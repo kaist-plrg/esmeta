@@ -26,6 +26,7 @@ case class Rhs(
 
   /** get non-terminals in an RHS */
   def nts: List[Nonterminal] = symbols.flatMap(_.getNt)
+  def terminals: List[Terminal] = symbols.collect { case t: Terminal => t }
 
   /** check if empty */
   def isEmpty: Boolean = symbols match

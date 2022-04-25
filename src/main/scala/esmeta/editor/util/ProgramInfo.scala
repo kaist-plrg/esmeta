@@ -2,6 +2,7 @@ package esmeta.editor.util
 
 import esmeta.cfg.CFG
 import esmeta.editor.sview.*
+import esmeta.util.PerformanceRecorder
 import scala.collection.mutable.{Map => MMap, Set => MSet}
 
 // program information after evaluation
@@ -29,14 +30,20 @@ case class ProgramInfo(
   }
 
   def matches(sview: SimpleAst, algoId: Int, cfg: CFG): Boolean =
-    val idxMap = prodMap.getOrElseUpdate(sview.nameIdx, MMap())
-    val subIdxMap = idxMap.getOrElseUpdate(sview.idx, MMap())
-    val astSet = subIdxMap.getOrElseUpdate(sview.subIdx, MSet())
+    val idxMap = PerformanceRecorder("idxMap")(
+      prodMap.getOrElseUpdate(sview.nameIdx, MMap()),
+    )
+    val subIdxMap = PerformanceRecorder("subIdxMap")(
+      idxMap.getOrElseUpdate(sview.idx, MMap()),
+    )
+    val astSet = PerformanceRecorder("astSet")(
+      subIdxMap.getOrElseUpdate(sview.subIdx, MSet()),
+    )
 
     for {
       astId <- astSet if algoMap.contains(astId)
       ast <- astMap.get(astId)
-      if ast.matches(sview, annoMap, cfg)
+      if PerformanceRecorder("ast matches")(ast.matches(sview, annoMap, cfg))
       conc <- ast.getConcreteParts(sview)
       concAlgoSet <- algoMap.get(conc)
     } if (concAlgoSet contains algoId) return true

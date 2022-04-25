@@ -14,6 +14,14 @@ case class Grammar(
   lazy val nameMap: Map[String, Production] =
     (for (prod <- prods) yield prod.lhs.name -> prod).toMap
 
+  /** production name helper */
+  lazy val names: Array[String] = nameMap.keys.toArray.sorted
+  def getNameIdx(name: String): Int =
+    names.indexOf(
+      if (name == "IdentifierName \\ (ReservedWord)") "IdentifierName"
+      else name,
+    )
+
   /** get the lexical production names reachable by syntactic productions */
   lazy val topLevelLexicals: Set[String] = (for {
     prod <- prods

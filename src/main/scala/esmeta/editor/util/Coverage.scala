@@ -99,6 +99,7 @@ case class Coverage(
     annoMap: Map[Int, Set[Annotation]],
     algoMap: Map[Int, Set[Int]],
     astList: List[Ast],
+    builtinSet: Set[Int],
   ) {
     lazy val result = {
       val simplified = astList.map(simplifyAst(_))
@@ -106,6 +107,7 @@ case class Coverage(
         for { (origId, annoSet) <- annoMap } yield idMap(origId) -> annoSet,
         for { (origId, algoSet) <- algoMap } yield idMap(origId) -> algoSet,
         simplified,
+        for { origId <- builtinSet } yield idMap(origId),
       )
     }
 
@@ -156,6 +158,7 @@ case class Coverage(
       val st = initState(sourceText, ast)
 
       // run interp
+      var builtinSet: Set[Int] = Set()
       var algoMap: Map[Int, Set[Int]] = Map()
       var annoMap: Map[Int, Set[Annotation]] = Map()
       var astList: ListBuffer[Ast] = ListBuffer(testBody)
@@ -169,8 +172,10 @@ case class Coverage(
           }
         private def astStack = contexts.flatMap(_.astOpt)
 
-        // track GetValue
-        private var inGetValue = false
+        // decide which function not to be tracked
+        private var untrackedStack: List[Unit] = List()
+        def isUntracked: Boolean =
+          this.st.context.name == "GetValue" || this.st.context.func.isBuiltin
 
         // handle dynamically created ast
         override def interp(expr: Expr): Value = {
@@ -190,7 +195,7 @@ case class Coverage(
           super.interp(node)
 
           node match {
-            case _: Call if !inGetValue =>
+            case _: Call if untrackedStack.isEmpty =>
               // get top-most ast
               val currAstOpt = evalAstList.headOption
 
@@ -199,10 +204,12 @@ case class Coverage(
                 ast <- currAstOpt
                 astId <- ast.idOpt
                 algoIds = algoMap.getOrElse(astId, Set())
-              } algoMap += (astId -> (algoIds + this.st.context.func.id))
+              }
+                if (this.st.context.func.isBuiltin) builtinSet += astId
+                else algoMap += (astId -> (algoIds + this.st.context.func.id))
 
-              // handle GetValue call
-              if (this.st.context.name == "GetValue") inGetValue = true
+              // mark untracked call
+              if (isUntracked) untrackedStack ::= ()
             case _ => /* do nothing */
           }
         }
@@ -221,14 +228,14 @@ case class Coverage(
             } annoMap += (astId -> (annotationSet + annotation))
           }
           // handle GetValue call
-          else if (this.st.context.name == "GetValue") inGetValue = false
+          else if (isUntracked) untrackedStack = untrackedStack.tail
         }
       }.fixpoint
 
       // check exit and return result
       st(GLOBAL_RESULT) match
         case comp: Comp if comp.ty == CONST_NORMAL =>
-          (annoMap, algoMap, astList.toList)
+          (annoMap, algoMap, astList.toList, builtinSet)
         case v => error(s"not normal exit")
     }
 
@@ -243,10 +250,11 @@ case class Coverage(
     for (idx <- progress) {
       val NormalConfig(name, includes) = tests(idx)
       val testBody = jsParser.fromFile(s"$TEST262_TEST_DIR/$name")
-      val (annoMap, algoMap, astList) = getTouched(testBody, includes)
+      val (annoMap, algoMap, astList, builtinSet) =
+        getTouched(testBody, includes)
 
       // simplify result and update global index
-      val info = new Simplifier(annoMap, algoMap, astList).result
+      val info = new Simplifier(annoMap, algoMap, astList, builtinSet).result
       pIndex.update(idx, info)
 
       // dump result

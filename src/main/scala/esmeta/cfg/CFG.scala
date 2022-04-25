@@ -50,71 +50,85 @@ case class CFG(
 
   /** get the corresponding grammar */
   def grammar: Grammar = spec.grammar
-  private lazy val names: Array[String] = grammar.nameMap.keys.toArray.sorted
+
+  /** production name helper */
+  lazy val names: Array[String] = grammar.nameMap.keys.toArray.sorted
   def getNameIdx(name: String): Int =
     names.indexOf(
       if (name == "IdentifierName \\ (ReservedWord)") "IdentifierName"
       else name,
     )
 
-  /** get possible simplified forms of production */
-  lazy val getSimplified: Int => Set[(Int, Int, Int)] = {
-    val cache = scala.collection.mutable.Map[Int, Set[(Int, Int, Int)]]()
-    var visited: Set[Int] = Set()
-    { nameIdx =>
-      cache.get(nameIdx) match {
-        case Some(result) => result
-        case None =>
-          visited += nameIdx
+  /** get direct simplified forms of nonterminal */
+  private lazy val getDirectSimplified =
+    cached[Int, (Set[Int], Set[(Int, Int, Int)])] { nameIdx =>
+      var chainProds: Set[Int] = Set()
+      var simplified: Set[(Int, Int, Int)] = Set()
+      val prodName = names(nameIdx)
+      val prod = grammar.nameMap(prodName)
 
-          var result: Set[(Int, Int, Int)] = Set()
-          val prodName = names(nameIdx)
-          val prod = grammar.nameMap(prodName)
-          if (prod.isSyntactic) {
-            val chainProdNames = prod.rhsList.zipWithIndex.flatMap {
-              case (rhs, rhsIdx) =>
-                def hasEval(subIdx: Int): Boolean =
-                  fnameMap contains s"${prodName}[${rhsIdx},${subIdx}].Evaluation"
-                def addResult(subIdx: Int): Unit =
-                  result += ((nameIdx, rhsIdx, subIdx))
+      if (prod.isSyntactic) {
+        val chainProdNames = prod.rhsList.zipWithIndex.flatMap {
+          case (rhs, rhsIdx) =>
+            def hasEval(subIdx: Int): Boolean =
+              fnameMap contains s"${prodName}[${rhsIdx},${subIdx}].Evaluation"
+            def addSimplified(subIdx: Int): Unit =
+              simplified += ((nameIdx, rhsIdx, subIdx))
 
-                val (opts, nonOpts) = rhs.nts.partition(_.optional)
-
-                if (opts.size == 0)
-                  nonOpts match
-                    case List(nt) if !hasEval(0) => List(nt.name)
-                    case _                       => { addResult(0); List() }
-                else {
-                  val subs =
-                    opts.foldLeft(List[List[Nonterminal]](List())) {
-                      // nt order not important
-                      case (acc, optNt) =>
-                        acc.flatMap(li => List(li, optNt :: li))
-                    }
-                  subs.zipWithIndex.flatMap {
-                    case (sub, subIdx) =>
-                      if (sub.size + nonOpts.size == 1 && !hasEval(subIdx))
-                        Some(
-                          if (sub.isEmpty) nonOpts.head.name else sub.head.name,
-                        )
-                      else { addResult(subIdx); None }
-                  }
+            val (opts, nonOpts) = rhs.nts.partition(_.optional)
+            if (opts.size == 0)
+              nonOpts match
+                case List(nt) if !hasEval(0) => List(nt.name)
+                case _                       => { addSimplified(0); List() }
+            else {
+              val subs =
+                opts.foldLeft(List[List[Nonterminal]](List())) {
+                  // nt order not important
+                  case (acc, optNt) =>
+                    acc.flatMap(li => List(li, optNt :: li))
                 }
-            }.toSet
-            val chainProdIdxSet = chainProdNames.map(names.indexOf(_))
+              subs.zipWithIndex.flatMap {
+                case (sub, subIdx) =>
+                  if (sub.size + nonOpts.size == 1 && !hasEval(subIdx))
+                    Some(
+                      if (sub.isEmpty) nonOpts.head.name else sub.head.name,
+                    )
+                  else { addSimplified(subIdx); None }
+              }
+            }
+        }.toSet
+        chainProds = chainProdNames.map(names.indexOf(_))
+      } else simplified += ((nameIdx, -1, -1))
 
-            for {
-              chainProdIdx <- chainProdIdxSet
-              if !(visited.contains(chainProdIdx))
-            } result ++= getSimplified(chainProdIdx)
-          } else result += ((nameIdx, -1, -1))
-
-          visited -= nameIdx
-
-          cache.update(nameIdx, result)
-          result
-      }
+      (chainProds, simplified)
     }
+
+  /** get all simplified forms of nonterminal */
+  lazy val simplifiedMap: Map[Int, Set[(Int, Int, Int)]] = {
+    // get direct chains for each nonterminal
+    var chains =
+      (for {
+        i <- 0 until names.size
+        name = names(i)
+        direct <- getDirectSimplified(i)._1
+      } yield i -> direct).toSet
+
+    // get transitive closure of production chain
+    for {
+      k <- 0 until names.size
+      i <- 0 until names.size
+      j <- 0 until names.size
+    } {
+      if (
+        !chains.contains((i, j)) &&
+        (chains.contains((i, k)) && chains.contains((k, j)))
+      ) chains += ((i, j))
+    }
+
+    // get simplified production for each nonterminal
+    (for {
+      (from, toSet) <- chains.groupMap(_._1)(_._2)
+    } yield from -> (toSet + from).flatMap(getDirectSimplified(_)._2)).toMap
   }
 
   /** dump funcs of cfg */

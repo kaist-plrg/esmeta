@@ -227,12 +227,12 @@ extension (ast: SimpleAst) {
     case (lex: SimpleLexical, absSyn0: SimpleAbsSyntactic) =>
       lex.nameIdx == absSyn0.nameIdx ||
       cfg
-        .getSimplified(absSyn0.nameIdx)
+        .simplifiedMap(absSyn0.nameIdx)
         .exists(_._1 == lex.nameIdx)
     case (syn: SimpleSyntactic, absSyn0: SimpleAbsSyntactic) =>
       syn.nameIdx == absSyn0.nameIdx ||
       cfg
-        .getSimplified(absSyn0.nameIdx)
+        .simplifiedMap(absSyn0.nameIdx)
         .contains((syn.nameIdx, syn.idx, syn.subIdx))
     case _ => false
   }

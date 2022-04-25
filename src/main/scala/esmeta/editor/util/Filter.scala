@@ -18,22 +18,44 @@ case class Filter(cfg: CFG, dataDir: String) {
     val tests = readFile(s"$dataDir/test262-list").split(LINE_SEP)
 
     val (t0, pIndex) = time(readJson[ProgramIndex](s"$dataDir/data/index.json"))
-    val (t1, pData) = time {
-      var map: Map[Int, ProgramInfo] = Map()
-      for (idx <- 0 until tests.size) {
-        val path = s"$dataDir/data/$idx.json"
-        map += (idx -> readJson[ProgramInfo](path))
-      }
-      map
-    }
-    println(t0)
-    println(t1)
+    // val (t1, pData) = time {
+    //   var map: Map[Int, ProgramInfo] = Map()
+    //   for (idx <- 0 until tests.size) {
+    //     val path = s"$dataDir/data/$idx.json"
+    //     map += (idx -> readJson[ProgramInfo](path))
+    //   }
+    //   map
+    // }
 
-    println("----------------------------------------")
-    println(sview)
-    println("----------------------------------------")
-    println(sview.simplify(cfg))
+    var t1 = 0L
+    var t2 = 0L
+
+    var result: Set[Int] = Set()
+
+    val simplified = sview.simplify(cfg)
+    val programIdxSet = pIndex.getProgramSet(simplified)
+    for {
+      idx <- programIdxSet
+      (tload, pdata) = time(readJson[ProgramInfo](s"$dataDir/data/$idx.json"))
+    } {
+      t1 += tload
+      val (tmatch, matched) = time(pdata.matches(simplified, cfg))
+      t2 += tmatch
+      if (matched) result += idx
+    }
+    println(programIdxSet.size)
+    println((t0, t1, t2, result.size))
+
     ???
+
+    // println(t0)
+    // println(t1)
+
+    // println("----------------------------------------")
+    // println(sview)
+    // println("----------------------------------------")
+    // println(sview.simplify(cfg))
+    // ???
   }
 
   // def experiment1(

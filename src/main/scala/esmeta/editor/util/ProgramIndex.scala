@@ -35,4 +35,10 @@ case class ProgramIndex(
           for { child <- syn.children } aux(child)
         case _ =>
     for { ast <- astList } aux(ast)
+
+  def getProgramSet(sview: SimpleAst): Set[Int] =
+    val idxMap = prods.getOrElseUpdate(sview.nameIdx, MMap())
+    val subIdxMap = idxMap.getOrElseUpdate(sview.idx, MMap())
+    val programIdxSet = subIdxMap.getOrElseUpdate(sview.subIdx, MSet())
+    programIdxSet.toSet
 }

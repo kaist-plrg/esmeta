@@ -1,5 +1,6 @@
 package esmeta.editor.util
 
+import esmeta.cfg.CFG
 import esmeta.editor.sview.*
 import scala.collection.mutable.{Map => MMap, Set => MSet}
 
@@ -25,4 +26,14 @@ case class ProgramInfo(
     )
     (m0, m1)
   }
+
+  def matches(sview: SimpleAst, cfg: CFG): Boolean =
+    val idxMap = prodMap.getOrElseUpdate(sview.nameIdx, MMap())
+    val subIdxMap = idxMap.getOrElseUpdate(sview.idx, MMap())
+    val astSet = subIdxMap.getOrElseUpdate(sview.subIdx, MSet())
+    for {
+      astId <- astSet if algoMap.contains(astId)
+      ast <- astMap.get(astId)
+    } if (ast.matches(sview, cfg)) return true
+    false
 }

@@ -46,6 +46,6 @@ def simpleAstUnitWalker(ast: SimpleAst, pre: SimpleAst => Unit): Unit = {
   pre(ast)
   ast match
     case syn: SimpleSyntactic =>
-      for { child <- syn.children } simpleAstUnitWalker(ast, pre)
+      for { child <- syn.children } simpleAstUnitWalker(child, pre)
     case _ =>
 }

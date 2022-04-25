@@ -21,7 +21,7 @@ class SyntacticCoveredTest extends EditorTest {
   // registration
   def init: Unit =
     val cfgHelper = CFGHelper(EditorTest.cfg)
-    val peval = PartialEval(cfgHelper)
+    val af = AnalysisFrontend(cfgHelper)
     val viewList = BasicSyntacticView(cfgHelper).viewSet.toList
       // .map((x) => (x._1, x._2.refined(cfgHelper)))
       // .collect { case (i, s: Syntactic) => (i, s) }
@@ -44,7 +44,7 @@ class SyntacticCoveredTest extends EditorTest {
             mcgs,
             cfgHelper.getSDOView(v, "Evaluation").get._2.name,
           )
-          val analysisCG = peval.cg(v)
+          val analysisCG = af.cg(v)
           val tedges = transitiveCG.func_targets.toList.flatMap {
             case (i, s) => s.map((i, _))
           }

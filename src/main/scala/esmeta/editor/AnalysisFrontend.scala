@@ -403,8 +403,8 @@ class UnreachableRemoveWalker[ESD <: EmptyStateDomain[
   }
 }
 
-// partial evaluator for IR functions with a given syntactic view
-class PartialEval(cfgHelper: CFGHelper, verbose: Boolean = false) {
+// analysis frontend for IR functions with a given syntactic view
+class AnalysisFrontend(cfgHelper: CFGHelper, verbose: Boolean = false) {
 
   def setOfUsedVar(irFunc: IRFunc): Set[Id] = {
     def aux(inst: Inst): Set[Id] = {
@@ -461,7 +461,7 @@ class PartialEval(cfgHelper: CFGHelper, verbose: Boolean = false) {
     absfin.getCG
   }
 
-  def apply(view: SyntacticView): List[IRFunc] = {
+  def getReachableFuncs(view: SyntacticView): List[IRFunc] = {
     //
     val avd: AbsValueDomain = BasicValueDomain()
     val aod = BasicObjDomain(avd)

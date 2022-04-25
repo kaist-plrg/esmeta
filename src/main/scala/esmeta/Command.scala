@@ -92,8 +92,8 @@ case object CmdCoverageTest262
   def help = "measure coverage of ECMA-262 (spec.html) from Test262 tests."
 }
 
-/** `peval' command * */
-case object CmdPEval
-  extends Command("peval", CmdBuildCFG >> ViewParse >> ViewPEval) {
-  def help = "partial evaluates a Syntactic View file."
+/** `view-cg' command * */
+case object CmdViewCG
+  extends Command("view-cg", CmdBuildCFG >> ViewParse >> ViewCG) {
+  def help = "Draw a call graph with a Syntactic View file."
 }

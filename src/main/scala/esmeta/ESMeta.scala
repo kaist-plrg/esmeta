@@ -60,7 +60,7 @@ object ESMeta {
     CmdFilterTest262,
     CmdWeb,
     CmdCoverageTest262,
-    CmdPEval,
+    CmdViewCG,
   )
   val cmdMap = commands.foldLeft[Map[String, Command[_]]](Map()) {
     case (map, cmd) => map + (cmd.name -> cmd)
@@ -79,7 +79,7 @@ object ESMeta {
     Web,
     CoverageTest262,
     ViewParse,
-    ViewPEval,
+    ViewCG,
   )
 
   /** global options */

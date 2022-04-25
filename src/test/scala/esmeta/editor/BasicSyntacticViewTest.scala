@@ -35,7 +35,7 @@ class BasicSyntacticViewTest extends EditorTest {
   // registration
   def init: Unit =
     val cfgHelper = CFGHelper(EditorTest.cfg)
-    val peval = PartialEval(cfgHelper)
+    val af = AnalysisFrontend(cfgHelper)
     val viewList = BasicSyntacticView(cfgHelper).viewSet.toList
       // .map((x) => (x._1, x._2.refined(cfgHelper)))
       // .collect { case (i, s: Syntactic) => (i, s) }
@@ -59,7 +59,7 @@ class BasicSyntacticViewTest extends EditorTest {
             mcgs,
             cfgHelper.getSDOView(v, "Evaluation").get._2.name,
           )
-          val analysisCG = peval.cg(v)
+          val analysisCG = af.cg(v)
           pw.foreach((pw) => {
             pw.println(s"$name: ${v
               .toString(true, false, Some(EditorTest.cfg.grammar))}")

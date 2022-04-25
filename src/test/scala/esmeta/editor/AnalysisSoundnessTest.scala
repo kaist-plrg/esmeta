@@ -22,7 +22,7 @@ class AnalysisSoundnessTest extends EditorTest {
   // registration
   def init: Unit =
     val cfgHelper = CFGHelper(EditorTest.cfg)
-    val peval = PartialEval(cfgHelper)
+    val af = AnalysisFrontend(cfgHelper)
     val idMap = cfgHelper.cfg.fnameMap.map { case (s, f) => (f.id, s) }.toMap
     val viewList = BasicSyntacticView(cfgHelper).viewSet.toList
       .sortBy(_._1)
@@ -37,7 +37,7 @@ class AnalysisSoundnessTest extends EditorTest {
         check(
           s"$name (${v.name}): ${v.toString(true, false, Some(EditorTest.cfg.grammar))}",
         ) {
-          val analysisCG = peval.cg(v)
+          val analysisCG = af.cg(v)
           val actualSet = readFile(s"./basic_result/$name")
             .split("\n")
             .filter((s) => s.length != 0)

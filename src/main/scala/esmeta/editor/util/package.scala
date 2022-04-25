@@ -269,7 +269,7 @@ extension (ast: SimpleAst) {
       val prodMatched =
         ast.nameIdx == absSyn0.nameIdx ||
         cfg
-          .simplifiedMap(absSyn0.nameIdx)
+          .getSimplified(absSyn0.nameIdx)
           .contains((ast.nameIdx, ast.idx, ast.subIdx))
       val annoSet = annoMap.getOrElse(ast.id, Set())
       prodMatched && absSyn0.evalTypeMatched(annoSet)

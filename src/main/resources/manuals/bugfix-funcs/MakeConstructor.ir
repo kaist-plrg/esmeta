@@ -1,8 +1,8 @@
 def MakeConstructor(F: Unknown, writablePrototype?: Unknown, prototype?: Unknown): Unknown {
   %0 = F
-  assert (|| (? %0: ECMAScriptFunctionObject) (? %0: BuiltinFunctionObject))
+  assert (|| (? %0: "ECMAScriptFunctionObject") (? %0: "BuiltinFunctionObject"))
   %1 = F
-  if (? %1: ECMAScriptFunctionObject) {
+  if (? %1: "ECMAScriptFunctionObject") {
     call %2 = clo<IsConstructor>(F)
     assert (= %2 false)
     assert (&& F.Extensible (= F.SubMap.prototype absent))

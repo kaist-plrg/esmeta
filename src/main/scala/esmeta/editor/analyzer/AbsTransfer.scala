@@ -390,36 +390,13 @@ class AbsTransfer[ASD <: AbsStateDomain[_] with Singleton, T <: AbsSemantics[
         for {
           v <- transfer(expr)
         } yield v.isCompletion
-      case ETypeCheck(base, ty) =>
+      case ETypeCheck(base, tyExpr) =>
         for {
           origB <- transfer(base)
+          ty <- escape(transfer(tyExpr))
           b = origB.escaped
           st <- get
-        } yield AbsValue.fromAValues(BoolKind)((for {
-          ALiteral(Bool(bool)) <- origB.isAbruptCompletion.getSet(BoolKind)
-          resB <-
-            if (bool) Set(false)
-            else {
-              var set = Set[Boolean]()
-              for (AAst(ast) <- b.getSet(AstKind)) {
-                set += ty.name == "ParseNode" || (ast.types contains ty.name)
-              }
-              // XXX for (Str(str) <- b.str.toList) set += str == name
-              for (loc <- b.getSet(LocKind))
-                set +=
-                  sem.cfgHelper.cfg.typeModel
-                    .subType(st(loc).getType.name, ty.name) ||
-                  st(loc).getType.name == ty.name
-              val otherV =
-                b.project(CompKind) ⊔
-                b.project(ConstKind) ⊔
-                b.project(CloKind) ⊔
-                b.project(ContKind) ⊔
-                b.project(LiteralKind)
-              if (!otherV.isBottom) set += false
-              set
-            }
-        } yield resB).map((b) => ALiteral(Bool(b))).toSeq: _*)
+        } yield AbsValue.Top.project(BoolKind)
       case EContains(list, elem) =>
         for {
           l <- escape(transfer(list))

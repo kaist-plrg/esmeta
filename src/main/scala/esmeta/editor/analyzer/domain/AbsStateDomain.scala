@@ -46,7 +46,7 @@ trait AbsStateDomain[AOD <: AbsObjDomain[_] with Singleton](
     def isSingle: Boolean
 
     // singleton location checks
-    def isSingle(loc: Loc): Boolean
+    def isSingle(loc: AllocSite): Boolean
     // handle calls
     def doCall: Elem
 
@@ -58,7 +58,7 @@ trait AbsStateDomain[AOD <: AbsObjDomain[_] with Singleton](
     def garbageCollected: Elem
 
     // get reachable locations
-    def reachableLocs: Set[Loc]
+    def reachableLocs: Set[AllocSite]
 
     // lookup variable directly
     def directLookup(x: Id): AbsValue
@@ -67,7 +67,7 @@ trait AbsStateDomain[AOD <: AbsObjDomain[_] with Singleton](
     def apply(rv: AbsRefValue, cp: ControlPoint): AbsValue
     def apply(x: Id, cp: ControlPoint): AbsValue
     def apply(base: AbsValue, prop: AbsValue): AbsValue
-    def apply(loc: Loc): AbsObj
+    def apply(loc: AllocSite): AbsObj
 
     /** syntactic SDO */
     case class SyntacticCalled(v: AbsValue, sdo: Func) extends Throwable
@@ -155,7 +155,7 @@ trait AbsStateDomain[AOD <: AbsObjDomain[_] with Singleton](
           case Str(propStr) =>
             apply(syn, propStr)
           case Math(n) if n.isValidInt =>
-            syn.children(n.toInt) match
+            syn.children.lift(n.toInt).getOrElse(None) match
               case Some(child) => AbsValue(ASView(child))
               case None        => AbsValue(ALiteral(Absent))
           case _ => AbsValue.Bot
@@ -189,7 +189,7 @@ trait AbsStateDomain[AOD <: AbsObjDomain[_] with Singleton](
       case Str(propStr) =>
         apply(ast, propStr)
       case Math(n) if n.isValidInt =>
-        ast.children(n.toInt) match
+        ast.children.lift(n.toInt).getOrElse(None) match
           case Some(child) => AbsValue(AAst(child))
           case None        => AbsValue(ALiteral(Absent))
       case _ => AbsValue.Bot
@@ -225,8 +225,8 @@ trait AbsStateDomain[AOD <: AbsObjDomain[_] with Singleton](
     def remove(loc: AbsValue, value: AbsValue): Elem
     def pop(loc: AbsValue, front: Boolean): (AbsValue, Elem)
 
-    def copyObj(from: AbsValue)(to: AllocSite): Elem
-    def keys(loc: AbsValue, intSorted: Boolean)(to: AllocSite): Elem
+    def copyObj(from: AllocSite)(to: AllocSite): Elem
+    def keys(loc: AllocSite, intSorted: Boolean)(to: AllocSite): Elem
     def allocMap(ty: Type, pairs: List[(AbsValue, AbsValue)])(
       to: AllocSite,
     ): Elem

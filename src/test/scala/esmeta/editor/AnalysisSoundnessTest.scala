@@ -46,11 +46,14 @@ class AnalysisSoundnessTest extends EditorTest {
           pw.foreach((pw) => {
             pw.println(s"$name: ${v
               .toString(true, false, Some(EditorTest.cfg.grammar))}")
-            pw.println(s"analysisCG missed func: ${actualSet
+            pw.println(s"staticCG missed func: ${actualSet
               .filter((s) =>
                 (s != "GetValue") &&
                 (!analysisCG.funcs.contains(s)),
               )
+              .map((s) => (s, cfgHelper.cfg.fnameMap(s).id))
+              .toList
+              .sorted
               .mkString(", ")}")
           })
           assert(

@@ -10,6 +10,7 @@ import esmeta.error.RemainingParams
 import esmeta.error.ESMetaError
 import scala.annotation.tailrec
 import esmeta.util.BaseUtils.*
+import esmeta.editor.sview.SyntacticView
 
 extension (kind: Branch.Kind)
   def isLoop = kind match { case Branch.Kind.Loop(_) => true; case _ => false }
@@ -50,28 +51,41 @@ class AbsTransfer[ASD <: AbsStateDomain[_] with Singleton, T <: AbsSemantics[
         val newSt = insts.foldLeft(st) {
           case (st, inst) => transfer(inst)(st)
         }
-        next.foreach((next: Node) => sem += getNextNp(np, next) -> newSt)
+        next
+          .map((next: Node) => sem += getNextNp(np, next) -> newSt)
+          .getOrElse(
+            if (newSt.isBottom) (()) else doReturn(AbsValue(Undef))(newSt),
+          )
       case call @ Call(_, _, _, _, next) =>
         val newSt = transfer(call)(st)
-        next.foreach((next: Node) => sem += getNextNp(np, next) -> newSt)
+        next
+          .map((next: Node) => sem += getNextNp(np, next) -> newSt)
       case Branch(id, kind, cond, thenNode, elseNode) =>
         (for {
           v <- escape(transfer(cond))
           st <- get
-        } yield {
-          if (ignoreCond || AbsValue(Bool(true)) ⊑ v)
-            thenNode.map((thenNode: Node) =>
-              sem += getNextNp(np, thenNode) -> st,
-            )
-          if (ignoreCond || AbsValue(Bool(false)) ⊑ v)
-            elseNode.map((elseNode: Node) =>
-              sem += getNextNp(
-                np,
-                elseNode,
-                kind.isLoop,
-              ) -> st,
-            )
-        })(st)
+          _ <-
+            if (AbsValue(Bool(true)) ⊑ v)
+              thenNode
+                .map((thenNode: Node) =>
+                  sem += getNextNp(np, thenNode) -> st; pure(()),
+                )
+                .getOrElse(doReturn(AbsValue(Undef)))
+            else pure(())
+          _ <-
+            if (AbsValue(Bool(false)) ⊑ v)
+              elseNode
+                .map((elseNode: Node) =>
+                  sem += getNextNp(
+                    np,
+                    elseNode,
+                    kind.isLoop,
+                  ) -> st; pure(()),
+                )
+                .getOrElse(doReturn(AbsValue(Undef)))
+            else pure(())
+          // _ <- if (thenNode.isEmpty || elseNode.isEmpty) {doReturn(AbsValue(Undef))} else pure(())
+        } yield ())(st)
     }
   }
 
@@ -173,7 +187,7 @@ class AbsTransfer[ASD <: AbsStateDomain[_] with Singleton, T <: AbsSemantics[
       case IPush(expr, list, front) =>
         for {
           l <- escape(transfer(list))
-          loc = l.project(LocKind)
+          loc = l.project(SpecLocKind)
           v <- escape(transfer(expr))
           _ <- modify((st) =>
             if (front) st.prepend(loc, v) else st.append(loc, v),
@@ -202,7 +216,7 @@ class AbsTransfer[ASD <: AbsStateDomain[_] with Singleton, T <: AbsSemantics[
     // return specific value
     def doReturn(v: AbsValue): Result[Unit] = for {
       st <- get
-      ret = AbsRet(v, st.replaceLocal())
+      ret = AbsRet(v.wrapCompletion, st.replaceLocal())
       _ = sem.doReturn(rp, ret)
     } yield ()
 
@@ -217,10 +231,16 @@ class AbsTransfer[ASD <: AbsStateDomain[_] with Singleton, T <: AbsSemantics[
           isCalled = {
             var v = false
             // closures
-            if (AbsValue.Top ⊑ value)
-              println(s"${cp.func.name}, ${cp.func.irFunc}, $call, $value")
-            for (AClo(func, captured) <- value.getSet(CloKind)) {
-              val newLocals = captured ++ getLocals(func.irFunc.params, vs)
+            // if (!value.isAllowTopClo)
+            //  println(s"${cp.func.name}, ${cp.func.irFunc}, $call, $value")
+            for ((AClo(func, captured), bMap) <- value.getBoundedCloSet) {
+              val newvs = vs.zipWithIndex.map {
+                case (v, idx) =>
+                  bMap.get(idx) match
+                    case None        => v
+                    case Some(bound) => bound
+              }
+              val newLocals = captured ++ getLocals(func.irFunc.params, newvs)
               val newSt = st.replaceLocal(newLocals.toSeq: _*)
               sem.doCall(call, view, st, func, newSt)
               v = true
@@ -288,12 +308,15 @@ class AbsTransfer[ASD <: AbsStateDomain[_] with Singleton, T <: AbsSemantics[
           y <- escape(transfer(ty))
           v <- escape(transfer(value))
           origT <- escape(transfer(target))
-          t = origT.project(StrKind).project(ConstKind)
+          t = origT.project(StrKind) ⊔ origT.project(ConstKind)
         } yield ((for {
           ALiteral(Const(name)) <- y.getSet(ConstKind)
         } yield AbsValue.mkAbsComp(name, v, t)).foldLeft(AbsValue.Bot)(_ ⊔ _))
       case map @ EMap(ty, props) => {
-        val loc: AllocSite = AllocSite(map.asite, cp.view)
+        val loc: AllocSite =
+          if (sem.cfgHelper.cfg.typeModel.subType(ty.name, "Object"))
+            ObjAllocSite(ty.name)
+          else RecordAllocSite(ty.name)
         for {
           pairs <- join(props.map {
             case (kexpr, vexpr) =>
@@ -306,37 +329,39 @@ class AbsTransfer[ASD <: AbsStateDomain[_] with Singleton, T <: AbsSemantics[
         } yield AbsValue(loc)
       }
       case list @ EList(exprs) => {
-        val loc: AllocSite = AllocSite(list.asite, cp.view)
+        val loc: AllocSite = ListAllocSite
         for {
           vs <- join(exprs.map(transfer))
           _ <- modify(_.allocList(vs.map(_.escaped))(loc))
         } yield AbsValue(loc)
       }
       case lconcat @ EListConcat(exprs) => {
-        val loc: AllocSite = AllocSite(lconcat.asite, cp.view)
+        val loc: AllocSite = ListAllocSite
         for {
           vs <- join(exprs.map((v) => (escape(transfer(v)))))
           st <- get
           obj = vs
             .map((v) =>
-              v.getSet(LocKind).map(st(_)).foldLeft(AbsObj.Bot)(_ ⊔ _),
+              v.getSet(ListLocKind)
+                .map((l) => st(l.asite))
+                .foldLeft(AbsObj.Bot)(_ ⊔ _),
             )
             .foldLeft(AbsObj.Bot)(_ concat _)
           _ <- modify(_.alloc(obj)(loc))
         } yield AbsValue(loc)
       }
       case symbol @ ESymbol(desc) => {
-        val loc: AllocSite = AllocSite(symbol.asite, cp.view)
+        val loc: AllocSite = SymbolAllocSite
         for {
           v <- transfer(desc)
-          newV = v.project(StrKind).project(UndefKind)
+          newV = v.project(StrKind) ⊔ v.project(UndefKind)
           _ <- modify(_.allocSymbol(newV)(loc))
         } yield AbsValue(loc)
       }
       case EPop(list, front) =>
         for {
           l <- escape(transfer(list))
-          loc = l.project(LocKind)
+          loc = l.project(SpecLocKind)
           v <- id(_.pop(loc, front))
         } yield v
       case ERef(ref) =>
@@ -368,14 +393,8 @@ class AbsTransfer[ASD <: AbsStateDomain[_] with Singleton, T <: AbsSemantics[
           st <- get
         } yield {
           var set = scala.collection.mutable.Set[String]()
-          if (!value.project(LocKind).isBottom)
-            for (loc <- value.getSet(LocKind)) {
-              set += (if (
-                        sem.cfgHelper.cfg.typeModel
-                          .subType(st(loc).getType.name, "Object")
-                      ) "Object"
-                      else st(loc).getType.name)
-            }
+          if (!value.project(ObjLocKind).isBottom) set += "Object"
+          if (!value.project(SymbolLocKind).isBottom) set += "Symbol"
           if (!value.project(NumKind).isBottom) set += "Number"
           if (!value.project(BigIntKind).isBottom) set += "BigInt"
           if (!value.project(StrKind).isBottom) set += "String"
@@ -416,25 +435,73 @@ class AbsTransfer[ASD <: AbsStateDomain[_] with Singleton, T <: AbsSemantics[
           newV <- returnIfAbrupt(v, check)
         } yield newV
       case copy @ ECopy(obj) => {
-        val loc: AllocSite = AllocSite(copy.asite, cp.view)
         for {
           v <- escape(transfer(obj))
-          _ <- modify(_.copyObj(v.project(LocKind))(loc))
-        } yield AbsValue(loc)
+          _ <- join(
+            v.getSet(ListLocKind)
+              .map((l) => modify(_.copyObj(l.asite)(ListAllocSite))),
+          )
+          _ <- join(
+            v.getSet(RecordLocKind)
+              .map((r) =>
+                modify(_.copyObj(r.asite)(RecordAllocSite(r.asite.ty))),
+              ),
+          )
+        } yield AbsValue.fromAValues(ListLocKind)(
+          v.getSet(ListLocKind).toSeq: _*,
+        ) ⊔
+        AbsValue.fromAValues(RecordLocKind)(v.getSet(RecordLocKind).toSeq: _*)
       }
       case keys @ EKeys(mobj, intSorted) => {
-        val loc: AllocSite = AllocSite(keys.asite, cp.view)
+        val loc: AllocSite = ListAllocSite
         for {
           v <- escape(transfer(mobj))
-          _ <- modify(_.keys(v.project(LocKind), intSorted)(loc))
+          _ <- join(
+            v.getSet(ListLocKind)
+              .map((l) => modify(_.keys(l.asite, intSorted)(loc))),
+          )
+          _ <- join(
+            v.getSet(RecordLocKind)
+              .map((r) => modify(_.keys(r.asite, intSorted)(loc))),
+          )
+          _ <- join(
+            v.getSet(ObjLocKind)
+              .map((o) => modify(_.keys(o.asite, intSorted)(loc))),
+          )
         } yield AbsValue(loc)
       }
 
       // TODO
       case EParse(_, _)           => AbsValue.Top
       case EGrammar(name, params) => AbsValue(Grammar(name, params))
-      case ESourceText(_)         => AbsValue.Top
-      case EYet(_)                => AbsValue.Top
+      case ESourceText(expr) =>
+        for {
+          v <- escape(transfer(expr))
+          rv = (v.getSingle(AstKind) match {
+            case FlatElem(AAst(ast)) =>
+              AbsValue(
+                Str(
+                  ast
+                    .toString(false, false, Some(sem.cfgHelper.cfg.grammar))
+                    .trim,
+                ),
+              )
+            case FlatElem(ASView(sview)) =>
+              sview.getConcrete
+                .map((ast) =>
+                  AbsValue(
+                    Str(
+                      ast
+                        .toString(false, false, Some(sem.cfgHelper.cfg.grammar))
+                        .trim,
+                    ),
+                  ),
+                )
+                .getOrElse(AbsValue.Top.project(StrKind))
+            case _ => AbsValue.Top.project(StrKind)
+          })
+        } yield rv
+      case EYet(_) => AbsValue.Top
       case ESubstring(expr, from, to) =>
         for {
           s <- escape(transfer(expr))
@@ -586,9 +653,9 @@ class AbsTransfer[ASD <: AbsStateDomain[_] with Singleton, T <: AbsSemantics[
         catch { case e: ESMetaError => AbsValue.Bot }
       case (FlatElem(l), FlatElem(r)) if bop == BOp.Eq || bop == BOp.Equal =>
         (l, r) match {
-          case (lloc: Loc, rloc: Loc) =>
+          case (lloc: Loc[AllocSite], rloc: Loc[AllocSite]) =>
             if (lloc == rloc) {
-              if (st.isSingle(lloc)) AbsValue(Bool(true))
+              if (st.isSingle(lloc.asite)) AbsValue(Bool(true))
               else
                 AbsValue.fromAValues(BoolKind)(
                   ALiteral(Bool(true)),

@@ -11,6 +11,7 @@ class EmptyValueDomain() extends AbsValueDomain {
 
   def apply(value: AValue): Elem = Elem()
 
+  def fromBoundedAClos(items: (AClo, Map[Int, Elem])*): Elem = Elem()
   def fromAValues[T <: AValue](kind: AValueKind[T])(items: T*): Elem = Elem()
 
   def mkAbsComp(name: String, value: Elem, target: Elem): Elem = Elem()
@@ -41,6 +42,7 @@ class EmptyValueDomain() extends AbsValueDomain {
     def getSingle[T <: AValue](kind: AValueKind[T]): Flat[T] = FlatTop
 
     def getSet[T <: AValue](kind: AValueKind[T]): Set[T] = Set()
+    def getBoundedCloSet: Set[(AClo, Map[Int, Elem])] = Set()
 
     def isAllowTopClo = true
     def setAllowTopClo(b: Boolean) = this

@@ -48,12 +48,14 @@ class SyntacticSoundnessTest extends EditorTest {
           pw.foreach((pw) => {
             pw.println(s"$name: ${v
               .toString(true, false, Some(EditorTest.cfg.grammar))}")
-            pw.println(s"transitiveCG missed func: ${actualSet
+            pw.println(s"staticCG missed func: ${actualSet
               .filter((s) =>
                 (s != "GetValue") &&
                 (!transitiveCG.funcs.contains(s)),
               )
               .map((s) => (s, cfgHelper.cfg.fnameMap(s).id))
+              .toList
+              .sorted
               .mkString(", ")}")
           })
           assert(

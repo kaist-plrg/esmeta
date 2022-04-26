@@ -404,7 +404,11 @@ class UnreachableRemoveWalker[ESD <: EmptyStateDomain[
 }
 
 // analysis frontend for IR functions with a given syntactic view
-class AnalysisFrontend(cfgHelper: CFGHelper, verbose: Boolean = false) {
+class AnalysisFrontend(
+  cfgHelper: CFGHelper,
+  verbose: Boolean = false,
+  repl: Boolean = false,
+) {
 
   def setOfUsedVar(irFunc: IRFunc): Set[Id] = {
     def aux(inst: Inst): Set[Id] = {
@@ -450,15 +454,38 @@ class AnalysisFrontend(cfgHelper: CFGHelper, verbose: Boolean = false) {
     absinit.initialize(view)
 
     val absfin = absinit.fixpoint
-    /*
+
     val scanner = new java.util.Scanner(System.in)
-    while (true)
-      val nid = scanner.nextInt
-      val node = cfgHelper.cfg.nodeMap(nid)
-      val np = NodePoint(cfgHelper.cfg.funcOf(node), node, View(Nil, Nil, 0))
-      println(absfin.npMap(np).beautify(Some(cfgHelper.cfg.grammar)))
-     */
-    absfin.getCG
+
+    val ret = absfin.getCG
+    if (repl)
+      println("show analysis result")
+      def aux: Unit =
+        val comm = scanner.nextLine.trim
+        if (comm == "q") ()
+        else
+          comm.toIntOption match
+            case Some(nid) =>
+              val node = cfgHelper.cfg.nodeMap(nid)
+              val np =
+                NodePoint(cfgHelper.cfg.funcOf(node), node, View(Nil, Nil, 0))
+              println(absfin.npMap(np).beautify(Some(cfgHelper.cfg.grammar)))
+              aux
+            case None =>
+              comm.split(" ") match
+                case Array("cg", s) =>
+                  ret.func_targets.get(s) match
+                    case Some(sets) => println(sets)
+                    case _          => println(s"Not exists call from $s")
+                case _ =>
+                  cfgHelper.cfg.fnameMap.get(comm) match
+                    case Some(f) => println(f)
+                    case None    => println(s"Not exists function ${comm}")
+              aux
+      aux
+
+    ret
+
   }
 
   def getReachableFuncs(view: SyntacticView): List[IRFunc] = {

@@ -20,6 +20,20 @@ sealed trait SyntacticView extends EditorElem {
     case Syntactic(_, _, rhsIdx, _) => rhsIdx
     case abs: AbsSyntactic          => -1
 
+  def getConcrete: Option[Ast] = this match
+    case lex: Lexical => Some(esmeta.js.Lexical(lex.name, lex.str))
+    case Syntactic(name, args, rhsIdx, children) =>
+      children
+        .foldLeft[Option[List[Option[esmeta.js.Ast]]]](
+          Some(List[Option[esmeta.js.Ast]]()),
+        ) {
+          case (Some(l), None)     => Some(l :+ None)
+          case (Some(l), Some(sv)) => sv.getConcrete.map((c) => (l :+ Some(c)))
+          case (None, _)           => None
+        }
+        .map((c) => esmeta.js.Syntactic(name, args, rhsIdx, c))
+    case _: AbsSyntactic => None
+
   /** production chains */
   lazy val chains: List[SyntacticView] = this match
     case lex: Lexical => List(this)

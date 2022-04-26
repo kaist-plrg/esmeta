@@ -7,10 +7,6 @@ import esmeta.editor.sview.SyntacticView
 
 class BasicValueDomain() extends AbsValueDomain {
 
-  enum CompType:
-    case Empty, N, A
-  end CompType
-
   val purd = PureValueDomain()
   val clod = ACloDomain(this)
   val contd = AContDomain(this)
@@ -19,8 +15,6 @@ class BasicValueDomain() extends AbsValueDomain {
   def pureKind(v: purd.ValueKind): Elem = pureElem(purd.EKind(Set(v)))
   def pureElem(v: purd.Elem): Elem =
     Elem(pure = v)
-  def clo(s: Set[AClo]): Elem =
-    Elem(clo = clod.ESet(s))
   def cont(s: Set[ACont]): Elem =
     Elem(cont = contd.ESet(s))
 
@@ -30,9 +24,35 @@ class BasicValueDomain() extends AbsValueDomain {
   val handlerMethods: Map[String, (List[Elem] => Elem)] =
     Map(
       "GetValue" -> (ls => ls(0)),
+      "AAll" -> ((ls: List[Elem]) =>
+        Elem(
+          pure = purd.EKind(
+            Set(
+              purd.ValueKind.Obj,
+              purd.ValueKind.Symbol,
+              purd.ValueKind.Num,
+              purd.ValueKind.BigInt,
+              purd.ValueKind.Str,
+              purd.ValueKind.Bool,
+              purd.ValueKind.Undef,
+              purd.ValueKind.Null,
+            ),
+          ),
+          compt = compd.EBase(
+            compt = compd.typed(compd.CompType.A),
+            pure = purd.Top,
+            target = purd.Top,
+          ),
+        ),
+      ),
+      "AObj" -> ((ls: List[Elem]) => pureKind(purd.ValueKind.Obj)),
+      "ASymbol" -> ((ls: List[Elem]) => pureKind(purd.ValueKind.Symbol)),
       "ANum" -> ((ls: List[Elem]) => pureKind(purd.ValueKind.Num)),
+      "ABigInt" -> ((ls: List[Elem]) => pureKind(purd.ValueKind.BigInt)),
       "AStr" -> ((ls: List[Elem]) => pureKind(purd.ValueKind.Str)),
       "ABool" -> ((ls: List[Elem]) => pureKind(purd.ValueKind.Bool)),
+      "AUndef" -> ((ls: List[Elem]) => pureKind(purd.ValueKind.Undef)),
+      "ANull" -> ((ls: List[Elem]) => pureKind(purd.ValueKind.Null)),
       "AThrow" -> ((ls: List[Elem]) =>
         Elem(compt =
           compd.EBase(
@@ -73,21 +93,28 @@ class BasicValueDomain() extends AbsValueDomain {
       )
     case AClo(func, captured) =>
       Elem(
-        clo = clod.ESet(Set(AClo(func, captured))),
+        clo = clod.ESet(Set((AClo(func, captured), Map()))),
       )
     case ACont(func, captured) =>
       Elem(
         cont = contd.ESet(Set(ACont(func, captured))),
       )
     case AComp(ALiteral(Const(s)), v, t) => Elem(compt = compd.Top)
+    case Loc(ObjAllocSite(ty)) => Elem(pure = purd.EFlat(ObjAllocSite(ty)))
+    case Loc(RecordAllocSite(ty)) =>
+      Elem(pure = purd.EFlat(RecordAllocSite(ty)))
+    case Loc(ListAllocSite)   => Elem(pure = purd.EFlat(ListAllocSite))
+    case Loc(SymbolAllocSite) => Elem(pure = purd.EFlat(SymbolAllocSite))
     case _ =>
       Elem(pure = purd.Top)
 
+  def fromBoundedAClos(items: (AClo, Map[Int, Elem])*): Elem =
+    Elem(clo = clod.ESet(items.toSet))
   def fromAValues[T <: AValue](kind: AValueKind[T])(items: T*): Elem =
     kind match
       case CloKind =>
         Elem(
-          clo = clod.ESet(items.toSet),
+          clo = clod.ESet(items.map((s) => (s, Map())).toSet),
         )
       case ContKind =>
         Elem(
@@ -261,17 +288,30 @@ class BasicValueDomain() extends AbsValueDomain {
 
     def project[T <: AValue](kinds: AValueKind[T]): Elem =
       kinds match
-        case CloKind    => Elem(clo = clo)
-        case ContKind   => Elem(cont = cont)
-        case CompKind   => Elem(compt = compt)
-        case LocKind    => projValueKind(purd.ValueKind.Addr)
-        case StrKind    => projValueKind(purd.ValueKind.Str)
-        case NumKind    => projValueKind(purd.ValueKind.Num)
-        case AllKind    => this
-        case BoolKind   => projValueKind(purd.ValueKind.Bool)
-        case BigIntKind => projValueKind(purd.ValueKind.Etc)
-        case NullKind   => projValueKind(purd.ValueKind.Null)
-        case UndefKind  => projValueKind(purd.ValueKind.Undef)
+        case CloKind  => Elem(clo = clo)
+        case ContKind => Elem(cont = cont)
+        case CompKind => Elem(compt = compt)
+        case LocKind =>
+          projValueKind(purd.ValueKind.Symbol) ⊔ projValueKind(
+            purd.ValueKind.Obj,
+          ) ⊔ projValueKind(purd.ValueKind.List) ⊔ projValueKind(
+            purd.ValueKind.Record,
+          )
+        case SpecLocKind =>
+          projValueKind(purd.ValueKind.List) ⊔ projValueKind(
+            purd.ValueKind.Record,
+          )
+        case ListLocKind   => projValueKind(purd.ValueKind.List)
+        case RecordLocKind => projValueKind(purd.ValueKind.Record)
+        case ObjLocKind    => projValueKind(purd.ValueKind.Obj)
+        case SymbolLocKind => projValueKind(purd.ValueKind.Symbol)
+        case StrKind       => projValueKind(purd.ValueKind.Str)
+        case NumKind       => projValueKind(purd.ValueKind.Num)
+        case AllKind       => this
+        case BoolKind      => projValueKind(purd.ValueKind.Bool)
+        case BigIntKind    => projValueKind(purd.ValueKind.Etc)
+        case NullKind      => projValueKind(purd.ValueKind.Null)
+        case UndefKind     => projValueKind(purd.ValueKind.Undef)
         case LiteralKind =>
           projValueKind(purd.ValueKind.Str) ⊔ projValueKind(
             purd.ValueKind.Num,
@@ -290,8 +330,8 @@ class BasicValueDomain() extends AbsValueDomain {
               throw new Error(s"Exploded $this $kind")
             case clod.EIgnoreClo =>
               FlatTop
-            case clod.ESet(v: Set[AClo]) =>
-              if (v.size == 1) FlatElem(v.head)
+            case clod.ESet(v: Set[(AClo, Map[Int, Elem])]) =>
+              if (v.size == 1) FlatElem(v.head._1)
               else if (v.size == 0) FlatBot
               else FlatTop
             case clod.EHandler(_, _, _) => FlatTop
@@ -314,6 +354,19 @@ class BasicValueDomain() extends AbsValueDomain {
               (kind extractLift k).map(FlatElem(_)).getOrElse(FlatBot)
             case purd.EFlat(s: SyntacticView) =>
               (kind extractLift (ASView(s))).map(FlatElem(_)).getOrElse(FlatBot)
+            case purd.EFlat(asite: AllocSite) =>
+              (kind extractLift (Loc(asite)))
+                .map(FlatElem(_))
+                .getOrElse(FlatBot)
+
+    def getBoundedCloSet: Set[(AClo, Map[Int, Elem])] =
+      clo match
+        case clod.ETopClo =>
+          throw new Error(s"Exploded $this CloKind")
+        case clod.EIgnoreClo =>
+          Set()
+        case clod.ESet(v: Set[(AClo, Map[Int, Elem])]) => v
+        case clod.EHandler(_, _, _)                    => Set()
 
     def getSet[T <: AValue](kind: AValueKind[T]): Set[T] =
       kind match
@@ -323,8 +376,8 @@ class BasicValueDomain() extends AbsValueDomain {
               throw new Error(s"Exploded $this $kind")
             case clod.EIgnoreClo =>
               Set()
-            case clod.ESet(v: Set[AClo]) => v
-            case clod.EHandler(_, _, _)  => Set()
+            case clod.ESet(v: Set[(AClo, Map[Int, Elem])]) => v.map(_._1)
+            case clod.EHandler(_, _, _)                    => Set()
         case ContKind =>
           cont match
             case contd.ETopCont =>

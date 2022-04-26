@@ -14,9 +14,11 @@ trait AbsValueDomain extends Domain {
   val Top: Elem
   type Elem <: AbsValueTrait
   def apply(value: Value): Elem = this(AValue.from(value))
+  def apply(asite: AllocSite): Elem = this(Loc(asite))
   def apply(value: AValue): Elem
 
   def fromAValues[T <: AValue](kind: AValueKind[T])(items: T*): Elem
+  def fromBoundedAClos(items: (AClo, Map[Int, Elem])*): Elem
   def mkAbsComp(name: String, value: Elem, target: Elem): Elem
   def findHandler(name: String, kind: String): Elem
 
@@ -32,9 +34,10 @@ trait AbsValueDomain extends Domain {
         case AComp(ALiteral(Const("noraml")), value, _) => s"N($value)"
         case AComp(ty, value, target) => s"C($ty, $value, $target)"
         // case AConst(name)                      => s"~$name~"
-        case NamedLoc(name)     => s"#$name"
-        case AllocSite(k, view) => s"#$k:$view"
-        case SubMapLoc(baseLoc) => s"$baseLoc:SubMap"
+        case Loc(ListAllocSite)       => s"#ListAllocSite"
+        case Loc(RecordAllocSite(ty)) => s"#RecordAllocSite$ty"
+        case Loc(SymbolAllocSite)     => s"#SymbolAllocSite"
+        case Loc(ObjAllocSite(ty))    => s"#ObjAllocSite$ty"
         case AClo(func, captured) => (
           func.irFunc.params.mkString("(", ", ", ")") +
           (for ((x, v) <- captured)
@@ -72,7 +75,6 @@ trait AbsValueDomain extends Domain {
             ALiteral(Str(str)),
           ),
         )
-      case addr: Addr => Loc.from(addr)
       case Clo(func, captured) =>
         AClo(func, captured.map((k, v) => (k, apply(from(v)))))
       case AstValue(ast)         => AAst(ast)
@@ -88,35 +90,7 @@ trait AbsValueDomain extends Domain {
     extends AValue
 
   // abstract locations for addresses
-  sealed trait Loc extends AValue {
-    // check named locations
-    def isNamed: Boolean = this match {
-      case NamedLoc(_) | SubMapLoc(NamedLoc(_)) => true
-      case _                                    => false
-    }
-
-    // get base locations
-    def base: BaseLoc = this match {
-      case base: BaseLoc   => base
-      case SubMapLoc(base) => base
-    }
-  }
-  object Loc {
-    // from original concrete addresses
-    private val subMapPattern = "(.+).SubMap".r
-    def from(addr: Addr): Loc = addr match {
-      case NamedAddr(name) =>
-        name match {
-          case subMapPattern(base) => SubMapLoc(NamedLoc(base))
-          case name                => NamedLoc(name)
-        }
-      case _ => throw new ESMetaError(s"impossible to convert to Loc: $addr")
-    }
-  }
-  sealed trait BaseLoc extends Loc
-  case class NamedLoc(name: String) extends BaseLoc
-  case class AllocSite(k: Int, view: View) extends BaseLoc
-  case class SubMapLoc(baseLoc: BaseLoc) extends Loc
+  case class Loc[+T <: AllocSite](asite: T) extends AValue {}
 
   // closures
   case class AClo(
@@ -158,8 +132,23 @@ trait AbsValueDomain extends Domain {
   case object ConstKind extends AValueKind[ALiteral[Const]] {
     def extract = { case ALiteral(Const(name)) => ALiteral(Const(name)) }
   }
-  case object LocKind extends AValueKind[Loc] {
-    def extract = { case x: Loc => x }
+  case object LocKind extends AValueKind[Loc[AllocSite]] {
+    def extract = { case x: Loc[AllocSite] => x }
+  }
+  case object SpecLocKind extends AValueKind[Loc[SpecAllocSite]] {
+    def extract = { case Loc(x: SpecAllocSite) => Loc(x) }
+  }
+  case object ListLocKind extends AValueKind[Loc[ListAllocSite.type]] {
+    def extract = { case Loc(ListAllocSite) => Loc(ListAllocSite) }
+  }
+  case object RecordLocKind extends AValueKind[Loc[RecordAllocSite]] {
+    def extract = { case Loc(x: RecordAllocSite) => Loc(x) }
+  }
+  case object SymbolLocKind extends AValueKind[Loc[SymbolAllocSite.type]] {
+    def extract = { case Loc(SymbolAllocSite) => Loc(SymbolAllocSite) }
+  }
+  case object ObjLocKind extends AValueKind[Loc[ObjAllocSite]] {
+    def extract = { case Loc(x: ObjAllocSite) => Loc(x) }
   }
   case object CloKind extends AValueKind[AClo] {
     def extract = { case x: AClo => x }
@@ -226,6 +215,7 @@ trait AbsValueDomain extends Domain {
     def project[T <: AValue](kind: AValueKind[T]): Elem
     def getSingle[T <: AValue](kind: AValueKind[T] = AllKind): Flat[T]
     def getSet[T <: AValue](kind: AValueKind[T] = AllKind): Set[T]
+    def getBoundedCloSet: Set[(AClo, Map[Int, Elem])]
     def escaped: Elem
     def wrapCompletion: Elem
   }

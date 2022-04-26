@@ -6,6 +6,7 @@ import esmeta.cfg.Func
 import esmeta.editor.sview.*
 import esmeta.js
 import esmeta.js.Ast
+import esmeta.spec.{Production, Nonterminal}
 import scala.util.matching.Regex
 
 case class CFGHelper(cfg: CFG) {
@@ -135,7 +136,6 @@ case class CFGHelper(cfg: CFG) {
     "ResumeCont",
     "ReturnCont",
     "Code",
-    "ECMAScriptCode",
     "Job",
     "SV",
     "TV",
@@ -153,11 +153,40 @@ case class CFGHelper(cfg: CFG) {
     // Memory Model
     "ReadsBytesFrom",
   )
+  /*  "Call",
+    "Get",
+    "Set",
+    "DefineOwnProperty",
+    "HasProperty",
+    "Delete",
+  )*/
 
   val fieldCloMap: Map[String, Set[String]] =
-    (heapFieldCloNameMap ++ objFieldCloNameMap)
+    (heapFieldCloNameMap ++ objFieldCloNameMap) // -- Set("Call", "Get", "Set", "DefineOwnProperty", "HasProperty", "Delete")
 
   val nameCloMap: Map[String, Set[String]] = fieldCloMap ++ sdoCloNameMap
+
+  val reachableChild: Map[String, Set[String]] =
+    val cMap: Map[String, Set[String]] =
+      val init = Map[String, Set[String]]()
+      cfg.grammar.prods.foldLeft(init) {
+        case (m, Production(lhs, _, _, rhsList)) =>
+          rhsList.foldLeft(
+            m + (lhs.name -> (m.getOrElse(lhs.name, Set()) + lhs.name)),
+          ) {
+            case (m, rhs) =>
+              rhs.symbols.flatMap(_.getNt) match {
+                case (x: Nonterminal) :: Nil =>
+                  m + (lhs.name -> (m.getOrElse(lhs.name, Set()) + x.name))
+                case _ => m
+              }
+          }
+      }
+    def aux(x: Map[String, Set[String]]): Map[String, Set[String]] =
+      val nx = x.map { case (k, v) => (k, v.flatMap(x.getOrElse(_, Set()))) }
+      if (nx == x) nx else aux(nx)
+    aux(cMap)
+
 }
 
 object CFGHelper {

@@ -43,7 +43,7 @@ class EmptyStateDomain[AOD <: AbsObjDomain[_] with Singleton](
     def isSingle: Boolean = false
 
     // singleton location checks
-    def isSingle(loc: Loc): Boolean = false
+    def isSingle(loc: AllocSite): Boolean = false
     // handle calls
     def doCall: Elem = this
     def ⊑(that: Elem): Boolean = true
@@ -57,7 +57,7 @@ class EmptyStateDomain[AOD <: AbsObjDomain[_] with Singleton](
     def garbageCollected: Elem = this
 
     // get reachable locations
-    def reachableLocs: Set[Loc] = Set()
+    def reachableLocs: Set[AllocSite] = Set()
 
     // lookup variable directly
     def directLookup(x: Id): AbsValue = AbsValue.Top
@@ -68,7 +68,7 @@ class EmptyStateDomain[AOD <: AbsObjDomain[_] with Singleton](
     def apply(base: AbsValue, prop: AbsValue): AbsValue = AbsValue.Top
 
     // NOT sound
-    def apply(loc: Loc): AbsObj = AbsObj.Bot
+    def apply(loc: AllocSite): AbsObj = AbsObj.Bot
 
     // lookup local variables
     def lookupLocal(x: Id): AbsValue = AbsValue.Top
@@ -93,8 +93,8 @@ class EmptyStateDomain[AOD <: AbsObjDomain[_] with Singleton](
     def pop(loc: AbsValue, front: Boolean): (AbsValue, Elem) =
       (AbsValue.Bot, this)
 
-    def copyObj(from: AbsValue)(to: AllocSite): Elem = this
-    def keys(loc: AbsValue, intSorted: Boolean)(to: AllocSite): Elem = this
+    def copyObj(from: AllocSite)(to: AllocSite): Elem = this
+    def keys(loc: AllocSite, intSorted: Boolean)(to: AllocSite): Elem = this
     def allocMap(ty: Type, pairs: List[(AbsValue, AbsValue)])(
       to: AllocSite,
     ): Elem = this

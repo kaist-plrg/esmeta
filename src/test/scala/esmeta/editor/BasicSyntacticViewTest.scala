@@ -32,6 +32,11 @@ class BasicSyntacticViewTest extends EditorTest {
   val name: String = "basicSyntacticViewTest"
   var pw: Option[PrintWriter] = None
 
+  var maV: Double = 0
+  var maE: Double = 0
+  var taV: Double = 0
+  var taE: Double = 0
+  var s = 0
   // registration
   def init: Unit =
     val cfgHelper = CFGHelper(EditorTest.cfg)
@@ -63,26 +68,57 @@ class BasicSyntacticViewTest extends EditorTest {
           pw.foreach((pw) => {
             pw.println(s"$name: ${v
               .toString(true, false, Some(EditorTest.cfg.grammar))}")
-            pw.println(
-              s"    ${mergeCG.funcs.size}/${mergeCG.func_targets
-                .flatMap { case (i, j) => j.map((k) => (i -> k)) }
-                .toSet
-                .size}  -> ${transitiveCG.funcs.size}/${transitiveCG.func_targets
-                .flatMap { case (i, j) => j.map((k) => (i -> k)) }
-                .toSet
-                .size} -> ${analysisCG.funcs.size}/${analysisCG.func_targets
-                .flatMap {
-                  case (i, j) => j.map((k) => (i -> k))
-                }
-                .toSet
-                .size}",
+
+            val (mV, mE) = (
+              mergeCG.funcs.size,
+              mergeCG.func_targets.toSet.flatMap {
+                case (i, j) => j.map((k) => (i -> k))
+              }.size,
             )
+            val (tV, tE) = (
+              transitiveCG.funcs.size,
+              transitiveCG.func_targets.toSet.flatMap {
+                case (i, j) => j.map((k) => (i -> k))
+              }.size,
+            )
+            val (aV, aE) = (
+              analysisCG.funcs.size,
+              analysisCG.func_targets.toSet.flatMap {
+                case (i, j) => j.map((k) => (i -> k))
+              }.size,
+            )
+            val maVi = (aV.toDouble / mV.toDouble)
+            val taVi = (aV.toDouble / tV.toDouble)
+            val maEi = (if (mE == 0) 1 else (aE.toDouble / mE.toDouble))
+            val taEi = (if (tE == 0) 1 else (aE.toDouble / tE.toDouble))
+            maV += maVi
+            taV += taVi
+
+            maE += maEi
+            taE += taEi
+            s += 1
+            pw.println(
+              s"    ${mV}/${mE}  -> ${tV}/${tE} -> ${aV}/${aE} (%${f"${maVi * 100}%2.2f"}/%${f"${maEi * 100}%2.2f"} -> %${f"${taVi * 100}%2.2f"}/%${f"${taEi * 100}%2.2f"})",
+            )
+            // println(
+            //  s"    ${mV}/${mE}  -> ${tV}/${tE} -> ${aV}/${aE} (%${f"${maVi * 100}%2.2f"}/%${f"${maEi * 100}%2.2f"} -> %${f"${taVi * 100}%2.2f"}/%${f"${taEi * 100}%2.2f"})",
+            // )
           })
         },
     }
 
   override def afterAll(): Unit = {
-    pw.map(_.close)
+    pw.map((pw) => {
+      pw.println("Total:")
+      pw.println(
+        s"    %${f"${maV / s * 100}%2.2f"}/%${f"${maE / s * 100}%2.2f"} -> %${f"${taV / s * 100}%2.2f"}/%${f"${taE / s * 100}%2.2f"}",
+      )
+      // println(
+      //  s"    %${f"${maV / s * 100}%2.2f"}/%${f"${maE / s * 100}%2.2f"} -> %${f"${taV / s * 100}%2.2f"}/%${f"${taE / s * 100}%2.2f"}",
+      // )
+
+      pw.close
+    })
     super.afterAll()
   }
   init

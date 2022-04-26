@@ -29,18 +29,23 @@ class PureValueDomain extends Domain:
 
   val Top = EKind(
     Set(
-      ValueKind.Ast,
-      ValueKind.Num,
-      ValueKind.Bool,
-      ValueKind.Str,
-      ValueKind.Addr,
       ValueKind.Undef,
       ValueKind.Null,
+      ValueKind.Bool,
+      ValueKind.Str,
+      ValueKind.Num,
+      ValueKind.BigInt,
+      ValueKind.Obj,
+      ValueKind.Ast,
+      ValueKind.List,
+      ValueKind.Record,
+      ValueKind.Absent,
       ValueKind.Etc,
     ),
   )
   enum ValueKind:
-    case Ast, Num, Bool, Str, Addr, Undef, Null, Etc
+    case Undef, Null, Bool, Str, Symbol, Num, BigInt, Obj, Ast, List, Record,
+    Absent, Etc
   end ValueKind
 
   sealed trait Elem extends ElemTrait:
@@ -70,17 +75,24 @@ class PureValueDomain extends Domain:
   end Elem
 
   case object EBot extends Elem
-  case class EFlat(v: AstValue | Grammar | LiteralValue | SyntacticView)
-    extends Elem:
+  case class EFlat(
+    v: AstValue | Grammar | LiteralValue | SyntacticView | AllocSite,
+  ) extends Elem:
     def kind = v match
-      case _: AstValue                                  => ValueKind.Ast
-      case _: Str                                       => ValueKind.Str
-      case _: SyntacticView                             => ValueKind.Ast
-      case _: Math | _: BigInt | _: Number              => ValueKind.Num
-      case _: Bool                                      => ValueKind.Bool
-      case Undef                                        => ValueKind.Undef
-      case Null                                         => ValueKind.Null
-      case _: Grammar | _: Const | Absent | _: CodeUnit => ValueKind.Etc
+      case _: AstValue                         => ValueKind.Ast
+      case _: Str                              => ValueKind.Str
+      case _: SyntacticView                    => ValueKind.Ast
+      case _: Math | _: Number                 => ValueKind.Num
+      case _: BigInt                           => ValueKind.BigInt
+      case _: Bool                             => ValueKind.Bool
+      case Undef                               => ValueKind.Undef
+      case Null                                => ValueKind.Null
+      case Absent                              => ValueKind.Absent
+      case ListAllocSite                       => ValueKind.List
+      case _: RecordAllocSite                  => ValueKind.Record
+      case SymbolAllocSite                     => ValueKind.Symbol
+      case _: ObjAllocSite                     => ValueKind.Obj
+      case _: Grammar | _: Const | _: CodeUnit => ValueKind.Etc
   end EFlat
   case class EKind(s: Set[ValueKind]) extends Elem
 

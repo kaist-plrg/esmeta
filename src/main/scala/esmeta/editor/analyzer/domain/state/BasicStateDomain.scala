@@ -28,6 +28,8 @@ import esmeta.interp.Absent
 import esmeta.interp.*
 import esmeta.js
 import scala.util.matching.Regex
+import esmeta.editor.sview.AbsSyntactic
+import esmeta.editor.sview.AAll
 
 class BasicStateDomain[AOD <: AbsObjDomain[_] with Singleton](
   aod_ : AOD,
@@ -65,45 +67,162 @@ class BasicStateDomain[AOD <: AbsObjDomain[_] with Singleton](
     ("toString") -> Set("Number::toString", "BigInt::toString"),
   )
 
-  val objFieldCloNameMap: Map[String, Set[String]] = cfg.typeModel.infos.toList
-    .map {
-      case (_, ti) =>
-        ti.methods.map {
-          case (name, fname) => (name, Set(fname))
+  val objFieldCloNameMap: Map[String, Set[(String, Map[Int, AbsValue])]] =
+    cfg.typeModel.infos.toList
+      .map {
+        case (ty, ti) =>
+          ti.methods.map {
+            case (name, fname) =>
+              (
+                name,
+                Set(
+                  (
+                    fname,
+                    Map(
+                      0 -> AbsValue(
+                        if (ty.endsWith("Object")) ObjAllocSite(ty)
+                        else RecordAllocSite(ty),
+                      ),
+                    ),
+                  ),
+                ),
+              )
+          }
+      }
+      .foldLeft(Map[String, Set[(String, Map[Int, AbsValue])]]()) {
+        case (m1, m2) =>
+          (m1.keySet ++ m2.keySet).map {
+            case key =>
+              key -> ((m1.get(key), m2.get(key)) match {
+                case (Some(p1), Some(p2)) => p1 ++ p2
+                case (None, Some(p2))     => p2
+                case (Some(p1), None)     => p1
+                case (None, None)         => Set()
+              })
+          }.toMap
+      } //  -- Set("Call", "Get", "Set", "DefineOwnProperty", "HasProperty", "Delete")
+
+  val sdoPattern: Regex = """([a-zA-Z]+)\[\d+,\d+].([a-zA-Z]+)""".r
+  val sdoCloMap: Map[String, Set[(AClo, Map[Int, AbsValue])]] =
+    cfg.grammar.prods.foldLeft(Map[String, Set[(AClo, Map[Int, AbsValue])]]()) {
+      case (m, esmeta.spec.Production(lhs, _, _, rhsList)) =>
+        rhsList.zipWithIndex.foldLeft(m) {
+          case (m, (rhs, rhsIdx)) =>
+            val combination = rhs.symbols
+              .flatMap(_.getNt)
+              .foldLeft(List[List[Option[AbsSyntactic]]](List())) {
+                case (sl, nt) =>
+                  if (nt.optional)
+                    sl.flatMap((l) =>
+                      List(l :+ Some(AbsSyntactic(nt.name)), l :+ None),
+                    )
+                  else sl.map((l) => l :+ Some(AbsSyntactic(nt.name)))
+              }
+              .map((l) =>
+                sview.Syntactic(
+                  lhs.name,
+                  List.fill(lhs.params.length)(false),
+                  rhsIdx,
+                  l,
+                ),
+              )
+            combination.foldLeft(m) {
+              case (m, syn: sview.Syntactic) =>
+                val subIdx = cfgHelper.getSubIdxView(syn)
+                cfg.fnameMap.foldLeft(m) {
+                  case (m, (k, v)) =>
+                    if (
+                      k.startsWith(
+                        s"${syn.name}[${syn.idx},${subIdx}].",
+                      )
+                    ) then {
+                      val name =
+                        k.drop(s"${syn.name}[${syn.idx},${subIdx}].".length)
+                      m + (name -> (m.getOrElse(name, Set()) + (
+                        (
+                          AClo(v, Map()),
+                          Map[Int, AbsValue](0 -> AbsValue(ASView(syn))),
+                        ),
+                      )))
+                    } else m
+                }
+            }
         }
-    }
-    .foldLeft(Map[String, Set[String]]()) {
-      case (m1, m2) =>
-        (m1.keySet ++ m2.keySet).map {
-          case key =>
-            key -> ((m1.get(key), m2.get(key)) match {
-              case (Some(p1), Some(p2)) => p1 ++ p2
-              case (None, Some(p2))     => p2
-              case (Some(p1), None)     => p1
-              case (None, None)         => Set()
-            })
-        }.toMap
-    }
+    } + ("Contains" -> Set(
+      (AClo(cfg.fnameMap("<DEFAULT>.Contains"), Map()), Map()),
+    )) - "Evaluation"
 
-  val sdoPattern: Regex = """[a-zA-Z]+\[\d+,\d+].([a-zA-Z]+)""".r
-  val sdoCloNameMap: Map[String, Set[String]] = cfg.fnameMap.keySet
-    .map(s => (s, sdoPattern.findFirstMatchIn(s).map(_.group(1))))
-    .collect { case (s, Some(k)) => (k, s) }
-    .foldLeft(Map[String, Set[String]]()) {
-      case (m1, (k, v)) =>
-        if (m1 contains k) m1 + (k -> (m1(k) + v)) else m1 + (k -> Set(v))
-    }
+  /*
+    (cfg.fnameMap.keySet
+      .map(s =>
+        (
+          s,
+          sdoPattern
+            .findFirstMatchIn(s)
+            .map((k) => (k.group(2), Some(k.group(1)))),
+        ),
+      ) ++ Set(
+      ("<DEFAULT>.Contains", Some(("Contains", None))),
+    ))
+      .collect { case (s, Some((k, bound))) => (k, (s, bound)) }
+      .foldLeft(Map[String, Set[(String, Option[String])]]()) {
+        case (m1, (k, v)) =>
+          if (m1 contains k) m1 + (k -> (m1(k) + v)) else m1 + (k -> Set(v))
+      }
+      .map {
+        case (k, v) =>
+          (
+            k,
+            v.map({
+              case (name, boundopt) =>
+                (
+                  AClo(
+                    cfg.fnameMap(name),
+                    cfg
+                      .fnameMap(name)
+                      .irFunc
+                      .params
+                      .map { case (p) => (p.lhs, AbsValue.Top) }
+                      .toMap,
+                  ),
+                  boundopt
+                    .map(bound =>
+                      Map(
+                        0 -> AbsValue(
+                          ASView(AbsSyntactic(bound, None, AAll, false)),
+                        ),
+                      ),
+                    )
+                    .getOrElse(Map()),
+                )
+            }),
+          )
+      } - "Evaluation"*/
 
-  val topCloNameSet = sdoCloNameMap.keySet ++ Set(
+  val topCloNameSet = Set(
+    "Code",
+    "Evaluation",
+    "SV",
+    "TV",
+    "TRV",
+    "MV",
     "ResumeCont",
     "ReturnCont",
-    "Code",
-    "ECMAScriptCode",
-  )
+  ) // ++ Set("Call", "Get", "Set", "DefineOwnProperty", "HasProperty", "Delete")
 
-  val fieldCloMap: Map[String, Set[AClo]] =
-    (heapFieldCloNameMap ++ objFieldCloNameMap).map {
-      case (k, v) => (k, v.map((name) => AClo(cfg.fnameMap(name), Map())))
+  val fieldCloMap: Map[String, Set[(AClo, Map[Int, AbsValue])]] =
+    heapFieldCloNameMap.map {
+      case (k, v) =>
+        (
+          k,
+          v.map((name) =>
+            (AClo(cfg.fnameMap(name), Map()), Map[Int, AbsValue]()),
+          ),
+        )
+    }
+    ++ objFieldCloNameMap.map {
+      case (k, v) =>
+        (k, v.map { case (s, m) => (AClo(cfg.fnameMap(s), Map()), m) })
     }
 
   val Bot = Elem(false, Map())
@@ -137,7 +256,7 @@ class BasicStateDomain[AOD <: AbsObjDomain[_] with Singleton](
     def isSingle: Boolean = false
 
     // singleton location checks
-    def isSingle(loc: Loc): Boolean = false
+    def isSingle(loc: AllocSite): Boolean = false
     // handle calls
     def doCall: Elem = this
     def ⊑(that: Elem): Boolean = (this, that) match {
@@ -193,7 +312,7 @@ class BasicStateDomain[AOD <: AbsObjDomain[_] with Singleton](
     def garbageCollected: Elem = this
 
     // get reachable locations
-    def reachableLocs: Set[Loc] = Set()
+    def reachableLocs: Set[AllocSite] = Set()
 
     // lookup variable directly
     def directLookup(x: Id): AbsValue = x match {
@@ -208,14 +327,69 @@ class BasicStateDomain[AOD <: AbsObjDomain[_] with Singleton](
         // println(s"base: $base, prop: $prop");
         (prop.getSingle(StrKind) match {
           case FlatElem(ALiteral(Str(s))) =>
-            fieldCloMap.get(s) match {
-              case Some(v: Set[AClo]) =>
-                AbsValue.fromAValues(CloKind)(v.toSeq: _*)
-              case None => {
-                val v = apply(base, prop);
-                if (topCloNameSet contains s) v.setAllowTopClo() else v
+            base.getSingle(LocKind) match
+              case FlatTop | FlatBot =>
+                fieldCloMap.get(s) match {
+                  case Some(v: Set[(AClo, Map[Int, AbsValue])]) =>
+                    AbsValue.fromBoundedAClos(v.toSeq: _*)
+                  case None => {
+                    val v = apply(base, prop)
+                    if (
+                      !(v.isAllowTopClo) || (v.isAllowTopClo && v
+                        .getSet(CloKind)
+                        .isEmpty)
+                    ) {
+                      sdoCloMap.get(s) match {
+                        case Some(v: Set[(AClo, Map[Int, AbsValue])]) =>
+                          AbsValue.fromBoundedAClos(
+                            (base.getSingle(AstKind) match {
+                              case FlatElem(
+                                    ASView(sview),
+                                  ) =>
+                                v.filter((a) =>
+                                  cfgHelper.reachableChild
+                                    .getOrElse(sview.name, Set())
+                                    .exists((cname) =>
+                                      a._1.func.name.startsWith(cname + "["),
+                                    ),
+                                )
+                              case _ => v
+                            }).toSeq: _*,
+                          )
+                        case None =>
+                          if (topCloNameSet contains s) v.setAllowTopClo()
+                          else v
+                      }
+                    } else if (topCloNameSet contains s) v.setAllowTopClo()
+                    else v
+                  }
+                }
+              case FlatElem(Loc(ListAllocSite)) =>
+                if (topCloNameSet contains s) AbsValue.Top.setAllowTopClo()
+                else AbsValue.Top
+              case FlatElem(Loc(ObjAllocSite(ty))) => {
+                val methods = cfg.typeModel(ty)
+                methods
+                  .find { case (name, fname) => name == s }
+                  .map((x) => AbsValue(AClo(cfg.fnameMap(x._2), Map())))
+                  .getOrElse(
+                    if (topCloNameSet contains s) AbsValue.Top.setAllowTopClo()
+                    else AbsValue.Top,
+                  )
               }
-            }
+              case FlatElem(Loc(SymbolAllocSite)) =>
+                if (topCloNameSet contains s) AbsValue.Top.setAllowTopClo()
+                else AbsValue.Top
+              case FlatElem(Loc(RecordAllocSite(ty))) => {
+                val methods = cfg.typeModel(ty)
+                methods
+                  .find { case (name, fname) => name == s }
+                  .map((x) => AbsValue(AClo(cfg.fnameMap(x._2), Map())))
+                  .getOrElse(
+                    if (topCloNameSet contains s) AbsValue.Top.setAllowTopClo()
+                    else AbsValue.Top,
+                  )
+              }
           case _ => apply(base, prop)
         })
       }
@@ -238,7 +412,11 @@ class BasicStateDomain[AOD <: AbsObjDomain[_] with Singleton](
       }
 
     // NOT sound
-    def apply(loc: Loc): AbsObj = AbsObj.Bot
+    def apply(loc: AllocSite): AbsObj = loc match
+      case ObjAllocSite(ty)    => AbsObj(ty)
+      case ListAllocSite       => AbsObj("List")
+      case SymbolAllocSite     => AbsObj("Symbol")
+      case RecordAllocSite(ty) => AbsObj(ty)
 
     // lookup local variables
     def lookupLocal(x: Id): AbsValue = this match {
@@ -291,8 +469,8 @@ class BasicStateDomain[AOD <: AbsObjDomain[_] with Singleton](
     def pop(loc: AbsValue, front: Boolean): (AbsValue, Elem) =
       (AbsValue.Bot, this)
 
-    def copyObj(from: AbsValue)(to: AllocSite): Elem = this
-    def keys(loc: AbsValue, intSorted: Boolean)(to: AllocSite): Elem = this
+    def copyObj(from: AllocSite)(to: AllocSite): Elem = this
+    def keys(loc: AllocSite, intSorted: Boolean)(to: AllocSite): Elem = this
     def allocMap(ty: Type, pairs: List[(AbsValue, AbsValue)])(
       to: AllocSite,
     ): Elem = this

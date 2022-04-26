@@ -56,14 +56,15 @@ class AbsSemantics[ASD <: AbsStateDomain[_] with Singleton](
   def getCG: CallGraph = new CallGraph {
     val funcs = npMap.keySet.map(_.func.name)
     val func_targets =
-      val fe1 = retEdges.toList.foldLeft(Map[String, Set[String]]()) {
+      retEdges.toList.foldLeft(Map[String, Set[String]]()) {
         case (m, (ReturnPoint(rf, _), s)) =>
           s.foldLeft(m) {
             case (m, NodePoint(cf, _, _)) =>
               m + (cf.name -> (m.get(cf.name).getOrElse(Set()) + rf.name))
           }
       }
-      ignoreRetEdges.toList.foldLeft(fe1) {
+    override def draw_func_targets =
+      ignoreRetEdges.toList.foldLeft(func_targets) {
         case (m, (rs, s)) =>
           s.foldLeft(m) {
             case (m, NodePoint(cf, _, _)) =>

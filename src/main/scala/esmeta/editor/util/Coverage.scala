@@ -182,9 +182,9 @@ case class Coverage(
         private def astStack = contexts.flatMap(_.astOpt)
 
         // decide which function not to be tracked
-        private var untrackedStack: List[Unit] = List()
-        def isUntracked: Boolean =
-          this.st.context.name == "GetValue" || this.st.context.func.isBuiltin
+        private def untrackedStack = contexts.filter(ctxt =>
+          ctxt.name == "GetValue" || ctxt.func.isBuiltin,
+        )
 
         // handle dynamically created ast
         override def interp(expr: Expr): Value = {
@@ -200,11 +200,13 @@ case class Coverage(
 
         // save algo id of top-most evaluation
         override def interp(node: Node): Unit = {
+          val needTrack = untrackedStack.isEmpty
+
           // interp node
           super.interp(node)
 
           node match {
-            case _: Call if untrackedStack.isEmpty =>
+            case _: Call if needTrack =>
               // get top-most ast
               val currAstOpt = evalAstList.headOption
 
@@ -216,9 +218,6 @@ case class Coverage(
               }
                 if (this.st.context.func.isBuiltin) builtinSet += astId
                 else algoMap += (astId -> (algoIds + this.st.context.func.id))
-
-              // mark untracked call
-              if (isUntracked) untrackedStack ::= ()
             case _ => /* do nothing */
           }
         }
@@ -236,9 +235,6 @@ case class Coverage(
               annotationSet = annoMap.getOrElse(astId, Set())
             } annoMap += (astId -> (annotationSet + annotation))
           }
-          // handle GetValue call
-          else if (isUntracked && !untrackedStack.isEmpty)
-            untrackedStack = untrackedStack.tail
         }
       }.fixpoint
 

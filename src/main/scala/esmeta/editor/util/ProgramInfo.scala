@@ -12,7 +12,7 @@ case class ProgramInfo(
   astList: List[SimpleAst],
   builtinSet: Set[Int],
 ) {
-  lazy val (astMap, prodMap) = {
+  val (astMap, prodMap) = {
     val m0: MMap[Int, SimpleAst] = MMap()
     val m1: MMap[Int, MMap[Int, MMap[Int, MSet[Int]]]] = MMap()
 

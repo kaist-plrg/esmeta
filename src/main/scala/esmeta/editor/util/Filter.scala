@@ -45,10 +45,8 @@ case class Filter(cfg: CFG, dataDir: String) {
     println(programIdxSet.size)
     println(result.size)
 
-    PerformanceRecorder.printStat()
-    ???
-
-    // result.map(tests(_))
+    // PerformanceRecorder.printStat()
+    result.map(tests(_))
   }
 
   // def experiment1(

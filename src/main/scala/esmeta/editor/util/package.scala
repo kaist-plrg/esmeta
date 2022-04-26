@@ -222,6 +222,7 @@ extension (sview: SyntacticView) {
 /** extension for simple ast */
 extension (ast: SimpleAst) {
 
+  // NOTE: ast should match sview
   def getConcreteParts(sview: SimpleAst): List[Int] = {
     val concretes: ListBuffer[Int] = ListBuffer()
 

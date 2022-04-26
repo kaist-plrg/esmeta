@@ -97,17 +97,19 @@ case class Coverage(
   // simplifying evaluation info
   class Simplifier(
     annoMap: Map[Int, Set[Annotation]],
-    algoMap: Map[Int, Set[Int]],
+    astMap: Map[Int, Set[Int]],
     astList: List[Ast],
-    builtinSet: Set[Int],
+    builtinCallAstSet: Set[Int],
+    builtinMap: Map[Int, Set[Int]],
   ) {
     lazy val result = {
       val simplified = astList.map(simplifyAst(_))
       ProgramInfo(
         for { (origId, annoSet) <- annoMap } yield idMap(origId) -> annoSet,
-        for { (origId, algoSet) <- algoMap } yield idMap(origId) -> algoSet,
+        for { (origId, algoSet) <- astMap } yield idMap(origId) -> algoSet,
         simplified,
-        for { origId <- builtinSet } yield idMap(origId),
+        for { origId <- builtinCallAstSet } yield idMap(origId),
+        builtinMap,
       )
     }
 
@@ -167,24 +169,17 @@ case class Coverage(
       val st = initState(sourceText, ast)
 
       // run interp
-      var builtinSet: Set[Int] = Set()
-      var algoMap: Map[Int, Set[Int]] = Map()
+      var builtinCallAstSet: Set[Int] = Set()
+      var builtinMap: Map[Int, Set[Int]] = Map()
+      var astMap: Map[Int, Set[Int]] = Map()
       var annoMap: Map[Int, Set[Annotation]] = Map()
       var astList: ListBuffer[Ast] = ListBuffer(testBody)
       new Interp(st, Nil) {
         private def contexts =
           this.st.context :: this.st.callStack.map(_.context)
-        private def evalAstList =
-          contexts.flatMap { c =>
-            if (c.name endsWith ".Evaluation") c.astOpt
-            else None
-          }
         private def astStack = contexts.flatMap(_.astOpt)
-
-        // decide which function not to be tracked
-        private def untrackedStack = contexts.filter(ctxt =>
-          ctxt.name == "GetValue" || ctxt.func.isBuiltin,
-        )
+        private def evalAstStack =
+          contexts.filter(_.name endsWith ".Evaluation").flatMap(_.astOpt)
 
         // handle dynamically created ast
         override def interp(expr: Expr): Value = {
@@ -200,26 +195,45 @@ case class Coverage(
 
         // save algo id of top-most evaluation
         override def interp(node: Node): Unit = {
-          val needTrack = untrackedStack.isEmpty
-
           // interp node
           super.interp(node)
 
-          node match {
-            case _: Call if needTrack =>
-              // get top-most ast
-              val currAstOpt = evalAstList.headOption
-
-              // save algo id of current context
-              for {
-                ast <- currAstOpt
-                astId <- ast.idOpt
-                algoIds = algoMap.getOrElse(astId, Set())
+          // record
+          node match
+            case _: Call =>
+              val algoId = this.st.context.func.id
+              contexts.foldLeft(false) {
+                case (false, c) =>
+                  if (c.name == "GetValue") true
+                  else if (c.name endsWith ".Evaluation") {
+                    for {
+                      ast <- c.astOpt
+                      astId <- ast.idOpt
+                      algoIds = astMap.getOrElse(astId, Set())
+                    } astMap += (astId -> (algoIds + algoId))
+                    true
+                  } else if (c.func.isBuiltin) {
+                    val bid = c.func.id
+                    val algoIds = builtinMap.getOrElse(bid, Set())
+                    builtinMap += (bid -> (algoIds + algoId))
+                    true
+                  } else false
+                case (true, _) => true
               }
-                if (this.st.context.func.isBuiltin) builtinSet += astId
-                else algoMap += (astId -> (algoIds + this.st.context.func.id))
+
+              // track GetValue call, ast set which calls builtin func
+              if (this.st.context.name == "GetValue")
+                for {
+                  ast <- evalAstStack.headOption
+                  astId <- ast.idOpt
+                  algoIds = astMap.getOrElse(astId, Set())
+                } astMap += (astId -> (algoIds + algoId))
+              else if (this.st.context.func.isBuiltin)
+                for {
+                  ast <- evalAstStack.headOption
+                  astId <- ast.idOpt
+                } builtinCallAstSet += astId
             case _ => /* do nothing */
-          }
         }
 
         // if current context is evaluation, save type of value
@@ -241,7 +255,7 @@ case class Coverage(
       // check exit and return result
       st(GLOBAL_RESULT) match
         case comp: Comp if comp.ty == CONST_NORMAL =>
-          (annoMap, algoMap, astList.toList, builtinSet)
+          (annoMap, astMap, astList.toList, builtinCallAstSet, builtinMap)
         case v => error(s"not normal exit")
     }
 
@@ -256,11 +270,17 @@ case class Coverage(
     for (idx <- progress) {
       val NormalConfig(name, includes) = tests(idx)
       val testBody = jsParser.fromFile(s"$TEST262_TEST_DIR/$name")
-      val (annoMap, algoMap, astList, builtinSet) =
+      val (annoMap, astMap, astList, builtinCallAstSet, builtinMap) =
         getTouched(testBody, includes)
 
       // simplify result and update global index
-      val info = new Simplifier(annoMap, algoMap, astList, builtinSet).result
+      val info = new Simplifier(
+        annoMap,
+        astMap,
+        astList,
+        builtinCallAstSet,
+        builtinMap,
+      ).result
       pIndex.update(idx, info)
 
       // dump result

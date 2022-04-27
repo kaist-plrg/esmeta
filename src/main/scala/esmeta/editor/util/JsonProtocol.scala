@@ -20,6 +20,10 @@ object JsonProtocol {
   given Conversion[String, Json] with
     def apply(s: String): Json = s.asJson
 
+  // filter result
+  given Encoder[FilterResult] = deriveEncoder
+  given Decoder[FilterResult] = deriveDecoder
+
   // program index
   given Encoder[ProgramIndex] = deriveEncoder
   given Decoder[ProgramIndex] = deriveDecoder

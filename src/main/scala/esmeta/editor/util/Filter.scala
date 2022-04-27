@@ -8,16 +8,26 @@ import esmeta.js.util.{JsonProtocol => JsJsonProtocol}
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
+import scala.collection.mutable.{Map => MMap, Set => MSet}
+
+case class FilterResult(
+  indexedSize: Int,
+  indexTime: Long,
+  loadingTime: Long,
+  filterTime: Long,
+  data: MMap[Int, MSet[Int]],
+)
 
 case class Filter(cfg: CFG, dataDir: String) {
   import JsonProtocol.given
   import JsJsonProtocol.given
 
+  val tests = readFile(s"$dataDir/test262-list").split(LINE_SEP)
+  val index = readJson[ProgramIndex](s"$dataDir/data/index.json")
+
   // filter function
   def apply(sview: SyntacticView, algoId: Int): Set[String] = {
-    val tests = readFile(s"$dataDir/test262-list").split(LINE_SEP)
-
-    val (t0, pIndex) = time(readJson[ProgramIndex](s"$dataDir/data/index.json"))
+    // val (t0, pIndex) = time(readJson[ProgramIndex](s"$dataDir/data/index.json"))
     // val (t1, pData) = time {
     //   var map: Map[Int, ProgramInfo] = Map()
     //   for (idx <- 0 until tests.size) {
@@ -30,7 +40,7 @@ case class Filter(cfg: CFG, dataDir: String) {
     var result: Set[Int] = Set()
 
     val simplified = sview.simplify(cfg)
-    val programIdxSet = pIndex.getProgramSet(simplified)
+    val programIdxSet = index.getProgramSet(simplified)
 
     for {
       idx <- programIdxSet
@@ -48,56 +58,6 @@ case class Filter(cfg: CFG, dataDir: String) {
     // PerformanceRecorder.printStat()
     result.map(tests(_))
   }
-
-  // def experiment1(
-  //   cfg: CFG,
-  //   dataDir: String,
-  // ): Set[Int] = {
-  //   val tests = readFile(s"$dataDir/test262-list").split(LINE_SEP)
-  //   var algoSet: Set[Int] = Set()
-
-  //   val progress = ProgressBar("filter test262", 0 until tests.size)
-  //   for (idx <- progress) {
-  //     val (annoMap, algoMap, astList) =
-  //       readJson[(Map[Int, Set[Annotation]], Map[Int, Set[Int]], List[Ast])](
-  //         s"$dataDir/data/$idx.json",
-  //       )
-
-  //     for { ast <- astList } {
-  //       println("----------------------------------------")
-  //       println(ast)
-  //       println("----------------------------------------")
-  //       println(ast.simplify(cfg))
-  //       println("----------------------------------------")
-  //       println(ast.toString(grammar = Some(cfg.grammar)))
-  //       println("----------------------------------------")
-  //       println(ast.simplify(cfg).toString(grammar = Some(cfg.grammar)))
-
-  //       ???
-  //     }
-
-  //     // def gatherChains(ast: Ast): List[List[Ast]] =
-  //     //   ast match
-  //     //     case _: JsLexical => List()
-  //     //     case syn: JsSyntactic =>
-  //     //       val res = syn.children.flatten.map(gatherChains(_)).flatten
-  //     //       val currChains = syn.chains
-  //     //       if (currChains.size > 1) currChains :: res else res
-
-  //     // for {
-  //     //   ast <- astList
-  //     //   chain <- gatherChains(ast)
-  //     //   middle <- chain.drop(1).dropRight(1)
-  //     //   middleId <- middle.idOpt
-  //     // } if (algoMap contains middleId) {
-  //     //   println(("!!!", idx))
-  //     //   println((chain.head.idOpt.get, middleId, chain.reverse.head.idOpt.get))
-  //     //   ???
-  //     // }
-  //   }
-
-  //   algoSet
-  // }
 
   def getAlgos(sview: SyntacticView): Set[Int] = {
     val tests = readFile(s"$dataDir/test262-list").split(LINE_SEP)
@@ -121,33 +81,109 @@ case class Filter(cfg: CFG, dataDir: String) {
     algoSet
   }
 
-  def dumpBasicResult(): Unit = {
+  def apply(sview: SyntacticView): FilterResult = apply(sview.simplify(cfg))
+  private def apply(sview: SimpleAst): FilterResult = {
+    val (indexTime, indexSet) = time(index.getProgramSet(sview))
+
+    // filtering
+    var loadingTime = 0L
+    var filterTime = 0L
+    var data: MMap[Int, MSet[Int]] = MMap()
+    for {
+      idx <- indexSet
+      (idxLoadingTime, info) = time(
+        readJson[ProgramInfo](s"$dataDir/data/$idx.json"),
+      )
+    } {
+      // get algos in current program
+      val (idxFilterTime, algoSet) = time(info.getAlgos(sview, cfg))
+
+      // collect data
+      for { algoId <- algoSet } {
+        val programSet = data.getOrElseUpdate(algoId, MSet())
+        programSet += idx
+      }
+      loadingTime += idxLoadingTime
+      filterTime += idxFilterTime
+    }
+
+    // final result
+    FilterResult(indexSet.size, indexTime, loadingTime, filterTime, data)
+  }
+
+  def loadBasicSview(): Map[String, SimpleAst] = {
     val cfgHelper = CFGHelper(cfg)
-    val viewSet = (new BasicSyntacticView(cfgHelper)).viewSet
+    (for {
+      (viewName, sview) <- (new BasicSyntacticView(cfgHelper)).diffViewSet
+    } yield viewName -> sview.simplify(cfg)).toMap
+  }
+
+  def dumpEvaluataionData(): Unit = {
+    val viewSet = loadBasicSview()
+
+    mkdir(s"$dataDir/evaluation")
+    val nfSummary = getPrintWriter(s"$dataDir/evaluation/summary.csv")
+    def summary(item: Any*): Unit = {
+      nfSummary.println(item.mkString(","))
+      nfSummary.flush()
+    }
+
+    summary(
+      "name",
+      "indexed size",
+      "indexing time",
+      "loading time",
+      "filter time",
+      "algo #",
+      "test #",
+      "avg test # / algo",
+    )
+
+    val progress = ProgressBar("filter test262", viewSet)
+    for { pair <- progress } {
+      val (viewName, sview) = pair
+      val result = apply(sview)
+      val testCount = (for {
+        set <- result.data.values
+        pid <- set
+      } yield pid).toSet.size
+      val avgTestCount = ((for {
+        set <- result.data.values
+      } yield set.size).toList.sum.toDouble) / result.data.size
+      summary(
+        viewName,
+        result.indexedSize,
+        result.indexTime,
+        result.loadingTime,
+        result.filterTime,
+        result.data.size,
+        testCount,
+        if (result.data.size == 0) "-" else avgTestCount,
+      )
+
+      dumpJson(
+        result,
+        s"$dataDir/evaluation/$viewName.json",
+        noSpace = true,
+      )
+    }
+
+    nfSummary.close()
+  }
+
+  def dumpSoundnessData(): Unit = {
+    val viewSet = loadBasicSview()
 
     mkdir(s"$dataDir/basic_result")
 
-    val tests = readFile(s"$dataDir/test262-list").split(LINE_SEP)
-
-    var data: Map[String, Set[Int]] = Map()
+    var data: MMap[String, MSet[Int]] = MMap()
     val progress = ProgressBar("filter test262", 0 until tests.size)
     for (idx <- progress) {
-      val (annoMap, algoMap, astList) =
-        readJson[(Map[Int, Set[Annotation]], Map[Int, Set[Int]], List[Ast])](
-          s"$dataDir/data/$idx.json",
-        )
-
+      val info = readJson[ProgramInfo](s"$dataDir/data/$idx.json")
       for { (viewName, sview) <- viewSet } {
-        var algoSet: Set[Int] = data.getOrElse(viewName, Set())
-
-        for {
-          ast <- astList
-          conc <- ast.getConcreteParts(sview, annoMap)
-          astId <- conc.idOpt
-          aids <- algoMap.get(astId)
-        } algoSet ++= aids
-
-        data += viewName -> algoSet
+        val algoSet = data.getOrElseUpdate(viewName, MSet())
+        val pAlgoSet = info.getAlgos(sview, cfg)
+        algoSet ++= pAlgoSet
       }
     }
 
@@ -158,9 +194,8 @@ case class Filter(cfg: CFG, dataDir: String) {
 
       dumpFile(
         algoList.mkString(LINE_SEP),
-        s"$dataDir/basic_result/$viewName",
+        s"$dataDir/soundness/$viewName",
       )
     }
-
   }
 }

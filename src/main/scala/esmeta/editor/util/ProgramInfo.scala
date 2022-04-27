@@ -46,7 +46,7 @@ case class ProgramInfo(
     false
   }
 
-  def getAlgos(sview: SimpleAst, cfg: CFG): Set[Int] = {
+  def getAlgos(sview: SimpleAst, cfg: CFG): MSet[Int] = {
     val idxMap = prodMap.getOrElseUpdate(sview.nameIdx, MMap())
     val subIdxMap = idxMap.getOrElseUpdate(sview.idx, MMap())
     val astSet = subIdxMap.getOrElseUpdate(sview.subIdx, MSet())
@@ -55,11 +55,11 @@ case class ProgramInfo(
     for {
       astId <- astSet if astAlgoMap.contains(astId)
       ast <- astMap.get(astId)
-      if PerformanceRecorder("ast matches")(ast.matches(sview, annoMap, cfg))
-      conc <- ast.getConcreteParts(sview)
+      if ast.matches(sview, annoMap, cfg)
+      conc <- ast.getConcreteParts(sview) // TODO optimize?
       concAlgoSet <- astAlgoMap.get(conc)
     } result ++= concAlgoSet
 
-    result.toSet
+    result
   }
 }

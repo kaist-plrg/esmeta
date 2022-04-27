@@ -75,7 +75,7 @@ class AbsTransfer[ASD <: AbsStateDomain[_] with Singleton, T <: AbsSemantics[
         if (!tst.isBottom)
           thenNode
             .map((thenNode: Node) => sem += getNextNp(np, thenNode) -> tst)
-            .getOrElse(doReturn(AbsValue(Undef)))
+            .getOrElse(doReturn(AbsValue(Undef))(tst))
         if (!fst.isBottom)
           elseNode
             .map((elseNode: Node) =>
@@ -85,7 +85,7 @@ class AbsTransfer[ASD <: AbsStateDomain[_] with Singleton, T <: AbsSemantics[
                 kind.isLoop,
               ) -> fst,
             )
-            .getOrElse(doReturn(AbsValue(Undef)))
+            .getOrElse(doReturn(AbsValue(Undef))(fst))
       // _ <- if (thenNode.isEmpty || elseNode.isEmpty) {doReturn(AbsValue(Undef))} else pure(())
     }
   }
@@ -281,6 +281,12 @@ class AbsTransfer[ASD <: AbsStateDomain[_] with Singleton, T <: AbsSemantics[
       try {
         // println(s"A ${call.fexpr}")
         val (value, st2) = escape(transfer(call.fexpr))(st)
+        val handlerSet = scala.collection.mutable
+          .Set[(String, List[AbsValue] => AbsValue, Boolean)]()
+        value.getHandler match {
+          case Some(name, f, ignore) => handlerSet += ((name, f, ignore))
+          case _                     => ()
+        }
         (for {
           vs <- join(call.args.map(transfer))
           st <- get
@@ -296,10 +302,16 @@ class AbsTransfer[ASD <: AbsStateDomain[_] with Singleton, T <: AbsSemantics[
                     case None        => v
                     case Some(bound) => bound
               }
-              val newLocals = captured ++ getLocals(func.irFunc.params, newvs)
-              val newSt = st.replaceLocal(newLocals.toSeq: _*)
-              sem.doCall(call, view, st, func, newSt)
-              v = true
+              AbsValue.findHandler(identity, func.name).getHandler match {
+                case Some(name, f, ignore) => handlerSet += ((name, f, ignore))
+                case _ => {
+                  val newLocals =
+                    captured ++ getLocals(func.irFunc.params, newvs)
+                  val newSt = st.replaceLocal(newLocals.toSeq: _*)
+                  sem.doCall(call, view, st, func, newSt)
+                  v = true
+                }
+              }
             }
             for (ACont(func, captured) <- value.getSet(ContKind)) {
               val newLocals = captured ++ getLocals(func.irFunc.params, vs)
@@ -309,19 +321,31 @@ class AbsTransfer[ASD <: AbsStateDomain[_] with Singleton, T <: AbsSemantics[
             v
           }
           _ <-
-            if (isCalled)
+            if (!isCalled && handlerSet.size == 0) // AllowedTopClo
+              modify(_.defineLocal(call.lhs -> AbsValue.Top))
+            else if (handlerSet.size == 0) // only Called AClo
               put(AbsState.Bot)
-            else
-              value.getHandler match {
-                case Some(name, f) => {
-                  sem.ignoreRetEdges += (name -> (sem.ignoreRetEdges.getOrElse(
-                    name,
-                    Set(),
-                  ) + NodePoint(func, call, view)));
-                  modify(_.defineLocal(call.lhs -> f(vs)))
-                }
-                case None => modify(_.defineLocal(call.lhs -> AbsValue.Top))
+            else // exists handler
+              val mergedRet = handlerSet.foldLeft(AbsValue.Bot) {
+                case (aval, (name, f, ignore)) =>
+                  if (ignore) {
+                    sem.ignoreRetEdges += (name -> (sem.ignoreRetEdges
+                      .getOrElse(
+                        name,
+                        Set(),
+                      ) + NodePoint(func, call, view)))
+                  } else {
+                    sem.retEdges += (ReturnPoint(
+                      sem.cfgHelper.cfg.fnameMap(name),
+                      cp.view,
+                    ) -> (sem.retEdges.getOrElse(
+                      ReturnPoint(sem.cfgHelper.cfg.fnameMap(name), cp.view),
+                      Set(),
+                    ) + NodePoint(func, call, view)))
+                  }
+                  aval ⊔ f(vs)
               }
+              modify(_.defineLocal(call.lhs -> mergedRet))
         } yield ())(st2)._2
       } catch {
         case st.SyntacticCalled(absv, sdo) =>
@@ -329,15 +353,37 @@ class AbsTransfer[ASD <: AbsStateDomain[_] with Singleton, T <: AbsSemantics[
             // println("B");
             for {
               vs <- join(call.args.map(transfer))
-              _ = {
-                val vs2 = vs match
-                  case h :: tail => absv :: tail
-                  case _         => error("invalid SDO call")
-                val newLocals = getLocals(sdo.irFunc.params, vs2)
-                val newSt = st.replaceLocal(newLocals.toSeq: _*)
-                sem.doCall(call, view, st, sdo, newSt)
+              _ <- {
+                AbsValue.findHandler(identity, sdo.name).getHandler match {
+                  case Some(name, f, ignore) => {
+                    if (ignore) {
+                      sem.ignoreRetEdges += (name -> (sem.ignoreRetEdges
+                        .getOrElse(
+                          name,
+                          Set(),
+                        ) + NodePoint(sdo, call, view)))
+                    } else {
+                      sem.retEdges += (ReturnPoint(
+                        sem.cfgHelper.cfg.fnameMap(name),
+                        cp.view,
+                      ) -> (sem.retEdges.getOrElse(
+                        ReturnPoint(sem.cfgHelper.cfg.fnameMap(name), cp.view),
+                        Set(),
+                      ) + NodePoint(sdo, call, view)))
+                    }
+                    modify(_.defineLocal(call.lhs -> f(vs)))
+                  }
+                  case _ => {
+                    val vs2 = vs match
+                      case h :: tail => absv :: tail
+                      case _         => error("invalid SDO call")
+                    val newLocals = getLocals(sdo.irFunc.params, vs2)
+                    val newSt = st.replaceLocal(newLocals.toSeq: _*)
+                    sem.doCall(call, view, st, sdo, newSt)
+                    put(AbsState.Bot)
+                  }
+                }
               }
-              _ <- put(AbsState.Bot)
             } yield ()
           })(st)._2
         case st.LexicalCalled(v) =>
@@ -662,7 +708,21 @@ class AbsTransfer[ASD <: AbsStateDomain[_] with Singleton, T <: AbsSemantics[
             val captured: Map[Name, AbsValue] = st.getLocal.collect {
               case (id: Name, v) => (id, v)
             }
-            AbsValue(ACont(func, captured))
+            {
+              func.entry.foreach {
+                case node => {
+                  sem += (NodePoint(func, node, view) -> AbsState.Empty
+                    .replaceLocal(
+                      (func.irFunc.params.map((p) => (p.lhs -> AbsValue.Top),
+                      ) ++ captured.toList): _*,
+                    ))
+                  sem.retEdges += (ReturnPoint(func, view) -> (sem.retEdges
+                    .getOrElse(ReturnPoint(func, view), Set()) ++ sem.retEdges
+                    .getOrElse(ReturnPoint(cp.func, cp.view), Set())))
+                }
+              };
+              AbsValue(ACont(func, captured))
+            }
           }
         } yield v
       case ESyntactic(name, args, rhsIdx, children) =>

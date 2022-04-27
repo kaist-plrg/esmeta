@@ -20,7 +20,7 @@ trait AbsValueDomain extends Domain {
   def fromAValues[T <: AValue](kind: AValueKind[T])(items: T*): Elem
   def fromBoundedAClos(items: (AClo, Map[Int, Elem])*): Elem
   def mkAbsComp(name: String, value: Elem, target: Elem): Elem
-  def findHandler(name: String, kind: String): Elem
+  def findHandler(naming: String => String, kind: String): Elem
 
   sealed trait AbsRefValue
   case class AbsIdValue(id: Id) extends AbsRefValue
@@ -159,6 +159,25 @@ trait AbsValueDomain extends Domain {
   case object AstKind extends AValueKind[ASyntactic] {
     def extract = { case x: ASyntactic => x }
   }
+  case object JsValueKind
+    extends AValueKind[ALiteral[
+      Number | BigInt | Str | Bool | Undef.type | Null.type | Absent.type |
+        Const,
+    ] | ASyntactic | Loc[SymbolAllocSite.type | ObjAllocSite]] {
+    def extract = {
+      case ALiteral(Number(x))   => ALiteral(Number(x))
+      case ALiteral(BigInt(x))   => ALiteral(BigInt(x))
+      case ALiteral(Str(x))      => ALiteral(Str(x))
+      case ALiteral(Bool(x))     => ALiteral(Bool(x))
+      case ALiteral(Undef)       => ALiteral(Undef)
+      case ALiteral(Null)        => ALiteral(Null)
+      case ALiteral(Absent)      => ALiteral(Absent)
+      case ALiteral(Const(name)) => ALiteral(Const(name))
+      case x: ASyntactic         => x
+      case Loc(SymbolAllocSite)  => Loc(SymbolAllocSite)
+      case Loc(x: ObjAllocSite)  => Loc(x)
+    }
+  }
   case object LiteralKind extends AValueKind[ALiteral[LiteralValue]] {
     def extract = { case x @ ALiteral(_) => x }
   }
@@ -198,7 +217,7 @@ trait AbsValueDomain extends Domain {
     def normal: Elem
     def isAbruptCompletion: Elem
 
-    def getHandler: Option[(String, (List[Elem] => Elem))]
+    def getHandler: Option[(String, (List[Elem] => Elem), Boolean)]
 
     def unary_! : Elem
     def ||(that: Elem): Elem

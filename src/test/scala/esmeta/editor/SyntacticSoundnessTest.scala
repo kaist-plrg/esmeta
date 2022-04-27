@@ -23,7 +23,7 @@ class SyntacticSoundnessTest extends EditorTest {
   def init: Unit =
     val cfgHelper = CFGHelper(EditorTest.cfg)
     val idMap = cfgHelper.cfg.fnameMap.map { case (s, f) => (f.id, s) }.toMap
-    val viewList = BasicSyntacticView(cfgHelper).viewSet.toList
+    val viewList = BasicSyntacticView(cfgHelper).diffViewSet.toList
       .sortBy(_._1)
     val mcgs = EditorTest.cfg.funcs
       .map((f) => f.name -> SyntacticCallGraph(cfgHelper, f.irFunc))
@@ -40,7 +40,7 @@ class SyntacticSoundnessTest extends EditorTest {
             mcgs,
             cfgHelper.getSDOView(v, "Evaluation").get._2.name,
           )
-          val actualSet = readFile(s"./basic_result/$name")
+          val actualSet = readFile(s"./soundness/$name")
             .split("\n")
             .filter((s) => s.length != 0)
             .map((s) => idMap(s.toInt))
@@ -50,7 +50,7 @@ class SyntacticSoundnessTest extends EditorTest {
               .toString(true, false, Some(EditorTest.cfg.grammar))}")
             pw.println(s"staticCG missed func: ${actualSet
               .filter((s) =>
-                (s != "GetValue") &&
+                (s != "GetValue" && s != "Identifier[0,0].StringValue") &&
                 (!transitiveCG.funcs.contains(s)),
               )
               .map((s) => (s, cfgHelper.cfg.fnameMap(s).id))
@@ -60,7 +60,8 @@ class SyntacticSoundnessTest extends EditorTest {
           })
           assert(
             actualSet.forall((s) =>
-              (s == "GetValue") || transitiveCG.funcs.contains(s),
+              (s == "GetValue") || (s == "Identifier[0,0].StringValue") || transitiveCG.funcs
+                .contains(s),
             ),
           )
         },

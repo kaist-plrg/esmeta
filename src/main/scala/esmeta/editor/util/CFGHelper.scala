@@ -105,10 +105,18 @@ case class CFGHelper(cfg: CFG) {
 
   val objFieldCloNameMap: Map[String, Set[String]] = cfg.typeModel.infos.toList
     .map {
-      case (_, ti) =>
+      case (ty, ti) =>
         ti.methods.map {
           case (name, fname) => (name, Set(fname))
-        }
+        } ++ (if (ty == "BuiltinFunctionObject")
+                Map(
+                  ("Construct" -> Set(
+                    (
+                      "BuiltinFunctionObject.Construct"
+                    ),
+                  )),
+                )
+              else Map.empty)
     }
     .foldLeft(Map[String, Set[String]]()) {
       case (m1, m2) =>

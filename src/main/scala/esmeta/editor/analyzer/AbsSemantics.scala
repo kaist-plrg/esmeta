@@ -54,7 +54,8 @@ class AbsSemantics[ASD <: AbsStateDomain[_] with Singleton](
   val transfer: AbsTransfer[ASD, this.type] = AbsTransfer(this, ignoreCond)
 
   def getCG: CallGraph = new CallGraph {
-    val funcs = npMap.keySet.map(_.func.name)
+    val funcs =
+      npMap.keySet.map(_.func.name) ++ retEdges.keySet.map(_.func.name)
     val func_targets =
       retEdges.toList.foldLeft(Map[String, Set[String]]()) {
         case (m, (ReturnPoint(rf, _), s)) =>

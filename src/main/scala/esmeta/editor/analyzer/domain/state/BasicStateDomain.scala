@@ -87,7 +87,18 @@ class BasicStateDomain[AOD <: AbsObjDomain[_] with Singleton](
                   ),
                 ),
               )
-          }
+          } ++ (if (ty == "BuiltinFunctionObject")
+                  Map(
+                    ("Construct" -> Set(
+                      (
+                        "BuiltinFunctionObject.Construct",
+                        Map(
+                          0 -> AbsValue(ObjAllocSite("BuiltinFunctionObject")),
+                        ),
+                      ),
+                    )),
+                  )
+                else Map.empty)
       }
       .foldLeft(Map[String, Set[(String, Map[Int, AbsValue])]]()) {
         case (m1, m2) =>
@@ -150,7 +161,7 @@ class BasicStateDomain[AOD <: AbsObjDomain[_] with Singleton](
         }
     } + ("Contains" -> Set(
       (AClo(cfg.fnameMap("<DEFAULT>.Contains"), Map()), Map()),
-    )) - "Evaluation" - "StringValue"
+    )) - "Evaluation"
 
   /*
     (cfg.fnameMap.keySet
@@ -202,7 +213,6 @@ class BasicStateDomain[AOD <: AbsObjDomain[_] with Singleton](
   val topCloNameSet = Set(
     "Code",
     "Evaluation",
-    "StringValue",
     "SV",
     "TV",
     "TRV",

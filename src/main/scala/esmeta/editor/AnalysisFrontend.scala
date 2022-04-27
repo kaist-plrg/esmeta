@@ -468,7 +468,10 @@ class AnalysisFrontend(
               val node = cfgHelper.cfg.nodeMap(nid)
               val np =
                 NodePoint(cfgHelper.cfg.funcOf(node), node, View(Nil, Nil, 0))
-              println(absfin.npMap(np).beautify(Some(cfgHelper.cfg.grammar)))
+              absfin.npMap.get(np) match
+                case Some(st) =>
+                  println(st.beautify(Some(cfgHelper.cfg.grammar)))
+                case None => println(s"$nid is not reachable")
               aux
             case None =>
               comm.split(" ") match

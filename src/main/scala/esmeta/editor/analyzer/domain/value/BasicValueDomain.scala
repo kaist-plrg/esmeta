@@ -21,9 +21,14 @@ class BasicValueDomain() extends AbsValueDomain {
   val Bot = Elem()
   val Top = Elem(purd.Top, clod.ETopClo, contd.ETopCont, compd.Top)
 
-  val handlerMethods: Map[String, (List[Elem] => Elem)] =
+  val handlerMethods: Map[String, ((List[Elem] => Elem), Boolean)] =
     Map(
-      "GetValue" -> (ls => ls(0)),
+      "Identifier[0,0].StringValue" -> ((ls: List[Elem]) =>
+        pureKind(purd.ValueKind.Str), false),
+      "GetValue" -> ((ls: List[Elem]) => {
+        val k = ls(0)
+        k.project(JsValueKind)
+      }, false),
       "AAll" -> ((ls: List[Elem]) =>
         Elem(
           pure = purd.EKind(
@@ -36,6 +41,7 @@ class BasicValueDomain() extends AbsValueDomain {
               purd.ValueKind.Bool,
               purd.ValueKind.Undef,
               purd.ValueKind.Null,
+              purd.ValueKind.Record,
             ),
           ),
           compt = compd.EBase(
@@ -44,15 +50,39 @@ class BasicValueDomain() extends AbsValueDomain {
             target = purd.Top,
           ),
         ),
-      ),
-      "AObj" -> ((ls: List[Elem]) => pureKind(purd.ValueKind.Obj)),
-      "ASymbol" -> ((ls: List[Elem]) => pureKind(purd.ValueKind.Symbol)),
-      "ANum" -> ((ls: List[Elem]) => pureKind(purd.ValueKind.Num)),
-      "ABigInt" -> ((ls: List[Elem]) => pureKind(purd.ValueKind.BigInt)),
-      "AStr" -> ((ls: List[Elem]) => pureKind(purd.ValueKind.Str)),
-      "ABool" -> ((ls: List[Elem]) => pureKind(purd.ValueKind.Bool)),
-      "AUndef" -> ((ls: List[Elem]) => pureKind(purd.ValueKind.Undef)),
-      "ANull" -> ((ls: List[Elem]) => pureKind(purd.ValueKind.Null)),
+      true),
+      "AObj" -> ((ls: List[Elem]) =>
+        Elem(pure =
+          purd.EKind(Set(purd.ValueKind.Obj, purd.ValueKind.Record)),
+        ), true),
+      "ASymbol" -> ((ls: List[Elem]) =>
+        Elem(pure =
+          purd.EKind(Set(purd.ValueKind.Symbol, purd.ValueKind.Record)),
+        ), true),
+      "ANum" -> ((ls: List[Elem]) =>
+        Elem(pure =
+          purd.EKind(Set(purd.ValueKind.Num, purd.ValueKind.Record)),
+        ), true),
+      "ABigInt" -> ((ls: List[Elem]) =>
+        Elem(pure =
+          purd.EKind(Set(purd.ValueKind.BigInt, purd.ValueKind.Record)),
+        ), true),
+      "AStr" -> ((ls: List[Elem]) =>
+        Elem(pure =
+          purd.EKind(Set(purd.ValueKind.Str, purd.ValueKind.Record)),
+        ), true),
+      "ABool" -> ((ls: List[Elem]) =>
+        Elem(pure =
+          purd.EKind(Set(purd.ValueKind.Bool, purd.ValueKind.Record)),
+        ), true),
+      "AUndef" -> ((ls: List[Elem]) =>
+        Elem(pure =
+          purd.EKind(Set(purd.ValueKind.Undef, purd.ValueKind.Record)),
+        ), true),
+      "ANull" -> ((ls: List[Elem]) =>
+        Elem(pure =
+          purd.EKind(Set(purd.ValueKind.Null, purd.ValueKind.Record)),
+        ), true),
       "AThrow" -> ((ls: List[Elem]) =>
         Elem(compt =
           compd.EBase(
@@ -60,16 +90,15 @@ class BasicValueDomain() extends AbsValueDomain {
             pure = purd.Top,
             target = purd.Top,
           ),
-        ),
-      ),
+        ), true),
     )
   // , "Get", "GetV", "GetMethod", "Call", "OrdinaryToPrimitive")
 
-  def findHandler(name: String, kind: String): Elem = handlerMethods
+  def findHandler(naming: String => String, kind: String): Elem = handlerMethods
     .get(kind)
     .map((f) =>
       Elem(
-        clo = clod.EHandler(name, kind, f),
+        clo = clod.EHandler(naming(kind), kind, f._1, f._2),
       ),
     )
     .getOrElse(Top)
@@ -86,10 +115,6 @@ class BasicValueDomain() extends AbsValueDomain {
     case ASView(view) =>
       Elem(
         pure = purd.EFlat(view),
-      )
-    case AClo(func, _) if handlerMethods contains func.name =>
-      Elem(
-        clo = clod.EHandler(func.name, func.name, handlerMethods(func.name)),
       )
     case AClo(func, captured) =>
       Elem(
@@ -232,8 +257,8 @@ class BasicValueDomain() extends AbsValueDomain {
       )
 
     def getHandler = clo match {
-      case clod.EHandler(name, _, f) => Some((name, f))
-      case _                         => None
+      case clod.EHandler(name, _, f, ignore) => Some((name, f, ignore))
+      case _                                 => None
     }
 
     def unary_! : Elem = Elem(
@@ -301,6 +326,16 @@ class BasicValueDomain() extends AbsValueDomain {
           projValueKind(purd.ValueKind.List) ⊔ projValueKind(
             purd.ValueKind.Record,
           )
+        case JsValueKind =>
+          projValueKind(purd.ValueKind.Str) ⊔ projValueKind(
+            purd.ValueKind.Num,
+          ) ⊔ projValueKind(purd.ValueKind.Bool) ⊔ projValueKind(
+            purd.ValueKind.Null,
+          ) ⊔ projValueKind(purd.ValueKind.Undef) ⊔ projValueKind(
+            purd.ValueKind.BigInt,
+          ) ⊔ projValueKind(purd.ValueKind.Symbol) ⊔ projValueKind(
+            purd.ValueKind.Absent,
+          ) ⊔ projValueKind(purd.ValueKind.Obj)
         case ListLocKind   => projValueKind(purd.ValueKind.List)
         case RecordLocKind => projValueKind(purd.ValueKind.Record)
         case ObjLocKind    => projValueKind(purd.ValueKind.Obj)
@@ -336,7 +371,7 @@ class BasicValueDomain() extends AbsValueDomain {
               if (v.size == 1) FlatElem(v.head._1)
               else if (v.size == 0) FlatBot
               else FlatTop
-            case clod.EHandler(_, _, _) => FlatTop
+            case clod.EHandler(_, _, _, _) => FlatTop
         case ContKind =>
           cont match
             case contd.ETopCont =>
@@ -368,7 +403,7 @@ class BasicValueDomain() extends AbsValueDomain {
         case clod.EIgnoreClo =>
           Set()
         case clod.ESet(v: Set[(AClo, Map[Int, Elem])]) => v
-        case clod.EHandler(_, _, _)                    => Set()
+        case clod.EHandler(_, _, _, _)                 => Set()
 
     def getSet[T <: AValue](kind: AValueKind[T]): Set[T] =
       kind match
@@ -379,7 +414,7 @@ class BasicValueDomain() extends AbsValueDomain {
             case clod.EIgnoreClo =>
               Set()
             case clod.ESet(v: Set[(AClo, Map[Int, Elem])]) => v.map(_._1)
-            case clod.EHandler(_, _, _)                    => Set()
+            case clod.EHandler(_, _, _, _)                 => Set()
         case ContKind =>
           cont match
             case contd.ETopCont =>

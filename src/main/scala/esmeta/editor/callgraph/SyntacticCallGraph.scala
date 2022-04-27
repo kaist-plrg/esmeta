@@ -7,6 +7,7 @@ import esmeta.editor.util.CFGHelper
 class SyntacticSearch(cfgHelper: CFGHelper) extends UnitWalker:
 
   val target = collection.mutable.Set[String]()
+  val ctarget = collection.mutable.Set[String]()
   override def walk(i: Inst): Unit = i match
     case ICall(_, EClo(name, _), _) if name != "GetValue" =>
       if (cfgHelper.cfg.fnameMap contains name) target += name else ()
@@ -27,6 +28,12 @@ class SyntacticSearch(cfgHelper: CFGHelper) extends UnitWalker:
       else
         throw new Error()
     case _ => super.walk(i)
+
+  override def walk(e: Expr): Unit = e match
+    case EClo(name, _) => ctarget += name
+    case ECont(name)   => ctarget += name
+    case _             => super.walk(e)
+
 end SyntacticSearch
 
 class SyntacticCallGraph(cfgHelper: CFGHelper, f: Func) extends CallGraph:
@@ -34,6 +41,7 @@ class SyntacticCallGraph(cfgHelper: CFGHelper, f: Func) extends CallGraph:
   search.walk(f)
   val funcs = Set(f.name)
   val func_targets = Map(f.name -> search.target.toSet)
+  val cont_rets = search.ctarget.toSet
 end SyntacticCallGraph
 
 class SyntacticMergedCallGraph(
@@ -48,11 +56,13 @@ class SyntacticMergedCallGraph(
 end SyntacticMergedCallGraph
 
 class SyntacticTransitiveClosedCallGraph(
-  mcgs: Map[String, CallGraph],
+  mcgs: Map[String, SyntacticCallGraph],
   f: String,
 ) extends CallGraph:
   def aux(s: Set[String]): Set[String] =
-    val ns = s ++ s.flatMap((n) => mcgs(n).func_targets(n))
+    val ns = s ++ s.flatMap((n) => mcgs(n).func_targets(n)) ++ s.flatMap((n) =>
+      mcgs(n).cont_rets,
+    )
     if ns == s then ns else aux(ns)
   val funcs = aux(Set(f))
   val func_targets =

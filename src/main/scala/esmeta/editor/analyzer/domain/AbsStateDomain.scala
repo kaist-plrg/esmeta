@@ -90,7 +90,7 @@ trait AbsStateDomain[AOD <: AbsObjDomain[_] with Singleton](
           if (propStr == "Evaluation") syn.chains.last match {
             case sview.AbsSyntactic(_, ident, annotation, _) =>
               AbsValue.findHandler(
-                s"[[${ident.getOrElse("<empty>")}.Evaluation]]",
+                (_) => s"[[${ident.getOrElse("<empty>")}.Evaluation]]",
                 annotation.toString,
               )
             case _ => AbsValue.Top
@@ -174,7 +174,7 @@ trait AbsStateDomain[AOD <: AbsObjDomain[_] with Singleton](
               .getOrElse(AbsValue(ALiteral(Absent)))
           case Str("Evaluation") =>
             AbsValue.findHandler(
-              s"[[${abs.identifier.getOrElse("<empty>")}.Evaluation]]",
+              (_) => s"[[${abs.identifier.getOrElse("<empty>")}.Evaluation]]",
               abs.annotation.toString,
             )
           case _ => AbsValue.Top.setAllowTopClo()

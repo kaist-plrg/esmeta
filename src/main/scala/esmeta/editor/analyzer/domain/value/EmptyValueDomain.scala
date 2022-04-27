@@ -16,7 +16,7 @@ class EmptyValueDomain() extends AbsValueDomain {
 
   def mkAbsComp(name: String, value: Elem, target: Elem): Elem = Elem()
 
-  def findHandler(name: String, kind: String): Elem = Elem()
+  def findHandler(naming: String => String, kind: String): Elem = Elem()
 
   case class Elem() extends AbsValueTrait {
 

@@ -13,6 +13,9 @@ import esmeta.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
 import java.io.PrintWriter
+import scala.concurrent.Await
+import scala.concurrent.Future
+import scala.concurrent.duration.Duration
 
 class InstCounter extends UnitWalker {
   var instCount = 0
@@ -28,8 +31,13 @@ class InstCounter extends UnitWalker {
   def summary: (Int, Int) = (instCount, branchCount)
 }
 
-class BasicSyntacticViewTest extends EditorTest {
+class BasicSyntacticViewTest extends ESMetaAsyncTest {
   val name: String = "basicSyntacticViewTest"
+
+  def category: String = "editor"
+
+  // predefined data
+  lazy val logDir = s"$LOG_DIR/editor_$dateStr"
   var pw: Option[PrintWriter] = None
 
   var maV: Double = 0
@@ -53,62 +61,67 @@ class BasicSyntacticViewTest extends EditorTest {
     mkdir(logDir)
     mkdir(s"${logDir}/detail")
     pw = Some(getPrintWriter(s"${logDir}/${name}.log"))
+    test("topTest") {
+      Await.result(
+        Future.sequence(viewList.map {
+          case (name, v) =>
+            check(
+              s"$name (${v.name}): ${v.toString(true, false, Some(EditorTest.cfg.grammar))}",
+            ) {
+              // Parser(EditorTest.cfg.grammar)(v.name, v.args)
+              //  .from(v.toString(grammar = Some(EditorTest.cfg.grammar)))
+              val transitiveCG = SyntacticTransitiveClosedCallGraph(
+                mcgs,
+                cfgHelper.getSDOView(v, "Evaluation").get._2.name,
+              )
+              val analysisCG = af.cg(v)
+              val (mV, mE) = (
+                mergeCG.funcs.size,
+                mergeCG.func_targets.toSet.flatMap {
+                  case (i, j) => j.map((k) => (i -> k))
+                }.size,
+              )
+              val (tV, tE) = (
+                transitiveCG.funcs.size,
+                transitiveCG.func_targets.toSet.flatMap {
+                  case (i, j) => j.map((k) => (i -> k))
+                }.size,
+              )
+              val (aV, aE) = (
+                analysisCG.funcs.size,
+                analysisCG.func_targets.toSet.flatMap {
+                  case (i, j) => j.map((k) => (i -> k))
+                }.size,
+              )
+              val maVi = (aV.toDouble / mV.toDouble)
+              val taVi = (aV.toDouble / tV.toDouble)
+              val maEi = (if (mE == 0) 1 else (aE.toDouble / mE.toDouble))
+              val taEi = (if (tE == 0) 1 else (aE.toDouble / tE.toDouble))
 
-    viewList.foreach {
-      case (name, v) =>
-        check(
-          s"$name (${v.name}): ${v.toString(true, false, Some(EditorTest.cfg.grammar))}",
-        ) {
-          // Parser(EditorTest.cfg.grammar)(v.name, v.args)
-          //  .from(v.toString(grammar = Some(EditorTest.cfg.grammar)))
-          val transitiveCG = SyntacticTransitiveClosedCallGraph(
-            mcgs,
-            cfgHelper.getSDOView(v, "Evaluation").get._2.name,
-          )
-          val analysisCG = af.cg(v)
-          pw.foreach((pw) => {
-            pw.println(s"$name: ${v
-              .toString(true, false, Some(EditorTest.cfg.grammar))}")
+              pw.synchronized {
+                pw.foreach((pw) => {
+                  pw.println(s"$name: ${v
+                    .toString(true, false, Some(EditorTest.cfg.grammar))}")
 
-            val (mV, mE) = (
-              mergeCG.funcs.size,
-              mergeCG.func_targets.toSet.flatMap {
-                case (i, j) => j.map((k) => (i -> k))
-              }.size,
-            )
-            val (tV, tE) = (
-              transitiveCG.funcs.size,
-              transitiveCG.func_targets.toSet.flatMap {
-                case (i, j) => j.map((k) => (i -> k))
-              }.size,
-            )
-            val (aV, aE) = (
-              analysisCG.funcs.size,
-              analysisCG.func_targets.toSet.flatMap {
-                case (i, j) => j.map((k) => (i -> k))
-              }.size,
-            )
-            val maVi = (aV.toDouble / mV.toDouble)
-            val taVi = (aV.toDouble / tV.toDouble)
-            val maEi = (if (mE == 0) 1 else (aE.toDouble / mE.toDouble))
-            val taEi = (if (tE == 0) 1 else (aE.toDouble / tE.toDouble))
-            maV += maVi
-            taV += taVi
+                  maV += maVi
+                  taV += taVi
 
-            maE += maEi
-            taE += taEi
-            s += 1
-            pw.println(
-              s"    ${mV}/${mE}  -> ${tV}/${tE} -> ${aV}/${aE} (%${f"${maVi * 100}%2.2f"}/%${f"${maEi * 100}%2.2f"} -> %${f"${taVi * 100}%2.2f"}/%${f"${taEi * 100}%2.2f"})",
-            )
-            val thispw = getPrintWriter(s"${logDir}/detail/${name}.log")
-            analysisCG.funcs.toList.sorted.foreach(thispw.println(_))
-            thispw.close
-            // println(
-            //  s"    ${mV}/${mE}  -> ${tV}/${tE} -> ${aV}/${aE} (%${f"${maVi * 100}%2.2f"}/%${f"${maEi * 100}%2.2f"} -> %${f"${taVi * 100}%2.2f"}/%${f"${taEi * 100}%2.2f"})",
-            // )
-          })
-        },
+                  maE += maEi
+                  taE += taEi
+                  s += 1
+                  pw.println(
+                    s"    ${mV}/${mE}  -> ${tV}/${tE} -> ${aV}/${aE} (%${f"${maVi * 100}%2.2f"}/%${f"${maEi * 100}%2.2f"} -> %${f"${taVi * 100}%2.2f"}/%${f"${taEi * 100}%2.2f"})",
+                  )
+                })
+              }
+              val thispw = getPrintWriter(s"${logDir}/detail/${name}.log")
+              analysisCG.funcs.toList.sorted.foreach(thispw.println(_))
+              thispw.close
+
+            },
+        }),
+        Duration.Inf,
+      )
     }
 
   override def afterAll(): Unit = {

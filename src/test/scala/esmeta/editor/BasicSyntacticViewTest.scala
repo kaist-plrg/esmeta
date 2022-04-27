@@ -41,7 +41,7 @@ class BasicSyntacticViewTest extends EditorTest {
   def init: Unit =
     val cfgHelper = CFGHelper(EditorTest.cfg)
     val af = AnalysisFrontend(cfgHelper)
-    val viewList = BasicSyntacticView(cfgHelper).viewSet.toList
+    val viewList = BasicSyntacticView(cfgHelper).diffViewSet.toList
       // .map((x) => (x._1, x._2.refined(cfgHelper)))
       // .collect { case (i, s: Syntactic) => (i, s) }
       // .filter(cfgHelper.getSDOView(_, "Evaluation").isDefined)
@@ -51,6 +51,7 @@ class BasicSyntacticViewTest extends EditorTest {
       .toMap
     val mergeCG = SyntacticMergedCallGraph(mcgs, cfgHelper)
     mkdir(logDir)
+    mkdir(s"${logDir}/detail")
     pw = Some(getPrintWriter(s"${logDir}/${name}.log"))
 
     viewList.foreach {
@@ -58,8 +59,8 @@ class BasicSyntacticViewTest extends EditorTest {
         check(
           s"$name (${v.name}): ${v.toString(true, false, Some(EditorTest.cfg.grammar))}",
         ) {
-          Parser(EditorTest.cfg.grammar)(v.name, v.args)
-            .from(v.toString(grammar = Some(EditorTest.cfg.grammar)))
+          // Parser(EditorTest.cfg.grammar)(v.name, v.args)
+          //  .from(v.toString(grammar = Some(EditorTest.cfg.grammar)))
           val transitiveCG = SyntacticTransitiveClosedCallGraph(
             mcgs,
             cfgHelper.getSDOView(v, "Evaluation").get._2.name,
@@ -100,6 +101,9 @@ class BasicSyntacticViewTest extends EditorTest {
             pw.println(
               s"    ${mV}/${mE}  -> ${tV}/${tE} -> ${aV}/${aE} (%${f"${maVi * 100}%2.2f"}/%${f"${maEi * 100}%2.2f"} -> %${f"${taVi * 100}%2.2f"}/%${f"${taEi * 100}%2.2f"})",
             )
+            val thispw = getPrintWriter(s"${logDir}/detail/${name}.log")
+            analysisCG.funcs.toList.sorted.foreach(thispw.println(_))
+            thispw.close
             // println(
             //  s"    ${mV}/${mE}  -> ${tV}/${tE} -> ${aV}/${aE} (%${f"${maVi * 100}%2.2f"}/%${f"${maEi * 100}%2.2f"} -> %${f"${taVi * 100}%2.2f"}/%${f"${taEi * 100}%2.2f"})",
             // )

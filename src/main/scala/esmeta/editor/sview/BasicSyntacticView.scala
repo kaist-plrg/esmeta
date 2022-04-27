@@ -88,6 +88,40 @@ class BasicSyntacticView(cfgHelper: CFGHelper) {
         case (rhs, rhsIdx) => rhsMap((lhs.name, rhsIdx)) = rhs
       }
   }
+
+  def differentiate(s: SyntacticView): List[SyntacticView] = s match
+    case (s: Syntactic) =>
+      s.children
+        .foldLeft(List(List[Option[SyntacticView]]())) {
+          case (l, None) => l.map(_ :+ None)
+          case (l, Some(v)) =>
+            differentiate(v).flatMap(x => l.map(_ :+ Some(x)))
+        }
+        .map((ov) => Syntactic(s.name, s.args, s.rhsIdx, ov))
+    case (l: Lexical) => List(l)
+    case (a: AbsSyntactic) =>
+      if (
+        a.name.endsWith("Expression") &&
+        cfgHelper.reachableChild
+          .getOrElse(a.name, Set())
+          .exists((n) =>
+            cfgHelper
+              .sdoCloNameMap("Evaluation")
+              .exists((s) => s.startsWith(s"$n[")),
+          )
+      )
+        List(
+          a.copy(annotation = AObj),
+          a.copy(annotation = ABigInt),
+          a.copy(annotation = ANum),
+          a.copy(annotation = ABool),
+          a.copy(annotation = ANull),
+          a.copy(annotation = AStr),
+          a.copy(annotation = AUndef),
+          a.copy(annotation = ASymbol),
+        )
+      else List(a)
+
   val viewSet: Map[String, Syntactic] =
     def countAllSymbol(s: SyntacticView): Int = s match
       case Syntactic(name, _, rhsIdx, child) =>
@@ -298,6 +332,13 @@ class BasicSyntacticView(cfgHelper: CFGHelper) {
           l.zipWithIndex.map { case (sv, idx) => (s"${s}_$idx", sv) }
       }
       .toMap
+
+  val diffViewSet = viewSet.toList.flatMap {
+    case (s, sv) =>
+      differentiate(sv).zipWithIndex.map {
+        case (x, idx) => (s"${s}_$idx", x)
+      }.toMap
+  }
 //      .map { case (k, v) => (k, v.minBy(syntacticMeasure)) }
 //      .flatMap { case (k, v) => v.getNormal(cfgHelper).map((k, _)) }
   // println(np.toList.length)

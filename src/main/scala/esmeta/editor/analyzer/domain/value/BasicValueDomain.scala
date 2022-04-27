@@ -309,7 +309,7 @@ class BasicValueDomain() extends AbsValueDomain {
         case NumKind       => projValueKind(purd.ValueKind.Num)
         case AllKind       => this
         case BoolKind      => projValueKind(purd.ValueKind.Bool)
-        case BigIntKind    => projValueKind(purd.ValueKind.Etc)
+        case BigIntKind    => projValueKind(purd.ValueKind.BigInt)
         case NullKind      => projValueKind(purd.ValueKind.Null)
         case UndefKind     => projValueKind(purd.ValueKind.Undef)
         case LiteralKind =>
@@ -318,6 +318,8 @@ class BasicValueDomain() extends AbsValueDomain {
           ) ⊔ projValueKind(purd.ValueKind.Bool) ⊔ projValueKind(
             purd.ValueKind.Null,
           ) ⊔ projValueKind(purd.ValueKind.Undef) ⊔ projValueKind(
+            purd.ValueKind.BigInt,
+          ) ⊔ projValueKind(
             purd.ValueKind.Etc,
           )
         case _ => this

@@ -12,6 +12,7 @@ import esmeta.editor.util.CFGHelper
 import java.io.PrintWriter
 import esmeta.editor.SyntacticCallGraph
 import esmeta.editor.SyntacticTransitiveClosedCallGraph
+import esmeta.editor.sview.BasicSyntacticView
 
 /** `view-cg` phase */
 case object ViewCG extends Phase[(CFG, SyntacticView), Unit] {
@@ -24,7 +25,7 @@ case object ViewCG extends Phase[(CFG, SyntacticView), Unit] {
   ): Unit =
     val (cfg, view) = cfgWithview
     val cfgHelper = CFGHelper(cfg)
-    // BasicSyntacticView(cfgHelper).viewSet.foreach{ case (s, v) => println(s"$s -> ${v.map((x) => x.name + " " + x.toString(false, false, Some(cfg.grammar))).mkString(", ")}")}
+    // BasicSyntacticView(cfgHelper).diffView.foreach{ case (s, x) => println(s"$s (${x.name})-> ${x.toString(false, false, Some(cfg.grammar))}")}
     val nview = view.getNormal(cfgHelper).get.folded.invalidateFold
 
     val cg =

@@ -455,10 +455,9 @@ class AnalysisFrontend(
 
     val absfin = absinit.fixpoint
 
-    val scanner = new java.util.Scanner(System.in)
-
     val ret = absfin.getCG
     if (repl)
+      val scanner = new java.util.Scanner(System.in)
       println("show analysis result")
       def aux: Unit =
         val comm = scanner.nextLine.trim
@@ -477,6 +476,10 @@ class AnalysisFrontend(
                   ret.func_targets.get(s) match
                     case Some(sets) => println(sets)
                     case _          => println(s"Not exists call from $s")
+                case Array("cgin", s) =>
+                  ret.funcs.contains(s) match
+                    case true  => println(true)
+                    case false => println(false)
                 case _ =>
                   cfgHelper.cfg.fnameMap.get(comm) match
                     case Some(f) => println(f)

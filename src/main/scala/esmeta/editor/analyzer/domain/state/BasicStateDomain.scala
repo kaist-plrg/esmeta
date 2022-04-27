@@ -132,11 +132,10 @@ class BasicStateDomain[AOD <: AbsObjDomain[_] with Singleton](
                 cfg.fnameMap.foldLeft(m) {
                   case (m, (k, v)) =>
                     if (
-                        k.startsWith(
-                          s"${syn.name}[${syn.idx},${subIdx}].",
-                        ),
-                      )
-                    then {
+                      k.startsWith(
+                        s"${syn.name}[${syn.idx},${subIdx}].",
+                      ),
+                    ) then {
                       val name =
                         k.drop(s"${syn.name}[${syn.idx},${subIdx}].".length)
                       m + (name -> (m.getOrElse(name, Set()) + (
@@ -151,7 +150,7 @@ class BasicStateDomain[AOD <: AbsObjDomain[_] with Singleton](
         }
     } + ("Contains" -> Set(
       (AClo(cfg.fnameMap("<DEFAULT>.Contains"), Map()), Map()),
-    )) - "Evaluation"
+    )) - "Evaluation" - "StringValue"
 
   /*
     (cfg.fnameMap.keySet
@@ -203,6 +202,7 @@ class BasicStateDomain[AOD <: AbsObjDomain[_] with Singleton](
   val topCloNameSet = Set(
     "Code",
     "Evaluation",
+    "StringValue",
     "SV",
     "TV",
     "TRV",

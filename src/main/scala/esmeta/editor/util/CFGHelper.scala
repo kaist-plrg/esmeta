@@ -130,7 +130,7 @@ case class CFGHelper(cfg: CFG) {
     .foldLeft(Map[String, Set[String]]()) {
       case (m1, (k, v)) =>
         if (m1 contains k) m1 + (k -> (m1(k) + v)) else m1 + (k -> Set(v))
-    }
+    } + ("Contains" -> Set("<DEFAULT>.Contains"))
 
   val topCloNameSet = sdoCloNameMap.keySet ++ Set(
     "ResumeCont",

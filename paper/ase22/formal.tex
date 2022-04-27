@@ -115,18 +115,18 @@ as its values. To handle JavaScript ASTs in $\ires$, we define them with tree
 nodes $\nodeset$ as follows:
 \[
   \begin{array}{l@{~}c@{~}l@{~}c@{~}l}
-    \treeset &\ni& \tree &::=& \ty_k \langle \node^* \rangle\\
+    \treeset &\ni& \tree &::=& \nt_k \langle \node^* \rangle\\
     \nodeset &\ni& \node &::=& \str \mid \tree\\
   \end{array}
 \]
-A JavaScript AST $\ty_k \langle \node_1, \cdots, \node_n \rangle$ denotes $k$-th
-alternative in the syntactic production of nonterminal symbol $\ty$ with
+A JavaScript AST $\nt_k \langle \node_1, \cdots, \node_n \rangle$ denotes $k$-th
+alternative in the syntactic production of nonterminal symbol $\nt$ with
 multiple tree nodes $\node_1, \cdots, \node_n$.  A tree node is a string for a
 terminal symbol or another tree for a nonterminal symbol. We define several
-notations to easily deal with JavaScript ASTs.  The notation $\ty_k.\eval$ denotes
-an \esalg{Evaluation} function of $k$-th alternative in the production $\ty$.
+notations to easily deal with JavaScript ASTs.  The notation $\nt_k.\eval$ denotes
+an \esalg{Evaluation} function of $k$-th alternative in the production $\nt$.
 Similarly, the notation $\tree.\eval$ denotes the \esalg{Evaluation} function of
-the AST $\tree$, and it is same with $\ty_k.\eval$ when $\tree = \ty_k \langle
+the AST $\tree$, and it is same with $\nt_k.\eval$ when $\tree = \nt_k \langle
 \cdots \rangle$. The \esalg{Evaluation} of each AST takes the AST itself and its
 tree nodes that are nonterminals as arguments.  The notation $\getsubs(\tree)$
 denotes tree nodes that are subtrees of $\tree$.  For example,
@@ -240,11 +240,11 @@ follows:
             & \text{if} \; \val_0 = \addr \wedge \val_1 = \str\\
 
             \tree_j
-            & \text{if} \; \val_0 = \ty_k \langle \tree_1, \cdots, \tree_n
+            & \text{if} \; \val_0 = \nt_k \langle \tree_1, \cdots, \tree_n
             \rangle \wedge \val_1 = j\\
 
-            \ty_k.\eval
-            & \text{if} \; \val_0 = \ty_k \langle \tree_1, \cdots, \tree_n
+            \nt_k.\eval
+            & \text{if} \; \val_0 = \nt_k \langle \tree_1, \cdots, \tree_n
             \rangle \wedge \val_1 = \code{"eval"}\\
           \end{array}
         \right.\\
@@ -341,22 +341,22 @@ A syntactic view $\atree \in \atreeset$ is an abstract JavaScript AST with
 abstract tree nodes $\anodeset$:
 \[
   \begin{array}{l@{~}c@{~}l@{~}c@{~}l}
-    \atreeset &\ni& \atree &::=& \ty_k \langle \anode^* \rangle \mid \ty\\
+    \atreeset &\ni& \atree &::=& \nt_k \langle \anode^* \rangle \mid \nt\\
     \anodeset &\ni& \anode &::=& \str \mid \atree\\
   \end{array}
 \]
-where $\ty$ denotes all ASTs whose nonterminal symbol $\ty$. We define the
+where $\nt$ denotes all ASTs whose nonterminal symbol $\nt$. We define the
 concretization of abstract trees $\atreegamma: \atreeset \rightarrow
 \powerset{\treeset}$ and that of abstract nodes $\anodegamma: \anodeset
 \rightarrow \powerset{\nodeset}$ as follows:
 \[
   \begin{array}{lcl}
-    \atreegamma(\ty_k \langle \anode_1, \cdots, \anode_n \rangle) &=&
-    \{ \ty_k \langle \node_1, \cdots, \node_n \rangle \mid \node_j \in
+    \atreegamma(\nt_k \langle \anode_1, \cdots, \anode_n \rangle) &=&
+    \{ \nt_k \langle \node_1, \cdots, \node_n \rangle \mid \node_j \in
     \anodegamma(\anode_j) \}\\
 
-    \atreegamma(\ty) &=&
-    \{ \tree \in \treeset \mid \tree = \ty_k \langle \cdots \rangle \}\\
+    \atreegamma(\nt) &=&
+    \{ \tree \in \treeset \mid \tree = \nt_k \langle \cdots \rangle \}\\
 
     \anodegamma(\str) &=& \{ \str \}\\
 
@@ -369,7 +369,7 @@ concretization of abstract trees $\atreegamma: \atreeset \rightarrow
 %       \begin{array}{ll}
 %         \anode = \anode' &\vee\\
 % 
-%         \anode' = \ty &\vee\\
+%         \anode' = \nt &\vee\\
 % 
 %         (\anode = \atree \wedge \anode' = \atree' \wedge \atree \order
 %         \atree')\\
@@ -383,8 +383,8 @@ concretization of abstract trees $\atreegamma: \atreeset \rightarrow
 %         \atree' = \treetop &\vee\\
 % 
 %         \begin{array}{@{}l@{}}
-%           \atree = \ty_k \langle \atree_1, \cdots, \atree_n \rangle \wedge
-%           \atree' = \ty_k \langle \atree'_1, \cdots, \atree'_n \rangle \wedge\\
+%           \atree = \nt_k \langle \atree_1, \cdots, \atree_n \rangle \wedge
+%           \atree' = \nt_k \langle \atree'_1, \cdots, \atree'_n \rangle \wedge\\
 %           \forall j. \; \tree_j \order \tree'_j\\
 %         \end{array}\\
 %       \end{array}
@@ -396,10 +396,10 @@ concretization of abstract trees $\atreegamma: \atreeset \rightarrow
 % 
 %         \atree & \text{if} \; \atree \revorder \atree'\\
 % 
-%         \ty_k \langle \atree''_1, \cdots, \atree''_n \rangle &
-%         \text{if} \; \atree = \ty_k \langle \atree_1, \cdots, \atree_n \rangle
+%         \nt_k \langle \atree''_1, \cdots, \atree''_n \rangle &
+%         \text{if} \; \atree = \nt_k \langle \atree_1, \cdots, \atree_n \rangle
 %         \wedge\\&
-%         \phantom{\text{if} \;} \atree = \ty_k \langle \atree_1, \cdots, \atree_n
+%         \phantom{\text{if} \;} \atree = \nt_k \langle \atree_1, \cdots, \atree_n
 %         \rangle \wedge\\&
 %         \phantom{\text{if} \;} \forall j. \; \atree''_j = \atree_j
 %         \join \atree'_j\\
@@ -416,7 +416,7 @@ Moreover, we define abstract subtree relation $\asubtree \subseteq \atreeset
 \]
 to filter out JavaScript programs not related to a given syntactic view.
 Similar to $\getsubs(\tree)$, an abstract helper function $\agetsubs(\atree)$
-denotes abstract tree nodes that are syntactic views when $\atree = \ty_k
+denotes abstract tree nodes that are syntactic views when $\atree = \nt_k
 \langle \cdots \rangle$.
 
 
@@ -434,8 +434,8 @@ corresponding \esalg{Evaluation} function. Then, it performs a static analysis
 $\asem{\prog}$ of a given program $\prog$ with the syntactic view $\atree$, and
 transforms the program to a specialized program using $\transform{\prog}$ with
 the analysis result $\asem{\prog}(\atree)$.  Since the \esalg{Evaluation} of
-$\ty$ might one or more $\ires$ functions, we only define the partial evaluation
-when $\atree = \ty_k \langle \cdots \rangle$.  Now, we define the static
+$\nt$ might one or more $\ires$ functions, we only define the partial evaluation
+when $\atree = \nt_k \langle \cdots \rangle$.  Now, we define the static
 analysis and program transformation of $\ires$ programs and prove the semantics
 preservation of the partial evaluation consisting of them.
 
@@ -469,7 +469,7 @@ states, call edges, environments, and values as follows:
         (\adcall \join \adcall', \ascall \join \ascall', \afsenv \join \afsenv')\\
       \end{array}
     \]
-    where $\atree = \ty_k \langle \cdots \rangle$, $\aelem = (\adcall, \ascall,
+    where $\atree = \nt_k \langle \cdots \rangle$, $\aelem = (\adcall, \ascall,
     \afsenv)$ and $\aelem' = (\adcall', \ascall', \afsenv')$
 
   \item \underline{Dynamic Call Sets}: $\adcallset$
@@ -497,7 +497,7 @@ states, call edges, environments, and values as follows:
         \adcall \cup \adcall\\
       \end{array}
     \]
-    where $\atree = \ty_k \langle \cdots \rangle$
+    where $\atree = \nt_k \langle \cdots \rangle$
 
   \item \underline{Static Call Sets}: $\ascallset$
     \[
@@ -514,7 +514,7 @@ states, call edges, environments, and values as follows:
           \forall 1 \leq j \leq n. \; \ctxt_j = (\lab_j, \_, \_) \wedge\\&&
 
           \phantom{\{ \st \in \stset \mid}
-          \exists 0 \leq m \leq n. \; \getfunc{\prog}(\lab_m) = \ty_k.\eval
+          \exists 0 \leq m \leq n. \; \getfunc{\prog}(\lab_m) = \nt_k.\eval
           \wedge\\&&
 
           \phantom{\{ \st \in \stset \mid}
@@ -527,7 +527,7 @@ states, call edges, environments, and values as follows:
         \ascall \join \ascall' &=& \ascall \cup \ascall'\\
       \end{array}
     \]
-    where $\atree = \ty_k \langle \cdots \rangle$
+    where $\atree = \nt_k \langle \cdots \rangle$
 
   \item \underline{Flow-Sensitive Abstract Environments}: $\afsenvset$
     \[
@@ -670,11 +670,11 @@ follows:
         \aval &=& \left\{
           \begin{array}{ll}
             \atree_j & \text{if} \;
-            \aval_0 = \ty_k \langle \atree_1, \cdots, \atree_n \rangle \wedge
+            \aval_0 = \nt_k \langle \atree_1, \cdots, \atree_n \rangle \wedge
             \aval_1 = j\\
 
-            \ty_k.\eval & \text{if} \;
-            \aval_0 = \ty_k \langle \cdots \rangle \wedge
+            \nt_k.\eval & \text{if} \;
+            \aval_0 = \nt_k \langle \cdots \rangle \wedge
             \aval_1 = \code{"eval"}\\
 
             \top & \text{otherwise}\\
@@ -859,11 +859,11 @@ $\atree$:
     \]
     where \[
       \begin{array}{lcl}
-        \atree &=& \ty_k \langle \cdots \rangle\\
+        \atree &=& \nt_k \langle \cdots \rangle\\
 
         \agetsubs(\atree) &=& [\atree_1, \cdots, \atree_n]\\
 
-        \ty_k.\eval &=& \kwdef \; \kwrl \varx_1, \cdots, \varx_n \kwrr
+        \nt_k.\eval &=& \kwdef \; \kwrl \varx_1, \cdots, \varx_n \kwrr
         \; \entrylab\\
 
         \aenv &=& [\varx_1 \mapsto \atree_1, \cdots, \varx_n \mapsto
@@ -1031,8 +1031,8 @@ depending on the given syntactic view $\atree$:
 where
 \[
   \begin{array}{lcl}
-    \atree &=& \ty_k \langle \cdots \rangle\\
-    \ty_k.\eval &=& \kwdef \; \kwrl \varx_0, \cdots, \varx_n \kwrr \entrylab\\
+    \atree &=& \nt_k \langle \cdots \rangle\\
+    \nt_k.\eval &=& \kwdef \; \kwrl \varx_0, \cdots, \varx_n \kwrr \entrylab\\
     \agetsubs(\atree) &=& [\atree_1, \cdots, \atree_n]\\
   \end{array}
 \]

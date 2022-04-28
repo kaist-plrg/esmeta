@@ -17,6 +17,7 @@ class RetDomain[
     value = asd.aod.avd.Bot,
     state = asd.Bot,
   )
+  val TopOpt = asd.TopOpt.map(to => Elem(value = asd.aod.avd.Top, state = to))
 
   // constructors
   def apply(

@@ -10,6 +10,7 @@ class SetDomain[A <: reflect.Enum](val elems: Iterable[A]) extends Domain {
   val Bot = Base(Set())
 
   val Top = Base(elems.toSet)
+  val TopOpt = Some(Top)
 
   // abstraction functions
   def apply(elems: A*): Elem = this(elems)

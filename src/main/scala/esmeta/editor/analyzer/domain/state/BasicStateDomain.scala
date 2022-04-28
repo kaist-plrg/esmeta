@@ -143,11 +143,10 @@ class BasicStateDomain[AOD <: AbsObjDomain[_] with Singleton](
                 cfg.fnameMap.foldLeft(m) {
                   case (m, (k, v)) =>
                     if (
-                        k.startsWith(
-                          s"${syn.name}[${syn.idx},${subIdx}].",
-                        ),
-                      )
-                    then {
+                      k.startsWith(
+                        s"${syn.name}[${syn.idx},${subIdx}].",
+                      ),
+                    ) then {
                       val name =
                         k.drop(s"${syn.name}[${syn.idx},${subIdx}].".length)
                       m + (name -> (m.getOrElse(name, Set()) + (
@@ -239,6 +238,7 @@ class BasicStateDomain[AOD <: AbsObjDomain[_] with Singleton](
 
   val Bot = Elem(false, Map())
   val Empty = Elem(true, Map())
+  val TopOpt = None
 
   // constructors
   def apply(

@@ -7,6 +7,7 @@ class AContDomain[T <: AbsValueDomain with Singleton](val avd: T)
   extends Domain {
 
   val Bot = ESet(Set())
+  val TopOpt = Some(ETopCont)
 
   sealed trait Elem extends ElemTrait {
     def ⊑(that: Elem): Boolean = (this, that) match

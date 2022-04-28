@@ -713,8 +713,7 @@ class AbsTransfer[ASD <: AbsStateDomain[_] with Singleton, T <: AbsSemantics[
                 case node => {
                   sem += (NodePoint(func, node, view) -> AbsState.Empty
                     .replaceLocal(
-                      (func.irFunc.params.map((p) =>
-                        (p.lhs -> AbsValue.Top),
+                      (func.irFunc.params.map((p) => (p.lhs -> AbsValue.Top),
                       ) ++ captured.toList): _*,
                     ))
                   sem.retEdges += (ReturnPoint(func, view) -> (sem.retEdges

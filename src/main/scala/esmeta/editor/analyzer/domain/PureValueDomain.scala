@@ -43,6 +43,7 @@ class PureValueDomain extends Domain:
       ValueKind.Etc,
     ),
   )
+  val TopOpt = Some(Top)
   enum ValueKind:
     case Undef, Null, Bool, Str, Symbol, Num, BigInt, Obj, Ast, List, Record,
     Absent, Etc

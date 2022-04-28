@@ -12,6 +12,7 @@ import esmeta.editor.sview.SyntacticView
 trait AbsValueDomain extends Domain {
 
   val Top: Elem
+  val TopOpt = Some(Top)
   type Elem <: AbsValueTrait
   def apply(value: Value): Elem = this(AValue.from(value))
   def apply(asite: AllocSite): Elem = this(Loc(asite))

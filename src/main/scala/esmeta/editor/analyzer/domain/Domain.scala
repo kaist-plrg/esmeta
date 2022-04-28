@@ -9,6 +9,7 @@ import esmeta.editor.analyzer.AbsStateDomain
 trait Domain:
   // bottom element
   val Bot: Elem
+  val TopOpt: Option[Elem]
 
   // element
   type Elem <: ElemTrait

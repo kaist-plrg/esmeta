@@ -19,6 +19,8 @@ trait FlatDomain[A] extends Domain {
   // elements
   object Bot extends Elem
   object Top extends Elem
+  val TopOpt = Some(Top)
+
   case class Base(elem: A) extends Elem
   private def top: Top.type = {
     if (isExploded) exploded(s"Top value is not supported: $topName")

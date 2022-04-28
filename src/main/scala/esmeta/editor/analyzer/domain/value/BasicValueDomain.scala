@@ -45,9 +45,8 @@ class BasicValueDomain() extends AbsValueDomain {
             ),
           ),
           compt = compd.EBase(
-            compt = compd.typed(compd.CompType.A),
-            pure = purd.Top,
-            target = purd.Top,
+            compd.ecompd.Bot,
+            compd.ecompd.EBase(left = purd.Top, right = purd.Top),
           ),
         ),
       true),
@@ -86,9 +85,8 @@ class BasicValueDomain() extends AbsValueDomain {
       "AThrow" -> ((ls: List[Elem]) =>
         Elem(compt =
           compd.EBase(
-            compt = compd.typed(compd.CompType.A),
-            pure = purd.Top,
-            target = purd.Top,
+            compd.ecompd.Bot,
+            compd.ecompd.EBase(left = purd.Top, right = purd.Top),
           ),
         ), true),
     )
@@ -157,40 +155,27 @@ class BasicValueDomain() extends AbsValueDomain {
         Elem(pure = purd.Top)
 
   def mkAbsComp(name: String, value: Elem, target: Elem): Elem =
-    (value, target) match {
+    val ecmp = (value, target) match {
       case (
-            Elem(purd.EFlat(v: PureValue), _, _, _),
+            Elem(p, _, _, _),
             Elem(purd.EFlat(Str(target)), _, _, _),
           ) =>
-        Elem(
-          compt = compd.EBase(
-            compd.typed(
-              if (name == "normal") compd.CompType.N else compd.CompType.A,
-            ),
-            purd.EFlat(v),
-            purd.EFlat(Str(target)),
-          ),
-        )
+        compd.ecompd.EBase(left = p, right = purd.EFlat(Str(target)))
       case (
-            Elem(purd.EFlat(v: PureValue), _, _, _),
+            Elem(p, _, _, _),
             Elem(purd.EFlat(CONST_EMPTY), _, _, _),
           ) =>
-        Elem(compt =
-          compd.EBase(
-            compd.typed(
-              if (name == "normal") compd.CompType.N else compd.CompType.A,
-            ),
-            purd.EFlat(v),
-            purd.EFlat(CONST_EMPTY),
-          ),
-        )
+        compd.ecompd.EBase(left = p, right = purd.EFlat(CONST_EMPTY))
       case (Elem(purd.Bot, _, _, _), _) | (_, Elem(purd.Bot, _, _, _)) =>
-        Bot
+        compd.ecompd.Bot
       case (_, _) =>
-        Elem(
-          compt = compd.Top,
-        )
+        compd.ecompd.EBase(left = purd.Top, right = purd.Top)
     }
+    Elem(
+      compt =
+        if (name == "normal") compd.EBase(ecmp, compd.ecompd.Bot)
+        else compd.EBase(compd.ecompd.Bot, ecmp),
+    )
 
   // Set(ASTType | NumType | BoolType | AddType | EtcType) * (CloType)             * (ContType)
   // (Value | SyntacticView)                               * (Set[AClo] | ATopClo) * (Set[ACont] | ATopClo)
@@ -204,30 +189,22 @@ class BasicValueDomain() extends AbsValueDomain {
   ) extends AbsValueTrait {
 
     def removeNormal: Elem = compt match
-      case compd.EBot => Bot
-      case compd.EBase(ty, v, t) =>
-        if (v.isBottom || t.isBottom) Bot
-        else
-          ty.getSingle match
-            case FlatTop =>
-              Elem(compt = compd.EBase(compd.typed(compd.CompType.A), v, t))
-            case FlatElem(compd.CompType.A) => Elem(compt = compt)
-            case _                          => Bot
+      case compd.EBase(ncomp, acomp) =>
+        if (acomp.isBottom) Bot
+        else Elem(compt = compd.EBase(compd.ecompd.Bot, acomp))
 
     def normal: Elem = compt match
-      case compd.EBot => Bot
-      case compd.EBase(ty, v, _) =>
-        ty.getSingle match
-          case FlatTop                    => Elem(pure = v)
-          case FlatElem(compd.CompType.N) => Elem(pure = v)
-          case _                          => Bot
+      case compd.EBase(ncomp, _) =>
+        ncomp match
+          case compd.ecompd.EBot           => Bot
+          case compd.ecompd.EBase(left, _) => Elem(pure = left)
 
     def isAbruptCompletion: Elem = if (this.isBottom) Bot
     else if (compt.isBottom) Elem(pure = purd.EFlat(Bool(false)))
     else if (
       pure.isBottom && clo.isBottom && cont.isBottom && (compt match {
-        case compd.EBase(ty, _, _) => ty.getSingle == FlatElem(compd.CompType.A)
-        case _                     => false
+        case compd.EBase(ncomp, acomp) => (ncomp.isBottom && !(acomp.isBottom))
+        case _                         => false
       })
     ) Elem(pure = purd.EFlat(Bool(true)))
     else Elem(pure = purd.EKind(Set(purd.ValueKind.Bool)))
@@ -239,8 +216,14 @@ class BasicValueDomain() extends AbsValueDomain {
 
     def escaped: Elem = this.copy(
       pure = pure ⊔ (compt match {
-        case compd.EBot           => purd.Bot
-        case compd.EBase(_, v, _) => v
+        case compd.EBase(ncomp, acomp) =>
+          (ncomp, acomp) match
+            case (compd.ecompd.EBot, compd.ecompd.EBot)        => purd.Bot
+            case (compd.ecompd.EBase(v, _), compd.ecompd.EBot) => v
+            case (compd.ecompd.EBot, compd.ecompd.EBase(v, _)) => v
+            case (compd.ecompd.EBase(v1, _), compd.ecompd.EBase(v2, _)) =>
+              v1 ⊔ v2
+
       }),
       compt = compd.Bot,
     )
@@ -250,9 +233,8 @@ class BasicValueDomain() extends AbsValueDomain {
       this.copy(
         pure = purd.Bot,
         compt = compd.EBase(
-          compd.typed(compd.CompType.N),
-          pure,
-          purd.EFlat(CONST_EMPTY),
+          compd.ecompd.EBase(pure, purd.EFlat(CONST_EMPTY)),
+          compd.ecompd.Bot,
         ) ⊔ compt,
       )
 
@@ -298,13 +280,13 @@ class BasicValueDomain() extends AbsValueDomain {
     def projValueKind(v: purd.ValueKind) = pure match {
       case f: purd.EFlat =>
         if (f.kind == v)
-          this.copy(
+          Elem(
             pure = f,
           )
         else Bot
       case s: purd.EKind =>
         if (s.s contains v)
-          this.copy(
+          Elem(
             pure = purd.EKind(Set(v)),
           )
         else Bot

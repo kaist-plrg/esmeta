@@ -28,6 +28,7 @@ class EmptyStateDomain[AOD <: AbsObjDomain[_] with Singleton](
 
   val Bot = Elem()
   val Empty = Elem()
+  val TopOpt = Some(Empty)
 
   // constructors
   def apply(): Elem = Elem()

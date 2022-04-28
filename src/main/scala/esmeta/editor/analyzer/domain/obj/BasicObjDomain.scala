@@ -8,6 +8,7 @@ class BasicObjDomain[AVD <: AbsValueDomain with Singleton](avd_ : AVD)
 
   def apply(ty: String) = Elem(Set(ty))
   val Bot = Elem(Set())
+  val TopOpt = None
 
   case class Elem(ty: Set[String]) extends AbsObjTrait {
     def ⊑(that: Elem): Boolean = this.ty.forall(that.ty contains _)

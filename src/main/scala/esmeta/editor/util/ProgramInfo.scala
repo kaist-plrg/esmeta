@@ -30,22 +30,23 @@ case class ProgramInfo(
     (m0, m1)
   }
 
-  def matches(sview: SimpleAst, algoId: Int, cfg: CFG): Boolean = ???
-  // {
-  //   val idxMap = prodMap.getOrElseUpdate(sview.nameIdx, MMap())
-  //   val subIdxMap = idxMap.getOrElseUpdate(sview.idx, MMap())
-  //   val astSet = subIdxMap.getOrElseUpdate(sview.subIdx, MSet())
+  def matches(sview: SimpleAst, algoId: Int, cfg: CFG): Boolean = {
+    val idxMap = prodMap.getOrElseUpdate(sview.nameIdx, MMap())
+    val subIdxMap = idxMap.getOrElseUpdate(sview.idx, MMap())
+    val astSet = subIdxMap.getOrElseUpdate(sview.subIdx, MSet())
 
-  //   for {
-  //     astId <- astSet if astAlgoMap.contains(astId)
-  //     ast <- astMap.get(astId)
-  //     if PerformanceRecorder("ast matches")(ast.matches(sview, annoMap, cfg))
-  //     conc <- ast.getConcreteParts(sview)
-  //     concAlgoSet <- astAlgoMap.get(conc)
-  //   } if (concAlgoSet contains algoId) return true
+    for {
+      astId <- astSet if astAlgoMap.contains(astId)
+      ast <- astMap.get(astId)
+      if PerformanceRecorder("ast matches")(ast.matches(sview, annoMap, cfg))
 
-  //   false
-  // }
+      // TODO fix here
+      conc <- ast.getConcreteParts(sview)
+      concAlgoSet <- astAlgoMap.get(conc)
+    } if (concAlgoSet contains algoId) return true
+
+    false
+  }
 
   def getAlgos(sview: SimpleAst, cfg: CFG): MSet[Int] = ???
   // {

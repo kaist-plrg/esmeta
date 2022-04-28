@@ -49,7 +49,7 @@ case class EvalInfo(
           case AUndef  => aux(6)
           case ANull   => aux(7)
           case AThrow  => aux(8)
-          case AAll    => acc
+          case AAll    => acc + (((1 << 9) - 1) << (i * 9))
     }
   }
 }

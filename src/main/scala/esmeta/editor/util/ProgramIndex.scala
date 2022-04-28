@@ -13,14 +13,15 @@ case class ProgramIndex(
     programIdx: Int,
     info: ProgramInfo,
   ): Unit =
-    updateAlgos(programIdx, info.astAlgoMap)
+    for { algoMapByType <- info.astAlgoMap.values }
+      updateAlgos(programIdx, algoMapByType)
     updateAlgos(programIdx, info.builtinAlgoMap)
     updateProds(programIdx, info.astList)
 
   def updateAlgos(programIdx: Int, algoMap: Map[Int, Set[Int]]): Unit =
-    val algoSet: MSet[Int] = MSet()
-    for { astAlgoSet <- algoMap.values } algoSet ++= astAlgoSet
-    for { algoId <- algoSet } {
+    val totalAlgoSet: MSet[Int] = MSet()
+    for { algoSet <- algoMap.values } totalAlgoSet ++= algoSet
+    for { algoId <- totalAlgoSet } {
       val programIdxSet = algos.getOrElseUpdate(algoId, MSet())
       programIdxSet += programIdx
     }

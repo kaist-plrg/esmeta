@@ -28,6 +28,9 @@ case class Func(
   lazy val isBuiltin: Boolean =
     irFunc.kind == IRFunc.Kind.Builtin || irFunc.kind == IRFunc.Kind.BuiltinClo
 
+  /** check whether it is sdo */
+  lazy val isSDO: Boolean = irFunc.kind == IRFunc.Kind.SynDirOp
+
   /** function name */
   def name: String = irFunc.name
 

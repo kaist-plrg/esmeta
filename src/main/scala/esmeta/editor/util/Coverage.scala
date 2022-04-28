@@ -1,11 +1,9 @@
 package esmeta.editor.util
 
 import esmeta.cfg.*
-import esmeta.cfg.CFG
 import esmeta.editor.sview.*
 import esmeta.interp.*
 import esmeta.ir.*
-import esmeta.js.util.{JsonProtocol => JsJsonProtocol}
 import esmeta.js.{
   Ast,
   Initialize,
@@ -15,11 +13,46 @@ import esmeta.js.{
 import esmeta.spec.*
 import esmeta.test262.*
 import esmeta.test262.util.TestFilter
+import esmeta.error.*
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
 import esmeta.{TEST262_TEST_DIR, BASE_DIR, LINE_SEP}
 import scala.collection.mutable.{ListBuffer, Map => MMap, Set => MSet}
+
+// helper class for eval info recording
+case class EvalInfo(
+  id: Int,
+  isBuiltin: Boolean = false,
+  algoSet: MSet[Int] = MSet(),
+  childEvalTypes: MMap[Int, Annotation] = MMap(),
+) {
+  def copied: EvalInfo =
+    EvalInfo(id, isBuiltin, MSet.from(algoSet), MMap.from(childEvalTypes))
+
+  // bit encoding of children eval type
+  def typeBit: Int = {
+    val types = childEvalTypes.toList.sortBy(_._1).map(_._2)
+    if (types.length > 3) {
+      throw error(s"!!! type bit need to be larger ${types.length}")
+    }
+    types.zipWithIndex.foldLeft(0) {
+      case (acc, (t, i)) =>
+        def aux(n: Int): Int = acc + (1 << (n + i * 9))
+        t match
+          case AObj    => aux(0)
+          case ASymbol => aux(1)
+          case ANum    => aux(2)
+          case ABigInt => aux(3)
+          case AStr    => aux(4)
+          case ABool   => aux(5)
+          case AUndef  => aux(6)
+          case ANull   => aux(7)
+          case AThrow  => aux(8)
+          case AAll    => acc
+    }
+  }
+}
 
 case class Coverage(
   cfg: CFG,
@@ -96,20 +129,29 @@ case class Coverage(
 
   // simplifying evaluation info
   class Simplifier(
-    annoMap: Map[Int, Set[Annotation]],
-    astMap: Map[Int, Set[Int]],
-    astList: List[Ast],
-    builtinCallAstSet: Set[Int],
-    builtinMap: Map[Int, Set[Int]],
+    annoMap: MMap[Int, MSet[Annotation]],
+    astMap: MMap[Int, MMap[Int, MSet[Int]]],
+    astList: ListBuffer[Ast],
+    builtinCallAstSet: MSet[Int],
+    builtinMap: MMap[Int, MSet[Int]],
   ) {
     lazy val result = {
       val simplified = astList.map(simplifyAst(_))
       ProgramInfo(
-        for { (origId, annoSet) <- annoMap } yield idMap(origId) -> annoSet,
-        for { (origId, algoSet) <- astMap } yield idMap(origId) -> algoSet,
-        simplified,
-        for { origId <- builtinCallAstSet } yield idMap(origId),
-        builtinMap,
+        Map.from(for {
+          (origId, annoSet) <- annoMap
+        } yield idMap(origId) -> Set.from(annoSet)),
+        Map.from(
+          for { (origId, algoSetByType) <- astMap } yield idMap(origId) -> Map
+            .from(for {
+              (typeBit, algoSet) <- algoSetByType
+            } yield typeBit -> Set.from(algoSet)),
+        ),
+        simplified.toList,
+        Set.from(for { origId <- builtinCallAstSet } yield idMap(origId)),
+        Map.from(for {
+          (bid, algoSet) <- builtinMap
+        } yield bid -> Set.from(algoSet)),
       )
     }
 
@@ -126,7 +168,6 @@ case class Coverage(
       ast match
         case syn @ JsSyntactic(name, _, rhsIdx, children) =>
           val cs = children.flatten
-
           cs match {
             case List(child) =>
               val rhs = cfg.grammar.nameMap(name).rhsList(rhsIdx)
@@ -159,27 +200,30 @@ case class Coverage(
 
   // get touched algorithms per ast
   def touchedAlgos = {
-    import JsJsonProtocol.given
     import JsonProtocol.given
 
     // fix interp for collection evaluation info
-    def getTouched(testBody: Ast, includes: List[String]) = {
+    def getInfo(testBody: Ast, includes: List[String]): ProgramInfo = {
       var nextAstId = testBody.setId(0)
       val (sourceText, ast) = test262.loadTest(testBody, includes)
-      val st = initState(sourceText, ast)
+      val _st = initState(sourceText, ast)
 
       // run interp
-      var builtinCallAstSet: Set[Int] = Set()
-      var builtinMap: Map[Int, Set[Int]] = Map()
-      var astMap: Map[Int, Set[Int]] = Map()
-      var annoMap: Map[Int, Set[Annotation]] = Map()
-      var astList: ListBuffer[Ast] = ListBuffer(testBody)
-      new Interp(st, Nil) {
-        private def contexts =
-          this.st.context :: this.st.callStack.map(_.context)
+      val builtinCallAstSet: MSet[Int] = MSet()
+      val builtinMap: MMap[Int, MSet[Int]] = MMap()
+
+      // bit encoding of child result type
+      val astMap: MMap[Int, MMap[Int, MSet[Int]]] = MMap()
+      val annoMap: MMap[Int, MSet[Annotation]] = MMap()
+
+      val astList: ListBuffer[Ast] = ListBuffer(testBody)
+      new Interp(_st, Nil) {
+        private def contexts = st.context :: st.callStack.map(_.context)
         private def astStack = contexts.flatMap(_.astOpt)
         private def evalAstStack =
           contexts.filter(_.name endsWith ".Evaluation").flatMap(_.astOpt)
+
+        private var evalInfoStack: List[EvalInfo] = List()
 
         // handle dynamically created ast
         override def interp(expr: Expr): Value = {
@@ -190,72 +234,175 @@ case class Coverage(
               nextAstId += ast.setId(nextAstId)
               astList.append(ast)
               AstValue(ast)
+            case (_: ECont, cont: Cont) =>
+              // record current eval info to continuation
+              cont.evalInfoStack = evalInfoStack.map(_.copied)
+              cont
             case _ => v
         }
 
-        // save algo id of top-most evaluation
-        override def interp(node: Node): Unit = {
-          // interp node
-          super.interp(node)
+        // override transition for calls
+        override def call(
+          lhs: Id,
+          fexpr: Expr,
+          args: List[Expr],
+        ): Unit = try {
+          interp(fexpr).escaped match {
+            case Clo(func, captured) =>
+              val vs = args.map(interp)
+              val newLocals = getLocals(func.irFunc.params, vs) ++ captured
+              st.callStack ::= CallContext(lhs, st.context)
+              st.context = Context(func, newLocals)
 
-          // record
-          node match
-            case _: Call =>
-              val algoId = this.st.context.func.id
-              contexts.foldLeft(false) {
-                case (false, c) =>
-                  if (c.name == "GetValue") true
-                  else if (c.name endsWith ".Evaluation") {
-                    for {
-                      ast <- c.astOpt
-                      astId <- ast.idOpt
-                      algoIds = astMap.getOrElse(astId, Set())
-                    } astMap += (astId -> (algoIds + algoId))
-                    true
-                  } else if (c.func.isBuiltin) {
-                    val bid = c.func.id
-                    val algoIds = builtinMap.getOrElse(bid, Set())
-                    builtinMap += (bid -> (algoIds + algoId))
-                    true
-                  } else false
-                case (true, _) => true
+              // record algo id to algoSetStack
+              for {
+                ast <- evalAstStack.headOption
+                astId <- ast.idOpt
+              } {
+                if (func.isBuiltin)
+                  // add new info context
+                  evalInfoStack ::= EvalInfo(func.id, true, MSet(func.id))
+                  builtinCallAstSet += astId
+                else if (func.name == "GetValue")
+                  evalInfoStack.head.algoSet += func.id
+                else
+                  contexts.foldLeft(false) {
+                    case (false, c) =>
+                      if (c.name == "GetValue") true
+                      else if (
+                        c.name.endsWith(".Evaluation") || c.func.isBuiltin
+                      ) { evalInfoStack.head.algoSet += func.id; true }
+                      else false
+                    case (true, _) => true
+                  }
               }
 
-              // track GetValue call, ast set which calls builtin func
-              if (this.st.context.name == "GetValue")
-                for {
-                  ast <- evalAstStack.headOption
-                  astId <- ast.idOpt
-                  algoIds = astMap.getOrElse(astId, Set())
-                } astMap += (astId -> (algoIds + algoId))
-              else if (this.st.context.func.isBuiltin)
-                for {
-                  ast <- evalAstStack.headOption
-                  astId <- ast.idOpt
-                } builtinCallAstSet += astId
-            case _ => /* do nothing */
+            case cont @ Cont(func, captured, callStack) => {
+              // record algo id of continuation
+              for {
+                ast <- evalAstStack.headOption if ast.idOpt.isDefined
+              } evalInfoStack.head.algoSet += func.id
+
+              // wrap completion for return to resumed context
+              val vs = args.map(interp).map(_.wrapCompletion)
+              val newLocals =
+                getLocals(func.irFunc.params, vs, cont = true) ++ captured
+              st.callStack = callStack.map(_.copied)
+              st.context = Context(func, newLocals)
+
+              // change algoSetStack
+              evalInfoStack = cont.evalInfoStack
+            }
+            case v => throw NoFunc(fexpr, v)
+          }
+        } catch {
+          case st.SyntacticCalled(ast, sdo) =>
+            // same with original interp
+            val vs = args.map(interp) match
+              case h :: tail => AstValue(ast) :: tail // fix this param
+              case _         => error("invalid SDO call")
+            st.callStack ::= CallContext(lhs, st.context)
+            st.context = Context(sdo, getLocals(sdo.irFunc.params, vs))
+
+            // add new info context
+            if (sdo.name.endsWith(".Evaluation") && ast.idOpt.isDefined) {
+              evalInfoStack ::= EvalInfo(
+                ast.idOpt.get,
+                false,
+                MSet(sdo.id),
+                MMap.from((for {
+                  child <- ast match
+                    case syn: JsSyntactic => syn.children.flatten
+                    case _: JsLexical     => List()
+                  childId = child.idOpt.get
+                } yield childId -> AAll)),
+              )
+            }
+          case st.LexicalCalled(v) => setCallResult(lhs, v)
         }
 
         // if current context is evaluation, save type of value
         override def setReturn(value: Value): Unit = {
           super.setReturn(value)
 
-          // save evaluation result
-          if (this.st.context.name endsWith ".Evaluation") {
+          if (st.context.name endsWith ".Evaluation") {
             for {
-              currentAst <- this.st.context.astOpt
-              astId <- currentAst.idOpt
-              annotation <- value.toAnnotation(this.st)
-              annotationSet = annoMap.getOrElse(astId, Set())
-            } annoMap += (astId -> (annotationSet + annotation))
+              ast <- st.context.astOpt
+              astId <- ast.idOpt
+              annotationOpt = value.toAnnotation(st)
+            } {
+
+              // pop eval info context
+              val currentInfo = evalInfoStack.head
+              evalInfoStack = evalInfoStack.tail
+
+              // save algoSet
+              val algoSetByType = astMap.getOrElseUpdate(astId, MMap())
+              val algoSet =
+                algoSetByType.getOrElseUpdate(currentInfo.typeBit, MSet())
+              algoSet ++= currentInfo.algoSet
+
+              // save annotation
+              for { annotation <- annotationOpt } {
+                val annoSet = annoMap.getOrElseUpdate(astId, MSet())
+                annoSet += annotation
+
+                // change eval type of current evaluation in parent info context
+                evalInfoStack match
+                  case parentInfo :: _ =>
+                    st.callStack.map(_.context).foldLeft(false) {
+                      case (false, c) =>
+                        if (c.func.name endsWith ".Evaluation") {
+                          var stop = false
+                          var current = ast
+                          while (
+                            !stop && current.parent.isDefined && current.idOpt.isDefined
+                          ) {
+                            val parent = current.parent.get
+                            val currentId = current.idOpt.get
+                            for { pid <- parent.idOpt } {
+                              if (pid == parentInfo.id) {
+                                parentInfo.childEvalTypes += (currentId -> annotation)
+                                stop = true
+                              }
+                            }
+                            current = parent
+                          }
+                          true
+                        } else if (c.func.isSDO) true
+                        else false
+                      case (true, _) => true
+                    }
+                  case _ => /* do nothing */
+              }
+
+            }
+          } else if (st.context.func.isBuiltin) {
+            for { ast <- evalAstStack.headOption if ast.idOpt.isDefined } {
+              // pop eval info context
+              val currentInfo = evalInfoStack.head
+              evalInfoStack = evalInfoStack.tail
+
+              // save algoSet
+              val algoSet =
+                builtinMap.getOrElseUpdate(st.context.func.id, MSet())
+              algoSet ++= currentInfo.algoSet
+            }
           }
         }
       }.fixpoint
 
       // check exit and return result
-      st(GLOBAL_RESULT) match
+      _st(GLOBAL_RESULT) match
         case comp: Comp if comp.ty == CONST_NORMAL =>
-          (annoMap, astMap, astList.toList, builtinCallAstSet, builtinMap)
+          // simplify result
+          new Simplifier(
+            annoMap,
+            astMap,
+            astList,
+            builtinCallAstSet,
+            builtinMap,
+          ).result
         case v => error(s"not normal exit")
     }
 
@@ -270,17 +417,8 @@ case class Coverage(
     for (idx <- progress) {
       val NormalConfig(name, includes) = tests(idx)
       val testBody = jsParser.fromFile(s"$TEST262_TEST_DIR/$name")
-      val (annoMap, astMap, astList, builtinCallAstSet, builtinMap) =
-        getTouched(testBody, includes)
 
-      // simplify result and update global index
-      val info = new Simplifier(
-        annoMap,
-        astMap,
-        astList,
-        builtinCallAstSet,
-        builtinMap,
-      ).result
+      val info = getInfo(testBody, includes)
       pIndex.update(idx, info)
 
       // dump result
@@ -289,6 +427,11 @@ case class Coverage(
         s"$dumpDir/data/$idx.json",
         noSpace = true,
       )
+
+      // TODO
+      // val (annoMap, astMap, astList, builtinCallAstSet, builtinMap) =
+      //   getInfo(testBody, includes)
+
     }
 
     // dump index result

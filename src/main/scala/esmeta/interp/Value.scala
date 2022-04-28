@@ -90,7 +90,9 @@ case class Cont(
   func: Func,
   captured: Map[Name, Value],
   callStack: List[CallContext],
-) extends PureValue
+) extends PureValue {
+  var evalInfoStack: List[esmeta.editor.util.EvalInfo] = List()
+}
 
 /** abstract syntax tree (AST) values */
 case class AstValue(ast: Ast) extends PureValue

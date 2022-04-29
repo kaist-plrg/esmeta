@@ -32,6 +32,33 @@ object JsonProtocol {
   given Encoder[ProgramInfo] = deriveEncoder
   given Decoder[ProgramInfo] = deriveDecoder
 
+  // ast info
+  // given Encoder[AstInfo] = deriveEncoder
+  // given Decoder[AstInfo] = deriveDecoder
+  given Encoder[AstInfo] = new Encoder[AstInfo] {
+    final def apply(info: AstInfo): Json =
+      Json.arr(
+        info.children.asJson,
+        info.evalTypeOpt.asJson,
+        info.algoSet.asJson,
+      )
+  }
+  given Decoder[AstInfo] = new Decoder[AstInfo] {
+    final def apply(c: HCursor): Decoder.Result[AstInfo] =
+      (for {
+        data <- c.value.asArray
+        astInfo <- data match
+          case Vector(cs, e, set) =>
+            val children = cs.as[List[(Int, Option[Int])]].toOption.get
+            val evalType = e.as[Option[Annotation]].toOption.get
+            val algoSet = set.as[Set[Int]].toOption.get
+            Some(AstInfo(children, evalType, algoSet))
+          case _ => None
+      } yield Right(astInfo)).getOrElse {
+        decodeFail(s"unknown ast info: ${c.value}", c)
+      }
+  }
+
   // simplified ast
   given Encoder[SimpleAst] = Encoder.instance {
     case syn: SimpleSyntactic    => syn.asJson

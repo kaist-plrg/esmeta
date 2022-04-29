@@ -98,6 +98,10 @@ case class Filter(cfg: CFG, dataDir: String) {
       // get algos in current program
       val (idxFilterTime, algoSet) = time(info.getAlgos(sview, cfg))
 
+      println(algoSet)
+      println(algoSet.size)
+      ???
+
       // collect data
       for { algoId <- algoSet } {
         val programSet = data.getOrElseUpdate(algoId, MSet())

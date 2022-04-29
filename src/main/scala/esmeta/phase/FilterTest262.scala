@@ -33,9 +33,11 @@ case object FilterTest262 extends Phase[CFG, Unit] {
     config.test262Data match
       case Some(path) =>
         val filter = Filter(cfg, path)
-        val testNames = filter(sviewRoot, config.aid.get)
-        for { name <- testNames.toList.sorted } println(name)
-        println(testNames.size)
+        filter(sviewRoot)
+
+      // val testNames = filter(sviewRoot, config.aid.get)
+      // for { name <- testNames.toList.sorted } println(name)
+      // println(testNames.size)
 
       // filter.dumpEvaluataionData()
       // filter.dumpBasicResult()

@@ -50,7 +50,7 @@ class ContainTinyTest extends EditorTest {
     val (ast, sview) = (parseJs(jsStr), parse(sviewStr))
     assert(ast.matches(sview) == expected)
     val (simpleAst, simpleSview) = (ast.simplify(cfg), sview.simplify(cfg))
-    val res = simpleAst.matches(simpleSview, Map(), cfg) == expected
+    val res = simpleAst.matches(simpleSview, cfg) == expected
     assert(res)
 
   // registration

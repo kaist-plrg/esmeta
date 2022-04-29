@@ -13,9 +13,10 @@ case class ProgramIndex(
     programIdx: Int,
     info: ProgramInfo,
   ): Unit =
-    for { algoMapByType <- info.astAlgoMap.values }
-      updateAlgos(programIdx, algoMapByType)
-    updateAlgos(programIdx, info.builtinAlgoMap)
+    // TODO
+    // for { algoMapByType <- info.astAlgoMap.values }
+    //   updateAlgos(programIdx, algoMapByType)
+    updateAlgos(programIdx, info.builtinMap)
     updateProds(programIdx, info.astList)
 
   def updateAlgos(programIdx: Int, algoMap: Map[Int, Set[Int]]): Unit =

@@ -7,11 +7,9 @@ import scala.collection.mutable.{Map => MMap, Set => MSet}
 
 // program information after evaluation
 case class ProgramInfo(
-  annoMap: Map[Int, Set[Annotation]],
-  astAlgoMap: Map[Int, Map[Int, Set[Int]]],
+  builtinMap: Map[Int, Set[Int]],
+  astInfoMap: Map[Int, List[AstInfo]],
   astList: List[SimpleAst],
-  builtinCallAstSet: Set[Int],
-  builtinAlgoMap: Map[Int, Set[Int]],
 ) {
   val (astMap, prodMap) = {
     val m0: MMap[Int, SimpleAst] = MMap()
@@ -30,39 +28,69 @@ case class ProgramInfo(
     (m0, m1)
   }
 
-  def matches(sview: SimpleAst, algoId: Int, cfg: CFG): Boolean = {
-    val idxMap = prodMap.getOrElseUpdate(sview.nameIdx, MMap())
-    val subIdxMap = idxMap.getOrElseUpdate(sview.idx, MMap())
-    val astSet = subIdxMap.getOrElseUpdate(sview.subIdx, MSet())
+  def matches(sview: SimpleAst, algoId: Int, cfg: CFG): Boolean = ???
 
-    for {
-      astId <- astSet if astAlgoMap.contains(astId)
-      ast <- astMap.get(astId)
-      if PerformanceRecorder("ast matches")(ast.matches(sview, annoMap, cfg))
-
-      // TODO fix here
-      conc <- ast.getConcreteParts(sview)
-      concAlgoSet <- astAlgoMap.get(conc)
-    } if (concAlgoSet contains algoId) return true
-
-    false
-  }
-
-  def getAlgos(sview: SimpleAst, cfg: CFG): MSet[Int] = ???
   // {
   //   val idxMap = prodMap.getOrElseUpdate(sview.nameIdx, MMap())
   //   val subIdxMap = idxMap.getOrElseUpdate(sview.idx, MMap())
   //   val astSet = subIdxMap.getOrElseUpdate(sview.subIdx, MSet())
 
-  //   val result: MSet[Int] = MSet()
   //   for {
   //     astId <- astSet if astAlgoMap.contains(astId)
   //     ast <- astMap.get(astId)
-  //     if ast.matches(sview, annoMap, cfg)
-  //     conc <- ast.getConcreteParts(sview) // TODO optimize?
-  //     concAlgoSet <- astAlgoMap.get(conc)
-  //   } result ++= concAlgoSet
+  //     if PerformanceRecorder("ast matches")(ast.matches(sview, annoMap, cfg))
 
-  //   result
+  //     // TODO fix here
+  //     conc <- ast.getConcreteParts(sview)
+  //     concAlgoSet <- astAlgoMap.get(conc)
+  //   } if (concAlgoSet contains algoId) return true
+
+  //   false
   // }
+
+  case object NotMatched extends Throwable
+  def getAlgos(sview: SimpleAst, cfg: CFG): MSet[Int] = {
+    val idxMap = prodMap.getOrElseUpdate(sview.nameIdx, MMap())
+    val subIdxMap = idxMap.getOrElseUpdate(sview.idx, MMap())
+    val astSet = subIdxMap.getOrElseUpdate(sview.subIdx, MSet())
+
+    // get algo set if eval type is matched
+    def aux(
+      info: AstInfo,
+      sview: SimpleAst,
+    ): Set[Int] = sview match {
+      case lex: SimpleLexical => info.algoSet
+      case syn: SimpleSyntactic =>
+        var matched = true
+        var set: Set[Int] = info.algoSet
+        (info.children zip syn.children).foreach {
+          case ((childId, Some(i)), sviewChild) =>
+            if (matched) {
+              val childInfo = astInfoMap(childId)(i)
+              try { set ++= aux(childInfo, sviewChild) }
+              catch { case NotMatched => matched = false }
+            }
+          case ((_, None), _) => /* do nothing */
+        }
+        if (matched) set else throw NotMatched
+      case absSyn: SimpleAbsSyntactic =>
+        for { evalType <- info.evalTypeOpt }
+          if (!evalType.subType(absSyn.annotation))
+            throw NotMatched
+        Set()
+    }
+
+    val result: MSet[Int] = MSet()
+    for {
+      astId <- astSet
+      astInfos <- astInfoMap.get(astId)
+      ast <- astMap.get(astId)
+      if ast.matches(sview, cfg) // check shape
+      astInfo <- astInfos
+    }
+      try { result ++= aux(astInfo, sview) }
+      catch { case NotMatched => /* do nothing */ }
+
+    result
+  }
 }

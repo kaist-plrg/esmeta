@@ -11,26 +11,24 @@ import scala.annotation.tailrec
 /** extension for ast */
 extension (ast: Ast) {
 
+  /** trim single nonterminal until *.Evaluation */
+  def trim(cfg: CFG): Ast = ast match
+    case syn @ JsSyntactic(name, _, rhsIdx, children) =>
+      val cs = children.flatten
+      cs match {
+        case List(child) =>
+          val rhs = cfg.grammar.nameMap(name).rhsList(rhsIdx)
+          if (rhs.terminals.isEmpty) {
+            val fname = s"${name}[${rhsIdx},${syn.subIdx(cfg)}].Evaluation"
+            val hasEval = cfg.fnameMap contains fname
+            if (hasEval) ast else child.trim(cfg)
+          } else ast
+        case _ => ast
+      }
+    case _ => ast
+
   /** simplify */
   def simplify(cfg: CFG): SimpleAst = {
-    // trim until *.Evaluation
-    def aux(ast0: Ast): Ast = {
-      ast0 match
-        case syn @ JsSyntactic(name, _, rhsIdx, children) =>
-          val cs = children.flatten
-          cs match {
-            case List(child) =>
-              val rhs = cfg.grammar.nameMap(name).rhsList(rhsIdx)
-              if (rhs.terminals.isEmpty) {
-                val fname = s"${name}[${rhsIdx},${syn.subIdx(cfg)}].Evaluation"
-                val hasEval = cfg.fnameMap contains fname
-                if (hasEval) ast0 else aux(child)
-              } else ast0
-            case _ => ast0
-          }
-        case _ => ast0
-    }
-
     val subIdx = ast.subIdx(cfg)
     val nameIdx = cfg.grammar.getNameIdx(ast.name)
 
@@ -41,7 +39,7 @@ extension (ast: Ast) {
           nameIdx,
           idx,
           subIdx,
-          children.flatten.map(aux(_)).map(_.simplify(cfg)),
+          children.flatten.map(_.trim(cfg)).map(_.simplify(cfg)),
         )
   }
 
@@ -170,27 +168,25 @@ extension (ast: Ast) {
 /** extension for syntactic view */
 extension (sview: SyntacticView) {
 
+  /** trim single nonterminal until *.Evaluation */
+  def trim(cfg: CFG): SyntacticView = sview match
+    case syn @ Syntactic(name, _, rhsIdx, children) =>
+      val cs = children.flatten
+      cs match {
+        case List(child) =>
+          val rhs = cfg.grammar.nameMap(name).rhsList(rhsIdx)
+          if (rhs.terminals.isEmpty) {
+            val fname = s"${name}[${rhsIdx},${syn.subIdx(cfg)}].Evaluation"
+            cfg.fnameMap.get(fname) match
+              case _: Some[_] => sview
+              case None       => child.trim(cfg)
+          } else sview
+        case _ => sview
+      }
+    case _ => sview
+
   /** simplify */
   def simplify(cfg: CFG): SimpleAst =
-    // trim until *.Evaluation
-    def aux(sview0: SyntacticView): SyntacticView = {
-      sview0 match
-        case syn @ Syntactic(name, _, rhsIdx, children) =>
-          val cs = children.flatten
-          cs match {
-            case List(child) =>
-              val rhs = cfg.grammar.nameMap(name).rhsList(rhsIdx)
-              if (rhs.terminals.isEmpty) {
-                val fname = s"${name}[${rhsIdx},${syn.subIdx(cfg)}].Evaluation"
-                cfg.fnameMap.get(fname) match
-                  case _: Some[_] => sview0
-                  case None       => aux(child)
-              } else sview0
-            case _ => sview0
-          }
-        case _ => sview0
-    }
-
     val subIdx = sview.subIdx(cfg)
     val nameIdx = cfg.grammar.getNameIdx(sview.name)
     sview match
@@ -200,7 +196,7 @@ extension (sview: SyntacticView) {
           nameIdx,
           idx,
           subIdx,
-          children.flatten.map(aux(_)).map(_.simplify(cfg)),
+          children.flatten.map(_.trim(cfg)).map(_.simplify(cfg)),
         )
       case Lexical(_, str) => SimpleLexical(nameIdx, str)
 
@@ -247,13 +243,12 @@ extension (ast: SimpleAst) {
   /** check whether given JS ast matches syntactic view */
   def matches(
     ast0: SimpleAst,
-    annoMap: Map[Int, Set[Annotation]],
     cfg: CFG,
   ): Boolean = (ast, ast0) match {
     // impossible in our use cases
     case (_: SimpleAbsSyntactic, _: SimpleAbsSyntactic) =>
       ast.nameIdx == ast0.nameIdx
-    case (_: SimpleAbsSyntactic, _) => ast0.matches(ast, annoMap, cfg)
+    case (_: SimpleAbsSyntactic, _) => ast0.matches(ast, cfg)
 
     // possible cases
     case (lex: SimpleLexical, lex0: SimpleLexical) =>
@@ -264,16 +259,13 @@ extension (ast: SimpleAst) {
       syn.idx == syn0.idx &&
       syn.subIdx == syn0.subIdx &&
       (syn.children zip syn0.children).forall {
-        case (child, child0) => child.matches(child0, annoMap, cfg)
+        case (child, child0) => child.matches(child0, cfg)
       }
     case (_, absSyn0: SimpleAbsSyntactic) =>
-      val prodMatched =
-        ast.nameIdx == absSyn0.nameIdx ||
-        cfg
-          .getSimplified(absSyn0.nameIdx)
-          .contains((ast.nameIdx, ast.idx, ast.subIdx))
-      val annoSet = annoMap.getOrElse(ast.id, Set())
-      prodMatched && absSyn0.evalTypeMatched(annoSet)
+      ast.nameIdx == absSyn0.nameIdx ||
+      cfg
+        .getSimplified(absSyn0.nameIdx)
+        .contains((ast.nameIdx, ast.idx, ast.subIdx))
     case _ => false
   }
 }

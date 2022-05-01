@@ -98,10 +98,6 @@ case class Filter(cfg: CFG, dataDir: String) {
       // get algos in current program
       val (idxFilterTime, algoSet) = time(info.getAlgos(sview, cfg))
 
-      println(algoSet)
-      println(algoSet.size)
-      ???
-
       // collect data
       for { algoId <- algoSet } {
         val programSet = data.getOrElseUpdate(algoId, MSet())
@@ -178,7 +174,7 @@ case class Filter(cfg: CFG, dataDir: String) {
   def dumpSoundnessData(): Unit = {
     val viewSet = loadBasicSview()
 
-    mkdir(s"$dataDir/basic_result")
+    mkdir(s"$dataDir/soundness")
 
     var data: MMap[String, MSet[Int]] = MMap()
     val progress = ProgressBar("filter test262", 0 until tests.size)

@@ -27,8 +27,8 @@ trait EvalInfo {
   def +=(algoId: Int): Unit = algoSet += algoId
   def copied: EvalInfo = this match
     case BuiltinEvalInfo(id, algoSet) => BuiltinEvalInfo(id, MSet.from(algoSet))
-    case AstEvalInfo(id, algoSet, assignMap, diff) =>
-      AstEvalInfo(id, MSet.from(algoSet), MMap.from(assignMap), diff)
+    case AstEvalInfo(id, algoSet, assignMap) =>
+      AstEvalInfo(id, MSet.from(algoSet), MMap.from(assignMap))
 }
 case class BuiltinEvalInfo(
   id: Int,
@@ -38,9 +38,8 @@ case class AstEvalInfo(
   id: Int,
   algoSet: MSet[Int],
   assignMap: MMap[Int, Option[Int]],
-  var diff: Boolean = false,
 ) extends EvalInfo {
-  def getAstInfo(evalTypeOpt: Option[Annotation]): AstInfo = AstInfo(
+  def toAstInfo(evalTypeOpt: Option[Annotation]): AstInfo = AstInfo(
     assignMap.toList.sortBy(_._1),
     evalTypeOpt,
     algoSet.toSet,
@@ -316,12 +315,14 @@ case class Coverage(
                 case i: AstEvalInfo => i
                 case _              => error("need ast evaluation info")
               val astInfoList = astInfoMap.getOrElseUpdate(astId, ListBuffer())
-              val astInfo = evalInfo.getAstInfo(evalTypeOpt)
+              val astInfo = evalInfo.toAstInfo(evalTypeOpt)
 
               // check current evaluation context
               val evalIdx = astInfoList.indexWhere(_.evalTypeOpt == evalTypeOpt)
               val isFirstEval = astInfoList.isEmpty
-              val isNewEval = evalInfo.diff || evalIdx == -1
+              val isNewEval =
+                evalIdx == -1 ||
+                astInfoList.forall(_.children != astInfo.children)
 
               // save current evaluation type to parent evaluation
               evalInfoStack match {
@@ -332,21 +333,6 @@ case class Coverage(
                       if (isFirstEval || isNewEval) Some(astInfoList.size)
                       else Some(evalIdx),
                     )
-
-                    // propagate fact that new evaluation context is found
-                    // if there is another SDO between two evaluation, stop
-                    // propagate
-                    if (isNewEval) {
-                      st.callStack.map(_.context).foldLeft(false) {
-                        case (false, c) =>
-                          if (c.func.isSDO) {
-                            if (c.name endsWith ".Evaluation")
-                              parentEvalInfo.diff = true
-                            true
-                          } else false
-                        case (true, _) => true
-                      }
-                    }
                   }
                 case _ => /* do nothing */
               }

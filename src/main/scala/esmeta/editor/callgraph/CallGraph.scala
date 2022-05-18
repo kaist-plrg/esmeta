@@ -15,15 +15,18 @@ trait CallGraph:
       (funcs ++ draw_func_targets.values.flatten).toList.zipWithIndex.toMap
     s"""
 digraph {
-${mlist.keySet.map((s) => s"\"X${mlist(s)}\" [label=\"$s\"]").mkString("\n")}
+${mlist.keySet.map((s) => s"\"X${s.hashCode()}\" [label=\"$s\"]").toList.sorted.mkString("\n")}
 
 ${funcs
       .map((s) =>
         draw_func_targets
           .getOrElse(s, Set())
-          .map((t) => s"X${mlist(s)} -> X${mlist(t)}")
+          .map((t) => s"X${s.hashCode()} -> X${t.hashCode()}")
           .mkString("\n"),
       )
+      .mkString("\n")
+      .split("\n")
+      .sorted
       .mkString("\n")}
 }
 """

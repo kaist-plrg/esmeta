@@ -27,7 +27,7 @@ class BasicValueDomain() extends AbsValueDomain {
         pureKind(purd.ValueKind.Str), false),
       "GetValue" -> ((ls: List[Elem]) => {
         val k = ls(0)
-        k.project(JsValueKind)
+        k.project(JsValueKind) ⊔ k.normal.project(JsValueKind)
       }, false),
       "AAll" -> ((ls: List[Elem]) =>
         Elem(

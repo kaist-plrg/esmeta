@@ -1,0 +1,86 @@
+\documentclass[10pt,conference]{IEEEtran}
+\IEEEoverridecommandlockouts
+
+%% bibliography style
+\bibliographystyle{IEEEtran}
+
+%% macros with packages
+\input{macros}
+
+%% start document
+\begin{document}
+
+%% title information
+\title{Advanced Understanding of JavaScript Specification\\
+with Syntactic Views}
+
+\author{Anonymous Author(s)}
+
+% \author{
+%   \IEEEauthorblockN{Jihyeok Park}
+%   \IEEEauthorblockA{\textit{Oracle Labs}\\
+%   Brisbane, Australia\\
+%   jihyeok.park@oracle.com}
+%
+%   \and
+%
+%   \IEEEauthorblockN{Seungmin An}
+%   \IEEEauthorblockA{\textit{KAIST}\\
+%   Daejeon, South Korea\\
+%   h2oche@kaist.ac.kr}
+%
+%   \and
+%
+%   \IEEEauthorblockN{Jihee Park}
+%   \IEEEauthorblockA{\textit{KAIST}\\
+%   Daejeon, South Korea\\
+%   jiheepark@kaist.ac.kr}
+%
+%   \and
+%
+%   \IEEEauthorblockN{Sukyoung Ryu}
+%   \IEEEauthorblockA{\textit{KAIST}\\
+%   Daejeon, South Korea\\
+%   sryu.cs@kaist.ac.kr}
+% }
+
+\maketitle
+
+%% abstract
+\input{abstract}
+
+%% body of the paper
+\input{intro}
+\input{overview}
+\input{infer}
+\input{search}
+\input{impl}
+\input{eval}
+\input{related}
+\input{conclusion}
+
+%% keywords
+\begin{IEEEkeywords}
+JavaScript,
+syntactic view,
+specification reduction,
+example program search
+\end{IEEEkeywords}
+
+%% TODO acknowledgements
+% \section*{Acknowledgements}
+% This work was supported by National Research Foundation of
+% Korea (NRF) (Grants NRF-2017R1A2B3012020 and 2017M3C4A7068177).
+
+%% the bibliography file.
+\balance
+\bibliography{ref}
+
+%% appendix
+\appendix
+
+%% TODO move it into report
+% \input{formal}
+
+\end{document}
+\endinput

@@ -1,0 +1,298 @@
+% load packages
+\usepackage{cite}
+\usepackage{float}
+\usepackage{amsmath,amssymb,amsfonts,amsthm}
+\usepackage[ruled, vlined]{algorithm2e}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{multirow}
+\usepackage{booktabs}
+\usepackage{makecell}
+\usepackage{galois}
+\usepackage{mathpartir}
+\usepackage{bussproofs}
+\usepackage{mathtools}
+\usepackage{colortbl}
+\usepackage{hhline}
+\usepackage{stmaryrd}
+\usepackage{microtype}
+\usepackage{hyperref}
+\usepackage{balance}
+
+% basic
+\newcommand{\inred}[1]{{\color{red}{#1}}}
+\newcommand{\todo}{\inred{TODO}}
+\newcommand{\name}[1]{\textsf{#1}}
+\newcommand{\sname}[1]{\name{\small #1}}
+\newcommand{\stextbf}[1]{\textbf{\small #1}}
+\definecolor{dkgreen}{rgb}{0,0.5,0}
+\definecolor{esvar}{HTML}{36702F}
+\definecolor{esalg}{HTML}{376BA2}
+
+% tools
+\newcommand{\tool}{\sname{JSynView}}
+\newcommand{\bigtool}{\name{JSynView}}
+\newcommand{\esmeta}{\sname{ESMeta}}
+\newcommand{\jiset}{\sname{JISET}}
+\newcommand{\jest}{\sname{JEST}}
+\newcommand{\jstar}{\sname{JSTAR}}
+\newcommand{\asfsdf}{\textsc{Asf+Sdf}}
+
+% ECMAScript Intermediate Representations (IRES)
+\newcommand{\ires}{\text{IR}_\text{ES}}
+\lstdefinestyle{ires}{
+  frame=tb,
+  aboveskip=3mm,
+  belowskip=3mm,
+  showstringspaces=false,
+  columns=fixed,
+  basicstyle={\footnotesize\ttfamily},
+  numberstyle=\tiny\color{darkgray},
+  numbers=none,
+  numbersep=5pt,
+  keywordstyle=\color{blue},
+  comment=[l]{//},
+  morecomment=[s]{/*}{*/},
+  commentstyle=\color{dkgreen},
+  stringstyle=\color{mauve},
+  frame=single,
+  breaklines=true,
+  breakatwhitespace=true,
+  tabsize=3,
+}
+
+% JavaScript code style
+\lstdefinelanguage{JavaScript}{
+  keywords={async, await, break, case, catch, class, const, continue, debugger,
+    default, delete, do, else, enum, export, extends, false, finally, for,
+    function, if, import, in, of, instanceof, new, null, return, super, switch, this,
+    throw, true, try, typeof, let, var, void, while, with, yield},
+  keywordstyle=\color{blue}\bfseries,
+  ndkeywordstyle=\color{darkgray}\bfseries,
+  identifierstyle=\color{black},
+  numberstyle=\tiny\color{darkgray},
+  numbers=none,
+  numbersep=5pt,
+  sensitive=false,
+  comment=[l]{//},
+  morecomment=[s]{/*}{*/},
+  commentstyle=\color{dkgreen},
+  stringstyle=\color{red}\ttfamily,
+  morestring=[b]',
+  morestring=[b]",
+  morestring=[b]`
+}
+\lstdefinestyle{JS}{
+  language=JavaScript,
+  extendedchars=true,
+  basicstyle=\footnotesize\ttfamily,
+  showstringspaces=false,
+  showspaces=false,
+  tabsize=2,
+  breaklines=true,
+  showtabs=false,
+  captionpos=b
+}
+
+% codes
+\newcommand{\jscode}[1]{\text{\lstinline[style=JS,basicstyle=\small\ttfamily]!#1!}} 
+\newcommand{\ircode}[1]{\text{\lstinline[style=ires,basicstyle=\small\ttfamily]!#1!}}
+\newcommand{\code}[1]{{\small \texttt{#1}}}
+\newcommand{\kwdef}{\code{def}}
+\newcommand{\kweq}{\code{=}}
+\newcommand{\kwret}{\code{ret}}
+\newcommand{\kwif}{\code{if}}
+\newcommand{\kwrl}{\code{(}}
+\newcommand{\kwrr}{\code{)}}
+\newcommand{\kwcl}{\code{\{}}
+\newcommand{\kwcr}{\code{\}}}
+\newcommand{\kwsl}{\code{[}}
+\newcommand{\kwsr}{\code{]}}
+
+% ECMAScript fonts
+\newcommand{\esvar}[1]{{\color{esvar}{\textit{\small #1}}}}
+\newcommand{\esalg}[1]{{\color{esalg}{\small #1}}}
+\newcommand{\essyn}[1]{\textit{\small #1}}
+\newcommand{\esval}[1]{\textbf{\small #1}}
+\newcommand{\eswrd}[1]{{\small #1}}
+\newcommand{\escall}[2]{#1\eswrd{(}#2\eswrd{)}}
+
+% basic
+\DeclareMathAlphabet{\mathpzc}{T1}{pzc}{m}{it}
+\newcommand{\powerset}[1]{\mathcal{P}(#1)}
+\newcommand{\abs}[1]{\widehat{#1}}
+\newcommand{\finmap}{{\xrightarrow[]{\text{fin}}}}
+\newcommand{\mapstos}{\;\dot{\mapsto}\;}
+\newcommand{\Dom}{\name{Dom}}
+\DeclarePairedDelimiter{\norm}{\lvert}{\rvert} 
+
+% notations
+\newcommand{\progset}{\mathfrak{P}}
+\newcommand{\prog}{P}
+\newcommand{\getfunc}[1]{\code{func}_{#1}}
+\newcommand{\getinst}[1]{\code{inst}_{#1}}
+\newcommand{\getnext}[1]{\code{next}_{#1}}
+\newcommand{\funcset}{\mathcal{F}}
+\newcommand{\func}{f}
+\newcommand{\labset}{\mathcal{L}}
+\newcommand{\lab}{\mathpzc{l}}
+\newcommand{\labdot}[1]{{{\bullet_{\lab_{#1}}}}}
+\newcommand{\ilab}{\lab_\iota}
+\newcommand{\labnext}{\name{next}}
+\newcommand{\op}{\name{op}}
+\newcommand{\ops}{\dot{\name{op}}}
+\newcommand{\instset}{\mathcal{I}}
+\newcommand{\inst}{i}
+\newcommand{\exprset}{\mathcal{E}}
+\newcommand{\expr}{e}
+\newcommand{\referset}{\mathcal{R}}
+\newcommand{\refer}{r}
+\newcommand{\varset}{\mathcal{X}}
+\newcommand{\varx}{\code{x}}
+\newcommand{\vart}{\code{t}}
+\newcommand{\varf}{\code{f}}
+
+% values
+\newcommand{\valset}{\mathbb{V}}
+\newcommand{\val}{v}
+\newcommand{\pvalset}{\valset_\name{prim}}
+\newcommand{\pval}{p}
+\newcommand{\strset}{\valset_\name{str}}
+\newcommand{\str}{s}
+\newcommand{\boolset}{\valset_\name{bool}}
+\newcommand{\bool}{b}
+\newcommand{\intset}{\valset_\name{int}}
+\newcommand{\true}{\code{\#t}}
+\newcommand{\false}{\code{\#f}}
+
+% JavaScript ASTs
+\newcommand{\treeset}{\mathbb{T}}
+\newcommand{\tree}{t}
+\newcommand{\nodeset}{\Phi}
+\newcommand{\node}{\phi}
+\newcommand{\subtree}{\lhd}
+\newcommand{\getsubs}{\name{subs}}
+\newcommand{\treetop}{\code{\#}}
+\newcommand{\ty}{\tau}
+\newcommand{\nt}{N}
+\newcommand{\eval}{\code{eval}}
+
+% states
+\newcommand{\stset}{\mathbb{S}}
+\newcommand{\st}{\sigma}
+\newcommand{\initstset}[1]{\stset^\name{init}_{#1}}
+\newcommand{\initst}{\st^\name{init}}
+
+% heaps
+\newcommand{\heapset}{\mathbb{H}}
+\newcommand{\heap}{h}
+
+% contexts
+\newcommand{\ctxtset}{\mathbb{C}}
+\newcommand{\ctxts}{\overline{\ctxt}}
+\newcommand{\postfix}{\ll}
+\newcommand{\ctxt}{c}
+
+% environments
+\newcommand{\envset}{\mathbb{E}}
+\newcommand{\env}{\rho}
+
+% addresses
+\newcommand{\addrset}{\mathbb{A}}
+\newcommand{\addr}{a}
+
+% objects
+\newcommand{\objset}{\mathbb{O}}
+\newcommand{\obj}{o}
+
+% semantics
+\newcommand{\sem}[1]{\llbracket{#1}\rrbracket}
+\newcommand{\trans}[1]{\leadsto_{#1}}
+
+% restricted semantics
+\newcommand{\rsem}[1]{\sem{#1}_\textbf{R}}
+\newcommand{\entrystset}{\stset^\name{entry}}
+\newcommand{\entrylab}{\lab^\name{entry}}
+
+% abstract semantics
+\newcommand{\asem}[1]{\abs{\sem{#1}}}
+
+% transformations
+\newcommand{\transform}[1]{\textbf{T}[#1]}
+
+% partial evaluation
+\newcommand{\peval}[1]{\textbf{PE}[#1]}
+
+% transfer function
+\newcommand{\transfer}{F}
+\newcommand{\atransfer}{\abs{\transfer}}
+
+% abstract states
+\newcommand{\aelemset}{\abs{\mathbb{D}}}
+\newcommand{\aelem}{\abs{d}}
+\newcommand{\entryaelem}{\aelem^\name{entry}}
+
+% abstract calling contexts
+\newcommand{\actxtset}{\abs{\ctxtset}}
+\newcommand{\actxt}{\abs{\ctxt}}
+\newcommand{\ascallset}{\abs{\ctxtset}_\name{s}}
+\newcommand{\ascall}{\abs{\ctxt}_\name{s}}
+\newcommand{\adcallset}{\abs{\ctxtset}_\name{d}}
+\newcommand{\adcall}{\abs{\ctxt}_\name{d}}
+\newcommand{\funcbot}{\bot_\funcset}
+\newcommand{\functop}{\top_\funcset}
+
+% function summaries
+\newcommand{\funcsumset}{\abs{\funcset}}
+\newcommand{\funcsum}{\abs{\func}}
+
+% abstract environments
+\newcommand{\aenvset}{\abs{\envset}}
+\newcommand{\aenv}{\abs{\env}}
+\newcommand{\afsenvset}{\aenvset_\name{fs}}
+\newcommand{\afsenv}{\aenv_\name{fs}}
+
+% abstract values
+\newcommand{\avalset}{\abs{\valset}}
+\newcommand{\aval}{\abs{\val}}
+\newcommand{\valbot}{\bot_\valset}
+\newcommand{\valtop}{\top_\valset}
+
+% syntactic views
+\newcommand{\atreeset}{\abs{\treeset}}
+\newcommand{\atree}{\abs{\tree}}
+\newcommand{\anodeset}{\abs{\nodeset}}
+\newcommand{\anode}{\abs{\node}}
+\newcommand{\asubtree}{\abs{\subtree}}
+\newcommand{\targetfunc}{\func_{\atree}}
+\newcommand{\agetsubs}{\abs{\getsubs}}
+\newcommand{\svhole}[1]{\langle #1 \rangle}
+
+% abstract operations
+\newcommand{\join}{\sqcup}
+\newcommand{\bigjoin}{\bigsqcup}
+\newcommand{\order}{\sqsubseteq}
+\newcommand{\revorder}{\sqsupseteq}
+
+% least fixed point
+\newcommand{\lfp}{\textbf{lfp}}
+
+% concretization
+\newcommand{\atreegamma}{\gamma_{\atree}}
+\newcommand{\anodegamma}{\gamma_{\anode}}
+\newcommand{\aelemgamma}{\gamma_{\aelem}}
+\newcommand{\adcallgamma}{\gamma_{\adcall}}
+\newcommand{\ascallgamma}{\gamma_{\ascall}}
+\newcommand{\afsenvgamma}{\gamma_{\afsenv}}
+\newcommand{\aenvgamma}{\gamma_{\aenv}}
+\newcommand{\avalgamma}{\gamma_{\aval}}
+
+% theorems
+\newtheorem{theorem}{Theorem}
+
+% theorems
+\newtheorem{lemma}{Lemma}

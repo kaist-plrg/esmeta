@@ -1,6 +1,51 @@
-\section{JavaScript Semantics Specialization with Syntactic Views}\label{sec:formal}
+\documentclass[10pt,conference]{IEEEtran}
+\IEEEoverridecommandlockouts
 
-In this section, we introduce a JavaScript semantics specialization with
+%% bibliography style
+\bibliographystyle{IEEEtran}
+
+%% macros with packages
+\input{macros}
+
+%% start document
+\begin{document}
+
+%% title information
+\title{Reachability Analysis for $\ires$ with Syntactic Views}
+
+\author{Anonymous Author(s)}
+
+% \author{
+%   \IEEEauthorblockN{Jihyeok Park}
+%   \IEEEauthorblockA{\textit{Oracle Labs}\\
+%   Brisbane, Australia\\
+%   jihyeok.park@oracle.com}
+%
+%   \and
+%
+%   \IEEEauthorblockN{Jihee Park}
+%   \IEEEauthorblockA{\textit{KAIST}\\
+%   Daejeon, South Korea\\
+%   jiheepark@kaist.ac.kr}
+%
+%   \and
+%
+%   \IEEEauthorblockN{Seungmin An}
+%   \IEEEauthorblockA{\textit{KAIST}\\
+%   Daejeon, South Korea\\
+%   h2oche@kaist.ac.kr}
+%
+%   \and
+%
+%   \IEEEauthorblockN{Sukyoung Ryu}
+%   \IEEEauthorblockA{\textit{KAIST}\\
+%   Daejeon, South Korea\\
+%   sryu.cs@kaist.ac.kr}
+% }
+
+\maketitle
+
+In this report, we introduce a JavaScript semantics specialization with
 syntactic views.  We first introduce $\ires$ as a specification language to
 describe JavaScript semantics. To provide options to select target semantics, we
 also introduce syntactic views as an abstraction of JavaScript ASTs.  Then, we
@@ -9,14 +54,14 @@ evaluation of $\ires$ programs, which is a combination of static analysis and
 program transformation. Finally, we prove the semantics preservation of the
 partial evaluation.
 
-\subsection{$\ires$: Intermediate Representations for ECMAScript}
+\section{$\ires$: Intermediate Representations for ECMAScript}
 
 We first introduce $\ires$, an \textbf{I}ntermediate \textbf{R}epresentations
 for \textbf{E}CMA\textbf{S}cript, as a specification language for JavaScript to
 describe JavaScript semantics. We define its abstract syntax, states, and
-concrete semantics in the remainder of this section.
+concrete semantics in the remainder of this report.
 
-\subsubsection{Abstract Syntax}
+\subsection{Abstract Syntax}
 
 \[
   \begin{array}{lr@{~}c@{~}c@{~}c@{~}l}
@@ -68,7 +113,7 @@ reference $\refer$.  A reference is a variable $\varx$ or an object field $\expr
 \code{"f"} \kwsr$.
 
 
-\subsubsection{States}
+\subsection{States}
 
 \[
   \begin{array}{lr@{~}c@{~}l@{~}c@{~}l}
@@ -172,7 +217,7 @@ are subtrees of $\tree_0$ (i.e., $\tree_0 \subtree \tree_0, \cdots, \tree_3
 
 
 
-\subsubsection{Concrete Semantics}
+\subsection{Concrete Semantics}
 
 The concrete semantics $\sem{\prog}$ of an $\ires$ program $\prog$ is defined as
 follows:
@@ -196,7 +241,7 @@ where
 Now, we define the denotational semantics of expressions, instructions, and
 functions.
 
-\paragraph{Expressions} We define the denotational semantics of expressions with
+\subsubsection{Expressions} We define the denotational semantics of expressions with
 the following form:
 \[
   \framebox{$\sem{\expr}: \stset \rightarrow \valset$}
@@ -252,7 +297,7 @@ follows:
     \]
 \end{itemize}
 
-\paragraph{Instructions} We define the denotational semantics of instructions
+\subsubsection{Instructions} We define the denotational semantics of instructions
 with the following form:
 \[
   \framebox{$\sem{\inst}: \stset \rightarrow \stset$}
@@ -335,7 +380,7 @@ semantics of instructions as follows:
 \end{itemize}
 
 
-\subsection{Syntactic Views}
+\section{Syntactic Views}
 
 A syntactic view $\atree \in \atreeset$ is an abstract JavaScript AST with
 abstract tree nodes $\anodeset$:
@@ -421,7 +466,7 @@ denotes abstract tree nodes that are syntactic views when $\atree = \nt_k
 
 
 
-\subsection{Partial Evaluation}
+\section{Partial Evaluation}
 
 We define a \textit{partial evaluation} $\peval{\prog}: \atreeset \rightarrow
 \progset$ of $\ires$ programs to specialize JavaScript semantics with a given
@@ -440,7 +485,7 @@ analysis and program transformation of $\ires$ programs and prove the semantics
 preservation of the partial evaluation consisting of them.
 
 
-\subsubsection{Static Analysis}
+\subsection{Static Analysis}
 
 The static analysis $\asem{\prog}(\atree)$ performs an abstract
 interpretation~\cite{ai1977, ai1992} to abstract concrete semantics under the
@@ -623,7 +668,7 @@ stored in variables. An abstract value $\aval \in \avalset$ is a static value
 $\val$, a syntactic view $\atree$, a dynamic value $\top$, or nothing $\bot$.
 Now, we define abstract semantics of expressions, instructions, and programs.
 
-\paragraph{Expressions} We first define abstract semantics of expressions as
+\subsubsection{Expressions} We first define abstract semantics of expressions as
 follows:
 \[
   \framebox{$\asem{\expr}: \aenvset \rightarrow \avalset$}
@@ -684,7 +729,7 @@ follows:
     \]
 \end{itemize}
 
-\paragraph{Instructions} Then, we define the abstract semantics of instructions
+\subsubsection{Instructions} Then, we define the abstract semantics of instructions
 as follows:
 \[
   \framebox{$\asem{\inst}: \labset \times \aelemset \rightarrow \aelemset$}
@@ -831,7 +876,7 @@ as follows:
     \]
 \end{itemize}
 
-\paragraph{Programs} Finally, we define the abstract semantics $\asem{\prog}:
+\subsubsection{Programs} Finally, we define the abstract semantics $\asem{\prog}:
 \atreeset \rightarrow \aelemset$ of a program $\prog$ with a given syntactic
 view:
 \[
@@ -875,12 +920,12 @@ $\atree$:
 \end{itemize}
 
 
-\subsubsection{Transformations}
+\subsection{Transformations}
 
 Using the analysis result, we define transformations for expressions,
 instructions, and programs.
 
-\paragraph{Expressions} We first define the transformation of expressions as
+\subsubsection{Expressions} We first define the transformation of expressions as
 follows:
 
 \[
@@ -895,7 +940,7 @@ follows:
   \right.
 \]
 
-\paragraph{Instructions} Then, we define the transformation of instructions
+\subsubsection{Instructions} Then, we define the transformation of instructions
 as follows:
 \[
   \framebox{$\transform{\inst}: \aenvset \rightarrow \instset$}
@@ -956,7 +1001,7 @@ as follows:
     where $\expr' = \transform{\expr}(\aenv)$
 \end{itemize}
 
-\paragraph{Programs} Finally, we define the program transformation as follows:
+\subsubsection{Programs} Finally, we define the program transformation as follows:
 \[
   \framebox{$\transform{\prog}: \aelemset \rightarrow \progset$}
 \]
@@ -981,7 +1026,7 @@ where
 
 
 
-\subsubsection{Cleanup Algorithm}
+\subsection{Cleanup Algorithm}
 
 \todo
 
@@ -992,7 +1037,7 @@ where
 \end{itemize}
 
 
-\subsubsection{Semantics Preservation}
+\subsection{Semantics Preservation}
 
 To prove the semantics preservation of the partial evaluation for each syntactic
 view $\atree$, we first define a restricted semantics depending on the given
@@ -1001,7 +1046,7 @@ $\asem{\prog}$ of the program. Finally, we prove the semantics preservation of
 the program transformation $\transform{\prog}$.
 
 
-\paragraph{Restricted Semantics} We first define a \textit{restricted semantics}
+\subsubsection{Restricted Semantics} We first define a \textit{restricted semantics}
 $\rsem{\prog}: \atreeset \rightarrow \powerset{\stset}$ with a syntactic view:
 \[
   \rsem{\prog}(\atree) = \lim_{n \rightarrow \infty}\transfer^n \circ
@@ -1038,7 +1083,7 @@ where
 \]
 
 
-\paragraph{Proof of Soundness} We formally define the soundness of the static
+\subsubsection{Proof of Soundness} We formally define the soundness of the static
 analysis $\asem{\prog}$ in Theorem~\ref{thm:sound-prog} and prove it using
 several lemmas.
 
@@ -1110,7 +1155,7 @@ several lemmas.
   \todo
 \end{proof}
 
-\paragraph{Proof of Semantics Preservation} Finally, we prove the semantics
+\subsubsection{Proof of Semantics Preservation} Finally, we prove the semantics
 prservation of the program transformation $\transform{\prog}$ in
 Theorem~\ref{thm:preserve-prog} with several lemmas.
 
@@ -1132,3 +1177,10 @@ Theorem~\ref{thm:preserve-prog} with several lemmas.
 \begin{proof}
   \todo
 \end{proof}
+
+%% the bibliography file.
+\balance
+\bibliography{ref}
+
+\end{document}
+\endinput

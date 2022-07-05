@@ -21,6 +21,14 @@ pdf:
 	while ( grep -q '^LaTeX Warning: Label(s) may have changed' $(PACKAGE).log) \
 	do pdflatex $(PACKAGE); done
 
+report:
+	pdflatex report
+	- bibtex report
+	pdflatex report
+	pdflatex report
+	while ( grep -q '^LaTeX Warning: Label(s) may have changed' report.log) \
+	do pdflatex report; done
+
 docclean:
 	$(RM)  *.log *.aux \
 	*.cfg *.glo *.idx *.toc \

@@ -89,15 +89,15 @@ However, it is difficult to handle it in an automatic or mechanical way since it
 is written in English.  Thus, we utilize another tool $\esmeta$~\cite{jiset,
 esmeta}, which extracts a mechanized specification from any given version of
 ECMA-262.  It automatically converts algorithms steps to the corresponding
-instructions of $\ires$, an intermediate representation for ECMAScript.  In
-other word, the mechanized specification extracted via $\esmeta$ is an $\ires$
-program consisting of functions corresponding to abstract algorithms in the
-language specification.
+instructions of $\ires$, an intermediate representation for ECMAScript
+Specification.  In other word, the mechanized specification extracted via
+$\esmeta$ is a JavaScript interpreter and an $\ires$ program consisting of
+functions corresponding to abstract algorithms in the language specification.
 
 
 \subsection{Behavior Inference}\label{sec:reduce-spec}
 
-\name{Reachability Analyzer} takes a mechanized specification and performs its
+\sname{Reachability Analyzer} takes a mechanized specification and performs its
 reachability analysis to automatically reduce the call graph of ECMA-262 with a
 given \textit{syntactic view} to soundly infer \textit{possible behaviors}.  A
 \textit{syntactic view} is an extension of a JavaScript abstract syntax tree
@@ -106,7 +106,7 @@ Users can freely construct syntactic views depending on which combination of
 language features they want to understand; concrete nodes denote the parts they
 want to understand, and abstract ones denote the parts they do not.  Then, the
 analyzer takes such a syntactic view as the target language features and
-performs reachability analysis based on abstract interpreter
+performs reachability analysis based on abstract interpretation
 framework~\cite{ai1977, ai1992}.  Finally, it builds the reduced call graph of
 ECMA-262 using the analysis result, and we can soundly infers \textit{possible
 behaviors} of language features using the reduced call graph.
@@ -117,25 +117,26 @@ behaviors} of language features using the reduced call graph.
 Assume that we want to understand the detailed semantics of JavaScript addition
 operation by referring to ES13.  Then, we can utilize a syntactic view
 $\svhole{\expr_1} \; \code{+} \; \svhole{\expr_2}$ where $\svhole{\expr_1}$ and
-$\svhole{\expr_2}$ denote abstract nodes for \essyn{AdditiveExpression} and
-\essyn{MultiplicativeExpression}, respectively.  With this syntactic view, the
-analyzer starts the analysis from the \esalg{Evaluation} algorithm shown in
-Figure~\ref{fig:add-eval} (b) and builds a call graph depicted in
-Figure~\ref{fig:add-graph} (a) consisting of \inred{109} algorithms.  In this
-graph, a node denotes 1) an abstract algorithm (box), 2) evaluation of syntactic
-view ($\sem{-}$), or 3) an exception (bold without box), and an arrow denotes a
-call edge.  Because the analyzer considers the context of evaluating the
-addition operation, it removes invalid call edges (red dotted arrows) in the
-call graph.  For example, \esalg{ApplyStringOrNumericBinaryOperator} can invoke
-only two different numeric methods \esalg{BigInt::add} and \esalg{Number::add}
-during the evaluation of the addition operation, and other 22 numeric methods
-(e.g., \esalg{Number::divide}) are removed.  In this call graph, specific
-algorithms represent possible behaviors of the addition operation.  For
-instance, the \esalg{Call} algorithm is used to invoke the \eswrd{[[Call]]}
-internal method of a JavaScript function object.  It means that a JavaScript
-function might be invoked during the evaluation of the addition operation.
-Besides, the addition operation might throw a \esval{TypeError} exception
-because it is reachable from the \esalg{Evaluation} algorithm.
+$\svhole{\expr_2}$ denote abstract nodes without any type bounds for
+\essyn{AdditiveExpression} and \essyn{MultiplicativeExpression}, respectively.
+With this syntactic view, the analyzer starts the analysis from the
+\esalg{Evaluation} algorithm shown in Figure~\ref{fig:add-eval} (b) and builds a
+call graph depicted in Figure~\ref{fig:add-graph} (a) consisting of \inred{109}
+algorithms.  In this graph, a node denotes 1) an abstract algorithm (box), 2)
+evaluation of syntactic view ($\sem{-}$), or 3) an exception (bold without box),
+and an arrow denotes a call edge.  Because the analyzer considers the context of
+evaluating the addition operation, it removes invalid call edges (red dotted
+arrows) in the call graph.  For example,
+\esalg{ApplyStringOrNumericBinaryOperator} can invoke only two different numeric
+methods \esalg{BigInt::add} and \esalg{Number::add} during the evaluation of the
+addition operation, and other 22 numeric methods (e.g., \esalg{Number::divide})
+are removed.  In this call graph, specific algorithms represent possible
+behaviors of the addition operation.  For instance, the \esalg{Call} algorithm
+is used to invoke the \eswrd{[[Call]]} internal method of a JavaScript function
+object.  It means that a JavaScript function might be invoked during the
+evaluation of the addition operation.  Besides, the addition operation might
+throw a \esval{TypeError} exception because it is reachable from the
+\esalg{Evaluation} algorithm.
 
 
 \subsubsection{Examples with Advanced Syntactic Views}
@@ -186,11 +187,11 @@ burdensome to manually find example programs that have such behaviors in the
 program pool because it contains thousands of JavaScript programs.
 
 Fortunately, $\tool$ can save the time to search for such example programs.
-\name{Trace Collector} first executes all JavaScript programs in the program
+\sname{Trace Collector} first executes all JavaScript programs in the program
 pool using the mechanized specification extracted from ECMA-262.  Then, using
 their execution traces, it records the relations among programs, AST nodes, and
-algorithms in \name{Trace Database}.  Then, if a user selects an algorithm as
-the target behavior with a syntactic view, \name{Program Search Engine} utilizes
+algorithms in \sname{Trace Database}.  Then, if a user selects an algorithm as
+the target behavior with a syntactic view, \sname{Program Search Engine} utilizes
 the database to quickly search for example programs in the pool that touches the
 selected algorithm in the semantics of the given syntactic view.
 
@@ -206,7 +207,7 @@ Then, our tool returns the second program: \code{1n + 1}.
 In the remainder of this paper, we explain the details of how to infer possible
 behaviors with a given syntactic view (Section~\ref{sec:infer}) and how to
 search for example programs that trigger such behaviors in the program pool
-(Section~\ref{sec:search}.  After we explain the implementation details of
-$\tool$ (Section~\ref{sec:impl}) and evaluate it (Section~\ref{sec:eval}, we
+(Section~\ref{sec:search}).  After we explain the implementation details of
+$\tool$ (Section~\ref{sec:impl}) and evaluate it (Section~\ref{sec:eval}), we
 discuss related work (Section~\ref{sec:related}) and conclude
 (Section~\ref{sec:conclusion}).

@@ -9,31 +9,27 @@ of a JavaScript abstract syntax tree (AST) wtith abstract nodes with type
 bounds.  Finally, we formally define the reachability analysis on the mechanized
 specialization with a given syntactic view and prove its soundness.
 
-\subsection{$\ires$: Intermediate Representation for ECMAScript}
+\subsection{$\ires$: Intermediate Representation for ECMAScript Specification}
 
 $\esmeta$ extracts a mechanized specification from ECMA-262 by compiling each
 abstract algorithm to the corresponding function of $\ires$, an
-\textbf{I}ntermediate \textbf{R}epresentation for \textbf{E}CMA\textbf{S}cript.
-Its abstract syntax is defined as follows:
+\underline{I}ntermediate \underline{R}epresentation for \underline{E}CMAScript
+\underline{S}pecification.  Its abstract syntax is defined as follows:
 
 \[
   \begin{array}{lr@{~}c@{~}c@{~}c@{~}l}
-    \text{Programs} & \progset &\ni& \prog &=& (\initstset{\prog},
-    \getfunc{\prog}, \getinst{\prog}, \getnext{\prog})\\
+    \text{Programs} & \progset &\ni& \prog &=& (\initstset,
+    \getfunc, \getinst, \getnext)\\
 
     \text{Functions} & \funcset &\ni& \func &::=&
     \kwdef \; \kwrl \varx^* \kwrr \; \lab\\
 
-    \text{Variables} & \varset &\ni& \varx\\
-
     \text{Instructions} & \instset &\ni& \inst &::=&
     \refer \kweq \expr \mid
     \varx \kweq \kwcl \kwcr \mid
-    \varx \kweq \expr \kwrl \expr^* \kwrr \mid
+    \varx \kweq \expr \kwrl \expr^* \kwrr \mid \\&&&&&
     \kwif \; \expr \; \lab \; \lab \mid
     \kwret \; \expr\\
-
-    \text{Labels} & \labset &\ni& \lab\\
 
     \text{Expressions} & \exprset &\ni& \expr &::=&
     \pval \mid
@@ -42,14 +38,18 @@ Its abstract syntax is defined as follows:
 
     \text{References} & \referset &\ni& \refer &::=&
     \varx \mid \expr \kwsl \expr \kwsr\\
+
+    \text{Variables} & \varset &\ni& \varx &&
+
+    \text{Labels} \qquad \labset \ni \lab\\
   \end{array}
 \]
 
-An $\ires$ program $\prog = (\initstset{\prog}, \getfunc{\prog},
-\getinst{\prog}, \getnext{\prog}) \in \progset $ consists of initial states
-$\initstset{\prog}$ and three mappings; $\getfunc{\prog}: \labset \rightarrow
-\funcset$ and $\getinst{\prog}: \labset \rightarrow \instset$ map labels to
-their functions and instructions, respectively, and $\getnext{\prog}: \labset
+An $\ires$ program $\prog = (\initstset, \getfunc,
+\getinst, \getnext) \in \progset $ consists of initial states
+$\initstset$ and three mappings; $\getfunc: \labset \rightarrow
+\funcset$ and $\getinst: \labset \rightarrow \instset$ map labels to
+their functions and instructions, respectively, and $\getnext: \labset
 \rightarrow \labset$ maps labels to their next labels, where a label $\lab \in
 \labset$ denotes a program point.  A function $\func \in \funcset$ is defined
 with its parameters and body label.  For presentation brevity, we assume that no
@@ -57,33 +57,33 @@ global or captured variables exist in this paper.  An instruction $\inst \in
 \instset$ is an assignment $\refer \kweq \expr$, an object allocation $\varx
 \kweq \kwcl \kwcr$, a function call $\varx \kweq \expr \kwrl \expr^* \kwrr$, a
 branch $\kwif \; \expr \; \lab \; \lab$, or a return instruction $\kwret \;
-\expr$.  An invocation of an abstract algorithm in ECMAScript is compiled to a
+\expr$.  An invocation of an abstract algorithm in ECMA-262 is compiled to a
 function call instruction with a new temporary variable.  We represent loops
-using branch instructions with cyclic pointing of labels in $\getnext{\prog}$.
+using branch instructions with cyclic pointing of labels in $\getnext$.
 An expression is a primitive value $\pval$, an operation $\op \kwrl \expr^*
 \kwrr$, or a reference $\refer$.  A reference is a variable $\varx$ or an object
 field $\expr \kwsl \expr \kwsr$.  We write $\expr.\varf$ to briefly represent
 $\expr \kwsl \code{"f"} \kwsr$.
 
 We define the concrete semantics $\sem{\prog}$ of an $\ires$ program $\prog$ as
-a set of reachable state from the initial states $\initstset{\prog}$ of the
+a set of reachable state from the initial states $\initstset$ of the
 program:
 \[
-  \sem{\prog} = \{ \st \in \stset \mid \exists \initst \in \initstset{\prog}. \;
+  \sem{\prog} = \{ \st \in \stset \mid \exists \initst \in \initstset. \;
   \initst \trans{\prog}^* \st \}
 \]
 where $\trans{\prog}^*$ denotes one or more repetition of $\trans{\prog}$, and
 $\st \trans{\prog} \st'$ if and only if $\st = (\lab, \_, \_, \_)$ and
-$\sem{\getinst{\prog}(\lab)}(\st) = \st'$.  We also define the denotational
+$\sem{\getinst(\lab)}(\st) = \st'$.  We also define the denotational
 semantics of expressions $\sem{\expr}: \stset \rightarrow \valset$ and
 instructions $\sem{\inst}: \stset \rightarrow \stset$ where $\stset$ and
 $\valset$ denote states and values, respectively.  However, for
-brevity, we omit them them this paper and refer the interested readers to a
+brevity, we omit them in this paper and refer the interested readers to a
 companion report~\cite{report}.  Another way to represent the concrete semantics
 is to define a transfer function $\transfer: \powerset{\stset} \rightarrow
 \powerset{\stset}$:
 \[
-  \sem{\prog} = \lim_{n \rightarrow \infty}\transfer^n(\initstset{\prog})
+  \sem{\prog} = \lim_{n \rightarrow \infty}\transfer^n(\initstset)
 \]
 where
 \begin{equation}\label{eqn:transfer}

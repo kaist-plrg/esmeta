@@ -37,13 +37,13 @@ Therefore, when they desire to understand the detailed semantics of JavaScript,
 they refer to ECMA-262, the standard JavaScript language specification written
 in English.  It describes the syntax using a variant of the extended Backus–Naur
 form and the semantics as abstract algorithms.  Each algorithm describes the
-language semantics in with ordered and structured steps.  The Ecma Technical
+language semantics with ordered and structured steps.  The Ecma Technical
 Committee 39 (TC39) has officially maintained ECMA-262 as an open-source GitHub
 project,\footnote{\url{https://github.com/tc39/ecma262}} and it annually updates
 the specification with new language features to quickly adapt to the users'
-demands.  Thus, JavaScript developers should read this specification if they
-want to learn the detailed semantics of new language features introduced every
-year.  Especially, developers of JavaScript tools (e.g.,
+demands.  Thus, JavaScript developers should read this specification
+to learn the detailed semantics of new language features introduced yearly.
+Primarily, developers of JavaScript tools (e.g.,
 interpreters~\cite{v8, jscore, spidermonkey, graaljs},
 transpilers~\cite{babel},
 code analysis tools~\cite{safe, safe2, tajs, wala, jsai},
@@ -60,16 +60,16 @@ trigger such behaviors by only referring to ECMA-262.
 First, it is not an easy task to answer which behaviors are possible in each
 language feature.  It often provides hidden implicit behaviors unusual in other
 languages, such as implicit function calls, implicit property reads/writes, or
-runtime exceptions under special conditions.  For example, we can call functions
-even using the addition operation without any function application syntax.  If
+runtime exceptions under particular conditions.  For example, we can call functions
+using the addition operation without any function application syntax.  If
 we want to understand all possible behaviors of the addition operation, we need
 to read \inred{109} algorithms reachable from its evaluation algorithm.
 Besides, the problem becomes more complicated if we want to know possible
 behaviors of a language feature used with specific types of values or other
 language features.
 
-Second, even if users realize its specific behavior, it is nontrivial to find
-example programs that trigger the behavior.  For example, assume that we want to
+Second, even if users realize its specific behavior, finding example programs
+that trigger the behavior is nontrivial.  For example, assume that we want to
 find an example program having an addition operation that causes implicit
 function calls.  Then, we should first grasp the condition when the addition
 operation implicitly invokes functions and then find a JavaScript program that
@@ -81,14 +81,14 @@ satisfies the condition like this:
     \end{lstlisting}
   \end{tabular}
 \end{center}
-In this code, the left and right operands have different types $\code{String}$
+In this code, the left and right operands have different types of $\code{String}$
 and $\code{Object}$, respectively.  The addition between them causes an
 implicit conversion of the object to a string value, and the function in the
 $\code{toString}$ property is implicitly invoked during the conversion.
 
-To alleviate this problem, this paper presents $\tool$ for the advanced
-understanding of JavaScript language specification with \textit{syntactic
-views}.  We introduce a \textit{syntactic view}, an extension of a JavaScript
+To alleviate this problem, we present $\tool$ for the advanced understanding of
+JavaScript language specification with \textit{syntactic views}.  First, we
+introduce a \textit{syntactic view} as an extension of a JavaScript
 abstract syntax tree (AST) consisting of both concrete and abstract nodes with
 type bounds.  Users can freely construct syntactic views depending on
 which combination of language features they want to understand; concrete nodes
@@ -105,29 +105,30 @@ reduced call graph of ECMA-262 with a syntactic view for the addition operation
 contains the \esalg{Call} algorithm, it might cause implicit function calls.
 
 In addition, $\tool$ searches for \textit{example programs} that trigger
-possible behaviors in a given program pool.  The tool first collects execution
+possible behaviors in a given program pool. The tool first collects execution
 traces of all the programs in the pool and builds a database only once at
-initialization time.  Then, if a user selects an algorithm as the target
-behavior with a syntactic view, $\tool$ utilizes the database to quickly search for
+initialization time. Then, when a user selects an algorithm as the target
+behavior with a syntactic view, it utilizes the database to quickly search for
 example programs in the pool that touches the selected algorithm in the
-semantics of the given syntactic view.  For example, if we selects the
-\esalg{Call} algorithm with a syntactic view for addition operation, the tool
-automatically searches for example programs having an addition operation that
-causes implicit function calls.
+semantics of the given syntactic view. For example, suppose we choose the
+\esalg{Call} algorithm with a syntactic view for the addition operation. In that
+case, the tool automatically searches for example programs having an addition
+operation that causes implicit function calls.
 
 Our contributions are as follows:
 \begin{itemize}
   \item We introduce a \textit{syntactic view}, an extension of a JavaScript
     abstract syntax tree (AST) consisting of both concrete and abstract nodes
-    with type bounds, to help users indicate which language features
+    with type bounds to help users indicate which language features
     they want to understand.
 
   \item We present an automatic way to 1) infer \textit{possible behaviors} of
     JavaScript language features using a reachability analysis in ECMA-262 and
-    2) search \textit{example programs} that trigger such behaviors in a given
+    2) search for \textit{example programs} that trigger such behaviors in a given
     program pool using their pre-collected execution traces.
 
-  \item We actualize our techniques in $\tool$, evaluate its effectiveness using
-    the latest ECMA-262 with \inred{177} basic syntactic views, and demonstrate
-    its practicality with \inred{three} advanced syntactic views.
+  \item We actualize our techniques in a tool named $\tool$ and evaluate its
+    effectiveness using the latest ECMA-262 with \inred{177} basic syntactic
+    views. In addition, we demonstrate its practicality with \inred{three}
+    advanced syntactic views.
 \end{itemize}

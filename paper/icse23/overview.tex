@@ -23,7 +23,7 @@
   \end{subfigure}
   \vspace*{-.5em}
   \caption{The syntax and semantics of the addition expression in the latest
-  ECMA-262 (ES12, 2021)}
+  ECMA-262 (ES13, 2022)}
   \vspace*{-1.5em}
   \label{fig:add-eval}
 \end{figure}
@@ -73,7 +73,7 @@ ECMA-262 describes the syntax using a variant of the extended Backus–Naur form
 and the semantics as abstract algorithms.  Each algorithm describes the language
 semantic in a procedural way with structured steps.  For example,
 Figure~\ref{fig:add-eval} (a) shows the syntactic production of
-\essyn{AdditiveExpression} in the latest ECMA-262 (ES12, 2021)~\cite{es12}.
+\essyn{AdditiveExpression} in the latest ECMA-262 (ES13, 2022)~\cite{es13}.
 Figure~\ref{fig:add-eval} (b) shows the \esalg{Evaluation} algorithm of its
 second alternative that describes the semantics of the addition
 expression.\footnote{\url{https://262.ecma-international.org/12.0/\#sec-addition-operator-plus}}
@@ -115,7 +115,7 @@ behaviors} of language features using the reduced call graph.
 \subsubsection{Examples with Simple Syntactic Views}
 
 Assume that we want to understand the detailed semantics of JavaScript addition
-operation by referring to ES12.  Then, we can utilize a syntactic view
+operation by referring to ES13.  Then, we can utilize a syntactic view
 $\svhole{\expr_1} \; \code{+} \; \svhole{\expr_2}$ where $\svhole{\expr_1}$ and
 $\svhole{\expr_2}$ denote abstract nodes for \essyn{AdditiveExpression} and
 \essyn{MultiplicativeExpression}, respectively.  With this syntactic view, the

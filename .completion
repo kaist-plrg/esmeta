@@ -11,16 +11,20 @@ _esmeta_completions() {
   local cur prev opts lastc informats outformats datafiles
   cur="${COMP_WORDS[COMP_CWORD]}"
   prev="${COMP_WORDS[COMP_CWORD-1]}"
-  cmdList="help extract compile build-cfg ir-eval js-parse js-eval filter-test262"
+  cmdList="help extract compile build-cfg ir-eval js-parse js-eval filter-test262 web coverage-test262 view-cg"
   globalOpt="-silent -debug -log -time"
   helpOpt=""
   extractOpt="-extract:json -extract:version -extract:log -extract:stat"
   compileOpt=""
   buildcfgOpt="-build-cfg:dot -build-cfg:pdf"
   irevalOpt=""
-  jsparseOpt=""
+  jsparseOpt="-js-parse:load -js-parse:dump"
   jsevalOpt="-js-eval:test262"
-  filtertest262Opt=""
+  filtertest262Opt="-filter-test262:test262-data -filter-test262:aid"
+  webOpt="-web:web"
+  coveragetest262Opt="-coverage-test262:test262-list -coverage-test262:load -coverage-test262:dump -coverage-test262:ast-algo"
+  viewparseOpt="-view-parse:target"
+  viewcgOpt="-view-cg:syntactic -view-cg:repl"
   # completion for commands
   case "${COMP_CWORD}" in
     1)
@@ -62,7 +66,19 @@ _esmeta_completions() {
           return 0
           ;;
         filter-test262)
-          COMPREPLY=($(compgen -W "${globalOpt} ${filtertest262Opt}"))
+          COMPREPLY=($(compgen -W "${globalOpt} ${extractOpt} ${compileOpt} ${buildcfgOpt} ${filtertest262Opt}"))
+          return 0
+          ;;
+        web)
+          COMPREPLY=($(compgen -W "${globalOpt} ${extractOpt} ${compileOpt} ${buildcfgOpt} ${webOpt}"))
+          return 0
+          ;;
+        coverage-test262)
+          COMPREPLY=($(compgen -W "${globalOpt} ${extractOpt} ${compileOpt} ${buildcfgOpt} ${coveragetest262Opt}"))
+          return 0
+          ;;
+        view-cg)
+          COMPREPLY=($(compgen -W "${globalOpt} ${extractOpt} ${compileOpt} ${buildcfgOpt} ${viewparseOpt} ${viewcgOpt}"))
           return 0
           ;;
       esac

@@ -57,6 +57,9 @@ tests/result/test262
 *-blx.bib
 *.run.xml
 
+# setting
+.zshrc
+
 # result
 main.pdf
 report.pdf

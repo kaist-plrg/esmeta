@@ -73,7 +73,8 @@ class SyntacticCoveredTest extends ESMetaAsyncTest {
                 })
               }
               assert(
-                analysisCG.funcs.forall((s) => transitiveCG.funcs.contains(s),
+                analysisCG.funcs.forall((s) =>
+                  transitiveCG.funcs.contains(s),
                 ), // && analysisCG.func_targets.forall {
                 // case (f, set) =>
                 //  (transitiveCG.func_targets contains f) && set.forall((v) =>

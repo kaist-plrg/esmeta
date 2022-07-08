@@ -91,8 +91,6 @@ where
   \{ \st' \in \stset \mid \exists \st \in S. \; \st \trans \st' \}
 \end{equation}
 
-\subsection{Syntactic Views}\label{sec:view}
-
 In $\ires$, JavaScript ASTs are values as well, and they are defined with tree
 nodes $\nodeset$ as follows:
 \[
@@ -140,6 +138,8 @@ $\tree_2$ in the figure. They are subtrees of $\tree_0$ (i.e., $\tree_0 \subtree
 \tree_0, \cdots, \tree_3 \subtree \tree_0$), and $\getsubs(\tree_0) = [\tree_1,
 \tree_2]$.
 
+\subsection{Syntactic Views}\label{sec:view}
+
 We introduce a \textit{syntactic view} $\atree \in \atreeset$ as an extended
 JavaScript AST defined with abstract tree nodes $\anodeset$ with type bounds:
 \[
@@ -167,52 +167,54 @@ follows:
     \anodegamma(\atree) &=& \atreegamma(\atree)\\
   \end{array}
 \]
-\[
-  \begin{array}{lcl}
-    \anode \order \anode' &\Leftrightarrow& \left\{
-      \begin{array}{ll}
-        \anode = \anode' &\vee\\
 
-        \anode' = \nt &\vee\\
-
-        (\anode = \atree \wedge \anode' = \atree' \wedge \atree \order
-        \atree')\\
-      \end{array}
-    \right.\\
-
-    \atree \order \atree' &\Leftrightarrow& \left\{
-      \begin{array}{ll}
-        \atree = \atree' &\vee\\
-
-        \atree' = \treetop &\vee\\
-
-        \begin{array}{@{}l@{}}
-          \atree = \nt_k \langle \atree_1, \cdots, \atree_n \rangle \wedge
-          \atree' = \nt_k \langle \atree'_1, \cdots, \atree'_n \rangle \wedge\\
-          \forall j. \; \tree_j \order \tree'_j\\
-        \end{array}\\
-      \end{array}
-    \right.\\
-
-    \atree \join \atree' &=& \left\{
-      \begin{array}{ll}
-        \atree' & \text{if} \; \atree \order \atree'\\
-
-        \atree & \text{if} \; \atree \revorder \atree'\\
-
-        \nt_k \langle \atree''_1, \cdots, \atree''_n \rangle &
-        \text{if} \; \atree = \nt_k \langle \atree_1, \cdots, \atree_n \rangle
-        \wedge\\&
-        \phantom{\text{if} \;} \atree = \nt_k \langle \atree_1, \cdots, \atree_n
-        \rangle \wedge\\&
-        \phantom{\text{if} \;} \forall j. \; \atree''_j = \atree_j
-        \join \atree'_j\\
-        \treetop & \text{otherwise}\\
-      \end{array}
-    \right.\\
-  \end{array}
-\]
-Moreover, we define abstract subtree relation $\asubtree \subseteq \atreeset
+% \[
+%   \begin{array}{lcl}
+%     \anode \order \anode' &\Leftrightarrow& \left\{
+%       \begin{array}{ll}
+%         \anode = \anode' &\vee\\
+% 
+%         \anode' = \nt &\vee\\
+% 
+%         (\anode = \atree \wedge \anode' = \atree' \wedge \atree \order
+%         \atree')\\
+%       \end{array}
+%     \right.\\
+% 
+%     \atree \order \atree' &\Leftrightarrow& \left\{
+%       \begin{array}{ll}
+%         \atree = \atree' &\vee\\
+% 
+%         \atree' = \treetop &\vee\\
+% 
+%         \begin{array}{@{}l@{}}
+%           \atree = \nt_k \langle \atree_1, \cdots, \atree_n \rangle \wedge
+%           \atree' = \nt_k \langle \atree'_1, \cdots, \atree'_n \rangle \wedge\\
+%           \forall j. \; \tree_j \order \tree'_j\\
+%         \end{array}\\
+%       \end{array}
+%     \right.\\
+% 
+%     \atree \join \atree' &=& \left\{
+%       \begin{array}{ll}
+%         \atree' & \text{if} \; \atree \order \atree'\\
+% 
+%         \atree & \text{if} \; \atree \revorder \atree'\\
+% 
+%         \nt_k \langle \atree''_1, \cdots, \atree''_n \rangle &
+%         \text{if} \; \atree = \nt_k \langle \atree_1, \cdots, \atree_n \rangle
+%         \wedge\\&
+%         \phantom{\text{if} \;} \atree = \nt_k \langle \atree_1, \cdots, \atree_n
+%         \rangle \wedge\\&
+%         \phantom{\text{if} \;} \forall j. \; \atree''_j = \atree_j
+%         \join \atree'_j\\
+%         \treetop & \text{otherwise}\\
+%       \end{array}
+%     \right.\\
+%   \end{array}
+% \]
+We define
+In addition, we define abstract subtree relation $\asubtree \subseteq \atreeset
 \times \treeset$:
 \[
   \atree \; \asubtree \; \tree' \iff \exists \tree \in \atreegamma(\atree). \;

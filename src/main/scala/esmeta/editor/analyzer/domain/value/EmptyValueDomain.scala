@@ -46,6 +46,7 @@ class EmptyValueDomain() extends AbsValueDomain {
 
     def isAllowTopClo = true
     def setAllowTopClo(b: Boolean) = this
+    def isFromAbsNode = false
 
     // join operator
     def ⊔(that: Elem): Elem = this

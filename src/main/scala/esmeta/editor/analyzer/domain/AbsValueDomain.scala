@@ -213,6 +213,7 @@ trait AbsValueDomain extends Domain {
 
     def setAllowTopClo(b: Boolean = true): Elem
     def isAllowTopClo: Boolean
+    def isFromAbsNode: Boolean
 
     def removeNormal: Elem
     def normal: Elem

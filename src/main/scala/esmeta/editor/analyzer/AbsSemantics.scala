@@ -13,7 +13,7 @@ import scala.annotation.tailrec
 import esmeta.editor.util.CFGHelper
 import esmeta.error.AnalysisTimeoutError
 import esmeta.cfg.Branch
-import esmeta.ir.Id
+import esmeta.ir.{Id, Name}
 import esmeta.editor.CallGraph
 
 class AbsSemantics[ASD <: AbsStateDomain[_] with Singleton](
@@ -126,13 +126,14 @@ class AbsSemantics[ASD <: AbsStateDomain[_] with Singleton](
     callerSt: AbsState,
     func: Func,
     st: AbsState,
+    isSDO: Boolean = false,
   ): Unit = {
     // println("E")
     // println(func.toString)
     val callerNp = NodePoint(cfgHelper.cfg.funcOf(call), call, callerView)
     this.callInfo += callerNp -> callerSt
 
-    val calleeView = viewCall(callerView, call)
+    val calleeView = viewCall(callerView, call, st, isSDO)
     func.entry.map(entry =>
       this += NodePoint(func, entry, calleeView) -> st.doCall,
     )
@@ -149,11 +150,14 @@ class AbsSemantics[ASD <: AbsStateDomain[_] with Singleton](
   def viewCall(
     callerView: View,
     call: Call,
+    st: AbsState,
+    isSDO: Boolean,
   ): View = {
-    val View(calls, _, _) = callerView
+    val View(calls, _, _, _) = callerView
     val view = callerView.copy(
       calls = (call :: calls).take(maxIJK.maxCallDepth),
       intraLoopDepth = 0,
+      sviewOpt = if (isSDO) getThis(st) else callerView.sviewOpt
     )
     view
   }
@@ -218,7 +222,7 @@ class AbsSemantics[ASD <: AbsStateDomain[_] with Singleton](
         f.entry
           .foreach(n =>
             this +=
-              NodePoint(f, n, View()) -> AbsState.Empty.update(
+              NodePoint(f, n, View(sviewOpt = Some(view))) -> AbsState.Empty.update(
                 f.irFunc.params.head.lhs,
                 sviewToAbsValue(s),
               ),
@@ -230,4 +234,12 @@ class AbsSemantics[ASD <: AbsStateDomain[_] with Singleton](
   def sviewToAbsValue(view: SyntacticView): AbsValue = AbsValue(
     AbsValue.ASView(view),
   )
+  def absValueToSview(absValue: AbsValue): Option[SyntacticView] = {
+    absValue.getSingle() match {
+      case FlatElem(AbsValue.ASView(view)) => Some(view)
+      case _ => None
+    }
+  }
+  
+  def getThis(st: AbsState): Option[SyntacticView] = absValueToSview(st.directLookup(Name("this")))
 }

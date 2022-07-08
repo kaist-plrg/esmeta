@@ -48,39 +48,48 @@ class BasicValueDomain() extends AbsValueDomain {
             compd.ecompd.Bot,
             compd.ecompd.EBase(left = purd.Top, right = purd.Top),
           ),
+          fromAbsNode = true,
         ),
       true),
       "AObj" -> ((ls: List[Elem]) =>
         Elem(pure =
           purd.EKind(Set(purd.ValueKind.Obj, purd.ValueKind.Record)),
+          fromAbsNode = true,
         ), true),
       "ASymbol" -> ((ls: List[Elem]) =>
         Elem(pure =
           purd.EKind(Set(purd.ValueKind.Symbol, purd.ValueKind.Record)),
+          fromAbsNode = true,
         ), true),
       "ANum" -> ((ls: List[Elem]) =>
         Elem(pure =
           purd.EKind(Set(purd.ValueKind.Num, purd.ValueKind.Record)),
+          fromAbsNode = true,
         ), true),
       "ABigInt" -> ((ls: List[Elem]) =>
         Elem(pure =
           purd.EKind(Set(purd.ValueKind.BigInt, purd.ValueKind.Record)),
+          fromAbsNode = true,
         ), true),
       "AStr" -> ((ls: List[Elem]) =>
         Elem(pure =
           purd.EKind(Set(purd.ValueKind.Str, purd.ValueKind.Record)),
+          fromAbsNode = true,
         ), true),
       "ABool" -> ((ls: List[Elem]) =>
         Elem(pure =
           purd.EKind(Set(purd.ValueKind.Bool, purd.ValueKind.Record)),
+          fromAbsNode = true,
         ), true),
       "AUndef" -> ((ls: List[Elem]) =>
         Elem(pure =
           purd.EKind(Set(purd.ValueKind.Undef, purd.ValueKind.Record)),
+          fromAbsNode = true,
         ), true),
       "ANull" -> ((ls: List[Elem]) =>
         Elem(pure =
           purd.EKind(Set(purd.ValueKind.Null, purd.ValueKind.Record)),
+          fromAbsNode = true,
         ), true),
       "AThrow" -> ((ls: List[Elem]) =>
         Elem(compt =
@@ -88,6 +97,7 @@ class BasicValueDomain() extends AbsValueDomain {
             compd.ecompd.Bot,
             compd.ecompd.EBase(left = purd.Top, right = purd.Top),
           ),
+          fromAbsNode = true,
         ), true),
     )
   // , "Get", "GetV", "GetMethod", "Call", "OrdinaryToPrimitive")
@@ -155,18 +165,12 @@ class BasicValueDomain() extends AbsValueDomain {
         Elem(pure = purd.Top)
 
   def mkAbsComp(name: String, value: Elem, target: Elem): Elem =
-    val ecmp = (value, target) match {
-      case (
-            Elem(p, _, _, _),
-            Elem(purd.EFlat(Str(target)), _, _, _),
-          ) =>
+    val ecmp = (value.pure, target.pure) match {
+      case (p, purd.EFlat(Str(target))) =>
         compd.ecompd.EBase(left = p, right = purd.EFlat(Str(target)))
-      case (
-            Elem(p, _, _, _),
-            Elem(purd.EFlat(CONST_EMPTY), _, _, _),
-          ) =>
+      case (p, purd.EFlat(CONST_EMPTY)) =>
         compd.ecompd.EBase(left = p, right = purd.EFlat(CONST_EMPTY))
-      case (Elem(purd.Bot, _, _, _), _) | (_, Elem(purd.Bot, _, _, _)) =>
+      case (purd.Bot, _) | (_, purd.Bot) =>
         compd.ecompd.Bot
       case (_, _) =>
         compd.ecompd.EBase(left = purd.Top, right = purd.Top)
@@ -186,6 +190,7 @@ class BasicValueDomain() extends AbsValueDomain {
     clo: clod.Elem = clod.Bot,
     cont: contd.Elem = contd.Bot,
     compt: compd.Elem = compd.Bot,
+    fromAbsNode: Boolean = false
   ) extends AbsValueTrait {
 
     def removeNormal: Elem = compt match
@@ -282,12 +287,14 @@ class BasicValueDomain() extends AbsValueDomain {
         if (f.kind == v)
           Elem(
             pure = f,
+            fromAbsNode = fromAbsNode,
           )
         else Bot
       case s: purd.EKind =>
         if (s.s contains v)
           Elem(
             pure = purd.EKind(Set(v)),
+            fromAbsNode = fromAbsNode,
           )
         else Bot
       case purd.EBot => Bot
@@ -295,9 +302,9 @@ class BasicValueDomain() extends AbsValueDomain {
 
     def project[T <: AValue](kinds: AValueKind[T]): Elem =
       kinds match
-        case CloKind  => Elem(clo = clo)
-        case ContKind => Elem(cont = cont)
-        case CompKind => Elem(compt = compt)
+        case CloKind  => Elem(clo = clo, fromAbsNode = fromAbsNode)
+        case ContKind => Elem(cont = cont, fromAbsNode = fromAbsNode)
+        case CompKind => Elem(compt = compt, fromAbsNode = fromAbsNode)
         case LocKind =>
           projValueKind(purd.ValueKind.Symbol) ⊔ projValueKind(
             purd.ValueKind.Obj,
@@ -424,6 +431,7 @@ class BasicValueDomain() extends AbsValueDomain {
       )
     def isAllowTopClo =
       this.clo ⊑ clod.EIgnoreClo && this.cont ⊑ contd.EIgnoreCont
+    def isFromAbsNode = this.fromAbsNode
 
     def ⊑(that: Elem): Boolean =
       this.pure ⊑ that.pure && this.clo ⊑ that.clo && this.cont ⊑ that.cont && this.compt ⊑ that.compt
@@ -435,6 +443,7 @@ class BasicValueDomain() extends AbsValueDomain {
         this.clo ⊔ that.clo,
         this.cont ⊔ that.cont,
         this.compt ⊔ that.compt,
+        this.fromAbsNode | that.fromAbsNode,
       )
 
     // conversion to string

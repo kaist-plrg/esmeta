@@ -133,6 +133,10 @@ class BasicValueDomain() extends AbsValueDomain {
         cont = contd.ESet(Set(ACont(func, captured))),
       )
     case AComp(ALiteral(Const(s)), v, t) => Elem(compt = compd.Top)
+    case AGrammar(grammar, params) =>
+      Elem(
+        pure = purd.EFlat(Grammar(grammar, params)),
+      )
     case Loc(ObjAllocSite(ty)) => Elem(pure = purd.EFlat(ObjAllocSite(ty)))
     case Loc(RecordAllocSite(ty)) =>
       Elem(pure = purd.EFlat(RecordAllocSite(ty)))
@@ -372,7 +376,7 @@ class BasicValueDomain() extends AbsValueDomain {
               else if (v.size == 0) FlatBot
               else FlatTop
         case _ =>
-          pure match
+          pure ⊔ normal.pure match
             case purd.EKind(_) => FlatTop
             case purd.EBot     => FlatBot
             case purd.EFlat(v: (AstValue | Comp | Grammar | LiteralValue)) =>

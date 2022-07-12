@@ -49,11 +49,12 @@ class AbsTransfer[ASD <: AbsStateDomain[_] with Singleton, T <: AbsSemantics[
   }
 
   def apply[T <: Node](np: NodePoint[T]): Unit = {
-    // println(s"APPLY ${np.func.name} ${np.view}: ${np.node}")
     val st = sem(np)
-    // println(st)
     val NodePoint(func, node, view) = np
     val helper = Helper(np)
+    
+    // println(s"APPLY ${np.func.name} ${np.view}: ${np.node}")
+    // println(st)
 
     import helper.*
     node match {
@@ -633,7 +634,7 @@ class AbsTransfer[ASD <: AbsStateDomain[_] with Singleton, T <: AbsSemantics[
                     ),
                   ),
                 ),
-                FlatElem(Grammar("CallMemberExpression", _)),
+                FlatElem(AGrammar("CallMemberExpression", _)),
               ) =>
             AbsValue(
               ASView(

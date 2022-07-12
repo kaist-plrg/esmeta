@@ -11,10 +11,11 @@ mechanized specialization with a given syntactic view and prove its soundness.
 
 \subsection{$\ires$: Intermediate Representation for ECMAScript Specification}
 
-$\esmeta$ extracts a mechanized specification from ECMA-262 by compiling each
-abstract algorithm to the corresponding function of $\ires$, an
-\underline{I}ntermediate \underline{R}epresentation for \underline{E}CMAScript
-\underline{S}pecification.  Its abstract syntax is defined as follows:
+$\esmeta$~\cite{jiset, esmeta} extracts a mechanized specification from ECMA-262
+by compiling each abstract algorithm to the corresponding function of $\ires$,
+an \underline{I}ntermediate \underline{R}epresentation for
+\underline{E}CMAScript \underline{S}pecification.  Its abstract syntax is
+defined as follows:
 
 \[
   \begin{array}{lr@{~}c@{~}c@{~}c@{~}l}
@@ -128,9 +129,7 @@ the following AST is produced as its parsing result:
   \end{array}
 \]
 \begin{figure}[H]
-  \vspace*{-1em}
   \includegraphics[width=.7\columnwidth]{img/add-ast.png}
-  \vspace*{-1em}
 \end{figure}
 \noindent Its \esalg{Evaluation} function $\essyn{AdditiveExpression}_1.\eval$
 takes three subtrees as arguments annotated by $\tree_0$, $\tree_1$, and
@@ -150,16 +149,15 @@ JavaScript AST defined with abstract tree nodes $\anodeset$ with type bounds:
 \]
 where $\nt: \ty$ denotes an abstract node whose nonterminal symbol is $\nt$ and
 evaluation result has a type $\ty$.  We define the concretization of abstract
-trees $\atreegamma: \atreeset \rightarrow \powerset{\treeset}$ and that of
-abstract nodes $\anodegamma: \anodeset \rightarrow \powerset{\nodeset}$ as
-follows:
+trees $\atreegamma: \atreeset \rightarrow \powerset{\treeset}$ and abstract
+nodes $\anodegamma: \anodeset \rightarrow \powerset{\nodeset}$ as follows:
 \[
   \begin{array}{lcl}
     \atreegamma(\nt_k \langle \anode_1, \cdots, \anode_n \rangle) &=&
     \{ \nt_k \langle \node_1, \cdots, \node_n \rangle \mid \node_j \in
     \anodegamma(\anode_j) \}\\
 
-    \atreegamma(\nt) &=&
+    \atreegamma(\nt: \ty) &=&
     \{ \tree \in \treeset \mid \tree = \nt_k \langle \cdots \rangle \}\\
 
     \anodegamma(\str) &=& \{ \str \}\\
@@ -168,52 +166,51 @@ follows:
   \end{array}
 \]
 
-% \[
-%   \begin{array}{lcl}
-%     \anode \order \anode' &\Leftrightarrow& \left\{
-%       \begin{array}{ll}
-%         \anode = \anode' &\vee\\
-% 
-%         \anode' = \nt &\vee\\
-% 
-%         (\anode = \atree \wedge \anode' = \atree' \wedge \atree \order
-%         \atree')\\
-%       \end{array}
-%     \right.\\
-% 
-%     \atree \order \atree' &\Leftrightarrow& \left\{
-%       \begin{array}{ll}
-%         \atree = \atree' &\vee\\
-% 
-%         \atree' = \treetop &\vee\\
-% 
-%         \begin{array}{@{}l@{}}
-%           \atree = \nt_k \langle \atree_1, \cdots, \atree_n \rangle \wedge
-%           \atree' = \nt_k \langle \atree'_1, \cdots, \atree'_n \rangle \wedge\\
-%           \forall j. \; \tree_j \order \tree'_j\\
-%         \end{array}\\
-%       \end{array}
-%     \right.\\
-% 
-%     \atree \join \atree' &=& \left\{
-%       \begin{array}{ll}
-%         \atree' & \text{if} \; \atree \order \atree'\\
-% 
-%         \atree & \text{if} \; \atree \revorder \atree'\\
-% 
-%         \nt_k \langle \atree''_1, \cdots, \atree''_n \rangle &
-%         \text{if} \; \atree = \nt_k \langle \atree_1, \cdots, \atree_n \rangle
-%         \wedge\\&
-%         \phantom{\text{if} \;} \atree = \nt_k \langle \atree_1, \cdots, \atree_n
-%         \rangle \wedge\\&
-%         \phantom{\text{if} \;} \forall j. \; \atree''_j = \atree_j
-%         \join \atree'_j\\
-%         \treetop & \text{otherwise}\\
-%       \end{array}
-%     \right.\\
-%   \end{array}
-% \]
-We define
+\[
+  \begin{array}{lcl}
+    \anode \order \anode' &\Leftrightarrow& \left\{
+      \begin{array}{ll}
+        \anode = \anode' &\vee\\
+
+        \anode' = \nt &\vee\\
+
+        (\anode = \atree \wedge \anode' = \atree' \wedge \atree \order
+        \atree')\\
+      \end{array}
+    \right.\\
+
+    \atree \order \atree' &\Leftrightarrow& \left\{
+      \begin{array}{ll}
+        \atree = \atree' &\vee\\
+
+        \atree' = \treetop &\vee\\
+
+        \begin{array}{@{}l@{}}
+          \atree = \nt_k \langle \atree_1, \cdots, \atree_n \rangle \wedge
+          \atree' = \nt_k \langle \atree'_1, \cdots, \atree'_n \rangle \wedge\\
+          \forall j. \; \tree_j \order \tree'_j\\
+        \end{array}\\
+      \end{array}
+    \right.\\
+
+    \atree \join \atree' &=& \left\{
+      \begin{array}{ll}
+        \atree' & \text{if} \; \atree \order \atree'\\
+
+        \atree & \text{if} \; \atree \revorder \atree'\\
+
+        \nt_k \langle \atree''_1, \cdots, \atree''_n \rangle &
+        \text{if} \; \atree = \nt_k \langle \atree_1, \cdots, \atree_n \rangle
+        \wedge\\&
+        \phantom{\text{if} \;} \atree = \nt_k \langle \atree_1, \cdots, \atree_n
+        \rangle \wedge\\&
+        \phantom{\text{if} \;} \forall j. \; \atree''_j = \atree_j
+        \join \atree'_j\\
+        \treetop & \text{otherwise}\\
+      \end{array}
+    \right.\\
+  \end{array}
+\]
 In addition, we define abstract subtree relation $\asubtree \subseteq \atreeset
 \times \treeset$:
 \[

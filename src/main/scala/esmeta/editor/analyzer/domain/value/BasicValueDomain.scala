@@ -51,40 +51,40 @@ class BasicValueDomain() extends AbsValueDomain {
         ),
       true),
       "AObj" -> ((ls: List[Elem]) =>
-        Elem(pure =
-          purd.EKind(Set(purd.ValueKind.Obj, purd.ValueKind.Record)),
+        Elem(
+          pure = purd.EKind(Set(purd.ValueKind.Obj, purd.ValueKind.Record)),
         ), true),
       "ASymbol" -> ((ls: List[Elem]) =>
-        Elem(pure =
-          purd.EKind(Set(purd.ValueKind.Symbol, purd.ValueKind.Record)),
+        Elem(
+          pure = purd.EKind(Set(purd.ValueKind.Symbol, purd.ValueKind.Record)),
         ), true),
       "ANum" -> ((ls: List[Elem]) =>
-        Elem(pure =
-          purd.EKind(Set(purd.ValueKind.Num, purd.ValueKind.Record)),
+        Elem(
+          pure = purd.EKind(Set(purd.ValueKind.Num, purd.ValueKind.Record)),
         ), true),
       "ABigInt" -> ((ls: List[Elem]) =>
-        Elem(pure =
-          purd.EKind(Set(purd.ValueKind.BigInt, purd.ValueKind.Record)),
+        Elem(
+          pure = purd.EKind(Set(purd.ValueKind.BigInt, purd.ValueKind.Record)),
         ), true),
       "AStr" -> ((ls: List[Elem]) =>
-        Elem(pure =
-          purd.EKind(Set(purd.ValueKind.Str, purd.ValueKind.Record)),
+        Elem(
+          pure = purd.EKind(Set(purd.ValueKind.Str, purd.ValueKind.Record)),
         ), true),
       "ABool" -> ((ls: List[Elem]) =>
-        Elem(pure =
-          purd.EKind(Set(purd.ValueKind.Bool, purd.ValueKind.Record)),
+        Elem(
+          pure = purd.EKind(Set(purd.ValueKind.Bool, purd.ValueKind.Record)),
         ), true),
       "AUndef" -> ((ls: List[Elem]) =>
-        Elem(pure =
-          purd.EKind(Set(purd.ValueKind.Undef, purd.ValueKind.Record)),
+        Elem(
+          pure = purd.EKind(Set(purd.ValueKind.Undef, purd.ValueKind.Record)),
         ), true),
       "ANull" -> ((ls: List[Elem]) =>
-        Elem(pure =
-          purd.EKind(Set(purd.ValueKind.Null, purd.ValueKind.Record)),
+        Elem(
+          pure = purd.EKind(Set(purd.ValueKind.Null, purd.ValueKind.Record)),
         ), true),
       "AThrow" -> ((ls: List[Elem]) =>
-        Elem(compt =
-          compd.EBase(
+        Elem(
+          compt = compd.EBase(
             compd.ecompd.Bot,
             compd.ecompd.EBase(left = purd.Top, right = purd.Top),
           ),

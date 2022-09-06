@@ -4,6 +4,7 @@ import esmeta.js.Ast
 import esmeta.editor.*
 import esmeta.cfg.CFG
 import esmeta.editor.util.CFGHelper
+import esmeta.ir.{AstExpr, ESyntactic, ELexical, EStr}
 
 // syntactic view: can be changed at future
 sealed trait SyntacticView extends EditorElem {
@@ -94,6 +95,26 @@ sealed trait SyntacticView extends EditorElem {
             case _                  => None
         case _ => None
 
+  def toAstExpr: AstExpr =
+    this match
+      case AbsSyntactic(name, id, _, _) => ESyntactic(name, List(), -1, List())
+      case Syntactic(name, args, rhsIdx, children) =>
+        ESyntactic(name, args, rhsIdx, children.map(o => o.map(_.toAstExpr)))
+      case Lexical(name, s) => ELexical(name, EStr(s))
+}
+object SyntacticView {
+  def apply(expr: AstExpr): SyntacticView =
+    expr match {
+      case ESyntactic(name, _, -1, _) => AbsSyntactic(name)
+      case ESyntactic(name, args, rhsIdx, children) =>
+        Syntactic(
+          name,
+          args,
+          rhsIdx,
+          children.map(o => o.map(e => SyntacticView(e.asInstanceOf[AstExpr]))),
+        )
+      case ELexical(name, s) => Lexical(name, "")
+    }
 }
 
 sealed trait Annotation

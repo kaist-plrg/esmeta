@@ -92,6 +92,18 @@ case object CmdCoverageTest262
   def help = "measure coverage of ECMA-262 (spec.html) from Test262 tests."
 }
 
+/** `view-parse' command * */
+case object CmdViewParse
+  extends Command("view-parse", CmdBuildCFG >> ViewParse) {
+  def help = "Parse a Syntactic View file"
+}
+
+/** `view-inline' command * */
+case object CmdViewInline
+  extends Command("view-inline", CmdBuildCFG >> ViewParse >> ViewInline) {
+  def help = "Create inlined function for a Syntactic View file"
+}
+
 /** `view-cg' command * */
 case object CmdViewCG
   extends Command("view-cg", CmdBuildCFG >> ViewParse >> ViewCG) {

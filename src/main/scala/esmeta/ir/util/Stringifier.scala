@@ -167,7 +167,10 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> "<" >> rhsIdx >> ">"
         given eo: Rule[Option[Expr]] = optionRule("")
         given el: Rule[List[Option[Expr]]] = iterableRule("(", ", ", ")")
-        if (!children.isEmpty) app >> children
+        // if (!children.isEmpty) app >> children
+        if (!children.isEmpty)
+          if esmeta.TEST_MODE then app >> children
+          else app >> "(...)"
         app
       case ELexical(name, expr) =>
         app >> "|" >> name >> "|(" >> expr >> ")"

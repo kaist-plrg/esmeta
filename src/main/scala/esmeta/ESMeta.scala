@@ -60,6 +60,8 @@ object ESMeta {
     CmdFilterTest262,
     CmdWeb,
     CmdCoverageTest262,
+    CmdViewParse,
+    CmdViewInline,
     CmdViewCG,
   )
   val cmdMap = commands.foldLeft[Map[String, Command[_]]](Map()) {
@@ -79,6 +81,7 @@ object ESMeta {
     Web,
     CoverageTest262,
     ViewParse,
+    ViewInline,
     ViewCG,
   )
 

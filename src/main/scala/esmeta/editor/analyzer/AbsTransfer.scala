@@ -52,7 +52,7 @@ class AbsTransfer[ASD <: AbsStateDomain[_] with Singleton, T <: AbsSemantics[
     val st = sem(np)
     val NodePoint(func, node, view) = np
     val helper = Helper(np)
-    
+
     // println(s"APPLY ${np.func.name} ${np.view}: ${np.node}")
     // println(st)
 
@@ -714,8 +714,7 @@ class AbsTransfer[ASD <: AbsStateDomain[_] with Singleton, T <: AbsSemantics[
                 case node => {
                   sem += (NodePoint(func, node, view) -> AbsState.Empty
                     .replaceLocal(
-                      (func.irFunc.params.map((p) =>
-                        (p.lhs -> AbsValue.Top),
+                      (func.irFunc.params.map((p) => (p.lhs -> AbsValue.Top),
                       ) ++ captured.toList): _*,
                     ))
                   sem.retEdges += (ReturnPoint(func, view) -> (sem.retEdges

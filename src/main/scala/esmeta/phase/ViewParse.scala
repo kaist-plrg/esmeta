@@ -27,5 +27,5 @@ case object ViewParse extends Phase[CFG, (CFG, SyntacticView)] {
       "use specific parse target.",
     ),
   )
-  case class Config(var target: String = "Script")
+  case class Config(var target: String = "Expression")
 }

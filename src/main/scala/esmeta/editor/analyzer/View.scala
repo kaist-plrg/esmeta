@@ -2,13 +2,11 @@ package esmeta.editor.analyzer
 
 import esmeta.cfg.Branch
 import esmeta.cfg.Call
-import esmeta.editor.sview.SyntacticView
 
 case class View(
   calls: List[Call] = Nil,
   loops: List[LoopCtxt] = Nil,
   intraLoopDepth: Int = 0,
-  sviewOpt: Option[SyntacticView] = None,
 ) {
 
   // get ir ijk
@@ -17,9 +15,6 @@ case class View(
     loops.length,
     calls.length,
   )
-
-  override def toString: String = 
-    s"View($calls,$loops,$intraLoopDepth,${sviewOpt.map(v => v.name)})"
 }
 
 // contexts

@@ -35,6 +35,7 @@ class Inliner(cfg: CFG, view: SyntacticView) {
     "ToPropertyKey",
     "ToBoolean",
     "CreateDataPropertyOrThrow",
+    "StringValue",
   )
 
   val init: Node = Call(
@@ -42,12 +43,18 @@ class Inliner(cfg: CFG, view: SyntacticView) {
     Name("result"),
     ERef(Prop(Name("expr"), EStr("Evaluation"))),
     List(ERef(Name("expr"))),
-    None,
+    Some(
+      Block(
+        nid,
+        ListBuffer(IReturn(ERef(Name("result")))),
+        None,
+      ),
+    ),
   )
 
   val cfgHelper = CFGHelper(cfg)
 
-  type AstMap = Map[Id, ESyntactic]
+  type AstMap = Map[Id, AstExpr]
 
   class Renamer(suffix: Int, lhs: Id) extends Walker {
     val tempMap: MMap[Int, Int] = MMap()
@@ -85,14 +92,6 @@ class Inliner(cfg: CFG, view: SyntacticView) {
       }
   }
 
-  /*
-  def doInline(n: Node, astMap: AstMap): Node = n match {
-    case b: Block => doInline(b, astMap)
-    case c: Call => doInline(c, astMap)
-    case b: Branch => doInline(b, astMap)
-  }
-   */
-
   def doInlineBlock(b: Block, astMap: AstMap): Node =
     val Block(_, insts, next) = b
     val newMap = insts.foldLeft(astMap)((m, i) =>
@@ -106,9 +105,9 @@ class Inliner(cfg: CFG, view: SyntacticView) {
     )
     Block(nid, insts, next.map(doInline(_, newMap)))
 
-  def resolveView(expr: Expr, astMap: AstMap): Option[ESyntactic] = expr match {
-    case e: ESyntactic => Some(e)
-    case ERef(ref)     => resolveView(ref, astMap)
+  def resolveView(expr: Expr, astMap: AstMap): Option[AstExpr] = expr match {
+    case e: AstExpr => Some(e)
+    case ERef(ref)  => resolveView(ref, astMap)
     case EParse(
           code,
           EGrammar("ParenthesizedExpression", _),
@@ -129,39 +128,48 @@ class Inliner(cfg: CFG, view: SyntacticView) {
     case _ => None
   }
 
-  def resolveView(ref: Ref, astMap: AstMap): Option[ESyntactic] = ref match {
+  def resolveView(ref: Ref, astMap: AstMap): Option[AstExpr] = ref match {
     case x: Id => astMap.get(x)
-    case Prop(Name(x), EMathVal(i)) =>
+    case Prop(x: Id, EMathVal(i)) =>
       astMap
-        .get(Name(x))
-        .flatMap(tree =>
-          val child = tree.children(i.toInt).get
-          child match {
-            case child: ESyntactic => Some(child)
-            case _                 => None
-          },
-        )
+        .get(x)
+        .flatMap(_ match {
+          case _: ELexical => None
+          case ESyntactic(_, _, _, children) =>
+            val child = children(i.toInt).get
+            child match {
+              case child: AstExpr => Some(child)
+              case _              => None
+            }
+        })
     case _ => None
   }
 
   trait ResolvedFunc
   case class Sdo(func: Func, ast: AstExpr) extends ResolvedFunc
-  case class AbsSdo(ast: AstExpr) extends ResolvedFunc
+  case class AbsSdo(func: String, ast: AstExpr) extends ResolvedFunc
   case class Normal(func: Func) extends ResolvedFunc
+  case class HookedConst(e: Expr) extends ResolvedFunc
   case object NoFunc extends ResolvedFunc
 
   def resolveFunc(f: Expr, astMap: AstMap): ResolvedFunc = f match {
     // SDO
     case ERef(Prop(ref, EStr(name))) =>
-      resolveView(ref, astMap)
-        .flatMap(ast => {
-          if ast.rhsIdx < 0 then Some(AbsSdo(ast))
-          else
-            cfgHelper
-              .getSDOView(SyntacticView(ast), name)
-              .map((v, f) => Sdo(f, v.toAstExpr))
-        })
-        .getOrElse(NoFunc)
+      if blackList.contains(name) then NoFunc
+      else if name == "IsFunctionDefinition" then HookedConst(EBool(false))
+      else
+        resolveView(ref, astMap)
+          .flatMap(ast => {
+            if (ast.isInstanceOf[ESyntactic] && ast
+                .asInstanceOf[ESyntactic]
+                .rhsIdx < 0)
+            then Some(AbsSdo(name, ast))
+            else
+              cfgHelper
+                .getSDOView(SyntacticView(ast), name)
+                .map((v, f) => Sdo(f, v.toAstExpr))
+          })
+          .getOrElse(NoFunc)
     // Normal Function
     case EClo(name, captured) => // TODO: handle captured
       if blackList.contains(name) then NoFunc
@@ -176,15 +184,17 @@ class Inliner(cfg: CFG, view: SyntacticView) {
     resolveFunc(f, astMap) match {
       case NoFunc => Call(nid, lhs, f, args, inlinedNext)
       case Sdo(func, newView) =>
-        inlineFunc(lhs, func, List(newView), next, astMap)
-      case AbsSdo(newView) =>
+        inlineFunc(lhs, func, args.updated(0, newView), next, astMap)
+      case AbsSdo(name, newView) =>
         Call(
           nid,
           lhs,
-          EStr(s"Evaluation of ${newView.name}"),
+          EStr(s"$name of ${newView.name}"),
           List(),
           inlinedNext,
         )
+      case HookedConst(e) =>
+        Block(nid, ListBuffer(IAssign(lhs, e)), inlinedNext)
       case Normal(func) =>
         inlineFunc(lhs, func, args, next, astMap)
     }
@@ -199,11 +209,11 @@ class Inliner(cfg: CFG, view: SyntacticView) {
   ): Node =
     val suffix = fid
     val paramInitInsts: ListBuffer[NormalInst] =
-      ListBuffer() ++ func.irFunc.params
+      ListBuffer() ++ (func.irFunc.params
         .zip(args)
         .map({
           case (p, a) => IAssign(Name(p.lhs.name + suffix), a)
-        })
+        }))
 
     val entry = func.entry
     val nodeMap = MMap[Int, Node]()
@@ -245,51 +255,16 @@ class Inliner(cfg: CFG, view: SyntacticView) {
 
   def doInlineBranch(b: Branch, astMap: AstMap): Node =
     val Branch(_, kind, cond, thenNode, elseNode) = b
-    lazy val empty = Block(nid, ListBuffer(), None)
-    cond match {
-      case EBool(true)  => thenNode.map(doInline(_, astMap)).getOrElse(empty)
-      case EBool(false) => elseNode.map(doInline(_, astMap)).getOrElse(empty)
-      case _ =>
-        Branch(
-          nid,
-          kind,
-          cond,
-          thenNode.map(doInline(_, astMap)),
-          elseNode.map(doInline(_, astMap)),
-        )
-    }
-
-  def pprint(
-    obj: Any,
-    depth: Int = 0,
-    paramName: Option[String] = None,
-  ): Unit = {
-
-    val indent = "  " * depth
-    val prettyName = paramName.fold("")(x => s"$x: ")
-    val ptype = obj match {
-      case _: Iterable[Any] => ""
-      case obj: Product     => obj.productPrefix
-      case _                => obj.toString
-    }
-
-    println(s"$indent$prettyName$ptype")
-
-    obj match {
-      case seq: Iterable[Any] =>
-        seq.foreach(pprint(_, depth + 1))
-      case obj: Product =>
-        (obj.productIterator zip obj.productElementNames)
-          .foreach {
-            case (subObj, paramName) =>
-              pprint(subObj, depth + 1, Some(paramName))
-          }
-      case _ =>
-    }
-  }
+    Branch(
+      nid,
+      kind,
+      cond,
+      thenNode.map(doInline(_, astMap)),
+      elseNode.map(doInline(_, astMap)),
+    )
 
   def apply(): Func =
-    val expr = view.toAstExpr.asInstanceOf[ESyntactic]
+    val expr = view.toAstExpr
     val dummy = IRFunc(
       false,
       IRFunc.Kind.AbsOp,

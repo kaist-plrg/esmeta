@@ -62,6 +62,7 @@ object ESMeta {
     CmdCoverageTest262,
     CmdViewParse,
     CmdViewInline,
+    CmdViewMinify,
     CmdViewCG,
   )
   val cmdMap = commands.foldLeft[Map[String, Command[_]]](Map()) {
@@ -82,6 +83,7 @@ object ESMeta {
     CoverageTest262,
     ViewParse,
     ViewInline,
+    ViewMinify,
     ViewCG,
   )
 

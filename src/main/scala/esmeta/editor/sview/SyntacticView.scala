@@ -113,7 +113,7 @@ object SyntacticView {
           rhsIdx,
           children.map(o => o.map(e => SyntacticView(e.asInstanceOf[AstExpr]))),
         )
-      case ELexical(name, s) => Lexical(name, "")
+      case ELexical(name, s) => Lexical(name, s.asInstanceOf[EStr].str)
     }
 }
 

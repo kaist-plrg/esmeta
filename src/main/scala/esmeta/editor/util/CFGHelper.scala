@@ -19,7 +19,8 @@ case class CFGHelper(cfg: CFG) {
         ast.chains.foldLeft[Option[(SyntacticView, Func)]](None) {
           case (None, ast0) =>
             val subIdx = getSubIdxView(ast0)
-            val fname = s"${ast0.name}[${ast0.idx},${subIdx}].$operation"
+            val fname =
+              s"${ast0.name.split(" ")(0)}[${ast0.idx},${subIdx}].$operation"
             fnameMap.get(fname) match
               case Some(sdo) => Some(ast0, sdo)
               case None if CFGHelper.defaultCases contains operation =>

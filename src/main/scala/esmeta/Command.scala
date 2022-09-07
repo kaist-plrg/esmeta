@@ -100,8 +100,14 @@ case object CmdViewParse
 
 /** `view-inline' command * */
 case object CmdViewInline
-  extends Command("view-inline", CmdBuildCFG >> ViewParse >> ViewInline) {
+  extends Command("view-inline", CmdViewParse >> ViewInline) {
   def help = "Create inlined function for a Syntactic View file"
+}
+
+/** `view-minify' command * */
+case object CmdViewMinify
+  extends Command("view-minify", CmdViewInline >> ViewMinify) {
+  def help = "Create minified function for a Syntactic View file"
 }
 
 /** `view-cg' command * */

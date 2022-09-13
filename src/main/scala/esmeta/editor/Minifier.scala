@@ -115,6 +115,8 @@ class Minifier(func: Func) {
   }
   
   class Substituter extends Walker {
+    var updated = false
+
     def walk(inst: NormalInst): NormalInst =
       walk(inst.asInstanceOf[Inst]).asInstanceOf[NormalInst]
     
@@ -162,17 +164,22 @@ class Minifier(func: Func) {
    
     val visited: MMap[Node, Node] = MMap()
     def walk(node: Node): Node = {
-      visited.getOrElseUpdate(node, node match {
+      val ret = visited.getOrElseUpdate(node, node match {
         case Block(id, insts, next) => Block(id, insts.map(walk), walkOpt(next, walk))
         case Call(id, lhs, fexpr, args, next) =>
           Call(id, walk(lhs), walk(fexpr), walkList(args, walk), walkOpt(next, walk))
         case Branch(id, kind, cond, thenNode, elseNode) =>
           Branch(id, kind, walk(cond), walkOpt(thenNode, walk), walkOpt(elseNode, walk))
       })
+      if(ret != node)
+        updated = true
+      ret
     }  
   }
 
   class Remover extends BasicWalker {
+    var updated = false
+
     def getId(ref: Ref): Id = ref match {
       case id: Id => id
       case Prop(ref, prop) => getId(ref)
@@ -186,7 +193,7 @@ class Minifier(func: Func) {
    
     val visited: MMap[Node, Option[Node]] = MMap()
     def walk(node: Node): Option[Node] = {
-      visited.getOrElseUpdate(node, node match {
+      val ret = visited.getOrElseUpdate(node, node match {
         case Block(id, insts, next) => 
           val newInsts = insts.filterNot(isDead)
           if(newInsts.isEmpty) then
@@ -205,6 +212,8 @@ class Minifier(func: Func) {
             case _ => Some(Branch(id, kind, cond, thenNode.flatMap(walk), elseNode.flatMap(walk)))
           }
       })
+      ret.foreach(ret => if(ret != node) updated = true)
+      ret
     }
   }
 
@@ -226,8 +235,6 @@ class Minifier(func: Func) {
     }
 
     idMap.mapValuesInPlace((id, info) => IdInfo(resolve(id, info.mustPointTo)._2, info.usedAt))
-
-    idMap.foreach((a,b) => println(s"$a : ${b.mustPointTo}"))
   }
 
   def doMinify(n: Node): Node = {
@@ -235,7 +242,7 @@ class Minifier(func: Func) {
     var updated = true
 
     while(updated) {
-      println("==============loop===================")
+      updated = false
 
       val collector = new Collector()
       idMap.clear()
@@ -245,6 +252,7 @@ class Minifier(func: Func) {
       
       val substituter = new Substituter()
       val subN = substituter.walk(curN)
+      updated ||= substituter.updated
       
       val collector2 = new Collector()
       idMap.clear()
@@ -253,7 +261,7 @@ class Minifier(func: Func) {
       val remover = new Remover()
       val newN = remover.walk(subN).getOrElse(Block(0, ListBuffer(), None))
 
-      updated = (curN.toString != newN.toString)
+      updated ||= remover.updated
 
       curN = newN
     }

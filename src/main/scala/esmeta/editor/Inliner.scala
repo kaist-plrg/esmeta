@@ -160,10 +160,11 @@ class Inliner(cfg: CFG, view: SyntacticView) {
       else
         resolveView(ref, astMap)
           .flatMap(ast => {
-            if (ast.isInstanceOf[ESyntactic] && ast
+            if (
+              ast.isInstanceOf[ESyntactic] && ast
                 .asInstanceOf[ESyntactic]
-                .rhsIdx < 0)
-            then Some(AbsSdo(name, ast))
+                .rhsIdx < 0
+            ) then Some(AbsSdo(name, ast))
             else
               cfgHelper
                 .getSDOView(SyntacticView(ast), name)

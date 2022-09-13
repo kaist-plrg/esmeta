@@ -24,18 +24,14 @@ class Inliner(cfg: CFG, view: SyntacticView) {
     _tid = _tid + 1
     _tid - 1
 
-  // TODO: make this into whitelist instead?
-  val blackList = List(
-    "GetValue",
-    "PutValue",
-    "EvaluatePropertyAccessWithIdentifierKey",
-    "ResolveBinding",
-    "AbstractEqualityComparison",
-    "OrdinaryObjectCreate",
-    "ToPropertyKey",
-    "ToBoolean",
-    "CreateDataPropertyOrThrow",
+  val whiteList = List(
+    "IsAnonymousFunctionDefinition",
+    "ApplyStringOrNumericBinaryOperator",
+    "EvaluateStringOrNumericBinaryExpression",
+  )
+  val sdoBlackList = List(
     "StringValue",
+    "NumericValue",
   )
 
   val init: Node = Call(
@@ -136,11 +132,10 @@ class Inliner(cfg: CFG, view: SyntacticView) {
         .flatMap(_ match {
           case _: ELexical => None
           case ESyntactic(_, _, _, children) =>
-            val child = children(i.toInt).get
-            child match {
+            children(i.toInt).flatMap(_ match {
               case child: AstExpr => Some(child)
               case _              => None
-            }
+            })
         })
     case _ => None
   }
@@ -152,28 +147,34 @@ class Inliner(cfg: CFG, view: SyntacticView) {
   case class HookedConst(e: Expr) extends ResolvedFunc
   case object NoFunc extends ResolvedFunc
 
+  def getDeepest(e: AstExpr): AstExpr = e match {
+    case ESyntactic(_, _, rhsIdx, children) =>
+      if (rhsIdx == -1) then e
+      else
+        children.flatten match {
+          case List(child) => getDeepest(child.asInstanceOf[AstExpr])
+          case _           => e
+        }
+    case _: ELexical => e
+  }
+
   def resolveFunc(f: Expr, astMap: AstMap): ResolvedFunc = f match {
     // SDO
     case ERef(Prop(ref, EStr(name))) =>
-      if blackList.contains(name) then NoFunc
-      else if name == "IsFunctionDefinition" then HookedConst(EBool(false))
+      if name == "IsFunctionDefinition" then HookedConst(EBool(false)) // TODO
+      else if sdoBlackList.contains(name) then NoFunc
       else
         resolveView(ref, astMap)
-          .flatMap(ast => {
-            if (
-              ast.isInstanceOf[ESyntactic] && ast
-                .asInstanceOf[ESyntactic]
-                .rhsIdx < 0
-            ) then Some(AbsSdo(name, ast))
-            else
-              cfgHelper
-                .getSDOView(SyntacticView(ast), name)
-                .map((v, f) => Sdo(f, v.toAstExpr))
+          .map(ast => {
+            cfgHelper
+              .getSDOView(SyntacticView(ast), name)
+              .map((v, f) => Sdo(f, v.toAstExpr))
+              .getOrElse(AbsSdo(name, getDeepest(ast)))
           })
           .getOrElse(NoFunc)
     // Normal Function
     case EClo(name, captured) => // TODO: handle captured
-      if blackList.contains(name) then NoFunc
+      if !whiteList.contains(name) then NoFunc
       else cfg.fnameMap.get(name).map(Normal(_)).getOrElse(NoFunc)
     case _ => NoFunc
   }

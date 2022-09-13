@@ -2,6 +2,7 @@ package esmeta.editor
 
 import esmeta.cfg.*
 import esmeta.ir.{Func => IRFunc, _}
+import esmeta.editor.sview.SyntacticView
 import esmeta.editor.util.*
 import scala.collection.mutable.{Map => MMap, Set => MSet, ListBuffer}
 import esmeta.ir.util.UnitWalker
@@ -14,15 +15,18 @@ class Minifier(func: Func) {
 
   sealed trait Singleton {
     def join(that: Singleton): Singleton = (this, that) match {
-      case (_, Top)           => Top
-      case (Top, _)           => Top
-      case (x, Bot)           => x
-      case (Bot, x)           => x
-      case (Elem(a), Elem(b)) => if a == b then Elem(a) else Top
+      case (_, Top)                   => Top
+      case (Top, _)                   => Top
+      case (x, Bot)                   => x
+      case (Bot, x)                   => x
+      case (ExprElem(a), ExprElem(b)) => if a == b then ExprElem(a) else Top
+      case (CallElem(a), CallElem(b)) => if a.eq(b) then CallElem(a) else Top
+      case _                          => Top
     }
   }
   case object Bot extends Singleton
-  case class Elem(e: Expr) extends Singleton
+  case class ExprElem(e: Expr) extends Singleton
+  case class CallElem(c: Call) extends Singleton
   case object Top extends Singleton
 
   case class IdInfo(
@@ -44,6 +48,11 @@ class Minifier(func: Func) {
     case _: ERef        => true
     case _              => false
   }
+  def isValue(e: Expr): Boolean = e match {
+    case _: LiteralExpr => true
+    case _: AstExpr     => true
+    case _              => false
+  }
 
   class Collector extends UnitWalker {
     // idMap modifiers
@@ -52,7 +61,16 @@ class Minifier(func: Func) {
         Some(
           infoOpt
             .getOrElse(IdInfo())
-            .join(IdInfo(Elem(expr))),
+            .join(IdInfo(ExprElem(expr))),
+        ),
+      )
+    }
+    def assign(lhs: Id, call: Call) = {
+      idMap.updateWith(lhs)(infoOpt =>
+        Some(
+          infoOpt
+            .getOrElse(IdInfo())
+            .join(IdInfo(CallElem(call))),
         ),
       )
     }
@@ -106,11 +124,11 @@ class Minifier(func: Func) {
 
       curNode = Some(node)
       node match {
-        case Block(id, insts, next) => insts.map(walk); walkOpt(next, walk)
-        case Call(id, lhs, fexpr, args, next) =>
-          assignTop(lhs)
+        case b @ Block(id, insts, next) => insts.map(walk); walkOpt(next, walk)
+        case c @ Call(id, lhs, fexpr, args, next) =>
+          assign(lhs, c)
           walk(fexpr); walkList(args, walk); walkOpt(next, walk)
-        case Branch(id, kind, cond, thenNode, elseNode) =>
+        case b @ Branch(id, kind, cond, thenNode, elseNode) =>
           walk(cond); walkOpt(thenNode, walk); walkOpt(elseNode, walk)
       }
     }
@@ -127,20 +145,23 @@ class Minifier(func: Func) {
       case ERef(x: Id) =>
         val info = idMap(x)
         info.mustPointTo match {
-          case Elem(e) if isPure(e)               => e
-          case Elem(e) if info.usedAt.length == 1 => e // TODO: ORDER?
-          case _                                  => super.walk(expr)
+          case ExprElem(e) if isPure(e)               => e
+          case ExprElem(e) if info.usedAt.length == 1 => e // TODO: ORDER?
+          case _                                      => super.walk(expr)
         }
       case ERef(Prop(id: Id, EMathVal(i))) =>
         idMap(id).mustPointTo match {
-          case Elem(ESyntactic(_, _, _, children)) =>
-            children(i.toInt).getOrElse(super.walk(expr))
+          case ExprElem(ESyntactic(_, _, _, children)) =>
+            children(i.toInt).getOrElse(EAbsent)
           case _ => super.walk(expr)
         }
       case ETypeCheck(e, ty) =>
         (walk(e), walk(ty)) match {
-          case (ast: AstExpr, EStr(t)) => EBool(ast.name == t)
-          case (newE, newTy)           => ETypeCheck(newE, newTy)
+          case (ast: AstExpr, EStr(t)) =>
+            EBool(
+              SyntacticView(ast).chains.exists(_.name == t),
+            )
+          case (newE, newTy) => ETypeCheck(newE, newTy)
         }
       case EUnary(UOp.Not, e) =>
         walk(e) match {
@@ -165,39 +186,82 @@ class Minifier(func: Func) {
           case (e1, e2)                           => EBinary(BOp.Eq, e1, e2)
         }
       case EReturnIfAbrupt(e: Expr, check) =>
-        e match {
-          case EReturnIfAbrupt(e, _) => walk(e) // idempotency
+        walk(e) match {
+          case EReturnIfAbrupt(e, _) => e // idempotency
+          case _ if isValue(e)       => e
           case _                     => super.walk(expr)
         }
       case _ => super.walk(expr)
     }
+
+    val GET_VALUE = EClo("GetValue", List())
+
+    def walk(block: Block): Node =
+      val Block(id, insts, next) = block
+      Block(id, insts.map(walk), walkOpt(next, walk))
+
+    def walk(call: Call): Node =
+      val Call(id, lhs, fexpr, args, next) = call
+      ((fexpr, args) match {
+        case (GET_VALUE, List(arg)) =>
+          arg match {
+            // GetValue first calls reutrn if abrupt of the argument
+            case EReturnIfAbrupt(e, _) => Some(("call", e))
+            case e if isValue(e)       => Some(("block", e))
+            case e @ ERef(x: Id) =>
+              val info = idMap(x)
+              info.mustPointTo match {
+                case CallElem(c) if c.fexpr == GET_VALUE =>
+                  Some(("block", c.args(0)))
+                case _ => None
+              }
+            case _ => None
+          }
+        case _ => None
+      })
+        .map((kind, e) =>
+          if (kind == "block") then
+            Block(id, ListBuffer(IAssign(walk(lhs), e)), walkOpt(next, walk))
+          else
+            Call(
+              id,
+              walk(lhs),
+              GET_VALUE,
+              List(walk(e)),
+              walkOpt(next, walk),
+            ),
+        )
+        .getOrElse(
+          Call(
+            id,
+            walk(lhs),
+            walk(fexpr),
+            walkList(args, walk),
+            walkOpt(next, walk),
+          ),
+        )
+
+    def walk(branch: Branch): Node =
+      val Branch(id, kind, cond, thenNode, elseNode) = branch
+      Branch(
+        id,
+        kind,
+        walk(cond),
+        walkOpt(thenNode, walk),
+        walkOpt(elseNode, walk),
+      )
 
     val visited: MMap[Node, Node] = MMap()
     def walk(node: Node): Node = {
       val ret = visited.getOrElseUpdate(
         node,
         node match {
-          case Block(id, insts, next) =>
-            Block(id, insts.map(walk), walkOpt(next, walk))
-          case Call(id, lhs, fexpr, args, next) =>
-            Call(
-              id,
-              walk(lhs),
-              walk(fexpr),
-              walkList(args, walk),
-              walkOpt(next, walk),
-            )
-          case Branch(id, kind, cond, thenNode, elseNode) =>
-            Branch(
-              id,
-              kind,
-              walk(cond),
-              walkOpt(thenNode, walk),
-              walkOpt(elseNode, walk),
-            )
+          case b: Block  => walk(b)
+          case c: Call   => walk(c)
+          case b: Branch => walk(b)
         },
       )
-      if (ret != node)
+      if (ret.toString != node.toString)
         updated = true
       ret
     }
@@ -214,6 +278,8 @@ class Minifier(func: Func) {
     def isDead(inst: Inst): Boolean = inst match {
       case ILet(lhs, expr)         => idMap(lhs).usedAt.isEmpty
       case IAssign(ref: Ref, expr) => idMap(getId(ref)).usedAt.isEmpty
+      case IAssert(EBool(true))    => true
+      case _: INop                 => true
       case _                       => false
     }
 
@@ -246,7 +312,10 @@ class Minifier(func: Func) {
             }
         },
       )
-      ret.foreach(ret => if (ret != node) updated = true)
+      ret match {
+        case None      => updated = true
+        case Some(ret) => if (ret.toString != node.toString) updated = true
+      }
       ret
     }
   }
@@ -255,21 +324,21 @@ class Minifier(func: Func) {
 
     // TODO: O(N^2) time complexity)
     def resolve(id: Id, single: Singleton): (Id, Singleton) = single match {
-      case Top | Bot => (id, single)
-      case Elem(e) =>
+      case ExprElem(e) =>
         e match {
           case ERef(id: Id) =>
             val (tmpId, tmpSingle) = resolve(id, idMap(id).mustPointTo)
             (
               tmpId,
               tmpSingle match {
-                case Elem(e) if isPure(e) => tmpSingle
-                case _                    => Elem(ERef(tmpId))
+                case ExprElem(e) if isPure(e) => tmpSingle
+                case _                        => ExprElem(ERef(tmpId))
               },
             )
-          case _ if isPure(e) => (id, Elem(e))
+          case _ if isPure(e) => (id, ExprElem(e))
           case _              => (id, single)
         }
+      case _ => (id, single)
     }
 
     idMap.mapValuesInPlace((id, info) =>

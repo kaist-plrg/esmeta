@@ -1,0 +1,5 @@
+#obj#?.p;
+
+#obj#?.p.q;
+#obj#.p?.q;
+#obj#?.p?.q;

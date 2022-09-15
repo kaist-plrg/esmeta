@@ -42,6 +42,7 @@ class Minifier(func: Func) {
   }
 
   val idMap: MMap[Id, IdInfo] = MMap()
+
   def isPure(e: Expr): Boolean = e match {
     case _: LiteralExpr => true
     case _: AstExpr     => true
@@ -53,6 +54,8 @@ class Minifier(func: Func) {
     case _: AstExpr     => true
     case _              => false
   }
+
+  val revNodeMap: MMap[Node, List[Node]] = MMap()
 
   class Collector extends UnitWalker {
     // idMap modifiers
@@ -104,6 +107,13 @@ class Minifier(func: Func) {
       )
     }
 
+    def addRev(next: Option[Node], prev: Node) =
+      next.foreach(next =>
+        revNodeMap.updateWith(next)(prevOpt =>
+          Some(prev :: prevOpt.getOrElse(List())),
+        ),
+      )
+
     override def walk(inst: Inst): Unit = inst match {
       case ILet(lhs, expr)          => assign(lhs, expr); walk(expr)
       case IAssign(ref: Id, expr)   => assign(ref, expr); walk(expr)
@@ -124,11 +134,16 @@ class Minifier(func: Func) {
 
       curNode = Some(node)
       node match {
-        case b @ Block(id, insts, next) => insts.map(walk); walkOpt(next, walk)
+        case b @ Block(id, insts, next) =>
+          addRev(next, node)
+          insts.map(walk); walkOpt(next, walk)
         case c @ Call(id, lhs, fexpr, args, next) =>
           assign(lhs, c)
+          addRev(next, node)
           walk(fexpr); walkList(args, walk); walkOpt(next, walk)
         case b @ Branch(id, kind, cond, thenNode, elseNode) =>
+          addRev(thenNode, node)
+          addRev(elseNode, node)
           walk(cond); walkOpt(thenNode, walk); walkOpt(elseNode, walk)
       }
     }
@@ -198,7 +213,13 @@ class Minifier(func: Func) {
 
     def walk(block: Block): Node =
       val Block(id, insts, next) = block
-      Block(id, insts.map(walk), walkOpt(next, walk))
+      next match {
+        case Some(block2 @ Block(_, insts2, next2))
+            if revNodeMap(block2).length == 1 =>
+          Block(id, (insts ++ insts2).map(walk), walkOpt(next2, walk))
+        case _ =>
+          Block(id, insts.map(walk), walkOpt(next, walk))
+      }
 
     def walk(call: Call): Node =
       val Call(id, lhs, fexpr, args, next) = call

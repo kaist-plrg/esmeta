@@ -22,8 +22,10 @@ case object TransCheck extends Phase[CFG, Boolean] {
   ): Boolean =
     val filename = getFirstFilename(cmdConfig, this.name)
 
-    val transpiled = ???
-    val transChecked = ???
+    val transpiled: String = "asdfsadf"
+    val transChecked =
+      Injector.fromFile(cfg, filename, transpiled = Some(transpiled))
+    println(transChecked)
 
     // dump the assertion-transchecked ECMAScript program
     for (filename <- config.out)
@@ -33,7 +35,7 @@ case object TransCheck extends Phase[CFG, Boolean] {
         filename = filename,
       )
 
-    val result = JSEngine.run(transChecked)
+//    val result = JSEngine.run(transChecked)
     false
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(

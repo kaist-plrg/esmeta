@@ -22,9 +22,10 @@ object Injector:
     src: String,
     defs: Boolean = false,
     log: Boolean = false,
+    transpiled: Option[String] = None,
   ): String =
     val extractor = ExitStateExtractor(Initialize(cfg, src))
-    new Injector(extractor, defs, log).result
+    new Injector(extractor, defs, log, transpiled).result
 
   /** injection from files */
   def fromFile(
@@ -32,9 +33,10 @@ object Injector:
     filename: String,
     defs: Boolean = false,
     log: Boolean = false,
+    transpiled: Option[String] = None,
   ): String =
     val extractor = ExitStateExtractor(Initialize.fromFile(cfg, filename))
-    new Injector(extractor, defs, log).result
+    new Injector(extractor, defs, log, transpiled).result
 
   /** assertion definitions */
   lazy val assertions: String = readFile(s"$RESOURCE_DIR/assertions.js")
@@ -44,13 +46,14 @@ class Injector(
   extractor: ExitStateExtractor,
   defs: Boolean,
   log: Boolean,
+  transpiled: Option[String],
 ) {
 
   /** injected script */
   lazy val result: String =
     if (defs) app >> Injector.assertions >> LINE_SEP
     app >> "// [EXIT] " >> exitTag.toString // append exit status tag
-    app :> original // append original script
+    app :> transpiled.getOrElse(original) // append original script
     if (normalExit)
       if (isAsync) startAsync // handle async
       handleVariable // inject assertions from variables
@@ -89,7 +92,12 @@ class Injector(
     println(s"[Injector] Logging into $INJECT_LOG_DIR...")
     mkdir(INJECT_LOG_DIR)
     getPrintWriter(s"$INJECT_LOG_DIR/log")
-  private def log(data: Any): Unit = if (log) { pw.println(data); pw.flush() }
+
+  private def log(data: Any): Unit = if (log) {
+    pw.println(data);
+    pw.flush()
+  }
+
   private def warning(msg: String): Unit = log(s"[Warning] $msg")
 
   // appender
@@ -97,7 +105,9 @@ class Injector(
 
   // handle async
   private def startAsync: Unit =
-    log("handling async..."); app :> "$delay(() => {"
+    log("handling async...");
+    app :> "$delay(() => {"
+
   private def endAsync: Unit =
     app :> "});"
 
@@ -151,11 +161,13 @@ class Injector(
             handleProperty(addr, path)
           case _ =>
       case _ =>
+
   private var handledObjects: Map[Addr, String] = (for {
     addr <- initSt.heap.map.keySet
     name <- addrToName(addr)
   } yield addr -> name).toMap
   private lazy val PREFIX_INTRINSIC = "INTRINSICS."
+
   private def addrToName(addr: Addr): Option[String] = addr match
     case a @ NamedAddr(name) if name.startsWith(PREFIX_INTRINSIC) =>
       Some(name.substring(PREFIX_INTRINSIC.length))
@@ -219,6 +231,7 @@ class Injector(
   // handle properties
   private lazy val fields =
     List("Get", "Set", "Value", "Writable", "Enumerable", "Configurable")
+
   private def handleProperty(addr: Addr, path: String): Unit =
     log(s"handleProperty: $addr, $path")
     val subMap = access(addr, Str("SubMap"))
@@ -261,9 +274,12 @@ class Injector(
 
   // get values
   private def getValue(str: String): Value = getValue(Expr.from(str))
+
   private def getValue(expr: Expr): Value =
     (new Interpreter(exitSt.copied)).eval(expr)
+
   private def getValue(refV: RefValue): Value = exitSt(refV)
+
   private def getValue(addr: Addr, prop: String): Value =
     getValue(PropValue(addr, Str(prop)))
 
@@ -280,6 +296,7 @@ class Injector(
   // get keys
   private def getStrKeys(value: Value, path: String): Set[String] =
     getKeys(value, path).collect { case Str(p) => p }
+
   private def getKeys(value: Value, path: String): Set[PureValue] = value match
     case addr: Addr =>
       exitSt(addr) match
@@ -292,6 +309,7 @@ class Injector(
     case sv: SimpleValue => Some(sv.toString)
     case addr: Addr      => addrToName(addr)
     case x               => None
+
   private def sv2str(sv: SimpleValue): String = sv match
     case Number(n) => n.toString
     case v         => v.toString

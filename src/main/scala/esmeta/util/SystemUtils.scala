@@ -94,7 +94,7 @@ object SystemUtils {
     val source = Source.fromFile(filename, ENC)
     val str = source.mkString
     source.close
-    str
+    str.trim
 
   /** read JSON */
   def readJson[T](filename: String)(implicit decoder: Decoder[T]): T =

@@ -9,7 +9,6 @@ import esmeta.state.*
 import esmeta.test262.*
 import esmeta.util.*
 import esmeta.util.SystemUtils.*
-import esmeta.util.JSEngine
 
 /** `transcheck` phase */
 case object TransCheck extends Phase[CFG, Boolean] {
@@ -21,13 +20,21 @@ case object TransCheck extends Phase[CFG, Boolean] {
     config: Config,
   ): Boolean =
     val filename = getFirstFilename(cmdConfig, this.name)
+    val orig = readFile(filename)
+    val babel = List(
+      readFile(s"$RESOURCE_DIR/babel/babel@7.19.1.min.js"),
+      s"let orig = `$orig`",
+      readFile(s"$RESOURCE_DIR/babel/transpile.js"),
+    ).mkString("\n")
 
-    val transpiled: String = "asdfsadf"
+    // run babel to get transpiled program
+    val transpiled: String = JSEngine.run(babel, "transpiled").get
+
+    // inject assertions to transpiled program
     val transChecked =
-      Injector.fromFile(cfg, filename, transpiled = Some(transpiled))
-    println(transChecked)
+      Injector(cfg, orig, true, transpiled = Some(transpiled))
 
-    // dump the assertion-transchecked ECMAScript program
+    // optionally dump the injected program
     for (filename <- config.out)
       dumpFile(
         name = "an assertion-transchecked ECMAScript program",
@@ -35,8 +42,10 @@ case object TransCheck extends Phase[CFG, Boolean] {
         filename = filename,
       )
 
-//    val result = JSEngine.run(transChecked)
-    false
+    // run the injected program
+    val result = JSEngine.run(transChecked)
+    result.isSuccess
+
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(
     (

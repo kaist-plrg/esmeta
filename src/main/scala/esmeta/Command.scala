@@ -193,3 +193,16 @@ case object CmdAnalyze extends Command("analyze", CmdBuildCFG >> Analyze) {
   )
   override val targetName = "<js>+"
 }
+
+// -----------------------------------------------------------------------------
+// Transpile and validate the given program
+// -----------------------------------------------------------------------------
+/** `analyze` command */
+case object CmdTransCheck extends Command("transcheck", CmdBuildCFG >> TransCheck) {
+  val help = "Transpile and validate the given program."
+  val examples = List(
+    "esmeta transcheck a.js                      # transpile and validate a.js file.",
+    "esmeta transcheck a.js -transcheck:out=b.js # dump to b.js file",
+  )
+  override val targetName = "<js>+"
+}

@@ -11,7 +11,7 @@ _esmeta_completions() {
   local cur prev opts lastc informats outformats datafiles
   cur="${COMP_WORDS[COMP_CWORD]}"
   prev="${COMP_WORDS[COMP_CWORD-1]}"
-  cmdList="help extract compile build-cfg tycheck parse eval web test262-test inject mutate analyze"
+  cmdList="help extract compile build-cfg tycheck parse eval web test262-test inject mutate analyze transcheck"
   globalOpt="-silent -error -time"
   helpOpt=""
   extractOpt="-extract:target -extract:log -extract:repl"
@@ -25,6 +25,7 @@ _esmeta_completions() {
   injectOpt="-inject:defs -inject:out -inject:log"
   mutateOpt="-mutate:out -mutate:mutator -mutate:untilValid"
   analyzeOpt="-analyze:repl"
+  transcheckOpt="-transcheck:out"
   # completion for commands
   case "${COMP_CWORD}" in
     1)
@@ -83,6 +84,10 @@ _esmeta_completions() {
           ;;
         analyze)
           COMPREPLY=($(compgen -W "${globalOpt} ${extractOpt} ${compileOpt} ${buildcfgOpt} ${analyzeOpt}"))
+          return 0
+          ;;
+        transcheck)
+          COMPREPLY=($(compgen -W "${globalOpt} ${extractOpt} ${compileOpt} ${buildcfgOpt} ${transcheckOpt}"))
           return 0
           ;;
       esac

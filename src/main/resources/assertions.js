@@ -211,7 +211,7 @@ function $verifyProperty(obj, prop, desc) {
       var message;
       if (name === "value")
         message =
-          "descriptor value should be " +
+          "descriptor value of " + prop + " should be " +
           $toString(desc.value) +
           " but " +
           $toString(originalDesc.value);

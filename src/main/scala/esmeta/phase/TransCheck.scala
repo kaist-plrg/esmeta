@@ -3,12 +3,9 @@ package esmeta.phase
 import esmeta.*
 import esmeta.cfg.CFG
 import esmeta.injector.Injector
-import esmeta.interpreter.Interpreter
-import esmeta.es.*
-import esmeta.state.*
-import esmeta.test262.*
 import esmeta.util.*
 import esmeta.util.SystemUtils.*
+import scala.util.{Success, Failure}
 
 /** `transcheck` phase */
 case object TransCheck extends Phase[CFG, Boolean] {
@@ -28,7 +25,7 @@ case object TransCheck extends Phase[CFG, Boolean] {
     ).mkString("\n")
 
     // run babel to get transpiled program
-    val transpiled: String = JSEngine.run(babel, "transpiled").get
+    val transpiled: String = JSEngine.runAndGetVar(babel, "transpiled").get
 
     // inject assertions to transpiled program
     val transChecked =
@@ -43,8 +40,11 @@ case object TransCheck extends Phase[CFG, Boolean] {
       )
 
     // run the injected program
-    val result = JSEngine.run(transChecked)
-    result.isSuccess
+    JSEngine.runAndGetStdout(transChecked) match {
+      case Success("")    => true
+      case Success(fails) => print(fails); false
+      case Failure(e)     => println(e.getMessage); false
+    }
 
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(

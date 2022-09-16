@@ -2,6 +2,7 @@ package esmeta.util
 
 import scala.util.{Using, Try}
 import org.graalvm.polyglot.*
+import java.io.ByteArrayOutputStream
 
 /** JavaScript Engine utilities */
 object JSEngine {
@@ -39,7 +40,7 @@ object JSEngine {
     }
 
   /** execute a javascript program, and extract a value of variable */
-  def run(src: String, x: String): Try[String] =
+  def runAndGetVar(src: String, x: String): Try[String] =
     if (!useGraal)
       // TODO: use shell to run js code
       ???
@@ -47,5 +48,17 @@ object JSEngine {
     Using(Context.create("js")) { context =>
       context.eval("js", src)
       context.getBindings("js").getMember(x).asString()
+    }
+
+  /** execute a javascript program, and gets is stdout */
+  def runAndGetStdout(src: String): Try[String] =
+    if (!useGraal)
+      // TODO: use shell to run js code
+      ???
+
+    val out = new ByteArrayOutputStream()
+    Using(Context.newBuilder("js").out(out).build()) { context =>
+      context.eval("js", src)
+      out.toString
     }
 }

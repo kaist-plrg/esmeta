@@ -216,7 +216,7 @@ class Injector(
   // handle [[Call]]
   private def handleCall(addr: Addr, path: String): Unit =
     log(s"handleCall: $addr, $path")
-    _assertions += IsCallable(addr, path, access(addr, Str("Call")) == Absent)
+    _assertions += IsCallable(addr, path, access(addr, Str("Call")) != Absent)
 
   // handle [[Construct]]
   private def handleConstruct(addr: Addr, path: String): Unit =
@@ -224,7 +224,7 @@ class Injector(
     _assertions += IsConstructable(
       addr,
       path,
-      access(addr, Str("Construct")) == Absent,
+      access(addr, Str("Construct")) != Absent,
     )
 
   // handle property names

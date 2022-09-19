@@ -9,6 +9,7 @@ case class ConformTest(
   id: Int,
   script: String,
   exitTag: ExitTag,
+  defs: Boolean,
   isAsync: Boolean,
   assertions: Vector[Assertion],
 ) extends ESElem

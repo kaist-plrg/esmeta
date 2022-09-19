@@ -49,7 +49,7 @@ class Interpreter(
       if (iter % 100000 == 0) {
         for (limit <- timeLimit)
           val duration = System.currentTimeMillis - startTime
-          if (duration / 1000 < limit) throw TimeoutException("interp")
+          if (duration / 1000 > limit) throw TimeoutException("interp")
         GC(st)
       }
 

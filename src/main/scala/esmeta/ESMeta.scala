@@ -76,10 +76,10 @@ object ESMeta extends Git(BASE_DIR) {
     // ECMAScript Transformer
     CmdInject,
     CmdMutate,
+    CmdTransCheck,
+    CmdFuzz,
     // ECMAScript Static Analysis (Meta-Level Static Analysis)
     CmdAnalyze,
-    // Transpile and validate the given program
-    CmdTransCheck,
   )
   val cmdMap = commands.foldLeft[Map[String, Command[_]]](Map()) {
     case (map, cmd) => map + (cmd.name -> cmd)

@@ -10,7 +10,7 @@ import scala.util.{Success, Failure}
 /** `transcheck` phase */
 case object TransCheck extends Phase[CFG, Boolean] {
   val name = "transcheck"
-  val help = "Validate the transpilation of the given ECMAScript file."
+  val help = "transpiles and validates an ECMAScript program."
   def apply(
     cfg: CFG,
     cmdConfig: CommandConfig,

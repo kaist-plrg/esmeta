@@ -98,7 +98,7 @@ case object CmdBuildCFG extends Command("build-cfg", CmdCompile >> BuildCFG) {
 // -----------------------------------------------------------------------------
 // Analysis of ECMA-262
 // -----------------------------------------------------------------------------
-/** `type-check` command */
+/** `tycheck` command */
 case object CmdTypeCheck extends Command("tycheck", CmdBuildCFG >> TypeCheck) {
   val help = "performs a type analysis of ECMA-262."
   val examples = List(
@@ -119,7 +119,7 @@ case object CmdParse extends Command("parse", CmdExtract >> Parse) {
     "esmeta parse a.js -extract:target=es2022  # parse with es2022 spec.",
     "esmeta parse a.js -parse:debug            # parse in the debugging mode.",
   )
-  override val targetName = "<js>+"
+  override val targetName = "<js>"
 }
 
 /** `eval` command */
@@ -130,7 +130,7 @@ case object CmdEval extends Command("eval", CmdBuildCFG >> Eval) {
     "esmeta eval a.js -extract:target=es2022  # eval with es2022 spec.",
     "esmeta eval a.js -eval:log               # eval in the logging mode.",
   )
-  override val targetName = "<js>+"
+  override val targetName = "<js>"
 }
 
 /** `web` command */
@@ -153,7 +153,7 @@ case object CmdTest262Test
     "esmeta test262-test tests/test262/test/built-ins/Map/map.js   # file",
     "esmeta test262-test tests/test262/test/language/expressions   # directory",
   )
-  override val targetName = "<js|dir>+"
+  override val targetName = "<js|dir>*"
   override val needTarget = false
 }
 
@@ -167,7 +167,7 @@ case object CmdInject extends Command("inject", CmdBuildCFG >> Inject) {
     "esmeta inject a.js                               # inject assertions.",
     "esmeta inject a.js -inject:defs -inject:out=b.js # dump with definitions.",
   )
-  override val targetName = "<js>+"
+  override val targetName = "<js>"
 }
 
 /** `mutate` command */
@@ -177,6 +177,26 @@ case object CmdMutate extends Command("mutate", CmdBuildCFG >> Mutate) {
     "esmeta mutate a.js                           # mutate ECMAScript program.",
     "esmeta mutate a.js -mutate:out=b.js          # dump the mutated program.",
     "esmeta mutate a.js -mutate:mutator=random    # use random mutator.",
+  )
+  override val targetName = "<js>"
+}
+
+/** `transcheck` command */
+case object CmdTransCheck
+  extends Command("transcheck", CmdBuildCFG >> TransCheck) {
+  val help = "transpiles and validates an ECMAScript program."
+  val examples = List(
+    "esmeta transcheck a.js    # transpile a.js file and validate the result.",
+  )
+  override val targetName = "<js>"
+}
+
+/** `fuzz` command */
+case object CmdFuzz extends Command("fuzz", CmdBuildCFG >> Fuzz) {
+  val help = "generate ECMAScript programs for fuzzing."
+  val examples = List(
+    "esmeta fuzz                 # generate ECMAScript programs for fuzzing",
+    "esmeta fuzz -fuzz:out=out   # dump the generated program to `out`",
   )
 }
 
@@ -191,19 +211,5 @@ case object CmdAnalyze extends Command("analyze", CmdBuildCFG >> Analyze) {
     "esmeta analyze a.js -extract:target=es2022  # analyze with es2022 spec.",
     "esmeta analyze a.js -analyze:repl           # analyze in a REPL mode.",
   )
-  override val targetName = "<js>+"
-}
-
-// -----------------------------------------------------------------------------
-// Transpile and validate the given program
-// -----------------------------------------------------------------------------
-/** `analyze` command */
-case object CmdTransCheck
-  extends Command("transcheck", CmdBuildCFG >> TransCheck) {
-  val help = "Transpile and validate the given program."
-  val examples = List(
-    "esmeta transcheck a.js                      # transpile and validate a.js file.",
-    "esmeta transcheck a.js -transcheck:out=b.js # dump to b.js file",
-  )
-  override val targetName = "<js>+"
+  override val targetName = "<js>"
 }

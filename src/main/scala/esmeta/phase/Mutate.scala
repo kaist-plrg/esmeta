@@ -26,7 +26,7 @@ case object Mutate extends Phase[CFG, String] {
     var mutatedAst = mutator(ast)
 
     // repeat until the mutated program becomes valid when
-    // `-mutate:untilValid` is turn on
+    // `-mutate:untilValid` is turned on.
     while (config.untilValid && !mutatedAst.valid(grammar))
       mutatedAst = mutator(ast)
 

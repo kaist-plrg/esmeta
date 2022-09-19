@@ -1,6 +1,7 @@
 package esmeta.es.util.synthesizer
 
 import esmeta.es.*
+import esmeta.es.util.*
 import esmeta.spec.*
 import esmeta.util.BaseUtils.*
 
@@ -13,10 +14,11 @@ class RandomSynthesizer(
   import SimpleSynthesizer.*
 
   /** get script */
-  def script: Ast = apply("Statement", List(false, false, false))
+  def script: String =
+    apply("StatementListItem", List(false, false, false)).toString(grammar)
 
   /** get initial pool */
-  lazy val initPool: Vector[Ast] = (for {
+  def initPool: Vector[String] = (for {
     _ <- Range(0, INIT_SIZE)
   } yield script).toVector
   private val INIT_SIZE = 1000

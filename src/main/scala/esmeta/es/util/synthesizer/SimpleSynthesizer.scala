@@ -13,10 +13,10 @@ class SimpleSynthesizer(
   import SimpleSynthesizer.*
 
   /** get script */
-  def script: Ast = ???
+  def script: String = "x"
 
   /** get initial pool */
-  lazy val initPool: Vector[Ast] = ???
+  lazy val initPool: Vector[String] = ???
 
   /** for syntactic production */
   def apply(name: String, args: List[Boolean]): Syntactic = synNt(name, args)

@@ -7,10 +7,10 @@ import esmeta.spec.Grammar
 trait Synthesizer {
 
   /** get script */
-  def script: Ast
+  def script: String
 
   /** get initial pool */
-  lazy val initPool: Vector[Ast]
+  def initPool: Vector[String]
 
   /** for general production */
   def apply(ast: Ast): Ast = ast match

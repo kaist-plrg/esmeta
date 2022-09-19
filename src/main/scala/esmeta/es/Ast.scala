@@ -21,7 +21,7 @@ sealed trait Ast extends ESElem with Locational {
     case Syntactic(_, _, rhsIdx, _) => rhsIdx
 
   /** validity check */
-  def valid(grammar: Grammar): Boolean = AstValidityChecker(grammar, this)
+  def valid(grammar: Grammar): Boolean = ValidityChecker(grammar, this)
 
   /** size */
   lazy val size: Int = this match

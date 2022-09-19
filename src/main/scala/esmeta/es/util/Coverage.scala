@@ -17,6 +17,27 @@ class Coverage(
 
   // mapping from
   private var nodeMap: Map[Node, Script] = Map()
+  private var scriptMap: Map[String, Script] = Map()
+  private var codeMap: Map[String, Int] = Map()
+  private def update(node: Node, script: Script): Unit =
+    for (Script(code, _, _, _) <- nodeMap.get(node))
+      val count = codeMap(code) - 1
+      if (count == 0) codeMap -= code; scriptMap -= code
+      codeMap += code -> count
+    codeMap += script.code -> (codeMap.get(script.code) match
+      case Some(count) => count + 1
+      case None        => scriptMap += script.code -> script; 1
+    )
+    nodeMap += node -> script
+
+  // all meaningful scripts
+  def scripts: Vector[Script] = scriptMap.values.toVector
+
+  // the number of all meaningful code set
+  def codeCount: Int = codeMap.size
+
+  // all meaningful code set
+  def codeSet: Set[String] = codeMap.keySet
 
   // script parser
   private lazy val scriptParser = cfg.scriptParser
@@ -61,10 +82,8 @@ class Coverage(
     // update coverage
     var updated = false
     for (node <- touched) nodeMap.get(node) match
-      case Some(script) if script.code.length <= code.size => /* do nothing */
-      case _ =>
-        updated = true
-        nodeMap += node -> script
+      case Some(script) if script.code.length <= code.length =>
+      case _ => update(node, script); updated = true
 
     (finalSt, updated)
   }
@@ -100,7 +119,11 @@ class Coverage(
     (count, branches.size * 2)
 
   /** dump results */
-  def dumpTo(baseDir: String): Unit =
+  def dumpTo(
+    baseDir: String,
+    withScripts: Boolean = false,
+    withMsg: Boolean = true,
+  ): Unit =
     mkdir(baseDir)
     val covData = for {
       node <- cfg.nodes
@@ -112,7 +135,19 @@ class Coverage(
           "size" -> script.code.length.asJson,
         ),
       )
-    dumpJson(covData.asJson, s"$baseDir/coverage.json")
+    dumpJson(
+      name = if (withMsg) Some("coverage") else None,
+      data = covData.asJson,
+      filename = s"$baseDir/coverage.json",
+      noSpace = false,
+    )
+    dumpDir(
+      name = if (withMsg) Some("ECMAScript programs") else None,
+      iterable = scripts,
+      dirname = s"$baseDir/scripts",
+      getName = (script: Script) => s"${script.name}.js",
+      getData = (script: Script) => script.code,
+    )
 
   /** convertion to string */
   private def percent(n: Double, t: Double): Double = n / t * 100

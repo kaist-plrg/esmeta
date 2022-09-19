@@ -2,40 +2,31 @@ package esmeta.phase
 
 import esmeta.*
 import esmeta.cfg.CFG
+import esmeta.es.util.Coverage
 import esmeta.es.util.fuzzer.*
 import esmeta.util.*
 import esmeta.util.SystemUtils.*
 
 /** `fuzz` phase */
-case object Fuzz extends Phase[CFG, Set[String]] {
+case object Fuzz extends Phase[CFG, Coverage] {
   val name = "fuzz"
   val help = "generate ECMAScript programs for fuzzing."
   def apply(
     cfg: CFG,
     cmdConfig: CommandConfig,
     config: Config,
-  ): Set[String] =
-    val scripts: Set[String] = Fuzzer(
+  ): Coverage =
+    val cov = Fuzzer(
       cfg,
       config.log,
       config.timeLimit,
       config.trialCount,
     )
 
-    // sorted by size
-    val sorted = scripts.toList.sortBy(_.size).zipWithIndex
-
     // dump the generated ECMAScript programs
-    for (dirname <- config.out)
-      dumpDir(
-        name = "the generated ECMAScript programs",
-        iterable = sorted,
-        dirname = dirname,
-        getName = { case (_, idx) => s"$idx.js" },
-        getData = { case (script, _) => script },
-      )
+    for (dirname <- config.out) cov.dumpTo(dirname, withScripts = true)
 
-    scripts
+    cov
 
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(
@@ -46,13 +37,13 @@ case object Fuzz extends Phase[CFG, Set[String]] {
     ),
     (
       "log",
-      BoolOption(c => c.log = true),
-      "turn on logging mode.",
+      NumOption((c, k) => c.log = Some(k)),
+      "turn on logging mode and set logging interval (default: 600 seconds).",
     ),
     (
       "timeout",
       NumOption((c, k) => c.timeLimit = Some(k)),
-      "set the time limit in seconds (default: 5 second).",
+      "set the time limit in seconds (default: 1 second).",
     ),
     (
       "trial",
@@ -62,8 +53,8 @@ case object Fuzz extends Phase[CFG, Set[String]] {
   )
   case class Config(
     var out: Option[String] = None,
-    var log: Boolean = false,
-    var timeLimit: Option[Int] = Some(5),
+    var log: Option[Int] = Some(600),
+    var timeLimit: Option[Int] = Some(1),
     var trialCount: Option[Int] = Some(10000),
   )
 }

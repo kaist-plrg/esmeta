@@ -50,6 +50,25 @@ object SystemUtils {
     nf.print(data)
     nf.close()
 
+  /** dump given data into a file and show message */
+  def dumpFile(name: Option[String], data: Any, filename: String): Unit =
+    dumpFile(data, filename)
+    name.map(name => println(s"- Dumped $name into $filename."))
+  def dumpFile(name: String, data: Any, filename: String): Unit =
+    dumpFile(Some(name), data, filename)
+
+  /** dump given data collection into a directory and show message */
+  def dumpDir[T](
+    name: Option[String],
+    iterable: Iterable[T],
+    dirname: String,
+    getName: T => String,
+    getData: T => Any,
+  ): Unit =
+    mkdir(dirname)
+    for (x <- iterable) dumpFile(getData(x), s"$dirname/${getName(x)}")
+    name.map(name => println(s"- Dumped $name into $dirname."))
+
   /** dump given data collection into a directory and show message */
   def dumpDir[T](
     name: String,
@@ -57,15 +76,7 @@ object SystemUtils {
     dirname: String,
     getName: T => String,
     getData: T => Any = (x: T) => x,
-  ): Unit =
-    mkdir(dirname)
-    for (x <- iterable) dumpFile(getData(x), s"$dirname/${getName(x)}")
-    println(s"- Dumped $name into $dirname.")
-
-  /** dump given data into a file and show message */
-  def dumpFile(name: String, data: Any, filename: String): Unit =
-    dumpFile(data, filename)
-    println(s"- Dumped $name into $filename.")
+  ): Unit = dumpDir(Some(name), iterable, dirname, getName, getData)
 
   /** dump given data in a JSON format */
   def dumpJson[T](
@@ -78,13 +89,24 @@ object SystemUtils {
 
   /** dump given data in a JSON format and show message */
   def dumpJson[T](
-    name: String,
+    name: Option[String],
     data: T,
     filename: String,
     noSpace: Boolean,
   )(using encoder: Encoder[T]): Unit =
     dumpJson(data, filename, noSpace)
-    println(s"- Dumped $name into $filename in a JSON format.")
+    name.map(name =>
+      println(s"- Dumped $name into $filename in a JSON format."),
+    )
+
+  /** dump given data in a JSON format and show message */
+  def dumpJson[T](
+    name: String,
+    data: T,
+    filename: String,
+    noSpace: Boolean,
+  )(using encoder: Encoder[T]): Unit =
+    dumpJson(Some(name), data, filename, noSpace)
 
   /** get first filename */
   def getFirstFilename(cmdConfig: CommandConfig, msg: String): String =
@@ -172,18 +194,6 @@ object SystemUtils {
     var directory = File(dir)
     var process = Process(Seq("sh", "-c", cmd), directory)
     process.!!
-
-  /** set timeout with optional limitation */
-  def timeout[T](f: => T, limit: Option[Int]): T =
-    limit.fold(f)(l => timeout(f, l.second))
-
-  /** set timeout with limitation */
-  def timeout[T](f: => T, limit: Int): T =
-    timeout(f, limit.seconds)
-
-  /** set timeout with duration */
-  def timeout[T](f: => T, duration: Duration): T =
-    Await.result(Future(Try(f)), duration).get
 
   /** concurrently execute a list of functions */
   def concurrent[T](

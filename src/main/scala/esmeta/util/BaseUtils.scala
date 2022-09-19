@@ -151,10 +151,10 @@ object BaseUtils {
   }
 
   /** get a simple string for success ratio */
-  def ratioSimpleString(pass: Int, total: Int): String = {
+  def percentString(pass: Int, total: Int): String =
     val percent = pass / total.toDouble * 100
-    f"($percent%.2f%%)"
-  }
+    f"$percent%.2f"
+  def ratioSimpleString(pass: Int, total: Int): String = s"$percentString%"
 
   /** equality between doubles */
   def doubleEquals(left: Double, right: Double): Boolean =

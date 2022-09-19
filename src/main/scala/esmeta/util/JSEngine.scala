@@ -8,26 +8,33 @@ import java.io.ByteArrayOutputStream
 object JSEngine {
 
   /** Check if Graal can be used in this environment */
-  lazy val useGraal: Boolean = Using(
-    Context
-      .newBuilder("js")
-      .option("engine.WarnInterpreterOnly", "false")
-      .build(),
-  ) { context =>
-    if (context.getEngine.getImplementationName == "Interpreted") then
-      println("[Warning] sbt is not running on Graal.")
-      throw Error()
-    else
-      try {
-        context.eval("js", "")
-      } catch
-        case e => {
-          println(
-            "[Warning] Unable to run js using Graal. try `gu install js`.",
-          )
-          throw e
-        }
-  }.isSuccess
+  lazy val useGraal: Boolean =
+    try
+      Using(
+        Context
+          .newBuilder("js")
+          .option("engine.WarnInterpreterOnly", "false")
+          .build(),
+      ) { context =>
+        if (context.getEngine.getImplementationName == "Interpreted") then
+          println("[Warning] Graal is running on interpreted mode.")
+          throw Error()
+        else
+          try {
+            context.eval("js", "")
+          } catch
+            case e => {
+              println(
+                "[Warning] Unable to run js using Graal. try `gu --jvm install js`.",
+              )
+              throw e
+            }
+      }.isSuccess
+    catch {
+      case e: Error =>
+        println("[Warning] Unable to run Graal.")
+        false
+    }
 
   /** execute a javascript program */
   def run(src: String): Try[Unit] =

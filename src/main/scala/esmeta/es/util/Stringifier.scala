@@ -81,10 +81,10 @@ class Stringifier(
     exitTag match {
       case NormalTag =>
         if (defs) app :> Injector.assertions >> LINE_SEP
-        if (isAsync) app :> "$delay(() => {"
         app :> script
-        if (isAsync) app :> "});"
+        if (isAsync) app :> "$delay(() => {"
         assertions.foreach(app :> _)
+        if (isAsync) app :> "});"
       case _ =>
         app :> script
     }

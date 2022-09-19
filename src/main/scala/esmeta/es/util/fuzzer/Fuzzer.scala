@@ -6,6 +6,7 @@ import esmeta.es.*
 import esmeta.es.util.*
 import esmeta.es.util.mutator.*
 import esmeta.es.util.synthesizer.*
+import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
 import java.io.PrintWriter
@@ -57,7 +58,10 @@ class Fuzzer(
       case None        => while (true) fuzz
 
     // finish logging
-    log.map(_ => nf.close)
+    log.map(_ => {
+      logging
+      nf.close
+    })
 
     cov
 
@@ -68,13 +72,21 @@ class Fuzzer(
   /** one trial to fuzz a new program to increase coverage */
   def fuzz: Boolean = optional {
     iter += 1
-    for (bound <- log; seconds = bound * 1000 if interval > seconds) {
-      logging
-      startInterval += seconds
+    for (bound <- log) {
+      val seconds = bound * 1000
+      if (interval > seconds) {
+        logging
+        startInterval += seconds
+      }
     }
     val target = toScript(choose(pool))
     val mutated = mutator(target.ast)
     val code = mutated.toString(grammar)
+    for (_ <- log) {
+      val simpleCode = if (code.length > 100) code.take(100) + "..." else code
+      clearLine
+      print(s"[$iter] (${Time(duration).simpleString}) $simpleCode")
+    }
     if (visited contains code) false
     else add(code)
   }.getOrElse(false)
@@ -114,9 +126,11 @@ class Fuzzer(
     cov.dumpTo(FUZZ_LOG_DIR, withMsg = false)
   def addRaw(data: Any*): Unit =
     val raw = data.mkString("\t")
+    clearLine
     println(raw)
     nf.println(raw)
     nf.flush
+  private def clearLine: Unit = print("\r" + (" " * 150) + "\r")
   lazy val nf: PrintWriter = getPrintWriter(s"$FUZZ_LOG_DIR/summary.tsv")
 
   // ---------------------------------------------------------------------------

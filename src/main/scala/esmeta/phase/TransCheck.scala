@@ -2,7 +2,7 @@ package esmeta.phase
 
 import esmeta.*
 import esmeta.cfg.CFG
-import esmeta.injector.Injector
+import esmeta.fuzzer.injector.Injector
 import esmeta.util.*
 import esmeta.util.SystemUtils.*
 import scala.util.{Success, Failure}

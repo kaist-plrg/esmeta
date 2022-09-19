@@ -2,7 +2,7 @@ package esmeta.phase
 
 import esmeta.*
 import esmeta.cfg.CFG
-import esmeta.injector.Injector
+import esmeta.fuzzer.injector.Injector
 import esmeta.interpreter.Interpreter
 import esmeta.es.*
 import esmeta.state.*

@@ -1,8 +1,8 @@
-package esmeta.mutator
+package esmeta.fuzzer.mutator
 
 import esmeta.es.*
 import esmeta.es.util.{Walker => AstWalker}
-import esmeta.mutator.synthesizer.*
+import esmeta.fuzzer.synthesizer.*
 import esmeta.spec.Grammar
 import esmeta.util.BaseUtils.*
 

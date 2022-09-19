@@ -1,4 +1,4 @@
-package esmeta.injector
+package esmeta.fuzzer.injector
 
 import esmeta.error.*
 import esmeta.interpreter.Interpreter

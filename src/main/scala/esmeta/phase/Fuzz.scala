@@ -2,7 +2,7 @@ package esmeta.phase
 
 import esmeta.*
 import esmeta.cfg.CFG
-import esmeta.fuzzer.*
+import esmeta.es.util.fuzzer.*
 import esmeta.util.*
 import esmeta.util.SystemUtils.*
 

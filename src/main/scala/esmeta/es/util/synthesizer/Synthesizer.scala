@@ -1,4 +1,4 @@
-package esmeta.fuzzer.synthesizer
+package esmeta.es.util.synthesizer
 
 import esmeta.es.*
 import esmeta.spec.Grammar

@@ -1,4 +1,4 @@
-package esmeta.fuzzer.injector
+package esmeta.es.util.injector
 
 import esmeta.INJECT_LOG_DIR
 import esmeta.cfg.CFG

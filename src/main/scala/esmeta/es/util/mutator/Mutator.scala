@@ -1,4 +1,4 @@
-package esmeta.fuzzer.mutator
+package esmeta.es.util.mutator
 
 import esmeta.es.*
 import esmeta.es.util.*

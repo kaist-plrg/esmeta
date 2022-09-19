@@ -2,7 +2,7 @@ package esmeta.phase
 
 import esmeta.*
 import esmeta.cfg.CFG
-import esmeta.fuzzer.mutator.*
+import esmeta.es.util.mutator.*
 import esmeta.parser.ESParser
 import esmeta.spec.Grammar
 import esmeta.util.*

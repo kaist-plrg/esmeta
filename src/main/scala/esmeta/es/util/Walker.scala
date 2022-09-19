@@ -6,7 +6,9 @@ import esmeta.es.*
 /** a walker for ECMAScript */
 trait Walker extends BasicWalker {
   def walk(elem: ESElem): ESElem = elem match
-    case elem: Ast => walk(elem)
+    case elem: Ast         => walk(elem)
+    case elem: ConformTest => walk(elem)
+    case elem: Assertion   => walk(elem)
 
   /** ASTs */
   def walk(ast: Ast): Ast = ast match
@@ -20,4 +22,12 @@ trait Walker extends BasicWalker {
 
   /** lexical productions */
   def walk(ast: Lexical): Lexical = ast
+
+  /** conformance test */
+  def walk(test: ConformTest): ConformTest =
+    val ConformTest(id, script, assertions) = test
+    ConformTest(id, script, walkVector(assertions, walk))
+
+  /** assertions */
+  def walk(assert: Assertion): Assertion = assert
 }

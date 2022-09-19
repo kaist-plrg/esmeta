@@ -1,4 +1,4 @@
-package esmeta.fuzzer
+package esmeta.es.util.fuzzer
 
 import esmeta.cfg.CFG
 

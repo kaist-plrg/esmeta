@@ -14,9 +14,10 @@ class Stringifier(
 ) {
   // elements
   given elemRule: Rule[ESElem] = (app, elem) =>
-    elem match {
-      case elem: Ast => astRule(app, elem)
-    }
+    elem match
+      case elem: Ast         => astRule(app, elem)
+      case elem: ConformTest => testRule(app, elem)
+      case elem: Assertion   => assertRule(app, elem)
 
   // abstract syntax tree (AST) values
   given astRule: Rule[Ast] = (app, ast) =>
@@ -59,4 +60,12 @@ class Stringifier(
       case Lexical(name, str) =>
         app >> "|" >> name >> "|(" >> str >> ")"
         if (detail && ast.loc.isDefined) app >> ast.loc.get else app
+
+  // conformance tests
+  given testRule: Rule[ConformTest] = (app, test) => ???
+
+  // assertions
+  given assertRule: Rule[Assertion] = (app, assert) =>
+    assert match
+      case _ => ???
 }

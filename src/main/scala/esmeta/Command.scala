@@ -158,7 +158,7 @@ case object CmdTest262Test
 }
 
 // -----------------------------------------------------------------------------
-// ECMAScript Helper Modules for Fuzzing and Conformance Testing
+// ECMAScript Helper Modules
 // -----------------------------------------------------------------------------
 /** `inject` command */
 case object CmdInject extends Command("inject", CmdBuildCFG >> Inject) {

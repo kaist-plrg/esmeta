@@ -154,7 +154,8 @@ object BaseUtils {
   def percentString(pass: Int, total: Int): String =
     val percent = pass / total.toDouble * 100
     f"$percent%.2f"
-  def ratioSimpleString(pass: Int, total: Int): String = s"$percentString%"
+  def ratioSimpleString(pass: Int, total: Int): String =
+    s"(${percentString(pass, total)}%)"
 
   /** equality between doubles */
   def doubleEquals(left: Double, right: Double): Boolean =

@@ -30,7 +30,7 @@ class Fuzzer(
 
   /** generated ECMAScript programs */
   lazy val result: Coverage =
-    println("- initializing program pools...")
+    println("- initializing program pool...")
     for (code <- synthesizer.initPool) add(code)
 
     println("- repeatedly trying to fuzz new programs to increase coverage...")

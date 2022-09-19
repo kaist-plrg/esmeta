@@ -5,6 +5,7 @@ import esmeta.util.*
 import esmeta.util.Appender.*
 import esmeta.util.BaseUtils.*
 import esmeta.es.*
+import esmeta.state.*
 
 /** stringifier for ECMAScript */
 class Stringifier(
@@ -32,6 +33,7 @@ class Stringifier(
   lazy val grammarAstRule: Rule[(Grammar, Ast)] = (app, pair) =>
     val (grammar, origAst) = pair
     val nameMap = grammar.nameMap
+
     def aux(ast: Ast): Unit = ast match
       case Lexical(name, str) => app >> str >> " "
       case Syntactic(name, args, rhsIdx, children) =>
@@ -43,6 +45,7 @@ class Stringifier(
             cs match
               case hd :: tl => hd.map(aux); cs = tl
               case _        => error(s"invalid AST: $origAst")
+
     aux(origAst)
     app
 
@@ -50,12 +53,16 @@ class Stringifier(
     ast match
       case Syntactic(name, args, rhsIdx, children) =>
         given Rule[Boolean] = (app, bool) => app >> (if (bool) "T" else "F")
+
         given Rule[List[Boolean]] = iterableRule()
+
         app >> "|" >> name >> "|"
-        if (!args.isEmpty) app >> "[" >> args >> "]"
+        if (args.nonEmpty) app >> "[" >> args >> "]"
         app >> "<" >> rhsIdx >> ">"
         if (detail && ast.loc.isDefined) app >> ast.loc.get
+
         given Rule[Option[Ast]] = optionRule("<none>")
+
         if (detail) app.wrap("(", ")")(children.map(app :> _ >> ",")) else app
       case Lexical(name, str) =>
         app >> "|" >> name >> "|(" >> str >> ")"
@@ -64,16 +71,41 @@ class Stringifier(
   // conformance tests
   given testRule: Rule[ConformTest] = (app, test) =>
     val ConformTest(id, script, assertions) = test
-    ???
+    assertions.foldLeft(app :> script)((ap, assertion) => ap :> assertion)
 
   // assertions
   given assertRule: Rule[Assertion] = (app, assert) =>
+    given Rule[SimpleValue] = (app, value) =>
+      app >> (
+        value match
+          case Number(n) => n.toString
+          case v         => v.toString
+      )
+
     assert match
-      case HasValue(x, v)                             => ???
-      case IsExtensible(addr, path, callable)         => ???
-      case IsCallable(addr, path, callable)           => ???
-      case IsConstructable(addr, path, constructable) => ???
-      case CompareArray(addr, path, array)            => ???
-      case SameObject(addr, path, origPath)           => ???
-      case VerifyProperty(addr, path, prop, desc)     => ???
+      case HasValue(x, v) => app :> s"$$assert.sameValue($x, " >> v >> ");"
+      case IsExtensible(addr, path, callable) =>
+        app :> s"$$assert.sameValue(Object.isExtensible($path), $callable);"
+      case IsCallable(addr, path, callable) =>
+        app :> (if callable then s"$$assert.callable($path);"
+                else s"$$assert.notCallable($path);")
+      case IsConstructable(addr, path, constructable) =>
+        app :> (if constructable then s"$$assert.constructable($path);"
+                else s"$$assert.notConstructable($path);")
+      case CompareArray(addr, path, array) =>
+        app :> s"$$assert.compareArray(Reflect.ownKeys($path), ${array
+          .mkString("[", ", ", "]")}, $path);"
+      case SameObject(addr, path, origPath) =>
+        app :> s"$$assert.sameValue($path, $origPath);"
+      case VerifyProperty(addr, path, prop, desc) =>
+        prop match
+          case sv: SimpleValue =>
+            app :> s"$$verifyProperty($path, " >> sv >> s", $desc);"
+          case addr: Addr =>
+            val PREFIX_INTRINSIC = "INTRINSICS."
+            addr match
+              case _ @NamedAddr(name) if name.startsWith(PREFIX_INTRINSIC) =>
+                app :> s"$$verifyProperty($path, ${name.substring(PREFIX_INTRINSIC.length)}, $desc);"
+              case _ => app
+          case _ => app
 }

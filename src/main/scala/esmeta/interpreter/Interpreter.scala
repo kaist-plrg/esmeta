@@ -193,7 +193,7 @@ class Interpreter(
       val (str, args, locOpt) = eval(code) match
         case Str(s) => (s, List(), None)
         case AstValue(syn: Syntactic) =>
-          (syn.toString(grammar = Some(grammar)), syn.args, syn.loc)
+          (syn.toString(grammar), syn.args, syn.loc)
         case AstValue(lex: Lexical) => (lex.str, List(), lex.loc)
         case v                      => throw InvalidParseSource(code, v)
       try {
@@ -216,7 +216,7 @@ class Interpreter(
     case ESourceText(expr) =>
       val ast = eval(expr).asAst
       // XXX fix last space in ECMAScript stringifier
-      Str(ast.toString(grammar = Some(grammar)).trim)
+      Str(ast.toString(grammar).trim)
     case EGetChildren(kindOpt, ast) =>
       val kOpt = kindOpt.map(kind =>
         eval(kind) match

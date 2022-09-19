@@ -1,52 +1,39 @@
 package esmeta.es.util
 
 import esmeta.cfg.*
-import esmeta.interpreter.*
-import esmeta.ir.*
 import esmeta.es.*
-import esmeta.test262.*
+import esmeta.interpreter.*
+import esmeta.ir.{Expr, EParse}
 import esmeta.state.*
 import esmeta.util.*
 import esmeta.util.SystemUtils.*
-import scala.collection.mutable.{Set => MSet, Map => MMap, ArrayBuffer}
 import io.circe.*, io.circe.syntax.*
 
 /** coverage measurement of cfg */
-case class Coverage(
+class Coverage(
   cfg: CFG,
-  test262: Option[Test262] = None,
   timeLimit: Option[Int] = None,
 ) {
 
-  /** data structures for coverage */
-  private lazy val programs: ArrayBuffer[(String, Int)] = ArrayBuffer()
-  private lazy val nodeMap: MMap[Int, Int] = MMap()
+  // mapping from
+  private var nodeMap: Map[Node, Script] = Map()
 
-  /** update coverage for a given ECMAScript program */
+  // script parser
   private lazy val scriptParser = cfg.scriptParser
-  def run(path: String): State = {
-    // script AST
-    val script = test262 match
-      case Some(test262) => test262.loadTest(path)
-      case None          => scriptParser.fromFile(path)
 
-    // program name
-    val programName = test262 match
-      case Some(test262) => path
-      case None          => path.split("/").reverse.head
+  /** evaluate a given ECMAScript program, update coverage, and return
+    * evaluation result with whether it succeeds to increase coverage
+    */
+  def runAndCheck(script: Script): (State, Boolean) = {
+    val Script(code, ast, name, path) = script
 
     // program infos
-    val pid = programs.size
-    val code = script.toString(grammar = Some(cfg.grammar)).trim
-    val programSize = code.length
-    programs += ((programName, programSize))
-
-    var markedAst = script.nodeSet
+    var markedAst = ast.nodeSet
 
     // run interpreter and record touched
-    val touched: MSet[Int] = MSet()
+    var touched: Set[Node] = Set()
     val finalSt = new Interpreter(
-      Initialize(cfg, code, Some(script)),
+      Initialize(cfg, code, Some(ast)),
       timeLimit = timeLimit,
     ) {
       // check if current state need to be recorded
@@ -58,7 +45,7 @@ case class Coverage(
       // override eval for node
       override def eval(node: Node): Unit =
         // record touched
-        if (needRecord) touched += node.id
+        if (needRecord) touched += node
         super.eval(node)
 
       // handle dynamically created ast
@@ -72,14 +59,20 @@ case class Coverage(
     }.result
 
     // update coverage
-    for { nid <- touched } {
-      nodeMap.get(nid) match
-        case Some(pid0) if programs(pid0)._2 <= programSize => /* do nothing */
-        case _ => nodeMap += (nid -> pid)
-    }
+    var updated = false
+    for (node <- touched) nodeMap.get(node) match
+      case Some(script) if script.code.length <= code.size => /* do nothing */
+      case _ =>
+        updated = true
+        nodeMap += node -> script
 
-    finalSt
+    (finalSt, updated)
   }
+  def run(ast: Ast, filename: String): State =
+    val script =
+      Script(ast.toString(cfg.grammar), ast, filename, Some(filename))
+    val (st, _) = runAndCheck(script)
+    st
 
   /** get node coverage */
   def nodeCov: (Int, Int) = (nodeMap.size, cfg.nodeMap.size)
@@ -89,11 +82,11 @@ case class Coverage(
   def branchCov: (Int, Int) =
     val branches = cfg.nodeMap.values.collect { case br: Branch => br }
     val count = branches.foldLeft(0) {
-      case (acc, Branch(bid, _, _, Some(thenNode), Some(elseNode))) =>
-        nodeMap.get(bid) match
+      case (acc, branch @ Branch(_, _, _, Some(thenNode), Some(elseNode))) =>
+        nodeMap.get(branch) match
           case Some(_) =>
-            val t = if (nodeMap contains thenNode.id) 1 else 0
-            val e = if (nodeMap contains elseNode.id) 1 else 0
+            val t = if (nodeMap contains thenNode) 1 else 0
+            val e = if (nodeMap contains elseNode) 1 else 0
             acc + t + e
           case _ => acc
       case (acc, _) => acc
@@ -104,20 +97,16 @@ case class Coverage(
   def dumpTo(baseDir: String): Unit =
     mkdir(baseDir)
     val covData = for {
-      nid <- cfg.nodeMap.keySet.toList.sorted
-    } yield nodeMap.get(nid).map(programs(_)._1)
-    val sizeData = (for {
-      pid <- nodeMap.values.toSet
-      (name, size) = programs(pid)
-    } yield name -> size).toList
-    dumpJson(
-      JsonObject(
-        "coverage" -> covData.asJson,
-        "size" -> sizeData.asJson,
-      ),
-      s"$baseDir/coverage.json",
-      noSpace = true,
-    )
+      node <- cfg.nodes
+    } yield nodeMap
+      .get(node)
+      .map(script =>
+        JsonObject(
+          "name" -> script.name.asJson,
+          "size" -> script.code.length.asJson,
+        ),
+      )
+    dumpJson(covData.asJson, s"$baseDir/coverage.json")
 
   /** convertion to string */
   private def percent(n: Double, t: Double): Double = n / t * 100

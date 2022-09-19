@@ -6,9 +6,15 @@ import esmeta.es.*
 /** a walker for ECMAScript */
 trait Walker extends BasicWalker {
   def walk(elem: ESElem): ESElem = elem match
+    case elem: Script      => walk(elem)
     case elem: Ast         => walk(elem)
     case elem: ConformTest => walk(elem)
     case elem: Assertion   => walk(elem)
+
+  /** ECMAScript script program */
+  def walk(script: Script): Script =
+    val Script(code, ast, name, path) = script
+    Script(code, walk(ast), name, path)
 
   /** ASTs */
   def walk(ast: Ast): Ast = ast match

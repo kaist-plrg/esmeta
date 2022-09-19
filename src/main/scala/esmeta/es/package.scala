@@ -8,13 +8,21 @@ import esmeta.util.BaseUtils.*
 trait ESElem {
   override def toString: String = toString()
 
-  /** stringify with options */
+  /** stringify with grammar */
+  def toString(
+    grammar: Grammar,
+  ): String = {
+    val stringifier = ESElem.getStringifier(true, false, Some(grammar))
+    import stringifier.elemRule
+    stringify(this)
+  }
+
+  /** stringify with options but without grammar */
   def toString(
     detail: Boolean = true,
     location: Boolean = false,
-    grammar: Option[Grammar] = None,
   ): String = {
-    val stringifier = ESElem.getStringifier(detail, location, grammar)
+    val stringifier = ESElem.getStringifier(detail, location, None)
     import stringifier.elemRule
     stringify(this)
   }

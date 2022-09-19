@@ -31,7 +31,7 @@ case object Mutate extends Phase[CFG, String] {
       mutatedAst = mutator(ast)
 
     // get string of mutated AST
-    val mutated = mutatedAst.toString(grammar = Some(grammar))
+    val mutated = mutatedAst.toString(grammar)
 
     // dump the mutated ECMAScript program
     for (filename <- config.out)

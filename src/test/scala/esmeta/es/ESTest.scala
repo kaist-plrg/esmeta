@@ -72,7 +72,7 @@ object ESTest {
 
   // tests for ES parser
   def parseTest(ast: Ast): Ast =
-    val newAst = parse(ast.toString(grammar = Some(grammar)))
+    val newAst = parse(ast.toString(grammar))
     assert(ast == newAst)
     ast
   def parseTest(str: String): Ast = parseTest(parse(str))

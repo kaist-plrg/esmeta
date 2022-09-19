@@ -15,18 +15,18 @@ case object Fuzz extends Phase[CFG, Set[String]] {
     cmdConfig: CommandConfig,
     config: Config,
   ): Set[String] =
-    val scripts: Set[String] = Fuzzer(cfg, config.log)
+    val scripts: Set[String] = Fuzzer(cfg, config.log, config.timeLimit)
 
     // sorted by size
     val sorted = scripts.toList.sortBy(_.size).zipWithIndex
 
-    // dump the generated conformance tests
+    // dump the generated ECMAScript programs
     for (dirname <- config.out)
       dumpDir(
-        name = "the generated conformance tests",
+        name = "the generated ECMAScript programs",
         iterable = sorted,
         dirname = dirname,
-        getName = { case (_, idx) => s"test-$idx.js" },
+        getName = { case (_, idx) => s"$idx.js" },
         getData = { case (script, _) => script },
       )
 
@@ -37,16 +37,22 @@ case object Fuzz extends Phase[CFG, Set[String]] {
     (
       "out",
       StrOption((c, s) => c.out = Some(s)),
-      "dump the generated conformance tests to a given directory.",
+      "dump the generated ECMAScript programs to a given directory.",
     ),
     (
       "log",
       BoolOption(c => c.log = true),
       "turn on logging mode.",
     ),
+    (
+      "timeout",
+      NumOption((c, k) => c.timeLimit = Some(k)),
+      "set the time limit in seconds (default: no limit).",
+    ),
   )
   case class Config(
     var out: Option[String] = None,
     var log: Boolean = false,
+    var timeLimit: Option[Int] = None,
   )
 }

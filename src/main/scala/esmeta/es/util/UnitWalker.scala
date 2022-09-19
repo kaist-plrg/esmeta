@@ -6,9 +6,13 @@ import esmeta.es.*
 /** a unit walker for ECMAScript */
 trait UnitWalker extends BasicUnitWalker {
   def walk(elem: ESElem): Unit = elem match
+    case elem: Script      => walk(elem)
     case elem: Ast         => walk(elem)
     case elem: ConformTest => walk(elem)
     case elem: Assertion   => walk(elem)
+
+  /** ECMAScript script program */
+  def walk(script: Script): Unit = walk(script.ast)
 
   /** ASTs */
   def walk(ast: Ast): Unit = ast match

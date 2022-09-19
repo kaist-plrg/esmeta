@@ -362,9 +362,7 @@ object BasicDomain extends value.Domain {
       newV
     def sourceText: Elem = apply(str =
       AbsStr(
-        elem.astValue.toList.map(x =>
-          Str(x.ast.toString(grammar = Some(cfg.grammar)).trim),
-        ),
+        elem.astValue.toList.map(x => Str(x.ast.toString(cfg.grammar).trim)),
       ),
     )
     def parse(rule: Elem): Elem =
@@ -373,7 +371,7 @@ object BasicDomain extends value.Domain {
       var codes: Set[(String, List[Boolean])] = Set()
       for (Str(s) <- elem.str) codes += (s, List())
       for (AstValue(ast) <- elem.astValue) {
-        val code = ast.toString(grammar = Some(cfg.grammar))
+        val code = ast.toString(cfg.grammar)
         val args = ast match
           case syn: Syntactic => syn.args
           case _              => List()

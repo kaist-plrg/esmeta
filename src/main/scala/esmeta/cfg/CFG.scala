@@ -33,10 +33,15 @@ case class CFG(
   lazy val fnameMap: Map[String, Func] =
     (for (func <- funcs) yield func.irFunc.name -> func).toMap
 
-  /** mapping from nid to nodes */
-  lazy val nodeMap: Map[Int, Node] = (for {
+  /** all nodes */
+  lazy val nodes: List[Node] = for {
     func <- funcs
     node <- func.nodes
+  } yield node
+
+  /** mapping from nid to nodes */
+  lazy val nodeMap: Map[Int, Node] = (for {
+    node <- nodes
   } yield node.id -> node).toMap
 
   /** mapping from nodes to functions */

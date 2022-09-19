@@ -16,9 +16,13 @@ class Stringifier(
   // elements
   given elemRule: Rule[ESElem] = (app, elem) =>
     elem match
+      case elem: Script      => scriptRelu(app, elem)
       case elem: Ast         => astRule(app, elem)
       case elem: ConformTest => testRule(app, elem)
       case elem: Assertion   => assertRule(app, elem)
+
+  /** ECMAScript script program */
+  given scriptRelu: Rule[Script] = (app, script) => app >> script.ast
 
   // abstract syntax tree (AST) values
   given astRule: Rule[Ast] = (app, ast) =>

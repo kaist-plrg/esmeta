@@ -34,7 +34,7 @@ class SimpleSynthesizer(
         syn = Syntactic(name, args, rhsIdx, children)
       } yield syn
       visiting -= target
-      syns.minBy(_.toString(grammar = Some(grammar)).length)
+      syns.minBy(_.toString(grammar).length)
   }
 
   private var visiting: Set[(String, List[Boolean])] = Set()

@@ -103,10 +103,11 @@ object ESMeta extends Git(BASE_DIR) {
     // ECMAScript Transformer
     Inject,
     Mutate,
+    TransCheck,
+    Fuzz,
     // ECMAScript Static Analysis (Meta-Level Static Analysis)
     Analyze,
     // Transpile and validate the given program
-    TransCheck,
   )
 
   /** command options */

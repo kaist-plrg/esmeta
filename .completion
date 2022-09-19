@@ -24,8 +24,9 @@ _esmeta_completions() {
   test262testOpt="-test262-test:target -test262-test:progress -test262-test:coverage -test262-test:timeout -test262-test:log"
   injectOpt="-inject:defs -inject:out -inject:log"
   mutateOpt="-mutate:out -mutate:mutator -mutate:untilValid"
-  analyzeOpt="-analyze:repl"
   transcheckOpt="-transcheck:out"
+  fuzzOpt="-fuzz:out -fuzz:log -fuzz:timeout -fuzz:trial"
+  analyzeOpt="-analyze:repl"
   # completion for commands
   case "${COMP_CWORD}" in
     1)

@@ -68,11 +68,17 @@ class Coverage(
 
     (finalSt, updated)
   }
+
+  /** evaluate a given ECMAScript program, update coverage, and return
+    * evaluation result
+    */
+  def run(script: Script): State = { val (st, _) = runAndCheck(script); st }
+
+  /** evaluate a given ECMAScript program, update coverage, and return
+    * evaluation result
+    */
   def run(ast: Ast, filename: String): State =
-    val script =
-      Script(ast.toString(cfg.grammar), ast, filename, Some(filename))
-    val (st, _) = runAndCheck(script)
-    st
+    run(Script(ast.toString(cfg.grammar), ast, filename, Some(filename)))
 
   /** get node coverage */
   def nodeCov: (Int, Int) = (nodeMap.size, cfg.nodeMap.size)

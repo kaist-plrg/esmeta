@@ -6,6 +6,12 @@ import esmeta.spec.Grammar
 /** ECMAScript AST synthesizer */
 trait Synthesizer {
 
+  /** get script */
+  def script: Ast
+
+  /** get initial pool */
+  lazy val initPool: Vector[Ast]
+
   /** for general production */
   def apply(ast: Ast): Ast = ast match
     case ast: Syntactic => apply(ast)

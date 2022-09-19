@@ -12,6 +12,12 @@ class SimpleSynthesizer(
   import grammar.*
   import SimpleSynthesizer.*
 
+  /** get script */
+  def script: Ast = ???
+
+  /** get initial pool */
+  lazy val initPool: Vector[Ast] = ???
+
   /** for syntactic production */
   def apply(name: String, args: List[Boolean]): Syntactic = synNt(name, args)
 

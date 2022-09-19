@@ -198,6 +198,9 @@ case object CmdFuzz extends Command("fuzz", CmdBuildCFG >> Fuzz) {
     "esmeta fuzz                 # generate ECMAScript programs for fuzzing",
     "esmeta fuzz -fuzz:out=out   # dump the generated program to `out`",
   )
+  override def showResult(res: Set[String]): Unit = for {
+    code <- res.toList.sortBy(_.length)
+  } println(code)
 }
 
 // -----------------------------------------------------------------------------

@@ -15,7 +15,12 @@ case object Fuzz extends Phase[CFG, Set[String]] {
     cmdConfig: CommandConfig,
     config: Config,
   ): Set[String] =
-    val scripts: Set[String] = Fuzzer(cfg, config.log, config.timeLimit)
+    val scripts: Set[String] = Fuzzer(
+      cfg,
+      config.log,
+      config.timeLimit,
+      config.trialCount,
+    )
 
     // sorted by size
     val sorted = scripts.toList.sortBy(_.size).zipWithIndex
@@ -47,12 +52,18 @@ case object Fuzz extends Phase[CFG, Set[String]] {
     (
       "timeout",
       NumOption((c, k) => c.timeLimit = Some(k)),
-      "set the time limit in seconds (default: no limit).",
+      "set the time limit in seconds (default: 5 second).",
+    ),
+    (
+      "trial",
+      NumOption((c, k) => c.trialCount = Some(k)),
+      "set the number of trials (default: 10000).",
     ),
   )
   case class Config(
     var out: Option[String] = None,
     var log: Boolean = false,
-    var timeLimit: Option[Int] = None,
+    var timeLimit: Option[Int] = Some(5),
+    var trialCount: Option[Int] = Some(10000),
   )
 }

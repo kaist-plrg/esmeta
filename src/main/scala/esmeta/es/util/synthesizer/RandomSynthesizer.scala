@@ -12,6 +12,15 @@ class RandomSynthesizer(
   import grammar.*
   import SimpleSynthesizer.*
 
+  /** get script */
+  def script: Ast = apply("Statement", List(false, false, false))
+
+  /** get initial pool */
+  lazy val initPool: Vector[Ast] = (for {
+    _ <- Range(0, INIT_SIZE)
+  } yield script).toVector
+  private val INIT_SIZE = 1000
+
   /** for syntactic production */
   def apply(name: String, args: List[Boolean]): Syntactic =
     val prod @ Production(lhs, _, _, rhsList) = nameMap(name)

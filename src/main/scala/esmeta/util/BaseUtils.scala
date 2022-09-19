@@ -115,7 +115,8 @@ object BaseUtils {
   private def rand = Random()
 
   /** randomly choose an element in a list */
-  def choose[T](seq: Seq[T]): T = seq(rand.nextInt(seq.length))
+  def choose[T](vec: Vector[T]): T = vec(rand.nextInt(vec.length))
+  def choose[T](iter: Iterable[T]): T = choose(iter.toVector)
 
   /** randomly choose an element in a list and return it with its index */
   def chooseWithIndex[T](seq: Seq[T]): (T, Int) =

@@ -41,6 +41,7 @@ class Fuzzer(
       startInterval = System.currentTimeMillis
       addRaw(
         "iter(#)",
+        "script(#)",
         "time(ms)",
         "node-cover(#)",
         "node-total(#)",
@@ -49,6 +50,7 @@ class Fuzzer(
         "branch-total(%)",
         "branch-ratio(%)",
       )
+      logging
     })
     maxIter match
       case Some(count) => for (_ <- Range(0, count)) fuzz
@@ -61,6 +63,7 @@ class Fuzzer(
 
   /** current program pool */
   def pool: Set[String] = cov.codeSet
+  def size: Int = cov.codeCount
 
   /** one trial to fuzz a new program to increase coverage */
   def fuzz: Boolean = optional {
@@ -106,7 +109,7 @@ class Fuzzer(
     val nr = percentString(n, nt)
     val (b, bt) = cov.branchCov
     val br = percentString(b, bt)
-    addRaw(iter, duration, n, nt, nr, b, bt, br)
+    addRaw(iter, size, duration, n, nt, nr, b, bt, br)
     rmdir(s"$FUZZ_LOG_DIR/scripts")
     cov.dumpTo(FUZZ_LOG_DIR, withMsg = false)
   def addRaw(data: Any*): Unit =

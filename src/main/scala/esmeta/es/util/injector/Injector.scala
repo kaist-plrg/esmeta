@@ -290,7 +290,7 @@ class Injector(
                       )
                     case _ =>
                 case _ => warning("invalid property: $path")
-              _assertions += VerifyProperty(addr, path, p, desc)
+              _assertions += VerifyProperty(addr, path, propStr, desc)
             })
           case x => warning("invalid property: $path")
       case v => warning("invalid property: $path")

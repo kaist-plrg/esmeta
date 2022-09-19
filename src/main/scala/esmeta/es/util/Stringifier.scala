@@ -6,7 +6,7 @@ import esmeta.util.*
 import esmeta.util.Appender.*
 import esmeta.util.BaseUtils.*
 import esmeta.es.*
-import esmeta.es.util.injector.Injector
+import esmeta.es.util.injector.*
 import esmeta.state.*
 
 /** stringifier for ECMAScript */
@@ -78,11 +78,16 @@ class Stringifier(
   given testRule: Rule[ConformTest] = (app, test) =>
     val ConformTest(id, script, exitTag, defs, isAsync, assertions) = test
     app >> "// [EXIT] " >> exitTag.toString
-    if (defs) app >> Injector.assertions >> LINE_SEP
-    if (isAsync) app :> "$delay(() => {"
-    app :> script
-    if (isAsync) app :> "});"
-    assertions.foreach(app :> _)
+    exitTag match {
+      case NormalTag =>
+        if (defs) app :> Injector.assertions >> LINE_SEP
+        if (isAsync) app :> "$delay(() => {"
+        app :> script
+        if (isAsync) app :> "});"
+        assertions.foreach(app :> _)
+      case _ =>
+        app :> script
+    }
     app
 
   // assertions
@@ -94,30 +99,25 @@ class Stringifier(
           case v         => v.toString
       )
 
+    given Rule[Map[String, SimpleValue]] = (app, desc) =>
+      app.wrap(
+        desc.map((field, value) => app :> field >> ": " >> value >> ", "),
+      )
+
     assert match
-      case HasValue(x, v) => app :> s"$$assert.sameValue($x, " >> v >> ");"
-      case IsExtensible(addr, path, callable) =>
-        app >> s"$$assert.sameValue(Object.isExtensible($path), $callable);"
-      case IsCallable(addr, path, callable) =>
-        app >> (if callable then s"$$assert.callable($path);"
-                else s"$$assert.notCallable($path);")
-      case IsConstructable(addr, path, constructable) =>
-        app >> (if constructable then s"$$assert.constructable($path);"
-                else s"$$assert.notConstructable($path);")
+      case HasValue(x, v) =>
+        app >> s"$$assert.sameValue($x, " >> v >> ");"
+      case IsExtensible(addr, path, b) =>
+        app >> s"$$assert.sameValue(Object.isExtensible($path), $b);"
+      case IsCallable(addr, path, b) =>
+        app >> s"$$assert.${if b then "c" else "notC"}allable($path);"
+      case IsConstructable(addr, path, b) =>
+        app >> s"$$assert.${if b then "c" else "notC"}onstructable($path);"
       case CompareArray(addr, path, array) =>
         app >> s"$$assert.compareArray(Reflect.ownKeys($path), ${array
           .mkString("[", ", ", "]")}, $path);"
       case SameObject(addr, path, origPath) =>
         app >> s"$$assert.sameValue($path, $origPath);"
-      case VerifyProperty(addr, path, prop, desc) =>
-        prop match
-          case sv: SimpleValue =>
-            app >> s"$$verifyProperty($path, " >> sv >> s", $desc);"
-          case addr: Addr =>
-            val PREFIX_INTRINSIC = "INTRINSICS."
-            addr match
-              case _ @NamedAddr(name) if name.startsWith(PREFIX_INTRINSIC) =>
-                app >> s"$$verifyProperty($path, ${name.substring(PREFIX_INTRINSIC.length)}, $desc);"
-              case _ => app
-          case _ => app
+      case VerifyProperty(addr, path, propStr, desc) =>
+        app >> s"$$verifyProperty($path, $propStr, " >> desc >> ");"
 }

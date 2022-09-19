@@ -8,7 +8,7 @@ trait Assertion extends ESElem
 case class HasValue(x: String, v: SimpleValue) extends Assertion
 
 trait ObjectAssertion extends Assertion
-case class IsExtensible(addr: Addr, path: String, callable: Boolean = true)
+case class IsExtensible(addr: Addr, path: String, extensible: Boolean = true)
   extends ObjectAssertion
 case class IsCallable(addr: Addr, path: String, callable: Boolean = true)
   extends ObjectAssertion
@@ -24,6 +24,6 @@ case class SameObject(addr: Addr, path: String, origPath: String)
 case class VerifyProperty(
   addr: Addr,
   path: String,
-  prop: PureValue,
+  prop: String,
   desc: Map[String, SimpleValue],
 ) extends ObjectAssertion

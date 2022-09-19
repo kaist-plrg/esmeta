@@ -17,10 +17,10 @@ case object Fuzz extends Phase[CFG, Coverage] {
     config: Config,
   ): Coverage =
     val cov = Fuzzer(
-      cfg,
-      config.log,
-      config.timeLimit,
-      config.trialCount,
+      cfg = cfg,
+      log = config.log,
+      timeLimit = config.timeLimit,
+      trial = config.trial,
     )
 
     // dump the generated ECMAScript programs
@@ -47,7 +47,7 @@ case object Fuzz extends Phase[CFG, Coverage] {
     ),
     (
       "trial",
-      NumOption((c, k) => c.trialCount = Some(k)),
+      NumOption((c, k) => c.trial = Some(k)),
       "set the number of trials (default: 10000).",
     ),
   )
@@ -55,6 +55,6 @@ case object Fuzz extends Phase[CFG, Coverage] {
     var out: Option[String] = None,
     var log: Option[Int] = Some(600),
     var timeLimit: Option[Int] = Some(1),
-    var trialCount: Option[Int] = Some(10000),
+    var trial: Option[Int] = Some(10000),
   )
 }

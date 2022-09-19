@@ -17,16 +17,18 @@ object Fuzzer:
   def apply(
     cfg: CFG,
     log: Option[Int] = Some(600), // default logging interval is 10 minutes.
+    stdOut: Boolean = false,
     timeLimit: Option[Int] = None, // time limitation for each evaluation
-    maxIter: Option[Int] = None, // `None` denotes no bound
-  ): Coverage = new Fuzzer(cfg, log, timeLimit, maxIter).result
+    trial: Option[Int] = None, // `None` denotes no bound
+  ): Coverage = new Fuzzer(cfg, log, stdOut, timeLimit, trial).result
 
 /** extensible helper of ECMAScript program fuzzer with ECMA-262 */
 class Fuzzer(
   cfg: CFG,
   log: Option[Int] = Some(600), // default logging interval is 10 minutes.
+  stdOut: Boolean = false,
   timeLimit: Option[Int] = None, // time limitation for each evaluation
-  maxIter: Option[Int] = None, // `None` denotes no bound
+  trial: Option[Int] = None, // `None` denotes no bound
 ) {
 
   /** generated ECMAScript programs */
@@ -53,7 +55,7 @@ class Fuzzer(
       )
       logging
     })
-    maxIter match
+    trial match
       case Some(count) => for (_ <- Range(0, count)) fuzz
       case None        => while (true) fuzz
 
@@ -84,8 +86,10 @@ class Fuzzer(
     val code = mutated.toString(grammar)
     for (_ <- log) {
       val simpleCode = if (code.length > 100) code.take(100) + "..." else code
-      clearLine
-      print(s"[$iter] (${Time(duration).simpleString}) $simpleCode")
+      if (stdOut) {
+        clearLine
+        print(s"[$iter] (${Time(duration).simpleString}) $simpleCode")
+      }
     }
     if (visited contains code) false
     else add(code)
@@ -126,7 +130,7 @@ class Fuzzer(
     cov.dumpTo(FUZZ_LOG_DIR, withMsg = false)
   def addRaw(data: Any*): Unit =
     val raw = data.mkString("\t")
-    clearLine
+    if (stdOut) clearLine
     println(raw)
     nf.println(raw)
     nf.flush

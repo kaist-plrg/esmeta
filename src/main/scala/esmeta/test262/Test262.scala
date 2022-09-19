@@ -136,7 +136,7 @@ case class Test262(
         if (returnValue != Undef) throw InvalidExit(returnValue)
       ,
       // dump coverage
-      logDir => if (useCoverage) cov.dumpTo(logDir),
+      postJob = logDir => if (useCoverage) cov.dumpTo(logDir),
     )
 
     tests.summary
@@ -238,5 +238,8 @@ case class Test262(
         if (postSummary.isEmpty) s"$summary"
         else s"$summary$LINE_SEP$postSummary"
       dumpFile(s"Test262 $name test summary", summaryStr, s"$logDir/summary")
+
+    // post job
+    postJob(logDir)
 }
 object Test262 extends Git(TEST262_DIR)

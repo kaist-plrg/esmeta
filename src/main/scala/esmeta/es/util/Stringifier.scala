@@ -62,10 +62,18 @@ class Stringifier(
         if (detail && ast.loc.isDefined) app >> ast.loc.get else app
 
   // conformance tests
-  given testRule: Rule[ConformTest] = (app, test) => ???
+  given testRule: Rule[ConformTest] = (app, test) =>
+    val ConformTest(id, script, assertions) = test
+    ???
 
   // assertions
   given assertRule: Rule[Assertion] = (app, assert) =>
     assert match
-      case _ => ???
+      case HasValue(x, v)                             => ???
+      case IsExtensible(addr, path, callable)         => ???
+      case IsCallable(addr, path, callable)           => ???
+      case IsConstructable(addr, path, constructable) => ???
+      case CompareArray(addr, path, array)            => ???
+      case SameObject(addr, path, origPath)           => ???
+      case VerifyProperty(addr, path, prop, desc)     => ???
 }

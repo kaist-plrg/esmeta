@@ -25,8 +25,8 @@ trait Walker extends BasicWalker {
 
   /** conformance test */
   def walk(test: ConformTest): ConformTest =
-    val ConformTest(id, script, assertions) = test
-    ConformTest(id, script, walkVector(assertions, walk))
+    val ConformTest(id, script, exitTag, isAsync, assertions) = test
+    ConformTest(id, script, exitTag, isAsync, walkVector(assertions, walk))
 
   /** assertions */
   def walk(assert: Assertion): Assertion = assert

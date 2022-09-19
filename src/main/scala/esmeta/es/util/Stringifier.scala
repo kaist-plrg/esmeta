@@ -70,7 +70,7 @@ class Stringifier(
 
   // conformance tests
   given testRule: Rule[ConformTest] = (app, test) =>
-    val ConformTest(id, script, assertions) = test
+    val ConformTest(id, script, exitTag, isAsync, assertions) = test
     assertions.foldLeft(app :> script)((ap, assertion) => ap :> assertion)
 
   // assertions

@@ -40,5 +40,5 @@ case class ConformTest(
 
   /** retain only passed assertions */
   def filterAssertion: ConformTest =
-    ConformTest(id, script, exitTag, defs, isAsync, passedAssertions),
+    ConformTest(id, script, exitTag, defs, isAsync, passedAssertions)
 }

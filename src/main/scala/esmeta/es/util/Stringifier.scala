@@ -101,7 +101,7 @@ class Stringifier(
 
     given Rule[Map[String, SimpleValue]] = (app, desc) =>
       app.wrap(
-        desc.map((field, value) => app :> field >> ": " >> value >> ", "),
+        desc.map((field, value) => app :> field >> ": " >> value >> ","),
       )
 
     assert match

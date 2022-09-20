@@ -45,9 +45,10 @@ class StringifyTinyTest extends ESTest {
     )
 
     checkStringify("VerifyProperty")(
-      verifyProperty1 -> "",
-      verifyProperty2 -> "$verifyProperty(path, 1.0, Map(foo -> \"bar\"));",
-      verifyProperty3 -> "$verifyProperty(path, intrinsic, Map(foo -> \"bar\"));",
+      verifyProperty1 ->
+      """$verifyProperty(path, baz, {
+          |  foo: "bar",
+          |});""".stripMargin,
     )
 
     // -------------------------------------------------------------------------
@@ -69,16 +70,7 @@ class StringifyTinyTest extends ESTest {
     lazy val compareArray1 = CompareArray(addr, path, List(0, 1, 2))
     lazy val sameObject1 = SameObject(addr, path, origPath)
     lazy val verifyProperty1 =
-      VerifyProperty(addr, path, addr, Map("foo" -> Str("bar")))
-    lazy val verifyProperty2 =
-      VerifyProperty(addr, path, Number(1.0), Map("foo" -> Str("bar")))
-    lazy val verifyProperty3 =
-      VerifyProperty(
-        addr,
-        path,
-        NamedAddr("INTRINSICS.intrinsic"),
-        Map("foo" -> Str("bar")),
-      )
+      VerifyProperty(addr, path, "baz", Map("foo" -> Str("bar")))
   }
 
   init

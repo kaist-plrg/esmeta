@@ -1,4 +1,4 @@
-let transpiled = Babel.transform(orig, {
+Babel.transform(orig, {
   presets: ["env"],
   sourceType: "script",
   assumptions: {

@@ -17,16 +17,12 @@ case object TransCheck extends Phase[CFG, Boolean] {
     cmdConfig: CommandConfig,
     config: Config,
   ): Boolean =
+
     val filename = getFirstFilename(cmdConfig, this.name)
     val orig = readFile(filename)
-    val babel = List(
-      readFile(s"$RESOURCE_DIR/babel/babel@7.19.1.min.js"),
-      s"let orig = `$orig`",
-      readFile(s"$RESOURCE_DIR/babel/transpile.js"),
-    ).mkString("\n")
 
     // run babel to get transpiled program
-    val transpiled: String = JSEngine.runAndGetVar(babel, "transpiled").get
+    val transpiled = Babel.transpile(orig)
 
     // inject assertions to original program
     val injectedTest = Injector(cfg, orig, true).filterAssertion

@@ -1,8 +1,9 @@
 package esmeta.util
 
 import scala.util.{Using, Try}
+import scala.collection.mutable.{Map => MMap}
 import org.graalvm.polyglot.*
-import java.io.ByteArrayOutputStream
+import java.io.*
 
 /** JavaScript Engine utilities */
 object JSEngine {
@@ -37,31 +38,16 @@ object JSEngine {
     }
 
   /** execute a javascript program */
-  def run(src: String): Try[Unit] =
+  def run(src: String): Try[Any] =
     if (!useGraal) ???
 
     Using(Context.create("js")) { context =>
       context.eval("js", src)
-    }
-
-  /** execute a javascript program, and extract a value of variable */
-  def runAndGetVar(src: String, x: String): Try[String] =
-    if (!useGraal) ???
-
-    Using(Context.create("js")) { context =>
-      context.eval("js", src)
-      context.getBindings("js").getMember(x).asString()
     }
 
   /** execute a javascript program, and gets its stdout */
   def runAndGetStdout(src: String): Try[String] =
-    if (!useGraal) ???
-
-    val out = new ByteArrayOutputStream()
-    Using(Context.newBuilder("js").out(out).build()) { context =>
-      context.eval("js", src)
-      out.toString
-    }
+    runAndGetStdout(List(src)).map(_.head)
 
   def runAndGetStdout(srcs: List[String]): Try[List[String]] =
     if (!useGraal) ???
@@ -75,4 +61,37 @@ object JSEngine {
         result,
       )
     }
+
+  /** Created contexts */
+  val contextMap: MMap[String, (Context, OutputStream)] = MMap()
+
+  /** execute a javascript program with the given context */
+  def runInContext(id: String, src: String): Try[Any] =
+    if (!useGraal) ???
+
+    val (context, out) = contextMap.getOrElseUpdate(
+      id, {
+        val out = new ByteArrayOutputStream()
+        (Context.newBuilder("js").out(out).build(), out)
+      },
+    )
+
+    Try(context.eval("js", src))
+
+  /** execute a javascript program with context, and gets its stdout */
+  def runInContextAndGetStdout(id: String, src: String): Try[String] =
+    if (!useGraal) ???
+
+    val (context, out) = contextMap.getOrElseUpdate(
+      id, {
+        val out = new ByteArrayOutputStream()
+        (Context.newBuilder("js").out(out).build(), out)
+      },
+    )
+
+    Try(context.eval("js", src)).map(_ => {
+      val result = out.toString
+      out.flush()
+      result
+    })
 }

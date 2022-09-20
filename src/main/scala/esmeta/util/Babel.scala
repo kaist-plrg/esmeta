@@ -17,6 +17,6 @@ object Babel {
     init
     val escaped =
       src.replace("\\", "\\\\").replace("`", "\\`").replace("$", "\\$")
-    JSEngine.runInContext("babel", s"let orig = `$escaped`").get
+    JSEngine.runInContext("babel", s"orig = `$escaped`").get
     JSEngine.runInContext("babel", runner).get.toString
 }

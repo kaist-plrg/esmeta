@@ -46,6 +46,9 @@ object SystemUtils {
 
   /** dump given data to a file */
   def dumpFile(data: Any, filename: String): Unit =
+    /** create parent directories */
+    Option(File(filename).getParentFile()).foreach(_.mkdirs)
+
     val nf = getPrintWriter(filename)
     nf.print(data)
     nf.close()

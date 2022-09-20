@@ -110,18 +110,8 @@ class Injector(
 
   private def warning(msg: String): Unit = log(s"[Warning] $msg")
 
-  // appender
-  private val app: Appender = new Appender
-
   // internal mutable assertions
   private val _assertions: MSet[Assertion] = MSet()
-
-  // handle async
-  private def startAsync: Unit =
-    app :> "$delay(() => {"
-
-  private def endAsync: Unit =
-    app :> "});"
 
   // handle variables
   private def handleVariable: Unit = for (x <- createdVars.toList.sorted) {
@@ -160,11 +150,6 @@ class Injector(
         _assertions += SameObject(addr, path, origPath)
       case (_: DynamicAddr, None) if addr != globalThis =>
         handledObjects += addr -> path
-        /*
-        extractor.addrNames
-          .get(addr)
-          .map(name => app :> s"""$$algo.set($path, "$name")""")
-         */
         exitSt(addr) match
           case (_: MapObj) =>
             handlePrototype(addr, path)
@@ -257,7 +242,7 @@ class Injector(
                 _,
               ) =>
             var desc = Map[String, SimpleValue]()
-            val2str(p).map(propStr => {
+            val2str(p).foreach(propStr => {
               for {
                 field <- fields
                 value <- props.get(Str(field)).map(_.value.toPureValue)

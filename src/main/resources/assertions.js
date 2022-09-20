@@ -11,9 +11,6 @@ var GeneratorFunction = Object.getPrototypeOf(function* () {}).constructor;
 // logging errors
 var $error = (globalThis.console && globalThis.console.log) || globalThis.print;
 
-// algo map
-var $algo = new Map();
-
 // conversion to string
 function $toString(value) {
   if (value === 0 && 1 / value === -Infinity) return "«-0»";
@@ -134,10 +131,8 @@ $assert.compareArray = function (actual, expected, obj) {
     return "[" + array.map($toString).join(", ") + "]";
   }
   function getObjDesc(obj) {
-    var algo = $algo.get(obj) || "Nothing";
     var ty = Object.prototype.toString.call(obj);
-    ty = ty.substring("[object ".length, ty.length - "]".length);
-    return `${algo} for ${ty}`;
+    return ty.substring("[object ".length, ty.length - "]".length);
   }
   if ($compareArray(actual, expected)) return;
   $error(
@@ -145,7 +140,7 @@ $assert.compareArray = function (actual, expected, obj) {
       format(expected) +
       " but got " +
       format(actual) +
-      " in " +
+      " for " +
       getObjDesc(obj) +
       "."
   );

@@ -22,10 +22,9 @@ object Injector:
     src: String,
     defs: Boolean = false,
     log: Boolean = false,
-    transpiled: Option[String] = None,
-  ): String =
+  ): ConformTest =
     val extractor = ExitStateExtractor(Initialize(cfg, src))
-    new Injector(extractor, defs, log, transpiled).result
+    new Injector(extractor, defs, log).conformTest
 
   /** injection from files */
   def fromFile(
@@ -33,10 +32,9 @@ object Injector:
     filename: String,
     defs: Boolean = false,
     log: Boolean = false,
-    transpiled: Option[String] = None,
-  ): String =
+  ): ConformTest =
     val extractor = ExitStateExtractor(Initialize.fromFile(cfg, filename))
-    new Injector(extractor, defs, log, transpiled).result
+    new Injector(extractor, defs, log).conformTest
 
   /** assertion definitions */
   lazy val assertions: String = readFile(s"$RESOURCE_DIR/assertions.js")
@@ -46,7 +44,6 @@ class Injector(
   extractor: ExitStateExtractor,
   defs: Boolean,
   log: Boolean,
-  transpiled: Option[String],
 ) {
 
   /** generated assertions */
@@ -64,7 +61,7 @@ class Injector(
   lazy val conformTest: ConformTest =
     ConformTest(
       0,
-      transpiled.getOrElse(original),
+      script,
       exitTag,
       defs,
       isAsync,
@@ -80,8 +77,8 @@ class Injector(
   /** exit state */
   lazy val exitSt: State = extractor.result
 
-  /** original script */
-  lazy val original = initSt.sourceText.get
+  /** target script */
+  lazy val script = initSt.sourceText.get
 
   /** exit status tag */
   lazy val exitTag: ExitTag = ExitTag(exitSt)
@@ -92,7 +89,7 @@ class Injector(
   /** check whether it uses asynchronous features */
   // TODO more precise detection
   lazy val isAsync: Boolean =
-    original.contains("async") || original.contains("Promise")
+    script.contains("async") || script.contains("Promise")
 
   // ---------------------------------------------------------------------------
   // private helpers

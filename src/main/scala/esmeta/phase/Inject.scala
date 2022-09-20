@@ -30,7 +30,7 @@ case object Inject extends Phase[CFG, String] {
         filename = filename,
       )
 
-    injected
+    injected.toString
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(
     (

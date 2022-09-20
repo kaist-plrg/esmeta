@@ -2,6 +2,7 @@ package esmeta.phase
 
 import esmeta.*
 import esmeta.cfg.CFG
+import esmeta.es.ConformTest
 import esmeta.es.util.injector.Injector
 import esmeta.util.*
 import esmeta.util.SystemUtils.*
@@ -27,24 +28,24 @@ case object TransCheck extends Phase[CFG, Boolean] {
     // run babel to get transpiled program
     val transpiled: String = JSEngine.runAndGetVar(babel, "transpiled").get
 
-    // inject assertions to transpiled program
-    val transChecked =
-      Injector(cfg, orig, true, transpiled = Some(transpiled))
+    // inject assertions to original program
+    val injectedTest = Injector(cfg, orig, true).filterAssertion
+
+    // replace test's script with transpiled script
+    val transpiledTest = injectedTest.replaceScript(transpiled)
 
     // optionally dump the injected program
     for (filename <- config.out)
       dumpFile(
         name = "an assertion-transchecked ECMAScript program",
-        data = transChecked,
+        data = transpiledTest,
         filename = filename,
       )
 
-    // run the injected program
-    JSEngine.runAndGetStdout(transChecked) match {
-      case Success("")    => true
-      case Success(fails) => print(fails); false
-      case Failure(e)     => println(e.getMessage); false
-    }
+    // run and validate the injected program
+    val failedAssertions = transpiledTest.failedAssertions
+    failedAssertions.foreach({ case (a, m) => println(s"$a\n  > $m") })
+    failedAssertions.isEmpty
 
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(

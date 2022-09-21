@@ -18,8 +18,12 @@ class RandomMutator(
     case _ =>
       super.walk(ast)
 
+  /** ECMAScript grammar */
+  def builder: Mutator.Builder = RandomMutator
+
   /** synthesizer */
   val synthesizer = synBuilder(grammar)
 }
 object RandomMutator extends Mutator.Builder:
+  val name: String = "RandomMutator"
   def apply(grammar: Grammar) = new RandomMutator(grammar)

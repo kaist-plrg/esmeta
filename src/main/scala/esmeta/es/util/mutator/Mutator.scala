@@ -10,6 +10,12 @@ trait Mutator extends Walker {
 
   /** ECMAScript grammar */
   def grammar: Grammar
+
+  /** mutator builder */
+  def builder: Mutator.Builder
+
+  /** mutator name */
+  def name: String = builder.name
 }
 object Mutator:
-  type Builder = Grammar => Mutator
+  trait Builder extends (Grammar => Mutator) { val name: String }

@@ -63,7 +63,11 @@ class RandomSynthesizer(
         Some(Some(syn))
       }
     case _ => None
+
+  /** synthesizer builder */
+  def builder: Synthesizer.Builder = RandomSynthesizer
 }
 object RandomSynthesizer extends Synthesizer.Builder {
+  val name: String = "RandomSynthesizer"
   def apply(grammar: Grammar) = new RandomSynthesizer(grammar)
 }

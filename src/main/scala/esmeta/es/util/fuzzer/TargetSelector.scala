@@ -17,7 +17,7 @@ trait TargetSelector {
     val (name, script) = apply(pool, cov)
     if (debug)
       val scriptStr = script.toString(grammar)
-      println(f"[$name%-20s] $scriptStr")
+      println(f"[$name%-30s] $scriptStr")
     script
 }
 
@@ -32,12 +32,12 @@ object BranchSelector extends TargetSelector {
   def apply(pool: Iterable[Script], cov: Coverage): (String, Script) =
     val cond = choose(cov.targetConds)
     cov.getScript(cond).fold(RandomSelector(pool, cov)) {
-      (s"Branch - $cond", _)
+      (s"BranchTarget - $cond", _)
     }
 }
 
 /** random mutation target selector */
 object RandomSelector extends TargetSelector {
   def apply(pool: Iterable[Script], cov: Coverage): (String, Script) =
-    ("Random", choose(pool))
+    ("RandomTarget", choose(pool))
 }

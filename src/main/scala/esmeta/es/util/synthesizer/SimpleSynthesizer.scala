@@ -65,10 +65,13 @@ class SimpleSynthesizer(
 
   // for correct order
   synNt("Statement", List(false, false, false))
+
+  /** synthesizer builder */
+  def builder: Synthesizer.Builder = SimpleSynthesizer
 }
 object SimpleSynthesizer extends Synthesizer.Builder {
+  val name: String = "SimpleSynthesizer"
   def apply(grammar: Grammar) = new SimpleSynthesizer(grammar)
-
   val reservedLexicals: Map[String, String] = Map(
     "IdentifierName" -> "x",
     "NullLiteral" -> "null",

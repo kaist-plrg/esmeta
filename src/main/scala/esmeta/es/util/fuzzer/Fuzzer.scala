@@ -49,6 +49,7 @@ class Fuzzer(
   lazy val result: Coverage =
     println("- initializing program pool...")
     for (code <- synthesizer.initPool)
+      if (debug) println(f"[${synthesizer.name}%-30s] $code")
       add(code)
 
     println("- repeatedly trying to fuzz new programs to increase coverage...")
@@ -98,25 +99,25 @@ class Fuzzer(
     val target = selector(pool, cov, cfg.grammar, debug)
     val mutated = mutator(target.ast)
     val code = mutated.toString(grammar)
-    for (_ <- logInterval) {
-      val simpleCode = if (code.length > 100) code.take(100) + "..." else code
-      if (stdOut) {
-        clearLine
-        print(s"[$iter] (${Time(duration).simpleString}) $simpleCode")
-      }
-    }
+    if (debug) println(f"----- ${mutator.name}%-20s-----> $code")
     add(code)
   }.getOrElse(false)
 
   /** add new program */
   def add(code: String): Boolean = optional {
-    if (visited contains code) false
-    else {
+    if (debug) print(" " * 25 + "RESULT: ")
+    if (visited contains code) {
+      if (debug) println("FAILED - ALREADY VISITED")
+      false
+    } else {
       visited += code
-      if (!ValidityChecker(code)) false
-      else {
+      if (!ValidityChecker(code)) {
+        if (debug) println("FAILED - INVALID PROGRAM")
+        false
+      } else {
         val script = toScript(code)
         val (initSt, exitSt, updated) = cov.runAndCheck(script)
+        if (debug) println(if (updated) "SUCCESS" else "FAILED - NO UPDATE")
         if (conformTest) doConformTest(initSt, exitSt)
         updated
       }
@@ -202,11 +203,9 @@ class Fuzzer(
 
   def addRaw(data: Any*): Unit =
     val raw = data.mkString("\t")
-    if (stdOut) clearLine
-    println(raw)
+    if (stdOut) println(raw)
     nf.println(raw)
     nf.flush
-  private def clearLine: Unit = print("\r" + (" " * 150) + "\r")
   lazy val nf: PrintWriter = getPrintWriter(s"$FUZZ_LOG_DIR/summary.tsv")
 
   // ---------------------------------------------------------------------------

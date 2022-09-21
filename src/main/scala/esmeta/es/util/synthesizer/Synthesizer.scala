@@ -27,6 +27,12 @@ trait Synthesizer {
 
   /** ECMAScript grammar */
   def grammar: Grammar
+
+  /** synthesizer builder */
+  def builder: Synthesizer.Builder
+
+  /** synthesizer name */
+  def name: String = builder.name
 }
 object Synthesizer:
-  type Builder = Grammar => Synthesizer
+  trait Builder extends (Grammar => Synthesizer) { def name: String }

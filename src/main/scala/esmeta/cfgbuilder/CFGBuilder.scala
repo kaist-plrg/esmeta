@@ -3,7 +3,6 @@ package esmeta.cfgBuilder
 import esmeta.util.BaseUtils.*
 import esmeta.cfg.*
 import esmeta.ir.{Func => IRFunc, *}
-import esmeta.ir.util.AllocSiteSetter
 import scala.collection.mutable.{ListBuffer, Map => MMap}
 
 /** CFG builder */
@@ -21,7 +20,6 @@ class CFGBuilder(
 
   /** final result */
   lazy val result: CFG =
-    asiteSetter.walk(program)
     for { f <- program.funcs } translate(f)
     val cfg = CFG(funcs.toList)
     cfg.program = program
@@ -81,9 +79,6 @@ class CFGBuilder(
     val func = Func(nextFId, irFunc, entry)
     funcs += func
   }
-
-  /** allocation site setter */
-  val asiteSetter: AllocSiteSetter = new AllocSiteSetter
 
   // ---------------------------------------------------------------------------
   // protected helpers

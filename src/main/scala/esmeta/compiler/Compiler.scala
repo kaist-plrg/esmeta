@@ -7,7 +7,7 @@ import esmeta.ir.{
   Param => IRParam,
   *,
 }
-import esmeta.ir.util.{Walker => IRWalker}
+import esmeta.ir.util.{Walker => IRWalker, AllocSiteSetter, WeakUIdSetter}
 import esmeta.lang.*
 import esmeta.lang.util.{UnitWalker => LangUnitWalker}
 import esmeta.spec.*
@@ -33,7 +33,14 @@ class Compiler(
   /** compiled specification */
   lazy val result: Program =
     for (algo <- spec.algorithms) compile(algo)
-    Program(funcs.toList, spec)
+    val program = Program(funcs.toList, spec)
+    // set allocation site to AllocExpr
+    (new AllocSiteSetter).walk(program)
+    // set weak uid to Inst and Expr
+    (new WeakUIdSetter).walk(program)
+    program
+
+  val asiteSetter: AllocSiteSetter = new AllocSiteSetter
 
   /** load manually created AOs */
   val manualAlgos = (for {

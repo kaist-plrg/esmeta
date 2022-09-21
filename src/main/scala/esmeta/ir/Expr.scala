@@ -2,10 +2,10 @@ package esmeta.ir
 
 import esmeta.ir.util.Parser
 import esmeta.lang.Syntax
-import esmeta.util.DoubleEquals
+import esmeta.util.{DoubleEquals, WeakUId}
 
 // IR expressions
-sealed trait Expr extends IRElem with LangEdge
+sealed trait Expr extends IRElem with LangEdge with WeakUId[Expr]
 object Expr extends Parser.From(Parser.expr)
 case class EComp(tyExpr: Expr, valExpr: Expr, tgtExpr: Expr) extends Expr
 case class EIsCompletion(expr: Expr) extends Expr

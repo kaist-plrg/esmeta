@@ -44,13 +44,19 @@ case class ConformTest(
       )
       .get
 
+  lazy val sameExitTag =
+    exitTag == concreteExitTag ||
+    // TODO handle ThrowValueTag more carefully
+    exitTag.isInstanceOf[ThrowValueTag] && concreteExitTag
+      .isInstanceOf[ThrowValueTag]
+
   /** Indicates if the test is passed */
-  lazy val isPass = exitTag == concreteExitTag && failedAssertions.length == 0
+  lazy val isPass = sameExitTag && failedAssertions.length == 0
 
   /** human readable message indication the reason of test fail */
   lazy val msg =
     if isPass then ""
-    else if (exitTag != concreteExitTag) then
+    else if (!sameExitTag) then
       s"[Exit Tag Mismatch]$LINE_SEP > Expected $exitTag but got $concreteExitTag"
     else failedAssertions.map((a, m) => s"$a$LINE_SEP > $m").mkString(LINE_SEP)
 
@@ -60,31 +66,21 @@ case class ConformTest(
 }
 
 object ConformTest {
+
+  /** Create a pair of tests using code string */
   def createTestPair(script: String, cfg: CFG): (ConformTest, ConformTest) =
-    // run babel to get transpiled program
     val transpiled = Babel.transpile(script)
-
-    // inject assertions to original program
     val injectedTest = Injector(cfg, script, true)
-
-    // replace test's script with transpiled script
     val transpiledTest =
       injectedTest.filterAssertion.replaceScript(transpiled)
-
     (injectedTest, transpiledTest)
 
+  /** Create a pair of tests using init state and exit state */
   def createTestPair(initSt: State, exitSt: State): (ConformTest, ConformTest) =
     val script = initSt.sourceText.get
-
-    // run babel to get transpiled program
     val transpiled = Babel.transpile(script)
-
-    // inject assertions to original program
     val injectedTest = new Injector(initSt, exitSt, true, false).conformTest
-
-    // replace test's script with transpiled script
     val transpiledTest =
       injectedTest.filterAssertion.replaceScript(transpiled)
-
     (injectedTest, transpiledTest)
 }

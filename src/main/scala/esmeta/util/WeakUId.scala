@@ -17,11 +17,4 @@ trait WeakUId[+T <: WeakUId[T]] { self: T =>
 }
 
 /** reference for weak unique ids */
-trait WeakUIdRef[+T <: WeakUId[T]](val id: Int) {
-
-  /** getter for the original data */
-  def get: T
-
-  /** get simple string */
-  def simpleString: String = get.simpleString
-}
+trait WeakUIdRef[+T <: WeakUId[T]](val id: Int) extends UId { def get: T }

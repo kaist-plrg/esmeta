@@ -21,7 +21,7 @@ case object Fuzz extends Phase[CFG, Coverage] {
       log = config.log,
       timeLimit = config.timeLimit,
       trial = config.trial,
-      conformtest = config.conformtest,
+      conformTest = config.conformTest,
     )
 
     // dump the generated ECMAScript programs
@@ -52,8 +52,8 @@ case object Fuzz extends Phase[CFG, Coverage] {
       "set the number of trials (default: 10000).",
     ),
     (
-      "conformtest",
-      BoolOption(c => c.conformtest = true),
+      "conform-test",
+      BoolOption(c => c.conformTest = true),
       "do conformance test during fuzzing",
     ),
   )
@@ -62,6 +62,6 @@ case object Fuzz extends Phase[CFG, Coverage] {
     var log: Option[Int] = Some(600),
     var timeLimit: Option[Int] = Some(1),
     var trial: Option[Int] = Some(10000),
-    var conformtest: Boolean = false,
+    var conformTest: Boolean = false,
   )
 }

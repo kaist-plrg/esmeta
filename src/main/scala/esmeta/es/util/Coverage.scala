@@ -3,11 +3,12 @@ package esmeta.es.util
 import esmeta.cfg.*
 import esmeta.es.*
 import esmeta.interpreter.*
-import esmeta.ir.{Expr, EParse}
+import esmeta.ir.{Expr, EParse, EReturnIfAbrupt}
 import esmeta.state.*
 import esmeta.util.*
 import esmeta.util.SystemUtils.*
 import io.circe.*, io.circe.syntax.*
+import scala.collection.mutable.{Map => MMap, Set => MSet}
 
 /** coverage measurement in CFG */
 class Coverage(
@@ -15,31 +16,11 @@ class Coverage(
   timeLimit: Option[Int] = None,
 ) {
 
-  // mapping from
-  private var nodeMap: Map[Node, Script] = Map()
-  private var counter: Map[Script, Int] = Map()
-  private def update(node: Node, script: Script): Unit =
-    for (script <- nodeMap.get(node))
-      val count = counter(script) - 1
-      if (count == 0) counter -= script
-      counter += script -> count
-    counter += script -> (counter.getOrElse(script, 0) + 1)
-    nodeMap += node -> script
-
   // all meaningful scripts
-  def minimalScripts: Set[Script] = counter.keySet
+  val minimalScripts: MSet[Script] = MSet()
 
   // the number of all meaningful code set
   def size: Int = counter.size
-
-  // all meaningful tests
-  private var failedTests: Set[(String, ConformTest)] = Set()
-  private var transFailedTests: Set[(String, ConformTest)] = Set()
-  def doConformTest(initSt: State, finalSt: State) =
-    val code = initSt.sourceText.get
-    val (test, transTest) = ConformTest.createTestPair(initSt, finalSt)
-    if (!test.isPass) failedTests += (code, test)
-    if (!transTest.isPass) transFailedTests += (code, transTest)
 
   // script parser
   private lazy val scriptParser = cfg.scriptParser
@@ -142,48 +123,15 @@ class Coverage(
       noSpace = false,
     )
     rmdir(s"$baseDir/minimal")
-    type Zipped = ((String, ConformTest), Int)
     dumpDir(
-      name = if (withMsg) Some("Minimal ECMAScript programs") else None,
+      name = if (withMsg) Some("minimal ECMAScript programs") else None,
       iterable = minimalScripts,
       dirname = s"$baseDir/minimal",
       getName = (script: Script) => s"${script.name}.js",
       getData = (script: Script) => script.code,
     )
-    rmdir(s"$baseDir/failed")
-    dumpDir[Zipped](
-      name = if (withMsg) Some("Failed conformance codes") else None,
-      iterable = failedTests.zipWithIndex,
-      dirname = s"$baseDir/failed",
-      getName = { case ((c, t), i) => s"$i.js" },
-      getData = { case ((c, t), i) => c },
-    )
-    dumpDir[Zipped](
-      name = if (withMsg) Some("Failed conformance tests") else None,
-      iterable = failedTests.zipWithIndex,
-      dirname = s"$baseDir/failed",
-      getName = { case ((c, t), i) => s"$i.test.js" },
-      getData = { case ((c, t), i) => t },
-    )
-    rmdir(s"$baseDir/trans-failed")
-    dumpDir[Zipped](
-      name = if (withMsg) Some("Failed transpiled conformance codes") else None,
-      iterable = transFailedTests.zipWithIndex,
-      dirname = s"$baseDir/trans-failed",
-      getName = { case ((c, t), i) => s"$i.js" },
-      getData = { case ((c, t), i) => c },
-    )
-    dumpDir[Zipped](
-      name = if (withMsg) Some("Failed transpiled conformance tests") else None,
-      iterable = transFailedTests.zipWithIndex,
-      dirname = s"$baseDir/trans-failed",
-      getName = { case ((c, t), i) => s"$i.test.js" },
-      getData = { case ((c, t), i) => t },
-    )
 
-  /** convertion to string */
-  private def percent(n: Double, t: Double): Double = n / t * 100
-  override def toString: String = {
+  override def toString: String =
     val (nCovered, nTotal) = nodeCov
     val (bCovered, bTotal) = branchCov
     val nPercent = percent(nCovered, nTotal)
@@ -191,7 +139,34 @@ class Coverage(
     f"""- coverage:
        |  - node: $nCovered%,d/$nTotal%,d ($nPercent%2.2f%%)
        |  - branch: $bCovered%,d/$bTotal%,d ($bPercent%2.2f%%)""".stripMargin
-  }
+
+  // ---------------------------------------------------------------------------
+  // private helpers
+  // ---------------------------------------------------------------------------
+  // mapping from nodes to scripts
+  private val nodeMap: MMap[Node, Script] = MMap()
+  // mapping from branches to scripts
+  private val condMap: MMap[Cond, Script] = MMap()
+  type Cond = (Branch | EReturnIfAbrupt, Boolean)
+
+  // update mapping from nodes to scripts
+  private def update(node: Node, script: Script): Unit =
+    update(node, script, nodeMap)
+  // update mapping from conditional branches to scripts
+  private def update(cond: Cond, script: Script): Unit =
+    update(cond, script, condMap)
+  // update mapping
+  private def update[T](x: T, script: Script, map: MMap[T, Script]): Unit =
+    for (script <- map.get(x))
+      val count = counter(script) - 1
+      if (count == 0) { counter -= script; minimalScripts -= script }
+      counter += script -> count
+    minimalScripts += script
+    counter += script -> (counter.getOrElse(script, 0) + 1)
+    map += x -> script
+
+  // script usage counter
+  private val counter: MMap[Script, Int] = MMap()
 
   /** extension for AST */
   extension (ast: Ast) {
@@ -208,4 +183,7 @@ class Coverage(
         case _ => /* do nothing */
       nodes
   }
+
+  // convertion to string
+  private def percent(n: Double, t: Double): Double = n / t * 100
 }

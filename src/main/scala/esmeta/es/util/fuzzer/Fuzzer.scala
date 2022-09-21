@@ -6,11 +6,13 @@ import esmeta.es.*
 import esmeta.es.util.*
 import esmeta.es.util.mutator.*
 import esmeta.es.util.synthesizer.*
+import esmeta.state.*
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
 import java.io.PrintWriter
 import java.util.concurrent.TimeoutException
+import scala.collection.mutable.{Set => MSet}
 
 /** ECMAScript program fuzzer with ECMA-262 */
 object Fuzzer:
@@ -20,9 +22,9 @@ object Fuzzer:
     stdOut: Boolean = false,
     timeLimit: Option[Int] = None, // time limitation for each evaluation
     trial: Option[Int] = None, // `None` denotes no bound
-    conformtest: Boolean = false,
+    conformTest: Boolean = false,
   ): Coverage =
-    new Fuzzer(cfg, log, stdOut, timeLimit, trial, conformtest).result
+    new Fuzzer(cfg, log, stdOut, timeLimit, trial, conformTest).result
 
 /** extensible helper of ECMAScript program fuzzer with ECMA-262 */
 class Fuzzer(
@@ -31,7 +33,7 @@ class Fuzzer(
   stdOut: Boolean = false,
   timeLimit: Option[Int] = None, // time limitation for each evaluation
   trial: Option[Int] = None, // `None` denotes no bound
-  conformtest: Boolean = false,
+  conformTest: Boolean = false,
 ) {
 
   /** generated ECMAScript programs */
@@ -72,7 +74,7 @@ class Fuzzer(
     cov
 
   /** current program pool */
-  def pool: Set[Script] = cov.minimalScripts
+  def pool: Iterable[Script] = cov.minimalScripts
 
   /** one trial to fuzz a new program to increase coverage */
   def fuzz: Boolean = optional {
@@ -106,11 +108,20 @@ class Fuzzer(
       else {
         val script = toScript(code)
         val (initSt, exitSt, updated) = cov.runAndCheck(script)
-        if (conformtest) cov.doConformTest(initSt, exitSt)
+        if (conformTest) doConformTest(initSt, exitSt)
         updated
       }
     }
   }.getOrElse(false)
+
+  // all meaningful tests
+  private val failedTests: MSet[(String, ConformTest)] = MSet()
+  private val transFailedTests: MSet[(String, ConformTest)] = MSet()
+  private def doConformTest(initSt: State, finalSt: State) =
+    val code = initSt.sourceText.get
+    val (test, transTest) = ConformTest.createTestPair(initSt, finalSt)
+    if (!test.isPass) failedTests.add(code, test)
+    if (!transTest.isPass) transFailedTests.add(code, transTest)
 
   /** ECMAScript grammar */
   val grammar = cfg.grammar
@@ -132,7 +143,48 @@ class Fuzzer(
     val (b, bt) = cov.branchCov
     val br = percentString(b, bt)
     addRaw(iter, pool.size, duration, n, nt, nr, b, bt, br)
+    // dump coveragge
     cov.dumpTo(FUZZ_LOG_DIR, withMsg = false)
+    // dump failed conformance tests
+    if (conformTest) dumpFailedConformTests(FUZZ_LOG_DIR, false)
+
+  /** dump failed conformance tests */
+  def dumpFailedConformTests(
+    baseDir: String = FUZZ_LOG_DIR,
+    withMsg: Boolean = true,
+  ): Unit =
+    rmdir(s"$baseDir/failed")
+    type Zipped = ((String, ConformTest), Int)
+    dumpDir[Zipped](
+      name = if (withMsg) Some("failed conformance codes") else None,
+      iterable = failedTests.zipWithIndex,
+      dirname = s"$baseDir/failed",
+      getName = { case ((c, t), i) => s"$i.js" },
+      getData = { case ((c, t), i) => c },
+    )
+    dumpDir[Zipped](
+      name = if (withMsg) Some("failed conformance tests") else None,
+      iterable = failedTests.zipWithIndex,
+      dirname = s"$baseDir/failed",
+      getName = { case ((c, t), i) => s"$i.test.js" },
+      getData = { case ((c, t), i) => t },
+    )
+    rmdir(s"$baseDir/trans-failed")
+    dumpDir[Zipped](
+      name = if (withMsg) Some("failed transpiled conformance codes") else None,
+      iterable = transFailedTests.zipWithIndex,
+      dirname = s"$baseDir/trans-failed",
+      getName = { case ((c, t), i) => s"$i.js" },
+      getData = { case ((c, t), i) => c },
+    )
+    dumpDir[Zipped](
+      name = if (withMsg) Some("failed transpiled conformance tests") else None,
+      iterable = transFailedTests.zipWithIndex,
+      dirname = s"$baseDir/trans-failed",
+      getName = { case ((c, t), i) => s"$i.test.js" },
+      getData = { case ((c, t), i) => t },
+    )
+
   def addRaw(data: Any*): Unit =
     val raw = data.mkString("\t")
     if (stdOut) clearLine

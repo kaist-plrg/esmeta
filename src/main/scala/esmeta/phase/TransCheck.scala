@@ -37,7 +37,10 @@ case object TransCheck extends Phase[CFG, Boolean] {
         val transpiledTest =
           injectedTest.filterAssertion.replaceScript(transpiled)
 
-        // optionally dump the injected program
+        // run tests
+        val _ = (injectedTest.isPass, transpiledTest.isPass)
+
+        // optionally dump the compiled test
         for (dirname <- config.out)
           dumpFile(
             name = "a compiled conformance test",
@@ -45,30 +48,27 @@ case object TransCheck extends Phase[CFG, Boolean] {
             filename = s"$dirname/$filename",
           )
 
-        // run and validate the injected program
-        (
-          file,
-          (injectedTest.failedAssertions, transpiledTest.failedAssertions),
-        ),
+        (file, (injectedTest, transpiledTest)),
       )
       .toMap
 
     results.foreach {
-      case (f, (origFails, transFails)) =>
-        println(s"===========$f===========")
-        if (!origFails.isEmpty) {
+      case (f, (origTest, transTest)) =>
+        if (!origTest.isPass || !transTest.isPass)
+          println(s"===========$f===========")
+        if (!origTest.isPass) {
           println("orig test: ")
-          origFails.foreach { case (a, m) => println(s"$a\n  > $m") }
+          println(origTest.msg)
         }
-        if (!transFails.isEmpty) {
+        if (!transTest.isPass) {
           println("transpiled test: ")
-          transFails.foreach { case (a, m) => println(s"$a\n  > $m") }
+          println(transTest.msg)
         }
     }
 
     results.forall {
-      case (_, (f1, f2)) =>
-        f1.isEmpty && f2.isEmpty
+      case (_, (origTest, transTest)) =>
+        origTest.isPass && transTest.isPass
     }
 
   def defaultConfig: Config = Config()

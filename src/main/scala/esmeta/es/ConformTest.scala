@@ -22,23 +22,37 @@ case class ConformTest(
   /** indicates if the test should exit normally */
   lazy val isNormal = exitTag == NormalTag
 
-  /** List of passed and failed assertions */
-  lazy val (passedAssertions, failedAssertions)
-    : (Vector[Assertion], Vector[(Assertion, String)]) =
+  /** Execute test and get result */
+  lazy val (concreteExitTag, passedAssertions, failedAssertions)
+    : (ExitTag, Vector[Assertion], Vector[(Assertion, String)]) =
     val src = s"${Injector.assertions}$LINE_SEP$script"
     JSEngine
       .runAndGetStdout(src :: (assertions.toList.map(_.toString)))
       .map(stdouts =>
         val (p, f) = assertions.zip(stdouts.tail).partition(_._2.isEmpty)
-        (p.map(_._1), f),
+        (NormalTag, p.map(_._1), f),
       )
-      .getOrElse(
-        // TODO inspect exit tag more carefully
-        if isNormal then (Vector(), assertions.map((_, "")))
-        else (assertions, Vector()),
+      .recover(e =>
+        // TODO handle ThrowValueTag more carefully
+        val msg = e.getMessage
+        val tag =
+          if msg.contains("Error:") then ThrowErrorTag(msg.split(":")(0))
+          else ThrowValueTag(esmeta.state.Str(msg))
+        (tag, Vector(), Vector()),
       )
+      .get
+
+  /** Indicates if the test is passed */
+  lazy val isPass = exitTag == concreteExitTag && failedAssertions.length == 0
+
+  /** human readable message indication the reason of test fail */
+  lazy val msg =
+    if isPass then ""
+    else if (exitTag != concreteExitTag) then
+      s"[Exit Tag Mismatch]$LINE_SEP > Expected $exitTag but got $concreteExitTag"
+    else failedAssertions.map((a, m) => s"$a$LINE_SEP > $m").mkString(LINE_SEP)
 
   /** retain only passed assertions */
   def filterAssertion: ConformTest =
-    ConformTest(id, script, exitTag, defs, isAsync, passedAssertions)
+    ConformTest(id, script, concreteExitTag, defs, isAsync, passedAssertions)
 }

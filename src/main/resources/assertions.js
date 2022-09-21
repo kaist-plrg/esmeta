@@ -15,6 +15,10 @@ var $error = (globalThis.console && globalThis.console.log) || globalThis.print;
 function $toString(value) {
   if (value === 0 && 1 / value === -Infinity) return "«-0»";
   if (value instanceof Error) return "a " + value.constructor.name;
+  if (value === AsyncArrowFunction.prototype) return "an async arrow function"
+  if (value === AsyncFunction.prototype) return "an async function"
+  if (value === AsyncGeneratorFunction.prototype) return "an async generator function"
+  if (value === GeneratorFunction.prototype) return "a generator function"
   if (typeof value === "string") return '"' + value + '"';
   return String(value);
 }

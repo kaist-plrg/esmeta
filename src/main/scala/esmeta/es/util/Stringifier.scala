@@ -7,6 +7,7 @@ import esmeta.util.Appender.*
 import esmeta.util.BaseUtils.*
 import esmeta.es.*
 import esmeta.es.util.injector.*
+import esmeta.es.util.injector.Injector.*
 import esmeta.state.*
 
 /** stringifier for ECMAScript */
@@ -80,11 +81,23 @@ class Stringifier(
     app >> "// [EXIT] " >> exitTag.toString
     exitTag match {
       case NormalTag =>
-        if (defs) app :> Injector.assertions >> LINE_SEP
-        app :> script
-        if (isAsync) app :> "$delay(() => {"
-        assertions.foreach(app :> _)
-        if (isAsync) app :> "});"
+        val delayHead = "$delay(() => {"
+        val delayTail = "});"
+        if (defs) {
+          val assertionCode = (
+            if (isAsync) delayHead +: assertions :+ delayTail
+            else assertions
+          ).mkString(LINE_SEP)
+          app :> template
+            .replace(scriptPlaceholder, script)
+            .replace(libPlaceholder, lib)
+            .replace(assertionPlaceholder, assertionCode)
+        } else {
+          app :> script
+          if (isAsync) app :> delayHead
+          assertions.foreach(app :> _)
+          if (isAsync) app :> delayTail
+        }
       case _ =>
         app :> script
     }

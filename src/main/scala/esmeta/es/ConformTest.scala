@@ -27,11 +27,12 @@ case class ConformTest(
   /** Execute test and get result */
   lazy val (concreteExitTag, passedAssertions, failedAssertions)
     : (ExitTag, Vector[Assertion], Vector[(Assertion, String)]) =
-    val src = s"${Injector.assertions}$LINE_SEP$script"
     JSEngine
-      .runAndGetStdout(src :: (assertions.toList.map(_.toString)))
+      .runAndGetStdout(
+        script :: Injector.lib :: (assertions.toList.map(_.toString)),
+      )
       .map(stdouts =>
-        val (p, f) = assertions.zip(stdouts.tail).partition(_._2.isEmpty)
+        val (p, f) = assertions.zip(stdouts.tail.tail).partition(_._2.isEmpty)
         (NormalTag, p.map(_._1), f),
       )
       .recover(e =>

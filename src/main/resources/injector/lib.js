@@ -1,15 +1,13 @@
-"use strict";
-
 // hidden constructors
-var AsyncArrowFunction = Object.getPrototypeOf(async () => {}).constructor;
-var AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
-var AsyncGeneratorFunction = Object.getPrototypeOf(
+let AsyncArrowFunction = Object.getPrototypeOf(async () => {}).constructor;
+let AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
+let AsyncGeneratorFunction = Object.getPrototypeOf(
   async function* () {}
 ).constructor;
-var GeneratorFunction = Object.getPrototypeOf(function* () {}).constructor;
+let GeneratorFunction = Object.getPrototypeOf(function* () {}).constructor;
 
 // logging errors
-var $error = (globalThis.console && globalThis.console.log) || globalThis.print;
+let $error = (globalThis.console && globalThis.console.log) || globalThis.print;
 
 // conversion to string
 function $toString(value) {

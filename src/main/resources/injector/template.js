@@ -1,0 +1,9 @@
+"use strict";
+
+/*SCRIPT_PLACEHOLDER*/
+
+(() => {
+/*LIBRARY_PLACEHOLER*/
+
+/*ASSERTION_PLACEHOLDER*/
+})()

@@ -37,7 +37,11 @@ object Injector:
     new Injector(extractor.initSt, extractor.result, defs, log).conformTest
 
   /** assertion definitions */
-  lazy val assertions: String = readFile(s"$RESOURCE_DIR/assertions.js")
+  lazy val template: String = readFile(s"$RESOURCE_DIR/injector/template.js")
+  lazy val lib: String = readFile(s"$RESOURCE_DIR/injector/lib.js")
+  val scriptPlaceholder = "/*SCRIPT_PLACEHOLDER*/"
+  val libPlaceholder = "/*LIBRARY_PLACEHOLDER*/"
+  val assertionPlaceholder = "/*ASSERTION_PLACEHOLDER*/"
 
 /** extensible helper of assertion injector */
 class Injector(

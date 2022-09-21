@@ -2,8 +2,8 @@ package esmeta.es
 
 import esmeta.*
 import esmeta.es.util.injector.*
+import esmeta.es.util.injector.Injector.*
 import esmeta.state.*
-import esmeta.util.SystemUtils.*
 
 /** stringify test */
 class StringifyTinyTest extends ESTest {
@@ -13,7 +13,6 @@ class StringifyTinyTest extends ESTest {
     lazy val addr = NamedAddr("foo")
     lazy val path = "path"
     lazy val origPath = "origPath"
-    lazy val assertions = readFile(s"$RESOURCE_DIR/assertions.js")
 
     checkStringify("SameValue")(
       hasValue1 -> "$assert.sameValue(x, 1.0);",
@@ -56,13 +55,24 @@ class StringifyTinyTest extends ESTest {
     )
 
     checkStringify("ConformTest")(
-      conformTest1 -> (s"// [EXIT] normal\n$assertions\n\n" +
-      """// Script
-                        |$delay(() => {
-                        |$assert.sameValue(x, 1.0);
-                        |$assert.sameValue(Object.isExtensible(path), true);
-                        |$assert.callable(path);
-                        |});""").stripMargin,
+      conformTest1 -> s"""// [EXIT] normal
+                          |${template
+        .replace(
+          scriptPlaceholder,
+          "// Script",
+        )
+        .replace(
+          libPlaceholder,
+          lib,
+        )
+        .replace(
+          assertionPlaceholder,
+          """$delay(() => {
+            |$assert.sameValue(x, 1.0);
+            |$assert.sameValue(Object.isExtensible(path), true);
+            |$assert.callable(path);
+            |});""",
+        )}""".stripMargin,
       conformTest2 -> """// [EXIT] normal
                         |// Script
                         |$delay(() => {

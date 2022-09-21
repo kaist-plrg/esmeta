@@ -24,7 +24,7 @@ object Injector:
     log: Boolean = false,
   ): ConformTest =
     val extractor = ExitStateExtractor(Initialize(cfg, src))
-    new Injector(extractor, defs, log).conformTest
+    new Injector(extractor.initSt, extractor.result, defs, log).conformTest
 
   /** injection from files */
   def fromFile(
@@ -34,14 +34,15 @@ object Injector:
     log: Boolean = false,
   ): ConformTest =
     val extractor = ExitStateExtractor(Initialize.fromFile(cfg, filename))
-    new Injector(extractor, defs, log).conformTest
+    new Injector(extractor.initSt, extractor.result, defs, log).conformTest
 
   /** assertion definitions */
   lazy val assertions: String = readFile(s"$RESOURCE_DIR/assertions.js")
 
 /** extensible helper of assertion injector */
 class Injector(
-  extractor: ExitStateExtractor,
+  initSt: State,
+  exitSt: State,
   defs: Boolean,
   log: Boolean,
 ) {
@@ -70,12 +71,6 @@ class Injector(
 
   /** injected script */
   lazy val result: String = conformTest.toString
-
-  /** initial state */
-  lazy val initSt: State = extractor.initSt
-
-  /** exit state */
-  lazy val exitSt: State = extractor.result
 
   /** target script */
   lazy val script = initSt.sourceText.get

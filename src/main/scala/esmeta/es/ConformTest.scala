@@ -3,6 +3,8 @@ package esmeta.es
 import esmeta.*
 import esmeta.util.*
 import esmeta.es.util.injector.*
+import esmeta.cfg.CFG
+import esmeta.state.State
 
 /** conformance test */
 case class ConformTest(
@@ -55,4 +57,34 @@ case class ConformTest(
   /** retain only passed assertions */
   def filterAssertion: ConformTest =
     ConformTest(id, script, concreteExitTag, defs, isAsync, passedAssertions)
+}
+
+object ConformTest {
+  def createTestPair(script: String, cfg: CFG): (ConformTest, ConformTest) =
+    // run babel to get transpiled program
+    val transpiled = Babel.transpile(script)
+
+    // inject assertions to original program
+    val injectedTest = Injector(cfg, script, true)
+
+    // replace test's script with transpiled script
+    val transpiledTest =
+      injectedTest.filterAssertion.replaceScript(transpiled)
+
+    (injectedTest, transpiledTest)
+
+  def createTestPair(initSt: State, exitSt: State): (ConformTest, ConformTest) =
+    val script = initSt.sourceText.get
+
+    // run babel to get transpiled program
+    val transpiled = Babel.transpile(script)
+
+    // inject assertions to original program
+    val injectedTest = new Injector(initSt, exitSt, true, false).conformTest
+
+    // replace test's script with transpiled script
+    val transpiledTest =
+      injectedTest.filterAssertion.replaceScript(transpiled)
+
+    (injectedTest, transpiledTest)
 }

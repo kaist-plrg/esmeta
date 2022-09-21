@@ -3,10 +3,9 @@ package esmeta.phase
 import esmeta.*
 import esmeta.cfg.CFG
 import esmeta.es.ConformTest
-import esmeta.es.util.injector.Injector
 import esmeta.util.*
 import esmeta.util.SystemUtils.*
-import scala.util.{Success, Failure}
+import java.io.File
 
 /** `transcheck` phase */
 case object TransCheck extends Phase[CFG, Boolean] {
@@ -17,42 +16,26 @@ case object TransCheck extends Phase[CFG, Boolean] {
     cmdConfig: CommandConfig,
     config: Config,
   ): Boolean =
-    val files = for (
-      dir <- (cmdConfig.targets);
-      file <- walkTree(dir).filter(f => jsFilter(f.getName))
-    ) yield file
+    val tests: Map[File, (ConformTest, ConformTest)] = {
+      for (
+        dir <- (cmdConfig.targets);
+        file <- walkTree(dir).filter(f => jsFilter(f.getName));
+        path = file.getPath;
+        script = readFile(path)
+      ) yield (file, ConformTest.createTestPair(script, cfg))
+    }.toMap
 
-    val results = files
-      .map(file =>
-        val filename = file.getPath
-        val orig = readFile(filename)
-
-        // run babel to get transpiled program
-        val transpiled = Babel.transpile(orig)
-
-        // inject assertions to original program
-        val injectedTest = Injector(cfg, orig, true)
-
-        // replace test's script with transpiled script
-        val transpiledTest =
-          injectedTest.filterAssertion.replaceScript(transpiled)
-
-        // run tests
-        val _ = (injectedTest.isPass, transpiledTest.isPass)
-
-        // optionally dump the compiled test
-        for (dirname <- config.out)
-          dumpFile(
-            name = "a compiled conformance test",
-            data = transpiledTest,
-            filename = s"$dirname/$filename",
-          )
-
-        (file, (injectedTest, transpiledTest)),
+    // optionally dump the compiled test
+    for (dirname <- config.out)
+      dumpDir[(File, (ConformTest, ConformTest))](
+        name = "compiled conformance tests",
+        iterable = tests,
+        dirname = dirname,
+        getName = _._1.getPath,
+        getData = _._2._2,
       )
-      .toMap
 
-    results.foreach {
+    tests.foreach {
       case (f, (origTest, transTest)) =>
         if (!origTest.isPass || !transTest.isPass)
           println(s"===========$f===========")
@@ -66,7 +49,7 @@ case object TransCheck extends Phase[CFG, Boolean] {
         }
     }
 
-    results.forall {
+    tests.forall {
       case (_, (origTest, transTest)) =>
         origTest.isPass && transTest.isPass
     }

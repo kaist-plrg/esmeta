@@ -31,7 +31,7 @@ class Coverage(
     nodeMap += node -> script
 
   // all meaningful scripts
-  def scripts: Vector[Script] = scriptMap.values.toVector
+  def minimalScripts: Vector[Script] = scriptMap.values.toVector
 
   // the number of all meaningful code set
   def codeCount: Int = codeMap.size
@@ -39,13 +39,22 @@ class Coverage(
   // all meaningful code set
   def codeSet: Set[String] = codeMap.keySet
 
+  // all meaningful tests
+  private var failedTests: Set[(String, ConformTest)] = Set()
+  private var transFailedTests: Set[(String, ConformTest)] = Set()
+  def doConformTest(initSt: State, finalSt: State) =
+    val code = initSt.sourceText.get
+    val (test, transTest) = ConformTest.createTestPair(initSt, finalSt)
+    if (!test.isPass) failedTests += (code, test)
+    if (!transTest.isPass) transFailedTests += (code, transTest)
+
   // script parser
   private lazy val scriptParser = cfg.scriptParser
 
   /** evaluate a given ECMAScript program, update coverage, and return
     * evaluation result with whether it succeeds to increase coverage
     */
-  def runAndCheck(script: Script): (State, Boolean) = {
+  def runAndCheck(script: Script): (State, State, Boolean) = {
     val Script(code, ast, name, path) = script
 
     // program infos
@@ -53,10 +62,8 @@ class Coverage(
 
     // run interpreter and record touched
     var touched: Set[Node] = Set()
-    val finalSt = new Interpreter(
-      Initialize(cfg, code, Some(ast)),
-      timeLimit = timeLimit,
-    ) {
+    val initSt = Initialize(cfg, code, Some(ast))
+    val finalSt = new Interpreter(initSt, timeLimit = timeLimit) {
       // check if current state need to be recorded
       private def needRecord: Boolean =
         val contexts = st.context :: st.callStack.map(_.context)
@@ -85,13 +92,13 @@ class Coverage(
       case Some(script) if script.code.length <= code.length =>
       case _ => update(node, script); updated = true
 
-    (finalSt, updated)
+    (initSt, finalSt, updated)
   }
 
   /** evaluate a given ECMAScript program, update coverage, and return
     * evaluation result
     */
-  def run(script: Script): State = { val (st, _) = runAndCheck(script); st }
+  def run(script: Script): State = { val (_, st, _) = runAndCheck(script); st }
 
   /** evaluate a given ECMAScript program, update coverage, and return
     * evaluation result
@@ -141,12 +148,44 @@ class Coverage(
       filename = s"$baseDir/coverage.json",
       noSpace = false,
     )
+    rmdir(s"$baseDir/minimal")
     dumpDir(
-      name = if (withMsg) Some("ECMAScript programs") else None,
-      iterable = scripts,
-      dirname = s"$baseDir/scripts",
+      name = if (withMsg) Some("Minimal ECMAScript programs") else None,
+      iterable = minimalScripts,
+      dirname = s"$baseDir/minimal",
       getName = (script: Script) => s"${script.name}.js",
       getData = (script: Script) => script.code,
+    )
+    rmdir(s"$baseDir/failed")
+    type zipped = ((String, ConformTest), Int)
+    dumpDir[zipped](
+      name = if (withMsg) Some("Failed conformance codes") else None,
+      iterable = failedTests.zipWithIndex,
+      dirname = s"$baseDir/failed",
+      getName = { case ((c, t), i) => s"$i.js" },
+      getData = { case ((c, t), i) => c },
+    )
+    dumpDir[zipped](
+      name = if (withMsg) Some("Failed conformance tests") else None,
+      iterable = failedTests.zipWithIndex,
+      dirname = s"$baseDir/failed",
+      getName = { case ((c, t), i) => s"$i.test.js" },
+      getData = { case ((c, t), i) => t },
+    )
+    rmdir(s"$baseDir/trans-failed")
+    dumpDir[zipped](
+      name = if (withMsg) Some("Failed transpiled conformance codes") else None,
+      iterable = transFailedTests.zipWithIndex,
+      dirname = s"$baseDir/trans-failed",
+      getName = { case ((c, t), i) => s"$i.js" },
+      getData = { case ((c, t), i) => c },
+    )
+    dumpDir[zipped](
+      name = if (withMsg) Some("Failed transpiled conformance tests") else None,
+      iterable = transFailedTests.zipWithIndex,
+      dirname = s"$baseDir/trans-failed",
+      getName = { case ((c, t), i) => s"$i.test.js" },
+      getData = { case ((c, t), i) => t },
     )
 
   /** convertion to string */

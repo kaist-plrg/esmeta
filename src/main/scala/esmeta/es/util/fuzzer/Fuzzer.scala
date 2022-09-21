@@ -20,7 +20,9 @@ object Fuzzer:
     stdOut: Boolean = false,
     timeLimit: Option[Int] = None, // time limitation for each evaluation
     trial: Option[Int] = None, // `None` denotes no bound
-  ): Coverage = new Fuzzer(cfg, log, stdOut, timeLimit, trial).result
+    conformtest: Boolean = false,
+  ): Coverage =
+    new Fuzzer(cfg, log, stdOut, timeLimit, trial, conformtest).result
 
 /** extensible helper of ECMAScript program fuzzer with ECMA-262 */
 class Fuzzer(
@@ -29,12 +31,14 @@ class Fuzzer(
   stdOut: Boolean = false,
   timeLimit: Option[Int] = None, // time limitation for each evaluation
   trial: Option[Int] = None, // `None` denotes no bound
+  conformtest: Boolean = false,
 ) {
 
   /** generated ECMAScript programs */
   lazy val result: Coverage =
     println("- initializing program pool...")
-    for (code <- synthesizer.initPool) add(code)
+    for (code <- synthesizer.initPool)
+      add(code)
 
     println("- repeatedly trying to fuzz new programs to increase coverage...")
     log.map(_ => {
@@ -91,18 +95,21 @@ class Fuzzer(
         print(s"[$iter] (${Time(duration).simpleString}) $simpleCode")
       }
     }
-    if (visited contains code) false
-    else add(code)
+    add(code)
   }.getOrElse(false)
 
   /** add new program */
   def add(code: String): Boolean = optional {
-    visited += code
-    if (!ValidityChecker(code)) false
+    if (visited contains code) false
     else {
-      val script = toScript(code)
-      val (st, updated) = cov.runAndCheck(script)
-      updated
+      visited += code
+      if (!ValidityChecker(code)) false
+      else {
+        val script = toScript(code)
+        val (initSt, exitSt, updated) = cov.runAndCheck(script)
+        if (conformtest) cov.doConformTest(initSt, exitSt)
+        updated
+      }
     }
   }.getOrElse(false)
 
@@ -126,7 +133,6 @@ class Fuzzer(
     val (b, bt) = cov.branchCov
     val br = percentString(b, bt)
     addRaw(iter, size, duration, n, nt, nr, b, bt, br)
-    rmdir(s"$FUZZ_LOG_DIR/scripts")
     cov.dumpTo(FUZZ_LOG_DIR, withMsg = false)
   def addRaw(data: Any*): Unit =
     val raw = data.mkString("\t")

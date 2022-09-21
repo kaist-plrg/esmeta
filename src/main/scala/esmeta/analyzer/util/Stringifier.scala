@@ -3,12 +3,14 @@ package esmeta.analyzer.util
 import esmeta.analyzer.*
 import esmeta.analyzer.domain.*
 import esmeta.cfg.*
+import esmeta.ir.{IRElem, LangEdge}
 import esmeta.state.*
-import esmeta.ir.IRElem
+import esmeta.state.SimpleValue
+import esmeta.ty.*
+import esmeta.ty.util.{Stringifier => TyStringifier}
 import esmeta.util.*
 import esmeta.util.Appender.*
 import esmeta.util.BaseUtils.*
-import esmeta.state.SimpleValue
 
 /** stringifier for analyzer */
 class Stringifier(
@@ -22,12 +24,15 @@ class Stringifier(
   private val irStringifier = IRElem.getStringifier(detail, location)
   import irStringifier.given
 
+  import TyStringifier.given
+
   /** elements */
   given elemRule: Rule[AnalyzerElem] = (app, elem) =>
     elem match
-      case view: View       => viewRule(app, view)
-      case cp: ControlPoint => cpRule(app, cp)
-      case av: AValue       => avRule(app, av)
+      case elem: View         => viewRule(app, elem)
+      case elem: ControlPoint => cpRule(app, elem)
+      case elem: AValue       => avRule(app, elem)
+      case elem: TypeMismatch => mismatchRule(app, elem)
   // TODO case ty: Type          => typeRule(app, ty)
 
   /** view */
@@ -92,6 +97,38 @@ class Stringifier(
       case Const(name)     => app >> "~" >> name >> "~"
       case CodeUnit(c)     => app >> c.toInt >> "cu"
       case sv: SimpleValue => app >> sv.toString
+
+  // specification type mismatches
+  given mismatchRule: Rule[TypeMismatch] = (app, m) =>
+    given Rule[IRElem with LangEdge] = addLoc
+    m match
+      case m @ ParamTypeMismatch(callerNp, calleeRp, param, argTy) =>
+        app >> "[ParamTypeMismatch] parameter _" >> param.lhs >> "_"
+        app >> " of " >> callerNp.func.name >> callerNp.node.callInst
+        app :> "- expected: " >> param.ty
+        app :> "- actual  : " >> argTy
+      case m @ ReturnTypeMismatch(ret, calleeRp, actual) =>
+        app >> "[ReturnTypeMismatch] "
+        app >> calleeRp.func.name >> ret
+        app :> "- expected: " >> calleeRp.func.retTy
+        app :> "- actual  : " >> actual
+      case ArityMismatch(callerNp, calleeRp, expected, actual) =>
+        app >> "[ArityMismatch] " >> callerNp.func.name
+        app >> callerNp.node.callInst
+        val (from, to) = expected
+        app :> "- expected: "
+        if (from == to) app >> from
+        else app >> "[" >> from >> ", " >> to >> "]"
+        app >> " for " >> calleeRp.func.name
+        app :> "- actual  : " >> actual
+
+  private val addLoc: Rule[IRElem with LangEdge] = (app, elem) => {
+    for {
+      lang <- elem.langOpt
+      loc <- lang.loc
+    } app >> " @ " >> loc.toString
+    app
+  }
 
   // TODO type
   // given typeRule: Rule[Type] = (app, ty) => ???

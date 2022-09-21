@@ -46,7 +46,10 @@ case object TransCheck extends Phase[CFG, Boolean] {
           )
 
         // run and validate the injected program
-        (file, (injectedTest.failedAssertions, transpiledTest.failedAssertions)),
+        (
+          file,
+          (injectedTest.failedAssertions, transpiledTest.failedAssertions),
+        ),
       )
       .toMap
 

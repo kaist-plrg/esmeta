@@ -15,37 +15,37 @@ case class ValueTy(
   import ValueTy.*
 
   /** bottom check */
-  def isBottom: Boolean = (this eq Bot) | (
-    this.comp.isBottom &
-    this.pureValue.isBottom &
+  def isBottom: Boolean = (this eq Bot) || (
+    this.comp.isBottom &&
+    this.pureValue.isBottom &&
     this.subMap.isBottom
   )
 
   /** partial order/subset operator */
-  def <=(that: => ValueTy): Boolean = (this eq that) | (
-    this.comp <= that.comp &
-    this.pureValue <= that.pureValue &
+  def <=(that: => ValueTy): Boolean = (this eq that) || (
+    this.comp <= that.comp &&
+    this.pureValue <= that.pureValue &&
     this.subMap <= that.subMap
   )
 
   /** union type */
-  def |(that: => ValueTy): ValueTy =
+  def ||(that: => ValueTy): ValueTy =
     if (this eq that) this
     else
       ValueTy(
-        this.comp | that.comp,
-        this.pureValue | that.pureValue,
-        this.subMap | that.subMap,
+        this.comp || that.comp,
+        this.pureValue || that.pureValue,
+        this.subMap || that.subMap,
       )
 
   /** intersection type */
-  def &(that: => ValueTy): ValueTy =
+  def &&(that: => ValueTy): ValueTy =
     if (this eq that) this
     else
       ValueTy(
-        this.comp & that.comp,
-        this.pureValue & that.pureValue,
-        this.subMap & that.subMap,
+        this.comp && that.comp,
+        this.pureValue && that.pureValue,
+        this.subMap && that.subMap,
       )
 
   /** prune type */
@@ -60,14 +60,14 @@ case class ValueTy(
 
   /** get single value */
   def getSingle: Flat[AValue] =
-    this.comp.getSingle |
-    this.pureValue.getSingle |
+    this.comp.getSingle ||
+    this.pureValue.getSingle ||
     this.subMap.getSingle
 
   /** completion check */
   def isCompletion: Boolean =
-    !comp.isBottom &
-    pureValue.isBottom &
+    !comp.isBottom &&
+    pureValue.isBottom &&
     subMap.isBottom
 
   /** getters */
@@ -75,7 +75,7 @@ case class ValueTy(
   def abrupt: Boolean = comp.abrupt
   def clo: BSet[String] = pureValue.clo
   def cont: BSet[Int] = pureValue.cont
-  def names: Set[String] = pureValue.names
+  def name: NameTy = pureValue.name
   def record: RecordTy = pureValue.record
   def list: ListTy = pureValue.list
   def symbol: Boolean = pureValue.symbol
@@ -100,7 +100,7 @@ object ValueTy {
     pureValue: PureValueTy = PureValueTy.Bot,
     clo: BSet[String] = Fin(),
     cont: BSet[Int] = Fin(),
-    names: Set[String] = Set(),
+    name: NameTy = NameTy.Bot,
     record: RecordTy = RecordTy.Bot,
     list: ListTy = ListTy.Bot,
     symbol: Boolean = false,
@@ -118,11 +118,11 @@ object ValueTy {
     absent: Boolean = false,
     subMap: SubMapTy = SubMapTy.Bot,
   ): ValueTy = ValueTy(
-    comp = comp | CompTy(normal, abrupt),
-    pureValue = pureValue | PureValueTy(
+    comp = comp || CompTy(normal, abrupt),
+    pureValue = pureValue || PureValueTy(
       clo,
       cont,
-      names,
+      name,
       record,
       list,
       symbol,

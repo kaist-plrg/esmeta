@@ -205,10 +205,10 @@ class AbsTransfer(sem: AbsSemantics) {
         v <- transfer(elem)
         _ <- modify(_.remove(l, v))
       } yield ()
-    case IReturn(expr) =>
+    case inst @ IReturn(expr) =>
       for {
         v <- transfer(expr)
-        _ <- doReturn(v)
+        _ <- doReturn(inst, v)
         _ <- put(AbsState.Bot)
       } yield ()
     case IAssert(expr: EYet) =>
@@ -240,8 +240,13 @@ class AbsTransfer(sem: AbsSemantics) {
           for (ACont(target, captured) <- fv.cont) {
             val as0 =
               as.map(v => if (cp.func.isReturnComp) v.wrapCompletion else v)
-            val newLocals =
-              sem.getLocals(target.func, as0, cont = true) ++ captured
+            val newLocals = sem.getLocals(
+              callerNp,
+              target.toReturnPoint,
+              as0,
+              cont = true,
+              method = false,
+            ) ++ captured
             sem += target -> st.copied(locals = newLocals)
           }
           AbsValue.Bot
@@ -257,7 +262,13 @@ class AbsTransfer(sem: AbsSemantics) {
           st <- get
         } yield {
           for (AClo(func, _) <- fv.clo)
-            sem.doCall(callerNp, st, func, bv.refineThis(func) :: as)
+            sem.doCall(
+              callerNp,
+              st,
+              func,
+              bv.refineThis(func) :: as,
+              method = true,
+            )
           AbsValue.Bot
         }
       case ISdoCall(_, base, method, args) =>
@@ -271,7 +282,13 @@ class AbsTransfer(sem: AbsSemantics) {
             case One(AstValue(syn: Syntactic)) =>
               getSDO((syn, method)) match
                 case Some((ast0, sdo)) =>
-                  sem.doCall(callerNp, st, sdo, AbsValue(ast0) :: as)
+                  sem.doCall(
+                    callerNp,
+                    st,
+                    sdo,
+                    AbsValue(ast0) :: as,
+                    method = true,
+                  )
                 case None => error("invalid sdo")
             case One(AstValue(lex: Lexical)) =>
               newV ⊔= AbsValue(Interpreter.eval(lex, method))
@@ -280,8 +297,8 @@ class AbsTransfer(sem: AbsSemantics) {
               newV ⊔= bv.getLexical(method)
 
               // syntactic sdo
-              for { (sdo, ast) <- bv.getSDO(method) }
-                sem.doCall(callerNp, st, sdo, ast :: as)
+              for ((sdo, ast) <- bv.getSDO(method))
+                sem.doCall(callerNp, st, sdo, ast :: as, method = true)
             case _ => /* do nothing */
           newV
         }
@@ -300,19 +317,19 @@ class AbsTransfer(sem: AbsSemantics) {
         for {
           v <- transfer(expr)
         } yield v.isCompletion
-      case EReturnIfAbrupt(ERef(ref), check) =>
+      case riaExpr @ EReturnIfAbrupt(ERef(ref), check) =>
         for {
           rv <- transfer(ref)
           v <- transfer(rv)
-          newV <- returnIfAbrupt(v, check)
+          newV <- returnIfAbrupt(riaExpr, v, check)
           _ <-
             if (!newV.isBottom) modify(_.update(rv, newV))
             else put(AbsState.Bot)
         } yield newV
-      case EReturnIfAbrupt(expr, check) =>
+      case riaExpr @ EReturnIfAbrupt(expr, check) =>
         for {
           v <- transfer(expr)
-          newV <- returnIfAbrupt(v, check)
+          newV <- returnIfAbrupt(riaExpr, v, check)
         } yield newV
       case EPop(list, front) =>
         for {
@@ -620,19 +637,23 @@ class AbsTransfer(sem: AbsSemantics) {
     AbsValue.mopTransfer(mop, vs)
 
   // return specific value
-  def doReturn(v: AbsValue)(using cp: ControlPoint): Result[Unit] = for {
+  def doReturn(
+    elem: Return,
+    v: AbsValue,
+  )(using cp: ControlPoint): Result[Unit] = for {
     st <- get
     ret = AbsRet(v, st.copied(locals = Map()))
-    _ = sem.doReturn(ReturnPoint(cp.func, cp.view), ret)
+    _ = sem.doReturn(elem, ReturnPoint(cp.func, cp.view), ret)
   } yield ()
 
   // return if abrupt completion
   def returnIfAbrupt(
+    riaExpr: EReturnIfAbrupt,
     value: AbsValue,
     check: Boolean,
   )(using cp: ControlPoint): Result[AbsValue] = {
     val checkReturn: Result[Unit] =
-      if (check) doReturn(value.abruptCompletion)
+      if (check) doReturn(riaExpr, value.abruptCompletion)
       else ()
     for (_ <- checkReturn) yield value.unwrapCompletion
   }

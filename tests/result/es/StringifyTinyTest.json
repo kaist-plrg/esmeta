@@ -1,0 +1,10 @@
+{
+  "CompareArray" : true,
+  "ConformTest" : true,
+  "IsCallable" : true,
+  "IsConstructable" : true,
+  "IsExtensible" : true,
+  "SameObject" : true,
+  "SameValue" : true,
+  "VerifyProperty" : true
+}

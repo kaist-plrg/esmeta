@@ -1,5 +1,8 @@
 package esmeta.util
 
+import esmeta.LINE_SEP
+import scala.annotation.alpha
+
 /** A trait for objects that have a location in spec.html */
 trait Locational {
   var loc: Option[Loc] = None
@@ -21,9 +24,19 @@ case class Loc(
   var end: Pos,
   var steps: List[Int],
 ) {
+  // string getter
+  def getString(str: String): String = str.substring(start.offset, end.offset)
+
   // TODO short string for the same line (e.g. 3:2-4)
   override def toString: String =
-    s"$start-$end (${steps.mkString(".")})"
+    s"${start.simpleString}-${end.simpleString} (step $stepString)"
+
+  def stepString: String =
+    (for ((step, idx) <- steps.zipWithIndex) yield idx % 3 match
+      case 0 => step.toString
+      case 1 => AlphabetNumeral(step + 1)
+      case 2 => RomanNumeral(step, lower = true)
+    ).mkString(".")
 }
 
 /** positions in algorithms
@@ -36,5 +49,6 @@ case class Pos(
   var column: Int,
   var offset: Int,
 ) {
-  override def toString: String = s"$line:$column($offset)"
+  def simpleString: String = s"$line:$column"
+  override def toString: String = s"$simpleString($offset)"
 }

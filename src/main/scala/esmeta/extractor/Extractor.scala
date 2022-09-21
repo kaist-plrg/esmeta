@@ -5,6 +5,7 @@ import esmeta.lang.*
 import esmeta.spec.{*, given}
 import esmeta.spec.util.{Parsers => SpecParsers}
 import esmeta.ty.TyModel
+import esmeta.util.ManualInfo
 import esmeta.util.HtmlUtils.*
 import esmeta.util.SystemUtils.*
 import org.jsoup.nodes.*
@@ -19,8 +20,15 @@ object Extractor:
 
   /** extracts a specification with a target version of ECMA-262 */
   def apply(targetOpt: Option[String]): Spec =
-    val (version, document) =
-      Spec.getVersionWith(targetOpt)(readFile(SPEC_HTML).toHtml)
+    val (version, document) = Spec.getVersionWith(targetOpt) {
+      case version =>
+        // if bugfix patch exists, apply it to spec.html
+        lazy val document = readFile(SPEC_HTML).toHtml
+        for (path <- ManualInfo(Some(version)).bugfixPath) {
+          Spec.applyPatch(path); document; Spec.clean
+        }
+        document
+    }
     apply(document, Some(version))
 
   /** extracts a specification with a target version of ECMA-262 */
@@ -34,6 +42,8 @@ class Extractor(
   document: Document,
   version: Option[Spec.Version] = None,
 ) extends SpecParsers {
+
+  lazy val manualInfo: ManualInfo = ManualInfo(version)
 
   /** final result */
   lazy val result = Spec(
@@ -77,7 +87,7 @@ class Extractor(
   def extractAlgorithms: List[Algorithm] =
     // XXX load manually created algorithms
     var manualJobs = for {
-      file <- walkTree(MANUALS_DIR) if algoFilter(file.getName)
+      file <- manualInfo.algoFiles
       content = readFile(file.toString)
       document = content.toHtml
       elem <- document.getElems("emu-alg:not([example])")

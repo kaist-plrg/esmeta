@@ -3,12 +3,19 @@ package esmeta.util
 import esmeta.util.SystemUtils.*
 
 /** git helpers */
-abstract class Git(path: String) { self =>
+abstract class Git(path: String, shortHashLength: Int = 16) { self =>
 
   /** git versions */
   case class Version(name: String, hash: String) {
     def git: Git = self
+
+    /** get short hashcode */
+    def shortHash: String = hash.take(shortHashLength)
+
+    /** conversion to string */
     override def toString: String = s"$name ($hash)"
+
+    /** hash-based equality check */
     override def equals(that: Any): Boolean = that match
       case that: Version => this.git == that.git && this.hash == that.hash
       case _             => false
@@ -26,6 +33,12 @@ abstract class Git(path: String) { self =>
   def changeVersion(target: String): Unit =
     executeCmd(s"git checkout $target", path)
 
+  /** apply git patch */
+  def applyPatch(patch: String): Unit = executeCmd(s"git apply $patch", path)
+
+  /** clean modified content */
+  def clean: Unit = executeCmd(s"git checkout -- .", path)
+
   /** get git commit version */
   def getVersion(targetOpt: Option[String]): Version =
     targetOpt.fold(currentVersion)(getVersion)
@@ -40,15 +53,17 @@ abstract class Git(path: String) { self =>
   def currentVersion: Version = getVersion("HEAD")
 
   /** do something in a specific version */
-  def getVersionWith[T](target: Option[String])(f: => T): (Version, T) =
-    target match
-      case Some(target) =>
-        val cur = currentVersion
-        val version = getVersion(target)
-        changeVersion(version)
-        val result = f /* do something */
-        changeVersion(cur)
-        (version, result)
-      case None =>
-        (currentVersion, f)
+  def getVersionWith[T](target: Option[String])(
+    f: Version => T,
+  ): (Version, T) = target match
+    case Some(target) =>
+      val cur = currentVersion
+      val version = getVersion(target)
+      changeVersion(version)
+      val result = f(version)
+      changeVersion(cur)
+      (version, result)
+    case None =>
+      val version = currentVersion
+      (version, f(version))
 }

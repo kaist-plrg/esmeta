@@ -2,7 +2,7 @@ import sbtassembly.AssemblyPlugin.defaultUniversalScript
 
 // ESMeta version
 // NOTE: please update VERSION together in top-level package.scala
-ThisBuild / version := "0.1.0-RC1"
+ThisBuild / version := "0.1.0-rc2"
 
 // Scala version
 ThisBuild / scalaVersion := "3.1.0"
@@ -265,4 +265,11 @@ lazy val format = taskKey[Unit]("format all files")
 format := {
   (Compile / scalafmtAll).value
   (Compile / scalafmtSbt).value
+}
+
+// format check all files
+lazy val formatCheck = taskKey[Unit]("format check all files")
+formatCheck := {
+  (Compile / scalafmtCheckAll).value
+  (Compile / scalafmtSbtCheck).value
 }

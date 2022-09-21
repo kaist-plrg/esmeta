@@ -3,7 +3,7 @@ package esmeta.analyzer
 import esmeta.analyzer.domain.*
 import esmeta.analyzer.repl.*
 import esmeta.cfg.*
-import esmeta.ir.{Func => IRFunc, Name, Param, Local}
+import esmeta.ir.{Return, Func => IRFunc, Name, Param, Local}
 import esmeta.error.*
 import esmeta.state.*
 import esmeta.util.*
@@ -38,7 +38,7 @@ class AbsSemantics(
   private var iter: Int = 0
 
   /** count for each control point */
-  def getCounter: Map[ControlPoint, Int] = Map()
+  def getCounter: Map[ControlPoint, Int] = counter
   def getCount(cp: ControlPoint): Int = counter.getOrElse(cp, 0)
   private var counter: Map[ControlPoint, Int] = Map()
 
@@ -62,7 +62,7 @@ class AbsSemantics(
 
   /** fixpiont computation */
   @tailrec
-  final def fixpoint: AbsSemantics = worklist.next match
+  final def fixpoint: this.type = worklist.next match
     case Some(cp) =>
       // set the current control point
       curCp = Some(cp)
@@ -117,6 +117,7 @@ class AbsSemantics(
     calleeFunc: Func,
     args: List[AbsValue],
     captured: Map[Name, AbsValue] = Map(),
+    method: Boolean = false,
   ): Unit =
     this.callInfo += callerNp -> callerSt
     for {
@@ -126,6 +127,7 @@ class AbsSemantics(
         calleeFunc,
         args,
         captured,
+        method,
       )
     } {
       // add callee to worklist
@@ -146,6 +148,7 @@ class AbsSemantics(
     calleeFunc: Func,
     args: List[AbsValue],
     captured: Map[Name, AbsValue],
+    method: Boolean,
   ): List[(NodePoint[_], AbsState)] = {
     // handle ir callsite sensitivity
     val NodePoint(callerFunc, callSite, callerView) = callerNp
@@ -157,20 +160,29 @@ class AbsSemantics(
         )
       else callerView
 
-    val calleeSt = callerSt.copied(locals =
-      getLocals(calleeFunc, args) ++ captured,
-    )
     val calleeNp = NodePoint(calleeFunc, calleeFunc.entry, baseView)
+    val calleeRp = ReturnPoint(calleeFunc, baseView)
+    val calleeSt = callerSt.copied(locals =
+      getLocals(
+        callerNp,
+        calleeRp,
+        args,
+        cont = false,
+        method,
+      ) ++ captured,
+    )
     List((calleeNp, calleeSt))
   }
 
   /** get local variables */
   def getLocals(
-    func: Func,
+    callerNp: NodePoint[Call],
+    calleeRp: ReturnPoint,
     args: List[AbsValue],
-    cont: Boolean = false,
+    cont: Boolean,
+    method: Boolean,
   ): Map[Local, AbsValue] = {
-    val params = func.irFunc.params
+    val params: List[Param] = calleeRp.func.irFunc.params
     var map = Map[Local, AbsValue]()
 
     @tailrec
@@ -192,7 +204,7 @@ class AbsSemantics(
   }
 
   /** update return points */
-  def doReturn(rp: ReturnPoint, origRet: AbsRet): Unit =
+  def doReturn(elem: Return, rp: ReturnPoint, origRet: AbsRet): Unit =
     val ReturnPoint(func, view) = rp
     val retRp = ReturnPoint(func, getEntryView(view))
     val newRet = if (func.isReturnComp) origRet.wrapCompletion else origRet

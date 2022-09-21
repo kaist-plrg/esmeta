@@ -7,7 +7,7 @@ val LINE_SEP = System.getProperty("line.separator")
 val BASE_DIR = System.getenv("ESMETA_HOME")
 
 /** base project directory root */
-val VERSION = "0.1.0-RC1"
+val VERSION = "0.1.0-rc2"
 
 /** log directory */
 val LOG_DIR = s"$BASE_DIR/logs"
@@ -50,6 +50,9 @@ val TEST262_TEST_DIR = s"$TEST262_DIR/test"
 
 /** error stack trace display mode */
 var ERROR_MODE = false
+
+/** exit status return mode */
+var STATUS_MODE = false
 
 // -----------------------------------------------------------------------------
 // Mutable Global Options

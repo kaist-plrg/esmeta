@@ -105,7 +105,7 @@ class Fuzzer(
 
   /** add new program */
   def add(code: String): Boolean = optional {
-    if (debug) print(" " * 25 + "RESULT: ")
+    if (debug) print(f" ${"COVERAGE RESULT"}%30s: ")
     if (visited contains code) {
       if (debug) println(failMsg("ALREADY VISITED"))
       false
@@ -130,8 +130,12 @@ class Fuzzer(
   private def doConformTest(initSt: State, finalSt: State) =
     val code = initSt.sourceText.get
     val (test, transTest) = ConformTest.createTestPair(initSt, finalSt)
+    if (debug) print(f" ${"GRAAL-JS CONFORMANCE RESULT"}%30s: ")
     if (!test.isPass) failedTests.add(code, test)
+    if (debug) println(if (test.isPass) passMsg("") else failMsg(""))
+    if (debug) print(f" ${"BABEL TRANSPILATION RESULT"}%30s: ")
     if (!transTest.isPass) transFailedTests.add(code, transTest)
+    if (debug) println(if (transTest.isPass) passMsg("") else failMsg(""))
 
   /** ECMAScript grammar */
   val grammar = cfg.grammar

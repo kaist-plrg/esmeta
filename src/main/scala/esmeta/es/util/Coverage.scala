@@ -17,13 +17,31 @@ class Coverage(
 ) {
 
   // all meaningful scripts
-  val minimalScripts: MSet[Script] = MSet()
+  def minimalScripts: Set[Script] = _minimalScripts.toSet
+  private val _minimalScripts: MSet[Script] = MSet()
+
+  // target conditional branches
+  def targetConds: Set[Cond] = _targetConds.toSet
+  private val _targetConds: MSet[Cond] = MSet()
 
   // the number of all meaningful code set
   def size: Int = counter.size
+  // script reference counter
+  private val counter: MMap[Script, Int] = MMap()
 
-  // script parser
-  private lazy val scriptParser = cfg.scriptParser
+  // mapping from nodes to scripts
+  def getScript(node: Node): Option[Script] = nodeMap.get(node)
+  private val nodeMap: MMap[Node, Script] = MMap()
+
+  // mapping from branches to scripts
+  def getScript(cond: Cond): Option[Script] = condMap.get(cond)
+  private val condMap: MMap[Cond, Script] = MMap()
+
+  // branch or reference to EReturnIfAbrupt with boolean values
+  // `true` (`false`) denotes then- (else-) branch or abrupt (non-abrupt) value
+  case class Cond(elem: Branch | WeakUIdRef[EReturnIfAbrupt], cond: Boolean) {
+    def neg: Cond = copy(cond = !cond)
+  }
 
   /** evaluate a given ECMAScript program, update coverage, and return
     * evaluation result with whether it succeeds to increase coverage
@@ -54,7 +72,7 @@ class Coverage(
       // override branch move
       override def moveBranch(branch: Branch, cond: Boolean): Unit =
         // record touched conditional branch
-        if (needRecord) touchedConds += (branch, cond)
+        if (needRecord) touchedConds += Cond(branch, cond)
         super.moveBranch(branch, cond)
 
       // override helper for return-if-abrupt cases
@@ -64,7 +82,7 @@ class Coverage(
         check: Boolean,
       ): Value =
         val abrupt = value.isAbruptCompletion
-        if (needRecord) touchedConds += (riaExpr.idRef, abrupt)
+        if (needRecord) touchedConds += Cond(riaExpr.idRef, abrupt)
         super.returnIfAbrupt(riaExpr, value, check)
 
       // handle dynamically created ast
@@ -83,10 +101,15 @@ class Coverage(
       case Some(script) if script.code.length <= code.length =>
       case _ => update(node, script); updated = true
 
-    // update branch coverage
+    // update target branches
     for (cond <- touchedConds) condMap.get(cond) match
       case Some(script) if script.code.length <= code.length =>
       case _ => update(cond, script); updated = true
+
+    // update branch coverage
+    for (cond <- touchedConds)
+      if (condMap contains cond.neg) _targetConds -= cond.neg
+      else _targetConds += cond
 
     (initSt, finalSt, updated)
   }
@@ -114,7 +137,7 @@ class Coverage(
   lazy val conds: List[Cond] = for {
     elem <- (branches ++ riaExprs: List[Branch | WeakUIdRef[EReturnIfAbrupt]])
     bool <- List(true, false)
-  } yield (elem, bool)
+  } yield Cond(elem, bool)
 
   /** dump results */
   def dumpTo(
@@ -142,7 +165,7 @@ class Coverage(
     rmdir(s"$baseDir/minimal")
     dumpDir(
       name = if (withMsg) Some("minimal ECMAScript programs") else None,
-      iterable = minimalScripts,
+      iterable = _minimalScripts,
       dirname = s"$baseDir/minimal",
       getName = (script: Script) => s"${script.name}.js",
       getData = (script: Script) => script.code,
@@ -160,14 +183,6 @@ class Coverage(
   // ---------------------------------------------------------------------------
   // private helpers
   // ---------------------------------------------------------------------------
-  // mapping from nodes to scripts
-  private val nodeMap: MMap[Node, Script] = MMap()
-  // mapping from branches to scripts
-  private val condMap: MMap[Cond, Script] = MMap()
-  // branch or reference to EReturnIfAbrupt with boolean values
-  // `true` (`false`) denotes then- (else-) branch or abrupt (non-abrupt) value
-  type Cond = (Branch | WeakUIdRef[EReturnIfAbrupt], Boolean)
-
   // update mapping from nodes to scripts
   private def update(node: Node, script: Script): Unit =
     update(node, script, nodeMap)
@@ -178,14 +193,14 @@ class Coverage(
   private def update[T](x: T, script: Script, map: MMap[T, Script]): Unit =
     for (script <- map.get(x))
       val count = counter(script) - 1
-      if (count == 0) { counter -= script; minimalScripts -= script }
+      if (count == 0) { counter -= script; _minimalScripts -= script }
       counter += script -> count
-    minimalScripts += script
+    _minimalScripts += script
     counter += script -> (counter.getOrElse(script, 0) + 1)
     map += x -> script
 
-  // script usage counter
-  private val counter: MMap[Script, Int] = MMap()
+  // script parser
+  private lazy val scriptParser = cfg.scriptParser
 
   /** extension for AST */
   extension (ast: Ast) {

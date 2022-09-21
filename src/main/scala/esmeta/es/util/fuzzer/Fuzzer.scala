@@ -74,7 +74,7 @@ class Fuzzer(
     cov
 
   /** current program pool */
-  def pool: Iterable[Script] = cov.minimalScripts
+  def pool: Set[Script] = cov.minimalScripts
 
   /** one trial to fuzz a new program to increase coverage */
   def fuzz: Boolean = optional {
@@ -86,7 +86,7 @@ class Fuzzer(
         startInterval += seconds
       }
     }
-    val target = choose(pool)
+    val target = selector(pool, cov, debug = false)
     val mutated = mutator(target.ast)
     val code = mutated.toString(grammar)
     for (_ <- log) {
@@ -129,6 +129,12 @@ class Fuzzer(
 
   /** coverage */
   val cov: Coverage = Coverage(cfg, timeLimit)
+
+  /** target selector */
+  val selector: TargetSelector = WeightedSelector(
+    RandomSelector -> 2,
+    BranchSelector -> 8,
+  )
 
   /** mutator */
   val mutator: Mutator = RandomMutator(cfg.grammar)

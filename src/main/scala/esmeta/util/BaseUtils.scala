@@ -135,6 +135,13 @@ object BaseUtils {
   def randDouble: Double = rand.nextDouble
 
   /** randomly choose an element in a list with different weights */
+  def weightedChoose[T](seq: (T, Int)*): T = weightedChoose(seq)
+
+  /** randomly choose an element in a list with different weights */
+  def weightedChoose[T](iter: Iterable[(T, Int)]): T =
+    weightedChoose(iter.toArray)
+
+  /** randomly choose an element in a list with different weights */
   def weightedChoose[T](arr: Array[(T, Int)]): T = {
     val _arr = arr.filter(_._2 != 0)
     val n = rand.nextInt(_arr.map(_._2).sum) + 1

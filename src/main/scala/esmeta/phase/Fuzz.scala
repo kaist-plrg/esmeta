@@ -18,7 +18,8 @@ case object Fuzz extends Phase[CFG, Coverage] {
   ): Coverage =
     val cov = Fuzzer(
       cfg = cfg,
-      log = config.log,
+      logInterval = config.logInterval,
+      debug = config.debug,
       timeLimit = config.timeLimit,
       trial = config.trial,
       conformTest = config.conformTest,
@@ -37,9 +38,14 @@ case object Fuzz extends Phase[CFG, Coverage] {
       "dump the generated ECMAScript programs to a given directory.",
     ),
     (
-      "log",
-      NumOption((c, k) => c.log = Some(k)),
+      "log-interval",
+      NumOption((c, k) => c.logInterval = Some(k)),
       "turn on logging mode and set logging interval (default: 600 seconds).",
+    ),
+    (
+      "debug",
+      BoolOption(c => c.debug = true),
+      "do conformance test during fuzzing",
     ),
     (
       "timeout",
@@ -59,7 +65,8 @@ case object Fuzz extends Phase[CFG, Coverage] {
   )
   case class Config(
     var out: Option[String] = None,
-    var log: Option[Int] = Some(600),
+    var logInterval: Option[Int] = Some(600),
+    var debug: Boolean = false,
     var timeLimit: Option[Int] = Some(1),
     var trial: Option[Int] = Some(10000),
     var conformTest: Boolean = false,

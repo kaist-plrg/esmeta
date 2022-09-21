@@ -18,18 +18,27 @@ import scala.collection.mutable.{Set => MSet}
 object Fuzzer:
   def apply(
     cfg: CFG,
-    log: Option[Int] = Some(600), // default logging interval is 10 minutes.
+    logInterval: Option[Int] = Some(600), // default is 10 minutes.
+    debug: Boolean = false,
     stdOut: Boolean = false,
     timeLimit: Option[Int] = None, // time limitation for each evaluation
     trial: Option[Int] = None, // `None` denotes no bound
     conformTest: Boolean = false,
-  ): Coverage =
-    new Fuzzer(cfg, log, stdOut, timeLimit, trial, conformTest).result
+  ): Coverage = new Fuzzer(
+    cfg,
+    logInterval,
+    debug,
+    stdOut,
+    timeLimit,
+    trial,
+    conformTest,
+  ).result
 
 /** extensible helper of ECMAScript program fuzzer with ECMA-262 */
 class Fuzzer(
   cfg: CFG,
-  log: Option[Int] = Some(600), // default logging interval is 10 minutes.
+  logInterval: Option[Int] = Some(600), // default is 10 minutes.
+  debug: Boolean = false,
   stdOut: Boolean = false,
   timeLimit: Option[Int] = None, // time limitation for each evaluation
   trial: Option[Int] = None, // `None` denotes no bound
@@ -43,7 +52,7 @@ class Fuzzer(
       add(code)
 
     println("- repeatedly trying to fuzz new programs to increase coverage...")
-    log.map(_ => {
+    logInterval.map(_ => {
       // start logging
       mkdir(FUZZ_LOG_DIR)
       startTime = System.currentTimeMillis
@@ -66,7 +75,7 @@ class Fuzzer(
       case None        => while (true) fuzz
 
     // finish logging
-    log.map(_ => {
+    logInterval.map(_ => {
       logging
       nf.close
     })
@@ -79,17 +88,17 @@ class Fuzzer(
   /** one trial to fuzz a new program to increase coverage */
   def fuzz: Boolean = optional {
     iter += 1
-    for (bound <- log) {
+    for (bound <- logInterval) {
       val seconds = bound * 1000
       if (interval > seconds) {
         logging
         startInterval += seconds
       }
     }
-    val target = selector(pool, cov, debug = false)
+    val target = selector(pool, cov, cfg.grammar, debug)
     val mutated = mutator(target.ast)
     val code = mutated.toString(grammar)
-    for (_ <- log) {
+    for (_ <- logInterval) {
       val simpleCode = if (code.length > 100) code.take(100) + "..." else code
       if (stdOut) {
         clearLine

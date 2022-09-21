@@ -40,7 +40,13 @@ class Coverage(
   // branch or reference to EReturnIfAbrupt with boolean values
   // `true` (`false`) denotes then- (else-) branch or abrupt (non-abrupt) value
   case class Cond(elem: Branch | WeakUIdRef[EReturnIfAbrupt], cond: Boolean) {
+    // negation
     def neg: Cond = copy(cond = !cond)
+    // conversion to string
+    override def toString: String = (elem match
+      case branch: Branch     => s"B[${branch.id}]:"
+      case ref: WeakUIdRef[_] => s"R[${ref.id}]:"
+    ) + (if (cond) "T" else "F")
   }
 
   /** evaluate a given ECMAScript program, update coverage, and return

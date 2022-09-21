@@ -1,7 +1,7 @@
 package esmeta.util
 
 /** weak unique ids */
-trait WeakUId[+T] { self: T =>
+trait WeakUId[+T <: WeakUId[T]] { self: T =>
 
   /** unique ids */
   var id: Int = -1
@@ -17,4 +17,11 @@ trait WeakUId[+T] { self: T =>
 }
 
 /** reference for weak unique ids */
-trait WeakUIdRef[+T](val id: Int) extends UId { def get: T }
+trait WeakUIdRef[+T <: WeakUId[T]](val id: Int) {
+
+  /** getter for the original data */
+  def get: T
+
+  /** get simple string */
+  def simpleString: String = get.simpleString
+}

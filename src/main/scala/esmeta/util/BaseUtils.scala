@@ -125,8 +125,14 @@ object BaseUtils {
   /** random boolean */
   def randBool: Boolean = rand.nextBoolean
 
+  /** random boolean with a given probability [0, 1] */
+  def randBool(prob: Double): Boolean = rand.nextDouble < prob
+
   /** random integer */
   def randInt(n: Int): Int = rand.nextInt(n)
+
+  /** random double floating point in [0, 1] */
+  def randDouble: Double = rand.nextDouble
 
   /** randomly choose an element in a list with different weights */
   def weightedChoose[T](arr: Array[(T, Int)]): T = {

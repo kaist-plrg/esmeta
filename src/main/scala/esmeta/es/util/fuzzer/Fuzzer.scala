@@ -107,17 +107,17 @@ class Fuzzer(
   def add(code: String): Boolean = optional {
     if (debug) print(" " * 25 + "RESULT: ")
     if (visited contains code) {
-      if (debug) println("FAILED - ALREADY VISITED")
+      if (debug) println(failMsg("ALREADY VISITED"))
       false
     } else {
       visited += code
       if (!ValidityChecker(code)) {
-        if (debug) println("FAILED - INVALID PROGRAM")
+        if (debug) println(failMsg("INVALID PROGRAM"))
         false
       } else {
         val script = toScript(code)
         val (initSt, exitSt, updated) = cov.runAndCheck(script)
-        if (debug) println(if (updated) "SUCCESS" else "FAILED - NO UPDATE")
+        if (debug) println(if (updated) passMsg("") else failMsg("NO UPDATE"))
         if (conformTest) doConformTest(initSt, exitSt)
         updated
       }

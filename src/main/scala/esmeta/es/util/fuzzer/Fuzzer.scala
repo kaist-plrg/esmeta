@@ -72,8 +72,7 @@ class Fuzzer(
     cov
 
   /** current program pool */
-  def pool: Set[String] = cov.codeSet
-  def size: Int = cov.codeCount
+  def pool: Set[Script] = cov.minimalScripts
 
   /** one trial to fuzz a new program to increase coverage */
   def fuzz: Boolean = optional {
@@ -85,7 +84,7 @@ class Fuzzer(
         startInterval += seconds
       }
     }
-    val target = toScript(choose(pool))
+    val target = choose(pool)
     val mutated = mutator(target.ast)
     val code = mutated.toString(grammar)
     for (_ <- log) {
@@ -132,7 +131,7 @@ class Fuzzer(
     val nr = percentString(n, nt)
     val (b, bt) = cov.branchCov
     val br = percentString(b, bt)
-    addRaw(iter, size, duration, n, nt, nr, b, bt, br)
+    addRaw(iter, pool.size, duration, n, nt, nr, b, bt, br)
     cov.dumpTo(FUZZ_LOG_DIR, withMsg = false)
   def addRaw(data: Any*): Unit =
     val raw = data.mkString("\t")

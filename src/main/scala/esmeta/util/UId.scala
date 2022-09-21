@@ -1,7 +1,5 @@
 package esmeta.util
 
-import esmeta.error.WrongUId
-
 /** unique ids */
 trait UId {
   // unique ids

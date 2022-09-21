@@ -9,7 +9,7 @@ import esmeta.util.*
 import esmeta.util.SystemUtils.*
 import io.circe.*, io.circe.syntax.*
 
-/** coverage measurement of cfg */
+/** coverage measurement in CFG */
 class Coverage(
   cfg: CFG,
   timeLimit: Option[Int] = None,
@@ -17,27 +17,20 @@ class Coverage(
 
   // mapping from
   private var nodeMap: Map[Node, Script] = Map()
-  private var scriptMap: Map[String, Script] = Map()
-  private var codeMap: Map[String, Int] = Map()
+  private var counter: Map[Script, Int] = Map()
   private def update(node: Node, script: Script): Unit =
-    for (Script(code, _, _, _) <- nodeMap.get(node))
-      val count = codeMap(code) - 1
-      if (count == 0) codeMap -= code; scriptMap -= code
-      codeMap += code -> count
-    codeMap += script.code -> (codeMap.get(script.code) match
-      case Some(count) => count + 1
-      case None        => scriptMap += script.code -> script; 1
-    )
+    for (script <- nodeMap.get(node))
+      val count = counter(script) - 1
+      if (count == 0) counter -= script
+      counter += script -> count
+    counter += script -> (counter.getOrElse(script, 0) + 1)
     nodeMap += node -> script
 
   // all meaningful scripts
-  def minimalScripts: Vector[Script] = scriptMap.values.toVector
+  def minimalScripts: Set[Script] = counter.keySet
 
   // the number of all meaningful code set
-  def codeCount: Int = codeMap.size
-
-  // all meaningful code set
-  def codeSet: Set[String] = codeMap.keySet
+  def size: Int = counter.size
 
   // all meaningful tests
   private var failedTests: Set[(String, ConformTest)] = Set()
@@ -149,6 +142,7 @@ class Coverage(
       noSpace = false,
     )
     rmdir(s"$baseDir/minimal")
+    type Zipped = ((String, ConformTest), Int)
     dumpDir(
       name = if (withMsg) Some("Minimal ECMAScript programs") else None,
       iterable = minimalScripts,
@@ -157,15 +151,14 @@ class Coverage(
       getData = (script: Script) => script.code,
     )
     rmdir(s"$baseDir/failed")
-    type zipped = ((String, ConformTest), Int)
-    dumpDir[zipped](
+    dumpDir[Zipped](
       name = if (withMsg) Some("Failed conformance codes") else None,
       iterable = failedTests.zipWithIndex,
       dirname = s"$baseDir/failed",
       getName = { case ((c, t), i) => s"$i.js" },
       getData = { case ((c, t), i) => c },
     )
-    dumpDir[zipped](
+    dumpDir[Zipped](
       name = if (withMsg) Some("Failed conformance tests") else None,
       iterable = failedTests.zipWithIndex,
       dirname = s"$baseDir/failed",
@@ -173,14 +166,14 @@ class Coverage(
       getData = { case ((c, t), i) => t },
     )
     rmdir(s"$baseDir/trans-failed")
-    dumpDir[zipped](
+    dumpDir[Zipped](
       name = if (withMsg) Some("Failed transpiled conformance codes") else None,
       iterable = transFailedTests.zipWithIndex,
       dirname = s"$baseDir/trans-failed",
       getName = { case ((c, t), i) => s"$i.js" },
       getData = { case ((c, t), i) => c },
     )
-    dumpDir[zipped](
+    dumpDir[Zipped](
       name = if (withMsg) Some("Failed transpiled conformance tests") else None,
       iterable = transFailedTests.zipWithIndex,
       dirname = s"$baseDir/trans-failed",

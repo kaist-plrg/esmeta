@@ -35,7 +35,8 @@ class Coverage(
     var markedAst = ast.nodeSet
 
     // run interpreter and record touched
-    var touched: Set[Node] = Set()
+    var touchedNodes: Set[Node] = Set()
+    var touchedConds: Set[Cond] = Set()
     val initSt = Initialize(cfg, code, Some(ast))
     val finalSt = new Interpreter(initSt, timeLimit = timeLimit) {
       // check if current state need to be recorded
@@ -46,9 +47,25 @@ class Coverage(
 
       // override eval for node
       override def eval(node: Node): Unit =
-        // record touched
-        if (needRecord) touched += node
+        // record touched nodes
+        if (needRecord) touchedNodes += node
         super.eval(node)
+
+      // override branch move
+      override def moveBranch(branch: Branch, cond: Boolean): Unit =
+        // record touched conditional branch
+        if (needRecord) touchedConds += (branch, cond)
+        super.moveBranch(branch, cond)
+
+      // override helper for return-if-abrupt cases
+      override def returnIfAbrupt(
+        riaExpr: EReturnIfAbrupt,
+        value: Value,
+        check: Boolean,
+      ): Value =
+        val abrupt = value.isAbruptCompletion
+        if (needRecord) touchedConds += (riaExpr.idRef, abrupt)
+        super.returnIfAbrupt(riaExpr, value, check)
 
       // handle dynamically created ast
       override def eval(expr: Expr): Value =
@@ -60,11 +77,16 @@ class Coverage(
         v
     }.result
 
-    // update coverage
+    // update node coverage
     var updated = false
-    for (node <- touched) nodeMap.get(node) match
+    for (node <- touchedNodes) nodeMap.get(node) match
       case Some(script) if script.code.length <= code.length =>
       case _ => update(node, script); updated = true
+
+    // update branch coverage
+    for (cond <- touchedConds) condMap.get(cond) match
+      case Some(script) if script.code.length <= code.length =>
+      case _ => update(cond, script); updated = true
 
     (initSt, finalSt, updated)
   }
@@ -81,23 +103,18 @@ class Coverage(
     run(Script(ast.toString(cfg.grammar), ast, filename, Some(filename)))
 
   /** get node coverage */
-  def nodeCov: (Int, Int) = (nodeMap.size, cfg.nodeMap.size)
+  def nodeCov: (Int, Int) = (nodeMap.size, nodes.size)
+  lazy val nodes: List[Node] = cfg.nodes
 
   /** get branch coverage */
-  // TODO handle return-if-abrupt
-  def branchCov: (Int, Int) =
-    val branches = cfg.nodeMap.values.collect { case br: Branch => br }
-    val count = branches.foldLeft(0) {
-      case (acc, branch @ Branch(_, _, _, Some(thenNode), Some(elseNode))) =>
-        nodeMap.get(branch) match
-          case Some(_) =>
-            val t = if (nodeMap contains thenNode) 1 else 0
-            val e = if (nodeMap contains elseNode) 1 else 0
-            acc + t + e
-          case _ => acc
-      case (acc, _) => acc
-    }
-    (count, branches.size * 2)
+  def branchCov: (Int, Int) = (condMap.size, conds.size)
+  lazy val branches: List[Branch] = cfg.branches
+  lazy val riaExprs: List[WeakUIdRef[EReturnIfAbrupt]] =
+    cfg.riaExprs.map(_.idRef)
+  lazy val conds: List[Cond] = for {
+    elem <- (branches ++ riaExprs: List[Branch | WeakUIdRef[EReturnIfAbrupt]])
+    bool <- List(true, false)
+  } yield (elem, bool)
 
   /** dump results */
   def dumpTo(
@@ -107,7 +124,7 @@ class Coverage(
   ): Unit =
     mkdir(baseDir)
     val covData = for {
-      node <- cfg.nodes
+      node <- nodes
     } yield nodeMap
       .get(node)
       .map(script =>
@@ -147,7 +164,9 @@ class Coverage(
   private val nodeMap: MMap[Node, Script] = MMap()
   // mapping from branches to scripts
   private val condMap: MMap[Cond, Script] = MMap()
-  type Cond = (Branch | EReturnIfAbrupt, Boolean)
+  // branch or reference to EReturnIfAbrupt with boolean values
+  // `true` (`false`) denotes then- (else-) branch or abrupt (non-abrupt) value
+  type Cond = (Branch | WeakUIdRef[EReturnIfAbrupt], Boolean)
 
   // update mapping from nodes to scripts
   private def update(node: Node, script: Script): Unit =

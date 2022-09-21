@@ -35,12 +35,10 @@ class Compiler(
     for (algo <- spec.algorithms) compile(algo)
     val program = Program(funcs.toList, spec)
     // set allocation site to AllocExpr
-    (new AllocSiteSetter).walk(program)
+    AllocSiteSetter(program)
     // set weak uid to Inst and Expr
-    (new WeakUIdSetter).walk(program)
+    WeakUIdSetter(program)
     program
-
-  val asiteSetter: AllocSiteSetter = new AllocSiteSetter
 
   /** load manually created AOs */
   val manualAlgos = (for {

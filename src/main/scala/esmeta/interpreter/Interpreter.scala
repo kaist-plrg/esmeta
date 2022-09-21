@@ -77,15 +77,10 @@ class Interpreter(
     node match {
       case Block(_, insts, _) =>
         for (inst <- insts) eval(inst); st.context.moveNext
-      case Branch(_, _, cond, thenNode, elseNode) =>
-        st.context.cursor = Cursor(
-          eval(cond) match {
-            case Bool(true)  => thenNode
-            case Bool(false) => elseNode
-            case v           => throw NoBoolean(cond, v)
-          },
-          st.func,
-        )
+      case branch: Branch =>
+        eval(branch.cond) match
+          case Bool(bool) => moveBranch(branch, bool)
+          case v          => throw NoBoolean(branch.cond, v)
       case Call(_, call, _) => eval(call)
     }
 
@@ -179,13 +174,13 @@ class Interpreter(
         case (y, t)                  => throw InvalidCompType(t)
     case EIsCompletion(expr) =>
       Bool(eval(expr).isCompletion)
-    case EReturnIfAbrupt(ERef(ref), check) =>
+    case riaExpr @ EReturnIfAbrupt(ERef(ref), check) =>
       val refV = eval(ref)
-      val value = returnIfAbrupt(st(refV), check)
+      val value = returnIfAbrupt(riaExpr, st(refV), check)
       st.update(refV, value)
       value
-    case EReturnIfAbrupt(expr, check) =>
-      returnIfAbrupt(eval(expr), check)
+    case riaExpr @ EReturnIfAbrupt(expr, check) =>
+      returnIfAbrupt(riaExpr, eval(expr), check)
     case EPop(list, front) =>
       eval(list) match
         case (addr: Addr) => st.pop(addr, front)
@@ -482,7 +477,11 @@ class Interpreter(
   }
 
   /** helper for return-if-abrupt cases */
-  def returnIfAbrupt(value: Value, check: Boolean): Value = value match
+  def returnIfAbrupt(
+    riaExpr: EReturnIfAbrupt,
+    value: Value,
+    check: Boolean,
+  ): Value = value match
     case NormalComp(value) => value
     case comp: Comp =>
       if (check) throw ReturnValue(value)
@@ -510,7 +509,7 @@ class Interpreter(
       // (https://tc39.es/ecma262/#sec-implicit-normal-completion)
       if (st.context.func.isReturnComp) value.wrapCompletion else value,
     )
-    st.context.cursor = ExitCursor(st.func)
+    moveExit
 
   /** define call result to state and move to next */
   def setCallResult(id: Id, value: Value): Unit =
@@ -523,6 +522,18 @@ class Interpreter(
     "AllPrivateIdentifiersValid",
     "ContainsArguments",
   )
+
+  /** set return value and move to the exit node */
+  def moveBranch(branch: Branch, cond: Boolean): Unit =
+    st.context.cursor = Cursor(
+      if (cond) branch.thenNode
+      else branch.elseNode,
+      st.func,
+    )
+
+  /** set return value and move to the exit node */
+  def moveExit: Unit =
+    st.context.cursor = ExitCursor(st.func)
 
   // ---------------------------------------------------------------------------
   // private helpers

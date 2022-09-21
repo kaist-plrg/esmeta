@@ -2,7 +2,8 @@ package esmeta.cfg
 
 import esmeta.*
 import esmeta.cfg.util.*
-import esmeta.ir.Program
+import esmeta.ir.{Program, EReturnIfAbrupt}
+import esmeta.ir.util.*
 import esmeta.parser.{ESParser, AstFrom}
 import esmeta.spec.{Spec, Grammar}
 import esmeta.ty.TyModel
@@ -49,6 +50,12 @@ case class CFG(
     func <- funcs
     node <- func.nodes
   } yield node -> func).toMap
+
+  /** all branches */
+  lazy val branches: List[Branch] = nodes.collect { case br: Branch => br }
+
+  /** all return if abrupt expressions */
+  lazy val riaExprs: List[EReturnIfAbrupt] = ReturnIfAbruptCollector(program)
 
   /** get a type model */
   def tyModel: TyModel = spec.tyModel

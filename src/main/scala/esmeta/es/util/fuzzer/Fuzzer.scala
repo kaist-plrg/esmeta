@@ -178,12 +178,7 @@ class Fuzzer(
     if (conformTest) raw ++= Vector(cb, tb)
     addRaw(raw)
     // dump coveragge
-    cov.dumpTo(
-      FUZZ_LOG_DIR,
-      withScripts = true,
-      withTargetConds = true,
-      withMsg = false,
-    )
+    cov.dumpToWithDetail(FUZZ_LOG_DIR, withMsg = false)
     // dump failed conformance tests
     if (conformTest) dumpFailedConformTests(FUZZ_LOG_DIR, false)
 

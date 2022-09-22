@@ -1,5 +1,6 @@
 package esmeta.es.util
 
+import esmeta.LINE_SEP
 import esmeta.cfg.*
 import esmeta.es.*
 import esmeta.interpreter.*
@@ -169,11 +170,20 @@ class Coverage(
     bool <- List(true, false)
   } yield Cond(elem, bool)).sorted
 
+  def dumpToWithDetail(baseDir: String, withMsg: Boolean = true): Unit = dumpTo(
+    baseDir = baseDir,
+    withScripts = true,
+    withTargetConds = true,
+    withUnreachableFuncs = true,
+    withMsg = withMsg,
+  )
+
   /** dump results */
   def dumpTo(
     baseDir: String,
     withScripts: Boolean = false,
     withTargetConds: Boolean = false,
+    withUnreachableFuncs: Boolean = false,
     withMsg: Boolean = true,
   ): Unit =
     mkdir(baseDir)
@@ -204,6 +214,16 @@ class Coverage(
         data = condMapJson(targetConds contains _),
         filename = s"$baseDir/target-conds.json",
         space = true,
+      )
+    if (withUnreachableFuncs)
+      dumpFile(
+        name = if (withMsg) Some("unreachable functions") else None,
+        data = cfg.funcs
+          .filter(f => !nodeMap.contains(f.entry))
+          .map(_.name)
+          .sorted
+          .mkString(LINE_SEP),
+        filename = s"$baseDir/unreach-funcs",
       )
 
   override def toString: String =
@@ -258,13 +278,12 @@ class Coverage(
 
   // get JSON for node coverage
   private def nodeMapJson: Json = JsonObject(
-    // `nodes` is already sorted thus iterate it first then filter with `nodeMap`
-    (for (node <- nodes; script <- nodeMap.get(node)) yield {
+    (for (node <- nodes) yield {
       val key = node.simpleString
       val obj = JsonObject(
         "func" -> cfg.funcOf(node).name.asJson,
         "loc" -> node.loc.map(_.toString).asJson,
-        "script" -> script.name.asJson,
+        "script" -> nodeMap.get(node).map(_.name).asJson,
       ).asJson
       key -> obj
     }): _*,
@@ -273,8 +292,7 @@ class Coverage(
   // get JSON for branch coverage
   private def condMapJson: Json = condMapJson(_ => true)
   private def condMapJson(filter: Cond => Boolean): Json = JsonObject(
-    // `conds` is already sorted thus iterate it first then filter with `condMap`
-    (for (cond <- conds; script <- condMap.get(cond)) yield {
+    (for (cond <- conds) yield {
       val key = cond.toString
       val obj = JsonObject(
         "func" -> cond.node.map(n => cfg.funcOf(n).name).asJson,

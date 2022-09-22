@@ -58,17 +58,23 @@ class Fuzzer(
       mkdir(FUZZ_LOG_DIR)
       startTime = System.currentTimeMillis
       startInterval = System.currentTimeMillis
-      addRaw(
+      var raw = Vector(
         "iter(#)",
         "script(#)",
         "time(ms)",
         "node-cover(#)",
         "node-total(#)",
         "node-ratio(%)",
-        "branch-cover(%)",
-        "branch-total(%)",
+        "branch-cover(#)",
+        "branch-total(#)",
         "branch-ratio(%)",
       )
+      if (conformTest)
+        raw ++= Vector(
+          "conform-bug(#)",
+          "trans-bug(#)",
+        )
+      addRaw(raw)
       logging
     })
     trial match
@@ -162,7 +168,11 @@ class Fuzzer(
     val nr = percentString(n, nt)
     val (b, bt) = cov.branchCov
     val br = percentString(b, bt)
-    addRaw(iter, pool.size, duration, n, nt, nr, b, bt, br)
+    val cb = failedTests.size
+    val tb = transFailedTests.size
+    var raw = Vector(iter, pool.size, duration, n, nt, nr, b, bt, br)
+    if (conformTest) raw ++= Vector(cb, tb)
+    addRaw(raw)
     // dump coveragge
     cov.dumpTo(
       FUZZ_LOG_DIR,
@@ -214,7 +224,7 @@ class Fuzzer(
       remove = true,
     )
 
-  def addRaw(data: Any*): Unit =
+  def addRaw(data: Iterable[Any]): Unit =
     val raw = data.mkString("\t")
     if (stdOut) println(raw)
     nf.println(raw)

@@ -1,5 +1,6 @@
 package esmeta.es.util.mutator
 
+import esmeta.cfg.CFG
 import esmeta.es.*
 import esmeta.es.util.*
 import esmeta.spec.Grammar
@@ -8,8 +9,11 @@ import esmeta.spec.Grammar
 trait Mutator extends Walker {
   def apply(ast: Ast): Ast = walk(ast)
 
+  /** control flow graph for ECMA-262 */
+  def cfg: CFG
+
   /** ECMAScript grammar */
-  def grammar: Grammar
+  val grammar: Grammar = cfg.grammar
 
   /** mutator builder */
   def builder: Mutator.Builder
@@ -18,4 +22,4 @@ trait Mutator extends Walker {
   def name: String = builder.name
 }
 object Mutator:
-  trait Builder extends (Grammar => Mutator) { val name: String }
+  trait Builder extends (CFG => Mutator) { val name: String }

@@ -1,5 +1,6 @@
 package esmeta.es.util.synthesizer
 
+import esmeta.cfg.*
 import esmeta.es.*
 import esmeta.es.util.*
 import esmeta.spec.*
@@ -9,7 +10,7 @@ import esmeta.util.BaseUtils.*
 
 /** A random ECMAScript AST synthesizer */
 class RandomSynthesizer(
-  val grammar: Grammar,
+  val cfg: CFG,
 ) extends Synthesizer {
 
   import grammar.*
@@ -44,13 +45,12 @@ class RandomSynthesizer(
   // ---------------------------------------------------------------------------
   // private helpers
   // ---------------------------------------------------------------------------
-
   protected def chooseRhs(
     prod: Production,
     pairs: Iterable[(Rhs, Int)],
   ): (Rhs, Int) = choose(pairs)
 
-  private val simpleSyn = SimpleSynthesizer(grammar)
+  private val simpleSyn = SimpleSynthesizer(cfg)
 
   private def synSymbol(argsMap: Map[String, Boolean])(
     symbol: Symbol,
@@ -79,6 +79,5 @@ class RandomSynthesizer(
 
 object RandomSynthesizer extends Synthesizer.Builder {
   val name: String = "RandomSynthesizer"
-
-  def apply(grammar: Grammar) = new RandomSynthesizer(grammar)
+  def apply(cfg: CFG) = new RandomSynthesizer(cfg)
 }

@@ -1,5 +1,6 @@
 package esmeta.es.util.synthesizer
 
+import esmeta.cfg.*
 import esmeta.es.*
 import esmeta.spec.*
 import esmeta.util.BaseUtils.*
@@ -7,7 +8,7 @@ import esmeta.util.BaseUtils.*
 // TODO refactoring
 /** A simple ECMAScript AST synthesizer */
 class SimpleSynthesizer(
-  val grammar: Grammar,
+  val cfg: CFG,
 ) extends Synthesizer {
   import grammar.*
   import SimpleSynthesizer.*
@@ -71,7 +72,7 @@ class SimpleSynthesizer(
 }
 object SimpleSynthesizer extends Synthesizer.Builder {
   val name: String = "SimpleSynthesizer"
-  def apply(grammar: Grammar) = new SimpleSynthesizer(grammar)
+  def apply(cfg: CFG) = new SimpleSynthesizer(cfg)
   val reservedLexicals: Map[String, String] = Map(
     "IdentifierName" -> "x",
     "NullLiteral" -> "null",

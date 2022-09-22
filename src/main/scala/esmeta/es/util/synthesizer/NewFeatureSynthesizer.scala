@@ -1,10 +1,10 @@
 package esmeta.es.util.synthesizer
 
+import esmeta.cfg.*
 import esmeta.es.util.GrammarDiff
-import esmeta.spec.{Grammar, Production, Rhs}
+import esmeta.spec.{Production, Rhs}
 
-class NewFeatureSynthesizer(grammar: Grammar)
-  extends RandomSynthesizer(grammar) {
+class NewFeatureSynthesizer(cfg: CFG) extends RandomSynthesizer(cfg) {
   override protected def chooseRhs(
     prod: Production,
     pairs: Iterable[(Rhs, Int)],
@@ -13,6 +13,5 @@ class NewFeatureSynthesizer(grammar: Grammar)
 
 object NewFeatureSynthesizer extends Synthesizer.Builder {
   val name: String = "NewFeatureSynthesizer"
-
-  def apply(grammar: Grammar) = new NewFeatureSynthesizer(grammar)
+  def apply(cfg: CFG) = new NewFeatureSynthesizer(cfg)
 }

@@ -48,7 +48,7 @@ class Fuzzer(
   /** generated ECMAScript programs */
   lazy val result: Coverage =
     println("- initializing program pool...")
-    for (code <- synthesizer.initPool)
+    for (code <- initPool)
       if (debug) println(f"[${synthesizer.name}%-30s] $code")
       add(code)
 
@@ -157,10 +157,14 @@ class Fuzzer(
   )
 
   /** mutator */
-  val mutator: Mutator = RandomMutator(cfg.grammar)
+  val mutator: Mutator = RandomMutator(cfg)
 
   /** synthesizer */
-  val synthesizer: Synthesizer = RandomSynthesizer(cfg.grammar)
+  val synthesizer: Synthesizer = RandomSynthesizer(cfg)
+  val builtinSynthesizer: Synthesizer = BuiltinSynthesizer(cfg)
+
+  /** initial pool */
+  val initPool = synthesizer.initPool ++ builtinSynthesizer.initPool
 
   /** logging */
   def logging: Unit =

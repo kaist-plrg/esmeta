@@ -1,10 +1,12 @@
 package esmeta.es
 
+import scala.util.*
 import esmeta.*
 import esmeta.util.*
 import esmeta.es.util.injector.*
 import esmeta.cfg.CFG
 import esmeta.state.State
+import java.util.concurrent.TimeoutException
 
 /** conformance test */
 case class ConformTest(
@@ -25,28 +27,35 @@ case class ConformTest(
   lazy val isNormal = exitTag == NormalTag
 
   /** Execute test and get result */
-  lazy val (concreteExitTag, passedAssertions, failedAssertions)
-    : (ExitTag, Vector[Assertion], Vector[(Assertion, String)]) =
-    JSEngine
-      .runAndGetStdout(
-        "\"use strict\";"
-        :: script
-        :: Injector.assertionLib
-        :: (assertions.toList.map(_.toString)),
-      )
-      .map(stdouts =>
-        val (p, f) = assertions.zip(stdouts.drop(3)).partition(_._2.isEmpty)
-        (NormalTag, p.map(_._1), f),
-      )
-      .recover(e =>
+  lazy val (
+    concreteExitTag: ExitTag,
+    passedAssertions: Vector[Assertion],
+    failedAssertions: Vector[(Assertion, String)],
+  ) = JSEngine
+    .runAndGetStdouts(
+      "\"use strict\";"
+      :: script
+      :: Injector.assertionLib
+      :: (assertions.toList.map(_.toString)),
+    )
+    .map(stdouts =>
+      val (p, f) = assertions.zip(stdouts.drop(3)).partition(_._2.isEmpty)
+      (NormalTag, p.map(_._1), f),
+    )
+    .recoverWith(_ match {
+      case e: JSEngine.JSException =>
         // TODO handle ThrowValueTag more carefully
         val msg = e.getMessage
         val tag =
           if msg.contains("Error:") then ThrowErrorTag(msg.split(":")(0))
           else ThrowValueTag(esmeta.state.Str(msg))
-        (tag, Vector(), Vector()),
-      )
-      .get
+        Success((tag, Vector(), Vector()))
+      case e: TimeoutException =>
+        Success((TimeoutTag, Vector(), Vector()))
+      case e =>
+        Failure(e)
+    })
+    .get
 
   lazy val sameExitTag =
     exitTag == concreteExitTag ||

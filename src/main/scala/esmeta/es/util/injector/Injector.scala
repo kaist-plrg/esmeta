@@ -13,7 +13,6 @@ import esmeta.util.SystemUtils.*
 import esmeta.{LINE_SEP, RESOURCE_DIR}
 import java.io.PrintWriter
 import scala.collection.mutable.{Map => MMap, Set => MSet}
-import scala.concurrent.TimeoutException
 
 /** assertion injector */
 object Injector:

@@ -138,7 +138,7 @@ class Compiler(
           IIf(
             lessThan(zero, argsLen),
             ILet(Name(name), EPop(ENAME_ARGS_LIST, true)),
-            ILet(Name(name), EAbsent),
+            ILet(Name(name), EAbsent()),
           )
       }
     }
@@ -207,7 +207,7 @@ class Compiler(
         ),
       )
     case ReturnStep(expr) =>
-      val e = expr.fold(EUndef)(compile(fb, _))
+      val e = expr.fold(EUndef())(compile(fb, _))
       fb.returnContext match
         case None          => fb.addInst(IReturn(e))
         case Some(context) => fb.addReturnToResume(context, e)
@@ -389,7 +389,7 @@ class Compiler(
         ICall(fb.newTId, eResumeCont, argOpt.map(compile(fb, _)).toList),
       )
     case ReturnToResumeStep(context, retStep) =>
-      val arg = retStep.expr.fold(EUndef)(compile(fb, _))
+      val arg = retStep.expr.fold(EUndef())(compile(fb, _))
       fb.addReturnToResume(compile(fb, context), arg)
     case BlockStep(StepBlock(steps)) =>
       for (substep <- steps) compile(fb, substep.step)
@@ -671,7 +671,7 @@ class Compiler(
         "OrdinaryObject",
         List(
           EStr("Prototype") -> toEIntrinsic(currentIntrinsics, proto),
-          EStr("ErrorData") -> EUndef,
+          EStr("ErrorData") -> EUndef(),
         ),
       )
     case PositiveInfinityMathValueLiteral() => ENumber(Double.PositiveInfinity)
@@ -686,9 +686,9 @@ class Compiler(
     case BigIntLiteral(n)       => EBigInt(n)
     case TrueLiteral()          => EBool(true)
     case FalseLiteral()         => EBool(false)
-    case UndefinedLiteral()     => EUndef
-    case NullLiteral()          => ENull
-    case AbsentLiteral()        => EAbsent
+    case UndefinedLiteral()     => EUndef()
+    case NullLiteral()          => ENull()
+    case AbsentLiteral()        => EAbsent()
     case UndefinedTypeLiteral() => EGLOBAL_UNDEF_TYPE
     case NullTypeLiteral()      => EGLOBAL_NULL_TYPE
     case BooleanTypeLiteral()   => EGLOBAL_BOOL_TYPE
@@ -859,7 +859,7 @@ class Compiler(
     }
     val renamed = renameWalker.walk(compileWithScope(fb, algo.body))
     fb.addInst(BackEdgeWalker(fb, force = true).walk(renamed))
-    EUndef // NOTE: unused expression
+    EUndef() // NOTE: unused expression
 
   /** handle short circuiting */
   def compileShortCircuit(
@@ -926,7 +926,7 @@ class Compiler(
   val F = EBool(false)
 
   /** operation helpers */
-  inline def isAbsent(x: Expr) = EBinary(BOp.Eq, x, EAbsent)
+  inline def isAbsent(x: Expr) = EBinary(BOp.Eq, x, EAbsent())
   inline def isIntegral(x: Expr) =
     val m = EConvert(COp.ToMath, x)
     and(ETypeCheck(x, EStr("Number")), is(m, floor(m)))

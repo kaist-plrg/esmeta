@@ -29,7 +29,7 @@ case class ConformTest(
     : (ExitTag, Vector[Assertion], Vector[(Assertion, String)]) =
     JSEngine
       .runAndGetStdout(
-        "use strict"
+        "\"use strict\";"
         :: script
         :: Injector.assertionLib
         :: (assertions.toList.map(_.toString)),

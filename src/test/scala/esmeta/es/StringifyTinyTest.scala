@@ -2,7 +2,6 @@ package esmeta.es
 
 import esmeta.*
 import esmeta.es.util.injector.*
-import esmeta.es.util.injector.Injector.*
 import esmeta.state.*
 
 /** stringify test */
@@ -56,23 +55,16 @@ class StringifyTinyTest extends ESTest {
 
     checkStringify("ConformTest")(
       conformTest1 -> s"""// [EXIT] normal
-                          |${template
-        .replace(
-          scriptPlaceholder,
-          "// Script",
-        )
-        .replace(
-          libPlaceholder,
-          lib,
-        )
-        .replace(
-          assertionPlaceholder,
-          """$delay(() => {
-            |$assert.sameValue(x, 1.0);
-            |$assert.sameValue(Object.isExtensible(path), true);
-            |$assert.callable(path);
-            |});""",
-        )}""".stripMargin,
+                         |"use strict";
+                         |// Script
+                         |(() => {
+                         |${Injector.assertionLib}
+                         |$$delay(() => {
+                         |$$assert.sameValue(x, 1.0);
+                         |$$assert.sameValue(Object.isExtensible(path), true);
+                         |$$assert.callable(path);
+                         |});
+                         |})();""".stripMargin,
       conformTest2 -> """// [EXIT] normal
                         |// Script
                         |$delay(() => {

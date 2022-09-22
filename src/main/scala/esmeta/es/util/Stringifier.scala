@@ -78,20 +78,21 @@ class Stringifier(
   // conformance tests
   given testRule: Rule[ConformTest] = (app, test) =>
     val ConformTest(id, script, exitTag, defs, isAsync, assertions) = test
+    val delayHead = "$delay(() => {"
+    val delayTail = "});"
+
     app >> "// [EXIT] " >> exitTag.toString
     exitTag match {
       case NormalTag =>
-        val delayHead = "$delay(() => {"
-        val delayTail = "});"
         if (defs) {
-          val assertionCode = (
-            if (isAsync) delayHead +: assertions :+ delayTail
-            else assertions
-          ).mkString(LINE_SEP)
-          app :> template
-            .replace(scriptPlaceholder, script)
-            .replace(libPlaceholder, lib)
-            .replace(assertionPlaceholder, assertionCode)
+          app :> "\"use strict\";"
+          app :> script
+          app :> "(() => {"
+          app :> assertionLib
+          if (isAsync) app :> delayHead
+          assertions.foreach(app :> _)
+          if (isAsync) app :> delayTail
+          app :> "})();"
         } else {
           app :> script
           if (isAsync) app :> delayHead

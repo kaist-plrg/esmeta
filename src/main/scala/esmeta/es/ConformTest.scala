@@ -29,10 +29,13 @@ case class ConformTest(
     : (ExitTag, Vector[Assertion], Vector[(Assertion, String)]) =
     JSEngine
       .runAndGetStdout(
-        script :: Injector.lib :: (assertions.toList.map(_.toString)),
+        "use strict"
+        :: script
+        :: Injector.assertionLib
+        :: (assertions.toList.map(_.toString)),
       )
       .map(stdouts =>
-        val (p, f) = assertions.zip(stdouts.tail.tail).partition(_._2.isEmpty)
+        val (p, f) = assertions.zip(stdouts.drop(3)).partition(_._2.isEmpty)
         (NormalTag, p.map(_._1), f),
       )
       .recover(e =>

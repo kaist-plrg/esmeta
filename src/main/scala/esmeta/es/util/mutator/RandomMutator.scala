@@ -27,3 +27,7 @@ class RandomMutator(
 object RandomMutator extends Mutator.Builder:
   val name: String = "RandomMutator"
   def apply(grammar: Grammar) = new RandomMutator(grammar)
+  def apply(
+    grammar: Grammar,
+    synBuilder: Synthesizer.Builder,
+  ) = new RandomMutator(grammar, synBuilder)

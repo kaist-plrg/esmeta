@@ -6,10 +6,12 @@ import esmeta.spec.*
 import esmeta.util.BaseUtils.*
 
 // TODO refactoring
+
 /** A random ECMAScript AST synthesizer */
 class RandomSynthesizer(
   val grammar: Grammar,
 ) extends Synthesizer {
+
   import grammar.*
   import SimpleSynthesizer.*
 
@@ -21,6 +23,7 @@ class RandomSynthesizer(
   def initPool: Vector[String] = (for {
     _ <- Range(0, INIT_SIZE)
   } yield script).toVector
+
   private val INIT_SIZE = 1000
 
   /** for syntactic production */
@@ -31,7 +34,7 @@ class RandomSynthesizer(
       (rhs, rhsIdx) <- rhsList.zipWithIndex
       if rhs.condition.fold(true)(cond => argsMap(cond.name) == cond.pass)
     } yield (rhs, rhsIdx)
-    val (rhs, rhsIdx) = choose(pairs)
+    val (rhs, rhsIdx) = chooseRhs(prod, pairs)
     val children = rhs.symbols.flatMap(synSymbol(argsMap))
     Syntactic(name, args, rhsIdx, children)
 
@@ -41,6 +44,12 @@ class RandomSynthesizer(
   // ---------------------------------------------------------------------------
   // private helpers
   // ---------------------------------------------------------------------------
+
+  protected def chooseRhs(
+    prod: Production,
+    pairs: Iterable[(Rhs, Int)],
+  ): (Rhs, Int) = choose(pairs)
+
   private val simpleSyn = SimpleSynthesizer(grammar)
 
   private def synSymbol(argsMap: Map[String, Boolean])(
@@ -67,7 +76,9 @@ class RandomSynthesizer(
   /** synthesizer builder */
   def builder: Synthesizer.Builder = RandomSynthesizer
 }
+
 object RandomSynthesizer extends Synthesizer.Builder {
   val name: String = "RandomSynthesizer"
+
   def apply(grammar: Grammar) = new RandomSynthesizer(grammar)
 }

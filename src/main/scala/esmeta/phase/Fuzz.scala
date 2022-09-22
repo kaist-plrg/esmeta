@@ -45,7 +45,7 @@ case object Fuzz extends Phase[CFG, Coverage] {
     (
       "debug",
       BoolOption(c => c.debug = true),
-      "do conformance test during fuzzing",
+      "turn on deug mode",
     ),
     (
       "timeout",

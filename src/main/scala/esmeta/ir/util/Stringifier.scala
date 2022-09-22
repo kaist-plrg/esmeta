@@ -7,7 +7,6 @@ import esmeta.ty.util.{Stringifier => TyStringifier}
 import esmeta.util.*
 import esmeta.util.Appender.*
 import esmeta.util.BaseUtils.*
-import scala.collection.mutable.ListBuffer
 
 /** stringifier for IR */
 class Stringifier(detail: Boolean, location: Boolean) {

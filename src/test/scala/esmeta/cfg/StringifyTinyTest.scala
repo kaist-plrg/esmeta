@@ -7,7 +7,6 @@ import esmeta.ty.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.{Loc, Pos}
 import esmeta.util.SystemUtils._
-import scala.collection.mutable.ListBuffer
 
 /** stringify test */
 class StringifyTinyTest extends CFGTest {
@@ -47,9 +46,9 @@ class StringifyTinyTest extends CFGTest {
     // functions
     // -------------------------------------------------------------------------
     def entry(start: Int): Node = {
-      val blockSingle = Block(start + 0, ListBuffer(let))
+      val blockSingle = Block(start + 0, Vector(let))
       val branch = Branch(start + 1, BranchKind.If, xExpr)
-      val block = Block(start + 2, ListBuffer(let, del, ret))
+      val block = Block(start + 2, Vector(let, del, ret))
       val call = Call(start + 3, ICall(temp, xExpr, List(xExpr, yExpr)))
       blockSingle.next = Some(branch)
       branch.thenNode = Some(block)
@@ -87,7 +86,7 @@ class StringifyTinyTest extends CFGTest {
     // -------------------------------------------------------------------------
     // nodes
     // -------------------------------------------------------------------------
-    lazy val block = Block(0, ListBuffer(let, del, ret))
+    lazy val block = Block(0, Vector(let, del, ret))
     lazy val branch = Branch(0, BranchKind.If, xExpr)
     lazy val call = Call(0, callInst)
 

@@ -3,7 +3,6 @@ package esmeta.analyzer
 import esmeta.cfg.*
 import esmeta.ir.{Func => IRFunc, FuncKind => IRFuncKind, *}
 import esmeta.ty.*
-import scala.collection.mutable.ListBuffer
 
 class StringifyTinyTest extends AnalyzerTest {
   val name: String = "analyzerStringifyTest"
@@ -43,9 +42,9 @@ class StringifyTinyTest extends AnalyzerTest {
     // CFG elements
     // -------------------------------------------------------------------------
     def entry(start: Int): Node = {
-      val blockSingle = Block(start + 0, ListBuffer(let))
+      val blockSingle = Block(start + 0, Vector(let))
       val branch = Branch(start + 1, BranchKind.If, xExpr)
-      val block = Block(start + 2, ListBuffer(let, del, ret))
+      val block = Block(start + 2, Vector(let, del, ret))
       val call = Call(start + 3, ICall(temp, xExpr, List(xExpr, yExpr)))
       blockSingle.next = Some(branch)
       branch.thenNode = Some(block)
@@ -56,7 +55,7 @@ class StringifyTinyTest extends AnalyzerTest {
       Func(0, irMainFunc, entry(0))
     def func(id: Int): Func =
       Func(id, irFunc, entry(4))
-    lazy val block = Block(0, ListBuffer(let, del, ret))
+    lazy val block = Block(0, Vector(let, del, ret))
     lazy val branch = Branch(0, BranchKind.Loop("repeat"), xExpr)
     lazy val call = Call(0, callInst)
 

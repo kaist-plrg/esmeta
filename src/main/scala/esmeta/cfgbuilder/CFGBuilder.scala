@@ -2,6 +2,7 @@ package esmeta.cfgBuilder
 
 import esmeta.util.BaseUtils.*
 import esmeta.cfg.*
+import esmeta.cfg.util.NodeEdgeSetter
 import esmeta.ir.{Func => IRFunc, *}
 import scala.collection.mutable.{ListBuffer, Map => MMap}
 
@@ -23,6 +24,7 @@ class CFGBuilder(
     for { f <- program.funcs } translate(f)
     val cfg = CFG(funcs.toList)
     cfg.program = program
+    NodeEdgeSetter(cfg)
     cfg
 
   /** translate IR function to cfg function */
@@ -54,7 +56,7 @@ class CFGBuilder(
         val block = prev match
           case List((b: Block, _)) => b
           case _                   => val b = Block(nextNId); connect(b); b
-        block.insts += normal
+        block.insts :+= normal
         prev = List((block, true))
       case ISeq(insts) => for { i <- insts } aux(i)
       case inst @ IIf(cond, thenInst, elseInst) =>

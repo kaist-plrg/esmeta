@@ -164,7 +164,12 @@ class Fuzzer(
     val br = percentString(b, bt)
     addRaw(iter, pool.size, duration, n, nt, nr, b, bt, br)
     // dump coveragge
-    cov.dumpTo(FUZZ_LOG_DIR, withMsg = false)
+    cov.dumpTo(
+      FUZZ_LOG_DIR,
+      withScripts = true,
+      withTargetConds = true,
+      withMsg = false,
+    )
     // dump failed conformance tests
     if (conformTest) dumpFailedConformTests(FUZZ_LOG_DIR, false)
 
@@ -181,6 +186,7 @@ class Fuzzer(
       dirname = s"$baseDir/failed",
       getName = { case ((c, t), i) => s"$i.js" },
       getData = { case ((c, t), i) => c },
+      remove = true,
     )
     dumpDir[Zipped](
       name = if (withMsg) Some("failed conformance tests") else None,
@@ -188,6 +194,7 @@ class Fuzzer(
       dirname = s"$baseDir/failed",
       getName = { case ((c, t), i) => s"$i.test.js" },
       getData = { case ((c, t), i) => t },
+      remove = true,
     )
     rmdir(s"$baseDir/trans-failed")
     dumpDir[Zipped](
@@ -196,6 +203,7 @@ class Fuzzer(
       dirname = s"$baseDir/trans-failed",
       getName = { case ((c, t), i) => s"$i.js" },
       getData = { case ((c, t), i) => c },
+      remove = true,
     )
     dumpDir[Zipped](
       name = if (withMsg) Some("failed transpiled conformance tests") else None,
@@ -203,6 +211,7 @@ class Fuzzer(
       dirname = s"$baseDir/trans-failed",
       getName = { case ((c, t), i) => s"$i.test.js" },
       getData = { case ((c, t), i) => t },
+      remove = true,
     )
 
   def addRaw(data: Any*): Unit =
@@ -230,7 +239,7 @@ class Fuzzer(
 
   // conversion from code string to `Script` object
   private def toScript(code: String, ast: Ast): Script =
-    val script = Script(code, ast, nextId.toString, None)
+    val script = Script(code, ast, s"$nextId.js", None)
     visited += code
     script
   private def toScript(code: String): Script =

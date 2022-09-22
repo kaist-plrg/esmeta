@@ -199,7 +199,7 @@ case object CmdFuzz extends Command("fuzz", CmdBuildCFG >> Fuzz) {
     "esmeta fuzz -fuzz:out=out   # dump the generated program to `out`",
   )
   override def showResult(cov: es.util.Coverage): Unit =
-    println(s"- generated ${cov.minimalScripts} ECMAScript programs.")
+    println(s"- generated ${cov.size} ECMAScript programs.")
     println(cov)
 }
 

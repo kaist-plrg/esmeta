@@ -4,7 +4,7 @@ import esmeta.cfg.*
 import esmeta.ir.{Func => IRFunc, FuncKind => IRFuncKind, *}
 import esmeta.es.*
 import esmeta.util.BaseUtils.*
-import scala.collection.mutable.{Map => MMap, ListBuffer}
+import scala.collection.mutable.{Map => MMap}
 
 /** stringify test */
 class StringifyTinyTest extends StateTest {
@@ -63,7 +63,7 @@ class StringifyTinyTest extends StateTest {
     // -------------------------------------------------------------------------
     // Cursor
     // -------------------------------------------------------------------------
-    lazy val nodeCursor = NodeCursor(Block(3, ListBuffer()))
+    lazy val nodeCursor = NodeCursor(Block(3, Vector()))
     lazy val exitCursor = ExitCursor(func)
     checkStringify("Cursor")(
       nodeCursor -> "Block[3]",

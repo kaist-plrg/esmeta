@@ -32,7 +32,7 @@ object BranchSelector extends TargetSelector {
   def apply(pool: Iterable[Script], cov: Coverage): (String, Script) =
     val cond = choose(cov.targetConds)
     cov.getScript(cond).fold(RandomSelector(pool, cov)) {
-      (s"BranchTarget - $cond", _)
+      (s"BranchTarget - ${cond.simpleString}", _)
     }
 }
 

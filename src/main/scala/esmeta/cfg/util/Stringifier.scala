@@ -6,7 +6,6 @@ import esmeta.ir.{Func => IRFunc, *}
 import esmeta.util.*
 import esmeta.util.Appender.*
 import esmeta.util.BaseUtils.*
-import scala.collection.mutable.ListBuffer
 
 /** stringifier for CFG */
 class Stringifier(detail: Boolean, location: Boolean) {
@@ -48,8 +47,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
     node match
       case Block(_, insts, next) =>
         insts match
-          case ListBuffer(inst) => app >> inst
-          case _                => app.wrap(for (inst <- insts) app :> inst)
+          case Vector(inst) => app >> inst
+          case _            => app.wrap(for (inst <- insts) app :> inst)
         next.map(x => app >> " -> " >> x.id)
       case other: NodeWithInst => app >> other
     app

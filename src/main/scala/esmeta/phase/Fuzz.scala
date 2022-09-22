@@ -26,7 +26,12 @@ case object Fuzz extends Phase[CFG, Coverage] {
     )
 
     // dump the generated ECMAScript programs
-    for (dirname <- config.out) cov.dumpTo(dirname, withScripts = true)
+    for (dirname <- config.out)
+      cov.dumpTo(
+        dirname,
+        withScripts = true,
+        withTargetConds = true,
+      )
 
     cov
 

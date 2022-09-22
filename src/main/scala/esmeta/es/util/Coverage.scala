@@ -42,12 +42,32 @@ class Coverage(
   case class Cond(elem: Branch | WeakUIdRef[EReturnIfAbrupt], cond: Boolean) {
     // negation
     def neg: Cond = copy(cond = !cond)
+    // short kind string
+    def kindString: String = elem match
+      case (branch: Branch)     => "Branch"
+      case (ref: WeakUIdRef[_]) => "EReturnIfAbrupt"
+    def shortKindString: String = kindString.take(1)
+    // get id
+    def id: Int = elem match
+      case (branch: Branch)     => branch.id
+      case (ref: WeakUIdRef[_]) => ref.id
+    // condition string
+    def condString: String = if (cond) "T" else "F"
+    // get node
+    def node: Option[Node] = elem match
+      case (branch: Branch)                   => Some(branch)
+      case (ref: WeakUIdRef[EReturnIfAbrupt]) => ref.get.cfgNode
+    // get loc
+    def loc: Option[Loc] = elem match
+      case (branch: Branch)                   => branch.loc
+      case (ref: WeakUIdRef[EReturnIfAbrupt]) => ref.get.loc
     // conversion to string
-    override def toString: String = (elem match
-      case branch: Branch     => s"B[${branch.id}]:"
-      case ref: WeakUIdRef[_] => s"R[${ref.id}]:"
-    ) + (if (cond) "T" else "F")
+    override def toString: String = s"$kindString[$id]:$condString"
+    def simpleString: String = s"$shortKindString[$id]:$condString"
   }
+
+  /** ordering of conditional branches */
+  given Ordering[Cond] = Ordering.by(cond => (cond.kindString, cond.id))
 
   /** evaluate a given ECMAScript program, update coverage, and return
     * evaluation result with whether it succeeds to increase coverage
@@ -133,49 +153,54 @@ class Coverage(
 
   /** get node coverage */
   def nodeCov: (Int, Int) = (nodeMap.size, nodes.size)
-  lazy val nodes: List[Node] = cfg.nodes
+  lazy val nodes: List[Node] = cfg.nodes.sortBy(_.id)
 
   /** get branch coverage */
   def branchCov: (Int, Int) = (condMap.size, conds.size)
   lazy val branches: List[Branch] = cfg.branches
   lazy val riaExprs: List[WeakUIdRef[EReturnIfAbrupt]] =
     cfg.riaExprs.map(_.idRef)
-  lazy val conds: List[Cond] = for {
+  lazy val conds: List[Cond] = (for {
     elem <- (branches ++ riaExprs: List[Branch | WeakUIdRef[EReturnIfAbrupt]])
     bool <- List(true, false)
-  } yield Cond(elem, bool)
+  } yield Cond(elem, bool)).sorted
 
   /** dump results */
   def dumpTo(
     baseDir: String,
     withScripts: Boolean = false,
+    withTargetConds: Boolean = false,
     withMsg: Boolean = true,
   ): Unit =
     mkdir(baseDir)
-    val covData = for {
-      node <- nodes
-    } yield nodeMap
-      .get(node)
-      .map(script =>
-        JsonObject(
-          "name" -> script.name.asJson,
-          "size" -> script.code.length.asJson,
-        ),
-      )
     dumpJson(
-      name = if (withMsg) Some("coverage") else None,
-      data = covData.asJson,
-      filename = s"$baseDir/coverage.json",
-      noSpace = false,
+      name = if (withMsg) Some("node coverage") else None,
+      data = nodeMapJson,
+      filename = s"$baseDir/node-coverage.json",
+      space = true,
     )
-    rmdir(s"$baseDir/minimal")
-    dumpDir(
-      name = if (withMsg) Some("minimal ECMAScript programs") else None,
-      iterable = _minimalScripts,
-      dirname = s"$baseDir/minimal",
-      getName = (script: Script) => s"${script.name}.js",
-      getData = (script: Script) => script.code,
+    dumpJson(
+      name = if (withMsg) Some("branch coverage") else None,
+      data = condMapJson,
+      filename = s"$baseDir/branch-coverage.json",
+      space = true,
     )
+    if (withScripts)
+      dumpDir(
+        name = if (withMsg) Some("minimal ECMAScript programs") else None,
+        iterable = _minimalScripts,
+        dirname = s"$baseDir/minimal",
+        getName = (script: Script) => s"${script.name}.js",
+        getData = (script: Script) => script.code,
+        remove = true,
+      )
+    if (withTargetConds)
+      dumpJson(
+        name = if (withMsg) Some("target conditional branches") else None,
+        data = condMapJson(targetConds contains _),
+        filename = s"$baseDir/target-conds.json",
+        space = true,
+      )
 
   override def toString: String =
     val (nCovered, nTotal) = nodeCov
@@ -185,6 +210,22 @@ class Coverage(
     f"""- coverage:
        |  - node: $nCovered%,d/$nTotal%,d ($nPercent%2.2f%%)
        |  - branch: $bCovered%,d/$bTotal%,d ($bPercent%2.2f%%)""".stripMargin
+
+  /** extension for AST */
+  extension (ast: Ast) {
+
+    /** get all child nodes */
+    def nodeSet: Set[Ast] =
+      var nodes = Set(ast)
+      ast match
+        case Syntactic(_, _, _, cs) =>
+          for {
+            child <- cs.flatten
+            childNodes = child.nodeSet
+          } nodes ++= childNodes
+        case _ => /* do nothing */
+      nodes
+  }
 
   // ---------------------------------------------------------------------------
   // private helpers
@@ -208,22 +249,35 @@ class Coverage(
   // script parser
   private lazy val scriptParser = cfg.scriptParser
 
-  /** extension for AST */
-  extension (ast: Ast) {
-
-    /** get all child nodes */
-    def nodeSet: Set[Ast] =
-      var nodes = Set(ast)
-      ast match
-        case Syntactic(_, _, _, cs) =>
-          for {
-            child <- cs.flatten
-            childNodes = child.nodeSet
-          } nodes ++= childNodes
-        case _ => /* do nothing */
-      nodes
-  }
-
   // convertion to string
   private def percent(n: Double, t: Double): Double = n / t * 100
+
+  // get JSON for node coverage
+  private def nodeMapJson: Json = JsonObject(
+    // `nodes` is already sorted thus iterate it first then filter with `nodeMap`
+    (for (node <- nodes; script <- nodeMap.get(node)) yield {
+      val key = node.simpleString
+      val obj = JsonObject(
+        "func" -> cfg.funcOf(node).name.asJson,
+        "loc" -> node.loc.map(_.toString).asJson,
+        "script" -> script.name.asJson,
+      ).asJson
+      key -> obj
+    }): _*,
+  ).asJson
+
+  // get JSON for branch coverage
+  private def condMapJson: Json = condMapJson(_ => true)
+  private def condMapJson(filter: Cond => Boolean): Json = JsonObject(
+    // `conds` is already sorted thus iterate it first then filter with `condMap`
+    (for (cond <- conds; script <- condMap.get(cond)) yield {
+      val key = cond.toString
+      val obj = JsonObject(
+        "func" -> cond.node.map(n => cfg.funcOf(n).name).asJson,
+        "loc" -> cond.loc.map(_.toString).asJson,
+        "script" -> condMap.get(cond).map(_.name).asJson,
+      ).asJson
+      key -> obj
+    }): _*,
+  ).asJson
 }

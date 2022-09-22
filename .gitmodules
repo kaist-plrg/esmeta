@@ -7,3 +7,6 @@
 [submodule "client"]
 	path = client
 	url = https://github.com/es-meta/esmeta-debugger-client.git
+[submodule "babel-study"]
+	path = babel-study
+	url = git@github.com:kaist-plrg/babel-study.git

@@ -2,7 +2,7 @@ def <CONC>:DeclarativeEnvironmentRecord.InitializeBinding(
   envRec: DeclarativeEnvironmentRecord,
   N: String,
   V: ESValue
-): Unknown {
+): Normal[Const[~unused~]] {
   // Assert: _envRec_ must have an uninitialized binding for _N_.
   assert (= envRec.SubMap[N].initialized false)
 
@@ -11,7 +11,7 @@ def <CONC>:DeclarativeEnvironmentRecord.InitializeBinding(
 
   // <emu-not-ref>Record</emu-not-ref> that the binding for _N_ in _envRec_ has been initialized
   envRec.SubMap[N].initialized = true
-  call %0 = clo<NormalCompletion>(~empty~)
+  call %0 = clo<NormalCompletion>(~unused~)
   return %0
 }
 

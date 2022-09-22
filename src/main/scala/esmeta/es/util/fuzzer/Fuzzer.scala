@@ -48,8 +48,8 @@ class Fuzzer(
   /** generated ECMAScript programs */
   lazy val result: Coverage =
     println("- initializing program pool...")
-    for (code <- initPool)
-      if (debug) println(f"[${synthesizer.name}%-30s] $code")
+    for ((synthesizer, code) <- initPool)
+      debugging(f"[${synthesizer.name}%-30s] $code")
       add(code)
 
     println("- repeatedly trying to fuzz new programs to increase coverage...")
@@ -105,27 +105,31 @@ class Fuzzer(
     val target = selector(pool, cov, cfg.grammar, debug)
     val mutated = mutator(target.ast)
     val code = mutated.toString(grammar)
-    if (debug) println(f"----- ${mutator.name}%-20s-----> $code")
+    debugging(f"----- ${mutator.name}%-20s-----> $code")
     add(code)
   }.getOrElse(false)
 
   /** add new program */
   def add(code: String): Boolean = optional {
-    if (debug) print(f" ${"COVERAGE RESULT"}%30s: ")
+    debugging(f" ${"COVERAGE RESULT"}%30s: ", newline = false)
     if (visited contains code) {
-      if (debug) println(failMsg("ALREADY VISITED"))
+      debugging(failMsg("ALREADY VISITED"))
       false
     } else {
       visited += code
       if (!ValidityChecker(code)) {
-        if (debug) println(failMsg("INVALID PROGRAM"))
+        debugging(failMsg("INVALID PROGRAM"))
         false
       } else {
         val script = toScript(code)
-        val (initSt, exitSt, updated) = cov.runAndCheck(script)
-        if (debug) println(if (updated) passMsg("") else failMsg("NO UPDATE"))
-        if (conformTest) doConformTest(initSt, exitSt)
-        updated
+        optional(cov.runAndCheck(script)) match
+          case Some((initSt, exitSt, updated)) =>
+            debugging(if (updated) passMsg("") else failMsg("NO UPDATE"))
+            if (conformTest) doConformTest(initSt, exitSt)
+            updated
+          case None =>
+            debugging(failMsg("NOT SUPPORTED"))
+            false
       }
     }
   }.getOrElse(false)
@@ -138,10 +142,10 @@ class Fuzzer(
     val (test, transTest) = ConformTest.createTestPair(initSt, finalSt)
     if (debug) print(f" ${"GRAAL-JS CONFORMANCE RESULT"}%30s: ")
     if (!test.isPass) failedTests.add(code, test)
-    if (debug) println(if (test.isPass) passMsg("") else failMsg(""))
+    debugging(if (test.isPass) passMsg("") else failMsg(""))
     if (debug) print(f" ${"BABEL TRANSPILATION RESULT"}%30s: ")
     if (!transTest.isPass) transFailedTests.add(code, transTest)
-    if (debug) println(if (transTest.isPass) passMsg("") else failMsg(""))
+    debugging(if (transTest.isPass) passMsg("") else failMsg(""))
 
   /** ECMAScript grammar */
   val grammar = cfg.grammar
@@ -164,9 +168,14 @@ class Fuzzer(
   val builtinSynthesizer: Synthesizer = BuiltinSynthesizer(cfg)
 
   /** initial pool */
-  val initPool = synthesizer.initPool ++ builtinSynthesizer.initPool
+  val initPool =
+    synthesizer.initPool.map(synthesizer -> _) ++
+    builtinSynthesizer.initPool.map(builtinSynthesizer -> _)
 
   /** logging */
+  def debugging(msg: String, newline: Boolean = true): Unit = if (debug) {
+    if (newline) println(msg) else print(msg)
+  }
   def logging: Unit =
     val (n, nt) = cov.nodeCov
     val nr = percentString(n, nt)

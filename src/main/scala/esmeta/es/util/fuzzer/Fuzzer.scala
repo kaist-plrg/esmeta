@@ -204,7 +204,7 @@ class Fuzzer(
       dirname = s"$baseDir/failed",
       getName = { case ((c, t), i) => s"$i.test.js" },
       getData = { case ((c, t), i) => t },
-      remove = true,
+      remove = false,
     )
     rmdir(s"$baseDir/trans-failed")
     dumpDir[Zipped](
@@ -221,7 +221,7 @@ class Fuzzer(
       dirname = s"$baseDir/trans-failed",
       getName = { case ((c, t), i) => s"$i.test.js" },
       getData = { case ((c, t), i) => t },
-      remove = true,
+      remove = false,
     )
 
   def addRaw(data: Iterable[Any]): Unit =

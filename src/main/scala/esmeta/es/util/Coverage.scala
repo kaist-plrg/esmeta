@@ -3,7 +3,7 @@ package esmeta.es.util
 import esmeta.cfg.*
 import esmeta.es.*
 import esmeta.interpreter.*
-import esmeta.ir.{Expr, EParse, EReturnIfAbrupt}
+import esmeta.ir.{Expr, EParse, EReturnIfAbrupt, EBool}
 import esmeta.state.*
 import esmeta.util.*
 import esmeta.util.SystemUtils.*
@@ -134,8 +134,12 @@ class Coverage(
 
     // update branch coverage
     for (cond <- touchedConds)
-      if (condMap contains cond.neg) _targetConds -= cond.neg
-      else _targetConds += cond
+      cond.elem match
+        case Branch(_, _, EBool(_), _, _) => /* do nothing */
+        case ref: WeakUIdRef[EReturnIfAbrupt]
+            if !ref.get.check => /* do nothing */
+        case _ if condMap contains cond.neg => _targetConds -= cond.neg
+        case _                              => _targetConds += cond
 
     (initSt, finalSt, updated)
   }

@@ -66,6 +66,7 @@ class StringifyTinyTest extends ESTest {
                          |});
                          |})();""".stripMargin,
       conformTest2 -> """// [EXIT] normal
+                        |"use strict";
                         |// Script
                         |$delay(() => {
                         |$assert.sameValue(x, 1.0);
@@ -73,8 +74,12 @@ class StringifyTinyTest extends ESTest {
                         |$assert.callable(path);
                         |});""".stripMargin,
       conformTest3 -> """// [EXIT] normal
+                        |"use strict";
                         |// Script
                         |$assert.sameValue(x, 1.0);""".stripMargin,
+      conformTest4 -> """// [EXIT] timeout
+                        |"use strict";
+                        |// Script""".stripMargin,
     )
 
     // -------------------------------------------------------------------------
@@ -121,6 +126,14 @@ class StringifyTinyTest extends ESTest {
       0,
       "// Script",
       NormalTag,
+      false,
+      false,
+      Vector(hasValue1),
+    )
+    lazy val conformTest4 = ConformTest(
+      0,
+      "// Script",
+      TimeoutTag,
       false,
       false,
       Vector(hasValue1),

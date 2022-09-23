@@ -12,7 +12,7 @@ import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
 import esmeta.{LINE_SEP, RESOURCE_DIR}
 import java.io.PrintWriter
-import scala.collection.mutable.{Map => MMap, Set => MSet}
+import scala.collection.mutable.{Map => MMap, ListBuffer}
 
 /** assertion injector */
 object Injector:
@@ -102,7 +102,7 @@ class Injector(
   private def warning(msg: String): Unit = log(s"[Warning] $msg")
 
   // internal mutable assertions
-  private val _assertions: MSet[Assertion] = MSet()
+  private val _assertions: ListBuffer[Assertion] = ListBuffer()
 
   // handle variables
   private def handleVariable: Unit = for (x <- createdVars.toList.sorted) {

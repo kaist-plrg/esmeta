@@ -18,6 +18,8 @@ function $toString(value) {
   if (value === AsyncGeneratorFunction.prototype) return "an async generator function"
   if (value === GeneratorFunction.prototype) return "a generator function"
   if (typeof value === "string") return '"' + value + '"';
+  if (typeof value === "function") return "[object Function]";
+  if (typeof value === "object") return "[object Object]";
   return String(value);
 }
 
@@ -31,40 +33,6 @@ function $assert(mustBeTrue) {
   if (mustBeTrue === true) return;
   $error("Expected true but got " + $toString(mustBeTrue));
 }
-
-// assertion for comparing two thrown values
-$assert.sameThrows = function (thrown, expected) {
-  var thrownStr = $toString(thrown);
-  if (typeof expected !== "function") {
-    if (thrown !== expected)
-      $error("Expected " + $toString(expected) + " but got " + thrownStr);
-  } else if (!(thrown instanceof expected)) {
-    $error("Expected a " + expected.name + " but got " + thrownStr);
-  }
-};
-
-// assertion for thrown values that were expected to be thrown but not thrown
-$assert.shouldveThrown = function (expected) {
-  $error(
-    "Expected a " +
-      expected.name +
-      " to be thrown but no exception was thrown at all"
-  );
-};
-
-// assertion for no exception
-$assert.notThrows = function (func) {
-  if (typeof func !== "function") {
-    $error("$assert.notThrows requires a function.");
-    return;
-  }
-  try {
-    func();
-  } catch (thrown) {
-    $error("Expected no exception but " + $toString(thrown) + " is thrown.");
-    return;
-  }
-};
 
 // assertion for same values
 $assert.sameValue = function (actual, expected) {
@@ -208,7 +176,7 @@ function $verifyProperty(obj, prop, desc) {
       var message;
       if (name === "value")
         message =
-          "descriptor value of " + prop + " should be " +
+          "descriptor value of " + $toString(prop) + " should be " +
           $toString(desc.value) +
           " but " +
           $toString(originalDesc.value);
@@ -224,9 +192,9 @@ function $verifyProperty(obj, prop, desc) {
   check("configurable");
 }
 
-// delay checking assertions
+// delay checking assertions in JS runtime environment
+// supported: Node, QuickJs
 function $delay(f) {
-  var DELAY = 100;
   var setTimeout = globalThis.setTimeout;
   import("os")
     .then((os) => {
@@ -235,6 +203,6 @@ function $delay(f) {
     })
     .catch(() => {})
     .finally(() => {
-      setTimeout(f, DELAY);
+      setTimeout(f, 0);
     });
 }

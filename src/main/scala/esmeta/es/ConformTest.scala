@@ -1,12 +1,13 @@
 package esmeta.es
 
-import scala.util.*
 import esmeta.*
-import esmeta.util.*
-import esmeta.es.util.injector.*
 import esmeta.cfg.CFG
+import esmeta.error.NoGraal
+import esmeta.es.util.injector.*
 import esmeta.state.State
+import esmeta.util.*
 import java.util.concurrent.TimeoutException
+import scala.util.*
 
 /** conformance test */
 case class ConformTest(
@@ -68,7 +69,13 @@ case class ConformTest(
       .isInstanceOf[ThrowValueTag]
 
   /** Indicates if the test is passed */
-  lazy val isPass = sameExitTag && failedAssertions.length == 0
+  lazy val isPass =
+    try {
+      sameExitTag && failedAssertions.length == 0
+    } catch {
+      case NoGraal => true
+      /** ignore test and always return true */
+    }
 
   /** human readable message indication the reason of test fail */
   lazy val msg =

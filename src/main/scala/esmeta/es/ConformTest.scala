@@ -24,7 +24,7 @@ case class ConformTest(
     ConformTest(id, newScript, exitTag, defs, isAsync, assertions)
 
   /** indicates if the test should exit normally */
-  lazy val isNormal = exitTag == NormalTag
+  val isNormal = exitTag == NormalTag
 
   /** Execute test and get result */
   lazy val (
@@ -32,16 +32,20 @@ case class ConformTest(
     passedAssertions: Vector[Assertion],
     failedAssertions: Vector[(Assertion, String)],
   ) = JSEngine
-    .runAndGetStdouts(
-      "\"use strict\";"
-      :: script
-      :: Injector.assertionLib
-      :: (assertions.toList.map(_.toString)),
-    )
-    .map(stdouts =>
-      val (p, f) = assertions.zip(stdouts.drop(3)).partition(_._2.isEmpty)
-      (NormalTag, p.map(_._1), f),
-    )
+    .usingContext((context, out) => {
+      JSEngine.run("\"use strict\";", context)
+      JSEngine.run(script, context, Some(1000))
+      JSEngine.run(Injector.assertionLib, context)
+      val (passes, fails) = assertions
+        .map(assertion =>
+          (
+            assertion,
+            JSEngine.runAndGetStdout(assertion.toString, context, out),
+          ),
+        )
+        .partition(_._2.isEmpty)
+      (NormalTag, passes.map(_._1), fails)
+    })
     .recoverWith(_ match {
       case e: JSEngine.JSException =>
         // TODO handle ThrowValueTag more carefully

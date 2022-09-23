@@ -10,5 +10,9 @@ object ValidityChecker {
   def apply(code: String): Boolean =
     val MESSAGE = "VALIDITY_CHECKER_EXPECTED_EXCEPTION"
     val src = s"\"use strict\";\nthrow $MESSAGE;\n$code"
-    JSEngine.run(src).failed.filter(_.getMessage contains MESSAGE).isSuccess
+    JSEngine
+      .runSingle(src)
+      .failed
+      .filter(_.getMessage contains MESSAGE)
+      .isSuccess
 }

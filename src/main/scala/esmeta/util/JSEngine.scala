@@ -41,7 +41,9 @@ object JSEngine {
         false
     }
 
-  val TIMEOUT = 1000 // default 1000ms
+  // -------------------------------------------------------------------------
+  // runners in temporal context
+  // -------------------------------------------------------------------------
 
   /** Exception that indicates given JS code throws exception */
   class JSException(message: String) extends Exception(message)
@@ -58,46 +60,66 @@ object JSEngine {
       Failure(e)
   }
 
+  case class Status(var running: Boolean = false, var done: Boolean = false)
+
   /** register timeout to context in milliseconds */
-  def registerTimeout(context: Context, timeout: Int) =
+  def registerTimeout(context: Context, timeout: Int, stat: Status) =
     Future {
-      Thread.sleep(timeout)
-      context.interrupt(ZERO)
-      context.close(cancelIfExecuting = true)
+      while (!stat.done) {
+        Thread.sleep(timeout)
+        if (!stat.done && stat.running)
+          // TODO race condition:
+          // new eval is performed between
+          // (!stat.done) check and interrupt
+          context.interrupt(ZERO)
+      }
     }
 
   /** execute a javascript program */
-  def run(src: String, timeout: Int = TIMEOUT): Try[Unit] =
+  def run(
+    src: String,
+    context: Context,
+    timeout: Option[Int] = None,
+  ): Unit =
     if (!useGraal) ???
-
-    Using(Context.create("js")) { context =>
-      registerTimeout(context, timeout)
-      context.eval("js", src)
-      ()
-    }.recoverWith(e => polyglotExceptionResolver(e))
+    val stat = Status()
+    timeout.foreach(millis => registerTimeout(context, millis, stat))
+    stat.running = true
+    try context.eval("js", src)
+    finally stat.done = true
 
   /** execute a javascript program, and gets its stdout */
-  def runAndGetStdout(src: String, timeout: Int = TIMEOUT): Try[String] =
-    runAndGetStdouts(List(src), timeout).map(_.head)
-
-  def runAndGetStdouts(
-    srcs: List[String],
-    timeout: Int = TIMEOUT,
-  ): Try[List[String]] =
+  def runAndGetStdout(
+    src: String,
+    context: Context,
+    out: OutputStream,
+    timeout: Option[Int] = None,
+  ): String =
     if (!useGraal) ???
+    val stat = Status()
+    out.flush
+    timeout.foreach(millis => registerTimeout(context, millis, stat))
+    stat.running = true
+    try {
+      context.eval("js", src)
+      out.toString
+    } finally stat.done = true
 
+  def usingContext[T](f: (Context, OutputStream) => T): Try[T] =
+    if (!useGraal) ???
     val out = new ByteArrayOutputStream()
     Using(Context.newBuilder("js").out(out).build()) { context =>
-      registerTimeout(context, timeout)
-      srcs.map(src =>
-        context.eval("js", src)
-        val result = out.toString
-        out.reset
-        result,
-      )
+      f(context, out)
     }.recoverWith(e => polyglotExceptionResolver(e))
 
-  /** Created contexts */
+  def runSingle(src: String, timeout: Option[Int] = None): Try[Unit] =
+    usingContext((context, _) => run(src, context, timeout))
+
+  // -------------------------------------------------------------------------
+  // runners in saved context
+  // -------------------------------------------------------------------------
+
+  /** Saved contexts */
   val contextMap: MMap[String, (Context, OutputStream)] = MMap()
 
   def getContext(id: String): (Context, OutputStream) =
@@ -108,7 +130,7 @@ object JSEngine {
       },
     )
 
-  /** execute a javascript program with the given context */
+  /** execute a javascript program with the stored context */
   def runInContext(id: String, src: String): Try[Value] =
     if (!useGraal) ???
 
@@ -116,7 +138,7 @@ object JSEngine {
 
     Try(context.eval("js", src))
 
-  /** execute a javascript program with context, and gets its stdout */
+  /** execute a javascript program with stored context, and gets its stdout */
   def runInContextAndGetStdout(id: String, src: String): Try[String] =
     if (!useGraal) ???
 

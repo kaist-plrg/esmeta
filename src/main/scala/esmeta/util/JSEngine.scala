@@ -92,12 +92,12 @@ object JSEngine {
   def runAndGetStdout(
     src: String,
     context: Context,
-    out: OutputStream,
+    out: ByteArrayOutputStream,
     timeout: Option[Int] = None,
   ): String =
     if (!useGraal) ???
     val stat = Status()
-    out.flush
+    out.reset
     timeout.foreach(millis => registerTimeout(context, millis, stat))
     stat.running = true
     try {
@@ -105,7 +105,7 @@ object JSEngine {
       out.toString
     } finally stat.done = true
 
-  def usingContext[T](f: (Context, OutputStream) => T): Try[T] =
+  def usingContext[T](f: (Context, ByteArrayOutputStream) => T): Try[T] =
     if (!useGraal) ???
     val out = new ByteArrayOutputStream()
     Using(Context.newBuilder("js").out(out).build()) { context =>
@@ -120,9 +120,9 @@ object JSEngine {
   // -------------------------------------------------------------------------
 
   /** Saved contexts */
-  val contextMap: MMap[String, (Context, OutputStream)] = MMap()
+  val contextMap: MMap[String, (Context, ByteArrayOutputStream)] = MMap()
 
-  def getContext(id: String): (Context, OutputStream) =
+  def getContext(id: String): (Context, ByteArrayOutputStream) =
     contextMap.getOrElseUpdate(
       id, {
         val out = new ByteArrayOutputStream()

@@ -203,7 +203,7 @@ class Fuzzer(
       iterable = failedTests.zipWithIndex,
       dirname = s"$baseDir/failed",
       getName = { case ((c, t), i) => s"$i.js" },
-      getData = { case ((c, t), i) => c },
+      getData = { case ((c, t), i) => "\"use strict\";\n" + c },
       remove = true,
     )
     dumpDir[Zipped](

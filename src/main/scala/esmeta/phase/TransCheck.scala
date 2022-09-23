@@ -19,14 +19,16 @@ case object TransCheck extends Phase[CFG, Boolean] {
     val tests: Map[File, (ConformTest, ConformTest)] = {
       for (
         dir <- (cmdConfig.targets);
-        file <- walkTree(dir).filter(f => jsFilter(f.getName));
+        files = walkTree(dir).filter(f => jsFilter(f.getName));
+        _ = if (files.isEmpty) println("[Warning] No script was found");
+        file <- files;
         path = file.getPath;
         script = readFile(path)
       ) yield (file, ConformTest.createTestPair(script, cfg))
     }.toMap
 
     // optionally dump the compiled test
-    for (dirname <- config.out)
+    for (dirname <- config.dir)
       dumpDir[(File, (ConformTest, ConformTest))](
         name = "compiled conformance tests",
         iterable = tests,
@@ -35,7 +37,7 @@ case object TransCheck extends Phase[CFG, Boolean] {
         getData = _._2._2,
       )
 
-    tests.foreach {
+    if (config.debug) tests.foreach {
       case (f, (origTest, transTest)) =>
         if (!origTest.isPass || !transTest.isPass)
           println(s"===========$f===========")
@@ -57,12 +59,18 @@ case object TransCheck extends Phase[CFG, Boolean] {
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(
     (
-      "out",
-      StrOption((c, s) => c.out = Some(s)),
+      "dir",
+      StrOption((c, s) => c.dir = Some(s)),
       "dump an transpiled + injected ECMAScript program to a given directory.",
+    ),
+    (
+      "debug",
+      BoolOption(c => c.debug = true),
+      "turn on debug mode",
     ),
   )
   case class Config(
-    var out: Option[String] = None,
+    var dir: Option[String] = None,
+    var debug: Boolean = false,
   )
 }

@@ -100,4 +100,16 @@ object ESTest {
   def analyzeTest(str: String): AbsSemantics = checkExit(analyze(str))
   def analyzeTestFile(filename: String): AbsSemantics =
     checkExit(analyzeFile(filename))
+
+  // ---------------------------------------------------------------------------
+  // trans-checker helpers
+  // ---------------------------------------------------------------------------
+
+  // tests for ES trans-checker
+  def transCheckTest(str: String): Unit =
+    val (origTest, transTest) = ConformTest.createTestPair(str, cfg)
+    assert(origTest.isPass)
+    assert(transTest.isPass)
+  def transCheckTestFile(filename: String): Unit =
+    transCheckTest(readFile(filename))
 }

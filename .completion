@@ -24,7 +24,7 @@ _esmeta_completions() {
   test262testOpt="-test262-test:target -test262-test:progress -test262-test:coverage -test262-test:timeout -test262-test:log"
   injectOpt="-inject:defs -inject:out -inject:log"
   mutateOpt="-mutate:out -mutate:mutator -mutate:untilValid"
-  transcheckOpt="-transcheck:out"
+  transcheckOpt="-transcheck:dir -transcheck:debug"
   fuzzOpt="-fuzz:out -fuzz:log-interval -fuzz:debug -fuzz:timeout -fuzz:trial -fuzz:conform-test"
   analyzeOpt="-analyze:repl"
   # completion for commands

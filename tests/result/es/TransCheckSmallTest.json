@@ -1,0 +1,6 @@
+{
+  "transcheck: 1(2)" : true,
+  "transcheck: REF_ERROR" : true,
+  "transcheck: let $ = 'dollar'" : true,
+  "transcheck: var x = 1 + 2;" : true
+}

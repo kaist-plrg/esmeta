@@ -16,7 +16,7 @@ trait Worklist[T] {
 }
 
 // stack-based worklist
-class StackWorklist[T](init: Iterable[T]) extends Worklist[T] {
+case class StackWorklist[T](init: Iterable[T]) extends Worklist[T] {
   private var stack = Stack[T]()
   private var set = Set[T]()
   init.foreach(this += _)
@@ -29,9 +29,11 @@ class StackWorklist[T](init: Iterable[T]) extends Worklist[T] {
     else { val x = stack.pop; set -= x; Some(x) }
   def headOption: Option[T] = stack.headOption
 }
+object StackWorklist:
+  def apply[T](init: T*): StackWorklist[T] = StackWorklist(init)
 
 // queue-based worklist
-class QueueWorklist[T](init: Iterable[T]) extends Worklist[T] {
+case class QueueWorklist[T](init: Iterable[T]) extends Worklist[T] {
   private var queue = Queue[T]()
   private var set = Set[T]()
   init.foreach(this += _)
@@ -44,3 +46,5 @@ class QueueWorklist[T](init: Iterable[T]) extends Worklist[T] {
     else { val x = queue.dequeue; set -= x; Some(x) }
   def headOption: Option[T] = queue.lastOption
 }
+object QueueWorklist:
+  def apply[T](init: T*): QueueWorklist[T] = QueueWorklist(init)

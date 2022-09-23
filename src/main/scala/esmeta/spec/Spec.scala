@@ -21,6 +21,9 @@ case class Spec(
   document: Document = Document(""), // HTML Document element
 ) extends SpecElem {
 
+  /** grammar graph */
+  lazy val grammarGraph: GrammarGraph = GrammarGraph(grammar)
+
   /** ECMAScript parser */
   lazy val esParser: ESParser = ESParser(grammar)
   lazy val scriptParser: AstFrom = esParser("Script")

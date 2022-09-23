@@ -23,8 +23,10 @@ case object TransCheck extends Phase[CFG, Boolean] {
         _ = if (files.isEmpty) println("[Warning] No script was found");
         file <- files;
         path = file.getPath;
-        script = readFile(path)
-      ) yield (file, ConformTest.createTestPair(script, cfg))
+        script = readFile(path);
+        tests = ConformTest.createTestPair(script, cfg);
+        _ = if (config.debug) pprint(file, tests)
+      ) yield (file, tests)
     }.toMap
 
     // optionally dump the compiled test
@@ -36,24 +38,24 @@ case object TransCheck extends Phase[CFG, Boolean] {
         getName = _._1.getPath,
         getData = _._2._2,
       )
-
-    if (config.debug) tests.foreach {
-      case (f, (origTest, transTest)) =>
-        if (!origTest.isPass || !transTest.isPass)
-          println(s"===========$f===========")
-        if (!origTest.isPass) {
-          println("orig test: ")
-          println(origTest.msg)
-        }
-        if (!transTest.isPass) {
-          println("transpiled test: ")
-          println(transTest.msg)
-        }
-    }
+    // TODO dump other metadata
 
     tests.forall {
       case (_, (origTest, transTest)) =>
         origTest.isPass && transTest.isPass
+    }
+
+  def pprint(f: File, tests: (ConformTest, ConformTest)): Unit =
+    val (origTest, transTest) = tests
+    if (!origTest.isPass || !transTest.isPass)
+      println(s"===========$f===========")
+    if (!origTest.isPass) {
+      println("orig test: ")
+      println(origTest.msg)
+    }
+    if (!transTest.isPass) {
+      println("transpiled test: ")
+      println(transTest.msg)
     }
 
   def defaultConfig: Config = Config()

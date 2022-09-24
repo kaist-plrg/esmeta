@@ -70,12 +70,8 @@ case class ConformTest(
 
   /** Indicates if the test is passed */
   lazy val isPass =
-    try {
-      sameExitTag && failedAssertions.length == 0
-    } catch {
-      case NoGraal => true
-      /** ignore test and always return true */
-    }
+    try sameExitTag && failedAssertions.length == 0
+    catch { case NoGraal => true }
 
   /** human readable message indication the reason of test fail */
   lazy val msg =

@@ -109,6 +109,8 @@ lazy val esParseTest =
   taskKey[Unit]("Launch parse tests for ECMAScript (small)")
 lazy val esAnalyzeTest =
   taskKey[Unit]("Launch analyze tests for ECMAScript (small)")
+lazy val esTransCheckTest =
+  taskKey[Unit]("Launch trans check tests for ECMAScript (small)")
 
 // test262
 lazy val test262ParseTest =
@@ -243,6 +245,7 @@ lazy val root = project
     esEvalTest := (Test / testOnly).toTask(" *.es.Eval*Test").value,
     esParseTest := (Test / testOnly).toTask(" *.es.Parse*Test").value,
     esAnalyzeTest := (Test / testOnly).toTask(" *.es.Analyze*Test").value,
+    esTransCheckTest := (Test / testOnly).toTask(" *.es.TransCheck*Test").value,
     // test262
     test262ParseTest := (Test / testOnly).toTask(" *.test262.Parse*Test").value,
     test262EvalTest := (Test / testOnly).toTask(" *.test262.Eval*Test").value,

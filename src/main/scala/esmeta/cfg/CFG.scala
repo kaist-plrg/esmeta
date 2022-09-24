@@ -6,6 +6,7 @@ import esmeta.ir.{Program, EReturnIfAbrupt}
 import esmeta.ir.util.*
 import esmeta.parser.{ESParser, AstFrom}
 import esmeta.spec.{Spec, Grammar}
+import esmeta.spec.util.GrammarGraph
 import esmeta.ty.TyModel
 import esmeta.util.BaseUtils.*
 import esmeta.util.ProgressBar
@@ -65,6 +66,9 @@ case class CFG(
 
   /** get the corresponding grammar */
   def grammar: Grammar = spec.grammar
+
+  /** get the corresponding grammar graph */
+  def grammarGraph: GrammarGraph = spec.grammarGraph
 
   /** dump CFG */
   def dumpTo(baseDir: String): Unit =

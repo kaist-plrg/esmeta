@@ -9,18 +9,16 @@ case class GrammarGraph(grammar: Grammar) {
   import GrammarGraph.*
 
   /** get a syntactic production node */
-  def getSyn(name: String, args: List[Boolean]): Option[SynNode] =
-    synMap.get((name, args))
+  def getSyn(name: String, args: List[Boolean]): SynNode = synMap(name, args)
   private val synMap: MMap[(String, List[Boolean]), SynNode] = MMap()
 
   /** get a lexical production node */
-  def getLex(name: String): Option[LexNode] =
-    lexMap.get(name)
+  def getLex(name: String): LexNode = lexMap(name)
   private val lexMap: MMap[String, LexNode] = MMap()
 
   /** get a RHS node */
-  def getRhs(name: String, args: List[Boolean], idx: Int): Option[RhsNode] =
-    rhsMap.get((name, args, idx))
+  def getRhs(name: String, args: List[Boolean], idx: Int): RhsNode =
+    rhsMap(name, args, idx)
   private val rhsMap: MMap[(String, List[Boolean], Int), RhsNode] = MMap()
 
   lazy val (
@@ -154,10 +152,10 @@ case class GrammarGraph(grammar: Grammar) {
                 if (count == 1) { worklist += rhsNode; mustCounter -= rhsNode }
                 else mustCounter += rhsNode -> (count - 1)
             case RhsNode(_, name, args, idx) =>
-              for {
-                synNode <- getSyn(name, args)
-                if !minRhsIdx.contains(synNode)
-              } { worklist += synNode; minRhsIdx += synNode -> idx }
+              val synNode = getSyn(name, args)
+              if (!minRhsIdx.contains(synNode))
+                worklist += synNode
+                minRhsIdx += synNode -> idx
           true
         case None => false
     ) {}

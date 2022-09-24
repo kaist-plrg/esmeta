@@ -577,7 +577,7 @@ class Interpreter(
   private val getSubIdx = cached[Ast, Int] {
     case lex: Lexical => 0
     case Syntactic(name, _, rhsIdx, children) =>
-      val rhs = cfg.grammar.nameMap(name).rhsList(rhsIdx)
+      val rhs = cfg.grammar.nameMap(name).rhsVec(rhsIdx)
       val optionals = (for {
         (opt, child) <- rhs.nts.map(_.optional) zip children if opt
       } yield !child.isEmpty)

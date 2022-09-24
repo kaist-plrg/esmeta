@@ -24,7 +24,7 @@ object GrammarDiff {
 
   private def getAddScore(prod: Production, rhsIdx: Int): Int = {
     prod
-      .rhsList(rhsIdx)
+      .rhsVec(rhsIdx)
       .symbols
       .map {
         case Nonterminal(name, _, _)            => getAddScore(name)

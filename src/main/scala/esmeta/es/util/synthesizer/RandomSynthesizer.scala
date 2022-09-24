@@ -29,10 +29,10 @@ class RandomSynthesizer(
 
   /** for syntactic production */
   def apply(name: String, args: List[Boolean]): Syntactic =
-    val prod @ Production(lhs, _, _, rhsList) = nameMap(name)
+    val prod @ Production(lhs, _, _, rhsVec) = nameMap(name)
     val argsMap = (lhs.params zip args).toMap
     val pairs = for {
-      (rhs, rhsIdx) <- rhsList.zipWithIndex
+      (rhs, rhsIdx) <- rhsVec.zipWithIndex
       if rhs.condition.fold(true)(cond => argsMap(cond.name) == cond.pass)
     } yield (rhs, rhsIdx)
     val (rhs, rhsIdx) = chooseRhs(prod, pairs)

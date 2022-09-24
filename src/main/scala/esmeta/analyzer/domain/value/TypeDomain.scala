@@ -471,9 +471,9 @@ object TypeDomain extends value.Domain {
   /** ast type check helper */
   lazy val astDirectChildMap: Map[String, Set[String]] =
     (cfg.grammar.prods.map {
-      case Production(lhs, _, _, rhsList) =>
+      case Production(lhs, _, _, rhsVec) =>
         val name = lhs.name
-        val subs = rhsList.collect {
+        val subs = rhsVec.collect {
           case Rhs(_, List(Nonterminal(name, _, _)), _) => name
         }.toSet
         name -> subs
@@ -503,7 +503,7 @@ object TypeDomain extends value.Domain {
           if (defaultSdos contains method) {
             val defaultFunc = cfg.fnameMap(s"<DEFAULT>.$method")
             for {
-              (rhs, idx) <- cfg.grammar.nameMap(name).rhsList.zipWithIndex
+              (rhs, idx) <- cfg.grammar.nameMap(name).rhsVec.toList.zipWithIndex
               subIdx <- (0 until rhs.countSubs)
             } yield (defaultFunc, Elem(AstSingleT(name, idx, subIdx)))
           } else Nil
@@ -538,7 +538,7 @@ object TypeDomain extends value.Domain {
     for {
       prod <- cfg.grammar.prods
       name = prod.name if !(cfg.grammar.lexicalNames contains name)
-      (rhs, idx) <- prod.rhsList.zipWithIndex
+      (rhs, idx) <- prod.rhsVec.zipWithIndex
       subIdx <- (0 until rhs.countSubs)
     } {
       val syntacticName = s"$name[$idx,$subIdx]"

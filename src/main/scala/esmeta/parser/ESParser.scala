@@ -80,15 +80,15 @@ case class ESParser(
   // get a parser
   private def getParser(prod: Production): ESParser[Ast] = memo(args =>
     locationed {
-      val Production(lhs, _, _, rhsList) = prod
+      val Production(lhs, _, _, rhsVec) = prod
       val Lhs(name, params) = lhs
       val argsSet = getArgs(params, args)
 
-      val lrs = rhsList.zipWithIndex
+      val lrs = rhsVec.zipWithIndex
         .filter { case (r, _) => isLR(name, r) }
         .map { case (r, i) => getSubParsers(name, args, argsSet, i, r) }
 
-      val nlrs = rhsList.zipWithIndex
+      val nlrs = rhsVec.zipWithIndex
         .filter { case (r, _) => !isLR(name, r) }
         .map { case (r, i) => getParsers(name, args, argsSet, i, r) }
 
@@ -189,8 +189,8 @@ case class ESParser(
 
   // a terminal lexer
   protected val TERMINAL: Lexer = grammar.prods.foldLeft[Parser[String]]("") {
-    case (parser, Production(lhs, _, _, rhsList)) =>
-      rhsList.foldLeft(parser) {
+    case (parser, Production(lhs, _, _, rhsVec)) =>
+      rhsVec.foldLeft(parser) {
         case (parser, Rhs(_, tokens, _)) =>
           tokens.foldLeft(parser) {
             case (parser, Terminal("?.")) => parser ||| ("?." <~ not("\\d".r))

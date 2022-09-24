@@ -302,7 +302,7 @@ object TypeDomain extends state.Domain {
               n <- ns
               if n.isValidInt
               propIdx = n.toInt
-              rhs = cfg.grammar.nameMap(name).rhsList(idx)
+              rhs = cfg.grammar.nameMap(name).rhsVec(idx)
               nts = rhs.getNts(subIdx)
             } {
               if (propIdx >= nts.size)

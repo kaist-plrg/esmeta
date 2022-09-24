@@ -7,7 +7,7 @@ case class Production(
   lhs: Lhs,
   kind: ProductionKind,
   oneof: Boolean,
-  rhsList: List[Rhs],
+  rhsVec: Vector[Rhs],
 ) extends SpecElem {
 
   /** get name */
@@ -15,19 +15,19 @@ case class Production(
 
   /** get the index mapping for productions */
   lazy val idxMap: Map[String, (Int, Int)] = (for {
-    (rhs, i) <- rhsList.zipWithIndex
+    (rhs, i) <- rhsVec.zipWithIndex
     (name, j) <- rhs.allNames.zipWithIndex
   } yield lhs.name + ":" + name -> (i, j)).toMap
 
   /** get non-terminals in RHSs */
   lazy val nts: List[Nonterminal] = for {
-    rhs <- rhsList
+    rhs <- rhsVec.toList
     nt <- rhs.nts
   } yield nt
 
   /** get terminals in RHSs */
   lazy val ts: List[Terminal] = for {
-    rhs <- rhsList
+    rhs <- rhsVec.toList
     t <- rhs.ts
   } yield t
 }

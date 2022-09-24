@@ -473,7 +473,7 @@ class AbsTransfer(sem: AbsSemantics) {
                 case _                    => exploded("ESyntactic")
               }),
             )
-            AbsValue(Syntactic(name, args, rhsIdx, cs0))
+            AbsValue(Syntactic(name, args, rhsIdx, cs0.toVector))
           }
         }
       case ELexical(name, expr) => notSupported("ELexical")

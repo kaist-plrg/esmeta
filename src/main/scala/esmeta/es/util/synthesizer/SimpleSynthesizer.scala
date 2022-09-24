@@ -38,7 +38,7 @@ class SimpleSynthesizer(
         (rhs, rhsIdx) <- rhsVec.zipWithIndex
         if rhs.condition.fold(true)(cond => argsMap(cond.name) == cond.pass)
         children <- optional(rhs.symbols.flatMap(synSymbol(argsMap)))
-        syn = Syntactic(name, args, rhsIdx, children)
+        syn = Syntactic(name, args, rhsIdx, children.toVector)
       } yield syn
       visiting -= target
       syns.minBy(_.toString(grammar).length)

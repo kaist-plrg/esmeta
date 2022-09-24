@@ -165,21 +165,21 @@ class StringifyTinyTest extends IRTest {
     lazy val typeOf = ETypeOf(xExpr)
     lazy val typeCheck = ETypeCheck(xExpr, EStr(ty.toString))
     // AST expressions
-    lazy val ast = ESyntactic("Identifier", Nil, 1, Nil)
-    lazy val astArgs = ESyntactic("Identifier", List(true, false), 1, Nil)
+    lazy val ast = ESyntactic("Identifier", Nil, 1, Vector())
+    lazy val astArgs = ESyntactic("Identifier", List(true, false), 1, Vector())
     lazy val astSingle =
-      ESyntactic("Identifier", List(true, false), 1, List(Some(xExpr)))
+      ESyntactic("Identifier", List(true, false), 1, Vector(Some(xExpr)))
     lazy val astMultiple = ESyntactic(
       "Identifier",
       List(true, false),
       1,
-      List(Some(xExpr), Some(yExpr)),
+      Vector(Some(xExpr), Some(yExpr)),
     )
     lazy val astComplex = ESyntactic(
       "Identifier",
       List(true, false),
       3,
-      List(None, Some(xExpr), None, Some(yExpr)),
+      Vector(None, Some(xExpr), None, Some(yExpr)),
     )
     lazy val lex = ELexical("Identifier", xExpr)
     // allocation expressions

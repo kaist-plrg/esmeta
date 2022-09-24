@@ -34,8 +34,8 @@ sealed trait Ast extends ESElem with Locational {
     case lex: Lexical => List(this)
     case syn: Syntactic =>
       syn.children.flatten match
-        case child :: Nil => this :: child.chains
-        case _            => List(this)
+        case Vector(child) => this :: child.chains
+        case _             => List(this)
 
   /** children */
   def getChildren(kind: String): List[Ast] = this match
@@ -52,8 +52,8 @@ sealed trait Ast extends ESElem with Locational {
     Set(name, s"$name$idx") union (this match
       case Syntactic(_, _, _, cs) =>
         (cs match
-          case List(Some(child)) => child.types
-          case _                 => Set()
+          case Vector(Some(child)) => child.types
+          case _                   => Set()
         ) + "Nonterminal"
       case _: Lexical => Set()
     ) + "ParseNode"
@@ -61,9 +61,9 @@ sealed trait Ast extends ESElem with Locational {
   /** flatten statements */
   // TODO refactoring
   def flattenStmt: List[Ast] = this match
-    case Syntactic("Script", _, 0, List(Some(body))) =>
+    case Syntactic("Script", _, 0, Vector(Some(body))) =>
       body match
-        case Syntactic("ScriptBody", _, 0, List(Some(stlist))) =>
+        case Syntactic("ScriptBody", _, 0, Vector(Some(stlist))) =>
           flattenStmtList(stlist)
         case _ => Nil
     case _ => Nil
@@ -92,7 +92,7 @@ case class Syntactic(
   name: String,
   args: List[Boolean],
   rhsIdx: Int,
-  children: List[Option[Ast]],
+  children: Vector[Option[Ast]],
 ) extends Ast
 
 /** ASTs constructed by lexical productions */

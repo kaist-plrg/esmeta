@@ -36,7 +36,7 @@ class RandomSynthesizer(
       if rhs.condition.fold(true)(cond => argsMap(cond.name) == cond.pass)
     } yield (rhs, rhsIdx)
     val (rhs, rhsIdx) = chooseRhs(prod, pairs)
-    val children = rhs.symbols.flatMap(synSymbol(argsMap))
+    val children = rhs.symbols.flatMap(synSymbol(argsMap)).toVector
     Syntactic(name, args, rhsIdx, children)
 
   /** for lexical production */

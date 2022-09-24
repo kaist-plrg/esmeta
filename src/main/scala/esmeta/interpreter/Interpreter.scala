@@ -223,7 +223,7 @@ class Interpreter(
       (a, kOpt) match
         case (_, Some(k)) => st.allocList(a.getChildren(k).map(AstValue(_)))
         case (syn: Syntactic, None) =>
-          st.allocList(syn.children.flatten.map(AstValue(_)))
+          st.allocList(syn.children.flatten.map(AstValue(_)).toList)
         case _ => throw InvalidASTChildren(a)
     case EYet(msg) =>
       throw NotSupported(msg)

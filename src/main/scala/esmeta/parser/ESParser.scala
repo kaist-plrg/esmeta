@@ -60,7 +60,7 @@ case class ESParser(
     name: String,
     args: List[Boolean],
     idx: Int,
-    children: List[Option[Ast]],
+    children: Vector[Option[Ast]],
   ): Syntactic =
     val syn = Syntactic(name, args, idx, children)
     // set parent edge
@@ -120,7 +120,7 @@ case class ESParser(
             (base: Ast) =>
               val children = Some(base) :: cs.reverse
               withLoc(
-                syntactic(name, args, idx, children),
+                syntactic(name, args, idx, children.toVector),
                 base,
                 cs.flatten.headOption.getOrElse(base),
               )
@@ -144,7 +144,7 @@ case class ESParser(
       case _ =>
         val base: LAParser[List[Option[Ast]]] = MATCH ^^^ Nil
         rhs.symbols.foldLeft(base)(appendParser(name, _, _, argsSet)) ^^ {
-          case cs => syntactic(name, args, idx, cs.reverse)
+          case cs => syntactic(name, args, idx, cs.toVector.reverse)
         },
     })(s"""$pre$rhs
           |$cursor""".stripMargin)
@@ -448,7 +448,7 @@ case class ESParser(
         resolveLR(
           log(locationed(MATCH ~ parsers("BitwiseORExpression")(args) ^^ {
             case _ ~ x0 =>
-              syntactic("CoalesceExpressionHead", args, 1, List(Some(x0)))
+              syntactic("CoalesceExpressionHead", args, 1, Vector(Some(x0)))
           }))("CoalesceExpressionHead1"),
           log(
             (MATCH <~ t("??")) ~ parsers("BitwiseORExpression")(args) ^^ {
@@ -459,7 +459,7 @@ case class ESParser(
                       "CoalesceExpression",
                       args,
                       0,
-                      List(Some(x), Some(x0)),
+                      Vector(Some(x), Some(x0)),
                     ),
                     x,
                     x0,
@@ -469,7 +469,7 @@ case class ESParser(
                       "CoalesceExpressionHead",
                       args,
                       0,
-                      List(Some(expr)),
+                      Vector(Some(expr)),
                     ),
                     expr,
                     expr,

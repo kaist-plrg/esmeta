@@ -107,11 +107,12 @@ class Injector(
   // handle variables
   private def handleVariable: Unit = for (x <- createdVars.toList.sorted) {
     log("handling variable...")
+    val path = s"globalThis[\"$x\"]"
     getValue(s"""$globalMap["$x"].Value""") match
       case Absent => /* do nothing(handle global accessor property) */
       case sv: SimpleValue =>
-        _assertions += HasValue(x, sv)
-      case addr: Addr => handleObject(addr, x)
+        _assertions += HasValue(path, sv)
+      case addr: Addr => handleObject(addr, path)
       case _          => /* do nothing */
   }
 
@@ -122,12 +123,7 @@ class Injector(
   private lazy val createdVars: Set[String] =
     val initial = getStrKeys(getValue("@GLOBAL.SubMap"), "<global>")
     val current = getStrKeys(getValue(globalMap), "<global>")
-    (current -- initial).filter(isValidVar)
-  private def isValidVar(name: String): Boolean = name.headOption match {
-    case None                               => false
-    case Some(d) if "0123456789" contains d => false
-    case _                                  => true
-  }
+    (current -- initial)
 
   // handle lexical variables
   private def handleLet: Unit = for (x <- createdLets.toList.sorted) {

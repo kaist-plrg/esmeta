@@ -32,10 +32,17 @@ case object TransCheck extends Phase[CFG, Boolean] {
     // optionally dump the compiled test
     for (dirname <- config.dir)
       dumpDir[(File, (ConformTest, ConformTest))](
-        name = "compiled conformance tests",
+        name = "conformance tests",
         iterable = tests,
         dirname = dirname,
-        getName = _._1.getPath,
+        getName = p => s"orig-test/${p._1.getPath}",
+        getData = _._2._1,
+      )
+      dumpDir[(File, (ConformTest, ConformTest))](
+        name = "transpiled conformance tests",
+        iterable = tests,
+        dirname = dirname,
+        getName = p => s"trans-test/${p._1.getPath}",
         getData = _._2._2,
       )
     // TODO dump other metadata

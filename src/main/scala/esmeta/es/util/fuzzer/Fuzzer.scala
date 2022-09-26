@@ -51,6 +51,23 @@ class Fuzzer(
       // start logging
       mkdir(logDir, remove = true)
       dumpFile(ESMeta.currentVersion, s"$logDir/version")
+      var raw = Vector(
+        "iter(#)",
+        "script(#)",
+        "time(ms)",
+        "node-cover(#)",
+        "node-total(#)",
+        "node-ratio(%)",
+        "branch-cover(#)",
+        "branch-total(#)",
+        "branch-ratio(%)",
+      )
+      if (conformTest)
+        raw ++= Vector(
+          "conform-bug(#)",
+          "trans-bug(#)",
+        )
+      addRaw(raw)
     })
     time(
       s"- initializing program pool with ${initPool.size} programs", {
@@ -65,23 +82,6 @@ class Fuzzer(
         logInterval.map(_ => {
           startTime = System.currentTimeMillis
           startInterval = System.currentTimeMillis
-          var raw = Vector(
-            "iter(#)",
-            "script(#)",
-            "time(ms)",
-            "node-cover(#)",
-            "node-total(#)",
-            "node-ratio(%)",
-            "branch-cover(#)",
-            "branch-total(#)",
-            "branch-ratio(%)",
-          )
-          if (conformTest)
-            raw ++= Vector(
-              "conform-bug(#)",
-              "trans-bug(#)",
-            )
-          addRaw(raw)
           logging
         })
         trial match

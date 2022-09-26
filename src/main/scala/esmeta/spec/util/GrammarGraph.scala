@@ -1,8 +1,8 @@
 package esmeta.spec.util
-
 import esmeta.spec.*
 import esmeta.util.*
 import scala.collection.mutable.{Map => MMap}
+import math.Ordering.Implicits.infixOrderingOps
 
 /** graph representation for syntactic grammar */
 case class GrammarGraph(grammar: Grammar) {
@@ -173,6 +173,34 @@ case class GrammarGraph(grammar: Grammar) {
       value <- values
     } update(revMap, value, key)
     revMap.toMap
+
+  def fixpoint[T](
+    init: Map[Node, T],
+    touched: Iterable[Node],
+    f: (Map[Node, T], Node) => T,
+  )(using Ordering[T]): Map[Node, T] = {
+    var map: Map[Node, T] = init
+    var worklist = QueueWorklist(touched)
+    while (
+      worklist.next match
+        case Some(node) =>
+          val newT = f(map, node)
+          map.get(node) match
+            case Some(origT) if origT <= newT =>
+            case _                            =>
+              // update the current node with new value
+              map += node -> newT
+              // propagate to the current node's parent nodes
+              node match
+                case prodNode: ProdNode =>
+                  worklist ++= mustUsedIn.getOrElse(prodNode, Set())
+                case RhsNode(_, name, args, _) =>
+                  worklist += getSyn(name, args)
+          true
+        case None => false
+    ) {}
+    map
+  }
 }
 object GrammarGraph {
 

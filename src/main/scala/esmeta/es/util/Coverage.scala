@@ -200,12 +200,12 @@ class Coverage(
       space = true,
     )
     if (withScripts)
-      dumpDir(
+      dumpDir[Script](
         name = if (withMsg) Some("minimal ECMAScript programs") else None,
         iterable = _minimalScripts,
         dirname = s"$baseDir/minimal",
-        getName = (script: Script) => s"${script.name}.js",
-        getData = (script: Script) => script.code,
+        getName = _.name,
+        getData = _.code,
         remove = true,
       )
     if (withTargetConds)

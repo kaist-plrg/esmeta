@@ -214,6 +214,15 @@ class Fuzzer(
       getData = { case ((c, t), i) => t },
       remove = false,
     )
+    dumpDir[Zipped](
+      name =
+        if (withMsg) Some("message for failed conformance tests") else None,
+      iterable = failedTests.zipWithIndex,
+      dirname = s"$baseDir/failed",
+      getName = { case ((c, t), i) => s"$i.msg" },
+      getData = { case ((c, t), i) => t.msg },
+      remove = false,
+    )
     rmdir(s"$baseDir/trans-failed")
     dumpDir[Zipped](
       name = if (withMsg) Some("failed transpiled conformance codes") else None,
@@ -229,6 +238,16 @@ class Fuzzer(
       dirname = s"$baseDir/trans-failed",
       getName = { case ((c, t), i) => s"$i.test.js" },
       getData = { case ((c, t), i) => t },
+      remove = false,
+    )
+    dumpDir[Zipped](
+      name =
+        if (withMsg) Some("message for failed transpiled conformance tests")
+        else None,
+      iterable = transFailedTests.zipWithIndex,
+      dirname = s"$baseDir/trans-failed",
+      getName = { case ((c, t), i) => s"$i.msg" },
+      getData = { case ((c, t), i) => t.msg },
       remove = false,
     )
 

@@ -10,7 +10,7 @@ let GeneratorFunction = Object.getPrototypeOf(function* () {}).constructor;
 let $error = (globalThis.console && globalThis.console.log) || globalThis.print;
 
 // conversion to string
-function $toString(value) {
+let $toString = (value) => {
   if (value === 0 && 1 / value === -Infinity) return "«-0»";
   if (value instanceof Error) return "a " + value.constructor.name;
   if (value === AsyncArrowFunction.prototype) return "an async arrow function"
@@ -23,13 +23,13 @@ function $toString(value) {
   return String(value);
 }
 
-function $isSameValue(x, y) {
+let $isSameValue = (x, y) => {
   if (x === y) return x !== 0 || 1 / x === 1 / y;
   return x !== x && y !== y;
 }
 
 // assertion
-function $assert(mustBeTrue) {
+let $assert = (mustBeTrue) => {
   if (mustBeTrue === true) return;
   $error("Expected true but got " + $toString(mustBeTrue));
 }
@@ -88,7 +88,7 @@ $assert.notConstructable = function (f) {
 };
 
 // assertion to compare arrays
-function $compareArray(a, b) {
+let $compareArray = (a, b) => {
   if (b.length !== a.length) return false;
   for (var i = 0; i < a.length; i++) {
     if (!$isSameValue(a[i], b[i])) return false;
@@ -144,7 +144,7 @@ $assert.compareIterator = function (iter, validators) {
 };
 
 // verify properties
-function $verifyProperty(obj, prop, desc) {
+let $verifyProperty = (obj, prop, desc) => {
   // check property type
   var propType = typeof prop;
   if (propType !== "string" && propType !== "symbol") {
@@ -194,7 +194,7 @@ function $verifyProperty(obj, prop, desc) {
 
 // delay checking assertions in JS runtime environment
 // supported: Node, QuickJs
-function $delay(f) {
+let $delay = (f) => {
   var setTimeout = globalThis.setTimeout;
   import("os")
     .then((os) => {

@@ -10,18 +10,21 @@ case class GrammarGraph(grammar: Grammar) {
 
   /** get a syntactic production node */
   def getSyn(name: String, args: List[Boolean]): SynNode = synMap(name, args)
-  private val synMap: MMap[(String, List[Boolean]), SynNode] = MMap()
 
   /** get a lexical production node */
   def getLex(name: String): LexNode = lexMap(name)
-  private val lexMap: MMap[String, LexNode] = MMap()
 
   /** get a RHS node */
   def getRhs(name: String, args: List[Boolean], idx: Int): RhsNode =
     rhsMap(name, args, idx)
-  private val rhsMap: MMap[(String, List[Boolean], Int), RhsNode] = MMap()
 
   lazy val (
+    /** getter for syntactic production nodes */
+    synMap: MMap[(String, List[Boolean]), SynNode],
+    /** getter for lexical production nodes */
+    lexMap: MMap[String, LexNode],
+    /** getter for RHS nodes */
+    rhsMap: MMap[(String, List[Boolean], Int), RhsNode],
     /** all nodes */
     nodes: Set[Node],
     /** edges from syntactic productions to RHSs */
@@ -32,6 +35,9 @@ case class GrammarGraph(grammar: Grammar) {
     rhsMayEdges: Map[RhsNode, Set[ProdNode]],
   ) = {
     import ProductionKind.*, NonterminalArgumentKind.*
+    val synMap: MMap[(String, List[Boolean]), SynNode] = MMap()
+    val lexMap: MMap[String, LexNode] = MMap()
+    val rhsMap: MMap[(String, List[Boolean], Int), RhsNode] = MMap()
     var nodes: Set[Node] = Set()
     val synEdges: MMap[SynNode, Set[RhsNode]] = MMap()
     val rhsMustEdges: MMap[RhsNode, Set[ProdNode]] = MMap()
@@ -100,7 +106,15 @@ case class GrammarGraph(grammar: Grammar) {
       synNode = getSyn(name, args)
     } auxSyn(synNode, prod, argMap)
 
-    (nodes, synEdges.toMap, rhsMustEdges.toMap, rhsMayEdges.toMap)
+    (
+      synMap,
+      lexMap,
+      rhsMap,
+      nodes,
+      synEdges.toMap,
+      rhsMustEdges.toMap,
+      rhsMayEdges.toMap,
+    )
   }
 
   /** all production nodes */
@@ -161,19 +175,7 @@ case class GrammarGraph(grammar: Grammar) {
     ) {}
     (topological.toList, minRhsIdx)
 
-  // update a mapping form keys to set of values
-  private def update[K, V](map: MMap[K, Set[V]], key: K, value: V): Unit =
-    map += key -> (map.getOrElse(key, Set()) + value)
-
-  // reverse a mappin from keys to set of values
-  private def reverse[K, V](map: Map[K, Set[V]]): Map[V, Set[K]] =
-    val revMap: MMap[V, Set[K]] = MMap()
-    for {
-      (key, values) <- map
-      value <- values
-    } update(revMap, value, key)
-    revMap.toMap
-
+  // compute fixpoint of mapping from nodes to data
   def fixpoint[T](
     init: Map[Node, T],
     touched: Iterable[Node],
@@ -201,6 +203,22 @@ case class GrammarGraph(grammar: Grammar) {
     ) {}
     map
   }
+
+  // ---------------------------------------------------------------------------
+  // private helpers
+  // ---------------------------------------------------------------------------
+  // update a mapping form keys to set of values
+  private def update[K, V](map: MMap[K, Set[V]], key: K, value: V): Unit =
+    map += key -> (map.getOrElse(key, Set()) + value)
+
+  // reverse a mapping from keys to set of values
+  private def reverse[K, V](map: Map[K, Set[V]]): Map[V, Set[K]] =
+    val revMap: MMap[V, Set[K]] = MMap()
+    for {
+      (key, values) <- map
+      value <- values
+    } update(revMap, value, key)
+    revMap.toMap
 }
 object GrammarGraph {
 

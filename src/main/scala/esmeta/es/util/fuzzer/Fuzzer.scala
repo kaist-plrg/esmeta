@@ -50,39 +50,45 @@ class Fuzzer(
     logInterval.map(_ => {
       // start logging
       mkdir(logDir, remove = true)
-      dumpFile(ESMeta.currentVersion.shortHash, s"$logDir/version")
+      dumpFile(ESMeta.currentVersion, s"$logDir/version")
     })
-    println("- initializing program pool...")
-    for ((synthesizer, code) <- initPool)
-      debugging(f"[${synthesizer.name}%-30s] $code")
-      add(code)
-
-    println("- repeatedly trying to fuzz new programs to increase coverage...")
-    logInterval.map(_ => {
-      startTime = System.currentTimeMillis
-      startInterval = System.currentTimeMillis
-      var raw = Vector(
-        "iter(#)",
-        "script(#)",
-        "time(ms)",
-        "node-cover(#)",
-        "node-total(#)",
-        "node-ratio(%)",
-        "branch-cover(#)",
-        "branch-total(#)",
-        "branch-ratio(%)",
-      )
-      if (conformTest)
-        raw ++= Vector(
-          "conform-bug(#)",
-          "trans-bug(#)",
-        )
-      addRaw(raw)
-      logging
-    })
-    trial match
-      case Some(count) => for (_ <- Range(0, count)) fuzz
-      case None        => while (true) fuzz
+    time(
+      s"- initializing program pool with ${initPool.size} programs", {
+        for ((synthesizer, code) <- initPool)
+          debugging(f"[${synthesizer.name}%-30s] $code")
+          add(code)
+      },
+    )
+    println(s"- the initial program pool consists of ${pool.size} programs.")
+    time(
+      "- repeatedly trying to fuzz new programs to increase coverage", {
+        logInterval.map(_ => {
+          startTime = System.currentTimeMillis
+          startInterval = System.currentTimeMillis
+          var raw = Vector(
+            "iter(#)",
+            "script(#)",
+            "time(ms)",
+            "node-cover(#)",
+            "node-total(#)",
+            "node-ratio(%)",
+            "branch-cover(#)",
+            "branch-total(#)",
+            "branch-ratio(%)",
+          )
+          if (conformTest)
+            raw ++= Vector(
+              "conform-bug(#)",
+              "trans-bug(#)",
+            )
+          addRaw(raw)
+          logging
+        })
+        trial match
+          case Some(count) => for (_ <- Range(0, count)) fuzz
+          case None        => while (true) fuzz
+      },
+    )
 
     // finish logging
     logInterval.map(_ => {
@@ -167,12 +173,12 @@ class Fuzzer(
   val mutator: Mutator = RandomMutator(cfg)
 
   /** synthesizer */
-  val synthesizer: Synthesizer = RandomSynthesizer(cfg)
+  val simpleSynthesizer: Synthesizer = SimpleSynthesizer(cfg)
   val builtinSynthesizer: Synthesizer = BuiltinSynthesizer(cfg)
 
   /** initial pool */
   val initPool =
-    synthesizer.initPool.map(synthesizer -> _) ++
+    simpleSynthesizer.initPool.map(simpleSynthesizer -> _) ++
     builtinSynthesizer.initPool.map(builtinSynthesizer -> _)
 
   /** logging */

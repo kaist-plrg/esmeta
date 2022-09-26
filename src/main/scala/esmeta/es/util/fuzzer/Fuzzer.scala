@@ -12,7 +12,7 @@ import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
 import java.io.PrintWriter
 import java.util.concurrent.TimeoutException
-import scala.collection.mutable.{Set => MSet}
+import scala.collection.mutable.ListBuffer
 
 /** ECMAScript program fuzzer with ECMA-262 */
 object Fuzzer:
@@ -138,16 +138,16 @@ class Fuzzer(
   }.getOrElse(false)
 
   // all meaningful tests
-  private val failedTests: MSet[(String, ConformTest)] = MSet()
-  private val transFailedTests: MSet[(String, ConformTest)] = MSet()
+  private val failedTests: ListBuffer[(String, ConformTest)] = ListBuffer()
+  private val transFailedTests: ListBuffer[(String, ConformTest)] = ListBuffer()
   private def doConformTest(initSt: State, finalSt: State) =
     val code = initSt.sourceText.get
     val (test, transTest) = ConformTest.createTestPair(initSt, finalSt)
     if (debug) print(f" ${"GRAAL-JS CONFORMANCE RESULT"}%30s: ")
-    if (!test.isPass) failedTests.add(code, test)
+    if (!test.isPass) failedTests.addOne(code, test)
     debugging(if (test.isPass) passMsg("") else failMsg(""))
     if (debug) print(f" ${"BABEL TRANSPILATION RESULT"}%30s: ")
-    if (!transTest.isPass) transFailedTests.add(code, transTest)
+    if (!transTest.isPass) transFailedTests.addOne(code, transTest)
     debugging(if (transTest.isPass) passMsg("") else failMsg(""))
 
   /** ECMAScript grammar */

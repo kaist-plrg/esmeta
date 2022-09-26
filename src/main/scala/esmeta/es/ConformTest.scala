@@ -34,8 +34,7 @@ case class ConformTest(
     failedAssertions: Vector[(Assertion, String)],
   ) = JSEngine
     .usingContext((context, out) => {
-      JSEngine.run("\"use strict\";", context)
-      JSEngine.run(script, context, Some(1000))
+      JSEngine.run(s"\"use strict\";$LINE_SEP$script", context, Some(1000))
       JSEngine.run(Injector.assertionLib, context)
       val (passes, fails) = assertions
         .map(assertion =>

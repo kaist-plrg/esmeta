@@ -77,8 +77,8 @@ case class ConformTest(
   lazy val msg =
     if isPass then ""
     else if (!sameExitTag) then
-      s"[Exit Tag Mismatch]$LINE_SEP > Expected $exitTag but got $concreteExitTag"
-    else failedAssertions.map((a, m) => s"$a$LINE_SEP > $m").mkString(LINE_SEP)
+      s"[Exit Tag Mismatch]$LINE_SEP > Expected $exitTag but got $concreteExitTag$LINE_SEP"
+    else failedAssertions.map((a, m) => s"$a$LINE_SEP > $m").mkString("")
 
   /** retain only passed assertions */
   def filterAssertion: ConformTest =

@@ -122,7 +122,12 @@ class Injector(
   private lazy val createdVars: Set[String] =
     val initial = getStrKeys(getValue("@GLOBAL.SubMap"), "<global>")
     val current = getStrKeys(getValue(globalMap), "<global>")
-    current -- initial
+    (current -- initial).filter(isValidVar)
+  private def isValidVar(name: String): Boolean = name.headOption match {
+    case None                               => false
+    case Some(d) if "0123456789" contains d => false
+    case _                                  => true
+  }
 
   // handle lexical variables
   private def handleLet: Unit = for (x <- createdLets.toList.sorted) {

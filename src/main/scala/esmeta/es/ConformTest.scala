@@ -40,7 +40,11 @@ case class ConformTest(
         .map(assertion =>
           (
             assertion,
-            JSEngine.runAndGetStdout(assertion.toString, context, out),
+            try JSEngine.runAndGetStdout(assertion.toString, context, out)
+            catch {
+              case e =>
+                s"An exception occured while checking this assertion.$LINE_SEP"
+            },
           ),
         )
         .partition(_._2.isEmpty)

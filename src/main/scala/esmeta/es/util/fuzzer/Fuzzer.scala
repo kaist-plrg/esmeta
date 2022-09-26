@@ -1,6 +1,6 @@
 package esmeta.es.util.fuzzer
 
-import esmeta.FUZZ_LOG_DIR
+import esmeta.{ESMeta, FUZZ_LOG_DIR}
 import esmeta.cfg.CFG
 import esmeta.es.*
 import esmeta.es.util.*
@@ -47,6 +47,11 @@ class Fuzzer(
 
   /** generated ECMAScript programs */
   lazy val result: Coverage =
+    logInterval.map(_ => {
+      // start logging
+      mkdir(logDir, remove = true)
+      dumpFile(ESMeta.currentVersion.shortHash, s"$logDir/version")
+    })
     println("- initializing program pool...")
     for ((synthesizer, code) <- initPool)
       debugging(f"[${synthesizer.name}%-30s] $code")
@@ -54,8 +59,6 @@ class Fuzzer(
 
     println("- repeatedly trying to fuzz new programs to increase coverage...")
     logInterval.map(_ => {
-      // start logging
-      mkdir(FUZZ_LOG_DIR)
       startTime = System.currentTimeMillis
       startInterval = System.currentTimeMillis
       var raw = Vector(
@@ -187,13 +190,13 @@ class Fuzzer(
     if (conformTest) raw ++= Vector(cb, tb)
     addRaw(raw)
     // dump coveragge
-    cov.dumpToWithDetail(FUZZ_LOG_DIR, withMsg = false)
+    cov.dumpToWithDetail(logDir, withMsg = false)
     // dump failed conformance tests
-    if (conformTest) dumpFailedConformTests(FUZZ_LOG_DIR, false)
+    if (conformTest) dumpFailedConformTests(logDir, false)
 
   /** dump failed conformance tests */
   def dumpFailedConformTests(
-    baseDir: String = FUZZ_LOG_DIR,
+    baseDir: String = logDir,
     withMsg: Boolean = true,
   ): Unit =
     rmdir(s"$baseDir/failed")
@@ -251,12 +254,14 @@ class Fuzzer(
       remove = false,
     )
 
+  lazy val logDir: String = s"$FUZZ_LOG_DIR/fuzz-$dateStr"
+
   def addRaw(data: Iterable[Any]): Unit =
     val raw = data.mkString("\t")
     if (stdOut) println(raw)
     nf.println(raw)
     nf.flush
-  lazy val nf: PrintWriter = getPrintWriter(s"$FUZZ_LOG_DIR/summary.tsv")
+  lazy val nf: PrintWriter = getPrintWriter(s"$logDir/summary.tsv")
 
   // ---------------------------------------------------------------------------
   // private helpers

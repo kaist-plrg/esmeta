@@ -174,7 +174,9 @@ object SystemUtils {
   )
 
   /** create directories */
-  def mkdir(name: String): Unit = File(name).mkdirs
+  def mkdir(name: String, remove: Boolean = false): Unit =
+    if (remove) rmdir(name)
+    File(name).mkdirs
 
   /** clean directories */
   def cleanDir(name: String) = for (file <- walkTree(name)) file.delete

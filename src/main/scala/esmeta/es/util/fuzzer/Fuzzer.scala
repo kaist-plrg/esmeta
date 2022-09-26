@@ -1,6 +1,6 @@
 package esmeta.es.util.fuzzer
 
-import esmeta.{ESMeta, FUZZ_LOG_DIR}
+import esmeta.{ESMeta, FUZZ_LOG_DIR, LINE_SEP}
 import esmeta.cfg.CFG
 import esmeta.es.*
 import esmeta.es.util.*
@@ -212,7 +212,7 @@ class Fuzzer(
       iterable = failedTests.zipWithIndex,
       dirname = s"$baseDir/failed",
       getName = { case ((c, t), i) => s"$i.js" },
-      getData = { case ((c, t), i) => "\"use strict\";\n" + c },
+      getData = { case ((c, t), i) => USE_STRICT + c + LINE_SEP },
       remove = true,
     )
     dumpDir[Zipped](
@@ -238,7 +238,7 @@ class Fuzzer(
       iterable = transFailedTests.zipWithIndex,
       dirname = s"$baseDir/trans-failed",
       getName = { case ((c, t), i) => s"$i.js" },
-      getData = { case ((c, t), i) => c },
+      getData = { case ((c, t), i) => USE_STRICT + c + LINE_SEP },
       remove = true,
     )
     dumpDir[Zipped](

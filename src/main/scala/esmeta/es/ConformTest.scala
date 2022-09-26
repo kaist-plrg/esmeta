@@ -3,6 +3,7 @@ package esmeta.es
 import esmeta.*
 import esmeta.cfg.CFG
 import esmeta.error.NoGraal
+import esmeta.es.util.*
 import esmeta.es.util.injector.*
 import esmeta.state.State
 import esmeta.util.*
@@ -34,7 +35,7 @@ case class ConformTest(
     failedAssertions: Vector[(Assertion, String)],
   ) = JSEngine
     .usingContext((context, out) => {
-      JSEngine.run(s"\"use strict\";$LINE_SEP$script", context, Some(1000))
+      JSEngine.run(s"$USE_STRICT$script", context, Some(1000))
       JSEngine.run(Injector.assertionLib, context)
       val (passes, fails) = assertions
         .map(assertion =>
@@ -85,7 +86,7 @@ case class ConformTest(
 
   /** retain only passed assertions */
   def filterAssertion: ConformTest =
-    ConformTest(id, script, concreteExitTag, defs, isAsync, passedAssertions)
+    ConformTest(id, script, exitTag, defs, isAsync, passedAssertions)
 }
 
 object ConformTest {

@@ -25,7 +25,7 @@ class SimpleSynthesizer(
       (node, scripts) <- scriptCovered.toList.sortBy(_._1.id)
       // XXX _ = println(s"- $node:")
       ast <- scripts
-      code = ast.toString(grammar)
+      code = handleInvalid(ast.toString(grammar).trim)
       // XXX _ = println(s"    $code")
     } yield code).toSet.toVector.sortBy(_.length)
     // XXX time("initPool", pool)
@@ -190,6 +190,11 @@ class SimpleSynthesizer(
 
     map
   }
+
+  // handle invalid code
+  private def handleInvalid(code: String): String =
+    if (code.startsWith("{") && code.endsWith("} ;")) "var x = " + code
+    else code
 }
 object SimpleSynthesizer extends Synthesizer.Builder {
   val name: String = "SimpleSynthesizer"

@@ -18,7 +18,7 @@ _esmeta_completions() {
   compileOpt="-compile:log -compile:log-with-loc"
   buildcfgOpt="-build-cfg:log -build-cfg:dot -build-cfg:pdf"
   tycheckOpt="-tycheck:target -tycheck:repl -tycheck:log"
-  parseOpt="-parse:debug"
+  parseOpt="-parse:debug -parse:pprint"
   evalOpt="-eval:timeout -eval:log"
   webOpt="-web:port"
   test262testOpt="-test262-test:target -test262-test:progress -test262-test:coverage -test262-test:timeout -test262-test:log"

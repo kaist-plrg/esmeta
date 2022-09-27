@@ -13,10 +13,10 @@ let $error = (globalThis.console && globalThis.console.log) || globalThis.print;
 let $toString = (value) => {
   if (value === 0 && 1 / value === -Infinity) return "«-0»";
   if (value instanceof Error) return "a " + value.constructor.name;
-  if (value === AsyncArrowFunction.prototype) return "an async arrow function"
   if (value === AsyncFunction.prototype) return "an async function"
   if (value === AsyncGeneratorFunction.prototype) return "an async generator function"
   if (value === GeneratorFunction.prototype) return "a generator function"
+  if (value === AsyncArrowFunction.prototype) return "an async arrow function"
   if (typeof value === "string") return '"' + value + '"';
   if (typeof value === "function") return "[object Function]";
   if (typeof value === "object") return "[object Object]";

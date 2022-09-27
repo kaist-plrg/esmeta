@@ -15,6 +15,7 @@ class Stringifier(
   detail: Boolean,
   location: Boolean,
   grammar: Option[Grammar],
+  text: Option[String],
 ) {
   // elements
   given elemRule: Rule[ESElem] = (app, elem) =>
@@ -52,8 +53,9 @@ class Stringifier(
             cs.headOption match
               case Some(hd) => hd.map(aux); cs = cs.tail
               case _        => error(s"invalid AST: $origAst")
-
-    aux(origAst)
+    (text, origAst.loc) match
+      case (Some(text), Some(loc)) => app >> loc.getString(text)
+      case _                       => aux(origAst)
     app
 
   lazy val basicAstRule: Rule[Ast] = (app, ast) =>

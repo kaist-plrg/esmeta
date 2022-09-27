@@ -18,7 +18,7 @@ case object Eval extends Phase[CFG, State] {
     config: Config,
   ): State =
     val filename = getFirstFilename(cmdConfig, this.name)
-    val initSt = Initialize.fromFile(cfg, filename)
+    val initSt = cfg.init.fromFile(filename)
     val st = Interpreter(initSt, log = config.log, timeLimit = config.timeLimit)
     st
   def defaultConfig: Config = Config()

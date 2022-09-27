@@ -189,7 +189,7 @@ class Interpreter(
       val (str, args, locOpt) = eval(code) match
         case Str(s) => (s, List(), None)
         case AstValue(syn: Syntactic) =>
-          (syn.toString(grammar), syn.args, syn.loc)
+          (syn.toString(grammar, st.sourceText), syn.args, syn.loc)
         case AstValue(lex: Lexical) => (lex.str, List(), lex.loc)
         case v                      => throw InvalidParseSource(code, v)
       try {
@@ -200,9 +200,8 @@ class Interpreter(
           case (x, Nt(name, params), _, _) =>
             val ast =
               esParser(name, if (params.isEmpty) args else params).from(x)
-            // TODO handle span of re-parsed ast
-            ast.clearLoc
-            ast.setChildLoc(locOpt)
+            // handle span of re-parsed ast
+            locOpt.map(ast.setBaseLoc)
             AstValue(ast)
           case (_, r, _, _) => throw NoNt(rule, r)
       } catch {
@@ -211,8 +210,7 @@ class Interpreter(
     case ENt(name, params) => Nt(name, params)
     case ESourceText(expr) =>
       val ast = eval(expr).asAst
-      // XXX fix last space in ECMAScript stringifier
-      Str(ast.toString(grammar).trim)
+      Str(ast.toString(grammar, st.sourceText).trim)
     case EGetChildren(kindOpt, ast) =>
       val kOpt = kindOpt.map(kind =>
         eval(kind) match

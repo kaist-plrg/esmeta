@@ -26,12 +26,20 @@ case class ESParser(
   def apply(name: String, args: List[Boolean] = Nil): AstFrom =
     val parser = parsers(name)(args)
     new AstFrom {
-      def fromFile(str: String): Ast =
+      def fromFile(filename: String): Ast =
         if (debug) println(debugWelcome)
-        parse(parser, fileReader(str)).get
+        parse(parser, fileReader(filename)).get
       def from(str: String): Ast =
         if (debug) println(debugWelcome)
         parse(parser, str).get
+      def fromFileWithCode(filename: String): (Ast, String) =
+        if (debug) println(debugWelcome)
+        val res = parse(parser, fileReader(filename))
+        (res.get, res.next.source.toString)
+      def fromWithCode(str: String): (Ast, String) =
+        if (debug) println(debugWelcome)
+        val res = parse(parser, str)
+        (res.get, res.next.source.toString)
     }
 
   // parsers

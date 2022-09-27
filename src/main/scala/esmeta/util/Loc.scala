@@ -24,13 +24,16 @@ case class Loc(
   var end: Pos,
   var steps: List[Int],
 ) {
-  // string getter
+
+  /** get substring from a string */
   def getString(str: String): String = str.substring(start.offset, end.offset)
 
   // TODO short string for the same line (e.g. 3:2-4)
+  /** conversion to string */
   override def toString: String =
     s"${start.simpleString}-${end.simpleString} (step $stepString)"
 
+  /** get step string */
   def stepString: String =
     (for ((step, idx) <- steps.zipWithIndex) yield idx % 3 match
       case 0 => step.toString
@@ -49,6 +52,20 @@ case class Pos(
   var column: Int,
   var offset: Int,
 ) {
+
+  /** get simple string */
   def simpleString: String = s"$line:$column"
+
+  /** append another position */
+  def +(that: Pos): Pos =
+    val newLine = this.line + that.line - 1
+    val newColumn = (if (that.line == 1) this.column else 0) + that.column
+    val newOffset = this.offset + that.offset
+    Pos(newLine, newColumn, newOffset)
+
+  /** append a source location */
+  def +(loc: Loc): Loc = Loc(this + loc.start, this + loc.end, loc.steps)
+
+  /** conversion to string */
   override def toString: String = s"$simpleString($offset)"
 }

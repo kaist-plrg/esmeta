@@ -286,13 +286,9 @@ class Fuzzer(
   private def interval: Long = System.currentTimeMillis - startInterval
 
   // conversion from code string to `Script` object
-  private def toScript(code: String, ast: Ast): Script =
-    val script = Script(code, ast, s"$nextId.js", None)
+  private def toScript(code: String): Script =
+    val script = Script(cfg, code, s"$nextId.js", None)
     visited += code
     script
-  private def toScript(code: String): Script =
-    toScript(code, scriptParser.from(code))
-  private def toScript(ast: Ast): Script =
-    toScript(ast.toString(grammar), ast)
   private var visited: Set[String] = Set()
 }

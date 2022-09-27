@@ -17,7 +17,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
   import cfgStringifier.{given, *}
 
   // load ECMAScript Stringifier
-  val esStringifier = ESElem.getStringifier((false, location, None))
+  val esStringifier = ESElem.getStringifier((false, location, None, None))
   import esStringifier.{given, *}
 
   // elements

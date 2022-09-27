@@ -22,11 +22,13 @@ class ESAnalyzer(cfg: CFG) {
     NodePoint(runJobs, entry, View())
 
   // get initial abstract states in each node point
-  def initNpMap(sourceText: String): Map[NodePoint[Node], AbsState] = Map(
-    initCp -> AbsState.Empty.defineGlobal(
-      Global(builtin.SOURCE_TEXT) -> AbsValue(sourceText),
-    ),
-  )
+  def initNpMap(sourceText: String): Map[NodePoint[Node], AbsState] =
+    val (_, semiInjected) = cfg.scriptParser.fromWithCode(sourceText)
+    Map(
+      initCp -> AbsState.Empty.defineGlobal(
+        Global(builtin.SOURCE_TEXT) -> AbsValue(semiInjected),
+      ),
+    )
 }
 object ESAnalyzer:
   // throw exceptions when touching not yet supported instructions

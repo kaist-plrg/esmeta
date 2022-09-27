@@ -22,7 +22,7 @@ object Injector:
     defs: Boolean = false,
     log: Boolean = false,
   ): ConformTest =
-    val extractor = ExitStateExtractor(Initialize(cfg, src))
+    val extractor = ExitStateExtractor(cfg.init.from(src))
     new Injector(extractor.initSt, extractor.result, defs, log).conformTest
 
   /** injection from files */
@@ -32,7 +32,7 @@ object Injector:
     defs: Boolean = false,
     log: Boolean = false,
   ): ConformTest =
-    val extractor = ExitStateExtractor(Initialize.fromFile(cfg, filename))
+    val extractor = ExitStateExtractor(cfg.init.fromFile(filename))
     new Injector(extractor.initSt, extractor.result, defs, log).conformTest
 
   /** assertion definitions */

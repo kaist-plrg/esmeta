@@ -21,10 +21,8 @@ case class Test262(
 ) {
 
   /** cache for parsing results for necessary harness files */
-  lazy val getHarness = cached(name =>
-    val filename = s"$TEST262_DIR/harness/$name"
-    () => parseFile(filename).flattenStmt,
-  )
+  lazy val getHarness =
+    cached[String, String](name => readFile(s"$TEST262_DIR/harness/$name"))
 
   /** all Test262 tests */
   lazy val allTests: List[MetaData] = MetaData.fromDir(TEST262_TEST_DIR)
@@ -36,23 +34,24 @@ case class Test262(
   lazy val config: ConfigSummary = allTestFilter.summary
 
   /** basic harness files */
-  lazy val basicHarness = getHarness("assert.js")() ++ getHarness("sta.js")()
+  lazy val basicHarness = Vector(getHarness("assert.js"), getHarness("sta.js"))
 
   /** specification */
   val spec = cfg.spec
 
   /** load test262 */
-  def loadTest(filename: String): Ast =
+  def loadTest(filename: String): String =
     loadTest(filename, MetaData(filename).includes)
 
   /** load test262 with harness files */
-  def loadTest(filename: String, includes: List[String]): Ast =
+  def loadTest(filename: String, includes: List[String]): String =
     // load harness
-    val harnessStmts = includes.foldLeft(basicHarness)(_ ++ getHarness(_)())
+    val harnessFiles = includes.foldLeft(basicHarness)(_ :+ getHarness(_))
 
     // merge with harnesses
-    val stmts = flattenStmt(parseFile(filename))
-    mergeStmt(harnessStmts ++ stmts)
+    val code = readFile(filename)
+
+    (harnessFiles :+ code).mkString(LINE_SEP)
 
   /** get data list */
   def getDataList(
@@ -187,12 +186,11 @@ case class Test262(
     timeLimit: Option[Int] = None,
   ): State = eval(loadTest(filename), log, timeLimit)
   private def eval(
-    script: Ast,
+    script: String,
     log: Boolean = false,
     timeLimit: Option[Int] = None,
   ): State =
-    val code = script.toString(cfg.grammar).trim
-    val st = Initialize(cfg, code, Some(script))
+    val st = cfg.init.from(script)
     Interpreter(
       st = st,
       log = log,

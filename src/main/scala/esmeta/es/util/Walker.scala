@@ -12,9 +12,7 @@ trait Walker extends BasicWalker {
     case elem: Assertion   => walk(elem)
 
   /** ECMAScript script program */
-  def walk(script: Script): Script =
-    val Script(code, ast, name, path) = script
-    Script(code, walk(ast), name, path)
+  def walk(script: Script): Script = script
 
   /** ASTs */
   def walk(ast: Ast): Ast = ast match

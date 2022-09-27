@@ -45,7 +45,7 @@ def cfg: CFG = get(globalCFG, "CFG")
 private var globalCFG: Option[CFG] = None
 def withCFG[T](cfg: CFG)(t: => T): T =
   globalCFG = Some(cfg)
-  AbsState.setBase(new Initialize(cfg))
+  AbsState.setBase(cfg.init)
   val res = t
   globalCFG = None
   res

@@ -142,9 +142,7 @@ case class Heap(
 
   /** copied */
   def copied: Heap =
-    val newMap = MMap.from(map.toList.map {
-      case (addr, obj) => addr -> obj.copied
-    })
+    val newMap = MMap.from(map.toList.map(_ -> _.copied))
     Heap(newMap, size)
 }
 object Heap {

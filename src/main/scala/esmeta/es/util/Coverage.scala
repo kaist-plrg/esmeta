@@ -82,7 +82,7 @@ class Coverage(
     // run interpreter and record touched
     var touchedNodes: Set[Node] = Set()
     var touchedConds: Set[Cond] = Set()
-    val initSt = Initialize(cfg, code, Some(ast))
+    val initSt = cfg.init.from(script)
     val finalSt = new Interpreter(initSt, timeLimit = timeLimit) {
       // check if current state need to be recorded
       private def needRecord: Boolean =
@@ -153,8 +153,8 @@ class Coverage(
   /** evaluate a given ECMAScript program, update coverage, and return
     * evaluation result
     */
-  def run(ast: Ast, filename: String): State =
-    run(Script(ast.toString(cfg.grammar), ast, filename, Some(filename)))
+  def run(code: String, filename: String): State =
+    run(Script(cfg, code, filename, Some(filename)))
 
   /** get node coverage */
   def nodeCov: (Int, Int) = (nodeMap.size, nodes.size)

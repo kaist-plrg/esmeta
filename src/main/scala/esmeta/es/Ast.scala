@@ -77,11 +77,12 @@ sealed trait Ast extends ESElem with Locational {
       case lex: Lexical => lex.loc = None; lex
 
   /** set location including children */
-  def setChildLoc(locOpt: Option[Loc]): Ast = this match
-    case syn: Syntactic =>
-      for { child <- syn.children.flatten } child.setChildLoc(locOpt)
-      syn.loc = locOpt; syn
-    case lex: Lexical => lex.loc = locOpt; lex
+  def setBaseLoc(loc: Loc): Ast =
+    this match
+      case syn: Syntactic =>
+        for { child <- syn.children.flatten } child.setBaseLoc(loc)
+      case _ =>
+    this.loc.map(origLoc => this.loc = Some(loc.start + origLoc)); this
 
   /** not use case class' hash code */
   override def hashCode: Int = super.hashCode

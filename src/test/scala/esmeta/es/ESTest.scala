@@ -51,14 +51,12 @@ object ESTest {
   def eval(
     str: String,
     checkAfter: List[NormalInst] = Nil,
-    cachedAst: Option[Ast] = None,
   ): State =
-    new CheckAfter(Initialize(cfg, str, cachedAst), checkAfter).result
+    new CheckAfter(cfg.init.from(str), checkAfter).result
   def evalFile(
     filename: String,
     checkAfter: List[NormalInst] = Nil,
-    cachedAst: Option[Ast] = None,
-  ): State = eval(readFile(filename), checkAfter, cachedAst)
+  ): State = new CheckAfter(cfg.init.fromFile(filename), checkAfter).result
 
   // ---------------------------------------------------------------------------
   // analyzer helpers
@@ -86,13 +84,11 @@ object ESTest {
   def evalTest(
     str: String,
     checkAfter: List[NormalInst] = Nil,
-    cachedAst: Option[Ast] = None,
-  ): State = checkExit(eval(str, checkAfter, cachedAst))
+  ): State = checkExit(eval(str, checkAfter))
   def evalTestFile(
     filename: String,
     checkAfter: List[NormalInst] = Nil,
-    cachedAst: Option[Ast] = None,
-  ): State = checkExit(evalFile(filename, checkAfter, cachedAst))
+  ): State = checkExit(evalFile(filename, checkAfter))
 
   // tests for ES analyzer
   def checkExit(absSem: AbsSemantics): AbsSemantics =

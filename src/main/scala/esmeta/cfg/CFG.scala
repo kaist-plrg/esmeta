@@ -2,11 +2,12 @@ package esmeta.cfg
 
 import esmeta.*
 import esmeta.cfg.util.*
-import esmeta.ir.{Program, EReturnIfAbrupt}
+import esmeta.es.Initialize
 import esmeta.ir.util.*
+import esmeta.ir.{Program, EReturnIfAbrupt}
 import esmeta.parser.{ESParser, AstFrom}
-import esmeta.spec.{Spec, Grammar}
 import esmeta.spec.util.GrammarGraph
+import esmeta.spec.{Spec, Grammar}
 import esmeta.ty.TyModel
 import esmeta.util.BaseUtils.*
 import esmeta.util.ProgressBar
@@ -26,6 +27,9 @@ case class CFG(
   /** an ECMAScript parser */
   lazy val esParser: ESParser = program.esParser
   lazy val scriptParser: AstFrom = esParser("Script")
+
+  /** ESMAScript initializer */
+  lazy val init: Initialize = new Initialize(this)
 
   /** mapping from fid to functions */
   lazy val funcMap: Map[Int, Func] =

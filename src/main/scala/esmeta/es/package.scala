@@ -8,11 +8,15 @@ import esmeta.util.BaseUtils.*
 trait ESElem {
   override def toString: String = toString()
 
-  /** stringify with grammar */
+  /** stringify with grammar and source text */
+  def toString(grammar: Grammar): String = toString(grammar, None)
+  def toString(grammar: Grammar, text: String): String =
+    toString(grammar, Some(text))
   def toString(
     grammar: Grammar,
+    text: Option[String],
   ): String = {
-    val stringifier = ESElem.getStringifier(true, false, Some(grammar))
+    val stringifier = ESElem.getStringifier(true, false, Some(grammar), text)
     import stringifier.elemRule
     stringify(this)
   }
@@ -22,14 +26,14 @@ trait ESElem {
     detail: Boolean = true,
     location: Boolean = false,
   ): String = {
-    val stringifier = ESElem.getStringifier(detail, location, None)
+    val stringifier = ESElem.getStringifier(detail, location, None, None)
     import stringifier.elemRule
     stringify(this)
   }
 }
 object ESElem {
   val getStringifier =
-    cached[(Boolean, Boolean, Option[Grammar]), Stringifier] {
-      Stringifier(_, _, _)
+    cached[(Boolean, Boolean, Option[Grammar], Option[String]), Stringifier] {
+      Stringifier(_, _, _, _)
     }
 }

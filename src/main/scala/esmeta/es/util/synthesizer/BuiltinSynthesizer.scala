@@ -27,30 +27,37 @@ class BuiltinSynthesizer(
       case Getter(base) =>
         getString(base) :: (base match
           case Prototype(proto, prop) =>
-            List(s"var x = { }; Object.setPrototypeOf(x, $proto); x$prop;")
+            List(
+              s"var x = { } ; Object . setPrototypeOf ( x , $proto ) ; x $prop ;",
+            )
           case _ => Nil
         )
       case Setter(base) =>
         getString(base) :: (base match
           case Prototype(proto, prop) =>
-            List(s"var x = { }; Object.setPrototypeOf(x, $proto); x$prop = 0;")
+            List(
+              s"var x = { } ; Object . setPrototypeOf ( x , $proto ) ; x $prop = 0 ;",
+            )
           case _ => Nil
         )
       case path =>
         val pathStr = getString(path)
+          .replace(".", " . ")
+          .replace("[", " [ ")
+          .replace("]", " ]")
         for {
           argsLen <- Range(1, 6).toList
-          argsStr = Range(0, argsLen).toList.map(_ => "0").mkString(", ")
-        } yield s"$pathStr.call($argsStr)"
+          argsStr = Range(0, argsLen).toList.map(_ => "0").mkString(" , ")
+        } yield s"$pathStr . call ( $argsStr ) ;"
   } yield code).toVector
 
   // get prototype paths and properties
   object Prototype:
     def unapply(path: BuiltinPath): Option[(String, String)] = path match
       case NormalAccess(NormalAccess(base, "prototype"), name) =>
-        Some((s"${getString(base)}.prototype", s".$name"))
+        Some((s"${getString(base)} . prototype", s". $name"))
       case SymbolAccess(NormalAccess(base, "prototype"), symbol) =>
-        Some((s"${getString(base)}.prototype", s"[Symbol.$symbol]"))
+        Some((s"${getString(base)} . prototype", s"[ Symbol . $symbol ]"))
       case _ => None
 
   // get string of builtin path

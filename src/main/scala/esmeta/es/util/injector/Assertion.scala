@@ -1,5 +1,6 @@
-package esmeta.es
+package esmeta.es.util.injector
 
+import esmeta.es.ESElem
 import esmeta.state.*
 
 /** TODO assertions from conformance test */

@@ -3,7 +3,6 @@ package esmeta.es.util.injector
 import esmeta.error.*
 import esmeta.state.*
 import esmeta.util.BaseUtils.*
-import java.util.concurrent.TimeoutException
 
 /** exit status tag */
 trait ExitTag:

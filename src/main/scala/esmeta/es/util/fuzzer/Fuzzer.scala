@@ -6,13 +6,13 @@ import esmeta.error.*
 import esmeta.es.*
 import esmeta.es.util.*
 import esmeta.es.util.mutator.*
+import esmeta.es.util.injector.*
 import esmeta.es.util.synthesizer.*
 import esmeta.state.*
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
 import java.io.PrintWriter
-import java.util.concurrent.TimeoutException
 import scala.collection.mutable.ListBuffer
 import scala.util._
 

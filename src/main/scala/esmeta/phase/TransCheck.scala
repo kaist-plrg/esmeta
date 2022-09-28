@@ -2,7 +2,7 @@ package esmeta.phase
 
 import esmeta.*
 import esmeta.cfg.CFG
-import esmeta.es.ConformTest
+import esmeta.es.util.injector.ConformTest
 import esmeta.util.*
 import esmeta.util.SystemUtils.*
 import java.io.File

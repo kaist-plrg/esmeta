@@ -2,6 +2,7 @@ package esmeta.es.util
 
 import esmeta.util.BasicUnitWalker
 import esmeta.es.*
+import esmeta.es.util.injector.*
 
 /** a unit walker for ECMAScript */
 trait UnitWalker extends BasicUnitWalker {

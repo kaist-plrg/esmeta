@@ -2,7 +2,12 @@ package esmeta.test262
 
 import esmeta.*
 import esmeta.cfg.CFG
-import esmeta.error.{NotSupported, InvalidExit, UnexpectedParseResult}
+import esmeta.error.{
+  NotSupported,
+  InvalidExit,
+  UnexpectedParseResult,
+  TimeoutException,
+}
 import esmeta.es.*
 import esmeta.es.util.*
 import esmeta.interpreter.Interpreter
@@ -12,7 +17,6 @@ import esmeta.test262.util.*
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
-import java.util.concurrent.TimeoutException
 
 /** data in Test262 */
 case class Test262(

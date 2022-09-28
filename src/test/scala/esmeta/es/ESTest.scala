@@ -6,7 +6,7 @@ import esmeta.analyzer.domain.*
 import esmeta.cfgBuilder.CFGBuilder
 import esmeta.compiler.Compiler
 import esmeta.error.NoGraal
-import esmeta.es.util.*
+import esmeta.es.util.injector.*
 import esmeta.interpreter.*
 import esmeta.ir.NormalInst
 import esmeta.parser.AstFrom

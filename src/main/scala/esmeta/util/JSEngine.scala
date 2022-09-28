@@ -1,9 +1,8 @@
 package esmeta.util
 
-import esmeta.error.NoGraal
+import esmeta.error.{NoGraal, TimeoutException}
 import java.io.*
 import java.time.Duration.ZERO
-import java.util.concurrent.TimeoutException
 import org.graalvm.polyglot.*
 import scala.collection.mutable.{Map => MMap}
 import scala.concurrent.ExecutionContext.Implicits.global

@@ -13,7 +13,6 @@ import esmeta.es.util.Coverage
 import esmeta.test262.{*, given}
 import esmeta.test262.util.TestFilter
 import java.io.File
-import java.util.concurrent.TimeoutException
 
 /** `test262-test` phase */
 case object Test262Test extends Phase[CFG, Summary] {

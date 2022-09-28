@@ -1,13 +1,12 @@
-package esmeta.es
+package esmeta.es.util.injector
 
 import esmeta.*
 import esmeta.cfg.CFG
-import esmeta.error.NoGraal
+import esmeta.error.{NoGraal, TimeoutException}
+import esmeta.es.*
 import esmeta.es.util.*
-import esmeta.es.util.injector.*
 import esmeta.state.State
 import esmeta.util.*
-import java.util.concurrent.TimeoutException
 import scala.util.*
 
 /** conformance test */
@@ -56,7 +55,7 @@ case class ConformTest(
         // TODO handle ThrowValueTag more carefully
         val msg = e.getMessage
         val tag =
-          if msg.contains("Error:") then ThrowErrorTag(msg.split(":")(0))
+          if msg.contains("Error:") then ThrowErrorTag(msg.split(":").head)
           else ThrowValueTag(esmeta.state.Str(msg))
         Success((tag, Vector(), Vector()))
       case e: TimeoutException =>

@@ -70,71 +70,80 @@ class Coverage(
   /** ordering of conditional branches */
   given Ordering[Cond] = Ordering.by(cond => (cond.kindString, cond.id))
 
+  /** interpreter */
+  class FuzzInterp(initSt: State, ast: Ast)
+    extends Interpreter(
+      initSt,
+      timeLimit = timeLimit,
+      keepProvenance = true,
+    ) {
+    // program infos
+    var markedAst = ast.nodeSet
+    var touchedNodes: Set[Node] = Set()
+    var touchedConds: Set[Cond] = Set()
+
+    // check if current state need to be recorded
+    private def needRecord: Boolean =
+      val contexts = st.context :: st.callStack.map(_.context)
+      val astOpt = contexts.flatMap(_.astOpt).headOption
+      astOpt.fold(false)(markedAst contains _)
+
+    // override eval for node
+    override def eval(node: Node): Unit =
+      // record touched nodes
+      if (needRecord) touchedNodes += node
+      super.eval(node)
+
+    // override branch move
+    override def moveBranch(branch: Branch, cond: Boolean): Unit =
+      // record touched conditional branch
+      if (needRecord) touchedConds += Cond(branch, cond)
+      super.moveBranch(branch, cond)
+
+    // override helper for return-if-abrupt cases
+    override def returnIfAbrupt(
+      riaExpr: EReturnIfAbrupt,
+      value: Value,
+      check: Boolean,
+    ): Value =
+      val abrupt = value.isAbruptCompletion
+      if (needRecord) touchedConds += Cond(riaExpr.idRef, abrupt)
+      super.returnIfAbrupt(riaExpr, value, check)
+
+    // handle dynamically created ast
+    override def eval(expr: Expr): Value =
+      val v = super.eval(expr)
+      (expr, v) match
+        case (_: EParse, AstValue(ast)) if needRecord =>
+          markedAst ++= ast.nodeSet
+        case _ => /* do nothing */
+      v
+  }
+
   /** evaluate a given ECMAScript program, update coverage, and return
     * evaluation result with whether it succeeds to increase coverage
     */
   def runAndCheck(script: Script): (State, State, Boolean) = {
     val Script(code, ast, name, path) = script
 
-    // program infos
-    var markedAst = ast.nodeSet
-
     // run interpreter and record touched
-    var touchedNodes: Set[Node] = Set()
-    var touchedConds: Set[Cond] = Set()
     val initSt = cfg.init.from(script)
-    val finalSt = new Interpreter(initSt, timeLimit = timeLimit) {
-      // check if current state need to be recorded
-      private def needRecord: Boolean =
-        val contexts = st.context :: st.callStack.map(_.context)
-        val astOpt = contexts.flatMap(_.astOpt).headOption
-        astOpt.fold(false)(markedAst contains _)
-
-      // override eval for node
-      override def eval(node: Node): Unit =
-        // record touched nodes
-        if (needRecord) touchedNodes += node
-        super.eval(node)
-
-      // override branch move
-      override def moveBranch(branch: Branch, cond: Boolean): Unit =
-        // record touched conditional branch
-        if (needRecord) touchedConds += Cond(branch, cond)
-        super.moveBranch(branch, cond)
-
-      // override helper for return-if-abrupt cases
-      override def returnIfAbrupt(
-        riaExpr: EReturnIfAbrupt,
-        value: Value,
-        check: Boolean,
-      ): Value =
-        val abrupt = value.isAbruptCompletion
-        if (needRecord) touchedConds += Cond(riaExpr.idRef, abrupt)
-        super.returnIfAbrupt(riaExpr, value, check)
-
-      // handle dynamically created ast
-      override def eval(expr: Expr): Value =
-        val v = super.eval(expr)
-        (expr, v) match
-          case (_: EParse, AstValue(ast)) if needRecord =>
-            markedAst ++= ast.nodeSet
-          case _ => /* do nothing */
-        v
-    }.result
+    val interp = FuzzInterp(initSt, ast)
+    val finalSt = interp.result
 
     // update node coverage
     var updated = false
-    for (node <- touchedNodes) nodeMap.get(node) match
+    for (node <- interp.touchedNodes) nodeMap.get(node) match
       case Some(script) if script.code.length <= code.length =>
       case _ => update(node, script); updated = true
 
     // update target branches
-    for (cond <- touchedConds) condMap.get(cond) match
+    for (cond <- interp.touchedConds) condMap.get(cond) match
       case Some(script) if script.code.length <= code.length =>
       case _ => update(cond, script); updated = true
 
     // update branch coverage
-    for (cond <- touchedConds)
+    for (cond <- interp.touchedConds)
       cond.elem match
         case Branch(_, _, EBool(_), _, _) => /* do nothing */
         case ref: WeakUIdRef[EReturnIfAbrupt]

@@ -28,29 +28,6 @@ class Interpreter(
 ) {
   import Interpreter.*
 
-  // get currnet provenance
-  private inline given Option[Provenance] =
-    if (keepProvenance) Some(st.provenance) else None
-
-  // create a new context
-  private def createContext(
-    func: Func,
-    locals: MMap[Local, Value],
-    prevCtxt: Context,
-  ): Context = createContext(func, locals, Some(prevCtxt))
-  private def createContext(
-    func: Func,
-    locals: MMap[Local, Value],
-    prevCtxt: Option[Context] = None,
-  ): Context =
-    lazy val prev = prevCtxt.fold(None)(_.sdo)
-    val sdo = (for {
-      head @ SyntaxDirectedOperationHead(_, methodName, _, _, _) <- func.head
-      if keepProvenance
-      AstValue(ast @ Syntactic(_, _, _, _)) <- locals.get(Name("this"))
-    } yield Some(SdoInfo(ast, func, methodName))).getOrElse(prev)
-    Context(func, locals, sdo)
-
   /** final state */
   lazy val result: State =
     startTime = System.currentTimeMillis
@@ -614,6 +591,29 @@ class Interpreter(
         case (acc, _)           => acc
       }
   }
+
+  // get currnet provenance
+  private inline given Option[Provenance] =
+    if (keepProvenance) Some(st.provenance) else None
+
+  // create a new context
+  private def createContext(
+    func: Func,
+    locals: MMap[Local, Value],
+    prevCtxt: Context,
+  ): Context = createContext(func, locals, Some(prevCtxt))
+  private def createContext(
+    func: Func,
+    locals: MMap[Local, Value],
+    prevCtxt: Option[Context] = None,
+  ): Context =
+    lazy val prev = prevCtxt.fold(None)(_.sdo)
+    val sdo = (for {
+      head @ SyntaxDirectedOperationHead(_, methodName, _, _, _) <- func.head
+      if keepProvenance
+      AstValue(ast @ Syntactic(_, _, _, _)) <- locals.get(Name("this"))
+    } yield Some(SdoInfo(ast, func, methodName))).getOrElse(prev)
+    Context(func, locals, sdo)
 }
 
 /** IR interpreter with a CFG */

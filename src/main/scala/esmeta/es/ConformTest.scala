@@ -66,11 +66,7 @@ case class ConformTest(
     })
     .get
 
-  lazy val sameExitTag =
-    exitTag == concreteExitTag ||
-    // TODO handle ThrowValueTag more carefully
-    exitTag.isInstanceOf[ThrowValueTag] && concreteExitTag
-      .isInstanceOf[ThrowValueTag]
+  lazy val sameExitTag = exitTag equivalent concreteExitTag
 
   /** Indicates if the test is passed */
   lazy val isPass =

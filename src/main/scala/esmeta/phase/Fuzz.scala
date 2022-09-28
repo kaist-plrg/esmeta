@@ -5,6 +5,7 @@ import esmeta.cfg.CFG
 import esmeta.es.util.Coverage
 import esmeta.es.util.fuzzer.*
 import esmeta.util.*
+import esmeta.util.BaseUtils.setSeed
 import esmeta.util.SystemUtils.*
 
 /** `fuzz` phase */
@@ -16,6 +17,9 @@ case object Fuzz extends Phase[CFG, Coverage] {
     cmdConfig: CommandConfig,
     config: Config,
   ): Coverage =
+    // optionally set the seed for the random number generator
+    config.seed.foreach(setSeed)
+
     val cov = Fuzzer(
       cfg = cfg,
       logInterval = config.logInterval,
@@ -25,7 +29,7 @@ case object Fuzz extends Phase[CFG, Coverage] {
       conformTest = config.conformTest,
     )
 
-    // dump the generated ECMAScript programs
+    // optionally dump the generated ECMAScript programs
     for (dirname <- config.out) cov.dumpToWithDetail(dirname)
 
     cov
@@ -62,6 +66,11 @@ case object Fuzz extends Phase[CFG, Coverage] {
       BoolOption(c => c.conformTest = true),
       "do conformance test during fuzzing",
     ),
+    (
+      "seed",
+      NumOption((c, k) => c.seed = Some(k)),
+      "set the specific seed for the random number generator. (default: None)",
+    ),
   )
   case class Config(
     var out: Option[String] = None,
@@ -70,5 +79,6 @@ case object Fuzz extends Phase[CFG, Coverage] {
     var timeLimit: Option[Int] = Some(1),
     var trial: Option[Int] = Some(10000),
     var conformTest: Boolean = false,
+    var seed: Option[Int] = None,
   )
 }

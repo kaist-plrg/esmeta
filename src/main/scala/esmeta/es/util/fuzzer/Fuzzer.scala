@@ -53,6 +53,7 @@ class Fuzzer(
       // start logging
       mkdir(logDir, remove = true)
       dumpFile(ESMeta.currentVersion, s"$logDir/version")
+      dumpFile(getSeed, s"$logDir/seed")
       var row = Vector(
         "iter(#)",
         "script(#)",

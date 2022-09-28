@@ -22,6 +22,7 @@ case class GlobalObject(cfg: CFG) {
     var nmap = List(
       // NOTE: globalThis is added in SetDefaultGlobalBindings
       "print" -> DataProperty(intrAddr("print"), T, F, T),
+      "@@toStringTag" -> DataProperty(Str("global"), F, F, T),
       "Infinity" -> DataProperty(Number(Double.PositiveInfinity), F, F, F),
       "NaN" -> DataProperty(Number(Double.NaN), F, F, F),
       "undefined" -> DataProperty(Undef, F, F, F),

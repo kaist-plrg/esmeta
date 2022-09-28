@@ -150,13 +150,12 @@ case class State(
 
   /** get string for a given address */
   def getString(value: Value): String = value match {
-    case comp: Comp =>
-      comp.toString + (comp.value match {
-        case addr: Addr => " -> " + heap(addr).toString
-        case _          => ""
-      })
-    case addr: Addr => addr.toString + " -> " + heap(addr).toString
-    case _          => value.toString
+    case comp: Comp => comp.toString + getString(comp.value)
+    case addr: Addr =>
+      val obj = heap(addr)
+      val subMapStr = obj.getSubMap.fold("")(s" with " + getString(_))
+      s"$addr -> $obj$subMapStr"
+    case _ => value.toString
   }
 
   /** copied */
@@ -179,5 +178,4 @@ object State {
 
   /** initialize states with a CFG */
   def apply(cfg: CFG): State = State(cfg, Context(cfg.main))
-
 }

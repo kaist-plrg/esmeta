@@ -27,6 +27,11 @@ sealed trait Obj extends StateElem {
     case MapObj(tname, props, size) => MapObj(tname, MMap.from(props), size)
     case ListObj(values)            => ListObj(Vector.from(values))
     case _                          => this
+
+  /** get sub-map from map object */
+  def getSubMap: Option[Value] = this match
+    case MapObj(_, props, _) => props.get(Str("SubMap")).map(_.value)
+    case _                   => None
 }
 
 /** map objects */

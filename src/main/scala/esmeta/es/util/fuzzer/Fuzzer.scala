@@ -2,6 +2,7 @@ package esmeta.es.util.fuzzer
 
 import esmeta.{ESMeta, FUZZ_LOG_DIR, LINE_SEP}
 import esmeta.cfg.CFG
+import esmeta.error.*
 import esmeta.es.*
 import esmeta.es.util.*
 import esmeta.es.util.mutator.*
@@ -13,6 +14,7 @@ import esmeta.util.SystemUtils.*
 import java.io.PrintWriter
 import java.util.concurrent.TimeoutException
 import scala.collection.mutable.ListBuffer
+import scala.util._
 
 /** ECMAScript program fuzzer with ECMA-262 */
 object Fuzzer:
@@ -51,7 +53,7 @@ class Fuzzer(
       // start logging
       mkdir(logDir, remove = true)
       dumpFile(ESMeta.currentVersion, s"$logDir/version")
-      var raw = Vector(
+      var row = Vector(
         "iter(#)",
         "script(#)",
         "time(ms)",
@@ -63,17 +65,17 @@ class Fuzzer(
         "branch-ratio(%)",
       )
       if (conformTest)
-        raw ++= Vector(
+        row ++= Vector(
           "conform-bug(#)",
           "trans-bug(#)",
         )
-      addRaw(raw)
+      addRow(row)
     })
     time(
       s"- initializing program pool with ${initPool.size} programs", {
-        for ((synthesizer, code) <- initPool)
+        for ((synthesizer, code) <- initPool; insertedCode <- insertSemi(code))
           debugging(f"[${synthesizer.name}%-30s] $code")
-          add(code)
+          add(insertedCode)
       },
     )
     println(s"- the initial program pool consists of ${pool.size} programs.")
@@ -102,7 +104,7 @@ class Fuzzer(
   def pool: Set[Script] = cov.minimalScripts
 
   /** one trial to fuzz a new program to increase coverage */
-  def fuzz: Boolean = optional {
+  def fuzz: Boolean =
     iter += 1
     for (bound <- logInterval) {
       val seconds = bound * 1000
@@ -116,32 +118,29 @@ class Fuzzer(
     val code = mutated.toString(grammar)
     debugging(f"----- ${mutator.name}%-20s-----> $code")
     add(code)
-  }.getOrElse(false)
 
   /** add new program */
-  def add(code: String): Boolean = optional {
-    debugging(f" ${"COVERAGE RESULT"}%30s: ", newline = false)
-    if (visited contains code) {
-      debugging(failMsg("ALREADY VISITED"))
-      false
-    } else {
+  def add(code: String): Boolean =
+    val result = Try {
+      if (visited contains code)
+        fail("ALREADY VISITED")
       visited += code
-      if (!ValidityChecker(code)) {
-        debugging(failMsg("INVALID PROGRAM"))
-        false
-      } else {
-        val script = toScript(code)
-        optional(cov.runAndCheck(script)) match
-          case Some((initSt, exitSt, updated)) =>
-            debugging(if (updated) passMsg("") else failMsg("NO UPDATE"))
-            if (conformTest) doConformTest(initSt, exitSt)
-            updated
-          case None =>
-            debugging(failMsg("NOT SUPPORTED"))
-            false
-      }
+      if (!ValidityChecker(code))
+        fail("INVALID PROGRAM")
+      val script = toScript(code)
+      val (initSt, exitSt, updated) = cov.runAndCheck(script)
+      if (conformTest) doConformTest(initSt, exitSt)
+      if (!updated)
+        fail("NO UPDATE")
     }
-  }.getOrElse(false)
+    debugging(f" ${"COVERAGE RESULT"}%30s: ", newline = false)
+    result match {
+      case Success(_)                   => debugging(passMsg("")); true
+      case Failure(e: TimeoutException) => debugging(failMsg("TIMEOUT")); false
+      case Failure(e: NotSupported) =>
+        debugging(failMsg("NOT SUPPORTED")); false
+      case Failure(e) => debugging(failMsg(e.getMessage)); false
+    }
 
   // all meaningful tests
   private val failedTests: ListBuffer[(String, ConformTest)] = ListBuffer()
@@ -192,9 +191,9 @@ class Fuzzer(
     val br = percentString(b, bt)
     val cb = failedTests.size
     val tb = transFailedTests.size
-    var raw = Vector(iter, pool.size, duration, n, nt, nr, b, bt, br)
-    if (conformTest) raw ++= Vector(cb, tb)
-    addRaw(raw)
+    var row = Vector(iter, pool.size, duration, n, nt, nr, b, bt, br)
+    if (conformTest) row ++= Vector(cb, tb)
+    addRow(row)
     // dump coveragge
     cov.dumpToWithDetail(logDir, withMsg = false)
     // dump failed conformance tests
@@ -262,10 +261,10 @@ class Fuzzer(
 
   lazy val logDir: String = s"$FUZZ_LOG_DIR/fuzz-$dateStr"
 
-  def addRaw(data: Iterable[Any]): Unit =
-    val raw = data.mkString("\t")
-    if (stdOut) println(raw)
-    nf.println(raw)
+  def addRow(data: Iterable[Any]): Unit =
+    val row = data.mkString("\t")
+    if (stdOut) println(row)
+    nf.println(row)
     nf.flush
   lazy val nf: PrintWriter = getPrintWriter(s"$logDir/summary.tsv")
 
@@ -287,8 +286,15 @@ class Fuzzer(
 
   // conversion from code string to `Script` object
   private def toScript(code: String): Script =
-    val script = Script(cfg, code, s"$nextId.js", None)
-    visited += code
-    script
+    Script(cfg, code, s"$nextId.js", None)
+
+  // check if the added code is visited
   private var visited: Set[String] = Set()
+
+  // try parsing and inserting semicolon
+  private def insertSemi(code: String) =
+    Try(cfg.scriptParser.fromWithCode(code)._2)
+
+  // indicating that add failed
+  private def fail(msg: String) = throw new Exception(msg)
 }

@@ -7,7 +7,7 @@ import esmeta.*
 import esmeta.error.*
 import scala.Console.*
 import scala.collection.mutable
-import scala.util.Random
+import scala.util._
 
 /** base utilities */
 object BaseUtils {
@@ -58,14 +58,11 @@ object BaseUtils {
   /** show duration time with loading message and only get data */
   def showTime[T](msg: String, f: => T): T = time(msg, f)._2
 
-  /** catch exceptions with Option[_] */
-  def optional[T](f: => T): Option[T] = try Some(f)
-  catch { case e: Throwable => None }
+  /** get catched error message */
+  def optional[T](f: => T): Option[T] = Try(f).toOption
 
   /** get catched error message */
-  def getError[T](f: => T): Option[Throwable] =
-    try { f; None }
-    catch { case e: Throwable => Some(e) }
+  def getError[T](f: => T): Option[Throwable] = Try(f).failed.toOption
 
   /** get indentation */
   def getIndent(str: String): Int =

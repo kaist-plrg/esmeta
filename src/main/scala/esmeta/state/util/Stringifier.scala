@@ -31,6 +31,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case elem: Obj         => objRule(app, elem)
       case elem: Value       => valueRule(app, elem)
       case elem: RefValue    => refValRule(app, elem)
+      case elem: Provenance  => provenanceRule(app, elem)
+      case elem: SdoInfo     => sdoInfoRule(app, elem)
 
   // states
   given stRule: Rule[State] = (app, st) =>
@@ -54,8 +56,13 @@ class Stringifier(detail: Boolean, location: Boolean) {
   // cursor
   given cursorRule: Rule[Cursor] = (app, cursor) =>
     cursor match
-      case NodeCursor(node) => app >> node.simpleString
-      case ExitCursor(func) => app >> func.simpleString
+      case NodeCursor(func, node, idx) =>
+        app >> func.simpleString
+        app >> ":" >> node.simpleString
+        app >> ":" >> idx
+        node.loc.fold(app)(app >> " (" >> _ >> ")")
+      case ExitCursor(func) =>
+        app >> func.simpleString
 
   // calling contexts
   given callCtxtRule: Rule[CallContext] = (app, callCtxt) =>
@@ -64,8 +71,13 @@ class Stringifier(detail: Boolean, location: Boolean) {
 
   // heaps
   given heapRule: Rule[Heap] = (app, heap) =>
-    val Heap(map, size) = heap
-    app >> s"(SIZE = " >> size.toString >> "): " >> map
+    app >> s"(SIZE = " >> heap.size.toString >> "): " >> heap.map
+
+  // heap elements
+  given heapElemRule: Rule[(Obj, Option[Provenance])] = (app, pair) =>
+    val (obj, provenance) = pair
+    app >> obj
+    provenance.fold(app)(app >> " @ " >> _)
 
   // objects
   given objRule: Rule[Obj] = (app, obj) =>
@@ -167,4 +179,18 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case PropValue(base, Str(inlineProp(str))) => app >> base >> "." >> str
       case PropValue(base, prop) => app >> base >> "[" >> prop >> "]"
     }
+
+  // provenance
+  given provenanceRule: Rule[Provenance] = (app, provenance) =>
+    val Provenance(cursor, sdo) = provenance
+    app >> cursor.func.name
+    cursor.loc.fold(app)(app >> " (" >> _ >> ")")
+    sdo.fold(app)(app >> _)
+
+  // syntax directed operation information
+  given sdoInfoRule: Rule[SdoInfo] = (app, sdo) =>
+    val SdoInfo(ast, _, sdoName) = sdo
+    val Syntactic(name, args, rhsIdx, _) = ast
+    app >> " <- " >> sdoName
+    app >> " of " >> name >> "[" >> rhsIdx >> ", " >> ast.subIdx >> "]"
 }

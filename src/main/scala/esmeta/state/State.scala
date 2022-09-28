@@ -19,9 +19,7 @@ case class State(
 ) extends StateElem {
 
   /** get the current function */
-  def func: Func = context.cursor match
-    case NodeCursor(node) => cfg.funcOf(node)
-    case ExitCursor(func) => func
+  def func: Func = context.cursor.func
 
   /** get local variable maps */
   def locals: MMap[Local, Value] = context.locals
@@ -125,24 +123,25 @@ case class State(
     heap.pop(addr, front)
   def remove(addr: Addr, value: PureValue): this.type =
     heap.remove(addr, value); this
-  def copyObj(addr: Addr): Addr =
+  def copyObj(addr: Addr)(using Option[Provenance]): Addr =
     heap.copyObj(addr)
-  def keys(addr: Addr, intSorted: Boolean): Addr =
+  def keys(addr: Addr, intSorted: Boolean)(using Option[Provenance]): Addr =
     heap.keys(addr, intSorted)
-  def allocMap(tname: String, map: Map[PureValue, PureValue] = Map())(using
-    CFG,
-  ): Addr = heap.allocMap(tname, map)
-  def allocList(list: List[PureValue]): Addr =
+  def allocMap(
+    tname: String,
+    map: Map[PureValue, PureValue] = Map(),
+  )(using CFG, Option[Provenance]): Addr = heap.allocMap(tname, map)
+  def allocList(list: List[PureValue])(using Option[Provenance]): Addr =
     heap.allocList(list)
-  def allocSymbol(desc: PureValue): Addr =
+  def allocSymbol(desc: PureValue)(using Option[Provenance]): Addr =
     heap.allocSymbol(desc)
   def setType(addr: Addr, tname: String): this.type =
     heap.setType(addr, tname); this
 
   /** get string for a current cursor */
   def getCursorString: String = context.cursor match
-    case NodeCursor(node) =>
-      val irFunc = cfg.funcOf(node).irFunc
+    case NodeCursor(func, node, _) =>
+      val irFunc = func.irFunc
       s"[${irFunc.kind}${irFunc.name}] ${node.toString(location = true)}"
     case ExitCursor(func) =>
       val irFunc = func.irFunc
@@ -173,6 +172,9 @@ case class State(
       newGlobals,
       newHeap,
     )
+
+  /** provenance of addresses */
+  def provenance: Provenance = context.provenance
 }
 object State {
 

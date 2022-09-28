@@ -31,15 +31,17 @@ case class Loc(
   // TODO short string for the same line (e.g. 3:2-4)
   /** conversion to string */
   override def toString: String =
-    s"${start.simpleString}-${end.simpleString} (step $stepString)"
+    s"${start.simpleString}-${end.simpleString}$stepString"
 
   /** get step string */
   def stepString: String =
-    (for ((step, idx) <- steps.zipWithIndex) yield idx % 3 match
-      case 0 => step.toString
-      case 1 => AlphabetNumeral(step + 1)
-      case 2 => RomanNumeral(step, lower = true)
-    ).mkString(".")
+    if (steps.isEmpty) ""
+    else
+      (for ((step, idx) <- steps.zipWithIndex) yield idx % 3 match
+        case 0 => step.toString
+        case 1 => AlphabetNumeral(step + 1)
+        case 2 => RomanNumeral(step, lower = true)
+      ).mkString(" (step ", ".", ")")
 }
 
 /** positions in algorithms

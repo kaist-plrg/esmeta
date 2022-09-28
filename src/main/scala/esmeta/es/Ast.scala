@@ -94,7 +94,12 @@ case class Syntactic(
   args: List[Boolean],
   rhsIdx: Int,
   children: Vector[Option[Ast]],
-) extends Ast
+) extends Ast {
+
+  /** sub index */
+  lazy val subIdx: Int =
+    children.map(child => if (child.isDefined) 1 else 0).fold(0)(_ * 2 + _)
+}
 
 /** ASTs constructed by lexical productions */
 case class Lexical(

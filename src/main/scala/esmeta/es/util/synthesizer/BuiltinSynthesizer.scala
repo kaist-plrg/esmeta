@@ -45,10 +45,20 @@ class BuiltinSynthesizer(
           .replace(".", " . ")
           .replace("[", " [ ")
           .replace("]", " ]")
-        for {
+        // calls
+        val calls = for {
           argsLen <- Range(1, 6).toList
-          argsStr = Range(0, argsLen).toList.map(_ => "0").mkString(" , ")
-        } yield s"$pathStr . call ( $argsStr ) ;"
+          argsStr = List.fill(argsLen)("0 ").mkString("( ", ", ", ")")
+        } yield s"$pathStr . call $argsStr ;"
+        // construct without arguments
+        val construct = s"new $pathStr ;"
+        // constructs with arguments
+        val constructs = for {
+          argsLen <- Range(0, 5).toList
+          argsStr = List.fill(argsLen)("0 ").mkString("( ", ", ", ")")
+        } yield s"new $pathStr $argsStr ;"
+        calls ++ (construct :: constructs)
+
   } yield code).toVector
 
   // get prototype paths and properties

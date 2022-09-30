@@ -115,7 +115,7 @@ class Fuzzer(
       }
     }
     val target = selector(pool, cov, cfg.grammar, debug)
-    val mutated = mutator(target.ast)
+    val mutated = mutator(target.code)
     val code = mutated.toString(grammar)
     debugging(f"----- ${mutator.name}%-20s-----> $code")
     add(code)
@@ -286,8 +286,7 @@ class Fuzzer(
   private def interval: Long = System.currentTimeMillis - startInterval
 
   // conversion from code string to `Script` object
-  private def toScript(code: String): Script =
-    Script(cfg, code, s"$nextId.js", None)
+  private def toScript(code: String): Script = Script(code, s"$nextId.js")
 
   // check if the added code is visited
   private var visited: Set[String] = Set()

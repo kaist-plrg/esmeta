@@ -13,7 +13,7 @@ trait UnitWalker extends BasicUnitWalker {
     case elem: Assertion   => walk(elem)
 
   /** ECMAScript script program */
-  def walk(script: Script): Unit = walk(script.ast)
+  def walk(script: Script): Unit = {}
 
   /** ASTs */
   def walk(ast: Ast): Unit = ast match

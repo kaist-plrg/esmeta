@@ -7,6 +7,7 @@ import esmeta.spec.Grammar
 
 /** ECMAScript AST mutator */
 trait Mutator extends Walker {
+  def apply(code: String): Ast = walk(cfg.scriptParser.from(code))
   def apply(ast: Ast): Ast = walk(ast)
 
   /** control flow graph for ECMA-262 */

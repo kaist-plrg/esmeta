@@ -26,7 +26,7 @@ class Stringifier(
       case elem: Assertion   => assertRule(app, elem)
 
   /** ECMAScript script program */
-  given scriptRule: Rule[Script] = (app, script) => app >> script.ast
+  given scriptRule: Rule[Script] = (app, script) => app >> script.code
 
   // abstract syntax tree (AST) values
   given astRule: Rule[Ast] = (app, ast) =>

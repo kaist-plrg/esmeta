@@ -71,33 +71,26 @@ class Coverage(
   given Ordering[Cond] = Ordering.by(cond => (cond.kindString, cond.id))
 
   /** interpreter */
-  class FuzzInterp(initSt: State, ast: Ast)
+  class Interp(initSt: State)
     extends Interpreter(
       initSt,
       timeLimit = timeLimit,
       keepProvenance = true,
     ) {
     // program infos
-    var markedAst = ast.nodeSet
     var touchedNodes: Set[Node] = Set()
     var touchedConds: Set[Cond] = Set()
-
-    // check if current state need to be recorded
-    private def needRecord: Boolean =
-      val contexts = st.context :: st.callStack.map(_.context)
-      val astOpt = contexts.flatMap(_.astOpt).headOption
-      astOpt.fold(false)(markedAst contains _)
 
     // override eval for node
     override def eval(node: Node): Unit =
       // record touched nodes
-      if (needRecord) touchedNodes += node
+      touchedNodes += node
       super.eval(node)
 
     // override branch move
     override def moveBranch(branch: Branch, cond: Boolean): Unit =
       // record touched conditional branch
-      if (needRecord) touchedConds += Cond(branch, cond)
+      touchedConds += Cond(branch, cond)
       super.moveBranch(branch, cond)
 
     // override helper for return-if-abrupt cases
@@ -107,28 +100,19 @@ class Coverage(
       check: Boolean,
     ): Value =
       val abrupt = value.isAbruptCompletion
-      if (needRecord) touchedConds += Cond(riaExpr.idRef, abrupt)
+      touchedConds += Cond(riaExpr.idRef, abrupt)
       super.returnIfAbrupt(riaExpr, value, check)
-
-    // handle dynamically created ast
-    override def eval(expr: Expr): Value =
-      val v = super.eval(expr)
-      (expr, v) match
-        case (_: EParse, AstValue(ast)) if needRecord =>
-          markedAst ++= ast.nodeSet
-        case _ => /* do nothing */
-      v
   }
 
   /** evaluate a given ECMAScript program, update coverage, and return
     * evaluation result with whether it succeeds to increase coverage
     */
   def runAndCheck(script: Script): (State, State, Boolean) = {
-    val Script(code, ast, name, path) = script
+    val Script(code, name) = script
 
     // run interpreter and record touched
     val initSt = cfg.init.from(script)
-    val interp = FuzzInterp(initSt, ast)
+    val interp = Interp(initSt)
     val finalSt = interp.result
 
     // update node coverage
@@ -158,12 +142,6 @@ class Coverage(
     * evaluation result
     */
   def run(script: Script): State = { val (_, st, _) = runAndCheck(script); st }
-
-  /** evaluate a given ECMAScript program, update coverage, and return
-    * evaluation result
-    */
-  def run(code: String, filename: String): State =
-    run(Script(cfg, code, filename, Some(filename)))
 
   /** get node coverage */
   def nodeCov: (Int, Int) = (nodeMap.size, nodes.size)

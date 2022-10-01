@@ -25,6 +25,12 @@ class Heap(
     case (l: ListObj)                       => l(key)
     case YetObj(_, msg)                     => throw NotSupported(msg)
 
+  /** get provenance */
+  def getProvenance(value: Value): Option[Provenance] = value match
+    case NormalComp(value) => getProvenance(value)
+    case addr: Addr        => map.get(addr).flatMap { case (_, prov) => prov }
+    case _                 => None
+
   /** setters */
   def update(addr: Addr, prop: PureValue, value: Value): this.type =
     apply(addr) match {

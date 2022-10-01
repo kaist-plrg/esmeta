@@ -7,7 +7,7 @@ import esmeta.ir.{Func => IRFunc, *}
 import esmeta.es.*
 import esmeta.parser.{ESParser, ESValueParser}
 import esmeta.state.*
-import esmeta.spec.SyntaxDirectedOperationHead
+import esmeta.spec.{SyntaxDirectedOperationHead, AbstractOperationHead}
 import esmeta.ty.*
 import esmeta.util.BaseUtils.{error => _, *}
 import esmeta.util.SystemUtils.*
@@ -606,12 +606,21 @@ class Interpreter(
     locals: MMap[Local, Value],
     prevCtxt: Option[Context] = None,
   ): Context =
-    lazy val prev = prevCtxt.fold(None)(_.sdo)
-    val sdo = (for {
+    lazy val getValueSdo = (for {
+      head @ AbstractOperationHead(_, "GetValue", _, _) <- func.head
+      if keepProvenance
+      (_, value) <- locals.headOption
+      provenance <- st.getProvenance(value)
+    } yield provenance.sdo).flatten
+    lazy val prevSdo = prevCtxt.flatMap(_.sdo)
+    lazy val newSdo = for {
       head @ SyntaxDirectedOperationHead(_, methodName, _, _, _) <- func.head
       if keepProvenance
       AstValue(ast @ Syntactic(_, _, _, _)) <- locals.get(Name("this"))
-    } yield Some(SdoInfo(ast, func, methodName))).getOrElse(prev)
+    } yield SdoInfo(ast, func, methodName)
+    val sdo: Option[SdoInfo] = newSdo
+      .orElse(getValueSdo)
+      .orElse(prevSdo)
     Context(func, locals, sdo)
 }
 

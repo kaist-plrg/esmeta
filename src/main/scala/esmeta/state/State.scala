@@ -67,6 +67,10 @@ case class State(
     case _             => throw WrongStringRef(str, prop)
   def apply(addr: Addr): Obj = heap(addr)
 
+  /** get provenance */
+  def getProvenance(value: Value): Option[Provenance] =
+    heap.getProvenance(value)
+
   /** setters */
   def define(x: Id, value: Value): this.type = x match
     case x: Global => globals += x -> value; this

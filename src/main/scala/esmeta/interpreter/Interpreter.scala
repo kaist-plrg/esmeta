@@ -606,22 +606,22 @@ class Interpreter(
     locals: MMap[Local, Value],
     prevCtxt: Option[Context] = None,
   ): Context =
-    lazy val getValueSdo = (for {
-      head @ AbstractOperationHead(_, "GetValue", _, _) <- func.head
-      if keepProvenance
-      (_, value) <- locals.headOption
-      provenance <- st.getProvenance(value)
-    } yield provenance.sdo).flatten
-    lazy val prevSdo = prevCtxt.flatMap(_.sdo)
-    lazy val newSdo = for {
-      head @ SyntaxDirectedOperationHead(_, methodName, _, _, _) <- func.head
-      if keepProvenance
-      AstValue(ast @ Syntactic(_, _, _, _)) <- locals.get(Name("this"))
-    } yield SdoInfo(ast, func, methodName)
-    val sdo: Option[SdoInfo] = newSdo
-      .orElse(getValueSdo)
-      .orElse(prevSdo)
-    Context(func, locals, sdo)
+    val sdoList =
+      if (keepProvenance) {
+        lazy val newSdo = for {
+          head @ SyntaxDirectedOperationHead(_, name, _, _, _) <- func.head
+          AstValue(ast @ Syntactic(_, _, _, _)) <- locals.get(Name("this"))
+        } yield SdoInfo(ast, func, name)
+        lazy val getValueSdo = (for {
+          head @ AbstractOperationHead(_, "GetValue", _, _) <- func.head
+          if keepProvenance
+          (_, value) <- locals.headOption
+          provenance <- st.getProvenance(value)
+        } yield provenance.sdo).flatten
+        val prevSdoList = prevCtxt.fold(Nil)(_.sdoList)
+        newSdo.orElse(getValueSdo).fold(prevSdoList)(_ :: prevSdoList)
+      } else Nil
+    Context(func, locals, sdoList)
 }
 
 /** IR interpreter with a CFG */

@@ -244,13 +244,13 @@ class Fuzzer(
     dumpJson(
       name = if (withMsg) Some("conformance test counter") else None,
       data = counterJson(engineMap),
-      filename = s"$baseDir/engine.json",
+      filename = s"$baseDir/engine-count.json",
       space = true,
     )
     dumpJson(
       name = if (withMsg) Some("transpiled conformance test counter") else None,
       data = counterJson(transMap),
-      filename = s"$baseDir/engine.json",
+      filename = s"$baseDir/trans-count.json",
       space = true,
     )
 

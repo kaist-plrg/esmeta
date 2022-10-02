@@ -26,6 +26,7 @@ object Fuzzer:
     timeLimit: Option[Int] = None, // time limitation for each evaluation
     trial: Option[Int] = None, // `None` denotes no bound
     conformTest: Boolean = false,
+    synK: Option[Int] = None,
   ): Coverage = new Fuzzer(
     cfg,
     logInterval,
@@ -34,6 +35,7 @@ object Fuzzer:
     timeLimit,
     trial,
     conformTest,
+    synK,
   ).result
 
 /** extensible helper of ECMAScript program fuzzer with ECMA-262 */
@@ -45,6 +47,7 @@ class Fuzzer(
   timeLimit: Option[Int] = None, // time limitation for each evaluation
   trial: Option[Int] = None, // `None` denotes no bound
   conformTest: Boolean = false,
+  synK: Option[Int] = None,
 ) {
 
   /** generated ECMAScript programs */
@@ -58,18 +61,11 @@ class Fuzzer(
         "iter(#)",
         "script(#)",
         "time(ms)",
-        "node-cover(#)",
-        "node-total(#)",
-        "node-ratio(%)",
-        "branch-cover(#)",
-        "branch-total(#)",
-        "branch-ratio(%)",
+        "node(#)",
+        "branch(#)",
       )
-      if (conformTest)
-        row ++= Vector(
-          "conform-bug(#)",
-          "trans-bug(#)",
-        )
+      synK.map(k => row ++= Vector(s"$k-syn-node(#)", s"$k-syn-branch(#)"))
+      if (conformTest) row ++= Vector("conform-bug(#)", "trans-bug(#)")
       addRow(row)
     })
     time(
@@ -161,7 +157,7 @@ class Fuzzer(
   val scriptParser = cfg.scriptParser
 
   /** coverage */
-  val cov: Coverage = Coverage(cfg, timeLimit)
+  val cov: Coverage = Coverage(cfg, timeLimit, synK)
 
   /** target selector */
   val selector: TargetSelector = WeightedSelector(
@@ -186,13 +182,14 @@ class Fuzzer(
     if (newline) println(msg) else print(msg)
   }
   def logging: Unit =
-    val (n, nt) = cov.nodeCov
-    val nr = percentString(n, nt)
-    val (b, bt) = cov.branchCov
-    val br = percentString(b, bt)
+    val n = cov.nodeCov
+    val b = cov.branchCov
+    val nv = cov.nodeViewCov
+    val bv = cov.branchViewCov
     val cb = failedTests.size
     val tb = transFailedTests.size
-    var row = Vector(iter, pool.size, duration, n, nt, nr, b, bt, br)
+    var row = Vector(iter, pool.size, duration, n, b)
+    if (synK.isDefined) row ++= Vector(nv, bv)
     if (conformTest) row ++= Vector(cb, tb)
     addRow(row)
     // dump coveragge

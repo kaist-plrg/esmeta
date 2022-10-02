@@ -30,9 +30,9 @@ class WeightedSelector(pairs: (TargetSelector, Int)*) extends TargetSelector {
 /** branch coverage-based mutation target selector */
 object BranchSelector extends TargetSelector {
   def apply(pool: Iterable[Script], cov: Coverage): (String, Script) =
-    val cond = choose(cov.targetConds)
+    val cond = choose(cov.targetCondViews)
     cov.getScript(cond).fold(RandomSelector(pool, cov)) {
-      (s"BranchTarget - ${cond.simpleString}", _)
+      (s"BranchTarget - $cond", _)
     }
 }
 

@@ -12,37 +12,39 @@ class StringifyTinyTest extends TyTest {
   // registration
   def init: Unit = {
     checkParseAndStringify("Ty", Ty)(
+      AnyT -> "Any",
+      PureValueT -> "PureValue",
       AbruptT -> "Abrupt",
-      NormalT(NumberTopT) -> "Normal[Number]",
+      NormalT(NumberT) -> "Normal[Number]",
       SubMapT(
-        StrTopT,
+        StrT,
         NameT("Binding"),
       ) -> "SubMap[String |-> Binding]",
-      CloTopT -> "Clo",
+      CloT -> "Clo",
       CloT("ToString:clo0") -> "Clo[\"ToString:clo0\"]",
-      ContTopT -> "Cont",
+      ContT -> "Cont",
       ContT(42, 3) -> "Cont[3, 42]",
       ESValueT -> "ESValue",
       UnknownTy() -> "Unknown",
       UnknownTy(Some("T")) -> "Unknown[\"T\"]",
       NameT("Cat") -> "Cat",
       NameT("Cat", "Dog") -> "Cat | Dog",
-      RecordT("A" -> Some(NumberTopT), "B" -> Some(BoolT)) ->
+      RecordT("A" -> NumberT, "B" -> BoolT) ->
       "{ [[A]]: Number, [[B]]: Boolean }",
       RecordT(Set("Key", "Value")) ->
       "{ [[Key]], [[Value]] }",
-      RecordT("Key" -> None, "Value" -> None, "Dummy" -> Some(BotT)) ->
+      RecordT("Key" -> ValueTy.Top, "Value" -> ValueTy.Top, "Dummy" -> BotT) ->
       "{ [[Key]], [[Value]] }",
       (ObjectT || RecordT(
-        "P" -> None,
-        "S" -> None,
-        "Q" -> Some(NumberTopT),
-        "R" -> Some(BoolT),
+        "P" -> ValueTy.Top,
+        "S" -> ValueTy.Top,
+        "Q" -> NumberT,
+        "R" -> BoolT,
       )) -> "Object | { [[P]], [[Q]]: Number, [[R]]: Boolean, [[S]] }",
       NilT -> "Nil",
-      ListT(NumberTopT) -> "List[Number]",
+      ListT(NumberT) -> "List[Number]",
       SymbolT -> "Symbol",
-      AstTopT -> "Ast",
+      AstT -> "Ast",
       AstT("Literal") -> "Ast[Literal]",
       AstSingleT("Member", 1, 3) -> "Ast:Member[1,3]",
       NtT(
@@ -52,9 +54,9 @@ class StringifyTinyTest extends TyTest {
       CodeUnitT -> "CodeUnit",
       ConstT("key") -> "Const[~key~]",
       ConstT("key", "value") -> "Const[~key~, ~value~]",
-      MathTopT -> "Math",
+      MathT -> "Math",
       MathT(0, 1) -> "Math[0, 1]",
-      NumberTopT -> "Number",
+      NumberT -> "Number",
       NumberT(Number(Double.PositiveInfinity)) -> "Number[+INF]",
       NumberT(Number(Double.NegativeInfinity)) -> "Number[-INF]",
       NumberT(Number(Double.NaN)) -> "Number[NaN]",
@@ -66,7 +68,7 @@ class StringifyTinyTest extends TyTest {
         Number(0.0),
       ) -> "Number[-INF, -0.0, 0.0, +INF, NaN]",
       BigIntT -> "BigInt",
-      StrTopT -> "String",
+      StrT -> "String",
       StrT("a") -> "String[\"a\"]",
       BoolT -> "Boolean",
       UndefT -> "Undefined",

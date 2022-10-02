@@ -29,9 +29,9 @@ trait DotPrinter {
   override def toString: String = {
     val app = Appender()
     (app >> "digraph ").wrap {
-      app :> """graph [fontname = "helvetica"]"""
-      app :> """node [fontname = "helvetica"]"""
-      app :> """edge [fontname = "helvetica"]"""
+      app :> """graph [fontname = "Consolas"]"""
+      app :> """node [fontname = "Consolas"]"""
+      app :> """edge [fontname = "Consolas"]"""
       this(app)
     }
     app.toString
@@ -194,7 +194,8 @@ trait DotPrinter {
         .escapeHtml(node.toString(detail = false, location = false)),
     )
   }
-  def norm(nodes: Iterable[IRElem]): String = {
-    nodes.map(norm(_)).mkString("""<BR ALIGN="LEFT"/>""")
-  }
+  def norm(insts: Iterable[Inst]): String = (for {
+    (inst, idx) <- insts.zipWithIndex
+    str = norm(inst)
+  } yield s"""[$idx] $str<BR ALIGN="LEFT"/>""").mkString
 }

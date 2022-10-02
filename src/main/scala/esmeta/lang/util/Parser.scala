@@ -3,8 +3,9 @@ package esmeta.lang.util
 import esmeta.lang.*
 import esmeta.ty.*
 import esmeta.ty.util.{Parsers => TyParsers}
-import esmeta.util.{IndentParsers, Locational}
+import esmeta.util.{IndentParsers, Locational, ConcreteLattice}
 import esmeta.util.BaseUtils.*
+import akka.http.scaladsl.model.MediaTypes.multipart
 
 /** metalanguage parser */
 object Parser extends Parsers
@@ -327,7 +328,7 @@ trait Parsers extends IndentParsers {
         val fields = fs.map { case f ~ e => f -> e }
         RecordExpression(t, fields)
     } |||
-    opt("an" | "a") ~ ("newly created" | "new") ~
+    opt("an " | "a ") ~ ("newly created" | "new") ~
     guard(not("Realm")) ~> tname <~ opt(
       "containing no bindings" |
       "with no fields" |
@@ -440,7 +441,7 @@ trait Parsers extends IndentParsers {
       "𝔽" ^^^ ToNumber ||| "ℤ" ^^^ ToBigInt ||| "ℝ" ^^^ ToMath
     ) ~ ("(" ~> expr <~ ")")
     val textFormat =
-      ("the" | "an" | "a") ~> (
+      ("the " | "an " | "a ") ~> (
         "implementation-approximated Number" ^^^ ToApproxNumber |
         "Number" ^^^ ToNumber |
         "BigInt" ^^^ ToBigInt |
@@ -820,7 +821,7 @@ trait Parsers extends IndentParsers {
 
   // instance check conditions
   lazy val instanceOfCond: PL[InstanceOfCondition] =
-    expr ~ isEither((("an" | "a") ~> langType)) ^^ {
+    expr ~ isEither((("an " | "a ") ~> langType)) ^^ {
       case e ~ (n ~ t) => InstanceOfCondition(e, n, t)
     }
 
@@ -830,7 +831,7 @@ trait Parsers extends IndentParsers {
     // GeneratorValidate
     (ref <~ opt("also")) ~
     ("has" ^^^ false ||| "does not have" ^^^ true) ~
-    (("an" | "a") ~> expr <~ fieldStr) ^^ {
+    (("an " | "a ") ~> expr <~ fieldStr) ^^ {
       case r ~ n ~ f => HasFieldCondition(r, n, f)
     }
 
@@ -915,7 +916,7 @@ trait Parsers extends IndentParsers {
   // contains-whose conditions
   lazy val containsWhoseCond: PL[ContainsWhoseCondition] =
     expr ~
-    ("contains" ~ opt("an" | "a") ~> langType) ~
+    ("contains" ~ opt("an " | "a ") ~> langType) ~
     ("whose" ~ "[[" ~> word <~ "]]") ~
     ("is" ~> expr) ^^ {
       case l ~ t ~ f ~ e => ContainsWhoseCondition(l, t, f, e)
@@ -1089,13 +1090,16 @@ trait Parsers extends IndentParsers {
     ) ^^ { Type(_) }
   }.named("lang.Type")
 
-  // metalanguage types
+  /** Metalanguage Types
+    *
+    * Reference: https://github.com/tc39/ecmarkup/blob/main/src/type-parser.ts
+    */
   lazy val langType: PL[Type] = {
     langTy ^^ { Type(_) }
   }.named("lang.Type")
 
   // types
-  lazy val langTy: P[Ty] = valueTy | specialTy
+  lazy val langTy: P[Ty] = multi(valueTy, either = false) | specialTy
 
   // unknown types
   lazy val unknownTy: P[Ty] = "([^,_]|, )+".r ^^ {
@@ -1104,62 +1108,69 @@ trait Parsers extends IndentParsers {
   }
 
   // value types
-  lazy val valueTy: P[ValueTy] = opt("either") ~> rep1sep(
-    compTy | pureValueTy,
-    sep("or"),
-  ) ^^ { _.foldLeft(BotT)(_ || _) }
+  lazy val valueTy: P[ValueTy] = multi(compTy | pureValueTy)
 
   // completion record types
-  lazy val compTy: P[ValueTy] =
+  lazy val compTy: P[ValueTy] = multi {
+    "a Completion Record" ^^^ CompT |
     "a normal completion containing" ~> pureValueTy ^^ { NormalT(_) } |
+    "a normal completion" ^^^ NormalT |
+    "a throw completion" ^^^ AbruptT("throw") |
+    "a return completion" ^^^ AbruptT("return") |
     "an abrupt completion" ^^^ AbruptT
+  }
 
   // pure value types
-  lazy val pureValueTy: P[ValueTy] = opt("either") ~> rep1sep(
+  lazy val pureValueTy: P[ValueTy] = multi {
     nameTy | recordTy | listTy | simpleTy,
-    sep("or"),
-  ) ^^ { _.foldLeft(BotT)(_ || _) }
+  }
 
   // named record types
-  lazy val nameTy: P[ValueTy] =
-    opt("an " | "a ") ~> rep1("[-a-zA-Z]+".r.filter(_ != "or"))
-      .flatMap {
-        case ss =>
-          val name = ss.mkString(" ")
-          val normalizedName = Type.normalizeName(name)
-          if (TyModel.es.infos.contains(normalizedName)) success(NameT(name))
-          else failure("unknown type name")
-      }
+  lazy val nameTy: P[ValueTy] = multi {
+    opt("an " | "a ") ~> rep1("[-a-zA-Z]+".r.filter(_ != "or")).flatMap {
+      case ss =>
+        val name = ss.mkString(" ")
+        val normalizedName = Type.normalizeName(name)
+        if (TyModel.es.infos.contains(normalizedName)) success(NameT(name))
+        else failure("unknown type name")
+    }
+  }
 
   // record types TODO
-  lazy val recordTy: P[ValueTy] = opt("an" | "a") ~> failure("TODO")
+  lazy val recordTy: P[ValueTy] = multi(opt("an " | "a ") ~> failure("TODO"))
 
   // list types
-  lazy val listTy: P[ValueTy] =
-    opt("an" | "a") ~ "List of" ~> valueTy ^^ { ListT(_) }
+  lazy val listTy: P[ValueTy] = multi {
+    opt("an " | "a ") ~ "List of" ~> pureValueTy ^^ { ListT(_) }
+  }
 
   // simple types
-  lazy val simpleTy: P[ValueTy] = opt("an" | "a") ~> {
-    "Number" ^^^ NumberTopT |
+  lazy val simpleTy: P[ValueTy] = multi(opt("an " | "a ") ~> {
+    "Number" ^^^ NumberT |
     "BigInt" ^^^ BigIntT |
     "Boolean" ^^^ BoolT |
     "Symbol" ^^^ SymbolT |
-    "String" ^^^ StrTopT |
+    "String" ^^^ StrT |
     "Object" ^^^ ObjectT |
     "*undefined*" ^^^ UndefT |
     "*null*" ^^^ NullT |
     "*true*" ^^^ TrueT |
     "*false*" ^^^ FalseT |
     "ECMAScript language value" ^^^ ESValueT |
-    "property key" ^^^ (StrTopT || SymbolT) |
-    "Parse Node" ^^^ AstTopT |
+    "property key" ^^^ (StrT || SymbolT) |
+    "Parse Node" ^^^ AstT |
     nt <~ "Parse Node" ^^ { AstT(_) } |
-    "~" ~> "[-+a-zA-Z0-9]+".r <~ "~" ^^ { ConstT(_) } |
-    "[a-zA-Z ]+Record".r ^^ { NameT(_) }
-  } <~ opt("s")
+    "~" ~> "[-+a-zA-Z0-9]+".r <~ "~" ^^ { ConstT(_) }
+  } <~ opt("s"))
+
+  private def multi(parser: P[ValueTy], either: Boolean = true): P[ValueTy] =
+    val multiParser = (if (either) "either" else "") ~> {
+      rep1sep(parser, ",") ~ (sep("or") ~> parser)
+    } ^^ { case ts ~ t => ts.foldLeft(t)(_ || _) }
+    multiParser | parser
 
   // rarely used expressions
-  lazy val specialTy: P[Ty] = opt("an" | "a") ~> {
+  lazy val specialTy: P[Ty] = opt("an " | "a ") ~> {
     "List of" ~> word ^^ {
       case s => UnknownTy(s"List of $s")
     } | "Record" ~ "{" ~> repsep(fieldLiteral, ",") <~ "}" ^^ {

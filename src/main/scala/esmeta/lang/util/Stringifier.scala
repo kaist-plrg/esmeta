@@ -675,7 +675,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
   given typeRule: Rule[Type] = (app, ty) =>
     ty.ty match
       case UnknownTy(msg) => app >> msg.getOrElse("unknown")
-      case ty: ValueTy    => valueTyRule(false)(app, ty)
+      case ty: ValueTy    => valueTyRule(false, false)(app, ty)
 
   // predefined types
   lazy val predTys: List[(PureValueTy, String)] = List(
@@ -685,20 +685,32 @@ class Stringifier(detail: Boolean, location: Boolean) {
   // value types
   def valueTyRule(
     plural: Boolean,
+    withEither: Boolean,
   ): Rule[ValueTy] = (app, ty) =>
     val pure = !ty.pureValue.isBottom
     if (!ty.comp.isBottom)
       given Rule[PureValueTy] = pureValueTyRule(plural, true)
       val normal = !ty.normal.isBottom
-      val abrupt = ty.abrupt
+      val abrupt = !ty.abrupt.isBottom
       val both = normal && abrupt
       if (both) app >> "either "
-      if (normal) app >> "a normal completion containing " >> ty.normal
-      if (both) app >> " or "
-      if (abrupt) app >> "an abrupt completion"
+      val normalStr =
+        if (normal)
+          val app = new Appender
+          app >> "a normal completion"
+          if (!ty.normal.isTop) app >> " containing " >> ty.normal
+          app.toString
+        else ""
+      app >> normalStr
+      if (both) app >> (if (normalStr contains " or ") ", or " else " or ")
+      if (abrupt) ty.abrupt match
+        case Inf => app >> "an abrupt completion"
+        case Fin(names) =>
+          given Rule[List[String]] = listNamedSepRule(namedSep = "or")
+          app >> names.toList.map("a " + _ + " completion")
       if (pure) app >> " or "
     if (pure)
-      given Rule[PureValueTy] = pureValueTyRule(plural, false)
+      given Rule[PureValueTy] = pureValueTyRule(plural, withEither)
       app >> ty.pureValue
     app
 
@@ -713,11 +725,11 @@ class Stringifier(detail: Boolean, location: Boolean) {
       tys :+= name.withArticle(plural); ty --= pred
 
     // names
-    for (name <- ty.name.set.toList.sorted) tys :+= name.withArticle(plural)
+    for (name <- ty.name.set) tys :+= name.withArticle(plural)
 
     // lists
     for (vty <- ty.list.elem)
-      val sub = valueTyRule(true)(new Appender, vty)
+      val sub = valueTyRule(true, true)(new Appender, vty)
       tys :+= s"a List of $sub"
 
     // symbols
@@ -747,8 +759,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case Fin(set) => for (s <- set.toList.sorted) tys :+= s"\"$s\""
 
     // booleans
-    if (ty.bool.size > 1) tys :+= "Boolean".withArticle(plural)
-    else if (ty.bool.size == 1) tys :+= s"*${ty.bool.head}*"
+    if (ty.bool.set.size > 1) tys :+= "Boolean".withArticle(plural)
+    else if (ty.bool.set.size == 1) tys :+= s"*${ty.bool.set.head}*"
 
     // undefined
     if (!ty.undef.isBottom) tys :+= "*undefined*"

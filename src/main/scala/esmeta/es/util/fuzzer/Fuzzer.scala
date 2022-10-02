@@ -59,8 +59,9 @@ class Fuzzer(
       dumpFile(getSeed, s"$logDir/seed")
       var row = Vector(
         "iter(#)",
-        "script(#)",
         "time(ms)",
+        "time(h:m:s)",
+        "script(#)",
         "node(#)",
         "branch(#)",
       )
@@ -184,11 +185,13 @@ class Fuzzer(
   def logging: Unit =
     val n = cov.nodeCov
     val b = cov.branchCov
+    val d = duration
+    val t = Time(d).simpleString
     val nv = cov.nodeViewCov
     val bv = cov.branchViewCov
     val cb = failedTests.size
     val tb = transFailedTests.size
-    var row = Vector(iter, pool.size, duration, n, b)
+    var row = Vector(iter, d, t, pool.size, n, b)
     if (synK.isDefined) row ++= Vector(nv, bv)
     if (conformTest) row ++= Vector(cb, tb)
     addRow(row)

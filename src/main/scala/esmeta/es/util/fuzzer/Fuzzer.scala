@@ -1,19 +1,20 @@
 package esmeta.es.util.fuzzer
 
-import esmeta.{ESMeta, FUZZ_LOG_DIR, LINE_SEP}
 import esmeta.cfg.CFG
 import esmeta.error.*
 import esmeta.es.*
 import esmeta.es.util.*
-import esmeta.es.util.mutator.*
 import esmeta.es.util.injector.*
+import esmeta.es.util.mutator.*
 import esmeta.es.util.synthesizer.*
 import esmeta.state.*
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
+import esmeta.{ESMeta, FUZZ_LOG_DIR, LINE_SEP}
+import io.circe.*, io.circe.syntax.*
 import java.io.PrintWriter
-import scala.collection.mutable.ListBuffer
+import scala.collection.mutable.{ListBuffer, Map => MMap}
 import scala.util._
 
 /** ECMAScript program fuzzer with ECMA-262 */
@@ -126,8 +127,8 @@ class Fuzzer(
       if (!ValidityChecker(code))
         fail("INVALID PROGRAM")
       val script = toScript(code)
-      val (initSt, exitSt, updated) = cov.runAndCheck(script)
-      if (conformTest) doConformTest(initSt, exitSt)
+      val (initSt, exitSt, interp, updated) = cov.runAndCheck(script)
+      if (conformTest) doConformTest(initSt, exitSt, interp)
       if (!updated)
         fail("NO UPDATE")
     }
@@ -140,17 +141,50 @@ class Fuzzer(
       case Failure(e) => debugging(failMsg(e.getMessage)); false
     }
 
+  // conformance check counter for engines
+  val engineMap: MMap[Coverage.NodeView, Counter] = MMap()
+  // conformance check counter for transpilers
+  val transMap: MMap[Coverage.NodeView, Counter] = MMap()
+
+  // conformance check counter
+  case class Counter(pass: Int = 0, fail: Int = 0)
+  def update[T](t: T, map: MMap[T, Counter], pass: Boolean): Unit =
+    val Counter(p, f) = map.getOrElse(t, Counter())
+    val updated = if (pass) Counter(p + 1, f) else Counter(p, f + 1)
+    map += t -> updated
+  private def counterJson[T: Ordering](map: MMap[T, Counter]): Json =
+    JsonObject(
+      (for ((condView, Counter(pass, fail)) <- map.toList.sortBy(_._1)) yield {
+        val key = condView.toString
+        val obj = JsonObject(
+          "pass" -> pass.asJson,
+          "fail" -> fail.asJson,
+        ).asJson
+        key -> obj
+      }): _*,
+    ).asJson
+
   // all meaningful tests
   private val failedTests: ListBuffer[(String, ConformTest)] = ListBuffer()
   private val transFailedTests: ListBuffer[(String, ConformTest)] = ListBuffer()
-  private def doConformTest(initSt: State, finalSt: State) =
+  private def doConformTest(
+    initSt: State,
+    finalSt: State,
+    interp: Coverage.Interp,
+  ): Unit =
     val code = initSt.sourceText.get
     val (test, transTest) = ConformTest.createTestPair(initSt, finalSt)
+    // conformance check for engines
+    val pass = test.isPass
     if (debug) print(f" ${"GRAAL-JS CONFORMANCE RESULT"}%30s: ")
-    if (!test.isPass) failedTests.addOne(code, test)
+    if (!pass) failedTests.addOne(code, test)
+    interp.touchedNodeViews.map(update(_, engineMap, pass))
     debugging(if (test.isPass) passMsg("") else failMsg(""))
+    // conformance check for transpilers
+    val transPass = transTest.isPass
     if (debug) print(f" ${"BABEL TRANSPILATION RESULT"}%30s: ")
-    if (!transTest.isPass) transFailedTests.addOne(code, transTest)
+    if (!transPass) transFailedTests.addOne(code, transTest)
+    interp.touchedNodeViews.map(update(_, transMap, transPass))
     debugging(if (transTest.isPass) passMsg("") else failMsg(""))
 
   /** ECMAScript grammar */
@@ -198,7 +232,27 @@ class Fuzzer(
     // dump coveragge
     cov.dumpToWithDetail(logDir, withMsg = false)
     // dump failed conformance tests
-    if (conformTest) dumpFailedConformTests(logDir, false)
+    if (conformTest)
+      dumpConformTestCounter(logDir, false)
+      dumpFailedConformTests(logDir, false)
+
+  /** dump conformance test counters */
+  def dumpConformTestCounter(
+    baseDir: String = logDir,
+    withMsg: Boolean = true,
+  ): Unit =
+    dumpJson(
+      name = if (withMsg) Some("conformance test counter") else None,
+      data = counterJson(engineMap),
+      filename = s"$baseDir/engine.json",
+      space = true,
+    )
+    dumpJson(
+      name = if (withMsg) Some("transpiled conformance test counter") else None,
+      data = counterJson(transMap),
+      filename = s"$baseDir/engine.json",
+      space = true,
+    )
 
   /** dump failed conformance tests */
   def dumpFailedConformTests(

@@ -19,6 +19,7 @@ class Coverage(
   timeLimit: Option[Int] = None,
   synK: Option[Int] = None,
 ) {
+  import Coverage.*
 
   // all meaningful scripts
   def minimalScripts: Set[Script] = _minimalScripts.toSet
@@ -44,115 +45,15 @@ class Coverage(
   private val conds: MSet[Cond] = MSet()
   private val condViewMap: MMap[CondView, Script] = MMap()
 
-  /* syntax-sensitive views */
-  case class NodeView(node: Node, view: List[AstSingleTy] = Nil) {
-    override def toString: String = node.simpleString + {
-      if (view.isEmpty) ""
-      else
-        "@" + (view match
-          case List(ty) => ty.toString
-          case _        => view.mkString("[", ", ", "]")
-        )
-    }
-  }
-  case class CondView(cond: Cond, view: List[AstSingleTy] = Nil) {
-    def neg: CondView = copy(cond = cond.neg)
-    override def toString: String = cond.toString + {
-      if (view.isEmpty) ""
-      else
-        "@" + (view match
-          case List(ty) => ty.toString
-          case _        => view.mkString("[", ", ", "]")
-        )
-    }
-  }
-
-  /** ordering of syntax-sensitive views */
-  given Ordering[AstSingleTy] = Ordering.by(_.toString)
-  given Ordering[Node] = Ordering.by(_.id)
-  given Ordering[NodeView] = Ordering.by(v => (v.node, v.view))
-  given Ordering[Cond] = Ordering.by(cond => (cond.kindString, cond.id))
-  given Ordering[CondView] = Ordering.by(v => (v.cond, v.view))
-
-  // branch or reference to EReturnIfAbrupt with boolean values
-  // `true` (`false`) denotes then- (else-) branch or abrupt (non-abrupt) value
-  case class Cond(elem: Branch | WeakUIdRef[EReturnIfAbrupt], cond: Boolean) {
-    // negation
-    def neg: Cond = copy(cond = !cond)
-    // short kind string
-    def kindString: String = elem match
-      case (branch: Branch)     => "Branch"
-      case (ref: WeakUIdRef[_]) => "EReturnIfAbrupt"
-    def shortKindString: String = kindString.take(1)
-    // get id
-    def id: Int = elem match
-      case (branch: Branch)     => branch.id
-      case (ref: WeakUIdRef[_]) => ref.id
-    // condition string
-    def condString: String = if (cond) "T" else "F"
-    // get node
-    def node: Option[Node] = elem match
-      case (branch: Branch)                   => Some(branch)
-      case (ref: WeakUIdRef[EReturnIfAbrupt]) => ref.get.cfgNode
-    // get loc
-    def loc: Option[Loc] = elem match
-      case (branch: Branch)                   => branch.loc
-      case (ref: WeakUIdRef[EReturnIfAbrupt]) => ref.get.loc
-    // conversion to string
-    override def toString: String = s"$kindString[$id]:$condString"
-    def simpleString: String = s"$shortKindString[$id]:$condString"
-  }
-
-  /** interpreter */
-  class Interp(initSt: State)
-    extends Interpreter(
-      initSt,
-      timeLimit = timeLimit,
-      keepProvenance = true,
-    ) {
-    // program infos
-    var touchedNodeViews: Set[NodeView] = Set()
-    var touchedCondViews: Set[CondView] = Set()
-
-    // override eval for node
-    private def getView: List[AstSingleTy] = for {
-      sdo <- synK.fold(Nil)(st.context.sdoList.take(_))
-      ast @ Syntactic(name, _, rhsIdx, _) = sdo.ast
-      ty = AstSingleTy(name, rhsIdx, ast.subIdx)
-    } yield ty
-
-    // override eval for node
-    override def eval(node: Node): Unit =
-      // record touched nodes
-      touchedNodeViews += NodeView(node, getView)
-      super.eval(node)
-
-    // override branch move
-    override def moveBranch(branch: Branch, cond: Boolean): Unit =
-      // record touched conditional branch
-      touchedCondViews += CondView(Cond(branch, cond), getView)
-      super.moveBranch(branch, cond)
-
-    // override helper for return-if-abrupt cases
-    override def returnIfAbrupt(
-      riaExpr: EReturnIfAbrupt,
-      value: Value,
-      check: Boolean,
-    ): Value =
-      val abrupt = value.isAbruptCompletion
-      touchedCondViews += CondView(Cond(riaExpr.idRef, abrupt), getView)
-      super.returnIfAbrupt(riaExpr, value, check)
-  }
-
   /** evaluate a given ECMAScript program, update coverage, and return
     * evaluation result with whether it succeeds to increase coverage
     */
-  def runAndCheck(script: Script): (State, State, Boolean) = {
+  def runAndCheck(script: Script): (State, State, Interp, Boolean) = {
     val Script(code, name) = script
 
     // run interpreter and record touched
     val initSt = cfg.init.from(script)
-    val interp = Interp(initSt)
+    val interp = Interp(initSt, timeLimit, synK)
     val finalSt = interp.result
 
     // update node coverage
@@ -176,13 +77,15 @@ class Coverage(
       case Some(script) if script.code.length <= code.length =>
       case _ => update(condView, script); updated = true
 
-    (initSt, finalSt, updated)
+    (initSt, finalSt, interp, updated)
   }
 
   /** evaluate a given ECMAScript program, update coverage, and return
     * evaluation result
     */
-  def run(script: Script): State = { val (_, st, _) = runAndCheck(script); st }
+  def run(script: Script): State = {
+    val (_, st, _, _) = runAndCheck(script); st
+  }
 
   /** get node coverage */
   def nodeCov: Int = nodes.size
@@ -322,4 +225,106 @@ class Coverage(
       key -> obj
     }): _*,
   ).asJson
+}
+object Coverage {
+
+  /** interpreter */
+  class Interp(initSt: State, timeLimit: Option[Int], synK: Option[Int])
+    extends Interpreter(
+      initSt,
+      timeLimit = timeLimit,
+      keepProvenance = true,
+    ) {
+    // program infos
+    var touchedNodeViews: Set[NodeView] = Set()
+    var touchedCondViews: Set[CondView] = Set()
+
+    // override eval for node
+    private def getView: List[AstSingleTy] = for {
+      sdo <- synK.fold(Nil)(st.context.sdoList.take(_))
+      ast @ Syntactic(name, _, rhsIdx, _) = sdo.ast
+      ty = AstSingleTy(name, rhsIdx, ast.subIdx)
+    } yield ty
+
+    // override eval for node
+    override def eval(node: Node): Unit =
+      // record touched nodes
+      touchedNodeViews += NodeView(node, getView)
+      super.eval(node)
+
+    // override branch move
+    override def moveBranch(branch: Branch, cond: Boolean): Unit =
+      // record touched conditional branch
+      touchedCondViews += CondView(Cond(branch, cond), getView)
+      super.moveBranch(branch, cond)
+
+    // override helper for return-if-abrupt cases
+    override def returnIfAbrupt(
+      riaExpr: EReturnIfAbrupt,
+      value: Value,
+      check: Boolean,
+    ): Value =
+      val abrupt = value.isAbruptCompletion
+      touchedCondViews += CondView(Cond(riaExpr.idRef, abrupt), getView)
+      super.returnIfAbrupt(riaExpr, value, check)
+  }
+
+  /* syntax-sensitive views */
+  case class NodeView(node: Node, view: List[AstSingleTy] = Nil) {
+    override def toString: String = node.simpleString + {
+      if (view.isEmpty) ""
+      else
+        "@" + (view match
+          case List(ty) => ty.toString
+          case _        => view.mkString("[", ", ", "]")
+        )
+    }
+  }
+  case class CondView(cond: Cond, view: List[AstSingleTy] = Nil) {
+    def neg: CondView = copy(cond = cond.neg)
+    override def toString: String = cond.toString + {
+      if (view.isEmpty) ""
+      else
+        "@" + (view match
+          case List(ty) => ty.toString
+          case _        => view.mkString("[", ", ", "]")
+        )
+    }
+  }
+
+  /** ordering of syntax-sensitive views */
+  given Ordering[AstSingleTy] = Ordering.by(_.toString)
+  given Ordering[Node] = Ordering.by(_.id)
+  given Ordering[NodeView] = Ordering.by(v => (v.node, v.view))
+  given Ordering[Cond] = Ordering.by(cond => (cond.kindString, cond.id))
+  given Ordering[CondView] = Ordering.by(v => (v.cond, v.view))
+
+  // branch or reference to EReturnIfAbrupt with boolean values
+  // `true` (`false`) denotes then- (else-) branch or abrupt (non-abrupt) value
+  case class Cond(elem: Branch | WeakUIdRef[EReturnIfAbrupt], cond: Boolean) {
+    // negation
+    def neg: Cond = copy(cond = !cond)
+    // short kind string
+    def kindString: String = elem match
+      case (branch: Branch)     => "Branch"
+      case (ref: WeakUIdRef[_]) => "EReturnIfAbrupt"
+    def shortKindString: String = kindString.take(1)
+    // get id
+    def id: Int = elem match
+      case (branch: Branch)     => branch.id
+      case (ref: WeakUIdRef[_]) => ref.id
+    // condition string
+    def condString: String = if (cond) "T" else "F"
+    // get node
+    def node: Option[Node] = elem match
+      case (branch: Branch)                   => Some(branch)
+      case (ref: WeakUIdRef[EReturnIfAbrupt]) => ref.get.cfgNode
+    // get loc
+    def loc: Option[Loc] = elem match
+      case (branch: Branch)                   => branch.loc
+      case (ref: WeakUIdRef[EReturnIfAbrupt]) => ref.get.loc
+    // conversion to string
+    override def toString: String = s"$kindString[$id]:$condString"
+    def simpleString: String = s"$shortKindString[$id]:$condString"
+  }
 }

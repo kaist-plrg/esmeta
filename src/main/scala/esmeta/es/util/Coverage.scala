@@ -27,6 +27,7 @@ class Coverage(
 
   // target conditional branches
   def targetCondViews: Set[CondView] = _targetCondViews.toSet
+  def targetCondSize: Int = _targetCondViews.size
   private val _targetCondViews: MSet[CondView] = MSet()
 
   // the number of all meaningful code set
@@ -215,7 +216,10 @@ class Coverage(
   // get JSON for branch coverage
   private def condViewMapJson: Json = condViewMapJson(_ => true)
   private def condViewMapJson(filter: CondView => Boolean): Json = JsonObject(
-    (for ((condView, script) <- condViewMap.toList.sortBy(_._1)) yield {
+    (for {
+      (condView, script) <- condViewMap.toList.sortBy(_._1)
+      if filter(condView)
+    } yield {
       val key = condView.toString
       val obj = JsonObject(
         "func" -> condView.cond.node.map(cfg.funcOf(_).name).asJson,

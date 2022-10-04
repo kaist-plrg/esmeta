@@ -65,6 +65,7 @@ class Fuzzer(
         "script(#)",
         "node(#)",
         "branch(#)",
+        "target-conds(#)",
       )
       synK.map(k => row ++= Vector(s"$k-syn-node(#)", s"$k-syn-branch(#)"))
       if (conformTest) row ++= Vector("conform-bug(#)", "trans-bug(#)")
@@ -225,7 +226,8 @@ class Fuzzer(
     val bv = cov.branchViewCov
     val cb = failedTests.size
     val tb = transFailedTests.size
-    var row = Vector(iter, d, t, pool.size, n, b)
+    val tc = cov.targetCondSize
+    var row = Vector(iter, d, t, pool.size, n, b, tc)
     if (synK.isDefined) row ++= Vector(nv, bv)
     if (conformTest) row ++= Vector(cb, tb)
     addRow(row)

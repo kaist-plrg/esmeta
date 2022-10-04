@@ -23,9 +23,13 @@ object SystemUtils {
     Source.fromFile(filename, ENC).bufferedReader
 
   /** file trees with filename */
-  def walkTree(filename: String): Iterable[File] = walkTree(File(filename))
+  def walkTree(filename: String, sort: Boolean = false): Iterable[File] =
+    if (!sort)
+      walkTree(File(filename))
+    else
+      walkTree(File(filename)).toSeq.sortWith(_.getPath < _.getPath).toIterable
 
-  /** file trees with files */
+  /** file trees with file */
   def walkTree(file: File): Iterable[File] =
     Seq(file) ++ new Iterable[File] {
       def iterator: Iterator[File] =

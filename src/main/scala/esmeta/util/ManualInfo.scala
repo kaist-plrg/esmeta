@@ -35,7 +35,7 @@ case class ManualInfo(version: Option[Spec.Version]) {
     filter: String => Boolean,
   ): List[File] = for {
     path <- paths
-    file <- walkTree(s"$MANUALS_DIR/$path")
+    file <- walkTree(s"$MANUALS_DIR/$path", sort = true)
     if filter(file.getName)
   } yield file
   private def getCompileRule(paths: List[String]): CompileRule = paths

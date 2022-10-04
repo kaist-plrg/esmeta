@@ -1,6 +1,5 @@
 package esmeta.compiler
 
-import esmeta.MANUALS_DIR
 import esmeta.ir.{
   Type => IRType,
   UnknownType => IRUnknownType,

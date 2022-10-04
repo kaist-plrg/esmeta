@@ -17,7 +17,7 @@ class BuiltinSynthesizer(
   import BuiltinPath.*
 
   /** get script */
-  def script: String = "x"
+  def script: String = "String ( 0 ) ; "
 
   /** get initial pool */
   lazy val initPool: Vector[String] = (for {
@@ -28,7 +28,7 @@ class BuiltinSynthesizer(
         getString(base) :: (base match
           case Prototype(proto, prop) =>
             List(
-              s"var x = { } ; Object . setPrototypeOf ( x , $proto ) ; x $prop ;",
+              s"var x = { } ; Object . setPrototypeOf ( x , $proto ) ; x $prop ; ",
             )
           case _ => Nil
         )
@@ -36,7 +36,7 @@ class BuiltinSynthesizer(
         getString(base) :: (base match
           case Prototype(proto, prop) =>
             List(
-              s"var x = { } ; Object . setPrototypeOf ( x , $proto ) ; x $prop = 0 ;",
+              s"var x = { } ; Object . setPrototypeOf ( x , $proto ) ; x $prop = 0 ; ",
             )
           case _ => Nil
         )
@@ -49,14 +49,14 @@ class BuiltinSynthesizer(
         val calls = for {
           argsLen <- Range(1, 6).toList
           argsStr = List.fill(argsLen)("0 ").mkString("( ", ", ", ")")
-        } yield s"$pathStr . call $argsStr ;"
+        } yield s"$pathStr . call $argsStr ; "
         // construct without arguments
-        val construct = s"new $pathStr ;"
+        val construct = s"new $pathStr ; "
         // constructs with arguments
         val constructs = for {
           argsLen <- Range(0, 5).toList
           argsStr = List.fill(argsLen)("0 ").mkString("( ", ", ", ")")
-        } yield s"new $pathStr $argsStr ;"
+        } yield s"new $pathStr $argsStr ; "
         calls ++ (construct :: constructs)
 
   } yield code).toVector

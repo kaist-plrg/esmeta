@@ -113,10 +113,9 @@ class Fuzzer(
         startInterval += seconds
       }
     }
-    val target = selector(pool, cov, cfg.grammar, debug)
-    val mutated = mutator(target.code)
+    val (script, condView, nearest) = selector(pool, cov, cfg.grammar, debug)
+    val mutated = mutator(cfg, script.code, condView, nearest, debug)
     val code = mutated.toString(grammar)
-    debugging(f"----- ${mutator.name}%-20s-----> $code")
     add(code)
 
   /** add new program */
@@ -130,8 +129,7 @@ class Fuzzer(
       val script = toScript(code)
       val (initSt, exitSt, interp, updated) = cov.runAndCheck(script)
       if (conformTest) doConformTest(initSt, exitSt, interp)
-      if (!updated)
-        fail("NO UPDATE")
+      if (!updated) fail("NO UPDATE")
     }
     debugging(f" ${"COVERAGE RESULT"}%30s: ", newline = false)
     result match {
@@ -144,6 +142,7 @@ class Fuzzer(
 
   // conformance check counter for engines
   val engineMap: MMap[Coverage.NodeView, Counter] = MMap()
+
   // conformance check counter for transpilers
   val transMap: MMap[Coverage.NodeView, Counter] = MMap()
 
@@ -179,13 +178,13 @@ class Fuzzer(
     val pass = test.isPass
     if (debug) print(f" ${"GRAAL-JS CONFORMANCE RESULT"}%30s: ")
     if (!pass) failedTests.addOne(code, test)
-    interp.touchedNodeViews.map(update(_, engineMap, pass))
+    interp.touchedNodeViews.keys.map(update(_, engineMap, pass))
     debugging(if (test.isPass) passMsg("") else failMsg(""))
     // conformance check for transpilers
     val transPass = transTest.isPass
     if (debug) print(f" ${"BABEL TRANSPILATION RESULT"}%30s: ")
     if (!transPass) transFailedTests.addOne(code, transTest)
-    interp.touchedNodeViews.map(update(_, transMap, transPass))
+    interp.touchedNodeViews.keys.map(update(_, transMap, transPass))
     debugging(if (transTest.isPass) passMsg("") else failMsg(""))
 
   /** ECMAScript grammar */
@@ -202,9 +201,14 @@ class Fuzzer(
   )
 
   /** mutator */
-  val mutator: Mutator = RandomMutator(cfg)
+  // val mutator: Mutator = RandomMutator()
+  val mutator: Mutator = WeightedMutator(
+    RandomMutator() -> 2,
+    NearestMutator() -> 8,
+  )
 
   /** synthesizer */
+  val randomSynthesizer: Synthesizer = RandomSynthesizer(cfg)
   val simpleSynthesizer: Synthesizer = SimpleSynthesizer(cfg)
   val builtinSynthesizer: Synthesizer = BuiltinSynthesizer(cfg)
 

@@ -34,6 +34,9 @@ class Interpreter(
     if (log) pw.close
     st
 
+  /** control flow graphs */
+  inline given cfg: CFG = st.cfg
+
   /** ECMAScript parser */
   lazy val esParser: ESParser = cfg.esParser
 
@@ -542,9 +545,6 @@ class Interpreter(
   // ---------------------------------------------------------------------------
   // private helpers
   // ---------------------------------------------------------------------------
-  /** control flow graphs */
-  private given cfg: CFG = st.cfg
-
   /** type model */
   private def tyModel = cfg.tyModel
 

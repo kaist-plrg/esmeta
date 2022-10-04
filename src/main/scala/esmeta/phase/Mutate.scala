@@ -20,15 +20,15 @@ case object Mutate extends Phase[CFG, String] {
     val grammar = cfg.grammar
     val filename = getFirstFilename(cmdConfig, this.name)
     val ast = cfg.scriptParser.fromFile(filename)
-    val mutator = config.builder(cfg)
+    val mutator = config.mutator
 
     // get a mutated AST
-    var mutatedAst = mutator(ast)
+    var mutatedAst = mutator(cfg, ast, debug = false)
 
     // repeat until the mutated program becomes valid when
     // `-mutate:untilValid` is turned on.
     while (config.untilValid && !mutatedAst.valid(grammar))
-      mutatedAst = mutator(ast)
+      mutatedAst = mutator(cfg, ast, debug = false)
 
     // get string of mutated AST
     val mutated = mutatedAst.toString(grammar)
@@ -53,9 +53,9 @@ case object Mutate extends Phase[CFG, String] {
     (
       "mutator",
       StrOption((c, s) =>
-        c.builder = s match
-          case "random" => RandomMutator
-          case _        => RandomMutator,
+        c.mutator = s match
+          case "random" => RandomMutator()
+          case _        => RandomMutator(),
       ),
       "select a mutator (default: random).",
     ),
@@ -67,7 +67,7 @@ case object Mutate extends Phase[CFG, String] {
   )
   case class Config(
     var out: Option[String] = None,
-    var builder: Mutator.Builder = RandomMutator,
+    var mutator: Mutator = RandomMutator(),
     var untilValid: Boolean = false,
   )
 }

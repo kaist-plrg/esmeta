@@ -16,7 +16,6 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
   // ---------------------------------------------------------------------------
   // shortcuts
   // ---------------------------------------------------------------------------
-  private inline def cfg = st.cfg
   private inline def cursor = st.context.cursor
   private inline def func = cursor.func
   private inline def irFunc = func.irFunc

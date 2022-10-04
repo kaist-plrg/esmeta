@@ -26,9 +26,9 @@ class Coverage(
   private val _minimalScripts: MSet[Script] = MSet()
 
   // target conditional branches
-  def targetCondViews: Set[CondView] = _targetCondViews.toSet
+  def targetCondViews: Map[CondView, Option[Nearest]] = _targetCondViews.toMap
   def targetCondSize: Int = _targetCondViews.size
-  private val _targetCondViews: MSet[CondView] = MSet()
+  private val _targetCondViews: MMap[CondView, Option[Nearest]] = MMap()
 
   // the number of all meaningful code set
   def size: Int = counter.size
@@ -59,24 +59,26 @@ class Coverage(
 
     // update node coverage
     var updated = false
-    for (nodeView <- interp.touchedNodeViews) nodeViewMap.get(nodeView) match
-      case Some(script) if script.code.length <= code.length =>
-      case _ => update(nodeView, script); updated = true
+    for ((nodeView, _) <- interp.touchedNodeViews)
+      nodeViewMap.get(nodeView) match
+        case Some(script) if script.code.length <= code.length =>
+        case _ => update(nodeView, script); updated = true
 
     // update branch coverage
-    for (condView @ CondView(cond, view) <- interp.touchedCondViews)
+    for ((condView, _) <- interp.touchedCondViews)
+      condViewMap.get(condView) match
+        case Some(script) if script.code.length <= code.length =>
+        case _ => update(condView, script); updated = true
+
+    // update target branches
+    for ((condView @ CondView(cond, view), loc) <- interp.touchedCondViews)
       val neg = condView.neg
       cond.elem match
         case Branch(_, _, EBool(_), _, _) => /* do nothing */
         case ref: WeakUIdRef[EReturnIfAbrupt]
             if !ref.get.check => /* do nothing */
         case _ if condViewMap contains neg => _targetCondViews -= neg
-        case _                             => _targetCondViews += condView
-
-    // update target branches
-    for (condView <- interp.touchedCondViews) condViewMap.get(condView) match
-      case Some(script) if script.code.length <= code.length =>
-      case _ => update(condView, script); updated = true
+        case _ => _targetCondViews += condView -> loc
 
     (initSt, finalSt, interp, updated)
   }
@@ -232,6 +234,9 @@ class Coverage(
 }
 object Coverage {
 
+  /** Nearest AST Information */
+  type Nearest = (AstSingleTy, Loc)
+
   /** interpreter */
   class Interp(initSt: State, timeLimit: Option[Int], synK: Option[Int])
     extends Interpreter(
@@ -240,26 +245,19 @@ object Coverage {
       keepProvenance = true,
     ) {
     // program infos
-    var touchedNodeViews: Set[NodeView] = Set()
-    var touchedCondViews: Set[CondView] = Set()
-
-    // override eval for node
-    private def getView: List[AstSingleTy] = for {
-      sdo <- synK.fold(Nil)(st.context.sdoList.take(_))
-      ast @ Syntactic(name, _, rhsIdx, _) = sdo.ast
-      ty = AstSingleTy(name, rhsIdx, ast.subIdx)
-    } yield ty
+    var touchedNodeViews: Map[NodeView, Option[Nearest]] = Map()
+    var touchedCondViews: Map[CondView, Option[Nearest]] = Map()
 
     // override eval for node
     override def eval(node: Node): Unit =
       // record touched nodes
-      touchedNodeViews += NodeView(node, getView)
+      touchedNodeViews += NodeView(node, getView) -> getNearest
       super.eval(node)
 
     // override branch move
     override def moveBranch(branch: Branch, cond: Boolean): Unit =
       // record touched conditional branch
-      touchedCondViews += CondView(Cond(branch, cond), getView)
+      touchedCondViews += CondView(Cond(branch, cond), getView) -> getNearest
       super.moveBranch(branch, cond)
 
     // override helper for return-if-abrupt cases
@@ -269,8 +267,21 @@ object Coverage {
       check: Boolean,
     ): Value =
       val abrupt = value.isAbruptCompletion
-      touchedCondViews += CondView(Cond(riaExpr.idRef, abrupt), getView)
+      touchedCondViews += CondView(
+        Cond(riaExpr.idRef, abrupt),
+        getView,
+      ) -> getNearest
       super.returnIfAbrupt(riaExpr, value, check)
+
+    // get syntax-sensitive views
+    private def getView: List[AstSingleTy] =
+      synK.fold(Nil)(st.context.sdoList.take(_)).map(_.ty)
+
+    // get location information
+    private def getNearest: Option[Nearest] = for {
+      sdo <- st.context.sdoList.headOption
+      loc <- sdo.ast.loc
+    } yield (sdo.ty, loc)
   }
 
   /* syntax-sensitive views */

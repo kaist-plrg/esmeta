@@ -3,24 +3,54 @@ package esmeta.es.util.mutator
 import esmeta.cfg.CFG
 import esmeta.es.*
 import esmeta.es.util.*
+import esmeta.es.util.Coverage.*
 import esmeta.spec.Grammar
+import esmeta.util.*
 
 /** ECMAScript AST mutator */
-trait Mutator extends Walker {
-  def apply(code: String): Ast = walk(cfg.scriptParser.from(code))
-  def apply(ast: Ast): Ast = walk(ast)
+trait Mutator {
 
-  /** control flow graph for ECMA-262 */
-  def cfg: CFG
+  /** mutate programs */
+  def apply(
+    cfg: CFG,
+    code: String,
+    debug: Boolean,
+  ): Ast = apply(cfg, code, None, None, debug)
 
-  /** ECMAScript grammar */
-  val grammar: Grammar = cfg.grammar
+  /** mutate programs */
+  def apply(
+    cfg: CFG,
+    code: String,
+    condView: Option[CondView],
+    nearest: Option[Nearest],
+    debug: Boolean,
+  ): Ast = apply(cfg, cfg.scriptParser.from(code), condView, nearest, debug)
 
-  /** mutator builder */
-  def builder: Mutator.Builder
+  /** mutate programs */
+  def apply(
+    cfg: CFG,
+    ast: Ast,
+    debug: Boolean,
+  ): Ast = apply(cfg, ast, None, None, debug)
 
-  /** mutator name */
-  def name: String = builder.name
+  /** mutate programs */
+  def apply(
+    cfg: CFG,
+    ast: Ast,
+    condView: Option[CondView],
+    nearest: Option[Nearest],
+    debug: Boolean,
+  ): Ast =
+    val (name, mutated) = mutate(cfg, ast, condView, nearest)
+    val code = mutated.toString(cfg.grammar)
+    if (debug)
+      println(f"----- $name%-20s-----> $code")
+    mutated
+
+  def mutate(
+    cfg: CFG,
+    ast: Ast,
+    condView: Option[CondView],
+    nearest: Option[Nearest],
+  ): (String, Ast)
 }
-object Mutator:
-  trait Builder extends (CFG => Mutator) { val name: String }

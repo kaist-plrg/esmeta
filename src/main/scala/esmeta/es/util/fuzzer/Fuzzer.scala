@@ -294,7 +294,7 @@ class Fuzzer(
       iterable = indexedFailedTests,
       dirname = s"$baseDir/failed",
       getName = { case ((c, t), i) => s"$i.msg" },
-      getData = { case ((c, t), i) => t.msg },
+      getData = { case ((c, t), i) => "TAG: " + t.category + LINE_SEP + t.msg },
       remove = false,
     )
 
@@ -323,7 +323,7 @@ class Fuzzer(
       iterable = indexedTransFailedTests,
       dirname = s"$baseDir/trans-failed",
       getName = { case ((c, t), i) => s"$i.msg" },
-      getData = { case ((c, t), i) => t.msg },
+      getData = { case ((c, t), i) => "TAG: " + t.category + LINE_SEP + t.msg },
       remove = false,
     )
 

@@ -57,11 +57,11 @@ case object TransCheck extends Phase[CFG, Boolean] {
     if (!origTest.isPass || !transTest.isPass)
       println(s"===========$f===========")
     if (!origTest.isPass) {
-      println("orig test: ")
+      println(s"orig test: ${origTest.category}")
       println(origTest.msg)
     }
     if (!transTest.isPass) {
-      println("transpiled test: ")
+      println(s"transpiled test: ${transTest.category}")
       println(transTest.msg)
     }
 

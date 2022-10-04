@@ -1,0 +1,27 @@
+TAG,pattern in script,pattern in message
+BBL-SCOPE,let x,ReferenceError
+BBL-SCOPE,switch ( x ),ReferenceError
+BBL-SCOPE,case x,ReferenceError
+BBL-NAME,,descriptor value of "name"
+BBL-CONSTRUCT,,"prototype"] for
+BBL-CONSTRUCT,,[[Construct]] but doe
+BBL-CONSTRUCT,,TypeError @ EvaluateNew (7:60-7:90 (step 5))
+BBL-CONSTRUCT,,OrdinaryHasInstance
+BBL-CONSTRUCT,,Expected throw-error: TypeError @ Call (3:43-3:73 (step 2)) <- BindingInitialization of BindingPattern
+BBL-CONSTRUCT,,Expected throw-error: TypeError @ ToObject
+BBL-CONSTRUCT,,Expected throw-error: TypeError @ NewPromiseCapability
+BBL-HELPER,,_extends
+BBL-HELPER,,Loose
+BBL-CALL,Function . call,SyntaxError
+BBL-STATICPRIVATEIN,in,RelationalExpression
+BBL-AWAIT,_await,
+GRL-NORMALIZE,normalize,RangeError
+GRL-SETPROTOTYPEOF,setPrototypeOf,TypeError
+GRL-EXTENDS,extends new,TypeError
+GRL-STATIC,static#x = x &&=,TypeError
+GRL-DELETE,delete,
+GRL-FORDECL,for ( const [,
+GRL-FORDECL,for ( const {,
+GRL-FORDECL,for ( var,
+ECM-STATIC,super [ x ],native code
+ECM-STATIC,super [ this ],native code

@@ -7,6 +7,7 @@ import esmeta.es.*
 import esmeta.es.util.*
 import esmeta.state.State
 import esmeta.util.*
+import esmeta.util.SystemUtils.readFile
 import scala.util.*
 
 /** conformance test */
@@ -19,14 +20,20 @@ case class ConformTest(
   assertions: Vector[Assertion],
 ) extends ESElem
   with UId {
-  var comment = ""
 
   /** replace script */
   def replaceScript(newScript: String) =
     ConformTest(id, newScript, exitTag, defs, isAsync, assertions)
 
+  /** retain only passed assertions */
+  def filterAssertion: ConformTest =
+    ConformTest(id, script, exitTag, defs, isAsync, passedAssertions)
+
   /** indicates if the test should exit normally */
   val isNormal = exitTag == NormalTag
+
+  /** An optional comment to this test */
+  var comment = ""
 
   /** Execute test and get result */
   lazy val (
@@ -66,6 +73,7 @@ case class ConformTest(
     })
     .get
 
+  /** Indicates if the expected exit tag mathces with the concrete exit tag */
   lazy val sameExitTag = exitTag equivalent concreteExitTag
 
   /** Indicates if the test is passed */
@@ -80,9 +88,23 @@ case class ConformTest(
       s"[Exit Tag Mismatch]$LINE_SEP > Expected $exitTag but got $concreteExitTag$LINE_SEP"
     else failedAssertions.map((a, m) => s"$a$LINE_SEP > $m").mkString("")
 
-  /** retain only passed assertions */
-  def filterAssertion: ConformTest =
-    ConformTest(id, script, exitTag, defs, isAsync, passedAssertions)
+  /** result of manual categorization */
+  lazy val category: String =
+    if isPass then ""
+    else {
+      ConformTest.manualRule
+        .foldLeft("YET")((cur, rule) =>
+          cur match {
+            case "YET" =>
+              val Array(tag, codePattern, msgPattern) = rule
+              if (script.contains(codePattern) && msg.contains(msgPattern))
+                tag
+              else
+                cur
+            case _ => cur
+          },
+        )
+    }
 }
 
 object ConformTest {
@@ -103,4 +125,11 @@ object ConformTest {
     val transpiledTest =
       injectedTest.filterAssertion.replaceScript(transpiled)
     (injectedTest, transpiledTest)
+
+  /** Manually written rule to categorize bugs kind */
+  lazy val manualRule =
+    readFile(f"$RESOURCE_DIR/injector/manual-categorize.csv")
+      .split(LINE_SEP)
+      .drop(1) // drop header
+      .map(l => l.split(",", -1))
 }

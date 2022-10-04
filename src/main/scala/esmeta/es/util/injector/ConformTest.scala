@@ -19,6 +19,7 @@ case class ConformTest(
   assertions: Vector[Assertion],
 ) extends ESElem
   with UId {
+  var comment = ""
 
   /** replace script */
   def replaceScript(newScript: String) =

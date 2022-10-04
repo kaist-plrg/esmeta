@@ -174,6 +174,8 @@ class Fuzzer(
   ): Unit =
     val code = initSt.sourceText.get
     val (test, transTest) = ConformTest.createTestPair(initSt, finalSt)
+    test.comment = f"// generated at iteration $iter$LINE_SEP"
+    transTest.comment = f"// generated at iteration $iter$LINE_SEP"
     // conformance check for engines
     val pass = test.isPass
     if (debug) print(f" ${"GRAAL-JS CONFORMANCE RESULT"}%30s: ")
@@ -265,55 +267,60 @@ class Fuzzer(
     baseDir: String = logDir,
     withMsg: Boolean = true,
   ): Unit =
+    /** dump failed engine conformance tests */
     rmdir(s"$baseDir/failed")
-    type Zipped = ((String, ConformTest), Int)
-    dumpDir[Zipped](
+    val indexedFailedTests = failedTests.zipWithIndex
+    val indexedTransFailedTests = transFailedTests.zipWithIndex
+    type IndexedTest = ((String, ConformTest), Int)
+    dumpDir[IndexedTest](
       name = if (withMsg) Some("failed conformance codes") else None,
-      iterable = failedTests.zipWithIndex,
+      iterable = indexedFailedTests,
       dirname = s"$baseDir/failed",
       getName = { case ((c, t), i) => s"$i.js" },
-      getData = { case ((c, t), i) => USE_STRICT + c + LINE_SEP },
+      getData = { case ((c, t), i) => t.comment + USE_STRICT + c + LINE_SEP },
       remove = true,
     )
-    dumpDir[Zipped](
+    dumpDir[IndexedTest](
       name = if (withMsg) Some("failed conformance tests") else None,
-      iterable = failedTests.zipWithIndex,
+      iterable = indexedFailedTests,
       dirname = s"$baseDir/failed",
       getName = { case ((c, t), i) => s"$i.test.js" },
       getData = { case ((c, t), i) => t },
       remove = false,
     )
-    dumpDir[Zipped](
+    dumpDir[IndexedTest](
       name =
         if (withMsg) Some("message for failed conformance tests") else None,
-      iterable = failedTests.zipWithIndex,
+      iterable = indexedFailedTests,
       dirname = s"$baseDir/failed",
       getName = { case ((c, t), i) => s"$i.msg" },
       getData = { case ((c, t), i) => t.msg },
       remove = false,
     )
+
+    /** dump failed transpiler conformance tests */
     rmdir(s"$baseDir/trans-failed")
-    dumpDir[Zipped](
+    dumpDir[IndexedTest](
       name = if (withMsg) Some("failed transpiled conformance codes") else None,
-      iterable = transFailedTests.zipWithIndex,
+      iterable = indexedTransFailedTests,
       dirname = s"$baseDir/trans-failed",
       getName = { case ((c, t), i) => s"$i.js" },
-      getData = { case ((c, t), i) => USE_STRICT + c + LINE_SEP },
+      getData = { case ((c, t), i) => t.comment + USE_STRICT + c + LINE_SEP },
       remove = true,
     )
-    dumpDir[Zipped](
+    dumpDir[IndexedTest](
       name = if (withMsg) Some("failed transpiled conformance tests") else None,
-      iterable = transFailedTests.zipWithIndex,
+      iterable = indexedTransFailedTests,
       dirname = s"$baseDir/trans-failed",
       getName = { case ((c, t), i) => s"$i.test.js" },
       getData = { case ((c, t), i) => t },
       remove = false,
     )
-    dumpDir[Zipped](
+    dumpDir[IndexedTest](
       name =
         if (withMsg) Some("message for failed transpiled conformance tests")
         else None,
-      iterable = transFailedTests.zipWithIndex,
+      iterable = indexedTransFailedTests,
       dirname = s"$baseDir/trans-failed",
       getName = { case ((c, t), i) => s"$i.msg" },
       getData = { case ((c, t), i) => t.msg },

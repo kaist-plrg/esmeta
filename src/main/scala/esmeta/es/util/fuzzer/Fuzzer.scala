@@ -170,8 +170,13 @@ class Fuzzer(
   ): Unit =
     val code = initSt.sourceText.get
     val (test, transTest) = ConformTest.createTestPair(initSt, finalSt)
-    test.comment = f"// generated at iteration $iter$LINE_SEP"
-    transTest.comment = f"// generated at iteration $iter$LINE_SEP"
+    val d = if (iter == 0) 0 else duration
+    val comment = List(
+      s"// generated at iteration $iter",
+      s"// took $d ms (${Time(d).simpleString})",
+    ).mkString("", LINE_SEP, LINE_SEP)
+    test.comment = comment
+    transTest.comment = comment
     // conformance check for engines
     val pass = test.isPass
     if (debug) print(f" ${"GRAAL-JS CONFORMANCE RESULT"}%30s: ")

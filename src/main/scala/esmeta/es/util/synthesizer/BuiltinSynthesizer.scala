@@ -3,18 +3,19 @@ package esmeta.es.util.synthesizer
 import esmeta.cfg.*
 import esmeta.error.*
 import esmeta.es.*
+import esmeta.es.util.*
 import esmeta.spec.*
+import esmeta.spec.BuiltinPath.*
 import esmeta.util.*
 import esmeta.util.Appender.*
 import esmeta.util.BaseUtils.*
 
 /** An ECMAScript AST synthesizer for built-in libraries */
-class BuiltinSynthesizer(
-  val cfg: CFG,
-) extends Synthesizer {
-  import grammar.*
-  import BuiltinSynthesizer.*
-  import BuiltinPath.*
+object BuiltinSynthesizer extends BuiltinSynthesizer
+trait BuiltinSynthesizer extends Synthesizer {
+
+  /** synthesizer name */
+  def name: String = "BuiltinSynthesizer"
 
   /** get script */
   def script: String = "String ( 0 ) ; "
@@ -90,11 +91,4 @@ class BuiltinSynthesizer(
   /** for lexical production */
   def apply(name: String): Lexical =
     throw NotSupported("BuiltinSynthesizer.apply")
-
-  /** synthesizer builder */
-  def builder: Synthesizer.Builder = BuiltinSynthesizer
-}
-object BuiltinSynthesizer extends Synthesizer.Builder {
-  val name: String = "BuiltinSynthesizer"
-  def apply(cfg: CFG) = new BuiltinSynthesizer(cfg)
 }

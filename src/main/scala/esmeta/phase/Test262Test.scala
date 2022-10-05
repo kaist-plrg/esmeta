@@ -9,7 +9,7 @@ import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
 import esmeta.es.*
-import esmeta.es.util.Coverage
+import esmeta.es.util.{Coverage, withCFG}
 import esmeta.test262.{*, given}
 import esmeta.test262.util.TestFilter
 import java.io.File
@@ -22,13 +22,13 @@ case object Test262Test extends Phase[CFG, Summary] {
     cfg: CFG,
     cmdConfig: CommandConfig,
     config: Config,
-  ): Summary =
+  ): Summary = withCFG(cfg) {
     // set test mode
     TEST_MODE = true
 
     // get target version of Test262
     val version = Test262.getVersion(config.target)
-    val test262 = Test262(version, cfg)
+    val test262 = Test262(version)
 
     // run test262 eval test
     test262.evalTest(
@@ -38,6 +38,7 @@ case object Test262Test extends Phase[CFG, Summary] {
       config.coverage,
       config.timeLimit,
     )
+  }
 
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(

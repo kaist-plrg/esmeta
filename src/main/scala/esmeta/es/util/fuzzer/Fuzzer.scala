@@ -1,6 +1,5 @@
 package esmeta.es.util.fuzzer
 
-import esmeta.cfg.CFG
 import esmeta.error.*
 import esmeta.es.*
 import esmeta.es.util.*
@@ -20,7 +19,6 @@ import scala.util._
 /** ECMAScript program fuzzer with ECMA-262 */
 object Fuzzer:
   def apply(
-    cfg: CFG,
     logInterval: Option[Int] = Some(600), // default is 10 minutes.
     debug: Boolean = false,
     stdOut: Boolean = false,
@@ -29,7 +27,6 @@ object Fuzzer:
     conformTest: Boolean = false,
     synK: Option[Int] = None,
   ): Coverage = new Fuzzer(
-    cfg,
     logInterval,
     debug,
     stdOut,
@@ -41,7 +38,6 @@ object Fuzzer:
 
 /** extensible helper of ECMAScript program fuzzer with ECMA-262 */
 class Fuzzer(
-  cfg: CFG,
   logInterval: Option[Int] = Some(600), // default is 10 minutes.
   debug: Boolean = false,
   stdOut: Boolean = false,
@@ -114,7 +110,7 @@ class Fuzzer(
       }
     }
     val (script, condView, nearest) = selector(pool, cov, cfg.grammar, debug)
-    val mutated = mutator(cfg, script.code, condView, nearest, debug)
+    val mutated = mutator(script.code, condView, nearest, debug)
     val code = mutated.toString(grammar)
     add(code)
 
@@ -194,7 +190,7 @@ class Fuzzer(
   val scriptParser = cfg.scriptParser
 
   /** coverage */
-  val cov: Coverage = Coverage(cfg, timeLimit, synK)
+  val cov: Coverage = Coverage(timeLimit, synK)
 
   /** target selector */
   val selector: TargetSelector = WeightedSelector(
@@ -209,15 +205,10 @@ class Fuzzer(
     NearestMutator() -> 8,
   )
 
-  /** synthesizer */
-  val randomSynthesizer: Synthesizer = RandomSynthesizer(cfg)
-  val simpleSynthesizer: Synthesizer = SimpleSynthesizer(cfg)
-  val builtinSynthesizer: Synthesizer = BuiltinSynthesizer(cfg)
-
   /** initial pool */
   val initPool =
-    simpleSynthesizer.initPool.map(simpleSynthesizer -> _) ++
-    builtinSynthesizer.initPool.map(builtinSynthesizer -> _)
+    SimpleSynthesizer.initPool.map(SimpleSynthesizer -> _) ++
+    BuiltinSynthesizer.initPool.map(BuiltinSynthesizer -> _)
 
   /** logging */
   def debugging(msg: String, newline: Boolean = true): Unit = if (debug) {

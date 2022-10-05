@@ -3,6 +3,7 @@ package esmeta.es.util
 import esmeta.LINE_SEP
 import esmeta.cfg.*
 import esmeta.es.*
+import esmeta.es.util.*
 import esmeta.interpreter.*
 import esmeta.ir.{Expr, EParse, EReturnIfAbrupt, EBool}
 import esmeta.state.*
@@ -15,7 +16,6 @@ import scala.collection.mutable.{Map => MMap, Set => MSet}
 
 /** coverage measurement in CFG */
 class Coverage(
-  cfg: CFG,
   timeLimit: Option[Int] = None,
   synK: Option[Int] = None,
 ) {

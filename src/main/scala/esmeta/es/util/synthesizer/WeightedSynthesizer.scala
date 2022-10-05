@@ -7,15 +7,16 @@ import esmeta.spec.*
 import esmeta.util.BaseUtils.*
 
 /** A weighted ECMAScript AST synthesizer */
-abstract class WeightedSynthesizer(
-  val pairs: Array[(Synthesizer, Int)],
-  val cfg: CFG,
+class WeightedSynthesizer(
+  val pairs: (Synthesizer, Int)*,
 ) extends Synthesizer {
-  import grammar.*
-  import WeightedSynthesizer.*
+
+  /** synthesizer name */
+  def name: String = "WeightedSynthesizer"
 
   /** get script */
   def script: String = weightedChoose(pairs).script
+  private lazy val array: Array[(Synthesizer, Int)] = pairs.toArray
 
   /** get initial pool */
   lazy val initPool: Vector[String] = (for {
@@ -30,19 +31,4 @@ abstract class WeightedSynthesizer(
   /** for lexical production */
   def apply(name: String): Lexical =
     throw NotSupported("WeightedSynthesizer.apply")
-
-  /** synthesizer builder */
-  def builder: SynBuilder
-}
-object WeightedSynthesizer {
-  def apply(pairs: (SynBuilder, Int)*): SynBuilder =
-    lazy val _builder: SynBuilder = new SynBuilder {
-      val name: String = "WeightedSynthesizer"
-      def apply(cfg: CFG) =
-        val ps = (for ((builder, int) <- pairs) yield (builder(cfg), int))
-        new WeightedSynthesizer(ps.toArray, cfg) {
-          def builder: SynBuilder = _builder
-        }
-    }
-    _builder
 }

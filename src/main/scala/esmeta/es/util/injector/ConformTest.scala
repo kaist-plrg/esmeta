@@ -110,9 +110,9 @@ case class ConformTest(
 object ConformTest {
 
   /** Create a pair of tests using code string */
-  def createTestPair(script: String, cfg: CFG): (ConformTest, ConformTest) =
+  def createTestPair(script: String): (ConformTest, ConformTest) =
     val transpiled = Babel.transpile(script)
-    val injectedTest = Injector(cfg, script, true)
+    val injectedTest = Injector(script, true)
     val transpiledTest =
       injectedTest.filterAssertion.replaceScript(transpiled)
     (injectedTest, transpiledTest)

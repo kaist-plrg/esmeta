@@ -1,20 +1,21 @@
 package esmeta.es.util.synthesizer
 
-import esmeta.cfg.*
 import esmeta.es.*
+import esmeta.es.util.*
 import esmeta.spec.*
 import esmeta.spec.util.GrammarGraph
+import esmeta.spec.util.GrammarGraph.*
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import scala.collection.mutable.Queue
 import scala.math.Ordering.Implicits._
 
 /** A simple ECMAScript AST synthesizer */
-class SimpleSynthesizer(
-  val cfg: CFG,
-) extends Synthesizer {
-  import grammar.*
-  import SimpleSynthesizer.*, GrammarGraph.*
+object SimpleSynthesizer extends SimpleSynthesizer
+trait SimpleSynthesizer extends Synthesizer {
+
+  /** synthesizer name */
+  def name: String = "SimpleSynthesizer"
 
   /** get script */
   def script: String = choose(initPool)
@@ -41,11 +42,23 @@ class SimpleSynthesizer(
   def apply(name: String): Lexical =
     Lexical(name, reservedLexicals(name))
 
-  /** synthesizer builder */
-  def builder: Synthesizer.Builder = SimpleSynthesizer
-
   // grammar graph
   val graph = cfg.grammarGraph
+
+  // reserved lexicals
+  val reservedLexicals: Map[String, String] = Map(
+    "BooleanLiteral" -> "true",
+    "IdentifierName" -> "x",
+    "NoSubstitutionTemplate" -> "``",
+    "NullLiteral" -> "null",
+    "NumericLiteral" -> "0",
+    "PrivateIdentifier" -> "#x",
+    "RegularExpressionLiteral" -> "/a/",
+    "StringLiteral" -> "''",
+    "TemplateHead" -> "`${",
+    "TemplateMiddle" -> "}${",
+    "TemplateTail" -> "}`",
+  )
 
   // ---------------------------------------------------------------------------
   // private helpers
@@ -195,21 +208,4 @@ class SimpleSynthesizer(
   private def handleInvalid(code: String): String =
     if (code.startsWith("{") && code.endsWith("} ;")) "var x = " + code
     else code
-}
-object SimpleSynthesizer extends Synthesizer.Builder {
-  val name: String = "SimpleSynthesizer"
-  def apply(cfg: CFG) = new SimpleSynthesizer(cfg)
-  val reservedLexicals: Map[String, String] = Map(
-    "BooleanLiteral" -> "true",
-    "IdentifierName" -> "x",
-    "NoSubstitutionTemplate" -> "``",
-    "NullLiteral" -> "null",
-    "NumericLiteral" -> "0",
-    "PrivateIdentifier" -> "#x",
-    "RegularExpressionLiteral" -> "/a/",
-    "StringLiteral" -> "''",
-    "TemplateHead" -> "`${",
-    "TemplateMiddle" -> "}${",
-    "TemplateTail" -> "}`",
-  )
 }

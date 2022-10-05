@@ -2,10 +2,14 @@ package esmeta.es.util.synthesizer
 
 import esmeta.cfg.*
 import esmeta.es.*
+import esmeta.es.util.*
 import esmeta.spec.Grammar
 
 /** ECMAScript AST synthesizer */
 trait Synthesizer {
+
+  /** synthesizer name */
+  def name: String
 
   /** get script */
   def script: String
@@ -27,17 +31,5 @@ trait Synthesizer {
   def apply(ast: Lexical): Lexical = apply(ast.name)
 
   /** ECMAScript grammar */
-  def cfg: CFG
-
-  /** ECMAScript grammar */
   val grammar: Grammar = cfg.grammar
-
-  /** synthesizer builder */
-  def builder: Synthesizer.Builder
-
-  /** synthesizer name */
-  def name: String = builder.name
 }
-object Synthesizer:
-  trait Builder extends (CFG => Synthesizer) { def name: String }
-type SynBuilder = Synthesizer.Builder

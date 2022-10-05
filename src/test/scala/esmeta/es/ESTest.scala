@@ -7,6 +7,7 @@ import esmeta.cfgBuilder.CFGBuilder
 import esmeta.compiler.Compiler
 import esmeta.error.NoGraal
 import esmeta.es.util.injector.*
+import esmeta.es.util.withCFG
 import esmeta.interpreter.*
 import esmeta.ir.NormalInst
 import esmeta.parser.AstFrom
@@ -103,11 +104,13 @@ object ESTest {
   // ---------------------------------------------------------------------------
 
   // tests for ES trans-checker
-  def transCheckTest(str: String): Unit = try {
-    val (origTest, transTest) = ConformTest.createTestPair(str, cfg)
-    assert(origTest.isPass)
-    assert(transTest.isPass)
-  } catch { case NoGraal => }
+  def transCheckTest(str: String): Unit = withCFG(cfg) {
+    try {
+      val (origTest, transTest) = ConformTest.createTestPair(str)
+      assert(origTest.isPass)
+      assert(transTest.isPass)
+    } catch { case NoGraal => }
+  }
   def transCheckTestFile(filename: String): Unit =
     transCheckTest(readFile(filename))
 }

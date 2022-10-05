@@ -2,7 +2,7 @@ package esmeta.phase
 
 import esmeta.*
 import esmeta.cfg.CFG
-import esmeta.es.util.Coverage
+import esmeta.es.util.{Coverage, withCFG}
 import esmeta.es.util.fuzzer.*
 import esmeta.util.*
 import esmeta.util.BaseUtils.setSeed
@@ -16,12 +16,11 @@ case object Fuzz extends Phase[CFG, Coverage] {
     cfg: CFG,
     cmdConfig: CommandConfig,
     config: Config,
-  ): Coverage =
+  ): Coverage = withCFG(cfg) {
     // optionally set the seed for the random number generator
     config.seed.foreach(setSeed)
 
     val cov = Fuzzer(
-      cfg = cfg,
       logInterval = config.logInterval,
       debug = config.debug,
       timeLimit = config.timeLimit,
@@ -34,6 +33,7 @@ case object Fuzz extends Phase[CFG, Coverage] {
     for (dirname <- config.out) cov.dumpToWithDetail(dirname)
 
     cov
+  }
 
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(

@@ -1,6 +1,6 @@
 package esmeta.test262
 
-import esmeta.*
+import esmeta.{cfg => _, *}
 import esmeta.cfg.CFG
 import esmeta.error.{
   NotSupported,
@@ -21,7 +21,6 @@ import esmeta.util.SystemUtils.*
 /** data in Test262 */
 case class Test262(
   version: Test262.Version,
-  cfg: CFG,
 ) {
 
   /** cache for parsing results for necessary harness files */
@@ -116,7 +115,7 @@ case class Test262(
     )
 
     // coverage with time limit
-    lazy val cov = Coverage(cfg, timeLimit)
+    lazy val cov = Coverage(timeLimit)
 
     // run tests with logging
     logForTests(

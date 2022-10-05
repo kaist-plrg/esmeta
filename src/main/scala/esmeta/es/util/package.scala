@@ -2,6 +2,7 @@ package esmeta.es.util
 
 import esmeta.*
 import esmeta.es.*
+import esmeta.cfg.CFG
 
 /** merge statements to script */
 // TODO refactoring
@@ -39,3 +40,18 @@ def flattenStmt(s: Ast): List[Ast] = s match
 
 /** ECMAScript strict mode directive */
 val USE_STRICT = s"\"use strict\";$LINE_SEP"
+
+// -----------------------------------------------------------------------------
+// global mutable options and structures
+// -----------------------------------------------------------------------------
+/** get control flow graph */
+def cfg: CFG = get(globalCFG, "CFG")
+private var globalCFG: Option[CFG] = None
+def withCFG[T](cfg: CFG)(t: => T): T =
+  globalCFG = Some(cfg)
+  val res = t
+  globalCFG = None
+  res
+
+private def get[T](opt: Option[T], msg: String): T =
+  opt.getOrElse(throw Error(s"$msg is not yet initialized."))

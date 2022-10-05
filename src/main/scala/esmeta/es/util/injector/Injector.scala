@@ -5,6 +5,7 @@ import esmeta.cfg.CFG
 import esmeta.interpreter.Interpreter
 import esmeta.ir.*
 import esmeta.es.*
+import esmeta.es.util.*
 import esmeta.spec.*
 import esmeta.state.*
 import esmeta.util.*
@@ -17,7 +18,6 @@ import scala.collection.mutable.{Map => MMap, ListBuffer}
 /** assertion injector */
 object Injector:
   def apply(
-    cfg: CFG,
     src: String,
     defs: Boolean = false,
     log: Boolean = false,
@@ -27,7 +27,6 @@ object Injector:
 
   /** injection from files */
   def fromFile(
-    cfg: CFG,
     filename: String,
     defs: Boolean = false,
     log: Boolean = false,

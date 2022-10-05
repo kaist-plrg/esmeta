@@ -1,20 +1,16 @@
 package esmeta.es.util.synthesizer
 
-import esmeta.cfg.*
 import esmeta.es.*
 import esmeta.es.util.*
 import esmeta.spec.*
 import esmeta.util.BaseUtils.*
 
-// TODO refactoring
-
 /** A random ECMAScript AST synthesizer */
-class RandomSynthesizer(
-  val cfg: CFG,
-) extends Synthesizer {
+object RandomSynthesizer extends RandomSynthesizer
+trait RandomSynthesizer extends Synthesizer {
 
-  import grammar.*
-  import SimpleSynthesizer.*
+  /** synthesizer name */
+  def name: String = "RandomSynthesizer"
 
   /** get script */
   def script: String =
@@ -29,7 +25,7 @@ class RandomSynthesizer(
 
   /** for syntactic production */
   def apply(name: String, args: List[Boolean]): Syntactic =
-    val prod @ Production(lhs, _, _, rhsVec) = nameMap(name)
+    val prod @ Production(lhs, _, _, rhsVec) = grammar.nameMap(name)
     val argsMap = (lhs.params zip args).toMap
     val pairs = for {
       (rhs, rhsIdx) <- rhsVec.zipWithIndex
@@ -40,7 +36,7 @@ class RandomSynthesizer(
     Syntactic(name, args, rhsIdx, children)
 
   /** for lexical production */
-  def apply(name: String): Lexical = simpleSyn(name)
+  def apply(name: String): Lexical = SimpleSynthesizer(name)
 
   // ---------------------------------------------------------------------------
   // private helpers
@@ -50,15 +46,13 @@ class RandomSynthesizer(
     pairs: Iterable[(Rhs, Int)],
   ): (Rhs, Int) = choose(pairs)
 
-  private val simpleSyn = SimpleSynthesizer(cfg)
-
   private def synSymbol(argsMap: Map[String, Boolean])(
     symbol: Symbol,
   ): Option[Option[Ast]] = symbol match
     case ButNot(nt, _) => synSymbol(argsMap)(nt)
     case Nonterminal(name, args, optional) =>
-      if (reservedLexicals contains name)
-        Some(Some(Lexical(name, reservedLexicals(name))))
+      if (SimpleSynthesizer.reservedLexicals contains name)
+        Some(Some(Lexical(name, SimpleSynthesizer.reservedLexicals(name))))
       else if (optional && randBool) Some(None)
       else {
         import NonterminalArgumentKind.*
@@ -67,17 +61,9 @@ class RandomSynthesizer(
           case False => false
           case Pass  => argsMap(arg.name)
         val syn =
-          if (randBool) simpleSyn(name, newArgs)
+          if (randBool) SimpleSynthesizer(name, newArgs)
           else apply(name, newArgs)
         Some(Some(syn))
       }
     case _ => None
-
-  /** synthesizer builder */
-  def builder: Synthesizer.Builder = RandomSynthesizer
-}
-
-object RandomSynthesizer extends Synthesizer.Builder {
-  val name: String = "RandomSynthesizer"
-  def apply(cfg: CFG) = new RandomSynthesizer(cfg)
 }

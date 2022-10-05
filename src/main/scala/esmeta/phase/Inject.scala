@@ -2,6 +2,7 @@ package esmeta.phase
 
 import esmeta.*
 import esmeta.cfg.CFG
+import esmeta.es.util.withCFG
 import esmeta.es.util.injector.Injector
 import esmeta.interpreter.Interpreter
 import esmeta.es.*
@@ -18,9 +19,9 @@ case object Inject extends Phase[CFG, String] {
     cfg: CFG,
     cmdConfig: CommandConfig,
     config: Config,
-  ): String =
+  ): String = withCFG(cfg) {
     val filename = getFirstFilename(cmdConfig, this.name)
-    val injected = Injector.fromFile(cfg, filename, config.defs, config.log)
+    val injected = Injector.fromFile(filename, config.defs, config.log)
 
     // dump the assertion-injected ECMAScript program
     for (filename <- config.out)
@@ -31,6 +32,8 @@ case object Inject extends Phase[CFG, String] {
       )
 
     injected.toString
+  }
+
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(
     (

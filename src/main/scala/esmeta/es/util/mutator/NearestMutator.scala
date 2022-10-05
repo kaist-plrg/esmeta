@@ -12,25 +12,24 @@ import esmeta.ty.AstSingleTy
 
 /** A nearest ECMAScript AST mutator */
 class NearestMutator(
-  val synBuilder: Synthesizer.Builder = RandomSynthesizer,
+  val synthesizer: Synthesizer = RandomSynthesizer,
 ) extends Mutator {
 
   /** mutate programs */
   def mutate(
-    cfg: CFG,
     ast: Ast,
     condView: Option[CondView],
     nearest: Option[Nearest],
   ): (String, Ast) = nearest.fold {
-    RandomMutator(synBuilder).mutate(cfg, ast, condView, nearest)
-  } { case (ty, loc) => ("NearestMutator", Walker(cfg, ty, loc).walk(ast)) }
+    RandomMutator(synthesizer).mutate(ast, condView, nearest)
+  } { case (ty, loc) => ("NearestMutator", Walker(ty, loc).walk(ast)) }
 
   /** internal walker */
-  class Walker(cfg: CFG, ty: AstSingleTy, loc: Loc) extends AstWalker {
+  class Walker(ty: AstSingleTy, loc: Loc) extends AstWalker {
     val AstSingleTy(name, rhsIdx, subIdx) = ty
     override def walk(ast: Syntactic): Syntactic = ast match
       case ast @ Syntactic(`name`, _, `rhsIdx`, _) if ast.subIdx == subIdx =>
-        synBuilder(cfg)(ast)
+        synthesizer(ast)
       case _ =>
         super.walk(ast)
   }

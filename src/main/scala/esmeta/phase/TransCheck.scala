@@ -3,6 +3,7 @@ package esmeta.phase
 import esmeta.*
 import esmeta.cfg.CFG
 import esmeta.es.util.injector.ConformTest
+import esmeta.es.util.withCFG
 import esmeta.util.*
 import esmeta.util.SystemUtils.*
 import java.io.File
@@ -15,7 +16,7 @@ case object TransCheck extends Phase[CFG, Boolean] {
     cfg: CFG,
     cmdConfig: CommandConfig,
     config: Config,
-  ): Boolean =
+  ): Boolean = withCFG(cfg) {
     val tests: Map[File, (ConformTest, ConformTest)] = {
       for (
         dir <- (cmdConfig.targets);
@@ -24,7 +25,7 @@ case object TransCheck extends Phase[CFG, Boolean] {
         file <- files;
         path = file.getPath;
         script = readFile(path);
-        tests = ConformTest.createTestPair(script, cfg);
+        tests = ConformTest.createTestPair(script);
         _ = if (config.debug) pprint(file, tests)
       ) yield (file, tests)
     }.toMap
@@ -51,6 +52,7 @@ case object TransCheck extends Phase[CFG, Boolean] {
       case (_, (origTest, transTest)) =>
         origTest.isPass && transTest.isPass
     }
+  }
 
   def pprint(f: File, tests: (ConformTest, ConformTest)): Unit =
     val (origTest, transTest) = tests

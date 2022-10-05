@@ -2,6 +2,7 @@ package esmeta.phase
 
 import esmeta.*
 import esmeta.cfg.CFG
+import esmeta.es.util.withCFG
 import esmeta.es.util.mutator.*
 import esmeta.parser.ESParser
 import esmeta.spec.Grammar
@@ -16,19 +17,19 @@ case object Mutate extends Phase[CFG, String] {
     cfg: CFG,
     cmdConfig: CommandConfig,
     config: Config,
-  ): String =
+  ): String = withCFG(cfg) {
     val grammar = cfg.grammar
     val filename = getFirstFilename(cmdConfig, this.name)
     val ast = cfg.scriptParser.fromFile(filename)
     val mutator = config.mutator
 
     // get a mutated AST
-    var mutatedAst = mutator(cfg, ast, debug = false)
+    var mutatedAst = mutator(ast, debug = false)
 
     // repeat until the mutated program becomes valid when
     // `-mutate:untilValid` is turned on.
     while (config.untilValid && !mutatedAst.valid(grammar))
-      mutatedAst = mutator(cfg, ast, debug = false)
+      mutatedAst = mutator(ast, debug = false)
 
     // get string of mutated AST
     val mutated = mutatedAst.toString(grammar)
@@ -42,6 +43,7 @@ case object Mutate extends Phase[CFG, String] {
       )
 
     mutated
+  }
 
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(

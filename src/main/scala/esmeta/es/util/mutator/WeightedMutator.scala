@@ -1,6 +1,5 @@
 package esmeta.es.util.mutator
 
-import esmeta.cfg.CFG
 import esmeta.es.*
 import esmeta.es.util.synthesizer.*
 import esmeta.es.util.{Walker => AstWalker}
@@ -17,9 +16,8 @@ class WeightedMutator(
 
   /** mutate programs */
   def mutate(
-    cfg: CFG,
     ast: Ast,
     condView: Option[CondView],
     nearest: Option[Nearest],
-  ): (String, Ast) = weightedChoose(pairs).mutate(cfg, ast, condView, nearest)
+  ): (String, Ast) = weightedChoose(pairs).mutate(ast, condView, nearest)
 }

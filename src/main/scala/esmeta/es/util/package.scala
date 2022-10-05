@@ -3,6 +3,7 @@ package esmeta.es.util
 import esmeta.*
 import esmeta.es.*
 import esmeta.cfg.CFG
+import esmeta.util.BaseUtils.warn
 
 /** merge statements to script */
 // TODO refactoring
@@ -45,13 +46,14 @@ val USE_STRICT = s"\"use strict\";$LINE_SEP"
 // global mutable options and structures
 // -----------------------------------------------------------------------------
 /** get control flow graph */
-def cfg: CFG = get(globalCFG, "CFG")
+def cfg: CFG = globalCFG.getOrElse({
+  warn("CFG is not yet initialized. Using default cfg instead.")
+  CFG.defaultCFG
+})
+
 private var globalCFG: Option[CFG] = None
 def withCFG[T](cfg: CFG)(t: => T): T =
   globalCFG = Some(cfg)
   val res = t
   globalCFG = None
   res
-
-private def get[T](opt: Option[T], msg: String): T =
-  opt.getOrElse(throw Error(s"$msg is not yet initialized."))

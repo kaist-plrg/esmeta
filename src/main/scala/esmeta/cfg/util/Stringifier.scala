@@ -24,7 +24,6 @@ class Stringifier(detail: Boolean, location: Boolean) {
 
   // control-flow graphs (CFGs)
   given cfgRule: Rule[CFG] = (app, cfg) =>
-    val CFG(funcs) = cfg
     given Rule[Iterable[Func]] = iterableRule(sep = LINE_SEP)
     given Ordering[Func] = Ordering.by(_.id)
     app >> cfg.funcs.sorted

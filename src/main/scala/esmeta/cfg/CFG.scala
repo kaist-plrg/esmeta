@@ -14,8 +14,8 @@ import esmeta.util.ProgressBar
 import esmeta.util.SystemUtils.*
 
 /** control-flow graphs (CFGs) */
-case class CFG(
-  funcs: List[Func] = Nil,
+class CFG(
+  val funcs: List[Func] = Nil,
 ) extends CFGElem {
 
   /** backward edge to a program */

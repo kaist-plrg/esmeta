@@ -61,9 +61,9 @@ class Fuzzer(
         "script(#)",
         "node(#)",
         "branch(#)",
-        "target-conds(#)",
       )
       synK.map(k => row ++= Vector(s"$k-syn-node(#)", s"$k-syn-branch(#)"))
+      row ++= Vector("target-conds(#)")
       if (conformTest) row ++= Vector("conform-bug(#)", "trans-bug(#)")
       addRow(row)
     })
@@ -224,8 +224,9 @@ class Fuzzer(
     val cb = failedTests.size
     val tb = transFailedTests.size
     val tc = cov.targetCondSize
-    var row = Vector(iter, d, t, pool.size, n, b, tc)
+    var row = Vector(iter, d, t, pool.size, n, b)
     if (synK.isDefined) row ++= Vector(nv, bv)
+    row ++= Vector(tc)
     if (conformTest) row ++= Vector(cb, tb)
     addRow(row)
     // dump coveragge

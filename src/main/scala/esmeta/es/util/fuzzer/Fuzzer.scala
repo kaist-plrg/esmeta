@@ -207,7 +207,8 @@ class Fuzzer(
   // val mutator: Mutator = RandomMutator()
   val mutator: Mutator = WeightedMutator(
     RandomMutator() -> 2,
-    NearestMutator() -> 8,
+    StatementInserter() -> 4,
+    NearestMutator() -> 4,
   )
 
   /** initial pool */

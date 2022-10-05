@@ -120,6 +120,7 @@ object BaseUtils {
   /** randomly choose an element in a list */
   def choose[T](vec: Vector[T]): T = vec(rand.nextInt(vec.length))
   def choose[T](iter: Iterable[T]): T = choose(iter.toVector)
+  def choose[T](x: => T, y: => T): T = if randBool then x else y
 
   /** randomly choose an element in a list and return it with its index */
   def chooseWithIndex[T](seq: Seq[T]): (T, Int) =

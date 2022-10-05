@@ -1,4 +1,3 @@
-def <NUM>:Number::toString(x: Number, radix?: Math): String {
-  if (= radix absent) return ([str] x)
-  else return ([str radix] x)
+def <NUM>:Number::toString(x: Number, radix: Math): String {
+  return ([str radix] x)
 }

@@ -14,7 +14,7 @@ class RandomMutator(
 ) extends Mutator {
 
   /** mutate programs */
-  def mutate(
+  def apply(
     ast: Ast,
     condView: Option[CondView],
     nearest: Option[Nearest],

@@ -1,11 +1,11 @@
 package esmeta.phase
 
-import esmeta.*
+import esmeta.{error => _, *}
 import esmeta.cfg.CFG
 import esmeta.es.util.{Coverage, withCFG}
 import esmeta.es.util.fuzzer.*
 import esmeta.util.*
-import esmeta.util.BaseUtils.setSeed
+import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
 
 /** `fuzz` phase */
@@ -49,8 +49,11 @@ case object Fuzz extends Phase[CFG, Coverage] {
     ),
     (
       "debug",
-      BoolOption(c => c.debug = true),
-      "turn on deug mode",
+      NumOption((c, k) =>
+        if (k < 0 || k > 2) error("invalid debug level: please set 0 to 2")
+        else c.debug = k,
+      ),
+      "turn on deug mode with level (0: no-debug, 1: partial, 2: all)",
     ),
     (
       "timeout",
@@ -81,7 +84,7 @@ case object Fuzz extends Phase[CFG, Coverage] {
   case class Config(
     var out: Option[String] = None,
     var logInterval: Option[Int] = Some(600),
-    var debug: Boolean = false,
+    var debug: Int = 0,
     var timeLimit: Option[Int] = Some(1),
     var trial: Option[Int] = Some(10000),
     var conformTest: Boolean = false,

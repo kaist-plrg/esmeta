@@ -15,19 +15,6 @@ trait TargetSelector {
     pool: Iterable[Script],
     cov: Coverage,
   ): (String, Script, Option[CondView], Option[Nearest])
-
-  /** target selection */
-  def apply(
-    pool: Iterable[Script],
-    cov: Coverage,
-    grammar: Grammar,
-    debug: Boolean,
-  ): (Script, Option[CondView], Option[Nearest]) =
-    val (name, script, condView, loc) = apply(pool, cov)
-    if (debug)
-      val scriptStr = script.toString(grammar)
-      println(f"[$name%-30s] $scriptStr")
-    (script, condView, loc)
 }
 
 /** weighted mutation target selector */

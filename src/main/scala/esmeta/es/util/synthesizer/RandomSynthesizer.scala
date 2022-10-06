@@ -33,6 +33,8 @@ trait RandomSynthesizer extends Synthesizer {
   def apply(name: String, args: List[Boolean]): Syntactic =
     val synNode = getSyn(name, args)
     val arr = synEdges(synNode).toArray.map(r => r -> weight(r))
+    if (arr.toList.exists { case (_, k) => k == 0 })
+      println((synNode, arr.toList))
     val rhsNode = weightedChoose(arr)
     val rhs = rhsNode.rhs
     val isSingle = rhs.symbols.length == 1
@@ -63,7 +65,7 @@ trait RandomSynthesizer extends Synthesizer {
         rhsIdx <- Range(0, synNode.prod.rhsVec.length)
         rhsNode = getRhs(synNode, rhsIdx)
       } yield map.getOrElse(rhsNode, 0)).sum
-    case lexNode: LexNode => 0
+    case lexNode: LexNode => 1
     case rhsNode: RhsNode =>
       rhsNode.rhs.symbols match
         case List(nt: Nonterminal) =>

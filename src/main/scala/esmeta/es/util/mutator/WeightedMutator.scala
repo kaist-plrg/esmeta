@@ -15,9 +15,9 @@ class WeightedMutator(
 ) extends Mutator {
 
   /** mutate programs */
-  def mutate(
+  def apply(
     ast: Ast,
     condView: Option[CondView],
     nearest: Option[Nearest],
-  ): (String, Ast) = weightedChoose(pairs).mutate(ast, condView, nearest)
+  ): (String, Ast) = weightedChoose(pairs)(ast, condView, nearest)
 }

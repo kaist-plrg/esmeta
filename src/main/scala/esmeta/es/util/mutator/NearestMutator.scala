@@ -16,12 +16,12 @@ class NearestMutator(
 ) extends Mutator {
 
   /** mutate programs */
-  def mutate(
+  def apply(
     ast: Ast,
     condView: Option[CondView],
     nearest: Option[Nearest],
   ): (String, Ast) = nearest.fold {
-    RandomMutator(synthesizer).mutate(ast, condView, nearest)
+    RandomMutator(synthesizer)(ast, condView, nearest)
   } { case (ty, loc) => ("NearestMutator", Walker(ty, loc).walk(ast)) }
 
   /** internal walker */

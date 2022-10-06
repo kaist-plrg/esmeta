@@ -18,10 +18,10 @@ class StatementInserter(
   import StatementInserter.*
 
   /** mutate a program */
-  def mutate(
+  def apply(
     ast: Ast,
-    _condView: Option[CondView],
-    _nearest: Option[Nearest],
+    condView: Option[CondView],
+    nearest: Option[Nearest],
   ): (String, Ast) =
     ("StatementInserter", walk(ast))
 

@@ -20,7 +20,7 @@ import scala.util._
 object Fuzzer:
   def apply(
     logInterval: Option[Int] = Some(600), // default is 10 minutes.
-    debug: Boolean = false,
+    debug: Int = NO_DEBUG, // 2: all, 1: partial, 0: no-debug
     stdOut: Boolean = false,
     timeLimit: Option[Int] = None, // time limitation for each evaluation
     trial: Option[Int] = None, // `None` denotes no bound
@@ -39,7 +39,7 @@ object Fuzzer:
 /** extensible helper of ECMAScript program fuzzer with ECMA-262 */
 class Fuzzer(
   logInterval: Option[Int] = Some(600), // default is 10 minutes.
-  debug: Boolean = false,
+  debug: Int = NO_DEBUG, // 2: all, 1: partial, 0: no
   stdOut: Boolean = false,
   timeLimit: Option[Int] = None, // time limitation for each evaluation
   trial: Option[Int] = None, // `None` denotes no bound
@@ -59,7 +59,8 @@ class Fuzzer(
         "iter(#)",
         "time(ms)",
         "time(h:m:s)",
-        "script(#)",
+        "program(#)",
+        "minimal(#)",
         "node(#)",
         "branch(#)",
       )
@@ -103,6 +104,7 @@ class Fuzzer(
   /** one trial to fuzz a new program to increase coverage */
   def fuzz: Boolean =
     iter += 1
+    debugging(("-" * 40) + f"  iter: $iter%10d  " + ("-" * 40))
     for (bound <- logInterval) {
       val seconds = bound * 1000
       if (interval > seconds) {
@@ -110,10 +112,14 @@ class Fuzzer(
         startInterval += seconds
       }
     }
-    val (script, condView, nearest) = selector(pool, cov, cfg.grammar, debug)
-    val mutated = mutator(script.code, condView, nearest, debug)
-    val code = mutated.toString(grammar)
-    add(code)
+    val (selectorName, script, condView, nearest) = selector(pool, cov)
+    val code = script.code
+    debugging(f"[$selectorName%-30s] $code")
+
+    val (mutatorName, mutated) = mutator(code, condView, nearest)
+    val mutatedCode = mutated.toString(grammar)
+    debugging(f"----- $mutatorName%-20s-----> $mutatedCode")
+    add(mutatedCode)
 
   /** add new program */
   def add(code: String): Boolean =
@@ -134,7 +140,14 @@ class Fuzzer(
       case Failure(e: TimeoutException) => debugging(failMsg("TIMEOUT")); false
       case Failure(e: NotSupported) =>
         debugging(failMsg("NOT SUPPORTED")); false
-      case Failure(e) => debugging(failMsg(e.getMessage)); false
+      case Failure(e) =>
+        e.getMessage match
+          case "ALREADY VISITED" | "INVALID PROGRAM" if debug == PARTIAL =>
+            debugClean
+          case msg =>
+            debugging(failMsg(msg))
+            debugFlush
+        false
     }
 
   // conformance check counter for engines
@@ -180,13 +193,13 @@ class Fuzzer(
     transTest.comment = comment
     // conformance check for engines
     val pass = test.isPass
-    if (debug) print(f" ${"GRAAL-JS CONFORMANCE RESULT"}%30s: ")
+    debugging(f" ${"GRAAL-JS CONFORMANCE RESULT"}%30s: ", newline = false)
     if (!pass) failedTests.addOne(code, test)
     interp.touchedNodeViews.keys.map(update(_, engineMap, pass))
     debugging(if (test.isPass) passMsg("") else failMsg(""))
     // conformance check for transpilers
     val transPass = transTest.isPass
-    if (debug) print(f" ${"BABEL TRANSPILATION RESULT"}%30s: ")
+    debugging(f" ${"BABEL TRANSPILATION RESULT"}%30s: ", newline = false)
     if (!transPass) transFailedTests.addOne(code, transTest)
     interp.touchedNodeViews.keys.map(update(_, transMap, transPass))
     debugging(if (transTest.isPass) passMsg("") else failMsg(""))
@@ -216,32 +229,6 @@ class Fuzzer(
   val initPool =
     SimpleSynthesizer.initPool.map(SimpleSynthesizer -> _) ++
     BuiltinSynthesizer.initPool.map(BuiltinSynthesizer -> _)
-
-  /** logging */
-  def debugging(msg: String, newline: Boolean = true): Unit = if (debug) {
-    if (newline) println(msg) else print(msg)
-  }
-  def logging: Unit =
-    val n = cov.nodeCov
-    val b = cov.branchCov
-    val d = duration
-    val t = Time(d).simpleString
-    val nv = cov.nodeViewCov
-    val bv = cov.branchViewCov
-    val cb = failedTests.size
-    val tb = transFailedTests.size
-    val tc = cov.targetCondSize
-    var row = Vector(iter, d, t, pool.size, n, b)
-    if (synK.isDefined) row ++= Vector(nv, bv)
-    row ++= Vector(tc)
-    if (conformTest) row ++= Vector(cb, tb)
-    addRow(row)
-    // dump coveragge
-    cov.dumpToWithDetail(logDir, withMsg = false)
-    // dump failed conformance tests
-    if (conformTest)
-      dumpConformTestCounter(logDir, false)
-      dumpFailedConformTests(logDir, false)
 
   /** dump conformance test counters */
   def dumpConformTestCounter(
@@ -362,5 +349,45 @@ class Fuzzer(
     Try(cfg.scriptParser.fromWithCode(code)._2)
 
   // indicating that add failed
-  private def fail(msg: String) = throw new Exception(msg)
+  private def fail(msg: String) = throw Exception(msg)
+
+  // debugging
+  private val ALL = 2
+  private val PARTIAL = 1
+  private val NO_DEBUG = 0
+  private var debugMsg = ""
+  private def debugging(
+    msg: String,
+    newline: Boolean = true,
+  ): Unit = if (debug == ALL) {
+    if (newline) println(msg) else print(msg)
+  } else if (debug > NO_DEBUG) {
+    debugMsg += msg
+    if (newline) debugMsg += LINE_SEP
+  }
+  private def debugClean: Unit = debugMsg = ""
+  private def debugFlush: Unit = { print(debugMsg); debugClean }
+
+  // logging
+  private def logging: Unit =
+    val n = cov.nodeCov
+    val b = cov.branchCov
+    val d = duration
+    val t = Time(d).simpleString
+    val nv = cov.nodeViewCov
+    val bv = cov.branchViewCov
+    val cb = failedTests.size
+    val tb = transFailedTests.size
+    val tc = cov.targetCondSize
+    var row = Vector(iter, d, t, visited.size, pool.size, n, b)
+    if (synK.isDefined) row ++= Vector(nv, bv)
+    row ++= Vector(tc)
+    if (conformTest) row ++= Vector(cb, tb)
+    addRow(row)
+    // dump coveragge
+    cov.dumpToWithDetail(logDir, withMsg = false)
+    // dump failed conformance tests
+    if (conformTest)
+      dumpConformTestCounter(logDir, false)
+      dumpFailedConformTests(logDir, false)
 }

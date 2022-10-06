@@ -184,6 +184,11 @@ object BaseUtils {
   /** negative zero check */
   def isNegZero(double: Double): Boolean = (1 / double).isNegInfinity
 
+  /** get stack traces */
+  def getStackTrace: Array[StackTraceElement] =
+    try throw Error("")
+    catch { case e: Throwable => e.getStackTrace }
+
   /** get a unique value from an iterable structure */
   def getUnique[T](
     iter: Iterable[T],

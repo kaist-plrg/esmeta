@@ -31,5 +31,5 @@ trait Synthesizer {
   def apply(ast: Lexical): Lexical = apply(ast.name)
 
   /** ECMAScript grammar */
-  val grammar: Grammar = cfg.grammar
+  lazy val grammar: Grammar = cfg.grammar
 }

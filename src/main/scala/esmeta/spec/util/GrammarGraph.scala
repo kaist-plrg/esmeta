@@ -1,12 +1,27 @@
 package esmeta.spec.util
+
 import esmeta.spec.*
 import esmeta.util.*
-import scala.collection.mutable.{Map => MMap}
+import scala.collection.mutable.{Map => MMap, Queue}
 import math.Ordering.Implicits.infixOrderingOps
 
 /** graph representation for syntactic grammar */
 case class GrammarGraph(grammar: Grammar) {
   import GrammarGraph.*
+
+  /** get a production node */
+  def getProd(nt: Nonterminal, argMap: Map[String, Boolean]): ProdNode =
+    import ProductionKind.*, NonterminalArgumentKind.*
+    val Nonterminal(name, args, _) = nt
+    val prod = nameMap(name)
+    prod.kind match
+      case Syntactic =>
+        val newArgs = for (arg <- args) yield arg.kind match
+          case True  => true
+          case False => false
+          case Pass  => argMap(arg.name)
+        getSyn(name, newArgs)
+      case _ => getLex(name)
 
   /** get a syntactic production node */
   def getSyn(name: String, args: List[Boolean]): SynNode = synMap(name, args)
@@ -17,6 +32,8 @@ case class GrammarGraph(grammar: Grammar) {
   /** get a RHS node */
   def getRhs(name: String, args: List[Boolean], idx: Int): RhsNode =
     rhsMap(name, args, idx)
+  def getRhs(synNode: SynNode, idx: Int): RhsNode =
+    getRhs(synNode.name, synNode.args, idx)
 
   lazy val (
     /** getter for syntactic production nodes */
@@ -147,10 +164,10 @@ case class GrammarGraph(grammar: Grammar) {
   lazy val bottoms: Set[Node] = lexNodes ++ (rhsNodes -- rhsMustEdges.keySet)
 
   /** production nodes sorted in a topological order */
-  lazy val (topological, minRhsIdx): (List[Node], Map[SynNode, Int]) =
+  lazy val topological: Vector[Node] =
     var mustCounter: Map[RhsNode, Int] =
       for ((rhsNode, prodNodes) <- rhsMustEdges) yield rhsNode -> prodNodes.size
-    var minRhsIdx: Map[SynNode, Int] = Map()
+    var visited: Set[SynNode] = Set()
     var topological: Vector[Node] = Vector()
     val worklist: Worklist[Node] = QueueWorklist(bottoms)
     while (
@@ -167,13 +184,13 @@ case class GrammarGraph(grammar: Grammar) {
                 else mustCounter += rhsNode -> (count - 1)
             case RhsNode(_, name, args, idx) =>
               val synNode = getSyn(name, args)
-              if (!minRhsIdx.contains(synNode))
+              if (!visited.contains(synNode))
+                visited += synNode
                 worklist += synNode
-                minRhsIdx += synNode -> idx
           true
         case None => false
     ) {}
-    (topological.toList, minRhsIdx)
+    topological
 
   // compute fixpoint of mapping from nodes to data
   def fixpoint[T](
@@ -195,7 +212,7 @@ case class GrammarGraph(grammar: Grammar) {
               // propagate to the current node's parent nodes
               node match
                 case prodNode: ProdNode =>
-                  worklist ++= mustUsedIn.getOrElse(prodNode, Set())
+                  worklist ++= mayUsedIn.getOrElse(prodNode, Set())
                 case RhsNode(_, name, args, _) =>
                   worklist += getSyn(name, args)
           true
@@ -204,26 +221,10 @@ case class GrammarGraph(grammar: Grammar) {
     map
   }
 
-  // ---------------------------------------------------------------------------
-  // private helpers
-  // ---------------------------------------------------------------------------
-  // update a mapping form keys to set of values
-  private def update[K, V](map: MMap[K, Set[V]], key: K, value: V): Unit =
-    map += key -> (map.getOrElse(key, Set()) + value)
-
-  // reverse a mapping from keys to set of values
-  private def reverse[K, V](map: Map[K, Set[V]]): Map[V, Set[K]] =
-    val revMap: MMap[V, Set[K]] = MMap()
-    for {
-      (key, values) <- map
-      value <- values
-    } update(revMap, value, key)
-    revMap.toMap
-}
-object GrammarGraph {
-
   /** grammar nodes */
   sealed trait Node extends UId {
+    def name: String
+    lazy val prod: Production = nameMap(name)
     override def toString: String =
       def str(args: List[Boolean]): String =
         args.map(if (_) "T" else "F").mkString
@@ -234,7 +235,7 @@ object GrammarGraph {
   }
 
   /** production nodes */
-  sealed trait ProdNode extends Node { def name: String }
+  sealed trait ProdNode extends Node
 
   /** syntactic production nodes */
   case class SynNode private[GrammarGraph] (
@@ -255,8 +256,30 @@ object GrammarGraph {
     name: String,
     args: List[Boolean],
     idx: Int,
-  ) extends Node
+  ) extends Node {
+    lazy val rhs: Rhs = prod.rhsVec(idx)
+    lazy val argMap: Map[String, Boolean] = (prod.lhs.params zip args).toMap
+  }
 
   /** ordering of grammar nodes */
   given Ordering[Node] = Ordering.by(_.id)
+
+  // ---------------------------------------------------------------------------
+  // private helpers
+  // ---------------------------------------------------------------------------
+  // update a mapping form keys to set of values
+  private def update[K, V](map: MMap[K, Set[V]], key: K, value: V): Unit =
+    map += key -> (map.getOrElse(key, Set()) + value)
+
+  // reverse a mapping from keys to set of values
+  private def reverse[K, V](map: Map[K, Set[V]]): Map[V, Set[K]] =
+    val revMap: MMap[V, Set[K]] = MMap()
+    for {
+      (key, values) <- map
+      value <- values
+    } update(revMap, value, key)
+    revMap.toMap
+
+  // name map for productions
+  private lazy val nameMap = grammar.nameMap
 }

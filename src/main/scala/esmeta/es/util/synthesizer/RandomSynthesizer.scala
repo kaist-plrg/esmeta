@@ -3,11 +3,17 @@ package esmeta.es.util.synthesizer
 import esmeta.es.*
 import esmeta.es.util.*
 import esmeta.spec.*
+import esmeta.spec.util.GrammarGraph
+import esmeta.spec.util.GrammarGraph.*
 import esmeta.util.BaseUtils.*
+import cats.instances.boolean
 
 /** A random ECMAScript AST synthesizer */
 object RandomSynthesizer extends RandomSynthesizer
 trait RandomSynthesizer extends Synthesizer {
+  import graph.*
+
+  val USE_SIMPLE_PROB = 0.8
 
   /** synthesizer name */
   def name: String = "RandomSynthesizer"
@@ -25,15 +31,13 @@ trait RandomSynthesizer extends Synthesizer {
 
   /** for syntactic production */
   def apply(name: String, args: List[Boolean]): Syntactic =
-    val prod @ Production(lhs, _, _, rhsVec) = grammar.nameMap(name)
-    val argsMap = (lhs.params zip args).toMap
-    val pairs = for {
-      (rhs, rhsIdx) <- rhsVec.zipWithIndex
-      if rhs.condition.fold(true)(cond => argsMap(cond.name) == cond.pass)
-    } yield (rhs, rhsIdx)
-    val (rhs, rhsIdx) = chooseRhs(prod, pairs)
-    val children = rhs.symbols.flatMap(synSymbol(argsMap)).toVector
-    Syntactic(name, args, rhsIdx, children)
+    val synNode = getSyn(name, args)
+    val arr = synEdges(synNode).toArray.map(r => r -> weight(r))
+    val rhsNode = weightedChoose(arr)
+    val rhs = rhsNode.rhs
+    val isSingle = rhs.symbols.length == 1
+    val children = rhs.nts.map(synSymbol(_, rhsNode.argMap, !isSingle)).toVector
+    Syntactic(name, args, rhsNode.idx, children)
 
   /** for lexical production */
   def apply(name: String): Lexical = SimpleSynthesizer(name)
@@ -46,24 +50,42 @@ trait RandomSynthesizer extends Synthesizer {
     pairs: Iterable[(Rhs, Int)],
   ): (Rhs, Int) = choose(pairs)
 
-  private def synSymbol(argsMap: Map[String, Boolean])(
-    symbol: Symbol,
-  ): Option[Option[Ast]] = symbol match
-    case ButNot(nt, _) => synSymbol(argsMap)(nt)
-    case Nonterminal(name, args, optional) =>
-      if (SimpleSynthesizer.reservedLexicals contains name)
-        Some(Some(Lexical(name, SimpleSynthesizer.reservedLexicals(name))))
-      else if (optional && randBool) Some(None)
-      else {
-        import NonterminalArgumentKind.*
-        val newArgs = for (arg <- args) yield arg.kind match
-          case True  => true
-          case False => false
-          case Pass  => argsMap(arg.name)
-        val syn =
-          if (randBool) SimpleSynthesizer(name, newArgs)
-          else apply(name, newArgs)
-        Some(Some(syn))
-      }
-    case _ => None
+  // cache for shortest AST for each grammar node
+  lazy val weight: Map[Node, Int] =
+    fixpoint(Map(), topological, aux)(using Ordering[Int].reverse)
+
+  private def aux(
+    map: Map[Node, Int],
+    node: Node,
+  ): Int = node match
+    case synNode: SynNode =>
+      (for {
+        rhsIdx <- Range(0, synNode.prod.rhsVec.length)
+        rhsNode = getRhs(synNode, rhsIdx)
+      } yield map.getOrElse(rhsNode, 0)).sum
+    case lexNode: LexNode => 0
+    case rhsNode: RhsNode =>
+      rhsNode.rhs.symbols match
+        case List(nt: Nonterminal) =>
+          map.getOrElse(getProd(nt, rhsNode.argMap), 0)
+        case _ => 1
+
+  private def synSymbol(
+    nt: Nonterminal,
+    argMap: Map[String, Boolean],
+    mayUseSimple: Boolean,
+  ): Option[Ast] =
+    val Nonterminal(name, args, optional) = nt
+    getProd(nt, argMap) match
+      case lexNode: LexNode =>
+        Some(Lexical(name, SimpleSynthesizer.reservedLexicals(name)))
+      case synNode: SynNode =>
+        if (optional && randDouble < USE_SIMPLE_PROB) None
+        else
+          val newArgs = synNode.args
+          val syn =
+            if (mayUseSimple && randDouble < USE_SIMPLE_PROB)
+              SimpleSynthesizer(name, newArgs)
+            else apply(name, newArgs)
+          Some(syn)
 }

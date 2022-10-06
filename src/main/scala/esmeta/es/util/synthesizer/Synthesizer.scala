@@ -4,6 +4,8 @@ import esmeta.cfg.*
 import esmeta.es.*
 import esmeta.es.util.*
 import esmeta.spec.Grammar
+import esmeta.spec.util.GrammarGraph
+import esmeta.spec.util.GrammarGraph.*
 
 /** ECMAScript AST synthesizer */
 trait Synthesizer {
@@ -31,5 +33,8 @@ trait Synthesizer {
   def apply(ast: Lexical): Lexical = apply(ast.name)
 
   /** ECMAScript grammar */
-  lazy val grammar: Grammar = cfg.grammar
+  final lazy val grammar: Grammar = cfg.grammar
+
+  // grammar graph
+  final lazy val graph = cfg.grammarGraph
 }

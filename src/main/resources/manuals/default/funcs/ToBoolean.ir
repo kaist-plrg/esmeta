@@ -12,6 +12,6 @@ def ToBoolean(argument: Unknown) {
     if (= argument "") return false else return true
   } else {}
   if (= (typeof argument) @Symbol) return true else {}
-  if (= (typeof argument) @Object) return true else {}
-  assert false
+  assert (= (typeof argument) @Object)
+  return true
 }

@@ -24,6 +24,6 @@ def ToObject(argument: Unknown) {
     let obj = (new OrdinaryObject("Prototype" -> @EXECUTION_STACK[0].Realm.Intrinsics["%BigInt.prototype%"], "BigIntData" -> argument, "Extensible" -> true))
     return obj
   } else {}
-  if (= (typeof argument) @Object) return argument else {}
-  assert false
+  assert (= (typeof argument) @Object)
+  return argument
 }

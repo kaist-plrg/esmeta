@@ -16,6 +16,6 @@ def ToBigInt(
     if (= n undefined) return comp[~throw~/~empty~]((new OrdinaryObject("Prototype" -> @EXECUTION_STACK[0].Realm.Intrinsics["%SyntaxError.prototype%"], "ErrorData" -> undefined))) else {}
     return n
   } else {}
-  if (= (typeof prim) @Symbol) return comp[~throw~/~empty~]((new OrdinaryObject("Prototype" -> @EXECUTION_STACK[0].Realm.Intrinsics["%TypeError.prototype%"], "ErrorData" -> undefined))) else {}
-  assert false
+  assert (= (typeof prim) @Symbol)
+  return comp[~throw~/~empty~]((new OrdinaryObject("Prototype" -> @EXECUTION_STACK[0].Realm.Intrinsics["%TypeError.prototype%"], "ErrorData" -> undefined)))
 }

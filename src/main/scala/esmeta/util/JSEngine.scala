@@ -21,7 +21,10 @@ object JSEngine {
   lazy val defaultEngine: Option[(String, String)] = Try {
     // d8
     "d8 -e ''".!!
-    ("d8 -e", runUsingBinaryAndGetStdout("d8 -e", "version()").get)
+    (
+      "d8 -e",
+      runUsingBinaryAndGetStdout("d8 -e", "console.log(version());").get,
+    )
   }.recoverWith(_ =>
     Try {
       // node

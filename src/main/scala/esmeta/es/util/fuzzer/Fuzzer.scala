@@ -54,6 +54,7 @@ class Fuzzer(
       mkdir(logDir, remove = true)
       dumpFile(ESMeta.currentVersion, s"$logDir/version")
       dumpFile(getSeed, s"$logDir/seed")
+      dumpFile(JSEngine.defaultEngineToString, s"$logDir/default-engine")
       var row = Vector(
         "iter(#)",
         "time(ms)",

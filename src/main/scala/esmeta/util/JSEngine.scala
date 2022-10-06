@@ -1,6 +1,7 @@
 package esmeta.util
 
 import esmeta.LINE_SEP
+import esmeta.util.BaseUtils.{warn, error}
 import esmeta.error.{NoGraal, TimeoutException}
 import java.io.*
 import java.time.Duration.ZERO
@@ -16,16 +17,49 @@ import java.util.StringJoiner
 /** JavaScript Engine utilities */
 object JSEngine {
 
-  /** default engine */
-  // TODO: change this into d8
-  lazy val defaultEngine: Try[String] = Try {
+  /** default engine: (command, version) */
+  lazy val defaultEngine: Option[(String, String)] = Try {
+    // d8
     "d8 -e ''".!!
-    "d8 -e"
+    ("d8 -e", runUsingBinaryAndGetStdout("d8 -e", "version()").get)
   }.recoverWith(_ =>
     Try {
+      // node
       "node -e ''".!!
-      "node -e"
+      nodeWarning
+      ("node -e", runUsingBinaryAndGetStdout("node", "--version").get)
     },
+  ).recoverWith(e =>
+    validityCheckerWarning
+    // GraalVM
+    if (useGraal)
+      Using(Engine.create()) { engine =>
+        ("GraalVM", engine.getVersion())
+      }
+    else
+      Failure(e),
+  ).recoverWith(_ =>
+    Try {
+      // js
+      "js -e ''".!!
+      ("js -e", runUsingBinaryAndGetStdout("js", "--version").get)
+    },
+  ).toOption
+
+  lazy val defaultEngineToString = defaultEngine
+    .map {
+      case (e, v) => s"Engine: $e${LINE_SEP}Version: $v"
+    }
+    .getOrElse("NO-DEFAULT-ENGINE")
+
+  /** warn user if node is used */
+  private lazy val nodeWarning = warn(
+    "Node is used as the default engine. This may degrade the speed of JSEngine.",
+  )
+
+  /** warn user if d8 or node can't be used */
+  private lazy val validityCheckerWarning = warn(
+    "Could not use d8 or node. Validity checker might pass the invalid program.",
   )
 
   /** Check if Graal can be used in this environment */
@@ -38,35 +72,32 @@ object JSEngine {
           .build(),
       ) { context =>
         if (context.getEngine.getImplementationName == "Interpreted") then
-          println("[Warning] Graal is running on interpreted mode.")
+          warn("Graal is running on interpreted mode.")
           throw Error()
         else
           try {
             context.eval("js", "")
           } catch
             case e => {
-              println(
-                "[Warning] Unable to run js using Graal. try `gu --jvm install js`.",
-              )
+              warn("Unable to run js using Graal. try `gu --jvm install js`.")
               throw e
             }
       }.isSuccess
     catch {
       case e: Error =>
-        println("[Warning] Unable to run Graal.")
+        warn("Unable to run Graal.")
         false
     }
 
-  lazy val noDefaultWarning = println(
-    "[Warning] Unable to use default engine. Trying to use graal instead..",
-  )
-
-  def runWithDefault(src: String): Try[Unit] = {
-    defaultEngine.map(e => runUsingBinary(e, src)).getOrElse {
-      noDefaultWarning
-      runSingle(src)
+  /** run a javascript code with default engine */
+  def run(src: String, timeout: Option[Int] = None): Try[Unit] = defaultEngine
+    .map {
+      case ("GraalVM", _) => runUsingGraal(src, timeout)
+      case (e, _)         => runUsingBinary(e, src) // TODO: implement timeout
     }
-  }
+    .getOrElse(
+      error("Default engine is not set"),
+    )
 
   // -------------------------------------------------------------------------
   // runners in temporal context
@@ -103,7 +134,7 @@ object JSEngine {
     }
 
   /** execute a javascript program */
-  def run(
+  def runUsingContext(
     src: String,
     context: Context,
     timeout: Option[Int] = None,
@@ -139,8 +170,8 @@ object JSEngine {
       f(context, out)
     }.recoverWith(e => polyglotExceptionResolver(e))
 
-  def runSingle(src: String, timeout: Option[Int] = None): Try[Unit] =
-    usingContext((context, _) => run(src, context, timeout))
+  def runUsingGraal(src: String, timeout: Option[Int] = None): Try[Unit] =
+    usingContext((context, _) => runUsingContext(src, context, timeout))
 
   // -------------------------------------------------------------------------
   // runners in saved context

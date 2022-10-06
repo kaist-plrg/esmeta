@@ -42,21 +42,26 @@ trait BuiltinSynthesizer extends Synthesizer {
           case _ => Nil
         )
       case path =>
+        val MAX_ARGS = 5
         val pathStr = getString(path)
           .replace(".", " . ")
           .replace("[", " [ ")
           .replace("]", " ]")
         // calls
         val calls = for {
-          argsLen <- Range(1, 6).toList
-          argsStr = List.fill(argsLen)("0 ").mkString("( ", ", ", ")")
+          argsLen <- Range(1, MAX_ARGS + 1).toList
+          argsStr = (List.fill(argsLen)("0 ") ++
+            List.fill(MAX_ARGS - argsLen)("undefined "))
+            .mkString("( ", ", ", ")")
         } yield s"$pathStr . call $argsStr ; "
         // construct without arguments
         val construct = s"new $pathStr ; "
         // constructs with arguments
         val constructs = for {
-          argsLen <- Range(0, 5).toList
-          argsStr = List.fill(argsLen)("0 ").mkString("( ", ", ", ")")
+          argsLen <- Range(0, MAX_ARGS).toList
+          argsStr = (List.fill(argsLen)("0 ") ++
+            List.fill(MAX_ARGS - argsLen)("undefined "))
+            .mkString("( ", ", ", ")")
         } yield s"new $pathStr $argsStr ; "
         calls ++ (construct :: constructs)
 

@@ -17,7 +17,7 @@ import scala.collection.mutable.{ListBuffer, Map => MMap}
 import scala.util._
 
 /** ECMAScript program fuzzer with ECMA-262 */
-object Fuzzer:
+object Fuzzer {
   def apply(
     logInterval: Option[Int] = Some(600), // default is 10 minutes.
     debug: Int = NO_DEBUG, // 2: all, 1: partial, 0: no-debug
@@ -36,6 +36,12 @@ object Fuzzer:
     synK,
   ).result
 
+  // debugging levels
+  val ALL = 2
+  val PARTIAL = 1
+  val NO_DEBUG = 0
+}
+
 /** extensible helper of ECMAScript program fuzzer with ECMA-262 */
 class Fuzzer(
   logInterval: Option[Int] = Some(600), // default is 10 minutes.
@@ -46,6 +52,7 @@ class Fuzzer(
   conformTest: Boolean = false,
   synK: Option[Int] = None,
 ) {
+  import Fuzzer.*
 
   /** generated ECMAScript programs */
   lazy val result: Coverage =
@@ -352,9 +359,6 @@ class Fuzzer(
   private def fail(msg: String) = throw Exception(msg)
 
   // debugging
-  private val ALL = 2
-  private val PARTIAL = 1
-  private val NO_DEBUG = 0
   private var debugMsg = ""
   private def debugging(
     msg: String,

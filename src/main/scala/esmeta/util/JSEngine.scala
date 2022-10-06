@@ -23,7 +23,7 @@ object JSEngine {
     "d8 -e ''".!!
     (
       "d8 -e",
-      runUsingBinaryAndGetStdout("d8 -e", "console.log(version());").get,
+      runUsingBinary("d8 -e", "console.log(version());").get,
     )
   }.recoverWith(e =>
     validityCheckerWarning
@@ -38,7 +38,7 @@ object JSEngine {
     Try {
       // js
       "js -e ''".!!
-      ("js -e", runUsingBinaryAndGetStdout("js", "--version").get)
+      ("js -e", runUsingBinary("js", "--version").get)
     },
   ).toOption
 
@@ -81,7 +81,7 @@ object JSEngine {
     }
 
   /** run a javascript code with default engine */
-  def run(src: String, timeout: Option[Int] = None): Try[Unit] = defaultEngine
+  def run(src: String, timeout: Option[Int] = None): Try[String] = defaultEngine
     .map {
       case ("GraalVM", _) => runUsingGraal(src, timeout)
       case (e, _)         => runUsingBinary(e, src) // TODO: implement timeout
@@ -161,8 +161,8 @@ object JSEngine {
       f(context, out)
     }.recoverWith(e => polyglotExceptionResolver(e))
 
-  def runUsingGraal(src: String, timeout: Option[Int] = None): Try[Unit] =
-    usingContext((context, _) => runUsingContext(src, context, timeout))
+  def runUsingGraal(src: String, timeout: Option[Int] = None): Try[String] =
+    usingContext((context, out) => runAndGetStdout(src, context, out, timeout))
 
   // -------------------------------------------------------------------------
   // runners in saved context
@@ -202,31 +202,18 @@ object JSEngine {
   // -------------------------------------------------------------------------
   // runners by executing shell command with path to binary
   // -------------------------------------------------------------------------
-  def runUsingBinary(runner: String, src: String): Try[Unit] = Try {
+  def runUsingBinary(runner: String, src: String): Try[String] = Try {
     val escapedSrc = escape(src)
+    val stdout = new StringJoiner(LINE_SEP)
     val stderr = new StringJoiner(LINE_SEP)
     s"$runner $escapedSrc" ! ProcessLogger(
-      out => (),
+      out => stderr.add(out),
       err => stderr.add(err),
     ) match {
-      case 0  =>
-      case st => throw new Exception(stderr.toString),
+      case 0  => stdout.toString
+      case st => throw new Exception(stdout.toString + stderr.toString),
     }
   }
-
-  def runUsingBinaryAndGetStdout(runner: String, src: String): Try[String] =
-    Try {
-      val escapedSrc = escape(src)
-      val stdout = new StringJoiner(LINE_SEP)
-      val stderr = new StringJoiner(LINE_SEP)
-      s"$runner $escapedSrc" ! ProcessLogger(
-        out => stdout.add(out),
-        err => stderr.add(err),
-      ) match {
-        case 0  => stdout.toString
-        case st => throw new Exception(stderr.toString),
-      }
-    }
 
   /** escape a string to a shell-safe string, enclosed by single quote */
   private def escape(string: String): String =

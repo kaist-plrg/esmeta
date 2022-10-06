@@ -42,7 +42,7 @@ case class ConformTest(
     failedAssertions: Vector[(Assertion, String)],
   ) = JSEngine
     .usingContext((context, out) => {
-      JSEngine.run(s"$USE_STRICT$script", context, Some(1000))
+      JSEngine.run(script, context, Some(1000))
       JSEngine.run(Injector.assertionLib, context)
       val (passes, fails) = assertions
         .map(assertion =>
@@ -111,16 +111,17 @@ object ConformTest {
 
   /** Create a pair of tests using code string */
   def createTestPair(script: String): (ConformTest, ConformTest) =
-    val transpiled = Babel.transpile(script)
-    val injectedTest = Injector(script, true)
+    val strictScript = USE_STRICT + script
+    val transpiled = Babel.transpile(strictScript)
+    val injectedTest = Injector(strictScript, true)
     val transpiledTest =
       injectedTest.filterAssertion.replaceScript(transpiled)
     (injectedTest, transpiledTest)
 
   /** Create a pair of tests using init state and exit state */
   def createTestPair(initSt: State, exitSt: State): (ConformTest, ConformTest) =
-    val script = initSt.sourceText.get
-    val transpiled = Babel.transpile(script)
+    val strictScript = USE_STRICT + initSt.sourceText.get
+    val transpiled = Babel.transpile(strictScript)
     val injectedTest = new Injector(initSt, exitSt, true, false).conformTest
     val transpiledTest =
       injectedTest.filterAssertion.replaceScript(transpiled)

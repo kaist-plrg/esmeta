@@ -55,7 +55,6 @@ class StringifyTinyTest extends ESTest {
 
     checkStringify("ConformTest")(
       conformTest1 -> s"""// [EXIT] normal
-                         |"use strict";
                          |// Script
                          |(() => {
                          |${Injector.assertionLib}
@@ -66,7 +65,6 @@ class StringifyTinyTest extends ESTest {
                          |});
                          |})();""".stripMargin,
       conformTest2 -> """// [EXIT] normal
-                        |"use strict";
                         |// Script
                         |$delay(() => {
                         |$assert.sameValue(x, 1.0);
@@ -74,11 +72,9 @@ class StringifyTinyTest extends ESTest {
                         |$assert.callable(path);
                         |});""".stripMargin,
       conformTest3 -> """// [EXIT] normal
-                        |"use strict";
                         |// Script
                         |$assert.sameValue(x, 1.0);""".stripMargin,
       conformTest4 -> """// [EXIT] timeout
-                        |"use strict";
                         |// Script""".stripMargin,
     )
 

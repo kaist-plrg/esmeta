@@ -83,8 +83,7 @@ class Stringifier(
     val delayTail = "});"
 
     app >> "// [EXIT] " >> exitTag.toString
-    app :> USE_STRICT
-    app >> script
+    app :> script
     exitTag match {
       case NormalTag =>
         if (defs) {

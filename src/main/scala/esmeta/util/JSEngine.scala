@@ -25,14 +25,7 @@ object JSEngine {
       "d8 -e",
       runUsingBinaryAndGetStdout("d8 -e", "console.log(version());").get,
     )
-  }.recoverWith(_ =>
-    Try {
-      // node
-      "node -e ''".!!
-      nodeWarning
-      ("node -e", runUsingBinaryAndGetStdout("node", "--version").get)
-    },
-  ).recoverWith(e =>
+  }.recoverWith(e =>
     validityCheckerWarning
     // GraalVM
     if (useGraal)
@@ -55,14 +48,9 @@ object JSEngine {
     }
     .getOrElse("NO-DEFAULT-ENGINE")
 
-  /** warn user if node is used */
-  private lazy val nodeWarning = warn(
-    "Node is used as the default engine. This may degrade the speed of JSEngine.",
-  )
-
-  /** warn user if d8 or node can't be used */
+  /** warn user if d8 can't be used */
   private lazy val validityCheckerWarning = warn(
-    "Could not use d8 or node. Validity checker might pass the invalid program.",
+    "Could not use d8. Validity checker might pass the invalid program.",
   )
 
   /** Check if Graal can be used in this environment */

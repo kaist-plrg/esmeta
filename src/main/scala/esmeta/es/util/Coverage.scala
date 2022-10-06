@@ -19,26 +19,34 @@ class Coverage(
   timeLimit: Option[Int] = None,
   synK: Option[Int] = None,
 ) {
+
   import Coverage.*
 
   // all meaningful scripts
   def minimalScripts: Set[Script] = _minimalScripts.toSet
+
   private val _minimalScripts: MSet[Script] = MSet()
 
   // target conditional branches
   def targetCondViews: Map[CondView, Option[Nearest]] = _targetCondViews.toMap
+
   def targetCondSize: Int = _targetCondViews.size
+
   private val _targetCondViews: MMap[CondView, Option[Nearest]] = MMap()
 
   // the number of all meaningful code set
   def size: Int = counter.size
+
   // script reference counter
   private val counter: MMap[Script, Int] = MMap()
 
   // mapping from nodes to scripts
   def getScript(node: Node): Option[Script] = nodeViewMap.get(NodeView(node))
+
   def getScript(node: NodeView): Option[Script] = nodeViewMap.get(node)
+
   def getScript(cond: Cond): Option[Script] = condViewMap.get(CondView(cond))
+
   def getScript(cond: CondView): Option[Script] = condViewMap.get(cond)
 
   private val nodes: MSet[Node] = MSet()
@@ -74,6 +82,7 @@ class Coverage(
     for ((condView @ CondView(cond, view), loc) <- interp.touchedCondViews)
       val neg = condView.neg
       cond.elem match
+        case _ if loc.isEmpty             => /* do nothing */
         case Branch(_, _, EBool(_), _, _) => /* do nothing */
         case ref: WeakUIdRef[EReturnIfAbrupt]
             if !ref.get.check => /* do nothing */
@@ -87,15 +96,18 @@ class Coverage(
     * evaluation result
     */
   def run(script: Script): State = {
-    val (_, st, _, _) = runAndCheck(script); st
+    val (_, st, _, _) = runAndCheck(script);
+    st
   }
 
   /** get node coverage */
   def nodeCov: Int = nodes.size
+
   def nodeViewCov: Int = nodeViewMap.size
 
   /** get branch coverage */
   def branchCov: Int = conds.size
+
   def branchViewCov: Int = condViewMap.size
 
   def dumpToWithDetail(baseDir: String, withMsg: Boolean = true): Unit = dumpTo(
@@ -155,9 +167,10 @@ class Coverage(
         filename = s"$baseDir/unreach-funcs",
       )
 
-  override def toString: String = f"""- coverage:
-  |  - node: $nodeCov
-  |  - branch: $branchCov""".stripMargin
+  override def toString: String =
+    f"""- coverage:
+       |  - node: $nodeCov
+       |  - branch: $branchCov""".stripMargin
 
   /** extension for AST */
   extension (ast: Ast) {
@@ -182,15 +195,19 @@ class Coverage(
   private def update(nodeView: NodeView, script: Script): Unit =
     nodes += nodeView.node
     update(nodeView, script, nodeViewMap)
+
   // update mapping from conditional branches to scripts
   private def update(condView: CondView, script: Script): Unit =
     conds += condView.cond
     update(condView, script, condViewMap)
+
   // update mapping
   private def update[T](x: T, script: Script, map: MMap[T, Script]): Unit =
     for (script <- map.get(x))
       val count = counter(script) - 1
-      if (count == 0) { counter -= script; _minimalScripts -= script }
+      if (count == 0) {
+        counter -= script; _minimalScripts -= script
+      }
       counter += script -> count
     _minimalScripts += script
     counter += script -> (counter.getOrElse(script, 0) + 1)
@@ -217,6 +234,7 @@ class Coverage(
 
   // get JSON for branch coverage
   private def condViewMapJson: Json = condViewMapJson(_ => true)
+
   private def condViewMapJson(filter: CondView => Boolean): Json = JsonObject(
     (for {
       (condView, script) <- condViewMap.toList.sortBy(_._1)
@@ -232,6 +250,7 @@ class Coverage(
     }): _*,
   ).asJson
 }
+
 object Coverage {
 
   /** Nearest AST Information */
@@ -295,8 +314,10 @@ object Coverage {
         )
     }
   }
+
   case class CondView(cond: Cond, view: List[AstSingleTy] = Nil) {
     def neg: CondView = copy(cond = cond.neg)
+
     override def toString: String = cond.toString + {
       if (view.isEmpty) ""
       else
@@ -309,9 +330,13 @@ object Coverage {
 
   /** ordering of syntax-sensitive views */
   given Ordering[AstSingleTy] = Ordering.by(_.toString)
+
   given Ordering[Node] = Ordering.by(_.id)
+
   given Ordering[NodeView] = Ordering.by(v => (v.node, v.view))
+
   given Ordering[Cond] = Ordering.by(cond => (cond.kindString, cond.id))
+
   given Ordering[CondView] = Ordering.by(v => (v.cond, v.view))
 
   // branch or reference to EReturnIfAbrupt with boolean values
@@ -319,27 +344,35 @@ object Coverage {
   case class Cond(elem: Branch | WeakUIdRef[EReturnIfAbrupt], cond: Boolean) {
     // negation
     def neg: Cond = copy(cond = !cond)
+
     // short kind string
     def kindString: String = elem match
       case (branch: Branch)     => "Branch"
       case (ref: WeakUIdRef[_]) => "EReturnIfAbrupt"
+
     def shortKindString: String = kindString.take(1)
+
     // get id
     def id: Int = elem match
       case (branch: Branch)     => branch.id
       case (ref: WeakUIdRef[_]) => ref.id
+
     // condition string
     def condString: String = if (cond) "T" else "F"
+
     // get node
     def node: Option[Node] = elem match
       case (branch: Branch)                   => Some(branch)
       case (ref: WeakUIdRef[EReturnIfAbrupt]) => ref.get.cfgNode
+
     // get loc
     def loc: Option[Loc] = elem match
       case (branch: Branch)                   => branch.loc
       case (ref: WeakUIdRef[EReturnIfAbrupt]) => ref.get.loc
+
     // conversion to string
     override def toString: String = s"$kindString[$id]:$condString"
+
     def simpleString: String = s"$shortKindString[$id]:$condString"
   }
 }

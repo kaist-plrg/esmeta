@@ -1,5 +1,6 @@
 package esmeta.util
 
+import esmeta.LINE_SEP
 import esmeta.error.{NoGraal, TimeoutException}
 import java.io.*
 import java.time.Duration.ZERO
@@ -8,9 +9,24 @@ import scala.collection.mutable.{Map => MMap}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util._
+import sys.process._
+import scala.language.postfixOps
+import java.util.StringJoiner
 
 /** JavaScript Engine utilities */
 object JSEngine {
+
+  /** default engine */
+  // TODO: change this into d8
+  lazy val defaultEngine: Try[String] = Try {
+    "d8 -e ''".!!
+    "d8 -e"
+  }.recoverWith(_ =>
+    Try {
+      "node -e ''".!!
+      "node -e"
+    },
+  )
 
   /** Check if Graal can be used in this environment */
   lazy val useGraal: Boolean =
@@ -40,6 +56,17 @@ object JSEngine {
         println("[Warning] Unable to run Graal.")
         false
     }
+
+  lazy val noDefaultWarning = println(
+    "[Warning] Unable to use default engine. Trying to use graal instead..",
+  )
+
+  def runWithDefault(src: String): Try[Unit] = {
+    defaultEngine.map(e => runUsingBinary(e, src)).getOrElse {
+      noDefaultWarning
+      runSingle(src)
+    }
+  }
 
   // -------------------------------------------------------------------------
   // runners in temporal context
@@ -149,4 +176,38 @@ object JSEngine {
       out.flush()
       result
     })
+
+  // -------------------------------------------------------------------------
+  // runners by executing shell command with path to binary
+  // -------------------------------------------------------------------------
+  def runUsingBinary(runner: String, src: String): Try[Unit] = Try {
+    val escapedSrc = escape(src)
+    val stderr = new StringJoiner(LINE_SEP)
+    s"$runner $escapedSrc" ! ProcessLogger(
+      out => (),
+      err => stderr.add(err),
+    ) match {
+      case 0  =>
+      case st => throw new Exception(stderr.toString),
+    }
+  }
+
+  def runUsingBinaryAndGetStdout(runner: String, src: String): Try[String] =
+    Try {
+      val escapedSrc = escape(src)
+      val stdout = new StringJoiner(LINE_SEP)
+      val stderr = new StringJoiner(LINE_SEP)
+      s"$runner $escapedSrc" ! ProcessLogger(
+        out => stdout.add(out),
+        err => stderr.add(err),
+      ) match {
+        case 0  => stdout.toString
+        case st => throw new Exception(stderr.toString),
+      }
+    }
+
+  /** escape a string to a shell-safe string, enclosed by single quote */
+  private def escape(string: String): String =
+    val replaced = string.replace("'", "'\"'\"'") // replace I'm to I'"'"'m
+    s"'$replaced'"
 }

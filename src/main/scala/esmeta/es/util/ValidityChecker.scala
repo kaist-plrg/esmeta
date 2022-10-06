@@ -12,7 +12,7 @@ object ValidityChecker {
     val MESSAGE = "VALIDITY_CHECKER_EXPECTED_EXCEPTION"
     val src = s"${USE_STRICT}throw $MESSAGE;$LINE_SEP$code"
     JSEngine
-      .runSingle(src)
+      .runWithDefault(src)
       .failed
       .filter(_.getMessage contains MESSAGE)
       .isSuccess

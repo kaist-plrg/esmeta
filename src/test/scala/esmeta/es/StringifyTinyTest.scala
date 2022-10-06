@@ -39,7 +39,7 @@ class StringifyTinyTest extends ESTest {
     )
 
     checkStringify("CompareArray")(
-      compareArray1 -> "$assert.compareArray(Reflect.ownKeys(path), [0, 1, 2], path);",
+      compareArray1 -> "$assert.compareArray($Reflect_ownKeys(path), [0, 1, 2], path);",
     )
 
     checkStringify("SameObject")(

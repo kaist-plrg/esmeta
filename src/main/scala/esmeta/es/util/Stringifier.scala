@@ -126,7 +126,7 @@ class Stringifier(
       case IsConstructable(addr, path, b) =>
         app >> s"$$assert.${if b then "c" else "notC"}onstructable($path);"
       case CompareArray(addr, path, array) =>
-        app >> s"$$assert.compareArray(Reflect.ownKeys($path), ${array
+        app >> s"$$assert.compareArray($$Reflect_ownKeys($path), ${array
           .mkString("[", ", ", "]")}, $path);"
       case SameObject(addr, path, origPath) =>
         app >> s"$$assert.sameValue($path, $origPath);"

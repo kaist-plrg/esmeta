@@ -13,14 +13,31 @@ let $error = (globalThis.console && globalThis.console.log) || globalThis.print;
 let $toString = (value) => {
   if (value === 0 && 1 / value === -Infinity) return "«-0»";
   if (value instanceof Error) return "a " + value.constructor.name;
-  if (value === AsyncFunction.prototype) return "an async function"
-  if (value === AsyncGeneratorFunction.prototype) return "an async generator function"
-  if (value === GeneratorFunction.prototype) return "a generator function"
-  if (value === AsyncArrowFunction.prototype) return "an async arrow function"
+  if (value === AsyncFunction.prototype) return "the async function prototype"
+  if (value === AsyncGeneratorFunction.prototype) return "the async generator function prototype"
+  if (value === GeneratorFunction.prototype) return "the generator function prototype"
+  if (value === AsyncArrowFunction.prototype) return "the async arrow function prototype"
+  if (value === Object.prototype) return "the object prototype"
   if (typeof value === "string") return '"' + value + '"';
   if (typeof value === "function") return "[object Function]";
   if (typeof value === "object") return "[object Object]";
   return String(value);
+}
+
+// wrapper of Object.getPrototpyeOf
+let $Object_getPrototypeOf = (o) => {
+  if (o === null || o === undefined) {
+    return undefined;
+  }
+  return Object.getPrototypeOf(o);
+}
+
+// wrapper of Reflect.ownKeys
+let $Reflect_ownKeys = (o) => {
+  if (o === null || o === undefined) {
+    return undefined;
+  }
+  return Reflect.ownKeys(o);
 }
 
 let $isSameValue = (x, y) => {
@@ -104,6 +121,24 @@ $assert.compareArray = function (actual, expected, obj) {
     var ty = Object.prototype.toString.call(obj);
     return ty.substring("[object ".length, ty.length - "]".length);
   }
+
+  if (!Array.isArray(actual)) {
+    $error(
+      "$assert.compareArray requires an array as the first argument but " +
+        $toString(actual) +
+        " given."
+    );
+    return;
+  }
+  if (!Array.isArray(expected)) {
+    $error(
+      "$assert.compareArray requires an array as the second argument but " +
+        $toString(expected) +
+        " given."
+    );
+    return;
+  }
+
   if ($compareArray(actual, expected)) return;
   $error(
     "Expected " +
@@ -145,6 +180,16 @@ $assert.compareIterator = function (iter, validators) {
 
 // verify properties
 let $verifyProperty = (obj, prop, desc) => {
+  // check object
+  if (obj === undefined || obj === null) {
+    $error(
+      "$verifyProperty requires an object but " +
+        $toString(obj) +
+        " given."
+    );
+    return;
+  }
+
   // check property type
   var propType = typeof prop;
   if (propType !== "string" && propType !== "symbol") {
@@ -165,7 +210,10 @@ let $verifyProperty = (obj, prop, desc) => {
   }
 
   var hasOwnProperty = Object.prototype.hasOwnProperty;
-  $assert(hasOwnProperty.call(obj, prop));
+  if (!hasOwnProperty.call(obj, prop)) {
+    $error($toString(obj) + " does not have own property named " + $toString(prop));
+    return;
+  }
   $assert.notSameValue(desc, null);
   $assert.sameValue(typeof desc, "object");
 

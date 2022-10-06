@@ -106,7 +106,7 @@ class Injector(
   // handle variables
   private def handleVariable: Unit = for (x <- createdVars.toList.sorted) {
     log("handling variable...")
-    val path = s"globalThis[\"$x\"]"
+    val path = s"globalThis?.[\"$x\"]"
     getValue(s"""$globalMap["$x"].Value""") match
       case Absent => /* do nothing(handle global accessor property) */
       case sv: SimpleValue =>
@@ -167,7 +167,7 @@ class Injector(
   private def handlePrototype(addr: Addr, path: String): Unit =
     log(s"handlePrototype: $addr, $path")
     access(addr, Str("Prototype")) match
-      case addr: Addr => handleObject(addr, s"Object.getPrototypeOf($path)")
+      case addr: Addr => handleObject(addr, s"$$Object_getPrototypeOf($path)")
       case _          => warning("non-address [[Prototype]]: $path")
 
   // handle [[Extensible]]
@@ -242,16 +242,16 @@ class Injector(
                   desc += (field.toLowerCase -> sv)
                 case addr: Addr =>
                   field match
-                    case "Value" => handleObject(addr, s"$path[$propStr]")
+                    case "Value" => handleObject(addr, s"$path?.[$propStr]")
                     case "Get" =>
                       handleObject(
                         addr,
-                        s"Object.getOwnPropertyDescriptor($path, $propStr).get",
+                        s"Object.getOwnPropertyDescriptor($path, $propStr)?.get",
                       )
                     case "Set" =>
                       handleObject(
                         addr,
-                        s"Object.getOwnPropertyDescriptor($path, $propStr).set",
+                        s"Object.getOwnPropertyDescriptor($path, $propStr)?.set",
                       )
                     case _ =>
                 case _ => warning("invalid property: $path")

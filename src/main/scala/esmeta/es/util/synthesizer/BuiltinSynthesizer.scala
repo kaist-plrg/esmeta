@@ -18,7 +18,7 @@ trait BuiltinSynthesizer extends Synthesizer {
   def name: String = "BuiltinSynthesizer"
 
   /** get script */
-  def script: String = "String ( 0 ) ; "
+  def script: String = choose(initPool)
 
   /** get initial pool */
   lazy val initPool: Vector[String] = (for {
@@ -28,52 +28,40 @@ trait BuiltinSynthesizer extends Synthesizer {
       case Getter(base) =>
         getString(base) :: (base match
           case Prototype(proto, prop) =>
-            List(
-              s"var x = { } ; Object . setPrototypeOf ( x , $proto ) ; x $prop ; ",
-            )
+            List(s"var x = {}; Object.setPrototypeOf(x, $proto); x$prop;")
           case _ => Nil
         )
       case Setter(base) =>
         getString(base) :: (base match
           case Prototype(proto, prop) =>
-            List(
-              s"var x = { } ; Object . setPrototypeOf ( x , $proto ) ; x $prop = 0 ; ",
-            )
+            List(s"var x = {}; Object.setPrototypeOf(x, $proto); x$prop = 0;")
           case _ => Nil
         )
       case path =>
         val MAX_ARGS = 5
         val pathStr = getString(path)
-          .replace(".", " . ")
-          .replace("[", " [ ")
-          .replace("]", " ]")
         // calls
         val calls = for {
           argsLen <- Range(1, MAX_ARGS + 1).toList
-          argsStr = (List.fill(argsLen)("0 ") ++
-            List.fill(MAX_ARGS - argsLen)("undefined "))
-            .mkString("( ", ", ", ")")
-        } yield s"$pathStr . call $argsStr ; "
+          argsStr = List.fill(argsLen)("0").mkString("(", ", ", ")")
+        } yield s"$pathStr.call$argsStr;"
         // construct without arguments
-        val construct = s"new $pathStr ; "
+        val construct = s"new $pathStr;"
         // constructs with arguments
         val constructs = for {
           argsLen <- Range(0, MAX_ARGS).toList
-          argsStr = (List.fill(argsLen)("0 ") ++
-            List.fill(MAX_ARGS - argsLen)("undefined "))
-            .mkString("( ", ", ", ")")
-        } yield s"new $pathStr $argsStr ; "
+          argsStr = List.fill(argsLen)("0").mkString("(", ", ", ")")
+        } yield s"new $pathStr$argsStr;"
         calls ++ (construct :: constructs)
-
   } yield code).toVector
 
   // get prototype paths and properties
   object Prototype:
     def unapply(path: BuiltinPath): Option[(String, String)] = path match
       case NormalAccess(NormalAccess(base, "prototype"), name) =>
-        Some((s"${getString(base)} . prototype", s". $name"))
+        Some((s"${getString(base)}.prototype", s".$name"))
       case SymbolAccess(NormalAccess(base, "prototype"), symbol) =>
-        Some((s"${getString(base)} . prototype", s"[ Symbol . $symbol ]"))
+        Some((s"${getString(base)}.prototype", s"[Symbol.$symbol]"))
       case _ => None
 
   // get string of builtin path

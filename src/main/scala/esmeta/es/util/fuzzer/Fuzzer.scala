@@ -78,9 +78,13 @@ class Fuzzer(
     })
     time(
       s"- initializing program pool with ${initPool.size} programs", {
-        for ((synthesizer, code) <- initPool; insertedCode <- insertSemi(code))
+        for {
+          (synthesizer, rawCode) <- initPool
+          code <- optional(scriptParser.from(rawCode).toString(grammar))
+        } {
           debugging(f"[${synthesizer.name}%-30s] $code")
-          add(insertedCode)
+          add(code)
+        }
       },
     )
     println(s"- the initial program pool consists of ${pool.size} programs.")
@@ -350,10 +354,6 @@ class Fuzzer(
 
   // check if the added code is visited
   private var visited: Set[String] = Set()
-
-  // try parsing and inserting semicolon
-  private def insertSemi(code: String) =
-    Try(cfg.scriptParser.fromWithCode(code)._2)
 
   // indicating that add failed
   private def fail(msg: String) = throw Exception(msg)

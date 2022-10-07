@@ -1,6 +1,7 @@
 package esmeta.phase
 
 import esmeta.*
+import esmeta.util.BaseUtils.warn
 import esmeta.cfg.CFG
 import esmeta.es.util.injector.ConformTest
 import esmeta.es.util.withCFG
@@ -17,17 +18,20 @@ case object TransCheck extends Phase[CFG, Boolean] {
     cmdConfig: CommandConfig,
     config: Config,
   ): Boolean = withCFG(cfg) {
+    _debug = config.debug
+
     val tests: Map[File, (ConformTest, ConformTest)] = {
-      for (
-        dir <- (cmdConfig.targets);
-        files = walkTree(dir).filter(f => jsFilter(f.getName));
-        _ = if (files.isEmpty) println("[Warning] No script was found");
-        file <- files;
-        path = file.getPath;
-        script = readFile(path);
-        tests = ConformTest.createTestPair(script);
-        _ = if (config.debug) pprint(file, tests)
-      ) yield (file, tests)
+      for {
+        dir <- (cmdConfig.targets)
+        files = walkTree(dir).filter(f => jsFilter(f.getName))
+        _ = if (files.isEmpty) warn("No script was found")
+        file <- files
+        _ = debug(s"===========$file===========")
+        path = file.getPath
+        script = readFile(path)
+        tests = ConformTest.createTestPair(script)
+        _ = pprint(file, tests)
+      } yield (file, tests)
     }.toMap
 
     // optionally dump the compiled test
@@ -54,17 +58,18 @@ case object TransCheck extends Phase[CFG, Boolean] {
     }
   }
 
-  def pprint(f: File, tests: (ConformTest, ConformTest)): Unit =
+  private var _debug = false
+  private def debug(msg: Any): Unit = if(_debug) println(msg)
+
+  private def pprint(f: File, tests: (ConformTest, ConformTest)): Unit =
     val (origTest, transTest) = tests
-    if (!origTest.isPass || !transTest.isPass)
-      println(s"===========$f===========")
     if (!origTest.isPass) {
-      println(s"orig test: ${origTest.category}")
-      println(origTest.msg)
+      debug(s"orig test: ${origTest.category}")
+      debug(origTest.msg)
     }
     if (!transTest.isPass) {
-      println(s"transpiled test: ${transTest.category}")
-      println(transTest.msg)
+      debug(s"transpiled test: ${transTest.category}")
+      debug(transTest.msg)
     }
 
   def defaultConfig: Config = Config()

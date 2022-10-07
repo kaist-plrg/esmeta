@@ -62,8 +62,7 @@ trait RandomSynthesizer extends Synthesizer {
   ): Int = node match
     case synNode: SynNode =>
       (for {
-        rhsIdx <- Range(0, synNode.prod.rhsVec.length)
-        rhsNode = getRhs(synNode, rhsIdx)
+        rhsNode <- synEdges.getOrElse(synNode, Set())
       } yield map.getOrElse(rhsNode, 0)).sum
     case lexNode: LexNode => 1
     case rhsNode: RhsNode =>

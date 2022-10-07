@@ -1,10 +1,15 @@
 package esmeta.test262
 
+import esmeta.*
 import esmeta.ESMetaTest.cfg
 import esmeta.es.util.withCFG
+import esmeta.util.BaseUtils.*
 
 class ParseLargeTest extends Test262Test {
   val name: String = "test262ParseTest"
+
+  // log directory
+  lazy val logDir = s"$TEST262TEST_LOG_DIR/parse-$dateStr"
 
   // registration
   def init: Unit = check(name) {

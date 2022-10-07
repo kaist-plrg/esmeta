@@ -95,10 +95,11 @@ case class Test262(
   /** interpreter test */
   def evalTest(
     paths: Iterable[String] = Nil,
-    log: Boolean = false,
-    useProgress: Boolean = false,
-    useCoverage: Boolean = false,
-    timeLimit: Option[Int] = None, // default: no limit
+    log: Boolean = true,
+    useProgress: Boolean = true,
+    useCoverage: Boolean = true,
+    timeLimit: Option[Int] = Some(10), // default: no limit
+    synK: Option[Int] = None, // default: insensitive coverage
   ): Summary = {
     // get metadata list
     val dataList: List[MetaData] = getDataList(paths.toList)
@@ -115,7 +116,7 @@ case class Test262(
     )
 
     // coverage with time limit
-    lazy val cov = Coverage(timeLimit)
+    lazy val cov = Coverage(timeLimit, synK)
 
     // run tests with logging
     logForTests(

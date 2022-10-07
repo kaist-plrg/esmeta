@@ -30,18 +30,37 @@ case object Test262Test extends Phase[CFG, Summary] {
     val version = Test262.getVersion(config.target)
     val test262 = Test262(version)
 
+    // run test262 eval test in debugging mode
+    if (config.debug)
+      println(config)
+      test262.evalTest(
+        cmdConfig.targets,
+        synK = config.synK,
+      )
     // run test262 eval test
-    test262.evalTest(
-      cmdConfig.targets,
-      config.log,
-      config.progress,
-      config.coverage,
-      config.timeLimit,
-    )
+    else
+      test262.evalTest(
+        cmdConfig.targets,
+        config.log,
+        config.progress,
+        config.coverage,
+        config.timeLimit,
+        config.synK,
+      )
   }
 
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(
+    (
+      "debug",
+      BoolOption(c => c.debug = true),
+      "turn on the debugging mode.",
+    ),
+    (
+      "log",
+      BoolOption(c => c.log = true),
+      "turn on logging mode.",
+    ),
     (
       "target",
       StrOption((c, s) => c.target = Some(s)),
@@ -63,16 +82,18 @@ case object Test262Test extends Phase[CFG, Summary] {
       "set the time limit in seconds (default: no limit).",
     ),
     (
-      "log",
-      BoolOption(c => c.log = true),
-      "turn on logging mode.",
+      "syn-k",
+      NumOption((c, k) => c.synK = Some(k)),
+      "set the specific seed for the random number generator. (default: None)",
     ),
   )
   case class Config(
     var target: Option[String] = None,
+    var debug: Boolean = false,
+    var log: Boolean = false,
     var coverage: Boolean = false,
     var progress: Boolean = false,
     var timeLimit: Option[Int] = None,
-    var log: Boolean = false,
+    var synK: Option[Int] = None,
   )
 }

@@ -168,9 +168,19 @@ class Coverage(
       )
 
   override def toString: String =
-    f"""- coverage:
-       |  - node: $nodeCov
-       |  - branch: $branchCov""".stripMargin
+    val app = new Appender
+    (app >> "- coverage:")
+      .wrap("", "") {
+        app :> "- node: " >> nodeCov
+        app :> "- branch: " >> branchCov
+        synK.map(k =>
+          (app :> "- syn-k: " >> k).wrap("", "") {
+            app :> "- node: " >> nodeViewCov
+            app :> "- branch: " >> branchViewCov
+          },
+        )
+      }
+      .toString
 
   /** extension for AST */
   extension (ast: Ast) {

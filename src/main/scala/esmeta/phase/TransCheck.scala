@@ -59,7 +59,7 @@ case object TransCheck extends Phase[CFG, Boolean] {
   }
 
   private var _debug = false
-  private def debug(msg: Any): Unit = if(_debug) println(msg)
+  private def debug(msg: Any): Unit = if (_debug) println(msg)
 
   private def pprint(f: File, tests: (ConformTest, ConformTest)): Unit =
     val (origTest, transTest) = tests

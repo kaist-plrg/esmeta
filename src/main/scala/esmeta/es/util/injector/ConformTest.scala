@@ -64,6 +64,7 @@ case class ConformTest(
         val msg = e.getMessage
         val tag =
           if msg.contains("Error:") then ThrowErrorTag(msg.split(":").head)
+          else if msg.contains(Babel.failTag) then TranspileFailTag
           else ThrowValueTag(esmeta.state.Str(msg))
         Success((tag, Vector(), Vector()))
       case e: TimeoutException =>

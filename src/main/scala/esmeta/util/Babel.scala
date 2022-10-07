@@ -2,6 +2,7 @@ package esmeta.util
 
 import esmeta.*
 import esmeta.util.SystemUtils.readFile
+import scala.util.Try
 
 /** JavaScript Babel utilities */
 object Babel {
@@ -14,10 +15,18 @@ object Babel {
   lazy val doInit: Unit =
     JSEngine.runInContext("babel", babel)
 
+  /** indicating the result of transpilation was faillure */
+  val failTag = "TRANSPILE_FAILURE"
+
   def transpile(src: String): String =
     doInit
     val escaped =
       src.replace("\\", "\\\\").replace("`", "\\`").replace("$", "\\$")
     JSEngine.runInContext("babel", s"orig = `$escaped`").get
-    JSEngine.runInContext("babel", runner).get.toString
+    JSEngine
+      .runInContext("babel", runner)
+      .map(_.toString)
+      .getOrElse(
+        s"throw \"$failTag\";",
+      )
 }

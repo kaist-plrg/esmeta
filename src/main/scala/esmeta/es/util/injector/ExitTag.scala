@@ -10,6 +10,7 @@ trait ExitTag:
     case NormalTag                   => s"normal"
     case TimeoutTag                  => s"timeout"
     case SpecErrorTag(error, cursor) => s"spec-error: $cursor"
+    case TranspileFailTag            => s"transpile-failure"
     case ThrowValueTag(value: Value) => s"throw-value: $value"
     case ThrowErrorTag(errorName, provenance) =>
       s"throw-error: ${errorName}${provenance.map(" @ " + _.toString).getOrElse("")}"
@@ -44,6 +45,9 @@ case object TimeoutTag extends ExitTag
 
 /** an error is thrown in specification */
 case class SpecErrorTag(error: ESMetaError, cursor: Cursor) extends ExitTag
+
+/** an error is thrown during transpilation */
+case object TranspileFailTag extends ExitTag
 
 /** an error is thrown with a ECMAScript value */
 case class ThrowValueTag(value: Value) extends ExitTag

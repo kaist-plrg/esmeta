@@ -32,7 +32,6 @@ case object Test262Test extends Phase[CFG, Summary] {
 
     // run test262 eval test in debugging mode
     if (config.debug)
-      println(config)
       test262.evalTest(
         cmdConfig.targets,
         synK = config.synK,

@@ -1,5 +1,4 @@
 -Xms1g
 -Xmx3g
--Xss1g
 -XX:ReservedCodeCacheSize=512m
 -Dfile.encoding=utf8

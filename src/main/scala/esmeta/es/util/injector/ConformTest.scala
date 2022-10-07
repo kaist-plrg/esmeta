@@ -111,21 +111,25 @@ object ConformTest {
 
   /** Create a pair of tests using code string */
   def createTestPair(script: String): (ConformTest, ConformTest) =
-    val strictScript = USE_STRICT + script
-    val transpiled = Babel.transpile(strictScript)
-    val injectedTest = Injector(strictScript, true)
+    val engineScript = USE_STRICT + script
+    val transpiledScript = Babel.transpile(engineScript)
+    val injectedTest = Injector(script, true)
+    val engineTest =
+      injectedTest.replaceScript(engineScript)
     val transpiledTest =
-      injectedTest.filterAssertion.replaceScript(transpiled)
-    (injectedTest, transpiledTest)
+      engineTest.filterAssertion.replaceScript(transpiledScript)
+    (engineTest, transpiledTest)
 
   /** Create a pair of tests using init state and exit state */
   def createTestPair(initSt: State, exitSt: State): (ConformTest, ConformTest) =
-    val strictScript = USE_STRICT + initSt.sourceText.get
-    val transpiled = Babel.transpile(strictScript)
+    val engineScript = USE_STRICT + initSt.sourceText.get
+    val transpiledScript = Babel.transpile(engineScript)
     val injectedTest = new Injector(initSt, exitSt, true, false).conformTest
+    val engineTest =
+      injectedTest.replaceScript(engineScript)
     val transpiledTest =
-      injectedTest.filterAssertion.replaceScript(transpiled)
-    (injectedTest, transpiledTest)
+      engineTest.filterAssertion.replaceScript(transpiledScript)
+    (engineTest, transpiledTest)
 
   /** Manually written rule to categorize bugs kind */
   lazy val manualRule =

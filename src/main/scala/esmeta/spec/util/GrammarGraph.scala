@@ -85,6 +85,9 @@ case class GrammarGraph(grammar: Grammar) {
       argMap: Map[String, Boolean],
     ): Unit = for {
       (rhs, idx) <- prod.rhsVec.zipWithIndex
+      if (rhs.condition.forall(condition =>
+        argMap.get(condition.name).fold(false)(condition.pass == _),
+      ))
       rhsNode = getRhs(synNode.name, synNode.args, idx)
       _ = update(synEdges, synNode, rhsNode)
     } auxRhs(rhsNode, rhs, argMap)

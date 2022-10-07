@@ -81,8 +81,7 @@ trait SimpleSynthesizer extends Synthesizer {
   ): (Ast, String) =
     val SynNode(_, name, args) = synNode
     val pairs = for {
-      rhsIdx <- Range(0, synNode.prod.rhsVec.length)
-      rhsNode = getRhs(name, args, rhsIdx)
+      rhsNode <- synEdges.getOrElse(synNode, Set())
       pair @ (_, code) <- map.get(rhsNode)
     } yield pair
     pairs.min
@@ -177,13 +176,9 @@ trait SimpleSynthesizer extends Synthesizer {
     while (
       worklist.next match
         case Some((synNode @ SynNode(_, name, args), _, astF)) =>
-          val prod = synNode.prod
-          val argMap = (prod.lhs.params zip args).toMap
           for {
-            rhsIdx <- Range(0, prod.rhsVec.length)
-            rhs = prod.rhsVec(rhsIdx)
-            rhsNode = getRhs(name, args, rhsIdx)
-          } aux(rhsNode, rhs, argMap, astF)
+            rhsNode <- synEdges.getOrElse(synNode, Set())
+          } aux(rhsNode, rhsNode.rhs, rhsNode.argMap, astF)
           true
         case None => false
     ) {}

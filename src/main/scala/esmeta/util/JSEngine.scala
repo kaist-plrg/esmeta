@@ -17,14 +17,18 @@ import java.util.StringJoiner
 /** JavaScript Engine utilities */
 object JSEngine {
 
+  private val _cmd = Map(
+    "d8" -> "d8 --ignore-unhandled-promises -e",
+    "node" -> "node --unhandled-rejections=none -e",
+    "js" -> "js -e",
+  )
+
   /** default engine: (command, version) */
   lazy val defaultEngine: Option[(String, String)] = Try {
     // d8
-    "d8 -e ''".!!
-    (
-      "d8 -e",
-      runUsingBinary("d8 -e", "console.log(version());").get,
-    )
+    val cmd = _cmd("d8")
+    s"$cmd ''".!!
+    (cmd, runUsingBinary(cmd, "console.log(version());").get)
   }.recoverWith(e =>
     validityCheckerWarning
     // GraalVM
@@ -37,8 +41,9 @@ object JSEngine {
   ).recoverWith(_ =>
     Try {
       // js
-      "js -e ''".!!
-      ("js -e", runUsingBinary("js", "--version").get)
+      val cmd = _cmd("js")
+      s"$cmd ''".!!
+      (cmd, runUsingBinary("js", "--version").get)
     },
   ).toOption
 

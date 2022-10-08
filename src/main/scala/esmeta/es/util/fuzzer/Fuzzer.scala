@@ -130,7 +130,11 @@ class Fuzzer(
     val (mutatorName, mutated) = mutator(code, condView, nearest)
     val mutatedCode = mutated.toString(grammar)
     debugging(f"----- $mutatorName%-20s-----> $mutatedCode")
-    add(mutatedCode)
+
+    val updated = add(mutatedCode)
+    update(selectorName.split(" ")(0), selectorStat, updated)
+    update(mutatorName, mutatorStat, updated)
+    updated
 
   /** add new program */
   def add(code: String): Boolean =
@@ -167,7 +171,7 @@ class Fuzzer(
   // conformance check counter for transpilers
   val transMap: MMap[Coverage.NodeView, Counter] = MMap()
 
-  // conformance check counter
+  // a pass-or-fail counter
   case class Counter(pass: Int = 0, fail: Int = 0)
   def update[T](t: T, map: MMap[T, Counter], pass: Boolean): Unit =
     val Counter(p, f) = map.getOrElse(t, Counter())
@@ -228,21 +232,67 @@ class Fuzzer(
     BranchSelector -> 8,
   )
 
+  /** selector stat */
+  val selectorStat: MMap[String, Counter] = MMap()
+
   /** mutator */
-  // val mutator: Mutator = RandomMutator()
   val mutator: Mutator = WeightedMutator(
     RandomMutator() -> 2,
     StatementInserter() -> 4,
     NearestMutator() -> 4,
   )
 
+  /** mutator stat */
+  val mutatorStat: MMap[String, Counter] = MMap()
+
   /** initial pool */
   val initPool =
     SimpleSynthesizer.initPool.map(SimpleSynthesizer -> _) ++
     BuiltinSynthesizer.initPool.map(BuiltinSynthesizer -> _)
 
-  /** dump conformance test counters */
-  def dumpConformTestCounter(
+  lazy val logDir: String = s"$FUZZ_LOG_DIR/fuzz-$dateStr"
+
+  // ---------------------------------------------------------------------------
+  // private helpers
+  // ---------------------------------------------------------------------------
+  // current iteration count
+  private var iter: Int = 0
+
+  // current id
+  private var idCounter: Long = 0
+  private def nextId: Long = { val id = idCounter; idCounter += 1; id }
+
+  // evaluation start time
+  private var startTime: Long = 0L
+  private def duration: Long = System.currentTimeMillis - startTime
+  private var startInterval: Long = 0L
+  private def interval: Long = System.currentTimeMillis - startInterval
+
+  // conversion from code string to `Script` object
+  private def toScript(code: String): Script = Script(code, s"$nextId.js")
+
+  // check if the added code is visited
+  private var visited: Set[String] = Set()
+
+  // indicating that add failed
+  private def fail(msg: String) = throw Exception(msg)
+
+  // debugging
+  private var debugMsg = ""
+  private def debugging(
+    msg: String,
+    newline: Boolean = true,
+  ): Unit = if (debug == ALL) {
+    if (newline) println(msg) else print(msg)
+  } else if (debug > NO_DEBUG) {
+    debugMsg += msg
+    if (newline) debugMsg += LINE_SEP
+  }
+  private def debugClean: Unit = debugMsg = ""
+  private def debugFlush: Unit = { print(debugMsg); debugClean }
+
+  // dump conformance test counters
+  private def dumpConformTestCounter(
     baseDir: String = logDir,
     withMsg: Boolean = true,
   ): Unit =
@@ -259,7 +309,7 @@ class Fuzzer(
       space = true,
     )
 
-  /** dump failed conformance tests */
+  // dump failed conformance tests
   def dumpFailedConformTests(
     baseDir: String = logDir,
     withMsg: Boolean = true,
@@ -324,53 +374,29 @@ class Fuzzer(
       remove = false,
     )
 
-  lazy val logDir: String = s"$FUZZ_LOG_DIR/fuzz-$dateStr"
+  // dump selector stat
+  private def dumpSelectorStat(
+    baseDir: String = logDir,
+    withMsg: Boolean = true,
+  ): Unit =
+    dumpJson(
+      name = if (withMsg) Some("selector stat") else None,
+      data = counterJson(selectorStat),
+      filename = s"$baseDir/selector-stat.json",
+      space = true,
+    )
 
-  def addRow(data: Iterable[Any]): Unit =
-    val row = data.mkString("\t")
-    if (stdOut) println(row)
-    nf.println(row)
-    nf.flush
-  lazy val nf: PrintWriter = getPrintWriter(s"$logDir/summary.tsv")
-
-  // ---------------------------------------------------------------------------
-  // private helpers
-  // ---------------------------------------------------------------------------
-  // current iteration count
-  private var iter: Int = 0
-
-  // current id
-  private var idCounter: Long = 0
-  private def nextId: Long = { val id = idCounter; idCounter += 1; id }
-
-  // evaluation start time
-  private var startTime: Long = 0L
-  private def duration: Long = System.currentTimeMillis - startTime
-  private var startInterval: Long = 0L
-  private def interval: Long = System.currentTimeMillis - startInterval
-
-  // conversion from code string to `Script` object
-  private def toScript(code: String): Script = Script(code, s"$nextId.js")
-
-  // check if the added code is visited
-  private var visited: Set[String] = Set()
-
-  // indicating that add failed
-  private def fail(msg: String) = throw Exception(msg)
-
-  // debugging
-  private var debugMsg = ""
-  private def debugging(
-    msg: String,
-    newline: Boolean = true,
-  ): Unit = if (debug == ALL) {
-    if (newline) println(msg) else print(msg)
-  } else if (debug > NO_DEBUG) {
-    debugMsg += msg
-    if (newline) debugMsg += LINE_SEP
-  }
-  private def debugClean: Unit = debugMsg = ""
-  private def debugFlush: Unit = { print(debugMsg); debugClean }
+  // dump mutator stat
+  private def dumpMutatorStat(
+    baseDir: String = logDir,
+    withMsg: Boolean = true,
+  ): Unit =
+    dumpJson(
+      name = if (withMsg) Some("mutator stat") else None,
+      data = counterJson(mutatorStat),
+      filename = s"$baseDir/mutator-stat.json",
+      space = true,
+    )
 
   // logging
   private def logging: Unit =
@@ -394,4 +420,14 @@ class Fuzzer(
     if (conformTest)
       dumpConformTestCounter(logDir, false)
       dumpFailedConformTests(logDir, false)
+    // dump selector and mutator stat
+    dumpSelectorStat(logDir, false)
+    dumpMutatorStat(logDir, false)
+  private def addRow(data: Iterable[Any]): Unit =
+    val row = data.mkString("\t")
+    if (stdOut) println(row)
+    nf.println(row)
+    nf.flush
+  private lazy val nf: PrintWriter = getPrintWriter(s"$logDir/summary.tsv")
+
 }

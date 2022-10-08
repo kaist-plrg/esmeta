@@ -7,7 +7,7 @@ import esmeta.es.*
 import esmeta.es.util.*
 import esmeta.state.State
 import esmeta.util.*
-import esmeta.util.SystemUtils.readFile
+import esmeta.util.SystemUtils.*
 import scala.util.*
 
 /** conformance test */
@@ -106,6 +106,11 @@ case class ConformTest(
           },
         )
     }
+
+  def dumpTest(dir: String, name: String): Unit =
+    dumpFile(this.toString, s"$dir/$name")
+    if (!isPass)
+      dumpFile(s"TAG: $category${LINE_SEP}$msg", s"$dir/$name.msg")
 }
 
 object ConformTest {

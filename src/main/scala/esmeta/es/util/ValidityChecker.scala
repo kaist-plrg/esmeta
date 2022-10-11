@@ -10,7 +10,7 @@ import scala.util.Try
 object ValidityChecker {
   def apply(grammar: Grammar, ast: Ast): Boolean = apply(ast.toString(grammar))
   def apply(code: String): Boolean =
-    val src = s"${USE_STRICT}throw \"$MESSAGE\";$LINE_SEP$code"
+    val src = s"${USE_STRICT}throw \"$MESSAGE\";$LINE_SEP;$LINE_SEP$code"
     _valid(JSEngine.runUsingD8(src)) &&
     _valid(JSEngine.runUsingGraal(src))
 

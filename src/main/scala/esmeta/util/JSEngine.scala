@@ -212,7 +212,7 @@ object JSEngine {
     val stdout = new StringJoiner(LINE_SEP)
     val stderr = new StringJoiner(LINE_SEP)
     s"$runner $escapedSrc" ! ProcessLogger(
-      out => stderr.add(out),
+      out => stdout.add(out),
       err => stderr.add(err),
     ) match {
       case 0  => stdout.toString

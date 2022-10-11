@@ -1,22 +1,23 @@
 TAG,pattern in script,pattern in message
-BBL-SCOPE,let x,ReferenceError
-BBL-SCOPE,switch ( x ),ReferenceError
-BBL-SCOPE,case x,ReferenceError
+VALIDITY-GRAAL, ?. x . x ,
+BBL-FAILURE,TRANSPILE_FAILURE,transpile-failure
 BBL-NAME,,descriptor value of "name"
 BBL-CONSTRUCT,,"prototype"] for
 BBL-CONSTRUCT,,[[Construct]] but doe
-BBL-CONSTRUCT,,TypeError @ EvaluateNew (7:60-7:90 (step 5))
 BBL-CONSTRUCT,,OrdinaryHasInstance
-BBL-CONSTRUCT,,Expected throw-error: TypeError @ Call (3:43-3:73 (step 2)) <- BindingInitialization of BindingPattern
+BBL-CONSTRUCT,,Expected throw-error: TypeError @ EvaluateNew ((step 5
+BBL-CONSTRUCT,,Expected throw-error: TypeError @ Call ((step 2
 BBL-CONSTRUCT,,Expected throw-error: TypeError @ ToObject
 BBL-CONSTRUCT,,Expected throw-error: TypeError @ NewPromiseCapability
 BBL-HELPER,,_extends
 BBL-HELPER,,Loose
-BBL-CALL,Function . call,SyntaxError
-BBL-STATICPRIVATEIN,in,RelationalExpression
-BBL-AWAIT,_await,
+BBL-F2STRING,Function . call,SyntaxError
+BBL-F2STRING,eval,SyntaxError
+BBL-STATICPRIVATEIN,in,TypeError @ RelationalExpression[7
+BBL-AWAIT, _await ,
+BBL-SCOPE,,Expected throw-error: ReferenceError @ DeclarativeEnvironmentRecord.GetBindingValue <- Evaluation of IdentifierReference
 GRL-NORMALIZE,normalize,RangeError
-GRL-SETPROTOTYPEOF,setPrototypeOf,TypeError
+GRL-SETPROTOTYPEOF,setPrototypeOf,TypeError @ INTRINSICS.Object.setPrototypeOf
 GRL-EXTENDS,extends new,TypeError
 GRL-STATIC,static#x = x &&=,TypeError
 GRL-DELETE,delete,

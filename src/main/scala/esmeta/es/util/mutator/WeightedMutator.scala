@@ -20,4 +20,6 @@ class WeightedMutator(
     condView: Option[CondView],
     nearest: Option[Nearest],
   ): (String, Ast) = weightedChoose(pairs)(ast, condView, nearest)
+
+  val names = pairs.toList.flatMap(_._1.names).sorted.distinct
 }

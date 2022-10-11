@@ -30,4 +30,7 @@ trait Mutator {
     condView: Option[CondView],
     nearest: Option[Nearest],
   ): (String, Ast)
+
+  /** Possible names of underlying mutators */
+  val names: List[String]
 }

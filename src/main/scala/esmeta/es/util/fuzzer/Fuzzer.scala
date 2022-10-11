@@ -62,19 +62,9 @@ class Fuzzer(
       dumpFile(ESMeta.currentVersion, s"$logDir/version")
       dumpFile(getSeed, s"$logDir/seed")
       dumpFile(JSEngine.defaultEngineToString, s"$logDir/default-engine")
-      var row = Vector(
-        "iter(#)",
-        "time(ms)",
-        "time(h:m:s)",
-        "program(#)",
-        "minimal(#)",
-        "node(#)",
-        "branch(#)",
-      )
-      synK.map(k => row ++= Vector(s"$k-syn-node(#)", s"$k-syn-branch(#)"))
-      row ++= Vector("target-conds(#)")
-      if (conformTest) row ++= Vector("conform-bug(#)", "trans-bug(#)")
-      addRow(row)
+      genSummaryHeader
+      genStatHeader(selector.names, selStatTsv)
+      genStatHeader(mutator.names, mutStatTsv)
     })
     time(
       s"- initializing program pool with ${initPool.size} programs", {
@@ -104,7 +94,9 @@ class Fuzzer(
     // finish logging
     logInterval.map(_ => {
       logging
-      nf.close
+      summaryTsv.close
+      selStatTsv.close
+      mutStatTsv.close
     })
 
     cov
@@ -124,15 +116,16 @@ class Fuzzer(
       }
     }
     val (selectorName, script, condView, nearest) = selector(pool, cov)
+    val selectorInfo = selectorName + condView.map(" - " + _).getOrElse("")
     val code = script.code
-    debugging(f"[$selectorName%-30s] $code")
+    debugging(f"[$selectorInfo%-30s] $code")
 
     val (mutatorName, mutated) = mutator(code, condView, nearest)
     val mutatedCode = mutated.toString(grammar)
     debugging(f"----- $mutatorName%-20s-----> $mutatedCode")
 
     val result = add(mutatedCode)
-    update(selectorName.split(" ")(0), selectorStat, result)
+    update(selectorName, selectorStat, result)
     update(mutatorName, mutatorStat, result)
     result
 
@@ -375,29 +368,45 @@ class Fuzzer(
       remove = false,
     )
 
-  // dump selector stat
-  private def dumpSelectorStat(
-    baseDir: String = logDir,
-    withMsg: Boolean = true,
-  ): Unit =
-    dumpJson(
-      name = if (withMsg) Some("selector stat") else None,
-      data = counterJson(selectorStat),
-      filename = s"$baseDir/selector-stat.json",
-      space = true,
+  // generate headers
+  private def genSummaryHeader =
+    var header = Vector(
+      "iter(#)",
+      "time(ms)",
+      "time(h:m:s)",
+      "program(#)",
+      "minimal(#)",
+      "node(#)",
+      "branch(#)",
     )
+    synK.map(k => header ++= Vector(s"$k-syn-node(#)", s"$k-syn-branch(#)"))
+    header ++= Vector("target-conds(#)")
+    if (conformTest) header ++= Vector("conform-bug(#)", "trans-bug(#)")
+    addRow(header)
+  private def genStatHeader(keys: List[String], nf: PrintWriter) =
+    var header1 = Vector("iter(#)")
+    var header2 = Vector("-")
+    keys.foreach(k => {
+      header1 ++= Vector(k, "-", "-", "-")
+      header2 ++= Vector("pass", "fail", "total", "ratio")
+    })
+    addRow(header1, nf)
+    addRow(header2, nf)
 
-  // dump mutator stat
-  private def dumpMutatorStat(
-    baseDir: String = logDir,
-    withMsg: Boolean = true,
+  // dump selector and mutator stat
+  private def dumpStat(
+    keys: List[String],
+    stat: MMap[String, Counter],
+    tsv: PrintWriter,
   ): Unit =
-    dumpJson(
-      name = if (withMsg) Some("mutator stat") else None,
-      data = counterJson(mutatorStat),
-      filename = s"$baseDir/mutator-stat.json",
-      space = true,
-    )
+    var row = Vector[Any](iter)
+    keys.foreach(k => {
+      val Counter(pass, fail) = stat.getOrElse(k, Counter())
+      val total = pass + fail
+      val ratio = optional((pass * 10000) / total / 100.0).getOrElse(0.0)
+      row ++= Vector(pass, fail, total, s"$ratio%")
+    })
+    addRow(row, tsv)
 
   // logging
   private def logging: Unit =
@@ -422,13 +431,21 @@ class Fuzzer(
       dumpConformTestCounter(logDir, false)
       dumpFailedConformTests(logDir, false)
     // dump selector and mutator stat
-    dumpSelectorStat(logDir, false)
-    dumpMutatorStat(logDir, false)
-  private def addRow(data: Iterable[Any]): Unit =
+    dumpStat(selector.names, selectorStat, selStatTsv)
+    dumpStat(mutator.names, mutatorStat, mutStatTsv)
+  private def addRow(data: Iterable[Any], nf: PrintWriter = summaryTsv): Unit =
     val row = data.mkString("\t")
     if (stdOut) println(row)
     nf.println(row)
     nf.flush
-  private lazy val nf: PrintWriter = getPrintWriter(s"$logDir/summary.tsv")
+  private lazy val summaryTsv: PrintWriter = getPrintWriter(
+    s"$logDir/summary.tsv",
+  )
+  private lazy val selStatTsv: PrintWriter = getPrintWriter(
+    s"$logDir/selector-stat.tsv",
+  )
+  private lazy val mutStatTsv: PrintWriter = getPrintWriter(
+    s"$logDir/mutation-stat.tsv",
+  )
 
 }

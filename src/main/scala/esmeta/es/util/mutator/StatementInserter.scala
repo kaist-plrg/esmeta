@@ -15,15 +15,20 @@ class StatementInserter(
 ) extends Mutator
   with AstWalker {
 
-  import StatementInserter.*
-
   /** mutate a program */
   def apply(
     ast: Ast,
     condView: Option[CondView],
     nearest: Option[Nearest],
   ): (String, Ast) =
-    ("StatementInserter", walk(ast))
+    (names.head, walk(ast))
+
+  val names = List("StatementInserter")
+
+  // ---------------------------------------------------------------------------
+  // private helpers
+  // ---------------------------------------------------------------------------
+  import StatementInserter.*
 
   /** generate a new statement list item, either randomly or manually */
   private def newStmtItem(args: List[Boolean]) = choose(

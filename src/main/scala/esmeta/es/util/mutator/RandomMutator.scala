@@ -18,7 +18,7 @@ class RandomMutator(
     ast: Ast,
     condView: Option[CondView],
     nearest: Option[Nearest],
-  ): (String, Ast) = ("RandomMutator", Walker.walk(ast))
+  ): (String, Ast) = (names.head, Walker.walk(ast))
 
   /** internal walker */
   object Walker extends AstWalker {
@@ -29,4 +29,6 @@ class RandomMutator(
       case _ =>
         super.walk(ast)
   }
+
+  val names = List("RandomMutator")
 }

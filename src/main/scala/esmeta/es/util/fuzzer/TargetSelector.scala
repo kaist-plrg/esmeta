@@ -15,6 +15,9 @@ trait TargetSelector {
     pool: Iterable[Script],
     cov: Coverage,
   ): (String, Script, Option[CondView], Option[Nearest])
+
+  /** Possible names of underlying selectors */
+  val names: List[String]
 }
 
 /** weighted mutation target selector */
@@ -24,6 +27,8 @@ class WeightedSelector(pairs: (TargetSelector, Int)*) extends TargetSelector {
     cov: Coverage,
   ): (String, Script, Option[CondView], Option[Nearest]) =
     weightedChoose(pairs)(pool, cov)
+
+  val names = pairs.toList.flatMap(_._1.names)
 }
 
 /** branch coverage-based mutation target selector */
@@ -34,8 +39,10 @@ object BranchSelector extends TargetSelector {
   ): (String, Script, Option[CondView], Option[Nearest]) =
     val (condView, nearest) = choose(cov.targetCondViews)
     cov.getScript(condView).fold(RandomSelector(pool, cov)) {
-      (s"BranchTarget - $condView", _, Some(condView), nearest)
+      (names.head, _, Some(condView), nearest)
     }
+
+  val names = List("BranchTarget")
 }
 
 /** random mutation target selector */
@@ -44,5 +51,7 @@ object RandomSelector extends TargetSelector {
     pool: Iterable[Script],
     cov: Coverage,
   ): (String, Script, Option[CondView], Option[Nearest]) =
-    ("RandomTarget", choose(pool), None, None)
+    (names.head, choose(pool), None, None)
+
+  val names = List("RandomTarget")
 }

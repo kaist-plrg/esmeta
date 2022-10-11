@@ -21,8 +21,8 @@ class NearestMutator(
     condView: Option[CondView],
     nearest: Option[Nearest],
   ): (String, Ast) = nearest.fold {
-    RandomMutator(synthesizer)(ast, condView, nearest)
-  } { case (ty, loc) => ("NearestMutator", Walker(ty, loc).walk(ast)) }
+    randomMutator(ast, condView, nearest)
+  } { case (ty, loc) => (names.head, Walker(ty, loc).walk(ast)) }
 
   /** internal walker */
   class Walker(ty: AstSingleTy, loc: Loc) extends AstWalker {
@@ -33,4 +33,9 @@ class NearestMutator(
       case _ =>
         super.walk(ast)
   }
+
+  /** internal random mutator */
+  private val randomMutator = RandomMutator(synthesizer)
+
+  val names = "NearestMutator" :: randomMutator.names
 }

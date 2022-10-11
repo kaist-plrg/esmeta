@@ -1,25 +1,30 @@
 TAG,pattern in script,pattern in message
-VALIDITY-GRAAL, ?. x . x ,
 BBL-FAILURE,TRANSPILE_FAILURE,transpile-failure
+BBL-DESTRUCT-NULL,_extends,Expected throw-error: TypeError @ RequireObjectCoercible <- BindingInitialization of BindingPattern
+BBL-STATIC-PRIVATE-IN,===,TypeError @ RelationalExpression[7
+BBL-COMPUTED-IN,_defineProperty,TypeError @ RelationalExpression[6
+BBL-STATIC,_createClass,Expected throw-error: TypeError @ DeclarativeEnvironmentRecord.SetMutableBinding
 BBL-NAME,,descriptor value of "name"
 BBL-CONSTRUCT,,"prototype"] for
-BBL-CONSTRUCT,,[[Construct]] but doe
+BBL-CONSTRUCT,,[[Construct]] but does.
 BBL-CONSTRUCT,,OrdinaryHasInstance
+BBL-CONSTRUCT,,GeneratorFunction.prototype.prototype
 BBL-CONSTRUCT,,Expected throw-error: TypeError @ EvaluateNew ((step 5
 BBL-CONSTRUCT,,Expected throw-error: TypeError @ Call ((step 2
 BBL-CONSTRUCT,,Expected throw-error: TypeError @ ToObject
 BBL-CONSTRUCT,,Expected throw-error: TypeError @ NewPromiseCapability
 BBL-HELPER,,_extends
 BBL-HELPER,,Loose
-BBL-F2STRING,Function . call,SyntaxError
+BBL-F2STRING,Function.call,SyntaxError
 BBL-F2STRING,eval,SyntaxError
-BBL-STATICPRIVATEIN,in,TypeError @ RelationalExpression[7
-BBL-AWAIT, _await ,
+BBL-AWAIT, _await,await
 BBL-SCOPE,,Expected throw-error: ReferenceError @ DeclarativeEnvironmentRecord.GetBindingValue <- Evaluation of IdentifierReference
+BBL-SCOPE,,Expected throw-error: ReferenceError @ DeclarativeEnvironmentRecord.SetMutableBinding
 GRL-NORMALIZE,normalize,RangeError
 GRL-SETPROTOTYPEOF,setPrototypeOf,TypeError @ INTRINSICS.Object.setPrototypeOf
 GRL-EXTENDS,extends new,TypeError
-GRL-STATIC,static#x = x &&=,TypeError
+GRL-LOGICAL-ASSIGN-CONST,static #x = x &&=,TypeError
+GRL-LOGICAL-ASSIGN-CONST,static { x &&=,TypeError
 GRL-DELETE,delete,
 GRL-FORDECL,for ( const [,
 GRL-FORDECL,for ( const {,

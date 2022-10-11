@@ -131,10 +131,10 @@ class Fuzzer(
     val mutatedCode = mutated.toString(grammar)
     debugging(f"----- $mutatorName%-20s-----> $mutatedCode")
 
-    val updated = add(mutatedCode)
-    update(selectorName.split(" ")(0), selectorStat, updated)
-    update(mutatorName, mutatorStat, updated)
-    updated
+    val result = add(mutatedCode)
+    update(selectorName.split(" ")(0), selectorStat, result)
+    update(mutatorName, mutatorStat, result)
+    result
 
   /** add new program */
   def add(code: String): Boolean =
@@ -145,13 +145,14 @@ class Fuzzer(
       if (!ValidityChecker(code))
         fail("INVALID PROGRAM")
       val script = toScript(code)
-      val (initSt, exitSt, interp, updated) = cov.runAndCheck(script)
+      val (initSt, exitSt, interp, updated, covered) = cov.runAndCheck(script)
       if (conformTest) doConformTest(initSt, exitSt, interp)
       if (!updated) fail("NO UPDATE")
+      covered
     }
     debugging(f" ${"COVERAGE RESULT"}%30s: ", newline = false)
     result match {
-      case Success(_)                   => debugging(passMsg("")); true
+      case Success(covered)             => debugging(passMsg("")); covered
       case Failure(e: TimeoutException) => debugging(failMsg("TIMEOUT")); false
       case Failure(e: NotSupported) =>
         debugging(failMsg("NOT SUPPORTED")); false

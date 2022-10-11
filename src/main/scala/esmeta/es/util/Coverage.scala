@@ -57,7 +57,7 @@ class Coverage(
   /** evaluate a given ECMAScript program, update coverage, and return
     * evaluation result with whether it succeeds to increase coverage
     */
-  def runAndCheck(script: Script): (State, State, Interp, Boolean) = {
+  def runAndCheck(script: Script): (State, State, Interp, Boolean, Boolean) = {
     val Script(code, name) = script
 
     // run interpreter and record touched
@@ -66,17 +66,24 @@ class Coverage(
     val finalSt = interp.result
 
     // update node coverage
+    var covered = false
     var updated = false
     for ((nodeView, _) <- interp.touchedNodeViews)
       nodeViewMap.get(nodeView) match
-        case Some(script) if script.code.length <= code.length =>
-        case _ => update(nodeView, script); updated = true
+        case None =>
+          update(nodeView, script); updated = true; covered = true
+        case Some(origScript) if origScript.code.length > code.length =>
+          update(nodeView, script); updated = true
+        case _ =>
 
     // update branch coverage
     for ((condView, _) <- interp.touchedCondViews)
       condViewMap.get(condView) match
-        case Some(script) if script.code.length <= code.length =>
-        case _ => update(condView, script); updated = true
+        case None =>
+          update(condView, script); updated = true; covered = true
+        case Some(origScript) if origScript.code.length > code.length =>
+          update(condView, script); updated = true
+        case _ =>
 
     // update target branches
     for ((condView @ CondView(cond, view), loc) <- interp.touchedCondViews)
@@ -89,14 +96,14 @@ class Coverage(
         case _ if condViewMap contains neg => _targetCondViews -= neg
         case _ => _targetCondViews += condView -> loc
 
-    (initSt, finalSt, interp, updated)
+    (initSt, finalSt, interp, updated, covered)
   }
 
   /** evaluate a given ECMAScript program, update coverage, and return
     * evaluation result
     */
   def run(script: Script): State = {
-    val (_, st, _, _) = runAndCheck(script);
+    val (_, st, _, _, _) = runAndCheck(script);
     st
   }
 

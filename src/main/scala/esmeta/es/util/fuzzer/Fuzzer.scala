@@ -59,6 +59,7 @@ class Fuzzer(
     logInterval.map(_ => {
       // start logging
       mkdir(logDir, remove = true)
+      createSymlink(symlink, logDir, overwrite = true)
       dumpFile(ESMeta.currentVersion, s"$logDir/version")
       dumpFile(getSeed, s"$logDir/seed")
       dumpFile(JSEngine.defaultEngineToString, s"$logDir/default-engine")
@@ -245,6 +246,7 @@ class Fuzzer(
     BuiltinSynthesizer.initPool.map(BuiltinSynthesizer -> _)
 
   lazy val logDir: String = s"$FUZZ_LOG_DIR/fuzz-$dateStr"
+  lazy val symlink: String = s"$FUZZ_LOG_DIR/recent"
 
   // ---------------------------------------------------------------------------
   // private helpers

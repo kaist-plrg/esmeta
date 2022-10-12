@@ -177,6 +177,20 @@ object SystemUtils {
     StandardCopyOption.REPLACE_EXISTING,
   )
 
+  /** create symbolic link */
+  def createSymlink(
+    link: String,
+    target: String,
+    overwrite: Boolean = false,
+  ): Unit = {
+    if (overwrite)
+      deleteFile(link)
+    Files.createSymbolicLink(
+      File(link).toPath,
+      File(target).toPath,
+    )
+  }
+
   /** create directories */
   def mkdir(name: String, remove: Boolean = false): Unit =
     if (remove) rmdir(name)

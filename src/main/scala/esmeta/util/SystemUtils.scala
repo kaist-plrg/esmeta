@@ -38,7 +38,10 @@ object SystemUtils {
     }.flatMap(walkTree)
 
   /** extension filter */
-  def extFilter(ext: String): String => Boolean = _.endsWith(s".$ext")
+  def extFilter(ext: String): (String | File) => Boolean = _ match {
+    case name: String => name.endsWith(s".$ext")
+    case file: File   => file.getName.endsWith(s".$ext")
+  }
   lazy val algoFilter = extFilter("algo")
   lazy val irFilter = extFilter("ir")
   lazy val cfgFilter = extFilter("cfg")
@@ -209,6 +212,14 @@ object SystemUtils {
       f.delete()
     deleteRecursively(File(name))
   }
+
+  /** list directory */
+  def listFiles(name: String): List[File] = listFiles(File(name))
+  def listFiles(dir: File): List[File] =
+    Option(dir.listFiles)
+      .map(_.toList)
+      .getOrElse(List())
+      .filter(!_.getName.startsWith("."))
 
   /** file existence check */
   def exists(name: String): Boolean = File(name).exists

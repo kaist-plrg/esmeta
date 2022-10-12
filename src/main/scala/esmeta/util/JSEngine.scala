@@ -17,7 +17,8 @@ import java.util.StringJoiner
 /** JavaScript Engine utilities */
 object JSEngine {
 
-  private val _cmd = Map(
+  /** default commands */
+  val defaultCmd = Map(
     "d8" -> "d8 --ignore-unhandled-promises -e",
     "node" -> "node --unhandled-rejections=none -e",
     "js" -> "js -e",
@@ -26,7 +27,7 @@ object JSEngine {
   /** default engine: (command, version) */
   lazy val defaultEngine: Option[(String, String)] = Try {
     // d8
-    val cmd = _cmd("d8")
+    val cmd = defaultCmd("d8")
     s"$cmd ''".!!
     (cmd, runUsingBinary(cmd, "console.log(version());").get)
   }.recoverWith(e =>
@@ -41,7 +42,7 @@ object JSEngine {
   ).recoverWith(_ =>
     Try {
       // js
-      val cmd = _cmd("js")
+      val cmd = defaultCmd("js")
       s"$cmd ''".!!
       (cmd, runUsingBinary("js", "--version").get)
     },
@@ -220,7 +221,8 @@ object JSEngine {
     }
   }
 
-  def runUsingD8(src: String): Try[String] = runUsingBinary(_cmd("d8"), src)
+  def runUsingD8(src: String): Try[String] =
+    runUsingBinary(defaultCmd("d8"), src)
 
   /** escape a string to a shell-safe string, enclosed by single quote */
   private def escape(string: String): String =

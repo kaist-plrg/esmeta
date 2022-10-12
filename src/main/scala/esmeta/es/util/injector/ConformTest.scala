@@ -143,4 +143,7 @@ object ConformTest {
       .split(LINE_SEP)
       .drop(1) // drop header
       .map(l => l.split(",", -1))
+
+  /** placeholder for script */
+  val placeholder = "//SCRIPT_PLACEHOLDER"
 }

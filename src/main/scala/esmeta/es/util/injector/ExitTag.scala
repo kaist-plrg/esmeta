@@ -19,6 +19,7 @@ trait ExitTag:
     case (ThrowErrorTag(name1, _), ThrowErrorTag(name2, _)) => name1 == name2
     case _                                                  => this == that
 object ExitTag:
+  /** Get exit tag from exit status */
   def apply(st: => State): ExitTag = try {
     st(GLOBAL_RESULT) match
       case Undef => NormalTag
@@ -32,6 +33,22 @@ object ExitTag:
   } catch {
     case _: TimeoutException   => TimeoutTag
     case e: InterpreterErrorAt => SpecErrorTag(e.error, e.cursor)
+  }
+
+  /** Get exit tag by parsing */
+  def apply(tag: => String): Option[ExitTag] = optional {
+    val specErrorPattern = "spec-error: .*".r
+    val throwValuePattern = "throw-value: .*".r
+    val throwErrorPattern = "throw-error: (\\w+).*".r
+    tag match {
+      case "normal"                => NormalTag
+      case "timeout"               => TimeoutTag
+      case specErrorPattern()      => ???
+      case "transpile-failure"     => TranspileFailTag
+      case throwValuePattern()     => ThrowValueTag(Str(""))
+      case throwErrorPattern(name) => ThrowErrorTag(name)
+      case _                       => ???
+    }
   }
 
   /** error name regex pattern */

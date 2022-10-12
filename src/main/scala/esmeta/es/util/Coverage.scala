@@ -158,7 +158,7 @@ class Coverage(
     if (withtargetCondViews)
       dumpJson(
         name = if (withMsg) Some("target conditional branches") else None,
-        data = condViewMapJson(targetCondViews contains _),
+        data = condViewMapJson(_targetCondViews contains _),
         filename = s"$baseDir/target-conds.json",
         space = true,
       )

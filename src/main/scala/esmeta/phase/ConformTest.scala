@@ -50,8 +50,8 @@ case object ConformTest extends Phase[Unit, (Result, Result)] {
       script = readFile(s"$dirname/$file")
       testfile = file + ".test" // guaranteed to exist
       test = readFile(s"$dirname/$testfile")
-      engineResult = engineConformTest(script, test)(engines)
-      transResult = transConformTest(script, test)(transpilers)
+      engineResult = engineConformTest(script, test, engines)
+      transResult = transConformTest(script, test, transpilers)
       if (!engineResult.isEmpty || !transResult.isEmpty)
     } yield (file, engineResult, transResult)
 
@@ -80,13 +80,14 @@ case object ConformTest extends Phase[Unit, (Result, Result)] {
   private def engineConformTest(
     script: String,
     test: String,
-  ): List[String] => List[String] =
+    engines: List[String],
+  ) =
     val exitTagPattern = "(?<=\\[EXIT\\] )[^\n\r]*".r
     val exitTagRaw = exitTagPattern.findFirstIn(test).get
     val exitTag = ExitTag(exitTagRaw).get
     val isNormal = exitTag == NormalTag
     val src = test.replace(placeholder, script)
-    _.filter(e => {
+    engines.filter(e => {
       val (concreteExitTag, stdout) =
         JSEngine
           .runUsingBinary(e, src)
@@ -141,9 +142,10 @@ case object ConformTest extends Phase[Unit, (Result, Result)] {
   private def transConformTest(
     script: String,
     test: String,
-  ): List[String] => List[String] =
-    _.filter(t => {
-      true
+    transpilers: List[String],
+  ) =
+    transpilers.filter(t => {
+      false
     })
 
   private val transpileFailure = "FAILURE"

@@ -25,7 +25,6 @@ case object Fuzz extends Phase[CFG, Coverage] {
       debug = config.debug,
       timeLimit = config.timeLimit,
       trial = config.trial,
-      conformTest = config.conformTest,
       synK = config.synK,
     )
 
@@ -66,11 +65,6 @@ case object Fuzz extends Phase[CFG, Coverage] {
       "set the number of trials (default: 10000).",
     ),
     (
-      "conform-test",
-      BoolOption(c => c.conformTest = true),
-      "do conformance test during fuzzing",
-    ),
-    (
       "seed",
       NumOption((c, k) => c.seed = Some(k)),
       "set the specific seed for the random number generator. (default: None)",
@@ -87,7 +81,6 @@ case object Fuzz extends Phase[CFG, Coverage] {
     var debug: Int = 0,
     var timeLimit: Option[Int] = Some(1),
     var trial: Option[Int] = Some(10000),
-    var conformTest: Boolean = false,
     var seed: Option[Int] = None,
     var synK: Option[Int] = None,
   )

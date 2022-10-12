@@ -24,7 +24,6 @@ object Fuzzer {
     stdOut: Boolean = false,
     timeLimit: Option[Int] = None, // time limitation for each evaluation
     trial: Option[Int] = None, // `None` denotes no bound
-    conformTest: Boolean = false,
     synK: Option[Int] = None,
   ): Coverage = new Fuzzer(
     logInterval,
@@ -32,7 +31,6 @@ object Fuzzer {
     stdOut,
     timeLimit,
     trial,
-    conformTest,
     synK,
   ).result
 
@@ -49,7 +47,6 @@ class Fuzzer(
   stdOut: Boolean = false,
   timeLimit: Option[Int] = None, // time limitation for each evaluation
   trial: Option[Int] = None, // `None` denotes no bound
-  conformTest: Boolean = false,
   synK: Option[Int] = None,
 ) {
   import Fuzzer.*
@@ -139,8 +136,7 @@ class Fuzzer(
       if (!ValidityChecker(code))
         fail("INVALID PROGRAM")
       val script = toScript(code)
-      val (initSt, exitSt, interp, updated, covered) = cov.runAndCheck(script)
-      if (conformTest) doConformTest(initSt, exitSt, interp)
+      val (exitSt, updated, covered) = cov.runAndCheck(script)
       if (!updated) fail("NO UPDATE")
       covered
     }
@@ -160,12 +156,6 @@ class Fuzzer(
         false
     }
 
-  // conformance check counter for engines
-  val engineMap: MMap[Coverage.NodeView, Counter] = MMap()
-
-  // conformance check counter for transpilers
-  val transMap: MMap[Coverage.NodeView, Counter] = MMap()
-
   // a pass-or-fail counter
   case class Counter(pass: Int = 0, fail: Int = 0)
   def update[T](t: T, map: MMap[T, Counter], pass: Boolean): Unit =
@@ -183,36 +173,6 @@ class Fuzzer(
         key -> obj
       }): _*,
     ).asJson
-
-  // all meaningful tests
-  private val failedTests: ListBuffer[(String, ConformTest)] = ListBuffer()
-  private val transFailedTests: ListBuffer[(String, ConformTest)] = ListBuffer()
-  private def doConformTest(
-    initSt: State,
-    finalSt: State,
-    interp: Coverage.Interp,
-  ): Unit =
-    val code = initSt.sourceText.get
-    val (test, transTest) = ConformTest.createTestPair(initSt, finalSt)
-    val d = if (iter == 0) 0 else duration
-    val comment = List(
-      s"// generated at iteration $iter",
-      s"// took $d ms (${Time(d).simpleString})",
-    ).mkString("", LINE_SEP, LINE_SEP)
-    test.comment = comment
-    transTest.comment = comment
-    // conformance check for engines
-    val pass = test.isPass
-    debugging(f" ${"GRAAL-JS CONFORMANCE RESULT"}%30s: ", newline = false)
-    if (!pass) failedTests.addOne(code, test)
-    interp.touchedNodeViews.keys.map(update(_, engineMap, pass))
-    debugging(if (test.isPass) passMsg("") else failMsg(""))
-    // conformance check for transpilers
-    val transPass = transTest.isPass
-    debugging(f" ${"BABEL TRANSPILATION RESULT"}%30s: ", newline = false)
-    if (!transPass) transFailedTests.addOne(code, transTest)
-    interp.touchedNodeViews.keys.map(update(_, transMap, transPass))
-    debugging(if (transTest.isPass) passMsg("") else failMsg(""))
 
   /** ECMAScript grammar */
   val grammar = cfg.grammar
@@ -287,89 +247,6 @@ class Fuzzer(
   private def debugClean: Unit = debugMsg = ""
   private def debugFlush: Unit = { print(debugMsg); debugClean }
 
-  // dump conformance test counters
-  private def dumpConformTestCounter(
-    baseDir: String = logDir,
-    withMsg: Boolean = true,
-  ): Unit =
-    dumpJson(
-      name = if (withMsg) Some("conformance test counter") else None,
-      data = counterJson(engineMap),
-      filename = s"$baseDir/engine-count.json",
-      space = true,
-    )
-    dumpJson(
-      name = if (withMsg) Some("transpiled conformance test counter") else None,
-      data = counterJson(transMap),
-      filename = s"$baseDir/trans-count.json",
-      space = true,
-    )
-
-  // dump failed conformance tests
-  def dumpFailedConformTests(
-    baseDir: String = logDir,
-    withMsg: Boolean = true,
-  ): Unit =
-    /** dump failed engine conformance tests */
-    rmdir(s"$baseDir/failed")
-    val indexedFailedTests = failedTests.zipWithIndex
-    val indexedTransFailedTests = transFailedTests.zipWithIndex
-    type IndexedTest = ((String, ConformTest), Int)
-    dumpDir[IndexedTest](
-      name = if (withMsg) Some("failed conformance codes") else None,
-      iterable = indexedFailedTests,
-      dirname = s"$baseDir/failed",
-      getName = { case ((c, t), i) => s"$i.js" },
-      getData = { case ((c, t), i) => t.comment + USE_STRICT + c + LINE_SEP },
-      remove = true,
-    )
-    dumpDir[IndexedTest](
-      name = if (withMsg) Some("failed conformance tests") else None,
-      iterable = indexedFailedTests,
-      dirname = s"$baseDir/failed",
-      getName = { case ((c, t), i) => s"$i.test.js" },
-      getData = { case ((c, t), i) => t },
-      remove = false,
-    )
-    dumpDir[IndexedTest](
-      name =
-        if (withMsg) Some("message for failed conformance tests") else None,
-      iterable = indexedFailedTests,
-      dirname = s"$baseDir/failed",
-      getName = { case ((c, t), i) => s"$i.msg" },
-      getData = { case ((c, t), i) => "TAG: " + t.category + LINE_SEP + t.msg },
-      remove = false,
-    )
-
-    /** dump failed transpiler conformance tests */
-    rmdir(s"$baseDir/trans-failed")
-    dumpDir[IndexedTest](
-      name = if (withMsg) Some("failed transpiled conformance codes") else None,
-      iterable = indexedTransFailedTests,
-      dirname = s"$baseDir/trans-failed",
-      getName = { case ((c, t), i) => s"$i.js" },
-      getData = { case ((c, t), i) => t.comment + USE_STRICT + c + LINE_SEP },
-      remove = true,
-    )
-    dumpDir[IndexedTest](
-      name = if (withMsg) Some("failed transpiled conformance tests") else None,
-      iterable = indexedTransFailedTests,
-      dirname = s"$baseDir/trans-failed",
-      getName = { case ((c, t), i) => s"$i.test.js" },
-      getData = { case ((c, t), i) => t },
-      remove = false,
-    )
-    dumpDir[IndexedTest](
-      name =
-        if (withMsg) Some("message for failed transpiled conformance tests")
-        else None,
-      iterable = indexedTransFailedTests,
-      dirname = s"$baseDir/trans-failed",
-      getName = { case ((c, t), i) => s"$i.msg" },
-      getData = { case ((c, t), i) => "TAG: " + t.category + LINE_SEP + t.msg },
-      remove = false,
-    )
-
   // generate headers
   private def genSummaryHeader =
     var header = Vector(
@@ -383,7 +260,6 @@ class Fuzzer(
     )
     synK.map(k => header ++= Vector(s"$k-syn-node(#)", s"$k-syn-branch(#)"))
     header ++= Vector("target-conds(#)")
-    if (conformTest) header ++= Vector("conform-bug(#)", "trans-bug(#)")
     addRow(header)
   private def genStatHeader(keys: List[String], nf: PrintWriter) =
     var header1 = Vector("iter(#)")
@@ -418,20 +294,13 @@ class Fuzzer(
     val t = Time(d).simpleString
     val nv = cov.nodeViewCov
     val bv = cov.branchViewCov
-    val cb = failedTests.size
-    val tb = transFailedTests.size
     val tc = cov.targetCondSize
     var row = Vector(iter, d, t, visited.size, pool.size, n, b)
     if (synK.isDefined) row ++= Vector(nv, bv)
     row ++= Vector(tc)
-    if (conformTest) row ++= Vector(cb, tb)
     addRow(row)
     // dump coveragge
     cov.dumpToWithDetail(logDir, withMsg = false)
-    // dump failed conformance tests
-    if (conformTest)
-      dumpConformTestCounter(logDir, false)
-      dumpFailedConformTests(logDir, false)
     // dump selector and mutator stat
     dumpStat(selector.names, selectorStat, selStatTsv)
     dumpStat(mutator.names, mutatorStat, mutStatTsv)

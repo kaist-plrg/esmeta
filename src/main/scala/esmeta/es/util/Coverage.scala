@@ -12,7 +12,6 @@ import esmeta.util.*
 import esmeta.util.SystemUtils.*
 import io.circe.*, io.circe.syntax.*
 import math.Ordering.Implicits.seqOrdering
-import scala.collection.mutable.{Map => MMap, Set => MSet}
 
 /** coverage measurement in CFG */
 class Coverage(
@@ -23,36 +22,30 @@ class Coverage(
   import Coverage.*
 
   // all meaningful scripts
-  def minimalScripts: Set[Script] = _minimalScripts.toSet
-
-  private val _minimalScripts: MSet[Script] = MSet()
+  def minimalScripts: Set[Script] = _minimalScripts
+  private var _minimalScripts: Set[Script] = Set()
 
   // target conditional branches
-  def targetCondViews: Map[CondView, Option[Nearest]] = _targetCondViews.toMap
-
-  def targetCondSize: Int = _targetCondViews.size
-
-  private val _targetCondViews: MMap[CondView, Option[Nearest]] = MMap()
+  def targetCondViews: Map[CondView, Option[Nearest]] = _targetCondViews
+  private var _targetCondViews: Map[CondView, Option[Nearest]] = Map()
 
   // the number of all meaningful code set
   def size: Int = counter.size
 
   // script reference counter
-  private val counter: MMap[Script, Int] = MMap()
+  private var counter: Map[Script, Int] = Map()
 
-  // mapping from nodes to scripts
+  // get script from nodes or conditions
   def getScript(node: Node): Option[Script] = nodeViewMap.get(NodeView(node))
-
   def getScript(node: NodeView): Option[Script] = nodeViewMap.get(node)
-
   def getScript(cond: Cond): Option[Script] = condViewMap.get(CondView(cond))
-
   def getScript(cond: CondView): Option[Script] = condViewMap.get(cond)
 
-  private val nodes: MSet[Node] = MSet()
-  private val nodeViewMap: MMap[NodeView, Script] = MMap()
-  private val conds: MSet[Cond] = MSet()
-  private val condViewMap: MMap[CondView, Script] = MMap()
+  // mapping from nodes or conditions to scripts
+  private var nodes: Set[Node] = Set()
+  private var nodeViewMap: Map[NodeView, Script] = Map()
+  private var conds: Set[Cond] = Set()
+  private var condViewMap: Map[CondView, Script] = Map()
 
   /** evaluate a given ECMAScript program, update coverage, and return
     * evaluation result with whether it succeeds to increase coverage
@@ -211,15 +204,19 @@ class Coverage(
   // update mapping from nodes to scripts
   private def update(nodeView: NodeView, script: Script): Unit =
     nodes += nodeView.node
-    update(nodeView, script, nodeViewMap)
+    nodeViewMap = updated(nodeViewMap, nodeView, script)
 
   // update mapping from conditional branches to scripts
   private def update(condView: CondView, script: Script): Unit =
     conds += condView.cond
-    update(condView, script, condViewMap)
+    condViewMap = updated(condViewMap, condView, script)
 
   // update mapping
-  private def update[T](x: T, script: Script, map: MMap[T, Script]): Unit =
+  private def updated[T](
+    map: Map[T, Script],
+    x: T,
+    script: Script,
+  ): Map[T, Script] =
     for (script <- map.get(x))
       val count = counter(script) - 1
       if (count == 0) {
@@ -228,7 +225,7 @@ class Coverage(
       counter += script -> count
     _minimalScripts += script
     counter += script -> (counter.getOrElse(script, 0) + 1)
-    map += x -> script
+    map + (x -> script)
 
   // script parser
   private lazy val scriptParser = cfg.scriptParser

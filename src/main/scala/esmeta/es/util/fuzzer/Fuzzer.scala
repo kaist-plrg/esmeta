@@ -420,7 +420,7 @@ class Fuzzer(
     val bv = cov.branchViewCov
     val cb = failedTests.size
     val tb = transFailedTests.size
-    val tc = cov.targetCondSize
+    val tc = cov.targetCondViews.size
     var row = Vector(iter, d, t, visited.size, pool.size, n, b)
     if (synK.isDefined) row ++= Vector(nv, bv)
     row ++= Vector(tc)

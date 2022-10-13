@@ -145,7 +145,7 @@ class Fuzzer(
       covered
     }
     debugging(f" ${"COVERAGE RESULT"}%30s: ", newline = false)
-    result match {
+    val pass = result match
       case Success(covered)             => debugging(passMsg("")); covered
       case Failure(e: TimeoutException) => debugging(failMsg("TIMEOUT")); false
       case Failure(e: NotSupported) =>
@@ -156,9 +156,9 @@ class Fuzzer(
             debugClean
           case msg =>
             debugging(failMsg(msg))
-            debugFlush
         false
-    }
+    debugFlush
+    pass
 
   // conformance check counter for engines
   val engineMap: MMap[Coverage.NodeView, Counter] = MMap()

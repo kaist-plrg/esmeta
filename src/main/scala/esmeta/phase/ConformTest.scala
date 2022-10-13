@@ -12,18 +12,15 @@ import esmeta.util.JSEngine
 type Result = Map[String, List[String]]
 
 /** `conform-test` phase */
-case object ConformTest extends Phase[Unit, (Result, Result)] {
+case object ConformTest extends Phase[Unit, Result] {
   val name = "conform-test"
   val help = "Perform conformance test for an ECMAScript Engine or a transpiler"
 
   private var _config: Config = null
 
-  def apply(
-    _unit: Unit,
-    cmdConfig: CommandConfig,
-    config: Config,
-  ): (Result, Result) =
+  def apply(_unit: Unit, cmdConfig: CommandConfig, config: Config): Result =
     _config = config
+    config.msgdir.foreach(cleanDir)
 
     // validate the target scripts
     val dirname = getFirstFilename(cmdConfig, this.name)
@@ -50,19 +47,28 @@ case object ConformTest extends Phase[Unit, (Result, Result)] {
       script = readFile(s"$dirname/$file")
       testfile = file + ".test" // guaranteed to exist
       test = readFile(s"$dirname/$testfile")
-      engineResult = engineConformTest(script, test, engines)
-      transResult = transConformTest(script, test, transpilers)
+      engineResult = engineConformTest(file, script, test, engines)
+      transResult = transConformTest(file, script, test, transpilers)
       if (!engineResult.isEmpty || !transResult.isEmpty)
     } yield (file, engineResult, transResult)
 
     // transpose the result and colelct result per engine/transpiler
-    scriptResult.foldLeft[(Result, Result)]((Map(), Map())) {
-      case ((engineResult, transResult), (file, engineFails, transFails)) =>
-        (
-          updateResult(engineResult, engineFails, file),
-          updateResult(transResult, transFails, file),
-        )
+    val result = scriptResult.foldLeft[Result](Map()) {
+      case (result, (file, engineFails, transFails)) =>
+        val eResult = updateResult(result, engineFails, file)
+        val tResult = updateResult(eResult, transFails, file)
+        tResult
     }
+
+    // dump result as JSON
+    dumpJson(result, s"$CONFORMTEST_LOG_DIR/fails.json")
+
+    // return result
+    result
+
+  // ---------------------------------------------------------------------------
+  // private helpers
+  // ---------------------------------------------------------------------------
 
   // warn about correct usage
   private def warnUsage =
@@ -78,6 +84,7 @@ case object ConformTest extends Phase[Unit, (Result, Result)] {
     assert(fileMap("js").map(_ + ".test") == fileMap("test"))
 
   private def engineConformTest(
+    file: String,
     script: String,
     test: String,
     engines: List[String],
@@ -109,8 +116,9 @@ case object ConformTest extends Phase[Unit, (Result, Result)] {
       val sameExitTag = exitTag.equivalent(concreteExitTag)
       val pass = sameExitTag && stdout.isEmpty
 
+      // generate fail message
       if (!pass) {
-        val msg =
+        val detail =
           if (!sameExitTag) then
             s"[Exit Tag Mismatch]$LINE_SEP > Expected $exitTagRaw but got $concreteExitTag"
           else s"[Assertion Fail]$LINE_SEP > $stdout"
@@ -119,7 +127,7 @@ case object ConformTest extends Phase[Unit, (Result, Result)] {
           cur match {
             case "YET" =>
               val Array(tag, codePattern, msgPattern) = rule
-              if (script.contains(codePattern) && msg.contains(msgPattern))
+              if (script.contains(codePattern) && detail.contains(msgPattern))
                 tag
               else
                 cur
@@ -127,19 +135,26 @@ case object ConformTest extends Phase[Unit, (Result, Result)] {
           },
         )
 
-        if (_config.debug)
-          println(s"Test fail for `$e`")
-          println(s"TAG: $category")
-          println(msg)
-          println()
+        val msg = s"""Test fail for `$e`
+                     |TAG: $category"
+                     |$detail
+                     |""".stripMargin
 
-        _config.msgdir.foreach(_ => ???)
+        if (_config.debug)
+          println(msg)
+
+        _config.msgdir.foreach(dir =>
+          val path = s"$dir/$file.msg"
+          val orig = optional(readFile(path)).getOrElse("")
+          dumpFile(orig + msg + LINE_SEP, path),
+        )
       }
 
       !pass
     })
 
   private def transConformTest(
+    file: String,
     script: String,
     test: String,
     transpilers: List[String],

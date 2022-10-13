@@ -21,9 +21,9 @@ case object Localize extends Phase[Unit, Any] {
   def apply(_unit: Unit, cmdConfig: CommandConfig, config: Config): Unit =
     _config = config
     // name of json files
-    val nodeViewCoverageJson = ??? // cmdConfig(0)
-    val touchedNodeViewJson = ??? // cmdConfig(1)
-    val failsMapJson = ??? // cmdConfig(2)
+    val nodeViewCoverageJson = s"$FUZZ_LOG_DIR/recent/node-coverage.json"
+    val touchedNodeViewJson = s"$FUZZ_LOG_DIR/recent/minimal-touch-node.json"
+    val failsMapJson = s"$CONFORMTEST_LOG_DIR/fails.json"
 
     // parse jsons
     val nodeViewCoverageRaw: Map[NodeView, Info] =

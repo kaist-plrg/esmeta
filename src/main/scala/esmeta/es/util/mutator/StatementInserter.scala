@@ -3,7 +3,7 @@ package esmeta.es.util.mutator
 import esmeta.es.*
 import esmeta.es.util.*
 import esmeta.es.util.synthesizer.*
-import esmeta.es.util.{Walker => AstWalker}
+import esmeta.es.util.{Walker => AstWalker, *}
 import esmeta.es.util.Coverage.*
 import esmeta.spec.Grammar
 import esmeta.util.*
@@ -18,8 +18,7 @@ class StatementInserter(
   /** mutate a program */
   def apply(
     ast: Ast,
-    condView: Option[CondView],
-    nearest: Option[Nearest],
+    target: Option[(CondView, Coverage)],
   ): (String, Ast) =
     (names.head, walk(ast))
 

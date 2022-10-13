@@ -14,7 +14,7 @@ trait TargetSelector {
   def apply(
     pool: Iterable[Script],
     cov: Coverage,
-  ): (String, Script, Option[CondView], Option[Nearest])
+  ): (String, Script, Option[CondView])
 
   /** Possible names of underlying selectors */
   val names: List[String]
@@ -25,8 +25,7 @@ class WeightedSelector(pairs: (TargetSelector, Int)*) extends TargetSelector {
   def apply(
     pool: Iterable[Script],
     cov: Coverage,
-  ): (String, Script, Option[CondView], Option[Nearest]) =
-    weightedChoose(pairs)(pool, cov)
+  ): (String, Script, Option[CondView]) = weightedChoose(pairs)(pool, cov)
 
   val names = pairs.toList.flatMap(_._1.names)
 }
@@ -36,10 +35,10 @@ object BranchSelector extends TargetSelector {
   def apply(
     pool: Iterable[Script],
     cov: Coverage,
-  ): (String, Script, Option[CondView], Option[Nearest]) =
-    val (condView, nearest) = choose(cov.targetCondViews)
+  ): (String, Script, Option[CondView]) =
+    val condView = choose(cov.targetCondViews.keys)
     cov.getScript(condView).fold(RandomSelector(pool, cov)) {
-      (names.head, _, Some(condView), nearest)
+      (names.head, _, Some(condView))
     }
 
   val names = List("BranchTarget")
@@ -50,8 +49,7 @@ object RandomSelector extends TargetSelector {
   def apply(
     pool: Iterable[Script],
     cov: Coverage,
-  ): (String, Script, Option[CondView], Option[Nearest]) =
-    (names.head, choose(pool), None, None)
+  ): (String, Script, Option[CondView]) = (names.head, choose(pool), None)
 
   val names = List("RandomTarget")
 }

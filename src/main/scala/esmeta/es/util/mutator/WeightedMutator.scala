@@ -2,7 +2,7 @@ package esmeta.es.util.mutator
 
 import esmeta.es.*
 import esmeta.es.util.synthesizer.*
-import esmeta.es.util.{Walker => AstWalker}
+import esmeta.es.util.{Walker => AstWalker, *}
 import esmeta.es.util.Coverage.*
 import esmeta.spec.Grammar
 import esmeta.util.*
@@ -17,9 +17,8 @@ class WeightedMutator(
   /** mutate programs */
   def apply(
     ast: Ast,
-    condView: Option[CondView],
-    nearest: Option[Nearest],
-  ): (String, Ast) = weightedChoose(pairs)(ast, condView, nearest)
+    target: Option[(CondView, Coverage)],
+  ): (String, Ast) = weightedChoose(pairs)(ast, target)
 
   val names = pairs.toList.flatMap(_._1.names).sorted.distinct
 }

@@ -2,7 +2,7 @@ package esmeta.es.util.mutator
 
 import esmeta.es.*
 import esmeta.es.util.synthesizer.*
-import esmeta.es.util.{Walker => AstWalker}
+import esmeta.es.util.{Walker => AstWalker, *}
 import esmeta.es.util.Coverage.*
 import esmeta.spec.Grammar
 import esmeta.util.*
@@ -16,8 +16,7 @@ class RandomMutator(
   /** mutate programs */
   def apply(
     ast: Ast,
-    condView: Option[CondView],
-    nearest: Option[Nearest],
+    target: Option[(CondView, Coverage)],
   ): (String, Ast) = (names.head, Walker.walk(ast))
 
   /** internal walker */

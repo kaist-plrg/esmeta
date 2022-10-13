@@ -116,12 +116,12 @@ class Fuzzer(
         startInterval += seconds
       }
     }
-    val (selectorName, script, condView, nearest) = selector(pool, cov)
+    val (selectorName, script, condView) = selector(pool, cov)
     val selectorInfo = selectorName + condView.map(" - " + _).getOrElse("")
     val code = script.code
     debugging(f"[$selectorInfo%-30s] $code")
 
-    val (mutatorName, mutated) = mutator(code, condView, nearest)
+    val (mutatorName, mutated) = mutator(code, condView.map((_, cov)))
     val mutatedCode = mutated.toString(grammar)
     debugging(f"----- $mutatorName%-20s-----> $mutatedCode")
 

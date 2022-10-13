@@ -89,7 +89,7 @@ class Interpreter(
         eval(branch.cond) match
           case Bool(bool) => moveBranch(branch, bool)
           case v          => throw NoBoolean(branch.cond, v)
-      case Call(_, call, _) => eval(call)
+      case call: Call => eval(call, call.callInst)
     }
 
   /** transition for normal instructions */
@@ -123,14 +123,14 @@ class Interpreter(
   }
 
   /** transition for calls */
-  def eval(call: CallInst): Unit = call match {
+  def eval(call: Call, callInst: CallInst): Unit = callInst match {
     case ICall(lhs, fexpr, args) =>
       eval(fexpr) match
         case Clo(func, captured) =>
           val vs = args.map(eval)
           val newLocals = getLocals(func.irFunc.params, vs) ++ captured
           st.callStack ::= CallContext(lhs, st.context)
-          st.context = createContext(func, newLocals, st.context)
+          st.context = createContext(call, func, newLocals, st.context)
         case Cont(func, captured, callStack) => {
           val needWrapped = st.context.func.isReturnComp
           val vs =
@@ -141,7 +141,7 @@ class Interpreter(
             getLocals(func.irFunc.params, vs, cont = true) ++ captured
           st.callStack = callStack.map(_.copied)
           val prevCtxt = st.callStack.headOption.map(_.context)
-          st.context = createContext(func, newLocals, prevCtxt)
+          st.context = createContext(call, func, newLocals, prevCtxt)
         }
         case v => throw NoFunc(fexpr, v)
     case IMethodCall(lhs, base, method, args) =>
@@ -153,8 +153,8 @@ class Interpreter(
           val vs = args.map(eval)
           val newLocals = getLocals(func.irFunc.params, bv :: vs)
           st.callStack ::= CallContext(lhs, st.context)
-          st.context = createContext(func, newLocals, st.context)
-        case v => throw NoFunc(call.fexpr, v)
+          st.context = createContext(call, func, newLocals, st.context)
+        case v => throw NoFunc(callInst.fexpr, v)
     case ISdoCall(lhs, base, method, args) =>
       eval(base).asAst match
         case syn: Syntactic =>
@@ -164,7 +164,7 @@ class Interpreter(
               val newLocals =
                 getLocals(sdo.irFunc.params, AstValue(ast0) :: vs)
               st.callStack ::= CallContext(lhs, st.context)
-              st.context = createContext(sdo, newLocals, st.context)
+              st.context = createContext(call, sdo, newLocals, st.context)
             case None => throw InvalidAstProp(syn, Str(method))
         case lex: Lexical =>
           setCallResult(lhs, Interpreter.eval(lex, method))
@@ -597,31 +597,27 @@ class Interpreter(
 
   // create a new context
   private def createContext(
+    call: Call,
     func: Func,
     locals: MMap[Local, Value],
     prevCtxt: Context,
-  ): Context = createContext(func, locals, Some(prevCtxt))
+  ): Context = createContext(call, func, locals, Some(prevCtxt))
   private def createContext(
+    call: Call,
     func: Func,
     locals: MMap[Local, Value],
     prevCtxt: Option[Context] = None,
-  ): Context =
-    val sdoList =
-      if (keepProvenance) {
-        lazy val newSdo = for {
-          head @ SyntaxDirectedOperationHead(_, name, _, _, _) <- func.head
-          AstValue(ast @ Syntactic(_, _, _, _)) <- locals.get(Name("this"))
-        } yield SdoInfo(ast, func, name)
-        lazy val getValueSdo = (for {
-          head @ AbstractOperationHead(_, "GetValue", _, _) <- func.head
-          if keepProvenance
-          (_, value) <- locals.headOption
-          provenance <- st.getProvenance(value)
-        } yield provenance.sdo).flatten
-        val prevSdoList = prevCtxt.fold(Nil)(_.sdoList)
-        newSdo.orElse(getValueSdo).fold(prevSdoList)(_ :: prevSdoList)
-      } else Nil
-    Context(func, locals, sdoList)
+  ): Context = if (keepProvenance) {
+    val prevSdoList = prevCtxt.fold(Nil)(_.sdoList)
+    val sdoList = (for {
+      SyntaxDirectedOperationHead(_, name, _, _, _) <- func.head
+      AstValue(ast @ Syntactic(_, _, _, _)) = locals(Name("this"))
+    } yield SdoInfo(ast, func, name)).fold(prevSdoList)(_ :: prevSdoList)
+    val internalStack = func.head match
+      case Some(_: SyntaxDirectedOperationHead) => Nil
+      case _ => call :: prevCtxt.fold(Nil)(_.internalStack)
+    Context(func, locals, sdoList, internalStack)
+  } else Context(func, locals)
 }
 
 /** IR interpreter with a CFG */

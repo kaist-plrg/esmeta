@@ -282,8 +282,11 @@ object Coverage {
   type Nearest = (AstSingleTy, Loc)
 
   /** interpreter */
-  class Interp(initSt: State, timeLimit: Option[Int], synK: Option[Int])
-    extends Interpreter(
+  class Interp(
+    initSt: State,
+    timeLimit: Option[Int],
+    synK: Option[Int],
+  ) extends Interpreter(
       initSt,
       timeLimit = timeLimit,
       keepProvenance = true,

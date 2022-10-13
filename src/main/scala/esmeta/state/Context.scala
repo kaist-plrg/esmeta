@@ -11,6 +11,7 @@ case class Context(
   val func: Func,
   val locals: MMap[Local, Value] = MMap(),
   val sdoList: List[SdoInfo] = Nil,
+  val internalStack: List[Call] = Nil,
 ) extends StateElem {
 
   /** current cursor in this context */

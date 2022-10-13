@@ -1,4 +1,5 @@
 TAG,pattern in script,pattern in message
+TIMEOUT,,but got timeout
 BBL-FAILURE,TRANSPILE_FAILURE,transpile-failure
 BBL-DESTRUCT-NULL,_extends,Expected throw-error: TypeError @ RequireObjectCoercible <- BindingInitialization of BindingPattern
 BBL-STATIC-PRIVATE-IN,===,TypeError @ RelationalExpression[7
@@ -16,11 +17,19 @@ BBL-CONSTRUCT,,Expected throw-error: TypeError @ ToObject
 BBL-CONSTRUCT,,Expected throw-error: TypeError @ NewPromiseCapability
 BBL-HELPER,,_extends
 BBL-HELPER,,Loose
+BBL-HELPER,,_objectSpread
 BBL-F2STRING,Function.call,SyntaxError
 BBL-F2STRING,eval,SyntaxError
+BBL-F2STRING,_definePropert,does not have own property named
+BBL-F2STRING,_createClass,descriptor value of
+BBL-F2STRING,,but got "function
+BBL-F2STRING,,but got "undefinedfunction
 BBL-AWAIT, _await,await
 BBL-SCOPE,,Expected throw-error: ReferenceError @ DeclarativeEnvironmentRecord.GetBindingValue <- Evaluation of IdentifierReference
+BBL-SCOPE,,Expected throw-error: ReferenceError @ GetValue
 BBL-SCOPE,,Expected throw-error: ReferenceError @ DeclarativeEnvironmentRecord.SetMutableBinding
+BBL-SCOPE,_this$x,
+BBL-NOF,Array.from.call(function,
 GRL-NORMALIZE,normalize,RangeError
 GRL-SETPROTOTYPEOF,setPrototypeOf,TypeError @ INTRINSICS.Object.setPrototypeOf
 GRL-EXTENDS,extends new,TypeError
@@ -30,5 +39,5 @@ GRL-DELETE,delete,
 GRL-FORDECL,for ( const [,
 GRL-FORDECL,for ( const {,
 GRL-FORDECL,for ( var,
-ECM-STATIC,super [ x ],native code
-ECM-STATIC,super [ this ],native code
+ECM-STATIC,static,native code
+ECM-STATIC,static,descriptor value of

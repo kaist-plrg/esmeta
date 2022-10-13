@@ -113,12 +113,12 @@ class Fuzzer(
         startInterval += seconds
       }
     }
-    val (selectorName, script, condView, nearest) = selector(pool, cov)
+    val (selectorName, script, condView) = selector(pool, cov)
     val selectorInfo = selectorName + condView.map(" - " + _).getOrElse("")
     val code = script.code
     debugging(f"[$selectorInfo%-30s] $code")
 
-    val (mutatorName, mutated) = mutator(code, condView, nearest)
+    val (mutatorName, mutated) = mutator(code, condView.map((_, cov)))
     val mutatedCode = mutated.toString(grammar)
     debugging(f"----- $mutatorName%-20s-----> $mutatedCode")
 
@@ -141,7 +141,7 @@ class Fuzzer(
       covered
     }
     debugging(f" ${"COVERAGE RESULT"}%30s: ", newline = false)
-    result match {
+    val pass = result match
       case Success(covered)             => debugging(passMsg("")); covered
       case Failure(e: TimeoutException) => debugging(failMsg("TIMEOUT")); false
       case Failure(e: NotSupported) =>
@@ -152,9 +152,9 @@ class Fuzzer(
             debugClean
           case msg =>
             debugging(failMsg(msg))
-            debugFlush
         false
-    }
+    debugFlush
+    pass
 
   // a pass-or-fail counter
   case class Counter(pass: Int = 0, fail: Int = 0)
@@ -294,7 +294,7 @@ class Fuzzer(
     val t = Time(d).simpleString
     val nv = cov.nodeViewCov
     val bv = cov.branchViewCov
-    val tc = cov.targetCondSize
+    val tc = cov.targetCondViews.size
     var row = Vector(iter, d, t, visited.size, pool.size, n, b)
     if (synK.isDefined) row ++= Vector(nv, bv)
     row ++= Vector(tc)

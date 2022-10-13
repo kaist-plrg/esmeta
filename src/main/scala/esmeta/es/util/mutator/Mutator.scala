@@ -10,25 +10,21 @@ import esmeta.util.*
 trait Mutator {
 
   /** mutate programs */
-  def apply(code: String): (String, Ast) = apply(code, None, None)
+  def apply(code: String): (String, Ast) = apply(code, None)
 
   /** mutate programs */
   def apply(
     code: String,
-    condView: Option[CondView],
-    nearest: Option[Nearest],
-  ): (String, Ast) = apply(cfg.scriptParser.from(code), condView, nearest)
+    target: Option[(CondView, Coverage)],
+  ): (String, Ast) = apply(cfg.scriptParser.from(code), target)
+
+  /** mutate programs */
+  def apply(ast: Ast): (String, Ast) = apply(ast, None)
 
   /** mutate programs */
   def apply(
     ast: Ast,
-  ): (String, Ast) = apply(ast, None, None)
-
-  /** mutate programs */
-  def apply(
-    ast: Ast,
-    condView: Option[CondView],
-    nearest: Option[Nearest],
+    target: Option[(CondView, Coverage)],
   ): (String, Ast)
 
   /** Possible names of underlying mutators */

@@ -3,7 +3,7 @@ package esmeta.es.util.mutator
 import esmeta.cfg.CFG
 import esmeta.es.*
 import esmeta.es.util.synthesizer.*
-import esmeta.es.util.{Walker => AstWalker}
+import esmeta.es.util.{Walker => AstWalker, *}
 import esmeta.es.util.Coverage.*
 import esmeta.spec.Grammar
 import esmeta.util.*
@@ -18,11 +18,12 @@ class NearestMutator(
   /** mutate programs */
   def apply(
     ast: Ast,
-    condView: Option[CondView],
-    nearest: Option[Nearest],
-  ): (String, Ast) = nearest.fold {
-    randomMutator(ast, condView, nearest)
-  } { case (ty, loc) => (names.head, Walker(ty, loc).walk(ast)) }
+    target: Option[(CondView, Coverage)],
+  ): (String, Ast) = (for {
+    (condView, cov) <- target
+    (ty, loc) <- cov.targetCondViews.getOrElse(condView, None)
+  } yield (names.head, Walker(ty, loc).walk(ast)))
+    .getOrElse(randomMutator(ast, target))
 
   /** internal walker */
   class Walker(ty: AstSingleTy, loc: Loc) extends AstWalker {

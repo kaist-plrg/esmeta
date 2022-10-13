@@ -226,6 +226,14 @@ case object CmdConformTest
     }
 }
 
+/** `localize` command */
+case object CmdLocalize extends Command("localize", CmdBase >> Localize) {
+  val help = "localize bug using given jsons"
+  val examples = List(
+    "esmeta localize node-coverage.json minimal-touch-node.json fails.json # localize using given jsons",
+  )
+}
+
 // -----------------------------------------------------------------------------
 // ECMAScript Static Analysis (Meta-Level Static Analysis)
 // -----------------------------------------------------------------------------

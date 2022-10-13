@@ -27,9 +27,9 @@ class Coverage(
   def minimalScripts: Set[Script] = _minimalScripts.toSet
   private val _minimalScripts: MSet[Script] = MSet()
 
-  // mapping from script to conformance tests
-  def minimalTests: Map[Script, ConformTest] = _minimalTests.toMap
-  private val _minimalTests: MMap[Script, ConformTest] = MMap()
+  // meta-info of each script
+  case class ScriptInfo(test: ConformTest, touchedNodes: Iterable[NodeView])
+  private val _minimalInfo: MMap[String, ScriptInfo] = MMap()
 
   // target conditional branches
   def targetCondViews: Map[CondView, Option[Nearest]] = _targetCondViews.toMap
@@ -97,9 +97,13 @@ class Coverage(
         case _ if condViewMap contains neg => _targetCondViews -= neg
         case _ => _targetCondViews += condView -> loc
 
-    // update test mapping
+    // update script info
     if (updated)
-      _minimalTests += script -> ConformTest.createTest(initSt, finalSt)
+      _minimalInfo += script.name -> ScriptInfo(
+        ConformTest.createTest(initSt, finalSt),
+        interp.touchedNodeViews.map(_._1),
+      )
+    // assert: _minimalScripts ~= _minimalInfo.keys
 
     (finalSt, updated, covered)
   }
@@ -123,6 +127,7 @@ class Coverage(
   def dumpToWithDetail(baseDir: String, withMsg: Boolean = true): Unit = dumpTo(
     baseDir = baseDir,
     withScripts = true,
+    withScriptInfo = true,
     withtargetCondViews = true,
     withUnreachableFuncs = true,
     withMsg = withMsg,
@@ -132,6 +137,7 @@ class Coverage(
   def dumpTo(
     baseDir: String,
     withScripts: Boolean = false,
+    withScriptInfo: Boolean = false,
     withtargetCondViews: Boolean = false,
     withUnreachableFuncs: Boolean = false,
     withMsg: Boolean = true,
@@ -158,14 +164,24 @@ class Coverage(
         getData = USE_STRICT + _.code,
         remove = true,
       )
-      dumpDir[(Script, ConformTest)](
-        name = if (withMsg) Some("minimal ECMAScript tests") else None,
-        iterable = _minimalTests,
+    if (withScriptInfo)
+      dumpDir[(String, ScriptInfo)](
+        name =
+          if (withMsg) Some("test for minimal ECMAScript programs") else None,
+        iterable = _minimalInfo,
         dirname = s"$baseDir/minimal",
-        getName = _._1.name + ".test",
-        getData = _._2,
+        getName = _._1 + ".test",
+        getData = _._2.test,
         remove = false,
       )
+    dumpJson(
+      name =
+        if (withMsg) Some("touched info of minimal ECMAScript programs")
+        else None,
+      data = minimalTouchNodeJson,
+      filename = s"$baseDir/minimal-touch-node.json",
+      space = false,
+    )
     if (withtargetCondViews)
       dumpJson(
         name = if (withMsg) Some("target conditional branches") else None,
@@ -238,7 +254,7 @@ class Coverage(
       if (count == 0)
         counter -= origScript
         _minimalScripts -= origScript
-        _minimalTests -= origScript
+        _minimalInfo -= origScript.name
 
     // increase the counter of new script
     _minimalScripts += script
@@ -248,8 +264,18 @@ class Coverage(
   // script parser
   private lazy val scriptParser = cfg.scriptParser
 
-  // convertion to string
+  // conversion to string
   private def percent(n: Double, t: Double): Double = n / t * 100
+
+  // get JSON for touched node of minimal
+  private def minimalTouchNodeJson: Json =
+    val nodeViewId: Map[NodeView, Int] =
+      nodeViewMap.keys.toSeq.sorted.zipWithIndex.toMap
+    JsonObject(
+      _minimalInfo.toSeq.map((name, info) =>
+        (name, info.touchedNodes.map(nodeViewId).asJson),
+      ): _*,
+    ).asJson
 
   // get JSON for node coverage
   private def nodeViewMapJson: Json = JsonObject(

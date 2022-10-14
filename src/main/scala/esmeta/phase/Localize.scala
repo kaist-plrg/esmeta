@@ -9,7 +9,7 @@ import scala.collection.mutable.{Map => MMap}
 
 /** `localize` phase */
 case object Localize
-  extends Phase[Unit, Map[String, Map[String, Seq[String]]]] {
+  extends Phase[Unit, Map[String, Map[String, Seq[(String, Double)]]]] {
   val name = "localize"
   val help = "Localize the bug"
 
@@ -17,7 +17,8 @@ case object Localize
   type Target = String
   type Name = String
   type NodeView = String
-  type Result = Map[Target, Map[Name, Seq[Func]]]
+  type Result = Map[Target, Map[Name, Seq[(Func, Double)]]]
+  type MResult = MMap[Target, MMap[Name, Seq[(Func, Double)]]]
 
   private var _config: Config = null
 
@@ -43,7 +44,7 @@ case object Localize
     val total = touchedNodeViewMap.keys.toVector
     val nodes = nodeViewCoverageRaw.keys.toVector
 
-    var result: MMap[Target, MMap[Name, Seq[Func]]] = MMap()
+    var result: MResult = MMap()
 
     failsMap.foreach((target, fails) => {
       val passes = total.filterNot(fails.contains(_))
@@ -69,11 +70,17 @@ case object Localize
           touchedNodeViews.foldLeft(passStatMap)(updateStatMap(false))
 
         val aggregated = statMap.toSeq.groupMapReduce {
-          case (nodeView, _) => nodeView2Function(nodeView)
+          case (nodeView, _) => {
+            val func = nodeView2Function(nodeView)
+            if (config.sens)
+              (func :: (nodeView.split("@").drop(1).toList)).mkString("@")
+            else
+              func
+          }
         }(_._2.score)(_ max _)
 
         val sorted = aggregated.toSeq.sortBy(_._2).reverse
-        result(target)(fail) = sorted.slice(0, 10).map(_._1)
+        result(target)(fail) = sorted.slice(0, 10).toSeq
       })
     })
 
@@ -116,8 +123,14 @@ case object Localize
       BoolOption(c => c.debug = true),
       "turn on debug mode",
     ),
+    (
+      "sens",
+      BoolOption(c => c.sens = true),
+      "turn on sensitive localization mode",
+    ),
   )
   case class Config(
     var debug: Boolean = false,
+    var sens: Boolean = false,
   )
 }

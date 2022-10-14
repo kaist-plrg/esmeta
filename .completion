@@ -27,7 +27,7 @@ _esmeta_completions() {
   transcheckOpt="-transcheck:dir -transcheck:debug"
   fuzzOpt="-fuzz:out -fuzz:log-interval -fuzz:debug -fuzz:timeout -fuzz:trial -fuzz:seed -fuzz:syn-k -fuzz:sens"
   conformtestOpt="-conform-test:debug -conform-test:msgdir -conform-test:engines -conform-test:transpilers"
-  localizeOpt="-localize:debug"
+  localizeOpt="-localize:debug -localize:sens"
   analyzeOpt="-analyze:repl"
   # completion for commands
   case "${COMP_CWORD}" in

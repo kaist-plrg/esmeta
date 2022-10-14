@@ -33,6 +33,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case elem: RefValue    => refValRule(app, elem)
       case elem: Provenance  => provenanceRule(app, elem)
       case elem: Feature     => featureRule(app, elem)
+      case elem: CallGraph   => callGraphRule(app, elem)
 
   // states
   given stRule: Rule[State] = (app, st) =>
@@ -191,4 +192,14 @@ class Stringifier(detail: Boolean, location: Boolean) {
   given featureRule: Rule[Feature] = (app, feature) =>
     val irFunc = feature.func.irFunc
     app >> irFunc.kind >> irFunc.name
+
+  // abstraction of call stack as graph
+  given callGraphRule: Rule[CallGraph] = (app, graph) =>
+    val CallGraph(start, edges, end) = graph
+    given Rule[Call] = (app, call) => app >> call.id
+    app >> "CallGraph[" >> start
+    if (!edges.isEmpty)
+      given Rule[Iterable[(Call, Call)]] = iterableRule("{", ", ", "}")
+      app >> " -> " >> edges.toList.sortBy(_._1.id) >> " -> " >> end
+    app >> "]"
 }

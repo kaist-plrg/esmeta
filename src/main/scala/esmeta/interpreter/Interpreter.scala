@@ -613,7 +613,7 @@ class Interpreter(
     prevCtxt: Option[Context] = None,
   ): Context = if (keepProvenance) {
     lazy val prevFeatureStack = prevCtxt.fold(Nil)(_.featureStack)
-    lazy val prevInternalStack = prevCtxt.fold(Nil)(_.internalStack)
+    lazy val prevCallGraph = prevCtxt.fold(None)(_.callGraph)
     lazy val prevNearest = prevCtxt.flatMap(_.nearest)
     func.head match
       case Some(head: SyntaxDirectedOperationHead) =>
@@ -623,17 +623,17 @@ class Interpreter(
           loc <- ast.loc
           ty = AstSingleTy(name, idx, ast.subIdx)
         } yield Nearest(ty, loc)
-        Context(func, locals, feature :: prevFeatureStack, Nil, nearest)
+        Context(func, locals, feature :: prevFeatureStack, nearest)
       case Some(head: BuiltinHead) =>
         val feature = BuiltinFeature(func, head)
-        Context(func, locals, feature :: prevFeatureStack, Nil, None)
+        Context(func, locals, feature :: prevFeatureStack)
       case _ =>
         Context(
           func,
           locals,
           prevFeatureStack,
-          call :: prevInternalStack,
           prevNearest,
+          Some(prevCallGraph.fold(CallGraph(call))(_ + call)),
         )
   } else Context(func, locals)
 }

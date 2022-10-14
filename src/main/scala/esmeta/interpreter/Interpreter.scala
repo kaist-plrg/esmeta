@@ -7,7 +7,11 @@ import esmeta.ir.{Func => IRFunc, *}
 import esmeta.es.*
 import esmeta.parser.{ESParser, ESValueParser}
 import esmeta.state.*
-import esmeta.spec.{SyntaxDirectedOperationHead, AbstractOperationHead}
+import esmeta.spec.{
+  SyntaxDirectedOperationHead,
+  AbstractOperationHead,
+  BuiltinHead,
+}
 import esmeta.ty.*
 import esmeta.util.BaseUtils.{error => _, *}
 import esmeta.util.SystemUtils.*
@@ -608,15 +612,29 @@ class Interpreter(
     locals: MMap[Local, Value],
     prevCtxt: Option[Context] = None,
   ): Context = if (keepProvenance) {
-    val prevSdoList = prevCtxt.fold(Nil)(_.sdoList)
-    val sdoList = (for {
-      SyntaxDirectedOperationHead(_, name, _, _, _) <- func.head
-      AstValue(ast @ Syntactic(_, _, _, _)) = locals(Name("this"))
-    } yield SdoInfo(ast, func, name)).fold(prevSdoList)(_ :: prevSdoList)
-    val internalStack = func.head match
-      case Some(_: SyntaxDirectedOperationHead) => Nil
-      case _ => call :: prevCtxt.fold(Nil)(_.internalStack)
-    Context(func, locals, sdoList, internalStack)
+    lazy val prevFeatureStack = prevCtxt.fold(Nil)(_.featureStack)
+    lazy val prevInternalStack = prevCtxt.fold(Nil)(_.internalStack)
+    lazy val prevNearest = prevCtxt.flatMap(_.nearest)
+    func.head match
+      case Some(head: SyntaxDirectedOperationHead) =>
+        val feature = SyntacticFeature(func, head)
+        val nearest = for {
+          AstValue(ast @ Syntactic(name, _, idx, _)) <- locals.get(Name("this"))
+          loc <- ast.loc
+          ty = AstSingleTy(name, idx, ast.subIdx)
+        } yield Nearest(ty, loc)
+        Context(func, locals, feature :: prevFeatureStack, Nil, nearest)
+      case Some(head: BuiltinHead) =>
+        val feature = BuiltinFeature(func, head)
+        Context(func, locals, feature :: prevFeatureStack, Nil, None)
+      case _ =>
+        Context(
+          func,
+          locals,
+          prevFeatureStack,
+          call :: prevInternalStack,
+          prevNearest,
+        )
   } else Context(func, locals)
 }
 

@@ -17,7 +17,7 @@ trait UnitWalker extends BasicUnitWalker {
     case elem: Value       => walk(elem)
     case elem: RefValue    => walk(elem)
     case elem: Provenance  => walk(elem)
-    case elem: SdoInfo     => walk(elem)
+    case elem: Feature     => walk(elem)
 
   // states
   def walk(st: State): Unit =
@@ -93,6 +93,6 @@ trait UnitWalker extends BasicUnitWalker {
   // provenance
   def walk(provenance: Provenance): Unit = {}
 
-  // syntax directed operation information
-  def walk(sdo: SdoInfo): Unit = {}
+  // ECMAScript features
+  def walk(feature: Feature): Unit = {}
 }

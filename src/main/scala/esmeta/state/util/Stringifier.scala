@@ -32,7 +32,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case elem: Value       => valueRule(app, elem)
       case elem: RefValue    => refValRule(app, elem)
       case elem: Provenance  => provenanceRule(app, elem)
-      case elem: SdoInfo     => sdoInfoRule(app, elem)
+      case elem: Feature     => featureRule(app, elem)
 
   // states
   given stRule: Rule[State] = (app, st) =>
@@ -188,9 +188,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
     sdo.fold(app)(app >> _)
 
   // syntax directed operation information
-  given sdoInfoRule: Rule[SdoInfo] = (app, sdo) =>
-    val SdoInfo(ast, _, sdoName) = sdo
-    val Syntactic(name, args, rhsIdx, _) = ast
-    app >> " <- " >> sdoName
-    app >> " of " >> name >> "[" >> rhsIdx >> ", " >> ast.subIdx >> "]"
+  given featureRule: Rule[Feature] = (app, feature) =>
+    val irFunc = feature.func.irFunc
+    app >> irFunc.kind >> irFunc.name
 }

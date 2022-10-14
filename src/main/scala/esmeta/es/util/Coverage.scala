@@ -40,9 +40,7 @@ class Coverage(
   def apply(cond: Cond): Map[View, Script] = condViewMap.getOrElse(cond, Map())
 
   // get script from nodes or conditions
-  def getScript(node: Node): Option[Script] = getScript(NodeView(node))
   def getScript(nv: NodeView): Option[Script] = apply(nv.node).get(nv.view)
-  def getScript(cond: Cond): Option[Script] = getScript(CondView(cond))
   def getScript(cv: CondView): Option[Script] = apply(cv.cond).get(cv.view)
 
   // mapping from nodes or conditions to scripts
@@ -83,15 +81,15 @@ class Coverage(
         case _ =>
 
     // update target branches
-    for ((condView @ CondView(cond, view), loc) <- interp.touchedCondViews)
+    for ((condView @ CondView(cond, view), nearest) <- interp.touchedCondViews)
       val neg = condView.neg
       cond.elem match
-        case _ if loc.isEmpty             => /* do nothing */
+        case _ if nearest.isEmpty         => /* do nothing */
         case Branch(_, _, EBool(_), _, _) => /* do nothing */
         case ref: WeakUIdRef[EReturnIfAbrupt]
             if !ref.get.check => /* do nothing */
         case _ if getScript(neg).isDefined => _targetCondViews -= neg
-        case _ => _targetCondViews += condView -> loc
+        case _ => _targetCondViews += condView -> nearest
 
     (initSt, finalSt, interp, updated, covered)
   }
@@ -278,9 +276,6 @@ class Coverage(
 
 object Coverage {
 
-  /** Nearest AST Information */
-  type Nearest = (AstSingleTy, Loc)
-
   /** interpreter */
   class Interp(
     initSt: State,
@@ -322,17 +317,14 @@ object Coverage {
 
     // get syntax-sensitive views
     private def getView: View =
-      synK.fold(Nil)(st.context.sdoList.take(_)).map(_.ty)
+      synK.fold(Nil)(st.context.featureStack.take(_))
 
     // get location information
-    private def getNearest: Option[Nearest] = for {
-      sdo <- st.context.sdoList.headOption
-      loc <- sdo.ast.loc
-    } yield (sdo.ty, loc)
+    private def getNearest: Option[Nearest] = st.context.nearest
   }
 
   /* syntax-sensitive views */
-  type View = List[AstSingleTy]
+  type View = List[Feature]
   case class NodeView(node: Node, view: View = Nil) {
     override def toString: String = node.simpleString + {
       if (view.isEmpty) ""
@@ -357,7 +349,7 @@ object Coverage {
   }
 
   /** ordering of syntax-sensitive views */
-  given Ordering[AstSingleTy] = Ordering.by(_.toString)
+  given Ordering[Feature] = Ordering.by(_.toString)
 
   given Ordering[Node] = Ordering.by(_.id)
 

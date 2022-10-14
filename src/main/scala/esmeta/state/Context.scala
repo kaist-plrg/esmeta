@@ -10,8 +10,9 @@ import scala.collection.mutable.{Map => MMap}
 case class Context(
   val func: Func,
   val locals: MMap[Local, Value] = MMap(),
-  val sdoList: List[SdoInfo] = Nil,
+  val featureStack: List[Feature] = Nil,
   val internalStack: List[Call] = Nil,
+  val nearest: Option[Nearest] = None,
 ) extends StateElem {
 
   /** current cursor in this context */
@@ -46,5 +47,5 @@ case class Context(
     if (func.isSDO) Some(locals(NAME_THIS).asAst)
     else None
 
-  def provenance: Provenance = Provenance(cursor, sdoList.headOption)
+  def provenance: Provenance = Provenance(cursor, featureStack.headOption)
 }

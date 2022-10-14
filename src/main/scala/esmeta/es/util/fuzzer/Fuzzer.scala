@@ -25,6 +25,7 @@ object Fuzzer {
     timeLimit: Option[Int] = None, // time limitation for each evaluation
     trial: Option[Int] = None, // `None` denotes no bound
     synK: Option[Int] = None,
+    useSens: Boolean = false,
   ): Coverage = new Fuzzer(
     logInterval,
     debug,
@@ -32,6 +33,7 @@ object Fuzzer {
     timeLimit,
     trial,
     synK,
+    useSens,
   ).result
 
   // debugging levels
@@ -48,6 +50,7 @@ class Fuzzer(
   timeLimit: Option[Int] = None, // time limitation for each evaluation
   trial: Option[Int] = None, // `None` denotes no bound
   synK: Option[Int] = None,
+  useSens: Boolean = false,
 ) {
   import Fuzzer.*
 
@@ -179,7 +182,7 @@ class Fuzzer(
   val scriptParser = cfg.scriptParser
 
   /** coverage */
-  val cov: Coverage = Coverage(timeLimit, synK)
+  val cov: Coverage = Coverage(timeLimit, synK, useSens)
 
   /** target selector */
   val selector: TargetSelector = WeightedSelector(
@@ -258,7 +261,7 @@ class Fuzzer(
       "node(#)",
       "branch(#)",
     )
-    synK.map(k => header ++= Vector(s"$k-syn-node(#)", s"$k-syn-branch(#)"))
+    if (useSens) header ++= Vector(s"sens-node(#)", s"sens-branch(#)")
     header ++= Vector("target-conds(#)")
     addRow(header)
   private def genStatHeader(keys: List[String], nf: PrintWriter) =
@@ -296,7 +299,7 @@ class Fuzzer(
     val bv = cov.branchViewCov
     val tc = cov.targetCondViews.size
     var row = Vector(iter, d, t, visited.size, pool.size, n, b)
-    if (synK.isDefined) row ++= Vector(nv, bv)
+    if (useSens) row ++= Vector(nv, bv)
     row ++= Vector(tc)
     addRow(row)
     // dump coveragge

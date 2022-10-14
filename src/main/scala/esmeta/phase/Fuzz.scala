@@ -26,6 +26,7 @@ case object Fuzz extends Phase[CFG, Coverage] {
       timeLimit = config.timeLimit,
       trial = config.trial,
       synK = config.synK,
+      useSens = config.useSens,
     )
 
     // optionally dump the generated ECMAScript programs
@@ -74,6 +75,11 @@ case object Fuzz extends Phase[CFG, Coverage] {
       NumOption((c, k) => c.synK = Some(k)),
       "set the specific seed for the random number generator. (default: None)",
     ),
+    (
+      "sens",
+      BoolOption(c => c.useSens = true),
+      "set the specific seed for the random number generator. (default: None)",
+    ),
   )
   case class Config(
     var out: Option[String] = None,
@@ -83,5 +89,6 @@ case object Fuzz extends Phase[CFG, Coverage] {
     var trial: Option[Int] = Some(10000),
     var seed: Option[Int] = None,
     var synK: Option[Int] = None,
+    var useSens: Boolean = false,
   )
 }

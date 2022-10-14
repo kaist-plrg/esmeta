@@ -35,6 +35,7 @@ case object Test262Test extends Phase[CFG, Summary] {
       test262.evalTest(
         cmdConfig.targets,
         synK = config.synK,
+        useSens = config.useSens,
       )
     // run test262 eval test
     else
@@ -45,6 +46,7 @@ case object Test262Test extends Phase[CFG, Summary] {
         config.coverage,
         config.timeLimit,
         config.synK,
+        config.useSens,
       )
   }
 
@@ -85,6 +87,11 @@ case object Test262Test extends Phase[CFG, Summary] {
       NumOption((c, k) => c.synK = Some(k)),
       "set the specific seed for the random number generator. (default: None)",
     ),
+    (
+      "sens",
+      BoolOption(c => c.useSens = true),
+      "set the specific seed for the random number generator. (default: None)",
+    ),
   )
   case class Config(
     var target: Option[String] = None,
@@ -94,5 +101,6 @@ case object Test262Test extends Phase[CFG, Summary] {
     var progress: Boolean = false,
     var timeLimit: Option[Int] = None,
     var synK: Option[Int] = None,
+    var useSens: Boolean = false,
   )
 }

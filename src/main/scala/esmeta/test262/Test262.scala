@@ -100,6 +100,7 @@ case class Test262(
     useCoverage: Boolean = true,
     timeLimit: Option[Int] = Some(10), // default: no limit
     synK: Option[Int] = None, // default: insensitive coverage
+    useSens: Boolean = false,
   ): Summary = {
     // get metadata list
     val dataList: List[MetaData] = getDataList(paths.toList)
@@ -116,7 +117,7 @@ case class Test262(
     )
 
     // coverage with time limit
-    lazy val cov = Coverage(timeLimit, synK)
+    lazy val cov = Coverage(timeLimit, synK, useSens)
 
     // run tests with logging
     logForTests(

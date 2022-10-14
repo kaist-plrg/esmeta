@@ -18,6 +18,7 @@ import math.Ordering.Implicits.seqOrdering
 class Coverage(
   timeLimit: Option[Int] = None,
   synK: Option[Int] = None,
+  useSens: Boolean = false,
 ) {
 
   import Coverage.{*, given}
@@ -62,7 +63,7 @@ class Coverage(
 
     // run interpreter and record touched
     val initSt = cfg.init.from(script)
-    val interp = Interp(initSt, timeLimit, synK)
+    val interp = Interp(initSt, timeLimit, synK, useSens)
     val finalSt = interp.result
 
     // update node coverage
@@ -201,18 +202,15 @@ class Coverage(
 
   override def toString: String =
     val app = new Appender
-    (app >> "- coverage:")
-      .wrap("", "") {
-        app :> "- node: " >> nodeCov
-        app :> "- branch: " >> branchCov
-        synK.map(k =>
-          (app :> "- syn-k: " >> k).wrap("", "") {
-            app :> "- node: " >> nodeViewCov
-            app :> "- branch: " >> branchViewCov
-          },
-        )
-      }
-      .toString
+    (app >> "- coverage:").wrap("", "") {
+      app :> "- node: " >> nodeCov
+      app :> "- branch: " >> branchCov
+    }
+    if (useSens) (app :> "- sensitive coverage:").wrap("", "") {
+      app :> "- node: " >> nodeViewCov
+      app :> "- branch: " >> branchViewCov
+    }
+    app.toString
 
   /** extension for AST */
   extension (ast: Ast) {
@@ -327,6 +325,7 @@ object Coverage {
     initSt: State,
     timeLimit: Option[Int],
     synK: Option[Int],
+    useSens: Boolean,
   ) extends Interpreter(
       initSt,
       timeLimit = timeLimit,
@@ -362,40 +361,35 @@ object Coverage {
       super.returnIfAbrupt(riaExpr, value, check)
 
     // get syntax-sensitive views
-    private def getView: View =
-      synK.fold(Nil)(st.context.featureStack.take(_))
+    private def getView: View = if (useSens) for {
+      feature <- st.context.featureStack.headOption
+      graph <- st.context.callGraph
+      if useSens
+    } yield (feature, graph)
+    else None
 
     // get location information
     private def getNearest: Option[Nearest] = st.context.nearest
   }
 
   /* syntax-sensitive views */
-  type View = List[Feature]
-  case class NodeView(node: Node, view: View = Nil) {
-    override def toString: String = node.simpleString + {
-      if (view.isEmpty) ""
-      else
-        "@" + (view match
-          case List(ty) => ty.toString
-          case _        => view.mkString("[", ", ", "]")
-        )
-    }
+  type View = Option[(Feature, CallGraph)]
+  case class NodeView(node: Node, view: View = None) {
+    override def toString: String = node.simpleString + (view.fold("") {
+      case (feature, graph) => s"@ $feature:$graph"
+    })
   }
-  case class CondView(cond: Cond, view: View = Nil) {
+  case class CondView(cond: Cond, view: View = None) {
     def neg: CondView = copy(cond = cond.neg)
 
-    override def toString: String = cond.toString + {
-      if (view.isEmpty) ""
-      else
-        "@" + (view match
-          case List(ty) => ty.toString
-          case _        => view.mkString("[", ", ", "]")
-        )
-    }
+    override def toString: String = cond.toString + (view.fold("") {
+      case (feature, graph) => s"@ $feature:$graph"
+    })
   }
 
   /** ordering of syntax-sensitive views */
   given Ordering[Feature] = Ordering.by(_.toString)
+  given Ordering[CallGraph] = Ordering.by(_.toString)
   given Ordering[Node] = Ordering.by(_.id)
   given Ordering[NodeView] = Ordering.by(v => (v.node, v.view))
   given Ordering[Cond] = Ordering.by(cond => (cond.kindString, cond.id))

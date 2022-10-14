@@ -1,18 +1,18 @@
 package esmeta.util
 
 import esmeta.LINE_SEP
-import esmeta.util.BaseUtils.{warn, error}
-import esmeta.error.{NoGraal, TimeoutException}
+import esmeta.util.BaseUtils.*
+import esmeta.error.{NoGraalError, TimeoutException}
 import java.io.*
 import java.time.Duration.ZERO
 import org.graalvm.polyglot.*
 import scala.collection.mutable.{Map => MMap}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import scala.util._
 import sys.process._
 import scala.language.postfixOps
 import java.util.StringJoiner
+import scala.util.Using
 
 /** JavaScript Engine utilities */
 object JSEngine {
@@ -136,7 +136,7 @@ object JSEngine {
     context: Context,
     timeout: Option[Int] = None,
   ): Unit =
-    if (!useGraal) throw NoGraal
+    if (!useGraal) throw NoGraalError
     val stat = Status()
     timeout.foreach(millis => registerTimeout(context, millis, stat))
     stat.running = true
@@ -150,7 +150,7 @@ object JSEngine {
     out: ByteArrayOutputStream,
     timeout: Option[Int] = None,
   ): String =
-    if (!useGraal) throw NoGraal
+    if (!useGraal) throw NoGraalError
     val stat = Status()
     out.reset
     timeout.foreach(millis => registerTimeout(context, millis, stat))
@@ -161,7 +161,7 @@ object JSEngine {
     } finally stat.done = true
 
   def usingContext[T](f: (Context, ByteArrayOutputStream) => T): Try[T] =
-    if (!useGraal) throw NoGraal
+    if (!useGraal) throw NoGraalError
     val out = new ByteArrayOutputStream()
     Using(Context.newBuilder("js").out(out).build()) { context =>
       f(context, out)
@@ -187,7 +187,7 @@ object JSEngine {
 
   /** execute a javascript program with the stored context */
   def runInContext(id: String, src: String): Try[Value] =
-    if (!useGraal) throw NoGraal
+    if (!useGraal) throw NoGraalError
 
     val (context, out) = getContext(id)
 
@@ -195,7 +195,7 @@ object JSEngine {
 
   /** execute a javascript program with stored context, and gets its stdout */
   def runInContextAndGetStdout(id: String, src: String): Try[String] =
-    if (!useGraal) throw NoGraal
+    if (!useGraal) throw NoGraalError
 
     val (context, out) = getContext(id)
 

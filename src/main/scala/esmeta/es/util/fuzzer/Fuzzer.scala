@@ -14,7 +14,6 @@ import esmeta.{ESMeta, FUZZ_LOG_DIR, LINE_SEP}
 import io.circe.*, io.circe.syntax.*
 import java.io.PrintWriter
 import scala.collection.mutable.{ListBuffer, Map => MMap}
-import scala.util._
 
 /** ECMAScript program fuzzer with ECMA-262 */
 object Fuzzer {

@@ -210,7 +210,7 @@ case object CmdConformTest
   val examples = List(
     "esmeta comform-test dir      # perform conform test using script and test in dir",
   )
-  override def showResult(fails: Map[String, List[String]]): Unit =
+  override def showResult(fails: Map[String, Seq[String]]): Unit =
     fails.foreach {
       case (e, fails) =>
         println(s"failing tests for `$e`: ")

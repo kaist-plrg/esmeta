@@ -10,7 +10,6 @@ import scala.concurrent.*
 import scala.concurrent.duration.*
 import scala.io.Source
 import scala.sys.process.*
-import scala.util.Try
 import io.circe.*, io.circe.syntax.*, io.circe.parser.*
 
 /** file utilities */

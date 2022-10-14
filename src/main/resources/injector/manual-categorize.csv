@@ -1,6 +1,6 @@
 TAG,pattern in script,pattern in message
 TIMEOUT,,but got timeout
-BBL-FAILURE,TRANSPILE_FAILURE,transpile-failure
+BBL-FAILURE,,but got transpile-failure
 BBL-DESTRUCT-NULL,_extends,Expected throw-error: TypeError @ RequireObjectCoercible <- BindingInitialization of BindingPattern
 BBL-STATIC-PRIVATE-IN,===,TypeError @ RelationalExpression[7
 BBL-COMPUTED-IN,_defineProperty,TypeError @ RelationalExpression[6

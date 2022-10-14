@@ -5,7 +5,7 @@ import esmeta.analyzer.*
 import esmeta.analyzer.domain.*
 import esmeta.cfgBuilder.CFGBuilder
 import esmeta.compiler.Compiler
-import esmeta.error.NoGraal
+import esmeta.error.NoGraalError
 import esmeta.es.util.injector.*
 import esmeta.es.util.withCFG
 import esmeta.interpreter.*
@@ -109,7 +109,7 @@ object ESTest {
       val (origTest, transTest) = ConformTest.createTestPair(str)
       assert(origTest.isPass)
       assert(transTest.isPass)
-    } catch { case NoGraal => }
+    } catch { case NoGraalError => }
   }
   def transCheckTestFile(filename: String): Unit =
     transCheckTest(readFile(filename))

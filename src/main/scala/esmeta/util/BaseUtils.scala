@@ -58,6 +58,9 @@ object BaseUtils {
   /** show duration time with loading message and only get data */
   def showTime[T](msg: String, f: => T): T = time(msg, f)._2
 
+  /** export scala.util.Try */
+  export scala.util.{Try, Success, Failure}
+
   /** get catched error message */
   def optional[T](f: => T): Option[T] = Try(f).toOption
 

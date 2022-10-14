@@ -73,12 +73,12 @@ case object Fuzz extends Phase[CFG, Coverage] {
     (
       "syn-k",
       NumOption((c, k) => c.synK = Some(k)),
-      "set the specific seed for the random number generator. (default: None)",
+      "set the k-value for syntax sensitivity. (default: None)",
     ),
     (
       "sens",
       BoolOption(c => c.useSens = true),
-      "set the specific seed for the random number generator. (default: None)",
+      "turn on the internal-sensitivity mode",
     ),
   )
   case class Config(

@@ -2,7 +2,7 @@ package esmeta.es.util.injector
 
 import esmeta.*
 import esmeta.cfg.CFG
-import esmeta.error.{NoGraal, TimeoutException}
+import esmeta.error.{NoGraalError, TimeoutException}
 import esmeta.es.*
 import esmeta.es.util.*
 import esmeta.state.State
@@ -64,7 +64,7 @@ case class ConformTest(
         val msg = e.getMessage
         val tag =
           if msg.contains("Error:") then ThrowErrorTag(msg.split(":").head)
-          else if msg.contains(Babel.failTag) then TranspileFailTag
+          else if msg.contains(JSTrans.failTag) then TranspileFailTag
           else ThrowValueTag(esmeta.state.Str(msg))
         Success((tag, Vector(), Vector()))
       case e: TimeoutException =>
@@ -80,7 +80,7 @@ case class ConformTest(
   /** Indicates if the test is passed */
   lazy val isPass =
     try sameExitTag && failedAssertions.length == 0
-    catch { case NoGraal => true }
+    catch { case NoGraalError => true }
 
   /** human readable message indication the reason of test fail */
   lazy val msg =
@@ -118,7 +118,7 @@ object ConformTest {
   /** Create a pair of tests using code string */
   def createTestPair(script: String): (ConformTest, ConformTest) =
     val engineScript = USE_STRICT + script
-    val transpiledScript = Babel.transpile(engineScript)
+    val transpiledScript = JSTrans.transpileUsingBabel(engineScript)
     val injectedTest = Injector(script, true)
     val engineTest =
       injectedTest.replaceScript(engineScript)

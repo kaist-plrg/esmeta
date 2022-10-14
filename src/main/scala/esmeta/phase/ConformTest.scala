@@ -7,7 +7,7 @@ import esmeta.es.util.injector.*
 import esmeta.util.*
 import esmeta.util.SystemUtils.*
 import esmeta.util.BaseUtils.*
-import esmeta.util.JSEngine
+import esmeta.util.{JSEngine, JSTrans}
 
 /** `conform-test` phase */
 case object ConformTest extends Phase[Unit, Map[String, Seq[String]]] {
@@ -15,6 +15,7 @@ case object ConformTest extends Phase[Unit, Map[String, Seq[String]]] {
   val help = "Perform conformance test for an ECMAScript Engine or a transpiler"
 
   private var _config: Config = null
+  private var dirname = ""
   private type Result = Map[String, List[String]]
 
   def apply(_unit: Unit, cmdConfig: CommandConfig, config: Config): Result =
@@ -22,7 +23,8 @@ case object ConformTest extends Phase[Unit, Map[String, Seq[String]]] {
     config.msgdir.foreach(cleanDir)
 
     // validate the target scripts
-    val dirname = getFirstFilename(cmdConfig, this.name)
+    dirname = optional(getFirstFilename(cmdConfig, this.name))
+      .getOrElse(s"$FUZZ_LOG_DIR/recent/minimal")
     val files = listFiles(dirname).filter(_.isFile).map(_.getName)
     if (files.isEmpty)
       warnUsage
@@ -43,15 +45,23 @@ case object ConformTest extends Phase[Unit, Map[String, Seq[String]]] {
     val scriptResult = for {
       file <- fileMap("js")
       _ = if (_config.debug) println(s"========= Testing $file... ==========")
+      // read files
       script = readFile(s"$dirname/$file")
       testfile = file + ".test" // guaranteed to exist
       test = readFile(s"$dirname/$testfile")
-      engineResult = engineConformTest(file, script, test, engines)
-      transResult = transConformTest(file, script, test, transpilers)
+      // do test
+      engineResult = doConformTest(file, script, test, engines)
+      transResult = doConformTest(
+        file,
+        script,
+        test,
+        transpilers,
+        isTrans = true,
+      )
       if (!engineResult.isEmpty || !transResult.isEmpty)
     } yield (file, engineResult, transResult)
 
-    // transpose the result and colelct result per engine/transpiler
+    // transpose the result and collect result per engine/transpiler
     val result = scriptResult.foldLeft[Result](Map()) {
       case (result, (file, engineFails, transFails)) =>
         val eResult = updateResult(result, engineFails, file)
@@ -82,35 +92,37 @@ case object ConformTest extends Phase[Unit, Map[String, Seq[String]]] {
     assert(fileMap.contains("js") && fileMap.contains("test"))
     assert(fileMap("js").map(_ + ".test") == fileMap("test"))
 
-  private def engineConformTest(
+  private def doConformTest(
     file: String,
     script: String,
     test: String,
-    engines: List[String],
+    targets: List[String],
+    isTrans: Boolean = false,
   ) =
-    val exitTagPattern = "(?<=\\[EXIT\\] )[^\n\r]*".r
     val exitTagRaw = exitTagPattern.findFirstIn(test).get
     val exitTag = ExitTag(exitTagRaw).get
     val isNormal = exitTag == NormalTag
     val src = test.replace(placeholder, script)
-    engines.filter(e => {
-      val (concreteExitTag, stdout) =
+    targets.filter(target => {
+      val (concreteExitTag, stdout) = if (!isTrans) {
         JSEngine
-          .runUsingBinary(e, src)
+          .runUsingBinary(target, src)
           .map((NormalTag, _))
-          .recover(_ match {
-            case e: TimeoutException => (TimeoutTag, "")
-            case e =>
-              val msg = e.getMessage
-              val errorPattern = "[\\w]+Error(?=: )".r
-              val tag = errorPattern.findFirstIn(msg) match {
-                case Some(name)                          => ThrowErrorTag(name)
-                case _ if msg.contains(transpileFailure) => TranspileFailTag
-                case _ => ThrowValueTag(esmeta.state.Str(msg))
-              }
-              (tag, "")
-          })
+          .recover(engineErrorResolver _)
           .get
+      } else {
+        JSTrans
+          .transpileFileUsingBinary(target, s"$dirname/$file")
+          .map(transpiled => {
+            val transpiledSrc = test.replace(placeholder, transpiled)
+            JSEngine
+              .run(transpiledSrc)
+              .map((NormalTag, _))
+              .recover(engineErrorResolver _)
+              .get
+          })
+          .getOrElse((TranspileFailTag, ""))
+      }
 
       val sameExitTag = exitTag.equivalent(concreteExitTag)
       val pass = sameExitTag && stdout.isEmpty
@@ -134,8 +146,8 @@ case object ConformTest extends Phase[Unit, Map[String, Seq[String]]] {
           },
         )
 
-        val msg = s"""Test fail for `$e`
-                     |TAG: $category"
+        val msg = s"""Test fail for `$target`
+                     |TAG: $category
                      |$detail
                      |""".stripMargin
 
@@ -152,17 +164,21 @@ case object ConformTest extends Phase[Unit, Map[String, Seq[String]]] {
       !pass
     })
 
-  private def transConformTest(
-    file: String,
-    script: String,
-    test: String,
-    transpilers: List[String],
-  ) =
-    transpilers.filter(t => {
-      false
-    })
-
+  private val exitTagPattern = "(?<=\\[EXIT\\] )[^\n\r]*".r
+  private val errorPattern = "[\\w]+Error(?=: )".r
   private val transpileFailure = "FAILURE"
+
+  private def engineErrorResolver(engineError: Throwable) =
+    engineError match {
+      case e: TimeoutException => (TimeoutTag, "")
+      case e =>
+        val msg = e.getMessage
+        val tag = errorPattern.findFirstIn(msg) match {
+          case Some(name) => ThrowErrorTag(name)
+          case _          => ThrowValueTag(esmeta.state.Str(msg))
+        }
+        (tag, "")
+    }
 
   private def updateResult(
     result: Result,

@@ -241,16 +241,26 @@ let $verifyProperty = (obj, prop, desc) => {
 }
 
 // delay checking assertions in JS runtime environment
-// supported: Node, QuickJs
+// (supported: Node, QuickJs)
+// or wait for 10 microtasks in JS Engine
+// (might be broken if there are more than 10 awaits in program, etc.)
 let $delay = (f) => {
   var setTimeout = globalThis.setTimeout;
   import("os")
     .then((os) => {
       // qjs
-      if (!setTimeout) setTimeout = os?.setTimeout;
+      setTimeout ??= os?.setTimeout;
     })
     .catch(() => {})
-    .finally(() => {
-      setTimeout(f, 0);
+    .then(() => {
+      if(setTimeout)
+        setTimeout(f, 0);
+      else {
+        var p = Promise.resolve();
+        // delay 10 times
+        for(var i = 0; i < 10; i++)
+          p = p.then(() => {});
+        p.then(f);
+      }
     });
 }

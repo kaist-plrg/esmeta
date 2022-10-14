@@ -126,16 +126,11 @@ object ConformTest {
       engineTest.filterAssertion.replaceScript(transpiledScript)
     (engineTest, transpiledTest)
 
-  /** Create a pair of tests using init state and exit state */
-  def createTestPair(initSt: State, exitSt: State): (ConformTest, ConformTest) =
-    val engineScript = USE_STRICT + initSt.sourceText.get
-    val transpiledScript = Babel.transpile(engineScript)
-    val injectedTest = new Injector(initSt, exitSt, true, false).conformTest
-    val engineTest =
-      injectedTest.replaceScript(engineScript)
-    val transpiledTest =
-      engineTest.filterAssertion.replaceScript(transpiledScript)
-    (engineTest, transpiledTest)
+  /** Create a test using init state and exit state */
+  def createTest(initSt: State, exitSt: State): ConformTest =
+    val script = initSt.sourceText.get
+    new Injector(initSt, exitSt, true, false).conformTest
+      .replaceScript(placeholder)
 
   /** Manually written rule to categorize bugs kind */
   lazy val manualRule =
@@ -143,4 +138,7 @@ object ConformTest {
       .split(LINE_SEP)
       .drop(1) // drop header
       .map(l => l.split(",", -1))
+
+  /** placeholder for script */
+  val placeholder = "//SCRIPT_PLACEHOLDER"
 }

@@ -4,6 +4,7 @@ import esmeta.LINE_SEP
 import esmeta.cfg.*
 import esmeta.es.*
 import esmeta.es.util.*
+import esmeta.es.util.injector.*
 import esmeta.interpreter.*
 import esmeta.ir.{Expr, EParse, EReturnIfAbrupt, EBool}
 import esmeta.state.*
@@ -21,15 +22,19 @@ class Coverage(
 
   import Coverage.{*, given}
 
-  // all meaningful scripts
+  // minimal scripts
   def minimalScripts: Set[Script] = _minimalScripts
   private var _minimalScripts: Set[Script] = Set()
+
+  // meta-info of each script
+  case class ScriptInfo(test: ConformTest, touchedNodeViews: Iterable[NodeView])
+  private var _minimalInfo: Map[String, ScriptInfo] = Map()
 
   // target conditional branches
   def targetCondViews: Map[CondView, Option[Nearest]] = _targetCondViews
   private var _targetCondViews: Map[CondView, Option[Nearest]] = Map()
 
-  // the number of all meaningful code set
+  // the number of minimal scripts
   def size: Int = counter.size
 
   // script reference counter
@@ -52,7 +57,7 @@ class Coverage(
   /** evaluate a given ECMAScript program, update coverage, and return
     * evaluation result with whether it succeeds to increase coverage
     */
-  def runAndCheck(script: Script): (State, State, Interp, Boolean, Boolean) = {
+  def runAndCheck(script: Script): (State, Boolean, Boolean) = {
     val Script(code, name) = script
 
     // run interpreter and record touched
@@ -91,30 +96,37 @@ class Coverage(
         case _ if getScript(neg).isDefined => _targetCondViews -= neg
         case _ => _targetCondViews += condView -> nearest
 
-    (initSt, finalSt, interp, updated, covered)
+    // update script info
+    if (updated)
+      _minimalInfo += script.name -> ScriptInfo(
+        ConformTest.createTest(initSt, finalSt),
+        interp.touchedNodeViews.map(_._1),
+      )
+    // assert: _minimalScripts ~= _minimalInfo.keys
+
+    (finalSt, updated, covered)
   }
 
   /** evaluate a given ECMAScript program, update coverage, and return
     * evaluation result
     */
   def run(script: Script): State = {
-    val (_, st, _, _, _) = runAndCheck(script);
+    val (st, _, _) = runAndCheck(script);
     st
   }
 
   /** get node coverage */
   def nodeCov: Int = nodeViewMap.size
-
   def nodeViewCov: Int = nodeViews.size
 
   /** get branch coverage */
   def branchCov: Int = condViewMap.size
-
   def branchViewCov: Int = condViews.size
 
   def dumpToWithDetail(baseDir: String, withMsg: Boolean = true): Unit = dumpTo(
     baseDir = baseDir,
     withScripts = true,
+    withScriptInfo = true,
     withTargetCondViews = true,
     withUnreachableFuncs = true,
     withMsg = withMsg,
@@ -124,6 +136,7 @@ class Coverage(
   def dumpTo(
     baseDir: String,
     withScripts: Boolean = false,
+    withScriptInfo: Boolean = false,
     withTargetCondViews: Boolean = false,
     withUnreachableFuncs: Boolean = false,
     withMsg: Boolean = true,
@@ -147,9 +160,27 @@ class Coverage(
         iterable = _minimalScripts,
         dirname = s"$baseDir/minimal",
         getName = _.name,
-        getData = _.code,
+        getData = USE_STRICT + _.code,
         remove = true,
       )
+    if (withScriptInfo)
+      dumpDir[(String, ScriptInfo)](
+        name =
+          if (withMsg) Some("test for minimal ECMAScript programs") else None,
+        iterable = _minimalInfo,
+        dirname = s"$baseDir/minimal",
+        getName = _._1 + ".test",
+        getData = _._2.test,
+        remove = false,
+      )
+    dumpJson(
+      name =
+        if (withMsg) Some("touched info of minimal ECMAScript programs")
+        else None,
+      data = minimalTouchNodeJson,
+      filename = s"$baseDir/minimal-touch-node.json",
+      space = false,
+    )
     if (withTargetCondViews)
       dumpJson(
         name = if (withMsg) Some("target conditional branches") else None,
@@ -220,12 +251,17 @@ class Coverage(
     view: View,
     script: Script,
   ): Map[View, Script] =
-    for (script <- map.get(view))
-      val count = counter(script) - 1
+    // decrease counter of original script
+    for (origScript <- map.get(view)) {
+      val count = counter(origScript) - 1
+      counter += (origScript -> count)
       if (count == 0) {
-        counter -= script; _minimalScripts -= script
+        counter -= origScript
+        _minimalScripts -= origScript
+        _minimalInfo -= origScript.name
       }
-      counter += script -> count
+    }
+    // increse counter of new script
     _minimalScripts += script
     counter += script -> (counter.getOrElse(script, 0) + 1)
     map + (view -> script)
@@ -233,8 +269,18 @@ class Coverage(
   // script parser
   private lazy val scriptParser = cfg.scriptParser
 
-  // convertion to string
+  // conversion to string
   private def percent(n: Double, t: Double): Double = n / t * 100
+
+  // get JSON for touched node of minimal
+  private def minimalTouchNodeJson: Json =
+    val nodeViewId: Map[NodeView, Int] =
+      nodeViews.toSeq.sorted.zipWithIndex.toMap
+    JsonObject(
+      _minimalInfo.toSeq.map((name, info) =>
+        (name, info.touchedNodeViews.map(nodeViewId).asJson),
+      ): _*,
+    ).asJson
 
   // get JSON for node coverage
   private def nodeViewMapJson: Json = JsonObject(
@@ -350,13 +396,9 @@ object Coverage {
 
   /** ordering of syntax-sensitive views */
   given Ordering[Feature] = Ordering.by(_.toString)
-
   given Ordering[Node] = Ordering.by(_.id)
-
   given Ordering[NodeView] = Ordering.by(v => (v.node, v.view))
-
   given Ordering[Cond] = Ordering.by(cond => (cond.kindString, cond.id))
-
   given Ordering[CondView] = Ordering.by(v => (v.cond, v.view))
 
   // branch or reference to EReturnIfAbrupt with boolean values

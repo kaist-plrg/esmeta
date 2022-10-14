@@ -203,6 +203,29 @@ case object CmdFuzz extends Command("fuzz", CmdBuildCFG >> Fuzz) {
     println(cov)
 }
 
+/** `comform-test` command */
+case object CmdConformTest
+  extends Command("conform-test", CmdBase >> ConformTest) {
+  val help = "perform conform test for an ECMAScript engine or a transpiler."
+  val examples = List(
+    "esmeta comform-test dir      # perform conform test using script and test in dir",
+  )
+  override def showResult(fails: Map[String, List[String]]): Unit =
+    fails.foreach {
+      case (e, fails) =>
+        println(s"failing tests for `$e`: ")
+        fails.foreach(f => println(s"  $f"))
+    }
+}
+
+/** `localize` command */
+case object CmdLocalize extends Command("localize", CmdBase >> Localize) {
+  val help = "localize bug using given jsons"
+  val examples = List(
+    "esmeta localize node-coverage.json minimal-touch-node.json fails.json # localize using given jsons",
+  )
+}
+
 // -----------------------------------------------------------------------------
 // ECMAScript Static Analysis (Meta-Level Static Analysis)
 // -----------------------------------------------------------------------------

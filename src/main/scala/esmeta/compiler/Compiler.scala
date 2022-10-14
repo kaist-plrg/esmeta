@@ -32,6 +32,7 @@ class Compiler(
   /** compiled specification */
   lazy val result: Program =
     for (algo <- spec.algorithms) compile(algo)
+    funcs ++= unusedManualFuncs.map(manualFuncs)
     val program = Program(funcs.toList, spec)
     // set allocation site to AllocExpr
     AllocSiteSetter(program)
@@ -40,14 +41,14 @@ class Compiler(
     program
 
   /** load manually created AOs */
-  val manualAlgos = (for {
+  val manualFuncs: Map[String, Func] = (for {
     file <- spec.manualInfo.funcFiles
     func = Func.fromFile(file.toString)
-  } yield func).toList
-  val manualAlgoNames = manualAlgos.map(_.name).toSet
+  } yield func.name -> func).toMap
+  var unusedManualFuncs: Set[String] = manualFuncs.keySet
 
   /** compiled algorithms */
-  val funcs: ListBuffer[Func] = ListBuffer.from(manualAlgos)
+  val funcs: ListBuffer[Func] = ListBuffer()
 
   /** load manual compile rules */
   val manualRules: ManualInfo.CompileRule = spec.manualInfo.compileRule
@@ -105,12 +106,6 @@ class Compiler(
     "IfAbruptRejectPromise",
   )
 
-  /* set of function names not to compile */
-  // TODO why "INTRINSICS.Array.prototype[@@unscopables]" is excluded?
-  val excluded = manualAlgoNames ++ shorthands ++ Set(
-    "INTRINSICS.Array.prototype[@@unscopables]",
-  )
-
   /* get function kind */
   def getKind(head: Head): FuncKind = {
     import FuncKind.*
@@ -151,8 +146,12 @@ class Compiler(
     fb: FuncBuilder,
     body: Step,
     prefix: List[Inst] = Nil,
-  ): Unit =
-    if (!excluded.contains(fb.name))
+  ): Unit = manualFuncs.get(fb.name) match
+    case _ if shorthands contains fb.name =>
+    case Some(func) =>
+      funcs += func.copy(algo = Some(fb.algo))
+      unusedManualFuncs -= fb.name
+    case _ =>
       val inst = compileWithScope(fb, body)
       funcs += fb.getFunc(prefix match
         case Nil => inst

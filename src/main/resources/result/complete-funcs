@@ -1140,6 +1140,7 @@ INTRINSICS.Array.prototype.splice
 INTRINSICS.Array.prototype.toString
 INTRINSICS.Array.prototype.unshift
 INTRINSICS.Array.prototype.values
+INTRINSICS.Array.prototype[@@unscopables]
 INTRINSICS.ArrayBuffer
 INTRINSICS.ArrayBuffer.isView
 INTRINSICS.ArrayBuffer.prototype.slice

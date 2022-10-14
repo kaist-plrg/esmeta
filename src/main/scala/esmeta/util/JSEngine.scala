@@ -90,7 +90,7 @@ object JSEngine {
   def run(src: String, timeout: Option[Int] = None): Try[String] = defaultEngine
     .map {
       case ("GraalVM", _) => runUsingGraal(src, timeout)
-      case (e, _)         => runUsingBinary(e, src) // TODO: implement timeout
+      case (e, _)         => runUsingBinary(e, src)
     }
     .getOrElse(
       error("Default engine is not set"),
@@ -212,12 +212,13 @@ object JSEngine {
     val escapedSrc = escape(src)
     val stdout = new StringJoiner(LINE_SEP)
     val stderr = new StringJoiner(LINE_SEP)
-    s"$runner $escapedSrc" ! ProcessLogger(
+    s"timeout 3s $runner $escapedSrc" ! ProcessLogger(
       out => stdout.add(out),
       err => stderr.add(err),
     ) match {
-      case 0  => stdout.toString
-      case st => throw new Exception(stdout.toString + stderr.toString),
+      case 0   => stdout.toString
+      case 124 => throw TimeoutException(runner)
+      case st  => throw new Exception(stdout.toString + stderr.toString),
     }
   }
 

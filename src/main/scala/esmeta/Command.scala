@@ -224,6 +224,14 @@ case object CmdLocalize extends Command("localize", CmdBase >> Localize) {
   val examples = List(
     "esmeta localize node-coverage.json minimal-touch-node.json fails.json # localize using given jsons",
   )
+  override def showResult(result: Map[String, Map[String, Seq[String]]]): Unit =
+    result.foreach((target, failMap) => {
+      println(s"[Localization result for `$target`]")
+      failMap.foreach((fail, locs) => {
+        println(s"[[$fail]]")
+        locs.foreach(name => println(s"  $name"))
+      })
+    })
 }
 
 // -----------------------------------------------------------------------------

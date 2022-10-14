@@ -5,20 +5,22 @@ import esmeta.util.*
 import esmeta.util.SystemUtils.*
 import esmeta.util.BaseUtils.*
 import io.circe.*
+import scala.collection.mutable.{Map => MMap}
 
 type Func = String
 type Target = String
 type Name = String
 type NodeView = String
+type Result = Map[Target, Map[Name, Seq[Func]]]
 
 /** `localize` phase */
-case object Localize extends Phase[Unit, Any] {
+case object Localize extends Phase[Unit, Result] {
   val name = "localize"
   val help = "Localize the bug"
 
   private var _config: Config = null
 
-  def apply(_unit: Unit, cmdConfig: CommandConfig, config: Config): Unit =
+  def apply(_unit: Unit, cmdConfig: CommandConfig, config: Config): Result =
     _config = config
     // name of json files
     val nodeViewCoverageJson = s"$FUZZ_LOG_DIR/recent/node-coverage.json"
@@ -40,32 +42,43 @@ case object Localize extends Phase[Unit, Any] {
     val total = touchedNodeViewMap.keys.toVector
     val nodes = nodeViewCoverageRaw.keys.toVector
 
+    var result: MMap[Target, MMap[Name, Seq[Func]]] = MMap()
+
     failsMap.foreach((target, fails) => {
-      val passNum = total.size - fails.size
+      val passes = total.filterNot(fails.contains(_))
+      val passNum = passes.size
       val failNum = fails.size
 
       // initial stat map
-      type StatMap = Map[NodeView, NodeStat]
-      val initStatMap = nodes.map(_ -> NodeStat(0, 0, passNum, failNum)).toMap
+      val initStatMap = nodes.map(_ -> NodeStat(0, 0, passNum, 1)).toMap
 
-      // update stat of each node by iterating all tests
-      val statMap = total.foldLeft(initStatMap) {
+      // update stat of each node by iterating all successful tests
+      val passStatMap = passes.foldLeft(initStatMap) {
         case (statMap, test) =>
-          val isPass = !fails.contains(test)
           val touchedNodeViews = touchedNodeViewMap(test).map(id2NodeView)
-
-          def updateStatMap(statMap: StatMap, nodeView: NodeView) =
-            statMap.updatedWith(nodeView)(_.map(_.touch(isPass)))
-
-          touchedNodeViews.foldLeft(statMap)(updateStatMap)
+          touchedNodeViews.foldLeft(statMap)(updateStatMap(true))
       }
 
-      val sorted = statMap.toSeq.sortBy(_._2.score).reverse
-      sorted
-        .slice(0, 10)
-        .foreach((k, v) => println(s"${nodeView2Function(k)}: ${v.score}"))
-      // TODO: function aggregation
+      result(target) = MMap()
+
+      // calculate score for each failed tests
+      fails.foreach(fail => {
+        val touchedNodeViews = touchedNodeViewMap(fail).map(id2NodeView)
+        val statMap =
+          touchedNodeViews.foldLeft(passStatMap)(updateStatMap(false))
+
+        val aggregated = statMap.toSeq.groupMapReduce {
+          case (nodeView, _) => nodeView2Function(nodeView)
+        }(_._2.score)(_ max _)
+
+        val sorted = aggregated.toSeq.sortBy(_._2).reverse
+        result(target)(fail) = sorted.slice(0, 10).map(_._1)
+      })
     })
+
+    dumpJson(result, s"$LOCALIZE_LOG_DIR/localize.json")
+
+    result.toMap.map((k, v) => k -> v.toMap)
 
   /** used to parse node-coverage json */
   case class Info(func: Func, id: Int = id)
@@ -89,6 +102,11 @@ case object Localize extends Phase[Unit, Any] {
     }
     lazy val score = ef - ep / (ep + np + 1.0)
   }
+
+  private type StatMap = Map[NodeView, NodeStat]
+  private def updateStatMap(pass: Boolean) =
+    (statMap: StatMap, nodeView: NodeView) =>
+      statMap.updatedWith(nodeView)(_.map(_.touch(pass)))
 
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(

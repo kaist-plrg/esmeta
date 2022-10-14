@@ -18,6 +18,7 @@ val ANALYZE_LOG_DIR = s"$LOG_DIR/analyze"
 val FUZZ_LOG_DIR = s"$LOG_DIR/fuzz"
 val INJECT_LOG_DIR = s"$LOG_DIR/inject"
 val CONFORMTEST_LOG_DIR = s"$LOG_DIR/conform-test"
+val LOCALIZE_LOG_DIR = s"$LOG_DIR/localize"
 val EVAL_LOG_DIR = s"$LOG_DIR/eval"
 val TEST262TEST_LOG_DIR = s"$LOG_DIR/test262"
 

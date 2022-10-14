@@ -52,3 +52,6 @@ case class NoFileName(str: String)
 
 case class NoMode(cmd: String, mode: String)
   extends ArgParseError(s"'$cmd' command has no '$mode' mode.")
+
+case class UnclosedDoubleQuoteError(arg: String)
+  extends ArgParseError(s"There is an unclosed double quote in $arg.")

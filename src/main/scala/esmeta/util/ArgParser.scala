@@ -101,6 +101,18 @@ class ArgParser(cmd: Command[_], cmdConfig: CommandConfig)
       }
     }
 
+    // merge separated args that should be enclosed in double quotes
+    def mergeDoubleQuote(args: List[String]): List[String] = {
+      val (mergedArgs, closed) = args.foldLeft((List[String](), true)) {
+        case ((args, true), arg) =>
+          (arg :: args, arg.count(_ == '"') % 2 == 0)
+        case ((args, false), arg) =>
+          ((args.head + " " + arg) :: args.tail, arg.count(_ == '"') % 2 == 1)
+      }
+      if (!closed) throw UnclosedDoubleQuoteError(mergedArgs.head)
+      mergedArgs.reverse
+    }
+
     // no option error
     lazy val optError: Parser[Unit] = ("-" ~> "[^=]+".r <~ "=") ~ str ^^ {
       case o ~ s => throw NoOptError(o, cmd)
@@ -119,7 +131,7 @@ class ArgParser(cmd: Command[_], cmdConfig: CommandConfig)
       phrase(optError) | phrase(simpleOptError) | phrase(fileName),
     ) { case (rule, prev) => phrase(rule) | prev }
 
-    for (arg <- args)
+    for (arg <- mergeDoubleQuote(args))
       parse(parser, arg).get
       jsonArgs.foreach(parse(parser, _).get)
       jsonArgs = Nil

@@ -40,6 +40,12 @@ case class NumOption[T](assign: (T, Int) => Unit) extends OptionKind[T] {
 case class StrOption[T](assign: (T, String) => Unit) extends OptionKind[T] {
   def postfix: String = "={string}"
   def argRegexList(name: String): List[ArgRegex[T]] = List(
+    (
+      ("-" + name + "=").r,
+      "\".+\"".r,
+      (c, s) => assign(c, s.substring(1).init),
+    ),
+    (("-" + name + "=").r, "\"\"".r, (_, _) => throw NoStrArgError(name)),
     (("-" + name + "=").r, ".+".r, (c, s) => assign(c, s)),
     (("-" + name + "=").r, ".*".r, (_, _) => throw NoStrArgError(name)),
     (("-" + name).r, "".r, (_, _) => throw NoStrArgError(name)),

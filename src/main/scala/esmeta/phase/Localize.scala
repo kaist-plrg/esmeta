@@ -7,16 +7,17 @@ import esmeta.util.BaseUtils.*
 import io.circe.*
 import scala.collection.mutable.{Map => MMap}
 
-type Func = String
-type Target = String
-type Name = String
-type NodeView = String
-type Result = Map[Target, Map[Name, Seq[Func]]]
-
 /** `localize` phase */
-case object Localize extends Phase[Unit, Result] {
+case object Localize
+  extends Phase[Unit, Map[String, Map[String, Seq[String]]]] {
   val name = "localize"
   val help = "Localize the bug"
+
+  type Func = String
+  type Target = String
+  type Name = String
+  type NodeView = String
+  type Result = Map[Target, Map[Name, Seq[Func]]]
 
   private var _config: Config = null
 

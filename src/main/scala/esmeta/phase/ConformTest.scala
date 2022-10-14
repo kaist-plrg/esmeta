@@ -9,14 +9,13 @@ import esmeta.util.SystemUtils.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.JSEngine
 
-type Result = Map[String, List[String]]
-
 /** `conform-test` phase */
-case object ConformTest extends Phase[Unit, Result] {
+case object ConformTest extends Phase[Unit, Map[String, Seq[String]]] {
   val name = "conform-test"
   val help = "Perform conformance test for an ECMAScript Engine or a transpiler"
 
   private var _config: Config = null
+  private type Result = Map[String, List[String]]
 
   def apply(_unit: Unit, cmdConfig: CommandConfig, config: Config): Result =
     _config = config

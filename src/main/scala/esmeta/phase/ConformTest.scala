@@ -50,23 +50,15 @@ case object ConformTest extends Phase[Unit, Map[String, Seq[String]]] {
       testfile = file + ".test" // guaranteed to exist
       test = readFile(s"$dirname/$testfile")
       // do test
-      engineResult = doConformTest(file, script, test, engines)
-      transResult = doConformTest(
-        file,
-        script,
-        test,
-        transpilers,
-        isTrans = true,
-      )
-      if (!engineResult.isEmpty || !transResult.isEmpty)
-    } yield (file, engineResult, transResult)
+      targets = engines.map(e => (e, false)) ++ transpilers.map(t => (t, true))
+      result = doConformTest(file, script, test, targets).map(_._1)
+      if (!result.isEmpty)
+    } yield (file, result)
 
     // transpose the result and collect result per engine/transpiler
     val result = scriptResult.foldLeft[Result](Map()) {
-      case (result, (file, engineFails, transFails)) =>
-        val eResult = updateResult(result, engineFails, file)
-        val tResult = updateResult(eResult, transFails, file)
-        tResult
+      case (result, (file, fails)) =>
+        updateResult(result, fails, file)
     }
 
     // dump result as JSON
@@ -96,14 +88,13 @@ case object ConformTest extends Phase[Unit, Map[String, Seq[String]]] {
     file: String,
     script: String,
     test: String,
-    targets: List[String],
-    isTrans: Boolean = false,
-  ) =
+    targets: List[(String, Boolean)],
+  ): List[(String, Boolean)] =
     val exitTagRaw = exitTagPattern.findFirstIn(test).get
     val exitTag = ExitTag(exitTagRaw).get
     val isNormal = exitTag == NormalTag
     val src = test.replace(placeholder, script)
-    targets.filter(target => {
+    targets.filter((target, isTrans) => {
       val (concreteExitTag, stdout) = if (!isTrans) {
         JSEngine
           .runUsingBinary(target, src)

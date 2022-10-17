@@ -28,12 +28,12 @@ class JsonProtocol(cfg: CFG) extends StateJsonProtocol(cfg) {
     new Encoder {
       final def apply(x: Branch | WeakUIdRef[EReturnIfAbrupt]): Json = x match
         case branch: Branch                      => idEncoder("branch")(branch)
-        case abrupt: WeakUIdRef[EReturnIfAbrupt] => idEncoder("branch")(abrupt)
+        case abrupt: WeakUIdRef[EReturnIfAbrupt] => idEncoder("abrupt")(abrupt)
     }
 
   // syntax-sensitive views
-  given viewDecoder: Decoder[View] = deriveDecoder
-  given viewEncoder: Encoder[View] = deriveEncoder
+  given viewDecoder: Decoder[View] = optionDecoder
+  given viewEncoder: Encoder[View] = optionEncoder
   given nodeViewDecoder: Decoder[NodeView] = deriveDecoder
   given nodeViewEncoder: Encoder[NodeView] = deriveEncoder
   given condViewDecoder: Decoder[CondView] = deriveDecoder

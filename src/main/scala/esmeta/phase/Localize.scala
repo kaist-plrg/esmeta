@@ -1,48 +1,58 @@
 package esmeta.phase
 
 import esmeta.*
+import esmeta.cfg.*
+import esmeta.es.util.*
+import esmeta.es.util.Coverage.*
 import esmeta.util.*
 import esmeta.util.SystemUtils.*
 import esmeta.util.BaseUtils.*
-import io.circe.*
+import io.circe.*, io.circe.generic.semiauto.*
 import scala.collection.mutable.{Map => MMap}
 
 /** `localize` phase */
 case object Localize
-  extends Phase[Unit, Map[String, Map[String, Seq[(String, Double)]]]] {
+  extends Phase[CFG, Map[String, Map[String, Seq[(FuncView, Double)]]]] {
   val name = "localize"
   val help = "Localize the bug"
 
-  type Func = String
   type Target = String
   type Name = String
-  type NodeView = String
-  type Result = Map[Target, Map[Name, Seq[(Func, Double)]]]
-  type MResult = MMap[Target, MMap[Name, Seq[(Func, Double)]]]
+  type Result = Map[Target, Map[Name, Seq[(FuncView, Double)]]]
+  type MResult = MMap[Target, MMap[Name, Seq[(FuncView, Double)]]]
 
   private var _config: Config = null
 
-  def apply(_unit: Unit, cmdConfig: CommandConfig, config: Config): Result =
+  def apply(
+    cfg: CFG,
+    cmdConfig: CommandConfig,
+    config: Config,
+  ): Result = withCFG(cfg) {
+    val jsonProtocol = JsonProtocol(cfg)
+    import jsonProtocol.given
+
     _config = config
     // name of json files
     val nodeViewCoverageJson = s"$FUZZ_LOG_DIR/recent/node-coverage.json"
     val touchedNodeViewJson = s"$FUZZ_LOG_DIR/recent/minimal-touch-node.json"
     val failsMapJson = s"$CONFORMTEST_LOG_DIR/fails.json"
 
+    // used to parse node-coverage json */
+    case class Info(index: Int, nodeView: NodeView)
+    given infoDecoder: Decoder[Info] = deriveDecoder
+
     // parse jsons
-    val nodeViewCoverageRaw: Map[NodeView, Info] =
+    val nodeViewCoverageRaw: Vector[Info] =
       readJson(nodeViewCoverageJson)
-    val nodeView2Function: Map[NodeView, Func] =
-      nodeViewCoverageRaw.map { case (v, Info(f, _)) => v -> f }
     val id2NodeView: Map[Int, NodeView] =
-      nodeViewCoverageRaw.map { case (v, Info(_, i)) => i -> v }
+      nodeViewCoverageRaw.map { case Info(i, v) => i -> v }.toMap
     val touchedNodeViewMap: Map[Name, Vector[Int]] =
       readJson(touchedNodeViewJson)
     val failsMap: Map[Target, Set[Name]] =
       readJson(failsMapJson)
 
     val total = touchedNodeViewMap.keys.toVector
-    val nodes = nodeViewCoverageRaw.keys.toVector
+    val nodes = nodeViewCoverageRaw.map(_.nodeView).toVector
 
     var result: MResult = MMap()
 
@@ -70,13 +80,7 @@ case object Localize
           touchedNodeViews.foldLeft(passStatMap)(updateStatMap(false))
 
         val aggregated = statMap.toSeq.groupMapReduce {
-          case (nodeView, _) => {
-            val func = nodeView2Function(nodeView)
-            if (config.sens)
-              (func :: (nodeView.split("@").drop(1).toList)).mkString("@")
-            else
-              func
-          }
+          case (nodeView, _) => nodeView.toFuncView
         }(_._2.score)(_ max _)
 
         val sorted = aggregated.toSeq.sortBy(_._2).reverse
@@ -87,17 +91,6 @@ case object Localize
     dumpJson(result, s"$LOCALIZE_LOG_DIR/localize.json")
 
     result.toMap.map((k, v) => k -> v.toMap)
-
-  /** used to parse node-coverage json */
-  case class Info(func: Func, id: Int = id)
-  object Info {
-    def id = { _id += 1; _id }
-    private var _id = -1
-  }
-  implicit val decodeInfo: Decoder[Info] = new Decoder[Info] {
-    final def apply(c: HCursor): Decoder.Result[Info] =
-      for (func <- c.downField("func").as[String])
-        yield Info(func)
   }
 
   /** quadruple of node stat */
@@ -123,14 +116,8 @@ case object Localize
       BoolOption(c => c.debug = true),
       "turn on debug mode",
     ),
-    (
-      "sens",
-      BoolOption(c => c.sens = true),
-      "turn on sensitive localization mode",
-    ),
   )
   case class Config(
     var debug: Boolean = false,
-    var sens: Boolean = false,
   )
 }

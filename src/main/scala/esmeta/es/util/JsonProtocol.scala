@@ -38,4 +38,6 @@ class JsonProtocol(cfg: CFG) extends StateJsonProtocol(cfg) {
   given nodeViewEncoder: Encoder[NodeView] = deriveEncoder
   given condViewDecoder: Decoder[CondView] = deriveDecoder
   given condViewEncoder: Encoder[CondView] = deriveEncoder
+  given funcViewDecoder: Decoder[FuncView] = deriveDecoder
+  given funcViewEncoder: Encoder[FuncView] = deriveEncoder
 }

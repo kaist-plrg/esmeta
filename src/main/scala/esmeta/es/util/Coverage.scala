@@ -415,17 +415,23 @@ object Coverage {
 
   /* syntax-sensitive views */
   type View = Option[(Feature, CallGraph)]
+  private def stringOfView(view: View) = view.fold("") {
+    case (feature, graph) => s"@ $feature:$graph"
+  }
   case class NodeView(node: Node, view: View = None) {
-    override def toString: String = node.simpleString + (view.fold("") {
-      case (feature, graph) => s"@ $feature:$graph"
-    })
+    override def toString: String =
+      node.simpleString + stringOfView(view)
+    def toFuncView = FuncView(cfg.funcOf(node), view)
   }
   case class CondView(cond: Cond, view: View = None) {
     def neg: CondView = copy(cond = cond.neg)
 
-    override def toString: String = cond.toString + (view.fold("") {
-      case (feature, graph) => s"@ $feature:$graph"
-    })
+    override def toString: String =
+      cond.toString + stringOfView(view)
+  }
+  case class FuncView(func: Func, view: View = None) {
+    override def toString: String =
+      func.name + stringOfView(view)
   }
 
   /** ordering of syntax-sensitive views */

@@ -219,19 +219,19 @@ case object CmdConformTest
 }
 
 /** `localize` command */
-case object CmdLocalize extends Command("localize", CmdBase >> Localize) {
+case object CmdLocalize extends Command("localize", CmdBuildCFG >> Localize) {
   val help = "localize bug using given jsons"
   val examples = List(
     "esmeta localize node-coverage.json minimal-touch-node.json fails.json # localize using given jsons",
   )
   override def showResult(
-    result: Map[String, Map[String, Seq[(String, Double)]]],
+    result: Map[String, Map[String, Seq[(es.util.Coverage.FuncView, Double)]]],
   ): Unit =
     result.foreach((target, failMap) => {
       println(s"[Localization result for `$target`]")
       failMap.foreach((fail, locs) => {
         println(s"[[$fail]]")
-        locs.foreach((name, score) => println(s"  $name: $score"))
+        locs.foreach((funcView, score) => println(s"  $funcView: $score"))
       })
     })
 }

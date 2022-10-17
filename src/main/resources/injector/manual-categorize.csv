@@ -33,8 +33,7 @@ BBL-NOF,Array.from.call(function,
 GRL-NORMALIZE,normalize,RangeError
 GRL-SETPROTOTYPEOF,setPrototypeOf,TypeError @ INTRINSICS.Object.setPrototypeOf
 GRL-EXTENDS,extends new,TypeError
-GRL-LOGICAL-ASSIGN-CONST,static #x = x &&=,TypeError
-GRL-LOGICAL-ASSIGN-CONST,static { x &&=,TypeError
+GRL-LOGICAL-ASSIGN-CONST,&&=,TypeError @ DeclarativeEnvironmentRecord.SetMutableBinding
 GRL-DELETE,delete,
 GRL-FORDECL,for ( const [,
 GRL-FORDECL,for ( const {,

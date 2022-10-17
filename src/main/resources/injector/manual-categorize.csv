@@ -1,7 +1,7 @@
 TAG,pattern in script,pattern in message
 TIMEOUT,,but got timeout
 BBL-FAILURE,,but got transpile-failure
-BBL-DESTRUCT-NULL,_extends,Expected throw-error: TypeError @ RequireObjectCoercible <- BindingInitialization of BindingPattern
+BBL-DESTRUCT-NULL,_extends,Expected throw-error: TypeError @ RequireObjectCoercible
 BBL-STATIC-PRIVATE-IN,===,TypeError @ RelationalExpression[7
 BBL-COMPUTED-IN,_defineProperty,TypeError @ RelationalExpression[6
 BBL-STATIC,_createClass,Expected throw-error: TypeError @ DeclarativeEnvironmentRecord.SetMutableBinding
@@ -25,7 +25,7 @@ BBL-F2STRING,_createClass,descriptor value of
 BBL-F2STRING,,but got "function
 BBL-F2STRING,,but got "undefinedfunction
 BBL-AWAIT, _await,await
-BBL-SCOPE,,Expected throw-error: ReferenceError @ DeclarativeEnvironmentRecord.GetBindingValue <- Evaluation of IdentifierReference
+BBL-SCOPE,,Expected throw-error: ReferenceError @ DeclarativeEnvironmentRecord.GetBindingValue
 BBL-SCOPE,,Expected throw-error: ReferenceError @ GetValue
 BBL-SCOPE,,Expected throw-error: ReferenceError @ DeclarativeEnvironmentRecord.SetMutableBinding
 BBL-SCOPE,_this$x,

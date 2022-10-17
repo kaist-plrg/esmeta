@@ -1,0 +1,7 @@
+{
+  "presets": ["/usr/local/lib/node_modules/@babel/preset-env"],
+  "sourceType": "script",
+  "assumptions": {
+    "noDocumentAll": true
+  }
+}

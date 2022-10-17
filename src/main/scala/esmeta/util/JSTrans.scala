@@ -3,12 +3,16 @@ package esmeta.util
 import esmeta.*
 import esmeta.error.*
 import esmeta.util.SystemUtils.readFile
-import esmeta.util.BaseUtils.Try
+import scala.util.Try
 import sys.process._
 import java.util.StringJoiner
 
 /** JavaScript Transpiler utilities */
 object JSTrans {
+
+  val defaultCmd = Map(
+    "babel" -> s"babel --no-babelrc --config-file=$RESOURCE_DIR/babel/babel.config.json",
+  )
 
   /** inner minified babel */
   val BABEL_FILE = s"$RESOURCE_DIR/babel/babel@7.19.1.min.js"
@@ -36,12 +40,13 @@ object JSTrans {
     Try {
       val stdout = new StringJoiner(LINE_SEP)
       val stderr = new StringJoiner(LINE_SEP)
-      s"$runner $file" ! ProcessLogger(
+      s"timeout 3s $runner $file" ! ProcessLogger(
         out => stdout.add(out),
         err => stderr.add(err),
       ) match {
-        case 0  => stdout.toString
-        case st => throw TranspileFailureError,
+        case 0   => stdout.toString
+        case 127 => throw NoCommandError(runner)
+        case st  => throw TranspileFailureError
       }
     }
 

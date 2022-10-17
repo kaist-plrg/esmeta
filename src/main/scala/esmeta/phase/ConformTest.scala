@@ -37,7 +37,7 @@ case object ConformTest extends Phase[Unit, Map[String, Seq[String]]] {
       case Some(es) => es.split(";").toList
     }
     val transpilers = config.transpilers match {
-      case None     => List("babel")
+      case None     => List(JSTrans.defaultCmd("babel"))
       case Some(ts) => ts.split(";").toList
     }
 
@@ -112,7 +112,8 @@ case object ConformTest extends Phase[Unit, Map[String, Seq[String]]] {
               .recover(engineErrorResolver _)
               .get
           })
-          .getOrElse((TranspileFailTag, ""))
+          .recover(transErrorResolver _)
+          .get
       }
 
       val sameExitTag = exitTag.equivalent(concreteExitTag)
@@ -159,9 +160,10 @@ case object ConformTest extends Phase[Unit, Map[String, Seq[String]]] {
   private val errorPattern = "[\\w]+Error(?=: )".r
   private val transpileFailure = "FAILURE"
 
-  private def engineErrorResolver(engineError: Throwable) =
+  private def engineErrorResolver(engineError: Throwable): (ExitTag, String) =
     engineError match {
-      case e: TimeoutException => (TimeoutTag, "")
+      case e: TimeoutException     => (TimeoutTag, "")
+      case e @ NoCommandError(cmd) => throw e
       case e =>
         val msg = e.getMessage
         val tag = errorPattern.findFirstIn(msg) match {
@@ -169,6 +171,13 @@ case object ConformTest extends Phase[Unit, Map[String, Seq[String]]] {
           case _          => ThrowValueTag(esmeta.state.Str(msg))
         }
         (tag, "")
+    }
+
+  private def transErrorResolver(transError: Throwable): (ExitTag, String) =
+    transError match {
+      case e: TimeoutException     => (TranspileFailTag, "")
+      case TranspileFailureError   => (TranspileFailTag, "")
+      case e @ NoCommandError(cmd) => throw e
     }
 
   private def updateResult(

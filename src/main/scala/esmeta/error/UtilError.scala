@@ -9,3 +9,6 @@ case class WrongUId(name: String, uid: Int)
 case object NoGraalError extends UtilError("no Graal engine")
 
 case object TranspileFailureError extends UtilError("Trnaspile failure")
+
+case class NoCommandError(command: String)
+  extends UtilError(s"Command not found: $command")

@@ -19,12 +19,13 @@ object ValidityChecker {
   private def _valid(result: Try[Any]): Boolean =
     result.failed.filter(_.getMessage contains MESSAGE).isSuccess
 
+  import esmeta.util.BaseUtils.warn
   lazy val useD8: Boolean =
     val use = JSEngine.runUsingD8(";").isSuccess;
-    if (!use) esmeta.util.BaseUtils.warn("No D8")
+    if (!use) warn("No D8")
     use
   lazy val useGraal: Boolean =
     val use = JSEngine.runUsingGraal(";").isSuccess;
-    if (!use) esmeta.util.BaseUtils.warn("No Graal")
+    if (!use) warn("No Graal")
     use
 }

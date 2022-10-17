@@ -28,3 +28,8 @@ Option to ignore unhandled rejected promises
 node --unhandled-rejections=none
 d8 --ignore-unhandled-promises
 ```
+
+Install Babel using npm
+```
+npm -g install @babel/cli@7.19.3 @babel/core@7.19.1 @babel/preset-env@7.19.1
+```

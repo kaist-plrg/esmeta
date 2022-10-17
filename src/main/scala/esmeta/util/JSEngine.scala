@@ -2,7 +2,7 @@ package esmeta.util
 
 import esmeta.LINE_SEP
 import esmeta.util.BaseUtils.*
-import esmeta.error.{NoGraalError, TimeoutException}
+import esmeta.error.*
 import java.io.*
 import java.time.Duration.ZERO
 import org.graalvm.polyglot.*
@@ -218,6 +218,7 @@ object JSEngine {
     ) match {
       case 0   => stdout.toString
       case 124 => throw TimeoutException(runner)
+      case 127 => throw NoCommandError(runner)
       case st  => throw new Exception(stdout.toString + stderr.toString),
     }
   }

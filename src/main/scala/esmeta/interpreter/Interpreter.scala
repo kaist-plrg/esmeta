@@ -199,11 +199,11 @@ class Interpreter(
         case (addr: Addr) => st.pop(addr, front)
         case v            => throw NoAddr(list, v)
     case EParse(code, rule) =>
-      val (str, args, locOpt, clear) = eval(code) match
-        case Str(s) => (s, List(), None, true)
+      val (str, args, locOpt) = eval(code) match
+        case Str(s) => (s, List(), None)
         case AstValue(syn: Syntactic) =>
-          (syn.toString(grammar, st.sourceText), syn.args, syn.loc, false)
-        case AstValue(lex: Lexical) => (lex.str, List(), lex.loc, false)
+          (syn.toString(grammar, st.sourceText), syn.args, syn.loc)
+        case AstValue(lex: Lexical) => (lex.str, List(), lex.loc)
         case v                      => throw InvalidParseSource(code, v)
       try {
         (eval(rule), st.sourceText, st.cachedAst) match
@@ -214,8 +214,7 @@ class Interpreter(
             val ast =
               esParser(name, if (params.isEmpty) args else params).from(str)
             // handle span of re-parsed ast
-            if (clear) ast.clearLoc
-            else locOpt.map(ast.setBaseLoc)
+            locOpt.fold(ast.clearLoc)(ast.setBaseLoc)
             AstValue(ast)
           case (r, _, _) => throw NoNt(rule, r)
       } catch {

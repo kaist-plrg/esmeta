@@ -21,7 +21,7 @@ _esmeta_completions() {
   parseOpt="-parse:debug -parse:pprint"
   evalOpt="-eval:timeout -eval:log"
   webOpt="-web:port"
-  test262testOpt="-test262-test:debug -test262-test:log -test262-test:target -test262-test:progress -test262-test:coverage -test262-test:timeout -test262-test:syn-k -test262-test:sens"
+  test262testOpt="-test262-test:debug -test262-test:log -test262-test:target -test262-test:progress -test262-test:coverage -test262-test:timeout -test262-test:syn-k -test262-test:sens -test262-test:no-test-mode"
   injectOpt="-inject:defs -inject:out -inject:log"
   mutateOpt="-mutate:out -mutate:mutator -mutate:untilValid"
   transcheckOpt="-transcheck:dir -transcheck:debug"

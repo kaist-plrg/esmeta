@@ -24,7 +24,7 @@ case object Test262Test extends Phase[CFG, Summary] {
     config: Config,
   ): Summary = withCFG(cfg) {
     // set test mode
-    TEST_MODE = true
+    if (!config.noTestMode) TEST_MODE = true
 
     // get target version of Test262
     val version = Test262.getVersion(config.target)
@@ -92,6 +92,11 @@ case object Test262Test extends Phase[CFG, Summary] {
       BoolOption(c => c.useSens = true),
       "set the specific seed for the random number generator. (default: None)",
     ),
+    (
+      "no-test-mode",
+      BoolOption(c => c.noTestMode = true),
+      "set no test mode for print.",
+    ),
   )
   case class Config(
     var target: Option[String] = None,
@@ -102,5 +107,6 @@ case object Test262Test extends Phase[CFG, Summary] {
     var timeLimit: Option[Int] = None,
     var synK: Option[Int] = None,
     var useSens: Boolean = false,
+    var noTestMode: Boolean = false,
   )
 }

@@ -1,7 +1,7 @@
 package esmeta.util
 
 /** weak unique ids */
-trait WeakUId[+T <: WeakUId[T]] { self: T =>
+trait WeakUId[+T <: WeakUId[T]] extends IntId { self: T =>
 
   /** unique ids */
   var id: Int = -1

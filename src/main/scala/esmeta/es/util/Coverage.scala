@@ -20,8 +20,9 @@ class Coverage(
   synK: Option[Int] = None,
   useSens: Boolean = false,
 ) {
-
   import Coverage.{*, given}
+  val jsonProtocol = JsonProtocol(cfg)
+  import jsonProtocol.given
 
   // minimal scripts
   def minimalScripts: Set[Script] = _minimalScripts
@@ -46,10 +47,12 @@ class Coverage(
   def apply(cond: Cond): Map[View, Script] = condViewMap.getOrElse(cond, Map())
 
   // get script from nodes or conditions
+  def getScript(fs: List[Feature]): Option[Script] = featureMap.get(fs)
   def getScript(nv: NodeView): Option[Script] = apply(nv.node).get(nv.view)
   def getScript(cv: CondView): Option[Script] = apply(cv.cond).get(cv.view)
 
-  // mapping from nodes or conditions to scripts
+  // mapping from features/nodes/conditions to scripts
+  private var featureMap: Map[List[Feature], Script] = Map()
   private var nodeViewMap: Map[Node, Map[View, Script]] = Map()
   private var nodeViews: Set[NodeView] = Set()
   private var condViewMap: Map[Cond, Map[View, Script]] = Map()
@@ -66,9 +69,21 @@ class Coverage(
     val interp = Interp(initSt, timeLimit, synK, useSens)
     val finalSt = interp.result
 
-    // update node coverage
+    // covered new elements
     var covered = false
+    // updated elements
     var updated = false
+
+    // update feature coverage
+    for (features <- interp.touchedFeatures)
+      getScript(features) match
+        case None =>
+          update(features, script); updated = true; covered = true
+        case Some(origScript) if origScript.code.length > code.length =>
+          update(features, script); updated = true
+        case _ =>
+
+    // update node coverage
     for ((nodeView, _) <- interp.touchedNodeViews)
       getScript(nodeView) match
         case None =>
@@ -116,6 +131,9 @@ class Coverage(
     st
   }
 
+  /** get feature coverage */
+  def featureCov: Int = featureMap.size
+
   /** get node coverage */
   def nodeCov: Int = nodeViewMap.size
   def nodeViewCov: Int = nodeViews.size
@@ -143,15 +161,28 @@ class Coverage(
     withMsg: Boolean = true,
   ): Unit =
     mkdir(baseDir)
+    lazy val orderedFeatures = featureMap.keys.toList.sorted
+    lazy val orderedNodeViews = nodeViews.toList.sorted
+    lazy val orderedCondViews = condViews.toList.sorted
+    lazy val getFeaturesId = orderedFeatures.zipWithIndex.toMap
+    lazy val getNodeViewsId = orderedNodeViews.zipWithIndex.toMap
+    lazy val getCondViewsId = orderedCondViews.zipWithIndex.toMap
+    if (synK.isDefined)
+      dumpJson(
+        name = if (withMsg) Some("feature coverage") else None,
+        data = featureMapJson(orderedFeatures),
+        filename = s"$baseDir/feature-coverage.json",
+        space = true,
+      )
     dumpJson(
       name = if (withMsg) Some("node coverage") else None,
-      data = nodeViewMapJson,
+      data = nodeViewMapJson(orderedNodeViews),
       filename = s"$baseDir/node-coverage.json",
       space = true,
     )
     dumpJson(
       name = if (withMsg) Some("branch coverage") else None,
-      data = condViewMapJson,
+      data = condViewMapJson(orderedCondViews),
       filename = s"$baseDir/branch-coverage.json",
       space = true,
     )
@@ -166,8 +197,7 @@ class Coverage(
       )
     if (withScriptInfo)
       dumpDir[(String, ScriptInfo)](
-        name =
-          if (withMsg) Some("test for minimal ECMAScript programs") else None,
+        name = if (withMsg) Some("minimal ECMAScript tests") else None,
         iterable = _minimalInfo,
         dirname = s"$baseDir/minimal",
         getName = _._1 + ".test",
@@ -178,14 +208,14 @@ class Coverage(
       name =
         if (withMsg) Some("touched info of minimal ECMAScript programs")
         else None,
-      data = minimalTouchNodeJson,
+      data = minimalTouchNodeJson(getNodeViewsId),
       filename = s"$baseDir/minimal-touch-node.json",
       space = false,
     )
     if (withTargetCondViews)
       dumpJson(
         name = if (withMsg) Some("target conditional branches") else None,
-        data = condViewMapJson(_targetCondViews contains _),
+        data = _targetCondViews.keys.toList.map(getCondViewsId).sorted.asJson,
         filename = s"$baseDir/target-conds.json",
         space = true,
       )
@@ -203,6 +233,7 @@ class Coverage(
   override def toString: String =
     val app = new Appender
     (app >> "- coverage:").wrap("", "") {
+      app :> "- feature: " >> featureCov
       app :> "- node: " >> nodeCov
       app :> "- branch: " >> branchCov
     }
@@ -231,6 +262,10 @@ class Coverage(
   // ---------------------------------------------------------------------------
   // private helpers
   // ---------------------------------------------------------------------------
+  // update mapping from features to scripts
+  private def update(fs: List[Feature], script: Script): Unit =
+    featureMap = updated(featureMap, fs, script)
+
   // update mapping from nodes to scripts
   private def update(nodeView: NodeView, script: Script): Unit =
     nodeViews += nodeView
@@ -271,51 +306,51 @@ class Coverage(
   private def percent(n: Double, t: Double): Double = n / t * 100
 
   // get JSON for touched node of minimal
-  private def minimalTouchNodeJson: Json =
-    val nodeViewId: Map[NodeView, Int] =
-      nodeViews.toSeq.sorted.zipWithIndex.toMap
-    JsonObject(
+  private def minimalTouchNodeJson(getId: Map[NodeView, Int]): Json =
+    Json.fromFields(
       _minimalInfo.toSeq.map((name, info) =>
-        (name, info.touchedNodeViews.map(nodeViewId).asJson),
-      ): _*,
-    ).asJson
+        name -> info.touchedNodeViews.map(getId).asJson,
+      ),
+    )
+
+  // get JSON for feature coverage
+  private def featureMapJson(ordered: List[List[Feature]]): Json =
+    Json.fromValues(
+      for {
+        (features, idx) <- ordered.zipWithIndex
+        script <- getScript(features)
+      } yield Json.obj(
+        "index" -> idx.asJson,
+        "features" -> features.asJson,
+        "script" -> script.name.asJson,
+      ),
+    )
 
   // get JSON for node coverage
-  private def nodeViewMapJson: Json = JsonObject(
-    (for {
-      (node, viewMap) <- nodeViewMap.toList.sortBy(_._1)
-      (view, script) <- viewMap.toList.sortBy(_._1)
-      nodeView = NodeView(node, view)
-    } yield {
-      val key = nodeView.toString
-      val obj = JsonObject(
-        "func" -> cfg.funcOf(node).name.asJson,
-        "loc" -> node.loc.map(_.toString).asJson,
+  private def nodeViewMapJson(ordered: List[NodeView]): Json =
+    Json.fromValues(
+      for {
+        (nodeView, idx) <- ordered.zipWithIndex
+        script <- getScript(nodeView)
+      } yield Json.obj(
+        "index" -> idx.asJson,
+        "nodeView" -> nodeView.asJson,
         "script" -> script.name.asJson,
-      ).asJson
-      key -> obj
-    }): _*,
-  ).asJson
+      ),
+    )
 
   // get JSON for branch coverage
-  private def condViewMapJson: Json = condViewMapJson(_ => true)
-
-  private def condViewMapJson(filter: CondView => Boolean): Json = JsonObject(
-    (for {
-      (cond, viewMap) <- condViewMap.toList.sortBy(_._1)
-      (view, script) <- viewMap
-      condView = CondView(cond, view)
-      if filter(condView)
-    } yield {
-      val key = condView.toString
-      val obj = JsonObject(
-        "func" -> cond.node.map(cfg.funcOf(_).name).asJson,
-        "loc" -> cond.loc.map(_.toString).asJson,
+  private def condViewMapJson(ordered: List[CondView]): Json =
+    Json.fromValues(
+      for {
+        (condView, idx) <- ordered.zipWithIndex
+        script <- getScript(condView)
+      } yield Json.obj(
+        "index" -> idx.asJson,
+        "condView" -> condView.asJson,
         "script" -> script.name.asJson,
-      ).asJson
-      key -> obj
-    }): _*,
-  ).asJson
+      ),
+    )
 }
 
 object Coverage {
@@ -332,11 +367,14 @@ object Coverage {
       keepProvenance = true,
     ) {
     // program infos
+    var touchedFeatures: Set[List[Feature]] = Set()
     var touchedNodeViews: Map[NodeView, Option[Nearest]] = Map()
     var touchedCondViews: Map[CondView, Option[Nearest]] = Map()
 
     // override eval for node
     override def eval(node: Node): Unit =
+      // record touched features
+      synK.map(touchedFeatures += st.context.featureStack.take(_))
       // record touched nodes
       touchedNodeViews += NodeView(node, getView) -> getNearest
       super.eval(node)

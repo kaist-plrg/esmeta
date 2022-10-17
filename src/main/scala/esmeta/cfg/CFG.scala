@@ -61,6 +61,9 @@ class CFG(
 
   /** all return if abrupt expressions */
   lazy val riaExprs: List[EReturnIfAbrupt] = ReturnIfAbruptCollector(program)
+  lazy val riaExmprMap: Map[Int, EReturnIfAbrupt] = (for {
+    riaExpr <- riaExprs
+  } yield riaExpr.id -> riaExpr).toMap
 
   /** get a type model */
   def tyModel: TyModel = spec.tyModel

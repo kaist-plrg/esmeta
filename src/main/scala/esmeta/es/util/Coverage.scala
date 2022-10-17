@@ -93,24 +93,13 @@ class Coverage(
         case _ =>
 
     // update branch coverage
-    for ((condView, _) <- interp.touchedCondViews)
+    for ((condView, nearest) <- interp.touchedCondViews)
       getScript(condView) match
         case None =>
-          update(condView, script); updated = true; covered = true
+          update(condView, nearest, script); updated = true; covered = true
         case Some(origScript) if origScript.code.length > code.length =>
-          update(condView, script); updated = true
+          update(condView, nearest, script); updated = true
         case _ =>
-
-    // update target branches
-    for ((condView @ CondView(cond, view), nearest) <- interp.touchedCondViews)
-      val neg = condView.neg
-      cond.elem match
-        case _ if nearest.isEmpty         => /* do nothing */
-        case Branch(_, _, EBool(_), _, _) => /* do nothing */
-        case ref: WeakUIdRef[EReturnIfAbrupt]
-            if !ref.get.check => /* do nothing */
-        case _ if getScript(neg).isDefined => _targetCondViews -= neg
-        case _ => _targetCondViews += condView -> nearest
 
     // update script info
     if (updated)
@@ -273,9 +262,23 @@ class Coverage(
     nodeViewMap += node -> updated(apply(node), view, script)
 
   // update mapping from conditional branches to scripts
-  private def update(condView: CondView, script: Script): Unit =
+  private def update(
+    condView: CondView,
+    nearest: Option[Nearest],
+    script: Script,
+  ): Unit =
     condViews += condView
     val CondView(cond, view) = condView
+
+    // update target branches
+    val neg = condView.neg
+    cond.elem match
+      case Branch(_, _, EBool(_), _, _) => /* do nothing */
+      case ref: WeakUIdRef[EReturnIfAbrupt]
+          if !ref.get.check => /* do nothing */
+      case _ if getScript(neg).isDefined => _targetCondViews -= neg
+      case _ => _targetCondViews += condView -> nearest
+
     condViewMap += cond -> updated(apply(cond), view, script)
 
   // update mapping

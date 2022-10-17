@@ -29,12 +29,13 @@ class NearestMutator(
   /** internal walker */
   class Walker(nearest: Nearest) extends AstWalker {
     val AstSingleTy(name, rhsIdx, subIdx) = nearest.ty
-    override def walk(ast: Syntactic): Syntactic = ast match
-      case ast @ Syntactic(`name`, _, `rhsIdx`, _)
-          if ast.subIdx == subIdx && ast.loc == nearest.loc =>
-        synthesizer(ast)
-      case _ =>
-        super.walk(ast)
+    override def walk(ast: Syntactic): Syntactic = if (
+      ast.name == name &&
+      ast.rhsIdx == rhsIdx &&
+      ast.subIdx == subIdx &&
+      ast.loc == Some(nearest.loc)
+    ) synthesizer(ast)
+    else super.walk(ast)
   }
 
   /** internal random mutator */

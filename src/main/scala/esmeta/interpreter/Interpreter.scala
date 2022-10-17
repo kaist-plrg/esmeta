@@ -199,26 +199,27 @@ class Interpreter(
         case (addr: Addr) => st.pop(addr, front)
         case v            => throw NoAddr(list, v)
     case EParse(code, rule) =>
-      val (str, args, locOpt) = eval(code) match
-        case Str(s) => (s, List(), None)
+      val (str, args, locOpt, clear) = eval(code) match
+        case Str(s) => (s, List(), None, true)
         case AstValue(syn: Syntactic) =>
-          (syn.toString(grammar, st.sourceText), syn.args, syn.loc)
-        case AstValue(lex: Lexical) => (lex.str, List(), lex.loc)
+          (syn.toString(grammar, st.sourceText), syn.args, syn.loc, false)
+        case AstValue(lex: Lexical) => (lex.str, List(), lex.loc, false)
         case v                      => throw InvalidParseSource(code, v)
       try {
-        (str, eval(rule), st.sourceText, st.cachedAst) match
+        (eval(rule), st.sourceText, st.cachedAst) match
           // optimize the initial parsing using the given cached AST
-          case (x, Nt("Script", Nil), Some(y), Some(ast)) if x == y =>
+          case (Nt("Script", Nil), Some(source), Some(ast)) if str == source =>
             AstValue(ast)
-          case (x, Nt(name, params), _, _) =>
+          case (Nt(name, params), _, _) =>
             val ast =
-              esParser(name, if (params.isEmpty) args else params).from(x)
+              esParser(name, if (params.isEmpty) args else params).from(str)
             // handle span of re-parsed ast
-            locOpt.map(ast.setBaseLoc)
+            if (clear) ast.clearLoc
+            else locOpt.map(ast.setBaseLoc)
             AstValue(ast)
-          case (_, r, _, _) => throw NoNt(rule, r)
+          case (r, _, _) => throw NoNt(rule, r)
       } catch {
-        case _: Throwable => st.allocList(Nil) // NOTE: throw a List of errors
+        case e: Throwable => st.allocList(Nil) // NOTE: throw a List of errors
       }
     case ENt(name, params) => Nt(name, params)
     case ESourceText(expr) =>

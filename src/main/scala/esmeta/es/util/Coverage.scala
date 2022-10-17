@@ -29,7 +29,6 @@ class Coverage(
   private var _minimalScripts: Set[Script] = Set()
 
   // meta-info of each script
-  case class ScriptInfo(test: ConformTest, touchedNodeViews: Iterable[NodeView])
   private var _minimalInfo: Map[String, ScriptInfo] = Map()
 
   // target conditional branches
@@ -106,6 +105,7 @@ class Coverage(
       _minimalInfo += script.name -> ScriptInfo(
         ConformTest.createTest(initSt, finalSt),
         interp.touchedNodeViews.map(_._1),
+        interp.touchedFeatures,
       )
     // assert: _minimalScripts ~= _minimalInfo.keys
 
@@ -184,7 +184,7 @@ class Coverage(
         getData = USE_STRICT + _.code,
         remove = true,
       )
-    if (withScriptInfo)
+    if (withScriptInfo) {
       dumpDir[(String, ScriptInfo)](
         name = if (withMsg) Some("minimal ECMAScript tests") else None,
         iterable = _minimalInfo,
@@ -193,14 +193,24 @@ class Coverage(
         getData = _._2.test,
         remove = false,
       )
-    dumpJson(
-      name =
-        if (withMsg) Some("touched info of minimal ECMAScript programs")
-        else None,
-      data = minimalTouchNodeJson(getNodeViewsId),
-      filename = s"$baseDir/minimal-touch-node.json",
-      space = false,
-    )
+      dumpJson(
+        name =
+          if (withMsg) Some("list of touched node view of minimal programs")
+          else None,
+        data = minimalTouchNodeViewJson(getNodeViewsId),
+        filename = s"$baseDir/minimal-touch-nodeview.json",
+        space = false,
+      )
+      if (synK.isDefined)
+        dumpJson(
+          name =
+            if (withMsg) Some("list of touched features of minimal programs")
+            else None,
+          data = minimalTouchFeaturesJson(getFeaturesId),
+          filename = s"$baseDir/minimal-touch-features.json",
+          space = false,
+        )
+    }
     if (withTargetCondViews)
       dumpJson(
         name = if (withMsg) Some("target conditional branches") else None,
@@ -308,11 +318,19 @@ class Coverage(
   // conversion to string
   private def percent(n: Double, t: Double): Double = n / t * 100
 
-  // get JSON for touched node of minimal
-  private def minimalTouchNodeJson(getId: Map[NodeView, Int]): Json =
+  // get JSON for touched node view of minimal
+  private def minimalTouchNodeViewJson(getId: Map[NodeView, Int]): Json =
     Json.fromFields(
       _minimalInfo.toSeq.map((name, info) =>
         name -> info.touchedNodeViews.map(getId).asJson,
+      ),
+    )
+
+  // get JSON for touched features of minimal
+  private def minimalTouchFeaturesJson(getId: Map[List[Feature], Int]): Json =
+    Json.fromFields(
+      _minimalInfo.toSeq.map((name, info) =>
+        name -> info.touchedFeatures.map(getId).asJson,
       ),
     )
 
@@ -412,6 +430,13 @@ object Coverage {
     // get location information
     private def getNearest: Option[Nearest] = st.context.nearest
   }
+
+  /** meta-info for each script */
+  case class ScriptInfo(
+    test: ConformTest,
+    touchedNodeViews: Iterable[NodeView],
+    touchedFeatures: Iterable[List[Feature]],
+  )
 
   /* syntax-sensitive views */
   type View = Option[(Feature, CallGraph)]

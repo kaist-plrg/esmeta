@@ -225,13 +225,13 @@ case object CmdLocalize extends Command("localize", CmdBuildCFG >> Localize) {
     "esmeta localize node-coverage.json minimal-touch-node.json fails.json # localize using given jsons",
   )
   override def showResult(
-    result: Map[String, Map[String, Seq[(es.util.Coverage.FuncView, Double)]]],
+    result: Map[String, Map[String, Seq[(Any, Double)]]],
   ): Unit =
     result.foreach((target, failMap) => {
       println(s"[Localization result for `$target`]")
       failMap.foreach((fail, locs) => {
         println(s"[[$fail]]")
-        locs.foreach((funcView, score) => println(s"  $funcView: $score"))
+        locs.foreach((location, score) => println(s"  $location: $score"))
       })
     })
 }

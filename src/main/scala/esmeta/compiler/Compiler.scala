@@ -32,7 +32,9 @@ class Compiler(
   /** compiled specification */
   lazy val result: Program =
     for (algo <- spec.algorithms) compile(algo)
-    funcs ++= unusedManualFuncs.map(manualFuncs)
+    funcs ++= manualFuncs.collect {
+      case func if !usedManualFuncs.contains(func.name) => func
+    }
     val program = Program(funcs.toList, spec)
     // set allocation site to AllocExpr
     AllocSiteSetter(program)
@@ -41,11 +43,13 @@ class Compiler(
     program
 
   /** load manually created AOs */
-  val manualFuncs: Map[String, Func] = (for {
+  val manualFuncs: List[Func] = for {
     file <- spec.manualInfo.funcFiles
     func = Func.fromFile(file.toString)
-  } yield func.name -> func).toMap
-  var unusedManualFuncs: Set[String] = manualFuncs.keySet
+  } yield func
+  val getManualFunc: Map[String, Func] =
+    manualFuncs.map(func => func.name -> func).toMap
+  var usedManualFuncs: Set[String] = Set()
 
   /** compiled algorithms */
   val funcs: ListBuffer[Func] = ListBuffer()
@@ -146,11 +150,11 @@ class Compiler(
     fb: FuncBuilder,
     body: Step,
     prefix: List[Inst] = Nil,
-  ): Unit = manualFuncs.get(fb.name) match
+  ): Unit = getManualFunc.get(fb.name) match
     case _ if shorthands contains fb.name =>
     case Some(func) =>
       funcs += func.copy(algo = Some(fb.algo))
-      unusedManualFuncs -= fb.name
+      usedManualFuncs += fb.name
     case _ =>
       val inst = compileWithScope(fb, body)
       funcs += fb.getFunc(prefix match

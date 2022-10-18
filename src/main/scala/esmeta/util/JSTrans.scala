@@ -11,7 +11,7 @@ import java.util.StringJoiner
 object JSTrans {
 
   val defaultCmd = Map(
-    "babel" -> s"babel --no-babelrc --config-file=$RESOURCE_DIR/babel/babel.config.json",
+    "babel" -> s"$RESOURCE_DIR/babel/babel-d.js",
   )
 
   /** inner minified babel */
@@ -35,7 +35,7 @@ object JSTrans {
         s"throw \"$failTag\";",
       )
 
-  /** transpile using given binary */
+  /** transpile file using given binary */
   def transpileFileUsingBinary(runner: String, file: String): Try[String] =
     Try {
       val stdout = new StringJoiner(LINE_SEP)
@@ -45,6 +45,21 @@ object JSTrans {
         err => stderr.add(err),
       ) match {
         case 0   => stdout.toString
+        case 127 => throw NoCommandError(runner)
+        case st  => throw TranspileFailureError
+      }
+    }
+
+  /** transpile directory using given binary */
+  def transpileDirUsingBinary(
+    runner: String,
+    inputDir: String,
+    outputDir: String,
+  ): Try[Unit] =
+    Try {
+      Try(s"$runner $inputDir $outputDir" ! ProcessLogger(_ => ()))
+        .getOrElse(127) match {
+        case 0   =>
         case 127 => throw NoCommandError(runner)
         case st  => throw TranspileFailureError
       }

@@ -11,7 +11,7 @@ _esmeta_completions() {
   local cur prev opts lastc informats outformats datafiles
   cur="${COMP_WORDS[COMP_CWORD]}"
   prev="${COMP_WORDS[COMP_CWORD-1]}"
-  cmdList="help extract compile build-cfg tycheck parse eval web test262-test inject mutate transcheck fuzz conform-test localize analyze"
+  cmdList="help extract compile build-cfg tycheck parse eval web test262-test inject mutate transcheck fuzz gen-test conform-test localize analyze"
   globalOpt="-silent -error -status -time"
   helpOpt=""
   extractOpt="-extract:target -extract:log -extract:repl"
@@ -26,7 +26,8 @@ _esmeta_completions() {
   mutateOpt="-mutate:out -mutate:mutator -mutate:untilValid"
   transcheckOpt="-transcheck:dir -transcheck:debug"
   fuzzOpt="-fuzz:out -fuzz:log-interval -fuzz:debug -fuzz:timeout -fuzz:trial -fuzz:seed -fuzz:syn-k -fuzz:sens"
-  conformtestOpt="-conform-test:debug -conform-test:msgdir -conform-test:engines -conform-test:transpilers"
+  gentestOpt="-gen-test:debug -gen-test:engines -gen-test:transpilers"
+  conformtestOpt="-conform-test:debug -conform-test:msgdir"
   localizeOpt="-localize:debug -localize:feature"
   analyzeOpt="-analyze:repl"
   # completion for commands
@@ -93,8 +94,12 @@ _esmeta_completions() {
           COMPREPLY=($(compgen -W "${globalOpt} ${extractOpt} ${compileOpt} ${buildcfgOpt} ${fuzzOpt}"))
           return 0
           ;;
+        gen-test)
+          COMPREPLY=($(compgen -W "${globalOpt} ${gentestOpt}"))
+          return 0
+          ;;
         conform-test)
-          COMPREPLY=($(compgen -W "${globalOpt} ${conformtestOpt}"))
+          COMPREPLY=($(compgen -W "${globalOpt} ${gentestOpt} ${conformtestOpt}"))
           return 0
           ;;
         localize)

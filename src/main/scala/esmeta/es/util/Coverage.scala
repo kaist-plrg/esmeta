@@ -181,17 +181,17 @@ class Coverage(
         iterable = _minimalScripts,
         dirname = s"$baseDir/minimal",
         getName = _.name,
-        getData = USE_STRICT + _.code,
+        getData = USE_STRICT + _.code + LINE_SEP,
         remove = true,
       )
     if (withScriptInfo) {
       dumpDir[(String, ScriptInfo)](
-        name = if (withMsg) Some("minimal ECMAScript tests") else None,
+        name = if (withMsg) Some("minimal ECMAScript assertions") else None,
         iterable = _minimalInfo,
-        dirname = s"$baseDir/minimal",
-        getName = _._1 + ".test",
-        getData = _._2.test,
-        remove = false,
+        dirname = s"$baseDir/minimal-assertion",
+        getName = _._1,
+        getData = _._2.test.core, // TODO: dump this as json?
+        remove = true,
       )
       dumpJson(
         name =

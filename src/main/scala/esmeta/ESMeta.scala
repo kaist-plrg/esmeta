@@ -79,6 +79,7 @@ object ESMeta extends Git(BASE_DIR) {
     CmdMutate,
     CmdTransCheck,
     CmdFuzz,
+    CmdGenTest,
     CmdConformTest,
     CmdLocalize,
     // ECMAScript Static Analysis (Meta-Level Static Analysis)
@@ -108,6 +109,7 @@ object ESMeta extends Git(BASE_DIR) {
     Mutate,
     TransCheck,
     Fuzz,
+    GenTest,
     ConformTest,
     Localize,
     // ECMAScript Static Analysis (Meta-Level Static Analysis)

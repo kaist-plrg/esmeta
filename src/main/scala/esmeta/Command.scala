@@ -203,14 +203,38 @@ case object CmdFuzz extends Command("fuzz", CmdBuildCFG >> Fuzz) {
     println(cov)
 }
 
+/** `gen-test` command */
+case object CmdGenTest extends Command("gen-test", CmdBase >> GenTest) {
+  val help =
+    "generate conform tests for an ECMAScript engine or a transpiler based."
+  val examples = List(
+    "esmeta gen-test codedir assertiondir    # perform conform test using script and test in dir",
+  )
+  override def showResult(
+    testMapPair: (
+      Map[String, Iterable[esmeta.es.Script]],
+      Map[String, Iterable[esmeta.es.Script]],
+    ),
+  ): Unit =
+    val (etestMap, ttestMap) = testMapPair
+    etestMap.foreach {
+      case (engine, tests) =>
+        println(s"${tests.size} tests generated for the engine `$engine`.")
+    }
+    ttestMap.foreach {
+      case (trans, tests) =>
+        println(s"${tests.size} tests generated for the transpiler `$trans`.")
+    }
+}
+
 /** `comform-test` command */
 case object CmdConformTest
-  extends Command("conform-test", CmdBase >> ConformTest) {
+  extends Command("conform-test", CmdGenTest >> ConformTest) {
   val help = "perform conform test for an ECMAScript engine or a transpiler."
   val examples = List(
     "esmeta comform-test dir      # perform conform test using script and test in dir",
   )
-  override def showResult(fails: Map[String, Seq[String]]): Unit =
+  override def showResult(fails: Map[String, Iterable[String]]): Unit =
     fails.foreach {
       case (e, fails) =>
         println(s"failing tests for `$e`: ")

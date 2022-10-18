@@ -107,10 +107,23 @@ case class ConformTest(
         )
     }
 
+  /** dump this test, together with a message if it is failed */
   def dumpTest(dir: String, name: String): Unit =
     dumpFile(this.toString, s"$dir/$name")
     if (!isPass)
       dumpFile(s"TAG: $category${LINE_SEP}$msg", s"$dir/$name.msg")
+
+  /** stringified exit tag and assertions */
+  lazy val core: String =
+    val sb = new StringBuilder()
+    sb.append("// [EXIT] ")
+    sb.append(exitTag)
+    sb.append(LINE_SEP)
+    assertions.foreach(a => {
+      sb.append(a)
+      sb.append(LINE_SEP)
+    })
+    sb.toString
 }
 
 object ConformTest {

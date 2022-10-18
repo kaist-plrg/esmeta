@@ -46,15 +46,19 @@ case object Localize
     val failsMapJson = s"$CONFORMTEST_LOG_DIR/fails.json"
 
     // parse jsons
-    val nodeViewInfos: Vector[NodeViewInfo] = readJson(nodeViewCoverageJson)
+    val nodeViewInfos: Vector[NodeViewInfo] =
+      readJson(nodeViewCoverageJson)
     val nodeViews = nodeViewInfos.map(_.nodeView)
 
     val featuresInfos: Vector[FeaturesInfo] =
       if (config.feature) readJson(featuresCoverageJson) else Vector()
     val features_s = featuresInfos.map(_.features)
 
-    val test2NodeViewIds: Map[Test, Vector[Int]] = readJson(touchedNodeViewJson)
-    val test2FeaturesIds: Map[Test, Vector[Int]] = readJson(touchedFeaturesJson)
+    val test2NodeViewIds: Map[Test, Vector[Int]] =
+      readJson(touchedNodeViewJson)
+    val test2FeaturesIds: Map[Test, Vector[Int]] =
+      if (config.feature) readJson(touchedFeaturesJson)
+      else test2NodeViewIds.map((k, v) => k -> Vector())
     val tests = test2NodeViewIds.keys.toVector
 
     val target2Fails: Map[Target, Set[Test]] = readJson(failsMapJson)
@@ -88,7 +92,7 @@ case object Localize
       })
 
       result(target) = mergedScores.map((test, scores) => {
-        test -> scores.sortBy(_._2).slice(0, 10)
+        test -> scores.sortBy(_._2).reverse.slice(0, 10)
       })
     })
 

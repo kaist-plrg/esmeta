@@ -159,19 +159,19 @@ class Coverage(
     if (synK.isDefined)
       dumpJson(
         name = if (withMsg) Some("feature coverage") else None,
-        data = featureMapJson(orderedFeatures),
+        data = featuresInfos(orderedFeatures),
         filename = s"$baseDir/feature-coverage.json",
         space = true,
       )
     dumpJson(
       name = if (withMsg) Some("node coverage") else None,
-      data = nodeViewMapJson(orderedNodeViews),
+      data = nodeViewInfos(orderedNodeViews),
       filename = s"$baseDir/node-coverage.json",
       space = true,
     )
     dumpJson(
       name = if (withMsg) Some("branch coverage") else None,
-      data = condViewMapJson(orderedCondViews),
+      data = condViewInfos(orderedCondViews),
       filename = s"$baseDir/branch-coverage.json",
       space = true,
     )
@@ -335,43 +335,25 @@ class Coverage(
     )
 
   // get JSON for feature coverage
-  private def featureMapJson(ordered: List[List[Feature]]): Json =
-    Json.fromValues(
-      for {
-        (features, idx) <- ordered.zipWithIndex
-        script <- getScript(features)
-      } yield Json.obj(
-        "index" -> idx.asJson,
-        "features" -> features.asJson,
-        "script" -> script.name.asJson,
-      ),
-    )
+  private def featuresInfos(ordered: List[List[Feature]]): List[FeaturesInfo] =
+    for {
+      (features, idx) <- ordered.zipWithIndex
+      script <- getScript(features)
+    } yield FeaturesInfo(idx, features, script.name)
 
   // get JSON for node coverage
-  private def nodeViewMapJson(ordered: List[NodeView]): Json =
-    Json.fromValues(
-      for {
-        (nodeView, idx) <- ordered.zipWithIndex
-        script <- getScript(nodeView)
-      } yield Json.obj(
-        "index" -> idx.asJson,
-        "nodeView" -> nodeView.asJson,
-        "script" -> script.name.asJson,
-      ),
-    )
+  private def nodeViewInfos(ordered: List[NodeView]): List[NodeViewInfo] =
+    for {
+      (nodeView, idx) <- ordered.zipWithIndex
+      script <- getScript(nodeView)
+    } yield NodeViewInfo(idx, nodeView, script.name)
 
   // get JSON for branch coverage
-  private def condViewMapJson(ordered: List[CondView]): Json =
-    Json.fromValues(
-      for {
-        (condView, idx) <- ordered.zipWithIndex
-        script <- getScript(condView)
-      } yield Json.obj(
-        "index" -> idx.asJson,
-        "condView" -> condView.asJson,
-        "script" -> script.name.asJson,
-      ),
-    )
+  private def condViewInfos(ordered: List[CondView]): List[CondViewInfo] =
+    for {
+      (condView, idx) <- ordered.zipWithIndex
+      script <- getScript(condView)
+    } yield CondViewInfo(idx, condView, script.name)
 }
 
 object Coverage {
@@ -503,4 +485,9 @@ object Coverage {
 
     def simpleString: String = s"$shortKindString[$id]:$condString"
   }
+
+  // meta-info for each view or features
+  case class NodeViewInfo(index: Int, nodeView: NodeView, script: String)
+  case class CondViewInfo(index: Int, condView: CondView, script: String)
+  case class FeaturesInfo(index: Int, features: List[Feature], script: String)
 }

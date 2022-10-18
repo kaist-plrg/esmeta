@@ -20,7 +20,7 @@ case object Localize
 
   type Target = String
   type Test = String
-  type Location = FuncView | Vector[Feature]
+  type Location = FuncView | List[Feature]
   type Result = Map[Target, Map[Test, Seq[(Location, Double)]]]
   type MResult = MMap[Target, Map[Test, Seq[(Location, Double)]]]
 
@@ -44,12 +44,6 @@ case object Localize
     val touchedFeaturesJson =
       s"$FUZZ_LOG_DIR/recent/minimal-touch-features.json"
     val failsMapJson = s"$CONFORMTEST_LOG_DIR/fails.json"
-
-    // used to parse coverage json
-    case class NodeViewInfo(index: Int, nodeView: NodeView)
-    case class FeaturesInfo(index: Int, features: Vector[Feature])
-    given nodeViewInfoDecoder: Decoder[NodeViewInfo] = deriveDecoder
-    given featuresInfoDecoder: Decoder[FeaturesInfo] = deriveDecoder
 
     // parse jsons
     val nodeViewInfos: Vector[NodeViewInfo] = readJson(nodeViewCoverageJson)
@@ -101,8 +95,8 @@ case object Localize
     // json encoder to dump result
     given LocEncoder: Encoder[Location] = new Encoder[Location] {
       final def apply(loc: Location): Json = Json.obj(loc match {
-        case funcView: FuncView        => ("funcView", funcView.asJson)
-        case features: Vector[Feature] => ("features", features.asJson)
+        case funcView: FuncView      => ("funcView", funcView.asJson)
+        case features: List[Feature] => ("features", features.asJson)
       })
     }
     dumpJson(result, s"$LOCALIZE_LOG_DIR/localize.json")

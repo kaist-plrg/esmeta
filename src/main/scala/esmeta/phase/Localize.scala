@@ -36,14 +36,22 @@ case object Localize
     _config = config
 
     // name of json files
-    // TODO: make these to be given by user
-    val nodeViewCoverageJson = s"$FUZZ_LOG_DIR/recent/node-coverage.json"
-    val featuresCoverageJson = s"$FUZZ_LOG_DIR/recent/feature-coverage.json"
-    val touchedNodeViewJson =
-      s"$FUZZ_LOG_DIR/recent/minimal-touch-nodeview.json"
-    val touchedFeaturesJson =
-      s"$FUZZ_LOG_DIR/recent/minimal-touch-features.json"
-    val failsMapJson = s"$CONFORMTEST_LOG_DIR/fails.json"
+    val (fuzzLogDir, failsMapJson) = optional {
+      (cmdConfig.targets(0), cmdConfig.targets(1))
+    }
+      .getOrElse {
+        warn(
+          "No explicit paths are given. Trying to use the result from the most recent instead..",
+        )
+        (
+          s"$FUZZ_LOG_DIR/recent",
+          s"$CONFORMTEST_LOG_DIR/fails.json",
+        )
+      }
+    val nodeViewCoverageJson = s"$fuzzLogDir/node-coverage.json"
+    val featuresCoverageJson = s"$fuzzLogDir/feature-coverage.json"
+    val touchedNodeViewJson = s"$fuzzLogDir/minimal-touch-nodeview.json"
+    val touchedFeaturesJson = s"$fuzzLogDir/minimal-touch-features.json"
 
     // parse jsons
     val nodeViewInfos: Vector[NodeViewInfo] =

@@ -105,6 +105,7 @@ class Coverage(
       _minimalInfo += script.name -> ScriptInfo(
         ConformTest.createTest(initSt, finalSt),
         interp.touchedNodeViews.map(_._1),
+        interp.touchedCondViews.map(_._1),
         interp.touchedFeatures,
       )
     // assert: _minimalScripts ~= _minimalInfo.keys
@@ -156,6 +157,10 @@ class Coverage(
     lazy val getFeaturesId = orderedFeatures.zipWithIndex.toMap
     lazy val getNodeViewsId = orderedNodeViews.zipWithIndex.toMap
     lazy val getCondViewsId = orderedCondViews.zipWithIndex.toMap
+    dumpJson(
+      CoverageConstructor(timeLimit, synK, useSens),
+      s"$baseDir/constructor.json",
+    )
     if (synK.isDefined)
       dumpJson(
         name = if (withMsg) Some("feature coverage") else None,
@@ -199,6 +204,14 @@ class Coverage(
           else None,
         data = minimalTouchNodeViewJson(getNodeViewsId),
         filename = s"$baseDir/minimal-touch-nodeview.json",
+        space = false,
+      )
+      dumpJson(
+        name =
+          if (withMsg) Some("list of touched cond view of minimal programs")
+          else None,
+        data = minimalTouchCondViewJson(getCondViewsId),
+        filename = s"$baseDir/minimal-touch-condview.json",
         space = false,
       )
       if (synK.isDefined)
@@ -322,15 +335,23 @@ class Coverage(
   // get JSON for touched node view of minimal
   private def minimalTouchNodeViewJson(getId: Map[NodeView, Int]): Json =
     Json.fromFields(
-      _minimalInfo.toSeq.map((name, info) =>
+      _minimalInfo.map((name, info) =>
         name -> info.touchedNodeViews.map(getId).asJson,
+      ),
+    )
+
+  // get JSON for touched cond view of minimal
+  private def minimalTouchCondViewJson(getId: Map[CondView, Int]): Json =
+    Json.fromFields(
+      _minimalInfo.map((name, info) =>
+        name -> info.touchedCondViews.map(getId).asJson,
       ),
     )
 
   // get JSON for touched features of minimal
   private def minimalTouchFeaturesJson(getId: Map[List[Feature], Int]): Json =
     Json.fromFields(
-      _minimalInfo.toSeq.map((name, info) =>
+      _minimalInfo.map((name, info) =>
         name -> info.touchedFeatures.map(getId).asJson,
       ),
     )
@@ -418,6 +439,7 @@ object Coverage {
   case class ScriptInfo(
     test: ConformTest,
     touchedNodeViews: Iterable[NodeView],
+    touchedCondViews: Iterable[CondView],
     touchedFeatures: Iterable[List[Feature]],
   )
 
@@ -491,4 +513,56 @@ object Coverage {
   case class NodeViewInfo(index: Int, nodeView: NodeView, script: String)
   case class CondViewInfo(index: Int, condView: CondView, script: String)
   case class FeaturesInfo(index: Int, features: List[Feature], script: String)
+
+  case class CoverageConstructor(
+    timeLimit: Option[Int],
+    synK: Option[Int],
+    useSens: Boolean,
+  )
+  def fromLog(baseDir: String): Coverage =
+    val jsonProtocol = JsonProtocol(cfg)
+    import jsonProtocol.given
+
+    def rj[T](json: String)(implicit decoder: Decoder[T]) =
+      readJson[T](s"$baseDir/$json")
+
+    val con: CoverageConstructor = rj(s"constructor.json")
+    val cov = new Coverage(con.timeLimit, con.synK, con.useSens)
+
+    val nodeViewInfos: Vector[NodeViewInfo] = rj("node-coverage.json")
+    val condViewInfos: Vector[CondViewInfo] = rj("branch-coverage.json")
+    val featuresInfos: Vector[FeaturesInfo] =
+      if (con.synK.isDefined) rj("feature-coverage.json") else Vector()
+
+    val minimalTouchNodeView: Map[String, Vector[Int]] = rj(
+      "minimal-touch-nodeview.json",
+    )
+    val minimalTouchCondView: Map[String, Vector[Int]] = rj(
+      "minimal-touch-condview.json",
+    )
+    val minimalTouchFeatures: Map[String, Vector[Int]] =
+      if (con.synK.isDefined) rj("minimal-touch-features.json") else Map()
+
+    for {
+      minimal <- listFiles(s"$baseDir/minimal")
+      name = minimal.getName
+      code = readFile(minimal.getPath).drop(USE_STRICT.length).strip
+      script = Script(code, name)
+    } {
+      minimalTouchNodeView(name).foreach(i =>
+        cov.update(nodeViewInfos(i).nodeView, script),
+      )
+      minimalTouchCondView(name).foreach(i =>
+        cov.update(condViewInfos(i).condView, None, script),
+      )
+      if (con.synK.isDefined)
+        minimalTouchFeatures(name).foreach(i =>
+          cov.update(featuresInfos(i).features, script),
+        )
+    }
+
+    // TODO: read assertions, and recover complete minimal infos
+    // TODO: Recover target conds
+
+    cov
 }

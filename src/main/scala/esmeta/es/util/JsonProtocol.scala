@@ -48,4 +48,8 @@ class JsonProtocol(cfg: CFG) extends StateJsonProtocol(cfg) {
   given condViewInfoEncoder: Encoder[CondViewInfo] = deriveEncoder
   given featuresInfoDecoder: Decoder[FeaturesInfo] = deriveDecoder
   given featuresInfoEncoder: Encoder[FeaturesInfo] = deriveEncoder
+
+  // Coverage class
+  given coverageConstructorDecoder: Decoder[CoverageConstructor] = deriveDecoder
+  given coverageConstructorEncoder: Encoder[CoverageConstructor] = deriveEncoder
 }

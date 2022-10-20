@@ -255,7 +255,10 @@ case object CmdLocalize extends Command("localize", CmdBuildCFG >> Localize) {
       println(s"[Localization result for `$target`]")
       failMap.foreach((fail, locs) => {
         println(s"[[$fail]]")
-        locs.foreach((location, score) => println(s"  $location: $score"))
+        val ones = locs.filter(_._2 == 1.0)
+        (if ones.isEmpty then locs else ones).foreach((location, score) =>
+          println(s"  $location: $score"),
+        )
       })
     })
 }

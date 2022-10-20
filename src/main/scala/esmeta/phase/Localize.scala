@@ -23,6 +23,7 @@ case object Localize
   type Location = FuncView | List[Feature]
   type Result = Map[Target, Map[Test, Seq[(Location, Double)]]]
   type MResult = MMap[Target, Map[Test, Seq[(Location, Double)]]]
+  type IResult = MMap[Target, Map[Test, Seq[(Int, Double)]]]
 
   private var _config: Config = null
 
@@ -57,10 +58,17 @@ case object Localize
     val nodeViewInfos: Vector[NodeViewInfo] =
       readJson(nodeViewCoverageJson)
     val nodeViews = nodeViewInfos.map(_.nodeView)
+    val nodeViewIds = nodeViewInfos.map(_.index)
+
+    val funcViews = nodeViews.map(_.toFuncView).distinct
+    val funcView2Id = funcViews.zipWithIndex.map(_ -> _).toMap
 
     val featuresInfos: Vector[FeaturesInfo] =
       if (config.feature) readJson(featuresCoverageJson) else Vector()
     val features_s = featuresInfos.map(_.features)
+    val featuresIds = featuresInfos.map(_.index)
+
+    val locations: Vector[Location] = funcViews ++ features_s
 
     val test2NodeViewIds: Map[Test, Vector[Int]] =
       readJson(touchedNodeViewJson)
@@ -72,35 +80,58 @@ case object Localize
     val target2Fails: Map[Target, Set[Test]] = readJson(failsMapJson)
 
     // iterate all targets and get localization result for each failed tests
+    var iresult: IResult = MMap()
     var result: MResult = MMap()
     target2Fails.foreach((target, fails) => {
+      if (_config.debug) println(s"Localizing for the target `$target`...")
+
       val passes = tests.filterNot(fails.contains(_))
 
-      val nodeViewScores =
+      type ScoreMap = Map[Test, IndexedSeq[Double]]
+      val nodeViewScores: ScoreMap =
         localize(
-          nodeViews,
+          nodeViewIds,
           passes,
           fails,
-          test2NodeViewIds.map(_ -> _.map(nodeViews)),
+          test2NodeViewIds,
         )
-      val funcViewScores =
+      val funcViewScores: ScoreMap = {
         nodeViewScores.map(
-          _ -> _.groupMapReduce(_._1.toFuncView)(_._2)(_ max _),
+          _ -> _.zipWithIndex
+            .groupMapReduce((score, idx) =>
+              funcView2Id(nodeViews(idx).toFuncView),
+            )(_._1)(_ max _)
+            .foldLeft(funcViews.map(_ => 0.0)) {
+              case (scores, (id, score)) =>
+                scores.updated(id, score)
+            },
         )
-      val featuresScores =
+      }
+      val featuresScores: ScoreMap =
         localize(
-          features_s,
+          featuresIds,
           passes,
           fails,
-          test2FeaturesIds.map(_ -> _.map(features_s)),
+          test2FeaturesIds,
         )
 
       val mergedScores = funcViewScores.map((test, scores) => {
-        test -> (scores ++ featuresScores(test)).toSeq
+        val funcScores = scores.zipWithIndex.map(_.swap)
+        val featScores = featuresScores(test).zipWithIndex.map((s, i) =>
+          (i + funcViews.size, s),
+        )
+        test -> (funcScores ++ featScores)
       })
 
-      result(target) = mergedScores.map((test, scores) => {
-        test -> scores.sortBy(_._2).reverse.slice(0, 10)
+      iresult(target) = mergedScores
+      result(target) = mergedScores.map((test, indexedScores) => {
+        test -> indexedScores
+          .sortBy(_._2)
+          .reverse
+          .slice(0, _config.topN.get)
+          .map {
+            case (i, score) => (locations(i), score)
+          }
       })
     })
 
@@ -116,33 +147,32 @@ case object Localize
     result.toMap
   }
 
-  private def localize[L](
-    locs: Iterable[L],
+  private def localize(
+    locs: IndexedSeq[Int],
     passes: Iterable[Test],
     fails: Iterable[Test],
-    testLocMap: Map[Test, Iterable[L]],
-  ): Map[Test, Seq[(L, Double)]] =
+    testLocMap: Map[Test, Iterable[Int]],
+  ): Map[Test, IndexedSeq[Double]] =
     val passNum = passes.size
-    val failNum = fails.size
 
     // initial stat map
-    val initStatMap = locs.map(_ -> LocStat(0, 0, passNum, 1)).toMap
+    val initStats = locs.map(_ => LocStat(0, 0, passNum, 1))
 
     // update stat of each locations by iterating all successful tests
-    val passStatMap = passes.foldLeft(initStatMap) {
-      case (statMap, pass) =>
+    val passStats = passes.foldLeft(initStats) {
+      case (stats, pass) =>
         val touchedLocs = testLocMap(pass)
-        touchedLocs.foldLeft(statMap)(updateStatMap(true))
+        touchedLocs.foldLeft(stats)(updateStat(true))
     }
 
     // calculate score for each failed tests
     fails
       .map(fail => {
         val touchedLocs = testLocMap(fail)
-        val statMap =
-          touchedLocs.foldLeft(passStatMap)(updateStatMap(false))
+        val stats =
+          touchedLocs.foldLeft(passStats)(updateStat(false))
 
-        (fail, statMap.map(_ -> _.score).toSeq)
+        (fail, stats.map(_.score))
       })
       .toMap
 
@@ -157,10 +187,9 @@ case object Localize
     lazy val score = ef - ep / (ep + np + 1.0)
   }
 
-  private type StatMap[L] = Map[L, LocStat]
-  private def updateStatMap[L](pass: Boolean) =
-    (statMap: StatMap[L], loc: L) =>
-      statMap.updatedWith(loc)(_.map(_.touch(pass)))
+  private def updateStat(pass: Boolean) =
+    (stats: IndexedSeq[LocStat], idx: Int) =>
+      stats.updated(idx, stats(idx).touch(pass))
 
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(
@@ -174,9 +203,15 @@ case object Localize
       BoolOption(c => c.feature = true),
       "use 'feature' as localize candidate",
     ),
+    (
+      "topN",
+      NumOption((c, k) => c.topN = Some(k)),
+      "set the number for top rankings to keep",
+    ),
   )
   case class Config(
     var debug: Boolean = false,
     var feature: Boolean = false,
+    var topN: Option[Int] = Some(100),
   )
 }

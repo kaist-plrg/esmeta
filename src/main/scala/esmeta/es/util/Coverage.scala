@@ -283,7 +283,7 @@ class Coverage(
     // update target branches
     val neg = condView.neg
     cond.elem match
-      case _ if view.isEmpty            => /* do nothing */
+      case _ if nearest.isEmpty         => /* do nothing */
       case Branch(_, _, EBool(_), _, _) => /* do nothing */
       case ref: WeakUIdRef[EReturnIfAbrupt]
           if !ref.get.check => /* do nothing */

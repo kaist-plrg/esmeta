@@ -105,7 +105,7 @@ class Fuzzer(
   def pool: Set[Script] = cov.minimalScripts
 
   /** one trial to fuzz a new program to increase coverage */
-  def fuzz: Boolean =
+  def fuzz: Unit =
     iter += 1
     debugging(("-" * 40) + f"  iter: $iter%10d  " + ("-" * 40))
     for (bound <- logInterval) {
@@ -120,15 +120,14 @@ class Fuzzer(
     val code = script.code
     debugging(f"[$selectorInfo%-30s] $code")
 
-    val (mutatorName, mutants) = mutator(code, 1, condView.map((_, cov)))
-    val mutated = mutants.head
-    val mutatedCode = mutated.toString(grammar)
-    debugging(f"----- $mutatorName%-20s-----> $mutatedCode")
+    val (mutatorName, mutants) = mutator(code, 100, condView.map((_, cov)))
+    for (mutated <- mutants)
+      val mutatedCode = mutated.toString(grammar)
+      debugging(f"----- $mutatorName%-20s-----> $mutatedCode")
 
-    val result = add(mutatedCode)
-    update(selectorName, selectorStat, result)
-    update(mutatorName, mutatorStat, result)
-    result
+      val result = add(mutatedCode)
+      update(selectorName, selectorStat, result)
+      update(mutatorName, mutatorStat, result)
 
   /** add new program */
   def add(code: String): Boolean =

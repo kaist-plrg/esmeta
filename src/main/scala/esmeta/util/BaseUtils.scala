@@ -143,12 +143,8 @@ object BaseUtils {
 
   /** randomly choose an element in a list with different weights */
   def weightedChoose[T](seq: (T, Int)*): T = weightedChoose(seq)
-
-  /** randomly choose an element in a list with different weights */
   def weightedChoose[T](iter: Iterable[(T, Int)]): T =
     weightedChoose(iter.toArray)
-
-  /** randomly choose an element in a list with different weights */
   def weightedChoose[T](arr: Array[(T, Int)]): T = {
     val _arr = arr.filter(_._2 != 0)
     val n = rand.nextInt(_arr.map(_._2).sum) + 1
@@ -159,6 +155,9 @@ object BaseUtils {
     }
     aux()
   }
+
+  /** shuffle a sequence */
+  def shuffle[T](seq: Seq[T]) = rand.shuffle(seq)
 
   /** stringify */
   def stringify[T](t: T)(using rule: Appender.Rule[T]): String =

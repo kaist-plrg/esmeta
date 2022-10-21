@@ -120,7 +120,8 @@ class Fuzzer(
     val code = script.code
     debugging(f"[$selectorInfo%-30s] $code")
 
-    val (mutatorName, mutated) = mutator(code, condView.map((_, cov)))
+    val (mutatorName, mutants) = mutator(code, 1, condView.map((_, cov)))
+    val mutated = mutants.head
     val mutatedCode = mutated.toString(grammar)
     debugging(f"----- $mutatorName%-20s-----> $mutatedCode")
 

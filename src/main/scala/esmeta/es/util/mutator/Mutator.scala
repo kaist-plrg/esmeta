@@ -9,23 +9,22 @@ import esmeta.util.*
 /** ECMAScript AST mutator */
 trait Mutator {
 
-  /** mutate programs */
-  def apply(code: String): (String, Ast) = apply(code, None)
-
-  /** mutate programs */
+  /** mutate string */
+  def apply(code: String, n: Int): (String, Iterable[Ast]) =
+    apply(code, n, None)
   def apply(
     code: String,
+    n: Int,
     target: Option[(CondView, Coverage)],
-  ): (String, Ast) = apply(cfg.scriptParser.from(code), target)
+  ): (String, Iterable[Ast]) = apply(cfg.scriptParser.from(code), n, target)
 
-  /** mutate programs */
-  def apply(ast: Ast): (String, Ast) = apply(ast, None)
-
-  /** mutate programs */
+  /** mutate asts */
+  def apply(ast: Ast, n: Int): (String, Iterable[Ast]) = apply(ast, n, None)
   def apply(
     ast: Ast,
+    n: Int,
     target: Option[(CondView, Coverage)],
-  ): (String, Ast)
+  ): (String, Iterable[Ast])
 
   /** Possible names of underlying mutators */
   val names: List[String]

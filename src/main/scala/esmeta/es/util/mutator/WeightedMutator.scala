@@ -17,8 +17,9 @@ class WeightedMutator(
   /** mutate programs */
   def apply(
     ast: Ast,
+    n: Int,
     target: Option[(CondView, Coverage)],
-  ): (String, Ast) = weightedChoose(pairs)(ast, target)
+  ): (String, Iterable[Ast]) = weightedChoose(pairs)(ast, n, target)
 
   val names = pairs.toList.flatMap(_._1.names).sorted.distinct
 }

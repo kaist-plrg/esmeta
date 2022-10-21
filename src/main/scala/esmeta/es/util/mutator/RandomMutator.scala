@@ -16,8 +16,10 @@ class RandomMutator(
   /** mutate programs */
   def apply(
     ast: Ast,
+    n: Int,
     target: Option[(CondView, Coverage)],
-  ): (String, Ast) = (names.head, Walker.walk(ast))
+  ): (String, Iterable[Ast]) =
+    (names.head, List.tabulate(n)(_ => Walker.walk(ast)))
 
   /** internal walker */
   object Walker extends AstWalker {

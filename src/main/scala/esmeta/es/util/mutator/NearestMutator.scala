@@ -19,12 +19,13 @@ class NearestMutator(
   /** mutate programs */
   def apply(
     ast: Ast,
+    n: Int,
     target: Option[(CondView, Coverage)],
-  ): (String, Ast) = (for {
+  ): (String, Iterable[Ast]) = (for {
     (condView, cov) <- target
     nearest <- cov.targetCondViews.getOrElse(condView, None)
-  } yield (names.head, Walker(nearest).walk(ast)))
-    .getOrElse(randomMutator(ast, target))
+  } yield (names.head, List.tabulate(n)(_ => Walker(nearest).walk(ast))))
+    .getOrElse(randomMutator(ast, n, target))
 
   /** internal walker */
   class Walker(nearest: Nearest) extends AstWalker {

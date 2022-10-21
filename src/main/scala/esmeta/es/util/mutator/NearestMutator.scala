@@ -16,6 +16,10 @@ class NearestMutator(
   val synthesizer: Synthesizer = RandomSynthesizer,
 ) extends Mutator {
 
+  /** internal random mutator */
+  val randomMutator = RandomMutator(synthesizer)
+  val names = "NearestMutator" :: randomMutator.names
+
   /** mutate programs */
   def apply(
     ast: Ast,
@@ -29,18 +33,25 @@ class NearestMutator(
 
   /** internal walker */
   class Walker(nearest: Nearest) extends AstWalker {
+    private var _isNear = false
     val AstSingleTy(name, rhsIdx, subIdx) = nearest.ty
-    override def walk(ast: Syntactic): Syntactic = if (
-      ast.name == name &&
-      ast.rhsIdx == rhsIdx &&
-      ast.subIdx == subIdx &&
-      ast.loc == Some(nearest.loc)
-    ) synthesizer(ast)
-    else super.walk(ast)
+    override def walk(ast: Syntactic): Syntactic =
+      val isNear = (
+        ast.name == name &&
+          ast.rhsIdx == rhsIdx &&
+          ast.subIdx == subIdx &&
+          ast.loc == Some(nearest.loc)
+      )
+      if (isNear) _isNear = true
+
+      val ret =
+        if (isNear && randBool(0.8))
+          synthesizer(ast)
+        else
+          super.walk(ast)
+
+      if (isNear) _isNear = false
+
+      ret
   }
-
-  /** internal random mutator */
-  private val randomMutator = RandomMutator(synthesizer)
-
-  val names = "NearestMutator" :: randomMutator.names
 }

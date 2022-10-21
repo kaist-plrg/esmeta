@@ -12,7 +12,9 @@ import esmeta.util.BaseUtils.*
 /** A mutator that inserts statements to ECMAScript AST */
 class StatementInserter(
   val synthesizer: Synthesizer = RandomSynthesizer,
-) extends Mutator {
+) extends Mutator
+  with Util.MultiplicativeListWalker {
+  import StatementInserter.*
 
   /** mutate a program */
   def apply(
@@ -22,47 +24,48 @@ class StatementInserter(
   ): (String, Seq[Ast]) = (
     names(0), {
       // count the number of stmtLists
-      val k = StatementInserter.StmtListCounter(ast)
+      val k = stmtListCounter(ast)
 
       if (k == 0) List.fill(n)(ast)
       else if (n == 1)
-        c = 2
-        k1 = 1
-        k2 = k - 1
+        // Insert one statement with 80% probability
+        k1 = k - 1
+        c1 = 1
+        k2 = 1
+        c2 = 5
 
         sample(ast, n)
       else {
         // calculate the most efficient parameters
-        c = 2
+        var c = 2
         while (math.pow(c, k) < n)
           c = c + 1
         k1 = 0
+        c1 = c - 1
         k2 = k
+        c2 = c
         while (math.pow((c - 1), k1 + 1) * math.pow(c, k2 - 1) >= n)
           k1 = k1 + 1
           k2 = k2 - 1
 
-        // choose n distince samples.
         sample(ast, n)
       }
 
     },
   )
-
   val names = List("StatementInserter")
 
-  import StatementInserter.*
-
   /** parameter for sampler */
-  private var (c, k1, k2) = (0, 0, 0)
+  private var (c1, c2, k1, k2) = (0, 0, 0, 0)
+
+  private def sample(ast: Ast, n: Int) = shuffle(walk(ast)).take(n)
+
   private def decideGenNum =
     if k1 > 0 && randBool(k1 / (k1 + k2 + 0.0)) then
-      k1 -= 1; c - 1
+      k1 -= 1; c1
     else if k2 > 0 then
-      k2 -= 1; c
-    else throw new Error("This is a bug in Stmt Insertion")
-
-  def sample(ast: Ast, n: Int) = shuffle(walk(ast)).take(n)
+      k2 -= 1; c2
+    else throw new Error("This is a bug in Stmt Inserter")
 
   /** generate a new statement list item, either randomly or manually */
   private def newStmtItem(args: List[Boolean]) = choose(
@@ -75,19 +78,11 @@ class StatementInserter(
     Syntactic(STATEMENT_LIST, args, 0, Vector(Some(item)))
 
   /** ast walker */
-  def walkOpt(opt: Option[Ast]): List[Option[Ast]] = opt match {
-    case None      => List(None)
-    case Some(ast) => walk(ast).map(ast => Some(ast))
-  }
-  def walk(ast: Ast): List[Ast] = ast match
-    case ast: Lexical   => walk(ast)
-    case ast: Syntactic => walk(ast)
-  def walk(ast: Lexical): List[Lexical] = List(ast)
-  def walk(ast: Syntactic): List[Syntactic] = ast match
+  override def walk(ast: Syntactic): List[Syntactic] = ast match
     // statement list
     case Syntactic(STATEMENT_LIST, args, _, _) =>
       val genNum = decideGenNum
-      val mutants = superWalk(ast)
+      val mutants = super.walk(ast)
       List
         .tabulate(genNum)(_ match
           case 0 => mutants
@@ -140,19 +135,7 @@ class StatementInserter(
         Syntactic(name, args, rhsIdx, newChildren),
       )
 
-    case _ => superWalk(ast)
-
-  def superWalk(ast: Syntactic) =
-    val Syntactic(name, args, rhsIdx, children) = ast
-    val newChildrens = children
-      .map(walkOpt)
-      .foldRight(List(Vector[Option[Ast]]()))((childs, childrens) => {
-        for {
-          child <- childs
-          childrens <- childrens
-        } yield (child +: childrens)
-      })
-    newChildrens.map(newChildren => Syntactic(name, args, rhsIdx, newChildren))
+    case _ => super.walk(ast)
 }
 
 object StatementInserter {
@@ -208,23 +191,7 @@ object StatementInserter {
   ).toMap
 
   // count the number of places where stmt can be inserted
-  object StmtListCounter extends AstWalker {
-    def apply(ast: Ast): Int = {
-      _cnt = 0
-      walk(ast)
-      _cnt
-    }
-    private var _cnt = 0
-
-    override def walk(ast: Syntactic): Unit = {
-      ast match
-        case Syntactic(STATEMENT_LIST, _, _, _) =>
-          _cnt += 1
-        case _ if containsEmptyStatementList(ast) =>
-          _cnt += 1
-        case _ =>
-      super.walk(ast)
-    }
-
-  }
+  val stmtListCounter = Util.AstCounter(ast => {
+    ast.name == STATEMENT_LIST || containsEmptyStatementList(ast)
+  })
 }

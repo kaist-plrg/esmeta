@@ -12,24 +12,49 @@ import esmeta.util.BaseUtils.*
 class RandomMutator(
   val synthesizer: Synthesizer = RandomSynthesizer,
 ) extends Mutator {
+  import RandomMutator.*
+  val names = List("RandomMutator")
 
   /** mutate programs */
   def apply(
     ast: Ast,
     n: Int,
     target: Option[(CondView, Coverage)],
-  ): (String, Iterable[Ast]) =
-    (names.head, List.tabulate(n)(_ => Walker.walk(ast)))
+  ): (String, Iterable[Ast]) = (
+    names.head, {
+      val k = targetAstCounter(ast)
+      if (k == 0)
+        List.fill(n)(ast)
+      else
+        c = (n - 1) / k + 1
+      shuffle(Walker.walk(ast)).take(n)
+    },
+  )
+
+  /* number of new candidates to make for each target */
+  var c = 0
 
   /** internal walker */
-  object Walker extends AstWalker {
-    override def walk(ast: Syntactic): Syntactic = ast.name match
-      case "AssignmentExpression" | "PrimaryExpression" | "Statement" |
-          "Declaration" if randBool =>
-        synthesizer(ast)
-      case _ =>
-        super.walk(ast)
+  object Walker extends Util.AdditiveListWalker {
+    override def walk(ast: Syntactic): List[Syntactic] =
+      val mutants = super.walk(ast)
+      if isTarget(ast) then List.tabulate(c)(_ => synthesizer(ast)) ++ mutants
+      else mutants
   }
 
-  val names = List("RandomMutator")
+}
+
+object RandomMutator {
+  // true if the given ast is target ast
+  def isTarget = (ast: Syntactic) =>
+    List(
+      "AssignmentExpression",
+      "PrimaryExpression",
+      "Statement",
+      "Declaration",
+    )
+      .contains(ast.name)
+
+  // count the number of target sub-ast
+  val targetAstCounter = new Util.AstCounter(isTarget)
 }

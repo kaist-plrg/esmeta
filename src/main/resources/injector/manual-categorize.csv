@@ -2,10 +2,25 @@ TAG,pattern in script,pattern in message
 TIMEOUT,,but got timeout
 BBL-FAILURE,,but got transpile-failure
 BBL-DESTRUCT-NULL,_extends,Expected throw-error: TypeError @ RequireObjectCoercible
+BBL-DUP-SPARSE,  x;,Expected undefined but got
 BBL-STATIC-PRIVATE-IN,===,TypeError @ RelationalExpression[7
 BBL-COMPUTED-IN,_defineProperty,TypeError @ RelationalExpression[6
 BBL-STATIC,_createClass,Expected throw-error: TypeError @ DeclarativeEnvironmentRecord.SetMutableBinding
+GRL-REST-SPARSE,... [ ],for Array.
 BBL-SPARSE,,for Array.
+BBL-NULL-APPLY,null.apply,but got throw-error: TypeError
+BBL-GEN-ARR,_toArray,BindingInitialization but got normal
+BBL-ENUMERABLE-GEN,regeneratorRuntime,"constructor"
+BBL-WRONG-ERR-NAME,,but got throw-error: Error
+GRL-NORMALIZE,normalize,RangeError
+GRL-SETPROTOTYPEOF,setPrototypeOf,TypeError @ INTRINSICS.Object.setPrototypeOf
+GRL-EXTENDS,extends,but got throw-error: TypeError
+GRL-LOGICAL-ASSIGN-CONST,&&=,TypeError @ DeclarativeEnvironmentRecord.SetMutableBinding
+GRL-DELETE,delete,but got normal
+GRL-FORDECL,for ( const [,
+GRL-FORDECL,for ( const {,
+GRL-FORDECL,for ( let [,
+GRL-FORDECL,for ( let {,
 BBL-NAME,,descriptor value of "name"
 BBL-CONSTRUCT,,"prototype"] for
 BBL-CONSTRUCT,,[[Construct]] but does.
@@ -25,18 +40,15 @@ BBL-F2STRING,_createClass,descriptor value of
 BBL-F2STRING,,but got "function
 BBL-F2STRING,,but got "undefinedfunction
 BBL-AWAIT, _await,await
+BBL-AWAIT, _await,but got undefined
 BBL-SCOPE,,Expected throw-error: ReferenceError @ DeclarativeEnvironmentRecord.GetBindingValue
 BBL-SCOPE,,Expected throw-error: ReferenceError @ GetValue
 BBL-SCOPE,,Expected throw-error: ReferenceError @ DeclarativeEnvironmentRecord.SetMutableBinding
 BBL-SCOPE,_this$x,
 BBL-NOF,Array.from.call(function,
-GRL-NORMALIZE,normalize,RangeError
-GRL-SETPROTOTYPEOF,setPrototypeOf,TypeError @ INTRINSICS.Object.setPrototypeOf
-GRL-EXTENDS,extends new,TypeError
-GRL-LOGICAL-ASSIGN-CONST,&&=,TypeError @ DeclarativeEnvironmentRecord.SetMutableBinding
-GRL-DELETE,delete,
-GRL-FORDECL,for ( const [,
-GRL-FORDECL,for ( const {,
-GRL-FORDECL,for ( var,
 ECM-STATIC,static,native code
 ECM-STATIC,static,descriptor value of
+D8-THIS,this,version
+D8-THIS,in this,
+D8-THIS,defineProperties,Expected normal but got throw-error: TypeError
+D8-THIS,create,Expected normal but got throw-error: TypeError

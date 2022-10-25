@@ -49,15 +49,21 @@ $ git clone https://github.com/WebKit/WebKit.git WebKit
 ```
 
 4.
+```console
 $ sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+```
 
 5. Build JSC
+```console
 $ {WEBKIT DIRECTORY}/Tools/Scripts/build-jsc --debug // --release도 가능
 Build files are located at {WEBKIT DIRECTORY}/WebKitBuild
+```
 
-실행
+6. Run
+```console
 $ {WEBKIT DIRECTORY}/Tools/Scripts/run-jsc
 Running 1 time(s): DYLD_FRAMEWORK_PATH={WEBKIT DIRECTORY}/WebKitBuild/Debug {WEBKIT DIRECTORY}/WebKitBuild/Debug/jsc --useDollarVM=1
 >>> 1+1
 2
 $ DYLD_FRAMEWORK_PATH={WEBKIT DIRECTORY}/WebKitBuild/Debug {WEBKIT DIRECTORY}/WebKitBuild/Debug/jsc -e "print(1);"
+```

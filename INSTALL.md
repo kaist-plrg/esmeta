@@ -98,8 +98,10 @@ https://ftp.mozilla.org/pub/firefox/releases/ and unzip it.
 alias sm=<jsshell>/js
 
 # run JavaScriptCore
+#   -e 'ignoreUnhandledRejections()' : Register unhandled-rejections ignoring mode
 #   -e : execute a string as script
-sm -e "print(42);"
+# 
+sm -e 'ignoreUnhandledRejections()' -e "print(42);"
 ```
 
 ## Transpilers
@@ -113,6 +115,12 @@ npm -g install @babel/cli @babel/core @babel/preset-env
 
 # run babel
 babel in.js -o out.js
+
+# install Babel for directory mide
+Download from https://unpkg.com/@babel/standalone@7.19.1/babel.min.js,
+and store it under src/main/resources/babel
+# run babel for directory mode
+src/main/resources/babelrd indir outdir
 ```
 
 ### SWC

@@ -1,4 +1,4 @@
-Installing d8
+## Installing d8
 
 ```
 cd $HOME
@@ -33,3 +33,31 @@ Install Babel using npm
 ```
 npm -g install @babel/cli@7.19.3 @babel/core@7.19.1 @babel/preset-env@7.19.1
 ```
+
+## Installing JSC
+
+1. Install xcode from app store and run at least once
+
+2.
+```console
+$ xcode-select --install
+```
+
+3.
+```console
+$ git clone https://github.com/WebKit/WebKit.git WebKit
+```
+
+4.
+$ sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+
+5. Build JSC
+$ {WEBKIT DIRECTORY}/Tools/Scripts/build-jsc --debug // --release도 가능
+Build files are located at {WEBKIT DIRECTORY}/WebKitBuild
+
+실행
+$ {WEBKIT DIRECTORY}/Tools/Scripts/run-jsc
+Running 1 time(s): DYLD_FRAMEWORK_PATH={WEBKIT DIRECTORY}/WebKitBuild/Debug {WEBKIT DIRECTORY}/WebKitBuild/Debug/jsc --useDollarVM=1
+>>> 1+1
+2
+$ DYLD_FRAMEWORK_PATH={WEBKIT DIRECTORY}/WebKitBuild/Debug {WEBKIT DIRECTORY}/WebKitBuild/Debug/jsc -e "print(1);"

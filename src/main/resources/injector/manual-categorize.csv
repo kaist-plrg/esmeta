@@ -48,7 +48,3 @@ BBL-SCOPE,_this$x,
 BBL-NOF,Array.from.call(function,
 ECM-STATIC,static,native code
 ECM-STATIC,static,descriptor value of
-D8-THIS,this,version
-D8-THIS,in this,
-D8-THIS,defineProperties,Expected normal but got throw-error: TypeError
-D8-THIS,create,Expected normal but got throw-error: TypeError

@@ -57,12 +57,15 @@ case object GenTest
       case Some(ts) => ts.split(";").toList
     }
 
+    // pre-process for each engines and transpilers
+    var headers: Map[Int, String] = Map()
     engines.zipWithIndex.foreach((engine, i) => {
       val logDir = s"$GENTEST_LOG_DIR/engine-$i"
       cleanDir(logDir)
       dumpFile(engine, s"$logDir/command.txt")
-    })
 
+      headers += (i -> getGlobalClearingCode(engine))
+    })
     transpilers.zipWithIndex.foreach((transpiler, i) => {
       val logDir = s"$GENTEST_LOG_DIR/trans-$i"
       cleanDir(logDir)
@@ -75,7 +78,9 @@ case object GenTest
       JSTrans.transpileDirUsingBinary(transpiler, codeDir, rawDir)
       dumpFile(transpiler, s"$rawDir/command.txt")
     })
+    headers += (-1 -> getGlobalClearingCode(JSEngine.defaultEngine.get._1))
 
+    // generate tests for each script
     names.foldLeft(
       (
         engines.map(_ -> List[Script]()).toMap,
@@ -104,9 +109,10 @@ case object GenTest
         }
 
         // generate engine tests
-        val etest = testMaker(code)
         val updatedEngineTestMap = engineTestMap.map((e, tests) => {
           val i = engines.indexOf(e)
+          val etest = testMaker(headers(i) + code)
+
           val logDir = s"$GENTEST_LOG_DIR/engine-$i"
           dumpFile(etest, s"$logDir/$name")
 
@@ -118,7 +124,8 @@ case object GenTest
           val i = transpilers.indexOf(t)
           val rawDir = s"$GENTEST_LOG_DIR/raw-trans-$i"
           val compiledCode = readFile(s"$rawDir/$name")
-          val ttest = testMaker(compiledCode)
+          val ttest = testMaker(headers(-1) + compiledCode)
+
           val logDir = s"$GENTEST_LOG_DIR/trans-$i"
           dumpFile(ttest, s"$logDir/$name")
 
@@ -156,6 +163,36 @@ case object GenTest
   private val libTail = "})();"
   private val delayHead = "$delay(() => {"
   private val delayTail = "});"
+
+  // get code to clear initial global variables
+  private def getGlobalClearingCode(e: String): String =
+    val stringKeys = JSEngine
+      .runUsingBinary(e, "for (let s in globalThis) print(s);")
+      .get
+      .split(LINE_SEP)
+      .filterNot(_ == "")
+
+    val symbolKeys = JSEngine
+      .runUsingBinary(
+        e,
+        "for (let s of Object.getOwnPropertySymbols(globalThis)) if(Object.getOwnPropertyDescriptor(globalThis,s).enumerable) print(s.toString());",
+      )
+      .get
+      .split(LINE_SEP)
+      .filterNot(_ == "")
+      .map(_.replace("Symbol(", "[").replace(")", "]"))
+
+    val globals = stringKeys ++ symbolKeys
+
+    if globals.isEmpty then ""
+    else
+      globals
+        .map(v => s"$v: { enumerable: false }")
+        .mkString(
+          s"\"use strict\"; Object.defineProperties(globalThis , { ",
+          ", ",
+          s" });$LINE_SEP",
+        )
 
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(

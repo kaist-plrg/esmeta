@@ -79,14 +79,39 @@ class StatementInserter(
 
   /** ast walker */
   override def walk(ast: Syntactic): List[Syntactic] = ast match
-    // statement list
-    case Syntactic(STATEMENT_LIST, args, _, _) =>
+    // singleton statement list
+    case Syntactic(STATEMENT_LIST, args, 0, _) =>
       val genNum = decideGenNum
       val mutants = super.walk(ast)
       List
         .tabulate(genNum)(_ match
-          case 0 => mutants
-          case _ =>
+          case 0 => // do Nothing
+            mutants
+          case _ => // append a stmt either front or behind
+            val newStmt = newStmtItem(args)
+            mutants.map(mutant =>
+              Syntactic(
+                STATEMENT_LIST,
+                args,
+                1,
+                if randBool then Vector(Some(mutant), Some(newStmt))
+                else Vector(Some(item2list(newStmt, args)), mutant.children(0)),
+              ),
+            ),
+        )
+        .flatten
+
+    // long statement list
+    case Syntactic(STATEMENT_LIST, args, 1, _) =>
+      val genNum = decideGenNum
+      val mutants = super.walk(ast)
+      List
+        .tabulate(genNum)(_ match
+          case 0 if genNum == 1 => // do Nothing
+            mutants
+          case 0 => // drop a stmt
+            mutants.map(_.children(0).get.asInstanceOf[Syntactic])
+          case _ => // append a stmt behind
             val newStmt = newStmtItem(args)
             mutants.map(mutant =>
               Syntactic(
@@ -99,7 +124,7 @@ class StatementInserter(
         )
         .flatten
 
-    // optional statement list as child
+    // ast who has an empty statement list as a child
     case _ if containsEmptyStatementList(ast) =>
       val Syntactic(name, args, rhsIdx, children) = ast
       val container = STATEMENT_LIST_OPTIONAL_CONTAINERS.find(_._1 == name).get

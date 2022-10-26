@@ -48,14 +48,14 @@ case object GenTest
     val names = getNames(codeDir)
 
     // collect target engines and transpilers
-    val engines = config.engines match {
-      case None => List(JSEngine.defaultCmd("d8"), JSEngine.defaultCmd("js"))
-      case Some(es) => es.split(";").toList
-    }
-    val transpilers = config.transpilers match {
-      case None     => List(JSTrans.defaultCmd("babel"))
-      case Some(ts) => ts.split(";").toList
-    }
+    val engines = (config.engines match {
+      case None     => List("d8", "js", "sm", "jsc")
+      case Some(es) => es.split(",").toList
+    }).map(e => JSEngine.defaultCmd.getOrElse(e, e))
+    val transpilers = (config.transpilers match {
+      case None     => List("babel")
+      case Some(ts) => ts.split(",").toList
+    }).map(t => JSTrans.defaultCmd.getOrElse(t, t))
 
     // pre-process for each engines and transpilers
     var headers: Map[Int, String] = Map()
@@ -204,12 +204,12 @@ case object GenTest
     (
       "engines",
       StrOption((c, s) => c.engines = Some(s)),
-      "list of engines to test, separated by ;",
+      "list of engines to test, separated by comma",
     ),
     (
       "transpilers",
       StrOption((c, s) => c.transpilers = Some(s)),
-      "list of transpilers to test, separated by ;",
+      "list of transpilers to test, separated by comma",
     ),
   )
   case class Config(

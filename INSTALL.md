@@ -94,10 +94,11 @@ WebAssembly Engine, used in Firefox, Servo and various other projects.
 Download the `jsshell` zip file for the target versions in
 https://ftp.mozilla.org/pub/firefox/releases/ and unzip it.
 ```shell
-# make alias `js` as `sm` to prevent the conflict to GraalJS
-alias sm=<jsshell>/js
+# rename `js` as `sm` to prevent the conflict with GraalJS
+export PATH=<jsshell>:$PATH
+mv <jsshell>/js <jsshell>/sm
 
-# run JavaScriptCore
+# run Spider Monkey
 #   -e 'ignoreUnhandledRejections()' : Register unhandled-rejections ignoring mode
 #   -e : execute a string as script
 # 
@@ -109,19 +110,12 @@ sm -e 'ignoreUnhandledRejections()' -e "print(42);"
 ### Babel
 [Babel](https://babeljs.io/) is a JavaScript compiler to use next generation
 JavaScript. See https://babeljs.io/docs/en/babel-cli.
-```shell
-# install Babel
-npm -g install @babel/cli @babel/core @babel/preset-env
-
-# run babel
-babel in.js -o out.js
-
-# install Babel for directory mide
 Download from https://unpkg.com/@babel/standalone@7.19.1/babel.min.js,
 and store it under src/main/resources/babel
+```shell
 # run babel for directory mode
-src/main/resources/babelrd indir outdir
-```
+src/main/resources/babel/babel-d indir outdir
+```l
 
 ### SWC
 [SWC](https://swc.rs/) (stands for Speedy Web Compiler) is a super-fast

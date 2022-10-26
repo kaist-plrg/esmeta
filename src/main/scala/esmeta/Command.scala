@@ -208,7 +208,9 @@ case object CmdGenTest extends Command("gen-test", CmdBase >> GenTest) {
   val help =
     "generate conform tests for an ECMAScript engine or a transpiler based."
   val examples = List(
-    "esmeta gen-test codedir assertiondir    # perform conform test using script and test in dir",
+    "esmeta gen-test codedir assertiondir       # perform conform test using script and test in dir",
+    "esmeta gen-test                            # perform conform test using most recent fuzzing result",
+    "esmeta gen-test get-test:engines=\"d8,js\" # perform conformtest for d8 and js",
   )
   override def showResult(
     testMapPair: (
@@ -232,7 +234,7 @@ case object CmdConformTest
   extends Command("conform-test", CmdGenTest >> ConformTest) {
   val help = "perform conform test for an ECMAScript engine or a transpiler."
   val examples = List(
-    "esmeta comform-test dir      # perform conform test using script and test in dir",
+    "esmeta comform-test                     # perform conform test",
   )
   override def showResult(fails: Map[String, Iterable[String]]): Unit =
     fails.foreach {

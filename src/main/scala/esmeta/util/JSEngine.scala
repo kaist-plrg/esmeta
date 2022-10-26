@@ -22,6 +22,8 @@ object JSEngine {
     "d8" -> "d8 --ignore-unhandled-promises -e",
     "node" -> "node --unhandled-rejections=none -e",
     "js" -> "js -e",
+    "sm" -> "sm -e 'ignoreUnhandledRejections();' -e", // NOTE: scala doesn't recognize alias.
+    "jsc" -> s"jsc -e@DYLD_FRAMEWORK_PATH:${sys.env("WEBKIT_HOME")}/WebkitBuild/Release",
   )
 
   /** default engine: (command, version) */
@@ -212,7 +214,14 @@ object JSEngine {
     val escapedSrc = escape(src)
     val stdout = new StringJoiner(LINE_SEP)
     val stderr = new StringJoiner(LINE_SEP)
-    s"timeout 3s $runner $escapedSrc" ! ProcessLogger(
+    def cmd(main: String) = s"timeout 3s $main $escapedSrc"
+    val pb: ProcessBuilder = if runner.contains("@") then {
+      val Array(main, envInfo) = runner.split("@")
+      val Array(envKey, envVal) = envInfo.split(":")
+      Process(cmd(main), None, envKey -> envVal)
+    } else cmd(runner)
+
+    pb ! ProcessLogger(
       out => stdout.add(out),
       err => stderr.add(err),
     ) match {

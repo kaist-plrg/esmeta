@@ -1,4 +1,4 @@
-package esmeta.util
+package esmeta.js
 
 import esmeta.*
 import esmeta.error.*
@@ -11,10 +11,10 @@ import java.util.StringJoiner
 object JSTrans {
 
   val defaultCmd = Map(
-    "babel" -> s"$RESOURCE_DIR/trans/babel-d.js",
-    "swc" -> s"$RESOURCE_DIR/trans/swc-d.js",
-    "terser" -> s"$RESOURCE_DIR/trans/terser-d.js",
-    "obfuscator" -> s"$RESOURCE_DIR/trans/obfuscator-d.js",
+    "babel" -> Map("1.0.0" -> s"$RESOURCE_DIR/trans/babel-d.js"),
+    "swc" -> Map("1.0.0" -> s"$RESOURCE_DIR/trans/swc-d.js"),
+    "terser" -> Map("1.0.0" -> s"$RESOURCE_DIR/trans/terser-d.js"),
+    "obfuscator" -> Map("1.0.0" -> s"$RESOURCE_DIR/trans/obfuscator-d.js"),
   )
 
   /** inner minified babel */

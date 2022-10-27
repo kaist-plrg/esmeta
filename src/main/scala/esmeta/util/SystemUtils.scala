@@ -32,7 +32,7 @@ object SystemUtils {
   def walkTree(file: File): Iterable[File] =
     Seq(file) ++ new Iterable[File] {
       def iterator: Iterator[File] =
-        if (file.isDirectory) file.listFiles.iterator
+        if (file.isDirectory) file.listFiles.sorted.iterator
         else Iterator.empty
     }.flatMap(walkTree)
 

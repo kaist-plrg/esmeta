@@ -1,34 +1,35 @@
 package esmeta.phase
 
 import esmeta.*
-//import esmeta.error.*
-//import esmeta.es.util.injector.ConformTest.*
 import esmeta.es.util.injector.Injector
 import esmeta.es.Script
+import esmeta.js.*
 import esmeta.util.*
 import esmeta.util.SystemUtils.*
 import esmeta.util.BaseUtils.*
-import esmeta.util.{JSEngine, JSTrans}
 
 /** `gen-test` phase */
 case object GenTest
   extends Phase[
     Unit,
-    (Map[String, Iterable[Script]], Map[String, Iterable[Script]]),
+    (
+      Map[Target, Iterable[Script]],
+      Map[Target, Iterable[Script]],
+      Iterable[Script],
+    ),
   ] {
   val name = "gen-test"
   val help =
     "Generate executable conform tests for ECMAScript Engines and transpilers"
 
   private var _config: Config = null
-  private type Target = String
   private type Result = Map[Target, Iterable[Script]]
 
   def apply(
     _unit: Unit,
     cmdConfig: CommandConfig,
     config: Config,
-  ): (Result, Result) =
+  ): (Result, Result, Iterable[Script]) =
     _config = config
 
     // collect target scripts and assertions
@@ -48,14 +49,16 @@ case object GenTest
     val names = getNames(codeDir)
 
     // collect target engines and transpilers
-    val engines = (config.engines match {
-      case None     => List("d8", "js", "sm", "jsc")
+    val engines: List[Target] = (config.engines match {
+      case None     => List("d8@1.0.0", "js@1.0.0", "sm@1.0.0", "jsc@1.0.0")
       case Some(es) => es.split(",").toList
-    }).map(e => JSEngine.defaultCmd.getOrElse(e, e))
-    val transpilers = (config.transpilers match {
-      case None     => List("babel", "swc", "terser", "obfuscator")
+    }).map(e => Target.from(e, false))
+
+    val transpilers: List[Target] = (config.transpilers match {
+      case None =>
+        List("babel@1.0.0", "swc@1.0.0", "terser@1.0.0", "obfuscator@1.0.0")
       case Some(ts) => ts.split(",").toList
-    }).map(t => JSTrans.defaultCmd.getOrElse(t, t))
+    }).map(t => Target.from(t, true))
 
     // pre-process for each engines and transpilers
     var headers: Map[Int, String] = Map()
@@ -64,7 +67,7 @@ case object GenTest
       cleanDir(logDir)
       dumpFile(engine, s"$logDir/command.txt")
 
-      headers += (i -> getGlobalClearingCode(engine))
+      headers += (i -> getGlobalClearingCode(engine.cmd))
     })
     transpilers.zipWithIndex.foreach((transpiler, i) => {
       val logDir = s"$GENTEST_LOG_DIR/trans-$i"
@@ -75,7 +78,7 @@ case object GenTest
         println(s" - Running transpiler $transpiler...")
       val rawDir = s"$GENTEST_LOG_DIR/raw-trans-$i"
       cleanDir(rawDir)
-      JSTrans.transpileDirUsingBinary(transpiler, codeDir, rawDir).get
+      JSTrans.transpileDirUsingBinary(transpiler.cmd, codeDir, rawDir).get
       dumpFile(transpiler, s"$rawDir/command.txt")
     })
     headers += (-1 -> getGlobalClearingCode(JSEngine.defaultEngine.get._1))
@@ -85,9 +88,10 @@ case object GenTest
       (
         engines.map(_ -> List[Script]()).toMap,
         transpilers.map(_ -> List[Script]()).toMap,
+        List[Script](),
       ),
     ) {
-      case ((engineTestMap, transTestMap), name) =>
+      case ((engineTestMap, transTestMap, originals), name) =>
         val code = readFile(s"$codeDir/$name")
         val assertion = readFile(s"$assertionDir/$name")
 
@@ -132,7 +136,11 @@ case object GenTest
           t -> (Script(ttest, name) :: tests)
         })
 
-        (updatedEngineTestMap, updatedTransTestMap)
+        (
+          updatedEngineTestMap,
+          updatedTransTestMap,
+          Script(code, name) :: originals,
+        )
     }
 
   // ---------------------------------------------------------------------------
@@ -165,16 +173,16 @@ case object GenTest
   private val delayTail = "});"
 
   // get code to clear initial global variables
-  private def getGlobalClearingCode(e: String): String =
+  private def getGlobalClearingCode(cmd: String): String =
     val stringKeys = JSEngine
-      .runUsingBinary(e, "for (let s in globalThis) print(s);")
+      .runUsingBinary(cmd, "for (let s in globalThis) print(s);")
       .get
       .split(LINE_SEP)
       .filterNot(_ == "")
 
     val symbolKeys = JSEngine
       .runUsingBinary(
-        e,
+        cmd,
         "for (let s of Object.getOwnPropertySymbols(globalThis)) if(Object.getOwnPropertyDescriptor(globalThis,s).enumerable) print(s.toString());",
       )
       .get

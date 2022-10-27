@@ -3,7 +3,7 @@ package esmeta.es.util
 import esmeta.*
 import esmeta.es.*
 import esmeta.spec.*
-import esmeta.util.JSEngine
+import esmeta.js.JSEngine
 import scala.util.Try
 
 /** ECMAScript program validity checker */

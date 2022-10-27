@@ -5,6 +5,7 @@ import esmeta.cfg.CFG
 import esmeta.error.{NoGraalError, TimeoutException}
 import esmeta.es.*
 import esmeta.es.util.*
+import esmeta.js.*
 import esmeta.state.State
 import esmeta.util.*
 import esmeta.util.SystemUtils.*

@@ -214,11 +214,12 @@ case object CmdGenTest extends Command("gen-test", CmdBase >> GenTest) {
   )
   override def showResult(
     testMapPair: (
-      Map[String, Iterable[esmeta.es.Script]],
-      Map[String, Iterable[esmeta.es.Script]],
+      Map[esmeta.js.Target, Iterable[esmeta.es.Script]],
+      Map[esmeta.js.Target, Iterable[esmeta.es.Script]],
+      Iterable[esmeta.es.Script],
     ),
   ): Unit =
-    val (etestMap, ttestMap) = testMapPair
+    val (etestMap, ttestMap, _) = testMapPair
     etestMap.foreach {
       case (engine, tests) =>
         println(s"${tests.size} tests generated for the engine `$engine`.")
@@ -236,7 +237,9 @@ case object CmdConformTest
   val examples = List(
     "esmeta comform-test                     # perform conform test",
   )
-  override def showResult(fails: Map[String, Iterable[String]]): Unit =
+  override def showResult(
+    fails: Map[esmeta.js.Target, Iterable[String]],
+  ): Unit =
     fails.foreach {
       case (e, fails) =>
         println(s"failing tests for `$e`: ")

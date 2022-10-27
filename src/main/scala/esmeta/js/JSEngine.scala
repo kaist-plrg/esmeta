@@ -1,4 +1,4 @@
-package esmeta.util
+package esmeta.js
 
 import esmeta.LINE_SEP
 import esmeta.util.BaseUtils.*
@@ -19,17 +19,19 @@ object JSEngine {
 
   /** default commands */
   val defaultCmd = Map(
-    "d8" -> "d8 --ignore-unhandled-promises -e",
-    "node" -> "node --unhandled-rejections=none -e",
-    "js" -> "js -e",
-    "sm" -> "sm -e 'ignoreUnhandledRejections();' -e", // NOTE: scala doesn't recognize alias.
-    "jsc" -> s"jsc -e@DYLD_FRAMEWORK_PATH:${sys.env("WEBKIT_HOME")}/WebkitBuild/Release",
+    "d8" -> Map("1.0.0" -> "d8 --ignore-unhandled-promises -e"),
+    "node" -> Map("1.0.0" -> "node --unhandled-rejections=none -e"),
+    "js" -> Map("1.0.0" -> "js -e"),
+    "sm" -> Map("1.0.0" -> "sm -e 'ignoreUnhandledRejections();' -e"),
+    "jsc" -> Map(
+      "1.0.0" -> s"jsc -e|DYLD_FRAMEWORK_PATH:${sys.env("WEBKIT_HOME")}/WebkitBuild/Release",
+    ),
   )
 
   /** default engine: (command, version) */
   lazy val defaultEngine: Option[(String, String)] = Try {
     // d8
-    val cmd = defaultCmd("d8")
+    val cmd = defaultCmd("d8").head._2
     s"$cmd ''".!!
     (cmd, runUsingBinary(cmd, "console.log(version());").get)
   }.recoverWith(e =>
@@ -44,7 +46,7 @@ object JSEngine {
   ).recoverWith(_ =>
     Try {
       // js
-      val cmd = defaultCmd("js")
+      val cmd = defaultCmd("js").head._2
       s"$cmd ''".!!
       (cmd, runUsingBinary("js", "--version").get)
     },
@@ -215,8 +217,8 @@ object JSEngine {
     val stdout = new StringJoiner(LINE_SEP)
     val stderr = new StringJoiner(LINE_SEP)
     def cmd(main: String) = s"timeout 3s $main $escapedSrc"
-    val pb: ProcessBuilder = if runner.contains("@") then {
-      val Array(main, envInfo) = runner.split("@")
+    val pb: ProcessBuilder = if runner.contains("|") then {
+      val Array(main, envInfo) = runner.split("\\|")
       val Array(envKey, envVal) = envInfo.split(":")
       Process(cmd(main), None, envKey -> envVal)
     } else cmd(runner)
@@ -233,7 +235,7 @@ object JSEngine {
   }
 
   def runUsingD8(src: String): Try[String] =
-    runUsingBinary(defaultCmd("d8"), src)
+    runUsingBinary(defaultCmd("d8").head._2, src)
 
   /** escape a string to a shell-safe string, enclosed by single quote */
   private def escape(string: String): String =

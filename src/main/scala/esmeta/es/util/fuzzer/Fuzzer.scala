@@ -6,6 +6,7 @@ import esmeta.es.util.*
 import esmeta.es.util.injector.*
 import esmeta.es.util.mutator.*
 import esmeta.es.util.synthesizer.*
+import esmeta.js.*
 import esmeta.state.*
 import esmeta.util.*
 import esmeta.util.BaseUtils.*

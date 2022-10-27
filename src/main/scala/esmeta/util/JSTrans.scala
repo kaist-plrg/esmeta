@@ -11,12 +11,15 @@ import java.util.StringJoiner
 object JSTrans {
 
   val defaultCmd = Map(
-    "babel" -> s"$RESOURCE_DIR/babel/babel-d.js",
+    "babel" -> s"$RESOURCE_DIR/trans/babel-d.js",
+    "swc" -> s"$RESOURCE_DIR/trans/swc-d.js",
+    "terser" -> s"$RESOURCE_DIR/trans/terser-d.js",
+    "obfuscator" -> s"$RESOURCE_DIR/trans/obfuscator-d.js",
   )
 
   /** inner minified babel */
-  val BABEL_FILE = s"$RESOURCE_DIR/babel/babel@7.19.1.min.js"
-  val RUNNER_FILE = s"$RESOURCE_DIR/babel/transpile.js"
+  val BABEL_FILE = s"$RESOURCE_DIR/trans/babel@7.19.1.min.js"
+  val RUNNER_FILE = s"$RESOURCE_DIR/trans/transpile.js"
   lazy val babel = readFile(BABEL_FILE)
   lazy val runner = readFile(RUNNER_FILE)
 

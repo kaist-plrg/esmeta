@@ -53,7 +53,7 @@ case object GenTest
       case Some(es) => es.split(",").toList
     }).map(e => JSEngine.defaultCmd.getOrElse(e, e))
     val transpilers = (config.transpilers match {
-      case None     => List("babel")
+      case None     => List("babel", "swc", "terser", "obfuscator")
       case Some(ts) => ts.split(",").toList
     }).map(t => JSTrans.defaultCmd.getOrElse(t, t))
 
@@ -75,7 +75,7 @@ case object GenTest
         println(s" - Running transpiler $transpiler...")
       val rawDir = s"$GENTEST_LOG_DIR/raw-trans-$i"
       cleanDir(rawDir)
-      JSTrans.transpileDirUsingBinary(transpiler, codeDir, rawDir)
+      JSTrans.transpileDirUsingBinary(transpiler, codeDir, rawDir).get
       dumpFile(transpiler, s"$rawDir/command.txt")
     })
     headers += (-1 -> getGlobalClearingCode(JSEngine.defaultEngine.get._1))

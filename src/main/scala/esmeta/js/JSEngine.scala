@@ -24,7 +24,7 @@ object JSEngine {
     "js" -> Map("1.0.0" -> "js -e"),
     "sm" -> Map("1.0.0" -> "sm -e 'ignoreUnhandledRejections();' -e"),
     "jsc" -> Map(
-      "1.0.0" -> s"jsc -e|DYLD_FRAMEWORK_PATH:${sys.env("WEBKIT_HOME")}/WebkitBuild/Release",
+      "1.0.0" -> s"jsc -e|DYLD_FRAMEWORK_PATH:${sys.env.getOrElse("WEBKIT_HOME", "NO-DIRECTORY")}/WebkitBuild/Release",
     ),
   )
 

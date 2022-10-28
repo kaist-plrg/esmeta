@@ -146,12 +146,13 @@ case object ConformTest
       )
 
       if (_config.saveBugs)
-        val data = s"$original$LINE_SEP/* $msg */"
+        val shortMsg = s"""TAG: ${tag.toString.replace("TODO", "NEW")}
+                          |$detail""".stripMargin
+        val data = s"$original$LINE_SEP/* $shortMsg */$LINE_SEP"
         tag match {
-          case NewBug(_) => appendFile(data, s"$db/TODO")
-          case TodoBug(name, _) =>
-            dumpFile(data.replace("TODO", "NEW"), s"$db/TODO/$name")
-          case _ =>
+          case NewBug(_)        => appendFile(data, s"$db/TODO")
+          case TodoBug(name, _) => dumpFile(data, s"$db/TODO/$name")
+          case _                =>
         }
 
       val origStat = bugStat.getOrElse(target, Map())

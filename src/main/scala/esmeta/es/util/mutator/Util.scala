@@ -20,6 +20,7 @@ object Util {
       super.walk(ast)
     }
   }
+  val simpleAstCounter = new AstCounter(_ => true)
 
   trait ListWalker {
     def walkOpt(opt: Option[Ast]): List[Option[Ast]] = opt match {

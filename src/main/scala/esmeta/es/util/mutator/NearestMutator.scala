@@ -28,30 +28,34 @@ class NearestMutator(
   ): (String, Iterable[Ast]) = (for {
     (condView, cov) <- target
     nearest <- cov.targetCondViews.getOrElse(condView, None)
-  } yield (names.head, List.tabulate(n)(_ => Walker(nearest).walk(ast))))
+  } yield (names.head, Walker(nearest, n).walk(ast)))
     .getOrElse(randomMutator(ast, n, target))
 
   /** internal walker */
-  class Walker(nearest: Nearest) extends AstWalker {
-    private var _isNear = false
+  class Walker(nearest: Nearest, n: Int) extends Util.MultiplicativeListWalker {
     val AstSingleTy(name, rhsIdx, subIdx) = nearest.ty
-    override def walk(ast: Syntactic): Syntactic =
-      val isNear = (
+    override def walk(ast: Syntactic): List[Syntactic] =
+      if (
         ast.name == name &&
-          ast.rhsIdx == rhsIdx &&
-          ast.subIdx == subIdx &&
-          ast.loc == Some(nearest.loc)
+        ast.rhsIdx == rhsIdx &&
+        ast.subIdx == subIdx &&
+        ast.loc == Some(nearest.loc)
       )
-      if (isNear) _isNear = true
+        TotalWalker(ast, n)
+      else
+        super.walk(ast)
+  }
 
-      val ret =
-        if (isNear && randBool(0.8))
-          synthesizer(ast)
-        else
-          super.walk(ast)
+  /** internal walker that mutates all internal nodes with same prob. */
+  object TotalWalker extends Util.AdditiveListWalker {
+    var c = 0
+    def apply(ast: Syntactic, n: Int): List[Syntactic] =
+      val k = Util.simpleAstCounter(ast)
+      c = (n - 1) / k + 1
+      shuffle(walk(ast)).take(n).toList
 
-      if (isNear) _isNear = false
-
-      ret
+    override def walk(ast: Syntactic): List[Syntactic] =
+      val mutants = super.walk(ast)
+      List.tabulate(c)(_ => synthesizer(ast)) ++ mutants
   }
 }

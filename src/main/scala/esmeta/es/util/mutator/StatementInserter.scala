@@ -74,8 +74,8 @@ class StatementInserter(
   )
 
   /** lift a single statementListItem to statementList */
-  private def item2list(item: Ast, args: List[Boolean]) =
-    Syntactic(STATEMENT_LIST, args, 0, Vector(Some(item)))
+  private def item2list(item: Syntactic) =
+    Syntactic(STATEMENT_LIST, item.args, 0, Vector(Some(item)))
 
   /** ast walker */
   override def walk(ast: Syntactic): List[Syntactic] = ast match
@@ -95,7 +95,7 @@ class StatementInserter(
                 args,
                 1,
                 if randBool then Vector(Some(mutant), Some(newStmt))
-                else Vector(Some(item2list(newStmt, args)), mutant.children(0)),
+                else Vector(Some(item2list(newStmt)), mutant.children(0)),
               ),
             ),
         )
@@ -142,7 +142,7 @@ class StatementInserter(
       val genNum = decideGenNum
       val newStmts = List.tabulate(genNum)(_ match
         case 0 => None
-        case _ => Some(item2list(newStmtItem(newArgs), newArgs)),
+        case _ => Some(item2list(newStmtItem(newArgs))),
       )
 
       // change children
@@ -200,7 +200,7 @@ object StatementInserter {
     "continue ; ",
   )
   // TODO: generalize to case where length of args is not 3
-  lazy val manualStmtItems: Map[List[Boolean], List[Ast]] = (
+  lazy val manualStmtItems: Map[List[Boolean], List[Syntactic]] = (
     for (
       a1 <- List(true, false);
       a2 <- List(true, false);
@@ -210,7 +210,12 @@ object StatementInserter {
       yield (
         args,
         manualStmts.flatMap(code =>
-          optional(cfg.esParser(STATEMENT_LIST_ITEM, args).from(code)),
+          optional(
+            cfg
+              .esParser(STATEMENT_LIST_ITEM, args)
+              .from(code)
+              .asInstanceOf[Syntactic],
+          ),
         ),
       )
   ).toMap

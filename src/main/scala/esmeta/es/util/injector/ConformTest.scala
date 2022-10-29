@@ -148,10 +148,10 @@ object ConformTest {
 
   /** Manually written rule to categorize bugs kind */
   lazy val manualRule =
-    readFile(f"$RESOURCE_DIR/injector/manual-categorize.csv")
+    readFile(f"$RESOURCE_DIR/bugs/manual-categorize.rule")
       .split(LINE_SEP)
       .drop(1) // drop header
-      .map(l => l.split(",", -1))
+      .map(l => l.split("\\|", -1))
 
   /** placeholder for script */
   val placeholder = "//SCRIPT_PLACEHOLDER"

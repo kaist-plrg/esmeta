@@ -1,0 +1,85 @@
+TAG|pattern in script|pattern in message
+TIMEOUT||but got timeout
+AWAIT-FAIL|Cannot use keyword 'await' outside an async function|but got transpile-failure
+AWAIT-FAIL|Unexpected token|but got transpile-failure
+AWAIT-FAIL|await isn't allowed in non-async function|but got transpile-failure
+AWAIT-FAIL|internal error: entered unreachable code|but got transpile-failure
+STATIC-SAME-NAME-FAIL|has already been declared|but got transpile-failure
+BBL-STATIC-PRIVATE-IN|===|TypeError @ RelationalExpression[7
+BBL-COMPUTED-IN|_defineProperty|TypeError @ RelationalExpression[6
+BBL-STATIC-REASSIGN-CLASS|_createClass|Expected throw-error: TypeError @ DeclarativeEnvironmentRecord.SetMutableBinding
+GRL-REST-SPARSE|... [ ]|for Array.
+BBL-NULL-APPLY|null.apply|but got throw-error: TypeError
+BBL-GEN-ARR|_toArray|BindingInitialization but got normal
+BBL-WRONG-ERR-NAME||but got throw-error: Error
+SWC-ASSIGN-CONST-FAIL|cannot reassign to a variable declared with `const`|but got transpile-failure
+SWC-CHAIN-ASSIGN-OBJ|0..x|
+SWC-CHAIN-COMP-ASSIGN-SUPER-IN-STATIC|_get(_getPrototypeOf|Expected normal
+SWC-WRITABLE-CLASS-PROTOTYPE||descriptor should not be writable
+SWC-DESTRUCT-EMPTY-ARRAY|var ;|SyntaxError
+SWC-NESTED-ARRAY-SPARSE-FAIL|destructuring pattern binding requires initializer|but got transpile-failure
+SWC-DESTRUCTURING-UNDEFINED|!== null|Expected throw-error: TypeError @ RequireObjectCoercible<SYNTAX>:BindingPattern[0,0].BindingInitialization but got normal
+SWC-DESTRUCTURING-ASSIGN-EXPR|ref =|Expected throw-error: TypeError @ RequireObjectCoercible<SYNTAX>:ObjectAssignmentPattern[0,0].DestructuringAssignmentEvaluation
+SWC-STATIC-REASSIGN-CLASS|_classCallCheck|Expected throw-error: TypeError @ DeclarativeEnvironmentRecord.SetMutableBinding
+SWC-STATIC-SUPER|_superprop_set|but got throw-error: SyntaxError
+SWC-SWITCH-RENAME-FUNCTION|function _$x|but got throw-error: ReferenceError
+SWC-STRICT-FOR|for(ref|but got throw-error: ReferenceError
+GRL-NORMALIZE|normalize|RangeError
+GRL-SETPROTOTYPEOF|setPrototypeOf|TypeError @ INTRINSICS.Object.setPrototypeOf
+GRL-EXTENDS|extends|but got throw-error: TypeError
+GRL-LOGICAL-ASSIGN-CONST|&&=|TypeError @ DeclarativeEnvironmentRecord.SetMutableBinding
+JSC-PROP-ORDER|static 0 = class extends|but got ["length"
+JSC-STATIC-SAME-NAME|static {|but got throw-error: SyntaxError
+JSC-OPTIONAL-CALL-CHAIN|{ } ?. ( )|Expected throw-error: TypeError
+JSC-ASSIGN-CONST-FOR|in { x }|Expected throw-error: TypeError @ DeclarativeEnvironmentRecord.SetMutableBinding
+JSC-GETSET-0|et 0 (|descriptor value of "name" should be
+JSC-STATIC-CLASS-REASSIGN|static 0 = { x =|Expected throw-error: TypeError @ DeclarativeEnvironmentRecord.SetMutableBinding
+SM-PROP-ORDER||"length", "name"] for
+SM-REJECTED-PROMISE|async|Expected normal but got throw-error: TypeError
+SM-SET-PROTOTYPE-OF-THIS|setPrototypeOf ( this|Expected normal but got throw-error: TypeError
+OBF-DIRTY-THIS|this|"_0x
+OBF-OPT-CALL-CHAIN-FAIL|TypeError: Cannot read properties of undefined (reading 'length')|but got transpile-failure
+TRS-REMOVE-REF-ERR|"use strict";let x|Expected throw-error: ReferenceError
+TRS-REMOVE-REF-ERR|{let x|Expected throw-error: ReferenceError
+TRS-REMOVE-REF-ERR|"use strict";$|Expected throw-error: ReferenceError
+TRS-REMOVE-TYP-ERR|"use strict";$|Expected throw-error: TypeError
+TRS-LHS|0 in[0]|but got throw-error: SyntaxError
+TRS-NEW-TARGET|new.target|Expected throw-error: TypeError @ ClassTail[0,2].ClassDefinitionEvaluation
+TRS-REMOVE-CONST-REASSIGN|"use strict";const|Expected throw-error: TypeError @ DeclarativeEnvironmentRecord.SetMutableBinding
+NAME||descriptor value of "name"
+BECOME-CONSTRUCTABLE||"prototype"] for
+BECOME-CONSTRUCTABLE||[[Construct]] but does.
+BECOME-CONSTRUCTABLE||TypeError @ OrdinaryHasInstance
+BECOME-CONSTRUCTABLE||GeneratorFunction.prototype.prototype
+BECOME-CONSTRUCTABLE||Expected throw-error: TypeError @ EvaluateNew ((step 5
+BECOME-CONSTRUCTABLE||Expected throw-error: TypeError @ Call ((step 2
+BECOME-CONSTRUCTABLE||Expected throw-error: TypeError @ ToObject
+BECOME-CONSTRUCTABLE||Expected throw-error: TypeError @ NewPromiseCapability
+HELPER||_extends"
+HELPER||Loose"
+HELPER||_objectSpread
+ARR-REST-SPARSE||"length"] for Array.
+OBJ-REST-NULL|_extends|Expected throw-error: TypeError @ RequireObjectCoercible
+F2STRING|Function.call|SyntaxError
+F2STRING|new Function|SyntaxError
+F2STRING|eval|SyntaxError
+F2STRING||but got "function
+F2STRING||but got "undefinedfunction
+RENAMED-AWAIT| _await |but got throw-error: ReferenceError
+RENAMED-AWAIT| _await,|but got throw-error: ReferenceError
+RENAMED-AWAIT| _await;|but got throw-error: ReferenceError
+RENAMED-AWAIT| _await|but got undefined
+REMOVED-REF-ERR||Expected throw-error: ReferenceError @ DeclarativeEnvironmentRecord.GetBindingValue
+REMOVED-REF-ERR||Expected throw-error: ReferenceError @ GetValue
+REMOVED-REF-ERR||Expected throw-error: ReferenceError @ DeclarativeEnvironmentRecord.SetMutableBinding
+REMOVED-REF-ERR|_this$x|
+BBL-NOF|Array.from.call(function|
+BBL-ENUMERABLE-GEN|regeneratorRuntime|"constructor"
+GRL-DELETE|delete|but got normal
+GRL-FORDECL|for ( const [|
+GRL-FORDECL|for ( const {|
+GRL-FORDECL|for ( let [|
+GRL-FORDECL|for ( let {|
+SWC-SETTER-RENAME| set |but got throw-error: ReferenceError
+ECM-STATIC|static|native code
+ECM-STATIC|static|descriptor value of

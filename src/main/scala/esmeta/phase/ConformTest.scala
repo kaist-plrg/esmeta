@@ -164,7 +164,7 @@ case object ConformTest
     pass
 
   private val exitTagPattern = "(?<=\\[EXIT\\] )[^\n\r]*".r
-  private val errorPattern = "[\\w]+Error(?=: )".r
+  private val errorPattern = "[\\w]*Error(?=: )".r
 
   private def engineErrorResolver(engineError: Throwable): (ExitTag, String) =
     engineError match {
@@ -212,21 +212,23 @@ case object ConformTest
     )
 
     // apply heuristic to guess tag of this bug
+    def matched(rule: Array[String]): Option[String] =
+      val Array(tag, codePattern, msgPattern) = rule
+      if (
+        (
+          code.contains(codePattern) ||
+          codePattern.endsWith("$") && code.endsWith(codePattern.dropRight(1))
+        ) && detail.contains(msgPattern)
+      )
+        Some(tag)
+      else
+        None
     val tag = manualRule.foldLeft(knownTag)((cur, rule) =>
       cur match {
-
         case NewBug("YET") =>
-          val Array(tag, codePattern, msgPattern) = rule
-          if (code.contains(codePattern) && detail.contains(msgPattern))
-            NewBug(tag)
-          else
-            cur
+          matched(rule).map(tag => NewBug(tag)).getOrElse(cur)
         case TodoBug(file, "YET") =>
-          val Array(tag, codePattern, msgPattern) = rule
-          if (code.contains(codePattern) && detail.contains(msgPattern))
-            TodoBug(file, tag)
-          else
-            cur
+          matched(rule).map(tag => TodoBug(file, tag)).getOrElse(cur)
         case _ => cur
       },
     )

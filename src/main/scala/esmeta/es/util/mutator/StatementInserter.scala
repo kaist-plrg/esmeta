@@ -16,49 +16,48 @@ class StatementInserter(
   with Util.MultiplicativeListWalker {
   import StatementInserter.*
 
+  val names = "StatementInserter" :: RandomMutator.default.names
+
   /** mutate a program */
   def apply(
     ast: Ast,
     n: Int,
-    _taregt: Option[(CondView, Coverage)],
-  ): (String, Seq[Ast]) = (
-    names(0), {
-      // count the number of stmtLists
-      val k = stmtListCounter(ast)
+    _target: Option[(CondView, Coverage)],
+  ): Iterable[(String, Ast)] = {
+    // count the number of stmtLists
+    val k = stmtListCounter(ast)
 
-      if (k == 0) List.fill(n)(ast)
-      else if (n == 1)
-        // Insert one statement with 80% probability
-        k1 = k - 1
-        c1 = 1
-        k2 = 1
-        c2 = 5
+    if (k == 0) RandomMutator.default(ast, n, _target)
+    else if (n == 1)
+      // Insert one statement with 80% probability
+      k1 = k - 1
+      c1 = 1
+      k2 = 1
+      c2 = 5
 
-        sample(ast, n)
-      else {
-        // calculate the most efficient parameters
-        var c = 2
-        while (math.pow(c, k) < n)
-          c = c + 1
-        k1 = 0
-        c1 = c - 1
-        k2 = k
-        c2 = c
-        while (math.pow((c - 1), k1 + 1) * math.pow(c, k2 - 1) >= n)
-          k1 = k1 + 1
-          k2 = k2 - 1
+      sample(ast, n)
+    else {
+      // calculate the most efficient parameters
+      var c = 2
+      while (math.pow(c, k) < n)
+        c = c + 1
+      k1 = 0
+      c1 = c - 1
+      k2 = k
+      c2 = c
+      while (math.pow((c - 1), k1 + 1) * math.pow(c, k2 - 1) >= n)
+        k1 = k1 + 1
+        k2 = k2 - 1
 
-        sample(ast, n)
-      }
-
-    },
-  )
-  val names = List("StatementInserter")
+      sample(ast, n)
+    }
+  }
 
   /** parameter for sampler */
   private var (c1, c2, k1, k2) = (0, 0, 0, 0)
 
-  private def sample(ast: Ast, n: Int) = shuffle(walk(ast)).take(n)
+  private def sample(ast: Ast, n: Int) =
+    shuffle(walk(ast)).take(n).map((name, _))
 
   private def decideGenNum =
     if k1 > 0 && randBool(k1 / (k1 + k2 + 0.0)) then
@@ -107,10 +106,8 @@ class StatementInserter(
       val mutants = super.walk(ast)
       List
         .tabulate(genNum)(_ match
-          case 0 if genNum == 1 => // do Nothing
+          case 0 => // do Nothing
             mutants
-          case 0 => // drop a stmt
-            mutants.map(_.children(0).get.asInstanceOf[Syntactic])
           case _ => // append a stmt behind
             val newStmt = newStmtItem(args)
             mutants.map(mutant =>
@@ -197,7 +194,9 @@ object StatementInserter {
     "yield * x ( ) ; ",
     "new x ( ) ; ",
     "break ; ",
+    "break x ; ",
     "continue ; ",
+    "continue x ; ",
   )
   // TODO: generalize to case where length of args is not 3
   lazy val manualStmtItems: Map[List[Boolean], List[Syntactic]] = (

@@ -20,16 +20,13 @@ class RandomMutator(
     ast: Ast,
     n: Int,
     target: Option[(CondView, Coverage)],
-  ): (String, Iterable[Ast]) = (
-    names.head, {
-      val k = targetAstCounter(ast)
-      if (k == 0)
-        List.fill(n)(ast)
-      else
-        c = (n - 1) / k + 1
-      shuffle(Walker.walk(ast)).take(n)
-    },
-  )
+  ): Iterable[(String, Ast)] =
+    val k = targetAstCounter(ast)
+    if (k == 0)
+      List.fill(n)(ast)
+    else
+      c = (n - 1) / k + 1
+    shuffle(Walker.walk(ast)).take(n).map((name, _))
 
   /* number of new candidates to make for each target */
   var c = 0
@@ -57,4 +54,7 @@ object RandomMutator {
 
   // count the number of target sub-ast
   val targetAstCounter = new Util.AstCounter(isTarget)
+
+  // default random mutator
+  val default = RandomMutator()
 }

@@ -16,20 +16,18 @@ class NearestMutator(
   val synthesizer: Synthesizer = RandomSynthesizer,
 ) extends Mutator {
 
-  /** internal random mutator */
-  val randomMutator = RandomMutator(synthesizer)
-  val names = "NearestMutator" :: randomMutator.names
+  val names = "NearestMutator" :: RandomMutator.default.names
 
   /** mutate programs */
   def apply(
     ast: Ast,
     n: Int,
     target: Option[(CondView, Coverage)],
-  ): (String, Iterable[Ast]) = (for {
+  ): Iterable[(String, Ast)] = (for {
     (condView, cov) <- target
     nearest <- cov.targetCondViews.getOrElse(condView, None)
-  } yield (names.head, Walker(nearest, n).walk(ast)))
-    .getOrElse(randomMutator(ast, n, target))
+  } yield Walker(nearest, n).walk(ast).map((name, _)))
+    .getOrElse(RandomMutator.default(ast, n, target))
 
   /** internal walker */
   class Walker(nearest: Nearest, n: Int) extends Util.MultiplicativeListWalker {

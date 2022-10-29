@@ -120,9 +120,10 @@ class Fuzzer(
     val selectorInfo = selectorName + condView.map(" - " + _).getOrElse("")
     val code = script.code
     debugging(f"[$selectorInfo%-30s] $code")
+    debugFlush
 
-    val (mutatorName, mutants) = mutator(code, 100, condView.map((_, cov)))
-    for (mutated <- mutants)
+    val mutants = mutator(code, 100, condView.map((_, cov)))
+    for ((mutatorName, mutated) <- mutants)
       val mutatedCode = mutated.toString(grammar)
       debugging(f"----- $mutatorName%-20s-----> $mutatedCode")
 
@@ -198,6 +199,7 @@ class Fuzzer(
     RandomMutator() -> 3,
     StatementInserter() -> 1,
     NearestMutator() -> 6,
+    Remover() -> 1,
   )
 
   /** mutator stat */

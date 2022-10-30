@@ -4,7 +4,6 @@ import esmeta.*
 import esmeta.cfg.*
 import esmeta.es.util.*
 import esmeta.es.util.Coverage.*
-import esmeta.state.Feature
 import esmeta.util.*
 import esmeta.util.SystemUtils.*
 import esmeta.util.BaseUtils.*
@@ -20,9 +19,8 @@ case object Localize
 
   type Target = String
   type Test = String
-  type Location = FuncView | List[Feature]
-  type Result = Map[Target, Map[Test, Seq[(Location, Double)]]]
-  type MResult = MMap[Target, Map[Test, Seq[(Location, Double)]]]
+  type Result = Map[Target, Map[Test, Seq[(FuncView, Double)]]]
+  type MResult = MMap[Target, Map[Test, Seq[(FuncView, Double)]]]
   type IResult = MMap[Target, Map[Test, Seq[(Int, Double)]]]
 
   private var _config: Config = null
@@ -50,9 +48,7 @@ case object Localize
         )
       }
     val nodeViewCoverageJson = s"$fuzzLogDir/node-coverage.json"
-    val featuresCoverageJson = s"$fuzzLogDir/feature-coverage.json"
     val touchedNodeViewJson = s"$fuzzLogDir/minimal-touch-nodeview.json"
-    val touchedFeaturesJson = s"$fuzzLogDir/minimal-touch-features.json"
 
     // parse jsons
     val nodeViewInfos: Vector[NodeViewInfo] =
@@ -63,18 +59,8 @@ case object Localize
     val funcViews = nodeViews.map(_.toFuncView).distinct
     val funcView2Id = funcViews.zipWithIndex.map(_ -> _).toMap
 
-    val featuresInfos: Vector[FeaturesInfo] =
-      if (config.feature) readJson(featuresCoverageJson) else Vector()
-    val features_s = featuresInfos.map(_.features)
-    val featuresIds = featuresInfos.map(_.index)
-
-    val locations: Vector[Location] = funcViews ++ features_s
-
     val test2NodeViewIds: Map[Test, Vector[Int]] =
       readJson(touchedNodeViewJson)
-    val test2FeaturesIds: Map[Test, Vector[Int]] =
-      if (config.feature) readJson(touchedFeaturesJson)
-      else test2NodeViewIds.map((k, v) => k -> Vector())
     val tests = test2NodeViewIds.keys.toVector
 
     val target2Fails: Map[Target, Set[Test]] = readJson(failsMapJson)
@@ -107,20 +93,10 @@ case object Localize
             },
         )
       }
-      val featuresScores: ScoreMap =
-        localize(
-          featuresIds,
-          passes,
-          fails,
-          test2FeaturesIds,
-        )
 
       val mergedScores = funcViewScores.map((test, scores) => {
         val funcScores = scores.zipWithIndex.map(_.swap)
-        val featScores = featuresScores(test).zipWithIndex.map((s, i) =>
-          (i + funcViews.size, s),
-        )
-        test -> (funcScores ++ featScores)
+        test -> funcScores
       })
 
       iresult(target) = mergedScores
@@ -130,25 +106,18 @@ case object Localize
           .reverse
           .slice(0, _config.topN.get)
           .map {
-            case (i, score) => (locations(i), score)
+            case (i, score) => (funcViews(i), score)
           }
       })
     })
 
-    // json encoder to dump result
-    given LocEncoder: Encoder[Location] = new Encoder[Location] {
-      final def apply(loc: Location): Json = Json.obj(loc match {
-        case funcView: FuncView      => ("funcView", funcView.asJson)
-        case features: List[Feature] => ("features", features.asJson)
-      })
-    }
     dumpJson(result, s"$LOCALIZE_LOG_DIR/localize.json")
 
     result.toMap
   }
 
   private def localize(
-    locs: IndexedSeq[Int],
+    ids: IndexedSeq[Int],
     passes: Iterable[Test],
     fails: Iterable[Test],
     testLocMap: Map[Test, Iterable[Int]],
@@ -156,7 +125,7 @@ case object Localize
     val passNum = passes.size
 
     // initial stat map
-    val initStats = locs.map(_ => LocStat(0, 0, passNum, 1))
+    val initStats = ids.map(_ => LocStat(0, 0, passNum, 1))
 
     // update stat of each locations by iterating all successful tests
     val passStats = passes.foldLeft(initStats) {
@@ -199,11 +168,6 @@ case object Localize
       "turn on debug mode",
     ),
     (
-      "feature",
-      BoolOption(c => c.feature = true),
-      "use 'feature' as localize candidate",
-    ),
-    (
       "topN",
       NumOption((c, k) => c.topN = Some(k)),
       "set the number for top rankings to keep",
@@ -211,7 +175,6 @@ case object Localize
   )
   case class Config(
     var debug: Boolean = false,
-    var feature: Boolean = false,
     var topN: Option[Int] = Some(100),
   )
 }

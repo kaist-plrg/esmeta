@@ -46,12 +46,10 @@ class Coverage(
   def apply(cond: Cond): Map[View, Script] = condViewMap.getOrElse(cond, Map())
 
   // get script from nodes or conditions
-  def getScript(fs: List[Feature]): Option[Script] = featureMap.get(fs)
   def getScript(nv: NodeView): Option[Script] = apply(nv.node).get(nv.view)
   def getScript(cv: CondView): Option[Script] = apply(cv.cond).get(cv.view)
 
-  // mapping from features/nodes/conditions to scripts
-  private var featureMap: Map[List[Feature], Script] = Map()
+  // mapping from nodes/conditions to scripts
   private var nodeViewMap: Map[Node, Map[View, Script]] = Map()
   private var nodeViews: Set[NodeView] = Set()
   private var condViewMap: Map[Cond, Map[View, Script]] = Map()
@@ -72,15 +70,6 @@ class Coverage(
     var covered = false
     // updated elements
     var updated = false
-
-    // update feature coverage
-    for (features <- interp.touchedFeatures)
-      getScript(features) match
-        case None =>
-          update(features, script); updated = true; covered = true
-        case Some(origScript) if origScript.code.length > code.length =>
-          update(features, script); updated = true
-        case _ =>
 
     // update node coverage
     for ((nodeView, _) <- interp.touchedNodeViews)
@@ -106,7 +95,6 @@ class Coverage(
         ConformTest.createTest(initSt, finalSt),
         interp.touchedNodeViews.map(_._1),
         interp.touchedCondViews.map(_._1),
-        interp.touchedFeatures,
       )
     // assert: _minimalScripts ~= _minimalInfo.keys
 
@@ -120,9 +108,6 @@ class Coverage(
     val (st, _, _) = runAndCheck(script);
     st
   }
-
-  /** get feature coverage */
-  def featureCov: Int = featureMap.size
 
   /** get node coverage */
   def nodeCov: Int = nodeViewMap.size
@@ -151,23 +136,14 @@ class Coverage(
     withMsg: Boolean = true,
   ): Unit =
     mkdir(baseDir)
-    lazy val orderedFeatures = featureMap.keys.toList.sorted
     lazy val orderedNodeViews = nodeViews.toList.sorted
     lazy val orderedCondViews = condViews.toList.sorted
-    lazy val getFeaturesId = orderedFeatures.zipWithIndex.toMap
     lazy val getNodeViewsId = orderedNodeViews.zipWithIndex.toMap
     lazy val getCondViewsId = orderedCondViews.zipWithIndex.toMap
     dumpJson(
       CoverageConstructor(timeLimit, synK, useSens),
       s"$baseDir/constructor.json",
     )
-    if (synK.isDefined)
-      dumpJson(
-        name = if (withMsg) Some("feature coverage") else None,
-        data = featuresInfos(orderedFeatures),
-        filename = s"$baseDir/feature-coverage.json",
-        space = true,
-      )
     dumpJson(
       name = if (withMsg) Some("node coverage") else None,
       data = nodeViewInfos(orderedNodeViews),
@@ -214,15 +190,6 @@ class Coverage(
         filename = s"$baseDir/minimal-touch-condview.json",
         space = false,
       )
-      if (synK.isDefined)
-        dumpJson(
-          name =
-            if (withMsg) Some("list of touched features of minimal programs")
-            else None,
-          data = minimalTouchFeaturesJson(getFeaturesId),
-          filename = s"$baseDir/minimal-touch-features.json",
-          space = false,
-        )
     }
     if (withTargetCondViews)
       dumpJson(
@@ -245,7 +212,6 @@ class Coverage(
   override def toString: String =
     val app = new Appender
     (app >> "- coverage:").wrap("", "") {
-      app :> "- feature: " >> featureCov
       app :> "- node: " >> nodeCov
       app :> "- branch: " >> branchCov
     }
@@ -274,10 +240,6 @@ class Coverage(
   // ---------------------------------------------------------------------------
   // private helpers
   // ---------------------------------------------------------------------------
-  // update mapping from features to scripts
-  private def update(fs: List[Feature], script: Script): Unit =
-    featureMap = updated(featureMap, fs, script)
-
   // update mapping from nodes to scripts
   private def update(nodeView: NodeView, script: Script): Unit =
     nodeViews += nodeView
@@ -348,21 +310,6 @@ class Coverage(
       ),
     )
 
-  // get JSON for touched features of minimal
-  private def minimalTouchFeaturesJson(getId: Map[List[Feature], Int]): Json =
-    Json.fromFields(
-      _minimalInfo.map((name, info) =>
-        name -> info.touchedFeatures.map(getId).asJson,
-      ),
-    )
-
-  // get JSON for feature coverage
-  private def featuresInfos(ordered: List[List[Feature]]): List[FeaturesInfo] =
-    for {
-      (features, idx) <- ordered.zipWithIndex
-      script <- getScript(features)
-    } yield FeaturesInfo(idx, features, script.name)
-
   // get JSON for node coverage
   private def nodeViewInfos(ordered: List[NodeView]): List[NodeViewInfo] =
     for {
@@ -392,14 +339,11 @@ object Coverage {
       keepProvenance = true,
     ) {
     // program infos
-    var touchedFeatures: Set[List[Feature]] = Set()
     var touchedNodeViews: Map[NodeView, Option[Nearest]] = Map()
     var touchedCondViews: Map[CondView, Option[Nearest]] = Map()
 
     // override eval for node
     override def eval(node: Node): Unit =
-      // record touched features
-      synK.map(touchedFeatures += st.context.featureStack.take(_))
       // record touched nodes
       touchedNodeViews += NodeView(node, getView) -> getNearest
       super.eval(node)
@@ -440,7 +384,6 @@ object Coverage {
     test: ConformTest,
     touchedNodeViews: Iterable[NodeView],
     touchedCondViews: Iterable[CondView],
-    touchedFeatures: Iterable[List[Feature]],
   )
 
   /* syntax-sensitive views */
@@ -512,7 +455,6 @@ object Coverage {
   // meta-info for each view or features
   case class NodeViewInfo(index: Int, nodeView: NodeView, script: String)
   case class CondViewInfo(index: Int, condView: CondView, script: String)
-  case class FeaturesInfo(index: Int, features: List[Feature], script: String)
 
   case class CoverageConstructor(
     timeLimit: Option[Int],
@@ -531,8 +473,6 @@ object Coverage {
 
     val nodeViewInfos: Vector[NodeViewInfo] = rj("node-coverage.json")
     val condViewInfos: Vector[CondViewInfo] = rj("branch-coverage.json")
-    val featuresInfos: Vector[FeaturesInfo] =
-      if (con.synK.isDefined) rj("feature-coverage.json") else Vector()
 
     val minimalTouchNodeView: Map[String, Vector[Int]] = rj(
       "minimal-touch-nodeview.json",
@@ -540,8 +480,6 @@ object Coverage {
     val minimalTouchCondView: Map[String, Vector[Int]] = rj(
       "minimal-touch-condview.json",
     )
-    val minimalTouchFeatures: Map[String, Vector[Int]] =
-      if (con.synK.isDefined) rj("minimal-touch-features.json") else Map()
 
     for {
       minimal <- listFiles(s"$baseDir/minimal")
@@ -555,10 +493,6 @@ object Coverage {
       minimalTouchCondView(name).foreach(i =>
         cov.update(condViewInfos(i).condView, None, script),
       )
-      if (con.synK.isDefined)
-        minimalTouchFeatures(name).foreach(i =>
-          cov.update(featuresInfos(i).features, script),
-        )
     }
 
     // TODO: read assertions, and recover complete minimal infos

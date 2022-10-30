@@ -370,9 +370,9 @@ object Coverage {
     // get syntax-sensitive views
     private def getView: View = if (useSens) for {
       feature <- st.context.featureStack.headOption
-      graph <- st.context.callGraph
+      path = st.context.callPath
       if useSens
-    } yield (feature, graph)
+    } yield (feature, path)
     else None
 
     // get location information
@@ -387,9 +387,9 @@ object Coverage {
   )
 
   /* syntax-sensitive views */
-  type View = Option[(Feature, CallGraph)]
+  type View = Option[(Feature, CallPath)]
   private def stringOfView(view: View) = view.fold("") {
-    case (feature, graph) => s"@ $feature:$graph"
+    case (feature, path) => s"@ $feature:$path"
   }
   case class NodeView(node: Node, view: View = None) {
     override def toString: String =
@@ -409,7 +409,7 @@ object Coverage {
 
   /** ordering of syntax-sensitive views */
   given Ordering[Feature] = Ordering.by(_.toString)
-  given Ordering[CallGraph] = Ordering.by(_.toString)
+  given Ordering[CallPath] = Ordering.by(_.toString)
   given Ordering[Node] = Ordering.by(_.id)
   given Ordering[NodeView] = Ordering.by(v => (v.node, v.view))
   given Ordering[Cond] = Ordering.by(cond => (cond.kindString, cond.id))

@@ -15,6 +15,17 @@ class JsonProtocol(cfg: CFG) extends CFGJsonProtocol(cfg) {
   given callGraphDecoder: Decoder[CallGraph] = deriveDecoder
   given callGraphEncoder: Encoder[CallGraph] = deriveEncoder
 
+  // abstraction of call stacks as simple paths
+  given callPathDecoder: Decoder[CallPath] = new Decoder {
+    final def apply(c: HCursor): Decoder.Result[CallPath] = for {
+      calls <- deriveDecoder[List[Call]](c)
+    } yield CallPath(calls, calls.toSet)
+  }
+  given callPathEncoder: Encoder[CallPath] = new Encoder {
+    final def apply(callPath: CallPath): Json =
+      Json.fromValues(callPath.path.map(_.asJson))
+  }
+
   // ECMAScript features
   given featureDecoder: Decoder[Feature] = new Decoder {
     final def apply(c: HCursor): Decoder.Result[Feature] = for {

@@ -613,7 +613,7 @@ class Interpreter(
     prevCtxt: Option[Context] = None,
   ): Context = if (keepProvenance) {
     lazy val prevFeatureStack = prevCtxt.fold(Nil)(_.featureStack)
-    lazy val prevCallGraph = prevCtxt.fold(None)(_.callGraph)
+    lazy val prevCallPath = prevCtxt.fold(CallPath())(_.callPath)
     lazy val prevNearest = prevCtxt.flatMap(_.nearest)
     func.head match
       case Some(head: SyntaxDirectedOperationHead) =>
@@ -633,7 +633,7 @@ class Interpreter(
           locals,
           prevFeatureStack,
           prevNearest,
-          Some(prevCallGraph.fold(CallGraph(call))(_ + call)),
+          prevCallPath + call,
         )
   } else Context(func, locals)
 }

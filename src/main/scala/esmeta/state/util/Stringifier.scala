@@ -34,6 +34,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case elem: Provenance  => provenanceRule(app, elem)
       case elem: Feature     => featureRule(app, elem)
       case elem: CallGraph   => callGraphRule(app, elem)
+      case elem: CallPath    => callPathRule(app, elem)
 
   // states
   given stRule: Rule[State] = (app, st) =>
@@ -202,4 +203,10 @@ class Stringifier(detail: Boolean, location: Boolean) {
       given Rule[Iterable[(Call, Call)]] = iterableRule("{", ", ", "}")
       app >> " -> " >> edges.toList.sortBy(_._1.id) >> " -> " >> end
     app >> "]"
+
+  // abstraction of call stack as simple path
+  given callPathRule: Rule[CallPath] = (app, path) =>
+    given Rule[Call] = (app, call) => app >> call.id
+    given Rule[Iterable[Call]] = iterableRule("[", " <- ", "]")
+    app >> "CallPath" >> path.path
 }

@@ -12,7 +12,7 @@ case class Context(
   val locals: MMap[Local, Value] = MMap(),
   val featureStack: List[Feature] = Nil,
   val nearest: Option[Nearest] = None,
-  val callGraph: Option[CallGraph] = None,
+  val callPath: CallPath = CallPath(),
 ) extends StateElem {
 
   /** current cursor in this context */

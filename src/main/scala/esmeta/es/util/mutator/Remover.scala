@@ -14,9 +14,9 @@ class Remover(
   val synthesizer: Synthesizer = RandomSynthesizer,
 ) extends Mutator
   with Util.MultiplicativeListWalker {
-  
+
   val names = "Remover" :: RandomMutator.default.names
-  
+
   import Remover.*
 
   /** mutate a program */
@@ -29,10 +29,10 @@ class Remover(
     val k = victimCounter(ast)
     k1 = 0
     k2 = k
-    if (k == 0)
-      RandomMutator.default(ast, n, _target)
+    if (k == 0) RandomMutator.default(ast, n, _target)
     else if (Math.pow(2, k) < n)
-      walk(ast).map((name, _)) ++ RandomMutator.default(ast, n - (1 << k), _target)
+      walk(ast)
+        .map((name, _)) ++ RandomMutator.default(ast, n - (1 << k), _target)
     else {
       // calculate the most efficient parameters
       while (Math.pow(2, k2 - 1) >= n)
@@ -45,7 +45,8 @@ class Remover(
   /** parameter for sampler */
   private var (k1, k2) = (0, 0)
 
-  private def sample(ast: Ast, n: Int) = shuffle(walk(ast)).take(n).map((name, _))
+  private def sample(ast: Ast, n: Int) =
+    shuffle(walk(ast)).take(n).map((name, _))
 
   private def doDrop: Boolean =
     if k1 > 0 && randBool(k1 / (k1 + k2 + 0.0)) then
@@ -60,8 +61,7 @@ class Remover(
     val i = findSameChild(ast)
     if i >= 0 && doDrop then
       mutants ++ mutants.map(_.children(i).get.asInstanceOf[Syntactic])
-    else
-      mutants
+    else mutants
 }
 
 object Remover {
@@ -70,7 +70,7 @@ object Remover {
 
     children.indexWhere(_ match {
       case Some(Syntactic(`name`, `args`, _, _)) => true
-      case _ => false
+      case _                                     => false
     })
 
   // count the number of asts that have same child

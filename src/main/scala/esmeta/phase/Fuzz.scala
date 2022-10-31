@@ -27,6 +27,7 @@ case object Fuzz extends Phase[CFG, Coverage] {
       trial = config.trial,
       synK = config.synK,
       useSens = config.useSens,
+      useOnlyEval = config.useOnlyEval,
     )
 
     // optionally dump the generated ECMAScript programs
@@ -80,6 +81,11 @@ case object Fuzz extends Phase[CFG, Coverage] {
       BoolOption(c => c.useSens = true),
       "turn on the internal-sensitivity mode",
     ),
+    (
+      "only-eval",
+      BoolOption(c => c.useOnlyEval = true),
+      "turn on the mode that only uses Evaluation as enclosing features",
+    ),
   )
   case class Config(
     var out: Option[String] = None,
@@ -90,5 +96,6 @@ case object Fuzz extends Phase[CFG, Coverage] {
     var seed: Option[Int] = None,
     var synK: Option[Int] = None,
     var useSens: Boolean = false,
+    var useOnlyEval: Boolean = false,
   )
 }

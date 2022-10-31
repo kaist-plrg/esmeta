@@ -19,6 +19,7 @@ class Coverage(
   timeLimit: Option[Int] = None,
   synK: Option[Int] = None,
   useSens: Boolean = false,
+  useOnlyEval: Boolean = false,
 ) {
   import Coverage.{*, given}
   val jsonProtocol = JsonProtocol(cfg)
@@ -63,7 +64,7 @@ class Coverage(
 
     // run interpreter and record touched
     val initSt = cfg.init.from(script)
-    val interp = Interp(initSt, timeLimit, synK, useSens)
+    val interp = Interp(initSt, timeLimit, synK, useSens, useOnlyEval)
     val finalSt = interp.result
 
     // covered new elements
@@ -141,7 +142,7 @@ class Coverage(
     lazy val getNodeViewsId = orderedNodeViews.zipWithIndex.toMap
     lazy val getCondViewsId = orderedCondViews.zipWithIndex.toMap
     dumpJson(
-      CoverageConstructor(timeLimit, synK, useSens),
+      CoverageConstructor(timeLimit, synK, useSens, useOnlyEval),
       s"$baseDir/constructor.json",
     )
     dumpJson(
@@ -333,6 +334,7 @@ object Coverage {
     timeLimit: Option[Int],
     synK: Option[Int],
     useSens: Boolean,
+    useOnlyEval: Boolean,
   ) extends Interpreter(
       initSt,
       timeLimit = timeLimit,
@@ -368,12 +370,21 @@ object Coverage {
       super.returnIfAbrupt(riaExpr, value, check)
 
     // get syntax-sensitive views
-    private def getView: View = if (useSens) for {
-      feature <- st.context.featureStack.headOption
-      path = st.context.callPath
-      if useSens
-    } yield (feature, path)
-    else None
+    private def getView: View = st.context.featureStack match
+      case feature :: tail if useSens =>
+        val enclosing = synK.fold(Nil)(k =>
+          tail
+            .collect {
+              case synF: SyntacticFeature
+                  if !useOnlyEval ||
+                  synF.head.methodName.endsWith("Evaluation") =>
+                synF
+            }
+            .take(k),
+        )
+        val path = st.context.callPath
+        Some((enclosing, feature, path))
+      case _ => None
 
     // get location information
     private def getNearest: Option[Nearest] = st.context.nearest
@@ -387,9 +398,10 @@ object Coverage {
   )
 
   /* syntax-sensitive views */
-  type View = Option[(Feature, CallPath)]
+  type View = Option[(List[Feature], Feature, CallPath)]
   private def stringOfView(view: View) = view.fold("") {
-    case (feature, path) => s"@ $feature:$path"
+    case (enclosing, feature, path) =>
+      s"@ $feature[${enclosing.mkString(", ")}]:$path"
   }
   case class NodeView(node: Node, view: View = None) {
     override def toString: String =
@@ -460,6 +472,7 @@ object Coverage {
     timeLimit: Option[Int],
     synK: Option[Int],
     useSens: Boolean,
+    useOnlyEval: Boolean,
   )
   def fromLog(baseDir: String): Coverage =
     val jsonProtocol = JsonProtocol(cfg)

@@ -26,6 +26,7 @@ object Fuzzer {
     trial: Option[Int] = None, // `None` denotes no bound
     synK: Option[Int] = None,
     useSens: Boolean = false,
+    useOnlyEval: Boolean = false,
   ): Coverage = new Fuzzer(
     logInterval,
     debug,
@@ -34,6 +35,7 @@ object Fuzzer {
     trial,
     synK,
     useSens,
+    useOnlyEval,
   ).result
 
   // debugging levels
@@ -51,6 +53,7 @@ class Fuzzer(
   trial: Option[Int] = None, // `None` denotes no bound
   synK: Option[Int] = None,
   useSens: Boolean = false,
+  useOnlyEval: Boolean = false,
 ) {
   import Fuzzer.*
 
@@ -183,7 +186,7 @@ class Fuzzer(
   val scriptParser = cfg.scriptParser
 
   /** coverage */
-  val cov: Coverage = Coverage(timeLimit, synK, useSens)
+  val cov: Coverage = Coverage(timeLimit, synK, useSens, useOnlyEval)
 
   /** target selector */
   val selector: TargetSelector = WeightedSelector(

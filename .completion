@@ -26,8 +26,8 @@ _esmeta_completions() {
   mutateOpt="-mutate:out -mutate:mutator -mutate:untilValid"
   transcheckOpt="-transcheck:dir -transcheck:debug"
   fuzzOpt="-fuzz:out -fuzz:log-interval -fuzz:debug -fuzz:timeout -fuzz:trial -fuzz:seed -fuzz:syn-k -fuzz:sens -fuzz:only-eval"
-  gentestOpt="-gen-test:debug -gen-test:engines -gen-test:transpilers"
-  conformtestOpt="-conform-test:debug -conform-test:msgdir -conform-test:only -conform-test:save-bugs"
+  gentestOpt="-gen-test:debug -gen-test:engines -gen-test:transpilers -gen-test:use-cache -gen-test:only"
+  conformtestOpt="-conform-test:debug -conform-test:msgdir -conform-test:save-bugs"
   localizeOpt="-localize:debug -localize:topN"
   analyzeOpt="-analyze:repl"
   # completion for commands

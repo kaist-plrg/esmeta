@@ -23,6 +23,7 @@ case object GenTest
     "Generate executable conform tests for ECMAScript Engines and transpilers"
 
   private var _config: Config = null
+  private var _onlySet: Option[Set[String]] = None
   private type Result = Map[Target, Iterable[Script]]
 
   def apply(
@@ -31,6 +32,8 @@ case object GenTest
     config: Config,
   ): (Result, Result, Iterable[Script]) =
     _config = config
+    _onlySet =
+      config.only.map(list => readFile(list).trim.split(LINE_SEP).toSet)
 
     // collect target scripts and assertions
     val (codeDir, assertionDir) = optional {
@@ -63,6 +66,7 @@ case object GenTest
     // pre-process for each engines and transpilers
     var headers: Map[Int, String] = Map()
     engines.zipWithIndex.foreach((engine, i) => {
+      debug(s" - Pre-processing engine $engine...")
       val logDir = s"$GENTEST_LOG_DIR/engine-$i"
       cleanDir(logDir)
       dumpFile(engine, s"$logDir/command.txt")
@@ -70,82 +74,97 @@ case object GenTest
       headers += (i -> getGlobalClearingCode(engine.cmd))
     })
     transpilers.zipWithIndex.foreach((transpiler, i) => {
+      debug(s" - Pre-processing transpiler $transpiler...")
       val logDir = s"$GENTEST_LOG_DIR/trans-$i"
       cleanDir(logDir)
       dumpFile(transpiler, s"$logDir/command.txt")
 
-      if (config.debug)
-        println(s" - Running transpiler $transpiler...")
       val rawDir = s"$GENTEST_LOG_DIR/raw-trans-$i"
-      cleanDir(rawDir)
-      JSTrans.transpileDirUsingBinary(transpiler.cmd, codeDir, rawDir).get
-      dumpFile(transpiler, s"$rawDir/command.txt")
+      if (config.cache)
+        debug(s"   - Using cached codes of transpiler $transpiler...")
+        if (transpiler.toString != readFile(s"$rawDir/command.txt"))
+          throw new Error("Invalid transpiler cache")
+        if (listFiles(codeDir).size != listFiles(rawDir).size - 1)
+          throw new Error("Invalid transpiler cache")
+      else
+        debug(s"   - Running transpiler $transpiler...")
+        cleanDir(rawDir)
+        JSTrans.transpileDirUsingBinary(transpiler.cmd, codeDir, rawDir).get
+        dumpFile(transpiler, s"$rawDir/command.txt")
     })
     headers += (-1 -> getGlobalClearingCode(JSEngine.defaultEngine.get._1))
 
     // generate tests for each script
-    names.foldLeft(
-      (
-        engines.map(_ -> List[Script]()).toMap,
-        transpilers.map(_ -> List[Script]()).toMap,
-        List[Script](),
-      ),
-    ) {
-      case ((engineTestMap, transTestMap, originals), name) =>
-        val code = readFile(s"$codeDir/$name")
-        val assertion = readFile(s"$assertionDir/$name")
-
-        val isNormal = assertion.split(LINE_SEP).head.contains("[EXIT] normal")
-
-        def testMaker(code: String) = {
-          if (isNormal)
-            List(
-              code,
-              libHead,
-              Injector.assertionLib,
-              delayHead,
-              assertion,
-              delayTail,
-              libTail,
-            ).mkString(LINE_SEP)
-          else
-            assertion + code
-        }
-
-        // generate engine tests
-        val updatedEngineTestMap = engineTestMap.map((e, tests) => {
-          val i = engines.indexOf(e)
-          val etest = testMaker(headers(i) + code)
-
-          val logDir = s"$GENTEST_LOG_DIR/engine-$i"
-          dumpFile(etest, s"$logDir/$name")
-
-          e -> (Script(etest, name) :: tests)
-        })
-
-        // generate trans tests
-        val updatedTransTestMap = transTestMap.map((t, tests) => {
-          val i = transpilers.indexOf(t)
-          val rawDir = s"$GENTEST_LOG_DIR/raw-trans-$i"
-          val compiledCode = readFile(s"$rawDir/$name")
-          val ttest = testMaker(headers(-1) + compiledCode)
-
-          val logDir = s"$GENTEST_LOG_DIR/trans-$i"
-          dumpFile(ttest, s"$logDir/$name")
-
-          t -> (Script(ttest, name) :: tests)
-        })
-
+    debug(s" - Handling each code..")
+    names
+      .filterNot(skip)
+      .foldLeft(
         (
-          updatedEngineTestMap,
-          updatedTransTestMap,
-          Script(code, name) :: originals,
-        )
-    }
+          engines.map(_ -> List[Script]()).toMap,
+          transpilers.map(_ -> List[Script]()).toMap,
+          List[Script](),
+        ),
+      ) {
+        case ((engineTestMap, transTestMap, originals), name) =>
+          val code = readFile(s"$codeDir/$name")
+          val assertion = readFile(s"$assertionDir/$name")
+
+          val isNormal =
+            assertion.split(LINE_SEP).head.contains("[EXIT] normal")
+
+          def testMaker(code: String) = {
+            if (isNormal)
+              List(
+                code,
+                libHead,
+                Injector.assertionLib,
+                delayHead,
+                assertion,
+                delayTail,
+                libTail,
+              ).mkString(LINE_SEP)
+            else
+              assertion + code
+          }
+
+          // generate engine tests
+          val updatedEngineTestMap = engineTestMap.map((e, tests) => {
+            val i = engines.indexOf(e)
+            val etest = testMaker(headers(i) + code)
+
+            val logDir = s"$GENTEST_LOG_DIR/engine-$i"
+            dumpFile(etest, s"$logDir/$name")
+
+            e -> (Script(etest, name) :: tests)
+          })
+
+          // generate trans tests
+          val updatedTransTestMap = transTestMap.map((t, tests) => {
+            val i = transpilers.indexOf(t)
+            val rawDir = s"$GENTEST_LOG_DIR/raw-trans-$i"
+            val compiledCode = readFile(s"$rawDir/$name")
+            val ttest = testMaker(headers(-1) + compiledCode)
+
+            val logDir = s"$GENTEST_LOG_DIR/trans-$i"
+            dumpFile(ttest, s"$logDir/$name")
+
+            t -> (Script(ttest, name) :: tests)
+          })
+
+          (
+            updatedEngineTestMap,
+            updatedTransTestMap,
+            Script(code, name) :: originals,
+          )
+      }
 
   // ---------------------------------------------------------------------------
   // private helpers
   // ---------------------------------------------------------------------------
+
+  // debug
+  private def debug(data: Any): Unit =
+    if (_config.debug) println(data)
 
   // warn about correct usage
   private def warnUsage =
@@ -202,6 +221,10 @@ case object GenTest
           s" });$LINE_SEP",
         )
 
+  // skip the test if this test is not on the only-list.
+  private def skip(name: String): Boolean =
+    _onlySet.map(noSkips => !noSkips.contains(name)).getOrElse(false)
+
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(
     (
@@ -219,10 +242,22 @@ case object GenTest
       StrOption((c, s) => c.transpilers = Some(s)),
       "list of transpilers to test, separated by comma",
     ),
+    (
+      "use-cache",
+      BoolOption(c => c.cache = true),
+      "use cached transpiled codes from previous run",
+    ),
+    (
+      "only",
+      StrOption((c, s) => c.only = Some(s)),
+      "file that contains test names to run only",
+    ),
   )
   case class Config(
     var debug: Boolean = false,
     var engines: Option[String] = None,
     var transpilers: Option[String] = None,
+    var cache: Boolean = false,
+    var only: Option[String] = None,
   )
 }

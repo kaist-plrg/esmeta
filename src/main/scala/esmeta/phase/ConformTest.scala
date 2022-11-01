@@ -25,7 +25,6 @@ case object ConformTest
   val help = "Perform conformance test for an ECMAScript Engine or a transpiler"
 
   private var _config: Config = null
-  private var _onlySet: Option[Set[String]] = None
   private type Input = Map[Target, Iterable[Script]]
   private type Result = Map[Target, Iterable[String]]
 
@@ -35,8 +34,6 @@ case object ConformTest
     config: Config,
   ): Result =
     _config = config
-    _onlySet =
-      config.only.map(list => readFile(list).trim.split(LINE_SEP).toSet)
     config.msgdir.foreach(cleanDir)
 
     val (etestMap, ttestMap, originals) = input
@@ -47,9 +44,7 @@ case object ConformTest
     // do test for engines
     val engineResult = etestMap.map((e, tests) =>
       e -> {
-        val fails = tests
-          .filterNot(skip)
-          .par
+        val fails = tests.par
           .flatMap(test => doConformTest(e, false, test))
           .toList
 
@@ -62,9 +57,7 @@ case object ConformTest
     // do test for transpilers
     val transResult = ttestMap.map((t, tests) =>
       t -> {
-        val fails = tests
-          .filterNot(skip)
-          .par
+        val fails = tests.par
           .flatMap(test => doConformTest(t, true, test))
           .toList
 
@@ -98,10 +91,6 @@ case object ConformTest
 
   // bug stat
   private var bugStat: Map[Target, Map[String, Int]] = Map()
-
-  // skip the test if this test is not on the only-list.
-  private def skip(script: Script): Boolean =
-    _onlySet.map(noSkips => !noSkips.contains(script.name)).getOrElse(false)
 
   // do conform test, and returns Some((name, bug)) if fails.
   private def doConformTest(
@@ -277,11 +266,6 @@ case object ConformTest
       "directory to log msg",
     ),
     (
-      "only",
-      StrOption((c, s) => c.only = Some(s)),
-      "file that contains test names to run only",
-    ),
-    (
       "save-bugs",
       BoolOption(c => c.saveBugs = true),
       "save found bugs to database",
@@ -290,7 +274,6 @@ case object ConformTest
   case class Config(
     var debug: Boolean = false,
     var msgdir: Option[String] = None,
-    var only: Option[String] = None,
     var saveBugs: Boolean = false,
   )
 }

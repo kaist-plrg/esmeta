@@ -9,6 +9,7 @@ import esmeta.js.*
 import esmeta.util.*
 import esmeta.util.SystemUtils.*
 import esmeta.util.BaseUtils.*
+import scala.collection.parallel.CollectionConverters._
 
 /** `conform-test` phase */
 case object ConformTest
@@ -44,20 +45,36 @@ case object ConformTest
     originals.foreach(s => originalMap += (s.name -> s.code))
 
     // do test for engines
-    val engineResult = etestMap.map((e, tests) => {
-      e -> tests
-        .filterNot(test => skip(test) || doConformTest(e, false, test))
-        .map(_.name)
-    })
+    val engineResult = etestMap.map((e, tests) =>
+      e -> {
+        val fails = tests
+          .filterNot(skip)
+          .par
+          .flatMap(test => doConformTest(e, false, test))
+          .toList
+
+        bugStat += (e -> toBugStat(fails))
+
+        fails.map(_._1)
+      },
+    )
 
     // do test for transpilers
-    val transResult = ttestMap.map((t, tests) => {
-      t -> tests
-        .filterNot(test => skip(test) || doConformTest(t, true, test))
-        .map(_.name)
-    })
+    val transResult = ttestMap.map((t, tests) =>
+      t -> {
+        val fails = tests
+          .filterNot(skip)
+          .par
+          .flatMap(test => doConformTest(t, true, test))
+          .toList
 
-    val result = engineResult ++ transResult
+        bugStat += (t -> toBugStat(fails))
+
+        fails.map(_._1)
+      },
+    )
+
+    val result: Result = engineResult ++ transResult
 
     // dump result as JSON
     dumpJson(result.map(_.toString -> _), s"$CONFORMTEST_LOG_DIR/fails.json")
@@ -86,12 +103,12 @@ case object ConformTest
   private def skip(script: Script): Boolean =
     _onlySet.map(noSkips => !noSkips.contains(script.name)).getOrElse(false)
 
-  // do conform test
+  // do conform test, and returns Some((name, bug)) if fails.
   private def doConformTest(
     target: Target,
     isTrans: Boolean,
     script: Script,
-  ): Boolean =
+  ): Option[(String, String)] =
     val Script(code, name) = script
     debug(s"Testing $target: $name...")
 
@@ -120,7 +137,8 @@ case object ConformTest
     val pass = sameExitTag && stdout.isEmpty
 
     // log information when test fails
-    if (!pass) {
+    if pass then None
+    else {
       val detail =
         if (!sameExitTag) then
           s"[Exit Tag Mismatch]$LINE_SEP > Expected $exitTagRaw but got $concreteExitTag"
@@ -136,8 +154,7 @@ case object ConformTest
                    |$detail
                    |""".stripMargin
 
-      debug(original)
-      debug(msg)
+      debug(s"$original$LINE_SEP$msg")
 
       _config.msgdir.foreach(dir =>
         val path = s"$dir/$name.msg"
@@ -155,13 +172,8 @@ case object ConformTest
           case _                =>
         }
 
-      val origStat = bugStat.getOrElse(target, Map())
-      val origCount = origStat.getOrElse(tag._tag, 0)
-      val newStat = origStat + (tag._tag -> (origCount + 1))
-      bugStat += (target -> newStat)
+      Some((name, tag._tag))
     }
-
-    pass
 
   private val exitTagPattern = "(?<=\\[EXIT\\] )[^\n\r]*".r
   private val errorPattern = "[\\w]*Error(?=: )".r
@@ -243,6 +255,14 @@ case object ConformTest
     val emptyIdx =
       names.zipWithIndex.find(p => p._1 != p._2).map(_._2).getOrElse(names.size)
     dumpFile(data, s"$dir/$emptyIdx.js")
+
+  private def toBugStat(fails: List[(String, String)]): Map[String, Int] =
+    fails
+      .map(_._2)
+      .foldLeft(Map[String, Int]())((stat, tag) =>
+        val origCount = stat.getOrElse(tag, 0)
+        stat + (tag -> (origCount + 1)),
+      )
 
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(

@@ -145,18 +145,26 @@ class Coverage(
       CoverageConstructor(timeLimit, synK, useSens, useOnlyEval),
       s"$baseDir/constructor.json",
     )
+
+    val st = System.nanoTime()
+    def elapsedSec = (System.nanoTime() - st) / 1000000 / 1e3
+    def log(msg: Any) =
+      if (withMsg) println(s"[$elapsedSec s] $msg")
+
     dumpJson(
       name = if (withMsg) Some("node coverage") else None,
       data = nodeViewInfos(orderedNodeViews),
       filename = s"$baseDir/node-coverage.json",
       space = true,
     )
+    log("Dupmed node coverage")
     dumpJson(
       name = if (withMsg) Some("branch coverage") else None,
       data = condViewInfos(orderedCondViews),
       filename = s"$baseDir/branch-coverage.json",
       space = true,
     )
+    log("Dupmed branch coverage")
     if (withScripts)
       dumpDir[Script](
         name = if (withMsg) Some("minimal ECMAScript programs") else None,
@@ -166,6 +174,7 @@ class Coverage(
         getData = USE_STRICT + _.code + LINE_SEP,
         remove = true,
       )
+      log("Dupmed scripts")
     if (withScriptInfo) {
       dumpDir[(String, ScriptInfo)](
         name = if (withMsg) Some("minimal ECMAScript assertions") else None,
@@ -175,6 +184,7 @@ class Coverage(
         getData = _._2.test.core, // TODO: dump this as json?
         remove = true,
       )
+      log("Dupmed assertions")
       dumpJson(
         name =
           if (withMsg) Some("list of touched node view of minimal programs")
@@ -183,6 +193,7 @@ class Coverage(
         filename = s"$baseDir/minimal-touch-nodeview.json",
         space = false,
       )
+      log("dumped touched node views")
       dumpJson(
         name =
           if (withMsg) Some("list of touched cond view of minimal programs")
@@ -191,6 +202,7 @@ class Coverage(
         filename = s"$baseDir/minimal-touch-condview.json",
         space = false,
       )
+      log("dumped touched cond views")
     }
     if (withTargetCondViews)
       dumpJson(
@@ -199,6 +211,7 @@ class Coverage(
         filename = s"$baseDir/target-conds.json",
         space = true,
       )
+      log("dumped target conds")
     if (withUnreachableFuncs)
       dumpFile(
         name = if (withMsg) Some("unreachable functions") else None,
@@ -209,6 +222,7 @@ class Coverage(
           .mkString(LINE_SEP),
         filename = s"$baseDir/unreach-funcs",
       )
+      log("dumped unreachable functions")
 
   override def toString: String =
     val app = new Appender

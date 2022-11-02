@@ -115,7 +115,7 @@ class Fuzzer(
     for (bound <- logInterval) {
       val seconds = bound * 1000
       if (interval > seconds) {
-        logging
+        if (debug == NO_DEBUG) logging else time("Logging", logging)
         startInterval += seconds
       }
     }
@@ -308,7 +308,7 @@ class Fuzzer(
     row ++= Vector(tc)
     addRow(row)
     // dump coveragge
-    cov.dumpToWithDetail(logDir, withMsg = false)
+    cov.dumpToWithDetail(logDir, withMsg = (debug == ALL))
     // dump selector and mutator stat
     dumpStat(selector.names, selectorStat, selStatTsv)
     dumpStat(mutator.names, mutatorStat, mutStatTsv)

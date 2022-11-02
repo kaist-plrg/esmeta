@@ -19,7 +19,7 @@ class WeightedMutator(
     ast: Ast,
     n: Int,
     target: Option[(CondView, Coverage)],
-  ): Iterable[(String, Ast)] = weightedChoose(pairs)(ast, n, target)
+  ): Seq[(String, Ast)] = weightedChoose(pairs)(ast, n, target)
 
   val names = pairs.toList.flatMap(_._1.names).sorted.distinct
 }

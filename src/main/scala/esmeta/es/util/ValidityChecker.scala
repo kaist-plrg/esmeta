@@ -12,7 +12,7 @@ object ValidityChecker {
   def apply(code: String): Boolean =
     val src = s"${USE_STRICT}throw \"$MESSAGE\";$LINE_SEP;$LINE_SEP$code"
     (!useD8 || _valid(JSEngine.runUsingD8(src))) &&
-    (!useGraal || _valid(JSEngine.runUsingGraal(src)))
+    (!useJs || _valid(JSEngine.runUsingJs(src)))
 
   val MESSAGE = "VALIDITY_CHECKER_EXPECTED_EXCEPTION"
 
@@ -24,8 +24,8 @@ object ValidityChecker {
     val use = JSEngine.runUsingD8(";").isSuccess;
     if (!use) warn("No D8")
     use
-  lazy val useGraal: Boolean =
-    val use = JSEngine.runUsingGraal(";").isSuccess;
+  lazy val useJs: Boolean =
+    val use = JSEngine.runUsingJs(";").isSuccess;
     if (!use) warn("No Graal")
     use
 }

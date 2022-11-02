@@ -24,7 +24,7 @@ class Remover(
     ast: Ast,
     n: Int,
     _target: Option[(CondView, Coverage)],
-  ): Iterable[(String, Ast)] = {
+  ): Seq[(String, Ast)] = {
     // count the number of potential victims
     val k = victimCounter(ast)
     k1 = 0

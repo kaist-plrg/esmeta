@@ -131,7 +131,7 @@ case class Test262(
         val filename = test.name
         val st =
           if (!useCoverage) evalFile(filename, log && !multiple, timeLimit)
-          else cov.run(Script(loadTest(filename), filename))
+          else cov.runAndCheck(Script(loadTest(filename), filename))._1
         val returnValue = st(GLOBAL_RESULT)
         if (returnValue != Undef) throw InvalidExit(returnValue)
       ,

@@ -60,11 +60,26 @@ class Coverage(
     * evaluation result with whether it succeeds to increase coverage
     */
   def runAndCheck(script: Script): (State, Boolean, Boolean) = {
-    val Script(code, name) = script
+    val interp = run(script.code)
+    check(script, interp)
+  }
 
+  /** evaluate a given ECMAScript program. */
+  def run(code: String): Interp = {
     // run interpreter and record touched
-    val initSt = cfg.init.from(script)
+    val initSt = cfg.init.from(code)
     val interp = Interp(initSt, timeLimit, synK, useSens, useOnlyEval)
+    interp.result
+    interp
+  }
+
+  /** update coverage, and return evaluation result with whether it succeeds to
+    * increase coverage
+    */
+  def check(script: Script, interp: Interp): (State, Boolean, Boolean) =
+    val Script(code, name) = script
+    val initSt =
+      cfg.init.from(code) // TODO: Check if recreating init state is OK
     val finalSt = interp.result
 
     // covered new elements
@@ -100,15 +115,6 @@ class Coverage(
     // assert: _minimalScripts ~= _minimalInfo.keys
 
     (finalSt, updated, covered)
-  }
-
-  /** evaluate a given ECMAScript program, update coverage, and return
-    * evaluation result
-    */
-  def run(script: Script): State = {
-    val (st, _, _) = runAndCheck(script);
-    st
-  }
 
   /** get node coverage */
   def nodeCov: Int = nodeViewMap.size

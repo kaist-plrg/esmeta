@@ -20,7 +20,7 @@ class RandomMutator(
     ast: Ast,
     n: Int,
     target: Option[(CondView, Coverage)],
-  ): Iterable[(String, Ast)] =
+  ): Seq[(String, Ast)] =
     val k = targetAstCounter(ast)
     if (k == 0)
       List.fill(n)(ast)

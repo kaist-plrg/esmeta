@@ -23,7 +23,7 @@ class NearestMutator(
     ast: Ast,
     n: Int,
     target: Option[(CondView, Coverage)],
-  ): Iterable[(String, Ast)] = (for {
+  ): Seq[(String, Ast)] = (for {
     (condView, cov) <- target
     nearest <- cov.targetCondViews.getOrElse(condView, None)
   } yield Walker(nearest, n).walk(ast).map((name, _)))

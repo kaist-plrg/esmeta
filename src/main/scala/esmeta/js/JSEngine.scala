@@ -237,6 +237,9 @@ object JSEngine {
   def runUsingD8(src: String): Try[String] =
     runUsingBinary(defaultCmd("d8").head._2, src)
 
+  def runUsingJs(src: String): Try[String] =
+    runUsingBinary(defaultCmd("js").head._2, src)
+
   /** escape a string to a shell-safe string, enclosed by single quote */
   private def escape(string: String): String =
     val replaced = string.replace("'", "'\"'\"'") // replace I'm to I'"'"'m

@@ -23,7 +23,7 @@ class StatementInserter(
     ast: Ast,
     n: Int,
     _target: Option[(CondView, Coverage)],
-  ): Iterable[(String, Ast)] = {
+  ): Seq[(String, Ast)] = {
     // count the number of stmtLists
     val k = stmtListCounter(ast)
 

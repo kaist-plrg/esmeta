@@ -31,9 +31,12 @@ class Interpreter(
 ) {
   import Interpreter.*
 
+  /** evaluation start time */
+  lazy val startTime: Long = System.currentTimeMillis
+
   /** final state */
   lazy val result: State =
-    startTime = System.currentTimeMillis
+    startTime
     while (step) {}
     if (log) pw.close
     st
@@ -850,9 +853,6 @@ object Interpreter {
             Math(sqrt(ns.map(x => x * x).foldLeft(0.0)(_ + _)))
           case _ => throw InvalidMathOp(mop, vs)
       case _ => throw InvalidMathOp(mop, vs)
-
-  // evaluation start time
-  private var startTime: Long = 0L
 
   // helpers for make transition for variadic operators
   private def vopEval[T](

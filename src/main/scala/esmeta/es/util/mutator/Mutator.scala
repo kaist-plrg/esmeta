@@ -8,7 +8,7 @@ import esmeta.util.*
 
 /** ECMAScript AST mutator */
 trait Mutator {
-  private type Result = Iterable[(String, Ast)]
+  private type Result = Seq[(String, Ast)]
 
   /** mutate string */
   def apply(code: String, n: Int): Result =

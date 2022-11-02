@@ -15,6 +15,7 @@ import esmeta.{ESMeta, FUZZ_LOG_DIR, LINE_SEP}
 import io.circe.*, io.circe.syntax.*
 import java.io.PrintWriter
 import scala.collection.mutable.{ListBuffer, Map => MMap}
+import scala.collection.parallel.CollectionConverters._
 
 /** ECMAScript program fuzzer with ECMA-262 */
 object Fuzzer {
@@ -73,7 +74,7 @@ class Fuzzer(
     time(
       s"- initializing program pool with ${initPool.size} programs", {
         for {
-          (synthesizer, rawCode) <- initPool
+          (synthesizer, rawCode) <- initPool if randBool(0.01)
           code <- optional(scriptParser.from(rawCode).toString(grammar))
         } {
           debugging(f"[${synthesizer.name}%-30s] $code")
@@ -108,7 +109,7 @@ class Fuzzer(
   /** current program pool */
   def pool: Set[Script] = cov.minimalScripts
 
-  /** one trial to fuzz a new program to increase coverage */
+  /** one trial to fuzz new programs to increase coverage */
   def fuzz: Unit =
     iter += 1
     debugging(("-" * 40) + f"  iter: $iter%10d  " + ("-" * 40))
@@ -125,28 +126,71 @@ class Fuzzer(
     debugging(f"[$selectorInfo%-30s] $code")
     debugFlush
 
-    val mutants = mutator(code, 100, condView.map((_, cov)))
-    for ((mutatorName, mutated) <- mutants)
-      val mutatedCode = mutated.toString(grammar)
+    val mutants = mutator(code, 500, condView.map((_, cov)))
+      .map((name, ast) => (name, ast.toString(grammar)))
+      .distinctBy(_._2)
+      .par
+      .map(infoExtractor)
+      .toList
+
+    for ((mutatorName, mutatedCode, info) <- mutants)
       debugging(f"----- $mutatorName%-20s-----> $mutatedCode")
 
-      val result = add(mutatedCode)
+      val result = add(mutatedCode, info)
       update(selectorName, selectorStat, result)
       update(mutatorName, mutatorStat, result)
 
-  /** add new program */
-  def add(code: String): Boolean =
-    val result = Try {
-      if (visited contains code)
-        fail("ALREADY VISITED")
-      visited += code
-      if (!ValidityChecker(code))
-        fail("INVALID PROGRAM")
-      val script = toScript(code)
-      val (exitSt, updated, covered) = cov.runAndCheck(script)
-      if (!updated) fail("NO UPDATE")
-      covered
+  /** Case class to hold the information about mutant */
+  case class MutantInfo(
+    val visited: Boolean = false,
+    val invalid: Boolean = false,
+    val interp: Option[Coverage.Interp] = None,
+  )
+
+  /** Extract information for the mutated code. Should be side-effect free. */
+  def infoExtractor(
+    mutatorName: String,
+    mutatedCode: String,
+  ): (String, String, MutantInfo) =
+    val info = {
+      if (visited contains mutatedCode)
+        MutantInfo(visited = true)
+      else if (!ValidityChecker(mutatedCode))
+        MutantInfo(invalid = true)
+      else
+        MutantInfo(interp = optional(cov.run(mutatedCode)))
     }
+    (mutatorName, mutatedCode, info)
+
+  /** add new program */
+  def add(code: String): Boolean = handleResult(Try {
+    if (visited contains code)
+      fail("ALREADY VISITED")
+    visited += code
+    if (!ValidityChecker(code))
+      fail("INVALID PROGRAM")
+    val script = toScript(code)
+    val (_, updated, covered) = cov.runAndCheck(script)
+    if (!updated) fail("NO UPDATE")
+    covered
+  })
+
+  /** add new program with precomputed info */
+  def add(code: String, info: MutantInfo): Boolean = handleResult(Try {
+    if (info.visited)
+      fail("ALREADY VISITED")
+    visited += code
+    if (info.invalid)
+      fail("INVALID PROGRAM")
+    val script = toScript(code)
+    val (_, updated, covered) =
+      cov.check(script, info.interp.getOrElse(fail("Interp Fail")))
+    if (!updated) fail("NO UPDATE")
+    covered
+  })
+
+  /** handle add result */
+  def handleResult(result: Try[Boolean]): Boolean =
     debugging(f" ${"COVERAGE RESULT"}%30s: ", newline = false)
     val pass = result match
       case Success(covered)             => debugging(passMsg("")); covered

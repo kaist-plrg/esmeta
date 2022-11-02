@@ -361,14 +361,17 @@ object Coverage {
     // override eval for node
     override def eval(node: Node): Unit =
       // record touched nodes
-      touchedNodeViews += NodeView(node, getView) -> getNearest
+      for (view <- getViews)
+        touchedNodeViews += NodeView(node, view) -> getNearest
       super.eval(node)
 
     // override branch move
-    override def moveBranch(branch: Branch, cond: Boolean): Unit =
+    override def moveBranch(branch: Branch, b: Boolean): Unit =
       // record touched conditional branch
-      touchedCondViews += CondView(Cond(branch, cond), getView) -> getNearest
-      super.moveBranch(branch, cond)
+      val cond = Cond(branch, b)
+      for (view <- getViews)
+        touchedCondViews += CondView(cond, view) -> getNearest
+      super.moveBranch(branch, b)
 
     // override helper for return-if-abrupt cases
     override def returnIfAbrupt(
@@ -377,14 +380,13 @@ object Coverage {
       check: Boolean,
     ): Value =
       val abrupt = value.isAbruptCompletion
-      touchedCondViews += CondView(
-        Cond(riaExpr.idRef, abrupt),
-        getView,
-      ) -> getNearest
+      val cond = Cond(riaExpr.idRef, abrupt)
+      for (view <- getViews)
+        touchedCondViews += CondView(cond, view) -> getNearest
       super.returnIfAbrupt(riaExpr, value, check)
 
     // get syntax-sensitive views
-    private def getView: View = st.context.featureStack match
+    private def getViews: List[View] = st.context.featureStack match
       case feature :: tail if useSens =>
         val enclosing = synK.fold(Nil)(k =>
           tail
@@ -397,8 +399,11 @@ object Coverage {
             .take(k),
         )
         val path = st.context.callPath
-        Some((enclosing, feature, path))
-      case _ => None
+        List(
+          Some((Some(enclosing), feature, None)),
+          Some((None, feature, Some(path))),
+        )
+      case _ => List(None)
 
     // get location information
     private def getNearest: Option[Nearest] = st.context.nearest
@@ -412,10 +417,14 @@ object Coverage {
   )
 
   /* syntax-sensitive views */
-  type View = Option[(List[Feature], Feature, CallPath)]
+  type View = Option[(Option[List[Feature]], Feature, Option[CallPath])]
   private def stringOfView(view: View) = view.fold("") {
-    case (enclosing, feature, path) =>
-      s"@ $feature[${enclosing.mkString(", ")}]:$path"
+    case (enclosingOpt, feature, pathOpt) =>
+      val enclosing = enclosingOpt
+        .map(enclosing => s"[${enclosing.mkString(", ")}]")
+        .getOrElse("")
+      val path = pathOpt.map(":" + _).getOrElse("")
+      s"@ $feature$enclosing$path"
   }
   case class NodeView(node: Node, view: View = None) {
     override def toString: String =

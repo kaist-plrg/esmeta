@@ -3,8 +3,18 @@ TIMEOUT||but got timeout
 AWAIT-FAIL|Cannot use keyword 'await' outside an async function|but got transpile-failure
 AWAIT-FAIL|Unexpected token|but got transpile-failure
 AWAIT-FAIL|await isn't allowed in non-async function|but got transpile-failure
+AWAIT-FAIL|`await` cannot be used as an identifier in an async context|but got transpile-failure
 AWAIT-FAIL|internal error: entered unreachable code|but got transpile-failure
+AWAIT-FAIL|cannot be applied to unary/await expression.|but got transpile-failure
+AWAIT-FAIL| Expression expected|but got transpile-failure
+AWAIT-FAIL|Parenthesized expression cannot be empty|but got transpile-failure
+AWAIT-FAIL|Invalid assignment|but got transpile-failure
 STATIC-SAME-NAME-FAIL|has already been declared|but got transpile-failure
+ECM-TO-STRING-IN-STATIC||[native code]
+JSC-PROP-ORDER| static |but got ["length", "prototype", "name"] for
+JSC-PROP-ORDER|{ * [|but got ["length", "prototype", "name"] for
+JSC-PROP-ORDER|{ async * [|but got ["length", "prototype", "name"] for
+SM-PROP-ORDER||"length", "name"] for
 F2STRING|Function(|SyntaxError
 F2STRING|eval(|SyntaxError
 F2STRING|eval.|SyntaxError
@@ -14,30 +24,47 @@ F2STRING||but got "class
 F2STRING||", "function
 F2STRING||", "async 
 F2STRING||", "class
-F2STRING||but got "undefinedfunction
-F2STRING||but got "undefinedasync
-F2STRING||but got "undefinedclass
-F2STRING||but got "0function
-F2STRING||but got "0async
-F2STRING||but got "0class
-F2STRING||but got "[object Object]function
-F2STRING||but got "[object Object]async
-F2STRING||but got "[object Object]class
+F2STRING||but got ["function
+F2STRING||but got ["async 
+F2STRING||but got ["class
+F2STRING||"undefinedfunction
+F2STRING||"undefinedasync
+F2STRING||"undefinedclass
+F2STRING||"0function
+F2STRING||"0async
+F2STRING||"0class
+F2STRING||"[object Object]function
+F2STRING||"[object Object]async
+F2STRING||"[object Object]class
 F2STRING||Expected "x =>
+F2STRING||Expected "0x =>
+F2STRING||Expected ["x =>
+F2STRING||, "x =>
 F2STRING||should be "x =>
+F2STRING||should be "0x =>
+F2STRING||should be "undefinedx =>
+F2STRING||should be "NaNx =>
+F2STRING||should be "async
+F2STRING||but got "f"
+F2STRING|`|Expected "x" but got "_"
 DELETE-SUPER|delete super|but got throw-error: ReferenceError
+DSG-REMOVED-DELETE-SUPER||Expected throw-error: ReferenceError @ UnaryExpression[1,0].Evaluation ((step 5.b, 10:54-89))<SYNTAX>:UnaryExpression[1,0].Evaluation but got normal
 STRICT-DELETE|_defineProperty(x, 0, delete x);|but got throw-error: SyntaxError
+DSG-HIDDEN-GEN-PARAM-ERROR|return _regeneratorRuntime().wrap|but got normal
+DSG-HIDDEN-GEN-PARAM-ERROR|return __generator(|but got normal
+DSG-CLASS-IN-COMPUTED|_classNameTDZError|
 BBL-STATIC-PRIVATE-IN|===|TypeError @ RelationalExpression[7
 BBL-COMPUTED-IN|_defineProperty|TypeError @ RelationalExpression[6
 BBL-STATIC-REASSIGN-CLASS|_createClass|Expected throw-error: TypeError @ DeclarativeEnvironmentRecord.SetMutableBinding
 GRL-REST-SPARSE|... [ ]|for Array.
 BBL-NULL-APPLY|null.apply|but got throw-error: TypeError
-BBL-GEN-ARR|_toArray|BindingInitialization but got normal
 BBL-WRONG-ERR-NAME||but got throw-error: Error
 BBL-FOR-LET-EMPTY-OBJ-FAIL|but instead got "CallExpression"|but got transpile-failure
-BBL-AWAIT-SPARSE-FAIL|Property right of AssignmentExpression expected node to be of a type ["Expression"] but instead got undefined|but got transpile-failure
+BBL-AWAIT-SPARSE-FAIL|Property right of AssignmentExpression expected node to be of a type ["Expression"] but instead got|but got transpile-failure
 BBL-ENUMERABLE-GEN||Expected [] but got ["_invoke"] for Generator.
+BBL-ENUMERABLE-GEN||Expected undefined but got "toString"
 BBL-DESTR-SUPER-FAIL|Destructuring to a super field is not supported yet|but got transpile-failure
+BBL-NEW-TARGET|this instanceof x ? this.constructor|Expected normal but got throw-error: TypeError
 SWC-ASSIGN-CONST-FAIL|cannot reassign to a variable declared with `const`|but got transpile-failure
 SWC-CHAIN-ASSIGN-OBJ|0..x|
 SWC-CHAIN-COMP-ASSIGN-SUPER-IN-STATIC|_get(_getPrototypeOf|Expected normal
@@ -48,21 +75,43 @@ SWC-DESTRUCTURING-UNDEFINED|!== null|Expected throw-error: TypeError @ RequireOb
 SWC-DESTRUCTURING-ASSIGN-EXPR|ref =|Expected throw-error: TypeError @ RequireObjectCoercible<SYNTAX>:ObjectAssignmentPattern[0,0].DestructuringAssignmentEvaluation
 SWC-STATIC-REASSIGN-CLASS|_classCallCheck|Expected throw-error: TypeError @ DeclarativeEnvironmentRecord.SetMutableBinding
 SWC-STATIC-SUPER|_superprop_set|but got throw-error: SyntaxError
-SWC-SUPER|super|but got throw-error: SyntaxError
+SWC-STATIC-SUPER|_superprop_get|but got throw-error: SyntaxError
+SWC-ASSIGN-OP-SUPER|= super.|but got throw-error: SyntaxError
 SWC-SWITCH-RENAME-FUNCTION|function _$x|but got throw-error: ReferenceError
 SWC-STRICT-FOR|for(ref|but got throw-error: ReferenceError
 SWC-OBJ-DIV-FAIL|Unexpected eof|but got transpile-failure
 SWC-OBJ-DIV-FAIL|Unterminated regexp literal|but got transpile-failure
 SWC-ENUMERABLE-GEN||Expected [] but got ["next", "throw", "return", Symbol(Symbol.iterator)]
+BBL-ENUMERABLE-GEN||Expected undefined but got "return"
+SWC-WRITE-THIS-IN-ASYNC|_ = _this.x;|[Assertion Fail]
+SWC-CASE-NULLISH|case (ref|but got throw-error: ReferenceError
+SWC-CASE-NULLISH|case (_|but got throw-error: ReferenceError
+SWC-CASE-NULLISH|switch(0|but got throw-error: ReferenceError
+SWC-CASE-NULLISH|switch([|but got throw-error: ReferenceError
+SWC-SETTER-RENAME| set |but got throw-error: ReferenceError
+SWC-SETTER-RENAME| set |but undefined given
+SWC-SETTER-RENAME| set |but got undefined
+SWC-GEN-2-STRING|return __generator(|[object Generator]
+SWC-GEN-2-STRING|return __generator(|[object Generator]
+SWC-COMPUTED-THIS|this[0]|Expected normal but got throw-error: TypeError
+SWC-COMPUTED-THIS|this.x|Expected normal but got throw-error: TypeError
 GRL-NORMALIZE|normalize|RangeError
 GRL-SETPROTOTYPEOF|setPrototypeOf|TypeError @ INTRINSICS.Object.setPrototypeOf
-GRL-EXTENDS|extends|but got throw-error: TypeError
+GRL-EXTENDS-ITSELF|class x extends new |Expected throw-error: ReferenceError
+GRL-COMPUTED-ITSELF|class x { [ new |Expected throw-error: ReferenceError
 GRL-LOGICAL-ASSIGN-CONST|&&=|TypeError @ DeclarativeEnvironmentRecord.SetMutableBinding
 GRL-LOGICAL-ASSIGN-CONST|const|TypeError @ DeclarativeEnvironmentRecord.SetMutableBinding
-JSC-PROP-ORDER|static|but got ["length", "prototype", "name"] for
-JSC-PROP-ORDER|{ * [|but got ["length", "prototype", "name"] for
+GRL-RETURN-VOID-AWAIT-THIS|void await this|org.graalvm.polyglot.PolyglotException
+GRL-DELETE| delete 0 ( ) |but got normal
+GRL-DELETE| delete new |but got normal
+GRL-FORDECL|for ( const [|Expected throw-error: ReferenceError
+GRL-FORDECL|for ( const {|Expected throw-error: ReferenceError
+GRL-FORDECL|for ( let [|Expected throw-error: ReferenceError
+GRL-FORDECL|for ( let {|Expected throw-error: ReferenceError
 JSC-STATIC-SAME-NAME|static {|but got throw-error: SyntaxError
+JSC-STATIC-SAME-NAME|static 0 = |but got throw-error: SyntaxError
 JSC-OPTIONAL-CALL-CHAIN|{ } ?. ( )|Expected throw-error: TypeError
+JSC-OPTIONAL-CALL-CHAIN|{ } ?. ( 0 )|Expected throw-error: TypeError
 JSC-OPTIONAL-CALL-CHAIN-2|( ) ?. x|Expected throw-error: TypeError
 JSC-ASSIGN-CONST-FOR|in { x }|Expected throw-error: TypeError @ DeclarativeEnvironmentRecord.SetMutableBinding
 JSC-GETSET-0|et 0 (|descriptor value of "name" should be
@@ -70,14 +119,17 @@ JSC-STATIC-CLASS-REASSIGN|static 0 = { x =|Expected throw-error: TypeError @ Dec
 JSC-FUNC-PARAM-SAME-NAME|function x ( |but got throw-error: SyntaxError
 JSC-FUNC-PARAM-SAME-NAME|function * x ( |but got throw-error: SyntaxError
 JSC-TMP-LITERAL-LHS|` [ 0 |but got throw-error: SyntaxError
+JSC-TMP-LITERAL-LHS|` . x |but got throw-error: SyntaxError
 JSC-ARR-LITERAL-LHS|, ] [ 0 |but got throw-error: SyntaxError
 JSC-IMP-LITERAL-LHS|) [ 0 |but got throw-error: SyntaxError
-SM-PROP-ORDER||"length", "name"] for
-SM-REJECTED-PROMISE|async|Expected normal but got throw-error: TypeError
+SM-REJECTED-PROMISE| [ ] |Expected normal but got throw-error: TypeError
+SM-REJECTED-PROMISE| [ ] |Expected throw-value: 0.0f but got throw-error: TypeError
 SM-SET-PROTOTYPE-OF-THIS|setPrototypeOf ( this|Expected normal but got throw-error: TypeError
 OBF-DIRTY-THIS|this|"_0x
+OBF-DIRTY-THIS|function _0x|Expected normal but got throw-error: TypeError
+OBF-DIRTY-THIS|function(_0x|Expected normal but got throw-error: TypeError
 OBF-OPT-CALL-CHAIN-FAIL|TypeError: Cannot read properties of undefined (reading 'length')|but got transpile-failure
-OBF-ASYNC-DIV|Unterminated regular expression|but got transpile-failure
+OBF-ASYNC-DIV-FAIL|Unterminated regular expression|but got transpile-failure
 OBF-EXTENDS-BOOL|extends!|but got throw-error: SyntaxError
 TRS-REMOVE-REF-ERR|"use strict";let x|Expected throw-error: ReferenceError
 TRS-REMOVE-REF-ERR|{let x|Expected throw-error: ReferenceError
@@ -91,7 +143,12 @@ TRS-REMOVE-TYP-ERR|"use strict";class|Expected throw-error: TypeError
 TRS-REMOVE-TYP-ERR|"use strict";this|Expected throw-error: TypeError
 TRS-REMOVE-TYP-ERR|"use strict";new|Expected throw-error: TypeError
 TRS-REMOVE-TYP-ERR|"use strict";for|Expected throw-error: TypeError
+TRS-REMOVE-TYP-ERR|"use strict";import|Expected throw-error: TypeError
+TRS-REMOVE-TYP-ERR|"use strict";throw|Expected throw-error: TypeError
 TRS-REMOVE-TYP-ERR|"use strict";x|Expected throw-error: TypeError
+TRS-REMOVE-TYP-ERR|"use strict";[|Expected throw-error: TypeError
+TRS-REMOVE-TYP-ERR|"use strict";"|Expected throw-error: TypeError
+TRS-REMOVE-TYP-ERR|"use strict";`|Expected throw-error: TypeError
 TRS-LHS|for(0 in|but got throw-error: SyntaxError
 TRS-LHS|for(0 of|but got throw-error: SyntaxError
 TRS-LHS|for(void 0 in|but got throw-error: SyntaxError
@@ -106,8 +163,11 @@ TRS-DEFAULT-SETTER|{x:x=0}={set x|Expected 0 but got undefined.
 TRS-CLASS-CONDITION-FAIL|Error: Cannot negate a statement|but got transpile-failure
 TRS-EMPTY-DESTRUCT-FAIL|TypeError: Cannot read properties of undefined (reading 'value')|but got transpile-failure
 TRS-REMOVE-DESTR-GEN|function*|Expected throw-value
-ECM-STATIC|static|native code
-ECM-STATIC|static|descriptor value of
+TRS-WRONG-AWAIT|await 0|but got throw-error: SyntaxError
+TRS-WRONG-AWAIT|class await{}await(|but got throw-error: TypeError
+ECM-TO-STRING-IN-STATIC| static |descriptor value of "0"
+ECM-TO-STRING-IN-STATIC|{static |descriptor value of "0"
+ECM-TO-STRING-IN-STATIC|_defineProperty|descriptor value of "0"
 ECM-NEG-0|*|Expected 0 but got «-0»
 NAME||descriptor value of "name"
 SHADOW-GETTER||descriptor should be writable
@@ -124,7 +184,7 @@ HELPER||_extends"
 HELPER||Loose"
 HELPER||_objectSpread
 ARR-REST-SPARSE||"length"] for Array.
-OBJ-REST-NULL|_extends|Expected throw-error: TypeError @ RequireObjectCoercible
+DSG-OBJ-REST-NULL|_extends|Expected throw-error: TypeError @ RequireObjectCoercible
 RENAMED-AWAIT| _await |but got throw-error: ReferenceError
 RENAMED-AWAIT| _await,|but got throw-error: ReferenceError
 RENAMED-AWAIT| _await;|but got throw-error: ReferenceError
@@ -133,26 +193,16 @@ RENAMED-AWAIT| _await |but got undefined
 RENAMED-AWAIT| _await,|but got undefined
 RENAMED-AWAIT| _await;|but got undefined
 RENAMED-AWAIT| _await(|but got undefined
-REMOVED-REF-ERR||Expected throw-error: ReferenceError @ DeclarativeEnvironmentRecord.GetBindingValue
-REMOVED-REF-ERR||Expected throw-error: ReferenceError @ GetValue
-REMOVED-REF-ERR||Expected throw-error: ReferenceError @ DeclarativeEnvironmentRecord.SetMutableBinding
-REMOVED-REF-ERR|_this$x|
 NIL-2-CONS|for(x in|but got throw-error: ReferenceError
 NIL-2-CONS|for (x in|but got throw-error: ReferenceError
-STRICT-X-THIS-X|x = this . x|Expected throw-error: ReferenceError @ PutValue
-STRICT-X-THIS-X|x = this.x|Expected throw-error: ReferenceError @ PutValue
-STRICT-X-THIS-X|x=this.x|Expected throw-error: ReferenceError @ PutValue
-STRICT-X-THIS-X|x=this['x']|Expected throw-error: ReferenceError @ PutValue
+ECM-STRICT-X-THIS-X|x = this . x|Expected throw-error: ReferenceError @ PutValue
+ECM-STRICT-X-THIS-X|x = this.x|Expected throw-error: ReferenceError @ PutValue
+ECM-STRICT-X-THIS-X|x=this.x|Expected throw-error: ReferenceError @ PutValue
+ECM-STRICT-X-THIS-X|x=this['x']|Expected throw-error: ReferenceError @ PutValue
+ECM-STRICT-X-THIS-X|x = (_this = this, _this["x"]|Expected throw-error: ReferenceError @ PutValue
 BBL-NOF|Array.from.call(function|
 BBL-ENUMERABLE-GEN-FUNC|regeneratorRuntime|"constructor"
-GRL-FORDECL|for ( const [|
-GRL-FORDECL|for ( const {|
-GRL-FORDECL|for ( let [|
-GRL-FORDECL|for ( let {|
-SWC-SETTER-RENAME?| set |but got throw-error: ReferenceError
-SWC-SETTER-RENAME?| set |but undefined given
-SWC-SETTER-RENAME?| set |but got undefined
-SWC-CASE-NULLISH?|switch(0){|but got throw-error: ReferenceError
+BBL-ENUMERABLE-GEN-FUNC|for (0 .x in /*#__PURE__*/_regeneratorRuntime|Expected normal but got throw-error: TypeError
 CASE-SCOPE|switch|Expected undefined but got
 CASE-SCOPE?|{x:x=0|Expected undefined but got
 F2STRING?|} < |Expected true but got false.
@@ -163,18 +213,40 @@ F2STRING?|} <= |Expected true but got false.
 F2STRING?|} <= |Expected false but got true.
 F2STRING?|} >= |Expected true but got false.
 F2STRING?|} >= |Expected false but got true.
-F2STRING?|() < |Expected true but got false.
-F2STRING?|() < |Expected false but got true.
-F2STRING?|() > |Expected true but got false.
-F2STRING?|() > |Expected false but got true.
-F2STRING?|() <= |Expected true but got false.
-F2STRING?|() <= |Expected false but got true.
-F2STRING?|() >= |Expected true but got false.
-F2STRING?|() >= |Expected false but got true.
+F2STRING?|) < |Expected ["true"] but got ["false"]
+F2STRING?|) < |Expected ["false"] but got ["true"]
+F2STRING?|) > |Expected ["true"] but got ["false"]
+F2STRING?|) > |Expected ["false"] but got ["true"]
+F2STRING?|) <= |Expected ["true"] but got ["false"]
+F2STRING?|) <= |Expected ["false"] but got ["true"]
+F2STRING?|) >= |Expected ["true"] but got ["false"]
+F2STRING?|) >= |Expected ["false"] but got ["true"]
+F2STRING?|}<|Expected true but got false.
+F2STRING?|}<|Expected false but got true.
+F2STRING?|}>|Expected true but got false.
+F2STRING?|}>|Expected false but got true.
+F2STRING?|}<=|Expected true but got false.
+F2STRING?|}<=|Expected false but got true.
+F2STRING?|}>=|Expected true but got false.
+F2STRING?|}>=|Expected false but got true.
+F2STRING?|) < |Expected true but got false.
+F2STRING?|) < |Expected false but got true.
+F2STRING?|) > |Expected true but got false.
+F2STRING?|) > |Expected false but got true.
+F2STRING?|) <= |Expected true but got false.
+F2STRING?|) <= |Expected false but got true.
+F2STRING?|) >= |Expected true but got false.
+F2STRING?|) >= |Expected false but got true.
 ASYNC-GENERATOR?||Expected the async function prototype but got undefined
 SCOPE?|var x1|Expected undefined but got
-LET2VAR|this.x++|Expected NaN but got [object Object].
+LET2VAR?|this.x++|Expected NaN but got [object Object].
+LET2VAR?|this.x +=|Expected undefined but got NaN.
 TEMP_VAR?|var _|Expected "x" but got "_
+TEMP_VAR?|var x1|Expected "x" but got "x1"
 RENAME?|_x|$assert.compareArray requires an array as the first argument but undefined given.
 DUP_REST_SPARSE?|x = 0, x;|Expected undefined but got 0
-GRL-DELETE?|delete|but got normal
+SWC-SUPER-ESCAPE?|super.x|but got throw-error: SyntaxError
+JSC-IN-INSIDE-FOR-DESTR?| in |but got throw-error: SyntaxError
+TRS-FUNC-LEN?|x(x|descriptor value of "length" should be
+YET-REMOVED-REF-ERR||Expected throw-error: ReferenceError 
+YET-REMOVED-REF-ERR|_this$x|

@@ -392,7 +392,7 @@ object Coverage {
       super.returnIfAbrupt(riaExpr, value, check)
 
     // get syntax-sensitive views
-    private def getViews: List[View] = st.context.featureStack match
+    private def getViews: Set[View] = st.context.featureStack match
       case feature :: tail if useSens =>
         val enclosing = synK.fold(Nil)(k =>
           tail
@@ -405,11 +405,12 @@ object Coverage {
             .take(k),
         )
         val path = st.context.callPath
-        List(
-          Some((Some(enclosing), feature, None)),
-          Some((None, feature, Some(path))),
+        val pathOpt = if (path.path.isEmpty) None else Some(path)
+        Set(
+          Some((enclosing, feature, None)),
+          Some((Nil, feature, pathOpt)),
         )
-      case _ => List(None)
+      case _ => Set(None)
 
     // get location information
     private def getNearest: Option[Nearest] = st.context.nearest
@@ -423,12 +424,10 @@ object Coverage {
   )
 
   /* syntax-sensitive views */
-  type View = Option[(Option[List[Feature]], Feature, Option[CallPath])]
+  type View = Option[(List[Feature], Feature, Option[CallPath])]
   private def stringOfView(view: View) = view.fold("") {
-    case (enclosingOpt, feature, pathOpt) =>
-      val enclosing = enclosingOpt
-        .map(enclosing => s"[${enclosing.mkString(", ")}]")
-        .getOrElse("")
+    case (enclosing, feature, pathOpt) =>
+      val enclosingStr = enclosing.mkString("[", ", ", "]")
       val path = pathOpt.map(":" + _).getOrElse("")
       s"@ $feature$enclosing$path"
   }

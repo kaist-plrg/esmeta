@@ -126,9 +126,10 @@ class Fuzzer(
     debugging(f"[$selectorInfo%-30s] $code")
     debugFlush
 
-    val mutants = mutator(code, 500, condView.map((_, cov)))
+    val mutants = mutator(code, 100, condView.map((_, cov)))
       .map((name, ast) => (name, ast.toString(grammar)))
       .distinctBy(_._2)
+      .toArray
       .par
       .map(infoExtractor)
       .toList

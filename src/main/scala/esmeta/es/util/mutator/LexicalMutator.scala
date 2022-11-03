@@ -28,7 +28,8 @@ class LexicalMutator(
     // count the number of potential victims
     val k = lexicalCounter(ast)
     println(k)
-    if (k == 0) (name, walk(ast).head) +: RandomMutator.default(ast, n - 1, _target)
+    if (k == 0)
+      (name, walk(ast).head) +: RandomMutator.default(ast, n - 1, _target)
     else {
       val (kc1, kc2) = calcParam(n, k)
       k1 = kc1._1; c1 = kc1._2
@@ -55,25 +56,31 @@ class LexicalMutator(
   /** ast walker */
   override def walk(lex: Lexical): List[Lexical] = lex.name match {
     case STRING_LITERAL =>
-      lex :: shuffle(specStrings).take(getGenNum - 1).map(s => Lexical(lex.name, s"\'$s\'")).toList
-    case IDENTIFIER_NAME | IDENTIFIER_NAME_RESERVED_WORD if insideTarget=>
-      lex :: shuffle(specStrings).take(getGenNum - 1).map(s => Lexical(lex.name, s)).toList
+      lex :: shuffle(specStrings)
+        .take(getGenNum - 1)
+        .map(s => Lexical(lex.name, s"\'$s\'"))
+        .toList
+    case IDENTIFIER_NAME | IDENTIFIER_NAME_RESERVED_WORD if insideTarget =>
+      lex :: shuffle(specStrings)
+        .take(getGenNum - 1)
+        .map(s => Lexical(lex.name, s))
+        .toList
     case NUMERIC_LITERAL =>
       val num = if randBool then 0 else 1
       val big = if randBool then "n" else ""
       List(Lexical(lex.name, s"$num$big"))
     case BOOLEAN_LITERAL => List(Lexical(lex.name, s"$randBool"))
-    case _ => List(lex)
+    case _               => List(lex)
   }
 
   override def preChild(syn: Syntactic, i: Int) =
     val Syntactic(name, _, rhsIdx, _) = syn
-    if(targetSyntactics.contains((name, rhsIdx, i)))
+    if (targetSyntactics.contains((name, rhsIdx, i)))
       insideTarget = true
 
   override def postChild(syn: Syntactic, i: Int) =
     val Syntactic(name, _, rhsIdx, _) = syn
-    if(targetSyntactics.contains((name, rhsIdx, i)))
+    if (targetSyntactics.contains((name, rhsIdx, i)))
       insideTarget = false
 }
 
@@ -82,13 +89,13 @@ object LexicalMutator {
   val STRING_LITERAL = "StringLiteral"
   val BOOLEAN_LITERAL = "BooleanLiteral"
   val LITERAL_PROPERTY_NAME = "LiteralPropertyName"
-  val IDENTIFIER_NAME  = "IdentifierName"
+  val IDENTIFIER_NAME = "IdentifierName"
   val IDENTIFIER_NAME_RESERVED_WORD = "IdentifierName \\ ReservedWord"
   val NUMERIC_LITERAL = "NumericLiteral"
   val MEMBER_EXPRESSION = "MemberExpression"
   val CALL_EXPRESSION = "CallExpression"
   val OPTIONAL_CHAIN = "OptionalChain"
-  
+
   // taarget lexicals
   val targetLexicals = List(
     STRING_LITERAL,
@@ -104,9 +111,8 @@ object LexicalMutator {
 
   def isTargetLex(ast: Ast): Boolean = ast match {
     case Lexical(name, _) => targetLexicals.contains(name)
-    case Syntactic(name, _, rhsIdx, _) => targetSyntactics.exists(info =>
-      info._1 == name && info._2 == rhsIdx
-    )
+    case Syntactic(name, _, rhsIdx, _) =>
+      targetSyntactics.exists(info => info._1 == name && info._2 == rhsIdx)
   }
 
   // count the number of lexicals
@@ -124,7 +130,7 @@ object LexicalMutator {
       }
       override def walk(ref: Ref): Unit = ref match {
         case Prop(ref, expr) => walk(ref)
-        case _ => super.walk(ref)
+        case _               => super.walk(ref)
       }
     }
     object StrLocFinder extends util.UnitWalker {
@@ -137,7 +143,7 @@ object LexicalMutator {
 
       override def walk(inst: Inst) = inst match {
         case ICall(_, _, as) => walkList(as, StrFinder.walk)
-        case _ => super.walk(inst)
+        case _               => super.walk(inst)
       }
     }
     _specStrings = Set()

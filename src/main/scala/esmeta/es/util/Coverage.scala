@@ -279,8 +279,9 @@ class Coverage(
     // update target branches
     val neg = condView.neg
     cond.elem match
-      case _ if nearest.isEmpty         => /* do nothing */
-      case Branch(_, _, EBool(_), _, _) => /* do nothing */
+      case _ if nearest.isEmpty                    => /* do nothing */
+      case Branch(_, _, EBool(_), _, _)            => /* do nothing */
+      case b: Branch if b.isChildPresentCheck(cfg) => /* do nothing */
       case ref: WeakUIdRef[EReturnIfAbrupt]
           if !ref.get.check => /* do nothing */
       case _ if getScript(neg).isDefined => _targetCondViews -= neg

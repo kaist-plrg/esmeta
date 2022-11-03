@@ -81,6 +81,21 @@ case class Branch(
   def isLoop: Boolean = kind match
     case BranchKind.If => false
     case _             => true
+
+  def isChildPresentCheck(cfg: CFG): Boolean =
+    import UOp.*
+    import BOp.*
+    cfg.funcOf(this).isSDO && (cond match {
+      //  (! (= this[_] absent))
+      case EUnary(
+            Not,
+            EBinary(Eq, ERef(Prop(Name("this"), EMathVal(_))), EAbsent()),
+          ) =>
+        true
+      //  (= this[_] absent)
+      case EBinary(Eq, ERef(Prop(Name("this"), EMathVal(_))), EAbsent()) => true
+      case _ => false
+    })
 }
 enum BranchKind extends CFGElem:
   case If

@@ -72,6 +72,7 @@ SWC-WRITABLE-CLASS-PROTOTYPE||descriptor should not be writable
 SWC-DESTRUCT-EMPTY-ARRAY|var ;|SyntaxError
 SWC-NESTED-ARRAY-SPARSE-FAIL|destructuring pattern binding requires initializer|but got transpile-failure
 SWC-DESTRUCTURING-UNDEFINED|!== null|Expected throw-error: TypeError @ RequireObjectCoercible<SYNTAX>:BindingPattern[0,0].BindingInitialization but got normal
+SWC-EMPTY-DESTR-FOLLOWED-BY-REST|_objectWithoutProperties|Expected throw-error: TypeError @ RequireObjectCoercible<SYNTAX>:BindingPattern[0,0].BindingInitialization but got normal
 SWC-DESTRUCTURING-ASSIGN-EXPR|ref =|Expected throw-error: TypeError @ RequireObjectCoercible<SYNTAX>:ObjectAssignmentPattern[0,0].DestructuringAssignmentEvaluation
 SWC-STATIC-REASSIGN-CLASS|_classCallCheck|Expected throw-error: TypeError @ DeclarativeEnvironmentRecord.SetMutableBinding
 SWC-STATIC-SUPER|_superprop_set|but got throw-error: SyntaxError
@@ -89,6 +90,7 @@ SWC-CASE-NULLISH|case (_|but got throw-error: ReferenceError
 SWC-CASE-NULLISH|switch(0|but got throw-error: ReferenceError
 SWC-CASE-NULLISH|switch([|but got throw-error: ReferenceError
 SWC-SETTER-RENAME| set |but got throw-error: ReferenceError
+SWC-SETTER-RENAME| set |An exception occured while checking assertions
 SWC-SETTER-RENAME| set |but undefined given
 SWC-SETTER-RENAME| set |but got undefined
 SWC-GEN-2-STRING|return __generator(|[object Generator]
@@ -149,6 +151,7 @@ TRS-REMOVE-TYP-ERR|"use strict";x|Expected throw-error: TypeError
 TRS-REMOVE-TYP-ERR|"use strict";[|Expected throw-error: TypeError
 TRS-REMOVE-TYP-ERR|"use strict";"|Expected throw-error: TypeError
 TRS-REMOVE-TYP-ERR|"use strict";`|Expected throw-error: TypeError
+TRS-REMOVE-THROW|"use strict";$|Expected throw-value
 TRS-LHS|for(0 in|but got throw-error: SyntaxError
 TRS-LHS|for(0 of|but got throw-error: SyntaxError
 TRS-LHS|for(void 0 in|but got throw-error: SyntaxError
@@ -189,6 +192,10 @@ RENAMED-AWAIT| _await |but got throw-error: ReferenceError
 RENAMED-AWAIT| _await,|but got throw-error: ReferenceError
 RENAMED-AWAIT| _await;|but got throw-error: ReferenceError
 RENAMED-AWAIT| _await(|but got throw-error: ReferenceError
+RENAMED-AWAIT| _await |An exception occured while checking assertions
+RENAMED-AWAIT| _await,|An exception occured while checking assertions
+RENAMED-AWAIT| _await;|An exception occured while checking assertions
+RENAMED-AWAIT| _await(|An exception occured while checking assertions
 RENAMED-AWAIT| _await |but got undefined
 RENAMED-AWAIT| _await,|but got undefined
 RENAMED-AWAIT| _await;|but got undefined
@@ -244,6 +251,7 @@ LET2VAR?|this.x +=|Expected undefined but got NaN.
 TEMP_VAR?|var _|Expected "x" but got "_
 TEMP_VAR?|var x1|Expected "x" but got "x1"
 RENAME?|_x|$assert.compareArray requires an array as the first argument but undefined given.
+RENAME?||An exception occured while checking assertions
 DUP_REST_SPARSE?|x = 0, x;|Expected undefined but got 0
 SWC-SUPER-ESCAPE?|super.x|but got throw-error: SyntaxError
 JSC-IN-INSIDE-FOR-DESTR?| in |but got throw-error: SyntaxError

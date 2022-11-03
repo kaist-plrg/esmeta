@@ -253,14 +253,15 @@ let $delay = (f) => {
     })
     .catch(() => {})
     .then(() => {
+      let p;
       if(setTimeout)
-        setTimeout(f, 0);
+        p = new Promise(resolve => setTimeout(resolve, 0))
       else {
-        var p = Promise.resolve();
+        p = Promise.resolve();
         // delay 10 times
         for(var i = 0; i < 10; i++)
           p = p.then(() => {});
-        p.then(f);
       }
+      p.then(f).catch(()=>$error("An exception occured while checking assertions"));
     });
 }

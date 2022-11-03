@@ -65,13 +65,14 @@ class Remover(
 }
 
 object Remover {
-  def findSameChild(ast: Syntactic): Int =
-    val Syntactic(name, args, rhsIdx, children) = ast
-
-    children.indexWhere(_ match {
-      case Some(Syntactic(`name`, `args`, _, _)) => true
-      case _                                     => false
-    })
+  def findSameChild(ast: Ast): Int = ast match {
+    case Syntactic(name, args, rhsIdx, children) =>
+      children.indexWhere(_ match {
+        case Some(Syntactic(`name`, `args`, _, _)) => true
+        case _                                     => false
+      })
+    case _ => -1
+  }
 
   // count the number of asts that have same child
   val victimCounter = Util.AstCounter(ast => findSameChild(ast) >= 0)

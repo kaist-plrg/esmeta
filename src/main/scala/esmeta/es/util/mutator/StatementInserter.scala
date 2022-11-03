@@ -38,17 +38,9 @@ class StatementInserter(
       sample(ast, n)
     else {
       // calculate the most efficient parameters
-      var c = 2
-      while (math.pow(c, k) < n)
-        c = c + 1
-      k1 = 0
-      c1 = c - 1
-      k2 = k
-      c2 = c
-      while (math.pow((c - 1), k1 + 1) * math.pow(c, k2 - 1) >= n)
-        k1 = k1 + 1
-        k2 = k2 - 1
-
+      val (kc1, kc2) = calcParam(n, k)
+      k1 = kc1._1; c1 = kc1._2
+      k2 = kc2._1; c2 = kc2._2
       sample(ast, n)
     }
   }
@@ -173,15 +165,16 @@ object StatementInserter {
     ("ClassStaticBlockStatementList", 0, 0, (-1, 1, -1)),
   )
 
-  def containsEmptyStatementList(ast: Syntactic) =
-    val Syntactic(name, args, rhsIdx, children) = ast
-
-    STATEMENT_LIST_OPTIONAL_CONTAINERS.exists {
-      case (cName, cRhsIdx, cChildIdx, _) =>
-        cName == name &&
-        cRhsIdx == rhsIdx &&
-        children(cChildIdx) == None
-    }
+  def containsEmptyStatementList(ast: Ast) = ast match {
+    case Syntactic(name, args, rhsIdx, children) =>
+      STATEMENT_LIST_OPTIONAL_CONTAINERS.exists {
+        case (cName, cRhsIdx, cChildIdx, _) =>
+          cName == name &&
+          cRhsIdx == rhsIdx &&
+          children(cChildIdx) == None
+      }
+    case _ => false
+  }
 
   val manualStmts = List(
     "x ( ) ; ",

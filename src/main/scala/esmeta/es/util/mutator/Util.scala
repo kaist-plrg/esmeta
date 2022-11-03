@@ -7,7 +7,7 @@ import esmeta.spec.Grammar
 import esmeta.util.*
 
 object Util {
-  class AstCounter(pred: Syntactic => Boolean) extends UnitWalker {
+  class AstCounter(pred: Ast => Boolean) extends UnitWalker {
     def apply(ast: Ast): Int = {
       _cnt = 0
       walk(ast)
@@ -15,7 +15,7 @@ object Util {
     }
     private var _cnt = 0
 
-    override def walk(ast: Syntactic): Unit = {
+    override def walk(ast: Ast): Unit = {
       if pred(ast) then _cnt += 1
       super.walk(ast)
     }
@@ -37,10 +37,18 @@ object Util {
   private type Childrens = List[Vector[Option[Ast]]]
 
   trait MultiplicativeListWalker extends ListWalker {
+    def preChild(ast: Syntactic, i: Int): Unit = ()
+    def postChild(ast: Syntactic, i: Int): Unit = ()
+
     def walk(ast: Syntactic): List[Syntactic] =
       val Syntactic(name, args, rhsIdx, children) = ast
-      val newChildrens = children
-        .map(walkOpt)
+      val newChildrens = children.zipWithIndex
+        .map((childOpt, i) => {
+          preChild(ast, i)
+          val result = walkOpt(childOpt)
+          postChild(ast, i)
+          result
+        })
         .foldLeft[Childrens](List(Vector()))((childrens, childs) => {
           for {
             childrens <- childrens
@@ -50,6 +58,26 @@ object Util {
       newChildrens.map(newChildren =>
         Syntactic(name, args, rhsIdx, newChildren),
       )
+
+    // Cacluate the most efficient parameter for the multiplicative calculator.
+    // n: number of mutants to make
+    // k: number of candidate to make change
+    // ->
+    // (k1, c1): Make c1 mutants for k1 locations.
+    // (k2, c2): Make c2 mutants for k2 locations.
+    // Spec: c1 ^ k1 * c2 ^ k2 >= n, k1 + k2 == k
+    def calcParam(n: Int, k: Int): ((Int, Int), (Int, Int)) =
+      var c = 2
+      while (math.pow(c, k) < n)
+        c = c + 1
+      var k1 = 0
+      var c1 = c - 1
+      var k2 = k
+      var c2 = c
+      while (math.pow((c - 1), k1 + 1) * math.pow(c, k2 - 1) >= n)
+        k1 = k1 + 1
+        k2 = k2 - 1
+      ((k1, c1), (k2, c2))
   }
 
   trait AdditiveListWalker extends ListWalker {

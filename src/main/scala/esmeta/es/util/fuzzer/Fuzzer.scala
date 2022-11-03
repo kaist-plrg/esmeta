@@ -248,6 +248,7 @@ class Fuzzer(
     StatementInserter() -> 1,
     NearestMutator() -> 6,
     Remover() -> 1,
+    LexicalMutator() -> 1,
   )
 
   /** mutator stat */

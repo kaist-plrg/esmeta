@@ -43,7 +43,7 @@ class RandomMutator(
 
 object RandomMutator {
   // true if the given ast is target ast
-  def isTarget = (ast: Syntactic) =>
+  def isTarget = (ast: Ast) =>
     List(
       "AssignmentExpression",
       "PrimaryExpression",

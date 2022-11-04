@@ -248,7 +248,7 @@ class Fuzzer(
     RandomMutator() -> 3,
     StatementInserter() -> 1,
     Remover() -> 1,
-    LexicalMutator() -> 1,
+    SpecStringMutator() -> 1,
   )
 
   /** mutator stat */

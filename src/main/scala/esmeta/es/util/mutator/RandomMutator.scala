@@ -37,6 +37,13 @@ class RandomMutator(
       val mutants = super.walk(ast)
       if isTarget(ast) then List.tabulate(c)(_ => synthesizer(ast)) ++ mutants
       else mutants
+    override def walk(lex: Lexical): List[Lexical] = lex.name match {
+      case "NumericLiteral" =>
+        List("0", "1", "0n", "1n").map(n => Lexical(lex.name, n))
+      case "BooleanLiteral" =>
+        List("true", "false").map(b => Lexical(lex.name, b))
+      case _ => List(lex)
+    }
   }
 
 }

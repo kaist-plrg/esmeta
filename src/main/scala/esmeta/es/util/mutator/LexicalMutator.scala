@@ -27,7 +27,6 @@ class LexicalMutator(
   ): Seq[(String, Ast)] = {
     // count the number of potential victims
     val k = lexicalCounter(ast)
-    println(k)
     if (k == 0)
       (name, walk(ast).head) +: RandomMutator.default(ast, n - 1, _target)
     else {

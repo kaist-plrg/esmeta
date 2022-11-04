@@ -392,7 +392,7 @@ object Coverage {
       val stack = st.context.featureStack
         .filter(_.isInstanceOf[SyntacticFeature])
         .take(kFs)
-      val path = st.context.callPath
+      val path = if (cp) then Some(st.context.callPath) else None
       stack match {
         case Nil                  => None
         case feature :: enclosing => Some(enclosing, feature, path)
@@ -410,10 +410,10 @@ object Coverage {
   )
 
   /* syntax-sensitive views */
-  type View = Option[(List[Feature], Feature, CallPath)]
+  type View = Option[(List[Feature], Feature, Option[CallPath])]
   private def stringOfView(view: View) = view.fold("") {
     case (enclosing, feature, path) =>
-      s"@ $feature${enclosing.mkString("[", ", ", "]")}:$path"
+      s"@ $feature${enclosing.mkString("[", ", ", "]")}:${path.getOrElse("")}"
   }
   case class NodeView(node: Node, view: View = None) {
     override def toString: String =

@@ -25,18 +25,18 @@ object Fuzzer {
     stdOut: Boolean = false,
     timeLimit: Option[Int] = None, // time limitation for each evaluation
     trial: Option[Int] = None, // `None` denotes no bound
-    synK: Option[Int] = None,
-    useSens: Boolean = false,
-    useOnlyEval: Boolean = false,
+    duration: Option[Int] = None, // `None` denotes no bound
+    kFs: Int = 0,
+    cp: Boolean = false,
   ): Coverage = new Fuzzer(
     logInterval,
     debug,
     stdOut,
     timeLimit,
     trial,
-    synK,
-    useSens,
-    useOnlyEval,
+    duration,
+    kFs,
+    cp,
   ).result
 
   // debugging levels
@@ -52,9 +52,9 @@ class Fuzzer(
   stdOut: Boolean = false,
   timeLimit: Option[Int] = None, // time limitation for each evaluation
   trial: Option[Int] = None, // `None` denotes no bound
-  synK: Option[Int] = None,
-  useSens: Boolean = false,
-  useOnlyEval: Boolean = false,
+  duration: Option[Int] = None, // `None` denotes no bound
+  kFs: Int = 0,
+  cp: Boolean = false,
 ) {
   import Fuzzer.*
 
@@ -91,8 +91,8 @@ class Fuzzer(
           logging
         })
         trial match
-          case Some(count) => for (_ <- Range(0, count)) fuzz
-          case None        => while (true) fuzz
+          case Some(count) => for (_ <- Range(0, count)) if (!timeout) fuzz
+          case None        => while (!timeout) fuzz
       },
     )
 
@@ -231,7 +231,7 @@ class Fuzzer(
   val scriptParser = cfg.scriptParser
 
   /** coverage */
-  val cov: Coverage = Coverage(timeLimit, synK, useSens, useOnlyEval)
+  val cov: Coverage = Coverage(timeLimit, kFs, cp)
 
   /** target selector */
   val selector: TargetSelector = WeightedSelector(
@@ -244,9 +244,9 @@ class Fuzzer(
 
   /** mutator */
   val mutator: Mutator = WeightedMutator(
+    NearestMutator() -> 6,
     RandomMutator() -> 3,
     StatementInserter() -> 1,
-    NearestMutator() -> 6,
     Remover() -> 1,
     LexicalMutator() -> 1,
   )
@@ -274,7 +274,8 @@ class Fuzzer(
 
   // evaluation start time
   private var startTime: Long = 0L
-  private def duration: Long = System.currentTimeMillis - startTime
+  private def elapsed: Long = System.currentTimeMillis - startTime
+  private def timeout = duration.fold(false)(_ * 1000 < elapsed)
   private var startInterval: Long = 0L
   private def interval: Long = System.currentTimeMillis - startInterval
 
@@ -312,7 +313,7 @@ class Fuzzer(
       "node(#)",
       "branch(#)",
     )
-    if (useSens) header ++= Vector(s"sens-node(#)", s"sens-branch(#)")
+    if (kFs > 0) header ++= Vector(s"sens-node(#)", s"sens-branch(#)")
     header ++= Vector("target-conds(#)")
     addRow(header)
   private def genStatHeader(keys: List[String], nf: PrintWriter) =
@@ -344,13 +345,13 @@ class Fuzzer(
   private def logging: Unit =
     val n = cov.nodeCov
     val b = cov.branchCov
-    val d = duration
-    val t = Time(d).simpleString
+    val e = elapsed
+    val t = Time(e).simpleString
     val nv = cov.nodeViewCov
     val bv = cov.branchViewCov
     val tc = cov.targetCondViews.size
-    var row = Vector(iter, d, t, visited.size, pool.size, n, b)
-    if (useSens) row ++= Vector(nv, bv)
+    var row = Vector(iter, e, t, visited.size, pool.size, n, b)
+    if (kFs > 0) row ++= Vector(nv, bv)
     row ++= Vector(tc)
     addRow(row)
     // dump coveragge

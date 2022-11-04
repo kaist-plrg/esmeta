@@ -117,7 +117,7 @@ case class Test262(
     )
 
     // coverage with time limit
-    lazy val cov = Coverage(timeLimit, synK, useSens)
+    lazy val cov = Coverage(timeLimit, ???, ???)
 
     // run tests with logging
     logForTests(

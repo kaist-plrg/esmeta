@@ -25,9 +25,9 @@ case object Fuzz extends Phase[CFG, Coverage] {
       debug = config.debug,
       timeLimit = config.timeLimit,
       trial = config.trial,
-      synK = config.synK,
-      useSens = config.useSens,
-      useOnlyEval = config.useOnlyEval,
+      duration = config.duration,
+      kFs = config.kFs.getOrElse(0),
+      cp = config.cp,
     )
 
     // optionally dump the generated ECMAScript programs
@@ -64,7 +64,12 @@ case object Fuzz extends Phase[CFG, Coverage] {
     (
       "trial",
       NumOption((c, k) => c.trial = Some(k)),
-      "set the number of trials (default: 10000).",
+      "set the number of trials (default: INF).",
+    ),
+    (
+      "duration",
+      NumOption((c, k) => c.duration = Some(k)),
+      "set the maximum duration for fuzzing (default: INF)",
     ),
     (
       "seed",
@@ -72,19 +77,14 @@ case object Fuzz extends Phase[CFG, Coverage] {
       "set the specific seed for the random number generator. (default: None)",
     ),
     (
-      "syn-k",
-      NumOption((c, k) => c.synK = Some(k)),
-      "set the k-value for syntax sensitivity. (default: None)",
+      "k-fs",
+      NumOption((c, k) => c.kFs = Some(k)),
+      "set the k-value for feature sensitivity. (default: None)",
     ),
     (
-      "sens",
-      BoolOption(c => c.useSens = true),
-      "turn on the internal-sensitivity mode",
-    ),
-    (
-      "only-eval",
-      BoolOption(c => c.useOnlyEval = true),
-      "turn on the mode that only uses Evaluation as enclosing features",
+      "cp",
+      BoolOption(c => c.cp = true),
+      "turn on the call-path mode (meaningful if k-fs > 0)",
     ),
   )
   case class Config(
@@ -92,10 +92,10 @@ case object Fuzz extends Phase[CFG, Coverage] {
     var logInterval: Option[Int] = Some(600),
     var debug: Int = 0,
     var timeLimit: Option[Int] = Some(1),
-    var trial: Option[Int] = Some(10000),
+    var trial: Option[Int] = None,
+    var duration: Option[Int] = None,
     var seed: Option[Int] = None,
-    var synK: Option[Int] = None,
-    var useSens: Boolean = false,
-    var useOnlyEval: Boolean = false,
+    var kFs: Option[Int] = None,
+    var cp: Boolean = false,
   )
 }

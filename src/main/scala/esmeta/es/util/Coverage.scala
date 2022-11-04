@@ -17,9 +17,8 @@ import math.Ordering.Implicits.seqOrdering
 /** coverage measurement in CFG */
 class Coverage(
   timeLimit: Option[Int] = None,
-  synK: Option[Int] = None,
-  useSens: Boolean = false,
-  useOnlyEval: Boolean = false,
+  kFs: Int = 0,
+  cp: Boolean = false,
 ) {
   import Coverage.{*, given}
   val jsonProtocol = JsonProtocol(cfg)
@@ -68,7 +67,7 @@ class Coverage(
   def run(code: String): Interp = {
     // run interpreter and record touched
     val initSt = cfg.init.from(code)
-    val interp = Interp(initSt, timeLimit, synK, useSens, useOnlyEval)
+    val interp = Interp(initSt, timeLimit, kFs, cp)
     interp.result
     interp
   }
@@ -148,7 +147,7 @@ class Coverage(
     lazy val getNodeViewsId = orderedNodeViews.zipWithIndex.toMap
     lazy val getCondViewsId = orderedCondViews.zipWithIndex.toMap
     dumpJson(
-      CoverageConstructor(timeLimit, synK, useSens, useOnlyEval),
+      CoverageConstructor(timeLimit, kFs, cp),
       s"$baseDir/constructor.json",
     )
 
@@ -236,7 +235,7 @@ class Coverage(
       app :> "- node: " >> nodeCov
       app :> "- branch: " >> branchCov
     }
-    if (useSens) (app :> "- sensitive coverage:").wrap("", "") {
+    if (kFs > 0) (app :> "- sensitive coverage:").wrap("", "") {
       app :> "- node: " >> nodeViewCov
       app :> "- branch: " >> branchViewCov
     }
@@ -353,9 +352,8 @@ object Coverage {
   class Interp(
     initSt: State,
     timeLimit: Option[Int],
-    synK: Option[Int],
-    useSens: Boolean,
-    useOnlyEval: Boolean,
+    kFs: Int,
+    cp: Boolean,
   ) extends Interpreter(
       initSt,
       timeLimit = timeLimit,
@@ -368,16 +366,14 @@ object Coverage {
     // override eval for node
     override def eval(node: Node): Unit =
       // record touched nodes
-      for (view <- getViews)
-        touchedNodeViews += NodeView(node, view) -> getNearest
+      touchedNodeViews += NodeView(node, getView) -> getNearest
       super.eval(node)
 
     // override branch move
     override def moveBranch(branch: Branch, b: Boolean): Unit =
       // record touched conditional branch
       val cond = Cond(branch, b)
-      for (view <- getViews)
-        touchedCondViews += CondView(cond, view) -> getNearest
+      touchedCondViews += CondView(cond, getView) -> getNearest
       super.moveBranch(branch, b)
 
     // override helper for return-if-abrupt cases
@@ -388,30 +384,19 @@ object Coverage {
     ): Value =
       val abrupt = value.isAbruptCompletion
       val cond = Cond(riaExpr.idRef, abrupt)
-      for (view <- getViews)
-        touchedCondViews += CondView(cond, view) -> getNearest
+      touchedCondViews += CondView(cond, getView) -> getNearest
       super.returnIfAbrupt(riaExpr, value, check)
 
     // get syntax-sensitive views
-    private def getViews: Set[View] = st.context.featureStack match
-      case feature :: tail if useSens =>
-        val enclosing = synK.fold(Nil)(k =>
-          tail
-            .collect {
-              case synF: SyntacticFeature
-                  if !useOnlyEval ||
-                  synF.head.methodName.endsWith("Evaluation") =>
-                synF
-            }
-            .take(k),
-        )
-        val path = st.context.callPath
-        val pathOpt = if (path.path.isEmpty) None else Some(path)
-        Set(
-          Some((enclosing, feature, None)),
-          Some((Nil, feature, pathOpt)),
-        )
-      case _ => Set(None)
+    private def getView: View =
+      val stack = st.context.featureStack
+        .filter(_.isInstanceOf[SyntacticFeature])
+        .take(kFs)
+      val path = st.context.callPath
+      stack match {
+        case Nil                  => None
+        case feature :: enclosing => Some(enclosing, feature, path)
+      }
 
     // get location information
     private def getNearest: Option[Nearest] = st.context.nearest
@@ -425,12 +410,10 @@ object Coverage {
   )
 
   /* syntax-sensitive views */
-  type View = Option[(List[Feature], Feature, Option[CallPath])]
+  type View = Option[(List[Feature], Feature, CallPath)]
   private def stringOfView(view: View) = view.fold("") {
-    case (enclosing, feature, pathOpt) =>
-      val enclosingStr = enclosing.mkString("[", ", ", "]")
-      val path = pathOpt.map(":" + _).getOrElse("")
-      s"@ $feature$enclosing$path"
+    case (enclosing, feature, path) =>
+      s"@ $feature${enclosing.mkString("[", ", ", "]")}:$path"
   }
   case class NodeView(node: Node, view: View = None) {
     override def toString: String =
@@ -499,9 +482,8 @@ object Coverage {
 
   case class CoverageConstructor(
     timeLimit: Option[Int],
-    synK: Option[Int],
-    useSens: Boolean,
-    useOnlyEval: Boolean,
+    kFs: Int,
+    cp: Boolean,
   )
   def fromLog(baseDir: String): Coverage =
     val jsonProtocol = JsonProtocol(cfg)
@@ -511,7 +493,7 @@ object Coverage {
       readJson[T](s"$baseDir/$json")
 
     val con: CoverageConstructor = rj(s"constructor.json")
-    val cov = new Coverage(con.timeLimit, con.synK, con.useSens)
+    val cov = new Coverage(con.timeLimit, con.kFs, con.cp)
 
     val nodeViewInfos: Vector[NodeViewInfo] = rj("node-coverage.json")
     val condViewInfos: Vector[CondViewInfo] = rj("branch-coverage.json")

@@ -174,7 +174,8 @@ case object ConformTest
       case e =>
         val msg = e.getMessage
         val tag = errorPattern.findFirstIn(msg) match {
-          case Some(name)                             => ThrowErrorTag(name)
+          case Some(name) =>
+            ThrowErrorTag(name, msg.split(LINE_SEP).toList.headOption)
           case _ if msg.contains("TRANSPILE_FAILURE") => TranspileFailTag
           case _ => ThrowValueTag(esmeta.state.Str(msg))
         }

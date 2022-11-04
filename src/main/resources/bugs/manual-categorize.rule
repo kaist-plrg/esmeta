@@ -97,6 +97,8 @@ SWC-GEN-2-STRING|return __generator(|[object Generator]
 SWC-GEN-2-STRING|return __generator(|[object Generator]
 SWC-COMPUTED-THIS|this[0]|Expected normal but got throw-error: TypeError
 SWC-COMPUTED-THIS|this.x|Expected normal but got throw-error: TypeError
+SWC-ASYNC-POSTFIX-DECR|}().x--;|SyntaxError: Function statements require a function name
+SWC-ASYNC-POSTFIX-INCR|}().x++;|SyntaxError: Function statements require a function name
 GRL-NORMALIZE|normalize|RangeError
 GRL-SETPROTOTYPEOF|setPrototypeOf|TypeError @ INTRINSICS.Object.setPrototypeOf
 GRL-EXTENDS-ITSELF|class x extends new |Expected throw-error: ReferenceError
@@ -133,33 +135,30 @@ OBF-DIRTY-THIS|function(_0x|Expected normal but got throw-error: TypeError
 OBF-OPT-CALL-CHAIN-FAIL|TypeError: Cannot read properties of undefined (reading 'length')|but got transpile-failure
 OBF-ASYNC-DIV-FAIL|Unterminated regular expression|but got transpile-failure
 OBF-EXTENDS-BOOL|extends!|but got throw-error: SyntaxError
-TRS-REMOVE-REF-ERR|"use strict";let x|Expected throw-error: ReferenceError
-TRS-REMOVE-REF-ERR|{let x|Expected throw-error: ReferenceError
-TRS-REMOVE-REF-ERR|"use strict";$|Expected throw-error: ReferenceError
-TRS-REMOVE-TYP-ERR|"use strict";$|Expected throw-error: TypeError
-TRS-REMOVE-TYP-ERR|"use strict";let|Expected throw-error: TypeError
-TRS-REMOVE-TYP-ERR|"use strict";var|Expected throw-error: TypeError
-TRS-REMOVE-TYP-ERR|"use strict";!|Expected throw-error: TypeError
-TRS-REMOVE-TYP-ERR|"use strict";(|Expected throw-error: TypeError
-TRS-REMOVE-TYP-ERR|"use strict";class|Expected throw-error: TypeError
-TRS-REMOVE-TYP-ERR|"use strict";this|Expected throw-error: TypeError
-TRS-REMOVE-TYP-ERR|"use strict";new|Expected throw-error: TypeError
-TRS-REMOVE-TYP-ERR|"use strict";for|Expected throw-error: TypeError
-TRS-REMOVE-TYP-ERR|"use strict";import|Expected throw-error: TypeError
-TRS-REMOVE-TYP-ERR|"use strict";throw|Expected throw-error: TypeError
-TRS-REMOVE-TYP-ERR|"use strict";x|Expected throw-error: TypeError
-TRS-REMOVE-TYP-ERR|"use strict";[|Expected throw-error: TypeError
-TRS-REMOVE-TYP-ERR|"use strict";"|Expected throw-error: TypeError
-TRS-REMOVE-TYP-ERR|"use strict";`|Expected throw-error: TypeError
-TRS-REMOVE-THROW|"use strict";$|Expected throw-value
-TRS-LHS|for(0 in|but got throw-error: SyntaxError
-TRS-LHS|for(0 of|but got throw-error: SyntaxError
-TRS-LHS|for(void 0 in|but got throw-error: SyntaxError
-TRS-LHS|for(void 0 of|but got throw-error: SyntaxError
-TRS-LHS|for await(0 in|but got throw-error: SyntaxError
-TRS-LHS|for await(0 of|but got throw-error: SyntaxError
-TRS-LHS|for await(void 0 in|but got throw-error: SyntaxError
-TRS-LHS|for await(void 0 of|but got throw-error: SyntaxError
+YET-TRS-REMOVE-REF-ERR|"use strict";$|Expected throw-error: ReferenceError
+YET-TRS-REMOVE-REF-ERR|"use strict";let|Expected throw-error: ReferenceError
+YET-TRS-REMOVE-REF-ERR|"use strict";var|Expected throw-error: ReferenceError
+YET-TRS-REMOVE-REF-ERR|"use strict";(|Expected throw-error: ReferenceError
+YET-TRS-REMOVE-REF-ERR|"use strict";class|Expected throw-error: ReferenceError
+YET-TRS-REMOVE-REF-ERR|{let x|Expected throw-error: ReferenceError
+YET-TRS-REMOVE-TYP-ERR|"use strict";$|Expected throw-error: TypeError
+YET-TRS-REMOVE-TYP-ERR|"use strict";let|Expected throw-error: TypeError
+YET-TRS-REMOVE-TYP-ERR|"use strict";var|Expected throw-error: TypeError
+YET-TRS-REMOVE-TYP-ERR|"use strict";!|Expected throw-error: TypeError
+YET-TRS-REMOVE-TYP-ERR|"use strict";(|Expected throw-error: TypeError
+YET-TRS-REMOVE-TYP-ERR|"use strict";class|Expected throw-error: TypeError
+YET-TRS-REMOVE-TYP-ERR|"use strict";this|Expected throw-error: TypeError
+YET-TRS-REMOVE-TYP-ERR|"use strict";new|Expected throw-error: TypeError
+YET-TRS-REMOVE-TYP-ERR|"use strict";for|Expected throw-error: TypeError
+YET-TRS-REMOVE-TYP-ERR|"use strict";import|Expected throw-error: TypeError
+YET-TRS-REMOVE-TYP-ERR|"use strict";throw|Expected throw-error: TypeError
+YET-TRS-REMOVE-TYP-ERR|"use strict";x|Expected throw-error: TypeError
+YET-TRS-REMOVE-TYP-ERR|"use strict";[|Expected throw-error: TypeError
+YET-TRS-REMOVE-TYP-ERR|"use strict";"|Expected throw-error: TypeError
+YET-TRS-REMOVE-TYP-ERR|"use strict";`|Expected throw-error: TypeError
+YET-TRS-REMOVE-THROW|"use strict";$|Expected throw-value
+TRS-LHS|for|SyntaxError: Invalid left-hand side in for-loop
+TRS-LHS|for|SyntaxError: Unexpected token 'void'
 TRS-NEW-TARGET|new.target|Expected throw-error: TypeError @ ClassTail[0,2].ClassDefinitionEvaluation
 TRS-REMOVE-CONST-REASSIGN|"use strict";const|Expected throw-error: TypeError @ DeclarativeEnvironmentRecord.SetMutableBinding
 TRS-DEFAULT-SETTER|{x:x=0}={set x|Expected 0 but got undefined.

@@ -12,8 +12,8 @@ trait ExitTag:
     case SpecErrorTag(error, cursor) => s"spec-error: $cursor"
     case TranspileFailTag            => s"transpile-failure"
     case ThrowValueTag(value: Value) => s"throw-value: $value"
-    case ThrowErrorTag(errorName, provenance) =>
-      s"throw-error: ${errorName}${provenance.map(" @ " + _.toString).getOrElse("")}"
+    case ThrowErrorTag(errorName, msg) =>
+      s"throw-error: ${errorName}${msg.map(msg => s"($msg)").getOrElse("")}"
   def equivalent(that: ExitTag): Boolean = (this, that) match
     case (_: ThrowValueTag, _: ThrowValueTag)               => true
     case (ThrowErrorTag(name1, _), ThrowErrorTag(name2, _)) => name1 == name2
@@ -26,7 +26,7 @@ object ExitTag:
       case comp @ Comp(CONST_THROW, addr: DynamicAddr, _) =>
         st(addr)(Str("Prototype")) match
           case NamedAddr(errorNameRegex(errorName)) =>
-            ThrowErrorTag(errorName, st.heap.map(addr)._2)
+            ThrowErrorTag(errorName, Some(st.heap.map(addr)._2.toString))
           case _ => ThrowValueTag(addr)
       case comp @ Comp(CONST_THROW, value, _) => ThrowValueTag(value)
       case v => error(s"unexpected exit status: $v")
@@ -72,5 +72,5 @@ case class ThrowValueTag(value: Value) extends ExitTag
 /** an error is thrown with an ECMAScript error */
 case class ThrowErrorTag(
   errorName: String,
-  provenance: Option[Provenance] = None,
+  msg: Option[String] = None,
 ) extends ExitTag

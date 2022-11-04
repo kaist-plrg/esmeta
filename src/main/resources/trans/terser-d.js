@@ -7,6 +7,8 @@ const { transpileAsyncUsing } = require("./trans-d.js");
 let transpileAsync = async (input) => {
   return (await terser.minify(input, {
     mangle: false,
+    keep_fnames: true,
+    keep_classnames: true,
   })).code;
 }
 

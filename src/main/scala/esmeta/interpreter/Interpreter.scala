@@ -426,8 +426,12 @@ class Interpreter(
         case v          => throw NoAddr(obj, v)
     case EKeys(map, intSorted) =>
       eval(map) match
-        case addr: Addr => st.keys(addr, intSorted)
-        case v          => throw NoAddr(map, v)
+        // XXX WARNING - PLEASE DO NOT MERGE IT
+        // XXX WARNING - PLEASE DO NOT MERGE IT
+        // XXX WARNING - PLEASE DO NOT MERGE IT
+        case DynamicAddr(1379) => throw NotSupported("GLOBAL OBJECT KEYS")
+        case addr: Addr        => st.keys(addr, intSorted)
+        case v                 => throw NoAddr(map, v)
     case EDuplicated(expr) =>
       val vs = eval(expr).getList(expr, st).values
       Bool(vs.toSet.size != vs.length)

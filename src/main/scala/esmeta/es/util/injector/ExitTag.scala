@@ -26,7 +26,7 @@ object ExitTag:
       case comp @ Comp(CONST_THROW, addr: DynamicAddr, _) =>
         st(addr)(Str("Prototype")) match
           case NamedAddr(errorNameRegex(errorName)) =>
-            ThrowErrorTag(errorName, Some(st.heap.map(addr)._2.toString))
+            ThrowErrorTag(errorName, st.heap.map(addr)._2.map(_.toString))
           case _ => ThrowValueTag(addr)
       case comp @ Comp(CONST_THROW, value, _) => ThrowValueTag(value)
       case v => error(s"unexpected exit status: $v")

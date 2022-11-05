@@ -31,10 +31,6 @@ class Coverage(
   // meta-info of each script
   private var _minimalInfo: Map[String, ScriptInfo] = Map()
 
-  // target conditional branches
-  def targetCondViews: Map[CondView, Option[Nearest]] = _targetCondViews
-  private var _targetCondViews: Map[CondView, Option[Nearest]] = Map()
-
   // the number of minimal scripts
   def size: Int = counter.size
 
@@ -54,6 +50,10 @@ class Coverage(
   private var nodeViews: Set[NodeView] = Set()
   private var condViewMap: Map[Cond, Map[View, Script]] = Map()
   private var condViews: Set[CondView] = Set()
+
+  // target conditional branches
+  def targetCondViews: Map[Cond, Map[View, Option[Nearest]]] = _targetCondViews
+  private var _targetCondViews: Map[Cond, Map[View, Option[Nearest]]] = Map()
 
   /** evaluate a given ECMAScript program, update coverage, and return
     * evaluation result with whether it succeeds to increase coverage
@@ -212,7 +212,10 @@ class Coverage(
     if (withTargetCondViews)
       dumpJson(
         name = if (withMsg) Some("target conditional branches") else None,
-        data = _targetCondViews.keys.toList.map(getCondViewsId).sorted.asJson,
+        data = (for {
+          (cond, viewMap) <- _targetCondViews
+          (view, _) <- viewMap
+        } yield getCondViewsId(CondView(cond, view))).toSeq.sorted.asJson,
         filename = s"$baseDir/target-conds.json",
         space = true,
       )
@@ -283,8 +286,8 @@ class Coverage(
       case b: Branch if b.isChildPresentCheck(cfg) => /* do nothing */
       case ref: WeakUIdRef[EReturnIfAbrupt]
           if !ref.get.check => /* do nothing */
-      case _ if getScript(neg).isDefined => _targetCondViews -= neg
-      case _ => _targetCondViews += condView -> nearest
+      case _ if getScript(neg).isDefined => removeTargetCond(neg)
+      case _                             => addTargetCond(condView, nearest)
 
     condViewMap += cond -> updated(apply(cond), view, script)
 
@@ -308,6 +311,24 @@ class Coverage(
     _minimalScripts += script
     counter += script -> (counter.getOrElse(script, 0) + 1)
     map + (view -> script)
+
+  // remove a cond from targetConds
+  private def removeTargetCond(cv: CondView) =
+    val CondView(cond, view) = cv
+    for (views <- _targetCondViews.get(cond)) {
+      val newViews = views - view
+      if (newViews.isEmpty)
+        _targetCondViews -= cond
+      else
+        _targetCondViews += cond -> (views - view)
+    }
+
+  // add a cond to targetConds
+  private def addTargetCond(cv: CondView, nearest: Option[Nearest]) =
+    val CondView(cond, view) = cv
+    val origViews = _targetCondViews.getOrElse(cond, Map())
+    val newViews = origViews + (view -> nearest)
+    _targetCondViews += cond -> newViews
 
   // script parser
   private lazy val scriptParser = cfg.scriptParser

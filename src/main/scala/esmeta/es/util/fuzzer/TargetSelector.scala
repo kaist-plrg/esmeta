@@ -36,7 +36,9 @@ object BranchSelector extends TargetSelector {
     pool: Iterable[Script],
     cov: Coverage,
   ): (String, Script, Option[CondView]) = if (!cov.targetCondViews.isEmpty) {
-    val condView = choose(choose(cov.targetCondViews.keys.groupBy(_.cond))._2)
+    val cond = choose(cov.targetCondViews.keys)
+    val view = choose(cov.targetCondViews(cond))._1
+    val condView = CondView(cond, view)
     cov.getScript(condView).fold(RandomSelector(pool, cov)) {
       (names.head, _, Some(condView))
     }

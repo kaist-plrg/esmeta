@@ -25,7 +25,8 @@ class NearestMutator(
     target: Option[(CondView, Coverage)],
   ): Seq[(String, Ast)] = (for {
     (condView, cov) <- target
-    nearest <- cov.targetCondViews.getOrElse(condView, None)
+    CondView(cond, view) = condView
+    nearest <- cov.targetCondViews.getOrElse(cond, Map()).getOrElse(view, None)
   } yield Walker(nearest, n).walk(ast).map((name, _)))
     .getOrElse(RandomMutator.default(ast, n, target))
 

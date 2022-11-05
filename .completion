@@ -11,7 +11,7 @@ _esmeta_completions() {
   local cur prev opts lastc informats outformats datafiles
   cur="${COMP_WORDS[COMP_CWORD]}"
   prev="${COMP_WORDS[COMP_CWORD-1]}"
-  cmdList="help extract compile build-cfg tycheck parse eval web test262-test inject mutate transcheck fuzz gen-test conform-test localize analyze"
+  cmdList="help extract compile build-cfg tycheck parse eval web test262-test inject mutate transcheck fuzz gen-test conform-test localize handle-coverage analyze"
   globalOpt="-silent -error -status -time"
   helpOpt=""
   extractOpt="-extract:target -extract:log -extract:repl"
@@ -29,6 +29,7 @@ _esmeta_completions() {
   gentestOpt="-gen-test:debug -gen-test:engines -gen-test:transpilers -gen-test:use-cache -gen-test:only"
   conformtestOpt="-conform-test:debug -conform-test:msgdir -conform-test:save-bugs"
   localizeOpt="-localize:debug -localize:topN"
+  handlecoverageOpt="-handle-coverage:compare -handle-coverage:lower -handle-coverage:kFs -handle-coverage:cp"
   analyzeOpt="-analyze:repl"
   # completion for commands
   case "${COMP_CWORD}" in
@@ -104,6 +105,10 @@ _esmeta_completions() {
           ;;
         localize)
           COMPREPLY=($(compgen -W "${globalOpt} ${extractOpt} ${compileOpt} ${buildcfgOpt} ${localizeOpt}"))
+          return 0
+          ;;
+        handle-coverage)
+          COMPREPLY=($(compgen -W "${globalOpt} ${extractOpt} ${compileOpt} ${buildcfgOpt} ${handlecoverageOpt}"))
           return 0
           ;;
         analyze)

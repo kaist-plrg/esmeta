@@ -415,16 +415,28 @@ object Coverage {
     case (enclosing, feature, path) =>
       s"@ $feature${enclosing.mkString("[", ", ", "]")}:${path.getOrElse("")}"
   }
+  def lowerView(view: View, kFs: Int, cp: Boolean): View =
+    view.flatMap {
+      case (stack, feature, callPath) =>
+        kFs match {
+          case 0 => None
+          case k =>
+            Some((stack.take(k - 1), feature, if cp then callPath else None))
+        }
+    }
   case class NodeView(node: Node, view: View = None) {
     override def toString: String =
       node.simpleString + stringOfView(view)
     def toFuncView = FuncView(cfg.funcOf(node), view)
+    def lower(kFs: Int, cp: Boolean) = NodeView(node, lowerView(view, kFs, cp))
   }
   case class CondView(cond: Cond, view: View = None) {
     def neg: CondView = copy(cond = cond.neg)
 
     override def toString: String =
       cond.toString + stringOfView(view)
+
+    def lower(kFs: Int, cp: Boolean) = CondView(cond, lowerView(view, kFs, cp))
   }
   case class FuncView(func: Func, view: View = None) {
     override def toString: String =

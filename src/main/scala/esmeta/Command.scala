@@ -268,6 +268,17 @@ case object CmdLocalize extends Command("localize", CmdBuildCFG >> Localize) {
     })
 }
 
+/** `handle-coverage` command */
+case object CmdHandleCoverage
+  extends Command("handle-coverage", CmdBuildCFG >> HandleCoverage) {
+  val help = "various operation on coverage"
+  val examples = List(
+    "esmeta handle-coverage -handle-coverage:lower node-coverage.json",
+  )
+  override def showResult(_unit: Unit) = ()
+  override val targetName = "<json>"
+}
+
 // -----------------------------------------------------------------------------
 // ECMAScript Static Analysis (Meta-Level Static Analysis)
 // -----------------------------------------------------------------------------

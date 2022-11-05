@@ -26,7 +26,7 @@ case object Fuzz extends Phase[CFG, Coverage] {
       timeLimit = config.timeLimit,
       trial = config.trial,
       duration = config.duration,
-      kFs = config.kFs.getOrElse(0),
+      kFs = config.kFs,
       cp = config.cp,
     )
 
@@ -74,17 +74,17 @@ case object Fuzz extends Phase[CFG, Coverage] {
     (
       "seed",
       NumOption((c, k) => c.seed = Some(k)),
-      "set the specific seed for the random number generator. (default: None)",
+      "set the specific seed for the random number generator (default: None).",
     ),
     (
       "k-fs",
-      NumOption((c, k) => c.kFs = Some(k)),
-      "set the k-value for feature sensitivity. (default: None)",
+      NumOption((c, k) => c.kFs = k),
+      "set the k-value for feature sensitivity (default: 0).",
     ),
     (
       "cp",
       BoolOption(c => c.cp = true),
-      "turn on the call-path mode (meaningful if k-fs > 0)",
+      "turn on the call-path mode (default: false) (meaningful if k-fs > 0).",
     ),
   )
   case class Config(
@@ -95,7 +95,7 @@ case object Fuzz extends Phase[CFG, Coverage] {
     var trial: Option[Int] = None,
     var duration: Option[Int] = None,
     var seed: Option[Int] = None,
-    var kFs: Option[Int] = None,
+    var kFs: Int = 0,
     var cp: Boolean = false,
   )
 }

@@ -21,7 +21,7 @@ _esmeta_completions() {
   parseOpt="-parse:debug -parse:pprint"
   evalOpt="-eval:timeout -eval:log"
   webOpt="-web:port"
-  test262testOpt="-test262-test:debug -test262-test:log -test262-test:target -test262-test:progress -test262-test:coverage -test262-test:timeout -test262-test:syn-k -test262-test:sens -test262-test:no-test-mode"
+  test262testOpt="-test262-test:debug -test262-test:log -test262-test:target -test262-test:progress -test262-test:coverage -test262-test:timeout -test262-test:k-fs -test262-test:cp -test262-test:no-test-mode"
   injectOpt="-inject:defs -inject:out -inject:log"
   mutateOpt="-mutate:out -mutate:mutator -mutate:untilValid"
   transcheckOpt="-transcheck:dir -transcheck:debug"
@@ -29,7 +29,7 @@ _esmeta_completions() {
   gentestOpt="-gen-test:debug -gen-test:engines -gen-test:transpilers -gen-test:use-cache -gen-test:only"
   conformtestOpt="-conform-test:debug -conform-test:msgdir -conform-test:save-bugs"
   localizeOpt="-localize:debug -localize:topN"
-  handlecoverageOpt="-handle-coverage:compare -handle-coverage:lower -handle-coverage:kFs -handle-coverage:cp"
+  handlecoverageOpt="-handle-coverage:compare -handle-coverage:lower -handle-coverage:k-fs -handle-coverage:cp"
   analyzeOpt="-analyze:repl"
   # completion for commands
   case "${COMP_CWORD}" in

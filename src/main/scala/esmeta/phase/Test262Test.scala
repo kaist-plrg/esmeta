@@ -34,8 +34,8 @@ case object Test262Test extends Phase[CFG, Summary] {
     if (config.debug)
       test262.evalTest(
         cmdConfig.targets,
-        synK = config.synK,
-        useSens = config.useSens,
+        kFs = config.kFs,
+        cp = config.cp,
       )
     // run test262 eval test
     else
@@ -45,8 +45,8 @@ case object Test262Test extends Phase[CFG, Summary] {
         config.progress,
         config.coverage,
         config.timeLimit,
-        config.synK,
-        config.useSens,
+        config.kFs,
+        config.cp,
       )
   }
 
@@ -83,14 +83,14 @@ case object Test262Test extends Phase[CFG, Summary] {
       "set the time limit in seconds (default: no limit).",
     ),
     (
-      "syn-k",
-      NumOption((c, k) => c.synK = Some(k)),
-      "set the specific seed for the random number generator. (default: None)",
+      "k-fs",
+      NumOption((c, k) => c.kFs = k),
+      "set the k-value for feature sensitivity. (default: 0)",
     ),
     (
-      "sens",
-      BoolOption(c => c.useSens = true),
-      "set the specific seed for the random number generator. (default: None)",
+      "cp",
+      BoolOption(c => c.cp = true),
+      "turn on the call-path mode (default: false) (meaningful if k-fs > 0).",
     ),
     (
       "no-test-mode",
@@ -105,8 +105,8 @@ case object Test262Test extends Phase[CFG, Summary] {
     var coverage: Boolean = false,
     var progress: Boolean = false,
     var timeLimit: Option[Int] = None,
-    var synK: Option[Int] = None,
-    var useSens: Boolean = false,
+    var kFs: Int = 0,
+    var cp: Boolean = false,
     var noTestMode: Boolean = false,
   )
 }

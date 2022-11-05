@@ -126,7 +126,7 @@ case object HandleCoverage extends Phase[CFG, Unit] {
       "lower the coverage of the given coverage",
     ),
     (
-      "kFs",
+      "k-fs",
       NumOption((c, k) => c.kFs = k),
       "maximum sensitivity",
     ),

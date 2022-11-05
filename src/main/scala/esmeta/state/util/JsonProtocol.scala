@@ -17,9 +17,8 @@ class JsonProtocol(cfg: CFG) extends CFGJsonProtocol(cfg) {
 
   // abstraction of call stacks as simple paths
   given callPathDecoder: Decoder[CallPath] = new Decoder {
-    final def apply(c: HCursor): Decoder.Result[CallPath] = for {
-      calls <- deriveDecoder[List[Call]](c)
-    } yield CallPath(calls, calls.toSet)
+    final def apply(c: HCursor): Decoder.Result[CallPath] =
+      c.value.as[List[Call]].map(calls => CallPath(calls, calls.toSet))
   }
   given callPathEncoder: Encoder[CallPath] = new Encoder {
     final def apply(callPath: CallPath): Json =

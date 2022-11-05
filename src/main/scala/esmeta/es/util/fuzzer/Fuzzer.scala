@@ -315,6 +315,7 @@ class Fuzzer(
     )
     if (kFs > 0) header ++= Vector(s"sens-node(#)", s"sens-branch(#)")
     header ++= Vector("target-conds(#)")
+    if (kFs > 0) header ++= Vector(s"sens-target-conds(#)")
     addRow(header)
   private def genStatHeader(keys: List[String], nf: PrintWriter) =
     var header1 = Vector("iter(#)")
@@ -350,9 +351,11 @@ class Fuzzer(
     val nv = cov.nodeViewCov
     val bv = cov.branchViewCov
     val tc = cov.targetCondViews.size
+    val tcv = cov.targetCondViews.map(_._2.size).fold(0)(_ + _)
     var row = Vector(iter, e, t, visited.size, pool.size, n, b)
     if (kFs > 0) row ++= Vector(nv, bv)
     row ++= Vector(tc)
+    if (kFs > 0) row ++= Vector(tcv)
     addRow(row)
     // dump coveragge
     cov.dumpToWithDetail(logDir, withMsg = (debug == ALL))

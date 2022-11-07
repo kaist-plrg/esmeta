@@ -6,7 +6,7 @@ import esmeta.es.util.*
 import esmeta.es.util.Coverage.*
 import esmeta.util.*
 import esmeta.util.SystemUtils.*
-import esmeta.util.BaseUtils.*
+import esmeta.util.BaseUtils.{error => err, *}
 import io.circe.*, io.circe.generic.semiauto.*
 import io.circe.syntax._
 import scala.collection.mutable.{Map => MMap}
@@ -36,6 +36,8 @@ case object HandleCoverage extends Phase[CFG, Unit] {
           case "node"   => lowerNodeCoverage(cmdConfig.targets(0))
           case "branch" => lowerBranchCoverage(cmdConfig.targets(0))
           case _        => println("[warn] invalid option")
+      else if (config.cpGraph)
+        drawGraph(cmdConfig.targets(0), cmdConfig.targets(1))
       else
         println("[warn] doing nothing")
     }
@@ -113,6 +115,34 @@ case object HandleCoverage extends Phase[CFG, Unit] {
       cv = condViews.map(_.lower(k, cp)).distinct
     } println(s"k${if cp then "-cp" else ""} : ${cv.size}")
 
+  private def countBy[T, G](iter: Iterable[T], group: T => G): Map[G, Int] =
+    iter.groupMapReduce(group)(_ => 1)(_ + _)
+
+  private def drawGraph(nodeJson: String, condJson: String) =
+    val proto = jsonProtocol.get
+    import proto.given
+
+    val nodeViewInfos: List[NodeViewInfo] = readJson(nodeJson)
+    val nodeViews = nodeViewInfos.map(_.nodeView)
+    val condViewInfos: List[CondViewInfo] = readJson(condJson)
+    val condViews = condViewInfos.map(_.condView)
+
+    val k = _config.kFs
+    if (k == 0)
+      err("k should be greater than 0")
+
+    val header = Vector("#call path", "#test requirement", "#cp * #tr")
+    val nodeCount = countBy(nodeViews, _.lower(k, false))
+    val condCount = countBy(condViews, _.lower(k, false))
+    val cpCount = countBy(nodeCount ++ condCount, _._2)
+    val body =
+      cpCount.toSeq
+        .sortBy(_._1)
+        .map((k, v) => Vector(k, v, k * v).map(_.toString))
+
+    body.foreach(kv => println(s"${kv(0)}: ${kv(1)}"))
+    dumpRows(header +: body, s"$HANDLE_COVERAGE_LOG_DIR/$k-cp-graph.tsv")
+
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(
     (
@@ -124,6 +154,11 @@ case object HandleCoverage extends Phase[CFG, Unit] {
       "lower",
       StrOption((c, s) => c.lower = Some(s)),
       "lower the coverage of the given coverage",
+    ),
+    (
+      "cp-graph",
+      BoolOption(c => c.cpGraph = true),
+      "extract data for drawing cp",
     ),
     (
       "k-fs",
@@ -139,6 +174,7 @@ case object HandleCoverage extends Phase[CFG, Unit] {
   case class Config(
     var compare: Option[String] = None,
     var lower: Option[String] = None,
+    var cpGraph: Boolean = false,
     var kFs: Int = 0,
     var cp: Boolean = false,
   )

@@ -266,10 +266,7 @@ case object ConformTest
         Vector(target.name, bugs, fails.size.toString),
       )
       .toList
-    dumpFile(
-      (header :: body).map(_.mkString("\t")).mkString(LINE_SEP),
-      s"$CONFORMTEST_LOG_DIR/summary.tsv",
-    )
+    dumpRows(header :: body, s"$CONFORMTEST_LOG_DIR/summary.tsv")
 
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(

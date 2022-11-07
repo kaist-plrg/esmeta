@@ -68,6 +68,13 @@ object SystemUtils {
   def dumpFile(name: String, data: Any, filename: String): Unit =
     dumpFile(Some(name), data, filename)
 
+  /** dump rows as tsv */
+  def dumpRows(data: Seq[Vector[String]], filename: String): Unit =
+    dumpFile(
+      data.map(_.mkString("\t")).mkString(LINE_SEP),
+      filename,
+    )
+
   /** dump given data collection into a directory and show message */
   def dumpDir[T](
     name: Option[String],

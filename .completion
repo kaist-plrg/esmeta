@@ -29,7 +29,7 @@ _esmeta_completions() {
   gentestOpt="-gen-test:debug -gen-test:engines -gen-test:transpilers -gen-test:use-cache -gen-test:only"
   conformtestOpt="-conform-test:debug -conform-test:msgdir -conform-test:save-bugs"
   localizeOpt="-localize:debug -localize:topN"
-  handlecoverageOpt="-handle-coverage:compare -handle-coverage:lower -handle-coverage:k-fs -handle-coverage:cp"
+  handlecoverageOpt="-handle-coverage:compare -handle-coverage:lower -handle-coverage:cp-graph -handle-coverage:k-fs -handle-coverage:cp"
   analyzeOpt="-analyze:repl"
   # completion for commands
   case "${COMP_CWORD}" in

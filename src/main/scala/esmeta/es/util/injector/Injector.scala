@@ -106,7 +106,7 @@ class Injector(
   // handle variables
   private def handleVariable: Unit = for (x <- createdVars.toList.sorted) {
     log("handling variable...")
-    val path = x
+    val path = s"globalThis[\"$x\"]"
     getValue(s"""$globalMap["$x"].Value""") match
       case Absent => /* do nothing(handle global accessor property) */
       case sv: SimpleValue =>

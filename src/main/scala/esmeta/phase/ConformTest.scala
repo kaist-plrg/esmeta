@@ -69,12 +69,13 @@ case object ConformTest
 
     val result: Result = engineResult ++ transResult
 
-    // dump result as JSON
+    // dump result as JSON and tsv
     dumpJson(result.map(_.toString -> _), s"$CONFORMTEST_LOG_DIR/fails.json")
     dumpJson(
       bugStat.map(_.toString -> _),
       s"$CONFORMTEST_LOG_DIR/bug-stat.json",
     )
+    dumpSummary(result, bugStat)
 
     // return result
     result
@@ -253,6 +254,22 @@ case object ConformTest
         val origCount = stat.getOrElse(tag, 0)
         stat + (tag -> (origCount + 1)),
       )
+
+  private def dumpSummary(
+    result: Result,
+    bugStat: Map[Target, Map[String, Int]],
+  ) =
+    val header = Vector("target", "bug-list", "fail-num")
+    val body: List[Vector[String]] = result
+      .map((target, fails) =>
+        val bugs = bugStat(target).keys.mkString("|")
+        Vector(target.name, bugs, fails.size.toString),
+      )
+      .toList
+    dumpFile(
+      (header :: body).map(_.mkString("\t")).mkString(LINE_SEP),
+      s"$CONFORMTEST_LOG_DIR/summary.tsv",
+    )
 
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(

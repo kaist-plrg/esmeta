@@ -6,7 +6,7 @@ import esmeta.es.util.*
 import esmeta.es.util.Coverage.*
 import esmeta.util.*
 import esmeta.util.SystemUtils.*
-import esmeta.util.BaseUtils.{error => err, *}
+import esmeta.util.BaseUtils.*
 import io.circe.*, io.circe.generic.semiauto.*
 import io.circe.syntax._
 import scala.collection.mutable.{Map => MMap}
@@ -24,112 +24,83 @@ case object HandleCoverage extends Phase[CFG, Unit] {
       _config = config
       jsonProtocol = Some(JsonProtocol(cfg))
 
-      if (config.compare.isDefined)
-        config.compare.get match
-          case "node" =>
-            compareNodeCoverage(cmdConfig.targets(0), cmdConfig.targets(1))
-          case "branch" =>
-            compareBranchCoverage(cmdConfig.targets(0), cmdConfig.targets(1))
-          case _ => println("[warn] invalid option")
-      else if (config.lower.isDefined)
-        config.lower.get match
-          case "node"   => lowerNodeCoverage(cmdConfig.targets(0))
-          case "branch" => lowerBranchCoverage(cmdConfig.targets(0))
-          case _        => println("[warn] invalid option")
-      else if (config.cpGraph)
-        drawGraph(cmdConfig.targets(0), cmdConfig.targets(1))
-      else
-        println("[warn] doing nothing")
+      val test262Dir = cmdConfig.targets(0)
+      val allDir = cmdConfig.targets(1)
+
+      // Compare test 262 with fuzzer
+      val header = Vector("sens", "left-only", "both", "right-only")
+      val body = for {
+        k <- Range(0, 3)
+        cp <- List(false, true)
+        if (k > 0 || !cp)
+      } yield compareCoverage(test262Dir, allDir, k, cp)
+      dumpRows(header +: body, s"$HANDLE_COVERAGE_LOG_DIR/test262-cmp.csv")
+
+      // draw #call-path histogram
+      drawCpGraph(1, allDir)
+      drawCpGraph(2, allDir)
     }
 
-  private def compareNodeCoverage(json1: String, json2: String) =
+  private def compareCoverage(
+    dir1: String,
+    dir2: String,
+    k: Int,
+    cp: Boolean,
+  ): Vector[String] =
     val proto = jsonProtocol.get
     import proto.given
 
-    val nodeViewInfos1: List[NodeViewInfo] = readJson(json1)
-    val nodeViewInfos2: List[NodeViewInfo] = readJson(json2)
+    val sens = if (cp) then s"$k-cp" else s"$k"
+
+    val nodeJson1 = s"$dir1/node-coverage.json"
+    val condJson1 = s"$dir1/branch-coverage.json"
+    val nodeJson2 = s"$dir2/$sens/node-coverage.json"
+    val condJson2 = s"$dir2/$sens/branch-coverage.json"
+
+    val nodeViewInfos1: List[NodeViewInfo] = readJson(nodeJson1)
     val nodeViews1 = nodeViewInfos1.map(_.nodeView)
+    val nodeViewInfos2: List[NodeViewInfo] = readJson(nodeJson2)
     val nodeViews2 = nodeViewInfos2.map(_.nodeView)
 
-    for {
-      k <- Range(0, _config.kFs + 1)
-      cp <- if (_config.cp) then List(false, true) else List(false)
-      if (k > 0 || !cp)
-      nv1 = nodeViews1.map(_.lower(k, cp)).toSet
-      nv2 = nodeViews2.map(_.lower(k, cp)).toSet
-      nv = nv1.toSet & nv2.toSet
-    } {
-      println(s"[$k${if cp then "-cp" else ""}]")
-      println(s" - common     : ${nv.size}")
-      println(s" - left only  : ${nv1.size - nv.size}")
-      println(s" - right only : ${nv2.size - nv.size}")
-    }
-
-  private def compareBranchCoverage(json1: String, json2: String) =
-    val proto = jsonProtocol.get
-    import proto.given
-
-    val condViewInfos1: List[CondViewInfo] = readJson(json1)
-    val condViewInfos2: List[CondViewInfo] = readJson(json2)
+    val condViewInfos1: List[CondViewInfo] = readJson(condJson1)
     val condViews1 = condViewInfos1.map(_.condView)
+    val condViewInfos2: List[CondViewInfo] = readJson(condJson2)
     val condViews2 = condViewInfos2.map(_.condView)
 
-    for {
-      k <- Range(0, _config.kFs + 1)
-      cp <- if (_config.cp) then List(false, true) else List(false)
-      if (k > 0 || !cp)
-      cv1 = condViews1.map(_.lower(k, cp)).toSet
-      cv2 = condViews2.map(_.lower(k, cp)).toSet
-      cv = cv1.toSet & cv2.toSet
-    } {
-      println(s"[$k${if cp then "-cp" else ""}]")
-      println(s" - common     : ${cv.size}")
-      println(s" - left only  : ${cv1.size - cv.size}")
-      println(s" - right only : ${cv2.size - cv.size}")
-    }
+    val nv1 = condViews1.map(_.lower(k, cp)).toSet
+    val nv2 = condViews2.map(_.lower(k, cp)).toSet
+    val nv = nv1 & nv2
 
-  private def lowerNodeCoverage(json: String) =
-    val proto = jsonProtocol.get
-    import proto.given
+    val cv1 = condViews1.map(_.lower(k, cp)).toSet
+    val cv2 = condViews2.map(_.lower(k, cp)).toSet
+    val cv = cv1 & cv2
 
-    val nodeViewInfos: List[NodeViewInfo] = readJson(json)
-    val nodeViews = nodeViewInfos.map(_.nodeView)
+    val both = nv.size + cv.size
+    val leftOnly = nv1.size + cv1.size - both
+    val rightOnly = nv2.size + cv2.size - both
 
-    for {
-      k <- Range(0, _config.kFs + 1)
-      cp <- if (_config.cp) then List(false, true) else List(false)
-      if (k > 0 || !cp)
-      nv = nodeViews.map(_.lower(k, cp)).toSet
-    } println(s"$k${if cp then "-cp" else "   "} : ${nv.size}")
+    println(s"[$sens]")
+    println(s" - both     : $both")
+    println(s" - left only  : $leftOnly")
+    println(s" - right only : $rightOnly")
 
-  private def lowerBranchCoverage(json: String) =
-    val proto = jsonProtocol.get
-    import proto.given
-
-    val condViewInfos: List[CondViewInfo] = readJson(json)
-    val condViews = condViewInfos.map(_.condView)
-    for {
-      k <- Range(0, _config.kFs + 1)
-      cp <- if (_config.cp) then List(false, true) else List(false)
-      if (k > 0 || !cp)
-      cv = condViews.map(_.lower(k, cp)).distinct
-    } println(s"k${if cp then "-cp" else ""} : ${cv.size}")
+    Vector(sens, leftOnly, both, rightOnly).map(_.toString)
 
   private def countBy[T, G](iter: Iterable[T], group: T => G): Map[G, Int] =
     iter.groupMapReduce(group)(_ => 1)(_ + _)
 
-  private def drawGraph(nodeJson: String, condJson: String) =
+  private def drawCpGraph(k: Int, basedir: String) =
     val proto = jsonProtocol.get
     import proto.given
+
+    val dir = s"$basedir/$k-cp"
+    val nodeJson = s"$dir/node-coverage.json"
+    val condJson = s"$dir/branch-coverage.json"
 
     val nodeViewInfos: List[NodeViewInfo] = readJson(nodeJson)
     val nodeViews = nodeViewInfos.map(_.nodeView)
     val condViewInfos: List[CondViewInfo] = readJson(condJson)
     val condViews = condViewInfos.map(_.condView)
-
-    val k = _config.kFs
-    if (k == 0)
-      err("k should be greater than 0")
 
     val header = Vector("#call path", "#test requirement", "#cp * #tr")
     val nodeCount = countBy(nodeViews, _.lower(k, false))
@@ -144,38 +115,6 @@ case object HandleCoverage extends Phase[CFG, Unit] {
     dumpRows(header +: body, s"$HANDLE_COVERAGE_LOG_DIR/$k-cp-graph.tsv")
 
   def defaultConfig: Config = Config()
-  val options: List[PhaseOption[Config]] = List(
-    (
-      "compare",
-      StrOption((c, s) => c.compare = Some(s)),
-      "compare two coverages",
-    ),
-    (
-      "lower",
-      StrOption((c, s) => c.lower = Some(s)),
-      "lower the coverage of the given coverage",
-    ),
-    (
-      "cp-graph",
-      BoolOption(c => c.cpGraph = true),
-      "extract data for drawing cp",
-    ),
-    (
-      "k-fs",
-      NumOption((c, k) => c.kFs = k),
-      "maximum sensitivity",
-    ),
-    (
-      "cp",
-      BoolOption(c => c.cp = true),
-      "use cp",
-    ),
-  )
-  case class Config(
-    var compare: Option[String] = None,
-    var lower: Option[String] = None,
-    var cpGraph: Boolean = false,
-    var kFs: Int = 0,
-    var cp: Boolean = false,
-  )
+  val options: List[PhaseOption[Config]] = List()
+  case class Config()
 }

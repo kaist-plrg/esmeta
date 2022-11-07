@@ -1,7 +1,16 @@
 diff --git a/spec.html b/spec.html
-index 5a4af52..5d516a1 100644
+index 5a4af52..9c2a42b 100644
 --- a/spec.html
 +++ b/spec.html
+@@ -1875,7 +1875,7 @@
+             1. If _y_ is *-0*<sub>𝔽</sub>, then
+               1. If _x_ &lt; *-0*<sub>𝔽</sub>, return *+0*<sub>𝔽</sub>.
+               1. Else, return *-0*<sub>𝔽</sub>.
+-            1. Return 𝔽(ℝ(_x_) &times; ℝ(_y_)).
++            1. Return _x_ &times; _y_.
+           </emu-alg>
+           <emu-note>
+             <p>Finite-precision multiplication is commutative, but not always associative.</p>
 @@ -7200,7 +7200,7 @@
          1. Let _closure_ be a new Abstract Closure with no parameters that captures _list_ and performs the following steps when called:
            1. For each element _E_ of _list_, do

@@ -1,7 +1,10 @@
 TAG|pattern in script|pattern in message
 TIMEOUT||but got timeout
+PRIVATE-FAIL|Unexpected token `#`|but got transpile-failure
+PRIVATE-FAIL|Unexpected token: privatename|but got transpile-failure
+SWC-NESTED-REST-FAIL|`...` must be followed by an identifier in declaration contexts|but got transpile-failure
+SWC-NESTED-REST-FAIL|internal error: entered unreachable code: Object rest pattern should be removed by es2018::object_rest_spread pass|but got transpile-failure
 AWAIT-FAIL|Cannot use keyword 'await' outside an async function|but got transpile-failure
-AWAIT-FAIL|Unexpected token|but got transpile-failure
 AWAIT-FAIL|await isn't allowed in non-async function|but got transpile-failure
 AWAIT-FAIL|`await` cannot be used as an identifier in an async context|but got transpile-failure
 AWAIT-FAIL|internal error: entered unreachable code|but got transpile-failure
@@ -9,6 +12,7 @@ AWAIT-FAIL|cannot be applied to unary/await expression.|but got transpile-failur
 AWAIT-FAIL| Expression expected|but got transpile-failure
 AWAIT-FAIL|Parenthesized expression cannot be empty|but got transpile-failure
 AWAIT-FAIL|Invalid assignment|but got transpile-failure
+AWAIT-FAIL|Unexpected token|but got transpile-failure
 STATIC-SAME-NAME-FAIL|has already been declared|but got transpile-failure
 ECM-TO-STRING-IN-STATIC||[native code]
 JSC-PROP-ORDER| static |but got ["length", "prototype", "name"] for
@@ -55,6 +59,7 @@ DSG-HIDDEN-GEN-PARAM-ERROR|return _regeneratorRuntime().wrap|but got normal
 DSG-HIDDEN-GEN-PARAM-ERROR|return __generator(|but got normal
 DSG-CLASS-IN-COMPUTED|_classNameTDZError|
 DSG-EMPTY-ARR-SYMBOL-ITERATOR|Symbol.iterator|Expected normal but got throw-error: TypeError
+DSG-SPARSE-ARR-SYMBOL-ITERATOR|Symbol.iterator|Expected normal but got throw-value
 BBL-STATIC-PRIVATE-IN|===|TypeError(Some(RelationalExpression[7
 BBL-STATIC-PRIVATE-IN|===|TypeError(RelationalExpression[7
 BBL-COMPUTED-IN|_defineProperty|TypeError(Some(RelationalExpression[6
@@ -175,8 +180,8 @@ YET-TRS-REMOVE-TYP-ERR|"use strict";Symbol|Expected throw-error: TypeError
 YET-TRS-REMOVE-TYP-ERR|"use strict";+|Expected throw-error: TypeError
 YET-TRS-REMOVE-THROW|"use strict";$|Expected throw-value
 YET-TRS-REMOVE-THROW|"use strict";Symbol|Expected throw-value
-TRS-LHS|for|SyntaxError: Invalid left-hand side in for-loop
-TRS-LHS|for|SyntaxError: Unexpected token 'void'
+TRS-LHS-TO-LITERAL|for|SyntaxError: Invalid left-hand side in for-loop
+TRS-LHS-TO-LITERAL|for|SyntaxError: Unexpected token 'void'
 TRS-NEW-TARGET|new.target|Expected throw-error: TypeError(Some(ClassTail[0,2].ClassDefinitionEvaluation
 TRS-NEW-TARGET|new.target|Expected throw-error: TypeError(ClassTail[0,2].ClassDefinitionEvaluation
 TRS-REMOVE-CONST-REASSIGN|"use strict";const|Expected throw-error: TypeError(Some(DeclarativeEnvironmentRecord.SetMutableBinding
@@ -188,6 +193,7 @@ TRS-WRONG-AWAIT|await 0|but got throw-error: SyntaxError
 TRS-WRONG-AWAIT|class await{}await(|but got throw-error: TypeError
 TRS-BIGINT-DIV-0||RangeError(Some(BigInt::
 TRS-BIGINT-DIV-0||RangeError(BigInt::
+TRS-IIFE|0?.()|Invalid left-hand side ex:qpression
 ECM-TO-STRING-IN-STATIC| static |descriptor value of "0"
 ECM-TO-STRING-IN-STATIC|{static |descriptor value of "0"
 ECM-TO-STRING-IN-STATIC|_defineProperty|descriptor value of "0"
@@ -291,3 +297,5 @@ TRS-FUNC-LEN?|x(x|descriptor value of "length" should be
 YET-REMOVED-REF-ERR||Expected throw-error: ReferenceError
 YET-REMOVED-REF-ERR|_this$x|
 DSG-POW-BIGINT|Math.pow|TypeError: Cannot convert a BigInt value to a number
+THIS-0|this [ 0 ]|but got 0.
+THIS-0|this[0]|but got 0.

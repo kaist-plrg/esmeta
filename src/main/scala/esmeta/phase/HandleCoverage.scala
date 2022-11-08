@@ -10,6 +10,7 @@ import esmeta.util.BaseUtils.*
 import io.circe.*, io.circe.generic.semiauto.*
 import io.circe.syntax._
 import scala.collection.mutable.{Map => MMap}
+import java.io.PrintWriter
 
 /** `localize` phase */
 case object HandleCoverage extends Phase[CFG, Unit] {
@@ -37,8 +38,11 @@ case object HandleCoverage extends Phase[CFG, Unit] {
       dumpRows(header +: body, s"$HANDLE_COVERAGE_LOG_DIR/test262-cmp.csv")
 
       // draw #call-path histogram
+      drawKGraph(1, allDir)
+      drawKGraph(2, allDir)
       drawCpGraph(1, allDir)
       drawCpGraph(2, allDir)
+      maximumTxt.flush
     }
 
   private def compareCoverage(
@@ -67,8 +71,8 @@ case object HandleCoverage extends Phase[CFG, Unit] {
     val condViewInfos2: List[CondViewInfo] = readJson(condJson2)
     val condViews2 = condViewInfos2.map(_.condView)
 
-    val nv1 = condViews1.map(_.lower(k, cp)).toSet
-    val nv2 = condViews2.map(_.lower(k, cp)).toSet
+    val nv1 = nodeViews1.map(_.lower(k, cp)).toSet
+    val nv2 = nodeViews2.map(_.lower(k, cp)).toSet
     val nv = nv1 & nv2
 
     val cv1 = condViews1.map(_.lower(k, cp)).toSet
@@ -89,7 +93,38 @@ case object HandleCoverage extends Phase[CFG, Unit] {
   private def countBy[T, G](iter: Iterable[T], group: T => G): Map[G, Int] =
     iter.groupMapReduce(group)(_ => 1)(_ + _)
 
+  private def drawKGraph(k: Int, basedir: String) =
+    println(s"Drawing k-graph for $k...")
+    val proto = jsonProtocol.get
+    import proto.given
+
+    val dir = s"$basedir/$k"
+    val nodeJson = s"$dir/node-coverage.json"
+    val condJson = s"$dir/branch-coverage.json"
+
+    val nodeViewInfos: List[NodeViewInfo] = readJson(nodeJson)
+    val nodeViews = nodeViewInfos.map(_.nodeView)
+    val condViewInfos: List[CondViewInfo] = readJson(condJson)
+    val condViews = condViewInfos.map(_.condView)
+
+    val header = Vector("#enclosing", "#test requirement", "#ec * #tr")
+    val nodeCount = countBy(nodeViews, _.lower(k - 1, false))
+    val condCount = countBy(condViews, _.lower(k - 1, false))
+    val totalCount = nodeCount ++ condCount
+
+    println(s"Maximum: ${totalCount.maxBy(_._2)}")
+    maximumTxt.println(s"Maximum: ${totalCount.maxBy(_._2)}")
+
+    val cpCount = countBy(totalCount, _._2)
+    val body =
+      cpCount.toSeq
+        .sortBy(_._1)
+        .map((k, v) => Vector(k, v, k * v).map(_.toString))
+
+    dumpRows(header +: body, s"$HANDLE_COVERAGE_LOG_DIR/$k-graph.tsv")
+
   private def drawCpGraph(k: Int, basedir: String) =
+    println(s"Drawing cp-graph for $k-cp...")
     val proto = jsonProtocol.get
     import proto.given
 
@@ -105,14 +140,22 @@ case object HandleCoverage extends Phase[CFG, Unit] {
     val header = Vector("#call path", "#test requirement", "#cp * #tr")
     val nodeCount = countBy(nodeViews, _.lower(k, false))
     val condCount = countBy(condViews, _.lower(k, false))
-    val cpCount = countBy(nodeCount ++ condCount, _._2)
+    val totalCount = nodeCount ++ condCount
+
+    println(s"Maximum: ${totalCount.maxBy(_._2)}")
+    maximumTxt.println(s"Maximum: ${totalCount.maxBy(_._2)}")
+
+    val cpCount = countBy(totalCount, _._2)
     val body =
       cpCount.toSeq
         .sortBy(_._1)
         .map((k, v) => Vector(k, v, k * v).map(_.toString))
 
-    body.foreach(kv => println(s"${kv(0)}: ${kv(1)}"))
     dumpRows(header +: body, s"$HANDLE_COVERAGE_LOG_DIR/$k-cp-graph.tsv")
+
+  private lazy val maximumTxt: PrintWriter = getPrintWriter(
+    s"$HANDLE_COVERAGE_LOG_DIR/maximum.txt",
+  )
 
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List()

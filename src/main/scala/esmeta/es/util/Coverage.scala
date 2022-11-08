@@ -410,9 +410,7 @@ object Coverage {
 
     // get syntax-sensitive views
     private def getView: View =
-      val stack = st.context.featureStack
-        .filter(_.isInstanceOf[SyntacticFeature])
-        .take(kFs)
+      val stack = st.context.featureStack.take(kFs)
       val path = if (cp) then Some(st.context.callPath) else None
       stack match {
         case Nil                  => None

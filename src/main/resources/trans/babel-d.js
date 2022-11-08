@@ -9,7 +9,8 @@ let transpile = (input) => {
     presets: ["env"],
     sourceType: "script",
     assumptions: {
-      noDocumentAll: true
+      noDocumentAll: true,
+      noNewArrows: false,
     }
   }).code;
 }

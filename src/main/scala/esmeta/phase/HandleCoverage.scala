@@ -43,7 +43,22 @@ case object HandleCoverage extends Phase[CFG, Unit] {
       drawCpGraph(1, allDir)
       drawCpGraph(2, allDir)
       maximumTxt.flush
+      maximumTxt.close
     }
+
+  private def getViewsPair(dir: String): (List[NodeView], List[CondView]) =
+    val proto = jsonProtocol.get
+    import proto.given
+
+    val nodeJson = s"$dir/node-coverage.json"
+    val nodeViewInfos: List[NodeViewInfo] = readJson(nodeJson)
+    val nodeViews = nodeViewInfos.map(_.nodeView)
+
+    val condJson = s"$dir/branch-coverage.json"
+    val condViewInfos: List[CondViewInfo] = readJson(condJson)
+    val condViews = condViewInfos.map(_.condView)
+
+    (nodeViews, condViews)
 
   private def compareCoverage(
     dir1: String,
@@ -51,25 +66,10 @@ case object HandleCoverage extends Phase[CFG, Unit] {
     k: Int,
     cp: Boolean,
   ): Vector[String] =
-    val proto = jsonProtocol.get
-    import proto.given
-
     val sens = if (cp) then s"$k-cp" else s"$k"
 
-    val nodeJson1 = s"$dir1/node-coverage.json"
-    val condJson1 = s"$dir1/branch-coverage.json"
-    val nodeJson2 = s"$dir2/$sens/node-coverage.json"
-    val condJson2 = s"$dir2/$sens/branch-coverage.json"
-
-    val nodeViewInfos1: List[NodeViewInfo] = readJson(nodeJson1)
-    val nodeViews1 = nodeViewInfos1.map(_.nodeView)
-    val nodeViewInfos2: List[NodeViewInfo] = readJson(nodeJson2)
-    val nodeViews2 = nodeViewInfos2.map(_.nodeView)
-
-    val condViewInfos1: List[CondViewInfo] = readJson(condJson1)
-    val condViews1 = condViewInfos1.map(_.condView)
-    val condViewInfos2: List[CondViewInfo] = readJson(condJson2)
-    val condViews2 = condViewInfos2.map(_.condView)
+    val (nodeViews1, condViews1) = getViewsPair(dir1)
+    val (nodeViews2, condViews2) = getViewsPair(s"$dir2/$sens")
 
     val nv1 = nodeViews1.map(_.lower(k, cp)).toSet
     val nv2 = nodeViews2.map(_.lower(k, cp)).toSet
@@ -94,64 +94,70 @@ case object HandleCoverage extends Phase[CFG, Unit] {
     iter.groupMapReduce(group)(_ => 1)(_ + _)
 
   private def drawKGraph(k: Int, basedir: String) =
-    println(s"Drawing k-graph for $k...")
-    val proto = jsonProtocol.get
-    import proto.given
+    println(s"Drawing k-graph for ${k - 1} vs $k...")
+    maximumTxt.println(s"Drawing k-graph for ${k - 1} vs $k...")
 
-    val dir = s"$basedir/$k"
-    val nodeJson = s"$dir/node-coverage.json"
-    val condJson = s"$dir/branch-coverage.json"
+    val dir1 = s"$basedir/${k - 1}"
+    val dir2 = s"$basedir/$k"
 
-    val nodeViewInfos: List[NodeViewInfo] = readJson(nodeJson)
-    val nodeViews = nodeViewInfos.map(_.nodeView)
-    val condViewInfos: List[CondViewInfo] = readJson(condJson)
-    val condViews = condViewInfos.map(_.condView)
+    val (nodeViews1, condViews1) = getViewsPair(dir1)
+    val (nodeViews2, condViews2) = getViewsPair(dir2)
 
-    val header = Vector("#enclosing", "#test requirement", "#ec * #tr")
-    val nodeCount = countBy(nodeViews, _.lower(k - 1, false))
-    val condCount = countBy(condViews, _.lower(k - 1, false))
-    val totalCount = nodeCount ++ condCount
+    val nodeCount2 = countBy(nodeViews2, _.lower(k - 1, false))
+    val condCount2 = countBy(condViews2, _.lower(k - 1, false))
 
-    println(s"Maximum: ${totalCount.maxBy(_._2)}")
-    maximumTxt.println(s"Maximum: ${totalCount.maxBy(_._2)}")
+    val nodeCount1 = nodeViews1.map(nv => (nv, nodeCount2.getOrElse(nv, 0)))
+    val condCount1 = condViews1.map(cv => (cv, condCount2.getOrElse(cv, 0)))
+    val totalCount = nodeCount1 ++ condCount1
 
-    val cpCount = countBy(totalCount, _._2)
-    val body =
-      cpCount.toSeq
-        .sortBy(_._1)
-        .map((k, v) => Vector(k, v, k * v).map(_.toString))
+    val encCount = countBy(totalCount, _._2).toSeq.sortBy(_._1)
 
+    val header = Vector("#enclosing", "#test requirement")
+    val body = encCount.map((k, v) => Vector(k, v).map(_.toString))
     dumpRows(header +: body, s"$HANDLE_COVERAGE_LOG_DIR/$k-graph.tsv")
 
+    val max = encCount.last._1
+    println(s"Maximum: $max")
+    maximumTxt.println(s"Maximum: $max")
+    totalCount
+      .filter(_._2 == max)
+      .foreach((view, _count) =>
+        println(s" - $view")
+        maximumTxt.println(s" - $view"),
+      )
+
   private def drawCpGraph(k: Int, basedir: String) =
-    println(s"Drawing cp-graph for $k-cp...")
-    val proto = jsonProtocol.get
-    import proto.given
+    println(s"Drawing cp-graph for $k vs $k-cp...")
+    maximumTxt.println(s"Drawing cp-graph for $k vs $k-cp...")
 
-    val dir = s"$basedir/$k-cp"
-    val nodeJson = s"$dir/node-coverage.json"
-    val condJson = s"$dir/branch-coverage.json"
+    val dir1 = s"$basedir/$k"
+    val dir2 = s"$basedir/$k-cp"
 
-    val nodeViewInfos: List[NodeViewInfo] = readJson(nodeJson)
-    val nodeViews = nodeViewInfos.map(_.nodeView)
-    val condViewInfos: List[CondViewInfo] = readJson(condJson)
-    val condViews = condViewInfos.map(_.condView)
+    val (nodeViews1, condViews1) = getViewsPair(dir1)
+    val (nodeViews, condViews) = getViewsPair(dir2)
 
-    val header = Vector("#call path", "#test requirement", "#cp * #tr")
-    val nodeCount = countBy(nodeViews, _.lower(k, false))
-    val condCount = countBy(condViews, _.lower(k, false))
-    val totalCount = nodeCount ++ condCount
+    val nodeCount2 = countBy(nodeViews, _.lower(k, false))
+    val condCount2 = countBy(condViews, _.lower(k, false))
 
-    println(s"Maximum: ${totalCount.maxBy(_._2)}")
-    maximumTxt.println(s"Maximum: ${totalCount.maxBy(_._2)}")
+    val nodeCount1 = nodeViews1.map(nv => (nv, nodeCount2.getOrElse(nv, 0)))
+    val condCount1 = condViews1.map(cv => (cv, condCount2.getOrElse(cv, 0)))
+    val totalCount = nodeCount1 ++ condCount1
 
-    val cpCount = countBy(totalCount, _._2)
-    val body =
-      cpCount.toSeq
-        .sortBy(_._1)
-        .map((k, v) => Vector(k, v, k * v).map(_.toString))
+    val cpCount = countBy(totalCount, _._2).toSeq.sortBy(_._1)
 
+    val header = Vector("#call path", "#test requirement")
+    val body = cpCount.map((k, v) => Vector(k, v).map(_.toString))
     dumpRows(header +: body, s"$HANDLE_COVERAGE_LOG_DIR/$k-cp-graph.tsv")
+
+    val max = cpCount.last._1
+    println(s"Maximum: $max")
+    maximumTxt.println(s"Maximum: $max")
+    totalCount
+      .filter(_._2 == max)
+      .foreach((view, _count) =>
+        println(s" - $view")
+        maximumTxt.println(s" - $view"),
+      )
 
   private lazy val maximumTxt: PrintWriter = getPrintWriter(
     s"$HANDLE_COVERAGE_LOG_DIR/maximum.txt",

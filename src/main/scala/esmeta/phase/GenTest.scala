@@ -53,15 +53,15 @@ case object GenTest
 
     // collect target engines and transpilers
     val engines: List[Target] = (config.engines match {
-      case None     => List("d8@1.0.0", "js@1.0.0", "sm@1.0.0", "jsc@1.0.0")
+      case None     => List("d8", "js", "sm", "jsc")
       case Some(es) => es.split(",").toList
-    }).map(e => Target.from(e, false))
+    }).map(e => Target(e, false))
 
     val transpilers: List[Target] = (config.transpilers match {
       case None =>
-        List("babel@1.0.0", "swc@1.0.0", "terser@1.0.0", "obfuscator@1.0.0")
+        List("babel", "swc", "terser", "obfuscator")
       case Some(ts) => ts.split(",").toList
-    }).map(t => Target.from(t, true))
+    }).map(t => Target(t, true))
 
     // pre-process for each engines and transpilers
     var headers: Map[Int, String] = Map()

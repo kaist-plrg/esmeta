@@ -19,19 +19,17 @@ object JSEngine {
 
   /** default commands */
   val defaultCmd = Map(
-    "d8" -> Map("1.0.0" -> "d8 --ignore-unhandled-promises -e"),
-    "node" -> Map("1.0.0" -> "node --unhandled-rejections=none -e"),
-    "js" -> Map("1.0.0" -> "js -e"),
-    "sm" -> Map("1.0.0" -> "sm -e 'ignoreUnhandledRejections();' -e"),
-    "jsc" -> Map(
-      "1.0.0" -> s"jsc -e|DYLD_FRAMEWORK_PATH:${sys.env.getOrElse("WEBKIT_HOME", "NO-DIRECTORY")}/WebkitBuild/Release",
-    ),
+    "d8" -> "d8 --ignore-unhandled-promises -e",
+    "node" -> "node --unhandled-rejections=none -e",
+    "js" -> "js -e",
+    "sm" -> "sm -e 'ignoreUnhandledRejections();' -e",
+    "jsc" -> s"jsc -e|DYLD_FRAMEWORK_PATH:${sys.env.getOrElse("WEBKIT_HOME", "NO-DIRECTORY")}/WebkitBuild/Release",
   )
 
   /** default engine: (command, version) */
   lazy val defaultEngine: Option[(String, String)] = Try {
     // d8
-    val cmd = defaultCmd("d8").head._2
+    val cmd = defaultCmd("d8")
     s"$cmd ''".!!
     (cmd, runUsingBinary(cmd, "console.log(version());").get)
   }.recoverWith(e =>
@@ -46,7 +44,7 @@ object JSEngine {
   ).recoverWith(_ =>
     Try {
       // js
-      val cmd = defaultCmd("js").head._2
+      val cmd = defaultCmd("js")
       s"$cmd ''".!!
       (cmd, runUsingBinary("js", "--version").get)
     },
@@ -235,10 +233,10 @@ object JSEngine {
   }
 
   def runUsingD8(src: String): Try[String] =
-    runUsingBinary(defaultCmd("d8").head._2, src)
+    runUsingBinary(defaultCmd("d8"), src)
 
   def runUsingJs(src: String): Try[String] =
-    runUsingBinary(defaultCmd("js").head._2, src)
+    runUsingBinary(defaultCmd("js"), src)
 
   /** escape a string to a shell-safe string, enclosed by single quote */
   private def escape(string: String): String =

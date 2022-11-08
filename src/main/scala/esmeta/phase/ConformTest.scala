@@ -134,7 +134,7 @@ case object ConformTest
           s"[Exit Tag Mismatch]$LINE_SEP > Expected $exitTagRaw but got $concreteExitTag"
         else s"[Assertion Fail]$LINE_SEP > $stdout"
 
-      val db = s"$RESOURCE_DIR/bugs/${target.name}/${target.version}"
+      val db = s"$RESOURCE_DIR/bugs/${target.name}"
       val original = originalMap(name)
 
       val tag = tagFinder(target, db, original, code, detail)
@@ -201,16 +201,21 @@ case object ConformTest
     code: String,
     detail: String,
   ): Bug =
-    val Target(targetName, version, _) = target
-
     // search if this bug is already known
-    val buggies = walkTree(db).filter(jsFilter)
+    val buggies = listFiles(db).filter(jsFilter)
     val knownTag = buggies.foldLeft[Bug](NewBug("YET"))((cur, buggy) =>
       if (cur != NewBug("YET")) cur
-      else if sameScript(readFile(buggy.getPath), original) then
-        val dirname = buggy.getParentFile.getName
-        if dirname == "TODO" then TodoBug(buggy.getName, "YET")
-        else KnownBug(dirname)
+      else if containsScript(readFile(buggy.getPath), original) then
+        KnownBug(buggy.getName.dropRight(3))
+      else cur,
+    )
+
+    // search if this bug is already in TODO
+    val todos = listFiles(s"$db/TODO").filter(jsFilter)
+    val todoTag = todos.foldLeft(knownTag)((cur, todo) =>
+      if (cur != NewBug("YET")) cur
+      else if sameScript(readFile(todo.getPath), original) then
+        TodoBug(todo.getName, "YET")
       else cur,
     )
 
@@ -226,7 +231,7 @@ case object ConformTest
         Some(tag)
       else
         None
-    val tag = manualRule.foldLeft(knownTag)((cur, rule) =>
+    val tag = manualRule.foldLeft(todoTag)((cur, rule) =>
       cur match {
         case NewBug("YET") =>
           matched(rule).map(tag => NewBug(tag)).getOrElse(cur)
@@ -238,14 +243,24 @@ case object ConformTest
 
     tag
 
+  private def containsScript(lines: String, script: String): Boolean =
+    val scriptLine = script.split(LINE_SEP)(1)
+    println(s"Checking: $scriptLine")
+    println(
+      s"with$LINE_SEP$LINE_SEP${lines.split(LINE_SEP).toList}$LINE_SEP$LINE_SEP",
+    )
+    println(lines.split(LINE_SEP).exists(_.trim == scriptLine.trim))
+    lines.split(LINE_SEP).exists(_.trim == scriptLine.trim)
+
   private def sameScript(script1: String, script2: String): Boolean =
     (script1.split(LINE_SEP) zip script2.split(LINE_SEP)).forall(_ == _)
 
-  private def appendFile(data: Any, dir: String) =
+  private def appendFile(data: Any, dir: String) = synchronized {
     val names = listFiles(dir).map(_.getName.dropRight(3).toInt).sorted
     val emptyIdx =
       names.zipWithIndex.find(p => p._1 != p._2).map(_._2).getOrElse(names.size)
     dumpFile(data, s"$dir/$emptyIdx.js")
+  }
 
   private def toBugStat(fails: List[(String, String)]): Map[String, Int] =
     fails

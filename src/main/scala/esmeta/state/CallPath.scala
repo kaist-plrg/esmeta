@@ -10,12 +10,13 @@ case class CallPath(
   def +(call: Call): CallPath =
     if (visited contains call)
       var stack = path
+      var newVisited = visited
       while (
         stack match
-          case head :: tail => stack = tail; head != call
+          case head :: tail => stack = tail; newVisited -= head; head != call
           case _            => false
       ) {}
-      CallPath(call :: stack, visited)
+      CallPath(call :: stack, newVisited + call)
     else CallPath(call :: path, visited + call)
 }
 object CallPath {

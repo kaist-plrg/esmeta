@@ -127,8 +127,8 @@ class Coverage(
     baseDir = baseDir,
     withScripts = true,
     withScriptInfo = true,
-    withTargetCondViews = true,
-    withUnreachableFuncs = true,
+    withTargetCondViews = false,
+    withUnreachableFuncs = false,
     withMsg = withMsg,
   )
 
@@ -190,6 +190,7 @@ class Coverage(
         remove = true,
       )
       log("Dupmed assertions")
+      /*
       dumpJson(
         name =
           if (withMsg) Some("list of touched node view of minimal programs")
@@ -208,6 +209,7 @@ class Coverage(
         space = false,
       )
       log("dumped touched cond views")
+       */
     }
     if (withTargetCondViews)
       dumpJson(

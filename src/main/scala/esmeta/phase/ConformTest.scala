@@ -262,11 +262,11 @@ case object ConformTest
     val header = Vector("target", "bug-list", "fail-num")
     val body: List[Vector[String]] = result
       .map((target, fails) =>
-        val bugs = bugStat(target).keys.mkString("|")
+        val bugs = bugStat(target).keys.map(_ + "|").mkString("")
         Vector(target.name, bugs, fails.size.toString),
       )
       .toList
-    dumpRows(header :: body, s"$CONFORMTEST_LOG_DIR/summary.tsv")
+    dumpRows(header :: body, s"$CONFORMTEST_LOG_DIR/test-summary.tsv")
 
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(

@@ -10,6 +10,7 @@ import java.io.*
 
 /** Test262 test filter */
 case class TestFilter(tests: List[MetaData]) {
+  println(s"- TestFilter loaded for ${tests.length} tests.")
 
   /** configuration summary for applicable tests */
   lazy val summary = targetTests

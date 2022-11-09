@@ -268,6 +268,21 @@ case object CmdLocalize extends Command("localize", CmdBuildCFG >> Localize) {
     })
 }
 
+/** `categorize` command */
+case object CmdCategorize extends Command("categorize", CmdBase >> Categorize) {
+  val help = "categorize bug"
+  val examples = List(
+    "esmeta categorize minimal fails.json      # categorize",
+  )
+  override def showResult(result: Map[String, Map[String, Int]]): Unit =
+    result.foreach((target, bugStat) => {
+      println(s"[Categorization result for `$target`]")
+      bugStat.toSeq.sorted.foreach((bug, count) => {
+        println(s"$bug: $count")
+      })
+    })
+}
+
 /** `handle-coverage` command */
 case object CmdHandleCoverage
   extends Command("handle-coverage", CmdBuildCFG >> HandleCoverage) {

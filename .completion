@@ -11,7 +11,7 @@ _esmeta_completions() {
   local cur prev opts lastc informats outformats datafiles
   cur="${COMP_WORDS[COMP_CWORD]}"
   prev="${COMP_WORDS[COMP_CWORD-1]}"
-  cmdList="help extract compile build-cfg tycheck parse eval web test262-test inject mutate transcheck fuzz gen-test conform-test localize handle-coverage analyze"
+  cmdList="help extract compile build-cfg tycheck parse eval web test262-test inject mutate fuzz gen-test conform-test categorize handle-coverage analyze"
   globalOpt="-silent -error -status -time"
   helpOpt=""
   extractOpt="-extract:target -extract:log -extract:repl"
@@ -24,11 +24,10 @@ _esmeta_completions() {
   test262testOpt="-test262-test:debug -test262-test:log -test262-test:target -test262-test:progress -test262-test:coverage -test262-test:timeout -test262-test:k-fs -test262-test:cp -test262-test:no-test-mode"
   injectOpt="-inject:defs -inject:out -inject:log"
   mutateOpt="-mutate:out -mutate:mutator -mutate:untilValid"
-  transcheckOpt="-transcheck:dir -transcheck:debug"
   fuzzOpt="-fuzz:out -fuzz:log-interval -fuzz:debug -fuzz:timeout -fuzz:trial -fuzz:duration -fuzz:seed -fuzz:k-fs -fuzz:cp"
   gentestOpt="-gen-test:debug -gen-test:engines -gen-test:transpilers -gen-test:use-cache -gen-test:only"
   conformtestOpt="-conform-test:debug -conform-test:msgdir -conform-test:save-bugs"
-  localizeOpt="-localize:debug -localize:topN"
+  categorizeOpt=""
   handlecoverageOpt=""
   analyzeOpt="-analyze:repl"
   # completion for commands
@@ -87,10 +86,6 @@ _esmeta_completions() {
           COMPREPLY=($(compgen -W "${globalOpt} ${extractOpt} ${compileOpt} ${buildcfgOpt} ${mutateOpt}"))
           return 0
           ;;
-        transcheck)
-          COMPREPLY=($(compgen -W "${globalOpt} ${extractOpt} ${compileOpt} ${buildcfgOpt} ${transcheckOpt}"))
-          return 0
-          ;;
         fuzz)
           COMPREPLY=($(compgen -W "${globalOpt} ${extractOpt} ${compileOpt} ${buildcfgOpt} ${fuzzOpt}"))
           return 0
@@ -103,8 +98,8 @@ _esmeta_completions() {
           COMPREPLY=($(compgen -W "${globalOpt} ${gentestOpt} ${conformtestOpt}"))
           return 0
           ;;
-        localize)
-          COMPREPLY=($(compgen -W "${globalOpt} ${extractOpt} ${compileOpt} ${buildcfgOpt} ${localizeOpt}"))
+        categorize)
+          COMPREPLY=($(compgen -W "${globalOpt} ${categorizeOpt}"))
           return 0
           ;;
         handle-coverage)

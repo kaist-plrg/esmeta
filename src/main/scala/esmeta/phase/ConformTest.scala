@@ -35,6 +35,7 @@ case object ConformTest
   ): Result =
     _config = config
     config.msgdir.foreach(cleanDir)
+    cleanDir(s"$CONFORMTEST_LOG_DIR/msg")
 
     val (etestMap, ttestMap, originals) = input
 
@@ -146,11 +147,13 @@ case object ConformTest
 
       debug(s"$original$LINE_SEP$msg")
 
-      _config.msgdir.foreach(dir =>
+      def dumpMsg(dir: String) = {
         val path = s"$dir/$name.msg"
         val orig = optional(readFile(path)).getOrElse(original)
-        dumpFile(orig + LINE_SEP + msg, path),
-      )
+        dumpFile(orig + LINE_SEP + msg, path)
+      }
+      _config.msgdir.foreach(dumpMsg)
+      dumpMsg(s"$CONFORMTEST_LOG_DIR/msg")
 
       if (_config.saveBugs)
         val shortMsg = s"""TAG: ${tag.toString.replace("TODO", "NEW")}
@@ -245,11 +248,6 @@ case object ConformTest
 
   private def containsScript(lines: String, script: String): Boolean =
     val scriptLine = script.split(LINE_SEP)(1)
-    println(s"Checking: $scriptLine")
-    println(
-      s"with$LINE_SEP$LINE_SEP${lines.split(LINE_SEP).toList}$LINE_SEP$LINE_SEP",
-    )
-    println(lines.split(LINE_SEP).exists(_.trim == scriptLine.trim))
     lines.split(LINE_SEP).exists(_.trim == scriptLine.trim)
 
   private def sameScript(script1: String, script2: String): Boolean =

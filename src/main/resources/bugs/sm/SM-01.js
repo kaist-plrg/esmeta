@@ -1,1 +1,2 @@
 ! async function ( [ ] ) { } ( ) ; 
+~ async function ( [ ] ) { } ( ) ;

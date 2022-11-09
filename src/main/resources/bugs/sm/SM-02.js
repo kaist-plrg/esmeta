@@ -29,6 +29,7 @@ class x extends null { #x ; }
 class x extends null { 0 ( ) { } } 
 class x extends null { 0 ; } 
 class x extends null { ; } 
+class x extends null { static #x ( ) { } }
 class x extends null { static * #x ( ) { } } 
 class x extends null { static 0 ; } 
 class x extends null { static { } } 
@@ -67,12 +68,17 @@ class x { static 0 ; static 0 ; }
 class x { static 0 ; } 
 class x { static 0 = 0 ; } 
 class x { static 0 = class extends x { } ; } 
+class x { static 0 = new . target ; }
 class x { static 0 = super . x %= 0 ; } 
+class x { static 0 = super . x ; }
 class x { static 0 = super . x <<= 0 ? 0 : super . x = 0 || x ; } 
 class x { static 0 = super . x <<= 0 ? 0 : super . x = x || 0 ; } 
 class x { static 0 = super . x <<= super . x = 0 ; } 
 class x { static 0 = super . x <<= super . x ??= super . x |= 0 ; } 
+class x { static 0 = super . x = 0 ; }
 class x { static 0 = super . x ??= 0 ; } 
+class x { static 0 = super [ 0 ] ; }
+class x { static 0 = this ; }
 class x { static 0 = x ; } 
 class x { static 0 = x => 0 ; } 
 class x { static 0 = x ||= 0 ; } 
@@ -122,6 +128,7 @@ function x ( ) { } function x ( ) { }
 function x ( ) { } var x ; 
 function x ( ) { } x ( ) ; 
 function x ( [ ] = 0 , [ ] , x ) { } 
+function x ( x , [ ] , [ ] ) { }
 let [ x = class x { } ] = '' ; 
 let x = class x { } ; 
 var x = class x { } ; 

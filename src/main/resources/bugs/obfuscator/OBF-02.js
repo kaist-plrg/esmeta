@@ -2,10 +2,27 @@
 await : ; 
 await : x : ; 
 await ; 
+await ; var await ; 
+class await { } var x = await ; 
 for ( let x ; await ; ) ; 
+for ( let x ; await ; ) var await ; 
+for ( let x ; await ; 0 ) ; 
+for ( let x ; await ; 0 ) ; class await { } 
+for ( let x ; await ; 0 ) var await ; 
+for ( let x in [ 0 ] ) await ; 
+for ( let x of [ 0 ] ) await ; 
 for ( var x ; await ; ) ; 
+for ( var x ; await ; 0 ) ; 
+for ( var x in [ 0 ] ) await ; 
+for ( var x of [ 0 ] ) await ; 
+let await ; await ; 
+let await ; var [ ] = await ; 
+let x = await ; 
 new Promise ( await => { '' ( ) ?. x ; return 0 ? 0 : void 0 ; } ) ; 
 new Promise ( await => { 0 ( ) ?. x ; return 0 ? 0 : 0 <= 0 ; } ) ; 
 new Promise ( await => { 0 ( ) ?. x ; return 0 ? delete 0 : 0 ; } ) ; 
+var [ x = await ] = `` ; 
 var x = await ; 
+var { x = await } = 0 ; 
 x : await : ;
+x : await : break x ; 

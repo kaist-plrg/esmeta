@@ -1,1 +1,11 @@
+function x ( ) { } var [ x ] = { [ Symbol . iterator ] : function * ( ) { yield * x ?. ( ) ; } } ; 
 var [ , ] = { [ Symbol . iterator ] : function * ( ) { yield * 0 ; } } ;
+var [ x ] = { [ Symbol . iterator ] : function * ( ) { let x ; yield * x ; } } ; 
+var [ x ] = { [ Symbol . iterator ] : function * ( ) { yield * ! 0 ; } } ; 
+var [ x ] = { [ Symbol . iterator ] : function * ( ) { yield * '' . x ; } } ; 
+var [ x ] = { [ Symbol . iterator ] : function * ( ) { yield * 0 . x ; } } ; 
+var [ x ] = { [ Symbol . iterator ] : function * ( ) { yield * 0 ; } } ; 
+var [ x ] = { [ Symbol . iterator ] : function * ( ) { yield * 0n ; } } ; 
+var [ x ] = { [ Symbol . iterator ] : function * ( ) { yield * null ; } } ; 
+var [ x ] = { [ Symbol . iterator ] : function * ( ) { yield * x ; } } ; 
+var [ x ] = { [ Symbol . iterator ] : function * ( ) { yield * { [ Symbol . iterator ] : 0 } ; } } ; 

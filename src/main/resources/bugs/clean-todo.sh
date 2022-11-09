@@ -1,4 +1,4 @@
-for d in `find . -type d -d 1`; do
+for d in `find . -type d -d 1 | sort`; do
   echo "$d"
   for todo in `ls $d/TODO`; do
     target=`sed '2q;d' "$d/TODO/$todo"`

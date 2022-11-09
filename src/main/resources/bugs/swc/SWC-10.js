@@ -16,6 +16,7 @@ await ;
 for ( let x ; await ; ) ; 
 for ( var await of [ 0 ] ) ;
 for ( var x ; await ; ) ; 
+function await ( ) { } class x extends await { ; } 
 let await , x ;
 let await ;
 new function ( ... { x , ... await } ) { } ; 

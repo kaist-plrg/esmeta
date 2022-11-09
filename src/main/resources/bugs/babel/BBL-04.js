@@ -1,0 +1,2 @@
+! function * ( { } ) { } ( ) ; 
+! async function * ( [ ] ) { } ( ) ; 

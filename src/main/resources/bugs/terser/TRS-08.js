@@ -8,3 +8,4 @@
 [ ... function * ( ) { yield * x ; } ( ) ] ; 
 [ ... function * ( ) { yield x ; } ( ) ] ; 
 [ ... function * ( ) { yield * 0 ; } ( ) ] ;
+[ ... { [ Symbol . iterator ] : x => [ ] } ] ;

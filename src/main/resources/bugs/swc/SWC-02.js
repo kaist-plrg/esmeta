@@ -1,1 +1,2 @@
 new function ( { } ) { } ; 
+var [ x , { } ] = '' ;

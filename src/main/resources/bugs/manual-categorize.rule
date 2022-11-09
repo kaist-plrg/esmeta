@@ -14,43 +14,10 @@ AWAIT-FAIL|Parenthesized expression cannot be empty|but got transpile-failure
 AWAIT-FAIL|Invalid assignment|but got transpile-failure
 AWAIT-FAIL|Unexpected token|but got transpile-failure
 STATIC-SAME-NAME-FAIL|has already been declared|but got transpile-failure
-ECM-TO-STRING-IN-STATIC||[native code]
 JSC-PROP-ORDER| static |but got ["length", "prototype", "name"] for
 JSC-PROP-ORDER|{ * [|but got ["length", "prototype", "name"] for
 JSC-PROP-ORDER|{ async * [|but got ["length", "prototype", "name"] for
 SM-PROP-ORDER||"length", "name"] for
-F2STRING|Function(|SyntaxError
-F2STRING|eval(|SyntaxError
-F2STRING|eval.|SyntaxError
-F2STRING||but got "function
-F2STRING||but got "async
-F2STRING||but got "class
-F2STRING||", "function
-F2STRING||", "async 
-F2STRING||", "class
-F2STRING||but got ["function
-F2STRING||but got ["async 
-F2STRING||but got ["class
-F2STRING||"undefinedfunction
-F2STRING||"undefinedasync
-F2STRING||"undefinedclass
-F2STRING||"0function
-F2STRING||"0async
-F2STRING||"0class
-F2STRING||"[object Object]function
-F2STRING||"[object Object]async
-F2STRING||"[object Object]class
-F2STRING||Expected "x =>
-F2STRING||Expected "0x =>
-F2STRING||Expected ["x =>
-F2STRING||, "x =>
-F2STRING||should be "x =>
-F2STRING||should be "0x =>
-F2STRING||should be "undefinedx =>
-F2STRING||should be "NaNx =>
-F2STRING||should be "async
-F2STRING||but got "f"
-F2STRING|`|Expected "x" but got "_"
 DELETE-SUPER|delete super|but got throw-error: ReferenceError
 DSG-REMOVED-DELETE-SUPER||Expected throw-error: ReferenceError(Some(UnaryExpression[1,0].Evaluation ((step 5.b, 10:54-89))<SYNTAX>:UnaryExpression[1,0].Evaluation)) but got normal
 DSG-REMOVED-DELETE-SUPER||Expected throw-error: ReferenceError(UnaryExpression[1,0].Evaluation ((step 5.b, 10:54-89))<SYNTAX>:UnaryExpression[1,0].Evaluation) but got normal
@@ -78,7 +45,6 @@ BBL-NEW-TARGET|this instanceof x ? this.constructor|Expected normal but got thro
 SWC-ASSIGN-CONST-FAIL|cannot reassign to a variable declared with `const`|but got transpile-failure
 SWC-CHAIN-ASSIGN-OBJ|0..x|
 SWC-CHAIN-COMP-ASSIGN-SUPER-IN-STATIC|_get(_getPrototypeOf|Expected normal
-SWC-WRITABLE-CLASS-PROTOTYPE||descriptor should not be writable
 SWC-DESTRUCT-EMPTY-ARRAY|var ;|SyntaxError
 SWC-NESTED-ARRAY-SPARSE-FAIL|destructuring pattern binding requires initializer|but got transpile-failure
 SWC-DESTRUCTURING-UNDEFINED|!== null|Expected throw-error: TypeError(Some(RequireObjectCoercible<SYNTAX>:BindingPattern[0,0].BindingInitialization)) but got normal
@@ -149,9 +115,6 @@ JSC-IMP-LITERAL-LHS|) [ 0 |but got throw-error: SyntaxError
 SM-REJECTED-PROMISE| [ ] |Expected normal but got throw-error: TypeError
 SM-REJECTED-PROMISE| [ ] |Expected throw-value: 0.0f but got throw-error: TypeError
 SM-SET-PROTOTYPE-OF-THIS|setPrototypeOf ( this|Expected normal but got throw-error: TypeError
-OBF-DIRTY-THIS|this|"_0x
-OBF-DIRTY-THIS|function _0x|Expected normal but got throw-error: TypeError
-OBF-DIRTY-THIS|function(_0x|Expected normal but got throw-error: TypeError
 OBF-OPT-CALL-CHAIN-FAIL|TypeError: Cannot read properties of undefined (reading 'length')|but got transpile-failure
 OBF-ASYNC-DIV-FAIL|Unterminated regular expression|but got transpile-failure
 OBF-EXTENDS-BOOL|extends!|but got throw-error: SyntaxError
@@ -194,10 +157,6 @@ TRS-WRONG-AWAIT|class await{}await(|but got throw-error: TypeError
 TRS-BIGINT-DIV-0||RangeError(Some(BigInt::
 TRS-BIGINT-DIV-0||RangeError(BigInt::
 TRS-IIFE|0?.()|Invalid left-hand side ex:qpression
-ECM-TO-STRING-IN-STATIC| static |descriptor value of "0"
-ECM-TO-STRING-IN-STATIC|{static |descriptor value of "0"
-ECM-TO-STRING-IN-STATIC|_defineProperty|descriptor value of "0"
-ECM-NEG-0|*|Expected 0 but got «-0»
 NAME||descriptor value of "name"
 SHADOW-GETTER||descriptor should be writable
 BECOME-CONSTRUCTABLE||"prototype"] for
@@ -215,9 +174,6 @@ BECOME-CONSTRUCTABLE||Expected throw-error: TypeError(Some(NewPromiseCapability
 BECOME-CONSTRUCTABLE||Expected throw-error: TypeError(NewPromiseCapability
 BECOME-CONSTRUCTABLE||Expected throw-error: TypeError(Some(ClassTail
 BECOME-CONSTRUCTABLE||Expected throw-error: TypeError(ClassTail
-HELPER||_extends"
-HELPER||Loose"
-HELPER||_objectSpread
 ARR-REST-SPARSE||"length"] for Array.
 DSG-OBJ-REST-NULL|_extends|Expected throw-error: TypeError(Some(RequireObjectCoercible
 DSG-OBJ-REST-NULL|_extends|Expected throw-error: TypeError(RequireObjectCoercible
@@ -250,38 +206,6 @@ BBL-ENUMERABLE-GEN-FUNC|regeneratorRuntime|"constructor"
 BBL-ENUMERABLE-GEN-FUNC|for (0 .x in /*#__PURE__*/_regeneratorRuntime|Expected normal but got throw-error: TypeError
 CASE-SCOPE|switch|Expected undefined but got
 CASE-SCOPE?|{x:x=0|Expected undefined but got
-F2STRING?|} < |Expected true but got false.
-F2STRING?|} < |Expected false but got true.
-F2STRING?|} > |Expected true but got false.
-F2STRING?|} > |Expected false but got true.
-F2STRING?|} <= |Expected true but got false.
-F2STRING?|} <= |Expected false but got true.
-F2STRING?|} >= |Expected true but got false.
-F2STRING?|} >= |Expected false but got true.
-F2STRING?|) < |Expected ["true"] but got ["false"]
-F2STRING?|) < |Expected ["false"] but got ["true"]
-F2STRING?|) > |Expected ["true"] but got ["false"]
-F2STRING?|) > |Expected ["false"] but got ["true"]
-F2STRING?|) <= |Expected ["true"] but got ["false"]
-F2STRING?|) <= |Expected ["false"] but got ["true"]
-F2STRING?|) >= |Expected ["true"] but got ["false"]
-F2STRING?|) >= |Expected ["false"] but got ["true"]
-F2STRING?|}<|Expected true but got false.
-F2STRING?|}<|Expected false but got true.
-F2STRING?|}>|Expected true but got false.
-F2STRING?|}>|Expected false but got true.
-F2STRING?|}<=|Expected true but got false.
-F2STRING?|}<=|Expected false but got true.
-F2STRING?|}>=|Expected true but got false.
-F2STRING?|}>=|Expected false but got true.
-F2STRING?|) < |Expected true but got false.
-F2STRING?|) < |Expected false but got true.
-F2STRING?|) > |Expected true but got false.
-F2STRING?|) > |Expected false but got true.
-F2STRING?|) <= |Expected true but got false.
-F2STRING?|) <= |Expected false but got true.
-F2STRING?|) >= |Expected true but got false.
-F2STRING?|) >= |Expected false but got true.
 ASYNC-GENERATOR?||Expected the async function prototype but got undefined
 SCOPE?|var x1|Expected undefined but got
 LET2VAR?|this.x++|Expected NaN but got [object Object].
@@ -297,5 +221,4 @@ TRS-FUNC-LEN?|x(x|descriptor value of "length" should be
 YET-REMOVED-REF-ERR||Expected throw-error: ReferenceError
 YET-REMOVED-REF-ERR|_this$x|
 DSG-POW-BIGINT|Math.pow|TypeError: Cannot convert a BigInt value to a number
-THIS-0|this [ 0 ]|but got 0.
-THIS-0|this[0]|but got 0.
+SWC-WRITABLE-CLASS-PROTOTYPE||descriptor should not be writable

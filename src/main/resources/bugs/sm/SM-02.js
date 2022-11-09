@@ -14,6 +14,7 @@ class await { } await ;
 class await { } for ( var x of [ [ ] ? await : 0 ^ 0 ] ) ; 
 class await { } { await ; } 
 class await { } { { await ; } } 
+class x extends class { } { ; } 
 class x extends class { } { ; } new x ( ) ; 
 class x extends class { } { } 
 class x extends class { } { } new x ( ) ; 
@@ -32,6 +33,7 @@ class x extends null { static * #x ( ) { } }
 class x extends null { static 0 ; } 
 class x extends null { static { } } 
 class x extends null { } 
+class x { #x ( ) { } } 
 class x { #x ( ) { } } new x ( ) ; 
 class x { #x ; } 
 class x { #x ; } new x ( ) ; 
@@ -46,6 +48,7 @@ class x { ; ; }
 class x { ; static 0 = super . x ; } 
 class x { ; static set 0 ( x ) { } static 0 ; } 
 class x { ; } 
+class x { [ 0 ] ( ) { } } 
 class x { async #x ( ) { } } 
 class x { async * #x ( ) { } } 
 class x { async * 0 ( ) { } } 
@@ -53,13 +56,16 @@ class x { async 0 ( ) { } }
 class x { get #x ( ) { } } 
 class x { get 0 ( ) { } 0 ( ) { } } 
 class x { get 0 ( ) { } } 
+class x { set #x ( x ) { } } 
 class x { set 0 ( x ) { } } 
 class x { static #x ( ) { } } 
+class x { static #x ; } 
 class x { static #x = #x in x ; } 
 class x { static * #x ( ) { } } 
 class x { static 0 ( ) { } } 
 class x { static 0 ; static 0 ; } 
 class x { static 0 ; } 
+class x { static 0 = 0 ; } 
 class x { static 0 = class extends x { } ; } 
 class x { static 0 = super . x %= 0 ; } 
 class x { static 0 = super . x <<= 0 ? 0 : super . x = 0 || x ; } 

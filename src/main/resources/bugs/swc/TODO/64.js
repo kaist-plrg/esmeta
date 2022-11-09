@@ -1,5 +1,5 @@
 "use strict";
-eval ( `${ x => 0 ( ) . x = 0 }` ) ; 
+eval ( `${ x => async function x ( ) { } }` ) ; 
 
 /* TAG: NEW-F2STRING
 [Exit Tag Mismatch]

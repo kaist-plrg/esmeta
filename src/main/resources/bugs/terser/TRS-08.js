@@ -1,0 +1,10 @@
+[ , ... 0 ] ; 
+[ ... function * ( ) { yield * function * ( ) { x ( 0 ) ; } ( ) ; } ( ) ] ; 
+[ 0 , , ... 0 ] ; 
+[ ... function * ( ) { throw 0 ; } ( ) ] ; 
+[ 0 , ... 0 ] ; 
+[ ... function * ( ) { yield * 0 ( ) ; } ( ) ] ; 
+[ ... 0 ] ; 
+[ ... function * ( ) { yield * x ; } ( ) ] ; 
+[ ... function * ( ) { yield x ; } ( ) ] ; 
+[ ... function * ( ) { yield * 0 ; } ( ) ] ;

@@ -7,6 +7,9 @@ const { transpileUsing } = require("./trans-d.js");
 let transpile = (input) => {
   return babel.transform(input, {
     presets: ["env"],
+    plugins: [
+      ["transform-block-scoping", { tdz: true }],
+    ],
     sourceType: "script",
     assumptions: {
       noDocumentAll: true,

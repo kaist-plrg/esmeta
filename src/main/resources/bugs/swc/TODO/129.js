@@ -1,7 +1,7 @@
 "use strict";
 class x extends class { } { } new x ( ) ; 
 
-/* TAG: NEW-SWC-WRITABLE-CLASS-PROTOTYPE
+/* TAG: NEW-NAME
 [Assertion Fail]
  > descriptor should not be writable
 descriptor value of "name" should be "" but "_class"

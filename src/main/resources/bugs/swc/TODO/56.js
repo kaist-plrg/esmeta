@@ -1,7 +1,7 @@
 "use strict";
 class x { async * 0 ( ) { } } 
 
-/* TAG: NEW-SWC-WRITABLE-CLASS-PROTOTYPE
+/* TAG: NEW-NAME
 [Assertion Fail]
  > Expected the async generator function prototype but got [object Function].
 Expected [object Function] does not have [[Construct]] but does.

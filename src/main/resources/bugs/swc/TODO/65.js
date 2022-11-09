@@ -1,7 +1,7 @@
 "use strict";
 class x { static 0 = x => 0 ; } 
 
-/* TAG: NEW-SWC-WRITABLE-CLASS-PROTOTYPE
+/* TAG: NEW-NAME
 [Assertion Fail]
  > descriptor should not be writable
 Expected [object Function] does not have [[Construct]] but does.

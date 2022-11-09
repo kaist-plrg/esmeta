@@ -1,7 +1,7 @@
 "use strict";
 class x { '' ( ) { } } 
 
-/* TAG: NEW-SWC-WRITABLE-CLASS-PROTOTYPE
+/* TAG: NEW-NAME
 [Assertion Fail]
  > Expected [object Function] does not have [[Construct]] but does.
 Expected ["length", "name"] but got ["length", "name", "prototype"] for Function.

@@ -1,5 +1,5 @@
 "use strict";
-x = 0 ; let x ; 
+class x extends null { [ x = 0 ] ; } 
 
 /* TAG: NEW-YET-REMOVED-REF-ERR
 [Exit Tag Mismatch]

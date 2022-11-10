@@ -41,6 +41,7 @@ case object Categorize extends Phase[Unit, Map[String, Map[String, Int]]] {
     }
 
     dumpJson(result, s"$CATEGORIZE_LOG_DIR/result.json")
+    dumpSummary(result)
 
     result
 
@@ -58,6 +59,17 @@ case object Categorize extends Phase[Unit, Map[String, Map[String, Int]]] {
   private def containsScript(lines: String, script: String): Boolean =
     val scriptLine = script.split(LINE_SEP)(1)
     lines.split(LINE_SEP).exists(_.trim == scriptLine.trim)
+
+  private def dumpSummary(result: Map[Target, Map[Tag, Int]]) =
+    val header = Vector("target", "bug-list", "fail-num")
+    val body: List[Vector[String]] = result
+      .map((target, bugCount) =>
+        val bugs = bugCount.keys.map(_ + "|").mkString("")
+        val failNum = bugCount.values.foldLeft(0)(_ + _)
+        Vector(target, bugs, failNum.toString),
+      )
+      .toList
+    dumpRows(header :: body, s"$CATEGORIZE_LOG_DIR/test-summary.tsv")
 
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List()

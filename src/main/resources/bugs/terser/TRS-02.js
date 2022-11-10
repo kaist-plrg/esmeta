@@ -47,3 +47,32 @@ var { x = await } = 0 ;
 { { await ; } } 
 { { { await ; } } let await ; } 
 { { { await ; } } } 
+[ , ] = { [ Symbol . iterator ] : await => x } ;
+let x ; [ await ] = `` ;
+async function x ( ) { ; for await ( [ , 0 , ] [ 1 ] of [ 0 ] ) ; } x ( ) ;
+let x ; [ await ] = `` ; class await { }
+{ await ; } var await ;
+let x = await ; function await ( ) { }
+var [ , x = await ] = `` ; let await ;
+for ( let x of [ , ] ) await ;
+( await => await ) ( ) ;
+( x => await ) ( ) ; class await { }
+[ ] = { [ Symbol . iterator ] : await => x } ;
+var x = await ; class await { }
+var [ x = await ] = '' ;
+let x ; [ { 0 : await } = 0 ] = `` ; class await { }
+let x ; [ await = 0 ] = `` ; class await { }
+let x ; [ { 0 : x = await } = 0 ] = '' ;
+let x ; [ x = await ] = '' ; class await { }
+for ( ; await ; 0 ) ; class await { }
+async function x ( ) { ; for await ( [ , ] [ 0 ] of [ 0 ] ) ; } x ( ) ;
+var x = ( x => 0 ) ( ) [ await ] &&= 0 ;
+async function x ( ) { ; for await ( [ 0 ] [ 0 ] of [ 0 ] ) ; } x ( ) ;
+let x ; [ x = await ] = `` ;
+let x ; [ await = 0 ] = `` ;
+{ await ; } let await = 0 ; ;
+for ( var await of await ) ;
+let x ; [ { 0 : await = 0 } = 0 ] = '' ;
+for ( var x ; await ; 0 ) ; class await { }
+for ( var x in { x } ) await ;
+let x ; [ { 0 : await } = 0 ] = `` ;

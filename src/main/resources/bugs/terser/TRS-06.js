@@ -11,3 +11,8 @@ let x ; - class extends x { ; } ;
 ~ class x extends 0 { } ; 
 ~ { 0 : class extends 0 { } } ; 
 ~ { 1 : class extends 0 { } } ; 
+! class extends 0 { ; } ;
+- { 0 : class extends 0 { } } ;
+let x ; ! class extends x { ; } ;
+! class extends x { ; } ; var x ;
+- class x extends 0 { } ;

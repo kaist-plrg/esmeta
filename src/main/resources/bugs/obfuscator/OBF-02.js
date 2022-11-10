@@ -28,3 +28,32 @@ var x = await ;
 var { x = await } = 0 ; 
 x : await : ;
 x : await : break x ; 
+let x ; [ await ] = `` ; class await { }
+for ( let x of [ , ] ) await ;
+{ { await ; } }
+{ await } ;
+class x { set [ await . #x ] ( x ) { } get #x ( ) { } }
+let x ; [ x = await ] = '' ; class await { }
+for ( var x in { x } ) await ;
+let x ; [ { 0 : await } = 0 ] = `` ;
+for ( ; await ; 0 ) ; class await { }
+[ , ] = { [ Symbol . iterator ] : await => x } ;
+var [ x = await ] = '' ;
+let x ; [ await ] = `` ;
+let x = await ; function await ( ) { }
+{ await ; } var await ;
+[ ] = { [ Symbol . iterator ] : await => x } ;
+let x ; [ { 0 : x = await } = 0 ] = '' ;
+let x ; [ await = 0 ] = `` ; class await { }
+let x ; [ { 0 : await } = 0 ] = `` ; class await { }
+let x ; [ { 0 : await = 0 } = 0 ] = '' ;
+for ( var x ; await ; 0 ) ; class await { }
+var x = await ; class await { }
+var [ , x = await ] = `` ; let await ;
+var x = ( x => 0 ) ( ) [ await ] &&= 0 ;
+let x ; [ x = await ] = `` ;
+class x { set [ #x in await ?? 0 ] ( x ) { } get #x ( ) { } }
+( await => await ) ( ) ;
+let x ; [ await = 0 ] = `` ;
+{ await ; } let await = 0 ; ;
+for ( var await of await ) ;

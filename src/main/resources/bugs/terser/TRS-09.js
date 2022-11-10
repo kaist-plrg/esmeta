@@ -7,3 +7,14 @@
 0 in `${ 0 }` [ 0 ] ; 
 0 in true . x ; 
 let x ; x in 0 ; 
+`` . x in 0 ;
+0 in 0 !== 0 ;
+0 in { } . x ;
+for ( { x : 0 } . x in [ 0 ] ) ;
+0 in `` . x ;
+for ( [ , ] [ 0 ] in [ 0 ] ) ;
+( x => 0 in 0 ) ( ) ;
+0 in 1n . x ;
+( x => x in 0 ) ( ) ;
+( x => 0 in x ) ( ) ;
+0 in [ 0 ] [ 0 ] ;

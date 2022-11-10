@@ -258,3 +258,82 @@ x ( 0 ) ; async function * x ( x ) { }
 x ( 0 ) ; function * x ( ) { } 
 x ( 0 ) ; function * x ( ... x ) { } 
 x ( 0 ) ; function * x ( x ) { } 
+async function * x ( ) { yield 0 ; } [ , ] = { [ Symbol . iterator ] : async function * ( ) { yield * x ( ) ; } } ;
+async function * x ( x = 0 , ) { var x , x ; } x ( ) ;
+class x { static #x = #x in [ super . x ] ; }
+x !== 0 ; function x ( ) { }
+function x ( ) { } x &&= x ;
+( x => await ) ( ) ; function * await ( ) { }
+for ( var x of function * x ( ) { yield x ; } ( ) ) ;
+class x { static 0 = super [ { x } . x ] ; }
+class x { } x === [ ] ;
+async function * x ( x ) { function x ( ) { } function x ( ) { } } x ( ) ;
+async function * x ( ... x ) { } x ( 0 ) ;
+async function * x ( x ) { } x ( 0 ) ;
+async function x ( ) { ; for await ( x . x of [ 0 ] ) ; } x ( ) ;
+class x { static 0 = super [ { 0 : x } ] ; }
+function x ( ) { } x ?. ( ) ;
+class x { static #x = 0 ?. [ super . x ] ; }
+class x { static 0 = true . x ; }
+for ( var x of function * x ( ) { yield { x } ?. x ; } ( ) ) ;
+class x { static 0 = super [ 0 % super [ 0 ] ] ; }
+class x { static 0 = 0 . x ; }
+class x extends function ( ) { return { } ; } { } new x ( ) ;
+class x extends null { static 0 ; static get 0 ( ) { } }
+class x { static 0 = `${ x }` . x ; }
+function x ( ) { } null ?? this . x ;
+let x ; [ { 0 : x = class x { } } = 0 ] = '' ;
+class x { static 0 = super [ { [ x ] : x => 0 } ] ; }
+class x { } x &&= x ;
+let x = await ; function await ( ) { }
+class x { static 0 = `` . x ; }
+class x { static 0 = super [ 1n . x ] ; }
+class x { } switch ( x ) { case x : }
+x !== x ; function x ( ) { }
+class x { static #x = `` ?. [ 0 % 0 ] ; }
+function x ( ) { } [ { 0 : x = x } = 0 ] = '' ;
+class x { static 0 = super [ 0 ] ++ ; }
+function x ( ) { } x ? 0 : x ;
+class x { } x !== { } ;
+class x { static 0 = super [ ++ super . x ** 0 ] ; }
+class x { static 0 = super [ 0 [ super . x ] ] ; }
+class x { } x === x ;
+class x { set #x ( x ) { } get #x ( ) { } }
+class x { static 0 = super [ 0 < 0 + ~ 0 / 0 ] ; }
+class x { static 0 = super [ { [ 0 & 0 ] : super . x && 0 } ] ; }
+class x { static { var { } = x ; } }
+class x { static #x = '' [ 0 ] ; }
+class x { static 0 = super [ '' . x ] ; }
+class x { static 0 = { x } . x ; }
+class x { static 0 = super [ - super [ 0 ] ] ; }
+class x { static 0 = super [ 0 ] -- ; }
+class x { static 0 = super [ { [ x ?? 0 ] : x && 0 } ] ; }
+class x { static 0 = super . x ?. x ; }
+class x { } switch ( x ) { case '' : default : case x : }
+class x { ; get 0 ( ) { } * 0 ( ) { } }
+class x { } x &&= { x } . x ;
+class x { static 0 = super [ x . x ] ; }
+var [ x = class x { } ] = '' ;
+class x { static #x = `` ?. [ x ] ; }
+let x ; [ x = class x { } ] = `` ;
+class x { static 0 = super . x ** super . x ; }
+class x { static 0 = super [ ++ { x : super . x == 0 } . x ** 0 ] ; }
+class x { static 0 = super [ super . x > 0 ] ; }
+function * x ( ... x ) { } x ( 0 ) ;
+class x { static 0 = super [ ! x ] ; }
+class x { static 0 = 1n . x ; }
+function x ( ) { } [ x = x ] = `` ;
+class x { static 0 = super [ { [ 0 ^ 0 ] : x && x } ] ; }
+class x { static 0 = super [ { [ 0 ?? 0 ] : x && super [ 0 ] } ] ; }
+class await { } for ( var x of function * ( ) { yield await ; } ( ) ) ;
+class x { static 0 = super [ 0n ] ; }
+class x { static 0 = super [ '' [ 0 ] ] ; }
+class x { static 0 = 0 . x ** x ; }
+class x { static 0 = super [ '' [ 0 % 0 ] ] ; }
+function x ( ) { } 0 ? 0 : x ;
+class x { static 0 = super [ ++ { x : super . x } . x ** 0 ] ; }
+class x { static 0 = super [ ! + super . x ] ; }
+class x { static 0 = super [ x > super . x ] ; }
+class x { static 0 = super . x ** 0 ; }
+class x { static 0 = super [ typeof super [ 0 ] ] ; }
+class x { static 0 = x . x ; }

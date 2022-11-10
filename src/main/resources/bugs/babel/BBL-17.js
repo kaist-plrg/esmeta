@@ -13,6 +13,14 @@
 [ , ] = { [ Symbol . iterator ] : function * ( ) { yield * { [ Symbol . iterator ] : x => this } ; } } ;
 [ , ] = { [ Symbol . iterator ] : function * ( ) { yield * { [ Symbol . iterator ] : x => { } } ; } } ;
 [ , ] = { [ Symbol . iterator ] : function * ( ) { yield x ; ; } } ; let x ;
+for ( let x of { [ Symbol . iterator ] : function * ( ) { return yield * [ 0 , x , ] ; } } ) ;
+for ( var x of function * ( ) { yield * 0 ; } ( ) ) ;
+for ( var x of function * ( ) { yield * 0n ; } ( ) ) ;
+for ( var x of function * ( ) { yield * null ; } ( ) ) ;
+for ( var x of function * ( ) { yield * true ; } ( ) ) ;
+for ( var x of function * ( ) { yield * x ; } ( ) ) ;
+for ( var x of function * ( ) { yield * { [ Symbol . iterator ] : 0 } ; } ( ) ) ;
+for ( var x of function * x ( ) { yield * x ; } ( ) ) ;
 function x ( ) { } var [ x ] = { [ Symbol . iterator ] : function * ( ) { yield * x ?. ( ) ; } } ; 
 var [ , ] = { [ Symbol . iterator ] : function * ( ) { yield * 0 ; } } ;
 var [ x ] = { [ Symbol . iterator ] : function * ( ) { let x ; yield * x ; } } ; 

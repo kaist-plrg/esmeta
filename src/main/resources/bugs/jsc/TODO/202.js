@@ -1,0 +1,6 @@
+"use strict";
+for ( var x ; [ 0 > 0 , ] [ 0 ] ^= 0 ; 0 ) ; 
+
+/* TAG: NEW-JSC-ARR-LITERAL-LHS
+[Exit Tag Mismatch]
+ > Expected normal but got throw-error: SyntaxError(Exception: SyntaxError: Left hand side of operator '^=' must be a reference.) */

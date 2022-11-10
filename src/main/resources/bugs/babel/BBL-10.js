@@ -1,7 +1,13 @@
+class x { set [ #x in '' ?. [ 0 % 0 ] ?? 0 ] ( x ) { } get #x ( ) { } } 
+class x { set [ #x in '' ?. [ 0 ] ?? 0 ] ( x ) { } get #x ( ) { } } 
+class x { set [ #x in `${ 0 }` ?. [ 0 ] ?? 0 ] ( x ) { } get #x ( ) { } } 
+class x { static #x = #x in 0 % 0 >> super . x ; } 
+class x { static #x = #x in 0 ** void super . x ; } 
 class x { static #x = #x in 0 - super . x ; }
 class x { static #x = #x in 0 . x ; }
 class x { static #x = #x in 0 ; }
 class x { static #x = #x in 0 ?. [ super . x ] ; }
+class x { static #x = #x in 0n . x ; } 
 class x { static #x = #x in 1n . x ; }
 class x { static #x = #x in `${ 0 }` ?. [ 0 ] ; }
 class x { static #x = #x in `${ 0 }` [ 0 ] ; }

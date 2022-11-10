@@ -21,21 +21,23 @@ case object Categorize extends Phase[Unit, Map[String, Map[String, Int]]] {
     unit: Unit,
     cmdConfig: CommandConfig,
     config: Config,
-  ): Map[Target, Map[Tag, Int]] = 
+  ): Map[Target, Map[Tag, Int]] =
     // name of json files
     val scripts = cmdConfig.targets(0)
     val failsMapJson = cmdConfig.targets(1)
     val failsMap: Map[Target, Set[Test]] = readJson(failsMapJson)
 
     val init: Map[Target, Map[Target, Int]] = Map()
-    val result = failsMap.foldLeft(init){ case (cur, (target, fails)) =>
-      val db = s"$RESOURCE_DIR/bugs/$target"
-      cur + (target -> fails.foldLeft(Map[Target, Int]()){ case (count, test) =>
-        val script = readFile(s"$scripts/$test")
-        val tag = tagFinder(db, script)
-        val c = count.getOrElse(tag, 0) + 1
-        count + (tag -> c)
-      })
+    val result = failsMap.foldLeft(init) {
+      case (cur, (target, fails)) =>
+        val db = s"$RESOURCE_DIR/bugs/$target"
+        cur + (target -> fails.foldLeft(Map[Target, Int]()) {
+          case (count, test) =>
+            val script = readFile(s"$scripts/$test")
+            val tag = tagFinder(db, script)
+            val c = count.getOrElse(tag, 0) + 1
+            count + (tag -> c)
+        })
     }
 
     dumpJson(result, s"$CATEGORIZE_LOG_DIR/result.json")
@@ -50,11 +52,11 @@ case object Categorize extends Phase[Unit, Map[String, Map[String, Int]]] {
         if containsScript(readFile(buggy.getPath), script) then
           buggy.getName.dropRight(3)
         else cur
-      }
+      },
     )
-  
+
   private def containsScript(lines: String, script: String): Boolean =
-   val scriptLine = script.split(LINE_SEP)(1)
+    val scriptLine = script.split(LINE_SEP)(1)
     lines.split(LINE_SEP).exists(_.trim == scriptLine.trim)
 
   def defaultConfig: Config = Config()

@@ -24,6 +24,7 @@ case object GenTest
 
   private var _config: Config = null
   private var _onlySet: Option[Set[String]] = None
+  private var _skipSet: Option[Set[String]] = None
   private type Result = Map[Target, Iterable[Script]]
 
   def apply(
@@ -34,6 +35,8 @@ case object GenTest
     _config = config
     _onlySet =
       config.only.map(list => readFile(list).trim.split(LINE_SEP).toSet)
+    _skipSet =
+      config.skip.map(list => readFile(list).trim.split(LINE_SEP).toSet)
 
     // collect target scripts and assertions
     val (codeDir, assertionDir) = optional {
@@ -221,9 +224,13 @@ case object GenTest
           s" });$LINE_SEP",
         )
 
-  // skip the test if this test is not on the only-list.
+  // skip the test if this test should be skipped.
   private def skip(name: String): Boolean =
-    _onlySet.map(noSkips => !noSkips.contains(name)).getOrElse(false)
+    val skips = _skipSet.getOrElse(Set())
+    if (skips.contains(name))
+      true
+    else
+      _onlySet.map(noSkips => !noSkips.contains(name)).getOrElse(false)
 
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(
@@ -252,6 +259,11 @@ case object GenTest
       StrOption((c, s) => c.only = Some(s)),
       "file that contains test names to run only",
     ),
+    (
+      "skip",
+      StrOption((c, s) => c.skip = Some(s)),
+      "file that contains test names to skip",
+    ),
   )
   case class Config(
     var debug: Boolean = false,
@@ -259,5 +271,6 @@ case object GenTest
     var transpilers: Option[String] = None,
     var cache: Boolean = false,
     var only: Option[String] = None,
+    var skip: Option[String] = None,
   )
 }

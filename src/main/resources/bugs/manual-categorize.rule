@@ -1,5 +1,6 @@
 TAG|pattern in script|pattern in message
 TIMEOUT||but got timeout
+NATIVE-CODE||[native code]
 PRIVATE-FAIL|Unexpected token `#`|but got transpile-failure
 PRIVATE-FAIL|Unexpected token: privatename|but got transpile-failure
 SWC-NESTED-REST-FAIL|`...` must be followed by an identifier in declaration contexts|but got transpile-failure
@@ -115,6 +116,7 @@ JSC-IMP-LITERAL-LHS|) [ 0 |but got throw-error: SyntaxError
 SM-REJECTED-PROMISE| [ ] |Expected normal but got throw-error: TypeError
 SM-REJECTED-PROMISE| [ ] |Expected throw-value: 0.0f but got throw-error: TypeError
 SM-SET-PROTOTYPE-OF-THIS|setPrototypeOf ( this|Expected normal but got throw-error: TypeError
+ALL-TO-PRIMITIVE|Symbol . toPrimitive|but got throw-error: TypeError
 OBF-OPT-CALL-CHAIN-FAIL|TypeError: Cannot read properties of undefined (reading 'length')|but got transpile-failure
 OBF-ASYNC-DIV-FAIL|Unterminated regular expression|but got transpile-failure
 OBF-EXTENDS-BOOL|extends!|but got throw-error: SyntaxError

@@ -1,3 +1,15 @@
 ! async function ( [ ] ) { } ( ) ; 
+! async function ( [ ] , ... x ) { } ( ) ; 
+! async function ( x , [ ] ) { } ( ) ; 
 + async function ( [ ] ) { } ( ) ; 
++ async function ( [ ] , ... x ) { } ( ) ; 
++ async function ( x , [ ] ) { } ( ) ; 
+- async function ( [ ] ) { } ( ) ; 
+- async function ( [ ] , ... x ) { } ( ) ; 
+- async function ( x , [ ] ) { } ( ) ; 
+var x = 0 & async function ( [ ... x ] ) { } ( ) . x -- ;
+while ( async function ( ... [ [ x ] , ] ) { } ?. ( 0 ) ?. x ) ;
+x : if ( async function ( { } ) { } ( ) [ this ] ) ; else ;
 ~ async function ( [ ] ) { } ( ) ;
+~ async function ( [ ] , ... x ) { } ( ) ; 
+~ async function ( x , [ ] ) { } ( ) ; 

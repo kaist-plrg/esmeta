@@ -7,5 +7,7 @@ Object . setPrototypeOf ( 1n ) ;
 Object . setPrototypeOf ( `` ) ; 
 Object . setPrototypeOf ( true ) ; 
 Object . setPrototypeOf . call ( 0 , 0 ) ; 
+Object . setPrototypeOf . call ( 0 , 0 , 0 ) ; 
+Object . setPrototypeOf . call ( 0 , 0n ) ; 
 Object . setPrototypeOf . call ( 0 , `` ) ; 
 Object . setPrototypeOf . call ( 0 , true ) ; 

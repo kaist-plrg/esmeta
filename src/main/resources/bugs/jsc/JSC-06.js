@@ -1,3 +1,5 @@
+Array . from . call ( function x ( [ ] , ... x ) { } , 0 ) ;
+Array . from . call ( function x ( [ ] , ... x ) { } , `` ) ;
 `${ 0 }${ + '' }${ { [ Symbol . toPrimitive ] : async function * x ( x , [ ] , ) { } } }` ;
 async function x ( ) { } for ( x ; x instanceof 0 [ { [ Symbol . toPrimitive ] : async function * x ( x = 0 ) { } } ] -- ; ) ;
 let [ ] = new function x ( { x } ) { } | 0 , x ;

@@ -7,6 +7,8 @@ async function * x ( ) { let x ; } x ( ) ;
 async function * x ( ) { var x ; } x ( ) ; 
 async function * x ( ) { } 
 async function * x ( ) { } x ( ) ; 
+async function * x ( ... [ x , , ... [ ] ] ) { } x ( ) ;
+async function * x ( ... [ x = 0 , , ... [ ] ] ) { } x ( ) ;
 async function * x ( [ ] = '' , ... x ) { function x ( ) { } } x ( ) ; 
 async function * x ( [ ] = '' , ... x ) { var x , x ; } x ( ) ; 
 async function * x ( [ ] = '' , ... x ) { var x ; } x ( ) ; 
@@ -39,6 +41,10 @@ class x extends null { #x ; }
 class x extends null { 0 ( ) { } } 
 class x extends null { 0 ; } 
 class x extends null { ; } 
+class x extends null { [ [ [ ] . x = 0 , ] = `` ] ; }
+class x extends null { [ [ { } , ] = [ 0 ] ] ; }
+class x extends null { [ [ { } = 0 , ] = `` ] ; }
+class x extends null { [ [ { } = x => 0 , ] = `` ] ; }
 class x extends null { static #x ( ) { } }
 class x extends null { static #x ; } 
 class x extends null { static * #x ( ) { } } 
@@ -75,6 +81,8 @@ class x { get 0 ( ) { } * 0 ( ) { } }
 class x { get 0 ( ) { } 0 ( ) { } } 
 class x { get 0 ( ) { } async * 0 ( ) { } } 
 class x { get 0 ( ) { } async 0 ( ) { } } 
+class x { get 0 ( ) { } get 0 ( ) { } }
+class x { get 0 ( ) { } set 0 ( x ) { } }
 class x { get 0 ( ) { } } 
 class x { set #x ( x ) { } } 
 class x { set 0 ( x ) { } } 
@@ -86,6 +94,8 @@ class x { static #x ; }
 class x { static #x = #x in x ; } 
 class x { static #x = #x in { x } . x ; } 
 class x { static #x = 0 + super . x ; } 
+class x { static #x = 0 + typeof super . x ; }
+class x { static #x = 0 + ~ super . x ; }
 class x { static #x = `${ 0 }` [ 0 ] ; } 
 class x { static #x = `` [ 0 % 0 ] ; } 
 class x { static #x = `` [ 0 ] ; } 
@@ -99,11 +109,15 @@ class x { static #x = function ( ) { } ; }
 class x { static #x = function * ( ) { } ; } 
 class x { static #x = super . x ++ ; } 
 class x { static #x = super . x -- ; } 
+class x { static #x = super [ { [ 0 ] : super . x ^ x } ] ; }
 class x { static #x = super [ { [ 0 ^ 0 ] : super . x ^ x } ] ; } 
 class x { static #x = super [ { [ Symbol . toPrimitive ] : x => super . x = 0 } ] ; } 
 class x { static #x = super [ { [ Symbol . toPrimitive ] : x => super [ 0 ] } ] ; } 
 class x { static #x = super [ { x : super . x } ] ; } 
 class x { static #x = x => 0 ; } 
+class x { static #x = { get 0 ( ) { return ; } } [ 0 ] ; }
+class x { static #x = { get 0 ( ) { } } [ 0 ] ; }
+class x { static #x = { set 0 ( x ) { } } [ 0 ] ; }
 class x { static * #x ( ) { } } 
 class x { static 0 ( ) { } } 
 class x { static 0 ; static 0 ; } 
@@ -150,6 +164,9 @@ class x { static x = '' . x ; }
 class x { static x = 0 . x ; } 
 class x { static x = 1n . x ; } 
 class x { static x = new . target ; } 
+class x { static x = super . x ++ ; }
+class x { static x = super . x -- ; }
+class x { static x = super . x ?. x ; }
 class x { static x = super [ 0 ] ?. x ; } 
 class x { static x = true . x ; } 
 class x { static x = x . x ; } 
@@ -183,6 +200,7 @@ class x { static { var { x } = 0 ; } }
 class x { static { } } 
 class x { x ( ) { } } 
 class x { } 
+class x { } [ ] !== x ;
 class x { } switch ( x ) { case `` : default : case x : } 
 class x { } switch ( x ) { case x : ; } 
 class x { } switch ( x ) { case x : default : case x : } 
@@ -191,12 +209,15 @@ class x { } switch ( x ) { default : case x : ; }
 class x { } switch ( x ) { default : case x : } 
 class x { } switch ( { } ) { case x : default : case x : } 
 class x { } x !== x ; 
+class x { } x &&= class extends x { } ;
 class x { } x ??= 0 ; 
 class x { } x ||= 0 ; 
 function * x ( ) { const x = 0 ; } x ( ) ; 
 function * x ( ) { function x ( ) { } function x ( ) { } } x ( ) ; 
 function * x ( ) { let x ; } x ( ) ; 
 function * x ( ) { } 
+function * x ( ) { } [ , ... function * ( ) { yield * x ( ) ; yield * `` ; } ( ) ] ;
+function * x ( [ ] = 0 , [ ] , x ) { } 
 function * x ( x ) { var x ; } x ( ) ; 
 function * x ( x ) { } x ( ) ; 
 function * x ( x ) { } x ( 0 ) ; 
@@ -215,6 +236,7 @@ function x ( ) { } switch ( x ) { default : case x : }
 function x ( ) { } var x ; 
 function x ( ) { } x ( ) ; 
 function x ( [ ] = 0 , [ ] , x ) { } 
+function x ( await = 0 , x , [ ] ) { }
 function x ( x , [ ] , [ ] ) { }
 let [ x = class x { } ] = '' ; 
 let x = class x { } ; 

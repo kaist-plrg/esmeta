@@ -1,5 +1,7 @@
 ( await => 0 ) ( ) ; 
 ( await => 0 ) ( 0 ) ; 
++ { [ Symbol . toPrimitive ] : x => await } ;
+Array . prototype . reduce . call ( { length : { [ Symbol . toPrimitive ] : await => x } } ) ;
 await ; 
 await ; var await ; 
 class await extends await ?. x { } 

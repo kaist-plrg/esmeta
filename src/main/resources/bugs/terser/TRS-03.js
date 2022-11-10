@@ -7,5 +7,6 @@
 0 instanceof { [ Symbol . hasInstance ] : 0 } ;
 0 instanceof { } ;
 [ ] instanceof async function ( ) { } ;
+`${ 0 }` [ 0 ] instanceof { } ;
 let x ; x instanceof 0 ;
 var x ; x instanceof 0 ;

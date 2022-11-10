@@ -1,3 +1,18 @@
+[ , ... function * ( ) { yield * 0 ; } ( ) ] ; 
+[ , ] = { [ Symbol . iterator ] : function * ( ) { yield * ! 0 ; } } ;
+[ , ] = { [ Symbol . iterator ] : function * ( ) { yield * 0 . x ; } } ;
+[ , ] = { [ Symbol . iterator ] : function * ( ) { yield * 0 ; } } ;
+[ , ] = { [ Symbol . iterator ] : function * ( ) { yield * 0n ; } } ;
+[ , ] = { [ Symbol . iterator ] : function * ( ) { yield * `` . x ; } } ;
+[ , ] = { [ Symbol . iterator ] : function * ( ) { yield * `` [ 0 % 0 ] ; } } ;
+[ , ] = { [ Symbol . iterator ] : function * ( ) { yield * `` [ 0 ] ; } } ;
+[ , ] = { [ Symbol . iterator ] : function * ( ) { yield * null ; } } ;
+[ , ] = { [ Symbol . iterator ] : function * ( ) { yield * { [ Symbol . iterator ] : 0 } ; } } ;
+[ , ] = { [ Symbol . iterator ] : function * ( ) { yield * { [ Symbol . iterator ] : function ( ) { } } ; } } ;
+[ , ] = { [ Symbol . iterator ] : function * ( ) { yield * { [ Symbol . iterator ] : x => 0 } ; } } ;
+[ , ] = { [ Symbol . iterator ] : function * ( ) { yield * { [ Symbol . iterator ] : x => this } ; } } ;
+[ , ] = { [ Symbol . iterator ] : function * ( ) { yield * { [ Symbol . iterator ] : x => { } } ; } } ;
+[ , ] = { [ Symbol . iterator ] : function * ( ) { yield x ; ; } } ; let x ;
 function x ( ) { } var [ x ] = { [ Symbol . iterator ] : function * ( ) { yield * x ?. ( ) ; } } ; 
 var [ , ] = { [ Symbol . iterator ] : function * ( ) { yield * 0 ; } } ;
 var [ x ] = { [ Symbol . iterator ] : function * ( ) { let x ; yield * x ; } } ; 

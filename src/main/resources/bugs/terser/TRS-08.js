@@ -1,6 +1,14 @@
 ( x => [ ... x ] ) ( ) ;
 - { ... { get 0 ( ) { x ( ) ; } } } ; 
 [ , ... 0 ] ; 
+[ , ... function * ( ) { 0 ( ) ; } ( ) ] ;
+[ , ... function * ( ) { 0 ( ) ; } ( ) ] ; 
+[ , ... function * ( ) { x ( ) ; } ( ) ] ;
+[ , ... function * ( ) { yield * 0 ; } ( ) ] ;
+[ , ... function * ( ) { yield * x ; } ( ) ] ;
+[ , ... function * ( ) { yield * { [ Symbol . iterator ] : async x => 0 } ; } ( ) ] ;
+[ , ... function * ( ) { yield 0 . x ??= yield ; } ( ) ] ;
+[ , ... function * ( ) { yield x ; } ( ) ] ;
 [ ... ! 0 ] ;
 [ ... 0 . x ] ;
 [ ... 0 ] ; 
@@ -25,3 +33,5 @@
 [ ... { [ Symbol . iterator ] : { } } ] ; 
 [ 0 , , ... 0 ] ; 
 [ 0 , ... 0 ] ; 
+let x ; [ ... x ] ;
+var x ; [ ... x ] ;

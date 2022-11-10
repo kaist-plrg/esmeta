@@ -9,6 +9,9 @@
 + { [ Symbol . toPrimitive ] : x => function ( ) { } ( ) . x ?. x ** 0 } ;
 + { [ { [ Symbol . toPrimitive ] : 0 } ] : 0 } ;
 - [ { [ Symbol . toPrimitive ] : 0 } ] ; 
+- [ { [ Symbol . toPrimitive ] : class { } } ] ;
+- [ { [ Symbol . toPrimitive ] : x => [ ] } ] ;
+- [ { [ Symbol . toPrimitive ] : { } } ] ;
 - { 0 : 0 , 0 : 0 || 0 ^ { [ Symbol . toPrimitive ] : 0 } != 0 , } ; 
 - { [ Symbol . toPrimitive ] : 0 } ; 
 - { [ Symbol . toPrimitive ] : class { } } ; 
@@ -73,9 +76,12 @@
 0 > { [ Symbol . toPrimitive ] : { } } ; 
 0 >= [ { [ Symbol . toPrimitive ] : 0 } ] ; 
 0 >= { [ Symbol . toPrimitive ] : 0 } ; 
+0 >= { [ Symbol . toPrimitive ] : async x => 0 ?. ( ) } ;
 0 >= { [ Symbol . toPrimitive ] : async x => await 0 ?. x ( ) } ; 
 0 >= { [ Symbol . toPrimitive ] : async x => x %= 0 ?. ( ) } ; 
 0 >= { [ Symbol . toPrimitive ] : class { } } ; 
+0 >= { [ Symbol . toPrimitive ] : x => ( x => null ) ( ) . x ?. x } ;
+0 >= { [ Symbol . toPrimitive ] : x => ( x => x ) ( ) . x ?. x } ;
 0 >= { [ Symbol . toPrimitive ] : x => 0 [ 0 ( ) ] } ; 
 0 >= { [ Symbol . toPrimitive ] : x => [ ] } ; 
 0 >= { [ Symbol . toPrimitive ] : x => delete 0 ( ) } ; 
@@ -109,6 +115,7 @@
 0 ?. [ { [ Symbol . toPrimitive ] : class { } } ] ; 
 0 ?. [ { [ Symbol . toPrimitive ] : x => [ ] } ] ; 
 0 ?. [ { [ Symbol . toPrimitive ] : x => await } ] ; 
+0 [ { [ Symbol . toPrimitive ] : 0 } % 0 ] ;
 0 [ { [ Symbol . toPrimitive ] : 0 } ] ;
 0 [ { [ Symbol . toPrimitive ] : class { } } ] ; 
 0 [ { [ Symbol . toPrimitive ] : x => [ ] } ] ; 
@@ -137,6 +144,7 @@
 1 >= { [ Symbol . toPrimitive ] : { } } ; 
 [ { [ Symbol . toPrimitive ] : 0 } ] < 0 ; 
 [ { [ Symbol . toPrimitive ] : 0 } ] <= 0 ; 
+[ { [ Symbol . toPrimitive ] : 0 } ] > 0 ;
 [ { [ Symbol . toPrimitive ] : 0 } ] > `` ; 
 `${ 0 }${ 0 }${ { [ Symbol . toPrimitive ] : 0 } }` ; 
 `${ 0 }${ 0 }${ { [ Symbol . toPrimitive ] : class { } } }` ; 
@@ -167,4 +175,5 @@
 ~ { [ { [ Symbol . toPrimitive ] : 0 } ] : 0 } ; 
 ~ { [ { [ Symbol . toPrimitive ] : [ ] } ] : 0 } ; 
 ~ { [ { [ Symbol . toPrimitive ] : class { } } ] : 0 } ; 
+~ { [ { [ Symbol . toPrimitive ] : x => [ ] } ] : 0 } ;
 ~ { [ { [ Symbol . toPrimitive ] : x => new 0 } ] : 0 } ; 

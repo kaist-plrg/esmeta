@@ -4,6 +4,8 @@
 + { x : class extends 0 { } } ;
 - class extends 0 { ; } ; 
 - class extends 0 { } ; 
+- class extends x { ; } ; var x ;
+let x ; - class extends x { ; } ;
 ~ class extends 0 { ; } ; 
 ~ class extends 0 { } ;
 ~ class x extends 0 { } ; 

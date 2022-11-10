@@ -153,6 +153,7 @@ class x { x ( ) { } }
 function * x ( ) { const x = 0 ; } x ( ) ; 
 function * x ( ) { function x ( ) { } function x ( ) { } } x ( ) ; 
 function * x ( ) { }
+function * x ( ) { } [ , ... function * ( ) { yield * x ( ) ; yield * `` ; } ( ) ] ;
 function * x ( x ) { var x ; } x ( ) ; 
 function * x ( x ) { } x ( 0 ) ; 
 function * x ( x = 0 ) { var await ; } x ( ) ; 

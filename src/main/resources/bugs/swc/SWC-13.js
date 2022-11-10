@@ -1,6 +1,10 @@
 class x extends null { #x ( ) { } } 
 class x extends null { 0 ; } 
 class x extends null { ; } 
+class x extends null { [ [ [ ] . x = 0 , ] = `` ] ; }
+class x extends null { [ [ { } , ] = [ 0 ] ] ; }
+class x extends null { [ [ { } = 0 , ] = `` ] ; }
+class x extends null { [ [ { } = x => 0 , ] = `` ] ; }
 class x extends null { static #x ( ) { } } 
 class x extends null { static 0 ; } 
 class x extends null { static { } } 

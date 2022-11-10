@@ -81,6 +81,7 @@ SWC-COMPUTED-THIS|this[0]|Expected normal but got throw-error: TypeError
 SWC-COMPUTED-THIS|this.x|Expected normal but got throw-error: TypeError
 SWC-ASYNC-POSTFIX-DECR|}().x--;|SyntaxError: Function statements require a function name
 SWC-ASYNC-POSTFIX-INCR|}().x++;|SyntaxError: Function statements require a function name
+SWC-AWAIT-FOR|x = _value;|Expected undefined but got [object Function].
 GRL-NORMALIZE|normalize|RangeError
 GRL-SETPROTOTYPEOF|setPrototypeOf|TypeError(Some(INTRINSICS.Object.setPrototypeOf
 GRL-SETPROTOTYPEOF|setPrototypeOf|TypeError(INTRINSICS.Object.setPrototypeOf
@@ -224,3 +225,4 @@ YET-REMOVED-REF-ERR||Expected throw-error: ReferenceError
 YET-REMOVED-REF-ERR|_this$x|
 DSG-POW-BIGINT|Math.pow|TypeError: Cannot convert a BigInt value to a number
 SWC-WRITABLE-CLASS-PROTOTYPE||descriptor should not be writable
+SWC-PRIVATE?|_ref|PrivateGet

@@ -1,4 +1,6 @@
+async function * x ( ) { } [ { } ] = { [ Symbol . iterator ] : x } ; 
 for ( let { } of [ , ] ) ;
+for ( var { } of function * x ( ) { yield ; } ( ) ) ; 
 let x ; var { 0 : { } = x } = 0 ; 
 let { } = '' . x ;
 let { } = '' [ 0 % 0 ] ; 

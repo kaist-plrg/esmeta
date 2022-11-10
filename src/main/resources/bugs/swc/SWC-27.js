@@ -1,1 +1,11 @@
 [ , ... function * ( ) { yield * { [ Symbol . iterator ] : async x => 0 } ; } ( ) ] ; 
+[ , ] = { [ Symbol . iterator ] : function * ( ) { yield * { [ Symbol . iterator ] : function ( ) { } } ; } } ; 
+[ , ] = { [ Symbol . iterator ] : function * ( ) { yield * { [ Symbol . iterator ] : x => 0 } ; } } ; 
+[ , ] = { [ Symbol . iterator ] : function * ( ) { yield * { [ Symbol . iterator ] : x => this } ; } } ; 
+[ , ] = { [ Symbol . iterator ] : function * ( ) { yield * { [ Symbol . iterator ] : x => { } } ; } } ; 
+for ( let x of { [ Symbol . iterator ] : function * ( ) { return yield * [ 0 , x , ] ; } } ) ; 
+for ( var x of function * ( ) { yield * { [ Symbol . iterator ] : function ( ) { } } ; } ( ) ) ; 
+for ( var x of function * ( ) { yield * { [ Symbol . iterator ] : x => 0 } ; } ( ) ) ; 
+for ( var x of function * ( ) { yield * { [ Symbol . iterator ] : x => { } } ; } ( ) ) ; 
+for ( var x of function * x ( ) { yield * x ; } ( ) ) ; 
+for ( var x of function * x ( ) { yield * { [ Symbol . iterator ] : x => [ ] } ; } ( ) ) ; 

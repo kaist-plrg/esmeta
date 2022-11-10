@@ -27,7 +27,7 @@ case object HandleCoverage extends Phase[CFG, Unit] {
 
       val test262Dir = cmdConfig.targets(0)
       val allDir = cmdConfig.targets(1)
-
+      /*
       // Compare test 262 with fuzzer
       val header = Vector("sens", "left-only", "both", "right-only")
       val body = for {
@@ -36,7 +36,7 @@ case object HandleCoverage extends Phase[CFG, Unit] {
         if (k > 0 || !cp)
       } yield compareCoverage(test262Dir, allDir, k, cp)
       dumpRows(header +: body, s"$HANDLE_COVERAGE_LOG_DIR/test262-cmp.csv")
-
+       */
       // draw #call-path histogram
       drawKGraph(1, allDir)
       drawKGraph(2, allDir)
@@ -112,10 +112,6 @@ case object HandleCoverage extends Phase[CFG, Unit] {
 
     val encCount = countBy(totalCount, _._2).toSeq.sortBy(_._1)
 
-    val header = Vector("#enclosing", "#test requirement")
-    val body = encCount.map((k, v) => Vector(k, v).map(_.toString))
-    dumpRows(header +: body, s"$HANDLE_COVERAGE_LOG_DIR/$k-graph.tsv")
-
     val max = encCount.last._1
     println(s"Maximum: $max")
     maximumTxt.println(s"Maximum: $max")
@@ -125,6 +121,13 @@ case object HandleCoverage extends Phase[CFG, Unit] {
         println(s" - $view")
         maximumTxt.println(s" - $view"),
       )
+
+    val header = Vector("#enclosing", "#test requirement")
+    val body =
+      Range(0, max + 1).map(k =>
+        Vector(k, encCount.toMap.getOrElse(k, 0)).map(_.toString),
+      )
+    dumpRows(header +: body, s"$HANDLE_COVERAGE_LOG_DIR/$k-graph.tsv")
 
   private def drawCpGraph(k: Int, basedir: String) =
     println(s"Drawing cp-graph for $k vs $k-cp...")
@@ -145,10 +148,6 @@ case object HandleCoverage extends Phase[CFG, Unit] {
 
     val cpCount = countBy(totalCount, _._2).toSeq.sortBy(_._1)
 
-    val header = Vector("#call path", "#test requirement")
-    val body = cpCount.map((k, v) => Vector(k, v).map(_.toString))
-    dumpRows(header +: body, s"$HANDLE_COVERAGE_LOG_DIR/$k-cp-graph.tsv")
-
     val max = cpCount.last._1
     println(s"Maximum: $max")
     maximumTxt.println(s"Maximum: $max")
@@ -158,6 +157,12 @@ case object HandleCoverage extends Phase[CFG, Unit] {
         println(s" - $view")
         maximumTxt.println(s" - $view"),
       )
+
+    val header = Vector("#call path", "#test requirement")
+    val body = Range(0, max + 1).map(k =>
+      Vector(k, cpCount.toMap.getOrElse(k, 0)).map(_.toString),
+    )
+    dumpRows(header +: body, s"$HANDLE_COVERAGE_LOG_DIR/$k-cp-graph.tsv")
 
   private lazy val maximumTxt: PrintWriter = getPrintWriter(
     s"$HANDLE_COVERAGE_LOG_DIR/maximum.txt",

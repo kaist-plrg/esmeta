@@ -11,6 +11,7 @@
 - [ { [ Symbol . toPrimitive ] : 0 } ] ; 
 - [ { [ Symbol . toPrimitive ] : class { } } ] ;
 - [ { [ Symbol . toPrimitive ] : x => [ ] } ] ;
+- [ { [ Symbol . toPrimitive ] : x => await } ] ;
 - [ { [ Symbol . toPrimitive ] : { } } ] ;
 - { 0 : 0 , 0 : 0 || 0 ^ { [ Symbol . toPrimitive ] : 0 } != 0 , } ; 
 - { [ Symbol . toPrimitive ] : 0 } ; 

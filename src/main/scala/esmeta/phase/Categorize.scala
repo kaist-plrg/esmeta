@@ -35,8 +35,10 @@ case object Categorize extends Phase[Unit, Map[String, Map[String, Int]]] {
           case (count, test) =>
             val script = readFile(s"$scripts/$test")
             val tag = tagFinder(db, script)
-            val c = count.getOrElse(tag, 0) + 1
-            count + (tag -> c)
+            if (!blackList.contains(tag))
+              val c = count.getOrElse(tag, 0) + 1
+              count + (tag -> c)
+            else count
         })
     }
 
@@ -70,6 +72,8 @@ case object Categorize extends Phase[Unit, Map[String, Map[String, Int]]] {
       )
       .toList
     dumpRows(header :: body, s"$CATEGORIZE_LOG_DIR/test-summary.tsv")
+
+  private val blackList = List("OBF-V8", "ECM-01")
 
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List()

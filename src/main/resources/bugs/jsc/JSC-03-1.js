@@ -86,3 +86,17 @@ let [ ] = `${ 0 }${ [ ~ 0 , ] [ 0 ] ||= 0 }` ? 0 : 0 ;
 [ ~ ! 0 , ] [ 0 ] /= 0 ;
 0 . x *= [ 0 ** ~ 0 , ] [ 0 ] /= - 0 ;
 for ( let x of [ - + 0 , ] [ 0 ] -= 0 ) ;
+class x { static 0 = super [ [ x &= super . x , ] [ 0 ] ??= 0 ] ; }
+class x { static 0 = super [ [ x &= super . x ++ , ] [ 0 ] ??= 0 ] ; }
+class x { static 0 = super [ [ x += 0n , ] [ 0 ] ??= 0 ] ; }
+class x { static 0 = super [ [ x += 0 < 0 , ] [ 0 ] ??= 0 ] ; }
+class x { static 0 = super [ [ x += 0 | super . x , ] [ 0 ] ??= 0 ] ; }
+class x { static 0 = super [ [ x &= 0 , ] [ 0 ] ??= 0 ] ; }
+class x { static 0 = super [ [ super . x &&= 0 , ] [ 0 ] ??= 0 ] ; }
+class x { static 0 = super [ [ x += 0 , ] [ 0 ] ??= 0 ] ; }
+class x { static 0 = super [ [ x &= x , ] [ 0 ] ??= 0 ] ; }
+class x { static 0 = super [ [ super . x &= 0 , ] [ 0 ] ??= 0 ] ; }
+class x { static 0 = super [ [ x += void 0 , ] [ 0 ] ??= 0 ] ; }
+class x { static 0 = super [ [ x += 0 <= 0 , ] [ 0 ] ??= 0 ] ; }
+class x { static 0 = super [ [ x += null , ] [ 0 ] ??= 0 ] ; }
+class x { static 0 = super [ [ x &= x | 0 , ] [ 0 ] ??= 0 ] ; }

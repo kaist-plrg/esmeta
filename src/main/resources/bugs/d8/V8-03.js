@@ -1,1 +1,4 @@
-for ( var { } of { [ Symbol . iterator ] : async function * ( ) { try { while ( await this ) ; } finally { } } } ) ; 
+0 ?. x ( 0 , x = this . x -- , ) ;
+x = this . x %= 0 ;
+x = this . x = 0 ; 
+{ x = this . x ++ ; }

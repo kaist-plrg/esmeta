@@ -1,12 +1,17 @@
 '' ?. x [ { [ Symbol . toPrimitive ] : x => await } ] . x ( ) ; 
+0 . x ??= ~ null [ { [ Symbol . toPrimitive ] : x => { throw 0 ; } } ] `` ;
+0 ?. x [ [ { [ Symbol . toPrimitive ] : function ( ) { x ( ) ; } } , ] ] ;
+0 ?. x [ { [ Symbol . toPrimitive ] : ( ) => { throw 0 ; } } ] ( ) ;
 0 ?. x [ { [ Symbol . toPrimitive ] : ( ) => { throw 0 ; } } ] . x ( ) ; 
 0 ?. x [ { [ Symbol . toPrimitive ] : x => await } ] ; 
-0 . x ??= ~ null [ { [ Symbol . toPrimitive ] : x => { throw 0 ; } } ] `` ;
+class x { [ { [ { [ Symbol . toPrimitive ] : async function ( x ) { } } ] : x = 0 } ] ; } 
 class x { } this ?. x [ { [ Symbol . toPrimitive ] : ( ) => { throw 0 ; } } ] ;
-0 ?. x [ [ { [ Symbol . toPrimitive ] : function ( ) { x ( ) ; } } , ] ] ;
 for ( ; 0 . x [ { [ Symbol . toPrimitive ] : x => { throw 0 ; } } ] ; ) ;
-0 ?. x [ { [ Symbol . toPrimitive ] : ( ) => { throw 0 ; } } ] ( ) ;
 for ( let x of function ( ) { } ( ) [ { [ Symbol . toPrimitive ] : ( ) => { throw 0 ; } } ] ) ;
 let { x } = typeof '' [ 0 ] [ { [ Symbol . toPrimitive ] : ( ) => { throw 0 ; } } ] ;
+new class { 0 = super [ delete super [ { [ Symbol . toPrimitive ] : '' } ] ] ; } ; 
+new class { 0 = super [ delete super [ { [ Symbol . toPrimitive ] : async function * ( ) { } } ] ] ; } ; 
+new class { 0 = super [ delete super [ { [ Symbol . toPrimitive ] : { } } ] ] ; } ;
+new class { 0 = super [ delete super [ { [ Symbol . toPrimitive ] : { } } ] ] ; } ; 
 new { [ function ( ) { } ( ) [ { [ Symbol . toPrimitive ] : ( ) => { throw 0 ; } } ] ] : 0 } ;
 var x = 0 | x [ { [ Symbol . toPrimitive ] : ( ) => { throw 0 ; } } ] ;

@@ -31,6 +31,7 @@ class x { static 0 = super [ x ] ++ ; }
 class x { static 0 = super [ x ] -- ; } 
 class x { static 0 = super [ x ] = 0 ; } 
 class x { static 0 = super [ x ] ??= 0 ; } 
+class x { static 0 = super [ x ] ||= 0 ; } 
 class x { static 0 = super [ { [ Symbol . toPrimitive ] : function ( ) { } } ] + x ; } 
 class x { static 0 = super [ { x } . x ] + x ; } 
 class x { static 0 = super [ { x } . x ] -- ; } 
@@ -43,7 +44,9 @@ class x { static 0 = x + 0 ; }
 class x { static 0 = x + 1n ; } 
 class x { static 0 = x . x + x ; } 
 class x { static 0 = x > [ 0 != 0 >> 0 ] ; }
+class x { static 0 = { [ Symbol ] : 0 } ; } 
 class x { static 0 = { x } . x + x ; } 
 class x { static { if ( ++ super [ x ] ) ; else ; } } 
 class x { static { if ( ++ super [ { x } ?. x ] - x ) ; else ; } } 
 class x { static { if ( 0 ?. [ 0 >= ++ super [ x ] ] ** 0 ) ; } } 
+class x { static { if ( super [ x ] ||= 0 ) ; } } 

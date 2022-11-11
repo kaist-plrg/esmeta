@@ -40,6 +40,7 @@ Array . from . call ( function x ( [ ] , ... x ) { } , `` ) ;
 `${ 0 }${ + '' }${ { [ Symbol . toPrimitive ] : async function * x ( x , [ ] , ) { } } }` ;
 `${ 0 }${ 0 }${ { [ Symbol . toPrimitive ] : function * x ( x , [ ] = 0 ) { } } + 0 }` ;
 async function x ( ) { } for ( x ; x instanceof 0 [ { [ Symbol . toPrimitive ] : async function * x ( x = 0 ) { } } ] -- ; ) ;
+class x { static 0 = super [ { [ Symbol . toPrimitive ] : async function * x ( [ ] , x , ) { } } ] ; } 
 for ( ; async function x ( [ x , ] ) { } ( ) ( ) ; 0 ) ;
 for ( [ , ] of [ { [ Symbol . iterator ] : async function * x ( ) { yield * x = yield * { [ Symbol . iterator ] : async function * x ( { ... x } ) { } } ; } } , ] ) ;
 for ( [ ] in function * x ( [ ] = 0 , x ) { } ) ;

@@ -16,6 +16,7 @@
 `${ ! 0 }` [ 0 ] ||= 0 ;
 `${ ! 1 }` [ 0 ] ||= 0 ;
 class x { [ `${ x , 0 }` [ 0 ] ??= 0 ] ; }
+class x { static 0 = `${ 0 , 0 }` [ 0 ] ??= x => 0 ; } 
 class x { static 0 = super [ [ x += null , ] [ 0 ] ??= 0 ] ; }
 for ( [ , ] of [ { [ Symbol . iterator ] : async function * ( ) { return yield * `${ 0 . x ??= yield }${ x => 0 }` [ 0 ] %= 0 ; } } , ] ) ;
 for ( [ , ] of [ { [ Symbol . iterator ] : async function * ( ) { return yield * `${ 0 }${ yield * ! 0 }` [ 0 ] %= 0 ; } } , ] ) ;

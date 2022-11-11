@@ -10,3 +10,5 @@ new class { 0 = super [ delete super [ { [ Symbol . toPrimitive ] : { } } ] ] ; 
 x = this . x %= 0 ; 
 x = this . x = 0 ; 
 { x = this . x ++ ; } 
+class x { static 0 = super [ x ] ||= 0 ; }
+class x { static { if ( super [ x ] ||= 0 ) ; } }

@@ -33,11 +33,15 @@ class x { static #x = { x } . x . #x ; }
 class x { static #x = { x } = 0 ; } 
 class x { static #x = { x } ?. x . #x ; } 
 class x { static 0 = 0 . x ** x ; } 
+class x { static 0 = 0 === x in 0 ; }
 class x { static 0 = `${ x }` . x ; } 
 class x { static 0 = class extends x { } ; } 
 class x { static 0 = super [ ! x ] ; } 
 class x { static 0 = super [ ! x ] ; } 
 class x { static 0 = super [ ++ x ** 0 ] ; }
+class x { static 0 = super [ 0 in 0 / x ] ; }
+class x { static 0 = super [ 0 in super . x / x ] ; }
+class x { static 0 = super [ super [ x ] in 0 > 0 ] ; }
 class x { static 0 = super [ x . x ] ; } 
 class x { static 0 = super [ x . x ] ; } 
 class x { static 0 = super [ x > super . x ] ; } 

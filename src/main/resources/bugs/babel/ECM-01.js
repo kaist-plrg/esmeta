@@ -47,3 +47,5 @@ class x { static 0 = { x } . x + x ; }
 class x { static { if ( ++ super [ x ] ) ; else ; } } 
 class x { static { if ( ++ super [ { x } ?. x ] - x ) ; else ; } } 
 class x { static { if ( 0 ?. [ 0 >= ++ super [ x ] ] ** 0 ) ; } } 
+class x { static { if ( super [ x ] ||= 0 ) ; } } 
+for ( let x of 0 [ x = x => 0 ] ||= 0 ) ; 

@@ -1,0 +1,18 @@
+0 % await ( ) ; 
+`${ 0 }${ 0 }${ await ( ) }` ; 
+await ( ) ; 
+await ( ) >= 0 ; 
+for ( let x ; await ( ) ; ) ; 
+for ( let x ; await ( ) ; 0 ) ; 
+for ( let x ; await + 0 ; ) ; 
+for ( let x ; await + 0 ; 0 ) ; 
+for ( let x in await ( ) ) ; 
+for ( let x of await ( ) ) ; 
+for ( let x of await + 0 ) ; 
+for ( var x ; ; await ( ) ) ; 
+for ( var x ; await ( ) ; ) ; 
+for ( var x ; await ( ) ; 0 ) ; 
+for ( var x in await ( ) ) ; 
+for ( var x of await ( ) ) ; 
+for ( var x of await + 0 ) ; 
+{ } [ void await + '' ] ; 

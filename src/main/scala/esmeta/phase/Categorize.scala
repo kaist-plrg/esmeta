@@ -5,6 +5,7 @@ import esmeta.es.util.*
 import esmeta.util.*
 import esmeta.util.SystemUtils.*
 import esmeta.util.BaseUtils.*
+import esmeta.js.Bug.*
 import io.circe.*, io.circe.generic.semiauto.*
 import io.circe.syntax._
 
@@ -22,19 +23,30 @@ case object Categorize extends Phase[Unit, Map[String, Map[String, Int]]] {
     cmdConfig: CommandConfig,
     config: Config,
   ): Map[Target, Map[Tag, Int]] =
-    // name of json files
+    // handle inputs
     val scripts = cmdConfig.targets(0)
     val failsMapJson = cmdConfig.targets(1)
     val failsMap: Map[Target, Set[Test]] = readJson(failsMapJson)
+    val testDir = cmdConfig.targets.lift(2)
+    val msgDir = cmdConfig.targets.lift(3)
+
+    val bugDB: Map[Target, Map[Tag, Set[String]]] = loadBugDB(failsMap.keys)._1
 
     val init: Map[Target, Map[Target, Int]] = Map()
     val result = failsMap.foldLeft(init) {
       case (cur, (target, fails)) =>
-        val db = s"$RESOURCE_DIR/bugs/$target"
         cur + (target -> fails.foldLeft(Map[Target, Int]()) {
           case (count, test) =>
-            val script = readFile(s"$scripts/$test")
-            val tag = tagFinder(db, script)
+            val script = readFile(s"$scripts/$test").split(LINE_SEP)(1).trim
+            val testOpt = testDir.map(d => readFile(s"$d/$target/$test"))
+            val msgOpt = msgDir.map(d => readFile(s"$d/$target/$test.msg"))
+            val tag = tagFinder(
+              script,
+              Some(bugDB(target)),
+              None,
+              testOpt,
+              msgOpt,
+            )._id
             if (!blackList.contains(tag))
               val c = count.getOrElse(tag, 0) + 1
               count + (tag -> c)
@@ -46,21 +58,6 @@ case object Categorize extends Phase[Unit, Map[String, Map[String, Int]]] {
     dumpSummary(result)
 
     result
-
-  private def tagFinder(db: String, script: String) =
-    val buggies = listFiles(db).filter(jsFilter)
-    buggies.foldLeft("YET")((cur, buggy) =>
-      if (cur != "YET") cur
-      else {
-        if containsScript(readFile(buggy.getPath), script) then
-          buggy.getName.dropRight(3)
-        else cur
-      },
-    )
-
-  private def containsScript(lines: String, script: String): Boolean =
-    val scriptLine = script.split(LINE_SEP)(1)
-    lines.split(LINE_SEP).exists(_.trim == scriptLine.trim)
 
   private def dumpSummary(result: Map[Target, Map[Tag, Int]]) =
     val header = Vector("target", "bug-list", "fail-num")

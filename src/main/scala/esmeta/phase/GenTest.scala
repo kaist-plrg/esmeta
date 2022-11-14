@@ -67,22 +67,19 @@ case object GenTest
     }).map(t => Target(t, true))
 
     // pre-process for each engines and transpilers
-    var headers: Map[Int, String] = Map()
-    engines.zipWithIndex.foreach((engine, i) => {
+    engines.foreach(engine => {
       debug(s" - Pre-processing engine $engine...")
-      val logDir = s"$GENTEST_LOG_DIR/engine-$i"
+      val logDir = s"$GENTEST_LOG_DIR/$engine"
       cleanDir(logDir)
       dumpFile(engine, s"$logDir/command.txt")
-
-      headers += (i -> getGlobalClearingCode(engine.cmd))
     })
-    transpilers.zipWithIndex.foreach((transpiler, i) => {
+    transpilers.foreach(transpiler => {
       debug(s" - Pre-processing transpiler $transpiler...")
-      val logDir = s"$GENTEST_LOG_DIR/trans-$i"
+      val logDir = s"$GENTEST_LOG_DIR/$transpiler"
       cleanDir(logDir)
       dumpFile(transpiler, s"$logDir/command.txt")
 
-      val rawDir = s"$GENTEST_LOG_DIR/raw-trans-$i"
+      val rawDir = s"$GENTEST_LOG_DIR/raw-$transpiler"
       if (config.cache)
         debug(s"   - Using cached codes of transpiler $transpiler...")
         if (transpiler.toString != readFile(s"$rawDir/command.txt"))
@@ -95,7 +92,6 @@ case object GenTest
         JSTrans.transpileDirUsingBinary(transpiler.cmd, codeDir, rawDir).get
         dumpFile(transpiler, s"$rawDir/command.txt")
     })
-    headers += (-1 -> getGlobalClearingCode(JSEngine.defaultEngine.get._1))
 
     // generate tests for each script
     debug(s" - Handling each code..")
@@ -132,10 +128,9 @@ case object GenTest
 
           // generate engine tests
           val updatedEngineTestMap = engineTestMap.map((e, tests) => {
-            val i = engines.indexOf(e)
-            val etest = testMaker(headers(i) + code)
+            val etest = testMaker(code)
 
-            val logDir = s"$GENTEST_LOG_DIR/engine-$i"
+            val logDir = s"$GENTEST_LOG_DIR/$e"
             dumpFile(etest, s"$logDir/$name")
 
             e -> (Script(etest, name) :: tests)
@@ -143,12 +138,11 @@ case object GenTest
 
           // generate trans tests
           val updatedTransTestMap = transTestMap.map((t, tests) => {
-            val i = transpilers.indexOf(t)
-            val rawDir = s"$GENTEST_LOG_DIR/raw-trans-$i"
+            val rawDir = s"$GENTEST_LOG_DIR/raw-$t"
             val compiledCode = readFile(s"$rawDir/$name")
-            val ttest = testMaker(headers(-1) + compiledCode)
+            val ttest = testMaker(compiledCode)
 
-            val logDir = s"$GENTEST_LOG_DIR/trans-$i"
+            val logDir = s"$GENTEST_LOG_DIR/$t"
             dumpFile(ttest, s"$logDir/$name")
 
             t -> (Script(ttest, name) :: tests)
@@ -193,36 +187,6 @@ case object GenTest
   private val libTail = "})();"
   private val delayHead = "$delay(() => {"
   private val delayTail = "});"
-
-  // get code to clear initial global variables
-  private def getGlobalClearingCode(cmd: String): String =
-    val stringKeys = JSEngine
-      .runUsingBinary(cmd, "for (let s in globalThis) print(s);")
-      .get
-      .split(LINE_SEP)
-      .filterNot(_ == "")
-
-    val symbolKeys = JSEngine
-      .runUsingBinary(
-        cmd,
-        "for (let s of Object.getOwnPropertySymbols(globalThis)) if(Object.getOwnPropertyDescriptor(globalThis,s).enumerable) print(s.toString());",
-      )
-      .get
-      .split(LINE_SEP)
-      .filterNot(_ == "")
-      .map(_.replace("Symbol(", "[").replace(")", "]"))
-
-    val globals = stringKeys ++ symbolKeys
-
-    if globals.isEmpty then ""
-    else
-      globals
-        .map(v => s"$v: { enumerable: false }")
-        .mkString(
-          s"\"use strict\"; Object.defineProperties(globalThis , { ",
-          ", ",
-          s" });$LINE_SEP",
-        )
 
   // skip the test if this test should be skipped.
   private def skip(name: String): Boolean =

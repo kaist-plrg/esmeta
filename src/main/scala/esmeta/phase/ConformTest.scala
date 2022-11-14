@@ -3,9 +3,9 @@ package esmeta.phase
 import esmeta.*
 import esmeta.error.*
 import esmeta.es.Script
-import esmeta.es.util.injector.ConformTest.*
 import esmeta.es.util.injector.*
 import esmeta.js.*
+import esmeta.js.Bug.*
 import esmeta.util.*
 import esmeta.util.SystemUtils.*
 import esmeta.util.BaseUtils.*
@@ -39,8 +39,13 @@ case object ConformTest
 
     val (etestMap, ttestMap, originals) = input
 
-    // Generate name->original map
+    // generate name->original map
     originals.foreach(s => originalMap += (s.name -> s.code))
+
+    // load bug db
+    val bugDB = loadBugDB(etestMap.keys ++ ttestMap.keys)
+    knownBugMap = bugDB._1
+    todoBugMap = bugDB._2
 
     // do test for engines
     val engineResult = etestMap.map((e, tests) =>
@@ -91,6 +96,10 @@ case object ConformTest
   // get the original code by name
   private var originalMap: Map[String, String] = Map()
 
+  // loaded bug DB
+  private var knownBugMap: Map[Target, Map[String, Set[String]]] = Map()
+  private var todoBugMap: Map[Target, Map[String, String]] = Map()
+
   // bug stat
   private var bugStat: Map[Target, Map[String, Int]] = Map()
 
@@ -135,10 +144,15 @@ case object ConformTest
           s"[Exit Tag Mismatch]$LINE_SEP > Expected $exitTagRaw but got $concreteExitTag"
         else s"[Assertion Fail]$LINE_SEP > $stdout"
 
-      val db = s"$RESOURCE_DIR/bugs/${target.name}"
       val original = originalMap(name)
 
-      val tag = tagFinder(target, db, original, code, detail)
+      val tag = tagFinder(
+        original.split(LINE_SEP)(1),
+        Some(knownBugMap(target)),
+        Some(todoBugMap(target)),
+        Some(code),
+        Some(detail),
+      )
 
       val msg = s"""Test fail for `$target`: $name
                    |TAG: $tag
@@ -153,19 +167,19 @@ case object ConformTest
         dumpFile(orig + LINE_SEP + msg, path)
       }
       _config.msgdir.foreach(dumpMsg)
-      dumpMsg(s"$CONFORMTEST_LOG_DIR/msg")
+      dumpMsg(s"$CONFORMTEST_LOG_DIR/msg/$target")
 
       if (_config.saveBugs)
         val shortMsg = s"""TAG: ${tag.toString.replace("TODO", "NEW")}
                           |$detail""".stripMargin
         val data = s"$original$LINE_SEP/* $shortMsg */$LINE_SEP"
         tag match {
-          case NewBug(_)        => appendFile(data, s"$db/TODO")
-          case TodoBug(name, _) => dumpFile(data, s"$db/TODO/$name")
+          case NewTag(_) => appendFile(data, s"$RESOURCE_DIR/bugs/$target/TODO")
+          case TodoTag(_, path) => dumpFile(data, path)
           case _                =>
         }
 
-      Some((name, tag._tag))
+      Some((name, tag._id))
     }
 
   private val exitTagPattern = "(?<=\\[EXIT\\] )[^\n\r]*".r
@@ -185,73 +199,6 @@ case object ConformTest
         }
         (tag, "")
     }
-
-  trait Bug(val _tag: String)
-  case class KnownBug(val tag: String) extends Bug(tag) {
-    override def toString = s"KNOWN-$tag"
-  }
-  case class TodoBug(val name: String, val tag: String) extends Bug(tag) {
-    override def toString = s"TODO-$tag"
-  }
-  case class NewBug(val tag: String) extends Bug(tag) {
-    override def toString = s"NEW-$tag"
-  }
-
-  private def tagFinder(
-    target: Target,
-    db: String,
-    original: String,
-    code: String,
-    detail: String,
-  ): Bug =
-    // search if this bug is already known
-    val buggies = listFiles(db).filter(jsFilter)
-    val knownTag = buggies.foldLeft[Bug](NewBug("YET"))((cur, buggy) =>
-      if (cur != NewBug("YET")) cur
-      else if containsScript(readFile(buggy.getPath), original) then
-        KnownBug(buggy.getName.dropRight(3))
-      else cur,
-    )
-
-    // search if this bug is already in TODO
-    val todos = listFiles(s"$db/TODO").filter(jsFilter)
-    val todoTag = todos.foldLeft(knownTag)((cur, todo) =>
-      if (cur != NewBug("YET")) cur
-      else if sameScript(readFile(todo.getPath), original) then
-        TodoBug(todo.getName, "YET")
-      else cur,
-    )
-
-    // apply heuristic to guess tag of this bug
-    def matched(rule: Array[String]): Option[String] =
-      val Array(tag, codePattern, msgPattern) = rule
-      if (
-        (
-          code.contains(codePattern) ||
-          codePattern.endsWith("$") && code.endsWith(codePattern.dropRight(1))
-        ) && detail.contains(msgPattern)
-      )
-        Some(tag)
-      else
-        None
-    val tag = manualRule.foldLeft(todoTag)((cur, rule) =>
-      cur match {
-        case NewBug("YET") =>
-          matched(rule).map(tag => NewBug(tag)).getOrElse(cur)
-        case TodoBug(file, "YET") =>
-          matched(rule).map(tag => TodoBug(file, tag)).getOrElse(cur)
-        case _ => cur
-      },
-    )
-
-    tag
-
-  private def containsScript(lines: String, script: String): Boolean =
-    val scriptLine = script.split(LINE_SEP)(1)
-    lines.split(LINE_SEP).exists(_.trim == scriptLine.trim)
-
-  private def sameScript(script1: String, script2: String): Boolean =
-    (script1.split(LINE_SEP) zip script2.split(LINE_SEP)).forall(_ == _)
 
   private def appendFile(data: Any, dir: String) = synchronized {
     val names = listFiles(dir).map(_.getName.dropRight(3).toInt).sorted

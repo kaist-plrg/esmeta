@@ -70,7 +70,12 @@ case object Categorize extends Phase[Unit, Map[String, Map[String, Int]]] {
       .toList
     dumpRows(header :: body, s"$CATEGORIZE_LOG_DIR/test-summary.tsv")
 
-  private val blackList = List("OBF-V8", "ECM-01", "YET")
+  private val blackList = List(
+    "OBF-V8",
+    "TRS-V8",
+    "ECM-01",
+    "YET",
+  )
 
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List()

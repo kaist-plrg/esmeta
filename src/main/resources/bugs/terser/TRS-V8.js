@@ -7,7 +7,6 @@
 class x { static 0 = delete super [ new 0 ] ; } 
 class x { static 0 = delete super [ this [ 0 ] [ 0 ] ] ; } 
 class x { static 0 = super [ x ] ||= 0 ; }
-class x { static x = x => 0 ; } 
 class x { static { if ( super [ x ] ||= 0 ) ; } }
 class x { } this ?. x [ { [ Symbol . toPrimitive ] : ( ) => { throw 0 ; } } ] ; 
 for ( ; 0 . x [ { [ Symbol . toPrimitive ] : x => { throw 0 ; } } ] ; ) ; 

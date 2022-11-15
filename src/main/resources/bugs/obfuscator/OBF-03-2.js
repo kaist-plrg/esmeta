@@ -1,4 +1,8 @@
-0 << class { } ?. ( ) ; 
-new function ( ) { return class { } ?. ( ) ; } ( ) ; 
 0 < ( x => class { } ?. ( ) ) ( ) ;
-( x => class { } ( ) ) ( ) ?. x ;
+0 << class { } ?. ( ) ; 
+0 <= class { } ?. ( ) ; 
+let x = x => class { } ?. ( ) ; x ( ) ;
+new function ( ) { ; return class { } ?. ( ) ; } ; 
+new function ( ) { return class { } ?. ( ) ; } ( ) ; 
+var x = x => class { } ?. ( ) ( ) ; x ( ) ; 
+var x = x => class { } ?. ( ) ; x ( ) ; 

@@ -5,22 +5,22 @@ PRIVATE-FAIL||Unexpected token `#`|but got transpile-failure
 PRIVATE-FAIL||Unexpected token: privatename|but got transpile-failure
 SWC-NESTED-REST-FAIL||`...` must be followed by an identifier in declaration contexts|but got transpile-failure
 SWC-NESTED-REST-FAIL||internal error: entered unreachable code: Object rest pattern should be removed by es2018::object_rest_spread pass|but got transpile-failure
-AWAIT-FAIL||Cannot use keyword 'await' outside an async function|but got transpile-failure
-AWAIT-FAIL||await isn't allowed in non-async function|but got transpile-failure
-AWAIT-FAIL||`await` cannot be used as an identifier in an async context|but got transpile-failure
-AWAIT-FAIL||internal error: entered unreachable code|but got transpile-failure
-AWAIT-FAIL||cannot be applied to unary/await expression.|but got transpile-failure
-AWAIT-FAIL|| Expression expected|but got transpile-failure
-AWAIT-FAIL||Parenthesized expression cannot be empty|but got transpile-failure
-AWAIT-FAIL||Invalid assignment|but got transpile-failure
-AWAIT-FAIL||Unexpected token|but got transpile-failure
+TRS-YIELD-IN-TEMP-FAIL|yield|Unexpected token: template_substitution|but got transpile-failure
+AWAIT-FAIL|await|Cannot use keyword 'await' outside an async function|but got transpile-failure
+AWAIT-FAIL|await|await isn't allowed in non-async function|but got transpile-failure
+AWAIT-FAIL|await|`await` cannot be used as an identifier in an async context|but got transpile-failure
+AWAIT-FAIL|await|internal error: entered unreachable code|but got transpile-failure
+AWAIT-FAIL|await|cannot be applied to unary/await expression.|but got transpile-failure
+AWAIT-FAIL|await| Expression expected|but got transpile-failure
+AWAIT-FAIL|await|Parenthesized expression cannot be empty|but got transpile-failure
+AWAIT-FAIL|await|Invalid assignment|but got transpile-failure
+AWAIT-FAIL|await|Unexpected token|but got transpile-failure
 STATIC-SAME-NAME-FAIL||has already been declared|but got transpile-failure
 JSC-PROP-ORDER|| static |but got ["length", "prototype", "name"] for
 JSC-PROP-ORDER||{ * [|but got ["length", "prototype", "name"] for
 JSC-PROP-ORDER||{ async * [|but got ["length", "prototype", "name"] for
 SM-PROP-ORDER|||"length", "name"] for
 DELETE-SUPER||delete super|but got throw-error: ReferenceError
-DSG-REMOVED-DELETE-SUPER|||Expected throw-error: ReferenceError(Some(UnaryExpression[1,0].Evaluation ((step 5.b, 10:54-89))<SYNTAX>:UnaryExpression[1,0].Evaluation)) but got normal
 DSG-REMOVED-DELETE-SUPER|||Expected throw-error: ReferenceError(UnaryExpression[1,0].Evaluation ((step 5.b, 10:54-89))<SYNTAX>:UnaryExpression[1,0].Evaluation) but got normal
 STRICT-DELETE||_defineProperty(x, 0, delete x);|but got throw-error: SyntaxError
 DSG-HIDDEN-GEN-PARAM-ERROR||return _regeneratorRuntime().wrap|but got normal
@@ -28,11 +28,8 @@ DSG-HIDDEN-GEN-PARAM-ERROR||return __generator(|but got normal
 DSG-CLASS-IN-COMPUTED||_classNameTDZError|
 DSG-EMPTY-ARR-SYMBOL-ITERATOR||Symbol.iterator|Expected normal but got throw-error: TypeError
 DSG-SPARSE-ARR-SYMBOL-ITERATOR||Symbol.iterator|Expected normal but got throw-value
-BBL-STATIC-PRIVATE-IN||===|TypeError(Some(RelationalExpression[7
 BBL-STATIC-PRIVATE-IN||===|TypeError(RelationalExpression[7
-BBL-COMPUTED-IN||_defineProperty|TypeError(Some(RelationalExpression[6
 BBL-COMPUTED-IN||_defineProperty|TypeError(RelationalExpression[6
-BBL-STATIC-REASSIGN-CLASS||_createClass|Expected throw-error: TypeError(Some(DeclarativeEnvironmentRecord.SetMutableBinding
 BBL-STATIC-REASSIGN-CLASS||_createClass|Expected throw-error: TypeError(DeclarativeEnvironmentRecord.SetMutableBinding
 GRL-REST-SPARSE||... [ ]|for Array.
 BBL-NULL-APPLY||null.apply|but got throw-error: TypeError
@@ -48,14 +45,10 @@ SWC-CHAIN-ASSIGN-OBJ||0..x|
 SWC-CHAIN-COMP-ASSIGN-SUPER-IN-STATIC||_get(_getPrototypeOf|Expected normal
 SWC-DESTRUCT-EMPTY-ARRAY||var ;|SyntaxError
 SWC-NESTED-ARRAY-SPARSE-FAIL||destructuring pattern binding requires initializer|but got transpile-failure
-SWC-DESTRUCTURING-UNDEFINED||!== null|Expected throw-error: TypeError(Some(RequireObjectCoercible<SYNTAX>:BindingPattern[0,0].BindingInitialization)) but got normal
 SWC-DESTRUCTURING-UNDEFINED||!== null|Expected throw-error: TypeError(RequireObjectCoercible<SYNTAX>:BindingPattern[0,0].BindingInitialization) but got normal
-SWC-EMPTY-DESTR-FOLLOWED-BY-REST||_objectWithoutProperties|Expected throw-error: TypeError(Some(RequireObjectCoercible<SYNTAX>:BindingPattern[0,0].BindingInitialization)) but got normal
 SWC-EMPTY-DESTR-FOLLOWED-BY-REST||_objectWithoutProperties|Expected throw-error: TypeError(RequireObjectCoercible<SYNTAX>:BindingPattern[0,0].BindingInitialization) but got normal
-SWC-DESTRUCTURING-ASSIGN-EXPR||ref =|Expected throw-error: TypeError(Some(RequireObjectCoercible<SYNTAX>:ObjectAssignmentPattern[0,0].DestructuringAssignmentEvaluation
 SWC-DESTRUCTURING-ASSIGN-EXPR||ref =|Expected throw-error: TypeError(RequireObjectCoercible<SYNTAX>:ObjectAssignmentPattern[0,0].DestructuringAssignmentEvaluation
 SWC-DESTRUCTURING-ASSIGN-EXPR||ref =|Expected throw-error: TypeError(RequireObjectCoercible<SYNTAX>:ObjectAssignmentPattern[0,0].DestructuringAssignmentEvaluation
-SWC-STATIC-REASSIGN-CLASS||_classCallCheck|Expected throw-error: TypeError(Some(DeclarativeEnvironmentRecord.SetMutableBinding
 SWC-STATIC-REASSIGN-CLASS||_classCallCheck|Expected throw-error: TypeError(DeclarativeEnvironmentRecord.SetMutableBinding
 SWC-STATIC-SUPER||_superprop_set|but got throw-error: SyntaxError
 SWC-STATIC-SUPER||_superprop_get|but got throw-error: SyntaxError
@@ -83,13 +76,10 @@ SWC-ASYNC-POSTFIX-DECR||}().x--;|SyntaxError: Function statements require a func
 SWC-ASYNC-POSTFIX-INCR||}().x++;|SyntaxError: Function statements require a function name
 SWC-AWAIT-FOR||x = _value;|Expected undefined but got [object Function].
 GRL-NORMALIZE||normalize|RangeError
-GRL-SETPROTOTYPEOF||setPrototypeOf|TypeError(Some(INTRINSICS.Object.setPrototypeOf
 GRL-SETPROTOTYPEOF||setPrototypeOf|TypeError(INTRINSICS.Object.setPrototypeOf
 GRL-EXTENDS-ITSELF||class x extends new |Expected throw-error: ReferenceError
 GRL-COMPUTED-ITSELF||class x { [ new |Expected throw-error: ReferenceError
-GRL-LOGICAL-ASSIGN-CONST||&&=|TypeError(Some(DeclarativeEnvironmentRecord.SetMutableBinding
 GRL-LOGICAL-ASSIGN-CONST||&&=|TypeError(DeclarativeEnvironmentRecord.SetMutableBinding
-GRL-LOGICAL-ASSIGN-CONST||const|TypeError(Some(DeclarativeEnvironmentRecord.SetMutableBinding
 GRL-LOGICAL-ASSIGN-CONST||const|TypeError(DeclarativeEnvironmentRecord.SetMutableBinding
 GRL-RETURN-VOID-AWAIT-THIS||void await this|org.graalvm.polyglot.PolyglotException
 GRL-DELETE|| delete 0 ( ) |but got normal
@@ -103,10 +93,8 @@ JSC-STATIC-SAME-NAME||static 0 = |but got throw-error: SyntaxError
 JSC-OPTIONAL-CALL-CHAIN||{ } ?. ( )|Expected throw-error: TypeError
 JSC-OPTIONAL-CALL-CHAIN||{ } ?. ( 0 )|Expected throw-error: TypeError
 JSC-OPTIONAL-CALL-CHAIN-2||( ) ?. x|Expected throw-error: TypeError
-JSC-ASSIGN-CONST-FOR||in { x }|Expected throw-error: TypeError(Some(DeclarativeEnvironmentRecord.SetMutableBinding
 JSC-ASSIGN-CONST-FOR||in { x }|Expected throw-error: TypeError(DeclarativeEnvironmentRecord.SetMutableBinding
 JSC-GETSET-0||et 0 (|descriptor value of "name" should be
-JSC-STATIC-CLASS-REASSIGN||static 0 = { x =|Expected throw-error: TypeError(Some(DeclarativeEnvironmentRecord.SetMutableBinding
 JSC-STATIC-CLASS-REASSIGN||static 0 = { x =|Expected throw-error: TypeError(DeclarativeEnvironmentRecord.SetMutableBinding
 JSC-FUNC-PARAM-SAME-NAME||function x ( |but got throw-error: SyntaxError
 JSC-FUNC-PARAM-SAME-NAME||function * x ( |but got throw-error: SyntaxError
@@ -121,6 +109,14 @@ ALL-TO-PRIMITIVE||Symbol . toPrimitive|but got throw-error: TypeError
 OBF-OPT-CALL-CHAIN-FAIL||TypeError: Cannot read properties of undefined (reading 'length')|but got transpile-failure
 OBF-ASYNC-DIV-FAIL||Unterminated regular expression|but got transpile-failure
 OBF-EXTENDS-BOOL||extends!|but got throw-error: SyntaxError
+TRS-REMOVE-INSTANCE-OF|instanceof||Expected throw-error: TypeError(InstanceofOperator
+TRS-REMOVE-in| in ||Expected throw-error: TypeError(RelationalExpression[6,0]
+TRS-REMOVE-BIGINT-DIV-0|/||RangeError(BigInt::multiply
+TRS-REMOVE-BIGINT-DIV-0|%||RangeError(BigInt::remainder
+TRS-REMOVE-BIGINT-EXP-NEG|**||RangeError(BigInt::exponentiate
+TRS-REMOVE-BIGINT-RIGHT-SHIFT|>>>||TypeError(BigInt::unsignedRightShift
+TRS-REMOVE-BIGINT-MIX|0n||Expected throw-error: TypeError(ApplyStringOrNumericBinaryOperator ((step 5
+TRS-REMOVE-BIGINT-MIX|1n||Expected throw-error: TypeError(ApplyStringOrNumericBinaryOperator ((step 5
 YET-TRS-REMOVE-REF-ERR||"use strict";$|Expected throw-error: ReferenceError
 YET-TRS-REMOVE-REF-ERR||"use strict";let|Expected throw-error: ReferenceError
 YET-TRS-REMOVE-REF-ERR||"use strict";var|Expected throw-error: ReferenceError
@@ -148,37 +144,27 @@ YET-TRS-REMOVE-THROW||"use strict";$|Expected throw-value
 YET-TRS-REMOVE-THROW||"use strict";Symbol|Expected throw-value
 TRS-LHS-TO-LITERAL||for|SyntaxError: Invalid left-hand side in for-loop
 TRS-LHS-TO-LITERAL||for|SyntaxError: Unexpected token 'void'
-TRS-NEW-TARGET||new.target|Expected throw-error: TypeError(Some(ClassTail[0,2].ClassDefinitionEvaluation
 TRS-NEW-TARGET||new.target|Expected throw-error: TypeError(ClassTail[0,2].ClassDefinitionEvaluation
-TRS-REMOVE-CONST-REASSIGN||"use strict";const|Expected throw-error: TypeError(Some(DeclarativeEnvironmentRecord.SetMutableBinding
 TRS-REMOVE-CONST-REASSIGN||"use strict";const|Expected throw-error: TypeError(DeclarativeEnvironmentRecord.SetMutableBinding
 TRS-CLASS-CONDITION-FAIL||Error: Cannot negate a statement|but got transpile-failure
 TRS-EMPTY-DESTRUCT-FAIL||TypeError: Cannot read properties of undefined (reading 'value')|but got transpile-failure
 TRS-REMOVE-DESTR-GEN||function*|Expected throw-value
 TRS-WRONG-AWAIT||await 0|but got throw-error: SyntaxError
 TRS-WRONG-AWAIT||class await{}await(|but got throw-error: TypeError
-TRS-BIGINT-DIV-0|||RangeError(Some(BigInt::
-TRS-BIGINT-DIV-0|||RangeError(BigInt::
 TRS-IIFE||0?.()|Invalid left-hand side ex:qpression
+UNKNOWN-FAIL|||but got transpile-failure
 NAME|||descriptor value of "name"
 SHADOW-GETTER|||descriptor should be writable
 BECOME-CONSTRUCTABLE|||"prototype"] for
 BECOME-CONSTRUCTABLE|||[[Construct]] but does.
-BECOME-CONSTRUCTABLE|||TypeError(Some(OrdinaryHasInstance
 BECOME-CONSTRUCTABLE|||TypeError(OrdinaryHasInstance
 BECOME-CONSTRUCTABLE|||GeneratorFunction.prototype.prototype
-BECOME-CONSTRUCTABLE|||Expected throw-error: TypeError(Some(EvaluateNew ((step 5
 BECOME-CONSTRUCTABLE|||Expected throw-error: TypeError(EvaluateNew ((step 5
-BECOME-CONSTRUCTABLE|||Expected throw-error: TypeError(Some(Call ((step 2
 BECOME-CONSTRUCTABLE|||Expected throw-error: TypeError(Call ((step 2
-BECOME-CONSTRUCTABLE|||Expected throw-error: TypeError(Some(ToObject
 BECOME-CONSTRUCTABLE|||Expected throw-error: TypeError(ToObject
-BECOME-CONSTRUCTABLE|||Expected throw-error: TypeError(Some(NewPromiseCapability
 BECOME-CONSTRUCTABLE|||Expected throw-error: TypeError(NewPromiseCapability
-BECOME-CONSTRUCTABLE|||Expected throw-error: TypeError(Some(ClassTail
 BECOME-CONSTRUCTABLE|||Expected throw-error: TypeError(ClassTail
 ARR-REST-SPARSE|||"length"] for Array.
-DSG-OBJ-REST-NULL||_extends|Expected throw-error: TypeError(Some(RequireObjectCoercible
 DSG-OBJ-REST-NULL||_extends|Expected throw-error: TypeError(RequireObjectCoercible
 RENAMED-AWAIT|| _await |but got throw-error: ReferenceError
 RENAMED-AWAIT|| _await,|but got throw-error: ReferenceError
@@ -194,15 +180,10 @@ RENAMED-AWAIT|| _await;|but got undefined
 RENAMED-AWAIT|| _await(|but got undefined
 NIL-2-CONS||for(x in|but got throw-error: ReferenceError
 NIL-2-CONS||for (x in|but got throw-error: ReferenceError
-ECM-STRICT-X-THIS-X||x = this . x|Expected throw-error: ReferenceError(Some(PutValue
 ECM-STRICT-X-THIS-X||x = this . x|Expected throw-error: ReferenceError(PutValue
-ECM-STRICT-X-THIS-X||x = this.x|Expected throw-error: ReferenceError(Some(PutValue
 ECM-STRICT-X-THIS-X||x = this.x|Expected throw-error: ReferenceError(PutValue
-ECM-STRICT-X-THIS-X||x=this.x|Expected throw-error: ReferenceError(Some(PutValue
 ECM-STRICT-X-THIS-X||x=this.x|Expected throw-error: ReferenceError(PutValue
-ECM-STRICT-X-THIS-X||x=this['x']|Expected throw-error: ReferenceError(Some(PutValue
 ECM-STRICT-X-THIS-X||x=this['x']|Expected throw-error: ReferenceError(PutValue
-ECM-STRICT-X-THIS-X||x = (_this = this, _this["x"]|Expected throw-error: ReferenceError(Some(PutValue
 ECM-STRICT-X-THIS-X||x = (_this = this, _this["x"]|Expected throw-error: ReferenceError(PutValue
 BBL-NOF||Array.from.call(function|
 BBL-ENUMERABLE-GEN-FUNC||regeneratorRuntime|"constructor"

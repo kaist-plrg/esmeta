@@ -111,7 +111,7 @@ object SpecStringMutator {
     "function ( x ) { }",
     "function * ( x ) { }",
     "async function ( x ) { }",
-    "async * function ( x ) { }",
+    "async function * ( x ) { }",
     "0",
     "null",
     "( ) => { throw 0 ; }",

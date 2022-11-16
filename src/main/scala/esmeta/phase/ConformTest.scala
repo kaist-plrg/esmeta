@@ -201,6 +201,8 @@ case object ConformTest
     }
 
   private def appendFile(data: Any, dir: String) = synchronized {
+    // TODO: it seems that the synchronization here is not working properly
+    // Maybe because system call is involved?
     val names = listFiles(dir).map(_.getName.dropRight(3).toInt).sorted
     val emptyIdx =
       names.zipWithIndex.find(p => p._1 != p._2).map(_._2).getOrElse(names.size)

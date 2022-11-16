@@ -47,7 +47,7 @@ case object Categorize extends Phase[Unit, Map[String, Map[String, Int]]] {
               testOpt,
               msgOpt,
             )._id
-            if (!blackList.contains(tag))
+            if (config.all || !blackList.contains(tag))
               val c = count.getOrElse(tag, 0) + 1
               count + (tag -> c)
             else count
@@ -78,6 +78,14 @@ case object Categorize extends Phase[Unit, Map[String, Map[String, Int]]] {
   )
 
   def defaultConfig: Config = Config()
-  val options: List[PhaseOption[Config]] = List()
-  case class Config()
+  val options: List[PhaseOption[Config]] = List(
+    (
+      "all",
+      BoolOption(c => c.all = true),
+      "Show all categorization result, including blacklists",
+    ),
+  )
+  case class Config(
+    var all: Boolean = false,
+  )
 }

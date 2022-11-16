@@ -35,6 +35,7 @@ class x extends await ( ) { }
 class x extends await { } function await ( ) { }
 class x { [ await ( ) ] ; }
 class x { [ await ( ) ] = 0 ; }
+class x { } x &&= await + null ; 
 for ( 0 instanceof new await ( ) ; ; ) ; function await ( ) { return ; }
 for ( ; await ( ) ; 0 ) ;
 for ( ; await = 0 . x ; 0 ) ; async function await ( ) { }
@@ -102,6 +103,7 @@ var x = { x = await , } = 0 ; async function * await ( ) { }
 var { ... x } = await + 0 ;
 var { x = await ( ) } = 0 ;
 var { x = await + 0 } = 0 ;
+var { x = await + null } = 0 ; 
 var { x } = 0 . x ||= await ( ) ;
 var { x } = await ( ) ;
 var { x } = await + 0 ;

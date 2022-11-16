@@ -55,6 +55,7 @@
 - 0 [ 0 ] in 0 ; 
 - 0 in 0 ; 
 - 0 in function ( ) { } ( ) ?. x ; 
+- 0 in function * ( ) { } ( ) ?. x ; 
 - 0n in 0 ; 
 - 1n in 0 ; 
 - `${ 0 }` [ 0 ] in `` ; 

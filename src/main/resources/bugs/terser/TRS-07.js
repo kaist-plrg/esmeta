@@ -7,7 +7,6 @@
 ! x ?? 0 ; let x ; 
 ! { 1 : x + 0 } ; let x ; 
 ! { 1 : x [ 0 ] } ; let x ; 
-" */
 ( ( ) => x ) ( ) ; let x ; 
 ( ( ) => { x ; } ) ( ) ; let x ; 
 ( x == 0 ) ( ) ; let x ; 
@@ -34,6 +33,7 @@
 0 % x ; let x ;
 0 & 0 < - x ; let x ; 
 0 & `${ x }` ; let x ; 
+0 & new function x ( ) { return [ x = 0 ] ; let x ; } ( ) ; 
 0 & x ; let x ; 
 0 & x [ [ ] ] ; let x ; 
 0 & { 0 : + x } ; let x ; 
@@ -200,6 +200,20 @@
 `${ x }${ x = x => 0 }` ; let x ; 
 `${ x }` ; let x ;
 `` ?. [ x ] ( ) . x ( ) ; let x ; 
+class x { static { if ( 0 [ x ] ??= 0 ) ; let x ; } } 
+class x { static { if ( 1n == x ) ; let x ; } } 
+class x { static { if ( new super [ super [ x ] ?? 0 ? 0 : 0 ] ) ; let x ; } } 
+class x { static { if ( new super [ x ?. x ?? 0 ? 0 : 0 ] ) ; let x ; } } 
+class x { static { if ( new x ( super [ x &&= x => 0 ] *= 0 ) ) ; else ; let x ; } } 
+class x { static { if ( super . x ??= new `` . x ( super [ x &&= 0 ] *= 0 ) ) ; else ; let x ; } } 
+class x { static { if ( super . x ||= x | 0 == 0 ) if ( 0 ) ; else ; let x ; } } 
+class x { static { if ( super [ 0 in x >= 0 ?? 0 ? 0 : 0 ] ) ; class x { } } } 
+class x { static { if ( super [ 0 in x ?? 0 ? 0 : 0 ] ) ; class x { } } } 
+class x { static { if ( super [ x <= x ] ) ; let x ; } } 
+class x { static { if ( super [ x >= 0 ?? 0 ? 0 : 0 ] ) ; let x ; } } 
+class x { static { if ( super [ x [ 0 ] ??= 0 ] ??= 0 ) ; else ; let x ; } } 
+class x { static { if ( typeof x ) ; else ; let x ; } } 
+class x { static { if ( x ** 0 . x ) ; let x ; } } 
 class x { static { throw x ; let x ; } }
 delete 0 . x + x ; let x ; 
 delete [ 0 ] - x ; let x ; 
@@ -311,6 +325,7 @@ let [ ] = 0 ?. x >> 0 || 0 ^ 0 === 0 ? x : 0 , x ;
 let [ ] = 0 [ 0 || 0 instanceof class { } < x ] , x ; 
 let [ ] = 0 [ 0 || x instanceof 0 < x ] , x ; 
 let [ ] = 0 [ null || x instanceof class { } < x ] , x ; 
+let [ ] = 0 [ x ] , x ; 
 let [ ] = 0 [ x ] >> 0 , x ; 
 let [ ] = 0 [ x || 0 instanceof 0 < 0 ] , x ; 
 let [ ] = 0 [ { [ x = 0 ] : x } ] , x ; 
@@ -326,6 +341,7 @@ let [ ] = 0 ^ 0 == x , x ;
 let [ ] = 0 ^ 0 instanceof x instanceof 0 , x ; 
 let [ ] = 0 ^ 0 || 0 ^ 0 === 0 ? x : 0 , x ; 
 let [ ] = 0 in x , x ; 
+let [ ] = 0 instanceof x , x ; 
 let [ ] = 0 | '' != `${ x }` , x ; 
 let [ ] = 0 | '' != x , x ; 
 let [ ] = 0 | 0 >= x , x ; 
@@ -369,18 +385,22 @@ let [ ] = x ** 0 | 0 , x ;
 let [ ] = x ** x , x ; 
 let [ ] = x ** ~ 0 | 0 , x ; 
 let [ ] = x + 0 , x ; 
+let [ ] = x , x ; 
 let [ ] = x - 0 , x ; 
 let [ ] = x . x , x ; 
 let [ ] = x . x . x `` , x ; 
 let [ ] = x . x >> 0 , x ; 
 let [ ] = x < ! x , x ; 
+let [ ] = x << 0 , x ; 
 let [ ] = x <= 0 , x ; 
 let [ ] = x > 0 , x ; 
 let [ ] = x > 0 >= 0 >= 0 , x ; 
 let [ ] = x >= 0 , x ; 
+let [ ] = x >> 0 , x ; 
 let [ ] = x ?. x , x ; 
 let [ ] = x ?? 0 , x ; 
 let [ ] = x [ 0 ] &&= 0 , x ; 
+let [ ] = x [ 0 ] , x ; 
 let [ ] = x [ 0 ] >> 0 , x ; 
 let [ ] = x ^ 0 & 0 , x ; 
 let [ ] = x instanceof 0 , x ; 
@@ -427,6 +447,7 @@ let [ ] = ~ 0 / x + 0 , x ;
 let [ ] = ~ function * ( ) { } ( ) [ x ] , x ; 
 let [ ] = ~ x << { [ Symbol . toPrimitive ] : x => 0 } , x ; 
 let [ ] = ~ ~ x , x ; 
+let [ x , , ... [ ] ] = function * ( ) { yield x || 0 ; class x { } } ( ) ; 
 let await = x , x ; 
 let await = { x } , x ; 
 let x ; [ [ 0 , 0 ] [ 1 ] = 0 ] = `` ;
@@ -434,23 +455,6 @@ let x ; [ [ 0 ] [ 0 ] = 0 ] = `` ;
 let x ; switch ( 0 ) { default : let x ; case x : } 
 let x ; x in x ;
 let x ; ~ class extends x { } ;
-let x = ! void x ; 
-let x = ! { x } ; 
-let x = '' + void x ; 
-let x = [ typeof void x , ] [ null ] ; 
-let x = `${ 0 }` [ 0 ] &&= 0 & 0 << void x ; 
-let x = `${ 0 }` [ 0 ] &&= void x ; 
-let x = `${ 0 }` [ 0 ] &&= ~ void x ; 
-let x = delete ! x ; 
-let x = delete void x ; 
-let x = delete void { x } ; 
-let x = function ( ) { } ( ) [ ! typeof x ] ; 
-let x = function ( ) { } ( ) [ ! { x } ] ; 
-let x = void x !== 0 ; 
-let x = void x ;
-let x = void { x } !== 0 ; 
-let x = void { x } ; 
-let x = x ? 0 : 0 ; 
 new '' ( 0 , ... 0 >> x ) ; let x ; 
 new '' ( x , ... 0 >> x ) ; let x ; 
 new 0 ( ... x >>> 0 ) ; let x ; 
@@ -463,28 +467,61 @@ new class { 0 = super [ 0 | x ] ; } ; let x ;
 new class { 0 = super [ x ] ??= 0 ; } ; let x ; 
 new class { 0 = super [ x ] | 0 ; } ; let x ; 
 new class { 0 = x | 0 ; } ; let x ; 
+new class { static #x = new x . #x . #x ; } ; let x ;
+new class { static #x = new x [ 0 ] . #x ; } ; let x ;
+new class { static #x = super [ x ] . #x ; } ; let x ;
+new class { static #x = x ??= 0 ; } ; let x ;
 new class { static 0 = x ; } ; let x ; 
 new function ( ) { return x ; ; } ; class x { } 
+new function ( ) { return x ; let x ; } ; 
 new function ( ) { return x ; } ; class x { } 
 new function ( ) { return x ; } ; let x ;
+new function ( ) { return x [ 0 ] ; let x ; } ; 
+new function ( ) { { return x ** ! async function * ( ) { } ; let x ; } } ; 
 new function ( ) { } >>> x ; let x ; 
 new x ( ) ; let x ;
 new x ; let x ;
 new { ... + x } ; let x ; 
 new { ... x < 0 } ; let x ; 
 new { 1 : 0 < x } ; let x ; 
+switch ( 0 ) { case + x : default : class x { } } 
+switch ( 0 ) { case 0 & x : let x ; } 
+switch ( 0 ) { case 0 < 0 != x <= 0 : let x ; } 
+switch ( 0 ) { case 0 << x : default : let x ; case 0 : } 
+switch ( 0 ) { case 0 == 0 == x != 0 : let x ; ; } 
+switch ( 0 ) { case 0 === 0 != x % 0 : let x ; ; } 
+switch ( 0 ) { case 0 > x : let x ; } 
+switch ( 0 ) { case 0 in x !== 0 : let x ; } 
 switch ( 0 ) { case 1 : default : ; case x : } let x ;
 switch ( 0 ) { case 1 : default : case x : let x ; }
 switch ( 0 ) { case 1 : default : let x ; case x : }
+switch ( 0 ) { case `` == x : let x ; } 
+switch ( 0 ) { case void x != 0 <= 0 : let x ; } 
+switch ( 0 ) { case x + 0 : let x ; } 
+switch ( 0 ) { case x + 1n : default : class x { } } 
 switch ( 0 ) { case x : default : ; case x : } let x ;
 switch ( 0 ) { case x : default : case 0 : } let x ; 
+switch ( 0 ) { case x : default : class x { } case 0 : } 
 switch ( 0 ) { case x : default : let x ; case x : }
 switch ( 0 ) { case x : default : let x ; }
 switch ( 0 ) { case x : default : } let x ; 
+switch ( 0 ) { case x : let x ; default : } 
 switch ( 0 ) { case x : let x ; }
 switch ( 0 ) { case x : } let x ;
+switch ( 0 ) { case x == 0 : let x ; } 
+switch ( 0 ) { case x == 0 == '' != 0 : let x ; ; } 
+switch ( 0 ) { case x === 0 != 0 : let x ; ; } 
+switch ( 0 ) { case x > 0 : let x ; } 
+switch ( 0 ) { case { x } . x : let x ; } 
+switch ( 0 ) { case { x } > 0 : let x ; } 
+switch ( 0 ) { default : case 0 instanceof x : class x { } } 
 switch ( 0 ) { default : case x : let x ; }
+switch ( 0 ) { default : class x { } case x : } 
+switch ( 0 ) { default : let x ; case 0 !== x : } 
+switch ( 0 ) { default : let x ; case x << 0 << ! void 0 : } 
 switch ( 0 ) { default : switch ( 1 ** ! void -- x ) { } } let x ; 
+switch ( 0 ) { default : x ; let x ; } 
+switch ( 1 ) { case 0 : class x { } default : case 1 : x ; } 
 switch ( 1 ) { case x : default : case 0 : } let x ; 
 switch ( 1 ) { case x >> 0 : default : case 0 : } let x ; 
 switch ( x ) { } let x ;
@@ -554,26 +591,38 @@ x ||= 0 ; let x ;
 { 0 | 0 , x ; } let x ; 
 { `` , x ; } { } let x ; 
 { if ( ! + x + 0 ) ; } let x ; 
+{ if ( `${ 0 }` [ 0 ] &&= 0 == x instanceof 0 ) ; let x ; } 
 { if ( `${ 0 }` [ 0 ] &&= 0 == x instanceof 0 ) ; } let x ; 
+{ if ( x ) if ( 0 ) ; else ; class x { } } 
 { if ( x ) if ( 0 ) ; else ; throw 0 ; } class x { } 
 { if ( x ) if ( 0 ) ; else ; } class x { } 
 { if ( x => 0 ) for ( x ; 1 ; 0 , 0 ( ) . x ||= 0 ) ; } let x ; 
-{ let x = 0 === 0 <= x ; } 
-{ let x = x ; }
-{ let x = { x } ; }
 { new x ( ) ; let x ; }
 { switch ( x >>> 0 ) { } } let x ; 
 { x ( ) ; let x ; }
 { x ( ) ; x : ; } let x ; 
+{ x ( 0 ) ; x = 0 ?? 0 ; let x ; } ; 
 { x , x ; } let x ;
 { x , x ; } { } let x ; 
 { x : ; new x ( ) ; } let x ; 
 { x ; let x ; }
 { x = 0 ; } let x ; 
+{ x = 0 > 0 ; let x ; } 
+{ x = [ 0 , 0 ] [ 0 ** 0 ] ++ ?? 0 ; let x ; } ; 
+{ x = [ 0n ] [ 0 ] ++ ?? 0 ; let x ; } ; 
+{ x = [ [ ] ] [ 0 ] ++ ?? 0 ; let x ; } ; 
+{ x = function ( ) { } ( ) [ x ] ++ ?? 0 ; let x ; } ; 
+{ x = function * ( ) { } ( ) [ x -- ] ++ ?? 0 ; let x ; } ; 
 { x = x = 0 ; } let x ; 
+{ x = x = x ?. x ; let x ; } ; 
 { x = x = { x } ; } let x ; 
+{ x = x = ~ 0 ; let x ; } ; 
+{ x = x = ~ [ 0 , , 0 , ] ?. x ; let x ; } ; 
+{ x = x = ~ x ; let x ; } ; 
 { x = x = ~ x ; } ; let x ; 
 { x = x => 0 , x ; } let x ; 
+{ x = x ?? 0 ; let x ; } ; 
+{ x = x [ 0 ] ++ ?? 0 ; let x ; } ; 
 { x = { x , x , } = 0 ; } let x ; 
 { x = { x , } = 0 ; } let x ; 
 { x = { x } = 0 ; } let x ; 

@@ -110,13 +110,25 @@ OBF-OPT-CALL-CHAIN-FAIL||TypeError: Cannot read properties of undefined (reading
 OBF-ASYNC-DIV-FAIL||Unterminated regular expression|but got transpile-failure
 OBF-EXTENDS-BOOL||extends!|but got throw-error: SyntaxError
 TRS-REMOVE-INSTANCE-OF|instanceof||Expected throw-error: TypeError(InstanceofOperator
-TRS-REMOVE-in| in ||Expected throw-error: TypeError(RelationalExpression[6,0]
+TRS-REMOVE-IN| in ||Expected throw-error: TypeError(RelationalExpression[6,0]
+TRS-REMOVE-SPREAD|...||Expected throw-error: TypeError(Call ((step 2, 3:43-73))<SYNTAX>:SpreadElement[0,0].ArrayAccumulation)
+TRS-REMOVE-SPREAD|...||Expected throw-error: TypeError(ToObject<SYNTAX>:SpreadElement[0,0].ArrayAccumulation)
+TRS-REMOVE-SPREAD|...||Expected throw-error: TypeError(GetIterator ((step 4, 12:47-77))<SYNTAX>:SpreadElement[0,0].ArrayAccumulation)
+TRS-REMOVE-SPREAD|...||Expected throw-error: ReferenceError(DeclarativeEnvironmentRecord.GetBindingValue<SYNTAX>:SpreadElement[0,0].ArrayAccumulation)
+TRS-REMOVE-SPREAD|...||Expected throw-error: TypeError(Call ((step 2, 3:43-73))<SYNTAX>:YieldExpression[2,0].Evaluation
 TRS-REMOVE-BIGINT-DIV-0|/||RangeError(BigInt::multiply
 TRS-REMOVE-BIGINT-DIV-0|%||RangeError(BigInt::remainder
 TRS-REMOVE-BIGINT-EXP-NEG|**||RangeError(BigInt::exponentiate
 TRS-REMOVE-BIGINT-RIGHT-SHIFT|>>>||TypeError(BigInt::unsignedRightShift
 TRS-REMOVE-BIGINT-MIX|0n||Expected throw-error: TypeError(ApplyStringOrNumericBinaryOperator ((step 5
 TRS-REMOVE-BIGINT-MIX|1n||Expected throw-error: TypeError(ApplyStringOrNumericBinaryOperator ((step 5
+TRS-REMOVE-BIGINT-TO-INT|0n||Expected throw-error: TypeError(ToNumber ((step 7, 10:44-74))
+TRS-REMOVE-BIGINT-TO-INT|1n||Expected throw-error: TypeError(ToNumber ((step 7, 10:44-74))
+TRS-REMOVE-PRIMITIVE-NON-FUNC|[ Symbol . toPrimitive ]||Expected throw-error: TypeError(GetMethod ((step 3, 4:46-76))
+TRS-REMOVE-PRIMITIVE-NON-FUNC|[ Symbol . toPrimitive ]||Expected throw-error: TypeError(ClassTail[0,0].ClassDefinitionEvaluation:clo0 ((step 14.a.ii, 40:45-75))<BUILTIN-CLO>:ClassTail[0,0].ClassDefinitionEvaluation:clo0)
+TRS-REMOVE-PRIMITIVE-NON-FUNC|[ Symbol . toPrimitive ]||Expected throw-error: TypeError(ToPrimitive ((step 1.b.vi, 12:16-46))
+TRS-REMOVE-ITERATOR-NON-FUNC|[ Symbol . iterator ]||Expected throw-error: TypeError(GetMethod ((step 3, 4:46-76))
+TRS-REMOVE-HAS_INSTANCE-NON-FUNC|[ Symbol . hasInstance ]||Expected throw-error: TypeError(GetMethod ((step 3, 4:46-76))
 YET-TRS-REMOVE-REF-ERR||"use strict";$|Expected throw-error: ReferenceError
 YET-TRS-REMOVE-REF-ERR||"use strict";let|Expected throw-error: ReferenceError
 YET-TRS-REMOVE-REF-ERR||"use strict";var|Expected throw-error: ReferenceError
@@ -151,7 +163,7 @@ TRS-EMPTY-DESTRUCT-FAIL||TypeError: Cannot read properties of undefined (reading
 TRS-REMOVE-DESTR-GEN||function*|Expected throw-value
 TRS-WRONG-AWAIT||await 0|but got throw-error: SyntaxError
 TRS-WRONG-AWAIT||class await{}await(|but got throw-error: TypeError
-TRS-IIFE||0?.()|Invalid left-hand side ex:qpression
+TRS-IIFE||0?.()|Invalid left-hand side expression
 UNKNOWN-FAIL|||but got transpile-failure
 NAME|||descriptor value of "name"
 SHADOW-GETTER|||descriptor should be writable
@@ -202,6 +214,8 @@ DUP_REST_SPARSE?||x = 0, x;|Expected undefined but got 0
 SWC-SUPER-ESCAPE?||super.x|but got throw-error: SyntaxError
 JSC-IN-INSIDE-FOR-DESTR?|| in |but got throw-error: SyntaxError
 TRS-FUNC-LEN?||x(x|descriptor value of "length" should be
+TRS-REMOVE-PRIMITIVE?|[ Symbol . toPrimitive ]||Expected throw-error:
+TRS-REMOVE-PRIMITIVE?|[ Symbol . toPrimitive ]||Expected throw-value:
 YET-REMOVED-REF-ERR|||Expected throw-error: ReferenceError
 YET-REMOVED-REF-ERR||_this$x|
 DSG-POW-BIGINT||Math.pow|TypeError: Cannot convert a BigInt value to a number

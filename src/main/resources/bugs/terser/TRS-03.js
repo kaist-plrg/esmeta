@@ -12,6 +12,7 @@
 ! 1 + `` instanceof 0 ; 
 ! 1 << 0 instanceof 0 ; 
 ! 1 >= 0 instanceof 0 ; 
+! delete - 0 + 0 instanceof 0 ; 
 ! { * [ 0 instanceof 0 ?? 0 ] ( ) { } } ; 
 ! { ... 0 instanceof 0 } ; 
 ! { 1 : 0 instanceof 0 } ; 
@@ -66,6 +67,8 @@
 - { ... 0 instanceof 0 . x } ; 
 - { ... 0 instanceof 0 } ; 
 - { ... 0 instanceof [ ] } ; 
+- { ... 0 instanceof { [ Symbol . hasInstance ] : 0 } } ; 
+- { ... 0 instanceof { [ Symbol . hasInstance ] : x => await } } ; 
 - { 1 : '' . x instanceof 0 } ; 
 - { 1 : 0 . x instanceof 0 } ; 
 - { 1 : 0 instanceof 0 } ; 
@@ -126,6 +129,7 @@
 0 & new function ( ) { } ( ) instanceof 0 ; 
 0 & new function x ( ) { return 0 instanceof `` ?. [ 0 % 0 ] ; } ( ) ; 
 0 & new function x ( ) { return 0 instanceof `` ?. [ 0 ] ; } ( ) ; 
+0 & this instanceof async function ( x , ) { } ; 
 0 * - 0 instanceof 0 ; 
 0 * 0 instanceof 0 ; 
 0 * { } instanceof 0 ; 
@@ -142,7 +146,6 @@
 0 + ! 0 instanceof 0 ; 
 0 + '' instanceof 0 ; 
 0 + 0 . x instanceof 0 ; 
-0 + 0 instanceof 0 ; 
 0 + 0 instanceof 0 ; 
 0 + `` instanceof 0 ; 
 0 + null instanceof 0 ; 
@@ -174,6 +177,7 @@
 0 / { ... `${ 0 }` . x instanceof 0 , } ; 
 0 / { ... `` instanceof [ ] , } ; 
 0 / { ... false instanceof [ ] , } ; 
+0 / { ... this instanceof async function ( ) { } , } ; 
 0 / { ... { } . x instanceof 0 , } ; 
 0 / { ... { } instanceof 0 . x , } ; 
 0 < ! 0 instanceof 0 ; 
@@ -186,7 +190,6 @@
 0 < 0 >= 0 instanceof 0 ; 
 0 < 0 instanceof ( 0 ) ; 
 0 < 0 instanceof 0 . x ; 
-0 < 0 instanceof 0 ; 
 0 < 0 instanceof 0 ; 
 0 < 0 instanceof `${ ! 0 }` ; 
 0 < 0 instanceof `${ ! 1 }` ; 
@@ -224,12 +227,15 @@
 0 == 0 . x instanceof 0 && 0 ; 
 0 == 0 instanceof 0 . x ; 
 0 == 0 instanceof 0 ; 
+0 == 0 instanceof { [ Symbol . hasInstance ] : 0 } ; 
 0 == 0 instanceof { } ; 
 0 === 0 instanceof 0 ; 
+0 > ! 0 instanceof 0 ; 
 0 > - 0 instanceof 0 ; 
 0 > 0 < 0 instanceof 0 ; 
 0 > 0 in this instanceof 0 ; 
 0 > 0 instanceof 0 ; 
+0 > 0 instanceof { [ Symbol . hasInstance ] : 0 } ; 
 0 > 1n instanceof 0 ; 
 0 > `` instanceof 0 ; 
 0 > { } instanceof 0 ; 
@@ -259,17 +265,25 @@
 0 [ '' ?. x ] instanceof 0 <= 0 ; 
 0 [ 0 ] % 0 instanceof 0 ; 
 0 [ 0 instanceof 0 ] ; 
+0 [ 0 instanceof { } ] ; 
 0 [ 0n ?. x ] instanceof 0 <= 0 ; 
 0 [ true ?. x ] instanceof 0 <= 0 ; 
+0 ^ ! 0 in { } instanceof 0 ; 
 0 ^ '' in { } instanceof 0 . x ; 
 0 ^ '' in { } instanceof 0 ; 
 0 ^ '' in { } instanceof 1n . x ; 
+0 ^ '' in { } instanceof { [ Symbol . hasInstance ] : `` } ; 
+0 ^ '' in { } instanceof { [ Symbol . hasInstance ] : class { } } ; 
+0 ^ '' instanceof { [ Symbol . hasInstance ] : x => 0 ( ) ( ) } ; 
+0 ^ 0 ** ~ 0 < 0 instanceof 0 ; 
 0 ^ 0 + 0 ** ~ 0 - delete 0 > 0 instanceof 0 ; 
 0 ^ 0 . x in { } instanceof 0 ; 
+0 ^ 0 < - 0 instanceof 0 ; 
 0 ^ 0 > 0 ** 0 / 0 instanceof 0 ; 
 0 ^ 0 > 0 > 0 instanceof 0 ; 
 0 ^ 0 > 0 in { } instanceof 0 ; 
 0 ^ 0 > 1n . x instanceof 0 ; 
+0 ^ 0 in [ 0 ] instanceof 0 ; 
 0 ^ 0 in { } instanceof 0 ; 
 0 ^ 0 instanceof 0 ; 
 0 ^ 0 instanceof [ ] ; 
@@ -277,6 +291,7 @@
 0 ^ 0n > `` . x instanceof 0 ; 
 0 ^ 0n > true . x instanceof 0 ; 
 0 ^ 1n < 0n instanceof 0 ; 
+0 ^ 1n < `` instanceof 0 ; 
 0 ^ 1n < { } instanceof 0 ; 
 0 ^ 1n > - 0 instanceof 0 ; 
 0 ^ 1n >= 0n instanceof 0 ; 
@@ -289,7 +304,10 @@
 0 ^ `` >= `` instanceof 0 ; 
 0 ^ null in { } instanceof 0 ; 
 0 ^ this > `` instanceof 0 ; 
+0 ^ this > typeof 0 instanceof 0 ; 
 0 ^ this > { } instanceof 0 ; 
+0 ^ this >= [ 0 ] instanceof 0 ; 
+0 ^ this >= this instanceof 0 ; 
 0 ^ true . x < 1n instanceof 0 ; 
 0 ^ { [ Symbol . toPrimitive ] : function ( ) { } } in { } instanceof 0 ; 
 0 ^ { [ Symbol . toPrimitive ] : x => 0 } in { } instanceof 0 ; 
@@ -366,7 +384,6 @@
 0 instanceof 0 <= 0 ; 
 0 instanceof 0 == 0 ; 
 0 instanceof 0 > 0 ; 
-0 instanceof 0 >= 0 ; 
 0 instanceof 0 >= 0 ; 
 0 instanceof 0 >> ! 0 ; 
 0 instanceof 0 >> ! 1 ; 
@@ -485,8 +502,11 @@
 0 instanceof x ; let x ;
 0 instanceof x << 0 ; var x ; 
 0 instanceof { ... 0 } ; 
+0 instanceof { [ Symbol . hasInstance ] : '' } <= 0 ; 
 0 instanceof { [ Symbol . hasInstance ] : 0 } ;
 0 instanceof { [ Symbol . hasInstance ] : [ ] } ;
+0 instanceof { [ Symbol . hasInstance ] : class { } } ; 
+0 instanceof { [ Symbol . hasInstance ] : true } ?? 0 ; 
 0 instanceof { [ Symbol . hasInstance ] : x => await } ; 
 0 instanceof { [ Symbol . hasInstance ] : x => new 0 } ;
 0 instanceof { [ Symbol . toPrimitive ] : function ( x ) { } } >> 0 . x ; 
@@ -515,6 +535,7 @@
 0 || 0 instanceof 0 ; 
 0 || 0 instanceof 0n . x , 0 ; 
 0 || 0 instanceof [ ] ; 
+0 || this instanceof async function ( ) { } ; 
 0n . x <= 0 instanceof 0 ; ; 
 0n . x >= this instanceof 0 ; 
 0n . x instanceof { } ?? 0 ; 
@@ -602,6 +623,8 @@
 [ , 0 instanceof [ ] ] ; 
 [ , 0 instanceof `` . x ] ; 
 [ , 0 instanceof async function x ( ) { } ?. x ** 0 ** 0 ] ; 
+[ , 0 instanceof { [ Symbol . hasInstance ] : - 0 } ] ; 
+[ , 0 instanceof { [ Symbol . hasInstance ] : function * ( [ ] ) { } } ] ; 
 [ , 1n > null instanceof 0 ] ; 
 [ , 1n > this instanceof 0 ] ; 
 [ , `` > { } instanceof 0 ] ; 
@@ -628,6 +651,7 @@
 [ ... 0 instanceof { } ] ; 
 [ ... [ 0 < 0 ** ~ 0 instanceof 0 ] ] ; 
 [ ... { [ Symbol . iterator ] : function * ( ) { yield 0 instanceof 0 ; } } ] ; 
+[ ... { raw : '' } instanceof async function ( ) { } ] ; 
 [ 0 * class x { } [ 0 ? 0 : 0 ] instanceof 0 ] ; 
 [ 0 * this instanceof 0 ] ; 
 [ 0 ** ~ + + 0 / - 0 instanceof 0 ] ; 
@@ -646,6 +670,7 @@
 [ 0 , , 0 instanceof { } ] ; 
 [ 0 , , 1n . x instanceof 0 ] ; 
 [ 0 , , `` . x instanceof 0 ] ; 
+[ 0 , , this instanceof async function ( ) { } ] ; 
 [ 0 , 0 !== 0 . x instanceof 0 , ] ; 
 [ 0 , 0 !== 0 instanceof '' . x , ] ; 
 [ 0 , 0 !== 0 instanceof 0 . x , ] ; 
@@ -653,6 +678,10 @@
 [ 0 , 0 !== 0 instanceof [ ] , ] ; 
 [ 0 , 0 !== 0 instanceof [ ] . x , ] ; 
 [ 0 , 0 !== 0 instanceof true . x , ] ; 
+[ 0 , 0 !== 0 instanceof { [ Symbol . hasInstance ] : class { } } , ] ; 
+[ 0 , 0 !== 0 instanceof { [ Symbol . hasInstance ] : false } , ] ; 
+[ 0 , 0 !== 0 instanceof { [ Symbol . hasInstance ] : x => await } , ] ; 
+[ 0 , 0 !== 0 instanceof { [ Symbol . hasInstance ] : { } } , ] ; 
 [ 0 , 0 !== 0n . x instanceof [ ] , ] ; 
 [ 0 , 0 !== `` . x instanceof this , ] ; 
 [ 0 , 0 !== this . x instanceof this , ] ; 
@@ -754,6 +783,7 @@
 [ ] < 0 instanceof 0 ; 
 [ ] << 0 instanceof 0 ; 
 [ ] instanceof async function ( ) { } ;
+[ ] instanceof async function x ( ) { } ; 
 [ `${ 0 }` < typeof 0 instanceof 0 , 0 ] ; 
 [ `` * - 0 instanceof 0 ] ; 
 [ `` / - 0 instanceof { [ Symbol . hasInstance ] : ( ) => { throw 0 ; } } ] ; 
@@ -768,7 +798,10 @@
 [ null / 0 instanceof 0 ] ; 
 [ this >= 0n instanceof 0 , 0 ] ; 
 [ this ] >= { } instanceof 0 ; 
+[ this instanceof async function ( ) { } ^ 0 ] ; 
 [ true / - 0 instanceof 0 ] ; 
+[ true / - 0 instanceof { [ Symbol . hasInstance ] : ( ) => { return `${ 0 }${ 0 }${ { add : async * function ( x ) { } } }` ; } } ] ; 
+[ true / - 0 instanceof { [ Symbol . hasInstance ] : 0 ^ 0 } ] ; 
 [ true ?. x instanceof 0 ^ 0 ] ; 
 [ typeof '' < typeof 0 instanceof 0 , 0 ] ; 
 [ typeof 0 < typeof 0 instanceof 0 , 0 ] ; 
@@ -806,6 +839,10 @@
 `${ 0 }${ 0 != 0 instanceof 1n . x }` ; 
 `${ 0 }${ 0 != 0 instanceof `` . x }` ; 
 `${ 0 }${ 0 != 0 instanceof this . x }` ; 
+`${ 0 }${ 0 != 0 instanceof { [ Symbol . hasInstance ] : `` } }${ 0 }` ; 
+`${ 0 }${ 0 != 0 instanceof { [ Symbol . hasInstance ] : class { } } }${ 0 }` ; 
+`${ 0 }${ 0 != 0 instanceof { [ Symbol . hasInstance ] : x => 0 ( ) ?. x } }${ 0 }` ; 
+`${ 0 }${ 0 != 0 instanceof { [ Symbol . hasInstance ] : { } } }${ 0 }` ; 
 `${ 0 }${ 0 != 0 instanceof ~ 0 / 0 % 0 }${ 0 }` ; 
 `${ 0 }${ 0 != 0 instanceof ~ 0 / 0 / 0 }${ 0 }` ; 
 `${ 0 }${ 0 . x instanceof 0 . x }` ; 
@@ -828,6 +865,7 @@
 `${ 0 }${ 0 instanceof this . x >>> 0 in 0 }${ true }${ 0 }` ; 
 `${ 0 }${ 0 instanceof true . x }` ; 
 `${ 0 }${ 0 instanceof { [ Symbol . hasInstance ] : ( ) => { throw 0 ; } } }` ; 
+`${ 0 }${ 0 instanceof { [ Symbol . hasInstance ] : false } }` ; 
 `${ 0 }${ 0 instanceof { } }` ; 
 `${ 0 }${ 0 }${ 0 instanceof 0 . x }${ 0 }` ; 
 `${ 0 }${ 0 }${ 0 instanceof 0 [ 0 ] }` ; 
@@ -836,6 +874,7 @@
 `${ 0 }${ 0 }${ 0 instanceof `` . x }${ 0 }` ; 
 `${ 0 }${ 0 }${ 0 instanceof this }` ; 
 `${ 0 }${ 0 }${ 0 instanceof true . x }${ 0 }` ; 
+`${ 0 }${ 0 }${ 0 instanceof { [ Symbol . hasInstance ] : '' } }` ; 
 `${ 0 }${ 0 }${ 0 instanceof { } }` ; 
 `${ 0 }${ [ , ] . x ++ instanceof 0 }` ; 
 `${ 0 }` . x instanceof { } ?? 0 ; 
@@ -859,6 +898,7 @@
 `` <= 1 instanceof 0 ; 
 `` <= 1n instanceof 0 ; 
 `` <= [ ] instanceof 0 ; 
+`` <= ~ 0 instanceof 0 ; 
 `` >= 0 instanceof 0 ; 
 `` [ 0 / 0 ] instanceof 0 ;
 `` [ 0 ] instanceof 0 ;
@@ -869,9 +909,12 @@ delete 0 instanceof 0 ;
 for ( '' . x ?. x instanceof 0 & 0 ; ; ) ; 
 for ( '' . x instanceof 0 ; 0 ; ) ; 
 for ( '' . x instanceof 0 ; ; ) ; 
+for ( '' . x instanceof { [ Symbol . hasInstance ] : ( 0 ) } ; 0 ; ) ; 
 for ( '' ?. x instanceof 0 & 0 ; ; ) ; 
 for ( + ! ! 0 instanceof [ ] ; ; ) ; 
+for ( + ! ~ - 0 instanceof '' ; ; ) ; 
 for ( - ! ~ 0 instanceof 0 ; ; ) ; 
+for ( 0 !== 0 instanceof 0 >= 0 ; ; 0 ) break ; 
 for ( 0 ** ~ 0 % 0 instanceof 0 ; ; ) ; 
 for ( 0 . x instanceof 0 ; 0 ; ) ; 
 for ( 0 . x instanceof 0 ; ; ) ; 
@@ -883,6 +926,8 @@ for ( 0 [ 0 ] in 0 . x instanceof { } , 0 ) ;
 for ( 0 [ 0 ] in 0 instanceof 0 [ 0 ] , 0 ) ; 
 for ( 0 [ 0 ] in 0 instanceof `` . x , 0 ) ; 
 for ( 0 [ 0 ] in 0 instanceof true . x , 0 ) ; 
+for ( 0 [ 0 ] in 0 instanceof { [ Symbol . hasInstance ] : 0 ?? 0 } , 0 ) ; 
+for ( 0 [ 0 ] in 0 instanceof { [ Symbol . hasInstance ] : x => await } , 0 ) ; 
 for ( 0 [ 0 ] in 0 instanceof { } , 0 ) ; 
 for ( 0 [ 0 ] in 0 instanceof { } . x , 0 ) ; 
 for ( 0 [ 0 ] in 0n . x instanceof { } , 0 ) ; 
@@ -918,6 +963,10 @@ for ( 0 instanceof new function ( ) { } ( ) ; ; ) ;
 for ( 0 instanceof this ?. x ; ; 0 ) throw 0 ; 
 for ( 0 instanceof true ** 0 ** ~ 0 ; ; ) ; 
 for ( 0 instanceof { [ 0 < 0 + 0 ** ~ 0 ] : x => { throw 0 ; } } ; ; ) ; 
+for ( 0 instanceof { [ Symbol . hasInstance ] : ( ) => { throw 0 ; } } & 0 ; ; ) ; 
+for ( 0 instanceof { [ Symbol . hasInstance ] : 0 } & 0 ; ; ) ; 
+for ( 0 instanceof { [ Symbol . hasInstance ] : 0 } ; ; ) ; 
+for ( 0 instanceof { [ Symbol . hasInstance ] : x => { throw 0 ; } } ; ; ) ; 
 for ( 0 instanceof { } ; ; ) ; 
 for ( 0n . x ?. x instanceof 0 & 0 ; ; ) ; 
 for ( 0n . x instanceof 0 ; ; ) ; 
@@ -935,6 +984,7 @@ for ( ~ 0 / 1 instanceof 0 ; ; ) ;
 function x ( ) { } 0 || x instanceof 0 , 0 ; 
 if ( 0 , 0 instanceof 0 . x ) ; else ; 
 if ( 0 , 0 instanceof [ ] ) ; else ; 
+if ( 0 , 0 instanceof { [ Symbol . hasInstance ] : '' } ) ; else ; 
 if ( 0 . x instanceof 0 ) ; 
 if ( 0 . x instanceof 0 ) ; else ; 
 if ( 0 ? 0 : 0 . x instanceof 0 ) ; 
@@ -945,6 +995,7 @@ if ( 0 instanceof '' . x ) ; else ;
 if ( 0 instanceof 0 ) ; 
 if ( 0 instanceof 0 ) ; else ; 
 if ( 0 instanceof 0 . x && 0 ) ; 
+if ( 0 instanceof 0 . x ) ; 
 if ( 0 instanceof 0 . x ) ; else ; 
 if ( 0 instanceof 0n . x ) ; else ; 
 if ( 0 instanceof 1 >>> 0 ** 0 ) ; 
@@ -953,14 +1004,21 @@ if ( 0 instanceof [ ] && 0 ) ;
 if ( 0 instanceof [ ] ) ; else ; 
 if ( 0 instanceof `` . x ) ; else ; 
 if ( 0 instanceof true . x ) ; else ; 
+if ( 0 instanceof { [ Symbol . hasInstance ] : 0 } ) ; 
+if ( 0 instanceof { [ Symbol . hasInstance ] : [ ] } ) ; 
+if ( 0 instanceof { [ Symbol . hasInstance ] : class x { } } ) ; 
+if ( 0 instanceof { [ Symbol . hasInstance ] : true } ) ; 
+if ( 0 instanceof { [ Symbol . hasInstance ] : x => new 0 ( ) } ) ; 
+if ( 0 instanceof { [ Symbol . hasInstance ] : x => new 0 } ) ; 
 if ( 0 instanceof { } ) ; 
-if ( 0 instanceof { } ) ; 
+if ( 0 instanceof { } ) ; else ; 
 if ( 0 instanceof { } . x ) ; else ; 
 let x ; 0 instanceof x << 0 ; 
 let x ; 0 || x instanceof 0 , 0 ; 
 let x ; [ , 0 >= x instanceof 0 ] ; 
 let x ; x instanceof 0 ;
 let x ; x instanceof x ;
+new class { } instanceof async function ( ) { } instanceof 0 ; 
 new function ( ) { return 0 % 0 ** ~ 0 instanceof 0 ; } ; 
 new function ( ) { return 0 . x instanceof 0 ; } ; 
 new function ( ) { return 0 > { [ Symbol . toPrimitive ] : x => 0 instanceof 0 } ; } ; 
@@ -968,13 +1026,16 @@ new function ( ) { return 0 instanceof '' . x ; } ;
 new function ( ) { return 0 instanceof 0 . x ; } ; 
 new function ( ) { return 0 instanceof 0 ; } ; 
 new function ( ) { return 0 instanceof 0n . x ; } ; 
+new function ( ) { return 0 instanceof { [ Symbol . hasInstance ] : true } ; } ; 
 new function ( ) { return 0 instanceof { } ; } ; 
 new function ( ) { return 1 ? 0 instanceof 0 : 0 ( ) ; } ; 
 new function ( ) { return 1n . x instanceof 0 ; } ; 
 new function ( ) { return ; } instanceof 0 instanceof 0 ; 
 new function ( ) { return [ ] . x instanceof 0 ; } ; 
 new function ( ) { } instanceof 0 ; 
+new function ( ) { } instanceof { [ Symbol . hasInstance ] : 0 } instanceof 0 ; 
 null ** 0 instanceof 0 ; 
+null + 0 instanceof 0 ; 
 null + `` instanceof 0 ; 
 null - 0 instanceof 0 ; 
 null < 0 instanceof 0 ; 
@@ -1004,11 +1065,14 @@ switch ( 0 ) { case 0 instanceof 0 : }
 switch ( 0 ) { case 0 instanceof 0n . x : default : } 
 switch ( 0 ) { case 0 instanceof 1 ** 0 ** ~ 0 : default : case 0 : } 
 switch ( 0 ) { case 0 instanceof [ ] : } 
+switch ( 0 ) { case 0 instanceof { [ Symbol . hasInstance ] : 0 } : default : case 0 : } 
+switch ( 0 ) { case 0 instanceof { [ Symbol . hasInstance ] : false } : } 
 switch ( 0 ) { case 0 instanceof { } : ; } 
 switch ( 0 ) { case 0 instanceof { } : default : case 0 : } 
 switch ( 0 ) { case 0 instanceof { } : default : } 
 switch ( 0 ) { case 1n . x instanceof 0 : default : case 0 : } 
 switch ( 0 ) { case [ 0 ] . x instanceof 0 : default : case 0 : } 
+switch ( 0 ) { case function ( ) { } instanceof async function ( ) { } : } 
 switch ( 0 ) { case true . x instanceof this : default : case 0 : } 
 switch ( 0 ) { case { 0 : null } . x instanceof 0 : } 
 switch ( 0 ) { case ~ 0 * - 0 instanceof 0 : default : case 0 : } 
@@ -1027,6 +1091,7 @@ switch ( 0 instanceof '' . x ) { }
 switch ( 0 instanceof 0 ) { } 
 switch ( 0 instanceof 0 . x ) { } 
 switch ( 0 instanceof true . x ) { } 
+switch ( 0 instanceof { [ Symbol . hasInstance ] : '' } ) { } 
 switch ( 0 instanceof { } ) { } 
 switch ( 0 instanceof { } . x ) { } 
 switch ( `` [ 0 ] instanceof 0 ) { } 
@@ -1073,8 +1138,11 @@ typeof x instanceof 0 ;
 var x ; `${ 0 instanceof void this . x }` | 0 ; 
 var x ; for ( this . x instanceof 0 ; ; ) ; 
 var x ; x instanceof 0 ;
+var x = async x => { ; for ( 0 [ 0 ] instanceof 0 ; ; 0 ) { } } ; x ( ) ; 
+var x = async x => { ; for ( 0 instanceof 0 ; ; 0 ) { } } ; x ( ) ; 
 void 0 instanceof 0 ; 
 x : if ( 0 instanceof 0 >> 0 % 0n . x ) ; else ; 
+x : switch ( 0 instanceof 0 ) { } 
 x : switch ( 0 instanceof 0 - 0 ** ~ 0 ) { default : } 
 x : switch ( 0 instanceof 0 . x ) { default : } 
 x : switch ( 0 instanceof 1n . x ) { default : } 
@@ -1085,6 +1153,7 @@ x instanceof x ; let x ;
 { if ( 0 | 0 instanceof 0 . x ) ; } 
 { if ( 0 | 0 instanceof function * ( ) { } . x ) ; } 
 { if ( 0 | 0 instanceof true . x ) ; } 
+{ if ( 0 | 0 instanceof { [ Symbol . hasInstance ] : false } ) ; } 
 { if ( 0 | 0 instanceof { } ) ; } 
 { x = 0 != 0 instanceof 0 === 0 | 0 ? 0 : 0 ; } ; 
 { } ( 0 instanceof 0 ) ; 

@@ -6,7 +6,6 @@
 0 & `${ 0n ** 1n }` ; 
 0 & { 0 : 1n ** 1n } ;
 0 . x ||= 1n ** ~ 0n ;
-0 . x ||= 1n ** ~ 0n ;
 0 <= 0n ** 0n ; 
 0 <= 1n ** 0n ; 
 0 > 1n ** 1n ;
@@ -25,8 +24,6 @@
 1n ** 0n ; 
 1n ** 1n ; 
 1n ** ~ 0n ;
-1n ** ~ 0n ;
-1n ** ~ 0n in 0 ;
 1n ** ~ 0n in 0 ;
 1n - 0n ** 1n ; 
 ; [ 0n ] [ 0 ] **= 0n ; 
@@ -34,11 +31,11 @@
 [ , 1 ** 1n ** ~ - 0n ] ; 
 [ , 1n ** 1n ] ; 
 [ 0 , , ... 0 >> 0n ** ~ 0n ] ;
-[ 0 , , ... 0 >> 0n ** ~ 0n ] ;
 [ 0 || 0 == 0 >= 1n ** 1n ] ;
 [ 0 || 0 == 1n >= 1n ** 1n ] ;
 [ 0n ** 0n ] ;
 [ 1n ** 0n ] ;
+class x { [ `` >>> 0n ] ; } 
 class x { static 0 = 0n ** 0n ; } 
 class x { static 0 = 0n ** 1n ; } 
 class x { static 0 = super [ 1n ** ~ - - 1n % 0 ] ; } 
@@ -72,6 +69,8 @@ new function ( ) { return 0n ** 0n ; } ;
 new function ( ) { return 0n ** 1n ; } ; 
 new function ( ) { return 1n ** 1n ; } ; 
 switch ( 0 ) { default : case 1n ** 1n : } 
+var [ x = 0n ** 0n ] = `` ; 
+var [ x = 0n ** 1n ] = `` ; 
 var x = x => 1n ** 1n ; x ( ) ; 
 var { x = 0n ** 0n } = 0 ;
 var { x = 1n ** 0n } = 0 ;

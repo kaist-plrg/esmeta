@@ -1,4 +1,3 @@
- ?. x [ { [ Symbol . toPrimitive ] : ( ) => { throw 0 ; } } ] ( ) ;
 '' ?. x [ { [ Symbol . toPrimitive ] : x => await } ] . x ( ) ; 
 0 . x ??= ~ null [ { [ Symbol . toPrimitive ] : x => { throw 0 ; } } ] `` ;
 0 ?. x [ [ { [ Symbol . toPrimitive ] : function ( ) { x ( ) ; } } , ] ] ;

@@ -23,16 +23,20 @@ SM-PROP-ORDER|||"length", "name"] for
 DELETE-SUPER||delete super|but got throw-error: ReferenceError
 DSG-REMOVED-DELETE-SUPER|||Expected throw-error: ReferenceError(UnaryExpression[1,0].Evaluation ((step 5.b, 10:54-89))<SYNTAX>:UnaryExpression[1,0].Evaluation) but got normal
 STRICT-DELETE||_defineProperty(x, 0, delete x);|but got throw-error: SyntaxError
-DSG-HIDDEN-GEN-PARAM-ERROR||return _regeneratorRuntime().wrap|but got normal
-DSG-HIDDEN-GEN-PARAM-ERROR||return __generator(|but got normal
+DSG-HIDDEN-GEN-PARAM-ERROR|function *|return _regeneratorRuntime().wrap|Expected throw-error: TypeError(ToObject<SYNTAX>:BindingPattern[1,0].BindingInitialization)
+DSG-HIDDEN-GEN-PARAM-ERROR|function *|return __generator(|Expected throw-error: TypeError(ToObject<SYNTAX>:BindingPattern[1,0].BindingInitialization)
+DSG-HIDDEN-GEN-PARAM-ERROR|function *|return _regeneratorRuntime().wrap|Expected throw-error: TypeError(Call ((step 2, 3:43-73))<SYNTAX>:BindingPattern[1,0].BindingInitialization)
+DSG-HIDDEN-GEN-PARAM-ERROR|function *|return __generator(|Expected throw-error: TypeError(Call ((step 2, 3:43-73))<SYNTAX>:BindingPattern[1,0].BindingInitialization)
+DSG-HIDDEN-GEN-PARAM-ERROR|function *|return _regeneratorRuntime().wrap|Expected throw-error: TypeError(Call ((step 2, 3:43-73))<SYNTAX>:BindingPattern[1,0].BindingInitialization)
+DSG-HIDDEN-GEN-PARAM-ERROR|function *|return __generator(|Expected throw-error: TypeError(RequireObjectCoercible<SYNTAX>:BindingPattern[0,0].BindingInitialization)
+DSG-HIDDEN-GEN-PARAM-ERROR|function *|return _regeneratorRuntime().wrap|Expected throw-error: TypeError(RequireObjectCoercible<SYNTAX>:BindingPattern[0,0].BindingInitialization)
 DSG-CLASS-IN-COMPUTED||_classNameTDZError|
-DSG-EMPTY-ARR-SYMBOL-ITERATOR||Symbol.iterator|Expected normal but got throw-error: TypeError
-DSG-SPARSE-ARR-SYMBOL-ITERATOR||Symbol.iterator|Expected normal but got throw-value
+BBL-TEMPORAL-UNDEFINED|||TypeError: _temporalUndefined is not iterable
 BBL-STATIC-PRIVATE-IN||===|TypeError(RelationalExpression[7
 BBL-COMPUTED-IN||_defineProperty|TypeError(RelationalExpression[6
 BBL-STATIC-REASSIGN-CLASS||_createClass|Expected throw-error: TypeError(DeclarativeEnvironmentRecord.SetMutableBinding
 GRL-REST-SPARSE||... [ ]|for Array.
-BBL-NULL-APPLY||null.apply|but got throw-error: TypeError
+BBL-UNDEFINED-APPLY|...||TypeError: Cannot read properties of undefined (reading 'apply')
 BBL-WRONG-ERR-NAME|||but got throw-error: Error
 BBL-FOR-LET-EMPTY-OBJ-FAIL||but instead got "CallExpression"|but got transpile-failure
 BBL-AWAIT-SPARSE-FAIL||Property right of AssignmentExpression expected node to be of a type ["Expression"] but instead got|but got transpile-failure
@@ -40,6 +44,14 @@ BBL-ENUMERABLE-GEN|||Expected [] but got ["_invoke"] for Generator.
 BBL-ENUMERABLE-GEN|||Expected undefined but got "toString"
 BBL-DESTR-SUPER-FAIL||Destructuring to a super field is not supported yet|but got transpile-failure
 BBL-NEW-TARGET||this instanceof x ? this.constructor|Expected normal but got throw-error: TypeError
+BBL-FOR-IMPORT-FAIL|for ( import|Property init of ForStatement expected node to be of a type ["VariableDeclaration","Expression"] but instead got "ExpressionStatement"|but got transpile-failure
+BBL-FOR-AWAIT-FAIL|for await ( let x of|Duplicate declaration|but got transpile-failure
+BBL-ASYNC-ARROW-SAME-NAME-FAIL|x = async x =>|undefined is not iterable|but got transpile-failure
+BBL-IMPORT-TOSTRING|import ( { [ Symbol . toPrimitive ] :|Promise.resolve(|
+BBL-YIELD-STAR|yield *|delegateYield|Expected throw-error: TypeError(Call ((step 2, 3:43-73))<SYNTAX>:YieldExpression[2,0].Evaluation)
+BBL-YIELD-STAR|yield *|delegateYield|Expected throw-error: TypeError(ToObject<SYNTAX>:YieldExpression[2,0].Evaluation)
+BBL-YIELD-STAR|yield *|delegateYield|Expected throw-error: TypeError(GetMethod ((step 3, 4:46-76))<SYNTAX>:YieldExpression[2,0].Evaluation)
+BBL-FOR-LET-TDZ|for ( let x|Expected throw-error: ReferenceError
 SWC-ASSIGN-CONST-FAIL||cannot reassign to a variable declared with `const`|but got transpile-failure
 SWC-CHAIN-ASSIGN-OBJ||0..x|
 SWC-CHAIN-COMP-ASSIGN-SUPER-IN-STATIC||_get(_getPrototypeOf|Expected normal
@@ -75,6 +87,8 @@ SWC-COMPUTED-THIS||this.x|Expected normal but got throw-error: TypeError
 SWC-ASYNC-POSTFIX-DECR||}().x--;|SyntaxError: Function statements require a function name
 SWC-ASYNC-POSTFIX-INCR||}().x++;|SyntaxError: Function statements require a function name
 SWC-AWAIT-FOR||x = _value;|Expected undefined but got [object Function].
+DSG-EMPTY-ARR-SYMBOL-ITERATOR||Symbol.iterator|Expected normal but got throw-error: TypeError
+DSG-SPARSE-ARR-SYMBOL-ITERATOR||Symbol.iterator|Expected normal but got throw-value
 GRL-NORMALIZE||normalize|RangeError
 GRL-SETPROTOTYPEOF||setPrototypeOf|TypeError(INTRINSICS.Object.setPrototypeOf
 GRL-EXTENDS-ITSELF||class x extends new |Expected throw-error: ReferenceError

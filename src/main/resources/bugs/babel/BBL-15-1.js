@@ -155,6 +155,8 @@ let x , await = x => 0 ;
 let x , await = { 1 : x } == `` ; 
 let x , await = { [ 0 | - 0 === 0 ^ 0 ] : true } ; 
 let x , await = { get 0 ( ) { } , } [ - 0 ] ; 
+let x , await = { set 0 ( x ) { } , } [ 0 ] ; 
+let x , await = { set 0 ( x ) { } , } [ x ] ; 
 let x , await = { x , } . x ; 
 let x , await = ~ x ; 
 let x , await = ~ { [ 0 | x === 0 . x ^ 0 | 0 ] : true } ; 

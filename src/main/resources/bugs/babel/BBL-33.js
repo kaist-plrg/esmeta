@@ -1,0 +1,11 @@
+let x = 0 < import ( { [ Symbol . toPrimitive ] : ( ) => { throw 0 ; } } || 0 ) ?. x ; 
+let x = 0 < import ( { [ Symbol . toPrimitive ] : 0 } ) ?. x ; 
+let x = 0 < import ( { [ Symbol . toPrimitive ] : [ ] } ) ?. x ; 
+let x = 0 < import ( { [ Symbol . toPrimitive ] : async function * ( ) { } } ) ?. x ; 
+let x = 0 < import ( { [ Symbol . toPrimitive ] : async x => 0 } ) ?. x ; 
+let x = 0 < import ( { [ Symbol . toPrimitive ] : async x => { } } ) ?. x ; 
+let x = 0 < import ( { [ Symbol . toPrimitive ] : class { ; } ?? 0 } ) ?. x ; 
+let x = 0 < import ( { [ Symbol . toPrimitive ] : class { } } ) ?. x ; 
+let x = 0 < import ( { [ Symbol . toPrimitive ] : function * x ( ) { } } ) ?. x ; 
+let x = 0 < import ( { [ Symbol . toPrimitive ] : x => { throw 0 ; } } ) ( ) ?. x ; 
+let x = 0 < import ( { [ Symbol . toPrimitive ] : x => { throw 0 ; } } ) ?. x ; 

@@ -60,6 +60,11 @@ for ( [ , ] of [ { [ Symbol . iterator ] : async function * x ( ) { yield * yiel
 for ( [ , ] of [ { [ Symbol . iterator ] : async function * x ( ) { yield * yield * [ 0 , , yield x [ 0 ] , ] ; } } , ] ) ; 
 for ( [ , ] of [ { [ Symbol . iterator ] : async function * x ( ) { yield * yield * [ x , , yield * '' , ] ; } } , ] ) ; 
 for ( [ , ] of [ { [ Symbol . iterator ] : async function * x ( ) { yield * yield * [ x ??= 0 , , yield * 0 , ] ; } } , ] ) ; 
+for ( var { } of { [ Symbol . iterator ] : async function * x ( ) { return [ yield * x , , ] ; } } ) ; 
+for ( var { } of { [ Symbol . iterator ] : async function * x ( ) { return [ yield * { [ Symbol . asyncIterator ] : ( ) => { throw 0 ; } } , , ] ; } } ) ; 
+for ( var { } of { [ Symbol . iterator ] : async function * x ( ) { return [ yield * { [ Symbol . iterator ] : function * ( x ) { } } , , ] ; } } ) ; 
+for ( var { } of { [ Symbol . iterator ] : async function * x ( ) { return [ yield 0 ?. x [ 0 ] , , ] ; ; } } ) ; 
+for ( var { } of { [ Symbol . iterator ] : async function * x ( ) { return [ yield x , , ] ; } } ) ; 
 var [ x ] = { [ Symbol . iterator ] : async function * ( ) { return import ( yield * { [ yield * [ , yield * ! 0 ] ] : x } ) ; } } ; 
 var [ x ] = { [ Symbol . iterator ] : async function * ( ) { return import ( yield * { [ yield * [ , yield * '' ] ] : x } ) ; } } ; 
 var [ x ] = { [ Symbol . iterator ] : async function * ( ) { return import ( yield * { [ yield * [ , yield * 0 . x ] ] : x } ) ; } } ; 

@@ -28,6 +28,7 @@ case object Fuzz extends Phase[CFG, Coverage] {
       duration = config.duration,
       kFs = config.kFs,
       cp = config.cp,
+      init = config.init,
     )
 
     // optionally dump the generated ECMAScript programs
@@ -86,6 +87,11 @@ case object Fuzz extends Phase[CFG, Coverage] {
       BoolOption(c => c.cp = true),
       "turn on the call-path mode (default: false) (meaningful if k-fs > 0).",
     ),
+    (
+      "init",
+      StrOption((c, s) => c.init = Some(s)),
+      "explicitly use the given init pool",
+    ),
   )
   case class Config(
     var out: Option[String] = None,
@@ -97,5 +103,6 @@ case object Fuzz extends Phase[CFG, Coverage] {
     var seed: Option[Int] = None,
     var kFs: Int = 0,
     var cp: Boolean = false,
+    var init: Option[String] = None,
   )
 }

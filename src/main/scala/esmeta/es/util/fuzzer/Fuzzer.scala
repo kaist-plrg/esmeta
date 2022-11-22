@@ -28,6 +28,7 @@ object Fuzzer {
     duration: Option[Int] = None, // `None` denotes no bound
     kFs: Int = 0,
     cp: Boolean = false,
+    init: Option[String] = None,
   ): Coverage = new Fuzzer(
     logInterval,
     debug,
@@ -37,6 +38,7 @@ object Fuzzer {
     duration,
     kFs,
     cp,
+    init,
   ).result
 
   // debugging levels
@@ -55,6 +57,7 @@ class Fuzzer(
   duration: Option[Int] = None, // `None` denotes no bound
   kFs: Int = 0,
   cp: Boolean = false,
+  init: Option[String] = None,
 ) {
   import Fuzzer.*
 
@@ -77,7 +80,7 @@ class Fuzzer(
           (synthesizer, rawCode) <- initPool
           code <- optional(scriptParser.from(rawCode).toString(grammar))
         } {
-          debugging(f"[${synthesizer.name}%-30s] $code")
+          debugging(f"[${synthesizer}%-30s] $code")
           add(code)
         }
       },
@@ -255,9 +258,16 @@ class Fuzzer(
   val mutatorStat: MMap[String, Counter] = MMap()
 
   /** initial pool */
-  val initPool =
-    SimpleSynthesizer.initPool.map(SimpleSynthesizer -> _) ++
-    BuiltinSynthesizer.initPool.map(BuiltinSynthesizer -> _)
+  val initPool = init
+    .map(d =>
+      listFiles(d).map(f =>
+        "GivenByUser" -> readFile(f.getPath).replace(USE_STRICT, ""),
+      ),
+    )
+    .getOrElse(
+      SimpleSynthesizer.initPool.map(SimpleSynthesizer.name -> _) ++
+      BuiltinSynthesizer.initPool.map(BuiltinSynthesizer.name -> _),
+    )
 
   lazy val logDir: String = s"$FUZZ_LOG_DIR/fuzz-$dateStr"
   lazy val symlink: String = s"$FUZZ_LOG_DIR/recent"

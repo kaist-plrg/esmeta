@@ -127,8 +127,8 @@ class Coverage(
     baseDir = baseDir,
     withScripts = true,
     withScriptInfo = true,
-    withTargetCondViews = false,
-    withUnreachableFuncs = false,
+    withTargetCondViews = true,
+    withUnreachableFuncs = true,
     withMsg = withMsg,
   )
 

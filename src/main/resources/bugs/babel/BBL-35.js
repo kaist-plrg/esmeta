@@ -1,3 +1,4 @@
+class x { [ this . x = 0 ] ; } 
 let x ; for ( 0 , 0 ; this . x ^= 1 ; ) if ( 0 ) ; else break ; 
 let x ; for ( 0 , 0 ; this . x ^= 1 ; ) try { switch ( 0 ) { } } finally { } 
 let x ; for ( 0 , 0 ; this . x ^= 1 ; ) x : continue ; 
@@ -50,4 +51,15 @@ let x ; for ( x => 0 ; this . x ^= 1 ; ) true ?. x ;
 let x ; for ( x => 0 ; this . x ^= 1 ; ) { function x ( ) { } } 
 let x ; for ( x => 0 ; this . x ^= 1 ; ) { let x ; } 
 let x ; for ( x => 0 ; this . x ^= { [ Symbol . toPrimitive ] : ( ) => 0 } ; ) if ( 1 ) ; 
+let x = async x => { for await ( let x of this . x &&= 0 ) ; } ; x ( ) ; 
+let x = async x => { for await ( this . x of [ 0 ] ) await x ; } ; x ( ) ; 
+let x = async x => { for await ( this . x of [ 0 ] ) switch ( 0 in 0 ) { } } ; x ( ) ; 
+let x = async x => { for await ( this . x of [ 0 ] ) { let x ; } } ; x ( ) ; 
 let x = async x => { for await ( this . x of async function * ( ) { throw ( yield ) , yield ; } ( ) ) ; } ; x ( ) ; 
+let x = async x => { for await ( this . x of async function * ( ) { throw ( yield 0 ) ; } ( ) ) ; } ; x ( ) ; 
+let x = async x => { for await ( var x of this . x ++ ) ; } ; x ( ) ; 
+let x = async x => { for await ( var x of this . x |= 0 ) ; } ; x ( ) ; 
+let x = async x => { for await ( x of this . x = 0 ) ; } ; x ( ) ; 
+let x = x => -- this . x ; x ( ) ; 
+let x = x => this . x %= 0 ; x ( ) ; 
+let x = x => this . x ++ ; x ( ) ; 

@@ -1,6 +1,17 @@
 [ , ... function * ( ) { yield * { [ Symbol . iterator ] : async x => 0 } ; } ( ) ] ; 
+[ , 0 , , ... { [ Symbol . iterator ] : function * ( x ) { if ( void [ 0 ] [ yield * { [ Symbol . iterator ] : x => 0 } ] -- ) ; } } ] ; 
+[ , 0 , , ... { [ Symbol . iterator ] : function * ( x ) { switch ( yield * 0 . x ||= yield * { [ Symbol . iterator ] : x => 0 } ) { } } } ] ; 
+[ , 0 , , ... { [ Symbol . iterator ] : function * ( x ) { switch ( yield * { [ Symbol . iterator ] : x => 0 } ) { } } } ] ; 
+[ , 0 , , ... { [ Symbol . iterator ] : function * ( x ) { yield * { [ Symbol . iterator ] : x => 0 } ; } } ] ; 
+[ , 0 , , ... { [ Symbol . iterator ] : function * ( x ) { yield 0 [ 0 ] ??= yield * { [ Symbol . iterator ] : x => 0 } ; } } ] ; 
 for ( var x of function * ( ) { yield * { [ Symbol . iterator ] : x => 0 } ; } ( ) ) ; 
 for ( var x of function * x ( ) { yield * { [ Symbol . iterator ] : x => [ ] } ; } ( ) ) ; 
+let [ [ ] , ] = function * ( ) { if ( yield * [ yield * { [ Symbol . iterator ] : x => 0 } ] ) ; } ( ) ; 
+let [ x , , ... [ ] ] = function * ( ) { for ( let x of yield * { [ Symbol . iterator ] : x => 0 } ) ; } ( ) ; 
+let [ x , , ... [ ] ] = function * ( ) { if ( yield * { [ Symbol . iterator ] : x => 0 } ) ; } ( ) ; 
+let [ x , , ... [ ] ] = function * ( ) { throw yield * `${ 0 }${ yield * { [ Symbol . iterator ] : x => 0 } }` ; } ( ) ; 
+let [ x , , ... [ ] ] = function * ( ) { yield yield 0 [ 0 ] /= yield * { [ Symbol . iterator ] : x => 0 } ; } ( ) ; 
+let [ x , , ... [ ] ] = function * ( ) { yield yield 0 [ yield * { [ Symbol . iterator ] : x => 0 } ] /= 0 ; } ( ) ; 
 var [ , ] = { [ Symbol . iterator ] : function * ( ) { yield * { [ Symbol . iterator ] : async x => 0 } ; } } ;
 var [ x ] = { [ Symbol . iterator ] : function * ( ) { yield * { [ Symbol . iterator ] : x => 0 } ; } } ; 
 var [ x ] = { [ Symbol . iterator ] : function * ( ) { yield * { [ Symbol . iterator ] : x => [ ] } ; } } ; 

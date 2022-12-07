@@ -61,6 +61,7 @@ if ( 1n ** 1n ) if ( 0n ) ; else ;
 if ( 1n ** 1n ) if ( 1 ) ; else ; 
 if ( 1n ** 1n ) if ( 1n ) ; else ; 
 if ( 1n ** 1n ) if ( `` ) ; else ; 
+if ( 1n ** 1n ) if ( await ) ; else ; 
 if ( 1n ** 1n ) x : throw 0 ; 
 let x = 1n ** 1n ;
 new class { 0 = 0n ** 0n ; } ; 
@@ -77,3 +78,4 @@ var { x = 1n ** 0n } = 0 ;
 x : switch ( 0n ** 0n ) { } 
 x : switch ( 1n ** 0n ) { } 
 x : switch ( 1n ** 1n ) { } 
+{ x = 0n ** 0n ; } ; 

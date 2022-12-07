@@ -23,6 +23,7 @@ SM-PROP-ORDER|||"length", "name"] for
 DELETE-SUPER||delete super|but got throw-error: ReferenceError
 DSG-REMOVED-DELETE-SUPER|||Expected throw-error: ReferenceError(UnaryExpression[1,0].Evaluation ((step 5.b, 10:54-89))<SYNTAX>:UnaryExpression[1,0].Evaluation) but got normal
 STRICT-DELETE||_defineProperty(x, 0, delete x);|but got throw-error: SyntaxError
+BBL-STATIC-PRIVATE-IN||===|TypeError(RelationalExpression[7
 DSG-HIDDEN-GEN-PARAM-ERROR|function *|return _regeneratorRuntime().wrap|Expected throw-error: TypeError(ToObject<SYNTAX>:BindingPattern[1,0].BindingInitialization)
 DSG-HIDDEN-GEN-PARAM-ERROR|function *|return __generator(|Expected throw-error: TypeError(ToObject<SYNTAX>:BindingPattern[1,0].BindingInitialization)
 DSG-HIDDEN-GEN-PARAM-ERROR|function *|return _regeneratorRuntime().wrap|Expected throw-error: TypeError(Call ((step 2, 3:43-73))<SYNTAX>:BindingPattern[1,0].BindingInitialization)
@@ -32,7 +33,7 @@ DSG-HIDDEN-GEN-PARAM-ERROR|function *|return __generator(|Expected throw-error: 
 DSG-HIDDEN-GEN-PARAM-ERROR|function *|return _regeneratorRuntime().wrap|Expected throw-error: TypeError(RequireObjectCoercible<SYNTAX>:BindingPattern[0,0].BindingInitialization)
 DSG-CLASS-IN-COMPUTED||_classNameTDZError|
 BBL-TEMPORAL-UNDEFINED|||TypeError: _temporalUndefined is not iterable
-BBL-STATIC-PRIVATE-IN||===|TypeError(RelationalExpression[7
+BBL-TEMPORAL-REF-CLASS|; class|_temporalRef|Expected throw-error: ReferenceError
 BBL-COMPUTED-IN||_defineProperty|TypeError(RelationalExpression[6
 BBL-STATIC-REASSIGN-CLASS||_createClass|Expected throw-error: TypeError(DeclarativeEnvironmentRecord.SetMutableBinding
 GRL-REST-SPARSE||... [ ]|for Array.
@@ -51,7 +52,7 @@ BBL-IMPORT-TOSTRING|import ( { [ Symbol . toPrimitive ] :|Promise.resolve(|
 BBL-YIELD-STAR|yield *|delegateYield|Expected throw-error: TypeError(Call ((step 2, 3:43-73))<SYNTAX>:YieldExpression[2,0].Evaluation)
 BBL-YIELD-STAR|yield *|delegateYield|Expected throw-error: TypeError(ToObject<SYNTAX>:YieldExpression[2,0].Evaluation)
 BBL-YIELD-STAR|yield *|delegateYield|Expected throw-error: TypeError(GetMethod ((step 3, 4:46-76))<SYNTAX>:YieldExpression[2,0].Evaluation)
-BBL-FOR-LET-TDZ|for ( let x|Expected throw-error: ReferenceError
+BBL-FOR-LET-TDZ|for ( let x||Expected throw-error: ReferenceError
 SWC-ASSIGN-CONST-FAIL||cannot reassign to a variable declared with `const`|but got transpile-failure
 SWC-CHAIN-ASSIGN-OBJ||0..x|
 SWC-CHAIN-COMP-ASSIGN-SUPER-IN-STATIC||_get(_getPrototypeOf|Expected normal

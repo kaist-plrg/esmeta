@@ -1,9 +1,17 @@
+0 % new async function x ( [ ] = 0 , x ) { } ( ) ** 0 ; 
+0 & this instanceof async function ( x , ) { } ; 
+0 / { ... this instanceof async function ( ) { } , } ; 
+0 || this instanceof async function ( ) { } ; 
 ; async function x ( x = 0 , [ ] , [ ] = 0 ) { }
 [ , ] = { [ Symbol . iterator ] : async function * ( ) { yield * x ( ) ; } } ; async function * x ( ) { }
+[ 0 , , this instanceof async function ( ) { } ] ; 
 [ ] instanceof async function ( ) { } ;
+[ ] instanceof async function x ( ) { } ; 
+[ this instanceof async function ( ) { } ^ 0 ] ; 
 async function * x ( ) { function x ( ) { } function x ( ) { } } x ( ) ; 
 async function * x ( ) { yield 0 ; } [ , ] = { [ Symbol . iterator ] : async function * ( ) { yield * x ( ) ; } } ; 
 async function * x ( ) { }
+async function * x ( ) { } + new x ( ) ; 
 async function * x ( ... [ x , , ... [ ] ] ) { } x ( ) ; 
 async function * x ( ... [ x = 0 , , ... [ ] ] ) { } x ( ) ; 
 async function * x ( ... x ) { } x ( 0 ) ; 
@@ -281,19 +289,47 @@ async function x ( x = 0 ) { function x ( ) { } } x ( ) ;
 async function x ( x = 0 ) { var x , x ; } x ( ) ; 
 async function x ( x = 0 ) { var x ; } x ( ) ; 
 class x { x ( ) { } }
+for ( var x ; { ... 0 } instanceof async function ( ) { } ; 0 ) ; 
 for ( var x of function * x ( ) { yield x ; } ( ) ) ; 
 for ( var x of function * x ( ) { yield { x } ?. x ; } ( ) ) ; 
+for ( x in this instanceof async function ( ) { } ) ; 
+function * await ( ) { } do ; while ( new await ( ) ) ; 
 function * x ( ) { const x = 0 ; } x ( ) ; 
 function * x ( ) { function x ( ) { } function x ( ) { } } x ( ) ; 
 function * x ( ) { }
 function * x ( ) { } [ , ... function * ( ) { yield * x ( ) ; yield * `` ; } ( ) ] ;
+function * x ( ) { } [ new x ] ; 
 function * x ( ... x ) { } x ( 0 ) ;
 function * x ( [ ] = 0 , [ ] , x ) { }
+function * x ( [ ] = new x ) { } x ( ) ; 
 function * x ( x ) { var x ; } x ( ) ; 
 function * x ( x ) { } x ( 0 ) ; 
 function * x ( x = 0 ) { var await ; } x ( ) ; 
 function * x ( x = 0 ) { var x , x ; } x ( ) ; 
 function * x ( x = 0 ) { var x ; } x ( ) ; 
+new ( async function ( ) { } ) ; 
+new ( function * ( ) { } ) ; 
+new async function ( ) { } ( ) ; 
+new async function ( ) { } ; 
+new async function * ( ) { } ( ) ; 
+new async function * ( ) { } ; 
+new async function * x ( ) { } ( ) ; 
+new async function * x ( ) { } ; 
+new async function * x ( [ ] , x = 0 ) { } ; 
+new async function * x ( [ ] = 0 ) { } ; 
+new async function * x ( [ ] = 0 , x ) { } ; 
+new async function * x ( x = 0 ) { } ; 
+new async function x ( ) { } ( ) ; 
+new async function x ( ) { } ; 
+new async function x ( x , { } ) { } ; 
+new function * ( ) { } ( ) ; 
+new function * ( ) { } ; 
+new function * x ( ) { } ( ) ; 
+new function * x ( ) { } ; 
+new function * x ( [ ] , x ) { } ; 
+new function * x ( x , [ ] = 0 ) { } ; 
+switch ( 0 ) { case function ( ) { } instanceof async function ( ) { } : } 
+var x ; new function * ( x , await = 0 , [ ] ) { ; ; ; } ; 
 var x = { x , async x ( ) { } } ; 
 x ( 0 ) ; async function * x ( ... [ ] ) { } 
 x ( 0 ) ; async function * x ( x ) { } 

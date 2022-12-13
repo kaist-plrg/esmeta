@@ -50,3 +50,7 @@ class x { static { if ( ++ super [ x ] ) ; else ; } }
 class x { static { if ( ++ super [ { x } ?. x ] - x ) ; else ; } } 
 class x { static { if ( 0 ?. [ 0 >= ++ super [ x ] ] ** 0 ) ; } } 
 class x { static { if ( super [ x ] ||= 0 ) ; } } 
+class x { static { super [ super [ x ] ++ ] ||= x => 0 ; } } 
+class x { static { super [ super [ x ] = 0 ] ||= x => 0 ; } } 
+class x { static { super [ x ] %= 0 ; } } 
+class x { static { super [ x ] ||= x => 0 ; } } 

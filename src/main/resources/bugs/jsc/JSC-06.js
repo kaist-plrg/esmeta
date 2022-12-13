@@ -2,10 +2,13 @@
 ! async function * x ( x , ... [ ] ) { } ;
 ! async function * x ( x , [ ] ) { } ;
 ! async function * x ( x , [ ] = 0 ) { } ( ) ;
+! async function * x ( x , [ ] = 0 ) { } ; 
 ! async function * x ( x = 0 ) { var x ; } ( ) ;
+! async function * x ( x = 0 ) { } ; 
 ! async function * x ( x = class extends 0 { } ) { } ( ) ;
 ! async function x ( ... x ) { } ;
 ! async function x ( [ ] , ... x ) { } ;
+! async function x ( [ ] = 0 , x ) { } ; 
 ! async function x ( x , ... [ ] ) { } ;
 ! async function x ( x , [ ] ) { } ;
 ! async function x ( x , [ ] = 0 ) { } ;
@@ -25,12 +28,19 @@
 ! function x ( x , [ ] ) { } ;
 ! function x ( x , [ ] = 0 ) { } ;
 ! function x ( x = 0 ) { } ;
+( x => { x ( ) ; return function x ( ... x ) { } ; } ) ( ) ; 
++ async function * x ( [ ] = 0 , x ) { } ( ) ; 
++ async function x ( ... [ x ] ) { } ( ) ; 
++ async function x ( [ , ... x ] ) { } ( ) ; 
++ async function x ( [ ] = 0 , x ) { } ( ) ; 
++ function * x ( [ x , ] ) { } ( ) ; 
 0 % new async function x ( [ ] = 0 , x ) { } ( ) ** 0 ;
 0 & 0 [ async function * x ( [ , ... x ] ) { } ( ) `` ] ;
 0 & 0 [ async function * x ( [ ... x ] ) { } ( ) `` ] ;
 0 & 0 [ async function * x ( [ ] , x ) { } ( ) ] ;
 0 & 0 [ async function * x ( [ x , ] ) { } ( ) `` ] ;
 0 & new function x ( ) { return { [ Symbol . toPrimitive ] : async function * x ( x , [ ] , ) { } } > 0 ; } ( ) ;
+0 ?. ( 0 , ... 0 [ { [ Symbol . toPrimitive ] : async function * x ( x , [ ] ) { } } ] ) ; 
 0 ?. x ( 0 , function x ( [ ] , ... x ) { } ( ) , ) ;
 Array . from . call ( function x ( [ ] , ... x ) { } , 0 ) ;
 Array . from . call ( function x ( [ ] , ... x ) { } , `` ) ;
@@ -44,6 +54,7 @@ class x { static 0 = super [ { [ Symbol . toPrimitive ] : async function * x ( [
 for ( ; async function x ( [ x , ] ) { } ( ) ( ) ; 0 ) ;
 for ( [ , ] of [ { [ Symbol . iterator ] : async function * x ( ) { yield * x = yield * { [ Symbol . iterator ] : async function * x ( { ... x } ) { } } ; } } , ] ) ;
 for ( [ ] in function * x ( [ ] = 0 , x ) { } ) ;
+for ( let [ , , ] of [ { [ Symbol . iterator ] : async function * ( ) { switch ( yield ) { default : case 0 : case yield * { [ Symbol . iterator ] : function x ( x , [ ] ) { } } : } } } ] ) ; 
 for ( var x in function * ( ) { } ( ) [ async function * x ( ... x ) { } . x ] ) ;
 for ( var { } of { [ Symbol . iterator ] : async function * x ( ) { return yield * yield * [ ! 0 , ] [ 0 ] /= 0 ; } } ) ;
 for ( var { } of { [ Symbol . iterator ] : async function * x ( ) { return yield * yield * [ ! 0 , ] [ 0 ] /= 1 ; } } ) ;
@@ -73,6 +84,8 @@ new class extends function x ( x = 0 , ... [ ] ) { return ; } { } ;
 new class extends function x ( x = await , ... [ ] ) { } { } ;
 new function ( ) { return { [ Symbol . toPrimitive ] : function x ( ... x ) { } } & 1 ; } ;
 new function * x ( [ ] , x ) { } ;
+new function * x ( [ ] , x = 0 ) { } ; 
+new function * x ( [ ] = 0 , x ) { } ; 
 new function * x ( x , [ ] = 0 ) { } ;
 new function x ( [ ] = '' . x ( ) , x ) { } ;
 new function x ( [ ] = 0 ( 0 , ... 0 ) , x ) { } ;
@@ -117,6 +130,7 @@ new function x ( { 0 : x , } ) { } ( null <= { [ Symbol . toPrimitive ] : x => 0
 new function x ( { 0 : x , } ) { } ( null <= { [ Symbol . toPrimitive ] : x => [ ] } ) ;
 new function x ( { 0 : x , } ) { } ( { [ Symbol . toPrimitive ] : null } <= this ) ;
 switch ( 0 ) { case new function x ( [ ] , ... x ) { } : default : }
+switch ( 0 ) { default : case function * x ( [ ] , x , ) { } ( ) : } 
 switch ( [ ] ) { case function x ( [ ] , x , [ ] , [ ] ) { } : }
 switch ( [ ] ) { case function x ( [ ] = 0 , x , [ ] , [ ] ) { } : }
 typeof async function x ( [ ] = 0 , x ) { } ? 0 : 0 ;

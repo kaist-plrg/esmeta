@@ -1,21 +1,36 @@
 ! ( x => this . x ||= class x { } ) ( ) ; 
 ( await ) ; async function * await ( ) { } 
 ( x => await ) ( ) ; function * await ( ) { }
++ async function ( ... [ ] ) { return x ; } ( ) ; function x ( ) { } 
++ { 0 : 0 || await } ; function await ( ) { } 
 - 0 !== 0 ?. x ; class await { } 
 - async function ( ) { await x ( ) ; } ( ) ; class x { } 
+0 instanceof await ; function await ( ) { } 
+; [ , ] = { [ Symbol . iterator ] : async function * ( ) { let [ ] = yield * x ; } } ; function * x ( ) { } 
+; [ , ] = { [ Symbol . iterator ] : async function * ( ) { try { } catch { } finally { return 0 ; } } } ; class x { } 
+; [ , ] = { [ Symbol . iterator ] : async function * ( ) { yield 0 == x ; } } ; class x { } 
 ; class x { } ( x , Map ) ; 
 ; function x ( ) { } [ x ?? 0 ] ; 
 ; function x ( [ ] , [ ] , x , [ ] , ) { } ; 
+; x ( 0 ) ; function x ( await = 0 , x ) { } 
+; x ( 0 ) ; function x ( { } , x ) { } 
 [ , 0 !== await ] ; function await ( ) { } 
 [ , ] = { [ Symbol . iterator ] : async function * ( ) { yield * x ( ) ; } } ; async function * x ( ) { } 
 [ ... { [ Symbol . iterator ] : function * ( ) { x ( 0 ) ; } } ] ; function * x ( ) { } 
+[ 0 , , await ] ; function * await ( ) { } 
 [ 0 , , this . x ??= function x ( x ) { } ] ; 
 [ 0 , , this . x ||= + 0 ] ; function x ( ) { } 
 [ 0 , , this . x ||= class x { } ] ; 
+[ 0 , , x ( ) ] ; function x ( ) { } 
+[ 0 , , x === ! 0 ] ; function x ( ) { } 
+[ 0 , , { x } . x = 0 ] ; function x ( ) { } 
 [ 0 , x ] ; function x ( ) { } 
 [ 0 <= 0 + 0 ** ~ 0 + 1 , , 0 ] ; function x ( ) { } 
 [ 0 <= 0 + { [ Symbol . toPrimitive ] : x ||= 0 } + 1 , , 0 ] ; function x ( ) { } 
+[ 0 [ 0 instanceof x ] , , ] ; function x ( ) { } 
+`${ 0 }${ 0 }${ ! x }` ; function x ( ) { } 
 async function * await ( ) { } 
+async function * await ( ) { } let [ x = await ] = `` ; 
 async function * await ( ) { } new class { 0 = super [ await && 0 ] ; } ; 
 async function * await ( ) { } while ( await == { } ) ; 
 async function * x ( ) { async function * x ( ) { } } x ( ) ; 
@@ -26,7 +41,10 @@ async function * x ( ) { let x ; } x ( ) ;
 async function * x ( ) { var x ; } x ( ) ; 
 async function * x ( ) { yield 0 ; } [ , ] = { [ Symbol . iterator ] : async function * ( ) { yield * x ( ) ; } } ;
 async function * x ( ) { } 
+async function * x ( ) { } ( 0 ** ~ ! 0 % 0 ) ; 
+async function * x ( ) { } ( 0 in { } & { [ Symbol . toPrimitive ] : function ( ) { } } ) ; 
 async function * x ( ) { } + { [ Symbol . toPrimitive ] : x => 0 } < 0 ; 
+async function * x ( ) { } - + { [ Symbol . toPrimitive ] : x => 0 } ; 
 async function * x ( ) { } ; 
 async function * x ( ) { } [ 0 <= 0 + { [ Symbol . toPrimitive ] : ( ) => { ; if ( x ( ) ) ; } } ] ; 
 async function * x ( ) { } [ { x = x } = 0 ] ; 
@@ -56,8 +74,11 @@ async function * x ( x ) { var x ; } x ( ) ;
 async function * x ( x ) { } 
 async function * x ( x ) { } x ( ) ; 
 async function * x ( x ) { } x ( 0 ) ;
+async function * x ( x , ) { } ( 0 << ! delete 0 ) ; 
 async function * x ( x , ... [ ] ) { } 
+async function * x ( x , ... { } ) { } 
 async function * x ( x , [ ] ) { } 
+async function * x ( x , [ ] = 0 ) { } 
 async function * x ( x = 0 ) { } 
 async function * x ( x = 0 ) { } x ( ) ; 
 async function * x ( x = 0 ) { } x ( 0 ) ; 
@@ -83,40 +104,74 @@ async function * x ( x = x => 0 ) { ; var x ; ; } x ( ) ;
 async function * x ( x = { 0 : function * ( x ) { } } [ 0 ] &&= function * x ( ) { } ) { } x ( ) ; 
 async function * x ( x = { } . x ) { } x ( ) ; 
 async function * x ( { } ) { } x ( 0 ) ; 
+async function await ( ) { } await . x ++ ; 
 async function x ( ) { ; for await ( x . x of [ 0 ] ) ; } x ( ) ;
 async function x ( ) { for await ( x . x of [ , 0 ] ) ; } x ( ) ; 
 async function x ( ) { for await ( x . x of [ 0 ] ) ; } x ( ) ; 
+await ; function await ( ) { } 
+await === 0 ; function await ( ) { } 
 await ? 0 : 0 ; function await ( ) { } 
 class await { } 
 class await { } ! { ... await } ; 
 class await { } ! { await } ; 
+class await { } ( 0 , `${ { [ Symbol . toPrimitive ] : x => 0 } }` ) ; 
 class await { } ( await ) ; 
+class await { } ( this >= { add : await } ) ; 
 class await { } - 0 !== await ; 
 class await { } - { ... await } ; 
+class await { } 0 , await ; 
 class await { } 0 / await ?. x ; 
+class await { } 0 instanceof await ; 
+class await { } ; ( 0 , await && 0 ) ; 
+class await { } [ , await ] ; 
+class await { } [ , void await ] ; 
 class await { } [ 0 , , await ] ; 
 class await { } [ ] !== [ ] ^ 0 ; 
 class await { } [ await ] ; 
 class await { } await !== 0 ^ 0 ; 
+class await { } await && 0 ; 
 class await { } await ; 
+class await { } await === 0 ; 
 class await { } await ? 0 : 0 ; 
+class await { } await ?? 0 ; 
 class await { } await || '' > 0 ; 
 class await { } await ||= 0 ; 
 class await { } class x extends await { ; } 
+class await { } class x { [ await = 0 ] ; } 
+class await { } for ( await ?. x ; ; 0 ) break ; 
 class await { } for ( await [ 0 ] in await , 0 ) ; 
 class await { } for ( await [ 0 ] in await , [ 0 ] ) ; 
 class await { } for ( let x ; 0 instanceof await ; 0 ) ; 
 class await { } for ( let x ; await instanceof await ; 0 ) ; 
+class await { } for ( let x in await ) ; 
+class await { } for ( let x in void await ) ; 
+class await { } for ( var x ; ; ) if ( ! 0 ) break ; 
+class await { } for ( var x ; ; ) if ( typeof 0 ) break ; 
+class await { } for ( var x ; ; ) if ( x => 0 ) break ; 
+class await { } for ( var x ; ; ) if ( ~ 0 ) break ; 
+class await { } for ( var x ; ; ) if ( ~ 1n ) break ; 
+class await { } for ( var x in ! await ) ; 
+class await { } for ( var x in await || x ) ; 
 class await { } for ( var x of [ [ ] ? await : 0 ^ 0 ] ) ; 
 class await { } for ( var x of function * ( ) { yield await ; } ( ) ) ;
 class await { } let [ x = await ] = '' ; 
+class await { } let [ x = await ] = `` ; 
+class await { } new await ( ) ; 
 class await { } new await ; 
+class await { } new class x extends await { ; #x = await ; } ; 
+class await { } new class x extends await { ; #x = await === 0 > 0 ; } ; 
+class await { } new class x extends await { ; #x = this === ++ super . x > 0 ; } ; 
+class await { } new class x extends await { ; #x = x === ++ function * ( ) { } ( ) . x ; } ; 
+class await { } new class x extends await { ; } ; 
 class await { } new class { 0 = super [ await && 0 ] ; } ; 
+class await { } typeof await ; 
 class await { } var x = await ; 
 class await { } var x = await || 0 ; 
+class await { } void await ; 
 class await { } x : switch ( await ) { } 
 class await { } { ; var x = await ; } 
 class await { } { await ; } 
+class await { } { groups : await ; } 
 class await { } { { await ; } } 
 class x extends await { } function await ( ) { } 
 class x extends class x { } { ; } 
@@ -137,6 +192,7 @@ class x extends function ( ) { } { } new x ( ) ;
 class x extends function await ( ... [ ] ) { } { ; static 0 ( ) { } ; } 
 class x extends function x ( ) { } { ; } 
 class x extends function x ( ) { } { } 
+class x extends new function ( ) { return class x { } ; } ( ) { ; } 
 class x extends null { #x ( ) { } } 
 class x extends null { #x ; } 
 class x extends null { 0 ( ) { } } 
@@ -144,13 +200,54 @@ class x extends null { 0 ; }
 class x extends null { ; 0 ; } 
 class x extends null { ; ; } 
 class x extends null { ; } 
+class x extends null { [ [ ! 0 ] [ 0 ] /= - 0 ] ; } 
+class x extends null { [ [ ! 0 ] [ 0 ] /= 0 ] ; } 
+class x extends null { [ [ ! 0 ] [ 0 ] /= 1 ] ; } 
+class x extends null { [ [ - 0 ] [ 0 ] /= 0 ** ~ 0 ] ; } 
+class x extends null { [ [ 0 ] [ 0 ] %= ! 0 ] ; } 
+class x extends null { [ [ 0 ] [ 0 ] %= 0 ** ~ 0 ] ; } 
+class x extends null { [ [ 0 ] [ 0 ] %= 0 ] ; } 
+class x extends null { [ [ 0 ] [ 0 ] **= 0 ** 0 ] ; } 
+class x extends null { [ [ 0 ] [ 0 ] **= ~ 0 ] ; } 
+class x extends null { [ [ 0 ] [ 0 ] *= - 0 ] ; } 
+class x extends null { [ [ 0 ] [ 0 ] *= 0 ** ~ 0 ] ; } 
+class x extends null { [ [ 0 ] [ 0 ] *= 0 ] ; } 
+class x extends null { [ [ 0 ] [ 0 ] += 0 ] ; } 
+class x extends null { [ [ 0 ] [ 0 ] /= 0 ** ~ 0 ] ; } 
+class x extends null { [ [ 0 ] [ 0 ] /= 0 ] ; } 
+class x extends null { [ [ 0 ] [ 0 ] /= 1 ] ; } 
+class x extends null { [ [ 0 ] [ 0 ] /= ~ 0 ] ; } 
 class x extends null { [ [ [ ] . x = 0 , ] = `` ] ; }
+class x extends null { [ [ ] [ 0 ] %= 0 ] ; } 
+class x extends null { [ [ true ] [ 0 ] *= 0 ** ~ 0 ] ; } 
+class x extends null { [ [ true ] [ 0 ] -= 0 ** ~ 0 ] ; } 
 class x extends null { [ [ { } , ] = [ 0 ] ] ; }
 class x extends null { [ [ { } = 0 , ] = `` ] ; }
 class x extends null { [ [ { } = x => 0 , ] = `` ] ; }
+class x extends null { [ [ ~ 0 ] [ 0 ] **= 0 ** ~ 0 ] ; } 
+class x extends null { [ [ ~ 0 ] [ 0 ] **= ~ 0 ] ; } 
+class x extends null { [ [ ~ 0 ] [ 0 ] /= 0 ] ; } 
+class x extends null { [ [ ~ 1 ] [ 0 ] **= 0 ** ~ 0 ] ; } 
+class x extends null { [ { set 0 ( x ) { } } [ 0 ] *= 0 ] ; } 
 class x extends null { static #x ( ) { } }
 class x extends null { static #x ; } 
 class x extends null { static * #x ( ) { } } 
+class x extends null { static * [ 0 == 0 ? 0 [ 0 ] : 0 ] ( ) { } } ; 
+class x extends null { static * [ 0 == 0 ? 1n [ 0 ] : 0 ] ( ) { } } ; 
+class x extends null { static * [ 0 == 0 ? `` [ '' ] : 0 ] ( ) { } } ; 
+class x extends null { static * [ 0 == 0 ? `` [ 0 % 0 ] : 0 ] ( ) { } } ; 
+class x extends null { static * [ 0 == 0 ? `` [ 0 ] : 0 ] ( ) { } } ; 
+class x extends null { static * [ 0 == 0 ? async function x ( ) { } [ 0 ] : 0 ] ( ) { } } ; 
+class x extends null { static * [ 0 instanceof class { } ? 0 : 0 ] ( ) { } } ; 
+class x extends null { static * [ 0 instanceof { [ Symbol . hasInstance ] : function ( ) { } } ? 0 : 0 ] ( ) { } } ; 
+class x extends null { static * [ 0 instanceof { [ Symbol . hasInstance ] : x => 0 } ? 0 : 0 ] ( ) { } } ; 
+class x extends null { static * [ 0 instanceof { [ Symbol . hasInstance ] : x => 0n } ? 0 : 0 ] ( ) { } } ; 
+class x extends null { static * [ 0 instanceof { [ Symbol . hasInstance ] : x => 1 } ? 0 : 0 ] ( ) { } } ; 
+class x extends null { static * [ 0 instanceof { [ Symbol . hasInstance ] : x => 1n } ? 0 : 0 ] ( ) { } } ; 
+class x extends null { static * [ 0 instanceof { [ Symbol . hasInstance ] : x => [ ] } ? 0 : 0 ] ( ) { } } ; 
+class x extends null { static * [ 0 instanceof { [ Symbol . hasInstance ] : x => `` } ? 0 : 0 ] ( ) { } } ; 
+class x extends null { static * [ 0 instanceof { [ Symbol . hasInstance ] : x => typeof 0 } ? 0 : 0 ] ( ) { } } ; 
+class x extends null { static * [ 0 instanceof { [ Symbol . hasInstance ] : x => { } } ? 0 : 0 ] ( ) { } } ; 
 class x extends null { static 0 ( ) { } } 
 class x extends null { static 0 ; static 0 ; } 
 class x extends null { static 0 ; static get 0 ( ) { } ; } 
@@ -162,6 +259,7 @@ class x extends null { static 0 = '' !== { x } ?. x ; }
 class x extends null { static 0 = '' !== { x } ?. x ?. x ; } 
 class x extends null { static 0 = '' ?. [ 0 ] ; } 
 class x extends null { static 0 = '' ?. [ { } ] ; } 
+class x extends null { static 0 = '' ?. x ; } 
 class x extends null { static 0 = '' [ + typeof 0 ] !== x ; } 
 class x extends null { static 0 = '' [ 0 ] !== 0 ?. x ?. x ; } 
 class x extends null { static 0 = '' [ 0 ] !== x ; } 
@@ -195,6 +293,16 @@ class x extends null { static 0 = 0 >= { [ Symbol . toPrimitive ] : x => 0 } >>>
 class x extends null { static 0 = 0 >= { [ Symbol . toPrimitive ] : x => { exec : 0 } } >>> 0 ; } 
 class x extends null { static 0 = 1 === 0 !== 0 <= 0 ; } 
 class x extends null { static 0 = 1n . x ; } 
+class x extends null { static 0 = [ ! 0 ] [ 0 ] ||= 0 | 0 ; } 
+class x extends null { static 0 = [ '' ] [ 0 ] ||= x | 0 ; } 
+class x extends null { static 0 = [ 0 ] [ 0 ] ||= 0 | 0 ; } 
+class x extends null { static 0 = [ 0n ] [ 0 ] ||= 0 | 0 ; } 
+class x extends null { static 0 = [ 1 ] [ 0 ] ||= 0 | 0 ; } 
+class x extends null { static 0 = [ 1n ] [ 0 ] ||= 0 | 0 ; } 
+class x extends null { static 0 = [ ] [ 0 ] ||= 0 ; } 
+class x extends null { static 0 = [ ] [ 1 ] ||= 0 ; } 
+class x extends null { static 0 = [ ] [ 1 ] ||= 0 | super . x ; } 
+class x extends null { static 0 = [ null ] [ 0 ] ||= x | 0 ; } 
 class x extends null { static 0 = `${ 0 }${ 0 }${ this }` ?. [ 0 ] ; } 
 class x extends null { static 0 = `${ 0 }${ 0 }${ x }` ?. [ 0 ] ; } 
 class x extends null { static 0 = `${ 0 }${ 0 }` ?. [ super [ 0 ] &&= 0 ] ; } 
@@ -205,6 +313,7 @@ class x extends null { static 0 = `${ 0 }` ?. [ 0 ] ; }
 class x extends null { static 0 = `${ 0 }` [ 0 ] !== x ; } 
 class x extends null { static 0 = `${ 0 }` [ 0 ] . x ; } 
 class x extends null { static 0 = `${ 0 }` [ 0 ] ; } 
+class x extends null { static 0 = `${ 0 }` [ 0 ] ||= 0 ; } 
 class x extends null { static 0 = `` . x ; } 
 class x extends null { static 0 = async function ( ) { } ( ) [ 0 . x && 0 ] ||= 0 ; } 
 class x extends null { static 0 = async function ( ) { } ( ) [ 0 ] ||= 0 >= 0 >= 0 - 0 > x ; } 
@@ -234,23 +343,33 @@ class x extends null { static 0 = function * ( ) { } ( ) [ x ] ||= 0 ; }
 class x extends null { static 0 = new class { } ( ) ; } 
 class x extends null { static 0 = new function ( ) { return ; } ( ) ; } 
 class x extends null { static 0 = new function ( ) { } ( ) ; } 
+class x extends null { static 0 = super . x != 0 ?. x ; } 
 class x extends null { static 0 = super . x ; } 
+class x extends null { static 0 = super . x === 0 != 0 ; } 
+class x extends null { static 0 = super . x ?. x === 0 ; } 
+class x extends null { static 0 = super [ true ?. x ] === 0 ; } 
 class x extends null { static 0 = this !== x ; } 
 class x extends null { static 0 = this << ! 0 ; } 
 class x extends null { static 0 = true . x ; } 
 class x extends null { static 0 = true [ super [ 0 ] ] !== x ; } 
+class x extends null { static 0 = void 0 === void super . x ?. x ; } 
+class x extends null { static 0 = void 0 === void x ; } 
+class x extends null { static 0 = void super . x === void 0 ; } 
+class x extends null { static 0 = void super [ x ] === void 0 ; } 
 class x extends null { static 0 = x * 0 ; } 
 class x extends null { static 0 = x . x ; } 
 class x extends null { static 0 = x ; } 
 class x extends null { static 0 = x == super . x ; } 
 class x extends null { static 0 = x === 0 !== 0 <= 0 ; } 
 class x extends null { static 0 = x => 0 ; } 
+class x extends null { static 0 = x ?. x ; } 
 class x extends null { static 0 = x [ 0 ] !== x ; } 
 class x extends null { static 0 = x [ 0 ] ; } 
 class x extends null { static 0 = x [ super [ 0 ] ] !== x ; } 
 class x extends null { static 0 = { get x ( ) { } } ?. x ; } 
 class x extends null { static 0 = { x } . x ; } 
 class x extends null { static 0 = { } !== x ; } 
+class x extends null { static 0 = ~ ~ super . x ; } 
 class x extends null { static get 0 ( ) { } static 0 ; } 
 class x extends null { static { } } 
 class x extends null { } 
@@ -272,6 +391,7 @@ class x { * 0 ( await = 0 , x ) { } }
 class x { * 0 ( x , [ ] = 0 ) { } } 
 class x { * 0 ( x , [ ] = 0 , ... [ ] ) { } } 
 class x { * 0n ( ) { } } 
+class x { * 1n ( ) { } } 
 class x { * [ 0 ] ( ) { } } 
 class x { * x ( ) { } } 
 class x { 0 ( ) { } ; } 
@@ -286,10 +406,14 @@ class x { 0 = 0 ; } new x ( ) ;
 class x { 0n ( ) { } } 
 class x { 0n ; } 
 class x { 0n = 0 ; } 
+class x { 1 = 0 ; } new x ( ) ; 
 class x { 1n ( ) { } } 
+class x { 1n ; } 
+class x { 1n = 0 ; } 
 class x { ; * 0 ( ) { } * 0 ( ) { } } 
 class x { ; * 0 ( ) { } 0 ( ) { } } 
 class x { ; * 0 ( ) { } async * 0 ( ) { } } 
+class x { ; * 0 ( ) { } async 0 ( ) { } } 
 class x { ; * 0 ( ) { } get 0 ( ) { } } 
 class x { ; * 0 ( ) { } set 0 ( x ) { } } 
 class x { ; * 0 ( ) { } } 
@@ -317,6 +441,8 @@ class x { ; static get 0 ( ) { } static set 0 ( x ) { } }
 class x { ; static set 0 ( x ) { } static 0 ; } 
 class x { ; static { } } 
 class x { ; } 
+class x { ; } ( 0 , x ) ; 
+class x { ; } ( 0 in x ) ; 
 class x { ; } if ( `${ this }` ) ; else ; 
 class x { [ ! ! 0 ] ; } 
 class x { [ ! '' . x ] ; } 
@@ -330,10 +456,14 @@ class x { [ ! 0 == 0 > 0 ] ; }
 class x { [ ! 0 == typeof 0 ] = 0 ; } 
 class x { [ ! 0 ] ; } 
 class x { [ ! 0 ] = 0 ; } 
+class x { [ ! 0 in [ ] ] ; } 
+class x { [ ! 1 ] ; } 
 class x { [ ! 1 ] = 0 ; } 
+class x { [ ! 1 in [ ] ] ; } 
 class x { [ ! 1n . x ] ; } 
 class x { [ ! [ ] ] ; } 
 class x { [ ! null ] ; } 
+class x { [ ! this ] ; } 
 class x { [ ! true . x ] ; } 
 class x { [ ! { } . x ] ; } 
 class x { [ ! ~ 0 >>> 0 ] ; } 
@@ -345,15 +475,20 @@ class x { [ '' == `` ] ; }
 class x { [ '' ?. [ 0 ] ] ; } 
 class x { [ '' ?. x ] ; } 
 class x { [ '' [ 0 ] &&= 0 ] ; } 
+class x { [ '' [ 0 ] ] ; } 
 class x { [ '' ] ; } 
 class x { [ '' ] = 0 ; } 
+class x { [ '' in [ ] ] ; } 
 class x { [ ( 0 ) ] ; } 
+class x { [ + ! 0 ] ; } 
+class x { [ + ! 1 ] ; } 
 class x { [ - ! 0 ] ; } 
 class x { [ - ! 1 ] ; } 
 class x { [ - '' . x ] ; } 
 class x { [ - 0 . x ] ; } 
 class x { [ - 0 == 0 > 0 ] ; } 
 class x { [ - 0 == `` ] = 0 ; } 
+class x { [ - 0 === 0 ] ; } 
 class x { [ - `` ] ; } 
 class x { [ - null ] ; } 
 class x { [ - this ] ; } 
@@ -365,6 +500,7 @@ class x { [ - { [ Symbol . toPrimitive ] : x => 1n } ] ; }
 class x { [ - { [ Symbol . toPrimitive ] : x => { } } ] ; } 
 class x { [ - { } ] ; } 
 class x { [ 0 != 0 === 0 < 0 ] ; } 
+class x { [ 0 != this ] ; } 
 class x { [ 0 !== '' . x ] ; } 
 class x { [ 0 !== - 0 ] ; } 
 class x { [ 0 !== - { [ Symbol . toPrimitive ] : null } ] ; } 
@@ -373,18 +509,25 @@ class x { [ 0 !== 0 / 0 ] ; }
 class x { [ 0 !== [ ] . x ] ; } 
 class x { [ 0 !== true . x ] ; } 
 class x { [ 0 % 0 ** ~ + 0 ] ; } 
+class x { [ 0 % 0 === 0 ] ; } 
+class x { [ 0 & this ] ; } 
 class x { [ 0 ** delete delete - { [ Symbol . toPrimitive ] : x => 0 } ] = 0 ; } 
+class x { [ 0 ** ~ 0 + 0 ] = 0 ; } 
 class x { [ 0 ** ~ 0 ] ; } 
 class x { [ 0 + 1n . x ] ; } 
 class x { [ 0 + `` . x ] ; } 
 class x { [ 0 + this ] ; } 
 class x { [ 0 + true . x ] ; } 
+class x { [ 0 - [ `` ] [ 0 ] . x ] ; } 
 class x { [ 0 - ~ 0 / 0 ] ; } 
 class x { [ 0 . x !== 0 . x ] ; } 
+class x { [ 0 . x === 0 . x ] ; } 
+class x { [ 0 . x === 0 ] ; } 
 class x { [ 0 . x >>> void delete 0 ] ; } 
 class x { [ 0 . x ?. x ] ; } 
 class x { [ 0 . x ] ; } 
 class x { [ 0 . x ] = 0 ; } 
+class x { [ 0 . x in [ ] ] ; } 
 class x { [ 0 / 0 == ! 0 ] = 0 ; } 
 class x { [ 0 / 0 == `` ] = 0 ; } 
 class x { [ 0 / 1 ] ; } 
@@ -397,6 +540,7 @@ class x { [ 0 <= { [ Symbol . toPrimitive ] : function ( ) { } } ] ; }
 class x { [ 0 <= { [ Symbol . toPrimitive ] : x => 0 } ] ; } 
 class x { [ 0 <= { [ Symbol . toPrimitive ] : x => { } } ] ; } 
 class x { [ 0 == - 0 ] ; } 
+class x { [ 0 == 0 != 0 < 0 ] ; } 
 class x { [ 0 == 0 != 0 <= 0 ] ; } 
 class x { [ 0 == 1 ] ; } 
 class x { [ 0 == `` ] ; } 
@@ -405,6 +549,8 @@ class x { [ 0 == this ] = 0 ; }
 class x { [ 0 == typeof 0 ] = 0 ; } 
 class x { [ 0 == { [ Symbol . toPrimitive ] : ( ) => { ; } } ] ; } 
 class x { [ 0 == { [ Symbol . toPrimitive ] : x => 0 } ] ; } 
+class x { [ 0 === 0n ] ; } 
+class x { [ 0 > 0 ** ~ 0 ] ; } 
 class x { [ 0 > 0 == ! 0 ] = 0 ; } 
 class x { [ 0 > 0 == `` ] = 0 ; } 
 class x { [ 0 > 0 ] ; } 
@@ -428,23 +574,46 @@ class x { [ 0 ^ this ] ; }
 class x { [ 0 ^ true [ 0 ] ] ; } 
 class x { [ 0 ^ { [ Symbol . toPrimitive ] : ( ) => { ; } } ] ; } 
 class x { [ 0 ^ { [ Symbol . toPrimitive ] : x => 0 } ] ; } 
+class x { [ 0 in [ 0 ] ] ; } 
+class x { [ 0 in [ ] ] ; } 
+class x { [ 0 in this ] ; } 
 class x { [ 0 instanceof class { } ] ; } 
+class x { [ 0 instanceof { [ Symbol . hasInstance ] : function ( ... x ) { } } ] ; } 
+class x { [ 0 instanceof { [ Symbol . hasInstance ] : x => '' } ] ; } 
+class x { [ 0 instanceof { [ Symbol . hasInstance ] : x => 0 } ] ; } 
+class x { [ 0 instanceof { [ Symbol . hasInstance ] : x => 0n } ] ; } 
+class x { [ 0 instanceof { [ Symbol . hasInstance ] : x => 1 } ] ; } 
+class x { [ 0 instanceof { [ Symbol . hasInstance ] : x => 1n } ] ; } 
+class x { [ 0 instanceof { [ Symbol . hasInstance ] : x => this } ] ; } 
+class x { [ 0 instanceof { [ Symbol . hasInstance ] : x => typeof 0 } ] ; } 
+class x { [ 0 instanceof { [ Symbol . hasInstance ] : x => { } } ] ; } 
 class x { [ 0 | 1n . x ] ; } 
 class x { [ 0 | `` . x ] ; } 
 class x { [ 0 | this ] ; } 
+class x { [ 0n != `` ] ; } 
 class x { [ 0n && 0 in 0 - 0 - 0 ] ; } 
 class x { [ 0n . x == 0 ] ; } 
+class x { [ 0n . x === 0 ] ; } 
 class x { [ 0n . x ?. x ] ; } 
+class x { [ 0n . x ] ; } 
+class x { [ 0n === 0n ] ; } 
 class x { [ 0n ?. x ] ( ) { } } 
+class x { [ 0n ] ; } 
 class x { [ 1 && 0 ] ; } 
 class x { [ 1 ** 0 ** ~ 0 ] = 0 ; } 
 class x { [ 1 ** ~ 0 ] = 0 ; } 
+class x { [ 1 === 0 / 0 ] ; } 
+class x { [ 1 === 0 ] ; } 
 class x { [ 1n && 0 ] ; } 
+class x { [ 1n - 1n ] ; } 
 class x { [ 1n . x ] = 0 ; } 
 class x { [ 1n <= { } > 0 ] ; } 
+class x { [ 1n === 0n ] ; } 
+class x { [ 1n > 0 ** ~ 0 ] ; } 
 class x { [ 1n [ 0 ] &&= 0 ] ; } 
 class x { [ 1n ] ; } 
 class x { [ 1n ] = 0 ; } 
+class x { [ 1n in [ ] ] ; } 
 class x { [ [ ! 0 , ] [ 0 ] &&= 0 ] ; } 
 class x { [ [ ! 0 ] [ 0 ] -- ] ; } 
 class x { [ [ , , ] <= 0n > 0 ] ; } 
@@ -453,6 +622,7 @@ class x { [ [ , ] == 0n ] = 0 ; }
 class x { [ [ , ] == 1 ] = 0 ; } 
 class x { [ [ , ] == `` ] = 0 ; } 
 class x { [ [ , ] [ 0 ] ++ ] ; } 
+class x { [ [ , ] [ 0 ] ??= 0 ] = 0 ; } 
 class x { [ [ , ] ] ; } 
 class x { [ [ 0 , , ] ] ; } 
 class x { [ [ 0 , 0 , ] [ 0 ] ??= 0 ] ; } 
@@ -464,15 +634,19 @@ class x { [ [ 0 ] == ! 0 ] = 0 ; }
 class x { [ [ 0 ] == 1n ] ; } 
 class x { [ [ 0 ] [ 0 ] ++ ] ; } 
 class x { [ [ 0 ] [ 0 ] -- ] ; } 
+class x { [ [ 0 ] [ 0 ] -- ] = 0 ; } 
+class x { [ [ 0 ] [ 0 ] ??= 0 ] = 0 ; } 
 class x { [ [ 0 ] [ 1 ] -- ] ; } 
 class x { [ [ 0n ] [ 0 ] ++ ] ; } 
 class x { [ [ 0n ] [ 0 ] -- ] ; } 
 class x { [ [ 1 == 0 ] [ 0 ] ++ ] ; } 
+class x { [ [ 1n ] [ 0 ] -- ] = 0 ; } 
 class x { [ [ [ ] ] [ 0 ] ++ ] ; } 
 class x { [ [ [ ] ] [ 0 ] -- ] ; } 
 class x { [ [ ] . x *= 0 ] ; } 
 class x { [ [ ] . x ++ ] ; } 
 class x { [ [ ] . x -- ] ; } 
+class x { [ [ ] . x -- ] = 0 ; } 
 class x { [ [ ] . x = 0 ] ; } 
 class x { [ [ ] . x ?. x ] ; } 
 class x { [ [ ] . x ^= 0 ] ; } 
@@ -484,13 +658,21 @@ class x { [ [ ] == 1n ] = 0 ; }
 class x { [ [ ] [ 0 ] &&= 0 ] ; } 
 class x { [ [ ] [ 0 ] ++ ] ; } 
 class x { [ [ ] [ 0 ] -- ] ; } 
+class x { [ [ ] [ 0 ] -- ] = 0 ; } 
+class x { [ [ ] [ 0 ] ??= 0 ] = 0 ; } 
 class x { [ [ ] [ 1 ] ++ ] ; } 
+class x { [ [ ] [ 1 ] -- ] = 0 ; } 
+class x { [ [ ] [ 1 ] ??= 0 ] = 0 ; } 
 class x { [ [ ] ] ; } 
 class x { [ [ ] ] = 0 ; } 
+class x { [ [ false ] [ 0 ] -- ] = 0 ; } 
 class x { [ [ null ] [ 0 ] ++ ] ; } 
 class x { [ [ null ] [ 0 ] -- ] ; } 
+class x { [ [ null ] [ 0 ] -- ] = 0 ; } 
+class x { [ [ true ] [ 0 ] -- ] = 0 ; } 
 class x { [ [ { 1 : 0 } , ] [ 0 ] &&= 0 ] ; } 
 class x { [ [ { [ Symbol . toPrimitive ] : function ( ) { } } ] [ 0 ] ++ ] ; } 
+class x { [ [ { } ] [ 0 ] -- ] = 0 ; } 
 class x { [ [ ~ 0 , ] [ 0 ] &&= 0 ] ; } 
 class x { [ `${ '' . x }` ] ; } 
 class x { [ `${ 0 }` && 0 ] ; } 
@@ -498,11 +680,13 @@ class x { [ `${ 0 }` [ 0 % 0 * 0 ** 0 ] ] ; }
 class x { [ `${ 0 }` [ 0 % 0 ] &&= 0 ] ; } 
 class x { [ `${ 0 }` [ 0 ?. x ] ] ; } 
 class x { [ `${ 0 }` [ 0 ] ??= 0 ] ; } 
+class x { [ `${ 0 }` [ 0 ] ??= 0 ] = 0 ; } 
 class x { [ `${ 0 }` [ 0 ] ] ; } 
 class x { [ `${ 0n . x }` ] ; } 
 class x { [ `${ this }` ] ; } 
 class x { [ `${ true . x }` ] ; } 
 class x { [ `` . x == 0 ] ; } 
+class x { [ `` . x === 0 ] ; } 
 class x { [ `` . x ] ; } 
 class x { [ `` . x ] = 0 ; } 
 class x { [ `` == ! 0 ] = 0 ; } 
@@ -516,14 +700,18 @@ class x { [ `` == `` ] = 0 ; }
 class x { [ `` == { } ] = 0 ; } 
 class x { [ `` == ~ 0 ] = 0 ; } 
 class x { [ `` ?. x ] ( ) { } } 
+class x { [ `` ] ; } 
+class x { [ `` ] = 0 ; } 
 class x { [ function ( ) { } ( ) ] ; } 
 class x { [ function ( ) { } ( ) ] = 0 ; } 
 class x { [ function * ( ) { } ( ) ] ; } 
 class x { [ function * ( ) { } ( ) ] = 0 ; } 
 class x { [ new function ( ) { return ; } ( ) ] ; } 
 class x { [ new function ( ) { return ; } ] = 0 ; } 
+class x { [ new function ( ) { return [ ] ; } ] ; } 
 class x { [ new function ( ) { } ( ) ] ; } 
 class x { [ new function ( ) { } ] = 0 ; } 
+class x { [ null != null ] ; } 
 class x { [ null && 0 ] ; } 
 class x { [ null == ! 0 ] = 0 ; } 
 class x { [ null > 0 ] ; } 
@@ -531,17 +719,29 @@ class x { [ null >>> 0 ] ; }
 class x { [ null ?. x ] ; } 
 class x { [ null ] ; } 
 class x { [ null ] = 0 ; } 
+class x { [ null in [ ] ] ; } 
+class x { [ this != this ] ; } 
 class x { [ this - 0 ] ; } 
 class x { [ this . x = 0 ] ; } 
 class x { [ this / 0 ] ; } 
 class x { [ this < { } < 0 ] ; } 
 class x { [ this <= this > 0 ] ; } 
 class x { [ this <= { } > 0 ] ; } 
+class x { [ this === 0 ] ; } 
+class x { [ this === [ ] ] ; } 
+class x { [ this === this ] ; } 
+class x { [ this > 0 ] ; } 
+class x { [ this >= 0 ] ; } 
 class x { [ this >> 0 ] ; } 
 class x { [ this ?. x ] ; } 
+class x { [ this [ 0 ] ] ; } 
 class x { [ this ] ; } 
 class x { [ true ** 0 ** 0 ] ; } 
+class x { [ true ** 0 ** ~ 0 ] ; } 
+class x { [ true . x <= 0 ] ; } 
 class x { [ true . x == 0 > 0 ] ; } 
+class x { [ true . x === 0 ] ; } 
+class x { [ true . x ] ; } 
 class x { [ true . x ] = 0 ; } 
 class x { [ true >>> void delete 0 ] ; } 
 class x { [ true ?. x ] ( ) { } } 
@@ -550,41 +750,78 @@ class x { [ true [ 0 ] &&= 0 ] ; }
 class x { [ true ] ; } 
 class x { [ typeof ! 0 ] ; } 
 class x { [ typeof '' . x ] ; } 
+class x { [ typeof '' [ 0 % 0 ] ] ; } 
 class x { [ typeof '' ] ; } 
 class x { [ typeof 0 . x ] ; } 
 class x { [ typeof 0 == ! 0 ] = 0 ; } 
+class x { [ typeof 1n . x ] ; } 
+class x { [ typeof [ 0 , ] [ 0 ] ] ; } 
+class x { [ typeof [ ] . x ] ; } 
+class x { [ typeof [ ] ] ; } 
+class x { [ typeof `${ 0 }` [ 0 ] ] ; } 
+class x { [ typeof `` [ 0 ] ] ; } 
 class x { [ typeof await ] ; } 
 class x { [ typeof class { } ] ; } 
 class x { [ typeof null ] ; } 
 class x { [ typeof this ] ; } 
 class x { [ typeof true . x ] ; } 
+class x { [ typeof { set x ( x ) { } , } ?. x ] ; } 
 class x { [ typeof { } . x ] ; } 
 class x { [ typeof { } ] ; } 
 class x { [ void 0 . x ] ; } 
 class x { [ void this ] ; } 
 class x { [ { 0 : null } [ 0 ] &&= 0 ] ; } 
 class x { [ { 0 : true } [ 0 ] &&= 0 ] ; } 
+class x { [ { [ Symbol . toPrimitive ] : function ( ) { } } != 0 ] ; } 
+class x { [ { [ Symbol . toPrimitive ] : function ( ) { } } ** ~ 0 ] ; } 
 class x { [ { [ Symbol . toPrimitive ] : function ( ) { } } - [ ] ] ; } 
+class x { [ { [ Symbol . toPrimitive ] : function ( ) { } } > 0 ] ; } 
 class x { [ { [ Symbol . toPrimitive ] : function ( ) { } } >> 0 ] ; } 
 class x { [ { [ Symbol . toPrimitive ] : function ( ) { } } ] ; } 
+class x { [ { [ Symbol . toPrimitive ] : function ( x ) { } } ] = 0 ; } 
 class x { [ { [ Symbol . toPrimitive ] : function x ( ) { } } * 0 ] ; } 
+class x { [ { [ Symbol . toPrimitive ] : function x ( ) { } } in [ ] ] ; } 
+class x { [ { [ Symbol . toPrimitive ] : x => 0 } != 0 ] ; } 
 class x { [ { [ Symbol . toPrimitive ] : x => 0 } * 0 ] ; } 
+class x { [ { [ Symbol . toPrimitive ] : x => 0 } ** 0 ] ; } 
 class x { [ { [ Symbol . toPrimitive ] : x => 0 } - [ ] ] ; } 
 class x { [ { [ Symbol . toPrimitive ] : x => 0 } >> 0 ] ; } 
 class x { [ { [ Symbol . toPrimitive ] : x => 0 } ] ; } 
+class x { [ { [ Symbol . toPrimitive ] : x => 0 } ] = 0 ; } 
+class x { [ { [ Symbol . toPrimitive ] : x => { } } != 0 ] ; } 
+class x { [ { [ Symbol . toPrimitive ] : x => { } } ** 0 ] ; } 
 class x { [ { [ Symbol . toPrimitive ] : x => { } } ] ; } 
+class x { [ { [ Symbol . toPrimitive ] : x => { } } ] = 0 ; } 
+class x { [ { set x ( x ) { } , } ?. x ] ; } 
+class x { [ { x : 0 ?. x ?? 0 , } ?. x ?. x ] ; } 
+class x { [ { x : 0 | 0 , } ?. x ?. x ] ; } 
+class x { [ { x : 1n ?. x ?? 0 , } ?. x ?. x ] ; } 
+class x { [ { x : [ ! 0 ] [ 0 ] ++ ?? 0 , } ?. x ] ; } 
+class x { [ { x : [ 0 > 0 ] [ 0 ] ++ ?? 0 , } ?. x ] ; } 
+class x { [ { x : [ 0 ] [ 0 ] ++ ?? 0 , } ?. x ] ; } 
+class x { [ { x : [ 0n ] [ 0 ] ++ ?? 0 , } ?. x ] ; } 
+class x { [ { x : [ ] ?. x ?? 0 , } ?. x ?. x ] ; } 
+class x { [ { x : [ ] [ 0 ] ++ ?? 0 , } ?. x ] ; } 
+class x { [ { x : [ ] [ 1 ] ++ ?? 0 , } ?. x ] ; } 
+class x { [ { x : [ null ] [ 0 ] ++ ?? 0 , } ?. x ] ; } 
+class x { [ { x : [ { } ] [ 0 ] ++ ?? 0 , } ?. x ] ; } 
+class x { [ { x : `` ?. x ?? 0 , } ?. x ?. x ] ; } 
+class x { [ { x : true ?. x ?? 0 , } ?. x ?. x ] ; } 
 class x { [ { } && 0 ] ; } 
 class x { [ { } ** ~ 0 ] = 0 ; } 
 class x { [ { } . x *= 0 ] ; } 
 class x { [ { } . x ++ ] ; } 
 class x { [ { } . x -- ] ; } 
+class x { [ { } . x -- ] = 0 ; } 
 class x { [ { } . x = 0 ] ; } 
+class x { [ { } . x === 0 ] ; } 
 class x { [ { } . x ??= 0 ] ; } 
 class x { [ { } . x ] = 0 ; } 
 class x { [ { } . x ||= 0 ] ; } 
 class x { [ { } <= [ 0 ] ] ; } 
 class x { [ { } <= this > 0 ] ; } 
 class x { [ { } <= this ] ; } 
+class x { [ { } <= { [ Symbol . toPrimitive ] : x => { } } ] ; } 
 class x { [ { } <= { } ] ; } 
 class x { [ { } == ! 0 ] = 0 ; } 
 class x { [ { } == 0 ] = 0 ; } 
@@ -596,10 +833,12 @@ class x { [ { } == `` ] ; }
 class x { [ { } == `` ] = 0 ; } 
 class x { [ { } == class { } . x ] = 0 ; } 
 class x { [ { } == { } ] = 0 ; } 
+class x { [ { } > { } ] ; } 
 class x { [ { } ?. x ] ( ) { } } 
 class x { [ { } ?. x ] ; } 
 class x { [ { } ] ; } 
 class x { [ { } ] = 0 ; } 
+class x { [ { } in [ ] ] ; } 
 class x { [ ~ ! 0 ] ; } 
 class x { [ ~ ! 1 ] ; } 
 class x { [ ~ '' ] ; } 
@@ -622,6 +861,7 @@ class x { async * '' ( ) { } }
 class x { async * 0 ( ) { } ; } 
 class x { async * 0 ( ) { } } 
 class x { async * 0n ( ) { } } 
+class x { async * 1n ( ) { } } 
 class x { async * [ 0 ] ( ) { } } 
 class x { async * [ false ] ( ) { } } 
 class x { async * x ( ) { } } 
@@ -635,6 +875,7 @@ class x { async [ [ ] [ 0 ] ??= 0 ] ( ) { } }
 class x { async [ [ ] [ 1 ] ??= 0 ] ( ) { } } 
 class x { async x ( ) { } } 
 class x { get #x ( ) { } } 
+class x { get #x ( ) { } } new x ( ) ; 
 class x { get '' ( ) { } } 
 class x { get 0 ( ) { } * 0 ( ) { } } 
 class x { get 0 ( ) { } 0 ( ) { } } 
@@ -645,13 +886,26 @@ class x { get 0 ( ) { } get 0 ( ) { } }
 class x { get 0 ( ) { } set 0 ( x ) { } }
 class x { get 0 ( ) { } } 
 class x { get 0n ( ) { } } 
+class x { get 1n ( ) { } } 
 class x { get [ 0 ] ( ) { } } 
+class x { get [ 0n . x ] ( ) { } } 
 class x { get [ [ 0 , ] [ 0 ] ??= 0 ] ( ) { } } 
+class x { get [ `` . x ] ( ) { } } 
+class x { get [ true . x ] ( ) { } } 
+class x { get [ { [ Symbol . toPrimitive ] : ( ) => { ; } } ] ( ) { } } 
+class x { get [ { [ Symbol . toPrimitive ] : function ( ) { } } ] ( ) { } } 
+class x { get [ { [ Symbol . toPrimitive ] : x => 0 } ] ( ) { } } 
 class x { get x ( ) { } } 
 class x { set #x ( x ) { } get #x ( ) { } }
 class x { set #x ( x ) { } } 
 class x { set '' ( x ) { } } 
+class x { set 0 ( x ) { } * 0 ( ) { } } 
+class x { set 0 ( x ) { } 0 ( ) { } } 
 class x { set 0 ( x ) { } ; } 
+class x { set 0 ( x ) { } async * 0 ( ) { } } 
+class x { set 0 ( x ) { } async 0 ( ) { } } 
+class x { set 0 ( x ) { } get 0 ( ) { } } 
+class x { set 0 ( x ) { } set 0 ( x ) { } } 
 class x { set 0 ( x ) { } } 
 class x { set 0 ( x = 0 ) { } 0 ( ) { } } 
 class x { set 0 ( x = 0 ) { } get 0 ( ) { } } 
@@ -696,6 +950,12 @@ class x { static #x = { get 0 ( ) { } } [ 0 ] ; }
 class x { static #x = { set 0 ( x ) { } } [ 0 ] ; }
 class x { static * #x ( ) { } } 
 class x { static * 0 ( ) { } } 
+class x { static * [ + 0 . x ] ( ) { } } 
+class x { static * [ + null ] ( ) { } } 
+class x { static * [ + { } ] ( ) { } } 
+class x { static * [ `` . x ^ 0 ] ( ) { } } 
+class x { static * [ true . x ^ 0 ] ( ) { } } 
+class x { static * [ { [ Symbol . toPrimitive ] : x => 0 } ] ( ) { } } 
 class x { static 0 ( ) { } static * 0 ( ) { } } 
 class x { static 0 ( ) { } static 0 ( ) { } } 
 class x { static 0 ( ) { } static async * 0 ( ) { } } 
@@ -786,9 +1046,12 @@ class x { static 0 = ! x ; }
 class x { static 0 = ! { x } . x ; } 
 class x { static 0 = '' + 0 . x ?. x ; } 
 class x { static 0 = '' . x - 0 ; } 
+class x { static 0 = '' . x ; } 
 class x { static 0 = '' . x >> 0 ; } 
 class x { static 0 = '' >= x ; } 
 class x { static 0 = '' ?. x ?. x ; } 
+class x { static 0 = '' [ 0 % 0 ] ?. x ; } 
+class x { static 0 = '' [ 0 ] ?. x ; } 
 class x { static 0 = + ! 0 ; } 
 class x { static 0 = + 0 . x ; } 
 class x { static 0 = + `` ; } 
@@ -884,12 +1147,15 @@ class x { static 0 = 0 & 0 < super . x <= 0n ; }
 class x { static 0 = 0 & new . target ; } 
 class x { static 0 = 0 & super . x < 0 <= 0n ; } 
 class x { static 0 = 0 & x < 0 <= 0 ; } 
+class x { static 0 = 0 * + - x ; } 
+class x { static 0 = 0 * + x ; } 
 class x { static 0 = 0 * - 0 ; } 
 class x { static 0 = 0 * - x ; } 
 class x { static 0 = 0 * 0 ** ~ 0 << x ; } 
 class x { static 0 = 0 * 0 ** ~ x ; } 
 class x { static 0 = 0 * x ; } 
 class x { static 0 = 0 * { [ new . target ] : 0 } ; } 
+class x { static 0 = 0 * ~ x ; } 
 class x { static 0 = 0 ** ! ! - 0 ; } 
 class x { static 0 = 0 ** ! 0 ; } 
 class x { static 0 = 0 ** - ! 0 >= ~ 0n ; } 
@@ -976,7 +1242,20 @@ class x { static 0 = 0 . x >> 0 ; }
 class x { static 0 = 0 . x >>> 0 ; } 
 class x { static 0 = 0 . x ?. x ; } 
 class x { static 0 = 0 . x instanceof x ; } 
+class x { static 0 = 0 / super [ super [ [ 0 ] [ 0 ] %= 0 ** ~ void 0 ] ] ; } 
+class x { static 0 = 0 / super [ super [ [ 0 ] [ 0 ] %= 0 ] ] ; } 
+class x { static 0 = 0 / super [ super [ [ 0 ] [ 0 ] %= 1 ] ] ; } 
+class x { static 0 = 0 / super [ super [ [ 0 ] [ 0 ] *= - 0 ] ] ; } 
+class x { static 0 = 0 / super [ super [ [ 0 ] [ 0 ] *= 0 ] ] ; } 
+class x { static 0 = 0 / super [ super [ [ 0 ] [ 0 ] += 0 ] ] ; } 
+class x { static 0 = 0 / super [ super [ [ ] [ 0 ] %= 0 ] ] ; } 
+class x { static 0 = 0 / super [ super [ [ ~ 0 ] [ 0 ] *= - 0 ] ] ; } 
 class x { static 0 = 0 / super [ x ] ; } 
+class x { static 0 = 0 / ~ super . x ; } 
+class x { static 0 = 0 / ~ super [ '' . x ] ; } 
+class x { static 0 = 0 / ~ super [ 0n . x ] ; } 
+class x { static 0 = 0 / ~ super [ true . x ] ; } 
+class x { static 0 = 0 / ~ super [ x ] ; } 
 class x { static 0 = 0 ; } 
 class x { static 0 = 0 < ! ! 0 ; } 
 class x { static 0 = 0 < ! 0 ; } 
@@ -1043,6 +1322,8 @@ class x { static 0 = 0 == - 0 ; }
 class x { static 0 = 0 == 0 % 0 ; } 
 class x { static 0 = 0 == 0 . x ; } 
 class x { static 0 = 0 == 0 < 0 ; } 
+class x { static 0 = 0 == 0 == 0 > 0 ; } 
+class x { static 0 = 0 == 0 == 1 > 0 ; } 
 class x { static 0 = 0 == 1 ; } 
 class x { static 0 = 0 == [ ] ; } 
 class x { static 0 = 0 == `${ 0 }${ 0 }` [ 0 ] . x ; } 
@@ -1105,6 +1386,7 @@ class x { static 0 = 0 >>> { } . x ; }
 class x { static 0 = 0 ? 0 : super . x &&= 0 ; } 
 class x { static 0 = 0 ?. x ; } 
 class x { static 0 = 0 ?. x || 0 ; } 
+class x { static 0 = 0 [ super . x ] ?. x ; } 
 class x { static 0 = 0 ^ ! 0 ; } 
 class x { static 0 = 0 ^ ! 1 ; } 
 class x { static 0 = 0 ^ 1n ?. x ; } 
@@ -1285,6 +1567,9 @@ class x { static 0 = [ null ] [ 0 ] ^= 0 ; }
 class x { static 0 = [ super [ 0 ] ??= 0 ] [ 0 ] ++ ; } 
 class x { static 0 = [ super [ 0n ] ] [ 0 ] ++ ; } 
 class x { static 0 = [ super [ super [ 0 ] ] ] [ 0 ] ++ || 0 ; } 
+class x { static 0 = [ super [ x ] ] ; } 
+class x { static 0 = [ super [ { [ Symbol . toPrimitive ] : x => 0 } ] ] ; } 
+class x { static 0 = [ super [ { [ Symbol . toPrimitive ] : x => { } } ] ] ; } 
 class x { static 0 = [ this , ] - 0 ; } 
 class x { static 0 = [ x ] < this ; } 
 class x { static 0 = [ x ] [ 0 ] -- ; } 
@@ -1375,6 +1660,7 @@ class x { static 0 = new this ; }
 class x { static 0 = new x ( ) ; } 
 class x { static 0 = new x ; } 
 class x { static 0 = new x >= 0 ; } 
+class x { static 0 = new { x } . x ; } 
 class x { static 0 = null != 0 <= 0 ; } 
 class x { static 0 = null != 0n <= x ; } 
 class x { static 0 = null != [ ] <= 0n ; } 
@@ -1578,6 +1864,7 @@ class x { static 0 = super [ 0 ** ~ 0 / 0 ] ; }
 class x { static 0 = super [ 0 ** ~ 0 > 0 ] ; } 
 class x { static 0 = super [ 0 ** ~ 0 > 1n ] ; } 
 class x { static 0 = super [ 0 ** ~ 0 ] ; } 
+class x { static 0 = super [ 0 ** ~ super . x ++ ] ? 0 : 0 ; } 
 class x { static 0 = super [ 0 + ! 0 ] ; } 
 class x { static 0 = super [ 0 + '' ?. [ 0 ] ] ; } 
 class x { static 0 = super [ 0 + 0 . x ] ; } 
@@ -1587,6 +1874,11 @@ class x { static 0 = super [ 0 + super [ 0 ] ?. x ] ; }
 class x { static 0 = super [ 0 + true . x ] ; } 
 class x { static 0 = super [ 0 + x ?. x ] ; } 
 class x { static 0 = super [ 0 + x ] ; } 
+class x { static 0 = super [ 0 , '' . x ] / ~ 0 ; } 
+class x { static 0 = super [ 0 , 0 . x ] / ~ 0 ; } 
+class x { static 0 = super [ 0 , 0 ? 0 : super . x ??= 0 ] / ~ 0 ; } 
+class x { static 0 = super [ 0 , 0n . x ] / ~ 0 ; } 
+class x { static 0 = super [ 0 , true . x ] / ~ 0 ; } 
 class x { static 0 = super [ 0 - 0 ** ~ 0 - 0 ] ; } 
 class x { static 0 = super [ 0 - 0 . x ] ; } 
 class x { static 0 = super [ 0 - 0n . x ] ; } 
@@ -1599,6 +1891,8 @@ class x { static 0 = super [ 0 . x * 0 ] ; }
 class x { static 0 = super [ 0 . x ** 0 ] ; } 
 class x { static 0 = super [ 0 . x + 0 ] ; } 
 class x { static 0 = super [ 0 . x + `` ] ; } 
+class x { static 0 = super [ 0 . x , { [ Symbol . toPrimitive ] : function ( ) { } } ] / ~ 0 ; } 
+class x { static 0 = super [ 0 . x , { [ Symbol . toPrimitive ] : x => 0 } ] / ~ 0 ; } 
 class x { static 0 = super [ 0 . x - 0 ] ; } 
 class x { static 0 = super [ 0 . x < 0 ] ; } 
 class x { static 0 = super [ 0 . x << 0 ] ; } 
@@ -2013,6 +2307,7 @@ class x { static 0 = super [ super . x %= 0 ] ; }
 class x { static 0 = super [ super . x &&= 0 ] ; } 
 class x { static 0 = super [ super . x ** 0 ] ; } 
 class x { static 0 = super [ super . x ++ | 0 ] ; } 
+class x { static 0 = super [ super . x , 0 ] ; } 
 class x { static 0 = super [ super . x < 0 == x ] ; } 
 class x { static 0 = super [ super . x < { } ] ; } 
 class x { static 0 = super [ super . x << 0 ] ; } 
@@ -2042,38 +2337,48 @@ class x { static 0 = super [ super . x ] ??= 0 ; }
 class x { static 0 = super [ super . x ] ||= 0 ; } 
 class x { static 0 = super [ super . x | 0 ] ; } 
 class x { static 0 = super [ super . x ||= 0 ] ; } 
+class x { static 0 = super [ super [ ! 0 ] , 0 ] ; } 
 class x { static 0 = super [ super [ ! 0 ] ] ; } 
+class x { static 0 = super [ super [ ! 1 ] , 0 ] ; } 
 class x { static 0 = super [ super [ ! 1 ] ] ; } 
 class x { static 0 = super [ super [ '' == 0 >= x ] ] ; } 
 class x { static 0 = super [ super [ 0 ** 0 / - 0 ] ] ; } 
 class x { static 0 = super [ super [ 0 ** 0 / x / 0 ] ] ; } 
 class x { static 0 = super [ super [ 0 ** ~ 0 * 0 ] ] ; } 
 class x { static 0 = super [ super [ 0 ** ~ 0 / - 0 ] ] ; } 
+class x { static 0 = super [ super [ 0 . x ] , 0 ] ; } 
 class x { static 0 = super [ super [ 0 . x ] ] ; } 
 class x { static 0 = super [ super [ 0 / ! ~ 0 ] ] ; } 
 class x { static 0 = super [ super [ 0 / ~ 0 ] ] ; } 
 class x { static 0 = super [ super [ 0 ] != x ] ; } 
 class x { static 0 = super [ super [ 0 ] + 0 ] ; } 
+class x { static 0 = super [ super [ 0 ] , 0 ] ; } 
 class x { static 0 = super [ super [ 0 ] = 0 ] ??= x => 0 ; } 
 class x { static 0 = super [ super [ 0 ] >= 0 ] ; } 
 class x { static 0 = super [ super [ 0 ] ] ?. x ; } 
 class x { static 0 = super [ super [ 0 ] ^ 0 ] ; } 
+class x { static 0 = super [ super [ 0n ] , 0 ] ; } 
 class x { static 0 = super [ super [ 0n ] ?? 0 ] ; } 
 class x { static 0 = super [ super [ 1n ] ] ; } 
 class x { static 0 = super [ super [ [ 0 ] == super . x >= 0 ] ] ; } 
 class x { static 0 = super [ super [ `` . x ] > 0 ] ; } 
 class x { static 0 = super [ super [ `` . x ] ] ; } 
 class x { static 0 = super [ super [ `` == 0 < 0 ] ] ; } 
+class x { static 0 = super [ super [ null ] , 0 ] ; } 
 class x { static 0 = super [ super [ null ] ] ; } 
+class x { static 0 = super [ super [ super . x ] , 0 ] ; } 
 class x { static 0 = super [ super [ super [ 0 ] ] ] ; } 
 class x { static 0 = super [ super [ x == super . x >= 0 ] ] ; } 
+class x { static 0 = super [ super [ x ] , 0 ] ; } 
 class x { static 0 = super [ super [ x ] ?? 0 ] ; } 
 class x { static 0 = super [ super [ x ] ?? x ] ; } 
 class x { static 0 = super [ super [ x ] ] ; } 
 class x { static 0 = super [ super [ x ] ^ 0 ] ; } 
 class x { static 0 = super [ super [ { [ Symbol . toPrimitive ] : function ( ) { } } ] ] ; } 
 class x { static 0 = super [ super [ { [ Symbol . toPrimitive ] : null } ] ?? 0 ] ; } 
+class x { static 0 = super [ super [ { [ Symbol . toPrimitive ] : x => 0 } ] , 0 ] / ~ 0 ; } 
 class x { static 0 = super [ super [ { [ Symbol . toPrimitive ] : x => 0 } ] ] ; } 
+class x { static 0 = super [ super [ { [ Symbol . toPrimitive ] : x => { } } ] , 0 ] / ~ 0 ; } 
 class x { static 0 = super [ super [ { x , } . x ** ~ 0 / 0 ] ] ; } 
 class x { static 0 = super [ super [ { x } . x ] ] ; } 
 class x { static 0 = super [ super [ { } . x ] ] ; } 
@@ -2228,6 +2533,7 @@ class x { static 0 = super [ x ] <= 1 ; }
 class x { static 0 = super [ x ] == x ; } 
 class x { static 0 = super [ x ] >= ~ 0n ; } 
 class x { static 0 = super [ x ] >> 0 ; } 
+class x { static 0 = super [ x ] ? 0 : 0 ; } 
 class x { static 0 = super [ x ] ?. x ; } 
 class x { static 0 = super [ x ^ null ] ; } 
 class x { static 0 = super [ x ^ x ] ; } 
@@ -2417,6 +2723,7 @@ class x { static 0 = x <= new . target ; }
 class x { static 0 = x == ! 0 ; } 
 class x { static 0 = x == ! 1 ; } 
 class x { static 0 = x == 0 ; } 
+class x { static 0 = x == 0 == 0 > 0 ; } 
 class x { static 0 = x == 1n ; } 
 class x { static 0 = x == `` ; } 
 class x { static 0 = x == x ; } 
@@ -2479,6 +2786,35 @@ class x { static 0 = { [ super [ [ ] ] ] : '' } == 0 ; }
 class x { static 0 = { [ super [ null ] ] : '' } == 0 ; } 
 class x { static 0 = { [ super [ super [ 0 ] ] ] : '' } == 0 ; } 
 class x { static 0 = { has : this } ; } 
+class x { static 0 = { raw : new . target } ; } 
+class x { static 0 = { raw : super . x = 0 } ; } 
+class x { static 0 = { raw : super . x } ; } 
+class x { static 0 = { raw : super [ ! 0 ] } ; } 
+class x { static 0 = { raw : super [ ! 1 ] } ; } 
+class x { static 0 = { raw : super [ 0 * 0 ** ~ 0 ] } ; } 
+class x { static 0 = { raw : super [ 0 . x ] } ; } 
+class x { static 0 = { raw : super [ 0 ] %= 0 } ; } 
+class x { static 0 = { raw : super [ 0 ] &&= 0 } ; } 
+class x { static 0 = { raw : super [ 0 ] ||= 0 } ; } 
+class x { static 0 = { raw : super [ 0 ] } ; } 
+class x { static 0 = { raw : super [ 0n . x ] } ; } 
+class x { static 0 = { raw : super [ 0n ] } ; } 
+class x { static 0 = { raw : super [ 1 * 0 ** ~ 0 ] } ; } 
+class x { static 0 = { raw : super [ 1 / ! super . x ] } ; } 
+class x { static 0 = { raw : super [ 1 / - 0 ] } ; } 
+class x { static 0 = { raw : super [ 1 / - super [ 0 ] ?. x ] } ; } 
+class x { static 0 = { raw : super [ 1 / 0 ** ~ 0 ] } ; } 
+class x { static 0 = { raw : super [ null ] } ; } 
+class x { static 0 = { raw : super [ super . x ] } ; } 
+class x { static 0 = { raw : super [ x * 0 ] } ; } 
+class x { static 0 = { raw : super [ x ] } ; } 
+class x { static 0 = { raw : super [ { [ Symbol . toPrimitive ] : function ( x ) { } } ] } ; } 
+class x { static 0 = { raw : super [ { [ Symbol . toPrimitive ] : x => 0 } ] } ; } 
+class x { static 0 = { raw : super [ { [ Symbol . toPrimitive ] : x => { } } ] } ; } 
+class x { static 0 = { raw : super [ ~ 0 * 0 ** ~ 0 ] } ; } 
+class x { static 0 = { raw : super [ ~ 0 / - 0 ] } ; } 
+class x { static 0 = { raw : super [ ~ 0 / 0 ** ~ 0 ] } ; } 
+class x { static 0 = { raw : this } ; } 
 class x { static 0 = { set x ( [ ] = 0 ) { } , x , } ; } 
 class x { static 0 = { set x ( [ ] = 0 ) { } , x : 0 , } ; } 
 class x { static 0 = { set x ( [ ] = 0 ) { } , x : super . x , } ; } 
@@ -2523,6 +2859,7 @@ class x { static 0 = ~ 0 / 0 ** ~ x ; }
 class x { static 0 = ~ 0 / 0 ; } 
 class x { static 0 = ~ 0 << x ; } 
 class x { static 0 = ~ 0 >> 0 ; } 
+class x { static 0 = ~ 0 >>> x ; } 
 class x { static 0 = ~ 0 || 0 ; } 
 class x { static 0 = ~ 0n ; } 
 class x { static 0 = ~ 1 ; } 
@@ -2586,8 +2923,15 @@ class x { static get 0 ( ) { } static async 0 ( ) { } }
 class x { static get 0 ( ) { } static get 0 ( ) { } } 
 class x { static get 0 ( ) { } static set 0 ( x ) { } } 
 class x { static get 0 ( ) { } } 
+class x { static get [ 0 % 0 === 0 || 0 ] ( ) { } } 
 class x { static set #x ( x ) { } } 
+class x { static set 0 ( x ) { } static * 0 ( ) { } } 
+class x { static set 0 ( x ) { } static 0 ( ) { } } 
 class x { static set 0 ( x ) { } static 0 ; } 
+class x { static set 0 ( x ) { } static async * 0 ( ) { } } 
+class x { static set 0 ( x ) { } static async 0 ( ) { } } 
+class x { static set 0 ( x ) { } static get 0 ( ) { } } 
+class x { static set 0 ( x ) { } static set 0 ( x ) { } } 
 class x { static set 0 ( x ) { } } 
 class x { static x = '' . x ; } 
 class x { static x = 0 . x ; } 
@@ -2603,10 +2947,15 @@ class x { static x = x => 0 ; }
 class x { static x = { x } . x ; } 
 class x { static { 0 . x ; } } 
 class x { static { 0 ; } } 
+class x { static { 1n . x ; } } 
 class x { static { ; 0 ; } } 
 class x { static { ; ; } } 
+class x { static { ; if ( super . x ) ; else ; } } 
 class x { static { ; if ( super . x ) ; } } 
+class x { static { ; if ( super . x ||= 0 ) ; else ; } } 
+class x { static { ; super . x ; } } 
 class x { static { ; } } 
+class x { static { `` . x ; } } 
 class x { static { async function * x ( ) { } if ( { x , } ?. x ( ) ) ; } } 
 class x { static { async function * x ( ) { } } } 
 class x { static { async function x ( ) { } } } 
@@ -2643,6 +2992,7 @@ class x { static { if ( '' != `` ) ; else ; } }
 class x { static { if ( '' ) ; else ; } } 
 class x { static { if ( '' ) ; } } 
 class x { static { if ( '' . x ) ; else ; } } 
+class x { static { if ( '' ?. x ) ; else ; } } 
 class x { static { if ( '' ?. x ?. x ) ; } } 
 class x { static { if ( '' [ 0 % 0 ] % 0 % delete 0 ) ; } } 
 class x { static { if ( '' [ 0 % void 0 ] ) ; else ; } } 
@@ -2745,6 +3095,7 @@ class x { static { if ( 0 ** ~ 0 % 0 ) ; } }
 class x { static { if ( 0 + 0 ** ~ 0 ) ; } } 
 class x { static { if ( 0 + super . x ) ; } } 
 class x { static { if ( 0 + super [ 0 , 0 ] ?. x ) ; } } 
+class x { static { if ( 0 , super . x &&= 0 ) try { } catch { } } } 
 class x { static { if ( 0 - '' . x ) ; else ; } } 
 class x { static { if ( 0 - '' . x ) ; } } 
 class x { static { if ( 0 - 0 ** ~ 0 ) ; } } 
@@ -2896,9 +3247,15 @@ class x { static { if ( 1 != 0 . x ) ; else ; } }
 class x { static { if ( 1 != [ ] ) ; else ; } } 
 class x { static { if ( 1 != `` ) ; else ; } } 
 class x { static { if ( 1 != `` ) if ( 0 ) ; else ; } } 
+class x { static { if ( 1 ) '' . x ; } } 
+class x { static { if ( 1 ) 0 . x ; } } 
 class x { static { if ( 1 ) 0 ; } } 
 class x { static { if ( 1 ) ; else ; } } 
 class x { static { if ( 1 ) ; } } 
+class x { static { if ( 1 ) super . x ; } } 
+class x { static { if ( 1 ) true . x ; } } 
+class x { static { if ( 1 ) x . x ; } } 
+class x { static { if ( 1 ) x ; } } 
 class x { static { if ( 1 == [ ] ) ; else ; } } 
 class x { static { if ( 1n != [ 0 , ] ) { } } } 
 class x { static { if ( 1n != [ ] ) ; else ; } } 
@@ -2922,6 +3279,7 @@ class x { static { if ( 1n == `${ 0 , 0 }${ 0 }` ) ; else ; } }
 class x { static { if ( 1n == x ) ; } } 
 class x { static { if ( 1n >= 0n ) ; else ; } } 
 class x { static { if ( 1n ?. x ) 0 ; } } 
+class x { static { if ( 1n ?. x ) ; else ; } } 
 class x { static { if ( 1n [ 0 ] ^ 0 ) ; else ; } } 
 class x { static { if ( 1n [ super . x ] ^ 0 ) ; else ; } } 
 class x { static { if ( 1n [ { [ Symbol . toPrimitive ] : x => 0 } ] ^ 0 ) ; else ; } } 
@@ -2958,16 +3316,21 @@ class x { static { if ( [ null ] [ 0 ] &&= 0 ) ; else ; } }
 class x { static { if ( [ super [ 0 ] , , ] ?? 0 ) ; } } 
 class x { static { if ( [ true ] [ 0 ] &&= 0 ) ; else ; } } 
 class x { static { if ( [ x ] [ 0 ] &&= 0 ) ; else ; } } 
+class x { static { if ( `${ 0 }` ) ; else ; } } 
 class x { static { if ( `${ 0 }` ) ; } } 
 class x { static { if ( `${ 0 }` ?. [ 0 ** 0 ** 0 ] ** 0 ) ; } } 
 class x { static { if ( `${ 0 }` [ 0 % 0 ] &&= 0 ) ; else ; } } 
 class x { static { if ( `${ 0 }` [ 0 ] ) ; ; } } 
 class x { static { if ( `${ 0 }` [ 0 ] ) ; } } 
+class x { static { if ( `${ 0 }` [ 0 ] . x ) 0 ; } } 
 class x { static { if ( `${ 0 }` [ 0 ] >= 0 ) if ( x => 0 ) ; else ; } } 
 class x { static { if ( `${ 0 }` [ 0 ] ??= 0 ) ; } } 
 class x { static { if ( `${ 0 }` [ 0 ] ^ 0 ) ; else ; } } 
 class x { static { if ( `${ 0 }` [ 0 ] ||= 0 ) ; else ; } } 
 class x { static { if ( `${ 0 }` [ super . x ] &&= 0 ) ; else ; } } 
+class x { static { if ( `${ super [ 0 ] }` ) ; else ; } } 
+class x { static { if ( `${ x }` ) ; else ; } } 
+class x { static { if ( `${ x }` ) ; } } 
 class x { static { if ( `` != 0 % 0 ) ; else ; } } 
 class x { static { if ( `` != new function ( ) { return ; } ( ) ) ; else ; } } 
 class x { static { if ( `` != new x ( ) ) ; else ; } } 
@@ -2997,6 +3360,7 @@ class x { static { if ( class x { } ?. x ** 0 >= 0n ) ; } }
 class x { static { if ( false ** 1 ) ; } } 
 class x { static { if ( function * ( ) { } ( ) . x |= 1 ) ; } } 
 class x { static { if ( new . target ) ; else ; } } 
+class x { static { if ( new . target ) ; } } 
 class x { static { if ( new . target ? 0 : 0 ) ; } } 
 class x { static { if ( new function ( ) { return ; } ( ) ) ; else ; } } 
 class x { static { if ( new function ( ) { return ; } ) ; } } 
@@ -3042,11 +3406,15 @@ class x { static { if ( super . x != x ) ; else ; } }
 class x { static { if ( super . x != x ) ; } } 
 class x { static { if ( super . x % 0 ) ; } } 
 class x { static { if ( super . x % 0 ** 0 ) ; else ; } } 
+class x { static { if ( super . x %= 0 ) 0 ; } } 
+class x { static { if ( super . x &&= 0 ) ; else ; } } 
 class x { static { if ( super . x &&= 0 ) ; } } 
+class x { static { if ( super . x ) ; ; } } 
 class x { static { if ( super . x ) ; else ; } } 
 class x { static { if ( super . x ) ; } } 
 class x { static { if ( super . x ** 0 ) ; } } 
 class x { static { if ( super . x - 0 ) ; } } 
+class x { static { if ( super . x -= 0 ) ; else ; } } 
 class x { static { if ( super . x /= 0 ) ; } } 
 class x { static { if ( super . x <= x ) ; } } 
 class x { static { if ( super . x = 0 ) ; else ; } } 
@@ -3114,8 +3482,10 @@ class x { static { if ( super . x ||= 0 ) ; else ; } }
 class x { static { if ( super . x ||= 0 ) ; } } 
 class x { static { if ( super . x ||= 0 ) { } } } 
 class x { static { if ( super . x ||= x ) ; else ; } } 
+class x { static { if ( super . x ||= x ) ; } } 
 class x { static { if ( super [ ! 0 ] ) ; else ; } } 
 class x { static { if ( super [ ! 0 ] ) ; } } 
+class x { static { if ( super [ ! 1 ] ) ; } } 
 class x { static { if ( super [ '' . x < x ?? 0 ? 0 : 0 ] ) ; } } 
 class x { static { if ( super [ '' ?? 0 ? 0 : 0 ] ) ; } } 
 class x { static { if ( super [ - ! super . x ] ) ; } } 
@@ -3151,16 +3521,24 @@ class x { static { if ( super [ 0 ] != null ) ; else ; } }
 class x { static { if ( super [ 0 ] % 0 % 0 ) ; } } 
 class x { static { if ( super [ 0 ] %= 0 ) ; else ; } } 
 class x { static { if ( super [ 0 ] &&= 0 ) ; else ; } } 
+class x { static { if ( super [ 0 ] &&= 0 ) ; } } 
 class x { static { if ( super [ 0 ] ) ; else ; { } } } 
 class x { static { if ( super [ 0 ] ) ; else ; } } 
 class x { static { if ( super [ 0 ] ) ; } } 
+class x { static { if ( super [ 0 ] ** 0 ) ; else ; } } 
+class x { static { if ( super [ 0 ] ** 0 ) ; } } 
+class x { static { if ( super [ 0 ] ** x ) ; else ; } } 
+class x { static { if ( super [ 0 ] ** x ) if ( 0 ) ; else ; } } 
 class x { static { if ( super [ 0 ] ++ ** 1 ) ; } } 
 class x { static { if ( super [ 0 ] - 0 ) ; else ; } } 
 class x { static { if ( super [ 0 ] - 0 . x ) ; } } 
+class x { static { if ( super [ 0 ] ??= 0 ) ; } } 
 class x { static { if ( super [ 0 in x ?? 0 ? 0 : 0 ] ) ; } } 
 class x { static { if ( super [ 0n - 0n ] ) ; } } 
 class x { static { if ( super [ 0n . x < x ?? 0 ? 0 : 0 ] ) ; } } 
 class x { static { if ( super [ 0n . x < { [ Symbol . toPrimitive ] : function ( x ) { } } ?? 0 ? 0 : 0 ] ) ; } } 
+class x { static { if ( super [ 0n . x ] ) ; else ; } } 
+class x { static { if ( super [ 0n . x ] ) ; } } 
 class x { static { if ( super [ 0n <= '' ] % 0 % delete 0 ) ; } } 
 class x { static { if ( super [ 0n <= x ] % 0 % delete 0 ) ; } } 
 class x { static { if ( super [ 0n >= 1n ] ) ; } } 
@@ -3178,6 +3556,8 @@ class x { static { if ( super [ [ 0 ] [ super . x - x ] %= 0 ] ) ; } }
 class x { static { if ( super [ [ 0 ] [ super [ 0 ] ||= 0 ?? 0 ] %= 0 ] ) ; } } 
 class x { static { if ( super [ [ ] . x -- ] ??= 0 ) ; else ; } } 
 class x { static { if ( super [ [ ] < this ?? 0 ? 0 : 0 ] ) ; } } 
+class x { static { if ( super [ `` . x ] ) ; else ; } } 
+class x { static { if ( super [ `` . x ] ) ; } } 
 class x { static { if ( super [ `` >= 1n ] ) ; } } 
 class x { static { if ( super [ `` ?. x ] % 0 ) ; } } 
 class x { static { if ( super [ async function x ( ) { } ( ) [ 0 > 0 ] ] ??= 0 ) { } } } 
@@ -3216,6 +3596,7 @@ class x { static { if ( super [ this < x >= 0 ?? 0 ? 0 : 0 ] ) ; } }
 class x { static { if ( super [ this < { x } ?? 0 ? 0 : 0 ] ) ; } } 
 class x { static { if ( super [ this ?? 0 ? x : 0 ] ) ; } } 
 class x { static { if ( super [ true ** 0 ** ~ 0 ] ??= 0 ) ; else ; } } 
+class x { static { if ( super [ true . x ] ) ; else ; } } 
 class x { static { if ( super [ true ?. x ] % 0 ) ; } } 
 class x { static { if ( super [ x . x ?? 0 ? 0 : 0 ] ) ; } } 
 class x { static { if ( super [ x < this ?? 0 ? 0 : 0 ] ) ; } } 
@@ -3243,10 +3624,13 @@ class x { static { if ( super [ x | super . x ^ 0 ^ 0 === 0 ] ) ; } }
 class x { static { if ( super [ x | x ^ 0 ^ 0 === 0 ] ) ; } } 
 class x { static { if ( super [ x | x ^ x ** ~ 0 ^ 0 === 0 ] ) ; } } 
 class x { static { if ( super [ { [ Symbol . toPrimitive ] : function ( ) { } } ** 0 ** 0 ] ??= 0 ) ; else ; } } 
+class x { static { if ( super [ { [ Symbol . toPrimitive ] : function ( ) { } } ] ) ; else ; } } 
 class x { static { if ( super [ { [ Symbol . toPrimitive ] : function ( ) { } } ] ) ; } } 
 class x { static { if ( super [ { [ Symbol . toPrimitive ] : x => 0 } >= 1n ] ) ; } } 
+class x { static { if ( super [ { [ Symbol . toPrimitive ] : x => 0 } ] ) ; else ; } } 
 class x { static { if ( super [ { [ Symbol . toPrimitive ] : x => 0 } ] ) ; } } 
 class x { static { if ( super [ { [ Symbol . toPrimitive ] : x => { } } >= 1n ] ) ; } } 
+class x { static { if ( super [ { [ Symbol . toPrimitive ] : x => { } } ] ) ; else ; } } 
 class x { static { if ( super [ { [ Symbol . toPrimitive ] : x => { } } ] ) ; } } 
 class x { static { if ( super [ { [ `` ] : super . x } ] ) ; } } 
 class x { static { if ( super [ { [ `` ] : super [ ! 0 ] } ] ) ; } } 
@@ -3273,9 +3657,11 @@ class x { static { if ( true ) ; } }
 class x { static { if ( true ** 1 ) ; } } 
 class x { static { if ( true - { [ new . target ] : x => 0 } ) ; } } 
 class x { static { if ( true . x ) ; else ; } } 
+class x { static { if ( true . x ) ; } } 
 class x { static { if ( true . x + 0 ) ; } } 
 class x { static { if ( true . x ?. x ) 0 ; } } 
 class x { static { if ( true ?. [ 0 < 0 ] ** 0 ) ; } } 
+class x { static { if ( true ?. x ) ; else ; } } 
 class x { static { if ( true ?. x ?. x ) ; } } 
 class x { static { if ( true [ 0 , 0 !== 0 ] ) ; else ; } } 
 class x { static { if ( true [ 0 , 0 ] ^ 0 ) if ( 0 ) ; else ; } } 
@@ -3330,6 +3716,7 @@ class x { static { if ( x - 0 ) ; else ; } }
 class x { static { if ( x - 0 ) ; } } 
 class x { static { if ( x - { [ Symbol . toPrimitive ] : function ( x ) { } } ) ; } } 
 class x { static { if ( x . x ) ; else ; } } 
+class x { static { if ( x . x ) ; } } 
 class x { static { if ( x . x + 0 ) ; } } 
 class x { static { if ( x = 0 ) var x ; } } 
 class x { static { if ( x == x ) ; else ; } } 
@@ -3338,6 +3725,7 @@ class x { static { if ( x => 0 ) 0 ; } }
 class x { static { if ( x >> 0 ) ; } } 
 class x { static { if ( x ? 0 : super . x ) ; } } 
 class x { static { if ( x ?. x ) 0 ; } } 
+class x { static { if ( x ?. x ) ; else ; } } 
 class x { static { if ( x ?. x ) ; } } 
 class x { static { if ( x ?. x ?. x ) ; } } 
 class x { static { if ( x ?? 0 ) ; } } 
@@ -3401,36 +3789,141 @@ class x { static { if ( ~ 1n >= 0n ) ; else ; } }
 class x { static { if ( ~ 1n >= x ) ; else ; } } 
 class x { static { if ( ~ super . x >= 0 ) ; else ; } } 
 class x { static { let x ; if ( true [ 0 , 0 !== 0 ] ) ; else ; } } 
+class x { static { let x ; super [ x = 0 ] ||= x => 0 ; } } 
 class x { static { let x ; } } 
 class x { static { new . target ; } } 
 class x { static { new x ( ) ; } } 
+class x { static { super . x %= 0 ; } } 
 class x { static { super . x ; } } 
 class x { static { super . x = 0 ; } } 
+class x { static { super . x ?. x ; } } 
+class x { static { super . x ??= 0 ; } } 
 class x { static { super . x ||= 0 ; } } 
+class x { static { super [ ! 0 / 0 * ! 0 << 0 ] ||= x => 0 ; } } 
+class x { static { super [ ! 0 / 0 * super . x << 0 ] ||= x => 0 ; } } 
+class x { static { super [ ! 0 / 0 * ~ 0 << 0 ] ||= x => 0 ; } } 
+class x { static { super [ ! 0 ?. x ] ; } } 
 class x { static { super [ ! 0 ] ; } } 
+class x { static { super [ '' . x ] ; } } 
 class x { static { super [ '' ] ; } } 
+class x { static { super [ + 0 <= x ] ||= x => 0 ; } } 
+class x { static { super [ 0 != 1n ?. x ] ||= x => 0 ; } } 
+class x { static { super [ 0 != `` ?. x ] ||= 0 ^ 0 ; } } 
+class x { static { super [ 0 != super . x ?. x ] ||= 0 ^ 0 ; } } 
+class x { static { super [ 0 != true ?. x ] ||= 0 | 0 ; } } 
+class x { static { super [ 0 != x ?. x ] ||= 0 ^ 0 ; } } 
+class x { static { super [ 0 !== 0 !== super [ 0 ] < x ] ||= x => 0 ; } } 
+class x { static { super [ 0 % 0 ** ~ 0 ] ; } } 
+class x { static { super [ 0 ** x ] ||= x => 0 ; } } 
+class x { static { super [ 0 ** ~ 0 * ~ 0 / 0 << 0 ] ||= x => 0 ; } } 
+class x { static { super [ 0 ** ~ 0 / - 0 / x << 0 ] ||= x => 0 ; } } 
 class x { static { super [ 0 . x ] ; } } 
+class x { static { super [ 0 < 0 ] ; } } 
+class x { static { super [ 0 << super [ 0 ] ?. x ] ||= x => 0 ; } } 
+class x { static { super [ 0 <= ~ super [ 0 , 0 , 0 ] ] ||= x => 0 ; } } 
+class x { static { super [ 0 == typeof super [ 0 ] ] ||= x => 0 ; } } 
 class x { static { super [ 0 > 0 ] ; } } 
 class x { static { super [ 0 > 0 ] = 0 ; } } 
+class x { static { super [ 0 >> { [ Symbol . toPrimitive ] : x => 0 } ] ||= x => 0 ; } } 
 class x { static { super [ 0 ] ; } } 
 class x { static { super [ 0 ] ??= 0 ; } } 
+class x { static { super [ 0 ] ||= super . x ??= 0 ; } } 
+class x { static { super [ 0 ] ||= super [ '' ] %= 0 ; } } 
+class x { static { super [ 0 ^ super [ x ] ] ||= x => 0 ; } } 
+class x { static { super [ 0 | { [ x . toPrimitive ] : super . x ++ } ] ||= x => 0 ; } } 
+class x { static { super [ 1 == 0n . x ] ||= x => 0 ; } } 
+class x { static { super [ 1 >> x ] ||= x => 0 ; } } 
+class x { static { super [ 1n . x ] ; } } 
+class x { static { super [ 1n ] ; } } 
+class x { static { super [ [ 0 != 0 ] [ 0 ] ++ ] ; } } 
+class x { static { super [ [ 0 ] [ 0 ] ++ ] ; } } 
+class x { static { super [ [ ] . x ++ ] ; } } 
+class x { static { super [ [ ] [ 0 ] ++ ] ; } } 
+class x { static { super [ [ ] [ 1 ] ++ ] ; } } 
+class x { static { super [ [ ] [ super . x ** 0 ] ++ ] ; } } 
+class x { static { super [ [ ] [ super . x ||= 0 ] ++ ] ; } } 
+class x { static { super [ [ null , ] [ 0 ] ++ ] ; } } 
+class x { static { super [ [ true ] [ 0 ] ++ ] ; } } 
+class x { static { super [ [ x , , ] >= { } ] ||= x => 0 ; } } 
+class x { static { super [ `${ 0 }` [ 0 ] ] ||= 0 ^ 0 ; } } 
+class x { static { super [ `${ super . x }` . x ] ; } } 
+class x { static { super [ `` [ 0 % 0 ] ] ||= 0 ^ 0 ; } } 
+class x { static { super [ `` [ 0 ] ] ||= 0 ^ 0 ; } } 
+class x { static { super [ `` [ 0 ] ] ||= 0 ^ super [ 0 ] ; } } 
+class x { static { super [ `` [ 0 ] ] ||= 0 ^ x ; } } 
+class x { static { super [ null == 0 . x ] ||= x => 0 ; } } 
+class x { static { super [ null == `` . x ] ||= x => 0 ; } } 
+class x { static { super [ null == null ] ||= x => 0 ; } } 
+class x { static { super [ null == true . x ] ||= x => 0 ; } } 
 class x { static { super [ null ] ; } } 
 class x { static { super [ null ] = 0 ; } } 
 class x { static { super [ super . x ] ; } } 
 class x { static { super [ super [ 0 ] ||= 0 ] = 0 ; } } 
+class x { static { super [ true [ 0 ] ] ||= 0 ^ 0 ; } } 
 class x { static { super [ true ] = 0 ; } } 
 class x { static { super [ void - ! delete 0 ] ; } } 
+class x { static { super [ x ++ ] ||= x => 0 ; var x ; } } 
+class x { static { super [ x . x ++ ] ; } } 
+class x { static { super [ x . x ] ; } } 
+class x { static { super [ x < 0 ] ; } } 
+class x { static { super [ x < 0n ] ; } } 
+class x { static { super [ x < x ] ; } } 
+class x { static { super [ x < { } ] ; } } 
+class x { static { super [ x << ~ 0 ] ||= x => 0 ; } } 
+class x { static { super [ x ] ; } } 
 class x { static { super [ x ] = 0 ; var x ; } } 
+class x { static { super [ x ^ 0 ] ||= 0 | 0 ; } } 
+class x { static { super [ x ^ 0 ] ||= x | 0 ; } } 
+class x { static { super [ x in x ] ||= x => 0 ; } } 
+class x { static { super [ { [ Symbol . toPrimitive ] : function ( ) { } } ** 0 ] ||= x => 0 ; } } 
+class x { static { super [ { [ Symbol . toPrimitive ] : function ( ) { } } ] %= 0 ; } } 
+class x { static { super [ { [ Symbol . toPrimitive ] : function ( ) { } } ] ; } } 
+class x { static { super [ { [ Symbol . toPrimitive ] : x => 0 } ** 0 ] ||= x => 0 ; } } 
+class x { static { super [ { [ Symbol . toPrimitive ] : x => 0 } ] %= 0 ; } } 
+class x { static { super [ { [ Symbol . toPrimitive ] : x => 0 } ] ; } } 
+class x { static { super [ { [ Symbol . toPrimitive ] : x => 0 } | 0 ] ||= x => 0 ; } } 
+class x { static { super [ { [ Symbol . toPrimitive ] : x => { { ; } } } ] %= 0 ; } } 
+class x { static { super [ { [ Symbol . toPrimitive ] : x => { } } ** 0 ] ||= x => 0 ; } } 
+class x { static { super [ { [ Symbol . toPrimitive ] : x => { } } ] ; } } 
+class x { static { super [ { [ Symbol . toPrimitive ] : x => { } } ] ||= x => 0 ; } } 
+class x { static { super [ { set 0 ( x ) { return async x => 0 ; } , } [ 0 ] ++ ] ; } } 
+class x { static { super [ { set 0 ( x ) { } , } [ 0 ] ++ ] ; } } 
 class x { static { super [ { x , } ] ; } } 
+class x { static { super [ { x } . x ++ ] ; } } 
 class x { static { super [ { x } ] ; } } 
+class x { static { super [ { } >= super [ 0 ] ?. x ] ||= x => 0 ; } } 
 class x { static { super [ { } ] ; } } 
 class x { static { switch ( 0 ) { } } } 
+class x { static { switch ( new x ) { } } } 
+class x { static { switch ( super . x %= 0 ) { } } } 
 class x { static { switch ( super . x &&= 0 ) { } } } 
+class x { static { switch ( super . x ) { } } } 
+class x { static { switch ( super . x ??= 0 ? 0 : 0 ) { } } } 
+class x { static { switch ( super . x ||= 0 ) { } } } 
+class x { static { switch ( super . x ||= x ) { } } } 
+class x { static { switch ( super [ ! 0 ] ) { } } } 
+class x { static { switch ( super [ ! x ] ) { } } } 
+class x { static { switch ( super [ '' . x ] ) { } } } 
+class x { static { switch ( super [ 0 . x ] ) { } } } 
+class x { static { switch ( super [ 0 ] ) { } } } 
+class x { static { switch ( super [ 0n . x ] ) { } } } 
+class x { static { switch ( super [ 1n ] ) { } } } 
+class x { static { switch ( super [ null ] ) { } } } 
+class x { static { switch ( super [ super . x ] ) { } } } 
+class x { static { switch ( super [ true . x ] ) { } } } 
+class x { static { switch ( super [ x ] ) { } } } 
+class x { static { switch ( super [ { [ Symbol . toPrimitive ] : function ( ) { } } ] ) { } } } 
+class x { static { switch ( super [ { [ Symbol . toPrimitive ] : x => 0 } ] ) { } } } 
+class x { static { switch ( super [ { [ Symbol . toPrimitive ] : x => { } } ] ) { } } } 
+class x { static { switch ( this ) { } } } 
 class x { static { switch ( x ) { } } } 
 class x { static { this ; } } 
+class x { static { true . x ; } } 
+class x { static { try { 0 ; 0 ; } catch { } } } 
 class x { static { try { 0 ; } catch { } finally { } } } 
 class x { static { try { 0 ; } catch { } } } 
 class x { static { try { 0 ; } finally { } } } 
+class x { static { try { class x extends 0 { } } catch { } finally { } } } 
 class x { static { try { new . target ; } catch { } } } 
 class x { static { try { new . target ; } finally { } } } 
 class x { static { try { new 0 ; } catch { } } } 
@@ -3462,6 +3955,7 @@ class x { static { try { try { super [ super [ 0 ] ??= 0 ] ; } catch { } finally
 class x { static { try { try { super [ true [ 0 ] ] ; } catch { } finally { } } catch { } finally { } } } 
 class x { static { try { try { super [ x ] ; } catch { } finally { } } catch { } finally { } } } 
 class x { static { try { while ( 0 ) ; } finally { } } } 
+class x { static { try { x ( ) ; 0 ; } catch { } } } 
 class x { static { try { } catch { for ( let x ; ; 0 ) ; } finally { } } } 
 class x { static { try { } catch { } finally { } } } 
 class x { static { try { } catch { } } } 
@@ -3472,6 +3966,7 @@ class x { static { var x , x = 0 ; } }
 class x { static { var x , x = super . x ; } } 
 class x { static { var x , x = x ; } } 
 class x { static { var x ; super . x ; } } 
+class x { static { var x ; super [ x == x ] ||= x => 0 ; } } 
 class x { static { var x ; } } 
 class x { static { var x = 0 ; } } 
 class x { static { var x = new . target ; } } 
@@ -3516,23 +4011,39 @@ class x { static { var x = this ; } }
 class x { static { var x = x ; } } 
 class x { static { var { ... x } = 0 ; } } 
 class x { static { var { x , ... x } = 0 ; } } 
+class x { static { var { x = 0 ?? 0 , } = super . x ??= 0 , x ; } } 
 class x { static { var { x = 0 } = 0 ; } } 
+class x { static { var { x = [ this ] [ 0 ] -- , } = 0 , x ; } } 
+class x { static { var { x = new . target } = 0 ; } } 
+class x { static { var { x = super . x %= 0 } = 0 ; } } 
+class x { static { var { x = super . x -- , } = 0 ; } } 
+class x { static { var { x = super . x ||= 0 } = 0 ; } } 
 class x { static { var { x = super . x } = 0 ; } } 
 class x { static { var { x = super . x } = super [ 0 ] ??= 0 ; } } 
+class x { static { var { x = super [ ! 0 ] } = 0 ; } } 
+class x { static { var { x = super [ ! 1 ] } = 0 ; } } 
 class x { static { var { x = super [ '' ] } = 0 ; } } 
 class x { static { var { x = super [ 0 . x ] } = 0 ; } } 
 class x { static { var { x = super [ 0 < 0 ] } = 0 ; } } 
 class x { static { var { x = super [ 0 ] } = 0 ; } } 
 class x { static { var { x = super [ 0n ] } = 0 ; } } 
+class x { static { var { x = super [ 1n ] } = 0 ; } } 
+class x { static { var { x = super [ `` ] } = 0 ; } } 
 class x { static { var { x = super [ null ] } = 0 ; } } 
 class x { static { var { x = super [ super . x ] } = 0 ; } } 
 class x { static { var { x = super [ this ] } = 0 ; } } 
 class x { static { var { x = super [ true ] } = 0 ; } } 
+class x { static { var { x = super [ x ] -- , } = 0 ; } } 
 class x { static { var { x = super [ x ] } = 0 ; } } 
+class x { static { var { x = super [ { [ Symbol . toPrimitive ] : ( ) => { } } ] , } = 0 ; } } 
+class x { static { var { x = super [ { [ Symbol . toPrimitive ] : x => 0 } ] , } = 0 ; } } 
+class x { static { var { x = super [ { } ] } = 0 ; } } 
+class x { static { var { x = this } = 0 ; } } 
 class x { static { var { x = x } = 0 ; } } 
 class x { static { var { x } = 0 ; } } 
 class x { static { var { } = x ; } }
 class x { static { while ( 0 ) ; } } 
+class x { static { x . x ; } } 
 class x { static { x : ; } } 
 class x { static { x ; } } 
 class x { static { x ??= 0 ; } } 
@@ -3542,33 +4053,90 @@ class x { static { { function x ( ) { } } } }
 class x { static { { let x ; } } } 
 class x { static { { super . x = 0 ; } ; } } 
 class x { static { { super [ 0 ] = 0 ; } ; } } 
+class x { static { { var x = super . x ; } } } 
+class x { static { { var x = super [ ! 0 ] ; } } } 
+class x { static { { var x = super [ ! 1 ] ; } } } 
+class x { static { { var x = super [ '' ] ; } } } 
+class x { static { { var x = super [ 0 != 0 === 0 < 0 ** super . x ] ; } } } 
+class x { static { { var x = super [ 0 != 0 === 0 < 0 ** super [ 0 ] ] ; } } } 
+class x { static { { var x = super [ 0 != 0 === 0 < 0 ** x ] ; } } } 
+class x { static { { var x = super [ 0 != 0 === 0 < new . target ** x ] ; } } } 
+class x { static { { var x = super [ 0 != x === 0 < 0 ** super . x ] ; } } } 
+class x { static { { var x = super [ 0 . x ] ; } } } 
+class x { static { { var x = super [ 0 ] ; } } } 
+class x { static { { var x = super [ 0 ] ?. x == 0 >= 0 ; } } } 
+class x { static { { var x = super [ 0n ] ; } } } 
+class x { static { { var x = super [ [ ] ] ; } } } 
+class x { static { { var x = super [ new . target < x ] ; } } } 
+class x { static { { var x = super [ new . target ] ; } } } 
+class x { static { { var x = super [ null ] ; } } } 
+class x { static { { var x = super [ super . x &&= 0 ] ; } } } 
+class x { static { { var x = super [ super . x < x ] ; } } } 
+class x { static { { var x = super [ super . x ] ; } } } 
+class x { static { { var x = super [ super . x ||= 0 ] ; } } } 
+class x { static { { var x = super [ super [ 0 ] < x ] ; } } } 
+class x { static { { var x = super [ super [ 0 ] ] ; } } } 
+class x { static { { var x = super [ this ] ; } } } 
+class x { static { { var x = super [ x ] ; } } } 
+class x { static { { var x = super [ x ] ?. x == 0 >= 0 ; } } } 
+class x { static { { var x = super [ { [ Symbol . toPrimitive ] : function ( ) { } } ] ; } } } 
+class x { static { { var x = super [ { [ Symbol . toPrimitive ] : super [ 0 ] } ] ; } } } 
+class x { static { { var x = super [ { [ Symbol . toPrimitive ] : x => 0 } ] ; } } } 
+class x { static { { var x = super [ { [ super [ 0 ] ||= 0 ] : this } ] ; } } } 
+class x { static { { var x = x == 0 >= 0 ; } } } 
+class x { static { { var x = x == this >= 0 ; } } } 
 class x { static { { x , x } ; } } 
 class x { static { { x } ; } } 
 class x { static { { } } } 
+class x { static { } ; } 
 class x { static { } } 
 class x { x ( ) { } } 
 class x { x ; } 
 class x { x = 0 ; } 
 class x { } 
+class x { } ( 0 + 0 - 0 % 0 + 0 === 0 ) ; 
+class x { } ( 0 , x ? 0 : 0 ) ; 
+class x { } ( 0 - ~ 0 / 0 ) ; 
+class x { } ( false in { } ) ; 
+class x { } ( x !== x ) ; 
+class x { } ( x !== { } ) ; 
 class x { } ( x ) ; 
+class x { } ( x === x ) ; 
 class x { } ( x ?. x ?. x ) ; 
 class x { } ( x ??= 0 ) ; 
 class x { } ( { x } ?. x ?. x ) ; 
+class x { } ( { } === x ) ; 
 class x { } ( ~ { } ) ; 
 class x { } + new x ( ) - 0 ; 
+class x { } + x . x ; 
+class x { } + { [ Symbol . toPrimitive ] : function ( ) { } } < 0 ; 
 class x { } + { x , x } ; 
 class x { } - ! x ; 
 class x { } - `${ { } ?. x }` ; 
 class x { } - async function ( ) { await x ( ) ; } ( ) ; 
+class x { } - x . x ; 
+class x { } 0 << ! x | 0 ; 
 class x { } ; 
+class x { } ; x = x && x ; 
 class x { } [ + 0 . x ] ; 
+class x { } [ 0 & ! x ] ; 
 class x { } [ 0 & `${ 0 }` [ 0 % 0 ] ] ; ; 
 class x { } [ 0 & `${ 0 }` [ 0 > 0 ] ] ; ; 
+class x { } [ 0 , [ , ] [ 1 ] ||= 0 ] ; 
+class x { } [ 0 , [ 0 > 0 , ] [ 0 ] ||= 0 ] ; 
+class x { } [ 0 , [ ] [ 0 ] ||= 0 ] ; 
+class x { } [ 0 , [ null , ] [ 0 ] ||= 0 ] ; 
+class x { } [ 0 , x , , 0 ] ; 
+class x { } [ 0 , x ||= 0 ] ; 
 class x { } [ 0 <= 0 + { [ '' ] : x ||= x } ] ; 
+class x { } [ 0 === 0 == 1n . x ] ; 
 class x { } [ [ ] ? x : 0 ] ; 
 class x { } [ ] !== x ;
 class x { } [ `` ?. x ?. x || 0 ] ; 
+class x { } [ new x ( ) ] ; 
+class x { } [ new x ] ; 
 class x { } [ x . species ] ; 
+class x { } [ x . x ?? 0 ] ; 
 class x { } [ x = x ] ; 
 class x { } [ x ?. x && 0 ] ; 
 class x { } [ x ] ; 
@@ -3584,11 +4152,15 @@ class x { } [ { x } ?. x ?. [ { } ] ] ;
 class x { } [ { x } ?. x ?. x ] ; 
 class x { } `${ 0 & x == x }` ; 
 class x { } `${ 0 }` [ 0 ] <= x . x ?? 0 ; 
+class x { } for ( let [ , , ] of [ { [ Symbol . iterator ] : async function * ( ) { await { x } . x ; return yield * x [ yield * function * ( ) { class x { } throw 0 ; } ( ) ] ; } } ] ) ; 
+class x { } for ( let [ , ] of [ { [ Symbol . iterator ] : async function * ( ) { yield x ||= 0 ; } } ] ) ; 
 class x { } for ( x ??= 0 | 0 ; 0 ; ) ; 
 class x { } for ( x in x ||= 0 ) ; 
 class x { } if ( 1 ) try { x => 0 ; } finally { } 
 class x { } switch ( 0 ) { case x &&= class x { } : default : } 
+class x { } switch ( 0 ) { default : case x : } 
 class x { } switch ( 0 ) { default : case x = x : } 
+class x { } switch ( 0 ) { default : if ( 1n . x ) ; } 
 class x { } switch ( x ) { case '' : default : case x : }
 class x { } switch ( x ) { case `` : default : case x : } 
 class x { } switch ( x ) { case x : ; } 
@@ -3598,7 +4170,9 @@ class x { } switch ( x ) { default : case [ ] : ; }
 class x { } switch ( x ) { default : case x : ; } 
 class x { } switch ( x ) { default : case x : } 
 class x { } switch ( { } ) { case x : default : case x : } 
+class x { } x !== this ?? 0 ; 
 class x { } x !== x ; 
+class x { } x !== x ?? 0 ; 
 class x { } x !== { } ;
 class x { } x &&= 0 . x || x ; 
 class x { } x &&= 0 || x ; 
@@ -3618,11 +4192,23 @@ class x { } x &&= x ;
 class x { } x &&= { x , } ; 
 class x { } x &&= { x } . x ;
 class x { } x &&= { x } ; 
+class x { } x : switch ( x &&= class x { } ) { } 
+class x { } x : switch ( x &&= new x ) { } 
 class x { } x === [ ] ;
+class x { } x === [ ] ?? 0 ; 
 class x { } x === x ;
 class x { } x ??= 0 ; 
 class x { } x ||= 0 ; 
 class x { } { if ( x ) if ( 0 ) ; else ; } 
+class x { } { x , x = x ; } ; 
+class x { } ~ new x ; 
+do ; while ( [ '' , ] [ 0 ] &&= 0 ) ; function x ( ) { } 
+do ; while ( [ 0n , ] [ 0 ] &&= 0 ) ; function x ( ) { } 
+do ; while ( [ null , ] [ 0 ] &&= 0 ) ; function x ( ) { } 
+for ( let [ , , ] of [ { [ Symbol . iterator ] : async function * ( ) { return yield * await [ yield * [ 0 , await x ] , 0 ] ; } } ] ) ; async function * x ( ) { } 
+for ( let [ , , ] of [ { [ Symbol . iterator ] : async function * ( ) { return yield * await [ yield * x , 0 ] ; } } ] ) ; class x { } 
+for ( let [ , ] of [ { [ Symbol . iterator ] : async function * ( ) { x : for await ( 0 [ 0 ] of 0 in x ) ; } } ] ) ; function * x ( ) { } 
+for ( let [ , ] of [ { [ Symbol . iterator ] : async function * ( ) { x : for await ( 0 [ yield ] of x `` ?? 0 ) ; } } ] ) ; class x { } 
 for ( var x ; this ?. x ( ) ?. x ; ) ; function x ( ) { } 
 for ( var x ; this ?. x ?. x ; ) ; function x ( ) { } 
 for ( var x ; x ??= 0 ; 0 ) break ; function x ( ) { } 
@@ -3634,11 +4220,15 @@ for ( var x = class x { } ; ; 0 ) break ;
 for ( var x in this . x ??= 0 ) ; function x ( ) { } 
 for ( var x in this . x ??= class x { } ) ; 
 for ( var x in x = class x { } ) ; 
+for ( var x in x ||= class x { } ) ; 
 for ( var x of function * x ( ) { yield x ; } ( ) ) ;
 for ( var x of function * x ( ) { yield { x } ?. x ; } ( ) ) ;
+for ( x in await ) ; function await ( ) { } 
 for ( x in x ??= class x { } ) var x ; 
 for ( x in x ||= class x { } ) ; var x ; 
+for ( { } in [ 0 ] ) try { new x ( ) ; } catch { x ( 0 ) ; } finally { } async function * x ( ) { } 
 function * await ( ) { } 
+function * await ( ) { } [ , void await ] ; 
 function * await ( ) { } [ 0 , , await . x = 0 ] ; 
 function * await ( ) { } await ??= 0 ; 
 function * await ( ) { } await ||= 0 ; 
@@ -3650,20 +4240,29 @@ function * x ( ) { const x = 0 ; } x ( ) ;
 function * x ( ) { function x ( ) { } function x ( ) { } } x ( ) ; 
 function * x ( ) { let x ; } x ( ) ; 
 function * x ( ) { } 
+function * x ( ) { } ( ! void x ) ; 
+function * x ( ) { } ( this . x ??= x => 0 ) ; 
 function * x ( ) { } + `` [ 0 , 0 ] - 0 ; 
 function * x ( ) { } - '' ?. x + 0 ; 
 function * x ( ) { } ; 
 function * x ( ) { } [ '' . x + 0 ] ; 
 function * x ( ) { } [ , ... function * ( ) { yield * x ( ) ; yield * `` ; } ( ) ] ;
+function * x ( ) { } [ ... function * ( ) { yield * x ( ) ; } ( ) ] ; 
 function * x ( ) { } [ typeof `` [ 0 ] ] ; 
 function * x ( ) { } [ typeof true [ 0 ] ] ; 
+function * x ( ) { } [ x ?? 0 ] ; 
 function * x ( ) { } [ { x , } ?. x ?. ( ) ] ; 
 function * x ( ) { } [ { x } ?. x ?. ( ) [ 0 ] ] ; 
+function * x ( ) { } for ( let [ , , ] of [ { [ Symbol . iterator ] : async function * ( ) { await null . x ; ; } } ] ) ; 
+function * x ( ) { } for ( let [ , , ] of [ { [ Symbol . iterator ] : async function * ( ) { do switch ( yield * x ) { } while ( 0 ) ; } } ] ) ; 
+function * x ( ) { } for ( let [ , ] of [ { [ Symbol . iterator ] : async function * ( ) { while ( yield * x ) ; } } ] ) ; 
+function * x ( ) { } for ( let [ , ] of [ { [ Symbol . iterator ] : async function * ( ) { yield x = 0 || x ; } } ] ) ; 
 function * x ( ) { } new function ( ) { return x = x ; } ; 
 function * x ( ) { } this ?. x ( ) . x ; 
 function * x ( ) { } this ?. x ( ) ; 
 function * x ( ) { } this ?. x ( ) [ 0 ] ; 
 function * x ( ) { } x ( 0 ) ; 
+function * x ( ) { } x === 1 ?? 0 ; 
 function * x ( ) { } { x , x , x ; } ; 
 function * x ( ... [ , ] ) { } x ( ) ; 
 function * x ( ... [ , x ] ) { } x ( ) ; 
@@ -3685,6 +4284,7 @@ function * x ( x ) { }
 function * x ( x ) { } x ( ) ; 
 function * x ( x ) { } x ( 0 ) ; 
 function * x ( x , ... [ ] ) { } 
+function * x ( x , [ ] ) { } 
 function * x ( x , [ ] = 0 ) { } 
 function * x ( x , { } ) { } 
 function * x ( x = -- [ 0 ] [ 0 ] ) { } x ( ) ; 
@@ -3709,19 +4309,34 @@ function * x ( { } , x ) { } x ( 0 ) ;
 function await ( ) { } 
 function await ( ) { } ! { ... await } ; 
 function await ( ) { } [ 0 !== 0 !== await , 0 ] ; 
+function await ( ) { } await !== 0 ; 
 function await ( ) { } await ; 
+function await ( ) { } await ?? 0 ; 
 function await ( ) { } await || '' ; 
 function await ( ) { } class x extends await { ; } 
 function await ( ) { } for ( await [ 0 ] in 0 , [ 0 , , ] ) ; 
 function await ( ) { } for ( await [ 0 ] in 0 , await ) ; 
+function await ( ) { } for ( let x in await ( ) ) ; 
+function await ( ) { } for ( let x in await ) ; 
+function await ( ) { } let { } = await ; 
 function await ( ) { } new Promise ( x => await ) ; 
+function await ( ) { } new class x extends await { ; #x = x => 0 ; } ; 
 function await ( ) { } x : switch ( await ) { } 
+function await ( ) { } { groups : await ; } 
 function x ( ) { } 
 function x ( ) { } ! { 1 : x [ 0 ] } ; 
+function x ( ) { } ( 0 , x ? 0 : 0 ) ; 
+function x ( ) { } ( 0 === x ) ; 
+function x ( ) { } ( 0 || x ) ; 
 function x ( ) { } ( `${ true }` ) ; 
+function x ( ) { } ( x . x ) ; 
 function x ( ) { } ( x ??= 0 ) ; 
+function x ( ) { } ( x [ 0 ] ) ; 
+function x ( ) { } + { [ Symbol . toPrimitive ] : x } + 0 ; 
+function x ( ) { } + { [ Symbol . toPrimitive ] : x } << 0 ; 
 function x ( ) { } - [ ] . x & 0 ; 
 function x ( ) { } - async function ( ) { await x ( ) ; } ( ) ; 
+function x ( ) { } - typeof x ; 
 function x ( ) { } - x ( ) ; 
 function x ( ) { } 0 ? 0 : x ;
 function x ( ) { } ; 
@@ -3731,44 +4346,64 @@ function x ( ) { } [ , x ] ;
 function x ( ) { } [ 0n ] [ 0 ** 0 ] = 0 ; 
 function x ( ) { } [ [ 0 ] < 0n ] ; 
 function x ( ) { } [ `` [ 0 ] >>> 0 ] ; 
+function x ( ) { } [ typeof x ] ; 
+function x ( ) { } [ x !== 0 ] ; 
+function x ( ) { } [ x = x ?? 0 , , ] ; 
 function x ( ) { } [ x = x ] = `` ;
+function x ( ) { } [ x === x ] ; 
 function x ( ) { } [ x ?. ( ) && 0 ] ; 
 function x ( ) { } [ x ?. ( ) ] ; 
 function x ( ) { } [ x ?. x ] ; 
+function x ( ) { } [ x [ 0 ] ] ; 
 function x ( ) { } [ { 0 : x = x } = 0 ] = '' ;
 function x ( ) { } [ { x = 0 , x } = this ] ; 
 function x ( ) { } [ { x } ?. x ?. ( ) ] ; 
+function x ( ) { } `${ 0 }${ x , 0 }` ; 
+function x ( ) { } for ( let [ , , ] of [ { [ Symbol . iterator ] : async function * ( ) { await x ; ; } } ] ) ; 
+function x ( ) { } for ( let [ , ] of [ { [ Symbol . iterator ] : async function * ( ) { while ( yield x ) ; } } ] ) ; 
 function x ( ) { } for ( typeof x ; 0 ; ) ; ; 
 function x ( ) { } for ( x ? 0 : 0 ; 0 ; ) ; 
 function x ( ) { } for ( x ??= x => 0 ; 0 ; ) ; 
 function x ( ) { } function x ( ) { } 
 function x ( ) { } function x ( ) { } ; 
 function x ( ) { } if ( this . x ??= ~ void 0 ) x : ; 
+function x ( ) { } if ( x ??= 0 ) var x ; 
 function x ( ) { } null ?? this . x ;
+function x ( ) { } switch ( 0 ) { case async function ( ) { } ( ) [ 0 ] = x : } 
+function x ( ) { } switch ( 0 ) { case x && 0 : default : } 
 function x ( ) { } switch ( 0 ) { case x = x : default : } 
 function x ( ) { } switch ( 0 ) { default : case x : } 
+function x ( ) { } switch ( 0 ) { default : if ( x ) ; } 
 function x ( ) { } switch ( 0 ) { default : x ; } 
 function x ( ) { } switch ( x ) { default : case x : } 
 function x ( ) { } this ?. x ( ) ; 
 function x ( ) { } var x ; 
+function x ( ) { } var x = x &&= class x { } ; 
+function x ( ) { } var x = x &&= new x ; 
 function x ( ) { } var x = x ||= 0 ; 
 function x ( ) { } var { x = x ||= 0 } = 0 ; 
+function x ( ) { } x !== x ?? 0 ; 
 function x ( ) { } x &&= x ;
 function x ( ) { } x ( ) ; 
+function x ( ) { } x ( this . x ??= x => 0 ) ; var x ; 
 function x ( ) { } x ( x ??= 0 ) ; 
 function x ( ) { } x ? 0 : x ;
+function x ( ) { } x ?. ( ) + 0 ; 
 function x ( ) { } x ?. ( ) ;
+function x ( ) { } x ?. x + 0 ; 
 function x ( ) { } x ??= 0 ; 
 function x ( ) { } { switch ( new x ( ) ) { } } 
 function x ( ... [ ] ) { } x ( 0 ) ; 
 function x ( ... x ) { } 
 function x ( ... x ) { } x ( 0 ) ; 
 function x ( ... { x , await = 0 , } ) { } x ( 0 ) ; 
+function x ( [ ] , x = 0 , ... [ ] ) { } 
 function x ( [ ] = 0 , [ ] , x ) { } 
 function x ( [ ] = 0 , x ) { } 
 function x ( await = 0 , x , [ ] ) { }
 function x ( x ) { } 
 function x ( x ) { } x ( 0 ) ; 
+function x ( x , ) { } - { [ 0 != ~ 0 / 0 ** ~ 0 ] : [ ] } == 0 ; 
 function x ( x , ... [ ] ) { } 
 function x ( x , ... [ ] ) { } x ( 0 ) ; 
 function x ( x , ... await ) { } x ( 0 ) ; 
@@ -3776,6 +4411,7 @@ function x ( x , ... { } ) { }
 function x ( x , [ ] ) { } 
 function x ( x , [ ] , [ ] ) { }
 function x ( x , [ ] = 0 ) { } 
+function x ( x , await = 0 ) { } x ( 0 ) ; 
 function x ( x = 0 ) { } 
 function x ( x = 0 ) { } x ( 0 ) ; 
 function x ( x = 0 , ... [ ] ) { } x ( 0 ) ; 
@@ -3785,36 +4421,54 @@ if ( await ) ; function * await ( ) { }
 if ( this . x ??= class x { } ) ; 
 if ( x => 0 ) try { x ( ) ; } finally { } async function * x ( ) { } 
 let [ , x = class x { } ] = '' ; 
+let [ , x = class x { } ] = `` ; 
 let [ , x = new class { } ] = '' ; 
 let [ , x = new function ( ) { return 0 ; } ] = '' ; 
 let [ , x = new function ( ) { } ] = '' ; 
 let [ x , , ... [ ] ] = function * ( ) { yield async function * x ( ) { } ; } ( ) ; 
 let [ x , , ... [ ] ] = function * ( ) { yield x || 0 ; function x ( ) { } } ( ) ; 
 let [ x = async function * ( ) { } ] = '' ; 
+let [ x = async function * ( ) { } ] = `` ; 
 let [ x = async function * x ( ) { } ] = '' ; 
+let [ x = async function * x ( ) { } ] = `` ; 
 let [ x = class x { } , , ... [ ] ] = '' ; 
 let [ x = class x { } , , ] = '' ; 
 let [ x = class x { } , , ] = `` ; 
 let [ x = class x { } ] = '' ; 
+let [ x = class x { } ] = `` ; 
 let [ x = class { } ] = '' ; 
+let [ x = class { } ] = `` ; 
 let [ x = function ( ) { } ] = '' ; 
+let [ x = function ( ) { } ] = `` ; 
 let [ x = function * ( ) { } ] = '' ; 
+let [ x = function * ( ) { } ] = `` ; 
 let [ x = function * x ( ) { } ] = '' ; 
+let [ x = function * x ( ) { } ] = `` ; 
 let [ x = function x ( ) { } ] = '' ; 
+let [ x = function x ( ) { } ] = `` ; 
 let [ x = new class { } ( ) ] = '' ; 
+let [ x = new class { } ( ) ] = `` ; 
+let [ x = new class { } ] = `` ; 
 let [ x = new function ( ) { return ; } ( ) ] = '' ; 
+let [ x = new function ( ) { return ; } ( ) ] = `` ; 
+let [ x = new function ( ) { return ; } ] = `` ; 
 let [ x = new function ( ) { } ( ) ] = '' ; 
+let [ x = new function ( ) { } ( ) ] = `` ; 
+let [ x = new function ( ) { } ] = `` ; 
 let [ x ] = function * ( ) { yield async function * ( ) { } ; } ( ) ; 
 let [ x ] = function * ( ) { yield class x { } ; } ( ) ; 
 let [ x ] = function * ( ) { yield class { } ; } ( ) ; 
 let [ x ] = function * ( ) { yield function ( ) { } ; } ( ) ; 
 let [ x ] = function * ( ) { yield function * ( ) { } ; } ( ) ; 
 let [ x ] = function * ( ) { yield function * x ( ) { } ; } ( ) ; 
+let await , x = class x { } ; 
 let await = class x { } , x ; 
 let x , await = class x { } ; 
 let x ; ( x ??= function x ( ) { } ) ; 
+let x ; [ 0 , , x = class { } ] ; 
 let x ; [ x = class x { } ] = `` ;
 let x ; [ { 0 : x = class x { } } = 0 ] = '' ;
+let x ; class await { } - x ; 
 let x ; new function ( ) { return x = function x ( ) { } ; } ; 
 let x ; x ??= async function * ( ) { } ; 
 let x ; x ??= class { } ; 
@@ -3823,6 +4477,7 @@ let x ; x ??= function * ( ) { } ;
 let x = ( class { } ) ; 
 let x = ( function ( ) { } ) ; 
 let x = ( function * ( ) { } ) ; 
+let x = ( function x ( ) { } ) ; 
 let x = async function * ( ) { } ; 
 let x = async function * x ( ) { } ; 
 let x = await ; function await ( ) { }
@@ -3834,18 +4489,26 @@ let x = function * x ( ) { } ;
 let x = function x ( ) { } ; 
 let x = new class { } ( ) ; 
 let x = new class { } ; 
+let x = new function ( ) { return ; } ( ) ; 
 let x = new function ( ) { return ; } ; 
 let x = new function ( ) { } ( ) ; 
 let x = new function ( ) { } ; 
 let { 0 : x = class x { } } = 0 ; 
 new await ; function await ( ) { } 
+new class { 0 = [ ] && x ; } ; function x ( ) { } 
 new class { static #x = #x in x ; } ; function x ( ) { } 
+new function ( ) { return `` ?. x ?? x ; } ; function * x ( ) { } 
 new function ( ) { return await ; return 0 ; } ; function * await ( ) { ; } 
 new function ( ) { return await ; } ; function * await ( ) { ; } 
 new function ( ) { return x ; } ; function x ( ) { } 
 new function ( ) { x ( 0 ) ; } ; function * x ( ... [ , ... x ] ) { } 
+new function ( ) { { return - x ; var x ; } } ; class x { } 
+switch ( 0 ) { case 0 : x ; } function * x ( ) { } 
+switch ( 0 ) { case x = x : default : } function * x ( ) { } 
+switch ( 0 ) { default : case ! x : } function x ( ) { } 
 switch ( 0 ) { default : case this . x ||= class x { } : } 
 switch ( 1 ) { case 0 : x ( ) ; default : case 0 : x ; } function * x ( ) { } 
+switch ( await ) { } function await ( ) { } 
 this ?. x ( ) ; async function * x ( ) { } 
 var [ , x = class x { } ] = `` ; 
 var [ x , x = class x { } ] = '' ; 
@@ -3865,20 +4528,27 @@ var [ x = new function ( ) { } ( ) ] = `` ;
 var [ x = new function ( ) { } ] = `` ; 
 var [ x = this . x ||= 0 ] = `` ; function x ( ) { } 
 var [ x = x = class x { } ] = `` ; 
+var [ x = x == await , ] = `` ; async function * await ( ) { ; } 
 var [ x = x ??= 0 ] = `` ; function * x ( ) { } 
+var [ x = x ??= class x { } ] = `` ; 
+var [ x = x ||= async function * ( ... [ ] ) { } , , ] = `` ; 
 var x , x = class x { } ; 
 var x ; function x ( ) { } 
 var x = [ 1 ] [ 0 ] &&= class x { } ; 
 var x = async function * ( ) { } ; 
+var x = async function * ( x = 0 , ) { var x , x ; } ; x ( 0 != 0 ) ; 
 var x = async function * x ( ) { } ; 
 var x = async function * x ( [ ] = 0 , x ) { } ; 
+var x = async x => this . x &&= class x { } ; x ( ) ; 
 var x = async x => { ; for ( this . x &&= function x ( ) { } ; ; 0 ) break ; } ; x ( ) ; 
 var x = async x => { ; for await ( 0 . x of this . x &&= class x { } ) ; } ; x ( ) ; 
 var x = async x => { ; for await ( var x of this . x &&= class x { } ) ; } ; x ( ) ; 
+var x = async x => { for await ( let x of this . x &&= class x { } ) ; } ; x ( 0 ) ; 
 var x = class extends null { [ this . x = 0 ] ; } ; 
 var x = class extends null { [ { x } . x = 0 ] ; } ; 
 var x = class extends null { static #x ( ) { } } ; 
 var x = class extends null { static 0 ; static 0 ; } ; 
+var x = class extends null { static 0 = 0 != super [ 0 ] != 0 >= 0 ; } ; 
 var x = class extends null { static 0 = 0 || 0 | 0 >= 0 > super . x ; } ; 
 var x = class extends null { static 0 = 0 || 0 | super . x >= 0 > 0 ; } ; 
 var x = class extends null { static 0 = x ; } ; 
@@ -3886,6 +4556,7 @@ var x = class extends null { static { super [ 0 ] &&= 0 ; } } ;
 var x = class extends null { } ; 
 var x = class x { static 0 = ! ! x ; } ; 
 var x = class x { static 0 = 0 === 0 != 0 > 0 ; } ; 
+var x = class x { } , x ; 
 var x = class x { } ; 
 var x = class { static 0 ; static 0 ; } ; 
 var x = class { static 0 = ! ! 0 >>> 0 ; ; } ; 
@@ -3934,13 +4605,16 @@ var x = class { } ;
 var x = function ( ) { } ; 
 var x = function ( x = 0 , [ ] , [ ] , [ ] , ) { } ; 
 var x = function * ( ) { } ; 
+var x = function * ( ) { } ; x ( this != this ) ; 
 var x = function * x ( ) { } ; 
 var x = function x ( ) { } ; 
 var x = new class { } ( ) ; 
 var x = new class { } ; 
 var x = new function ( ) { return 0 ; } ( ) ; 
+var x = new function ( ) { return ; } ( ) ; 
 var x = new function ( ) { return ; } ; 
 var x = new function ( ) { return this ; } ( ) ; 
+var x = new function ( ) { return x ; } ; 
 var x = new function ( ) { } ( ) ; 
 var x = new function ( ) { } ; 
 var x = this . x ??= class x { } ; 
@@ -3955,9 +4629,13 @@ var x = x ??= async function * ( ) { } ;
 var x = x ??= class x { } ; 
 var x = x ??= class { } ; 
 var x = x ??= function ( ) { } ; 
+var x = x ??= function * ( ) { } ; 
+var x = x ||= async function * ( ) { } ; 
 var x = x ||= async function * ( ) { } ; ; 
+var x = x ||= class x { } ; 
 var x = x ||= class { } ; 
 var x = x ||= function ( ) { } ; 
+var x = x ||= function * ( ) { } ; 
 var x = x ||= function * ( ) { } ; x ( ) ; 
 var x = x ||= x => 0 ; ; function * x ( ) { } 
 var x = { * [ 1 ** 0 ** ~ 0 ] ( ) { } } ; 
@@ -3978,6 +4656,8 @@ var x = { 0 : new function ( ) { return { } [ 0 ] , 0 ; } ( ) , x } ;
 var x = { 0 : new function ( ) { } } ; 
 var x = { async * 0 ( x , [ ] = 0 ) { } } ; 
 var x = { async * 0 ( x = 0 , [ ] ) { } } ; 
+var x = { x , * x ( ) { } } ; 
+var x = { x , async * x ( ) { } } ; 
 var x = { x = await , } = 0 ; async function * await ( ) { } 
 var { 0 : x = class x { } } = 0 ; 
 var { x = ( async function * ( ) { } ) } = 0 ; 
@@ -3997,6 +4677,7 @@ var { x = function x ( ) { } } = 0 ;
 var { x = new class { } ( ) } = 0 ; 
 var { x = new class { } } = 0 ; 
 var { x = new function ( ) { return ; } ( ) } = 0 ; 
+var { x = new function ( ) { return ; } } = 0 ; 
 var { x = new function ( ) { } ( ) } = 0 ; 
 var { x = new function ( ) { } } = 0 ; 
 var { x = x = class x { } } = 0 ; 
@@ -4005,6 +4686,7 @@ var { x = x ||= class x { } } = 0 ;
 var { x = x ||= class { } } = 0 ; 
 var { x = x ||= function ( ) { } } = 0 ; 
 var { x = x ||= function * ( ) { } } = 0 ; 
+void new x ( ) ; function x ( ) { } 
 x !== 0 ; function x ( ) { }
 x !== x ; function x ( ) { }
 x &&= [ 0 ] . x ??= { x } . x ; function x ( ) { } 

@@ -84,12 +84,22 @@ case object GenTest
         debug(s"   - Using cached codes of transpiler $transpiler...")
         if (transpiler.toString != readFile(s"$rawDir/command.txt"))
           throw new Error("Invalid transpiler cache")
-        if (listFiles(codeDir).size != listFiles(rawDir).size - 1)
+        val codeNum = listFiles(codeDir).filterNot(f => skip(f.getName)).size
+        val cacheNum = listFiles(rawDir).size - 1
+        if (codeNum != cacheNum)
           throw new Error("Invalid transpiler cache")
       else
         debug(s"   - Running transpiler $transpiler...")
         cleanDir(rawDir)
-        JSTrans.transpileDirUsingBinary(transpiler.cmd, codeDir, rawDir).get
+        JSTrans
+          .transpileDirUsingBinary(
+            transpiler.cmd,
+            codeDir,
+            rawDir,
+            config.only,
+            config.skip,
+          )
+          .get
         dumpFile(transpiler, s"$rawDir/command.txt")
     })
 

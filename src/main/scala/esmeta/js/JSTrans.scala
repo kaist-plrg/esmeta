@@ -58,9 +58,16 @@ object JSTrans {
     runner: String,
     inputDir: String,
     outputDir: String,
+    onlyList: Option[String] = None,
+    skipList: Option[String] = None,
   ): Try[Unit] =
     Try {
-      Try(s"$runner $inputDir $outputDir" ! ProcessLogger(_ => ()))
+      Try(
+        // TODO: pass skipList
+        s"$runner $inputDir $outputDir ${onlyList.getOrElse("")}" ! ProcessLogger(
+          _ => (),
+        ),
+      )
         .getOrElse(127) match {
         case 0   =>
         case 127 => throw NoCommandError(runner)

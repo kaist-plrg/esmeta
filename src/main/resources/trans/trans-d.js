@@ -1,5 +1,16 @@
 const fs = require("fs");
 const path = require("path");
+  
+const inputDir = process.argv[2];
+const outputDir = process.argv[3];
+const onlyListFile = process.argv[4];
+  
+const onlyList = onlyListFile ? fs.readFileSync(onlyListFile, "utf8").split("\n") : undefined;
+const onlySet = onlyList ? new Set(onlyList) : undefined;
+const skip = (filename) => {
+  if(!onlySet) return false
+  return !onlySet.has(filename);
+}
 
 /** warn user about the usage */
 let warnUsage = () => {
@@ -9,9 +20,6 @@ let warnUsage = () => {
 
 /** Transpile directory using a given transpile fucntion */
 let transpileUsing = (transpile) => {
-  const inputDir = process.argv[2];
-  const outputDir = process.argv[3]
-
   if (inputDir === undefined || outputDir === undefined) {
     warnUsage();
   }
@@ -20,6 +28,7 @@ let transpileUsing = (transpile) => {
   fs.mkdirSync(outputDir, {recursive: true});
 
   for(let filename of fs.readdirSync(inputDir)) {
+    if(skip(filename)) continue;
     let input = fs.readFileSync(path.join(inputDir, filename), "utf8")
     let output;
     try {
@@ -33,9 +42,6 @@ let transpileUsing = (transpile) => {
 
 /** Transpile directory asynchronously using a given transpile fucntion */
 let transpileAsyncUsing = async (transpileAsync) => {
-  const inputDir = process.argv[2];
-  const outputDir = process.argv[3]
-
   if (inputDir === undefined || outputDir === undefined) {
     warnUsage();
   }
@@ -44,6 +50,7 @@ let transpileAsyncUsing = async (transpileAsync) => {
   fs.mkdirSync(outputDir, {recursive: true});
 
   for(let filename of fs.readdirSync(inputDir)) {
+    if(skip(filename)) continue;
     let input = fs.readFileSync(path.join(inputDir, filename), "utf8")
     let output;
     try {

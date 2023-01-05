@@ -51,6 +51,11 @@ case class Block(
   lazy val endsWithReturn: Boolean = insts.lastOption match
     case Some(_: IReturn) => true
     case _                => false
+
+  /** check end with throw instruction */
+  lazy val endsWithThrow: Boolean = insts.lastOption match
+    case Some(IReturn(EComp(EConst("throw"), _, _))) => true
+    case _                                           => false
 }
 
 /** nodes with backward edge to inst */

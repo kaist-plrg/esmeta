@@ -10,6 +10,10 @@ import esmeta.util.*
 trait Mutator {
   private type Result = Seq[(String, Ast)]
 
+  /*placeholder for weight*/
+  def calculateWeight(ast: Ast): Int
+
+
   /** mutate string */
   def apply(code: String, n: Int): Result =
     apply(code, n, None)

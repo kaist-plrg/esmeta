@@ -11,15 +11,20 @@ import esmeta.ty.AstSingleTy
 
 /** A nearest ECMAScript AST mutator */
 class WeightedMutator(
-  val pairs: (Mutator, Int)*,
+  val mutators: (Mutator)*,
 ) extends Mutator {
 
+  def calculateWeight(ast: Ast): Int
+  = 0
   /** mutate programs */
   def apply(
     ast: Ast,
     n: Int,
     target: Option[(CondView, Coverage)],
-  ): Seq[(String, Ast)] = weightedChoose(pairs)(ast, n, target)
+  ): Seq[(String, Ast)] =
+    val weights = mutators.map(_.calculateWeight(ast))
+    val pairs = mutators.zip(weights)
+    weightedChoose(pairs)(ast, n, target)
 
-  val names = pairs.toList.flatMap(_._1.names).sorted.distinct
+  val names = mutators.toList.flatMap(_.names).sorted.distinct
 }

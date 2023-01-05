@@ -247,11 +247,11 @@ class Fuzzer(
 
   /** mutator */
   val mutator: Mutator = WeightedMutator(
-    NearestMutator() -> 6,
-    RandomMutator() -> 3,
-    StatementInserter() -> 1,
-    Remover() -> 1,
-    SpecStringMutator() -> 1,
+    NearestMutator(),
+    RandomMutator(),
+    StatementInserter(),
+    Remover(),
+    SpecStringMutator(),
   )
 
   /** mutator stat */

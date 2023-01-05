@@ -13,6 +13,11 @@ class RandomMutator(
   val synthesizer: Synthesizer = RandomSynthesizer,
 ) extends Mutator {
   import RandomMutator.*
+
+  /** default fot RandomMutator is 3*/
+  def calculateWeight(ast:Ast): Int
+  = 3
+
   val names = List("RandomMutator")
 
   /** mutate programs */

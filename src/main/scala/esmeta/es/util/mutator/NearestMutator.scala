@@ -16,6 +16,10 @@ class NearestMutator(
   val synthesizer: Synthesizer = RandomSynthesizer,
 ) extends Mutator {
 
+  /** default fot NearestMutator is 6*/
+  def calculateWeight(ast:Ast): Int
+  = 6
+
   val names = "NearestMutator" :: RandomMutator.default.names
 
   /** mutate programs */

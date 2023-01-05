@@ -14,8 +14,8 @@ class WeightedMutator(
   val mutators: (Mutator)*,
 ) extends Mutator {
 
-  def calculateWeight(ast: Ast): Int
-  = 0
+  def calculateWeight(ast: Ast): Int = 0
+
   /** mutate programs */
   def apply(
     ast: Ast,

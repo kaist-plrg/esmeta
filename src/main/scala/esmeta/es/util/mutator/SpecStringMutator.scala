@@ -19,9 +19,9 @@ class SpecStringMutator(
 
   import SpecStringMutator.*
 
-  /** default for SpecStringMutator is 1*/
-  def calculateWeight(ast:Ast): Int
-  = 1
+  /** default for SpecStringMutator is 1 */
+  def calculateWeight(ast: Ast): Int = 1
+
   /** mutate a program */
   def apply(
     ast: Ast,

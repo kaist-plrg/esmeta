@@ -2,7 +2,9 @@ package esmeta.es.util.fuzzer
 
 import esmeta.error.*
 import esmeta.es.*
+import esmeta.cfg.Node
 import esmeta.es.util.*
+import esmeta.es.util.Coverage.Cond
 import esmeta.es.util.injector.*
 import esmeta.es.util.mutator.*
 import esmeta.es.util.synthesizer.*
@@ -12,10 +14,12 @@ import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
 import esmeta.{ESMeta, FUZZ_LOG_DIR, LINE_SEP}
-import io.circe.*, io.circe.syntax.*
+import io.circe.*
+import io.circe.syntax.*
+
 import java.io.PrintWriter
-import scala.collection.mutable.{ListBuffer, Map => MMap}
-import scala.collection.parallel.CollectionConverters._
+import scala.collection.mutable.{ListBuffer, Map as MMap}
+import scala.collection.parallel.CollectionConverters.*
 
 /** ECMAScript program fuzzer with ECMA-262 */
 object Fuzzer {
@@ -29,6 +33,8 @@ object Fuzzer {
     kFs: Int = 0,
     cp: Boolean = false,
     init: Option[String] = None,
+    nodeViewKMap: Map[Node, Int] = Map[Node, Int]().withDefaultValue(0),
+    condViewKMap: Map[Cond, Int] = Map[Cond, Int]().withDefaultValue(0),
   ): Coverage = new Fuzzer(
     logInterval,
     debug,
@@ -39,6 +45,8 @@ object Fuzzer {
     kFs,
     cp,
     init,
+    nodeViewKMap,
+    condViewKMap,
   ).result
 
   // debugging levels
@@ -55,10 +63,13 @@ class Fuzzer(
   timeLimit: Option[Int] = None, // time limitation for each evaluation
   trial: Option[Int] = None, // `None` denotes no bound
   duration: Option[Int] = None, // `None` denotes no bound
-  kFs: Int = 0,
+  kFs: Int = 0, // feature sensitivity bias
   cp: Boolean = false,
   init: Option[String] = None,
+  nodeViewKMap: Map[Node, Int] = Map[Node, Int]().withDefaultValue(0),
+  condViewKMap: Map[Cond, Int] = Map[Cond, Int]().withDefaultValue(0),
 ) {
+
   import Fuzzer.*
 
   /** generated ECMAScript programs */
@@ -213,10 +224,12 @@ class Fuzzer(
 
   // a pass-or-fail counter
   case class Counter(pass: Int = 0, fail: Int = 0)
+
   def update[T](t: T, map: MMap[T, Counter], pass: Boolean): Unit =
     val Counter(p, f) = map.getOrElse(t, Counter())
     val updated = if (pass) Counter(p + 1, f) else Counter(p, f + 1)
     map += t -> updated
+
   private def counterJson[T: Ordering](map: MMap[T, Counter]): Json =
     JsonObject(
       (for ((condView, Counter(pass, fail)) <- map.toList.sortBy(_._1)) yield {
@@ -234,7 +247,7 @@ class Fuzzer(
   val scriptParser = cfg.scriptParser
 
   /** coverage */
-  val cov: Coverage = Coverage(timeLimit, kFs, cp)
+  val cov: Coverage = Coverage(timeLimit, kFs, cp, nodeViewKMap, condViewKMap)
 
   /** target selector */
   val selector: TargetSelector = WeightedSelector(
@@ -280,13 +293,22 @@ class Fuzzer(
 
   // current id
   private var idCounter: Long = 0
-  private def nextId: Long = { val id = idCounter; idCounter += 1; id }
+
+  private def nextId: Long = {
+    val id = idCounter;
+    idCounter += 1;
+    id
+  }
 
   // evaluation start time
   private var startTime: Long = 0L
+
   private def elapsed: Long = System.currentTimeMillis - startTime
+
   private def timeout = duration.fold(false)(_ * 1000 < elapsed)
+
   private var startInterval: Long = 0L
+
   private def interval: Long = System.currentTimeMillis - startInterval
 
   // conversion from code string to `Script` object
@@ -300,6 +322,7 @@ class Fuzzer(
 
   // debugging
   private var debugMsg = ""
+
   private def debugging(
     msg: String,
     newline: Boolean = true,
@@ -309,8 +332,13 @@ class Fuzzer(
     debugMsg += msg
     if (newline) debugMsg += LINE_SEP
   }
+
   private def debugClean: Unit = debugMsg = ""
-  private def debugFlush: Unit = { print(debugMsg); debugClean }
+
+  private def debugFlush: Unit = {
+    print(debugMsg);
+    debugClean
+  }
 
   // generate headers
   private def genSummaryHeader =
@@ -327,6 +355,7 @@ class Fuzzer(
     header ++= Vector("target-conds(#)")
     if (kFs > 0) header ++= Vector(s"sens-target-conds(#)")
     addRow(header)
+
   private def genStatHeader(keys: List[String], nf: PrintWriter) =
     var header1 = Vector("iter(#)")
     var header2 = Vector("-")
@@ -372,11 +401,13 @@ class Fuzzer(
     // dump selector and mutator stat
     dumpStat(selector.names, selectorStat, selStatTsv)
     dumpStat(mutator.names, mutatorStat, mutStatTsv)
+
   private def addRow(data: Iterable[Any], nf: PrintWriter = summaryTsv): Unit =
     val row = data.mkString("\t")
     if (stdOut) println(row)
     nf.println(row)
     nf.flush
+
   private lazy val summaryTsv: PrintWriter = getPrintWriter(
     s"$logDir/summary.tsv",
   )

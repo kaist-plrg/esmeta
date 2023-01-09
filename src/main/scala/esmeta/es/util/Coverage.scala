@@ -4,28 +4,37 @@ import esmeta.LINE_SEP
 import esmeta.cfg.*
 import esmeta.es.*
 import esmeta.es.util.*
+import esmeta.es.util.Coverage.{Cond, CondView, NodeView}
 import esmeta.es.util.injector.*
 import esmeta.interpreter.*
-import esmeta.ir.{Expr, EParse, EReturnIfAbrupt, EBool}
+import esmeta.ir.{EBool, EParse, EReturnIfAbrupt, Expr}
 import esmeta.state.*
 import esmeta.ty.AstSingleTy
 import esmeta.util.*
 import esmeta.util.SystemUtils.*
-import io.circe.*, io.circe.syntax.*
+import io.circe.*
+import io.circe.syntax.*
+
 import math.Ordering.Implicits.seqOrdering
+import scala.collection.immutable.Map
 
 /** coverage measurement in CFG */
 class Coverage(
   timeLimit: Option[Int] = None,
   kFs: Int = 0,
   cp: Boolean = false,
+  nodeViewKMap: Map[Node, Int] = Map[Node, Int]().withDefaultValue(0),
+  condViewKMap: Map[Cond, Int] = Map[Cond, Int]().withDefaultValue(0),
 ) {
+
   import Coverage.{*, given}
+
   val jsonProtocol = JsonProtocol(cfg)
   import jsonProtocol.given
 
   // minimal scripts
   def minimalScripts: Set[Script] = _minimalScripts
+
   private var _minimalScripts: Set[Script] = Set()
 
   // meta-info of each script
@@ -39,10 +48,12 @@ class Coverage(
 
   // get mapping from views to scripts for nodes or conditions
   def apply(node: Node): Map[View, Script] = nodeViewMap.getOrElse(node, Map())
+
   def apply(cond: Cond): Map[View, Script] = condViewMap.getOrElse(cond, Map())
 
   // get script from nodes or conditions
   def getScript(nv: NodeView): Option[Script] = apply(nv.node).get(nv.view)
+
   def getScript(cv: CondView): Option[Script] = apply(cv.cond).get(cv.view)
 
   // mapping from nodes/conditions to scripts
@@ -53,6 +64,7 @@ class Coverage(
 
   // target conditional branches
   def targetCondViews: Map[Cond, Map[View, Option[Nearest]]] = _targetCondViews
+
   private var _targetCondViews: Map[Cond, Map[View, Option[Nearest]]] = Map()
 
   /** evaluate a given ECMAScript program, update coverage, and return
@@ -67,7 +79,7 @@ class Coverage(
   def run(code: String): Interp = {
     // run interpreter and record touched
     val initSt = cfg.init.from(code)
-    val interp = Interp(initSt, timeLimit, kFs, cp)
+    val interp = Interp(initSt, timeLimit, kFs, cp, nodeViewKMap, condViewKMap)
     interp.result
     interp
   }
@@ -117,10 +129,12 @@ class Coverage(
 
   /** get node coverage */
   def nodeCov: Int = nodeViewMap.size
+
   def nodeViewCov: Int = nodeViews.size
 
   /** get branch coverage */
   def branchCov: Int = condViewMap.size
+
   def branchViewCov: Int = condViews.size
 
   def dumpToWithDetail(baseDir: String, withMsg: Boolean = true): Unit = dumpTo(
@@ -152,7 +166,9 @@ class Coverage(
     )
 
     val st = System.nanoTime()
+
     def elapsedSec = (System.nanoTime() - st) / 1000000 / 1e3
+
     def log(msg: Any) =
       if (withMsg) println(s"[$elapsedSec s] $msg")
 
@@ -215,7 +231,7 @@ class Coverage(
       dumpJson(
         name = if (withMsg) Some("target conditional branches") else None,
         data = (for {
-          (cond, viewMap) <- _targetCondViews
+          (cond, viewMap) <- _targetCondViews;
           (view, _) <- viewMap
         } yield getCondViewsId(CondView(cond, view))).toSeq.sorted.asJson,
         filename = s"$baseDir/target-conds.json",
@@ -377,6 +393,8 @@ object Coverage {
     timeLimit: Option[Int],
     kFs: Int,
     cp: Boolean,
+    nodeViewKMap: Map[Node, Int] = Map[Node, Int]().withDefaultValue(0),
+    condViewKMap: Map[Cond, Int] = Map[Cond, Int]().withDefaultValue(0),
   ) extends Interpreter(
       initSt,
       timeLimit = timeLimit,
@@ -389,14 +407,14 @@ object Coverage {
     // override eval for node
     override def eval(node: Node): Unit =
       // record touched nodes
-      touchedNodeViews += NodeView(node, getView) -> getNearest
+      touchedNodeViews += NodeView(node, getView(node)) -> getNearest
       super.eval(node)
 
     // override branch move
     override def moveBranch(branch: Branch, b: Boolean): Unit =
       // record touched conditional branch
       val cond = Cond(branch, b)
-      touchedCondViews += CondView(cond, getView) -> getNearest
+      touchedCondViews += CondView(cond, getView(cond)) -> getNearest
       super.moveBranch(branch, b)
 
     // override helper for return-if-abrupt cases
@@ -407,13 +425,21 @@ object Coverage {
     ): Value =
       val abrupt = value.isAbruptCompletion
       val cond = Cond(riaExpr.idRef, abrupt)
-      touchedCondViews += CondView(cond, getView) -> getNearest
+
+      touchedCondViews += CondView(cond, getView(cond)) -> getNearest
       super.returnIfAbrupt(riaExpr, value, check)
 
     // get syntax-sensitive views
-    private def getView: View =
-      val stack = st.context.featureStack.take(kFs)
-      val path = if (cp) then Some(st.context.callPath) else None
+    private def getView(node: Node | Cond): View =
+      val stack = st.context.featureStack.take(
+        kFs
+        + (node match {
+          case n: Node => nodeViewKMap(n)
+          case c: Cond => condViewKMap(c)
+        }),
+      )
+
+      val path = if cp then Some(st.context.callPath) else None
       stack match {
         case Nil                  => None
         case feature :: enclosing => Some(enclosing, feature, path)
@@ -432,10 +458,12 @@ object Coverage {
 
   /* syntax-sensitive views */
   type View = Option[(List[Feature], Feature, Option[CallPath])]
+
   private def stringOfView(view: View) = view.fold("") {
     case (enclosing, feature, path) =>
       s"@ $feature${enclosing.mkString("[", ", ", "]")}:${path.getOrElse("")}"
   }
+
   def lowerView(view: View, kFs: Int, cp: Boolean): View =
     view.flatMap {
       case (stack, feature, callPath) =>
@@ -445,12 +473,16 @@ object Coverage {
             Some((stack.take(k - 1), feature, if cp then callPath else None))
         }
     }
+
   case class NodeView(node: Node, view: View = None) {
     override def toString: String =
       node.simpleString + stringOfView(view)
+
     def toFuncView = FuncView(cfg.funcOf(node), view)
+
     def lower(kFs: Int, cp: Boolean) = NodeView(node, lowerView(view, kFs, cp))
   }
+
   case class CondView(cond: Cond, view: View = None) {
     def neg: CondView = copy(cond = cond.neg)
 
@@ -459,6 +491,7 @@ object Coverage {
 
     def lower(kFs: Int, cp: Boolean) = CondView(cond, lowerView(view, kFs, cp))
   }
+
   case class FuncView(func: Func, view: View = None) {
     override def toString: String =
       func.name + stringOfView(view)
@@ -466,10 +499,15 @@ object Coverage {
 
   /** ordering of syntax-sensitive views */
   given Ordering[Feature] = Ordering.by(_.toString)
+
   given Ordering[CallPath] = Ordering.by(_.toString)
+
   given Ordering[Node] = Ordering.by(_.id)
+
   given Ordering[NodeView] = Ordering.by(v => (v.node, v.view))
+
   given Ordering[Cond] = Ordering.by(cond => (cond.kindString, cond.id))
+
   given Ordering[CondView] = Ordering.by(v => (v.cond, v.view))
 
   // branch or reference to EReturnIfAbrupt with boolean values
@@ -511,13 +549,16 @@ object Coverage {
 
   // meta-info for each view or features
   case class NodeViewInfo(index: Int, nodeView: NodeView, script: String)
+
   case class CondViewInfo(index: Int, condView: CondView, script: String)
 
+  // TODO: How to show selective-k sensitivity?
   case class CoverageConstructor(
     timeLimit: Option[Int],
     kFs: Int,
     cp: Boolean,
   )
+
   def fromLog(baseDir: String): Coverage =
     val jsonProtocol = JsonProtocol(cfg)
     import jsonProtocol.given

@@ -228,7 +228,7 @@ object JSEngine {
       case 0   => stdout.toString
       case 124 => throw TimeoutException(runner)
       case 127 => throw NoCommandError(runner)
-      case st  => throw new Exception(stdout.toString + stderr.toString),
+      case st  => throw new Exception(stdout.toString + stderr.toString)
     }
   }
 

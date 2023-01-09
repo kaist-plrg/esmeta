@@ -15,6 +15,8 @@ project/project/
 project/target/
 project/metals.sbt
 target/
+node_modules
+temp
 
 ## tests
 tests/detail

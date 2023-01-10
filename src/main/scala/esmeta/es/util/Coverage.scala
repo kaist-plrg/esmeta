@@ -29,7 +29,7 @@ class Coverage(
 
   import Coverage.{*, given}
 
-  val jsonProtocol = JsonProtocol(cfg)
+  val jsonProtocol: JsonProtocol = JsonProtocol(cfg)
   import jsonProtocol.given
 
   // minimal scripts
@@ -62,6 +62,9 @@ class Coverage(
   private var condViewMap: Map[Cond, Map[View, Script]] = Map()
   private var condViews: Set[CondView] = Set()
 
+  // mapping from nodes/conditions to number of touches
+  var nodeViewCount: Map[NodeView, Int] = Map()
+  var condViewCount: Map[CondView, Int] = Map()
   // target conditional branches
   def targetCondViews: Map[Cond, Map[View, Option[Nearest]]] = _targetCondViews
 
@@ -100,6 +103,7 @@ class Coverage(
 
     // update node coverage
     for ((nodeView, _) <- interp.touchedNodeViews)
+      nodeViewCount += nodeView -> (nodeViewCount.getOrElse(nodeView, 0) + 1)
       getScript(nodeView) match
         case None =>
           update(nodeView, script); updated = true; covered = true
@@ -109,6 +113,7 @@ class Coverage(
 
     // update branch coverage
     for ((condView, nearest) <- interp.touchedCondViews)
+      condViewCount += condView -> (condViewCount.getOrElse(condView, 0) + 1)
       getScript(condView) match
         case None =>
           update(condView, nearest, script); updated = true; covered = true
@@ -120,8 +125,8 @@ class Coverage(
     if (updated)
       _minimalInfo += script.name -> ScriptInfo(
         ConformTest.createTest(initSt, finalSt),
-        interp.touchedNodeViews.map(_._1),
-        interp.touchedCondViews.map(_._1),
+        interp.touchedNodeViews.keys,
+        interp.touchedCondViews.keys,
       )
     // assert: _minimalScripts ~= _minimalInfo.keys
 
@@ -169,7 +174,7 @@ class Coverage(
 
     def elapsedSec = (System.nanoTime() - st) / 1000000 / 1e3
 
-    def log(msg: Any) =
+    def log(msg: Any): Unit =
       if (withMsg) println(s"[$elapsedSec s] $msg")
 
     dumpJson(
@@ -331,7 +336,7 @@ class Coverage(
     map + (view -> script)
 
   // remove a cond from targetConds
-  private def removeTargetCond(cv: CondView) =
+  private def removeTargetCond(cv: CondView): Unit =
     val CondView(cond, view) = cv
     for (views <- _targetCondViews.get(cond)) {
       val newViews = views - view
@@ -342,7 +347,7 @@ class Coverage(
     }
 
   // add a cond to targetConds
-  private def addTargetCond(cv: CondView, nearest: Option[Nearest]) =
+  private def addTargetCond(cv: CondView, nearest: Option[Nearest]): Unit =
     val CondView(cond, view) = cv
     val origViews = _targetCondViews.getOrElse(cond, Map())
     val newViews = origViews + (view -> nearest)
@@ -450,7 +455,7 @@ object Coverage {
   }
 
   /** meta-info for each script */
-  case class ScriptInfo(
+  private case class ScriptInfo(
     test: ConformTest,
     touchedNodeViews: Iterable[NodeView],
     touchedCondViews: Iterable[CondView],
@@ -464,7 +469,7 @@ object Coverage {
       s"@ $feature${enclosing.mkString("[", ", ", "]")}:${path.getOrElse("")}"
   }
 
-  def lowerView(view: View, kFs: Int, cp: Boolean): View =
+  private def lowerView(view: View, kFs: Int, cp: Boolean): View =
     view.flatMap {
       case (stack, feature, callPath) =>
         kFs match {
@@ -474,16 +479,20 @@ object Coverage {
         }
     }
 
-  case class NodeView(node: Node, view: View = None) {
+  sealed trait NodeOrCondView(view: View) { def getView: View = view }
+  case class NodeView(node: Node, view: View = None)
+    extends NodeOrCondView(view) {
     override def toString: String =
       node.simpleString + stringOfView(view)
 
-    def toFuncView = FuncView(cfg.funcOf(node), view)
+    def toFuncView: FuncView = FuncView(cfg.funcOf(node), view)
 
-    def lower(kFs: Int, cp: Boolean) = NodeView(node, lowerView(view, kFs, cp))
+    def lower(kFs: Int, cp: Boolean): NodeView =
+      NodeView(node, lowerView(view, kFs, cp))
   }
 
-  case class CondView(cond: Cond, view: View = None) {
+  case class CondView(cond: Cond, view: View = None)
+    extends NodeOrCondView(view) {
     def neg: CondView = copy(cond = cond.neg)
 
     override def toString: String =

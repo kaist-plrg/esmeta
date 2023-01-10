@@ -2,9 +2,10 @@ package esmeta.phase
 
 import esmeta.{error as _, *}
 import esmeta.cfg.{CFG, Node}
-import esmeta.es.util.Coverage.Cond
+import esmeta.es.util.Coverage.{Cond, CondView, NodeView}
 import esmeta.es.util.{Coverage, withCFG}
 import esmeta.es.util.fuzzer.*
+import esmeta.state.Feature
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
@@ -13,19 +14,20 @@ import esmeta.util.SystemUtils.*
 case object SKFuzz extends Phase[CFG, Coverage] {
   val name = "fuzz"
   val help = "generate ECMAScript programs for fuzzing."
+  private val MAX_ATTENTION_RATIO = 0.5
 
   def apply(
-             cfg: CFG,
-             cmdConfig: CommandConfig,
-             config: Config,
-           ): Coverage = withCFG(cfg) {
+    cfg: CFG,
+    cmdConfig: CommandConfig,
+    config: Config,
+  ): Coverage = withCFG(cfg) {
     // optionally set the seed for the random number generator
     config.seed.foreach(setSeed)
 
     val nodeViewKMap = Map[Node, Int]().withDefaultValue(0)
     val condViewKMap = Map[Cond, Int]().withDefaultValue(0)
 
-    val cov = Fuzzer(
+    val covPre = Fuzzer(
       logInterval = config.logInterval,
       debug = config.debug,
       timeLimit = config.timeLimit,
@@ -36,9 +38,99 @@ case object SKFuzz extends Phase[CFG, Coverage] {
     )
 
     // optionally dump the generated ECMAScript programs
-    for (dirname <- config.out) cov.dumpToWithDetail(dirname)
+    for (dirname <- config.out) covPre.dumpToWithDetail(dirname)
 
-    cov
+    // pre-fuzzing start ///////////////////////////////////////////////
+    // TODO: edge selection
+    var futNodeViewCount: Map[Feature, List[(NodeView, Int)]] = Map()
+    var futCondViewCount: Map[Feature, List[(CondView, Int)]] = Map()
+    var nodeViewLowSensScore: Map[NodeView, Double] = Map()
+    var condViewLowSensScore: Map[CondView, Double] = Map()
+
+    val nodePrinter =
+      getPrintWriter(s"./node_count_${config.duration.getOrElse(0)}s.txt")
+    val condPrinter =
+      getPrintWriter(s"./cond_count_${config.duration.getOrElse(0)}s.txt")
+
+    for {
+      (nodeView, count) <- covPre.nodeViewCount;
+      (featureStack, _, _) <- nodeView.view
+    } yield {
+      if (featureStack.nonEmpty) {
+        val last = featureStack.last
+        futNodeViewCount += last -> ((nodeView, count) :: futNodeViewCount
+          .getOrElse(last, List()))
+      }
+    }
+    for {
+      (condView, count) <- covPre.condViewCount;
+      (featureStack, _, _) <- condView.view
+    } yield {
+      if (featureStack.nonEmpty) {
+        val last = featureStack.last
+        futCondViewCount += last -> ((condView, count) :: futCondViewCount
+          .getOrElse(last, List()))
+      }
+    }
+    futNodeViewCount.foreach {
+      case (_, countList) => {
+        var sortedCountList = countList.sortBy(_._2).reverse
+        val totalCount = countList.map(_._2).sum
+        var acc = 0
+        // TODO: parameterize 2
+        while (acc < totalCount * MAX_ATTENTION_RATIO) {
+          sortedCountList match {
+            case h :: t =>
+              sortedCountList = t
+              acc += h._2
+              nodeViewLowSensScore +=
+                h._1 -> (nodeViewLowSensScore.getOrElse(
+                  h._1,
+                  0.0,
+                ) + h._2 / totalCount)
+            case _ => acc = totalCount
+          }
+        }
+      }
+    }
+
+    futCondViewCount.foreach {
+      case (_, countList) => {
+        var sortedCountList = countList.sortBy(_._2).reverse
+        val totalCount = countList.map(_._2).sum
+        var acc = 0
+        while (acc < totalCount * MAX_ATTENTION_RATIO) {
+          sortedCountList match {
+            case h :: t =>
+              sortedCountList = t
+              acc += h._2
+              condViewLowSensScore +=
+                h._1 -> (condViewLowSensScore.getOrElse(
+                  h._1,
+                  0.0,
+                ) + h._2 / totalCount)
+            case _ => acc = totalCount
+          }
+        }
+      }
+    }
+
+    nodeViewLowSensScore.toList.sortBy(_._2).foreach {
+      case (nodeView, score) => {
+        nodePrinter.print(f"$nodeView%200s")
+        nodePrinter.println(f"  $score%04f")
+      }
+    }
+    condViewLowSensScore.toList.sortBy(_._2).foreach {
+      case (condView, score) =>
+        condPrinter.print(f"$condView%200s")
+        condPrinter.println(f"  $score%04f")
+    }
+    nodePrinter.close()
+    condPrinter.close()
+    // pre-fuzzing end //////////////////////////////////////////////
+
+    covPre
   }
 
   def defaultConfig: Config = Config()
@@ -95,14 +187,14 @@ case object SKFuzz extends Phase[CFG, Coverage] {
   )
 
   case class Config(
-                     var out: Option[String] = None,
-                     var logInterval: Option[Int] = Some(600),
-                     var debug: Int = 0,
-                     var timeLimit: Option[Int] = Some(1),
-                     var trial: Option[Int] = None,
-                     var duration: Option[Int] = None,
-                     var seed: Option[Int] = None,
-                     var kFs: Int = 0,
-                     var cp: Boolean = false,
-                   )
+    var out: Option[String] = None,
+    var logInterval: Option[Int] = Some(600),
+    var debug: Int = 0,
+    var timeLimit: Option[Int] = Some(1),
+    var trial: Option[Int] = None,
+    var duration: Option[Int] = None,
+    var seed: Option[Int] = None,
+    var kFs: Int = 0,
+    var cp: Boolean = false,
+  )
 }

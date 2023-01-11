@@ -23,7 +23,7 @@ def <BUILTIN>:INTRINSICS.Function.prototype.toString(
   //    |NativeFunctionAccessor?| |PropertyName| must be the value of
   //    _func_.[[InitialName]].
   if (? func: "BuiltinFunctionObject") {
-    return (concat "function " func.InitialName "() { [native code] }")
+    return (yet "Function.prototype.toString")
   } else {}
 
   // 1. If Type(_func_) is Object and IsCallable(_func_) is *true*, return an

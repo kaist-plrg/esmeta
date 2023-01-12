@@ -1,4 +1,5 @@
  // UNDEFINED [ { [ Symbol . toPrimitive ] : ID? => THROW } ] ;
+ // NULL [ { [ Symbol . toPrimitive ] : ID? => THROW } ] ;
  ///
 '' ?. x [ { [ Symbol . toPrimitive ] : x => await } ] . x ( ) ; 
 + function ( ) { } ( ) [ { [ Symbol . toPrimitive ] : x => await } ?? new 0 ] ; 

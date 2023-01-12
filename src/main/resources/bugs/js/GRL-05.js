@@ -1,3 +1,6 @@
+ // ... delete THROW ...
+ /// but in what context?
+ ///
 '' [ ( delete { x } ) ] ;
 ; ( delete { x } ) ; 
 [ 0 , ( 0 % delete - x ) >= { } ] ;

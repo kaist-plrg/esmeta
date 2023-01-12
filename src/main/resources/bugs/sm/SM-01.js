@@ -1,3 +1,6 @@
+ //  async function ID? ( DESTRUCTURING_PATTERN ) { BODY } ( ARG ) ;
+ //  async function ID1 ( DESTRUCTURING_PATTERN ) { BODY } ID1( ARG ) ;
+ ///
 ! async function ( [ ] ) { } ( ) ; 
 ! async function ( [ ] , ... x ) { } ( ) ; 
 ! async function ( [ x ] ) { } ( ) ; 

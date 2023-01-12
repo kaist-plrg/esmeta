@@ -1,3 +1,7 @@
+ // class ID1 { static ID = ... ID1 &&= ANY ... ; }
+ // class ID1 { static { ... ID1 &&= ANY ...  } }
+ // new class ID1 { ID = ... ID1 &&= 0 ... ; } ;
+ ///
 class x { static #x = x &&= 0 ; }
 class x { static #x = x &&= super . x ; }
 class x { static #x = x &&= x ; }

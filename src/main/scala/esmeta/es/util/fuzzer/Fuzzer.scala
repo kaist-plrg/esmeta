@@ -53,6 +53,8 @@ object Fuzzer {
   val ALL = 2
   val PARTIAL = 1
   val NO_DEBUG = 0
+
+  var initCovCacheOpt: Option[Coverage] = None
 }
 
 /** extensible helper of ECMAScript program fuzzer with ECMA-262 */
@@ -74,7 +76,7 @@ class Fuzzer(
 
   /** generated ECMAScript programs */
   lazy val result: Coverage =
-    logInterval.map(_ => {
+    logInterval.foreach(_ => {
       // start logging
       mkdir(logDir, remove = true)
       createSymlink(symlink, logDir, overwrite = true)
@@ -247,7 +249,7 @@ class Fuzzer(
   val scriptParser = cfg.scriptParser
 
   /** coverage */
-  val cov: Coverage = Coverage(timeLimit, kFs, cp, nodeViewKMap, condViewKMap)
+  var cov: Coverage = Coverage(timeLimit, kFs, cp, nodeViewKMap, condViewKMap)
 
   /** target selector */
   val selector: TargetSelector = WeightedSelector(

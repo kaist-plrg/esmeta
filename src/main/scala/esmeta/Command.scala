@@ -203,6 +203,15 @@ case object CmdFuzz extends Command("fuzz", CmdBuildCFG >> Fuzz) {
     println(cov)
 }
 
+/** `pre-fuzz` command */
+case object CmdPreFuzz extends Command("pre-fuzz", CmdBuildCFG >> PreFuzz) {
+  val help = "pre-fuzz ECMAScript programs for fuzzing."
+  val examples: List[String] = List(
+    "esmeta pre-fuzz                 # generate ECMAScript programs for fuzzing",
+    "esmeta pre-fuzz -fuzz:out=out   # dump the generated program to `out`",
+  )
+}
+
 /** `gen-test` command */
 case object CmdGenTest extends Command("gen-test", CmdBase >> GenTest) {
   val help =

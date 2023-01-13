@@ -23,8 +23,8 @@ class Coverage(
   timeLimit: Option[Int] = None,
   kFs: Int = 0,
   cp: Boolean = false,
-  nodeViewKMap: Map[Node, Int] = Map[Node, Int]().withDefaultValue(0),
-  condViewKMap: Map[Cond, Int] = Map[Cond, Int]().withDefaultValue(0),
+  nodeViewKMap: Map[Feature, Int] = Map[Feature, Int]().withDefaultValue(0),
+  condViewKMap: Map[Feature, Int] = Map[Feature, Int]().withDefaultValue(0),
 ) {
 
   import Coverage.{*, given}
@@ -398,8 +398,8 @@ object Coverage {
     timeLimit: Option[Int],
     kFs: Int,
     cp: Boolean,
-    nodeViewKMap: Map[Node, Int] = Map[Node, Int]().withDefaultValue(0),
-    condViewKMap: Map[Cond, Int] = Map[Cond, Int]().withDefaultValue(0),
+    nodeViewKMap: Map[Feature, Int] = Map[Feature, Int]().withDefaultValue(0),
+    condViewKMap: Map[Feature, Int] = Map[Feature, Int]().withDefaultValue(0),
   ) extends Interpreter(
       initSt,
       timeLimit = timeLimit,
@@ -436,12 +436,12 @@ object Coverage {
 
     // get syntax-sensitive views
     private def getView(node: Node | Cond): View =
+      val stackHeadOpt = st.context.featureStack.headOption
       val stack = st.context.featureStack.take(
-        kFs
-        + (node match {
-          case n: Node => nodeViewKMap(n)
-          case c: Cond => condViewKMap(c)
-        }),
+        kFs + (node match {
+          case _: Node => stackHeadOpt.map(nodeViewKMap(_))
+          case _: Cond => stackHeadOpt.map(condViewKMap(_))
+        }).getOrElse(0),
       )
 
       val path = if cp then Some(st.context.callPath) else None

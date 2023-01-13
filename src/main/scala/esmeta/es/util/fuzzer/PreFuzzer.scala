@@ -10,20 +10,22 @@ import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
 
-class PreFuzzer {
+object PreFuzzer {
   val ALL = 2
   val PARTIAL = 1
   val NO_DEBUG = 0
   private val MAX_ATTENTION_RATIO = 0.5
   private val LOW_SENS_CUT_RATIO = 1
-  var futNodeViewCount: Map[Feature, List[(NodeView, Int)]] = Map()
-  var futCondViewCount: Map[Feature, List[(CondView, Int)]] = Map()
-  var nodeViewLowSensScore: Map[NodeView, Double] = Map()
-  var condViewLowSensScore: Map[CondView, Double] = Map()
-  var nodeViewKMap: Map[Node, Int] = Map[Node, Int]().withDefaultValue(1)
-  var condViewKMap: Map[Cond, Int] = Map[Cond, Int]().withDefaultValue(1)
+  private var futNodeViewCount: Map[Feature, List[(NodeView, Int)]] = Map()
+  private var futCondViewCount: Map[Feature, List[(CondView, Int)]] = Map()
+  private var nodeViewLowSensScore: Map[NodeView, Double] = Map()
+  private var condViewLowSensScore: Map[CondView, Double] = Map()
+  private var nodeKMap: Map[Feature, Int] =
+    Map[Feature, Int]().withDefaultValue(2)
+  private var condKMap: Map[Feature, Int] =
+    Map[Feature, Int]().withDefaultValue(2)
 
-  def apply(
+  def preFuzz(
     logInterval: Option[Int] = Some(600), // default is 10 minutes.
     debug: Int = NO_DEBUG, // 2: all, 1: partial, 0: no
     stdOut: Boolean = false,
@@ -33,11 +35,12 @@ class PreFuzzer {
     kFs: Int = 0, // feature sensitivity bias
     cp: Boolean = false,
     preFuzzIter: Int = 1,
-  ): (Map[Node, Int], Map[Cond, Int]) = {
+  ): (Map[Feature, Int], Map[Feature, Int]) = {
     // TODO: edge selection
 
     1 to preFuzzIter foreach { iter =>
-      val (prevSens, currSens, nextSens) = (iter - 1, iter, iter + 1)
+      println(s"iteration: $iter")
+      val (prevSens, currSens, nextSens) = (iter, iter + 1, iter + 2)
       val covPre = Fuzzer(
         logInterval = logInterval,
         debug = debug,
@@ -46,8 +49,8 @@ class PreFuzzer {
         duration = duration,
         kFs = kFs,
         cp = cp,
-        nodeViewKMap = nodeViewKMap,
-        condViewKMap = condViewKMap,
+        nodeViewKMap = nodeKMap,
+        condViewKMap = condKMap,
       )
 
       // initialize count and score
@@ -57,10 +60,22 @@ class PreFuzzer {
       condViewLowSensScore = Map()
 
       // count the edges
+      println("######## nodeViewCount")
+      covPre.nodeViewCount.take(10).foreach {
+        case (nodeView, count) =>
+          print(f"$nodeView%200s")
+          println(f"  $count%02d")
+      }
       countFutNodeView(covPre.nodeViewCount.toList, currSens)
       countFutNodeView(covPre.condViewCount.toList, currSens)
 
       // score low sensitivity score
+      println("######### funtNodeViewCount")
+      futNodeViewCount.take(10).foreach {
+        case (feature, list) =>
+          print(f"$feature%200s")
+          println(f"  ${list.size}")
+      }
       scoreLowSens(futNodeViewCount)
       scoreLowSens(futCondViewCount)
 
@@ -74,28 +89,51 @@ class PreFuzzer {
       nodeViewLowSensScore
         .filter(_._2 > nodeViewScoreAvg * LOW_SENS_CUT_RATIO)
         .keys
-        .foreach(nodeView => nodeViewKMap += nodeView.node -> prevSens)
+        .foreach(nodeView =>
+          nodeView.view.map {
+            case (_, feature, _) =>
+              nodeKMap += feature -> prevSens
+          },
+        )
       nodeViewLowSensScore
         .filter(_._2 <= nodeViewScoreAvg * LOW_SENS_CUT_RATIO)
         .keys
-        .foreach(nodeView => nodeViewKMap += nodeView.node -> nextSens)
+        .foreach(nodeView =>
+          nodeView.view.map {
+            case (_, feature, _) =>
+              nodeKMap += feature -> nextSens
+          },
+        )
       condViewLowSensScore
         .filter(_._2 > condViewScoreAvg * LOW_SENS_CUT_RATIO)
         .keys
-        .foreach(condView => condViewKMap += condView.cond -> prevSens)
+        .foreach(condView =>
+          condView.view.map {
+            case (_, feature, _) =>
+              condKMap += feature -> prevSens
+          },
+        )
       condViewLowSensScore
         .filter(_._2 <= condViewScoreAvg * LOW_SENS_CUT_RATIO)
         .keys
-        .foreach(condView => condViewKMap += condView.cond -> nextSens)
+        .foreach(condView =>
+          condView.view.map {
+            case (_, feature, _) =>
+              condKMap += feature -> nextSens
+          },
+        )
     }
     // return the pre-fuzzing result
-    (nodeViewKMap, condViewKMap)
+    (nodeKMap, condKMap)
   }
 
   private def countFutNodeView(
     viewCount: List[(NodeOrCondView, Int)],
     currSens: Int,
   ): Unit = {
+    println(s"viewCount size: ${viewCount.size}")
+    println(s"currSens: ${currSens}")
+    println(s"firstView: ${viewCount.head._1.getView}")
     for {
       (view, count) <- viewCount;
       (featureStack, _, _) <- view.getView
@@ -143,7 +181,9 @@ class PreFuzzer {
     }
 
   private def getSens(view: NodeOrCondView): Int = view match {
-    case nodeView: NodeView => nodeViewKMap(nodeView.node)
-    case condView: CondView => condViewKMap(condView.cond)
+    case nodeView: NodeView =>
+      nodeView.view.map { case (_, f, _) => nodeKMap(f) }.getOrElse(0)
+    case condView: CondView =>
+      condView.view.map { case (_, f, _) => condKMap(f) }.getOrElse(0)
   }
 }

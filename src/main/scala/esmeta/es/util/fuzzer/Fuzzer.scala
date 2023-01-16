@@ -33,8 +33,8 @@ object Fuzzer {
     kFs: Int = 0,
     cp: Boolean = false,
     init: Option[String] = None,
-    nodeViewKMap: Map[Node, Int] = Map[Node, Int]().withDefaultValue(0),
-    condViewKMap: Map[Cond, Int] = Map[Cond, Int]().withDefaultValue(0),
+    nodeViewKMap: Map[String, Int] = Map[String, Int]().withDefaultValue(0),
+    condViewKMap: Map[String, Int] = Map[String, Int]().withDefaultValue(0),
   ): Coverage = new Fuzzer(
     logInterval,
     debug,
@@ -68,8 +68,8 @@ class Fuzzer(
   kFs: Int = 0, // feature sensitivity bias
   cp: Boolean = false,
   init: Option[String] = None,
-  nodeViewKMap: Map[Node, Int] = Map[Node, Int]().withDefaultValue(0),
-  condViewKMap: Map[Cond, Int] = Map[Cond, Int]().withDefaultValue(0),
+  nodeViewKMap: Map[String, Int] = Map[String, Int]().withDefaultValue(0),
+  condViewKMap: Map[String, Int] = Map[String, Int]().withDefaultValue(0),
 ) {
 
   import Fuzzer.*

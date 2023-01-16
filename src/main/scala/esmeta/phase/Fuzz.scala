@@ -12,6 +12,7 @@ import esmeta.util.SystemUtils.*
 case object Fuzz extends Phase[CFG, Coverage] {
   val name = "fuzz"
   val help = "generate ECMAScript programs for fuzzing."
+
   def apply(
     cfg: CFG,
     cmdConfig: CommandConfig,
@@ -19,6 +20,34 @@ case object Fuzz extends Phase[CFG, Coverage] {
   ): Coverage = withCFG(cfg) {
     // optionally set the seed for the random number generator
     config.seed.foreach(setSeed)
+
+    val nodeKMapOpt = if (config.preFuzzIter != 0) {
+      try {
+        Some(
+          readJson[List[(String, Int)]](
+            s"./k_selection/node_sens_${config.preFuzzIter}_iter.json",
+          ).toMap,
+        )
+      } catch {
+        case e: Throwable =>
+          println(e.getMessage)
+          None
+      }
+    } else None
+
+    val condKMapOpt = if (config.preFuzzIter != 0) {
+      try {
+        Some(
+          readJson[List[(String, Int)]](
+            s"./k_selection/cond_sens_${config.preFuzzIter}_iter.json",
+          ).toMap,
+        )
+      } catch {
+        case e: Throwable =>
+          println(e.getMessage)
+          None
+      }
+    } else None
 
     val cov = Fuzzer(
       logInterval = config.logInterval,
@@ -29,6 +58,8 @@ case object Fuzz extends Phase[CFG, Coverage] {
       kFs = config.kFs,
       cp = config.cp,
       init = config.init,
+      nodeViewKMap = nodeKMapOpt.getOrElse(Map().withDefaultValue(0)),
+      condViewKMap = condKMapOpt.getOrElse(Map().withDefaultValue(0)),
     )
 
     // optionally dump the generated ECMAScript programs
@@ -38,6 +69,7 @@ case object Fuzz extends Phase[CFG, Coverage] {
   }
 
   def defaultConfig: Config = Config()
+
   val options: List[PhaseOption[Config]] = List(
     (
       "out",
@@ -55,7 +87,7 @@ case object Fuzz extends Phase[CFG, Coverage] {
         if (k < 0 || k > 2) error("invalid debug level: please set 0 to 2")
         else c.debug = k,
       ),
-      "turn on deug mode with level (0: no-debug, 1: partial, 2: all)",
+      "turn on debug mode with level (0: no-debug, 1: partial, 2: all)",
     ),
     (
       "timeout",
@@ -92,7 +124,13 @@ case object Fuzz extends Phase[CFG, Coverage] {
       StrOption((c, s) => c.init = Some(s)),
       "explicitly use the given init pool",
     ),
+    (
+      "pre-fuzz-iter",
+      NumOption((c, k) => c.preFuzzIter = k),
+      "use pre-fuzzing data to select sensitivity (default: 0).",
+    ),
   )
+
   case class Config(
     var out: Option[String] = None,
     var logInterval: Option[Int] = Some(600),
@@ -104,5 +142,6 @@ case object Fuzz extends Phase[CFG, Coverage] {
     var kFs: Int = 0,
     var cp: Boolean = false,
     var init: Option[String] = None,
+    var preFuzzIter: Int = 0,
   )
 }

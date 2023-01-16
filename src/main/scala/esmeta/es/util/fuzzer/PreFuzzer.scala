@@ -20,10 +20,10 @@ object PreFuzzer {
   private var futCondViewCount: Map[Feature, List[(CondView, Int)]] = Map()
   private var nodeViewLowSensScore: Map[NodeView, Double] = Map()
   private var condViewLowSensScore: Map[CondView, Double] = Map()
-  private var nodeKMap: Map[Feature, Int] =
-    Map[Feature, Int]().withDefaultValue(2)
-  private var condKMap: Map[Feature, Int] =
-    Map[Feature, Int]().withDefaultValue(2)
+  private var nodeKMap: Map[String, Int] =
+    Map[String, Int]().withDefaultValue(2)
+  private var condKMap: Map[String, Int] =
+    Map[String, Int]().withDefaultValue(2)
 
   def preFuzz(
     logInterval: Option[Int] = Some(600), // default is 10 minutes.
@@ -35,7 +35,7 @@ object PreFuzzer {
     kFs: Int = 0, // feature sensitivity bias
     cp: Boolean = false,
     preFuzzIter: Int = 1,
-  ): (Map[Feature, Int], Map[Feature, Int]) = {
+  ): (Map[String, Int], Map[String, Int]) = {
     // TODO: edge selection
 
     1 to preFuzzIter foreach { iter =>
@@ -92,7 +92,7 @@ object PreFuzzer {
         .foreach(nodeView =>
           nodeView.view.map {
             case (_, feature, _) =>
-              nodeKMap += feature -> prevSens
+              nodeKMap += feature.head.fname -> prevSens
           },
         )
       nodeViewLowSensScore
@@ -101,7 +101,7 @@ object PreFuzzer {
         .foreach(nodeView =>
           nodeView.view.map {
             case (_, feature, _) =>
-              nodeKMap += feature -> nextSens
+              nodeKMap += feature.head.fname -> nextSens
           },
         )
       condViewLowSensScore
@@ -110,7 +110,7 @@ object PreFuzzer {
         .foreach(condView =>
           condView.view.map {
             case (_, feature, _) =>
-              condKMap += feature -> prevSens
+              condKMap += feature.head.fname -> prevSens
           },
         )
       condViewLowSensScore
@@ -119,7 +119,7 @@ object PreFuzzer {
         .foreach(condView =>
           condView.view.map {
             case (_, feature, _) =>
-              condKMap += feature -> nextSens
+              condKMap += feature.head.fname -> nextSens
           },
         )
     }
@@ -131,9 +131,6 @@ object PreFuzzer {
     viewCount: List[(NodeOrCondView, Int)],
     currSens: Int,
   ): Unit = {
-    println(s"viewCount size: ${viewCount.size}")
-    println(s"currSens: ${currSens}")
-    println(s"firstView: ${viewCount.head._1.getView}")
     for {
       (view, count) <- viewCount;
       (featureStack, _, _) <- view.getView
@@ -182,8 +179,12 @@ object PreFuzzer {
 
   private def getSens(view: NodeOrCondView): Int = view match {
     case nodeView: NodeView =>
-      nodeView.view.map { case (_, f, _) => nodeKMap(f) }.getOrElse(0)
+      nodeView.view
+        .map { case (_, f, _) => nodeKMap(f.head.fname) }
+        .getOrElse(0)
     case condView: CondView =>
-      condView.view.map { case (_, f, _) => condKMap(f) }.getOrElse(0)
+      condView.view
+        .map { case (_, f, _) => condKMap(f.head.fname) }
+        .getOrElse(0)
   }
 }

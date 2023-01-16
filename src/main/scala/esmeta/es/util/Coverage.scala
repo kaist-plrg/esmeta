@@ -23,8 +23,8 @@ class Coverage(
   timeLimit: Option[Int] = None,
   kFs: Int = 0,
   cp: Boolean = false,
-  nodeViewKMap: Map[Feature, Int] = Map[Feature, Int]().withDefaultValue(0),
-  condViewKMap: Map[Feature, Int] = Map[Feature, Int]().withDefaultValue(0),
+  nodeViewKMap: Map[String, Int] = Map[String, Int]().withDefaultValue(0),
+  condViewKMap: Map[String, Int] = Map[String, Int]().withDefaultValue(0),
 ) {
 
   import Coverage.{*, given}
@@ -398,8 +398,8 @@ object Coverage {
     timeLimit: Option[Int],
     kFs: Int,
     cp: Boolean,
-    nodeViewKMap: Map[Feature, Int] = Map[Feature, Int]().withDefaultValue(0),
-    condViewKMap: Map[Feature, Int] = Map[Feature, Int]().withDefaultValue(0),
+    nodeViewKMap: Map[String, Int] = Map[String, Int]().withDefaultValue(0),
+    condViewKMap: Map[String, Int] = Map[String, Int]().withDefaultValue(0),
   ) extends Interpreter(
       initSt,
       timeLimit = timeLimit,
@@ -439,8 +439,8 @@ object Coverage {
       val stackHeadOpt = st.context.featureStack.headOption
       val stack = st.context.featureStack.take(
         kFs + (node match {
-          case _: Node => stackHeadOpt.map(nodeViewKMap(_))
-          case _: Cond => stackHeadOpt.map(condViewKMap(_))
+          case _: Node => stackHeadOpt.map(f => nodeViewKMap(f.head.fname))
+          case _: Cond => stackHeadOpt.map(f => condViewKMap(f.head.fname))
         }).getOrElse(0),
       )
 

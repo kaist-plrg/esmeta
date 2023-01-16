@@ -591,7 +591,7 @@ object Coverage {
     for {
       minimal <- listFiles(s"$baseDir/minimal")
       name = minimal.getName
-      code = readFile(minimal.getPath).drop(USE_STRICT.length).strip
+      code = readFile(minimal.getPath).drop(USE_STRICT.length).trim()
       script = Script(code, name)
     } {
       minimalTouchNodeView(name).foreach(i =>

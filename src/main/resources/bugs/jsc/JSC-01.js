@@ -1,3 +1,6 @@
+ // class ID { ... get NUMBER ( ) { BODY? } ... } 
+ // class ID { ... set NUMBER ( ID ) { BODY? } ... } 
+ ///
 class x { ; * 0 ( ) { } get 0 ( ) { } } 
 class x { ; * 0 ( ) { } set 0 ( x ) { } } 
 class x { ; get 0 ( ) { } } 

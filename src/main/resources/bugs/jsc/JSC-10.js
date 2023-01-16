@@ -1,3 +1,5 @@
+ // let ID = async ID => { for await ( { ID } of [ ANY ] ) } ; ID ( ) ;
+ ///
 let x = async x => { for await ( { x , } of [ 0 ] ) ; } ; x ( ) ; 
 var x = async x => { ; for await ( { x = 0 , x } of [ 0 ] ) ; } ; x ( ) ; 
 var x = async x => { ; for await ( { x , } of [ 0n ] ) ; } ; x ( ) ; 

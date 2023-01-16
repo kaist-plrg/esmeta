@@ -1,3 +1,6 @@
+ // async function ID1 ( ... [ [ ] ] ) { }
+ // ID1 ( ) ; 
+ ///
 0 ^ async function ( ... [ [ ] ] ) { } ?. ( 0 , ) ; 
 0 ^ async function ( ... [ x , , [ ] ] ) { } ?. ( 0 , ) ; 
 async function x ( ... [ [ ] ] ) { } x ( 0 ) ; 

@@ -1,3 +1,6 @@
+ // class ID1 { static { ... var ID1 ... } } 
+ // class ID1 { static { ... function ID1(PARAM?){BODY?} ... } } 
+ ///
 class x { static { for ( var x in 0 ) for ( let x ; 0 ; 0 ) ; } } 
 class x { static { for ( var x of 0 ) ; } } 
 class x { static { function * x ( ) { } function x ( ) { } } }

@@ -1,3 +1,5 @@
+ // class ID? EXTEND? { aysnc (*?) [ <NUMBER / BOOL>] }
+ ///
 class x extends null { async * [ 0 ^ 0 | 0 in [ 0 ] | 0 ^ 0 ] ( ) { } ; } 
 class x extends null { async * [ 0 ^ 0 | this in [ 0 ] | 0 ^ 0 ] ( ) { } ; } 
 class x extends null { async * [ 0 ^ 0 | true in [ 0 ] | 0 ^ 0 ] ( ) { } ; } 

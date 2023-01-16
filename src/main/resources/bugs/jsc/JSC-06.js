@@ -1,3 +1,7 @@
+ //   FunctionExpression(NAME, PARAMS, BODY)
+ //  where PARAMS includes default param / destructuring / rest
+ // and one of them is NAME
+ ///
 ! async function * x ( ... x ) { } ;
 ! async function * x ( x , ... [ ] ) { } ;
 ! async function * x ( x , [ ] ) { } ;

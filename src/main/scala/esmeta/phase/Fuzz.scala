@@ -23,11 +23,12 @@ case object Fuzz extends Phase[CFG, Coverage] {
 
     val nodeKMapOpt = if (config.preFuzzIter != 0) {
       try {
-        Some(
+        val nodeKMap =
           readJson[List[(String, Int)]](
             s"./k_selection/node_sens_${config.preFuzzIter}_iter.json",
-          ).toMap,
-        )
+          ).toMap
+        println(s"read ${nodeKMap.size} node k-selections.")
+        Some(nodeKMap)
       } catch {
         case e: Throwable =>
           println(e.getMessage)
@@ -37,11 +38,11 @@ case object Fuzz extends Phase[CFG, Coverage] {
 
     val condKMapOpt = if (config.preFuzzIter != 0) {
       try {
-        Some(
-          readJson[List[(String, Int)]](
-            s"./k_selection/cond_sens_${config.preFuzzIter}_iter.json",
-          ).toMap,
-        )
+        val condKMap = readJson[List[(String, Int)]](
+          s"./k_selection/cond_sens_${config.preFuzzIter}_iter.json",
+        ).toMap
+        println(s"read ${condKMap.size} condition k-selections.")
+        Some(condKMap)
       } catch {
         case e: Throwable =>
           println(e.getMessage)

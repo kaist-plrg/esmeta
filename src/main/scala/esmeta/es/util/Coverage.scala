@@ -438,10 +438,13 @@ object Coverage {
     private def getView(node: Node | Cond): View =
       val stackHeadOpt = st.context.featureStack.headOption
       val stack = st.context.featureStack.take(
-        kFs + (node match {
-          case _: Node => stackHeadOpt.map(f => nodeViewKMap(f.head.fname))
-          case _: Cond => stackHeadOpt.map(f => condViewKMap(f.head.fname))
-        }).getOrElse(0),
+        Iterable(
+          kFs,
+          (node match {
+            case _: Node => stackHeadOpt.map(f => nodeViewKMap(f.head.fname))
+            case _: Cond => stackHeadOpt.map(f => condViewKMap(f.head.fname))
+          }).getOrElse(0),
+        ).max,
       )
 
       val path = if cp then Some(st.context.callPath) else None

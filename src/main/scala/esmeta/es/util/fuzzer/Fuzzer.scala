@@ -136,26 +136,30 @@ class Fuzzer(
         startInterval += seconds
       }
     }
-    val (selectorName, script, condView) = selector(pool, cov)
-    val selectorInfo = selectorName + condView.map(" - " + _).getOrElse("")
-    val code = script.code
-    debugging(f"[$selectorInfo%-30s] $code")
-    debugFlush
+    val currPool = pool
+    if (currPool.nonEmpty) {
+      val (selectorName, script, condView) = selector(currPool, cov)
+      val selectorInfo = selectorName + condView.map(" - " + _).getOrElse("")
+      val code = script.code
+      debugging(f"[$selectorInfo%-30s] $code")
+      debugFlush
+      val mutants = mutator(code, 100, condView.map((_, cov)))
+        .map((name, ast) => (name, ast.toString(grammar)))
+        .distinctBy(_._2)
+        .toArray
+        .par
+        .map(infoExtractor)
+        .toList
 
-    val mutants = mutator(code, 100, condView.map((_, cov)))
-      .map((name, ast) => (name, ast.toString(grammar)))
-      .distinctBy(_._2)
-      .toArray
-      .par
-      .map(infoExtractor)
-      .toList
+      for ((mutatorName, mutatedCode, info) <- mutants)
+        debugging(f"----- $mutatorName%-20s-----> $mutatedCode")
 
-    for ((mutatorName, mutatedCode, info) <- mutants)
-      debugging(f"----- $mutatorName%-20s-----> $mutatedCode")
-
-      val result = add(mutatedCode, info)
-      update(selectorName, selectorStat, result)
-      update(mutatorName, mutatorStat, result)
+        val result = add(mutatedCode, info)
+        update(selectorName, selectorStat, result)
+        update(mutatorName, mutatorStat, result)
+    } else {
+      println(s"pool is empty (iter: $iter)")
+    }
 
   /** Case class to hold the information about mutant */
   case class MutantInfo(

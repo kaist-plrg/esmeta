@@ -59,8 +59,8 @@ case object Fuzz extends Phase[CFG, Coverage] {
       kFs = config.kFs,
       cp = config.cp,
       init = config.init,
-      nodeViewKMap = nodeKMapOpt.getOrElse(Map().withDefaultValue(0)),
-      condViewKMap = condKMapOpt.getOrElse(Map().withDefaultValue(0)),
+      nodeViewKMap = nodeKMapOpt.getOrElse(Map()).withDefaultValue(0),
+      condViewKMap = condKMapOpt.getOrElse(Map()).withDefaultValue(0),
     )
 
     // optionally dump the generated ECMAScript programs

@@ -46,7 +46,8 @@ case object PreFuzz extends Phase[CFG, Unit] {
     dumpJson(
       name = "nodeKMap",
       data = nodeKMap.toList.sortBy(_._2),
-      filename = s"./k_selection/node_sens_${config.preFuzzIter}_iter.json",
+      filename =
+        s"./k_selection/node_sens_${config.duration}_dur_${config.preFuzzIter}_iter.json",
       space = true,
     )
     nodeKMap.toList.sortBy(_._2).foreach {
@@ -60,7 +61,8 @@ case object PreFuzz extends Phase[CFG, Unit] {
     dumpJson(
       name = "condKMap",
       data = condKMap.toList.sortBy(_._2),
-      filename = s"./k_selection/cond_sens_${config.preFuzzIter}_iter.json",
+      filename =
+        s"./k_selection/cond_sens_${config.duration}_dur_${config.preFuzzIter}_iter.json",
       space = true,
     )
     condKMap.toList.sortBy(_._2).foreach {
@@ -113,7 +115,7 @@ case object PreFuzz extends Phase[CFG, Unit] {
     (
       "duration",
       NumOption((c, k) => c.duration = Some(k)),
-      "set the maximum duration for fuzzing (default: INF)",
+      "set the maximum duration for fuzzing (default: 60)",
     ),
     (
       "seed",
@@ -143,7 +145,7 @@ case object PreFuzz extends Phase[CFG, Unit] {
     var debug: Int = 0,
     var timeLimit: Option[Int] = Some(1),
     var trial: Option[Int] = None,
-    var duration: Option[Int] = None,
+    var duration: Option[Int] = Some(60),
     var seed: Option[Int] = None,
     var kFs: Int = 0,
     var cp: Boolean = false,

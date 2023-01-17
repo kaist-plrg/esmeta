@@ -25,7 +25,7 @@ case object Fuzz extends Phase[CFG, Coverage] {
       try {
         val nodeKMap =
           readJson[List[(String, Int)]](
-            s"./k_selection/node_sens_${config.preFuzzIter}_iter.json",
+            s"./k_selection/node_sens_${config.preFuzzDuration}_dur_${config.preFuzzIter}_iter.json",
           ).toMap
         println(s"read ${nodeKMap.size} node k-selections.")
         Some(nodeKMap)
@@ -39,7 +39,7 @@ case object Fuzz extends Phase[CFG, Coverage] {
     val condKMapOpt = if (config.preFuzzIter != 0) {
       try {
         val condKMap = readJson[List[(String, Int)]](
-          s"./k_selection/cond_sens_${config.preFuzzIter}_iter.json",
+          s"./k_selection/cond_sens_${config.preFuzzDuration}_dur_${config.preFuzzIter}_iter.json",
         ).toMap
         println(s"read ${condKMap.size} condition k-selections.")
         Some(condKMap)
@@ -130,6 +130,11 @@ case object Fuzz extends Phase[CFG, Coverage] {
       NumOption((c, k) => c.preFuzzIter = k),
       "use pre-fuzzing data to select sensitivity (default: 0).",
     ),
+    (
+      "pre-fuzz-duration",
+      NumOption((c, k) => c.preFuzzDuration = k),
+      "use pre-fuzzing data to select sensitivity (default: 60).",
+    ),
   )
 
   case class Config(
@@ -144,5 +149,6 @@ case object Fuzz extends Phase[CFG, Coverage] {
     var cp: Boolean = false,
     var init: Option[String] = None,
     var preFuzzIter: Int = 0,
+    var preFuzzDuration: Int = 60,
   )
 }

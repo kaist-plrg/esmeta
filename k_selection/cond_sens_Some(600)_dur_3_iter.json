@@ -1,5 +1,9 @@
 [
   [
+    "CaseClause[0,0].VarScopedDeclarations",
+    1
+  ],
+  [
     "ClassElement[0,0].ClassElementKind",
     1
   ],
@@ -12,19 +16,19 @@
     1
   ],
   [
+    "CaseClause[0,1].VarDeclaredNames",
+    2
+  ],
+  [
+    "CaseClause[0,1].VarScopedDeclarations",
+    2
+  ],
+  [
     "LabelledItem[0,0].TopLevelVarDeclaredNames",
-    1
+    2
   ],
   [
     "LabelledItem[0,0].TopLevelVarScopedDeclarations",
-    1
-  ],
-  [
-    "FormalParameterList[0,0].ExpectedArgumentCount",
-    1
-  ],
-  [
-    "StatementListItem[0,0].LexicallyScopedDeclarations",
     2
   ],
   [
@@ -40,11 +44,15 @@
     3
   ],
   [
-    "INTRINSICS.Map.prototype.keys",
+    "INTRINSICS.Number.prototype.toString",
     3
   ],
   [
-    "ShiftExpression[1,0].Evaluation",
+    "SingleNameBinding[0,1].KeyedBindingInitialization",
+    3
+  ],
+  [
+    "INTRINSICS.Map.prototype.keys",
     3
   ],
   [
@@ -52,15 +60,7 @@
     3
   ],
   [
-    "BreakableStatement[1,0].Evaluation",
-    3
-  ],
-  [
     "INTRINSICS.String.prototype.substring",
-    3
-  ],
-  [
-    "IdentifierReference[2,0].Evaluation",
     3
   ],
   [
@@ -76,11 +76,15 @@
     3
   ],
   [
-    "MemberExpression[1,0].Evaluation",
+    "DefaultClause[0,1].VarDeclaredNames",
     3
   ],
   [
     "INTRINSICS.Array.prototype.keys",
+    3
+  ],
+  [
+    "DefaultClause[0,1].VarScopedDeclarations",
     3
   ],
   [
@@ -92,15 +96,11 @@
     3
   ],
   [
-    "INTRINSICS.Array.prototype.values",
-    3
-  ],
-  [
     "INTRINSICS.Array.prototype.flat",
     3
   ],
   [
-    "INTRINSICS.WeakMap.prototype.delete",
+    "ClassDeclaration[0,0].BindingClassDeclarationEvaluation",
     3
   ],
   [
@@ -112,7 +112,15 @@
     3
   ],
   [
-    "LexicalDeclaration[0,0].Evaluation",
+    "VariableDeclarationList[1,0].Evaluation",
+    3
+  ],
+  [
+    "ForStatement[0,2].ForLoopEvaluation",
+    3
+  ],
+  [
+    "INTRINSICS.WeakMap.prototype.delete",
     3
   ],
   [
@@ -144,15 +152,19 @@
     3
   ],
   [
+    "GeneratorBody[0,0].EvaluateGeneratorBody",
+    3
+  ],
+  [
+    "ClassElement[0,0].ClassElementEvaluation",
+    3
+  ],
+  [
     "INTRINSICS.String.prototype.indexOf",
     3
   ],
   [
     "INTRINSICS.Object.prototype.__lookupSetter__",
-    3
-  ],
-  [
-    "BreakableStatement[0,0].Evaluation",
     3
   ],
   [
@@ -164,11 +176,11 @@
     3
   ],
   [
-    "INTRINSICS.String.prototype.at",
+    "MethodDefinition[0,0].MethodDefinitionEvaluation",
     3
   ],
   [
-    "CaseBlock[1,0].LexicallyScopedDeclarations",
+    "INTRINSICS.String.prototype.at",
     3
   ],
   [
@@ -184,15 +196,27 @@
     3
   ],
   [
+    "INTRINSICS.yet:PromiseResolveFunction",
+    3
+  ],
+  [
+    "BindingPattern[0,0].BindingInitialization",
+    3
+  ],
+  [
+    "ClassTail[0,2].ClassDefinitionEvaluation",
+    3
+  ],
+  [
     "INTRINSICS.String.prototype.toString",
     3
   ],
   [
-    "INTRINSICS.ForInIteratorPrototype.next",
+    "INTRINSICS.Array.prototype.shift",
     3
   ],
   [
-    "INTRINSICS.Array.prototype.shift",
+    "INTRINSICS.Object.isSealed",
     3
   ],
   [
@@ -232,10 +256,6 @@
     3
   ],
   [
-    "BindingRestElement[1,0].IteratorBindingInitialization",
-    3
-  ],
-  [
     "INTRINSICS.Set.prototype.values",
     3
   ],
@@ -252,7 +272,7 @@
     3
   ],
   [
-    "PrimaryExpression[0,0].Evaluation",
+    "CaseClause[0,1].LexicallyScopedDeclarations",
     3
   ],
   [
@@ -260,31 +280,11 @@
     3
   ],
   [
-    "ConditionalExpression[1,0].Evaluation",
-    3
-  ],
-  [
     "INTRINSICS.BigInt",
     3
   ],
   [
-    "LexicalBinding[0,1].Evaluation",
-    3
-  ],
-  [
-    "INTRINSICS.String.prototype[@@iterator]",
-    3
-  ],
-  [
     "INTRINSICS.Array.prototype.copyWithin",
-    3
-  ],
-  [
-    "UnaryExpression[2,0].Evaluation",
-    3
-  ],
-  [
-    "ForInOfStatement[1,0].ForInOfLoopEvaluation",
     3
   ],
   [
@@ -293,10 +293,6 @@
   ],
   [
     "INTRINSICS.Object.prototype.__defineGetter__",
-    3
-  ],
-  [
-    "IfStatement[1,0].Evaluation",
     3
   ],
   [
@@ -316,7 +312,7 @@
     3
   ],
   [
-    "INTRINSICS.Object.defineProperty",
+    "BindingElement[1,0].IteratorBindingInitialization",
     3
   ],
   [
@@ -332,10 +328,6 @@
     3
   ],
   [
-    "DoWhileStatement[0,0].DoWhileLoopEvaluation",
-    3
-  ],
-  [
     "INTRINSICS.WeakSet.prototype.has",
     3
   ],
@@ -344,11 +336,11 @@
     3
   ],
   [
-    "INTRINSICS.Array.prototype.every",
+    "INTRINSICS.Object.defineProperty",
     3
   ],
   [
-    "EqualityExpression[3,0].Evaluation",
+    "INTRINSICS.Array.prototype.every",
     3
   ],
   [
@@ -361,10 +353,6 @@
   ],
   [
     "INTRINSICS.Function.prototype.toString",
-    3
-  ],
-  [
-    "INTRINSICS.Function.prototype[@@hasInstance]",
     3
   ],
   [
@@ -392,7 +380,7 @@
     3
   ],
   [
-    "ThrowStatement[0,0].Evaluation",
+    "IterationStatement[3,0].LoopEvaluation",
     3
   ],
   [
@@ -416,19 +404,11 @@
     3
   ],
   [
-    "PropertySetParameterList[0,0].ExpectedArgumentCount",
-    3
-  ],
-  [
     "CallExpression[5,0].Evaluation",
     3
   ],
   [
     "INTRINSICS.Array.prototype.filter",
-    3
-  ],
-  [
-    "IterationStatement[2,0].LoopEvaluation",
     3
   ],
   [
@@ -440,31 +420,11 @@
     3
   ],
   [
-    "INTRINSICS.Object.hasOwn",
-    3
-  ],
-  [
-    "ForInOfStatement[3,0].ForInOfLoopEvaluation",
-    3
-  ],
-  [
     "INTRINSICS.Object.freeze",
     3
   ],
   [
     "INTRINSICS.Function.prototype.bind",
-    3
-  ],
-  [
-    "IfStatement[0,0].Evaluation",
-    3
-  ],
-  [
-    "TryStatement[1,0].Evaluation",
-    3
-  ],
-  [
-    "GeneratorExpression[0,1].InstantiateGeneratorFunctionExpression",
     3
   ],
   [
@@ -492,15 +452,7 @@
     3
   ],
   [
-    "ClassDeclaration[0,0].Evaluation",
-    3
-  ],
-  [
     "INTRINSICS.Map.prototype.clear",
-    3
-  ],
-  [
-    "ForInOfStatement[5,0].ForInOfLoopEvaluation",
     3
   ],
   [
@@ -508,15 +460,7 @@
     3
   ],
   [
-    "ClassElementList[0,0].NonConstructorElements",
-    3
-  ],
-  [
     "INTRINSICS.BigInt.prototype.valueOf",
-    3
-  ],
-  [
-    "ForStatement[1,2].ForLoopEvaluation",
     3
   ],
   [
@@ -524,7 +468,11 @@
     3
   ],
   [
-    "INTRINSICS.Array.prototype.slice",
+    "BindingProperty[0,0].PropertyBindingInitialization",
+    3
+  ],
+  [
+    "AssignmentExpression[4,0].Evaluation",
     3
   ],
   [
@@ -532,7 +480,11 @@
     3
   ],
   [
-    "BreakableStatement[1,0].LabelledEvaluation",
+    "INTRINSICS.Array.prototype.slice",
+    3
+  ],
+  [
+    "DefaultClause[0,1].LexicallyScopedDeclarations",
     3
   ],
   [
@@ -541,10 +493,6 @@
   ],
   [
     "INTRINSICS.Array.prototype.reduceRight",
-    3
-  ],
-  [
-    "AsyncFunctionExpression[0,0].InstantiateAsyncFunctionExpression",
     3
   ],
   [
@@ -560,19 +508,11 @@
     3
   ],
   [
-    "ElementList[2,0].ArrayAccumulation",
-    3
-  ],
-  [
     "INTRINSICS.Array.prototype.concat",
     3
   ],
   [
     "INTRINSICS.Set.prototype.entries",
-    3
-  ],
-  [
-    "UnaryExpression[3,0].Evaluation",
     3
   ],
   [
@@ -592,10 +532,6 @@
     3
   ],
   [
-    "INTRINSICS.Symbol",
-    3
-  ],
-  [
     "INTRINSICS.Map.prototype.entries",
     3
   ],
@@ -604,7 +540,19 @@
     3
   ],
   [
+    "INTRINSICS.Object.defineProperties",
+    3
+  ],
+  [
     "INTRINSICS.Number.prototype.valueOf",
+    3
+  ],
+  [
+    "AsyncFunctionBody[0,0].EvaluateAsyncFunctionBody",
+    3
+  ],
+  [
+    "INTRINSICS.Symbol",
     3
   ],
   [
@@ -617,14 +565,6 @@
   ],
   [
     "INTRINSICS.Promise.any",
-    3
-  ],
-  [
-    "LabelledStatement[0,0].Evaluation",
-    3
-  ],
-  [
-    "VariableDeclaration[1,0].Evaluation",
     3
   ],
   [
@@ -656,99 +596,107 @@
     3
   ],
   [
-    "CaseBlock[1,0].CaseBlockEvaluation",
-    3
-  ],
-  [
-    "INTRINSICS.Number.prototype.toString",
+    "DefaultClause[0,0].LexicallyScopedDeclarations",
     4
   ],
   [
-    "VariableDeclarationList[1,0].Evaluation",
+    "CaseBlock[1,2].LexicallyScopedDeclarations",
     4
   ],
   [
-    "INTRINSICS.Object.prototype.toString",
+    "LexicalDeclaration[0,0].Evaluation",
     4
   ],
   [
-    "AsyncFunctionExpression[0,1].InstantiateAsyncFunctionExpression",
+    "CaseBlock[1,2].CaseBlockEvaluation",
     4
   ],
   [
-    "BindingProperty[1,0].PropertyBindingInitialization",
+    "BreakableStatement[0,0].Evaluation",
     4
   ],
   [
-    "ObjectBindingPattern[1,0].BindingInitialization",
+    "CaseClause[0,0].LexicallyScopedDeclarations",
     4
   ],
   [
-    "ClassElementList[0,0].ConstructorMethod",
+    "BindingRestElement[1,0].IteratorBindingInitialization",
     4
   ],
   [
-    "INTRINSICS.Array.prototype.toString",
+    "CaseBlock[1,3].LexicallyScopedDeclarations",
     4
   ],
   [
-    "LogicalORExpression[1,0].Evaluation",
+    "INTRINSICS.Function.prototype[@@hasInstance]",
     4
   ],
   [
-    "INTRINSICS.GeneratorFunction.prototype.prototype.next",
+    "ThrowStatement[0,0].Evaluation",
     4
   ],
   [
-    "PropertyDefinition[3,0].PropertyDefinitionEvaluation",
+    "ObjectBindingPattern[2,0].BindingInitialization",
     4
   ],
   [
-    "SingleNameBinding[0,0].IteratorBindingInitialization",
+    "RelationalExpression[2,0].Evaluation",
     4
   ],
   [
-    "FunctionBody[0,0].EvaluateFunctionBody",
+    "LexicalBinding[0,0].Evaluation",
     4
   ],
   [
-    "RelationalExpression[3,0].Evaluation",
+    "GeneratorExpression[0,1].InstantiateGeneratorFunctionExpression",
     4
   ],
   [
-    "ForInOfStatement[4,0].ForInOfLoopEvaluation",
+    "CaseBlock[1,3].CaseBlockEvaluation",
     4
   ],
   [
-    "Expression[1,0].Evaluation",
+    "ClassElementList[1,0].NonConstructorElements",
     4
   ],
   [
-    "FunctionExpression[0,1].InstantiateOrdinaryFunctionExpression",
+    "CaseBlock[1,2].VarDeclaredNames",
     4
   ],
   [
-    "GeneratorExpression[0,0].InstantiateGeneratorFunctionExpression",
+    "LexicalBinding[1,0].Evaluation",
     4
   ],
   [
-    "TemplateSpans[1,0].Evaluation",
+    "CaseBlock[1,2].VarScopedDeclarations",
     4
   ],
   [
-    "LogicalANDExpression[1,0].Evaluation",
-    4
-  ],
-  [
-    "EqualityExpression[4,0].Evaluation",
-    4
-  ],
-  [
-    "SingleNameBinding[0,1].KeyedBindingInitialization",
+    "FunctionDeclaration[0,0].InstantiateOrdinaryFunctionObject",
     5
   ],
   [
-    "DefaultClause[0,0].LexicallyScopedDeclarations",
+    "ShiftExpression[1,0].Evaluation",
+    5
+  ],
+  [
+    "ArrayLiteral[0,0].Evaluation",
+    5
+  ],
+  [
+    "ArrayLiteral[1,0].Evaluation",
+    5
+  ],
+  [
+    "FunctionExpression[0,0].InstantiateOrdinaryFunctionExpression",
+    5
+  ],
+  [
+    "IdentifierReference[2,0].Evaluation",
+    5
+  ],
+  [
+    "INTRINSICS.Array.prototype.join",
     5
   ],
   [
@@ -756,7 +704,35 @@
     5
   ],
   [
-    "CaseClause[0,0].VarScopedDeclarations",
+    "MemberExpression[1,0].Evaluation",
+    5
+  ],
+  [
+    "ExponentiationExpression[1,0].Evaluation",
+    5
+  ],
+  [
+    "INTRINSICS.Object.prototype.valueOf",
+    5
+  ],
+  [
+    "INTRINSICS.Array.prototype.values",
+    5
+  ],
+  [
+    "LiteralPropertyName[2,0].Evaluation",
+    5
+  ],
+  [
+    "ObjectLiteral[2,0].Evaluation",
+    5
+  ],
+  [
+    "UnaryExpression[7,0].Evaluation",
+    5
+  ],
+  [
+    "Elision[1,0].ArrayAccumulation",
     5
   ],
   [
@@ -768,7 +744,35 @@
     5
   ],
   [
+    "ClassTail[0,1].ClassDefinitionEvaluation",
+    5
+  ],
+  [
+    "GeneratorDeclaration[0,0].InstantiateGeneratorFunctionObject",
+    5
+  ],
+  [
+    "INTRINSICS.Object.prototype.toString",
+    5
+  ],
+  [
     "AdditiveExpression[2,0].Evaluation",
+    5
+  ],
+  [
+    "AsyncArrowFunction[0,0].InstantiateAsyncArrowFunctionExpression",
+    5
+  ],
+  [
+    "UnaryExpression[1,0].Evaluation",
+    5
+  ],
+  [
+    "MethodDefinition[0,0].DefineMethod",
+    5
+  ],
+  [
+    "MultiplicativeExpression[1,0].Evaluation",
     5
   ],
   [
@@ -776,7 +780,15 @@
     5
   ],
   [
-    "MethodDefinition[0,0].MethodDefinitionEvaluation",
+    "AsyncFunctionExpression[0,1].InstantiateAsyncFunctionExpression",
+    5
+  ],
+  [
+    "ClassElementList[1,0].ConstructorMethod",
+    5
+  ],
+  [
+    "PropertyDefinition[0,0].PropertyDefinitionEvaluation",
     5
   ],
   [
@@ -784,11 +796,87 @@
     5
   ],
   [
+    "ClassElementList[0,0].ConstructorMethod",
+    5
+  ],
+  [
+    "INTRINSICS.ForInIteratorPrototype.next",
+    5
+  ],
+  [
+    "ObjectLiteral[1,0].Evaluation",
+    5
+  ],
+  [
+    "UnaryExpression[5,0].Evaluation",
+    5
+  ],
+  [
+    "INTRINSICS.Array.prototype.toString",
+    5
+  ],
+  [
+    "MethodDefinition[5,0].MethodDefinitionEvaluation",
+    5
+  ],
+  [
+    "MemberExpression[6,0].Evaluation",
+    5
+  ],
+  [
+    "LogicalORExpression[1,0].Evaluation",
+    5
+  ],
+  [
+    "PrimaryExpression[0,0].Evaluation",
+    5
+  ],
+  [
+    "IdentifierReference[0,0].Evaluation",
+    5
+  ],
+  [
+    "PropertyDefinition[2,0].PropertyDefinitionEvaluation",
+    5
+  ],
+  [
+    "StatementListItem[0,0].TopLevelVarDeclaredNames",
+    5
+  ],
+  [
+    "ConditionalExpression[1,0].Evaluation",
+    5
+  ],
+  [
+    "UnaryExpression[2,0].Evaluation",
+    5
+  ],
+  [
     "ArrayLiteral[2,0].Evaluation",
     5
   ],
   [
-    "CaseBlock[1,0].VarDeclaredNames",
+    "INTRINSICS.String.prototype[@@iterator]",
+    5
+  ],
+  [
+    "LabelledStatement[0,0].LabelledEvaluation",
+    5
+  ],
+  [
+    "INTRINSICS.GeneratorFunction.prototype.prototype.next",
+    5
+  ],
+  [
+    "SingleNameBinding[0,0].IteratorBindingInitialization",
+    5
+  ],
+  [
+    "ArgumentList[0,0].ArgumentListEvaluation",
+    5
+  ],
+  [
+    "FunctionBody[0,0].EvaluateFunctionBody",
     5
   ],
   [
@@ -796,7 +884,27 @@
     5
   ],
   [
-    "CaseBlock[1,0].VarScopedDeclarations",
+    "DoWhileStatement[0,0].DoWhileLoopEvaluation",
+    5
+  ],
+  [
+    "UnaryExpression[6,0].Evaluation",
+    5
+  ],
+  [
+    "EqualityExpression[3,0].Evaluation",
+    5
+  ],
+  [
+    "INTRINSICS.ArrayIteratorPrototype.next",
+    5
+  ],
+  [
+    "BitwiseANDExpression[1,0].Evaluation",
+    5
+  ],
+  [
+    "SingleNameBinding[0,1].IteratorBindingInitialization",
     5
   ],
   [
@@ -804,7 +912,15 @@
     5
   ],
   [
-    "RelationalExpression[2,0].Evaluation",
+    "Expression[1,0].Evaluation",
+    5
+  ],
+  [
+    "BindingPattern[1,0].BindingInitialization",
+    5
+  ],
+  [
+    "RelationalExpression[4,0].Evaluation",
     5
   ],
   [
@@ -816,7 +932,19 @@
     5
   ],
   [
-    "RelationalExpression[4,0].Evaluation",
+    "StatementListItem[0,0].TopLevelVarScopedDeclarations",
+    5
+  ],
+  [
+    "CallExpression[0,0].Evaluation",
+    5
+  ],
+  [
+    "Elision[0,0].ArrayAccumulation",
+    5
+  ],
+  [
+    "BreakableStatement[0,0].LabelledEvaluation",
     5
   ],
   [
@@ -824,7 +952,95 @@
     5
   ],
   [
+    "AsyncFunctionDeclaration[0,0].InstantiateAsyncFunctionObject",
+    5
+  ],
+  [
+    "SubstitutionTemplate[0,0].Evaluation",
+    5
+  ],
+  [
+    "LiteralPropertyName[2,0].PropName",
+    5
+  ],
+  [
     "EqualityExpression[2,0].Evaluation",
+    5
+  ],
+  [
+    "SingleNameBinding[0,0].KeyedBindingInitialization",
+    5
+  ],
+  [
+    "FunctionExpression[0,1].InstantiateOrdinaryFunctionExpression",
+    5
+  ],
+  [
+    "ArrowFunction[0,0].InstantiateArrowFunctionExpression",
+    5
+  ],
+  [
+    "NewExpression[1,0].Evaluation",
+    5
+  ],
+  [
+    "ClassElementList[0,0].NonConstructorElements",
+    5
+  ],
+  [
+    "StatementListItem[1,0].TopLevelLexicallyDeclaredNames",
+    5
+  ],
+  [
+    "Literal[1,0].Evaluation",
+    5
+  ],
+  [
+    "BitwiseXORExpression[1,0].Evaluation",
+    5
+  ],
+  [
+    "GeneratorExpression[0,0].InstantiateGeneratorFunctionExpression",
+    5
+  ],
+  [
+    "ArrayLiteral[2,1].Evaluation",
+    5
+  ],
+  [
+    "StatementListItem[1,0].TopLevelLexicallyScopedDeclarations",
+    5
+  ],
+  [
+    "StatementListItem[0,0].LexicallyScopedDeclarations",
+    5
+  ],
+  [
+    "INTRINSICS.Function.prototype.call",
+    5
+  ],
+  [
+    "BreakableStatement[1,0].LabelledEvaluation",
+    5
+  ],
+  [
+    "AsyncFunctionExpression[0,0].InstantiateAsyncFunctionExpression",
+    5
+  ],
+  [
+    "UnaryExpression[4,0].Evaluation",
+    5
+  ],
+  [
+    "VariableStatement[0,0].Evaluation",
+    5
+  ],
+  [
+    "UnaryExpression[3,0].Evaluation",
+    5
+  ],
+  [
+    "VariableDeclaration[0,1].Evaluation",
     5
   ],
   [
@@ -832,7 +1048,55 @@
     5
   ],
   [
+    "ExpressionStatement[0,0].Evaluation",
+    5
+  ],
+  [
+    "ClassTail[0,0].ClassDefinitionEvaluation",
+    5
+  ],
+  [
+    "ArgumentList[2,0].ArgumentListEvaluation",
+    5
+  ],
+  [
+    "LogicalANDExpression[1,0].Evaluation",
+    5
+  ],
+  [
+    "EqualityExpression[4,0].Evaluation",
+    5
+  ],
+  [
+    "MemberExpression[2,0].Evaluation",
+    5
+  ],
+  [
+    "FormalParameterList[0,0].ExpectedArgumentCount",
+    5
+  ],
+  [
     "AdditiveExpression[1,0].Evaluation",
+    5
+  ],
+  [
+    "LabelledStatement[0,0].Evaluation",
+    5
+  ],
+  [
+    "VariableDeclaration[1,0].Evaluation",
+    5
+  ],
+  [
+    "StatementList[1,0].Evaluation",
+    5
+  ],
+  [
+    "SpreadElement[0,0].ArrayAccumulation",
+    5
+  ],
+  [
+    "SwitchStatement[0,0].Evaluation",
     5
   ],
   [
@@ -840,211 +1104,7 @@
     5
   ],
   [
-    "ArrayLiteral[1,0].Evaluation",
-    6
-  ],
-  [
-    "INTRINSICS.Array.prototype.join",
-    6
-  ],
-  [
-    "INTRINSICS.Object.prototype.valueOf",
-    6
-  ],
-  [
-    "MethodDefinition[0,0].DefineMethod",
-    6
-  ],
-  [
-    "BindingPattern[0,0].BindingInitialization",
-    6
-  ],
-  [
-    "ObjectLiteral[1,0].Evaluation",
-    6
-  ],
-  [
-    "PropertyDefinition[2,0].PropertyDefinitionEvaluation",
-    6
-  ],
-  [
-    "Elision[0,0].ArrayAccumulation",
-    6
-  ],
-  [
-    "SubstitutionTemplate[0,0].Evaluation",
-    6
-  ],
-  [
-    "BindingProperty[0,0].PropertyBindingInitialization",
-    6
-  ],
-  [
-    "FunctionDeclaration[0,0].InstantiateOrdinaryFunctionObject",
-    7
-  ],
-  [
-    "FunctionExpression[0,0].InstantiateOrdinaryFunctionExpression",
-    7
-  ],
-  [
-    "ExponentiationExpression[1,0].Evaluation",
-    7
-  ],
-  [
-    "LiteralPropertyName[2,0].Evaluation",
-    7
-  ],
-  [
-    "ClassDeclaration[0,0].BindingClassDeclarationEvaluation",
-    7
-  ],
-  [
-    "UnaryExpression[7,0].Evaluation",
-    7
-  ],
-  [
-    "ClassTail[0,1].ClassDefinitionEvaluation",
-    7
-  ],
-  [
-    "GeneratorDeclaration[0,0].InstantiateGeneratorFunctionObject",
-    7
-  ],
-  [
-    "AsyncArrowFunction[0,0].InstantiateAsyncArrowFunctionExpression",
-    7
-  ],
-  [
-    "PropertyDefinition[0,0].PropertyDefinitionEvaluation",
-    7
-  ],
-  [
-    "UnaryExpression[5,0].Evaluation",
-    7
-  ],
-  [
-    "MemberExpression[6,0].Evaluation",
-    7
-  ],
-  [
-    "CaseClause[0,0].LexicallyScopedDeclarations",
-    7
-  ],
-  [
-    "IdentifierReference[0,0].Evaluation",
-    7
-  ],
-  [
-    "StatementListItem[0,0].TopLevelVarDeclaredNames",
-    7
-  ],
-  [
-    "LabelledStatement[0,0].LabelledEvaluation",
-    7
-  ],
-  [
-    "ArgumentList[0,0].ArgumentListEvaluation",
-    7
-  ],
-  [
-    "BitwiseANDExpression[1,0].Evaluation",
-    7
-  ],
-  [
-    "BindingPattern[1,0].BindingInitialization",
-    7
-  ],
-  [
-    "StatementListItem[0,0].TopLevelVarScopedDeclarations",
-    7
-  ],
-  [
-    "CallExpression[0,0].Evaluation",
-    7
-  ],
-  [
-    "BreakableStatement[0,0].LabelledEvaluation",
-    7
-  ],
-  [
-    "LiteralPropertyName[2,0].PropName",
-    7
-  ],
-  [
-    "AsyncFunctionDeclaration[0,0].InstantiateAsyncFunctionObject",
-    7
-  ],
-  [
-    "SingleNameBinding[0,0].KeyedBindingInitialization",
-    7
-  ],
-  [
-    "ArrowFunction[0,0].InstantiateArrowFunctionExpression",
-    7
-  ],
-  [
-    "StatementListItem[1,0].TopLevelLexicallyDeclaredNames",
-    7
-  ],
-  [
-    "BitwiseXORExpression[1,0].Evaluation",
-    7
-  ],
-  [
-    "StatementListItem[1,0].TopLevelLexicallyScopedDeclarations",
-    7
-  ],
-  [
-    "ShiftExpression[2,0].Evaluation",
-    7
-  ],
-  [
-    "INTRINSICS.Function.prototype.call",
-    7
-  ],
-  [
-    "UnaryExpression[4,0].Evaluation",
-    7
-  ],
-  [
-    "VariableStatement[0,0].Evaluation",
-    7
-  ],
-  [
-    "VariableDeclaration[0,1].Evaluation",
-    7
-  ],
-  [
-    "ExpressionStatement[0,0].Evaluation",
-    7
-  ],
-  [
-    "ClassTail[0,0].ClassDefinitionEvaluation",
-    7
-  ],
-  [
-    "ArgumentList[2,0].ArgumentListEvaluation",
-    7
-  ],
-  [
-    "MemberExpression[2,0].Evaluation",
-    7
-  ],
-  [
-    "StatementList[1,0].Evaluation",
-    7
-  ],
-  [
-    "SwitchStatement[0,0].Evaluation",
-    7
-  ],
-  [
-    "SpreadElement[0,0].ArrayAccumulation",
-    7
-  ],
-  [
     "ElementList[0,0].ArrayAccumulation",
-    7
+    5
   ]
 ]

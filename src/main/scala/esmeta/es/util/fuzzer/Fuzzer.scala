@@ -29,6 +29,7 @@ object Fuzzer {
     kFs: Int = 0,
     cp: Boolean = false,
     init: Option[String] = None,
+    targets: List[Target] = List(),
   ): Coverage = new Fuzzer(
     logInterval,
     debug,
@@ -58,6 +59,7 @@ class Fuzzer(
   kFs: Int = 0,
   cp: Boolean = false,
   init: Option[String] = None,
+  targets: List[Target] = List(),
 ) {
   import Fuzzer.*
 
@@ -144,8 +146,8 @@ class Fuzzer(
       update(selectorName, selectorStat, result)
       update(mutatorName, mutatorStat, result)
 
-  /** Case class to hold the information about mutant */
-  case class MutantInfo(
+  /** Case class to hold the information about a candidate */
+  case class CandInfo(
     val visited: Boolean = false,
     val invalid: Boolean = false,
     val interp: Option[Coverage.Interp] = None,
@@ -155,40 +157,31 @@ class Fuzzer(
   def infoExtractor(
     mutatorName: String,
     mutatedCode: String,
-  ): (String, String, MutantInfo) =
-    val info = {
-      if (visited contains mutatedCode)
-        MutantInfo(visited = true)
-      else if (!ValidityChecker(mutatedCode))
-        MutantInfo(invalid = true)
-      else
-        MutantInfo(interp = optional(cov.run(mutatedCode)))
-    }
-    (mutatorName, mutatedCode, info)
+  ): (String, String, CandInfo) =
+    (mutatorName, mutatedCode, getCandInfo(mutatedCode))
+
+  def getCandInfo(code: String): CandInfo =
+    if (visited contains code)
+      CandInfo(visited = true)
+    else if (!ValidityChecker(code))
+      CandInfo(invalid = true)
+    else
+      CandInfo(interp = optional(cov.run(code)))
 
   /** add new program */
-  def add(code: String): Boolean = handleResult(Try {
-    if (visited contains code)
-      fail("ALREADY VISITED")
-    visited += code
-    if (!ValidityChecker(code))
-      fail("INVALID PROGRAM")
-    val script = toScript(code)
-    val (_, updated, covered) = cov.runAndCheck(script)
-    if (!updated) fail("NO UPDATE")
-    covered
-  })
+  def add(code: String): Boolean = add(code, getCandInfo(code))
 
   /** add new program with precomputed info */
-  def add(code: String, info: MutantInfo): Boolean = handleResult(Try {
+  def add(code: String, info: CandInfo): Boolean = handleResult(Try {
     if (info.visited)
       fail("ALREADY VISITED")
     visited += code
     if (info.invalid)
       fail("INVALID PROGRAM")
     val script = toScript(code)
-    val (_, updated, covered) =
-      cov.check(script, info.interp.getOrElse(fail("Interp Fail")))
+    val interp = info.interp.getOrElse(fail("Interp Fail"))
+    val (_, updated, covered) = cov.check(script, interp)
+    //doConformTest(script)
     if (!updated) fail("NO UPDATE")
     covered
   })
@@ -210,6 +203,17 @@ class Fuzzer(
         false
     debugFlush
     pass
+
+  /** do conform test for each engines and transpilers */
+  def doConformTest(script: Script): Unit =
+    val Script(code, name) = script
+    val test = ???
+    targetCov.par.foreach((target, cov) => {
+      if (!target.doConformTest(test)) {
+        val (minimized, newInterp) = target.minimize(code)
+        cov.check(Script(minimized, name), newInterp)
+      }
+    })
 
   // a pass-or-fail counter
   case class Counter(pass: Int = 0, fail: Int = 0)
@@ -235,6 +239,8 @@ class Fuzzer(
 
   /** coverage */
   val cov: Coverage = Coverage(timeLimit, kFs, cp)
+  val targetCov: Map[Target, Coverage] =
+    targets.map(_ -> Coverage(timeLimit, kFs, cp)).toMap
 
   /** target selector */
   val selector: TargetSelector = WeightedSelector(

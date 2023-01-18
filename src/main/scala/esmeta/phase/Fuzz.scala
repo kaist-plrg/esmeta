@@ -4,6 +4,7 @@ import esmeta.{error => _, *}
 import esmeta.cfg.CFG
 import esmeta.es.util.{Coverage, withCFG}
 import esmeta.es.util.fuzzer.*
+import esmeta.js.Target
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
@@ -20,6 +21,17 @@ case object Fuzz extends Phase[CFG, Coverage] {
     // optionally set the seed for the random number generator
     config.seed.foreach(setSeed)
 
+    val engines: List[Target] = (config.engines match {
+      case None     => List("d8", "js", "sm", "jsc")
+      case Some(es) => es.split(",").toList
+    }).map(e => Target(e, false))
+
+    val transpilers: List[Target] = (config.transpilers match {
+      case None =>
+        List("babel", "swc", "terser", "obfuscator")
+      case Some(ts) => ts.split(",").toList
+    }).map(t => Target(t, true))
+
     val cov = Fuzzer(
       logInterval = config.logInterval,
       debug = config.debug,
@@ -29,6 +41,7 @@ case object Fuzz extends Phase[CFG, Coverage] {
       kFs = config.kFs,
       cp = config.cp,
       init = config.init,
+      targets = engines ++ transpilers,
     )
 
     // optionally dump the generated ECMAScript programs
@@ -92,6 +105,16 @@ case object Fuzz extends Phase[CFG, Coverage] {
       StrOption((c, s) => c.init = Some(s)),
       "explicitly use the given init pool",
     ),
+    (
+      "engines",
+      StrOption((c, s) => c.engines = Some(s)),
+      "list of engines to test, separated by comma",
+    ),
+    (
+      "transpilers",
+      StrOption((c, s) => c.transpilers = Some(s)),
+      "list of transpilers to test, separated by comma",
+    ),
   )
   case class Config(
     var out: Option[String] = None,
@@ -104,5 +127,7 @@ case object Fuzz extends Phase[CFG, Coverage] {
     var kFs: Int = 0,
     var cp: Boolean = false,
     var init: Option[String] = None,
+    var engines: Option[String] = None,
+    var transpilers: Option[String] = None,
   )
 }

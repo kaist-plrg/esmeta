@@ -7,6 +7,7 @@ import esmeta.es.util.*
 import esmeta.es.util.injector.*
 import esmeta.interpreter.*
 import esmeta.ir.{Expr, EParse, EReturnIfAbrupt, EBool}
+import esmeta.js.*
 import esmeta.state.*
 import esmeta.ty.AstSingleTy
 import esmeta.util.*

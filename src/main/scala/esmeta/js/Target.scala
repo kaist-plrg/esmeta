@@ -1,6 +1,8 @@
 package esmeta.js
 
 import esmeta.util.BaseUtils.*
+import esmeta.es.util.injector.ConformTest
+import esmeta.es.util.Coverage.Interp
 
 case class Target(
   val name: String,
@@ -15,4 +17,7 @@ case class Target(
   }.getOrElse(_cmd)
 
   override def toString = name
+
+  def doConformTest(test: ConformTest): Boolean = ???
+  def minimize(code: String): (String, Interp) = ???
 }

@@ -1,4 +1,5 @@
-[ async function ( ) { } / x ] ; 
+// async function () {} / ANY;
+[ async function ( ) { } / x ] ;
 await === 1 / 0 ? 0 : 0 ;
 await / 0 ;
 for ( let x of await / 1 ) ;

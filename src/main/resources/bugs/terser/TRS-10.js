@@ -1,3 +1,5 @@
+// <context:CLASS>{ static #ID = #ID in <ANY> ;}
+// <context:CLASS>{ set [ #ID in <ANY> (ID) {} get #ID () ] }
 class x { set [ #x in '' ?. [ 0 % 0 ] ?? 0 ] ( x ) { } get #x ( ) { } }
 class x { set [ #x in '' ?. [ 0 ] ?? 0 ] ( x ) { } get #x ( ) { } }
 class x { set [ #x in 0 . #x >> 0 ?? 0 ] ( x ) { } get #x ( ) { } }
@@ -12,27 +14,27 @@ class x { set [ #x in { } ^ 0 . #x <= 0 ?? 0 ] ( x ) { } get #x ( ) { } }
 class x { set [ #x in { } ^ x <= 0 ?? 0 ] ( x ) { } get #x ( ) { } }
 class x { static #x = #x in 0 % 0 >> super . x ; }
 class x { static #x = #x in 0 ** void super . x ; }
-class x { static #x = #x in 0 - 0 . #x ; } 
-class x { static #x = #x in 0 - super . x ; } 
+class x { static #x = #x in 0 - 0 . #x ; }
+class x { static #x = #x in 0 - super . x ; }
 class x { static #x = #x in 0 . #x % 0 >> 0 . #x ; }
-class x { static #x = #x in 0 . #x ** 0 ; } 
+class x { static #x = #x in 0 . #x ** 0 ; }
 class x { static #x = #x in 0 . #x ++ ; }
 class x { static #x = #x in 0 . #x -- ; }
-class x { static #x = #x in 0 . #x ; } 
+class x { static #x = #x in 0 . #x ; }
 class x { static #x = #x in 0 . #x ?. x ; }
-class x { static #x = #x in 0 . x . x ; } 
-class x { static #x = #x in 0 . x ; } 
-class x { static #x = #x in 0 ; } 
-class x { static #x = #x in 0 ?. #x ; } 
+class x { static #x = #x in 0 . x . x ; }
+class x { static #x = #x in 0 . x ; }
+class x { static #x = #x in 0 ; }
+class x { static #x = #x in 0 ?. #x ; }
 class x { static #x = #x in 0 ?. #x ?. x ; }
 class x { static #x = #x in 0 ?. [ 0 , 0 . #x ?? 0 ? 0 : 0 . #x ] ; }
 class x { static #x = #x in 0 ?. [ 0 , 0 | 0 ? 0 : 0 . #x ] ; }
 class x { static #x = #x in 0 ?. [ 0 , super . x ?? 0 ? 0 : 0 . #x ] . #x ; }
-class x { static #x = #x in 0 ?. [ 0 . #x ] ; } 
-class x { static #x = #x in 0 ?. [ super . x ] ; } 
-class x { static #x = #x in 0 ?. x . #x ; } 
+class x { static #x = #x in 0 ?. [ 0 . #x ] ; }
+class x { static #x = #x in 0 ?. [ super . x ] ; }
+class x { static #x = #x in 0 ?. x . #x ; }
 class x { static #x = #x in 0n . x ; }
-class x { static #x = #x in 1n . x ; } 
+class x { static #x = #x in 1n . x ; }
 class x { static #x = #x in [ 0 . #x ] ; }
 class x { static #x = #x in [ function ( ) { return 0 ; } ( ) [ 0 ] . #x ] ; }
 class x { static #x = #x in [ function ( ) { return 0n ; } ( ) [ 0 ] . #x ] ; }
@@ -46,54 +48,54 @@ class x { static #x = #x in [ function ( ) { } ( ) [ super . x ] . #x ] ; }
 class x { static #x = #x in [ function ( ) { } ( ) [ x ] . #x ] ; }
 class x { static #x = #x in [ function * ( ) { } ( ) [ 0 ] . #x ] ; }
 class x { static #x = #x in [ super . x ] ; }
-class x { static #x = #x in `${ 0 }` ?. [ 0 ] ; } 
+class x { static #x = #x in `${ 0 }` ?. [ 0 ] ; }
 class x { static #x = #x in `${ 0 }` [ 0 ] ; }
-class x { static #x = #x in `` . x ; } 
-class x { static #x = #x in `` ?. [ 0 % 0 ] ; } 
-class x { static #x = #x in `` ?. [ 0 ] ; } 
+class x { static #x = #x in `` . x ; }
+class x { static #x = #x in `` ?. [ 0 % 0 ] ; }
+class x { static #x = #x in `` ?. [ 0 ] ; }
 class x { static #x = #x in `` [ 0 % 0 ] ; }
 class x { static #x = #x in `` [ 0 ] ; }
 class x { static #x = #x in function ( ) { } ?. ( ) . #x ; }
-class x { static #x = #x in new 0 ; } 
-class x { static #x = #x in null . x ; } 
+class x { static #x = #x in new 0 ; }
+class x { static #x = #x in null . x ; }
 class x { static #x = #x in super . x % 0 >> 0 . #x ; }
 class x { static #x = #x in super . x ** 0 ; }
-class x { static #x = #x in super . x ; } 
+class x { static #x = #x in super . x ; }
 class x { static #x = #x in super . x >> 0 . #x ; }
-class x { static #x = #x in super [ 0 ] ** 0 ; } 
-class x { static #x = #x in true . x ; } 
+class x { static #x = #x in super [ 0 ] ** 0 ; }
+class x { static #x = #x in true . x ; }
 class x { static #x = #x in typeof 0 . #x ; }
 class x { static #x = #x in void 0 . #x ; }
 class x { static #x = #x in void super . x ; }
-class x { static #x = #x in x ++ ; } 
-class x { static #x = #x in x . x ; } 
-class x { static #x = #x in x ; } 
+class x { static #x = #x in x ++ ; }
+class x { static #x = #x in x . x ; }
+class x { static #x = #x in x ; }
 class x { static #x = #x in x >> 0 . #x ; }
 class x { static #x = #x in x >> 0 ; }
 class x { static #x = #x in x >>> 0 % 0 . #x ; }
 class x { static #x = #x in x >>> 0 ; }
-class x { static #x = #x in x ?. #x . #x ; } 
+class x { static #x = #x in x ?. #x . #x ; }
 class x { static #x = #x in x ?. [ 0 , 0 ? 0 : super . x ] . #x ; }
 class x { static #x = #x in { get 0 ( ) { return ; } , } ?. [ 0 ] . #x ; }
 class x { static #x = #x in { get 0 ( ) { return ; } , } ?. [ 0 ] . x ; }
-class x { static #x = #x in { get 0 ( ) { return ; } , } ?. [ 0 ] ; } 
+class x { static #x = #x in { get 0 ( ) { return ; } , } ?. [ 0 ] ; }
 class x { static #x = #x in { get 0 ( ) { x ( ) ; } , } ?. [ 0 ] . #x ; }
 class x { static #x = #x in { get 0 ( ) { x ( ) ; } , } ?. [ 0 ] . x ; }
-class x { static #x = #x in { get 0 ( ) { x ( ) ; } , } ?. [ 0 ] ; } 
+class x { static #x = #x in { get 0 ( ) { x ( ) ; } , } ?. [ 0 ] ; }
 class x { static #x = #x in { get 0 ( ) { x ( ) ; } , } ?. [ 0 ] [ 0 ] ; }
 class x { static #x = #x in { get 0 ( ) { x ( 0 ) ; } , } ?. [ 0 ] ( ) ; }
 class x { static #x = #x in { get 0 ( ) { } , } ?. [ 0 ] ( ) ; }
 class x { static #x = #x in { get 0 ( ) { } , } ?. [ 0 ] . #x ; }
 class x { static #x = #x in { get 0 ( ) { } , } ?. [ 0 ] . x ; }
-class x { static #x = #x in { get 0 ( ) { } , } ?. [ 0 ] ; } 
+class x { static #x = #x in { get 0 ( ) { } , } ?. [ 0 ] ; }
 class x { static #x = #x in { get 0 ( ) { } , } ?. [ 0 ] [ 0 ] ; }
-class x { static #x = #x in { set 0 ( x ) { } , } ?. [ 0 ] ; } 
-class x { static #x = #x in { x } . x ; } 
-class x { static #x = #x in { x } ?. x ?. x ( ) ; } 
-class x { static #x = #x in { x } ?. x ?. x ; } 
-class x { static #x = 0 | 0 == #x in 0 ?. x [ super [ 0 ] ] ; } 
-class x { static #x = 0 || 0 | 0 !== #x in 0 ?. ( ) . #x ; } 
-class x { static #x = super [ x === #x in 0 ] ; } 
+class x { static #x = #x in { set 0 ( x ) { } , } ?. [ 0 ] ; }
+class x { static #x = #x in { x } . x ; }
+class x { static #x = #x in { x } ?. x ?. x ( ) ; }
+class x { static #x = #x in { x } ?. x ?. x ; }
+class x { static #x = 0 | 0 == #x in 0 ?. x [ super [ 0 ] ] ; }
+class x { static #x = 0 || 0 | 0 !== #x in 0 ?. ( ) . #x ; }
+class x { static #x = super [ x === #x in 0 ] ; }
 let x ; new class { static #x = #x in super [ 0 ?. x [ x ] . #x ] ; } ;
 let x ; new class { static #x = #x in typeof x . #x ; } ;
 let x ; new class { static #x = #x in x ; } ;
@@ -483,7 +485,7 @@ new class { static #x = #x in 0 >>> async function * ( ) { } ( ) . #x ; } ;
 new class { static #x = #x in 0 >>> function ( ) { } ( ) . #x ** 0 ; } ;
 new class { static #x = #x in 0 >>> function * ( ) { } ( ) . #x ** 0 ; } ;
 new class { static #x = #x in 0 >>> new . target . #x ; } ;
-new class { static #x = #x in 0 >>> new . target . #x ; } ; 
+new class { static #x = #x in 0 >>> new . target . #x ; } ;
 new class { static #x = #x in 0 >>> new 0 ; } ;
 new class { static #x = #x in 0 >>> null ; } ;
 new class { static #x = #x in 0 >>> super . x ; } ;
@@ -815,9 +817,9 @@ new class { static #x = #x in function * x ( ) { } ; } ;
 new class { static #x = #x in function x ( ) { } ; } ;
 new class { static #x = #x in new '' . #x ; } ;
 new class { static #x = #x in new . target ; } ;
-new class { static #x = #x in new . target ; } ; 
+new class { static #x = #x in new . target ; } ;
 new class { static #x = #x in new . target [ 0 ] [ 0 ] ; } ;
-new class { static #x = #x in new . target [ 0 ] [ 0 ] ; } ; 
+new class { static #x = #x in new . target [ 0 ] [ 0 ] ; } ;
 new class { static #x = #x in new 0 % 0 ; } ;
 new class { static #x = #x in new 0 ( ) ; } ;
 new class { static #x = #x in new 0 ** ~ 0 ; } ;
@@ -1018,7 +1020,7 @@ new class { static #x = #x in super [ 0 ?. x [ `` . #x . x ] . #x ] ; } ;
 new class { static #x = #x in super [ 0 ?. x [ `` ] . #x ] ; } ;
 new class { static #x = #x in super [ 0 ?. x [ function ( ) { } ( ) . #x ] . #x ] ; } ;
 new class { static #x = #x in super [ 0 ?. x [ new . target ] . #x ] ; } ;
-new class { static #x = #x in super [ 0 ?. x [ new . target ] . #x ] ; } ; 
+new class { static #x = #x in super [ 0 ?. x [ new . target ] . #x ] ; } ;
 new class { static #x = #x in super [ 0 ?. x [ new 0 ] . #x ] ; } ;
 new class { static #x = #x in super [ 0 ?. x [ new super [ 0 ] ] . #x ] ; } ;
 new class { static #x = #x in super [ 0 ?. x [ null . #x . x ] . #x ] ; } ;
@@ -1245,12 +1247,12 @@ new class { static #x = #x in { [ Symbol . toPrimitive ] : ( ) => { throw #x in 
 new class { static #x = #x in { [ Symbol . toPrimitive ] : ( ) => { throw #x in 0 ; } } % ! 1 ; } ;
 new class { static #x = #x in { [ Symbol . toPrimitive ] : ( ) => { throw #x in 0 >> super [ 0 ] ; } } % ! 1 ; } ;
 new class { static #x = #x in { [ Symbol . toPrimitive ] : ( ) => { throw #x in 0 >>> new . target >>> 0 ; } } % ! 1 ; } ;
-new class { static #x = #x in { [ Symbol . toPrimitive ] : ( ) => { throw #x in 0 >>> new . target >>> 0 ; } } % ! 1 ; } ; 
+new class { static #x = #x in { [ Symbol . toPrimitive ] : ( ) => { throw #x in 0 >>> new . target >>> 0 ; } } % ! 1 ; } ;
 new class { static #x = #x in { [ Symbol . toPrimitive ] : ( ) => { throw #x in 0 >>> super [ 0 ] >>> 0 ; } } % ! 1 ; } ;
 new class { static #x = #x in { [ Symbol . toPrimitive ] : ( ) => { throw #x in [ ] ; } } % ! 1 ; } ;
 new class { static #x = #x in { [ Symbol . toPrimitive ] : ( ) => { throw #x in function ( ) { } ( ) . #x ; } } % ! 1 ; } ;
 new class { static #x = #x in { [ Symbol . toPrimitive ] : ( ) => { throw #x in new . target ; } } % ! 1 ; } ;
-new class { static #x = #x in { [ Symbol . toPrimitive ] : ( ) => { throw #x in new . target ; } } % ! 1 ; } ; 
+new class { static #x = #x in { [ Symbol . toPrimitive ] : ( ) => { throw #x in new . target ; } } % ! 1 ; } ;
 new class { static #x = #x in { [ Symbol . toPrimitive ] : ( ) => { throw #x in new 0 ; } } % ! 1 ; } ;
 new class { static #x = #x in { [ Symbol . toPrimitive ] : ( ) => { throw #x in super . x ; } } % ! 1 ; } ;
 new class { static #x = #x in { [ Symbol . toPrimitive ] : ( ) => { throw #x in super . x >> 0 ; } } % ! 1 ; } ;
@@ -1629,7 +1631,7 @@ new class { static #x = super [ #x in `` . #x ] ; } ;
 new class { static #x = super [ #x in `` . #x `` * 1 ] ; } ;
 new class { static #x = super [ #x in `` . #x `` ?. x ] ; } ;
 new class { static #x = super [ #x in new . target [ 0 , 0 ] ] ; } ;
-new class { static #x = super [ #x in new . target [ 0 , 0 ] ] ; } ; 
+new class { static #x = super [ #x in new . target [ 0 , 0 ] ] ; } ;
 new class { static #x = super [ #x in new 0 . #x ( ) * 0 ] ; } ;
 new class { static #x = super [ #x in new 0 . #x . x ( ) * 0n ] ; } ;
 new class { static #x = super [ #x in new null . #x ( ) * 0 ] ; } ;

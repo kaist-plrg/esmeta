@@ -47,7 +47,7 @@ case object PreFuzz extends Phase[CFG, Unit] {
       name = "nodeKMap",
       data = nodeKMap.toList.sortBy(_._2),
       filename =
-        s"./k_selection/node_sens_${config.duration}_dur_${config.preFuzzIter}_iter.json",
+        s"./k_selection/node_sens_${config.duration.getOrElse(0)}_dur_${config.preFuzzIter}_iter.json",
       space = true,
     )
     nodeKMap.toList.sortBy(_._2).foreach {
@@ -62,7 +62,7 @@ case object PreFuzz extends Phase[CFG, Unit] {
       name = "condKMap",
       data = condKMap.toList.sortBy(_._2),
       filename =
-        s"./k_selection/cond_sens_${config.duration}_dur_${config.preFuzzIter}_iter.json",
+        s"./k_selection/cond_sens_${config.duration.getOrElse(0)}_dur_${config.preFuzzIter}_iter.json",
       space = true,
     )
     condKMap.toList.sortBy(_._2).foreach {

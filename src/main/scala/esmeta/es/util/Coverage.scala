@@ -29,9 +29,6 @@ class Coverage(
   def minimalScripts: Set[Script] = _minimalScripts
   private var _minimalScripts: Set[Script] = Set()
 
-  // meta-info of each script
-  private var _minimalInfo: Map[String, ScriptInfo] = Map()
-
   // the number of minimal scripts
   def size: Int = counter.size
 
@@ -78,8 +75,6 @@ class Coverage(
     */
   def check(script: Script, interp: Interp): (State, Boolean, Boolean) =
     val Script(code, name) = script
-    val initSt =
-      cfg.init.from(code) // TODO: Check if recreating init state is OK
     val finalSt = interp.result
 
     // covered new elements
@@ -105,15 +100,6 @@ class Coverage(
           update(condView, nearest, script); updated = true
         case _ =>
 
-    // update script info
-    if (updated)
-      _minimalInfo += script.name -> ScriptInfo(
-        ConformTest.createTest(initSt, finalSt),
-        interp.touchedNodeViews.map(_._1),
-        interp.touchedCondViews.map(_._1),
-      )
-    // assert: _minimalScripts ~= _minimalInfo.keys
-
     (finalSt, updated, covered)
 
   /** get node coverage */
@@ -127,7 +113,6 @@ class Coverage(
   def dumpToWithDetail(baseDir: String, withMsg: Boolean = true): Unit = dumpTo(
     baseDir = baseDir,
     withScripts = true,
-    withScriptInfo = true,
     withTargetCondViews = true,
     withUnreachableFuncs = true,
     withMsg = withMsg,
@@ -137,7 +122,6 @@ class Coverage(
   def dumpTo(
     baseDir: String,
     withScripts: Boolean = false,
-    withScriptInfo: Boolean = false,
     withTargetCondViews: Boolean = false,
     withUnreachableFuncs: Boolean = false,
     withMsg: Boolean = true,
@@ -181,37 +165,6 @@ class Coverage(
         remove = true,
       )
       log("Dupmed scripts")
-    if (withScriptInfo) {
-      dumpDir[(String, ScriptInfo)](
-        name = if (withMsg) Some("minimal ECMAScript assertions") else None,
-        iterable = _minimalInfo,
-        dirname = s"$baseDir/minimal-assertion",
-        getName = _._1,
-        getData = _._2.test.core, // TODO: dump this as json?
-        remove = true,
-      )
-      log("Dupmed assertions")
-      /*
-      dumpJson(
-        name =
-          if (withMsg) Some("list of touched node view of minimal programs")
-          else None,
-        data = minimalTouchNodeViewJson(getNodeViewsId),
-        filename = s"$baseDir/minimal-touch-nodeview.json",
-        space = false,
-      )
-      log("dumped touched node views")
-      dumpJson(
-        name =
-          if (withMsg) Some("list of touched cond view of minimal programs")
-          else None,
-        data = minimalTouchCondViewJson(getCondViewsId),
-        filename = s"$baseDir/minimal-touch-condview.json",
-        space = false,
-      )
-      log("dumped touched cond views")
-       */
-    }
     if (withTargetCondViews)
       dumpJson(
         name = if (withMsg) Some("target conditional branches") else None,
@@ -307,7 +260,6 @@ class Coverage(
       if (count == 0) {
         counter -= origScript
         _minimalScripts -= origScript
-        _minimalInfo -= origScript.name
       }
     }
     // increse counter of new script
@@ -338,22 +290,6 @@ class Coverage(
 
   // conversion to string
   private def percent(n: Double, t: Double): Double = n / t * 100
-
-  // get JSON for touched node view of minimal
-  private def minimalTouchNodeViewJson(getId: Map[NodeView, Int]): Json =
-    Json.fromFields(
-      _minimalInfo.map((name, info) =>
-        name -> info.touchedNodeViews.map(getId).asJson,
-      ),
-    )
-
-  // get JSON for touched cond view of minimal
-  private def minimalTouchCondViewJson(getId: Map[CondView, Int]): Json =
-    Json.fromFields(
-      _minimalInfo.map((name, info) =>
-        name -> info.touchedCondViews.map(getId).asJson,
-      ),
-    )
 
   // get JSON for node coverage
   private def nodeViewInfos(ordered: List[NodeView]): List[NodeViewInfo] =

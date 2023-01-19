@@ -23,7 +23,7 @@ object Injector:
     log: Boolean = false,
   ): ConformTest =
     val extractor = ExitStateExtractor(cfg.init.from(src))
-    new Injector(extractor.initSt, extractor.result, defs, log).conformTest
+    new Injector(extractor.result, defs, log).conformTest
 
   /** injection from files */
   def fromFile(
@@ -32,14 +32,13 @@ object Injector:
     log: Boolean = false,
   ): ConformTest =
     val extractor = ExitStateExtractor(cfg.init.fromFile(filename))
-    new Injector(extractor.initSt, extractor.result, defs, log).conformTest
+    new Injector(extractor.result, defs, log).conformTest
 
   /** assertion definitions */
   lazy val assertionLib: String = readFile(s"$RESOURCE_DIR/injector/lib.js")
 
 /** extensible helper of assertion injector */
 class Injector(
-  initSt: State,
   exitSt: State,
   defs: Boolean,
   log: Boolean,
@@ -71,7 +70,7 @@ class Injector(
   lazy val result: String = conformTest.toString
 
   /** target script */
-  lazy val script = initSt.sourceText.get
+  lazy val script = exitSt.sourceText.get
 
   /** exit status tag */
   lazy val exitTag: ExitTag = ExitTag(exitSt)
@@ -152,12 +151,13 @@ class Injector(
           case _ =>
       case _ =>
 
+  private lazy val initHeap = cfg.init.initHeap.copied
   private var handledObjects: Map[Addr, String] = (for {
-    addr <- initSt.heap.map.keySet
+    addr <- initHeap.map.keySet
     name <- addrToName(addr)
   } yield addr -> name).toMap
-  private lazy val PREFIX_INTRINSIC = "INTRINSICS."
 
+  private lazy val PREFIX_INTRINSIC = "INTRINSICS."
   private def addrToName(addr: Addr): Option[String] = addr match
     case a @ NamedAddr(name) if name.startsWith(PREFIX_INTRINSIC) =>
       Some(name.substring(PREFIX_INTRINSIC.length))

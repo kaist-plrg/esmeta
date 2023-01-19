@@ -180,8 +180,8 @@ class Fuzzer(
       fail("INVALID PROGRAM")
     val script = toScript(code)
     val interp = info.interp.getOrElse(fail("Interp Fail"))
-    val (_, updated, covered) = cov.check(script, interp)
-    //doConformTest(script)
+    val (st, updated, covered) = cov.check(script, interp)
+    doConformTest(script, st)
     if (!updated) fail("NO UPDATE")
     covered
   })
@@ -205,9 +205,9 @@ class Fuzzer(
     pass
 
   /** do conform test for each engines and transpilers */
-  def doConformTest(script: Script): Unit =
+  def doConformTest(script: Script, st: State): Unit =
     val Script(code, name) = script
-    val test = ???
+    val test = ConformTest.createTest(st)
     targetCov.par.foreach((target, cov) => {
       if (!target.doConformTest(test)) {
         val (minimized, newInterp) = target.minimize(code)

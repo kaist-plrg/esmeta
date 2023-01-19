@@ -141,10 +141,8 @@ object ConformTest {
     (engineTest, transpiledTest)
 
   /** Create a test using init state and exit state */
-  def createTest(initSt: State, exitSt: State): ConformTest =
-    val script = initSt.sourceText.get
-    new Injector(initSt, exitSt, true, false).conformTest
-      .replaceScript(placeholder)
+  def createTest(exitSt: State): ConformTest =
+    new Injector(exitSt, true, false).conformTest
 
   /** Manually written rule to categorize bugs kind */
   lazy val manualRule =
@@ -152,7 +150,4 @@ object ConformTest {
       .split(LINE_SEP)
       .drop(1) // drop header
       .map(l => l.split("\\|", -1))
-
-  /** placeholder for script */
-  val placeholder = "//SCRIPT_PLACEHOLDER"
 }

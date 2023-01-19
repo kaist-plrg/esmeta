@@ -25,7 +25,7 @@ case object Fuzz extends Phase[CFG, Coverage] {
       try {
         val nodeKMap =
           readJson[List[(String, Int)]](
-            s"./k_selection/node_sens_${config.preFuzzDuration}_dur_${config.preFuzzIter}_iter.json",
+            s"./k_selection/node_attn${config.attentionPercent}_cut${config.cutPercent}_iter${config.preFuzzIter}_dur${config.preFuzzDuration}.json",
           ).toMap
         println(s"read ${nodeKMap.size} node k-selections.")
         Some(nodeKMap)
@@ -39,7 +39,7 @@ case object Fuzz extends Phase[CFG, Coverage] {
     val condKMapOpt = if (config.preFuzzIter != 0) {
       try {
         val condKMap = readJson[List[(String, Int)]](
-          s"./k_selection/cond_sens_${config.preFuzzDuration}_dur_${config.preFuzzIter}_iter.json",
+          s"./k_selection/cond_attn${config.attentionPercent}_cut${config.cutPercent}_iter${config.preFuzzIter}_dur${config.preFuzzDuration}.json",
         ).toMap
         println(s"read ${condKMap.size} condition k-selections.")
         Some(condKMap)
@@ -135,6 +135,16 @@ case object Fuzz extends Phase[CFG, Coverage] {
       NumOption((c, k) => c.preFuzzDuration = k),
       "use pre-fuzzing data to select sensitivity (default: 60).",
     ),
+    (
+      "attention-percent",
+      NumOption((c, k) => c.attentionPercent = k),
+      "give attention to top {given number}% of previous features (default: 50)",
+    ),
+    (
+      "cut-percent",
+      NumOption((c, k) => c.cutPercent = k),
+      "cut features over {given number}% of the average (default: 100)",
+    ),
   )
 
   case class Config(
@@ -150,5 +160,7 @@ case object Fuzz extends Phase[CFG, Coverage] {
     var init: Option[String] = None,
     var preFuzzIter: Int = 0,
     var preFuzzDuration: Int = 60,
+    var attentionPercent: Int = 50,
+    var cutPercent: Int = 100,
   )
 }

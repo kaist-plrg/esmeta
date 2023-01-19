@@ -14,8 +14,6 @@ object PreFuzzer {
   val ALL = 2
   val PARTIAL = 1
   val NO_DEBUG = 0
-  private val MAX_ATTENTION_RATIO = 0.5
-  private val LOW_SENS_CUT_RATIO = 1
   private var futNodeViewCount: Map[Feature, List[(NodeView, Int)]] = Map()
   private var futCondViewCount: Map[Feature, List[(CondView, Int)]] = Map()
   private var nodeViewLowSensScore: Map[NodeView, Double] = Map()
@@ -35,6 +33,8 @@ object PreFuzzer {
     kFs: Int = 0, // feature sensitivity bias
     cp: Boolean = false,
     preFuzzIter: Int = 1,
+    attentionPercent: Int = 50,
+    cutPercent: Int = 100,
   ): (Map[String, Int], Map[String, Int]) = {
     // TODO: edge selection
 
@@ -76,8 +76,8 @@ object PreFuzzer {
           print(f"$feature%200s")
           println(f"  ${list.size}")
       }
-      scoreLowSens(futNodeViewCount)
-      scoreLowSens(futCondViewCount)
+      scoreLowSens(futNodeViewCount, maxAttentionRatio = attentionPercent / 100)
+      scoreLowSens(futCondViewCount, maxAttentionRatio = attentionPercent / 100)
 
       // calculate average scores
       val nodeViewScoreAvg =
@@ -86,6 +86,7 @@ object PreFuzzer {
         condViewLowSensScore.toList.map(_._2).sum / condViewLowSensScore.size
 
       // lower the sensitivity if the score is high, otherwise lift it
+      val LOW_SENS_CUT_RATIO = cutPercent / 100
       nodeViewLowSensScore
         .filter(_._2 > nodeViewScoreAvg * LOW_SENS_CUT_RATIO)
         .keys
@@ -151,12 +152,13 @@ object PreFuzzer {
 
   private def scoreLowSens(
     futViewCount: Map[Feature, List[(NodeOrCondView, Int)]],
+    maxAttentionRatio: Double,
   ): Unit =
     for ((_, countList) <- futViewCount) yield {
       var sortedCountList = countList.sortBy(_._2).reverse
       val totalCount = countList.map(_._2).sum
       var acc = 0
-      while (acc < totalCount * MAX_ATTENTION_RATIO) {
+      while (acc < totalCount * maxAttentionRatio) {
         sortedCountList match {
           case h :: t =>
             sortedCountList = t

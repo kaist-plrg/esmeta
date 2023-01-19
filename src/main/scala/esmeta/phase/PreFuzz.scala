@@ -34,46 +34,29 @@ case object PreFuzz extends Phase[CFG, Unit] {
       kFs = config.kFs,
       cp = config.cp,
       preFuzzIter = config.preFuzzIter,
+      attentionPercent = config.attentionPercent,
+      cutPercent = config.cutPercent,
     )
 
     println("Dumping the k-selection result")
-
-    val nodePrinter =
-      getPrintWriter(s"./node_sens_${config.preFuzzIter}_iter.txt")
-    val condPrinter =
-      getPrintWriter(s"./cond_sens_${config.preFuzzIter}_iter.txt")
 
     dumpJson(
       name = "nodeKMap",
       data = nodeKMap.toList.sortBy(_._2),
       filename =
-        s"./k_selection/node_sens_${config.duration.getOrElse(0)}_dur_${config.preFuzzIter}_iter.json",
+        s"./k_selection/node_attn${config.attentionPercent}_cut${config.cutPercent}_iter${config.preFuzzIter}_dur${config.duration
+          .getOrElse(0)}.json",
       space = true,
     )
-    nodeKMap.toList.sortBy(_._2).foreach {
-      case (nodeView, score) =>
-        nodePrinter.print(f"$nodeView%300s")
-        nodePrinter.println(f"  $score%02d")
-//        print(f"$nodeView%200s")
-//        println(f"  $score%02d")
-    }
 
     dumpJson(
       name = "condKMap",
       data = condKMap.toList.sortBy(_._2),
       filename =
-        s"./k_selection/cond_sens_${config.duration.getOrElse(0)}_dur_${config.preFuzzIter}_iter.json",
+        s"./k_selection/cond_attn${config.attentionPercent}_cut${config.cutPercent}_iter${config.preFuzzIter}_dur${config.duration
+          .getOrElse(0)}.json",
       space = true,
     )
-    condKMap.toList.sortBy(_._2).foreach {
-      case (condView, score) =>
-        condPrinter.print(f"$condView%300s")
-        condPrinter.println(f"  $score%02d")
-//        print(f"$condView%200s")
-//        println(f"  $score%02d")
-    }
-    nodePrinter.close()
-    condPrinter.close()
 
     // optionally dump the generated ECMAScript programs
     //    for (dirname <- config.out) covPre.dumpToWithDetail(dirname)
@@ -137,6 +120,16 @@ case object PreFuzz extends Phase[CFG, Unit] {
       NumOption((c, k) => c.preFuzzIter = k),
       "set the number of iterations for selective feature sensitivity (default: 0).",
     ),
+    (
+      "attention-percent",
+      NumOption((c, k) => c.attentionPercent = k),
+      "give attention to top {given number}% of previous features (default: 50)",
+    ),
+    (
+      "cut-percent",
+      NumOption((c, k) => c.cutPercent = k),
+      "cut features over {given number}% of the average (default: 100)",
+    ),
   )
 
   case class Config(
@@ -150,5 +143,7 @@ case object PreFuzz extends Phase[CFG, Unit] {
     var kFs: Int = 0,
     var cp: Boolean = false,
     var preFuzzIter: Int = 0,
+    var attentionPercent: Int = 50,
+    var cutPercent: Int = 100,
   )
 }

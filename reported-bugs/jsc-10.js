@@ -1,0 +1,1 @@
+let x = async x => { for await ( { x } of [ 0 ] ) ; } ; x ( ) ;

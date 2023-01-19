@@ -1,0 +1,1 @@
+class C { static x = C = 0 ; } ;

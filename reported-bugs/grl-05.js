@@ -1,0 +1,1 @@
+false && delete x;

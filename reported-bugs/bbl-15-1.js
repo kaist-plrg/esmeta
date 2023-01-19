@@ -1,0 +1,1 @@
+var await = 0; $assert(await, 0);

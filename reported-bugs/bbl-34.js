@@ -1,0 +1,1 @@
+new class { 0 = 0 instanceof new . target ; } ; 

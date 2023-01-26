@@ -1,9 +1,11 @@
 package esmeta.js
 
-import esmeta.LINE_SEP
+import esmeta.{LOG_DIR, LINE_SEP}
 import esmeta.util.BaseUtils.*
+import esmeta.util.SystemUtils.*
 import esmeta.error.{TimeoutException, NoCommandError}
 import esmeta.es.*
+import esmeta.es.util.{USE_STRICT}
 import esmeta.es.util.injector.*
 import esmeta.es.util.ValidityChecker
 import esmeta.es.util.mutator.Util.AdditiveListWalker
@@ -25,19 +27,52 @@ case class Target(
   private val errorPattern = "[\\w]*Error(?=: )".r
 
   def doConformTest(test: ConformTest): Boolean = {
+
+    val assertion = test.core
+    val code = test.script
     val exitTag = test.exitTag
     val isNormal = exitTag == NormalTag
 
+    def testMaker(code: String) = {
+      if (isNormal)
+        List(
+          USE_STRICT,
+          code,
+          libHead,
+          Injector.assertionLib,
+          delayHead,
+          assertion,
+          delayTail,
+          libTail,
+        ).mkString(LINE_SEP)
+      else
+        List(
+          USE_STRICT,
+          code,
+          assertion,
+        ).mkString(LINE_SEP)
+    }
+
     val (concreteExitTag, stdout) =
       if (!isTrans) {
+        val etest = testMaker(code)
         JSEngine
-          .runUsingBinary(_cmd, test.script)
+          .runUsingBinary(_cmd, etest)
           .map((NormalTag, _))
           .recover(engineErrorResolver _)
           .get
       } else {
+        var tempFile = s"$LOG_DIR/$name-temp.js"
+        dumpFile(code, tempFile)
+        var compiledCode = JSTrans
+          .transpileFileUsingBinary(
+            _cmd,
+            tempFile,
+          )
+          .get
+        val ttest = testMaker(compiledCode)
         JSEngine
-          .run(test.script)
+          .run(ttest)
           .map((NormalTag, _))
           .recover(engineErrorResolver _)
           .get
@@ -48,6 +83,11 @@ case class Target(
     pass
   }
 
+  // header and footer for tests
+  private val libHead = "(()=>{"
+  private val libTail = "})();"
+  private val delayHead = "$delay(() => {"
+  private val delayTail = "});"
   private def engineErrorResolver(engineError: Throwable): (ExitTag, String) =
     engineError match {
       case e: TimeoutException     => (TimeoutTag, "")

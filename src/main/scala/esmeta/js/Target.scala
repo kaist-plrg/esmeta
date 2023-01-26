@@ -26,6 +26,7 @@ case class Target(
 
   private val errorPattern = "[\\w]*Error(?=: )".r
 
+  def doConformTest(code: String): Boolean = doConformTest(Injector(code))
   def doConformTest(test: ConformTest): Boolean = {
 
     val assertion = test.core
@@ -120,7 +121,7 @@ case class Target(
       result.isDefined
 
     while (tryReduce) {}
-    ast.toString
+    ast.toScript
 
   def reduce(ast: Ast): List[Ast] =
     val orig = ast.toScript
@@ -171,12 +172,13 @@ case class Target(
   }
 
   /** check if reduced test still fails the test */
-  private def isFail(ast: Ast): Boolean = isFail(ast.toString)
+  private def isFail(ast: Ast): Boolean = isFail(ast.toScript)
   private def isFail(code: String): Boolean =
     if cache.contains(code) then cache(code)
-    else if !ValidityChecker(code) then false
     else
-      val result = optional(!doConformTest(Injector(code))).getOrElse(false)
+      val result =
+        if !ValidityChecker(code) then false
+        else optional(!doConformTest(code)).getOrElse(false)
       cache += (code -> result)
       result
 }

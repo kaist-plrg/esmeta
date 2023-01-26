@@ -56,8 +56,9 @@ case class Target(
     val (concreteExitTag, stdout) =
       if (!isTrans) {
         val etest = testMaker(code)
+        println(s"   testMakerOut:\n" + etest)
         JSEngine
-          .runUsingBinary(_cmd, etest)
+          .runUsingBinary(cmd, etest)
           .map((NormalTag, _))
           .recover(engineErrorResolver _)
           .get
@@ -66,11 +67,12 @@ case class Target(
         dumpFile(code, tempFile)
         var compiledCode = JSTrans
           .transpileFileUsingBinary(
-            _cmd,
+            cmd,
             tempFile,
           )
           .get
         val ttest = testMaker(compiledCode)
+        println(s"   testMakerOut:\n" + ttest)
         JSEngine
           .run(ttest)
           .map((NormalTag, _))
@@ -78,6 +80,7 @@ case class Target(
           .get
       }
     val sameExitTag = exitTag.equivalent(concreteExitTag)
+    println(s"exitTag: $exitTag, concrete: $concreteExitTag")
     val pass = sameExitTag && stdout.isEmpty
 
     pass

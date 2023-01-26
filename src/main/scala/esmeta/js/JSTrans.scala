@@ -10,11 +10,18 @@ import java.util.StringJoiner
 /** JavaScript Transpiler utilities */
 object JSTrans {
 
-  val defaultCmd = Map(
+  val defaultCmdDirMode = Map(
     "babel" -> s"$RESOURCE_DIR/trans/babel-d.js",
     "swc" -> s"$RESOURCE_DIR/trans/swc-d.js",
     "terser" -> s"$RESOURCE_DIR/trans/terser-d.js",
     "obfuscator" -> s"$RESOURCE_DIR/trans/obfuscator-d.js",
+  )
+
+  val defaultCmd = Map(
+    "babel" -> s"babel",
+    "swc" -> s"swc",
+    "terser" -> s"terser -c --ecma 2022",
+    "obfuscator" -> s"javascript-obfuscator"
   )
 
   /** inner minified babel */

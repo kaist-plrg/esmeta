@@ -2,10 +2,11 @@ package esmeta.js
 
 import esmeta.LINE_SEP
 import esmeta.util.BaseUtils.*
-import esmeta.es.Script
 import esmeta.error.{TimeoutException, NoCommandError}
+import esmeta.es.*
 import esmeta.es.util.injector.*
-import esmeta.es.util.Coverage.Interp
+import esmeta.es.util.ValidityChecker
+import esmeta.es.util.mutator.Util.AdditiveListWalker
 
 case class Target(
   val name: String,
@@ -62,5 +63,54 @@ case class Target(
         (tag, "")
     }
 
-  def minimize(code: String): (String, Interp) = ???
+  var cache: Map[String, Boolean] = Map()
+
+  def minimize(code: String): String =
+    var ast = Ast(code)
+
+    def tryReduce: Boolean =
+      val result = reduce(ast).find(isFail)
+      result.foreach(newAst => { ast = newAst })
+      result.isDefined
+
+    while (tryReduce) {}
+    ast.toString
+
+  private def reduce(ast: Ast): List[Ast] =
+    (new Reducer).walk(ast)
+  private class Reducer extends AdditiveListWalker {
+    private var firstChilds: Map[Syntactic, List[Syntactic]] = Map()
+    private var parentMap: Map[String, List[Syntactic]] = Map()
+
+    override def walk(ast: Syntactic): List[Syntactic] =
+      val Syntactic(name, args, rhsIdx, children) = ast
+
+      // update parentMap
+      val origParents = parentMap.getOrElse(name, List())
+      parentMap = parentMap + (name -> (ast :: origParents))
+
+      // update firstChilds
+      origParents.headOption.map(parent =>
+        val origChilds = firstChilds.getOrElse(parent, List())
+        firstChilds = firstChilds + (parent -> (ast :: origChilds)),
+      )
+
+      val mutants = super.walk(ast) ++ firstChilds(ast)
+      // TODO: Remove first element from ...List
+
+      // restore parentMap
+      parentMap += (name -> origParents)
+
+      mutants
+  }
+
+  /** check if reduced test still fails the test */
+  private def isFail(ast: Ast): Boolean = isFail(ast.toString)
+  private def isFail(code: String): Boolean =
+    if cache.contains(code) then cache(code)
+    else if !ValidityChecker(code) then false
+    else
+      val result = optional(!doConformTest(Injector(code))).getOrElse(false)
+      cache += (code -> result)
+      result
 }

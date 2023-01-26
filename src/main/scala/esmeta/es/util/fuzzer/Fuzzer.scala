@@ -210,8 +210,8 @@ class Fuzzer(
     val test = ConformTest.createTest(st)
     targetCov.par.foreach((target, cov) => {
       if (!target.doConformTest(test)) {
-        val (minimized, newInterp) = target.minimize(code)
-        cov.check(Script(minimized, name), newInterp)
+        val minimized = target.minimize(code)
+        cov.runAndCheck(Script(minimized, name))
       }
     })
 

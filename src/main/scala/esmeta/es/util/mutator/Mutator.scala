@@ -20,7 +20,7 @@ trait Mutator {
     code: String,
     n: Int,
     target: Option[(CondView, Coverage)],
-  ): Result = apply(cfg.scriptParser.from(code), n, target)
+  ): Result = apply(Ast(code), n, target)
 
   /** mutate asts */
   def apply(ast: Ast, n: Int): Result = apply(ast, n, None)

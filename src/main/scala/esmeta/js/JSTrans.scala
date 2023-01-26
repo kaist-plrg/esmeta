@@ -21,7 +21,7 @@ object JSTrans {
     "babel" -> s"babel",
     "swc" -> s"swc",
     "terser" -> s"terser -c --ecma 2022",
-    "obfuscator" -> s"javascript-obfuscator"
+    "obfuscator" -> s"javascript-obfuscator",
   )
 
   /** inner minified babel */

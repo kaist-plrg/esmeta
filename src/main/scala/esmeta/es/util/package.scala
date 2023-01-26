@@ -46,10 +46,7 @@ val USE_STRICT = s"\"use strict\";$LINE_SEP"
 // global mutable options and structures
 // -----------------------------------------------------------------------------
 /** get control flow graph */
-def cfg: CFG = globalCFG.getOrElse({
-  warn("CFG is not yet initialized. Using default cfg instead.")
-  CFG.defaultCFG
-})
+def cfg: CFG = globalCFG.getOrElse(defaultCFG)
 
 private var globalCFG: Option[CFG] = None
 def withCFG[T](cfg: CFG)(t: => T): T =
@@ -57,3 +54,7 @@ def withCFG[T](cfg: CFG)(t: => T): T =
   val res = t
   globalCFG = None
   res
+
+lazy val defaultCFG =
+  warn("CFG is not yet initialized. Using default cfg instead.")
+  CFG.defaultCFG

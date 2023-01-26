@@ -119,32 +119,52 @@ case class Target(
     while (tryReduce) {}
     ast.toString
 
-  private def reduce(ast: Ast): List[Ast] =
-    (new Reducer).walk(ast)
+  def reduce(ast: Ast): List[Ast] =
+    val orig = ast.toScript
+    (new Reducer).walk(ast).filter(newAst => newAst.toScript != orig)
   private class Reducer extends AdditiveListWalker {
-    private var firstChilds: Map[Syntactic, List[Syntactic]] = Map()
-    private var parentMap: Map[String, List[Syntactic]] = Map()
+    private var firstChilds: Map[Syntactic, List[Syntactic]] =
+      Map().withDefaultValue(List())
+    private var parentMap: Map[String, List[Syntactic]] =
+      Map().withDefaultValue(List())
 
+    override def walk(ast: Lexical): List[Lexical] = List()
     override def walk(ast: Syntactic): List[Syntactic] =
       val Syntactic(name, args, rhsIdx, children) = ast
 
       // update parentMap
-      val origParents = parentMap.getOrElse(name, List())
-      parentMap = parentMap + (name -> (ast :: origParents))
+      val origParents = parentMap(name)
+      parentMap += (name -> (ast :: origParents))
 
       // update firstChilds
       origParents.headOption.map(parent =>
-        val origChilds = firstChilds.getOrElse(parent, List())
-        firstChilds = firstChilds + (parent -> (ast :: origChilds)),
+        val origChilds = firstChilds(parent)
+        firstChilds += (parent -> (ast :: origChilds)),
       )
 
-      val mutants = super.walk(ast) ++ firstChilds(ast)
-      // TODO: Remove first element from ...List
+      var mutants = super.walk(ast) ++ firstChilds(ast)
+      // Remove first element from left-recursive list
+      val isDoubleton = optional {
+        val child = children(0).get.asInstanceOf[Syntactic]
+        name == child.name
+        && children.length - 1 == child.children.length
+        && children.drop(1).map(_.fold("")(_.name)) == child.children.map(
+          _.fold("")(_.name),
+        )
+      }.getOrElse(false)
+      if (isDoubleton)
+        val singleton = Syntactic(
+          name,
+          args,
+          children(0).get.asInstanceOf[Syntactic].rhsIdx,
+          children.drop(1),
+        )
+        mutants = singleton :: mutants
 
       // restore parentMap
       parentMap += (name -> origParents)
 
-      mutants
+      mutants.distinctBy(_.toScript)
   }
 
   /** check if reduced test still fails the test */

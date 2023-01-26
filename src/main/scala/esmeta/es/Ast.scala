@@ -86,6 +86,8 @@ sealed trait Ast extends ESElem with Locational {
 
   /** not use case class' hash code */
   override def hashCode: Int = super.hashCode
+
+  def toScript: String = toString(cfg.grammar)
 }
 object Ast {
 

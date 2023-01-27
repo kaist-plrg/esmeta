@@ -65,6 +65,7 @@ class Coverage(
   // mapping from nodes/conditions to number of touches
   var nodeViewCount: Map[NodeView, Int] = Map()
   var condViewCount: Map[CondView, Int] = Map()
+
   // target conditional branches
   def targetCondViews: Map[Cond, Map[View, Option[Nearest]]] = _targetCondViews
 
@@ -148,6 +149,7 @@ class Coverage(
     withScriptInfo = true,
     withTargetCondViews = true,
     withUnreachableFuncs = true,
+    withKMaps = true,
     withMsg = withMsg,
   )
 
@@ -158,6 +160,7 @@ class Coverage(
     withScriptInfo: Boolean = false,
     withTargetCondViews: Boolean = false,
     withUnreachableFuncs: Boolean = false,
+    withKMaps: Boolean = false,
     withMsg: Boolean = true,
   ): Unit =
     mkdir(baseDir)
@@ -211,6 +214,20 @@ class Coverage(
         remove = true,
       )
       log("Dupmed assertions")
+      if (withKMaps) {
+        dumpJson(
+          name = "nodeKMap",
+          data = nodeViewKMap.toList.sortBy(_._2),
+          filename = s"$baseDir/k-selection/node.json",
+          space = true,
+        )
+        dumpJson(
+          name = "condKMap",
+          data = condViewKMap.toList.sortBy(_._2),
+          filename = s"$baseDir/k-selection/cond.json",
+          space = true,
+        )
+      }
       /*
       dumpJson(
         name =
@@ -482,7 +499,10 @@ object Coverage {
         }
     }
 
-  sealed trait NodeOrCondView(view: View) { def getView: View = view }
+  sealed trait NodeOrCondView(view: View) {
+    def getView: View = view
+  }
+
   case class NodeView(node: Node, view: View = None)
     extends NodeOrCondView(view) {
     override def toString: String =
@@ -571,15 +591,35 @@ object Coverage {
     cp: Boolean,
   )
 
-  def fromLog(baseDir: String): Coverage =
+  def fromLog(
+    baseDir: String,
+  ): Coverage =
     val jsonProtocol = JsonProtocol(cfg)
     import jsonProtocol.given
 
     def rj[T](json: String)(implicit decoder: Decoder[T]) =
       readJson[T](s"$baseDir/$json")
 
+    val nodeKMap =
+      (try { rj[List[(String, Int)]]("k-selection/node.json").toMap }
+      catch {
+        case e: Throwable =>
+          print("Coverage.fromLog: "); println(e.getMessage);
+          Map[String, Int]()
+      }).withDefaultValue(0)
+
+    val condKMap =
+      (try {
+        rj[List[(String, Int)]]("k-selection/cond.json").toMap
+      } catch {
+        case e: Throwable =>
+          print("Coverage.fromLog: "); println(e.getMessage);
+          Map[String, Int]()
+      }).withDefaultValue(0)
+
     val con: CoverageConstructor = rj(s"constructor.json")
-    val cov = new Coverage(con.timeLimit, con.kFs, con.cp)
+    val cov =
+      new Coverage(con.timeLimit, con.kFs, con.cp, nodeKMap, condKMap)
 
     val nodeViewInfos: Vector[NodeViewInfo] = rj("node-coverage.json")
     val condViewInfos: Vector[CondViewInfo] = rj("branch-coverage.json")

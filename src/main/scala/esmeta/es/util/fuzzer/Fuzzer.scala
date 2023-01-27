@@ -40,6 +40,7 @@ object Fuzzer {
     kFs,
     cp,
     init,
+    targets,
   ).result
 
   // debugging levels
@@ -78,11 +79,13 @@ class Fuzzer(
     })
     time(
       s"- initializing program pool with ${initPool.size} programs", {
+        var i = 1
         for {
           (synthesizer, rawCode) <- initPool
           code <- optional(scriptParser.from(rawCode).toString(grammar))
         } {
-          debugging(f"[${synthesizer}%-30s] $code")
+          debugging(f"[${synthesizer}:$i/${initPool.size}%-30s] $code")
+          i += 1
           add(code)
         }
       },
@@ -240,7 +243,7 @@ class Fuzzer(
   /** coverage */
   val cov: Coverage = Coverage(timeLimit, kFs, cp)
   val targetCov: Map[Target, Coverage] =
-    targets.map(_ -> Coverage(timeLimit, kFs, cp)).toMap
+    targets.map(_ -> Coverage(timeLimit, 0, false)).toMap
 
   /** target selector */
   val selector: TargetSelector = WeightedSelector(
@@ -375,6 +378,10 @@ class Fuzzer(
     addRow(row)
     // dump coveragge
     cov.dumpToWithDetail(logDir, withMsg = (debug == ALL))
+    targetCov.foreach((target, cov) =>
+      cov.dumpToWithDetail(s"$logDir/${target.name}", withMsg = (debug == ALL)),
+    )
+
     // dump selector and mutator stat
     dumpStat(selector.names, selectorStat, selStatTsv)
     dumpStat(mutator.names, mutatorStat, mutStatTsv)

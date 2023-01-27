@@ -7,7 +7,7 @@ import scala.collection.mutable.{Map => MMap}
 
 /** exit state extractor */
 class ExitStateExtractor(val initSt: State)
-  extends Interpreter(initSt, keepProvenance = true) {
+  extends Interpreter(initSt, timeLimit = Some(3), keepProvenance = true) {
 
   /** address name mapping */
   val addrNames: MMap[Addr, String] = MMap()

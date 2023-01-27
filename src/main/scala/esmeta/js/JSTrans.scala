@@ -19,9 +19,9 @@ object JSTrans {
 
   val defaultCmd = Map(
     "babel" -> s"babel",
-    "swc" -> s"swc",
-    "terser" -> s"terser -c --ecma 2022",
-    "obfuscator" -> s"javascript-obfuscator",
+    "swc" -> s"swc -C isModule=false",
+    "terser" -> s"terser -c --ecma 2022 --keep-fnames --keep-classnames",
+    "obfuscator" -> s"javascript-obfuscator --seed 1",
   )
 
   /** inner minified babel */
@@ -55,6 +55,22 @@ object JSTrans {
         err => stderr.add(err),
       ) match {
         case 0   => stdout.toString
+        case 127 => throw NoCommandError(runner)
+        case st  => throw TranspileFailureError
+      }
+    }
+
+  /** transpile file to output file using given binary */
+  def transpileFileUsingBinary(
+    runner: String,
+    inputFile: String,
+    outputFile: String,
+  ): Try[Unit] =
+    Try {
+      s"timeout 3s $runner $inputFile -o $outputFile" ! ProcessLogger(_ =>
+        (),
+      ) match {
+        case 0   =>
         case 127 => throw NoCommandError(runner)
         case st  => throw TranspileFailureError
       }

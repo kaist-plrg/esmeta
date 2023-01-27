@@ -64,13 +64,16 @@ case class Target(
           .get
       } else {
         var tempFile = s"$LOG_DIR/$name-temp.js"
+        var tempOutFile = s"$LOG_DIR/$name-tempOut.js"
         dumpFile(code, tempFile)
-        var compiledCode = JSTrans
+        JSTrans
           .transpileFileUsingBinary(
             cmd,
             tempFile,
+            tempOutFile,
           )
           .get
+        var compiledCode = readFile(tempOutFile)
         val ttest = testMaker(compiledCode)
         println(s"   testMakerOut:\n" + ttest)
         JSEngine

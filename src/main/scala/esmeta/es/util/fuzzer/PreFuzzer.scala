@@ -76,8 +76,8 @@ object PreFuzzer {
           print(f"$feature%200s")
           println(f"  ${list.size}")
       }
-      scoreLowSens(futNodeViewCount, maxAttentionRatio = attentionPercent / 100)
-      scoreLowSens(futCondViewCount, maxAttentionRatio = attentionPercent / 100)
+      scoreLowSens(futNodeViewCount, maxAttentionRatio = attentionPercent / 100.0)
+      scoreLowSens(futCondViewCount, maxAttentionRatio = attentionPercent / 100.0)
 
       // calculate average scores
       val nodeViewScoreAvg =
@@ -86,7 +86,7 @@ object PreFuzzer {
         condViewLowSensScore.toList.map(_._2).sum / condViewLowSensScore.size
 
       // lower the sensitivity if the score is high, otherwise lift it
-      val LOW_SENS_CUT_RATIO = cutPercent / 100
+      val LOW_SENS_CUT_RATIO = cutPercent / 100.0
       nodeViewLowSensScore
         .filter(_._2 > nodeViewScoreAvg * LOW_SENS_CUT_RATIO)
         .keys

@@ -232,13 +232,13 @@ class Coverage(
       log("Dupmed assertions")
       if (withKMaps) {
         dumpJson(
-          name = "nodeKMap",
+          name = None,
           data = nodeViewKMap.toList.sortBy(_._2),
           filename = s"$baseDir/k-selection/node.json",
           space = true,
         )
         dumpJson(
-          name = "condKMap",
+          name = None,
           data = condViewKMap.toList.sortBy(_._2),
           filename = s"$baseDir/k-selection/cond.json",
           space = true,

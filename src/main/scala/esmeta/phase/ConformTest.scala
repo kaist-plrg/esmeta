@@ -104,7 +104,7 @@ case object ConformTest
   private var bugStat: Map[Target, Map[String, Int]] = Map()
 
   // do conform test, and returns Some((name, bug)) if fails.
-  private def doConformTest(
+  def doConformTest(
     target: Target,
     isTrans: Boolean,
     script: Script,

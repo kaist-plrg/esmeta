@@ -79,6 +79,13 @@ class Coverage(
     check(script, interp)
   }
 
+  def runAndCheckBlockings(
+    script: Script,
+  ): (State, Boolean, Boolean, Set[Script]) = {
+    val interp = run(script.code)
+    checkWithBlocking(script, interp)
+  }
+
   /** evaluate a given ECMAScript program. */
   def run(code: String): Interp = {
     // run interpreter and record touched
@@ -88,10 +95,17 @@ class Coverage(
     interp
   }
 
+  def check(script: Script, interp: Interp): (State, Boolean, Boolean) =
+    val (finalSt, updated, covered, _) = checkWithBlocking(script, interp)
+    (finalSt, updated, covered)
+
   /** update coverage, and return evaluation result with whether it succeeds to
     * increase coverage
     */
-  def check(script: Script, interp: Interp): (State, Boolean, Boolean) =
+  private def checkWithBlocking(
+    script: Script,
+    interp: Interp,
+  ): (State, Boolean, Boolean, Set[Script]) =
     val Script(code, name) = script
     val initSt =
       cfg.init.from(code) // TODO: Check if recreating init state is OK
@@ -101,6 +115,8 @@ class Coverage(
     var covered = false
     // updated elements
     var updated = false
+    // Script that block the update
+    var blockingScript: Set[Script] = Set.empty
 
     // update node coverage
     for ((nodeView, _) <- interp.touchedNodeViews)
@@ -110,7 +126,7 @@ class Coverage(
           update(nodeView, script); updated = true; covered = true
         case Some(origScript) if origScript.code.length > code.length =>
           update(nodeView, script); updated = true
-        case _ =>
+        case Some(blockScript) => blockingScript += blockScript
 
     // update branch coverage
     for ((condView, nearest) <- interp.touchedCondViews)
@@ -131,7 +147,7 @@ class Coverage(
       )
     // assert: _minimalScripts ~= _minimalInfo.keys
 
-    (finalSt, updated, covered)
+    (finalSt, updated, covered, blockingScript)
 
   /** get node coverage */
   def nodeCov: Int = nodeViewMap.size
@@ -601,10 +617,12 @@ object Coverage {
       readJson[T](s"$baseDir/$json")
 
     val nodeKMap =
-      (try { rj[List[(String, Int)]]("k-selection/node.json").toMap }
-      catch {
+      (try {
+        rj[List[(String, Int)]]("k-selection/node.json").toMap
+      } catch {
         case e: Throwable =>
-          print("Coverage.fromLog: "); println(e.getMessage);
+          print("Coverage.fromLog: ");
+          println(e.getMessage);
           Map[String, Int]()
       }).withDefaultValue(0)
 
@@ -613,7 +631,8 @@ object Coverage {
         rj[List[(String, Int)]]("k-selection/cond.json").toMap
       } catch {
         case e: Throwable =>
-          print("Coverage.fromLog: "); println(e.getMessage);
+          print("Coverage.fromLog: ");
+          println(e.getMessage);
           Map[String, Int]()
       }).withDefaultValue(0)
 

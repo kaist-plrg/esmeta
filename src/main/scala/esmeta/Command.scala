@@ -212,6 +212,16 @@ case object CmdPreFuzz extends Command("pre-fuzz", CmdBuildCFG >> PreFuzz) {
   )
 }
 
+/** `pre-fuzz-eval` command */
+case object CmdPreFuzzEval
+  extends Command("pre-fuzz-eval", CmdBuildCFG >> PreFuzzEval) {
+  val help = "Evaluate pre-fuzzing result."
+  val examples: List[String] = List(
+    "esmeta pre-fuzz-eval FUZZING_LOG_DIR   # evaluate pre-fuzzing result",
+  )
+  override val targetName = "<dir>"
+}
+
 /** `gen-test` command */
 case object CmdGenTest extends Command("gen-test", CmdBase >> GenTest) {
   val help =

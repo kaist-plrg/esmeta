@@ -11,7 +11,7 @@ _esmeta_completions() {
   local cur prev opts lastc informats outformats datafiles
   cur="${COMP_WORDS[COMP_CWORD]}"
   prev="${COMP_WORDS[COMP_CWORD-1]}"
-  cmdList="help extract compile build-cfg tycheck parse eval web test262-test inject mutate fuzz pre-fuzz gen-test conform-test categorize handle-coverage analyze"
+  cmdList="help extract compile build-cfg tycheck parse eval web test262-test inject mutate fuzz pre-fuzz pre-fuzz-eval gen-test conform-test categorize handle-coverage analyze"
   globalOpt="-silent -error -status -time"
   helpOpt=""
   extractOpt="-extract:target -extract:log -extract:repl"
@@ -26,6 +26,7 @@ _esmeta_completions() {
   mutateOpt="-mutate:out -mutate:mutator -mutate:untilValid"
   fuzzOpt="-fuzz:out -fuzz:log-interval -fuzz:debug -fuzz:timeout -fuzz:trial -fuzz:duration -fuzz:seed -fuzz:k-fs -fuzz:cp -fuzz:init -fuzz:pre-fuzz-iter -fuzz:pre-fuzz-duration -fuzz:attention-percent -fuzz:cut-percent"
   prefuzzOpt="-pre-fuzz:out -pre-fuzz:log-interval -pre-fuzz:debug -pre-fuzz:timeout -pre-fuzz:trial -pre-fuzz:duration -pre-fuzz:seed -pre-fuzz:k-fs -pre-fuzz:cp -pre-fuzz:iter -pre-fuzz:attention-percent -pre-fuzz:cut-percent"
+  prefuzzevalOpt="-pre-fuzz-eval:debug -pre-fuzz-eval:engines -pre-fuzz-eval:transpilers"
   gentestOpt="-gen-test:debug -gen-test:engines -gen-test:transpilers -gen-test:use-cache -gen-test:only -gen-test:skip"
   conformtestOpt="-conform-test:debug -conform-test:msgdir -conform-test:save-bugs"
   categorizeOpt="-categorize:all"
@@ -93,6 +94,10 @@ _esmeta_completions() {
           ;;
         pre-fuzz)
           COMPREPLY=($(compgen -W "${globalOpt} ${extractOpt} ${compileOpt} ${buildcfgOpt} ${prefuzzOpt}"))
+          return 0
+          ;;
+        pre-fuzz-eval)
+          COMPREPLY=($(compgen -W "${globalOpt} ${extractOpt} ${compileOpt} ${buildcfgOpt} ${prefuzzevalOpt}"))
           return 0
           ;;
         gen-test)

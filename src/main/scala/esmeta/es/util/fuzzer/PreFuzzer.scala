@@ -42,7 +42,7 @@ object PreFuzzer {
       println(s"iteration: $iter")
       val (prevSens, currSens, nextSens) = (iter, iter + 1, iter + 2)
       val covPre = Fuzzer(
-        logInterval = logInterval,
+        logInterval = None,
         debug = debug,
         timeLimit = timeLimit,
         trial = trial,
@@ -76,17 +76,28 @@ object PreFuzzer {
           print(f"$feature%200s")
           println(f"  ${list.size}")
       }
-      scoreLowSens(futNodeViewCount, maxAttentionRatio = attentionPercent / 100.0)
-      scoreLowSens(futCondViewCount, maxAttentionRatio = attentionPercent / 100.0)
+      scoreLowSens(
+        futNodeViewCount,
+        maxAttentionRatio = attentionPercent / 100.0,
+      )
+      scoreLowSens(
+        futCondViewCount,
+        maxAttentionRatio = attentionPercent / 100.0,
+      )
 
       // calculate average scores
       val nodeViewScoreAvg =
-        nodeViewLowSensScore.toList.map(_._2).sum / nodeViewLowSensScore.size
+        nodeViewLowSensScore.toList
+          .map(_._2)
+          .sum / nodeViewLowSensScore.size.toDouble
       val condViewScoreAvg =
-        condViewLowSensScore.toList.map(_._2).sum / condViewLowSensScore.size
+        condViewLowSensScore.toList
+          .map(_._2)
+          .sum / condViewLowSensScore.size.toDouble
 
       // lower the sensitivity if the score is high, otherwise lift it
       val LOW_SENS_CUT_RATIO = cutPercent / 100.0
+      println(s"LOW_SENS_CUT_RATIO: $LOW_SENS_CUT_RATIO")
       nodeViewLowSensScore
         .filter(_._2 > nodeViewScoreAvg * LOW_SENS_CUT_RATIO)
         .keys
@@ -154,6 +165,7 @@ object PreFuzzer {
     futViewCount: Map[Feature, List[(NodeOrCondView, Int)]],
     maxAttentionRatio: Double,
   ): Unit =
+    println(s"MAX_ATTENTION_RATIO: $maxAttentionRatio")
     for ((_, countList) <- futViewCount) yield {
       var sortedCountList = countList.sortBy(_._2).reverse
       val totalCount = countList.map(_._2).sum

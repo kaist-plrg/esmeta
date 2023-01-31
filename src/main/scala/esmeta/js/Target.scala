@@ -72,7 +72,7 @@ case class Target(
             tempFile,
             tempOutFile,
           )
-          .get
+          .getOrElse(dumpFile("throw \"TRANSPILE_FAILURE\";\n", tempOutFile))
         var compiledCode = readFile(tempOutFile)
         val ttest = testMaker(compiledCode)
         JSEngine

@@ -143,8 +143,15 @@ case class Target(
         firstChilds += (parent -> (ast :: origChilds)),
       )
 
-      var mutants = super.walk(ast) ++ firstChilds(ast)
-      // Remove first element from left-recursive list
+      var mutants = super.walk(ast)
+
+      // restore parentMap
+      parentMap += (name -> origParents)
+
+      // 1. Replace this node whith child with same name
+      mutants = firstChilds(ast) ++ mutants
+
+      // 2. Remove first element from two-elemented list
       val isDoubleton = optional {
         val child = children(0).get.asInstanceOf[Syntactic]
         name == child.name
@@ -162,8 +169,30 @@ case class Target(
         )
         mutants = singleton :: mutants
 
-      // restore parentMap
-      parentMap += (name -> origParents)
+      // 3. Remove optional children
+      // ex) class A extends B { body }
+      // ->
+      // class A extends B { }
+      // class A { body }
+
+      // 4. Extract expression into statement
+      // ex) switch (e1) { case e2: }
+      // ->
+      // (e1) ;
+      // (e2) ;
+
+      // 5. Special handling for ??
+      // ex) e1 ?? e2 ;
+      // ->
+      // e1 ;
+      // e2 ;
+
+      // 6. Change into undefined / null
+      // ex) function () {} ()
+      // ->
+      // undefined
+
+      // 7. Others?
 
       mutants.distinctBy(_.toScript)
   }

@@ -67,8 +67,8 @@ object JSTrans {
     outputFile: String,
   ): Try[Unit] =
     Try {
-      s"timeout 3s $runner $inputFile -o $outputFile" ! ProcessLogger(_ => (),
-      ) match {
+      val cmd = s"timeout 3s $runner $inputFile -o $outputFile"
+      cmd ! ProcessLogger(_ => ()) match {
         case 0   =>
         case 127 => throw NoCommandError(runner)
         case st  => throw TranspileFailureError

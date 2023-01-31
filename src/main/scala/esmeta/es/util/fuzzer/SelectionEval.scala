@@ -15,14 +15,22 @@ object SelectionEval {
   def checkBug(bugScript: Script): Boolean = ???
 
   def evaluate(baseDir: String, targets: Iterable[Target]): (Int, Int) =
+    println("evaluation start...")
     val numMinimals = getCoverage(baseDir).minimalScripts.size
     var numCoveredBugs = 0
+    val fileList = listFiles(s"$BASE_DIR/reported-bugs")
+    println(s"found ${fileList.size} js bug files")
+    var idx = 0
     for {
-      bugCode <- listFiles(s"$BASE_DIR/reported-bugs")
+      bugCode <- fileList
       name = bugCode.getName
       code = USE_STRICT + readFile(bugCode.getPath).trim()
       script = Script(code, name)
     } {
+      if (idx % 10 == 0) {
+        println(s"index: $idx")
+      }
+      idx += 1
       val cov = getCoverage(baseDir)
       val (_, updated, _, blockingSet) = cov.runAndCheckBlockings(script)
       if (updated) {

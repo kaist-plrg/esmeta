@@ -1,1 +1,1 @@
-for ( import ( "file.js" ) ; 0 ; ) ;
+// for ( import ( "file.js" ) ; 0 ; ) ;

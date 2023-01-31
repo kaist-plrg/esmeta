@@ -5,6 +5,7 @@ import esmeta.cfg.CFG
 import esmeta.es.util.injector.Injector
 import esmeta.es.Script
 import esmeta.es.util.fuzzer.SelectionEval
+import esmeta.es.util.withCFG
 import esmeta.js.*
 import esmeta.util.*
 import esmeta.util.SystemUtils.*
@@ -21,10 +22,10 @@ case object PreFuzzEval
     "Evaluate pre-fuzzing result using long-term fuzzing data and bug DB"
 
   def apply(
-    _cfg: CFG,
+    cfg: CFG,
     cmdConfig: CommandConfig,
     config: Config,
-  ): Unit =
+  ): Unit = withCFG(cfg) {
 
     // collect target scripts and assertions
     val baseDir = optional {
@@ -51,6 +52,7 @@ case object PreFuzzEval
       SelectionEval.evaluate(baseDir, engines ::: transpilers)
     println(s"# of bugs covered: $numBugs")
     println(s"# of minimals: $numMinimals")
+  }
 
   def defaultConfig: Config = Config()
 

@@ -67,8 +67,7 @@ object JSTrans {
     outputFile: String,
   ): Try[Unit] =
     Try {
-      s"timeout 3s $runner $inputFile -o $outputFile" ! ProcessLogger(_ =>
-        (),
+      s"timeout 3s $runner $inputFile -o $outputFile" ! ProcessLogger(_ => (),
       ) match {
         case 0   =>
         case 127 => throw NoCommandError(runner)

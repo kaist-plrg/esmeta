@@ -18,7 +18,7 @@ object JSTrans {
   )
 
   val defaultCmd = Map(
-    "babel" -> s"babel",
+    "babel" -> s"$RESOURCE_DIR/trans/babel.js",
     "swc" -> s"swc -C isModule=false",
     "terser" -> s"terser -c --ecma 2022 --keep-fnames --keep-classnames",
     "obfuscator" -> s"javascript-obfuscator --seed 1",
@@ -67,7 +67,8 @@ object JSTrans {
     outputFile: String,
   ): Try[Unit] =
     Try {
-      s"timeout 3s $runner $inputFile -o $outputFile" ! ProcessLogger(_ => (),
+      s"timeout 3s $runner $inputFile -o $outputFile" ! ProcessLogger(_ =>
+        (),
       ) match {
         case 0   =>
         case 127 => throw NoCommandError(runner)

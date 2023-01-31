@@ -244,7 +244,6 @@ class Coverage(
           space = true,
         )
       }
-      /*
       dumpJson(
         name =
           if (withMsg) Some("list of touched node view of minimal programs")
@@ -263,7 +262,6 @@ class Coverage(
         space = false,
       )
       log("dumped touched cond views")
-       */
     }
     if (withTargetCondViews)
       dumpJson(

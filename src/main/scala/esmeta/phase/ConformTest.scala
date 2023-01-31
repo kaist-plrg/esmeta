@@ -24,7 +24,7 @@ case object ConformTest
   val name = "conform-test"
   val help = "Perform conformance test for an ECMAScript Engine or a transpiler"
 
-  private var _config: Config = null
+  private var _config: Option[Config] = None
   private type Input = Map[Target, Iterable[Script]]
   private type Result = Map[Target, Iterable[String]]
 
@@ -33,7 +33,7 @@ case object ConformTest
     cmdConfig: CommandConfig,
     config: Config,
   ): Result =
-    _config = config
+    _config = Some(config)
     config.msgdir.foreach(cleanDir)
     cleanDir(s"$CONFORMTEST_LOG_DIR/msg")
 
@@ -91,7 +91,7 @@ case object ConformTest
   // ---------------------------------------------------------------------------
 
   private def debug(a: Any): Unit =
-    if (_config.debug) println(a)
+    if (_config.exists(_.debug)) println(a)
 
   // get the original code by name
   private var originalMap: Map[String, String] = Map()
@@ -166,10 +166,10 @@ case object ConformTest
         val orig = optional(readFile(path)).getOrElse(original)
         dumpFile(orig + LINE_SEP + msg, path)
       }
-      _config.msgdir.foreach(dumpMsg)
+      _config.foreach(_.msgdir.foreach(dumpMsg))
       dumpMsg(s"$CONFORMTEST_LOG_DIR/msg/$target")
 
-      if (_config.saveBugs)
+      if (_config.exists(_.saveBugs))
         val shortMsg = s"""TAG: ${tag.toString.replace("TODO", "NEW")}
                           |$detail""".stripMargin
         val data = s"$original$LINE_SEP/* $shortMsg */$LINE_SEP"

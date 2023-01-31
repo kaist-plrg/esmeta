@@ -144,7 +144,7 @@ case object ConformTest
           s"[Exit Tag Mismatch]$LINE_SEP > Expected $exitTagRaw but got $concreteExitTag"
         else s"[Assertion Fail]$LINE_SEP > $stdout"
 
-      val original = originalMap(name)
+      val original = originalMap.getOrElse(name, "")
 
       val tag = tagFinder(
         original.split(LINE_SEP)(1),

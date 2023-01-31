@@ -2,6 +2,7 @@ package esmeta.es.util.fuzzer
 
 import esmeta.BASE_DIR
 import esmeta.es.Script
+import esmeta.es.util.injector.Injector
 import esmeta.es.util.{Coverage, USE_STRICT}
 import esmeta.js.Target
 import esmeta.phase.ConformTest
@@ -45,7 +46,14 @@ object SelectionEval {
                   if isTargetBug then true
                   else
                     ConformTest
-                      .doConformTest(target, target.isTrans, blocking)
+                      .doConformTest(
+                        target,
+                        target.isTrans,
+                        Script(
+                          Injector(blocking.code, true, false).toString,
+                          blocking.name,
+                        ),
+                      )
                       .isDefined
               }
         }

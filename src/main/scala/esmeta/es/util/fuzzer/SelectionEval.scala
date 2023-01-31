@@ -35,12 +35,14 @@ object SelectionEval {
       val cov = getCoverage(baseDir)
       val (_, updated, _, blockingSet) = cov.runAndCheckBlockings(script)
       if (updated) {
+//        println(s"Updated: $name")
         numCoveredBugs += 1
       } else {
         val blockingIsBug = blockingSet.foldLeft(false) {
           case (isBug, blocking) =>
             if isBug then isBug
             else
+//              println(s"Blocking: ${blocking.code}, name: $name")
               targets.foldLeft(false) {
                 case (isTargetBug, target) =>
                   if isTargetBug then true

@@ -108,6 +108,7 @@ case object ConformTest
     target: Target,
     isTrans: Boolean,
     script: Script,
+    isSimple: Boolean = false,
   ): Option[(String, String)] =
     val Script(code, name) = script
     debug(s"Testing $target: $name...")
@@ -138,6 +139,7 @@ case object ConformTest
 
     // log information when test fails
     if pass then None
+    else if isSimple then Some(name, "")
     else {
       val detail =
         if (!sameExitTag) then

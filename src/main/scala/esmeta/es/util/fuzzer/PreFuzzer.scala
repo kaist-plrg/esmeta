@@ -66,8 +66,8 @@ object PreFuzzer {
           print(f"$nodeView%200s")
           println(f"  $count%02d")
       }
-      countFutNodeView(covPre.nodeViewCount.toList, currSens)
-      countFutNodeView(covPre.condViewCount.toList, currSens)
+      countFutNodeView(covPre.nodeViewCount.toList)
+      countFutNodeView(covPre.condViewCount.toList)
 
       // score low sensitivity score
       println("######### funtNodeViewCount")
@@ -79,10 +79,12 @@ object PreFuzzer {
       scoreLowSens(
         futNodeViewCount,
         maxAttentionRatio = attentionPercent / 100.0,
+        currSens,
       )
       scoreLowSens(
         futCondViewCount,
         maxAttentionRatio = attentionPercent / 100.0,
+        currSens,
       )
 
       // calculate average scores
@@ -113,7 +115,9 @@ object PreFuzzer {
         .foreach(nodeView =>
           nodeView.view.map {
             case (_, feature, _) =>
-              nodeKMap += feature.head.fname -> nextSens
+              nodeKMap += feature.head.fname -> (if iter == preFuzzIter then
+                                                   currSens
+                                                 else nextSens)
           },
         )
       condViewLowSensScore
@@ -131,7 +135,9 @@ object PreFuzzer {
         .foreach(condView =>
           condView.view.map {
             case (_, feature, _) =>
-              condKMap += feature.head.fname -> nextSens
+              condKMap += feature.head.fname -> (if iter == preFuzzIter then
+                                                   currSens
+                                                 else nextSens)
           },
         )
     }
@@ -141,13 +147,12 @@ object PreFuzzer {
 
   private def countFutNodeView(
     viewCount: List[(NodeOrCondView, Int)],
-    currSens: Int,
   ): Unit = {
     for {
       (view, count) <- viewCount;
       (featureStack, _, _) <- view.getView
     } yield {
-      if ((getSens(view) == currSens) && featureStack.nonEmpty) {
+      if (featureStack.nonEmpty) {
         val last = featureStack.last
         view match {
           case nodeView: NodeView =>
@@ -164,6 +169,7 @@ object PreFuzzer {
   private def scoreLowSens(
     futViewCount: Map[Feature, List[(NodeOrCondView, Int)]],
     maxAttentionRatio: Double,
+    currSens: Int,
   ): Unit =
     println(s"MAX_ATTENTION_RATIO: $maxAttentionRatio")
     for ((_, countList) <- futViewCount) yield {
@@ -175,16 +181,18 @@ object PreFuzzer {
           case h :: t =>
             sortedCountList = t
             acc += h._2
-            h._1 match {
-              // TODO: which to add: count or ratio?
-              case nodeView: NodeView =>
-                nodeViewLowSensScore +=
-                  nodeView -> (nodeViewLowSensScore
-                    .getOrElse(nodeView, 0.0) + h._2 / totalCount)
-              case condView: CondView =>
-                condViewLowSensScore +=
-                  condView -> (condViewLowSensScore
-                    .getOrElse(condView, 0.0) + h._2 / totalCount)
+            if (getSens(h._1) == currSens) {
+              h._1 match {
+                // TODO: which to add: count or ratio?
+                case nodeView: NodeView =>
+                  nodeViewLowSensScore +=
+                    nodeView -> (nodeViewLowSensScore
+                      .getOrElse(nodeView, 0.0) + h._2 / totalCount)
+                case condView: CondView =>
+                  condViewLowSensScore +=
+                    condView -> (condViewLowSensScore
+                      .getOrElse(condView, 0.0) + h._2 / totalCount)
+              }
             }
           case _ => acc = totalCount
         }

@@ -38,6 +38,7 @@ case object PreFuzz extends Phase[CFG, Unit] {
       cutPercent = config.cutPercent,
     )
 
+    println(s"selections: node(${nodeKMap.size}), cond(${condKMap.size})")
     println("Dumping the k-selection result")
 
     dumpJson(

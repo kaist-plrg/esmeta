@@ -409,7 +409,7 @@ class Fuzzer(
     dumpStat(mutator.names, mutatorStat, mutStatTsv)
 
   private def addRow(data: Iterable[Any], nf: PrintWriter = summaryTsv): Unit =
-    val row = data.mkString("\t")
+    val row = data.mkString("\t\t")
     if (stdOut) println(row)
     nf.println(row)
     nf.flush

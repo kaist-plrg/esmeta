@@ -33,27 +33,32 @@ object SelectionEval {
       }
       val cov = getCoverage(baseDir)
       val (_, _, _, blockingSet) = cov.runAndCheckBlockings(script)
-      val minBugCodeSize = blockingSet
-        .filter(script =>
-          !targets.foldLeft(false) {
-            case (isTargetBug, target) =>
-              if isTargetBug then true
-              else
-                ConformTest
-                  .doConformTest(
-                    target,
-                    target.isTrans,
-                    Script(
-                      Injector(script.code, true, false).toString,
-                      script.name,
-                    ),
-                    true,
-                  )
-                  .isDefined
-          },
-        )
-        .map(_.code.length)
-        .max
+      val minBugCodeSize = blockingSet.toList
+        .sortBy(-_.code.length)
+        .foldLeft(0) {
+          case (codeSize, script) =>
+            if codeSize >= script.code.length then codeSize
+            else if (
+                !targets.foldLeft(false) {
+                  case (isTargetBug, target) =>
+                    if isTargetBug then true
+                    else
+                      ConformTest
+                        .doConformTest(
+                          target,
+                          target.isTrans,
+                          Script(
+                            Injector(script.code, true, false).toString,
+                            script.name,
+                          ),
+                          true,
+                        )
+                        .isDefined
+                },
+              )
+            then 0
+            else script.code.length
+        }
 
       controlGroup += idx -> minBugCodeSize
       idx += 1

@@ -18,7 +18,7 @@ object SelectionEval {
   def evaluate(baseDir: String, targets: Iterable[Target]): (Int, Int) =
     println("evaluation start...")
     val numMinimals = getCoverage(baseDir).minimalScripts.size
-    var numCoveredBugs = 0
+    var controlGroup: Map[Int, Int] = Map()
     val fileList = listFiles(s"$BASE_DIR/reported-bugs")
     println(s"found ${fileList.size} js bug files")
     var idx = 0
@@ -31,41 +31,37 @@ object SelectionEval {
       if (idx % 10 == 0) {
         println(s"index: $idx")
       }
-      idx += 1
       val cov = getCoverage(baseDir)
-      val (_, updated, _, blockingSet) = cov.runAndCheckBlockings(script)
-      if (updated) {
-//        println(s"Updated: $name")
-        numCoveredBugs += 1
-      } else {
-        val blockingIsBug = blockingSet.foldLeft(false) {
-          case (isBug, blocking) =>
-            if isBug then isBug
-            else
-//              println(s"Blocking: ${blocking.code}, name: $name")
-              targets.foldLeft(false) {
-                case (isTargetBug, target) =>
-                  if isTargetBug then true
-                  else
-                    ConformTest
-                      .doConformTest(
-                        target,
-                        target.isTrans,
-                        Script(
-                          Injector(blocking.code, true, false).toString,
-                          blocking.name,
-                        ),
-                        true,
-                      )
-                      .isDefined
-              }
-        }
-        if (blockingIsBug) {
-          numCoveredBugs += 1
-        }
-      }
+      val (_, _, _, blockingSet) = cov.runAndCheckBlockings(script)
+      val minBugCodeSize = blockingSet
+        .filter(script =>
+          !targets.foldLeft(false) {
+            case (isTargetBug, target) =>
+              if isTargetBug then true
+              else
+                ConformTest
+                  .doConformTest(
+                    target,
+                    target.isTrans,
+                    Script(
+                      Injector(script.code, true, false).toString,
+                      script.name,
+                    ),
+                    true,
+                  )
+                  .isDefined
+          },
+        )
+        .map(_.code.length)
+        .max
+
+      controlGroup += idx -> minBugCodeSize
+      idx += 1
     }
-    (numCoveredBugs, numMinimals)
+    println("controlGroup start ######################")
+    println(controlGroup)
+    println("#########################################")
+    (0, numMinimals) // TODO: Replace Zero
 
   private val engineTargets: List[Target] = List(
     Target("d8", false),

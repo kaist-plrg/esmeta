@@ -116,7 +116,7 @@ class Coverage(
     // updated elements
     var updated = false
     // Script that block the update
-    var blockingScript: Set[Script] = Set.empty
+    var blockingScripts: Set[Script] = Set.empty
 
     // update node coverage
     for ((nodeView, _) <- interp.touchedNodeViews)
@@ -125,8 +125,9 @@ class Coverage(
         case None =>
           update(nodeView, script); updated = true; covered = true
         case Some(origScript) if origScript.code.length > code.length =>
-          update(nodeView, script); updated = true
-        case Some(blockScript) => blockingScript += blockScript
+          update(nodeView, script); updated = true;
+          blockingScripts += origScript
+        case Some(blockScript) => blockingScripts += blockScript
 
     // update branch coverage
     for ((condView, nearest) <- interp.touchedCondViews)
@@ -135,8 +136,9 @@ class Coverage(
         case None =>
           update(condView, nearest, script); updated = true; covered = true
         case Some(origScript) if origScript.code.length > code.length =>
-          update(condView, nearest, script); updated = true
-        case _ =>
+          update(condView, nearest, script); updated = true;
+          blockingScripts += origScript
+        case Some(blockScript) => blockingScripts += blockScript
 
     // update script info
     if (updated)
@@ -147,7 +149,7 @@ class Coverage(
       )
     // assert: _minimalScripts ~= _minimalInfo.keys
 
-    (finalSt, updated, covered, blockingScript)
+    (finalSt, updated, covered, blockingScripts)
 
   /** get node coverage */
   def nodeCov: Int = nodeViewMap.size

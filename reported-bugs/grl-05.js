@@ -1,1 +1,1 @@
-false && delete x;
+false && delete f();

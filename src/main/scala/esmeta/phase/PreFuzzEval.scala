@@ -48,10 +48,13 @@ case object PreFuzzEval
       case Some(ts) => ts.split(",").toList
     }).map(t => Target(t, true))
 
-    val (numBugs, numMinimals) =
+    val (bugSize1k, bugSize2k, numMinimals) =
       SelectionEval.evaluate(baseDir, engines ::: transpilers)
-    println(s"# of bugs covered: $numBugs")
+    println(s"average bug length compared to 1k: $bugSize1k")
+    println(s"average bug length compared to 2k: $bugSize2k")
     println(s"# of minimals: $numMinimals")
+    println("# of minimals in 1k: 3198")
+    println("# of minimals in 2k: 16133")
   }
 
   def defaultConfig: Config = Config()

@@ -25,6 +25,7 @@ object SelectionEval {
     val fileList = listFiles(s"$BASE_DIR/reported-bugs")
     println(s"found ${fileList.size} js bug files")
     var idx = 0
+    var cleanHit = 0
     for {
       bugCode <- fileList
       name = bugCode.getName
@@ -35,10 +36,11 @@ object SelectionEval {
         println(s"index: $idx")
       }
       val cov = getCoverage(baseDir)
-      val (_, _, _, blockingSet) = cov.runAndCheckBlockings(script)
+      val (_, _, covered, blockingSet) = cov.runAndCheckBlockings(script)
       val minBugCodeSize =
-        if blockingSet.isEmpty then { println(s"index $idx clean hit!"); 1000 }
-        else
+        if covered || blockingSet.isEmpty then {
+          println(s"index $idx clean hit!"); cleanHit += 1; 1000
+        } else
           blockingSet.toList
             .sortBy(-_.code.length)
             .foldLeft(0) {
@@ -77,6 +79,7 @@ object SelectionEval {
       controlGroup2k.values.sum.toDouble / controlGroup2k.size.toDouble
     val avgBugSizeExp =
       expGroup.values.sum.toDouble / expGroup.size.toDouble
+    println(s"# of clean hits: $cleanHit")
     println(
       s"avgBugSize: $avgBugSizeExp, avgBugSize1k: $avgBugSize1k, avgBugSize2k: $avgBugSize2k",
     )

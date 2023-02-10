@@ -53,8 +53,6 @@ case object PreFuzzEval
     println(s"average bug length compared to 1k: $bugSize1k")
     println(s"average bug length compared to 2k: $bugSize2k")
     println(s"# of minimals: $numMinimals")
-    println("# of minimals in 1k: 3198")
-    println("# of minimals in 2k: 16133")
   }
 
   def defaultConfig: Config = Config()

@@ -211,7 +211,7 @@ object JSEngine {
   // runners by executing shell command with path to binary
   // -------------------------------------------------------------------------
   def runUsingBinary(runner: String, src: String): Try[String] = Try {
-    val escapedSrc = escape(src)
+    val escapedSrc = escapeToShellString(src)
     val stdout = new StringJoiner(LINE_SEP)
     val stderr = new StringJoiner(LINE_SEP)
     def cmd(main: String) = s"timeout 3s $main $escapedSrc"
@@ -237,9 +237,4 @@ object JSEngine {
 
   def runUsingJs(src: String): Try[String] =
     runUsingBinary(defaultCmd("js"), src)
-
-  /** escape a string to a shell-safe string, enclosed by single quote */
-  private def escape(string: String): String =
-    val replaced = string.replace("'", "'\"'\"'") // replace I'm to I'"'"'m
-    s"'$replaced'"
 }

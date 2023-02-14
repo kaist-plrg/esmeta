@@ -3,6 +3,7 @@ package esmeta.js
 import esmeta.*
 import esmeta.error.*
 import esmeta.util.SystemUtils.readFile
+import esmeta.util.BaseUtils.*
 import scala.util.Try
 import sys.process._
 import java.util.StringJoiner
@@ -35,9 +36,8 @@ object JSTrans {
 
   def transpileUsingBabel(src: String): String =
     doInitBabel
-    val escaped =
-      src.replace("\\", "\\\\").replace("`", "\\`").replace("$", "\\$")
-    JSEngine.runInContext("babel", s"orig = `$escaped`").get
+    val escaped = escapeToJsString(src)
+    JSEngine.runInContext("babel", s"orig = $escaped").get
     JSEngine
       .runInContext("babel", runner)
       .map(_.toString)

@@ -246,4 +246,15 @@ object BaseUtils {
       if (plural) str + str.pluralPostfix
       else str.indefArticle + " " + str
   }
+
+  /** Escape a string into a javascript string */
+  def escapeToJsString(string: String) =
+    val replaced =
+      string.replace("\\", "\\\\").replace("`", "\\`").replace("$", "\\$")
+    s"`$replaced`"
+
+  /** Escape a string into a shell string */
+  def escapeToShellString(string: String): String =
+    val replaced = string.replace("'", "'\"'\"'")
+    s"'$replaced'"
 }

@@ -10,6 +10,7 @@ import esmeta.es.util.{USE_STRICT}
 import esmeta.es.util.injector.*
 import esmeta.es.util.ValidityChecker
 import esmeta.es.util.mutator.Util.AdditiveListWalker
+import scala.collection.mutable.{Map => MMap}
 
 case class Target(
   val name: String,
@@ -25,10 +26,16 @@ case class Target(
 
   override def toString = name
 
-  private val errorPattern = "[\\w]*Error(?=: )".r
+  type CResult = (ExitTag, ExitTag, String)
+  def isPass(result: CResult): Boolean =
+    val (expected, actual, stdout) = result
+    expected.equivalent(actual) && stdout.isEmpty
 
-  def doConformTest(code: String): Boolean = doConformTest(Injector(code))
-  def doConformTest(test: ConformTest): Boolean = {
+  def doConformTest(code: String): Boolean = isPass(runConformTest(code))
+  def doConformTest(test: ConformTest): Boolean = isPass(runConformTest(test))
+
+  def runConformTest(code: String): CResult = runConformTest(Injector(code))
+  def runConformTest(test: ConformTest): CResult = {
 
     val assertion = test.core
     val code = test.script
@@ -57,6 +64,7 @@ case class Target(
 
     val (concreteExitTag, stdout) =
       if (!isTrans) {
+        // engine
         val etest = testMaker(code)
         JSEngine
           .runUsingBinary(cmd, etest)
@@ -64,6 +72,7 @@ case class Target(
           .recover(engineErrorResolver _)
           .get
       } else {
+        // transpiler
         var tempFile = s"$LOG_DIR/$name-temp.js"
         var tempOutFile = s"$LOG_DIR/$name-tempOut.js"
         dumpFile(code, tempFile)
@@ -82,10 +91,8 @@ case class Target(
           .recover(engineErrorResolver _)
           .get
       }
-    val sameExitTag = exitTag.equivalent(concreteExitTag)
-    val pass = sameExitTag && stdout.isEmpty
 
-    pass
+    (exitTag, concreteExitTag, stdout)
   }
 
   // header and footer for tests
@@ -93,6 +100,7 @@ case class Target(
   private val libTail = "})();"
   private val delayHead = "$delay(() => {"
   private val delayTail = "});"
+  private val errorPattern = "[\\w]*Error(?=: )".r
   private def engineErrorResolver(engineError: Throwable): (ExitTag, String) =
     engineError match {
       case e: TimeoutException     => (TimeoutTag, "")
@@ -108,22 +116,25 @@ case class Target(
         (tag, "")
     }
 
-  var cache: Map[String, Boolean] = Map()
-
   def minimize(code: String): String =
+    val origResult = runConformTest(code)
+
     var ast = Ast(code)
-
     def tryReduce: Boolean =
-      val result = reduce(ast).find(isFail)
-      result.foreach(newAst => { ast = newAst })
-      result.isDefined
+      val result = reduce(ast).find(isSameFail(origResult))
+      result match {
+        case Some(newAst) => ast = newAst; true
+        case None         => false
+      }
 
+    // Repeat try reducing
     while (tryReduce) {}
     ast.toScript
 
   def reduce(ast: Ast): List[Ast] =
     val orig = ast.toScript
     (new Reducer).walk(ast).filter(newAst => newAst.toScript != orig)
+
   private class Reducer extends AdditiveListWalker {
 
     private var firstChilds: Map[Syntactic, List[Syntactic]] =
@@ -274,14 +285,21 @@ case class Target(
       mutants.distinctBy(_.toScript)
   }
 
-  /** check if reduced test still fails the test */
-  private def isFail(ast: Ast): Boolean = isFail(ast.toScript)
-  private def isFail(code: String): Boolean =
-    if cache.contains(code) then cache(code)
-    else
-      val result =
-        if !ValidityChecker(code) then false
-        else optional(!doConformTest(code)).getOrElse(false)
-      cache += (code -> result)
-      result
+  val cache: MMap[String, Option[CResult]] = MMap()
+
+  def isSameResult(r1: CResult)(r2: CResult): Boolean =
+    val (expected1, actual1, _) = r1
+    val (expected2, actual2, _) = r2
+    expected1.equivalent(expected2) && actual1.equivalent(actual2)
+
+  /** check if reduced test fails the test for same reason */
+  private def isSameFail(origResult: CResult)(ast: Ast): Boolean =
+    isSameFail(origResult)(ast.toScript)
+  private def isSameFail(origResult: CResult)(code: String): Boolean =
+    val newResultOpt: Option[CResult] = cache.getOrElseUpdate(
+      code,
+      if !ValidityChecker(code) then None else optional(runConformTest(code)),
+    )
+
+    newResultOpt.fold(false)(isSameResult(origResult))
 }

@@ -5,6 +5,7 @@ import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
 import esmeta.error.{TimeoutException, NoCommandError}
 import esmeta.es.*
+import esmeta.es.util.cfg
 import esmeta.es.util.{USE_STRICT}
 import esmeta.es.util.injector.*
 import esmeta.es.util.ValidityChecker
@@ -124,10 +125,24 @@ case class Target(
     val orig = ast.toScript
     (new Reducer).walk(ast).filter(newAst => newAst.toScript != orig)
   private class Reducer extends AdditiveListWalker {
+    
     private var firstChilds: Map[Syntactic, List[Syntactic]] =
       Map().withDefaultValue(List())
+    // collect list of parents for each name
     private var parentMap: Map[String, List[Syntactic]] =
       Map().withDefaultValue(List())
+
+    private var substituteMap: Map[Syntactic, Syntactic] = {
+      val undefinedProp = cfg.esParser("MemberExpression", List(false, false)).from("0 . x").asInstanceOf[Syntactic]
+      val undefinedFunc = cfg.esParser("CoverCallExpressionAndAsyncArrowHead", List(false, false)).from("function ( ) { } ( )").asInstanceOf[Syntactic]
+      val undefined = 
+            cfg
+              .esParser("LeftHandSideExpression", List(false, false))
+              .from("undefined")
+              .asInstanceOf[Syntactic]
+              
+      Map(undefinedProp -> undefined, undefinedFunc -> undefined)
+    }
 
     override def walk(ast: Lexical): List[Lexical] = List()
     override def walk(ast: Syntactic): List[Syntactic] =
@@ -136,21 +151,46 @@ case class Target(
       // update parentMap
       val origParents = parentMap(name)
       parentMap += (name -> (ast :: origParents))
+      val parentStmts = parentMap("Statement")
 
       // update firstChilds
+      // 1. Extract child with same name 
       origParents.headOption.map(parent =>
         val origChilds = firstChilds(parent)
+        // add (parent -> ast) for closest parent with same name 
         firstChilds += (parent -> (ast :: origChilds)),
       )
 
+      // 4. Extract expression into statement
+      // ex) switch (e1) { case e2: }
+      // ->
+      // (e1) ;
+      // (e2) ;
+      if(name == "Expression")
+        parentStmts.headOption.map(parentStmt =>
+          val origChilds = firstChilds(parentStmt)
+          // add (parentStmt -> ast) for closest statement parent of ast
+          val wrappedAst = Syntactic(
+            "Statement",
+            List(false, false, false),
+            3,
+            Vector(Option(Syntactic(
+              "ExpressionStatement",
+              List(false, false),
+              0,
+              Vector(Option(ast))
+            )))
+          )
+          firstChilds += (parentStmt -> (ast :: origChilds))
+        )
+
       var mutants = super.walk(ast)
 
-      // restore parentMap
+      // restore parentMap (remove current ast from parentMap, "pop")
       parentMap += (name -> origParents)
-
-      // 1. Replace this node whith child with same name
+  
+      // Replace current node with selected children
       mutants = firstChilds(ast) ++ mutants
-
       // 2. Remove first element from two-elemented list
       val isDoubleton = optional {
         val child = children(0).get.asInstanceOf[Syntactic]
@@ -175,11 +215,30 @@ case class Target(
       // class A extends B { }
       // class A { body }
 
-      // 4. Extract expression into statement
-      // ex) switch (e1) { case e2: }
-      // ->
-      // (e1) ;
-      // (e2) ;
+      // get production rules with same name
+      val matchingProds = cfg.grammar.prods.filter(p => p.lhs.name == name)
+      //filter optional nonterminals and get matching mutants
+      matchingProds.foreach(prod =>
+        prod
+          .rhsVec(rhsIdx)
+          .nts
+          .zipWithIndex
+          .foreach((nt, i) =>
+            if (nt.optional)
+              val mutant = Syntactic(
+                name,
+                args,
+                rhsIdx,
+                children.zipWithIndex.map((child, idx) =>
+                    if(i==idx)
+                      None
+                    else
+                      child
+                    )
+              )
+              mutants = mutant :: mutants,
+          ),
+      )
 
       // 5. Special handling for ??
       // ex) e1 ?? e2 ;
@@ -187,10 +246,19 @@ case class Target(
       // e1 ;
       // e2 ;
 
-      // 6. Change into undefined / null
+      // 6-1. Substitue with undefined / null
       // ex) function () {} ()
       // ->
       // undefined
+      //
+      if(ast.name == "CoverCallExpressionAndAsyncArrowHead")
+        println(s"cur:${ast}")
+      if(substituteMap.contains(ast))
+        println(s"match: ${ast.name}")
+        mutants = substituteMap(ast) :: mutants
+
+      // 6-2. Replace ?. with .
+
 
       // 7. Others?
 

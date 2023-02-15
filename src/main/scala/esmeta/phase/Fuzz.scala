@@ -47,6 +47,9 @@ case object Fuzz extends Phase[CFG, Coverage] {
     // optionally dump the generated ECMAScript programs
     for (dirname <- config.out) cov.dumpToWithDetail(dirname)
 
+    // cleanup resource for each target
+    (engines ++ transpilers).foreach(_.cleanup)
+
     cov
   }
 

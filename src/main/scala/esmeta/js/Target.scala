@@ -26,6 +26,9 @@ case class Target(
 
   override def toString = name
 
+  lazy val repl = JSTrans.defaultRepl.get(name).map(REPL(_))
+  def cleanup = repl.foreach(_.close)
+
   type CResult = (ExitTag, ExitTag, String)
   def isPass(result: CResult): Boolean =
     val (expected, actual, stdout) = result
@@ -72,19 +75,8 @@ case class Target(
           .recover(engineErrorResolver _)
           .get
       } else {
-        // transpiler
-        var tempFile = s"$LOG_DIR/$name-temp.js"
-        var tempOutFile = s"$LOG_DIR/$name-tempOut.js"
-        dumpFile(code, tempFile)
-        JSTrans
-          .transpileFileUsingBinary(
-            cmd,
-            tempFile,
-            tempOutFile,
-          )
-          .getOrElse(dumpFile("throw \"TRANSPILE_FAILURE\";\n", tempOutFile))
-        var compiledCode = readFile(tempOutFile)
-        val ttest = testMaker(compiledCode)
+        val transpiledCode = JSTrans.transpileUsingRepl(repl.get, code)
+        val ttest = testMaker(transpiledCode)
         JSEngine
           .run(ttest)
           .map((NormalTag, _))

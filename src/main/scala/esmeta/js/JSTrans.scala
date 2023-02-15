@@ -19,10 +19,17 @@ object JSTrans {
   )
 
   val defaultCmd = Map(
-    "babel" -> s"$RESOURCE_DIR/trans/babel.js",
+    "babel" -> s"$RESOURCE_DIR/trans/babel-cmd.js",
     "swc" -> s"swc -C isModule=false",
     "terser" -> s"terser -c --ecma 2022 --keep-fnames --keep-classnames",
     "obfuscator" -> s"javascript-obfuscator --seed 1",
+  )
+
+  val defaultRepl = Map(
+    "babel" -> s"$RESOURCE_DIR/trans/babel.js",
+    "swc" -> s"$RESOURCE_DIR/trans/swc.js",
+    "terser" -> s"$RESOURCE_DIR/trans/terser.js",
+    "obfuscator" -> s"$RESOURCE_DIR/trans/obfuscator.js",
   )
 
   /** inner minified babel */
@@ -96,6 +103,10 @@ object JSTrans {
         case st  => throw TranspileFailureError
       }
     }
+
+  /** Transpile code using repl-version of transpilers */
+  def transpileUsingRepl(repl: REPL, code: String): String =
+    repl.enter(code)
 
   /** indicating the result of transpilation was faillure */
   val failTag = "TRANSPILE_FAILURE"

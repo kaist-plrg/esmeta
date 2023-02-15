@@ -179,22 +179,19 @@ case class Target(
         parentStmts.headOption.map(parentStmt =>
           val origChilds = firstChilds(parentStmt)
           // add (parentStmt -> ast) for closest statement parent of ast
-          val wrappedAst = Syntactic(
-            "Statement",
-            List(false, false, false),
-            3,
-            Vector(
-              Option(
-                Syntactic(
-                  "ExpressionStatement",
-                  List(false, false),
-                  0,
-                  Vector(Option(ast)),
-                ),
-              ),
-            ),
+          val wrappedExprStmt = Syntactic(
+            "ExpressionStatement",
+            parentStmt.args.take(2),
+            0,
+            Vector(Option(ast)),
           )
-          firstChilds += (parentStmt -> (ast :: origChilds)),
+          val wrappedStmt = Syntactic(
+            "Statement",
+            parentStmt.args,
+            3,
+            Vector(Option(wrappedExprStmt)),
+          )
+          firstChilds += (parentStmt -> (wrappedStmt :: origChilds)),
         )
 
       var mutants = super.walk(ast)
@@ -228,29 +225,24 @@ case class Target(
       // class A extends B { }
       // class A { body }
 
+      // drop i-th child from the current ast
+      def dropChild(i: Int): Unit =
+        val newChildren = children.updated(i, None)
+        val mutant = Syntactic(name, args, rhsIdx, newChildren)
+        mutants = mutant :: mutants
+
       // get production rules with same name
-      val matchingProds = cfg.grammar.prods.filter(p => p.lhs.name == name)
+      val matchingProds = cfg.grammar.prods.filter(_.lhs.name == name)
       // filter optional nonterminals and get matching mutants
       matchingProds.foreach(prod =>
         prod
           .rhsVec(rhsIdx)
           .nts
           .zipWithIndex
-          .foreach((nt, i) =>
-            if (nt.optional)
-              val mutant = Syntactic(
-                name,
-                args,
-                rhsIdx,
-                children.zipWithIndex.map((child, idx) =>
-                  if (i == idx)
-                    None
-                  else
-                    child,
-                ),
-              )
-              mutants = mutant :: mutants,
-          ),
+          .collect {
+            case (nt, idx) if nt.optional => idx
+          }
+          .foreach(dropChild),
       )
 
       // 5. Special handling for ??

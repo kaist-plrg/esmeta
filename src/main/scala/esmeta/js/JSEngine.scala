@@ -214,7 +214,7 @@ object JSEngine {
     val escapedSrc = escapeToShellString(src)
     val stdout = new StringJoiner(LINE_SEP)
     val stderr = new StringJoiner(LINE_SEP)
-    def cmd(main: String) = s"timeout 3s $main $escapedSrc"
+    def cmd(main: String) = s"timeout 1s $main $escapedSrc"
     val pb: ProcessBuilder = if runner.contains("|") then {
       val Array(main, envInfo) = runner.split("\\|")
       val Array(envKey, envVal) = envInfo.split(":")

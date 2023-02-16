@@ -50,7 +50,9 @@ case class REPL(file: String) {
       /* REPL will run asynchronously here */
       outputString.take.trim
     } else {
-      "PROCESS TERMINATED"
+      throw new esmeta.error.ESMetaError(
+        "REPL is terminated, which is unexpected",
+      )
     }
 
   def close: Unit = inputString.put("CLOSE")

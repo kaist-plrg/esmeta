@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 const { register_callback } = require("./repl");
-const terser = require("/usr/local/lib/node_modules/terser");
+const terser = require("./node_modules/terser");
 
 let transpile = async (input) => {
   return (await terser.minify(input, {

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 const { register_callback } = require("./repl");
-const { obfuscate } = require("/usr/local/lib/node_modules/javascript-obfuscator");
+const { obfuscate } = require("./node_modules/javascript-obfuscator");
 
 let transpile = (input) => {
   return obfuscate(input, {

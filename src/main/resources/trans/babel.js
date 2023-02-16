@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 const { register_callback } = require("./repl");
-const babel = require("./babel@7.19.1.min.js");
+const babel = require("./node_modules/@babel/standalone/babel.min.js");
 
 let transpile = (input) => {
   return babel.transform(input, {

@@ -11,6 +11,7 @@ import esmeta.es.util.injector.*
 import esmeta.es.util.ValidityChecker
 import esmeta.es.util.mutator.Util.AdditiveListWalker
 import scala.collection.mutable.{Map => MMap}
+import scala.runtime.AbstractFunction4
 
 case class Target(
   val name: String,
@@ -136,10 +137,9 @@ case class Target(
       Map().withDefaultValue(List())
 
     private var substituteMap: Map[Syntactic, Syntactic] = {
-      val undefinedProp = cfg
-        .esParser("MemberExpression", List(false, false))
-        .from("0 . x")
-        .asInstanceOf[Syntactic]
+      val undefinedMemberExpressions =
+        List("0 . x", "[ ] . x", "{ } . x", "'' . x")
+
       val undefinedFunc = cfg
         .esParser("CoverCallExpressionAndAsyncArrowHead", List(false, false))
         .from("function ( ) { } ( )")
@@ -150,7 +150,17 @@ case class Target(
           .from("undefined")
           .asInstanceOf[Syntactic]
 
-      Map(undefinedProp -> undefined, undefinedFunc -> undefined)
+      undefinedMemberExpressions
+        .map(str =>
+          (
+            cfg
+              .esParser("LeftHandSideExpression", List(false, false))
+              .from(str)
+              .asInstanceOf[Syntactic],
+            undefined,
+          ),
+        )
+        .toMap + (undefinedFunc -> undefined)
     }
 
     override def walk(ast: Lexical): List[Lexical] = List()
@@ -250,19 +260,82 @@ case class Target(
       // ->
       // e1 ;
       // e2 ;
+      if (ast.name == "CoalesceExpression")
+        val coalesceExprHead = ast.children(0).get.asInstanceOf[Syntactic]
+        val e1 = coalesceExprHead.children(0).get.asInstanceOf[Syntactic]
 
-      // 6-1. Substitue with undefined / null
+        val e2 = ast.children(0).get.asInstanceOf[Syntactic]
+        mutants = e1 :: e2 :: mutants
+
+      // 6. Substitue with undefined / null
       // ex) function () {} ()
       // ->
       // undefined
-      //
-      if (ast.name == "CoverCallExpressionAndAsyncArrowHead")
-        println(s"cur:${ast}")
+      // !! this breaks AST structure
       if (substituteMap.contains(ast))
-        println(s"match: ${ast.name}")
         mutants = substituteMap(ast) :: mutants
 
-      // 6-2. Replace ?. with .
+      // 7. Replace ?. with .
+      // this might also break AST structure
+      val ff = List(false, false)
+      // helpers for transformation
+
+      /*def optchainToMem(ast: Syntactic, inner: Option[Ast]) = ast match
+        case Syntactic("OptionalChain", _, optChainIdx, optChainChildren) =>
+          optChainIdx match
+            case 0 =>
+              Syntactic("CallExpression", ff, 0, Vector(
+                Some(Syntactic("CoverCallExpressionAndAsyncArrowHead", ff, 0, Vector(inner, optChainChildren(0))).asInstanceOf[Ast])
+              ))
+            case 1 | 2 | 3 =>
+              Syntactic("MemberExpression", ff, optChainIdx, Vector(inner, optChainChildren(0)))
+            case 4 =>
+              Syntactic("MemberExpression", ff, 7, Vector(inner, optChainChildren(0))) */
+
+      // mutate a nested OptionalChain to nested CallExpression
+      def optChainToCall(optChain: Syntactic, inner: Option[Ast]): Syntactic =
+        val Syntactic(name, _, optChainIdx, optChainChildren) = optChain
+        assert(name == "OptionalChain")
+        optChainIdx match
+          case 0 | 1 | 2 | 3 | 4 =>
+            Syntactic(
+              "CallExpression",
+              ff,
+              optChainIdx + 3,
+              Vector(inner, optChainChildren(0)),
+            )
+          case _ =>
+            val leftChain = optChainChildren(0).get.asInstanceOf[Syntactic]
+            Syntactic(
+              "CallExpression",
+              ff,
+              optChainIdx - 2,
+              Vector(
+                Some(optChainToCall(leftChain, inner)),
+                optChainChildren(1),
+              ),
+            )
+
+      // mutate whole body of OptionalExpression and nested
+      def replaceOptionalAccess(ast: Syntactic): Syntactic =
+        val Syntactic(_, _, optIdx, children) = ast
+        optIdx match
+          case 0 | 1 =>
+            optChainToCall(children(1).get.asInstanceOf[Syntactic], children(0))
+          case 2 =>
+            val convertedToCall = replaceOptionalAccess(
+              children(0).get.asInstanceOf[Syntactic],
+            )
+            Syntactic(
+              "OptionalExpression",
+              ff,
+              1,
+              Vector(Some(convertedToCall.asInstanceOf[Ast]), children(1)),
+            )
+
+      if (name == "OptionalExpression")
+        val newAst = replaceOptionalAccess(ast)
+        mutants = newAst :: mutants
 
       // 7. Others?
 

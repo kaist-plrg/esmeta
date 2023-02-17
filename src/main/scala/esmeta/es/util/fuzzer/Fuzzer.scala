@@ -213,7 +213,9 @@ class Fuzzer(
     val test = ConformTest.createTest(st)
     targetCov.par.foreach((target, cov) => {
       if (!target.doConformTest(test)) {
+        debugging(s"Conformtest fail for target ${target.name}")
         val minimized = target.minimize(code)
+        debugging(s"Minimized: $code -> $minimized")
         cov.runAndCheck(Script(minimized, name))
       }
     })
@@ -243,7 +245,7 @@ class Fuzzer(
   /** coverage */
   val cov: Coverage = Coverage(timeLimit, kFs, cp)
   val targetCov: Map[Target, Coverage] =
-    targets.map(_ -> Coverage(timeLimit, 0, false)).toMap
+    targets.map(_ -> Coverage(timeLimit, kFs, cp)).toMap
 
   /** target selector */
   val selector: TargetSelector = WeightedSelector(

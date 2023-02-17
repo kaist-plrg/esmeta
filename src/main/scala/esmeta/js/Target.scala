@@ -345,9 +345,11 @@ case class Target(
   val cache: MMap[String, Option[CResult]] = MMap()
 
   def isSameResult(r1: CResult)(r2: CResult): Boolean =
-    val (expected1, actual1, _) = r1
-    val (expected2, actual2, _) = r2
-    expected1.equivalent(expected2) && actual1.equivalent(actual2)
+    val (expected1, actual1, stdout1) = r1
+    val (expected2, actual2, stdout2) = r2
+    expected1.equivalent(expected2)
+    && actual1.equivalent(actual2)
+    && (stdout1.isEmpty == stdout2.isEmpty)
 
   /** check if reduced test fails the test for same reason */
   private def isSameFail(origResult: CResult)(ast: Ast): Boolean =

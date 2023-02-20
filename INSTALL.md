@@ -88,6 +88,19 @@ export PATH=$DYLD_FRAMEWORK_PATH:$PATH
 jsc -e "print(42);"
 ```
 
+# Version
+Use the branch `safari-7615.1.10-branch`
+```
+git clone -b safari-7615.1.10-branch --single-branch https://github.com/WebKit/WebKit.git WebKit --depth 1
+```
+
+# Things to do to Install on linux
+1. install g++-9 by `sudo apt install g++-9`
+2. `export CXX=g++-9`
+3. Manually download cmake 3.12, install, and add the bin directory to PATH
+4. Manually download and install libicu 66.1
+5. `pip install readline` (need for Toos/Scripts/clean-webkit
+
 ### SpiderMonkey
 [SpiderMonkey](https://spidermonkey.dev/) is Mozilla’s JavaScript and
 WebAssembly Engine, used in Firefox, Servo and various other projects.
@@ -104,6 +117,9 @@ mv <jsshell>/js <jsshell>/sm
 # 
 sm -e 'ignoreUnhandledRejections()' -e "print(42);"
 ```
+
+# Version
+Use [107.0b4](https://ftp.mozilla.org/pub/firefox/releases/107.0b4/)
 
 ## Transpilers
 
@@ -153,3 +169,7 @@ npm i -g javascript-obfuscator
 # run JavaScript Obfuscator
 javascript-obfuscator in.js -o out.js
 ```
+
+### Note about transpilers
+Running `npm isntall` in `src/main/resources/trans` will
+automatically download all transpilers with correct version locally.

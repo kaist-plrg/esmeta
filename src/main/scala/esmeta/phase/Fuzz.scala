@@ -50,6 +50,20 @@ case object Fuzz extends Phase[CFG, Coverage] {
       }
     } else None
 
+    val pValueMapOpt = if (config.pValue) {
+      try {
+        val pValueMap = readJson[List[(String, Double)]](
+          s"./p_values/dur_${config.preFuzzDuration}_cp_${config.cp}.json",
+        ).toMap
+        println(s"read ${pValueMap.size} p-values.")
+        Some(pValueMap)
+      } catch {
+        case e: Throwable =>
+          println(e.getMessage)
+          None
+      }
+    } else None
+
     val cov = Fuzzer(
       logInterval = config.logInterval,
       debug = config.debug,
@@ -61,6 +75,7 @@ case object Fuzz extends Phase[CFG, Coverage] {
       init = config.init,
       nodeViewKMap = nodeKMapOpt.getOrElse(Map()).withDefaultValue(0),
       condViewKMap = condKMapOpt.getOrElse(Map()).withDefaultValue(0),
+      pValueMapOpt = pValueMapOpt,
     )
 
     // optionally dump the generated ECMAScript programs
@@ -145,6 +160,11 @@ case object Fuzz extends Phase[CFG, Coverage] {
       NumOption((c, k) => c.cutPercent = k),
       "cut features over {given number}% of the average (default: 100)",
     ),
+    (
+      "p-value",
+      BoolOption(c => c.pValue = true),
+      "use p-value data for tunneling.",
+    ),
   )
 
   case class Config(
@@ -162,5 +182,6 @@ case object Fuzz extends Phase[CFG, Coverage] {
     var preFuzzDuration: Int = 60,
     var attentionPercent: Int = 50,
     var cutPercent: Int = 100,
+    var pValue: Boolean = false,
   )
 }

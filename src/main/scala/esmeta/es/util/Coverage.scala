@@ -27,6 +27,7 @@ class Coverage(
   cp: Boolean = false,
   nodeViewKMap: Map[String, Int] = Map[String, Int]().withDefaultValue(0),
   condViewKMap: Map[String, Int] = Map[String, Int]().withDefaultValue(0),
+  pValueMapOpt: Option[Map[String, Double]] = None,
 ) {
 
   import Coverage.{*, given}
@@ -95,7 +96,15 @@ class Coverage(
   def run(code: String): Interp = {
     // run interpreter and record touched
     val initSt = cfg.init.from(code)
-    val interp = Interp(initSt, timeLimit, kFs, cp, nodeViewKMap, condViewKMap)
+    val interp = Interp(
+      initSt,
+      timeLimit,
+      kFs,
+      cp,
+      nodeViewKMap,
+      condViewKMap,
+      pValueMapOpt,
+    )
     interp.result
     interp
   }
@@ -135,7 +144,8 @@ class Coverage(
         case None =>
           update(nodeView, script); updated = true; covered = true
         case Some(origScript) if origScript.code.length > code.length =>
-          update(nodeView, script); updated = true;
+          update(nodeView, script);
+          updated = true;
           blockingScripts += origScript
         case Some(blockScript) => blockingScripts += blockScript
 
@@ -146,7 +156,8 @@ class Coverage(
         case None =>
           update(condView, nearest, script); updated = true; covered = true
         case Some(origScript) if origScript.code.length > code.length =>
-          update(condView, nearest, script); updated = true;
+          update(condView, nearest, script);
+          updated = true;
           blockingScripts += origScript
         case Some(blockScript) => blockingScripts += blockScript
 
@@ -189,6 +200,7 @@ class Coverage(
     withTargetCondViews: Boolean = false,
     withUnreachableFuncs: Boolean = false,
     withKMaps: Boolean = false,
+    withPValues: Boolean = false,
     withMsg: Boolean = true,
   ): Unit =
     mkdir(baseDir)
@@ -255,6 +267,16 @@ class Coverage(
           filename = s"$baseDir/k-selection/cond.json",
           space = true,
         )
+      }
+      pValueMapOpt match {
+        case Some(pValueMap) if withPValues =>
+          dumpJson(
+            name = None,
+            data = pValueMap.toList.sortBy(_._2),
+            filename = s"$baseDir/p_values.json",
+            space = true,
+          )
+        case _ => ()
       }
       dumpJson(
         name =
@@ -443,6 +465,7 @@ object Coverage {
     cp: Boolean,
     nodeViewKMap: Map[String, Int] = Map[String, Int]().withDefaultValue(0),
     condViewKMap: Map[String, Int] = Map[String, Int]().withDefaultValue(0),
+    pValueMapOpt: Option[Map[String, Double]] = None,
   ) extends Interpreter(
       initSt,
       timeLimit = timeLimit,
@@ -454,6 +477,7 @@ object Coverage {
 
     // count (`feature in` => `feature` => `feature out`)
     var featureInOuts: Set[(String, String, String)] = Set()
+    lazy val avgPValueOpt = pValueMapOpt.map(m => m.values.sum / m.size)
 
     private def countFeatureIO(): Unit =
       val featureStack = st.context.featureStack
@@ -493,19 +517,35 @@ object Coverage {
 
     // get syntax-sensitive views
     private def getView(node: Node | Cond): View =
-      val stackHeadOpt = st.context.featureStack.headOption
-      val stack = st.context.featureStack.take(
-        Iterable(
-          kFs,
-          (node match {
-            case _: Node => stackHeadOpt.map(f => nodeViewKMap(f.head.fname))
-            case _: Cond => stackHeadOpt.map(f => condViewKMap(f.head.fname))
-          }).getOrElse(0),
-        ).max,
-      )
-
+      val stack = st.context.featureStack
       val path = if cp then Some(st.context.callPath) else None
-      stack match {
+      val stackFiltered = pValueMapOpt match {
+        case Some(pValueMap) =>
+          // TODO: Selection Strategy
+          val pValues =
+            stack.map(_.func.name).map(pValueMap.withDefaultValue(1.0))
+          stack.zipWithIndex
+            .zip(pValues)
+            .filter(_._2 > avgPValueOpt.get)
+            .sortBy(-_._2)
+            .take(3) // TODO: is maximum 3 features ok?
+            .sortBy(_._1._2)
+            .map(_._1._1)
+        case None =>
+          val stackHeadOpt = stack.headOption
+          stack.take(
+            Iterable(
+              kFs,
+              (node match {
+                case _: Node =>
+                  stackHeadOpt.map(f => nodeViewKMap(f.head.fname))
+                case _: Cond =>
+                  stackHeadOpt.map(f => condViewKMap(f.head.fname))
+              }).getOrElse(0),
+            ).max,
+          )
+      }
+      stackFiltered match {
         case Nil                  => None
         case feature :: enclosing => Some(enclosing, feature, path)
       }

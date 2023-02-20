@@ -35,6 +35,7 @@ object Fuzzer {
     init: Option[String] = None,
     nodeViewKMap: Map[String, Int] = Map[String, Int]().withDefaultValue(0),
     condViewKMap: Map[String, Int] = Map[String, Int]().withDefaultValue(0),
+    pValueMapOpt: Option[Map[String, Double]] = None,
   ): Coverage = new Fuzzer(
     logInterval,
     debug,
@@ -47,6 +48,7 @@ object Fuzzer {
     init,
     nodeViewKMap,
     condViewKMap,
+    pValueMapOpt,
   ).result
 
   // debugging levels
@@ -70,6 +72,7 @@ class Fuzzer(
   init: Option[String] = None,
   nodeViewKMap: Map[String, Int] = Map[String, Int]().withDefaultValue(0),
   condViewKMap: Map[String, Int] = Map[String, Int]().withDefaultValue(0),
+  pValueMapOpt: Option[Map[String, Double]] = None,
 ) {
 
   import Fuzzer.*
@@ -253,7 +256,8 @@ class Fuzzer(
   val scriptParser = cfg.scriptParser
 
   /** coverage */
-  var cov: Coverage = Coverage(timeLimit, kFs, cp, nodeViewKMap, condViewKMap)
+  var cov: Coverage =
+    Coverage(timeLimit, kFs, cp, nodeViewKMap, condViewKMap, pValueMapOpt)
 
   /** target selector */
   val selector: TargetSelector = WeightedSelector(

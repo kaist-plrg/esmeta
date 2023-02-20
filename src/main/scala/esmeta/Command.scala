@@ -203,12 +203,22 @@ case object CmdFuzz extends Command("fuzz", CmdBuildCFG >> Fuzz) {
     println(cov)
 }
 
-/** `pre-fuzz` command */
-case object CmdPreFuzz extends Command("pre-fuzz", CmdBuildCFG >> PreFuzz) {
-  val help = "pre-fuzz ECMAScript programs for fuzzing."
+/** `select-k` command */
+case object CmdSelectK extends Command("select-k", CmdBuildCFG >> SelectK) {
+  val help = "select k-sensitivity of ECMAScript language features for fuzzing."
   val examples: List[String] = List(
-    "esmeta pre-fuzz                 # generate ECMAScript programs for fuzzing",
-    "esmeta pre-fuzz -fuzz:out=out   # dump the generated program to `out`",
+    "esmeta select-k                 # generate ECMAScript programs for fuzzing",
+    "esmeta select-k -fuzz:out=out   # dump the generated program to `out`",
+  )
+}
+
+/** `select-p` command */
+case object CmdCalculateP
+  extends Command("calculate-p", CmdBuildCFG >> SelectK) {
+  val help = "calculate p-value of ECMAScript language features for fuzzing."
+  val examples: List[String] = List(
+    "esmeta calculate-p                # generate ECMAScript programs for fuzzing",
+    "esmeta calculate-p -fuzz:out=out  # dump the generated program to `out`",
   )
 }
 

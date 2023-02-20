@@ -8,6 +8,7 @@ import esmeta.es.util.Coverage.{Cond, CondView, NodeView}
 import esmeta.es.util.injector.*
 import esmeta.interpreter.*
 import esmeta.ir.{EBool, EParse, EReturnIfAbrupt, Expr}
+import esmeta.spec.{BuiltinHead, SyntaxDirectedOperationHead}
 import esmeta.state.*
 import esmeta.ty.AstSingleTy
 import esmeta.util.*
@@ -17,6 +18,7 @@ import io.circe.syntax.*
 
 import math.Ordering.Implicits.seqOrdering
 import scala.collection.immutable.Map
+import scala.collection.mutable.Map as MMap
 
 /** coverage measurement in CFG */
 class Coverage(
@@ -65,6 +67,9 @@ class Coverage(
   // mapping from nodes/conditions to number of touches
   var nodeViewCount: Map[NodeView, Int] = Map()
   var condViewCount: Map[CondView, Int] = Map()
+
+  var featureInOuts: MMap[String, MMap[String, MMap[String, Int]]] =
+    MMap().withDefaultValue(MMap().withDefaultValue(MMap().withDefaultValue(0)))
 
   // target conditional branches
   def targetCondViews: Map[Cond, Map[View, Option[Nearest]]] = _targetCondViews
@@ -117,6 +122,11 @@ class Coverage(
     var updated = false
     // Script that block the update
     var blockingScripts: Set[Script] = Set.empty
+
+    // update feature in outs
+    for ((feature, featureIn, featureOut) <- interp.featureInOuts) {
+      featureInOuts(feature)(featureIn)(featureOut) += 1
+    }
 
     // update node coverage
     for ((nodeView, _) <- interp.touchedNodeViews)
@@ -442,10 +452,24 @@ object Coverage {
     var touchedNodeViews: Map[NodeView, Option[Nearest]] = Map()
     var touchedCondViews: Map[CondView, Option[Nearest]] = Map()
 
+    // count (`feature in` => `feature` => `feature out`)
+    var featureInOuts: Set[(String, String, String)] = Set()
+
+    private def countFeatureIO(): Unit =
+      val featureStack = st.context.featureStack
+      featureStack match {
+        case outFeature :: feature :: inFeature :: _ =>
+          val features =
+            (feature.func.name, inFeature.func.name, outFeature.func.name)
+          featureInOuts += features
+        case _ => ()
+      }
+
     // override eval for node
     override def eval(node: Node): Unit =
       // record touched nodes
       touchedNodeViews += NodeView(node, getView(node)) -> getNearest
+      countFeatureIO()
       super.eval(node)
 
     // override branch move

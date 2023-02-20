@@ -10,7 +10,7 @@ import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
 
-object PreFuzzer {
+object KSensSelector {
   val ALL = 2
   val PARTIAL = 1
   val NO_DEBUG = 0
@@ -23,7 +23,8 @@ object PreFuzzer {
   private var condKMap: Map[String, Int] =
     Map[String, Int]().withDefaultValue(2)
 
-  def preFuzz(
+  /** Pre-fuzz to select k-sensitivity */
+  def select(
     logInterval: Option[Int] = Some(600), // default is 10 minutes.
     debug: Int = NO_DEBUG, // 2: all, 1: partial, 0: no
     stdOut: Boolean = false,

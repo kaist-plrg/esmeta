@@ -163,6 +163,8 @@ lazy val root = project
         .cross(CrossVersion.for3Use2_13), // cors
       "org.graalvm.js" % "js" % "22.2.0" % "provided",
       "org.scala-lang.modules" %% "scala-parallel-collections" % "1.0.4",
+      "org.scalanlp" %% "breeze" % "2.1.0",
+      "org.scalanlp" %% "breeze-viz" % "2.1.0",
     ),
 
     // Copy all managed dependencies to <build-root>/lib_managed/ This is

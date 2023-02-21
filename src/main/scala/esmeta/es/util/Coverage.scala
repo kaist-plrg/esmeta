@@ -107,7 +107,6 @@ class Coverage(
     interp.result
 
     // update feature in outs
-    println(s"interp.featureInOuts.size: ${interp.featureInOuts.size}")
     for ((feature, featureIn, featureOut) <- interp.featureInOuts) {
       featureInOuts(feature) = featureInOuts.getOrElse(feature, MMap())
       featureInOuts(feature)(featureIn) =
@@ -115,7 +114,6 @@ class Coverage(
       featureInOuts(feature)(featureIn)(featureOut) =
         featureInOuts(feature)(featureIn).getOrElse(featureOut, 0) + 1
     }
-    println(s"featureInOuts.size: ${featureInOuts.size}")
 
     interp
   }

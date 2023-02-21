@@ -15,7 +15,6 @@ case object CalculateP extends Phase[CFG, Unit] {
   val name = "calculate-p"
   val help =
     "generate ECMAScript programs for fuzzing (using selective sensitivity)."
-  private val MAX_ATTENTION_RATIO = 0.5
 
   def apply(
     cfg: CFG,
@@ -25,6 +24,7 @@ case object CalculateP extends Phase[CFG, Unit] {
     // optionally set the seed for the random number generator
     config.seed.foreach(setSeed)
 
+    println(config.duration)
     val pValueMap = PValueCalculator.getPValues(
       logInterval = config.logInterval,
       debug = config.debug,
@@ -37,6 +37,8 @@ case object CalculateP extends Phase[CFG, Unit] {
     )
 
     println(s"# of p-value calculations: ${pValueMap.size}")
+    println(s"# of p-value < 0.05: ${pValueMap.values.count(_ < 0.05)}")
+    println(s"# of p-value < 0.01: ${pValueMap.values.count(_ < 0.01)}")
     println("Dumping the calculation result")
 
     dumpJson(

@@ -112,6 +112,7 @@ object ESMeta extends Git(BASE_DIR) {
     Mutate,
     Fuzz,
     SelectK,
+    CalculateP,
     PreFuzzEval,
     GenTest,
     ConformTest,

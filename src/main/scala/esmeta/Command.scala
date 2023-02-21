@@ -214,7 +214,7 @@ case object CmdSelectK extends Command("select-k", CmdBuildCFG >> SelectK) {
 
 /** `select-p` command */
 case object CmdCalculateP
-  extends Command("calculate-p", CmdBuildCFG >> SelectK) {
+  extends Command("calculate-p", CmdBuildCFG >> CalculateP) {
   val help = "calculate p-value of ECMAScript language features for fuzzing."
   val examples: List[String] = List(
     "esmeta calculate-p                # generate ECMAScript programs for fuzzing",

@@ -12,7 +12,7 @@ import esmeta.{error as _, *}
 
 /** `selective-k fuzz` phase */
 case object CalculateP extends Phase[CFG, Unit] {
-  val name = "select-k"
+  val name = "calculate-p"
   val help =
     "generate ECMAScript programs for fuzzing (using selective sensitivity)."
   private val MAX_ATTENTION_RATIO = 0.5

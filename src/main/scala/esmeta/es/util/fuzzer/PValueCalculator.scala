@@ -26,9 +26,6 @@ object PValueCalculator {
     cp: Boolean = false,
     preFuzzIter: Int = 1,
   ): Map[String, Double] = {
-//    1 to preFuzzIter foreach { iter =>
-//      println(s"iteration: $iter")
-//    }
     val covPre = Fuzzer(
       logInterval = None,
       debug = debug,

@@ -106,6 +106,12 @@ class Coverage(
       pValueMapOpt,
     )
     interp.result
+
+    // update feature in outs
+    for ((feature, featureIn, featureOut) <- interp.featureInOuts) {
+      featureInOuts(feature)(featureIn)(featureOut) += 1
+    }
+
     interp
   }
 
@@ -131,11 +137,6 @@ class Coverage(
     var updated = false
     // Script that block the update
     var blockingScripts: Set[Script] = Set.empty
-
-    // update feature in outs
-    for ((feature, featureIn, featureOut) <- interp.featureInOuts) {
-      featureInOuts(feature)(featureIn)(featureOut) += 1
-    }
 
     // update node coverage
     for ((nodeView, _) <- interp.touchedNodeViews)
@@ -700,9 +701,26 @@ object Coverage {
           Map[String, Int]()
       }).withDefaultValue(0)
 
+    val pValueMap =
+      try {
+        Some(rj[List[(String, Double)]]("p_values.json").toMap)
+      } catch {
+        case e: Throwable =>
+          print("Coverage.fromLog: ");
+          println(e.getMessage);
+          None
+      }
+
     val con: CoverageConstructor = rj(s"constructor.json")
     val cov =
-      new Coverage(con.timeLimit, con.kFs, con.cp, nodeKMap, condKMap)
+      new Coverage(
+        con.timeLimit,
+        con.kFs,
+        con.cp,
+        nodeKMap,
+        condKMap,
+        pValueMap,
+      )
 
     val nodeViewInfos: Vector[NodeViewInfo] = rj("node-coverage.json")
     val condViewInfos: Vector[CondViewInfo] = rj("branch-coverage.json")

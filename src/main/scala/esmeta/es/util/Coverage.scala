@@ -69,8 +69,7 @@ class Coverage(
   var nodeViewCount: Map[NodeView, Int] = Map()
   var condViewCount: Map[CondView, Int] = Map()
 
-  var featureInOuts: MMap[String, MMap[String, MMap[String, Int]]] =
-    MMap().withDefaultValue(MMap().withDefaultValue(MMap().withDefaultValue(0)))
+  var featureInOuts: MMap[String, MMap[String, MMap[String, Int]]] = MMap()
 
   // target conditional branches
   def targetCondViews: Map[Cond, Map[View, Option[Nearest]]] = _targetCondViews
@@ -108,9 +107,15 @@ class Coverage(
     interp.result
 
     // update feature in outs
+    println(s"interp.featureInOuts.size: ${interp.featureInOuts.size}")
     for ((feature, featureIn, featureOut) <- interp.featureInOuts) {
-      featureInOuts(feature)(featureIn)(featureOut) += 1
+      featureInOuts(feature) = featureInOuts.getOrElse(feature, MMap())
+      featureInOuts(feature)(featureIn) =
+        featureInOuts(feature).getOrElse(featureIn, MMap())
+      featureInOuts(feature)(featureIn)(featureOut) =
+        featureInOuts(feature)(featureIn).getOrElse(featureOut, 0) + 1
     }
+    println(s"featureInOuts.size: ${featureInOuts.size}")
 
     interp
   }

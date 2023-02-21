@@ -13,9 +13,11 @@ object StatUtils {
     val difference = original - expected
     val chiSq = (original - expected).elemWiseSq.elemWiseDiv(expected)
     val dF = (original.rows - 1) * (original.cols - 1)
-    val dist = new ChiSquared(dF.toDouble)
-    val pValue = 1 - dist.cdf(chiSq.data.sum)
-    pValue
+    if dF <= 0 then 1
+    else
+      val dist = new ChiSquared(dF.toDouble)
+      val pValue = 1 - dist.cdf(chiSq.data.sum)
+      pValue
 
   /** data must have a default value */
   private def encodeData(
@@ -23,6 +25,8 @@ object StatUtils {
   ): Matrix =
     val ins = data.filter(_._2.nonEmpty).keys
     val outs = data.values.flatMap(_.keys).toList.distinct
+    println(ins)
+    println(outs)
     Matrix(
       ins.size,
       outs.size,

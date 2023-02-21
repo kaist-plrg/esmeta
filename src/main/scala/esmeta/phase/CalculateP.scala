@@ -24,7 +24,6 @@ case object CalculateP extends Phase[CFG, Unit] {
     // optionally set the seed for the random number generator
     config.seed.foreach(setSeed)
 
-    println(config.duration)
     val pValueMap = PValueCalculator.getPValues(
       logInterval = config.logInterval,
       debug = config.debug,

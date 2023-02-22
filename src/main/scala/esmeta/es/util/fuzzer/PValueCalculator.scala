@@ -27,7 +27,7 @@ object PValueCalculator {
     preFuzzIter: Int = 1,
   ): Map[String, Double] = {
     val covPre = Fuzzer(
-      logInterval = None,
+      logInterval = logInterval,
       debug = debug,
       timeLimit = timeLimit,
       trial = trial,

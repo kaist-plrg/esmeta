@@ -36,20 +36,21 @@ object Fuzzer {
     nodeViewKMap: Map[String, Int] = Map[String, Int]().withDefaultValue(0),
     condViewKMap: Map[String, Int] = Map[String, Int]().withDefaultValue(0),
     pValueMapOpt: Option[Map[String, Double]] = None,
-  ): Coverage = new Fuzzer(
-    logInterval,
-    debug,
-    stdOut,
-    timeLimit,
-    trial,
-    duration,
-    kFs,
-    cp,
-    init,
-    nodeViewKMap,
-    condViewKMap,
-    pValueMapOpt,
-  ).result
+  ): Coverage =
+    new Fuzzer(
+      logInterval,
+      debug,
+      stdOut,
+      timeLimit,
+      trial,
+      duration,
+      kFs,
+      cp,
+      init,
+      nodeViewKMap,
+      condViewKMap,
+      pValueMapOpt,
+    ).result
 
   // debugging levels
   val ALL = 2

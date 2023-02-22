@@ -12,7 +12,7 @@ object StatUtils {
     val expected = original.nullExpected
     val chiSq = (original - expected).elemWiseSq.elemWiseDiv(expected)
     val dF = (original.rows - 1) * (original.cols - 1)
-    if dF <= 0 then 1
+    if dF <= 0 then 0
     else
       val dist = new ChiSquared(dF.toDouble)
       val pValue = 1 - dist.cdf(chiSq.data.sum)
@@ -22,17 +22,20 @@ object StatUtils {
   private def encodeData(
     data: MMap[String, MMap[String, Int]],
   ): Matrix =
-    val ins = data.filter(_._2.nonEmpty).keys
+    val ins = data.filter(_._2.nonEmpty).keys.toList
     val outs = data.values.flatMap(_.keys).toList.distinct
-//    println(ins)
-//    println(outs)
-    Matrix(
-      ins.size,
-      outs.size,
+    val matData =
       (for {
         inFeature <- ins
         outFeature <- outs
-      } yield data(inFeature)(outFeature).toDouble).toList,
+      } yield data(inFeature).getOrElse(outFeature, 0).toDouble)
+//    println(s"ins(${ins.size}): $ins")
+//    println(s"outs(${outs.size}): $outs")
+//    println(s"matData(${matData.size}): $matData")
+    Matrix(
+      ins.size,
+      outs.size,
+      matData,
     )
 }
 

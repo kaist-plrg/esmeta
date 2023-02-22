@@ -10,7 +10,6 @@ object StatUtils {
   def chiSqIdpTest(data: MMap[String, MMap[String, Int]]): Double =
     val original = encodeData(data)
     val expected = original.nullExpected
-    val difference = original - expected
     val chiSq = (original - expected).elemWiseSq.elemWiseDiv(expected)
     val dF = (original.rows - 1) * (original.cols - 1)
     if dF <= 0 then 1
@@ -25,14 +24,14 @@ object StatUtils {
   ): Matrix =
     val ins = data.filter(_._2.nonEmpty).keys
     val outs = data.values.flatMap(_.keys).toList.distinct
-    println(ins)
-    println(outs)
+//    println(ins)
+//    println(outs)
     Matrix(
       ins.size,
       outs.size,
       (for {
-        inFeature <- data.filter(_._2.nonEmpty).keys
-        outFeature <- data.values.flatMap(_.keys)
+        inFeature <- ins
+        outFeature <- outs
       } yield data(inFeature)(outFeature).toDouble).toList,
     )
 }

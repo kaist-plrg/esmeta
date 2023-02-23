@@ -1,10 +1,30 @@
 package esmeta.util
 
+import breeze.stats.distributions.Gaussian
 import breeze.stats.distributions.ChiSquared
+import breeze.stats.distributions.Binomial
 import breeze.stats.distributions.Rand.VariableSeed.randBasis
 import scala.collection.mutable.Map as MMap
+import scala.math.sqrt
 
 object StatUtils {
+
+  /** one-tailed (left) binomial test */
+  def leftBinTest(n: Int, p: Double, k: Int): Double =
+    if n > 64 then {
+      // large n => approx.
+      val gaussian = new Gaussian(0, 1)
+      val z =
+        (k - n * p - 0.5) / sqrt(
+          n * p * (1 - p),
+        ) // 0.5 for continuity correction
+      val pValue = 1 - gaussian.cdf(z)
+      pValue
+    } else {
+      val binomial = new Binomial(n, p)
+      val pValue = (k to n).map(binomial.probabilityOf).sum
+      pValue
+    }
 
   /** data must have a default value */
   def chiSqIdpTest(data: MMap[String, MMap[String, Int]]): Double =
@@ -29,9 +49,6 @@ object StatUtils {
         inFeature <- ins
         outFeature <- outs
       } yield data(inFeature).getOrElse(outFeature, 0).toDouble)
-//    println(s"ins(${ins.size}): $ins")
-//    println(s"outs(${outs.size}): $outs")
-//    println(s"matData(${matData.size}): $matData")
     Matrix(
       ins.size,
       outs.size,
@@ -39,7 +56,7 @@ object StatUtils {
     )
 }
 
-case class Matrix(val rows: Int, val cols: Int, data: List[Double]) {
+case class Matrix(rows: Int, cols: Int, data: List[Double]) {
   {
     assert(rows * cols == data.size)
   }

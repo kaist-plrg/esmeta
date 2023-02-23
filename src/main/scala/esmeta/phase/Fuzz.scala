@@ -53,7 +53,7 @@ case object Fuzz extends Phase[CFG, Coverage] {
     val pValueMapOpt = if (config.pValue) {
       try {
         val pValueMap = readJson[List[(String, Double)]](
-          s"./p_values/dur_${config.preFuzzDuration}_cp_${config.cp}.json",
+          s"./p_values/dur_${config.preFuzzDuration}_cp_${false}.json",
         ).toMap
         println(s"read ${pValueMap.size} p-values.")
         Some(pValueMap)

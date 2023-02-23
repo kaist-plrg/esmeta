@@ -481,7 +481,9 @@ object Coverage {
 
     // count (`feature in` => `feature` => `feature out`)
     var featureInOuts: Set[(String, String, String)] = Set()
-    lazy val avgPValueOpt = pValueMapOpt.map(m => m.values.sum / m.size)
+    // significance
+    lazy private val significance: Option[Double] = Some(0.01)
+    // pValueMapOpt.map(m => m.values.sum / m.size)
 
     private def countFeatureIO(): Unit =
       val featureStack = st.context.featureStack
@@ -530,7 +532,7 @@ object Coverage {
             stack.map(_.func.name).map(pValueMap.withDefaultValue(1.0))
           stack.zipWithIndex
             .zip(pValues)
-            .filter(_._2 > avgPValueOpt.get)
+            .filter(_._2 > significance.get)
             .sortBy(-_._2)
             .take(3) // TODO: is maximum 3 features ok?
             .sortBy(_._1._2)

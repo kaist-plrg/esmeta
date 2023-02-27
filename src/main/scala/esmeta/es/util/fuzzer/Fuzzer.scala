@@ -197,6 +197,7 @@ class Fuzzer(
       case Failure(e: TimeoutException) => debugging(failMsg("TIMEOUT")); false
       case Failure(e: NotSupported) =>
         debugging(failMsg("NOT SUPPORTED")); false
+      case Failure(e: ESMetaError) => throw e
       case Failure(e) =>
         e.getMessage match
           case "ALREADY VISITED" | "INVALID PROGRAM" if debug == PARTIAL =>
@@ -271,7 +272,7 @@ class Fuzzer(
   /** initial pool */
   val initPool = init
     .map(d =>
-      listFiles(d).map(f =>
+      listFiles(d).sorted.map(f =>
         "GivenByUser" -> readFile(f.getPath).replace(USE_STRICT, ""),
       ),
     )

@@ -40,7 +40,8 @@ object SelectionEval {
       val (_, _, covered, blockingSet) = cov.runAndCheckBlockings(script)
       val minBugCodeSize =
         if covered || blockingSet.isEmpty then {
-          cleanHit += 1; println(s"index $idx clean hit! total $cleanHit .");
+          cleanHit += 1;
+          println(s"index $idx clean hit! total $cleanHit .");
           1000
         } else
           blockingSet.toList

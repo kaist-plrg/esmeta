@@ -1,9 +1,8 @@
 package esmeta.util
 
-import breeze.stats.distributions.Gaussian
-import breeze.stats.distributions.ChiSquared
-import breeze.stats.distributions.Binomial
+import breeze.stats.distributions.{Binomial, ChiSquared, Gaussian}
 import breeze.stats.distributions.Rand.VariableSeed.randBasis
+
 import scala.collection.mutable.Map as MMap
 import scala.math.sqrt
 

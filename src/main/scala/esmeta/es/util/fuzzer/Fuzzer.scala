@@ -33,9 +33,11 @@ object Fuzzer {
     kFs: Int = 0,
     cp: Boolean = false,
     init: Option[String] = None,
+    isPreFuzz: Boolean = false,
     nodeViewKMap: Map[String, Int] = Map[String, Int]().withDefaultValue(0),
     condViewKMap: Map[String, Int] = Map[String, Int]().withDefaultValue(0),
-    pValueMapOpt: Option[Map[String, Double]] = None,
+    indepPValueMapOpt: Option[Map[String, Double]] = None,
+    comboPValueMapOpt: Option[Map[(String, String), Double]] = None,
   ): Coverage =
     new Fuzzer(
       logInterval,
@@ -47,9 +49,10 @@ object Fuzzer {
       kFs,
       cp,
       init,
+      isPreFuzz,
       nodeViewKMap,
       condViewKMap,
-      pValueMapOpt,
+      indepPValueMapOpt,
     ).result
 
   // debugging levels
@@ -71,6 +74,7 @@ class Fuzzer(
   kFs: Int = 0, // feature sensitivity bias
   cp: Boolean = false,
   init: Option[String] = None,
+  isPreFuzz: Boolean = false,
   nodeViewKMap: Map[String, Int] = Map[String, Int]().withDefaultValue(0),
   condViewKMap: Map[String, Int] = Map[String, Int]().withDefaultValue(0),
   pValueMapOpt: Option[Map[String, Double]] = None,
@@ -258,7 +262,15 @@ class Fuzzer(
 
   /** coverage */
   var cov: Coverage =
-    Coverage(timeLimit, kFs, cp, nodeViewKMap, condViewKMap, pValueMapOpt)
+    Coverage(
+      timeLimit,
+      kFs,
+      cp,
+      isPreFuzz,
+      nodeViewKMap,
+      condViewKMap,
+      pValueMapOpt,
+    )
 
   /** target selector */
   val selector: TargetSelector = WeightedSelector(

@@ -50,6 +50,7 @@ object KSensSelector {
         duration = duration,
         kFs = kFs,
         cp = cp,
+        isPreFuzz = true,
         nodeViewKMap = nodeKMap,
         condViewKMap = condKMap,
       )

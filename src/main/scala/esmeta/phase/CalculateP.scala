@@ -9,6 +9,7 @@ import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
 import esmeta.{error as _, *}
+import scala.collection.mutable.Map as MMap
 
 /** `selective-k fuzz` phase */
 case object CalculateP extends Phase[CFG, Unit] {
@@ -24,7 +25,7 @@ case object CalculateP extends Phase[CFG, Unit] {
     // optionally set the seed for the random number generator
     config.seed.foreach(setSeed)
 
-    val pValueMap = PValueCalculator.getPValues(
+    val pValueCalculator = new PValueCalculator(
       logInterval = config.logInterval,
       debug = config.debug,
       timeLimit = config.timeLimit,
@@ -32,19 +33,49 @@ case object CalculateP extends Phase[CFG, Unit] {
       duration = config.duration,
       kFs = config.kFs,
       cp = config.cp,
-//      preFuzzIter = config.preFuzzIter,
     )
 
-    println(s"# of p-value calculations: ${pValueMap.size}")
-    println(s"# of p-value < 0.05: ${pValueMap.values.count(_ < 0.05)}")
-    println(s"# of p-value < 0.01: ${pValueMap.values.count(_ < 0.01)}")
+    val indepPValueMap = pValueCalculator.indepPValues
+    val comboPValueTupleMap = pValueCalculator.comboPValues
+    val comboPValueMap = MMap[String, MMap[String, Double]]()
+    def addCombo(f1: String, f2: String, p: Double): Unit =
+      comboPValueMap(f1) = comboPValueMap.getOrElse(f1, MMap())
+      comboPValueMap(f1)(f2) = p
+    for (((f1, f2), p) <- comboPValueTupleMap) {
+      addCombo(f1, f2, p)
+    }
+
+    println(s"# of independence p-value calculations: ${indepPValueMap.size}")
+    println(
+      s"# of independence p-value < 0.05: ${indepPValueMap.values.count(_ < 0.05)}",
+    )
+    println(
+      s"# of independence p-value < 0.01: ${indepPValueMap.values.count(_ < 0.01)}",
+    )
     println("Dumping the calculation result")
 
     dumpJson(
-      name = "pValueMap",
-      data = pValueMap.toList.sortBy(_._2),
+      name = "independence pValueMap",
+      data = indepPValueMap.toList.sortBy(_._2),
       filename =
-        s"./p_values/dur_${config.duration.getOrElse(0)}_cp_${config.cp}.json",
+        s"./p_values/independence_dur_${config.duration.getOrElse(0)}_cp_${config.cp}.json",
+      space = true,
+    )
+
+    println(s"# of combo p-value calculations: ${comboPValueTupleMap.size}")
+    println(
+      s"# of combo p-value < 0.05: ${comboPValueTupleMap.values.count(_ < 0.05)}",
+    )
+    println(
+      s"# of combo p-value < 0.01: ${comboPValueTupleMap.values.count(_ < 0.01)}",
+    )
+    dumpJson(
+      name = "combo pValueMap",
+      data = comboPValueMap.view
+        .mapValues(_.toList)
+        .toList,
+      filename =
+        s"./p_values/combo_${config.duration.getOrElse(0)}_cp_${config.cp}.json",
       space = true,
     )
   }

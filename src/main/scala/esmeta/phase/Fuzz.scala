@@ -50,12 +50,26 @@ case object Fuzz extends Phase[CFG, Coverage] {
       }
     } else None
 
-    val pValueMapOpt = if (config.pValue) {
+    val indepPValueMapOpt = if (config.pValue) {
       try {
         val pValueMap = readJson[List[(String, Double)]](
-          s"./p_values/dur_${config.preFuzzDuration}_cp_${false}.json",
+          s"./p_values/independence_dur_${config.duration.getOrElse(0)}_cp_${config.cp}.json",
         ).toMap
-        println(s"read ${pValueMap.size} p-values.")
+        println(s"read ${pValueMap.size} indep p-values.")
+        Some(pValueMap)
+      } catch {
+        case e: Throwable =>
+          println(e.getMessage)
+          None
+      }
+    } else None
+
+    val comboPValueMapOpt = if (config.pValue) {
+      try {
+        val pValueMap = readJson[List[((String, String), Double)]](
+          s"./p_values/combo_${config.duration.getOrElse(0)}_cp_${config.cp}.json",
+        ).toMap
+        println(s"read ${pValueMap.size} combo p-values.")
         Some(pValueMap)
       } catch {
         case e: Throwable =>
@@ -75,7 +89,8 @@ case object Fuzz extends Phase[CFG, Coverage] {
       init = config.init,
       nodeViewKMap = nodeKMapOpt.getOrElse(Map()).withDefaultValue(0),
       condViewKMap = condKMapOpt.getOrElse(Map()).withDefaultValue(0),
-      pValueMapOpt = pValueMapOpt,
+      indepPValueMapOpt = indepPValueMapOpt,
+      comboPValueMapOpt = comboPValueMapOpt,
     )
 
     // optionally dump the generated ECMAScript programs

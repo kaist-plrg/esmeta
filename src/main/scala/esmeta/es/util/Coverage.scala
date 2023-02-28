@@ -16,15 +16,16 @@ import esmeta.util.SystemUtils.*
 import io.circe.*
 import io.circe.syntax.*
 
-import math.Ordering.Implicits.seqOrdering
 import scala.collection.immutable.Map
 import scala.collection.mutable.Map as MMap
+import scala.math.Ordering.Implicits.seqOrdering
 
 /** coverage measurement in CFG */
 class Coverage(
   timeLimit: Option[Int] = None,
   kFs: Int = 0,
   cp: Boolean = false,
+  isPreFuzz: Boolean = false,
   nodeViewKMap: Map[String, Int] = Map[String, Int]().withDefaultValue(0),
   condViewKMap: Map[String, Int] = Map[String, Int]().withDefaultValue(0),
   pValueMapOpt: Option[Map[String, Double]] = None,
@@ -69,7 +70,27 @@ class Coverage(
   var nodeViewCount: Map[NodeView, Int] = Map()
   var condViewCount: Map[CondView, Int] = Map()
 
+  // triplets of 3 contiguous features -> number of touches
   var featureInOuts: MMap[String, MMap[String, MMap[String, Int]]] = MMap()
+
+  private def addFeatureInOuts(
+    feature: String,
+    featureIn: String,
+    featureOut: String,
+  ): Unit =
+    featureInOuts(feature) = featureInOuts.getOrElse(feature, MMap())
+    featureInOuts(feature)(featureIn) =
+      featureInOuts(feature).getOrElse(featureIn, MMap())
+    featureInOuts(feature)(featureIn)(featureOut) =
+      featureInOuts(feature)(featureIn).getOrElse(featureOut, 0) + 1
+
+  // (feature, feature) -> (number of 2 features being together, otherwise)
+  val featureCombos: MMap[(String, String), Int] = MMap()
+  var totalCombos: Int = 0
+
+  private def addFeatureCombo(feat1: String, feat2: String): Unit =
+    featureCombos((feat1, feat2)) += 1
+    totalCombos += 1
 
   // target conditional branches
   def targetCondViews: Map[Cond, Map[View, Option[Nearest]]] = _targetCondViews
@@ -105,16 +126,6 @@ class Coverage(
       pValueMapOpt,
     )
     interp.result
-
-    // update feature in outs
-    for ((feature, featureIn, featureOut) <- interp.featureInOuts) {
-      featureInOuts(feature) = featureInOuts.getOrElse(feature, MMap())
-      featureInOuts(feature)(featureIn) =
-        featureInOuts(feature).getOrElse(featureIn, MMap())
-      featureInOuts(feature)(featureIn)(featureOut) =
-        featureInOuts(feature)(featureIn).getOrElse(featureOut, 0) + 1
-    }
-
     interp
   }
 
@@ -129,10 +140,25 @@ class Coverage(
     script: Script,
     interp: Interp,
   ): (State, Boolean, Boolean, Set[Script]) =
-    val Script(code, name) = script
+    val Script(code, _) = script
     val initSt =
       cfg.init.from(code) // TODO: Check if recreating init state is OK
     val finalSt = interp.result
+
+    if (isPreFuzz) {
+      // update feature in outs
+      for ((feature, featureIn, featureOut) <- interp.featureInOuts) {
+        addFeatureInOuts(feature, featureIn, featureOut)
+      }
+
+      // update simultaneous features
+      for (feats <- interp.touchedFeatures.toSeq.combinations(2)) {
+        feats.sorted match {
+          case Seq(feat1, feat2) => addFeatureCombo(feat1, feat2)
+          case _ => println("combinations of 2 is not of size 2.")
+        }
+      }
+    }
 
     // covered new elements
     var covered = false
@@ -143,25 +169,29 @@ class Coverage(
 
     // update node coverage
     for ((nodeView, _) <- interp.touchedNodeViews)
-      nodeViewCount += nodeView -> (nodeViewCount.getOrElse(nodeView, 0) + 1)
+      if (isPreFuzz) {
+        nodeViewCount += nodeView -> (nodeViewCount.getOrElse(nodeView, 0) + 1)
+      }
       getScript(nodeView) match
         case None =>
           update(nodeView, script); updated = true; covered = true
         case Some(origScript) if origScript.code.length > code.length =>
-          update(nodeView, script);
-          updated = true;
+          update(nodeView, script)
+          updated = true
           blockingScripts += origScript
         case Some(blockScript) => blockingScripts += blockScript
 
     // update branch coverage
     for ((condView, nearest) <- interp.touchedCondViews)
-      condViewCount += condView -> (condViewCount.getOrElse(condView, 0) + 1)
+      if (isPreFuzz) {
+        condViewCount += condView -> (condViewCount.getOrElse(condView, 0) + 1)
+      }
       getScript(condView) match
         case None =>
           update(condView, nearest, script); updated = true; covered = true
         case Some(origScript) if origScript.code.length > code.length =>
-          update(condView, nearest, script);
-          updated = true;
+          update(condView, nearest, script)
+          updated = true
           blockingScripts += origScript
         case Some(blockScript) => blockingScripts += blockScript
 
@@ -193,6 +223,7 @@ class Coverage(
     withTargetCondViews = true,
     withUnreachableFuncs = true,
     withKMaps = true,
+    withPValues = true,
     withMsg = withMsg,
   )
 
@@ -483,10 +514,12 @@ object Coverage {
     var featureInOuts: Set[(String, String, String)] = Set()
     // significance
     lazy private val significance: Option[Double] = Some(0.01)
-    // pValueMapOpt.map(m => m.values.sum / m.size)
+    // for counting feature relevance
+    var touchedFeatures: Set[String] = Set()
 
     private def countFeatureIO(): Unit =
       val featureStack = st.context.featureStack
+      featureStack.headOption.foreach(touchedFeatures += _.func.name)
       featureStack match {
         case outFeature :: feature :: inFeature :: _ =>
           val features =
@@ -607,7 +640,8 @@ object Coverage {
     override def toString: String =
       cond.toString + stringOfView(view)
 
-    def lower(kFs: Int, cp: Boolean) = CondView(cond, lowerView(view, kFs, cp))
+    def lower(kFs: Int, cp: Boolean): CondView =
+      CondView(cond, lowerView(view, kFs, cp))
   }
 
   case class FuncView(func: Func, view: View = None) {
@@ -651,13 +685,13 @@ object Coverage {
 
     // get node
     def node: Option[Node] = elem match
-      case (branch: Branch)                   => Some(branch)
-      case (ref: WeakUIdRef[EReturnIfAbrupt]) => ref.get.cfgNode
+      case branch: Branch                   => Some(branch)
+      case ref: WeakUIdRef[EReturnIfAbrupt] => ref.get.cfgNode
 
     // get loc
     def loc: Option[Loc] = elem match
-      case (branch: Branch)                   => branch.loc
-      case (ref: WeakUIdRef[EReturnIfAbrupt]) => ref.get.loc
+      case branch: Branch                   => branch.loc
+      case ref: WeakUIdRef[EReturnIfAbrupt] => ref.get.loc
 
     // conversion to string
     override def toString: String = s"$kindString[$id]:$condString"
@@ -722,6 +756,7 @@ object Coverage {
         con.timeLimit,
         con.kFs,
         con.cp,
+        false,
         nodeKMap,
         condKMap,
         pValueMap,

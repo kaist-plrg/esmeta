@@ -1,14 +1,14 @@
 package esmeta.phase
 
-import esmeta.{error as _, *}
 import esmeta.cfg.{CFG, Node}
 import esmeta.es.util.Coverage.{Cond, CondView, NodeView}
-import esmeta.es.util.{Coverage, withCFG}
 import esmeta.es.util.fuzzer.*
+import esmeta.es.util.{Coverage, withCFG}
 import esmeta.state.Feature
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
+import esmeta.{error as _, *}
 
 /** `selective-k fuzz` phase */
 case object SelectK extends Phase[CFG, Unit] {

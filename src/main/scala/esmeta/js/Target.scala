@@ -6,7 +6,7 @@ import esmeta.util.SystemUtils.*
 import esmeta.error.{TimeoutException, NoCommandError}
 import esmeta.es.*
 import esmeta.es.util.cfg
-import esmeta.es.util.{USE_STRICT}
+import esmeta.es.util.{USE_STRICT, UnitWalker}
 import esmeta.es.util.injector.*
 import esmeta.es.util.ValidityChecker
 import esmeta.es.util.mutator.Util.AdditiveListWalker
@@ -180,37 +180,94 @@ case class Target(
         firstChilds += (parent -> (ast :: origChilds)),
       )
 
+      def wrap(
+        innerName: String,
+        outerName: String,
+        ast: Ast,
+        orig: Syntactic,
+      ): Syntactic =
+        if innerName == "Expression" && outerName == "Statement" then
+          val wrappedExprStmt = Syntactic(
+            "ExpressionStatement",
+            orig.args.take(2),
+            0,
+            Vector(Option(ast)),
+          )
+          Syntactic(
+            "Statement",
+            orig.args,
+            3,
+            Vector(Option(wrappedExprStmt)),
+          )
+        else if innerName == "AssignmentExpression" && outerName == "Statement" then
+          val wrappedExpr = Syntactic(
+            "Expression",
+            orig.args.take(2),
+            0,
+            Vector(Option(ast)),
+          )
+          val wrappedExprStmt = Syntactic(
+            "ExpressionStatement",
+            orig.args.take(2),
+            0,
+            Vector(Option(wrappedExpr)),
+          )
+          Syntactic(
+            "Statement",
+            orig.args,
+            3,
+            Vector(Option(wrappedExprStmt)),
+          )
+        else ast.asInstanceOf[Syntactic]
+
       // 4. Extract expression into statement
       // ex) switch (e1) { case e2: }
       // ->
       // (e1) ;
       // (e2) ;
-      if (name == "Expression")
+      /*
+         Expression -> Statement
+         AssignmentExpression -> Statement
+       *Expression -> AssignmentExpression
+         CoverInitilizedName -> AssignmentExpression
+         BitwiseORExpression -> CoalesceExpression
+       */
+      if (name == "Expression" || name == "AssignmentExpression")
         parentStmts.headOption.map(parentStmt =>
           val origChilds = firstChilds(parentStmt)
           // add (parentStmt -> ast) for closest statement parent of ast
-          val wrappedExprStmt = Syntactic(
-            "ExpressionStatement",
-            parentStmt.args.take(2),
-            0,
-            Vector(Option(ast)),
-          )
-          val wrappedStmt = Syntactic(
-            "Statement",
-            parentStmt.args,
-            3,
-            Vector(Option(wrappedExprStmt)),
-          )
+          val wrappedStmt = wrap(name, "Statement", ast, parentStmt)
           firstChilds += (parentStmt -> (wrappedStmt :: origChilds)),
         )
+      val replaceAsgnExpr =
+        name.endsWith("Expression") &&
+          name != "Expression" &&
+          name != "AssignmentExpression"
+        ||
+        name == "CoverInitializedName"
+      if replaceAsgnExpr then
+        parentMap("AssignmentExpression").headOption.map(asgnExpr =>
+          val origChilds = firstChilds(asgnExpr)
+          // add (asgnExpr -> ast) for closest statement parent of ast
+          val wrappedExpr = wrap(name, "AssignmentExpression", ast, asgnExpr)
+          firstChilds += (asgnExpr -> (wrappedExpr :: origChilds)),
+        )
+      if (name == "BitwiseORExpression")
+        parentMap("CoalesceExpression").headOption.map(coalExpr =>
+          val origChilds = firstChilds(coalExpr)
+          // add (coalExpr -> ast) for closest statement parent of ast
+          val wrappedExpr = wrap(name, "CoalesceExpression", ast, coalExpr)
+          firstChilds += (coalExpr -> (wrappedExpr :: origChilds)),
+        )
 
-      var mutants = super.walk(ast)
+      val orig_mutants = super.walk(ast)
 
       // restore parentMap (remove current ast from parentMap, "pop")
       parentMap += (name -> origParents)
 
       // Replace current node with selected children
-      mutants = firstChilds(ast) ++ mutants
+      var mutants = firstChilds(ast)
+
       // 2. Remove first element from two-elemented list
       val isDoubleton = optional {
         val child = children(0).get.asInstanceOf[Syntactic]
@@ -254,18 +311,6 @@ case class Target(
           }
           .foreach(dropChild),
       )
-
-      // 5. Special handling for ??
-      // ex) e1 ?? e2 ;
-      // ->
-      // e1 ;
-      // e2 ;
-      if (ast.name == "CoalesceExpression")
-        val coalesceExprHead = ast.children(0).get.asInstanceOf[Syntactic]
-        val e1 = coalesceExprHead.children(0).get.asInstanceOf[Syntactic]
-
-        val e2 = ast.children(0).get.asInstanceOf[Syntactic]
-        mutants = e1 :: e2 :: mutants
 
       // 6. Substitue with undefined / null
       // ex) function () {} ()
@@ -337,9 +382,55 @@ case class Target(
         val newAst = replaceOptionalAccess(ast)
         mutants = newAst :: mutants
 
-      // 7. Others?
+      // 8. extract default assignmnet inside a pattern
+      def isPatternAssignment =
+        children.length == 2 &&
+        children(0).fold(false)(_.name == "BindingPattern") &&
+        children(1).fold(false)(_.name == "Initializer") &&
+        // recursive case is already handled
+        name != "BindingElement"
+      class BindingExtractor extends UnitWalker {
+        private var _list: List[Syntactic] = List()
+        def apply(ast: Ast): List[Syntactic] = {
+          _list = List()
+          walk(ast)
+          _list
+        }
+        override def walk(ast: Syntactic): Unit = {
+          if ast.name == "SingleNameBinding" ||
+            ast.name == "BindingElement" && ast.rhsIdx == 1
+          then _list = ast :: _list
+          super.walk(ast)
+        }
+      }
 
-      mutants.distinctBy(_.toScript)
+      if isPatternAssignment then
+        val pattern = children(0).get
+        val bindings = (new BindingExtractor)(pattern)
+        bindings.foreach(binding => {
+          val newAst = Syntactic(name, args, binding.rhsIdx, binding.children)
+          mutants = newAst :: mutants
+        })
+
+      // 9. arguments (It's strange that argumentList is not optional)
+      if (name == "Arguments" && rhsIdx > 0)
+        val newAst = Syntactic(name, args, 0, Vector())
+        mutants = newAst :: mutants
+
+      // 10. assignment operator to just assignment
+      if (name == "AssignmentExpression" && rhsIdx > 4)
+        val newChildren =
+          if rhsIdx == 5 then Vector(children(0), children(2)) else children
+        val newAst = Syntactic(name, args, 4, newChildren)
+        mutants = newAst :: mutants
+
+      // 11. to EmptyStatement
+      if (name == "Statement" && rhsIdx != 2)
+        val mtStmt = Syntactic("EmptyStatement", List(), 0, Vector())
+        val newAst = Syntactic(name, args, 2, Vector(Some(mtStmt)))
+        mutants = newAst :: mutants
+
+      (orig_mutants ++ mutants.reverse).distinctBy(_.toScript)
   }
 
   val cache: MMap[String, Option[CResult]] = MMap()

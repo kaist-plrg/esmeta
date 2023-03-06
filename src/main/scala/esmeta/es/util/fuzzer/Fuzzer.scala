@@ -38,6 +38,7 @@ object Fuzzer {
     condViewKMap: Map[String, Int] = Map[String, Int]().withDefaultValue(0),
     indepPValueMapOpt: Option[Map[String, Double]] = None,
     comboPValueMapOpt: Option[Map[(String, String), Double]] = None,
+    onlineSelection: Boolean = false,
   ): Coverage =
     new Fuzzer(
       logInterval,
@@ -53,6 +54,8 @@ object Fuzzer {
       nodeViewKMap,
       condViewKMap,
       indepPValueMapOpt,
+      comboPValueMapOpt,
+      onlineSelection,
     ).result
 
   // debugging levels
@@ -77,7 +80,9 @@ class Fuzzer(
   isPreFuzz: Boolean = false,
   nodeViewKMap: Map[String, Int] = Map[String, Int]().withDefaultValue(0),
   condViewKMap: Map[String, Int] = Map[String, Int]().withDefaultValue(0),
-  pValueMapOpt: Option[Map[String, Double]] = None,
+  indepPValueMapOpt: Option[Map[String, Double]] = None,
+  comboPValueMapOpt: Option[Map[(String, String), Double]] = None,
+  onlineSelection: Boolean,
 ) {
 
   import Fuzzer.*
@@ -269,7 +274,7 @@ class Fuzzer(
       isPreFuzz,
       nodeViewKMap,
       condViewKMap,
-      pValueMapOpt,
+      indepPValueMapOpt,
     )
 
   /** target selector */

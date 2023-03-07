@@ -126,11 +126,11 @@ class Fuzzer(
     )
 
     // finish logging
-    logInterval.map(_ => {
+    logInterval.foreach(_ => {
       logging
-      summaryTsv.close
-      selStatTsv.close
-      mutStatTsv.close
+      summaryTsv.close()
+      selStatTsv.close()
+      mutStatTsv.close()
     })
 
     cov

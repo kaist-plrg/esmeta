@@ -1,6 +1,6 @@
 package esmeta.es.util
 
-class SKCoverage(
+class OKSCoverage(
   timeLimit: Option[Int] = None,
   kFs: Int = 0,
   cp: Boolean = false,

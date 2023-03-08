@@ -35,16 +35,11 @@ object FSTrie {
   }
 }
 
-class FSTrie(
+case class FSTrie(
   children: Map[String, FSTrie] = Map[String, FSTrie]().empty,
   value: FSValue = FSValue(),
 ) {
-
   import FSTrie.fsOrdering
-
-  // TODO: is it needed?
-  var totalTouch = 0
-  var totalViews = 0
 
   @tailrec
   final def apply(path: List[String]): FSValue = path match {
@@ -57,7 +52,6 @@ class FSTrie(
   }
 
   def incTouch(path: List[String]): FSTrie =
-    totalTouch += 1
     incTouchSuppl(path)
 
   def getViewLength(stack: List[String]): Int = getViewLengthSuppl(stack, 0)
@@ -73,11 +67,14 @@ class FSTrie(
       targetOpt.isEmpty && pq.nonEmpty
     }) ()
     targetOpt match {
-      case None         => this
-      case Some(target) => this.unleafify(target.path)
+      case None => this
+      case Some(target) =>
+        println(target.path)
+        this.unleafify(target.path)
     }
   }
 
+  @tailrec
   private def isTarget(path: List[String]): Boolean = path match {
     case Nil => value.leaf && children.nonEmpty
     case head :: tail => // cannot use both @tailrec and flatMap

@@ -38,7 +38,7 @@ object Fuzzer {
     condViewKMap: Map[String, Int] = Map[String, Int]().withDefaultValue(0),
     indepPValueMapOpt: Option[Map[String, Double]] = None,
     comboPValueMapOpt: Option[Map[(String, String), Double]] = None,
-    onlineSelection: Boolean = false,
+    onlineSelectionInterval: Option[Int] = None,
   ): Coverage =
     new Fuzzer(
       logInterval,
@@ -55,7 +55,7 @@ object Fuzzer {
       condViewKMap,
       indepPValueMapOpt,
       comboPValueMapOpt,
-      onlineSelection,
+      onlineSelectionInterval,
     ).result
 
   // debugging levels
@@ -82,7 +82,7 @@ class Fuzzer(
   condViewKMap: Map[String, Int] = Map[String, Int]().withDefaultValue(0),
   indepPValueMapOpt: Option[Map[String, Double]] = None,
   comboPValueMapOpt: Option[Map[(String, String), Double]] = None,
-  onlineSelection: Boolean,
+  onlineSelectionInterval: Option[Int] = None,
 ) {
 
   import Fuzzer.*
@@ -146,6 +146,13 @@ class Fuzzer(
       val seconds = bound * 1000
       if (interval > seconds) {
         if (debug == NO_DEBUG) logging else time("Logging", logging)
+        startInterval += seconds
+      }
+    }
+    for (bound <- onlineSelectionInterval) {
+      val seconds = bound * 1000
+      if (interval > seconds) {
+        cov.updateSensitivity()
         startInterval += seconds
       }
     }
@@ -275,6 +282,7 @@ class Fuzzer(
       nodeViewKMap,
       condViewKMap,
       indepPValueMapOpt,
+      onlineSelectionInterval.isDefined,
     )
 
   /** target selector */

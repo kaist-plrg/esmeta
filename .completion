@@ -24,7 +24,7 @@ _esmeta_completions() {
   test262testOpt="-test262-test:debug -test262-test:log -test262-test:target -test262-test:progress -test262-test:coverage -test262-test:timeout -test262-test:k-fs -test262-test:cp -test262-test:no-test-mode"
   injectOpt="-inject:defs -inject:out -inject:log"
   mutateOpt="-mutate:out -mutate:mutator -mutate:untilValid"
-  fuzzOpt="-fuzz:out -fuzz:log-interval -fuzz:debug -fuzz:timeout -fuzz:trial -fuzz:duration -fuzz:seed -fuzz:k-fs -fuzz:cp -fuzz:init -fuzz:pre-fuzz-iter -fuzz:pre-fuzz-duration -fuzz:attention-percent -fuzz:cut-percent -fuzz:p-value"
+  fuzzOpt="-fuzz:out -fuzz:log-interval -fuzz:debug -fuzz:timeout -fuzz:trial -fuzz:duration -fuzz:seed -fuzz:k-fs -fuzz:cp -fuzz:init -fuzz:pre-fuzz-iter -fuzz:pre-fuzz-duration -fuzz:attention-percent -fuzz:cut-percent -fuzz:p-value -fuzz:online-selection-interval"
   selectkOpt="-select-k:out -select-k:log-interval -select-k:debug -select-k:timeout -select-k:trial -select-k:duration -select-k:seed -select-k:k-fs -select-k:cp -select-k:iter -select-k:attention-percent -select-k:cut-percent"
   calculatepOpt="-calculate-p:out -calculate-p:log-interval -calculate-p:debug -calculate-p:timeout -calculate-p:trial -calculate-p:duration -calculate-p:seed -calculate-p:k-fs -calculate-p:cp -calculate-p:iter"
   prefuzzevalOpt="-pre-fuzz-eval:debug -pre-fuzz-eval:engines -pre-fuzz-eval:transpilers"

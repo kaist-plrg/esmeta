@@ -91,6 +91,7 @@ case object Fuzz extends Phase[CFG, Coverage] {
       condViewKMap = condKMapOpt.getOrElse(Map()).withDefaultValue(0),
       indepPValueMapOpt = indepPValueMapOpt,
       comboPValueMapOpt = comboPValueMapOpt,
+      onlineSelectionInterval = config.onlineSelectionInterval,
     )
 
     // optionally dump the generated ECMAScript programs
@@ -180,6 +181,11 @@ case object Fuzz extends Phase[CFG, Coverage] {
       BoolOption(c => c.pValue = true),
       "use p-value data for tunneling.",
     ),
+    (
+      "online-selection-interval",
+      NumOption((c, k) => c.onlineSelectionInterval = Some(k)),
+      "sensitivity update period in seconds.",
+    ),
   )
 
   case class Config(
@@ -198,5 +204,6 @@ case object Fuzz extends Phase[CFG, Coverage] {
     var attentionPercent: Int = 50,
     var cutPercent: Int = 100,
     var pValue: Boolean = false,
+    var onlineSelectionInterval: Option[Int] = None,
   )
 }

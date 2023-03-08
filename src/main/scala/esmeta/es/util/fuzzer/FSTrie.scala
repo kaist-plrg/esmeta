@@ -54,23 +54,30 @@ case class FSTrie(
   def incTouch(path: List[String]): FSTrie =
     incTouchSuppl(path)
 
-  def getViewLength(stack: List[String]): Int = getViewLengthSuppl(stack, 0)
+  def getViewLength(stack: List[String]): Int = getViewLengthSuppl(stack, 1)
 
   def splitMax: FSTrie = {
     var targetOpt: Option[FSData] = None
     val pq = collect()
-    while ({
-      val max = pq.dequeue()
-      if (isTarget(max.path)) {
-        targetOpt = Some(max)
+    if (pq.isEmpty) {
+      println("FSTrie: result of collect() is empty")
+//      println(children)
+//      println(value)
+      this
+    } else {
+      while ({
+        val max = pq.dequeue()
+        if (isTarget(max.path)) {
+          targetOpt = Some(max)
+        }
+        targetOpt.isEmpty && pq.nonEmpty
+      }) ()
+      targetOpt match {
+        case None => this
+        case Some(target) =>
+          println(target.path.map(_.take(10)))
+          this.unleafify(target.path)
       }
-      targetOpt.isEmpty && pq.nonEmpty
-    }) ()
-    targetOpt match {
-      case None => this
-      case Some(target) =>
-        println(target.path)
-        this.unleafify(target.path)
     }
   }
 

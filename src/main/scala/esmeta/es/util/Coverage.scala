@@ -174,8 +174,11 @@ class Coverage(
     // Script that block the update
     var blockingScripts: Set[Script] = Set.empty
 
+    var touchedNodeViews: Map[NodeView, Option[Nearest]] = Map()
+    var touchedCondViews: Map[CondView, Option[Nearest]] = Map()
+
     // update node coverage
-    for ((rawNodeView, _) <- interp.touchedNodeViews)
+    for ((rawNodeView, temp) <- interp.touchedNodeViews)
       // cook NodeView
       val NodeView(node, rawView) = rawNodeView
       val view: View = rawView match {
@@ -186,13 +189,18 @@ class Coverage(
           else Some((featureStack.tail, featureStack.head, path))
       }
       val nodeView = NodeView(node, view)
+      touchedNodeViews += nodeView -> temp
+
       if (isPreFuzz) {
         nodeViewCount += nodeView -> (nodeViewCount.getOrElse(nodeView, 0) + 1)
       }
       if (onlineSelection) {
+//        println("touch 1")
         nodeView.view.foreach {
           case (enc, f, _) =>
+//            println("touch 2")
             val stack = (f :: enc).map(_.func.name)
+            fsTrie = fsTrie.incTouch(stack)
         }
       }
       getScript(nodeView) match
@@ -216,6 +224,8 @@ class Coverage(
           else Some((featureStack.tail, featureStack.head, path))
       }
       val condView = CondView(cond, view)
+      touchedCondViews += condView -> nearest
+
       if (isPreFuzz) {
         condViewCount += condView -> (condViewCount.getOrElse(condView, 0) + 1)
       }
@@ -223,6 +233,7 @@ class Coverage(
         condView.view.foreach {
           case (enc, f, _) =>
             val stack = (f :: enc).map(_.func.name)
+            fsTrie = fsTrie.incTouch(stack)
         }
       }
 
@@ -239,8 +250,8 @@ class Coverage(
     if (updated)
       _minimalInfo += script.name -> ScriptInfo(
         ConformTest.createTest(initSt, finalSt),
-        interp.touchedNodeViews.keys,
-        interp.touchedCondViews.keys,
+        touchedNodeViews.keys,
+        touchedCondViews.keys,
       )
     // assert: _minimalScripts ~= _minimalInfo.keys
 
@@ -252,9 +263,11 @@ class Coverage(
   ): List[Feature] = {
     // online selection
     if onlineSelection then {
-      rawFeatureStack.take(
-        fsTrie.getViewLength(rawFeatureStack.map(_.func.name)),
-      )
+      rawFeatureStack.take({
+        val temp = fsTrie.getViewLength(rawFeatureStack.map(_.func.name))
+//        println(s"temp: $temp")
+        temp
+      })
     } else {
       // offline selection
       pValueMapOpt match {

@@ -103,7 +103,7 @@ class Fuzzer(
     time(
       s"- initializing program pool with ${initPool.size} programs", {
         for {
-          (synthesizer, rawCode) <- initPool.take(10)
+          (synthesizer, rawCode) <- initPool
           code <- optional(scriptParser.from(rawCode).toString(grammar))
         } {
           debugging(f"[${synthesizer}%-30s] $code")

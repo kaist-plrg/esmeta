@@ -177,6 +177,28 @@ class Coverage(
     var touchedNodeViews: Map[NodeView, Option[Nearest]] = Map()
     var touchedCondViews: Map[CondView, Option[Nearest]] = Map()
 
+    // increment touch of raw feature stacks
+    if (onlineSelection) {
+      val touchedRawNodeStack = interp.touchedNodeViews.keys
+        .flatMap(_.view)
+        .map(v => v._2 :: v._1)
+        .map(_.map(_.func.name))
+        .toSet
+
+      val touchedRawCondStack = interp.touchedCondViews.keys
+        .flatMap(_.view)
+        .map(v => v._2 :: v._1)
+        .map(_.map(_.func.name))
+        .toSet
+
+      touchedRawNodeStack.foreach { rawStack =>
+        fsTrie = fsTrie.incTouch(rawStack)
+      }
+      touchedRawCondStack.foreach { rawStack =>
+        fsTrie = fsTrie.incTouch(rawStack)
+      }
+    }
+
     // update node coverage
     for ((rawNodeView, temp) <- interp.touchedNodeViews)
       // cook NodeView
@@ -194,15 +216,13 @@ class Coverage(
       if (isPreFuzz) {
         nodeViewCount += nodeView -> (nodeViewCount.getOrElse(nodeView, 0) + 1)
       }
-      if (onlineSelection) {
-//        println("touch 1")
-        nodeView.view.foreach {
-          case (enc, f, _) =>
-//            println("touch 2")
-            val stack = (f :: enc).map(_.func.name)
-            fsTrie = fsTrie.incTouch(stack)
-        }
-      }
+//      if (onlineSelection) {
+//        rawNodeView.view.foreach {
+//          case (enc, f, _) =>
+//            val stack = (f :: enc).map(_.func.name)
+//            fsTrie = fsTrie.incTouch(stack)
+//        }
+//      }
       getScript(nodeView) match
         case None =>
           update(nodeView, script); updated = true; covered = true
@@ -229,13 +249,13 @@ class Coverage(
       if (isPreFuzz) {
         condViewCount += condView -> (condViewCount.getOrElse(condView, 0) + 1)
       }
-      if (onlineSelection) {
-        condView.view.foreach {
-          case (enc, f, _) =>
-            val stack = (f :: enc).map(_.func.name)
-            fsTrie = fsTrie.incTouch(stack)
-        }
-      }
+//      if (onlineSelection) {
+//        rawCondView.view.foreach {
+//          case (enc, f, _) =>
+//            val stack = (f :: enc).map(_.func.name)
+//            fsTrie = fsTrie.incTouch(stack)
+//        }
+//      }
 
       getScript(condView) match
         case None =>
@@ -263,9 +283,10 @@ class Coverage(
   ): List[Feature] = {
     // online selection
     if onlineSelection then {
+      //      println(s"length: ${rawFeatureStack.size}")
       rawFeatureStack.take({
         val temp = fsTrie.getViewLength(rawFeatureStack.map(_.func.name))
-//        println(s"temp: $temp")
+        //        println(s"temp: $temp")
         temp
       })
     } else {

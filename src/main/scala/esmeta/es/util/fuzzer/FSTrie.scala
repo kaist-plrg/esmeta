@@ -13,25 +13,23 @@ object FSTrie {
 
   def test(): Unit = {
     var t = FSTrie.root
+    val abc = List("a", "b", "c")
     1 to 4 foreach { _ => t = t.incTouch(List("a", "b", "c")) }
     1 to 3 foreach { _ => t = t.incTouch(List("b", "c")) }
     1 to 3 foreach { _ => t = t.incTouch(List("b", "d")) }
     1 to 2 foreach { _ => t = t.incTouch(List("c", "d")) }
-    println(t.collect())
-    println(t.collect().max)
-    println(t.getViewLength(List("a", "b", "c")))
-    println()
+
+    println(abc.take(t.getViewLength(abc)))
+    println("______________________________")
     t = t.splitMax
-    println(t.collect())
-    println(t.getViewLength(List("a", "b", "c")))
-    println()
+    println(abc.take(t.getViewLength(abc)))
+    println("______________________________")
     t = t.splitMax
-    println(t.collect())
-    println(t.getViewLength(List("a", "b", "c")))
-    println()
+    println(abc.take(t.getViewLength(abc)))
+    println("______________________________")
     t = t.splitMax
-    println(t.collect())
-    println(t.getViewLength(List("a", "b", "c")))
+    println(abc.take(t.getViewLength(abc)))
+    println("______________________________")
   }
 }
 
@@ -39,6 +37,7 @@ case class FSTrie(
   children: Map[String, FSTrie] = Map[String, FSTrie]().empty,
   value: FSValue = FSValue(),
 ) {
+
   import FSTrie.fsOrdering
 
   @tailrec
@@ -54,15 +53,13 @@ case class FSTrie(
   def incTouch(path: List[String]): FSTrie =
     incTouchSuppl(path)
 
-  def getViewLength(stack: List[String]): Int = getViewLengthSuppl(stack, 1)
+  def getViewLength(stack: List[String]): Int = getViewLengthSuppl(stack, 0)
 
   def splitMax: FSTrie = {
     var targetOpt: Option[FSData] = None
     val pq = collect()
     if (pq.isEmpty) {
       println("FSTrie: result of collect() is empty")
-//      println(children)
-//      println(value)
       this
     } else {
       while ({
@@ -75,7 +72,9 @@ case class FSTrie(
       targetOpt match {
         case None => this
         case Some(target) =>
-          println(target.path.map(_.take(10)))
+          println(
+            s"split: ${target.path.map(_.replaceAll("[aeiou]", "").take(16))}",
+          )
           this.unleafify(target.path)
       }
     }

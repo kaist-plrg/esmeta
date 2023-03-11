@@ -218,9 +218,6 @@ class Coverage(
       }
       getScript(nodeView) match
         case None =>
-          if (!covered) {
-            println(nodeView.view.map(f => (f._2 :: f._1).map(_.func.name)))
-          }
           update(nodeView, script); updated = true; covered = true
         case Some(origScript) if origScript.code.length > code.length =>
           update(nodeView, script)
@@ -248,9 +245,6 @@ class Coverage(
 
       getScript(condView) match
         case None =>
-          if (!covered) {
-            println(condView.view.map(f => (f._2 :: f._1).map(_.func.name)))
-          }
           update(condView, nearest, script); updated = true; covered = true
         case Some(origScript) if origScript.code.length > code.length =>
           update(condView, nearest, script)

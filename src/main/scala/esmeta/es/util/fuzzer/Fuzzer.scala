@@ -117,6 +117,7 @@ class Fuzzer(
         logInterval.map(_ => {
           startTime = System.currentTimeMillis
           startInterval = System.currentTimeMillis
+          startInterval2 = System.currentTimeMillis()
           logging
         })
         trial match
@@ -153,7 +154,7 @@ class Fuzzer(
       val seconds = bound * 1000
       if (interval > seconds) {
         cov.updateSensitivity()
-        startInterval += seconds
+        startInterval2 += seconds
       }
     }
     val currPool = pool
@@ -344,8 +345,10 @@ class Fuzzer(
   private def timeout = duration.fold(false)(_ * 1000 < elapsed)
 
   private var startInterval: Long = 0L
+  private var startInterval2: Long = 0L
 
   private def interval: Long = System.currentTimeMillis - startInterval
+  private def interval2: Long = System.currentTimeMillis() - startInterval2
 
   // conversion from code string to `Script` object
   private def toScript(code: String): Script = Script(code, s"$nextId.js")

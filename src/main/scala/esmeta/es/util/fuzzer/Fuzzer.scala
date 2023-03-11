@@ -152,7 +152,7 @@ class Fuzzer(
     }
     for (bound <- onlineSelectionInterval) {
       val seconds = bound * 1000
-      if (interval > seconds) {
+      if (interval2 > seconds) {
         cov.updateSensitivity()
         startInterval2 += seconds
       }

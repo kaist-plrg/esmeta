@@ -422,10 +422,10 @@ class Coverage(
           )
         case _ => ()
       }
-      if (withFSTrie) {
+      if (withFSTrie && onlineSelection) {
         dumpJson(
           name = None,
-          data = fsTrie,
+          data = fsTrie.trim(), // for evaluation
           filename = s"$baseDir/fs_trie.json",
           space = true,
         )

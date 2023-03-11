@@ -19,24 +19,29 @@ object FSTrie {
     1 to 3 foreach { _ => t = t.incTouch(List("b", "d")) }
     1 to 2 foreach { _ => t = t.incTouch(List("c", "d")) }
 
+
     println(abc.take(t.getViewLength(abc)))
+    println(t.trim())
     println("______________________________")
     t = t.splitMax
     println(abc.take(t.getViewLength(abc)))
+    println(t.trim())
     println("______________________________")
     t = t.splitMax
     println(abc.take(t.getViewLength(abc)))
+    println(t.trim())
     println("______________________________")
     t = t.splitMax
     println(abc.take(t.getViewLength(abc)))
+    println(t.trim())
     println("______________________________")
   }
 }
 
 case class FSTrie(
-  children: Map[String, FSTrie] = Map[String, FSTrie]().empty,
-  value: FSValue = FSValue(),
-) {
+                   children: Map[String, FSTrie] = Map[String, FSTrie]().empty,
+                   value: FSValue = FSValue(),
+                 ) {
 
   import FSTrie.fsOrdering
 
@@ -45,7 +50,7 @@ case class FSTrie(
     case Nil => value
     case head :: tail => // cannot use both @tailrec and flatMap
       children.get(head) match {
-        case None        => FSValue()
+        case None => FSValue()
         case Some(child) => child.apply(tail)
       }
   }
@@ -62,7 +67,7 @@ case class FSTrie(
       println("FSTrie: result of collect() is empty")
       this
     } else {
-      while ({
+      while ( {
         val max = pq.dequeue()
         if (isTarget(max.path)) {
           targetOpt = Some(max)
@@ -80,12 +85,22 @@ case class FSTrie(
     }
   }
 
+  def trim(): FSTrie = {
+    if value.leaf then this.copy(children = Map.empty)
+    else
+      this.copy(
+        children = children.transform {
+          case (_, child) => child.trim()
+        },
+      )
+  }
+
   @tailrec
   private def isTarget(path: List[String]): Boolean = path match {
     case Nil => value.leaf && children.nonEmpty
     case head :: tail => // cannot use both @tailrec and flatMap
       children.get(head) match {
-        case None        => false
+        case None => false
         case Some(child) => child.isTarget(tail)
       }
   }
@@ -107,9 +122,9 @@ case class FSTrie(
     collectSuppl(List.empty, PQueue[FSData]())
 
   private def collectSuppl(
-    path: List[String],
-    pQueue: PQueue[FSData],
-  ): PQueue[FSData] =
+                            path: List[String],
+                            pQueue: PQueue[FSData],
+                          ): PQueue[FSData] =
     if value.leaf then pQueue.addOne(FSData(path, value))
     else
       children.foldLeft(pQueue) {
@@ -131,7 +146,7 @@ case class FSTrie(
   private def getViewLengthSuppl(stack: List[String], acc: Int): Int =
     stack match {
       case _ if value.leaf => acc
-      case Nil             => acc
+      case Nil => acc
       case head :: tail =>
         children
           .get(head)

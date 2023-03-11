@@ -216,15 +216,11 @@ class Coverage(
       if (isPreFuzz) {
         nodeViewCount += nodeView -> (nodeViewCount.getOrElse(nodeView, 0) + 1)
       }
-//      if (onlineSelection) {
-//        rawNodeView.view.foreach {
-//          case (enc, f, _) =>
-//            val stack = (f :: enc).map(_.func.name)
-//            fsTrie = fsTrie.incTouch(stack)
-//        }
-//      }
       getScript(nodeView) match
         case None =>
+          if (!covered) {
+            println(nodeView.view.map(f => (f._2 :: f._1).map(_.func.name)))
+          }
           update(nodeView, script); updated = true; covered = true
         case Some(origScript) if origScript.code.length > code.length =>
           update(nodeView, script)
@@ -249,16 +245,12 @@ class Coverage(
       if (isPreFuzz) {
         condViewCount += condView -> (condViewCount.getOrElse(condView, 0) + 1)
       }
-//      if (onlineSelection) {
-//        rawCondView.view.foreach {
-//          case (enc, f, _) =>
-//            val stack = (f :: enc).map(_.func.name)
-//            fsTrie = fsTrie.incTouch(stack)
-//        }
-//      }
 
       getScript(condView) match
         case None =>
+          if (!covered) {
+            println(nodeView.view.map(f => (f._2 :: f._1).map(_.func.name)))
+          }
           update(condView, nearest, script); updated = true; covered = true
         case Some(origScript) if origScript.code.length > code.length =>
           update(condView, nearest, script)

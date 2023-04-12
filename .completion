@@ -11,7 +11,7 @@ _esmeta_completions() {
   local cur prev opts lastc informats outformats datafiles
   cur="${COMP_WORDS[COMP_CWORD]}"
   prev="${COMP_WORDS[COMP_CWORD-1]}"
-  cmdList="help extract compile build-cfg tycheck parse eval web test262-test inject mutate fuzz select-k calculate-p pre-fuzz-eval gen-test conform-test categorize handle-coverage analyze"
+  cmdList="help extract compile build-cfg tycheck parse eval web test262-test inject mutate fuzz pre-fuzz-eval gen-test conform-test categorize handle-coverage analyze"
   globalOpt="-silent -error -status -time"
   helpOpt=""
   extractOpt="-extract:target -extract:log -extract:repl"
@@ -25,8 +25,6 @@ _esmeta_completions() {
   injectOpt="-inject:defs -inject:out -inject:log"
   mutateOpt="-mutate:out -mutate:mutator -mutate:untilValid"
   fuzzOpt="-fuzz:out -fuzz:log-interval -fuzz:debug -fuzz:timeout -fuzz:trial -fuzz:duration -fuzz:seed -fuzz:k-fs -fuzz:cp -fuzz:init -fuzz:pre-fuzz-iter -fuzz:pre-fuzz-duration -fuzz:attention-percent -fuzz:cut-percent -fuzz:p-value -fuzz:online-selection-interval"
-  selectkOpt="-select-k:out -select-k:log-interval -select-k:debug -select-k:timeout -select-k:trial -select-k:duration -select-k:seed -select-k:k-fs -select-k:cp -select-k:iter -select-k:attention-percent -select-k:cut-percent"
-  calculatepOpt="-calculate-p:out -calculate-p:log-interval -calculate-p:debug -calculate-p:timeout -calculate-p:trial -calculate-p:duration -calculate-p:seed -calculate-p:k-fs -calculate-p:cp -calculate-p:iter"
   prefuzzevalOpt="-pre-fuzz-eval:debug -pre-fuzz-eval:engines -pre-fuzz-eval:transpilers"
   gentestOpt="-gen-test:debug -gen-test:engines -gen-test:transpilers -gen-test:use-cache -gen-test:only -gen-test:skip"
   conformtestOpt="-conform-test:debug -conform-test:msgdir -conform-test:save-bugs"
@@ -91,14 +89,6 @@ _esmeta_completions() {
           ;;
         fuzz)
           COMPREPLY=($(compgen -W "${globalOpt} ${extractOpt} ${compileOpt} ${buildcfgOpt} ${fuzzOpt}"))
-          return 0
-          ;;
-        select-k)
-          COMPREPLY=($(compgen -W "${globalOpt} ${extractOpt} ${compileOpt} ${buildcfgOpt} ${selectkOpt}"))
-          return 0
-          ;;
-        calculate-p)
-          COMPREPLY=($(compgen -W "${globalOpt} ${extractOpt} ${compileOpt} ${buildcfgOpt} ${calculatepOpt}"))
           return 0
           ;;
         pre-fuzz-eval)

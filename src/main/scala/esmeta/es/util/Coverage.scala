@@ -26,10 +26,6 @@ class Coverage(
   timeLimit: Option[Int] = None,
   kFs: Int = 0,
   cp: Boolean = false,
-  isPreFuzz: Boolean = false,
-  nodeViewKMap: Map[String, Int] = Map[String, Int]().withDefaultValue(0),
-  condViewKMap: Map[String, Int] = Map[String, Int]().withDefaultValue(0),
-  pValueMapOpt: Option[Map[String, Double]] = None,
   onlineSelection: Boolean = false,
   fsTrieIn: FSTrie = FSTrie.root,
 ) {
@@ -69,38 +65,10 @@ class Coverage(
   private var condViewMap: Map[Cond, Map[View, Script]] = Map()
   private var condViews: Set[CondView] = Set()
 
-  // mapping from nodes/conditions to number of touches
-  var nodeViewCount: Map[NodeView, Int] = Map()
-  var condViewCount: Map[CondView, Int] = Map()
-
   // mapping from feature stacks to number of touches
-  var fsTrie: FSTrie = fsTrieIn
+  private var fsTrie: FSTrie = fsTrieIn
 
   def updateSensitivity(): Unit = fsTrie = fsTrie.splitMax
-
-  // triplets of 3 contiguous features -> number of touches
-  var featureInOuts: MMap[String, MMap[String, MMap[String, Int]]] = MMap()
-  // significance
-  lazy private val significance: Option[Double] = Some(0.01)
-
-  private def addFeatureInOuts(
-    feature: String,
-    featureIn: String,
-    featureOut: String,
-  ): Unit =
-    featureInOuts(feature) = featureInOuts.getOrElse(feature, MMap())
-    featureInOuts(feature)(featureIn) =
-      featureInOuts(feature).getOrElse(featureIn, MMap())
-    featureInOuts(feature)(featureIn)(featureOut) =
-      featureInOuts(feature)(featureIn).getOrElse(featureOut, 0) + 1
-
-  // (feature, feature) -> (number of 2 features being together, otherwise)
-  val featureCombos: MMap[(String, String), Int] = MMap()
-  var totalCombos: Int = 0
-
-  private def addFeatureCombo(feat1: String, feat2: String): Unit =
-    featureCombos((feat1, feat2)) += 1
-    totalCombos += 1
 
   // target conditional branches
   def targetCondViews: Map[Cond, Map[View, Option[Nearest]]] = _targetCondViews
@@ -129,7 +97,6 @@ class Coverage(
     val interp = Interp(
       initSt,
       timeLimit,
-      kFs,
       cp,
     )
     interp.result
@@ -151,21 +118,6 @@ class Coverage(
     val initSt =
       cfg.init.from(code) // TODO: Check if recreating init state is OK
     val finalSt = interp.result
-
-    if (isPreFuzz) {
-      // update feature in outs
-      for ((feature, featureIn, featureOut) <- interp.featureInOuts) {
-        addFeatureInOuts(feature, featureIn, featureOut)
-      }
-
-      // update simultaneous features
-      for (feats <- interp.touchedFeatures.toSeq.combinations(2)) {
-        feats.sorted match {
-          case Seq(feat1, feat2) => addFeatureCombo(feat1, feat2)
-          case _ => println("combinations of 2 is not of size 2.")
-        }
-      }
-    }
 
     // covered new elements
     var covered = false
@@ -206,16 +158,13 @@ class Coverage(
       val view: View = rawView match {
         case None => None
         case Some((rawEnclosing, feature, path)) =>
-          val featureStack = cookFeatureStack(node, feature :: rawEnclosing)
+          val featureStack = cookFeatureStack(feature :: rawEnclosing)
           if featureStack.isEmpty then None
           else Some((featureStack.tail, featureStack.head, path))
       }
       val nodeView = NodeView(node, view)
       touchedNodeViews += nodeView -> temp
 
-      if (isPreFuzz) {
-        nodeViewCount += nodeView -> (nodeViewCount.getOrElse(nodeView, 0) + 1)
-      }
       getScript(nodeView) match
         case None =>
           update(nodeView, script); updated = true; covered = true
@@ -232,16 +181,12 @@ class Coverage(
       val view: View = rawView match {
         case None => None
         case Some((rawEnclosing, feature, path)) =>
-          val featureStack = cookFeatureStack(cond, feature :: rawEnclosing)
+          val featureStack = cookFeatureStack(feature :: rawEnclosing)
           if featureStack.isEmpty then None
           else Some((featureStack.tail, featureStack.head, path))
       }
       val condView = CondView(cond, view)
       touchedCondViews += condView -> nearest
-
-      if (isPreFuzz) {
-        condViewCount += condView -> (condViewCount.getOrElse(condView, 0) + 1)
-      }
 
       getScript(condView) match
         case None =>
@@ -264,7 +209,6 @@ class Coverage(
     (finalSt, updated, covered, blockingScripts)
 
   private def cookFeatureStack(
-    node: Node | Cond,
     rawFeatureStack: List[Feature],
   ): List[Feature] = {
     // online selection
@@ -276,35 +220,9 @@ class Coverage(
         temp
       })
     } else {
-      // offline selection
-      pValueMapOpt match {
-        case Some(pValueMap) => // tunneling using p-values
-          val pValues = rawFeatureStack
-            .map(_.func.name)
-            .map(pValueMap.withDefaultValue(1.0))
-          rawFeatureStack.zipWithIndex
-            .zip(pValues)
-            .filter(_._2 > significance.get)
-            .sortBy(-_._2)
-            .take(3) // TODO: is maximum 3 features ok?
-            .sortBy(_._1._2)
-            .map(_._1._1)
-        case None =>
-          val stackHeadOpt = rawFeatureStack.headOption
-          rawFeatureStack.take(
-            Iterable(
-              kFs,
-              (node match {
-                case _: Node =>
-                  stackHeadOpt.map(f => nodeViewKMap(f.head.fname))
-                case _: Cond =>
-                  stackHeadOpt.map(f => condViewKMap(f.head.fname))
-              }).getOrElse(0),
-            ).max,
-          )
-      }
+      // no selection
+      rawFeatureStack.take(kFs)
     }
-
   }
 
   /** get node coverage */
@@ -392,30 +310,6 @@ class Coverage(
         remove = true,
       )
       log("Dupmed assertions")
-      if (withKMaps) {
-        dumpJson(
-          name = None,
-          data = nodeViewKMap.toList.sortBy(_._2),
-          filename = s"$baseDir/k-selection/node.json",
-          space = true,
-        )
-        dumpJson(
-          name = None,
-          data = condViewKMap.toList.sortBy(_._2),
-          filename = s"$baseDir/k-selection/cond.json",
-          space = true,
-        )
-      }
-      pValueMapOpt match {
-        case Some(pValueMap) if withPValues =>
-          dumpJson(
-            name = None,
-            data = pValueMap.toList.sortBy(_._2),
-            filename = s"$baseDir/p_values.json",
-            space = true,
-          )
-        case _ => ()
-      }
       if (withFSTrie && onlineSelection) {
         dumpJson(
           name = None,
@@ -607,12 +501,7 @@ object Coverage {
   class Interp(
     initSt: State,
     timeLimit: Option[Int],
-    kFs: Int,
     cp: Boolean,
-    //    nodeViewKMap: Map[String, Int] = Map[String, Int]().withDefaultValue(0),
-    //    condViewKMap: Map[String, Int] = Map[String, Int]().withDefaultValue(0),
-    //    pValueMapOpt: Option[Map[String, Double]] = None,
-    //    FSTrieOpt: Option[FSTrie] = None,
   ) extends Interpreter(
       initSt,
       timeLimit = timeLimit,
@@ -622,27 +511,10 @@ object Coverage {
     var touchedNodeViews: Map[NodeView, Option[Nearest]] = Map()
     var touchedCondViews: Map[CondView, Option[Nearest]] = Map()
 
-    // count (`feature in` => `feature` => `feature out`)
-    var featureInOuts: Set[(String, String, String)] = Set()
-    // for counting feature relevance
-    var touchedFeatures: Set[String] = Set()
-
-    private def countFeatureIO(): Unit =
-      val featureStack = st.context.featureStack
-      featureStack.headOption.foreach(touchedFeatures += _.func.name)
-      featureStack match {
-        case outFeature :: feature :: inFeature :: _ =>
-          val features =
-            (feature.func.name, inFeature.func.name, outFeature.func.name)
-          featureInOuts += features
-        case _ => ()
-      }
-
     // override eval for node
     override def eval(node: Node): Unit =
       // record touched nodes
       touchedNodeViews += NodeView(node, getView(node)) -> getNearest
-      countFeatureIO()
       super.eval(node)
 
     // override branch move
@@ -669,32 +541,6 @@ object Coverage {
     private def getView(node: Node | Cond): View =
       val stack = st.context.featureStack
       val path = if cp then Some(st.context.callPath) else None
-      //      val stackFiltered = pValueMapOpt match {
-      //        case Some(pValueMap) =>
-      //          // TODO: Selection Strategy
-      //          val pValues =
-      //            stack.map(_.func.name).map(pValueMap.withDefaultValue(1.0))
-      //          stack.zipWithIndex
-      //            .zip(pValues)
-      //            .filter(_._2 > significance.get)
-      //            .sortBy(-_._2)
-      //            .take(3) // TODO: is maximum 3 features ok?
-      //            .sortBy(_._1._2)
-      //            .map(_._1._1)
-      //        case None =>
-      //          val stackHeadOpt = stack.headOption
-      //          stack.take(
-      //            Iterable(
-      //              kFs,
-      //              (node match {
-      //                case _: Node =>
-      //                  stackHeadOpt.map(f => nodeViewKMap(f.head.fname))
-      //                case _: Cond =>
-      //                  stackHeadOpt.map(f => condViewKMap(f.head.fname))
-      //              }).getOrElse(0),
-      //            ).max,
-      //          )
-      //      }
       stack match {
         case Nil                  => None
         case feature :: enclosing => Some(enclosing, feature, path)
@@ -879,10 +725,6 @@ object Coverage {
         con.timeLimit,
         con.kFs,
         con.cp,
-        false,
-        nodeKMap,
-        condKMap,
-        pValueMap,
         online,
         fsTrie,
       )

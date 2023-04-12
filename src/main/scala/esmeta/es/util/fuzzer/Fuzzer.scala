@@ -9,6 +9,8 @@ import esmeta.es.util.injector.*
 import esmeta.es.util.mutator.*
 import esmeta.es.util.synthesizer.*
 import esmeta.js.*
+import esmeta.parser.AstFrom
+import esmeta.spec.Grammar
 import esmeta.state.*
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
@@ -33,11 +35,6 @@ object Fuzzer {
     kFs: Int = 0,
     cp: Boolean = false,
     init: Option[String] = None,
-    isPreFuzz: Boolean = false,
-    nodeViewKMap: Map[String, Int] = Map[String, Int]().withDefaultValue(0),
-    condViewKMap: Map[String, Int] = Map[String, Int]().withDefaultValue(0),
-    indepPValueMapOpt: Option[Map[String, Double]] = None,
-    comboPValueMapOpt: Option[Map[(String, String), Double]] = None,
     onlineSelectionInterval: Option[Int] = None,
   ): Coverage =
     new Fuzzer(
@@ -50,11 +47,6 @@ object Fuzzer {
       kFs,
       cp,
       init,
-      isPreFuzz,
-      nodeViewKMap,
-      condViewKMap,
-      indepPValueMapOpt,
-      comboPValueMapOpt,
       onlineSelectionInterval,
     ).result
 
@@ -77,11 +69,6 @@ class Fuzzer(
   kFs: Int = 0, // feature sensitivity bias
   cp: Boolean = false,
   init: Option[String] = None,
-  isPreFuzz: Boolean = false,
-  nodeViewKMap: Map[String, Int] = Map[String, Int]().withDefaultValue(0),
-  condViewKMap: Map[String, Int] = Map[String, Int]().withDefaultValue(0),
-  indepPValueMapOpt: Option[Map[String, Double]] = None,
-  comboPValueMapOpt: Option[Map[(String, String), Double]] = None,
   onlineSelectionInterval: Option[Int] = None,
 ) {
 
@@ -270,8 +257,8 @@ class Fuzzer(
     ).asJson
 
   /** ECMAScript grammar */
-  val grammar = cfg.grammar
-  val scriptParser = cfg.scriptParser
+  val grammar: Grammar = cfg.grammar
+  val scriptParser: AstFrom = cfg.scriptParser
 
   /** coverage */
   var cov: Coverage =
@@ -279,11 +266,7 @@ class Fuzzer(
       timeLimit,
       kFs,
       cp,
-      isPreFuzz,
-      nodeViewKMap,
-      condViewKMap,
-      indepPValueMapOpt,
-      onlineSelectionInterval.isDefined,
+      onlineSelection = onlineSelectionInterval.isDefined,
     )
 
   /** target selector */

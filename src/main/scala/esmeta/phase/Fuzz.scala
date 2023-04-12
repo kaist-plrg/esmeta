@@ -87,10 +87,6 @@ case object Fuzz extends Phase[CFG, Coverage] {
       kFs = config.kFs,
       cp = config.cp,
       init = config.init,
-      nodeViewKMap = nodeKMapOpt.getOrElse(Map()).withDefaultValue(0),
-      condViewKMap = condKMapOpt.getOrElse(Map()).withDefaultValue(0),
-      indepPValueMapOpt = indepPValueMapOpt,
-      comboPValueMapOpt = comboPValueMapOpt,
       onlineSelectionInterval = config.onlineSelectionInterval,
     )
 

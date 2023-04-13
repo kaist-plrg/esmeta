@@ -26,7 +26,7 @@ class Coverage(
   timeLimit: Option[Int] = None,
   kFs: Int = 0,
   cp: Boolean = false,
-  onlineSelection: Boolean = false,
+  onlineNumStdDev: Option[Int] = None,
   fsTrieIn: FSTrie = FSTrie.root,
 ) {
 
@@ -68,7 +68,10 @@ class Coverage(
   // mapping from feature stacks to number of touches
   private var fsTrie: FSTrie = fsTrieIn
 
-  def updateSensitivity(): Unit = fsTrie = fsTrie.splitMax
+  var scriptIter: Int = 0
+  val fsTrieUpdateIter: Int = 1024
+
+  def updateSensitivity(): Unit = fsTrie = fsTrie.splitMax(onlineNumStdDev)
 
   // target conditional branches
   def targetCondViews: Map[Cond, Map[View, Option[Nearest]]] = _targetCondViews
@@ -130,7 +133,7 @@ class Coverage(
     var touchedCondViews: Map[CondView, Option[Nearest]] = Map()
 
     // increment touch of raw feature stacks
-    if (onlineSelection) {
+    if (onlineNumStdDev.isDefined) {
       val touchedRawNodeStack = interp.touchedNodeViews.keys
         .flatMap(_.view)
         .map(v => v._2 :: v._1)
@@ -206,13 +209,20 @@ class Coverage(
       )
     // assert: _minimalScripts ~= _minimalInfo.keys
 
+    // update FSTrie
+    scriptIter += 1
+    if (scriptIter >= fsTrieUpdateIter) {
+      scriptIter = 0
+      fsTrie = fsTrie.splitMax(onlineNumStdDev)
+    }
+
     (finalSt, updated, covered, blockingScripts)
 
   private def cookFeatureStack(
     rawFeatureStack: List[Feature],
   ): List[Feature] = {
     // online selection
-    if onlineSelection then {
+    if onlineNumStdDev.isDefined then {
       //      println(s"length: ${rawFeatureStack.size}")
       rawFeatureStack.take({
         val temp = fsTrie.getViewLength(rawFeatureStack.map(_.func.name))
@@ -265,7 +275,7 @@ class Coverage(
     lazy val getNodeViewsId = orderedNodeViews.zipWithIndex.toMap
     lazy val getCondViewsId = orderedCondViews.zipWithIndex.toMap
     dumpJson(
-      CoverageConstructor(timeLimit, kFs, cp),
+      CoverageConstructor(timeLimit, kFs, cp, onlineNumStdDev),
       s"$baseDir/constructor.json",
     )
 
@@ -310,7 +320,7 @@ class Coverage(
         remove = true,
       )
       log("Dupmed assertions")
-      if (withFSTrie && onlineSelection) {
+      if (withFSTrie && onlineNumStdDev.isDefined) {
         dumpJson(
           name = None,
           data = fsTrie.trim(), // for evaluation
@@ -666,6 +676,7 @@ object Coverage {
     timeLimit: Option[Int],
     kFs: Int,
     cp: Boolean,
+    onlineNumStdDev: Option[Int],
   )
 
   def fromLog(
@@ -725,7 +736,7 @@ object Coverage {
         con.timeLimit,
         con.kFs,
         con.cp,
-        online,
+        con.onlineNumStdDev,
         fsTrie,
       )
 

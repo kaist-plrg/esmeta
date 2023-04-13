@@ -35,7 +35,7 @@ object Fuzzer {
     kFs: Int = 0,
     cp: Boolean = false,
     init: Option[String] = None,
-    onlineSelectionInterval: Option[Int] = None,
+    onlineNumStdDev: Option[Int] = None,
   ): Coverage =
     new Fuzzer(
       logInterval,
@@ -47,7 +47,7 @@ object Fuzzer {
       kFs,
       cp,
       init,
-      onlineSelectionInterval,
+      onlineNumStdDev,
     ).result
 
   // debugging levels
@@ -69,7 +69,7 @@ class Fuzzer(
   kFs: Int = 0, // feature sensitivity bias
   cp: Boolean = false,
   init: Option[String] = None,
-  onlineSelectionInterval: Option[Int] = None,
+  onlineNumStdDev: Option[Int] = None,
 ) {
 
   import Fuzzer.*
@@ -104,7 +104,6 @@ class Fuzzer(
         logInterval.map(_ => {
           startTime = System.currentTimeMillis
           startInterval = System.currentTimeMillis
-          startInterval2 = System.currentTimeMillis()
           logging
         })
         trial match
@@ -135,13 +134,6 @@ class Fuzzer(
       if (interval > seconds) {
         if (debug == NO_DEBUG) logging else time("Logging", logging)
         startInterval += seconds
-      }
-    }
-    for (bound <- onlineSelectionInterval) {
-      val seconds = bound * 1000
-      if (interval2 > seconds) {
-        cov.updateSensitivity()
-        startInterval2 += seconds
       }
     }
     val currPool = pool
@@ -266,7 +258,7 @@ class Fuzzer(
       timeLimit,
       kFs,
       cp,
-      onlineSelection = onlineSelectionInterval.isDefined,
+      onlineNumStdDev,
     )
 
   /** target selector */
@@ -328,10 +320,8 @@ class Fuzzer(
   private def timeout = duration.fold(false)(_ * 1000 < elapsed)
 
   private var startInterval: Long = 0L
-  private var startInterval2: Long = 0L
 
   private def interval: Long = System.currentTimeMillis - startInterval
-  private def interval2: Long = System.currentTimeMillis() - startInterval2
 
   // conversion from code string to `Script` object
   private def toScript(code: String): Script = Script(code, s"$nextId.js")

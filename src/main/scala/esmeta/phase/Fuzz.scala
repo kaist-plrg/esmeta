@@ -21,63 +21,6 @@ case object Fuzz extends Phase[CFG, Coverage] {
     // optionally set the seed for the random number generator
     config.seed.foreach(setSeed)
 
-    val nodeKMapOpt = if (config.preFuzzIter != 0) {
-      try {
-        val nodeKMap =
-          readJson[List[(String, Int)]](
-            s"./k_selection/node_attn${config.attentionPercent}_cut${config.cutPercent}_iter${config.preFuzzIter}_dur${config.preFuzzDuration}.json",
-          ).toMap
-        println(s"read ${nodeKMap.size} node k-selections.")
-        Some(nodeKMap)
-      } catch {
-        case e: Throwable =>
-          println(e.getMessage)
-          None
-      }
-    } else None
-
-    val condKMapOpt = if (config.preFuzzIter != 0) {
-      try {
-        val condKMap = readJson[List[(String, Int)]](
-          s"./k_selection/cond_attn${config.attentionPercent}_cut${config.cutPercent}_iter${config.preFuzzIter}_dur${config.preFuzzDuration}.json",
-        ).toMap
-        println(s"read ${condKMap.size} condition k-selections.")
-        Some(condKMap)
-      } catch {
-        case e: Throwable =>
-          println(e.getMessage)
-          None
-      }
-    } else None
-
-    val indepPValueMapOpt = if (config.pValue) {
-      try {
-        val pValueMap = readJson[List[(String, Double)]](
-          s"./p_values/independence_dur_${config.duration.getOrElse(0)}_cp_${config.cp}.json",
-        ).toMap
-        println(s"read ${pValueMap.size} indep p-values.")
-        Some(pValueMap)
-      } catch {
-        case e: Throwable =>
-          println(e.getMessage)
-          None
-      }
-    } else None
-
-    val comboPValueMapOpt = if (config.pValue) {
-      try {
-        val pValueMap = readJson[List[((String, String), Double)]](
-          s"./p_values/combo_${config.duration.getOrElse(0)}_cp_${config.cp}.json",
-        ).toMap
-        println(s"read ${pValueMap.size} combo p-values.")
-        Some(pValueMap)
-      } catch {
-        case e: Throwable =>
-          println(e.getMessage)
-          None
-      }
-    } else None
-
     val cov = Fuzzer(
       logInterval = config.logInterval,
       debug = config.debug,
@@ -87,7 +30,7 @@ case object Fuzz extends Phase[CFG, Coverage] {
       kFs = config.kFs,
       cp = config.cp,
       init = config.init,
-      onlineSelectionInterval = config.onlineSelectionInterval,
+      onlineNumStdDev = config.onelineNumStdDev,
     )
 
     // optionally dump the generated ECMAScript programs
@@ -178,8 +121,8 @@ case object Fuzz extends Phase[CFG, Coverage] {
       "use p-value data for tunneling.",
     ),
     (
-      "online-selection-interval",
-      NumOption((c, k) => c.onlineSelectionInterval = Some(k)),
+      "online-num-std-dev",
+      NumOption((c, k) => c.onelineNumStdDev = Some(k)),
       "sensitivity update period in seconds.",
     ),
   )
@@ -200,6 +143,6 @@ case object Fuzz extends Phase[CFG, Coverage] {
     var attentionPercent: Int = 50,
     var cutPercent: Int = 100,
     var pValue: Boolean = false,
-    var onlineSelectionInterval: Option[Int] = None,
+    var onelineNumStdDev: Option[Int] = None,
   )
 }

@@ -32,12 +32,12 @@ object FSTrie {
     println(abc.take(t.getViewLength(abc)))
     println("______________________________")
 
-    t = t.splitMax
+    t = t.splitMax(Some(1))
 
     println(abc.take(t.getViewLength(abc)))
     println("______________________________")
 
-    t = t.splitMax
+    t = t.splitMax(Some(1))
 
     println(abc.take(t.getViewLength(abc)))
     println("______________________________")
@@ -83,7 +83,9 @@ case class FSTrie(
 
   def getViewLength(stack: List[String]): Int = getViewLengthSuppl(stack, 0)
 
-  def splitMax: FSTrie = {
+  def splitMax(numStdDevOpt: Option[Int] = None): FSTrie = {
+    val (touchAvg, touchStd) = leafStat
+    val threshold = touchAvg + touchStd * numStdDevOpt.getOrElse(0)
     var targetOpt: Option[FSData] = None
     val pq = collect()
     if (pq.isEmpty) {
@@ -92,10 +94,11 @@ case class FSTrie(
     } else {
       while ({
         val max = pq.dequeue()
-        if (isTarget(max.path)) {
+        // ensure that the path we are trying to split can be split
+        if (max.value.touch > threshold && isTarget(max.path)) {
           targetOpt = Some(max)
         }
-        targetOpt.isEmpty && pq.nonEmpty
+        max.value.touch > threshold && targetOpt.isEmpty && pq.nonEmpty
       }) ()
       targetOpt match {
         case None => this
@@ -118,10 +121,30 @@ case class FSTrie(
       )
   }
 
+  def leafStat: (Double, Double) = {
+    val LeafStat(num, sqSum) = leafStatSuppl
+    val avg = value.touch.toDouble / num.toDouble
+    val sqAvg = sqSum.toDouble / num.toDouble
+    val std = scala.math.sqrt(sqAvg - avg * avg)
+    (avg, std)
+  }
+
+  private def leafStatSuppl: LeafStat = {
+    if value.leaf then {
+      LeafStat(num = 1, sqSum = value.touch * value.touch)
+    } else {
+      children.foldLeft(LeafStat(0, 0)) {
+        case (LeafStat(num, sqSum), (_, child)) =>
+          val LeafStat(childNum, childSqSum) = child.leafStatSuppl
+          LeafStat(num + childNum, sqSum + childSqSum)
+      }
+    }
+  }
+
   @tailrec
   private def isTarget(path: List[String]): Boolean = path match {
     case Nil => value.leaf && children.nonEmpty
-    case head :: tail => // cannot use both @tailrec and flatMap
+    case head :: tail => // cannot use both @tailrec and flatMap at once
       children.get(head) match {
         case None        => false
         case Some(child) => child.isTarget(tail)
@@ -155,7 +178,7 @@ case class FSTrie(
       }
 
   private def incTouchSuppl(path: List[String]): FSTrie = path match {
-    case Nil => FSTrie(children, value.incTouch)
+    case Nil => this.copy(value = value.incTouch)
     case head :: tail =>
       FSTrie(
         children.updated(
@@ -185,3 +208,5 @@ case class FSValue(touch: Int = 0, leaf: Boolean = true) {
 }
 
 case class FSData(path: List[String], value: FSValue)
+
+case class LeafStat(num: Int, sqSum: Int)

@@ -244,7 +244,7 @@ class Fuzzer(
   val scriptParser = cfg.scriptParser
 
   /** coverage */
-  val cov: Coverage = Coverage(timeLimit, 0, false)
+  val cov: Coverage = Coverage(timeLimit, kFs, cp)
   val targetCov: Map[Target, Coverage] =
     targets.map(_ -> Coverage(timeLimit, kFs, cp)).toMap
 

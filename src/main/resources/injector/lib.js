@@ -108,11 +108,16 @@ $assert.notConstructable = function (f) {
 let $compareArray = (a, b) => {
   if (b.length !== a.length) return false;
 
-  /* allow change in order */
   let sortedA = a.slice();
-  sortedA.sort();
   let sortedB = b.slice();
-  sortedB.sort();
+  /* Allow change in order */
+  try {
+    sortedA.sort();
+    sortedB.sort();
+  } catch {
+    sortedA = a;
+    sortedB = b;
+  }
 
   for (var i = 0; i < sortedA.length; i++) {
     if (!$isSameValue(sortedA[i], sortedB[i])) return false;
@@ -230,7 +235,7 @@ let $verifyProperty = (obj, prop, desc) => {
       if ($isSameValue(desc[name], originalDesc[name])) return;
       var message;
       if (name === "value") {
-        if ($toString(prop) == name) return; /* Allow different name */
+        if ($toString(prop) == "name") return; /* Allow different name */
         message =
           "descriptor value of " + $toString(prop) + " should be " +
           $toString(desc.value) +

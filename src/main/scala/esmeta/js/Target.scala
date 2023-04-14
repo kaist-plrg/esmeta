@@ -412,8 +412,8 @@ case class Target(
           mutants = newAst :: mutants
         })
 
-      // 9. arguments (It's strange that argumentList is not optional)
-      if (name == "Arguments" && rhsIdx > 0)
+      // 9. arguments/params (It's strange that argumentList is not optional)
+      if ((name == "Arguments" || name == "FormalParameters") && rhsIdx > 0)
         val newAst = Syntactic(name, args, 0, Vector())
         mutants = newAst :: mutants
 

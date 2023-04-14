@@ -61,10 +61,26 @@ class Coverage(
     check(script, interp)
   }
 
+  /** Manually filter out some programs (i.e. awiat as identifier) */
+  private def manualFilter(ast: Ast): Unit = {
+    val counter = new esmeta.es.util.mutator.Util.AstCounter({
+      case Syntactic("IdentifierReference", _, 2, _) => true
+      case Syntactic("LabelIdentifier", _, 2, _)     => true
+      case Syntactic("BindingIdentifier", _, 2, _)   => true
+      case _                                         => false
+    })
+    if (counter(ast) > 0)
+      throw esmeta.error.NotSupported("await as identifier")
+  }
+
   /** evaluate a given ECMAScript program. */
   def run(code: String): Interp = {
     // run interpreter and record touched
     val initSt = cfg.init.from(code)
+
+    // Manually filter out some programs (i.e. awiat as identifier)
+    manualFilter(initSt.cachedAst.get)
+
     val interp = Interp(initSt, timeLimit, kFs, cp)
     interp.result
     interp

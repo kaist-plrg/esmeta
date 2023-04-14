@@ -135,10 +135,6 @@ class Interpreter(
       eval(fexpr) match
         case Clo(func, captured) =>
           val vs = args.map(eval)
-          if (func.name == "ResolveBinding" && vs == List(Str("await"))) {
-            /* XXX DISABLE AWAIT AS IDENTIFIER XXX */
-            throw NotSupported("await as identifier")
-          }
           val newLocals = getLocals(func.irFunc.params, vs) ++ captured
           st.callStack ::= CallContext(lhs, st.context)
           st.context = createContext(call, func, newLocals, st.context)

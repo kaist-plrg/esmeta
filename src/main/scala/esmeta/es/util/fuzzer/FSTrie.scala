@@ -1,5 +1,7 @@
 package esmeta.es.util.fuzzer
 
+import esmeta.es.util.{Coverage, cfg}
+import esmeta.es.util.Coverage.Interp
 import esmeta.util.Trie
 
 import scala.annotation.tailrec
@@ -10,6 +12,21 @@ object FSTrie {
   implicit val fsOrdering: Ordering[FSData] = Ordering.by(_.value.touch)
 
   def root: FSTrie = FSTrie(value = FSValue(leaf = false))
+
+  def fromBugs(bugs: List[String]): FSTrie =
+    var trie = root
+    bugs.foreach(bug =>
+      val initSt = cfg.init.from(bug)
+      val interp = Interp(initSt, None, false)
+      interp.result
+      val touchedRawStack = interp.touchedNodeViews.keys
+        .flatMap(_.view)
+        .map(v => v._2 :: v._1)
+        .map(_.map(_.func.name))
+        .toSet
+      touchedRawStack.foreach(trie.incTouch(_)),
+    )
+    trie.extend()
 
   def test(): Unit = {
 
@@ -118,6 +135,17 @@ case class FSTrie(
         children = children.transform {
           case (_, child) => child.trim()
         },
+      )
+  }
+
+  def extend(): FSTrie = {
+    if children.isEmpty then this
+    else
+      this.copy(
+        children = children.transform {
+          case (_, child) => child.extend()
+        },
+        value = value.copy(leaf = false),
       )
   }
 

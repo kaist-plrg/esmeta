@@ -54,8 +54,6 @@ object Fuzzer {
   val ALL = 2
   val PARTIAL = 1
   val NO_DEBUG = 0
-
-  var initCovCacheOpt: Option[Coverage] = None
 }
 
 /** extensible helper of ECMAScript program fuzzer with ECMA-262 */
@@ -66,7 +64,7 @@ class Fuzzer(
   timeLimit: Option[Int] = None, // time limitation for each evaluation
   trial: Option[Int] = None, // `None` denotes no bound
   duration: Option[Int] = None, // `None` denotes no bound
-  kFs: Int = 0, // feature sensitivity bias
+  kFs: Int = 0,
   cp: Boolean = false,
   init: Option[String] = None,
   onlineNumStdDev: Option[Int] = None,
@@ -136,30 +134,25 @@ class Fuzzer(
         startInterval += seconds
       }
     }
-    val currPool = pool
-    if (currPool.nonEmpty) {
-      val (selectorName, script, condView) = selector(currPool, cov)
-      val selectorInfo = selectorName + condView.map(" - " + _).getOrElse("")
-      val code = script.code
-      debugging(f"[$selectorInfo%-30s] $code")
-      debugFlush
-      val mutants = mutator(code, 100, condView.map((_, cov)))
-        .map((name, ast) => (name, ast.toString(grammar)))
-        .distinctBy(_._2)
-        .toArray
-        .par
-        .map(infoExtractor)
-        .toList
+    val (selectorName, script, condView) = selector(pool, cov)
+    val selectorInfo = selectorName + condView.map(" - " + _).getOrElse("")
+    val code = script.code
+    debugging(f"[$selectorInfo%-30s] $code")
+    debugFlush
+    val mutants = mutator(code, 100, condView.map((_, cov)))
+      .map((name, ast) => (name, ast.toString(grammar)))
+      .distinctBy(_._2)
+      .toArray
+      .par
+      .map(infoExtractor)
+      .toList
 
-      for ((mutatorName, mutatedCode, info) <- mutants)
-        debugging(f"----- $mutatorName%-20s-----> $mutatedCode")
+    for ((mutatorName, mutatedCode, info) <- mutants)
+      debugging(f"----- $mutatorName%-20s-----> $mutatedCode")
 
-        val result = add(mutatedCode, info)
-        update(selectorName, selectorStat, result)
-        update(mutatorName, mutatorStat, result)
-    } else {
-      println(s"pool is empty (iter: $iter)")
-    }
+      val result = add(mutatedCode, info)
+      update(selectorName, selectorStat, result)
+      update(mutatorName, mutatorStat, result)
 
   /** Case class to hold the information about mutant */
   case class MutantInfo(

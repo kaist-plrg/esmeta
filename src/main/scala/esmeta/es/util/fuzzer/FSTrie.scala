@@ -95,8 +95,8 @@ case class FSTrie(
       }
   }
 
-  def incTouch(path: List[String]): FSTrie =
-    incTouchSuppl(path)
+  def incTouch(path: List[String], isBugOpt: Option[Boolean] = None): FSTrie =
+    incTouchSuppl(path, isBugOpt)
 
   def getViewLength(stack: List[String]): Int = getViewLengthSuppl(stack, 0)
 
@@ -205,15 +205,18 @@ case class FSTrie(
         case (pq, (key, child)) => child.collectSuppl(path :+ key, pq)
       }
 
-  private def incTouchSuppl(path: List[String]): FSTrie = path match {
-    case Nil => this.copy(value = value.incTouch)
+  private def incTouchSuppl(
+    path: List[String],
+    isBugOpt: Option[Boolean],
+  ): FSTrie = path match {
+    case Nil => this.copy(value = value.incTouch(isBugOpt))
     case head :: tail =>
       FSTrie(
         children.updated(
           head,
-          children.getOrElse(head, FSTrie()).incTouchSuppl(tail),
+          children.getOrElse(head, FSTrie()).incTouchSuppl(tail, isBugOpt),
         ),
-        value.incTouch,
+        value.incTouch(isBugOpt),
       )
   }
 
@@ -229,8 +232,17 @@ case class FSTrie(
     }
 }
 
-case class FSValue(touch: Int = 0, leaf: Boolean = true) {
-  def incTouch: FSValue = this.copy(touch = touch + 1)
+case class FSValue(
+  touch: Int = 0,
+  leaf: Boolean = true,
+  bugTouch: Int = 0,
+  normalTouch: Int = 0,
+) {
+  def incTouch(isBugOpt: Option[Boolean]): FSValue =
+    isBugOpt match
+      case None        => this.copy(touch = touch + 1)
+      case Some(true)  => this.copy(bugTouch = bugTouch + 1)
+      case Some(false) => this.copy(normalTouch = normalTouch + 1)
 
   def unleafify: FSValue = this.copy(leaf = false)
 }

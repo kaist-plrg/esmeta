@@ -24,7 +24,7 @@ object FSTrie {
         .map(v => v._2 :: v._1)
         .map(_.map(_.func.name))
         .toSet
-      touchedRawStack.foreach(trie.incTouch(_)),
+      touchedRawStack.foreach(stack => trie = trie.incTouch(stack, Some(true))),
     )
     trie.extend()
 

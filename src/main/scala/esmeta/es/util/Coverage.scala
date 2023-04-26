@@ -213,7 +213,7 @@ class Coverage(
     scriptIter += 1
     if (scriptIter >= fsTrieUpdateIter) {
       scriptIter = 0
-      fsTrie = fsTrie.splitMax(onlineNumStdDev)
+      updateSensitivity()
     }
 
     (finalSt, updated, covered, blockingScripts)

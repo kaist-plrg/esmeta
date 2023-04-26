@@ -35,6 +35,7 @@ object Fuzzer {
     kFs: Int = 0,
     cp: Boolean = false,
     init: Option[String] = None,
+    targets: List[Target] = List(),
     onlineNumStdDev: Option[Int] = None,
   ): Coverage =
     new Fuzzer(
@@ -47,6 +48,7 @@ object Fuzzer {
       kFs,
       cp,
       init,
+      targets,
       onlineNumStdDev,
     ).result
 
@@ -67,6 +69,7 @@ class Fuzzer(
   kFs: Int = 0,
   cp: Boolean = false,
   init: Option[String] = None,
+  targets: List[Target] = List(),
   onlineNumStdDev: Option[Int] = None,
 ) {
 
@@ -220,6 +223,13 @@ class Fuzzer(
         false
     debugFlush
     pass
+
+  def doConformTest(st: State): Boolean =
+    val test = ConformTest.createTest(st)
+    targets.foldLeft(True) {
+      case (acc, target) =>
+        acc && target.doConformTest(test)
+    }
 
   // a pass-or-fail counter
   case class Counter(pass: Int = 0, fail: Int = 0)

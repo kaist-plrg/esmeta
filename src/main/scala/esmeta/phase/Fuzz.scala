@@ -8,11 +8,13 @@ import esmeta.js.Target
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
+import esmeta.es.util.JsonProtocol
 
 /** `fuzz` phase */
 case object Fuzz extends Phase[CFG, Coverage] {
   val name = "fuzz"
   val help = "generate ECMAScript programs for fuzzing."
+
   def apply(
     cfg: CFG,
     cmdConfig: CommandConfig,
@@ -32,6 +34,21 @@ case object Fuzz extends Phase[CFG, Coverage] {
       case Some(ts) => ts.split(",").toList
     }).map(t => Target(t, true))
 
+    val jsonProtocol = JsonProtocol(cfg)
+    import jsonProtocol.given
+    
+    val bugTrieOpt =
+      if config.useBugTrie then
+        try {
+          Some(readJson[FSTrie](s"$RESOURCE_DIR/bugs/online/bugtrie.json"))
+        } catch {
+          case e: Throwable =>
+            print("Error while reading bugTrie: ")
+            println(e.getMessage)
+            None
+        }
+      else None
+
     val cov = Fuzzer(
       logInterval = config.logInterval,
       debug = config.debug,
@@ -42,6 +59,7 @@ case object Fuzz extends Phase[CFG, Coverage] {
       cp = config.cp,
       init = config.init,
       targets = engines ++ transpilers,
+      fixedTrieOpt = bugTrieOpt,
     )
 
     // optionally dump the generated ECMAScript programs
@@ -54,6 +72,7 @@ case object Fuzz extends Phase[CFG, Coverage] {
   }
 
   def defaultConfig: Config = Config()
+
   val options: List[PhaseOption[Config]] = List(
     (
       "out",
@@ -124,6 +143,7 @@ case object Fuzz extends Phase[CFG, Coverage] {
       "use a complete trie from resources/bugs/online/.",
     ),
   )
+
   case class Config(
     var out: Option[String] = None,
     var logInterval: Option[Int] = Some(600),

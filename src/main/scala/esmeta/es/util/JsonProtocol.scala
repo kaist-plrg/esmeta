@@ -4,6 +4,7 @@ import esmeta.ir.EReturnIfAbrupt
 import esmeta.cfg.*
 import esmeta.state.util.{JsonProtocol => StateJsonProtocol}
 import esmeta.util.*
+import esmeta.es.util.fuzzer.FSTrie
 import io.circe.*, io.circe.generic.semiauto.*
 import io.circe.syntax.*
 
@@ -50,4 +51,9 @@ class JsonProtocol(cfg: CFG) extends StateJsonProtocol(cfg) {
   // Coverage class
   given coverageConstructorDecoder: Decoder[CoverageConstructor] = deriveDecoder
   given coverageConstructorEncoder: Encoder[CoverageConstructor] = deriveEncoder
+
+  // FSTrie for online sensitivity selection
+  given FSTrieDecoder: Decoder[FSTrie] = deriveDecoder
+
+  given FSTrieEncoder: Encoder[FSTrie] = deriveEncoder
 }

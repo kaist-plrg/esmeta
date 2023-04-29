@@ -203,6 +203,15 @@ case object CmdFuzz extends Command("fuzz", CmdBuildCFG >> Fuzz) {
     println(cov)
 }
 
+/** `bug-trie` command */
+case object CmdBugTrie extends Command("bug-trie", CmdBuildCFG >> BugTrie) {
+  val help =
+    "Make and save a FSTrie that contains all feature stacks of the online bugs"
+  val examples: List[String] = List(
+    "esmeta bug-trie BUG_DIR",
+  )
+}
+
 /** `gen-test` command */
 case object CmdGenTest extends Command("gen-test", CmdBase >> GenTest) {
   val help =

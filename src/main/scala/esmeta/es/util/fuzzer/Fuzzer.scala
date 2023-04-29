@@ -30,6 +30,8 @@ object Fuzzer {
     cp: Boolean = false,
     init: Option[String] = None,
     targets: List[Target] = List(),
+    onlineNumStdDev: Option[Int] = None,
+    fixedTrieOpt: Option[FSTrie] = None,
   ): Coverage = new Fuzzer(
     logInterval,
     debug,
@@ -41,6 +43,8 @@ object Fuzzer {
     cp,
     init,
     targets,
+    onlineNumStdDev,
+    fixedTrieOpt,
   ).result
 
   // debugging levels
@@ -61,6 +65,8 @@ class Fuzzer(
   cp: Boolean = false,
   init: Option[String] = None,
   targets: List[Target] = List(),
+  onlineNumStdDev: Option[Int] = None,
+  fixedTrieOpt: Option[FSTrie] = None,
 ) {
   import Fuzzer.*
 
@@ -151,9 +157,9 @@ class Fuzzer(
 
   /** Case class to hold the information about a candidate */
   case class CandInfo(
-    val visited: Boolean = false,
-    val invalid: Boolean = false,
-    val interp: Option[Coverage.Interp] = None,
+    visited: Boolean = false,
+    invalid: Boolean = false,
+    interp: Option[Coverage.Interp] = None,
   )
 
   /** Extract information for the mutated code. Should be side-effect free. */
@@ -183,8 +189,11 @@ class Fuzzer(
       fail("INVALID PROGRAM")
     val script = toScript(code)
     val interp = info.interp.getOrElse(fail("Interp Fail"))
-    val (st, updated, covered) = cov.check(script, interp)
-    doConformTest(script, st)
+    val finalState = interp.result
+    val isBugOpt =
+      if fixedTrieOpt.isEmpty then None
+      else Some(doConformTest(finalState))
+    val (_, updated, covered) = cov.check(script, interp, isBugOpt)
     if (!updated) fail("NO UPDATE")
     covered
   })
@@ -208,18 +217,14 @@ class Fuzzer(
     debugFlush
     pass
 
-  /** do conform test for each engines and transpilers */
-  def doConformTest(script: Script, st: State): Unit =
-    val Script(code, name) = script
+  /** do conform test for each engines and transpilers. returns true if pass,
+    * else false.
+    */
+  def doConformTest(st: State): Boolean =
     val test = ConformTest.createTest(st)
-    targetCov.par.foreach((target, cov) => {
-      if (!target.doConformTest(test)) {
-        debugging(s"Conformtest fail for target ${target.name}")
-        val minimized = target.minimize(code)
-        debugging(s"Minimized: $code -> $minimized")
-        cov.runAndCheck(Script(minimized, name))
-      }
-    })
+    targets.foldLeft(true) {
+      case (acc, target) => acc && target.doConformTest(test)
+    }
 
   // a pass-or-fail counter
   case class Counter(pass: Int = 0, fail: Int = 0)
@@ -244,9 +249,8 @@ class Fuzzer(
   val scriptParser = cfg.scriptParser
 
   /** coverage */
-  val cov: Coverage = Coverage(timeLimit, kFs, cp)
-  val targetCov: Map[Target, Coverage] =
-    targets.map(_ -> Coverage(timeLimit, kFs, cp)).toMap
+  val cov: Coverage =
+    Coverage(timeLimit, kFs, cp, onlineNumStdDev, fixedTrieOpt)
 
   /** target selector */
   val selector: TargetSelector = WeightedSelector(
@@ -381,12 +385,6 @@ class Fuzzer(
     addRow(row)
     // dump coveragge
     cov.dumpToWithDetail(logDir, withMsg = (debug == ALL))
-    targetCov.foreach((target, cov) =>
-      cov.dumpToWithDetail(s"$logDir/${target.name}", withMsg = (debug == ALL)),
-    )
-
-    // dump selector and mutator stat
-    dumpStat(selector.names, selectorStat, selStatTsv)
     dumpStat(mutator.names, mutatorStat, mutStatTsv)
   private def addRow(data: Iterable[Any], nf: PrintWriter = summaryTsv): Unit =
     val row = data.mkString("\t")

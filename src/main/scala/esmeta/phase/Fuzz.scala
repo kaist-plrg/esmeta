@@ -118,6 +118,11 @@ case object Fuzz extends Phase[CFG, Coverage] {
       StrOption((c, s) => c.transpilers = Some(s)),
       "list of transpilers to test, separated by comma",
     ),
+    (
+      "use-bug-trie",
+      BoolOption(c => c.useBugTrie = true),
+      "use a complete trie from resources/bugs/online/.",
+    ),
   )
   case class Config(
     var out: Option[String] = None,
@@ -132,5 +137,6 @@ case object Fuzz extends Phase[CFG, Coverage] {
     var init: Option[String] = None,
     var engines: Option[String] = None,
     var transpilers: Option[String] = None,
+    var useBugTrie: Boolean = false,
   )
 }

@@ -324,7 +324,7 @@ class Coverage(
         remove = true,
       )
       log("Dupmed assertions")
-      if (withFSTrie && onlineNumStdDev.isDefined) {
+      if (withFSTrie) {
         dumpJson(
           name = None,
           data = fsTrie.trim(), // for evaluation

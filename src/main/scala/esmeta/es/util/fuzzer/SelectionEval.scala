@@ -50,23 +50,24 @@ object SelectionEval {
               case (codeSize, script) =>
                 if codeSize >= script.code.length then codeSize
                 else if (
-                  !targets.foldLeft(false) {
-                    case (isTargetBug, target) =>
-                      if isTargetBug then true
-                      else
-                        ConformTest
-                          .doConformTest(
-                            target,
-                            target.isTrans,
-                            Script(
-                              Injector(script.code, true, false).toString,
-                              script.name,
-                            ),
-                            true,
-                          )
-                          .isDefined
-                  },
-                ) then 0
+                    !targets.foldLeft(false) {
+                      case (isTargetBug, target) =>
+                        if isTargetBug then true
+                        else
+                          ConformTest
+                            .doConformTest(
+                              target,
+                              target.isTrans,
+                              Script(
+                                Injector(script.code, true, false).toString,
+                                script.name,
+                              ),
+                              true,
+                            )
+                            .isDefined
+                    },
+                  )
+                then 0
                 else script.code.length
             }
 

@@ -30,7 +30,7 @@ object Fuzzer {
     cp: Boolean = false,
     init: Option[String] = None,
     targets: List[Target] = List(),
-    onlineNumStdDev: Option[Int] = None,
+    onlineNumStdDev: Option[Int] = Some(2),
     fixedTrieOpt: Option[FSTrie] = None,
   ): Coverage = new Fuzzer(
     logInterval,

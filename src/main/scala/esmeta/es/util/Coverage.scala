@@ -26,6 +26,7 @@ class Coverage(
   timeLimit: Option[Int] = None,
   kFs: Int = 0,
   cp: Boolean = false,
+  checkIter: Option[Int] = None,
   onlineNumStdDev: Option[Int] = None,
   fsTrieIn: Option[FSTrie] = None,
 ) {
@@ -69,7 +70,7 @@ class Coverage(
   private var fsTrie: FSTrie = fsTrieIn.getOrElse(FSTrie.root)
 
   private var scriptIter: Int = 0
-  private val fsTrieUpdateIter: Int = 1024
+  private val fsTrieCheckIter: Int = checkIter.getOrElse(Int.MaxValue)
 
   def updateSensitivity(): Unit =
     if (fsTrieIn.isEmpty)
@@ -215,7 +216,7 @@ class Coverage(
 
     // update FSTrie
     scriptIter += 1
-    if (scriptIter >= fsTrieUpdateIter) {
+    if (scriptIter >= fsTrieCheckIter) {
       scriptIter = 0
       updateSensitivity()
     }
@@ -279,7 +280,7 @@ class Coverage(
     lazy val getNodeViewsId = orderedNodeViews.zipWithIndex.toMap
     lazy val getCondViewsId = orderedCondViews.zipWithIndex.toMap
     dumpJson(
-      CoverageConstructor(timeLimit, kFs, cp, onlineNumStdDev),
+      CoverageConstructor(timeLimit, kFs, cp, onlineNumStdDev, checkIter),
       s"$baseDir/constructor.json",
     )
 
@@ -681,6 +682,7 @@ object Coverage {
     kFs: Int,
     cp: Boolean,
     onlineNumStdDev: Option[Int],
+    checkIter: Option[Int],
   )
 
   def fromLog(
@@ -741,6 +743,7 @@ object Coverage {
         con.kFs,
         con.cp,
         con.onlineNumStdDev,
+        con.checkIter,
         Some(fsTrie),
       )
 

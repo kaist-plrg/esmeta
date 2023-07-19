@@ -36,7 +36,7 @@ case object Fuzz extends Phase[CFG, Coverage] {
 
     val jsonProtocol = JsonProtocol(cfg)
     import jsonProtocol.given
-    
+
     val bugTrieOpt =
       if config.useBugTrie then
         try {
@@ -59,6 +59,8 @@ case object Fuzz extends Phase[CFG, Coverage] {
       cp = config.cp,
       init = config.init,
       targets = engines ++ transpilers,
+      checkIter = config.checkIter,
+      onlineNumStdDev = config.onlineNumStdDev,
       fixedTrieOpt = bugTrieOpt,
     )
 
@@ -142,6 +144,16 @@ case object Fuzz extends Phase[CFG, Coverage] {
       BoolOption(c => c.useBugTrie = true),
       "use a complete trie from resources/bugs/online/.",
     ),
+    (
+      "threshold-std-dev",
+      NumOption((c, k) => c.onlineNumStdDev = Some(k)),
+      "set the threshold for update online sensitivity (default: 1).",
+    ),
+    (
+      "checking-iteration",
+      NumOption((c, k) => c.checkIter = Some(k)),
+      "check update by comparing the threshold every (default: 256) iterations.",
+    ),
   )
 
   case class Config(
@@ -157,6 +169,8 @@ case object Fuzz extends Phase[CFG, Coverage] {
     var init: Option[String] = None,
     var engines: Option[String] = None,
     var transpilers: Option[String] = None,
+    var checkIter: Option[Int] = Some(256),
+    var onlineNumStdDev: Option[Int] = Some(1),
     var useBugTrie: Boolean = false,
   )
 }

@@ -11,7 +11,7 @@ _esmeta_completions() {
   local cur prev opts lastc informats outformats datafiles
   cur="${COMP_WORDS[COMP_CWORD]}"
   prev="${COMP_WORDS[COMP_CWORD-1]}"
-  cmdList="help extract compile build-cfg tycheck parse eval web test262-test inject mutate fuzz gen-test conform-test categorize handle-coverage analyze"
+  cmdList="help extract compile build-cfg tycheck parse eval web test262-test inject mutate fuzz bug-trie gen-test conform-test categorize handle-coverage analyze"
   globalOpt="-silent -error -status -time"
   helpOpt=""
   extractOpt="-extract:target -extract:log -extract:repl"
@@ -24,7 +24,8 @@ _esmeta_completions() {
   test262testOpt="-test262-test:debug -test262-test:log -test262-test:target -test262-test:progress -test262-test:coverage -test262-test:timeout -test262-test:k-fs -test262-test:cp -test262-test:no-test-mode"
   injectOpt="-inject:defs -inject:out -inject:log"
   mutateOpt="-mutate:out -mutate:mutator -mutate:untilValid"
-  fuzzOpt="-fuzz:out -fuzz:log-interval -fuzz:debug -fuzz:timeout -fuzz:trial -fuzz:duration -fuzz:seed -fuzz:k-fs -fuzz:cp -fuzz:init -fuzz:engines -fuzz:transpilers -fuzz:use-bug-trie"
+  fuzzOpt="-fuzz:out -fuzz:log-interval -fuzz:debug -fuzz:timeout -fuzz:trial -fuzz:duration -fuzz:seed -fuzz:k-fs -fuzz:cp -fuzz:init -fuzz:engines -fuzz:transpilers -fuzz:use-bug-trie -fuzz:threshold-std-dev -fuzz:checking-iteration"
+  bugsensOpt=""
   gentestOpt="-gen-test:debug -gen-test:engines -gen-test:transpilers -gen-test:use-cache -gen-test:only -gen-test:skip"
   conformtestOpt="-conform-test:debug -conform-test:msgdir -conform-test:save-bugs"
   categorizeOpt="-categorize:all"
@@ -88,6 +89,10 @@ _esmeta_completions() {
           ;;
         fuzz)
           COMPREPLY=($(compgen -W "${globalOpt} ${extractOpt} ${compileOpt} ${buildcfgOpt} ${fuzzOpt}"))
+          return 0
+          ;;
+        bug-trie)
+          COMPREPLY=($(compgen -W "${globalOpt} ${extractOpt} ${compileOpt} ${buildcfgOpt} ${bugsensOpt}"))
           return 0
           ;;
         gen-test)

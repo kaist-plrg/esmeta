@@ -30,7 +30,8 @@ object Fuzzer {
     cp: Boolean = false,
     init: Option[String] = None,
     targets: List[Target] = List(),
-    onlineNumStdDev: Option[Int] = Some(2),
+    onlineNumStdDev: Option[Int] = None,
+    checkIter: Option[Int] = None,
     fixedTrieOpt: Option[FSTrie] = None,
   ): Coverage = new Fuzzer(
     logInterval,
@@ -44,6 +45,7 @@ object Fuzzer {
     init,
     targets,
     onlineNumStdDev,
+    checkIter,
     fixedTrieOpt,
   ).result
 
@@ -66,6 +68,7 @@ class Fuzzer(
   init: Option[String] = None,
   targets: List[Target] = List(),
   onlineNumStdDev: Option[Int] = None,
+  checkIter: Option[Int] = None,
   fixedTrieOpt: Option[FSTrie] = None,
 ) {
   import Fuzzer.*
@@ -250,7 +253,7 @@ class Fuzzer(
 
   /** coverage */
   val cov: Coverage =
-    Coverage(timeLimit, kFs, cp, onlineNumStdDev, fixedTrieOpt)
+    Coverage(timeLimit, kFs, cp, onlineNumStdDev, checkIter, fixedTrieOpt)
 
   /** target selector */
   val selector: TargetSelector = WeightedSelector(

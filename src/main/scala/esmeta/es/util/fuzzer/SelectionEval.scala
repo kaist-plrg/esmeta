@@ -1,15 +1,24 @@
 package esmeta.es.util.fuzzer
 
-import esmeta.BASE_DIR
+import esmeta.{BASE_DIR, PREFUZZEVAL_LOG_DIR}
 import esmeta.es.Script
 import esmeta.es.util.injector.Injector
 import esmeta.es.util.{Coverage, USE_STRICT}
 import esmeta.js.Target
 import esmeta.phase.ConformTest
-import esmeta.util.SystemUtils.{listFiles, readFile}
+import esmeta.util.BaseUtils.dateStr
+import esmeta.util.SystemUtils.{
+  createSymlink,
+  getPrintWriter,
+  listFiles,
+  mkdir,
+  readFile,
+}
 
 object SelectionEval {
   lazy val bugDB: List[String] = ???
+  lazy val logDir: String = s"$PREFUZZEVAL_LOG_DIR/eval-$dateStr"
+  lazy val symlink: String = s"$PREFUZZEVAL_LOG_DIR/recent"
 
   def getCoverage(baseDir: String): Coverage = Coverage.fromLog(baseDir)
 
@@ -20,6 +29,11 @@ object SelectionEval {
     targets: Iterable[Target],
   ): (Double, Double, Int) =
     println("evaluation start...")
+    mkdir(logDir, remove = true)
+    createSymlink(symlink, logDir, overwrite = true)
+    val dw = getPrintWriter(s"$logDir/detail.txt")
+    val sw = getPrintWriter(s"$logDir/summary.txt")
+
     val numMinimals = getCoverage(baseDir).minimalScripts.size
     var expGroup: Map[Int, Int] = Map()
     val fileList = listFiles(s"$BASE_DIR/reported-bugs")
@@ -42,9 +56,10 @@ object SelectionEval {
         if covered || blockingSet.isEmpty then {
           cleanHit += 1;
           println(s"index $idx clean hit! total $cleanHit .");
+          dw.println(s"$idx : $name : Unconditionally survive")
           1000
         } else
-          blockingSet.toList
+          val blockingLength = blockingSet.toList
             .sortBy(-_.code.length)
             .foldLeft(0) {
               case (codeSize, script) =>
@@ -70,13 +85,24 @@ object SelectionEval {
                 then 0
                 else script.code.length
             }
+          dw.println(s"$idx : $name : $blockingLength")
+          blockingLength
 
       expGroup += idx -> minBugCodeSize
       idx += 1
     }
+    dw.close()
     println("controlGroup start ######################")
     println(expGroup)
     println("#########################################")
+
+    sw.println(s"# of minimals: $numMinimals")
+    sw.println(s"# of clean hits: $cleanHit / ${fileList.size}")
+    sw.println(
+      s"dirty hit ratio: ${(1 - cleanHit / fileList.size.toDouble) * 100}",
+    )
+    sw.close()
+
     println(s"# of clean hits: $cleanHit")
     println(
       s"dirty hit ratio: ${(1 - cleanHit / fileList.size.toDouble) * 100}",

@@ -1,0 +1,1 @@
+let f = async (x) => void await this; f();

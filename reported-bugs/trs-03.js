@@ -1,0 +1,1 @@
+[ ] instanceof async function ( ) { } ; 

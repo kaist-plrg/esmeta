@@ -203,6 +203,16 @@ case object CmdFuzz extends Command("fuzz", CmdBuildCFG >> Fuzz) {
     println(cov)
 }
 
+/** `pre-fuzz-eval` command */
+case object CmdPreFuzzEval
+  extends Command("pre-fuzz-eval", CmdBuildCFG >> PreFuzzEval) {
+  val help = "Evaluate pre-fuzzing result."
+  val examples: List[String] = List(
+    "esmeta pre-fuzz-eval FUZZING_LOG_DIR   # evaluate pre-fuzzing result",
+  )
+  override val targetName = "<dir>"
+}
+
 /** `bug-trie` command */
 case object CmdBugTrie extends Command("bug-trie", CmdBuildCFG >> BugTrie) {
   val help =

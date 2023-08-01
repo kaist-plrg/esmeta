@@ -92,6 +92,13 @@ class Coverage(
     check(script, interp, isBugOpt)
   }
 
+  def runAndCheckBlockings(
+    script: Script,
+  ): (State, Boolean, Boolean, Set[Script]) = {
+    val interp = run(script.code)
+    checkWithBlocking(script, interp)
+  }
+
   /** evaluate a given ECMAScript program. */
   def run(code: String): Interp = {
     // run interpreter and record touched

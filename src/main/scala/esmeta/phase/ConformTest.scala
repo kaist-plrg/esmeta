@@ -104,10 +104,11 @@ case object ConformTest
   private var bugStat: Map[Target, Map[String, Int]] = Map()
 
   // do conform test, and returns Some((name, bug)) if fails.
-  private def doConformTest(
+  def doConformTest(
     target: Target,
     isTrans: Boolean,
     script: Script,
+    isSimple: Boolean = false,
   ): Option[(String, String)] =
     val Script(code, name) = script
     debug(s"Testing $target: $name...")
@@ -138,6 +139,7 @@ case object ConformTest
 
     // log information when test fails
     if pass then None
+    else if isSimple then Some(name, "")
     else {
       val detail =
         if (!sameExitTag) then

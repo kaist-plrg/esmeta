@@ -65,24 +65,23 @@ object SelectionEval {
               case (codeSize, script) =>
                 if codeSize >= script.code.length then codeSize
                 else if (
-                    !targets.foldLeft(false) {
-                      case (isTargetBug, target) =>
-                        if isTargetBug then true
-                        else
-                          ConformTest
-                            .doConformTest(
-                              target,
-                              target.isTrans,
-                              Script(
-                                Injector(script.code, true, false).toString,
-                                script.name,
-                              ),
-                              true,
-                            )
-                            .isDefined
-                    },
-                  )
-                then 0
+                  !targets.foldLeft(false) {
+                    case (isTargetBug, target) =>
+                      if isTargetBug then true
+                      else
+                        ConformTest
+                          .doConformTest(
+                            target,
+                            target.isTrans,
+                            Script(
+                              Injector(script.code, true, false).toString,
+                              script.name,
+                            ),
+                            true,
+                          )
+                          .isDefined
+                  },
+                ) then 0
                 else script.code.length
             }
           dw.println(s"$idx : $name : $blockingLength")
@@ -100,6 +99,9 @@ object SelectionEval {
     sw.println(s"# of clean hits: $cleanHit / ${fileList.size}")
     sw.println(
       s"dirty hit ratio: ${(1 - cleanHit / fileList.size.toDouble) * 100}",
+    )
+    sw.println(
+      s"dirty hit average: ${expGroup.values.filter(_ != 1000).sum / expGroup.values.count(_ != 1000).toDouble}",
     )
     sw.close()
 

@@ -170,7 +170,7 @@ case object Fuzz extends Phase[CFG, Coverage] {
     var engines: Option[String] = None,
     var transpilers: Option[String] = None,
     var checkIter: Option[Int] = Some(256),
-    var onlineNumStdDev: Option[Int] = Some(1),
+    var onlineNumStdDev: Option[Int] = None,
     var useBugTrie: Boolean = false,
   )
 }

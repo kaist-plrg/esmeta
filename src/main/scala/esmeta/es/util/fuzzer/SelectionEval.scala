@@ -57,34 +57,15 @@ object SelectionEval {
           cleanHit += 1;
           println(s"index $idx clean hit! total $cleanHit .");
           dw.println(s"$idx : $name : Unconditionally survive")
-          1000
+          -1
         } else
           val blockingLength = blockingSet.toList
-            .sortBy(-_.code.length)
-            .foldLeft(0) {
-              case (codeSize, script) =>
-                if codeSize >= script.code.length then codeSize
-                else if (
-                  !targets.foldLeft(false) {
-                    case (isTargetBug, target) =>
-                      if isTargetBug then true
-                      else
-                        ConformTest
-                          .doConformTest(
-                            target,
-                            target.isTrans,
-                            Script(
-                              Injector(script.code, true, false).toString,
-                              script.name,
-                            ),
-                            true,
-                          )
-                          .isDefined
-                  },
-                ) then 0
-                else script.code.length
-            }
+            .map(_.code.length)
+            .sortBy(-_)
+            .headOption
+            .getOrElse(0)
           dw.println(s"$idx : $name : $blockingLength")
+          println(s"index $idx dirty hit! length $blockingLength .");
           blockingLength
 
       expGroup += idx -> minBugCodeSize
@@ -95,13 +76,14 @@ object SelectionEval {
     println(expGroup)
     println("#########################################")
 
+    sw.println(s"eval $baseDir")
     sw.println(s"# of minimals: $numMinimals")
     sw.println(s"# of clean hits: $cleanHit / ${fileList.size}")
     sw.println(
       s"dirty hit ratio: ${(1 - cleanHit / fileList.size.toDouble) * 100}",
     )
     sw.println(
-      s"dirty hit average: ${expGroup.values.filter(_ != 1000).sum / expGroup.values.count(_ != 1000).toDouble}",
+      s"dirty hit average: ${expGroup.values.filter(_ != -1).sum / expGroup.values.count(_ != -1).toDouble}",
     )
     sw.close()
 
@@ -110,7 +92,7 @@ object SelectionEval {
       s"dirty hit ratio: ${(1 - cleanHit / fileList.size.toDouble) * 100}",
     )
     println(
-      s"dirty hit average: ${expGroup.values.filter(_ != 1000).sum / expGroup.values.count(_ != 1000).toDouble}",
+      s"dirty hit average: ${expGroup.values.filter(_ != -1).sum / expGroup.values.count(_ != -1).toDouble}",
     )
 
     (0, 0, numMinimals)

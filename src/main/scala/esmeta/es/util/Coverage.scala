@@ -701,36 +701,6 @@ object Coverage {
     def rj[T](json: String)(implicit decoder: Decoder[T]) =
       readJson[T](s"$baseDir/$json")
 
-    val nodeKMap =
-      (try {
-        rj[List[(String, Int)]]("k-selection/node.json").toMap
-      } catch {
-        case e: Throwable =>
-          print("Coverage.fromLog: ");
-          println(e.getMessage);
-          Map[String, Int]()
-      }).withDefaultValue(0)
-
-    val condKMap =
-      (try {
-        rj[List[(String, Int)]]("k-selection/cond.json").toMap
-      } catch {
-        case e: Throwable =>
-          print("Coverage.fromLog: ");
-          println(e.getMessage);
-          Map[String, Int]()
-      }).withDefaultValue(0)
-
-    val pValueMap =
-      try {
-        Some(rj[List[(String, Double)]]("p_values.json").toMap)
-      } catch {
-        case e: Throwable =>
-          print("Coverage.fromLog: ");
-          println(e.getMessage);
-          None
-      }
-
     var online = true
     val fsTrie =
       try {

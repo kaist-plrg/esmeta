@@ -47,9 +47,9 @@ object SelectionEval {
       code = USE_STRICT + readFile(bugCode.getPath).trim()
       script = Script(code, name)
     } {
-      if (idx % 10 == 0) {
-        println(s"index: $idx")
-      }
+//      if (idx % 10 == 0) {
+//        println(s"index: $idx")
+//      }
       val cov = getCoverage(baseDir)
       val (_, _, covered, blockingSet) = cov.runAndCheckBlockings(script)
       val minBugCodeSize =

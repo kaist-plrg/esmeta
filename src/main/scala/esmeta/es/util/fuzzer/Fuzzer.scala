@@ -253,7 +253,14 @@ class Fuzzer(
 
   /** coverage */
   val cov: Coverage =
-    Coverage(timeLimit, kFs, cp, onlineNumStdDev, checkIter, fixedTrieOpt)
+    Coverage(
+      timeLimit,
+      kFs,
+      cp,
+      checkIter,
+      onlineNumStdDev,
+      fixedTrieOpt
+    )
 
   /** target selector */
   val selector: TargetSelector = WeightedSelector(

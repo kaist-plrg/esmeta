@@ -73,7 +73,7 @@ class Coverage(
   private val fsTrieCheckIter: Int = checkIter.getOrElse(Int.MaxValue)
 
   def updateSensitivity(): Unit =
-    if (fsTrieIn.isEmpty)
+    if (fsTrieIn.isEmpty && onlineNumStdDev.isDefined)
       fsTrie = fsTrie.splitMax(onlineNumStdDev)
 
   // target conditional branches
@@ -243,7 +243,8 @@ class Coverage(
       })
     } else {
       // no selection
-      rawFeatureStack.take(kFs)
+      val temp = rawFeatureStack.take(kFs)
+      temp
     }
   }
 
@@ -332,7 +333,7 @@ class Coverage(
         remove = true,
       )
       log("Dupmed assertions")
-      if (withFSTrie) {
+      if (withFSTrie && onlineNumStdDev.isDefined) {
         dumpJson(
           name = None,
           data = fsTrie.trim(), // for evaluation

@@ -259,7 +259,7 @@ class Fuzzer(
       cp,
       checkIter,
       onlineNumStdDev,
-      fixedTrieOpt
+      fixedTrieOpt,
     )
 
   /** target selector */

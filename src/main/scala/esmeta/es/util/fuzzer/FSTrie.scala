@@ -118,9 +118,9 @@ case class FSTrie(
       }) ()
       targetOpt match {
         case None =>
-          println(
-            s"did not split",
-          )
+//          println(
+//            s"did not split",
+//          )
           this
         case Some(target) =>
           println(

@@ -117,7 +117,11 @@ case class FSTrie(
         max.value.touch > threshold && targetOpt.isEmpty && pq.nonEmpty
       }) ()
       targetOpt match {
-        case None => this
+        case None =>
+          println(
+            s"did not split",
+          )
+          this
         case Some(target) =>
           println(
             s"split: ${target.path.map(_.replaceAll("[aeiou]", "").take(16))}",

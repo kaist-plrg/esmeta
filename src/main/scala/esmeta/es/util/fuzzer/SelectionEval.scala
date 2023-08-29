@@ -14,6 +14,8 @@ import esmeta.util.SystemUtils.{
   mkdir,
   readFile,
 }
+import esmeta.cfg.CFG
+import esmeta.ir.FuncKind.*
 
 object SelectionEval {
   lazy val bugDB: List[String] = ???
@@ -23,6 +25,33 @@ object SelectionEval {
   def getCoverage(baseDir: String): Coverage = Coverage.fromLog(baseDir)
 
   def checkBug(bugScript: Script): Boolean = ???
+
+  def countAllFeatures: Int = 2104
+//    val cfg = CFG.defaultCFG
+//    var count = 0
+//    for {
+//      func <- cfg.funcs
+//      kind = func.irFunc.kind
+//    } {
+//      kind match
+//        case SynDirOp => count += 1
+//        case Builtin  => count += 1
+//        case _        => ()
+//    }
+//    count
+
+  def makeOptimalTrie: FSTrie =
+    val fileList = listFiles(s"$BASE_DIR/reported-bugs")
+    val cov = Coverage(onlineNumStdDev = Some(1))
+    for {
+      bugCode <- fileList
+      name = bugCode.getName
+      code = USE_STRICT + readFile(bugCode.getPath).trim()
+      script = Script(code, name)
+    } {
+      cov.runAndCheck(script)
+    }
+    cov.getTrie
 
   def evaluate(
     baseDir: String,

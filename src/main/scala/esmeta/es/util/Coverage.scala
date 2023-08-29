@@ -69,6 +69,8 @@ class Coverage(
   // mapping from feature stacks to number of touches
   private var fsTrie: FSTrie = fsTrieIn.getOrElse(FSTrie.root)
 
+  def getTrie: FSTrie = fsTrie
+
   private var scriptIter: Int = 0
   private val fsTrieCheckIter: Int = checkIter.getOrElse(Int.MaxValue)
 

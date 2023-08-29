@@ -41,6 +41,7 @@ object SelectionEval {
     println(s"# of minimals: $numMinimals")
     var idx = 0
     var cleanHit = 0
+    val cov = getCoverage(baseDir)
     for {
       bugCode <- fileList
       name = bugCode.getName
@@ -50,7 +51,6 @@ object SelectionEval {
 //      if (idx % 10 == 0) {
 //        println(s"index: $idx")
 //      }
-      val cov = getCoverage(baseDir)
       val (_, _, covered, blockingSet) = cov.runAndCheckBlockings(script)
       val minBugCodeSize =
         if covered || blockingSet.isEmpty then {

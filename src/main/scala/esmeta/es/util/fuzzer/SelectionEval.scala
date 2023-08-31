@@ -40,19 +40,6 @@ object SelectionEval {
 //    }
 //    count
 
-  def makeOptimalTrie: FSTrie =
-    val fileList = listFiles(s"$BASE_DIR/reported-bugs")
-    val cov = Coverage(onlineNumStdDev = Some(1))
-    for {
-      bugCode <- fileList
-      name = bugCode.getName
-      code = USE_STRICT + readFile(bugCode.getPath).trim()
-      script = Script(code, name)
-    } {
-      cov.runAndCheck(script)
-    }
-    cov.getTrie
-
   def evaluate(
     baseDir: String,
     targets: Iterable[Target],

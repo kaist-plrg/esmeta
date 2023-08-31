@@ -1,13 +1,18 @@
 package esmeta.es.util.fuzzer
 
-import esmeta.es.util.{Coverage, cfg}
+import esmeta.BASE_DIR
+import esmeta.es.Script
+import esmeta.es.util.{JsonProtocol, Coverage, USE_STRICT, cfg}
 import esmeta.es.util.Coverage.Interp
+import esmeta.es.util.fuzzer.FSTrie.numFeatures
+import esmeta.util.SystemUtils.{listFiles, readFile, readJson}
 
 import scala.annotation.tailrec
 import scala.collection.mutable
 import scala.collection.mutable.PriorityQueue as PQueue
 
 object FSTrie {
+  val numFeatures = 2104
   implicit val fsOrdering: Ordering[FSData] = Ordering.by(_.value.touch)
 
   def root: FSTrie = FSTrie(value = FSValue(leaf = false))
@@ -25,7 +30,55 @@ object FSTrie {
         .toSet
       touchedRawStack.foreach(stack => trie = trie.incTouch(stack, Some(true))),
     )
-    trie.extend()
+    trie.unleafifyMultipleTouches
+
+  def makeOptimalTrie: FSTrie =
+    val fileList = listFiles(s"$BASE_DIR/reported-bugs")
+    val cov = Coverage(onlineNumStdDev = Some(1))
+    for {
+      bugCode <- fileList
+      name = bugCode.getName
+      code = USE_STRICT + readFile(bugCode.getPath).trim()
+      script = Script(code, name)
+    } {
+      cov.runAndCheck(script)
+    }
+    cov.getTrie.unleafifyMultipleTouches
+
+  def intersection(trie1: FSTrie, trie2: FSTrie): Int =
+    if trie1.value.leaf || trie2.value.leaf then 0
+    else
+      val keySet1 = trie1.children.keySet
+      val keySet2 = trie2.children.keySet
+      keySet1.intersect(keySet2).foldLeft(numFeatures) {
+        case (acc, key) =>
+          val subInterOpt = for {
+            child1 <- trie1.children.get(key)
+            child2 <- trie2.children.get(key)
+          } yield intersection(child1, child2)
+          acc + subInterOpt.getOrElse(0)
+      }
+
+  def evaluate(): Unit =
+    val jsonProtocol = JsonProtocol(cfg)
+    import jsonProtocol.given
+
+    val target = readJson[FSTrie](
+//      s"$BASE_DIR/experiment/50hrs/sel-1sig-fs/fuzz/fs_trie.json",
+//      s"$BASE_DIR/experiment/50hrs/sel-2sig-fcps/fuzz/fs_trie.json",
+//      s"$BASE_DIR/experiment/50hrs/sel-2sig-fs/fuzz/fs_trie.json",
+      s"$BASE_DIR/experiment/50hrs/sel-2sig-fcps/fuzz/fs_trie.json",
+    ).trim()
+    val optimal = makeOptimalTrie.trim()
+    println(s"optimal size: ${optimal.coverageSize}")
+    println(s"target size: ${target.coverageSize}")
+    println(s"2-k size: ${numFeatures * numFeatures}")
+    println(s"optimal /\\ target size: ${intersection(target, optimal)}")
+    println(s"optimal /\\ 2-k size: ${optimal.kIntersection(2)}")
+    println(s"target /\\ 2-k size: ${target.kIntersection(2)}")
+    println(
+      s"optimal /\\ target /\\ 2-k size: ${intersection(target.trim(2), optimal)}",
+    )
 
   def test(): Unit = {
 
@@ -101,7 +154,8 @@ case class FSTrie(
 
   def splitMax(numStdDevOpt: Option[Int] = None): FSTrie = {
     val (touchAvg, touchStd) = leafStat
-    val threshold = touchAvg + touchStd * numStdDevOpt.getOrElse(0)
+    val threshold =
+      touchAvg + touchStd * math.pow(2, -numStdDevOpt.getOrElse(0))
     var targetOpt: Option[FSData] = None
     val pq = collect()
     if (pq.isEmpty) {
@@ -141,6 +195,18 @@ case class FSTrie(
       )
   }
 
+  def trim(k: Int): FSTrie = {
+    if k == 0 then
+      this.copy(value = value.copy(leaf = true), children = Map.empty)
+    else if value.leaf then this.copy(children = Map.empty)
+    else
+      this.copy(
+        children = children.transform {
+          case (_, child) => child.trim(k - 1)
+        },
+      )
+  }
+
   def extend(): FSTrie = {
     if children.isEmpty then this
     else
@@ -159,6 +225,36 @@ case class FSTrie(
     val std = scala.math.sqrt(sqAvg - avg * avg)
     (avg, std)
   }
+
+  def unleafifyMultipleTouches: FSTrie = {
+    if value.touch > 1 then
+      this.copy(
+        children = children.transform {
+          case (_, child) => child.unleafifyMultipleTouches
+        },
+        value = value.copy(leaf = false),
+      )
+    else
+      this.copy(
+        children = children.transform {
+          case (_, child) => child.unleafifyMultipleTouches
+        },
+      )
+  }
+
+  def kIntersection(k: Int): Int =
+    if value.leaf || k <= 0 then 0
+    else
+      children.values.foldLeft(numFeatures) {
+        case (acc, child) => acc + child.kIntersection(k - 1)
+      }
+
+  def coverageSize: Int =
+    if value.leaf then 0
+    else
+      children.values.foldLeft(numFeatures) {
+        case (acc, child) => acc + child.coverageSize
+      }
 
   private def leafStatSuppl: LeafStat = {
     if value.leaf then {

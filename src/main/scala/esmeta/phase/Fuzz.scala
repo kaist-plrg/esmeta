@@ -147,7 +147,7 @@ case object Fuzz extends Phase[CFG, Coverage] {
     (
       "threshold-std-dev",
       NumOption((c, k) => c.onlineNumStdDev = Some(k)),
-      "set the threshold for update online sensitivity (default: 1).",
+      "set the threshold for update online sensitivity (-log scale) (default: 2^0).",
     ),
     (
       "checking-iteration",

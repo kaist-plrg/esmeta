@@ -18,6 +18,7 @@ import io.circe.*
 import io.circe.syntax.*
 
 import scala.collection.immutable.Map
+import scala.collection.mutable
 import scala.collection.mutable.Map as MMap
 import scala.math.Ordering.Implicits.seqOrdering
 
@@ -122,6 +123,34 @@ class Coverage(
     val (finalSt, updated, covered, _) =
       checkWithBlocking(script, interp, isBugOpt)
     (finalSt, updated, covered)
+
+  def touchedAndCookedStacks(script: Script): Set[String] =
+    val interp = run(script.code)
+    val _ = interp.result
+
+    var touchedSet: Set[String] = Set()
+
+    for ((rawNodeView, _) <- interp.touchedNodeViews)
+      val NodeView(_, rawView) = rawNodeView
+      rawView match {
+        case None => ()
+        case Some((rawEnclosing, feature, _)) =>
+          val featureStack = cookFeatureStack(feature :: rawEnclosing)
+          if featureStack.isEmpty then ()
+          else touchedSet += featureStack.map(_.func.name).mkString
+      }
+
+    for ((rawCondView, _) <- interp.touchedCondViews)
+      val CondView(_, rawView) = rawCondView
+      rawView match {
+        case None => ()
+        case Some((rawEnclosing, feature, _)) =>
+          val featureStack = cookFeatureStack(feature :: rawEnclosing)
+          if featureStack.isEmpty then ()
+          else touchedSet += featureStack.map(_.func.name).mkString
+      }
+
+    touchedSet
 
   /** update coverage, and return evaluation result with whether it succeeds to
     * increase coverage

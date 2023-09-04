@@ -5,7 +5,7 @@ import esmeta.es.Script
 import esmeta.es.util.{JsonProtocol, Coverage, USE_STRICT, cfg}
 import esmeta.es.util.Coverage.Interp
 import esmeta.es.util.fuzzer.FSTrie.numFeatures
-import esmeta.util.SystemUtils.{listFiles, readFile, readJson}
+import esmeta.util.SystemUtils.{listFiles, readFile, readJson, dumpJson}
 
 import scala.annotation.tailrec
 import scala.collection.mutable
@@ -45,6 +45,19 @@ object FSTrie {
     }
     cov.getTrie.unleafifyMultipleTouches
 
+  def makeTouchedSets(cov: Coverage): List[Set[Int]] =
+    val fileList = listFiles(s"$BASE_DIR/reported-bugs")
+    val sets = for {
+      bugCode <- fileList
+      name = bugCode.getName
+      code = USE_STRICT + readFile(bugCode.getPath).trim()
+      script = Script(code, name)
+    } yield cov.touchedAndCookedStacks(script)
+    val setsUnion = sets.fold(Set())(_.union(_))
+    println(setsUnion.take(10))
+    val setMapping = setsUnion.zipWithIndex.toMap
+    for (s <- sets) yield s.flatMap(setMapping.get)
+
   def intersection(trie1: FSTrie, trie2: FSTrie): Int =
     if trie1.value.leaf || trie2.value.leaf then 0
     else
@@ -59,7 +72,7 @@ object FSTrie {
           acc + subInterOpt.getOrElse(0)
       }
 
-  def evaluate(): Unit =
+  def evaluate1(): Unit =
     val jsonProtocol = JsonProtocol(cfg)
     import jsonProtocol.given
 
@@ -80,34 +93,55 @@ object FSTrie {
       s"optimal /\\ target /\\ 2-k size: ${intersection(target.trim(2), optimal)}",
     )
 
+  def evaluate2(): Unit =
+    val k1Cov = Coverage(kFs = 1)
+    val k2Cov = Coverage(kFs = 2)
+    val s1Cov = Coverage.fromLog(s"$BASE_DIR/experiment/50hrs/sel-2sig-fs/fuzz")
+
+    println("k1Cov Start")
+    val k1Set = makeTouchedSets(k1Cov)
+    println("k2Cov Start")
+    val k2Set = makeTouchedSets(k2Cov)
+    println("s1Cov Start")
+    val s1Set = makeTouchedSets(s1Cov)
+
+    dumpJson(
+      name = Some("1-k bug sets"),
+      data = k1Set,
+      filename = s"$BASE_DIR/experiment/bugset/k1.json",
+      space = true,
+    )
+    dumpJson(
+      name = Some("2-k bug sets"),
+      data = k2Set,
+      filename = s"$BASE_DIR/experiment/bugset/k2.json",
+      space = true,
+    )
+    dumpJson(
+      name = Some("1-sigma bug sets"),
+      data = s1Set,
+      filename = s"$BASE_DIR/experiment/bugset/s1.json",
+      space = true,
+    )
+
   def test(): Unit = {
 
     var t = FSTrie.root
 
     val abc = List("A", "B", "C")
-
     1 to 1 foreach { _ => t = t.incTouch(List("A", "A", "B")) }
-
     1 to 3 foreach { _ => t = t.incTouch(List("A", "B", "C")) }
-
     1 to 3 foreach { _ => t = t.incTouch(List("A", "B", "D")) }
-
     1 to 1 foreach { _ => t = t.incTouch(List("B", "C", "D")) }
-
     1 to 1 foreach { _ => t = t.incTouch(List("B", "D", "E")) }
-
     1 to 6 foreach { _ => t = t.incTouch(List("C", "D", "E")) }
 
     println(abc.take(t.getViewLength(abc)))
     println("______________________________")
-
     t = t.splitMax(Some(1))
-
     println(abc.take(t.getViewLength(abc)))
     println("______________________________")
-
     t = t.splitMax(Some(1))
-
     println(abc.take(t.getViewLength(abc)))
     println("______________________________")
 
@@ -155,30 +189,41 @@ case class FSTrie(
   def splitMax(numStdDevOpt: Option[Int] = None): FSTrie = {
     val (touchAvg, touchStd) = leafStat
     val threshold =
-      touchAvg + touchStd * math.pow(2, -numStdDevOpt.getOrElse(0))
+      touchAvg + touchStd * numStdDevOpt.getOrElse(0)
     var targetOpt: Option[FSData] = None
     val pq = collect()
+    var diff = 0.0
     if (pq.isEmpty) {
       println("FSTrie: result of collect() is empty")
       this
     } else {
       while ({
         val max = pq.dequeue()
+        print(
+          s"max: ${max.value.touch}, Avg: ${touchAvg.toInt}, Std: ${touchStd.toInt} ||| ",
+        )
         // ensure that the path we are trying to split can be split
         if (max.value.touch > threshold && isTarget(max.path)) {
           targetOpt = Some(max)
+        } else {
+          diff = (max.value.touch - touchAvg) / touchStd
         }
         max.value.touch > threshold && targetOpt.isEmpty && pq.nonEmpty
       }) ()
       targetOpt match {
         case None =>
-//          println(
-//            s"did not split",
-//          )
+          println(
+            s"did not split: $diff sigma",
+          )
           this
         case Some(target) =>
           println(
-            s"split: ${target.path.map(_.replaceAll("[aeiou]", "").take(16))}",
+            s"split: ${target.path.map(
+              _.replaceAll("[aeiou,0123456789]", "")
+                .replace("[", "")
+                .replace("]", "")
+                .take(16),
+            )}",
           )
           this.unleafify(target.path)
       }
@@ -219,10 +264,14 @@ case class FSTrie(
   }
 
   def leafStat: (Double, Double) = {
-    val LeafStat(num, sqSum) = leafStatSuppl
-    val avg = value.touch.toDouble / num.toDouble
+    val LeafStat(num, sum, sqSum) = leafStatSuppl
+    val avg = sum.toDouble / num.toDouble
     val sqAvg = sqSum.toDouble / num.toDouble
     val std = scala.math.sqrt(sqAvg - avg * avg)
+    if (std.isNaN) {
+      println(s"std NaN: avg^2: ${avg * avg}, sqAvg: $sqAvg")
+      println(s"std NaN: avg: ${avg}, sqSum: $sqSum")
+    }
     (avg, std)
   }
 
@@ -258,13 +307,17 @@ case class FSTrie(
 
   private def leafStatSuppl: LeafStat = {
     if value.leaf then {
-      LeafStat(num = 1, sqSum = value.touch * value.touch)
+      LeafStat(num = 1, sum = value.touch, sqSum = value.touch * value.touch)
     } else {
-      children.foldLeft(LeafStat(0, 0)) {
-        case (LeafStat(num, sqSum), (_, child)) =>
-          val LeafStat(childNum, childSqSum) = child.leafStatSuppl
-          LeafStat(num + childNum, sqSum + childSqSum)
+      val stat = children.foldLeft(LeafStat(0, 0L, 0L)) {
+        case (LeafStat(num, sum, sqSum), (_, child)) =>
+          val LeafStat(childNum, childSum, childSqSum) = child.leafStatSuppl
+          LeafStat(num + childNum, sum + childSum, sqSum + childSqSum)
       }
+      if (stat.sqSum < 0) {
+        println("SqSum < 0!!")
+      }
+      stat
     }
   }
 
@@ -298,7 +351,7 @@ case class FSTrie(
     path: List[String],
     pQueue: PQueue[FSData],
   ): PQueue[FSData] =
-    if value.leaf then pQueue.addOne(FSData(path, value))
+    if value.leaf && children.nonEmpty then pQueue.addOne(FSData(path, value))
     else
       children.foldLeft(pQueue) {
         case (pq, (key, child)) => child.collectSuppl(path :+ key, pq)
@@ -332,7 +385,7 @@ case class FSTrie(
 }
 
 case class FSValue(
-  touch: Int = 0,
+  touch: Long = 0,
   leaf: Boolean = true,
   bugTouch: Int = 0,
   normalTouch: Int = 0,
@@ -348,4 +401,4 @@ case class FSValue(
 
 case class FSData(path: List[String], value: FSValue)
 
-case class LeafStat(num: Int, sqSum: Int)
+case class LeafStat(num: Int, sum: Long, sqSum: Long)

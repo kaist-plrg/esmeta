@@ -184,7 +184,7 @@ case class FSTrie(
   def incTouch(path: List[String], isBugOpt: Option[Boolean] = None): FSTrie =
     incTouchSuppl(path, isBugOpt)
 
-  def getViewLength(stack: List[String]): Int = getViewLengthSuppl(stack, 0)
+  def getViewLength(stack: List[String]): Int = getViewLengthSuppl(stack, 0) - 1
 
   def splitMax(numStdDevOpt: Option[Int] = None): FSTrie = {
     val (touchAvg, touchStd) = leafStat

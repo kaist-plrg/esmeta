@@ -69,7 +69,8 @@ class Coverage(
   private var condViews: Set[CondView] = Set()
 
   // mapping from feature stacks to number of touches
-  private var fsTrie: FSTrie = fsTrieIn.getOrElse(FSTrie.root(logDir.map(s => s"$s/split_log.txt")))
+  private var fsTrie: FSTrie =
+    fsTrieIn.getOrElse(FSTrie.root(logDir.map(s => s"$s/split_log.txt")))
 
   def getTrie: FSTrie = fsTrie
 

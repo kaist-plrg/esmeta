@@ -224,11 +224,10 @@ case class FSTrie(
       }) ()
       targetOpt match {
         case None =>
-          pw.foreach(
-            _.println(
-              s"did not split: $diff sigma",
-            ),
-          )
+          for (p <- pw) {
+            p.println(s"did not split: $diff sigma")
+            p.flush()
+          }
           this
         case Some(target) =>
           val temp = s"split: ${target.path.map(
@@ -237,7 +236,10 @@ case class FSTrie(
               .replace("]", "")
               .take(16),
           )}"
-          pw.foreach(_.println(temp))
+          for (p <- pw) {
+            p.println(temp)
+            p.flush()
+          }
           println(temp)
           this.unleafify(target.path)
       }

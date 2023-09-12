@@ -21,12 +21,13 @@ import scala.collection.mutable.PriorityQueue as PQueue
 object FSTrie {
   val numFeatures = 2104
   implicit val fsOrdering: Ordering[FSData] = Ordering.by(_.value.touch)
+  var pwOpt: Option[PrintWriter] = None
 
-  def root(logPath: Option[String] = None): FSTrie =
-    FSTrie(value = FSValue(leaf = false), logPath = logPath)
+  def root: FSTrie =
+    FSTrie(value = FSValue(leaf = false))
 
   def fromBugs(bugs: List[String]): FSTrie =
-    var trie = root()
+    var trie = root
     bugs.foreach(bug =>
       val initSt = cfg.init.from(bug)
       val interp = Interp(initSt, None, false)
@@ -134,7 +135,7 @@ object FSTrie {
 
   def test(): Unit = {
 
-    var t = FSTrie.root()
+    var t = FSTrie.root
 
     val abc = List("A", "B", "C")
     1 to 1 foreach { _ => t = t.incTouch(List("A", "A", "B")) }
@@ -175,11 +176,9 @@ object FSTrie {
 case class FSTrie(
   children: Map[String, FSTrie] = Map[String, FSTrie]().empty,
   value: FSValue = FSValue(),
-  logPath: Option[String] = None,
 ) {
 
   import FSTrie.fsOrdering
-  private val pw: Option[PrintWriter] = logPath.map(getPrintWriter)
 
   @tailrec
   final def apply(path: List[String]): FSValue = path match {
@@ -209,7 +208,7 @@ case class FSTrie(
     } else {
       while ({
         val max = pq.dequeue()
-        pw.foreach(
+        FSTrie.pwOpt.foreach(
           _.print(
             s"max: ${max.value.touch}, Avg: ${touchAvg.toInt}, Std: ${touchStd.toInt} ||| ",
           ),
@@ -224,7 +223,7 @@ case class FSTrie(
       }) ()
       targetOpt match {
         case None =>
-          for (p <- pw) {
+          for (p <- FSTrie.pwOpt) {
             p.println(s"did not split: $diff sigma")
             p.flush()
           }
@@ -236,7 +235,7 @@ case class FSTrie(
               .replace("]", "")
               .take(16),
           )}"
-          for (p <- pw) {
+          for (p <- FSTrie.pwOpt) {
             p.println(temp)
             p.flush()
           }

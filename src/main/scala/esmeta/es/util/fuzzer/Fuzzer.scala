@@ -79,6 +79,7 @@ class Fuzzer(
       // start logging
       mkdir(logDir, remove = true)
       createSymlink(symlink, logDir, overwrite = true)
+      cov.fsTrieLogInit()
       dumpFile(ESMeta.currentVersion, s"$logDir/version")
       dumpFile(getSeed, s"$logDir/seed")
       dumpFile(JSEngine.defaultEngineToString, s"$logDir/default-engine")

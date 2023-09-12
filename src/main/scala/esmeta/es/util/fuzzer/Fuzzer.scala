@@ -262,6 +262,7 @@ class Fuzzer(
       checkIter,
       onlineNumStdDev,
       fixedTrieOpt,
+      Some(logDir),
     )
 
   /** target selector */

@@ -30,6 +30,7 @@ class Coverage(
   checkIter: Option[Int] = None,
   onlineNumStdDev: Option[Int] = None,
   fsTrieIn: Option[FSTrie] = None,
+  logDir: Option[String] = None,
 ) {
 
   import Coverage.{*, given}
@@ -68,7 +69,7 @@ class Coverage(
   private var condViews: Set[CondView] = Set()
 
   // mapping from feature stacks to number of touches
-  private var fsTrie: FSTrie = fsTrieIn.getOrElse(FSTrie.root)
+  private var fsTrie: FSTrie = fsTrieIn.getOrElse(FSTrie.root(logDir.map(s => s"$s/split_log.txt")))
 
   def getTrie: FSTrie = fsTrie
 
@@ -742,7 +743,7 @@ object Coverage {
           print("Coverage.fromLog: ");
           println(e.getMessage);
           online = false
-          FSTrie.root
+          FSTrie.root()
       }
 
     val con: CoverageConstructor = rj(s"constructor.json")

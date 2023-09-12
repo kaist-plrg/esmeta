@@ -2,11 +2,18 @@ package esmeta.es.util.fuzzer
 
 import esmeta.BASE_DIR
 import esmeta.es.Script
-import esmeta.es.util.{JsonProtocol, Coverage, USE_STRICT, cfg}
+import esmeta.es.util.{Coverage, JsonProtocol, USE_STRICT, cfg}
 import esmeta.es.util.Coverage.Interp
 import esmeta.es.util.fuzzer.FSTrie.numFeatures
-import esmeta.util.SystemUtils.{listFiles, readFile, readJson, dumpJson}
+import esmeta.util.SystemUtils.{
+  dumpJson,
+  getPrintWriter,
+  listFiles,
+  readFile,
+  readJson,
+}
 
+import java.io.PrintWriter
 import scala.annotation.tailrec
 import scala.collection.mutable
 import scala.collection.mutable.PriorityQueue as PQueue
@@ -15,10 +22,11 @@ object FSTrie {
   val numFeatures = 2104
   implicit val fsOrdering: Ordering[FSData] = Ordering.by(_.value.touch)
 
-  def root: FSTrie = FSTrie(value = FSValue(leaf = false))
+  def root(logPath: Option[String] = None): FSTrie =
+    FSTrie(value = FSValue(leaf = false), logPath = logPath)
 
   def fromBugs(bugs: List[String]): FSTrie =
-    var trie = root
+    var trie = root()
     bugs.foreach(bug =>
       val initSt = cfg.init.from(bug)
       val interp = Interp(initSt, None, false)
@@ -126,7 +134,7 @@ object FSTrie {
 
   def test(): Unit = {
 
-    var t = FSTrie.root
+    var t = FSTrie.root()
 
     val abc = List("A", "B", "C")
     1 to 1 foreach { _ => t = t.incTouch(List("A", "A", "B")) }
@@ -167,9 +175,11 @@ object FSTrie {
 case class FSTrie(
   children: Map[String, FSTrie] = Map[String, FSTrie]().empty,
   value: FSValue = FSValue(),
+  logPath: Option[String] = None,
 ) {
 
   import FSTrie.fsOrdering
+  private val pw: Option[PrintWriter] = logPath.map(getPrintWriter)
 
   @tailrec
   final def apply(path: List[String]): FSValue = path match {
@@ -199,8 +209,10 @@ case class FSTrie(
     } else {
       while ({
         val max = pq.dequeue()
-        print(
-          s"max: ${max.value.touch}, Avg: ${touchAvg.toInt}, Std: ${touchStd.toInt} ||| ",
+        pw.foreach(
+          _.print(
+            s"max: ${max.value.touch}, Avg: ${touchAvg.toInt}, Std: ${touchStd.toInt} ||| ",
+          ),
         )
         // ensure that the path we are trying to split can be split
         if (max.value.touch > threshold && isTarget(max.path)) {
@@ -212,19 +224,21 @@ case class FSTrie(
       }) ()
       targetOpt match {
         case None =>
-          println(
-            s"did not split: $diff sigma",
+          pw.foreach(
+            _.println(
+              s"did not split: $diff sigma",
+            ),
           )
           this
         case Some(target) =>
-          println(
-            s"split: ${target.path.map(
-              _.replaceAll("[aeiou,0123456789]", "")
-                .replace("[", "")
-                .replace("]", "")
-                .take(16),
-            )}",
-          )
+          val temp = s"split: ${target.path.map(
+            _.replaceAll("[aeiou,0123456789]", "")
+              .replace("[", "")
+              .replace("]", "")
+              .take(16),
+          )}"
+          pw.foreach(_.println(temp))
+          println(temp)
           this.unleafify(target.path)
       }
     }

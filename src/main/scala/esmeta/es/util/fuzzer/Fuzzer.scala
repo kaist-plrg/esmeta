@@ -103,7 +103,7 @@ class Fuzzer(
     println(s"- the initial program pool consists of ${pool.size} programs.")
     time(
       "- repeatedly trying to fuzz new programs to increase coverage", {
-        logInterval.map(_ => {
+        logInterval.foreach(_ => {
           startTime = System.currentTimeMillis
           startInterval = System.currentTimeMillis
           logging
@@ -115,10 +115,8 @@ class Fuzzer(
     )
 
     // finish logging
-    logInterval.map(_ => {
+    logInterval.foreach(_ => {
       logging
-      // dump coveragge
-      cov.dumpToWithDetail(logDir, withMsg = (debug == ALL))
       summaryTsv.close
       selStatTsv.close
       mutStatTsv.close
@@ -398,7 +396,7 @@ class Fuzzer(
     if (kFs > 0) row ++= Vector(tcv)
     addRow(row)
     // dump coveragge
-//    cov.dumpToWithDetail(logDir, withMsg = (debug == ALL))
+    cov.dumpToWithDetail(logDir, withMsg = (debug == ALL))
     dumpStat(mutator.names, mutatorStat, mutStatTsv)
   private def addRow(data: Iterable[Any], nf: PrintWriter = summaryTsv): Unit =
     val row = data.mkString("\t")

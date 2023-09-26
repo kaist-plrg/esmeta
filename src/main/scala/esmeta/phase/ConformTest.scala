@@ -29,7 +29,7 @@ case object ConformTest
   private type Input = Map[Target, Iterable[Script]]
   private type Result = Map[Target, Iterable[String]]
 
-  private val knownCounter: MMap[String, Int] = MMap().default(0)
+  private val knownCounter: MMap[String, Int] = MMap().withDefaultValue(0)
 
   def apply(
     input: (Input, Input, Iterable[Script]),

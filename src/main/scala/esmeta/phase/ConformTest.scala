@@ -10,6 +10,7 @@ import esmeta.util.*
 import esmeta.util.SystemUtils.*
 import esmeta.util.BaseUtils.*
 import scala.collection.parallel.CollectionConverters._
+import scala.collection.mutable.Map as MMap
 
 /** `conform-test` phase */
 case object ConformTest
@@ -27,6 +28,8 @@ case object ConformTest
   private var _config: Option[Config] = None
   private type Input = Map[Target, Iterable[Script]]
   private type Result = Map[Target, Iterable[String]]
+
+  private val knownCounter: MMap[String, Int] = MMap().default(0)
 
   def apply(
     input: (Input, Input, Iterable[Script]),
@@ -82,6 +85,9 @@ case object ConformTest
       s"$CONFORMTEST_LOG_DIR/bug-stat.json",
     )
     dumpSummary(result, bugStat)
+
+    // dump Known Bug Counter
+    dumpJson(knownCounter, s"$CONFORMTEST_LOG_DIR/known-counter.json")
 
     // return result
     result
@@ -178,7 +184,7 @@ case object ConformTest
         tag match {
           case NewTag(_) => appendFile(data, s"$RESOURCE_DIR/bugs/$target/TODO")
           case TodoTag(_, path) => dumpFile(data, path)
-          case _                =>
+          case KnownTag(id)     => knownCounter(id) = knownCounter(id) + 1
         }
 
       Some((name, tag._id))

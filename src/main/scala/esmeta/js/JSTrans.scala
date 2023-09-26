@@ -11,19 +11,19 @@ import java.util.StringJoiner
 /** JavaScript Transpiler utilities */
 object JSTrans {
 
-  val defaultCmdDirMode = Map(
+  val defaultCmd= Map(
     "babel" -> s"$RESOURCE_DIR/trans/babel-d.js",
     "swc" -> s"$RESOURCE_DIR/trans/swc-d.js",
     "terser" -> s"$RESOURCE_DIR/trans/terser-d.js",
     "obfuscator" -> s"$RESOURCE_DIR/trans/obfuscator-d.js",
   )
 
-  val defaultCmd = Map(
-    "babel" -> s"$RESOURCE_DIR/trans/babel-cmd.js",
-    "swc" -> s"swc -C isModule=false",
-    "terser" -> s"terser -c --ecma 2022 --keep-fnames --keep-classnames",
-    "obfuscator" -> s"javascript-obfuscator --seed 1",
-  )
+//  val defaultCmd = Map(
+//    "babel" -> s"$RESOURCE_DIR/trans/babel-cmd.js",
+//    "swc" -> s"swc -C isModule=false",
+//    "terser" -> s"terser -c --ecma 2022 --keep-fnames --keep-classnames",
+//    "obfuscator" -> s"javascript-obfuscator --seed 1",
+//  )
 
   val defaultRepl = Map(
     "babel" -> s"$RESOURCE_DIR/trans/babel.js",
@@ -100,7 +100,9 @@ object JSTrans {
         .getOrElse(127) match {
         case 0   =>
         case 127 => throw NoCommandError(runner)
-        case st  => throw TranspileFailureError
+        case st =>
+          println(runner)
+          throw TranspileFailureError
       }
     }
 

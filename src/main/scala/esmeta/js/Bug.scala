@@ -73,7 +73,7 @@ object Bug {
 
     tag
 
-  def loadBugDB[T](targets: Iterable[T]) =
+  def loadBugDB[T](targets: Iterable[T]): (Map[T, Map[String, Set[String]]], Map[T, Map[String, String]]) =
     val knownMaps = targets
       .map(target =>
         val db = s"$RESOURCE_DIR/bugs/$target"

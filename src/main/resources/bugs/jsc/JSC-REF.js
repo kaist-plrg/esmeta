@@ -1,1 +1,1 @@
-../Common/COM-REF.js
+( x => function ( ) { } ( ) ( x ) ) ( ) ; 

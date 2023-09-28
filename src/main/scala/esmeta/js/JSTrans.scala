@@ -11,7 +11,7 @@ import java.util.StringJoiner
 /** JavaScript Transpiler utilities */
 object JSTrans {
 
-  val defaultCmd= Map(
+  val defaultCmd = Map(
     "babel" -> s"$RESOURCE_DIR/trans/babel-d.js",
     "swc" -> s"$RESOURCE_DIR/trans/swc-d.js",
     "terser" -> s"$RESOURCE_DIR/trans/terser-d.js",

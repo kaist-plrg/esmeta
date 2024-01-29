@@ -247,6 +247,28 @@ case object CmdConformTest
     }
 }
 
+/** `delta-debug` command */
+case object CmdDeltaDebug
+  extends Command("delta-debug", CmdBuildCFG >> DeltaDebug) {
+  def help =
+    "finds the minimal configuration of an ECMAScript program which induces a failure in conform test of an ECMAScript engine or a transpiler"
+  val examples = List(
+    "esmeta delta-debug a.js -mutate:impl=swc                    # minimize ECMAScript program which fails testing swc.",
+    "esmeta delta-debug a.js -mutate:impl=sm -mutate:out=b.js    # dump the minimized programs in b.js.",
+  )
+  override val targetName = "<js>"
+}
+
+/** `aggregate` command */
+case object CmdAggregate
+  extends Command("aggregate", CmdBuildCFG >> Aggregate) {
+  def help =
+    "aggregate the failing comform test cases"
+  val examples = List(
+    s"esmeta ${this.name} minimal fails.json   # aggregate.",
+  )
+}
+
 /** `localize` command */
 case object CmdLocalize extends Command("localize", CmdBuildCFG >> Localize) {
   val help = "localize bug using given jsons"

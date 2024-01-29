@@ -11,7 +11,7 @@ _esmeta_completions() {
   local cur prev opts lastc informats outformats datafiles
   cur="${COMP_WORDS[COMP_CWORD]}"
   prev="${COMP_WORDS[COMP_CWORD-1]}"
-  cmdList="help extract compile build-cfg tycheck parse eval web test262-test inject mutate fuzz gen-test conform-test categorize handle-coverage analyze"
+  cmdList="help extract compile build-cfg tycheck parse eval web test262-test inject mutate fuzz gen-test conform-test delta-debug aggregate categorize handle-coverage analyze"
   globalOpt="-silent -error -status -time"
   helpOpt=""
   extractOpt="-extract:target -extract:log -extract:repl"
@@ -27,6 +27,8 @@ _esmeta_completions() {
   fuzzOpt="-fuzz:out -fuzz:log-interval -fuzz:debug -fuzz:timeout -fuzz:trial -fuzz:duration -fuzz:seed -fuzz:k-fs -fuzz:cp"
   gentestOpt="-gen-test:debug -gen-test:engines -gen-test:transpilers -gen-test:use-cache -gen-test:only -gen-test:skip"
   conformtestOpt="-conform-test:debug -conform-test:msgdir -conform-test:save-bugs"
+  deltadebugOpt="-delta-debug:out"
+  aggregateOpt=""
   categorizeOpt=""
   handlecoverageOpt=""
   analyzeOpt="-analyze:repl"
@@ -96,6 +98,14 @@ _esmeta_completions() {
           ;;
         conform-test)
           COMPREPLY=($(compgen -W "${globalOpt} ${gentestOpt} ${conformtestOpt}"))
+          return 0
+          ;;
+        delta-debug)
+          COMPREPLY=($(compgen -W "${globalOpt} ${extractOpt} ${compileOpt} ${buildcfgOpt} ${deltadebugOpt}"))
+          return 0
+          ;;
+        aggregate)
+          COMPREPLY=($(compgen -W "${globalOpt} ${aggregateOpt}"))
           return 0
           ;;
         categorize)

@@ -147,7 +147,11 @@ case object ConformTest
       val original = originalMap(name)
 
       val tag = tagFinder(
-        original.split(LINE_SEP)(1),
+        {
+          val splitted = original.split(LINE_SEP)
+          if splitted.length == 2 then splitted(1)
+          else ""
+        },
         Some(knownBugMap(target)),
         Some(todoBugMap(target)),
         Some(code),

@@ -1,15 +1,18 @@
 package esmeta.phase
 
-import esmeta.*
+import esmeta.CommandConfig
 import esmeta.cfg.CFG
 import esmeta.es.util.withCFG
-import esmeta.es.util.mutator.*
-import esmeta.util.*
-import esmeta.util.SystemUtils.*
+import esmeta.util.StrOption
+import esmeta.util.SystemUtils.{getFirstFilename, readFile, dumpFile}
 import esmeta.js.Target
+import esmeta.es.util.deltadebugger.ESReducer
 
 /** `mutate` phase */
 case object DeltaDebug extends Phase[CFG, String] {
+
+  type Script = String
+
   val name = "delta-debug"
   val help =
     "For given ECMAScript program and an implementation, find minimal configuration of the program which induces a failure in conform test."
@@ -24,10 +27,10 @@ case object DeltaDebug extends Phase[CFG, String] {
       throw new Error(
         "For this.name the name of an ECMAScript engine or a transpiler needs to be specified.",
       )
-    val implname = cmdConfig.targets(1)
-    val impl = Target(
-      implname,
-      implname match {
+    val targetName = cmdConfig.targets(1)
+    val target = Target(
+      targetName,
+      targetName match {
         case s if List("d8", "js", "jsc", "sm") contains s => false
         case s if List("babel", "swc", "terser", "obfuscator") contains s =>
           true
@@ -38,20 +41,17 @@ case object DeltaDebug extends Phase[CFG, String] {
       },
     )
 
-    val ast = cfg.scriptParser.fromFile(filename)
+    val script = readFile(filename)
 
-    // For testing of this framework
-    // val mutator = DeltaDebugMutator(Target)
-    val mutator = RandomMutator()
-
-    // get a mutated AST
-    var minimizedAst = mutator(ast, 1).head._2
-    // retry until the mutated program becomes valid
-    while (!minimizedAst.valid(grammar))
-      minimizedAst = mutator(ast, 1).head._2
-
-    // get string of mutated AST
-    val minimized = minimizedAst.toString(grammar)
+    val dd = ESReducer(script, target)
+    var possiblyReduced: Option[Script] = None
+    var minimized = script
+    while ({
+      possiblyReduced = dd.tryReduce()
+      possiblyReduced.isDefined
+    }) {
+      minimized = possiblyReduced.get
+    }
 
     // dump the minimized ECMAScript program
     for (filename <- config.out)

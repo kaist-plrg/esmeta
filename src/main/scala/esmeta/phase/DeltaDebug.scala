@@ -43,7 +43,7 @@ case object DeltaDebug extends Phase[CFG, String] {
 
     val script = readFile(filename)
 
-    val dd = ESReducer(script, target)
+    val dd = ESReducer(script, target, cfg)
     var possiblyReduced: Option[Script] = None
     var minimized = script
     while ({

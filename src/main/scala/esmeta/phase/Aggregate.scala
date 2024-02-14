@@ -3,10 +3,12 @@ package esmeta.phase
 import esmeta.{CommandConfig, LINE_SEP}
 import esmeta.cfg.CFG
 import esmeta.js.Target
-import esmeta.util.SystemUtils.{readJson, readFile}
+import esmeta.es.util.USE_STRICT
+import esmeta.util.SystemUtils.{readJson, readFile, dumpFile, dumpJson}
 import scala.collection.mutable.{Map as MutMap, ArrayBuffer as MutVec}
 import esmeta.es.util.deltadebugger.ESReducer
 import scala.util.control.Breaks.{breakable, break}
+import esmeta.AGGREGATE_LOG_DIR
 
 /** `aggregate` phase */
 case object Aggregate
@@ -55,38 +57,111 @@ case object Aggregate
         target -> failedTestNames,
       )
 
-    val aggregated: Map[Target, Map[String, Set[String]]] =
+    val aggregated: Map[Target, Map[Script, Set[TestName]]] =
       targetToFails.map((target, failedTestNames) =>
         val forest = AggregationForest()
         val minimized: MutVec[AggregationNode] = MutVec()
         for (testName <- failedTestNames) {
           val test: Script =
             readFile(s"$testsDirName/$testName").split(LINE_SEP)(1).trim
+          // val test1 =
+          //   "class x extends null { [ [ x , ] = { [ Symbol . iterator ] : async x => 0 } ] ; }"
+          println(s"- try reducing    ${test}")
           forest.tryInsertTest(testName, test) match
             case Some(node) =>
               var curr = node
-              val dd = ESReducer(test, target)
+              val dd = ESReducer(test, target, cfg)
               breakable {
                 while (true) {
                   dd.tryReduce() match
                     case Some(reduced) =>
-                      forest.tryMakeParentOrGraft(curr, reduced) match
-                        case Some(parent) => curr = parent
-                        case None         => break
+                      if curr.script != reduced then
+                        forest.tryMakeParentOrGraft(curr, reduced) match
+                          case Some(parent) =>
+                            println(
+                              s"       adopted -> ${reduced}",
+                            )
+                            curr = parent
+                          case None =>
+                            println(
+                              s"       grafted -> ${reduced}",
+                            )
+                            println(
+                              s"  done.\n",
+                            )
+                            break
                     case None =>
                       minimized += curr
+                      println(s"  minimized. done.\n")
                       break
                 }
               }
             case None => ()
         }
-        throw NotImplementedError(),
+        val minimizationMap = minimized
+          .map((node) => {
+            (
+              node.script, {
+                val leaves: MutVec[TestName] = MutVec()
+                lazy val insertLeaves: MutVec[LeaveGroup] => Unit =
+                  (leaveGroups: MutVec[LeaveGroup]) => {
+                    for (group <- leaveGroups) {
+                      group match {
+                        case DirectLeaf(name)   => leaves.addOne(name)
+                        case GraftedLeaves(set) => insertLeaves(set)
+                      }
+                    }
+                  }
+                insertLeaves(node.leaves)
+                leaves.toSet
+              },
+            )
+          })
+          .toMap
+        (target, minimizationMap),
       )
 
-    // TODO: dump result
-    throw NotImplementedError()
+    println("======================\nAggregation Result")
+    println("----------------------")
+    aggregated.foreach((target, minimizationMap) => {
+      println(s"For ${target}:")
+      minimizationMap.foreach((script, nameSet) => {
+        println(s"  - Script:    ${script}")
+        println(s"      is minimized from:")
+        nameSet.foreach((name) => {
+          println(s"      + ${name}")
+        })
+      })
+    })
+    println("======================")
+
+    val reducedDirPath = s"$AGGREGATE_LOG_DIR/reduced"
+    val forJson = aggregated
+      .map((target, minimizationMap) => {
+        val dirPath = s"$reducedDirPath/$target"
+        (
+          target.toString,
+          minimizationMap
+            .zip(0 until minimizationMap.size)
+            .map {
+              case ((script, nameSet), newName) =>
+                val strict = getStrictScript(script)
+                dumpFile(strict, s"$dirPath/$newName.js")
+                (s"$newName.js", nameSet)
+            }
+            .toMap,
+        )
+      })
+      .toMap
+    dumpJson(
+      forJson,
+      s"$AGGREGATE_LOG_DIR/aggregation.json",
+    )
 
     aggregated
+
+  private def getStrictScript(candidate: Script): Script =
+    USE_STRICT + candidate + LINE_SEP
 
   private class AggregationNode(val script: Script):
     var parent: Option[AggregationNode] = None

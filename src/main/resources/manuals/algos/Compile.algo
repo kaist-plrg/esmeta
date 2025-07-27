@@ -1,0 +1,90 @@
+<emu-clause id="WebAssembly.compile" spec-type="js api">
+  <h1>WebAssembly.compile (_buffer_)</h1>
+  <emu-alg>
+    1. Let _stableBytes_ be GetBufferSourceCopy(_buffer_).
+    1. Return AsynchronouslyCompileWebAssemblyModule(_stableBytes_).
+  </emu-alg>
+</emu-clause>
+
+<emu-clause id="AsynchronouslyCompileWebAssemblyModule" spec-type="js api" type="abstract operation">
+  <h1>AsynchronouslyCompileWebAssemblyModule(
+    _bytes_: a List of byte values,
+  ) </h1>
+  <emu-alg>
+  1. Let _promise_ be CreateNewPromise().
+  1. Let _module_ be CompileWebAssemblyModule(_bytes_).
+  1. If _module_ is an error, perform RejectPromise(_promise_, a newly created *CompileError* object).
+  1. Else,
+    1. Let _moduleObject_ be ConstructWebAssemblyModulue(_module_, _bytes_).
+    1. Perform ResolvePromise(_promise_, _moduleObject_).
+  1. Return _promise_.
+  </emu-alg>
+</emu-clause>
+
+<emu-clause id="CompileWebAssemblyModule" spec-type="js api" type="abstract operation">
+  <h1>CompileWebAssemblyModule(
+    _bytes_: a List of byte values,
+  ) </h1>
+  <emu-alg>
+  1. Let _module_ be ModuleDecode(_bytes_).
+  1. If _module_ is an error, return _module_.
+  1. Let _res_ be ModuleValidate(_module_).
+  1. If _res_ is an error, return _res_.
+  1. Return _module_.
+  </emu-alg>
+</emu-clause>
+
+<emu-clause id="ConstructWebAssemblyModule" spec-type="js api" type="abstract operation">
+  <h1>ConstructWebAssemblyModule(_module_, _bytes_)</h1>
+  <emu-alg>
+  1. Let _moduleObject_ be a new newly created Module object.
+  1. Set _moduleObject_.[[Module]] to _module_.
+  1. Set _moduleObject_.[[Bytes]] to _bytes_.
+  1. Return _moduleObject_.
+  </emu-alg>
+</emu-clause>
+
+<emu-clause id="GetBufferSourceCopy" spec-type="web idl" type="abstract operation">
+  <h1>GetBufferSourceCopy (
+    _jsBufferSource_: an ArrayBuffer, a SharedArrayBuffer, a DataView, or a TypedArray,
+  ): a List of byte values</h1>
+  <emu-alg>
+  1. Let _jsArrayBuffer_ be _jsBufferSource_.
+  1. Let _offset_ be 0.
+  1. Let _length_ be 0.
+  1. If _jsBufferSource_ has a [[ViewedArrayBuffer]] internal slot, then
+    1. Set _jsArrayBuffer_ to _jsBufferSource_.[[ViewedArrayBuffer]].
+    1. Set _offset_ to _jsBufferSource_.[[ByteOffset]].
+    1. Set _length_ to _jsBufferSource_.[[ByteLength]].
+  1. Otherwise,
+    1. Assert: _jsBufferSource_ is an ArrayBuffer or SharedArrayBuffer.
+    1. Set _length_ to _jsBufferSource_.[[ArrayBufferByteLength]].
+  1. If IsDetachedBuffer(_jsArrayBuffer_) is *true*, then return a new empty List.
+  1. Let _bytes_ be a new empty List.
+  1. For each integer _i_ such that 0 ≤ _i_ ≤ _length_ - 1, in ascending order, do
+    1. Append GetValueFromBuffer(_jsArrayBuffer_, _i_ + _offset_, ~uint8~, *true*, ~unordered~) to _bytes_.
+  1. Return _bytes_.
+  </emu-alg>
+</emu-clause>
+
+<emu-clause id="CreateNewPromise" spec-type="web idl" type="abstract operation">
+  <h1>CreateNewPromise (): either a normal completion containing a PromiseCapability Record or a throw completion </h1>
+  <emu-alg>
+  1. Let _constructor_ be %Promise%.
+  1. Return ? NewPromiseCapability(_constructor_).
+  </emu-alg>
+</emu-clause>
+
+<emu-clause id="ResolvePromise" spec-type="web idl" type="abstract operation">
+  <h1>ResolvePromise(_p_, _x_)</h1>
+  <emu-alg>
+  1. Perform ! Call(_p_.[[Resolve]], *undefined*, « _x_ »).
+  </emu-alg>
+</emu-clause>
+
+<emu-clause id="RejectPromise" spec-type="web idl" type="abstract operation">
+  <h1>RejectPromise(_p_, _x_)</h1>
+  <emu-alg>
+  1. Perform ! Call(_p_.[[Reject]], *undefined*, « _x_ »).
+  </emu-alg>
+</emu-clause>

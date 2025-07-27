@@ -681,6 +681,16 @@ case class Intrinsics(cfg: CFG) {
         "%Symbol.toStringTag%" -> DataProperty(Str("ArrayBuffer"), F, F, T),
       ),
     ),
+    "WebAssembly" -> Struct(
+      typeName = "OrdinaryObject",
+      imap = List(
+        "Extensible" -> Bool(true),
+        "Prototype" -> intrAddr("Object.prototype"),
+      ),
+      nmap = List(
+        "@@toStringTag" -> DataProperty(Str("WebAssembly"), F, F, T),
+      ),
+    ),
     "JSON" -> Struct(
       typeName = "OrdinaryObject",
       imap = List(

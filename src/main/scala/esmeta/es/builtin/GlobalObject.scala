@@ -31,6 +31,8 @@ case class GlobalObject(cfg: CFG) {
       "undefined" -> DataProperty(Undef, F, F, F),
       // test262
       "$262" -> DataProperty(intrAddr("$262"), T, F, T),
+      // WebAssembly
+      "WebAssembly" -> DataProperty(intrAddr("WebAssembly"), T, F, T),
     )
     val wellKnowns = for {
       row <- spec.tables(WELL_KNOWN_INTRINSICS).rows

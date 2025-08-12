@@ -11,11 +11,11 @@
     _bytes_: a List of byte values,
   ) </h1>
   <emu-alg>
-  1. Let _promise_ be CreateNewPromise().
+  1. Let _promise_ be ? CreateNewPromise().
   1. Let _module_ be CompileWebAssemblyModule(_bytes_).
   1. If _module_ is an error, perform RejectPromise(_promise_, a newly created *CompileError* object).
   1. Else,
-    1. Let _moduleObject_ be ConstructWebAssemblyModulue(_module_, _bytes_).
+    1. Let _moduleObject_ be ConstructWebAssemblyModule(_module_, _bytes_).
     1. Perform ResolvePromise(_promise_, _moduleObject_).
   1. Return _promise_.
   </emu-alg>
@@ -26,9 +26,9 @@
     _bytes_: a List of byte values,
   ) </h1>
   <emu-alg>
-  1. Let _module_ be ModuleDecode(_bytes_).
+  1. Let _module_ be WASM/moduledecode(_bytes_).
   1. If _module_ is an error, return _module_.
-  1. Let _res_ be ModuleValidate(_module_).
+  1. Let _res_ be WASM/modulevalidate(_module_).
   1. If _res_ is an error, return _res_.
   1. Return _module_.
   </emu-alg>
@@ -79,6 +79,7 @@
   <h1>ResolvePromise(_p_, _x_)</h1>
   <emu-alg>
   1. Perform ! Call(_p_.[[Resolve]], *undefined*, « _x_ »).
+  1. Return ~unused~.
   </emu-alg>
 </emu-clause>
 
@@ -86,5 +87,6 @@
   <h1>RejectPromise(_p_, _x_)</h1>
   <emu-alg>
   1. Perform ! Call(_p_.[[Reject]], *undefined*, « _x_ »).
+  1. Return ~unused~.
   </emu-alg>
 </emu-clause>

@@ -164,8 +164,77 @@ class Interpreter(
     case INop() => /* do nothing */
   }
 
+  /** interop */
+  def json2value(json: io.circe.Json): Value =
+    if (json.isObject)
+      val obj = json.asObject.get
+      val fs = obj.toMap.view.mapValues(json2value).toMap
+      st.heap.allocRecord("", fs)
+    else if (json.isArray)
+      val arr = json.asArray.get
+      val vs = arr.map(json2value).toList
+      st.heap.allocList(vs)
+    else
+      ???
+
+  def obj2json(obj: Obj): io.circe.Json =
+    import io.circe.Json
+    obj match {
+      case RecordObj(_, map) =>
+        Json.obj(map.map((k, v) => (k, value2json(v))).toSeq:_*)
+      case ListObj(l) =>
+        Json.arr(l.map(value2json):_*)
+      case _ =>
+        println(obj)
+        ???
+    }
+  def value2json(v: Value): io.circe.Json =
+    v match {
+      case a: Addr =>
+        obj2json(st.heap(a))
+      case _ =>
+        println(v)
+        ???
+    }
+
+  def interop(lhs: Local, name: String, args: List[Value]): Unit =
+    // run shell
+    import scala.sys.process._
+    val spectecBinary = "/Users/gingerbread/plrg/spectec/spectec/spectec"
+    val specPath = "/Users/gingerbread/plrg/spectec/specification/wasm-3.0/*"
+    val json =
+      if (name == "moduledecode")
+        // hardcoded wasm binary
+        "[[0, 97, 115, 109, 1, 0, 0, 0]]"
+      else
+        args.map(value2json).mkString("[", ",", "]")
+    println(s"[SpecTec Invoke] $name($json)")
+    val command =
+      Seq(
+        "bash",
+        "-c",
+        s"$spectecBinary $specPath --embedding \"{\\\"name\\\":\\\"$name\\\", \\\"args\\\":$json}\""
+      )
+    val output = command.!!
+    println(s"[SpecTec Return] $output")
+    println
+
+    // parse json
+    import io.circe._, io.circe.parser._
+    parse(output) match {
+      case Right(json) =>
+        val v = json2value(json)
+        st.define(lhs, v)
+        st.context.moveNode
+      case Left(error) => ???
+    }
+
+  val embeddingPrefix = "WASM/"
+
   /** transition for calls */
   def eval(call: Call): Unit = call.callInst match {
+    case ICall(lhs, EClo(fname, Nil), args) if fname.startsWith(embeddingPrefix) =>
+      interop(lhs, fname.stripPrefix(embeddingPrefix), args.map(eval))
     case ICall(lhs, fexpr, args) =>
       eval(fexpr) match
         case clo @ Clo(func, captured) =>

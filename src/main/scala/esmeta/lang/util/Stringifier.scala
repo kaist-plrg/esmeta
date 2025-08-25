@@ -143,7 +143,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
           case While(c)    => app >> "while " >> c >> ","
           case Until(c)    => app >> "until " >> c >> ","
         app >> body
-      case WjiForEachStep(_, _, _) => ???
+      case ForEachTupleStep(_, _, _) => ???
       case RunParallelStep(_) => ???
       case QueueStep(_) => ???
       case PromiseSettleStep(_, _, _) => ???

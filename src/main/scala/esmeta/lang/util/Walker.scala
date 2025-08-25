@@ -67,8 +67,8 @@ trait Walker extends BasicWalker {
     case IfStep(cond, thenStep, elseStep, config) =>
       IfStep(walk(cond), walk(thenStep), walkOpt(elseStep, walk), walk(config))
     case RepeatStep(cond, body) => RepeatStep(walk(cond), walk(body))
-    case WjiForEachStep(xs, e, s) =>
-      WjiForEachStep(
+    case ForEachTupleStep(xs, e, s) =>
+      ForEachTupleStep(
         walkList(xs, walk),
         walk(e),
         walk(s)

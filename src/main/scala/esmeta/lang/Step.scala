@@ -103,7 +103,7 @@ object RepeatStep:
     case While(cond: Condition)
     case Until(cond: Condition)
 
-case class WjiForEachStep(
+case class ForEachTupleStep(
   variable: List[Variable],
   expr: Expression,
   body: Step,

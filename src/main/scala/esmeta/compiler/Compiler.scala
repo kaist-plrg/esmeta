@@ -318,7 +318,7 @@ class Compiler(
         case While(cond) => compile(fb, cond)
         case Until(cond) => not(compile(fb, cond))
       fb.addInst(IWhile(expr, compileWithScope(fb, body)))
-    case WjiForEachStep(_, _, _) => ???
+    case ForEachTupleStep(_, _, _) => ???
     case RunParallelStep(_) => ???
     case QueueStep(_) => ???
     case PromiseSettleStep(x, e, b) => ???

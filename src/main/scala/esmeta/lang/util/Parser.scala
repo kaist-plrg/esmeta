@@ -70,7 +70,7 @@ trait Parsers extends IndentParsers {
     assertStep |
     ifStep |
     repeatStep |
-    wjiForEachStep |
+    forEachTupleStep |
     forEachStep |
     forEachIntStep |
     forEachOwnPropertyKeyStep |
@@ -221,17 +221,17 @@ trait Parsers extends IndentParsers {
 
   def tuple[X](x: Parser[X]): Parser[List[X]] = "(" ~> repsep(x, ", ") <~ ")"
 
-  lazy val embeddingName: Parser[Variable] = "[a-z][a-z_]+".r ^^ { Variable(_) }
+  lazy val embeddingName: Parser[Variable] = "[a-z][a-z_]*".r ^^ { Variable(_) }
 
   lazy val wjiInvoke: PL[InvokeExpression] =
     wjiLink(embeddingName) ~ invokeArgs ^^ {
       case x ~ as => InvokeAbstractClosureExpression(x, as)
     }
 
-  lazy val wjiForEachStep: PL[WjiForEachStep] =
+  lazy val forEachTupleStep: PL[ForEachTupleStep] =
     (wjiLink("list/iterate|For each") ~> tuple(variable) <~ "of") ~
     (wjiInvoke <~ ",") ~ step ^^ {
-      case xs ~ e ~ s => WjiForEachStep(xs, e, s)
+      case xs ~ e ~ s => ForEachTupleStep(xs, e, s)
     }
 
   // for-each steps

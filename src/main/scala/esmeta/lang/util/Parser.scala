@@ -42,7 +42,7 @@ trait Parsers extends IndentParsers {
   lazy val subStep: Parser[SubStep] =
     subStepPrefix ~ (step <~ guard(EOL) | yetStep) ^^ {
       case d ~ s => SubStep(d, s)
-    }
+    } | next ~ upper ~> noteStep ^^ { SubStep(None, _) }
 
   // figure string
   lazy val figureStr: P[List[String]] = "<figure>\n".r ~> repsep(
@@ -70,6 +70,7 @@ trait Parsers extends IndentParsers {
     assertStep |
     ifStep |
     repeatStep |
+    wjiForEachStep |
     forEachStep |
     forEachIntStep |
     forEachOwnPropertyKeyStep |
@@ -81,6 +82,11 @@ trait Parsers extends IndentParsers {
     resumeTopCtxtStep |
     noteStep |
     blockStep |
+    runParallelStep |
+    queueStep |
+    promiseSettleStep |
+    promiseCallbackStep |
+    wjiLinkStep |
     specialStep
   }.named("lang.Step")
 
@@ -211,6 +217,23 @@ trait Parsers extends IndentParsers {
       case c ~ s => RepeatStep(c, s)
     }
 
+  def wjiLink[X](x: Parser[X]): Parser[X] = "[=" ~> x <~ "=]"
+
+  def tuple[X](x: Parser[X]): Parser[List[X]] = "(" ~> repsep(x, ", ") <~ ")"
+
+  lazy val embeddingName: Parser[Variable] = "[a-z][a-z_]+".r ^^ { Variable(_) }
+
+  lazy val wjiInvoke: PL[InvokeExpression] =
+    wjiLink(embeddingName) ~ invokeArgs ^^ {
+      case x ~ as => InvokeAbstractClosureExpression(x, as)
+    }
+
+  lazy val wjiForEachStep: PL[WjiForEachStep] =
+    (wjiLink("list/iterate|For each") ~> tuple(variable) <~ "of") ~
+    (wjiInvoke <~ ",") ~ step ^^ {
+      case xs ~ e ~ s => WjiForEachStep(xs, e, s)
+    }
+
   // for-each steps
   lazy val forEachStep: PL[ForEachStep] =
     val elemType = langType ^^ { Some(_) } | opt("element") ^^^ None
@@ -292,10 +315,43 @@ trait Parsers extends IndentParsers {
 
   // note steps
   lazy val noteStep: PL[NoteStep] = note ^^ { str => NoteStep(str) }
-  lazy val note: Parser[String] = "NOTE:" ~> ".*".r
+  lazy val note: Parser[String] = ("NOTE:" | "Note:") ~> ".*".r
 
   // block steps
   lazy val blockStep: PL[BlockStep] = stepBlock ^^ { BlockStep(_) }
+
+  // wji link steps
+  lazy val runParallelStep: PL[RunParallelStep] =
+    "Run the following steps" ~> wjiLink("in parallel".r) ~> ":" ~> step
+    ^^ { RunParallelStep(_) }
+
+  lazy val queueStep: PL[QueueStep] =
+    wjiLink("Queue a task") ~> "to perform the following steps:" ~> step
+    ^^ { QueueStep(_) }
+
+  lazy val promiseSettleStep: PL[PromiseSettleStep] =
+    val resolved: Parser[Boolean] = "Resolve" ^^^ true | "Reject" ^^^ false
+    wjiLink(resolved) ~ variable ~ ("with" ~> variable) <~ "." ^^ {
+      case resolved ~ x ~ y =>
+        PromiseSettleStep(x, ReferenceExpression(y), resolved)
+    }
+
+  lazy val promiseCallbackStep: PL[PromiseCallbackStep] =
+    val fulfilled: Parser[Boolean] =
+      "fullfillment" ^^^ true | "rejection" ^^^ false
+    (wjiLink("Upon" ~> fulfilled) <~ "of") ~ variable ~
+    ("with" ~ ("value" | "reason") ~> variable <~ ":") ~ step ^^ {
+      case fullfilled ~ x ~ y ~ s =>
+        PromiseCallbackStep(x, ReferenceExpression(y), s, fullfilled)
+    }
+
+  lazy val wjiLinkStep: PL[WjiLinkStep] =
+    wjiLink("[^=]*".r) ~ variable ~ ("with" ~> variable) ~
+    (", and let" ~> variable <~ "be the result.")
+    ^^ { case s ~ v1 ~ v2 ~ v3 =>
+      val args = List(v1, v2).map(ReferenceExpression(_))
+      WjiLinkStep(s, args, Some(v3))
+    }
 
   // not yet supported steps
   lazy val yetStep: PL[YetStep] = yetExpr ^^ { YetStep(_) }
@@ -1146,7 +1202,7 @@ trait Parsers extends IndentParsers {
     }
 
   // variables
-  lazy val variable: PL[Variable] = "_[^_]+_".r ^^ {
+  lazy val variable: PL[Variable] = ("_[^_]+_".r | "\\|[a-z][a-zA-Z]*\\|".r) ^^ {
     case s => Variable(s.substring(1, s.length - 1))
   }
 

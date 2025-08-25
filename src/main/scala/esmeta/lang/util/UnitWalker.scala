@@ -67,6 +67,13 @@ trait UnitWalker extends BasicUnitWalker {
     case IfStep(cond, thenStep, elseStep, config) =>
       walk(cond); walk(thenStep); walkOpt(elseStep, walk); walk(config)
     case RepeatStep(cond, body) => walk(cond); walk(body)
+    case WjiForEachStep(xs, e, s) => walkList(xs, walk); walk(e); walk(s)
+    case RunParallelStep(s) => walk(s)
+    case QueueStep(s) => walk(s)
+    case PromiseSettleStep(x, e, b) => walk(x); walk(e)
+    case PromiseCallbackStep(x, e, s, b) => walk(x); walk(e); walk(s)
+    case WjiLinkStep(name, args, xOpt) =>
+      walkList(args, walk); walkOpt(xOpt, walk)
     case ForEachStep(ty, elem, expr, forward, body) =>
       walkOpt(ty, walk); walk(elem); walk(expr); walk(forward); walk(body)
     case ForEachIntegerStep(x, low, lowInc, high, highInc, ascending, body) =>

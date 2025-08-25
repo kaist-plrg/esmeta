@@ -95,6 +95,12 @@ class CaseCollector extends UnitWalker {
           case NoCondition => s"repeat, {{ step }}"
           case While(c)    => s"repeat, while {{ cond }}, {{ step }}"
           case Until(c)    => s"repeat, until {{ cond }}, {{ step }}"
+      case WjiForEachStep(_, _, _) => ???
+      case RunParallelStep(_) => ???
+      case QueueStep(_) => ???
+      case PromiseSettleStep(_, _, _) => ???
+      case PromiseCallbackStep(_, _, _, _) => ???
+      case WjiLinkStep(_, _, _) => ???
       case ForEachStep(ty, elem, expr, forward, body) =>
         ty match
           case Some(ty) if forward =>

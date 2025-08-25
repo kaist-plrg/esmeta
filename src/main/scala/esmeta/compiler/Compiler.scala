@@ -318,6 +318,12 @@ class Compiler(
         case While(cond) => compile(fb, cond)
         case Until(cond) => not(compile(fb, cond))
       fb.addInst(IWhile(expr, compileWithScope(fb, body)))
+    case WjiForEachStep(_, _, _) => ???
+    case RunParallelStep(_) => ???
+    case QueueStep(_) => ???
+    case PromiseSettleStep(x, e, b) => ???
+    case PromiseCallbackStep(x, e, s, b) => ???
+    case WjiLinkStep(_, _, _) => ???
     case ForEachStep(ty, variable, expr, forward, body) =>
       val (i, iExpr) = fb.newTIdWithExpr
       val (list, listExpr) = fb.newTIdWithExpr

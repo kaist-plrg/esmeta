@@ -67,6 +67,23 @@ trait Walker extends BasicWalker {
     case IfStep(cond, thenStep, elseStep, config) =>
       IfStep(walk(cond), walk(thenStep), walkOpt(elseStep, walk), walk(config))
     case RepeatStep(cond, body) => RepeatStep(walk(cond), walk(body))
+    case WjiForEachStep(xs, e, s) =>
+      WjiForEachStep(
+        walkList(xs, walk),
+        walk(e),
+        walk(s)
+      )
+    case RunParallelStep(s) => RunParallelStep(walk(s))
+    case QueueStep(s) => QueueStep(walk(s))
+    case PromiseSettleStep(x, e, b) => PromiseSettleStep(walk(x), walk(e), b)
+    case PromiseCallbackStep(x, e, s, b) =>
+      PromiseCallbackStep(walk(x), walk(e), walk(s), b)
+    case WjiLinkStep(name, args, xOpt) =>
+      WjiLinkStep(
+        name,
+        walkList(args, walk),
+        walkOpt(xOpt, walk)
+      )
     case ForEachStep(ty, elem, expr, forward, body) =>
       ForEachStep(
         walkOpt(ty, walk),

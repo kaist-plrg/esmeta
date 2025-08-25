@@ -102,12 +102,21 @@ class Extractor(
       elem <- document.getElems("emu-alg:not([example])")
     } yield () => extractAlgorithm(elem)
 
+    // XXX load Wasm JS Interface algorithms
+    // TODO refactor patch routine
+    executeCmd(s"git reset --hard", s"$WASM_DIR")
+    executeCmd(s"patch -p1 < $MANUALS_DIR/bugfix/js-api-refinement.patch", s"$WASM_DIR")
+    val wjiDocument = readFile(WJI_SPEC_BS).toHtml
+    var wjiJobs = for {
+      elem <- wjiDocument.getElems("div[algorithm]")
+    } yield () => extractWjiAlgorithm(elem)
+
     // extract algorithms in spec
     val jobs = for {
       elem <- document.getElems("emu-alg:not([example])")
     } yield () => extractAlgorithm(elem)
 
-    concurrent(manualJobs ++ jobs).toList.flatten
+    concurrent(manualJobs ++ wjiJobs ++ jobs).toList.flatten
 
   /** extracts an algorithm */
   def extractAlgorithm(elem: Element): List[Algorithm] = for {
@@ -117,6 +126,55 @@ class Extractor(
     algo = Algorithm(head, body, code)
     _ = algo.elem = elem
   } yield algo
+
+  def extractWjiAlgorithm(elem: Element): List[Algorithm] = for {
+    head <- extractWjiHeads(elem)
+    str = elem.html.unescapeHtml
+    // remove head
+    lines = str.split("\n").filterNot(_.isEmpty)
+    code = ("" +: lines.tail).mkString("\n")
+    body = parser.parseBy(parser.step)(code)
+    algo = Algorithm(head, body, code)
+    _ = algo.elem = elem
+  } yield algo
+
+  var method = 0
+  var constructor = 0
+  var attribute = 0
+  var id = 0
+  var ao = 0
+
+  def extractWjiHeads(elem: Element): List[Head] =
+    val dfns = elem.getElems("dfn")
+    // XXX: dfn is used twice in read imports: defining the "index"
+    if (dfns.length > 0) {
+      val dfn = dfns(0)
+      val attributes = dfn.attributes()
+      if (attributes.hasKey("method")) {
+        // TODO
+        method += 1
+        List()
+      } else if (attributes.hasKey("constructor")) {
+        // TODO
+        constructor += 1
+        List()
+      } else if (attributes.hasKey("attribute")) {
+        // TODO
+        attribute += 1
+        List()
+      } else if (attributes.hasKey("id")) {
+        // TODO
+        id += 1
+        List()
+      } else {
+        ao += 1
+        extractWjiAbsOpHead(elem)
+      }
+    }
+    // XXX "after memory.grow executes" and "after namespace is created"
+    //     don't contain dfn tag
+        // TODO
+    else List()
 
   /** TODO ignores elements whose parents' ids are in this list */
   val IGNORE_ALGO_PARENT_IDS = Set(
@@ -166,6 +224,12 @@ class Extractor(
         extractUnusualHead(parent, elem)
     }
   }
+
+  private def extractWjiAbsOpHead(
+    elem: Element,
+  ): List[AbstractOperationHead] =
+    val headContent = getWjiHeadContent(elem)
+    List(parseBy(wjiAbsOpHead)(headContent))
 
   /** extracts tables */
   def extractTables: Map[String, Table] = (for {
@@ -297,4 +361,8 @@ class Extractor(
   // get head contents from parent elements
   private def getHeadContent(parent: Element): String =
     parent.getFirstChildContent
+
+  // get WJI head contents
+  private def getWjiHeadContent(elem: Element): String =
+    elem.html.unescapeHtml.split("\n").filterNot(_.isEmpty).head
 }

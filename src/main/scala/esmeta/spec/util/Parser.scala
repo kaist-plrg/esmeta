@@ -177,6 +177,40 @@ trait Parsers extends LangParsers {
   // Algorithms
   // ---------------------------------------------------------------------------
 
+  // WJI abstract operation (AO) heads
+  lazy val wjiAbsOpHead: Parser[AbstractOperationHead] = {
+    ("To create" | "To" | "The" | "For") ~> ("<dfn>" ~> rep(name) <~ "</dfn>") ~
+    opt("|" ~> name <~ "|") ~
+    rep(("from" | "with" | "of" | "associated") ~> wjiParams) <~
+    ((", perform" | "is found by performing" )~  "the following steps:" | "is") ^^ {
+      case names ~ opt ~ pss =>
+        val pOpt = opt.map(p => List(Param(p, UnknownType))).getOrElse(Nil)
+        AbstractOperationHead(
+          false,
+          names.mkString("_"),
+          pOpt ++ pss.flatten,
+          UnknownType
+        )
+    } |
+    "The algorithm" ~> ("<dfn>" ~> rep(name) <~ "</dfn>") ~
+    ("(" ~> wjiParams <~ ")") <~ ("performs" | ".*by performing".r) ~ "the following steps:" ^^ {
+      case names ~ ps =>
+        AbstractOperationHead(false, names.mkString("_"), ps, UnknownType)
+    }
+  }.named("spec.WjiAbstractOperationHead")
+
+  lazy val wjiParam: Parser[Param] = {
+    rep(name | wjiLink(rep(name)) | "{{" ~> name <~ "}}") ~>
+    "|" ~> name <~ "|" ^^ {
+      case name => Param(name, UnknownType)
+    }
+  }.named("spec.WjiParam")
+
+  // multiple algorithm parameters
+  lazy val wjiParams: Parser[List[Param]] = {
+    repsep(wjiParam, ("," | "and" | "by"))
+  }.named("List[spec.Param]")
+
   // abstract operation (AO) heads
   lazy val absOpHeadGen: Parser[Boolean => AbstractOperationHead] = {
     opt(semanticsKind) ~> name ~ params ~ retTy ^^ {

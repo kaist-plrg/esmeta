@@ -103,6 +103,12 @@ object RepeatStep:
     case While(cond: Condition)
     case Until(cond: Condition)
 
+case class WjiForEachStep(
+  variable: List[Variable],
+  expr: Expression,
+  body: Step,
+) extends Step
+
 // for-each steps
 case class ForEachStep(
   ty: Option[Type],
@@ -173,6 +179,34 @@ case class NoteStep(note: String) extends Step
 
 // block steps
 case class BlockStep(block: StepBlock) extends Step
+
+// run parallel steps
+case class RunParallelStep(steps: Step) extends Step
+
+// queue steps
+case class QueueStep(steps: Step) extends Step
+
+// promise settle steps
+case class PromiseSettleStep(
+  promise: Variable,
+  value: Expression,
+  resolved: Boolean
+) extends Step
+
+// promise callback steps
+case class PromiseCallbackStep(
+  promise: Variable,
+  value: Expression,
+  step: Step,
+  fullfilled: Boolean
+) extends Step
+
+// wji link steps
+case class WjiLinkStep(
+  name: String,
+  args: List[Expression],
+  lhsOpt: Option[Variable]
+) extends Step
 
 // not yet supported steps
 case class YetStep(expr: YetExpression) extends Step

@@ -34,6 +34,9 @@ val TEST_DIR = s"$BASE_DIR/tests"
 val ECMA262_DIR = s"$BASE_DIR/ecma262"
 val SPEC_HTML = s"$ECMA262_DIR/spec.html"
 
+val WASM_DIR = s"$BASE_DIR/spec"
+val WJI_SPEC_BS = s"$WASM_DIR/document/js-api/index.bs"
+
 /** current directory root */
 val CUR_DIR = System.getProperty("user.dir")
 

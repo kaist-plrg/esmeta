@@ -7,3 +7,6 @@
 [submodule "client"]
 	path = client
 	url = https://github.com/es-meta/esmeta-debugger-client.git
+[submodule "spec"]
+	path = spec
+	url = git@github.com:WebAssembly/spec.git

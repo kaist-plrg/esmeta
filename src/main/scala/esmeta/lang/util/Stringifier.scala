@@ -143,6 +143,12 @@ class Stringifier(detail: Boolean, location: Boolean) {
           case While(c)    => app >> "while " >> c >> ","
           case Until(c)    => app >> "until " >> c >> ","
         app >> body
+      case WjiForEachStep(_, _, _) => ???
+      case RunParallelStep(_) => ???
+      case QueueStep(_) => ???
+      case PromiseSettleStep(_, _, _) => ???
+      case PromiseCallbackStep(_, _, _, _) => ???
+      case WjiLinkStep(_, _, _) => ???
       case ForEachStep(ty, elem, expr, forward, body) =>
         app >> First("for each ")
         given Rule[Type] = getTypeRule(ArticleOption.No)

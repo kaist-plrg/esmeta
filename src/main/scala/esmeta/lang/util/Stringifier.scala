@@ -143,12 +143,26 @@ class Stringifier(detail: Boolean, location: Boolean) {
           case While(c)    => app >> "while " >> c >> ","
           case Until(c)    => app >> "until " >> c >> ","
         app >> body
-      case ForEachTupleStep(_, _, _) => ???
-      case RunParallelStep(_) => ???
-      case QueueStep(_) => ???
-      case PromiseSettleStep(_, _, _) => ???
+      case ForEachTupleStep(vars, e, body) =>
+        app >> "[=list/iterate|for each=] ("
+        for (v <- vars) app >> v
+        app >> ")" >> "of" >> e >> body
+      case RunParallelStep(body) =>
+        app >> "run the following steps [=in parallel=]:" >> body
+      case QueueStep(body) =>
+        app >> "[=Queue a task=] to perform the following steps." >> body
+      case PromiseSettleStep(promise, value, b) =>
+        if (b)
+          app >> "[=Resolve=] " >> promise >> " with " >> value >> "."
+        else
+          app >> "[=Reject=] " >> promise >> " with " >> value >> "."
       case PromiseCallbackStep(_, _, _, _) => ???
-      case WjiLinkStep(_, _, _) => ???
+      case WjiLinkStep(name, args, lhsOpt) =>
+        app >> "[=" >> name >> "=] from "
+        for (arg <- args) app >> arg
+        lhsOpt match
+          case Some(v) => app >> " and let " >> v >> " be the result."
+          case None => app
       case ForEachStep(ty, elem, expr, forward, body) =>
         app >> First("for each ")
         given Rule[Type] = getTypeRule(ArticleOption.No)

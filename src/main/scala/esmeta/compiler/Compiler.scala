@@ -318,12 +318,87 @@ class Compiler(
         case While(cond) => compile(fb, cond)
         case Until(cond) => not(compile(fb, cond))
       fb.addInst(IWhile(expr, compileWithScope(fb, body)))
-    case ForEachTupleStep(_, _, _) => ???
-    case RunParallelStep(_) => ???
-    case QueueStep(_) => ???
-    case PromiseSettleStep(x, e, b) => ???
+    case RunParallelStep(body) => compile(fb, body)
+    case QueueStep(body) =>
+      val algoName = fb.algo.head.fname
+      val cn = fb.nextCloName
+      val cloFB =
+        FuncBuilder(
+          spec,
+          FuncKind.Clo,
+          cn,
+          Nil,
+          IRUnknownType,
+          fb.algo,
+          true
+        )
+      addFunc(fb = cloFB, body = body, prefix = Nil)
+      // XXX: hardcoded captured variables
+      val captured =
+        if (fb.algo.head.fname == "asynchronously_instantiate_a_WebAssembly_module")
+          List("promise", "module", "imports").map(Variable(_))
+        else if (fb.algo.head.fname == "asynchronously_compile_a_WebAssembly_module")
+          List("promise", "bytes", "module").map(Variable(_))
+        else ??? // unreachable
+      val f = EClo("HostEnqueuePromiseJob", Nil)
+      val as =
+        List(
+          EClo(cn, captured.map(compile)),
+          // XXX: not sure current realm is correct
+          ERef(currentRealm)
+        )
+      val (x, xExpr) = fb.newTIdWithExpr
+      fb.addInst(ICall(x, f, as))
+    case PromiseSettleStep(v, e, b) =>
+      val as =
+        List(
+          toStrERef(compile(v), if (b) "Fulfilled" else "Reject"),
+          EUndef(),
+          EList(List(compile(fb, e)))
+        )
+        // TODO: !
+      val f = EClo("Call", Nil)
+      val (x, xExpr) = fb.newTIdWithExpr
+      fb.addInst(ICall(x, f, as))
     case PromiseCallbackStep(x, e, s, b) => ???
-    case WjiLinkStep(_, _, _) => ???
+    case WjiLinkStep(name, args, vOpt) =>
+      val as = args.map(compile(fb, _))
+      val (x, xExpr) = fb.newTIdWithExpr
+      val f = EClo(name, Nil)
+      fb.addInst(ICall(x, f, as))
+      vOpt.foreach(v => fb.addInst(IAssign(compile(v), xExpr)))
+    case ForEachTupleStep(variables, expr, body) =>
+      val (i, iExpr) = fb.newTIdWithExpr
+      val (list, listExpr) = fb.newTIdWithExpr
+      fb.addInst(
+        IAssign(list, compile(fb, expr)),
+        IAssign(i, zero),
+        IWhile(
+          lessThan(iExpr, ESizeOf(listExpr)),
+          fb.newScope {
+            val xs = variables.map(compile)
+            xs.zipWithIndex.map((x, tupleIndex) =>
+              fb.addInst(
+                ILet(
+                  x,
+                  toERef(
+                    list,
+                    iExpr,
+                    EMath(
+                      BigDecimal(
+                        tupleIndex,
+                        UNLIMITED
+                      )
+                    )
+                  )
+                )
+              )
+            )
+            compile(fb, body)
+            fb.addInst(IAssign(i, inc(iExpr)))
+          },
+        ),
+      )
     case ForEachStep(ty, variable, expr, forward, body) =>
       val (i, iExpr) = fb.newTIdWithExpr
       val (list, listExpr) = fb.newTIdWithExpr

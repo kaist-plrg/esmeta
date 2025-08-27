@@ -346,11 +346,14 @@ trait Parsers extends IndentParsers {
     }
 
   lazy val wjiLinkStep: PL[WjiLinkStep] =
-    wjiLink("[^=]*".r) ~ variable ~ ("with" ~> variable) ~
-    (", and let" ~> variable <~ "be the result.")
-    ^^ { case s ~ v1 ~ v2 ~ v3 =>
-      val args = List(v1, v2).map(ReferenceExpression(_))
-      WjiLinkStep(s, args, Some(v3))
+    wjiLink("[^=]*".r) ~ opt(opt("of") ~> variable) ~ opt(("with" | "from") ~>
+    repsep("[^\\|_]*".r ~> variable, "and")) ~ opt(opt(",") ~ "and" ~>
+    ("let" ~> variable <~ "be the result" | "store the result as" ~> variable))
+    <~ "."
+    ^^ { case s ~ vOpt ~ vsOpt ~ lhsOpt =>
+      val args =
+        (vOpt.toList ++ vsOpt.toList.flatten).map(ReferenceExpression(_))
+      WjiLinkStep(s, args, lhsOpt)
     }
 
   // not yet supported steps

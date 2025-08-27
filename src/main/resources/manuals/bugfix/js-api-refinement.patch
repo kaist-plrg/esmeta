@@ -1,7 +1,16 @@
 diff --git a/document/js-api/index.bs b/document/js-api/index.bs
-index c00cadee..8f6af244 100644
+index c00cadee..fcdade72 100644
 --- a/document/js-api/index.bs
 +++ b/document/js-api/index.bs
+@@ -344,7 +344,7 @@ A {{Module}} object represents a single WebAssembly module. Each {{Module}} obje
+     1. Let |promise| be [=a new promise=].
+     1. Run the following steps [=in parallel=]:
+         1. [=compile a WebAssembly module|Compile the WebAssembly module=] |bytes| and store the result as |module|.
+-        1. [=Queue a task=] to perform the following steps. If |taskSource| was provided, queue the task on that task source.
++        1. [=Queue a task=] to perform the following steps:
+             1. If |module| is [=error=], reject |promise| with a {{CompileError}} exception.
+             1. Otherwise,
+                 1. [=Construct a WebAssembly module object=] from |module| and |bytes|, and let |moduleObject| be the result.
 @@ -403,10 +403,7 @@ A {{Module}} object represents a single WebAssembly module. Each {{Module}} obje
              1. Let |externtable| be the [=external value=] [=external value|table=] |tableaddr|.
              1. [=list/Append=] |externtable| to |imports|.

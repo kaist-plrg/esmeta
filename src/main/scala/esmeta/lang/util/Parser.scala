@@ -337,19 +337,27 @@ trait Parsers extends IndentParsers {
     }
 
   lazy val promiseCallbackStep: PL[PromiseCallbackStep] =
-    val fulfilled: Parser[Boolean] =
-      "fullfillment" ^^^ true | "rejection" ^^^ false
-    (wjiLink("Upon" ~> fulfilled) <~ "of") ~ variable ~
-    ("with" ~ ("value" | "reason") ~> variable <~ ":") ~ step ^^ {
-      case fullfilled ~ x ~ y ~ s =>
-        PromiseCallbackStep(x, ReferenceExpression(y), s, fullfilled)
+    wjiLink("Upon fulfillment") ~ "of" ~> variable ~
+    ("with value" ~> variable <~ ":") ~ (step <~ "\n") ~
+    ("1." ~ wjiLink("Upon rejection") ~ "of" ~> variable) ~
+    ("with reason" ~> variable <~ ":") ~ step
+    ^^ {
+      case v1 ~ v2 ~ s1 ~ v3 ~ v4 ~ s2 =>
+        PromiseCallbackStep(
+          v1,
+          ReferenceExpression(v2),
+          s1,
+          v3,
+          ReferenceExpression(v4),
+          s2
+        )
     }
 
   lazy val wjiLinkStep: PL[WjiLinkStep] =
-    wjiLink("[^=]*".r) ~ opt(opt("of") ~> variable) ~ opt(("with" | "from") ~>
-    repsep("[^\\|_]*".r ~> variable, "and")) ~ opt(opt(",") ~ "and" ~>
-    ("let" ~> variable <~ "be the result" | "store the result as" ~> variable))
-    <~ "."
+    wjiLink("[^=]*".r) ~ opt(opt("of") ~> variable) ~ opt(("with" |
+    "from" | "importing") ~> repsep("[^\\|_]*".r ~> variable, "and")) ~
+    opt(opt(",") ~ "and" ~> ("let" ~> variable <~ "be the result" |
+    "store the result as" ~> variable)) <~ "."
     ^^ { case s ~ vOpt ~ vsOpt ~ lhsOpt =>
       val args =
         (vOpt.toList ++ vsOpt.toList.flatten).map(ReferenceExpression(_))

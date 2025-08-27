@@ -156,7 +156,11 @@ class Stringifier(detail: Boolean, location: Boolean) {
           app >> "[=Resolve=] " >> promise >> " with " >> value >> "."
         else
           app >> "[=Reject=] " >> promise >> " with " >> value >> "."
-      case PromiseCallbackStep(_, _, _, _) => ???
+      case PromiseCallbackStep(x1, expr1, step1, x2, expr2, step2) =>
+        app >> "[=Upon fulfillment=] of " >> x1 >> " with value " >> expr1
+        app >> ":" >> step1
+        app >> "[=Upon rejection=] of " >> x1 >> " with reason " >> expr1
+        app >> ":" >> step1
       case WjiLinkStep(name, args, lhsOpt) =>
         app >> "[=" >> name >> "=] from "
         for (arg <- args) app >> arg

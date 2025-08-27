@@ -195,10 +195,12 @@ case class PromiseSettleStep(
 
 // promise callback steps
 case class PromiseCallbackStep(
-  promise: Variable,
-  value: Expression,
-  step: Step,
-  fullfilled: Boolean
+  promise1: Variable,
+  value1: Expression,
+  fulfillmentStep: Step,
+  promise2: Variable,
+  value2: Expression,
+  rejectionStep: Step
 ) extends Step
 
 // wji link steps

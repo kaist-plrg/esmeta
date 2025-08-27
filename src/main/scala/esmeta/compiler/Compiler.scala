@@ -360,7 +360,36 @@ class Compiler(
       val f = EClo("Call", Nil)
       val (x, xExpr) = fb.newTIdWithExpr
       fb.addInst(ICall(x, f, as))
-    case PromiseCallbackStep(x, e, s, b) => ???
+    case PromiseCallbackStep(x1, e1, step1, x2, e2, step2) =>
+      val algoName = fb.algo.head.fname
+      val cn1 = fb.nextCloName
+      val cloFB1 =
+        FuncBuilder(
+          spec,
+          FuncKind.Clo,
+          cn1,
+          Nil,
+          IRUnknownType,
+          fb.algo,
+          true
+        )
+      addFunc(fb = cloFB1, body = step1, prefix = Nil)
+      val cn2 = fb.nextCloName
+      val cloFB2 =
+        FuncBuilder(
+          spec,
+          FuncKind.Clo,
+          cn2,
+          Nil,
+          IRUnknownType,
+          fb.algo,
+          true
+        )
+      addFunc(fb = cloFB2, body = step2, prefix = Nil)
+      val as = List(EClo(cn1, Nil), EClo(cn2, Nil))
+      val f = EClo("PerformPromiseThen", Nil)
+      val (x, xExpr) = fb.newTIdWithExpr
+      fb.addInst(ICall(x, f, as))
     case WjiLinkStep(name, args, vOpt) =>
       val as = args.map(compile(fb, _))
       val (x, xExpr) = fb.newTIdWithExpr

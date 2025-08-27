@@ -99,7 +99,7 @@ class CaseCollector extends UnitWalker {
       case RunParallelStep(_) => ???
       case QueueStep(_) => ???
       case PromiseSettleStep(_, _, _) => ???
-      case PromiseCallbackStep(_, _, _, _) => ???
+      case PromiseCallbackStep(_, _, _, _, _, _) => ???
       case WjiLinkStep(_, _, _) => ???
       case ForEachStep(ty, elem, expr, forward, body) =>
         ty match

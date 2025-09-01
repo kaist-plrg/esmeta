@@ -161,12 +161,13 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> ":" >> step1
         app >> "[=Upon rejection=] of " >> x1 >> " with reason " >> expr1
         app >> ":" >> step1
-      case WjiLinkStep(name, args, lhsOpt) =>
+      case WjiLinkStep(name, args, lhsOpt, ret) =>
         app >> "[=" >> name >> "=] from "
         for (arg <- args) app >> arg
         lhsOpt match
           case Some(v) => app >> " and let " >> v >> " be the result."
-          case None => app
+          case None    =>
+            if (ret) app >> "and return the result." else app >> "."
       case ForEachStep(ty, elem, expr, forward, body) =>
         app >> First("for each ")
         given Rule[Type] = getTypeRule(ArticleOption.No)
@@ -309,6 +310,9 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> "the list-concatenation of " >> exprs
       case ListCopyExpression(expr) =>
         app >> "a List whose elements are the elements of " >> expr
+      case BufferCopyExpression(expr) =>
+        app >> "a" >> "[=get a copy of the buffer source|"
+        app >> "copy of the bytes held by the buffer=]" >> expr
       case RecordExpression(ty, fields) =>
         given Rule[(FieldLiteral, Expression)] = {
           case (app, (field, expr)) =>
@@ -602,6 +606,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case _: NumberTypeLiteral    => app >> "Number"
       case _: BigIntTypeLiteral    => app >> "BigInt"
       case _: ObjectTypeLiteral    => app >> "Object"
+      case _: NewPromise           => app >> "[=a new promise=]"
+      case _: EmbeddingError       => app >> "[=error=]"
     }
 
   // operators for bitwise expressions

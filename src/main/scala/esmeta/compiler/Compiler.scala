@@ -349,17 +349,17 @@ class Compiler(
         )
       val (x, xExpr) = fb.newTIdWithExpr
       fb.addInst(ICall(x, f, as))
-    case PromiseSettleStep(v, e, b) =>
+    case PromiseSettleStep(promise, e, b) =>
       val as =
         List(
-          toStrERef(compile(v), if (b) "Fulfilled" else "Reject"),
+          toStrERef(compile(promise), if (b) "Resolve" else "Reject"),
           EUndef(),
           EList(List(compile(fb, e)))
         )
-        // TODO: !
       val f = EClo("Call", Nil)
       val (x, xExpr) = fb.newTIdWithExpr
       fb.addInst(ICall(x, f, as))
+      fb.addInst(IExpr(returnIfAbrupt(fb, xExpr, false, false)))
     case PromiseCallbackStep(x1, e1, step1, x2, e2, step2) =>
       val algoName = fb.algo.head.fname
       val cn1 = fb.nextCloName
@@ -390,12 +390,13 @@ class Compiler(
       val f = EClo("PerformPromiseThen", Nil)
       val (x, xExpr) = fb.newTIdWithExpr
       fb.addInst(ICall(x, f, as))
-    case WjiLinkStep(name, args, vOpt) =>
+    case WjiLinkStep(name, args, vOpt, b) =>
       val as = args.map(compile(fb, _))
       val (x, xExpr) = fb.newTIdWithExpr
       val f = EClo(name, Nil)
       fb.addInst(ICall(x, f, as))
       vOpt.foreach(v => fb.addInst(IAssign(compile(v), xExpr)))
+      if (b) fb.addInst(IReturn(xExpr))
     case ForEachTupleStep(variables, expr, body) =>
       val (i, iExpr) = fb.newTIdWithExpr
       val (list, listExpr) = fb.newTIdWithExpr
@@ -661,6 +662,75 @@ class Compiler(
         fb.addInst(ICall(x, AUX_FLAT_LIST, List(EList(es.map(compile(fb, _))))))
         xExpr
       case ListCopyExpression(expr) => ECopy(compile(fb, expr))
+      case BufferCopyExpression(expr) =>
+        val (offset, offsetExpr) = fb.newTIdWithExpr
+        val (length, lengthExpr) = fb.newTIdWithExpr
+        val (bytes, bytesExpr) = fb.newTIdWithExpr
+        val (isDetached, isDetachedExpr) = fb.newTIdWithExpr
+        val (i, iExpr) = fb.newTIdWithExpr
+        val (value, valueExpr) = fb.newTIdWithExpr
+        val fieldName = "ViewedArrayBuffer"
+        val irExpr = compile(fb, expr)
+        val ref = getRef(fb, irExpr)
+        fb.addInst(
+          IAssign(offset, zero),
+          IIf(
+            exists(toStrRef(ref, fieldName)),
+            ISeq(
+              List(
+                IAssign(ref, toStrERef(ref, fieldName)),
+                IAssign(offset, toStrERef(ref, "ByteOffset")),
+                IAssign(length, toStrERef(ref, "ByteLength"))
+              )
+            ),
+            ISeq(
+              List(
+                // TODO: Assert type check to array bffuer & shared array buffer
+                // val isArrayBuffer = ETypeCheck(irExpr, ArrayBufferT)
+                // val isSharedArrayBuffer = EBinary(BOp.Eq, irExpr, ???)
+                // IAssert(and(isArrayBuffer, isSharedArrayBuffer))
+                IAssign(length, toStrERef(ref, "ArrayBufferByteLength"))
+              )
+            )
+          ),
+          IAssign(bytes, EList(List())),
+          {
+            val isDetachedBuffer = EClo("IsDetachedBuffer", Nil)
+            ICall(isDetached, isDetachedBuffer, List(irExpr))
+          },
+          IIf(
+            EBinary(BOp.Eq, isDetachedExpr, EBool(false)),
+            ISeq(
+              List(
+                IAssign(i, zero),
+                IWhile(
+                  lessThan(iExpr, lengthExpr),
+                  ISeq(
+                    List(
+                      {
+                        val getValueFromBuffer = EClo("GetValueFromBuffer", Nil)
+                        val as =
+                          List(
+                            irExpr,
+                            EBinary(BOp.Add, iExpr, offsetExpr),
+                            EEnum("Uint8"),
+                            EBool(true),
+                            EEnum("Unordered")
+                          )
+                        ICall(value, getValueFromBuffer, as)
+                      },
+                      IPush(valueExpr, bytesExpr, false),
+                      IAssign(i, inc(iExpr)),
+                    )
+                  )
+                )
+              )
+            ),
+            emptyInst,
+            false
+          )
+        )
+        bytesExpr
       case RecordExpression(rawName, fields) =>
         val tname = Type.normalizeName(rawName)
         var props = (for {
@@ -970,6 +1040,23 @@ class Compiler(
     case NumberTypeLiteral()    => EGLOBAL_NUMBER_TYPE
     case BigIntTypeLiteral()    => EGLOBAL_BIGINT_TYPE
     case ObjectTypeLiteral()    => EGLOBAL_OBJECT_TYPE
+    case EmbeddingError()       => ERecord("EmbeddingError", List())
+    case NewPromise()           =>
+      val (x, xExpr) = fb.newTIdWithExpr
+      fb.addInst(
+        IAssign(
+          x,
+          toStrERef(
+            currentRealm,
+            "Intrinsics",
+            "%Promise%"
+          )
+        )
+      )
+      val f = EClo("NewPromiseCapability", Nil)
+      val (y, yExpr) = fb.newTIdWithExpr
+      fb.addInst(ICall(y, f, List(xExpr)))
+      returnIfAbrupt(fb, yExpr, true, false)
   }
 
   /** compile bitwise operations */

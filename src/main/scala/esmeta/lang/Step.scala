@@ -207,7 +207,8 @@ case class PromiseCallbackStep(
 case class WjiLinkStep(
   name: String,
   args: List[Expression],
-  lhsOpt: Option[Variable]
+  lhsOpt: Option[Variable],
+  ret: Boolean
 ) extends Step
 
 // not yet supported steps

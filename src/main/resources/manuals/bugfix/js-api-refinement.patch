@@ -1,17 +1,29 @@
 diff --git a/document/js-api/index.bs b/document/js-api/index.bs
-index c00cadee..fcdade72 100644
+index c00cadee..397a7177 100644
 --- a/document/js-api/index.bs
 +++ b/document/js-api/index.bs
-@@ -344,7 +344,7 @@ A {{Module}} object represents a single WebAssembly module. Each {{Module}} obje
+@@ -311,7 +311,8 @@ Note:
+ 
+ <div algorithm>
+   To <dfn>compile a WebAssembly module</dfn> from source bytes |bytes|, perform the following steps:
+-    1. Let |module| be [=module_decode=](|bytes|). If |module| is [=error=], return [=error=].
++    1. Let |module| be [=module_decode=](|bytes|).
++    1. If |module| is [=error=], return [=error=].
+     1. If [=module_validate=](|module|) is [=error=], return [=error=].
+     1. Return |module|.
+ </div>
+@@ -344,8 +345,8 @@ A {{Module}} object represents a single WebAssembly module. Each {{Module}} obje
      1. Let |promise| be [=a new promise=].
      1. Run the following steps [=in parallel=]:
          1. [=compile a WebAssembly module|Compile the WebAssembly module=] |bytes| and store the result as |module|.
 -        1. [=Queue a task=] to perform the following steps. If |taskSource| was provided, queue the task on that task source.
+-            1. If |module| is [=error=], reject |promise| with a {{CompileError}} exception.
 +        1. [=Queue a task=] to perform the following steps:
-             1. If |module| is [=error=], reject |promise| with a {{CompileError}} exception.
++            1. If |module| is [=error=], [=reject=] |promise| with a {{CompileError}} exception.
              1. Otherwise,
                  1. [=Construct a WebAssembly module object=] from |module| and |bytes|, and let |moduleObject| be the result.
-@@ -403,10 +403,7 @@ A {{Module}} object represents a single WebAssembly module. Each {{Module}} obje
+                 1. [=Resolve=] |promise| with |moduleObject|.
+@@ -403,10 +404,7 @@ A {{Module}} object represents a single WebAssembly module. Each {{Module}} obje
              1. Let |externtable| be the [=external value=] [=external value|table=] |tableaddr|.
              1. [=list/Append=] |externtable| to |imports|.
      1. Return |imports|.
@@ -23,7 +35,7 @@ index c00cadee..fcdade72 100644
  </div>
  
  <div algorithm>
-@@ -469,15 +466,14 @@ The verification of WebAssembly type requirements is deferred to the
+@@ -469,15 +467,14 @@ The verification of WebAssembly type requirements is deferred to the
      1. Let |promise| be [=a new promise=].
      1. Let |module| be |moduleObject|.\[[Module]].
      1. [=Read the imports=] of |module| with imports |importObject|, and let |imports| be the result.
@@ -41,7 +53,7 @@ index c00cadee..fcdade72 100644
              1. [=Resolve=] |promise| with |instanceObject|.
      1. Return |promise|.
  </div>
-@@ -488,7 +484,7 @@ The verification of WebAssembly type requirements is deferred to the
+@@ -488,7 +485,7 @@ The verification of WebAssembly type requirements is deferred to the
      1. Let |promise| be [=a new promise=].
      1. [=Upon fulfillment=] of |promiseOfModule| with value |module|:
          1. [=asynchronously instantiate a WebAssembly module|Instantiate the WebAssembly module=] |module| importing |importObject|, and let |innerPromise| be the result.
@@ -50,7 +62,7 @@ index c00cadee..fcdade72 100644
              1. Let |result| be the {{WebAssemblyInstantiatedSource}} value «[ "{{WebAssemblyInstantiatedSource/module}}" → |module|, "{{WebAssemblyInstantiatedSource/instance}}" → |instance| ]».
              1. [=Resolve=] |promise| with |result|.
          1. [=Upon rejection=] of |innerPromise| with reason |reason|:
-@@ -545,10 +541,10 @@ interface Module {
+@@ -545,10 +542,10 @@ interface Module {
  
  <div algorithm>
    The <dfn>string value of the extern type</dfn> |type| is
@@ -65,7 +77,7 @@ index c00cadee..fcdade72 100644
  </div>
  
  <div algorithm>
-@@ -1167,79 +1163,79 @@ Note: Exported Functions do not have a \[[Construct]] method and thus it is not
+@@ -1167,79 +1164,79 @@ Note: Exported Functions do not have a \[[Construct]] method and thus it is not
  <div algorithm>
  The algorithm <dfn>ToJSValue</dfn>(|w|) coerces a [=WebAssembly value=] to a JavaScript value by performing the following steps:
  
@@ -205,7 +217,7 @@ index c00cadee..fcdade72 100644
  
  </div>
  
-@@ -1250,10 +1246,10 @@ WebAssembly defines the following Error classes: <dfn exception>CompileError</df
+@@ -1250,10 +1247,10 @@ WebAssembly defines the following Error classes: <dfn exception>CompileError</df
  <div algorithm="create the WebAssembly namespace object">
  When the [=namespace object=] for the {{WebAssembly}} namespace is [=create a namespace object|created=], the following steps must be run:
  

@@ -100,7 +100,7 @@ class CaseCollector extends UnitWalker {
       case QueueStep(_) => ???
       case PromiseSettleStep(_, _, _) => ???
       case PromiseCallbackStep(_, _, _, _, _, _) => ???
-      case WjiLinkStep(_, _, _) => ???
+      case WjiLinkStep(_, _, _, _) => ???
       case ForEachStep(ty, elem, expr, forward, body) =>
         ty match
           case Some(ty) if forward =>
@@ -164,6 +164,7 @@ class CaseCollector extends UnitWalker {
         s"the list-concatenation of {{ expr }}*"
       case ListCopyExpression(expr) =>
         s"a List whose elements are the elements of {{ expr }}"
+      case BufferCopyExpression(expr) => ???
       case RecordExpression(ty, fields) =>
         s"{{ ty }} { [ {{ field }}: {{ expr }} ]* }"
       case LengthExpression(expr) =>
@@ -274,6 +275,7 @@ class CaseCollector extends UnitWalker {
         s"BigInt"
       case _: ObjectTypeLiteral =>
         s"Object"
+      case _: WjiObjLiteral => ???
       case ClampExpression(target, lower, upper) =>
         s"the result of clamping {{ expr }} between {{ expr }} and {{ expr }}"
       case MathOpExpression(op, args) =>

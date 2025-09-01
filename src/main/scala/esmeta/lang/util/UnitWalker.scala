@@ -73,7 +73,7 @@ trait UnitWalker extends BasicUnitWalker {
     case PromiseSettleStep(x, e, b) => walk(x); walk(e)
     case PromiseCallbackStep(x1, expr1, step1, x2, expr2, step2) =>
       walk(x1); walk(expr1); walk(step1); walk(x2); walk(expr2); walk(step2)
-    case WjiLinkStep(name, args, xOpt) =>
+    case WjiLinkStep(name, args, xOpt, b) =>
       walkList(args, walk); walkOpt(xOpt, walk)
     case ForEachStep(ty, elem, expr, forward, body) =>
       walkOpt(ty, walk); walk(elem); walk(expr); walk(forward); walk(body)
@@ -141,6 +141,8 @@ trait UnitWalker extends BasicUnitWalker {
     case ListConcatExpression(exprs) =>
       walkList(exprs, walk)
     case ListCopyExpression(expr) =>
+      walk(expr)
+    case BufferCopyExpression(expr) =>
       walk(expr)
     case RecordExpression(ty, fields) =>
       walk(ty); walkList(fields, { case (f, e) => walk(f); walk(e) })

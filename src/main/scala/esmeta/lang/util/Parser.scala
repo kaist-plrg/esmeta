@@ -221,11 +221,11 @@ trait Parsers extends IndentParsers {
 
   def tuple[X](x: Parser[X]): Parser[List[X]] = "(" ~> repsep(x, ", ") <~ ")"
 
-  lazy val embeddingName: Parser[Variable] = "[a-z][a-z_]*".r ^^ { Variable(_) }
+  lazy val embeddingName: Parser[String] = "[a-z][a-z_]*".r
 
   lazy val wjiInvoke: PL[InvokeExpression] =
     wjiLink(embeddingName) ~ invokeArgs ^^ {
-      case x ~ as => InvokeAbstractClosureExpression(x, as)
+      case x ~ as => InvokeAbstractClosureExpression(Variable(x), as)
     }
 
   lazy val forEachTupleStep: PL[ForEachTupleStep] =
@@ -330,10 +330,11 @@ trait Parsers extends IndentParsers {
     ^^ { QueueStep(_) }
 
   lazy val promiseSettleStep: PL[PromiseSettleStep] =
-    val resolved: Parser[Boolean] = "Resolve" ^^^ true | "Reject" ^^^ false
-    wjiLink(resolved) ~ variable ~ ("with" ~> variable) <~ "." ^^ {
-      case resolved ~ x ~ y =>
-        PromiseSettleStep(x, ReferenceExpression(y), resolved)
+    val resolved: Parser[Boolean] =
+      ("Resolve" | "resolve") ^^^ true | ("Reject" | "reject") ^^^ false
+    wjiLink(resolved) ~ variable ~ ("with" ~> expr) <~ "." ^^ {
+      case resolved ~ x ~ e =>
+        PromiseSettleStep(x, e, resolved)
     }
 
   lazy val promiseCallbackStep: PL[PromiseCallbackStep] =
@@ -354,14 +355,18 @@ trait Parsers extends IndentParsers {
     }
 
   lazy val wjiLinkStep: PL[WjiLinkStep] =
+    val ret = opt("and return the result") ^^ {
+      case Some(_) => true
+      case None    => false
+    }
     wjiLink("[^=]*".r) ~ opt(opt("of") ~> variable) ~ opt(("with" |
     "from" | "importing") ~> repsep("[^\\|_]*".r ~> variable, "and")) ~
     opt(opt(",") ~ "and" ~> ("let" ~> variable <~ "be the result" |
-    "store the result as" ~> variable)) <~ "."
-    ^^ { case s ~ vOpt ~ vsOpt ~ lhsOpt =>
+    "store the result as" ~> variable)) ~ ret <~ "."
+    ^^ { case s ~ vOpt ~ vsOpt ~ lhsOpt ~ b =>
       val args =
         (vOpt.toList ++ vsOpt.toList.flatten).map(ReferenceExpression(_))
-      WjiLinkStep(s, args, lhsOpt)
+      WjiLinkStep(s, args, lhsOpt, b)
     }
 
   // not yet supported steps
@@ -414,6 +419,7 @@ trait Parsers extends IndentParsers {
     codeUnitAtExpr |
     invokeExpr |
     calcExpr |
+    bufferCopyExpr |
     specialExpr
   }.named("lang.Expression")
 
@@ -625,6 +631,11 @@ trait Parsers extends IndentParsers {
         MathFuncExpression(o, as)
     }
 
+  lazy val bufferCopyExpr: PL[BufferCopyExpression] =
+    "a" ~ wjiLink("get a copy of the buffer source|" ~
+    "copy of the bytes held by the buffer")
+    ~> expr ^^ { BufferCopyExpression(_) }
+
   // literals
   // GetIdentifierReference uses 'the value'
   lazy val literal: PL[Literal] = opt("the" ~ opt(langType) ~ "value") ~> (
@@ -663,12 +674,13 @@ trait Parsers extends IndentParsers {
     "Symbol" ^^! SymbolTypeLiteral() |
     "Number" ^^! NumberTypeLiteral() |
     "BigInt" ^^! BigIntTypeLiteral() |
-    "Object" ^^! ObjectTypeLiteral()
+    "Object" ^^! ObjectTypeLiteral() |
+    wjiObjLiteral
   )
 
   // field literal
   lazy val fieldLiteral: PL[FieldLiteral] =
-    "[[" ~> word <~ "]]" ^^ { FieldLiteral(_) }
+    opt("\\") ~ "[[" ~> word <~ "]]" ^^ { FieldLiteral(_) }
 
   // code unit literals with hexadecimal numbers
   lazy val hexLiteral: PL[HexLiteral] =
@@ -712,10 +724,20 @@ trait Parsers extends IndentParsers {
 
   // error object literals
   lazy val errObjLiteral: PL[ErrorObjectLiteral] =
-    lazy val errorName = "*" ~> word.filter(_.endsWith("Error")) <~ "*" ^^ {
+    lazy val errorName = word.filter(_.endsWith("Error")) ^^ {
       ErrorObjectLiteral(_)
     }
-    "a newly created" ~> errorName <~ "object"
+    "a newly created" ~ "*" ~> errorName <~ "*" ~ "object" |
+    "a" ~ "{{" ~> errorName <~ "}}" ~ "exception"
+
+  // wji object literals
+  lazy val wjiObjLiteral: PL[WjiObjLiteral] =
+    wjiLink("a new promise") ^^^ NewPromise() |
+    wasmObjLiteral
+
+  // wasm object literals
+  lazy val wasmObjLiteral: PL[WjiObjLiteral] =
+    wjiLink("error") ^^^ EmbeddingError()
 
   // clamping expression
   lazy val clampExpr: PL[ClampExpression] =
@@ -811,7 +833,7 @@ trait Parsers extends IndentParsers {
   // abstract operation (AO) invocation expressions
   lazy val invokeAOExpr: PL[InvokeAbstractOperationExpression] =
     // handle emu-meta tag
-    tagged(opName) ~ invokeArgs ^^ {
+    (tagged(opName) | wjiLink(embeddingName)) ~ invokeArgs ^^ {
       case x ~ as => InvokeAbstractOperationExpression(x, as)
     }
 
@@ -1083,7 +1105,7 @@ trait Parsers extends IndentParsers {
     lazy val targetType = "an element" ^^^ None | langType ^^ Some.apply
     lazy val whoseFieldTarget = {
       (targetType <~ "whose") ~
-      ("[[" ~> word <~ "]]") ~
+      (opt("\\") ~ "[[" ~> word <~ "]]") ~
       ("is" ~> expr)
     } ^^ { case t ~ f ~ e => WhoseField(t, f, e) }
     lazy val suchThatTarget = {
@@ -1230,7 +1252,7 @@ trait Parsers extends IndentParsers {
       PropertyReference(intrBase, IndexProperty(getRefExpr(v)))
   } | {
     // OrdinaryGetOwnProperty
-    ("the value of" ~> variable <~ "'s") ~ ("[[" ~> word <~ "]]" ~ "attribute")
+    ("the value of" ~> variable <~ "'s") ~ (opt("\\") ~ "[[" ~> word <~ "]]" ~ "attribute")
   } ^^ { case v ~ a => PropertyReference(v, FieldProperty(a)) } | {
     // Set.prototype.add
     ("the List that is" ~> propRef)
@@ -1242,7 +1264,7 @@ trait Parsers extends IndentParsers {
       PropertyReference(b, IndexProperty(DecimalMathValueLiteral(o - 1)))
   } | {
     // SetFunctionName, SymbolDescriptiveString
-    (variable <~ "'s") ~ ("[[" ~> word <~ "]]") <~ "value"
+    (variable <~ "'s") ~ (opt("\\") ~ "[[" ~> word <~ "]]") <~ "value"
   } ^^ { case b ~ f => PropertyReference(b, FieldProperty(f)) } | {
     // AgentSignifier or AgentCanSuspend
     "the Agent Record of the surrounding agent" ^^! AgentRecord()
@@ -1261,8 +1283,8 @@ trait Parsers extends IndentParsers {
   lazy val postProp: PL[Property] = {
     "[" ~> expr <~ "]" ^^ { IndexProperty(_) } |||
     ("'s" | ".") ~> camel.filter(validProp(_)) ^^ { ComponentProperty(_) } |||
-    "." ~ "[[" ~> intr <~ "]]" ^^ { i => IntrinsicProperty(i) } |||
-    "." ~> "[[" ~> word <~ "]]" ^^ { FieldProperty(_) }
+    "." ~ opt("\\") ~ "[[" ~> intr <~ "]]" ^^ { i => IntrinsicProperty(i) } |||
+    "." ~ opt("\\") ~ "[[" ~> word <~ "]]" ^^ { FieldProperty(_) }
   }.named("lang.Property")
 
   def validProp(str: String): Boolean = !noPropSet.contains(str.toLowerCase)
@@ -1508,7 +1530,8 @@ trait Parsers extends IndentParsers {
   }
 
   // nonterminals
-  private lazy val nt: Parser[String] = "|" ~> word <~ "|"
+  private lazy val nt: Parser[String] =// "|" ~> word <~ "|"
+    "|" ~> "[A-Z]".r ~ word <~ "|" ^^ { case s1 ~ s2 => s1 + s2 }
 
   // ordinal
   private lazy val ordinal: Parser[Int] =

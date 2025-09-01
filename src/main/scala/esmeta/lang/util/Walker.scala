@@ -85,11 +85,12 @@ trait Walker extends BasicWalker {
         walk(expr2),
         walk(step2)
       )
-    case WjiLinkStep(name, args, xOpt) =>
+    case WjiLinkStep(name, args, xOpt, b) =>
       WjiLinkStep(
         name,
         walkList(args, walk),
-        walkOpt(xOpt, walk)
+        walkOpt(xOpt, walk),
+        b
       )
     case ForEachStep(ty, elem, expr, forward, body) =>
       ForEachStep(
@@ -190,6 +191,8 @@ trait Walker extends BasicWalker {
       ListConcatExpression(walkList(exprs, walk))
     case ListCopyExpression(expr) =>
       ListCopyExpression(walk(expr))
+    case BufferCopyExpression(expr) =>
+      BufferCopyExpression(walk(expr))
     case RecordExpression(ty, fields) =>
       lazy val newFields =
         walkList(fields, { case (f, e) => (walk(f), walk(e)) })

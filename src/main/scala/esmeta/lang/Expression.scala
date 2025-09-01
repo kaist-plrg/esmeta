@@ -16,6 +16,9 @@ case class ListConcatExpression(exprs: List[Expression]) extends Expression
 // list copy expressions
 case class ListCopyExpression(expr: Expression) extends Expression
 
+// buffer copy expressions
+case class BufferCopyExpression(buffer: Expression) extends Expression
+
 // record expressions
 case class RecordExpression(
   tname: String,
@@ -314,3 +317,9 @@ case class SymbolTypeLiteral() extends ESTypeLiteral
 case class NumberTypeLiteral() extends ESTypeLiteral
 case class BigIntTypeLiteral() extends ESTypeLiteral
 case class ObjectTypeLiteral() extends ESTypeLiteral
+
+sealed trait WjiObjLiteral extends Literal
+case class NewPromise() extends WjiObjLiteral
+
+sealed trait WasmObjLiteral extends WjiObjLiteral
+case class EmbeddingError() extends WasmObjLiteral

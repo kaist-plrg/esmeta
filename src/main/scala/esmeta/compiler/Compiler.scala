@@ -390,13 +390,23 @@ class Compiler(
       val f = EClo("PerformPromiseThen", Nil)
       val (x, xExpr) = fb.newTIdWithExpr
       fb.addInst(ICall(x, f, as))
-    case WjiLinkStep(name, args, vOpt, b) =>
+    case WjiLinkStep(name, args, vOpt, isRet) =>
       val as = args.map(compile(fb, _))
       val (x, xExpr) = fb.newTIdWithExpr
       val f = EClo(name, Nil)
       fb.addInst(ICall(x, f, as))
       vOpt.foreach(v => fb.addInst(IAssign(compile(v), xExpr)))
-      if (b) fb.addInst(IReturn(xExpr))
+      if (isRet)
+        if (fb.needRetComp)
+          val (y, yExpr) = fb.newTIdWithExpr
+          if (!xExpr.isLiteral)
+            fb.addInst(IIf(isCompletion(xExpr), IReturn(xExpr), emptyInst))
+          fb.addInst(
+            ICall(y, EClo("NormalCompletion", Nil), List(xExpr)),
+            IReturn(yExpr),
+          )
+        else
+          fb.addInst(IReturn(xExpr))
     case ForEachTupleStep(variables, expr, body) =>
       val (i, iExpr) = fb.newTIdWithExpr
       val (list, listExpr) = fb.newTIdWithExpr

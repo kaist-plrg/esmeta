@@ -187,7 +187,7 @@ trait Parsers extends LangParsers {
         val pOpt = opt.map(p => List(Param(p, UnknownType))).getOrElse(Nil)
         AbstractOperationHead(
           false,
-          names.mkString("_"),
+          names.mkString(" "),
           pOpt ++ pss.flatten,
           UnknownType
         )

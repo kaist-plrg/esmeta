@@ -335,9 +335,9 @@ class Compiler(
       addFunc(fb = cloFB, body = body, prefix = Nil)
       // XXX: hardcoded captured variables
       val captured =
-        if (fb.algo.head.fname == "asynchronously_instantiate_a_WebAssembly_module")
+        if (fb.algo.head.fname == "asynchronously instantiate a WebAssembly module")
           List("promise", "module", "imports").map(Variable(_))
-        else if (fb.algo.head.fname == "asynchronously_compile_a_WebAssembly_module")
+        else if (fb.algo.head.fname == "asynchronously compile a WebAssembly module")
           List("promise", "bytes", "module").map(Variable(_))
         else ??? // unreachable
       val f = EClo("HostEnqueuePromiseJob", Nil)

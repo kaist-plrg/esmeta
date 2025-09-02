@@ -203,7 +203,7 @@ class Interpreter(
     val spectecBinary = "/Users/gingerbread/plrg/spectec/spectec/spectec"
     val specPath = "/Users/gingerbread/plrg/spectec/specification/wasm-3.0/*"
     val json =
-      if (name == "moduledecode")
+      if (name == "module_decode")
         // hardcoded wasm binary
         "[[0, 97, 115, 109, 1, 0, 0, 0]]"
       else
@@ -229,12 +229,16 @@ class Interpreter(
       case Left(error) => ???
     }
 
-  val embeddingPrefix = "WASM/"
+  val embeddingFuncs =
+    List(
+      "module_decode",
+      "module_validate"
+    )
 
   /** transition for calls */
   def eval(call: Call): Unit = call.callInst match {
-    case ICall(lhs, EClo(fname, Nil), args) if fname.startsWith(embeddingPrefix) =>
-      interop(lhs, fname.stripPrefix(embeddingPrefix), args.map(eval))
+    case ICall(lhs, EClo(fname, Nil), args) if embeddingFuncs contains fname =>
+      interop(lhs, fname, args.map(eval))
     case ICall(lhs, fexpr, args) =>
       eval(fexpr) match
         case clo @ Clo(func, captured) =>

@@ -217,7 +217,8 @@ trait Parsers extends IndentParsers {
       case c ~ s => RepeatStep(c, s)
     }
 
-  def wjiLink[X](x: Parser[X]): Parser[X] = "[=" ~> x <~ "=]"
+  def wjiLink[X](x: Parser[X]): Parser[X] =
+    "[=" ~> x <~ opt("\\|[^=]*".r) <~ "=]"
 
   def tuple[X](x: Parser[X]): Parser[List[X]] = "(" ~> repsep(x, ", ") <~ ")"
 
@@ -359,14 +360,15 @@ trait Parsers extends IndentParsers {
       case Some(_) => true
       case None    => false
     }
-    wjiLink("[^=]*".r) ~ opt(opt("of") ~> variable) ~ opt(("with" |
+    wjiLink("[^=\\|]*".r) ~ opt(opt("of") ~> variable) ~ opt(("with" |
     "from" | "importing") ~> repsep("[^\\|_]*".r ~> variable, "and")) ~
     opt(opt(",") ~ "and" ~> ("let" ~> variable <~ "be the result" |
     "store the result as" ~> variable)) ~ ret <~ "."
     ^^ { case s ~ vOpt ~ vsOpt ~ lhsOpt ~ b =>
       val args =
         (vOpt.toList ++ vsOpt.toList.flatten).map(ReferenceExpression(_))
-      WjiLinkStep(s, args, lhsOpt, b)
+      val name = s"${s.head.toLower}${s.tail}"
+      WjiLinkStep(name, args, lhsOpt, b)
     }
 
   // not yet supported steps

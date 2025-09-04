@@ -1,5 +1,5 @@
 diff --git a/document/js-api/index.bs b/document/js-api/index.bs
-index c00cadee..397a7177 100644
+index c00cadee..7c768401 100644
 --- a/document/js-api/index.bs
 +++ b/document/js-api/index.bs
 @@ -311,7 +311,8 @@ Note:
@@ -12,6 +12,15 @@ index c00cadee..397a7177 100644
      1. If [=module_validate=](|module|) is [=error=], return [=error=].
      1. Return |module|.
  </div>
+@@ -332,7 +333,7 @@ A {{Module}} object represents a single WebAssembly module. Each {{Module}} obje
+ <div algorithm>
+   To <dfn>construct a WebAssembly module object</dfn> from a module |module| and source bytes |bytes|, perform the following steps:
+ 
+-    1. Let |moduleObject| be a new {{Module}} object.
++    1. Let |moduleObject| be a [=/new=] {{Module}} object.
+     1. Set |moduleObject|.\[[Module]] to |module|.
+     1. Set |moduleObject|.\[[Bytes]] to |bytes|.
+     1. Return |moduleObject|.
 @@ -344,8 +345,8 @@ A {{Module}} object represents a single WebAssembly module. Each {{Module}} obje
      1. Let |promise| be [=a new promise=].
      1. Run the following steps [=in parallel=]:

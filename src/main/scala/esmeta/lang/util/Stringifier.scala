@@ -375,6 +375,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> "the sole element of " >> expr
       case CodeUnitAtExpression(base, index) =>
         app >> "the code unit at index " >> index >> " within " >> base
+      case NewObjectExpression(interface) =>
+        app >> "a [=/new=] {{" >> interface >> "}} object"
       case YetExpression(str, block) =>
         app >> str
         block.fold(app)(app >> _)

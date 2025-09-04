@@ -86,6 +86,9 @@ case class SoleElementExpression(list: Expression) extends Expression
 case class CodeUnitAtExpression(base: Expression, index: Expression)
   extends Expression
 
+// new object expressions
+case class NewObjectExpression(interface: String) extends Expression
+
 // not yet supported expressions
 case class YetExpression(str: String, block: Option[Block]) extends Expression
 

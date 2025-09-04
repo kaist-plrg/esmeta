@@ -218,7 +218,7 @@ trait Parsers extends IndentParsers {
     }
 
   def wjiLink[X](x: Parser[X]): Parser[X] =
-    "[=" ~> x <~ opt("\\|[^=]*".r) <~ "=]"
+    ("[=/"|"[=") ~> x <~ opt("\\|[^=]*".r) <~ "=]"
 
   def tuple[X](x: Parser[X]): Parser[List[X]] = "(" ~> repsep(x, ", ") <~ ")"
 
@@ -422,6 +422,7 @@ trait Parsers extends IndentParsers {
     invokeExpr |
     calcExpr |
     bufferCopyExpr |
+    newObjectExpr |
     specialExpr
   }.named("lang.Expression")
 
@@ -637,6 +638,10 @@ trait Parsers extends IndentParsers {
     "a" ~ wjiLink("get a copy of the buffer source|" ~
     "copy of the bytes held by the buffer")
     ~> expr ^^ { BufferCopyExpression(_) }
+
+  lazy val newObjectExpr: PL[NewObjectExpression] =
+    "a" ~ wjiLink("new") ~ "{{" ~> word <~ "}}" ~ "object"
+    ^^ { NewObjectExpression(_) }
 
   // literals
   // GetIdentifierReference uses 'the value'

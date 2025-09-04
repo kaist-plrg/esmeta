@@ -234,6 +234,7 @@ trait Walker extends BasicWalker {
     case CodeUnitAtExpression(base, index) =>
       CodeUnitAtExpression(walk(base), walk(index))
     case multi: MultilineExpression => walk(multi)
+    case NewObjectExpression(interface) => NewObjectExpression(walk(interface))
     case yet: YetExpression =>
       walk(yet)
   }

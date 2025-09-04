@@ -213,6 +213,7 @@ class CaseCollector extends UnitWalker {
         s"{{ expr }} $op {{ expr }}"
       case UnaryExpression(op, expr) =>
         s"$op {{ expr }}"
+      case NewObjectExpression(_) => ???
       case _: ThisLiteral =>
         s"*this* value"
       case _: NewTargetLiteral =>

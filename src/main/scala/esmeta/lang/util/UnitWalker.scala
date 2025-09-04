@@ -184,6 +184,7 @@ trait UnitWalker extends BasicUnitWalker {
       walk(base); walk(index)
     case multi: MultilineExpression =>
       walk(multi)
+    case NewObjectExpression(interface) => walk(interface)
     case yet: YetExpression =>
       walk(yet)
   }

@@ -332,7 +332,14 @@ class Compiler(
           fb.algo,
           true
         )
-      addFunc(fb = cloFB, body = body, prefix = Nil)
+      val returnStep = ReturnStep(EnumLiteral("unused"))
+      val tmp = body match {
+        case BlockStep(StepBlock(block)) =>
+          BlockStep(StepBlock(block :+ SubStep(None, returnStep)))
+        case step =>
+          BlockStep(StepBlock(List(SubStep(None, step), SubStep(None, returnStep))))
+      }
+      addFunc(fb = cloFB, body = tmp, prefix = Nil)
       // XXX: hardcoded captured variables
       val captured =
         if (fb.algo.head.fname == "asynchronously instantiate a WebAssembly module")
@@ -947,6 +954,20 @@ class Compiler(
         toERef(fb, compile(fb, list), zero)
       case CodeUnitAtExpression(base, index) =>
         toERef(fb, compile(fb, base), compile(fb, index))
+      case NewObjectExpression(rawName) =>
+        // XXX: This rule is different from WebIDL
+        val fields: List[(FieldLiteral, Expression)] = List()
+        val tname = Type.normalizeName(rawName)
+        var props = (for {
+          (name, f) <- tyModel.methodOf(tname).toList.sortBy(_._1)
+        } yield name -> EClo(f, Nil)) ++ (for {
+          (FieldLiteral(f), e) <- fields
+        } yield f -> compile(fb, e))
+        getMapTy(tname).map { (k, v) =>
+          props :+= INNER_MAP -> EMap(IRType(k) -> IRType(v), Nil)
+        }
+        if (isObject(tname)) props :+= PRIVATE_ELEMENTS -> EList(Nil)
+        ERecord(tname, props.toList)
       case lit: Literal => compile(fb, lit)
     })
 

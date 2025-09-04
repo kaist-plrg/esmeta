@@ -62,6 +62,7 @@ val yets: Map[String, ValueTy] =
     "Float32Array" -> ConstructorT,
     "Float64Array" -> ConstructorT,
     // 25. Structured Data
+    "ArrayBuffer" -> ConstructorT,
     "SharedArrayBuffer" -> ConstructorT,
     "DataView" -> ConstructorT,
     "Atomics" -> ObjectT,

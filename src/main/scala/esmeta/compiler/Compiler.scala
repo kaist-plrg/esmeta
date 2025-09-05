@@ -736,7 +736,6 @@ class Compiler(
                           )
                         ICall(value, getValueFromBuffer, as)
                       },
-                      IPrint(valueExpr),
                       IPush(valueExpr, bytesExpr, false),
                       IAssign(i, inc(iExpr)),
                     )

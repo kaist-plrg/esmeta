@@ -333,13 +333,13 @@ class Compiler(
           true
         )
       val returnStep = ReturnStep(EnumLiteral("unused"))
-      val tmp = body match {
+      val bodyWithReturn = body match {
         case BlockStep(StepBlock(block)) =>
           BlockStep(StepBlock(block :+ SubStep(None, returnStep)))
         case step =>
           BlockStep(StepBlock(List(SubStep(None, step), SubStep(None, returnStep))))
       }
-      addFunc(fb = cloFB, body = tmp, prefix = Nil)
+      addFunc(fb = cloFB, body = bodyWithReturn, prefix = Nil)
       // XXX: hardcoded captured variables
       val captured =
         if (fb.algo.head.fname == "asynchronously instantiate a WebAssembly module")
@@ -695,9 +695,9 @@ class Compiler(
             exists(toStrRef(ref, fieldName)),
             ISeq(
               List(
-                IAssign(ref, toStrERef(ref, fieldName)),
                 IAssign(offset, toStrERef(ref, "ByteOffset")),
-                IAssign(length, toStrERef(ref, "ByteLength"))
+                IAssign(length, toStrERef(ref, "ByteLength")),
+                IAssign(ref, toStrERef(ref, fieldName))
               )
             ),
             ISeq(
@@ -730,12 +730,13 @@ class Compiler(
                           List(
                             irExpr,
                             EBinary(BOp.Add, iExpr, offsetExpr),
-                            EEnum("Uint8"),
+                            EEnum("uint8"),
                             EBool(true),
-                            EEnum("Unordered")
+                            EEnum("unordered")
                           )
                         ICall(value, getValueFromBuffer, as)
                       },
+                      IPrint(valueExpr),
                       IPush(valueExpr, bytesExpr, false),
                       IAssign(i, inc(iExpr)),
                     )

@@ -180,9 +180,12 @@ class Interpreter(
         ???
     }
   def value2json(v: Value): io.circe.Json =
+    import io.circe.Json
     v match {
       case a: Addr =>
         obj2json(st.heap(a))
+      case Number(double) =>
+        Json.fromDoubleOrNull(double)
       case _ =>
         println(v)
         ???
@@ -193,12 +196,7 @@ class Interpreter(
     import scala.sys.process._
     val spectecBinary = "/Users/gingerbread/plrg/spectec/spectec/spectec"
     val specPath = "/Users/gingerbread/plrg/spectec/specification/wasm-3.0/*"
-    val json =
-      if (name == "module_decode")
-        // hardcoded wasm binary
-        "[[0, 97, 115, 109, 1, 0, 0, 0]]"
-      else
-        args.map(value2json).mkString("[", ",", "]")
+    val json = args.map(value2json).mkString("[", ",", "]")
     println(s"[SpecTec Invoke] $name($json)")
     val command =
       Seq(

@@ -155,26 +155,47 @@ class Interpreter(
     case INop() => /* do nothing */
   }
 
+  val jsonKind = "__JSON_Kind__"
+  val variantName = "__variant_name__"
+
   /** interop */
   def json2value(json: io.circe.Json): Value =
-    if (json.isObject)
-      val obj = json.asObject.get
-      val fs = obj.toMap.view.mapValues(json2value).toMap
-      st.heap.allocRecord("", fs)
-    else if (json.isArray)
+    // YoJson.Safe.`List
+    if (json.isArray)
       val arr = json.asArray.get
       val vs = arr.map(json2value).toList
       st.heap.allocList(vs)
+    // YoJson.Safe.`Variant
+    else if (json.isObject && json.asObject.get.toMap.contains(variantName))
+      val map = json.asObject.get.toMap
+      val tname = map(variantName).asString.get
+      val args = map.removed(variantName).view.mapValues(json2value).toMap
+      st.heap.allocRecord(tname, args + (jsonKind -> Str("Variant")))
+    // YoJson.Safe.`Assoc
+    else if (json.isObject)
+      val obj = json.asObject.get
+      val fs = obj.toMap.view.mapValues(json2value).toMap
+      st.heap.allocRecord("", fs + (jsonKind -> Str("Assoc")))
+    else if (json.isString)
+      Str(json.asString.get)
     else
+      println(json)
       ???
 
   def obj2json(obj: Obj): io.circe.Json =
     import io.circe.Json
     obj match {
-      case RecordObj(_, map) =>
-        Json.obj(map.map((k, v) => (k, value2json(v))).toSeq:_*)
+    // YoJson.Safe.`List
       case ListObj(l) =>
         Json.arr(l.map(value2json):_*)
+      // YoJson.Safe.`Variant
+      case RecordObj(tname, map) if map(jsonKind) == Str("Variant") =>
+        val args = map.toMap.removed(jsonKind).view.mapValues(value2json(_)).toList
+        val jsons = (variantName -> Json.fromString(tname)) :: args
+        Json.obj(jsons:_*)
+      // YoJson.Safe.`Assoc
+      case RecordObj(_, map) =>
+        Json.obj(map.map((k, v) => (k, value2json(v))).toSeq:_*)
       case _ =>
         println(obj)
         ???
@@ -186,6 +207,8 @@ class Interpreter(
         obj2json(st.heap(a))
       case Number(double) =>
         Json.fromDoubleOrNull(double)
+      case Str(str) =>
+        Json.fromString(str)
       case _ =>
         println(v)
         ???
@@ -196,13 +219,14 @@ class Interpreter(
     import scala.sys.process._
     val spectecBinary = "/Users/gingerbread/plrg/spectec/spectec/spectec"
     val specPath = "/Users/gingerbread/plrg/spectec/specification/wasm-3.0/*"
-    val json = args.map(value2json).mkString("[", ",", "]")
-    println(s"[SpecTec Invoke] $name($json)")
+    val jsonArgs = args.map(value2json).mkString("[", ",", "]")
+    val json = s"{\"name\":\"$name\", \"args\":$jsonArgs}".replace("\"", "\\\"")
+    println(s"[SpecTec Invoke] $json")
     val command =
       Seq(
         "bash",
         "-c",
-        s"$spectecBinary $specPath --embedding \"{\\\"name\\\":\\\"$name\\\", \\\"args\\\":$json}\""
+        s"$spectecBinary $specPath --embedding \"$json\""
       )
     val output = command.!!
     println(s"[SpecTec Return] $output")

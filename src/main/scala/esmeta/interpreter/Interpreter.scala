@@ -155,7 +155,6 @@ class Interpreter(
     case INop() => /* do nothing */
   }
 
-  val jsonKind = "__JSON_Kind__"
   val variantName = "__variant_name__"
 
   /** interop */
@@ -170,17 +169,20 @@ class Interpreter(
       val map = json.asObject.get.toMap
       val tname = map(variantName).asString.get
       val args = map.removed(variantName).view.mapValues(json2value).toMap
-      st.heap.allocRecord(tname, args + (jsonKind -> Str("Variant")))
+      st.heap.allocRecord(tname, args)
     // YoJson.Safe.`Assoc
     else if (json.isObject)
       val obj = json.asObject.get
       val fs = obj.toMap.view.mapValues(json2value).toMap
-      st.heap.allocRecord("", fs + (jsonKind -> Str("Assoc")))
+      st.heap.allocRecord("", fs)
     else if (json.isString)
       Str(json.asString.get)
     else
       println(json)
       ???
+
+  def isVariantArgs(map: MMap[String, Value]): Boolean =
+    (0 to map.size - 1).forall(i => map.contains(s"_$i"))
 
   def obj2json(obj: Obj): io.circe.Json =
     import io.circe.Json
@@ -189,8 +191,8 @@ class Interpreter(
       case ListObj(l) =>
         Json.arr(l.map(value2json):_*)
       // YoJson.Safe.`Variant
-      case RecordObj(tname, map) if map(jsonKind) == Str("Variant") =>
-        val args = map.toMap.removed(jsonKind).view.mapValues(value2json(_)).toList
+      case RecordObj(tname, map) if isVariantArgs(map) =>
+        val args = map.view.mapValues(value2json(_)).toList
         val jsons = (variantName -> Json.fromString(tname)) :: args
         Json.obj(jsons:_*)
       // YoJson.Safe.`Assoc

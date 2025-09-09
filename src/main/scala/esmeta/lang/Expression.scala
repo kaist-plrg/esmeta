@@ -328,5 +328,7 @@ case class ObjectTypeLiteral() extends ESTypeLiteral
 sealed trait WjiObjLiteral extends Literal
 case class NewPromise() extends WjiObjLiteral
 
-sealed trait WasmObjLiteral extends WjiObjLiteral
-case class EmbeddingError() extends WasmObjLiteral
+case class WasmVariantLiteral(
+  name: String,
+  args: List[Expression]
+) extends WjiObjLiteral

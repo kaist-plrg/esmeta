@@ -183,6 +183,7 @@ class Interpreter(
 
   def isVariantArgs(map: MMap[String, Value]): Boolean =
     (0 to map.size - 1).forall(i => map.contains(s"_$i"))
+  def isVariant(record: RecordObj): Boolean = isVariantArgs(record.map)
 
   def obj2json(obj: Obj): io.circe.Json =
     import io.circe.Json
@@ -405,6 +406,18 @@ class Interpreter(
         case _                                       => Bool(false)
     case ETypeCheck(expr, ty) =>
       Bool(ty.ty.contains(eval(expr), st))
+    case EVariantPatternMatch(expr, constructor, patternNames) =>
+      val record = eval(expr).asRecord(st)
+      val matched =
+        isVariant(record) &&
+        record.tname == constructor &&
+        record.map.size == patternNames.size
+      if (matched) {
+        patternNames.zipWithIndex.map {
+          case (name, i) => st.define(name, record.map(s"_$i"))
+        }
+      }
+      Bool(matched)
     case ESizeOf(expr) =>
       Math(eval(expr) match
         case Str(s)        => s.length

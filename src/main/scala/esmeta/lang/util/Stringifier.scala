@@ -610,8 +610,11 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case _: NumberTypeLiteral    => app >> "Number"
       case _: BigIntTypeLiteral    => app >> "BigInt"
       case _: ObjectTypeLiteral    => app >> "Object"
+      case WasmVariantLiteral(name, args) =>
+        given Rule[List[Expression]] =
+          iterableRule("", " ", "")
+        app >> "[=" >> name >> "=]" >> args
       case _: NewPromise           => app >> "[=a new promise=]"
-      case _: EmbeddingError       => app >> "[=error=]"
     }
 
   // operators for bitwise expressions

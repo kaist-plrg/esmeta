@@ -736,11 +736,15 @@ trait Parsers extends IndentParsers {
   // wji object literals
   lazy val wjiObjLiteral: PL[WjiObjLiteral] =
     wjiLink("a new promise") ^^^ NewPromise() |
-    wasmObjLiteral
+    wasmVariantLiteral
 
   // wasm object literals
-  lazy val wasmObjLiteral: PL[WjiObjLiteral] =
-    wjiLink("error") ^^^ EmbeddingError()
+  lazy val wasmVariantLiteral: PL[WasmVariantLiteral] =
+    val variantName =
+      "error" // TODO
+    wjiLink(variantName) ~ rep(expr) ^^ {
+      case name ~ args => WasmVariantLiteral(name, args)
+    }
 
   // clamping expression
   lazy val clampExpr: PL[ClampExpression] =

@@ -94,6 +94,8 @@ trait UnitWalker extends BasicUnitWalker {
       walk(expr); walk(target)
     case ETypeCheck(expr, ty) =>
       walk(expr); walk(ty)
+    case EVariantPatternMatch(expr, name, args) =>
+      walk(expr); walk(name); walkList(args, walk)
     case ESizeOf(expr) =>
       walk(expr)
     case EClo(fname, captured) =>

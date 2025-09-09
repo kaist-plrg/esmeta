@@ -588,6 +588,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
           v <- transfer(expr)
           b <- get(_.typeCheck(v, ty.toValue))
         } yield AbsValue(b)
+      case EVariantPatternMatch(_, _, _) => ???
       case ESizeOf(expr) =>
         for {
           v <- transfer(expr)

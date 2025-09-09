@@ -1059,8 +1059,11 @@ class Compiler(
     case NumberTypeLiteral()    => EGLOBAL_NUMBER_TYPE
     case BigIntTypeLiteral()    => EGLOBAL_BIGINT_TYPE
     case ObjectTypeLiteral()    => EGLOBAL_OBJECT_TYPE
-    case EmbeddingError()       => ERecord("EmbeddingError", List())
-    case NewPromise()           =>
+    case WasmVariantLiteral(name, args) =>
+      val fields =
+        args.zipWithIndex.map((arg, i) => s"_$i" -> compile(fb, arg))
+      ERecord(name, fields)
+    case NewPromise() =>
       val (x, xExpr) = fb.newTIdWithExpr
       fb.addInst(
         IAssign(
@@ -1168,6 +1171,14 @@ class Compiler(
           case Nonterminal =>
             EInstanceOf(x, EGrammarSymbol("", Nil))
         }
+        if (neg) not(cond) else cond
+      case IsAreCondition(List(left), neg, List(WasmVariantLiteral(constructor, args))) =>
+        val patternNames = args.map {
+          case ReferenceExpression(v: Variable) => compile(v)
+          case _ => ???
+        }
+        val cond =
+          EVariantPatternMatch(compile(fb, left), constructor, patternNames)
         if (neg) not(cond) else cond
       case IsAreCondition(left, neg, right) =>
         val es = for (lexpr <- left) yield {

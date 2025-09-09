@@ -114,6 +114,7 @@ _NativeError_ is {
   SyntaxError
   TypeError
   URIError
+  CompileError
 }
 
 // https://tc39.es/ecma262/#sec-properties-of-the-nativeerror-constructors

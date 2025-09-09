@@ -31,6 +31,7 @@ case class GlobalObject(cfg: CFG) {
       Str("undefined") -> DataDesc(Undef, F, F, F),
       Str("$262") -> DataDesc(intrAddr("$262"), T, F, T),
       Str("WebAssembly") -> DataDesc(intrAddr("WebAssembly"), T, F, T),
+      Str("CompileError") -> DataDesc(intrAddr("CompileError"), T, F, T),
     )
     val wellKnowns = for {
       row <- spec.tables(WELL_KNOWN_INTRINSICS).rows

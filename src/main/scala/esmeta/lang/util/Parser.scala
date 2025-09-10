@@ -421,8 +421,7 @@ trait Parsers extends IndentParsers {
     codeUnitAtExpr |
     invokeExpr |
     calcExpr |
-    bufferCopyExpr |
-    newObjectExpr |
+    wjiExpr |
     specialExpr
   }.named("lang.Expression")
 
@@ -634,6 +633,13 @@ trait Parsers extends IndentParsers {
         MathFuncExpression(o, as)
     }
 
+  // wji expressions
+  lazy val wjiExpr: PL[WjiExpression] =
+    wjiLink("a new promise") ^^^ NewPromiseExpression() |
+    bufferCopyExpr |
+    newObjectExpr |
+    wasmVariantExpr
+
   lazy val bufferCopyExpr: PL[BufferCopyExpression] =
     "a" ~ wjiLink("get a copy of the buffer source|" ~
     "copy of the bytes held by the buffer")
@@ -642,6 +648,14 @@ trait Parsers extends IndentParsers {
   lazy val newObjectExpr: PL[NewObjectExpression] =
     "a" ~ wjiLink("new") ~ "{{" ~> word <~ "}}" ~ "object"
     ^^ { NewObjectExpression(_) }
+
+  // wasm object literals
+  lazy val wasmVariantExpr: PL[WasmVariantExpression] =
+    val variantName =
+      "error" // TODO
+    wjiLink(variantName) ~ rep(expr) ^^ {
+      case name ~ args => WasmVariantExpression(name, args)
+    }
 
   // literals
   // GetIdentifierReference uses 'the value'
@@ -681,8 +695,7 @@ trait Parsers extends IndentParsers {
     "Symbol" ^^! SymbolTypeLiteral() |
     "Number" ^^! NumberTypeLiteral() |
     "BigInt" ^^! BigIntTypeLiteral() |
-    "Object" ^^! ObjectTypeLiteral() |
-    wjiObjLiteral
+    "Object" ^^! ObjectTypeLiteral()
   )
 
   // field literal
@@ -732,19 +745,6 @@ trait Parsers extends IndentParsers {
     }
     "a newly created" ~ "*" ~> errorName <~ "*" ~ "object" |
     "a" ~ "{{" ~> errorName <~ "}}" ~ "exception"
-
-  // wji object literals
-  lazy val wjiObjLiteral: PL[WjiObjLiteral] =
-    wjiLink("a new promise") ^^^ NewPromise() |
-    wasmVariantLiteral
-
-  // wasm object literals
-  lazy val wasmVariantLiteral: PL[WasmVariantLiteral] =
-    val variantName =
-      "error" // TODO
-    wjiLink(variantName) ~ rep(expr) ^^ {
-      case name ~ args => WasmVariantLiteral(name, args)
-    }
 
   // clamping expression
   lazy val clampExpr: PL[ClampExpression] =

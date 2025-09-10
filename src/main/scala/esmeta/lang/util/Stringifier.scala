@@ -310,9 +310,6 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> "the list-concatenation of " >> exprs
       case ListCopyExpression(expr) =>
         app >> "a List whose elements are the elements of " >> expr
-      case BufferCopyExpression(expr) =>
-        app >> "a" >> "[=get a copy of the buffer source|"
-        app >> "copy of the bytes held by the buffer=]" >> expr
       case RecordExpression(ty, fields) =>
         given Rule[(FieldLiteral, Expression)] = {
           case (app, (field, expr)) =>
@@ -377,8 +374,16 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> "the sole element of " >> expr
       case CodeUnitAtExpression(base, index) =>
         app >> "the code unit at index " >> index >> " within " >> base
+      case BufferCopyExpression(expr) =>
+        app >> "a" >> "[=get a copy of the buffer source|"
+        app >> "copy of the bytes held by the buffer=]" >> expr
       case NewObjectExpression(interface) =>
         app >> "a [=/new=] {{" >> interface >> "}} object"
+      case NewPromiseExpression() => app >> "[=a new promise=]"
+      case WasmVariantExpression(name, args) =>
+        given Rule[List[Expression]] =
+          iterableRule("", " ", "")
+        app >> "[=" >> name >> "=]" >> args
       case YetExpression(str, block) =>
         app >> str
         block.fold(app)(app >> _)
@@ -610,11 +615,6 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case _: NumberTypeLiteral    => app >> "Number"
       case _: BigIntTypeLiteral    => app >> "BigInt"
       case _: ObjectTypeLiteral    => app >> "Object"
-      case WasmVariantLiteral(name, args) =>
-        given Rule[List[Expression]] =
-          iterableRule("", " ", "")
-        app >> "[=" >> name >> "=]" >> args
-      case _: NewPromise           => app >> "[=a new promise=]"
     }
 
   // operators for bitwise expressions

@@ -16,9 +16,6 @@ case class ListConcatExpression(exprs: List[Expression]) extends Expression
 // list copy expressions
 case class ListCopyExpression(expr: Expression) extends Expression
 
-// buffer copy expressions
-case class BufferCopyExpression(buffer: Expression) extends Expression
-
 // record expressions
 case class RecordExpression(
   tname: String,
@@ -90,11 +87,28 @@ case class SoleElementExpression(list: Expression) extends Expression
 case class CodeUnitAtExpression(base: Expression, index: Expression)
   extends Expression
 
-// new object expressions
-case class NewObjectExpression(interface: String) extends Expression
-
 // not yet supported expressions
 case class YetExpression(str: String, block: Option[Block]) extends Expression
+
+// -----------------------------------------------------------------------------
+// metalanguage WJI expressions
+// -----------------------------------------------------------------------------
+sealed trait WjiExpression extends Expression
+
+// buffer copy expressions
+case class BufferCopyExpression(buffer: Expression) extends WjiExpression
+
+// new object expressions
+case class NewObjectExpression(interface: String) extends WjiExpression
+
+// new promise expressions
+case class NewPromiseExpression() extends WjiExpression
+
+// Wasm variant expression
+case class WasmVariantExpression(
+  name: String,
+  args: List[Expression]
+) extends WjiExpression
 
 // -----------------------------------------------------------------------------
 // metalanguage invocation expressions
@@ -324,11 +338,3 @@ case class SymbolTypeLiteral() extends ESTypeLiteral
 case class NumberTypeLiteral() extends ESTypeLiteral
 case class BigIntTypeLiteral() extends ESTypeLiteral
 case class ObjectTypeLiteral() extends ESTypeLiteral
-
-sealed trait WjiObjLiteral extends Literal
-case class NewPromise() extends WjiObjLiteral
-
-case class WasmVariantLiteral(
-  name: String,
-  args: List[Expression]
-) extends WjiObjLiteral

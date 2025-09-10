@@ -140,8 +140,6 @@ trait UnitWalker extends BasicUnitWalker {
       walkList(exprs, walk)
     case ListConcatExpression(exprs) =>
       walkList(exprs, walk)
-    case ListCopyExpression(expr) =>
-      walk(expr)
     case BufferCopyExpression(expr) =>
       walk(expr)
     case RecordExpression(ty, fields) =>
@@ -184,7 +182,13 @@ trait UnitWalker extends BasicUnitWalker {
       walk(base); walk(index)
     case multi: MultilineExpression =>
       walk(multi)
-    case NewObjectExpression(interface) => walk(interface)
+    case ListCopyExpression(expr) =>
+      walk(expr)
+    case NewObjectExpression(interface) =>
+      walk(interface)
+    case NewPromiseExpression() =>
+    case WasmVariantExpression(name, args) =>
+      walk(name); walkList(args, walk)
     case yet: YetExpression =>
       walk(yet)
   }

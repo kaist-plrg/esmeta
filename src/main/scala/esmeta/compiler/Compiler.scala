@@ -796,6 +796,26 @@ class Compiler(
         xExpr
       case expr: GetItemsExpression =>
         EYet(expr.toString(true, false))
+      case WasmVariantExpression(name, args) =>
+        val fields =
+          args.zipWithIndex.map((arg, i) => s"_$i" -> compile(fb, arg))
+        ERecord("variant", ("constructor" -> EStr(name)) :: fields)
+      case NewPromiseExpression() =>
+        val (x, xExpr) = fb.newTIdWithExpr
+        fb.addInst(
+          IAssign(
+            x,
+            toStrERef(
+              currentRealm,
+              "Intrinsics",
+              "%Promise%"
+            )
+          )
+        )
+        val f = EClo("NewPromiseCapability", Nil)
+        val (y, yExpr) = fb.newTIdWithExpr
+        fb.addInst(ICall(y, f, List(xExpr)))
+        returnIfAbrupt(fb, yExpr, true, false)
       case InvokeAbstractOperationExpression(name, args) =>
         val as = args.map(compile(fb, _))
         if (simpleOps contains name) simpleOps(name)(fb, as)
@@ -1059,26 +1079,6 @@ class Compiler(
     case NumberTypeLiteral()    => EGLOBAL_NUMBER_TYPE
     case BigIntTypeLiteral()    => EGLOBAL_BIGINT_TYPE
     case ObjectTypeLiteral()    => EGLOBAL_OBJECT_TYPE
-    case WasmVariantLiteral(name, args) =>
-      val fields =
-        args.zipWithIndex.map((arg, i) => s"_$i" -> compile(fb, arg))
-      ERecord(name, fields)
-    case NewPromise() =>
-      val (x, xExpr) = fb.newTIdWithExpr
-      fb.addInst(
-        IAssign(
-          x,
-          toStrERef(
-            currentRealm,
-            "Intrinsics",
-            "%Promise%"
-          )
-        )
-      )
-      val f = EClo("NewPromiseCapability", Nil)
-      val (y, yExpr) = fb.newTIdWithExpr
-      fb.addInst(ICall(y, f, List(xExpr)))
-      returnIfAbrupt(fb, yExpr, true, false)
   }
 
   /** compile bitwise operations */
@@ -1172,7 +1172,7 @@ class Compiler(
             EInstanceOf(x, EGrammarSymbol("", Nil))
         }
         if (neg) not(cond) else cond
-      case IsAreCondition(List(left), neg, List(WasmVariantLiteral(constructor, args))) =>
+      case IsAreCondition(List(left), neg, List(WasmVariantExpression(constructor, args))) =>
         val patternNames = args.map {
           case ReferenceExpression(v: Variable) => compile(v)
           case _ => ???

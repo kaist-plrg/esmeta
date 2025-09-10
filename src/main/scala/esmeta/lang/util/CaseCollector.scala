@@ -164,7 +164,6 @@ class CaseCollector extends UnitWalker {
         s"the list-concatenation of {{ expr }}*"
       case ListCopyExpression(expr) =>
         s"a List whose elements are the elements of {{ expr }}"
-      case BufferCopyExpression(expr) => ???
       case RecordExpression(ty, fields) =>
         s"{{ ty }} { [ {{ field }}: {{ expr }} ]* }"
       case LengthExpression(expr) =>
@@ -213,7 +212,7 @@ class CaseCollector extends UnitWalker {
         s"{{ expr }} $op {{ expr }}"
       case UnaryExpression(op, expr) =>
         s"$op {{ expr }}"
-      case NewObjectExpression(_) => ???
+      case _: WjiExpression => ???
       case _: ThisLiteral =>
         s"*this* value"
       case _: NewTargetLiteral =>
@@ -276,7 +275,6 @@ class CaseCollector extends UnitWalker {
         s"BigInt"
       case _: ObjectTypeLiteral =>
         s"Object"
-      case _: WjiObjLiteral => ???
       case ClampExpression(target, lower, upper) =>
         s"the result of clamping {{ expr }} between {{ expr }} and {{ expr }}"
       case MathOpExpression(op, args) =>

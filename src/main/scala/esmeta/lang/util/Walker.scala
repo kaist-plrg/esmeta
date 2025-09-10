@@ -189,8 +189,6 @@ trait Walker extends BasicWalker {
       StringConcatExpression(walkList(exprs, walk))
     case ListConcatExpression(exprs) =>
       ListConcatExpression(walkList(exprs, walk))
-    case ListCopyExpression(expr) =>
-      ListCopyExpression(walk(expr))
     case BufferCopyExpression(expr) =>
       BufferCopyExpression(walk(expr))
     case RecordExpression(ty, fields) =>
@@ -234,7 +232,14 @@ trait Walker extends BasicWalker {
     case CodeUnitAtExpression(base, index) =>
       CodeUnitAtExpression(walk(base), walk(index))
     case multi: MultilineExpression => walk(multi)
-    case NewObjectExpression(interface) => NewObjectExpression(walk(interface))
+    case ListCopyExpression(expr) =>
+      ListCopyExpression(walk(expr))
+    case NewObjectExpression(interface) =>
+      NewObjectExpression(walk(interface))
+    case NewPromiseExpression() =>
+      NewPromiseExpression()
+    case WasmVariantExpression(name, args) =>
+      WasmVariantExpression(walk(name), walkList(args, walk))
     case yet: YetExpression =>
       walk(yet)
   }

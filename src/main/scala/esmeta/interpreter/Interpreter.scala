@@ -155,7 +155,15 @@ class Interpreter(
     case INop() => /* do nothing */
   }
 
-  val variantName = "__variant_name__"
+
+  def isVariantMap[X](map: Iterable[(String, X)]): Boolean =
+    val keys = map.map(_._1).toList
+    keys.contains("constructor") &&
+    (0 to keys.size - 2).forall(i => keys.contains(s"_$i"))
+  def isVariant(record: RecordObj): Boolean =
+    record.tname == "variant" && isVariantMap(record.map)
+  def isVariant(json: io.circe.Json): Boolean =
+    json.isObject && isVariantMap(json.asObject.get.toMap)
 
   /** interop */
   def json2value(json: io.circe.Json): Value =
@@ -165,11 +173,10 @@ class Interpreter(
       val vs = arr.map(json2value).toList
       st.heap.allocList(vs)
     // YoJson.Safe.`Variant
-    else if (json.isObject && json.asObject.get.toMap.contains(variantName))
+    else if (isVariant(json))
       val map = json.asObject.get.toMap
-      val tname = map(variantName).asString.get
-      val args = map.removed(variantName).view.mapValues(json2value).toMap
-      st.heap.allocRecord(tname, args)
+      val args = map.view.mapValues(json2value).toList
+      st.heap.allocRecord("variant", args)
     // YoJson.Safe.`Assoc
     else if (json.isObject)
       val obj = json.asObject.get
@@ -181,21 +188,16 @@ class Interpreter(
       println(json)
       ???
 
-  def isVariantArgs(map: MMap[String, Value]): Boolean =
-    (0 to map.size - 1).forall(i => map.contains(s"_$i"))
-  def isVariant(record: RecordObj): Boolean = isVariantArgs(record.map)
-
   def obj2json(obj: Obj): io.circe.Json =
     import io.circe.Json
     obj match {
-    // YoJson.Safe.`List
+      // YoJson.Safe.`List
       case ListObj(l) =>
         Json.arr(l.map(value2json):_*)
       // YoJson.Safe.`Variant
-      case RecordObj(tname, map) if isVariantArgs(map) =>
+      case obj @ RecordObj(tname, map) if isVariant(obj) =>
         val args = map.view.mapValues(value2json(_)).toList
-        val jsons = (variantName -> Json.fromString(tname)) :: args
-        Json.obj(jsons:_*)
+        Json.obj(args:_*)
       // YoJson.Safe.`Assoc
       case RecordObj(_, map) =>
         Json.obj(map.map((k, v) => (k, value2json(v))).toSeq:_*)
@@ -410,8 +412,8 @@ class Interpreter(
       val record = eval(expr).asRecord(st)
       val matched =
         isVariant(record) &&
-        record.tname == constructor &&
-        record.map.size == patternNames.size
+        record.map.get("constructor").contains(Str(constructor)) &&
+        record.map.size - 1 == patternNames.size
       if (matched) {
         patternNames.zipWithIndex.map {
           case (name, i) => st.define(name, record.map(s"_$i"))

@@ -690,6 +690,7 @@ WebAssembly = OrdinaryObject [
   Extensible: true;
   Prototype: #INTRINSICS.Object.prototype;
 ] {
+  CompileError: [TFT] #INTRINSICS.CompileError;
   %Symbol.toStringTag%: [FFT] "WebAssembly";
 }
 

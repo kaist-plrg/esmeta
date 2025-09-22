@@ -1,0 +1,12 @@
+def create_new_object_implementing_the_interface(
+  interface: Unknown
+): Unknown = {
+  let prototype = interface.__MAP__["prototype"].Value
+  let slots = (list ["Prototype", "Extensible", "Realm", "PrimaryInterface"])
+  call %0 = clo<"MakeBasicObject">(slots)
+  let instance = %0
+  instance.Realm = @EXECUTION_STACK[0].Realm
+  instance.PrimaryInterface = interface
+  instance.Prototype = prototype
+  return instance
+}

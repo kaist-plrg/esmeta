@@ -964,19 +964,12 @@ class Compiler(
       case CodeUnitAtExpression(base, index) =>
         toERef(fb, compile(fb, base), compile(fb, index))
       case NewObjectExpression(rawName) =>
-        // XXX: This rule is different from WebIDL
-        val fields: List[(FieldLiteral, Expression)] = List()
-        val tname = Type.normalizeName(rawName)
-        var props = (for {
-          (name, f) <- tyModel.methodOf(tname).toList.sortBy(_._1)
-        } yield name -> EClo(f, Nil)) ++ (for {
-          (FieldLiteral(f), e) <- fields
-        } yield f -> compile(fb, e))
-        getMapTy(tname).map { (k, v) =>
-          props :+= INNER_MAP -> EMap(IRType(k) -> IRType(v), Nil)
-        }
-        if (isObject(tname)) props :+= PRIVATE_ELEMENTS -> EList(Nil)
-        ERecord(tname, props.toList)
+        // XXX: Remove hardcode to interface reference
+        val interface = toStrERef(currentRealm, "Intrinsics", s"%WebAssembly.$rawName%")
+        val (x, xExpr) = fb.newTIdWithExpr
+        val f = EClo("create_new_object_implementing_the_interface", Nil)
+        fb.addInst(ICall(x, f, List(interface)))
+        xExpr
       case lit: Literal => compile(fb, lit)
     })
 

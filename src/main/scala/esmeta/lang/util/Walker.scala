@@ -50,6 +50,7 @@ trait Walker extends BasicWalker {
 
   def walk(step: Step): Step = step match {
     case LetStep(x, expr)       => LetStep(walk(x), walk(expr))
+    case LetTupleStep(xs, expr) => LetTupleStep(walkList(xs, walk), walk(expr))
     case SetStep(x, expr)       => SetStep(walk(x), walk(expr))
     case SetAsStep(x, verb, id) => SetAsStep(walk(x), walk(verb), walk(id))
     case SetEvaluationStateStep(base, func, args) =>
@@ -189,8 +190,8 @@ trait Walker extends BasicWalker {
       StringConcatExpression(walkList(exprs, walk))
     case ListConcatExpression(exprs) =>
       ListConcatExpression(walkList(exprs, walk))
-    case BufferCopyExpression(expr) =>
-      BufferCopyExpression(walk(expr))
+    case ListCopyExpression(expr) =>
+      ListCopyExpression(walk(expr))
     case RecordExpression(ty, fields) =>
       lazy val newFields =
         walkList(fields, { case (f, e) => (walk(f), walk(e)) })
@@ -232,14 +233,14 @@ trait Walker extends BasicWalker {
     case CodeUnitAtExpression(base, index) =>
       CodeUnitAtExpression(walk(base), walk(index))
     case multi: MultilineExpression => walk(multi)
-    case ListCopyExpression(expr) =>
-      ListCopyExpression(walk(expr))
+    case WasmVariantExpression(name, args) =>
+      WasmVariantExpression(walk(name), walkList(args, walk))
+    case BufferCopyExpression(expr) =>
+      BufferCopyExpression(walk(expr))
     case NewObjectExpression(interface) =>
       NewObjectExpression(walk(interface))
     case NewPromiseExpression() =>
       NewPromiseExpression()
-    case WasmVariantExpression(name, args) =>
-      WasmVariantExpression(walk(name), walkList(args, walk))
     case yet: YetExpression =>
       walk(yet)
   }
@@ -362,6 +363,7 @@ trait Walker extends BasicWalker {
     case ActiveFunctionObject()     => ActiveFunctionObject()
     case propRef: PropertyReference => walk(propRef)
     case AgentRecord()              => AgentRecord()
+    case WasmStoreReference()       => WasmStoreReference()
   }
 
   def walk(x: Variable): Variable = Variable(x.name)

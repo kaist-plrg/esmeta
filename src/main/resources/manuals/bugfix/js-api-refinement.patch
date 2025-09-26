@@ -1,5 +1,5 @@
 diff --git a/document/js-api/index.bs b/document/js-api/index.bs
-index c00cadee..0a29c6a8 100644
+index c00cadee..99410029 100644
 --- a/document/js-api/index.bs
 +++ b/document/js-api/index.bs
 @@ -311,7 +311,8 @@ Note:
@@ -37,7 +37,20 @@ index c00cadee..0a29c6a8 100644
  </div>
  
  <div algorithm>
-@@ -403,10 +404,7 @@ A {{Module}} object represents a single WebAssembly module. Each {{Module}} obje
+@@ -360,9 +361,10 @@ A {{Module}} object represents a single WebAssembly module. Each {{Module}} obje
+ 
+ <div algorithm="read-the-imports">
+   To <dfn>read the imports</dfn> from a WebAssembly module |module| from imports object |importObject|, perform the following steps:
+-    1. If |module|.[=imports=] [=list/is empty|is not empty=], and |importObject| is undefined, throw a {{TypeError}} exception.
++    1. Let |tuples| be [=module_imports=](|module|).
++    1. If |tuples| [=list/is empty|is not empty=], and |importObject| is undefined, throw a {{TypeError}} exception.
+     1. Let |imports| be « ».
+-    1. [=list/iterate|For each=] (|moduleName|, |componentName|, |externtype|) of [=module_imports=](|module|),
++    1. [=list/iterate|For each=] (|moduleName|, |componentName|, |externtype|) of |tuples|,
+         1. Let |o| be [=?=] [$Get$](|importObject|, |moduleName|).
+         1. If |o| [=is not an Object=], throw a {{TypeError}} exception.
+         1. Let |v| be [=?=] [$Get$](|o|, |componentName|).
+@@ -403,15 +405,12 @@ A {{Module}} object represents a single WebAssembly module. Each {{Module}} obje
              1. Let |externtable| be the [=external value=] [=external value|table=] |tableaddr|.
              1. [=list/Append=] |externtable| to |imports|.
      1. Return |imports|.
@@ -49,7 +62,30 @@ index c00cadee..0a29c6a8 100644
  </div>
  
  <div algorithm>
-@@ -469,15 +467,14 @@ The verification of WebAssembly type requirements is deferred to the
+   To <dfn>create an exports object</dfn> from a WebAssembly module |module| and instance |instance|, perform the following steps:
+-    1. Let |exportsObject| be [=!=] [$OrdinaryObjectCreate$](null).
++    1. Let |exportsObject| be [$OrdinaryObjectCreate$](null).
+     1. [=list/iterate|For each=] (|name|, |externtype|) of [=module_exports=](|module|),
+         1. Let |externval| be [=instance_export=](|instance|, |name|).
+         1. Assert: |externval| is not [=error=].
+@@ -439,7 +438,7 @@ The verification of WebAssembly type requirements is deferred to the
+         1. Assert: |status| is true.
+ 
+         Note: the validity and uniqueness checks performed during [=WebAssembly module validation=] ensure that each property name is valid and no properties are defined twice.
+-    1. Perform [=!=] [$SetIntegrityLevel$](|exportsObject|, `"frozen"`).
++    1. Perform [=!=] [$SetIntegrityLevel$](|exportsObject|, ~frozen~).
+     1. Return |exportsObject|.
+ </div>
+ 
+@@ -449,6 +448,7 @@ The verification of WebAssembly type requirements is deferred to the
+     1. [=Create an exports object=] from |module| and |instance| and let |exportsObject| be the result.
+     1. Set |instanceObject|.\[[Instance]] to |instance|.
+     1. Set |instanceObject|.\[[Exports]] to |exportsObject|.
++    1. Return ~unused~.
+ </div>
+ 
+ <div algorithm>
+@@ -469,17 +469,16 @@ The verification of WebAssembly type requirements is deferred to the
      1. Let |promise| be [=a new promise=].
      1. Let |module| be |moduleObject|.\[[Module]].
      1. [=Read the imports=] of |module| with imports |importObject|, and let |imports| be the result.
@@ -65,9 +101,12 @@ index c00cadee..0a29c6a8 100644
              1.  [=initialize an instance object|Initialize=] |instanceObject| from |module| and |instance|.
 -                If this throws an exception, catch it, [=reject=] |promise| with the exception, and terminate these substeps.
              1. [=Resolve=] |promise| with |instanceObject|.
-     1. Return |promise|.
+-    1. Return |promise|.
++    1. Return |promise|.[[Promise]].
  </div>
-@@ -488,7 +485,7 @@ The verification of WebAssembly type requirements is deferred to the
+ 
+ <div algorithm>
+@@ -488,7 +487,7 @@ The verification of WebAssembly type requirements is deferred to the
      1. Let |promise| be [=a new promise=].
      1. [=Upon fulfillment=] of |promiseOfModule| with value |module|:
          1. [=asynchronously instantiate a WebAssembly module|Instantiate the WebAssembly module=] |module| importing |importObject|, and let |innerPromise| be the result.
@@ -76,7 +115,7 @@ index c00cadee..0a29c6a8 100644
              1. Let |result| be the {{WebAssemblyInstantiatedSource}} value «[ "{{WebAssemblyInstantiatedSource/module}}" → |module|, "{{WebAssemblyInstantiatedSource/instance}}" → |instance| ]».
              1. [=Resolve=] |promise| with |result|.
          1. [=Upon rejection=] of |innerPromise| with reason |reason|:
-@@ -545,10 +542,10 @@ interface Module {
+@@ -545,10 +544,10 @@ interface Module {
  
  <div algorithm>
    The <dfn>string value of the extern type</dfn> |type| is
@@ -91,7 +130,16 @@ index c00cadee..0a29c6a8 100644
  </div>
  
  <div algorithm>
-@@ -1167,79 +1164,79 @@ Note: Exported Functions do not have a \[[Construct]] method and thus it is not
+@@ -885,7 +884,7 @@ Each {{Table}} object has a \[[Table]] internal slot, which is a [=table address
+     1. Let |result| be [=table_grow=](|store|, |tableaddr|, |delta|, |ref|).
+     1. If |result| is [=error=], throw a {{RangeError}} exception.
+ 
+-        Note: The above exception can happen due to either insufficient memory or an invalid size parameter.
++    Note: The above exception can happen due to either insufficient memory or an invalid size parameter.
+ 
+     1. Set the [=surrounding agent=]'s [=associated store=] to |result|.
+     1. Return |initialSize|.
+@@ -1167,79 +1166,79 @@ Note: Exported Functions do not have a \[[Construct]] method and thus it is not
  <div algorithm>
  The algorithm <dfn>ToJSValue</dfn>(|w|) coerces a [=WebAssembly value=] to a JavaScript value by performing the following steps:
  
@@ -231,7 +279,7 @@ index c00cadee..0a29c6a8 100644
  
  </div>
  
-@@ -1250,10 +1247,10 @@ WebAssembly defines the following Error classes: <dfn exception>CompileError</df
+@@ -1250,10 +1249,10 @@ WebAssembly defines the following Error classes: <dfn exception>CompileError</df
  <div algorithm="create the WebAssembly namespace object">
  When the [=namespace object=] for the {{WebAssembly}} namespace is [=create a namespace object|created=], the following steps must be run:
  

@@ -710,6 +710,22 @@ WebAssembly.Module.prototype = OrdinaryObject [
   %Symbol.toStringTag%: [FFT] "WebAssembly.Module";
 }
 
+WebAssembly.Instance = BuiltinFunctionObject [
+  Extensible: true;
+  Construct: clo<Record[BuiltinFunctionObject].Construct>;
+] {
+  length: [FFT] 1.0f;
+  name: [FFT] "Instance";
+  prototype: [FFF] #INTRINSICS.WebAssembly.Instance.prototype;
+}
+
+WebAssembly.Instance.prototype = OrdinaryObject [
+  Extensible: true;
+  Prototype: #INTRINSICS.Object.prototype;
+] {
+  %Symbol.toStringTag%: [FFT] "WebAssembly.Instance";
+}
+
 // https://tc39.es/ecma262/#sec-json-object
 JSON = OrdinaryObject [
   Extensible: true;

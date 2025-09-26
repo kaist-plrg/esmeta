@@ -218,6 +218,11 @@ class Compiler(
   ): Unit = fb.withLang(step)(step match {
     case LetStep(x, expr) =>
       fb.addInst(ILet(compile(x), compile(fb, expr)))
+    case LetTupleStep(xs, expr) =>
+      val (tup, tupExpr) = fb.newTIdWithExpr
+      fb.addInst(IAssign(tup, compile(fb, expr)))
+      for ((x, i) <- xs.zipWithIndex)
+        fb.addInst(ILet(compile(x), toStrERef(tup, s"_$i")))
     case SetStep(ref, expr) =>
       fb.addInst(IAssign(compile(fb, ref), compile(fb, expr)))
     case SetAsStep(ref, verb, id) =>
@@ -655,6 +660,7 @@ class Compiler(
       case ActiveFunctionObject()    => toStrRef(GLOBAL_CONTEXT, "Function")
       case ref: PropertyReference    => compile(fb, ref)
       case AgentRecord()             => GLOBAL_AGENT_RECORD
+      case WasmStoreReference()      => GLOBAL_WASM_STORE
     })
 
   def compile(fb: FuncBuilder, ref: PropertyReference): Field =
@@ -802,16 +808,7 @@ class Compiler(
         ERecord("variant", ("constructor" -> EStr(name)) :: fields)
       case NewPromiseExpression() =>
         val (x, xExpr) = fb.newTIdWithExpr
-        fb.addInst(
-          IAssign(
-            x,
-            toStrERef(
-              currentRealm,
-              "Intrinsics",
-              "%Promise%"
-            )
-          )
-        )
+        fb.addInst(IAssign(x, toStrERef(currentIntrinsics,"%Promise%")))
         val f = EClo("NewPromiseCapability", Nil)
         val (y, yExpr) = fb.newTIdWithExpr
         fb.addInst(ICall(y, f, List(xExpr)))

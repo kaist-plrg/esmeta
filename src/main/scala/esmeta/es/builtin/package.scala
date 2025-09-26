@@ -44,6 +44,8 @@ val SYMBOL_TYPE = "Symbol"
 val NUMBER_TYPE = "Number"
 val BIGINT_TYPE = "BigInt"
 val OBJECT_TYPE = "Object"
+val WASM_STORE = "WASM_STORE"
+val WASM_SECTION_INIT = "WASM_SECTION_INIT"
 
 /** not yet supported objects */
 val yets: Map[String, ValueTy] =

@@ -250,7 +250,10 @@ class Interpreter(
   val embeddingFuncs =
     List(
       "module_decode",
-      "module_validate"
+      "module_validate",
+      "module_imports",
+      "module_exports",
+      "module_instantiate",
     )
 
   /** transition for calls */

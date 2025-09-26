@@ -56,3 +56,9 @@ case class NonterminalProperty(name: String) extends Property
 // -----------------------------------------------------------------------------
 case class Intrinsic(base: String, props: List[String]) extends Syntax
 object Intrinsic extends Parser.From(Parser.intr)
+
+// -----------------------------------------------------------------------------
+// WebAssembly JavaScript Interfaces
+// -----------------------------------------------------------------------------
+// Wasm store expressions
+case class WasmStoreReference() extends Reference

@@ -26,6 +26,7 @@ class CaseCollector extends UnitWalker {
     add(step match {
       case LetStep(x, expr) =>
         s"let {{ var }} be {{ expr }}."
+      case LetTupleStep(xs, expr) => ???
       case SetStep(x, expr) =>
         s"set {{ ref }} to {{ expr }}."
       case SetAsStep(x, verb, id) =>

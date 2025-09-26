@@ -50,6 +50,7 @@ trait UnitWalker extends BasicUnitWalker {
 
   def walk(step: Step): Unit = step match {
     case LetStep(x, expr)       => walk(x); walk(expr)
+    case LetTupleStep(xs, expr) => walkList(xs, walk); walk(expr)
     case SetStep(x, expr)       => walk(x); walk(expr)
     case SetAsStep(x, verb, id) => walk(x); walk(verb); walk(id)
     case SetEvaluationStateStep(base, func, args) =>
@@ -140,7 +141,7 @@ trait UnitWalker extends BasicUnitWalker {
       walkList(exprs, walk)
     case ListConcatExpression(exprs) =>
       walkList(exprs, walk)
-    case BufferCopyExpression(expr) =>
+    case ListCopyExpression(expr) =>
       walk(expr)
     case RecordExpression(ty, fields) =>
       walk(ty); walkList(fields, { case (f, e) => walk(f); walk(e) })
@@ -182,13 +183,13 @@ trait UnitWalker extends BasicUnitWalker {
       walk(base); walk(index)
     case multi: MultilineExpression =>
       walk(multi)
-    case ListCopyExpression(expr) =>
+    case WasmVariantExpression(name, args) =>
+      walk(name); walkList(args, walk)
+    case BufferCopyExpression(expr) =>
       walk(expr)
     case NewObjectExpression(interface) =>
       walk(interface)
     case NewPromiseExpression() =>
-    case WasmVariantExpression(name, args) =>
-      walk(name); walkList(args, walk)
     case yet: YetExpression =>
       walk(yet)
   }
@@ -300,6 +301,7 @@ trait UnitWalker extends BasicUnitWalker {
     case ActiveFunctionObject()     =>
     case propRef: PropertyReference => walk(propRef)
     case AgentRecord()              =>
+    case WasmStoreReference()       =>
   }
 
   def walk(x: Variable): Unit = {}

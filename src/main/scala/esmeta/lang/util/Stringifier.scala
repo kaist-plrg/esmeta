@@ -78,6 +78,10 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case LetStep(x, expr) =>
         given Rule[Expression] = endWithExprRule
         app >> First("let ") >> x >> " be " >> expr
+      case LetTupleStep(xs, expr) =>
+        given Rule[Expression] = endWithExprRule
+        given Rule[Iterable[Variable]] = iterableRule("(", ", ", ")")
+        app >> First("let ") >> xs >> " be " >> expr
       case SetStep(x, expr) =>
         given Rule[Expression] = endWithExprRule
         app >> First("set ") >> x >> " to " >> expr
@@ -850,6 +854,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> base >> prop
       case AgentRecord() =>
         app >> "the Agent Record of the surrounding agent"
+      case WasmStoreReference() =>
+        app >> "the [=surrounding agent=]'s [=associated store=]"
     }
   }
 

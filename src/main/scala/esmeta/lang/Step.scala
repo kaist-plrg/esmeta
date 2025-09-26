@@ -17,6 +17,10 @@ object Step extends Parser.From(Parser.step)
 // let steps
 case class LetStep(variable: Variable, expr: Expression) extends Step
 
+// TODO: let variant step
+// let tuple steps
+case class LetTupleStep(variable: List[Variable], expr: Expression) extends Step
+
 // set steps
 case class SetStep(ref: Reference, expr: Expression) extends Step
 

@@ -95,20 +95,20 @@ case class YetExpression(str: String, block: Option[Block]) extends Expression
 // -----------------------------------------------------------------------------
 sealed trait WjiExpression extends Expression
 
+// Wasm variant expressions
+case class WasmVariantExpression(
+  name: String,
+  args: List[Expression]
+) extends WjiExpression
+
+// new promise expressions
+case class NewPromiseExpression() extends WjiExpression
+
 // buffer copy expressions
 case class BufferCopyExpression(buffer: Expression) extends WjiExpression
 
 // new object expressions
 case class NewObjectExpression(interface: String) extends WjiExpression
-
-// new promise expressions
-case class NewPromiseExpression() extends WjiExpression
-
-// Wasm variant expression
-case class WasmVariantExpression(
-  name: String,
-  args: List[Expression]
-) extends WjiExpression
 
 // -----------------------------------------------------------------------------
 // metalanguage invocation expressions

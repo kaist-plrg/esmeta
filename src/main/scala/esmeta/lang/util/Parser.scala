@@ -55,6 +55,7 @@ trait Parsers extends IndentParsers {
   // ---------------------------------------------------------------------------
   given step: PL[Step] = {
     letStep |
+    letTupleStep |
     setStep |
     setAsStep |
     setEvalStateStep |
@@ -93,6 +94,11 @@ trait Parsers extends IndentParsers {
   // let steps
   lazy val letStep: PL[LetStep] =
     ("let" ~> variable <~ "be") ~ endWithExpr ^^ { case x ~ e => LetStep(x, e) }
+
+  // let tuple steps
+  lazy val letTupleStep: PL[LetTupleStep] =
+    ("let" ~> "(" ~> rep1sep(variable, ",") <~ ")" <~ "be") ~ endWithExpr
+    ^^ { case xs ~ e => LetTupleStep(xs, e) }
 
   // set steps
   lazy val setStep: PL[SetStep] =
@@ -218,11 +224,12 @@ trait Parsers extends IndentParsers {
     }
 
   def wjiLink[X](x: Parser[X]): Parser[X] =
-    ("[=/"|"[=") ~> x <~ opt("\\|[^=]*".r) <~ "=]"
+    ("[=/"|"[=") ~> x <~ opt("\\|[^=]*".r) <~ "=]" |
+    "[$" ~> x <~ "$]"
 
   def tuple[X](x: Parser[X]): Parser[List[X]] = "(" ~> repsep(x, ", ") <~ ")"
 
-  lazy val embeddingName: Parser[String] = "[a-z][a-z_]*".r
+  lazy val embeddingName: Parser[String] = "[a-zA-Z][a-zA-Z_]*".r
 
   lazy val wjiInvoke: PL[InvokeExpression] =
     wjiLink(embeddingName) ~ invokeArgs ^^ {
@@ -231,7 +238,7 @@ trait Parsers extends IndentParsers {
 
   lazy val forEachTupleStep: PL[ForEachTupleStep] =
     (wjiLink("list/iterate|For each") ~> tuple(variable) <~ "of") ~
-    (wjiInvoke <~ ",") ~ step ^^ {
+    (expr <~ ",") ~ step ^^ {
       case xs ~ e ~ s => ForEachTupleStep(xs, e, s)
     }
 
@@ -285,7 +292,9 @@ trait Parsers extends IndentParsers {
 
   // throw steps
   lazy val throwStep: PL[ThrowStep] =
-    lazy val errorName = "*" ~> word.filter(_.endsWith("Error")) <~ "*"
+    lazy val errorName =
+      "*" ~> word.filter(_.endsWith("Error")) <~ "*" |
+      "{{" ~> word.filter(_.endsWith("Error")) <~ "}}"
     "throw" ~ article ~> errorName <~ "exception" ~ end ^^ { ThrowStep(_) }
 
   // resume steps
@@ -356,14 +365,25 @@ trait Parsers extends IndentParsers {
     }
 
   lazy val wjiLinkStep: PL[WjiLinkStep] =
-    val ret = opt("and return the result") ^^ {
+    val varArgKeywords = "with" | "from" | "importing"
+    val and = opt(",") ~ "and"
+    val redundantExplanation =
+      rep(not(varArgKeywords | and | "let" | "store" | "return") ~ "[^\\|_]".r)
+    val firstArg =
+      opt("of") ~> variable <~ opt("as" ~ redundantExplanation)
+    val varArgs =
+      varArgKeywords ~> repsep(redundantExplanation ~> variable, "and")
+    val let =
+      and ~> (
+        "let" ~> variable <~ "be the result" |
+        "store the" ~ ("results" | "result") ~ "as" ~> variable
+      )
+    val retOpt = opt(and ~ "return the result") ^^ {
       case Some(_) => true
       case None    => false
     }
-    wjiLink("[^=\\|]*".r) ~ opt(opt("of") ~> variable) ~ opt(("with" |
-    "from" | "importing") ~> repsep("[^\\|_]*".r ~> variable, "and")) ~
-    opt(opt(",") ~ "and" ~> ("let" ~> variable <~ "be the result" |
-    "store the result as" ~> variable)) ~ ret <~ "."
+    wjiLink("[^=\\|]*".r) ~ opt(firstArg) ~ opt(varArgs) ~
+    opt(let) ~ retOpt <~ "."
     ^^ { case s ~ vOpt ~ vsOpt ~ lhsOpt ~ b =>
       val args =
         (vOpt.toList ++ vsOpt.toList.flatten).map(ReferenceExpression(_))
@@ -636,27 +656,29 @@ trait Parsers extends IndentParsers {
 
   // wji expressions
   lazy val wjiExpr: PL[WjiExpression] =
+    wasmVariantExpr |
     wjiLink("a new promise") ^^^ NewPromiseExpression() |
     bufferCopyExpr |
-    newObjectExpr |
-    wasmVariantExpr
+    newObjectExpr
 
-  lazy val bufferCopyExpr: PL[BufferCopyExpression] =
-    "a" ~ wjiLink("get a copy of the buffer source|" ~
-    "copy of the bytes held by the buffer")
-    ~> expr ^^ { BufferCopyExpression(_) }
-
-  lazy val newObjectExpr: PL[NewObjectExpression] =
-    "a" ~ wjiLink("new") ~ "{{" ~> word <~ "}}" ~ "object"
-    ^^ { NewObjectExpression(_) }
-
-  // wasm object literals
+  // wasm variant expressions
   lazy val wasmVariantExpr: PL[WasmVariantExpression] =
     val variantName =
       "error" // TODO
     wjiLink(variantName) ~ rep(expr) ^^ {
       case name ~ args => WasmVariantExpression(name, args)
     }
+
+  // buffer copy expressions
+  lazy val bufferCopyExpr: PL[BufferCopyExpression] =
+    "a" ~ wjiLink("get a copy of the buffer source|" ~
+    "copy of the bytes held by the buffer")
+    ~> expr ^^ { BufferCopyExpression(_) }
+
+  // new object expressions
+  lazy val newObjectExpr: PL[NewObjectExpression] =
+    "a" ~ wjiLink("new") ~ "{{" ~> word <~ "}}" ~ opt("object")
+    ^^ { NewObjectExpression(_) }
 
   // literals
   // GetIdentifierReference uses 'the value'
@@ -685,10 +707,12 @@ trait Parsers extends IndentParsers {
     "*NaN*" ^^! NumberLiteral(Double.NaN) |
     "*" ~> double <~ "*<sub>𝔽</sub>" ^^ { NumberLiteral(_) } |
     "*" ~> bigInt <~ "*<sub>ℤ</sub>" ^^ { BigIntLiteral(_) } |
-    "*true*" ^^! TrueLiteral() |
-    "*false*" ^^! FalseLiteral() |
+    ("*true*" | "true") ^^! TrueLiteral() |
+    ("*false*" | "false") ^^! FalseLiteral() |
     "*undefined*" ^^! UndefinedLiteral() |
+    "undefined" ^^! UndefinedLiteral() |
     "*null*" ^^! NullLiteral() |
+    "null" ^^! NullLiteral() |
     "Undefined" ^^! UndefinedTypeLiteral() |
     "Null" ^^! NullTypeLiteral() |
     "Boolean" ^^! BooleanTypeLiteral() |
@@ -910,7 +934,7 @@ trait Parsers extends IndentParsers {
 
   // return-if-abrupt expressions
   lazy val returnIfAbruptExpr: PL[ReturnIfAbruptExpression] =
-    ("?" ^^^ true | "!" ^^^ false) ~ expr ^^ {
+    ("?" ^^^ true | ("!"|wjiLink("!")) ^^^ false) ~ expr ^^ {
       case c ~ e => ReturnIfAbruptExpression(e, c)
     }
 
@@ -1204,7 +1228,18 @@ trait Parsers extends IndentParsers {
     // PropertyDefinitionEvaluation
     // NOTE if JSON.parse is supported, then the next line should be handled properly
     "this |PropertyDefinition| is contained within a |Script| that is being evaluated for ParseJSON (see step <emu-xref href=\"#step-json-parse-eval\"></emu-xref> of ParseJSON)"
-  } ^^! getExprCond(FalseLiteral())
+  } ^^! {
+    getExprCond(FalseLiteral())
+  } | {
+    (expr <~ wjiLink("list/is empty|is not empty")) ~ (", and" ~> cond)
+  } ^^ {
+    case e ~ c =>
+      CompoundCondition(
+        PredicateCondition(e, true, PredicateConditionOperator.Empty),
+        CompoundConditionOperator.And,
+        c
+      )
+  }
 
   // not yet supported conditions
   def yetCond(post: String): PL[Condition] = ".+".r ^^ { str =>
@@ -1280,7 +1315,9 @@ trait Parsers extends IndentParsers {
   } ^^ { case b ~ f => PropertyReference(b, FieldProperty(f)) } | {
     // AgentSignifier or AgentCanSuspend
     "the Agent Record of the surrounding agent" ^^! AgentRecord()
-  }
+  } | {
+    "the" ~ wjiLink("surrounding agent") ~ "'s" ~ wjiLink("associated store")
+  } ^^^ WasmStoreReference()
 
   // ---------------------------------------------------------------------------
   // metalanguage properties
@@ -1437,8 +1474,8 @@ trait Parsers extends IndentParsers {
     "String" ~ opt("which is[^,]*".r) ^^^ StrT |
     "*undefined*" ^^^ UndefT |
     "*null*" ^^^ NullT |
-    "*false*" ^^^ FalseT |
-    "*true*" ^^^ TrueT |
+    ("*false*" | "false") ^^^ FalseT |
+    ("*true*" | "true") ^^^ TrueT |
     "integer" ^^^ IntT |
     "non-negative integer" ^^^ NonNegIntT |
     // TODO See https://tc39.es/ecma262/2024/#sec-typedarray-objects

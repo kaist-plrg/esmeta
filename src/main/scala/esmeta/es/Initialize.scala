@@ -71,6 +71,7 @@ class Initialize(cfg: CFG) {
     NUMBER_TYPE -> (Str("Number"), StrT("Number")),
     BIGINT_TYPE -> (Str("BigInt"), StrT("BigInt")),
     OBJECT_TYPE -> (Str("Object"), StrT("Object")),
+    WASM_STORE -> (NamedAddr(WASM_STORE), RecordT("store")),
   ).map { case (k, p) => Global(k) -> p }
 
   // initial heaps
@@ -99,6 +100,19 @@ class Initialize(cfg: CFG) {
       NamedAddr(EXECUTION_STACK) -> ListObj(),
       NamedAddr(JOB_QUEUE) -> ListObj(),
       NamedAddr(SYMBOL_REGISTRY) -> ListObj(),
+      NamedAddr(WASM_SECTION_INIT) -> ListObj(),
+      NamedAddr(WASM_STORE) -> recordObj("store")(
+        "TAGS" -> NamedAddr(WASM_SECTION_INIT),
+        "GLOBALS" -> NamedAddr(WASM_SECTION_INIT),
+        "MEMS" -> NamedAddr(WASM_SECTION_INIT),
+        "TABLES" -> NamedAddr(WASM_SECTION_INIT),
+        "FUNCS" -> NamedAddr(WASM_SECTION_INIT),
+        "DATAS" -> NamedAddr(WASM_SECTION_INIT),
+        "ELEMS" -> NamedAddr(WASM_SECTION_INIT),
+        "STRUCTS" -> NamedAddr(WASM_SECTION_INIT),
+        "ARRAYS" -> NamedAddr(WASM_SECTION_INIT),
+        "EXNS" -> NamedAddr(WASM_SECTION_INIT),
+      ),
     )
 
     // add symbols

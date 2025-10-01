@@ -661,6 +661,7 @@ class Compiler(
       case ref: PropertyReference    => compile(fb, ref)
       case AgentRecord()             => GLOBAL_AGENT_RECORD
       case WasmStoreReference()      => GLOBAL_WASM_STORE
+      case ThisReference()           => NAME_THIS
     })
 
   def compile(fb: FuncBuilder, ref: PropertyReference): Field =

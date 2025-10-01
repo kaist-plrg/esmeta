@@ -220,13 +220,14 @@ class Interpreter(
     }
 
   def interop(lhs: Local, name: String, args: List[Value]): Unit =
+    val debug = false
     // run shell
     import scala.sys.process._
     val spectecBinary = "/Users/gingerbread/plrg/spectec/spectec/spectec"
     val specPath = "/Users/gingerbread/plrg/spectec/specification/wasm-3.0/*"
     val jsonArgs = args.map(value2json).mkString("[", ",", "]")
     val json = s"{\"name\":\"$name\", \"args\":$jsonArgs}".replace("\"", "\\\"")
-    println(s"[SpecTec Invoke] $json")
+    if (debug) println(s"[SpecTec Invoke] $json")
     val command =
       Seq(
         "bash",
@@ -234,8 +235,8 @@ class Interpreter(
         s"$spectecBinary $specPath --embedding \"$json\""
       )
     val output = command.!!
-    println(s"[SpecTec Return] $output")
-    println
+    if (debug) println(s"[SpecTec Return] $output")
+    if (debug) println
 
     // parse json
     import io.circe._, io.circe.parser._

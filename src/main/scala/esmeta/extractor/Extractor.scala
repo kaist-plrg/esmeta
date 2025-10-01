@@ -166,11 +166,11 @@ class Extractor(
       if (attributes.hasKey("method")) {
         // TODO
         method += 1
-        extractWjiBuiltinHead(elem)
+        extractWjiBuiltinHead(elem, false)
       } else if (attributes.hasKey("constructor")) {
         // TODO
         constructor += 1
-        List()
+        extractWjiBuiltinHead(elem, true)
       } else if (attributes.hasKey("attribute")) {
         // TODO
         attribute += 1
@@ -246,16 +246,18 @@ class Extractor(
 
   private def extractWjiBuiltinHead(
     elem: Element,
+    isConstructor: Boolean
   ): List[BuiltinHead] =
     import BuiltinPath.*
     val dfn = elem.getElems("dfn").head
-    val methodFor = dfn.attr("for")
+    val target = dfn.attr("for")
     val (name, params) = parseBy(wjiBuiltinNameParams)(dfn.html.unescapeHtml)
+    val wasm = Base("WebAssembly")
     val base =
-      if (methodFor == "WebAssembly")
-        Base("WebAssembly")
+      if (target == "WebAssembly" || isConstructor)
+        wasm
       else
-        NormalAccess(Base("WebAssembly"), methodFor)
+        NormalAccess(wasm, target)
     val path = NormalAccess(base, name)
     List(BuiltinHead(path, params, UnknownType))
 

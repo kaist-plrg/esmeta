@@ -316,7 +316,7 @@ trait Parsers extends LangParsers {
   }.named("spec.BuiltinPath")
 
   lazy val wjiBuiltinNameParams: Parser[(String, List[Param])] =
-    "[a-z][a-zA-Z]*".r ~ ("(" ~> repsep(wjiParam, ",") <~ ")")
+    "[a-zA-Z]+".r ~ ("(" ~> repsep(wjiParam, ",") <~ ")")
     ^^ { case name ~ params => (name, params) }
 
   // ---------------------------------------------------------------------------

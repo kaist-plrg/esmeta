@@ -1316,6 +1316,12 @@ trait Parsers extends IndentParsers {
     // AgentSignifier or AgentCanSuspend
     "the Agent Record of the surrounding agent" ^^! AgentRecord()
   } | {
+    ref ~ ("." ~ opt("\\") ~ "[[" ~> word <~ "]]")
+  } ^^ {
+    case b ~ f => PropertyReference(b, FieldProperty(f))
+  } | {
+    "**this**" ^^^ ThisReference()
+  } | {
     "the" ~ wjiLink("surrounding agent") ~ "'s" ~ wjiLink("associated store")
   } ^^^ WasmStoreReference()
 

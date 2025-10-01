@@ -364,6 +364,7 @@ trait Walker extends BasicWalker {
     case propRef: PropertyReference => walk(propRef)
     case AgentRecord()              => AgentRecord()
     case WasmStoreReference()       => WasmStoreReference()
+    case ThisReference()            => ThisReference()
   }
 
   def walk(x: Variable): Variable = Variable(x.name)

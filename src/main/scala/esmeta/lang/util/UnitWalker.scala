@@ -302,6 +302,7 @@ trait UnitWalker extends BasicUnitWalker {
     case propRef: PropertyReference => walk(propRef)
     case AgentRecord()              =>
     case WasmStoreReference()       =>
+    case ThisReference()            =>
   }
 
   def walk(x: Variable): Unit = {}

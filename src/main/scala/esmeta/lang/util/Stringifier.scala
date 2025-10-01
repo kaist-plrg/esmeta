@@ -856,6 +856,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> "the Agent Record of the surrounding agent"
       case WasmStoreReference() =>
         app >> "the [=surrounding agent=]'s [=associated store=]"
+      case ThisReference() =>
+        app >> "**this**"
     }
   }
 

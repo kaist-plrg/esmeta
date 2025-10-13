@@ -247,19 +247,21 @@ class Extractor(
   private def extractWjiBuiltinHead(
     elem: Element,
     isConstructor: Boolean
-  ): List[BuiltinHead] =
+  ): List[AbstractOperationHead] =
     import BuiltinPath.*
     val dfn = elem.getElems("dfn").head
-    val target = dfn.attr("for")
     val (name, params) = parseBy(wjiBuiltinNameParams)(dfn.html.unescapeHtml)
-    val wasm = Base("WebAssembly")
-    val base =
-      if (target == "WebAssembly" || isConstructor)
-        wasm
-      else
-        NormalAccess(wasm, target)
-    val path = NormalAccess(base, name)
-    List(BuiltinHead(path, params, UnknownType))
+    // val target = dfn.attr("for")
+    // val wasm = Base("WebAssembly")
+    // val base =
+    //   if (target == "WebAssembly" || isConstructor)
+    //     wasm
+    //   else
+    //     NormalAccess(wasm, target)
+    // val path = NormalAccess(base, name)
+    // List(BuiltinHead(path, params, UnknownType))
+    val suffix = params.mkString("").replaceAll("__", "_")
+    List(AbstractOperationHead(false, s"$name$suffix", params, UnknownType))
 
   /** extracts tables */
   def extractTables: Map[String, Table] = (for {

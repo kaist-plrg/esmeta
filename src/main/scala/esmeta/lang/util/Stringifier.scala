@@ -388,6 +388,14 @@ class Stringifier(detail: Boolean, location: Boolean) {
         given Rule[List[Expression]] =
           iterableRule("", " ", "")
         app >> "[=" >> name >> "=]" >> args
+      case DictionaryExpression(fields) =>
+        given Rule[(String, Expression)] = {
+          case (app, (field, expr)) =>
+            app >> field >> " → " >> expr
+        }
+        given Rule[List[(String, Expression)]] =
+          iterableRule("«[ ", ", ", " ]»")
+        app >> fields
       case YetExpression(str, block) =>
         app >> str
         block.fold(app)(app >> _)

@@ -348,14 +348,14 @@ class Compiler(
       // XXX: hardcoded captured variables
       val captured =
         if (fb.algo.head.fname == "asynchronously instantiate a WebAssembly module")
-          List("promise", "module", "imports").map(Variable(_))
+          List("promise", "module", "imports").map(Name(_))
         else if (fb.algo.head.fname == "asynchronously compile a WebAssembly module")
-          List("promise", "bytes", "module").map(Variable(_))
+          List("promise", "bytes", "module").map(Name(_))
         else ??? // unreachable
       val f = EClo("HostEnqueuePromiseJob", Nil)
       val as =
         List(
-          EClo(cn, captured.map(compile)),
+          EClo(cn, captured),
           // XXX: not sure current realm is correct
           ERef(currentRealm)
         )
@@ -372,36 +372,51 @@ class Compiler(
       val (x, xExpr) = fb.newTIdWithExpr
       fb.addInst(ICall(x, f, as))
       fb.addInst(IExpr(returnIfAbrupt(fb, xExpr, false, false)))
-    case PromiseCallbackStep(x1, e1, step1, x2, e2, step2) =>
+    case PromiseCallbackStep(x1, param1, step1, x2, param2, step2) =>
       val algoName = fb.algo.head.fname
-      val cn1 = fb.nextCloName
-      val cloFB1 =
-        FuncBuilder(
-          spec,
-          FuncKind.Clo,
-          cn1,
-          Nil,
-          IRUnknownType,
-          fb.algo,
-          true
-        )
-      addFunc(fb = cloFB1, body = step1, prefix = Nil)
-      val cn2 = fb.nextCloName
-      val cloFB2 =
-        FuncBuilder(
-          spec,
-          FuncKind.Clo,
-          cn2,
-          Nil,
-          IRUnknownType,
-          fb.algo,
-          true
-        )
-      addFunc(fb = cloFB2, body = step2, prefix = Nil)
-      val as = List(EClo(cn1, Nil), EClo(cn2, Nil))
-      val f = EClo("PerformPromiseThen", Nil)
+      val toClo = (param: Variable, step: Step) => {
+        val cn = fb.nextCloName
+        val builtinFuncParams =
+          List(
+            IRParam(Name(THIS_STR), IRType(ESValueT)),
+            IRParam(Name(ARGS_LIST_STR), IRType(ListT(ESValueT))),
+            IRParam(Name(NEW_TARGET_STR), IRType(ConstructorT || UndefT)),
+          )
+        val cloFB =
+          FuncBuilder(
+            spec,
+            FuncKind.Clo,
+            cn,
+            builtinFuncParams,
+            IRUnknownType,
+            fb.algo,
+            true
+          )
+        val returnStep = ReturnStep(EnumLiteral("unused"))
+        val bodyWithReturn = step match {
+          case BlockStep(StepBlock(block)) =>
+            BlockStep(StepBlock(block :+ SubStep(None, returnStep)))
+          case step =>
+            BlockStep(StepBlock(List(SubStep(None, step), SubStep(None, returnStep))))
+        }
+        val prefix =
+          getBuiltinPrefix(cloFB,  List(Param(param.name, UnknownType)))
+        addFunc(cloFB, bodyWithReturn, prefix)
+        cn
+      }
+      val cn1 = toClo(param1, step1)
+      val cn2 = toClo(param2, step2)
+      // XXX: hardcoded captured variables
+      val captured = 
+        if (cn1 == "instantiate a promise of a module:clo0")
+          List("promise", "importObject").map(Name(_))
+        else if (cn1 == "instantiate a promise of a module:clo0:clo0")
+          List("promise", "importObject", "module").map(Name(_))
+        else ???
+      val as = List(ERef(compile(x1)), EClo(cn1, captured), EClo(cn2, captured))
+      val f2 = EClo("PromiseCallback", Nil)
       val (x, xExpr) = fb.newTIdWithExpr
-      fb.addInst(ICall(x, f, as))
+      fb.addInst(ICall(x, f2, as))
     case WjiLinkStep(name, args, vOpt, isRet) =>
       val as = args.map(compile(fb, _))
       val (x, xExpr) = fb.newTIdWithExpr
@@ -968,6 +983,25 @@ class Compiler(
         val f = EClo("create_new_object_implementing_the_interface", Nil)
         fb.addInst(ICall(x, f, List(interface)))
         xExpr
+      case DictionaryExpression(fields) =>
+        val objProto =
+          toEIntrinsic(currentIntrinsics, Intrinsic("Object", List("prototype")))
+        val (x, xExpr) = fb.newTIdWithExpr
+        val f1 = EClo("OrdinaryObjectCreate", Nil)
+        fb.addInst(ICall(x, f1, List(objProto)))
+
+        val pairs = fields.map {
+          case (s, e) =>
+            val (y, yExpr) = fb.newTIdWithExpr
+            val f2 = EClo("CreateDataProperty", Nil)
+            fb.addInst(ICall(y, f2, List(xExpr, EStr(s), compile(fb, e))))
+        }
+
+        xExpr
+        // val ordinaryObj = 
+        // val map = EMap((compile(UnknownType), compile(UnknownType)), pairs)
+        // val rec = ERecord("Object", List("Prototype" -> objProto, "Extensible" -> EBool(true), "__MAP__" -> map))
+        // rec
       case lit: Literal => compile(fb, lit)
     })
 

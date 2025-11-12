@@ -1,0 +1,12 @@
+def <BUILTIN>:INTRINSICS.WebAssembly.Module(
+  this: ESValue,
+  ArgumentsList: List[ESValue],
+  NewTarget: Record[Constructor] | Undefined,
+): Unknown = {
+  let __args__ = (record)
+  if (< 0 (sizeof ArgumentsList)) {
+    pop bytes < ArgumentsList
+    expand __args__.bytes
+  } else let bytes = undefined
+  call %0 = clo<"Module_bytes_">(bytes)
+}

@@ -110,6 +110,9 @@ case class BufferCopyExpression(buffer: Expression) extends WjiExpression
 // new object expressions
 case class NewObjectExpression(interface: String) extends WjiExpression
 
+// dictionary expressions
+case class DictionaryExpression(fields: List[(String, Expression)]) extends WjiExpression
+
 // -----------------------------------------------------------------------------
 // metalanguage invocation expressions
 // -----------------------------------------------------------------------------

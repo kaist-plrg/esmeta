@@ -241,6 +241,10 @@ trait Walker extends BasicWalker {
       NewObjectExpression(walk(interface))
     case NewPromiseExpression() =>
       NewPromiseExpression()
+    case DictionaryExpression(fields) =>
+      lazy val newFields =
+        walkList(fields, { case (s, e) => (s, walk(e)) })
+      DictionaryExpression(newFields)
     case yet: YetExpression =>
       walk(yet)
   }

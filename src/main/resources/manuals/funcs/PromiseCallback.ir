@@ -1,0 +1,16 @@
+def PromiseCallback(
+  promise: Unknown,
+  resolve: Unknown,
+  reject: Unknown,
+): Unknown = {
+  call %0 = clo<"CreateBuiltinFunction">(resolve, 1, "", (list []))
+  call %1 = clo<"CreateBuiltinFunction">(reject, 1, "", (list []))
+  %2 = @EXECUTION_STACK[0].Realm.Intrinsics["%Promise%"]
+  call %3 = clo<"NewPromiseCapability">(%2)
+  assert (? %3: Completion)
+  if (? %3: Abrupt) return %3
+  else %3 = %3.Value
+  %4 = promise
+  call %5 = clo<"PerformPromiseThen">(%4, %0, %1, %3)
+  return %3
+}

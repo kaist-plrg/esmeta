@@ -1,5 +1,5 @@
 diff --git a/document/js-api/index.bs b/document/js-api/index.bs
-index c00cadee..8065740b 100644
+index c00cadee..0fb44f0e 100644
 --- a/document/js-api/index.bs
 +++ b/document/js-api/index.bs
 @@ -311,7 +311,8 @@ Note:
@@ -106,7 +106,7 @@ index c00cadee..8065740b 100644
  </div>
  
  <div algorithm>
-@@ -488,7 +487,7 @@ The verification of WebAssembly type requirements is deferred to the
+@@ -488,14 +487,14 @@ The verification of WebAssembly type requirements is deferred to the
      1. Let |promise| be [=a new promise=].
      1. [=Upon fulfillment=] of |promiseOfModule| with value |module|:
          1. [=asynchronously instantiate a WebAssembly module|Instantiate the WebAssembly module=] |module| importing |importObject|, and let |innerPromise| be the result.
@@ -115,6 +115,14 @@ index c00cadee..8065740b 100644
              1. Let |result| be the {{WebAssemblyInstantiatedSource}} value «[ "{{WebAssemblyInstantiatedSource/module}}" → |module|, "{{WebAssemblyInstantiatedSource/instance}}" → |instance| ]».
              1. [=Resolve=] |promise| with |result|.
          1. [=Upon rejection=] of |innerPromise| with reason |reason|:
+             1. [=Reject=] |promise| with |reason|.
+     1. [=Upon rejection=] of |promiseOfModule| with reason |reason|:
+         1. [=Reject=] |promise| with |reason|.
+-    1. Return |promise|.
++    1. Return |promise|.[[Promise]].
+ </div>
+ 
+ <div algorithm>
 @@ -545,10 +544,10 @@ interface Module {
  
  <div algorithm>

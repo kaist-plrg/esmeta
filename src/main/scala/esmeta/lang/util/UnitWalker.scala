@@ -190,6 +190,8 @@ trait UnitWalker extends BasicUnitWalker {
     case NewObjectExpression(interface) =>
       walk(interface)
     case NewPromiseExpression() =>
+    case DictionaryExpression(fields) =>
+      walkList(fields, { case (_, e) => walk(e) })
     case yet: YetExpression =>
       walk(yet)
   }

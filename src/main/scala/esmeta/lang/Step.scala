@@ -200,10 +200,10 @@ case class PromiseSettleStep(
 // promise callback steps
 case class PromiseCallbackStep(
   promise1: Variable,
-  value1: Expression,
+  param1: Variable,
   fulfillmentStep: Step,
   promise2: Variable,
-  value2: Expression,
+  param2: Variable,
   rejectionStep: Step
 ) extends Step
 

@@ -356,10 +356,10 @@ trait Parsers extends IndentParsers {
       case v1 ~ v2 ~ s1 ~ v3 ~ v4 ~ s2 =>
         PromiseCallbackStep(
           v1,
-          ReferenceExpression(v2),
+          v2,
           s1,
           v3,
-          ReferenceExpression(v4),
+          v4,
           s2
         )
     }
@@ -659,7 +659,8 @@ trait Parsers extends IndentParsers {
     wasmVariantExpr |
     wjiLink("a new promise") ^^^ NewPromiseExpression() |
     bufferCopyExpr |
-    newObjectExpr
+    newObjectExpr |
+    dictionaryExpr
 
   // wasm variant expressions
   lazy val wasmVariantExpr: PL[WasmVariantExpression] =
@@ -679,6 +680,15 @@ trait Parsers extends IndentParsers {
   lazy val newObjectExpr: PL[NewObjectExpression] =
     "a" ~ wjiLink("new") ~ "{{" ~> word <~ "}}" ~ opt("object")
     ^^ { NewObjectExpression(_) }
+
+  lazy val dictionaryExpr: PL[DictionaryExpression] =
+    val field =
+      ("\"{{" ~ word ~ "/" ~> word <~ "}}\"") ~ ("→" ~> expr)
+      ^^ { case s1 ~ s2 => (s1, s2) }
+    opt("the" ~ "{{" ~ word ~ "}}" ~ "value") ~>
+    "«[" ~> repsep(field, ",") <~ "]»" ^^ {
+      case fields => DictionaryExpression(fields)
+    }
 
   // literals
   // GetIdentifierReference uses 'the value'

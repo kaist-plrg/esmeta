@@ -1,12 +1,16 @@
-def <BUILTIN>:INTRINSICS.WebAssembly.Module(
+def <BUILTIN>:INTRINSICS.WebAssembly.Instance(
   this: ESValue,
   ArgumentsList: List[ESValue],
   NewTarget: Record[Constructor] | Undefined,
 ): Unknown = {
   let __args__ = (record)
   if (< 0 (sizeof ArgumentsList)) {
-    pop bytes < ArgumentsList
-    expand __args__.bytes
-  } else let bytes = undefined
-  call %0 = clo<"Module_bytes_">(bytes)
+    pop module < ArgumentsList
+    expand __args__.module
+  } else let module = undefined
+  if (< 0 (sizeof ArgumentsList)) {
+    pop importObject < ArgumentsList
+    expand __args__.importObject
+  } else let importObject = undefined
+  call %0 = clo<"Instance_module_importObject_">(module, importObject)
 }

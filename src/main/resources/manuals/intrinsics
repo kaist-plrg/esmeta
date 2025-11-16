@@ -724,6 +724,10 @@ WebAssembly.Instance.prototype = OrdinaryObject [
   Prototype: #INTRINSICS.Object.prototype;
 ] {
   %Symbol.toStringTag%: [FFT] "WebAssembly.Instance";
+  exports: [TT] {
+    Get: #INTRINSICS.get:WebAssembly.Instance.prototype.exports;
+    Set: undefined;
+  };
 }
 
 // https://tc39.es/ecma262/#sec-json-object

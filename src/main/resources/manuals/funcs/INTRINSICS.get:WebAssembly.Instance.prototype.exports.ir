@@ -1,0 +1,8 @@
+def <BUILTIN>:INTRINSICS.get:WebAssembly.Instance.prototype.exports(
+  this: ESValue,
+  ArgumentsList: List[ESValue],
+  NewTarget: Record[Constructor] | Undefined,
+): Unknown = {
+  call %0 = clo<"NormalCompletion">(this.Exports)
+  return %0
+}

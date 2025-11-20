@@ -692,6 +692,7 @@ WebAssembly = OrdinaryObject [
 ] {
   CompileError: [TFT] #INTRINSICS.CompileError;
   %Symbol.toStringTag%: [FFT] "WebAssembly";
+  Module: [TFT] #INTRINSICS.WebAssembly.Module;
 }
 
 WebAssembly.Module = BuiltinFunctionObject [
@@ -708,6 +709,7 @@ WebAssembly.Module.prototype = OrdinaryObject [
   Prototype: #INTRINSICS.Object.prototype;
 ] {
   %Symbol.toStringTag%: [FFT] "WebAssembly.Module";
+  constructor: [TFT] #INTRINSICS.WebAssembly.Module;
 }
 
 WebAssembly.Instance = BuiltinFunctionObject [

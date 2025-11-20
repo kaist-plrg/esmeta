@@ -164,11 +164,9 @@ class Extractor(
       val dfn = dfns(0)
       val attributes = dfn.attributes()
       if (attributes.hasKey("method")) {
-        // TODO
         method += 1
         extractWjiBuiltinHead(elem, false)
       } else if (attributes.hasKey("constructor")) {
-        // TODO
         constructor += 1
         extractWjiBuiltinHead(elem, true)
       } else if (attributes.hasKey("attribute")) {
@@ -261,7 +259,7 @@ class Extractor(
     // val path = NormalAccess(base, name)
     // List(BuiltinHead(path, params, UnknownType))
     val suffix = params.mkString("").replaceAll("__", "_")
-    List(AbstractOperationHead(false, s"$name$suffix", params, UnknownType))
+    List(AbstractOperationHead(false, s"$name$suffix", Param("this", UnknownType) +: params, UnknownType))
 
   /** extracts tables */
   def extractTables: Map[String, Table] = (for {

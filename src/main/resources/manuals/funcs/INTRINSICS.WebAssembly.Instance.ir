@@ -12,5 +12,7 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Instance(
     pop importObject < ArgumentsList
     expand __args__.importObject
   } else let importObject = undefined
-  call %0 = clo<"Instance_module_importObject_">(module, importObject)
+  call %0 = clo<"Instance_module_importObject_">(this, module, importObject)
+  call %1 = clo<"NormalCompletion">(this)
+  return %1
 }

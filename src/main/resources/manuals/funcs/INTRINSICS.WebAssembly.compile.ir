@@ -8,28 +8,23 @@ def <BUILTIN>:INTRINSICS.WebAssembly.compile(
     pop bytes < ArgumentsList
     expand __args__.bytes
   } else let bytes = undefined
-  %0 = @EXECUTION_STACK[0].Realm.Intrinsics["%Promise%"]
-  call %1 = clo<"NewPromiseCapability">(%0)
-  assert (? %1: Completion)
-  if (? %1: Abrupt) return %1
-  else %1 = %1.Value
-  let promise = %1
-  call %2 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-  call %3 = clo<"Call">(promise.Reject, undefined, (list [%2]))
-  assert (? %3: Normal)
-  let reject = promise.Promise
-  call %4 = clo<"NormalCompletion">(reject)
-  if (!(= (typeof bytes) @Object)) return %4
-  if (!(exists bytes.ViewedArrayBuffer)) {
-    call %5 = clo<"RequireInternalSlot">(bytes, "ArrayBufferData")
-    assert (? %5: Completion)
-    if (? %5: Abrupt) return %4
-    call %6 = clo<"IsSharedArrayBuffer">(bytes)
-    call %7 = clo<"IsDetachedBuffer">(bytes)
-    if (|| (= %6 true) (= %7 true)) return %4
+  call %0 = clo<"IsBufferSource">(bytes)
+  if (= %0 false) {
+    %1 = @EXECUTION_STACK[0].Realm.Intrinsics["%Promise%"]
+    call %2 = clo<"NewPromiseCapability">(%1)
+    assert (? %2: Completion)
+    if (? %2: Abrupt) return %2
+    else %2 = %2.Value
+    let promise = %2
+    call %3 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
+    call %4 = clo<"Call">(promise.Reject, undefined, (list [%3]))
+    assert (? %4: Normal)
+    let reject = promise.Promise
+    call %5 = clo<"NormalCompletion">(reject)
+    return %5
   }
-  call %8 = clo<"compile_bytes_">(bytes)
-  if (? %8: Completion) return %8
-  call %9 = clo<"NormalCompletion">(%8)
-  return %9
+  call %6 = clo<"compile_bytes_">(this, bytes)
+  if (? %6: Completion) return %6
+  call %7 = clo<"NormalCompletion">(%6)
+  return %7
 }

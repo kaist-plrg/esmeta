@@ -30,7 +30,7 @@ def <BUILTIN>:INTRINSICS.WebAssembly.instantiate(
   }
   if (&& (exists arg.Module) (exists arg.Bytes)) {
     print "instantiate_moduleObject_importObject_"
-    call %5 = clo<"instantiate_moduleObject_importObject_">(arg, importObject)
+    call %5 = clo<"instantiate_moduleObject_importObject_">(this, arg, importObject)
     if (? %5: Completion) return %5
     call %6 = clo<"NormalCompletion">(%5)
     return %6
@@ -51,7 +51,7 @@ def <BUILTIN>:INTRINSICS.WebAssembly.instantiate(
     }
   }
   print "instantiate_bytes_importObject_"
-  call %10 = clo<"instantiate_bytes_importObject_">(arg, importObject)
+  call %10 = clo<"instantiate_bytes_importObject_">(this, arg, importObject)
   if (? %10: Completion) return %10
   call %11 = clo<"NormalCompletion">(%10)
   return %11

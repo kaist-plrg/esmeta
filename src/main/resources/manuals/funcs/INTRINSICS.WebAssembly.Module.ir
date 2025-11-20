@@ -8,5 +8,13 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Module(
     pop bytes < ArgumentsList
     expand __args__.bytes
   } else let bytes = undefined
-  call %0 = clo<"Module_bytes_">(bytes)
+  call %0 = clo<"IsBufferSource">(bytes)
+  if (= %0 false) {
+    call %1 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
+    call %2 = clo<"ThrowCompletion">(%1)
+    return %2
+  }
+  call %3 = clo<"Module_bytes_">(this, bytes)
+  call %4 = clo<"NormalCompletion">(this)
+  return %4
 }

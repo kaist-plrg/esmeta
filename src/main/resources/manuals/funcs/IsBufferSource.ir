@@ -1,0 +1,14 @@
+def IsBufferSource(
+  x: Unknown
+): Unknown = {
+  if (!(= (typeof x) @Object)) return false
+  if (!(exists x.ViewedArrayBuffer)) {
+    call %5 = clo<"RequireInternalSlot">(x, "ArrayBufferData")
+    assert (? %5: Completion)
+    if (? %5: Abrupt) return false
+    call %6 = clo<"IsSharedArrayBuffer">(x)
+    call %7 = clo<"IsDetachedBuffer">(x)
+    if (|| (= %6 true) (= %7 true)) return false
+  }
+  return true
+}

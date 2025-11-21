@@ -370,7 +370,7 @@ trait Parsers extends IndentParsers {
     val redundantExplanation =
       rep(not(varArgKeywords | and | "let" | "store" | "return") ~ "[^\\|_]".r)
     val firstArg =
-      opt("of") ~> variable <~ opt("as" ~ redundantExplanation)
+      opt("of") ~> ref <~ opt("as" ~ redundantExplanation)
     val varArgs =
       varArgKeywords ~> repsep(redundantExplanation ~> variable, "and")
     val let =

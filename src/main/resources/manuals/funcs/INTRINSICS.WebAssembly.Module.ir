@@ -9,14 +9,14 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Module(
     expand __args__.bytes
   } else let bytes = undefined
   call %0 = clo<"IsBufferSource">(bytes)
-  if (|| (= %0 false) (= NewTarget undefined)) {
-    call %1 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-    call %2 = clo<"ThrowCompletion">(%1)
-    return %2
+  if (&& (= %0 true) (!(= NewTarget undefined))) {
+    call %1 = clo<"create_new_object_implementing_the_interface">(NewTarget)
+    call %2 = clo<"Module_bytes_">(%1, bytes)
+    if (? %2: Completion) return %2
+    call %3 = clo<"NormalCompletion">(%1)
+    return %3
   }
-  call %3 = clo<"create_new_object_implementing_the_interface">(NewTarget)
-  call %4 = clo<"Module_bytes_">(%3, bytes)
-  if (? %4: Completion) return %4
-  call %5 = clo<"NormalCompletion">(%3)
+  call %4 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
+  call %5 = clo<"ThrowCompletion">(%4)
   return %5
 }

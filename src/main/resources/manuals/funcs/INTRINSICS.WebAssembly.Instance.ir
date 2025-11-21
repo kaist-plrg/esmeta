@@ -12,7 +12,15 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Instance(
     pop importObject < ArgumentsList
     expand __args__.importObject
   } else let importObject = undefined
-  call %0 = clo<"Instance_module_importObject_">(this, module, importObject)
-  call %1 = clo<"NormalCompletion">(this)
-  return %1
+  call %0 = clo<"IsModule">(module)
+  if (&& (= %0 true) (!(= NewTarget undefined))) {
+    call %1 = clo<"create_new_object_implementing_the_interface">(NewTarget)
+    call %2 = clo<"Instance_module_importObject_">(%1, module, importObject)
+    if (? %2: Completion) return %2
+    call %3 = clo<"NormalCompletion">(%1)
+    return %3
+  }
+  call %4 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
+  call %5 = clo<"ThrowCompletion">(%4)
+  return %5
 }

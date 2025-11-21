@@ -1,0 +1,21 @@
+def <BUILTIN>:INTRINSICS.WebAssembly.validate(
+  this: ESValue,
+  ArgumentsList: List[ESValue],
+  NewTarget: Record[Constructor] | Undefined,
+): Unknown = {
+  let __args__ = (record)
+  if (< 0 (sizeof ArgumentsList)) {
+    pop bytes < ArgumentsList
+    expand __args__.bytes
+  } else let bytes = undefined
+  call %0 = clo<"IsBufferSource">(bytes)
+  if (= %0 false) {
+    call %1 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
+    call %2 = clo<"ThrowCompletion">(%1)
+    return %2
+  }
+  call %3 = clo<"validate_bytes_">(this, bytes)
+  if (? %3: Completion) return %3
+  call %4 = clo<"NormalCompletion">(%3)
+  return %4
+}

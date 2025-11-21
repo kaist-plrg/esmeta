@@ -9,22 +9,22 @@ def <BUILTIN>:INTRINSICS.WebAssembly.compile(
     expand __args__.bytes
   } else let bytes = undefined
   call %0 = clo<"IsBufferSource">(bytes)
-  if (= %0 false) {
-    %1 = @EXECUTION_STACK[0].Realm.Intrinsics["%Promise%"]
-    call %2 = clo<"NewPromiseCapability">(%1)
-    assert (? %2: Completion)
-    if (? %2: Abrupt) return %2
-    else %2 = %2.Value
-    let promise = %2
-    call %3 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-    call %4 = clo<"Call">(promise.Reject, undefined, (list [%3]))
-    assert (? %4: Normal)
-    let reject = promise.Promise
-    call %5 = clo<"NormalCompletion">(reject)
-    return %5
+  if (= %0 true) {
+    call %1 = clo<"compile_bytes_">(this, bytes)
+    if (? %1: Completion) return %1
+    call %2 = clo<"NormalCompletion">(%1)
+    return %2
   }
-  call %6 = clo<"compile_bytes_">(this, bytes)
-  if (? %6: Completion) return %6
-  call %7 = clo<"NormalCompletion">(%6)
+  %3 = @EXECUTION_STACK[0].Realm.Intrinsics["%Promise%"]
+  call %4 = clo<"NewPromiseCapability">(%3)
+  assert (? %4: Completion)
+  if (? %4: Abrupt) return %4
+  else %4 = %4.Value
+  let promise = %4
+  call %5 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
+  call %6 = clo<"Call">(promise.Reject, undefined, (list [%5]))
+  assert (? %6: Normal)
+  let reject = promise.Promise
+  call %7 = clo<"NormalCompletion">(reject)
   return %7
 }

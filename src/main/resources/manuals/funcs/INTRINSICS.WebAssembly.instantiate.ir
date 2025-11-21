@@ -12,47 +12,30 @@ def <BUILTIN>:INTRINSICS.WebAssembly.instantiate(
     pop importObject < ArgumentsList
     expand __args__.importObject
   } else let importObject = undefined
-  %0 = @EXECUTION_STACK[0].Realm.Intrinsics["%Promise%"]
-  call %1 = clo<"NewPromiseCapability">(%0)
-  assert (? %1: Completion)
-  if (? %1: Abrupt) return %1
-  else %1 = %1.Value
-  let promise = %1
-  call %2 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-  call %3 = clo<"Call">(promise.Reject, undefined, (list [%2]))
-  assert (? %3: Normal)
+  call %0 = clo<"IsBufferSource">(arg)
+  if (= %0 true) {
+    call %1 = clo<"instantiate_bytes_importObject_">(this, arg, importObject)
+    if (? %1: Completion) return %1
+    call %2 = clo<"NormalCompletion">(%1)
+    return %2
+  }
+  call %3 = clo<"IsModule">(arg)
+  if (= %3 true) {
+    call %4 = clo<"instantiate_moduleObject_importObject_">(this, arg, importObject)
+    if (? %4: Completion) return %4
+    call %5 = clo<"NormalCompletion">(%4)
+    return %5
+  }
+  %6 = @EXECUTION_STACK[0].Realm.Intrinsics["%Promise%"]
+  call %7 = clo<"NewPromiseCapability">(%6)
+  assert (? %7: Completion)
+  if (? %7: Abrupt) return %7
+  else %7 = %7.Value
+  let promise = %7
+  call %8 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
+  call %9 = clo<"Call">(promise.Reject, undefined, (list [%8]))
+  assert (? %9: Normal)
   let reject = promise.Promise
-  call %4 = clo<"NormalCompletion">(reject)
-  if (!(= (typeof arg) @Object)) {
-    print "not even an object"
-    print arg
-    return %4
-  }
-  if (&& (exists arg.Module) (exists arg.Bytes)) {
-    print "instantiate_moduleObject_importObject_"
-    call %5 = clo<"instantiate_moduleObject_importObject_">(this, arg, importObject)
-    if (? %5: Completion) return %5
-    call %6 = clo<"NormalCompletion">(%5)
-    return %6
-  }
-  if (!(exists arg.ViewedArrayBuffer)) {
-      print "not ArrayBufferView"
-    call %7 = clo<"RequireInternalSlot">(arg, "ArrayBufferData")
-    assert (? %7: Completion)
-    if (? %7: Abrupt) {
-      print "not ArrayBuffer"
-      return %4
-    }
-    call %8 = clo<"IsSharedArrayBuffer">(arg)
-    call %9 = clo<"IsDetachedBuffer">(arg)
-    if (|| (= %8 true) (= %9 true)) {
-      print "not ArrayBuffer"
-      return %4
-    }
-  }
-  print "instantiate_bytes_importObject_"
-  call %10 = clo<"instantiate_bytes_importObject_">(this, arg, importObject)
-  if (? %10: Completion) return %10
-  call %11 = clo<"NormalCompletion">(%10)
-  return %11
+  call %10 = clo<"NormalCompletion">(reject)
+  return %10
 }

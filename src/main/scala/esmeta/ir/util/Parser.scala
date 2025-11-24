@@ -156,7 +156,9 @@ trait Parsers extends TyParsers {
       case e => ETypeOf(e)
     } | "(" ~ "instanceof" ~> expr ~ expr <~ ")" ^^ {
       case e ~ s => EInstanceOf(e, s)
-    } | "(" ~ "variant-pattern" ~> expr ~ word ~ rep(name) <~ ")" ^^ {
+    } | "(" ~ "variant" ~> word ~ rep(expr) <~ ")" ^^ {
+      case s ~ es => EVariant(s, es)
+    } | "(" ~ "variant-pattern" ~> expr ~ word ~ rep(expr) <~ ")" ^^ {
       case e ~ s ~ es => EVariantPatternMatch(e, s, es)
     } | "(" ~ "?" ~> expr ~ (":" ~> irType) <~ ")" ^^ {
       case e ~ t => ETypeCheck(e, t)

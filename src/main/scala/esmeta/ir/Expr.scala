@@ -26,10 +26,11 @@ case class EExists(ref: Ref) extends Expr
 case class ETypeOf(base: Expr) extends Expr
 case class EInstanceOf(base: Expr, target: Expr) extends Expr
 case class ETypeCheck(base: Expr, ty: Type) extends Expr
+case class EVariant(constructor: String, args: List[Expr]) extends Expr
 case class EVariantPatternMatch(
   expr: Expr,
   constructor: String,
-  patternNames: List[Name],
+  patterns: List[Expr],
 ) extends Expr
 case class ESizeOf(base: Expr) extends Expr
 case class EClo(fname: String, captured: List[Name]) extends Expr

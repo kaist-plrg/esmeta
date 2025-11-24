@@ -164,8 +164,11 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> "(typeof " >> base >> ")"
       case EInstanceOf(expr, target) =>
         app >> "(instanceof " >> expr >> " " >> target >> ")"
+      case EVariant(name, args) =>
+        given Rule[Iterable[Expr]] = iterableRule(sep = " ")
+        app >> "(variant " >> name >> " " >> args >> ")"
       case EVariantPatternMatch(expr, name, args) =>
-        given Rule[Iterable[Name]] = iterableRule(sep = " ")
+        given Rule[Iterable[Expr]] = iterableRule(sep = " ")
         app >> "(variant-pattern " >> expr >> " " >> name >> " " >> args >> ")"
       case ETypeCheck(expr, ty) =>
         app >> "(? " >> expr >> ": " >> ty >> ")"

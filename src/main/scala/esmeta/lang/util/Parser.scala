@@ -678,6 +678,9 @@ trait Parsers extends IndentParsers {
         case ref ~ kind => ref + kind
       }
     wjiVariantLink(variantName) ~ rep(expr) ^^ {
+      // TODO: Remove this hack
+      case "global" ~ args =>
+        WasmVariantExpression("global", List(WasmVariantExpression("", args)))
       case name ~ args => WasmVariantExpression(name, args)
     }
 

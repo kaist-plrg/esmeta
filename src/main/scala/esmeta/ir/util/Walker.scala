@@ -102,6 +102,8 @@ trait Walker extends BasicWalker {
       EInstanceOf(walk(expr), walk(target))
     case ETypeCheck(expr, ty) =>
       ETypeCheck(walk(expr), walk(ty))
+    case EVariant(name, args) =>
+      EVariant(walk(name), walkList(args, walk))
     case EVariantPatternMatch(expr, name, args) =>
       EVariantPatternMatch(walk(expr), walk(name), walkList(args, walk))
     case ESizeOf(expr) =>

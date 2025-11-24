@@ -422,18 +422,29 @@ class Interpreter(
         case _                                       => Bool(false)
     case ETypeCheck(expr, ty) =>
       Bool(ty.ty.contains(eval(expr), st))
-    case EVariantPatternMatch(expr, constructor, patternNames) =>
-      val record = eval(expr).asRecord(st)
-      val matched =
-        isVariant(record) &&
-        record.map.get("constructor").contains(Str(constructor)) &&
-        record.map.size - 1 == patternNames.size
-      if (matched) {
-        patternNames.zipWithIndex.map {
-          case (name, i) => st.define(name, record.map(s"_$i"))
-        }
+    case EVariant(constructor, args) =>
+      val map = args.zipWithIndex.map((e, i) => s"_$i" -> eval(e))
+      st.allocRecord("variant", ("constructor" -> Str(constructor)) +: map)
+    case EVariantPatternMatch(expr, constructor, patterns) =>
+      def patternMatch(pattern: Expr, v: Value): Boolean = pattern match {
+        // TODO: binding after match
+        case ERef(name: Var) =>
+          st.define(name, v)
+          true
+        case EVariant(name, patterns) =>
+          val record = v.asRecord(st)
+          val matched =
+            isVariant(record) &&
+            record.map.get("constructor").contains(Str(name)) &&
+            record.map.size - 1 == patterns.size
+          if (matched)
+            patterns.zipWithIndex.map(
+              (e, i) => patternMatch(e, record.map(s"_$i"))
+            )
+          matched
+        case _ => ???
       }
-      Bool(matched)
+      Bool(patternMatch(EVariant(constructor, patterns), eval(expr)))
     case ESizeOf(expr) =>
       Math(eval(expr) match
         case Str(s)        => s.length

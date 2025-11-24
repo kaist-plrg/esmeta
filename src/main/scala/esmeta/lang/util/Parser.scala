@@ -227,6 +227,9 @@ trait Parsers extends IndentParsers {
     ("[=/"|"[=") ~> x <~ opt("\\|[^=]*".r) <~ "=]" |
     "[$" ~> x <~ "$]"
 
+  def wjiVariantLink[X](x: Parser[X]): Parser[X] =
+    ("[=/"|"[=") ~ opt("[^|=]*\\|".r) ~> x <~ "=]"
+
   def wjiLinkOpt[X](x: Parser[X]): Parser[X] = wjiLink(x) | x
 
   def tuple[X](x: Parser[X]): Parser[List[X]] = "(" ~> repsep(x, ", ") <~ ")"
@@ -667,8 +670,14 @@ trait Parsers extends IndentParsers {
   // wasm variant expressions
   lazy val wasmVariantExpr: PL[WasmVariantExpression] =
     val variantName =
-      "error" // TODO
-    wjiLink(variantName) ~ rep(expr) ^^ {
+      "error" | "func" | "global" | "mem" | "table" |
+      ("i"|"f") ~ ("32"|"64") ~ ".const" ^^ {
+        case kind ~ bits ~ const => kind + bits + const
+      } |
+      "ref." ~ ("null" | "func" | "extern") ^^ {
+        case ref ~ kind => ref + kind
+      }
+    wjiVariantLink(variantName) ~ rep(expr) ^^ {
       case name ~ args => WasmVariantExpression(name, args)
     }
 
@@ -1294,9 +1303,15 @@ trait Parsers extends IndentParsers {
     }
 
   // variables
-  lazy val variable: PL[Variable] = ("_[^_]+_".r | "\\|[a-z][a-zA-Z]*\\|".r) ^^ {
+  lazy val variable: PL[Variable] =
+  {
+    "_[^_]+_".r |
+    "\\|[a-z][a-zA-Z0-9]*\\|".r
+  } ^^ {
     case s => Variable(s.substring(1, s.length - 1))
-  }
+  } | {
+    "<var ignore>" ~> "[a-z][a-zA-Z0-9]*".r <~ "</var>"
+  } ^^ { Variable(_) }
 
   // special reference
   lazy val specialRef: P[Reference] = {
@@ -1626,7 +1641,8 @@ trait Parsers extends IndentParsers {
   private def hasEither[T](p: Parser[T]): Parser[Boolean ~ List[T]] =
     either(hasNeg, p)
   private def isNeg: Parser[Boolean] =
-    "is not" ^^^ true | "is" ^^^ false
+    "is not" ~ opt("of the form")  ^^^ true |
+    "is" ~ opt("of the form") ^^^ false
   private def areNeg: Parser[Boolean] =
     ("are both not" | "are not") ^^^ true |
     ("are both" | "are") ^^^ false

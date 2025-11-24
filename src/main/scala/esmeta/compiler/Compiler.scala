@@ -1196,7 +1196,12 @@ class Compiler(
       case IsAreCondition(List(left), neg, List(WasmVariantExpression(constructor, args))) =>
         val patternNames = args.map {
           case ReferenceExpression(v: Variable) => compile(v)
-          case _ => ???
+          case WasmVariantExpression(name, args) =>
+            println(s"$name($args)")
+            ???
+          case e =>
+            println(e)
+            ???
         }
         val cond =
           EVariantPatternMatch(compile(fb, left), constructor, patternNames)

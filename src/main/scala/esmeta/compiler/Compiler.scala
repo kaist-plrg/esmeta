@@ -451,12 +451,7 @@ class Compiler(
                   toERef(
                     list,
                     iExpr,
-                    EMath(
-                      BigDecimal(
-                        tupleIndex,
-                        UNLIMITED
-                      )
-                    )
+                    EStr("_" + tupleIndex),
                   )
                 )
               )

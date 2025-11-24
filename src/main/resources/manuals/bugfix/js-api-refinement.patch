@@ -1,5 +1,5 @@
 diff --git a/document/js-api/index.bs b/document/js-api/index.bs
-index c00cadee..71fa7d6d 100644
+index c00cadee..947048d5 100644
 --- a/document/js-api/index.bs
 +++ b/document/js-api/index.bs
 @@ -311,7 +311,8 @@ Note:
@@ -85,12 +85,14 @@ index c00cadee..71fa7d6d 100644
  </div>
  
  <div algorithm>
-@@ -469,17 +469,16 @@ The verification of WebAssembly type requirements is deferred to the
+@@ -469,17 +469,18 @@ The verification of WebAssembly type requirements is deferred to the
      1. Let |promise| be [=a new promise=].
      1. Let |module| be |moduleObject|.\[[Module]].
      1. [=Read the imports=] of |module| with imports |importObject|, and let |imports| be the result.
 -        If this operation throws an exception, catch it, [=reject=] |promise| with the exception, and return |promise|.
-+    1. If |imports| is an abrupt completion, [=reject=] |promise| with the |imports|, and return |promise|.
++    1. If |imports| is an abrupt completion,
++        1. [=Reject=] |promise| with the |imports|.
++        1. Return |promise|.[[Promise]].
      1. Run the following steps [=in parallel=]:
          1. [=Queue a task=] to perform the following steps:
              Note: Implementation-specific work may be performed here.
@@ -106,7 +108,7 @@ index c00cadee..71fa7d6d 100644
  </div>
  
  <div algorithm>
-@@ -488,14 +487,14 @@ The verification of WebAssembly type requirements is deferred to the
+@@ -488,14 +489,14 @@ The verification of WebAssembly type requirements is deferred to the
      1. Let |promise| be [=a new promise=].
      1. [=Upon fulfillment=] of |promiseOfModule| with value |module|:
          1. [=asynchronously instantiate a WebAssembly module|Instantiate the WebAssembly module=] |module| importing |importObject|, and let |innerPromise| be the result.
@@ -123,7 +125,7 @@ index c00cadee..71fa7d6d 100644
  </div>
  
  <div algorithm>
-@@ -545,10 +544,10 @@ interface Module {
+@@ -545,10 +546,10 @@ interface Module {
  
  <div algorithm>
    The <dfn>string value of the extern type</dfn> |type| is
@@ -138,7 +140,7 @@ index c00cadee..71fa7d6d 100644
  </div>
  
  <div algorithm>
-@@ -593,8 +592,9 @@ interface Module {
+@@ -593,8 +594,9 @@ interface Module {
      1. If |module| is [=error=], throw a {{CompileError}} exception.
      1. Set **this**.\[[Module]] to |module|.
      1. Set **this**.\[[Bytes]] to |stableBytes|.
@@ -149,7 +151,7 @@ index c00cadee..71fa7d6d 100644
  </div>
  
  <h3 id="instances">Instances</h3>
-@@ -613,8 +613,9 @@ interface Instance {
+@@ -613,8 +615,9 @@ interface Instance {
      1. [=Read the imports=] of |module| with imports |importObject|, and let |imports| be the result.
      1. [=Instantiate the core of a WebAssembly module=] |module| with |imports|, and let |instance| be the result.
      1. [=initialize an instance object|Initialize=] **this** from |module| and |instance|.
@@ -160,7 +162,7 @@ index c00cadee..71fa7d6d 100644
  </div>
  
  <div algorithm>
-@@ -885,7 +886,7 @@ Each {{Table}} object has a \[[Table]] internal slot, which is a [=table address
+@@ -885,7 +888,7 @@ Each {{Table}} object has a \[[Table]] internal slot, which is a [=table address
      1. Let |result| be [=table_grow=](|store|, |tableaddr|, |delta|, |ref|).
      1. If |result| is [=error=], throw a {{RangeError}} exception.
  
@@ -169,7 +171,7 @@ index c00cadee..71fa7d6d 100644
  
      1. Set the [=surrounding agent=]'s [=associated store=] to |result|.
      1. Return |initialSize|.
-@@ -1167,79 +1168,79 @@ Note: Exported Functions do not have a \[[Construct]] method and thus it is not
+@@ -1167,79 +1170,79 @@ Note: Exported Functions do not have a \[[Construct]] method and thus it is not
  <div algorithm>
  The algorithm <dfn>ToJSValue</dfn>(|w|) coerces a [=WebAssembly value=] to a JavaScript value by performing the following steps:
  
@@ -309,7 +311,7 @@ index c00cadee..71fa7d6d 100644
  
  </div>
  
-@@ -1250,10 +1251,10 @@ WebAssembly defines the following Error classes: <dfn exception>CompileError</df
+@@ -1250,10 +1253,10 @@ WebAssembly defines the following Error classes: <dfn exception>CompileError</df
  <div algorithm="create the WebAssembly namespace object">
  When the [=namespace object=] for the {{WebAssembly}} namespace is [=create a namespace object|created=], the following steps must be run:
  

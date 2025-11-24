@@ -234,7 +234,7 @@ trait Parsers extends IndentParsers {
 
   def tuple[X](x: Parser[X]): Parser[List[X]] = "(" ~> repsep(x, ", ") <~ ")"
 
-  lazy val embeddingName: Parser[String] = "[a-zA-Z][a-zA-Z_]*".r
+  lazy val embeddingName: Parser[String] = "[a-zA-Z][a-zA-Z0-9_]*".r
 
   lazy val wjiInvoke: PL[InvokeExpression] =
     wjiLink(embeddingName) ~ invokeArgs ^^ {
@@ -671,16 +671,34 @@ trait Parsers extends IndentParsers {
   lazy val wasmVariantExpr: PL[WasmVariantExpression] =
     val variantName =
       "error" | "func" | "global" | "mem" | "table" |
-      ("i"|"f") ~ ("32"|"64") ~ ".const" ^^ {
-        case kind ~ bits ~ const => kind + bits + const
-      } |
-      "ref." ~ ("null" | "func" | "extern") ^^ {
+      {
+        ("i"|"f") ~ ("32"|"64") ~ opt(".const")
+      } ^^ {
+        case kind ~ bits ~ constOpt => kind + bits + constOpt.getOrElse("")
+      } | {
+        "v128" ~ opt(".const")
+      } ^^ {
+        case typ ~ constOpt => typ + constOpt.getOrElse("")
+      } | {
+        "ref." ~ ("null" | "func" | "extern")
+      } ^^ {
         case ref ~ kind => ref + kind
       }
     wjiVariantLink(variantName) ~ rep(expr) ^^ {
       // TODO: Remove this hack
-      case "global" ~ args =>
-        WasmVariantExpression("global", List(WasmVariantExpression("", args)))
+      case "global" ~ List(mut, valtype) =>
+        WasmVariantExpression(
+          "global",
+          List(
+            WasmVariantExpression(
+              "",
+              List(
+                mut,
+                valtype
+              )
+            )
+          )
+        )
       case name ~ args => WasmVariantExpression(name, args)
     }
 

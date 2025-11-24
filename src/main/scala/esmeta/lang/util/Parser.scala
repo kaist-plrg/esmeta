@@ -227,6 +227,8 @@ trait Parsers extends IndentParsers {
     ("[=/"|"[=") ~> x <~ opt("\\|[^=]*".r) <~ "=]" |
     "[$" ~> x <~ "$]"
 
+  def wjiLinkOpt[X](x: Parser[X]): Parser[X] = wjiLink(x) | x
+
   def tuple[X](x: Parser[X]): Parser[List[X]] = "(" ~> repsep(x, ", ") <~ ")"
 
   lazy val embeddingName: Parser[String] = "[a-zA-Z][a-zA-Z_]*".r
@@ -944,7 +946,7 @@ trait Parsers extends IndentParsers {
 
   // return-if-abrupt expressions
   lazy val returnIfAbruptExpr: PL[ReturnIfAbruptExpression] =
-    ("?" ^^^ true | ("!"|wjiLink("!")) ^^^ false) ~ expr ^^ {
+    (wjiLinkOpt("?") ^^^ true | wjiLinkOpt("!") ^^^ false) ~ expr ^^ {
       case c ~ e => ReturnIfAbruptExpression(e, c)
     }
 
@@ -1042,7 +1044,7 @@ trait Parsers extends IndentParsers {
 
   // type check conditions
   lazy val typeCheckCond: PL[TypeCheckCondition] =
-    expr ~ isEither(singleLangType) ^^ {
+    expr ~ wjiLinkOpt(isEither(singleLangType)) ^^ {
       case e ~ (n ~ t) => TypeCheckCondition(e, n, t)
     }
 

@@ -167,6 +167,7 @@ class Interpreter(
 
   /** interop */
   def json2value(json: io.circe.Json): Value =
+    import io.circe.JsonNumber
     // YoJson.Safe.`List
     if (json.isArray)
       val arr = json.asArray.get
@@ -184,6 +185,10 @@ class Interpreter(
       st.heap.allocRecord("", fs)
     else if (json.isString)
       Str(json.asString.get)
+    else if (json.isNumber) {
+      // TODO: float
+      Math(json.asNumber.get.toBigDecimal.get)
+    }
     else
       println(json)
       ???
@@ -214,6 +219,8 @@ class Interpreter(
         Json.fromDoubleOrNull(double)
       case Str(str) =>
         Json.fromString(str)
+      case Math(n) =>
+        Json.fromBigDecimal(n)
       case _ =>
         println(v)
         ???
@@ -245,7 +252,9 @@ class Interpreter(
         val v = json2value(json)
         st.define(lhs, v)
         st.context.moveNode
-      case Left(error) => ???
+      case Left(error) =>
+        println(error.message)
+        ???
     }
 
   val embeddingFuncs =

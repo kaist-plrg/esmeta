@@ -743,6 +743,12 @@ trait Parsers extends IndentParsers {
       case fields => DictionaryExpression(fields)
     }
 
+  // literals specialized for wji
+  lazy val wjiLiteral: PL[Literal] =
+    """"[^"]*"""".r ^^ { str =>
+      str.drop(1).dropRight(1).replace("\\*", "*").replace("\\\\", "\\")
+    } ^^ { StringLiteral(_) }
+
   // literals
   // GetIdentifierReference uses 'the value'
   lazy val literal: PL[Literal] = opt("the" ~ opt(langType) ~ "value") ~> (
@@ -783,7 +789,8 @@ trait Parsers extends IndentParsers {
     "Symbol" ^^! SymbolTypeLiteral() |
     "Number" ^^! NumberTypeLiteral() |
     "BigInt" ^^! BigIntTypeLiteral() |
-    "Object" ^^! ObjectTypeLiteral()
+    "Object" ^^! ObjectTypeLiteral() |
+    wjiLiteral
   )
 
   // field literal

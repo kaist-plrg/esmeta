@@ -129,7 +129,7 @@ trait Parsers extends IndentParsers {
 
   // append steps
   lazy val appendStep: PL[AppendStep] =
-    "append" ~> expr ~ ("to" ~ opt("the end of") ~> ref) <~ end
+   ("append"|wjiLink("list/Append")) ~> expr ~ ("to" ~ opt("the end of") ~> ref) <~ end
     ^^ { case e ~ r => AppendStep(e, r) }
 
   // prepend steps
@@ -227,10 +227,10 @@ trait Parsers extends IndentParsers {
     ("[=/"|"[=") ~> x <~ opt("\\|[^=]*".r) <~ "=]" |
     "[$" ~> x <~ "$]"
 
-  def wjiVariantLink[X](x: Parser[X]): Parser[X] =
+  def wjiLinkName[X](x: Parser[X]): Parser[X] =
     ("[=/"|"[=") ~ opt("[^|=]*\\|".r) ~> x <~ "=]"
 
-  def wjiLinkOpt[X](x: Parser[X]): Parser[X] = wjiLink(x) | x
+  def wjiLinkOpt[X](x: Parser[X]): Parser[X] = wjiLinkName(x) | x
 
   def tuple[X](x: Parser[X]): Parser[List[X]] = "(" ~> repsep(x, ", ") <~ ")"
 
@@ -388,7 +388,7 @@ trait Parsers extends IndentParsers {
       case None    => false
     }
     wjiLink("[^=\\|]*".r) ~ opt(firstArg) ~ opt(varArgs) ~
-    opt(let) ~ retOpt <~ "."
+    opt(let) ~ retOpt <~ end
     ^^ { case s ~ vOpt ~ vsOpt ~ lhsOpt ~ b =>
       val args =
         (vOpt.toList ++ vsOpt.toList.flatten).map(ReferenceExpression(_))
@@ -670,7 +670,7 @@ trait Parsers extends IndentParsers {
   // wasm variant expressions
   lazy val wasmVariantExpr: PL[WasmVariantExpression] =
     val variantName =
-      "error" | "func" | "global" | "mem" | "table" |
+      "error" | "func" | "global" | "mem" | "table" | "const" | "mut" |
       {
         ("i"|"f") ~ ("32"|"64") ~ opt(".const")
       } ^^ {
@@ -684,8 +684,25 @@ trait Parsers extends IndentParsers {
       } ^^ {
         case ref ~ kind => ref + kind
       }
-    wjiVariantLink(variantName) ~ rep(expr) ^^ {
+    wjiLinkName(variantName) ~ rep(expr) ^^ {
       // TODO: Remove this hack
+      case "const" ~ List(valtype) =>
+            WasmVariantExpression("", List(ListExpression(List()), valtype))
+      case "mut" ~ List(valtype) =>
+            WasmVariantExpression(
+              "",
+              List(
+                ListExpression(
+                  List(
+                    WasmVariantExpression(
+                      "MUT",
+                      List()
+                    )
+                  )
+                ),
+                valtype
+              )
+            )
       case "global" ~ List(mut, valtype) =>
         WasmVariantExpression(
           "global",
@@ -700,6 +717,10 @@ trait Parsers extends IndentParsers {
           )
         )
       case name ~ args => WasmVariantExpression(name, args)
+    } | {
+      "(" ~> rep1sep(expr, ",") <~ ")"
+    } ^^ {
+      case es => WasmVariantExpression("", es)
     }
 
   // buffer copy expressions

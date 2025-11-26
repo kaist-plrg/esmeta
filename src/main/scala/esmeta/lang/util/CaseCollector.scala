@@ -33,6 +33,7 @@ class CaseCollector extends UnitWalker {
         s"set {{ ref }} as $verb in <emu-xref href=\"#{{ str }}\"></emu-xref>."
       case SetEvaluationStateStep(context, func, args) =>
         s"set the code evaluation state of {{ ref }} such that when evaluation is resumed for that execution context, {{ var }} will be called {{ args }}."
+      case SetMapStep(x, idx, expr) => ???
       case PerformStep(expr) =>
         s"perform {{ expr }}."
       case InvokeShorthandStep(name, args) =>

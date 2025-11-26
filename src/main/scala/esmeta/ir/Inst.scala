@@ -16,6 +16,7 @@ sealed trait NormalInst extends Inst
 case class IExpr(expr: Expr) extends NormalInst
 case class ILet(lhs: Name, expr: Expr) extends NormalInst
 case class IAssign(ref: Ref, expr: Expr) extends NormalInst
+case class ISet(map: Ref, idx: Expr, expr: Expr) extends NormalInst
 case class IExpand(base: Ref, expr: Expr) extends NormalInst
 case class IDelete(base: Ref, expr: Expr) extends NormalInst
 case class IPush(elem: Expr, list: Expr, front: Boolean) extends NormalInst

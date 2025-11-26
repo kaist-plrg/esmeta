@@ -55,6 +55,7 @@ trait Walker extends BasicWalker {
     case SetAsStep(x, verb, id) => SetAsStep(walk(x), walk(verb), walk(id))
     case SetEvaluationStateStep(base, func, args) =>
       SetEvaluationStateStep(walk(base), walk(func), walkList(args, walk))
+    case SetMapStep(x, idx, expr)   => SetMapStep(walk(x), walk(idx), walk(expr))
     case PerformStep(expr)          => PerformStep(walk(expr))
     case InvokeShorthandStep(x, a)  => InvokeShorthandStep(x, walkList(a, walk))
     case AppendStep(expr, ref)      => AppendStep(walk(expr), walk(ref))
@@ -368,6 +369,7 @@ trait Walker extends BasicWalker {
     case propRef: PropertyReference => walk(propRef)
     case AgentRecord()              => AgentRecord()
     case WasmStoreReference()       => WasmStoreReference()
+    case GlobalCacheReference()     => GlobalCacheReference()
     case ThisReference()            => ThisReference()
   }
 

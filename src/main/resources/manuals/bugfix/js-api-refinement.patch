@@ -1,5 +1,5 @@
 diff --git a/document/js-api/index.bs b/document/js-api/index.bs
-index c00cadee..5932e718 100644
+index c00cadee..b2e5633a 100644
 --- a/document/js-api/index.bs
 +++ b/document/js-api/index.bs
 @@ -311,7 +311,8 @@ Note:
@@ -197,7 +197,15 @@ index c00cadee..5932e718 100644
  
      1. Set the [=surrounding agent=]'s [=associated store=] to |result|.
      1. Return |initialSize|.
-@@ -977,13 +980,13 @@ which can be simultaneously referenced by multiple {{Instance}} objects. Each
+@@ -963,6 +966,7 @@ which can be simultaneously referenced by multiple {{Instance}} objects. Each
+     1. Assert: |map|[|globaladdr|] doesn't [=map/exist=].
+     1. Set |global|.\[[Global]] to |globaladdr|.
+     1. [=map/Set=] |map|[|globaladdr|] to |global|.
++    1. Return ~unused~.
+ </div>
+ 
+ <div algorithm>
+@@ -977,13 +981,13 @@ which can be simultaneously referenced by multiple {{Instance}} objects. Each
  
  <div algorithm>
      The algorithm <dfn>ToValueType</dfn>(|s|) performs the following steps:
@@ -218,7 +226,7 @@ index c00cadee..5932e718 100644
      1. Assert: This step is not reached.
  </div>
  
-@@ -1000,8 +1003,8 @@ which can be simultaneously referenced by multiple {{Instance}} objects. Each
+@@ -1000,8 +1004,8 @@ which can be simultaneously referenced by multiple {{Instance}} objects. Each
  
  <div algorithm>
      The <dfn constructor for="Global">Global(|descriptor|, |v|)</dfn> constructor, when invoked, performs the following steps:
@@ -229,7 +237,19 @@ index c00cadee..5932e718 100644
      1. If |valuetype| is [=v128=],
          1. Throw a {{TypeError}} exception.
      1. If |v| is missing,
-@@ -1167,79 +1170,79 @@ Note: Exported Functions do not have a \[[Construct]] method and thus it is not
+@@ -1010,9 +1014,10 @@ which can be simultaneously referenced by multiple {{Instance}} objects. Each
+         1. Let |value| be [=ToWebAssemblyValue=](|v|, |valuetype|).
+     1. If |mutable| is true, let |globaltype| be [=var=] |valuetype|; otherwise, let |globaltype| be [=const=] |valuetype|.
+     1. Let |store| be the current agent's [=associated store=].
+-    1. Let (|store|, |globaladdr|) be [=global_alloc=](|store|, |globaltype|, |value|). <!-- TODO(littledan): Report allocation failure https://github.com/WebAssembly/spec/issues/584 -->
++    1. Let (|store|, |globaladdr|) be [=global_alloc=](|store|, |globaltype|, |value|).
+     1. Set the current agent's [=associated store=] to |store|.
+     1. [=initialize a global object|Initialize=] **this** from |globaladdr|.
++    1. Return ~unused~.
+ </div>
+ 
+ <div algorithm>
+@@ -1167,79 +1172,79 @@ Note: Exported Functions do not have a \[[Construct]] method and thus it is not
  <div algorithm>
  The algorithm <dfn>ToJSValue</dfn>(|w|) coerces a [=WebAssembly value=] to a JavaScript value by performing the following steps:
  
@@ -369,7 +389,7 @@ index c00cadee..5932e718 100644
  
  </div>
  
-@@ -1250,10 +1253,10 @@ WebAssembly defines the following Error classes: <dfn exception>CompileError</df
+@@ -1250,10 +1255,10 @@ WebAssembly defines the following Error classes: <dfn exception>CompileError</df
  <div algorithm="create the WebAssembly namespace object">
  When the [=namespace object=] for the {{WebAssembly}} namespace is [=create a namespace object|created=], the following steps must be run:
  

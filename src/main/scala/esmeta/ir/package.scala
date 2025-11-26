@@ -68,6 +68,7 @@ def GLOBAL_NUMBER_TYPE = Global("Number")
 def GLOBAL_BIGINT_TYPE = Global("BigInt")
 def GLOBAL_OBJECT_TYPE = Global("Object")
 def GLOBAL_WASM_STORE = Global("WASM_STORE")
+def GLOBAL_GLOBAL_CACHE = Global("GLOBAL_CACHE")
 
 /** predefined globals identifier expressions */
 def EGLOBAL_EXECUTION_STACK = ERef(GLOBAL_EXECUTION_STACK)
@@ -84,6 +85,7 @@ def EGLOBAL_NUMBER_TYPE = ERef(GLOBAL_NUMBER_TYPE)
 def EGLOBAL_BIGINT_TYPE = ERef(GLOBAL_BIGINT_TYPE)
 def EGLOBAL_OBJECT_TYPE = ERef(GLOBAL_OBJECT_TYPE)
 def EGLOBAL_WASM_STORE = ERef(GLOBAL_WASM_STORE)
+def EGLOBAL_GLOBAL_CACHE = ERef(GLOBAL_GLOBAL_CACHE)
 
 /** predefined local variable names */
 def THIS_STR = "this"

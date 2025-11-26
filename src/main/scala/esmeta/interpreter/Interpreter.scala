@@ -131,6 +131,18 @@ class Interpreter(
       val value = eval(expr)
       if (tyCheck) typeChecker.fieldUpdateCheck(ref, target, expr, value)
       st.update(target, value)
+    case ISet(ref, expr1, expr2) =>
+      val idx = eval(expr1)
+      val v = eval(expr2)
+      st(eval(ref)) match {
+        case addr: Addr =>
+          st.heap(addr) match {
+            case RecordObj(tname, map) =>
+              st.allocRecord(tname, map + (idx.toString -> v))
+            case _ => ???
+          }
+        case _ => ???
+      }
     case IExpand(base, expr) => st.expand(st(eval(base)), eval(expr))
     case IDelete(base, expr) => st.delete(st(eval(base)), eval(expr))
     case IPush(elem, list, front) =>
@@ -221,6 +233,8 @@ class Interpreter(
         Json.fromString(str)
       case Math(n) =>
         Json.fromBigDecimal(n)
+      case BigInt(n) =>
+        Json.fromBigInt(n)
       case _ =>
         println(v)
         ???

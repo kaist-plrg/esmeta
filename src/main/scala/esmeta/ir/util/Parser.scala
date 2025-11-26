@@ -106,6 +106,8 @@ trait Parsers extends TyParsers {
       case _ => INop()
     } | ref ~ ("=" ~> expr) ^^ {
       case r ~ e => IAssign(r, e)
+    } | "set" ~> ref ~ ("[" ~> expr <~ "]") ~ ("=" ~> expr) ^^ {
+      case r ~ idx ~ e => ISet(r, idx, e)
     } | expr ^^ {
       case e => IExpr(e)
     }

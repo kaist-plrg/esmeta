@@ -59,6 +59,7 @@ trait Parsers extends IndentParsers {
     setStep |
     setAsStep |
     setEvalStateStep |
+    setMapStep |
     performStep |
     invokeShorthandStep |
     appendStep |
@@ -117,6 +118,11 @@ trait Parsers extends IndentParsers {
     "such that when evaluation is resumed for that execution context,") ~
     (variable <~ "will be called") ~ (argsPart <~ ".") ^^ {
       case c ~ f ~ a => SetEvaluationStateStep(c, f, a)
+    }
+
+  lazy val setMapStep: PL[SetMapStep] =
+    (wjiLink("map/Set") ~> variable) ~ ("[" ~> expr <~ "]") ~ ("to" ~> endWithExpr) ^^ {
+      case r ~ idx ~ e => SetMapStep(r, idx, e)
     }
 
   // perform steps
@@ -672,7 +678,7 @@ trait Parsers extends IndentParsers {
   lazy val wasmVariantExpr: PL[WasmVariantExpression] =
     val variantName =
       "error" | "funcref" | "externref" | "func" | "global" |
-      "mem" | "table" | "const" | "mut" | "nan" |
+      "mem" | "table" | "const" | "var" | "nan" |
       {
         ("i"|"f") ~ ("32"|"64") ~ opt(".const")
       } ^^ {
@@ -690,14 +696,14 @@ trait Parsers extends IndentParsers {
       // TODO: Remove this hack
       case "const" ~ List(valtype) =>
             WasmVariantExpression("", List(ListExpression(List()), valtype))
-      case "mut" ~ List(valtype) =>
+      case "var" ~ List(valtype) =>
             WasmVariantExpression(
               "",
               List(
                 ListExpression(
                   List(
                     WasmVariantExpression(
-                      "MUT",
+                      "mut",
                       List()
                     )
                   )
@@ -1409,6 +1415,9 @@ trait Parsers extends IndentParsers {
   } | {
     "the" ~ (wjiLink("surrounding agent")|"current agent") ~ "'s" ~ wjiLink("associated store")
   } ^^^ WasmStoreReference()
+  | {
+    "the" ~ (wjiLink("surrounding agent")|"current agent") ~ "'s" ~ "associated" ~ wjiLink("Global object cache")
+  } ^^^ GlobalCacheReference()
 
   // ---------------------------------------------------------------------------
   // metalanguage properties

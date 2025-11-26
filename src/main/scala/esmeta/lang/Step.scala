@@ -34,6 +34,9 @@ case class SetEvaluationStateStep(
   args: List[Expression],
 ) extends Step
 
+// set-map steps
+case class SetMapStep(map: Reference, idx: Expression, expr: Expression) extends Step
+
 // perform steps
 case class PerformStep(expr: Expression) extends Step
 

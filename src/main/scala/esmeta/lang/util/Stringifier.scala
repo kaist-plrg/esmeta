@@ -95,6 +95,9 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> " such that when evaluation is resumed"
         app >> " for that execution context, "
         app >> func >> " will be called" >> args >> "."
+      case SetMapStep(x, idx, expr) =>
+        given Rule[Expression] = endWithExprRule
+        app >> "[=map/set=] " >> x >> "[" >> idx >> "]" >> " to " >> expr
       case PerformStep(expr) =>
         app >> First("perform ") >> expr >> "."
       case InvokeShorthandStep(name, args) =>
@@ -864,6 +867,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> "the Agent Record of the surrounding agent"
       case WasmStoreReference() =>
         app >> "the [=surrounding agent=]'s [=associated store=]"
+      case GlobalCacheReference() =>
+        app >> "the [=surrounding agent=]'s associated [=Global object cache=]"
       case ThisReference() =>
         app >> "**this**"
     }

@@ -121,7 +121,7 @@ class Extractor(
       elem <- document.getElems("emu-alg:not([example])")
     } yield () => extractAlgorithm(elem)
 
-    concurrent(wjiJobs).toList.flatten
+    concurrent(manualJobs ++ wjiJobs ++ jobs).toList.flatten
 
   /** extracts an algorithm */
   def extractAlgorithm(elem: Element): List[Algorithm] =

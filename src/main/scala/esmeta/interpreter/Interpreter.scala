@@ -172,15 +172,36 @@ class Interpreter(
     case INop() => /* do nothing */
   }
 
-
   def isVariantMap[X](map: Iterable[(String, X)]): Boolean =
     val keys = map.map(_._1).toList
     keys.contains("constructor") &&
     (0 to keys.size - 2).forall(i => keys.contains(s"_$i"))
   def isVariant(record: RecordObj): Boolean =
     record.tname == "variant" && isVariantMap(record.map)
+  def isVariant(obj: Obj): Boolean = obj match {
+    case obj: RecordObj => isVariant(obj)
+    case _ => false
+  }
+  def isVariant(addr: Addr): Boolean = isVariant(st(addr))
   def isVariant(json: io.circe.Json): Boolean =
     json.isObject && isVariantMap(json.asObject.get.toMap)
+
+  def variantMapEquals[X](
+    l: Iterable[(String, X)],
+    r: Iterable[(String, X)]
+  ): Boolean =
+    l.size == r.size && l.forall {
+      // TODO: perform recursive equals
+      case (k, v) => r.find((k1, v1) => k1 == k) == v
+    }
+  def variantEquals(l: RecordObj, r: RecordObj): Boolean =
+    variantMapEquals(l.map, r.map)
+  def variantEquals(l: Obj, r: Obj): Boolean = (l, r) match {
+    case (l: RecordObj, r: RecordObj) => true
+    case _ => false
+  }
+  def variantEquals(l: Addr, r: Addr): Boolean =
+    variantEquals(st(l), st(r))
 
   /** interop */
   def json2value(json: io.circe.Json): Value =
@@ -378,6 +399,14 @@ class Interpreter(
       Interpreter.eval(uop, x)
     case EBinary(BOp.And, left, right) => shortCircuit(BOp.And, left, right)
     case EBinary(BOp.Or, left, right)  => shortCircuit(BOp.Or, left, right)
+    case EBinary(BOp.Eq, left, right)  =>
+      val l = eval(left)
+      val r = eval(right)
+      (l, r) match {
+        case (l: Addr, r: Addr) if isVariant(l) && isVariant(r) =>
+          Bool(variantEquals(l, r))
+        case _ => Interpreter.eval(BOp.Eq, l, r)
+      }
     case EBinary(bop, left, right) =>
       val l = eval(left)
       val r = eval(right)

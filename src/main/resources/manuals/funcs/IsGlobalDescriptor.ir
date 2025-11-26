@@ -7,7 +7,12 @@ def IsGlobalDescriptor(
       if (exists map.mutable)
         return true
       else {
-        map.mutable = false
+        map.mutable = (record [PropertyDescriptor] {
+          "Value" : false,
+          "Writable" : false,
+          "Enumerable" : false,
+          "Configurable" : false,
+        })
         return true
       }
     }

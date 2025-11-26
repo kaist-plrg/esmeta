@@ -305,6 +305,7 @@ class Interpreter(
       "module_exports",
       "module_instantiate",
       "global_alloc",
+      "global_type",
     )
 
   /** transition for calls */

@@ -746,6 +746,10 @@ WebAssembly.Global.prototype = OrdinaryObject [
 ] {
   %Symbol.toStringTag%: [FFT] "WebAssembly.Global";
   constructor: [TFT] #INTRINSICS.WebAssembly.Global;
+  value: [TT] {
+    Get: #INTRINSICS.get:WebAssembly.Global.prototype.value;
+    Set: #INTRINSICS.set:WebAssembly.Global.prototype.value;
+  };
 }
 
 // https://tc39.es/ecma262/#sec-json-object

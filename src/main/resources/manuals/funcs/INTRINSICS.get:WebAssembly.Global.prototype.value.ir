@@ -1,0 +1,9 @@
+def <BUILTIN>:INTRINSICS.get:WebAssembly.Global.prototype.value(
+  this: ESValue,
+  ArgumentsList: List[ESValue],
+  NewTarget: Record[Constructor] | Undefined,
+): Unknown = {
+  call %0 = clo<"GetGlobalValue">(this)
+  call %1 = clo<"NormalCompletion">(%0)
+  return %1
+}

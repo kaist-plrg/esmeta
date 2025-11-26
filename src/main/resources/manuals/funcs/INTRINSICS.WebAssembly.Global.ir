@@ -1,0 +1,26 @@
+def <BUILTIN>:INTRINSICS.WebAssembly.Global(
+  this: ESValue,
+  ArgumentsList: List[ESValue],
+  NewTarget: Record[Constructor] | Undefined,
+): Unknown = {
+  let __args__ = (record)
+  if (< 0 (sizeof ArgumentsList)) {
+    pop descriptor < ArgumentsList
+    expand __args__.descriptor
+  } else let descriptor = undefined
+  if (< 0 (sizeof ArgumentsList)) {
+    pop v < ArgumentsList
+    expand __args__.v
+  } else let v = undefined
+  call %0 = clo<"IsGlobalDescriptor">(descriptor)
+  if (&& (= %0 true) (!(= NewTarget undefined))) {
+    call %1 = clo<"create_new_object_implementing_the_interface">(NewTarget)
+    call %2 = clo<"Global_descriptor_v_">(%1, descriptor, v)
+    if (? %2: Completion) return %2
+    call %3 = clo<"NormalCompletion">(%1)
+    return %3
+  }
+  call %4 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
+  call %5 = clo<"ThrowCompletion">(%4)
+  return %5
+}

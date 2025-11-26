@@ -692,7 +692,6 @@ WebAssembly = OrdinaryObject [
 ] {
   CompileError: [TFT] #INTRINSICS.CompileError;
   %Symbol.toStringTag%: [FFT] "WebAssembly";
-  Module: [TFT] #INTRINSICS.WebAssembly.Module;
 }
 
 WebAssembly.Module = BuiltinFunctionObject [
@@ -730,6 +729,23 @@ WebAssembly.Instance.prototype = OrdinaryObject [
     Get: #INTRINSICS.get:WebAssembly.Instance.prototype.exports;
     Set: undefined;
   };
+}
+
+WebAssembly.Global = BuiltinFunctionObject [
+  Extensible: true;
+  Construct: clo<Record[BuiltinFunctionObject].Construct>;
+] {
+  length: [FFT] 1.0f;
+  name: [FFT] "Global";
+  prototype: [FFF] #INTRINSICS.WebAssembly.Global.prototype;
+}
+
+WebAssembly.Global.prototype = OrdinaryObject [
+  Extensible: true;
+  Prototype: #INTRINSICS.Object.prototype;
+] {
+  %Symbol.toStringTag%: [FFT] "WebAssembly.Global";
+  constructor: [TFT] #INTRINSICS.WebAssembly.Global;
 }
 
 // https://tc39.es/ecma262/#sec-json-object

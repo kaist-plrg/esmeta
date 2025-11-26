@@ -301,7 +301,7 @@ trait Parsers extends IndentParsers {
     lazy val errorName =
       "*" ~> word.filter(_.endsWith("Error")) <~ "*" |
       "{{" ~> word.filter(_.endsWith("Error")) <~ "}}"
-    "throw" ~ article ~> errorName <~ "exception" ~ end ^^ { ThrowStep(_) }
+    "throw" ~ article ~> errorName <~ opt("exception") ~ end ^^ { ThrowStep(_) }
 
   // resume steps
   lazy val resumeStep: PL[ResumeStep] =
@@ -446,8 +446,8 @@ trait Parsers extends IndentParsers {
     soleExpr |
     codeUnitAtExpr |
     invokeExpr |
-    calcExpr |
     wjiExpr |
+    calcExpr |
     specialExpr
   }.named("lang.Expression")
 
@@ -723,6 +723,18 @@ trait Parsers extends IndentParsers {
       "(" ~> rep1sep(expr, ",") <~ ")"
     } ^^ {
       case es => WasmVariantExpression("", es)
+    } | {
+      "<var ignore>mut</var> [=v128=]"
+    } ^^^ {
+      WasmVariantExpression(
+        "",
+        List(
+          ReferenceExpression(
+            Variable("mut")
+          ),
+          WasmVariantExpression("v128", List())
+        )
+      )
     }
 
   // buffer copy expressions

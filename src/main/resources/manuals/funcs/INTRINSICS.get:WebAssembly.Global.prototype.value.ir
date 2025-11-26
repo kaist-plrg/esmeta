@@ -4,6 +4,7 @@ def <BUILTIN>:INTRINSICS.get:WebAssembly.Global.prototype.value(
   NewTarget: Record[Constructor] | Undefined,
 ): Unknown = {
   call %0 = clo<"GetGlobalValue">(this)
+  if (? %0: Completion) return %0
   call %1 = clo<"NormalCompletion">(%0)
   return %1
 }

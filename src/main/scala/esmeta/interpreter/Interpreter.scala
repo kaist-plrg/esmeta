@@ -490,8 +490,8 @@ class Interpreter(
           if (matched)
             patterns.zipWithIndex.map(
               (e, i) => patternMatch(e, record.map(s"_$i"))
-            )
-          matched
+            ).forall((b) => b)
+          else false
         case _ => ???
       }
       Bool(patternMatch(EVariant(constructor, patterns), eval(expr)))

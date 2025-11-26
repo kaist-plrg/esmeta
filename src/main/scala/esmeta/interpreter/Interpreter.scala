@@ -134,11 +134,16 @@ class Interpreter(
     case ISet(ref, expr1, expr2) =>
       val idx = eval(expr1)
       val v = eval(expr2)
-      st(eval(ref)) match {
-        case addr: Addr =>
-          st.heap(addr) match {
-            case RecordObj(tname, map) =>
-              st.allocRecord(tname, map + (idx.toString -> v))
+      ref match {
+        case ref: Var =>
+          st(eval(ref)) match {
+            case addr: Addr =>
+              st.heap(addr) match {
+                case MapObj(map) =>
+                  val newAddr = st.allocMap(map + (idx -> v))
+                  st.define(ref, newAddr)
+                case obj => ???
+              }
             case _ => ???
           }
         case _ => ???

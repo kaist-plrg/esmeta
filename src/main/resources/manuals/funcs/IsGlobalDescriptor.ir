@@ -3,7 +3,14 @@ def IsGlobalDescriptor(
 ): Unknown = {
   if (= (typeof x) @Object) {
     let map = x.__MAP__
-    if (&& (exists map.value) (exists map.mutable)) return true
+    if (exists map.value) {
+      if (exists map.mutable)
+        return true
+      else {
+        map.mutable = false
+        return true
+      }
+    }
   }
   return false
 }

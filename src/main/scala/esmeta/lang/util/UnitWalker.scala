@@ -55,7 +55,6 @@ trait UnitWalker extends BasicUnitWalker {
     case SetAsStep(x, verb, id) => walk(x); walk(verb); walk(id)
     case SetEvaluationStateStep(base, func, args) =>
       walk(base); walk(func); walkList(args, walk)
-    case SetMapStep(x, idx, expr)        => walk(x); walk(idx); walk(expr)
     case PerformStep(expr)               => walk(expr)
     case InvokeShorthandStep(name, args) => walk(name); walkList(args, walk)
     case AppendStep(expr, ref)           => walk(expr); walk(ref)

@@ -246,8 +246,6 @@ class Compiler(
       }
       funcs += contFB.getFunc(inst)
       fb.addInst(IAssign(toStrRef(ctxt, RESUME_CONT), ECont(contName)))
-    case SetMapStep(map, idx, expr) =>
-      fb.addInst(ISet(compile(fb, map), compile(fb, idx), compile(fb, expr)))
     case PerformStep(expr) =>
       val e = compile(fb, expr)
       if (!e.isPure) fb.addInst(IExpr(e))

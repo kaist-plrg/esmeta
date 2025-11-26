@@ -59,7 +59,6 @@ trait Parsers extends IndentParsers {
     setStep |
     setAsStep |
     setEvalStateStep |
-    setMapStep |
     performStep |
     invokeShorthandStep |
     appendStep |
@@ -103,7 +102,7 @@ trait Parsers extends IndentParsers {
 
   // set steps
   lazy val setStep: PL[SetStep] =
-    ("set" ~> ref) ~ ("to" ~> endWithExpr) ^^ { case r ~ e => SetStep(r, e) }
+    (("set"|wjiLink("map/Set")) ~> ref) ~ ("to" ~> endWithExpr) ^^ { case r ~ e => SetStep(r, e) }
 
   // set-as steps
   lazy val setAsStep: PL[SetAsStep] =
@@ -118,11 +117,6 @@ trait Parsers extends IndentParsers {
     "such that when evaluation is resumed for that execution context,") ~
     (variable <~ "will be called") ~ (argsPart <~ ".") ^^ {
       case c ~ f ~ a => SetEvaluationStateStep(c, f, a)
-    }
-
-  lazy val setMapStep: PL[SetMapStep] =
-    (wjiLink("map/Set") ~> variable) ~ ("[" ~> expr <~ "]") ~ ("to" ~> endWithExpr) ^^ {
-      case r ~ idx ~ e => SetMapStep(r, idx, e)
     }
 
   // perform steps

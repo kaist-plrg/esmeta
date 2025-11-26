@@ -720,9 +720,9 @@ trait Parsers extends IndentParsers {
         )
       case name ~ args => WasmVariantExpression(name, args)
     } | {
-      "(" ~> rep1sep(expr, ",") <~ ")"
+      "(" ~> (expr <~ ",") ~ expr <~ ")"
     } ^^ {
-      case es => WasmVariantExpression("", es)
+      case e1 ~ e2 => WasmVariantExpression("", List(e1, e2))
     } | {
       "<var ignore>mut</var> [=v128=]"
     } ^^^ {

@@ -609,7 +609,7 @@ trait Parsers extends IndentParsers {
   lazy val convExpr: PL[ConversionExpression] =
     import ConversionExpressionOperator.*
     lazy val opFormat = (
-      "𝔽" ^^^ ToNumber | "ℤ" ^^^ ToBigInt | "ℝ" ^^^ ToMath
+      wjiLinkOpt("𝔽") ^^^ ToNumber | wjiLinkOpt("ℤ") ^^^ ToBigInt | "ℝ" ^^^ ToMath
     ) ~ ("(" ~> expr <~ ")")
     lazy val textFormat =
       ("the " | "an " | "a ") ~> (
@@ -719,10 +719,6 @@ trait Parsers extends IndentParsers {
           )
         )
       case name ~ args => WasmVariantExpression(name, args)
-    } | {
-      "(" ~> (expr <~ ",") ~ expr <~ ")"
-    } ^^ {
-      case e1 ~ e2 => WasmVariantExpression("", List(e1, e2))
     } | {
       "<var ignore>mut</var> [=v128=]"
     } ^^^ {

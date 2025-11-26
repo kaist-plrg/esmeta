@@ -234,7 +234,8 @@ trait Parsers extends IndentParsers {
 
   def tuple[X](x: Parser[X]): Parser[List[X]] = "(" ~> repsep(x, ", ") <~ ")"
 
-  lazy val embeddingName: Parser[String] = "[a-zA-Z][a-zA-Z0-9_]*".r
+  lazy val embeddingName: Parser[String] =
+    not("nan") ~> "[a-zA-Z][a-zA-Z0-9_]*".r
 
   lazy val wjiInvoke: PL[InvokeExpression] =
     wjiLink(embeddingName) ~ invokeArgs ^^ {
@@ -670,7 +671,8 @@ trait Parsers extends IndentParsers {
   // wasm variant expressions
   lazy val wasmVariantExpr: PL[WasmVariantExpression] =
     val variantName =
-      "error" | "func" | "global" | "mem" | "table" | "const" | "mut" |
+      "error" | "funcref" | "externref" | "func" | "global" |
+      "mem" | "table" | "const" | "mut" | "nan" |
       {
         ("i"|"f") ~ ("32"|"64") ~ opt(".const")
       } ^^ {
@@ -684,7 +686,7 @@ trait Parsers extends IndentParsers {
       } ^^ {
         case ref ~ kind => ref + kind
       }
-    wjiLinkName(variantName) ~ rep(expr) ^^ {
+    wjiLinkName(variantName) ~ (rep(expr) | "(" ~> rep(expr) <~ ")") ^^ {
       // TODO: Remove this hack
       case "const" ~ List(valtype) =>
             WasmVariantExpression("", List(ListExpression(List()), valtype))
@@ -774,8 +776,10 @@ trait Parsers extends IndentParsers {
     "*+∞*<sub>𝔽</sub>" ^^! NumberLiteral(Double.PositiveInfinity) |
     "*-∞*<sub>𝔽</sub>" ^^! NumberLiteral(Double.NegativeInfinity) |
     "*NaN*" ^^! NumberLiteral(Double.NaN) |
+    "**NaN**" ^^! NumberLiteral(Double.NaN) |
     "*" ~> double <~ "*<sub>𝔽</sub>" ^^ { NumberLiteral(_) } |
     "*" ~> bigInt <~ "*<sub>ℤ</sub>" ^^ { BigIntLiteral(_) } |
+    "**" ~> bigInt <~ "**<sub>ℤ</sub>" ^^ { BigIntLiteral(_) } |
     ("*true*" | "true") ^^! TrueLiteral() |
     ("*false*" | "false") ^^! FalseLiteral() |
     "*undefined*" ^^! UndefinedLiteral() |
@@ -1186,7 +1190,8 @@ trait Parsers extends IndentParsers {
       "<" ^^^ LessThan |
       "≥" ^^^ GreaterThanEqual |
       ">" ^^^ GreaterThan |
-      "is the same sequence of code units as" ^^^ SameCodeUnits
+      // TODO: Add string equality
+      ("is the same sequence of code units as" | "equals") ^^^ SameCodeUnits
     expr ~ op ~ expr ^^ { case l ~ o ~ r => BinaryCondition(l, o, r) }
 
   // inclusive interval conditions
@@ -1309,6 +1314,10 @@ trait Parsers extends IndentParsers {
         CompoundConditionOperator.And,
         c
       )
+  } | {
+    expr <~ "is missing"
+  } ^^ {
+    case e => IsAreCondition(List(e), false, List(UndefinedLiteral()))
   }
 
   // not yet supported conditions
@@ -1398,7 +1407,7 @@ trait Parsers extends IndentParsers {
   } | {
     "**this**" ^^^ ThisReference()
   } | {
-    "the" ~ wjiLink("surrounding agent") ~ "'s" ~ wjiLink("associated store")
+    "the" ~ (wjiLink("surrounding agent")|"current agent") ~ "'s" ~ wjiLink("associated store")
   } ^^^ WasmStoreReference()
 
   // ---------------------------------------------------------------------------
@@ -1590,7 +1599,7 @@ trait Parsers extends IndentParsers {
     "TypedArray" ^^^ TypedArrayT |
     opt("initialized") ~ "RegExp" ~ opt("instance") ^^^ RegExpT |
     "non-negative integral Number" ^^^ NumberNonNegIntT |
-    "*NaN*" ^^! NaNT |
+    ("*NaN*"|"**NaN**") ^^! NaNT |
     "integral Number" ^^^ NumberIntT |
     "property key" ^^^ (StrT || SymbolT) |
     "~" ~> "[-+a-zA-Z0-9]+".r <~ "~" ^^ { EnumT(_) }

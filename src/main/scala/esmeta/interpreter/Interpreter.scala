@@ -186,18 +186,27 @@ class Interpreter(
   def isVariant(json: io.circe.Json): Boolean =
     json.isObject && isVariantMap(json.asObject.get.toMap)
 
-  def variantMapEquals[X](
-    l: Iterable[(String, X)],
-    r: Iterable[(String, X)]
+  def variantMapEquals(
+    l: Iterable[(String, Value)],
+    r: Iterable[(String, Value)]
   ): Boolean =
     l.size == r.size && l.forall {
       // TODO: perform recursive equals
-      case (k, v) => r.find((k1, v1) => k1 == k) == v
+      case (lk, lv) =>
+        val rOpt = r.find((rk, rv) => lk == rk)
+        rOpt match {
+          case Some(rk, rv) =>
+            (lv, rv) match
+              case (lv: Addr, rv: Addr) if isVariant(lv) && isVariant(rv) =>
+                variantEquals(lv, rv)
+              case _ => Interpreter.eval(BOp.Eq, lv, rv).asBool
+          case None => false
+        }
     }
   def variantEquals(l: RecordObj, r: RecordObj): Boolean =
     variantMapEquals(l.map, r.map)
   def variantEquals(l: Obj, r: Obj): Boolean = (l, r) match {
-    case (l: RecordObj, r: RecordObj) => true
+    case (l: RecordObj, r: RecordObj) => variantEquals(l, r)
     case _ => false
   }
   def variantEquals(l: Addr, r: Addr): Boolean =

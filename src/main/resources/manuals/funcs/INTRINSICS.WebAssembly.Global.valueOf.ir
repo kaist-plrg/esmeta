@@ -1,0 +1,10 @@
+def <BUILTIN>:INTRINSICS.WebAssembly.Global.prototype.valueOf(
+  this: ESValue,
+  ArgumentsList: List[ESValue],
+  NewTarget: Record[Constructor] | Undefined,
+): Unknown = {
+  call %0 = clo<"valueOf">(this)
+  if (? %0: Completion) return %0
+  call %1 = clo<"NormalCompletion">(%0)
+  return %1
+}

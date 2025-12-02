@@ -237,9 +237,22 @@ trait Parsers extends IndentParsers {
   lazy val embeddingName: Parser[String] =
     not("nan") ~> "[a-zA-Z][a-zA-Z0-9_]*".r
 
-  lazy val wjiInvoke: PL[InvokeExpression] =
-    wjiLink(embeddingName) ~ invokeArgs ^^ {
-      case x ~ as => InvokeAbstractClosureExpression(Variable(x), as)
+  lazy val wjiInvoke: Parser[String ~ List[Reference]]=
+    val varArgKeywords = "with" | "from" | "importing"
+    val and = opt(",") ~ "and"
+    val redundantExplanation =
+      rep(not(varArgKeywords | and | "let" | "store" | "return") ~ "[^\\|_]".r)
+    val firstArg =
+      opt("of") ~> ref <~ opt("as" ~ redundantExplanation)
+    val varArgs =
+      varArgKeywords ~> rep1sep(redundantExplanation ~> variable, "and")
+    wjiLink(not("list") ~> "[^=\\|]*".r) ~ ((firstArg ~ varArgs) | firstArg | varArgs) ^^ {
+      case name ~ ((fa: Reference) ~ (va: List[Variable] @unchecked)) =>
+        new ~(name, fa :: va)
+      case name ~ (fa: Reference) =>
+        new ~(name, List(fa))
+      case name ~ (va: List[Variable] @unchecked) =>
+        new ~(name, va)
     }
 
   lazy val forEachTupleStep: PL[ForEachTupleStep] =
@@ -371,14 +384,7 @@ trait Parsers extends IndentParsers {
     }
 
   lazy val wjiLinkStep: PL[WjiLinkStep] =
-    val varArgKeywords = "with" | "from" | "importing"
     val and = opt(",") ~ "and"
-    val redundantExplanation =
-      rep(not(varArgKeywords | and | "let" | "store" | "return") ~ "[^\\|_]".r)
-    val firstArg =
-      opt("of") ~> ref <~ opt("as" ~ redundantExplanation)
-    val varArgs =
-      varArgKeywords ~> repsep(redundantExplanation ~> variable, "and")
     val let =
       and ~> (
         "let" ~> variable <~ "be the result" |
@@ -388,13 +394,11 @@ trait Parsers extends IndentParsers {
       case Some(_) => true
       case None    => false
     }
-    wjiLink("[^=\\|]*".r) ~ opt(firstArg) ~ opt(varArgs) ~
-    opt(let) ~ retOpt <~ end
-    ^^ { case s ~ vOpt ~ vsOpt ~ lhsOpt ~ b =>
-      val args =
-        (vOpt.toList ++ vsOpt.toList.flatten).map(ReferenceExpression(_))
-      val name = s"${s.head.toLower}${s.tail}"
-      WjiLinkStep(name, args, lhsOpt, b)
+    wjiInvoke ~ opt(let) ~ retOpt <~ end ^^ {
+      case (s ~ args) ~ lhsOpt ~ b =>
+        val argExprs = args.map(ReferenceExpression(_))
+        val name = s"${s.head.toLower}${s.tail}"
+        WjiLinkStep(name, argExprs, lhsOpt, b)
     }
 
   // not yet supported steps
@@ -405,7 +409,8 @@ trait Parsers extends IndentParsers {
   // ---------------------------------------------------------------------------
   lazy val specialStep: PL[Step] = {
     setFieldsWithIntrinsicsStep |
-    performBlockStep
+    performBlockStep |
+    returnIfStep
   }.named("lang.Step")
 
   // set fields with intrinsics (CreateIntrinsics)
@@ -420,6 +425,11 @@ trait Parsers extends IndentParsers {
     "perform the following substeps" ~
     "in an implementation-defined order" ~> opt("," ~> "[^:]*".r) ~
     (":" ~> stepBlock) ^^ { case d ~ b => PerformBlockStep(b, d.getOrElse("")) }
+
+  lazy val returnIfStep: PL[IfStep] =
+    "return" ~> expr ~ ("if" ~> cond) ^^ {
+      case e ~ c => IfStep(c, ReturnStep(e), None)
+    }
 
   // ---------------------------------------------------------------------------
   // metalanguage expressions
@@ -672,7 +682,8 @@ trait Parsers extends IndentParsers {
   lazy val wasmVariantExpr: PL[WasmVariantExpression] =
     val variantName =
       "error" | "funcref" | "externref" | "func" | "global" |
-      "mem" | "table" | "const" | "var" | "nan" |
+      "mem" | "table" | "const" | "var" | "nan" | "external value" |
+      "+∞" | "-∞" |
       {
         ("i"|"f") ~ ("32"|"64") ~ opt(".const")
       } ^^ {
@@ -686,7 +697,8 @@ trait Parsers extends IndentParsers {
       } ^^ {
         case ref ~ kind => ref + kind
       }
-    wjiLinkName(variantName) ~ (rep(expr) | "(" ~> rep(expr) <~ ")") ^^ {
+    opt("the") ~> wjiLinkName(variantName) ~
+    (rep(expr) | "(" ~> rep(expr) <~ ")") ^^ {
       // TODO: Remove this hack
       case "const" ~ List(valtype) =>
             WasmVariantExpression("", List(ListExpression(List()), valtype))
@@ -718,6 +730,11 @@ trait Parsers extends IndentParsers {
             )
           )
         )
+      case "extern value" ~ List(arg: WasmVariantExpression) => arg
+      case "+∞" ~ Nil =>
+        WasmVariantExpression("pos", List(WasmVariantExpression("inf", List())))
+      case "-∞" ~ Nil =>
+        WasmVariantExpression("neg", List(WasmVariantExpression("inf", List())))
       case name ~ args => WasmVariantExpression(name, args)
     } | {
       "<var ignore>mut</var> [=v128=]"
@@ -949,6 +966,9 @@ trait Parsers extends IndentParsers {
     // handle emu-meta tag
     (tagged(opName) | wjiLink(embeddingName)) ~ invokeArgs ^^ {
       case x ~ as => InvokeAbstractOperationExpression(x, as)
+    } | "the" ~ opt("result of") ~ opt("creating") ~> wjiInvoke ^^ {
+      case x ~ vs =>
+        InvokeAbstractOperationExpression(x, vs.map(ReferenceExpression(_)))
     }
 
   // names for operations
@@ -1126,6 +1146,11 @@ trait Parsers extends IndentParsers {
     ("has" ^^^ false | "does not have" ^^^ true) ~
     (("an " | "a ") ~> expr <~ fieldStr) ^^ {
       case r ~ n ~ f => HasFieldCondition(r, n, f)
+    } | {
+      variable ~ ("[" ~> expr <~ "]") ~ ("doesn't" ^^^ true | "" ^^^ false) <~
+      wjiLink("map/exists" | "map/exist")
+    } ^^ {
+      case v ~ f ~ n => HasFieldCondition(v, n, f)
     }
 
   // binding includsion conditions
@@ -1392,7 +1417,7 @@ trait Parsers extends IndentParsers {
       PropertyReference(intrBase, IndexProperty(getRefExpr(v)))
   } | {
     // OrdinaryGetOwnProperty
-    ("the value of" ~> variable <~ "'s") ~ (opt("\\") ~ "[[" ~> word <~ "]]" ~ "attribute")
+    ("the value of" ~> variable <~ "'s") ~ (opt("\\") ~ "[[" ~> word <~ "]]" ~ ("attribute" | "internal slot"))
   } ^^ { case v ~ a => PropertyReference(v, FieldProperty(a)) } | {
     // Set.prototype.add
     ("the List that is" ~> propRef)

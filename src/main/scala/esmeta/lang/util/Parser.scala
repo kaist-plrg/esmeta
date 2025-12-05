@@ -1125,7 +1125,14 @@ trait Parsers extends IndentParsers {
     hasBindingCond |||
     hasFieldCond |||
     typeCheckCond |||
+    implementCond |||
     exprCond
+
+  lazy val implementCond: PL[ImplementCondition] =
+    expr ~ ("does not [=implement=]" ^^^ true | "[=implements=]" ^^^ false) ~
+    ("{{" ~> word <~ "}}") ^^ {
+      case e ~ n ~ w => ImplementCondition(e, n, w)
+    }
 
   // expression conditions
   lazy val exprCond: PL[ExpressionCondition] = expr ^^ {

@@ -326,6 +326,7 @@ class CaseCollector extends UnitWalker {
   override def walk(cond: Condition): Unit = {
     val add = getAdd(conds, cond)
     add(cond match {
+      case ImplementCondition(expr, neg, name) => ???
       case ExpressionCondition(expr) =>
         s"{{ expr }}"
       case TypeCheckCondition(expr, neg, ty) =>

@@ -679,6 +679,13 @@ class Stringifier(detail: Boolean, location: Boolean) {
   // conditions
   given condRule: Rule[Condition] = withLoc { (app, cond) =>
     cond match {
+      case ImplementCondition(expr, neg, name) =>
+        app >> expr
+        if (neg)
+          app >> " does not [=implement=] "
+        else
+          app >> " [=implements=] "
+        app >> "{{" >> name >> "}}"
       case ExpressionCondition(expr) =>
         app >> expr
       case TypeCheckCondition(expr, neg, ty) =>

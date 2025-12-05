@@ -12,6 +12,12 @@ sealed trait Condition extends Syntax {
 }
 object Condition extends Parser.From(Parser.cond)
 
+case class ImplementCondition(
+  expr: Expression,
+  negation: Boolean,
+  rawName: String
+) extends Condition
+
 // expression conditions
 case class ExpressionCondition(expr: Expression) extends Condition
 

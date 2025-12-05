@@ -1113,6 +1113,11 @@ class Compiler(
   /** compile branch conditions */
   def compile(fb: FuncBuilder, cond: Condition): Expr =
     fb.withLang(cond)(cond match {
+      case ImplementCondition(expr, neg, name) =>
+        val e = compile(fb, expr)
+        val ref = getRef(fb, e)
+        val c = equal(toStrERef(ref, "PrimaryInterface"), EStr(name))
+        if (neg) not(c) else c
       case ExpressionCondition(expr) =>
         compile(fb, expr)
       case TypeCheckCondition(expr, neg, tys) =>

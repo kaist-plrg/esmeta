@@ -320,6 +320,8 @@ trait Walker extends BasicWalker {
   }
 
   def walk(cond: Condition): Condition = cond match {
+    case ImplementCondition(expr, neg, name) =>
+      ImplementCondition(walk(expr), walk(neg), walk(name))
     case ExpressionCondition(expr) =>
       ExpressionCondition(walk(expr))
     case TypeCheckCondition(expr, neg, ty) =>

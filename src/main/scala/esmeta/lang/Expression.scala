@@ -108,7 +108,7 @@ case class NewPromiseExpression() extends WjiExpression
 case class BufferCopyExpression(buffer: Expression) extends WjiExpression
 
 // new object expressions
-case class NewObjectExpression(interface: String) extends WjiExpression
+case class NewObjectExpression(rawName: String) extends WjiExpression
 
 // dictionary expressions
 case class DictionaryExpression(fields: List[(String, Expression)]) extends WjiExpression

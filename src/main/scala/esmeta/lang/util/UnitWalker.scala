@@ -256,6 +256,8 @@ trait UnitWalker extends BasicUnitWalker {
   }
 
   def walk(cond: Condition): Unit = cond match {
+    case ImplementCondition(expr, neg, name) =>
+      walk(expr); walk(neg); walk(name)
     case ExpressionCondition(expr) =>
       walk(expr)
     case TypeCheckCondition(expr, neg, ty) =>

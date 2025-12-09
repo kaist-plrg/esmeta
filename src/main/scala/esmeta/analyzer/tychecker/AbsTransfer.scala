@@ -457,7 +457,6 @@ trait AbsTransferDecl { analyzer: TyChecker =>
           )
         } yield ()
       case IAssign(ref, expr)  => st => st /* TODO */
-      case ISet(map, idx, expr) => ???
       case IExpand(base, expr) => st => st /* TODO */
       case IDelete(base, expr) => st => st /* TODO */
       case IPush(expr, ERef(list: Local), _) =>

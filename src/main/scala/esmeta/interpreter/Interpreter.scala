@@ -131,23 +131,6 @@ class Interpreter(
       val value = eval(expr)
       if (tyCheck) typeChecker.fieldUpdateCheck(ref, target, expr, value)
       st.update(target, value)
-    case ISet(ref, expr1, expr2) =>
-      val idx = eval(expr1)
-      val v = eval(expr2)
-      ref match {
-        case ref: Var =>
-          st(eval(ref)) match {
-            case addr: Addr =>
-              st.heap(addr) match {
-                case MapObj(map) =>
-                  val newAddr = st.allocMap(map + (idx -> v))
-                  st.define(ref, newAddr)
-                case obj => ???
-              }
-            case _ => ???
-          }
-        case _ => ???
-      }
     case IExpand(base, expr) => st.expand(st(eval(base)), eval(expr))
     case IDelete(base, expr) => st.delete(st(eval(base)), eval(expr))
     case IPush(elem, list, front) =>

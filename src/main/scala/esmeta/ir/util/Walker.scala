@@ -50,7 +50,6 @@ trait Walker extends BasicWalker {
     case IExpr(expr)            => IExpr(walk(expr))
     case ILet(lhs, expr)        => ILet(walk(lhs), walk(expr))
     case IAssign(ref, expr)     => IAssign(walk(ref), walk(expr))
-    case ISet(ref, idx, expr)   => ISet(walk(ref), walk(idx), walk(expr))
     case IExpand(base, expr)    => IExpand(walk(base), walk(expr))
     case IDelete(base, expr)    => IDelete(walk(base), walk(expr))
     case IPush(from, to, front) => IPush(walk(from), walk(to), walk(front))

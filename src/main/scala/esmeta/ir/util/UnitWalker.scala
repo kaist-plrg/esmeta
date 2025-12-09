@@ -43,7 +43,6 @@ trait UnitWalker extends BasicUnitWalker {
     case IExpr(expr)            => walk(expr)
     case ILet(lhs, expr)        => walk(lhs); walk(expr)
     case IAssign(ref, expr)     => walk(ref); walk(expr)
-    case ISet(ref, idx, expr)   => walk(ref); walk(idx); walk(expr)
     case IExpand(base, expr)    => walk(base); walk(expr)
     case IDelete(base, expr)    => walk(base); walk(expr)
     case IPush(from, to, front) => walk(from); walk(to); walk(front)

@@ -104,8 +104,6 @@ trait Parsers extends TyParsers {
       case e => IPrint(e)
     } | "nop" ^^ {
       case _ => INop()
-    } | "set" ~> name ~ ("[" ~> expr <~ "]") ~ ("=" ~> expr) ^^ {
-      case r ~ idx ~ e => ISet(r, idx, e)
     } | ref ~ ("=" ~> expr) ^^ {
       case r ~ e => IAssign(r, e)
     } | expr ^^ {

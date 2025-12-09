@@ -98,4 +98,5 @@ case class WasmStoreReference() extends Reference
 
 case class CacheReference(kind: String) extends Reference
 
+// TODO: Remove this reference
 case class ThisReference() extends Reference

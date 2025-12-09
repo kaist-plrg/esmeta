@@ -81,8 +81,6 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> "let " >> lhs >> " = " >> expr
       case IAssign(ref, expr) =>
         app >> ref >> " = " >> expr
-      case ISet(map, idx, expr) =>
-        app >> "set " >> map >> "[" >> idx >> "] = " >> expr
       case IExpand(base, expr) =>
         app >> "expand " >> Field(base, expr)
       case IDelete(base, expr) =>

@@ -108,6 +108,10 @@
     "Store the individual bytes of _rawBytes_ into _block_, starting at _block_[_byteIndex_].": "{ let idx = 0 while (< idx (sizeof rawBytes)) { block[(+ byteIndex idx)] = rawBytes[idx] idx = (+ idx 1) } }",
     "Store the individual bytes of _replacementBytes_ into _block_, starting at _block_[_byteIndexInBuffer_].": "{ let idx = 0 while (< idx (sizeof replacementBytes)) { block[(+ byteIndexInBuffer idx)] = replacementBytes[idx] idx = (+ idx 1) } }",
     "set _isLittleEndian_ to the value of the [[LittleEndian]] field of the surrounding agent's Agent Record.": "isLittleEndian = @AGENT_RECORD.LittleEndian",
-    "return the Number value that corresponds to _intValue_.": "return ([number] intValue)"
+    "return the Number value that corresponds to _intValue_.": "return ([number] intValue)",
+    "If |f32| is [=+∞=] or [=−∞=], return **+∞**<sub>𝔽</sub> or **-∞**<sub>𝔽</sub>, respectively.": "{ if (= f32 (record [variant] { \"constructor\" : \"pos\", \"_0\" : (record [variant] { \"constructor\" : \"inf\" })})) return +NUM_INF if (= f32 (record [variant] { \"constructor\" : \"neg\", \"_0\" : (record [variant] { \"constructor\" : \"inf\" })})) return -NUM_INF }",
+    "If |f64| is [=+∞=] or [=−∞=], return **+∞**<sub>𝔽</sub> or **-∞**<sub>𝔽</sub>, respectively.": "{ if (= f64 (record [variant] { \"constructor\" : \"pos\", \"_0\" : (record [variant] { \"constructor\" : \"inf\" })})) return +NUM_INF if (= f64 (record [variant] { \"constructor\" : \"neg\", \"_0\" : (record [variant] { \"constructor\" : \"inf\" })})) return -NUM_INF }",
+    "Let |index| be the number of external functions in |imports|. This value |index| is known as the <dfn>index of the host function</dfn> |funcaddr|." : "nop",
+    "throw an appropriate exception type:\n  * A {{LinkError}} exception for most cases which occur during linking.\n  * If the error came when running the start function, throw a {{RuntimeError}} for most errors which occur from WebAssembly, or the error object propagated from inner ECMAScript code.\n  * Another error type if appropriate, for example an out-of-memory exception, as documented in <a href=\"#errors\">the WebAssembly error mapping</a>." : "{ call %1 = clo<\"__NEW_ERROR_OBJ__\">(\"%LinkError.prototype%\") call %2 = clo<\"ThrowCompletion\">(%1) return %2 }"
   }
 }

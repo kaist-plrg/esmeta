@@ -974,6 +974,8 @@ trait Parsers extends IndentParsers {
     } | "the" ~ opt("result of") ~ opt("creating") ~> wjiInvoke ^^ {
       case x ~ vs =>
         InvokeAbstractOperationExpression(x, vs.map(ReferenceExpression(_)))
+    } | wjiLink("[^=\\|]*".r) ~ ("created from" ~> expr) ^^ {
+      case x ~ a => InvokeAbstractOperationExpression(x, List(a))
     }
 
   // names for operations

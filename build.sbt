@@ -3,7 +3,7 @@ import sbtassembly.AssemblyPlugin.defaultUniversalScript
 // ESMeta version
 // NOTE: please update VERSION together in top-level package.scala
 // NOTE: please update version info in the README.md file
-ThisBuild / version := "0.6.4"
+ThisBuild / version := "0.7.1"
 
 // Scala version
 ThisBuild / scalaVersion := "3.3.6"
@@ -20,6 +20,8 @@ ThisBuild / scalacOptions := Seq(
   // disable import suggestions related bug: https://github.com/scala/scala3/issues/12876
   "-Ximport-suggestion-timeout",
   "0",
+  "-Xmax-inlines", // set max number of inlines from 32 to 64
+  "64",
 )
 
 // Java options
@@ -95,6 +97,8 @@ lazy val cfgBuilderValidityTest =
 lazy val cfgTest = taskKey[Unit]("Launch cfg tests")
 lazy val cfgStringifyTest =
   taskKey[Unit]("Launch stringify tests for cfg (tiny)")
+lazy val cfgValidityTest =
+  taskKey[Unit]("Launch validity tests for cfg (small)")
 
 // interpreter
 lazy val interpreterTest = taskKey[Unit]("Launch interpreter tests")
@@ -259,6 +263,7 @@ lazy val root = project
     // cfg
     cfgTest := (Test / testOnly).toTask(" *.cfg.*Test").value,
     cfgStringifyTest := (Test / testOnly).toTask(" *.cfg.Stringify*Test").value,
+    cfgValidityTest := (Test / testOnly).toTask(" *.cfg.Validity*Test").value,
     // interpreter
     interpreterTest := (Test / testOnly).toTask(" *.interpreter.*Test").value,
     interpreterEvalTest := (Test / testOnly)

@@ -16,6 +16,9 @@ case class Algorithm(
   /** HTML elements */
   var elem: Element = Element("emu-alg")
 
+  /** HTML element for head */
+  var headElem: Element = Element("div")
+
   /** check whether it is incomplete */
   lazy val complete: Boolean = incompleteSteps.isEmpty
 
@@ -41,7 +44,21 @@ case class Algorithm(
 
   /** normalized code */
   lazy val normalizedCode = Algorithm.normalizeCode(code)
+
+  /** parsed result equals with spec before parsing */
+  lazy val equals = normalizedCode == body.toString
+
+  lazy val lineDiff =
+    val codeList = normalizedCode.split("\n")
+    val bodyList = body.toString.split("\n")
+
+    codeList.zip(bodyList).filter(_ != _)
+
+  lazy val lineDiffStr = lineDiff
+    .map((l, r) => s"spec\t>> $l\nparsed\t<< $r")
+    .mkString("\n\n")
 }
+
 object Algorithm {
 
   /** normalize code by removing unnecessary indents and trailing spaces */

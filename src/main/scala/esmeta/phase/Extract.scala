@@ -2,14 +2,18 @@ package esmeta.phase
 
 import esmeta.*
 import esmeta.extractor.Extractor
+import esmeta.extractor.util.NewPhraseAlert
 import esmeta.lang.*
 import esmeta.lang.util.ParserForEval.{getParseCount, getCacheCount}
 import esmeta.spec.*
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
+import esmeta.spec.util.JsonProtocol.given
 import java.nio.file.Paths
 import scala.io.StdIn.readLine
+import io.circe.syntax._
+import io.circe.parser.decode
 
 /** `extract` phase */
 case object Extract extends Phase[Unit, Spec] {
@@ -28,6 +32,22 @@ case object Extract extends Phase[Unit, Spec] {
       println(f"- # of using cached result: $getCacheCount%,d")
     if (config.log) log(spec)
     if (config.strict) checkStrict(spec, config)
+    if (config.warnAction) {
+      println("Waiting to get diff information for `warn-action` in Stdin...")
+      val concat: String = Iterator
+        .continually(readLine)
+        .takeWhile(_ != null)
+        .mkString("\n")
+      val diffFile = decode[List[Int]](concat).toOption
+        .map(_.toSet)
+        .getOrElse({
+          warn(
+            s"failed to get diff information for `warn-action`; showing warning for all yet-steps.",
+          )
+          Set.empty
+        })
+      NewPhraseAlert.warnYets(spec, diffFile)
+    }
     spec
   } else {
     runREPL
@@ -128,14 +148,20 @@ case object Extract extends Phase[Unit, Spec] {
       getName = algo => s"${algo.normalizedName}.algo",
     )
 
-    dumpFile(
-      name = "algorithms whose string form is not equal to the original prose",
-      data = spec.algorithms
-        .filter(algo => algo.normalizedCode != algo.body.toString)
-        .map(algo => s"$EXTRACT_LOG_DIR/algos/${algo.normalizedName}.algo")
-        .sorted
-        .mkString(LINE_SEP),
-      filename = s"$EXTRACT_LOG_DIR/yet-equal-algos",
+    dumpDir(
+      name = "yet-equal-algos",
+      iterable = spec.algorithms.filter(!_.equals),
+      getData = algo => algo.lineDiffStr,
+      dirname = s"$EXTRACT_LOG_DIR/yet-equal-algos",
+      getName = algo => s"${algo.normalizedName}.diff",
+    )
+
+    dumpDir(
+      name = "algorithms in JSON format",
+      iterable = spec.algorithms,
+      dirname = s"$EXTRACT_LOG_DIR/algos-json",
+      getName = algo => s"${algo.normalizedName}.json",
+      getData = algo => algo.asJson.toString(),
     )
 
     dumpFile(
@@ -197,6 +223,11 @@ case object Extract extends Phase[Unit, Spec] {
       StrOption((c, s) => c.allowedYets = Some(s)),
       "set a file containing allowed `yet`s (default: none).",
     ),
+    (
+      "warn-action",
+      BoolOption(_.warnAction = _),
+      "print workflow commands to warn novel yet-steps GitHub action",
+    ),
   )
   case class Config(
     var target: Option[String] = None,
@@ -205,5 +236,6 @@ case object Extract extends Phase[Unit, Spec] {
     var repl: Boolean = false,
     var strict: Boolean = false,
     var allowedYets: Option[String] = None,
+    var warnAction: Boolean = false,
   )
 }

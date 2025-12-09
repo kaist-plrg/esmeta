@@ -32,8 +32,12 @@ case class TypeCheckCondition(
 case class HasFieldCondition(
   ref: Reference,
   negation: Boolean,
-  field: Expression,
+  field: List[Expression],
+  form: HasFieldConditionForm,
+  tyOpt: Option[Type] = None,
 ) extends Condition
+enum HasFieldConditionForm:
+  case Field, InternalSlot, InternalMethod
 
 // binding inclusion conditions
 case class HasBindingCondition(
@@ -85,6 +89,7 @@ case class InclusiveIntervalCondition(
   negation: Boolean,
   from: Expression,
   to: Expression,
+  isTextForm: Boolean,
 ) extends Condition
 
 // `contiains` conditions

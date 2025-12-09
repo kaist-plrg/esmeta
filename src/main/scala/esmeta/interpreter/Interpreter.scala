@@ -361,25 +361,30 @@ class Interpreter(
   /** transition for expressions */
   def eval(expr: Expr): Value = expr match {
     case EParse(code, rule) =>
-      val (str, args, locOpt) = eval(code) match
-        case Str(s) => (s, List(), None)
-        case AstValue(syn: Syntactic) =>
-          (syn.toString(grammar = Some(grammar)), syn.args, syn.loc)
-        case AstValue(lex: Lexical) => (lex.str, List(), lex.loc)
-        case v                      => throw InvalidParseSource(code, v)
       try {
-        (str, eval(rule).asGrammarSymbol, st.sourceText, st.cachedAst) match
+        (
+          eval(code),
+          eval(rule).asGrammarSymbol,
+          st.sourceText,
+          st.cachedAst,
+        ) match
           // optimize the initial parsing using the given cached AST
-          case (x, GrammarSymbol("Script", Nil), Some(y), Some(ast))
+          case (Str(x), GrammarSymbol("Script", Nil), Some(y), Some(ast))
               if x == y =>
             AstValue(ast)
-          case (x, GrammarSymbol(name, params), _, _) =>
-            val ast =
-              esParser(name, if (params.isEmpty) args else params).from(x)
-            // TODO handle span of re-parsed ast
+          // parse string at runtime (e.g., `eval` or `Function` constructor)
+          case (Str(x), GrammarSymbol(name, params), _, _) =>
+            val ast = esParser(name, params).from(x)
             ast.clearLoc
-            ast.setChildLoc(locOpt)
             AstValue(ast)
+          // re-parse from existing AST because of `covered-by` phrase
+          case (AstValue(ast), GrammarSymbol(name, params), _, _) =>
+            val x = ast.toString(grammar = Some(grammar))
+            val parserArgs = if (params.isEmpty) ast.getArgs else params
+            val newAst = esParser(name, parserArgs).from(x)
+            ast.loc.map(newAst.rebaseLoc)
+            AstValue(newAst)
+          case (v, _, _, _) => throw InvalidParseSource(code, v)
       } catch {
         case _: Throwable => st.allocList(Nil) // NOTE: throw a List of errors
       }
@@ -758,13 +763,12 @@ object Interpreter {
     import BOp.*
     (bop, left, right) match {
       // double operations
-      case (Add, Number(l), Number(r))  => Number(l + r)
-      case (Sub, Number(l), Number(r))  => Number(l - r)
-      case (Mul, Number(l), Number(r))  => Number(l * r)
-      case (Pow, Number(l), Number(r))  => Number(math.pow(l, r))
-      case (Div, Number(l), Number(r))  => Number(l / r)
-      case (Mod, Number(l), Number(r))  => Number(l % r)
-      case (UMod, Number(l), Number(r)) => Number(l %% r)
+      case (Add, Number(l), Number(r)) => Number(l + r)
+      case (Sub, Number(l), Number(r)) => Number(l - r)
+      case (Mul, Number(l), Number(r)) => Number(l * r)
+      case (Pow, Number(l), Number(r)) => Number(math.pow(l, r))
+      case (Div, Number(l), Number(r)) => Number(l / r)
+      case (Mod, Number(l), Number(r)) => Number(l %% r)
       case (Lt, Number(l), Number(r)) if (l equals -0.0) && (r equals 0.0) =>
         Bool(true)
       case (Lt, Number(l), Number(r)) => Bool(l < r)
@@ -777,10 +781,7 @@ object Interpreter {
         // XXX rounded by DECIMAL128 to handle non-terminating decimal
         // expansion. For example, 1 / 3 = 1.3333...
         Math(l(DECIMAL128) / r(DECIMAL128))
-      case (Mod, Math(l), Math(r)) =>
-        val m = l % r
-        Math(if (m * r) < 0 then r + m else m)
-      case (UMod, Math(l), Math(r)) => Math(l %% r)
+      case (Mod, Math(l), Math(r)) => Math(l %% r)
       case (Pow, Math(l), Math(r)) if r.isValidInt && r >= 0 =>
         Math(l.pow(r.toInt))
       case (Pow, Math(l), Math(r)) => Math(math.pow(l.toDouble, r.toDouble))
@@ -851,8 +852,7 @@ object Interpreter {
       case (Sub, BigInt(l), BigInt(r))    => BigInt(l - r)
       case (Mul, BigInt(l), BigInt(r))    => BigInt(l * r)
       case (Div, BigInt(l), BigInt(r))    => BigInt(l / r)
-      case (Mod, BigInt(l), BigInt(r))    => BigInt(l % r)
-      case (UMod, BigInt(l), BigInt(r))   => BigInt(l %% r)
+      case (Mod, BigInt(l), BigInt(r))    => BigInt(l %% r)
       case (Lt, BigInt(l), BigInt(r))     => Bool(l < r)
       case (BAnd, BigInt(l), BigInt(r))   => BigInt(l & r)
       case (BOr, BigInt(l), BigInt(r))    => BigInt(l | r)
@@ -879,9 +879,8 @@ object Interpreter {
         else {
           val filtered = vs.filter(_ != NEG_INF)
           if (filtered.isEmpty) NEG_INF
-          else vopEval(_.asMath, _ min _, Math(_), filtered)
+          else vopEval(_.asMath, _ max _, Math(_), filtered)
         }
-        vopEval(_.asMath, _ max _, Math(_), vs)
       case Concat =>
         def toString(v: Value): String = v match
           case Str(s)      => s

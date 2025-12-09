@@ -257,6 +257,8 @@ class Compiler(
       fb.addInst(IPush(compile(fb, expr), ERef(compile(fb, ref)), false))
     case PrependStep(expr, ref) =>
       fb.addInst(IPush(compile(fb, expr), ERef(compile(fb, ref)), true))
+    case InsertStep(expr, ref) =>
+      fb.addInst(IPush(compile(fb, expr), ERef(compile(fb, ref)), true))
     case AddStep(expr, ref) =>
       // TODO: current IR does not support a set data structure.
       // AddStep represents an element addition to a set.
@@ -663,12 +665,29 @@ class Compiler(
   /** compile references */
   def compile(fb: FuncBuilder, ref: Reference): Ref =
     fb.withLang(ref)(ref match {
-      case x: Variable               => compile(x)
+      case x: Variable              => compile(x)
+      case Access(base, name, _, _) => Field(compile(fb, base), EStr(name))
+      case ValueOf(base)            => compile(fb, base)
+      case IntrinsicField(base, intr) =>
+        toIntrinsic(compile(fb, base), intr)
+      case IndexLookup(base, index) =>
+        Field(compile(fb, base), compile(fb, index))
+      case BindingLookup(base, binding) =>
+        Field(toStrRef(compile(fb, base), INNER_MAP), compile(fb, binding))
+      case NonterminalLookup(base, nt) =>
+        Field(compile(fb, base), EStr(nt))
+      case PositionalElement(base, true) =>
+        Field(compile(fb, base), zero)
+      case PositionalElement(base, isFirst) =>
+        val (x, xExpr) = fb.newTIdWithExpr
+        fb.addInst(IAssign(x, ERef(compile(fb, base))))
+        Field(x, dec(ESizeOf(xExpr)))
+      case IntrinsicObject(base, expr) =>
+        Field(Field(compile(fb, base), EStr("Intrinsics")), compile(fb, expr))
       case RunningExecutionContext() => GLOBAL_CONTEXT
       case SecondExecutionContext()  => toRef(GLOBAL_EXECUTION_STACK, EMath(1))
       case CurrentRealmRecord()      => currentRealm
       case ActiveFunctionObject()    => toStrRef(GLOBAL_CONTEXT, "Function")
-      case ref: PropertyReference    => compile(fb, ref)
       case AgentRecord()             => GLOBAL_AGENT_RECORD
       case WasmStoreReference()      => GLOBAL_WASM_STORE
       case CacheReference("Global")  => GLOBAL_GLOBAL_CACHE
@@ -679,18 +698,6 @@ class Compiler(
         ???
       case ThisReference()           => NAME_THIS
     })
-
-  def compile(fb: FuncBuilder, ref: PropertyReference): Field =
-    val PropertyReference(base, prop) = ref
-    val baseRef = compile(fb, base)
-    prop match
-      case FieldProperty(name)     => Field(baseRef, EStr(name))
-      case ComponentProperty(name) => Field(baseRef, EStr(name))
-      case BindingProperty(expr) =>
-        Field(toStrRef(baseRef, INNER_MAP), compile(fb, expr))
-      case IndexProperty(index)      => Field(baseRef, compile(fb, index))
-      case IntrinsicProperty(intr)   => toIntrinsic(baseRef, intr)
-      case NonterminalProperty(name) => Field(baseRef, EStr(name))
 
   /** compile expressions */
   def compile(fb: FuncBuilder, expr: Expression): Expr =
@@ -771,7 +778,7 @@ class Compiler(
           )
         )
         bytesExpr
-      case RecordExpression(rawName, fields) =>
+      case RecordExpression(rawName, fields, _) =>
         val tname = Type.normalizeName(rawName)
         var props = (for {
           (name, f) <- tyModel.methodOf(tname).toList.sortBy(_._1)
@@ -802,7 +809,7 @@ class Compiler(
           case (false, true)  => ETrim(compile(fb, expr), false)
           case (true, true)   => ETrim(ETrim(compile(fb, expr), true), false)
         }
-      case NumberOfExpression(_, _, expr) =>
+      case NumberOfExpression(_, _, expr, _) =>
         ESizeOf(compile(fb, expr))
       case IntrinsicExpression(intr) =>
         toEIntrinsic(currentIntrinsics, intr)
@@ -810,9 +817,9 @@ class Compiler(
         ESourceText(compile(fb, expr))
       case CoveredByExpression(code, rule) =>
         EParse(compile(fb, code), compile(fb, rule))
-      case GetItemsExpression(nt, expr @ NonterminalLiteral(_, name, flags)) =>
+      case GetItemsExpression(nt, l @ NonterminalLiteral(_, name, flags, _)) =>
         val n = compile(fb, nt)
-        val e = compile(fb, expr)
+        val e = compile(fb, l)
         val args = List(e, n, EGrammarSymbol(name, flags.map(_ startsWith "+")))
         val (x, xExpr) = fb.newTIdWithExpr
         fb.addInst(ICall(x, AUX_GET_ITEMS, args))
@@ -830,7 +837,7 @@ class Compiler(
         val (y, yExpr) = fb.newTIdWithExpr
         fb.addInst(ICall(y, f, List(xExpr)))
         returnIfAbrupt(fb, yExpr, true, false)
-      case InvokeAbstractOperationExpression(name, args) =>
+      case InvokeAbstractOperationExpression(name, args, _) =>
         val as = args.map(compile(fb, _))
         if (simpleOps contains name) simpleOps(name)(fb, as)
         else if (shorthands contains name) compileShorthand(fb, name, as)
@@ -848,8 +855,9 @@ class Compiler(
         val (x, xExpr) = fb.newTIdWithExpr
         fb.addInst(ICall(x, ERef(compile(fb, ref)), args.map(compile(fb, _))))
         xExpr
-      case InvokeMethodExpression(ref, args) =>
-        val Field(base, method) = compile(fb, ref)
+      case InvokeMethodExpression(access, args, _) =>
+        val base = compile(fb, access.base)
+        val method = EStr(access.name)
         val (b, bExpr) =
           if (base.isPure) (base, ERef(base))
           else fb.newTIdWithExpr(ERef(base))
@@ -857,43 +865,51 @@ class Compiler(
         val (x, xExpr) = fb.newTIdWithExpr
         fb.addInst(ICall(x, fexpr, bExpr :: args.map(compile(fb, _))))
         xExpr
-      case InvokeSyntaxDirectedOperationExpression(base, name, args) =>
-        // XXX BUG in Static Semancis: CharacterValue
+      case InvokeSyntaxDirectedOperationExpression(base, name, args, _, _) =>
+        // XXX BUG in Static Semantics: CharacterValue
         val baseExpr = compile(fb, base)
         val (x, xExpr) = fb.newTIdWithExpr
         fb.addInst(ISdoCall(x, baseExpr, name, args.map(compile(fb, _))))
         xExpr
       case ReturnIfAbruptExpression(expr, check) =>
         returnIfAbrupt(fb, compile(fb, expr), check, false)
-      case ListExpression(entries) =>
-        EList(entries.map(compile(fb, _)))
-      case IntListExpression(from, fInc, to, tInc, asc) =>
-        val (f, fExpr) = fb.newTIdWithExpr
-        val (t, tExpr) = fb.newTIdWithExpr
-        val (i, iExpr) = fb.newTIdWithExpr
-        val (list, listExpr) = fb.newTIdWithExpr
-        fb.addInst(
-          IAssign(f, compile(fb, from)),
-          IAssign(t, compile(fb, to)),
-          IAssign(
-            i,
-            if (asc) (if (fInc) fExpr else inc(fExpr))
-            else if (tInc) tExpr
-            else dec(tExpr),
-          ),
-          IAssign(list, EList(Nil)),
-        )
-        fb.addInst(
-          IWhile(
-            if (asc) lessThan(iExpr, if (tInc) inc(tExpr) else tExpr)
-            else lessThan(if (fInc) dec(fExpr) else fExpr, iExpr),
-            fb.newScope {
-              fb.addInst(IPush(iExpr, listExpr, false))
-              fb.addInst(IAssign(i, if (asc) inc(iExpr) else dec(iExpr)))
-            },
-          ),
-        )
-        listExpr
+      case ListExpression(form) =>
+        import ListExpressionForm.*
+        form match {
+          case LiteralSyntax(entries) =>
+            EList(entries.map(compile(fb, _)))
+          case SoleElement(entry) =>
+            EList(List(compile(fb, entry)))
+          case EmptyList(_, _) =>
+            EList(Nil)
+          case IntRange(from, fInc, to, tInc, asc) =>
+            val (f, fExpr) = fb.newTIdWithExpr
+            val (t, tExpr) = fb.newTIdWithExpr
+            val (i, iExpr) = fb.newTIdWithExpr
+            val (list, listExpr) = fb.newTIdWithExpr
+            fb.addInst(
+              IAssign(f, compile(fb, from)),
+              IAssign(t, compile(fb, to)),
+              IAssign(
+                i,
+                if (asc) (if (fInc) fExpr else inc(fExpr))
+                else if (tInc) tExpr
+                else dec(tExpr),
+              ),
+              IAssign(list, EList(Nil)),
+            )
+            fb.addInst(
+              IWhile(
+                if (asc) lessThan(iExpr, if (tInc) inc(tExpr) else tExpr)
+                else lessThan(if (fInc) dec(fExpr) else fExpr, iExpr),
+                fb.newScope {
+                  fb.addInst(IPush(iExpr, listExpr, false))
+                  fb.addInst(IAssign(i, if (asc) inc(iExpr) else dec(iExpr)))
+                },
+              ),
+            )
+            listExpr
+        }
       case yet: YetExpression =>
         val yetStr = yet.toString(true, false)
         unusedRules -= yetStr
@@ -919,7 +935,7 @@ class Compiler(
             )
             xExpr
           case _ => raise(s"invalid math operation: $expr")
-      case ConversionExpression(op, expr) =>
+      case ConversionExpression(op, expr, _) =>
         import ConversionExpressionOperator.*
         op match
           case ToApproxNumber => EConvert(COp.ToApproxNumber, compile(fb, expr))
@@ -963,7 +979,11 @@ class Compiler(
           prefix = prefix,
         )
         EClo(name, captured.map(compile))
-      case XRefExpression(XRefExpressionOperator.Algo, id) =>
+      case XRefExpression(
+            XRefExpressionOperator.Algo | XRefExpressionOperator.Definition |
+            XRefExpressionOperator.InternalMethod,
+            id,
+          ) =>
         EClo(normalize(normalize(spec.getAlgoById(id).head.fname)), Nil)
       case XRefExpression(XRefExpressionOperator.ParamLength, id) =>
         EMath(spec.getAlgoById(id).head.originalParams.length)
@@ -1003,6 +1023,8 @@ class Compiler(
         // val map = EMap((compile(UnknownType), compile(UnknownType)), pairs)
         // val rec = ERecord("Object", List("Prototype" -> objProto, "Extensible" -> EBool(true), "__MAP__" -> map))
         // rec
+      case StringExpression(expr) =>
+        compile(fb, expr)
       case lit: Literal => compile(fb, lit)
     })
 
@@ -1053,14 +1075,15 @@ class Compiler(
 
   /** compile literals */
   def compile(fb: FuncBuilder, lit: Literal): Expr = lit match {
-    case ThisLiteral()      => ENAME_THIS
-    case NewTargetLiteral() => ENAME_NEW_TARGET
-    case HexLiteral(hex, name) =>
+    case ThisLiteral(_)          => ENAME_THIS
+    case ThisParseNodeLiteral(_) => ENAME_THIS
+    case NewTargetLiteral()      => ENAME_NEW_TARGET
+    case HexLiteral(hex, _, _, name) =>
       if (name.isDefined) ECodeUnit(hex.toChar) else EMath(hex)
     case CodeLiteral(code) => EStr(code)
     case GrammarSymbolLiteral(name, flags) =>
       EGrammarSymbol(name, flags.map(_ startsWith "+"))
-    case NonterminalLiteral(ordinal, name, flags) =>
+    case NonterminalLiteral(ordinal, name, flags, _) =>
       val ntNames = fb.ntBindings.map(_._1)
       // TODO ClassTail[0,3].Contains
       if (ntNames contains name) {
@@ -1070,7 +1093,7 @@ class Compiler(
           case (_, base, Some(idx)) => toERef(fb, base, EMath(idx))
       } else EGrammarSymbol(name, flags.map(_ startsWith "+"))
     case EnumLiteral(name)   => EEnum(name)
-    case StringLiteral(s)    => EStr(s)
+    case StringLiteral(s, _) => EStr(s)
     case FieldLiteral(field) => EStr(field)
     case SymbolLiteral(sym)  => toERef(GLOBAL_SYMBOL, EStr(sym))
     case ProductionLiteral(lhsName, rhsName) =>
@@ -1129,9 +1152,15 @@ class Compiler(
         val e = compile(fb, expr)
         val c = tys.map(t => ETypeCheck(e, compile(t))).reduce[Expr](or(_, _))
         if (neg) not(c) else c
-      case HasFieldCondition(ref, neg, field) =>
-        val e = exists(toRef(compile(fb, ref), compile(fb, field)))
-        if (neg) not(e) else e
+      case HasFieldCondition(ref, neg, field, _, tyOpt) =>
+        val r = compile(fb, ref)
+        val el = field.map { f =>
+          val e = toRef(r, compile(fb, f))
+          val ex = exists(e)
+          val tc = tyOpt.fold(ex)(t => and(ex, ETypeCheck(ERef(e), compile(t))))
+          if (neg) not(tc) else tc
+        }
+        el.reduce(and(_, _))
       case HasBindingCondition(ref, neg, binding) =>
         val e = exists(
           toRef(compile(fb, ref), EStr(INNER_MAP), compile(fb, binding)),
@@ -1238,7 +1267,7 @@ class Compiler(
           case GreaterThanEqual => not(lessThan(l, r))
           case SameCodeUnits    => EBinary(BOp.Eq, l, r)
         }
-      case InclusiveIntervalCondition(left, neg, from, to) =>
+      case InclusiveIntervalCondition(left, neg, from, to, _) =>
         lazy val l = compile(fb, left)
         lazy val f = compile(fb, from)
         lazy val t = compile(fb, to)
@@ -1387,7 +1416,7 @@ class Compiler(
     var found = false
     val walker = new LangUnitWalker {
       override def walk(invoke: InvokeExpression): Unit = invoke match
-        case InvokeAbstractOperationExpression(name, _)
+        case InvokeAbstractOperationExpression(name, _, _)
             if simpleOps contains name =>
         case _ => found = true
     }

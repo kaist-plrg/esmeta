@@ -211,16 +211,21 @@ trait Parsers extends LangParsers {
     repsep(wjiParam, ("," | "and" | "by"))
   }.named("List[spec.Param]")
 
+  /* skip newlines around the parser  */
+  private def surroundedBy[A](p: Parser[A]): Parser[A] =
+    val newlinable = "[ \n\t]+".r
+    rep(newlinable) ~> p <~ rep(newlinable)
+
   // abstract operation (AO) heads
   lazy val absOpHeadGen: Parser[Boolean => AbstractOperationHead] = {
-    opt(semanticsKind) ~> name ~ params ~ retTy ^^ {
+    surroundedBy(opt(semanticsKind) ~> name ~ params ~ retTy) ^^ {
       case name ~ params ~ rty => AbstractOperationHead(_, name, params, rty)
     }
   }.named("spec.AbstractOperationHead")
 
   // numeric method heads
   lazy val numMethodHead: Parser[NumericMethodHead] = {
-    (langType <~ "::") ~ name ~ params ~ retTy ^^ {
+    surroundedBy((langType <~ "::") ~ name ~ params ~ retTy) ^^ {
       case t ~ x ~ ps ~ rty => NumericMethodHead(t, x, ps, rty)
     }
   }.named("spec.NumericMethodHead")
@@ -266,7 +271,7 @@ trait Parsers extends LangParsers {
   lazy val sdoHeadGen: Parser[
     Option[SyntaxDirectedOperationHead.Target] => SyntaxDirectedOperationHead,
   ] = {
-    semanticsKind ~ name ~ params ~ retTy ^^ {
+    surroundedBy(semanticsKind ~ name ~ params ~ retTy) ^^ {
       case isStatic ~ x ~ params ~ rty =>
         SyntaxDirectedOperationHead(_, x, isStatic, params, rty)
     }
@@ -274,21 +279,21 @@ trait Parsers extends LangParsers {
 
   // concrete method head generator
   lazy val concMethodHeadGen: Parser[Param => ConcreteMethodHead] = {
-    name ~ params ~ retTy ^^ {
+    surroundedBy(name ~ params ~ retTy) ^^ {
       case name ~ params ~ rty => ConcreteMethodHead(name, _, params, rty)
     }
   }.named("spec.ConcreteMethodHead")
 
   // internal method head generator
   lazy val inMethodHeadGen: Parser[Param => InternalMethodHead] = {
-    ("[[" ~> name <~ "]]") ~ params ~ retTy ^^ {
+    surroundedBy(("[[" ~> name <~ "]]") ~ params ~ retTy) ^^ {
       case name ~ params ~ rty => InternalMethodHead(name, _, params, rty)
     }
   }.named("spec.InternalMethodHead")
 
   // built-in heads
   lazy val builtinHead: Parser[BuiltinHead] = {
-    builtinPath ~ params ~ retTy ^^ {
+    surroundedBy(builtinPath ~ params ~ retTy) ^^ {
       case r ~ params ~ rty => BuiltinHead(r, params, rty)
     }
   }.named("spec.BuiltinHead")
@@ -347,21 +352,19 @@ trait Parsers extends LangParsers {
       (empty ~ "- extended productions for web:" ~> int)
     } ^^ { case l ~ n ~ s ~ w => GrammarSummary(l, n, s, w) }
     val algos = {
-      (empty ~ "- algorithms:" ~ ".*".r) ~>
-      (empty ~ "- complete:" ~> int) ~
-      (empty ~ "- incomplete:" ~> int)
-    } ^^ { case c ~ i => AlgorithmSummary(c, i) }
+      (empty ~ "- algorithms:" ~> int) ~
+      (empty ~ "- complete:" ~> int <~ ".*".r) ~
+      (empty ~ "- equals:" ~> int <~ ".*".r)
+    } ^^ { case t ~ c ~ e => AlgorithmSummary(t, c, e) }
     val steps = {
-      (empty ~ "- algorithm steps:" ~ ".*".r) ~>
-      (empty ~ "- complete:" ~> int) ~
-      (empty ~ "- incomplete:" ~> int)
-    } ^^ { case c ~ i => StepSummary(c, i) }
+      (empty ~ "- algorithm steps:" ~> int) ~
+      (empty ~ "- complete:" ~> int <~ ".*".r)
+    } ^^ { case t ~ c => StepSummary(t, c) }
     val types = {
-      (empty ~ "- types:" ~ ".*".r) ~>
-      (empty ~ "- known:" ~> int) ~
-      (empty ~ "- yet:" ~> int) ~
-      (empty ~ "- unknown:" ~> int)
-    } ^^ { case c ~ u ~ n => TypeSummary(c, u, n) }
+      (empty ~ "- types:" ~> int) ~
+      (empty ~ "- known:" ~> int <~ ".*".r) ~
+      (empty ~ "- yet:" ~> int <~ ".*".r)
+    } ^^ { case t ~ k ~ y => TypeSummary(t, k, y) }
     val tables = empty ~ "- tables:" ~> int
     val tyModel = empty ~ "- type model:" ~> int <~ empty
     val intr = empty ~ "- intrinsics:" ~> int <~ empty

@@ -50,7 +50,8 @@ trait Walker extends BasicWalker {
 
   def walk(step: Step): Step = step match {
     case LetStep(x, expr)       => LetStep(walk(x), walk(expr))
-    case LetTupleStep(xs, expr) => LetTupleStep(walkList(xs, walk), walk(expr))
+    case LetVariantStep(name, args, expr) =>
+      LetVariantStep(walk(name), walkList(args, walk), walk(expr))
     case SetStep(x, expr)       => SetStep(walk(x), walk(expr))
     case SetAsStep(x, verb, id) => SetAsStep(walk(x), walk(verb), walk(id))
     case SetEvaluationStateStep(base, func, args) =>

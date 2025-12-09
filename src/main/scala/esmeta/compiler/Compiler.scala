@@ -218,11 +218,11 @@ class Compiler(
   ): Unit = fb.withLang(step)(step match {
     case LetStep(x, expr) =>
       fb.addInst(ILet(compile(x), compile(fb, expr)))
-    case LetTupleStep(xs, expr) =>
-      val (tup, tupExpr) = fb.newTIdWithExpr
-      fb.addInst(IAssign(tup, compile(fb, expr)))
-      for ((x, i) <- xs.zipWithIndex)
-        fb.addInst(ILet(compile(x), toStrERef(tup, s"_$i")))
+    case LetVariantStep(name, args, expr) =>
+      val variant = getRef(fb, compile(fb, expr))
+      fb.addInst(IAssert(equal(EStr(name), toStrERef(variant, s"constructor"))))
+      for ((x, i) <- args.zipWithIndex)
+        fb.addInst(ILet(compile(x), toStrERef(variant, s"_$i")))
     case SetStep(ref, expr) =>
       fb.addInst(IAssign(compile(fb, ref), compile(fb, expr)))
     case SetAsStep(ref, verb, id) =>

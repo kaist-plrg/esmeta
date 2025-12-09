@@ -50,7 +50,8 @@ trait UnitWalker extends BasicUnitWalker {
 
   def walk(step: Step): Unit = step match {
     case LetStep(x, expr)       => walk(x); walk(expr)
-    case LetTupleStep(xs, expr) => walkList(xs, walk); walk(expr)
+    case LetVariantStep(name, args, expr) =>
+      walk(name); walkList(args, walk); walk(expr)
     case SetStep(x, expr)       => walk(x); walk(expr)
     case SetAsStep(x, verb, id) => walk(x); walk(verb); walk(id)
     case SetEvaluationStateStep(base, func, args) =>

@@ -78,10 +78,15 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case LetStep(x, expr) =>
         given Rule[Expression] = endWithExprRule
         app >> First("let ") >> x >> " be " >> expr
-      case LetTupleStep(xs, expr) =>
+      case LetVariantStep(name, args, expr) =>
         given Rule[Expression] = endWithExprRule
-        given Rule[Iterable[Variable]] = iterableRule("(", ", ", ")")
-        app >> First("let ") >> xs >> " be " >> expr
+        app >> First("let ")
+        if (name == "")
+          given Rule[Iterable[Variable]] = iterableRule("(", ", ", ")")
+          app >> args >> " be " >> expr
+        else
+          given Rule[Iterable[Variable]] = iterableRule("", " ", "")
+          app >> name >> " " >> args >> " be " >> expr
       case SetStep(x, expr) =>
         given Rule[Expression] = endWithExprRule
         app >> First("set ") >> x >> " to " >> expr

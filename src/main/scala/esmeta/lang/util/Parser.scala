@@ -55,7 +55,7 @@ trait Parsers extends IndentParsers {
   // ---------------------------------------------------------------------------
   given step: PL[Step] = {
     letStep |
-    letTupleStep |
+    letVariantStep |
     setStep |
     setAsStep |
     setEvalStateStep |
@@ -96,9 +96,14 @@ trait Parsers extends IndentParsers {
     ("let" ~> variable <~ "be") ~ endWithExpr ^^ { case x ~ e => LetStep(x, e) }
 
   // let tuple steps
-  lazy val letTupleStep: PL[LetTupleStep] =
-    ("let" ~> "(" ~> rep1sep(variable, ",") <~ ")" <~ "be") ~ endWithExpr
-    ^^ { case xs ~ e => LetTupleStep(xs, e) }
+  lazy val letVariantStep: PL[LetVariantStep] =
+    val variantName = "func" | "global" | "mem" | "table"
+    ("let" ~> wjiLinkName(variantName) ~ rep(variable) <~ "be") ~ endWithExpr ^^ {
+      case name ~ args ~ e => LetVariantStep(name, args, e)
+    } |
+    ("let" ~> "(" ~> rep1sep(variable, ",") <~ ")" <~ "be") ~ endWithExpr ^^ {
+      case args ~ e => LetVariantStep("", args, e)
+    }
 
   // set steps
   lazy val setStep: PL[SetStep] =

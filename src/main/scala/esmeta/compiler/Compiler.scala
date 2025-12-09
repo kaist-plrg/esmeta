@@ -671,7 +671,12 @@ class Compiler(
       case ref: PropertyReference    => compile(fb, ref)
       case AgentRecord()             => GLOBAL_AGENT_RECORD
       case WasmStoreReference()      => GLOBAL_WASM_STORE
-      case GlobalCacheReference()    => GLOBAL_GLOBAL_CACHE
+      case CacheReference("Global")  => GLOBAL_GLOBAL_CACHE
+      case CacheReference("Table")   => GLOBAL_TABLE_CACHE
+      case CacheReference("Memory")  => GLOBAL_MEMORY_CACHE
+      case CacheReference(cache)     =>
+        println(cache)
+        ???
       case ThisReference()           => NAME_THIS
     })
 

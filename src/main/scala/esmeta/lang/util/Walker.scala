@@ -371,7 +371,7 @@ trait Walker extends BasicWalker {
     case propRef: PropertyReference => walk(propRef)
     case AgentRecord()              => AgentRecord()
     case WasmStoreReference()       => WasmStoreReference()
-    case GlobalCacheReference()     => GlobalCacheReference()
+    case CacheReference(kind)       => CacheReference(kind)
     case ThisReference()            => ThisReference()
   }
 

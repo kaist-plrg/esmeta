@@ -63,6 +63,6 @@ object Intrinsic extends Parser.From(Parser.intr)
 // Wasm store expressions
 case class WasmStoreReference() extends Reference
 
-case class GlobalCacheReference() extends Reference
+case class CacheReference(kind: String) extends Reference
 
 case class ThisReference() extends Reference

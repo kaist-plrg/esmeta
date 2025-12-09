@@ -1457,8 +1457,9 @@ trait Parsers extends IndentParsers {
     "the" ~ (wjiLink("surrounding agent")|"current agent") ~ "'s" ~ wjiLink("associated store")
   } ^^^ WasmStoreReference()
   | {
-    "the" ~ (wjiLink("surrounding agent")|"current agent") ~ "'s" ~ "associated" ~ wjiLink("Global object cache")
-  } ^^^ GlobalCacheReference()
+    "the" ~ (wjiLink("surrounding agent")|"current agent") ~ "'s associated" ~
+    "[=" ~> word <~ "object cache=]"
+  } ^^ { CacheReference(_) }
 
   // ---------------------------------------------------------------------------
   // metalanguage properties

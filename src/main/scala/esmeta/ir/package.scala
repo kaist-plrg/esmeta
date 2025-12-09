@@ -69,6 +69,8 @@ def GLOBAL_BIGINT_TYPE = Global("BigInt")
 def GLOBAL_OBJECT_TYPE = Global("Object")
 def GLOBAL_WASM_STORE = Global("WASM_STORE")
 def GLOBAL_GLOBAL_CACHE = Global("GLOBAL_CACHE")
+def GLOBAL_TABLE_CACHE = Global("TABLE_CACHE")
+def GLOBAL_MEMORY_CACHE = Global("MEMORY_CACHE")
 
 /** predefined globals identifier expressions */
 def EGLOBAL_EXECUTION_STACK = ERef(GLOBAL_EXECUTION_STACK)

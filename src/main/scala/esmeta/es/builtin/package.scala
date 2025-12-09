@@ -47,6 +47,8 @@ val OBJECT_TYPE = "Object"
 val WASM_STORE = "WASM_STORE"
 val WASM_SECTION_INIT = "WASM_SECTION_INIT"
 val GLOBAL_CACHE = "GLOBAL_CACHE"
+val TABLE_CACHE = "TABLE_CACHE"
+val MEMORY_CACHE = "MEMORY_CACHE"
 
 /** not yet supported objects */
 val yets: Map[String, ValueTy] =

@@ -73,6 +73,8 @@ class Initialize(cfg: CFG) {
     OBJECT_TYPE -> (Str("Object"), StrT("Object")),
     WASM_STORE -> (NamedAddr(WASM_STORE), RecordT("store")),
     GLOBAL_CACHE -> (NamedAddr(GLOBAL_CACHE), MapT),
+    TABLE_CACHE -> (NamedAddr(TABLE_CACHE), MapT),
+    MEMORY_CACHE -> (NamedAddr(MEMORY_CACHE), MapT),
   ).map { case (k, p) => Global(k) -> p }
 
   // initial heaps
@@ -115,6 +117,8 @@ class Initialize(cfg: CFG) {
         "EXNS" -> NamedAddr(WASM_SECTION_INIT),
       ),
       NamedAddr(GLOBAL_CACHE) -> MapObj(),
+      NamedAddr(TABLE_CACHE) -> MapObj(),
+      NamedAddr(MEMORY_CACHE) -> MapObj(),
     )
 
     // add symbols

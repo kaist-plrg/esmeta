@@ -307,7 +307,7 @@ trait UnitWalker extends BasicUnitWalker {
     case propRef: PropertyReference => walk(propRef)
     case AgentRecord()              =>
     case WasmStoreReference()       =>
-    case GlobalCacheReference()     =>
+    case CacheReference(kind)       => walk(kind)
     case ThisReference()            =>
   }
 

@@ -18,6 +18,13 @@ case class ImplementCondition(
   rawName: String
 ) extends Condition
 
+
+case class WasmTypeCheckCondition(
+  expr: Expression,
+  negation: Boolean,
+  tname: String,
+) extends Condition
+
 // expression conditions
 case class ExpressionCondition(expr: Expression) extends Condition
 

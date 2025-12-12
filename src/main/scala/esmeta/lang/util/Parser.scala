@@ -336,7 +336,7 @@ trait Parsers extends IndentParsers {
     lazy val errorName =
       "*" ~> word.filter(_.endsWith("Error")) <~ "*" |
       "{{" ~> word.filter(_.endsWith("Error")) <~ "}}"
-    ("throw" ~ article ~> errorName <~ opt("exception")) ~ end ^^ {
+    (("throw"|wjiLink("Throw")) ~ article ~> errorName <~ opt("exception")) ~ end ^^ {
       case e ~ f => f(ThrowStep(e))
     }
 
@@ -1221,8 +1221,15 @@ trait Parsers extends IndentParsers {
     hasBindingCond |||
     hasFieldCond |||
     typeCheckCond |||
+    wasmTypeCheckCond |||
     implementCond |||
     exprCond
+
+  lazy val wasmTypeCheckCond: PL[WasmTypeCheckCondition] =
+    expr ~ ("is not" ^^^ true | "is" ^^^ false) ~
+    (opt(indefArticle) ~> wjiLink(word)) ^^ {
+      case e ~ n ~ t => WasmTypeCheckCondition(e, n, t)
+    }
 
   lazy val implementCond: PL[ImplementCondition] =
     expr ~ ("does not [=implement=]" ^^^ true | "[=implements=]" ^^^ false) ~

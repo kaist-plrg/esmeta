@@ -746,6 +746,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
         else
           app >> " [=implements=] "
         app >> "{{" >> name >> "}}"
+      case WasmTypeCheckCondition(expr, neg, tname) =>
+        app >> expr >> isStr(neg) >> tname
       case ExpressionCondition(expr) =>
         app >> expr
       case TypeCheckCondition(expr, neg, ty) =>

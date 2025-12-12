@@ -1146,6 +1146,12 @@ class Compiler(
         val ref = getRef(fb, e)
         val c = equal(toStrERef(ref, "PrimaryInterface"), EStr(name))
         if (neg) not(c) else c
+      case WasmTypeCheckCondition(expr, neg, tname) =>
+        val e = compile(fb, expr)
+        val (x, xExpr) = fb.newTIdWithExpr
+        val f = EClo(s"is_$tname", Nil)
+        fb.addInst(ICall(x, f, List(e)))
+        if (neg) not(xExpr) else xExpr
       case ExpressionCondition(expr) =>
         compile(fb, expr)
       case TypeCheckCondition(expr, neg, tys) =>

@@ -403,6 +403,7 @@ class CaseCollector extends UnitWalker {
     val add = getAdd(conds, cond)
     add(cond match {
       case ImplementCondition(expr, neg, name) => ???
+      case WasmTypeCheckCondition(expr, neg, ty) => ???
       case ExpressionCondition(expr) =>
         s"{{ expr }}"
       case TypeCheckCondition(expr, neg, ty) =>

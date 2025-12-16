@@ -274,7 +274,7 @@ trait UnitWalker extends BasicUnitWalker {
   def walk(cond: Condition): Unit = cond match {
     case ImplementCondition(expr, neg, name) =>
       walk(expr); walk(neg); walk(name)
-    case WasmTypeCheckCondition(expr, neg, tname) =>
+    case WasmCondition(expr, neg, tname) =>
       walk(expr); walk(neg); walk(tname)
     case ExpressionCondition(expr) =>
       walk(expr)

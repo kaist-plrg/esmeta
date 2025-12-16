@@ -259,12 +259,12 @@ trait Parsers extends IndentParsers {
     not("nan") ~> "[a-zA-Z][a-zA-Z0-9_]*".r
 
   lazy val wjiInvoke: Parser[String ~ List[Reference]]=
-    val varArgKeywords = "with" | "from" | "importing"
+    val varArgKeywords = "with" | "from" | "importing" | "by"
     val and = opt(",") ~ "and"
     val redundantExplanation =
       rep(not(varArgKeywords | and | "let" | "store" | "return") ~ "[^\\|_]".r)
     val firstArg =
-      opt("of") ~> ref <~ opt("as" ~ redundantExplanation) |
+      opt("of" | "associated with") ~> ref <~ opt("as" ~ redundantExplanation) |
       "**this**" ^^! ThisReference()
     val varArgs =
       varArgKeywords ~> rep1sep(redundantExplanation ~> variable, "and")
@@ -520,6 +520,15 @@ trait Parsers extends IndentParsers {
           SyntaxLiteral(pre),
         )
     } | {
+      "{" ~> repsep(("<b>" ~> wjiLinkName(word) <~ "</b>") ~ expr, ",") <~ "}"
+    } ^^ {
+      case fields =>
+        RecordExpression(
+          "WjiRecord",
+          fields.map { case f ~ e => FieldLiteral(f) -> e },
+          SyntaxLiteral(None)
+        )
+    } | {
       ("a new" ~> tname) ~ ("whose" ~> fieldLiteral) ~ ("is" ~> expr)
     } ^^ {
       case t ~ f ~ e =>
@@ -709,6 +718,7 @@ trait Parsers extends IndentParsers {
   lazy val wasmVariantExpr: PL[WasmVariantExpression] =
     import ListExpressionForm.*
     val variantName =
+      "[^ ]+ type".r ^^^ "" |
       "error" | "funcref" | "externref" | "func" | "global" |
       "mem" | "table" | "const" | "var" | "nan" | "external value" |
       "+∞" | "-∞" |
@@ -1030,7 +1040,7 @@ trait Parsers extends IndentParsers {
     // handle emu-meta tag
     withTagForInvoke(opName, invokeArgs) ^^ {
       case (x, as, tag) => InvokeAbstractOperationExpression(x, as, tag)
-    } | wjiLink(embeddingName) ~ invokeArgs ^^ {
+    } | opt("the") ~> wjiLink(embeddingName) ~ invokeArgs ^^ {
       case x ~ as => InvokeAbstractOperationExpression(x, as, HtmlTag.None)
     } | "the" ~ opt("result of") ~ opt("creating") ~> wjiInvoke ^^ {
       case x ~ vs =>
@@ -1225,10 +1235,10 @@ trait Parsers extends IndentParsers {
     implementCond |||
     exprCond
 
-  lazy val wasmTypeCheckCond: PL[WasmTypeCheckCondition] =
+  lazy val wasmTypeCheckCond: PL[WasmCondition] =
     expr ~ ("is not" ^^^ true | "is" ^^^ false) ~
-    (opt(indefArticle) ~> wjiLink(word)) ^^ {
-      case e ~ n ~ t => WasmTypeCheckCondition(e, n, t)
+    (opt(indefArticle) ~> wjiLink("(?:valid )?[a-z]+type".r)) ^^ {
+      case e ~ n ~ t => WasmCondition(e, n, t.replace(" ", "_"))
     }
 
   lazy val implementCond: PL[ImplementCondition] =
@@ -1556,7 +1566,7 @@ trait Parsers extends IndentParsers {
       WasmStoreReference()
     } | {
       "the" ~ (wjiLink("surrounding agent")|"current agent") ~ "'s associated" ~
-      "[=" ~> word <~ "object cache=]"
+      "[=" ~> (word <~ "object" | "[ a-zA-Z]+(?= cache)".r) <~ "cache=]"
     } ^^ {
       CacheReference(_)
     } | baseRef

@@ -75,6 +75,8 @@ class Initialize(cfg: CFG) {
     GLOBAL_CACHE -> (NamedAddr(GLOBAL_CACHE), MapT),
     TABLE_CACHE -> (NamedAddr(TABLE_CACHE), MapT),
     MEMORY_CACHE -> (NamedAddr(MEMORY_CACHE), MapT),
+    EXTERN_CACHE -> (NamedAddr(EXTERN_CACHE), MapT),
+    FUNCTION_CACHE -> (NamedAddr(FUNCTION_CACHE), MapT),
   ).map { case (k, p) => Global(k) -> p }
 
   // initial heaps
@@ -119,6 +121,8 @@ class Initialize(cfg: CFG) {
       NamedAddr(GLOBAL_CACHE) -> MapObj(),
       NamedAddr(TABLE_CACHE) -> MapObj(),
       NamedAddr(MEMORY_CACHE) -> MapObj(),
+      NamedAddr(EXTERN_CACHE) -> MapObj(),
+      NamedAddr(FUNCTION_CACHE) -> MapObj(),
     )
 
     // add symbols

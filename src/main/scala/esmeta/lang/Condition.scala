@@ -19,7 +19,7 @@ case class ImplementCondition(
 ) extends Condition
 
 
-case class WasmTypeCheckCondition(
+case class WasmCondition(
   expr: Expression,
   negation: Boolean,
   tname: String,

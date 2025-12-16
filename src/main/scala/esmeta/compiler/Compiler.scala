@@ -693,8 +693,12 @@ class Compiler(
       case CacheReference("Global")  => GLOBAL_GLOBAL_CACHE
       case CacheReference("Table")   => GLOBAL_TABLE_CACHE
       case CacheReference("Memory")  => GLOBAL_MEMORY_CACHE
+      case CacheReference("extern value") =>
+        GLOBAL_EXTERN_CACHE
+      case CacheReference("Exported Function") =>
+        GLOBAL_FUNCTION_CACHE
       case CacheReference(cache)     =>
-        println(cache)
+        System.err.println(ref)
         ???
       case ThisReference()           => NAME_THIS
     })
@@ -1146,10 +1150,10 @@ class Compiler(
         val ref = getRef(fb, e)
         val c = equal(toStrERef(ref, "PrimaryInterface"), EStr(name))
         if (neg) not(c) else c
-      case WasmTypeCheckCondition(expr, neg, tname) =>
+      case WasmCondition(expr, neg, name) =>
         val e = compile(fb, expr)
         val (x, xExpr) = fb.newTIdWithExpr
-        val f = EClo(s"is_$tname", Nil)
+        val f = EClo(s"is_${name}", Nil)
         fb.addInst(ICall(x, f, List(e)))
         if (neg) not(xExpr) else xExpr
       case ExpressionCondition(expr) =>

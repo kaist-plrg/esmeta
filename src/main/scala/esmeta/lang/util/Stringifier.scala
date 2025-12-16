@@ -746,8 +746,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
         else
           app >> " [=implements=] "
         app >> "{{" >> name >> "}}"
-      case WasmTypeCheckCondition(expr, neg, tname) =>
-        app >> expr >> isStr(neg) >> tname
+      case WasmCondition(expr, neg, tname) =>
+        app >> expr >> isStr(neg) >> "[=" >> tname >> "=]"
       case ExpressionCondition(expr) =>
         app >> expr
       case TypeCheckCondition(expr, neg, ty) =>
@@ -982,7 +982,10 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> "the [=surrounding agent=]'s [=associated store=]"
       case CacheReference(kind) =>
         app >> "the [=surrounding agent=]'s associated [="
-        app >> kind >> " object cache=]"
+        app >> kind
+        if (kind != "extern value" && kind != "Exported Function")
+          app >> " object"
+        app >> " cache=]"
       case ThisReference() =>
         app >> "**this**"
     }

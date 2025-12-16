@@ -49,6 +49,8 @@ val WASM_SECTION_INIT = "WASM_SECTION_INIT"
 val GLOBAL_CACHE = "GLOBAL_CACHE"
 val TABLE_CACHE = "TABLE_CACHE"
 val MEMORY_CACHE = "MEMORY_CACHE"
+val EXTERN_CACHE = "EXTERN_CACHE"
+val FUNCTION_CACHE = "FUNCTION_CACHE"
 
 /** not yet supported objects */
 val yets: Map[String, ValueTy] =

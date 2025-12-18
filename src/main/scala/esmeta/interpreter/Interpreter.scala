@@ -165,7 +165,10 @@ class Interpreter(
     case obj: RecordObj => isVariant(obj)
     case _ => false
   }
-  def isVariant(addr: Addr): Boolean = isVariant(st(addr))
+  def isVariant(v: Value): Boolean = v match {
+    case addr: Addr => isVariant(st(addr))
+    case _ => false
+  }
   def isVariant(json: io.circe.Json): Boolean =
     json.isObject && isVariantMap(json.asObject.get.toMap)
 
@@ -480,15 +483,16 @@ class Interpreter(
           st.define(name, v)
           true
         case EVariant(name, patterns) =>
-          val record = v.asRecord(st)
-          val matched =
-            isVariant(record) &&
-            record.map.get("constructor").contains(Str(name)) &&
-            record.map.size - 1 == patterns.size
-          if (matched)
-            patterns.zipWithIndex.map(
-              (e, i) => patternMatch(e, record.map(s"_$i"))
-            ).forall((b) => b)
+          if (isVariant(v))
+            val record = v.asRecord(st)
+            val matched =
+              record.map.get("constructor").contains(Str(name)) &&
+              record.map.size - 1 == patterns.size
+            if (matched)
+              patterns.zipWithIndex.map(
+                (e, i) => patternMatch(e, record.map(s"_$i"))
+              ).forall((b) => b)
+            else false
           else false
         case _ => ???
       }

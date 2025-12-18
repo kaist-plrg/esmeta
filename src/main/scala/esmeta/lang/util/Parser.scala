@@ -717,26 +717,27 @@ trait Parsers extends IndentParsers {
   // wasm variant expressions
   lazy val wasmVariantExpr: PL[WasmVariantExpression] =
     import ListExpressionForm.*
+    val consttype = "i32" | "i64" | "f32" | "f64" | "v128"
+    val reftype = "ref.null" | "ref.func" | "ref.extern"
     val variantName =
-      "[^ ]+ type".r ^^^ "" |
+      "[^ ]+ type".r ^^^ "" | consttype | reftype |
       "error" | "funcref" | "externref" | "func" | "global" |
       "mem" | "table" | "const" | "var" | "nan" | "external value" |
-      "+∞" | "-∞" |
-      {
-        ("i"|"f") ~ ("32"|"64") ~ opt(".const")
-      } ^^ {
-        case kind ~ bits ~ constOpt => kind + bits + constOpt.getOrElse("")
-      } | {
-        "v128" ~ opt(".const")
-      } ^^ {
-        case typ ~ constOpt => typ + constOpt.getOrElse("")
-      } | {
-        "ref." ~ ("null" | "func" | "extern")
-      } ^^ {
-        case ref ~ kind => ref + kind
-      }
-    opt("the") ~> wjiLinkName(variantName) ~
-    (rep(expr) | "(" ~> rep(expr) <~ ")") ^^ {
+      "+∞" | "-∞"
+
+    wjiLinkName(consttype ~ ("." ~> "const")) ~ expr ^^ {
+      case valtype ~ const ~ e =>
+        WasmVariantExpression(
+          const,
+          List(
+            WasmVariantExpression(valtype, List()),
+            e
+          )
+        )
+    } | {
+      opt("the") ~> wjiLinkName(variantName) ~
+      (rep(expr) | "(" ~> rep(expr) <~ ")")
+    } ^^ {
       // TODO: Remove this hack
       case "const" ~ List(valtype) =>
         WasmVariantExpression(

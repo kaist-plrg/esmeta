@@ -192,6 +192,11 @@ class Compiler(
     "NormalCompletion",
   )
 
+  val wjiReturnComp: Set[String] = Set(
+    "ToValueType",
+    "ToWebAssemblyValue"
+  )
+
   /** compile an algorithm to an IR function */
   def compile(algo: Algorithm): Unit =
     import FuncKind.*
@@ -202,6 +207,7 @@ class Compiler(
     val needRetComp = kind match
       case SynDirOp if name.endsWith(".Evaluation") => true
       case Builtin                                  => true
+      case _ if wjiReturnComp contains name         => true
       case _ if noReturnComp contains name          => false
       case _                                        => retTy.isCompletion
     val fb =

@@ -1,0 +1,42 @@
+def <BUILTIN>:INTRINSICS.set:WebAssembly.Global.prototype.value(
+  this: ESValue,
+  ArgumentsList: List[ESValue],
+  NewTarget: Record[Constructor] | Undefined,
+): Unknown = {
+  let __args__ = (record)
+  if (< 0 (sizeof ArgumentsList)) {
+    pop the_given_value < ArgumentsList
+    expand __args__.the_given_value
+  } else let the_given_value = undefined
+  call %0 = clo<"IsGlobal">(this)
+  if (= %0 false) {
+    call %1 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
+    call %2 = clo<"ThrowCompletion">(%1)
+    return %2
+  }
+  let store = @WASM_STORE
+  let globaladdr = this.Global
+  call %3 = clo<"global_type">(store, globaladdr)
+  let mut = %3._0
+  let valuetype = %3._1
+  if (|| (variant-pattern valuetype v128) (variant-pattern mut const)) {
+    call %4 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
+    call %5 = clo<"ThrowCompletion">(%4)
+    return %5
+  }
+  call %6 = clo<"ToWebAssemblyValue">(the_given_value, valuetype)
+  assert (? %6: Completion)
+  if (? %6: Abrupt) return %6
+  else %6 = %6.Value
+  let value = %6
+  call %7 = clo<"global_write">(store, globaladdr, value)
+  let store = %7
+  if (variant-pattern store error) {
+    call %8 = clo<"__NEW_ERROR_OBJ__">("%RangeError.prototype%")
+    call %9 = clo<"ThrowCompletion">(%8)
+    return %9
+  }
+  @WASM_STORE = store
+  call %10 = clo<"NormalCompletion">(~unused~)
+  return %10
+}

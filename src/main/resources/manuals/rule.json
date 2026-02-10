@@ -108,9 +108,12 @@
     "If |f32| is [=+∞=] or [=−∞=], return **+∞**<sub>𝔽</sub> or **-∞**<sub>𝔽</sub>, respectively.": "{ if (= f32 (record [variant] { \"constructor\" : \"pos\", \"_0\" : (record [variant] { \"constructor\" : \"inf\" })})) return +NUM_INF if (= f32 (record [variant] { \"constructor\" : \"neg\", \"_0\" : (record [variant] { \"constructor\" : \"inf\" })})) return -NUM_INF }",
     "If |f64| is [=+∞=] or [=−∞=], return **+∞**<sub>𝔽</sub> or **-∞**<sub>𝔽</sub>, respectively.": "{ if (= f64 (record [variant] { \"constructor\" : \"pos\", \"_0\" : (record [variant] { \"constructor\" : \"inf\" })})) return +NUM_INF if (= f64 (record [variant] { \"constructor\" : \"neg\", \"_0\" : (record [variant] { \"constructor\" : \"inf\" })})) return -NUM_INF }",
     "Let |index| be the number of external functions in |imports|. This value |index| is known as the <dfn>index of the host function</dfn> |funcaddr|." : "nop",
-    "throw an appropriate exception type:\n  * A {{LinkError}} exception for most cases which occur during linking.\n  * If the error came when running the start function, throw a {{RuntimeError}} for most errors which occur from WebAssembly, or the error object propagated from inner ECMAScript code.\n  * Another error type if appropriate, for example an out-of-memory exception, as documented in <a href=\"#errors\">the WebAssembly error mapping</a>." : "{ call %1 = clo<\"__NEW_ERROR_OBJ__\">(\"%LinkError.prototype%\") call %2 = clo<\"ThrowCompletion\">(%1) return %2 }",
+    "throw an appropriate exception type:\n  * A {{LinkError}} exception for most cases which occur during linking.\n  * If the error came when running the start function, throw a {{RuntimeError}} for most errors which occur from WebAssembly, or the error object propagated from inner ECMAScript code.\n  * Another error type if appropriate, for example an out-of-memory exception, as documented in <a href=\"#errors\">the WebAssembly error mapping</a>." : "{ call err = clo<\"__NEW_ERROR_OBJ__\">(\"%LinkError.prototype%\") call throw = clo<\"ThrowCompletion\">(err) return throw }",
     "let |maximum| be empty." : "let maximum = (list [])",
     "If |memtype| has a max,\n  1. Let |maxsize| be the max value in |memtype|." : "nop",
-    "Otherwise,\n  1. Let _maxsize_ be 65536 × 65536." : "if (!(= memtype.max (list []))) let maxsize = memtype.max else let maxsize = (* 65536 65536)"
+    "Otherwise,\n  1. Let _maxsize_ be 65536 × 65536." : "if (!(= memtype.max (list []))) let maxsize = memtype.max else let maxsize = (* 65536 65536)",
+    "Let |f32| be |number| rounded to the nearest representable value using IEEE 754-2019 round to nearest, ties to even mode. [[IEEE-754]]" : "let f32 = number",
+    "Let u64 be the unsigned integer such that i64 is [=signed_64=](u64)." : "call u64 = clo<\"inv_signed_64\">(i64)",
+    "Let u32 be the unsigned integer such that i32 is [=signed_32=](u32)." : "call u32 = clo<\"inv_signed_32\">(i32)"
   }
 }

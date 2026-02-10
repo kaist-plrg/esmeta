@@ -3,8 +3,14 @@ def <BUILTIN>:INTRINSICS.get:WebAssembly.Global.prototype.value(
   ArgumentsList: List[ESValue],
   NewTarget: Record[Constructor] | Undefined,
 ): Unknown = {
-  call %0 = clo<"GetGlobalValue">(this)
-  if (? %0: Completion) return %0
-  call %1 = clo<"NormalCompletion">(%0)
-  return %1
+  call %0 = clo<"IsGlobal">(this)
+  if (= %0 false) {
+    call %1 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
+    call %2 = clo<"ThrowCompletion">(%1)
+    return %2
+  }
+  call %3 = clo<"GetGlobalValue">(this)
+  if (? %3: Completion) return %3
+  call %4 = clo<"NormalCompletion">(%3)
+  return %4
 }

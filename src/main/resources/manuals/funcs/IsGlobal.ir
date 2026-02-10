@@ -1,0 +1,8 @@
+def IsModule(
+  x: Unknown
+): Unknown = {
+  if (= (typeof x) @Object) {
+    if (&& (exists x.Module) (exists x.Bytes)) return true
+  }
+  return false
+}

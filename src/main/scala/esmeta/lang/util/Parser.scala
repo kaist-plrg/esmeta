@@ -1536,9 +1536,9 @@ trait Parsers extends IndentParsers {
   ) ^^ {
     case b ~ cs => cs.foldLeft(b: Reference) { case (r, c) => c(r) }
   } | {
-    "**this**.\\[[" ~> "[A-Z][a-zA-Z]*".r <~ "]]"
+    "**this**.\\[[" ~> nameWithKind <~ "]]"
   } ^^ {
-    case b => IntrinsicField(ThisReference(), Intrinsic(b, List()))
+    case (n, k) => Access(ThisReference(), n, k, AccessForm.Dot)
   }
 
   lazy val simpleDotAccess: PL[Access] = variable ~ ("." ~> nameWithKind) ^^ {

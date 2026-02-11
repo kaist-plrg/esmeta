@@ -109,8 +109,8 @@ class Extractor(
 
     // XXX load Wasm JS Interface algorithms
     // TODO refactor patch routine
-    // executeCmd(s"git reset --hard", s"$WASM_DIR")
-    // executeCmd(s"patch -p1 < $MANUALS_DIR/bugfix/js-api-refinement.patch", s"$WASM_DIR")
+    executeCmd(s"git reset --hard", s"$WASM_DIR")
+    executeCmd(s"patch -p1 < $MANUALS_DIR/bugfix/js-api-refinement.patch", s"$WASM_DIR")
     val wjiDocument = readFile(WJI_SPEC_BS).toHtml
     var wjiJobs = for {
       elem <- wjiDocument.getElems("div[algorithm]")

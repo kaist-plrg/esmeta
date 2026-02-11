@@ -10,3 +10,6 @@
 [submodule "spec"]
 	path = spec
 	url = git@github.com:WebAssembly/spec.git
+[submodule "spectec"]
+	path = spectec
+	url = git@github.com:kaist-plrg/spectec.git

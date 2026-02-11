@@ -1,6 +1,6 @@
 package esmeta.interpreter
 
-import esmeta.{EVAL_LOG_DIR, LINE_SEP, TEST_MODE}
+import esmeta.{EVAL_LOG_DIR, LINE_SEP, TEST_MODE, SPECTEC_SPEC, SPECTEC_BASE}
 import esmeta.cfg.*
 import esmeta.error.*
 import esmeta.error.NotSupported.Category.{Type => _, *}
@@ -265,8 +265,8 @@ class Interpreter(
     val debug = false
     // run shell
     import scala.sys.process._
-    val spectecBinary = "/Users/gingerbread/plrg/spectec/spectec/spectec"
-    val specPath = "/Users/gingerbread/plrg/spectec/specification/wasm-3.0/*"
+    val spectecBinary = s"$SPECTEC_BASE/spectec"
+    val specPath = s"$SPECTEC_SPEC/*"
     val jsonArgs = args.map(value2json).mkString("[", ",", "]")
     val json = s"{\"name\":\"$name\", \"args\":$jsonArgs}".replace("\"", "\\\"")
     if (debug) println(s"[SpecTec Invoke] $json")
@@ -302,6 +302,7 @@ class Interpreter(
       "global_alloc",
       "global_type",
       "global_read",
+      "global_write",
     )
 
   /** transition for calls */

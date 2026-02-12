@@ -1,0 +1,32 @@
+def ToGlobalDescriptor(
+  x: Unknown
+): Unknown = {
+  if (= (typeof x) @Object) {
+    if (exists x.__MAP__.value) {
+      let map = x.__MAP__
+      if (exists map.mutable) {
+        mutable = map.mutable.Value
+        call mutable = clo<"ToBoolean">(mutable)
+        map.mutable.Value = mutable
+      }
+      else {
+        mutable_descriptor = (record [PropertyDescriptor] {
+          "Value" : false,
+          "Writable" : false,
+          "Enumerable" : false,
+          "Configurable" : false,
+        })
+        map.mutable = mutable_descriptor
+      }
+      let value = map.value.Value
+      let enumeration = (list ["i32", "i64", "f32", "f64", "v128"])
+      call value = clo<"ToWebIDLEnumeration">(value, enumeration)
+      map.value.Value = value
+      call nc = clo<"NormalCompletion">(x)
+      return nc
+    }
+  }
+  call %4 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
+  call %5 = clo<"ThrowCompletion">(%4)
+  return %5
+}

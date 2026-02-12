@@ -1,0 +1,16 @@
+def ToWebIDLEnumeration(
+  x: Unknown,
+  enumeration: Unknown,
+): Unknown = {
+  call %0 = clo<"ToString">(x)
+  assert (? %0: Completion)
+  if (? %0: Abrupt) return %0
+  else %0 = %0.Value
+  if (contains enumeration %0) {
+    call %1 = clo<"NormalCompletion">(%0)
+    return %1
+  }
+  call %2 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
+  call %3 = clo<"ThrowCompletion">(%2)
+  return %3
+}

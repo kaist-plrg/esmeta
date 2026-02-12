@@ -12,10 +12,13 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Global(
     pop v < ArgumentsList
     expand __args__.v
   } else let v = undefined
-  call %0 = clo<"IsGlobalDescriptor">(descriptor)
-  if (&& (= %0 true) (!(= NewTarget undefined))) {
+  call %0 = clo<"ToGlobalDescriptor">(descriptor)
+  assert (? %0: Completion)
+  if (? %0: Abrupt) return %0
+  else %0 = %0.Value
+  if (!(= NewTarget undefined)) {
     call %1 = clo<"create_new_object_implementing_the_interface">(NewTarget)
-    call %2 = clo<"Global_descriptor_v_">(%1, descriptor, v)
+    call %2 = clo<"Global_descriptor_v_">(%1, %0, v)
     if (? %2: Completion) return %2
     call %3 = clo<"NormalCompletion">(%1)
     return %3

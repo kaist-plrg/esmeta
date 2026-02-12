@@ -199,6 +199,34 @@ class Interpreter(
     variantEquals(st(l), st(r))
 
   /** interop */
+  def isConst(json: io.circe.Json): Boolean =
+    val map = json.asObject.get.toMap
+    json2value(map("constructor")).asStr == "const"
+  def const2value(json: io.circe.Json): Value =
+    val map = json.asObject.get.toMap
+    val map_es = map.view.mapValues(json2value).toMap
+
+    // decompose const
+    val constructor = map_es("constructor")
+    val valtype = st(map_es("_0").asAddr)(Str("constructor")).asStr
+    val value = map_es("_1").asMath
+
+    // fix value according to valtype
+    val typeFixedValue =
+      if (valtype == "i32") Number(value.toDouble)
+      else if (valtype == "i64") BigInt(value.toBigInt)
+      else
+        System.err.println(valtype)
+        ???
+    st.allocRecord(
+      "variant",
+      List(
+        "constructor" -> constructor,
+        "_0" -> map_es("_0"),
+        "_1" -> typeFixedValue,
+      )
+    )
+
   def json2value(json: io.circe.Json): Value =
     import io.circe.JsonNumber
     // YoJson.Safe.`List
@@ -208,9 +236,13 @@ class Interpreter(
       st.heap.allocList(vs)
     // YoJson.Safe.`Variant
     else if (isVariant(json))
-      val map = json.asObject.get.toMap
-      val args = map.view.mapValues(json2value).toList
-      st.heap.allocRecord("variant", args)
+      // Const
+      if (isConst(json))
+        const2value(json)
+      else
+        val map = json.asObject.get.toMap
+        val args = map.view.mapValues(json2value).toList
+        st.heap.allocRecord("variant", args)
     // YoJson.Safe.`Assoc
     else if (json.isObject)
       val obj = json.asObject.get
@@ -303,6 +335,7 @@ class Interpreter(
       "global_type",
       "global_read",
       "global_write",
+      "val_default",
     )
 
   /** transition for calls */

@@ -19,7 +19,7 @@ def <BUILTIN>:INTRINSICS.set:WebAssembly.Global.prototype.value(
   call %3 = clo<"global_type">(store, globaladdr)
   let mut = %3._0
   let valuetype = %3._1
-  if (|| (variant-pattern valuetype v128) (variant-pattern mut const)) {
+  if (|| (variant-pattern valuetype v128) (= (sizeof mut) 0)) {
     call %4 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
     call %5 = clo<"ThrowCompletion">(%4)
     return %5

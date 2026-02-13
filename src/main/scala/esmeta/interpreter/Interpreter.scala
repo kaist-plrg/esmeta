@@ -204,28 +204,36 @@ class Interpreter(
     json2value(map("constructor")).asStr == "const"
   def const2value(json: io.circe.Json): Value =
     val map = json.asObject.get.toMap
-    val map_es = map.view.mapValues(json2value).toMap
+    val args = map.view.mapValues(json2value).toMap
 
     // decompose const
-    val constructor = map_es("constructor")
-    val valtype = st(map_es("_0").asAddr)(Str("constructor")).asStr
-    val value = map_es("_1").asMath
+    val constructor = args("constructor")
+    val valtype = st(args("_0").asAddr)(Str("constructor")).asStr
 
-    // fix value according to valtype
-    val typeFixedValue =
-      if (valtype == "i32") Number(value.toDouble)
-      else if (valtype == "i64") BigInt(value.toBigInt)
-      else
-        System.err.println(valtype)
-        ???
-    st.allocRecord(
-      "variant",
-      List(
-        "constructor" -> constructor,
-        "_0" -> map_es("_0"),
-        "_1" -> typeFixedValue,
+    if (valtype == "i32" || valtype == "i64") {
+
+      val value = args("_1").asMath
+
+      // fix value according to valtype
+      val typeFixedValue =
+        if (valtype == "i32") Number(value.toDouble)
+        else if (valtype == "i64") BigInt(value.toBigInt)
+        else assert(false)
+      st.allocRecord(
+        "variant",
+        List(
+          "constructor" -> constructor,
+          "_0" -> args("_0"),
+          "_1" -> typeFixedValue,
+        )
       )
-    )
+    } else if (valtype == "f32" || valtype == "f64") {
+      // TODO
+      st.heap.allocRecord("variant", args)
+    } else {
+      // TODO
+      st.heap.allocRecord("variant", args)
+    }
 
   def json2value(json: io.circe.Json): Value =
     import io.circe.JsonNumber

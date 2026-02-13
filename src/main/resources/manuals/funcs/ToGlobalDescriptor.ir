@@ -4,18 +4,18 @@ def ToGlobalDescriptor(
   let value_type = (list ["i32", "i64", "f32", "f64", "v128"])
   let dict_type = (list [
     (record {
-      "key" : "ValueType",
-      "convert" : clo<"ToWebIDLEnumeration">,
-      "convert_extra_arg" : value_type,
-      "default" : undefined,
-      "require" : true,
-    }),
-    (record {
       "key" : "mutable",
       "convert" : clo<"ToBoolean">,
       "convert_extra_arg" : undefined,
       "default" : false,
       "require" : false,
+    }),
+    (record {
+      "key" : "value",
+      "convert" : clo<"ToWebIDLEnumeration">,
+      "convert_extra_arg" : value_type,
+      "default" : undefined,
+      "require" : true,
     })
   ])
   call %0 = clo<"ToWebIDLDictionary">(x, dict_type)

@@ -29,7 +29,7 @@ def ToWebIDLDictionary(
       if (= member.convert_extra_arg undefined)
         call idlMemberValue = %4(jsMemberValue)
       else
-        call idlMemberValue = %4(jsMemberValue, convert_extra_arg)
+        call idlMemberValue = %4(jsMemberValue, member.convert_extra_arg)
       call %0 = clo<"CreateDataPropertyOrThrow">(idlDict, key, idlMemberValue)
     }
     else if (&& (= jsMemberValue undefined) (! (= %5 undefined))) {
@@ -43,5 +43,6 @@ def ToWebIDLDictionary(
     }
     %3 = (+ %3 1)
   }
-  return idlDict
+  call %9 = clo<"NormalCompletion">(idlDict)
+  return %9
 }

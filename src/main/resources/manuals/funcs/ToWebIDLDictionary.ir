@@ -1,0 +1,47 @@
+def ToWebIDLDictionary(
+  jsDict: Unknown,
+  dict_type: Unknown,
+): Unknown = {
+  if (! (|| (= (typeof jsDict) @Object) (|| (= jsDict undefined) (= jsDict null)))) {
+    call %0 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
+    call %1 = clo<"ThrowCompletion">(%0)
+    return %1
+  }
+  call idlDict = clo<"OrdinaryObjectCreate">("%Object.prototype%")
+  %2 = (sizeof dict_type)
+  %3 = 0
+  while (< %3 %2) {
+    member = dict_type[%3]
+    key = member.key
+    %4 = member.convert
+    %5 = member.default
+    %6 = member.require
+    if (|| (= jsDict undefined) (= jsDict null)) {
+      jsMemberValue = undefined
+    }
+    else {
+      call jsMemberValue = clo<"Get">(jsDict, key)
+      assert (? jsMemberValue: Completion)
+      if (? jsMemberValue: Abrupt) return jsMemberValue
+      else jsMemberValue = jsMemberValue.Value
+    }
+    if (! (= jsMemberValue undefined)) {
+      if (= member.convert_extra_arg undefined)
+        call idlMemberValue = %4(jsMemberValue)
+      else
+        call idlMemberValue = %4(jsMemberValue, convert_extra_arg)
+      call %0 = clo<"CreateDataPropertyOrThrow">(idlDict, key, idlMemberValue)
+    }
+    else if (&& (= jsMemberValue undefined) (! (= %5 undefined))) {
+      let idlMemberValue = %5
+      call %0 = clo<"CreateDataPropertyOrThrow">(idlDict, key, idlMemberValue)
+    }
+    else if (&& (= jsMemberValue undefined) (= %6 true)) {
+      call %7 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
+      call %8 = clo<"ThrowCompletion">(%7)
+      return %8
+    }
+    %3 = (+ %3 1)
+  }
+  return idlDict
+}

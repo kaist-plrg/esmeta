@@ -1,12 +1,12 @@
 def ToWebIDLEnumeration(
   x: Unknown,
-  enumeration: Unknown,
+  enum_type: Unknown,
 ): Unknown = {
   call %0 = clo<"ToString">(x)
   assert (? %0: Completion)
   if (? %0: Abrupt) return %0
   else %0 = %0.Value
-  if (contains enumeration %0) {
+  if (contains enum_type %0) {
     call %1 = clo<"NormalCompletion">(%0)
     return %1
   }

@@ -7,7 +7,11 @@ def <BUILTIN>:INTRINSICS.set:WebAssembly.Global.prototype.value(
   if (< 0 (sizeof ArgumentsList)) {
     pop the_given_value < ArgumentsList
     expand __args__.the_given_value
-  } else let the_given_value = undefined
+  } else {
+    call %11 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
+    call %12 = clo<"ThrowCompletion">(%11)
+    return %12
+  }
   call %0 = clo<"IsGlobal">(this)
   if (= %0 false) {
     call %1 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
@@ -37,6 +41,6 @@ def <BUILTIN>:INTRINSICS.set:WebAssembly.Global.prototype.value(
     return %9
   }
   @WASM_STORE = store
-  call %10 = clo<"NormalCompletion">(~unused~)
+  call %10 = clo<"NormalCompletion">(undefined)
   return %10
 }

@@ -5,7 +5,7 @@ def ToGlobalDescriptor(
   let dict_type = (list [
     (record {
       "key" : "mutable",
-      "convert" : clo<"ToBoolean">,
+      "convert" : clo<"ToWebIDLBoolean">,
       "convert_extra_arg" : undefined,
       "default" : false,
       "require" : false,

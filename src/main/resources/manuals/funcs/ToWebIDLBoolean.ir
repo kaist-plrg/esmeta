@@ -1,0 +1,6 @@
+def ToWebIDLBoolean(
+  x: Unknown,
+): Unknown = {
+  call %0 = clo<"ToBoolean">(x)
+  return %0
+}

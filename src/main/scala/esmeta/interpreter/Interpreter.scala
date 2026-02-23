@@ -262,6 +262,9 @@ class Interpreter(
       // TODO: float
       Math(json.asNumber.get.toBigDecimal.get)
     }
+    else if (json.isBoolean) {
+      Bool(json.asBoolean.get)
+    }
     else
       println(json)
       ???
@@ -344,6 +347,7 @@ class Interpreter(
       "global_read",
       "global_write",
       "val_default",
+      "is_reftype",
     )
 
   /** transition for calls */

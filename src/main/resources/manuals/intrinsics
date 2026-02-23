@@ -752,6 +752,28 @@ WebAssembly.Global.prototype = OrdinaryObject [
   };
 }
 
+
+WebAssembly.Table = BuiltinFunctionObject [
+  Extensible: true;
+  Construct: clo<Record[BuiltinFunctionObject].Construct>;
+] {
+  length: [FFT] 1.0f;
+  name: [FFT] "Table";
+  prototype: [FFF] #INTRINSICS.WebAssembly.Table.prototype;
+}
+
+WebAssembly.Table.prototype = OrdinaryObject [
+  Extensible: true;
+  Prototype: #INTRINSICS.Object.prototype;
+] {
+  %Symbol.toStringTag%: [FFT] "WebAssembly.Table";
+  constructor: [TFT] #INTRINSICS.WebAssembly.Table;
+  value: [TT] {
+    Get: #INTRINSICS.get:WebAssembly.Table.prototype.value;
+    Set: #INTRINSICS.set:WebAssembly.Table.prototype.value;
+  };
+}
+
 // https://tc39.es/ecma262/#sec-json-object
 JSON = OrdinaryObject [
   Extensible: true;

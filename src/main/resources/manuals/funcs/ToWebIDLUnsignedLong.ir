@@ -1,0 +1,5 @@
+def ToWebIDLUnsignedLong(
+  x: Unknown,
+): Unknown = {
+  return x
+}

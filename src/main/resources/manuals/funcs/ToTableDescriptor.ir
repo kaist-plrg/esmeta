@@ -1,0 +1,30 @@
+def ToTableDescriptor(
+  x: Unknown
+): Unknown = {
+  let table_kind = (list ["externref", "anyfunc"])
+  let dict_type = (list [
+    (record {
+      "key" : "element",
+      "convert" : clo<"ToWebIDLEnumeration">,
+      "convert_extra_arg" : table_kind,
+      "default" : undefined,
+      "require" : true,
+    }),
+    (record {
+      "key" : "initial",
+      "convert" : clo<"ToWebIDLUnsignedLong">,
+      "convert_extra_arg" : undefined,
+      "default" : undefined,
+      "require" : true,
+    }),
+    (record {
+      "key" : "maximum",
+      "convert" : clo<"ToWebIDLUnsignedLong">,
+      "convert_extra_arg" : undefined,
+      "default" : undefined,
+      "require" : false,
+    })
+  ])
+  call %0 = clo<"ToWebIDLDictionary">(x, dict_type)
+  return %0
+}

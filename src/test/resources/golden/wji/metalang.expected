@@ -1,0 +1,1449 @@
+109 algorithm(s)
+# compile a WebAssembly module
+  params: |bytes|
+  head: To <dfn>compile a WebAssembly module</dfn> from source bytes |bytes|, perform the following steps:
+  Let(|module|, [=module_decode=](|bytes|))
+  If(|module| is [=error=])
+    Return([=error=])
+  If([=module_validate=](|module|) is [=error=])
+    Return([=error=])
+  Return(|module|)
+
+# validate builtins and imported string for a WebAssembly module
+  params: |module|, |builtinSetNames|, |importedStringModule|
+  head: To <dfn>validate builtins and imported string for a WebAssembly module</dfn> from module |module|, enabled builtins |builtinSetNames|, and |importedStringModule|, perform the following steps:
+  If([=validate builtin set names=](|builtinSetNames|) is false)
+    Return(false)
+  ForEach(|import|, [=module_imports=](|module|))
+    If(|importedStringModule| is not null, and |import|[0] is |importedStringModule|)
+      Let(|importExternType|, |import|[2])
+      Let(|stringExternType|, ?(`global const (ref extern)`))
+      If([=match_externtype=](|stringExternType|, |importExternType|) is false)
+        Return(false)
+    Else
+      If(?([=validate an import for builtins|validating an import for builtins=] with |import|), and |builtinSetNames| is false)
+        Return(false)
+  Return(true)
+
+# validate
+  params: |bytes|, |options|
+  head: The <dfn method for="WebAssembly">validate(|bytes|, |options|)</dfn> method, when invoked, performs the following steps:
+  Let(|stableBytes|, ?(a [=get a copy of the buffer source|copy of the bytes held by the buffer=] |bytes|))
+  PerformAndLet([=Compile a WebAssembly module=](|stableBytes|), |module|)
+  If(|module| is [=error=])
+    Return(false)
+  Let(|builtinSetNames|, |options|["builtins"])
+  Let(|importedStringModule|, |options|["importedStringConstants"])
+  If(?([=validate builtins and imported string for a WebAssembly module|validating builtins and imported strings=] for |module| with |builtinSetNames|), and ?(|importedStringModule| returns false))
+    Return(false)
+  Return(true)
+
+# construct a WebAssembly module object
+  params: |module|, |bytes|, |builtinSetNames|, |importedStringModule|
+  head: To <dfn>construct a WebAssembly module object</dfn> from a module |module|, source bytes |bytes|, enabled builtins |builtinSetNames|, and |importedStringModule|, perform the following steps:
+  Let(|moduleObject|, new {{Module}})
+  Set(|moduleObject|.[[Module]], |module|)
+  Set(|moduleObject|.[[Bytes]], |bytes|)
+  Set(|moduleObject|.[[BuiltinSets]], |builtinSetNames|)
+  Set(|moduleObject|.[[ImportedStringModule]], |importedStringModule|)
+  Return(|moduleObject|)
+
+# asynchronously compile a WebAssembly module
+  params: |bytes|, |options|, |taskSource|
+  head: To <dfn>asynchronously compile a WebAssembly module</dfn> from source bytes |bytes| and {{WebAssemblyCompileOptions}} |options| using optional [=task source=] |taskSource|, perform the following steps:
+  Let(|promise|, [=a new promise=])
+  RunInParallel
+    PerformAndLet([=compile a WebAssembly module=](|bytes|), |module|)
+    Perform([=Queue a task=](|taskSource|))
+      If(|module| is [=error=])
+        ?(reject |promise| with a {{CompileError}} exception and return)
+      Let(|builtinSetNames|, |options|["builtins"])
+      Let(|importedStringModule|, |options|["importedStringConstants"])
+      If(?([=validate builtins and imported string for a WebAssembly module|validating builtins and imported strings=] for |module| with |builtinSetNames|), and |importedStringModule| is false)
+        ?(reject |promise| with a {{CompileError}} exception)
+      Else
+        PerformAndLet([=Construct a WebAssembly module object=](|module|, |bytes|, |builtinSetNames|, |importedStringModule|), |moduleObject|)
+        Perform([=Resolve=](|promise|, |moduleObject|))
+  Return(|promise|)
+
+# compile
+  params: |bytes|, |options|
+  head: The <dfn method for="WebAssembly">compile(|bytes|, |options|)</dfn> method, when invoked, performs the following steps:
+  Let(|stableBytes|, ?(a [=get a copy of the buffer source|copy of the bytes held by the buffer=] |bytes|))
+  PerformAndReturn([=Asynchronously compile a WebAssembly module=](|stableBytes|, |options|))
+
+# instantiate imported strings
+  params: |module|, |importedStringModule|
+  head: To <dfn>instantiate imported strings</dfn> with module |module| and |importedStringModule|, perform the following steps:
+  Assert(|importedStringModule| is not null)
+  Let(|exportsObject|, [=!=] [$OrdinaryObjectCreate$](null))
+  ForEach((|moduleName|, |componentName|, |externtype|), [=module_imports=](|module|))
+    If(|moduleName| is not |importedStringModule|)
+      Continue
+    Let(|stringConstant|, |componentName|)
+    Let(|status|, [=!=] [$CreateDataProperty$](|exportsObject|, |stringConstant|, |stringConstant|))
+    Assert(|status| is true)
+  Return(|exportsObject|)
+
+# read the imports
+  id: read-the-imports
+  params: |module|, |importObject|, |builtinSetNames|, |importedStringModule|
+  head: To <dfn>read the imports</dfn> from a WebAssembly module |module| from imports object |importObject|, enabled builtins |builtinSetNames|, and |importedStringModule|, perform the following steps:
+  If(?(|module|.[=imports=] [=list/is empty|is not empty=]), and |importObject| is undefined)
+    Throw(a {{TypeError}} exception)
+  Let(|builtinOrStringImports|, «[ ]»)
+  ForEach(|builtinSetName|, |builtinSetNames|)
+    Let(|builtinSetQualifiedName|, ?(|builtinSetName| prefixed with "wasm:"))
+    Assert(?(|builtinOrStringImports| does not contain |builtinSetQualifiedName|))
+    If(?(|builtinSetName| does not refer to a builtin set))
+      Continue
+    Let(|exportsObject|, [=instantiate a builtin set=](|builtinSetName|))
+    Set(|builtinOrStringImports|[|builtinSetQualifiedName|], |exportsObject|)
+  If(|importedStringModule| is not null)
+    Let(|exportsObject|, [=instantiate imported strings=](|module|, |importedStringModule|))
+    Set(|builtinOrStringImports|[|importedStringModule|], |exportsObject|)
+  Let(|imports|, « »)
+  ForEach((|moduleName|, |componentName|, |externtype|), [=module_imports=](|module|))
+    If(?(|builtinOrStringImports| [=map/exist|contains=] |moduleName|))
+      Let(|o|, |builtinOrStringImports|[|moduleName|])
+      If(|o| is not an Object or ?(if [$HasProperty$](|o|, |componentName|)) is false)
+        Set(|o|, [=?=] [$Get$](|importObject|, |moduleName|))
+    Else
+      Let(|o|, [=?=] [$Get$](|importObject|, |moduleName|))
+    If(|o| is not an Object)
+      Throw(a {{TypeError}} exception)
+    Let(|v|, [=?=] [$Get$](|o|, |componentName|))
+    If(|externtype| is of the form [=external-type/func=](|functype|))
+      If([$IsCallable$](|v|) is false)
+        Throw(a {{LinkError}} exception)
+      If(?(|v| has a \[[FunctionAddress]] internal slot), and ?(therefore) is ?(an [=Exported Function=]))
+        Let(|funcaddr|, |v|.[[FunctionAddress]])
+      Else
+        PerformAndLet([=Create a host function=](|v|, |functype|), |funcaddr|)
+        Let(|index|, ?(the number of external functions in |imports|))
+        ?(This value |index| is known as the <dfn>index of the host function</dfn> |funcaddr|)
+      Let(|externfunc|, ?(the [=external value=] [=external value|func=] |funcaddr|))
+      Append(|externfunc|, |imports|)
+    If(|externtype| is of the form [=external-type/global=](|mut|, |valtype|))
+      If(|v| [=implements=] {{Global}})
+        Let(|globaladdr|, |v|.[[Global]])
+      Else
+        If(|valtype| is [=i64=], and |v| is not a BigInt)
+          Throw(a {{LinkError}} exception)
+        If(?(|valtype| is one of [=i32=]))
+          Throw(a {{LinkError}} exception)
+        If(|valtype| is [=v128=])
+          Throw(a {{LinkError}} exception)
+        Let(|value|, [=ToWebAssemblyValue=](|v|, |valtype|))
+        If(?(this operation throws a {{TypeError}}))
+          ?(catch it, and throw a {{LinkError}} exception)
+        Let(|store|, [=surrounding agent=].[[associated store]])
+        Let((|store|, |globaladdr|), [=global_alloc=](|store|, [=const=](|valtype|), |value|))
+        Set([=surrounding agent=].[[associated store]], |store|)
+      Let(|externglobal|, [=external value=](|globaladdr|))
+      Append(|externglobal|, |imports|)
+    If(|externtype| is of the form [=external-type/mem=](|memtype|))
+      If(|v| does not [=implement=] {{Memory}})
+        Throw(a {{LinkError}} exception)
+      Let(|externmem|, ?(the [=external value=] [=external value|mem=] |v|).[[Memory]])
+      Append(|externmem|, |imports|)
+    If(|externtype| is of the form [=external-type/table=](|tabletype|))
+      If(|v| does not [=implement=] {{Table}})
+        Throw(a {{LinkError}} exception)
+      Let(|tableaddr|, |v|.[[Table]])
+      Let(|externtable|, ?(the [=external value=] [=external value|table=] |tableaddr|))
+      Append(|externtable|, |imports|)
+    If(|externtype| is of the form [=external-type/tag=](|attribute|, |functype|))
+      Assert(|attribute| is [=tagtype/attribute/exception=])
+      If(|v| does not [=implement=] {{Tag}})
+        Throw(a {{LinkError}} exception)
+      Let(|tagaddr|, |v|.[[Address]])
+      Let(|externtag|, ?(the [=external value=] [=external value/tag=] |tagaddr|))
+      Append(|externtag|, |imports|)
+  Return(|imports|)
+  Note(This algorithm only verifies the right kind of JavaScript values are passed The verification of WebAssembly type requirements is deferred to the "[=instantiate the core of a WebAssembly module=]" algorithm)
+
+# create an exports object
+  params: |module|, |instance|
+  head: To <dfn>create an exports object</dfn> from a WebAssembly module |module| and instance |instance|, perform the following steps:
+  Let(|exportsObject|, [=!=] [$OrdinaryObjectCreate$](null))
+  ForEach((|name|, |externtype|), [=module_exports=](|module|))
+    Let(|externval|, [=instance_export=](|instance|, |name|))
+    Assert(|externval| is not [=error=])
+    If(|externtype| is of the form [=external-type/func=](|functype|))
+      Assert(|externval| is of the form [=external value=](|funcaddr|))
+      Let([=external value=](|funcaddr|), |externval|)
+      Let(|func|, [=a new Exported Function=](|funcaddr|))
+      Let(|value|, |func|)
+    If(|externtype| is of the form [=external-type/global=](|mut|, |globaltype|))
+      Assert(|externval| is of the form [=external value=](|globaladdr|))
+      Let([=external value=](|globaladdr|), |externval|)
+      Let(|global|, [=create a global object=](|globaladdr|))
+      Let(|value|, |global|)
+    If(|externtype| is of the form [=external-type/mem=](|memtype|))
+      Assert(|externval| is of the form [=external value=](|memaddr|))
+      Let([=external value=](|memaddr|), |externval|)
+      Let(|memory|, [=create a memory object=](|memaddr|))
+      Let(|value|, |memory|)
+    If(|externtype| is of the form [=external-type/table=](|tabletype|))
+      Assert(|externval| is of the form [=external value=](|tableaddr|))
+      Let([=external value=](|tableaddr|), |externval|)
+      Let(|table|, [=create a Table object=](|tableaddr|))
+      Let(|value|, |table|)
+    If(|externtype| is of the form [=external-type/tag=](|attribute|, |functype|))
+      Assert(|attribute| is [=tagtype/attribute/exception=])
+      Assert(|externval| is of the form [=external value/tag=](|tagaddr|))
+      Let([=external value/tag=](|tagaddr|), |externval|)
+      Let(|tag|, [=create a Tag object=](|tagaddr|))
+      Let(|value|, |tag|)
+    Let(|status|, [=!=] [$CreateDataProperty$](|exportsObject|, |name|, |value|))
+    Assert(|status| is true)
+    Note(the validity and uniqueness checks performed during [=WebAssembly module validation=] ensure that each property name is valid and no properties are defined twice)
+  Perform([=!=]([$SetIntegrityLevel$](|exportsObject|, ?(`"frozen"`))))
+  Return(|exportsObject|)
+
+# initialize an instance object
+  params: |instanceObject|, |module|, |instance|
+  head: To <dfn>initialize an instance object</dfn> |instanceObject| from a WebAssembly module |module| and instance |instance|, perform the following steps:
+  PerformAndLet([=Create an exports object=](|module|, |instance|), |exportsObject|)
+  Set(|instanceObject|.[[Instance]], |instance|)
+  Set(|instanceObject|.[[Exports]], |exportsObject|)
+
+# instantiate the core of a WebAssembly module
+  params: |module|, |imports|
+  head: To <dfn>instantiate the core of a WebAssembly module</dfn> from a module |module| and imports |imports|, perform the following steps:
+  Let(|store|, [=surrounding agent=].[[associated store]])
+  Let(|result|, [=module_instantiate=](|store|, |module|, |imports|))
+  If(|result| is [=error=])
+    ?(A {{LinkError}} exception for most cases which occur during linking)
+    If(?(the error came when running the start function))
+      Throw(a {{RuntimeError}} for most errors which occur from WebAssembly, or the error object propagated from inner ECMAScript code)
+    ?(Another error type if appropriate, for example an out-of-memory exception, as documented in <a href="#errors">the WebAssembly error mapping</a>)
+  Let((|store|, |instance|), |result|)
+  Set([=surrounding agent=].[[associated store]], |store|)
+  Return(|instance|)
+
+# asynchronously instantiate a WebAssembly module
+  params: |moduleObject|, |importObject|
+  head: To <dfn>asynchronously instantiate a WebAssembly module</dfn> from a {{Module}} |moduleObject| and imports |importObject|, perform the following steps:
+  Let(|promise|, [=a new promise=])
+  Let(|module|, |moduleObject|.[[Module]])
+  Let(|builtinSetNames|, |moduleObject|.[[BuiltinSets]])
+  Let(|importedStringModule|, |moduleObject|.[[ImportedStringModule]])
+  PerformAndLet([=Read the imports=](|module|, |importObject|, |builtinSetNames|, |importedStringModule|), |imports|)
+  If(?(this operation throws an exception))
+    ?(catch it, [=reject=] |promise| with the exception, and return |promise|)
+  RunInParallel
+    Perform([=Queue a task=])
+      PerformAndLet([=Instantiate the core of a WebAssembly module=](|module|, |imports|), |instance|)
+      If(?(this throws an exception))
+        ?(catch it, [=reject=] |promise| with the exception, and terminate these substeps)
+      Let(|instanceObject|, new {{Instance}})
+      Perform([=initialize an instance object=](|instanceObject|, |module|, |instance|))
+      If(?(this throws an exception))
+        ?(catch it, [=reject=] |promise| with the exception, and terminate these substeps)
+      Perform([=Resolve=](|promise|, |instanceObject|))
+  Return(|promise|)
+
+# instantiate a promise of a module
+  params: |promiseOfModule|, |importObject|
+  head: To <dfn>instantiate a promise of a module</dfn> |promiseOfModule| with imports |importObject|, perform the following steps:
+  Let(|promise|, [=a new promise=])
+  Perform([=React=](|promiseOfModule|))
+    If(?(|promiseOfModule| was fulfilled with value |module|))
+      PerformAndLet([=asynchronously instantiate a WebAssembly module=](|module|, |importObject|), |innerPromise|)
+      Perform([=React=](|innerPromise|))
+        If(?(|innerPromise| was fulfilled with value |instance|))
+          Let(|result|, ?(the {{WebAssemblyInstantiatedSource}} value «[ "{{WebAssemblyInstantiatedSource/module}}" → |module|, "{{WebAssemblyInstantiatedSource/instance}}" → |instance| ]»))
+          Perform([=Resolve=](|promise|, |result|))
+        If(?(|innerPromise| was rejected with reason |reason|))
+          Perform([=Reject=](|promise|, |reason|))
+    If(?(|promiseOfModule| was rejected with reason |reason|))
+      Perform([=Reject=](|promise|, |reason|))
+  Return(|promise|)
+
+# instantiate
+  params: |bytes|, |importObject|, |options|
+  head: The <dfn method for="WebAssembly">instantiate(|bytes|, |importObject|, |options|)</dfn> method, when invoked, performs the following steps:
+  Let(|stableBytes|, ?(a [=get a copy of the buffer source|copy of the bytes held by the buffer=] |bytes|))
+  PerformAndLet([=Asynchronously compile a WebAssembly module=](|stableBytes|, |options|), |promiseOfModule|)
+  PerformAndReturn([=Instantiate a promise of a module=](|promiseOfModule|, |importObject|))
+
+# instantiate
+  params: |moduleObject|, |importObject|
+  head: The <dfn method for="WebAssembly">instantiate(|moduleObject|, |importObject|)</dfn> method, when invoked, performs the following steps:
+  PerformAndReturn([=asynchronously instantiate a WebAssembly module=](|moduleObject|, |importObject|))
+
+# string value of the extern type
+  params: |type|
+  head: The <dfn>string value of the extern type</dfn> |type| is
+  ?("function" if |type| is of the form [=external-type/func=] <var ignore>functype</var>)
+  ?("table" if |type| is of the form [=external-type/table=] <var ignore>tabletype</var>)
+  ?("memory" if |type| is of the form [=external-type/mem=] <var ignore>memtype</var>)
+  ?("global" if |type| is of the form [=external-type/global=] <var ignore>globaltype</var>)
+  ?("tag" if |type| is of the form [=external-type/tag=] <var ignore>tag</var>)
+
+# exports
+  params: |moduleObject|
+  head: The <dfn method for="Module">exports(|moduleObject|)</dfn> method, when invoked, performs the following steps:
+  Let(|module|, |moduleObject|.[[Module]])
+  Let(|exports|, « »)
+  ForEach((|name|, |type|), [=module_exports=](|module|))
+    Let(|kind|, ?(the [=string value of the extern type=] |type|))
+    Let(|obj|, «[ "{{ModuleExportDescriptor/name}}" → |name|, "{{ModuleExportDescriptor/kind}}" → |kind| ]»)
+    Append(|obj|, |exports|)
+  Return(|exports|)
+
+# imports
+  params: |moduleObject|
+  head: The <dfn method for="Module">imports(|moduleObject|)</dfn> method, when invoked, performs the following steps:
+  Let(|module|, |moduleObject|.[[Module]])
+  Let(|builtinSetNames|, |moduleObject|.[[BuiltinSets]])
+  Let(|importedStringModule|, |moduleObject|.[[ImportedStringModule]])
+  Let(|imports|, « »)
+  ForEach((|moduleName|, |name|, |type|), [=module_imports=](|module|))
+    If(?([=find a builtin=] for (|moduleName|, |name|, |type|)), and |builtinSetNames| is not null)
+      Continue
+    If(|importedStringModule| is not null, and |moduleName| is |importedStringModule|)
+      Continue
+    Let(|kind|, ?(the [=string value of the extern type=] |type|))
+    Let(|obj|, «[ "{{ModuleImportDescriptor/module}}" → |moduleName|, "{{ModuleImportDescriptor/name}}" → |name|, "{{ModuleImportDescriptor/kind}}" → |kind| ]»)
+    Append(|obj|, |imports|)
+  Return(|imports|)
+
+# customSections
+  params: |moduleObject|, |sectionName|
+  head: The <dfn method for="Module">customSections(|moduleObject|, |sectionName|)</dfn> method, when invoked, performs the following steps:
+  Let(|bytes|, |moduleObject|.[[Bytes]])
+  Let(|customSections|, « »)
+  ForEach([=custom section=] |customSection|, |bytes|)
+    Let(|name|, ?(the <code>name</code> of |customSection|, [=UTF-8 decode without BOM or fail|decoded as UTF-8=]))
+    Assert(|name| is not ?(failure (|moduleObject|.\[[Module]] is [=valid=])))
+    If(|name| is ?(|sectionName| as string values))
+      Append(?(a new {{ArrayBuffer}} containing a copy of the bytes in |bytes| for the range matched by this [=customsec=] production), |customSections|)
+  Return(|customSections|)
+
+# Module
+  params: |bytes|, |options|
+  head: The <dfn constructor for="Module">Module(|bytes|, |options|)</dfn> constructor, when invoked, performs the following steps:
+  Let(|stableBytes|, ?(a [=get a copy of the buffer source|copy of the bytes held by the buffer=] |bytes|))
+  PerformAndLet([=Compile a WebAssembly module=](|stableBytes|), |module|)
+  If(|module| is [=error=])
+    Throw(a {{CompileError}} exception)
+  Let(|builtinSetNames|, |options|["builtins"])
+  Let(|importedStringModule|, |options|["importedStringConstants"])
+  If(?([=validate builtins and imported string for a WebAssembly module|validating builtins and imported strings=] for |module| with |builtinSetNames|), and ?(|importedStringModule| returns false))
+    Throw(a {{CompileError}} exception)
+  Set(**this**.[[Module]], |module|)
+  Set(**this**.[[Bytes]], |stableBytes|)
+  Set(**this**.[[BuiltinSets]], |builtinSetNames|)
+  Set(**this**.[[ImportedStringModule]], |importedStringModule|)
+  Note(Some implementations enforce a size limitation on |bytes| Use of this API is discouraged, in favor of asynchronous APIs)
+
+# Instance
+  params: |moduleObject|, |importObject|
+  head: The <dfn constructor for="Instance">Instance(|moduleObject|, |importObject|)</dfn> constructor, when invoked, runs the following steps:
+  Let(|builtinSetNames|, |moduleObject|.[[BuiltinSets]])
+  Let(|importedStringModule|, |moduleObject|.[[ImportedStringModule]])
+  Let(|module|, |moduleObject|.[[Module]])
+  PerformAndLet([=Read the imports=](|module|, |importObject|, |builtinSetNames|, |importedStringModule|), |imports|)
+  PerformAndLet([=Instantiate the core of a WebAssembly module=](|module|, |imports|), |instance|)
+  Perform([=initialize an instance object=](**this**, |module|, |instance|))
+  Note(The use of this synchronous API is discouraged, as some implementations sometimes do long-running compilation work when instantiating)
+
+# exports
+  head: The getter of the <dfn attribute for="Instance">exports</dfn> attribute of {{Instance}} returns **this**.\[[Exports]].
+
+# create a fixed length memory buffer
+  params: |memaddr|
+  head: To <dfn>create a fixed length memory buffer</dfn> from a [=memory address=] |memaddr|, perform the following steps:
+  Let(|block|, ?(a [=Data Block=] which is [=identified with=] the underlying memory of |memaddr|))
+  Let(|buffer|, ?(a new {{ArrayBuffer}} with the internal slots \[[ArrayBufferData]], \[[ArrayBufferByteLength]], and \[[ArrayBufferDetachKey]]))
+  Set(|buffer|.[[ArrayBufferData]], |block|)
+  Set(|buffer|.[[ArrayBufferByteLength]], length(|block|))
+  Set(|buffer|.[[ArrayBufferDetachKey]], "WebAssembly.Memory")
+  Return(|buffer|)
+
+# create a resizable memory buffer
+  params: |memaddr|, |maxsize|
+  head: To <dfn>create a resizable memory buffer</dfn> from a [=memory address=] |memaddr| and a |maxsize|, perform the following steps:
+  Let(|block|, ?(a [=Data Block=] which is [=identified with=] the underlying memory of |memaddr|))
+  Let(|length|, length(|block|))
+  Let(|buffer|, ?(a new {{ArrayBuffer}} with the internal slots \[[ArrayBufferData]], \[[ArrayBufferByteLength]], \[[ArrayBufferMaxByteLength]], and \[[ArrayBufferDetachKey]]))
+  Set(|buffer|.[[ArrayBufferData]], |block|)
+  Set(|buffer|.[[ArrayBufferByteLength]], |length|)
+  Set(|buffer|.[[ArrayBufferMaxByteLength]], |maxsize|)
+  Set(|buffer|.[[ArrayBufferDetachKey]], "WebAssembly.Memory")
+  Return(|buffer|)
+
+# initialize a memory object
+  params: |memory|, |memaddr|
+  head: To <dfn>initialize a memory object</dfn> |memory| from a [=memory address=] |memaddr|, perform the following steps:
+  Let(|map|, [=surrounding agent=].[[Memory object cache]])
+  Assert(|map|[|memaddr|] [=map/doesn't exist=])
+  Let(|buffer|, [=create a fixed length memory buffer=](|memaddr|))
+  Set(|memory|.[[Memory]], |memaddr|)
+  Set(|memory|.[[BufferObject]], |buffer|)
+  Set(|map|[|memaddr|], |memory|)
+
+# create a memory object
+  params: |memaddr|
+  head: To <dfn>create a memory object</dfn> from a [=memory address=] |memaddr|, perform the following steps:
+  Let(|map|, [=surrounding agent=].[[Memory object cache]])
+  If(|map|[|memaddr|] [=map/exists=])
+    Return(|map|[|memaddr|])
+  Let(|memory|, new {{Memory}})
+  Perform([=initialize a memory object=](|memory|, |memaddr|))
+  Return(|memory|)
+
+# Memory
+  params: |descriptor|
+  head: The <dfn constructor for="Memory">Memory(|descriptor|)</dfn> constructor, when invoked, performs the following steps:
+  If(|descriptor|["address"] [=map/exists=])
+    Let(|addrtype|, |descriptor|["address"])
+  Else
+    Let(|addrtype|, "i32")
+  Let(|initial|, [=?=] [=AddressValueToU64=](|descriptor|["initial"], |addrtype|))
+  If(|descriptor|["maximum"] [=map/exists=])
+    Let(|maximum|, [=?=] [=AddressValueToU64=](|descriptor|["maximum"], |addrtype|))
+  Else
+    Let(|maximum|, empty)
+  Let(|memtype|, [=memory type=](|addrtype|, **min**, |initial|, **max**, |maximum|))
+  If(|memtype| is not [=valid memtype=])
+    Throw(a {{RangeError}} exception)
+  Let(|store|, [=surrounding agent=].[[associated store]])
+  Let((|store|, |memaddr|), [=mem_alloc=](|store|, |memtype|))
+  If(?(allocation fails))
+    Throw(a {{RangeError}} exception)
+  Set([=surrounding agent=].[[associated store]], |store|)
+  Perform([=initialize a memory object=](**this**, |memaddr|))
+
+# refresh the Memory buffer
+  params: |memaddr|
+  head: To <dfn>refresh the Memory buffer</dfn> of |memaddr|, perform the following steps:
+  Let(|map|, [=surrounding agent=].[[Memory object cache]])
+  Assert(|map|[|memaddr|] [=map/exists=])
+  Let(|memory|, |map|[|memaddr|])
+  Let(|buffer|, |memory|.[[BufferObject]])
+  If([=IsFixedLengthArrayBuffer=](|buffer|) is true)
+    Perform([=!=]([$DetachArrayBuffer$](|buffer|, "WebAssembly.Memory")))
+    Let(|buffer|, [=create a fixed length memory buffer=](|memaddr|))
+    Set(|memory|.[[BufferObject]], |buffer|)
+  Else
+    Let(|block|, ?(a [=Data Block=] which is [=identified with=] the underlying memory of |memaddr|))
+    Set(|buffer|.[[ArrayBufferData]], |block|)
+    Set(|buffer|.[[ArrayBufferByteLength]], length(|block|))
+
+# grow the memory buffer
+  params: |memaddr|, |delta|
+  head: To <dfn>grow the memory buffer</dfn> associated with a [=memory address=] |memaddr| by |delta|, perform the following steps:
+  Let(|store|, [=surrounding agent=].[[associated store]])
+  Let(|ret|, ?(the [=mem_size=](|store|, |memaddr|)))
+  Let(|store|, [=mem_grow=](|store|, |memaddr|, |delta|))
+  If(|store| is [=error=])
+    Throw(a {{RangeError}} exception)
+  Set([=surrounding agent=].[[associated store]], |store|)
+  Perform([=Refresh the memory buffer=](|memaddr|))
+  Return(|ret|)
+
+# grow
+  id: dom-Memory-grow
+  params: |delta|
+  head: The <dfn method for="Memory">grow(|delta|)</dfn> method, when invoked, performs the following steps:
+  Let(|memaddr|, **this**.[[Memory]])
+  Let(|store|, [=surrounding agent=].[[associated store]])
+  Let(|addrtype|, ?(the [=address type=] in [=mem_type=](|store|, |memaddr|)))
+  Let(|delta64|, [=?=] [=AddressValueToU64=](|delta|, |addrtype|))
+  Let(|ret|, [=grow the memory buffer=](|memaddr|, |delta64|))
+  Return([=U64ToAddressValue=](|ret|, |addrtype|))
+
+# memory.grow
+  id: memory.grow
+  If(?(the top of the stack) is not [=i32.const=](-1), and ?(the top of the stack) is not [=i64.const=](-1))
+    Let(|frame|, ?(the [=current frame=]))
+    Assert(?(due to validation, |frame|.[=frame/module=].[=moduleinst/memaddrs=][|x|] exists))
+    Let(|memaddr|, ?(the memory address |frame|.[=frame/module=].[=moduleinst/memaddrs=])[|x|])
+    Perform([=Refresh the memory buffer=](|memaddr|))
+
+# toFixedLengthBuffer
+  id: dom-Memory-toFixedLengthBuffer
+  head: The <dfn method for="Memory">toFixedLengthBuffer()</dfn> method, when invoked, performs the following steps:
+  Let(|buffer|, **this**.[[BufferObject]])
+  If([=IsFixedLengthArrayBuffer=](|buffer|) is true)
+    Return(|buffer|)
+  Let(|memaddr|, **this**.[[Memory]])
+  Let(|fixedBuffer|, [=create a fixed length memory buffer=](|memaddr|))
+  Perform([=!=]([$DetachArrayBuffer$](|buffer|, "WebAssembly.Memory")))
+  Set(**this**.[[BufferObject]], |fixedBuffer|)
+  Return(|fixedBuffer|)
+
+# toResizableBuffer
+  id: dom-Memory-toResizableBuffer
+  head: The <dfn method for="Memory">toResizableBuffer()</dfn> method, when invoked, performs the following steps:
+  Let(|memaddr|, **this**.[[Memory]])
+  Let(|store|, [=surrounding agent=].[[associated store]])
+  Let(|memtype|, [=mem_type=](|store|, |memaddr|))
+  If(?(|memtype| does not have a max))
+    Throw(a {{TypeError}} exception)
+  Let(|buffer|, **this**.[[BufferObject]])
+  If([=IsFixedLengthArrayBuffer=](|buffer|) is false)
+    Return(|buffer|)
+  Assert(?(|memtype| has a max))
+  Let(|maxsize|, ?(the max value in |memtype|) * 65536)
+  Let(|resizableBuffer|, [=create a resizable memory buffer=](|memaddr|, |maxsize|))
+  Perform([=!=]([$DetachArrayBuffer$](|buffer|, "WebAssembly.Memory")))
+  Set(**this**.[[BufferObject]], |resizableBuffer|)
+  Return(|resizableBuffer|)
+
+# abstract operation [=HostResizeArrayBuffer=]
+  params: |buffer|, |newLength|
+  head: The <dfn id=HostResizeArrayBuffer export>abstract operation [=HostResizeArrayBuffer=]</dfn> takes arguments |buffer| (an {{ArrayBuffer}}) and |newLength|. It performs the following steps when called.
+  If(|buffer|.[[ArrayBufferDetachKey]] is "WebAssembly.Memory")
+    Let(|map|, [=surrounding agent=].[[Memory object cache]])
+    Assert(|buffer| is ?(the \[[BufferObject]] of exactly one value in |map|))
+    ForEach(|memaddr| &rarr; |mem|, |map|)
+      If([=SameValue=](|mem|.[[BufferObject]], |buffer|) is true)
+        Assert(|buffer|.[[ArrayBufferByteLength]] modulo 65536 is 0)
+        Let(|lengthDelta|, |newLength| - |buffer|.[[ArrayBufferByteLength]])
+        If(|lengthDelta| < 0 or |lengthDelta| modulo 65536 is not 0)
+          Throw(a {{RangeError}} exception)
+        Let(|delta|, |lengthDelta| &div; 65536)
+        Perform([=Grow the memory buffer=](|memaddr|, |delta|))
+    Return(<emu-const>handled</emu-const>)
+  Else
+    Return(<emu-const>unhandled</emu-const>)
+
+# buffer
+  head: The getter of the <dfn attribute for="Memory">buffer</dfn> attribute of {{Memory}} returns **this**.\[[BufferObject]].
+
+# initialize a table object
+  params: |table|, |tableaddr|
+  head: To <dfn>initialize a table object</dfn> |table| from a [=table address=] |tableaddr|, perform the following steps:
+  Let(|map|, [=surrounding agent=].[[Table object cache]])
+  Assert(|map|[|tableaddr|] [=map/doesn't exist=])
+  Set(|table|.[[Table]], |tableaddr|)
+  Set(|map|[|tableaddr|], |table|)
+
+# create a table object
+  params: |tableaddr|
+  head: To <dfn>create a table object</dfn> from a [=table address=] |tableaddr|, perform the following steps:
+  Let(|map|, [=surrounding agent=].[[Table object cache]])
+  If(|map|[|tableaddr|] [=map/exists=])
+    Return(|map|[|tableaddr|])
+  Let(|table|, new {{Table}})
+  Perform([=initialize a table object=](|table|, |tableaddr|))
+  Return(|table|)
+
+# Table
+  params: |descriptor|, |value|
+  head: The <dfn constructor for="Table">Table(|descriptor|, |value|)</dfn> constructor, when invoked, performs the following steps:
+  Let(|elementtype|, [=ToValueType=](|descriptor|["element"]))
+  If(|elementtype| is not ?(a [=reftype=]))
+    Throw(a {{TypeError}} exception)
+  If(|descriptor|["address"] [=map/exists=])
+    Let(|addrtype|, |descriptor|["address"])
+  Else
+    Let(|addrtype|, "i32")
+  Let(|initial|, [=?=] [=AddressValueToU64=](|descriptor|["initial"], |addrtype|))
+  If(|descriptor|["maximum"] [=map/exists=])
+    Let(|maximum|, [=?=] [=AddressValueToU64=](|descriptor|["maximum"], |addrtype|))
+  Else
+    Let(|maximum|, empty)
+  Let(|type|, ?(the [=table type=] |addrtype| { <b>[=limits|min=]</b> |initial|, <b>[=limits|max=]</b> |maximum| } |elementtype|))
+  If(|type| is not [=valid tabletype=])
+    Throw(a {{RangeError}} exception)
+  If(|value| is missing)
+    Let(|ref|, [=DefaultValue=](|elementtype|))
+    Assert(|ref| is not [=error=])
+  Else
+    Let(|ref|, [=?=] [=ToWebAssemblyValue=](|value|, |elementtype|))
+  Let(|store|, [=surrounding agent=].[[associated store]])
+  Let((|store|, |tableaddr|), [=table_alloc=](|store|, |type|, |ref|))
+  If(?(allocation fails))
+    Throw(a {{RangeError}} exception)
+  Set([=surrounding agent=].[[associated store]], |store|)
+  Perform([=initialize a table object=](**this**, |tableaddr|))
+
+# grow
+  id: dom-Table-grow
+  params: |delta|, |value|
+  head: The <dfn method for="Table">grow(|delta|, |value|)</dfn> method, when invoked, performs the following steps:
+  Let(|tableaddr|, **this**.[[Table]])
+  Let(|store|, [=surrounding agent=].[[associated store]])
+  Let(|initialSize|, [=table_size=](|store|, |tableaddr|))
+  Let((|addrtype|, |limits|, |elementtype|), [=table_type=](|store|, |tableaddr|))
+  Let(|delta64|, [=?=] [=AddressValueToU64=](|delta|, |addrtype|))
+  If(|value| is missing)
+    Let(|ref|, [=DefaultValue=](|elementtype|))
+    If(|ref| is [=error=])
+      Throw(a {{TypeError}} exception)
+  Else
+    Let(|ref|, [=?=] [=ToWebAssemblyValue=](|value|, |elementtype|))
+  Let(|result|, [=table_grow=](|store|, |tableaddr|, |delta64|, |ref|))
+  If(|result| is [=error=])
+    Throw(a {{RangeError}} exception)
+  Note(The above exception can happen due to either insufficient memory or an invalid size parameter)
+  Set([=surrounding agent=].[[associated store]], |result|)
+  Return([=U64ToAddressValue=](|initialSize|, |addrtype|))
+
+# length
+  head: The getter of the <dfn attribute for="Table">length</dfn> attribute of {{Table}}, when invoked, performs the following steps:
+  Let(|tableaddr|, **this**.[[Table]])
+  Let(|store|, [=surrounding agent=].[[associated store]])
+  Let(|addrtype|, ?(the [=address type=] in [=table_type=](|store|, |tableaddr|)))
+  Let(|length64|, [=table_size=](|store|, |tableaddr|))
+  Return([=U64ToAddressValue=](|length64|, |addrtype|))
+
+# get
+  params: |index|
+  head: The <dfn method for="Table">get(|index|)</dfn> method, when invoked, performs the following steps:
+  Let(|tableaddr|, **this**.[[Table]])
+  Let(|store|, [=surrounding agent=].[[associated store]])
+  Let((|addrtype|, |limits|, |elementtype|), [=table_type=](|store|, |tableaddr|))
+  If(|elementtype| [=matches/reftype=] [=exnref=])
+    Throw(a {{TypeError}} exception)
+  Let(|index64|, [=?=] [=AddressValueToU64=](|index|, |addrtype|))
+  Let(|result|, [=table_read=](|store|, |tableaddr|, |index64|))
+  If(|result| is [=error=])
+    Throw(a {{RangeError}} exception)
+  Return([=!=] [=ToJSValue=](|result|))
+
+# set
+  params: |index|, |value|
+  head: The <dfn method for="Table">set(|index|, |value|)</dfn> method, when invoked, performs the following steps:
+  Let(|tableaddr|, **this**.[[Table]])
+  Let(|store|, [=surrounding agent=].[[associated store]])
+  Let((|addrtype|, |limits|, |elementtype|), [=table_type=](|store|, |tableaddr|))
+  If(|elementtype| [=matches/reftype=] [=exnref=])
+    Throw(a {{TypeError}} exception)
+  Let(|index64|, [=?=] [=AddressValueToU64=](|index|, |addrtype|))
+  If(|value| is missing)
+    Let(|ref|, [=DefaultValue=](|elementtype|))
+    If(|ref| is [=error=])
+      Throw(a {{TypeError}} exception)
+  Else
+    Let(|ref|, [=?=] [=ToWebAssemblyValue=](|value|, |elementtype|))
+  Let(|store|, [=table_write=](|store|, |tableaddr|, |index64|, |ref|))
+  If(|store| is [=error=])
+    Throw(a {{RangeError}} exception)
+  Set([=surrounding agent=].[[associated store]], |store|)
+
+# initialize a global object
+  params: |global|, |globaladdr|
+  head: To <dfn>initialize a global object</dfn> |global| from a [=global address=] |globaladdr|, perform the following steps:
+  Let(|map|, [=surrounding agent=].[[Global object cache]])
+  Assert(|map|[|globaladdr|] [=map/doesn't exist=])
+  Set(|global|.[[Global]], |globaladdr|)
+  Set(|map|[|globaladdr|], |global|)
+
+# create a global object
+  params: |globaladdr|
+  head: To <dfn>create a global object</dfn> from a [=global address=] |globaladdr|, perform the following steps:
+  Let(|map|, [=surrounding agent=].[[Global object cache]])
+  If(|map|[|globaladdr|] [=map/exists=])
+    Return(|map|[|globaladdr|])
+  Let(|global|, new {{Global}})
+  Perform([=initialize a global object=](|global|, |globaladdr|))
+  Return(|global|)
+
+# ToValueType
+  params: |s|
+  head: The algorithm <dfn>ToValueType</dfn>(|s|) performs the following steps:
+  If(|s| is "i32")
+    Return([=i32=])
+  If(|s| is "i64")
+    Return([=i64=])
+  If(|s| is "f32")
+    Return([=f32=])
+  If(|s| is "f64")
+    Return([=f64=])
+  If(|s| is "v128")
+    Return([=v128=])
+  If(|s| is "anyfunc")
+    Return([=funcref=])
+  If(|s| is "externref")
+    Return([=externref=])
+  Assert(Unreachable)
+
+# DefaultValue
+  params: |valuetype|
+  head: The algorithm <dfn>DefaultValue</dfn>(|valuetype|) performs the following steps:
+  If(|valuetype| is [=externref=])
+    Return([=!=] [=ToWebAssemblyValue=](undefined, |valuetype|))
+  Return([=val_default=](|valuetype|))
+
+# Global
+  params: |descriptor|, |v|
+  head: The <dfn constructor for="Global">Global(|descriptor|, |v|)</dfn> constructor, when invoked, performs the following steps:
+  Let(|mutable|, |descriptor|["mutable"])
+  Let(|valuetype|, [=ToValueType=](|descriptor|["value"]))
+  If(|valuetype| [=matches/valtype=] [=v128=] or [=exnref=])
+    Throw(a {{TypeError}} exception)
+  If(|v| is missing)
+    Let(|value|, [=DefaultValue=](|valuetype|))
+    Assert(|value| is not [=error=])
+  Else
+    Let(|value|, [=?=] [=ToWebAssemblyValue=](|v|, |valuetype|))
+  If(|mutable| is true)
+    Let(|globaltype|, [=var=](|valuetype|))
+  Else
+    Let(|globaltype|, [=const=](|valuetype|))
+  Let(|store|, [=surrounding agent=].[[associated store]])
+  Let((|store|, |globaladdr|), [=global_alloc=](|store|, |globaltype|, |value|))
+  ?(<!-- TODO(littledan): Report allocation failure https://github.com/WebAssembly/spec/issues/584 -->)
+  Set([=surrounding agent=].[[associated store]], |store|)
+  Perform([=initialize a global object=](**this**, |globaladdr|))
+
+# GetGlobalValue
+  params: |global|
+  head: The algorithm <dfn>GetGlobalValue</dfn>({{Global}} |global|) performs the following steps:
+  Let(|store|, [=surrounding agent=].[[associated store]])
+  Let(|globaladdr|, |global|.[[Global]])
+  Let(|globaltype|, [=global_type=](|store|, |globaladdr|))
+  If(|globaltype| is of the form ?(<var ignore>mut</var> |valuetype|) where |valuetype| [=matches/valtype=] [=v128=] or [=exnref=])
+    Throw(a {{TypeError}})
+  Let(|value|, [=global_read=](|store|, |globaladdr|))
+  Return([=!=] [=ToJSValue=](|value|))
+
+# value
+  head: The getter of the <dfn attribute for="Global">value</dfn> attribute of {{Global}}, when invoked, performs the following steps:
+  Return([=GetGlobalValue=](**this**))
+  ?(The setter of the value attribute of {{Global}}, when invoked, performs the following steps:)
+  Let(|store|, [=surrounding agent=].[[associated store]])
+  Let(|globaladdr|, **this**.[[Global]])
+  Let(?(|mut| |valuetype|), [=global_type=](|store|, |globaladdr|))
+  If(|valuetype| [=matches/valtype=] [=v128=] or [=exnref=])
+    Throw(a {{TypeError}})
+  If(|mut| is [=const=])
+    Throw(a {{TypeError}})
+  Let(|value|, [=?=] [=ToWebAssemblyValue=](**the given value**, |valuetype|))
+  Let(|store|, [=global_write=](|store|, |globaladdr|, |value|))
+  If(|store| is [=error=])
+    Throw(a {{RangeError}} exception)
+  Set([=surrounding agent=].[[associated store]], |store|)
+
+# valueOf
+  head: The <dfn method for="Global">valueOf()</dfn> method, when invoked, performs the following steps:
+  Return([=GetGlobalValue=](**this**))
+
+# name of the WebAssembly function
+  params: |funcaddr|
+  head: The <dfn>name of the WebAssembly function</dfn> |funcaddr| is found by performing the following steps:
+  Let(|store|, [=surrounding agent=].[[associated store]])
+  Let(|funcinst|, ?(|store|.funcs)[|funcaddr|])
+  If(|funcinst| is of the form ?({type <var ignore>functype</var>, hostcode |hostfunc|}))
+    Assert(|hostfunc| is ?(a JavaScript object), and [$IsCallable$](|hostfunc|) is true)
+    Let(|index|, ?(the [=index of the host function=] |funcaddr|))
+  Else
+    Let(|moduleinst|, ?(|funcinst|.module))
+    Assert(|funcaddr| is ?(contained in |moduleinst|.funcaddrs))
+    Let(|index|, ?(the index of |moduleinst|.funcaddrs where |funcaddr| is found))
+  Return([=!=] [$ToString$](|index|))
+
+# a new Exported Function
+  params: |funcaddr|
+  head: To create <dfn>a new Exported Function</dfn> from a WebAssembly [=function address=] |funcaddr|, perform the following steps:
+  Let(|map|, [=surrounding agent=].[[Exported Function cache]])
+  If(|map|[|funcaddr|] [=map/exists=])
+    Return(|map|[|funcaddr|])
+  Let(|steps|, "[=call an Exported Function|call the Exported Function=] |funcaddr| with arguments.")
+  Let(|realm|, ?(the [=current Realm=]))
+  Let(|store|, [=surrounding agent=].[[associated store]])
+  Let(|functype|, [=func_type=](|store|, |funcaddr|))
+  Let(?([|paramTypes|] → [<var ignore>resultTypes</var>]), |functype|)
+  Let(|arity|, length(|paramTypes|))
+  Let(|name|, ?(the [=name of the WebAssembly function=] |funcaddr|))
+  Let(|function|, [=!=] [$CreateBuiltinFunction$](|steps|, |arity|, |name|, « ?(\[[FunctionAddress]]) », |realm|))
+  Set(|function|.[[FunctionAddress]], |funcaddr|)
+  Set(|map|[|funcaddr|], |function|)
+  Return(|function|)
+
+# call an Exported Function
+  params: |funcaddr|, |argValues|
+  head: To <dfn>call an Exported Function</dfn> with [=function address=] |funcaddr| and a [=list=] of JavaScript arguments |argValues|, perform the following steps:
+  Let(|store|, [=surrounding agent=].[[associated store]])
+  Let(|functype|, [=func_type=](|store|, |funcaddr|))
+  Let(?([|parameters|] →)[|results|], |functype|)
+  If(?(any type in |parameters|) or |results| [=matches/valtype=] [=v128=] or [=exnref=])
+    Throw(a {{TypeError}})
+  Note(the above error is thrown each time the \[[Call]] method is invoked)
+  Let(|args|, « »)
+  Let(|i|, 0)
+  ForEach(|t|, |parameters|)
+    If(length(|argValues|) > |i|)
+      Let(|arg|, |argValues|[|i|])
+    Else
+      Let(|arg|, undefined)
+    Append([=?=] [=ToWebAssemblyValue=](|arg|, |t|), |args|)
+    Set(|i|, |i| + 1)
+  Let((|store|, |ret|), [=func_invoke=](|store|, |funcaddr|, |args|))
+  Set([=surrounding agent=].[[associated store]], |store|)
+  If(|ret| is [=error=])
+    Throw(an exception)
+  ?(This exception should be a WebAssembly {{RuntimeError}} exception, unless otherwise indicated by <a href="#errors">the WebAssembly error mapping</a>)
+  If(|ret| is [=exception=](|exnaddr|))
+    Let(|tagaddr|, [=exn_tag=](|store|, |exnaddr|))
+    Let(|payload|, [=exn_read=](|store|, |exnaddr|))
+    Let(|jsTagAddr|, [=get the JavaScript exception tag=])
+    If(|tagaddr| is |jsTagAddr|)
+      Throw([=!=] [=ToJSValue=](|payload|[0]))
+    Else
+      Let(|exception|, [=create an Exception object=](|exnaddr|))
+      Throw(|exception|)
+  Let(|outArity|, length(|ret|))
+  If(|outArity| is 0)
+    Return(undefined)
+  ElseIf(|outArity| is 1)
+    Return([=!=] [=ToJSValue=](|ret|[0]))
+  Else
+    Let(|values|, « »)
+    ForEach(|r|, |ret|)
+      Append([=!=] [=ToJSValue=](|r|), |values|)
+    Return([$CreateArrayFromList$](|values|))
+
+# run a host function
+  params: |func|, |functype|, |arguments|
+  head: To <dfn>run a host function</dfn> from the JavaScript object |func|, type |functype|, and [=list=] of [=WebAssembly values=] |arguments|, perform the following steps:
+  Let(?([|parameters|] →)[|results|], |functype|)
+  If(?(any type in |parameters|) or |results| [=matches/valtype=] [=v128=] or [=exnref=])
+    Throw(a {{TypeError}})
+  Let(|jsArguments|, « »)
+  ForEach(|arg|, |arguments|)
+    Append([=!=] [=ToJSValue=](|arg|), |jsArguments|)
+  Let(|ret|, [=?=] [$Call$](|func|, undefined, |jsArguments|))
+  Let(|resultsSize|, length(|results|))
+  If(|resultsSize| is 0)
+    Return(« »)
+  ElseIf(|resultsSize| is 1)
+    Return(« [=?=] [=ToWebAssemblyValue=](|ret|, |results|[0]) »)
+  Else
+    Let(|method|, [=?=] [$GetMethod$](|ret|, ?({{%Symbol.iterator%}})))
+    If(|method| is undefined)
+      Throw(a {{TypeError}})
+    Let(|values|, [=?=] [$IteratorToList$]([=?=] [$GetIteratorFromMethod$](|ret|, |method|)))
+    Let(|wasmValues|, « »)
+    If(length(|values|) is not |resultsSize|)
+      Throw(a {{TypeError}} exception)
+    ForEach(|value| and |resultType|, |values| and |results|)
+      Append([=?=] [=ToWebAssemblyValue=](|value|, |resultType|), |wasmValues|)
+    Return(|wasmValues|)
+
+# create a host function
+  params: |func|, |functype|
+  head: To <dfn>create a host function</dfn> from the JavaScript object |func| and type |functype|, perform the following steps:
+  Assert(?([$IsCallable$](|func|)))
+  Let(|stored settings|, ?(the <a spec=HTML>incumbent settings object</a>))
+  Let(|hostfunc|, ?(a [=host function=] which performs the following steps when called with arguments |arguments|:))
+    Let(|realm|, ?(|func|'s [=associated Realm=]))
+    Let(|relevant settings|, ?(|realm|'s [=realm/settings object=]))
+    Perform([=Prepare to run script=](|relevant settings|))
+    Perform([=Prepare to run a callback=](|stored settings|))
+    Let(|result|, [=run a host function=](|func|, |functype|, |arguments|))
+    Perform([=Clean up after running a callback=](|stored settings|))
+    Perform([=Clean up after running script=](|relevant settings|))
+    Assert(|result|.[[Type]] is <emu-const>throw</emu-const> or <emu-const>normal</emu-const>)
+    Let(|store|, [=surrounding agent=].[[associated store]])
+    If(|result|.[[Type]] is <emu-const>throw</emu-const>)
+      Let(|v|, |result|.[[Value]])
+      If(|v| [=implements=] {{Exception}})
+        Let(|address|, |v|.[[Address]])
+      Else
+        Let(|type|, [=get the JavaScript exception tag=])
+        Let(|payload|, [=!=] [=ToWebAssemblyValue=](|v|, [=externref=]))
+        Let((|store|, |address|), [=exn_alloc=](|store|, |type|, « |payload| »))
+        Set([=surrounding agent=].[[associated store]], |store|)
+      ?(Execute the WebAssembly instructions ([=ref.exn=] |address|) ([=throw_ref=]))
+    Else
+      Return(|result|.[[Value]])
+  Let(|store|, [=surrounding agent=].[[associated store]])
+  Let((|store|, |funcaddr|), [=func_alloc=](|store|, |functype|, |hostfunc|))
+  Set([=surrounding agent=].[[associated store]], |store|)
+  Return(|funcaddr|)
+
+# ToJSValue
+  params: |w|
+  head: The algorithm <dfn>ToJSValue</dfn>(|w|) coerces a [=WebAssembly value=] to a JavaScript value by performing the following steps:
+  Assert(|w| is not of the form [=v128.const=](|v128|))
+  Assert(|w| is not of the form [=ref.exn=](|exnaddr|))
+  If(|w| is of the form [=i64.const=](|u64|))
+    Let(|i64|, [=signed_64=](|u64|))
+    Return([=ℤ=](AsMath(|i64|)))
+  If(|w| is of the form [=i32.const=](|u32|))
+    Let(|i32|, [=signed_32=](|u32|))
+    Return([=𝔽=](AsMath(|i32|)))
+  If(|w| is of the form [=f32.const=](|f32|))
+    If(|f32| is [=+∞=] or [=−∞=])
+      Return(?(**+∞**<sub>𝔽</sub> or **-∞**<sub>𝔽</sub>, respectively))
+    If(|f32| is [=nan=])
+      Return(**NaN**)
+    Return([=𝔽=](AsMath(|f32|)))
+  If(|w| is of the form [=f64.const=](|f64|))
+    If(|f64| is [=+∞=] or [=−∞=])
+      Return(?(**+∞**<sub>𝔽</sub> or **-∞**<sub>𝔽</sub>, respectively))
+    If(|f64| is [=nan=])
+      Return(**NaN**)
+    Return([=𝔽=](AsMath(|f64|)))
+  If(|w| is of the form [=ref.null=](|t|))
+    Return(null)
+  If(|w| is of the form [=ref.i31=](|u31|))
+    Let(|i31|, [=signed_31=](|u31|))
+    Return([=𝔽=](|i31|))
+  If(|w| is of the form [=ref.struct=](|structaddr|))
+    Return([=a new Exported GC Object=](|structaddr|, "struct"))
+  If(|w| is of the form [=ref.array=](|arrayaddr|))
+    Return([=a new Exported GC Object=](|arrayaddr|, "array"))
+  If(|w| is of the form [=ref.func=](|funcaddr|))
+    Return([=a new Exported Function=](|funcaddr|))
+  If(|w| is of the form [=ref.host=](|hostaddr|))
+    Return([=retrieving a host value=](|hostaddr|))
+  If(|w| is of the form [=ref.extern=](|ref|))
+    Return([=ToJSValue=](|ref|))
+  Note(Number values which are equal to NaN may have various observable NaN payloads; see [$NumericToRawBytes$] for details)
+
+# retrieving a host value
+  params: |hostaddr|
+  head: For <dfn>retrieving a host value</dfn> from an [=host address=] |hostaddr|, perform the following steps:
+  Let(|map|, [=surrounding agent=].[[host value cache]])
+  Assert(|map|[|hostaddr|] [=map/exists=])
+  Return(|map|[|hostaddr|])
+
+# ToWebAssemblyValue
+  params: |v|, |type|
+  head: The algorithm <dfn>ToWebAssemblyValue</dfn>(|v|, |type|) coerces a JavaScript value to a [=WebAssembly value=] by performing the following steps:
+  Assert(|type| is not [=v128=])
+  Assert(|type| does not [=matches/valtype=] [=exnref=])
+  If(|type| is [=i64=])
+    Let(|i64|, [=?=] [$ToBigInt64$](|v|))
+    Let(|u64|, ?(the unsigned integer such that |i64| is [=signed_64=](|u64|)))
+    Return([=i64.const=](|u64|))
+  If(|type| is [=i32=])
+    Let(|i32|, [=?=] [$ToInt32$](|v|))
+    Let(|u32|, ?(the unsigned integer such that |i32| is [=signed_32=](|u32|)))
+    Return([=i32.const=](|u32|))
+  If(|type| is [=f32=])
+    Let(|number|, [=?=] [$ToNumber$](|v|))
+    If(|number| is **NaN**)
+      Let(|n|, ?(an implementation-defined integer such that [=canon=]<sub>32</sub> &leq; |n| &lt; 2<sup>[=signif=](32)</sup>))
+      Let(|f32|, [=nan=](?(n)))
+    Else
+      Let(|f32|, ?(|number| rounded to the nearest representable value using IEEE 754-2019 round to nearest, ties to even mode))
+      ?([[IEEE-754]])
+    Return([=f32.const=](|f32|))
+  If(|type| is [=f64=])
+    Let(|number|, [=?=] [$ToNumber$](|v|))
+    If(|number| is **NaN**)
+      Let(|n|, ?(an implementation-defined integer such that [=canon=]<sub>64</sub> &leq; |n| &lt; 2<sup>[=signif=](64)</sup>))
+      Let(|f64|, [=nan=](?(n)))
+    Else
+      Let(|f64|, |number|)
+    Return([=f64.const=](|f64|))
+  If(|type| is of the form [=ref=](|null|, |heaptype|))
+    If(|v| is null)
+      Let(|r|, [=ref.null=](|heaptype|))
+    ElseIf(?([=match_valtype=](|type|, [=ref=] |null| [=heap-type/extern=])))
+      Let(|ref|, [=!=] [=ToWebAssemblyValue=](|v|, [=ref=]([=heap-type/any=])))
+      Let(|r|, [=ref.extern=](|ref|))
+    ElseIf(|v| is ?(an [=Exported Function=]), and [=match_valtype=](|type|, [=ref=](|null|, [=heap-type/func=])))
+      Let(|funcaddr|, |v|.[[FunctionAddress]])
+      Let(|r|, [=ref.func=](|funcaddr|))
+    ElseIf(|v| is a Number, and |v| is [=?=] [$ToInt32$](|v|), and [=ℝ=](|v|) < 2 ** 30, and [=ℝ=](|v|) >= -(2 ** 30))
+      Let(|i31|, [=?=] [$ToInt32$](|v|))
+      Let(|u31|, ?(the unsigned integer such that |i31| is [=signed_31=](|u31|)))
+      Let(|r|, [=ref.i31=](|u31|))
+    ElseIf(|v| is ?(an [=Exported GC Object=]))
+      Let(|objectaddr|, |v|.[[ObjectAddress]])
+      Let(|objectkind|, |v|.[[ObjectKind]])
+      If(|objectkind| is "array")
+        Let(|r|, [=ref.array=](|objectaddr|))
+      ElseIf(|objectkind| is "struct")
+        Let(|r|, [=ref.struct=](|objectaddr|))
+    Else
+      Let(|map|, [=surrounding agent=].[[host value cache]])
+      If(?(a [=host address=] |hostaddr| exists such that |map|)[|hostaddr|] is ?(the same as |v|))
+        Return([=ref.host=](|hostaddr|))
+      Let([=host address=](|hostaddr|), ?(the smallest address such that |map|[|hostaddr|] [=map/exists=] is false))
+      Set(|map|[|hostaddr|], |v|)
+      Let(|r|, [=ref.host=](|hostaddr|))
+    Let(|store|, [=surrounding agent=].[[associated store]])
+    Let(|actualtype|, [=ref_type=](|store|, |r|))
+    If([=match_valtype=](|actualtype|, |type|) is false)
+      Throw(a {{TypeError}})
+    Return(|r|)
+  Assert(Unreachable)
+
+# AddressValueToU64
+  params: |v|, |addrtype|
+  head: The algorithm <dfn>AddressValueToU64</dfn>(|v|, |addrtype|) converts a JavaScript value to a WebAssembly [=u64=] for use in embedding operations. It is designed to act like [=[EnforceRange]=] [=unsigned long=] for {{AddressType}} "i32", and to extend these semantics to {{AddressType}} "i64", by performing the following steps:
+  If(|addrtype| is "i32")
+    Let(|n|, [=?=] ?([$ConvertToInt$](|v|, 32, "unsigned"), where the destination type is associated with [=[EnforceRange]=]))
+    Note(This is equivalent to the [=js-unsigned-long|JS conversion rules=] for [=[EnforceRange]=] [=unsigned long=])
+    Return(?([=ℝ=](|n|) as a WebAssembly [=u64=]))
+  If(|addrtype| is "i64")
+    Let(|n|, [=?=] [$ToBigInt$](|v|))
+    If(|n| < 0 or |n| > 2 ** 64 &minus; 1)
+      Throw(a {{TypeError}})
+    Note(This operation is designed to emulate [=[EnforceRange]=])
+    Return(?([=ℝ=](|n|) as a WebAssembly [=u64=]))
+  Assert(Unreachable)
+
+# U64ToAddressValue
+  params: |v|, |addrtype|
+  head: The algorithm <dfn>U64ToAddressValue</dfn>(|v|, |addrtype|) converts a [=u64=] value from a WebAssembly embedding operation to the correct variant of {{AddressValue}} for an {{AddressType}}, by performing the following steps:
+  If(|addrtype| is "i32")
+    Return([=𝔽=](AsMath(|v|)))
+  ElseIf(|addrtype| is "i64")
+    Return([=ℤ=](AsMath(|v|)))
+  Assert(Unreachable)
+
+# initialize a Tag object
+  params: |tag|, |tagAddress|
+  head: To <dfn>initialize a Tag object</dfn> |tag| from a [=tag address=] |tagAddress|, perform the following steps:
+  Let(|map|, [=surrounding agent=].[[Tag object cache]])
+  Assert(|map|[|tagAddress|] [=map/doesn't exist=])
+  Set(|tag|.[[Address]], |tagAddress|)
+  Set(|map|[|tagAddress|], |tag|)
+
+# create a Tag object
+  params: |tagAddress|
+  head: To <dfn>create a Tag object</dfn> from a [=tag address=] |tagAddress|, perform the following steps:
+  Let(|map|, [=surrounding agent=].[[Tag object cache]])
+  If(|map|[|tagAddress|] [=map/exists=])
+    Return(|map|[|tagAddress|])
+  Let(|tag|, new {{Tag}})
+  Perform([=initialize a Tag object=](|tag|, |tagAddress|))
+  Return(|tag|)
+
+# Tag
+  params: |type|
+  head: The <dfn constructor for="Tag" lt="Tag(type)">new Tag(|type|)</dfn> constructor steps are:
+  Let(|parameters|, |type|["parameters"])
+  Let(|wasmParameters|, « »)
+  ForEach(|paramType|, |parameters|)
+    Append([=ToValueType=](|paramType|), |wasmParameters|)
+  Let(|store|, [=surrounding agent=].[[associated store]])
+  Let((|store|, |tagAddress|), [=tag_alloc=](|store|, ?(|wasmParameters| → « »)))
+  Set([=surrounding agent=].[[associated store]], |store|)
+  Perform([=initialize a Tag object=](**this**, |tagAddress|))
+
+# \[[GetPrototypeOf]] internal method of an Exported GC Object
+  head: The <dfn>\[[GetPrototypeOf]] internal method of an Exported GC Object</dfn> <var ignore>O</var> takes no arguments and returns null. It performs the following steps when called:
+  Return(null)
+
+# \[[SetPrototypeOf]] internal method of an Exported GC Object
+  head: The <dfn>\[[SetPrototypeOf]] internal method of an Exported GC Object</dfn> <var ignore>O</var> takes argument <var ignore>V</var> (an Object or null) and returns a boolean. It performs the following steps when called:
+  Return(false)
+
+# \[[IsExtensible]] internal method of an Exported GC Object
+  head: The <dfn>\[[IsExtensible]] internal method of an Exported GC Object</dfn> <var ignore>O</var> takes no arguments and returns a boolean. It performs the following steps when called:
+  Return(false)
+
+# \[[PreventExtensions]] internal method of an Exported GC Object
+  head: The <dfn>\[[PreventExtensions]] internal method of an Exported GC Object</dfn> <var ignore>O</var> takes no arguments and returns a boolean. It performs the following steps when called:
+  Return(false)
+
+# \[[GetOwnProperty]] internal method of an Exported GC Object
+  head: The <dfn>\[[GetOwnProperty]] internal method of an Exported GC Object</dfn> <var ignore>O</var> takes argument <var ignore>P</var> (a property key) and returns undefined. It performs the following steps when called:
+  Return(undefined)
+
+# \[[DefineOwnProperty]] internal method of an Exported GC Object
+  head: The <dfn>\[[DefineOwnProperty]] internal method of an Exported GC Object</dfn> <var ignore>O</var> takes arguments <var ignore>P</var> (a property key) and <var ignore>Desc</var> (a property descriptor) and returns a boolean. It performs the following steps when called:
+  Return(false)
+
+# \[[HasProperty]] internal method of an Exported GC Object
+  head: The <dfn>\[[HasProperty]] internal method of an Exported GC Object</dfn> <var ignore>O</var> takes argument <var ignore>P</var> (a property key) and returns a boolean. It performs the following steps when called:
+  Return(false)
+
+# \[[Get]] internal method of an Exported GC Object
+  head: The <dfn>\[[Get]] internal method of an Exported GC Object</dfn> <var ignore>O</var> takes arguments <var ignore>P</var> (a property key) and <var ignore>Receiver</var> (an ECMAScript language value) and returns undefined. It performs the following steps when called:
+  Return(undefined)
+
+# \[[Set]] internal method of an Exported GC Object
+  head: The <dfn>\[[Set]] internal method of an Exported GC Object</dfn> <var ignore>O</var> takes arguments <var ignore>P</var> (a property key), <var ignore>V</var> (an ECMAScript language value), and <var ignore>Receiver</var> (an ECMAScript language value) and throws an exception. It performs the following steps when called:
+  Throw(a {{TypeError}})
+
+# \[[Delete]] internal method of an Exported GC Object
+  head: The <dfn>\[[Delete]] internal method of an Exported GC Object</dfn> <var ignore>O</var> takes argument <var ignore>P</var> (a property key) and throws an exception. It performs the following steps when called:
+  Throw(a {{TypeError}})
+
+# \[[OwnPropertyKeys]] internal method of an Exported GC Object
+  head: The <dfn>\[[OwnPropertyKeys]] internal method of an Exported GC Object</dfn> <var ignore>O</var> takes no arguments and returns a list. It performs the following steps when called:
+  Let(|keys|, « »)
+  Return(|keys|)
+
+# a new Exported GC Object
+  params: |objectaddr|, |objectkind|
+  head: To create <dfn>a new Exported GC Object</dfn> from a WebAssembly [=object address=] |objectaddr| and a string |objectkind|, perform the following steps:
+  Assert(|objectkind| is "array" or "struct")
+  Let(|map|, [=surrounding agent=].[[exported GC object cache]])
+  If(|map|[|objectaddr|] [=map/exists=])
+    Return(|map|[|objectaddr|])
+  Let(|object|, [=MakeBasicObject=](« ?(\[[ObjectAddress]]), ?(\[[ObjectKind]]) »))
+  Set(|object|.[[ObjectAddress]], |objectaddr|)
+  Set(|object|.[[ObjectKind]], |objectkind|)
+  Set(|object|.[[GetPrototypeOf]], ?([=[[GetPrototypeOf]] internal method of an Exported GC Object=]))
+  Set(|object|.[[SetPrototypeOf]], ?([=[[SetPrototypeOf]] internal method of an Exported GC Object=]))
+  Set(|object|.[[IsExtensible]], ?([=[[IsExtensible]] internal method of an Exported GC Object=]))
+  Set(|object|.[[PreventExtensions]], ?([=[[PreventExtensions]] internal method of an Exported GC Object=]))
+  Set(|object|.[[GetOwnProperty]], ?([=[[GetOwnProperty]] internal method of an Exported GC Object=]))
+  Set(|object|.[[DefineOwnProperty]], ?([=[[DefineOwnProperty]] internal method of an Exported GC Object=]))
+  Set(|object|.[[HasProperty]], ?([=[[HasProperty]] internal method of an Exported GC Object=]))
+  Set(|object|.[[Get]], ?([=[[Get]] internal method of an Exported GC Object=]))
+  Set(|object|.[[Set]], ?([=[[Set]] internal method of an Exported GC Object=]))
+  Set(|object|.[[Delete]], ?([=[[Delete]] internal method of an Exported GC Object=]))
+  Set(|object|.[[OwnPropertyKeys]], ?([=[[OwnPropertyKeys]] internal method of an Exported GC Object=]))
+  Set(|map|[|objectaddr|], |object|)
+  Return(|object|)
+
+# initialize an Exception object
+  params: |exn|, |exnAddress|
+  head: To <dfn>initialize an Exception object</dfn> |exn| from an [=Exception address=] |exnAddress|, perform the following steps:
+  Let(|map|, [=surrounding agent=].[[Exception object cache]])
+  Assert(|map|[|exnAddress|] [=map/doesn't exist=])
+  Set(|exn|.[[Address]], |exnAddress|)
+  Set(|map|[|exnAddress|], |exn|)
+  Let(|store|, [=surrounding agent=].[[associated store]])
+  Let(|tagaddr|, [=exn_tag=](|store|, |exnAddress|))
+  Let(|payload|, [=exn_read=](|store|, |exnAddress|))
+  Set(|exn|.[[Type]], |tagaddr|)
+  Set(|exn|.[[Payload]], |payload|)
+  Set(|exn|.[[Stack]], undefined)
+
+# create an Exception object
+  params: |exnAddress|
+  head: To <dfn>create an Exception object</dfn> from a [=exception address=] |exnAddress|, perform the following steps:
+  Let(|map|, [=surrounding agent=].[[Exception object cache]])
+  If(|map|[|exnAddress|] [=map/exists=])
+    Return(|map|[|exnAddress|])
+  Let(|exn|, new {{Exception}})
+  Perform([=initialize an Exception object=](|exn|, |exnAddress|))
+  Return(|exn|)
+
+# Exception
+  params: |exceptionTag|, |payload|, |options|
+  head: The <dfn constructor for=Exception lt="Exception(exceptionTag, payload, options)">new Exception(|exceptionTag|, |payload|, |options|)</dfn> constructor steps are:
+  Let(|JSTagAddr|, [=get the JavaScript exception tag=])
+  If(|exceptionTag|.[[Address]] is |JSTagAddr|)
+    Throw(a {{TypeError}})
+  Let(|store|, [=surrounding agent=].[[associated store]])
+  Let(?([|types|] → []), [=tag_type=](|store|, |exceptionTag|.[[Address]]))
+  If(length(|types|) is not length(|payload|))
+    Throw(a {{TypeError}})
+  Let(|wasmPayload|, « »)
+  ForEach(|value| and |resultType|, |payload| and |types|)
+    If(|resultType| [=matches/valtype=] [=v128=] or [=exnref=])
+      Throw(a {{TypeError}})
+    Append([=?=] [=ToWebAssemblyValue=](|value|, |resultType|), |wasmPayload|)
+  Let((|store|, |exceptionAddr|), [=exn_alloc=](|store|, |exceptionTag|.[[Address]], |wasmPayload|))
+  Set([=surrounding agent=].[[associated store]], |store|)
+  Perform([=initialize an Exception object=](**this**, |exceptionAddr|))
+  If(|options|["traceStack"] is true)
+    Set(**this**.[[Stack]], ?(a {{DOMString}} representation of the current call stack or undefined))
+
+# getArg
+  params: |exceptionTag|, |index|
+  head: The <dfn method for="Exception">getArg(|exceptionTag|, |index|)</dfn> method steps are:
+  Let(|store|, [=surrounding agent=].[[associated store]])
+  If(**this**.[[Type]] is not |exceptionTag|.[[Address]])
+    Throw(a {{TypeError}})
+  Let(|tagaddr|, [=exn_tag=](|store|, **this**.[[Address]]))
+  Let(|payload|, [=exn_read=](|store|, **this**.[[Address]]))
+  Assert(|tagaddr| is **this**.[[Type]])
+  If(|index| >= length(|payload|))
+    Throw(a {{RangeError}})
+  Let(?([|types|] → []), [=tag_type=](|store|, |tagaddr|))
+  If(|types|[|index|] [=matches/valtype=] [=v128=] or [=exnref=])
+    Throw(a {{TypeError}})
+  Return([=!=] [=ToJSValue=](|payload|[|index|]))
+
+# is
+  params: |exceptionTag|
+  head: The <dfn method for="Exception">is(|exceptionTag|)</dfn> method steps are:
+  If(**this**.[[Type]] is not |exceptionTag|.[[Address]])
+    Return(false)
+  Return(true)
+
+# stack
+  head: The <dfn attribute for="Exception">stack</dfn> getter steps are:
+  Return(**this**.[[Stack]])
+
+# get the JavaScript exception tag
+  head: To <dfn>get the JavaScript exception tag</dfn>, perform the following steps:
+  If(?(the [=surrounding agent=]'s associated [=JavaScript exception tag=] has been initialized))
+    Return([=surrounding agent=].[[JavaScript exception tag]])
+  Let(|store|, [=surrounding agent=].[[associated store]])
+  Let((|store|, |tagAddress|), [=tag_alloc=](|store|, « [=externref=] »))
+  Set([=surrounding agent=].[[associated store]], |store|)
+  Set([=surrounding agent=].[[JavaScript exception tag]], |tagAddress|)
+  Return(|tagAddress|)
+
+# create the WebAssembly namespace object
+  id: create the WebAssembly namespace object
+  head: When the [=namespace object=] for the {{WebAssembly}} namespace is [=create a namespace object|created=], the following steps must be run:
+  Let(|namespaceObject|, ?(the [=namespace object=]))
+  ForEach(|error|, « "CompileError", "LinkError", "RuntimeError" »)
+    Let(|constructor|, ?(a new object, implementing the [=NativeError Object Structure=], with <var ignore>NativeError</var> set to |error|))
+    Perform([=!=]([$DefineMethodProperty$](|namespaceObject|, |error|, |constructor|, false)))
+
+# get the builtins for a builtin set
+  params: |builtinSetName|
+  head: To <dfn>get the builtins for a builtin set</dfn> with |builtinSetName|, perform the following steps:
+  Return(?(a list of (|name|, |funcType|, |steps|) for the set with name |builtinSetName| defined within this section))
+
+# find a builtin
+  params: |import|, |builtinSetNames|
+  head: To <dfn>find a builtin</dfn> with |import| and enabled builtins |builtinSetNames|, perform the following steps:
+  Assert([=validate builtin set names=](|builtinSetNames|) is true)
+  Let(|importModuleName|, |import|[0])
+  Let(|importName|, |import|[1])
+  ForEach(|builtinSetName|, |builtinSetNames|)
+    If(?(|builtinSetName| does not refer to a builtin set))
+      Continue
+    Let(|builtinSetQualifiedName|, ?(|builtinSetName| prefixed with "wasm:"))
+    If(|importModuleName| is |builtinSetQualifiedName|)
+      Let(|builtins|, [=get the builtins for a builtin set=](|builtinSetName|))
+      ForEach(|builtin|, |builtins|)
+        Let(|builtinName|, |builtin|[0])
+        If(|importName| is |builtinName|)
+          Return((|builtinSetName|, |builtin|))
+  Return(null)
+
+# validate builtin set names
+  params: |builtinSetNames|
+  head: To <dfn>validate builtin set names</dfn> with |builtinSetNames|, perform the following steps:
+  If(?(|builtinSetNames| contains any duplicates))
+    Return(false)
+  Return(true)
+
+# create a builtin function
+  params: |funcType|, |steps|
+  head: To <dfn>create a builtin function</dfn> from type |funcType| and execution steps |steps|, perform the following steps:
+  Let(|hostfunc|, ?(a [=host function=] which executes |steps| when called))
+  Let(|store|, [=surrounding agent=].[[associated store]])
+  Let((|store|, |funcaddr|), [=func_alloc=](|store|, |funcType|, |hostfunc|))
+  Set([=surrounding agent=].[[associated store]], |store|)
+  Return(|funcaddr|)
+
+# instantiate a builtin set
+  params: |builtinSetName|
+  head: To <dfn>instantiate a builtin set</dfn> with name |builtinSetName|, perform the following steps:
+  Let(|builtins|, [=get the builtins for a builtin set=](|builtinSetName|))
+  Let(|exportsObject|, [=!=] [$OrdinaryObjectCreate$](null))
+  ForEach((|name|, |funcType|, |steps|), |builtins|)
+    Let(|funcaddr|, [=create a builtin function=](|funcType|, |steps|))
+    Let(|func|, [=a new Exported Function=](|funcaddr|))
+    Let(|value|, |func|)
+    Let(|status|, [=!=] [$CreateDataProperty$](|exportsObject|, |name|, |value|))
+    Assert(|status| is true)
+  Return(|exportsObject|)
+
+# validate an import for builtins
+  params: |import|, |builtinSetNames|
+  head: To <dfn>validate an import for builtins</dfn> with |import|, enabled builtins |builtinSetNames|, perform the following steps:
+  Assert([=validate builtin set names=](|builtinSetNames|) is true)
+  Let(|maybeBuiltin|, [=find a builtin=](|import|, |builtinSetNames|))
+  If(|maybeBuiltin| is null)
+    Return(true)
+  Let(|importExternType|, |import|[2])
+  Let(|builtinFuncType|, |maybeBuiltin|[1][1])
+  Let(|builtinExternType|, ?(`func |builtinFuncType|`))
+  Return([=match_externtype=](|builtinExternType|, |importExternType|))
+
+# UnwrapString
+  params: |v|
+  head: The <dfn abstract-op lt="UnwrapString">UnwrapString(|v|)</dfn> abstract operation, when invoked, performs the following steps:
+  If(|v| is not a String)
+    Throw(a {{RuntimeError}} exception as if a [=trap=] was executed)
+  Return(|v|)
+
+# FromCharCode
+  params: |v|
+  head: The <dfn abstract-op lt="FromCharCode">FromCharCode(|v|)</dfn> abstract operation, when invoked, performs the following steps:
+  Assert(|v| is ?(of type [=i32=]))
+  Return([=!=] [$Call$]([=String.fromCharCode=], undefined, « [=ToJSValue=](|v|) »))
+
+# CharCodeAt
+  params: |string|, |index|
+  head: The <dfn abstract-op lt="CharCodeAt">CharCodeAt(|string|, |index|)</dfn> abstract operation, when invoked, performs the following steps:
+  Assert(|index| is ?(of type [=i32=]))
+  Return([=!=] [$Call$]([=String.prototype.charCodeAt=], |string|, « [=ToJSValue=](|index|) »))
+
+# js-string-cast
+  id: js-string-cast
+  params: |v|
+  head: When this builtin is invoked with parameter |v|, the following steps must be run:
+  Return([=?=] [$UnwrapString$](|v|))
+
+# js-string-test
+  id: js-string-test
+  params: |v|
+  head: When this builtin is invoked with parameter |v|, the following steps must be run:
+  If(|v| is not a String)
+    Return(0)
+  Return(1)
+
+# js-string-fromCharCodeArray
+  id: js-string-fromCharCodeArray
+  params: |array|, |start|, |end|
+  head: When this builtin is invoked with parameters |array|, |start|, and |end|, the following steps must be run:
+  If(|array| is null)
+    Throw(a {{RuntimeError}} exception as if a [=trap=] was executed)
+  Let(|length|, length(|array|))
+  If(|start| > |end| or |end| > |length|)
+    Throw(a {{RuntimeError}} exception as if a [=trap=] was executed)
+  Let(|result|, "")
+  Let(|i|, |start|)
+  While(|i| < |end|)
+    Let(|charCode|, |array|[|i|])
+    Let(|charCodeString|, [$FromCharCode$](|charCode|))
+    Let(|result|, ?(the concatenation of |result| and |charCodeString|))
+    Set(|i|, |i| + 1)
+  Return(|result|)
+
+# js-string-intoCharCodeArray
+  id: js-string-intoCharCodeArray
+  params: |string|, |array|, |start|
+  head: When this builtin is invoked with parameters |string|, |array|, and |start|, the following steps must be run:
+  If(|array| is null)
+    Throw(a {{RuntimeError}} exception as if a [=trap=] was executed)
+  Let(|string|, [=?=] [$UnwrapString$](|string|))
+  Let(|stringLength|, length(|string|))
+  Let(|arrayLength|, length(|array|))
+  If(|start| + |stringLength| > |arrayLength|)
+    Throw(a {{RuntimeError}} exception as if a [=trap=] was executed)
+  Let(|i|, 0)
+  While(|i| < |stringLength|)
+    Let(|charCode|, [$CharCodeAt$](|string|, |i|))
+    Set(?(the element at index |start|) + ?(|i| in |array|), [=ToWebAssemblyValue=](|charCode|, [=i32=]))
+    Set(|i|, |i| + 1)
+  Return(|stringLength|)
+
+# js-string-fromCharCode
+  id: js-string-fromCharCode
+  params: |v|
+  head: When this builtin is invoked with parameter |v|, the following steps must be run:
+  Return([$FromCharCode$](|v|))
+
+# js-string-fromCodePoint
+  id: js-string-fromCodePoint
+  params: |v|
+  head: When this builtin is invoked with parameter |v|, the following steps must be run:
+  If(|v| > 0x10ffff)
+    Throw(a {{RuntimeError}} exception as if a [=trap=] was executed)
+  Return([=!=] [$Call$]([=String.fromCodePoint=], undefined, « [=ToJSValue=](|v|) »))
+
+# js-string-charCodeAt
+  id: js-string-charCodeAt
+  params: |string|, |index|
+  head: When this builtin is invoked with parameters |string| and |index|, the following steps must be run:
+  Let(|string|, [=?=] [$UnwrapString$](|string|))
+  Let(|length|, length(|string|))
+  If(|index| >= |length|)
+    Throw(a {{RuntimeError}} exception as if a [=trap=] was executed)
+  Return([$CharCodeAt$](|string|, |index|))
+
+# js-string-codePointAt
+  id: js-string-codePointAt
+  params: |string|, |index|
+  head: When this builtin is invoked with parameters |string| and |index|, the following steps must be run:
+  Let(|string|, [=?=] [$UnwrapString$](|string|))
+  Let(|length|, length(|string|))
+  If(|index| >= |length|)
+    Throw(a {{RuntimeError}} exception as if a [=trap=] was executed)
+  Return([=!=] [$Call$]([=String.prototype.codePointAt=], |string|, « [=ToJSValue=](|index|) »))
+
+# js-string-length
+  id: js-string-length
+  params: |v|
+  head: When this builtin is invoked with parameter |v|, the following steps must be run:
+  Let(|string|, [=?=] [$UnwrapString$](|v|))
+  Return(length(|string|))
+
+# js-string-concat
+  id: js-string-concat
+  params: |first|, |second|
+  head: When this builtin is invoked with parameters |first| and |second|, the following steps must be run:
+  Let(|first|, [=?=] [$UnwrapString$](|first|))
+  Let(|second|, [=?=] [$UnwrapString$](|second|))
+  Return([=!=] [$Call$]([=String.prototype.concat=], |first|, « |second| »))
+
+# js-string-substring
+  id: js-string-substring
+  params: |string|, |start|, |end|
+  head: When this builtin is invoked with parameters |string|, |start|, and |end|, the following steps must be run:
+  Let(|string|, [=?=] [$UnwrapString$](|string|))
+  Let(|length|, length(|string|))
+  If(|start| > |end| or |start| > |length|)
+    Return("")
+  Return([=!=] [$Call$]([=String.prototype.substring=], |string|, « [=ToJSValue=](|start|), [=ToJSValue=](|end|) »))
+
+# js-string-equals
+  id: js-string-equals
+  params: |first|, |second|
+  head: When this builtin is invoked with parameters |first| and |second|, the following steps must be run:
+  If(|first| is not null, and |first| is not a String)
+    Throw(a {{RuntimeError}} exception as if a [=trap=] was executed)
+  If(|second| is not null, and |second| is not a String)
+    Throw(a {{RuntimeError}} exception as if a [=trap=] was executed)
+  If([=!=] [=IsStrictlyEqual=](|first|, |second|) is true)
+    Return(1)
+  Return(0)
+
+# js-string-compare
+  id: js-string-compare
+  params: |first|, |second|
+  head: When this builtin is invoked with parameters |first| and |second|, the following steps must be run:
+  Let(|first|, [=?=] [$UnwrapString$](|first|))
+  Let(|second|, [=?=] [$UnwrapString$](|second|))
+  If([=!=] [=IsStrictlyEqual=](|first|, |second|) is true)
+    Return(0)
+  If([=!=] [=IsLessThan=](|first|, |second|, true) is true)
+    Return(-1)
+  Return(1)
+
+# a new promise
+  params: |realm|
+  head: To <dfn export lt="a new promise">create</dfn> a new <code><a interface>Promise</a>&lt;<var ignore>T</var>&gt;</code> in a [=realm=] |realm|, perform the following steps:
+  Let(|constructor|, |realm|.[[Intrinsics]].[[{{%Promise%}}]])
+  Return([=?=] [$NewPromiseCapability$](|constructor|))
+
+# resolve
+  params: |T|, |p|, |x|
+  head: To <dfn export>resolve</dfn> a <code><a interface>Promise</a>&lt;|T|&gt;</code> |p| with |x| (a value of type |T|), perform the following steps:
+  If(|x| is not ?(given))
+    Let(?(it), ?(the {{undefined}} value))
+  Let(|value|, [=converted to a JavaScript value=](|x|))
+  Perform([=!=]([$Call$](|p|.[[Resolve]], ?(<emu-val>undefined</emu-val>), « |value| »)))
+  If(|T| is ?({{undefined}}))
+    ?(the |x| argument is optional, allowing a simpler "[=resolve=] p" usage)
+
+# reject
+  params: |p|, |r|
+  head: To <dfn export>reject</dfn> a <code><a interface>Promise</a>&lt;<var ignore>T</var>&gt;</code> |p| with reason |r| (a JavaScript value), perform the following steps:
+  Perform([=!=]([$Call$](|p|.[[Reject]], ?(<emu-val>undefined</emu-val>), « |r| »)))
+
+# react
+  params: |T|, |promise|
+  head: To <dfn id="dfn-perform-steps-once-promise-is-settled" export lt="react|reacting" for="promise">react</dfn> to a <code><a interface>Promise</a>&lt;|T|&gt;</code> |promise|, given one or two sets of steps to perform, covering when the promise is fulfilled, rejected, or both, perform the following steps:
+  Let(|onFulfilledSteps|, ?(the following steps given argument |V|:))
+    Let(|value|, [=converted to an IDL value=](|V|, |T|))
+    If(?(there) is ?(a set of steps to be run if the promise was fulfilled))
+      Let(|result|, ?(performing them, given |value| if |T| is not {{undefined}}))
+    Else
+      Let(|result|, |value|)
+    Return(?(|result|, [=converted to a JavaScript value=]))
+  Let(|onFulfilled|, ?([$CreateBuiltinFunction$](|onFulfilledSteps|, 1, "", « »):))
+  Let(|onRejectedSteps|, ?(the following steps given argument |R|:))
+    Let(|reason|, [=converted to an IDL value=](|R|))
+    If(?(there) is ?(a set of steps to be run if the promise was rejected))
+      Let(|result|, ?(performing them, given |reason|))
+    Else
+      Let(|result|, [=a promise rejected with=](|reason|))
+    Return(?(|result|, [=converted to a JavaScript value=]))
+  Let(|onRejected|, ?([$CreateBuiltinFunction$](|onRejectedSteps|, 1, "", « »):))
+  Let(|constructor|, |promise|.[[Promise]].[[Realm]].[[Intrinsics]].[[{{%Promise%}}]])
+  Let(|newCapability|, [=?=] [$NewPromiseCapability$](|constructor|))
+  Note(Not all callers will use the returned {{Promise}} Implementations might wish to avoid creating |newCapability| in those cases)
+  Perform([$PerformPromiseThen$](|promise|.\[[Promise]], |onFulfilled|, |onRejected|, |newCapability|))
+  Return(|newCapability|)
+  Note(This algorithm will behave in a very similar way to the {{%Promise.prototype.then%|promise.then()}} method In particular, if the steps return a value of type |U| or <code><a interface>Promise</a>&lt;|U|&gt;</code>, this algorithm returns a <code><a interface>Promise</a>&lt;|U|&gt;</code> as well)
+

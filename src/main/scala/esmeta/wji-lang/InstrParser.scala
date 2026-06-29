@@ -1,0 +1,182 @@
+package esmeta.wji.lang
+
+import Instr.*
+import Instr.PerformOutcome.*
+
+/** Converts the raw step text produced by [[AlgorithmExtractor]] into an
+  * [[Instr]] AST.
+  */
+object InstrParser:
+  import TextSplit.*
+
+  private val ElseClauseStart = """(?is)^(else|otherwise)\b.*""".r
+
+  private val LetPrefix     = """(?is)^Let\b\s+(.+)$""".r
+  private val SetPrefix     = """(?is)^Set\b\s+(.+)$""".r
+  private val AssertPrefix  = """(?is)^Assert:\s*(.+)$""".r
+  private val NotePrefix    = """(?is)^Note:\s*(.*)$""".r
+  private val ReturnPrefix  = """(?is)^Return\b\.?\s*(.*)$""".r
+  private val ThrowPrefix   = """(?is)^(?:\[=[Tt]hrow=\]|Throw\b)\s+(.+)$""".r
+  private val ElseIfPrefix  = """(?is)^(?:Else\s+if\b|Otherwise,\s*if\b)\s+(.+)$""".r
+  private val IfPrefix      = """(?is)^If\b\s+(.+)$""".r
+  private val ElsePrefix    = """(?is)^(?:Else|Otherwise)\b\s*,?\s*(.*)$""".r
+  private val ForEachPrefix = """(?is)^(?:\[=\S*\|)?For each(?:=\])?\s+(.+)$""".r
+  private val WhilePrefix   = """(?is)^While\b\s+(.+)$""".r
+  private val AppendPrefix  = """(?is)^\[=list/Append=\]\s+(.+)$""".r
+  private val MapSetPrefix  = """(?is)^\[=map/[Ss]et[^=]*=\]\s+(.+)$""".r
+  private val IterationContinuePrefix = """(?is)^\[=iteration/continue=\]$""".r
+  private val RunInParallelPrefix     = """(?is)^Run the following steps\b.*\bin parallel\b.*$""".r
+  private val PerformPrefix           = """(?is)^(?:Perform\s+)?(\[[=$].+|Run\b.+)$""".r
+  private val PerformAndReturnSuffix  = """(?is)^(.*?),?\s+and\s+return\s+the\s+result$""".r
+  private val PerformAndLetSuffix     = """(?is)^(.*?),?\s+and\s+let\s+(\|[^|]+\|)\s+be\s+the\s+result$""".r
+  private val PerformAndStoreSuffix   = """(?is)^(.*?),?\s+and\s+store\s+the\s+results?\s+as\s+(\|[^|]+\|)\s*$""".r
+
+  // matches the leading [=..=] algo-link and the rest of the expression
+  private val LeadingAlgoLink = """(?s)^(\[=[^\]]+\])\s*(.*)$""".r
+
+  private def parseCall(expr: String): (String, List[Expr]) = expr.trim match
+    case LeadingAlgoLink(func, rest) => (ExprParser.normalizeLink(func), ExprParser.parseArgs(rest))
+    case _                            => (expr, Nil)
+
+  /** converts the text of a single numbered/bulleted list item - which may
+    * contain more than one sentence, e.g. `"Let |x| be Y. If |x| is Z,
+    * return Z."` - into one or more [[Instr]]s, attaching `subInstrs` (the
+    * item's own nested list items, already converted) as the body of the
+    * last one
+    */
+  def parseStepText(text: String, subInstrs: List[Instr]): List[Instr] =
+    parseSentences(text, subInstrs)
+
+  /** splits `text` into sentences, classifies each one, and attaches
+    * `trailingBody` (converted from a step's nested sub-steps, if any) to
+    * the last sentence.
+    *
+    * A `Note: ...` sentence absorbs every sentence after it into a single
+    * [[Note]], since such asides are written as one or more trailing
+    * sentences of free-form prose rather than as separate steps (e.g.
+    * `"Note: Foo bar. Baz qux."` is one [[Note]] with text `"Foo bar. Baz
+    * qux"`, not a [[Note]] followed by an [[Unknown]]).
+    */
+  private def parseSentences(text: String, trailingBody: List[Instr]): List[Instr] =
+    val sentences = splitSentences(text.trim).filter(_.nonEmpty)
+    sentences match
+      case Nil if trailingBody.isEmpty => Nil
+      case Nil                         => List(Unknown("", trailingBody))
+      case _ =>
+        sentences.indexWhere(NotePrefix.matches) match
+          case -1 =>
+            sentences.init.map(parseSentence(_, Nil)) :+ parseSentence(sentences.last, trailingBody)
+          case noteIdx =>
+            val before = sentences.take(noteIdx).map(parseSentence(_, Nil))
+            before :+ parseSentence(sentences.drop(noteIdx).mkString(" "), trailingBody)
+
+  /** splits `text` into sentence-like fragments: at every top-level
+    * `". "`, and further at a top-level `"; "` when it introduces an
+    * `else`/`otherwise` clause (e.g. `"..., let X be Y; otherwise, let X
+    * be Z."`)
+    */
+  private def splitSentences(text: String): List[String] =
+    splitTopLevelAll(text, ". ").flatMap(splitElseClause)
+
+  private def splitElseClause(fragment: String): List[String] =
+    findTopLevel(fragment, "; ") match
+      case Some(i) =>
+        val before = fragment.substring(0, i)
+        val after = fragment.substring(i + 2)
+        if ElseClauseStart.matches(after) then List(before, after) else List(fragment)
+      case None => List(fragment)
+
+  private def parseSentence(raw: String, trailingBody: List[Instr]): Instr =
+    val text = raw.trim.stripSuffix(".").trim
+    text match
+      case LetPrefix(rest) =>
+        splitTopLevel(rest, " be ") match
+          case Some((lhs, expr)) => Let(ExprParser.parse(lhs.trim), ExprParser.parse(expr.trim), trailingBody)
+          case None              => Unknown(text, trailingBody)
+      case SetPrefix(rest) =>
+        splitTopLevel(rest, " to ").orElse(splitTopLevel(rest, " as specified in ")) match
+          case Some((lhs, expr)) => Set(ExprParser.parse(lhs.trim), ExprParser.parse(expr.trim), trailingBody)
+          case None              => Unknown(text, trailingBody)
+      case AssertPrefix(cond)  => Assert(CondParser.parse(cond.trim), trailingBody)
+      case NotePrefix(note)    => Note(note.trim, trailingBody)
+      case ReturnPrefix(expr)  => Return(Option.when(expr.nonEmpty)(ExprParser.parse(expr.trim)), trailingBody)
+      case ThrowPrefix(target) => Throw(target.trim, trailingBody)
+      case ElseIfPrefix(rest) =>
+        val (cond, tail) = splitCondAndRest(rest)
+        ElseIf(CondParser.parse(cond), deriveBody(tail, trailingBody))
+      case IfPrefix(rest) =>
+        val (cond, tail) = splitCondAndRest(rest)
+        If(CondParser.parse(cond), deriveBody(tail, trailingBody))
+      case ElsePrefix(rest) => Else(deriveBody(rest.trim, trailingBody))
+      case ForEachPrefix(rest) =>
+        findTopLevelAny(rest, Seq(" of ", " in ")) match
+          case Some((i, sep)) =>
+            val elem = rest.substring(0, i).trim
+            val after = rest.substring(i + sep.length)
+            val collection = findTopLevel(after, ",") match
+              case Some(j) => after.substring(0, j).trim
+              case None    => after.stripSuffix(",").trim
+            ForEach(elem, collection, trailingBody)
+          case None => Unknown(text, trailingBody)
+      case WhilePrefix(rest) => While(CondParser.parse(rest.stripSuffix(":").trim), trailingBody)
+      case AppendPrefix(rest) =>
+        splitTopLevel(rest, " to ") match
+          case Some((item, collection)) => Append(ExprParser.parse(item.trim), ExprParser.parse(collection.trim), trailingBody)
+          case None                     => Unknown(text, trailingBody)
+      case MapSetPrefix(rest) =>
+        splitTopLevel(rest, " to ") match
+          case Some((lhs, expr)) => Set(ExprParser.parse(lhs.trim), ExprParser.parse(expr.trim), trailingBody)
+          case None              => Unknown(text, trailingBody)
+      case _ if IterationContinuePrefix.matches(text) => Continue(trailingBody)
+      case _ if RunInParallelPrefix.matches(text)     => RunInParallel(trailingBody)
+      case PerformPrefix(expr) =>
+        expr.trim match
+          case PerformAndReturnSuffix(op) =>
+            val (func, args) = parseCall(op.trim)
+            Perform(func, args, ReturnResult, trailingBody)
+          case PerformAndLetSuffix(op, variable) =>
+            val (func, args) = parseCall(op.trim)
+            Perform(func, args, BindResult(variable), trailingBody)
+          case PerformAndStoreSuffix(op, variable) =>
+            val (func, args) = parseCall(op.trim)
+            Perform(func, args, BindResult(variable), trailingBody)
+          case op =>
+            val (func, args) = parseCall(op)
+            Perform(func, args, Discard, trailingBody)
+      case _ => Unknown(text, trailingBody)
+
+  /** splits the text following `If`/`Else if`/... into its condition and
+    * the (possibly empty) remainder, at the first top-level `,` or `:`.
+    * A `,` that is immediately followed by `"and "`/`"or "` is treated as
+    * part of a multi-clause condition (e.g. `"If A, and B, do C."`) rather
+    * than the cond/action separator. A leading `"then "` on the remainder
+    * (as in `"If X, then Y."`) is stripped.
+    */
+  private def splitCondAndRest(text: String): (String, String) =
+    def find(from: Int): Option[(Int, String)] =
+      findTopLevelAny(text.substring(from), Seq(",", ":")).flatMap { case (i, sep) =>
+        val pos = from + i
+        val after = text.substring(pos + sep.length).trim.toLowerCase
+        if sep == "," && (after.startsWith("and ") || after.startsWith("or ")) then
+          find(pos + sep.length)
+        else Some((pos, sep))
+      }
+
+    find(0) match
+      case Some((i, sep)) =>
+        val cond = text.substring(0, i).trim
+        var rest = text.substring(i + sep.length).trim
+        if sep == "," then
+          if rest.toLowerCase.startsWith("then ") then rest = rest.drop(5).trim
+          else if rest.equalsIgnoreCase("then") then rest = ""
+        (cond, rest)
+      case None => (text.trim, "")
+
+  /** the body of a block-introducing [[Instr]] (`If`, `ForEach`, ...):
+    * the converted sub-steps if there are any, otherwise the remaining
+    * text re-parsed as further [[Instr]]s
+    */
+  private def deriveBody(rest: String, trailingBody: List[Instr]): List[Instr] =
+    if trailingBody.nonEmpty then trailingBody
+    else if rest.nonEmpty then parseSentences(rest, Nil)
+    else Nil

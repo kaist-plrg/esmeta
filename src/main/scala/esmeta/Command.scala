@@ -227,3 +227,45 @@ case object CmdYetCheck extends Command("yet-check", CmdBase >> YetCheck) {
     println(s"Found $yetSteps yet-steps and $yetTypes yet-types.")
   }
 }
+
+// -----------------------------------------------------------------------------
+// WJI (WebAssembly JS Interface) Mechanization
+// -----------------------------------------------------------------------------
+/** `wji-extract` command */
+case object CmdWjiExtract extends Command("wji-extract", CmdBase >> WjiExtract) {
+  val help = "extracts WJI algorithms from the WebAssembly JS API specs."
+  val examples = List(
+    "esmeta wji-extract                            # extract all WJI algorithms.",
+    "esmeta wji-extract -wji-extract:log           # print the algorithm ASTs.",
+    "esmeta wji-extract -wji-extract:filter=compile # only matching algorithms.",
+  )
+}
+
+/** `wji-compile` command */
+case object CmdWjiCompile
+  extends Command("wji-compile", CmdWjiExtract >> WjiCompile) {
+  val help = "compiles WJI algorithms to a WJI IR program."
+  val examples = List(
+    "esmeta wji-compile                  # compile WJI algorithms to IR.",
+    "esmeta wji-compile -wji-compile:log # print the compiled WJI IR program.",
+  )
+}
+
+/** `wji-interp` command */
+case object CmdWjiInterp
+  extends Command("wji-interp", CmdWjiCompile >> WjiInterp) {
+  val help = "runs the WJI IR interpreter with a stubbed WasmHost."
+  val examples = List(
+    "esmeta wji-interp                       # run instantiate() on empty input.",
+    "esmeta wji-interp -wji-interp:entry=foo # invoke a different WJI function.",
+  )
+}
+
+/** `wji-bridge-demo` command */
+case object CmdWjiBridgeDemo
+  extends Command("wji-bridge-demo", CmdBase >> WjiBridgeDemo) {
+  val help = "runs the WJI interpreter against a live SpecTec WasmHost."
+  val examples = List(
+    "esmeta wji-bridge-demo  # run the reentrant JSON-RPC demo (needs SpecTec).",
+  )
+}

@@ -1,0 +1,136 @@
+package esmeta.wji.lang
+
+import Expr.*
+import TextSplit.*
+
+/** Parses raw spec prose strings into [[Expr]] trees. */
+object ExprParser:
+
+  private val AbruptPrefix   = """(?s)^\[=([?!])=\]\s+(.+)$""".r
+  private val ResultOf       = """(?si)^the result of (?:creating\s+)?(.+)$""".r
+  private val EitherPat      = """(?si)^either\s+(.+)$""".r
+  private val JSCallFull     = """(?s)^\[\$([^\$]+)\$\]\((.*)\)$""".r
+  private val AlgoCallFull   = """(?s)^(\[=[^\]]+\])\s*\((.*)\)$""".r
+  private val AlgoCallProse  = """(?s)^(\[=[^\]]+\])\s+(.+)$""".r
+  private val AlgoLinkOnly   = """(?s)^(\[=[^\]]+\])$""".r
+  private val VarOnly        = """(?s)^\|([^|]+)\|$""".r
+  private val VarIgnore      = """(?s)^<var\s+ignore>([^<]*)</var>$""".r
+  private val ThisOnly       = """(?s)^\*\*this\*\*$""".r
+  private val NewExpr        = """(?si)^a\s+\[=/new=\]\s+\{\{([^}]+)\}\}(?:\s+object)?$""".r
+  private val EmptyList      = """(?si)^a\s+new,?\s+empty\s+(?:\[=list=\]|list)$""".r
+  private val PlainNewExpr   = """(?si)^a\s+new\s+.+""".r
+  private val SlotAccess     = """(?s)^(.+)\.\\?\[\[([^\]]+)\]\]$""".r
+  private val PossessiveSlot = """(?si)^the value of (.+)'s \\?\[\[([^\]]+)\]\] internal slot$""".r
+  private val LengthOf       = """(?si)^the (?:\[=(?:string/length|list/size)=\]|length) of (.+)$""".r
+  private val ElementCount   = """(?si)^the number of elements in (.+)$""".r
+  private val ElementAt      = """(?si)^the value of the element stored at index (.+) in (.+)$""".r
+  private val AsMathPat      = """(?si)^(.+)\s+interpreted as a \[=mathematical value=\]$""".r
+  private val PowPat         = """(?s)^(\d+)<sup>(.+?)</sup>$""".r
+  private val BinOpPat       = """(?s)^(.+)\s+(modulo|\+|-|\*|&div;|&minus;)\s+(.+)$""".r
+  private val TuplePat       = """(?s)^\((.+)\)$""".r
+  private val NegPat         = """(?s)^[-−](.+)$""".r
+  private val PossessiveSize = """(?si)^(.+)'s \[=list/size=\]$""".r
+  private val PossessiveAssociation = """(?si)^the (.+)'s (?:associated )?(\[=[^\]]+\])$""".r
+  private val IndexByStr     = """(?s)^(.+)\["([^"]+)"\]$""".r
+  private val IndexByVar     = """(?s)^(.+)\[(\|[^|]+\|)\]$""".r
+  private val IndexByNum     = """(?s)^(.+)\[(-?\d+)\]$""".r
+
+  private val MapLiteral    = """(?s)^«\[\s*(.*?)\s*\]»$""".r
+  // spec error #1 (spec_errors.md): written as «  » instead of «[ ]»; SpecPatch corrects it,
+  // but we match both forms for robustness
+  private val EmptyMapProse = """(?si)^the ordered map «(?:\[\s*\])?\s*»$""".r
+  private val ListLiteral   = """(?s)^«\s*(.*?)\s*»$""".r
+  private val NumberPat     = """^\d+(?:\.\d+)?$""".r
+  private val HexPat        = """^0x[0-9a-fA-F]+$""".r
+  private val QuotedStr     = """^"([^"]*)"$""".r
+  private val BoolTrue      = """(?i)^true$""".r
+  private val BoolFalse     = """(?i)^false$""".r
+  private val BoldConst     = """(?s)^\*\*([^*]+)\*\*$""".r
+  private val EmptyString   = """(?i)^the empty string$""".r
+  private val SpecConstPat  = """(?i)^(?:undefined|null|empty|absent)$""".r
+  private val EmuConst      = """(?s)^(<emu-const>[^<]*</emu-const>)$""".r
+
+  def normalizeLink(link: String): String =
+    link.replaceAll("""\|[^=\]]*(?==\])""", "")
+
+  def parse(raw: String): Expr =
+    val s = raw.trim
+    s match
+      case AbruptPrefix(check, rest)    => Abrupt(check, parse(rest))
+      case ResultOf(rest)               => parse(rest)
+      case EitherPat(rest)              => parse(rest)
+      case JSCallFull(name, argsRaw)    => JSCall(name, splitComma(argsRaw).map(parse))
+      case AlgoCallFull(link, argsRaw)  => AlgoCall(normalizeLink(link), splitComma(argsRaw).map(parse))
+      case AlgoCallProse(link, prose)   => AlgoCall(normalizeLink(link), parseArgs(prose))
+      case AlgoLinkOnly(link)           => AlgoCall(normalizeLink(link), Nil)
+      case ThisOnly()                  => This
+      case VarOnly(name)               => Var(name)
+      case VarIgnore(name)             => Var(name.trim)
+      case SlotAccess(baseRaw, slot)      => Slot(parse(baseRaw), slot)
+      case PossessiveSlot(baseRaw, slot)  => Slot(parse(baseRaw), slot)
+      case LengthOf(inner)                => Length(parse(inner.trim))
+      case ElementCount(inner)            => Length(parse(inner.trim))
+      case ElementAt(idx, arr)            => Index(parse(arr.trim), parse(idx.trim))
+      case PossessiveSize(inner)          => Length(parse(inner.trim))
+      case PossessiveAssociation(baseRaw, link)  =>
+        Slot(parse(baseRaw), normalizeLink(link).stripPrefix("[=").stripSuffix("=]"))
+      case IndexByStr(baseRaw, key)    => Index(parse(baseRaw), Str(key))
+      case IndexByVar(baseRaw, varRaw) => Index(parse(baseRaw), parse(varRaw))
+      case IndexByNum(baseRaw, n)      => Index(parse(baseRaw), parse(n))
+      case NewExpr(iface)              => New(iface)
+      case EmptyList()                 => List_(Nil)
+      case AsMathPat(inner)            => AsMath(parse(inner))
+      case PowPat(base, exp)           => Pow(parse(base), parse(exp))
+      case BinOpPat(lhs, op, rhs)      => BinOp(parse(lhs), op, parse(rhs))
+      case PlainNewExpr()              => UnknownNew(s)
+      case EmptyMapProse()             => Map_(Nil)
+      case MapLiteral(inner)           =>
+        val entries = splitComma(inner).map { e =>
+          splitTopLevel(e, " → ") match
+            case Some((k, v)) => (parse(k.trim), parse(v.trim))
+            case None         => (Unknown(e), Unknown(""))
+        }
+        Map_(entries)
+      case ListLiteral(inner)          =>
+        List_(splitComma(inner).map(parse))
+      case TuplePat(inner)             => Tuple(splitComma(inner).map(parse))
+      case NegPat(inner)               => Neg(parse(inner))
+      case NumberPat()                 => Num(s)
+      case HexPat()                    => Num(s)
+      case QuotedStr(v)                => Str(v)
+      case EmptyString()               => Str("")
+      case BoolTrue()                  => Bool(true)
+      case BoolFalse()                 => Bool(false)
+      case BoldConst(_)                => SpecConst(s)
+      case SpecConstPat()              => SpecConst(s)
+      case EmuConst(v)                 => SpecConst(v)
+      case _                           => Unknown(s)
+
+  /** Extracts argument [[Expr]]s from a prose string.
+    *
+    * Start positions are restricted to word boundaries (position 0 and every
+    * position right after a space). End positions shrink one character at a
+    * time so trailing punctuation is trimmed naturally without pre-processing.
+    */
+  private[wji] def parseArgs(prose: String): List[Expr] =
+    val s = prose.trim
+    val n = s.length
+    val starts = (0 until n).filter(i => i == 0 || s(i - 1) == ' ').toArray
+    val result = collection.mutable.ListBuffer[Expr]()
+    var si = 0
+    while si < starts.length do
+      val from = starts(si)
+      var to = n
+      var found = false
+      while to > from && !found do
+        parse(s.substring(from, to)) match
+          case Unknown(_) => to -= 1
+          case expr =>
+            result += expr
+            si = starts.indexWhere(_ >= to)
+            if si < 0 then si = starts.length
+            found = true
+      if !found then si += 1
+    result.toList
+
+

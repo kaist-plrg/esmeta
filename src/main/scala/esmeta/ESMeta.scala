@@ -87,6 +87,11 @@ object ESMeta extends Git(BASE_DIR) {
     CmdDumpVisualizer,
     // ECMA-262 GitHub Actions
     CmdYetCheck,
+    // WJI (WebAssembly JS Interface) Mechanization
+    CmdWjiExtract,
+    CmdWjiCompile,
+    CmdWjiInterp,
+    CmdWjiBridgeDemo,
   )
   val cmdMap = commands.foldLeft[Map[String, Command[_]]](Map()) {
     case (map, cmd) => map + (cmd.name -> cmd)
@@ -115,6 +120,11 @@ object ESMeta extends Git(BASE_DIR) {
     DumpVisualizer,
     // ECMA-262 GitHub Actions
     YetCheck,
+    // WJI (WebAssembly JS Interface) Mechanization
+    WjiExtract,
+    WjiCompile,
+    WjiInterp,
+    WjiBridgeDemo,
   )
 
   /** command options */

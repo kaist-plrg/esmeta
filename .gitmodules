@@ -7,3 +7,9 @@
 [submodule "client"]
 	path = client
 	url = https://github.com/es-meta/esmeta-debugger-client.git
+[submodule "spectec"]
+	path = spectec
+	url = git@github.com:kaist-plrg/spectec.git
+[submodule "webidl"]
+	path = webidl
+	url = git@github.com:whatwg/webidl.git

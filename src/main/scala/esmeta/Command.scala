@@ -264,7 +264,7 @@ case object CmdWjiInterp
 
 /** `wji-bridge-demo` command */
 case object CmdWjiBridgeDemo
-  extends Command("wji-bridge-demo", CmdBase >> WjiBridgeDemo) {
+  extends Command("wji-bridge-demo", CmdBuildCFG >> WjiBridgeDemo) {
   val help = "runs the WJI interpreter against a live SpecTec WasmHost."
   val examples = List(
     "esmeta wji-bridge-demo  # run the reentrant JSON-RPC demo (needs SpecTec).",

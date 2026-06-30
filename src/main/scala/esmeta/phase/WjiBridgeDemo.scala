@@ -1,6 +1,7 @@
 package esmeta.phase
 
 import esmeta.*
+import esmeta.cfg.CFG
 import esmeta.util.*
 import esmeta.wji.bridge.SpecTecWasmHost
 import esmeta.wji.bridge.process.SpecTecProcess
@@ -24,12 +25,12 @@ import esmeta.wji.interpreter.Interpreter
   *
   * Requires a live SpecTec process on `PATH` (see [[SpecTecProcess]]).
   */
-case object WjiBridgeDemo extends Phase[Unit, Unit] {
+case object WjiBridgeDemo extends Phase[CFG, Unit] {
   val name = "wji-bridge-demo"
   val help = "runs the WJI interpreter against a live SpecTec WasmHost."
 
   def apply(
-    unit: Unit,
+    cfg: CFG,
     cmdConfig: CommandConfig,
     config: Config,
   ): Unit =
@@ -85,7 +86,10 @@ case object WjiBridgeDemo extends Phase[Unit, Unit] {
                 ),
               ),
             ),
-            ISeq(List()),
+            ISeq(List(
+              ICall(Name("b"), EClo("ToBoolean"), List(ERef(Global("Count")))),
+              IPrint(ERef(Name("b"))),
+            )),
           ),
           IReturn(EList(List(ERef(Name("arg"))))),
         ),
@@ -160,7 +164,7 @@ case object WjiBridgeDemo extends Phase[Unit, Unit] {
     // Invocation argument: the Wasm value `(i32.const 42)`.
     val arg = CaseV("CONST", List(i32, NumV(ALNum.Nat(42))))
 
-    val interpreter = Interpreter(program, host)
+    val interpreter = Interpreter(program, host, Some(cfg))
     val result = interpreter.invoke(
       "runHost",
       List(WjValue.Wasm(deftype), WjValue.Wasm(arg)),

@@ -1,5 +1,6 @@
 package esmeta.wji.interpreter
 
+import esmeta.cfg.CFG
 import esmeta.wji.ir.*
 import esmeta.wji.bridge.host.{HostFunction, WasmError, WasmHost}
 import esmeta.wji.state.{ALNum, ALValue, Heap, WjValue}
@@ -16,7 +17,11 @@ final class InterpreterError(msg: String) extends RuntimeException(msg)
   * Embedding calls cross the [[WasmHost]] boundary, where [[WjValue.Wasm]] is
   * unwrapped to [[ALValue]] and results are wrapped back.
   */
-class Interpreter(program: Program, host: WasmHost):
+class Interpreter(
+  program: Program,
+  host: WasmHost,
+  cfg: Option[CFG] = None,
+):
 
   private type Locals = Map[String, WjValue]
 
@@ -105,7 +110,11 @@ class Interpreter(program: Program, host: WasmHost):
         execInst(func.body, locals, heap)._1 match
           case Signal.Ret(v) => v
           case Signal.Next   => WjValue.Undef
-      case None => throw InterpreterError(s"unknown IR function: $fname")
+      // not a WJI function: fall back to an ESMeta IR function (e.g. ToBoolean)
+      case None =>
+        cfg.flatMap(IrCaller.call(_, fname, args)) match
+          case Some(v) => v
+          case None    => throw InterpreterError(s"unknown IR function: $fname")
     callStack.remove(callStack.length - 1)
     result
 

@@ -1,5 +1,7 @@
 package esmeta.wji.bridge.process
 
+import esmeta.*
+
 /** Manages the lifecycle of the SpecTec OCaml process, which exposes the
   * SpecTec Wasm interpreter over JSON-RPC on stdin/stdout.
   */
@@ -10,10 +12,10 @@ final class SpecTecProcess private (process: Process):
   def close(): Unit = process.destroy()
 
 object SpecTecProcess:
-  val defaultExecutable: String = "../spectec/spectec/spectec"
+  val defaultExecutable: String = s"$SPECTEC_DIR/spectec/spectec"
 
   /** Directory holding the WJI/Wasm `.spectec` specification SpecTec loads. */
-  val specDir: String = "../spectec/specification/wasm-latest"
+  val specDir: String = s"$SPECTEC_DIR/specification/wasm-latest"
 
   def start(): SpecTecProcess =
     // ProcessBuilder does not expand globs, so enumerate the `.spectec` files

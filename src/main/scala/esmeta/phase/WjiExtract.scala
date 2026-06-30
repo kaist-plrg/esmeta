@@ -28,14 +28,13 @@ case object WjiExtract extends Phase[Unit, List[Algorithm]] {
         for (algo <- selected) println(InstrPrinter.render(algo))
     selected
 
-  /** keep algorithms whose `name` or `id` contains `filter` (case-insensitive) */
+  /** keep algorithms whose `name` or `id` contains `filter` (case-insensitive)
+    */
   private def select(algos: List[Algorithm], filter: String): List[Algorithm] =
     if (filter.isEmpty) algos
     else
       val needle = filter.toLowerCase
-      algos.filter(a =>
-        (a.name ++ a.id).exists(_.toLowerCase.contains(needle)),
-      )
+      algos.filter(a => (a.name ++ a.id).exists(_.toLowerCase.contains(needle)))
 
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(

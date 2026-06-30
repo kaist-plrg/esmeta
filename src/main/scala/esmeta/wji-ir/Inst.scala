@@ -30,7 +30,8 @@ case class IAssert(expr: Expr) extends Inst
 case class INop() extends Inst
 
 /** Evaluate `expr` and print a human-readable rendering to stdout (a general
-  * debugging aid for observing values while running any IR function). */
+  * debugging aid for observing values while running any IR function).
+  */
 case class IPrint(expr: Expr) extends Inst
 
 /** Execute a sequence of instructions in order */
@@ -52,8 +53,8 @@ case class IWhile(cond: Expr, body: Inst) extends Inst
 case class ICall(lhs: Name, fexpr: Expr, args: List[Expr]) extends Inst
 
 /** `lhs = <embed fname>(args)` — call a Wasm embedding function (e.g.
-  * `module_decode`, `func_invoke`) across the [[esmeta.wji.bridge.host.WasmHost]]
-  * boundary, and bind the result.
+  * `module_decode`, `func_invoke`) across the
+  * [[esmeta.wji.bridge.host.WasmHost]] boundary, and bind the result.
   *
   * `fname` names an embedding operation directly rather than through a closure
   * value, because the embedding interface is a fixed catalog defined by the

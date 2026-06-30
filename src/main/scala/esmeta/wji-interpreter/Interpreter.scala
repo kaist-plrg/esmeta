@@ -36,18 +36,20 @@ class Interpreter(program: Program, host: WasmHost):
     */
   val callStack: scala.collection.mutable.ArrayBuffer[String] =
     scala.collection.mutable.ArrayBuffer.empty
-  
+
   /** Heap shared by global initializers and all invocations, so heap-backed
-    * globals ([[WjValue.Record]]/[[WjValue.List]]) stay valid across calls. */
+    * globals ([[WjValue.Record]]/[[WjValue.List]]) stay valid across calls.
+    */
   private val heap = Heap()
 
   /** Guards one-time [[Program]] global initialization. */
   private var globalsReady = false
 
   /** Evaluate each [[GlobalDecl]] once, in declaration order, binding its
-    * returned value into [[globals]]. Done lazily on the first [[invoke]] so the
-    * [[WasmHost]] connection is live before any embedding call in an
-    * initializer (e.g. `store_init`) runs. */
+    * returned value into [[globals]]. Done lazily on the first [[invoke]] so
+    * the [[WasmHost]] connection is live before any embedding call in an
+    * initializer (e.g. `store_init`) runs.
+    */
   private def ensureGlobals(): Unit =
     if !globalsReady then
       globalsReady = true
@@ -55,9 +57,13 @@ class Interpreter(program: Program, host: WasmHost):
         execInst(init, Map.empty, heap)._1 match
           case Signal.Ret(v) => globals(name) = v
           case Signal.Next =>
-            throw InterpreterError(s"global $name: initializer must return a value")
+            throw InterpreterError(
+              s"global $name: initializer must return a value",
+            )
 
-  /** Run `fname` with `args` on the shared [[heap]], after initializing globals. */
+  /** Run `fname` with `args` on the shared [[heap]], after initializing
+    * globals.
+    */
   def invoke(fname: String, args: List[WjValue]): WjValue =
     ensureGlobals()
     callStack.clear()
@@ -76,11 +82,15 @@ class Interpreter(program: Program, host: WasmHost):
 
   /** Resolve and run an IR-defined WJI function from the [[Program]].
     *
-    * Pushes `fname` onto [[callStack]] before executing and pops it only on
-    * a normal return. On [[InterpreterError]] the frame is left in place so
-    * the caller can inspect the full call chain.
+    * Pushes `fname` onto [[callStack]] before executing and pops it only on a
+    * normal return. On [[InterpreterError]] the frame is left in place so the
+    * caller can inspect the full call chain.
     */
-  private def callFunc(fname: String, args: List[WjValue], heap: Heap): WjValue =
+  private def callFunc(
+    fname: String,
+    args: List[WjValue],
+    heap: Heap,
+  ): WjValue =
     callStack += fname
     val result = program.funcMap.get(fname) match
       case Some(func) =>
@@ -101,7 +111,11 @@ class Interpreter(program: Program, host: WasmHost):
 
   // -- Instructions -----------------------------------------------------------
 
-  private def execInst(inst: Inst, locals: Locals, heap: Heap): (Signal, Locals) =
+  private def execInst(
+    inst: Inst,
+    locals: Locals,
+    heap: Heap,
+  ): (Signal, Locals) =
     inst match
       case IExpr(expr) =>
         evalExpr(expr, locals, heap)
@@ -160,7 +174,8 @@ class Interpreter(program: Program, host: WasmHost):
         (Signal.Next, cur)
 
       case IIf(cond, thenI, elseI) =>
-        if asBool(evalExpr(cond, locals, heap)) then execInst(thenI, locals, heap)
+        if asBool(evalExpr(cond, locals, heap)) then
+          execInst(thenI, locals, heap)
         else execInst(elseI, locals, heap)
 
       case IWhile(cond, body) =>
@@ -173,9 +188,9 @@ class Interpreter(program: Program, host: WasmHost):
 
       case ICall(lhs, fexpr, argEs) =>
         val fname = fexpr match
-          case EClo(name)       => name
-          case ERef(ref)        => asClo(readRef(ref, locals, heap))
-          case other            => asClo(evalExpr(other, locals, heap))
+          case EClo(name) => name
+          case ERef(ref)  => asClo(readRef(ref, locals, heap))
+          case other      => asClo(evalExpr(other, locals, heap))
         val args = argEs.map(evalExpr(_, locals, heap))
         (Signal.Next, locals + (lhs.name -> callFunc(fname, args, heap)))
 
@@ -197,40 +212,48 @@ class Interpreter(program: Program, host: WasmHost):
 
       case ERef(ref) => readRef(ref, locals, heap)
 
-      case EUnary(uop, e)       => evalUnary(uop, evalExpr(e, locals, heap))
-      case EBinary(bop, l, r)   => evalBinary(bop, evalExpr(l, locals, heap), evalExpr(r, locals, heap))
+      case EUnary(uop, e) => evalUnary(uop, evalExpr(e, locals, heap))
+      case EBinary(bop, l, r) =>
+        evalBinary(bop, evalExpr(l, locals, heap), evalExpr(r, locals, heap))
 
       case EProj(e, idx) =>
         evalExpr(e, locals, heap) match
           case WjValue.Wasm(ALValue.TupV(vs)) =>
             if idx < 0 || idx >= vs.length then
-              throw InterpreterError(s"proj: index $idx out of bounds for tuple of size ${vs.length}")
+              throw InterpreterError(
+                s"proj: index $idx out of bounds for tuple of size ${vs.length}",
+              )
             WjValue.Wasm(vs(idx))
           case other =>
             throw InterpreterError(s"proj: expected a Wasm tuple, got $other")
 
       case EExists(ref) => WjValue.Bool(existsRef(ref, locals, heap))
 
-      case ETypeOf(e)         => WjValue.Str(typeName(evalExpr(e, locals, heap)))
-      case ETypeCheck(e, ty)  => WjValue.Bool(typeName(evalExpr(e, locals, heap)) == ty)
+      case ETypeOf(e) => WjValue.Str(typeName(evalExpr(e, locals, heap)))
+      case ETypeCheck(e, ty) =>
+        WjValue.Bool(typeName(evalExpr(e, locals, heap)) == ty)
 
       case ERecord(_, fields) =>
         val fs = fields.map((k, e) => k -> evalExpr(e, locals, heap)).toMap
         WjValue.Record(heap.allocRecord(fs))
 
       case EList(elems) =>
-        WjValue.List(heap.allocList(elems.map(evalExpr(_, locals, heap)).toVector))
+        WjValue.List(
+          heap.allocList(elems.map(evalExpr(_, locals, heap)).toVector),
+        )
 
       case ELen(expr) =>
         evalExpr(expr, locals, heap) match
           case WjValue.List(id) => WjValue.Math(heap.listSize(id))
           case WjValue.Str(s)   => WjValue.Math(s.length)
-          case other            => throw InterpreterError(s"len: not a list or string: $other")
+          case other =>
+            throw InterpreterError(s"len: not a list or string: $other")
 
       case EClo(fname) => WjValue.Clo(fname)
 
-      case EUnknown(raw) => throw InterpreterError(s"unknown spec construct: $raw")
-      case EYet(msg)     => throw InterpreterError(s"not yet implemented: $msg")
+      case EUnknown(raw) =>
+        throw InterpreterError(s"unknown spec construct: $raw")
+      case EYet(msg) => throw InterpreterError(s"not yet implemented: $msg")
 
   private def evalUnary(uop: UOp, v: WjValue): WjValue =
     uop match
@@ -238,12 +261,12 @@ class Interpreter(program: Program, host: WasmHost):
         v match
           case WjValue.Math(n) => WjValue.Math(-n)
           case WjValue.Num(n)  => WjValue.Num(-n)
-          case other           => throw InterpreterError(s"neg: not a number: $other")
-      case UOp.Not  => WjValue.Bool(!asBool(v))
+          case other => throw InterpreterError(s"neg: not a number: $other")
+      case UOp.Not => WjValue.Bool(!asBool(v))
       case UOp.BNot =>
         v match
           case WjValue.Math(n) => WjValue.Math(BigDecimal(~n.toBigInt))
-          case other           => throw InterpreterError(s"bnot: not an integer: $other")
+          case other => throw InterpreterError(s"bnot: not an integer: $other")
 
   private def evalBinary(bop: BOp, l: WjValue, r: WjValue): WjValue =
     import BOp.*
@@ -277,26 +300,39 @@ class Interpreter(program: Program, host: WasmHost):
   )(d: (Double, Double) => Double): WjValue =
     (l, r) match
       case (WjValue.Math(a), WjValue.Math(b)) => WjValue.Math(m(a, b))
-      case _                                  => WjValue.Num(d(asNum(l), asNum(r)))
+      case _ => WjValue.Num(d(asNum(l), asNum(r)))
 
   // -- References -------------------------------------------------------------
 
   private def readRef(ref: Ref, locals: Locals, heap: Heap): WjValue =
     ref match
-      case Name(n)   => locals.getOrElse(n, throw InterpreterError(s"unbound variable: $n"))
-      case Temp(i)   => locals.getOrElse(tempKey(i), throw InterpreterError(s"unbound temp: $i"))
-      case Global(n) => globals.getOrElse(n, throw InterpreterError(s"unbound global: $n"))
+      case Name(n) =>
+        locals.getOrElse(n, throw InterpreterError(s"unbound variable: $n"))
+      case Temp(i) =>
+        locals.getOrElse(
+          tempKey(i),
+          throw InterpreterError(s"unbound temp: $i"),
+        )
+      case Global(n) =>
+        globals.getOrElse(n, throw InterpreterError(s"unbound global: $n"))
       case Field(base, keyExpr) =>
         val key = evalExpr(keyExpr, locals, heap)
         readRef(base, locals, heap) match
           case WjValue.Record(id) =>
-            heap.getField(id, asStr(key)).getOrElse(
-              throw InterpreterError(s"no field ${asStr(key)} on record #$id"),
-            )
+            heap
+              .getField(id, asStr(key))
+              .getOrElse(
+                throw InterpreterError(s"no field ${asStr(key)} on record #$id"),
+              )
           case WjValue.List(id) => heap.listGet(id, asInt(key))
-          case other            => throw InterpreterError(s"cannot index into $other")
+          case other => throw InterpreterError(s"cannot index into $other")
 
-  private def writeRef(ref: Ref, v: WjValue, locals: Locals, heap: Heap): Locals =
+  private def writeRef(
+    ref: Ref,
+    v: WjValue,
+    locals: Locals,
+    heap: Heap,
+  ): Locals =
     ref match
       case Name(n)   => locals + (n -> v)
       case Temp(i)   => locals + (tempKey(i) -> v)
@@ -306,7 +342,7 @@ class Interpreter(program: Program, host: WasmHost):
         readRef(base, locals, heap) match
           case WjValue.Record(id) => heap.setField(id, asStr(key), v); locals
           case WjValue.List(id)   => heap.listSet(id, asInt(key), v); locals
-          case other              => throw InterpreterError(s"cannot assign into $other")
+          case other => throw InterpreterError(s"cannot assign into $other")
 
   private def existsRef(ref: Ref, locals: Locals, heap: Heap): Boolean =
     ref match
@@ -315,9 +351,11 @@ class Interpreter(program: Program, host: WasmHost):
       case Global(n) => globals.contains(n)
       case Field(base, keyExpr) =>
         readRef(base, locals, heap) match
-          case WjValue.Record(id) => heap.getField(id, asStr(evalExpr(keyExpr, locals, heap))).isDefined
-          case WjValue.List(id)   => asInt(evalExpr(keyExpr, locals, heap)) < heap.listSize(id)
-          case _                  => false
+          case WjValue.Record(id) =>
+            heap.getField(id, asStr(evalExpr(keyExpr, locals, heap))).isDefined
+          case WjValue.List(id) =>
+            asInt(evalExpr(keyExpr, locals, heap)) < heap.listSize(id)
+          case _ => false
 
   private def tempKey(i: Int): String = s"%temp$i"
 
@@ -327,7 +365,11 @@ class Interpreter(program: Program, host: WasmHost):
     * [[WjValue]] ↔ [[ALValue]] at the boundary. A [[WasmError]] becomes an
     * [[InterpreterError]].
     */
-  private def callEmbedding(fname: String, args: List[WjValue], heap: Heap): WjValue =
+  private def callEmbedding(
+    fname: String,
+    args: List[WjValue],
+    heap: Heap,
+  ): WjValue =
     def al(i: Int): ALValue = toAL(args(i))
     def alList(i: Int): List[ALValue] = toALList(args(i), heap)
 
@@ -389,7 +431,8 @@ class Interpreter(program: Program, host: WasmHost):
       case "match_valtype"    => one(host.matchValType(al(0), al(1)))
       case "match_externtype" => one(host.matchExternType(al(0), al(1)))
 
-      case other => throw InterpreterError(s"unknown embedding function: $other")
+      case other =>
+        throw InterpreterError(s"unknown embedding function: $other")
 
   // -- WasmError result wrappers ----------------------------------------------
 
@@ -413,8 +456,13 @@ class Interpreter(program: Program, host: WasmHost):
         case WjValue.Wasm(ALValue.ListV(rs)) => Right(rs)
         case WjValue.Wasm(av)                => Right(List(av))
         // TODO: generalize; the host function's `EList` return is a heap list.
-        case WjValue.List(id)                => Right(heap.listAll(id).map(toAL).toList)
-        case other => Left(WasmError.ProtocolError(s"host function returned non-Wasm value: $other"))
+        case WjValue.List(id) => Right(heap.listAll(id).map(toAL).toList)
+        case other =>
+          Left(
+            WasmError.ProtocolError(
+              s"host function returned non-Wasm value: $other",
+            ),
+          )
 
   private def toAL(v: WjValue): ALValue =
     v match
@@ -423,41 +471,44 @@ class Interpreter(program: Program, host: WasmHost):
       case WjValue.Bool(b)  => ALValue.BoolV(b)
       case WjValue.Num(n)   => ALValue.NumV(ALNum.Real(n))
       case WjValue.Math(n)  => ALValue.NumV(ALNum.Int(n.toBigInt))
-      case other            => throw InterpreterError(s"cannot pass $other across the WasmHost boundary")
+      case other =>
+        throw InterpreterError(
+          s"cannot pass $other across the WasmHost boundary",
+        )
 
   private def toALList(v: WjValue, heap: Heap): List[ALValue] =
     v match
       case WjValue.Wasm(ALValue.ListV(vs)) => vs
       case WjValue.List(id)                => heap.listAll(id).map(toAL).toList
-      case other                           => throw InterpreterError(s"expected a list, got $other")
+      case other => throw InterpreterError(s"expected a list, got $other")
 
   // -- Coercions --------------------------------------------------------------
 
   private def asBool(v: WjValue): Boolean = v match
     case WjValue.Bool(b) => b
-    case other           => throw InterpreterError(s"expected a boolean, got $other")
+    case other => throw InterpreterError(s"expected a boolean, got $other")
 
   private def asStr(v: WjValue): String = v match
     case WjValue.Str(s) => s
-    case other          => throw InterpreterError(s"expected a string, got $other")
+    case other => throw InterpreterError(s"expected a string, got $other")
 
   private def asNum(v: WjValue): Double = v match
     case WjValue.Num(n)  => n
     case WjValue.Math(n) => n.toDouble
-    case other           => throw InterpreterError(s"expected a number, got $other")
+    case other => throw InterpreterError(s"expected a number, got $other")
 
   private def asInt(v: WjValue): Int = v match
     case WjValue.Math(n) => n.toInt
     case WjValue.Num(n)  => n.toInt
-    case other           => throw InterpreterError(s"expected an integer, got $other")
+    case other => throw InterpreterError(s"expected an integer, got $other")
 
   private def asClo(v: WjValue): String = v match
     case WjValue.Clo(fname) => fname
-    case other              => throw InterpreterError(s"expected a closure, got $other")
+    case other => throw InterpreterError(s"expected a closure, got $other")
 
   private def asListId(v: WjValue): Int = v match
     case WjValue.List(id) => id
-    case other            => throw InterpreterError(s"expected a list handle, got $other")
+    case other => throw InterpreterError(s"expected a list handle, got $other")
 
   // -- Misc -------------------------------------------------------------------
   //
@@ -480,7 +531,8 @@ class Interpreter(program: Program, host: WasmHost):
     case WjValue.Str(s)     => s""""$s""""
     case WjValue.Enum(n)    => s"~$n~"
     case WjValue.Record(id) => s"<record #$id>"
-    case WjValue.List(id)   => s"<list #$id ${heap.listAll(id).map(showValue(_, heap)).mkString("[", ", ", "]")}>"
+    case WjValue.List(id) =>
+      s"<list #$id ${heap.listAll(id).map(showValue(_, heap)).mkString("[", ", ", "]")}>"
     case WjValue.Clo(fname) => s"<closure $fname>"
 
   /** Structural rendering of an [[ALValue]] (a SpecTec-owned value), preserving
@@ -490,11 +542,12 @@ class Interpreter(program: Program, host: WasmHost):
     * option.
     */
   private def showAL(av: ALValue): String = av match
-    case ALValue.NumV(n)         => showALNum(n)
-    case ALValue.BoolV(b)        => b.toString
-    case ALValue.TextV(s)        => s""""$s""""
-    case ALValue.ListV(vs)       => vs.map(showAL).mkString("[", " ", "]")
-    case ALValue.StrV(fs)        => fs.map((k, v) => s"$k=${showAL(v)}").mkString("{", ", ", "}")
+    case ALValue.NumV(n)   => showALNum(n)
+    case ALValue.BoolV(b)  => b.toString
+    case ALValue.TextV(s)  => s""""$s""""
+    case ALValue.ListV(vs) => vs.map(showAL).mkString("[", " ", "]")
+    case ALValue.StrV(fs) =>
+      fs.map((k, v) => s"$k=${showAL(v)}").mkString("{", ", ", "}")
     case ALValue.CaseV(id, Nil)  => id
     case ALValue.CaseV(id, args) => s"$id(${args.map(showAL).mkString(" ")})"
     case ALValue.OptV(None)      => "ε"

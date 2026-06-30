@@ -12,25 +12,38 @@ object Cond:
   case class MapExists(expr: Expr, negated: Boolean = false) extends Cond
 
   /** EXPR [=implements=] {{Iface}} / EXPR does not [=implement=] {{Iface}} */
-  case class Implements(expr: Expr, iface: String, negated: Boolean = false) extends Cond
+  case class Implements(expr: Expr, iface: String, negated: Boolean = false)
+    extends Cond
 
   /** EXPR is [not] of the form FORM [where COND] */
-  case class IsOfForm(expr: Expr, form: Expr, cond: Option[Cond] = None, negated: Boolean = false) extends Cond
+  case class IsOfForm(
+    expr: Expr,
+    form: Expr,
+    cond: Option[Cond] = None,
+    negated: Boolean = false,
+  ) extends Cond
 
   /** EXPR [=matches/TYPE=] EXPR / EXPR does not [=matches/TYPE=] EXPR */
-  case class Matches(lhs: Expr, matchType: String, rhs: Expr, negated: Boolean = false) extends Cond
+  case class Matches(
+    lhs: Expr,
+    matchType: String,
+    rhs: Expr,
+    negated: Boolean = false,
+  ) extends Cond
 
   /** EXPR is [not] missing */
   case class IsMissing(expr: Expr, negated: Boolean = false) extends Cond
 
   /** EXPR [=is [not] a[n] TYPE=] — spec type-check predicate */
-  case class IsType(expr: Expr, typeName: String, negated: Boolean = false) extends Cond
+  case class IsType(expr: Expr, typeName: String, negated: Boolean = false)
+    extends Cond
 
   case class And(left: Cond, right: Cond) extends Cond
   case class Or(left: Cond, right: Cond) extends Cond
 
   /** An expression that stands in for a full condition by abbreviating the
-    * operator/LHS from context, e.g. the `[=−∞=]` in `|f32| is [=+∞=] or [=−∞=]`.
+    * operator/LHS from context, e.g. the `[=−∞=]` in `|f32| is [=+∞=] or
+    * [=−∞=]`.
     */
   case class Abbreviated(expr: Expr) extends Cond
 

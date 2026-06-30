@@ -20,7 +20,11 @@ object SpecTecProcess:
     // ourselves and pass them as individual arguments. Lexicographic order
     // matches the files' numeric prefixes (0.* .. 7.*, X.*).
     val specFiles =
-      Option(new java.io.File(specDir).listFiles((_, name) => name.endsWith(".spectec")))
+      Option(
+        new java.io.File(specDir).listFiles((_, name) =>
+          name.endsWith(".spectec"),
+        ),
+      )
         .getOrElse(Array.empty[java.io.File])
         .map(_.getPath)
         .sorted

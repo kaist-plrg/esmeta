@@ -10,17 +10,22 @@ import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
   *
   *   - wjmeta -> SpecTec: `method` is the name of a Wasm Embedding function
   *     (`module_decode`, `func_invoke`, ...), matching a method of
-  *     `esmeta.wji.bridge.host.WasmHost` 1:1. `params`/`result` are the AL values
-  *     of that function's arguments/results.
+  *     `esmeta.wji.bridge.host.WasmHost` 1:1. `params`/`result` are the AL
+  *     values of that function's arguments/results.
   *   - SpecTec -> wjmeta (reentrant calls): `method = "host_func_invoke"`,
-  *     `params = {"id": <host function id>, "args": [ALValue, ...]}`,
-  *     `result` is the AL value list returned by the
+  *     `params = {"id": <host function id>, "args": [ALValue, ...]}`, `result`
+  *     is the AL value list returned by the
   *     `esmeta.wji.bridge.host.HostFunction` registered via `funcAlloc`.
   *
-  * Either side may send a [[Request]] on the same connection; each side
-  * matches [[Response]]s against the `id`s of requests *it* sent.
+  * Either side may send a [[Request]] on the same connection; each side matches
+  * [[Response]]s against the `id`s of requests *it* sent.
   */
-final case class Request(jsonrpc: String, method: String, params: Json, id: Long)
+final case class Request(
+  jsonrpc: String,
+  method: String,
+  params: Json,
+  id: Long,
+)
 object Request:
   given Decoder[Request] = deriveDecoder
   given Encoder[Request] = deriveEncoder

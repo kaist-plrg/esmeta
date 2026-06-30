@@ -27,7 +27,8 @@ object SpecFile:
     */
   def loadAllAlgorithms(): List[Algorithm] =
     AlgorithmExtractor.extractFromFile(jsApiIndex) ++
-    AlgorithmExtractor.extractFromFile(webidlIndex)
+    AlgorithmExtractor
+      .extractFromFile(webidlIndex)
       .filter(a => a.name.exists(webidlFilter.contains))
 
   /** finds `relPath` in the nearest ancestor of the current directory */
@@ -38,5 +39,9 @@ object SpecFile:
       .takeWhile(_ != null)
       .map(dir => new File(dir, relPath))
       .find(_.isFile)
-      .getOrElse(throw new java.io.FileNotFoundException(s"could not locate $relPath above $cwd"))
+      .getOrElse(
+        throw new java.io.FileNotFoundException(
+          s"could not locate $relPath above $cwd",
+        ),
+      )
       .toPath

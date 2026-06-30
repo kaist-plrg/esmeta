@@ -19,8 +19,9 @@ import esmeta.wji.ir.IrPrinter
   */
 class SnapshotSpec extends AnyFunSuite:
 
-  private val goldenDir = Paths.get(BASE_DIR).resolve("src/test/resources/golden/wji")
-  private val update    = sys.env.get("UPDATE_SNAPSHOTS").contains("true")
+  private val goldenDir =
+    Paths.get(BASE_DIR).resolve("src/test/resources/golden/wji")
+  private val update = sys.env.get("UPDATE_SNAPSHOTS").contains("true")
 
   private lazy val algorithms = SpecFile.loadAllAlgorithms()
 
@@ -41,9 +42,10 @@ class SnapshotSpec extends AnyFunSuite:
 
   private def checkSnapshot(name: String, actual: String): Unit =
     val expectedFile = goldenDir.resolve(name)
-    val diffFile     = goldenDir.resolve(name.replaceAll("\\.expected$", ".diff"))
+    val diffFile = goldenDir.resolve(name.replaceAll("\\.expected$", ".diff"))
 
-    val actualFile = goldenDir.resolve(name.replaceAll("\\.expected$", ".actual"))
+    val actualFile =
+      goldenDir.resolve(name.replaceAll("\\.expected$", ".actual"))
 
     if update then
       Files.createDirectories(expectedFile.getParent)
@@ -51,8 +53,10 @@ class SnapshotSpec extends AnyFunSuite:
       List(diffFile, actualFile).filter(Files.exists(_)).foreach(Files.delete)
       info(s"Updated: $expectedFile")
     else
-      assert(Files.exists(expectedFile),
-        s"Expected file missing: $expectedFile  —  run with UPDATE_SNAPSHOTS=true to create.")
+      assert(
+        Files.exists(expectedFile),
+        s"Expected file missing: $expectedFile  —  run with UPDATE_SNAPSHOTS=true to create.",
+      )
       val expected = Files.readString(expectedFile)
       if actual == expected then
         List(diffFile, actualFile).filter(Files.exists(_)).foreach(Files.delete)
@@ -60,7 +64,9 @@ class SnapshotSpec extends AnyFunSuite:
         Files.writeString(actualFile, actual)
         Files.writeString(diffFile, unifiedDiff(expectedFile.toString, actual))
         val firstDiff = firstDiffHint(expected, actual)
-        fail(s"Snapshot mismatch for $name.$firstDiff\nActual : $actualFile\nDiff   : $diffFile\nRun with UPDATE_SNAPSHOTS=true to update.")
+        fail(
+          s"Snapshot mismatch for $name.$firstDiff\nActual : $actualFile\nDiff   : $diffFile\nRun with UPDATE_SNAPSHOTS=true to update.",
+        )
 
   private def firstDiffHint(expected: String, actual: String): String =
     val expLines = expected.linesIterator.toVector
@@ -70,16 +76,15 @@ class SnapshotSpec extends AnyFunSuite:
       s"\nFirst difference at line ${firstDiff + 1}:" +
       s"\n  - ${expLines(firstDiff)}" +
       s"\n  + ${actLines(firstDiff)}"
-    else
-      s"\nLine count changed: ${expLines.size} → ${actLines.size}"
+    else s"\nLine count changed: ${expLines.size} → ${actLines.size}"
 
   private def unifiedDiff(expectedPath: String, actual: String): String =
     val tmp = Files.createTempFile("snapshot-actual-", ".txt")
     try
       Files.writeString(tmp, actual)
-      val proc = ProcessBuilder("diff", "-u", expectedPath, tmp.toString).start()
+      val proc =
+        ProcessBuilder("diff", "-u", expectedPath, tmp.toString).start()
       val output = scala.io.Source.fromInputStream(proc.getInputStream).mkString
       proc.waitFor()
       output
-    finally
-      Files.delete(tmp)
+    finally Files.delete(tmp)

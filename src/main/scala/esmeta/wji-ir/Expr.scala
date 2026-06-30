@@ -31,7 +31,8 @@ case class EBinary(bop: BOp, left: Expr, right: Expr) extends Expr
 /** Project the `idx`-th component out of a tuple value. Used to destructure the
   * `(store, funcaddr)` / `(store, val*)` pairs returned by embedding operations
   * such as `func_alloc` / `func_invoke`, which arrive as a
-  * [[esmeta.wji.state.ALValue.TupV]] wrapped in [[esmeta.wji.state.WjValue.Wasm]].
+  * [[esmeta.wji.state.ALValue.TupV]] wrapped in
+  * [[esmeta.wji.state.WjValue.Wasm]].
   */
 case class EProj(expr: Expr, idx: Int) extends Expr
 
@@ -73,8 +74,8 @@ case class EYet(msg: String) extends Expr
 // -- Operators ----------------------------------------------------------------
 
 enum UOp:
-  case Neg  // arithmetic negation
-  case Not  // logical NOT
+  case Neg // arithmetic negation
+  case Not // logical NOT
   case BNot // bitwise NOT
 
 enum BOp:

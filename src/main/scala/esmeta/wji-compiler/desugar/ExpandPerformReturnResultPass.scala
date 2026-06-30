@@ -33,9 +33,9 @@ object ExpandPerformReturnResultPass extends DesugarPass:
     case Instr.Perform(func, args, PerformOutcome.ReturnResult, body) =>
       val tmp = freshRet()
       transform(body) ++
-        List(
-          Instr.Perform(func, args, PerformOutcome.BindResult(tmp)),
-          Instr.Return(Some(Expr.Var(tmp))),
-        )
+      List(
+        Instr.Perform(func, args, PerformOutcome.BindResult(tmp)),
+        Instr.Return(Some(Expr.Var(tmp))),
+      )
     case _ =>
       List(instr.mapBody(transform))

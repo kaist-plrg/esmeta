@@ -232,7 +232,8 @@ case object CmdYetCheck extends Command("yet-check", CmdBase >> YetCheck) {
 // WJI (WebAssembly JS Interface) Mechanization
 // -----------------------------------------------------------------------------
 /** `wji-extract` command */
-case object CmdWjiExtract extends Command("wji-extract", CmdBase >> WjiExtract) {
+case object CmdWjiExtract
+  extends Command("wji-extract", CmdBase >> WjiExtract) {
   val help = "extracts WJI algorithms from the WebAssembly JS API specs."
   val examples = List(
     "esmeta wji-extract                            # extract all WJI algorithms.",

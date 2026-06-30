@@ -43,7 +43,10 @@ class Heap:
     id
 
   def listGet(id: Int, idx: Int): WjValue =
-    list(id).applyOrElse(idx, _ => sys.error(s"Heap: list #$id index $idx out of bounds"))
+    list(id).applyOrElse(
+      idx,
+      _ => sys.error(s"Heap: list #$id index $idx out of bounds"),
+    )
 
   def listSet(id: Int, idx: Int, value: WjValue): Unit =
     lists += (id -> list(id).updated(idx, value))

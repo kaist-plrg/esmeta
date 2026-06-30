@@ -26,7 +26,9 @@ object Expr:
   /** The length/size of a string or list. */
   case class Length(expr: Expr) extends Expr
 
-  /** `lhs op rhs` — arithmetic binary operation (+, -, *, modulo, &div;, &minus;). */
+  /** `lhs op rhs` — arithmetic binary operation (+, -, *, modulo, &div;,
+    * &minus;).
+    */
   case class BinOp(lhs: Expr, op: String, rhs: Expr) extends Expr
 
   /** `base<sup>exp</sup>` — exponentiation. */

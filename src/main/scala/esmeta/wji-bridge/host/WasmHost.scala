@@ -5,23 +5,26 @@ import esmeta.wji.state.ALValue
 /** Errors that a [[WasmHost]] operation may produce. */
 enum WasmError:
   /** the embedding function returned `error` (or, for `func_invoke`, threw a
-    * Wasm exception) — mirrors AL's `error`/`EXCEPTION` results. The payload
-    * is the AL value describing the error/exception. */
+    * Wasm exception) — mirrors AL's `error`/`EXCEPTION` results. The payload is
+    * the AL value describing the error/exception.
+    */
   case Trap(value: ALValue)
+
   /** transport/process-level failure: the spectec-server process died, sent
-    * malformed JSON, called an unknown method, etc. */
+    * malformed JSON, called an unknown method, etc.
+    */
   case ProtocolError(message: String)
 
 /** Mirror of the subset of the Wasm Core Spec's Embedding interface
-  * (`spectec/document/core/appendix/embedding.rst`) that is used by the
-  * JS-API / WJI spec (`spectec/document/js-api/index.bs`). See
-  * `core/EMBEDDING.md` for the full catalog and which functions are covered.
+  * (`spectec/document/core/appendix/embedding.rst`) that is used by the JS-API
+  * / WJI spec (`spectec/document/js-api/index.bs`). See `core/EMBEDDING.md` for
+  * the full catalog and which functions are covered.
   *
   * Each method here corresponds 1:1 to an embedding function defined by the
   * Wasm standard (e.g. `module_decode`, `module_instantiate`, `func_invoke`)
   * and to a JSON-RPC method of the same name sent to `spectec-server`
-  * (`wjmeta-bridge/spectec-server`). The full catalog, including operations
-  * not yet covered here, is tracked in `core/EMBEDDING.md`.
+  * (`wjmeta-bridge/spectec-server`). The full catalog, including operations not
+  * yet covered here, is tracked in `core/EMBEDDING.md`.
   *
   * `wjmeta-mechanize` (the WJI mechanization) calls these methods when a
   * mechanized algorithm needs to perform a Wasm-level operation.
@@ -33,14 +36,14 @@ enum WasmError:
   * All parameters/results are [[ALValue]], SpecTec's own AL value
   * representation (see `core/value/ALValue.scala`), since that is the type
   * stores, modules, addresses, and `val*` are expressed in. Operations that
-  * conceptually yield a composite result encode it as a single [[ALValue]]:
-  * a pair such as `(store, funcaddr)` as [[ALValue.TupV]], a `val*` list as
+  * conceptually yield a composite result encode it as a single [[ALValue]]: a
+  * pair such as `(store, funcaddr)` as [[ALValue.TupV]], a `val*` list as
   * [[ALValue.ListV]], a boolean as [[ALValue.BoolV]], and a unit / `error?`
   * success as [[ALValue.OptV]] `None`.
   *
   * Reentrancy: Wasm execution may call back into a wjmeta-side closure
-  * registered via [[funcAlloc]] (see [[HostFunction]]). This happens over
-  * the same JSON-RPC connection as a `host_func_invoke` request initiated by
+  * registered via [[funcAlloc]] (see [[HostFunction]]). This happens over the
+  * same JSON-RPC connection as a `host_func_invoke` request initiated by
   * `spectec-server`, handled on the wjmeta-bridge side.
   */
 trait WasmHost:
@@ -58,7 +61,9 @@ trait WasmHost:
   /** `module_validate(module) : error?` */
   def moduleValidate(module: ALValue): Either[WasmError, ALValue]
 
-  /** `module_instantiate(store, module, externaddr*) : (store, moduleinst | exception | error)` */
+  /** `module_instantiate(store, module, externaddr*) : (store, moduleinst |
+    * exception | error)`
+    */
   def moduleInstantiate(
     store: ALValue,
     module: ALValue,
@@ -74,7 +79,10 @@ trait WasmHost:
   // -- Module instances -------------------------------------------------------
 
   /** `instance_export(moduleinst, name) : externaddr | error` */
-  def instanceExport(moduleInst: ALValue, name: ALValue): Either[WasmError, ALValue]
+  def instanceExport(
+    moduleInst: ALValue,
+    name: ALValue,
+  ): Either[WasmError, ALValue]
 
   // -- Functions --------------------------------------------------------------
 
@@ -92,7 +100,8 @@ trait WasmHost:
   /** `func_type(store, funcaddr) : deftype` */
   def funcType(store: ALValue, funcAddr: ALValue): Either[WasmError, ALValue]
 
-  /** `func_invoke(store, funcaddr, val*) : (store, val* | exception | error)` */
+  /** `func_invoke(store, funcaddr, val*) : (store, val* | exception | error)`
+    */
   def funcInvoke(
     store: ALValue,
     funcAddr: ALValue,
@@ -102,22 +111,40 @@ trait WasmHost:
   // -- Tables -----------------------------------------------------------------
 
   /** `table_alloc(store, tabletype, ref) : (store, tableaddr)` */
-  def tableAlloc(store: ALValue, tableType: ALValue, ref: ALValue): Either[WasmError, ALValue]
+  def tableAlloc(
+    store: ALValue,
+    tableType: ALValue,
+    ref: ALValue,
+  ): Either[WasmError, ALValue]
 
   /** `table_type(store, tableaddr) : tabletype` */
   def tableType(store: ALValue, tableAddr: ALValue): Either[WasmError, ALValue]
 
   /** `table_read(store, tableaddr, i: u64) : ref | error` */
-  def tableRead(store: ALValue, tableAddr: ALValue, i: ALValue): Either[WasmError, ALValue]
+  def tableRead(
+    store: ALValue,
+    tableAddr: ALValue,
+    i: ALValue,
+  ): Either[WasmError, ALValue]
 
   /** `table_write(store, tableaddr, i: u64, ref) : store | error` */
-  def tableWrite(store: ALValue, tableAddr: ALValue, i: ALValue, ref: ALValue): Either[WasmError, ALValue]
+  def tableWrite(
+    store: ALValue,
+    tableAddr: ALValue,
+    i: ALValue,
+    ref: ALValue,
+  ): Either[WasmError, ALValue]
 
   /** `table_size(store, tableaddr) : u64` */
   def tableSize(store: ALValue, tableAddr: ALValue): Either[WasmError, ALValue]
 
   /** `table_grow(store, tableaddr, n: u64, ref) : store | error` */
-  def tableGrow(store: ALValue, tableAddr: ALValue, n: ALValue, ref: ALValue): Either[WasmError, ALValue]
+  def tableGrow(
+    store: ALValue,
+    tableAddr: ALValue,
+    n: ALValue,
+    ref: ALValue,
+  ): Either[WasmError, ALValue]
 
   // -- Memories -----------------------------------------------------------------
 
@@ -131,7 +158,11 @@ trait WasmHost:
   def memSize(store: ALValue, memAddr: ALValue): Either[WasmError, ALValue]
 
   /** `mem_grow(store, memaddr, n: u64) : store | error` */
-  def memGrow(store: ALValue, memAddr: ALValue, n: ALValue): Either[WasmError, ALValue]
+  def memGrow(
+    store: ALValue,
+    memAddr: ALValue,
+    n: ALValue,
+  ): Either[WasmError, ALValue]
 
   // -- Tags -----------------------------------------------------------------
 
@@ -144,7 +175,11 @@ trait WasmHost:
   // -- Exceptions -----------------------------------------------------------------
 
   /** `exn_alloc(store, tagaddr, val*) : (store, exnaddr)` */
-  def exnAlloc(store: ALValue, tagAddr: ALValue, vals: List[ALValue]): Either[WasmError, ALValue]
+  def exnAlloc(
+    store: ALValue,
+    tagAddr: ALValue,
+    vals: List[ALValue],
+  ): Either[WasmError, ALValue]
 
   /** `exn_tag(store, exnaddr) : tagaddr` */
   def exnTag(store: ALValue, exnAddr: ALValue): Either[WasmError, ALValue]
@@ -155,16 +190,30 @@ trait WasmHost:
   // -- Globals -----------------------------------------------------------------
 
   /** `global_alloc(store, globaltype, val) : (store, globaladdr)` */
-  def globalAlloc(store: ALValue, globalType: ALValue, value: ALValue): Either[WasmError, ALValue]
+  def globalAlloc(
+    store: ALValue,
+    globalType: ALValue,
+    value: ALValue,
+  ): Either[WasmError, ALValue]
 
   /** `global_type(store, globaladdr) : globaltype` */
-  def globalType(store: ALValue, globalAddr: ALValue): Either[WasmError, ALValue]
+  def globalType(
+    store: ALValue,
+    globalAddr: ALValue,
+  ): Either[WasmError, ALValue]
 
   /** `global_read(store, globaladdr) : val` */
-  def globalRead(store: ALValue, globalAddr: ALValue): Either[WasmError, ALValue]
+  def globalRead(
+    store: ALValue,
+    globalAddr: ALValue,
+  ): Either[WasmError, ALValue]
 
   /** `global_write(store, globaladdr, val) : store | error` */
-  def globalWrite(store: ALValue, globalAddr: ALValue, value: ALValue): Either[WasmError, ALValue]
+  def globalWrite(
+    store: ALValue,
+    globalAddr: ALValue,
+    value: ALValue,
+  ): Either[WasmError, ALValue]
 
   // -- Values -----------------------------------------------------------------
 
@@ -177,7 +226,13 @@ trait WasmHost:
   // -- Matching -----------------------------------------------------------------
 
   /** `match_valtype(valtype, valtype) : bool` */
-  def matchValType(valType1: ALValue, valType2: ALValue): Either[WasmError, ALValue]
+  def matchValType(
+    valType1: ALValue,
+    valType2: ALValue,
+  ): Either[WasmError, ALValue]
 
   /** `match_externtype(externtype, externtype) : bool` */
-  def matchExternType(externType1: ALValue, externType2: ALValue): Either[WasmError, ALValue]
+  def matchExternType(
+    externType1: ALValue,
+    externType2: ALValue,
+  ): Either[WasmError, ALValue]

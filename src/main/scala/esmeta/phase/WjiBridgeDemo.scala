@@ -16,11 +16,11 @@ import esmeta.wji.interpreter.Interpreter
   * program exercises three levels of crossing the JSON-RPC boundary on one
   * channel:
   *
-  *   1. wji -> SpecTec : invoke a Wasm function (func_invoke)
-  *   2. SpecTec -> wji : that function calls a host function (hostFn)
-  *   3. wji -> SpecTec : the host function itself calls an embedding function
-  *      (store_init) *mid-callback*, while SpecTec is still blocked awaiting
-  *      hostFn's result.
+  *   1. wji -> SpecTec : invoke a Wasm function (func_invoke) 2. SpecTec -> wji
+  *      : that function calls a host function (hostFn) 3. wji -> SpecTec : the
+  *      host function itself calls an embedding function (store_init)
+  *      *mid-callback*, while SpecTec is still blocked awaiting hostFn's
+  *      result.
   *
   * Requires a live SpecTec process on `PATH` (see [[SpecTecProcess]]).
   */
@@ -63,31 +63,44 @@ case object WjiBridgeDemo extends Phase[Unit, Unit] {
     val hostFn = Func(
       name = "hostFn",
       params = List(Param(Name("arg"))),
-      body = ISeq(List(
-        IIf(
-          EBinary(BOp.Lt, ERef(Global("Count")), ENum(10)),
-          ISeq(List(
-            IAssign(Global("Count"), EBinary(BOp.Add, ERef(Global("Count")), ENum(1))),
-            IPrint(ERef(Global("Count"))),
-            ICallEmbed(
-              Name("inv"),
-              "func_invoke",
-              List(ERef(Global("Store")), ERef(Global("Faddr")), EList(List(ERef(Name("arg"))))),
+      body = ISeq(
+        List(
+          IIf(
+            EBinary(BOp.Lt, ERef(Global("Count")), ENum(10)),
+            ISeq(
+              List(
+                IAssign(
+                  Global("Count"),
+                  EBinary(BOp.Add, ERef(Global("Count")), ENum(1)),
+                ),
+                IPrint(ERef(Global("Count"))),
+                ICallEmbed(
+                  Name("inv"),
+                  "func_invoke",
+                  List(
+                    ERef(Global("Store")),
+                    ERef(Global("Faddr")),
+                    EList(List(ERef(Name("arg")))),
+                  ),
+                ),
+              ),
             ),
-          )),
-          ISeq(List()),
+            ISeq(List()),
+          ),
+          IReturn(EList(List(ERef(Name("arg"))))),
         ),
-        IReturn(EList(List(ERef(Name("arg"))))),
-      )),
+      ),
     )
     // Module-level Wasm store, seeded once by store_init() before any function
     // runs, then threaded through the %Store global instead of through locals.
     val storeGlobal = GlobalDecl(
       "Store",
-      ISeq(List(
-        ICallEmbed(Name("s"), "store_init", Nil),
-        IReturn(ERef(Name("s"))),
-      )),
+      ISeq(
+        List(
+          ICallEmbed(Name("s"), "store_init", Nil),
+          IReturn(ERef(Name("s"))),
+        ),
+      ),
     )
     val addrGlobal = GlobalDecl(
       "Faddr",
@@ -100,29 +113,36 @@ case object WjiBridgeDemo extends Phase[Unit, Unit] {
     val runHost = Func(
       name = "runHost",
       params = List(Param(Name("deftype")), Param(Name("arg"))),
-      body = ISeq(List(
-        ICallEmbed(
-          Name("alloc"),
-          "func_alloc",
-          List(ERef(Global("Store")), ERef(Name("deftype")), EClo("hostFn")),
+      body = ISeq(
+        List(
+          ICallEmbed(
+            Name("alloc"),
+            "func_alloc",
+            List(ERef(Global("Store")), ERef(Name("deftype")), EClo("hostFn")),
+          ),
+          ILet(Name("store"), EProj(ERef(Name("alloc")), 0)),
+          ILet(Name("faddr"), EProj(ERef(Name("alloc")), 1)),
+          IAssign(Global("Store"), ERef(Name("store"))),
+          IAssign(Global("Faddr"), ERef(Name("faddr"))),
+          ICallEmbed(
+            Name("inv"),
+            "func_invoke",
+            List(
+              ERef(Global("Store")),
+              ERef(Name("faddr")),
+              EList(List(ERef(Name("arg")))),
+            ),
+          ),
+          ILet(Name("store"), EProj(ERef(Name("inv")), 0)),
+          ILet(Name("result"), EProj(ERef(Name("inv")), 1)),
+          IAssign(Global("Store"), ERef(Name("store"))),
+          IPrint(ERef(Name("result"))),
+          IReturn(ERef(Name("result"))),
         ),
-        ILet(Name("store"), EProj(ERef(Name("alloc")), 0)),
-        ILet(Name("faddr"), EProj(ERef(Name("alloc")), 1)),
-        IAssign(Global("Store"), ERef(Name("store"))),
-        IAssign(Global("Faddr"), ERef(Name("faddr"))),
-        ICallEmbed(
-          Name("inv"),
-          "func_invoke",
-          List(ERef(Global("Store")), ERef(Name("faddr")), EList(List(ERef(Name("arg"))))),
-        ),
-        ILet(Name("store"), EProj(ERef(Name("inv")), 0)),
-        ILet(Name("result"), EProj(ERef(Name("inv")), 1)),
-        IAssign(Global("Store"), ERef(Name("store"))),
-        IPrint(ERef(Name("result"))),
-        IReturn(ERef(Name("result"))),
-      )),
+      ),
     )
-    val program = Program(List(hostFn, runHost), List(storeGlobal, countGlobal, addrGlobal))
+    val program =
+      Program(List(hostFn, runHost), List(storeGlobal, countGlobal, addrGlobal))
 
     // Host function type `[i32] -> [i32]` as an AL deftype, mirroring host.ml's
     // `create_funcinst` dtype (Wasm 3.0 representation):
@@ -130,14 +150,21 @@ case object WjiBridgeDemo extends Phase[Unit, Unit] {
     import ALValue.*
     val i32 = CaseV("I32", Nil)
     val ftype = CaseV("->", List(ListV(List(i32)), ListV(List(i32))))
-    val sub = CaseV("SUB", List(OptV(Some(CaseV("FINAL", Nil))), ListV(Nil), ftype))
-    val deftype = CaseV("_DEF", List(CaseV("REC", List(ListV(List(sub)))), NumV(ALNum.Nat(0))))
+    val sub =
+      CaseV("SUB", List(OptV(Some(CaseV("FINAL", Nil))), ListV(Nil), ftype))
+    val deftype = CaseV(
+      "_DEF",
+      List(CaseV("REC", List(ListV(List(sub)))), NumV(ALNum.Nat(0))),
+    )
 
     // Invocation argument: the Wasm value `(i32.const 42)`.
     val arg = CaseV("CONST", List(i32, NumV(ALNum.Nat(42))))
 
     val interpreter = Interpreter(program, host)
-    val result = interpreter.invoke("runHost", List(WjValue.Wasm(deftype), WjValue.Wasm(arg)))
+    val result = interpreter.invoke(
+      "runHost",
+      List(WjValue.Wasm(deftype), WjValue.Wasm(arg)),
+    )
     println(s"runHost -> $result")
 
     connection.close()

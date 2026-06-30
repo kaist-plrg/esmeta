@@ -6,15 +6,15 @@ import java.io.{BufferedReader, InputStreamReader, PrintStream}
 import java.util.concurrent.atomic.AtomicLong
 import esmeta.wji.bridge.rpc.{Request, Response, RpcError}
 
-/** Bidirectional JSON-RPC 2.0 peer over a line-delimited JSON transport
-  * (stdio to/from the spectec-server process).
+/** Bidirectional JSON-RPC 2.0 peer over a line-delimited JSON transport (stdio
+  * to/from the spectec-server process).
   *
   * Both wjmeta-bridge and spectec-server can send [[Request]]s on this
   * connection:
   *   - wjmeta -> SpecTec: embedding function calls (`module_decode`,
   *     `func_invoke`, ...), sent via [[request]].
-  *   - SpecTec -> wjmeta: reentrant `host_func_invoke` calls, delivered to
-  *     the handler registered via [[onRequest]].
+  *   - SpecTec -> wjmeta: reentrant `host_func_invoke` calls, delivered to the
+  *     handler registered via [[onRequest]].
   *
   * Inbound lines are distinguished by shape: a value with a `method` field is a
   * request (from the peer); a value with `result`/`error` is a response to a
@@ -47,18 +47,22 @@ trait JsonRpcConnection:
   * embedding) reentrancy works to arbitrary depth on the single channel. This
   * mirrors `spectec-server`'s `send_request` pump.
   */
-private final class StdioJsonRpcConnection(process: esmeta.wji.bridge.process.SpecTecProcess)
-    extends JsonRpcConnection:
+private final class StdioJsonRpcConnection(
+  process: esmeta.wji.bridge.process.SpecTecProcess,
+) extends JsonRpcConnection:
 
   private val out = new PrintStream(process.stdin, true, "UTF-8")
-  private val in = new BufferedReader(new InputStreamReader(process.stdout, "UTF-8"))
+  private val in = new BufferedReader(
+    new InputStreamReader(process.stdout, "UTF-8"),
+  )
 
   private val nextId = new AtomicLong(0)
 
   private var requestHandler: (String, Json) => Either[RpcError, Json] =
     (_, _) => Left(RpcError(-32601, "no handler registered", None))
 
-  /** Dispatch one inbound request to [[requestHandler]] and write its response. */
+  /** Dispatch one inbound request to [[requestHandler]] and write its response.
+    */
   private def serve(json: Json): Unit =
     val obj = json.hcursor
     val method = obj.get[String]("method").getOrElse("")
@@ -70,7 +74,8 @@ private final class StdioJsonRpcConnection(process: esmeta.wji.bridge.process.Sp
     out.println(response.asJson.noSpaces)
 
   /** Read lines until the response to `id` arrives, serving any inbound
-    * requests (e.g. a reentrant `host_func_invoke`) met in the meantime. */
+    * requests (e.g. a reentrant `host_func_invoke`) met in the meantime.
+    */
   private def pump(id: Long): Either[String, Response] =
     var result: Option[Either[String, Response]] = None
     while result.isEmpty do
@@ -78,7 +83,8 @@ private final class StdioJsonRpcConnection(process: esmeta.wji.bridge.process.Sp
       if line == null then result = Some(Left("connection closed"))
       else if line.nonEmpty then
         parser.parse(line) match
-          case Left(parseErr) => result = Some(Left(s"Parse error: ${parseErr.message}"))
+          case Left(parseErr) =>
+            result = Some(Left(s"Parse error: ${parseErr.message}"))
           case Right(json) =>
             val obj = json.hcursor
             if obj.keys.exists(_.exists(_ == "method")) then
@@ -87,7 +93,9 @@ private final class StdioJsonRpcConnection(process: esmeta.wji.bridge.process.Sp
               json.as[Response] match
                 case Right(resp) if resp.id == id => result = Some(Right(resp))
                 case Right(resp) =>
-                  result = Some(Left(s"unexpected response id ${resp.id} (awaiting $id)"))
+                  result = Some(
+                    Left(s"unexpected response id ${resp.id} (awaiting $id)"),
+                  )
                 case Left(decodeErr) =>
                   result = Some(Left(s"malformed response: $decodeErr ($line)"))
     result.get
@@ -104,5 +112,7 @@ private final class StdioJsonRpcConnection(process: esmeta.wji.bridge.process.Sp
     process.close()
 
 object JsonRpcConnection:
-  def stdio(process: esmeta.wji.bridge.process.SpecTecProcess): JsonRpcConnection =
+  def stdio(
+    process: esmeta.wji.bridge.process.SpecTecProcess,
+  ): JsonRpcConnection =
     new StdioJsonRpcConnection(process)

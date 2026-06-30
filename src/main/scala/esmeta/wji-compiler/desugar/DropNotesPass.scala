@@ -8,6 +8,7 @@ object DropNotesPass extends DesugarPass:
     algos.map(a => a.copy(body = transform(a.body)))
 
   private def transform(instrs: List[Instr]): List[Instr] =
-    instrs.flatMap:
+    instrs.flatMap {
       case _: Instr.Note => Nil
       case instr         => List(instr.mapBody(transform))
+    }

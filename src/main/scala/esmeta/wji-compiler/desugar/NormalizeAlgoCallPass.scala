@@ -2,26 +2,26 @@ package esmeta.wji.compiler.desugar
 
 import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr}
 
-/** ANF-style normalization: extracts every `AlgoCall`-with-args that appears
-  * in a non-trivial expression position into a preceding `Let` binding.
+/** ANF-style normalization: extracts every `AlgoCall`-with-args that appears in
+  * a non-trivial expression position into a preceding `Let` binding.
   *
-  * After this pass every `AlgoCall(f, args)` (args.nonEmpty) is either
-  * directly the RHS of a `Let` or `Return` (handled by
-  * [[ExtractInlineAlgoCallPass]]) or fully eliminated by substitution.
+  * After this pass every `AlgoCall(f, args)` (args.nonEmpty) is either directly
+  * the RHS of a `Let` or `Return` (handled by [[ExtractInlineAlgoCallPass]]) or
+  * fully eliminated by substitution.
   *
   * Examples:
   * {{{
   *   Append(AlgoCall(f, args), coll)
   *   →  Let(_callN, AlgoCall(f, args))
-  *      Append(Var("_callN"), coll)
+  *       Append(Var("_callN"), coll)
   *
   *   IfChain([(Eq(AlgoCall(f, args), Bool(false)), body), ...], fb)
   *   →  Let(_callN, AlgoCall(f, args))
-  *      IfChain([(Eq(Var("_callN"), Bool(false)), body), ...], fb)
+  *       IfChain([(Eq(Var("_callN"), Bool(false)), body), ...], fb)
   *
   *   Set(lhs, BinOp(AlgoCall(f, args), "+", Num("1")))
   *   →  Let(_callN, AlgoCall(f, args))
-  *      Set(lhs, BinOp(Var("_callN"), "+", Num("1")))
+  *       Set(lhs, BinOp(Var("_callN"), "+", Num("1")))
   * }}}
   *
   * [[Instr.Let]] RHS and [[Instr.Return]] value are intentionally skipped at
@@ -100,9 +100,9 @@ object NormalizeAlgoCallPass extends DesugarPass:
     * `Perform` without an intermediate variable.
     */
   private def skipTopAlgoCall(expr: Expr): (List[Instr.Let], Expr) = expr match
-    case Expr.AlgoCall(_, _)                    => (Nil, expr)
-    case Expr.Abrupt("!", Expr.AlgoCall(_, _))  => (Nil, expr)
-    case _                                       => extractFromExpr(expr)
+    case Expr.AlgoCall(_, _)                   => (Nil, expr)
+    case Expr.Abrupt("!", Expr.AlgoCall(_, _)) => (Nil, expr)
+    case _                                     => extractFromExpr(expr)
 
   // ── Expr normalization ───────────────────────────────────────────────────────
 
@@ -126,9 +126,11 @@ object NormalizeAlgoCallPass extends DesugarPass:
       val (eb, ee) = extractFromExpr(exp)
       (bb ++ eb, Expr.Pow(be, ee))
 
-    case Expr.Neg(e)    => val (b, ne) = extractFromExpr(e); (b, Expr.Neg(ne))
-    case Expr.AsMath(e) => val (b, ne) = extractFromExpr(e); (b, Expr.AsMath(ne))
-    case Expr.Length(e) => val (b, ne) = extractFromExpr(e); (b, Expr.Length(ne))
+    case Expr.Neg(e) => val (b, ne) = extractFromExpr(e); (b, Expr.Neg(ne))
+    case Expr.AsMath(e) =>
+      val (b, ne) = extractFromExpr(e); (b, Expr.AsMath(ne))
+    case Expr.Length(e) =>
+      val (b, ne) = extractFromExpr(e); (b, Expr.Length(ne))
 
     case Expr.Abrupt(check, e) =>
       val (b, ne) = extractFromExpr(e)
@@ -188,7 +190,8 @@ object NormalizeAlgoCallPass extends DesugarPass:
       val (b, ne) = extractFromExpr(e); (b, Cond.IsMissing(ne, neg))
 
     case Cond.IsOfForm(e, form, condOpt, neg) =>
-      val (b, ne) = extractFromExpr(e); (b, Cond.IsOfForm(ne, form, condOpt, neg))
+      val (b, ne) = extractFromExpr(e);
+      (b, Cond.IsOfForm(ne, form, condOpt, neg))
 
     case Cond.And(l, r) =>
       val (lb, lc) = extractFromCond(l)

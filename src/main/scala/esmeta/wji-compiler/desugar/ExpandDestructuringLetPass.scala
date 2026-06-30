@@ -14,8 +14,9 @@ import esmeta.wji.lang.{Algorithm, Expr, Instr}
   *   Let(|addr|,  _tupleN[1])
   * }}}
   *
-  * The original body (if non-empty) is appended after the destructured bindings.
-  * In practice, tuple-destructuring Let nodes in the spec have empty bodies.
+  * The original body (if non-empty) is appended after the destructured
+  * bindings. In practice, tuple-destructuring Let nodes in the spec have empty
+  * bodies.
   */
 object ExpandDestructuringLetPass extends DesugarPass:
   private var counter = 0

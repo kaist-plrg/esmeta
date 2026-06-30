@@ -4,26 +4,35 @@ import Cond.*
 
 object CondPrinter:
   def render(cond: Cond): String = cond match
-    case Eq(lhs, rhs, false)             => s"${ExprPrinter.render(lhs)} is ${ExprPrinter.render(rhs)}"
-    case Eq(lhs, rhs, true)              => s"${ExprPrinter.render(lhs)} is not ${ExprPrinter.render(rhs)}"
-    case Compare(lhs, op, rhs)           => s"${ExprPrinter.render(lhs)} $op ${ExprPrinter.render(rhs)}"
-    case MapExists(expr, false)          => s"${ExprPrinter.render(expr)} [=map/exists=]"
-    case MapExists(expr, true)           => s"${ExprPrinter.render(expr)} [=map/doesn't exist=]"
-    case Implements(expr, face, false)   => s"${ExprPrinter.render(expr)} [=implements=] {{$face}}"
-    case Implements(expr, face, true)    => s"${ExprPrinter.render(expr)} does not [=implement=] {{$face}}"
+    case Eq(lhs, rhs, false) =>
+      s"${ExprPrinter.render(lhs)} is ${ExprPrinter.render(rhs)}"
+    case Eq(lhs, rhs, true) =>
+      s"${ExprPrinter.render(lhs)} is not ${ExprPrinter.render(rhs)}"
+    case Compare(lhs, op, rhs) =>
+      s"${ExprPrinter.render(lhs)} $op ${ExprPrinter.render(rhs)}"
+    case MapExists(expr, false) => s"${ExprPrinter.render(expr)} [=map/exists=]"
+    case MapExists(expr, true) =>
+      s"${ExprPrinter.render(expr)} [=map/doesn't exist=]"
+    case Implements(expr, face, false) =>
+      s"${ExprPrinter.render(expr)} [=implements=] {{$face}}"
+    case Implements(expr, face, true) =>
+      s"${ExprPrinter.render(expr)} does not [=implement=] {{$face}}"
     case IsOfForm(expr, form, cond, neg) =>
-      val base = s"${ExprPrinter.render(expr)} ${if neg then "is not" else "is"} of the form ${ExprPrinter.render(form)}"
+      val base = s"${ExprPrinter.render(expr)} ${if neg then "is not"
+      else "is"} of the form ${ExprPrinter.render(form)}"
       cond.fold(base)(c => s"$base where ${render(c)}")
-    case Matches(lhs, t, rhs, false)     => s"${ExprPrinter.render(lhs)} [=matches/$t=] ${ExprPrinter.render(rhs)}"
-    case Matches(lhs, t, rhs, true)      => s"${ExprPrinter.render(lhs)} does not [=matches/$t=] ${ExprPrinter.render(rhs)}"
-    case IsMissing(expr, false)          => s"${ExprPrinter.render(expr)} is missing"
-    case IsMissing(expr, true)           => s"${ExprPrinter.render(expr)} is not missing"
+    case Matches(lhs, t, rhs, false) =>
+      s"${ExprPrinter.render(lhs)} [=matches/$t=] ${ExprPrinter.render(rhs)}"
+    case Matches(lhs, t, rhs, true) =>
+      s"${ExprPrinter.render(lhs)} does not [=matches/$t=] ${ExprPrinter.render(rhs)}"
+    case IsMissing(expr, false) => s"${ExprPrinter.render(expr)} is missing"
+    case IsMissing(expr, true)  => s"${ExprPrinter.render(expr)} is not missing"
     case IsType(expr, t, neg) =>
       val article = if "aeiouAEIOU".contains(t.head) then "an" else "a"
-      val verb    = if neg then "is not" else "is"
+      val verb = if neg then "is not" else "is"
       s"${ExprPrinter.render(expr)} $verb $article $t"
-    case And(left, right)                => s"${render(left)}, and ${render(right)}"
-    case Or(left, right)                 => s"${render(left)} or ${render(right)}"
-    case Abbreviated(expr)               => ExprPrinter.render(expr)
-    case Cond.Unreachable                => "Unreachable"
-    case Cond.Unknown(text)              => s"?($text)"
+    case And(left, right)   => s"${render(left)}, and ${render(right)}"
+    case Or(left, right)    => s"${render(left)} or ${render(right)}"
+    case Abbreviated(expr)  => ExprPrinter.render(expr)
+    case Cond.Unreachable   => "Unreachable"
+    case Cond.Unknown(text) => s"?($text)"

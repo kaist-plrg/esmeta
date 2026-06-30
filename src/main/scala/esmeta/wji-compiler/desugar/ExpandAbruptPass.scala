@@ -16,8 +16,8 @@ import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr}
   *   Let(x, Slot(_compN, "Value"), body)
   * }}}
   *
-  * Handles `?` in the direct-RHS position of `Let`, `Set`, and `Return`.
-  * Nested occurrences (e.g. inside a larger expression) are left as-is.
+  * Handles `?` in the direct-RHS position of `Let`, `Set`, and `Return`. Nested
+  * occurrences (e.g. inside a larger expression) are left as-is.
   */
 object ExpandAbruptPass extends DesugarPass:
   private var counter = 0
@@ -60,9 +60,11 @@ object ExpandAbruptPass extends DesugarPass:
 
   private def abruptCheck(tmp: String): Instr.IfChain =
     Instr.IfChain(
-      branches = List((
-        Cond.IsType(Expr.Var(tmp), "AbruptCompletion"),
-        List(Instr.Return(Some(Expr.Var(tmp)))),
-      )),
+      branches = List(
+        (
+          Cond.IsType(Expr.Var(tmp), "AbruptCompletion"),
+          List(Instr.Return(Some(Expr.Var(tmp)))),
+        ),
+      ),
       fallback = Nil,
     )

@@ -4,8 +4,8 @@ import esmeta.wji.lang.{Algorithm, Instr}
 
 /** Converts flat `If`/`ElseIf`/`Else` siblings into [[Instr.IfChain]] nodes.
   *
-  * The spec emits these as adjacent numbered-list items; this pass groups
-  * them into a proper tree so the compiler no longer needs `collectElseChain`.
+  * The spec emits these as adjacent numbered-list items; this pass groups them
+  * into a proper tree so the compiler no longer needs `collectElseChain`.
   */
 object GroupIfChainPass extends DesugarPass:
   def run(algos: List[Algorithm]): List[Algorithm] =
@@ -32,7 +32,11 @@ object GroupIfChainPass extends DesugarPass:
 
   private def collectChain(
     instrs: List[Instr],
-  ): (List[(esmeta.wji.lang.Cond, List[Instr])], Option[List[Instr]], List[Instr]) =
+  ): (
+    List[(esmeta.wji.lang.Cond, List[Instr])],
+    Option[List[Instr]],
+    List[Instr],
+  ) =
     instrs match
       case (e: Instr.ElseIf) :: rest =>
         val (moreElseIfs, maybeElse, remaining) = collectChain(rest)

@@ -2,11 +2,13 @@ package esmeta.wji.ir
 
 /** A program-level global variable declaration.
   *
-  * @param name the name bound as a [[Global]] ref
-  * @param init a body that produces the initial value; it must end in
-  *             [[IReturn]] (like a zero-arg function body), so initializers may
-  *             call embedding operations / other functions, not just evaluate a
-  *             pure expression. Evaluated once, before any function runs.
+  * @param name
+  *   the name bound as a [[Global]] ref
+  * @param init
+  *   a body that produces the initial value; it must end in [[IReturn]] (like a
+  *   zero-arg function body), so initializers may call embedding operations /
+  *   other functions, not just evaluate a pure expression. Evaluated once,
+  *   before any function runs.
   */
 case class GlobalDecl(name: String, init: Inst)
 

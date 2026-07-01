@@ -56,6 +56,7 @@ trait UnitWalker extends BasicUnitWalker {
     case IWhile(c, b)           => walk(c); walk(b)
     case ICall(l, f, as)        => walk(l); walk(f); walkList(as, walk)
     case ISdoCall(l, b, n, as)  => walk(l); walk(b); walk(n); walkList(as, walk)
+    case ICallEmbed(l, f, as)   => walk(l); walk(f); walkList(as, walk)
   }
 
   // expressions
@@ -94,12 +95,16 @@ trait UnitWalker extends BasicUnitWalker {
       walk(expr); walk(target)
     case ETypeCheck(expr, ty) =>
       walk(expr); walk(ty)
+    case ETypeCheckName(expr, name) =>
+      walk(expr); walk(name)
     case ESizeOf(expr) =>
       walk(expr)
     case EClo(fname, captured) =>
       walk(fname); walkList(captured, walk)
     case ECont(fname) =>
       walk(fname)
+    case EProj(expr, idx) =>
+      walk(expr); walk(idx)
     case EDebug(expr) =>
       walk(expr)
     case expr: ERandom     => walk(expr)

@@ -64,6 +64,8 @@ trait Walker extends BasicWalker {
     case ICall(l, f, as)        => ICall(walk(l), walk(f), walkList(as, walk))
     case ISdoCall(l, b, n, as) =>
       ISdoCall(walk(l), walk(b), walk(n), walkList(as, walk))
+    case ICallEmbed(l, f, as) =>
+      ICallEmbed(walk(l), walk(f), walkList(as, walk))
   ).setLangOpt(inst.langOpt)
 
   // expressions
@@ -102,12 +104,16 @@ trait Walker extends BasicWalker {
       EInstanceOf(walk(expr), walk(target))
     case ETypeCheck(expr, ty) =>
       ETypeCheck(walk(expr), walk(ty))
+    case ETypeCheckName(expr, name) =>
+      ETypeCheckName(walk(expr), walk(name))
     case ESizeOf(expr) =>
       ESizeOf(walk(expr))
     case EClo(fname, captured) =>
       EClo(walk(fname), walkList(captured, walk))
     case ECont(fname) =>
       ECont(walk(fname))
+    case EProj(expr, idx) =>
+      EProj(walk(expr), walk(idx))
     case EDebug(expr) =>
       EDebug(walk(expr))
     case expr: ERandom     => walk(expr)

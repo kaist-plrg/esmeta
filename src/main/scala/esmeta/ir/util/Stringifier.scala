@@ -119,6 +119,9 @@ class Stringifier(detail: Boolean, location: Boolean) {
         given Rule[List[Expr]] = iterableRule("(", ", ", ")")
         app >> "sdo-call " >> lhs >> " = "
         app >> ast >> "->" >> method >> args
+      case ICallEmbed(lhs, fname, args) =>
+        given Rule[List[Expr]] = iterableRule("(", ", ", ")")
+        app >> "call-embed " >> lhs >> " = <" >> fname >> ">" >> args
   }
 
   // expressions
@@ -166,6 +169,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> "(instanceof " >> expr >> " " >> target >> ")"
       case ETypeCheck(expr, ty) =>
         app >> "(? " >> expr >> ": " >> ty >> ")"
+      case ETypeCheckName(expr, name) =>
+        app >> "(?name " >> expr >> ": " >> name >> ")"
       case ESizeOf(expr) =>
         app >> "(sizeof " >> expr >> ")"
       case EClo(fname, captured) =>
@@ -175,6 +180,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> ">"
       case ECont(fname) =>
         app >> "cont<" >> "\"" >> fname >> "\"" >> ">"
+      case EProj(expr, idx) =>
+        app >> "(proj " >> expr >> " " >> idx >> ")"
       case EDebug(expr) =>
         app >> "(debug " >> expr >> ")"
       case expr: ERandom =>

@@ -7,6 +7,7 @@ import esmeta.ir.{Func => IRFunc, *}
 import esmeta.state.util.*
 import esmeta.ty.*
 import esmeta.util.DoubleEquals
+import esmeta.wji.state.ALValue
 import java.math.MathContext.UNLIMITED
 import scala.collection.mutable.{Map => MMap}
 
@@ -127,6 +128,12 @@ case class Enum(name: String) extends Value
 
 /** code units */
 case class CodeUnit(c: Char) extends Value
+
+/** a value owned by an external Wasm embedding (e.g. SpecTec), passed opaquely
+  * across the `esmeta.wji.bridge.host.WasmHost` boundary without being
+  * interpreted on the ES side.
+  */
+case class Wasm(v: ALValue) extends Value
 
 /** simple values
   *

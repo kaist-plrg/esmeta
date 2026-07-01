@@ -43,5 +43,14 @@ case class ICall(lhs: Local, fexpr: Expr, args: List[Expr]) extends CallInst
 case class ISdoCall(lhs: Local, base: Expr, op: String, args: List[Expr])
   extends CallInst
 
+/** call a Wasm embedding operation (e.g. `module_decode`, `func_invoke`) across
+  * the `esmeta.wji.bridge.host.WasmHost` boundary, and bind the result. `fname`
+  * names an embedding operation directly rather than through a closure value,
+  * because the embedding interface is a fixed catalog defined by the Wasm
+  * standard.
+  */
+case class ICallEmbed(lhs: Local, fname: String, args: List[Expr])
+  extends CallInst
+
 // special instructions
 case class ISeq(insts: List[Inst]) extends Inst

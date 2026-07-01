@@ -3,10 +3,13 @@ package esmeta.wji.compiler
 import esmeta.wji.lang as metalang
 import esmeta.wji.lang.{Algorithm, Cond, Instr}
 import esmeta.wji.lang.Instr.PerformOutcome
-import esmeta.wji.ir
-import esmeta.wji.ir.*
+import esmeta.ir
+import esmeta.ir.*
 
-/** Compiles a list of [[metalang.Algorithm]]s into an IR [[Program]].
+/** Compiles a list of [[metalang.Algorithm]]s into a real ESMeta IR [[Program]]
+  * (the same `esmeta.ir` types the ECMA-262 spec compiles to), so compiled WJI
+  * functions can be merged into the same `CFG` and run by the same
+  * `esmeta.interpreter.Interpreter` as ordinary ES abstract operations.
   *
   * The overall pipeline: Algorithm → Func (one per algorithm) Instr →
   * List[Inst] (may expand to multiple; see If-chain grouping) metalang.Expr /
@@ -22,7 +25,14 @@ object Compiler:
   private def compileAlgo(algo: Algorithm): Option[Func] =
     algo.name.orElse(algo.id).map { name =>
       val params = algo.params.map(p => Param(Name(stripPipes(p))))
-      Func(name, params, compileInstrs(algo.body))
+      Func(
+        main = false,
+        kind = FuncKind.AbsOp,
+        name = name,
+        params = params,
+        retTy = UnknownType,
+        body = compileInstrs(algo.body),
+      )
     }
 
   // ── Instruction sequence ─────────────────────────────────────────────────────
@@ -58,7 +68,7 @@ object Compiler:
       compileSeq(body) :+ IReturn(compileExpr(expr))
 
     case Instr.Return(None, body) =>
-      compileSeq(body) :+ IReturn(EUndef)
+      compileSeq(body) :+ IReturn(EUndef())
 
     case Instr.Assert(cond, body) =>
       IAssert(compileCond(cond)) :: compileSeq(body)
@@ -103,7 +113,7 @@ object Compiler:
     case Instr.Note(_, _) => Nil // notes are informational only
 
     case Instr.Unknown(text, body) =>
-      IExpr(EUnknown(text)) :: compileSeq(body)
+      IExpr(EYet(text)) :: compileSeq(body)
 
     case Instr.IfChain(branches, fallback) =>
       def buildChain(bs: List[(Cond, List[Instr])]): Inst = bs match
@@ -123,8 +133,8 @@ object Compiler:
     case metalang.Expr.Num(s)                 => compileNum(s)
     case metalang.Expr.Bool(b)                => EBool(b)
     case metalang.Expr.Str(s)                 => EStr(s)
-    case metalang.Expr.SpecConst("null")      => ENull
-    case metalang.Expr.SpecConst("undefined") => EUndef
+    case metalang.Expr.SpecConst("null")      => ENull()
+    case metalang.Expr.SpecConst("undefined") => EUndef()
     case metalang.Expr.SpecConst(s)           => EEnum(s)
     case metalang.Expr.Slot(base, slot) =>
       ERef(Field(compileRef(base), EStr(slot)))
@@ -132,7 +142,7 @@ object Compiler:
       ERef(Field(compileRef(base), compileExpr(key)))
     case metalang.Expr.New(iface)      => ERecord(iface, Nil)
     case metalang.Expr.List_(elems)    => EList(elems.map(compileExpr))
-    case metalang.Expr.Length(e)       => ELen(compileExpr(e))
+    case metalang.Expr.Length(e)       => ESizeOf(compileExpr(e))
     case metalang.Expr.BinOp(l, op, r) => compileBinOp(op, l, r)
     case metalang.Expr.Pow(base, exp) =>
       EBinary(BOp.Pow, compileExpr(base), compileExpr(exp))
@@ -149,23 +159,24 @@ object Compiler:
       EYet(s"$$${name}(${args.mkString})") // TODO
     case metalang.Expr.Tuple(elems) => EYet(s"tuple(${elems.mkString})") // TODO
     case metalang.Expr.Map_(entries)   => EYet("map literal") // TODO
-    case metalang.Expr.UnknownNew(raw) => EUnknown(raw)
-    case metalang.Expr.Unknown(raw)    => EUnknown(raw)
+    case metalang.Expr.UnknownNew(raw) => EYet(raw)
+    case metalang.Expr.Unknown(raw)    => EYet(raw)
 
   // ── Condition ────────────────────────────────────────────────────────────────
 
   private def compileCond(cond: Cond): ir.Expr = cond match
     case Cond.Eq(l, r, false) => EBinary(BOp.Eq, compileExpr(l), compileExpr(r))
-    case Cond.Eq(l, r, true) => EBinary(BOp.NEq, compileExpr(l), compileExpr(r))
+    case Cond.Eq(l, r, true) =>
+      EUnary(UOp.Not, EBinary(BOp.Eq, compileExpr(l), compileExpr(r)))
     case Cond.Compare(l, op, r) =>
-      EBinary(compileCompOp(op), compileExpr(l), compileExpr(r))
+      compileCompare(op, compileExpr(l), compileExpr(r))
     case Cond.And(l, r) => EBinary(BOp.And, compileCond(l), compileCond(r))
     case Cond.Or(l, r)  => EBinary(BOp.Or, compileCond(l), compileCond(r))
     case Cond.MapExists(e, false) => EExists(compileRef(e))
     case Cond.MapExists(e, true)  => EUnary(UOp.Not, EExists(compileRef(e)))
-    case Cond.IsType(e, t, false) => ETypeCheck(compileExpr(e), t)
+    case Cond.IsType(e, t, false) => ETypeCheckName(compileExpr(e), t)
     case Cond.IsType(e, t, true) =>
-      EUnary(UOp.Not, ETypeCheck(compileExpr(e), t))
+      EUnary(UOp.Not, ETypeCheckName(compileExpr(e), t))
     case Cond.Abbreviated(e)      => compileExpr(e)
     case Cond.Unreachable         => EBool(false)
     case Cond.IsMissing(e, false) => EUnary(UOp.Not, EExists(compileRef(e)))
@@ -173,7 +184,7 @@ object Compiler:
     case Cond.Implements(e, iface, neg) => EYet(s"implements $iface") // TODO
     case Cond.IsOfForm(e, f, _, neg)    => EYet(s"is of form") // TODO
     case Cond.Matches(l, t, r, neg)     => EYet(s"matches $t") // TODO
-    case Cond.Unknown(raw)              => EUnknown(raw)
+    case Cond.Unknown(raw)              => EYet(raw)
 
   // ── Ref ──────────────────────────────────────────────────────────────────────
 
@@ -201,7 +212,7 @@ object Compiler:
     EMath(if neg then -bd else bd)
 
   private def compileFuncRef(link: String): ir.Expr =
-    EClo(nameFromLink(link))
+    EClo(nameFromLink(link), Nil)
 
   private def nameFromLink(link: String): String =
     link.stripPrefix("[=").stripSuffix("=]").trim
@@ -226,9 +237,15 @@ object Compiler:
       case Some(b) => EBinary(b, compileExpr(l), compileExpr(r))
       case None    => EYet(s"${l} $op ${r}")
 
-  private def compileCompOp(op: String): BOp = op match
-    case "<"  => BOp.Lt
-    case "<=" => BOp.Le
-    case ">"  => BOp.Gt
-    case ">=" => BOp.Ge
-    case _    => BOp.Eq
+  /** ESMeta's `BOp` only has `Lt` among ordering operators (no `Le`/`Gt`/`Ge`,
+    * unlike WJI's own former operator set), so the other three are desugared
+    * here via negation / operand-swap: `l<=r` is `!(r<l)`, `l>r` is `r<l`,
+    * `l>=r` is `!(l<r)`.
+    */
+  private def compileCompare(op: String, l: ir.Expr, r: ir.Expr): ir.Expr =
+    op match
+      case "<"  => EBinary(BOp.Lt, l, r)
+      case "<=" => EUnary(UOp.Not, EBinary(BOp.Lt, r, l))
+      case ">"  => EBinary(BOp.Lt, r, l)
+      case ">=" => EUnary(UOp.Not, EBinary(BOp.Lt, l, r))
+      case _    => EBinary(BOp.Eq, l, r)

@@ -14,6 +14,7 @@ import esmeta.ty.*
 import esmeta.util.Loc
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
+import esmeta.wji.state.ALValue
 import java.io.PrintWriter
 import java.math.MathContext.DECIMAL128
 import java.util.concurrent.TimeoutException
@@ -191,6 +192,13 @@ class Interpreter(
             case None => throw InvalidAstField(syn, Str(method))
         case lex: Lexical =>
           setCallResult(lhs, Interpreter.eval(lex, method))
+    // TODO(Phase 3): dispatch to a real WasmHost instead of stubbing out;
+    // see `wji-interpreter/Interpreter.scala`'s `callEmbedding` for the full
+    // ~40-case table this should eventually port.
+    case ICallEmbed(lhs, fname, args) =>
+      throw NotSupported(Feature)(
+        s"Wasm embedding operation not yet wired into the interpreter: $fname",
+      )
   }
 
   /** transition for expressions */
@@ -314,6 +322,20 @@ class Interpreter(
         case _                                       => Bool(false)
     case ETypeCheck(expr, ty) =>
       Bool(ty.ty.contains(eval(expr), st))
+    // TODO: merge into ETypeCheck once WJI's coarse runtime type tags are
+    // mapped onto esmeta.ty.Ty, instead of keeping a separate string-tag node.
+    case ETypeCheckName(expr, name) =>
+      Bool(typeName(eval(expr)) == name)
+    case EProj(expr, idx) =>
+      eval(expr) match
+        case Wasm(ALValue.TupV(vs)) =>
+          if idx < 0 || idx >= vs.length then
+            throw NotSupported(Feature)(
+              s"proj: index $idx out of bounds for tuple of size ${vs.length}",
+            )
+          Wasm(vs(idx))
+        case v =>
+          throw NotSupported(Feature)(s"proj: expected a Wasm tuple, got $v")
     case ESizeOf(expr) =>
       Math(eval(expr) match
         case Str(s)        => s.length
@@ -353,6 +375,35 @@ class Interpreter(
     case EEnum(name)           => Enum(name)
     case ECodeUnit(c)          => CodeUnit(c)
   }
+
+  /** a coarse runtime type tag used by [[ETypeCheckName]], mirroring the scheme
+    * `wji-interpreter/Interpreter.scala`'s `typeName` used for `WjValue` before
+    * WJI values were folded into this `Value` ADT.
+    *
+    * NOTE: remove this once [[ETypeCheckName]] is merged into [[ETypeCheck]]
+    * (see the TODO there) — it exists only to back that interim node.
+    */
+  def typeName(v: Value): String = v match
+    case addr: Addr =>
+      st(addr) match
+        case _: RecordObj => "record"
+        case _: MapObj    => "map"
+        case _: ListObj   => "list"
+        case _: YetObj    => "yet"
+    case _: Callable      => "closure"
+    case _: AstValue      => "ast"
+    case _: GrammarSymbol => "grammar-symbol"
+    case _: Math          => "math"
+    case _: Infinity      => "infinity"
+    case Enum(name)       => s"~$name~"
+    case _: CodeUnit      => "code-unit"
+    case Wasm(_)          => "wasm"
+    case _: Number        => "number"
+    case _: BigInt        => "bigint"
+    case _: Str           => "string"
+    case _: Bool          => "boolean"
+    case Undef            => "undefined"
+    case Null             => "null"
 
   /** short circuit evaluation */
   def shortCircuit(bop: BOp, left: Expr, right: Expr): Value =

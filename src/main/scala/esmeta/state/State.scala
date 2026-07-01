@@ -162,6 +162,9 @@ case class State(
     case _: Bool             => BoolT
     case Undef               => UndefT
     case Null                => NullT
+    // opaque Wasm-embedding-owned values have no ES-side type; the type
+    // analyzer never runs over WJI-derived functions today
+    case _: Wasm => ValueTy.Top
 
   /** get type of addresses in current state */
   def typeOf(obj: Obj): ValueTy = typeOf(obj, detail = true)

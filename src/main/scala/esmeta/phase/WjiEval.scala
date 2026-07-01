@@ -2,38 +2,29 @@ package esmeta.phase
 
 import esmeta.*
 import esmeta.cfg.CFG
+import esmeta.cfgBuilder.CFGBuilder
+import esmeta.interpreter.{Interpreter => EsInterpreter}
+import esmeta.ir.Program
 import esmeta.state.State
 import esmeta.util.*
 import esmeta.util.SystemUtils.*
-import esmeta.wji.ir.Program
-import esmeta.wji.interpreter.{
-  EsToWjiInterpreter,
-  Interpreter => WjiInterpreter,
-  StubWasmHost,
-}
 
 /** `wji-eval` phase
   *
   * Runs an ECMAScript file against the real WJI IR [[Program]] compiled from
-  * the WebAssembly JS API spec (via [[WjiExtract]] and [[WjiCompile]]),
-  * demonstrating the reverse direction of the WJI <-> ESMeta IR bridge: the
-  * hand-written intrinsic `INTRINSICS.WebAssembly.instantiate.ir` already
-  * calls `clo<"instantiate">(this, %0, importObject)`, which
-  * [[EsToWjiInterpreter]] routes into the WJI interpreter because the
-  * compiled program defines an `"instantiate"` function; that function can in
-  * turn call back into ESMeta IR abstract operations via the existing (WJI ->
-  * ESMeta IR) [[esmeta.wji.interpreter.IrCaller]] fallback.
-  *
-  * Note: [[esmeta.wji.interpreter.IrCaller]] only marshals scalar values
-  * across the ES <-> WJI boundary today, so invoking `instantiate` with its
-  * real (Record-typed) arguments is expected to fail with a scalars-only
-  * [[esmeta.wji.interpreter.InterpreterError]] until that boundary is
-  * extended.
+  * the WebAssembly JS API spec (via [[WjiExtract]] and [[WjiCompile]]), merged
+  * into the same `CFG` as the ES spec's own functions and executed by the SAME
+  * `esmeta.interpreter.Interpreter` — the hand-written intrinsic
+  * `INTRINSICS.WebAssembly.instantiate.ir` already calls
+  * `clo<"instantiate">(this, %0, importObject)`, which now resolves directly
+  * against the merged CFG's `fnameMap`, exactly like any other ES-to-ES call.
+  * No separate WJI interpreter, heap, or ES <-> WJI value-conversion bridge is
+  * needed any more.
   */
 case object WjiEval extends Phase[CFG, State] {
   val name = "wji-eval"
   val help =
-    "runs ES IR against the compiled WJI IR program (and back)."
+    "runs ES IR against the compiled WJI IR program (merged into the same CFG)."
 
   def apply(
     cfg: CFG,
@@ -51,14 +42,11 @@ case object WjiEval extends Phase[CFG, State] {
     compileConfig.log = config.log
     val wjiProgram = WjiCompile(algorithms, cmdConfig, compileConfig)
 
-    val wjiInterp = WjiInterpreter(wjiProgram, StubWasmHost(), Some(cfg))
+    val merged =
+      Program(cfg.program.funcs ++ wjiProgram.funcs, cfg.program.spec)
+    val mergedCfg = CFGBuilder(merged)
 
-    EsToWjiInterpreter(
-      cfg.init.fromFile(filename),
-      wjiInterp,
-      wjiProgram,
-      log = config.log,
-    ).result
+    EsInterpreter(mergedCfg.init.fromFile(filename), log = config.log)
 
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(

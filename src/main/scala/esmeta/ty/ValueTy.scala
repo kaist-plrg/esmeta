@@ -186,6 +186,10 @@ sealed trait ValueTy extends Ty with Lattice[ValueTy] {
     case Bool(b)                         => bool contains b
     case Undef                           => undef
     case Null                            => nullv
+    // TODO: ValueTy's lattice has no dimension for opaque Wasm-embedding
+    // values yet (the type analyzer never runs over WJI-derived functions
+    // today); treat as contained by nothing until one is added.
+    case _: Wasm => false
 
   /** copy value type */
   def copied(

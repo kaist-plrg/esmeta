@@ -102,6 +102,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case i: Infinity       => infinityRule(app, i)
       case e: Enum           => enumRule(app, e)
       case cu: CodeUnit      => cuRule(app, cu)
+      case Wasm(v)           => app >> "wasm<" >> v.toString >> ">"
       case sv: SimpleValue   => svRule(app, sv)
 
   // addresses

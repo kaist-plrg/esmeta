@@ -1554,6 +1554,7 @@ INTRINSICS.WeakRef.prototype.deref
 INTRINSICS.WeakSet
 INTRINSICS.WeakSet.prototype.add
 INTRINSICS.WeakSet.prototype.has
+INTRINSICS.WebAssembly.instantiate
 INTRINSICS.WrapForValidIteratorPrototype.next
 INTRINSICS.WrapForValidIteratorPrototype.return
 INTRINSICS.decodeURI
@@ -2513,6 +2514,7 @@ ToString
 ToUint16
 ToUint32
 ToUint8
+ToWebIDLArrayBuffer
 TriggerPromiseReactions
 TrimString
 TryStatement[0,0].ContainsDuplicateLabels

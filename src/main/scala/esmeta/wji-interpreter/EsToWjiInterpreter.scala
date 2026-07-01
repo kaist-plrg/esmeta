@@ -12,12 +12,12 @@ import esmeta.wji.ir.Program
   * result back in, rather than failing with `UnknownFunc`.
   *
   * This is the reverse direction of [[IrCaller]] (WJI -> ESMeta IR), sketched
-  * in `IrCaller.design.md`. It is intentionally minimal, mirroring that
-  * design note's "kept deliberately minimal" decision: only literal `EClo`
-  * callees are intercepted (matching how `HostEnqueuePromiseJob.ir` calls
-  * `WJIFunc`), and [[wjiInterp]] runs on its own private heap/globals, so
-  * nesting WJI -> ESMeta IR calls back out (via [[IrCaller]]) cannot clobber
-  * this interpreter's suspended [[st]].
+  * in `IrCaller.design.md`. It is intentionally minimal, mirroring that design
+  * note's "kept deliberately minimal" decision: only literal `EClo` callees are
+  * intercepted (matching how `HostEnqueuePromiseJob.ir` calls `WJIFunc`), and
+  * [[wjiInterp]] runs on its own private heap/globals, so nesting WJI -> ESMeta
+  * IR calls back out (via [[IrCaller]]) cannot clobber this interpreter's
+  * suspended [[st]].
   */
 class EsToWjiInterpreter(
   st: State,
@@ -27,7 +27,8 @@ class EsToWjiInterpreter(
 ) extends EsInterpreter(st, log = log):
 
   override def eval(call: Call): Unit = call.callInst match
-    case ICall(lhs, EClo(fname, _), args) if wjiProgram.funcMap.contains(fname) =>
+    case ICall(lhs, EClo(fname, _), args)
+        if wjiProgram.funcMap.contains(fname) =>
       val vs = args.map(eval)
       val wjiArgs = vs.map(IrCaller.fromEs)
       val wjiResult = wjiInterp.invoke(fname, wjiArgs)

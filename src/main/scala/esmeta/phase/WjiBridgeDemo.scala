@@ -86,10 +86,16 @@ case object WjiBridgeDemo extends Phase[CFG, Unit] {
                 ),
               ),
             ),
-            ISeq(List(
-              ICall(Name("b"), EClo("ToBoolean"), List(ERef(Global("Count")))),
-              IPrint(ERef(Name("b"))),
-            )),
+            ISeq(
+              List(
+                ICall(
+                  Name("b"),
+                  EClo("ToBoolean"),
+                  List(ERef(Global("Count"))),
+                ),
+                IPrint(ERef(Name("b"))),
+              ),
+            ),
           ),
           IReturn(EList(List(ERef(Name("arg"))))),
         ),

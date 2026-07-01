@@ -50,7 +50,7 @@ object IrCaller:
     }
 
   /** WJI value -> ESMeta IR value (scalars only for now). */
-  private def toEs(v: WjValue): Value = v match
+  def toEs(v: WjValue): Value = v match
     case WjValue.Undef   => Undef
     case WjValue.Null    => Null
     case WjValue.Bool(b) => Bool(b)
@@ -64,7 +64,7 @@ object IrCaller:
       )
 
   /** ESMeta IR value -> WJI value (scalars only for now). */
-  private def fromEs(v: Value): WjValue = v match
+  def fromEs(v: Value): WjValue = v match
     case Undef     => WjValue.Undef
     case Null      => WjValue.Null
     case Bool(b)   => WjValue.Bool(b)

@@ -270,3 +270,13 @@ case object CmdWjiBridgeDemo
     "esmeta wji-bridge-demo  # run the reentrant JSON-RPC demo (needs SpecTec).",
   )
 }
+
+/** `wji-reverse-demo` command */
+case object CmdWjiReverseDemo
+  extends Command("wji-reverse-demo", CmdBuildCFG >> WjiReverseDemo) {
+  val help = "runs ES IR that calls into a hand-written WJI function (and back)."
+  val examples = List(
+    "esmeta wji-reverse-demo foo.js  # ES -> WJI -> ES round trip demo.",
+  )
+  override val targetName = "<js>+"
+}

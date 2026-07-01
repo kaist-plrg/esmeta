@@ -274,10 +274,11 @@ case object CmdWjiBridgeDemo
 /** `wji-eval` command */
 case object CmdWjiEval extends Command("wji-eval", CmdBuildCFG >> WjiEval) {
   val help =
-    "runs ES IR that calls into a hand-written WJI function (and back)."
+    "runs ES IR against the compiled WJI IR program (and back)."
   val examples = List(
     "esmeta wji-eval foo.js           # ES -> WJI -> ES round trip demo.",
     "esmeta wji-eval foo.js -wji-eval:log  # run in logging mode.",
+    "esmeta wji-eval foo.js -wji-eval:filter=instantiate  # narrow compiled algorithms.",
   )
   override val targetName = "<js>+"
 }

@@ -1,1432 +1,1901 @@
 109 func(s)
-# compile a WebAssembly module(bytes)
-  let module = @module_decode(bytes)
-  if (module == %error):
-    return %error
-  let _call1 = @module_validate(module)
-  if (_call1 == %error):
-    return %error
+def compile a WebAssembly module(
+  bytes: Unknown,
+): Unknown = {
+  call module = clo<"module_decode">(bytes)
+  if (= module @error) {
+    return @error
+  } else nop
+  call _call1 = clo<"module_validate">(module)
+  if (= _call1 @error) {
+    return @error
+  } else nop
   return module
-
-# validate builtins and imported string for a WebAssembly module(module, builtinSetNames, importedStringModule)
-  let _call2 = @validate builtin set names(builtinSetNames)
-  if (_call2 == false):
+}
+def validate builtins and imported string for a WebAssembly module(
+  module: Unknown,
+  builtinSetNames: Unknown,
+  importedStringModule: Unknown,
+): Unknown = {
+  call _call2 = clo<"validate builtin set names">(builtinSetNames)
+  if (= _call2 false) {
     return false
-  !(foreach |import| in [=module_imports=](|module|))
-  if ((importedStringModule != null) && (import[0] == importedStringModule)):
+  } else nop
+  (yet "foreach |import| in [=module_imports=](|module|)")
+  if (&& (! (= importedStringModule null)) (= import[0] importedStringModule)) {
     let importExternType = import[2]
-    let stringExternType = ?(`global const (ref extern)`)
-    let _call3 = @match_externtype(stringExternType, importExternType)
-    if (_call3 == false):
+    let stringExternType = (yet "`global const (ref extern)`")
+    call _call3 = clo<"match_externtype">(stringExternType, importExternType)
+    if (= _call3 false) {
       return false
-  else:
-    if (?([=validate an import for builtins|validating an import for builtins=] with |import|) && (builtinSetNames == false)):
+    } else nop
+  } else {
+    if (&& (yet "[=validate an import for builtins|validating an import for builtins=] with |import|") (= builtinSetNames false)) {
       return false
+    } else nop
+  }
   return true
-
-# validate(bytes, options)
-  let stableBytes = ?(a [=get a copy of the buffer source|copy of the bytes held by the buffer=] |bytes|)
-  let module = @Compile a WebAssembly module(stableBytes)
-  if (module == %error):
+}
+def validate(
+  bytes: Unknown,
+  options: Unknown,
+): Unknown = {
+  let stableBytes = (yet "a [=get a copy of the buffer source|copy of the bytes held by the buffer=] |bytes|")
+  call module = clo<"Compile a WebAssembly module">(stableBytes)
+  if (= module @error) {
     return false
-  let builtinSetNames = options.[[builtins]]
-  let importedStringModule = options.[[importedStringConstants]]
-  if (?([=validate builtins and imported string for a WebAssembly module|validating builtins and imported strings=] for |module| with |builtinSetNames|) && ?(|importedStringModule| returns false)):
+  } else nop
+  let builtinSetNames = options.builtins
+  let importedStringModule = options.importedStringConstants
+  if (&& (yet "[=validate builtins and imported string for a WebAssembly module|validating builtins and imported strings=] for |module| with |builtinSetNames|") (yet "|importedStringModule| returns false")) {
     return false
+  } else nop
   return true
-
-# construct a WebAssembly module object(module, bytes, builtinSetNames, importedStringModule)
-  let moduleObject = new Module {}
-  moduleObject.[[Module]] = module
-  moduleObject.[[Bytes]] = bytes
-  moduleObject.[[BuiltinSets]] = builtinSetNames
-  moduleObject.[[ImportedStringModule]] = importedStringModule
+}
+def construct a WebAssembly module object(
+  module: Unknown,
+  bytes: Unknown,
+  builtinSetNames: Unknown,
+  importedStringModule: Unknown,
+): Unknown = {
+  let moduleObject = (record [Module])
+  moduleObject.Module = module
+  moduleObject.Bytes = bytes
+  moduleObject.BuiltinSets = builtinSetNames
+  moduleObject.ImportedStringModule = importedStringModule
   return moduleObject
-
-# asynchronously compile a WebAssembly module(bytes, options, taskSource)
-  let promise = @a new promise()
-  let module = @compile a WebAssembly module(bytes)
-  let _ = @Queue a task(taskSource)
-  if (module == %error):
-    ?(reject |promise| with a {{CompileError}} exception and return)
-  let builtinSetNames = options.[[builtins]]
-  let importedStringModule = options.[[importedStringConstants]]
-  if (?([=validate builtins and imported string for a WebAssembly module|validating builtins and imported strings=] for |module| with |builtinSetNames|) && (importedStringModule == false)):
-    ?(reject |promise| with a {{CompileError}} exception)
-  else:
-    let moduleObject = @Construct a WebAssembly module object(module, bytes, builtinSetNames, importedStringModule)
-    let _ = @Resolve(promise, moduleObject)
+}
+def asynchronously compile a WebAssembly module(
+  bytes: Unknown,
+  options: Unknown,
+  taskSource: Unknown,
+): Unknown = {
+  call promise = clo<"a new promise">()
+  call module = clo<"compile a WebAssembly module">(bytes)
+  call _ = clo<"Queue a task">(taskSource)
+  if (= module @error) {
+    (yet "reject |promise| with a {{CompileError}} exception and return")
+  } else nop
+  let builtinSetNames = options.builtins
+  let importedStringModule = options.importedStringConstants
+  if (&& (yet "[=validate builtins and imported string for a WebAssembly module|validating builtins and imported strings=] for |module| with |builtinSetNames|") (= importedStringModule false)) {
+    (yet "reject |promise| with a {{CompileError}} exception")
+  } else {
+    call moduleObject = clo<"Construct a WebAssembly module object">(module, bytes, builtinSetNames, importedStringModule)
+    call _ = clo<"Resolve">(promise, moduleObject)
+  }
   return promise
-
-# compile(bytes, options)
-  let stableBytes = ?(a [=get a copy of the buffer source|copy of the bytes held by the buffer=] |bytes|)
-  let _ret1 = @Asynchronously compile a WebAssembly module(stableBytes, options)
+}
+def compile(
+  bytes: Unknown,
+  options: Unknown,
+): Unknown = {
+  let stableBytes = (yet "a [=get a copy of the buffer source|copy of the bytes held by the buffer=] |bytes|")
+  call _ret1 = clo<"Asynchronously compile a WebAssembly module">(stableBytes, options)
   return _ret1
-
-# instantiate imported strings(module, importedStringModule)
-  assert (importedStringModule != null)
-  let exportsObject = !($OrdinaryObjectCreate(SpecConst(null)))
-  !(foreach (|moduleName|, |componentName|, |externtype|) in [=module_imports=](|module|))
-  if (moduleName != importedStringModule):
-    !(continue)
+}
+def instantiate imported strings(
+  module: Unknown,
+  importedStringModule: Unknown,
+): Unknown = {
+  assert (! (= importedStringModule null))
+  let exportsObject = (yet "$OrdinaryObjectCreate(SpecConst(null))")
+  (yet "foreach (|moduleName|, |componentName|, |externtype|) in [=module_imports=](|module|)")
+  if (! (= moduleName importedStringModule)) {
+    (yet "continue")
+  } else nop
   let stringConstant = componentName
-  let status = !($CreateDataProperty(Var(exportsObject)Var(stringConstant)Var(stringConstant)))
-  assert (status == true)
+  let status = (yet "$CreateDataProperty(Var(exportsObject)Var(stringConstant)Var(stringConstant))")
+  assert (= status true)
   return exportsObject
-
-# read the imports(module, importObject, builtinSetNames, importedStringModule)
-  if (?(|module|.[=imports=] [=list/is empty|is not empty=]) && (importObject == undefined)):
-    !(throw a {{TypeError}} exception)
-  let builtinOrStringImports = !(map literal)
-  !(foreach |builtinSetName| in |builtinSetNames|)
-  let builtinSetQualifiedName = ?(|builtinSetName| prefixed with "wasm:")
-  assert ?(|builtinOrStringImports| does not contain |builtinSetQualifiedName|)
-  if ?(|builtinSetName| does not refer to a builtin set):
-    !(continue)
-  let exportsObject = @instantiate a builtin set(builtinSetName)
+}
+def read the imports(
+  module: Unknown,
+  importObject: Unknown,
+  builtinSetNames: Unknown,
+  importedStringModule: Unknown,
+): Unknown = {
+  if (&& (yet "|module|.[=imports=] [=list/is empty|is not empty=]") (= importObject undefined)) {
+    (yet "throw a {{TypeError}} exception")
+  } else nop
+  let builtinOrStringImports = (yet "map literal")
+  (yet "foreach |builtinSetName| in |builtinSetNames|")
+  let builtinSetQualifiedName = (yet "|builtinSetName| prefixed with \"wasm:\"")
+  assert (yet "|builtinOrStringImports| does not contain |builtinSetQualifiedName|")
+  if (yet "|builtinSetName| does not refer to a builtin set") {
+    (yet "continue")
+  } else nop
+  call exportsObject = clo<"instantiate a builtin set">(builtinSetName)
   builtinOrStringImports[builtinSetQualifiedName] = exportsObject
-  if (importedStringModule != null):
-    let exportsObject = @instantiate imported strings(module, importedStringModule)
+  if (! (= importedStringModule null)) {
+    call exportsObject = clo<"instantiate imported strings">(module, importedStringModule)
     builtinOrStringImports[importedStringModule] = exportsObject
-  let imports = []
-  !(foreach (|moduleName|, |componentName|, |externtype|) in [=module_imports=](|module|))
-  if ?(|builtinOrStringImports| [=map/exist|contains=] |moduleName|):
+  } else nop
+  let imports = (list [])
+  (yet "foreach (|moduleName|, |componentName|, |externtype|) in [=module_imports=](|module|)")
+  if (yet "|builtinOrStringImports| [=map/exist|contains=] |moduleName|") {
     let o = builtinOrStringImports[moduleName]
-    if (!o is Object || (?(if [$HasProperty$](|o|, |componentName|)) == false)):
-      let _comp1 = !($Get(Var(importObject)Var(moduleName)))
-      if _comp1 is AbruptCompletion:
+    if (|| (! (?name o: Object)) (= (yet "if [$HasProperty$](|o|, |componentName|)") false)) {
+      let _comp1 = (yet "$Get(Var(importObject)Var(moduleName))")
+      if (?name _comp1: AbruptCompletion) {
         return _comp1
-      o = _comp1.[[Value]]
-  else:
-    let _comp2 = !($Get(Var(importObject)Var(moduleName)))
-    if _comp2 is AbruptCompletion:
+      } else nop
+      o = _comp1.Value
+    } else nop
+  } else {
+    let _comp2 = (yet "$Get(Var(importObject)Var(moduleName))")
+    if (?name _comp2: AbruptCompletion) {
       return _comp2
-    let o = _comp2.[[Value]]
-  if !o is Object:
-    !(throw a {{TypeError}} exception)
-  let _comp3 = !($Get(Var(o)Var(componentName)))
-  if _comp3 is AbruptCompletion:
+    } else nop
+    let o = _comp2.Value
+  }
+  if (! (?name o: Object)) {
+    (yet "throw a {{TypeError}} exception")
+  } else nop
+  let _comp3 = (yet "$Get(Var(o)Var(componentName))")
+  if (?name _comp3: AbruptCompletion) {
     return _comp3
-  let v = _comp3.[[Value]]
-  if !(is of form):
-    if (!($IsCallable(Var(v))) == false):
-      !(throw a {{LinkError}} exception)
-    if (?(|v| has a \[[FunctionAddress]] internal slot) && (?(therefore) == ?(an [=Exported Function=]))):
-      let funcaddr = v.[[FunctionAddress]]
-    else:
-      let funcaddr = @Create a host function(v, functype)
-      let index = ?(the number of external functions in |imports|)
-      ?(This value |index| is known as the <dfn>index of the host function</dfn> |funcaddr|)
-    let externfunc = ?(the [=external value=] [=external value|func=] |funcaddr|)
-    append externfunc to imports
-  if !(is of form):
-    if !(implements Global):
-      let globaladdr = v.[[Global]]
-    else:
-      if ((valtype == %i64) && !v is BigInt):
-        !(throw a {{LinkError}} exception)
-      if ?(|valtype| is one of [=i32=]):
-        !(throw a {{LinkError}} exception)
-      if (valtype == %v128):
-        !(throw a {{LinkError}} exception)
-      let value = @ToWebAssemblyValue(v, valtype)
-      if ?(this operation throws a {{TypeError}}):
-        ?(catch it, and throw a {{LinkError}} exception)
-      let store = %surrounding agent.[[associated store]]
-      let _tuple1 = @global_alloc(store, !(call [=const=]), value)
+  } else nop
+  let v = _comp3.Value
+  if (yet "is of form") {
+    if (= (yet "$IsCallable(Var(v))") false) {
+      (yet "throw a {{LinkError}} exception")
+    } else nop
+    if (&& (yet "|v| has a \\[[FunctionAddress]] internal slot") (= (yet "therefore") (yet "an [=Exported Function=]"))) {
+      let funcaddr = v.FunctionAddress
+    } else {
+      call funcaddr = clo<"Create a host function">(v, functype)
+      let index = (yet "the number of external functions in |imports|")
+      (yet "This value |index| is known as the <dfn>index of the host function</dfn> |funcaddr|")
+    }
+    let externfunc = (yet "the [=external value=] [=external value|func=] |funcaddr|")
+    push imports < externfunc
+  } else nop
+  if (yet "is of form") {
+    if (yet "implements Global") {
+      let globaladdr = v.Global
+    } else {
+      if (&& (= valtype @i64) (! (?name v: BigInt))) {
+        (yet "throw a {{LinkError}} exception")
+      } else nop
+      if (yet "|valtype| is one of [=i32=]") {
+        (yet "throw a {{LinkError}} exception")
+      } else nop
+      if (= valtype @v128) {
+        (yet "throw a {{LinkError}} exception")
+      } else nop
+      call value = clo<"ToWebAssemblyValue">(v, valtype)
+      if (yet "this operation throws a {{TypeError}}") {
+        (yet "catch it, and throw a {{LinkError}} exception")
+      } else nop
+      let store = @surrounding agent["associated store"]
+      call _tuple1 = clo<"global_alloc">(store, (yet "call [=const=]"), value)
       let store = _tuple1[0]
       let globaladdr = _tuple1[1]
-      %surrounding agent.[[associated store]] = store
-    let externglobal = @external value(globaladdr)
-    append externglobal to imports
-  if !(is of form):
-    if !(implements Memory):
-      !(throw a {{LinkError}} exception)
-    let externmem = _ref_Unknown.[[Memory]]
-    append externmem to imports
-  if !(is of form):
-    if !(implements Table):
-      !(throw a {{LinkError}} exception)
-    let tableaddr = v.[[Table]]
-    let externtable = ?(the [=external value=] [=external value|table=] |tableaddr|)
-    append externtable to imports
-  if !(is of form):
-    assert (attribute == %tagtype/attribute/exception)
-    if !(implements Tag):
-      !(throw a {{LinkError}} exception)
-    let tagaddr = v.[[Address]]
-    let externtag = ?(the [=external value=] [=external value/tag=] |tagaddr|)
-    append externtag to imports
+      @surrounding agent["associated store"] = store
+    }
+    call externglobal = clo<"external value">(globaladdr)
+    push imports < externglobal
+  } else nop
+  if (yet "is of form") {
+    if (yet "implements Memory") {
+      (yet "throw a {{LinkError}} exception")
+    } else nop
+    let externmem = _ref_Unknown.Memory
+    push imports < externmem
+  } else nop
+  if (yet "is of form") {
+    if (yet "implements Table") {
+      (yet "throw a {{LinkError}} exception")
+    } else nop
+    let tableaddr = v.Table
+    let externtable = (yet "the [=external value=] [=external value|table=] |tableaddr|")
+    push imports < externtable
+  } else nop
+  if (yet "is of form") {
+    assert (= attribute @tagtype/attribute/exception)
+    if (yet "implements Tag") {
+      (yet "throw a {{LinkError}} exception")
+    } else nop
+    let tagaddr = v.Address
+    let externtag = (yet "the [=external value=] [=external value/tag=] |tagaddr|")
+    push imports < externtag
+  } else nop
   return imports
-
-# create an exports object(module, instance)
-  let exportsObject = !($OrdinaryObjectCreate(SpecConst(null)))
-  !(foreach (|name|, |externtype|) in [=module_exports=](|module|))
-  let externval = @instance_export(instance, name)
-  assert (externval != %error)
-  if !(is of form):
-    assert !(is of form)
-    let _ = !(unsupported Let lhs: AlgoCall([=external value=],List(Var(funcaddr))))
-    let func = @a new Exported Function(funcaddr)
+}
+def create an exports object(
+  module: Unknown,
+  instance: Unknown,
+): Unknown = {
+  let exportsObject = (yet "$OrdinaryObjectCreate(SpecConst(null))")
+  (yet "foreach (|name|, |externtype|) in [=module_exports=](|module|)")
+  call externval = clo<"instance_export">(instance, name)
+  assert (! (= externval @error))
+  if (yet "is of form") {
+    assert (yet "is of form")
+    let _ = (yet "unsupported Let lhs: AlgoCall([=external value=],List(Var(funcaddr)))")
+    call func = clo<"a new Exported Function">(funcaddr)
     let value = func
-  if !(is of form):
-    assert !(is of form)
-    let _ = !(unsupported Let lhs: AlgoCall([=external value=],List(Var(globaladdr))))
-    let global = @create a global object(globaladdr)
+  } else nop
+  if (yet "is of form") {
+    assert (yet "is of form")
+    let _ = (yet "unsupported Let lhs: AlgoCall([=external value=],List(Var(globaladdr)))")
+    call global = clo<"create a global object">(globaladdr)
     let value = global
-  if !(is of form):
-    assert !(is of form)
-    let _ = !(unsupported Let lhs: AlgoCall([=external value=],List(Var(memaddr))))
-    let memory = @create a memory object(memaddr)
+  } else nop
+  if (yet "is of form") {
+    assert (yet "is of form")
+    let _ = (yet "unsupported Let lhs: AlgoCall([=external value=],List(Var(memaddr)))")
+    call memory = clo<"create a memory object">(memaddr)
     let value = memory
-  if !(is of form):
-    assert !(is of form)
-    let _ = !(unsupported Let lhs: AlgoCall([=external value=],List(Var(tableaddr))))
-    let table = @create a Table object(tableaddr)
+  } else nop
+  if (yet "is of form") {
+    assert (yet "is of form")
+    let _ = (yet "unsupported Let lhs: AlgoCall([=external value=],List(Var(tableaddr)))")
+    call table = clo<"create a Table object">(tableaddr)
     let value = table
-  if !(is of form):
-    assert (attribute == %tagtype/attribute/exception)
-    assert !(is of form)
-    let _ = !(unsupported Let lhs: AlgoCall([=external value/tag=],List(Var(tagaddr))))
-    let tag = @create a Tag object(tagaddr)
+  } else nop
+  if (yet "is of form") {
+    assert (= attribute @tagtype/attribute/exception)
+    assert (yet "is of form")
+    let _ = (yet "unsupported Let lhs: AlgoCall([=external value/tag=],List(Var(tagaddr)))")
+    call tag = clo<"create a Tag object">(tagaddr)
     let value = tag
-  let status = !($CreateDataProperty(Var(exportsObject)Var(name)Var(value)))
-  assert (status == true)
-  let _ = @!(!($SetIntegrityLevel(Var(exportsObject)Unknown(`"frozen"`))))
+  } else nop
+  let status = (yet "$CreateDataProperty(Var(exportsObject)Var(name)Var(value))")
+  assert (= status true)
+  call _ = clo<"!">((yet "$SetIntegrityLevel(Var(exportsObject)Unknown(`\"frozen\"`))"))
   return exportsObject
-
-# initialize an instance object(instanceObject, module, instance)
-  let exportsObject = @Create an exports object(module, instance)
-  instanceObject.[[Instance]] = instance
-  instanceObject.[[Exports]] = exportsObject
-
-# instantiate the core of a WebAssembly module(module, imports)
-  let store = %surrounding agent.[[associated store]]
-  let result = @module_instantiate(store, module, imports)
-  if (result == %error):
-    ?(A {{LinkError}} exception for most cases which occur during linking)
-    if ?(the error came when running the start function):
-      !(throw a {{RuntimeError}} for most errors which occur from WebAssembly, or the error object propagated from inner ECMAScript code)
-    ?(Another error type if appropriate, for example an out-of-memory exception, as documented in <a href="#errors">the WebAssembly error mapping</a>)
+}
+def initialize an instance object(
+  instanceObject: Unknown,
+  module: Unknown,
+  instance: Unknown,
+): Unknown = {
+  call exportsObject = clo<"Create an exports object">(module, instance)
+  instanceObject.Instance = instance
+  instanceObject.Exports = exportsObject
+}
+def instantiate the core of a WebAssembly module(
+  module: Unknown,
+  imports: Unknown,
+): Unknown = {
+  let store = @surrounding agent["associated store"]
+  call result = clo<"module_instantiate">(store, module, imports)
+  if (= result @error) {
+    (yet "A {{LinkError}} exception for most cases which occur during linking")
+    if (yet "the error came when running the start function") {
+      (yet "throw a {{RuntimeError}} for most errors which occur from WebAssembly, or the error object propagated from inner ECMAScript code")
+    } else nop
+    (yet "Another error type if appropriate, for example an out-of-memory exception, as documented in <a href=\"#errors\">the WebAssembly error mapping</a>")
+  } else nop
   let _tuple2 = result
   let store = _tuple2[0]
   let instance = _tuple2[1]
-  %surrounding agent.[[associated store]] = store
+  @surrounding agent["associated store"] = store
   return instance
-
-# asynchronously instantiate a WebAssembly module(moduleObject, importObject)
-  let promise = @a new promise()
-  let module = moduleObject.[[Module]]
-  let builtinSetNames = moduleObject.[[BuiltinSets]]
-  let importedStringModule = moduleObject.[[ImportedStringModule]]
-  let imports = @Read the imports(module, importObject, builtinSetNames, importedStringModule)
-  if ?(this operation throws an exception):
-    ?(catch it, [=reject=] |promise| with the exception, and return |promise|)
-  let _ = @Queue a task()
-  let instance = @Instantiate the core of a WebAssembly module(module, imports)
-  if ?(this throws an exception):
-    ?(catch it, [=reject=] |promise| with the exception, and terminate these substeps)
-  let instanceObject = new Instance {}
-  let _ = @initialize an instance object(instanceObject, module, instance)
-  if ?(this throws an exception):
-    ?(catch it, [=reject=] |promise| with the exception, and terminate these substeps)
-  let _ = @Resolve(promise, instanceObject)
+}
+def asynchronously instantiate a WebAssembly module(
+  moduleObject: Unknown,
+  importObject: Unknown,
+): Unknown = {
+  call promise = clo<"a new promise">()
+  let module = moduleObject.Module
+  let builtinSetNames = moduleObject.BuiltinSets
+  let importedStringModule = moduleObject.ImportedStringModule
+  call imports = clo<"Read the imports">(module, importObject, builtinSetNames, importedStringModule)
+  if (yet "this operation throws an exception") {
+    (yet "catch it, [=reject=] |promise| with the exception, and return |promise|")
+  } else nop
+  call _ = clo<"Queue a task">()
+  call instance = clo<"Instantiate the core of a WebAssembly module">(module, imports)
+  if (yet "this throws an exception") {
+    (yet "catch it, [=reject=] |promise| with the exception, and terminate these substeps")
+  } else nop
+  let instanceObject = (record [Instance])
+  call _ = clo<"initialize an instance object">(instanceObject, module, instance)
+  if (yet "this throws an exception") {
+    (yet "catch it, [=reject=] |promise| with the exception, and terminate these substeps")
+  } else nop
+  call _ = clo<"Resolve">(promise, instanceObject)
   return promise
-
-# instantiate a promise of a module(promiseOfModule, importObject)
-  let promise = @a new promise()
-  let _ = @React(promiseOfModule)
-  if ?(|promiseOfModule| was fulfilled with value |module|):
-    let innerPromise = @asynchronously instantiate a WebAssembly module(module, importObject)
-    let _ = @React(innerPromise)
-    if ?(|innerPromise| was fulfilled with value |instance|):
-      let result = ?(the {{WebAssemblyInstantiatedSource}} value «[ "{{WebAssemblyInstantiatedSource/module}}" → |module|, "{{WebAssemblyInstantiatedSource/instance}}" → |instance| ]»)
-      let _ = @Resolve(promise, result)
-    if ?(|innerPromise| was rejected with reason |reason|):
-      let _ = @Reject(promise, reason)
-  if ?(|promiseOfModule| was rejected with reason |reason|):
-    let _ = @Reject(promise, reason)
+}
+def instantiate a promise of a module(
+  promiseOfModule: Unknown,
+  importObject: Unknown,
+): Unknown = {
+  call promise = clo<"a new promise">()
+  call _ = clo<"React">(promiseOfModule)
+  if (yet "|promiseOfModule| was fulfilled with value |module|") {
+    call innerPromise = clo<"asynchronously instantiate a WebAssembly module">(module, importObject)
+    call _ = clo<"React">(innerPromise)
+    if (yet "|innerPromise| was fulfilled with value |instance|") {
+      let result = (yet "the {{WebAssemblyInstantiatedSource}} value «[ \"{{WebAssemblyInstantiatedSource/module}}\" → |module|, \"{{WebAssemblyInstantiatedSource/instance}}\" → |instance| ]»")
+      call _ = clo<"Resolve">(promise, result)
+    } else nop
+    if (yet "|innerPromise| was rejected with reason |reason|") {
+      call _ = clo<"Reject">(promise, reason)
+    } else nop
+  } else nop
+  if (yet "|promiseOfModule| was rejected with reason |reason|") {
+    call _ = clo<"Reject">(promise, reason)
+  } else nop
   return promise
-
-# instantiate(bytes, importObject, options)
-  let stableBytes = ?(a [=get a copy of the buffer source|copy of the bytes held by the buffer=] |bytes|)
-  let promiseOfModule = @Asynchronously compile a WebAssembly module(stableBytes, options)
-  let _ret2 = @Instantiate a promise of a module(promiseOfModule, importObject)
+}
+def instantiate(
+  bytes: Unknown,
+  importObject: Unknown,
+  options: Unknown,
+): Unknown = {
+  let stableBytes = (yet "a [=get a copy of the buffer source|copy of the bytes held by the buffer=] |bytes|")
+  call promiseOfModule = clo<"Asynchronously compile a WebAssembly module">(stableBytes, options)
+  call _ret2 = clo<"Instantiate a promise of a module">(promiseOfModule, importObject)
   return _ret2
-
-# instantiate(moduleObject, importObject)
-  let _ret3 = @asynchronously instantiate a WebAssembly module(moduleObject, importObject)
+}
+def instantiate(
+  moduleObject: Unknown,
+  importObject: Unknown,
+): Unknown = {
+  call _ret3 = clo<"asynchronously instantiate a WebAssembly module">(moduleObject, importObject)
   return _ret3
-
-# string value of the extern type(type)
-  ?("function" if |type| is of the form [=external-type/func=] <var ignore>functype</var>)
-  ?("table" if |type| is of the form [=external-type/table=] <var ignore>tabletype</var>)
-  ?("memory" if |type| is of the form [=external-type/mem=] <var ignore>memtype</var>)
-  ?("global" if |type| is of the form [=external-type/global=] <var ignore>globaltype</var>)
-  ?("tag" if |type| is of the form [=external-type/tag=] <var ignore>tag</var>)
-
-# exports(moduleObject)
-  let module = moduleObject.[[Module]]
-  let exports = []
-  !(foreach (|name|, |type|) in [=module_exports=](|module|))
-  let kind = ?(the [=string value of the extern type=] |type|)
-  let obj = !(map literal)
-  append obj to exports
+}
+def string value of the extern type(
+  type: Unknown,
+): Unknown = {
+  (yet "\"function\" if |type| is of the form [=external-type/func=] <var ignore>functype</var>")
+  (yet "\"table\" if |type| is of the form [=external-type/table=] <var ignore>tabletype</var>")
+  (yet "\"memory\" if |type| is of the form [=external-type/mem=] <var ignore>memtype</var>")
+  (yet "\"global\" if |type| is of the form [=external-type/global=] <var ignore>globaltype</var>")
+  (yet "\"tag\" if |type| is of the form [=external-type/tag=] <var ignore>tag</var>")
+}
+def exports(
+  moduleObject: Unknown,
+): Unknown = {
+  let module = moduleObject.Module
+  let exports = (list [])
+  (yet "foreach (|name|, |type|) in [=module_exports=](|module|)")
+  let kind = (yet "the [=string value of the extern type=] |type|")
+  let obj = (yet "map literal")
+  push exports < obj
   return exports
-
-# imports(moduleObject)
-  let module = moduleObject.[[Module]]
-  let builtinSetNames = moduleObject.[[BuiltinSets]]
-  let importedStringModule = moduleObject.[[ImportedStringModule]]
-  let imports = []
-  !(foreach (|moduleName|, |name|, |type|) in [=module_imports=](|module|))
-  if (?([=find a builtin=] for (|moduleName|, |name|, |type|)) && (builtinSetNames != null)):
-    !(continue)
-  if ((importedStringModule != null) && (moduleName == importedStringModule)):
-    !(continue)
-  let kind = ?(the [=string value of the extern type=] |type|)
-  let obj = !(map literal)
-  append obj to imports
+}
+def imports(
+  moduleObject: Unknown,
+): Unknown = {
+  let module = moduleObject.Module
+  let builtinSetNames = moduleObject.BuiltinSets
+  let importedStringModule = moduleObject.ImportedStringModule
+  let imports = (list [])
+  (yet "foreach (|moduleName|, |name|, |type|) in [=module_imports=](|module|)")
+  if (&& (yet "[=find a builtin=] for (|moduleName|, |name|, |type|)") (! (= builtinSetNames null))) {
+    (yet "continue")
+  } else nop
+  if (&& (! (= importedStringModule null)) (= moduleName importedStringModule)) {
+    (yet "continue")
+  } else nop
+  let kind = (yet "the [=string value of the extern type=] |type|")
+  let obj = (yet "map literal")
+  push imports < obj
   return imports
-
-# customSections(moduleObject, sectionName)
-  let bytes = moduleObject.[[Bytes]]
-  let customSections = []
-  !(foreach [=custom section=] |customSection| in |bytes|)
-  let name = ?(the <code>name</code> of |customSection|, [=UTF-8 decode without BOM or fail|decoded as UTF-8=])
-  assert (name != ?(failure (|moduleObject|.\[[Module]] is [=valid=])))
-  if (name == ?(|sectionName| as string values)):
-    append ?(a new {{ArrayBuffer}} containing a copy of the bytes in |bytes| for the range matched by this [=customsec=] production) to customSections
+}
+def customSections(
+  moduleObject: Unknown,
+  sectionName: Unknown,
+): Unknown = {
+  let bytes = moduleObject.Bytes
+  let customSections = (list [])
+  (yet "foreach [=custom section=] |customSection| in |bytes|")
+  let name = (yet "the <code>name</code> of |customSection|, [=UTF-8 decode without BOM or fail|decoded as UTF-8=]")
+  assert (! (= name (yet "failure (|moduleObject|.\\[[Module]] is [=valid=])")))
+  if (= name (yet "|sectionName| as string values")) {
+    push customSections < (yet "a new {{ArrayBuffer}} containing a copy of the bytes in |bytes| for the range matched by this [=customsec=] production")
+  } else nop
   return customSections
-
-# Module(bytes, options)
-  let stableBytes = ?(a [=get a copy of the buffer source|copy of the bytes held by the buffer=] |bytes|)
-  let module = @Compile a WebAssembly module(stableBytes)
-  if (module == %error):
-    !(throw a {{CompileError}} exception)
-  let builtinSetNames = options.[[builtins]]
-  let importedStringModule = options.[[importedStringConstants]]
-  if (?([=validate builtins and imported string for a WebAssembly module|validating builtins and imported strings=] for |module| with |builtinSetNames|) && ?(|importedStringModule| returns false)):
-    !(throw a {{CompileError}} exception)
-  %this.[[Module]] = module
-  %this.[[Bytes]] = stableBytes
-  %this.[[BuiltinSets]] = builtinSetNames
-  %this.[[ImportedStringModule]] = importedStringModule
-
-# Instance(moduleObject, importObject)
-  let builtinSetNames = moduleObject.[[BuiltinSets]]
-  let importedStringModule = moduleObject.[[ImportedStringModule]]
-  let module = moduleObject.[[Module]]
-  let imports = @Read the imports(module, importObject, builtinSetNames, importedStringModule)
-  let instance = @Instantiate the core of a WebAssembly module(module, imports)
-  let _ = @initialize an instance object(%this, module, instance)
-
-# exports()
-  nop
-
-# create a fixed length memory buffer(memaddr)
-  let block = ?(a [=Data Block=] which is [=identified with=] the underlying memory of |memaddr|)
-  let buffer = ?(a new {{ArrayBuffer}} with the internal slots \[[ArrayBufferData]], \[[ArrayBufferByteLength]], and \[[ArrayBufferDetachKey]])
-  buffer.[[ArrayBufferData]] = block
-  buffer.[[ArrayBufferByteLength]] = len(block)
-  buffer.[[ArrayBufferDetachKey]] = "WebAssembly.Memory"
+}
+def Module(
+  bytes: Unknown,
+  options: Unknown,
+): Unknown = {
+  let stableBytes = (yet "a [=get a copy of the buffer source|copy of the bytes held by the buffer=] |bytes|")
+  call module = clo<"Compile a WebAssembly module">(stableBytes)
+  if (= module @error) {
+    (yet "throw a {{CompileError}} exception")
+  } else nop
+  let builtinSetNames = options.builtins
+  let importedStringModule = options.importedStringConstants
+  if (&& (yet "[=validate builtins and imported string for a WebAssembly module|validating builtins and imported strings=] for |module| with |builtinSetNames|") (yet "|importedStringModule| returns false")) {
+    (yet "throw a {{CompileError}} exception")
+  } else nop
+  @this.Module = module
+  @this.Bytes = stableBytes
+  @this.BuiltinSets = builtinSetNames
+  @this.ImportedStringModule = importedStringModule
+}
+def Instance(
+  moduleObject: Unknown,
+  importObject: Unknown,
+): Unknown = {
+  let builtinSetNames = moduleObject.BuiltinSets
+  let importedStringModule = moduleObject.ImportedStringModule
+  let module = moduleObject.Module
+  call imports = clo<"Read the imports">(module, importObject, builtinSetNames, importedStringModule)
+  call instance = clo<"Instantiate the core of a WebAssembly module">(module, imports)
+  call _ = clo<"initialize an instance object">(@this, module, instance)
+}
+def exports(
+): Unknown = {}
+def create a fixed length memory buffer(
+  memaddr: Unknown,
+): Unknown = {
+  let block = (yet "a [=Data Block=] which is [=identified with=] the underlying memory of |memaddr|")
+  let buffer = (yet "a new {{ArrayBuffer}} with the internal slots \\[[ArrayBufferData]], \\[[ArrayBufferByteLength]], and \\[[ArrayBufferDetachKey]]")
+  buffer.ArrayBufferData = block
+  buffer.ArrayBufferByteLength = (sizeof block)
+  buffer.ArrayBufferDetachKey = "WebAssembly.Memory"
   return buffer
-
-# create a resizable memory buffer(memaddr, maxsize)
-  let block = ?(a [=Data Block=] which is [=identified with=] the underlying memory of |memaddr|)
-  let length = len(block)
-  let buffer = ?(a new {{ArrayBuffer}} with the internal slots \[[ArrayBufferData]], \[[ArrayBufferByteLength]], \[[ArrayBufferMaxByteLength]], and \[[ArrayBufferDetachKey]])
-  buffer.[[ArrayBufferData]] = block
-  buffer.[[ArrayBufferByteLength]] = length
-  buffer.[[ArrayBufferMaxByteLength]] = maxsize
-  buffer.[[ArrayBufferDetachKey]] = "WebAssembly.Memory"
+}
+def create a resizable memory buffer(
+  memaddr: Unknown,
+  maxsize: Unknown,
+): Unknown = {
+  let block = (yet "a [=Data Block=] which is [=identified with=] the underlying memory of |memaddr|")
+  let length = (sizeof block)
+  let buffer = (yet "a new {{ArrayBuffer}} with the internal slots \\[[ArrayBufferData]], \\[[ArrayBufferByteLength]], \\[[ArrayBufferMaxByteLength]], and \\[[ArrayBufferDetachKey]]")
+  buffer.ArrayBufferData = block
+  buffer.ArrayBufferByteLength = length
+  buffer.ArrayBufferMaxByteLength = maxsize
+  buffer.ArrayBufferDetachKey = "WebAssembly.Memory"
   return buffer
-
-# initialize a memory object(memory, memaddr)
-  let map = %surrounding agent.[[Memory object cache]]
-  assert !exists(map[memaddr])
-  let buffer = @create a fixed length memory buffer(memaddr)
-  memory.[[Memory]] = memaddr
-  memory.[[BufferObject]] = buffer
+}
+def initialize a memory object(
+  memory: Unknown,
+  memaddr: Unknown,
+): Unknown = {
+  let map = @surrounding agent["Memory object cache"]
+  assert (! (exists map[memaddr]))
+  call buffer = clo<"create a fixed length memory buffer">(memaddr)
+  memory.Memory = memaddr
+  memory.BufferObject = buffer
   map[memaddr] = memory
-
-# create a memory object(memaddr)
-  let map = %surrounding agent.[[Memory object cache]]
-  if exists(map[memaddr]):
+}
+def create a memory object(
+  memaddr: Unknown,
+): Unknown = {
+  let map = @surrounding agent["Memory object cache"]
+  if (exists map[memaddr]) {
     return map[memaddr]
-  let memory = new Memory {}
-  let _ = @initialize a memory object(memory, memaddr)
+  } else nop
+  let memory = (record [Memory])
+  call _ = clo<"initialize a memory object">(memory, memaddr)
   return memory
-
-# Memory(descriptor)
-  if exists(descriptor.[[address]]):
-    let addrtype = descriptor.[[address]]
-  else:
+}
+def Memory(
+  descriptor: Unknown,
+): Unknown = {
+  if (exists descriptor.address) {
+    let addrtype = descriptor.address
+  } else {
     let addrtype = "i32"
-  let _comp4 = @AddressValueToU64(descriptor.[[initial]], addrtype)
-  if _comp4 is AbruptCompletion:
+  }
+  call _comp4 = clo<"AddressValueToU64">(descriptor.initial, addrtype)
+  if (?name _comp4: AbruptCompletion) {
     return _comp4
-  let initial = _comp4.[[Value]]
-  if exists(descriptor.[[maximum]]):
-    let _comp5 = @AddressValueToU64(descriptor.[[maximum]], addrtype)
-    if _comp5 is AbruptCompletion:
+  } else nop
+  let initial = _comp4.Value
+  if (exists descriptor.maximum) {
+    call _comp5 = clo<"AddressValueToU64">(descriptor.maximum, addrtype)
+    if (?name _comp5: AbruptCompletion) {
       return _comp5
-    let maximum = _comp5.[[Value]]
-  else:
+    } else nop
+    let maximum = _comp5.Value
+  } else {
     let maximum = ~empty~
-  let memtype = @memory type(addrtype, ~**min**~, initial, ~**max**~, maximum)
-  if (memtype != %valid memtype):
-    !(throw a {{RangeError}} exception)
-  let store = %surrounding agent.[[associated store]]
-  let _tuple3 = @mem_alloc(store, memtype)
+  }
+  call memtype = clo<"memory type">(addrtype, ~**min**~, initial, ~**max**~, maximum)
+  if (! (= memtype @valid memtype)) {
+    (yet "throw a {{RangeError}} exception")
+  } else nop
+  let store = @surrounding agent["associated store"]
+  call _tuple3 = clo<"mem_alloc">(store, memtype)
   let store = _tuple3[0]
   let memaddr = _tuple3[1]
-  if ?(allocation fails):
-    !(throw a {{RangeError}} exception)
-  %surrounding agent.[[associated store]] = store
-  let _ = @initialize a memory object(%this, memaddr)
-
-# refresh the Memory buffer(memaddr)
-  let map = %surrounding agent.[[Memory object cache]]
-  assert exists(map[memaddr])
+  if (yet "allocation fails") {
+    (yet "throw a {{RangeError}} exception")
+  } else nop
+  @surrounding agent["associated store"] = store
+  call _ = clo<"initialize a memory object">(@this, memaddr)
+}
+def refresh the Memory buffer(
+  memaddr: Unknown,
+): Unknown = {
+  let map = @surrounding agent["Memory object cache"]
+  assert (exists map[memaddr])
   let memory = map[memaddr]
-  let buffer = memory.[[BufferObject]]
-  let _call4 = @IsFixedLengthArrayBuffer(buffer)
-  if (_call4 == true):
-    let _ = @!(!($DetachArrayBuffer(Var(buffer)Str(WebAssembly.Memory))))
-    let buffer = @create a fixed length memory buffer(memaddr)
-    memory.[[BufferObject]] = buffer
-  else:
-    let block = ?(a [=Data Block=] which is [=identified with=] the underlying memory of |memaddr|)
-    buffer.[[ArrayBufferData]] = block
-    buffer.[[ArrayBufferByteLength]] = len(block)
-
-# grow the memory buffer(memaddr, delta)
-  let store = %surrounding agent.[[associated store]]
-  let ret = ?(the [=mem_size=](|store|, |memaddr|))
-  let store = @mem_grow(store, memaddr, delta)
-  if (store == %error):
-    !(throw a {{RangeError}} exception)
-  %surrounding agent.[[associated store]] = store
-  let _ = @Refresh the memory buffer(memaddr)
+  let buffer = memory.BufferObject
+  call _call4 = clo<"IsFixedLengthArrayBuffer">(buffer)
+  if (= _call4 true) {
+    call _ = clo<"!">((yet "$DetachArrayBuffer(Var(buffer)Str(WebAssembly.Memory))"))
+    call buffer = clo<"create a fixed length memory buffer">(memaddr)
+    memory.BufferObject = buffer
+  } else {
+    let block = (yet "a [=Data Block=] which is [=identified with=] the underlying memory of |memaddr|")
+    buffer.ArrayBufferData = block
+    buffer.ArrayBufferByteLength = (sizeof block)
+  }
+}
+def grow the memory buffer(
+  memaddr: Unknown,
+  delta: Unknown,
+): Unknown = {
+  let store = @surrounding agent["associated store"]
+  let ret = (yet "the [=mem_size=](|store|, |memaddr|)")
+  call store = clo<"mem_grow">(store, memaddr, delta)
+  if (= store @error) {
+    (yet "throw a {{RangeError}} exception")
+  } else nop
+  @surrounding agent["associated store"] = store
+  call _ = clo<"Refresh the memory buffer">(memaddr)
   return ret
-
-# grow(delta)
-  let memaddr = %this.[[Memory]]
-  let store = %surrounding agent.[[associated store]]
-  let addrtype = ?(the [=address type=] in [=mem_type=](|store|, |memaddr|))
-  let _comp6 = @AddressValueToU64(delta, addrtype)
-  if _comp6 is AbruptCompletion:
+}
+def grow(
+  delta: Unknown,
+): Unknown = {
+  let memaddr = @this.Memory
+  let store = @surrounding agent["associated store"]
+  let addrtype = (yet "the [=address type=] in [=mem_type=](|store|, |memaddr|)")
+  call _comp6 = clo<"AddressValueToU64">(delta, addrtype)
+  if (?name _comp6: AbruptCompletion) {
     return _comp6
-  let delta64 = _comp6.[[Value]]
-  let ret = @grow the memory buffer(memaddr, delta64)
-  let _ret4 = @U64ToAddressValue(ret, addrtype)
+  } else nop
+  let delta64 = _comp6.Value
+  call ret = clo<"grow the memory buffer">(memaddr, delta64)
+  call _ret4 = clo<"U64ToAddressValue">(ret, addrtype)
   return _ret4
-
-# memory.grow()
-  let _call5 = @i32.const(-1)
-  if ((?(the top of the stack) != _call5) && (?(the top of the stack) != !(call [=i64.const=]))):
-    let frame = ?(the [=current frame=])
-    assert ?(due to validation, |frame|.[=frame/module=].[=moduleinst/memaddrs=][|x|] exists)
+}
+def memory.grow(
+): Unknown = {
+  call _call5 = clo<"i32.const">((- 1))
+  if (&& (! (= (yet "the top of the stack") _call5)) (! (= (yet "the top of the stack") (yet "call [=i64.const=]")))) {
+    let frame = (yet "the [=current frame=]")
+    assert (yet "due to validation, |frame|.[=frame/module=].[=moduleinst/memaddrs=][|x|] exists")
     let memaddr = _ref_Unknown[x]
-    let _ = @Refresh the memory buffer(memaddr)
-
-# toFixedLengthBuffer()
-  let buffer = %this.[[BufferObject]]
-  let _call6 = @IsFixedLengthArrayBuffer(buffer)
-  if (_call6 == true):
+    call _ = clo<"Refresh the memory buffer">(memaddr)
+  } else nop
+}
+def toFixedLengthBuffer(
+): Unknown = {
+  let buffer = @this.BufferObject
+  call _call6 = clo<"IsFixedLengthArrayBuffer">(buffer)
+  if (= _call6 true) {
     return buffer
-  let memaddr = %this.[[Memory]]
-  let fixedBuffer = @create a fixed length memory buffer(memaddr)
-  let _ = @!(!($DetachArrayBuffer(Var(buffer)Str(WebAssembly.Memory))))
-  %this.[[BufferObject]] = fixedBuffer
+  } else nop
+  let memaddr = @this.Memory
+  call fixedBuffer = clo<"create a fixed length memory buffer">(memaddr)
+  call _ = clo<"!">((yet "$DetachArrayBuffer(Var(buffer)Str(WebAssembly.Memory))"))
+  @this.BufferObject = fixedBuffer
   return fixedBuffer
-
-# toResizableBuffer()
-  let memaddr = %this.[[Memory]]
-  let store = %surrounding agent.[[associated store]]
-  let memtype = @mem_type(store, memaddr)
-  if ?(|memtype| does not have a max):
-    !(throw a {{TypeError}} exception)
-  let buffer = %this.[[BufferObject]]
-  let _call7 = @IsFixedLengthArrayBuffer(buffer)
-  if (_call7 == false):
+}
+def toResizableBuffer(
+): Unknown = {
+  let memaddr = @this.Memory
+  let store = @surrounding agent["associated store"]
+  call memtype = clo<"mem_type">(store, memaddr)
+  if (yet "|memtype| does not have a max") {
+    (yet "throw a {{TypeError}} exception")
+  } else nop
+  let buffer = @this.BufferObject
+  call _call7 = clo<"IsFixedLengthArrayBuffer">(buffer)
+  if (= _call7 false) {
     return buffer
-  assert ?(|memtype| has a max)
-  let maxsize = (?(the max value in |memtype|) * 65536)
-  let resizableBuffer = @create a resizable memory buffer(memaddr, maxsize)
-  let _ = @!(!($DetachArrayBuffer(Var(buffer)Str(WebAssembly.Memory))))
-  %this.[[BufferObject]] = resizableBuffer
+  } else nop
+  assert (yet "|memtype| has a max")
+  let maxsize = (* (yet "the max value in |memtype|") 65536)
+  call resizableBuffer = clo<"create a resizable memory buffer">(memaddr, maxsize)
+  call _ = clo<"!">((yet "$DetachArrayBuffer(Var(buffer)Str(WebAssembly.Memory))"))
+  @this.BufferObject = resizableBuffer
   return resizableBuffer
-
-# abstract operation [=HostResizeArrayBuffer=](buffer, newLength)
-  if (buffer.[[ArrayBufferDetachKey]] == "WebAssembly.Memory"):
-    let map = %surrounding agent.[[Memory object cache]]
-    assert (buffer == ?(the \[[BufferObject]] of exactly one value in |map|))
-    !(foreach |memaddr| &rarr; |mem| in |map|)
-    let _call8 = @SameValue(mem.[[BufferObject]], buffer)
-    if (_call8 == true):
-      assert ((buffer.[[ArrayBufferByteLength]] % 65536) == 0)
-      let lengthDelta = _ref_BinOp.[[ArrayBufferByteLength]]
-      if ((lengthDelta < 0) || ((lengthDelta % 65536) != 0)):
-        !(throw a {{RangeError}} exception)
-      let delta = (lengthDelta / 65536)
-      let _ = @Grow the memory buffer(memaddr, delta)
+}
+def abstract operation [=HostResizeArrayBuffer=](
+  buffer: Unknown,
+  newLength: Unknown,
+): Unknown = {
+  if (= buffer.ArrayBufferDetachKey "WebAssembly.Memory") {
+    let map = @surrounding agent["Memory object cache"]
+    assert (= buffer (yet "the \\[[BufferObject]] of exactly one value in |map|"))
+    (yet "foreach |memaddr| &rarr; |mem| in |map|")
+    call _call8 = clo<"SameValue">(mem.BufferObject, buffer)
+    if (= _call8 true) {
+      assert (= (% buffer.ArrayBufferByteLength 65536) 0)
+      let lengthDelta = _ref_BinOp.ArrayBufferByteLength
+      if (|| (< lengthDelta 0) (! (= (% lengthDelta 65536) 0))) {
+        (yet "throw a {{RangeError}} exception")
+      } else nop
+      let delta = (/ lengthDelta 65536)
+      call _ = clo<"Grow the memory buffer">(memaddr, delta)
+    } else nop
     return ~<emu-const>handled</emu-const>~
-  else:
+  } else {
     return ~<emu-const>unhandled</emu-const>~
-
-# buffer()
-  nop
-
-# initialize a table object(table, tableaddr)
-  let map = %surrounding agent.[[Table object cache]]
-  assert !exists(map[tableaddr])
-  table.[[Table]] = tableaddr
+  }
+}
+def buffer(
+): Unknown = {}
+def initialize a table object(
+  table: Unknown,
+  tableaddr: Unknown,
+): Unknown = {
+  let map = @surrounding agent["Table object cache"]
+  assert (! (exists map[tableaddr]))
+  table.Table = tableaddr
   map[tableaddr] = table
-
-# create a table object(tableaddr)
-  let map = %surrounding agent.[[Table object cache]]
-  if exists(map[tableaddr]):
+}
+def create a table object(
+  tableaddr: Unknown,
+): Unknown = {
+  let map = @surrounding agent["Table object cache"]
+  if (exists map[tableaddr]) {
     return map[tableaddr]
-  let table = new Table {}
-  let _ = @initialize a table object(table, tableaddr)
+  } else nop
+  let table = (record [Table])
+  call _ = clo<"initialize a table object">(table, tableaddr)
   return table
-
-# Table(descriptor, value)
-  let elementtype = @ToValueType(descriptor.[[element]])
-  if (elementtype != ?(a [=reftype=])):
-    !(throw a {{TypeError}} exception)
-  if exists(descriptor.[[address]]):
-    let addrtype = descriptor.[[address]]
-  else:
+}
+def Table(
+  descriptor: Unknown,
+  value: Unknown,
+): Unknown = {
+  call elementtype = clo<"ToValueType">(descriptor.element)
+  if (! (= elementtype (yet "a [=reftype=]"))) {
+    (yet "throw a {{TypeError}} exception")
+  } else nop
+  if (exists descriptor.address) {
+    let addrtype = descriptor.address
+  } else {
     let addrtype = "i32"
-  let _comp7 = @AddressValueToU64(descriptor.[[initial]], addrtype)
-  if _comp7 is AbruptCompletion:
+  }
+  call _comp7 = clo<"AddressValueToU64">(descriptor.initial, addrtype)
+  if (?name _comp7: AbruptCompletion) {
     return _comp7
-  let initial = _comp7.[[Value]]
-  if exists(descriptor.[[maximum]]):
-    let _comp8 = @AddressValueToU64(descriptor.[[maximum]], addrtype)
-    if _comp8 is AbruptCompletion:
+  } else nop
+  let initial = _comp7.Value
+  if (exists descriptor.maximum) {
+    call _comp8 = clo<"AddressValueToU64">(descriptor.maximum, addrtype)
+    if (?name _comp8: AbruptCompletion) {
       return _comp8
-    let maximum = _comp8.[[Value]]
-  else:
+    } else nop
+    let maximum = _comp8.Value
+  } else {
     let maximum = ~empty~
-  let type = ?(the [=table type=] |addrtype| { <b>[=limits|min=]</b> |initial|, <b>[=limits|max=]</b> |maximum| } |elementtype|)
-  if (type != %valid tabletype):
-    !(throw a {{RangeError}} exception)
-  if !exists(value):
-    let ref = @DefaultValue(elementtype)
-    assert (ref != %error)
-  else:
-    let _comp9 = @ToWebAssemblyValue(value, elementtype)
-    if _comp9 is AbruptCompletion:
+  }
+  let type = (yet "the [=table type=] |addrtype| { <b>[=limits|min=]</b> |initial|, <b>[=limits|max=]</b> |maximum| } |elementtype|")
+  if (! (= type @valid tabletype)) {
+    (yet "throw a {{RangeError}} exception")
+  } else nop
+  if (! (exists value)) {
+    call ref = clo<"DefaultValue">(elementtype)
+    assert (! (= ref @error))
+  } else {
+    call _comp9 = clo<"ToWebAssemblyValue">(value, elementtype)
+    if (?name _comp9: AbruptCompletion) {
       return _comp9
-    let ref = _comp9.[[Value]]
-  let store = %surrounding agent.[[associated store]]
-  let _tuple4 = @table_alloc(store, type, ref)
+    } else nop
+    let ref = _comp9.Value
+  }
+  let store = @surrounding agent["associated store"]
+  call _tuple4 = clo<"table_alloc">(store, type, ref)
   let store = _tuple4[0]
   let tableaddr = _tuple4[1]
-  if ?(allocation fails):
-    !(throw a {{RangeError}} exception)
-  %surrounding agent.[[associated store]] = store
-  let _ = @initialize a table object(%this, tableaddr)
-
-# grow(delta, value)
-  let tableaddr = %this.[[Table]]
-  let store = %surrounding agent.[[associated store]]
-  let initialSize = @table_size(store, tableaddr)
-  let _tuple5 = @table_type(store, tableaddr)
+  if (yet "allocation fails") {
+    (yet "throw a {{RangeError}} exception")
+  } else nop
+  @surrounding agent["associated store"] = store
+  call _ = clo<"initialize a table object">(@this, tableaddr)
+}
+def grow(
+  delta: Unknown,
+  value: Unknown,
+): Unknown = {
+  let tableaddr = @this.Table
+  let store = @surrounding agent["associated store"]
+  call initialSize = clo<"table_size">(store, tableaddr)
+  call _tuple5 = clo<"table_type">(store, tableaddr)
   let addrtype = _tuple5[0]
   let limits = _tuple5[1]
   let elementtype = _tuple5[2]
-  let _comp10 = @AddressValueToU64(delta, addrtype)
-  if _comp10 is AbruptCompletion:
+  call _comp10 = clo<"AddressValueToU64">(delta, addrtype)
+  if (?name _comp10: AbruptCompletion) {
     return _comp10
-  let delta64 = _comp10.[[Value]]
-  if !exists(value):
-    let ref = @DefaultValue(elementtype)
-    if (ref == %error):
-      !(throw a {{TypeError}} exception)
-  else:
-    let _comp11 = @ToWebAssemblyValue(value, elementtype)
-    if _comp11 is AbruptCompletion:
+  } else nop
+  let delta64 = _comp10.Value
+  if (! (exists value)) {
+    call ref = clo<"DefaultValue">(elementtype)
+    if (= ref @error) {
+      (yet "throw a {{TypeError}} exception")
+    } else nop
+  } else {
+    call _comp11 = clo<"ToWebAssemblyValue">(value, elementtype)
+    if (?name _comp11: AbruptCompletion) {
       return _comp11
-    let ref = _comp11.[[Value]]
-  let result = @table_grow(store, tableaddr, delta64, ref)
-  if (result == %error):
-    !(throw a {{RangeError}} exception)
-  %surrounding agent.[[associated store]] = result
-  let _ret5 = @U64ToAddressValue(initialSize, addrtype)
+    } else nop
+    let ref = _comp11.Value
+  }
+  call result = clo<"table_grow">(store, tableaddr, delta64, ref)
+  if (= result @error) {
+    (yet "throw a {{RangeError}} exception")
+  } else nop
+  @surrounding agent["associated store"] = result
+  call _ret5 = clo<"U64ToAddressValue">(initialSize, addrtype)
   return _ret5
-
-# length()
-  let tableaddr = %this.[[Table]]
-  let store = %surrounding agent.[[associated store]]
-  let addrtype = ?(the [=address type=] in [=table_type=](|store|, |tableaddr|))
-  let length64 = @table_size(store, tableaddr)
-  let _ret6 = @U64ToAddressValue(length64, addrtype)
+}
+def length(
+): Unknown = {
+  let tableaddr = @this.Table
+  let store = @surrounding agent["associated store"]
+  let addrtype = (yet "the [=address type=] in [=table_type=](|store|, |tableaddr|)")
+  call length64 = clo<"table_size">(store, tableaddr)
+  call _ret6 = clo<"U64ToAddressValue">(length64, addrtype)
   return _ret6
-
-# get(index)
-  let tableaddr = %this.[[Table]]
-  let store = %surrounding agent.[[associated store]]
-  let _tuple6 = @table_type(store, tableaddr)
+}
+def get(
+  index: Unknown,
+): Unknown = {
+  let tableaddr = @this.Table
+  let store = @surrounding agent["associated store"]
+  call _tuple6 = clo<"table_type">(store, tableaddr)
   let addrtype = _tuple6[0]
   let limits = _tuple6[1]
   let elementtype = _tuple6[2]
-  if !(matches reftype):
-    !(throw a {{TypeError}} exception)
-  let _comp12 = @AddressValueToU64(index, addrtype)
-  if _comp12 is AbruptCompletion:
+  if (yet "matches reftype") {
+    (yet "throw a {{TypeError}} exception")
+  } else nop
+  call _comp12 = clo<"AddressValueToU64">(index, addrtype)
+  if (?name _comp12: AbruptCompletion) {
     return _comp12
-  let index64 = _comp12.[[Value]]
-  let result = @table_read(store, tableaddr, index64)
-  if (result == %error):
-    !(throw a {{RangeError}} exception)
-  let _ret7 = @ToJSValue(result)
+  } else nop
+  let index64 = _comp12.Value
+  call result = clo<"table_read">(store, tableaddr, index64)
+  if (= result @error) {
+    (yet "throw a {{RangeError}} exception")
+  } else nop
+  call _ret7 = clo<"ToJSValue">(result)
   return _ret7
-
-# set(index, value)
-  let tableaddr = %this.[[Table]]
-  let store = %surrounding agent.[[associated store]]
-  let _tuple7 = @table_type(store, tableaddr)
+}
+def set(
+  index: Unknown,
+  value: Unknown,
+): Unknown = {
+  let tableaddr = @this.Table
+  let store = @surrounding agent["associated store"]
+  call _tuple7 = clo<"table_type">(store, tableaddr)
   let addrtype = _tuple7[0]
   let limits = _tuple7[1]
   let elementtype = _tuple7[2]
-  if !(matches reftype):
-    !(throw a {{TypeError}} exception)
-  let _comp13 = @AddressValueToU64(index, addrtype)
-  if _comp13 is AbruptCompletion:
+  if (yet "matches reftype") {
+    (yet "throw a {{TypeError}} exception")
+  } else nop
+  call _comp13 = clo<"AddressValueToU64">(index, addrtype)
+  if (?name _comp13: AbruptCompletion) {
     return _comp13
-  let index64 = _comp13.[[Value]]
-  if !exists(value):
-    let ref = @DefaultValue(elementtype)
-    if (ref == %error):
-      !(throw a {{TypeError}} exception)
-  else:
-    let _comp14 = @ToWebAssemblyValue(value, elementtype)
-    if _comp14 is AbruptCompletion:
+  } else nop
+  let index64 = _comp13.Value
+  if (! (exists value)) {
+    call ref = clo<"DefaultValue">(elementtype)
+    if (= ref @error) {
+      (yet "throw a {{TypeError}} exception")
+    } else nop
+  } else {
+    call _comp14 = clo<"ToWebAssemblyValue">(value, elementtype)
+    if (?name _comp14: AbruptCompletion) {
       return _comp14
-    let ref = _comp14.[[Value]]
-  let store = @table_write(store, tableaddr, index64, ref)
-  if (store == %error):
-    !(throw a {{RangeError}} exception)
-  %surrounding agent.[[associated store]] = store
-
-# initialize a global object(global, globaladdr)
-  let map = %surrounding agent.[[Global object cache]]
-  assert !exists(map[globaladdr])
-  global.[[Global]] = globaladdr
+    } else nop
+    let ref = _comp14.Value
+  }
+  call store = clo<"table_write">(store, tableaddr, index64, ref)
+  if (= store @error) {
+    (yet "throw a {{RangeError}} exception")
+  } else nop
+  @surrounding agent["associated store"] = store
+}
+def initialize a global object(
+  global: Unknown,
+  globaladdr: Unknown,
+): Unknown = {
+  let map = @surrounding agent["Global object cache"]
+  assert (! (exists map[globaladdr]))
+  global.Global = globaladdr
   map[globaladdr] = global
-
-# create a global object(globaladdr)
-  let map = %surrounding agent.[[Global object cache]]
-  if exists(map[globaladdr]):
+}
+def create a global object(
+  globaladdr: Unknown,
+): Unknown = {
+  let map = @surrounding agent["Global object cache"]
+  if (exists map[globaladdr]) {
     return map[globaladdr]
-  let global = new Global {}
-  let _ = @initialize a global object(global, globaladdr)
+  } else nop
+  let global = (record [Global])
+  call _ = clo<"initialize a global object">(global, globaladdr)
   return global
-
-# ToValueType(s)
-  if (s == "i32"):
-    return %i32
-  if (s == "i64"):
-    return %i64
-  if (s == "f32"):
-    return %f32
-  if (s == "f64"):
-    return %f64
-  if (s == "v128"):
-    return %v128
-  if (s == "anyfunc"):
-    return %funcref
-  if (s == "externref"):
-    return %externref
+}
+def ToValueType(
+  s: Unknown,
+): Unknown = {
+  if (= s "i32") {
+    return @i32
+  } else nop
+  if (= s "i64") {
+    return @i64
+  } else nop
+  if (= s "f32") {
+    return @f32
+  } else nop
+  if (= s "f64") {
+    return @f64
+  } else nop
+  if (= s "v128") {
+    return @v128
+  } else nop
+  if (= s "anyfunc") {
+    return @funcref
+  } else nop
+  if (= s "externref") {
+    return @externref
+  } else nop
   assert false
-
-# DefaultValue(valuetype)
-  if (valuetype == %externref):
-    let _ret8 = @ToWebAssemblyValue(undefined, valuetype)
+}
+def DefaultValue(
+  valuetype: Unknown,
+): Unknown = {
+  if (= valuetype @externref) {
+    call _ret8 = clo<"ToWebAssemblyValue">(undefined, valuetype)
     return _ret8
-  let _ret9 = @val_default(valuetype)
+  } else nop
+  call _ret9 = clo<"val_default">(valuetype)
   return _ret9
-
-# Global(descriptor, v)
-  let mutable = descriptor.[[mutable]]
-  let valuetype = @ToValueType(descriptor.[[value]])
-  if (!(matches valtype) || !(matches valtype)):
-    !(throw a {{TypeError}} exception)
-  if !exists(v):
-    let value = @DefaultValue(valuetype)
-    assert (value != %error)
-  else:
-    let _comp15 = @ToWebAssemblyValue(v, valuetype)
-    if _comp15 is AbruptCompletion:
+}
+def Global(
+  descriptor: Unknown,
+  v: Unknown,
+): Unknown = {
+  let mutable = descriptor.mutable
+  call valuetype = clo<"ToValueType">(descriptor.value)
+  if (|| (yet "matches valtype") (yet "matches valtype")) {
+    (yet "throw a {{TypeError}} exception")
+  } else nop
+  if (! (exists v)) {
+    call value = clo<"DefaultValue">(valuetype)
+    assert (! (= value @error))
+  } else {
+    call _comp15 = clo<"ToWebAssemblyValue">(v, valuetype)
+    if (?name _comp15: AbruptCompletion) {
       return _comp15
-    let value = _comp15.[[Value]]
-  if (mutable == true):
-    let globaltype = @var(valuetype)
-  else:
-    let globaltype = @const(valuetype)
-  let store = %surrounding agent.[[associated store]]
-  let _tuple8 = @global_alloc(store, globaltype, value)
+    } else nop
+    let value = _comp15.Value
+  }
+  if (= mutable true) {
+    call globaltype = clo<"var">(valuetype)
+  } else {
+    call globaltype = clo<"const">(valuetype)
+  }
+  let store = @surrounding agent["associated store"]
+  call _tuple8 = clo<"global_alloc">(store, globaltype, value)
   let store = _tuple8[0]
   let globaladdr = _tuple8[1]
-  ?(<!-- TODO(littledan): Report allocation failure https://github.com/WebAssembly/spec/issues/584 -->)
-  %surrounding agent.[[associated store]] = store
-  let _ = @initialize a global object(%this, globaladdr)
-
-# GetGlobalValue(global)
-  let store = %surrounding agent.[[associated store]]
-  let globaladdr = global.[[Global]]
-  let globaltype = @global_type(store, globaladdr)
-  if (!(is of form) || %exnref):
-    !(throw a {{TypeError}})
-  let value = @global_read(store, globaladdr)
-  let _ret10 = @ToJSValue(value)
+  (yet "<!-- TODO(littledan): Report allocation failure https://github.com/WebAssembly/spec/issues/584 -->")
+  @surrounding agent["associated store"] = store
+  call _ = clo<"initialize a global object">(@this, globaladdr)
+}
+def GetGlobalValue(
+  global: Unknown,
+): Unknown = {
+  let store = @surrounding agent["associated store"]
+  let globaladdr = global.Global
+  call globaltype = clo<"global_type">(store, globaladdr)
+  if (|| (yet "is of form") @exnref) {
+    (yet "throw a {{TypeError}}")
+  } else nop
+  call value = clo<"global_read">(store, globaladdr)
+  call _ret10 = clo<"ToJSValue">(value)
   return _ret10
-
-# value()
-  let _ret11 = @GetGlobalValue(%this)
+}
+def value(
+): Unknown = {
+  call _ret11 = clo<"GetGlobalValue">(@this)
   return _ret11
-  ?(The setter of the value attribute of {{Global}}, when invoked, performs the following steps:)
-  let store = %surrounding agent.[[associated store]]
-  let globaladdr = %this.[[Global]]
-  let _ = !(unsupported Let lhs: Unknown(|mut| |valuetype|))
-  if (!(matches valtype) || !(matches valtype)):
-    !(throw a {{TypeError}})
-  if (mut == %const):
-    !(throw a {{TypeError}})
-  let _comp16 = @ToWebAssemblyValue(~**the given value**~, valuetype)
-  if _comp16 is AbruptCompletion:
+  (yet "The setter of the value attribute of {{Global}}, when invoked, performs the following steps:")
+  let store = @surrounding agent["associated store"]
+  let globaladdr = @this.Global
+  let _ = (yet "unsupported Let lhs: Unknown(|mut| |valuetype|)")
+  if (|| (yet "matches valtype") (yet "matches valtype")) {
+    (yet "throw a {{TypeError}}")
+  } else nop
+  if (= mut @const) {
+    (yet "throw a {{TypeError}}")
+  } else nop
+  call _comp16 = clo<"ToWebAssemblyValue">(~**the given value**~, valuetype)
+  if (?name _comp16: AbruptCompletion) {
     return _comp16
-  let value = _comp16.[[Value]]
-  let store = @global_write(store, globaladdr, value)
-  if (store == %error):
-    !(throw a {{RangeError}} exception)
-  %surrounding agent.[[associated store]] = store
-
-# valueOf()
-  let _ret12 = @GetGlobalValue(%this)
+  } else nop
+  let value = _comp16.Value
+  call store = clo<"global_write">(store, globaladdr, value)
+  if (= store @error) {
+    (yet "throw a {{RangeError}} exception")
+  } else nop
+  @surrounding agent["associated store"] = store
+}
+def valueOf(
+): Unknown = {
+  call _ret12 = clo<"GetGlobalValue">(@this)
   return _ret12
-
-# name of the WebAssembly function(funcaddr)
-  let store = %surrounding agent.[[associated store]]
+}
+def name of the WebAssembly function(
+  funcaddr: Unknown,
+): Unknown = {
+  let store = @surrounding agent["associated store"]
   let funcinst = _ref_Unknown[funcaddr]
-  if !(is of form):
-    assert ((hostfunc == ?(a JavaScript object)) && (!($IsCallable(Var(hostfunc))) == true))
-    let index = ?(the [=index of the host function=] |funcaddr|)
-  else:
-    let moduleinst = ?(|funcinst|.module)
-    assert (funcaddr == ?(contained in |moduleinst|.funcaddrs))
-    let index = ?(the index of |moduleinst|.funcaddrs where |funcaddr| is found)
-  return !($ToString(Var(index)))
-
-# a new Exported Function(funcaddr)
-  let map = %surrounding agent.[[Exported Function cache]]
-  if exists(map[funcaddr]):
+  if (yet "is of form") {
+    assert (&& (= hostfunc (yet "a JavaScript object")) (= (yet "$IsCallable(Var(hostfunc))") true))
+    let index = (yet "the [=index of the host function=] |funcaddr|")
+  } else {
+    let moduleinst = (yet "|funcinst|.module")
+    assert (= funcaddr (yet "contained in |moduleinst|.funcaddrs"))
+    let index = (yet "the index of |moduleinst|.funcaddrs where |funcaddr| is found")
+  }
+  return (yet "$ToString(Var(index))")
+}
+def a new Exported Function(
+  funcaddr: Unknown,
+): Unknown = {
+  let map = @surrounding agent["Exported Function cache"]
+  if (exists map[funcaddr]) {
     return map[funcaddr]
+  } else nop
   let steps = "[=call an Exported Function|call the Exported Function=] |funcaddr| with arguments."
-  let realm = ?(the [=current Realm=])
-  let store = %surrounding agent.[[associated store]]
-  let functype = @func_type(store, funcaddr)
-  let _ = !(unsupported Let lhs: Unknown([|paramTypes|] → [<var ignore>resultTypes</var>]))
-  let arity = len(paramTypes)
-  let name = ?(the [=name of the WebAssembly function=] |funcaddr|)
-  let function = !($CreateBuiltinFunction(Var(steps)Var(arity)Var(name)List_(List(Unknown(\[[FunctionAddress]])))Var(realm)))
-  function.[[FunctionAddress]] = funcaddr
+  let realm = (yet "the [=current Realm=]")
+  let store = @surrounding agent["associated store"]
+  call functype = clo<"func_type">(store, funcaddr)
+  let _ = (yet "unsupported Let lhs: Unknown([|paramTypes|] → [<var ignore>resultTypes</var>])")
+  let arity = (sizeof paramTypes)
+  let name = (yet "the [=name of the WebAssembly function=] |funcaddr|")
+  let function = (yet "$CreateBuiltinFunction(Var(steps)Var(arity)Var(name)List_(List(Unknown(\\[[FunctionAddress]])))Var(realm))")
+  function.FunctionAddress = funcaddr
   map[funcaddr] = function
   return function
-
-# call an Exported Function(funcaddr, argValues)
-  let store = %surrounding agent.[[associated store]]
-  let functype = @func_type(store, funcaddr)
-  let _ = !(unsupported Let lhs: Index(Unknown([|parameters|] →),Var(results)))
-  if (?(any type in |parameters|) || (!(matches valtype) || !(matches valtype))):
-    !(throw a {{TypeError}})
-  let args = []
+}
+def call an Exported Function(
+  funcaddr: Unknown,
+  argValues: Unknown,
+): Unknown = {
+  let store = @surrounding agent["associated store"]
+  call functype = clo<"func_type">(store, funcaddr)
+  let _ = (yet "unsupported Let lhs: Index(Unknown([|parameters|] →),Var(results))")
+  if (|| (yet "any type in |parameters|") (|| (yet "matches valtype") (yet "matches valtype"))) {
+    (yet "throw a {{TypeError}}")
+  } else nop
+  let args = (list [])
   let i = 0
-  !(foreach |t| in |parameters|)
-  if (len(argValues) > i):
+  (yet "foreach |t| in |parameters|")
+  if (< i (sizeof argValues)) {
     let arg = argValues[i]
-  else:
+  } else {
     let arg = undefined
-  let _call9 = @ToWebAssemblyValue(arg, t)
-  append !(? Var(_call9)) to args
-  i = (i + 1)
-  let _tuple9 = @func_invoke(store, funcaddr, args)
+  }
+  call _call9 = clo<"ToWebAssemblyValue">(arg, t)
+  push args < (yet "? Var(_call9)")
+  i = (+ i 1)
+  call _tuple9 = clo<"func_invoke">(store, funcaddr, args)
   let store = _tuple9[0]
   let ret = _tuple9[1]
-  %surrounding agent.[[associated store]] = store
-  if (ret == %error):
-    !(throw an exception)
-  ?(This exception should be a WebAssembly {{RuntimeError}} exception, unless otherwise indicated by <a href="#errors">the WebAssembly error mapping</a>)
-  let _call10 = @exception(exnaddr)
-  if (ret == _call10):
-    let tagaddr = @exn_tag(store, exnaddr)
-    let payload = @exn_read(store, exnaddr)
-    let jsTagAddr = @get the JavaScript exception tag()
-    if (tagaddr == jsTagAddr):
-      !(throw [=!=] [=ToJSValue=](|payload|[0]))
-    else:
-      let exception = @create an Exception object(exnaddr)
-      !(throw |exception|)
-  let outArity = len(ret)
-  if (outArity == 0):
+  @surrounding agent["associated store"] = store
+  if (= ret @error) {
+    (yet "throw an exception")
+  } else nop
+  (yet "This exception should be a WebAssembly {{RuntimeError}} exception, unless otherwise indicated by <a href=\"#errors\">the WebAssembly error mapping</a>")
+  call _call10 = clo<"exception">(exnaddr)
+  if (= ret _call10) {
+    call tagaddr = clo<"exn_tag">(store, exnaddr)
+    call payload = clo<"exn_read">(store, exnaddr)
+    call jsTagAddr = clo<"get the JavaScript exception tag">()
+    if (= tagaddr jsTagAddr) {
+      (yet "throw [=!=] [=ToJSValue=](|payload|[0])")
+    } else {
+      call exception = clo<"create an Exception object">(exnaddr)
+      (yet "throw |exception|")
+    }
+  } else nop
+  let outArity = (sizeof ret)
+  if (= outArity 0) {
     return undefined
-  else:
-    if (outArity == 1):
-      let _ret13 = @ToJSValue(ret[0])
-      return _ret13
-    else:
-      let values = []
-      !(foreach |r| in |ret|)
-      let _call11 = @ToJSValue(r)
-      append _call11 to values
-      return !($CreateArrayFromList(Var(values)))
-
-# run a host function(func, functype, arguments)
-  let _ = !(unsupported Let lhs: Index(Unknown([|parameters|] →),Var(results)))
-  if (?(any type in |parameters|) || (!(matches valtype) || !(matches valtype))):
-    !(throw a {{TypeError}})
-  let jsArguments = []
-  !(foreach |arg| in |arguments|)
-  let _call12 = @ToJSValue(arg)
-  append _call12 to jsArguments
-  let _comp17 = !($Call(Var(func)SpecConst(undefined)Var(jsArguments)))
-  if _comp17 is AbruptCompletion:
+  } else if (= outArity 1) {
+    call _ret13 = clo<"ToJSValue">(ret[0])
+    return _ret13
+  } else {
+    let values = (list [])
+    (yet "foreach |r| in |ret|")
+    call _call11 = clo<"ToJSValue">(r)
+    push values < _call11
+    return (yet "$CreateArrayFromList(Var(values))")
+  }
+}
+def run a host function(
+  func: Unknown,
+  functype: Unknown,
+  arguments: Unknown,
+): Unknown = {
+  let _ = (yet "unsupported Let lhs: Index(Unknown([|parameters|] →),Var(results))")
+  if (|| (yet "any type in |parameters|") (|| (yet "matches valtype") (yet "matches valtype"))) {
+    (yet "throw a {{TypeError}}")
+  } else nop
+  let jsArguments = (list [])
+  (yet "foreach |arg| in |arguments|")
+  call _call12 = clo<"ToJSValue">(arg)
+  push jsArguments < _call12
+  let _comp17 = (yet "$Call(Var(func)SpecConst(undefined)Var(jsArguments))")
+  if (?name _comp17: AbruptCompletion) {
     return _comp17
-  let ret = _comp17.[[Value]]
-  let resultsSize = len(results)
-  if (resultsSize == 0):
-    return []
-  else:
-    if (resultsSize == 1):
-      let _call13 = @ToWebAssemblyValue(ret, results[0])
-      return [!(? Var(_call13))]
-    else:
-      let _comp18 = !($GetMethod(Var(ret)Unknown({{%Symbol.iterator%}})))
-      if _comp18 is AbruptCompletion:
-        return _comp18
-      let method = _comp18.[[Value]]
-      if (method == undefined):
-        !(throw a {{TypeError}})
-      let _comp19 = !($IteratorToList(Abrupt(?,JSCall(GetIteratorFromMethod,List(Var(ret), Var(method))))))
-      if _comp19 is AbruptCompletion:
-        return _comp19
-      let values = _comp19.[[Value]]
-      let wasmValues = []
-      if (len(values) != resultsSize):
-        !(throw a {{TypeError}} exception)
-      !(foreach |value| and |resultType| in |values| and |results|)
-      let _call14 = @ToWebAssemblyValue(value, resultType)
-      append !(? Var(_call14)) to wasmValues
-      return wasmValues
-
-# create a host function(func, functype)
-  assert ?([$IsCallable$](|func|))
-  let stored settings = ?(the <a spec=HTML>incumbent settings object</a>)
-  let hostfunc = ?(a [=host function=] which performs the following steps when called with arguments |arguments|:)
-  let realm = ?(|func|'s [=associated Realm=])
-  let relevant settings = ?(|realm|'s [=realm/settings object=])
-  let _ = @Prepare to run script(relevant settings)
-  let _ = @Prepare to run a callback(stored settings)
-  let result = @run a host function(func, functype, arguments)
-  let _ = @Clean up after running a callback(stored settings)
-  let _ = @Clean up after running script(relevant settings)
-  assert ((result.[[Type]] == ~<emu-const>throw</emu-const>~) || (result.[[Type]] == ~<emu-const>normal</emu-const>~))
-  let store = %surrounding agent.[[associated store]]
-  if (result.[[Type]] == ~<emu-const>throw</emu-const>~):
-    let v = result.[[Value]]
-    if !(implements Exception):
-      let address = v.[[Address]]
-    else:
-      let type = @get the JavaScript exception tag()
-      let payload = @ToWebAssemblyValue(v, %externref)
-      let _tuple10 = @exn_alloc(store, type, [payload])
+  } else nop
+  let ret = _comp17.Value
+  let resultsSize = (sizeof results)
+  if (= resultsSize 0) {
+    return (list [])
+  } else if (= resultsSize 1) {
+    call _call13 = clo<"ToWebAssemblyValue">(ret, results[0])
+    return (list [(yet "? Var(_call13)")])
+  } else {
+    let _comp18 = (yet "$GetMethod(Var(ret)Unknown({{%Symbol.iterator%}}))")
+    if (?name _comp18: AbruptCompletion) {
+      return _comp18
+    } else nop
+    let method = _comp18.Value
+    if (= method undefined) {
+      (yet "throw a {{TypeError}}")
+    } else nop
+    let _comp19 = (yet "$IteratorToList(Abrupt(?,JSCall(GetIteratorFromMethod,List(Var(ret), Var(method)))))")
+    if (?name _comp19: AbruptCompletion) {
+      return _comp19
+    } else nop
+    let values = _comp19.Value
+    let wasmValues = (list [])
+    if (! (= (sizeof values) resultsSize)) {
+      (yet "throw a {{TypeError}} exception")
+    } else nop
+    (yet "foreach |value| and |resultType| in |values| and |results|")
+    call _call14 = clo<"ToWebAssemblyValue">(value, resultType)
+    push wasmValues < (yet "? Var(_call14)")
+    return wasmValues
+  }
+}
+def create a host function(
+  func: Unknown,
+  functype: Unknown,
+): Unknown = {
+  assert (yet "[$IsCallable$](|func|)")
+  let stored settings = (yet "the <a spec=HTML>incumbent settings object</a>")
+  let hostfunc = (yet "a [=host function=] which performs the following steps when called with arguments |arguments|:")
+  let realm = (yet "|func|'s [=associated Realm=]")
+  let relevant settings = (yet "|realm|'s [=realm/settings object=]")
+  call _ = clo<"Prepare to run script">(relevant settings)
+  call _ = clo<"Prepare to run a callback">(stored settings)
+  call result = clo<"run a host function">(func, functype, arguments)
+  call _ = clo<"Clean up after running a callback">(stored settings)
+  call _ = clo<"Clean up after running script">(relevant settings)
+  assert (|| (= result.Type ~<emu-const>throw</emu-const>~) (= result.Type ~<emu-const>normal</emu-const>~))
+  let store = @surrounding agent["associated store"]
+  if (= result.Type ~<emu-const>throw</emu-const>~) {
+    let v = result.Value
+    if (yet "implements Exception") {
+      let address = v.Address
+    } else {
+      call type = clo<"get the JavaScript exception tag">()
+      call payload = clo<"ToWebAssemblyValue">(v, @externref)
+      call _tuple10 = clo<"exn_alloc">(store, type, (list [payload]))
       let store = _tuple10[0]
       let address = _tuple10[1]
-      %surrounding agent.[[associated store]] = store
-    ?(Execute the WebAssembly instructions ([=ref.exn=] |address|) ([=throw_ref=]))
-  else:
-    return result.[[Value]]
-  let store = %surrounding agent.[[associated store]]
-  let _tuple11 = @func_alloc(store, functype, hostfunc)
+      @surrounding agent["associated store"] = store
+    }
+    (yet "Execute the WebAssembly instructions ([=ref.exn=] |address|) ([=throw_ref=])")
+  } else {
+    return result.Value
+  }
+  let store = @surrounding agent["associated store"]
+  call _tuple11 = clo<"func_alloc">(store, functype, hostfunc)
   let store = _tuple11[0]
   let funcaddr = _tuple11[1]
-  %surrounding agent.[[associated store]] = store
+  @surrounding agent["associated store"] = store
   return funcaddr
-
-# ToJSValue(w)
-  assert !(is of form)
-  assert !(is of form)
-  if !(is of form):
-    let i64 = @signed_64(u64)
-    let _ret14 = @ℤ(i64)
+}
+def ToJSValue(
+  w: Unknown,
+): Unknown = {
+  assert (yet "is of form")
+  assert (yet "is of form")
+  if (yet "is of form") {
+    call i64 = clo<"signed_64">(u64)
+    call _ret14 = clo<"ℤ">(i64)
     return _ret14
-  if !(is of form):
-    let i32 = @signed_32(u32)
-    let _ret15 = @𝔽(i32)
+  } else nop
+  if (yet "is of form") {
+    call i32 = clo<"signed_32">(u32)
+    call _ret15 = clo<"𝔽">(i32)
     return _ret15
-  if !(is of form):
-    if ((f32 == %+∞) || (f32 == %−∞)):
-      return ?(**+∞**<sub>𝔽</sub> or **-∞**<sub>𝔽</sub>, respectively)
-    if (f32 == %nan):
+  } else nop
+  if (yet "is of form") {
+    if (|| (= f32 @+∞) (= f32 @−∞)) {
+      return (yet "**+∞**<sub>𝔽</sub> or **-∞**<sub>𝔽</sub>, respectively")
+    } else nop
+    if (= f32 @nan) {
       return ~**NaN**~
-    let _ret16 = @𝔽(f32)
+    } else nop
+    call _ret16 = clo<"𝔽">(f32)
     return _ret16
-  if !(is of form):
-    if ((f64 == %+∞) || (f64 == %−∞)):
-      return ?(**+∞**<sub>𝔽</sub> or **-∞**<sub>𝔽</sub>, respectively)
-    if (f64 == %nan):
+  } else nop
+  if (yet "is of form") {
+    if (|| (= f64 @+∞) (= f64 @−∞)) {
+      return (yet "**+∞**<sub>𝔽</sub> or **-∞**<sub>𝔽</sub>, respectively")
+    } else nop
+    if (= f64 @nan) {
       return ~**NaN**~
-    let _ret17 = @𝔽(f64)
+    } else nop
+    call _ret17 = clo<"𝔽">(f64)
     return _ret17
-  if !(is of form):
+  } else nop
+  if (yet "is of form") {
     return null
-  if !(is of form):
-    let i31 = @signed_31(u31)
-    let _ret18 = @𝔽(i31)
+  } else nop
+  if (yet "is of form") {
+    call i31 = clo<"signed_31">(u31)
+    call _ret18 = clo<"𝔽">(i31)
     return _ret18
-  if !(is of form):
-    let _ret19 = @a new Exported GC Object(structaddr, "struct")
+  } else nop
+  if (yet "is of form") {
+    call _ret19 = clo<"a new Exported GC Object">(structaddr, "struct")
     return _ret19
-  if !(is of form):
-    let _ret20 = @a new Exported GC Object(arrayaddr, "array")
+  } else nop
+  if (yet "is of form") {
+    call _ret20 = clo<"a new Exported GC Object">(arrayaddr, "array")
     return _ret20
-  if !(is of form):
-    let _ret21 = @a new Exported Function(funcaddr)
+  } else nop
+  if (yet "is of form") {
+    call _ret21 = clo<"a new Exported Function">(funcaddr)
     return _ret21
-  if !(is of form):
-    let _ret22 = @retrieving a host value(hostaddr)
+  } else nop
+  if (yet "is of form") {
+    call _ret22 = clo<"retrieving a host value">(hostaddr)
     return _ret22
-  if !(is of form):
-    let _ret23 = @ToJSValue(ref)
+  } else nop
+  if (yet "is of form") {
+    call _ret23 = clo<"ToJSValue">(ref)
     return _ret23
-
-# retrieving a host value(hostaddr)
-  let map = %surrounding agent.[[host value cache]]
-  assert exists(map[hostaddr])
+  } else nop
+}
+def retrieving a host value(
+  hostaddr: Unknown,
+): Unknown = {
+  let map = @surrounding agent["host value cache"]
+  assert (exists map[hostaddr])
   return map[hostaddr]
-
-# ToWebAssemblyValue(v, type)
-  assert (type != %v128)
-  assert !(matches valtype)
-  if (type == %i64):
-    let _comp20 = !($ToBigInt64(Var(v)))
-    if _comp20 is AbruptCompletion:
+}
+def ToWebAssemblyValue(
+  v: Unknown,
+  type: Unknown,
+): Unknown = {
+  assert (! (= type @v128))
+  assert (yet "matches valtype")
+  if (= type @i64) {
+    let _comp20 = (yet "$ToBigInt64(Var(v))")
+    if (?name _comp20: AbruptCompletion) {
       return _comp20
-    let i64 = _comp20.[[Value]]
-    let u64 = ?(the unsigned integer such that |i64| is [=signed_64=](|u64|))
-    let _ret24 = @i64.const(u64)
+    } else nop
+    let i64 = _comp20.Value
+    let u64 = (yet "the unsigned integer such that |i64| is [=signed_64=](|u64|)")
+    call _ret24 = clo<"i64.const">(u64)
     return _ret24
-  if (type == %i32):
-    let _comp21 = !($ToInt32(Var(v)))
-    if _comp21 is AbruptCompletion:
+  } else nop
+  if (= type @i32) {
+    let _comp21 = (yet "$ToInt32(Var(v))")
+    if (?name _comp21: AbruptCompletion) {
       return _comp21
-    let i32 = _comp21.[[Value]]
-    let u32 = ?(the unsigned integer such that |i32| is [=signed_32=](|u32|))
-    let _ret25 = @i32.const(u32)
+    } else nop
+    let i32 = _comp21.Value
+    let u32 = (yet "the unsigned integer such that |i32| is [=signed_32=](|u32|)")
+    call _ret25 = clo<"i32.const">(u32)
     return _ret25
-  if (type == %f32):
-    let _comp22 = !($ToNumber(Var(v)))
-    if _comp22 is AbruptCompletion:
+  } else nop
+  if (= type @f32) {
+    let _comp22 = (yet "$ToNumber(Var(v))")
+    if (?name _comp22: AbruptCompletion) {
       return _comp22
-    let number = _comp22.[[Value]]
-    if (number == ~**NaN**~):
-      let n = ?(an implementation-defined integer such that [=canon=]<sub>32</sub> &leq; |n| &lt; 2<sup>[=signif=](32)</sup>)
-      let f32 = @nan(?(n))
-    else:
-      let f32 = ?(|number| rounded to the nearest representable value using IEEE 754-2019 round to nearest, ties to even mode)
-      ?([[IEEE-754]])
-    let _ret26 = @f32.const(f32)
+    } else nop
+    let number = _comp22.Value
+    if (= number ~**NaN**~) {
+      let n = (yet "an implementation-defined integer such that [=canon=]<sub>32</sub> &leq; |n| &lt; 2<sup>[=signif=](32)</sup>")
+      call f32 = clo<"nan">((yet "n"))
+    } else {
+      let f32 = (yet "|number| rounded to the nearest representable value using IEEE 754-2019 round to nearest, ties to even mode")
+      (yet "[[IEEE-754]]")
+    }
+    call _ret26 = clo<"f32.const">(f32)
     return _ret26
-  if (type == %f64):
-    let _comp23 = !($ToNumber(Var(v)))
-    if _comp23 is AbruptCompletion:
+  } else nop
+  if (= type @f64) {
+    let _comp23 = (yet "$ToNumber(Var(v))")
+    if (?name _comp23: AbruptCompletion) {
       return _comp23
-    let number = _comp23.[[Value]]
-    if (number == ~**NaN**~):
-      let n = ?(an implementation-defined integer such that [=canon=]<sub>64</sub> &leq; |n| &lt; 2<sup>[=signif=](64)</sup>)
-      let f64 = @nan(?(n))
-    else:
+    } else nop
+    let number = _comp23.Value
+    if (= number ~**NaN**~) {
+      let n = (yet "an implementation-defined integer such that [=canon=]<sub>64</sub> &leq; |n| &lt; 2<sup>[=signif=](64)</sup>")
+      call f64 = clo<"nan">((yet "n"))
+    } else {
       let f64 = number
-    let _ret27 = @f64.const(f64)
+    }
+    call _ret27 = clo<"f64.const">(f64)
     return _ret27
-  if !(is of form):
-    if (v == null):
-      let r = @ref.null(heaptype)
-    else:
-      if ?([=match_valtype=](|type|, [=ref=] |null| [=heap-type/extern=])):
-        let ref = @ToWebAssemblyValue(v, !(call [=ref=]))
-        let r = @ref.extern(ref)
-      else:
-        if ((v == ?(an [=Exported Function=])) && (v == !(call [=match_valtype=]))):
-          let funcaddr = v.[[FunctionAddress]]
-          let r = @ref.func(funcaddr)
-        else:
-          if (v is Number && ((v == !(? JSCall(ToInt32,List(Var(v))))) && ((!(call [=ℝ=]) < (2 ** 30)) && (!(call [=ℝ=]) >= -(2 ** 30))))):
-            let _comp24 = !($ToInt32(Var(v)))
-            if _comp24 is AbruptCompletion:
-              return _comp24
-            let i31 = _comp24.[[Value]]
-            let u31 = ?(the unsigned integer such that |i31| is [=signed_31=](|u31|))
-            let r = @ref.i31(u31)
-          else:
-            if (v == ?(an [=Exported GC Object=])):
-              let objectaddr = v.[[ObjectAddress]]
-              let objectkind = v.[[ObjectKind]]
-              if (objectkind == "array"):
-                let r = @ref.array(objectaddr)
-              else:
-                if (objectkind == "struct"):
-                  let r = @ref.struct(objectaddr)
-            else:
-              let map = %surrounding agent.[[host value cache]]
-              if (_ref_Unknown[hostaddr] == ?(the same as |v|)):
-                let _ret28 = @ref.host(hostaddr)
-                return _ret28
-              let _ = !(unsupported Let lhs: AlgoCall([=host address=],List(Var(hostaddr))))
-              map[hostaddr] = v
-              let r = @ref.host(hostaddr)
-    let store = %surrounding agent.[[associated store]]
-    let actualtype = @ref_type(store, r)
-    let _call15 = @match_valtype(actualtype, type)
-    if (_call15 == false):
-      !(throw a {{TypeError}})
+  } else nop
+  if (yet "is of form") {
+    if (= v null) {
+      call r = clo<"ref.null">(heaptype)
+    } else if (yet "[=match_valtype=](|type|, [=ref=] |null| [=heap-type/extern=])") {
+      call ref = clo<"ToWebAssemblyValue">(v, (yet "call [=ref=]"))
+      call r = clo<"ref.extern">(ref)
+    } else if (&& (= v (yet "an [=Exported Function=]")) (= v (yet "call [=match_valtype=]"))) {
+      let funcaddr = v.FunctionAddress
+      call r = clo<"ref.func">(funcaddr)
+    } else if (&& (?name v: Number) (&& (= v (yet "? JSCall(ToInt32,List(Var(v)))")) (&& (< (yet "call [=ℝ=]") (** 2 30)) (! (< (yet "call [=ℝ=]") (- (** 2 30))))))) {
+      let _comp24 = (yet "$ToInt32(Var(v))")
+      if (?name _comp24: AbruptCompletion) {
+        return _comp24
+      } else nop
+      let i31 = _comp24.Value
+      let u31 = (yet "the unsigned integer such that |i31| is [=signed_31=](|u31|)")
+      call r = clo<"ref.i31">(u31)
+    } else if (= v (yet "an [=Exported GC Object=]")) {
+      let objectaddr = v.ObjectAddress
+      let objectkind = v.ObjectKind
+      if (= objectkind "array") {
+        call r = clo<"ref.array">(objectaddr)
+      } else if (= objectkind "struct") {
+        call r = clo<"ref.struct">(objectaddr)
+      } else nop
+    } else {
+      let map = @surrounding agent["host value cache"]
+      if (= _ref_Unknown[hostaddr] (yet "the same as |v|")) {
+        call _ret28 = clo<"ref.host">(hostaddr)
+        return _ret28
+      } else nop
+      let _ = (yet "unsupported Let lhs: AlgoCall([=host address=],List(Var(hostaddr)))")
+      map[hostaddr] = v
+      call r = clo<"ref.host">(hostaddr)
+    }
+    let store = @surrounding agent["associated store"]
+    call actualtype = clo<"ref_type">(store, r)
+    call _call15 = clo<"match_valtype">(actualtype, type)
+    if (= _call15 false) {
+      (yet "throw a {{TypeError}}")
+    } else nop
     return r
+  } else nop
   assert false
-
-# AddressValueToU64(v, addrtype)
-  if (addrtype == "i32"):
-    let _comp25 = ?([$ConvertToInt$](|v|, 32, "unsigned"), where the destination type is associated with [=[EnforceRange]=])
-    if _comp25 is AbruptCompletion:
+}
+def AddressValueToU64(
+  v: Unknown,
+  addrtype: Unknown,
+): Unknown = {
+  if (= addrtype "i32") {
+    let _comp25 = (yet "[$ConvertToInt$](|v|, 32, \"unsigned\"), where the destination type is associated with [=[EnforceRange]=]")
+    if (?name _comp25: AbruptCompletion) {
       return _comp25
-    let n = _comp25.[[Value]]
-    return ?([=ℝ=](|n|) as a WebAssembly [=u64=])
-  if (addrtype == "i64"):
-    let _comp26 = !($ToBigInt(Var(v)))
-    if _comp26 is AbruptCompletion:
+    } else nop
+    let n = _comp25.Value
+    return (yet "[=ℝ=](|n|) as a WebAssembly [=u64=]")
+  } else nop
+  if (= addrtype "i64") {
+    let _comp26 = (yet "$ToBigInt(Var(v))")
+    if (?name _comp26: AbruptCompletion) {
       return _comp26
-    let n = _comp26.[[Value]]
-    if ((n < 0) || (n > ((2 ** 64) - 1))):
-      !(throw a {{TypeError}})
-    return ?([=ℝ=](|n|) as a WebAssembly [=u64=])
+    } else nop
+    let n = _comp26.Value
+    if (|| (< n 0) (< (- (** 2 64) 1) n)) {
+      (yet "throw a {{TypeError}}")
+    } else nop
+    return (yet "[=ℝ=](|n|) as a WebAssembly [=u64=]")
+  } else nop
   assert false
-
-# U64ToAddressValue(v, addrtype)
-  if (addrtype == "i32"):
-    let _ret29 = @𝔽(v)
+}
+def U64ToAddressValue(
+  v: Unknown,
+  addrtype: Unknown,
+): Unknown = {
+  if (= addrtype "i32") {
+    call _ret29 = clo<"𝔽">(v)
     return _ret29
-  else:
-    if (addrtype == "i64"):
-      let _ret30 = @ℤ(v)
-      return _ret30
+  } else if (= addrtype "i64") {
+    call _ret30 = clo<"ℤ">(v)
+    return _ret30
+  } else nop
   assert false
-
-# initialize a Tag object(tag, tagAddress)
-  let map = %surrounding agent.[[Tag object cache]]
-  assert !exists(map[tagAddress])
-  tag.[[Address]] = tagAddress
+}
+def initialize a Tag object(
+  tag: Unknown,
+  tagAddress: Unknown,
+): Unknown = {
+  let map = @surrounding agent["Tag object cache"]
+  assert (! (exists map[tagAddress]))
+  tag.Address = tagAddress
   map[tagAddress] = tag
-
-# create a Tag object(tagAddress)
-  let map = %surrounding agent.[[Tag object cache]]
-  if exists(map[tagAddress]):
+}
+def create a Tag object(
+  tagAddress: Unknown,
+): Unknown = {
+  let map = @surrounding agent["Tag object cache"]
+  if (exists map[tagAddress]) {
     return map[tagAddress]
-  let tag = new Tag {}
-  let _ = @initialize a Tag object(tag, tagAddress)
+  } else nop
+  let tag = (record [Tag])
+  call _ = clo<"initialize a Tag object">(tag, tagAddress)
   return tag
-
-# Tag(type)
-  let parameters = type.[[parameters]]
-  let wasmParameters = []
-  !(foreach |paramType| in |parameters|)
-  let _call16 = @ToValueType(paramType)
-  append _call16 to wasmParameters
-  let store = %surrounding agent.[[associated store]]
-  let _tuple12 = @tag_alloc(store, ?(|wasmParameters| → « »))
+}
+def Tag(
+  type: Unknown,
+): Unknown = {
+  let parameters = type.parameters
+  let wasmParameters = (list [])
+  (yet "foreach |paramType| in |parameters|")
+  call _call16 = clo<"ToValueType">(paramType)
+  push wasmParameters < _call16
+  let store = @surrounding agent["associated store"]
+  call _tuple12 = clo<"tag_alloc">(store, (yet "|wasmParameters| → « »"))
   let store = _tuple12[0]
   let tagAddress = _tuple12[1]
-  %surrounding agent.[[associated store]] = store
-  let _ = @initialize a Tag object(%this, tagAddress)
-
-# \[[GetPrototypeOf]] internal method of an Exported GC Object()
+  @surrounding agent["associated store"] = store
+  call _ = clo<"initialize a Tag object">(@this, tagAddress)
+}
+def \[[GetPrototypeOf]] internal method of an Exported GC Object(
+): Unknown = {
   return null
-
-# \[[SetPrototypeOf]] internal method of an Exported GC Object()
+}
+def \[[SetPrototypeOf]] internal method of an Exported GC Object(
+): Unknown = {
   return false
-
-# \[[IsExtensible]] internal method of an Exported GC Object()
+}
+def \[[IsExtensible]] internal method of an Exported GC Object(
+): Unknown = {
   return false
-
-# \[[PreventExtensions]] internal method of an Exported GC Object()
+}
+def \[[PreventExtensions]] internal method of an Exported GC Object(
+): Unknown = {
   return false
-
-# \[[GetOwnProperty]] internal method of an Exported GC Object()
+}
+def \[[GetOwnProperty]] internal method of an Exported GC Object(
+): Unknown = {
   return undefined
-
-# \[[DefineOwnProperty]] internal method of an Exported GC Object()
+}
+def \[[DefineOwnProperty]] internal method of an Exported GC Object(
+): Unknown = {
   return false
-
-# \[[HasProperty]] internal method of an Exported GC Object()
+}
+def \[[HasProperty]] internal method of an Exported GC Object(
+): Unknown = {
   return false
-
-# \[[Get]] internal method of an Exported GC Object()
+}
+def \[[Get]] internal method of an Exported GC Object(
+): Unknown = {
   return undefined
-
-# \[[Set]] internal method of an Exported GC Object()
-  !(throw a {{TypeError}})
-
-# \[[Delete]] internal method of an Exported GC Object()
-  !(throw a {{TypeError}})
-
-# \[[OwnPropertyKeys]] internal method of an Exported GC Object()
-  let keys = []
+}
+def \[[Set]] internal method of an Exported GC Object(
+): Unknown = {
+  (yet "throw a {{TypeError}}")
+}
+def \[[Delete]] internal method of an Exported GC Object(
+): Unknown = {
+  (yet "throw a {{TypeError}}")
+}
+def \[[OwnPropertyKeys]] internal method of an Exported GC Object(
+): Unknown = {
+  let keys = (list [])
   return keys
-
-# a new Exported GC Object(objectaddr, objectkind)
-  assert ((objectkind == "array") || (objectkind == "struct"))
-  let map = %surrounding agent.[[exported GC object cache]]
-  if exists(map[objectaddr]):
+}
+def a new Exported GC Object(
+  objectaddr: Unknown,
+  objectkind: Unknown,
+): Unknown = {
+  assert (|| (= objectkind "array") (= objectkind "struct"))
+  let map = @surrounding agent["exported GC object cache"]
+  if (exists map[objectaddr]) {
     return map[objectaddr]
-  let object = @MakeBasicObject([?(\[[ObjectAddress]]), ?(\[[ObjectKind]])])
-  object.[[ObjectAddress]] = objectaddr
-  object.[[ObjectKind]] = objectkind
-  object.[[GetPrototypeOf]] = ?([=[[GetPrototypeOf]] internal method of an Exported GC Object=])
-  object.[[SetPrototypeOf]] = ?([=[[SetPrototypeOf]] internal method of an Exported GC Object=])
-  object.[[IsExtensible]] = ?([=[[IsExtensible]] internal method of an Exported GC Object=])
-  object.[[PreventExtensions]] = ?([=[[PreventExtensions]] internal method of an Exported GC Object=])
-  object.[[GetOwnProperty]] = ?([=[[GetOwnProperty]] internal method of an Exported GC Object=])
-  object.[[DefineOwnProperty]] = ?([=[[DefineOwnProperty]] internal method of an Exported GC Object=])
-  object.[[HasProperty]] = ?([=[[HasProperty]] internal method of an Exported GC Object=])
-  object.[[Get]] = ?([=[[Get]] internal method of an Exported GC Object=])
-  object.[[Set]] = ?([=[[Set]] internal method of an Exported GC Object=])
-  object.[[Delete]] = ?([=[[Delete]] internal method of an Exported GC Object=])
-  object.[[OwnPropertyKeys]] = ?([=[[OwnPropertyKeys]] internal method of an Exported GC Object=])
+  } else nop
+  call object = clo<"MakeBasicObject">((list [(yet "\\[[ObjectAddress]]"), (yet "\\[[ObjectKind]]")]))
+  object.ObjectAddress = objectaddr
+  object.ObjectKind = objectkind
+  object.GetPrototypeOf = (yet "[=[[GetPrototypeOf]] internal method of an Exported GC Object=]")
+  object.SetPrototypeOf = (yet "[=[[SetPrototypeOf]] internal method of an Exported GC Object=]")
+  object.IsExtensible = (yet "[=[[IsExtensible]] internal method of an Exported GC Object=]")
+  object.PreventExtensions = (yet "[=[[PreventExtensions]] internal method of an Exported GC Object=]")
+  object.GetOwnProperty = (yet "[=[[GetOwnProperty]] internal method of an Exported GC Object=]")
+  object.DefineOwnProperty = (yet "[=[[DefineOwnProperty]] internal method of an Exported GC Object=]")
+  object.HasProperty = (yet "[=[[HasProperty]] internal method of an Exported GC Object=]")
+  object.Get = (yet "[=[[Get]] internal method of an Exported GC Object=]")
+  object.Set = (yet "[=[[Set]] internal method of an Exported GC Object=]")
+  object.Delete = (yet "[=[[Delete]] internal method of an Exported GC Object=]")
+  object.OwnPropertyKeys = (yet "[=[[OwnPropertyKeys]] internal method of an Exported GC Object=]")
   map[objectaddr] = object
   return object
-
-# initialize an Exception object(exn, exnAddress)
-  let map = %surrounding agent.[[Exception object cache]]
-  assert !exists(map[exnAddress])
-  exn.[[Address]] = exnAddress
+}
+def initialize an Exception object(
+  exn: Unknown,
+  exnAddress: Unknown,
+): Unknown = {
+  let map = @surrounding agent["Exception object cache"]
+  assert (! (exists map[exnAddress]))
+  exn.Address = exnAddress
   map[exnAddress] = exn
-  let store = %surrounding agent.[[associated store]]
-  let tagaddr = @exn_tag(store, exnAddress)
-  let payload = @exn_read(store, exnAddress)
-  exn.[[Type]] = tagaddr
-  exn.[[Payload]] = payload
-  exn.[[Stack]] = undefined
-
-# create an Exception object(exnAddress)
-  let map = %surrounding agent.[[Exception object cache]]
-  if exists(map[exnAddress]):
+  let store = @surrounding agent["associated store"]
+  call tagaddr = clo<"exn_tag">(store, exnAddress)
+  call payload = clo<"exn_read">(store, exnAddress)
+  exn.Type = tagaddr
+  exn.Payload = payload
+  exn.Stack = undefined
+}
+def create an Exception object(
+  exnAddress: Unknown,
+): Unknown = {
+  let map = @surrounding agent["Exception object cache"]
+  if (exists map[exnAddress]) {
     return map[exnAddress]
-  let exn = new Exception {}
-  let _ = @initialize an Exception object(exn, exnAddress)
+  } else nop
+  let exn = (record [Exception])
+  call _ = clo<"initialize an Exception object">(exn, exnAddress)
   return exn
-
-# Exception(exceptionTag, payload, options)
-  let JSTagAddr = @get the JavaScript exception tag()
-  if (exceptionTag.[[Address]] == JSTagAddr):
-    !(throw a {{TypeError}})
-  let store = %surrounding agent.[[associated store]]
-  let _ = !(unsupported Let lhs: Unknown([|types|] → []))
-  if (len(types) != len(payload)):
-    !(throw a {{TypeError}})
-  let wasmPayload = []
-  !(foreach |value| and |resultType| in |payload| and |types|)
-  if (!(matches valtype) || !(matches valtype)):
-    !(throw a {{TypeError}})
-  let _call17 = @ToWebAssemblyValue(value, resultType)
-  append !(? Var(_call17)) to wasmPayload
-  let _tuple13 = @exn_alloc(store, exceptionTag.[[Address]], wasmPayload)
+}
+def Exception(
+  exceptionTag: Unknown,
+  payload: Unknown,
+  options: Unknown,
+): Unknown = {
+  call JSTagAddr = clo<"get the JavaScript exception tag">()
+  if (= exceptionTag.Address JSTagAddr) {
+    (yet "throw a {{TypeError}}")
+  } else nop
+  let store = @surrounding agent["associated store"]
+  let _ = (yet "unsupported Let lhs: Unknown([|types|] → [])")
+  if (! (= (sizeof types) (sizeof payload))) {
+    (yet "throw a {{TypeError}}")
+  } else nop
+  let wasmPayload = (list [])
+  (yet "foreach |value| and |resultType| in |payload| and |types|")
+  if (|| (yet "matches valtype") (yet "matches valtype")) {
+    (yet "throw a {{TypeError}}")
+  } else nop
+  call _call17 = clo<"ToWebAssemblyValue">(value, resultType)
+  push wasmPayload < (yet "? Var(_call17)")
+  call _tuple13 = clo<"exn_alloc">(store, exceptionTag.Address, wasmPayload)
   let store = _tuple13[0]
   let exceptionAddr = _tuple13[1]
-  %surrounding agent.[[associated store]] = store
-  let _ = @initialize an Exception object(%this, exceptionAddr)
-  if (options.[[traceStack]] == true):
-    %this.[[Stack]] = ?(a {{DOMString}} representation of the current call stack or undefined)
-
-# getArg(exceptionTag, index)
-  let store = %surrounding agent.[[associated store]]
-  if (%this.[[Type]] != exceptionTag.[[Address]]):
-    !(throw a {{TypeError}})
-  let tagaddr = @exn_tag(store, %this.[[Address]])
-  let payload = @exn_read(store, %this.[[Address]])
-  assert (tagaddr == %this.[[Type]])
-  if (index >= len(payload)):
-    !(throw a {{RangeError}})
-  let _ = !(unsupported Let lhs: Unknown([|types|] → []))
-  if (!(matches valtype) || !(matches valtype)):
-    !(throw a {{TypeError}})
-  let _ret31 = @ToJSValue(payload[index])
+  @surrounding agent["associated store"] = store
+  call _ = clo<"initialize an Exception object">(@this, exceptionAddr)
+  if (= options.traceStack true) {
+    @this.Stack = (yet "a {{DOMString}} representation of the current call stack or undefined")
+  } else nop
+}
+def getArg(
+  exceptionTag: Unknown,
+  index: Unknown,
+): Unknown = {
+  let store = @surrounding agent["associated store"]
+  if (! (= @this.Type exceptionTag.Address)) {
+    (yet "throw a {{TypeError}}")
+  } else nop
+  call tagaddr = clo<"exn_tag">(store, @this.Address)
+  call payload = clo<"exn_read">(store, @this.Address)
+  assert (= tagaddr @this.Type)
+  if (! (< index (sizeof payload))) {
+    (yet "throw a {{RangeError}}")
+  } else nop
+  let _ = (yet "unsupported Let lhs: Unknown([|types|] → [])")
+  if (|| (yet "matches valtype") (yet "matches valtype")) {
+    (yet "throw a {{TypeError}}")
+  } else nop
+  call _ret31 = clo<"ToJSValue">(payload[index])
   return _ret31
-
-# is(exceptionTag)
-  if (%this.[[Type]] != exceptionTag.[[Address]]):
+}
+def is(
+  exceptionTag: Unknown,
+): Unknown = {
+  if (! (= @this.Type exceptionTag.Address)) {
     return false
+  } else nop
   return true
-
-# stack()
-  return %this.[[Stack]]
-
-# get the JavaScript exception tag()
-  if ?(the [=surrounding agent=]'s associated [=JavaScript exception tag=] has been initialized):
-    return %surrounding agent.[[JavaScript exception tag]]
-  let store = %surrounding agent.[[associated store]]
-  let _tuple14 = @tag_alloc(store, [%externref])
+}
+def stack(
+): Unknown = {
+  return @this.Stack
+}
+def get the JavaScript exception tag(
+): Unknown = {
+  if (yet "the [=surrounding agent=]'s associated [=JavaScript exception tag=] has been initialized") {
+    return @surrounding agent["JavaScript exception tag"]
+  } else nop
+  let store = @surrounding agent["associated store"]
+  call _tuple14 = clo<"tag_alloc">(store, (list [@externref]))
   let store = _tuple14[0]
   let tagAddress = _tuple14[1]
-  %surrounding agent.[[associated store]] = store
-  %surrounding agent.[[JavaScript exception tag]] = tagAddress
+  @surrounding agent["associated store"] = store
+  @surrounding agent["JavaScript exception tag"] = tagAddress
   return tagAddress
-
-# create the WebAssembly namespace object()
-  let namespaceObject = ?(the [=namespace object=])
-  !(foreach |error| in « "CompileError", "LinkError", "RuntimeError" »)
-  let constructor = ?(a new object, implementing the [=NativeError Object Structure=], with <var ignore>NativeError</var> set to |error|)
-  let _ = @!(!($DefineMethodProperty(Var(namespaceObject)Var(error)Var(constructor)Bool(false))))
-
-# get the builtins for a builtin set(builtinSetName)
-  return ?(a list of (|name|, |funcType|, |steps|) for the set with name |builtinSetName| defined within this section)
-
-# find a builtin(import, builtinSetNames)
-  let _call18 = @validate builtin set names(builtinSetNames)
-  assert (_call18 == true)
+}
+def create the WebAssembly namespace object(
+): Unknown = {
+  let namespaceObject = (yet "the [=namespace object=]")
+  (yet "foreach |error| in « \"CompileError\", \"LinkError\", \"RuntimeError\" »")
+  let constructor = (yet "a new object, implementing the [=NativeError Object Structure=], with <var ignore>NativeError</var> set to |error|")
+  call _ = clo<"!">((yet "$DefineMethodProperty(Var(namespaceObject)Var(error)Var(constructor)Bool(false))"))
+}
+def get the builtins for a builtin set(
+  builtinSetName: Unknown,
+): Unknown = {
+  return (yet "a list of (|name|, |funcType|, |steps|) for the set with name |builtinSetName| defined within this section")
+}
+def find a builtin(
+  import: Unknown,
+  builtinSetNames: Unknown,
+): Unknown = {
+  call _call18 = clo<"validate builtin set names">(builtinSetNames)
+  assert (= _call18 true)
   let importModuleName = import[0]
   let importName = import[1]
-  !(foreach |builtinSetName| in |builtinSetNames|)
-  if ?(|builtinSetName| does not refer to a builtin set):
-    !(continue)
-  let builtinSetQualifiedName = ?(|builtinSetName| prefixed with "wasm:")
-  if (importModuleName == builtinSetQualifiedName):
-    let builtins = @get the builtins for a builtin set(builtinSetName)
-    !(foreach |builtin| in |builtins|)
+  (yet "foreach |builtinSetName| in |builtinSetNames|")
+  if (yet "|builtinSetName| does not refer to a builtin set") {
+    (yet "continue")
+  } else nop
+  let builtinSetQualifiedName = (yet "|builtinSetName| prefixed with \"wasm:\"")
+  if (= importModuleName builtinSetQualifiedName) {
+    call builtins = clo<"get the builtins for a builtin set">(builtinSetName)
+    (yet "foreach |builtin| in |builtins|")
     let builtinName = builtin[0]
-    if (importName == builtinName):
-      return !(tuple(Var(builtinSetName)Var(builtin)))
+    if (= importName builtinName) {
+      return (yet "tuple(Var(builtinSetName)Var(builtin))")
+    } else nop
+  } else nop
   return null
-
-# validate builtin set names(builtinSetNames)
-  if ?(|builtinSetNames| contains any duplicates):
+}
+def validate builtin set names(
+  builtinSetNames: Unknown,
+): Unknown = {
+  if (yet "|builtinSetNames| contains any duplicates") {
     return false
+  } else nop
   return true
-
-# create a builtin function(funcType, steps)
-  let hostfunc = ?(a [=host function=] which executes |steps| when called)
-  let store = %surrounding agent.[[associated store]]
-  let _tuple15 = @func_alloc(store, funcType, hostfunc)
+}
+def create a builtin function(
+  funcType: Unknown,
+  steps: Unknown,
+): Unknown = {
+  let hostfunc = (yet "a [=host function=] which executes |steps| when called")
+  let store = @surrounding agent["associated store"]
+  call _tuple15 = clo<"func_alloc">(store, funcType, hostfunc)
   let store = _tuple15[0]
   let funcaddr = _tuple15[1]
-  %surrounding agent.[[associated store]] = store
+  @surrounding agent["associated store"] = store
   return funcaddr
-
-# instantiate a builtin set(builtinSetName)
-  let builtins = @get the builtins for a builtin set(builtinSetName)
-  let exportsObject = !($OrdinaryObjectCreate(SpecConst(null)))
-  !(foreach (|name|, |funcType|, |steps|) in |builtins|)
-  let funcaddr = @create a builtin function(funcType, steps)
-  let func = @a new Exported Function(funcaddr)
+}
+def instantiate a builtin set(
+  builtinSetName: Unknown,
+): Unknown = {
+  call builtins = clo<"get the builtins for a builtin set">(builtinSetName)
+  let exportsObject = (yet "$OrdinaryObjectCreate(SpecConst(null))")
+  (yet "foreach (|name|, |funcType|, |steps|) in |builtins|")
+  call funcaddr = clo<"create a builtin function">(funcType, steps)
+  call func = clo<"a new Exported Function">(funcaddr)
   let value = func
-  let status = !($CreateDataProperty(Var(exportsObject)Var(name)Var(value)))
-  assert (status == true)
+  let status = (yet "$CreateDataProperty(Var(exportsObject)Var(name)Var(value))")
+  assert (= status true)
   return exportsObject
-
-# validate an import for builtins(import, builtinSetNames)
-  let _call19 = @validate builtin set names(builtinSetNames)
-  assert (_call19 == true)
-  let maybeBuiltin = @find a builtin(import, builtinSetNames)
-  if (maybeBuiltin == null):
+}
+def validate an import for builtins(
+  import: Unknown,
+  builtinSetNames: Unknown,
+): Unknown = {
+  call _call19 = clo<"validate builtin set names">(builtinSetNames)
+  assert (= _call19 true)
+  call maybeBuiltin = clo<"find a builtin">(import, builtinSetNames)
+  if (= maybeBuiltin null) {
     return true
+  } else nop
   let importExternType = import[2]
   let builtinFuncType = maybeBuiltin[1][1]
-  let builtinExternType = ?(`func |builtinFuncType|`)
-  let _ret32 = @match_externtype(builtinExternType, importExternType)
+  let builtinExternType = (yet "`func |builtinFuncType|`")
+  call _ret32 = clo<"match_externtype">(builtinExternType, importExternType)
   return _ret32
-
-# UnwrapString(v)
-  if !v is String:
-    !(throw a {{RuntimeError}} exception as if a [=trap=] was executed)
+}
+def UnwrapString(
+  v: Unknown,
+): Unknown = {
+  if (! (?name v: String)) {
+    (yet "throw a {{RuntimeError}} exception as if a [=trap=] was executed")
+  } else nop
   return v
-
-# FromCharCode(v)
-  assert (v == ?(of type [=i32=]))
-  return !($Call(AlgoCall([=String.fromCharCode=],List())SpecConst(undefined)List_(List(AlgoCall([=ToJSValue=],List(Var(v)))))))
-
-# CharCodeAt(string, index)
-  assert (index == ?(of type [=i32=]))
-  return !($Call(AlgoCall([=String.prototype.charCodeAt=],List())Var(string)List_(List(AlgoCall([=ToJSValue=],List(Var(index)))))))
-
-# js-string-cast(v)
-  let _comp27 = !($UnwrapString(Var(v)))
-  if _comp27 is AbruptCompletion:
+}
+def FromCharCode(
+  v: Unknown,
+): Unknown = {
+  assert (= v (yet "of type [=i32=]"))
+  return (yet "$Call(AlgoCall([=String.fromCharCode=],List())SpecConst(undefined)List_(List(AlgoCall([=ToJSValue=],List(Var(v))))))")
+}
+def CharCodeAt(
+  string: Unknown,
+  index: Unknown,
+): Unknown = {
+  assert (= index (yet "of type [=i32=]"))
+  return (yet "$Call(AlgoCall([=String.prototype.charCodeAt=],List())Var(string)List_(List(AlgoCall([=ToJSValue=],List(Var(index))))))")
+}
+def js-string-cast(
+  v: Unknown,
+): Unknown = {
+  let _comp27 = (yet "$UnwrapString(Var(v))")
+  if (?name _comp27: AbruptCompletion) {
     return _comp27
-  return _comp27.[[Value]]
-
-# js-string-test(v)
-  if !v is String:
+  } else nop
+  return _comp27.Value
+}
+def js-string-test(
+  v: Unknown,
+): Unknown = {
+  if (! (?name v: String)) {
     return 0
+  } else nop
   return 1
-
-# js-string-fromCharCodeArray(array, start, end)
-  if (array == null):
-    !(throw a {{RuntimeError}} exception as if a [=trap=] was executed)
-  let length = len(array)
-  if ((start > end) || (end > length)):
-    !(throw a {{RuntimeError}} exception as if a [=trap=] was executed)
+}
+def js-string-fromCharCodeArray(
+  array: Unknown,
+  start: Unknown,
+  end: Unknown,
+): Unknown = {
+  if (= array null) {
+    (yet "throw a {{RuntimeError}} exception as if a [=trap=] was executed")
+  } else nop
+  let length = (sizeof array)
+  if (|| (< end start) (< length end)) {
+    (yet "throw a {{RuntimeError}} exception as if a [=trap=] was executed")
+  } else nop
   let result = ""
   let i = start
-  while (i < end):
+  while (< i end) {
     let charCode = array[i]
-    let charCodeString = !($FromCharCode(Var(charCode)))
-    let result = ?(the concatenation of |result| and |charCodeString|)
-    i = (i + 1)
+    let charCodeString = (yet "$FromCharCode(Var(charCode))")
+    let result = (yet "the concatenation of |result| and |charCodeString|")
+    i = (+ i 1)
+  }
   return result
-
-# js-string-intoCharCodeArray(string, array, start)
-  if (array == null):
-    !(throw a {{RuntimeError}} exception as if a [=trap=] was executed)
-  let _comp28 = !($UnwrapString(Var(string)))
-  if _comp28 is AbruptCompletion:
+}
+def js-string-intoCharCodeArray(
+  string: Unknown,
+  array: Unknown,
+  start: Unknown,
+): Unknown = {
+  if (= array null) {
+    (yet "throw a {{RuntimeError}} exception as if a [=trap=] was executed")
+  } else nop
+  let _comp28 = (yet "$UnwrapString(Var(string))")
+  if (?name _comp28: AbruptCompletion) {
     return _comp28
-  let string = _comp28.[[Value]]
-  let stringLength = len(string)
-  let arrayLength = len(array)
-  if ((start + stringLength) > arrayLength):
-    !(throw a {{RuntimeError}} exception as if a [=trap=] was executed)
+  } else nop
+  let string = _comp28.Value
+  let stringLength = (sizeof string)
+  let arrayLength = (sizeof array)
+  if (< arrayLength (+ start stringLength)) {
+    (yet "throw a {{RuntimeError}} exception as if a [=trap=] was executed")
+  } else nop
   let i = 0
-  while (i < stringLength):
-    let charCode = !($CharCodeAt(Var(string)Var(i)))
-    let _call20 = @ToWebAssemblyValue(charCode, %i32)
+  while (< i stringLength) {
+    let charCode = (yet "$CharCodeAt(Var(string)Var(i))")
+    call _call20 = clo<"ToWebAssemblyValue">(charCode, @i32)
     _ref_BinOp = _call20
-    i = (i + 1)
+    i = (+ i 1)
+  }
   return stringLength
-
-# js-string-fromCharCode(v)
-  return !($FromCharCode(Var(v)))
-
-# js-string-fromCodePoint(v)
-  if (v > 1114111):
-    !(throw a {{RuntimeError}} exception as if a [=trap=] was executed)
-  return !($Call(AlgoCall([=String.fromCodePoint=],List())SpecConst(undefined)List_(List(AlgoCall([=ToJSValue=],List(Var(v)))))))
-
-# js-string-charCodeAt(string, index)
-  let _comp29 = !($UnwrapString(Var(string)))
-  if _comp29 is AbruptCompletion:
+}
+def js-string-fromCharCode(
+  v: Unknown,
+): Unknown = {
+  return (yet "$FromCharCode(Var(v))")
+}
+def js-string-fromCodePoint(
+  v: Unknown,
+): Unknown = {
+  if (< 1114111 v) {
+    (yet "throw a {{RuntimeError}} exception as if a [=trap=] was executed")
+  } else nop
+  return (yet "$Call(AlgoCall([=String.fromCodePoint=],List())SpecConst(undefined)List_(List(AlgoCall([=ToJSValue=],List(Var(v))))))")
+}
+def js-string-charCodeAt(
+  string: Unknown,
+  index: Unknown,
+): Unknown = {
+  let _comp29 = (yet "$UnwrapString(Var(string))")
+  if (?name _comp29: AbruptCompletion) {
     return _comp29
-  let string = _comp29.[[Value]]
-  let length = len(string)
-  if (index >= length):
-    !(throw a {{RuntimeError}} exception as if a [=trap=] was executed)
-  return !($CharCodeAt(Var(string)Var(index)))
-
-# js-string-codePointAt(string, index)
-  let _comp30 = !($UnwrapString(Var(string)))
-  if _comp30 is AbruptCompletion:
+  } else nop
+  let string = _comp29.Value
+  let length = (sizeof string)
+  if (! (< index length)) {
+    (yet "throw a {{RuntimeError}} exception as if a [=trap=] was executed")
+  } else nop
+  return (yet "$CharCodeAt(Var(string)Var(index))")
+}
+def js-string-codePointAt(
+  string: Unknown,
+  index: Unknown,
+): Unknown = {
+  let _comp30 = (yet "$UnwrapString(Var(string))")
+  if (?name _comp30: AbruptCompletion) {
     return _comp30
-  let string = _comp30.[[Value]]
-  let length = len(string)
-  if (index >= length):
-    !(throw a {{RuntimeError}} exception as if a [=trap=] was executed)
-  return !($Call(AlgoCall([=String.prototype.codePointAt=],List())Var(string)List_(List(AlgoCall([=ToJSValue=],List(Var(index)))))))
-
-# js-string-length(v)
-  let _comp31 = !($UnwrapString(Var(v)))
-  if _comp31 is AbruptCompletion:
+  } else nop
+  let string = _comp30.Value
+  let length = (sizeof string)
+  if (! (< index length)) {
+    (yet "throw a {{RuntimeError}} exception as if a [=trap=] was executed")
+  } else nop
+  return (yet "$Call(AlgoCall([=String.prototype.codePointAt=],List())Var(string)List_(List(AlgoCall([=ToJSValue=],List(Var(index))))))")
+}
+def js-string-length(
+  v: Unknown,
+): Unknown = {
+  let _comp31 = (yet "$UnwrapString(Var(v))")
+  if (?name _comp31: AbruptCompletion) {
     return _comp31
-  let string = _comp31.[[Value]]
-  return len(string)
-
-# js-string-concat(first, second)
-  let _comp32 = !($UnwrapString(Var(first)))
-  if _comp32 is AbruptCompletion:
+  } else nop
+  let string = _comp31.Value
+  return (sizeof string)
+}
+def js-string-concat(
+  first: Unknown,
+  second: Unknown,
+): Unknown = {
+  let _comp32 = (yet "$UnwrapString(Var(first))")
+  if (?name _comp32: AbruptCompletion) {
     return _comp32
-  let first = _comp32.[[Value]]
-  let _comp33 = !($UnwrapString(Var(second)))
-  if _comp33 is AbruptCompletion:
+  } else nop
+  let first = _comp32.Value
+  let _comp33 = (yet "$UnwrapString(Var(second))")
+  if (?name _comp33: AbruptCompletion) {
     return _comp33
-  let second = _comp33.[[Value]]
-  return !($Call(AlgoCall([=String.prototype.concat=],List())Var(first)List_(List(Var(second)))))
-
-# js-string-substring(string, start, end)
-  let _comp34 = !($UnwrapString(Var(string)))
-  if _comp34 is AbruptCompletion:
+  } else nop
+  let second = _comp33.Value
+  return (yet "$Call(AlgoCall([=String.prototype.concat=],List())Var(first)List_(List(Var(second))))")
+}
+def js-string-substring(
+  string: Unknown,
+  start: Unknown,
+  end: Unknown,
+): Unknown = {
+  let _comp34 = (yet "$UnwrapString(Var(string))")
+  if (?name _comp34: AbruptCompletion) {
     return _comp34
-  let string = _comp34.[[Value]]
-  let length = len(string)
-  if ((start > end) || (start > length)):
+  } else nop
+  let string = _comp34.Value
+  let length = (sizeof string)
+  if (|| (< end start) (< length start)) {
     return ""
-  return !($Call(AlgoCall([=String.prototype.substring=],List())Var(string)List_(List(AlgoCall([=ToJSValue=],List(Var(start))), AlgoCall([=ToJSValue=],List(Var(end)))))))
-
-# js-string-equals(first, second)
-  if ((first != null) && !first is String):
-    !(throw a {{RuntimeError}} exception as if a [=trap=] was executed)
-  if ((second != null) && !second is String):
-    !(throw a {{RuntimeError}} exception as if a [=trap=] was executed)
-  let _call21 = @IsStrictlyEqual(first, second)
-  if (_call21 == true):
+  } else nop
+  return (yet "$Call(AlgoCall([=String.prototype.substring=],List())Var(string)List_(List(AlgoCall([=ToJSValue=],List(Var(start))), AlgoCall([=ToJSValue=],List(Var(end))))))")
+}
+def js-string-equals(
+  first: Unknown,
+  second: Unknown,
+): Unknown = {
+  if (&& (! (= first null)) (! (?name first: String))) {
+    (yet "throw a {{RuntimeError}} exception as if a [=trap=] was executed")
+  } else nop
+  if (&& (! (= second null)) (! (?name second: String))) {
+    (yet "throw a {{RuntimeError}} exception as if a [=trap=] was executed")
+  } else nop
+  call _call21 = clo<"IsStrictlyEqual">(first, second)
+  if (= _call21 true) {
     return 1
+  } else nop
   return 0
-
-# js-string-compare(first, second)
-  let _comp35 = !($UnwrapString(Var(first)))
-  if _comp35 is AbruptCompletion:
+}
+def js-string-compare(
+  first: Unknown,
+  second: Unknown,
+): Unknown = {
+  let _comp35 = (yet "$UnwrapString(Var(first))")
+  if (?name _comp35: AbruptCompletion) {
     return _comp35
-  let first = _comp35.[[Value]]
-  let _comp36 = !($UnwrapString(Var(second)))
-  if _comp36 is AbruptCompletion:
+  } else nop
+  let first = _comp35.Value
+  let _comp36 = (yet "$UnwrapString(Var(second))")
+  if (?name _comp36: AbruptCompletion) {
     return _comp36
-  let second = _comp36.[[Value]]
-  let _call22 = @IsStrictlyEqual(first, second)
-  if (_call22 == true):
+  } else nop
+  let second = _comp36.Value
+  call _call22 = clo<"IsStrictlyEqual">(first, second)
+  if (= _call22 true) {
     return 0
-  let _call23 = @IsLessThan(first, second, true)
-  if (_call23 == true):
-    return -1
+  } else nop
+  call _call23 = clo<"IsLessThan">(first, second, true)
+  if (= _call23 true) {
+    return (- 1)
+  } else nop
   return 1
-
-# a new promise(realm)
-  let constructor = realm.[[Intrinsics]].[[{{%Promise%}}]]
-  let _comp37 = !($NewPromiseCapability(Var(constructor)))
-  if _comp37 is AbruptCompletion:
+}
+def a new promise(
+  realm: Unknown,
+): Unknown = {
+  let constructor = realm.Intrinsics["{{%Promise%}}"]
+  let _comp37 = (yet "$NewPromiseCapability(Var(constructor))")
+  if (?name _comp37: AbruptCompletion) {
     return _comp37
-  return _comp37.[[Value]]
-
-# resolve(T, p, x)
-  if (x != ?(given)):
-    let _ = !(unsupported Let lhs: Unknown(it))
-  let value = @converted to a JavaScript value(x)
-  let _ = @!(!($Call(Slot(Var(p),Resolve)Unknown(<emu-val>undefined</emu-val>)List_(List(Var(value))))))
-  if (T == ?({{undefined}})):
-    ?(the |x| argument is optional, allowing a simpler "[=resolve=] p" usage)
-
-# reject(p, r)
-  let _ = @!(!($Call(Slot(Var(p),Reject)Unknown(<emu-val>undefined</emu-val>)List_(List(Var(r))))))
-
-# react(T, promise)
-  let onFulfilledSteps = ?(the following steps given argument |V|:)
-  let value = @converted to an IDL value(V, T)
-  if (?(there) == ?(a set of steps to be run if the promise was fulfilled)):
-    let result = ?(performing them, given |value| if |T| is not {{undefined}})
-  else:
+  } else nop
+  return _comp37.Value
+}
+def resolve(
+  T: Unknown,
+  p: Unknown,
+  x: Unknown,
+): Unknown = {
+  if (! (= x (yet "given"))) {
+    let _ = (yet "unsupported Let lhs: Unknown(it)")
+  } else nop
+  call value = clo<"converted to a JavaScript value">(x)
+  call _ = clo<"!">((yet "$Call(Slot(Var(p),Resolve)Unknown(<emu-val>undefined</emu-val>)List_(List(Var(value))))"))
+  if (= T (yet "{{undefined}}")) {
+    (yet "the |x| argument is optional, allowing a simpler \"[=resolve=] p\" usage")
+  } else nop
+}
+def reject(
+  p: Unknown,
+  r: Unknown,
+): Unknown = {
+  call _ = clo<"!">((yet "$Call(Slot(Var(p),Reject)Unknown(<emu-val>undefined</emu-val>)List_(List(Var(r))))"))
+}
+def react(
+  T: Unknown,
+  promise: Unknown,
+): Unknown = {
+  let onFulfilledSteps = (yet "the following steps given argument |V|:")
+  call value = clo<"converted to an IDL value">(V, T)
+  if (= (yet "there") (yet "a set of steps to be run if the promise was fulfilled")) {
+    let result = (yet "performing them, given |value| if |T| is not {{undefined}}")
+  } else {
     let result = value
-  return ?(|result|, [=converted to a JavaScript value=])
-  let onFulfilled = ?([$CreateBuiltinFunction$](|onFulfilledSteps|, 1, "", « »):)
-  let onRejectedSteps = ?(the following steps given argument |R|:)
-  let reason = @converted to an IDL value(R)
-  if (?(there) == ?(a set of steps to be run if the promise was rejected)):
-    let result = ?(performing them, given |reason|)
-  else:
-    let result = @a promise rejected with(reason)
-  return ?(|result|, [=converted to a JavaScript value=])
-  let onRejected = ?([$CreateBuiltinFunction$](|onRejectedSteps|, 1, "", « »):)
-  let constructor = promise.[[Promise]].[[Realm]].[[Intrinsics]].[[{{%Promise%}}]]
-  let _comp38 = !($NewPromiseCapability(Var(constructor)))
-  if _comp38 is AbruptCompletion:
+  }
+  return (yet "|result|, [=converted to a JavaScript value=]")
+  let onFulfilled = (yet "[$CreateBuiltinFunction$](|onFulfilledSteps|, 1, \"\", « »):")
+  let onRejectedSteps = (yet "the following steps given argument |R|:")
+  call reason = clo<"converted to an IDL value">(R)
+  if (= (yet "there") (yet "a set of steps to be run if the promise was rejected")) {
+    let result = (yet "performing them, given |reason|")
+  } else {
+    call result = clo<"a promise rejected with">(reason)
+  }
+  return (yet "|result|, [=converted to a JavaScript value=]")
+  let onRejected = (yet "[$CreateBuiltinFunction$](|onRejectedSteps|, 1, \"\", « »):")
+  let constructor = promise.Promise.Realm.Intrinsics["{{%Promise%}}"]
+  let _comp38 = (yet "$NewPromiseCapability(Var(constructor))")
+  if (?name _comp38: AbruptCompletion) {
     return _comp38
-  let newCapability = _comp38.[[Value]]
-  let _ = @[$PerformPromiseThen$](|promise|.\[[Promise]], |onFulfilled|, |onRejected|, |newCapability|)()
+  } else nop
+  let newCapability = _comp38.Value
+  call _ = clo<"[$PerformPromiseThen$](|promise|.\[[Promise]], |onFulfilled|, |onRejected|, |newCapability|)">()
   return newCapability
+}

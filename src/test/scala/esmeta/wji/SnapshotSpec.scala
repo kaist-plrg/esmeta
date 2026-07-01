@@ -6,7 +6,6 @@ import esmeta.BASE_DIR
 import esmeta.wji.lang.{AlgorithmExtractor, InstrPrinter, SpecFile}
 import esmeta.wji.compiler.desugar.Desugar
 import esmeta.wji.compiler.Compiler
-import esmeta.wji.ir.IrPrinter
 
 /** Golden-file snapshot tests for the full pipeline.
   *
@@ -36,7 +35,7 @@ class SnapshotSpec extends AnyFunSuite:
     val program = Compiler.compile(Desugar.run(algorithms))
     val sb = new StringBuilder
     sb.append(s"${program.funcs.size} func(s)\n")
-    sb.append(IrPrinter.render(program)).append("\n")
+    sb.append(program.toString()).append("\n")
     checkSnapshot("ir.expected", sb.toString)
   }
 

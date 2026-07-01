@@ -23,7 +23,8 @@ class EsToWjiInterpreter(
   st: State,
   wjiInterp: Interpreter,
   wjiProgram: Program,
-) extends EsInterpreter(st):
+  log: Boolean = false,
+) extends EsInterpreter(st, log = log):
 
   override def eval(call: Call): Unit = call.callInst match
     case ICall(lhs, EClo(fname, _), args) if wjiProgram.funcMap.contains(fname) =>

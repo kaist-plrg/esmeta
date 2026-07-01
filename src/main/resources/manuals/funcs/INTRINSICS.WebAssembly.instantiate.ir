@@ -1,0 +1,20 @@
+def <BUILTIN>:INTRINSICS.WebAssembly.instantiate(
+  this: ESValue,
+  ArgumentsList: List[ESValue],
+  NewTarget: Record[Constructor] | Undefined,
+): Unknown = {
+  let __args__ = (record)
+  if (< 0 (sizeof ArgumentsList)) {
+    pop bytes < ArgumentsList
+    expand __args__.bytes
+  } else let bytes = undefined
+  if (< 0 (sizeof ArgumentsList)) {
+    pop importObject < ArgumentsList
+    expand __args__.importObject
+  } else let importObject = undefined
+  call %0 = clo<"ToWebIDLArrayBuffer">(bytes)
+  call %1 = clo<"instantiate">(this, %0, importObject)
+  if (? %1: Completion) return %1
+  call %2 = clo<"NormalCompletion">(%1)
+  return %2
+}

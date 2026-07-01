@@ -92,7 +92,7 @@ object ESMeta extends Git(BASE_DIR) {
     CmdWjiCompile,
     CmdWjiInterp,
     CmdWjiBridgeDemo,
-    CmdWjiReverseDemo,
+    CmdWjiEval,
   )
   val cmdMap = commands.foldLeft[Map[String, Command[_]]](Map()) {
     case (map, cmd) => map + (cmd.name -> cmd)
@@ -126,7 +126,7 @@ object ESMeta extends Git(BASE_DIR) {
     WjiCompile,
     WjiInterp,
     WjiBridgeDemo,
-    WjiReverseDemo,
+    WjiEval,
   )
 
   /** command options */

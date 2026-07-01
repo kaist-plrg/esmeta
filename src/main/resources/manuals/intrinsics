@@ -971,3 +971,38 @@ print = BuiltinFunctionObject [
 ] {
   length: [FFT] 0.0f;
 }
+
+
+
+// -----------------------------------------------------------------------------
+// Host-Defined Functions for WebAssembly JavaScritp Interface
+// -----------------------------------------------------------------------------
+// https://github.com/WebAssembly/spec/document/js-api/index.bs
+// -----------------------------------------------------------------------------
+WebAssembly = OrdinaryObject [
+  Extensible: true;
+  Prototype: #INTRINSICS.Object.prototype;
+] {
+  CompileError: [TFT] #INTRINSICS.CompileError;
+  %Symbol.toStringTag%: [FFT] "WebAssembly";
+}
+
+WebAssembly.Instance = BuiltinFunctionObject [
+  Extensible: true;
+  Construct: clo<Record[BuiltinFunctionObject].Construct>;
+] {
+  length: [FFT] 1.0f;
+  name: [FFT] "Instance";
+  prototype: [FFF] #INTRINSICS.WebAssembly.Instance.prototype;
+}
+
+WebAssembly.Instance.prototype = OrdinaryObject [
+  Extensible: true;
+  Prototype: #INTRINSICS.Object.prototype;
+] {
+  %Symbol.toStringTag%: [FFT] "WebAssembly.Instance";
+  exports: [TT] {
+    Get: #INTRINSICS.get:WebAssembly.Instance.prototype.exports;
+    Set: undefined;
+  };
+}

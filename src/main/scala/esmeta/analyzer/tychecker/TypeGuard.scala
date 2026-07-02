@@ -624,6 +624,10 @@ trait TypeGuardDecl { self: TyChecker =>
               case ECont(_)    => false
               case _           => false
           case ISdoCall(_, _, method, _) => method == fname
+          case ICallEmbed(_, fname, _) =>
+            notSupported(
+              s"TODO: ICallEmbed ($fname) not yet supported by the type analyzer",
+            )
         direct || involvesFunc(child, fname)
       case Join(children) => children.exists(involvesFunc(_, fname))
       case Meet(children) => children.exists(involvesFunc(_, fname))
@@ -947,5 +951,9 @@ trait TypeGuardDecl { self: TyChecker =>
       case ISdoCall(_, base, method, args) =>
         val as = (base :: args).map(_.toString).mkString(", ")
         s"$method ( $as )"
+      case ICallEmbed(_, fname, _) =>
+        notSupported(
+          s"TODO: ICallEmbed ($fname) not yet supported by the type analyzer",
+        )
   }
 }

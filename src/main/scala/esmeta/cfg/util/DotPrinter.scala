@@ -97,6 +97,10 @@ class DotPrinter(
             s"${norm(lhs)} = ${norm(fexpr)}(${args.map(norm(_)).mkString(", ")})"
           case ISdoCall(lhs, ast, method, args) =>
             s"${norm(lhs)} = ${norm(ast)}-&gt;$method(${args.map(norm(_)).mkString(", ")})"
+          case ICallEmbed(_, fname, _) =>
+            throw new NotImplementedError(
+              s"TODO: ICallEmbed ($fname) not yet supported by DotPrinter",
+            )
         drawNode(id, "cds", nodeColor, bgColor, Some(simpleString))
         nextOpt match
           case Some(next) =>

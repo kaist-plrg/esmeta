@@ -5,7 +5,8 @@ import io.circe.syntax.*
 import java.util.concurrent.atomic.AtomicLong
 import esmeta.wji.bridge.host.{HostFunction, WasmError, WasmHost}
 import esmeta.wji.bridge.rpc.{Response, RpcError}
-import esmeta.wji.state.ALValue
+import esmeta.state.ALValue
+import esmeta.state.util.ALValueJson.given
 import esmeta.wji.bridge.rpc.JsonRpcConnection
 
 /** [[WasmHost]] implementation backed by the SpecTec Wasm interpreter,

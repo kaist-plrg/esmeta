@@ -7,7 +7,6 @@ import esmeta.ir.{Func => IRFunc, *}
 import esmeta.state.util.*
 import esmeta.ty.*
 import esmeta.util.DoubleEquals
-import esmeta.wji.state.ALValue
 import java.math.MathContext.UNLIMITED
 import scala.collection.mutable.{Map => MMap}
 
@@ -128,6 +127,49 @@ case class Enum(name: String) extends Value
 
 /** code units */
 case class CodeUnit(c: Char) extends Value
+
+/** Numeric AL values, mirroring `xl/num.ml`'s `num` variant
+  * (`spectec/spectec/src/xl/num.ml`). See `state/util/ALValueJson.scala` for
+  * the JSON wire encoding.
+  */
+enum ALNum:
+  case Nat(value: scala.math.BigInt)
+  case Int(value: scala.math.BigInt)
+  case Rat(num: scala.math.BigInt, den: scala.math.BigInt)
+  case Real(value: Double)
+
+/** AL (Algorithmic Language) runtime values, mirroring the `value` type of
+  * SpecTec's AL AST (`spectec/spectec/src/al/ast.ml`):
+  *
+  * {{{
+  * and value =
+  *   | NumV of Num.num                    (* number *)
+  *   | BoolV of bool                      (* boolean *)
+  *   | TextV of string                    (* string *)
+  *   | ListV of value growable_array      (* list of values *)
+  *   | StrV of (id, value) record         (* key-value mapping *)
+  *   | CaseV of id * value list           (* constructor *)
+  *   | OptV of value option               (* optional value *)
+  *   | TupV of value list                 (* tuple of values *)
+  *   | FnameV of id                       (* name of the first order function *)
+  * }}}
+  *
+  * This is the common value representation used in the params/results of the
+  * Wasm Embedding interface (`esmeta.wji.bridge.host.WasmHost`): stores,
+  * modules, module instances, function/extern addresses, `val*`, types, etc.
+  * are all encoded as [[ALValue]]. See `state/util/ALValueJson.scala` for the
+  * JSON wire encoding.
+  */
+enum ALValue:
+  case NumV(num: ALNum)
+  case BoolV(value: Boolean)
+  case TextV(value: String)
+  case ListV(values: List[ALValue])
+  case StrV(fields: List[(String, ALValue)])
+  case CaseV(id: String, args: List[ALValue])
+  case OptV(value: Option[ALValue])
+  case TupV(values: List[ALValue])
+  case FnameV(id: String)
 
 /** a value owned by an external Wasm embedding (e.g. SpecTec), passed opaquely
   * across the `esmeta.wji.bridge.host.WasmHost` boundary without being

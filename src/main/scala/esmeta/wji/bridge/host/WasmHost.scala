@@ -1,6 +1,6 @@
 package esmeta.wji.bridge.host
 
-import esmeta.wji.state.ALValue
+import esmeta.state.ALValue
 
 /** Errors that a [[WasmHost]] operation may produce. */
 enum WasmError:

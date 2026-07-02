@@ -41,7 +41,7 @@ case class ECont(fname: String) extends Expr
 /** project the `idx`-th component out of a tuple-shaped value. Used to
   * destructure the `(store, funcaddr)` / `(store, val*)` pairs returned by Wasm
   * embedding operations such as `func_alloc` / `func_invoke`, which arrive as a
-  * `esmeta.wji.state.ALValue.TupV` wrapped in `esmeta.state.Value.Wasm`.
+  * `esmeta.state.ALValue.TupV` wrapped in `esmeta.state.Value.Wasm`.
   */
 case class EProj(expr: Expr, idx: Int) extends Expr
 

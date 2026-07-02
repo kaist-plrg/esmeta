@@ -15,7 +15,6 @@ import esmeta.util.Loc
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
 import esmeta.wji.bridge.host.{HostFunction, WasmError, WasmHost}
-import esmeta.wji.state.{ALNum, ALValue}
 import java.io.PrintWriter
 import java.math.MathContext.DECIMAL128
 import java.util.concurrent.TimeoutException
@@ -508,9 +507,7 @@ class Interpreter(
     case ECodeUnit(c)          => CodeUnit(c)
   }
 
-  /** a coarse runtime type tag used by [[ETypeCheckName]], mirroring the scheme
-    * `wji-interpreter/Interpreter.scala`'s `typeName` used for `WjValue` before
-    * WJI values were folded into this `Value` ADT.
+  /** a coarse runtime type tag used by [[ETypeCheckName]].
     *
     * NOTE: remove this once [[ETypeCheckName]] is merged into [[ETypeCheck]]
     * (see the TODO there) — it exists only to back that interim node.

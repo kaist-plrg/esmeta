@@ -8,7 +8,9 @@ import esmeta.error.ESMetaError
 import esmeta.interpreter.{Interpreter => EsInterpreter}
 import esmeta.ir.{Local, Program}
 import esmeta.state.*
-import esmeta.wji.interpreter.StubWasmHost
+import esmeta.wji.bridge.SpecTecWasmHost
+import esmeta.wji.bridge.process.SpecTecProcess
+import esmeta.wji.bridge.rpc.JsonRpcConnection
 import scala.collection.mutable.{Map => MMap}
 
 /** `wji-interp` phase
@@ -18,8 +20,8 @@ import scala.collection.mutable.{Map => MMap}
   * WJI-only interpreter, now that WJI algorithms compile to real `esmeta.ir`
   * functions). By default it invokes `instantiate(moduleObject, importObject)`
   * with two empty records. Wasm embedding calls (`ICallEmbed`) are dispatched
-  * to a [[StubWasmHost]], which logs the call and reports a stub error rather
-  * than requiring a live SpecTec process.
+  * to a live [[SpecTecWasmHost]] over JSON-RPC, so this requires a live SpecTec
+  * process on `PATH` (see [[SpecTecProcess]]).
   */
 case object WjiInterp extends Phase[Program, Value] {
   val name = "wji-interp"
@@ -41,11 +43,15 @@ case object WjiInterp extends Phase[Program, Value] {
     val st =
       State(cfg, Context(func, locals), globals = MMap.empty, heap = heap)
 
+    val process = SpecTecProcess.start()
+    val connection = JsonRpcConnection.stdio(process)
+    val host = SpecTecWasmHost(connection)
+
     val sep = "─" * 64
     println(s"invoke: ${config.entry}($moduleObject, $importObject)")
     println(sep)
     try
-      EsInterpreter(st, wasmHost = Some(StubWasmHost()))
+      EsInterpreter(st, wasmHost = Some(host))
       println(sep)
       st.globals.getOrElse(GLOBAL_RESULT, Undef)
     catch
@@ -59,6 +65,7 @@ case object WjiInterp extends Phase[Program, Value] {
         println(s"[MatchError — unhandled IR node] ${e.getMessage}")
         printCallStack(st)
         Undef
+    finally connection.close()
 
   private def printCallStack(st: State): Unit =
     val stack =

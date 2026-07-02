@@ -255,7 +255,8 @@ case object CmdWjiCompile
 /** `wji-interp` command */
 case object CmdWjiInterp
   extends Command("wji-interp", CmdWjiCompile >> WjiInterp) {
-  val help = "runs the WJI IR interpreter with a stubbed WasmHost."
+  val help =
+    "runs the compiled WJI program on the unified interpreter (needs SpecTec)."
   val examples = List(
     "esmeta wji-interp                       # run instantiate() on empty input.",
     "esmeta wji-interp -wji-interp:entry=foo # invoke a different WJI function.",

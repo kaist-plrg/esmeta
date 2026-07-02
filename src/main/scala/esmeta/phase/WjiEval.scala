@@ -8,7 +8,9 @@ import esmeta.ir.Program
 import esmeta.state.State
 import esmeta.util.*
 import esmeta.util.SystemUtils.*
-import esmeta.wji.interpreter.StubWasmHost
+import esmeta.wji.bridge.SpecTecWasmHost
+import esmeta.wji.bridge.process.SpecTecProcess
+import esmeta.wji.bridge.rpc.JsonRpcConnection
 
 /** `wji-eval` phase
   *
@@ -47,10 +49,15 @@ case object WjiEval extends Phase[CFG, State] {
       Program(cfg.program.funcs ++ wjiProgram.funcs, cfg.program.spec)
     val mergedCfg = CFGBuilder(merged)
 
+
+    val process = SpecTecProcess.start()
+    val connection = JsonRpcConnection.stdio(process)
+    val host = SpecTecWasmHost(connection)
+
     EsInterpreter(
       mergedCfg.init.fromFile(filename),
       log = config.log,
-      wasmHost = Some(StubWasmHost()),
+      wasmHost = Some(host),
     )
 
   def defaultConfig: Config = Config()

@@ -6,7 +6,7 @@ import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 /** Generic JSON-RPC 2.0 message envelopes used on the bidirectional stdio
   * connection between wjmeta-bridge and the spectec-server process.
   * Method-specific `params`/`result` are kept as raw [[Json]] and
-  * decoded/encoded as [[esmeta.wji.state.ALValue]]:
+  * decoded/encoded as [[esmeta.state.ALValue]]:
   *
   *   - wjmeta -> SpecTec: `method` is the name of a Wasm Embedding function
   *     (`module_decode`, `func_invoke`, ...), matching a method of

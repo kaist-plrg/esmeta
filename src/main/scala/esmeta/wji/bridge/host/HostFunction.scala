@@ -1,6 +1,6 @@
 package esmeta.wji.bridge.host
 
-import esmeta.wji.state.ALValue
+import esmeta.state.ALValue
 
 /** A wjmeta-side (WJI mechanization) closure that SpecTec calls back into while
   * executing Wasm code, corresponding to the `hostfunc` argument of

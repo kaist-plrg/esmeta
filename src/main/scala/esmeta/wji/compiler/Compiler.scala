@@ -146,8 +146,8 @@ object Compiler:
     case metalang.Expr.SpecTerm("current Realm") =>
       ERef(Field(GLOBAL_CONTEXT, EStr("Realm")))
     case metalang.Expr.SpecTerm(s) => EEnum(s)
-    case metalang.Expr.Slot(base, slot) =>
-      ERef(Field(compileRef(base), EStr(slot)))
+    case metalang.Expr.Field(base, name) =>
+      ERef(Field(compileRef(base), EStr(name)))
     case metalang.Expr.Index(base, key) =>
       ERef(Field(compileRef(base), compileExpr(key)))
     case metalang.Expr.New(iface)      => ERecord(iface, Nil)
@@ -203,7 +203,7 @@ object Compiler:
   private def compileRef(expr: metalang.Expr): Ref = expr match
     case metalang.Expr.Var(name)        => Name(name)
     case metalang.Expr.This             => Global("this")
-    case metalang.Expr.Slot(base, slot) => Field(compileRef(base), EStr(slot))
+    case metalang.Expr.Field(base, name) => Field(compileRef(base), EStr(name))
     case metalang.Expr.Index(base, key) =>
       Field(compileRef(base), compileExpr(key))
     case metalang.Expr.AlgoCall(link, Nil) => Global(nameFromLink(link))

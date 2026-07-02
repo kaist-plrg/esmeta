@@ -115,7 +115,7 @@ def read the imports(
   builtinSetNames: Unknown,
   importedStringModule: Unknown,
 ): Unknown = {
-  if (&& (yet "|module|.[=imports=] [=list/is empty|is not empty=]") (= importObject undefined)) {
+  if (&& (! (= (sizeof module.imports) 0)) (= importObject undefined)) {
     (yet "throw a {{TypeError}} exception")
   } else nop
   let builtinOrStringImports = (yet "map literal")
@@ -581,7 +581,7 @@ def memory.grow(
   if (&& (! (= (yet "the top of the stack") _call8)) (! (= (yet "the top of the stack") (yet "call [=i64.const=]")))) {
     let frame = (yet "the [=current frame=]")
     assert (yet "due to validation, |frame|.[=frame/module=].[=moduleinst/memaddrs=][|x|] exists")
-    let memaddr = _ref_Unknown[x]
+    let memaddr = _ref_Unknown["frame/module"]["moduleinst/memaddrs"][x]
     call _ = clo<"refresh the memory buffer">(memaddr)
   } else nop
 }

@@ -59,7 +59,7 @@ object ResolveSpecTermsPass extends DesugarPass:
         Expr.SpecTerm(stripLink(link))
       case Expr.AlgoCall(link, args) => Expr.AlgoCall(link, args.map(go))
       case Expr.JSCall(name, args)   => Expr.JSCall(name, args.map(go))
-      case Expr.Slot(base, slot)     => Expr.Slot(go(base), slot)
+      case Expr.Field(base, name)    => Expr.Field(go(base), name)
       case Expr.Index(base, key)     => Expr.Index(go(base), go(key))
       case Expr.Abrupt(check, e)     => Expr.Abrupt(check, go(e))
       case Expr.List_(elems)         => Expr.List_(elems.map(go))

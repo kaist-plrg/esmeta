@@ -19,6 +19,13 @@ object CondParser:
   private val MapExistsPos = """(?si)^(.*?)\s+\[=map/exists=\]$""".r
   private val MapExistsNeg =
     """(?si)^(.*?)\s+(?:\[=map/doesn't exist=\]|doesn't \[=map/exist=\])$""".r
+  // e.g. "|module|.[=imports=] [=list/is empty|is not empty=]" — the
+  // `|alias=]` part is display text, not decoration: it's how the spec
+  // writes the negated form ("is not empty") while still linking to the
+  // "list/is empty" dfn, so its presence (and whether it reads "not") is what
+  // determines polarity, not a separate positive/negative pattern pair.
+  private val ListIsEmpty =
+    """(?si)^(.+)\s+\[=list/is empty(?:\|([^\]]+))?=\]$""".r
   private val ImplementsPos =
     """(?si)^(.*?)\s+\[=implements=\]\s+\{\{([^}]+)\}\}$""".r
   private val ImplementsNeg =
@@ -89,6 +96,9 @@ object CondParser:
     case MapExistsPos(baseRaw) => MapExists(ExprParser.parse(baseRaw))
     case MapExistsNeg(baseRaw) =>
       MapExists(ExprParser.parse(baseRaw), negated = true)
+    case ListIsEmpty(baseRaw, alias) =>
+      val negated = Option(alias).exists(_.toLowerCase.contains("not"))
+      Eq(Length(ExprParser.parse(baseRaw.trim)), Num("0"), negated)
     case ImplementsPos(exprRaw, face) =>
       Implements(ExprParser.parse(exprRaw), face)
     case ImplementsNeg(exprRaw, face) =>

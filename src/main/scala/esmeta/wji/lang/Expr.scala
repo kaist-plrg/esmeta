@@ -14,7 +14,12 @@ object Expr:
     * `current Realm`.
     */
   case class SpecTerm(name: String) extends Expr
-  case class Slot(base: Expr, slot: String) extends Expr
+  /** A field read on a record/structure: base's field named `name`. Covers
+    * both ECMA-262's `.[[name]]` internal-slot syntax and a WebAssembly-spec
+    * field written as `base.[=name=]`, where the `[=...=]` is a plain
+    * documentation link rather than a call.
+    */
+  case class Field(base: Expr, name: String) extends Expr
   case class Index(base: Expr, key: Expr) extends Expr
   case class AlgoCall(link: String, args: List[Expr]) extends Expr
   case class JSCall(name: String, args: List[Expr]) extends Expr

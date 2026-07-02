@@ -23,6 +23,11 @@ object ExprParser:
   private val SlotAccess = """(?s)^(.+)\.\\?\[\[([^\]]+)\]\]$""".r
   private val PossessiveSlot =
     """(?si)^the value of (.+)'s \\?\[\[([^\]]+)\]\] internal slot$""".r
+  // e.g. "|module|.[=imports=]" — a WebAssembly-spec record field written
+  // with a dot, where the `[=...=]` is a documentation link on the field
+  // name rather than a call (contrast with `AlgoCallFull`/`AlgoCallProse`,
+  // which require the string to *start* with `[=`).
+  private val DotFieldLink = """(?s)^(.+)\.(\[=[^\]]+\])$""".r
   private val LengthOf =
     """(?si)^the (?:\[=(?:string/length|list/size)=\]|length) of (.+)$""".r
   private val ElementCount = """(?si)^the number of elements in (.+)$""".r
@@ -83,15 +88,20 @@ object ExprParser:
       case ThisOnly()                    => This
       case VarOnly(name)                 => Var(name)
       case VarIgnore(name)               => Var(name.trim)
-      case SlotAccess(baseRaw, slot) => Slot(parse(baseRaw), stripBraces(slot))
+      case SlotAccess(baseRaw, slot) => Field(parse(baseRaw), stripBraces(slot))
       case PossessiveSlot(baseRaw, slot) =>
-        Slot(parse(baseRaw), stripBraces(slot))
+        Field(parse(baseRaw), stripBraces(slot))
+      case DotFieldLink(baseRaw, link) =>
+        Field(
+          parse(baseRaw),
+          normalizeLink(link).stripPrefix("[=").stripSuffix("=]"),
+        )
       case LengthOf(inner)               => Length(parse(inner.trim))
       case ElementCount(inner)           => Length(parse(inner.trim))
       case ElementAt(idx, arr)   => Index(parse(arr.trim), parse(idx.trim))
       case PossessiveSize(inner) => Length(parse(inner.trim))
       case PossessiveAssociation(baseRaw, link) =>
-        Slot(
+        Field(
           parse(baseRaw),
           normalizeLink(link).stripPrefix("[=").stripSuffix("=]"),
         )

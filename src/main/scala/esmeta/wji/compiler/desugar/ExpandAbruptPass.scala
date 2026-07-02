@@ -13,7 +13,7 @@ import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr}
   * {{{
   *   Let(_compN, call)
   *   IfChain([(IsType(_compN, "AbruptCompletion"), [Return(_compN)])], fallback=[])
-  *   Let(x, Slot(_compN, "Value"), body)
+  *   Let(x, Field(_compN, "Value"), body)
   * }}}
   *
   * Handles `?` in the direct-RHS position of `Let`, `Set`, and `Return`. Nested
@@ -36,7 +36,7 @@ object ExpandAbruptPass extends DesugarPass:
       List(
         Instr.Let(Expr.Var(tmp), inner),
         abruptCheck(tmp),
-        Instr.Let(lhs, Expr.Slot(Expr.Var(tmp), "Value"), transform(body)),
+        Instr.Let(lhs, Expr.Field(Expr.Var(tmp), "Value"), transform(body)),
       )
 
     case Instr.Set(lhs, Expr.Abrupt("?", inner), body) =>
@@ -44,7 +44,7 @@ object ExpandAbruptPass extends DesugarPass:
       List(
         Instr.Let(Expr.Var(tmp), inner),
         abruptCheck(tmp),
-        Instr.Set(lhs, Expr.Slot(Expr.Var(tmp), "Value"), transform(body)),
+        Instr.Set(lhs, Expr.Field(Expr.Var(tmp), "Value"), transform(body)),
       )
 
     case Instr.Return(Some(Expr.Abrupt("?", inner)), body) =>
@@ -52,7 +52,7 @@ object ExpandAbruptPass extends DesugarPass:
       List(
         Instr.Let(Expr.Var(tmp), inner),
         abruptCheck(tmp),
-        Instr.Return(Some(Expr.Slot(Expr.Var(tmp), "Value")), transform(body)),
+        Instr.Return(Some(Expr.Field(Expr.Var(tmp), "Value")), transform(body)),
       )
 
     case _ =>

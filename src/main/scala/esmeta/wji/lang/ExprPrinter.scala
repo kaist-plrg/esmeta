@@ -10,7 +10,7 @@ object ExprPrinter:
     case Bool(v)              => v.toString
     case Str(v)               => s""""$v""""
     case SpecTerm(name)       => name
-    case Slot(base, slot)     => s"${render(base)}.[[${slot}]]"
+    case Field(base, name)    => s"${render(base)}.[[${name}]]"
     case Index(base, key)     => s"${render(base)}[${render(key)}]"
     case AlgoCall(link, Nil)  => link
     case AlgoCall(link, args) => s"$link(${args.map(render).mkString(", ")})"

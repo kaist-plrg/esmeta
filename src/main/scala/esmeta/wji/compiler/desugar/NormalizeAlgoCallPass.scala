@@ -149,9 +149,9 @@ object NormalizeAlgoCallPass extends DesugarPass:
       val (b, ne) = extractFromExpr(e)
       (b, Expr.Abrupt(check, ne))
 
-    case Expr.Slot(base, slot) =>
+    case Expr.Field(base, name) =>
       val (b, be) = extractFromExpr(base)
-      (b, Expr.Slot(be, slot))
+      (b, Expr.Field(be, name))
 
     case Expr.Index(base, key) =>
       val (bb, be) = extractFromExpr(base)

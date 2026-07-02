@@ -98,7 +98,11 @@ class InstrParserSpec extends AnyFunSuite:
     assert(
       instrs.head == If(
         And(
-          Cond.Unknown("|module|.[=imports=] [=list/is empty|is not empty=]"),
+          Eq(
+            Length(Field(Var("module"), "imports")),
+            Num("0"),
+            negated = true,
+          ),
           Eq(Var("importObject"), SpecTerm("undefined")),
         ),
         List(Throw("a {{TypeError}} exception")),
@@ -163,7 +167,7 @@ class InstrParserSpec extends AnyFunSuite:
     assert(
       instrs.contains(
         Set(
-          Slot(Var("object"), "GetPrototypeOf"),
+          Field(Var("object"), "GetPrototypeOf"),
           Expr.Unknown(
             "[=[[GetPrototypeOf]] internal method of an Exported GC Object=]",
           ),
@@ -253,7 +257,7 @@ class InstrParserSpec extends AnyFunSuite:
     assert(
       containsDeep(
         memAlgo.body,
-        Set(Slot(Var("buffer"), "ArrayBufferByteLength"), Length(Var("block"))),
+        Set(Field(Var("buffer"), "ArrayBufferByteLength"), Length(Var("block"))),
       ),
     )
     val strAlgo =

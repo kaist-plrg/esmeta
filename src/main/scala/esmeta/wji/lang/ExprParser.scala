@@ -84,10 +84,10 @@ object ExprParser:
         AlgoCall(normalizeLink(link), splitComma(argsRaw).map(parse))
       case AlgoCallProse(link, prose) =>
         AlgoCall(normalizeLink(link), parseArgs(prose))
-      case AlgoLinkOnly(link)            => AlgoCall(normalizeLink(link), Nil)
-      case ThisOnly()                    => This
-      case VarOnly(name)                 => Var(name)
-      case VarIgnore(name)               => Var(name.trim)
+      case AlgoLinkOnly(link)        => AlgoCall(normalizeLink(link), Nil)
+      case ThisOnly()                => This
+      case VarOnly(name)             => Var(name)
+      case VarIgnore(name)           => Var(name.trim)
       case SlotAccess(baseRaw, slot) => Field(parse(baseRaw), stripBraces(slot))
       case PossessiveSlot(baseRaw, slot) =>
         Field(parse(baseRaw), stripBraces(slot))
@@ -96,8 +96,8 @@ object ExprParser:
           parse(baseRaw),
           normalizeLink(link).stripPrefix("[=").stripSuffix("=]"),
         )
-      case LengthOf(inner)               => Length(parse(inner.trim))
-      case ElementCount(inner)           => Length(parse(inner.trim))
+      case LengthOf(inner)       => Length(parse(inner.trim))
+      case ElementCount(inner)   => Length(parse(inner.trim))
       case ElementAt(idx, arr)   => Index(parse(arr.trim), parse(idx.trim))
       case PossessiveSize(inner) => Length(parse(inner.trim))
       case PossessiveAssociation(baseRaw, link) =>

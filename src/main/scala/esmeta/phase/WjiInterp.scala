@@ -20,26 +20,24 @@ import scala.collection.mutable.{Map => MMap}
 
 /** `wji-interp` phase
   *
-  * A debugging tool: invokes a single compiled WJI function directly (by
-  * name, with synthetic args), instead of requiring a full JS driver file
-  * like `wji-eval`. Algorithms that touch `the current Realm Record` (or any
-  * other execution-context-scoped state) need a live realm to run against,
-  * and — per ECMA-262 9.4 — a realm/execution context only really exists
-  * while a script is actively being evaluated; `esmeta.es.Initialize` alone
-  * only builds the heap skeleton (empty execution context stack, an empty
-  * Realm Record shell), not the wiring (Realm.Intrinsics, the pushed
-  * execution context). That wiring happens only by actually running
-  * ECMA-262's own mechanized bootstrap (`InitializeHostDefinedRealm` /
-  * `ScriptEvaluation`), and per spec the execution context stack is popped
-  * back to empty once that job finishes.
+  * A debugging tool: invokes a single compiled WJI function directly (by name,
+  * with synthetic args), instead of requiring a full JS driver file like
+  * `wji-eval`. Algorithms that touch `the current Realm Record` (or any other
+  * execution-context-scoped state) need a live realm to run against, and — per
+  * ECMA-262 9.4 — a realm/execution context only really exists while a script
+  * is actively being evaluated; `esmeta.es.Initialize` alone only builds the
+  * heap skeleton (empty execution context stack, an empty Realm Record shell),
+  * not the wiring (Realm.Intrinsics, the pushed execution context). That wiring
+  * happens only by actually running ECMA-262's own mechanized bootstrap
+  * (`InitializeHostDefinedRealm` / `ScriptEvaluation`), and per spec the
+  * execution context stack is popped back to empty once that job finishes.
   *
   * So this phase runs a trivial *empty* script to completion first — which
-  * pushes a context, wires up the realm/intrinsics, then pops the context
-  * again — and then, reusing that same (heap-populated) [[State]], manually
-  * re-pushes a fresh execution context referencing the now-fully-wired realm
-  * before jumping directly into the target WJI function. This is a stand-in
-  * for "a minimal JS driver called `entry`"; it does not run any actual JS
-  * source.
+  * pushes a context, wires up the realm/intrinsics, then pops the context again
+  * — and then, reusing that same (heap-populated) [[State]], manually re-pushes
+  * a fresh execution context referencing the now-fully-wired realm before
+  * jumping directly into the target WJI function. This is a stand-in for "a
+  * minimal JS driver called `entry`"; it does not run any actual JS source.
   *
   * Wasm embedding calls (`ICallEmbed`) are dispatched to a live
   * [[SpecTecWasmHost]] over JSON-RPC, so this requires a live SpecTec process
@@ -77,12 +75,33 @@ case object WjiInterp extends Phase[CFG, Value] {
     st.heap.push(NamedAddr(EXECUTION_STACK), execContext, true)
 
     val func = mergedCfg.getFunc(config.entry)
+    // a placeholder decoded `module` (Wasm Core Spec 1.4-syntax.modules):
+    // a record so field reads like `|module|.[=imports=]` can be projected
+    // directly (see State.apply's Wasm(StrV(...)) case) without a round trip
+    // to SpecTec.
+    val placeholderModule = Wasm(
+      ALValue.StrV(
+        List(
+          "types" -> ALValue.ListV(Nil),
+          "imports" -> ALValue.ListV(Nil),
+          "tags" -> ALValue.ListV(Nil),
+          "globals" -> ALValue.ListV(Nil),
+          "mems" -> ALValue.ListV(Nil),
+          "tables" -> ALValue.ListV(Nil),
+          "funcs" -> ALValue.ListV(Nil),
+          "datas" -> ALValue.ListV(Nil),
+          "elems" -> ALValue.ListV(Nil),
+          "start" -> ALValue.OptV(None),
+          "exports" -> ALValue.ListV(Nil),
+        ),
+      ),
+    )
     // {{Module}}'s 4 internal slots (index.bs:429-432); filled with
     // placeholder values just to see how far execution gets past them.
     val moduleObject = st.heap.allocRecord(
       "ModuleObject",
       List(
-        "Module" -> Wasm(ALValue.OptV(None)),
+        "Module" -> placeholderModule,
         "Bytes" -> Wasm(ALValue.ListV(Nil)),
         "BuiltinSets" -> st.heap.allocList(Nil),
         "ImportedStringModule" -> Undef,

@@ -469,10 +469,11 @@ class Interpreter(
         case v => throw NoWasmTuple(v)
     case ESizeOf(expr) =>
       Math(eval(expr) match
-        case Str(s)        => s.length
-        case addr: Addr    => st(addr).size
-        case AstValue(ast) => ast.children.size
-        case v             => throw InvalidSizeOf(v),
+        case Str(s)                  => s.length
+        case addr: Addr              => st(addr).size
+        case AstValue(ast)           => ast.children.size
+        case Wasm(ALValue.ListV(vs)) => vs.length
+        case v                       => throw InvalidSizeOf(v),
       )
     case EClo(fname, captured) =>
       val func = cfg.getFunc(fname)

@@ -8,16 +8,18 @@ object Expr:
   case class Num(value: String) extends Expr
   case class Bool(value: Boolean) extends Expr
   case class Str(value: String) extends Expr
+
   /** A reference to an ECMA-262/Wasm-specific term (a `[=...=]`/`**...**`/
     * `<emu-const>` token whose meaning is fixed by the spec's own glossary
     * rather than by an extracted `<div algorithm>`), e.g. `null`, `undefined`,
     * `current Realm`.
     */
   case class SpecTerm(name: String) extends Expr
-  /** A field read on a record/structure: base's field named `name`. Covers
-    * both ECMA-262's `.[[name]]` internal-slot syntax and a WebAssembly-spec
-    * field written as `base.[=name=]`, where the `[=...=]` is a plain
-    * documentation link rather than a call.
+
+  /** A field read on a record/structure: base's field named `name`. Covers both
+    * ECMA-262's `.[[name]]` internal-slot syntax and a WebAssembly-spec field
+    * written as `base.[=name=]`, where the `[=...=]` is a plain documentation
+    * link rather than a call.
     */
   case class Field(base: Expr, name: String) extends Expr
   case class Index(base: Expr, key: Expr) extends Expr

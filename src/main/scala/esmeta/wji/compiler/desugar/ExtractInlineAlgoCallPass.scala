@@ -3,8 +3,8 @@ package esmeta.wji.compiler.desugar
 import esmeta.wji.lang.{Algorithm, Expr, Instr}
 import esmeta.wji.lang.Instr.PerformOutcome
 
-/** Converts `AlgoCall`-with-args and `JSCall` (a `[$name$](...)` reference
-  * into ECMA-262 itself, e.g. `[$NewPromiseCapability$](...)`) that appear in
+/** Converts `AlgoCall`-with-args and `JSCall` (a `[$name$](...)` reference into
+  * ECMA-262 itself, e.g. `[$NewPromiseCapability$](...)`) that appear in
   * expression position into explicit `Perform` statements so the compiler can
   * emit `ICall` instead of `EYet("call ...")`.
   *
@@ -17,9 +17,9 @@ import esmeta.wji.lang.Instr.PerformOutcome
   *   (and likewise for JSCall(f, args) in each position)
   * }}}
   *
-  * Zero-argument `AlgoCall`s in `Return` position are left alone (the
-  * compiler emits `ERef(Global(name))` for those, which is already correct);
-  * `JSCall` has no such zero-arg ambiguity and is always extracted.
+  * Zero-argument `AlgoCall`s in `Return` position are left alone (the compiler
+  * emits `ERef(Global(name))` for those, which is already correct); `JSCall`
+  * has no such zero-arg ambiguity and is always extracted.
   *
   * Must run after [[ExpandAbruptPass]] and [[ExpandDestructuringLetPass]] (so
   * `Let(_tupleN, AlgoCall(...))` nodes are visible), and before
@@ -73,11 +73,11 @@ object ExtractInlineAlgoCallPass extends DesugarPass:
     * args)` if the expression is an `AlgoCall` or a `JSCall`.
     *
     * @param zeroArg
-    *   if true, zero-argument `AlgoCall`s are included (for Let RHS); if
-    *   false, only `AlgoCall`s with arguments (for Return value). `JSCall` is
-    *   always included regardless — its `[$name$](...)` syntax always carries
-    *   an argument list, so (unlike a bare `[=link=]`) it is never ambiguous
-    *   with a plain spec-term reference.
+    *   if true, zero-argument `AlgoCall`s are included (for Let RHS); if false,
+    *   only `AlgoCall`s with arguments (for Return value). `JSCall` is always
+    *   included regardless — its `[$name$](...)` syntax always carries an
+    *   argument list, so (unlike a bare `[=link=]`) it is never ambiguous with
+    *   a plain spec-term reference.
     */
   private def extractCall(
     expr: Expr,

@@ -133,11 +133,11 @@ object Compiler:
   // ── Expression ───────────────────────────────────────────────────────────────
 
   private def compileExpr(expr: metalang.Expr): ir.Expr = expr match
-    case metalang.Expr.Var(name)              => ERef(Name(name))
-    case metalang.Expr.This                   => ERef(Global("this"))
-    case metalang.Expr.Num(s)                 => compileNum(s)
-    case metalang.Expr.Bool(b)                => EBool(b)
-    case metalang.Expr.Str(s)                 => EStr(s)
+    case metalang.Expr.Var(name)             => ERef(Name(name))
+    case metalang.Expr.This                  => ERef(Global("this"))
+    case metalang.Expr.Num(s)                => compileNum(s)
+    case metalang.Expr.Bool(b)               => EBool(b)
+    case metalang.Expr.Str(s)                => EStr(s)
     case metalang.Expr.SpecTerm("null")      => ENull()
     case metalang.Expr.SpecTerm("undefined") => EUndef()
     // "the current Realm Record" (ECMA-262 9.4 Execution Contexts): the Realm
@@ -201,8 +201,8 @@ object Compiler:
   /** Converts a metalang Expr that appears in a writable position to an IR Ref.
     */
   private def compileRef(expr: metalang.Expr): Ref = expr match
-    case metalang.Expr.Var(name)        => Name(name)
-    case metalang.Expr.This             => Global("this")
+    case metalang.Expr.Var(name)         => Name(name)
+    case metalang.Expr.This              => Global("this")
     case metalang.Expr.Field(base, name) => Field(compileRef(base), EStr(name))
     case metalang.Expr.Index(base, key) =>
       Field(compileRef(base), compileExpr(key))

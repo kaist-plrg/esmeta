@@ -5,15 +5,14 @@ import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr}
 /** Reclassifies `[=...=]` links that don't name an extracted algorithm as
   * [[Expr.SpecTerm]] instead of [[Expr.AlgoCall]].
   *
-  * A Bikeshed `[=...=]` autolink can point to a `<div algorithm>` (an
-  * actually callable operation, e.g. `[=module_decode=]`) or to a plain
-  * `<dfn>`/prose definition (e.g. `[=current Realm=]`, which links to
-  * ECMA-262's "Execution Contexts" section, not an algorithm). [[ExprParser]]
-  * can't tell these apart — it only ever sees one link string at a time — so
-  * every bracket-link initially parses as a zero-arg `AlgoCall`. This pass
-  * runs once every algorithm has been extracted, when the full set of real
-  * algorithm names is known, and downgrades links that don't name one of them
-  * into `SpecTerm`.
+  * A Bikeshed `[=...=]` autolink can point to a `<div algorithm>` (an actually
+  * callable operation, e.g. `[=module_decode=]`) or to a plain `<dfn>`/prose
+  * definition (e.g. `[=current Realm=]`, which links to ECMA-262's "Execution
+  * Contexts" section, not an algorithm). [[ExprParser]] can't tell these apart
+  * — it only ever sees one link string at a time — so every bracket-link
+  * initially parses as a zero-arg `AlgoCall`. This pass runs once every
+  * algorithm has been extracted, when the full set of real algorithm names is
+  * known, and downgrades links that don't name one of them into `SpecTerm`.
   *
   * Calls with arguments are left untouched: a link used with an argument list
   * is unambiguously a call.
@@ -30,14 +29,15 @@ object ResolveSpecTermsPass extends DesugarPass:
     val e = rewriteExpr(known)
     val c = rewriteCond(known)
     val rewritten: Instr = instr match
-      case i: Instr.Let     => i.copy(lhs = e(i.lhs), expr = e(i.expr))
-      case i: Instr.Set     => i.copy(lhs = e(i.lhs), expr = e(i.expr))
-      case i: Instr.If      => i.copy(cond = c(i.cond))
-      case i: Instr.ElseIf  => i.copy(cond = c(i.cond))
-      case i: Instr.Return  => i.copy(expr = i.expr.map(e))
-      case i: Instr.Assert  => i.copy(cond = c(i.cond))
-      case i: Instr.While   => i.copy(cond = c(i.cond))
-      case i: Instr.Append  => i.copy(item = e(i.item), collection = e(i.collection))
+      case i: Instr.Let    => i.copy(lhs = e(i.lhs), expr = e(i.expr))
+      case i: Instr.Set    => i.copy(lhs = e(i.lhs), expr = e(i.expr))
+      case i: Instr.If     => i.copy(cond = c(i.cond))
+      case i: Instr.ElseIf => i.copy(cond = c(i.cond))
+      case i: Instr.Return => i.copy(expr = i.expr.map(e))
+      case i: Instr.Assert => i.copy(cond = c(i.cond))
+      case i: Instr.While  => i.copy(cond = c(i.cond))
+      case i: Instr.Append =>
+        i.copy(item = e(i.item), collection = e(i.collection))
       case i: Instr.Perform => i.copy(args = i.args.map(e))
       case i: Instr.IfChain =>
         i.copy(branches = i.branches.map((cond, body) => (c(cond), body)))
@@ -65,20 +65,20 @@ object ResolveSpecTermsPass extends DesugarPass:
       case Expr.List_(elems)         => Expr.List_(elems.map(go))
       case Expr.Map_(entries) =>
         Expr.Map_(entries.map((k, v) => (go(k), go(v))))
-      case Expr.Length(e)      => Expr.Length(go(e))
+      case Expr.Length(e)       => Expr.Length(go(e))
       case Expr.BinOp(l, op, r) => Expr.BinOp(go(l), op, go(r))
-      case Expr.Pow(base, exp) => Expr.Pow(go(base), go(exp))
-      case Expr.Neg(e)         => Expr.Neg(go(e))
-      case Expr.AsMath(e)      => Expr.AsMath(go(e))
-      case Expr.Tuple(elems)   => Expr.Tuple(elems.map(go))
-      case other               => other
+      case Expr.Pow(base, exp)  => Expr.Pow(go(base), go(exp))
+      case Expr.Neg(e)          => Expr.Neg(go(e))
+      case Expr.AsMath(e)       => Expr.AsMath(go(e))
+      case Expr.Tuple(elems)    => Expr.Tuple(elems.map(go))
+      case other                => other
 
   private def rewriteCond(known: Set[String])(cond: Cond): Cond =
     val e = rewriteExpr(known)
     val go = rewriteCond(known)
     cond match
-      case Cond.Eq(l, r, neg)     => Cond.Eq(e(l), e(r), neg)
-      case Cond.Compare(l, op, r) => Cond.Compare(e(l), op, e(r))
+      case Cond.Eq(l, r, neg)      => Cond.Eq(e(l), e(r), neg)
+      case Cond.Compare(l, op, r)  => Cond.Compare(e(l), op, e(r))
       case Cond.MapExists(ex, neg) => Cond.MapExists(e(ex), neg)
       case Cond.Implements(ex, iface, neg) =>
         Cond.Implements(e(ex), iface, neg)

@@ -1,5 +1,6 @@
 package esmeta.wji
 
+import org.scalatest.{Args, Status}
 import org.scalatest.funsuite.AnyFunSuite
 import java.nio.file.{Files, Paths}
 import esmeta.BASE_DIR
@@ -13,14 +14,18 @@ import esmeta.wji.compiler.Compiler
   * file so it can be inspected. When a change is intentional, regenerate the
   * expected files:
   * {{{
-  *   UPDATE_SNAPSHOTS=true sbt "testOnly esmeta.wji.SnapshotSpec"
+  *   sbt "testOnly esmeta.wji.SnapshotSpec -- -Dupdate=true"
   * }}}
   */
 class SnapshotSpec extends AnyFunSuite:
 
   private val goldenDir =
     Paths.get(BASE_DIR).resolve("src/test/resources/golden/wji")
-  private val update = sys.env.get("UPDATE_SNAPSHOTS").contains("true")
+  private var update = false
+
+  override def run(testName: Option[String], args: Args): Status =
+    update = args.configMap.getWithDefault("update", "false") == "true"
+    super.run(testName, args)
 
   private lazy val algorithms = SpecFile.loadAllAlgorithms()
 

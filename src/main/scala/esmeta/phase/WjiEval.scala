@@ -8,6 +8,7 @@ import esmeta.ir.Program
 import esmeta.state.State
 import esmeta.util.*
 import esmeta.util.SystemUtils.*
+import esmeta.wji.interpreter.StubWasmHost
 
 /** `wji-eval` phase
   *
@@ -46,7 +47,11 @@ case object WjiEval extends Phase[CFG, State] {
       Program(cfg.program.funcs ++ wjiProgram.funcs, cfg.program.spec)
     val mergedCfg = CFGBuilder(merged)
 
-    EsInterpreter(mergedCfg.init.fromFile(filename), log = config.log)
+    EsInterpreter(
+      mergedCfg.init.fromFile(filename),
+      log = config.log,
+      wasmHost = Some(StubWasmHost()),
+    )
 
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(

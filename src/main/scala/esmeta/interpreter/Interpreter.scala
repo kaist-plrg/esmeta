@@ -14,7 +14,8 @@ import esmeta.ty.*
 import esmeta.util.Loc
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
-import esmeta.wji.state.ALValue
+import esmeta.wji.bridge.host.{HostFunction, WasmError, WasmHost}
+import esmeta.wji.state.{ALNum, ALValue}
 import java.io.PrintWriter
 import java.math.MathContext.DECIMAL128
 import java.util.concurrent.TimeoutException
@@ -30,6 +31,7 @@ class Interpreter(
   val detail: Boolean = false,
   val logPW: Option[PrintWriter] = None,
   val timeLimit: Option[Int] = None,
+  val wasmHost: Option[WasmHost] = None,
 ) {
   import Interpreter.*
 
@@ -192,14 +194,139 @@ class Interpreter(
             case None => throw InvalidAstField(syn, Str(method))
         case lex: Lexical =>
           setCallResult(lhs, Interpreter.eval(lex, method))
-    // TODO(Phase 3): dispatch to a real WasmHost instead of stubbing out;
-    // see `wji-interpreter/Interpreter.scala`'s `callEmbedding` for the full
-    // ~40-case table this should eventually port.
-    case ICallEmbed(lhs, fname, args) =>
-      throw NotSupported(Feature)(
-        s"Wasm embedding operation not yet wired into the interpreter: $fname",
-      )
+    case ICallEmbed(lhs, fname, argEs) =>
+      val args = argEs.map(eval)
+      setCallResult(lhs, callEmbedding(fname, args, call))
   }
+
+  /** dispatch a Wasm embedding operation (e.g. `module_decode`, `func_invoke`)
+    * to [[wasmHost]], converting [[Value]] <-> [[ALValue]] at the boundary. A
+    * [[WasmError]] becomes a [[WasmHostFailure]].
+    */
+  private def callEmbedding(fname: String, args: List[Value], call: Call): Value =
+    val host = wasmHost.getOrElse(throw UnknownEmbedding(fname))
+    def al(i: Int): ALValue = toAL(args(i))
+    def alList(i: Int): List[ALValue] = toALList(args(i))
+
+    fname match
+      // -- Store ------------------------------------------------------------
+      case "store_init" => one(host.storeInit())
+
+      // -- Modules ----------------------------------------------------------
+      case "module_decode"   => one(host.moduleDecode(al(0)))
+      case "module_validate" => one(host.moduleValidate(al(0)))
+      case "module_instantiate" =>
+        one(host.moduleInstantiate(al(0), al(1), alList(2)))
+      case "module_imports" => one(host.moduleImports(al(0)))
+      case "module_exports" => one(host.moduleExports(al(0)))
+
+      // -- Module instances -------------------------------------------------
+      case "instance_export" => one(host.instanceExport(al(0), al(1)))
+
+      // -- Functions --------------------------------------------------------
+      case "func_alloc" =>
+        one(host.funcAlloc(al(0), al(1), toHostFunc(args(2), call)))
+      case "func_type"   => one(host.funcType(al(0), al(1)))
+      case "func_invoke" => one(host.funcInvoke(al(0), al(1), alList(2)))
+
+      // -- Tables -------------------------------------------------------------
+      case "table_alloc" => one(host.tableAlloc(al(0), al(1), al(2)))
+      case "table_type"  => one(host.tableType(al(0), al(1)))
+      case "table_read"  => one(host.tableRead(al(0), al(1), al(2)))
+      case "table_write" => one(host.tableWrite(al(0), al(1), al(2), al(3)))
+      case "table_size"  => one(host.tableSize(al(0), al(1)))
+      case "table_grow"  => one(host.tableGrow(al(0), al(1), al(2), al(3)))
+
+      // -- Memories -----------------------------------------------------------
+      case "mem_alloc" => one(host.memAlloc(al(0), al(1)))
+      case "mem_type"  => one(host.memType(al(0), al(1)))
+      case "mem_size"  => one(host.memSize(al(0), al(1)))
+      case "mem_grow"  => one(host.memGrow(al(0), al(1), al(2)))
+
+      // -- Tags -----------------------------------------------------------------
+      case "tag_alloc" => one(host.tagAlloc(al(0), al(1)))
+      case "tag_type"  => one(host.tagType(al(0), al(1)))
+
+      // -- Exceptions -----------------------------------------------------------
+      case "exn_alloc" => one(host.exnAlloc(al(0), al(1), alList(2)))
+      case "exn_tag"   => one(host.exnTag(al(0), al(1)))
+      case "exn_read"  => one(host.exnRead(al(0), al(1)))
+
+      // -- Globals --------------------------------------------------------------
+      case "global_alloc" => one(host.globalAlloc(al(0), al(1), al(2)))
+      case "global_type"  => one(host.globalType(al(0), al(1)))
+      case "global_read"  => one(host.globalRead(al(0), al(1)))
+      case "global_write" => one(host.globalWrite(al(0), al(1), al(2)))
+
+      // -- Values -----------------------------------------------------------------
+      case "ref_type"    => one(host.refType(al(0), al(1)))
+      case "val_default" => one(host.valDefault(al(0)))
+
+      // -- Matching -----------------------------------------------------------------
+      case "match_valtype"    => one(host.matchValType(al(0), al(1)))
+      case "match_externtype" => one(host.matchExternType(al(0), al(1)))
+
+      case other => throw UnknownEmbedding(other)
+
+  private def one(e: Either[WasmError, ALValue]): Value =
+    e match
+      case Right(a)  => Wasm(a)
+      case Left(err) => throw WasmHostFailure(err.toString)
+
+  /** build a [[HostFunction]] from a [[Value.Clo]]/[[Value.Cont]] so SpecTec
+    * can call back into this SAME interpreter (on the SAME `st`) during Wasm
+    * execution — no separate WJI interpreter or heap involved.
+    */
+  private def toHostFunc(v: Value, call: Call): HostFunction =
+    val callee = v.asCallable
+    (vals: List[ALValue]) =>
+      invokeCallable(callee, vals.map(Wasm.apply), call) match
+        case Wasm(ALValue.ListV(rs)) => Right(rs)
+        case Wasm(av)                => Right(List(av))
+        case addr: Addr =>
+          st(addr) match
+            case ListObj(vs) => Right(vs.map(toAL).toList)
+            case other       => Left(WasmError.ProtocolError(other.toString))
+        case other =>
+          Left(WasmError.ProtocolError(other.toString))
+
+  /** synchronously invoke `callee` with `args`, reentrantly, on this same
+    * `st` (sharing heap/globals) — the current execution position
+    * (`st.context`/`st.callStack`) is saved and restored around the nested
+    * run so it doesn't clobber the suspended outer frame that triggered this
+    * embedding call.
+    */
+  private def invokeCallable(callee: Callable, args: List[Value], call: Call): Value =
+    val savedContext = st.context
+    val savedCallStack = st.callStack
+    val locals = getLocals(callee.func.irFunc.params, args, call, callee) ++
+      callee.captured
+    st.context = createContext(call, callee.func, locals)
+    st.callStack = Nil
+    try
+      while (step) {}
+      st.globals.getOrElse(GLOBAL_RESULT, Undef)
+    finally
+      st.context = savedContext
+      st.callStack = savedCallStack
+
+  private def toAL(v: Value): ALValue =
+    v match
+      case Wasm(av) => av
+      case Str(s)   => ALValue.TextV(s)
+      case Bool(b)  => ALValue.BoolV(b)
+      case Number(n) => ALValue.NumV(ALNum.Real(n))
+      case Math(n)   => ALValue.NumV(ALNum.Int(n.toBigInt))
+      case other     => throw NoWasmValue(other)
+
+  private def toALList(v: Value): List[ALValue] =
+    v match
+      case Wasm(ALValue.ListV(vs)) => vs
+      case addr: Addr =>
+        st(addr) match
+          case ListObj(vs) => vs.map(toAL).toList
+          case other       => throw NoList(other)
+      case other => throw NoWasmValue(other)
 
   /** transition for expressions */
   def eval(expr: Expr): Value = expr match {
@@ -330,12 +457,9 @@ class Interpreter(
       eval(expr) match
         case Wasm(ALValue.TupV(vs)) =>
           if idx < 0 || idx >= vs.length then
-            throw NotSupported(Feature)(
-              s"proj: index $idx out of bounds for tuple of size ${vs.length}",
-            )
+            throw WasmTupleIndexOutOfRange(idx, vs.length)
           Wasm(vs(idx))
-        case v =>
-          throw NotSupported(Feature)(s"proj: expected a Wasm tuple, got $v")
+        case v => throw NoWasmTuple(v)
     case ESizeOf(expr) =>
       Math(eval(expr) match
         case Str(s)        => s.length
@@ -566,7 +690,9 @@ object Interpreter {
     detail: Boolean = false,
     logPW: Option[PrintWriter] = None,
     timeLimit: Option[Int] = None,
-  ): State = new Interpreter(st, tyCheck, log, detail, logPW, timeLimit).result
+    wasmHost: Option[WasmHost] = None,
+  ): State =
+    new Interpreter(st, tyCheck, log, detail, logPW, timeLimit, wasmHost).result
 
   /** transition for lexical SDO */
   def eval(lex: Lexical, sdoName: String): Value = {

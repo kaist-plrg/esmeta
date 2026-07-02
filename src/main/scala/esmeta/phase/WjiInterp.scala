@@ -8,6 +8,7 @@ import esmeta.error.ESMetaError
 import esmeta.interpreter.{Interpreter => EsInterpreter}
 import esmeta.ir.{Local, Program}
 import esmeta.state.*
+import esmeta.wji.interpreter.StubWasmHost
 import scala.collection.mutable.{Map => MMap}
 
 /** `wji-interp` phase
@@ -16,10 +17,9 @@ import scala.collection.mutable.{Map => MMap}
   * `esmeta.interpreter.Interpreter` (replaces the old `InterpreterPlayground` /
   * WJI-only interpreter, now that WJI algorithms compile to real `esmeta.ir`
   * functions). By default it invokes `instantiate(moduleObject, importObject)`
-  * with two empty records. Wasm embedding calls (`ICallEmbed`) aren't wired to
-  * a real `WasmHost` yet (see the TODO on `ICallEmbed` in
-  * [[esmeta.interpreter.Interpreter]]), so they surface as a `NotSupported`
-  * error rather than requiring a live SpecTec process.
+  * with two empty records. Wasm embedding calls (`ICallEmbed`) are dispatched
+  * to a [[StubWasmHost]], which logs the call and reports a stub error rather
+  * than requiring a live SpecTec process.
   */
 case object WjiInterp extends Phase[Program, Value] {
   val name = "wji-interp"
@@ -45,7 +45,7 @@ case object WjiInterp extends Phase[Program, Value] {
     println(s"invoke: ${config.entry}($moduleObject, $importObject)")
     println(sep)
     try
-      EsInterpreter(st)
+      EsInterpreter(st, wasmHost = Some(StubWasmHost()))
       println(sep)
       st.globals.getOrElse(GLOBAL_RESULT, Undef)
     catch

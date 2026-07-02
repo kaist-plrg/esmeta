@@ -95,13 +95,15 @@ object NormalizeAlgoCallPass extends DesugarPass:
       List(instr.mapBody(transform))
 
   /** Like [[extractFromExpr]] but returns `(Nil, expr)` when the top-level
-    * expression is already a bare AlgoCall (or `!`-wrapped AlgoCall) — those
-    * are left for [[ExtractInlineAlgoCallPass]] to convert directly to
-    * `Perform` without an intermediate variable.
+    * expression is already a bare AlgoCall/JSCall (or `!`-wrapped) — those are
+    * left for [[ExtractInlineAlgoCallPass]] to convert directly to `Perform`
+    * without an intermediate variable.
     */
   private def skipTopAlgoCall(expr: Expr): (List[Instr.Let], Expr) = expr match
     case Expr.AlgoCall(_, _)                   => (Nil, expr)
     case Expr.Abrupt("!", Expr.AlgoCall(_, _)) => (Nil, expr)
+    case Expr.JSCall(_, _)                     => (Nil, expr)
+    case Expr.Abrupt("!", Expr.JSCall(_, _))   => (Nil, expr)
     case _                                     => extractFromExpr(expr)
 
   // ── Expr normalization ───────────────────────────────────────────────────────
@@ -115,6 +117,17 @@ object NormalizeAlgoCallPass extends DesugarPass:
     case Expr.Abrupt("!", Expr.AlgoCall(link, args)) if args.nonEmpty =>
       val tmp = fresh()
       (List(Instr.Let(Expr.Var(tmp), Expr.AlgoCall(link, args))), Expr.Var(tmp))
+
+    // unlike AlgoCall, JSCall's `[$name$](...)` syntax always carries a
+    // (possibly empty) argument list, so there is no zero-arg/bare-reference
+    // ambiguity to preserve — every JSCall is a call.
+    case Expr.JSCall(_, _) =>
+      val tmp = fresh()
+      (List(Instr.Let(Expr.Var(tmp), expr)), Expr.Var(tmp))
+
+    case Expr.Abrupt("!", Expr.JSCall(name, args)) =>
+      val tmp = fresh()
+      (List(Instr.Let(Expr.Var(tmp), Expr.JSCall(name, args))), Expr.Var(tmp))
 
     case Expr.BinOp(l, op, r) =>
       val (lb, le) = extractFromExpr(l)

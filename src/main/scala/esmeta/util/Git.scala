@@ -16,6 +16,9 @@ abstract class Git(path: String, shortHashLength: Int = 16) { self =>
     /** get short hashcode */
     def shortHash: String = hash.take(shortHashLength)
 
+    /** return a new version with tag removed */
+    def removeTag: Version = copy(tag = None)
+
     /** conversion to string */
     override def toString: String = hash + tag.fold("")(" (" + _ + ")")
 

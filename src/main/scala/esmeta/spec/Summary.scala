@@ -28,7 +28,7 @@ object Summary extends Parser.From[Summary](Parser.summary) {
     val knownTypes = spec.knownTypes.length
     val yetTypes = spec.yetTypes.length
     Summary(
-      version = version,
+      version = version.map(v => v.removeTag),
       grammar = GrammarSummary(
         lexical = prodsBy(Lexical).length,
         numeric = prodsBy(NumericString).length,

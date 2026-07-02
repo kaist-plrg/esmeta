@@ -254,11 +254,11 @@ case object CmdWjiCompile
 
 /** `wji-interp` command */
 case object CmdWjiInterp
-  extends Command("wji-interp", CmdWjiCompile >> WjiInterp) {
+  extends Command("wji-interp", CmdBuildCFG >> WjiInterp) {
   val help =
-    "runs the compiled WJI program on the unified interpreter (needs SpecTec)."
+    "invokes a single compiled WJI function against a live ECMA-262 realm (needs SpecTec)."
   val examples = List(
-    "esmeta wji-interp                       # run instantiate() on empty input.",
+    "esmeta wji-interp                       # run instantiate_object() on empty input.",
     "esmeta wji-interp -wji-interp:entry=foo # invoke a different WJI function.",
   )
 }

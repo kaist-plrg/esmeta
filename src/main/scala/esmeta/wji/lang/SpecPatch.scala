@@ -22,6 +22,13 @@ object SpecPatch:
     "The <dfn method for=\"WebAssembly\">instantiate(|moduleObject|, |importObject|)</dfn> method, when invoked, performs the following steps:"
     ->
     "The <dfn method for=\"WebAssembly\">instantiate_object(|moduleObject|, |importObject|)</dfn> method, when invoked, performs the following steps:",
+
+    // #4 — `a new promise` is defined with an explicit |realm| parameter
+    // (webidl/index.bs), but js-api/index.bs calls it with no argument,
+    // eliding the realm the way Bikeshed prose conventionally does. Make the
+    // realm argument explicit so it compiles.
+    "1. Let |promise| be [=a new promise=]."
+    -> "1. Let |promise| be [=a new promise=] in the [=current Realm=].",
   )
 
   def apply(source: String): String =

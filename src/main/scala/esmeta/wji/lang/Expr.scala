@@ -8,7 +8,12 @@ object Expr:
   case class Num(value: String) extends Expr
   case class Bool(value: Boolean) extends Expr
   case class Str(value: String) extends Expr
-  case class SpecConst(name: String) extends Expr
+  /** A reference to an ECMA-262/Wasm-specific term (a `[=...=]`/`**...**`/
+    * `<emu-const>` token whose meaning is fixed by the spec's own glossary
+    * rather than by an extracted `<div algorithm>`), e.g. `null`, `undefined`,
+    * `current Realm`.
+    */
+  case class SpecTerm(name: String) extends Expr
   case class Slot(base: Expr, slot: String) extends Expr
   case class Index(base: Expr, key: Expr) extends Expr
   case class AlgoCall(link: String, args: List[Expr]) extends Expr

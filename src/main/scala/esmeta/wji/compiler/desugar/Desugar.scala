@@ -4,6 +4,7 @@ import esmeta.wji.lang.Algorithm
 
 object Desugar:
   val pipeline: List[DesugarPass] = List(
+    ResolveSpecTermsPass,
     DropNotesPass,
     GroupIfChainPass,
     ExpandAbruptPass,

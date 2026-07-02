@@ -133,9 +133,14 @@ object Compiler:
     case metalang.Expr.Num(s)                 => compileNum(s)
     case metalang.Expr.Bool(b)                => EBool(b)
     case metalang.Expr.Str(s)                 => EStr(s)
-    case metalang.Expr.SpecConst("null")      => ENull()
-    case metalang.Expr.SpecConst("undefined") => EUndef()
-    case metalang.Expr.SpecConst(s)           => EEnum(s)
+    case metalang.Expr.SpecTerm("null")      => ENull()
+    case metalang.Expr.SpecTerm("undefined") => EUndef()
+    // "the current Realm Record" (ECMA-262 9.4 Execution Contexts): the Realm
+    // component of the running execution context, i.e. the top frame of the
+    // execution context stack. Mirrors `esmeta.compiler.currentRealm`.
+    case metalang.Expr.SpecTerm("current Realm") =>
+      ERef(Field(GLOBAL_CONTEXT, EStr("Realm")))
+    case metalang.Expr.SpecTerm(s) => EEnum(s)
     case metalang.Expr.Slot(base, slot) =>
       ERef(Field(compileRef(base), EStr(slot)))
     case metalang.Expr.Index(base, key) =>

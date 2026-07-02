@@ -99,7 +99,7 @@ class InstrParserSpec extends AnyFunSuite:
       instrs.head == If(
         And(
           Cond.Unknown("|module|.[=imports=] [=list/is empty|is not empty=]"),
-          Eq(Var("importObject"), SpecConst("undefined")),
+          Eq(Var("importObject"), SpecTerm("undefined")),
         ),
         List(Throw("a {{TypeError}} exception")),
       ),

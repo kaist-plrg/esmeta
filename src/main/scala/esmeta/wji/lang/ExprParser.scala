@@ -54,11 +54,18 @@ object ExprParser:
   private val BoolFalse = """(?i)^false$""".r
   private val BoldConst = """(?s)^\*\*([^*]+)\*\*$""".r
   private val EmptyString = """(?i)^the empty string$""".r
-  private val SpecConstPat = """(?i)^(?:undefined|null|empty|absent)$""".r
+  private val SpecTermPat = """(?i)^(?:undefined|null|empty|absent)$""".r
   private val EmuConst = """(?s)^(<emu-const>[^<]*</emu-const>)$""".r
 
   def normalizeLink(link: String): String =
     link.replaceAll("""\|[^=\]]*(?==\])""", "")
+
+  /** Strips a Bikeshed `{{...}}` IDL-reference wrapper, e.g. a `[[...]]`
+    * internal slot named after an intrinsic is conventionally written
+    * `[[{{%Promise%}}]]` rather than `[[%Promise%]]`.
+    */
+  private def stripBraces(s: String): String =
+    s.stripPrefix("{{").stripSuffix("}}")
 
   def parse(raw: String): Expr =
     val s = raw.trim
@@ -76,8 +83,9 @@ object ExprParser:
       case ThisOnly()                    => This
       case VarOnly(name)                 => Var(name)
       case VarIgnore(name)               => Var(name.trim)
-      case SlotAccess(baseRaw, slot)     => Slot(parse(baseRaw), slot)
-      case PossessiveSlot(baseRaw, slot) => Slot(parse(baseRaw), slot)
+      case SlotAccess(baseRaw, slot) => Slot(parse(baseRaw), stripBraces(slot))
+      case PossessiveSlot(baseRaw, slot) =>
+        Slot(parse(baseRaw), stripBraces(slot))
       case LengthOf(inner)               => Length(parse(inner.trim))
       case ElementCount(inner)           => Length(parse(inner.trim))
       case ElementAt(idx, arr)   => Index(parse(arr.trim), parse(idx.trim))
@@ -114,9 +122,9 @@ object ExprParser:
       case EmptyString()   => Str("")
       case BoolTrue()      => Bool(true)
       case BoolFalse()     => Bool(false)
-      case BoldConst(_)    => SpecConst(s)
-      case SpecConstPat()  => SpecConst(s)
-      case EmuConst(v)     => SpecConst(v)
+      case BoldConst(_)    => SpecTerm(s)
+      case SpecTermPat()   => SpecTerm(s)
+      case EmuConst(v)     => SpecTerm(v)
       case _               => Unknown(s)
 
   /** Extracts argument [[Expr]]s from a prose string.

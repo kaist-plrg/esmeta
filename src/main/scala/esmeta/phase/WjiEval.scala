@@ -49,7 +49,6 @@ case object WjiEval extends Phase[CFG, State] {
       Program(cfg.program.funcs ++ wjiProgram.funcs, cfg.program.spec)
     val mergedCfg = CFGBuilder(merged)
 
-
     val process = SpecTecProcess.start()
     val connection = JsonRpcConnection.stdio(process)
     val host = SpecTecWasmHost(connection)

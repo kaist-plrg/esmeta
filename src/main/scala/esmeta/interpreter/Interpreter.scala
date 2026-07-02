@@ -203,7 +203,11 @@ class Interpreter(
     * to [[wasmHost]], converting [[Value]] <-> [[ALValue]] at the boundary. A
     * [[WasmError]] becomes a [[WasmHostFailure]].
     */
-  private def callEmbedding(fname: String, args: List[Value], call: Call): Value =
+  private def callEmbedding(
+    fname: String,
+    args: List[Value],
+    call: Call,
+  ): Value =
     val host = wasmHost.getOrElse(throw UnknownEmbedding(fname))
     def al(i: Int): ALValue = toAL(args(i))
     def alList(i: Int): List[ALValue] = toALList(args(i))
@@ -290,13 +294,17 @@ class Interpreter(
         case other =>
           Left(WasmError.ProtocolError(other.toString))
 
-  /** synchronously invoke `callee` with `args`, reentrantly, on this same
-    * `st` (sharing heap/globals) — the current execution position
-    * (`st.context`/`st.callStack`) is saved and restored around the nested
-    * run so it doesn't clobber the suspended outer frame that triggered this
+  /** synchronously invoke `callee` with `args`, reentrantly, on this same `st`
+    * (sharing heap/globals) — the current execution position
+    * (`st.context`/`st.callStack`) is saved and restored around the nested run
+    * so it doesn't clobber the suspended outer frame that triggered this
     * embedding call.
     */
-  private def invokeCallable(callee: Callable, args: List[Value], call: Call): Value =
+  private def invokeCallable(
+    callee: Callable,
+    args: List[Value],
+    call: Call,
+  ): Value =
     val savedContext = st.context
     val savedCallStack = st.callStack
     val locals = getLocals(callee.func.irFunc.params, args, call, callee) ++
@@ -312,9 +320,9 @@ class Interpreter(
 
   private def toAL(v: Value): ALValue =
     v match
-      case Wasm(av) => av
-      case Str(s)   => ALValue.TextV(s)
-      case Bool(b)  => ALValue.BoolV(b)
+      case Wasm(av)  => av
+      case Str(s)    => ALValue.TextV(s)
+      case Bool(b)   => ALValue.BoolV(b)
       case Number(n) => ALValue.NumV(ALNum.Real(n))
       case Math(n)   => ALValue.NumV(ALNum.Int(n.toBigInt))
       case other     => throw NoWasmValue(other)

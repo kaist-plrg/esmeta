@@ -28,7 +28,12 @@ object Compiler:
       Func(
         main = false,
         kind = FuncKind.AbsOp,
-        name = name,
+        // lower-cased to match `nameFromLink`: Bikeshed link matching is
+        // case-insensitive (e.g. a sentence-initial "Read the imports" links
+        // to a dfn written "read the imports"), but Scala map lookups
+        // (`cfg.fnameMap`) aren't, so both the registered name and every
+        // reference to it are normalized to the same case.
+        name = name.toLowerCase,
         params = params,
         retTy = UnknownType,
         body = compileInstrs(algo.body),
@@ -220,7 +225,12 @@ object Compiler:
     EClo(nameFromLink(link), Nil)
 
   private def nameFromLink(link: String): String =
-    link.stripPrefix("[=").stripSuffix("=]").trim
+    val name = link.stripPrefix("[=").stripSuffix("=]").trim
+    // only `[=...=]` WJI links are case-insensitive by Bikeshed convention;
+    // a bare name (as JSCall's `[$...$]` extracts it, with no brackets here)
+    // is an exact ECMA-262 AO name and must keep its case to match
+    // `cfg.fnameMap`.
+    if link.startsWith("[=") then name.toLowerCase else name
 
   private def stripPipes(s: String): String =
     s.stripPrefix("|").stripSuffix("|")

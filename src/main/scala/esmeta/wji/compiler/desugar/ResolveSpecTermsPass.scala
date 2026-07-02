@@ -20,7 +20,10 @@ import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr}
   */
 object ResolveSpecTermsPass extends DesugarPass:
   def run(algos: List[Algorithm]): List[Algorithm] =
-    val known = algos.flatMap(_.name).toSet
+    // lower-cased: Bikeshed link matching is case-insensitive (e.g. a
+    // sentence-initial "Read the imports" links to a dfn written "read the
+    // imports"), so names must be compared case-insensitively here too.
+    val known = algos.flatMap(_.name).map(_.toLowerCase).toSet
     algos.map(a => a.copy(body = a.body.map(rewriteInstr(known))))
 
   private def rewriteInstr(known: Set[String])(instr: Instr): Instr =
@@ -51,7 +54,8 @@ object ResolveSpecTermsPass extends DesugarPass:
   private def rewriteExpr(known: Set[String])(expr: Expr): Expr =
     val go = rewriteExpr(known)
     expr match
-      case Expr.AlgoCall(link, Nil) if !known.contains(stripLink(link)) =>
+      case Expr.AlgoCall(link, Nil)
+          if !known.contains(stripLink(link).toLowerCase) =>
         Expr.SpecTerm(stripLink(link))
       case Expr.AlgoCall(link, args) => Expr.AlgoCall(link, args.map(go))
       case Expr.JSCall(name, args)   => Expr.JSCall(name, args.map(go))

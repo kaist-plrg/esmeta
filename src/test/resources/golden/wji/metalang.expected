@@ -51,7 +51,7 @@
 # asynchronously compile a WebAssembly module
   params: |bytes|, |options|, |taskSource|
   head: To <dfn>asynchronously compile a WebAssembly module</dfn> from source bytes |bytes| and {{WebAssemblyCompileOptions}} |options| using optional [=task source=] |taskSource|, perform the following steps:
-  Let(|promise|, [=a new promise=])
+  Let(|promise|, [=a new promise=]([=current Realm=]))
   RunInParallel
     PerformAndLet([=compile a WebAssembly module=](|bytes|), |module|)
     Perform([=Queue a task=](|taskSource|))
@@ -226,7 +226,7 @@
 # asynchronously instantiate a WebAssembly module
   params: |moduleObject|, |importObject|
   head: To <dfn>asynchronously instantiate a WebAssembly module</dfn> from a {{Module}} |moduleObject| and imports |importObject|, perform the following steps:
-  Let(|promise|, [=a new promise=])
+  Let(|promise|, [=a new promise=]([=current Realm=]))
   Let(|module|, |moduleObject|.[[Module]])
   Let(|builtinSetNames|, |moduleObject|.[[BuiltinSets]])
   Let(|importedStringModule|, |moduleObject|.[[ImportedStringModule]])
@@ -248,7 +248,7 @@
 # instantiate a promise of a module
   params: |promiseOfModule|, |importObject|
   head: To <dfn>instantiate a promise of a module</dfn> |promiseOfModule| with imports |importObject|, perform the following steps:
-  Let(|promise|, [=a new promise=])
+  Let(|promise|, [=a new promise=]([=current Realm=]))
   Perform([=React=](|promiseOfModule|))
     If(?(|promiseOfModule| was fulfilled with value |module|))
       PerformAndLet([=asynchronously instantiate a WebAssembly module=](|module|, |importObject|), |innerPromise|)
@@ -1403,7 +1403,7 @@
 # a new promise
   params: |realm|
   head: To <dfn export lt="a new promise">create</dfn> a new <code><a interface>Promise</a>&lt;<var ignore>T</var>&gt;</code> in a [=realm=] |realm|, perform the following steps:
-  Let(|constructor|, |realm|.[[Intrinsics]].[[{{%Promise%}}]])
+  Let(|constructor|, |realm|.[[Intrinsics]].[[%Promise%]])
   Return([=?=] [$NewPromiseCapability$](|constructor|))
 
 # resolve
@@ -1440,7 +1440,7 @@
       Let(|result|, [=a promise rejected with=](|reason|))
     Return(?(|result|, [=converted to a JavaScript value=]))
   Let(|onRejected|, ?([$CreateBuiltinFunction$](|onRejectedSteps|, 1, "", « »):))
-  Let(|constructor|, |promise|.[[Promise]].[[Realm]].[[Intrinsics]].[[{{%Promise%}}]])
+  Let(|constructor|, |promise|.[[Promise]].[[Realm]].[[Intrinsics]].[[%Promise%]])
   Let(|newCapability|, [=?=] [$NewPromiseCapability$](|constructor|))
   Note(Not all callers will use the returned {{Promise}} Implementations might wish to avoid creating |newCapability| in those cases)
   Perform([$PerformPromiseThen$](|promise|.\[[Promise]], |onFulfilled|, |onRejected|, |newCapability|))

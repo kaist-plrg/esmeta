@@ -77,7 +77,17 @@ case object WjiInterp extends Phase[CFG, Value] {
     st.heap.push(NamedAddr(EXECUTION_STACK), execContext, true)
 
     val func = mergedCfg.getFunc(config.entry)
-    val moduleObject = st.heap.allocRecord("ModuleObject")
+    // {{Module}}'s 4 internal slots (index.bs:429-432); filled with
+    // placeholder values just to see how far execution gets past them.
+    val moduleObject = st.heap.allocRecord(
+      "ModuleObject",
+      List(
+        "Module" -> Wasm(ALValue.OptV(None)),
+        "Bytes" -> Wasm(ALValue.ListV(Nil)),
+        "BuiltinSets" -> st.heap.allocList(Nil),
+        "ImportedStringModule" -> Undef,
+      ),
+    )
     val importObject = st.heap.allocRecord("ImportObject")
     val locals: MMap[Local, Value] =
       MMap.from(func.params.map(_.lhs).zip(List(moduleObject, importObject)))

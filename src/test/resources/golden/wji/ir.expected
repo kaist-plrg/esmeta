@@ -352,7 +352,7 @@ def instantiate(
   call _ret2 = clo<"Instantiate a promise of a module">(promiseOfModule, importObject)
   return _ret2
 }
-def instantiate(
+def instantiate_object(
   moduleObject: Unknown,
   importObject: Unknown,
 ): Unknown = {

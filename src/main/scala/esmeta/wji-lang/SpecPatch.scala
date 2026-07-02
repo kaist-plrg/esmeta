@@ -17,6 +17,11 @@ object SpecPatch:
     // #2 — variable `keys` missing pipe delimiters in [[OwnPropertyKeys]]
     "1. Let keys be a new empty list.\n    1. Return keys."
     -> "1. Let |keys| be a new empty list.\n    1. Return |keys|.",
+
+    // #3 - (TODO: This is temporary, and shoulb de fixed) Rename instantiate function to avoid overlaod
+    "The <dfn method for=\"WebAssembly\">instantiate(|moduleObject|, |importObject|)</dfn> method, when invoked, performs the following steps:"
+    ->
+    "The <dfn method for=\"WebAssembly\">instantiate_object(|moduleObject|, |importObject|)</dfn> method, when invoked, performs the following steps:",
   )
 
   def apply(source: String): String =

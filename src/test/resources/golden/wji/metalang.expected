@@ -269,9 +269,9 @@
   PerformAndLet([=Asynchronously compile a WebAssembly module=](|stableBytes|, |options|), |promiseOfModule|)
   PerformAndReturn([=Instantiate a promise of a module=](|promiseOfModule|, |importObject|))
 
-# instantiate
+# instantiate_object
   params: |moduleObject|, |importObject|
-  head: The <dfn method for="WebAssembly">instantiate(|moduleObject|, |importObject|)</dfn> method, when invoked, performs the following steps:
+  head: The <dfn method for="WebAssembly">instantiate_object(|moduleObject|, |importObject|)</dfn> method, when invoked, performs the following steps:
   PerformAndReturn([=asynchronously instantiate a WebAssembly module=](|moduleObject|, |importObject|))
 
 # string value of the extern type

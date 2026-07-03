@@ -125,7 +125,7 @@ case object WjiInterp extends Phase[CFG, Value] {
       println(sep)
       st.globals.getOrElse(GLOBAL_RESULT, Undef)
     catch
-      case e: ESMetaError =>
+      case e: (ESMetaError | NotImplementedError) =>
         println(sep)
         println(s"[${e.getClass.getSimpleName}] ${e.getMessage}")
         printCallStack(st)

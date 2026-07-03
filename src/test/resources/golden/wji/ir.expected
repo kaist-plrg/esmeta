@@ -2,11 +2,11 @@
 def compile a webassembly module(
   bytes: Unknown,
 ): Unknown = {
-  call module = clo<"module_decode">(bytes)
+  call-embed module = <module_decode>(bytes)
   if (= module ~error~) {
     return ~error~
   } else nop
-  call _call1 = clo<"module_validate">(module)
+  call-embed _call1 = <module_validate>(module)
   if (= _call1 ~error~) {
     return ~error~
   } else nop
@@ -21,14 +21,14 @@ def validate builtins and imported string for a webassembly module(
   if (= _call2 false) {
     return false
   } else nop
-  call _iterList1 = clo<"module_imports">(module)
+  call-embed _iterList1 = <module_imports>(module)
   let _iterIdx2 = 0
   while (< _iterIdx2 (sizeof _iterList1)) {
     let import = _iterList1[_iterIdx2]
     if (&& (! (= importedStringModule null)) (= import[0] importedStringModule)) {
       let importExternType = import[2]
       let stringExternType = (yet "`global const (ref extern)`")
-      call _call3 = clo<"match_externtype">(stringExternType, importExternType)
+      call-embed _call3 = <match_externtype>(stringExternType, importExternType)
       if (= _call3 false) {
         return false
       } else nop
@@ -105,7 +105,7 @@ def instantiate imported strings(
 ): Unknown = {
   assert (! (= importedStringModule null))
   call exportsObject = clo<"OrdinaryObjectCreate">(null)
-  call _iterList3 = clo<"module_imports">(module)
+  call-embed _iterList3 = <module_imports>(module)
   let _iterIdx4 = 0
   while (< _iterIdx4 (sizeof _iterList3)) {
     let _tuple1 = _iterList3[_iterIdx4]
@@ -150,7 +150,7 @@ def read the imports(
     builtinOrStringImports[importedStringModule] = exportsObject
   } else nop
   let imports = (list [])
-  call _iterList7 = clo<"module_imports">(module)
+  call-embed _iterList7 = <module_imports>(module)
   let _iterIdx8 = 0
   while (< _iterIdx8 (sizeof _iterList7)) {
     let _tuple2 = _iterList7[_iterIdx8]
@@ -214,7 +214,7 @@ def read the imports(
           (yet "catch it, and throw a {{LinkError}} exception")
         } else nop
         let store = _ref_SpecTerm["associated store"]
-        call _tuple3 = clo<"global_alloc">(store, (yet "call [=const=]"), value)
+        call-embed _tuple3 = <global_alloc>(store, (yet "call [=const=]"), value)
         let store = _tuple3[0]
         let globaladdr = _tuple3[1]
         _ref_SpecTerm["associated store"] = store
@@ -255,13 +255,13 @@ def create an exports object(
   instance: Unknown,
 ): Unknown = {
   call exportsObject = clo<"OrdinaryObjectCreate">(null)
-  call _iterList9 = clo<"module_exports">(module)
+  call-embed _iterList9 = <module_exports>(module)
   let _iterIdx10 = 0
   while (< _iterIdx10 (sizeof _iterList9)) {
     let _tuple4 = _iterList9[_iterIdx10]
     let name = _tuple4[0]
     let externtype = _tuple4[1]
-    call externval = clo<"instance_export">(instance, name)
+    call-embed externval = <instance_export>(instance, name)
     assert (! (= externval ~error~))
     if (yet "is of form") {
       assert (yet "is of form")
@@ -316,7 +316,7 @@ def instantiate the core of a webassembly module(
   imports: Unknown,
 ): Unknown = {
   let store = _ref_SpecTerm["associated store"]
-  call result = clo<"module_instantiate">(store, module, imports)
+  call-embed result = <module_instantiate>(store, module, imports)
   if (= result ~error~) {
     (yet "A {{LinkError}} exception for most cases which occur during linking")
     if (yet "the error came when running the start function") {
@@ -408,7 +408,7 @@ def exports(
 ): Unknown = {
   let module = moduleObject.Module
   let exports = (list [])
-  call _iterList11 = clo<"module_exports">(module)
+  call-embed _iterList11 = <module_exports>(module)
   let _iterIdx12 = 0
   while (< _iterIdx12 (sizeof _iterList11)) {
     let _tuple6 = _iterList11[_iterIdx12]
@@ -431,7 +431,7 @@ def imports(
   let builtinSetNames = moduleObject.BuiltinSets
   let importedStringModule = moduleObject.ImportedStringModule
   let imports = (list [])
-  call _iterList13 = clo<"module_imports">(module)
+  call-embed _iterList13 = <module_imports>(module)
   let _iterIdx14 = 0
   while (< _iterIdx14 (sizeof _iterList13)) {
     let _tuple7 = _iterList13[_iterIdx14]
@@ -573,7 +573,7 @@ def memory(
     (yet "throw a {{RangeError}} exception")
   } else nop
   let store = _ref_SpecTerm["associated store"]
-  call _tuple8 = clo<"mem_alloc">(store, memtype)
+  call-embed _tuple8 = <mem_alloc>(store, memtype)
   let store = _tuple8[0]
   let memaddr = _tuple8[1]
   if (yet "allocation fails") {
@@ -607,7 +607,7 @@ def grow the memory buffer(
 ): Unknown = {
   let store = _ref_SpecTerm["associated store"]
   let ret = (yet "the [=mem_size=](|store|, |memaddr|)")
-  call store = clo<"mem_grow">(store, memaddr, delta)
+  call-embed store = <mem_grow>(store, memaddr, delta)
   if (= store ~error~) {
     (yet "throw a {{RangeError}} exception")
   } else nop
@@ -658,7 +658,7 @@ def toresizablebuffer(
 ): Unknown = {
   let memaddr = @this.Memory
   let store = _ref_SpecTerm["associated store"]
-  call memtype = clo<"mem_type">(store, memaddr)
+  call-embed memtype = <mem_type>(store, memaddr)
   if (yet "|memtype| does not have a max") {
     (yet "throw a {{TypeError}} exception")
   } else nop
@@ -762,7 +762,7 @@ def table(
     let ref = _comp9.Value
   }
   let store = _ref_SpecTerm["associated store"]
-  call _tuple9 = clo<"table_alloc">(store, type, ref)
+  call-embed _tuple9 = <table_alloc>(store, type, ref)
   let store = _tuple9[0]
   let tableaddr = _tuple9[1]
   if (yet "allocation fails") {
@@ -777,8 +777,8 @@ def grow(
 ): Unknown = {
   let tableaddr = @this.Table
   let store = _ref_SpecTerm["associated store"]
-  call initialSize = clo<"table_size">(store, tableaddr)
-  call _tuple10 = clo<"table_type">(store, tableaddr)
+  call-embed initialSize = <table_size>(store, tableaddr)
+  call-embed _tuple10 = <table_type>(store, tableaddr)
   let addrtype = _tuple10[0]
   let limits = _tuple10[1]
   let elementtype = _tuple10[2]
@@ -799,7 +799,7 @@ def grow(
     } else nop
     let ref = _comp11.Value
   }
-  call result = clo<"table_grow">(store, tableaddr, delta64, ref)
+  call-embed result = <table_grow>(store, tableaddr, delta64, ref)
   if (= result ~error~) {
     (yet "throw a {{RangeError}} exception")
   } else nop
@@ -812,7 +812,7 @@ def length(
   let tableaddr = @this.Table
   let store = _ref_SpecTerm["associated store"]
   let addrtype = (yet "the [=address type=] in [=table_type=](|store|, |tableaddr|)")
-  call length64 = clo<"table_size">(store, tableaddr)
+  call-embed length64 = <table_size>(store, tableaddr)
   call _ret6 = clo<"u64toaddressvalue">(length64, addrtype)
   return _ret6
 }
@@ -821,7 +821,7 @@ def get(
 ): Unknown = {
   let tableaddr = @this.Table
   let store = _ref_SpecTerm["associated store"]
-  call _tuple11 = clo<"table_type">(store, tableaddr)
+  call-embed _tuple11 = <table_type>(store, tableaddr)
   let addrtype = _tuple11[0]
   let limits = _tuple11[1]
   let elementtype = _tuple11[2]
@@ -833,7 +833,7 @@ def get(
     return _comp12
   } else nop
   let index64 = _comp12.Value
-  call result = clo<"table_read">(store, tableaddr, index64)
+  call-embed result = <table_read>(store, tableaddr, index64)
   if (= result ~error~) {
     (yet "throw a {{RangeError}} exception")
   } else nop
@@ -846,7 +846,7 @@ def set(
 ): Unknown = {
   let tableaddr = @this.Table
   let store = _ref_SpecTerm["associated store"]
-  call _tuple12 = clo<"table_type">(store, tableaddr)
+  call-embed _tuple12 = <table_type>(store, tableaddr)
   let addrtype = _tuple12[0]
   let limits = _tuple12[1]
   let elementtype = _tuple12[2]
@@ -870,7 +870,7 @@ def set(
     } else nop
     let ref = _comp14.Value
   }
-  call store = clo<"table_write">(store, tableaddr, index64, ref)
+  call-embed store = <table_write>(store, tableaddr, index64, ref)
   if (= store ~error~) {
     (yet "throw a {{RangeError}} exception")
   } else nop
@@ -929,7 +929,7 @@ def defaultvalue(
     call _ret8 = clo<"towebassemblyvalue">(undefined, valuetype)
     return _ret8
   } else nop
-  call _ret9 = clo<"val_default">(valuetype)
+  call-embed _ret9 = <val_default>(valuetype)
   return _ret9
 }
 def global(
@@ -957,7 +957,7 @@ def global(
     call globaltype = clo<"const">(valuetype)
   }
   let store = _ref_SpecTerm["associated store"]
-  call _tuple13 = clo<"global_alloc">(store, globaltype, value)
+  call-embed _tuple13 = <global_alloc>(store, globaltype, value)
   let store = _tuple13[0]
   let globaladdr = _tuple13[1]
   (yet "<!-- TODO(littledan): Report allocation failure https://github.com/WebAssembly/spec/issues/584 -->")
@@ -969,11 +969,11 @@ def getglobalvalue(
 ): Unknown = {
   let store = _ref_SpecTerm["associated store"]
   let globaladdr = global.Global
-  call globaltype = clo<"global_type">(store, globaladdr)
+  call-embed globaltype = <global_type>(store, globaladdr)
   if (|| (yet "is of form") ~exnref~) {
     (yet "throw a {{TypeError}}")
   } else nop
-  call value = clo<"global_read">(store, globaladdr)
+  call-embed value = <global_read>(store, globaladdr)
   call _ret10 = clo<"tojsvalue">(value)
   return _ret10
 }
@@ -996,7 +996,7 @@ def value(
     return _comp16
   } else nop
   let value = _comp16.Value
-  call store = clo<"global_write">(store, globaladdr, value)
+  call-embed store = <global_write>(store, globaladdr, value)
   if (= store ~error~) {
     (yet "throw a {{RangeError}} exception")
   } else nop
@@ -1033,7 +1033,7 @@ def a new exported function(
   let steps = "[=call an Exported Function|call the Exported Function=] |funcaddr| with arguments."
   let realm = (yet "the [=current Realm=]")
   let store = _ref_SpecTerm["associated store"]
-  call functype = clo<"func_type">(store, funcaddr)
+  call-embed functype = <func_type>(store, funcaddr)
   let _ = (yet "unsupported Let lhs: Unknown([|paramTypes|] → [<var ignore>resultTypes</var>])")
   let arity = (sizeof paramTypes)
   let name = (yet "the [=name of the WebAssembly function=] |funcaddr|")
@@ -1047,7 +1047,7 @@ def call an exported function(
   argValues: Unknown,
 ): Unknown = {
   let store = _ref_SpecTerm["associated store"]
-  call functype = clo<"func_type">(store, funcaddr)
+  call-embed functype = <func_type>(store, funcaddr)
   let _ = (yet "unsupported Let lhs: Index(Unknown([|parameters|] →),Var(results))")
   if (|| (yet "any type in |parameters|") (|| (yet "matches valtype") (yet "matches valtype"))) {
     (yet "throw a {{TypeError}}")
@@ -1068,7 +1068,7 @@ def call an exported function(
     i = (+ i 1)
     _iterIdx16 = (+ _iterIdx16 1)
   }
-  call _tuple14 = clo<"func_invoke">(store, funcaddr, args)
+  call-embed _tuple14 = <func_invoke>(store, funcaddr, args)
   let store = _tuple14[0]
   let ret = _tuple14[1]
   _ref_SpecTerm["associated store"] = store
@@ -1078,8 +1078,8 @@ def call an exported function(
   (yet "This exception should be a WebAssembly {{RuntimeError}} exception, unless otherwise indicated by <a href=\"#errors\">the WebAssembly error mapping</a>")
   call _call15 = clo<"exception">(exnaddr)
   if (= ret _call15) {
-    call tagaddr = clo<"exn_tag">(store, exnaddr)
-    call payload = clo<"exn_read">(store, exnaddr)
+    call-embed tagaddr = <exn_tag>(store, exnaddr)
+    call-embed payload = <exn_read>(store, exnaddr)
     call jsTagAddr = clo<"get the javascript exception tag">()
     if (= tagaddr jsTagAddr) {
       (yet "throw [=!=] [=ToJSValue=](|payload|[0])")
@@ -1184,7 +1184,7 @@ def create a host function(
     } else {
       call type = clo<"get the javascript exception tag">()
       call payload = clo<"towebassemblyvalue">(v, ~externref~)
-      call _tuple15 = clo<"exn_alloc">(store, type, (list [payload]))
+      call-embed _tuple15 = <exn_alloc>(store, type, (list [payload]))
       let store = _tuple15[0]
       let address = _tuple15[1]
       _ref_SpecTerm["associated store"] = store
@@ -1194,7 +1194,7 @@ def create a host function(
     return result.Value
   }
   let store = _ref_SpecTerm["associated store"]
-  call _tuple16 = clo<"func_alloc">(store, functype, hostfunc)
+  call-embed _tuple16 = <func_alloc>(store, functype, hostfunc)
   let store = _tuple16[0]
   let funcaddr = _tuple16[1]
   _ref_SpecTerm["associated store"] = store
@@ -1364,8 +1364,8 @@ def towebassemblyvalue(
       call r = clo<"ref.host">(hostaddr)
     }
     let store = _ref_SpecTerm["associated store"]
-    call actualtype = clo<"ref_type">(store, r)
-    call _call20 = clo<"match_valtype">(actualtype, type)
+    call-embed actualtype = <ref_type>(store, r)
+    call-embed _call20 = <match_valtype>(actualtype, type)
     if (= _call20 false) {
       (yet "throw a {{TypeError}}")
     } else nop
@@ -1445,7 +1445,7 @@ def tag(
     _iterIdx22 = (+ _iterIdx22 1)
   }
   let store = _ref_SpecTerm["associated store"]
-  call _tuple17 = clo<"tag_alloc">(store, (yet "|wasmParameters| → « »"))
+  call-embed _tuple17 = <tag_alloc>(store, (yet "|wasmParameters| → « »"))
   let store = _tuple17[0]
   let tagAddress = _tuple17[1]
   _ref_SpecTerm["associated store"] = store
@@ -1531,8 +1531,8 @@ def initialize an exception object(
   exn.Address = exnAddress
   map[exnAddress] = exn
   let store = _ref_SpecTerm["associated store"]
-  call tagaddr = clo<"exn_tag">(store, exnAddress)
-  call payload = clo<"exn_read">(store, exnAddress)
+  call-embed tagaddr = <exn_tag>(store, exnAddress)
+  call-embed payload = <exn_read>(store, exnAddress)
   exn.Type = tagaddr
   exn.Payload = payload
   exn.Stack = undefined
@@ -1569,7 +1569,7 @@ def exception(
   } else nop
   call _call22 = clo<"towebassemblyvalue">(value, resultType)
   push wasmPayload < (yet "? Var(_call22)")
-  call _tuple18 = clo<"exn_alloc">(store, exceptionTag.Address, wasmPayload)
+  call-embed _tuple18 = <exn_alloc>(store, exceptionTag.Address, wasmPayload)
   let store = _tuple18[0]
   let exceptionAddr = _tuple18[1]
   _ref_SpecTerm["associated store"] = store
@@ -1586,8 +1586,8 @@ def getarg(
   if (! (= @this.Type exceptionTag.Address)) {
     (yet "throw a {{TypeError}}")
   } else nop
-  call tagaddr = clo<"exn_tag">(store, @this.Address)
-  call payload = clo<"exn_read">(store, @this.Address)
+  call-embed tagaddr = <exn_tag>(store, @this.Address)
+  call-embed payload = <exn_read>(store, @this.Address)
   assert (= tagaddr @this.Type)
   if (! (< index (sizeof payload))) {
     (yet "throw a {{RangeError}}")
@@ -1617,7 +1617,7 @@ def get the javascript exception tag(
     return _ref_SpecTerm["JavaScript exception tag"]
   } else nop
   let store = _ref_SpecTerm["associated store"]
-  call _tuple19 = clo<"tag_alloc">(store, (list [~externref~]))
+  call-embed _tuple19 = <tag_alloc>(store, (list [~externref~]))
   let store = _tuple19[0]
   let tagAddress = _tuple19[1]
   _ref_SpecTerm["associated store"] = store
@@ -1689,7 +1689,7 @@ def create a builtin function(
 ): Unknown = {
   let hostfunc = (yet "[=host function=] which executes |steps| when called")
   let store = _ref_SpecTerm["associated store"]
-  call _tuple20 = clo<"func_alloc">(store, funcType, hostfunc)
+  call-embed _tuple20 = <func_alloc>(store, funcType, hostfunc)
   let store = _tuple20[0]
   let funcaddr = _tuple20[1]
   _ref_SpecTerm["associated store"] = store
@@ -1729,7 +1729,7 @@ def validate an import for builtins(
   let importExternType = import[2]
   let builtinFuncType = maybeBuiltin[1][1]
   let builtinExternType = (yet "`func |builtinFuncType|`")
-  call _ret34 = clo<"match_externtype">(builtinExternType, importExternType)
+  call-embed _ret34 = <match_externtype>(builtinExternType, importExternType)
   return _ret34
 }
 def unwrapstring(

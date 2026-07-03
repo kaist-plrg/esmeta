@@ -46,6 +46,52 @@ enum WasmError:
   * same JSON-RPC connection as a `host_func_invoke` request initiated by
   * `spectec-server`, handled on the wjmeta-bridge side.
   */
+object WasmHost:
+
+  /** The embedding function names this trait implements, one per method (see
+    * the class doc: each corresponds 1:1 to a Wasm Embedding function and to
+    * the JSON-RPC method name sent to `spectec-server`). Used by
+    * `esmeta.wji.compiler.Compiler` to recognize a `[=...=]` link as an
+    * embedding call (compiled to `ir.ICallEmbed`) rather than a WJI/ES function
+    * call (`ir.ICall`); must be kept in sync with
+    * `esmeta.interpreter.Interpreter.callEmbedding`'s cases.
+    */
+  val names: Set[String] = Set(
+    "store_init",
+    "module_decode",
+    "module_validate",
+    "module_instantiate",
+    "module_imports",
+    "module_exports",
+    "instance_export",
+    "func_alloc",
+    "func_type",
+    "func_invoke",
+    "table_alloc",
+    "table_type",
+    "table_read",
+    "table_write",
+    "table_size",
+    "table_grow",
+    "mem_alloc",
+    "mem_type",
+    "mem_size",
+    "mem_grow",
+    "tag_alloc",
+    "tag_type",
+    "exn_alloc",
+    "exn_tag",
+    "exn_read",
+    "global_alloc",
+    "global_type",
+    "global_read",
+    "global_write",
+    "ref_type",
+    "val_default",
+    "match_valtype",
+    "match_externtype",
+  )
+
 trait WasmHost:
 
   // -- Store --------------------------------------------------------------

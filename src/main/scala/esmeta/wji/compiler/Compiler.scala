@@ -3,6 +3,7 @@ package esmeta.wji.compiler
 import esmeta.wji.lang as metalang
 import esmeta.wji.lang.{Algorithm, Cond, Instr}
 import esmeta.wji.lang.Instr.PerformOutcome
+import esmeta.wji.bridge.host.WasmHost
 import esmeta.ir
 import esmeta.ir.*
 
@@ -95,17 +96,23 @@ object Compiler:
 
     case Instr.Perform(func, args, outcome, body) =>
       val callArgs = args.map(compileExpr)
-      val callee = compileFuncRef(func)
+      val name = nameFromLink(func)
       val bodyInsts = compileSeq(body)
+      // a Wasm Embedding function (e.g. `module_imports`) isn't a WJI/ES
+      // function in `cfg.fnameMap` — it's dispatched to the live WasmHost via
+      // a dedicated IR node instead of an ordinary closure call.
+      def mkCall(lhs: Name): Inst =
+        if WasmHost.names.contains(name) then ICallEmbed(lhs, name, callArgs)
+        else ICall(lhs, EClo(name, Nil), callArgs)
       outcome match
         case PerformOutcome.Discard =>
-          ICall(Name("_"), callee, callArgs) :: bodyInsts
+          mkCall(Name("_")) :: bodyInsts
         case PerformOutcome.BindResult(v) =>
-          ICall(Name(stripPipes(v)), callee, callArgs) :: bodyInsts
+          mkCall(Name(stripPipes(v))) :: bodyInsts
         case PerformOutcome.ReturnResult =>
           // should have been eliminated by ExpandPerformReturnResultPass
           val tmp = Name("_ret")
-          bodyInsts :+ ICall(tmp, callee, callArgs) :+ IReturn(ERef(tmp))
+          bodyInsts :+ mkCall(tmp) :+ IReturn(ERef(tmp))
 
     case Instr.Append(item, collection, body) =>
       IPush(
@@ -235,9 +242,6 @@ object Compiler:
         BigDecimal(java.lang.Long.parseLong(raw.drop(2), 16))
       else BigDecimal(raw)
     EMath(if neg then -bd else bd)
-
-  private def compileFuncRef(link: String): ir.Expr =
-    EClo(nameFromLink(link), Nil)
 
   private def nameFromLink(link: String): String =
     val name = link.stripPrefix("[=").stripSuffix("=]").trim

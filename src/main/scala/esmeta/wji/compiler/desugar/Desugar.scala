@@ -8,6 +8,7 @@ object Desugar:
     DropNotesPass,
     GroupIfChainPass,
     ExpandAbruptPass,
+    ExpandForEachPass,
     ExpandDestructuringLetPass,
     NormalizeAlgoCallPass,
     ExtractInlineAlgoCallPass,

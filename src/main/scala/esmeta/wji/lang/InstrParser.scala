@@ -148,7 +148,11 @@ object InstrParser:
             val collection = findTopLevel(after, ",") match
               case Some(j) => after.substring(0, j).trim
               case None    => after.stripSuffix(",").trim
-            ForEach(elem, collection, trailingBody)
+            ForEach(
+              ExprParser.parse(elem),
+              ExprParser.parse(collection),
+              trailingBody,
+            )
           case None => Unknown(text, trailingBody)
       case WhilePrefix(rest) =>
         While(CondParser.parse(rest.stripSuffix(":").trim), trailingBody)

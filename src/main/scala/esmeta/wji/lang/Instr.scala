@@ -48,7 +48,7 @@ object Instr:
   case class Throw(target: String, body: List[Instr] = Nil) extends Instr
 
   /** `For each ELEM of/in COLLECTION, ...` */
-  case class ForEach(elem: String, collection: String, body: List[Instr])
+  case class ForEach(elem: Expr, collection: Expr, body: List[Instr])
     extends Instr
 
   /** `While COND: ...` */

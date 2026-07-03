@@ -38,6 +38,8 @@ object ResolveSpecTermsPass extends DesugarPass:
       case i: Instr.While  => i.copy(cond = c(i.cond))
       case i: Instr.Append =>
         i.copy(item = e(i.item), collection = e(i.collection))
+      case i: Instr.ForEach =>
+        i.copy(elem = e(i.elem), collection = e(i.collection))
       case i: Instr.Perform => i.copy(args = i.args.map(e))
       case i: Instr.IfChain =>
         i.copy(branches = i.branches.map((cond, body) => (c(cond), body)))

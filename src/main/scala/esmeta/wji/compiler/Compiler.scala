@@ -86,7 +86,11 @@ object Compiler:
 
     case Instr.ForEach(elem, collection, body) =>
       // TODO: proper foreach — needs ERef of collection + loop var
-      IExpr(EYet(s"foreach $elem in $collection")) :: compileSeq(body)
+      IExpr(
+        EYet(
+          s"foreach ${metalang.ExprPrinter.render(elem)} in ${metalang.ExprPrinter.render(collection)}",
+        ),
+      ) :: compileSeq(body)
 
     case Instr.Perform(func, args, outcome, body) =>
       val callArgs = args.map(compileExpr)
@@ -168,7 +172,11 @@ object Compiler:
     case metalang.Expr.JSCall(name, args) =>
       EYet(s"$$${name}(${args.mkString})") // TODO
     case metalang.Expr.Tuple(elems) => EYet(s"tuple(${elems.mkString})") // TODO
-    case metalang.Expr.Map_(entries)   => EYet("map literal") // TODO
+    case metalang.Expr.Map_(entries) =>
+      EMap(
+        (UnknownType, UnknownType),
+        entries.map((k, v) => (compileExpr(k), compileExpr(v))),
+      )
     case metalang.Expr.UnknownNew(raw) => EYet(raw)
     case metalang.Expr.Unknown(raw)    => EYet(raw)
 

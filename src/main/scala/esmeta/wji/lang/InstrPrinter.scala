@@ -45,7 +45,8 @@ object InstrPrinter:
       s"Return(${expr.map(ExprPrinter.render).getOrElse("")})"
     case Assert(cond, _)        => s"Assert(${CondPrinter.render(cond)})"
     case Throw(target, _)       => s"Throw($target)"
-    case ForEach(elem, coll, _) => s"ForEach($elem, $coll)"
+    case ForEach(elem, coll, _) =>
+      s"ForEach(${ExprPrinter.render(elem)}, ${ExprPrinter.render(coll)})"
     case While(cond, _)         => s"While(${CondPrinter.render(cond)})"
     case RunInParallel(_)       => "RunInParallel"
     case Append(item, coll, _) =>

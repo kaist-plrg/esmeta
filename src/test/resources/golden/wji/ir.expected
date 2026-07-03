@@ -21,18 +21,23 @@ def validate builtins and imported string for a webassembly module(
   if (= _call2 false) {
     return false
   } else nop
-  (yet "foreach |import| in [=module_imports=](|module|)")
-  if (&& (! (= importedStringModule null)) (= import[0] importedStringModule)) {
-    let importExternType = import[2]
-    let stringExternType = (yet "`global const (ref extern)`")
-    call _call3 = clo<"match_externtype">(stringExternType, importExternType)
-    if (= _call3 false) {
-      return false
-    } else nop
-  } else {
-    if (&& (yet "[=validate an import for builtins|validating an import for builtins=] with |import|") (= builtinSetNames false)) {
-      return false
-    } else nop
+  call _iterList1 = clo<"module_imports">(module)
+  let _iterIdx2 = 0
+  while (< _iterIdx2 (sizeof _iterList1)) {
+    let import = _iterList1[_iterIdx2]
+    if (&& (! (= importedStringModule null)) (= import[0] importedStringModule)) {
+      let importExternType = import[2]
+      let stringExternType = (yet "`global const (ref extern)`")
+      call _call3 = clo<"match_externtype">(stringExternType, importExternType)
+      if (= _call3 false) {
+        return false
+      } else nop
+    } else {
+      if (&& (yet "[=validate an import for builtins|validating an import for builtins=] with |import|") (= builtinSetNames false)) {
+        return false
+      } else nop
+    }
+    _iterIdx2 = (+ _iterIdx2 1)
   }
   return true
 }
@@ -100,13 +105,21 @@ def instantiate imported strings(
 ): Unknown = {
   assert (! (= importedStringModule null))
   call exportsObject = clo<"OrdinaryObjectCreate">(null)
-  (yet "foreach (|moduleName|, |componentName|, |externtype|) in [=module_imports=](|module|)")
-  if (! (= moduleName importedStringModule)) {
-    (yet "continue")
-  } else nop
-  let stringConstant = componentName
-  call status = clo<"CreateDataProperty">(exportsObject, stringConstant, stringConstant)
-  assert (= status true)
+  call _iterList3 = clo<"module_imports">(module)
+  let _iterIdx4 = 0
+  while (< _iterIdx4 (sizeof _iterList3)) {
+    let _tuple1 = _iterList3[_iterIdx4]
+    let moduleName = _tuple1[0]
+    let componentName = _tuple1[1]
+    let externtype = _tuple1[2]
+    if (! (= moduleName importedStringModule)) {
+      (yet "continue")
+    } else nop
+    let stringConstant = componentName
+    call status = clo<"CreateDataProperty">(exportsObject, stringConstant, stringConstant)
+    assert (= status true)
+    _iterIdx4 = (+ _iterIdx4 1)
+  }
   return exportsObject
 }
 def read the imports(
@@ -118,110 +131,123 @@ def read the imports(
   if (&& (! (= (sizeof module.imports) 0)) (= importObject undefined)) {
     (yet "throw a {{TypeError}} exception")
   } else nop
-  let builtinOrStringImports = (yet "map literal")
-  (yet "foreach |builtinSetName| in |builtinSetNames|")
-  let builtinSetQualifiedName = (yet "|builtinSetName| prefixed with \"wasm:\"")
-  assert (yet "|builtinOrStringImports| does not contain |builtinSetQualifiedName|")
-  if (yet "|builtinSetName| does not refer to a builtin set") {
-    (yet "continue")
-  } else nop
-  call exportsObject = clo<"instantiate a builtin set">(builtinSetName)
-  builtinOrStringImports[builtinSetQualifiedName] = exportsObject
+  let builtinOrStringImports = (map[Unknown, Unknown])
+  let _iterList5 = builtinSetNames
+  let _iterIdx6 = 0
+  while (< _iterIdx6 (sizeof _iterList5)) {
+    let builtinSetName = _iterList5[_iterIdx6]
+    let builtinSetQualifiedName = (yet "|builtinSetName| prefixed with \"wasm:\"")
+    assert (yet "|builtinOrStringImports| does not contain |builtinSetQualifiedName|")
+    if (yet "|builtinSetName| does not refer to a builtin set") {
+      (yet "continue")
+    } else nop
+    call exportsObject = clo<"instantiate a builtin set">(builtinSetName)
+    builtinOrStringImports[builtinSetQualifiedName] = exportsObject
+    _iterIdx6 = (+ _iterIdx6 1)
+  }
   if (! (= importedStringModule null)) {
     call exportsObject = clo<"instantiate imported strings">(module, importedStringModule)
     builtinOrStringImports[importedStringModule] = exportsObject
   } else nop
   let imports = (list [])
-  (yet "foreach (|moduleName|, |componentName|, |externtype|) in [=module_imports=](|module|)")
-  if (yet "|builtinOrStringImports| [=map/exist|contains=] |moduleName|") {
-    let o = builtinOrStringImports[moduleName]
-    if (|| (! (?name o: Object)) (= (yet "if [$HasProperty$](|o|, |componentName|)") false)) {
-      call _comp1 = clo<"Get">(importObject, moduleName)
-      if (?name _comp1: AbruptCompletion) {
-        return _comp1
+  call _iterList7 = clo<"module_imports">(module)
+  let _iterIdx8 = 0
+  while (< _iterIdx8 (sizeof _iterList7)) {
+    let _tuple2 = _iterList7[_iterIdx8]
+    let moduleName = _tuple2[0]
+    let componentName = _tuple2[1]
+    let externtype = _tuple2[2]
+    if (yet "|builtinOrStringImports| [=map/exist|contains=] |moduleName|") {
+      let o = builtinOrStringImports[moduleName]
+      if (|| (! (?name o: Object)) (= (yet "if [$HasProperty$](|o|, |componentName|)") false)) {
+        call _comp1 = clo<"Get">(importObject, moduleName)
+        if (?name _comp1: AbruptCompletion) {
+          return _comp1
+        } else nop
+        o = _comp1.Value
       } else nop
-      o = _comp1.Value
+    } else {
+      call _comp2 = clo<"Get">(importObject, moduleName)
+      if (?name _comp2: AbruptCompletion) {
+        return _comp2
+      } else nop
+      let o = _comp2.Value
+    }
+    if (! (?name o: Object)) {
+      (yet "throw a {{TypeError}} exception")
     } else nop
-  } else {
-    call _comp2 = clo<"Get">(importObject, moduleName)
-    if (?name _comp2: AbruptCompletion) {
-      return _comp2
+    call _comp3 = clo<"Get">(o, componentName)
+    if (?name _comp3: AbruptCompletion) {
+      return _comp3
     } else nop
-    let o = _comp2.Value
+    let v = _comp3.Value
+    if (yet "is of form") {
+      call _call4 = clo<"IsCallable">(v)
+      if (= _call4 false) {
+        (yet "throw a {{LinkError}} exception")
+      } else nop
+      if (&& (yet "|v| has a \\[[FunctionAddress]] internal slot") (= (yet "therefore") (yet "an [=Exported Function=]"))) {
+        let funcaddr = v.FunctionAddress
+      } else {
+        call funcaddr = clo<"create a host function">(v, functype)
+        let index = (yet "the number of external functions in |imports|")
+        (yet "This value |index| is known as the <dfn>index of the host function</dfn> |funcaddr|")
+      }
+      let externfunc = (yet "the [=external value=] [=external value|func=] |funcaddr|")
+      push imports < externfunc
+    } else nop
+    if (yet "is of form") {
+      if (yet "implements Global") {
+        let globaladdr = v.Global
+      } else {
+        if (&& (= valtype ~i64~) (! (?name v: BigInt))) {
+          (yet "throw a {{LinkError}} exception")
+        } else nop
+        if (yet "|valtype| is one of [=i32=]") {
+          (yet "throw a {{LinkError}} exception")
+        } else nop
+        if (= valtype ~v128~) {
+          (yet "throw a {{LinkError}} exception")
+        } else nop
+        call value = clo<"towebassemblyvalue">(v, valtype)
+        if (yet "this operation throws a {{TypeError}}") {
+          (yet "catch it, and throw a {{LinkError}} exception")
+        } else nop
+        let store = _ref_SpecTerm["associated store"]
+        call _tuple3 = clo<"global_alloc">(store, (yet "call [=const=]"), value)
+        let store = _tuple3[0]
+        let globaladdr = _tuple3[1]
+        _ref_SpecTerm["associated store"] = store
+      }
+      call externglobal = clo<"external value">(globaladdr)
+      push imports < externglobal
+    } else nop
+    if (yet "is of form") {
+      if (yet "implements Memory") {
+        (yet "throw a {{LinkError}} exception")
+      } else nop
+      let externmem = _ref_Unknown.Memory
+      push imports < externmem
+    } else nop
+    if (yet "is of form") {
+      if (yet "implements Table") {
+        (yet "throw a {{LinkError}} exception")
+      } else nop
+      let tableaddr = v.Table
+      let externtable = (yet "the [=external value=] [=external value|table=] |tableaddr|")
+      push imports < externtable
+    } else nop
+    if (yet "is of form") {
+      assert (= attribute ~tagtype/attribute/exception~)
+      if (yet "implements Tag") {
+        (yet "throw a {{LinkError}} exception")
+      } else nop
+      let tagaddr = v.Address
+      let externtag = (yet "the [=external value=] [=external value/tag=] |tagaddr|")
+      push imports < externtag
+    } else nop
+    _iterIdx8 = (+ _iterIdx8 1)
   }
-  if (! (?name o: Object)) {
-    (yet "throw a {{TypeError}} exception")
-  } else nop
-  call _comp3 = clo<"Get">(o, componentName)
-  if (?name _comp3: AbruptCompletion) {
-    return _comp3
-  } else nop
-  let v = _comp3.Value
-  if (yet "is of form") {
-    call _call4 = clo<"IsCallable">(v)
-    if (= _call4 false) {
-      (yet "throw a {{LinkError}} exception")
-    } else nop
-    if (&& (yet "|v| has a \\[[FunctionAddress]] internal slot") (= (yet "therefore") (yet "an [=Exported Function=]"))) {
-      let funcaddr = v.FunctionAddress
-    } else {
-      call funcaddr = clo<"create a host function">(v, functype)
-      let index = (yet "the number of external functions in |imports|")
-      (yet "This value |index| is known as the <dfn>index of the host function</dfn> |funcaddr|")
-    }
-    let externfunc = (yet "the [=external value=] [=external value|func=] |funcaddr|")
-    push imports < externfunc
-  } else nop
-  if (yet "is of form") {
-    if (yet "implements Global") {
-      let globaladdr = v.Global
-    } else {
-      if (&& (= valtype ~i64~) (! (?name v: BigInt))) {
-        (yet "throw a {{LinkError}} exception")
-      } else nop
-      if (yet "|valtype| is one of [=i32=]") {
-        (yet "throw a {{LinkError}} exception")
-      } else nop
-      if (= valtype ~v128~) {
-        (yet "throw a {{LinkError}} exception")
-      } else nop
-      call value = clo<"towebassemblyvalue">(v, valtype)
-      if (yet "this operation throws a {{TypeError}}") {
-        (yet "catch it, and throw a {{LinkError}} exception")
-      } else nop
-      let store = _ref_SpecTerm["associated store"]
-      call _tuple1 = clo<"global_alloc">(store, (yet "call [=const=]"), value)
-      let store = _tuple1[0]
-      let globaladdr = _tuple1[1]
-      _ref_SpecTerm["associated store"] = store
-    }
-    call externglobal = clo<"external value">(globaladdr)
-    push imports < externglobal
-  } else nop
-  if (yet "is of form") {
-    if (yet "implements Memory") {
-      (yet "throw a {{LinkError}} exception")
-    } else nop
-    let externmem = _ref_Unknown.Memory
-    push imports < externmem
-  } else nop
-  if (yet "is of form") {
-    if (yet "implements Table") {
-      (yet "throw a {{LinkError}} exception")
-    } else nop
-    let tableaddr = v.Table
-    let externtable = (yet "the [=external value=] [=external value|table=] |tableaddr|")
-    push imports < externtable
-  } else nop
-  if (yet "is of form") {
-    assert (= attribute ~tagtype/attribute/exception~)
-    if (yet "implements Tag") {
-      (yet "throw a {{LinkError}} exception")
-    } else nop
-    let tagaddr = v.Address
-    let externtag = (yet "the [=external value=] [=external value/tag=] |tagaddr|")
-    push imports < externtag
-  } else nop
   return imports
 }
 def create an exports object(
@@ -229,42 +255,49 @@ def create an exports object(
   instance: Unknown,
 ): Unknown = {
   call exportsObject = clo<"OrdinaryObjectCreate">(null)
-  (yet "foreach (|name|, |externtype|) in [=module_exports=](|module|)")
-  call externval = clo<"instance_export">(instance, name)
-  assert (! (= externval ~error~))
-  if (yet "is of form") {
-    assert (yet "is of form")
-    let _ = (yet "unsupported Let lhs: AlgoCall([=external value=],List(Var(funcaddr)))")
-    call func = clo<"a new exported function">(funcaddr)
-    let value = func
-  } else nop
-  if (yet "is of form") {
-    assert (yet "is of form")
-    let _ = (yet "unsupported Let lhs: AlgoCall([=external value=],List(Var(globaladdr)))")
-    call global = clo<"create a global object">(globaladdr)
-    let value = global
-  } else nop
-  if (yet "is of form") {
-    assert (yet "is of form")
-    let _ = (yet "unsupported Let lhs: AlgoCall([=external value=],List(Var(memaddr)))")
-    call memory = clo<"create a memory object">(memaddr)
-    let value = memory
-  } else nop
-  if (yet "is of form") {
-    assert (yet "is of form")
-    let _ = (yet "unsupported Let lhs: AlgoCall([=external value=],List(Var(tableaddr)))")
-    call table = clo<"create a table object">(tableaddr)
-    let value = table
-  } else nop
-  if (yet "is of form") {
-    assert (= attribute ~tagtype/attribute/exception~)
-    assert (yet "is of form")
-    let _ = (yet "unsupported Let lhs: AlgoCall([=external value/tag=],List(Var(tagaddr)))")
-    call tag = clo<"create a tag object">(tagaddr)
-    let value = tag
-  } else nop
-  call status = clo<"CreateDataProperty">(exportsObject, name, value)
-  assert (= status true)
+  call _iterList9 = clo<"module_exports">(module)
+  let _iterIdx10 = 0
+  while (< _iterIdx10 (sizeof _iterList9)) {
+    let _tuple4 = _iterList9[_iterIdx10]
+    let name = _tuple4[0]
+    let externtype = _tuple4[1]
+    call externval = clo<"instance_export">(instance, name)
+    assert (! (= externval ~error~))
+    if (yet "is of form") {
+      assert (yet "is of form")
+      let _ = (yet "unsupported Let lhs: AlgoCall([=external value=],List(Var(funcaddr)))")
+      call func = clo<"a new exported function">(funcaddr)
+      let value = func
+    } else nop
+    if (yet "is of form") {
+      assert (yet "is of form")
+      let _ = (yet "unsupported Let lhs: AlgoCall([=external value=],List(Var(globaladdr)))")
+      call global = clo<"create a global object">(globaladdr)
+      let value = global
+    } else nop
+    if (yet "is of form") {
+      assert (yet "is of form")
+      let _ = (yet "unsupported Let lhs: AlgoCall([=external value=],List(Var(memaddr)))")
+      call memory = clo<"create a memory object">(memaddr)
+      let value = memory
+    } else nop
+    if (yet "is of form") {
+      assert (yet "is of form")
+      let _ = (yet "unsupported Let lhs: AlgoCall([=external value=],List(Var(tableaddr)))")
+      call table = clo<"create a table object">(tableaddr)
+      let value = table
+    } else nop
+    if (yet "is of form") {
+      assert (= attribute ~tagtype/attribute/exception~)
+      assert (yet "is of form")
+      let _ = (yet "unsupported Let lhs: AlgoCall([=external value/tag=],List(Var(tagaddr)))")
+      call tag = clo<"create a tag object">(tagaddr)
+      let value = tag
+    } else nop
+    call status = clo<"CreateDataProperty">(exportsObject, name, value)
+    assert (= status true)
+    _iterIdx10 = (+ _iterIdx10 1)
+  }
   call _call5 = clo<"SetIntegrityLevel">(exportsObject, (yet "`\"frozen\"`"))
   call _ = clo<"!">(_call5)
   return exportsObject
@@ -291,9 +324,9 @@ def instantiate the core of a webassembly module(
     } else nop
     (yet "Another error type if appropriate, for example an out-of-memory exception, as documented in <a href=\"#errors\">the WebAssembly error mapping</a>")
   } else nop
-  let _tuple2 = result
-  let store = _tuple2[0]
-  let instance = _tuple2[1]
+  let _tuple5 = result
+  let store = _tuple5[0]
+  let instance = _tuple5[1]
   _ref_SpecTerm["associated store"] = store
   return instance
 }
@@ -375,10 +408,20 @@ def exports(
 ): Unknown = {
   let module = moduleObject.Module
   let exports = (list [])
-  (yet "foreach (|name|, |type|) in [=module_exports=](|module|)")
-  let kind = (yet "the [=string value of the extern type=] |type|")
-  let obj = (yet "map literal")
-  push exports < obj
+  call _iterList11 = clo<"module_exports">(module)
+  let _iterIdx12 = 0
+  while (< _iterIdx12 (sizeof _iterList11)) {
+    let _tuple6 = _iterList11[_iterIdx12]
+    let name = _tuple6[0]
+    let type = _tuple6[1]
+    let kind = (yet "the [=string value of the extern type=] |type|")
+    let obj = (map [Unknown, Unknown] {
+      "{{ModuleExportDescriptor/name}}" -> name,
+      "{{ModuleExportDescriptor/kind}}" -> kind,
+    })
+    push exports < obj
+    _iterIdx12 = (+ _iterIdx12 1)
+  }
   return exports
 }
 def imports(
@@ -388,16 +431,28 @@ def imports(
   let builtinSetNames = moduleObject.BuiltinSets
   let importedStringModule = moduleObject.ImportedStringModule
   let imports = (list [])
-  (yet "foreach (|moduleName|, |name|, |type|) in [=module_imports=](|module|)")
-  if (&& (yet "[=find a builtin=] for (|moduleName|, |name|, |type|)") (! (= builtinSetNames null))) {
-    (yet "continue")
-  } else nop
-  if (&& (! (= importedStringModule null)) (= moduleName importedStringModule)) {
-    (yet "continue")
-  } else nop
-  let kind = (yet "the [=string value of the extern type=] |type|")
-  let obj = (yet "map literal")
-  push imports < obj
+  call _iterList13 = clo<"module_imports">(module)
+  let _iterIdx14 = 0
+  while (< _iterIdx14 (sizeof _iterList13)) {
+    let _tuple7 = _iterList13[_iterIdx14]
+    let moduleName = _tuple7[0]
+    let name = _tuple7[1]
+    let type = _tuple7[2]
+    if (&& (yet "[=find a builtin=] for (|moduleName|, |name|, |type|)") (! (= builtinSetNames null))) {
+      (yet "continue")
+    } else nop
+    if (&& (! (= importedStringModule null)) (= moduleName importedStringModule)) {
+      (yet "continue")
+    } else nop
+    let kind = (yet "the [=string value of the extern type=] |type|")
+    let obj = (map [Unknown, Unknown] {
+      "{{ModuleImportDescriptor/module}}" -> moduleName,
+      "{{ModuleImportDescriptor/name}}" -> name,
+      "{{ModuleImportDescriptor/kind}}" -> kind,
+    })
+    push imports < obj
+    _iterIdx14 = (+ _iterIdx14 1)
+  }
   return imports
 }
 def customsections(
@@ -406,7 +461,7 @@ def customsections(
 ): Unknown = {
   let bytes = moduleObject.Bytes
   let customSections = (list [])
-  (yet "foreach [=custom section=] |customSection| in |bytes|")
+  (yet "foreach [=custom section=](|customSection|) in |bytes|")
   let name = (yet "the <code>name</code> of |customSection|, [=UTF-8 decode without BOM or fail|decoded as UTF-8=]")
   assert (! (= name (yet "failure (|moduleObject|.\\[[Module]] is [=valid=])")))
   if (= name (yet "|sectionName| as string values")) {
@@ -518,9 +573,9 @@ def memory(
     (yet "throw a {{RangeError}} exception")
   } else nop
   let store = _ref_SpecTerm["associated store"]
-  call _tuple3 = clo<"mem_alloc">(store, memtype)
-  let store = _tuple3[0]
-  let memaddr = _tuple3[1]
+  call _tuple8 = clo<"mem_alloc">(store, memtype)
+  let store = _tuple8[0]
+  let memaddr = _tuple8[1]
   if (yet "allocation fails") {
     (yet "throw a {{RangeError}} exception")
   } else nop
@@ -627,7 +682,7 @@ def abstract operation [=hostresizearraybuffer=](
   if (= buffer.ArrayBufferDetachKey "WebAssembly.Memory") {
     let map = _ref_SpecTerm["Memory object cache"]
     assert (= buffer (yet "the \\[[BufferObject]] of exactly one value in |map|"))
-    (yet "foreach |memaddr| &rarr; |mem| in |map|")
+    (yet "foreach ?(|memaddr| &rarr; |mem|) in |map|")
     call _call13 = clo<"samevalue">(mem.BufferObject, buffer)
     if (= _call13 true) {
       assert (= (% buffer.ArrayBufferByteLength 65536) 0)
@@ -707,9 +762,9 @@ def table(
     let ref = _comp9.Value
   }
   let store = _ref_SpecTerm["associated store"]
-  call _tuple4 = clo<"table_alloc">(store, type, ref)
-  let store = _tuple4[0]
-  let tableaddr = _tuple4[1]
+  call _tuple9 = clo<"table_alloc">(store, type, ref)
+  let store = _tuple9[0]
+  let tableaddr = _tuple9[1]
   if (yet "allocation fails") {
     (yet "throw a {{RangeError}} exception")
   } else nop
@@ -723,10 +778,10 @@ def grow(
   let tableaddr = @this.Table
   let store = _ref_SpecTerm["associated store"]
   call initialSize = clo<"table_size">(store, tableaddr)
-  call _tuple5 = clo<"table_type">(store, tableaddr)
-  let addrtype = _tuple5[0]
-  let limits = _tuple5[1]
-  let elementtype = _tuple5[2]
+  call _tuple10 = clo<"table_type">(store, tableaddr)
+  let addrtype = _tuple10[0]
+  let limits = _tuple10[1]
+  let elementtype = _tuple10[2]
   call _comp10 = clo<"addressvaluetou64">(delta, addrtype)
   if (?name _comp10: AbruptCompletion) {
     return _comp10
@@ -766,10 +821,10 @@ def get(
 ): Unknown = {
   let tableaddr = @this.Table
   let store = _ref_SpecTerm["associated store"]
-  call _tuple6 = clo<"table_type">(store, tableaddr)
-  let addrtype = _tuple6[0]
-  let limits = _tuple6[1]
-  let elementtype = _tuple6[2]
+  call _tuple11 = clo<"table_type">(store, tableaddr)
+  let addrtype = _tuple11[0]
+  let limits = _tuple11[1]
+  let elementtype = _tuple11[2]
   if (yet "matches reftype") {
     (yet "throw a {{TypeError}} exception")
   } else nop
@@ -791,10 +846,10 @@ def set(
 ): Unknown = {
   let tableaddr = @this.Table
   let store = _ref_SpecTerm["associated store"]
-  call _tuple7 = clo<"table_type">(store, tableaddr)
-  let addrtype = _tuple7[0]
-  let limits = _tuple7[1]
-  let elementtype = _tuple7[2]
+  call _tuple12 = clo<"table_type">(store, tableaddr)
+  let addrtype = _tuple12[0]
+  let limits = _tuple12[1]
+  let elementtype = _tuple12[2]
   if (yet "matches reftype") {
     (yet "throw a {{TypeError}} exception")
   } else nop
@@ -902,9 +957,9 @@ def global(
     call globaltype = clo<"const">(valuetype)
   }
   let store = _ref_SpecTerm["associated store"]
-  call _tuple8 = clo<"global_alloc">(store, globaltype, value)
-  let store = _tuple8[0]
-  let globaladdr = _tuple8[1]
+  call _tuple13 = clo<"global_alloc">(store, globaltype, value)
+  let store = _tuple13[0]
+  let globaladdr = _tuple13[1]
   (yet "<!-- TODO(littledan): Report allocation failure https://github.com/WebAssembly/spec/issues/584 -->")
   _ref_SpecTerm["associated store"] = store
   call _ = clo<"initialize a global object">(@this, globaladdr)
@@ -999,18 +1054,23 @@ def call an exported function(
   } else nop
   let args = (list [])
   let i = 0
-  (yet "foreach |t| in |parameters|")
-  if (< i (sizeof argValues)) {
-    let arg = argValues[i]
-  } else {
-    let arg = undefined
+  let _iterList15 = parameters
+  let _iterIdx16 = 0
+  while (< _iterIdx16 (sizeof _iterList15)) {
+    let t = _iterList15[_iterIdx16]
+    if (< i (sizeof argValues)) {
+      let arg = argValues[i]
+    } else {
+      let arg = undefined
+    }
+    call _call14 = clo<"towebassemblyvalue">(arg, t)
+    push args < (yet "? Var(_call14)")
+    i = (+ i 1)
+    _iterIdx16 = (+ _iterIdx16 1)
   }
-  call _call14 = clo<"towebassemblyvalue">(arg, t)
-  push args < (yet "? Var(_call14)")
-  i = (+ i 1)
-  call _tuple9 = clo<"func_invoke">(store, funcaddr, args)
-  let store = _tuple9[0]
-  let ret = _tuple9[1]
+  call _tuple14 = clo<"func_invoke">(store, funcaddr, args)
+  let store = _tuple14[0]
+  let ret = _tuple14[1]
   _ref_SpecTerm["associated store"] = store
   if (= ret ~error~) {
     (yet "throw an exception")
@@ -1036,9 +1096,14 @@ def call an exported function(
     return _ret14
   } else {
     let values = (list [])
-    (yet "foreach |r| in |ret|")
-    call _call16 = clo<"tojsvalue">(r)
-    push values < _call16
+    let _iterList17 = ret
+    let _iterIdx18 = 0
+    while (< _iterIdx18 (sizeof _iterList17)) {
+      let r = _iterList17[_iterIdx18]
+      call _call16 = clo<"tojsvalue">(r)
+      push values < _call16
+      _iterIdx18 = (+ _iterIdx18 1)
+    }
     call _ret15 = clo<"CreateArrayFromList">(values)
     return _ret15
   }
@@ -1053,9 +1118,14 @@ def run a host function(
     (yet "throw a {{TypeError}}")
   } else nop
   let jsArguments = (list [])
-  (yet "foreach |arg| in |arguments|")
-  call _call17 = clo<"tojsvalue">(arg)
-  push jsArguments < _call17
+  let _iterList19 = arguments
+  let _iterIdx20 = 0
+  while (< _iterIdx20 (sizeof _iterList19)) {
+    let arg = _iterList19[_iterIdx20]
+    call _call17 = clo<"tojsvalue">(arg)
+    push jsArguments < _call17
+    _iterIdx20 = (+ _iterIdx20 1)
+  }
   call _comp17 = clo<"Call">(func, undefined, jsArguments)
   if (?name _comp17: AbruptCompletion) {
     return _comp17
@@ -1085,7 +1155,7 @@ def run a host function(
     if (! (= (sizeof values) resultsSize)) {
       (yet "throw a {{TypeError}} exception")
     } else nop
-    (yet "foreach |value| and |resultType| in |values| and |results|")
+    (yet "foreach ?(|value| and |resultType|) in ?(|values| and |results|)")
     call _call19 = clo<"towebassemblyvalue">(value, resultType)
     push wasmValues < (yet "? Var(_call19)")
     return wasmValues
@@ -1114,9 +1184,9 @@ def create a host function(
     } else {
       call type = clo<"get the javascript exception tag">()
       call payload = clo<"towebassemblyvalue">(v, ~externref~)
-      call _tuple10 = clo<"exn_alloc">(store, type, (list [payload]))
-      let store = _tuple10[0]
-      let address = _tuple10[1]
+      call _tuple15 = clo<"exn_alloc">(store, type, (list [payload]))
+      let store = _tuple15[0]
+      let address = _tuple15[1]
       _ref_SpecTerm["associated store"] = store
     }
     (yet "Execute the WebAssembly instructions ([=ref.exn=] |address|) ([=throw_ref=])")
@@ -1124,9 +1194,9 @@ def create a host function(
     return result.Value
   }
   let store = _ref_SpecTerm["associated store"]
-  call _tuple11 = clo<"func_alloc">(store, functype, hostfunc)
-  let store = _tuple11[0]
-  let funcaddr = _tuple11[1]
+  call _tuple16 = clo<"func_alloc">(store, functype, hostfunc)
+  let store = _tuple16[0]
+  let funcaddr = _tuple16[1]
   _ref_SpecTerm["associated store"] = store
   return funcaddr
 }
@@ -1366,13 +1436,18 @@ def tag(
 ): Unknown = {
   let parameters = type.parameters
   let wasmParameters = (list [])
-  (yet "foreach |paramType| in |parameters|")
-  call _call21 = clo<"tovaluetype">(paramType)
-  push wasmParameters < _call21
+  let _iterList21 = parameters
+  let _iterIdx22 = 0
+  while (< _iterIdx22 (sizeof _iterList21)) {
+    let paramType = _iterList21[_iterIdx22]
+    call _call21 = clo<"tovaluetype">(paramType)
+    push wasmParameters < _call21
+    _iterIdx22 = (+ _iterIdx22 1)
+  }
   let store = _ref_SpecTerm["associated store"]
-  call _tuple12 = clo<"tag_alloc">(store, (yet "|wasmParameters| → « »"))
-  let store = _tuple12[0]
-  let tagAddress = _tuple12[1]
+  call _tuple17 = clo<"tag_alloc">(store, (yet "|wasmParameters| → « »"))
+  let store = _tuple17[0]
+  let tagAddress = _tuple17[1]
   _ref_SpecTerm["associated store"] = store
   call _ = clo<"initialize a tag object">(@this, tagAddress)
 }
@@ -1488,15 +1563,15 @@ def exception(
     (yet "throw a {{TypeError}}")
   } else nop
   let wasmPayload = (list [])
-  (yet "foreach |value| and |resultType| in |payload| and |types|")
+  (yet "foreach ?(|value| and |resultType|) in ?(|payload| and |types|)")
   if (|| (yet "matches valtype") (yet "matches valtype")) {
     (yet "throw a {{TypeError}}")
   } else nop
   call _call22 = clo<"towebassemblyvalue">(value, resultType)
   push wasmPayload < (yet "? Var(_call22)")
-  call _tuple13 = clo<"exn_alloc">(store, exceptionTag.Address, wasmPayload)
-  let store = _tuple13[0]
-  let exceptionAddr = _tuple13[1]
+  call _tuple18 = clo<"exn_alloc">(store, exceptionTag.Address, wasmPayload)
+  let store = _tuple18[0]
+  let exceptionAddr = _tuple18[1]
   _ref_SpecTerm["associated store"] = store
   call _ = clo<"initialize an exception object">(@this, exceptionAddr)
   if (= options.traceStack true) {
@@ -1542,9 +1617,9 @@ def get the javascript exception tag(
     return _ref_SpecTerm["JavaScript exception tag"]
   } else nop
   let store = _ref_SpecTerm["associated store"]
-  call _tuple14 = clo<"tag_alloc">(store, (list [~externref~]))
-  let store = _tuple14[0]
-  let tagAddress = _tuple14[1]
+  call _tuple19 = clo<"tag_alloc">(store, (list [~externref~]))
+  let store = _tuple19[0]
+  let tagAddress = _tuple19[1]
   _ref_SpecTerm["associated store"] = store
   _ref_SpecTerm["JavaScript exception tag"] = tagAddress
   return tagAddress
@@ -1552,10 +1627,15 @@ def get the javascript exception tag(
 def create the webassembly namespace object(
 ): Unknown = {
   let namespaceObject = (yet "the [=namespace object=]")
-  (yet "foreach |error| in « \"CompileError\", \"LinkError\", \"RuntimeError\" »")
-  let constructor = (yet "a new object, implementing the [=NativeError Object Structure=], with <var ignore>NativeError</var> set to |error|")
-  call _call23 = clo<"DefineMethodProperty">(namespaceObject, error, constructor, false)
-  call _ = clo<"!">(_call23)
+  let _iterList23 = (list ["CompileError", "LinkError", "RuntimeError"])
+  let _iterIdx24 = 0
+  while (< _iterIdx24 (sizeof _iterList23)) {
+    let error = _iterList23[_iterIdx24]
+    let constructor = (yet "a new object, implementing the [=NativeError Object Structure=], with <var ignore>NativeError</var> set to |error|")
+    call _call23 = clo<"DefineMethodProperty">(namespaceObject, error, constructor, false)
+    call _ = clo<"!">(_call23)
+    _iterIdx24 = (+ _iterIdx24 1)
+  }
 }
 def get the builtins for a builtin set(
   builtinSetName: Unknown,
@@ -1570,19 +1650,29 @@ def find a builtin(
   assert (= _call24 true)
   let importModuleName = import[0]
   let importName = import[1]
-  (yet "foreach |builtinSetName| in |builtinSetNames|")
-  if (yet "|builtinSetName| does not refer to a builtin set") {
-    (yet "continue")
-  } else nop
-  let builtinSetQualifiedName = (yet "|builtinSetName| prefixed with \"wasm:\"")
-  if (= importModuleName builtinSetQualifiedName) {
-    call builtins = clo<"get the builtins for a builtin set">(builtinSetName)
-    (yet "foreach |builtin| in |builtins|")
-    let builtinName = builtin[0]
-    if (= importName builtinName) {
-      return (yet "tuple(Var(builtinSetName)Var(builtin))")
+  let _iterList25 = builtinSetNames
+  let _iterIdx26 = 0
+  while (< _iterIdx26 (sizeof _iterList25)) {
+    let builtinSetName = _iterList25[_iterIdx26]
+    if (yet "|builtinSetName| does not refer to a builtin set") {
+      (yet "continue")
     } else nop
-  } else nop
+    let builtinSetQualifiedName = (yet "|builtinSetName| prefixed with \"wasm:\"")
+    if (= importModuleName builtinSetQualifiedName) {
+      call builtins = clo<"get the builtins for a builtin set">(builtinSetName)
+      let _iterList27 = builtins
+      let _iterIdx28 = 0
+      while (< _iterIdx28 (sizeof _iterList27)) {
+        let builtin = _iterList27[_iterIdx28]
+        let builtinName = builtin[0]
+        if (= importName builtinName) {
+          return (yet "tuple(Var(builtinSetName)Var(builtin))")
+        } else nop
+        _iterIdx28 = (+ _iterIdx28 1)
+      }
+    } else nop
+    _iterIdx26 = (+ _iterIdx26 1)
+  }
   return null
 }
 def validate builtin set names(
@@ -1599,9 +1689,9 @@ def create a builtin function(
 ): Unknown = {
   let hostfunc = (yet "a [=host function=] which executes |steps| when called")
   let store = _ref_SpecTerm["associated store"]
-  call _tuple15 = clo<"func_alloc">(store, funcType, hostfunc)
-  let store = _tuple15[0]
-  let funcaddr = _tuple15[1]
+  call _tuple20 = clo<"func_alloc">(store, funcType, hostfunc)
+  let store = _tuple20[0]
+  let funcaddr = _tuple20[1]
   _ref_SpecTerm["associated store"] = store
   return funcaddr
 }
@@ -1610,12 +1700,20 @@ def instantiate a builtin set(
 ): Unknown = {
   call builtins = clo<"get the builtins for a builtin set">(builtinSetName)
   call exportsObject = clo<"OrdinaryObjectCreate">(null)
-  (yet "foreach (|name|, |funcType|, |steps|) in |builtins|")
-  call funcaddr = clo<"create a builtin function">(funcType, steps)
-  call func = clo<"a new exported function">(funcaddr)
-  let value = func
-  call status = clo<"CreateDataProperty">(exportsObject, name, value)
-  assert (= status true)
+  let _iterList29 = builtins
+  let _iterIdx30 = 0
+  while (< _iterIdx30 (sizeof _iterList29)) {
+    let _tuple21 = _iterList29[_iterIdx30]
+    let name = _tuple21[0]
+    let funcType = _tuple21[1]
+    let steps = _tuple21[2]
+    call funcaddr = clo<"create a builtin function">(funcType, steps)
+    call func = clo<"a new exported function">(funcaddr)
+    let value = func
+    call status = clo<"CreateDataProperty">(exportsObject, name, value)
+    assert (= status true)
+    _iterIdx30 = (+ _iterIdx30 1)
+  }
   return exportsObject
 }
 def validate an import for builtins(

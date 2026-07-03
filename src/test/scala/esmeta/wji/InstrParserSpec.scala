@@ -117,8 +117,8 @@ class InstrParserSpec extends AnyFunSuite:
     val instrs = algo.body
     assert(
       instrs(1) == ForEach(
-        "|error|",
-        """« "CompileError", "LinkError", "RuntimeError" »""",
+        Var("error"),
+        List_(List(Str("CompileError"), Str("LinkError"), Str("RuntimeError"))),
         List(
           Let(
             Var("constructor"),

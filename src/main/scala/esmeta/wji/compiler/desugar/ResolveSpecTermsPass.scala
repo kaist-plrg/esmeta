@@ -79,9 +79,9 @@ object ResolveSpecTermsPass extends DesugarPass:
     val e = rewriteExpr(known)
     val go = rewriteCond(known)
     cond match
-      case Cond.Eq(l, r, neg)      => Cond.Eq(e(l), e(r), neg)
-      case Cond.Compare(l, op, r)  => Cond.Compare(e(l), op, e(r))
-      case Cond.MapExists(ex, neg) => Cond.MapExists(e(ex), neg)
+      case Cond.Eq(l, r, neg)     => Cond.Eq(e(l), e(r), neg)
+      case Cond.Compare(l, op, r) => Cond.Compare(e(l), op, e(r))
+      case Cond.HasField(ex, neg) => Cond.HasField(e(ex), neg)
       case Cond.Implements(ex, iface, neg) =>
         Cond.Implements(e(ex), iface, neg)
       case Cond.IsOfForm(ex, form, condOpt, neg) =>

@@ -41,7 +41,7 @@ class InstrParserSpec extends AnyFunSuite:
     assert(
       instrs.take(2) == List(
         If(
-          MapExists(Index(Var("descriptor"), Str("address"))),
+          HasField(Index(Var("descriptor"), Str("address"))),
           List(Let(Var("addrtype"), Index(Var("descriptor"), Str("address")))),
         ),
         Else(List(Let(Var("addrtype"), Str("i32")))),

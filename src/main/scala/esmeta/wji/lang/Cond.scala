@@ -8,8 +8,14 @@ object Cond:
   /** EXPR < EXPR etc. — op is "<", ">", "<=", ">=" */
   case class Compare(lhs: Expr, op: String, rhs: Expr) extends Cond
 
-  /** EXPR [=map/exists=] / EXPR [=map/doesn't exist=] */
-  case class MapExists(expr: Expr, negated: Boolean = false) extends Cond
+  /** Whether the reference `expr` exists — `EXPR [=map/exists=]` / `EXPR
+    * [=map/doesn't exist=]` (spec prose always applies this to an index
+    * expression, e.g. `|map|[|key|]`, so `expr` is normally an [[Expr.Index]]),
+    * but also reused for a plain record field check (e.g. `|x|.[[Type]]`, an
+    * [[Expr.Field]]) by desugar passes like `ExpandThrowsPass` that need to
+    * tell a completion record apart from a bare value before reading `.Type`.
+    */
+  case class HasField(expr: Expr, negated: Boolean = false) extends Cond
 
   /** EXPR [=implements=] {{Iface}} / EXPR does not [=implement=] {{Iface}} */
   case class Implements(expr: Expr, iface: String, negated: Boolean = false)
@@ -59,13 +65,5 @@ object Cond:
     * accompanying `catch it` phrase carries no separate meaning of its own.
     */
   case class Throws(kind: Option[String] = None) extends Cond
-
-  /** Whether `base` has a field named `field`. A desugar-only utility (not
-    * produced by [[CondParser]] from spec prose) used by `ExpandThrowsPass` to
-    * tell a completion record (which has `.Type`/ `.Value`) apart from a bare
-    * value it might otherwise be confused with; distinct from [[MapExists]],
-    * which is tied to the `[=map/exists=]` spec vocabulary specifically.
-    */
-  case class HasField(base: Expr, field: String) extends Cond
 
   case class Unknown(text: String) extends Cond

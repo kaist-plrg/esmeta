@@ -204,10 +204,8 @@ object Compiler:
       compileCompare(op, compileExpr(l), compileExpr(r))
     case Cond.And(l, r) => EBinary(BOp.And, compileCond(l), compileCond(r))
     case Cond.Or(l, r)  => EBinary(BOp.Or, compileCond(l), compileCond(r))
-    case Cond.MapExists(e, false) => EExists(compileRef(e))
-    case Cond.MapExists(e, true)  => EUnary(UOp.Not, EExists(compileRef(e)))
-    case Cond.HasField(base, field) =>
-      EExists(compileRef(metalang.Expr.Field(base, field)))
+    case Cond.HasField(e, false)  => EExists(compileRef(e))
+    case Cond.HasField(e, true)   => EUnary(UOp.Not, EExists(compileRef(e)))
     case Cond.IsType(e, t, false) => ETypeCheckName(compileExpr(e), t)
     case Cond.IsType(e, t, true) =>
       EUnary(UOp.Not, ETypeCheckName(compileExpr(e), t))

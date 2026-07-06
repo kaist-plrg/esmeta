@@ -10,8 +10,8 @@ object CondPrinter:
       s"${ExprPrinter.render(lhs)} is not ${ExprPrinter.render(rhs)}"
     case Compare(lhs, op, rhs) =>
       s"${ExprPrinter.render(lhs)} $op ${ExprPrinter.render(rhs)}"
-    case MapExists(expr, false) => s"${ExprPrinter.render(expr)} [=map/exists=]"
-    case MapExists(expr, true) =>
+    case HasField(expr, false) => s"${ExprPrinter.render(expr)} [=map/exists=]"
+    case HasField(expr, true) =>
       s"${ExprPrinter.render(expr)} [=map/doesn't exist=]"
     case Implements(expr, face, false) =>
       s"${ExprPrinter.render(expr)} [=implements=] {{$face}}"
@@ -37,6 +37,4 @@ object CondPrinter:
     case Cond.Unreachable        => "Unreachable"
     case Cond.Throws(None)       => "Throws"
     case Cond.Throws(Some(kind)) => s"Throws($kind)"
-    case Cond.HasField(base, field) =>
-      s"${ExprPrinter.render(base)} has field $field"
-    case Cond.Unknown(text) => s"?($text)"
+    case Cond.Unknown(text)      => s"?($text)"

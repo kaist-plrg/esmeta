@@ -193,8 +193,8 @@ object NormalizeAlgoCallPass extends DesugarPass:
     case Cond.IsType(e, t, neg) =>
       val (b, ne) = extractFromExpr(e); (b, Cond.IsType(ne, t, neg))
 
-    case Cond.MapExists(e, neg) =>
-      val (b, ne) = extractFromExpr(e); (b, Cond.MapExists(ne, neg))
+    case Cond.HasField(e, neg) =>
+      val (b, ne) = extractFromExpr(e); (b, Cond.HasField(ne, neg))
 
     case Cond.Implements(e, iface, neg) =>
       val (b, ne) = extractFromExpr(e); (b, Cond.Implements(ne, iface, neg))

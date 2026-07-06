@@ -99,9 +99,9 @@ object CondParser:
   private def parseAtomic(s: String): Cond = s match
     case UnreachableStep()     => Unreachable
     case ThrowsException(kind) => Throws(Option(kind))
-    case MapExistsPos(baseRaw) => MapExists(ExprParser.parse(baseRaw))
+    case MapExistsPos(baseRaw) => HasField(ExprParser.parse(baseRaw))
     case MapExistsNeg(baseRaw) =>
-      MapExists(ExprParser.parse(baseRaw), negated = true)
+      HasField(ExprParser.parse(baseRaw), negated = true)
     case ListIsEmpty(baseRaw, alias) =>
       val negated = Option(alias).exists(_.toLowerCase.contains("not"))
       Eq(Length(ExprParser.parse(baseRaw.trim)), Num("0"), negated)

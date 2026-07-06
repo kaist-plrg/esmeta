@@ -91,7 +91,7 @@ object ExpandThrowsPass extends DesugarPass:
 
       completionCall ::
       Instr.IfChain(
-        List((Cond.HasField(tmp, "Type"), List(completionCheck))),
+        List((Cond.HasField(Expr.Field(tmp, "Type")), List(completionCheck))),
         bind(tmp), // not a completion at all — a bare value
       ) ::
       transform(rest)

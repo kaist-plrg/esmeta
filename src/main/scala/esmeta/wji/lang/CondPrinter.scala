@@ -27,6 +27,10 @@ object CondPrinter:
       s"${ExprPrinter.render(lhs)} does not [=matches/$t=] ${ExprPrinter.render(rhs)}"
     case IsMissing(expr, false) => s"${ExprPrinter.render(expr)} is missing"
     case IsMissing(expr, true)  => s"${ExprPrinter.render(expr)} is not missing"
+    case HasSlot(expr, slot, false) =>
+      s"${ExprPrinter.render(expr)} has a [[$slot]] internal slot"
+    case HasSlot(expr, slot, true) =>
+      s"${ExprPrinter.render(expr)} does not have a [[$slot]] internal slot"
     case IsType(expr, t, neg) =>
       val article = if "aeiouAEIOU".contains(t.head) then "an" else "a"
       val verb = if neg then "is not" else "is"

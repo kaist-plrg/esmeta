@@ -186,7 +186,7 @@ def read_the_imports(
       if (= _call4 false) {
         (yet "throw a {{LinkError}} exception")
       } else nop
-      if (&& (yet "|v| has a \\[[FunctionAddress]] internal slot") (= (yet "therefore") (yet "an [=Exported Function=]"))) {
+      if (&& (exists v.FunctionAddress) (= (yet "therefore") (yet "an [=Exported Function=]"))) {
         let funcaddr = v.FunctionAddress
       } else {
         call funcaddr = clo<"create_a_host_function">(v, functype)

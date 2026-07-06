@@ -206,6 +206,10 @@ object Compiler:
     case Cond.Unreachable         => EBool(false)
     case Cond.IsMissing(e, false) => EUnary(UOp.Not, EExists(compileRef(e)))
     case Cond.IsMissing(e, true)  => EExists(compileRef(e))
+    case Cond.HasSlot(e, slot, false) =>
+      EExists(Field(compileRef(e), EStr(slot)))
+    case Cond.HasSlot(e, slot, true) =>
+      EUnary(UOp.Not, EExists(Field(compileRef(e), EStr(slot))))
     case Cond.Implements(e, iface, neg) => EYet(s"implements $iface") // TODO
     case Cond.IsOfForm(e, f, _, neg)    => EYet(s"is of form") // TODO
     case Cond.Matches(l, t, r, neg)     => EYet(s"matches $t") // TODO

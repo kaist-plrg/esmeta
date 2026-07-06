@@ -30,6 +30,16 @@ object CondParser:
     """(?si)^(.*?)\s+\[=implements=\]\s+\{\{([^}]+)\}\}$""".r
   private val ImplementsNeg =
     """(?si)^(.*?)\s+does not \[=implement=\]\s+\{\{([^}]+)\}\}$""".r
+  // "EXPR has a [[SLOT]] internal slot" / "EXPR does not have a [[SLOT]]
+  // internal slot" — checks whether an object has (been initialized with) a
+  // particular internal slot, as opposed to ExprParser's PossessiveSlot
+  // ("the value of X's [[slot]] internal slot"), which reads an existing
+  // slot's value. The "internal slot" suffix may be plain text or a Bikeshed
+  // dfn link (`[=internal slot=]`/`[=/internal slot=]`).
+  private val HasSlotPos =
+    """(?si)^(.+?)\s+has\s+an?\s+\\?\[\[([^\]]+)\]\]\s+(?:\[=/?internal slot=\]|internal slot)$""".r
+  private val HasSlotNeg =
+    """(?si)^(.+?)\s+does not have\s+an?\s+\\?\[\[([^\]]+)\]\]\s+(?:\[=/?internal slot=\]|internal slot)$""".r
   private val UnreachableStep = """(?si)^this step is not reached$""".r
 
   // Or has lower precedence than And, so we split by Or first
@@ -103,6 +113,10 @@ object CondParser:
       Implements(ExprParser.parse(exprRaw), face)
     case ImplementsNeg(exprRaw, face) =>
       Implements(ExprParser.parse(exprRaw), face, negated = true)
+    case HasSlotPos(exprRaw, slot) =>
+      HasSlot(ExprParser.parse(exprRaw.trim), slot)
+    case HasSlotNeg(exprRaw, slot) =>
+      HasSlot(ExprParser.parse(exprRaw.trim), slot, negated = true)
     case _ => parseEqOrCompare(s)
 
   private def parseEqOrCompare(s: String): Cond =

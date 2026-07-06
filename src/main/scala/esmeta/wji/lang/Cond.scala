@@ -50,12 +50,14 @@ object Cond:
   /** `This step is not reached.` */
   case object Unreachable extends Cond
 
-  /** `If this [operation] throws an exception, ...` — checks whether the
-    * immediately preceding step completed abruptly via throw. The thrown value
-    * is referenced in the body as `|exception|` (see `ExprParser`'s `"the
-    * exception"` alias); the accompanying `catch it` phrase carries no separate
-    * meaning of its own.
+  /** `If this [operation] throws an exception, ...` / `If this [operation]
+    * throws a {{TypeError}}, ...` — checks whether the immediately preceding
+    * step completed abruptly via throw, optionally narrowed to a specific
+    * exception type (`kind`, e.g. `"TypeError"`; `None` for the untyped "an
+    * exception" phrasing). The thrown value is referenced in the body as
+    * `|exception|` (see `ExprParser`'s `"the exception"` alias); the
+    * accompanying `catch it` phrase carries no separate meaning of its own.
     */
-  case object Throws extends Cond
+  case class Throws(kind: Option[String] = None) extends Cond
 
   case class Unknown(text: String) extends Cond

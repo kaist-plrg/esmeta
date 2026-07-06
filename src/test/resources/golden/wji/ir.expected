@@ -210,7 +210,7 @@ def read the imports(
           (yet "throw a {{LinkError}} exception")
         } else nop
         call value = clo<"towebassemblyvalue">(v, valtype)
-        if (yet "this operation throws a {{TypeError}}") {
+        if (yet "throws TypeError") {
           (yet "throw a {{LinkError}} exception")
         } else nop
         let store = _ref_SpecTerm["associated store"]

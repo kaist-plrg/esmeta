@@ -216,8 +216,9 @@ object Compiler:
     case Cond.Implements(e, iface, neg) => EYet(s"implements $iface") // TODO
     case Cond.IsOfForm(e, f, _, neg)    => EYet(s"is of form") // TODO
     case Cond.Matches(l, t, r, neg)     => EYet(s"matches $t") // TODO
-    case Cond.Throws                    => EYet("throws") // TODO
-    case Cond.Unknown(raw)              => EYet(raw)
+    case Cond.Throws(kind) =>
+      EYet(s"throws${kind.fold("")(k => s" $k")}") // TODO
+    case Cond.Unknown(raw) => EYet(raw)
 
   // ── Ref ──────────────────────────────────────────────────────────────────────
 

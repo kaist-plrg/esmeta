@@ -31,9 +31,10 @@ object CondPrinter:
       val article = if "aeiouAEIOU".contains(t.head) then "an" else "a"
       val verb = if neg then "is not" else "is"
       s"${ExprPrinter.render(expr)} $verb $article $t"
-    case And(left, right)   => s"${render(left)}, and ${render(right)}"
-    case Or(left, right)    => s"${render(left)} or ${render(right)}"
-    case Abbreviated(expr)  => ExprPrinter.render(expr)
-    case Cond.Unreachable   => "Unreachable"
-    case Cond.Throws        => "Throws"
-    case Cond.Unknown(text) => s"?($text)"
+    case And(left, right)        => s"${render(left)}, and ${render(right)}"
+    case Or(left, right)         => s"${render(left)} or ${render(right)}"
+    case Abbreviated(expr)       => ExprPrinter.render(expr)
+    case Cond.Unreachable        => "Unreachable"
+    case Cond.Throws(None)       => "Throws"
+    case Cond.Throws(Some(kind)) => s"Throws($kind)"
+    case Cond.Unknown(text)      => s"?($text)"

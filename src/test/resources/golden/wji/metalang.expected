@@ -135,7 +135,7 @@
         If(|valtype| is [=v128=])
           Throw(a {{LinkError}} exception)
         Let(|value|, [=ToWebAssemblyValue=](|v|, |valtype|))
-        If(?(this operation throws a {{TypeError}}))
+        If(Throws(TypeError))
           Note(catch it)
           Throw(a {{LinkError}} exception)
         Let(|store|, [=surrounding agent=].[[associated store]])

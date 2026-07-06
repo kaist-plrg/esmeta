@@ -1,5 +1,5 @@
 def ToWebIDLArrayBuffer(
   argument: ESValue,
-): Boolean = {
+): Unknown = {
   return argument
 }

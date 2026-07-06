@@ -114,7 +114,7 @@ _esmeta_completions() {
           return 0
           ;;
         wji-interp)
-          COMPREPLY=($(compgen -W "${globalOpt} ${wjiextractOpt} ${wjicompileOpt} ${wjiinterpOpt}"))
+          COMPREPLY=($(compgen -W "${globalOpt} ${extractOpt} ${compileOpt} ${buildcfgOpt} ${wjiinterpOpt}"))
           return 0
           ;;
         wji-bridge-demo)

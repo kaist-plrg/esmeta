@@ -19,8 +19,8 @@ import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr}
   *     Set(_iterIdxN, _iterIdxN + 1))
   * }}}
   *
-  * `elem` may also be a `Tuple` of `Var`s (destructuring, e.g. `For each
-  * (|a|, |b|) of ...`); this pass still binds one element per iteration, and
+  * `elem` may also be a `Tuple` of `Var`s (destructuring, e.g. `For each (|a|,
+  * |b|) of ...`); this pass still binds one element per iteration, and
   * [[ExpandDestructuringLetPass]] (which must run after this pass) then
   * destructures that `Let(Tuple(...), ...)` into individual bindings.
   *

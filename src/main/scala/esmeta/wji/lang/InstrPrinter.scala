@@ -43,12 +43,12 @@ object InstrPrinter:
     case Else(_)         => "Else"
     case Return(expr, _) =>
       s"Return(${expr.map(ExprPrinter.render).getOrElse("")})"
-    case Assert(cond, _)        => s"Assert(${CondPrinter.render(cond)})"
-    case Throw(target, _)       => s"Throw($target)"
+    case Assert(cond, _)  => s"Assert(${CondPrinter.render(cond)})"
+    case Throw(target, _) => s"Throw($target)"
     case ForEach(elem, coll, _) =>
       s"ForEach(${ExprPrinter.render(elem)}, ${ExprPrinter.render(coll)})"
-    case While(cond, _)         => s"While(${CondPrinter.render(cond)})"
-    case RunInParallel(_)       => "RunInParallel"
+    case While(cond, _)   => s"While(${CondPrinter.render(cond)})"
+    case RunInParallel(_) => "RunInParallel"
     case Append(item, coll, _) =>
       s"Append(${ExprPrinter.render(item)}, ${ExprPrinter.render(coll)})"
     case Continue(_) => "Continue"

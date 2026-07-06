@@ -88,7 +88,8 @@ object Compiler:
       // TODO: proper foreach — needs ERef of collection + loop var
       IExpr(
         EYet(
-          s"foreach ${metalang.ExprPrinter.render(elem)} in ${metalang.ExprPrinter.render(collection)}",
+          s"foreach ${metalang.ExprPrinter
+            .render(elem)} in ${metalang.ExprPrinter.render(collection)}",
         ),
       ) :: compileSeq(body)
 
@@ -181,8 +182,10 @@ object Compiler:
     case metalang.Expr.Described(link, desc) =>
       EYet(s"$link which $desc") // TODO: relative-clause construction
     case metalang.Expr.SuchThat(desc, cond) =>
-      EYet(s"$desc such that $cond") // TODO: existential/definite-description search
-    case metalang.Expr.Unknown(raw)    => EYet(raw)
+      EYet(
+        s"$desc such that $cond",
+      ) // TODO: existential/definite-description search
+    case metalang.Expr.Unknown(raw) => EYet(raw)
 
   // ── Condition ────────────────────────────────────────────────────────────────
 

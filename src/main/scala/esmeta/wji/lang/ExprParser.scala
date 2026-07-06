@@ -146,11 +146,11 @@ object ExprParser:
         SuchThat(desc.trim, cond.trim)
       case AlgoCallIndefVar(link, arg) =>
         AlgoCall(normalizeLink(link), List(parse(arg)))
-      case AsMathPat(inner)            => AsMath(parse(inner))
-      case PowPat(base, exp)           => Pow(parse(base), parse(exp))
-      case BinOpPat(lhs, op, rhs)      => BinOp(parse(lhs), op, parse(rhs))
-      case PlainNewExpr()              => UnknownNew(s)
-      case EmptyMapProse()             => Map_(Nil)
+      case AsMathPat(inner)       => AsMath(parse(inner))
+      case PowPat(base, exp)      => Pow(parse(base), parse(exp))
+      case BinOpPat(lhs, op, rhs) => BinOp(parse(lhs), op, parse(rhs))
+      case PlainNewExpr()         => UnknownNew(s)
+      case EmptyMapProse()        => Map_(Nil)
       case MapLiteral(inner) =>
         val entries = splitComma(inner).map { e =>
           splitTopLevel(e, " → ") match

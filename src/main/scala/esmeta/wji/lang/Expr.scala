@@ -55,22 +55,22 @@ object Expr:
   /** `(E1, E2, ...)` — parenthesised tuple, used in destructuring Let LHS. */
   case class Tuple(elems: List[Expr]) extends Expr
 
-  /** "a [=link=] which <desc>" — a value described by a relative clause
-    * rather than constructed directly (e.g. "a [=Data Block=] which is
-    * [=identified with=] the underlying memory of |memaddr|"). Not yet
-    * evaluable; kept as a distinct node (rather than falling into [[Unknown]])
-    * so it's never mistaken for an [[AlgoCall]].
+  /** "a [=link=] which <desc>" — a value described by a relative clause rather
+    * than constructed directly (e.g. "a [=Data Block=] which is [=identified
+    * with=] the underlying memory of |memaddr|"). Not yet evaluable; kept as a
+    * distinct node (rather than falling into [[Unknown]]) so it's never
+    * mistaken for an [[AlgoCall]].
     */
   case class Described(link: String, desc: String) extends Expr
 
   /** "(a|an|the) <desc> such that <cond>" — a definite/indefinite/superlative
-    * description satisfying a predicate: "there is a value described by
-    * desc, satisfying cond" (e.g. "a [=host address=] |hostaddr| exists such
-    * that ...", "the unsigned integer such that |i64| is
-    * [=signed_64=](|u64|)", "the smallest address such that ..."). `desc` is
-    * kept as raw text since it may or may not contain a `[=link=]`/`|var|` —
-    * the phrasing varies across the spec. Not yet evaluable; kept as a
-    * distinct node for the same reason as [[Described]].
+    * description satisfying a predicate: "there is a value described by desc,
+    * satisfying cond" (e.g. "a [=host address=] |hostaddr| exists such that
+    * ...", "the unsigned integer such that |i64| is [=signed_64=](|u64|)", "the
+    * smallest address such that ..."). `desc` is kept as raw text since it may
+    * or may not contain a `[=link=]`/`|var|` — the phrasing varies across the
+    * spec. Not yet evaluable; kept as a distinct node for the same reason as
+    * [[Described]].
     */
   case class SuchThat(desc: String, cond: String) extends Expr
 

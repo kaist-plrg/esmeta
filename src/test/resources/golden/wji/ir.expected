@@ -210,11 +210,15 @@ def read the imports(
           (yet "throw a {{LinkError}} exception")
         } else nop
         call _throwComp1 = clo<"towebassemblyvalue">(v, valtype)
-        if (= _throwComp1.Type ~throw~) {
-          let exception = _throwComp1.Value
-          (yet "throw a {{LinkError}} exception")
+        if (exists _throwComp1.Type) {
+          if (= _throwComp1.Type ~throw~) {
+            let exception = _throwComp1.Value
+            (yet "throw a {{LinkError}} exception")
+          } else {
+            let value = _throwComp1.Value
+          }
         } else {
-          let value = _throwComp1.Value
+          let value = _throwComp1
         }
         let store = _ref_SpecTerm["associated store"]
         call-embed _tuple3 = <global_alloc>(store, (yet "call [=const=]"), value)
@@ -342,28 +346,38 @@ def asynchronously instantiate a webassembly module(
   let builtinSetNames = moduleObject.BuiltinSets
   let importedStringModule = moduleObject.ImportedStringModule
   call _throwComp2 = clo<"read the imports">(module, importObject, builtinSetNames, importedStringModule)
-  if (= _throwComp2.Type ~throw~) {
-    let exception = _throwComp2.Value
-    call _ = clo<"reject">(promise, exception)
-    return promise
+  if (exists _throwComp2.Type) {
+    if (= _throwComp2.Type ~throw~) {
+      let exception = _throwComp2.Value
+      call _ = clo<"reject">(promise, exception)
+      return promise
+    } else {
+      let imports = _throwComp2.Value
+    }
   } else {
-    let imports = _throwComp2.Value
+    let imports = _throwComp2
   }
   call _ = clo<"queue a task">()
   call _throwComp3 = clo<"instantiate the core of a webassembly module">(module, imports)
-  if (= _throwComp3.Type ~throw~) {
-    let exception = _throwComp3.Value
-    call _ = clo<"reject">(promise, exception)
-    (yet "terminate these substeps")
+  if (exists _throwComp3.Type) {
+    if (= _throwComp3.Type ~throw~) {
+      let exception = _throwComp3.Value
+      call _ = clo<"reject">(promise, exception)
+      (yet "terminate these substeps")
+    } else {
+      let instance = _throwComp3.Value
+    }
   } else {
-    let instance = _throwComp3.Value
+    let instance = _throwComp3
   }
   let instanceObject = (record [Instance])
   call _throwComp4 = clo<"initialize an instance object">(instanceObject, module, instance)
-  if (= _throwComp4.Type ~throw~) {
-    let exception = _throwComp4.Value
-    call _ = clo<"reject">(promise, exception)
-    (yet "terminate these substeps")
+  if (exists _throwComp4.Type) {
+    if (= _throwComp4.Type ~throw~) {
+      let exception = _throwComp4.Value
+      call _ = clo<"reject">(promise, exception)
+      (yet "terminate these substeps")
+    } else nop
   } else nop
   call _ = clo<"resolve">(promise, instanceObject)
   return promise

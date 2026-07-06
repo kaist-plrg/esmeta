@@ -60,4 +60,12 @@ object Cond:
     */
   case class Throws(kind: Option[String] = None) extends Cond
 
+  /** Whether `base` has a field named `field`. A desugar-only utility (not
+    * produced by [[CondParser]] from spec prose) used by `ExpandThrowsPass` to
+    * tell a completion record (which has `.Type`/ `.Value`) apart from a bare
+    * value it might otherwise be confused with; distinct from [[MapExists]],
+    * which is tied to the `[=map/exists=]` spec vocabulary specifically.
+    */
+  case class HasField(base: Expr, field: String) extends Cond
+
   case class Unknown(text: String) extends Cond

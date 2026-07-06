@@ -37,4 +37,6 @@ object CondPrinter:
     case Cond.Unreachable        => "Unreachable"
     case Cond.Throws(None)       => "Throws"
     case Cond.Throws(Some(kind)) => s"Throws($kind)"
-    case Cond.Unknown(text)      => s"?($text)"
+    case Cond.HasField(base, field) =>
+      s"${ExprPrinter.render(base)} has field $field"
+    case Cond.Unknown(text) => s"?($text)"

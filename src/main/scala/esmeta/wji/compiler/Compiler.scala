@@ -178,6 +178,10 @@ object Compiler:
         entries.map((k, v) => (compileExpr(k), compileExpr(v))),
       )
     case metalang.Expr.UnknownNew(raw) => EYet(raw)
+    case metalang.Expr.Described(link, desc) =>
+      EYet(s"$link which $desc") // TODO: relative-clause construction
+    case metalang.Expr.SuchThat(desc, cond) =>
+      EYet(s"$desc such that $cond") // TODO: existential/definite-description search
     case metalang.Expr.Unknown(raw)    => EYet(raw)
 
   // ── Condition ────────────────────────────────────────────────────────────────

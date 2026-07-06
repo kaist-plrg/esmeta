@@ -19,6 +19,36 @@ object ExprParser:
   private val NewExpr =
     """(?si)^a\s+\[=/new=\]\s+\{\{([^}]+)\}\}(?:\s+object)?$""".r
   private val EmptyList = """(?si)^a\s+new,?\s+empty\s+(?:\[=list=\]|list)$""".r
+  // "a [=X=] which ..." — a relative-clause description of X, not a call
+  // (e.g. "a [=Data Block=] which is [=identified with=] the underlying
+  // memory of |memaddr|"). Not yet evaluable (see Expr.Described); matched
+  // explicitly (rather than left to fall through to the default `Unknown`
+  // case) so it can never be mistaken for AlgoCallIndefVar below.
+  private val RelativeClauseDesc =
+    """(?si)^an?\s+(\[=[^\]]+\])\s+which\s+(.+)$""".r
+  // "(a|an|the) <desc> such that <cond>" — any definite/indefinite/superlative
+  // description satisfying a predicate, not a call. Covers all the variants
+  // seen in the spec: "a [=host address=] |hostaddr| exists such that ...",
+  // "the unsigned integer such that |i64| is [=signed_64=](|u64|)", "an
+  // implementation-defined integer such that ...", "the smallest address
+  // such that ...". `desc` (non-greedy up to the first "such that") may or
+  // may not itself contain a `[=link=]`/`|var|`/qualifier word like "exists"
+  // or "smallest" — kept as raw text since the phrasing varies too much to
+  // structure further. Not yet evaluable (see Expr.SuchThat); matched
+  // explicitly for the same reason as RelativeClauseDesc above.
+  private val SuchThatDesc =
+    """(?si)^(?:the|an?)\s+(.+?)\s+such\s+that\s+(.+)$""".r
+  // "a [=algo|display text=] (of)? |arg|" — a single-argument algorithm
+  // invocation phrased as a noun (e.g. "a [=get a copy of the buffer
+  // source|copy of the bytes held by the buffer=] |bytes|"), as opposed to
+  // AlgoCallProse's "[=algo=] ARGS" verb phrasing. Deliberately anchored to a
+  // single *bare variable* argument with nothing else trailing, so phrases
+  // like RelativeClauseDesc/SuchThatDesc above (which have more text after
+  // the bracket/variable) can't match here even if the guards above it were
+  // ever removed. Placed after the more specific "a [=/new=] ..." / "a new,
+  // empty ..." patterns above so it only catches the general case.
+  private val AlgoCallIndefVar =
+    """(?si)^an?\s+(\[=[^\]]+\])\s+(?:of\s+)?(\|[^|]+\|)$""".r
   private val PlainNewExpr = """(?si)^a\s+new\s+.+""".r
   private val SlotAccess = """(?s)^(.+)\.\\?\[\[([^\]]+)\]\]$""".r
   private val PossessiveSlot =
@@ -110,6 +140,12 @@ object ExprParser:
       case IndexByNum(baseRaw, n)      => Index(parse(baseRaw), parse(n))
       case NewExpr(iface)              => New(iface)
       case EmptyList()                 => List_(Nil)
+      case RelativeClauseDesc(link, desc) =>
+        Described(normalizeLink(link), desc.trim)
+      case SuchThatDesc(desc, cond) =>
+        SuchThat(desc.trim, cond.trim)
+      case AlgoCallIndefVar(link, arg) =>
+        AlgoCall(normalizeLink(link), List(parse(arg)))
       case AsMathPat(inner)            => AsMath(parse(inner))
       case PowPat(base, exp)           => Pow(parse(base), parse(exp))
       case BinOpPat(lhs, op, rhs)      => BinOp(parse(lhs), op, parse(rhs))

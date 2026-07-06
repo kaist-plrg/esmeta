@@ -45,7 +45,7 @@ def validate(
   bytes: Unknown,
   options: Unknown,
 ): Unknown = {
-  let stableBytes = (yet "a [=get a copy of the buffer source|copy of the bytes held by the buffer=] |bytes|")
+  call stableBytes = clo<"get a copy of the buffer source">(bytes)
   call module = clo<"compile a webassembly module">(stableBytes)
   if (= module ~error~) {
     return false
@@ -95,7 +95,7 @@ def compile(
   bytes: Unknown,
   options: Unknown,
 ): Unknown = {
-  let stableBytes = (yet "a [=get a copy of the buffer source|copy of the bytes held by the buffer=] |bytes|")
+  call stableBytes = clo<"get a copy of the buffer source">(bytes)
   call _ret1 = clo<"asynchronously compile a webassembly module">(stableBytes, options)
   return _ret1
 }
@@ -382,7 +382,7 @@ def instantiate(
   importObject: Unknown,
   options: Unknown,
 ): Unknown = {
-  let stableBytes = (yet "a [=get a copy of the buffer source|copy of the bytes held by the buffer=] |bytes|")
+  call stableBytes = clo<"get a copy of the buffer source">(bytes)
   call promiseOfModule = clo<"asynchronously compile a webassembly module">(stableBytes, options)
   call _ret2 = clo<"instantiate a promise of a module">(promiseOfModule, importObject)
   return _ret2
@@ -473,7 +473,7 @@ def module(
   bytes: Unknown,
   options: Unknown,
 ): Unknown = {
-  let stableBytes = (yet "a [=get a copy of the buffer source|copy of the bytes held by the buffer=] |bytes|")
+  call stableBytes = clo<"get a copy of the buffer source">(bytes)
   call module = clo<"compile a webassembly module">(stableBytes)
   if (= module ~error~) {
     (yet "throw a {{CompileError}} exception")
@@ -504,7 +504,7 @@ def exports(
 def create a fixed length memory buffer(
   memaddr: Unknown,
 ): Unknown = {
-  let block = (yet "a [=Data Block=] which is [=identified with=] the underlying memory of |memaddr|")
+  let block = (yet "[=Data Block=] which is [=identified with=] the underlying memory of |memaddr|")
   let buffer = (yet "a new {{ArrayBuffer}} with the internal slots \\[[ArrayBufferData]], \\[[ArrayBufferByteLength]], and \\[[ArrayBufferDetachKey]]")
   buffer.ArrayBufferData = block
   buffer.ArrayBufferByteLength = (sizeof block)
@@ -515,7 +515,7 @@ def create a resizable memory buffer(
   memaddr: Unknown,
   maxsize: Unknown,
 ): Unknown = {
-  let block = (yet "a [=Data Block=] which is [=identified with=] the underlying memory of |memaddr|")
+  let block = (yet "[=Data Block=] which is [=identified with=] the underlying memory of |memaddr|")
   let length = (sizeof block)
   let buffer = (yet "a new {{ArrayBuffer}} with the internal slots \\[[ArrayBufferData]], \\[[ArrayBufferByteLength]], \\[[ArrayBufferMaxByteLength]], and \\[[ArrayBufferDetachKey]]")
   buffer.ArrayBufferData = block
@@ -596,7 +596,7 @@ def refresh the memory buffer(
     call buffer = clo<"create a fixed length memory buffer">(memaddr)
     memory.BufferObject = buffer
   } else {
-    let block = (yet "a [=Data Block=] which is [=identified with=] the underlying memory of |memaddr|")
+    let block = (yet "[=Data Block=] which is [=identified with=] the underlying memory of |memaddr|")
     buffer.ArrayBufferData = block
     buffer.ArrayBufferByteLength = (sizeof block)
   }
@@ -1167,7 +1167,7 @@ def create a host function(
 ): Unknown = {
   assert (yet "[$IsCallable$](|func|)")
   let stored settings = (yet "the <a spec=HTML>incumbent settings object</a>")
-  let hostfunc = (yet "a [=host function=] which performs the following steps when called with arguments |arguments|:")
+  let hostfunc = (yet "[=host function=] which performs the following steps when called with arguments |arguments|:")
   let realm = (yet "|func|'s [=associated Realm=]")
   let relevant settings = (yet "|realm|'s [=realm/settings object=]")
   call _ = clo<"prepare to run script">(relevant settings)
@@ -1283,7 +1283,7 @@ def towebassemblyvalue(
       return _comp20
     } else nop
     let i64 = _comp20.Value
-    let u64 = (yet "the unsigned integer such that |i64| is [=signed_64=](|u64|)")
+    let u64 = (yet "unsigned integer such that |i64| is [=signed_64=](|u64|)")
     call _ret26 = clo<"i64.const">(u64)
     return _ret26
   } else nop
@@ -1293,7 +1293,7 @@ def towebassemblyvalue(
       return _comp21
     } else nop
     let i32 = _comp21.Value
-    let u32 = (yet "the unsigned integer such that |i32| is [=signed_32=](|u32|)")
+    let u32 = (yet "unsigned integer such that |i32| is [=signed_32=](|u32|)")
     call _ret27 = clo<"i32.const">(u32)
     return _ret27
   } else nop
@@ -1304,7 +1304,7 @@ def towebassemblyvalue(
     } else nop
     let number = _comp22.Value
     if (= number ~**NaN**~) {
-      let n = (yet "an implementation-defined integer such that [=canon=]<sub>32</sub> &leq; |n| &lt; 2<sup>[=signif=](32)</sup>")
+      let n = (yet "implementation-defined integer such that [=canon=]<sub>32</sub> &leq; |n| &lt; 2<sup>[=signif=](32)</sup>")
       call f32 = clo<"nan">((yet "n"))
     } else {
       let f32 = (yet "|number| rounded to the nearest representable value using IEEE 754-2019 round to nearest, ties to even mode")
@@ -1320,7 +1320,7 @@ def towebassemblyvalue(
     } else nop
     let number = _comp23.Value
     if (= number ~**NaN**~) {
-      let n = (yet "an implementation-defined integer such that [=canon=]<sub>64</sub> &leq; |n| &lt; 2<sup>[=signif=](64)</sup>")
+      let n = (yet "implementation-defined integer such that [=canon=]<sub>64</sub> &leq; |n| &lt; 2<sup>[=signif=](64)</sup>")
       call f64 = clo<"nan">((yet "n"))
     } else {
       let f64 = number
@@ -1343,7 +1343,7 @@ def towebassemblyvalue(
         return _comp24
       } else nop
       let i31 = _comp24.Value
-      let u31 = (yet "the unsigned integer such that |i31| is [=signed_31=](|u31|)")
+      let u31 = (yet "unsigned integer such that |i31| is [=signed_31=](|u31|)")
       call r = clo<"ref.i31">(u31)
     } else if (= v (yet "an [=Exported GC Object=]")) {
       let objectaddr = v.ObjectAddress
@@ -1355,7 +1355,7 @@ def towebassemblyvalue(
       } else nop
     } else {
       let map = _ref_SpecTerm["host value cache"]
-      if (= _ref_Unknown[hostaddr] (yet "the same as |v|")) {
+      if (= _ref_SuchThat[hostaddr] (yet "the same as |v|")) {
         call _ret30 = clo<"ref.host">(hostaddr)
         return _ret30
       } else nop
@@ -1687,7 +1687,7 @@ def create a builtin function(
   funcType: Unknown,
   steps: Unknown,
 ): Unknown = {
-  let hostfunc = (yet "a [=host function=] which executes |steps| when called")
+  let hostfunc = (yet "[=host function=] which executes |steps| when called")
   let store = _ref_SpecTerm["associated store"]
   call _tuple20 = clo<"func_alloc">(store, funcType, hostfunc)
   let store = _tuple20[0]

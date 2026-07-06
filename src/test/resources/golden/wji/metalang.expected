@@ -28,7 +28,7 @@
 # validate
   params: |bytes|, |options|
   head: The <dfn method for="WebAssembly">validate(|bytes|, |options|)</dfn> method, when invoked, performs the following steps:
-  Let(|stableBytes|, ?(a [=get a copy of the buffer source|copy of the bytes held by the buffer=] |bytes|))
+  Let(|stableBytes|, [=get a copy of the buffer source=](|bytes|))
   PerformAndLet([=Compile a WebAssembly module=](|stableBytes|), |module|)
   If(|module| is [=error=])
     Return(false)
@@ -69,7 +69,7 @@
 # compile
   params: |bytes|, |options|
   head: The <dfn method for="WebAssembly">compile(|bytes|, |options|)</dfn> method, when invoked, performs the following steps:
-  Let(|stableBytes|, ?(a [=get a copy of the buffer source|copy of the bytes held by the buffer=] |bytes|))
+  Let(|stableBytes|, [=get a copy of the buffer source=](|bytes|))
   PerformAndReturn([=Asynchronously compile a WebAssembly module=](|stableBytes|, |options|))
 
 # instantiate imported strings
@@ -265,7 +265,7 @@
 # instantiate
   params: |bytes|, |importObject|, |options|
   head: The <dfn method for="WebAssembly">instantiate(|bytes|, |importObject|, |options|)</dfn> method, when invoked, performs the following steps:
-  Let(|stableBytes|, ?(a [=get a copy of the buffer source|copy of the bytes held by the buffer=] |bytes|))
+  Let(|stableBytes|, [=get a copy of the buffer source=](|bytes|))
   PerformAndLet([=Asynchronously compile a WebAssembly module=](|stableBytes|, |options|), |promiseOfModule|)
   PerformAndReturn([=Instantiate a promise of a module=](|promiseOfModule|, |importObject|))
 
@@ -326,7 +326,7 @@
 # Module
   params: |bytes|, |options|
   head: The <dfn constructor for="Module">Module(|bytes|, |options|)</dfn> constructor, when invoked, performs the following steps:
-  Let(|stableBytes|, ?(a [=get a copy of the buffer source|copy of the bytes held by the buffer=] |bytes|))
+  Let(|stableBytes|, [=get a copy of the buffer source=](|bytes|))
   PerformAndLet([=Compile a WebAssembly module=](|stableBytes|), |module|)
   If(|module| is [=error=])
     Throw(a {{CompileError}} exception)
@@ -357,7 +357,7 @@
 # create a fixed length memory buffer
   params: |memaddr|
   head: To <dfn>create a fixed length memory buffer</dfn> from a [=memory address=] |memaddr|, perform the following steps:
-  Let(|block|, ?(a [=Data Block=] which is [=identified with=] the underlying memory of |memaddr|))
+  Let(|block|, [=Data Block=] which is [=identified with=] the underlying memory of |memaddr|)
   Let(|buffer|, ?(a new {{ArrayBuffer}} with the internal slots \[[ArrayBufferData]], \[[ArrayBufferByteLength]], and \[[ArrayBufferDetachKey]]))
   Set(|buffer|.[[ArrayBufferData]], |block|)
   Set(|buffer|.[[ArrayBufferByteLength]], length(|block|))
@@ -367,7 +367,7 @@
 # create a resizable memory buffer
   params: |memaddr|, |maxsize|
   head: To <dfn>create a resizable memory buffer</dfn> from a [=memory address=] |memaddr| and a |maxsize|, perform the following steps:
-  Let(|block|, ?(a [=Data Block=] which is [=identified with=] the underlying memory of |memaddr|))
+  Let(|block|, [=Data Block=] which is [=identified with=] the underlying memory of |memaddr|)
   Let(|length|, length(|block|))
   Let(|buffer|, ?(a new {{ArrayBuffer}} with the internal slots \[[ArrayBufferData]], \[[ArrayBufferByteLength]], \[[ArrayBufferMaxByteLength]], and \[[ArrayBufferDetachKey]]))
   Set(|buffer|.[[ArrayBufferData]], |block|)
@@ -430,7 +430,7 @@
     Let(|buffer|, [=create a fixed length memory buffer=](|memaddr|))
     Set(|memory|.[[BufferObject]], |buffer|)
   Else
-    Let(|block|, ?(a [=Data Block=] which is [=identified with=] the underlying memory of |memaddr|))
+    Let(|block|, [=Data Block=] which is [=identified with=] the underlying memory of |memaddr|)
     Set(|buffer|.[[ArrayBufferData]], |block|)
     Set(|buffer|.[[ArrayBufferByteLength]], length(|block|))
 
@@ -833,7 +833,7 @@
   head: To <dfn>create a host function</dfn> from the JavaScript object |func| and type |functype|, perform the following steps:
   Assert(?([$IsCallable$](|func|)))
   Let(|stored settings|, ?(the <a spec=HTML>incumbent settings object</a>))
-  Let(|hostfunc|, ?(a [=host function=] which performs the following steps when called with arguments |arguments|:))
+  Let(|hostfunc|, [=host function=] which performs the following steps when called with arguments |arguments|:)
     Let(|realm|, ?(|func|'s [=associated Realm=]))
     Let(|relevant settings|, ?(|realm|'s [=realm/settings object=]))
     Perform([=Prepare to run script=](|relevant settings|))
@@ -914,16 +914,16 @@
   Assert(|type| does not [=matches/valtype=] [=exnref=])
   If(|type| is [=i64=])
     Let(|i64|, [=?=] [$ToBigInt64$](|v|))
-    Let(|u64|, ?(the unsigned integer such that |i64| is [=signed_64=](|u64|)))
+    Let(|u64|, unsigned integer such that |i64| is [=signed_64=](|u64|))
     Return([=i64.const=](|u64|))
   If(|type| is [=i32=])
     Let(|i32|, [=?=] [$ToInt32$](|v|))
-    Let(|u32|, ?(the unsigned integer such that |i32| is [=signed_32=](|u32|)))
+    Let(|u32|, unsigned integer such that |i32| is [=signed_32=](|u32|))
     Return([=i32.const=](|u32|))
   If(|type| is [=f32=])
     Let(|number|, [=?=] [$ToNumber$](|v|))
     If(|number| is **NaN**)
-      Let(|n|, ?(an implementation-defined integer such that [=canon=]<sub>32</sub> &leq; |n| &lt; 2<sup>[=signif=](32)</sup>))
+      Let(|n|, implementation-defined integer such that [=canon=]<sub>32</sub> &leq; |n| &lt; 2<sup>[=signif=](32)</sup>)
       Let(|f32|, [=nan=](?(n)))
     Else
       Let(|f32|, ?(|number| rounded to the nearest representable value using IEEE 754-2019 round to nearest, ties to even mode))
@@ -932,7 +932,7 @@
   If(|type| is [=f64=])
     Let(|number|, [=?=] [$ToNumber$](|v|))
     If(|number| is **NaN**)
-      Let(|n|, ?(an implementation-defined integer such that [=canon=]<sub>64</sub> &leq; |n| &lt; 2<sup>[=signif=](64)</sup>))
+      Let(|n|, implementation-defined integer such that [=canon=]<sub>64</sub> &leq; |n| &lt; 2<sup>[=signif=](64)</sup>)
       Let(|f64|, [=nan=](?(n)))
     Else
       Let(|f64|, |number|)
@@ -948,7 +948,7 @@
       Let(|r|, [=ref.func=](|funcaddr|))
     ElseIf(|v| is a Number, and |v| is [=?=] [$ToInt32$](|v|), and [=ℝ=](|v|) < 2 ** 30, and [=ℝ=](|v|) >= -(2 ** 30))
       Let(|i31|, [=?=] [$ToInt32$](|v|))
-      Let(|u31|, ?(the unsigned integer such that |i31| is [=signed_31=](|u31|)))
+      Let(|u31|, unsigned integer such that |i31| is [=signed_31=](|u31|))
       Let(|r|, [=ref.i31=](|u31|))
     ElseIf(|v| is ?(an [=Exported GC Object=]))
       Let(|objectaddr|, |v|.[[ObjectAddress]])
@@ -959,9 +959,9 @@
         Let(|r|, [=ref.struct=](|objectaddr|))
     Else
       Let(|map|, [=surrounding agent=].[[host value cache]])
-      If(?(a [=host address=] |hostaddr| exists such that |map|)[|hostaddr|] is ?(the same as |v|))
+      If([=host address=] |hostaddr| exists such that |map|[|hostaddr|] is ?(the same as |v|))
         Return([=ref.host=](|hostaddr|))
-      Let([=host address=](|hostaddr|), ?(the smallest address such that |map|[|hostaddr|] [=map/exists=] is false))
+      Let([=host address=](|hostaddr|), smallest address such that |map|[|hostaddr|] [=map/exists=] is false)
       Set(|map|[|hostaddr|], |v|)
       Let(|r|, [=ref.host=](|hostaddr|))
     Let(|store|, [=surrounding agent=].[[associated store]])
@@ -1217,7 +1217,7 @@
 # create a builtin function
   params: |funcType|, |steps|
   head: To <dfn>create a builtin function</dfn> from type |funcType| and execution steps |steps|, perform the following steps:
-  Let(|hostfunc|, ?(a [=host function=] which executes |steps| when called))
+  Let(|hostfunc|, [=host function=] which executes |steps| when called)
   Let(|store|, [=surrounding agent=].[[associated store]])
   Let((|store|, |funcaddr|), [=func_alloc=](|store|, |funcType|, |hostfunc|))
   Set([=surrounding agent=].[[associated store]], |store|)

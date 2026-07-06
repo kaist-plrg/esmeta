@@ -9,9 +9,9 @@ import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr}
   *
   * This isn't a desugaring (it changes no control-flow/expression shape) but
   * lives alongside the other passes since it needs to run over the same
-  * `List[Algorithm]` before/after which the rest of the pipeline runs. It
-  * runs right after [[ResolveSpecTermsPass]], before any pass that would
-  * otherwise convert `AlgoCall`s into `Perform`s.
+  * `List[Algorithm]` before/after which the rest of the pipeline runs. It runs
+  * right after [[ResolveSpecTermsPass]], before any pass that would otherwise
+  * convert `AlgoCall`s into `Perform`s.
   */
 object ReplaceSpaceWithUnderscore extends DesugarPass:
   def run(algos: List[Algorithm]): List[Algorithm] =

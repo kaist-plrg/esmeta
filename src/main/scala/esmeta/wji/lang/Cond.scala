@@ -34,8 +34,8 @@ object Cond:
   /** EXPR is [not] missing */
   case class IsMissing(expr: Expr, negated: Boolean = false) extends Cond
 
-  /** EXPR has a [[SLOT]] internal slot / EXPR does not have a [[SLOT]]
-    * internal slot.
+  /** EXPR has a [[SLOT]] internal slot / EXPR does not have a [[SLOT]] internal
+    * slot.
     */
   case class HasSlot(expr: Expr, slot: String, negated: Boolean = false)
     extends Cond

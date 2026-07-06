@@ -5,6 +5,7 @@ import esmeta.wji.lang.Algorithm
 object Desugar:
   val pipeline: List[DesugarPass] = List(
     ResolveSpecTermsPass,
+    ReplaceSpaceWithUnderscore,
     DropNotesPass,
     GroupIfChainPass,
     ExpandAbruptPass,
@@ -14,7 +15,6 @@ object Desugar:
     ExtractInlineAlgoCallPass,
     ExpandPerformReturnResultPass,
     ExpandAbbreviatedCondPass,
-    ReplaceSpaceWithHyphen,
   )
 
   def run(algos: List[Algorithm]): List[Algorithm] =

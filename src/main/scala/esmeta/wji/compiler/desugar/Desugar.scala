@@ -12,6 +12,7 @@ object Desugar:
     ExpandDestructuringLetPass,
     NormalizeAlgoCallPass,
     ExtractInlineAlgoCallPass,
+    ExpandThrowsPass,
     ExpandPerformReturnResultPass,
     ExpandAbbreviatedCondPass,
   )

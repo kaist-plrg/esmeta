@@ -209,10 +209,13 @@ def read the imports(
         if (= valtype ~v128~) {
           (yet "throw a {{LinkError}} exception")
         } else nop
-        call value = clo<"towebassemblyvalue">(v, valtype)
-        if (yet "throws TypeError") {
+        call _throwComp1 = clo<"towebassemblyvalue">(v, valtype)
+        if (= _throwComp1.Type ~throw~) {
+          let exception = _throwComp1.Value
           (yet "throw a {{LinkError}} exception")
-        } else nop
+        } else {
+          let value = _throwComp1.Value
+        }
         let store = _ref_SpecTerm["associated store"]
         call-embed _tuple3 = <global_alloc>(store, (yet "call [=const=]"), value)
         let store = _tuple3[0]
@@ -338,20 +341,27 @@ def asynchronously instantiate a webassembly module(
   let module = moduleObject.Module
   let builtinSetNames = moduleObject.BuiltinSets
   let importedStringModule = moduleObject.ImportedStringModule
-  call imports = clo<"read the imports">(module, importObject, builtinSetNames, importedStringModule)
-  if (yet "throws") {
+  call _throwComp2 = clo<"read the imports">(module, importObject, builtinSetNames, importedStringModule)
+  if (= _throwComp2.Type ~throw~) {
+    let exception = _throwComp2.Value
     call _ = clo<"reject">(promise, exception)
     return promise
-  } else nop
+  } else {
+    let imports = _throwComp2.Value
+  }
   call _ = clo<"queue a task">()
-  call instance = clo<"instantiate the core of a webassembly module">(module, imports)
-  if (yet "throws") {
+  call _throwComp3 = clo<"instantiate the core of a webassembly module">(module, imports)
+  if (= _throwComp3.Type ~throw~) {
+    let exception = _throwComp3.Value
     call _ = clo<"reject">(promise, exception)
     (yet "terminate these substeps")
-  } else nop
+  } else {
+    let instance = _throwComp3.Value
+  }
   let instanceObject = (record [Instance])
-  call _ = clo<"initialize an instance object">(instanceObject, module, instance)
-  if (yet "throws") {
+  call _throwComp4 = clo<"initialize an instance object">(instanceObject, module, instance)
+  if (= _throwComp4.Type ~throw~) {
+    let exception = _throwComp4.Value
     call _ = clo<"reject">(promise, exception)
     (yet "terminate these substeps")
   } else nop

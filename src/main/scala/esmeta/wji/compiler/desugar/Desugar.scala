@@ -14,6 +14,7 @@ object Desugar:
     ExtractInlineAlgoCallPass,
     ExpandPerformReturnResultPass,
     ExpandAbbreviatedCondPass,
+    ReplaceSpaceWithHyphen,
   )
 
   def run(algos: List[Algorithm]): List[Algorithm] =

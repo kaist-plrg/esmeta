@@ -1,5 +1,5 @@
 109 func(s)
-def compile a webassembly module(
+def compile-a-webassembly-module(
   bytes: Unknown,
 ): Unknown = {
   call module = clo<"module_decode">(bytes)
@@ -12,12 +12,12 @@ def compile a webassembly module(
   } else nop
   return module
 }
-def validate builtins and imported string for a webassembly module(
+def validate-builtins-and-imported-string-for-a-webassembly-module(
   module: Unknown,
   builtinSetNames: Unknown,
   importedStringModule: Unknown,
 ): Unknown = {
-  call _call2 = clo<"validate builtin set names">(builtinSetNames)
+  call _call2 = clo<"validate-builtin-set-names">(builtinSetNames)
   if (= _call2 false) {
     return false
   } else nop
@@ -45,8 +45,8 @@ def validate(
   bytes: Unknown,
   options: Unknown,
 ): Unknown = {
-  call stableBytes = clo<"get a copy of the buffer source">(bytes)
-  call module = clo<"compile a webassembly module">(stableBytes)
+  call stableBytes = clo<"get-a-copy-of-the-buffer-source">(bytes)
+  call module = clo<"compile-a-webassembly-module">(stableBytes)
   if (= module ~error~) {
     return false
   } else nop
@@ -57,7 +57,7 @@ def validate(
   } else nop
   return true
 }
-def construct a webassembly module object(
+def construct-a-webassembly-module-object(
   module: Unknown,
   bytes: Unknown,
   builtinSetNames: Unknown,
@@ -70,14 +70,14 @@ def construct a webassembly module object(
   moduleObject.ImportedStringModule = importedStringModule
   return moduleObject
 }
-def asynchronously compile a webassembly module(
+def asynchronously-compile-a-webassembly-module(
   bytes: Unknown,
   options: Unknown,
   taskSource: Unknown,
 ): Unknown = {
-  call promise = clo<"a new promise">(@EXECUTION_STACK[0].Realm)
-  call module = clo<"compile a webassembly module">(bytes)
-  call _ = clo<"queue a task">(taskSource)
+  call promise = clo<"a-new-promise">(@EXECUTION_STACK[0].Realm)
+  call module = clo<"compile-a-webassembly-module">(bytes)
+  call _ = clo<"queue-a-task">(taskSource)
   if (= module ~error~) {
     (yet "reject |promise| with a {{CompileError}} exception and return")
   } else nop
@@ -86,7 +86,7 @@ def asynchronously compile a webassembly module(
   if (&& (yet "[=validate builtins and imported string for a WebAssembly module|validating builtins and imported strings=] for |module| with |builtinSetNames|") (= importedStringModule false)) {
     (yet "reject |promise| with a {{CompileError}} exception")
   } else {
-    call moduleObject = clo<"construct a webassembly module object">(module, bytes, builtinSetNames, importedStringModule)
+    call moduleObject = clo<"construct-a-webassembly-module-object">(module, bytes, builtinSetNames, importedStringModule)
     call _ = clo<"resolve">(promise, moduleObject)
   }
   return promise
@@ -95,11 +95,11 @@ def compile(
   bytes: Unknown,
   options: Unknown,
 ): Unknown = {
-  call stableBytes = clo<"get a copy of the buffer source">(bytes)
-  call _ret1 = clo<"asynchronously compile a webassembly module">(stableBytes, options)
+  call stableBytes = clo<"get-a-copy-of-the-buffer-source">(bytes)
+  call _ret1 = clo<"asynchronously-compile-a-webassembly-module">(stableBytes, options)
   return _ret1
 }
-def instantiate imported strings(
+def instantiate-imported-strings(
   module: Unknown,
   importedStringModule: Unknown,
 ): Unknown = {
@@ -122,7 +122,7 @@ def instantiate imported strings(
   }
   return exportsObject
 }
-def read the imports(
+def read-the-imports(
   module: Unknown,
   importObject: Unknown,
   builtinSetNames: Unknown,
@@ -141,12 +141,12 @@ def read the imports(
     if (yet "|builtinSetName| does not refer to a builtin set") {
       (yet "continue")
     } else nop
-    call exportsObject = clo<"instantiate a builtin set">(builtinSetName)
+    call exportsObject = clo<"instantiate-a-builtin-set">(builtinSetName)
     builtinOrStringImports[builtinSetQualifiedName] = exportsObject
     _iterIdx6 = (+ _iterIdx6 1)
   }
   if (! (= importedStringModule null)) {
-    call exportsObject = clo<"instantiate imported strings">(module, importedStringModule)
+    call exportsObject = clo<"instantiate-imported-strings">(module, importedStringModule)
     builtinOrStringImports[importedStringModule] = exportsObject
   } else nop
   let imports = (list [])
@@ -189,7 +189,7 @@ def read the imports(
       if (&& (yet "|v| has a \\[[FunctionAddress]] internal slot") (= (yet "therefore") (yet "an [=Exported Function=]"))) {
         let funcaddr = v.FunctionAddress
       } else {
-        call funcaddr = clo<"create a host function">(v, functype)
+        call funcaddr = clo<"create-a-host-function">(v, functype)
         let index = (yet "the number of external functions in |imports|")
         (yet "This value |index| is known as the <dfn>index of the host function</dfn> |funcaddr|")
       }
@@ -219,7 +219,7 @@ def read the imports(
         let globaladdr = _tuple3[1]
         _ref_SpecTerm["associated store"] = store
       }
-      call externglobal = clo<"external value">(globaladdr)
+      call externglobal = clo<"external-value">(globaladdr)
       push imports < externglobal
     } else nop
     if (yet "is of form") {
@@ -250,7 +250,7 @@ def read the imports(
   }
   return imports
 }
-def create an exports object(
+def create-an-exports-object(
   module: Unknown,
   instance: Unknown,
 ): Unknown = {
@@ -266,32 +266,32 @@ def create an exports object(
     if (yet "is of form") {
       assert (yet "is of form")
       let _ = (yet "unsupported Let lhs: AlgoCall([=external value=],List(Var(funcaddr)))")
-      call func = clo<"a new exported function">(funcaddr)
+      call func = clo<"a-new-exported-function">(funcaddr)
       let value = func
     } else nop
     if (yet "is of form") {
       assert (yet "is of form")
       let _ = (yet "unsupported Let lhs: AlgoCall([=external value=],List(Var(globaladdr)))")
-      call global = clo<"create a global object">(globaladdr)
+      call global = clo<"create-a-global-object">(globaladdr)
       let value = global
     } else nop
     if (yet "is of form") {
       assert (yet "is of form")
       let _ = (yet "unsupported Let lhs: AlgoCall([=external value=],List(Var(memaddr)))")
-      call memory = clo<"create a memory object">(memaddr)
+      call memory = clo<"create-a-memory-object">(memaddr)
       let value = memory
     } else nop
     if (yet "is of form") {
       assert (yet "is of form")
       let _ = (yet "unsupported Let lhs: AlgoCall([=external value=],List(Var(tableaddr)))")
-      call table = clo<"create a table object">(tableaddr)
+      call table = clo<"create-a-table-object">(tableaddr)
       let value = table
     } else nop
     if (yet "is of form") {
       assert (= attribute ~tagtype/attribute/exception~)
       assert (yet "is of form")
       let _ = (yet "unsupported Let lhs: AlgoCall([=external value/tag=],List(Var(tagaddr)))")
-      call tag = clo<"create a tag object">(tagaddr)
+      call tag = clo<"create-a-tag-object">(tagaddr)
       let value = tag
     } else nop
     call status = clo<"CreateDataProperty">(exportsObject, name, value)
@@ -302,16 +302,16 @@ def create an exports object(
   call _ = clo<"!">(_call5)
   return exportsObject
 }
-def initialize an instance object(
+def initialize-an-instance-object(
   instanceObject: Unknown,
   module: Unknown,
   instance: Unknown,
 ): Unknown = {
-  call exportsObject = clo<"create an exports object">(module, instance)
+  call exportsObject = clo<"create-an-exports-object">(module, instance)
   instanceObject.Instance = instance
   instanceObject.Exports = exportsObject
 }
-def instantiate the core of a webassembly module(
+def instantiate-the-core-of-a-webassembly-module(
   module: Unknown,
   imports: Unknown,
 ): Unknown = {
@@ -330,39 +330,39 @@ def instantiate the core of a webassembly module(
   _ref_SpecTerm["associated store"] = store
   return instance
 }
-def asynchronously instantiate a webassembly module(
+def asynchronously-instantiate-a-webassembly-module(
   moduleObject: Unknown,
   importObject: Unknown,
 ): Unknown = {
-  call promise = clo<"a new promise">(@EXECUTION_STACK[0].Realm)
+  call promise = clo<"a-new-promise">(@EXECUTION_STACK[0].Realm)
   let module = moduleObject.Module
   let builtinSetNames = moduleObject.BuiltinSets
   let importedStringModule = moduleObject.ImportedStringModule
-  call imports = clo<"read the imports">(module, importObject, builtinSetNames, importedStringModule)
+  call imports = clo<"read-the-imports">(module, importObject, builtinSetNames, importedStringModule)
   if (yet "this operation throws an exception") {
     (yet "catch it, [=reject=] |promise| with the exception, and return |promise|")
   } else nop
-  call _ = clo<"queue a task">()
-  call instance = clo<"instantiate the core of a webassembly module">(module, imports)
+  call _ = clo<"queue-a-task">()
+  call instance = clo<"instantiate-the-core-of-a-webassembly-module">(module, imports)
   if (yet "this throws an exception") {
     (yet "catch it, [=reject=] |promise| with the exception, and terminate these substeps")
   } else nop
   let instanceObject = (record [Instance])
-  call _ = clo<"initialize an instance object">(instanceObject, module, instance)
+  call _ = clo<"initialize-an-instance-object">(instanceObject, module, instance)
   if (yet "this throws an exception") {
     (yet "catch it, [=reject=] |promise| with the exception, and terminate these substeps")
   } else nop
   call _ = clo<"resolve">(promise, instanceObject)
   return promise
 }
-def instantiate a promise of a module(
+def instantiate-a-promise-of-a-module(
   promiseOfModule: Unknown,
   importObject: Unknown,
 ): Unknown = {
-  call promise = clo<"a new promise">(@EXECUTION_STACK[0].Realm)
+  call promise = clo<"a-new-promise">(@EXECUTION_STACK[0].Realm)
   call _ = clo<"react">(promiseOfModule)
   if (yet "|promiseOfModule| was fulfilled with value |module|") {
-    call innerPromise = clo<"asynchronously instantiate a webassembly module">(module, importObject)
+    call innerPromise = clo<"asynchronously-instantiate-a-webassembly-module">(module, importObject)
     call _ = clo<"react">(innerPromise)
     if (yet "|innerPromise| was fulfilled with value |instance|") {
       let result = (yet "the {{WebAssemblyInstantiatedSource}} value «[ \"{{WebAssemblyInstantiatedSource/module}}\" → |module|, \"{{WebAssemblyInstantiatedSource/instance}}\" → |instance| ]»")
@@ -382,19 +382,19 @@ def instantiate(
   importObject: Unknown,
   options: Unknown,
 ): Unknown = {
-  call stableBytes = clo<"get a copy of the buffer source">(bytes)
-  call promiseOfModule = clo<"asynchronously compile a webassembly module">(stableBytes, options)
-  call _ret2 = clo<"instantiate a promise of a module">(promiseOfModule, importObject)
+  call stableBytes = clo<"get-a-copy-of-the-buffer-source">(bytes)
+  call promiseOfModule = clo<"asynchronously-compile-a-webassembly-module">(stableBytes, options)
+  call _ret2 = clo<"instantiate-a-promise-of-a-module">(promiseOfModule, importObject)
   return _ret2
 }
 def instantiate_object(
   moduleObject: Unknown,
   importObject: Unknown,
 ): Unknown = {
-  call _ret3 = clo<"asynchronously instantiate a webassembly module">(moduleObject, importObject)
+  call _ret3 = clo<"asynchronously-instantiate-a-webassembly-module">(moduleObject, importObject)
   return _ret3
 }
-def string value of the extern type(
+def string-value-of-the-extern-type(
   type: Unknown,
 ): Unknown = {
   (yet "\"function\" if |type| is of the form [=external-type/func=] <var ignore>functype</var>")
@@ -473,8 +473,8 @@ def module(
   bytes: Unknown,
   options: Unknown,
 ): Unknown = {
-  call stableBytes = clo<"get a copy of the buffer source">(bytes)
-  call module = clo<"compile a webassembly module">(stableBytes)
+  call stableBytes = clo<"get-a-copy-of-the-buffer-source">(bytes)
+  call module = clo<"compile-a-webassembly-module">(stableBytes)
   if (= module ~error~) {
     (yet "throw a {{CompileError}} exception")
   } else nop
@@ -495,13 +495,13 @@ def instance(
   let builtinSetNames = moduleObject.BuiltinSets
   let importedStringModule = moduleObject.ImportedStringModule
   let module = moduleObject.Module
-  call imports = clo<"read the imports">(module, importObject, builtinSetNames, importedStringModule)
-  call instance = clo<"instantiate the core of a webassembly module">(module, imports)
-  call _ = clo<"initialize an instance object">(@this, module, instance)
+  call imports = clo<"read-the-imports">(module, importObject, builtinSetNames, importedStringModule)
+  call instance = clo<"instantiate-the-core-of-a-webassembly-module">(module, imports)
+  call _ = clo<"initialize-an-instance-object">(@this, module, instance)
 }
 def exports(
 ): Unknown = {}
-def create a fixed length memory buffer(
+def create-a-fixed-length-memory-buffer(
   memaddr: Unknown,
 ): Unknown = {
   let block = (yet "[=Data Block=] which is [=identified with=] the underlying memory of |memaddr|")
@@ -511,7 +511,7 @@ def create a fixed length memory buffer(
   buffer.ArrayBufferDetachKey = "WebAssembly.Memory"
   return buffer
 }
-def create a resizable memory buffer(
+def create-a-resizable-memory-buffer(
   memaddr: Unknown,
   maxsize: Unknown,
 ): Unknown = {
@@ -524,18 +524,18 @@ def create a resizable memory buffer(
   buffer.ArrayBufferDetachKey = "WebAssembly.Memory"
   return buffer
 }
-def initialize a memory object(
+def initialize-a-memory-object(
   memory: Unknown,
   memaddr: Unknown,
 ): Unknown = {
   let map = _ref_SpecTerm["Memory object cache"]
   assert (! (exists map[memaddr]))
-  call buffer = clo<"create a fixed length memory buffer">(memaddr)
+  call buffer = clo<"create-a-fixed-length-memory-buffer">(memaddr)
   memory.Memory = memaddr
   memory.BufferObject = buffer
   map[memaddr] = memory
 }
-def create a memory object(
+def create-a-memory-object(
   memaddr: Unknown,
 ): Unknown = {
   let map = _ref_SpecTerm["Memory object cache"]
@@ -543,7 +543,7 @@ def create a memory object(
     return map[memaddr]
   } else nop
   let memory = (record [Memory])
-  call _ = clo<"initialize a memory object">(memory, memaddr)
+  call _ = clo<"initialize-a-memory-object">(memory, memaddr)
   return memory
 }
 def memory(
@@ -568,7 +568,7 @@ def memory(
   } else {
     let maximum = ~empty~
   }
-  call memtype = clo<"memory type">(addrtype, ~**min**~, initial, ~**max**~, maximum)
+  call memtype = clo<"memory-type">(addrtype, ~**min**~, initial, ~**max**~, maximum)
   if (! (= memtype ~valid memtype~)) {
     (yet "throw a {{RangeError}} exception")
   } else nop
@@ -580,9 +580,9 @@ def memory(
     (yet "throw a {{RangeError}} exception")
   } else nop
   _ref_SpecTerm["associated store"] = store
-  call _ = clo<"initialize a memory object">(@this, memaddr)
+  call _ = clo<"initialize-a-memory-object">(@this, memaddr)
 }
-def refresh the memory buffer(
+def refresh-the-memory-buffer(
   memaddr: Unknown,
 ): Unknown = {
   let map = _ref_SpecTerm["Memory object cache"]
@@ -593,7 +593,7 @@ def refresh the memory buffer(
   if (= _call6 true) {
     call _call7 = clo<"DetachArrayBuffer">(buffer, "WebAssembly.Memory")
     call _ = clo<"!">(_call7)
-    call buffer = clo<"create a fixed length memory buffer">(memaddr)
+    call buffer = clo<"create-a-fixed-length-memory-buffer">(memaddr)
     memory.BufferObject = buffer
   } else {
     let block = (yet "[=Data Block=] which is [=identified with=] the underlying memory of |memaddr|")
@@ -601,7 +601,7 @@ def refresh the memory buffer(
     buffer.ArrayBufferByteLength = (sizeof block)
   }
 }
-def grow the memory buffer(
+def grow-the-memory-buffer(
   memaddr: Unknown,
   delta: Unknown,
 ): Unknown = {
@@ -612,7 +612,7 @@ def grow the memory buffer(
     (yet "throw a {{RangeError}} exception")
   } else nop
   _ref_SpecTerm["associated store"] = store
-  call _ = clo<"refresh the memory buffer">(memaddr)
+  call _ = clo<"refresh-the-memory-buffer">(memaddr)
   return ret
 }
 def grow(
@@ -626,7 +626,7 @@ def grow(
     return _comp6
   } else nop
   let delta64 = _comp6.Value
-  call ret = clo<"grow the memory buffer">(memaddr, delta64)
+  call ret = clo<"grow-the-memory-buffer">(memaddr, delta64)
   call _ret4 = clo<"u64toaddressvalue">(ret, addrtype)
   return _ret4
 }
@@ -637,7 +637,7 @@ def memory.grow(
     let frame = (yet "the [=current frame=]")
     assert (yet "due to validation, |frame|.[=frame/module=].[=moduleinst/memaddrs=][|x|] exists")
     let memaddr = _ref_Unknown["frame/module"]["moduleinst/memaddrs"][x]
-    call _ = clo<"refresh the memory buffer">(memaddr)
+    call _ = clo<"refresh-the-memory-buffer">(memaddr)
   } else nop
 }
 def tofixedlengthbuffer(
@@ -648,7 +648,7 @@ def tofixedlengthbuffer(
     return buffer
   } else nop
   let memaddr = @this.Memory
-  call fixedBuffer = clo<"create a fixed length memory buffer">(memaddr)
+  call fixedBuffer = clo<"create-a-fixed-length-memory-buffer">(memaddr)
   call _call10 = clo<"DetachArrayBuffer">(buffer, "WebAssembly.Memory")
   call _ = clo<"!">(_call10)
   @this.BufferObject = fixedBuffer
@@ -669,13 +669,13 @@ def toresizablebuffer(
   } else nop
   assert (yet "|memtype| has a max")
   let maxsize = (* (yet "the max value in |memtype|") 65536)
-  call resizableBuffer = clo<"create a resizable memory buffer">(memaddr, maxsize)
+  call resizableBuffer = clo<"create-a-resizable-memory-buffer">(memaddr, maxsize)
   call _call12 = clo<"DetachArrayBuffer">(buffer, "WebAssembly.Memory")
   call _ = clo<"!">(_call12)
   @this.BufferObject = resizableBuffer
   return resizableBuffer
 }
-def abstract operation [=hostresizearraybuffer=](
+def abstract-operation-[=hostresizearraybuffer=](
   buffer: Unknown,
   newLength: Unknown,
 ): Unknown = {
@@ -691,7 +691,7 @@ def abstract operation [=hostresizearraybuffer=](
         (yet "throw a {{RangeError}} exception")
       } else nop
       let delta = (/ lengthDelta 65536)
-      call _ = clo<"grow the memory buffer">(memaddr, delta)
+      call _ = clo<"grow-the-memory-buffer">(memaddr, delta)
     } else nop
     return ~<emu-const>handled</emu-const>~
   } else {
@@ -700,7 +700,7 @@ def abstract operation [=hostresizearraybuffer=](
 }
 def buffer(
 ): Unknown = {}
-def initialize a table object(
+def initialize-a-table-object(
   table: Unknown,
   tableaddr: Unknown,
 ): Unknown = {
@@ -709,7 +709,7 @@ def initialize a table object(
   table.Table = tableaddr
   map[tableaddr] = table
 }
-def create a table object(
+def create-a-table-object(
   tableaddr: Unknown,
 ): Unknown = {
   let map = _ref_SpecTerm["Table object cache"]
@@ -717,7 +717,7 @@ def create a table object(
     return map[tableaddr]
   } else nop
   let table = (record [Table])
-  call _ = clo<"initialize a table object">(table, tableaddr)
+  call _ = clo<"initialize-a-table-object">(table, tableaddr)
   return table
 }
 def table(
@@ -769,7 +769,7 @@ def table(
     (yet "throw a {{RangeError}} exception")
   } else nop
   _ref_SpecTerm["associated store"] = store
-  call _ = clo<"initialize a table object">(@this, tableaddr)
+  call _ = clo<"initialize-a-table-object">(@this, tableaddr)
 }
 def grow(
   delta: Unknown,
@@ -876,7 +876,7 @@ def set(
   } else nop
   _ref_SpecTerm["associated store"] = store
 }
-def initialize a global object(
+def initialize-a-global-object(
   global: Unknown,
   globaladdr: Unknown,
 ): Unknown = {
@@ -885,7 +885,7 @@ def initialize a global object(
   global.Global = globaladdr
   map[globaladdr] = global
 }
-def create a global object(
+def create-a-global-object(
   globaladdr: Unknown,
 ): Unknown = {
   let map = _ref_SpecTerm["Global object cache"]
@@ -893,7 +893,7 @@ def create a global object(
     return map[globaladdr]
   } else nop
   let global = (record [Global])
-  call _ = clo<"initialize a global object">(global, globaladdr)
+  call _ = clo<"initialize-a-global-object">(global, globaladdr)
   return global
 }
 def tovaluetype(
@@ -962,7 +962,7 @@ def global(
   let globaladdr = _tuple13[1]
   (yet "<!-- TODO(littledan): Report allocation failure https://github.com/WebAssembly/spec/issues/584 -->")
   _ref_SpecTerm["associated store"] = store
-  call _ = clo<"initialize a global object">(@this, globaladdr)
+  call _ = clo<"initialize-a-global-object">(@this, globaladdr)
 }
 def getglobalvalue(
   global: Unknown,
@@ -1007,7 +1007,7 @@ def valueof(
   call _ret12 = clo<"getglobalvalue">(@this)
   return _ret12
 }
-def name of the webassembly function(
+def name-of-the-webassembly-function(
   funcaddr: Unknown,
 ): Unknown = {
   let store = _ref_SpecTerm["associated store"]
@@ -1023,7 +1023,7 @@ def name of the webassembly function(
   call _ret13 = clo<"ToString">(index)
   return _ret13
 }
-def a new exported function(
+def a-new-exported-function(
   funcaddr: Unknown,
 ): Unknown = {
   let map = _ref_SpecTerm["Exported Function cache"]
@@ -1042,7 +1042,7 @@ def a new exported function(
   map[funcaddr] = function
   return function
 }
-def call an exported function(
+def call-an-exported-function(
   funcaddr: Unknown,
   argValues: Unknown,
 ): Unknown = {
@@ -1080,11 +1080,11 @@ def call an exported function(
   if (= ret _call15) {
     call tagaddr = clo<"exn_tag">(store, exnaddr)
     call payload = clo<"exn_read">(store, exnaddr)
-    call jsTagAddr = clo<"get the javascript exception tag">()
+    call jsTagAddr = clo<"get-the-javascript-exception-tag">()
     if (= tagaddr jsTagAddr) {
       (yet "throw [=!=] [=ToJSValue=](|payload|[0])")
     } else {
-      call exception = clo<"create an exception object">(exnaddr)
+      call exception = clo<"create-an-exception-object">(exnaddr)
       (yet "throw |exception|")
     }
   } else nop
@@ -1108,7 +1108,7 @@ def call an exported function(
     return _ret15
   }
 }
-def run a host function(
+def run-a-host-function(
   func: Unknown,
   functype: Unknown,
   arguments: Unknown,
@@ -1161,7 +1161,7 @@ def run a host function(
     return wasmValues
   }
 }
-def create a host function(
+def create-a-host-function(
   func: Unknown,
   functype: Unknown,
 ): Unknown = {
@@ -1170,11 +1170,11 @@ def create a host function(
   let hostfunc = (yet "[=host function=] which performs the following steps when called with arguments |arguments|:")
   let realm = (yet "|func|'s [=associated Realm=]")
   let relevant settings = (yet "|realm|'s [=realm/settings object=]")
-  call _ = clo<"prepare to run script">(relevant settings)
-  call _ = clo<"prepare to run a callback">(stored settings)
-  call result = clo<"run a host function">(func, functype, arguments)
-  call _ = clo<"clean up after running a callback">(stored settings)
-  call _ = clo<"clean up after running script">(relevant settings)
+  call _ = clo<"prepare-to-run-script">(relevant settings)
+  call _ = clo<"prepare-to-run-a-callback">(stored settings)
+  call result = clo<"run-a-host-function">(func, functype, arguments)
+  call _ = clo<"clean-up-after-running-a-callback">(stored settings)
+  call _ = clo<"clean-up-after-running-script">(relevant settings)
   assert (|| (= result.Type ~<emu-const>throw</emu-const>~) (= result.Type ~<emu-const>normal</emu-const>~))
   let store = _ref_SpecTerm["associated store"]
   if (= result.Type ~<emu-const>throw</emu-const>~) {
@@ -1182,7 +1182,7 @@ def create a host function(
     if (yet "implements Exception") {
       let address = v.Address
     } else {
-      call type = clo<"get the javascript exception tag">()
+      call type = clo<"get-the-javascript-exception-tag">()
       call payload = clo<"towebassemblyvalue">(v, ~externref~)
       call _tuple15 = clo<"exn_alloc">(store, type, (list [payload]))
       let store = _tuple15[0]
@@ -1244,19 +1244,19 @@ def tojsvalue(
     return _ret20
   } else nop
   if (yet "is of form") {
-    call _ret21 = clo<"a new exported gc object">(structaddr, "struct")
+    call _ret21 = clo<"a-new-exported-gc-object">(structaddr, "struct")
     return _ret21
   } else nop
   if (yet "is of form") {
-    call _ret22 = clo<"a new exported gc object">(arrayaddr, "array")
+    call _ret22 = clo<"a-new-exported-gc-object">(arrayaddr, "array")
     return _ret22
   } else nop
   if (yet "is of form") {
-    call _ret23 = clo<"a new exported function">(funcaddr)
+    call _ret23 = clo<"a-new-exported-function">(funcaddr)
     return _ret23
   } else nop
   if (yet "is of form") {
-    call _ret24 = clo<"retrieving a host value">(hostaddr)
+    call _ret24 = clo<"retrieving-a-host-value">(hostaddr)
     return _ret24
   } else nop
   if (yet "is of form") {
@@ -1264,7 +1264,7 @@ def tojsvalue(
     return _ret25
   } else nop
 }
-def retrieving a host value(
+def retrieving-a-host-value(
   hostaddr: Unknown,
 ): Unknown = {
   let map = _ref_SpecTerm["host value cache"]
@@ -1411,7 +1411,7 @@ def u64toaddressvalue(
   } else nop
   assert false
 }
-def initialize a tag object(
+def initialize-a-tag-object(
   tag: Unknown,
   tagAddress: Unknown,
 ): Unknown = {
@@ -1420,7 +1420,7 @@ def initialize a tag object(
   tag.Address = tagAddress
   map[tagAddress] = tag
 }
-def create a tag object(
+def create-a-tag-object(
   tagAddress: Unknown,
 ): Unknown = {
   let map = _ref_SpecTerm["Tag object cache"]
@@ -1428,7 +1428,7 @@ def create a tag object(
     return map[tagAddress]
   } else nop
   let tag = (record [Tag])
-  call _ = clo<"initialize a tag object">(tag, tagAddress)
+  call _ = clo<"initialize-a-tag-object">(tag, tagAddress)
   return tag
 }
 def tag(
@@ -1449,54 +1449,54 @@ def tag(
   let store = _tuple17[0]
   let tagAddress = _tuple17[1]
   _ref_SpecTerm["associated store"] = store
-  call _ = clo<"initialize a tag object">(@this, tagAddress)
+  call _ = clo<"initialize-a-tag-object">(@this, tagAddress)
 }
-def \[[getprototypeof]] internal method of an exported gc object(
+def \[[getprototypeof]]-internal-method-of-an-exported-gc-object(
 ): Unknown = {
   return null
 }
-def \[[setprototypeof]] internal method of an exported gc object(
+def \[[setprototypeof]]-internal-method-of-an-exported-gc-object(
 ): Unknown = {
   return false
 }
-def \[[isextensible]] internal method of an exported gc object(
+def \[[isextensible]]-internal-method-of-an-exported-gc-object(
 ): Unknown = {
   return false
 }
-def \[[preventextensions]] internal method of an exported gc object(
+def \[[preventextensions]]-internal-method-of-an-exported-gc-object(
 ): Unknown = {
   return false
 }
-def \[[getownproperty]] internal method of an exported gc object(
+def \[[getownproperty]]-internal-method-of-an-exported-gc-object(
 ): Unknown = {
   return undefined
 }
-def \[[defineownproperty]] internal method of an exported gc object(
+def \[[defineownproperty]]-internal-method-of-an-exported-gc-object(
 ): Unknown = {
   return false
 }
-def \[[hasproperty]] internal method of an exported gc object(
+def \[[hasproperty]]-internal-method-of-an-exported-gc-object(
 ): Unknown = {
   return false
 }
-def \[[get]] internal method of an exported gc object(
+def \[[get]]-internal-method-of-an-exported-gc-object(
 ): Unknown = {
   return undefined
 }
-def \[[set]] internal method of an exported gc object(
+def \[[set]]-internal-method-of-an-exported-gc-object(
 ): Unknown = {
   (yet "throw a {{TypeError}}")
 }
-def \[[delete]] internal method of an exported gc object(
+def \[[delete]]-internal-method-of-an-exported-gc-object(
 ): Unknown = {
   (yet "throw a {{TypeError}}")
 }
-def \[[ownpropertykeys]] internal method of an exported gc object(
+def \[[ownpropertykeys]]-internal-method-of-an-exported-gc-object(
 ): Unknown = {
   let keys = (list [])
   return keys
 }
-def a new exported gc object(
+def a-new-exported-gc-object(
   objectaddr: Unknown,
   objectkind: Unknown,
 ): Unknown = {
@@ -1522,7 +1522,7 @@ def a new exported gc object(
   map[objectaddr] = object
   return object
 }
-def initialize an exception object(
+def initialize-an-exception-object(
   exn: Unknown,
   exnAddress: Unknown,
 ): Unknown = {
@@ -1537,7 +1537,7 @@ def initialize an exception object(
   exn.Payload = payload
   exn.Stack = undefined
 }
-def create an exception object(
+def create-an-exception-object(
   exnAddress: Unknown,
 ): Unknown = {
   let map = _ref_SpecTerm["Exception object cache"]
@@ -1545,7 +1545,7 @@ def create an exception object(
     return map[exnAddress]
   } else nop
   let exn = (record [Exception])
-  call _ = clo<"initialize an exception object">(exn, exnAddress)
+  call _ = clo<"initialize-an-exception-object">(exn, exnAddress)
   return exn
 }
 def exception(
@@ -1553,7 +1553,7 @@ def exception(
   payload: Unknown,
   options: Unknown,
 ): Unknown = {
-  call JSTagAddr = clo<"get the javascript exception tag">()
+  call JSTagAddr = clo<"get-the-javascript-exception-tag">()
   if (= exceptionTag.Address JSTagAddr) {
     (yet "throw a {{TypeError}}")
   } else nop
@@ -1573,7 +1573,7 @@ def exception(
   let store = _tuple18[0]
   let exceptionAddr = _tuple18[1]
   _ref_SpecTerm["associated store"] = store
-  call _ = clo<"initialize an exception object">(@this, exceptionAddr)
+  call _ = clo<"initialize-an-exception-object">(@this, exceptionAddr)
   if (= options.traceStack true) {
     @this.Stack = (yet "a {{DOMString}} representation of the current call stack or undefined")
   } else nop
@@ -1611,7 +1611,7 @@ def stack(
 ): Unknown = {
   return @this.Stack
 }
-def get the javascript exception tag(
+def get-the-javascript-exception-tag(
 ): Unknown = {
   if (yet "the [=surrounding agent=]'s associated [=JavaScript exception tag=] has been initialized") {
     return _ref_SpecTerm["JavaScript exception tag"]
@@ -1637,16 +1637,16 @@ def create the webassembly namespace object(
     _iterIdx24 = (+ _iterIdx24 1)
   }
 }
-def get the builtins for a builtin set(
+def get-the-builtins-for-a-builtin-set(
   builtinSetName: Unknown,
 ): Unknown = {
   return (yet "a list of (|name|, |funcType|, |steps|) for the set with name |builtinSetName| defined within this section")
 }
-def find a builtin(
+def find-a-builtin(
   import: Unknown,
   builtinSetNames: Unknown,
 ): Unknown = {
-  call _call24 = clo<"validate builtin set names">(builtinSetNames)
+  call _call24 = clo<"validate-builtin-set-names">(builtinSetNames)
   assert (= _call24 true)
   let importModuleName = import[0]
   let importName = import[1]
@@ -1659,7 +1659,7 @@ def find a builtin(
     } else nop
     let builtinSetQualifiedName = (yet "|builtinSetName| prefixed with \"wasm:\"")
     if (= importModuleName builtinSetQualifiedName) {
-      call builtins = clo<"get the builtins for a builtin set">(builtinSetName)
+      call builtins = clo<"get-the-builtins-for-a-builtin-set">(builtinSetName)
       let _iterList27 = builtins
       let _iterIdx28 = 0
       while (< _iterIdx28 (sizeof _iterList27)) {
@@ -1675,7 +1675,7 @@ def find a builtin(
   }
   return null
 }
-def validate builtin set names(
+def validate-builtin-set-names(
   builtinSetNames: Unknown,
 ): Unknown = {
   if (yet "|builtinSetNames| contains any duplicates") {
@@ -1683,7 +1683,7 @@ def validate builtin set names(
   } else nop
   return true
 }
-def create a builtin function(
+def create-a-builtin-function(
   funcType: Unknown,
   steps: Unknown,
 ): Unknown = {
@@ -1695,10 +1695,10 @@ def create a builtin function(
   _ref_SpecTerm["associated store"] = store
   return funcaddr
 }
-def instantiate a builtin set(
+def instantiate-a-builtin-set(
   builtinSetName: Unknown,
 ): Unknown = {
-  call builtins = clo<"get the builtins for a builtin set">(builtinSetName)
+  call builtins = clo<"get-the-builtins-for-a-builtin-set">(builtinSetName)
   call exportsObject = clo<"OrdinaryObjectCreate">(null)
   let _iterList29 = builtins
   let _iterIdx30 = 0
@@ -1707,8 +1707,8 @@ def instantiate a builtin set(
     let name = _tuple21[0]
     let funcType = _tuple21[1]
     let steps = _tuple21[2]
-    call funcaddr = clo<"create a builtin function">(funcType, steps)
-    call func = clo<"a new exported function">(funcaddr)
+    call funcaddr = clo<"create-a-builtin-function">(funcType, steps)
+    call func = clo<"a-new-exported-function">(funcaddr)
     let value = func
     call status = clo<"CreateDataProperty">(exportsObject, name, value)
     assert (= status true)
@@ -1716,13 +1716,13 @@ def instantiate a builtin set(
   }
   return exportsObject
 }
-def validate an import for builtins(
+def validate-an-import-for-builtins(
   import: Unknown,
   builtinSetNames: Unknown,
 ): Unknown = {
-  call _call25 = clo<"validate builtin set names">(builtinSetNames)
+  call _call25 = clo<"validate-builtin-set-names">(builtinSetNames)
   assert (= _call25 true)
-  call maybeBuiltin = clo<"find a builtin">(import, builtinSetNames)
+  call maybeBuiltin = clo<"find-a-builtin">(import, builtinSetNames)
   if (= maybeBuiltin null) {
     return true
   } else nop
@@ -1952,7 +1952,7 @@ def js-string-compare(
   } else nop
   return 1
 }
-def a new promise(
+def a-new-promise(
   realm: Unknown,
 ): Unknown = {
   let constructor = realm.Intrinsics["%Promise%"]
@@ -1970,7 +1970,7 @@ def resolve(
   if (! (= x (yet "given"))) {
     let _ = (yet "unsupported Let lhs: Unknown(it)")
   } else nop
-  call value = clo<"converted to a javascript value">(x)
+  call value = clo<"converted-to-a-javascript-value">(x)
   call _call30 = clo<"Call">(p.Resolve, (yet "<emu-val>undefined</emu-val>"), (list [value]))
   call _ = clo<"!">(_call30)
   if (= T (yet "{{undefined}}")) {
@@ -1989,7 +1989,7 @@ def react(
   promise: Unknown,
 ): Unknown = {
   let onFulfilledSteps = (yet "the following steps given argument |V|:")
-  call value = clo<"converted to an idl value">(V, T)
+  call value = clo<"converted-to-an-idl-value">(V, T)
   if (= (yet "there") (yet "a set of steps to be run if the promise was fulfilled")) {
     let result = (yet "performing them, given |value| if |T| is not {{undefined}}")
   } else {
@@ -1998,11 +1998,11 @@ def react(
   return (yet "|result|, [=converted to a JavaScript value=]")
   let onFulfilled = (yet "[$CreateBuiltinFunction$](|onFulfilledSteps|, 1, \"\", « »):")
   let onRejectedSteps = (yet "the following steps given argument |R|:")
-  call reason = clo<"converted to an idl value">(R)
+  call reason = clo<"converted-to-an-idl-value">(R)
   if (= (yet "there") (yet "a set of steps to be run if the promise was rejected")) {
     let result = (yet "performing them, given |reason|")
   } else {
-    call result = clo<"a promise rejected with">(reason)
+    call result = clo<"a-promise-rejected-with">(reason)
   }
   return (yet "|result|, [=converted to a JavaScript value=]")
   let onRejected = (yet "[$CreateBuiltinFunction$](|onRejectedSteps|, 1, \"\", « »):")
@@ -2012,6 +2012,6 @@ def react(
     return _comp38
   } else nop
   let newCapability = _comp38.Value
-  call _ = clo<"[$PerformPromiseThen$](|promise|.\[[Promise]], |onFulfilled|, |onRejected|, |newCapability|)">()
+  call _ = clo<"[$PerformPromiseThen$](|promise|.\[[Promise]],-|onFulfilled|,-|onRejected|,-|newCapability|)">()
   return newCapability
 }

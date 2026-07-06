@@ -35,4 +35,5 @@ object CondPrinter:
     case Or(left, right)    => s"${render(left)} or ${render(right)}"
     case Abbreviated(expr)  => ExprPrinter.render(expr)
     case Cond.Unreachable   => "Unreachable"
+    case Cond.Throws        => "Throws"
     case Cond.Unknown(text) => s"?($text)"

@@ -89,6 +89,11 @@ object ExprParser:
   private val BoolFalse = """(?i)^false$""".r
   private val BoldConst = """(?s)^\*\*([^*]+)\*\*$""".r
   private val EmptyString = """(?i)^the empty string$""".r
+  // the value bound by a preceding `Cond.Throws` check ("If this throws an
+  // exception, catch it, ... with the exception, ..."); "catch it" itself
+  // carries no separate binding, so this is the only place that name needs
+  // to resolve to a variable.
+  private val TheException = """(?i)^the exception$""".r
   private val SpecTermPat = """(?i)^(?:undefined|null|empty|absent)$""".r
   private val EmuConst = """(?s)^(<emu-const>[^<]*</emu-const>)$""".r
 
@@ -166,6 +171,7 @@ object ExprParser:
       case HexPat()        => Num(s)
       case QuotedStr(v)    => Str(v)
       case EmptyString()   => Str("")
+      case TheException()  => Var("exception")
       case BoolTrue()      => Bool(true)
       case BoolFalse()     => Bool(false)
       case BoldConst(_)    => SpecTerm(s)

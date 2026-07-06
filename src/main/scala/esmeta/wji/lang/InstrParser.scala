@@ -40,6 +40,13 @@ object InstrParser:
   // matches the leading [=..=] algo-link and the rest of the expression
   private val LeadingAlgoLink = """(?s)^(\[=[^\]]+\])\s*(.*)$""".r
 
+  // e.g. "catch it, [=reject=] |promise| with the exception, and return
+  // |promise|" — the body of an `If(Cond.Throws, ...)`. Written as one
+  // comma/"and"-joined sentence (no periods), so it can't go through the
+  // normal per-sentence splitting; "catch it" itself carries no meaning of
+  // its own (`Cond.Throws` already implies the `|exception|` binding).
+  private val CatchItPrefix = """(?si)^catch it\s*,\s*(.+)$""".r
+
   private def parseCall(expr: String): (String, List[Expr]) = expr.trim match
     case LeadingAlgoLink(func, rest) =>
       (ExprParser.normalizeLink(func), ExprParser.parseArgs(rest))
@@ -67,23 +74,37 @@ object InstrParser:
     text: String,
     trailingBody: List[Instr],
   ): List[Instr] =
-    val sentences = splitSentences(text.trim).filter(_.nonEmpty)
-    sentences match
-      case Nil if trailingBody.isEmpty => Nil
-      case Nil                         => List(Unknown("", trailingBody))
-      case _ =>
-        sentences.indexWhere(NotePrefix.matches) match
-          case -1 =>
-            sentences.init.map(parseSentence(_, Nil)) :+ parseSentence(
-              sentences.last,
-              trailingBody,
-            )
-          case noteIdx =>
-            val before = sentences.take(noteIdx).map(parseSentence(_, Nil))
-            before :+ parseSentence(
-              sentences.drop(noteIdx).mkString(" "),
-              trailingBody,
-            )
+    text.trim match
+      case CatchItPrefix(rest) =>
+        val pieces = splitComma(rest)
+        val actions = pieces.zipWithIndex.map { (piece, i) =>
+          val body = if i == pieces.length - 1 then trailingBody else Nil
+          parseSentence(stripLeadingAnd(piece), body)
+        }
+        Note("catch it") :: actions
+      case trimmed =>
+        val sentences = splitSentences(trimmed).filter(_.nonEmpty)
+        sentences match
+          case Nil if trailingBody.isEmpty => Nil
+          case Nil                         => List(Unknown("", trailingBody))
+          case _ =>
+            sentences.indexWhere(NotePrefix.matches) match
+              case -1 =>
+                sentences.init.map(parseSentence(_, Nil)) :+ parseSentence(
+                  sentences.last,
+                  trailingBody,
+                )
+              case noteIdx =>
+                val before =
+                  sentences.take(noteIdx).map(parseSentence(_, Nil))
+                before :+ parseSentence(
+                  sentences.drop(noteIdx).mkString(" "),
+                  trailingBody,
+                )
+
+  private def stripLeadingAnd(s: String): String =
+    val t = s.trim
+    if t.toLowerCase.startsWith("and ") then t.drop(4).trim else t
 
   /** splits `text` into sentence-like fragments: at every top-level `". "`, and
     * further at a top-level `"; "` when it introduces an `else`/`otherwise`

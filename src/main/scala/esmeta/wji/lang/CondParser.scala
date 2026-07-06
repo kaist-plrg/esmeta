@@ -31,6 +31,8 @@ object CondParser:
   private val ImplementsNeg =
     """(?si)^(.*?)\s+does not \[=implement=\]\s+\{\{([^}]+)\}\}$""".r
   private val UnreachableStep = """(?si)^this step is not reached$""".r
+  private val ThrowsException =
+    """(?si)^this(?: operation)? throws an exception$""".r
 
   // Or has lower precedence than And, so we split by Or first
   private val IsOfFormRhs = """(?si)^of the form (.+)$""".r
@@ -93,6 +95,7 @@ object CondParser:
 
   private def parseAtomic(s: String): Cond = s match
     case UnreachableStep()     => Unreachable
+    case ThrowsException()     => Throws
     case MapExistsPos(baseRaw) => MapExists(ExprParser.parse(baseRaw))
     case MapExistsNeg(baseRaw) =>
       MapExists(ExprParser.parse(baseRaw), negated = true)

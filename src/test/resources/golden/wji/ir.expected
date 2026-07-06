@@ -211,7 +211,7 @@ def read the imports(
         } else nop
         call value = clo<"towebassemblyvalue">(v, valtype)
         if (yet "this operation throws a {{TypeError}}") {
-          (yet "catch it, and throw a {{LinkError}} exception")
+          (yet "throw a {{LinkError}} exception")
         } else nop
         let store = _ref_SpecTerm["associated store"]
         call-embed _tuple3 = <global_alloc>(store, (yet "call [=const=]"), value)
@@ -339,18 +339,21 @@ def asynchronously instantiate a webassembly module(
   let builtinSetNames = moduleObject.BuiltinSets
   let importedStringModule = moduleObject.ImportedStringModule
   call imports = clo<"read the imports">(module, importObject, builtinSetNames, importedStringModule)
-  if (yet "this operation throws an exception") {
-    (yet "catch it, [=reject=] |promise| with the exception, and return |promise|")
+  if (yet "throws") {
+    call _ = clo<"reject">(promise, exception)
+    return promise
   } else nop
   call _ = clo<"queue a task">()
   call instance = clo<"instantiate the core of a webassembly module">(module, imports)
-  if (yet "this throws an exception") {
-    (yet "catch it, [=reject=] |promise| with the exception, and terminate these substeps")
+  if (yet "throws") {
+    call _ = clo<"reject">(promise, exception)
+    (yet "terminate these substeps")
   } else nop
   let instanceObject = (record [Instance])
   call _ = clo<"initialize an instance object">(instanceObject, module, instance)
-  if (yet "this throws an exception") {
-    (yet "catch it, [=reject=] |promise| with the exception, and terminate these substeps")
+  if (yet "throws") {
+    call _ = clo<"reject">(promise, exception)
+    (yet "terminate these substeps")
   } else nop
   call _ = clo<"resolve">(promise, instanceObject)
   return promise

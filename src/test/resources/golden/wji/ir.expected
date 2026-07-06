@@ -1,4 +1,4 @@
-109 func(s)
+110 func(s)
 def compile_a_webassembly_module(
   bytes: Unknown,
 ): Unknown = {
@@ -2014,4 +2014,27 @@ def react(
   let newCapability = _comp38.Value
   call _ = clo<"[$PerformPromiseThen$](|promise|.\[[Promise]],_|onFulfilled|,_|onRejected|,_|newCapability|)">()
   return newCapability
+}
+def get_a_copy_of_the_buffer_source(
+  bufferSource: Unknown,
+): Unknown = {
+  call jsBufferSource = clo<"converted_to_a_javascript_value">(bufferSource)
+  let jsArrayBuffer = jsBufferSource
+  let offset = 0
+  let length = 0
+  if (exists jsBufferSource.ViewedArrayBuffer) {
+    jsArrayBuffer = jsBufferSource.ViewedArrayBuffer
+    offset = jsBufferSource.ByteOffset
+    length = jsBufferSource.ByteLength
+  } else {
+    assert (|| (= jsBufferSource (yet "an {{ArrayBuffer}}")) (yet "{{SharedArrayBuffer}} object"))
+    length = jsBufferSource.ArrayBufferByteLength
+  }
+  call _call32 = clo<"IsDetachedBuffer">(jsArrayBuffer)
+  if (= _call32 true) {
+    return (yet "the empty [=byte sequence=]")
+  } else nop
+  let bytes = (yet "a new [=byte sequence=] of [=byte sequence/length=] equal to |length|")
+  (yet "For |i| in [=the range=] |offset| to |offset| + |length| &minus; 1, inclusive, set |bytes|[|i| &minus; |offset|] to [$GetValueFromBuffer$](|jsArrayBuffer|, |i|, Uint8, true, Unordered)")
+  return bytes
 }

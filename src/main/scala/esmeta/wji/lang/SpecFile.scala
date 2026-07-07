@@ -20,6 +20,7 @@ object SpecFile:
     "react",
     "reject",
     "a new promise",
+    "get a copy of the buffer source",
   )
 
   /** loads algorithms from all specs: all of jsApi plus the filtered subset of

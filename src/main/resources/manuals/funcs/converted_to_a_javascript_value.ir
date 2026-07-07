@@ -1,0 +1,5 @@
+def converted_to_a_javascript_value(
+  argument: Unknown,
+): ESValue = {
+  return argument
+}

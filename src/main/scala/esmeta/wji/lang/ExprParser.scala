@@ -72,6 +72,12 @@ object ExprParser:
   private val PowPat = """(?s)^(\d+)<sup>(.+?)</sup>$""".r
   private val BinOpPat =
     """(?s)^(.+)\s+(modulo|\+|-|\*|&div;|&minus;)\s+(.+)$""".r
+  private def parseBOp(op: String): BOp = op match
+    case "+"             => BOp.Add
+    case "-" | "&minus;" => BOp.Sub
+    case "*"             => BOp.Mul
+    case "&div;"         => BOp.Div
+    case "modulo"        => BOp.Mod
   private val TuplePat = """(?s)^\((.+)\)$""".r
   private val NegPat = """(?s)^[-−](.+)$""".r
   private val PossessiveSize = """(?si)^(.+)'s \[=list/size=\]$""".r
@@ -100,6 +106,11 @@ object ExprParser:
   private val TheException = """(?i)^the exception$""".r
   private val SpecTermPat = """(?i)^(?:undefined|null|empty|absent)$""".r
   private val EmuConst = """(?s)^(<emu-const>[^<]*</emu-const>)$""".r
+  // "[=the range=] LOW to HIGH" — the leading link text varies ("the range",
+  // "range", ...) but always mentions "range". Both bounds are assumed
+  // inclusive (see [[Expr.Range]]), so a trailing ", inclusive" is left for
+  // the caller to strip along with the rest of the sentence.
+  private val RangePrefix = """(?is)^\[=[^=]*range[^=]*=\]\s+(.+)$""".r
 
   def normalizeLink(link: String): String =
     link.replaceAll("""\|[^=\]]*(?==\])""", "")
@@ -117,6 +128,9 @@ object ExprParser:
       case AbruptPrefix(check, rest) => Abrupt(check, parse(rest))
       case ResultOf(rest)            => parse(rest)
       case EitherPat(rest)           => parse(rest)
+      case RangePrefix(rest) if findTopLevel(rest, " to ").isDefined =>
+        val i = findTopLevel(rest, " to ").get
+        Range(parse(rest.substring(0, i)), parse(rest.substring(i + 4)))
       case JSCallFull(name, argsRaw) =>
         JSCall(name, splitComma(argsRaw).map(parse))
       // unlike LinkProse/LinkOnly below, the explicit `(...)` here is
@@ -162,7 +176,7 @@ object ExprParser:
         Link(normalizeLink(link), List(parse(arg)))
       case AsMathPat(inner)       => AsMath(parse(inner))
       case PowPat(base, exp)      => Pow(parse(base), parse(exp))
-      case BinOpPat(lhs, op, rhs) => BinOp(parse(lhs), op, parse(rhs))
+      case BinOpPat(lhs, op, rhs) => BinOp(parse(lhs), parseBOp(op), parse(rhs))
       case PlainNewExpr()         => UnknownNew(s)
       case EmptyMapProse()        => Map_(Nil)
       case MapLiteral(inner) =>

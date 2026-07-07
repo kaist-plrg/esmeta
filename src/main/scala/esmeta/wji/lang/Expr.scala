@@ -68,10 +68,14 @@ object Expr:
   /** The length/size of a string or list. */
   case class Length(expr: Expr) extends Expr
 
-  /** `lhs op rhs` — arithmetic binary operation (+, -, *, modulo, &div;,
-    * &minus;).
+  /** Arithmetic binary operator; `Sub` covers both "-" and "&minus;" as seen in
+    * spec prose.
     */
-  case class BinOp(lhs: Expr, op: String, rhs: Expr) extends Expr
+  enum BOp:
+    case Add, Sub, Mul, Div, Mod
+
+  /** `lhs op rhs` — arithmetic binary operation. */
+  case class BinOp(lhs: Expr, op: BOp, rhs: Expr) extends Expr
 
   /** `base<sup>exp</sup>` — exponentiation. */
   case class Pow(base: Expr, exp: Expr) extends Expr
@@ -111,6 +115,13 @@ object Expr:
     * itself a meaningful sub-expression worth preserving.
     */
   case class NewByteSequence(length: Expr) extends Expr
+
+  /** "[=the range=] LOW to HIGH, inclusive" — an integer range used as the
+    * collection of a `For` loop. Both bounds are assumed inclusive for now,
+    * since every occurrence seen in the spec so far is written "...,
+    * inclusive"; revisit if an "exclusive" phrasing ever shows up.
+    */
+  case class Range(low: Expr, high: Expr) extends Expr
 
   /** Spec prose that didn't match any recognised expression pattern. */
   case class Unknown(raw: String) extends Expr

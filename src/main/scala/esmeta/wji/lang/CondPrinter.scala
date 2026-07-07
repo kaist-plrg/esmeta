@@ -9,7 +9,7 @@ object CondPrinter:
     case Eq(lhs, rhs, true) =>
       s"${ExprPrinter.render(lhs)} is not ${ExprPrinter.render(rhs)}"
     case Compare(lhs, op, rhs) =>
-      s"${ExprPrinter.render(lhs)} $op ${ExprPrinter.render(rhs)}"
+      s"${ExprPrinter.render(lhs)} ${renderOp(op)} ${ExprPrinter.render(rhs)}"
     case HasField(expr, false) => s"${ExprPrinter.render(expr)} [=map/exists=]"
     case HasField(expr, true) =>
       s"${ExprPrinter.render(expr)} [=map/doesn't exist=]"
@@ -42,3 +42,9 @@ object CondPrinter:
     case Cond.Throws(None)       => "Throws"
     case Cond.Throws(Some(kind)) => s"Throws($kind)"
     case Cond.Unknown(text)      => s"?($text)"
+
+  private def renderOp(op: CompareOp): String = op match
+    case CompareOp.Lt => "<"
+    case CompareOp.Le => "<="
+    case CompareOp.Gt => ">"
+    case CompareOp.Ge => ">="

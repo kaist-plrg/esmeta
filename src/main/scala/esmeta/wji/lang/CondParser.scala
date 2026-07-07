@@ -62,17 +62,17 @@ object CondParser:
     " &gt; ",
     " &lt; ",
   )
-  private val NormalizeOp: Map[String, String] = Map(
-    " >= " -> ">=",
-    " <= " -> "<=",
-    " > " -> ">",
-    " < " -> "<",
-    " ≥ " -> ">=",
-    " ⩾ " -> ">=",
-    " &gt;= " -> ">=",
-    " &lt;= " -> "<=",
-    " &gt; " -> ">",
-    " &lt; " -> "<",
+  private val NormalizeOp: Map[String, CompareOp] = Map(
+    " >= " -> CompareOp.Ge,
+    " <= " -> CompareOp.Le,
+    " > " -> CompareOp.Gt,
+    " < " -> CompareOp.Lt,
+    " ≥ " -> CompareOp.Ge,
+    " ⩾ " -> CompareOp.Ge,
+    " &gt;= " -> CompareOp.Ge,
+    " &lt;= " -> CompareOp.Le,
+    " &gt; " -> CompareOp.Gt,
+    " &lt; " -> CompareOp.Lt,
   )
 
   def parse(raw: String): Cond =

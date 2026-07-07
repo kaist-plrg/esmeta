@@ -23,6 +23,8 @@ object InstrParser:
   private val ElsePrefix = """(?is)^(?:Else|Otherwise)\b\s*,?\s*(.*)$""".r
   private val ForEachPrefix =
     """(?is)^(?:\[=\S*\|)?For each(?:=\])?\s+(.+)$""".r
+  private val ForPrefix =
+    """(?is)^For\s+(\|[^|]+\|)\s+in\s+(.+)$""".r
   private val WhilePrefix = """(?is)^While\b\s+(.+)$""".r
   private val AppendPrefix = """(?is)^\[=list/Append=\]\s+(.+)$""".r
   private val MapSetPrefix = """(?is)^\[=map/[Ss]et[^=]*=\]\s+(.+)$""".r
@@ -175,6 +177,15 @@ object InstrParser:
               trailingBody,
             )
           case None => Unknown(text, trailingBody)
+      case ForPrefix(elemStr, rest) =>
+        val collection = findTopLevel(rest, ",") match
+          case Some(j) => rest.substring(0, j).trim
+          case None    => rest.stripSuffix(",").trim
+        For(
+          ExprParser.parse(elemStr.trim),
+          ExprParser.parse(collection),
+          trailingBody,
+        )
       case WhilePrefix(rest) =>
         While(CondParser.parse(rest.stripSuffix(":").trim), trailingBody)
       case AppendPrefix(rest) =>

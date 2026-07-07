@@ -51,6 +51,13 @@ object Instr:
   case class ForEach(elem: Expr, collection: Expr, body: List[Instr])
     extends Instr
 
+  /** `For ELEM in COLLECTION, ...` — distinct from [[ForEach]] since the spec
+    * phrases it without "each" (e.g. "For |i| in [=the range=] |offset| to
+    * |offset| + |length| &minus; 1, inclusive, ..."). `collection` is commonly
+    * an [[Expr.Range]], but this instruction itself isn't specific to ranges.
+    */
+  case class For(elem: Expr, collection: Expr, body: List[Instr]) extends Instr
+
   /** `While COND: ...` */
   case class While(cond: Cond, body: List[Instr]) extends Instr
 
@@ -108,6 +115,7 @@ object Instr:
       case i: Assert        => i.copy(body = f(i.body))
       case i: Throw         => i.copy(body = f(i.body))
       case i: ForEach       => i.copy(body = f(i.body))
+      case i: For           => i.copy(body = f(i.body))
       case i: While         => i.copy(body = f(i.body))
       case i: RunInParallel => i.copy(body = f(i.body))
       case i: Append        => i.copy(body = f(i.body))

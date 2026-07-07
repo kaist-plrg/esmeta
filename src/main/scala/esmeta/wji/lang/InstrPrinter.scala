@@ -47,6 +47,8 @@ object InstrPrinter:
     case Throw(target, _) => s"Throw($target)"
     case ForEach(elem, coll, _) =>
       s"ForEach(${ExprPrinter.render(elem)}, ${ExprPrinter.render(coll)})"
+    case Instr.For(elem, coll, _) =>
+      s"For(${ExprPrinter.render(elem)}, ${ExprPrinter.render(coll)})"
     case While(cond, _)   => s"While(${CondPrinter.render(cond)})"
     case RunInParallel(_) => "RunInParallel"
     case Append(item, coll, _) =>

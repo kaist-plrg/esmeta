@@ -2067,6 +2067,9 @@ def get_a_copy_of_the_buffer_source(
     push bytes < 0.0f
     _byteIdx1 = (+ _byteIdx1 1)
   }
-  (yet "For |i| in [=the range=] |offset| to |offset| + |length| &minus; 1, inclusive, set |bytes|[|i| &minus; |offset|] to [$GetValueFromBuffer$](|jsArrayBuffer|, |i|, Uint8, true, Unordered)")
+  let i = offset
+  while (! (< (- (+ offset length) 1) i)) {
+    i = (+ i 1)
+  }
   return bytes
 }

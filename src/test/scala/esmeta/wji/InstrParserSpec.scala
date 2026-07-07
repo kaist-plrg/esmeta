@@ -219,7 +219,7 @@ class InstrParserSpec extends AnyFunSuite:
     assert(
       ExprParser.parse("2<sup>64</sup> &minus; 1") == BinOp(
         Pow(Num("2"), Num("64")),
-        "&minus;",
+        BOp.Sub,
         Num("1"),
       ),
     )
@@ -292,7 +292,7 @@ class InstrParserSpec extends AnyFunSuite:
   test("parses '|x| + 1' as BinOp inside a Set") {
     val algo = algorithms.find(_.name.contains("call an Exported Function")).get
     assert(
-      containsDeep(algo.body, Set(Var("i"), BinOp(Var("i"), "+", Num("1")))),
+      containsDeep(algo.body, Set(Var("i"), BinOp(Var("i"), BOp.Add, Num("1")))),
     )
   }
 

@@ -94,6 +94,15 @@ object Compiler:
         ),
       ) :: compileSeq(body)
 
+    case Instr.For(elem, collection, body) =>
+      // TODO: proper counting loop — needs a real IWhile over the collection
+      IExpr(
+        EYet(
+          s"for ${metalang.ExprPrinter
+            .render(elem)} in ${metalang.ExprPrinter.render(collection)}",
+        ),
+      ) :: compileSeq(body)
+
     case Instr.Perform(func, args, outcome, body) =>
       val callArgs = args.map(compileExpr)
       val name = nameFromLink(func)
@@ -200,6 +209,8 @@ object Compiler:
     case metalang.Expr.NewByteSequence(length) =>
       // should have been eliminated by ExpandNewByteSequencePass
       EYet(s"new byte sequence of length ${length}")
+    case metalang.Expr.Range(low, high) =>
+      EYet(s"range ${low} to ${high}") // TODO: proper range value
     case metalang.Expr.Unknown(raw) => EYet(raw)
 
   // ── Condition ────────────────────────────────────────────────────────────────
@@ -269,31 +280,30 @@ object Compiler:
     s.stripPrefix("|").stripSuffix("|")
 
   private def compileBinOp(
-    op: String,
+    op: metalang.Expr.BOp,
     l: metalang.Expr,
     r: metalang.Expr,
   ): ir.Expr =
-    val bop: Option[BOp] = op match
-      case "+"       => Some(BOp.Add)
-      case "-"       => Some(BOp.Sub)
-      case "*"       => Some(BOp.Mul)
-      case "&div;"   => Some(BOp.Div)
-      case "&minus;" => Some(BOp.Sub)
-      case "modulo"  => Some(BOp.Mod)
-      case _         => None
-    bop match
-      case Some(b) => EBinary(b, compileExpr(l), compileExpr(r))
-      case None    => EYet(s"${l} $op ${r}")
+    val bop = op match
+      case metalang.Expr.BOp.Add => BOp.Add
+      case metalang.Expr.BOp.Sub => BOp.Sub
+      case metalang.Expr.BOp.Mul => BOp.Mul
+      case metalang.Expr.BOp.Div => BOp.Div
+      case metalang.Expr.BOp.Mod => BOp.Mod
+    EBinary(bop, compileExpr(l), compileExpr(r))
 
   /** ESMeta's `BOp` only has `Lt` among ordering operators (no `Le`/`Gt`/`Ge`,
     * unlike WJI's own former operator set), so the other three are desugared
     * here via negation / operand-swap: `l<=r` is `!(r<l)`, `l>r` is `r<l`,
     * `l>=r` is `!(l<r)`.
     */
-  private def compileCompare(op: String, l: ir.Expr, r: ir.Expr): ir.Expr =
+  private def compileCompare(
+    op: Cond.CompareOp,
+    l: ir.Expr,
+    r: ir.Expr,
+  ): ir.Expr =
     op match
-      case "<"  => EBinary(BOp.Lt, l, r)
-      case "<=" => EUnary(UOp.Not, EBinary(BOp.Lt, r, l))
-      case ">"  => EBinary(BOp.Lt, r, l)
-      case ">=" => EUnary(UOp.Not, EBinary(BOp.Lt, l, r))
-      case _    => EBinary(BOp.Eq, l, r)
+      case Cond.CompareOp.Lt => EBinary(BOp.Lt, l, r)
+      case Cond.CompareOp.Le => EUnary(UOp.Not, EBinary(BOp.Lt, r, l))
+      case Cond.CompareOp.Gt => EBinary(BOp.Lt, r, l)
+      case Cond.CompareOp.Ge => EUnary(UOp.Not, EBinary(BOp.Lt, l, r))

@@ -50,10 +50,12 @@ object ExpandForEachPass extends LoweringPass:
         Instr.Let(listVar, collection),
         Instr.Let(idxVar, Expr.Num("0")),
         Instr.While(
-          Cond.Compare(idxVar, "<", Expr.Length(listVar)),
+          Cond.Compare(idxVar, Cond.CompareOp.Lt, Expr.Length(listVar)),
           Instr.Let(elem, Expr.Index(listVar, idxVar)) ::
           transform(body) :::
-          List(Instr.Set(idxVar, Expr.BinOp(idxVar, "+", Expr.Num("1")))),
+          List(
+            Instr.Set(idxVar, Expr.BinOp(idxVar, Expr.BOp.Add, Expr.Num("1"))),
+          ),
         ),
       )
     case _ =>

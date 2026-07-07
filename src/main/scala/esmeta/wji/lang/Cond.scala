@@ -5,8 +5,12 @@ object Cond:
   /** EXPR is EXPR / EXPR is not EXPR, and EXPR equals EXPR */
   case class Eq(lhs: Expr, rhs: Expr, negated: Boolean = false) extends Cond
 
-  /** EXPR < EXPR etc. — op is "<", ">", "<=", ">=" */
-  case class Compare(lhs: Expr, op: String, rhs: Expr) extends Cond
+  /** Comparison operator for [[Compare]]. */
+  enum CompareOp:
+    case Lt, Le, Gt, Ge
+
+  /** EXPR < EXPR etc. */
+  case class Compare(lhs: Expr, op: CompareOp, rhs: Expr) extends Cond
 
   /** Whether the reference `expr` exists — `EXPR [=map/exists=]` / `EXPR
     * [=map/doesn't exist=]` (spec prose always applies this to an index

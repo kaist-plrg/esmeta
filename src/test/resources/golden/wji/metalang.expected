@@ -514,7 +514,7 @@
         Let(|lengthDelta|, |newLength| - |buffer|.[[ArrayBufferByteLength]])
         If(|lengthDelta| < 0 or |lengthDelta| modulo 65536 is not 0)
           Throw(a {{RangeError}} exception)
-        Let(|delta|, |lengthDelta| &div; 65536)
+        Let(|delta|, |lengthDelta| / 65536)
         Perform([=Grow the memory buffer=](|memaddr|, |delta|))
     Return(<emu-const>handled</emu-const>)
   Else
@@ -987,7 +987,7 @@
     Return(?([=ℝ=](|n|) as a WebAssembly [=u64=]))
   If(|addrtype| is "i64")
     Let(|n|, [=?=] [$ToBigInt$](|v|))
-    If(|n| < 0 or |n| > 2 ** 64 &minus; 1)
+    If(|n| < 0 or |n| > 2 ** 64 - 1)
       Throw(a {{TypeError}})
     Note(This operation is designed to emulate [=[EnforceRange]=])
     Return(?([=ℝ=](|n|) as a WebAssembly [=u64=]))
@@ -1471,6 +1471,6 @@
   If([$IsDetachedBuffer$](|jsArrayBuffer|) is true)
     Return(?(the empty [=byte sequence=]))
   Let(|bytes|, ByteSequence(|length|))
-  ?(For |i| in [=the range=] |offset| to |offset| + |length| &minus; 1, inclusive, set |bytes|[|i| &minus; |offset|] to [$GetValueFromBuffer$](|jsArrayBuffer|, |i|, Uint8, true, Unordered))
+  For(|i|, Range(|offset|, |offset| + |length| - 1))
   Return(|bytes|)
 

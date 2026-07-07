@@ -64,10 +64,10 @@ object ExpandNewByteSequencePass extends LoweringPass:
       Instr.Let(target, Expr.List_(Nil)),
       Instr.Let(idxVar, Expr.Num("0")),
       Instr.While(
-        Cond.Compare(idxVar, "<", length),
+        Cond.Compare(idxVar, Cond.CompareOp.Lt, length),
         List(
           Instr.Append(Expr.Byte(0), target),
-          Instr.Set(idxVar, Expr.BinOp(idxVar, "+", Expr.Num("1"))),
+          Instr.Set(idxVar, Expr.BinOp(idxVar, Expr.BOp.Add, Expr.Num("1"))),
         ),
       ),
     ) ::: rest

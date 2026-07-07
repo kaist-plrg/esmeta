@@ -29,18 +29,22 @@ object Expr:
     * and can just as well point to a term/value definition, so parsing it
     * straight into [[AlgoCall]] would presuppose something the parser can't
     * actually verify (that requires the full set of extracted algorithm names,
-    * which only exists once every algorithm has been parsed).
-    * `ResolveLinksPass` resolves every `Link` into either an [[AlgoCall]] (name
-    * matches a known algorithm, or it's invoked with args) or a [[SpecTerm]] (a
-    * bare reference to something else).
+    * which only exists once every algorithm has been parsed). This ambiguity
+    * only exists for the bare-link and prose-args forms, though — see
+    * [[AlgoCall]]. `ResolveLinksPass` resolves every remaining `Link` into
+    * either an [[AlgoCall]] (name matches a known algorithm, or it's invoked
+    * with args) or a [[SpecTerm]] (a bare reference to something else).
     */
   case class Link(link: String, args: List[Expr]) extends Expr
 
   /** A confirmed call to an extracted WJI algorithm (or, for an args-carrying
     * link that names something else — a Wasm embedding function, an
     * ECMA-262/WebIDL AO — still a call, just resolved elsewhere at compile
-    * time; see `esmeta.wji.compiler.Compiler`). Produced only by
-    * `ResolveLinksPass` from a [[Link]] — never directly by [[ExprParser]].
+    * time; see `esmeta.wji.compiler.Compiler`). Usually produced by
+    * `ResolveLinksPass` from a [[Link]], but [[ExprParser]] constructs this
+    * directly for the explicit-parens `[=link=](args)` form — that syntax is
+    * unambiguous call notation on its own (mirrors `JSCall`), so there's
+    * nothing for a later pass to decide.
     */
   case class AlgoCall(link: String, args: List[Expr]) extends Expr
   case class JSCall(name: String, args: List[Expr]) extends Expr

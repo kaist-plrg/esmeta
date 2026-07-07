@@ -74,11 +74,15 @@ object ResolveLinksPass extends LoweringPass:
         if args.nonEmpty || known.contains(stripLink(link).toLowerCase) then
           Expr.AlgoCall(link, resolvedArgs)
         else Expr.SpecTerm(stripLink(link))
-      case Expr.JSCall(name, args) => Expr.JSCall(name, args.map(go))
-      case Expr.Field(base, name)  => Expr.Field(go(base), name)
-      case Expr.Index(base, key)   => Expr.Index(go(base), go(key))
-      case Expr.Abrupt(check, e)   => Expr.Abrupt(check, go(e))
-      case Expr.List_(elems)       => Expr.List_(elems.map(go))
+      // ExprParser's `[=link=](args)` form (unambiguous call syntax) already
+      // parses straight into AlgoCall; still need to recurse into its args
+      // in case one of them is itself an unresolved Link.
+      case Expr.AlgoCall(link, args) => Expr.AlgoCall(link, args.map(go))
+      case Expr.JSCall(name, args)   => Expr.JSCall(name, args.map(go))
+      case Expr.Field(base, name)    => Expr.Field(go(base), name)
+      case Expr.Index(base, key)     => Expr.Index(go(base), go(key))
+      case Expr.Abrupt(check, e)     => Expr.Abrupt(check, go(e))
+      case Expr.List_(elems)         => Expr.List_(elems.map(go))
       case Expr.Map_(entries) =>
         Expr.Map_(entries.map((k, v) => (go(k), go(v))))
       case Expr.Length(e)       => Expr.Length(go(e))

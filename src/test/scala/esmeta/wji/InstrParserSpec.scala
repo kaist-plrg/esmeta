@@ -18,14 +18,14 @@ class InstrParserSpec extends AnyFunSuite:
     val instrs = algo.body
     assert(
       instrs == List(
-        Let(Var("module"), Link("[=module_decode=]", List(Var("bytes")))),
+        Let(Var("module"), AlgoCall("[=module_decode=]", List(Var("bytes")))),
         If(
           Eq(Var("module"), Link("[=error=]", Nil)),
           List(Return(Some(Link("[=error=]", Nil)))),
         ),
         If(
           Eq(
-            Link("[=module_validate=]", List(Var("module"))),
+            AlgoCall("[=module_validate=]", List(Var("module"))),
             Link("[=error=]", Nil),
           ),
           List(Return(Some(Link("[=error=]", Nil)))),
@@ -66,7 +66,7 @@ class InstrParserSpec extends AnyFunSuite:
           Eq(
             Abrupt(
               "!",
-              Link("[=IsStrictlyEqual=]", List(Var("first"), Var("second"))),
+              AlgoCall("[=IsStrictlyEqual=]", List(Var("first"), Var("second"))),
             ),
             Bool(true),
           ),
@@ -76,7 +76,7 @@ class InstrParserSpec extends AnyFunSuite:
           Eq(
             Abrupt(
               "!",
-              Link(
+              AlgoCall(
                 "[=IsLessThan=]",
                 List(Var("first"), Var("second"), Bool(true)),
               ),
@@ -301,7 +301,7 @@ class InstrParserSpec extends AnyFunSuite:
     assert(
       containsDeep(
         algo.body,
-        Return(Some(Link("[=ℤ=]", List(AsMath(Var("i64")))))),
+        Return(Some(AlgoCall("[=ℤ=]", List(AsMath(Var("i64")))))),
       ),
     )
   }

@@ -24,14 +24,14 @@ class AlgorithmExtractorSpec extends AnyFunSuite:
     assert(algo.head.contains("perform the following steps"))
     assert(
       algo.body == List(
-        Let(Var("module"), Link("[=module_decode=]", List(Var("bytes")))),
+        Let(Var("module"), AlgoCall("[=module_decode=]", List(Var("bytes")))),
         If(
           Eq(Var("module"), Link("[=error=]", Nil)),
           List(Return(Some(Link("[=error=]", Nil)))),
         ),
         If(
           Eq(
-            Link("[=module_validate=]", List(Var("module"))),
+            AlgoCall("[=module_validate=]", List(Var("module"))),
             Link("[=error=]", Nil),
           ),
           List(Return(Some(Link("[=error=]", Nil)))),

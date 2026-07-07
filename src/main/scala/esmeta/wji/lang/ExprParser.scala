@@ -115,8 +115,12 @@ object ExprParser:
       case EitherPat(rest)           => parse(rest)
       case JSCallFull(name, argsRaw) =>
         JSCall(name, splitComma(argsRaw).map(parse))
+      // unlike LinkProse/LinkOnly below, the explicit `(...)` here is
+      // unambiguous call syntax (mirrors JSCallFull) — no term/value
+      // reference is ever written this way — so this can go straight to
+      // AlgoCall without waiting for ResolveLinksPass.
       case LinkFull(link, argsRaw) =>
-        Link(normalizeLink(link), splitComma(argsRaw).map(parse))
+        AlgoCall(normalizeLink(link), splitComma(argsRaw).map(parse))
       case LinkProse(link, prose) =>
         Link(normalizeLink(link), parseArgs(prose))
       case LinkOnly(link)            => Link(normalizeLink(link), Nil)

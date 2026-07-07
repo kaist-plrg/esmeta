@@ -18,17 +18,17 @@ class InstrParserSpec extends AnyFunSuite:
     val instrs = algo.body
     assert(
       instrs == List(
-        Let(Var("module"), AlgoCall("[=module_decode=]", List(Var("bytes")))),
+        Let(Var("module"), Link("[=module_decode=]", List(Var("bytes")))),
         If(
-          Eq(Var("module"), AlgoCall("[=error=]", Nil)),
-          List(Return(Some(AlgoCall("[=error=]", Nil)))),
+          Eq(Var("module"), Link("[=error=]", Nil)),
+          List(Return(Some(Link("[=error=]", Nil)))),
         ),
         If(
           Eq(
-            AlgoCall("[=module_validate=]", List(Var("module"))),
-            AlgoCall("[=error=]", Nil),
+            Link("[=module_validate=]", List(Var("module"))),
+            Link("[=error=]", Nil),
           ),
-          List(Return(Some(AlgoCall("[=error=]", Nil)))),
+          List(Return(Some(Link("[=error=]", Nil)))),
         ),
         Return(Some(Var("module"))),
       ),
@@ -66,7 +66,7 @@ class InstrParserSpec extends AnyFunSuite:
           Eq(
             Abrupt(
               "!",
-              AlgoCall("[=IsStrictlyEqual=]", List(Var("first"), Var("second"))),
+              Link("[=IsStrictlyEqual=]", List(Var("first"), Var("second"))),
             ),
             Bool(true),
           ),
@@ -76,7 +76,7 @@ class InstrParserSpec extends AnyFunSuite:
           Eq(
             Abrupt(
               "!",
-              AlgoCall(
+              Link(
                 "[=IsLessThan=]",
                 List(Var("first"), Var("second"), Bool(true)),
               ),
@@ -241,7 +241,7 @@ class InstrParserSpec extends AnyFunSuite:
         imports.body,
         If(
           And(
-            Eq(Var("valtype"), AlgoCall("[=i64=]", Nil)),
+            Eq(Var("valtype"), Link("[=i64=]", Nil)),
             IsType(Var("v"), "BigInt", negated = true),
           ),
           List(Throw("a {{LinkError}} exception")),
@@ -301,7 +301,7 @@ class InstrParserSpec extends AnyFunSuite:
     assert(
       containsDeep(
         algo.body,
-        Return(Some(AlgoCall("[=ℤ=]", List(AsMath(Var("i64")))))),
+        Return(Some(Link("[=ℤ=]", List(AsMath(Var("i64")))))),
       ),
     )
   }

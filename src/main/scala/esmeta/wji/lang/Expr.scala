@@ -23,6 +23,25 @@ object Expr:
     */
   case class Field(base: Expr, name: String) extends Expr
   case class Index(base: Expr, key: Expr) extends Expr
+
+  /** A raw `[=...=]` Bikeshed autolink, parsed before it's known whether it
+    * names a callable algorithm — Bikeshed's `[=...=]` is plain autolink syntax
+    * and can just as well point to a term/value definition, so parsing it
+    * straight into [[AlgoCall]] would presuppose something the parser can't
+    * actually verify (that requires the full set of extracted algorithm names,
+    * which only exists once every algorithm has been parsed).
+    * `ResolveLinksPass` resolves every `Link` into either an [[AlgoCall]] (name
+    * matches a known algorithm, or it's invoked with args) or a [[SpecTerm]] (a
+    * bare reference to something else).
+    */
+  case class Link(link: String, args: List[Expr]) extends Expr
+
+  /** A confirmed call to an extracted WJI algorithm (or, for an args-carrying
+    * link that names something else — a Wasm embedding function, an
+    * ECMA-262/WebIDL AO — still a call, just resolved elsewhere at compile
+    * time; see `esmeta.wji.compiler.Compiler`). Produced only by
+    * `ResolveLinksPass` from a [[Link]] — never directly by [[ExprParser]].
+    */
   case class AlgoCall(link: String, args: List[Expr]) extends Expr
   case class JSCall(name: String, args: List[Expr]) extends Expr
   case class Abrupt(check: String, expr: Expr) extends Expr

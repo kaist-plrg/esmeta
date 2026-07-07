@@ -10,9 +10,9 @@ object ExprParser:
   private val ResultOf = """(?si)^the result of (?:creating\s+)?(.+)$""".r
   private val EitherPat = """(?si)^either\s+(.+)$""".r
   private val JSCallFull = """(?s)^\[\$([^\$]+)\$\]\((.*)\)$""".r
-  private val AlgoCallFull = """(?s)^(\[=[^\]]+\])\s*\((.*)\)$""".r
-  private val AlgoCallProse = """(?s)^(\[=[^\]]+\])\s+(.+)$""".r
-  private val AlgoLinkOnly = """(?s)^(\[=[^\]]+\])$""".r
+  private val LinkFull = """(?s)^(\[=[^\]]+\])\s*\((.*)\)$""".r
+  private val LinkProse = """(?s)^(\[=[^\]]+\])\s+(.+)$""".r
+  private val LinkOnly = """(?s)^(\[=[^\]]+\])$""".r
   private val VarOnly = """(?s)^\|([^|]+)\|$""".r
   private val VarIgnore = """(?s)^<var\s+ignore>([^<]*)</var>$""".r
   private val ThisOnly = """(?s)^\*\*this\*\*$""".r
@@ -23,7 +23,7 @@ object ExprParser:
   // (e.g. "a [=Data Block=] which is [=identified with=] the underlying
   // memory of |memaddr|"). Not yet evaluable (see Expr.Described); matched
   // explicitly (rather than left to fall through to the default `Unknown`
-  // case) so it can never be mistaken for AlgoCallIndefVar below.
+  // case) so it can never be mistaken for LinkIndefVar below.
   private val RelativeClauseDesc =
     """(?si)^an?\s+(\[=[^\]]+\])\s+which\s+(.+)$""".r
   // "(a|an|the) <desc> such that <cond>" — any definite/indefinite/superlative
@@ -41,13 +41,13 @@ object ExprParser:
   // "a [=algo|display text=] (of)? |arg|" — a single-argument algorithm
   // invocation phrased as a noun (e.g. "a [=get a copy of the buffer
   // source|copy of the bytes held by the buffer=] |bytes|"), as opposed to
-  // AlgoCallProse's "[=algo=] ARGS" verb phrasing. Deliberately anchored to a
+  // LinkProse's "[=algo=] ARGS" verb phrasing. Deliberately anchored to a
   // single *bare variable* argument with nothing else trailing, so phrases
   // like RelativeClauseDesc/SuchThatDesc above (which have more text after
   // the bracket/variable) can't match here even if the guards above it were
   // ever removed. Placed after the more specific "a [=/new=] ..." / "a new,
   // empty ..." patterns above so it only catches the general case.
-  private val AlgoCallIndefVar =
+  private val LinkIndefVar =
     """(?si)^an?\s+(\[=[^\]]+\])\s+(?:of\s+)?(\|[^|]+\|)$""".r
   private val PlainNewExpr = """(?si)^a\s+new\s+.+""".r
   private val SlotAccess = """(?s)^(.+)\.\\?\[\[([^\]]+)\]\]$""".r
@@ -55,7 +55,7 @@ object ExprParser:
     """(?si)^the value of (.+)'s \\?\[\[([^\]]+)\]\] internal slot$""".r
   // e.g. "|module|.[=imports=]" — a WebAssembly-spec record field written
   // with a dot, where the `[=...=]` is a documentation link on the field
-  // name rather than a call (contrast with `AlgoCallFull`/`AlgoCallProse`,
+  // name rather than a call (contrast with `LinkFull`/`LinkProse`,
   // which require the string to *start* with `[=`).
   private val DotFieldLink = """(?s)^(.+)\.(\[=[^\]]+\])$""".r
   private val LengthOf =
@@ -115,11 +115,11 @@ object ExprParser:
       case EitherPat(rest)           => parse(rest)
       case JSCallFull(name, argsRaw) =>
         JSCall(name, splitComma(argsRaw).map(parse))
-      case AlgoCallFull(link, argsRaw) =>
-        AlgoCall(normalizeLink(link), splitComma(argsRaw).map(parse))
-      case AlgoCallProse(link, prose) =>
-        AlgoCall(normalizeLink(link), parseArgs(prose))
-      case AlgoLinkOnly(link)        => AlgoCall(normalizeLink(link), Nil)
+      case LinkFull(link, argsRaw) =>
+        Link(normalizeLink(link), splitComma(argsRaw).map(parse))
+      case LinkProse(link, prose) =>
+        Link(normalizeLink(link), parseArgs(prose))
+      case LinkOnly(link)            => Link(normalizeLink(link), Nil)
       case ThisOnly()                => This
       case VarOnly(name)             => Var(name)
       case VarIgnore(name)           => Var(name.trim)
@@ -149,8 +149,8 @@ object ExprParser:
         Described(normalizeLink(link), desc.trim)
       case SuchThatDesc(desc, cond) =>
         SuchThat(desc.trim, cond.trim)
-      case AlgoCallIndefVar(link, arg) =>
-        AlgoCall(normalizeLink(link), List(parse(arg)))
+      case LinkIndefVar(link, arg) =>
+        Link(normalizeLink(link), List(parse(arg)))
       case AsMathPat(inner)       => AsMath(parse(inner))
       case PowPat(base, exp)      => Pow(parse(base), parse(exp))
       case BinOpPat(lhs, op, rhs) => BinOp(parse(lhs), op, parse(rhs))

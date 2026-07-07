@@ -4,7 +4,7 @@ import esmeta.wji.lang.Algorithm
 
 object Lowering:
   val pipeline: List[LoweringPass] = List(
-    ResolveSpecTermsPass,
+    ResolveLinksPass,
     DropNotesPass,
     GroupIfChainPass,
     ExpandAbruptPass,

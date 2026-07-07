@@ -12,6 +12,8 @@ object ExprPrinter:
     case SpecTerm(name)       => name
     case Field(base, name)    => s"${render(base)}.[[${name}]]"
     case Index(base, key)     => s"${render(base)}[${render(key)}]"
+    case Link(link, Nil)      => link
+    case Link(link, args)     => s"$link(${args.map(render).mkString(", ")})"
     case AlgoCall(link, Nil)  => link
     case AlgoCall(link, args) => s"$link(${args.map(render).mkString(", ")})"
     case JSCall(name, Nil)    => s"[$$${name}$$]()"

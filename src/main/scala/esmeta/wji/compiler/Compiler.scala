@@ -173,6 +173,10 @@ object Compiler:
     case metalang.Expr.Abrupt("!", e) => compileExpr(e)
     case metalang.Expr.Abrupt(_, e) =>
       EYet(s"? ${e}") // TODO: abrupt completion check
+    case metalang.Expr.Link(link, args) =>
+      // ResolveLinksPass resolves every Link into an AlgoCall/SpecTerm before
+      // compilation ever sees it; this is only here for exhaustivity.
+      EYet(s"unresolved link: $link") // should not happen
     case metalang.Expr.AlgoCall(link, args) =>
       // zero-arg AlgoCall used as an expression value (e.g. [=error=])
       if args.isEmpty then ERef(Global(nameFromLink(link)))

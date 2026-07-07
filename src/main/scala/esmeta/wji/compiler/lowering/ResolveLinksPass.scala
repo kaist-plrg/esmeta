@@ -2,22 +2,35 @@ package esmeta.wji.compiler.lowering
 
 import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr}
 
-/** Reclassifies `[=...=]` links that don't name an extracted algorithm as
-  * [[Expr.SpecTerm]] instead of [[Expr.AlgoCall]].
+/** Resolves every [[Expr.Link]] — a raw `[=...=]` Bikeshed autolink, parsed
+  * before it's known whether it names a callable algorithm — into either an
+  * [[Expr.AlgoCall]] or an [[Expr.SpecTerm]].
   *
   * A Bikeshed `[=...=]` autolink can point to a `<div algorithm>` (an actually
   * callable operation, e.g. `[=module_decode=]`) or to a plain `<dfn>`/prose
   * definition (e.g. `[=current Realm=]`, which links to ECMA-262's "Execution
   * Contexts" section, not an algorithm). [[ExprParser]] can't tell these apart
-  * — it only ever sees one link string at a time — so every bracket-link
-  * initially parses as a zero-arg `AlgoCall`. This pass runs once every
-  * algorithm has been extracted, when the full set of real algorithm names is
-  * known, and downgrades links that don't name one of them into `SpecTerm`.
+  * — it only ever sees one link string at a time — so it parses every
+  * bracket-link into a neutral `Link` rather than presupposing it's a call.
+  * This pass runs once every algorithm has been extracted, when the full set of
+  * real algorithm names is known, and is the only place that decides:
   *
-  * Calls with arguments are left untouched: a link used with an argument list
-  * is unambiguously a call.
+  *   - a `Link` whose name matches a known algorithm becomes an `AlgoCall`.
+  *   - a `Link` used with arguments *also* becomes an `AlgoCall` even when the
+  *     name isn't one of ours — it's still unambiguously a call syntactically
+  *     (an argument list doesn't attach to a term reference), just one resolved
+  *     elsewhere at compile time: a Wasm embedding function (e.g.
+  *     `func_invoke`, see `esmeta.wji.bridge.host.WasmHost`) or an ECMA-262/
+  *     WebIDL AO (e.g. `MakeBasicObject`, dispatched via `Compiler`'s merged
+  *     `cfg.fnameMap`). Wasm Core Spec math/value notation used with args
+  *     (`ℤ(...)`, `signed_32(...)`, `ref.func(...)`) is a known gap this
+  *     doesn't yet handle — those still become `AlgoCall` too, and will surface
+  *     as an "unknown function" at compile time until a future pass recognizes
+  *     them.
+  *   - a zero-arg `Link` that doesn't match a known algorithm becomes a
+  *     `SpecTerm` — a bare reference to something else.
   */
-object ResolveSpecTermsPass extends LoweringPass:
+object ResolveLinksPass extends LoweringPass:
   def run(algos: List[Algorithm]): List[Algorithm] =
     // lower-cased: Bikeshed link matching is case-insensitive (e.g. a
     // sentence-initial "Read the imports" links to a dfn written "read the
@@ -46,8 +59,8 @@ object ResolveSpecTermsPass extends LoweringPass:
       case other => other
     rewritten.mapBody(_.map(rewriteInstr(known)))
 
-  /** `AlgoCall.link` is stored with its `[=...=]` delimiters (see
-    * `Compiler.nameFromLink`); `Algorithm.name` is not, so the two must be
+  /** `Link`/`AlgoCall`'s `link` field is stored with its `[=...=]` delimiters
+    * (see `Compiler.nameFromLink`); `Algorithm.name` is not, so the two must be
     * normalized to the same form before comparing.
     */
   private def stripLink(link: String): String =
@@ -56,15 +69,16 @@ object ResolveSpecTermsPass extends LoweringPass:
   private def rewriteExpr(known: Set[String])(expr: Expr): Expr =
     val go = rewriteExpr(known)
     expr match
-      case Expr.AlgoCall(link, Nil)
-          if !known.contains(stripLink(link).toLowerCase) =>
-        Expr.SpecTerm(stripLink(link))
-      case Expr.AlgoCall(link, args) => Expr.AlgoCall(link, args.map(go))
-      case Expr.JSCall(name, args)   => Expr.JSCall(name, args.map(go))
-      case Expr.Field(base, name)    => Expr.Field(go(base), name)
-      case Expr.Index(base, key)     => Expr.Index(go(base), go(key))
-      case Expr.Abrupt(check, e)     => Expr.Abrupt(check, go(e))
-      case Expr.List_(elems)         => Expr.List_(elems.map(go))
+      case Expr.Link(link, args) =>
+        val resolvedArgs = args.map(go)
+        if args.nonEmpty || known.contains(stripLink(link).toLowerCase) then
+          Expr.AlgoCall(link, resolvedArgs)
+        else Expr.SpecTerm(stripLink(link))
+      case Expr.JSCall(name, args) => Expr.JSCall(name, args.map(go))
+      case Expr.Field(base, name)  => Expr.Field(go(base), name)
+      case Expr.Index(base, key)   => Expr.Index(go(base), go(key))
+      case Expr.Abrupt(check, e)   => Expr.Abrupt(check, go(e))
+      case Expr.List_(elems)       => Expr.List_(elems.map(go))
       case Expr.Map_(entries) =>
         Expr.Map_(entries.map((k, v) => (go(k), go(v))))
       case Expr.Length(e)       => Expr.Length(go(e))

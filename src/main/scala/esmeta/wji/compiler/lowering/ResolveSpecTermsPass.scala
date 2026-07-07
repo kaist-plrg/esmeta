@@ -1,4 +1,4 @@
-package esmeta.wji.compiler.desugar
+package esmeta.wji.compiler.lowering
 
 import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr}
 
@@ -17,7 +17,7 @@ import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr}
   * Calls with arguments are left untouched: a link used with an argument list
   * is unambiguously a call.
   */
-object ResolveSpecTermsPass extends DesugarPass:
+object ResolveSpecTermsPass extends LoweringPass:
   def run(algos: List[Algorithm]): List[Algorithm] =
     // lower-cased: Bikeshed link matching is case-insensitive (e.g. a
     // sentence-initial "Read the imports" links to a dfn written "read the

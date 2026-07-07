@@ -1,4 +1,4 @@
-package esmeta.wji.compiler.desugar
+package esmeta.wji.compiler.lowering
 
 import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr}
 import esmeta.wji.lang.Instr.PerformOutcome
@@ -47,7 +47,7 @@ import esmeta.wji.lang.Instr.PerformOutcome
   * for every occurrence seen in the spec so far; otherwise the pattern is left
   * alone for a future pass.
   */
-object ExpandThrowsPass extends DesugarPass:
+object ExpandThrowsPass extends LoweringPass:
   private var counter = 0
   private def freshComp(): String = { counter += 1; s"_throwComp$counter" }
 

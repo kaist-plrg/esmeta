@@ -1,4 +1,4 @@
-package esmeta.wji.compiler.desugar
+package esmeta.wji.compiler.lowering
 
 import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr}
 
@@ -19,7 +19,7 @@ import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr}
   * Handles `?` in the direct-RHS position of `Let`, `Set`, and `Return`. Nested
   * occurrences (e.g. inside a larger expression) are left as-is.
   */
-object ExpandAbruptPass extends DesugarPass:
+object ExpandAbruptPass extends LoweringPass:
   private var counter = 0
   private def freshComp(): String = { counter += 1; s"_comp$counter" }
 

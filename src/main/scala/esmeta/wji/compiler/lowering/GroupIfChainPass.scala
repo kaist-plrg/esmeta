@@ -1,4 +1,4 @@
-package esmeta.wji.compiler.desugar
+package esmeta.wji.compiler.lowering
 
 import esmeta.wji.lang.{Algorithm, Instr}
 
@@ -7,7 +7,7 @@ import esmeta.wji.lang.{Algorithm, Instr}
   * The spec emits these as adjacent numbered-list items; this pass groups them
   * into a proper tree so the compiler no longer needs `collectElseChain`.
   */
-object GroupIfChainPass extends DesugarPass:
+object GroupIfChainPass extends LoweringPass:
   def run(algos: List[Algorithm]): List[Algorithm] =
     algos.map(a => a.copy(body = transform(a.body)))
 

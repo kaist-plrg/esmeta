@@ -1,6 +1,6 @@
-package esmeta.wji.compiler.desugar
+package esmeta.wji.compiler.lowering
 
 import esmeta.wji.lang.Algorithm
 
-trait DesugarPass:
+trait LoweringPass:
   def run(algos: List[Algorithm]): List[Algorithm]

@@ -1,4 +1,4 @@
-package esmeta.wji.compiler.desugar
+package esmeta.wji.compiler.lowering
 
 import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr}
 
@@ -31,7 +31,7 @@ import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr}
   * `Var`/`Tuple` and are left as `ForEach` for a future pass, so the compiler
   * still reports them as unsupported instead of silently mis-compiling.
   */
-object ExpandForEachPass extends DesugarPass:
+object ExpandForEachPass extends LoweringPass:
   private var counter = 0
   private def freshList(): String = { counter += 1; s"_iterList$counter" }
   private def freshIdx(): String = { counter += 1; s"_iterIdx$counter" }

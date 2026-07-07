@@ -1,4 +1,4 @@
-package esmeta.wji.compiler.desugar
+package esmeta.wji.compiler.lowering
 
 import esmeta.wji.lang.{Algorithm, Expr, Instr}
 
@@ -18,7 +18,7 @@ import esmeta.wji.lang.{Algorithm, Expr, Instr}
   * bindings. In practice, tuple-destructuring Let nodes in the spec have empty
   * bodies.
   */
-object ExpandDestructuringLetPass extends DesugarPass:
+object ExpandDestructuringLetPass extends LoweringPass:
   private var counter = 0
   private def freshTuple(): String = { counter += 1; s"_tuple$counter" }
 

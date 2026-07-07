@@ -1,9 +1,9 @@
-package esmeta.wji.compiler.desugar
+package esmeta.wji.compiler.lowering
 
 import esmeta.wji.lang.Algorithm
 
-object Desugar:
-  val pipeline: List[DesugarPass] = List(
+object Lowering:
+  val pipeline: List[LoweringPass] = List(
     ResolveSpecTermsPass,
     DropNotesPass,
     GroupIfChainPass,

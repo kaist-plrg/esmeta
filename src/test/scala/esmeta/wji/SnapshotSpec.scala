@@ -5,7 +5,7 @@ import org.scalatest.funsuite.AnyFunSuite
 import java.nio.file.{Files, Paths}
 import esmeta.BASE_DIR
 import esmeta.wji.lang.{AlgorithmExtractor, InstrPrinter, SpecFile}
-import esmeta.wji.compiler.desugar.Desugar
+import esmeta.wji.compiler.lowering.Lowering
 import esmeta.wji.compiler.Compiler
 
 /** Golden-file snapshot tests for the full pipeline.
@@ -37,7 +37,7 @@ class SnapshotSpec extends AnyFunSuite:
   }
 
   test("IR (ir.expected)") {
-    val program = Compiler.compile(Desugar.run(algorithms))
+    val program = Compiler.compile(Lowering.run(algorithms))
     val sb = new StringBuilder
     sb.append(s"${program.funcs.size} func(s)\n")
     sb.append(program.toString()).append("\n")

@@ -1,9 +1,9 @@
-package esmeta.wji.compiler.desugar
+package esmeta.wji.compiler.lowering
 
 import esmeta.wji.lang.{Algorithm, Instr}
 
 /** Removes all [[Instr.Note]] nodes from every algorithm body. */
-object DropNotesPass extends DesugarPass:
+object DropNotesPass extends LoweringPass:
   def run(algos: List[Algorithm]): List[Algorithm] =
     algos.map(a => a.copy(body = transform(a.body)))
 

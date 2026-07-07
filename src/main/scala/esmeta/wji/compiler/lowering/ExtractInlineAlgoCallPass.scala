@@ -1,4 +1,4 @@
-package esmeta.wji.compiler.desugar
+package esmeta.wji.compiler.lowering
 
 import esmeta.wji.lang.{Algorithm, Expr, Instr}
 import esmeta.wji.lang.Instr.PerformOutcome
@@ -26,7 +26,7 @@ import esmeta.wji.lang.Instr.PerformOutcome
   * [[ExpandPerformReturnResultPass]] (which expands the `ReturnResult`
   * outcome).
   */
-object ExtractInlineAlgoCallPass extends DesugarPass:
+object ExtractInlineAlgoCallPass extends LoweringPass:
 
   def run(algos: List[Algorithm]): List[Algorithm] =
     algos.map(a => a.copy(body = transform(a.body)))

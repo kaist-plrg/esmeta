@@ -1,4 +1,4 @@
-package esmeta.wji.compiler.desugar
+package esmeta.wji.compiler.lowering
 
 import esmeta.wji.lang.{Algorithm, Expr, Instr}
 import esmeta.wji.lang.Instr.PerformOutcome
@@ -19,7 +19,7 @@ import esmeta.wji.lang.Instr.PerformOutcome
   * This removes the `ReturnResult` outcome from the AST so the compiler only
   * needs to handle `Discard` and `BindResult`.
   */
-object ExpandPerformReturnResultPass extends DesugarPass:
+object ExpandPerformReturnResultPass extends LoweringPass:
   private var counter = 0
   private def freshRet(): String = { counter += 1; s"_ret$counter" }
 

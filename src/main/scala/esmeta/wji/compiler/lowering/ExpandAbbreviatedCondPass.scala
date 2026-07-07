@@ -1,4 +1,4 @@
-package esmeta.wji.compiler.desugar
+package esmeta.wji.compiler.lowering
 
 import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr}
 
@@ -20,7 +20,7 @@ import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr}
   * condition in the `Or`/`And` chain and applied to every `Abbreviated` on the
   * right.
   */
-object ExpandAbbreviatedCondPass extends DesugarPass:
+object ExpandAbbreviatedCondPass extends LoweringPass:
 
   def run(algos: List[Algorithm]): List[Algorithm] =
     algos.map(a => a.copy(body = transformInstrs(a.body)))

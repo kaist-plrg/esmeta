@@ -14,7 +14,7 @@ import esmeta.wji.bridge.SpecTecWasmHost
 import esmeta.wji.bridge.process.SpecTecProcess
 import esmeta.wji.bridge.rpc.JsonRpcConnection
 import esmeta.wji.compiler.Compiler
-import esmeta.wji.compiler.desugar.Desugar
+import esmeta.wji.compiler.lowering.Lowering
 import esmeta.wji.lang.SpecFile
 import scala.collection.mutable.{Map => MMap}
 
@@ -54,7 +54,7 @@ case object WjiInterp extends Phase[CFG, Value] {
     config: Config,
   ): Value =
     val algorithms = SpecFile.loadAllAlgorithms()
-    val wjiProgram = Compiler.compile(Desugar.run(algorithms))
+    val wjiProgram = Compiler.compile(Lowering.run(algorithms))
     val merged =
       Program(cfg.program.funcs ++ wjiProgram.funcs, cfg.program.spec)
     val mergedCfg = CFGBuilder(merged)

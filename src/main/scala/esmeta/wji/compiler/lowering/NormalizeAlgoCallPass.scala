@@ -1,4 +1,4 @@
-package esmeta.wji.compiler.desugar
+package esmeta.wji.compiler.lowering
 
 import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr}
 
@@ -37,7 +37,7 @@ import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr}
   * [[Instr.While]] conditions are never extracted (they are re-evaluated each
   * iteration; extraction would change semantics).
   */
-object NormalizeAlgoCallPass extends DesugarPass:
+object NormalizeAlgoCallPass extends LoweringPass:
   private var counter = 0
   private def fresh(): String = { counter += 1; s"_call$counter" }
 

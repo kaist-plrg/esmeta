@@ -82,7 +82,7 @@ object Instr:
     */
   case class Unknown(text: String, body: List[Instr] = Nil) extends Instr
 
-  /** Produced by [[esmeta.wji.compiler.desugar.GroupIfChainPass]]: a fully
+  /** Produced by [[esmeta.wji.compiler.lowering.GroupIfChainPass]]: a fully
     * grouped if/else-if/else tree. Replaces flat `If`/`ElseIf`/`Else` siblings.
     * `branches` is non-empty; `fallback` is the else-body (may be empty if
     * there is no else clause).

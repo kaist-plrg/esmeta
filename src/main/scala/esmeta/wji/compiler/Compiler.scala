@@ -124,7 +124,8 @@ object Compiler:
     case Instr.Continue(_) =>
       IExpr(EYet("continue")) :: Nil // TODO: represent loop continue
 
-    case Instr.RunInParallel(body) => compileSeq(body) // Parallele steps are simply executed immediately
+    case Instr.RunInParallel(body) =>
+      compileSeq(body) // Parallele steps are simply executed immediately
 
     case Instr.Note(_, _) => Nil // notes are informational only
 

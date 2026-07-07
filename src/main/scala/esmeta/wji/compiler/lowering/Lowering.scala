@@ -10,6 +10,7 @@ object Lowering:
     GroupIfChainPass,
     ExpandAbruptPass,
     ExpandForEachPass,
+    ExpandNewByteSequencePass,
     ExpandDestructuringLetPass,
     NormalizeAlgoCallPass,
     ExtractInlineAlgoCallPass,

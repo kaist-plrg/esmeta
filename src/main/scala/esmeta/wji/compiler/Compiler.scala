@@ -148,6 +148,7 @@ object Compiler:
     case metalang.Expr.Var(name)             => ERef(Name(name))
     case metalang.Expr.This                  => ERef(Global("this"))
     case metalang.Expr.Num(s)                => compileNum(s)
+    case metalang.Expr.Byte(v)               => ENumber(v.toDouble)
     case metalang.Expr.Bool(b)               => EBool(b)
     case metalang.Expr.Str(s)                => EStr(s)
     case metalang.Expr.SpecTerm("null")      => ENull()
@@ -196,6 +197,9 @@ object Compiler:
       EYet(
         s"$desc such that $cond",
       ) // TODO: existential/definite-description search
+    case metalang.Expr.NewByteSequence(length) =>
+      // should have been eliminated by ExpandNewByteSequencePass
+      EYet(s"new byte sequence of length ${length}")
     case metalang.Expr.Unknown(raw) => EYet(raw)
 
   // ── Condition ────────────────────────────────────────────────────────────────

@@ -19,6 +19,10 @@ object ExprParser:
   private val NewExpr =
     """(?si)^a\s+\[=/new=\]\s+\{\{([^}]+)\}\}(?:\s+object)?$""".r
   private val EmptyList = """(?si)^a\s+new,?\s+empty\s+(?:\[=list=\]|list)$""".r
+  // "a new [=byte sequence=] of [=byte sequence/length=] equal to LENGTH" — a
+  // freshly allocated all-zero byte sequence of the given length.
+  private val NewByteSeqOfLength =
+    """(?si)^a\s+new\s+\[=byte sequence=\]\s+of\s+\[=byte sequence/length=\]\s+equal to\s+(.+)$""".r
   // "a [=X=] which ..." — a relative-clause description of X, not a call
   // (e.g. "a [=Data Block=] which is [=identified with=] the underlying
   // memory of |memaddr|"). Not yet evaluable (see Expr.Described); matched
@@ -149,6 +153,7 @@ object ExprParser:
       case IndexByNum(baseRaw, n)      => Index(parse(baseRaw), parse(n))
       case NewExpr(iface)              => New(iface)
       case EmptyList()                 => List_(Nil)
+      case NewByteSeqOfLength(lenRaw)  => NewByteSequence(parse(lenRaw.trim))
       case RelativeClauseDesc(link, desc) =>
         Described(normalizeLink(link), desc.trim)
       case SuchThatDesc(desc, cond) =>

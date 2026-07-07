@@ -1470,7 +1470,7 @@
     Set(|length|, |jsBufferSource|.[[ArrayBufferByteLength]])
   If([$IsDetachedBuffer$](|jsArrayBuffer|) is true)
     Return(?(the empty [=byte sequence=]))
-  Let(|bytes|, ?(a new [=byte sequence=] of [=byte sequence/length=] equal to |length|))
+  Let(|bytes|, ByteSequence(|length|))
   ?(For |i| in [=the range=] |offset| to |offset| + |length| &minus; 1, inclusive, set |bytes|[|i| &minus; |offset|] to [$GetValueFromBuffer$](|jsArrayBuffer|, |i|, Uint8, true, Unordered))
   Return(|bytes|)
 

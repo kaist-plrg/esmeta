@@ -2061,7 +2061,12 @@ def get_a_copy_of_the_buffer_source(
   if (= _call32 true) {
     return (yet "the empty [=byte sequence=]")
   } else nop
-  let bytes = (yet "a new [=byte sequence=] of [=byte sequence/length=] equal to |length|")
+  let bytes = (list [])
+  let _byteIdx1 = 0
+  while (< _byteIdx1 length) {
+    push bytes < 0.0f
+    _byteIdx1 = (+ _byteIdx1 1)
+  }
   (yet "For |i| in [=the range=] |offset| to |offset| + |length| &minus; 1, inclusive, set |bytes|[|i| &minus; |offset|] to [$GetValueFromBuffer$](|jsArrayBuffer|, |i|, Uint8, true, Unordered)")
   return bytes
 }

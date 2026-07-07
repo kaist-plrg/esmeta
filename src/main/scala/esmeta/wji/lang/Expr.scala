@@ -9,6 +9,13 @@ object Expr:
   case class Bool(value: Boolean) extends Expr
   case class Str(value: String) extends Expr
 
+  /** A single byte value (0-255), e.g. the zero-fill element produced when
+    * expanding [[NewByteSequence]]. Kept distinct from [[Num]] (a
+    * mathematical-value literal) since it compiles to a `Number` value rather
+    * than a `Math` value.
+    */
+  case class Byte(value: Int) extends Expr
+
   /** A reference to an ECMA-262/Wasm-specific term (a `[=...=]`/`**...**`/
     * `<emu-const>` token whose meaning is fixed by the spec's own glossary
     * rather than by an extracted `<div algorithm>`), e.g. `null`, `undefined`,
@@ -96,6 +103,14 @@ object Expr:
     * [[Described]].
     */
   case class SuchThat(desc: String, cond: String) extends Expr
+
+  /** "a new [=byte sequence=] of [=byte sequence/length=] equal to LENGTH" — a
+    * freshly allocated byte sequence of the given length (each byte 0, per the
+    * Infra Standard's "byte sequence" definition). Not yet evaluable; kept as a
+    * distinct node (rather than falling into [[UnknownNew]]) since `length` is
+    * itself a meaningful sub-expression worth preserving.
+    */
+  case class NewByteSequence(length: Expr) extends Expr
 
   /** Spec prose that didn't match any recognised expression pattern. */
   case class Unknown(raw: String) extends Expr

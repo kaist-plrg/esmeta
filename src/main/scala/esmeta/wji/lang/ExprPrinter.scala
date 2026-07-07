@@ -7,6 +7,7 @@ object ExprPrinter:
     case Var(name)            => s"|$name|"
     case This                 => "**this**"
     case Num(value)           => value
+    case Byte(v)              => s"0x$v"
     case Bool(v)              => v.toString
     case Str(v)               => s""""$v""""
     case SpecTerm(name)       => name
@@ -34,6 +35,7 @@ object ExprPrinter:
     case Map_(Nil)           => "«[ ]»"
     case Map_(entries) =>
       s"«[ ${entries.map((k, v) => s"${render(k)} → ${render(v)}").mkString(", ")} ]»"
-    case Described(link, desc) => s"$link which $desc"
-    case SuchThat(desc, cond)  => s"$desc such that $cond"
-    case Expr.Unknown(raw)     => s"?($raw)"
+    case Described(link, desc)   => s"$link which $desc"
+    case SuchThat(desc, cond)    => s"$desc such that $cond"
+    case NewByteSequence(length) => s"ByteSequence(${render(length)})"
+    case Expr.Unknown(raw)       => s"?($raw)"

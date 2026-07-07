@@ -5,7 +5,6 @@ import esmeta.wji.lang.Algorithm
 object Lowering:
   val pipeline: List[LoweringPass] = List(
     ResolveLinksPass,
-    ReplaceSpaceWithUnderscore,
     DropNotesPass,
     GroupIfChainPass,
     ExpandAbruptPass,
@@ -18,6 +17,7 @@ object Lowering:
     ExpandThrowsPass,
     ExpandPerformReturnResultPass,
     ExpandAbbreviatedCondPass,
+    ReplaceSpaceWithUnderscore,
   )
 
   def run(algos: List[Algorithm]): List[Algorithm] =

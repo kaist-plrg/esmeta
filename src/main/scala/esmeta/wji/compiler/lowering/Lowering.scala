@@ -17,6 +17,7 @@ object Lowering:
     ExpandThrowsPass,
     ExpandPerformReturnResultPass,
     ExpandAbbreviatedCondPass,
+    ExpandQueueATaskPass,
     ReplaceSpaceWithUnderscore,
   )
 

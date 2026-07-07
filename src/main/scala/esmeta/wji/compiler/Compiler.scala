@@ -212,6 +212,8 @@ object Compiler:
     case metalang.Expr.Range(low, high) =>
       EYet(s"range ${low} to ${high}") // TODO: proper range value
     case metalang.Expr.Unknown(raw) => EYet(raw)
+    case metalang.Expr.Closure(name, captured) =>
+      EClo(name, captured.map(Name(_)))
 
   // ── Condition ────────────────────────────────────────────────────────────────
 

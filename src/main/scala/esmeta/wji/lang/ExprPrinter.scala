@@ -41,6 +41,8 @@ object ExprPrinter:
     case NewByteSequence(length) => s"ByteSequence(${render(length)})"
     case Range(low, high)        => s"Range(${render(low)}, ${render(high)})"
     case Expr.Unknown(raw)       => s"?($raw)"
+    case Closure(name, captured) =>
+      s"closure $name captures(${captured.mkString(", ")})"
 
   private def renderBOp(op: BOp): String = op match
     case BOp.Add => "+"

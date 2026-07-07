@@ -125,3 +125,17 @@ object Expr:
 
   /** Spec prose that didn't match any recognised expression pattern. */
   case class Unknown(raw: String) extends Expr
+
+  /** A reference to a closure value over the synthetic algorithm `name`,
+    * capturing the current values of `captured` variable names from the
+    * enclosing scope. Produced by
+    * `esmeta.wji.compiler.lowering.ExpandQueueATaskPass` when it splits a
+    * `"queue a task"` step's substeps into a fresh 0-parameter [[Algorithm]]
+    * (mirroring ECMA-262's "a new Job Abstract Closure ... that captures ...");
+    * `captured` is computed automatically (free-variable analysis over the
+    * substeps) rather than parsed from spec prose, since (unlike ECMA-262's
+    * `AbstractClosureExpression`) the WASM JS-API spec's "queue a task" prose
+    * never spells out an explicit capture list. Compiles directly to
+    * `ir.EClo(name, captured)` — see `esmeta.wji.compiler.Compiler`.
+    */
+  case class Closure(name: String, captured: List[String]) extends Expr

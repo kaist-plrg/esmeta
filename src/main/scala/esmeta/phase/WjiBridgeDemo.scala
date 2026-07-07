@@ -48,6 +48,26 @@ case object WjiBridgeDemo extends Phase[CFG, Unit] {
     val connection = JsonRpcConnection.stdio(process)
     val host = SpecTecWasmHost(connection)
 
+    // Exercise module_decode + module_imports end-to-end before the rest of
+    // the demo: decode a minimal module (one type, one func import of
+    // "console"."log") and confirm the import comes back out.
+    import ALValue.*
+    val moduleBytes = List(
+      0, 97, 115, 109, 1, 0, 0, 0, // \0asm, version 1
+      1, 5, 1, 96, 1, 127, 0, // type section: type 0 = (func (param i32))
+      2, 15, 1, 7, 99, 111, 110, 115, 111, 108, 101, 3, 108, 111, 103, 0, 0,
+      // import section: "console" "log" func (type 0)
+    )
+    val bytesVal: ALValue =
+      ListV(moduleBytes.map(n => NumV(ALNum.Nat(n))))
+    (for
+      module <- host.moduleDecode(bytesVal)
+      imports <- host.moduleImports(module)
+    yield imports) match
+      case Right(imports) => println(s"module_imports -> $imports")
+      case Left(err) =>
+        throw new RuntimeException(s"module_imports demo failed: $err")
+
     //   global %Store = { let s = store_init(); return s }
     //   global %Faddr = { return -1 }
     //   global %Count = { return 0 }
@@ -160,7 +180,6 @@ case object WjiBridgeDemo extends Phase[CFG, Unit] {
     // Host function type `[i32] -> [i32]` as an AL deftype, mirroring host.ml's
     // `create_funcinst` dtype (Wasm 3.0 representation):
     //   _DEF(REC[ SUB(?FINAL, [], (I32* -> I32*)) ], 0)
-    import ALValue.*
     val i32 = CaseV("I32", Nil)
     val ftype = CaseV("->", List(ListV(List(i32)), ListV(List(i32))))
     val sub =

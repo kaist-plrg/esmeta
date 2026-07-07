@@ -62,3 +62,7 @@ object InstrPrinter:
       s"PerformAndLet(${renderCall(func, args)}, $v)"
     case Note(text, _)          => s"Note($text)"
     case Instr.Unknown(text, _) => s"?($text)"
+    case IfChain(branches, fallback) =>
+      val conds = branches.map((c, _) => CondPrinter.render(c)).mkString(", ")
+      if fallback.isEmpty then s"IfChain($conds)"
+      else s"IfChain($conds, else)"

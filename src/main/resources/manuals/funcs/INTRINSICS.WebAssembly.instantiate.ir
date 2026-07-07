@@ -13,7 +13,7 @@ def <BUILTIN>:INTRINSICS.WebAssembly.instantiate(
     expand __args__.importObject
   } else let importObject = undefined
   call %0 = clo<"ToWebIDLArrayBuffer">(bytes)
-  call %1 = clo<"instantiate">(%0, importObject)
+  call %1 = clo<"instantiate">(%0, importObject, undefined)
   if (? %1: Completion) return %1
   call %2 = clo<"NormalCompletion">(%1)
   return %2

@@ -51,17 +51,7 @@ case class State(
     case addr: Addr    => heap(addr, field)
     case AstValue(ast) => AstValue(ast(field))
     case Str(str)      => apply(str, field)
-    // a Wasm-spec-defined record (e.g. a decoded `module`'s `imports`/`types`/
-    // ... fields) can be projected directly — this is plain data, not an
-    // embedding *operation*, so it doesn't need a round trip to SpecTec.
-    case Wasm(ALValue.StrV(fields)) =>
-      field match
-        case Str(name) =>
-          fields.find(_._1 == name) match
-            case Some((_, v)) => Wasm(v)
-            case None         => throw InvalidRefBase(base)
-        case _ => throw InvalidRefBase(base)
-    case v => throw InvalidRefBase(v)
+    case v             => throw InvalidRefBase(v)
 
   /** string field getter */
   def apply(str: String, field: Value): Value = field match

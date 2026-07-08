@@ -75,24 +75,32 @@ case object WjiInterp extends Phase[CFG, Value] {
     st.heap.push(NamedAddr(EXECUTION_STACK), execContext, true)
 
     val func = mergedCfg.getFunc(config.entry)
-    // a placeholder decoded `module` (Wasm Core Spec 1.4-syntax.modules):
-    // a record so field reads like `|module|.[=imports=]` can be projected
-    // directly (see State.apply's Wasm(StrV(...)) case) without a round trip
-    // to SpecTec.
+    // a placeholder decoded `module` (Wasm Core Spec 1.4-syntax.modules),
+    // shaped like the real `CaseV("MODULE", args)` SpecTec's `module_decode`
+    // produces (see `Construct.al_of_module` in the SpecTec submodule) — a
+    // positional value, not a named record — so it round-trips through real
+    // embedding calls (e.g. `module_imports`) unchanged. Field order matches
+    // `al_of_module`'s `!version <= 2` false branch (Wasm 3.0/GC field set),
+    // though the order no longer matters on the `esmeta` side: every read of
+    // this data goes through `module_imports`, not a field access (see
+    // `SpecPatch` #5 — the spec used to read `|module|.[=imports=]` directly,
+    // which only ever worked because an older Wasm Core Spec version modeled
+    // `module` as a record).
     val placeholderModule = Wasm(
-      ALValue.StrV(
+      ALValue.CaseV(
+        "MODULE",
         List(
-          "types" -> ALValue.ListV(Nil),
-          "imports" -> ALValue.ListV(Nil),
-          "tags" -> ALValue.ListV(Nil),
-          "globals" -> ALValue.ListV(Nil),
-          "mems" -> ALValue.ListV(Nil),
-          "tables" -> ALValue.ListV(Nil),
-          "funcs" -> ALValue.ListV(Nil),
-          "datas" -> ALValue.ListV(Nil),
-          "elems" -> ALValue.ListV(Nil),
-          "start" -> ALValue.OptV(None),
-          "exports" -> ALValue.ListV(Nil),
+          ALValue.ListV(Nil), // types
+          ALValue.ListV(Nil), // imports
+          ALValue.ListV(Nil), // tags
+          ALValue.ListV(Nil), // globals
+          ALValue.ListV(Nil), // mems
+          ALValue.ListV(Nil), // tables
+          ALValue.ListV(Nil), // funcs
+          ALValue.ListV(Nil), // datas
+          ALValue.ListV(Nil), // elems
+          ALValue.OptV(None), // start
+          ALValue.ListV(Nil), // exports
         ),
       ),
     )

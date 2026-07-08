@@ -117,7 +117,8 @@ def read_the_imports(
   builtinSetNames: Unknown,
   importedStringModule: Unknown,
 ): Unknown = {
-  if (&& (! (= (sizeof module.imports) 0)) (= importObject undefined)) {
+  call-embed _call4 = <module_imports>(module)
+  if (&& (! (= (sizeof _call4) 0)) (= importObject undefined)) {
     (yet "throw a {{TypeError}} exception")
   } else nop
   let builtinOrStringImports = (map[Unknown, Unknown])
@@ -171,8 +172,8 @@ def read_the_imports(
     } else nop
     let v = _comp3.Value
     if (yet "is of form") {
-      call _call4 = clo<"IsCallable">(v)
-      if (= _call4 false) {
+      call _call5 = clo<"IsCallable">(v)
+      if (= _call5 false) {
         (yet "throw a {{LinkError}} exception")
       } else nop
       if (&& (exists v.FunctionAddress) (= (yet "therefore") (yet "an [=Exported Function=]"))) {
@@ -294,8 +295,8 @@ def create_an_exports_object(
     assert (= status true)
     _iterIdx10 = (+ _iterIdx10 1)
   }
-  call _call5 = clo<"SetIntegrityLevel">(exportsObject, (yet "`\"frozen\"`"))
-  call _ = clo<"!">(_call5)
+  call _call6 = clo<"SetIntegrityLevel">(exportsObject, (yet "`\"frozen\"`"))
+  call _ = clo<"!">(_call6)
   return exportsObject
 }
 def initialize_an_instance_object(
@@ -583,10 +584,10 @@ def refresh_the_memory_buffer(
   assert (exists map[memaddr])
   let memory = map[memaddr]
   let buffer = memory.BufferObject
-  call _call6 = clo<"isfixedlengtharraybuffer">(buffer)
-  if (= _call6 true) {
-    call _call7 = clo<"DetachArrayBuffer">(buffer, "WebAssembly.Memory")
-    call _ = clo<"!">(_call7)
+  call _call7 = clo<"isfixedlengtharraybuffer">(buffer)
+  if (= _call7 true) {
+    call _call8 = clo<"DetachArrayBuffer">(buffer, "WebAssembly.Memory")
+    call _ = clo<"!">(_call8)
     call buffer = clo<"create_a_fixed_length_memory_buffer">(memaddr)
     memory.BufferObject = buffer
   } else {
@@ -626,8 +627,8 @@ def grow(
 }
 def memory.grow(
 ): Unknown = {
-  call _call8 = clo<"i32.const">((- 1))
-  if (&& (! (= (yet "the top of the stack") _call8)) (! (= (yet "the top of the stack") (yet "call [=i64.const=]")))) {
+  call _call9 = clo<"i32.const">((- 1))
+  if (&& (! (= (yet "the top of the stack") _call9)) (! (= (yet "the top of the stack") (yet "call [=i64.const=]")))) {
     let frame = (yet "the [=current frame=]")
     assert (yet "due to validation, |frame|.[=frame/module=].[=moduleinst/memaddrs=][|x|] exists")
     let memaddr = _ref_Unknown["frame/module"]["moduleinst/memaddrs"][x]
@@ -637,14 +638,14 @@ def memory.grow(
 def tofixedlengthbuffer(
 ): Unknown = {
   let buffer = @this.BufferObject
-  call _call9 = clo<"isfixedlengtharraybuffer">(buffer)
-  if (= _call9 true) {
+  call _call10 = clo<"isfixedlengtharraybuffer">(buffer)
+  if (= _call10 true) {
     return buffer
   } else nop
   let memaddr = @this.Memory
   call fixedBuffer = clo<"create_a_fixed_length_memory_buffer">(memaddr)
-  call _call10 = clo<"DetachArrayBuffer">(buffer, "WebAssembly.Memory")
-  call _ = clo<"!">(_call10)
+  call _call11 = clo<"DetachArrayBuffer">(buffer, "WebAssembly.Memory")
+  call _ = clo<"!">(_call11)
   @this.BufferObject = fixedBuffer
   return fixedBuffer
 }
@@ -657,15 +658,15 @@ def toresizablebuffer(
     (yet "throw a {{TypeError}} exception")
   } else nop
   let buffer = @this.BufferObject
-  call _call11 = clo<"isfixedlengtharraybuffer">(buffer)
-  if (= _call11 false) {
+  call _call12 = clo<"isfixedlengtharraybuffer">(buffer)
+  if (= _call12 false) {
     return buffer
   } else nop
   assert (yet "|memtype| has a max")
   let maxsize = (* (yet "the max value in |memtype|") 65536)
   call resizableBuffer = clo<"create_a_resizable_memory_buffer">(memaddr, maxsize)
-  call _call12 = clo<"DetachArrayBuffer">(buffer, "WebAssembly.Memory")
-  call _ = clo<"!">(_call12)
+  call _call13 = clo<"DetachArrayBuffer">(buffer, "WebAssembly.Memory")
+  call _ = clo<"!">(_call13)
   @this.BufferObject = resizableBuffer
   return resizableBuffer
 }
@@ -677,8 +678,8 @@ def abstract_operation_[=hostresizearraybuffer=](
     let map = _ref_SpecTerm["Memory object cache"]
     assert (= buffer (yet "the \\[[BufferObject]] of exactly one value in |map|"))
     (yet "foreach ?(|memaddr| &rarr; |mem|) in |map|")
-    call _call13 = clo<"samevalue">(mem.BufferObject, buffer)
-    if (= _call13 true) {
+    call _call14 = clo<"samevalue">(mem.BufferObject, buffer)
+    if (= _call14 true) {
       assert (= (% buffer.ArrayBufferByteLength 65536) 0)
       let lengthDelta = _ref_BinOp.ArrayBufferByteLength
       if (|| (< lengthDelta 0) (! (= (% lengthDelta 65536) 0))) {
@@ -1057,8 +1058,8 @@ def call_an_exported_function(
     } else {
       let arg = undefined
     }
-    call _call14 = clo<"towebassemblyvalue">(arg, t)
-    push args < (yet "? Var(_call14)")
+    call _call15 = clo<"towebassemblyvalue">(arg, t)
+    push args < (yet "? Var(_call15)")
     i = (+ i 1)
     _iterIdx16 = (+ _iterIdx16 1)
   }
@@ -1070,8 +1071,8 @@ def call_an_exported_function(
     (yet "throw an exception")
   } else nop
   (yet "This exception should be a WebAssembly {{RuntimeError}} exception, unless otherwise indicated by <a href=\"#errors\">the WebAssembly error mapping</a>")
-  call _call15 = clo<"exception">(exnaddr)
-  if (= ret _call15) {
+  call _call16 = clo<"exception">(exnaddr)
+  if (= ret _call16) {
     call-embed tagaddr = <exn_tag>(store, exnaddr)
     call-embed payload = <exn_read>(store, exnaddr)
     call jsTagAddr = clo<"get_the_javascript_exception_tag">()
@@ -1094,8 +1095,8 @@ def call_an_exported_function(
     let _iterIdx18 = 0
     while (< _iterIdx18 (sizeof _iterList17)) {
       let r = _iterList17[_iterIdx18]
-      call _call16 = clo<"tojsvalue">(r)
-      push values < _call16
+      call _call17 = clo<"tojsvalue">(r)
+      push values < _call17
       _iterIdx18 = (+ _iterIdx18 1)
     }
     call _ret15 = clo<"CreateArrayFromList">(values)
@@ -1116,8 +1117,8 @@ def run_a_host_function(
   let _iterIdx20 = 0
   while (< _iterIdx20 (sizeof _iterList19)) {
     let arg = _iterList19[_iterIdx20]
-    call _call17 = clo<"tojsvalue">(arg)
-    push jsArguments < _call17
+    call _call18 = clo<"tojsvalue">(arg)
+    push jsArguments < _call18
     _iterIdx20 = (+ _iterIdx20 1)
   }
   call _comp17 = clo<"Call">(func, undefined, jsArguments)
@@ -1129,8 +1130,8 @@ def run_a_host_function(
   if (= resultsSize 0) {
     return (list [])
   } else if (= resultsSize 1) {
-    call _call18 = clo<"towebassemblyvalue">(ret, results[0])
-    return (list [(yet "? Var(_call18)")])
+    call _call19 = clo<"towebassemblyvalue">(ret, results[0])
+    return (list [(yet "? Var(_call19)")])
   } else {
     call _comp18 = clo<"GetMethod">(ret, (yet "{{%Symbol.iterator%}}"))
     if (?name _comp18: AbruptCompletion) {
@@ -1150,8 +1151,8 @@ def run_a_host_function(
       (yet "throw a {{TypeError}} exception")
     } else nop
     (yet "foreach ?(|value| and |resultType|) in ?(|values| and |results|)")
-    call _call19 = clo<"towebassemblyvalue">(value, resultType)
-    push wasmValues < (yet "? Var(_call19)")
+    call _call20 = clo<"towebassemblyvalue">(value, resultType)
+    push wasmValues < (yet "? Var(_call20)")
     return wasmValues
   }
 }
@@ -1359,8 +1360,8 @@ def towebassemblyvalue(
     }
     let store = _ref_SpecTerm["associated store"]
     call-embed actualtype = <ref_type>(store, r)
-    call-embed _call20 = <match_valtype>(actualtype, type)
-    if (= _call20 false) {
+    call-embed _call21 = <match_valtype>(actualtype, type)
+    if (= _call21 false) {
       (yet "throw a {{TypeError}}")
     } else nop
     return r
@@ -1434,8 +1435,8 @@ def tag(
   let _iterIdx22 = 0
   while (< _iterIdx22 (sizeof _iterList21)) {
     let paramType = _iterList21[_iterIdx22]
-    call _call21 = clo<"tovaluetype">(paramType)
-    push wasmParameters < _call21
+    call _call22 = clo<"tovaluetype">(paramType)
+    push wasmParameters < _call22
     _iterIdx22 = (+ _iterIdx22 1)
   }
   let store = _ref_SpecTerm["associated store"]
@@ -1561,8 +1562,8 @@ def exception(
   if (|| (yet "matches valtype") (yet "matches valtype")) {
     (yet "throw a {{TypeError}}")
   } else nop
-  call _call22 = clo<"towebassemblyvalue">(value, resultType)
-  push wasmPayload < (yet "? Var(_call22)")
+  call _call23 = clo<"towebassemblyvalue">(value, resultType)
+  push wasmPayload < (yet "? Var(_call23)")
   call-embed _tuple18 = <exn_alloc>(store, exceptionTag.Address, wasmPayload)
   let store = _tuple18[0]
   let exceptionAddr = _tuple18[1]
@@ -1626,8 +1627,8 @@ def create the webassembly namespace object(
   while (< _iterIdx24 (sizeof _iterList23)) {
     let error = _iterList23[_iterIdx24]
     let constructor = (yet "a new object, implementing the [=NativeError Object Structure=], with <var ignore>NativeError</var> set to |error|")
-    call _call23 = clo<"DefineMethodProperty">(namespaceObject, error, constructor, false)
-    call _ = clo<"!">(_call23)
+    call _call24 = clo<"DefineMethodProperty">(namespaceObject, error, constructor, false)
+    call _ = clo<"!">(_call24)
     _iterIdx24 = (+ _iterIdx24 1)
   }
 }
@@ -1640,8 +1641,8 @@ def find_a_builtin(
   import: Unknown,
   builtinSetNames: Unknown,
 ): Unknown = {
-  call _call24 = clo<"validate_builtin_set_names">(builtinSetNames)
-  assert (= _call24 true)
+  call _call25 = clo<"validate_builtin_set_names">(builtinSetNames)
+  assert (= _call25 true)
   let importModuleName = import[0]
   let importName = import[1]
   let _iterList25 = builtinSetNames
@@ -1714,8 +1715,8 @@ def validate_an_import_for_builtins(
   import: Unknown,
   builtinSetNames: Unknown,
 ): Unknown = {
-  call _call25 = clo<"validate_builtin_set_names">(builtinSetNames)
-  assert (= _call25 true)
+  call _call26 = clo<"validate_builtin_set_names">(builtinSetNames)
+  assert (= _call26 true)
   call maybeBuiltin = clo<"find_a_builtin">(import, builtinSetNames)
   if (= maybeBuiltin null) {
     return true
@@ -1809,8 +1810,8 @@ def js-string-intocharcodearray(
   let i = 0
   while (< i stringLength) {
     call charCode = clo<"CharCodeAt">(string, i)
-    call _call26 = clo<"towebassemblyvalue">(charCode, ~i32~)
-    _ref_BinOp = _call26
+    call _call27 = clo<"towebassemblyvalue">(charCode, ~i32~)
+    _ref_BinOp = _call27
     i = (+ i 1)
   }
   return stringLength
@@ -1916,8 +1917,8 @@ def js-string-equals(
   if (&& (! (= second null)) (! (?name second: String))) {
     (yet "throw a {{RuntimeError}} exception as if a [=trap=] was executed")
   } else nop
-  call _call27 = clo<"isstrictlyequal">(first, second)
-  if (= _call27 true) {
+  call _call28 = clo<"isstrictlyequal">(first, second)
+  if (= _call28 true) {
     return 1
   } else nop
   return 0
@@ -1936,12 +1937,12 @@ def js-string-compare(
     return _comp36
   } else nop
   let second = _comp36.Value
-  call _call28 = clo<"isstrictlyequal">(first, second)
-  if (= _call28 true) {
+  call _call29 = clo<"isstrictlyequal">(first, second)
+  if (= _call29 true) {
     return 0
   } else nop
-  call _call29 = clo<"islessthan">(first, second, true)
-  if (= _call29 true) {
+  call _call30 = clo<"islessthan">(first, second, true)
+  if (= _call30 true) {
     return (- 1)
   } else nop
   return 1
@@ -1965,8 +1966,8 @@ def resolve(
     let _ = (yet "unsupported Let lhs: Unknown(it)")
   } else nop
   call value = clo<"converted_to_a_javascript_value">(x)
-  call _call30 = clo<"Call">(p.Resolve, (yet "<emu-val>undefined</emu-val>"), (list [value]))
-  call _ = clo<"!">(_call30)
+  call _call31 = clo<"Call">(p.Resolve, (yet "<emu-val>undefined</emu-val>"), (list [value]))
+  call _ = clo<"!">(_call31)
   if (= T (yet "{{undefined}}")) {
     (yet "the |x| argument is optional, allowing a simpler \"[=resolve=] p\" usage")
   } else nop
@@ -1975,8 +1976,8 @@ def reject(
   p: Unknown,
   r: Unknown,
 ): Unknown = {
-  call _call31 = clo<"Call">(p.Reject, (yet "<emu-val>undefined</emu-val>"), (list [r]))
-  call _ = clo<"!">(_call31)
+  call _call32 = clo<"Call">(p.Reject, (yet "<emu-val>undefined</emu-val>"), (list [r]))
+  call _ = clo<"!">(_call32)
 }
 def react(
   T: Unknown,
@@ -2024,8 +2025,8 @@ def get_a_copy_of_the_buffer_source(
     assert (|| (= jsBufferSource (yet "an {{ArrayBuffer}}")) (yet "{{SharedArrayBuffer}} object"))
     length = jsBufferSource.ArrayBufferByteLength
   }
-  call _call32 = clo<"IsDetachedBuffer">(jsArrayBuffer)
-  if (= _call32 true) {
+  call _call33 = clo<"IsDetachedBuffer">(jsArrayBuffer)
+  if (= _call33 true) {
     return (yet "the empty [=byte sequence=]")
   } else nop
   let bytes = (list [])

@@ -210,11 +210,11 @@ def read_the_imports(
         } else {
           let value = _throwComp1
         }
-        let store = _ref_SpecTerm["associated store"]
+        let store = @AGENT_RECORD["associated store"]
         call-embed _tuple3 = <global_alloc>(store, (yet "call [=const=]"), value)
         let store = _tuple3[0]
         let globaladdr = _tuple3[1]
-        _ref_SpecTerm["associated store"] = store
+        @AGENT_RECORD["associated store"] = store
       }
       call externglobal = clo<"external_value">(globaladdr)
       push imports < externglobal
@@ -312,7 +312,7 @@ def instantiate_the_core_of_a_webassembly_module(
   module: Unknown,
   imports: Unknown,
 ): Unknown = {
-  let store = _ref_SpecTerm["associated store"]
+  let store = @AGENT_RECORD["associated store"]
   call-embed result = <module_instantiate>(store, module, imports)
   if (= result ~error~) {
     (yet "A {{LinkError}} exception for most cases which occur during linking")
@@ -324,7 +324,7 @@ def instantiate_the_core_of_a_webassembly_module(
   let _tuple5 = result
   let store = _tuple5[0]
   let instance = _tuple5[1]
-  _ref_SpecTerm["associated store"] = store
+  @AGENT_RECORD["associated store"] = store
   return instance
 }
 def asynchronously_instantiate_a_webassembly_module(
@@ -523,7 +523,7 @@ def initialize_a_memory_object(
   memory: Unknown,
   memaddr: Unknown,
 ): Unknown = {
-  let map = _ref_SpecTerm["Memory object cache"]
+  let map = @AGENT_RECORD["Memory object cache"]
   assert (! (exists map[memaddr]))
   call buffer = clo<"create_a_fixed_length_memory_buffer">(memaddr)
   memory.Memory = memaddr
@@ -533,7 +533,7 @@ def initialize_a_memory_object(
 def create_a_memory_object(
   memaddr: Unknown,
 ): Unknown = {
-  let map = _ref_SpecTerm["Memory object cache"]
+  let map = @AGENT_RECORD["Memory object cache"]
   if (exists map[memaddr]) {
     return map[memaddr]
   } else nop
@@ -567,20 +567,20 @@ def memory(
   if (! (= memtype ~valid memtype~)) {
     (yet "throw a {{RangeError}} exception")
   } else nop
-  let store = _ref_SpecTerm["associated store"]
+  let store = @AGENT_RECORD["associated store"]
   call-embed _tuple8 = <mem_alloc>(store, memtype)
   let store = _tuple8[0]
   let memaddr = _tuple8[1]
   if (yet "allocation fails") {
     (yet "throw a {{RangeError}} exception")
   } else nop
-  _ref_SpecTerm["associated store"] = store
+  @AGENT_RECORD["associated store"] = store
   call _ = clo<"initialize_a_memory_object">(@this, memaddr)
 }
 def refresh_the_memory_buffer(
   memaddr: Unknown,
 ): Unknown = {
-  let map = _ref_SpecTerm["Memory object cache"]
+  let map = @AGENT_RECORD["Memory object cache"]
   assert (exists map[memaddr])
   let memory = map[memaddr]
   let buffer = memory.BufferObject
@@ -600,13 +600,13 @@ def grow_the_memory_buffer(
   memaddr: Unknown,
   delta: Unknown,
 ): Unknown = {
-  let store = _ref_SpecTerm["associated store"]
+  let store = @AGENT_RECORD["associated store"]
   let ret = (yet "the [=mem_size=](|store|, |memaddr|)")
   call-embed store = <mem_grow>(store, memaddr, delta)
   if (= store ~error~) {
     (yet "throw a {{RangeError}} exception")
   } else nop
-  _ref_SpecTerm["associated store"] = store
+  @AGENT_RECORD["associated store"] = store
   call _ = clo<"refresh_the_memory_buffer">(memaddr)
   return ret
 }
@@ -614,7 +614,7 @@ def grow(
   delta: Unknown,
 ): Unknown = {
   let memaddr = @this.Memory
-  let store = _ref_SpecTerm["associated store"]
+  let store = @AGENT_RECORD["associated store"]
   let addrtype = (yet "the [=address type=] in [=mem_type=](|store|, |memaddr|)")
   call _comp6 = clo<"addressvaluetou64">(delta, addrtype)
   if (?name _comp6: AbruptCompletion) {
@@ -652,7 +652,7 @@ def tofixedlengthbuffer(
 def toresizablebuffer(
 ): Unknown = {
   let memaddr = @this.Memory
-  let store = _ref_SpecTerm["associated store"]
+  let store = @AGENT_RECORD["associated store"]
   call-embed memtype = <mem_type>(store, memaddr)
   if (yet "|memtype| does not have a max") {
     (yet "throw a {{TypeError}} exception")
@@ -675,7 +675,7 @@ def abstract_operation_[=hostresizearraybuffer=](
   newLength: Unknown,
 ): Unknown = {
   if (= buffer.ArrayBufferDetachKey "WebAssembly.Memory") {
-    let map = _ref_SpecTerm["Memory object cache"]
+    let map = @AGENT_RECORD["Memory object cache"]
     assert (= buffer (yet "the \\[[BufferObject]] of exactly one value in |map|"))
     (yet "foreach ?(|memaddr| &rarr; |mem|) in |map|")
     call _call14 = clo<"samevalue">(mem.BufferObject, buffer)
@@ -699,7 +699,7 @@ def initialize_a_table_object(
   table: Unknown,
   tableaddr: Unknown,
 ): Unknown = {
-  let map = _ref_SpecTerm["Table object cache"]
+  let map = @AGENT_RECORD["Table object cache"]
   assert (! (exists map[tableaddr]))
   table.Table = tableaddr
   map[tableaddr] = table
@@ -707,7 +707,7 @@ def initialize_a_table_object(
 def create_a_table_object(
   tableaddr: Unknown,
 ): Unknown = {
-  let map = _ref_SpecTerm["Table object cache"]
+  let map = @AGENT_RECORD["Table object cache"]
   if (exists map[tableaddr]) {
     return map[tableaddr]
   } else nop
@@ -756,14 +756,14 @@ def table(
     } else nop
     let ref = _comp9.Value
   }
-  let store = _ref_SpecTerm["associated store"]
+  let store = @AGENT_RECORD["associated store"]
   call-embed _tuple9 = <table_alloc>(store, type, ref)
   let store = _tuple9[0]
   let tableaddr = _tuple9[1]
   if (yet "allocation fails") {
     (yet "throw a {{RangeError}} exception")
   } else nop
-  _ref_SpecTerm["associated store"] = store
+  @AGENT_RECORD["associated store"] = store
   call _ = clo<"initialize_a_table_object">(@this, tableaddr)
 }
 def grow(
@@ -771,7 +771,7 @@ def grow(
   value: Unknown,
 ): Unknown = {
   let tableaddr = @this.Table
-  let store = _ref_SpecTerm["associated store"]
+  let store = @AGENT_RECORD["associated store"]
   call-embed initialSize = <table_size>(store, tableaddr)
   call-embed _tuple10 = <table_type>(store, tableaddr)
   let addrtype = _tuple10[0]
@@ -798,14 +798,14 @@ def grow(
   if (= result ~error~) {
     (yet "throw a {{RangeError}} exception")
   } else nop
-  _ref_SpecTerm["associated store"] = result
+  @AGENT_RECORD["associated store"] = result
   call _ret5 = clo<"u64toaddressvalue">(initialSize, addrtype)
   return _ret5
 }
 def length(
 ): Unknown = {
   let tableaddr = @this.Table
-  let store = _ref_SpecTerm["associated store"]
+  let store = @AGENT_RECORD["associated store"]
   let addrtype = (yet "the [=address type=] in [=table_type=](|store|, |tableaddr|)")
   call-embed length64 = <table_size>(store, tableaddr)
   call _ret6 = clo<"u64toaddressvalue">(length64, addrtype)
@@ -815,7 +815,7 @@ def get(
   index: Unknown,
 ): Unknown = {
   let tableaddr = @this.Table
-  let store = _ref_SpecTerm["associated store"]
+  let store = @AGENT_RECORD["associated store"]
   call-embed _tuple11 = <table_type>(store, tableaddr)
   let addrtype = _tuple11[0]
   let limits = _tuple11[1]
@@ -840,7 +840,7 @@ def set(
   value: Unknown,
 ): Unknown = {
   let tableaddr = @this.Table
-  let store = _ref_SpecTerm["associated store"]
+  let store = @AGENT_RECORD["associated store"]
   call-embed _tuple12 = <table_type>(store, tableaddr)
   let addrtype = _tuple12[0]
   let limits = _tuple12[1]
@@ -869,13 +869,13 @@ def set(
   if (= store ~error~) {
     (yet "throw a {{RangeError}} exception")
   } else nop
-  _ref_SpecTerm["associated store"] = store
+  @AGENT_RECORD["associated store"] = store
 }
 def initialize_a_global_object(
   global: Unknown,
   globaladdr: Unknown,
 ): Unknown = {
-  let map = _ref_SpecTerm["Global object cache"]
+  let map = @AGENT_RECORD["Global object cache"]
   assert (! (exists map[globaladdr]))
   global.Global = globaladdr
   map[globaladdr] = global
@@ -883,7 +883,7 @@ def initialize_a_global_object(
 def create_a_global_object(
   globaladdr: Unknown,
 ): Unknown = {
-  let map = _ref_SpecTerm["Global object cache"]
+  let map = @AGENT_RECORD["Global object cache"]
   if (exists map[globaladdr]) {
     return map[globaladdr]
   } else nop
@@ -951,18 +951,18 @@ def global(
   } else {
     call globaltype = clo<"const">(valuetype)
   }
-  let store = _ref_SpecTerm["associated store"]
+  let store = @AGENT_RECORD["associated store"]
   call-embed _tuple13 = <global_alloc>(store, globaltype, value)
   let store = _tuple13[0]
   let globaladdr = _tuple13[1]
   (yet "<!-- TODO(littledan): Report allocation failure https://github.com/WebAssembly/spec/issues/584 -->")
-  _ref_SpecTerm["associated store"] = store
+  @AGENT_RECORD["associated store"] = store
   call _ = clo<"initialize_a_global_object">(@this, globaladdr)
 }
 def getglobalvalue(
   global: Unknown,
 ): Unknown = {
-  let store = _ref_SpecTerm["associated store"]
+  let store = @AGENT_RECORD["associated store"]
   let globaladdr = global.Global
   call-embed globaltype = <global_type>(store, globaladdr)
   if (|| (yet "is of form") ~exnref~) {
@@ -977,7 +977,7 @@ def value(
   call _ret11 = clo<"getglobalvalue">(@this)
   return _ret11
   (yet "The setter of the value attribute of {{Global}}, when invoked, performs the following steps:")
-  let store = _ref_SpecTerm["associated store"]
+  let store = @AGENT_RECORD["associated store"]
   let globaladdr = @this.Global
   let _ = (yet "unsupported Let lhs: Unknown(|mut| |valuetype|)")
   if (|| (yet "matches valtype") (yet "matches valtype")) {
@@ -995,7 +995,7 @@ def value(
   if (= store ~error~) {
     (yet "throw a {{RangeError}} exception")
   } else nop
-  _ref_SpecTerm["associated store"] = store
+  @AGENT_RECORD["associated store"] = store
 }
 def valueof(
 ): Unknown = {
@@ -1005,7 +1005,7 @@ def valueof(
 def name_of_the_webassembly_function(
   funcaddr: Unknown,
 ): Unknown = {
-  let store = _ref_SpecTerm["associated store"]
+  let store = @AGENT_RECORD["associated store"]
   let funcinst = _ref_Unknown[funcaddr]
   if (yet "is of form") {
     assert (&& (= hostfunc (yet "a JavaScript object")) (= (yet "$IsCallable(Var(hostfunc))") true))
@@ -1021,13 +1021,13 @@ def name_of_the_webassembly_function(
 def a_new_exported_function(
   funcaddr: Unknown,
 ): Unknown = {
-  let map = _ref_SpecTerm["Exported Function cache"]
+  let map = @AGENT_RECORD["Exported Function cache"]
   if (exists map[funcaddr]) {
     return map[funcaddr]
   } else nop
   let steps = "[=call an Exported Function|call the Exported Function=] |funcaddr| with arguments."
   let realm = (yet "the [=current Realm=]")
-  let store = _ref_SpecTerm["associated store"]
+  let store = @AGENT_RECORD["associated store"]
   call-embed functype = <func_type>(store, funcaddr)
   let _ = (yet "unsupported Let lhs: Unknown([|paramTypes|] → [<var ignore>resultTypes</var>])")
   let arity = (sizeof paramTypes)
@@ -1041,7 +1041,7 @@ def call_an_exported_function(
   funcaddr: Unknown,
   argValues: Unknown,
 ): Unknown = {
-  let store = _ref_SpecTerm["associated store"]
+  let store = @AGENT_RECORD["associated store"]
   call-embed functype = <func_type>(store, funcaddr)
   let _ = (yet "unsupported Let lhs: Index(Unknown([|parameters|] →),Var(results))")
   if (|| (yet "any type in |parameters|") (|| (yet "matches valtype") (yet "matches valtype"))) {
@@ -1066,7 +1066,7 @@ def call_an_exported_function(
   call-embed _tuple14 = <func_invoke>(store, funcaddr, args)
   let store = _tuple14[0]
   let ret = _tuple14[1]
-  _ref_SpecTerm["associated store"] = store
+  @AGENT_RECORD["associated store"] = store
   if (= ret ~error~) {
     (yet "throw an exception")
   } else nop
@@ -1171,7 +1171,7 @@ def create_a_host_function(
   call _ = clo<"clean_up_after_running_a_callback">(stored settings)
   call _ = clo<"clean_up_after_running_script">(relevant settings)
   assert (|| (= result.Type ~<emu-const>throw</emu-const>~) (= result.Type ~<emu-const>normal</emu-const>~))
-  let store = _ref_SpecTerm["associated store"]
+  let store = @AGENT_RECORD["associated store"]
   if (= result.Type ~<emu-const>throw</emu-const>~) {
     let v = result.Value
     if (yet "implements Exception") {
@@ -1182,17 +1182,17 @@ def create_a_host_function(
       call-embed _tuple15 = <exn_alloc>(store, type, (list [payload]))
       let store = _tuple15[0]
       let address = _tuple15[1]
-      _ref_SpecTerm["associated store"] = store
+      @AGENT_RECORD["associated store"] = store
     }
     (yet "Execute the WebAssembly instructions ([=ref.exn=] |address|) ([=throw_ref=])")
   } else {
     return result.Value
   }
-  let store = _ref_SpecTerm["associated store"]
+  let store = @AGENT_RECORD["associated store"]
   call-embed _tuple16 = <func_alloc>(store, functype, hostfunc)
   let store = _tuple16[0]
   let funcaddr = _tuple16[1]
-  _ref_SpecTerm["associated store"] = store
+  @AGENT_RECORD["associated store"] = store
   return funcaddr
 }
 def tojsvalue(
@@ -1262,7 +1262,7 @@ def tojsvalue(
 def retrieving_a_host_value(
   hostaddr: Unknown,
 ): Unknown = {
-  let map = _ref_SpecTerm["host value cache"]
+  let map = @AGENT_RECORD["host value cache"]
   assert (exists map[hostaddr])
   return map[hostaddr]
 }
@@ -1349,7 +1349,7 @@ def towebassemblyvalue(
         call r = clo<"ref.struct">(objectaddr)
       } else nop
     } else {
-      let map = _ref_SpecTerm["host value cache"]
+      let map = @AGENT_RECORD["host value cache"]
       if (= _ref_SuchThat[hostaddr] (yet "the same as |v|")) {
         call _ret30 = clo<"ref.host">(hostaddr)
         return _ret30
@@ -1358,7 +1358,7 @@ def towebassemblyvalue(
       map[hostaddr] = v
       call r = clo<"ref.host">(hostaddr)
     }
-    let store = _ref_SpecTerm["associated store"]
+    let store = @AGENT_RECORD["associated store"]
     call-embed actualtype = <ref_type>(store, r)
     call-embed _call21 = <match_valtype>(actualtype, type)
     if (= _call21 false) {
@@ -1410,7 +1410,7 @@ def initialize_a_tag_object(
   tag: Unknown,
   tagAddress: Unknown,
 ): Unknown = {
-  let map = _ref_SpecTerm["Tag object cache"]
+  let map = @AGENT_RECORD["Tag object cache"]
   assert (! (exists map[tagAddress]))
   tag.Address = tagAddress
   map[tagAddress] = tag
@@ -1418,7 +1418,7 @@ def initialize_a_tag_object(
 def create_a_tag_object(
   tagAddress: Unknown,
 ): Unknown = {
-  let map = _ref_SpecTerm["Tag object cache"]
+  let map = @AGENT_RECORD["Tag object cache"]
   if (exists map[tagAddress]) {
     return map[tagAddress]
   } else nop
@@ -1439,11 +1439,11 @@ def tag(
     push wasmParameters < _call22
     _iterIdx22 = (+ _iterIdx22 1)
   }
-  let store = _ref_SpecTerm["associated store"]
+  let store = @AGENT_RECORD["associated store"]
   call-embed _tuple17 = <tag_alloc>(store, (yet "|wasmParameters| → « »"))
   let store = _tuple17[0]
   let tagAddress = _tuple17[1]
-  _ref_SpecTerm["associated store"] = store
+  @AGENT_RECORD["associated store"] = store
   call _ = clo<"initialize_a_tag_object">(@this, tagAddress)
 }
 def \[[getprototypeof]]_internal_method_of_an_exported_gc_object(
@@ -1496,7 +1496,7 @@ def a_new_exported_gc_object(
   objectkind: Unknown,
 ): Unknown = {
   assert (|| (= objectkind "array") (= objectkind "struct"))
-  let map = _ref_SpecTerm["exported GC object cache"]
+  let map = @AGENT_RECORD["exported GC object cache"]
   if (exists map[objectaddr]) {
     return map[objectaddr]
   } else nop
@@ -1521,11 +1521,11 @@ def initialize_an_exception_object(
   exn: Unknown,
   exnAddress: Unknown,
 ): Unknown = {
-  let map = _ref_SpecTerm["Exception object cache"]
+  let map = @AGENT_RECORD["Exception object cache"]
   assert (! (exists map[exnAddress]))
   exn.Address = exnAddress
   map[exnAddress] = exn
-  let store = _ref_SpecTerm["associated store"]
+  let store = @AGENT_RECORD["associated store"]
   call-embed tagaddr = <exn_tag>(store, exnAddress)
   call-embed payload = <exn_read>(store, exnAddress)
   exn.Type = tagaddr
@@ -1535,7 +1535,7 @@ def initialize_an_exception_object(
 def create_an_exception_object(
   exnAddress: Unknown,
 ): Unknown = {
-  let map = _ref_SpecTerm["Exception object cache"]
+  let map = @AGENT_RECORD["Exception object cache"]
   if (exists map[exnAddress]) {
     return map[exnAddress]
   } else nop
@@ -1552,7 +1552,7 @@ def exception(
   if (= exceptionTag.Address JSTagAddr) {
     (yet "throw a {{TypeError}}")
   } else nop
-  let store = _ref_SpecTerm["associated store"]
+  let store = @AGENT_RECORD["associated store"]
   let _ = (yet "unsupported Let lhs: Unknown([|types|] → [])")
   if (! (= (sizeof types) (sizeof payload))) {
     (yet "throw a {{TypeError}}")
@@ -1567,7 +1567,7 @@ def exception(
   call-embed _tuple18 = <exn_alloc>(store, exceptionTag.Address, wasmPayload)
   let store = _tuple18[0]
   let exceptionAddr = _tuple18[1]
-  _ref_SpecTerm["associated store"] = store
+  @AGENT_RECORD["associated store"] = store
   call _ = clo<"initialize_an_exception_object">(@this, exceptionAddr)
   if (= options.traceStack true) {
     @this.Stack = (yet "a {{DOMString}} representation of the current call stack or undefined")
@@ -1577,7 +1577,7 @@ def getarg(
   exceptionTag: Unknown,
   index: Unknown,
 ): Unknown = {
-  let store = _ref_SpecTerm["associated store"]
+  let store = @AGENT_RECORD["associated store"]
   if (! (= @this.Type exceptionTag.Address)) {
     (yet "throw a {{TypeError}}")
   } else nop
@@ -1609,14 +1609,14 @@ def stack(
 def get_the_javascript_exception_tag(
 ): Unknown = {
   if (yet "the [=surrounding agent=]'s associated [=JavaScript exception tag=] has been initialized") {
-    return _ref_SpecTerm["JavaScript exception tag"]
+    return @AGENT_RECORD["JavaScript exception tag"]
   } else nop
-  let store = _ref_SpecTerm["associated store"]
+  let store = @AGENT_RECORD["associated store"]
   call-embed _tuple19 = <tag_alloc>(store, (list [~externref~]))
   let store = _tuple19[0]
   let tagAddress = _tuple19[1]
-  _ref_SpecTerm["associated store"] = store
-  _ref_SpecTerm["JavaScript exception tag"] = tagAddress
+  @AGENT_RECORD["associated store"] = store
+  @AGENT_RECORD["JavaScript exception tag"] = tagAddress
   return tagAddress
 }
 def create the webassembly namespace object(
@@ -1683,11 +1683,11 @@ def create_a_builtin_function(
   steps: Unknown,
 ): Unknown = {
   let hostfunc = (yet "[=host function=] which executes |steps| when called")
-  let store = _ref_SpecTerm["associated store"]
+  let store = @AGENT_RECORD["associated store"]
   call-embed _tuple20 = <func_alloc>(store, funcType, hostfunc)
   let store = _tuple20[0]
   let funcaddr = _tuple20[1]
-  _ref_SpecTerm["associated store"] = store
+  @AGENT_RECORD["associated store"] = store
   return funcaddr
 }
 def instantiate_a_builtin_set(

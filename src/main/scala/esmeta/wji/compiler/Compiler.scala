@@ -167,6 +167,19 @@ object Compiler:
     // execution context stack. Mirrors `esmeta.compiler.currentRealm`.
     case metalang.Expr.SpecTerm("current Realm") =>
       ERef(Field(GLOBAL_CONTEXT, EStr("Realm")))
+    // "the surrounding agent" (ECMA-262 9.7 Agents): mainline ESMeta already
+    // models this as the `AGENT_RECORD` global heap record (see
+    // `esmeta.compiler.Compiler`'s `AgentRecord()` case, `GLOBAL_AGENT_RECORD`
+    // in `esmeta.ir.package`). The Wasm JS-API spec extends that same Agent
+    // Record with several of its own slots via plain prose rather than a
+    // `<div algorithm>` (e.g. `[=associated store=]`, index.bs:334: "Each
+    // agent has an associated store... set to store_init()") — accessed
+    // throughout the spec as `the [=surrounding agent=]'s [=X=]`, which
+    // `ExprParser` already parses as `Field(SpecTerm("surrounding agent"), X)`
+    // the same as a `.[[slot]]` access, so mapping the base here covers every
+    // such field uniformly.
+    case metalang.Expr.SpecTerm("surrounding agent") =>
+      ERef(GLOBAL_AGENT_RECORD)
     case metalang.Expr.SpecTerm(s) => EEnum(s)
     case metalang.Expr.Field(base, name) =>
       ERef(Field(compileRef(base), EStr(name)))
@@ -250,8 +263,9 @@ object Compiler:
   /** Converts a metalang Expr that appears in a writable position to an IR Ref.
     */
   private def compileRef(expr: metalang.Expr): Ref = expr match
-    case metalang.Expr.Var(name)         => Name(name)
-    case metalang.Expr.This              => Global("this")
+    case metalang.Expr.Var(name)                     => Name(name)
+    case metalang.Expr.This                          => Global("this")
+    case metalang.Expr.SpecTerm("surrounding agent") => GLOBAL_AGENT_RECORD
     case metalang.Expr.Field(base, name) => Field(compileRef(base), EStr(name))
     case metalang.Expr.Index(base, key) =>
       Field(compileRef(base), compileExpr(key))

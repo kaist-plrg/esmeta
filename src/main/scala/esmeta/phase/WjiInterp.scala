@@ -6,7 +6,7 @@ import esmeta.cfg.CFG
 import esmeta.cfgBuilder.CFGBuilder
 import esmeta.error.ESMetaError
 import esmeta.es.Initialize
-import esmeta.es.builtin.{EXECUTION_STACK, realmAddr}
+import esmeta.es.builtin.{AGENT_RECORD, EXECUTION_STACK, realmAddr}
 import esmeta.interpreter.{Interpreter => EsInterpreter}
 import esmeta.ir.{Local, Program}
 import esmeta.state.*
@@ -124,6 +124,23 @@ case object WjiInterp extends Phase[CFG, Value] {
     val process = SpecTecProcess.start()
     val connection = JsonRpcConnection.stdio(process)
     val host = SpecTecWasmHost(connection)
+
+    // "Each agent has an associated store. When a new agent is created, its
+    // associated store is set to the result of store_init()." (index.bs:334)
+    // — plain prose, not a `<div algorithm>`, so it's never mechanized as a
+    // step; the harness seeds it directly here, the same way it manually
+    // re-wires the execution context above. See Compiler's
+    // `SpecTerm("surrounding agent")` case for how spec references to it
+    // (`the surrounding agent's associated store`, etc.) resolve to this slot.
+    host.storeInit() match
+      case Right(store) =>
+        st.heap.update(
+          NamedAddr(AGENT_RECORD),
+          Str("associated store"),
+          Wasm(store),
+        )
+      case Left(err) =>
+        throw new RuntimeException(s"store_init failed: $err")
 
     val sep = "─" * 64
     println(s"invoke: ${config.entry}($moduleObject, $importObject)")

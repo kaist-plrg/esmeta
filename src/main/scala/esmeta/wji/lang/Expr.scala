@@ -139,3 +139,15 @@ object Expr:
     * `ir.EClo(name, captured)` — see `esmeta.wji.compiler.Compiler`.
     */
   case class Closure(name: String, captured: List[String]) extends Expr
+
+  /** Projects component `idx` out of `base`, a Wasm-embedding call's `(store,
+    * X)`-shaped result (e.g. `module_instantiate`, `func_invoke`, `func_alloc`,
+    * `global_alloc`, ... — every embedding function that returns a tuple pairs
+    * the updated store with its own result). Produced by
+    * `esmeta.wji.compiler.lowering.ExpandDestructuringLetPass` in place of a
+    * plain [[Index]], since the runtime representation is a Wasm-side `TupV`,
+    * not a heap list/record — [[Index]] compiles to a `Field` (heap-addressed)
+    * read, whereas this compiles directly to `ir.EProj`, the IR node dedicated
+    * to unpacking a `Wasm(TupV(...))`. See `esmeta.wji.compiler.Compiler`.
+    */
+  case class TupleProj(base: Expr, idx: Int) extends Expr

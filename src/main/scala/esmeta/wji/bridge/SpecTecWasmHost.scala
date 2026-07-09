@@ -115,7 +115,16 @@ final class SpecTecWasmHost(connection: JsonRpcConnection) extends WasmHost:
     store: ALValue,
     module: ALValue,
     externVals: List[ALValue],
-  ): Either[WasmError, ALValue] = ???
+  ): Either[WasmError, ALValue] =
+    val externValsList: ALValue = ALValue.ListV(externVals)
+    call(
+      "module_instantiate",
+      Json.obj(
+        "store" -> store.asJson,
+        "module" -> module.asJson,
+        "externvals" -> externValsList.asJson,
+      ),
+    )
 
   def moduleImports(module: ALValue): Either[WasmError, ALValue] =
     call("module_imports", Json.obj("module" -> module.asJson))

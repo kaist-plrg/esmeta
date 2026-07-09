@@ -227,6 +227,7 @@ object Compiler:
     case metalang.Expr.Unknown(raw) => EYet(raw)
     case metalang.Expr.Closure(name, captured) =>
       EClo(name, captured.map(Name(_)))
+    case metalang.Expr.TupleProj(base, idx) => EProj(compileExpr(base), idx)
 
   // ── Condition ────────────────────────────────────────────────────────────────
 

@@ -10,9 +10,16 @@ import esmeta.wji.lang.{Algorithm, Expr, Instr}
   * becomes:
   * {{{
   *   Let(_tupleN, call)
-  *   Let(|store|, _tupleN[0])
-  *   Let(|addr|,  _tupleN[1])
+  *   Let(|store|, _tupleN.0)
+  *   Let(|addr|,  _tupleN.1)
   * }}}
+  *
+  * Every tuple-destructuring `Let` in the spec (directly or indirectly, via a
+  * preceding `Let |result| be ...`) unpacks the `(store, X)` result of a Wasm
+  * embedding call — a `Wasm(TupV(...))`, not a heap list/record — so the
+  * destructured fields are built as [[Expr.TupleProj]] (compiles to
+  * `ir.EProj`), not a plain [[Expr.Index]] (compiles to a heap `Field` read;
+  * see `esmeta.wji.compiler.Compiler`).
   *
   * The original body (if non-empty) is appended after the destructured
   * bindings. In practice, tuple-destructuring Let nodes in the spec have empty
@@ -33,7 +40,7 @@ object ExpandDestructuringLetPass extends LoweringPass:
       val tmp = freshTuple()
       val binding = Instr.Let(Expr.Var(tmp), expr)
       val destructures = elems.zipWithIndex.map { (elem, i) =>
-        Instr.Let(elem, Expr.Index(Expr.Var(tmp), Expr.Num(i.toString)))
+        Instr.Let(elem, Expr.TupleProj(Expr.Var(tmp), i))
       }
       List(binding) ++ destructures ++ transform(body)
     case _ =>

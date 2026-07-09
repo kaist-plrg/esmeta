@@ -37,7 +37,22 @@ object Compiler:
         name = name.toLowerCase,
         params = params,
         retTy = UnknownType,
-        body = compileInstrs(algo.body),
+        // an algorithm that never explicitly `Return`s still implicitly
+        // returns (undefined) once its steps run out — mirrors
+        // `esmeta.compiler`'s own handling of a fall-off-the-end algorithm.
+        // Only appended when the body doesn't already end with a top-level
+        // `Return`: an `IfChain` is real CFG branching (each branch's own
+        // `IReturn` reaches the function exit directly, so appending after
+        // one is harmless dead code), but two `IReturn`s that are siblings in
+        // the same flat instruction list share a single CFG `Block`, whose
+        // interpretation (`Interpreter.eval`'s `Block` case) runs every inst
+        // in sequence with no early exit on return — so appending after an
+        // *already-unconditional* trailing `Return` would silently overwrite
+        // its value with `undefined` instead of staying unreachable.
+        body = ISeq(algo.body.lastOption match
+          case Some(_: Instr.Return) => compileSeq(algo.body)
+          case _ => compileSeq(algo.body) :+ IReturn(EUndef()),
+        ),
       )
     }
 

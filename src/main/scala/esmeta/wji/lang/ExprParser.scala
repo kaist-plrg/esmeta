@@ -9,6 +9,8 @@ object ExprParser:
   private val AbruptPrefix = """(?s)^\[=([?!])=\]\s+(.+)$""".r
   private val ResultOf = """(?si)^the result of (?:creating\s+)?(.+)$""".r
   private val EitherPat = """(?si)^either\s+(.+)$""".r
+  private val Backticked = """(?s)^`(.+)`$""".r
+  private val BacktickedQuotedStr = """(?s)^`"([^"]*)"`$""".r
   private val JSCallFull = """(?s)^\[\$([^\$]+)\$\]\((.*)\)$""".r
   private val LinkFull = """(?s)^(\[=[^\]]+\])\s*\((.*)\)$""".r
   private val LinkProse = """(?s)^(\[=[^\]]+\])\s+(.+)$""".r
@@ -128,6 +130,15 @@ object ExprParser:
       case AbruptPrefix(check, rest) => Abrupt(check, parse(rest))
       case ResultOf(rest)            => parse(rest)
       case EitherPat(rest)           => parse(rest)
+      // A backtick-wrapped *quoted* string (e.g. `"frozen"`, the argument to
+      // [$SetIntegrityLevel$]) isn't a real ECMAScript string value — it's
+      // Bikeshed's way of typesetting an ECMA-262 "specification type" enum
+      // constant (mirroring how `~frozen~` reads in ecmarkup), so it parses
+      // as a SpecTerm (-> `ir.EEnum`), same as any other bare spec constant,
+      // not as a `Str` (-> `ir.EStr`). Plain backtick-wrapped code (no inner
+      // quotes) carries no meaning of its own; strip it and re-parse.
+      case BacktickedQuotedStr(v) => SpecTerm(v)
+      case Backticked(inner)      => parse(inner)
       case RangePrefix(rest) if findTopLevel(rest, " to ").isDefined =>
         val i = findTopLevel(rest, " to ").get
         Range(parse(rest.substring(0, i)), parse(rest.substring(i + 4)))

@@ -27,7 +27,7 @@ def validate_builtins_and_imported_string_for_a_webassembly_module(
     let import = _iterList1[_iterIdx2]
     if (&& (! (= importedStringModule null)) (= import[0] importedStringModule)) {
       let importExternType = import[2]
-      let stringExternType = (yet "`global const (ref extern)`")
+      let stringExternType = (yet "global const (ref extern)")
       call-embed _call3 = <match_externtype>(stringExternType, importExternType)
       if (= _call3 false) {
         return false
@@ -295,8 +295,7 @@ def create_an_exports_object(
     assert (= status true)
     _iterIdx10 = (+ _iterIdx10 1)
   }
-  call _call6 = clo<"SetIntegrityLevel">(exportsObject, (yet "`\"frozen\"`"))
-  call _ = clo<"!">(_call6)
+  call _ = clo<"SetIntegrityLevel">(exportsObject, ~frozen~)
   return exportsObject
 }
 def initialize_an_instance_object(
@@ -307,6 +306,7 @@ def initialize_an_instance_object(
   call exportsObject = clo<"create_an_exports_object">(module, instance)
   instanceObject.Instance = instance
   instanceObject.Exports = exportsObject
+  return undefined
 }
 def instantiate_the_core_of_a_webassembly_module(
   module: Unknown,
@@ -397,6 +397,7 @@ def string_value_of_the_extern_type(
   (yet "\"memory\" if |type| is of the form [=external-type/mem=] <var ignore>memtype</var>")
   (yet "\"global\" if |type| is of the form [=external-type/global=] <var ignore>globaltype</var>")
   (yet "\"tag\" if |type| is of the form [=external-type/tag=] <var ignore>tag</var>")
+  return undefined
 }
 def exports(
   moduleObject: Unknown,
@@ -482,6 +483,7 @@ def module(
   @this.Bytes = stableBytes
   @this.BuiltinSets = builtinSetNames
   @this.ImportedStringModule = importedStringModule
+  return undefined
 }
 def instance(
   moduleObject: Unknown,
@@ -493,9 +495,12 @@ def instance(
   call imports = clo<"read_the_imports">(module, importObject, builtinSetNames, importedStringModule)
   call instance = clo<"instantiate_the_core_of_a_webassembly_module">(module, imports)
   call _ = clo<"initialize_an_instance_object">(@this, module, instance)
+  return undefined
 }
 def exports(
-): Unknown = {}
+): Unknown = {
+  return undefined
+}
 def create_a_fixed_length_memory_buffer(
   memaddr: Unknown,
 ): Unknown = {
@@ -529,6 +534,7 @@ def initialize_a_memory_object(
   memory.Memory = memaddr
   memory.BufferObject = buffer
   map[memaddr] = memory
+  return undefined
 }
 def create_a_memory_object(
   memaddr: Unknown,
@@ -576,6 +582,7 @@ def memory(
   } else nop
   @AGENT_RECORD["associated store"] = store
   call _ = clo<"initialize_a_memory_object">(@this, memaddr)
+  return undefined
 }
 def refresh_the_memory_buffer(
   memaddr: Unknown,
@@ -584,10 +591,9 @@ def refresh_the_memory_buffer(
   assert (exists map[memaddr])
   let memory = map[memaddr]
   let buffer = memory.BufferObject
-  call _call7 = clo<"isfixedlengtharraybuffer">(buffer)
-  if (= _call7 true) {
-    call _call8 = clo<"DetachArrayBuffer">(buffer, "WebAssembly.Memory")
-    call _ = clo<"!">(_call8)
+  call _call6 = clo<"isfixedlengtharraybuffer">(buffer)
+  if (= _call6 true) {
+    call _ = clo<"DetachArrayBuffer">(buffer, "WebAssembly.Memory")
     call buffer = clo<"create_a_fixed_length_memory_buffer">(memaddr)
     memory.BufferObject = buffer
   } else {
@@ -595,6 +601,7 @@ def refresh_the_memory_buffer(
     buffer.ArrayBufferData = block
     buffer.ArrayBufferByteLength = (sizeof block)
   }
+  return undefined
 }
 def grow_the_memory_buffer(
   memaddr: Unknown,
@@ -627,25 +634,25 @@ def grow(
 }
 def memory.grow(
 ): Unknown = {
-  call _call9 = clo<"i32.const">((- 1))
-  if (&& (! (= (yet "the top of the stack") _call9)) (! (= (yet "the top of the stack") (yet "call [=i64.const=]")))) {
+  call _call7 = clo<"i32.const">((- 1))
+  if (&& (! (= (yet "the top of the stack") _call7)) (! (= (yet "the top of the stack") (yet "call [=i64.const=]")))) {
     let frame = (yet "the [=current frame=]")
     assert (yet "due to validation, |frame|.[=frame/module=].[=moduleinst/memaddrs=][|x|] exists")
     let memaddr = _ref_Unknown["frame/module"]["moduleinst/memaddrs"][x]
     call _ = clo<"refresh_the_memory_buffer">(memaddr)
   } else nop
+  return undefined
 }
 def tofixedlengthbuffer(
 ): Unknown = {
   let buffer = @this.BufferObject
-  call _call10 = clo<"isfixedlengtharraybuffer">(buffer)
-  if (= _call10 true) {
+  call _call8 = clo<"isfixedlengtharraybuffer">(buffer)
+  if (= _call8 true) {
     return buffer
   } else nop
   let memaddr = @this.Memory
   call fixedBuffer = clo<"create_a_fixed_length_memory_buffer">(memaddr)
-  call _call11 = clo<"DetachArrayBuffer">(buffer, "WebAssembly.Memory")
-  call _ = clo<"!">(_call11)
+  call _ = clo<"DetachArrayBuffer">(buffer, "WebAssembly.Memory")
   @this.BufferObject = fixedBuffer
   return fixedBuffer
 }
@@ -658,15 +665,14 @@ def toresizablebuffer(
     (yet "throw a {{TypeError}} exception")
   } else nop
   let buffer = @this.BufferObject
-  call _call12 = clo<"isfixedlengtharraybuffer">(buffer)
-  if (= _call12 false) {
+  call _call9 = clo<"isfixedlengtharraybuffer">(buffer)
+  if (= _call9 false) {
     return buffer
   } else nop
   assert (yet "|memtype| has a max")
   let maxsize = (* (yet "the max value in |memtype|") 65536)
   call resizableBuffer = clo<"create_a_resizable_memory_buffer">(memaddr, maxsize)
-  call _call13 = clo<"DetachArrayBuffer">(buffer, "WebAssembly.Memory")
-  call _ = clo<"!">(_call13)
+  call _ = clo<"DetachArrayBuffer">(buffer, "WebAssembly.Memory")
   @this.BufferObject = resizableBuffer
   return resizableBuffer
 }
@@ -678,8 +684,8 @@ def abstract_operation_[=hostresizearraybuffer=](
     let map = @AGENT_RECORD["Memory object cache"]
     assert (= buffer (yet "the \\[[BufferObject]] of exactly one value in |map|"))
     (yet "foreach ?(|memaddr| &rarr; |mem|) in |map|")
-    call _call14 = clo<"samevalue">(mem.BufferObject, buffer)
-    if (= _call14 true) {
+    call _call10 = clo<"samevalue">(mem.BufferObject, buffer)
+    if (= _call10 true) {
       assert (= (% buffer.ArrayBufferByteLength 65536) 0)
       let lengthDelta = _ref_BinOp.ArrayBufferByteLength
       if (|| (< lengthDelta 0) (! (= (% lengthDelta 65536) 0))) {
@@ -692,9 +698,12 @@ def abstract_operation_[=hostresizearraybuffer=](
   } else {
     return ~<emu-const>unhandled</emu-const>~
   }
+  return undefined
 }
 def buffer(
-): Unknown = {}
+): Unknown = {
+  return undefined
+}
 def initialize_a_table_object(
   table: Unknown,
   tableaddr: Unknown,
@@ -703,6 +712,7 @@ def initialize_a_table_object(
   assert (! (exists map[tableaddr]))
   table.Table = tableaddr
   map[tableaddr] = table
+  return undefined
 }
 def create_a_table_object(
   tableaddr: Unknown,
@@ -765,6 +775,7 @@ def table(
   } else nop
   @AGENT_RECORD["associated store"] = store
   call _ = clo<"initialize_a_table_object">(@this, tableaddr)
+  return undefined
 }
 def grow(
   delta: Unknown,
@@ -870,6 +881,7 @@ def set(
     (yet "throw a {{RangeError}} exception")
   } else nop
   @AGENT_RECORD["associated store"] = store
+  return undefined
 }
 def initialize_a_global_object(
   global: Unknown,
@@ -879,6 +891,7 @@ def initialize_a_global_object(
   assert (! (exists map[globaladdr]))
   global.Global = globaladdr
   map[globaladdr] = global
+  return undefined
 }
 def create_a_global_object(
   globaladdr: Unknown,
@@ -916,6 +929,7 @@ def tovaluetype(
     return ~externref~
   } else nop
   assert false
+  return undefined
 }
 def defaultvalue(
   valuetype: Unknown,
@@ -958,6 +972,7 @@ def global(
   (yet "<!-- TODO(littledan): Report allocation failure https://github.com/WebAssembly/spec/issues/584 -->")
   @AGENT_RECORD["associated store"] = store
   call _ = clo<"initialize_a_global_object">(@this, globaladdr)
+  return undefined
 }
 def getglobalvalue(
   global: Unknown,
@@ -996,6 +1011,7 @@ def value(
     (yet "throw a {{RangeError}} exception")
   } else nop
   @AGENT_RECORD["associated store"] = store
+  return undefined
 }
 def valueof(
 ): Unknown = {
@@ -1058,8 +1074,8 @@ def call_an_exported_function(
     } else {
       let arg = undefined
     }
-    call _call15 = clo<"towebassemblyvalue">(arg, t)
-    push args < (yet "? Var(_call15)")
+    call _call11 = clo<"towebassemblyvalue">(arg, t)
+    push args < (yet "? Var(_call11)")
     i = (+ i 1)
     _iterIdx16 = (+ _iterIdx16 1)
   }
@@ -1071,8 +1087,8 @@ def call_an_exported_function(
     (yet "throw an exception")
   } else nop
   (yet "This exception should be a WebAssembly {{RuntimeError}} exception, unless otherwise indicated by <a href=\"#errors\">the WebAssembly error mapping</a>")
-  call _call16 = clo<"exception">(exnaddr)
-  if (= ret _call16) {
+  call _call12 = clo<"exception">(exnaddr)
+  if (= ret _call12) {
     call-embed tagaddr = <exn_tag>(store, exnaddr)
     call-embed payload = <exn_read>(store, exnaddr)
     call jsTagAddr = clo<"get_the_javascript_exception_tag">()
@@ -1095,13 +1111,14 @@ def call_an_exported_function(
     let _iterIdx18 = 0
     while (< _iterIdx18 (sizeof _iterList17)) {
       let r = _iterList17[_iterIdx18]
-      call _call17 = clo<"tojsvalue">(r)
-      push values < _call17
+      call _call13 = clo<"tojsvalue">(r)
+      push values < _call13
       _iterIdx18 = (+ _iterIdx18 1)
     }
     call _ret15 = clo<"CreateArrayFromList">(values)
     return _ret15
   }
+  return undefined
 }
 def run_a_host_function(
   func: Unknown,
@@ -1117,8 +1134,8 @@ def run_a_host_function(
   let _iterIdx20 = 0
   while (< _iterIdx20 (sizeof _iterList19)) {
     let arg = _iterList19[_iterIdx20]
-    call _call18 = clo<"tojsvalue">(arg)
-    push jsArguments < _call18
+    call _call14 = clo<"tojsvalue">(arg)
+    push jsArguments < _call14
     _iterIdx20 = (+ _iterIdx20 1)
   }
   call _comp17 = clo<"Call">(func, undefined, jsArguments)
@@ -1130,8 +1147,8 @@ def run_a_host_function(
   if (= resultsSize 0) {
     return (list [])
   } else if (= resultsSize 1) {
-    call _call19 = clo<"towebassemblyvalue">(ret, results[0])
-    return (list [(yet "? Var(_call19)")])
+    call _call15 = clo<"towebassemblyvalue">(ret, results[0])
+    return (list [(yet "? Var(_call15)")])
   } else {
     call _comp18 = clo<"GetMethod">(ret, (yet "{{%Symbol.iterator%}}"))
     if (?name _comp18: AbruptCompletion) {
@@ -1151,10 +1168,11 @@ def run_a_host_function(
       (yet "throw a {{TypeError}} exception")
     } else nop
     (yet "foreach ?(|value| and |resultType|) in ?(|values| and |results|)")
-    call _call20 = clo<"towebassemblyvalue">(value, resultType)
-    push wasmValues < (yet "? Var(_call20)")
+    call _call16 = clo<"towebassemblyvalue">(value, resultType)
+    push wasmValues < (yet "? Var(_call16)")
     return wasmValues
   }
+  return undefined
 }
 def create_a_host_function(
   func: Unknown,
@@ -1258,6 +1276,7 @@ def tojsvalue(
     call _ret25 = clo<"tojsvalue">(ref)
     return _ret25
   } else nop
+  return undefined
 }
 def retrieving_a_host_value(
   hostaddr: Unknown,
@@ -1360,13 +1379,14 @@ def towebassemblyvalue(
     }
     let store = @AGENT_RECORD["associated store"]
     call-embed actualtype = <ref_type>(store, r)
-    call-embed _call21 = <match_valtype>(actualtype, type)
-    if (= _call21 false) {
+    call-embed _call17 = <match_valtype>(actualtype, type)
+    if (= _call17 false) {
       (yet "throw a {{TypeError}}")
     } else nop
     return r
   } else nop
   assert false
+  return undefined
 }
 def addressvaluetou64(
   v: Unknown,
@@ -1392,6 +1412,7 @@ def addressvaluetou64(
     return (yet "[=ℝ=](|n|) as a WebAssembly [=u64=]")
   } else nop
   assert false
+  return undefined
 }
 def u64toaddressvalue(
   v: Unknown,
@@ -1405,6 +1426,7 @@ def u64toaddressvalue(
     return _ret32
   } else nop
   assert false
+  return undefined
 }
 def initialize_a_tag_object(
   tag: Unknown,
@@ -1414,6 +1436,7 @@ def initialize_a_tag_object(
   assert (! (exists map[tagAddress]))
   tag.Address = tagAddress
   map[tagAddress] = tag
+  return undefined
 }
 def create_a_tag_object(
   tagAddress: Unknown,
@@ -1435,8 +1458,8 @@ def tag(
   let _iterIdx22 = 0
   while (< _iterIdx22 (sizeof _iterList21)) {
     let paramType = _iterList21[_iterIdx22]
-    call _call22 = clo<"tovaluetype">(paramType)
-    push wasmParameters < _call22
+    call _call18 = clo<"tovaluetype">(paramType)
+    push wasmParameters < _call18
     _iterIdx22 = (+ _iterIdx22 1)
   }
   let store = @AGENT_RECORD["associated store"]
@@ -1445,6 +1468,7 @@ def tag(
   let tagAddress = (proj _tuple17 1)
   @AGENT_RECORD["associated store"] = store
   call _ = clo<"initialize_a_tag_object">(@this, tagAddress)
+  return undefined
 }
 def \[[getprototypeof]]_internal_method_of_an_exported_gc_object(
 ): Unknown = {
@@ -1481,10 +1505,12 @@ def \[[get]]_internal_method_of_an_exported_gc_object(
 def \[[set]]_internal_method_of_an_exported_gc_object(
 ): Unknown = {
   (yet "throw a {{TypeError}}")
+  return undefined
 }
 def \[[delete]]_internal_method_of_an_exported_gc_object(
 ): Unknown = {
   (yet "throw a {{TypeError}}")
+  return undefined
 }
 def \[[ownpropertykeys]]_internal_method_of_an_exported_gc_object(
 ): Unknown = {
@@ -1531,6 +1557,7 @@ def initialize_an_exception_object(
   exn.Type = tagaddr
   exn.Payload = payload
   exn.Stack = undefined
+  return undefined
 }
 def create_an_exception_object(
   exnAddress: Unknown,
@@ -1562,8 +1589,8 @@ def exception(
   if (|| (yet "matches valtype") (yet "matches valtype")) {
     (yet "throw a {{TypeError}}")
   } else nop
-  call _call23 = clo<"towebassemblyvalue">(value, resultType)
-  push wasmPayload < (yet "? Var(_call23)")
+  call _call19 = clo<"towebassemblyvalue">(value, resultType)
+  push wasmPayload < (yet "? Var(_call19)")
   call-embed _tuple18 = <exn_alloc>(store, exceptionTag.Address, wasmPayload)
   let store = (proj _tuple18 0)
   let exceptionAddr = (proj _tuple18 1)
@@ -1572,6 +1599,7 @@ def exception(
   if (= options.traceStack true) {
     @this.Stack = (yet "a {{DOMString}} representation of the current call stack or undefined")
   } else nop
+  return undefined
 }
 def getarg(
   exceptionTag: Unknown,
@@ -1627,10 +1655,10 @@ def create the webassembly namespace object(
   while (< _iterIdx24 (sizeof _iterList23)) {
     let error = _iterList23[_iterIdx24]
     let constructor = (yet "a new object, implementing the [=NativeError Object Structure=], with <var ignore>NativeError</var> set to |error|")
-    call _call24 = clo<"DefineMethodProperty">(namespaceObject, error, constructor, false)
-    call _ = clo<"!">(_call24)
+    call _ = clo<"DefineMethodProperty">(namespaceObject, error, constructor, false)
     _iterIdx24 = (+ _iterIdx24 1)
   }
+  return undefined
 }
 def get_the_builtins_for_a_builtin_set(
   builtinSetName: Unknown,
@@ -1641,8 +1669,8 @@ def find_a_builtin(
   import: Unknown,
   builtinSetNames: Unknown,
 ): Unknown = {
-  call _call25 = clo<"validate_builtin_set_names">(builtinSetNames)
-  assert (= _call25 true)
+  call _call20 = clo<"validate_builtin_set_names">(builtinSetNames)
+  assert (= _call20 true)
   let importModuleName = import[0]
   let importName = import[1]
   let _iterList25 = builtinSetNames
@@ -1715,15 +1743,15 @@ def validate_an_import_for_builtins(
   import: Unknown,
   builtinSetNames: Unknown,
 ): Unknown = {
-  call _call26 = clo<"validate_builtin_set_names">(builtinSetNames)
-  assert (= _call26 true)
+  call _call21 = clo<"validate_builtin_set_names">(builtinSetNames)
+  assert (= _call21 true)
   call maybeBuiltin = clo<"find_a_builtin">(import, builtinSetNames)
   if (= maybeBuiltin null) {
     return true
   } else nop
   let importExternType = import[2]
   let builtinFuncType = maybeBuiltin[1][1]
-  let builtinExternType = (yet "`func |builtinFuncType|`")
+  let builtinExternType = (yet "func |builtinFuncType|")
   call-embed _ret34 = <match_externtype>(builtinExternType, importExternType)
   return _ret34
 }
@@ -1810,8 +1838,8 @@ def js-string-intocharcodearray(
   let i = 0
   while (< i stringLength) {
     call charCode = clo<"CharCodeAt">(string, i)
-    call _call27 = clo<"towebassemblyvalue">(charCode, ~i32~)
-    _ref_BinOp = _call27
+    call _call22 = clo<"towebassemblyvalue">(charCode, ~i32~)
+    _ref_BinOp = _call22
     i = (+ i 1)
   }
   return stringLength
@@ -1917,8 +1945,8 @@ def js-string-equals(
   if (&& (! (= second null)) (! (?name second: String))) {
     (yet "throw a {{RuntimeError}} exception as if a [=trap=] was executed")
   } else nop
-  call _call28 = clo<"isstrictlyequal">(first, second)
-  if (= _call28 true) {
+  call _call23 = clo<"isstrictlyequal">(first, second)
+  if (= _call23 true) {
     return 1
   } else nop
   return 0
@@ -1937,12 +1965,12 @@ def js-string-compare(
     return _comp36
   } else nop
   let second = _comp36.Value
-  call _call29 = clo<"isstrictlyequal">(first, second)
-  if (= _call29 true) {
+  call _call24 = clo<"isstrictlyequal">(first, second)
+  if (= _call24 true) {
     return 0
   } else nop
-  call _call30 = clo<"islessthan">(first, second, true)
-  if (= _call30 true) {
+  call _call25 = clo<"islessthan">(first, second, true)
+  if (= _call25 true) {
     return (- 1)
   } else nop
   return 1
@@ -1966,18 +1994,18 @@ def resolve(
     let _ = (yet "unsupported Let lhs: Unknown(it)")
   } else nop
   call value = clo<"converted_to_a_javascript_value">(x)
-  call _call31 = clo<"Call">(p.Resolve, (yet "<emu-val>undefined</emu-val>"), (list [value]))
-  call _ = clo<"!">(_call31)
+  call _ = clo<"Call">(p.Resolve, (yet "<emu-val>undefined</emu-val>"), (list [value]))
   if (= T (yet "{{undefined}}")) {
     (yet "the |x| argument is optional, allowing a simpler \"[=resolve=] p\" usage")
   } else nop
+  return undefined
 }
 def reject(
   p: Unknown,
   r: Unknown,
 ): Unknown = {
-  call _call32 = clo<"Call">(p.Reject, (yet "<emu-val>undefined</emu-val>"), (list [r]))
-  call _ = clo<"!">(_call32)
+  call _ = clo<"Call">(p.Reject, (yet "<emu-val>undefined</emu-val>"), (list [r]))
+  return undefined
 }
 def react(
   T: Unknown,
@@ -2007,7 +2035,7 @@ def react(
     return _comp38
   } else nop
   let newCapability = _comp38.Value
-  call _ = clo<"[$PerformPromiseThen$](|promise|.\[[Promise]],_|onFulfilled|,_|onRejected|,_|newCapability|)">()
+  call _ = clo<"PerformPromiseThen">(promise.Promise, onFulfilled, onRejected, newCapability)
   return newCapability
 }
 def get_a_copy_of_the_buffer_source(
@@ -2025,8 +2053,8 @@ def get_a_copy_of_the_buffer_source(
     assert (|| (= jsBufferSource (yet "an {{ArrayBuffer}}")) (yet "{{SharedArrayBuffer}} object"))
     length = jsBufferSource.ArrayBufferByteLength
   }
-  call _call33 = clo<"IsDetachedBuffer">(jsArrayBuffer)
-  if (= _call33 true) {
+  call _call26 = clo<"IsDetachedBuffer">(jsArrayBuffer)
+  if (= _call26 true) {
     return (yet "the empty [=byte sequence=]")
   } else nop
   let bytes = (list [])
@@ -2054,6 +2082,7 @@ def _queuetaskjob1(
     call moduleObject = clo<"construct_a_webassembly_module_object">(module, bytes, builtinSetNames, importedStringModule)
     call _ = clo<"resolve">(promise, moduleObject)
   }
+  return undefined
 }
 def _queuetaskjob2(
 ): Unknown = {
@@ -2079,4 +2108,5 @@ def _queuetaskjob2(
     } else nop
   } else nop
   call _ = clo<"resolve">(promise, instanceObject)
+  return undefined
 }

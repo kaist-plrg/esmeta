@@ -17,7 +17,7 @@
   ForEach(|import|, [=module_imports=](|module|))
     If(|importedStringModule| is not null, and |import|[0] is |importedStringModule|)
       Let(|importExternType|, |import|[2])
-      Let(|stringExternType|, ?(`global const (ref extern)`))
+      Let(|stringExternType|, ?(global const (ref extern)))
       If([=match_externtype=](|stringExternType|, |importExternType|) is false)
         Return(false)
     Else
@@ -200,7 +200,7 @@
     Let(|status|, [=!=] [$CreateDataProperty$](|exportsObject|, |name|, |value|))
     Assert(|status| is true)
     Note(the validity and uniqueness checks performed during [=WebAssembly module validation=] ensure that each property name is valid and no properties are defined twice)
-  Perform([=!=]([$SetIntegrityLevel$](|exportsObject|, ?(`"frozen"`))))
+  Perform(SetIntegrityLevel(|exportsObject|, frozen))
   Return(|exportsObject|)
 
 # initialize an instance object
@@ -433,7 +433,7 @@
   Let(|memory|, |map|[|memaddr|])
   Let(|buffer|, |memory|.[[BufferObject]])
   If([=IsFixedLengthArrayBuffer=](|buffer|) is true)
-    Perform([=!=]([$DetachArrayBuffer$](|buffer|, "WebAssembly.Memory")))
+    Perform(DetachArrayBuffer(|buffer|, "WebAssembly.Memory"))
     Let(|buffer|, [=create a fixed length memory buffer=](|memaddr|))
     Set(|memory|.[[BufferObject]], |buffer|)
   Else
@@ -480,7 +480,7 @@
     Return(|buffer|)
   Let(|memaddr|, **this**.[[Memory]])
   Let(|fixedBuffer|, [=create a fixed length memory buffer=](|memaddr|))
-  Perform([=!=]([$DetachArrayBuffer$](|buffer|, "WebAssembly.Memory")))
+  Perform(DetachArrayBuffer(|buffer|, "WebAssembly.Memory"))
   Set(**this**.[[BufferObject]], |fixedBuffer|)
   Return(|fixedBuffer|)
 
@@ -498,7 +498,7 @@
   Assert(?(|memtype| has a max))
   Let(|maxsize|, ?(the max value in |memtype|) * 65536)
   Let(|resizableBuffer|, [=create a resizable memory buffer=](|memaddr|, |maxsize|))
-  Perform([=!=]([$DetachArrayBuffer$](|buffer|, "WebAssembly.Memory")))
+  Perform(DetachArrayBuffer(|buffer|, "WebAssembly.Memory"))
   Set(**this**.[[BufferObject]], |resizableBuffer|)
   Return(|resizableBuffer|)
 
@@ -1189,7 +1189,7 @@
   Let(|namespaceObject|, ?(the [=namespace object=]))
   ForEach(|error|, « "CompileError", "LinkError", "RuntimeError" »)
     Let(|constructor|, ?(a new object, implementing the [=NativeError Object Structure=], with <var ignore>NativeError</var> set to |error|))
-    Perform([=!=]([$DefineMethodProperty$](|namespaceObject|, |error|, |constructor|, false)))
+    Perform(DefineMethodProperty(|namespaceObject|, |error|, |constructor|, false))
 
 # get the builtins for a builtin set
   params: |builtinSetName|
@@ -1252,7 +1252,7 @@
     Return(true)
   Let(|importExternType|, |import|[2])
   Let(|builtinFuncType|, |maybeBuiltin|[1][1])
-  Let(|builtinExternType|, ?(`func |builtinFuncType|`))
+  Let(|builtinExternType|, ?(func |builtinFuncType|))
   Return([=match_externtype=](|builtinExternType|, |importExternType|))
 
 # UnwrapString
@@ -1419,14 +1419,14 @@
   If(|x| is not ?(given))
     Let(?(it), ?(the {{undefined}} value))
   Let(|value|, [=converted to a JavaScript value=](|x|))
-  Perform([=!=]([$Call$](|p|.[[Resolve]], ?(<emu-val>undefined</emu-val>), « |value| »)))
+  Perform(Call(|p|.[[Resolve]], ?(<emu-val>undefined</emu-val>), « |value| »))
   If(|T| is ?({{undefined}}))
     ?(the |x| argument is optional, allowing a simpler "[=resolve=] p" usage)
 
 # reject
   params: |p|, |r|
   head: To <dfn export>reject</dfn> a <code><a interface>Promise</a>&lt;<var ignore>T</var>&gt;</code> |p| with reason |r| (a JavaScript value), perform the following steps:
-  Perform([=!=]([$Call$](|p|.[[Reject]], ?(<emu-val>undefined</emu-val>), « |r| »)))
+  Perform(Call(|p|.[[Reject]], ?(<emu-val>undefined</emu-val>), « |r| »))
 
 # react
   params: |T|, |promise|
@@ -1450,7 +1450,7 @@
   Let(|constructor|, |promise|.[[Promise]].[[Realm]].[[Intrinsics]].[[%Promise%]])
   Let(|newCapability|, [=?=] [$NewPromiseCapability$](|constructor|))
   Note(Not all callers will use the returned {{Promise}} Implementations might wish to avoid creating |newCapability| in those cases)
-  Perform([$PerformPromiseThen$](|promise|.\[[Promise]], |onFulfilled|, |onRejected|, |newCapability|))
+  Perform(PerformPromiseThen(|promise|.[[Promise]], |onFulfilled|, |onRejected|, |newCapability|))
   Return(|newCapability|)
   Note(This algorithm will behave in a very similar way to the {{%Promise.prototype.then%|promise.then()}} method In particular, if the steps return a value of type |U| or <code><a interface>Promise</a>&lt;|U|&gt;</code>, this algorithm returns a <code><a interface>Promise</a>&lt;|U|&gt;</code> as well)
 

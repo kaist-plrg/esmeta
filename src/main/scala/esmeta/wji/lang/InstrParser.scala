@@ -42,6 +42,24 @@ object InstrParser:
   // matches the leading [=..=] algo-link and the rest of the expression
   private val LeadingAlgoLink = """(?s)^(\[=[^\]]+\])\s*(.*)$""".r
 
+  // a `Perform` step whose target is a raw ECMA-262/WebIDL AO call, e.g.
+  // `Perform [$SetIntegrityLevel$](...)`, rather than a WJI `[=algo=]` link —
+  // mirrors ExprParser's JSCallFull. Must be tried before LeadingAlgoLink,
+  // whose `[^\]]+` would otherwise swallow the `$...$` name as if it were an
+  // algo-link (a `[$...$]` call has no `]` before its own closing bracket, so
+  // LeadingAlgoLink's pattern only fails to match at all — it's not that it
+  // matches wrong, just that this shape needs its own case).
+  private val LeadingJSCall = """(?s)^\[\$([^$]+)\$\]\((.*)\)$""".r
+
+  // `[=!=]`/`[=?=]` ("this call must not complete abruptly" / "propagate an
+  // abrupt completion") prefixing a `Perform` step's call, e.g. `Perform
+  // [=!=] [$SetIntegrityLevel$](...)`. Mirrors ExprParser's AbruptPrefix —
+  // without this, `[=!=]` is indistinguishable from a real `[=algo=]` link to
+  // LeadingAlgoLink below, and gets parsed as one (a call to a function named
+  // "!"). Perform has no abrupt-check field to carry the marker to, so — like
+  // Compiler's own `Abrupt("!", e)` handling — it's simply discarded here.
+  private val AbruptCallPrefix = """(?s)^\[=[?!]=\]\s+(.+)$""".r
+
   // e.g. "catch it, [=reject=] |promise| with the exception, and return
   // |promise|" — the body of an `If(Cond.Throws, ...)`. Written as one
   // comma/"and"-joined sentence (no periods), so it can't go through the
@@ -50,6 +68,9 @@ object InstrParser:
   private val CatchItPrefix = """(?si)^catch it\s*,\s*(.+)$""".r
 
   private def parseCall(expr: String): (String, List[Expr]) = expr.trim match
+    case AbruptCallPrefix(rest) => parseCall(rest)
+    case LeadingJSCall(name, argsRaw) =>
+      (name, splitComma(argsRaw).map(ExprParser.parse))
     case LeadingAlgoLink(func, rest) =>
       (ExprParser.normalizeLink(func), ExprParser.parseArgs(rest))
     case _ => (expr, Nil)

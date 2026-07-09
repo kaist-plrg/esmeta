@@ -8,7 +8,7 @@ import esmeta.error.ESMetaError
 import esmeta.es.Initialize
 import esmeta.es.builtin.{AGENT_RECORD, EXECUTION_STACK, realmAddr}
 import esmeta.interpreter.{Interpreter => EsInterpreter}
-import esmeta.ir.{Local, Program}
+import esmeta.ir.{Global, Local, Program}
 import esmeta.state.*
 import esmeta.wji.bridge.SpecTecWasmHost
 import esmeta.wji.bridge.process.SpecTecProcess
@@ -120,6 +120,19 @@ case object WjiInterp extends Phase[CFG, Value] {
       MMap.from(func.params.map(_.lhs).zip(List(moduleObject, importObject)))
     st.context = Context(func, locals)
     st.callStack = Nil
+
+    // `**this**` in a WebIDL constructor's steps (e.g. {{Instance}}'s) refers
+    // to a platform object that WebIDL's own "internally create a new object
+    // implementing the interface" algorithm allocates *before* the
+    // constructor steps run (webidl/index.bs, "interface object" [[Construct]]
+    // — not mechanized here, see personal/constructor.md) — so, like
+    // moduleObject/importObject above, the harness fabricates a placeholder
+    // directly rather than actually running that preamble. {{Instance}}'s only
+    // interface-specific slot is [[Exports]] (js-api/index.bs's "initialize an
+    // instance object" sets it); harmless to bind even for entry points that
+    // don't reference `this` at all.
+    val thisObject = st.heap.allocRecord("Instance", List("Exports" -> Undef))
+    st.globals += Global("this") -> thisObject
 
     val process = SpecTecProcess.start()
     val connection = JsonRpcConnection.stdio(process)

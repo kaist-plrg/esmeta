@@ -20,18 +20,23 @@ enum WasmError:
   * / WJI spec (`spectec/document/js-api/index.bs`). See `core/EMBEDDING.md` for
   * the full catalog and which functions are covered.
   *
-  * Each method here corresponds 1:1 to an embedding function defined by the
-  * Wasm standard (e.g. `module_decode`, `module_instantiate`, `func_invoke`)
-  * and to a JSON-RPC method of the same name sent to `spectec-server`
-  * (`wjmeta-bridge/spectec-server`). The full catalog, including operations not
-  * yet covered here, is tracked in `core/EMBEDDING.md`.
+  * Every embedding function here corresponds 1:1 to a JSON-RPC method of the
+  * same name sent to `spectec-server` (`wjmeta-bridge/spectec-server`), and
+  * (except [[WasmHost.funcAlloc]]) is a pure "encode positional AL args as a
+  * named JSON object, send, decode the result" round trip with no logic of its
+  * own — so rather than one Scala method per function (33 near-identical
+  * bodies, each just re-stating its own name three times: the `names` entry,
+  * the method name, and the JSON-RPC method string), every one of them is
+  * dispatched generically through [[WasmHost.call]], keyed by the same
+  * `paramNames` table that also defines `names`.
   *
-  * `wjmeta-mechanize` (the WJI mechanization) calls these methods when a
+  * `wjmeta-mechanize` (the WJI mechanization) calls these functions when a
   * mechanized algorithm needs to perform a Wasm-level operation.
   * `wjmeta-bridge` provides the implementation, talking to the SpecTec
-  * interpreter process. **The embedding functions themselves are not yet
-  * implemented in SpecTec** — this trait is the interface SpecTec's
-  * `spectec-server` is expected to expose.
+  * interpreter process. **Not every embedding function is implemented in
+  * SpecTec yet** — calling one that isn't produces a
+  * [[WasmError.ProtocolError]] from the RPC round trip itself (`spectec-server`
+  * responds "method not implemented"), rather than a Scala-side `???`.
   *
   * All parameters/results are [[ALValue]], SpecTec's own AL value
   * representation (see `core/value/ALValue.scala`), since that is the type
@@ -42,243 +47,117 @@ enum WasmError:
   * success as [[ALValue.OptV]] `None`.
   *
   * Reentrancy: Wasm execution may call back into a wjmeta-side closure
-  * registered via [[funcAlloc]] (see [[HostFunction]]). This happens over the
-  * same JSON-RPC connection as a `host_func_invoke` request initiated by
-  * `spectec-server`, handled on the wjmeta-bridge side.
+  * registered via [[WasmHost.funcAlloc]] (see [[HostFunction]]). This happens
+  * over the same JSON-RPC connection as a `host_func_invoke` request initiated
+  * by `spectec-server`, handled on the wjmeta-bridge side.
   */
 object WasmHost:
 
-  /** The embedding function names this trait implements, one per method (see
-    * the class doc: each corresponds 1:1 to a Wasm Embedding function and to
-    * the JSON-RPC method name sent to `spectec-server`). Used by
+  /** Ordered JSON-RPC parameter names for every embedding function *except*
+    * `func_alloc` (dispatched separately by [[WasmHost.funcAlloc]], since —
+    * unlike everything else here — it must additionally register a reentrant
+    * [[HostFunction]] before making the RPC call, not just forward its
+    * arguments). `esmeta.interpreter.Interpreter.callEmbedding` converts every
+    * argument uniformly via `toAL` (a heap-allocated `val*`/`externval*` list
+    * argument, e.g. `func_invoke`'s `args`, is recursively converted to an
+    * `ALValue.ListV` there too — see its doc), so no per-parameter "is this a
+    * list" bookkeeping is needed here, just names. The comment above each entry
+    * is the function's Embedding-API signature, mirroring `embedding.rst`.
+    */
+  val paramNames: Map[String, List[String]] = Map(
+    // store_init() : store
+    "store_init" -> Nil,
+    // module_decode(byte*) : module | error
+    "module_decode" -> List("bytes"),
+    // module_validate(module) : error?
+    "module_validate" -> List("module"),
+    // module_instantiate(store, module, externaddr*) : (store, moduleinst | exception | error)
+    "module_instantiate" -> List("store", "module", "externvals"),
+    // module_imports(module) : (name, name, externtype)*
+    "module_imports" -> List("module"),
+    // module_exports(module) : (name, externtype)*
+    "module_exports" -> List("module"),
+    // instance_export(moduleinst, name) : externaddr | error
+    "instance_export" -> List("moduleinst", "name"),
+    // func_type(store, funcaddr) : deftype
+    "func_type" -> List("store", "funcaddr"),
+    // func_invoke(store, funcaddr, val*) : (store, val* | exception | error)
+    "func_invoke" -> List("store", "funcaddr", "args"),
+    // table_alloc(store, tabletype, ref) : (store, tableaddr)
+    "table_alloc" -> List("store", "tabletype", "ref"),
+    // table_type(store, tableaddr) : tabletype
+    "table_type" -> List("store", "tableaddr"),
+    // table_read(store, tableaddr, i: u64) : ref | error
+    "table_read" -> List("store", "tableaddr", "i"),
+    // table_write(store, tableaddr, i: u64, ref) : store | error
+    "table_write" -> List("store", "tableaddr", "i", "ref"),
+    // table_size(store, tableaddr) : u64
+    "table_size" -> List("store", "tableaddr"),
+    // table_grow(store, tableaddr, n: u64, ref) : store | error
+    "table_grow" -> List("store", "tableaddr", "n", "ref"),
+    // mem_alloc(store, memtype) : (store, memaddr)
+    "mem_alloc" -> List("store", "memtype"),
+    // mem_type(store, memaddr) : memtype
+    "mem_type" -> List("store", "memaddr"),
+    // mem_size(store, memaddr) : u64
+    "mem_size" -> List("store", "memaddr"),
+    // mem_grow(store, memaddr, n: u64) : store | error
+    "mem_grow" -> List("store", "memaddr", "n"),
+    // tag_alloc(store, tagtype) : (store, tagaddr)
+    "tag_alloc" -> List("store", "tagtype"),
+    // tag_type(store, tagaddr) : tagtype
+    "tag_type" -> List("store", "tagaddr"),
+    // exn_alloc(store, tagaddr, val*) : (store, exnaddr)
+    "exn_alloc" -> List("store", "tagaddr", "vals"),
+    // exn_tag(store, exnaddr) : tagaddr
+    "exn_tag" -> List("store", "exnaddr"),
+    // exn_read(store, exnaddr) : val*
+    "exn_read" -> List("store", "exnaddr"),
+    // global_alloc(store, globaltype, val) : (store, globaladdr)
+    "global_alloc" -> List("store", "globaltype", "value"),
+    // global_type(store, globaladdr) : globaltype
+    "global_type" -> List("store", "globaladdr"),
+    // global_read(store, globaladdr) : val
+    "global_read" -> List("store", "globaladdr"),
+    // global_write(store, globaladdr, val) : store | error
+    "global_write" -> List("store", "globaladdr", "value"),
+    // ref_type(store, ref) : reftype
+    "ref_type" -> List("store", "ref"),
+    // val_default(valtype) : val
+    "val_default" -> List("valtype"),
+    // match_valtype(valtype, valtype) : bool
+    "match_valtype" -> List("valtype1", "valtype2"),
+    // match_externtype(externtype, externtype) : bool
+    "match_externtype" -> List("externtype1", "externtype2"),
+  )
+
+  /** The embedding function names this trait implements (`paramNames`'s keys,
+    * plus `func_alloc`, dispatched separately). Used by
     * `esmeta.wji.compiler.Compiler` to recognize a `[=...=]` link as an
     * embedding call (compiled to `ir.ICallEmbed`) rather than a WJI/ES function
-    * call (`ir.ICall`); must be kept in sync with
-    * `esmeta.interpreter.Interpreter.callEmbedding`'s cases.
+    * call (`ir.ICall`).
     */
-  val names: Set[String] = Set(
-    "store_init",
-    "module_decode",
-    "module_validate",
-    "module_instantiate",
-    "module_imports",
-    "module_exports",
-    "instance_export",
-    "func_alloc",
-    "func_type",
-    "func_invoke",
-    "table_alloc",
-    "table_type",
-    "table_read",
-    "table_write",
-    "table_size",
-    "table_grow",
-    "mem_alloc",
-    "mem_type",
-    "mem_size",
-    "mem_grow",
-    "tag_alloc",
-    "tag_type",
-    "exn_alloc",
-    "exn_tag",
-    "exn_read",
-    "global_alloc",
-    "global_type",
-    "global_read",
-    "global_write",
-    "ref_type",
-    "val_default",
-    "match_valtype",
-    "match_externtype",
-  )
+  val names: Set[String] = paramNames.keySet + "func_alloc"
 
 trait WasmHost:
 
-  // -- Store --------------------------------------------------------------
-
-  /** `store_init() : store` */
-  def storeInit(): Either[WasmError, ALValue]
-
-  // -- Modules --------------------------------------------------------------
-
-  /** `module_decode(byte*) : module | error` */
-  def moduleDecode(bytes: ALValue): Either[WasmError, ALValue]
-
-  /** `module_validate(module) : error?` */
-  def moduleValidate(module: ALValue): Either[WasmError, ALValue]
-
-  /** `module_instantiate(store, module, externaddr*) : (store, moduleinst |
-    * exception | error)`
+  /** Calls the embedding function `name` (a key of [[WasmHost.paramNames]])
+    * with `args`, positional in the order [[WasmHost.paramNames]]`(name)`
+    * declares. Every embedding function except `func_alloc` is dispatched
+    * through this single method — see [[WasmHost.funcAlloc]] for why that one
+    * stays separate.
     */
-  def moduleInstantiate(
-    store: ALValue,
-    module: ALValue,
-    externVals: List[ALValue],
-  ): Either[WasmError, ALValue]
-
-  /** `module_imports(module) : (name, name, externtype)*` */
-  def moduleImports(module: ALValue): Either[WasmError, ALValue]
-
-  /** `module_exports(module) : (name, externtype)*` */
-  def moduleExports(module: ALValue): Either[WasmError, ALValue]
-
-  // -- Module instances -------------------------------------------------------
-
-  /** `instance_export(moduleinst, name) : externaddr | error` */
-  def instanceExport(
-    moduleInst: ALValue,
-    name: ALValue,
-  ): Either[WasmError, ALValue]
-
-  // -- Functions --------------------------------------------------------------
+  def call(name: String, args: List[ALValue]): Either[WasmError, ALValue]
 
   /** `func_alloc(store, deftype, hostfunc) : (store, funcaddr)`
     *
     * `hostFunc` is registered by `wjmeta-bridge` so that SpecTec can call it
-    * back during Wasm execution (see [[HostFunction]]).
+    * back during Wasm execution (see [[HostFunction]]) — the one embedding
+    * function that needs to do more than forward its arguments, so it keeps its
+    * own method rather than going through [[call]].
     */
   def funcAlloc(
     store: ALValue,
     defType: ALValue,
     hostFunc: HostFunction,
-  ): Either[WasmError, ALValue]
-
-  /** `func_type(store, funcaddr) : deftype` */
-  def funcType(store: ALValue, funcAddr: ALValue): Either[WasmError, ALValue]
-
-  /** `func_invoke(store, funcaddr, val*) : (store, val* | exception | error)`
-    */
-  def funcInvoke(
-    store: ALValue,
-    funcAddr: ALValue,
-    args: List[ALValue],
-  ): Either[WasmError, ALValue]
-
-  // -- Tables -----------------------------------------------------------------
-
-  /** `table_alloc(store, tabletype, ref) : (store, tableaddr)` */
-  def tableAlloc(
-    store: ALValue,
-    tableType: ALValue,
-    ref: ALValue,
-  ): Either[WasmError, ALValue]
-
-  /** `table_type(store, tableaddr) : tabletype` */
-  def tableType(store: ALValue, tableAddr: ALValue): Either[WasmError, ALValue]
-
-  /** `table_read(store, tableaddr, i: u64) : ref | error` */
-  def tableRead(
-    store: ALValue,
-    tableAddr: ALValue,
-    i: ALValue,
-  ): Either[WasmError, ALValue]
-
-  /** `table_write(store, tableaddr, i: u64, ref) : store | error` */
-  def tableWrite(
-    store: ALValue,
-    tableAddr: ALValue,
-    i: ALValue,
-    ref: ALValue,
-  ): Either[WasmError, ALValue]
-
-  /** `table_size(store, tableaddr) : u64` */
-  def tableSize(store: ALValue, tableAddr: ALValue): Either[WasmError, ALValue]
-
-  /** `table_grow(store, tableaddr, n: u64, ref) : store | error` */
-  def tableGrow(
-    store: ALValue,
-    tableAddr: ALValue,
-    n: ALValue,
-    ref: ALValue,
-  ): Either[WasmError, ALValue]
-
-  // -- Memories -----------------------------------------------------------------
-
-  /** `mem_alloc(store, memtype) : (store, memaddr)` */
-  def memAlloc(store: ALValue, memType: ALValue): Either[WasmError, ALValue]
-
-  /** `mem_type(store, memaddr) : memtype` */
-  def memType(store: ALValue, memAddr: ALValue): Either[WasmError, ALValue]
-
-  /** `mem_size(store, memaddr) : u64` */
-  def memSize(store: ALValue, memAddr: ALValue): Either[WasmError, ALValue]
-
-  /** `mem_grow(store, memaddr, n: u64) : store | error` */
-  def memGrow(
-    store: ALValue,
-    memAddr: ALValue,
-    n: ALValue,
-  ): Either[WasmError, ALValue]
-
-  // -- Tags -----------------------------------------------------------------
-
-  /** `tag_alloc(store, tagtype) : (store, tagaddr)` */
-  def tagAlloc(store: ALValue, tagType: ALValue): Either[WasmError, ALValue]
-
-  /** `tag_type(store, tagaddr) : tagtype` */
-  def tagType(store: ALValue, tagAddr: ALValue): Either[WasmError, ALValue]
-
-  // -- Exceptions -----------------------------------------------------------------
-
-  /** `exn_alloc(store, tagaddr, val*) : (store, exnaddr)` */
-  def exnAlloc(
-    store: ALValue,
-    tagAddr: ALValue,
-    vals: List[ALValue],
-  ): Either[WasmError, ALValue]
-
-  /** `exn_tag(store, exnaddr) : tagaddr` */
-  def exnTag(store: ALValue, exnAddr: ALValue): Either[WasmError, ALValue]
-
-  /** `exn_read(store, exnaddr) : val*` */
-  def exnRead(store: ALValue, exnAddr: ALValue): Either[WasmError, ALValue]
-
-  // -- Globals -----------------------------------------------------------------
-
-  /** `global_alloc(store, globaltype, val) : (store, globaladdr)` */
-  def globalAlloc(
-    store: ALValue,
-    globalType: ALValue,
-    value: ALValue,
-  ): Either[WasmError, ALValue]
-
-  /** `global_type(store, globaladdr) : globaltype` */
-  def globalType(
-    store: ALValue,
-    globalAddr: ALValue,
-  ): Either[WasmError, ALValue]
-
-  /** `global_read(store, globaladdr) : val` */
-  def globalRead(
-    store: ALValue,
-    globalAddr: ALValue,
-  ): Either[WasmError, ALValue]
-
-  /** `global_write(store, globaladdr, val) : store | error` */
-  def globalWrite(
-    store: ALValue,
-    globalAddr: ALValue,
-    value: ALValue,
-  ): Either[WasmError, ALValue]
-
-  // -- Values -----------------------------------------------------------------
-
-  /** `ref_type(store, ref) : reftype` */
-  def refType(store: ALValue, ref: ALValue): Either[WasmError, ALValue]
-
-  /** `val_default(valtype) : val` */
-  def valDefault(valType: ALValue): Either[WasmError, ALValue]
-
-  // -- Matching -----------------------------------------------------------------
-
-  /** `match_valtype(valtype, valtype) : bool` */
-  def matchValType(
-    valType1: ALValue,
-    valType2: ALValue,
-  ): Either[WasmError, ALValue]
-
-  /** `match_externtype(externtype, externtype) : bool` */
-  def matchExternType(
-    externType1: ALValue,
-    externType2: ALValue,
   ): Either[WasmError, ALValue]

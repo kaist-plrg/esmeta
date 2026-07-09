@@ -61,8 +61,8 @@ case object WjiBridgeDemo extends Phase[CFG, Unit] {
     val bytesVal: ALValue =
       ListV(moduleBytes.map(n => NumV(ALNum.Nat(n))))
     (for
-      module <- host.moduleDecode(bytesVal)
-      imports <- host.moduleImports(module)
+      module <- host.call("module_decode", List(bytesVal))
+      imports <- host.call("module_imports", List(module))
     yield imports) match
       case Right(imports) => println(s"module_imports -> $imports")
       case Left(err) =>
@@ -196,7 +196,7 @@ case object WjiBridgeDemo extends Phase[CFG, Unit] {
     // function runs, then threaded through the global instead of through
     // locals; there's no `esmeta.ir` equivalent of WJI's old `GlobalDecl`
     // initializer instructions, so it's just computed directly here.
-    val initStore = host.storeInit() match
+    val initStore = host.call("store_init", Nil) match
       case Right(av) => Wasm(av)
       case Left(err) =>
         throw new RuntimeException(s"store_init failed: $err")

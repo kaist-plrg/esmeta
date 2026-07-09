@@ -201,6 +201,13 @@ class Interpreter(
   /** dispatch a Wasm embedding operation (e.g. `module_decode`, `func_invoke`)
     * to [[wasmHost]], converting [[Value]] <-> [[ALValue]] at the boundary. A
     * [[WasmError]] becomes a [[WasmHostFailure]].
+    *
+    * `func_alloc` is the one embedding function [[WasmHost]] doesn't dispatch
+    * generically (see its doc): it needs `args(2)` built into a reentrant
+    * [[HostFunction]], not just AL-encoded, so it's handled directly here.
+    * Every other name just has its args converted via [[toAL]] (which also
+    * handles a heap-allocated `val*`/`externval*` list argument, e.g.
+    * `func_invoke`'s `args`) and forwarded to [[WasmHost.call]].
     */
   private def callEmbedding(
     fname: String,
@@ -208,67 +215,18 @@ class Interpreter(
     call: Call,
   ): Value =
     val host = wasmHost.getOrElse(throw UnknownEmbedding(fname))
-    def al(i: Int): ALValue = toAL(args(i))
-    def alList(i: Int): List[ALValue] = toALList(args(i))
 
     fname match
-      // -- Store ------------------------------------------------------------
-      case "store_init" => one(host.storeInit())
-
-      // -- Modules ----------------------------------------------------------
-      case "module_decode"   => one(host.moduleDecode(al(0)))
-      case "module_validate" => one(host.moduleValidate(al(0)))
-      case "module_instantiate" =>
-        one(host.moduleInstantiate(al(0), al(1), alList(2)))
-      case "module_imports" => one(host.moduleImports(al(0)))
-      case "module_exports" => one(host.moduleExports(al(0)))
-
-      // -- Module instances -------------------------------------------------
-      case "instance_export" => one(host.instanceExport(al(0), al(1)))
-
-      // -- Functions --------------------------------------------------------
       case "func_alloc" =>
-        one(host.funcAlloc(al(0), al(1), toHostFunc(args(2), call)))
-      case "func_type"   => one(host.funcType(al(0), al(1)))
-      case "func_invoke" => one(host.funcInvoke(al(0), al(1), alList(2)))
-
-      // -- Tables -------------------------------------------------------------
-      case "table_alloc" => one(host.tableAlloc(al(0), al(1), al(2)))
-      case "table_type"  => one(host.tableType(al(0), al(1)))
-      case "table_read"  => one(host.tableRead(al(0), al(1), al(2)))
-      case "table_write" => one(host.tableWrite(al(0), al(1), al(2), al(3)))
-      case "table_size"  => one(host.tableSize(al(0), al(1)))
-      case "table_grow"  => one(host.tableGrow(al(0), al(1), al(2), al(3)))
-
-      // -- Memories -----------------------------------------------------------
-      case "mem_alloc" => one(host.memAlloc(al(0), al(1)))
-      case "mem_type"  => one(host.memType(al(0), al(1)))
-      case "mem_size"  => one(host.memSize(al(0), al(1)))
-      case "mem_grow"  => one(host.memGrow(al(0), al(1), al(2)))
-
-      // -- Tags -----------------------------------------------------------------
-      case "tag_alloc" => one(host.tagAlloc(al(0), al(1)))
-      case "tag_type"  => one(host.tagType(al(0), al(1)))
-
-      // -- Exceptions -----------------------------------------------------------
-      case "exn_alloc" => one(host.exnAlloc(al(0), al(1), alList(2)))
-      case "exn_tag"   => one(host.exnTag(al(0), al(1)))
-      case "exn_read"  => one(host.exnRead(al(0), al(1)))
-
-      // -- Globals --------------------------------------------------------------
-      case "global_alloc" => one(host.globalAlloc(al(0), al(1), al(2)))
-      case "global_type"  => one(host.globalType(al(0), al(1)))
-      case "global_read"  => one(host.globalRead(al(0), al(1)))
-      case "global_write" => one(host.globalWrite(al(0), al(1), al(2)))
-
-      // -- Values -----------------------------------------------------------------
-      case "ref_type"    => one(host.refType(al(0), al(1)))
-      case "val_default" => one(host.valDefault(al(0)))
-
-      // -- Matching -----------------------------------------------------------------
-      case "match_valtype"    => one(host.matchValType(al(0), al(1)))
-      case "match_externtype" => one(host.matchExternType(al(0), al(1)))
-
+        one(
+          host.funcAlloc(
+            toAL(args(0)),
+            toAL(args(1)),
+            toHostFunc(args(2), call),
+          ),
+        )
+      case name if WasmHost.names.contains(name) =>
+        one(host.call(name, args.map(toAL)))
       case other => throw UnknownEmbedding(other)
 
   private def one(e: Either[WasmError, ALValue]): Value =
@@ -317,6 +275,14 @@ class Interpreter(
       st.context = savedContext
       st.callStack = savedCallStack
 
+  /** Converts a [[Value]] crossing the WasmHost boundary (an `ICallEmbed`
+    * argument or a [[HostFunction]] result) to an [[ALValue]]. A heap-allocated
+    * ES list (e.g. from an Infra-spec list literal like `« |payload| »`,
+    * compiled to `EList`/`Addr`) is recursively converted into an
+    * [[ALValue.ListV]] — this is the one case that isn't already a [[Wasm]]
+    * value, needed by embedding functions whose `val*`/`externval*` argument
+    * wasn't itself built by a prior embedding call.
+    */
   private def toAL(v: Value): ALValue =
     v match
       case Wasm(av)  => av
@@ -324,14 +290,9 @@ class Interpreter(
       case Bool(b)   => ALValue.BoolV(b)
       case Number(n) => ALValue.NumV(ALNum.Real(n))
       case Math(n)   => ALValue.NumV(ALNum.Int(n.toBigInt))
-      case other     => throw NoWasmValue(other)
-
-  private def toALList(v: Value): List[ALValue] =
-    v match
-      case Wasm(ALValue.ListV(vs)) => vs
       case addr: Addr =>
         st(addr) match
-          case ListObj(vs) => vs.map(toAL).toList
+          case ListObj(vs) => ALValue.ListV(vs.map(toAL).toList)
           case other       => throw NoList(other)
       case other => throw NoWasmValue(other)
 

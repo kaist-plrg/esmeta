@@ -132,7 +132,7 @@ case object WjiInterp extends Phase[CFG, Value] {
     // re-wires the execution context above. See Compiler's
     // `SpecTerm("surrounding agent")` case for how spec references to it
     // (`the surrounding agent's associated store`, etc.) resolve to this slot.
-    host.storeInit() match
+    host.call("store_init", Nil) match
       case Right(store) =>
         st.heap.update(
           NamedAddr(AGENT_RECORD),

@@ -12,11 +12,12 @@ import esmeta.wji.bridge.rpc.JsonRpcConnection
 /** [[WasmHost]] implementation backed by the SpecTec Wasm interpreter,
   * communicating over JSON-RPC via [[JsonRpcConnection]].
   *
-  * Most methods are thin transport wrappers: encode the arguments as
-  * [[ALValue]]/[[Json]] `params`, call `connection.request("<embedding function
-  * name>", params)`, and decode the `result`/`error` into the `WasmHost` return
-  * types. SpecTec owns validation (unknown function, arg type/arity
-  * mismatches); this class only maps SpecTec-side errors to [[WasmError]].
+  * [[call]] is a thin transport wrapper shared by every embedding function
+  * except [[funcAlloc]]: zip `args` against `WasmHost.paramNames(name)` into a
+  * named JSON object, `connection.request(name, params)`, and decode the
+  * `result`/`error` into the `WasmHost` return types. SpecTec owns validation
+  * (unknown function, arg type/arity mismatches); this class only maps
+  * SpecTec-side errors to [[WasmError]].
   *
   * [[funcAlloc]] is special: it additionally registers `hostFunc` in
   * [[hostFunctions]] under a fresh id, encodes that id for SpecTec (e.g.
@@ -84,7 +85,10 @@ final class SpecTecWasmHost(connection: JsonRpcConnection) extends WasmHost:
     * `result`, mapping transport failures / SpecTec errors to [[WasmError]]. A
     * SpecTec `error` whose `data` is an AL value becomes [[WasmError.Trap]].
     */
-  private def call(method: String, params: Json): Either[WasmError, ALValue] =
+  private def request(
+    method: String,
+    params: Json,
+  ): Either[WasmError, ALValue] =
     connection.request(method, params) match
       case Left(transportErr) => Left(WasmError.ProtocolError(transportErr))
       case Right(Response(_, Some(result), _, _)) =>
@@ -99,46 +103,19 @@ final class SpecTecWasmHost(connection: JsonRpcConnection) extends WasmHost:
       case Right(_) =>
         Left(WasmError.ProtocolError("response had neither result nor error"))
 
-  // -- Store --------------------------------------------------------------
-
-  def storeInit(): Either[WasmError, ALValue] =
-    call("store_init", Json.obj())
-
-  // -- Modules --------------------------------------------------------------
-
-  def moduleDecode(bytes: ALValue): Either[WasmError, ALValue] =
-    call("module_decode", Json.obj("bytes" -> bytes.asJson))
-
-  def moduleValidate(module: ALValue): Either[WasmError, ALValue] = ???
-
-  def moduleInstantiate(
-    store: ALValue,
-    module: ALValue,
-    externVals: List[ALValue],
-  ): Either[WasmError, ALValue] =
-    val externValsList: ALValue = ALValue.ListV(externVals)
-    call(
-      "module_instantiate",
-      Json.obj(
-        "store" -> store.asJson,
-        "module" -> module.asJson,
-        "externvals" -> externValsList.asJson,
-      ),
+  /** Generic dispatch for every embedding function except `func_alloc` (see
+    * class doc / [[funcAlloc]]): zips `args` against
+    * `WasmHost.paramNames(name)` to build the named JSON params, then sends
+    * `name` itself as the JSON-RPC method (the two always match — a wire-level
+    * mirror of the Wasm Embedding API's own function names).
+    */
+  def call(name: String, args: List[ALValue]): Either[WasmError, ALValue] =
+    val paramNames = WasmHost.paramNames.getOrElse(
+      name,
+      throw new IllegalArgumentException(s"unknown embedding function: $name"),
     )
-
-  def moduleImports(module: ALValue): Either[WasmError, ALValue] =
-    call("module_imports", Json.obj("module" -> module.asJson))
-
-  def moduleExports(module: ALValue): Either[WasmError, ALValue] = ???
-
-  // -- Module instances -------------------------------------------------------
-
-  def instanceExport(
-    moduleInst: ALValue,
-    name: ALValue,
-  ): Either[WasmError, ALValue] = ???
-
-  // -- Functions --------------------------------------------------------------
+    val fields = paramNames.zip(args).map((n, a) => n -> a.asJson)
+    request(name, Json.obj(fields*))
 
   /** Registers `hostFunc` in [[hostFunctions]] under a fresh id, then calls
     * `connection.request("func_alloc", ...)` with `hostfunc` encoded as
@@ -153,7 +130,7 @@ final class SpecTecWasmHost(connection: JsonRpcConnection) extends WasmHost:
     val id = nextHostFuncId.getAndIncrement().toString
     hostFunctions(id) = hostFunc
     val hostfunc: ALValue = ALValue.CaseV("HOSTFUNC", List(ALValue.TextV(id)))
-    call(
+    request(
       "func_alloc",
       Json.obj(
         "store" -> store.asJson,
@@ -161,139 +138,3 @@ final class SpecTecWasmHost(connection: JsonRpcConnection) extends WasmHost:
         "hostfunc" -> hostfunc.asJson,
       ),
     )
-
-  def funcType(store: ALValue, funcAddr: ALValue): Either[WasmError, ALValue] =
-    ???
-
-  def funcInvoke(
-    store: ALValue,
-    funcAddr: ALValue,
-    args: List[ALValue],
-  ): Either[WasmError, ALValue] =
-    val argList: ALValue = ALValue.ListV(args)
-    call(
-      "func_invoke",
-      Json.obj(
-        "store" -> store.asJson,
-        "funcaddr" -> funcAddr.asJson,
-        "args" -> argList.asJson,
-      ),
-    )
-
-  // -- Tables -----------------------------------------------------------------
-
-  def tableAlloc(
-    store: ALValue,
-    tableType: ALValue,
-    ref: ALValue,
-  ): Either[WasmError, ALValue] = ???
-
-  def tableType(
-    store: ALValue,
-    tableAddr: ALValue,
-  ): Either[WasmError, ALValue] = ???
-
-  def tableRead(
-    store: ALValue,
-    tableAddr: ALValue,
-    i: ALValue,
-  ): Either[WasmError, ALValue] = ???
-
-  def tableWrite(
-    store: ALValue,
-    tableAddr: ALValue,
-    i: ALValue,
-    ref: ALValue,
-  ): Either[WasmError, ALValue] = ???
-
-  def tableSize(
-    store: ALValue,
-    tableAddr: ALValue,
-  ): Either[WasmError, ALValue] = ???
-
-  def tableGrow(
-    store: ALValue,
-    tableAddr: ALValue,
-    n: ALValue,
-    ref: ALValue,
-  ): Either[WasmError, ALValue] = ???
-
-  // -- Memories -----------------------------------------------------------------
-
-  def memAlloc(store: ALValue, memType: ALValue): Either[WasmError, ALValue] =
-    ???
-
-  def memType(store: ALValue, memAddr: ALValue): Either[WasmError, ALValue] =
-    ???
-
-  def memSize(store: ALValue, memAddr: ALValue): Either[WasmError, ALValue] =
-    ???
-
-  def memGrow(
-    store: ALValue,
-    memAddr: ALValue,
-    n: ALValue,
-  ): Either[WasmError, ALValue] = ???
-
-  // -- Tags -----------------------------------------------------------------
-
-  def tagAlloc(store: ALValue, tagType: ALValue): Either[WasmError, ALValue] =
-    ???
-
-  def tagType(store: ALValue, tagAddr: ALValue): Either[WasmError, ALValue] =
-    ???
-
-  // -- Exceptions -----------------------------------------------------------------
-
-  def exnAlloc(
-    store: ALValue,
-    tagAddr: ALValue,
-    vals: List[ALValue],
-  ): Either[WasmError, ALValue] = ???
-
-  def exnTag(store: ALValue, exnAddr: ALValue): Either[WasmError, ALValue] = ???
-
-  def exnRead(store: ALValue, exnAddr: ALValue): Either[WasmError, ALValue] =
-    ???
-
-  // -- Globals -----------------------------------------------------------------
-
-  def globalAlloc(
-    store: ALValue,
-    globalType: ALValue,
-    value: ALValue,
-  ): Either[WasmError, ALValue] = ???
-
-  def globalType(
-    store: ALValue,
-    globalAddr: ALValue,
-  ): Either[WasmError, ALValue] = ???
-
-  def globalRead(
-    store: ALValue,
-    globalAddr: ALValue,
-  ): Either[WasmError, ALValue] = ???
-
-  def globalWrite(
-    store: ALValue,
-    globalAddr: ALValue,
-    value: ALValue,
-  ): Either[WasmError, ALValue] = ???
-
-  // -- Values -----------------------------------------------------------------
-
-  def refType(store: ALValue, ref: ALValue): Either[WasmError, ALValue] = ???
-
-  def valDefault(valType: ALValue): Either[WasmError, ALValue] = ???
-
-  // -- Matching -----------------------------------------------------------------
-
-  def matchValType(
-    valType1: ALValue,
-    valType2: ALValue,
-  ): Either[WasmError, ALValue] = ???
-
-  def matchExternType(
-    externType1: ALValue,
-    externType2: ALValue,
-  ): Either[WasmError, ALValue] = ???

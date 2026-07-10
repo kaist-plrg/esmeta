@@ -417,10 +417,6 @@ class Interpreter(
         case _                                       => Bool(false)
     case ETypeCheck(expr, ty) =>
       Bool(ty.ty.contains(eval(expr), st))
-    // TODO: merge into ETypeCheck once WJI's coarse runtime type tags are
-    // mapped onto esmeta.ty.Ty, instead of keeping a separate string-tag node.
-    case ETypeCheckName(expr, name) =>
-      Bool(typeName(eval(expr)) == name)
     case EProj(expr, idx) =>
       eval(expr) match
         case Wasm(ALValue.TupV(vs)) =>
@@ -470,33 +466,6 @@ class Interpreter(
     case EEnum(name)           => Enum(name)
     case ECodeUnit(c)          => CodeUnit(c)
   }
-
-  /** a coarse runtime type tag used by [[ETypeCheckName]].
-    *
-    * NOTE: remove this once [[ETypeCheckName]] is merged into [[ETypeCheck]]
-    * (see the TODO there) — it exists only to back that interim node.
-    */
-  def typeName(v: Value): String = v match
-    case addr: Addr =>
-      st(addr) match
-        case _: RecordObj => "record"
-        case _: MapObj    => "map"
-        case _: ListObj   => "list"
-        case _: YetObj    => "yet"
-    case _: Callable      => "closure"
-    case _: AstValue      => "ast"
-    case _: GrammarSymbol => "grammar-symbol"
-    case _: Math          => "math"
-    case _: Infinity      => "infinity"
-    case Enum(name)       => s"~$name~"
-    case _: CodeUnit      => "code-unit"
-    case Wasm(_)          => "wasm"
-    case _: Number        => "number"
-    case _: BigInt        => "bigint"
-    case _: Str           => "string"
-    case _: Bool          => "boolean"
-    case Undef            => "undefined"
-    case Null             => "null"
 
   /** short circuit evaluation */
   def shortCircuit(bop: BOp, left: Expr, right: Expr): Value =

@@ -6,6 +6,7 @@ import esmeta.wji.lang.Instr.PerformOutcome
 import esmeta.wji.bridge.host.WasmHost
 import esmeta.ir
 import esmeta.ir.*
+import esmeta.ty.*
 
 /** Compiles a list of [[metalang.Algorithm]]s into a real ESMeta IR [[Program]]
   * (the same `esmeta.ir` types the ECMA-262 spec compiles to), so compiled WJI
@@ -290,9 +291,9 @@ object Compiler:
     case Cond.Or(l, r)  => EBinary(BOp.Or, compileCond(l), compileCond(r))
     case Cond.HasField(e, false)  => EExists(compileRef(e))
     case Cond.HasField(e, true)   => EUnary(UOp.Not, EExists(compileRef(e)))
-    case Cond.IsType(e, t, false) => ETypeCheckName(compileExpr(e), t)
+    case Cond.IsType(e, t, false) => ETypeCheck(compileExpr(e), irTypeOf(t))
     case Cond.IsType(e, t, true) =>
-      EUnary(UOp.Not, ETypeCheckName(compileExpr(e), t))
+      EUnary(UOp.Not, ETypeCheck(compileExpr(e), irTypeOf(t)))
     case Cond.Abbreviated(e)      => compileExpr(e)
     case Cond.Unreachable         => EBool(false)
     case Cond.IsMissing(e, false) => EUnary(UOp.Not, EExists(compileRef(e)))
@@ -344,6 +345,24 @@ object Compiler:
 
   private def stripPipes(s: String): String =
     s.stripPrefix("|").stripSuffix("|")
+
+  /** `Cond.IsType`'s type-name strings, mapped to the matching `esmeta.ty`
+    * singletons mainline itself uses for the same ECMA-262 `Type(x)` categories
+    * (`esmeta.compiler.Compiler`'s `TypeCheckCondition` case).
+    * `AbruptCompletion` isn't itself a `Type(x)` category — it's
+    * `ExpandAbruptPass`'s check for whether a value is an abrupt completion —
+    * but mainline already models that too, as `ty.AbruptT`.
+    */
+  private val typeOf: Map[String, ValueTy] = Map(
+    "Object" -> ObjectT,
+    "BigInt" -> BigIntT,
+    "Number" -> NumberT,
+    "String" -> StrT,
+    "AbruptCompletion" -> AbruptT,
+  )
+
+  private def irTypeOf(name: String): ir.Type =
+    ir.Type(typeOf.getOrElse(name, UnknownTy(Some(name))))
 
   private def compileBinOp(
     op: metalang.Expr.BOp,

@@ -761,10 +761,6 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       case ENull()               => AbsValue(NullT)
       case EEnum(name)           => AbsValue(EnumT(name))
       case ECodeUnit(c)          => AbsValue(CodeUnitT)
-      case ETypeCheckName(_, name) =>
-        notSupported(
-          s"TODO: ETypeCheckName ($name) not yet supported by the type analyzer",
-        )
       case EProj(_, idx) =>
         notSupported(
           s"TODO: EProj ($idx) not yet supported by the type analyzer",

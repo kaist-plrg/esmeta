@@ -26,14 +26,6 @@ case class EExists(ref: Ref) extends Expr
 case class ETypeOf(base: Expr) extends Expr
 case class EInstanceOf(base: Expr, target: Expr) extends Expr
 case class ETypeCheck(base: Expr, ty: Type) extends Expr
-
-/** dynamic runtime-type-tag check (e.g. `record`/`list`/`wasm`/`closure`/
-  * `math`/`number`/`string`/`boolean`/`undefined`/`null`/an enum name) — a
-  * coarser, string-tag-based check than `ETypeCheck`'s static `Ty` lattice, for
-  * callers (like WJI-compiled functions) whose type model isn't mapped into
-  * `esmeta.ty.Ty`.
-  */
-case class ETypeCheckName(expr: Expr, name: String) extends Expr
 case class ESizeOf(base: Expr) extends Expr
 case class EClo(fname: String, captured: List[Name]) extends Expr
 case class ECont(fname: String) extends Expr

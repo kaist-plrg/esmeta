@@ -104,8 +104,6 @@ trait Walker extends BasicWalker {
       EInstanceOf(walk(expr), walk(target))
     case ETypeCheck(expr, ty) =>
       ETypeCheck(walk(expr), walk(ty))
-    case ETypeCheckName(expr, name) =>
-      ETypeCheckName(walk(expr), walk(name))
     case ESizeOf(expr) =>
       ESizeOf(walk(expr))
     case EClo(fname, captured) =>

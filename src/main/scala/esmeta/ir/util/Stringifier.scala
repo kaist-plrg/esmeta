@@ -169,8 +169,6 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> "(instanceof " >> expr >> " " >> target >> ")"
       case ETypeCheck(expr, ty) =>
         app >> "(? " >> expr >> ": " >> ty >> ")"
-      case ETypeCheckName(expr, name) =>
-        app >> "(?name " >> expr >> ": " >> name >> ")"
       case ESizeOf(expr) =>
         app >> "(sizeof " >> expr >> ")"
       case EClo(fname, captured) =>

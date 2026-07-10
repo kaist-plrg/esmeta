@@ -14,6 +14,16 @@ object InstrPrinter:
     val sb = new StringBuilder
     sb.append(s"# ${algo.name.orElse(algo.id).getOrElse("<unnamed>")}\n")
     algo.id.foreach(id => sb.append(s"  id: $id\n"))
+    algo.kind match
+      case AlgorithmKind.Plain => // no kind line for a free-standing operation
+      case AlgorithmKind.Method(iface) =>
+        sb.append(s"  kind: method for $iface\n")
+      case AlgorithmKind.Getter(iface) =>
+        sb.append(s"  kind: getter for $iface\n")
+      case AlgorithmKind.Setter(iface) =>
+        sb.append(s"  kind: setter for $iface\n")
+      case AlgorithmKind.Constructor(iface) =>
+        sb.append(s"  kind: constructor for $iface\n")
     if algo.params.nonEmpty then
       sb.append(s"  params: ${algo.params.mkString(", ")}\n")
     if algo.head.nonEmpty then sb.append(s"  head: ${algo.head}\n")

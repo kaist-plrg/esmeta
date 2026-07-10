@@ -18,7 +18,7 @@ object SpecPatch:
     "1. Let keys be a new empty list.\n    1. Return keys."
     -> "1. Let |keys| be a new empty list.\n    1. Return |keys|.",
 
-    // #3 - (TODO: This is temporary, and shoulb de fixed) Rename instantiate function to avoid overlaod
+    // #3 - (TODO: This is temporary, and should de removed) Rename instantiate function to avoid overlaod
     "The <dfn method for=\"WebAssembly\">instantiate(|moduleObject|, |importObject|)</dfn> method, when invoked, performs the following steps:"
     ->
     "The <dfn method for=\"WebAssembly\">instantiate_object(|moduleObject|, |importObject|)</dfn> method, when invoked, performs the following steps:",
@@ -40,14 +40,43 @@ object SpecPatch:
     "1. If |module|.[=imports=] [=list/is empty|is not empty=], and |importObject| is undefined, throw a {{TypeError}} exception."
     ->
     "1. If [=module_imports=](|module|) [=list/is empty|is not empty=], and |importObject| is undefined, throw a {{TypeError}} exception.",
+
+    // #6 — {{Global}}'s `value` getter and setter are both written inside a
+    // single `<div algorithm>`, the only place in the file where two
+    // algorithms share one block (`AlgorithmExtractor` extracts one
+    // `Algorithm` per `<div algorithm>`, so this compiled into one function
+    // whose body was the getter's `Return` followed — as unreachable text,
+    // not unreachable code — by every one of the setter's own steps). Split
+    // into two divs, disambiguated via `algorithm="..."` ids (matching
+    // `read-the-imports`'s precedent) rather than a second `<dfn attribute
+    // for="Global">value</dfn>`: Bikeshed dfns must be unique by (type, for,
+    // linking text), and WebIDL's own spec text (e.g. `DOMException`'s
+    // `name`/`message`/`code` in webidl/index.bs) confirms the convention is
+    // exactly one dfn per attribute, with the setter referring to it only in
+    // prose. Two small edits do this — tag the getter's own `<div>`, then
+    // close it and open a new one right before the setter's prose — rather
+    // than one from/to pair spanning (and duplicating) the whole unchanged
+    // setter body in between.
+    "<div algorithm>\n    The getter of the <dfn attribute for=\"Global\">value</dfn>"
+    ->
+    "<div algorithm=\"global-value-getter\">\n    The getter of the <dfn attribute for=\"Global\">value</dfn>",
+    "\n\n    The setter of the value attribute of {{Global}}"
+    ->
+    "\n</div>\n\n<div algorithm=\"global-value-setter\">\n    The setter of the value attribute of {{Global}}",
+    
+    // #7. TODO
     """1.  For |i| in [=the range=] |offset| to |offset| + |length| &minus; 1, inclusive, set
         |bytes|[|i| &minus; |offset|] to [$GetValueFromBuffer$](|jsArrayBuffer|, |i|, Uint8,
         true, Unordered)."""
     ->
     "1.  For |i| in [=the range=] |offset| to |offset| + |length| &minus; 1, inclusive, set |bytes|[|i| &minus; |offset|] to [$GetValueFromBuffer$](|jsArrayBuffer|, |i|, {{uint8}}, true, {{unordered}}).",
+    
+    // #8. TODO
     "1.  Let |onFulfilled| be [$CreateBuiltinFunction$](|onFulfilledSteps|, 1, \"\", « »):"
     ->
     "1.  Let |onFulfilled| be [$CreateBuiltinFunction$](|onFulfilledSteps|, 1, \"\", « »).",
+    
+    // #9. TODO
     "[$CreateBuiltinFunction$](|onRejectedSteps|, 1, \"\", « »):"
     ->
     "[$CreateBuiltinFunction$](|onRejectedSteps|, 1, \"\", « »).",

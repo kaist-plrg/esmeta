@@ -64,6 +64,21 @@ object AlgorithmExtractor:
     */
   private val TrailingParamsPlain = """^(.+?)\s*\([^)]*\)$""".r
 
+  /** matches a `<dfn method|attribute|constructor for="...">` opening tag,
+    * capturing the kind word and the `for` value (double or single quotes) —
+    * see [[AlgorithmKind]].
+    */
+  private val DfnKindFor =
+    """(?is)<dfn\s+(method|attribute|constructor)\s+for\s*=\s*(?:"([^"]*)"|'([^']*)')""".r
+
+  /** matches "The setter of the ... attribute of {{Interface}}" — a setter
+    * never has its own `<dfn attribute for=...>` (see
+    * [[AlgorithmKind.Setter]]), so it's recognized from this prose pattern
+    * instead, capturing the interface name out of the `{{...}}` IDL reference.
+    */
+  private val SetterOfAttribute =
+    """(?is)^\s*The setter of the .+? attribute of \{\{([^}]+)\}\}""".r
+
   def extract(source: String): List[Algorithm] =
     OpenTag.findAllMatchIn(source).toList.flatMap { m =>
       val id =
@@ -71,7 +86,14 @@ object AlgorithmExtractor:
       for bodyEnd <- findBodyEnd(source, m.end) yield
         val body = source.substring(m.end, bodyEnd)
         val (head, instrs) = parseBody(body)
-        Algorithm(id, extractName(head), extractParams(head), head, instrs)
+        Algorithm(
+          id,
+          extractName(head),
+          extractParams(head),
+          head,
+          instrs,
+          extractKind(head),
+        )
     }
 
   def extractFromFile(path: Path): List[Algorithm] =
@@ -155,3 +177,20 @@ object AlgorithmExtractor:
     */
   private def extractParams(head: String): List[String] =
     PipeVar.findAllIn(head).toList.distinct
+
+  /** what `head` declares this algorithm to implement — see [[AlgorithmKind]].
+    */
+  private def extractKind(head: String): AlgorithmKind =
+    DfnKindFor.findFirstMatchIn(head) match
+      case Some(m) =>
+        val iface =
+          Option(m.group(2)).orElse(Option(m.group(3))).getOrElse("")
+        m.group(1).toLowerCase match
+          case "method"      => AlgorithmKind.Method(iface)
+          case "attribute"   => AlgorithmKind.Getter(iface)
+          case "constructor" => AlgorithmKind.Constructor(iface)
+          case _             => AlgorithmKind.Plain
+      case None =>
+        SetterOfAttribute.findFirstMatchIn(head) match
+          case Some(m) => AlgorithmKind.Setter(m.group(1).trim)
+          case None    => AlgorithmKind.Plain

@@ -1,4 +1,4 @@
-114 func(s)
+115 func(s)
 def compile_a_webassembly_module(
   bytes: Unknown,
 ): Unknown = {
@@ -991,7 +991,9 @@ def value(
 ): Unknown = {
   call _ret11 = clo<"getglobalvalue">(@this)
   return _ret11
-  (yet "The setter of the value attribute of {{Global}}, when invoked, performs the following steps:")
+}
+def global-value-setter(
+): Unknown = {
   let store = @AGENT_RECORD["associated store"]
   let globaladdr = @this.Global
   let _ = (yet "unsupported Let lhs: Unknown(|mut| |valuetype|)")
@@ -1011,6 +1013,7 @@ def value(
     (yet "throw a {{RangeError}} exception")
   } else nop
   @AGENT_RECORD["associated store"] = store
+  return ~unused~
 }
 def valueof(
 ): Unknown = {

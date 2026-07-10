@@ -1,4 +1,4 @@
-110 algorithm(s)
+111 algorithm(s)
 # compile a WebAssembly module
   params: |bytes|
   head: To <dfn>compile a WebAssembly module</dfn> from source bytes |bytes|, perform the following steps:
@@ -26,6 +26,7 @@
   Return(true)
 
 # validate
+  kind: method for WebAssembly
   params: |bytes|, |options|
   head: The <dfn method for="WebAssembly">validate(|bytes|, |options|)</dfn> method, when invoked, performs the following steps:
   Let(|stableBytes|, [=get a copy of the buffer source=](|bytes|))
@@ -67,6 +68,7 @@
   Return(|promise|)
 
 # compile
+  kind: method for WebAssembly
   params: |bytes|, |options|
   head: The <dfn method for="WebAssembly">compile(|bytes|, |options|)</dfn> method, when invoked, performs the following steps:
   Let(|stableBytes|, [=get a copy of the buffer source=](|bytes|))
@@ -270,6 +272,7 @@
   Return(|promise|)
 
 # instantiate
+  kind: method for WebAssembly
   params: |bytes|, |importObject|, |options|
   head: The <dfn method for="WebAssembly">instantiate(|bytes|, |importObject|, |options|)</dfn> method, when invoked, performs the following steps:
   Let(|stableBytes|, [=get a copy of the buffer source=](|bytes|))
@@ -277,6 +280,7 @@
   PerformAndReturn([=Instantiate a promise of a module=](|promiseOfModule|, |importObject|))
 
 # instantiate_object
+  kind: method for WebAssembly
   params: |moduleObject|, |importObject|
   head: The <dfn method for="WebAssembly">instantiate_object(|moduleObject|, |importObject|)</dfn> method, when invoked, performs the following steps:
   PerformAndReturn([=asynchronously instantiate a WebAssembly module=](|moduleObject|, |importObject|))
@@ -291,6 +295,7 @@
   ?("tag" if |type| is of the form [=external-type/tag=] <var ignore>tag</var>)
 
 # exports
+  kind: method for Module
   params: |moduleObject|
   head: The <dfn method for="Module">exports(|moduleObject|)</dfn> method, when invoked, performs the following steps:
   Let(|module|, |moduleObject|.[[Module]])
@@ -302,6 +307,7 @@
   Return(|exports|)
 
 # imports
+  kind: method for Module
   params: |moduleObject|
   head: The <dfn method for="Module">imports(|moduleObject|)</dfn> method, when invoked, performs the following steps:
   Let(|module|, |moduleObject|.[[Module]])
@@ -319,6 +325,7 @@
   Return(|imports|)
 
 # customSections
+  kind: method for Module
   params: |moduleObject|, |sectionName|
   head: The <dfn method for="Module">customSections(|moduleObject|, |sectionName|)</dfn> method, when invoked, performs the following steps:
   Let(|bytes|, |moduleObject|.[[Bytes]])
@@ -331,6 +338,7 @@
   Return(|customSections|)
 
 # Module
+  kind: constructor for Module
   params: |bytes|, |options|
   head: The <dfn constructor for="Module">Module(|bytes|, |options|)</dfn> constructor, when invoked, performs the following steps:
   Let(|stableBytes|, [=get a copy of the buffer source=](|bytes|))
@@ -348,6 +356,7 @@
   Note(Some implementations enforce a size limitation on |bytes| Use of this API is discouraged, in favor of asynchronous APIs)
 
 # Instance
+  kind: constructor for Instance
   params: |moduleObject|, |importObject|
   head: The <dfn constructor for="Instance">Instance(|moduleObject|, |importObject|)</dfn> constructor, when invoked, runs the following steps:
   Let(|builtinSetNames|, |moduleObject|.[[BuiltinSets]])
@@ -359,6 +368,7 @@
   Note(The use of this synchronous API is discouraged, as some implementations sometimes do long-running compilation work when instantiating)
 
 # exports
+  kind: getter for Instance
   head: The getter of the <dfn attribute for="Instance">exports</dfn> attribute of {{Instance}} returns **this**.\[[Exports]].
 
 # create a fixed length memory buffer
@@ -404,6 +414,7 @@
   Return(|memory|)
 
 # Memory
+  kind: constructor for Memory
   params: |descriptor|
   head: The <dfn constructor for="Memory">Memory(|descriptor|)</dfn> constructor, when invoked, performs the following steps:
   If(|descriptor|["address"] [=map/exists=])
@@ -455,6 +466,7 @@
 
 # grow
   id: dom-Memory-grow
+  kind: method for Memory
   params: |delta|
   head: The <dfn method for="Memory">grow(|delta|)</dfn> method, when invoked, performs the following steps:
   Let(|memaddr|, **this**.[[Memory]])
@@ -474,6 +486,7 @@
 
 # toFixedLengthBuffer
   id: dom-Memory-toFixedLengthBuffer
+  kind: method for Memory
   head: The <dfn method for="Memory">toFixedLengthBuffer()</dfn> method, when invoked, performs the following steps:
   Let(|buffer|, **this**.[[BufferObject]])
   If([=IsFixedLengthArrayBuffer=](|buffer|) is true)
@@ -486,6 +499,7 @@
 
 # toResizableBuffer
   id: dom-Memory-toResizableBuffer
+  kind: method for Memory
   head: The <dfn method for="Memory">toResizableBuffer()</dfn> method, when invoked, performs the following steps:
   Let(|memaddr|, **this**.[[Memory]])
   Let(|store|, [=surrounding agent=].[[associated store]])
@@ -521,6 +535,7 @@
     Return(<emu-const>unhandled</emu-const>)
 
 # buffer
+  kind: getter for Memory
   head: The getter of the <dfn attribute for="Memory">buffer</dfn> attribute of {{Memory}} returns **this**.\[[BufferObject]].
 
 # initialize a table object
@@ -542,6 +557,7 @@
   Return(|table|)
 
 # Table
+  kind: constructor for Table
   params: |descriptor|, |value|
   head: The <dfn constructor for="Table">Table(|descriptor|, |value|)</dfn> constructor, when invoked, performs the following steps:
   Let(|elementtype|, [=ToValueType=](|descriptor|["element"]))
@@ -573,6 +589,7 @@
 
 # grow
   id: dom-Table-grow
+  kind: method for Table
   params: |delta|, |value|
   head: The <dfn method for="Table">grow(|delta|, |value|)</dfn> method, when invoked, performs the following steps:
   Let(|tableaddr|, **this**.[[Table]])
@@ -594,6 +611,7 @@
   Return([=U64ToAddressValue=](|initialSize|, |addrtype|))
 
 # length
+  kind: getter for Table
   head: The getter of the <dfn attribute for="Table">length</dfn> attribute of {{Table}}, when invoked, performs the following steps:
   Let(|tableaddr|, **this**.[[Table]])
   Let(|store|, [=surrounding agent=].[[associated store]])
@@ -602,6 +620,7 @@
   Return([=U64ToAddressValue=](|length64|, |addrtype|))
 
 # get
+  kind: method for Table
   params: |index|
   head: The <dfn method for="Table">get(|index|)</dfn> method, when invoked, performs the following steps:
   Let(|tableaddr|, **this**.[[Table]])
@@ -616,6 +635,7 @@
   Return([=!=] [=ToJSValue=](|result|))
 
 # set
+  kind: method for Table
   params: |index|, |value|
   head: The <dfn method for="Table">set(|index|, |value|)</dfn> method, when invoked, performs the following steps:
   Let(|tableaddr|, **this**.[[Table]])
@@ -680,6 +700,7 @@
   Return([=val_default=](|valuetype|))
 
 # Global
+  kind: constructor for Global
   params: |descriptor|, |v|
   head: The <dfn constructor for="Global">Global(|descriptor|, |v|)</dfn> constructor, when invoked, performs the following steps:
   Let(|mutable|, |descriptor|["mutable"])
@@ -713,9 +734,15 @@
   Return([=!=] [=ToJSValue=](|value|))
 
 # value
+  id: global-value-getter
+  kind: getter for Global
   head: The getter of the <dfn attribute for="Global">value</dfn> attribute of {{Global}}, when invoked, performs the following steps:
   Return([=GetGlobalValue=](**this**))
-  ?(The setter of the value attribute of {{Global}}, when invoked, performs the following steps:)
+
+# global-value-setter
+  id: global-value-setter
+  kind: setter for Global
+  head: The setter of the value attribute of {{Global}}, when invoked, performs the following steps:
   Let(|store|, [=surrounding agent=].[[associated store]])
   Let(|globaladdr|, **this**.[[Global]])
   Let(?(|mut| |valuetype|), [=global_type=](|store|, |globaladdr|))
@@ -730,6 +757,7 @@
   Set([=surrounding agent=].[[associated store]], |store|)
 
 # valueOf
+  kind: method for Global
   head: The <dfn method for="Global">valueOf()</dfn> method, when invoked, performs the following steps:
   Return([=GetGlobalValue=](**this**))
 
@@ -1021,6 +1049,7 @@
   Return(|tag|)
 
 # Tag
+  kind: constructor for Tag
   params: |type|
   head: The <dfn constructor for="Tag" lt="Tag(type)">new Tag(|type|)</dfn> constructor steps are:
   Let(|parameters|, |type|["parameters"])
@@ -1147,6 +1176,7 @@
     Set(**this**.[[Stack]], ?(a {{DOMString}} representation of the current call stack or undefined))
 
 # getArg
+  kind: method for Exception
   params: |exceptionTag|, |index|
   head: The <dfn method for="Exception">getArg(|exceptionTag|, |index|)</dfn> method steps are:
   Let(|store|, [=surrounding agent=].[[associated store]])
@@ -1163,6 +1193,7 @@
   Return([=!=] [=ToJSValue=](|payload|[|index|]))
 
 # is
+  kind: method for Exception
   params: |exceptionTag|
   head: The <dfn method for="Exception">is(|exceptionTag|)</dfn> method steps are:
   If(**this**.[[Type]] is not |exceptionTag|.[[Address]])
@@ -1170,6 +1201,7 @@
   Return(true)
 
 # stack
+  kind: getter for Exception
   head: The <dfn attribute for="Exception">stack</dfn> getter steps are:
   Return(**this**.[[Stack]])
 

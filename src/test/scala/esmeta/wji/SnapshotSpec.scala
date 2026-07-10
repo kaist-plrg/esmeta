@@ -59,7 +59,7 @@ class SnapshotSpec extends AnyFunSuite:
     else
       assert(
         Files.exists(expectedFile),
-        s"Expected file missing: $expectedFile  —  run with UPDATE_SNAPSHOTS=true to create.",
+        s"Expected file missing: $expectedFile  —  run with -Dupdate=true to create.",
       )
       val expected = Files.readString(expectedFile)
       if actual == expected then
@@ -69,7 +69,7 @@ class SnapshotSpec extends AnyFunSuite:
         Files.writeString(diffFile, unifiedDiff(expectedFile.toString, actual))
         val firstDiff = firstDiffHint(expected, actual)
         fail(
-          s"Snapshot mismatch for $name.$firstDiff\nActual : $actualFile\nDiff   : $diffFile\nRun with UPDATE_SNAPSHOTS=true to update.",
+          s"Snapshot mismatch for $name.$firstDiff\nActual : $actualFile\nDiff   : $diffFile\nRun with -Dupdate=true to update.",
         )
 
   private def firstDiffHint(expected: String, actual: String): String =

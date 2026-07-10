@@ -147,7 +147,7 @@ def read_the_imports(
     let moduleName = (proj _tuple2 0)
     let componentName = (proj _tuple2 1)
     let externtype = (proj _tuple2 2)
-    if (yet "|builtinOrStringImports| [=map/exist|contains=] |moduleName|") {
+    if (exists builtinOrStringImports[moduleName]) {
       let o = builtinOrStringImports[moduleName]
       if (|| (! (?name o: Object)) (= (yet "if [$HasProperty$](|o|, |componentName|)") false)) {
         call _comp1 = clo<"Get">(importObject, moduleName)

@@ -63,23 +63,36 @@ object SpecPatch:
     "\n\n    The setter of the value attribute of {{Global}}"
     ->
     "\n</div>\n\n<div algorithm=\"global-value-setter\">\n    The setter of the value attribute of {{Global}}",
-    
+
     // #7. TODO
     """1.  For |i| in [=the range=] |offset| to |offset| + |length| &minus; 1, inclusive, set
         |bytes|[|i| &minus; |offset|] to [$GetValueFromBuffer$](|jsArrayBuffer|, |i|, Uint8,
         true, Unordered)."""
     ->
     "1.  For |i| in [=the range=] |offset| to |offset| + |length| &minus; 1, inclusive, set |bytes|[|i| &minus; |offset|] to [$GetValueFromBuffer$](|jsArrayBuffer|, |i|, {{uint8}}, true, {{unordered}}).",
-    
+
     // #8. TODO
     "1.  Let |onFulfilled| be [$CreateBuiltinFunction$](|onFulfilledSteps|, 1, \"\", « »):"
     ->
     "1.  Let |onFulfilled| be [$CreateBuiltinFunction$](|onFulfilledSteps|, 1, \"\", « »).",
-    
+
     // #9. TODO
     "[$CreateBuiltinFunction$](|onRejectedSteps|, 1, \"\", « »):"
     ->
     "[$CreateBuiltinFunction$](|onRejectedSteps|, 1, \"\", « »).",
+
+    // #10 — `|builtinOrStringImports| [=map/exist|contains=] |moduleName|` is
+    // the only "X contains Y" phrasing for a map-membership check in the
+    // whole file; every other one (15+ occurrences, e.g. lines 864, 1028,
+    // 1164, 1263) writes `|map|[|key|] [=map/exists=]` instead — a leftover
+    // of `builtinOrStringImports` once being a list (see spec error #1: its
+    // empty-literal is still written `« »`, the *list* notation, not `«[ ]»`)
+    // where "contains" made sense; the link text was swapped from
+    // `[=list/contains=]` to `[=map/exist|contains=]` when the type changed,
+    // but the surrounding sentence structure never followed. Rewritten to the
+    // file's own established map-check idiom.
+    "1. If |builtinOrStringImports| [=map/exist|contains=] |moduleName|,"
+    -> "1. If |builtinOrStringImports|[|moduleName|] [=map/exists=],",
   )
 
   def apply(source: String): String =

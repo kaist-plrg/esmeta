@@ -106,7 +106,7 @@
     Set(|builtinOrStringImports|[|importedStringModule|], |exportsObject|)
   Let(|imports|, « »)
   ForEach((|moduleName|, |componentName|, |externtype|), [=module_imports=](|module|))
-    If(?(|builtinOrStringImports| [=map/exist|contains=] |moduleName|))
+    If(|builtinOrStringImports|[|moduleName|] [=map/exists=])
       Let(|o|, |builtinOrStringImports|[|moduleName|])
       If(|o| is not an Object or ?(if [$HasProperty$](|o|, |componentName|)) is false)
         Set(|o|, [=?=] [$Get$](|importObject|, |moduleName|))

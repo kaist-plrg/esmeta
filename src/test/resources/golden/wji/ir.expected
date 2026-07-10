@@ -1149,7 +1149,7 @@ def run_a_host_function(
     call _call15 = clo<"towebassemblyvalue">(ret, results[0])
     return (list [(yet "? Var(_call15)")])
   } else {
-    call _comp18 = clo<"GetMethod">(ret, (yet "{{%Symbol.iterator%}}"))
+    call _comp18 = clo<"GetMethod">(ret, @SYMBOL.iterator)
     if (?name _comp18: AbruptCompletion) {
       return _comp18
     } else nop
@@ -1994,7 +1994,7 @@ def resolve(
   } else nop
   call value = clo<"converted_to_a_javascript_value">(x)
   call _ = clo<"Call">(p.Resolve, (yet "<emu-val>undefined</emu-val>"), (list [value]))
-  if (= T (yet "{{undefined}}")) {
+  if (= T undefined) {
     (yet "the |x| argument is optional, allowing a simpler \"[=resolve=] p\" usage")
   } else nop
   return ~unused~
@@ -2020,7 +2020,7 @@ def react(
   return (yet "|result|, [=converted to a JavaScript value=]")
   let onFulfilled = (yet "[$CreateBuiltinFunction$](|onFulfilledSteps|, 1, \"\", « »):")
   let onRejectedSteps = (yet "the following steps given argument |R|:")
-  call reason = clo<"converted_to_an_idl_value">(R)
+  call reason = clo<"converted_to_an_idl_value">(R, ~any~)
   if (= (yet "there") (yet "a set of steps to be run if the promise was rejected")) {
     let result = (yet "performing them, given |reason|")
   } else {
@@ -2064,8 +2064,8 @@ def get_a_copy_of_the_buffer_source(
   }
   let i = offset
   while (! (< (- (+ offset length) 1) i)) {
-    call _call34 = clo<"GetValueFromBuffer">(jsArrayBuffer, i, (yet "Uint8"), true, (yet "Unordered"))
-    bytes[(- i offset)] = _call34
+    call _call27 = clo<"GetValueFromBuffer">(jsArrayBuffer, i, ~uint8~, true, ~unordered~)
+    bytes[(- i offset)] = _call27
     i = (+ i 1)
   }
   return bytes

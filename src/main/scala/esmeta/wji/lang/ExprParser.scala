@@ -119,6 +119,15 @@ object ExprParser:
   private val TheException = """(?i)^the exception$""".r
   private val SpecTermPat = """(?i)^(?:undefined|null|empty|absent)$""".r
   private val EmuConst = """(?s)^(<emu-const>[^<]*</emu-const>)$""".r
+  // A bare Bikeshed/WebIDL `{{...}}` autolink used as a value — a WebIDL type
+  // or enumeration reference (e.g. `{{uint8}}`, `{{unordered}}`,
+  // `{{undefined}}`, `{{%Symbol.iterator%}}`). The braces are a link marker,
+  // not part of the name, so they're stripped to a bare SpecTerm — this lets
+  // `{{undefined}}` unify with the `null`/`undefined` SpecTerms the compiler
+  // already special-cases. Structural `{{...}}` uses (a `[=/new=] {{Iface}}`
+  // object, a `[[{{%Promise%}}]]` slot) are matched by more specific patterns
+  // (NewExpr, SlotAccess) before this.
+  private val BracedTerm = """(?s)^\{\{(.+)\}\}$""".r
   // "[=the range=] LOW to HIGH" — the leading link text varies ("the range",
   // "range", ...) but always mentions "range". Both bounds are assumed
   // inclusive (see [[Expr.Range]]), so a trailing ", inclusive" is left for
@@ -223,6 +232,7 @@ object ExprParser:
       case BoldConst(_)    => SpecTerm(s)
       case SpecTermPat()   => SpecTerm(s)
       case EmuConst(v)     => SpecTerm(v)
+      case BracedTerm(inner) => SpecTerm(inner)
       case _               => Unknown(s)
 
   /** Extracts argument [[Expr]]s from a prose string.

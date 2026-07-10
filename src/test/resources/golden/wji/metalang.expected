@@ -824,7 +824,7 @@
   ElseIf(|resultsSize| is 1)
     Return(« [=?=] [=ToWebAssemblyValue=](|ret|, |results|[0]) »)
   Else
-    Let(|method|, [=?=] [$GetMethod$](|ret|, ?({{%Symbol.iterator%}})))
+    Let(|method|, [=?=] [$GetMethod$](|ret|, %Symbol.iterator%))
     If(|method| is undefined)
       Throw(a {{TypeError}})
     Let(|values|, [=?=] [$IteratorToList$]([=?=] [$GetIteratorFromMethod$](|ret|, |method|)))
@@ -1420,7 +1420,7 @@
     Let(?(it), ?(the {{undefined}} value))
   Let(|value|, [=converted to a JavaScript value=](|x|))
   Perform(Call(|p|.[[Resolve]], ?(<emu-val>undefined</emu-val>), « |value| »))
-  If(|T| is ?({{undefined}}))
+  If(|T| is undefined)
     ?(the |x| argument is optional, allowing a simpler "[=resolve=] p" usage)
 
 # reject
@@ -1440,7 +1440,7 @@
     Return(?(|result|, [=converted to a JavaScript value=]))
   Let(|onFulfilled|, ?([$CreateBuiltinFunction$](|onFulfilledSteps|, 1, "", « »):))
   Let(|onRejectedSteps|, ?(the following steps given argument |R|:))
-    Let(|reason|, [=converted to an IDL value=](|R|))
+    Let(|reason|, [=converted to an IDL value=](|R|, any))
     If(?(there) is ?(a set of steps to be run if the promise was rejected))
       Let(|result|, ?(performing them, given |reason|))
     Else
@@ -1472,6 +1472,6 @@
     Return(?(the empty [=byte sequence=]))
   Let(|bytes|, ByteSequence(|length|))
   For(|i|, Range(|offset|, |offset| + |length| - 1))
-    Set(|bytes|[|i| - |offset|], [$GetValueFromBuffer$](|jsArrayBuffer|, |i|, ?(Uint8), true, ?(Unordered)))
+    Set(|bytes|[|i| - |offset|], [$GetValueFromBuffer$](|jsArrayBuffer|, |i|, uint8, true, unordered))
   Return(|bytes|)
 

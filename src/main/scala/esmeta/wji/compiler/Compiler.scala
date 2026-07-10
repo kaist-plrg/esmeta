@@ -25,6 +25,11 @@ object Compiler:
     * handling and `compileInstr`'s bare `Return.` case.
     */
   private val EUnused = EEnum("unused")
+  // A well-known-symbol reference written `%Symbol.NAME%` (e.g.
+  // `%Symbol.iterator%`), reaching us as a `SpecTerm` once `ExprParser`
+  // strips the `{{...}}` autolink braces. Mirrors mainline ESMeta's
+  // `SymbolLiteral(sym) => toERef(GLOBAL_SYMBOL, EStr(sym))`.
+  private val SymbolTerm = """^%Symbol\.(.+)%$""".r
 
   def compile(algos: List[Algorithm]): Program =
     Program(algos.flatMap(compileAlgo))
@@ -222,6 +227,8 @@ object Compiler:
     // such field uniformly.
     case metalang.Expr.SpecTerm("surrounding agent") =>
       ERef(GLOBAL_AGENT_RECORD)
+    case metalang.Expr.SpecTerm(SymbolTerm(sym)) =>
+      ERef(Field(GLOBAL_SYMBOL, EStr(sym)))
     case metalang.Expr.SpecTerm(s) => EEnum(s)
     case metalang.Expr.Field(base, name) =>
       ERef(Field(compileRef(base), EStr(name)))

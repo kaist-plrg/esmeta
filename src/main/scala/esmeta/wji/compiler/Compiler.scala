@@ -18,6 +18,14 @@ import esmeta.ir.*
   */
 object Compiler:
 
+  /** ECMA-262's spec-internal "no meaningful return value" sentinel, mirroring
+    * `~unused~` (`esmeta.lang.Expression.EnumLiteral("unused")`, compiled by
+    * `esmeta.compiler.Compiler` to the same `EEnum("unused")`). Used wherever a
+    * WJI algorithm has nothing to return — see `compileAlgo`'s fall-off-the-end
+    * handling and `compileInstr`'s bare `Return.` case.
+    */
+  private val EUnused = EEnum("unused")
+
   def compile(algos: List[Algorithm]): Program =
     Program(algos.flatMap(compileAlgo))
 
@@ -38,20 +46,30 @@ object Compiler:
         params = params,
         retTy = UnknownType,
         // an algorithm that never explicitly `Return`s still implicitly
-        // returns (undefined) once its steps run out — mirrors
-        // `esmeta.compiler`'s own handling of a fall-off-the-end algorithm.
-        // Only appended when the body doesn't already end with a top-level
-        // `Return`: an `IfChain` is real CFG branching (each branch's own
-        // `IReturn` reaches the function exit directly, so appending after
-        // one is harmless dead code), but two `IReturn`s that are siblings in
-        // the same flat instruction list share a single CFG `Block`, whose
+        // returns once its steps run out — mirrors `esmeta.compiler`'s own
+        // handling of a fall-off-the-end algorithm, except the implicit
+        // value is `~unused~` (see `compileInstr`'s `Return(None, ...)` case
+        // for why), not `undefined`.
+        //
+        // Only appended when the body has no top-level `Return` at all: an
+        // `IfChain` is real CFG branching (each branch's own `IReturn`
+        // reaches the function exit directly, so appending after one is
+        // harmless dead code), but two `IReturn`s that are siblings in the
+        // same flat instruction list share a single CFG `Block`, whose
         // interpretation (`Interpreter.eval`'s `Block` case) runs every inst
         // in sequence with no early exit on return — so appending after an
-        // *already-unconditional* trailing `Return` would silently overwrite
-        // its value with `undefined` instead of staying unreachable.
-        body = ISeq(algo.body.lastOption match
-          case Some(_: Instr.Return) => compileSeq(algo.body)
-          case _ => compileSeq(algo.body) :+ IReturn(EUndef()),
+        // *already-unconditional* `Return` would silently overwrite its
+        // value with `~unused~` instead of staying unreachable. Checking "no
+        // `Return` anywhere in the top-level list" rather than just "the last
+        // instruction isn't a `Return`" also covers a spec typo/parse bug
+        // that leaves stray steps after a `Return` (dead code in a
+        // well-formed spec, but would otherwise silently corrupt the real
+        // return value here) — turns that into a loud `NoReturnValue`
+        // instead.
+        body = ISeq(
+          if algo.body.exists(_.isInstanceOf[Instr.Return]) then
+            compileSeq(algo.body)
+          else compileSeq(algo.body) :+ IReturn(EUnused),
         ),
       )
     }
@@ -89,7 +107,16 @@ object Compiler:
       compileSeq(body) :+ IReturn(compileExpr(expr))
 
     case Instr.Return(None, body) =>
-      compileSeq(body) :+ IReturn(EUndef())
+      // a bare "Return." (no value) — like an algorithm falling off its own
+      // end (see `compileAlgo`) — means "this step has nothing to say",
+      // which mirrors ECMA-262's own `~unused~` convention (`Return
+      // ~unused~.`, compiled the same way mainline compiles a literal
+      // `EnumLiteral`: `esmeta.compiler.Compiler`'s `case EnumLiteral(name)
+      // => EEnum(name)`) more closely than the ECMAScript value `undefined`
+      // would: nothing should ever consume this value, which `~unused~`
+      // enforces (a stray `undefined`-consuming check downstream would
+      // accidentally "pass" instead of surfacing the bug).
+      compileSeq(body) :+ IReturn(EUnused)
 
     case Instr.Assert(cond, body) =>
       IAssert(compileCond(cond)) :: compileSeq(body)

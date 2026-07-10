@@ -306,7 +306,7 @@ def initialize_an_instance_object(
   call exportsObject = clo<"create_an_exports_object">(module, instance)
   instanceObject.Instance = instance
   instanceObject.Exports = exportsObject
-  return undefined
+  return ~unused~
 }
 def instantiate_the_core_of_a_webassembly_module(
   module: Unknown,
@@ -397,7 +397,7 @@ def string_value_of_the_extern_type(
   (yet "\"memory\" if |type| is of the form [=external-type/mem=] <var ignore>memtype</var>")
   (yet "\"global\" if |type| is of the form [=external-type/global=] <var ignore>globaltype</var>")
   (yet "\"tag\" if |type| is of the form [=external-type/tag=] <var ignore>tag</var>")
-  return undefined
+  return ~unused~
 }
 def exports(
   moduleObject: Unknown,
@@ -483,7 +483,7 @@ def module(
   @this.Bytes = stableBytes
   @this.BuiltinSets = builtinSetNames
   @this.ImportedStringModule = importedStringModule
-  return undefined
+  return ~unused~
 }
 def instance(
   moduleObject: Unknown,
@@ -495,11 +495,11 @@ def instance(
   call imports = clo<"read_the_imports">(module, importObject, builtinSetNames, importedStringModule)
   call instance = clo<"instantiate_the_core_of_a_webassembly_module">(module, imports)
   call _ = clo<"initialize_an_instance_object">(@this, module, instance)
-  return undefined
+  return ~unused~
 }
 def exports(
 ): Unknown = {
-  return undefined
+  return ~unused~
 }
 def create_a_fixed_length_memory_buffer(
   memaddr: Unknown,
@@ -534,7 +534,7 @@ def initialize_a_memory_object(
   memory.Memory = memaddr
   memory.BufferObject = buffer
   map[memaddr] = memory
-  return undefined
+  return ~unused~
 }
 def create_a_memory_object(
   memaddr: Unknown,
@@ -582,7 +582,7 @@ def memory(
   } else nop
   @AGENT_RECORD["associated store"] = store
   call _ = clo<"initialize_a_memory_object">(@this, memaddr)
-  return undefined
+  return ~unused~
 }
 def refresh_the_memory_buffer(
   memaddr: Unknown,
@@ -601,7 +601,7 @@ def refresh_the_memory_buffer(
     buffer.ArrayBufferData = block
     buffer.ArrayBufferByteLength = (sizeof block)
   }
-  return undefined
+  return ~unused~
 }
 def grow_the_memory_buffer(
   memaddr: Unknown,
@@ -641,7 +641,7 @@ def memory.grow(
     let memaddr = _ref_Unknown["frame/module"]["moduleinst/memaddrs"][x]
     call _ = clo<"refresh_the_memory_buffer">(memaddr)
   } else nop
-  return undefined
+  return ~unused~
 }
 def tofixedlengthbuffer(
 ): Unknown = {
@@ -698,11 +698,11 @@ def abstract_operation_[=hostresizearraybuffer=](
   } else {
     return ~<emu-const>unhandled</emu-const>~
   }
-  return undefined
+  return ~unused~
 }
 def buffer(
 ): Unknown = {
-  return undefined
+  return ~unused~
 }
 def initialize_a_table_object(
   table: Unknown,
@@ -712,7 +712,7 @@ def initialize_a_table_object(
   assert (! (exists map[tableaddr]))
   table.Table = tableaddr
   map[tableaddr] = table
-  return undefined
+  return ~unused~
 }
 def create_a_table_object(
   tableaddr: Unknown,
@@ -775,7 +775,7 @@ def table(
   } else nop
   @AGENT_RECORD["associated store"] = store
   call _ = clo<"initialize_a_table_object">(@this, tableaddr)
-  return undefined
+  return ~unused~
 }
 def grow(
   delta: Unknown,
@@ -881,7 +881,7 @@ def set(
     (yet "throw a {{RangeError}} exception")
   } else nop
   @AGENT_RECORD["associated store"] = store
-  return undefined
+  return ~unused~
 }
 def initialize_a_global_object(
   global: Unknown,
@@ -891,7 +891,7 @@ def initialize_a_global_object(
   assert (! (exists map[globaladdr]))
   global.Global = globaladdr
   map[globaladdr] = global
-  return undefined
+  return ~unused~
 }
 def create_a_global_object(
   globaladdr: Unknown,
@@ -929,7 +929,7 @@ def tovaluetype(
     return ~externref~
   } else nop
   assert false
-  return undefined
+  return ~unused~
 }
 def defaultvalue(
   valuetype: Unknown,
@@ -972,7 +972,7 @@ def global(
   (yet "<!-- TODO(littledan): Report allocation failure https://github.com/WebAssembly/spec/issues/584 -->")
   @AGENT_RECORD["associated store"] = store
   call _ = clo<"initialize_a_global_object">(@this, globaladdr)
-  return undefined
+  return ~unused~
 }
 def getglobalvalue(
   global: Unknown,
@@ -1011,7 +1011,6 @@ def value(
     (yet "throw a {{RangeError}} exception")
   } else nop
   @AGENT_RECORD["associated store"] = store
-  return undefined
 }
 def valueof(
 ): Unknown = {
@@ -1118,7 +1117,7 @@ def call_an_exported_function(
     call _ret15 = clo<"CreateArrayFromList">(values)
     return _ret15
   }
-  return undefined
+  return ~unused~
 }
 def run_a_host_function(
   func: Unknown,
@@ -1172,7 +1171,7 @@ def run_a_host_function(
     push wasmValues < (yet "? Var(_call16)")
     return wasmValues
   }
-  return undefined
+  return ~unused~
 }
 def create_a_host_function(
   func: Unknown,
@@ -1276,7 +1275,7 @@ def tojsvalue(
     call _ret25 = clo<"tojsvalue">(ref)
     return _ret25
   } else nop
-  return undefined
+  return ~unused~
 }
 def retrieving_a_host_value(
   hostaddr: Unknown,
@@ -1386,7 +1385,7 @@ def towebassemblyvalue(
     return r
   } else nop
   assert false
-  return undefined
+  return ~unused~
 }
 def addressvaluetou64(
   v: Unknown,
@@ -1412,7 +1411,7 @@ def addressvaluetou64(
     return (yet "[=ℝ=](|n|) as a WebAssembly [=u64=]")
   } else nop
   assert false
-  return undefined
+  return ~unused~
 }
 def u64toaddressvalue(
   v: Unknown,
@@ -1426,7 +1425,7 @@ def u64toaddressvalue(
     return _ret32
   } else nop
   assert false
-  return undefined
+  return ~unused~
 }
 def initialize_a_tag_object(
   tag: Unknown,
@@ -1436,7 +1435,7 @@ def initialize_a_tag_object(
   assert (! (exists map[tagAddress]))
   tag.Address = tagAddress
   map[tagAddress] = tag
-  return undefined
+  return ~unused~
 }
 def create_a_tag_object(
   tagAddress: Unknown,
@@ -1468,7 +1467,7 @@ def tag(
   let tagAddress = (proj _tuple17 1)
   @AGENT_RECORD["associated store"] = store
   call _ = clo<"initialize_a_tag_object">(@this, tagAddress)
-  return undefined
+  return ~unused~
 }
 def \[[getprototypeof]]_internal_method_of_an_exported_gc_object(
 ): Unknown = {
@@ -1505,12 +1504,12 @@ def \[[get]]_internal_method_of_an_exported_gc_object(
 def \[[set]]_internal_method_of_an_exported_gc_object(
 ): Unknown = {
   (yet "throw a {{TypeError}}")
-  return undefined
+  return ~unused~
 }
 def \[[delete]]_internal_method_of_an_exported_gc_object(
 ): Unknown = {
   (yet "throw a {{TypeError}}")
-  return undefined
+  return ~unused~
 }
 def \[[ownpropertykeys]]_internal_method_of_an_exported_gc_object(
 ): Unknown = {
@@ -1557,7 +1556,7 @@ def initialize_an_exception_object(
   exn.Type = tagaddr
   exn.Payload = payload
   exn.Stack = undefined
-  return undefined
+  return ~unused~
 }
 def create_an_exception_object(
   exnAddress: Unknown,
@@ -1599,7 +1598,7 @@ def exception(
   if (= options.traceStack true) {
     @this.Stack = (yet "a {{DOMString}} representation of the current call stack or undefined")
   } else nop
-  return undefined
+  return ~unused~
 }
 def getarg(
   exceptionTag: Unknown,
@@ -1658,7 +1657,7 @@ def create the webassembly namespace object(
     call _ = clo<"DefineMethodProperty">(namespaceObject, error, constructor, false)
     _iterIdx24 = (+ _iterIdx24 1)
   }
-  return undefined
+  return ~unused~
 }
 def get_the_builtins_for_a_builtin_set(
   builtinSetName: Unknown,
@@ -1998,14 +1997,14 @@ def resolve(
   if (= T (yet "{{undefined}}")) {
     (yet "the |x| argument is optional, allowing a simpler \"[=resolve=] p\" usage")
   } else nop
-  return undefined
+  return ~unused~
 }
 def reject(
   p: Unknown,
   r: Unknown,
 ): Unknown = {
   call _ = clo<"Call">(p.Reject, (yet "<emu-val>undefined</emu-val>"), (list [r]))
-  return undefined
+  return ~unused~
 }
 def react(
   T: Unknown,
@@ -2082,7 +2081,7 @@ def _queuetaskjob1(
     call moduleObject = clo<"construct_a_webassembly_module_object">(module, bytes, builtinSetNames, importedStringModule)
     call _ = clo<"resolve">(promise, moduleObject)
   }
-  return undefined
+  return ~unused~
 }
 def _queuetaskjob2(
 ): Unknown = {
@@ -2108,5 +2107,5 @@ def _queuetaskjob2(
     } else nop
   } else nop
   call _ = clo<"resolve">(promise, instanceObject)
-  return undefined
+  return ~unused~
 }

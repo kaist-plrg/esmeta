@@ -64,22 +64,20 @@ object SpecPatch:
     ->
     "\n</div>\n\n<div algorithm=\"global-value-setter\">\n    The setter of the value attribute of {{Global}}",
 
-    // #7. TODO
+    // #7. TODO: Replace ES enum convention in webidl
     """1.  For |i| in [=the range=] |offset| to |offset| + |length| &minus; 1, inclusive, set
         |bytes|[|i| &minus; |offset|] to [$GetValueFromBuffer$](|jsArrayBuffer|, |i|, Uint8,
         true, Unordered)."""
     ->
     "1.  For |i| in [=the range=] |offset| to |offset| + |length| &minus; 1, inclusive, set |bytes|[|i| &minus; |offset|] to [$GetValueFromBuffer$](|jsArrayBuffer|, |i|, {{uint8}}, true, {{unordered}}).",
 
-    // #8. TODO
+    // #8. TODO: replace : with .
     "1.  Let |onFulfilled| be [$CreateBuiltinFunction$](|onFulfilledSteps|, 1, \"\", « »):"
     ->
     "1.  Let |onFulfilled| be [$CreateBuiltinFunction$](|onFulfilledSteps|, 1, \"\", « »).",
-
-    // #9. TODO
-    "[$CreateBuiltinFunction$](|onRejectedSteps|, 1, \"\", « »):"
+    "1.  Let |onRejected| be [$CreateBuiltinFunction$](|onRejectedSteps|, 1, \"\", « »):"
     ->
-    "[$CreateBuiltinFunction$](|onRejectedSteps|, 1, \"\", « »).",
+    "1.  Let |onRejected| be [$CreateBuiltinFunction$](|onRejectedSteps|, 1, \"\", « »).",
 
     // #10 — `|builtinOrStringImports| [=map/exist|contains=] |moduleName|` is
     // the only "X contains Y" phrasing for a map-membership check in the

@@ -174,8 +174,24 @@ enum ALValue:
 /** a value owned by an external Wasm embedding (e.g. SpecTec), passed opaquely
   * across the `esmeta.wji.bridge.host.WasmHost` boundary without being
   * interpreted on the ES side.
+  *
+  * The one exception is [[ALValue.TextV]]: a Wasm `name` (Wasm Core Spec 5.2.4,
+  * a UTF-8 byte sequence) is always just an ECMAScript string once it crosses
+  * back out of a Wasm-side structure (e.g. `module_imports`'s `(name, name,
+  * externtype)` triples end up as property keys in `[$Get$](importObject,
+  * moduleName)`) — never passed back across the WasmHost boundary as a bare
+  * value itself — so the smart constructor below unwraps it to a real [[Str]]
+  * instead of leaving it `Wasm`-wrapped. This lives here, in the one place
+  * every `Wasm(...)` construction goes through (`EProj`, list-indexing a
+  * `Wasm(ALValue.ListV(...))`, a raw embedding-call result, ...), rather than
+  * at each of those call sites individually, so `Wasm(ALValue.TextV(_))` can't
+  * accidentally exist anywhere.
   */
-case class Wasm(v: ALValue) extends Value
+case class Wasm private (v: ALValue) extends Value
+object Wasm:
+  def apply(v: ALValue): Value = v match
+    case ALValue.TextV(s) => Str(s)
+    case other            => new Wasm(other)
 
 /** simple values
   *

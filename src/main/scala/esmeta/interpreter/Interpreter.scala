@@ -426,6 +426,8 @@ class Interpreter(
         case Wasm(ALValue.TupV(vs)) =>
           if idx < 0 || idx >= vs.length then
             throw WasmTupleIndexOutOfRange(idx, vs.length)
+          // `Wasm.apply` unwraps a Wasm `name` (ALValue.TextV) to a real
+          // `Str` — see its doc comment.
           Wasm(vs(idx))
         case v => throw NoWasmTuple(v)
     case ESizeOf(expr) =>

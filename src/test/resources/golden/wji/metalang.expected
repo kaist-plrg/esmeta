@@ -1472,5 +1472,6 @@
     Return(?(the empty [=byte sequence=]))
   Let(|bytes|, ByteSequence(|length|))
   For(|i|, Range(|offset|, |offset| + |length| - 1))
+    Set(|bytes|[|i| - |offset|], [$GetValueFromBuffer$](|jsArrayBuffer|, |i|, ?(Uint8), true, ?(Unordered)))
   Return(|bytes|)
 

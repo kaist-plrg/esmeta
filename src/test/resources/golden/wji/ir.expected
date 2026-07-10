@@ -2064,6 +2064,8 @@ def get_a_copy_of_the_buffer_source(
   }
   let i = offset
   while (! (< (- (+ offset length) 1) i)) {
+    call _call34 = clo<"GetValueFromBuffer">(jsArrayBuffer, i, (yet "Uint8"), true, (yet "Unordered"))
+    bytes[(- i offset)] = _call34
     i = (+ i 1)
   }
   return bytes

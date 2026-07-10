@@ -199,13 +199,11 @@ object InstrParser:
             )
           case None => Unknown(text, trailingBody)
       case ForPrefix(elemStr, rest) =>
-        val collection = findTopLevel(rest, ",") match
-          case Some(j) => rest.substring(0, j).trim
-          case None    => rest.stripSuffix(",").trim
+        val (collection, bodyText) = splitForCollection(rest)
         For(
           ExprParser.parse(elemStr.trim),
           ExprParser.parse(collection),
-          trailingBody,
+          deriveBody(bodyText, trailingBody),
         )
       case WhilePrefix(rest) =>
         While(CondParser.parse(rest.stripSuffix(":").trim), trailingBody)
@@ -274,6 +272,26 @@ object InstrParser:
           else if rest.equalsIgnoreCase("then") then rest = ""
         (cond, rest)
       case None => (text.trim, "")
+
+  /** splits the text after `For ELEM in` into the collection expression and the
+    * loop's inline body. The collection ends at the first top-level comma, but
+    * a range's trailing ", inclusive" (e.g. "... to Y, inclusive, set ...")
+    * describes the collection rather than starting the body, so it is stripped
+    * before the remainder is handed back as the body text.
+    */
+  private def splitForCollection(rest: String): (String, String) =
+    findTopLevel(rest, ",") match
+      case Some(j) =>
+        val collection = rest.substring(0, j).trim
+        var body = rest.substring(j + 1).trim
+        if body.toLowerCase.startsWith("inclusive") then
+          val after = body.substring("inclusive".length)
+          // guard against words like "inclusively": the marker must be followed
+          // by a comma or the end of the text, not more letters
+          if after.isEmpty || !after.head.isLetter then
+            body = after.trim.stripPrefix(",").trim
+        (collection, body)
+      case None => (rest.stripSuffix(",").trim, "")
 
   /** the body of a block-introducing [[Instr]] (`If`, `ForEach`, ...): the
     * converted sub-steps if there are any, otherwise the remaining text

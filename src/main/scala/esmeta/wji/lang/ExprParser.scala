@@ -88,6 +88,17 @@ object ExprParser:
   private val IndexByStr = """(?s)^(.+)\["([^"]+)"\]$""".r
   private val IndexByVar = """(?s)^(.+)\[(\|[^|]+\|)\]$""".r
   private val IndexByNum = """(?s)^(.+)\[(-?\d+)\]$""".r
+  // a general `base[EXPR]` index whose key is a compound expression rather than
+  // a bare string/var/number (e.g. `|bytes|[|i| &minus; |offset|]`). The key
+  // holds no further brackets, so the whole bracketed suffix stays together and
+  // isn't split by a `&minus;`/`+` inside it (which BinOpPat, tried later, is
+  // not bracket-aware about). The base must end in a non-space char (index
+  // syntax is written `base[key]` with no gap, so a space-then-`[` like the
+  // `→ [...]` in a func-type destructuring is not an index) and the key must
+  // not start with `=` (so a trailing `[=link=]` documentation link such as
+  // `|func|'s [=associated Realm=]` is not mistaken for an index). Placed after
+  // the specific IndexBy* forms above.
+  private val IndexByExpr = """(?s)^(.+\S)\[([^\[\]=][^\[\]]*)\]$""".r
 
   private val MapLiteral = """(?s)^«\[\s*(.*?)\s*\]»$""".r
   // spec error #1 (spec_errors.md): written as «  » instead of «[ ]»; SpecPatch corrects it,
@@ -176,6 +187,7 @@ object ExprParser:
       case IndexByStr(baseRaw, key)    => Index(parse(baseRaw), Str(key))
       case IndexByVar(baseRaw, varRaw) => Index(parse(baseRaw), parse(varRaw))
       case IndexByNum(baseRaw, n)      => Index(parse(baseRaw), parse(n))
+      case IndexByExpr(baseRaw, idx)   => Index(parse(baseRaw), parse(idx))
       case NewExpr(iface)              => New(iface)
       case EmptyList()                 => List_(Nil)
       case NewByteSeqOfLength(lenRaw)  => NewByteSequence(parse(lenRaw.trim))

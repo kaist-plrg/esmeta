@@ -101,12 +101,30 @@ case object WjiInterp extends Phase[CFG, Value] {
     // stays a near-empty record even after the script runs), then
     // `Get(globalObj, "importObj")` — the same "set up a call, run, read
     // GLOBAL_RESULT" shape as the target-function invocation below.
+    //
+    // Both are compiled with `needRetComp` (any AO that can appear behind a
+    // `?`/`!` in spec prose has every `Return` wrapped — see
+    // `esmeta.compiler.Compiler`), so `GLOBAL_RESULT` here is a
+    // `NormalCompletion` *record*, not the raw value: unwrap it before using
+    // it as an argument to anything else, or a later real `[[Get]]` internal
+    // method call ends up receiving the completion record itself as its
+    // receiver and fails looking for a "Get" field on it.
+    def unwrapCompletion(v: Value): Value = v match
+      case addr: Addr =>
+        st.heap(addr) match
+          case r: RecordObj if r.tname == "CompletionRecord" =>
+            r.get("Type") match
+              case Some(Enum("normal")) => r.get("Value").getOrElse(Undef)
+              case _ =>
+                throw new RuntimeException(s"abrupt completion: ${st(addr)}")
+          case _ => v
+      case _ => v
     def callAO(name: String, args: List[Value]): Value =
       val f = mergedCfg.getFunc(name)
       st.context = Context(f, MMap.from(f.params.map(_.lhs).zip(args)))
       st.callStack = Nil
       EsInterpreter(st)
-      st.globals.getOrElse(GLOBAL_RESULT, Undef)
+      unwrapCompletion(st.globals.getOrElse(GLOBAL_RESULT, Undef))
     val globalObjAddr = callAO("GetGlobalObject", Nil)
     val importObj = callAO("Get", List(globalObjAddr, Str("importObj")))
 

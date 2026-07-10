@@ -2,12 +2,12 @@ package esmeta.wji.compiler.lowering
 
 import esmeta.wji.lang.{Algorithm, Expr, Instr}
 
-/** Rewrites a `"Let |x| be the following steps given argument |V|: ..."` step
-  * — parsed by [[ExprParser]] into an `Instr.Let` whose `expr` is a
-  * placeholder `Expr.Closure("", params, Nil)` and whose `body` (still on the
-  * `Let` itself, exactly like [[ExpandQueueATaskPass]]'s `Perform.body`)
-  * holds the substeps — into a `Let` binding a proper closure over a freshly
-  * split-off top-level [[Algorithm]]:
+/** Rewrites a `"Let |x| be the following steps given argument |V|: ..."` step —
+  * parsed by [[ExprParser]] into an `Instr.Let` whose `expr` is a placeholder
+  * `Expr.Closure("", params, Nil)` and whose `body` (still on the `Let` itself,
+  * exactly like [[ExpandQueueATaskPass]]'s `Perform.body`) holds the substeps —
+  * into a `Let` binding a proper closure over a freshly split-off top-level
+  * [[Algorithm]]:
   *
   * {{{
   *   Let(Var("onFulfilledSteps"), Closure("", List("V"), Nil), substeps)
@@ -18,16 +18,15 @@ import esmeta.wji.lang.{Algorithm, Expr, Instr}
   * }}}
   * where `substeps` is split off into a fresh top-level [[Algorithm]] named
   * `closureName` taking `params` (`|V|` here) as its formal parameters, and
-  * `captured` is every other free variable `substeps` references — computed
-  * by [[FreeVarAnalysis]], excluding `params` themselves, mirroring how
+  * `captured` is every other free variable `substeps` references — computed by
+  * [[FreeVarAnalysis]], excluding `params` themselves, mirroring how
   * [[ExpandQueueATaskPass]] computes captures for a "queue a task" step's
   * substeps.
   *
-  * Runs in the same late slot as [[ExpandQueueATaskPass]], for the same
-  * reason: `body` rides through every earlier pass as ordinary nested
-  * `Let.body` content (every pass already recurses into it via
-  * `Instr.mapBody`), so by the time this pass sees it, it's already fully
-  * lowered.
+  * Runs in the same late slot as [[ExpandQueueATaskPass]], for the same reason:
+  * `body` rides through every earlier pass as ordinary nested `Let.body`
+  * content (every pass already recurses into it via `Instr.mapBody`), so by the
+  * time this pass sees it, it's already fully lowered.
   */
 object ExpandStepsClosurePass extends LoweringPass:
   private var counter = 0
@@ -49,8 +48,14 @@ object ExpandStepsClosurePass extends LoweringPass:
       val closureName = freshClosureName()
       val captured =
         (FreeVarAnalysis.freeVars(body) -- params).toList.sorted
-      extra += Algorithm(None, Some(closureName), params.map(p => s"|$p|"), "", body)
+      extra += Algorithm(
+        None,
+        Some(closureName),
+        params.map(p => s"|$p|"),
+        "",
+        body,
+      )
       Instr.Let(lhs, Expr.Closure(closureName, params, captured), Nil) ::
-        transform(rest, extra)
+      transform(rest, extra)
     case instr :: rest =>
       instr.mapBody(transform(_, extra)) :: transform(rest, extra)

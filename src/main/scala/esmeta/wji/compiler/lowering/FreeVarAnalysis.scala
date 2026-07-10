@@ -86,14 +86,14 @@ object FreeVarAnalysis:
     case Expr.List_(elems)      => elems.flatMap(varsOf).toSet
     case Expr.Map_(entries) =>
       entries.flatMap((k, v) => varsOf(k) ++ varsOf(v)).toSet
-    case Expr.Length(e)            => varsOf(e)
-    case Expr.BinOp(l, _, r)       => varsOf(l) ++ varsOf(r)
-    case Expr.Pow(base, exp)       => varsOf(base) ++ varsOf(exp)
-    case Expr.Neg(e)                => varsOf(e)
-    case Expr.AsMath(e)            => varsOf(e)
-    case Expr.Tuple(elems)         => elems.flatMap(varsOf).toSet
+    case Expr.Length(e)               => varsOf(e)
+    case Expr.BinOp(l, _, r)          => varsOf(l) ++ varsOf(r)
+    case Expr.Pow(base, exp)          => varsOf(base) ++ varsOf(exp)
+    case Expr.Neg(e)                  => varsOf(e)
+    case Expr.AsMath(e)               => varsOf(e)
+    case Expr.Tuple(elems)            => elems.flatMap(varsOf).toSet
     case Expr.Closure(_, _, captured) => captured.toSet
-    case _                         => Set.empty
+    case _                            => Set.empty
 
   private def varsOfCond(cond: Cond): Set[String] = cond match
     case Cond.Eq(l, r, _)         => varsOf(l) ++ varsOf(r)

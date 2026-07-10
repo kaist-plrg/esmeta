@@ -48,15 +48,26 @@ case class State(
 
   /** field getter */
   def apply(base: Value, field: Value): Value = base match
-    case addr: Addr    => heap(addr, field)
-    case AstValue(ast) => AstValue(ast(field))
-    case Str(str)      => apply(str, field)
-    case v             => throw InvalidRefBase(v)
+    case addr: Addr              => heap(addr, field)
+    case AstValue(ast)           => AstValue(ast(field))
+    case Str(str)                => apply(str, field)
+    case Wasm(ALValue.ListV(vs)) => apply(vs, field)
+    case v                       => throw InvalidRefBase(v)
 
   /** string field getter */
   def apply(str: String, field: Value): Value = field match
     case Math(k) => CodeUnit(str(k.toInt))
     case _       => throw WrongStringRef(str, field)
+
+  /** Wasm-embedding list field getter */
+  def apply(vs: List[ALValue], field: Value): Value =
+    lazy val base = Wasm(ALValue.ListV(vs))
+    field match
+      case Math(k) if k.isValidInt =>
+        vs.lift(k.toInt) match
+          case Some(v) => Wasm(v)
+          case None    => throw InvalidRefBase(base)
+      case _ => throw InvalidRefBase(base)
 
   /** address getter */
   def apply(addr: Addr): Obj = heap(addr)

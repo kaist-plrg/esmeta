@@ -32,12 +32,12 @@ import scala.collection.mutable.{Map => MMap}
   * (`InitializeHostDefinedRealm` / `ScriptEvaluation`), and per spec the
   * execution context stack is popped back to empty once that job finishes.
   *
-  * So this phase runs a trivial *empty* script to completion first — which
-  * pushes a context, wires up the realm/intrinsics, then pops the context again
-  * — and then, reusing that same (heap-populated) [[State]], manually re-pushes
-  * a fresh execution context referencing the now-fully-wired realm before
-  * jumping directly into the target WJI function. This is a stand-in for "a
-  * minimal JS driver called `entry`"; it does not run any actual JS source.
+  * So this phase runs a small bootstrap script to completion first (see
+  * `apply`) — which pushes a context, wires up the realm/intrinsics, then pops
+  * the context again — and then, reusing that same (heap-populated) [[State]],
+  * manually re-pushes a fresh execution context referencing the now-fully-wired
+  * realm before jumping directly into the target WJI function. This is a
+  * stand-in for "a minimal JS driver called `entry`".
   *
   * Wasm embedding calls (`ICallEmbed`) are dispatched to a live
   * [[SpecTecWasmHost]] over JSON-RPC, so this requires a live SpecTec process
@@ -60,79 +60,57 @@ case object WjiInterp extends Phase[CFG, Value] {
     val mergedCfg = CFGBuilder(merged)
     given CFG = mergedCfg
 
-    // run an empty script to completion so the real ECMA-262 bootstrap wires
-    // up the realm/intrinsics; the execution context it pushed is popped
-    // again by the time this returns, but the Realm Record it populated
-    // lives on in the heap.
-    val st = EsInterpreter(Initialize(mergedCfg).from(""))
+    // run a script to completion so the real ECMA-262 bootstrap wires up the
+    // realm/intrinsics; the execution context it pushed is popped again by
+    // the time this returns, but the Realm Record it populated lives on in
+    // the heap. It also builds `importObj`, the {js: {import1, import2}}
+    // object js-api/index.bs's own sample usage (§Sample API Usage,
+    // index.bs:288-318) passes to instantiation — real ECMAScript, run by the
+    // real ECMA-262 mechanization, rather than a hand-built heap record, so
+    // it round-trips through `[$Get$]`/`[$IsCallable$]` exactly like a real
+    // import object would. `import1`/`import2` are no-ops here (the sample's
+    // own bodies call `console.log`, which isn't a real ECMA-262 global) —
+    // this is only meant to exercise `create a host function`, not their
+    // console output.
+    val st = EsInterpreter(
+      Initialize(mergedCfg).from("""
+        var importObj = {js: {
+          import1: function() {},
+          import2: function() {}
+        }};
+      """),
+    )
 
     // re-push a fresh execution context referencing that now-populated realm
-    // so `the current Realm Record` (and friends) resolve for the call below.
+    // so `the current Realm Record` (and friends) resolve for the calls below
+    // (`RunJobs` — manuals/algos/RunJobs.algo — pops the context stack back to
+    // empty once the script job finishes).
     val execContext = st.heap.allocRecord(
       "ExecutionContext",
       List("Realm" -> realmAddr, "Function" -> Null, "ScriptOrModule" -> Null),
     )
     st.heap.push(NamedAddr(EXECUTION_STACK), execContext, true)
 
-    val func = mergedCfg.getFunc(config.entry)
-    // a placeholder decoded `module` (Wasm Core Spec 1.4-syntax.modules),
-    // shaped like the real `CaseV("MODULE", args)` SpecTec's `module_decode`
-    // produces (see `Construct.al_of_module` in the SpecTec submodule) — a
-    // positional value, not a named record — so it round-trips through real
-    // embedding calls (e.g. `module_imports`) unchanged. Field order matches
-    // `al_of_module`'s `!version <= 2` false branch (Wasm 3.0/GC field set),
-    // though the order no longer matters on the `esmeta` side: every read of
-    // this data goes through `module_imports`, not a field access (see
-    // `SpecPatch` #5 — the spec used to read `|module|.[=imports=]` directly,
-    // which only ever worked because an older Wasm Core Spec version modeled
-    // `module` as a record).
-    val placeholderModule = Wasm(
-      ALValue.CaseV(
-        "MODULE",
-        List(
-          ALValue.ListV(Nil), // types
-          ALValue.ListV(Nil), // imports
-          ALValue.ListV(Nil), // tags
-          ALValue.ListV(Nil), // globals
-          ALValue.ListV(Nil), // mems
-          ALValue.ListV(Nil), // tables
-          ALValue.ListV(Nil), // funcs
-          ALValue.ListV(Nil), // datas
-          ALValue.ListV(Nil), // elems
-          ALValue.OptV(None), // start
-          ALValue.ListV(Nil), // exports
-        ),
-      ),
-    )
-    // {{Module}}'s 4 internal slots (index.bs:429-432); filled with
-    // placeholder values just to see how far execution gets past them.
-    val moduleObject = st.heap.allocRecord(
-      "ModuleObject",
-      List(
-        "Module" -> placeholderModule,
-        "Bytes" -> Wasm(ALValue.ListV(Nil)),
-        "BuiltinSets" -> st.heap.allocList(Nil),
-        "ImportedStringModule" -> Undef,
-      ),
-    )
-    val importObject = st.heap.allocRecord("ImportObject")
-    val locals: MMap[Local, Value] =
-      MMap.from(func.params.map(_.lhs).zip(List(moduleObject, importObject)))
-    st.context = Context(func, locals)
-    st.callStack = Nil
+    // `var importObj = ...` makes it a property of the real global object —
+    // NOT the script's completion value: `RunJobs`'s script-evaluation job
+    // unconditionally `Return *undefined*.`s, discarding whatever the script
+    // itself evaluated to, so `GLOBAL_RESULT` was never set to it. Read it
+    // back out with two real AO calls instead — `GetGlobalObject()` (the
+    // current Realm's `[[GlobalObject]]`, not the bare `NamedAddr(GLOBAL)`
+    // constant, which is only `Initialize`'s pre-bootstrap placeholder and
+    // stays a near-empty record even after the script runs), then
+    // `Get(globalObj, "importObj")` — the same "set up a call, run, read
+    // GLOBAL_RESULT" shape as the target-function invocation below.
+    def callAO(name: String, args: List[Value]): Value =
+      val f = mergedCfg.getFunc(name)
+      st.context = Context(f, MMap.from(f.params.map(_.lhs).zip(args)))
+      st.callStack = Nil
+      EsInterpreter(st)
+      st.globals.getOrElse(GLOBAL_RESULT, Undef)
+    val globalObjAddr = callAO("GetGlobalObject", Nil)
+    val importObj = callAO("Get", List(globalObjAddr, Str("importObj")))
 
-    // `**this**` in a WebIDL constructor's steps (e.g. {{Instance}}'s) refers
-    // to a platform object that WebIDL's own "internally create a new object
-    // implementing the interface" algorithm allocates *before* the
-    // constructor steps run (webidl/index.bs, "interface object" [[Construct]]
-    // — not mechanized here, see personal/constructor.md) — so, like
-    // moduleObject/importObject above, the harness fabricates a placeholder
-    // directly rather than actually running that preamble. {{Instance}}'s only
-    // interface-specific slot is [[Exports]] (js-api/index.bs's "initialize an
-    // instance object" sets it); harmless to bind even for entry points that
-    // don't reference `this` at all.
-    val thisObject = st.heap.allocRecord("Instance", List("Exports" -> Undef))
-    st.globals += Global("this") -> thisObject
+    val func = mergedCfg.getFunc(config.entry)
 
     val process = SpecTecProcess.start()
     val connection = JsonRpcConnection.stdio(process)
@@ -155,8 +133,57 @@ case object WjiInterp extends Phase[CFG, Value] {
       case Left(err) =>
         throw new RuntimeException(s"store_init failed: $err")
 
+    // js-api/index.bs's own sample usage (§Sample API Usage, index.bs:288-301,
+    // `demo.wat`): two func imports ("js"."import1"/"import2"), a start
+    // function calling the first, and an export "f" calling the second —
+    // compiled with `wat2wasm` and inlined as a byte literal. Decoded through
+    // the real `module_decode` embedding call (not a hand-built placeholder
+    // `CaseV("MODULE", ...)`), so it round-trips through `module_imports`,
+    // `module_instantiate`, etc. exactly like a real module would.
+    val demoWasmBytes: List[Int] = List(
+      0, 97, 115, 109, 1, 0, 0, 0, 1, 4, 1, 96, 0, 0, 2, 27, 2, 2, 106, 115, 7,
+      105, 109, 112, 111, 114, 116, 49, 0, 0, 2, 106, 115, 7, 105, 109, 112,
+      111, 114, 116, 50, 0, 0, 3, 3, 2, 0, 0, 7, 5, 1, 1, 102, 0, 3, 8, 1, 2,
+      10, 11, 2, 4, 0, 16, 0, 11, 4, 0, 16, 1, 11,
+    )
+    val demoWasmBytesAL: ALValue =
+      ALValue.ListV(demoWasmBytes.map(n => ALValue.NumV(ALNum.Nat(n))))
+    val decodedModule = host.call("module_decode", List(demoWasmBytesAL)) match
+      case Right(m) => Wasm(m)
+      case Left(err) =>
+        throw new RuntimeException(s"module_decode failed: $err")
+    // {{Module}}'s 4 internal slots (index.bs:429-432); BuiltinSets/
+    // ImportedStringModule stay empty/unset since the demo module doesn't use
+    // either feature.
+    val moduleObject = st.heap.allocRecord(
+      "ModuleObject",
+      List(
+        "Module" -> decodedModule,
+        "Bytes" -> Wasm(demoWasmBytesAL),
+        "BuiltinSets" -> st.heap.allocList(Nil),
+        "ImportedStringModule" -> Null,
+      ),
+    )
+    val locals: MMap[Local, Value] =
+      MMap.from(func.params.map(_.lhs).zip(List(moduleObject, importObj)))
+    st.context = Context(func, locals)
+    st.callStack = Nil
+
+    // `**this**` in a WebIDL constructor's steps (e.g. {{Instance}}'s) refers
+    // to a platform object that WebIDL's own "internally create a new object
+    // implementing the interface" algorithm allocates *before* the
+    // constructor steps run (webidl/index.bs, "interface object" [[Construct]]
+    // — not mechanized here, see personal/constructor.md) — so, like
+    // moduleObject above, the harness fabricates a placeholder directly rather
+    // than actually running that preamble. {{Instance}}'s only
+    // interface-specific slot is [[Exports]] (js-api/index.bs's "initialize an
+    // instance object" sets it); harmless to bind even for entry points that
+    // don't reference `this` at all.
+    val thisObject = st.heap.allocRecord("Instance", List("Exports" -> Undef))
+    st.globals += Global("this") -> thisObject
+
     val sep = "─" * 64
-    println(s"invoke: ${config.entry}($moduleObject, $importObject)")
+    println(s"invoke: ${config.entry}($moduleObject, $importObj)")
     println(sep)
     try
       EsInterpreter(st, wasmHost = Some(host))

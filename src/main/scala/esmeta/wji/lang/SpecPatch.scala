@@ -45,6 +45,12 @@ object SpecPatch:
         true, Unordered)."""
     ->
     "1.  For |i| in [=the range=] |offset| to |offset| + |length| &minus; 1, inclusive, set |bytes|[|i| &minus; |offset|] to [$GetValueFromBuffer$](|jsArrayBuffer|, |i|, {{uint8}}, true, {{unordered}}).",
+    "1.  Let |onFulfilled| be [$CreateBuiltinFunction$](|onFulfilledSteps|, 1, \"\", « »):"
+    ->
+    "1.  Let |onFulfilled| be [$CreateBuiltinFunction$](|onFulfilledSteps|, 1, \"\", « »).",
+    "[$CreateBuiltinFunction$](|onRejectedSteps|, 1, \"\", « »):"
+    ->
+    "[$CreateBuiltinFunction$](|onRejectedSteps|, 1, \"\", « »).",
   )
 
   def apply(source: String): String =

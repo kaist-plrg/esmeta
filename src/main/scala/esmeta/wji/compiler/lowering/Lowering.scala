@@ -18,6 +18,7 @@ object Lowering:
     ExpandPerformReturnResultPass,
     ExpandAbbreviatedCondPass,
     ExpandQueueATaskPass,
+    ExpandStepsClosurePass,
     ReplaceSpaceWithUnderscore,
   )
 

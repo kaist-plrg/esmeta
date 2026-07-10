@@ -1,4 +1,4 @@
-112 func(s)
+114 func(s)
 def compile_a_webassembly_module(
   bytes: Unknown,
 ): Unknown = {
@@ -2010,23 +2010,9 @@ def react(
   T: Unknown,
   promise: Unknown,
 ): Unknown = {
-  let onFulfilledSteps = (yet "the following steps given argument |V|:")
-  call value = clo<"converted_to_an_idl_value">(V, T)
-  if (= (yet "there") (yet "a set of steps to be run if the promise was fulfilled")) {
-    let result = (yet "performing them, given |value| if |T| is not {{undefined}}")
-  } else {
-    let result = value
-  }
-  return (yet "|result|, [=converted to a JavaScript value=]")
+  let onFulfilledSteps = clo<"_stepsclosure1", [T]>
   let onFulfilled = (yet "[$CreateBuiltinFunction$](|onFulfilledSteps|, 1, \"\", « »):")
-  let onRejectedSteps = (yet "the following steps given argument |R|:")
-  call reason = clo<"converted_to_an_idl_value">(R, ~any~)
-  if (= (yet "there") (yet "a set of steps to be run if the promise was rejected")) {
-    let result = (yet "performing them, given |reason|")
-  } else {
-    call result = clo<"a_promise_rejected_with">(reason)
-  }
-  return (yet "|result|, [=converted to a JavaScript value=]")
+  let onRejectedSteps = clo<"_stepsclosure2">
   let onRejected = (yet "[$CreateBuiltinFunction$](|onRejectedSteps|, 1, \"\", « »):")
   let constructor = promise.Promise.Realm.Intrinsics["%Promise%"]
   call _comp38 = clo<"NewPromiseCapability">(constructor)
@@ -2110,4 +2096,26 @@ def _queuetaskjob2(
   } else nop
   call _ = clo<"resolve">(promise, instanceObject)
   return ~unused~
+}
+def _stepsclosure1(
+  V: Unknown,
+): Unknown = {
+  call value = clo<"converted_to_an_idl_value">(V, T)
+  if (= (yet "there") (yet "a set of steps to be run if the promise was fulfilled")) {
+    let result = (yet "performing them, given |value| if |T| is not {{undefined}}")
+  } else {
+    let result = value
+  }
+  return (yet "|result|, [=converted to a JavaScript value=]")
+}
+def _stepsclosure2(
+  R: Unknown,
+): Unknown = {
+  call reason = clo<"converted_to_an_idl_value">(R, ~any~)
+  if (= (yet "there") (yet "a set of steps to be run if the promise was rejected")) {
+    let result = (yet "performing them, given |reason|")
+  } else {
+    call result = clo<"a_promise_rejected_with">(reason)
+  }
+  return (yet "|result|, [=converted to a JavaScript value=]")
 }

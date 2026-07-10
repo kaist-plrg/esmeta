@@ -1431,7 +1431,7 @@
 # react
   params: |T|, |promise|
   head: To <dfn id="dfn-perform-steps-once-promise-is-settled" export lt="react|reacting" for="promise">react</dfn> to a <code><a interface>Promise</a>&lt;|T|&gt;</code> |promise|, given one or two sets of steps to perform, covering when the promise is fulfilled, rejected, or both, perform the following steps:
-  Let(|onFulfilledSteps|, ?(the following steps given argument |V|:))
+  Let(|onFulfilledSteps|, closure (V) captures())
     Let(|value|, [=converted to an IDL value=](|V|, |T|))
     If(?(there) is ?(a set of steps to be run if the promise was fulfilled))
       Let(|result|, ?(performing them, given |value| if |T| is not {{undefined}}))
@@ -1439,7 +1439,7 @@
       Let(|result|, |value|)
     Return(?(|result|, [=converted to a JavaScript value=]))
   Let(|onFulfilled|, ?([$CreateBuiltinFunction$](|onFulfilledSteps|, 1, "", « »):))
-  Let(|onRejectedSteps|, ?(the following steps given argument |R|:))
+  Let(|onRejectedSteps|, closure (R) captures())
     Let(|reason|, [=converted to an IDL value=](|R|, any))
     If(?(there) is ?(a set of steps to be run if the promise was rejected))
       Let(|result|, ?(performing them, given |reason|))

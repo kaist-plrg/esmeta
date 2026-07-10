@@ -274,7 +274,7 @@ object Compiler:
     case metalang.Expr.Range(low, high) =>
       EYet(s"range ${low} to ${high}") // TODO: proper range value
     case metalang.Expr.Unknown(raw) => EYet(raw)
-    case metalang.Expr.Closure(name, captured) =>
+    case metalang.Expr.Closure(name, _, captured) =>
       EClo(name, captured.map(Name(_)))
     case metalang.Expr.TupleProj(base, idx) => EProj(compileExpr(base), idx)
 

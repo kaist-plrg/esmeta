@@ -41,8 +41,8 @@ object ExprPrinter:
     case NewByteSequence(length) => s"ByteSequence(${render(length)})"
     case Range(low, high)        => s"Range(${render(low)}, ${render(high)})"
     case Expr.Unknown(raw)       => s"?($raw)"
-    case Closure(name, captured) =>
-      s"closure $name captures(${captured.mkString(", ")})"
+    case Closure(name, params, captured) =>
+      s"closure $name(${params.mkString(", ")}) captures(${captured.mkString(", ")})"
     case TupleProj(base, idx) => s"${render(base)}.$idx"
 
   private def renderBOp(op: BOp): String = op match

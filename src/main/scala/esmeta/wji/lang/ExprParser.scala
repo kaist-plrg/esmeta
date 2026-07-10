@@ -9,6 +9,15 @@ object ExprParser:
   private val AbruptPrefix = """(?s)^\[=([?!])=\]\s+(.+)$""".r
   private val ResultOf = """(?si)^the result of (?:creating\s+)?(.+)$""".r
   private val EitherPat = """(?si)^either\s+(.+)$""".r
+  // "the following steps given argument |V|:" / "... given arguments |V| and
+  // |W|:" / "... given |arg|:" (the word "argument(s)" is sometimes omitted).
+  // Parses straight to a placeholder Closure (name/captured filled in later
+  // by ExpandStepsClosurePass — this string is all ExprParser ever sees, not
+  // the nested sub-steps the phrase introduces, which stay on the owning
+  // Instr.Let's own `body` until that pass runs). See Expr.Closure.
+  private val StepsClosurePrefix =
+    """(?is)^the following steps,?\s+given\s+(?:arguments?\s+)?(\|[^|]+\|(?:\s*(?:,|and)\s*\|[^|]+\|)*)\s*:?\s*$""".r
+  private val PipeVarInline = """\|([^|]+)\|""".r
   private val Backticked = """(?s)^`(.+)`$""".r
   private val BacktickedQuotedStr = """(?s)^`"([^"]*)"`$""".r
   private val JSCallFull = """(?s)^\[\$([^\$]+)\$\]\((.*)\)$""".r
@@ -150,6 +159,12 @@ object ExprParser:
       case AbruptPrefix(check, rest) => Abrupt(check, parse(rest))
       case ResultOf(rest)            => parse(rest)
       case EitherPat(rest)           => parse(rest)
+      case StepsClosurePrefix(paramsRaw) =>
+        Closure(
+          "",
+          PipeVarInline.findAllMatchIn(paramsRaw).map(_.group(1)).toList,
+          Nil,
+        )
       // A backtick-wrapped *quoted* string (e.g. `"frozen"`, the argument to
       // [$SetIntegrityLevel$]) isn't a real ECMAScript string value — it's
       // Bikeshed's way of typesetting an ECMA-262 "specification type" enum

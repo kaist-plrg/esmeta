@@ -169,6 +169,24 @@ object ExprParser:
   // object, a `[[{{%Promise%}}]]` slot) are matched by more specific patterns
   // (NewExpr, SlotAccess) before this.
   private val BracedTerm = """(?s)^\{\{(.+)\}\}$""".r
+  // "the <a spec=HTML>incumbent settings object</a>" — a cross-spec Bikeshed
+  // autolink (`<a spec=X>...</a>`) referencing a concept defined in another
+  // spec entirely. ECMA-262 itself deliberately never defines "settings
+  // object"/"incumbent settings object" — it delegates all of it to
+  // HostMakeJobCallback/HostCallJobCallback (host-defined abstract
+  // operations), whose *default* implementation (used by any host that isn't
+  // a web browser — ecma262/spec.html's own wording) just calls the callback
+  // directly with no such bookkeeping at all. So, like `current Realm`/
+  // `surrounding agent`, this parses to an opaque SpecTerm placeholder —
+  // nothing in this codebase ever needs its actual value, only that the
+  // binding succeeds.
+  private val CrossSpecRef = """(?si)^(?:the\s+)?<a\s+spec=\w+>(.+?)</a>$""".r
+  // "|realm|'s [=realm/settings object=]" — the same WHATWG HTML machinery as
+  // CrossSpecRef above, just accessed via a possessive rather than a direct
+  // `<a spec=...>` link; the |realm| association is dropped rather than
+  // modeled as a real field read, for the same reason.
+  private val RealmSettingsObject =
+    """(?si)^\|[^|]+\|'s \[=realm/settings object=\]$""".r
   // "[=the range=] LOW to HIGH" — the leading link text varies ("the range",
   // "range", ...) but always mentions "range". Both bounds are assumed
   // inclusive (see [[Expr.Range]]), so a trailing ", inclusive" is left for
@@ -268,20 +286,22 @@ object ExprParser:
         Map_(entries)
       case ListLiteral(inner) =>
         List_(splitComma(inner).map(parse))
-      case TuplePat(inner)   => Tuple(splitComma(inner).map(parse))
-      case NegPat(inner)     => Neg(parse(inner))
-      case NumberPat()       => Num(s)
-      case HexPat()          => Num(s)
-      case QuotedStr(v)      => Str(v)
-      case EmptyString()     => Str("")
-      case TheException()    => Var("exception")
-      case BoolTrue()        => Bool(true)
-      case BoolFalse()       => Bool(false)
-      case BoldConst(_)      => SpecTerm(s)
-      case SpecTermPat()     => SpecTerm(s)
-      case EmuConst(v)       => SpecTerm(v)
-      case BracedTerm(inner) => SpecTerm(inner)
-      case _                 => Unknown(s)
+      case TuplePat(inner)       => Tuple(splitComma(inner).map(parse))
+      case NegPat(inner)         => Neg(parse(inner))
+      case NumberPat()           => Num(s)
+      case HexPat()              => Num(s)
+      case QuotedStr(v)          => Str(v)
+      case EmptyString()         => Str("")
+      case TheException()        => Var("exception")
+      case BoolTrue()            => Bool(true)
+      case BoolFalse()           => Bool(false)
+      case BoldConst(_)          => SpecTerm(s)
+      case SpecTermPat()         => SpecTerm(s)
+      case EmuConst(v)           => SpecTerm(v)
+      case BracedTerm(inner)     => SpecTerm(inner)
+      case CrossSpecRef(text)    => SpecTerm(text)
+      case RealmSettingsObject() => SpecTerm("realm/settings object")
+      case _                     => Unknown(s)
 
   /** Extracts argument [[Expr]]s from a prose string.
     *

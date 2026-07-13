@@ -868,10 +868,10 @@
   params: |func|, |functype|
   head: To <dfn>create a host function</dfn> from the JavaScript object |func| and type |functype|, perform the following steps:
   Assert(?([$IsCallable$](|func|)))
-  Let(|stored settings|, ?(the <a spec=HTML>incumbent settings object</a>))
+  Let(|stored settings|, incumbent settings object)
   Let(|hostfunc|, [=host function=] which performs the following steps when called with arguments |arguments|:)
     Let(|realm|, ?(|func|'s [=associated Realm=]))
-    Let(|relevant settings|, ?(|realm|'s [=realm/settings object=]))
+    Let(|relevant settings|, realm/settings object)
     Perform([=Prepare to run script=](|relevant settings|))
     Perform([=Prepare to run a callback=](|stored settings|))
     Let(|result|, [=run a host function=](|func|, |functype|, |arguments|))

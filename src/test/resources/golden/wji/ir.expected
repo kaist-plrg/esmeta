@@ -1336,15 +1336,11 @@ def create_a_host_function(
   functype: Unknown,
 ): Unknown = {
   assert (yet "[$IsCallable$](|func|)")
-  let stored settings = (yet "the <a spec=HTML>incumbent settings object</a>")
+  let stored settings = ~incumbent settings object~
   let hostfunc = (yet "[=host function=] which performs the following steps when called with arguments |arguments|:")
   let realm = (yet "|func|'s [=associated Realm=]")
-  let relevant settings = (yet "|realm|'s [=realm/settings object=]")
-  call _ = clo<"prepare_to_run_script">(relevant settings)
-  call _ = clo<"prepare_to_run_a_callback">(stored settings)
+  let relevant settings = ~realm/settings object~
   call result = clo<"run_a_host_function">(func, functype, arguments)
-  call _ = clo<"clean_up_after_running_a_callback">(stored settings)
-  call _ = clo<"clean_up_after_running_script">(relevant settings)
   assert (|| (= result.Type ~<emu-const>throw</emu-const>~) (= result.Type ~<emu-const>normal</emu-const>~))
   let store = @AGENT_RECORD["associated store"]
   if (= result.Type ~<emu-const>throw</emu-const>~) {

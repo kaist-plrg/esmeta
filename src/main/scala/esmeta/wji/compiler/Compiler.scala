@@ -241,11 +241,17 @@ object Compiler:
     case metalang.Expr.BinOp(l, op, r) => compileBinOp(op, l, r)
     case metalang.Expr.Pow(base, exp) =>
       EBinary(BOp.Pow, compileExpr(base), compileExpr(exp))
-    case metalang.Expr.Neg(e)         => EUnary(UOp.Neg, compileExpr(e))
-    case metalang.Expr.AsMath(e)      => compileExpr(e)
-    case metalang.Expr.Abrupt("!", e) => compileExpr(e)
-    case metalang.Expr.Abrupt(_, e) =>
-      EYet(s"? ${e}") // TODO: abrupt completion check
+    case metalang.Expr.Neg(e)    => EUnary(UOp.Neg, compileExpr(e))
+    case metalang.Expr.AsMath(e) => compileExpr(e)
+    // ExpandAbruptPass expands every `?`/`!` in the direct-RHS position of
+    // Let/Set/Return into real completion-record inspection before
+    // compilation ever sees it; this only remains for a *nested* occurrence
+    // (e.g. `?`/`!` used as an argument to another call), which that pass
+    // doesn't yet reach — TODO: generalize ExpandAbruptPass beyond top-level
+    // Let/Set/Return RHS, the way mainline's `returnIfAbrupt` handles it at
+    // any expression depth.
+    case metalang.Expr.Abrupt(marker, e) =>
+      EYet(s"nested $marker-abrupt: $e")
     case metalang.Expr.Link(link, args) =>
       // ResolveLinksPass resolves every Link into an AlgoCall/Case/SpecTerm
       // before compilation ever sees it; this is only here for exhaustivity.

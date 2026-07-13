@@ -1,34 +1,34 @@
 package esmeta.wji.lang
 
-/** Known corrections applied to `spectec/document/js-api/index.bs` and, for
-  * the small subset of algorithms `SpecFile.webidlFilter` pulls in from it,
+/** Known corrections applied to `spectec/document/js-api/index.bs` and, for the
+  * small subset of algorithms `SpecFile.webidlFilter` pulls in from it,
   * `webidl/index.bs`.
   *
-  * Each entry is a `(from, to)` pair applied as a literal string replacement
-  * on the raw source text before parsing, via [[apply]] (run over every file
-  * `AlgorithmExtractor.extractFromFile` loads). Every numbered comment below
-  * is tagged with what kind of change it makes — a single entry can mix both
+  * Each entry is a `(from, to)` pair applied as a literal string replacement on
+  * the raw source text before parsing, via [[apply]] (run over every file
+  * `AlgorithmExtractor.extractFromFile` loads). Every numbered comment below is
+  * tagged with what kind of change it makes — a single entry can mix both
   * within one line, so the tag lives in the comment rather than in separate
   * lists:
   *
-  *   - *(spec bug)* fixes an actual defect in the spec prose itself — a
-  *     typo, stale phrasing, or markup that violates the surrounding file's
-  *     own conventions. These correspond 1-to-1 with the errors documented
-  *     in `mechanize/spec_errors.md`.
+  *   - *(spec bug)* fixes an actual defect in the spec prose itself — a typo,
+  *     stale phrasing, or markup that violates the surrounding file's own
+  *     conventions. These correspond 1-to-1 with the errors documented in
+  *     `mechanize/spec_errors.md`.
   *   - *(suggestion)* makes an already-valid elision explicit — a spot where
   *     Bikeshed prose conventionally omits an argument (a generic type
   *     parameter, an implicit realm) that this project's extractor/compiler
-  *     needs spelled out in order to compile. Nothing here is wrong in the
-  *     spec as written; it's just not explicit enough for this tool.
+  *     needs spelled out in order to compile. Nothing here is wrong in the spec
+  *     as written; it's just not explicit enough for this tool.
   */
 object SpecPatch:
 
   /** Renders webidl/index.bs's `of type <code>Promise&lt;X&gt;</code>` clause
     * for instantiating a generic Promise-returning operation's type parameter
     * at a call site (see `AlgorithmExtractor.GenericVarIgnore` /
-    * `ExprParser.OfTypeGeneric`). Used throughout the patches below to
-    * annotate `a new promise`/`resolve`/`react`/`reject` call sites with the
-    * type they actually act on.
+    * `ExprParser.OfTypeGeneric`). Used throughout the patches below to annotate
+    * `a new promise`/`resolve`/`react`/`reject` call sites with the type they
+    * actually act on.
     */
   private def ofTypePromise(x: String): String =
     s"""of type <code><a interface>Promise</a>&lt;<a lt="interface type">$x</a>></code>"""

@@ -103,6 +103,10 @@ trait UnitWalker extends BasicUnitWalker {
       walk(fname)
     case EProj(expr, idx) =>
       walk(expr); walk(idx)
+    case ECaseTag(expr) =>
+      walk(expr)
+    case ECase(tag, args) =>
+      walk(tag); walkList(args, walk)
     case EDebug(expr) =>
       walk(expr)
     case expr: ERandom     => walk(expr)

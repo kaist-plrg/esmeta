@@ -48,6 +48,10 @@ object ReplaceSpaceWithUnderscore extends LoweringPass:
     expr match
       case Expr.AlgoCall(link, args) =>
         Expr.AlgoCall(underscore(link), args.map(go))
+      // unlike AlgoCall's link, a Case's tag is never looked up as a function
+      // name (it compiles to a literal runtime CaseV tag string, see
+      // Compiler), so it's left untouched — only its args are rewritten.
+      case Expr.Case(tag, args)    => Expr.Case(tag, args.map(go))
       case Expr.JSCall(name, args) => Expr.JSCall(name, args.map(go))
       case Expr.Field(base, name)  => Expr.Field(go(base), name)
       case Expr.Index(base, key)   => Expr.Index(go(base), go(key))

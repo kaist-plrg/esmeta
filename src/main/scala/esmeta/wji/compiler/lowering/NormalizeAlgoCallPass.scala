@@ -129,6 +129,12 @@ object NormalizeAlgoCallPass extends LoweringPass:
       val tmp = fresh()
       (List(Instr.Let(Expr.Var(tmp), Expr.JSCall(name, args))), Expr.Var(tmp))
 
+    // a Case is a constructor/pattern, not a call — never itself hoisted the
+    // way an AlgoCall/JSCall is — but its args may still contain calls
+    case Expr.Case(tag, args) =>
+      val (bs, es) = args.map(extractFromExpr).unzip
+      (bs.flatten, Expr.Case(tag, es))
+
     case Expr.BinOp(l, op, r) =>
       val (lb, le) = extractFromExpr(l)
       val (rb, re) = extractFromExpr(r)

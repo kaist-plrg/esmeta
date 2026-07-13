@@ -419,13 +419,15 @@ class Interpreter(
       Bool(ty.ty.contains(eval(expr), st))
     case EProj(expr, idx) =>
       eval(expr) match
-        case Wasm(ALValue.TupV(vs)) =>
-          if idx < 0 || idx >= vs.length then
-            throw WasmTupleIndexOutOfRange(idx, vs.length)
-          // `Wasm.apply` unwraps a Wasm `name` (ALValue.TextV) to a real
-          // `Str` — see its doc comment.
-          Wasm(vs(idx))
-        case v => throw NoWasmTuple(v)
+        case Wasm(ALValue.TupV(vs))     => projectAt(vs, idx)
+        case Wasm(ALValue.CaseV(_, vs)) => projectAt(vs, idx)
+        case v                          => throw NoWasmTuple(v)
+    case ECaseTag(expr) =>
+      eval(expr) match
+        case Wasm(ALValue.CaseV(tag, _)) => Str(tag)
+        case v                           => throw NoWasmCase(v)
+    case ECase(tag, args) =>
+      Wasm(ALValue.CaseV(tag, args.map(a => toAL(eval(a)))))
     case ESizeOf(expr) =>
       Math(eval(expr) match
         case Str(s)                  => s.length
@@ -466,6 +468,16 @@ class Interpreter(
     case EEnum(name)           => Enum(name)
     case ECodeUnit(c)          => CodeUnit(c)
   }
+
+  /** shared indexing logic for [[EProj]]'s two Wasm-embedding payload shapes
+    * (`ALValue.TupV`'s tuple / `ALValue.CaseV`'s positional constructor args) —
+    * `Wasm.apply` unwraps a Wasm `name` (ALValue.TextV) to a real `Str`, see
+    * its doc comment.
+    */
+  private def projectAt(vs: List[ALValue], idx: Int): Value =
+    if idx < 0 || idx >= vs.length then
+      throw WasmTupleIndexOutOfRange(idx, vs.length)
+    Wasm(vs(idx))
 
   /** short circuit evaluation */
   def shortCircuit(bop: BOp, left: Expr, right: Expr): Value =

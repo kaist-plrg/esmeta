@@ -15,6 +15,7 @@ object Lowering:
     NormalizeAlgoCallPass,
     ExtractInlineAlgoCallPass,
     ExpandThrowsPass,
+    ExpandIsOfFormPass,
     ExpandPerformReturnResultPass,
     ExpandAbbreviatedCondPass,
     ExpandQueueATaskPass,

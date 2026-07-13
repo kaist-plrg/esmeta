@@ -180,6 +180,11 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> "cont<" >> "\"" >> fname >> "\"" >> ">"
       case EProj(expr, idx) =>
         app >> "(proj " >> expr >> " " >> idx >> ")"
+      case ECaseTag(expr) =>
+        app >> "(case-tag " >> expr >> ")"
+      case ECase(tag, args) =>
+        given Rule[Iterable[Expr]] = iterableRule(sep = " ")
+        app >> "(case \"" >> tag >> "\" " >> args >> ")"
       case EDebug(expr) =>
         app >> "(debug " >> expr >> ")"
       case expr: ERandom =>

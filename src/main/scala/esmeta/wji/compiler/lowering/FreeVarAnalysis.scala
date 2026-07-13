@@ -81,6 +81,7 @@ object FreeVarAnalysis:
     case Expr.Index(base, key)  => varsOf(base) ++ varsOf(key)
     case Expr.Link(_, args)     => args.flatMap(varsOf).toSet
     case Expr.AlgoCall(_, args) => args.flatMap(varsOf).toSet
+    case Expr.Case(_, args)     => args.flatMap(varsOf).toSet
     case Expr.JSCall(_, args)   => args.flatMap(varsOf).toSet
     case Expr.Abrupt(_, e)      => varsOf(e)
     case Expr.List_(elems)      => elems.flatMap(varsOf).toSet
@@ -93,6 +94,7 @@ object FreeVarAnalysis:
     case Expr.AsMath(e)               => varsOf(e)
     case Expr.Tuple(elems)            => elems.flatMap(varsOf).toSet
     case Expr.Closure(_, _, captured) => captured.toSet
+    case Expr.CaseTag(base)           => varsOf(base)
     case _                            => Set.empty
 
   private def varsOfCond(cond: Cond): Set[String] = cond match

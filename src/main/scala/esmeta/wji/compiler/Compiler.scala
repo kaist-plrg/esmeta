@@ -247,13 +247,20 @@ object Compiler:
     case metalang.Expr.Abrupt(_, e) =>
       EYet(s"? ${e}") // TODO: abrupt completion check
     case metalang.Expr.Link(link, args) =>
-      // ResolveLinksPass resolves every Link into an AlgoCall/SpecTerm before
-      // compilation ever sees it; this is only here for exhaustivity.
+      // ResolveLinksPass resolves every Link into an AlgoCall/Case/SpecTerm
+      // before compilation ever sees it; this is only here for exhaustivity.
       EYet(s"unresolved link: $link") // should not happen
     case metalang.Expr.AlgoCall(link, args) =>
       // zero-arg AlgoCall used as an expression value (e.g. [=error=])
       if args.isEmpty then ERef(Global(nameFromLink(link)))
       else EYet(s"call $link") // TODO: inline call-as-expr
+    // a SpecTec Wasm Core Spec constructor/variant application (e.g.
+    // `[=i64.const=] |u64|`) used as a value — builds a real
+    // `Wasm(CaseV(tag, ...))`. `tag` isn't guaranteed to match SpecTec's own
+    // runtime constructor id in every case yet (see `Expr.Case`'s doc); it's
+    // resolved the same way an unrecognized `AlgoCall` link would be.
+    case metalang.Expr.Case(tag, args) =>
+      ECase(nameFromLink(tag), args.map(compileExpr))
     case metalang.Expr.JSCall(name, args) =>
       EYet(s"$$${name}(${args.mkString})") // TODO
     case metalang.Expr.Tuple(elems) => EYet(s"tuple(${elems.mkString})") // TODO
@@ -278,6 +285,7 @@ object Compiler:
     case metalang.Expr.Closure(name, _, captured) =>
       EClo(name, captured.map(Name(_)))
     case metalang.Expr.TupleProj(base, idx) => EProj(compileExpr(base), idx)
+    case metalang.Expr.CaseTag(base)        => ECaseTag(compileExpr(base))
 
   // ── Condition ────────────────────────────────────────────────────────────────
 

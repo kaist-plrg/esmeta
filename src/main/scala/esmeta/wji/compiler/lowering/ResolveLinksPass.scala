@@ -3,8 +3,8 @@ package esmeta.wji.compiler.lowering
 import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr}
 
 /** Resolves every [[Expr.Link]] — a raw `[=...=]` Bikeshed autolink, parsed
-  * before it's known whether it names a callable algorithm — into either an
-  * [[Expr.AlgoCall]] or an [[Expr.SpecTerm]].
+  * before it's known whether it names a callable algorithm — into an
+  * [[Expr.AlgoCall]], an [[Expr.Case]], or an [[Expr.SpecTerm]].
   *
   * A Bikeshed `[=...=]` autolink can point to a `<div algorithm>` (an actually
   * callable operation, e.g. `[=module_decode=]`) or to a plain `<dfn>`/prose
@@ -15,18 +15,22 @@ import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr}
   * This pass runs once every algorithm has been extracted, when the full set of
   * real algorithm names is known, and is the only place that decides:
   *
-  *   - a `Link` whose name matches a known algorithm becomes an `AlgoCall`.
-  *   - a `Link` used with arguments *also* becomes an `AlgoCall` even when the
-  *     name isn't one of ours — it's still unambiguously a call syntactically
-  *     (an argument list doesn't attach to a term reference), just one resolved
-  *     elsewhere at compile time: a Wasm embedding function (e.g.
-  *     `func_invoke`, see `esmeta.wji.bridge.host.WasmHost`) or an ECMA-262/
-  *     WebIDL AO (e.g. `MakeBasicObject`, dispatched via `Compiler`'s merged
-  *     `cfg.fnameMap`). Wasm Core Spec math/value notation used with args
-  *     (`ℤ(...)`, `signed_32(...)`, `ref.func(...)`) is a known gap this
-  *     doesn't yet handle — those still become `AlgoCall` too, and will surface
-  *     as an "unknown function" at compile time until a future pass recognizes
-  *     them.
+  *   - a `Link` whose name matches a known algorithm becomes an `AlgoCall`,
+  *     regardless of args.
+  *   - a `Link` used with args that doesn't match a known algorithm is either a
+  *     Wasm embedding function / ECMA-262 AO (resolved elsewhere at compile
+  *     time — an `AlgoCall`) or a SpecTec Wasm Core Spec constructor/variant
+  *     application (an `Expr.Case`, e.g. `[=i32.const=] |u32|`,
+  *     `[=external-type/func=] |functype|`) — syntactically indistinguishable
+  *     here in general, so this pass falls back to a heuristic: a genuine
+  *     SpecTec notation term is always a single dot/slash/hyphen-joined token,
+  *     never a multi-word phrase, so a link whose text contains a space (e.g.
+  *     `converted to a JavaScript value`, filtered out of `known` by
+  *     `SpecFile.webidlFilter`) is assumed to be prose referring to an
+  *     algorithm and stays `AlgoCall`; anything else becomes `Case`. This is
+  *     imperfect — a handful of genuine multi-word SpecTec constructor names
+  *     (`external value`, `memory type`) are misclassified as `AlgoCall` too —
+  *     but it's a deliberate, simple tradeoff over a larger lookup table.
   *   - a zero-arg `Link` that doesn't match a known algorithm becomes a
   *     `SpecTerm` — a bare reference to something else.
   */
@@ -71,13 +75,32 @@ object ResolveLinksPass extends LoweringPass:
     expr match
       case Expr.Link(link, args) =>
         val resolvedArgs = args.map(go)
-        if args.nonEmpty || known.contains(stripLink(link).toLowerCase) then
+        if known.contains(stripLink(link).toLowerCase) then
           Expr.AlgoCall(link, resolvedArgs)
+        else if args.nonEmpty && !stripLink(link).contains(" ") then
+          // a link with args that doesn't name a known algorithm is either a
+          // Wasm embedding function / ECMA-262 AO (resolved elsewhere at
+          // compile time — still AlgoCall) or a SpecTec Wasm Core Spec
+          // constructor/variant application (e.g. `[=i32.const=] |u32|`,
+          // `[=external-type/func=] |functype|`) — syntactically
+          // indistinguishable here in general, so both would start as `Case`
+          // and `esmeta.wji.compiler.Compiler` treats an unresolved `Case`
+          // tag as a call the same way it does an unresolved `AlgoCall` link
+          // — except a genuine SpecTec notation term is always a single
+          // dot/slash/hyphen-joined token (`i32.const`, `external-type/func`,
+          // `ref.null`), never a multi-word phrase, so a `link` containing a
+          // space (`converted to a JavaScript value`, `a promise rejected
+          // with`) is assumed to be prose referring to an algorithm — usually
+          // one filtered out of `known` (see `SpecFile.webidlFilter`) rather
+          // than genuinely unrecognizable — and stays `AlgoCall`.
+          Expr.Case(link, resolvedArgs)
+        else if args.nonEmpty then Expr.AlgoCall(link, resolvedArgs)
         else Expr.SpecTerm(stripLink(link))
       // ExprParser's `[=link=](args)` form (unambiguous call syntax) already
       // parses straight into AlgoCall; still need to recurse into its args
       // in case one of them is itself an unresolved Link.
       case Expr.AlgoCall(link, args) => Expr.AlgoCall(link, args.map(go))
+      case Expr.Case(tag, args)      => Expr.Case(tag, args.map(go))
       case Expr.JSCall(name, args)   => Expr.JSCall(name, args.map(go))
       case Expr.Field(base, name)    => Expr.Field(go(base), name)
       case Expr.Index(base, key)     => Expr.Index(go(base), go(key))

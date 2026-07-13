@@ -765,6 +765,14 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         notSupported(
           s"TODO: EProj ($idx) not yet supported by the type analyzer",
         )
+      case ECaseTag(_) =>
+        notSupported(
+          "TODO: ECaseTag not yet supported by the type analyzer",
+        )
+      case ECase(tag, _) =>
+        notSupported(
+          s"TODO: ECase ($tag) not yet supported by the type analyzer",
+        )
     }
 
     // short circuit evaluation

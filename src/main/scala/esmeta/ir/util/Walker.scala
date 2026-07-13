@@ -112,6 +112,10 @@ trait Walker extends BasicWalker {
       ECont(walk(fname))
     case EProj(expr, idx) =>
       EProj(walk(expr), walk(idx))
+    case ECaseTag(expr) =>
+      ECaseTag(walk(expr))
+    case ECase(tag, args) =>
+      ECase(walk(tag), walkList(args, walk))
     case EDebug(expr) =>
       EDebug(walk(expr))
     case expr: ERandom     => walk(expr)

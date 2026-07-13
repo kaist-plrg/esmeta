@@ -17,6 +17,8 @@ object ExprPrinter:
     case Link(link, args)     => s"$link(${args.map(render).mkString(", ")})"
     case AlgoCall(link, Nil)  => link
     case AlgoCall(link, args) => s"$link(${args.map(render).mkString(", ")})"
+    case Case(tag, Nil)       => tag
+    case Case(tag, args)      => s"$tag(${args.map(render).mkString(", ")})"
     case JSCall(name, Nil)    => s"[$$${name}$$]()"
     case JSCall(name, args) =>
       s"[$$${name}$$](${args.map(render).mkString(", ")})"
@@ -44,6 +46,7 @@ object ExprPrinter:
     case Closure(name, params, captured) =>
       s"closure $name(${params.mkString(", ")}) captures(${captured.mkString(", ")})"
     case TupleProj(base, idx) => s"${render(base)}.$idx"
+    case CaseTag(base)        => s"case-tag(${render(base)})"
 
   private def renderBOp(op: BOp): String = op match
     case BOp.Add => "+"

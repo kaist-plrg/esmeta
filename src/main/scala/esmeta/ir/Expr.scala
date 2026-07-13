@@ -30,13 +30,6 @@ case class ESizeOf(base: Expr) extends Expr
 case class EClo(fname: String, captured: List[Name]) extends Expr
 case class ECont(fname: String) extends Expr
 
-/** project the `idx`-th component out of a tuple-shaped value. Used to
-  * destructure the `(store, funcaddr)` / `(store, val*)` pairs returned by Wasm
-  * embedding operations such as `func_alloc` / `func_invoke`, which arrive as a
-  * `esmeta.state.ALValue.TupV` wrapped in `esmeta.state.Value.Wasm`.
-  */
-case class EProj(expr: Expr, idx: Int) extends Expr
-
 // debugging expressions
 case class EDebug(expr: Expr) extends Expr
 
@@ -78,3 +71,9 @@ case class EUndef() extends LiteralExpr
 case class ENull() extends LiteralExpr
 case class EEnum(name: String) extends LiteralExpr
 case class ECodeUnit(c: Char) extends esmeta.ir.LiteralExpr
+
+// SpecTec expressions
+sealed trait SpecTecExpr extends Expr
+case class EProj(expr: Expr, idx: Int) extends SpecTecExpr
+case class ECaseTag(expr: Expr) extends SpecTecExpr
+case class ECase(tag: String, args: List[Expr]) extends SpecTecExpr

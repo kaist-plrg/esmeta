@@ -54,6 +54,18 @@ object Expr:
     * nothing for a later pass to decide.
     */
   case class AlgoCall(link: String, args: List[Expr]) extends Expr
+
+  /** A SpecTec Wasm Core Spec constructor/variant application (mirrors AL's own
+    * `CaseE of mixop * expr list`), e.g. `[=i32.const=] |u32|` or the form that
+    * follows `is of the form` in a [[Cond.IsOfForm]] (e.g.
+    * `[=external-type/func=] |functype|`). Produced by `ResolveLinksPass` from
+    * a [[Link]] whose `link` isn't a known algorithm name but is used with args
+    * — syntactically identical to [[AlgoCall]]'s "unknown name with args" case,
+    * but semantically a constructor/pattern rather than a call, so it's kept
+    * distinct rather than resolved elsewhere at compile time the way an
+    * unrecognized [[AlgoCall]] is.
+    */
+  case class Case(tag: String, args: List[Expr]) extends Expr
   case class JSCall(name: String, args: List[Expr]) extends Expr
   case class Abrupt(check: String, expr: Expr) extends Expr
   case class New(iface: String) extends Expr
@@ -170,3 +182,14 @@ object Expr:
     * to unpacking a `Wasm(TupV(...))`. See `esmeta.wji.compiler.Compiler`.
     */
   case class TupleProj(base: Expr, idx: Int) extends Expr
+
+  /** Reads `base`'s SpecTec `CaseV` constructor tag as a string (mirrors
+    * [[TupleProj]]'s role for the positional payload — see its doc). Produced
+    * by `esmeta.wji.compiler.lowering.ExpandIsOfFormPass` as the LHS of a
+    * `Cond.Eq` comparison against the expected tag, in place of a dedicated "is
+    * of this form" condition node — a form check is just a string equality once
+    * the tag has been read out, so it reuses [[Cond.Eq]] rather than
+    * duplicating it. Compiles directly to `ir.ECaseTag`. See
+    * `esmeta.wji.compiler.Compiler`.
+    */
+  case class CaseTag(base: Expr) extends Expr

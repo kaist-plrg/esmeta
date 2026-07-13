@@ -259,10 +259,10 @@
   params: |promiseOfModule|, |importObject|
   head: To <dfn>instantiate a promise of a module</dfn> |promiseOfModule| with imports |importObject|, perform the following steps:
   Let(|promise|, [=a new promise=](WebAssemblyInstantiatedSource, [=current Realm=]))
-  Perform([=React=](Module, |promiseOfModule|))
+  Perform([=React=](Module, |promiseOfModule|, [=current Realm=]))
     If(?(|promiseOfModule| was fulfilled with value |module|))
       PerformAndLet([=asynchronously instantiate a WebAssembly module=](|module|, |importObject|), |innerPromise|)
-      Perform([=React=](Instance, |innerPromise|))
+      Perform([=React=](Instance, |innerPromise|, [=current Realm=]))
         If(?(|innerPromise| was fulfilled with value |instance|))
           Let(|result|, ?(the {{WebAssemblyInstantiatedSource}} value «[ "{{WebAssemblyInstantiatedSource/module}}" → |module|, "{{WebAssemblyInstantiatedSource/instance}}" → |instance| ]»))
           Perform([=Resolve=](WebAssemblyInstantiatedSource, |promise|, |result|))
@@ -1462,8 +1462,8 @@
   Perform(Call(|p|.[[Reject]], ?(<emu-val>undefined</emu-val>), « |r| »))
 
 # react
-  params: |T|, |promise|
-  head: To <dfn id="dfn-perform-steps-once-promise-is-settled" export lt="react|reacting" for="promise">react</dfn> to a <code><a interface>Promise</a>&lt;|T|&gt;</code> |promise|, given one or two sets of steps to perform, covering when the promise is fulfilled, rejected, or both, perform the following steps:
+  params: |T|, |promise|, |realm|
+  head: To <dfn id="dfn-perform-steps-once-promise-is-settled" export lt="react|reacting" for="promise">react</dfn> to a <code><a interface>Promise</a>&lt;|T|&gt;</code> |promise| in a [=realm=] |realm|, given one or two sets of steps to perform, covering when the promise is fulfilled, rejected, or both, perform the following steps:
   Let(|onFulfilledSteps|, closure (V) captures())
     Let(|value|, [=converted to an IDL value=](|V|, |T|))
     If(?(there) is ?(a set of steps to be run if the promise was fulfilled))
@@ -1480,7 +1480,7 @@
       Let(|result|, [=a promise rejected with=](|reason|))
     Return(?(|result|, [=converted to a JavaScript value=]))
   Let(|onRejected|, [$CreateBuiltinFunction$](|onRejectedSteps|, 1, "", « »))
-  Let(|constructor|, |promise|.[[Promise]].[[Realm]].[[Intrinsics]].[[%Promise%]])
+  Let(|constructor|, |realm|.[[Intrinsics]].[[%Promise%]])
   Let(|newCapability|, [=?=] [$NewPromiseCapability$](|constructor|))
   Note(Not all callers will use the returned {{Promise}} Implementations might wish to avoid creating |newCapability| in those cases)
   Perform(PerformPromiseThen(|promise|.[[Promise]], |onFulfilled|, |onRejected|, |newCapability|))

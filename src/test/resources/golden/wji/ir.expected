@@ -355,10 +355,10 @@ def instantiate_a_promise_of_a_module(
   importObject: Unknown,
 ): Unknown = {
   call promise = clo<"a_new_promise">(~WebAssemblyInstantiatedSource~, @EXECUTION_STACK[0].Realm)
-  call _ = clo<"react">(~Module~, promiseOfModule)
+  call _ = clo<"react">(~Module~, promiseOfModule, @EXECUTION_STACK[0].Realm)
   if (yet "|promiseOfModule| was fulfilled with value |module|") {
     call innerPromise = clo<"asynchronously_instantiate_a_webassembly_module">(module, importObject)
-    call _ = clo<"react">(~Instance~, innerPromise)
+    call _ = clo<"react">(~Instance~, innerPromise, @EXECUTION_STACK[0].Realm)
     if (yet "|innerPromise| was fulfilled with value |instance|") {
       let result = (yet "the {{WebAssemblyInstantiatedSource}} value «[ \"{{WebAssemblyInstantiatedSource/module}}\" → |module|, \"{{WebAssemblyInstantiatedSource/instance}}\" → |instance| ]»")
       call _ = clo<"resolve">(~WebAssemblyInstantiatedSource~, promise, result)
@@ -2014,12 +2014,13 @@ def reject(
 def react(
   T: Unknown,
   promise: Unknown,
+  realm: Unknown,
 ): Unknown = {
   let onFulfilledSteps = clo<"_stepsclosure1", [T]>
   call onFulfilled = clo<"CreateBuiltinFunction">(onFulfilledSteps, 1, "", (list []))
   let onRejectedSteps = clo<"_stepsclosure2">
   call onRejected = clo<"CreateBuiltinFunction">(onRejectedSteps, 1, "", (list []))
-  let constructor = promise.Promise.Realm.Intrinsics["%Promise%"]
+  let constructor = realm.Intrinsics["%Promise%"]
   call _comp38 = clo<"NewPromiseCapability">(constructor)
   if (? _comp38: Abrupt) {
     return _comp38

@@ -43,8 +43,10 @@ object ExprPrinter:
     case NewByteSequence(length) => s"ByteSequence(${render(length)})"
     case Range(low, high)        => s"Range(${render(low)}, ${render(high)})"
     case Expr.Unknown(raw)       => s"?($raw)"
-    case Closure(name, params, captured) =>
-      s"closure $name(${params.mkString(", ")}) captures(${captured.mkString(", ")})"
+    case Closure(name, captured) =>
+      s"closure $name captures(${captured.mkString(", ")})"
+    case FollowingSteps(params) =>
+      s"followingSteps(${params.mkString(", ")})"
     case TupleProj(base, idx) => s"${render(base)}.$idx"
     case CaseTag(base)        => s"case-tag(${render(base)})"
 

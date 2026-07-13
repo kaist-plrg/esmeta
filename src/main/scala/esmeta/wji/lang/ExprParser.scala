@@ -11,12 +11,22 @@ object ExprParser:
   private val EitherPat = """(?si)^either\s+(.+)$""".r
   // "the following steps given argument |V|:" / "... given arguments |V| and
   // |W|:" / "... given |arg|:" (the word "argument(s)" is sometimes omitted).
-  // Parses straight to a placeholder Closure (name/captured filled in later
-  // by ExpandStepsClosurePass — this string is all ExprParser ever sees, not
-  // the nested sub-steps the phrase introduces, which stay on the owning
-  // Instr.Let's own `body` until that pass runs). See Expr.Closure.
+  // Parses straight to a FollowingSteps placeholder (hoisted into a Closure
+  // later by ExpandAbstractClosurePass — this string is all ExprParser ever
+  // sees, not the nested sub-steps the phrase introduces, which stay on the
+  // owning Instr.Let's own `body` until that pass runs). See
+  // Expr.FollowingSteps.
   private val StepsClosurePrefix =
     """(?is)^the following steps,?\s+given\s+(?:arguments?\s+)?(\|[^|]+\|(?:\s*(?:,|and)\s*\|[^|]+\|)*)\s*:?\s*$""".r
+  // "[if provided,] to perform the following steps:" — the closure-body
+  // clause of a "[=Queue a task=] [on |taskSource|, if provided,] to perform
+  // the following steps: ..." step, as parsed by parseArgs (see
+  // InstrParser.parseCall). No params (mirrors ECMA-262's Job Abstract
+  // Closure, invoked with none); like StepsClosurePrefix above, the actual
+  // substeps still ride on the owning Instr.Perform's own `body` until
+  // ExpandAbstractClosurePass hoists it.
+  private val QueueTaskClosureSuffix =
+    """(?is)^(?:if\s+provided,\s*)?to\s+perform\s+the\s+following\s+steps:?\s*$""".r
   private val PipeVarInline = """\|([^|]+)\|""".r
   private val Backticked = """(?s)^`(.+)`$""".r
   private val BacktickedQuotedStr = """(?s)^`"([^"]*)"`$""".r
@@ -182,11 +192,10 @@ object ExprParser:
       case ResultOf(rest)            => parse(rest)
       case EitherPat(rest)           => parse(rest)
       case StepsClosurePrefix(paramsRaw) =>
-        Closure(
-          "",
+        FollowingSteps(
           PipeVarInline.findAllMatchIn(paramsRaw).map(_.group(1)).toList,
-          Nil,
         )
+      case QueueTaskClosureSuffix() => FollowingSteps(Nil)
       // A backtick-wrapped *quoted* string (e.g. `"frozen"`, the argument to
       // [$SetIntegrityLevel$]) isn't a real ECMAScript string value — it's
       // Bikeshed's way of typesetting an ECMA-262 "specification type" enum

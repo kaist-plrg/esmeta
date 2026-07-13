@@ -18,8 +18,8 @@ object Lowering:
     ExpandIsOfFormPass,
     ExpandPerformReturnResultPass,
     ExpandAbbreviatedCondPass,
+    ExpandAbstractClosurePass,
     ExpandQueueATaskPass,
-    ExpandStepsClosurePass,
     ReplaceSpaceWithUnderscore,
   )
 

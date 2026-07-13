@@ -77,7 +77,7 @@ def asynchronously_compile_a_webassembly_module(
 ): Unknown = {
   call promise = clo<"a_new_promise">(~Module~, @EXECUTION_STACK[0].Realm)
   call module = clo<"compile_a_webassembly_module">(bytes)
-  call _ = clo<"HostEnqueuePromiseJob">(clo<"_queuetaskjob1", [bytes, module, options, promise]>, @EXECUTION_STACK[0].Realm)
+  call _ = clo<"HostEnqueuePromiseJob">(clo<"_closure1", [bytes, module, options, promise]>, @EXECUTION_STACK[0].Realm)
   return promise
 }
 def compile(
@@ -388,7 +388,7 @@ def asynchronously_instantiate_a_webassembly_module(
   } else {
     let imports = _throwComp2
   }
-  call _ = clo<"HostEnqueuePromiseJob">(clo<"_queuetaskjob2", [imports, module, promise]>, @EXECUTION_STACK[0].Realm)
+  call _ = clo<"HostEnqueuePromiseJob">(clo<"_closure2", [imports, module, promise]>, @EXECUTION_STACK[0].Realm)
   return promise
 }
 def instantiate_a_promise_of_a_module(
@@ -2324,9 +2324,9 @@ def react(
   promise: Unknown,
   realm: Unknown,
 ): Unknown = {
-  let onFulfilledSteps = clo<"_stepsclosure1", [T]>
+  let onFulfilledSteps = clo<"_closure3", [T]>
   call onFulfilled = clo<"CreateBuiltinFunction">(onFulfilledSteps, 1, "", (list []))
-  let onRejectedSteps = clo<"_stepsclosure2">
+  let onRejectedSteps = clo<"_closure4">
   call onRejected = clo<"CreateBuiltinFunction">(onRejectedSteps, 1, "", (list []))
   let constructor = realm.Intrinsics["%Promise%"]
   call _comp59 = clo<"NewPromiseCapability">(constructor)
@@ -2375,7 +2375,7 @@ def get_a_copy_of_the_buffer_source(
   }
   return bytes
 }
-def _queuetaskjob1(
+def _closure1(
 ): Unknown = {
   if (= module ~error~) {
     call _ = clo<"reject">(~Module~, promise, (record [CompileError]))
@@ -2391,7 +2391,7 @@ def _queuetaskjob1(
   }
   return ~unused~
 }
-def _queuetaskjob2(
+def _closure2(
 ): Unknown = {
   call _throwComp3 = clo<"instantiate_the_core_of_a_webassembly_module">(module, imports)
   if (exists _throwComp3.Type) {
@@ -2417,7 +2417,7 @@ def _queuetaskjob2(
   call _ = clo<"resolve">(~Instance~, promise, instanceObject)
   return ~unused~
 }
-def _stepsclosure1(
+def _closure3(
   V: Unknown,
 ): Unknown = {
   call value = clo<"converted_to_an_idl_value">(V, T)
@@ -2428,7 +2428,7 @@ def _stepsclosure1(
   }
   return (yet "|result|, [=converted to a JavaScript value=]")
 }
-def _stepsclosure2(
+def _closure4(
   R: Unknown,
 ): Unknown = {
   call reason = clo<"converted_to_an_idl_value">(R, ~any~)

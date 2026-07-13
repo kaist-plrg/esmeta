@@ -138,38 +138,48 @@ object Expr:
   /** Spec prose that didn't match any recognised expression pattern. */
   case class Unknown(raw: String) extends Expr
 
-  /** A reference to a closure value over the synthetic algorithm `name`, taking
-    * `params` as formal parameters (no `|` delimiters) and capturing the
-    * current values of `captured` variable names from the enclosing scope. Two
-    * distinct spec shapes produce this node, both by splitting a block of
-    * substeps off into a fresh top-level [[Algorithm]] and replacing them with
-    * a reference to it:
-    *
-    *   - `esmeta.wji.compiler.lowering.ExpandQueueATaskPass`, for a `"[=Queue a
-    *     task=] ...: substeps"` step (`params` always `Nil`, mirroring
-    *     ECMA-262's "a new Job Abstract Closure ... that captures ...").
-    *   - `esmeta.wji.compiler.lowering.ExpandStepsClosurePass`, for a `"Let |x|
-    *     be the following steps given argument |V|: substeps"` step (`params`
-    *     from the `given argument(s)` list). Before this pass runs,
-    *     [[ExprParser]] parses that phrase directly into a `Closure` with
-    *     `params` already set but `name`/`captured` left as placeholders
-    *     (`""`/`Nil`) — the substeps still sit in the owning `Instr.Let`'s own
-    *     `body` at that point (`ExprParser` only ever sees the one prose
-    *     string, not the nested list items), so the pass recognizes an
-    *     unlowered `Closure` the same way `ExpandQueueATaskPass` recognizes an
-    *     unlowered "queue a task": by the owning instruction's `body` still
-    *     being non-empty, not by the placeholder values.
-    *
-    * Either way `captured` is computed automatically (free-variable analysis
-    * over the substeps, excluding `params`) rather than parsed from spec prose,
-    * since neither phrasing spells out an explicit capture list the way
-    * ECMA-262's `AbstractClosureExpression` does. Compiles directly to
-    * `ir.EClo(name, captured)` (`params` plays no further role there — the
-    * split-off [[Algorithm]] itself already carries them) — see
-    * `esmeta.wji.compiler.Compiler`.
+  /** A reference to a closure value over the synthetic algorithm `name`,
+    * capturing the current values of `captured` variable names from the
+    * enclosing scope. Always fully-formed — the sole producer is
+    * `esmeta.wji.compiler.lowering.ExpandAbstractClosurePass`, which hoists a
+    * [[FollowingSteps]]'s substeps into a fresh top-level [[Algorithm]] named
+    * `name` and replaces the `FollowingSteps` with a reference to it. No
+    * `params` field: a closure *value* only needs identity + captures, not its
+    * callee's formal parameter list — that's a property of the hoisted
+    * [[Algorithm]] itself, not of a reference to it (mirrors `ir.EClo(fname,
+    * captured)`, which has no params either). `captured` is computed
+    * automatically (free-variable analysis over the substeps, excluding the
+    * callee's params) rather than parsed from spec prose, since wji's "the
+    * following steps ...:" phrasings never spell out an explicit capture list
+    * the way ECMA-262's `AbstractClosureExpression` does. Compiles directly to
+    * `ir.EClo(name, captured)` — see `esmeta.wji.compiler.Compiler`.
     */
-  case class Closure(name: String, params: List[String], captured: List[String])
-    extends Expr
+  case class Closure(name: String, captured: List[String]) extends Expr
+
+  /** An unnamed, not-yet-hoisted closure literal — "the following steps ...:"
+    * itself, wherever it appears as an argument/value, taking `params` as
+    * formal parameters (no `|` delimiters). Two spec phrasings currently
+    * produce this (see [[ExprParser]]):
+    *
+    *   - `"Let |x| be the following steps given argument |V|: substeps"` —
+    *     parsed directly as `Instr.Let`'s RHS, with `params` from the `given
+    *     argument(s)` list.
+    *   - `"[=Queue a task=] ... to perform the following steps: substeps"` —
+    *     parsed as one of `Instr.Perform`'s `args` (`params` always `Nil`,
+    *     mirroring ECMA-262's "a new Job Abstract Closure ... that captures
+    *     ...").
+    *
+    * No `body` field: [[ExprParser]] only ever sees the one prose string
+    * introducing the phrase, not the nested list items it introduces — those
+    * always sit in the *owning instruction's* own `body` (exactly like any
+    * other nested block; every earlier lowering pass already recurses into it
+    * via `Instr.mapBody`), so a `body` field here would only ever hold `Nil`.
+    * `esmeta.wji.compiler.lowering.ExpandAbstractClosurePass` recognizes an
+    * unlowered `FollowingSteps` by the owning instruction's `body` still being
+    * non-empty, hoists that `body` into a fresh top-level [[Algorithm]], and
+    * replaces the `FollowingSteps` with a [[Closure]] referencing it.
+    */
+  case class FollowingSteps(params: List[String]) extends Expr
 
   /** Projects component `idx` out of `base`, a Wasm-embedding call's `(store,
     * X)`-shaped result (e.g. `module_instantiate`, `func_invoke`, `func_alloc`,

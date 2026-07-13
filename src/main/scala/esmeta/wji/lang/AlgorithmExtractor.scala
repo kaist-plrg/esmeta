@@ -152,7 +152,7 @@ object AlgorithmExtractor:
 
     for line <- body.linesIterator do
       line match
-        case _ if line.isBlank => // skip blank lines
+        case _ if line.isBlank =>
         case StepMarker(indent, rest) =>
           val step = new Builder(rest.trim)
           while stack.nonEmpty && stack.last._1 >= indent.length do

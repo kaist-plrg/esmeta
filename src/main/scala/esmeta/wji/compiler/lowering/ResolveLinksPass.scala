@@ -113,21 +113,7 @@ object ResolveLinksPass extends LoweringPass:
         if known.contains(stripLink(link).toLowerCase) then
           Expr.AlgoCall(link, resolvedArgs)
         else if args.nonEmpty && !stripLink(link).contains(" ") then
-          // a link with args that doesn't name a known algorithm is either a
-          // Wasm embedding function / ECMA-262 AO (resolved elsewhere at
-          // compile time — still AlgoCall) or a SpecTec Wasm Core Spec
-          // constructor/variant application (e.g. `[=i32.const=] |u32|`,
-          // `[=external-type/func=] |functype|`) — syntactically
-          // indistinguishable here in general, so both would start as `Case`
-          // and `esmeta.wji.compiler.Compiler` treats an unresolved `Case`
-          // tag as a call the same way it does an unresolved `AlgoCall` link
-          // — except a genuine SpecTec notation term is always a single
-          // dot/slash/hyphen-joined token (`i32.const`, `external-type/func`,
-          // `ref.null`), never a multi-word phrase, so a `link` containing a
-          // space (`converted to a JavaScript value`, `a promise rejected
-          // with`) is assumed to be prose referring to an algorithm — usually
-          // one filtered out of `known` (see `SpecFile.webidlFilter`) rather
-          // than genuinely unrecognizable — and stays `AlgoCall`.
+          // heuristic split between AlgoCall/Case — see class doc above
           Expr.Case(link, resolvedArgs)
         else if args.nonEmpty then Expr.AlgoCall(link, resolvedArgs)
         else Expr.SpecTerm(stripLink(link))

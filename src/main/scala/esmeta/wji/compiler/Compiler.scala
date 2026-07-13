@@ -51,27 +51,20 @@ object Compiler:
         name = name.toLowerCase,
         params = params,
         retTy = UnknownType,
-        // an algorithm that never explicitly `Return`s still implicitly
-        // returns once its steps run out — mirrors `esmeta.compiler`'s own
-        // handling of a fall-off-the-end algorithm, except the implicit
-        // value is `~unused~` (see `compileInstr`'s `Return(None, ...)` case
-        // for why), not `undefined`.
+        // Falling off the end implicitly returns `~unused~` (see
+        // `compileInstr`'s `Return(None, ...)` case), mirroring
+        // `esmeta.compiler`'s own fall-off-the-end handling.
         //
-        // Only appended when the body has no top-level `Return` at all: an
-        // `IfChain` is real CFG branching (each branch's own `IReturn`
-        // reaches the function exit directly, so appending after one is
-        // harmless dead code), but two `IReturn`s that are siblings in the
-        // same flat instruction list share a single CFG `Block`, whose
-        // interpretation (`Interpreter.eval`'s `Block` case) runs every inst
-        // in sequence with no early exit on return — so appending after an
-        // *already-unconditional* `Return` would silently overwrite its
-        // value with `~unused~` instead of staying unreachable. Checking "no
-        // `Return` anywhere in the top-level list" rather than just "the last
-        // instruction isn't a `Return`" also covers a spec typo/parse bug
-        // that leaves stray steps after a `Return` (dead code in a
-        // well-formed spec, but would otherwise silently corrupt the real
-        // return value here) — turns that into a loud `NoReturnValue`
-        // instead.
+        // Only appended when the body has no top-level `Return` at all — not
+        // just when the last instruction isn't one. An `IfChain`'s branches
+        // each reach the function exit directly (harmless dead code after),
+        // but sibling `IReturn`s in a flat list share one CFG `Block`, which
+        // runs every inst in sequence with no early exit — so appending
+        // after an already-unconditional `Return` would silently overwrite
+        // its value. Checking "no Return anywhere" (not just "last isn't
+        // Return") also turns a spec typo — stray steps left after a
+        // `Return` — into a loud `NoReturnValue` instead of silently
+        // corrupting the real value.
         body = ISeq(
           if algo.body.exists(_.isInstanceOf[Instr.Return]) then
             compileSeq(algo.body)
@@ -113,15 +106,8 @@ object Compiler:
       compileSeq(body) :+ IReturn(compileExpr(expr))
 
     case Instr.Return(None, body) =>
-      // a bare "Return." (no value) — like an algorithm falling off its own
-      // end (see `compileAlgo`) — means "this step has nothing to say",
-      // which mirrors ECMA-262's own `~unused~` convention (`Return
-      // ~unused~.`, compiled the same way mainline compiles a literal
-      // `EnumLiteral`: `esmeta.compiler.Compiler`'s `case EnumLiteral(name)
-      // => EEnum(name)`) more closely than the ECMAScript value `undefined`
-      // would: nothing should ever consume this value, which `~unused~`
-      // enforces (a stray `undefined`-consuming check downstream would
-      // accidentally "pass" instead of surfacing the bug).
+      // Bare "Return." — same as falling off the end (see `compileAlgo`);
+      // see `EUnused`.
       compileSeq(body) :+ IReturn(EUnused)
 
     case Instr.Assert(cond, body) =>

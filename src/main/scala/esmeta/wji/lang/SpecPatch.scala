@@ -8,6 +8,16 @@ package esmeta.wji.lang
   */
 object SpecPatch:
 
+  /** Renders webidl/index.bs's `of type <code>Promise&lt;X&gt;</code>` clause
+    * for instantiating a generic Promise-returning operation's type parameter
+    * at a call site (see `AlgorithmExtractor.GenericVarIgnore` /
+    * `ExprParser.OfTypeGeneric`). Used throughout the patches below to annotate
+    * `a new promise`/`resolve`/`react`/`reject` call sites with the type they
+    * actually act on.
+    */
+  private def ofTypePromise(x: String): String =
+    s"""of type <code><a interface>Promise</a>&lt;<a lt="interface type">$x</a>></code>"""
+
   /** All patches in application order. */
   val patches: List[(String, String)] = List(
     // #1 — empty ordered map literal written as « » instead of «[ ]»
@@ -35,13 +45,13 @@ object SpecPatch:
     // WebAssemblyInstantiatedSource respectively).
     "1. Let |promise| be [=a new promise=].\n    1. Run the following steps [=in parallel=]:"
     ->
-    "1. Let |promise| be [=a new promise=] of type <code><a interface>Promise</a>&lt;<a lt=\"interface type\">Module</a>></code> in the [=current Realm=].\n    1. Run the following steps [=in parallel=]:",
+    s"1. Let |promise| be [=a new promise=] ${ofTypePromise("Module")} in the [=current Realm=].\n    1. Run the following steps [=in parallel=]:",
     "1. Let |promise| be [=a new promise=].\n    1. Let |module| be |moduleObject|.\\[[Module]]."
     ->
-    "1. Let |promise| be [=a new promise=] of type <code><a interface>Promise</a>&lt;<a lt=\"interface type\">Instance</a>></code> in the [=current Realm=].\n    1. Let |module| be |moduleObject|.\\[[Module]].",
+    s"1. Let |promise| be [=a new promise=] ${ofTypePromise("Instance")} in the [=current Realm=].\n    1. Let |module| be |moduleObject|.\\[[Module]].",
     "1. Let |promise| be [=a new promise=].\n    1. [=React=] to |promiseOfModule|:"
     ->
-    "1. Let |promise| be [=a new promise=] of type <code><a interface>Promise</a>&lt;<a lt=\"interface type\">WebAssemblyInstantiatedSource</a>></code> in the [=current Realm=].\n    1. [=React=] to |promiseOfModule|:",
+    s"1. Let |promise| be [=a new promise=] ${ofTypePromise("WebAssemblyInstantiatedSource")} in the [=current Realm=].\n    1. [=React=] to |promiseOfModule|:",
 
     // #5 — `|module|.[=imports=]` treats a decoded `module` as a record with
     // named fields, a leftover from an older version of the Wasm Core Spec.
@@ -104,6 +114,64 @@ object SpecPatch:
     // file's own established map-check idiom.
     "1. If |builtinOrStringImports| [=map/exist|contains=] |moduleName|,"
     -> "1. If |builtinOrStringImports|[|moduleName|] [=map/exists=],",
+
+    // #11 — `resolve`/`react`/`reject` each declare a leading type parameter
+    // T (see AlgorithmExtractor.GenericVarIgnore), but every real call site
+    // in this file elides it, the same gap #4 fixed for `a new promise`.
+    // Supply it explicitly at each site, with the declared type of the
+    // |promise|/|p| argument being acted on (traced from each function's own
+    // `[=a new promise=] of type ...` declaration, or — for [=React=] — the
+    // type of the promise being reacted to).
+    "1. [=Resolve=] |promise| with |moduleObject|."
+    ->
+    s"1. [=Resolve=] ${ofTypePromise("Module")} |promise| with |moduleObject|.",
+    "If this operation throws an exception, catch it, [=reject=] |promise| with the exception, and return |promise|."
+    ->
+    s"If this operation throws an exception, catch it, [=reject=] ${ofTypePromise("Instance")} |promise| with the exception, and return |promise|.",
+    // the "Instantiate the core..."/"initialize an instance object..." catch
+    // clauses share byte-identical reject text, so each patch below is
+    // anchored with its own preceding line to target just the one site
+    // (mirroring #4's technique for `a new promise`'s identical call sites).
+    "1.  [=Instantiate the core of a WebAssembly module=] |module| with |imports|, and let |instance| be the result.\n                If this throws an exception, catch it, [=reject=] |promise| with the exception, and terminate these substeps."
+    ->
+    s"1.  [=Instantiate the core of a WebAssembly module=] |module| with |imports|, and let |instance| be the result.\n                If this throws an exception, catch it, [=reject=] ${ofTypePromise("Instance")} |promise| with the exception, and terminate these substeps.",
+    "1.  [=initialize an instance object|Initialize=] |instanceObject| from |module| and |instance|.\n                If this throws an exception, catch it, [=reject=] |promise| with the exception, and terminate these substeps."
+    ->
+    s"1.  [=initialize an instance object|Initialize=] |instanceObject| from |module| and |instance|.\n                If this throws an exception, catch it, [=reject=] ${ofTypePromise("Instance")} |promise| with the exception, and terminate these substeps.",
+    "1. [=Resolve=] |promise| with |instanceObject|."
+    ->
+    s"1. [=Resolve=] ${ofTypePromise("Instance")} |promise| with |instanceObject|.",
+    "1. [=React=] to |promiseOfModule|:"
+    ->
+    s"1. [=React=] ${ofTypePromise("Module")} to |promiseOfModule|:",
+    "1. [=React=] to |innerPromise|:"
+    ->
+    s"1. [=React=] ${ofTypePromise("Instance")} to |innerPromise|:",
+    "1. [=Resolve=] |promise| with |result|."
+    ->
+    s"1. [=Resolve=] ${ofTypePromise("WebAssemblyInstantiatedSource")} |promise| with |result|.",
+    // the innerPromise-rejected/promiseOfModule-rejected branches share
+    // byte-identical reject text, anchored the same way as the reject pair
+    // above.
+    "* If |innerPromise| was rejected with reason |reason|:\n                    1. [=Reject=] |promise| with |reason|."
+    ->
+    s"* If |innerPromise| was rejected with reason |reason|:\n                    1. [=Reject=] ${ofTypePromise("WebAssemblyInstantiatedSource")} |promise| with |reason|.",
+    "* If |promiseOfModule| was rejected with reason |reason|:\n            1. [=Reject=] |promise| with |reason|."
+    ->
+    s"* If |promiseOfModule| was rejected with reason |reason|:\n            1. [=Reject=] ${ofTypePromise("WebAssemblyInstantiatedSource")} |promise| with |reason|.",
+
+    // #12 — the compile algorithm's two CompileError rejections are written
+    // as plain "reject ... exception" prose with no [=...=] link, so they
+    // don't parse as a call to `reject` at all today. Bracket them into real
+    // links (now parseable thanks to ExprParser.NewExceptionExpr's "a {{X}}
+    // exception" rule and, for the first site, InstrParser's bare "and
+    // return" rule) and annotate with the type, same as #11.
+    "1. If |module| is [=error=], reject |promise| with a {{CompileError}} exception and return."
+    ->
+    s"1. If |module| is [=error=], [=reject=] ${ofTypePromise("Module")} |promise| with a {{CompileError}} exception and return.",
+    "1. If [=validate builtins and imported string for a WebAssembly module|validating builtins and imported strings=] for |module| with |builtinSetNames| and |importedStringModule| is false, reject |promise| with a {{CompileError}} exception."
+    ->
+    s"1. If [=validate builtins and imported string for a WebAssembly module|validating builtins and imported strings=] for |module| with |builtinSetNames| and |importedStringModule| is false, [=reject=] ${ofTypePromise("Module")} |promise| with a {{CompileError}} exception.",
   )
 
   def apply(source: String): String =

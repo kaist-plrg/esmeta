@@ -339,7 +339,7 @@ def asynchronously_instantiate_a_webassembly_module(
   if (exists _throwComp2.Type) {
     if (= _throwComp2.Type ~throw~) {
       let exception = _throwComp2.Value
-      call _ = clo<"reject">(promise, exception)
+      call _ = clo<"reject">(~Instance~, promise, exception)
       return promise
     } else {
       let imports = _throwComp2.Value
@@ -355,20 +355,20 @@ def instantiate_a_promise_of_a_module(
   importObject: Unknown,
 ): Unknown = {
   call promise = clo<"a_new_promise">(~WebAssemblyInstantiatedSource~, @EXECUTION_STACK[0].Realm)
-  call _ = clo<"react">(promiseOfModule)
+  call _ = clo<"react">(~Module~, promiseOfModule)
   if (yet "|promiseOfModule| was fulfilled with value |module|") {
     call innerPromise = clo<"asynchronously_instantiate_a_webassembly_module">(module, importObject)
-    call _ = clo<"react">(innerPromise)
+    call _ = clo<"react">(~Instance~, innerPromise)
     if (yet "|innerPromise| was fulfilled with value |instance|") {
       let result = (yet "the {{WebAssemblyInstantiatedSource}} value «[ \"{{WebAssemblyInstantiatedSource/module}}\" → |module|, \"{{WebAssemblyInstantiatedSource/instance}}\" → |instance| ]»")
-      call _ = clo<"resolve">(promise, result)
+      call _ = clo<"resolve">(~WebAssemblyInstantiatedSource~, promise, result)
     } else nop
     if (yet "|innerPromise| was rejected with reason |reason|") {
-      call _ = clo<"reject">(promise, reason)
+      call _ = clo<"reject">(~WebAssemblyInstantiatedSource~, promise, reason)
     } else nop
   } else nop
   if (yet "|promiseOfModule| was rejected with reason |reason|") {
-    call _ = clo<"reject">(promise, reason)
+    call _ = clo<"reject">(~WebAssemblyInstantiatedSource~, promise, reason)
   } else nop
   return promise
 }
@@ -2064,15 +2064,16 @@ def get_a_copy_of_the_buffer_source(
 def _queuetaskjob1(
 ): Unknown = {
   if (= module ~error~) {
-    (yet "reject |promise| with a {{CompileError}} exception and return")
+    call _ = clo<"reject">(~Module~, promise, (record [CompileError]))
+    return ~unused~
   } else nop
   let builtinSetNames = options.builtins
   let importedStringModule = options.importedStringConstants
   if (&& (yet "[=validate builtins and imported string for a WebAssembly module|validating builtins and imported strings=] for |module| with |builtinSetNames|") (= importedStringModule false)) {
-    (yet "reject |promise| with a {{CompileError}} exception")
+    call _ = clo<"reject">(~Module~, promise, (record [CompileError]))
   } else {
     call moduleObject = clo<"construct_a_webassembly_module_object">(module, bytes, builtinSetNames, importedStringModule)
-    call _ = clo<"resolve">(promise, moduleObject)
+    call _ = clo<"resolve">(~Module~, promise, moduleObject)
   }
   return ~unused~
 }
@@ -2082,7 +2083,7 @@ def _queuetaskjob2(
   if (exists _throwComp3.Type) {
     if (= _throwComp3.Type ~throw~) {
       let exception = _throwComp3.Value
-      call _ = clo<"reject">(promise, exception)
+      call _ = clo<"reject">(~Instance~, promise, exception)
       (yet "terminate these substeps")
     } else {
       let instance = _throwComp3.Value
@@ -2095,11 +2096,11 @@ def _queuetaskjob2(
   if (exists _throwComp4.Type) {
     if (= _throwComp4.Type ~throw~) {
       let exception = _throwComp4.Value
-      call _ = clo<"reject">(promise, exception)
+      call _ = clo<"reject">(~Instance~, promise, exception)
       (yet "terminate these substeps")
     } else nop
   } else nop
-  call _ = clo<"resolve">(promise, instanceObject)
+  call _ = clo<"resolve">(~Instance~, promise, instanceObject)
   return ~unused~
 }
 def _stepsclosure1(

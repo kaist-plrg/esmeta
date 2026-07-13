@@ -29,6 +29,14 @@ object ExprParser:
   private val ThisOnly = """(?s)^\*\*this\*\*$""".r
   private val NewExpr =
     """(?si)^a\s+\[=/new=\]\s+\{\{([^}]+)\}\}(?:\s+object)?$""".r
+  // "a {{X}} exception" — Bikeshed's common idiom for constructing a new
+  // exception object of WebIDL/spec type X (e.g. "throw a {{TypeError}}
+  // exception", "reject |promise| with a {{CompileError}} exception").
+  // Semantically the same "freshly constructed instance of interface X" as
+  // NewExpr's "a [=/new=] {{X}}" form above, so it reuses the same New(iface)
+  // node rather than adding a new one.
+  private val NewExceptionExpr =
+    """(?si)^an?\s+\{\{([^}]+)\}\}\s+exception$""".r
   private val EmptyList = """(?si)^a\s+new,?\s+empty\s+(?:\[=list=\]|list)$""".r
   // "a new [=byte sequence=] of [=byte sequence/length=] equal to LENGTH" — a
   // freshly allocated all-zero byte sequence of the given length.
@@ -227,6 +235,7 @@ object ExprParser:
       case IndexByNum(baseRaw, n)      => Index(parse(baseRaw), parse(n))
       case IndexByExpr(baseRaw, idx)   => Index(parse(baseRaw), parse(idx))
       case NewExpr(iface)              => New(iface)
+      case NewExceptionExpr(iface)     => New(iface)
       case EmptyList()                 => List_(Nil)
       case NewByteSeqOfLength(lenRaw)  => NewByteSequence(parse(lenRaw.trim))
       case RelativeClauseDesc(link, desc) =>

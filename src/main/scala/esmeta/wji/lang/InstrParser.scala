@@ -38,6 +38,14 @@ object InstrParser:
     """(?is)^(.*?),?\s+and\s+let\s+(\|[^|]+\|)\s+be\s+the\s+result$""".r
   private val PerformAndStoreSuffix =
     """(?is)^(.*?),?\s+and\s+store\s+the\s+results?\s+as\s+(\|[^|]+\|)\s*$""".r
+  // a `Perform` step chained with a bare early return, e.g. "reject |promise|
+  // with a {{CompileError}} exception and return." — distinct from
+  // PerformAndReturnSuffix above, which only matches "...and return **the
+  // result**" (chaining the call's own return value); this is an
+  // unconditional `Return.` with no value, unrelated to what the call
+  // produced.
+  private val PerformAndBareReturnSuffix =
+    """(?is)^(.*?),?\s+and\s+return$""".r
 
   // matches the leading [=..=] algo-link and the rest of the expression
   private val LeadingAlgoLink = """(?s)^(\[=[^\]]+\])\s*(.*)$""".r
@@ -238,6 +246,9 @@ object InstrParser:
           case PerformAndStoreSuffix(op, variable) =>
             val (func, args) = parseCall(op.trim)
             Perform(func, args, BindResult(variable), trailingBody)
+          case PerformAndBareReturnSuffix(op) =>
+            val (func, args) = parseCall(op.trim)
+            Perform(func, args, Discard, Return(None) :: trailingBody)
           case op =>
             val (func, args) = parseCall(op)
             Perform(func, args, Discard, trailingBody)

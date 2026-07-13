@@ -75,7 +75,7 @@ def asynchronously_compile_a_webassembly_module(
   options: Unknown,
   taskSource: Unknown,
 ): Unknown = {
-  call promise = clo<"a_new_promise">(@EXECUTION_STACK[0].Realm)
+  call promise = clo<"a_new_promise">(~Module~, @EXECUTION_STACK[0].Realm)
   call module = clo<"compile_a_webassembly_module">(bytes)
   call _ = clo<"HostEnqueuePromiseJob">(clo<"_queuetaskjob1", [bytes, module, options, promise]>, @EXECUTION_STACK[0].Realm)
   return promise
@@ -331,7 +331,7 @@ def asynchronously_instantiate_a_webassembly_module(
   moduleObject: Unknown,
   importObject: Unknown,
 ): Unknown = {
-  call promise = clo<"a_new_promise">(@EXECUTION_STACK[0].Realm)
+  call promise = clo<"a_new_promise">(~Instance~, @EXECUTION_STACK[0].Realm)
   let module = moduleObject.Module
   let builtinSetNames = moduleObject.BuiltinSets
   let importedStringModule = moduleObject.ImportedStringModule
@@ -354,7 +354,7 @@ def instantiate_a_promise_of_a_module(
   promiseOfModule: Unknown,
   importObject: Unknown,
 ): Unknown = {
-  call promise = clo<"a_new_promise">(@EXECUTION_STACK[0].Realm)
+  call promise = clo<"a_new_promise">(~WebAssemblyInstantiatedSource~, @EXECUTION_STACK[0].Realm)
   call _ = clo<"react">(promiseOfModule)
   if (yet "|promiseOfModule| was fulfilled with value |module|") {
     call innerPromise = clo<"asynchronously_instantiate_a_webassembly_module">(module, importObject)
@@ -1978,6 +1978,7 @@ def js-string-compare(
   return 1
 }
 def a_new_promise(
+  T: Unknown,
   realm: Unknown,
 ): Unknown = {
   let constructor = realm.Intrinsics["%Promise%"]
@@ -2003,6 +2004,7 @@ def resolve(
   return ~unused~
 }
 def reject(
+  T: Unknown,
   p: Unknown,
   r: Unknown,
 ): Unknown = {

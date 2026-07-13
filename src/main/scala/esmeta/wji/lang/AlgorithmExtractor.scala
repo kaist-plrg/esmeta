@@ -52,6 +52,28 @@ object AlgorithmExtractor:
     */
   private val PipeVar = """\|[A-Za-z][A-Za-z0-9]*\|""".r
 
+  /** matches a type parameter written inside a Bikeshed generic angle-bracket
+    * instantiation, e.g. the `T` in `<code>Promise&lt;<var
+    * ignore>T</var>&gt;</code>` (webidl's `a new promise`). Unlike an ordinary
+    * `<var ignore>...</var>` used elsewhere in prose as a pattern-match
+    * wildcard (e.g. "of the form ... <var ignore>mut</var> |valtype|", which
+    * must keep being ignored), one written inside a `&lt;...&gt;` generic slot
+    * names a real type parameter of the operation being defined — the same role
+    * a `|T|` pipe var plays when the spec writes the generic slot with a real
+    * bound variable instead (e.g. `resolve`'s `Promise&lt;|T|&gt;`, already
+    * covered by [[PipeVar]]). See [[ExprParser.OfTypeGeneric]] for the
+    * call-site counterpart that instantiates it.
+    */
+  private val GenericVarIgnore =
+    """&lt;\s*<var\s+ignore>([A-Za-z][A-Za-z0-9]*)</var>\s*&gt;""".r
+
+  /** matches either a [[PipeVar]] or a [[GenericVarIgnore]] token, so
+    * [[extractParams]] can scan both kinds of parameter left-to-right in a
+    * single pass and preserve their relative order.
+    */
+  private val ParamToken =
+    """\|[A-Za-z][A-Za-z0-9]*\||&lt;\s*<var\s+ignore>[A-Za-z][A-Za-z0-9]*</var>\s*&gt;""".r
+
   /** matches a trailing parameter list on a `<dfn>` inner text, where params
     * use Bikeshed `|variable|` syntax, e.g. `validate(|bytes|, |options|)`
     */
@@ -173,10 +195,22 @@ object AlgorithmExtractor:
             case name                 => name
     }
 
-  /** distinct `|variable|` references in `head`, in order of first appearance
+  /** distinct formal parameters in `head`, in order of first appearance — both
+    * ordinary `|variable|` references and generic-bracket type parameters (see
+    * [[GenericVarIgnore]]), the latter normalized to pipe form (`|T|`) so every
+    * entry in [[Algorithm.params]] has a uniform representation regardless of
+    * which surface syntax declared it.
     */
   private def extractParams(head: String): List[String] =
-    PipeVar.findAllIn(head).toList.distinct
+    ParamToken
+      .findAllMatchIn(head)
+      .map { m =>
+        val text = m.matched
+        if text.startsWith("|") then text
+        else s"|${GenericVarIgnore.findFirstMatchIn(text).get.group(1)}|"
+      }
+      .toList
+      .distinct
 
   /** what `head` declares this algorithm to implement — see [[AlgorithmKind]].
     */

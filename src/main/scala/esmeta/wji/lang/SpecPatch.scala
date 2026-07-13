@@ -23,12 +23,25 @@ object SpecPatch:
     ->
     "The <dfn method for=\"WebAssembly\">instantiate_object(|moduleObject|, |importObject|)</dfn> method, when invoked, performs the following steps:",
 
-    // #4 — `a new promise` is defined with an explicit |realm| parameter
-    // (webidl/index.bs), but js-api/index.bs calls it with no argument,
-    // eliding the realm the way Bikeshed prose conventionally does. Make the
-    // realm argument explicit so it compiles.
-    "1. Let |promise| be [=a new promise=]."
-    -> "1. Let |promise| be [=a new promise=] in the [=current Realm=].",
+    // #4 — `a new promise` is defined with an explicit |realm| parameter and
+    // type parameter T (webidl/index.bs), but js-api/index.bs calls it with
+    // no argument, eliding the realm the way Bikeshed prose conventionally
+    // does, and no type, eliding what the promise resolves with. Make both
+    // explicit so it compiles and so the type flows into the call. All 3
+    // call sites open with the same "1. Let |promise| be [=a new promise=]."
+    // line, so each patch below is anchored with enough of the following
+    // line to target just the one site (and is given the type the promise
+    // is actually resolved with at that site: Module, Instance, and
+    // WebAssemblyInstantiatedSource respectively).
+    "1. Let |promise| be [=a new promise=].\n    1. Run the following steps [=in parallel=]:"
+    ->
+    "1. Let |promise| be [=a new promise=] of type <code><a interface>Promise</a>&lt;<a lt=\"interface type\">Module</a>></code> in the [=current Realm=].\n    1. Run the following steps [=in parallel=]:",
+    "1. Let |promise| be [=a new promise=].\n    1. Let |module| be |moduleObject|.\\[[Module]]."
+    ->
+    "1. Let |promise| be [=a new promise=] of type <code><a interface>Promise</a>&lt;<a lt=\"interface type\">Instance</a>></code> in the [=current Realm=].\n    1. Let |module| be |moduleObject|.\\[[Module]].",
+    "1. Let |promise| be [=a new promise=].\n    1. [=React=] to |promiseOfModule|:"
+    ->
+    "1. Let |promise| be [=a new promise=] of type <code><a interface>Promise</a>&lt;<a lt=\"interface type\">WebAssemblyInstantiatedSource</a>></code> in the [=current Realm=].\n    1. [=React=] to |promiseOfModule|:",
 
     // #5 — `|module|.[=imports=]` treats a decoded `module` as a record with
     // named fields, a leftover from an older version of the Wasm Core Spec.

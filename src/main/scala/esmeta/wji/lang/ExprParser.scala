@@ -41,6 +41,20 @@ object ExprParser:
   // case) so it can never be mistaken for LinkIndefVar below.
   private val RelativeClauseDesc =
     """(?si)^an?\s+(\[=[^\]]+\])\s+which\s+(.+)$""".r
+  // "of type <code>...&lt;X&gt;...</code>" — Bikeshed's convention for
+  // instantiating a generic operation's declared type parameter at a call
+  // site (mirrors AlgorithmExtractor's generic-bracket `<var ignore>`/`|T|`
+  // detection on the definition side — see
+  // AlgorithmExtractor.GenericVarIgnore). X, the innermost generic argument,
+  // is a symbolic type tag rather than a computed runtime value, so it
+  // parses to a bare SpecTerm like any other glossary/interface-name
+  // reference (e.g. `current Realm`). Tolerates a literal `>` as well as
+  // `&gt;` for the closing bracket — the real spec source writes it both
+  // ways (contrast webidl's `a new promise`/`get a promise for waiting for
+  // all`). Only handles a single (non-nested) generic argument — a known
+  // gap, same spirit as other narrowly-scoped rules in this file.
+  private val OfTypeGeneric =
+    """(?si)^of\s+type\s+<code>.*?&lt;\s*(?:<a\b[^>]*>)?([A-Za-z][A-Za-z0-9]*)(?:</a>)?\s*(?:&gt;|>)\s*</code>$""".r
   // "(a|an|the) <desc> such that <cond>" — any definite/indefinite/superlative
   // description satisfying a predicate, not a call. Covers all the variants
   // seen in the spec: "a [=host address=] |hostaddr| exists such that ...",
@@ -217,6 +231,7 @@ object ExprParser:
       case NewByteSeqOfLength(lenRaw)  => NewByteSequence(parse(lenRaw.trim))
       case RelativeClauseDesc(link, desc) =>
         Described(normalizeLink(link), desc.trim)
+      case OfTypeGeneric(typeArg) => SpecTerm(typeArg)
       case SuchThatDesc(desc, cond) =>
         SuchThat(desc.trim, cond.trim)
       case LinkIndefVar(link, arg) =>

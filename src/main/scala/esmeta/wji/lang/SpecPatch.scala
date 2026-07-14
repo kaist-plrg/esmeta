@@ -6,18 +6,10 @@ package esmeta.wji.lang
   *
   * Each entry is a `(from, to)` pair applied as a literal string replacement on
   * the raw source text before parsing, via [[apply]] (run over every file
-  * `AlgorithmExtractor.extractFromFile` loads). Entries are grouped into
-  * comment-delimited clusters by *what change they make* (e.g. "pass the
-  * current realm", "make a type parameter explicit"), not by where they sit in
-  * the source file, so that one pair makes exactly one kind of change. A site
-  * that needs two kinds of fix (say, both a realm and a type parameter) gets
-  * two separate pairs, one per cluster. Because [[apply]] folds pairs in list
-  * order via literal `String.replace`, a pair anchored on text that only exists
-  * after an earlier pair has run (e.g. a type-parameter pair anchored on a line
-  * that a realm pair also touches) is always placed after it — noted inline
-  * wherever it isn't obvious.
-  *
-  * Every cluster is also tagged with what kind of change it makes:
+  * `AlgorithmExtractor.extractFromFile` loads). Every numbered comment below is
+  * tagged with what kind of change it makes — a single entry can mix both
+  * within one line, so the tag lives in the comment rather than in separate
+  * lists:
   *
   *   - *(spec bug)* fixes an actual defect in the spec prose itself — a typo,
   *     stale phrasing, or markup that violates the surrounding file's own
@@ -59,40 +51,25 @@ object SpecPatch:
     ->
     "The <dfn method for=\"WebAssembly\">instantiate_object(|moduleObject|, |importObject|)</dfn> method, when invoked, performs the following steps:",
 
-    // #4 (spec bug) — pass the current realm explicitly wherever a callee
-    // needs it but js-api/index.bs's caller elides it, the way Bikeshed prose
-    // conventionally does. Two callees need it:
-    //
-    //   - `a new promise` (webidl/index.bs) already declares an explicit
-    //     |realm| parameter, but all 3 call sites below invoke it with no
-    //     argument. Unlike the type parameter each site also needs (#11
-    //     below, which differs per site and so needs per-site anchoring),
-    //     the realm fix is identical everywhere, so one pair matching just
-    //     the shared opening line covers all 3.
-    "1. Let |promise| be [=a new promise=]."
+    // #4 (spec bug and suggestion) — `a new promise` is defined with an explicit |realm|
+    // parameter and type parameter T (webidl/index.bs), but js-api/index.bs
+    // calls it with no argument, eliding the realm the way Bikeshed prose
+    // conventionally does, and no type, eliding what the promise resolves
+    // with. Make both explicit so it compiles and so the type flows into the
+    // call. All 3 call sites open with the same "1. Let |promise| be [=a new
+    // promise=]." line, so each patch below is anchored with enough of the
+    // following line to target just the one site (and is given the type the
+    // promise is actually resolved with at that site: Module, Instance, and
+    // WebAssemblyInstantiatedSource respectively).
+    "1. Let |promise| be [=a new promise=].\n    1. Run the following steps [=in parallel=]:"
     ->
-    "1. Let |promise| be [=a new promise=] in the [=current Realm=].",
-    //   - `react` (webidl/index.bs) has no |realm| parameter at all: it tries
-    //     to derive the realm for its returned promise capability by chasing
-    //     |promise|.[[Promise]].[[Realm]] off the promise being reacted to,
-    //     but {{Promise}} instances are ordinary objects, and ordinary
-    //     objects carry no [[Realm]] internal slot in ECMA-262 (only function
-    //     objects do) — there's no such slot to chase. Give `react` the same
-    //     explicit |realm| parameter `a new promise` already has, source the
-    //     {{Promise}} constructor from it directly, and supply it at both
-    //     call sites in js-api/index.bs.
-    "to a <code><a interface>Promise</a>&lt;|T|&gt;</code> |promise|, given one or two sets of steps"
+    s"1. Let |promise| be [=a new promise=] ${ofTypePromise("Module")} in the [=current Realm=].\n    1. Run the following steps [=in parallel=]:",
+    "1. Let |promise| be [=a new promise=].\n    1. Let |module| be |moduleObject|.\\[[Module]]."
     ->
-    "to a <code><a interface>Promise</a>&lt;|T|&gt;</code> |promise| in a [=realm=] |realm|, given one or two sets of steps",
-    "1.  Let |constructor| be |promise|.\\[[Promise]].\\[[Realm]].\\[[Intrinsics]].\\[[{{%Promise%}}]]."
+    s"1. Let |promise| be [=a new promise=] ${ofTypePromise("Instance")} in the [=current Realm=].\n    1. Let |module| be |moduleObject|.\\[[Module]].",
+    "1. Let |promise| be [=a new promise=].\n    1. [=React=] to |promiseOfModule|:"
     ->
-    "1.  Let |constructor| be |realm|.\\[[Intrinsics]].\\[[{{%Promise%}}]].",
-    "1. [=React=] to |promiseOfModule|:"
-    ->
-    "1. [=React=] to |promiseOfModule| in the [=current Realm=]:",
-    "1. [=React=] to |innerPromise|:"
-    ->
-    "1. [=React=] to |innerPromise| in the [=current Realm=]:",
+    s"1. Let |promise| be [=a new promise=] ${ofTypePromise("WebAssemblyInstantiatedSource")} in the [=current Realm=].\n    1. [=React=] to |promiseOfModule|:",
 
     // #5 (spec bug) — `|module|.[=imports=]` treats a decoded `module` as a
     // record with named fields, a leftover from an older version of the Wasm
@@ -162,44 +139,13 @@ object SpecPatch:
     "1. If |builtinOrStringImports| [=map/exist|contains=] |moduleName|,"
     -> "1. If |builtinOrStringImports|[|moduleName|] [=map/exists=],",
 
-    // #10 (spec bug) — the compile algorithm's two CompileError rejections
-    // are written as plain "reject ... exception" prose with no [=...=] link,
-    // so they don't parse as a call to `reject` at all today (now parseable
-    // thanks to ExprParser.NewExceptionExpr's "a {{X}} exception" rule and,
-    // for the first site, InstrParser's bare "and return" rule). Bracket them
-    // into real links; the type parameter each now needs is added separately
-    // below (#11), anchored on this pair's `to` text.
-    "1. If |module| is [=error=], reject |promise| with a {{CompileError}} exception and return."
-    ->
-    "1. If |module| is [=error=], [=reject=] |promise| with a {{CompileError}} exception and return.",
-    "1. If [=validate builtins and imported string for a WebAssembly module|validating builtins and imported strings=] for |module| with |builtinSetNames| and |importedStringModule| is false, reject |promise| with a {{CompileError}} exception."
-    ->
-    "1. If [=validate builtins and imported string for a WebAssembly module|validating builtins and imported strings=] for |module| with |builtinSetNames| and |importedStringModule| is false, [=reject=] |promise| with a {{CompileError}} exception.",
-
-    // #11 (suggestion) — `a new promise`, `resolve`, `react`, and `reject`
-    // each declare a leading type parameter T (see
-    // AlgorithmExtractor.GenericVarIgnore), but every real call site in this
-    // file elides it, the same Bikeshed-conventional omission #4 fixed for
-    // realm arguments. Supply it explicitly at each site, with the declared
+    // #10 (suggestion) — `resolve`/`react`/`reject` each declare a leading
+    // type parameter T (see AlgorithmExtractor.GenericVarIgnore), but every
+    // real call site in this file elides it, the same gap #4 above fixed for
+    // `a new promise`. Supply it explicitly at each site, with the declared
     // type of the |promise|/|p| argument being acted on (traced from each
     // function's own `[=a new promise=] of type ...` declaration, or — for
     // [=React=] — the type of the promise being reacted to).
-    //
-    //   - `a new promise`'s 3 call sites. Anchored on the post-#4 text (the
-    //     realm cluster already ran), so the type lands right after `a new
-    //     promise` and before `in the [=current Realm=]`. The third site's
-    //     anchor also includes its second line in its post-#4 (realm-patched)
-    //     form, since #4's react/|promiseOfModule| pair already touched it.
-    "1. Let |promise| be [=a new promise=] in the [=current Realm=].\n    1. Run the following steps [=in parallel=]:"
-    ->
-    s"1. Let |promise| be [=a new promise=] ${ofTypePromise("Module")} in the [=current Realm=].\n    1. Run the following steps [=in parallel=]:",
-    "1. Let |promise| be [=a new promise=] in the [=current Realm=].\n    1. Let |module| be |moduleObject|.\\[[Module]]."
-    ->
-    s"1. Let |promise| be [=a new promise=] ${ofTypePromise("Instance")} in the [=current Realm=].\n    1. Let |module| be |moduleObject|.\\[[Module]].",
-    "1. Let |promise| be [=a new promise=] in the [=current Realm=].\n    1. [=React=] to |promiseOfModule| in the [=current Realm=]:"
-    ->
-    s"1. Let |promise| be [=a new promise=] ${ofTypePromise("WebAssemblyInstantiatedSource")} in the [=current Realm=].\n    1. [=React=] to |promiseOfModule| in the [=current Realm=]:",
-    //   - `resolve`/`reject` call sites.
     "1. [=Resolve=] |promise| with |moduleObject|."
     ->
     s"1. [=Resolve=] ${ofTypePromise("Module")} |promise| with |moduleObject|.",
@@ -207,10 +153,9 @@ object SpecPatch:
     ->
     s"If this operation throws an exception, catch it, [=reject=] ${ofTypePromise("Instance")} |promise| with the exception, and return |promise|.",
     // the "Instantiate the core..."/"initialize an instance object..." catch
-    // clauses share byte-identical reject text, so each pair below is
+    // clauses share byte-identical reject text, so each patch below is
     // anchored with its own preceding line to target just the one site
-    // (mirroring the technique above for `a new promise`'s identical call
-    // sites).
+    // (mirroring #4's technique for `a new promise`'s identical call sites).
     "1.  [=Instantiate the core of a WebAssembly module=] |module| with |imports|, and let |instance| be the result.\n                If this throws an exception, catch it, [=reject=] |promise| with the exception, and terminate these substeps."
     ->
     s"1.  [=Instantiate the core of a WebAssembly module=] |module| with |imports|, and let |instance| be the result.\n                If this throws an exception, catch it, [=reject=] ${ofTypePromise("Instance")} |promise| with the exception, and terminate these substeps.",
@@ -232,21 +177,41 @@ object SpecPatch:
     "* If |promiseOfModule| was rejected with reason |reason|:\n            1. [=Reject=] |promise| with |reason|."
     ->
     s"* If |promiseOfModule| was rejected with reason |reason|:\n            1. [=Reject=] ${ofTypePromise("WebAssemblyInstantiatedSource")} |promise| with |reason|.",
-    //   - the two CompileError `reject` sites bracketed into real links by
-    //     #10 above; anchored on #10's `to` text.
-    "1. If |module| is [=error=], [=reject=] |promise| with a {{CompileError}} exception and return."
+
+    // #11 (spec bug) — the compile algorithm's two CompileError rejections
+    // are written as plain "reject ... exception" prose with no [=...=] link,
+    // so they don't parse as a call to `reject` at all today. Bracket them
+    // into real links (now parseable thanks to ExprParser.NewExceptionExpr's
+    // "a {{X}} exception" rule and, for the first site, InstrParser's bare
+    // "and return" rule) and annotate with the type, same as #10.
+    "1. If |module| is [=error=], reject |promise| with a {{CompileError}} exception and return."
     ->
     s"1. If |module| is [=error=], [=reject=] ${ofTypePromise("Module")} |promise| with a {{CompileError}} exception and return.",
-    "1. If [=validate builtins and imported string for a WebAssembly module|validating builtins and imported strings=] for |module| with |builtinSetNames| and |importedStringModule| is false, [=reject=] |promise| with a {{CompileError}} exception."
+    "1. If [=validate builtins and imported string for a WebAssembly module|validating builtins and imported strings=] for |module| with |builtinSetNames| and |importedStringModule| is false, reject |promise| with a {{CompileError}} exception."
     ->
     s"1. If [=validate builtins and imported string for a WebAssembly module|validating builtins and imported strings=] for |module| with |builtinSetNames| and |importedStringModule| is false, [=reject=] ${ofTypePromise("Module")} |promise| with a {{CompileError}} exception.",
-    //   - `react`'s 2 call sites. Anchored on the post-#4 text (realm cluster
-    //     already ran), so the type lands right after [=React=] and before
-    //     `to |...|`.
-    "1. [=React=] to |promiseOfModule| in the [=current Realm=]:"
+
+    // #12 (spec bug) — unlike `a new promise` (which takes an explicit
+    // |realm| parameter, see #4), webidl/index.bs's `react` tries to derive
+    // the realm for its returned promise capability by chasing
+    // |promise|.[[Promise]].[[Realm]] off the promise being reacted to. But
+    // {{Promise}} instances are ordinary objects, and ordinary objects carry
+    // no [[Realm]] internal slot in ECMA-262 (only function objects do) — so
+    // there's no such slot to chase in the first place. Give `react` the same
+    // explicit `|realm|` parameter `a new promise` already has, and source
+    // the {{Promise}} constructor from it directly instead of trying to
+    // re-derive it from |promise|. The two call sites in js-api/index.bs are
+    // patched to supply it.
+    "to a <code><a interface>Promise</a>&lt;|T|&gt;</code> |promise|, given one or two sets of steps"
+    ->
+    "to a <code><a interface>Promise</a>&lt;|T|&gt;</code> |promise| in a [=realm=] |realm|, given one or two sets of steps",
+    "1.  Let |constructor| be |promise|.\\[[Promise]].\\[[Realm]].\\[[Intrinsics]].\\[[{{%Promise%}}]]."
+    ->
+    "1.  Let |constructor| be |realm|.\\[[Intrinsics]].\\[[{{%Promise%}}]].",
+    "1. [=React=] to |promiseOfModule|:"
     ->
     s"1. [=React=] ${ofTypePromise("Module")} to |promiseOfModule| in the [=current Realm=]:",
-    "1. [=React=] to |innerPromise| in the [=current Realm=]:"
+    "1. [=React=] to |innerPromise|:"
     ->
     s"1. [=React=] ${ofTypePromise("Instance")} to |innerPromise| in the [=current Realm=]:",
   )

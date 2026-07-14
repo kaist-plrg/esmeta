@@ -12,8 +12,12 @@ class AlgorithmExtractorSpec extends AnyFunSuite:
     AlgorithmExtractor.extractFromFile(SpecFile.jsApiIndex)
 
   test("extracts every <div algorithm> block in index.bs") {
+    // counted post-SpecPatch, not on the raw file: some patches (e.g. #6,
+    // splitting Global.value's merged getter/setter div in two) change the
+    // number of `<div algorithm>` blocks themselves.
     val text = scala.io.Source.fromFile(SpecFile.jsApiIndex.toFile).mkString
-    val expected = """<div\s+algorithm""".r.findAllMatchIn(text).size
+    val expected =
+      """<div\s+algorithm""".r.findAllMatchIn(SpecPatch(text)).size
     assert(expected > 0)
     assert(algorithms.size == expected)
   }

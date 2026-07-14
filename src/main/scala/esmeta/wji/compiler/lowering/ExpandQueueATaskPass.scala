@@ -23,12 +23,12 @@ import esmeta.wji.lang.Instr.PerformOutcome
   *
   * Purely a syntactic rewrite — the `Closure` (and the [[Algorithm]] it
   * references) already exists by the time this pass runs:
-  * [[ExpandAbstractClosurePass]] (which runs immediately before this pass)
+  * [[ExpandFollowingStepsPass]] (which runs immediately before this pass)
   * hoists the step's `"...to perform the following steps:"` clause — parsed as
   * one of this `Perform`'s `args` — into one, so `args` is guaranteed to
   * contain a `Closure` here.
   *
-  * Runs right after [[ExpandAbstractClosurePass]] and before
+  * Runs right after [[ExpandFollowingStepsPass]] and before
   * [[ReplaceSpaceWithUnderscore]] (which stays last, to also normalize the
   * synthetic [[Algorithm]] that pass split off).
   */

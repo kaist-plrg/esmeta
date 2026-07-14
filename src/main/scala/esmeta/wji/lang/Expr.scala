@@ -141,7 +141,7 @@ object Expr:
   /** A reference to a closure value over the synthetic algorithm `name`,
     * capturing the current values of `captured` variable names from the
     * enclosing scope. Always fully-formed — the sole producer is
-    * `esmeta.wji.compiler.lowering.ExpandAbstractClosurePass`, which hoists a
+    * `esmeta.wji.compiler.lowering.ExpandFollowingStepsPass`, which hoists a
     * [[FollowingSteps]]'s substeps into a fresh top-level [[Algorithm]] named
     * `name` and replaces the `FollowingSteps` with a reference to it. No
     * `params` field: a closure *value* only needs identity + captures, not its
@@ -174,7 +174,7 @@ object Expr:
     * always sit in the *owning instruction's* own `body` (exactly like any
     * other nested block; every earlier lowering pass already recurses into it
     * via `Instr.mapBody`), so a `body` field here would only ever hold `Nil`.
-    * `esmeta.wji.compiler.lowering.ExpandAbstractClosurePass` recognizes an
+    * `esmeta.wji.compiler.lowering.ExpandFollowingStepsPass` recognizes an
     * unlowered `FollowingSteps` by the owning instruction's `body` still being
     * non-empty, hoists that `body` into a fresh top-level [[Algorithm]], and
     * replaces the `FollowingSteps` with a [[Closure]] referencing it.

@@ -8,7 +8,7 @@ import esmeta.wji.lang.Instr.PerformOutcome
   * top-level [[esmeta.wji.lang.Algorithm]] and need to know which
   * enclosing-scope variables the split-off body still references, so they can
   * be passed in explicitly as a closure's captured variables (see
-  * [[ExpandAbstractClosurePass]]).
+  * [[ExpandFollowingStepsPass]]).
   */
 object FreeVarAnalysis:
 

@@ -12,7 +12,7 @@ object ExprParser:
   // "the following steps given argument |V|:" / "... given arguments |V| and
   // |W|:" / "... given |arg|:" (the word "argument(s)" is sometimes omitted).
   // Parses straight to a FollowingSteps placeholder (hoisted into a Closure
-  // later by ExpandAbstractClosurePass — this string is all ExprParser ever
+  // later by ExpandFollowingStepsPass — this string is all ExprParser ever
   // sees, not the nested sub-steps the phrase introduces, which stay on the
   // owning Instr.Let's own `body` until that pass runs). See
   // Expr.FollowingSteps.
@@ -24,7 +24,7 @@ object ExprParser:
   // InstrParser.parseCall). No params (mirrors ECMA-262's Job Abstract
   // Closure, invoked with none); like StepsClosurePrefix above, the actual
   // substeps still ride on the owning Instr.Perform's own `body` until
-  // ExpandAbstractClosurePass hoists it.
+  // ExpandFollowingStepsPass hoists it.
   private val QueueTaskClosureSuffix =
     """(?is)^(?:if\s+provided,\s*)?to\s+perform\s+the\s+following\s+steps:?\s*$""".r
   private val PipeVarInline = """\|([^|]+)\|""".r

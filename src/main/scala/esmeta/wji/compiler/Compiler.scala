@@ -277,7 +277,7 @@ object Compiler:
     case metalang.Expr.Closure(name, captured) =>
       EClo(name, captured.map(Name(_)))
     case metalang.Expr.FollowingSteps(params) =>
-      // ExpandAbstractClosurePass hoists every FollowingSteps into a Closure
+      // ExpandFollowingStepsPass hoists every FollowingSteps into a Closure
       // before compilation ever sees it; this is only here for exhaustivity.
       EYet(s"unlowered following-steps closure given ${params.mkString(", ")}")
     case metalang.Expr.TupleProj(base, idx) => EProj(compileExpr(base), idx)

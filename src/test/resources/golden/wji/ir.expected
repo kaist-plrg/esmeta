@@ -1,4 +1,4 @@
-118 func(s)
+120 func(s)
 def compile_a_webassembly_module(
   bytes: Unknown,
 ): Unknown = {
@@ -394,8 +394,8 @@ def instantiate_a_promise_of_a_module(
   importObject: Unknown,
 ): Unknown = {
   call promise = clo<"a_new_promise">(~WebAssemblyInstantiatedSource~, @EXECUTION_STACK[0].Realm)
-  let onFullfilledSteps = clo<"instantiate_a_promise_of_a_module_closure1", [importObject, promise, reason]>
-  let onRejectedSteps = clo<"instantiate_a_promise_of_a_module_closure2", [promise]>
+  let onFullfilledSteps = clo<"instantiate_a_promise_of_a_module_closure1", [importObject, promise]>
+  let onRejectedSteps = clo<"instantiate_a_promise_of_a_module_closure4", [promise]>
   call _ = clo<"react">(~WebAssemblyInstantiatedSource~, promiseOfModule, onFullfilledSteps, onRejectedSteps, ~current realm~)
   return promise
 }
@@ -2369,19 +2369,29 @@ def asynchronously_instantiate_a_webassembly_module_closure1(
   call _ = clo<"resolve">(~Instance~, promise, instanceObject)
   return ~unused~
 }
+def instantiate_a_promise_of_a_module_closure2(
+  instance: Unknown,
+): Unknown = {
+  let result = (yet "the {{WebAssemblyInstantiatedSource}} value «[ \"{{WebAssemblyInstantiatedSource/module}}\" → |module|, \"{{WebAssemblyInstantiatedSource/instance}}\" → |instance| ]»")
+  call _ = clo<"resolve">(~WebAssemblyInstantiatedSource~, promise, result)
+  return ~unused~
+}
+def instantiate_a_promise_of_a_module_closure3(
+  reason: Unknown,
+): Unknown = {
+  call _ = clo<"reject">(~WebAssemblyInstantiatedSource~, promise, reason)
+  return ~unused~
+}
 def instantiate_a_promise_of_a_module_closure1(
   module: Unknown,
 ): Unknown = {
   call innerPromise = clo<"asynchronously_instantiate_a_webassembly_module">(module, importObject)
-  let innerOnFullfilledSteps = (yet "unlowered following-steps closure given instance")
-  let result = (yet "the {{WebAssemblyInstantiatedSource}} value «[ \"{{WebAssemblyInstantiatedSource/module}}\" → |module|, \"{{WebAssemblyInstantiatedSource/instance}}\" → |instance| ]»")
-  call _ = clo<"resolve">(~WebAssemblyInstantiatedSource~, promise, result)
-  let innerOnRejectedSteps = (yet "unlowered following-steps closure given reason")
-  call _ = clo<"reject">(~WebAssemblyInstantiatedSource~, promise, reason)
+  let innerOnFullfilledSteps = clo<"instantiate_a_promise_of_a_module_closure2", [promise]>
+  let innerOnRejectedSteps = clo<"instantiate_a_promise_of_a_module_closure3", [promise]>
   call _ = clo<"react">(~WebAssemblyInstantiatedSource~, innerPromise, innerOnFullfilledSteps, innerOnRejectedSteps, ~current realm~)
   return ~unused~
 }
-def instantiate_a_promise_of_a_module_closure2(
+def instantiate_a_promise_of_a_module_closure4(
   reason: Unknown,
 ): Unknown = {
   call _ = clo<"reject">(~WebAssemblyInstantiatedSource~, promise, reason)

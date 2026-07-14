@@ -65,8 +65,13 @@ object ExpandFollowingStepsPass extends LoweringPass:
     extra: collection.mutable.ListBuffer[Algorithm],
   ): Expr.Closure =
     val name = freshName()
-    val captured = (FreeVarAnalysis.freeVars(body) -- params).toList.sorted
-    extra += Algorithm(None, Some(name), params.map(p => s"|$p|"), "", body)
+    // `body` may itself contain further-nested `FollowingSteps` (e.g. a
+    // `react`-inside-`react` call site) — lower those first, since `extra`
+    // algorithms are appended after this pass's single `algos.map` and are
+    // never themselves passed back through `transform`.
+    val lowered = transform(body, freshName, extra)
+    val captured = (FreeVarAnalysis.freeVars(lowered) -- params).toList.sorted
+    extra += Algorithm(None, Some(name), params.map(p => s"|$p|"), "", lowered)
     Expr.Closure(name, captured)
 
   private def transform(

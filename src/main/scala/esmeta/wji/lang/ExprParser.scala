@@ -9,34 +9,20 @@ object ExprParser:
   private val AbruptPrefix = """(?s)^\[=([?!])=\]\s+(.+)$""".r
   private val ResultOf = """(?si)^the result of (?:creating\s+)?(.+)$""".r
   private val EitherPat = """(?si)^either\s+(.+)$""".r
-  // "the following steps given argument |V|:" / "... given arguments |V| and
-  // |W|:" / "... given |arg|:" (the word "argument(s)" is sometimes omitted).
-  // Parses straight to a FollowingSteps placeholder (hoisted into a Closure
-  // later by ExpandFollowingStepsPass — this string is all ExprParser ever
-  // sees, not the nested sub-steps the phrase introduces, which stay on the
-  // owning Instr.Let's own `body` until that pass runs). See
-  // Expr.FollowingSteps.
+  // Three phrasings of the spec's "the following steps ...:" closure idiom —
+  // all parse straight to a FollowingSteps placeholder, later hoisted into a
+  // real Closure by ExpandFollowingStepsPass (the substeps themselves stay on
+  // the owning instruction's `body` until then).
+  // "the following steps given argument(s) |V|[, |W|, ...]:"
   private val StepsClosurePrefix =
     """(?is)^the following steps,?\s+given\s+(?:arguments?\s+)?(\|[^|]+\|(?:\s*(?:,|and)\s*\|[^|]+\|)*)\s*:?\s*$""".r
-  // "[if provided,] to perform the following steps:" — the closure-body
-  // clause of a "[=Queue a task=] [on |taskSource|, if provided,] to perform
-  // the following steps: ..." step, as parsed by parseArgs (see
-  // InstrParser.parseCall). No params (mirrors ECMA-262's Job Abstract
-  // Closure, invoked with none); like StepsClosurePrefix above, the actual
-  // substeps still ride on the owning Instr.Perform's own `body` until
-  // ExpandFollowingStepsPass hoists it.
+  // "[if provided,] to perform the following steps:" — a `Queue a task`
+  // step's closure clause; no params (mirrors a Job Abstract Closure).
   private val QueueTaskClosureSuffix =
     """(?is)^(?:if\s+provided,\s*)?to\s+perform\s+the\s+following\s+steps:?\s*$""".r
-  // "a [=host function=] which performs the following steps when called with
-  // arguments |arguments|:" — a third phrasing of the same "the following
-  // steps ...:" closure idiom, this time introduced as a relative clause on
-  // some `[=term=]` (js-api/index.bs's own idiom for defining a host
-  // function) rather than "the following steps given ..."/"to perform the
-  // following steps". The `[=term=]` itself carries no separate meaning we
-  // model — same as RelativeClauseDesc discards its `[=link=]` for any other
-  // relative clause — only the trailing params list matters. Must be tried
-  // before RelativeClauseDesc, which would otherwise swallow this into an
-  // unevaluable Described.
+  // "a [=term=] which performs the following steps when called with
+  // argument(s) |V|[, ...]:" — must precede RelativeClauseDesc, which would
+  // otherwise swallow it into an unevaluable Described.
   private val WhichPerformsStepsClosure =
     """(?si)^an?\s+\[=[^\]]+=\]\s+which\s+performs\s+the\s+following\s+steps\s+when\s+called\s+with\s+(?:arguments?\s+)?(\|[^|]+\|(?:\s*(?:,|and)\s*\|[^|]+\|)*)\s*:?\s*$""".r
   private val PipeVarInline = """\|([^|]+)\|""".r

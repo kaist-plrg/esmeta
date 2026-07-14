@@ -23,16 +23,17 @@ import esmeta.wji.lang.{Algorithm, AlgorithmKind, Cond, Expr, Instr}
   *     application (an `Expr.Case`, e.g. `[=i32.const=] |u32|`,
   *     `[=external-type/func=] |functype|`) — syntactically indistinguishable
   *     here in general, so this pass falls back to a heuristic: a genuine
-  *     SpecTec notation term is always a single dot/slash/hyphen-joined token,
-  *     never a multi-word phrase, so a link whose text contains a space (e.g.
-  *     `converted to a JavaScript value`, filtered out of `known` by
-  *     `SpecFile.webidlFilter`) is assumed to be prose referring to an
-  *     algorithm and stays `AlgoCall`; anything else becomes `Case`. This is
-  *     imperfect — a handful of genuine multi-word SpecTec constructor names
-  *     (`external value`, `memory type`) are misclassified as `AlgoCall` too —
-  *     but it's a deliberate, simple tradeoff over a larger lookup table. When
-  *     the `Link` also carries a `display` (its `[=X|Y=]` form), a resulting
-  *     `Case`'s tag is `Y`, not `X` — see `Expr.Case`'s doc for why.
+  *     SpecTec notation term's *own* discriminating word (the part after its
+  *     last `/`, for a `for`-scoped dfn like `external-type/func` — or the
+  *     whole thing, if it isn't `for`-scoped at all, like `i32.const`) is
+  *     always a single token, never containing a space — even when the `for`
+  *     scope itself is a multi-word dfn (`external value/tag`). So a link whose
+  *     *last segment* contains a space (e.g. `converted to a JavaScript value`,
+  *     filtered out of `known` by `SpecFile.webidlFilter`) is assumed to be
+  *     prose referring to an algorithm and stays `AlgoCall`; anything else
+  *     becomes `Case`. Imperfect — a multi-word variant name (none seen so far)
+  *     would still be misclassified — but a deliberate, simple tradeoff over a
+  *     larger lookup table.
   *   - a zero-arg `Link` that doesn't match a known algorithm becomes a
   *     `SpecTerm` — a bare reference to something else.
   */
@@ -90,6 +91,12 @@ object ResolveLinksPass extends LoweringPass:
   private def stripLink(link: String): String =
     link.stripPrefix("[=").stripSuffix("=]").trim
 
+  /** The part of a (already-`stripLink`ed) link text after its last `/`, or the
+    * whole thing if it has none — see the class doc's Case heuristic.
+    */
+  private def lastSegment(text: String): String =
+    text.substring(text.lastIndexOf('/') + 1)
+
   /** `Instr.Perform`'s `func` / `Expr.JSCall`'s `name`, case-corrected when it
     * actually names a known *free-standing* WJI algorithm (`plainKnown` —
     * excludes interface members, see `run`'s comment) rather than a genuine
@@ -110,16 +117,16 @@ object ResolveLinksPass extends LoweringPass:
   ): Expr =
     val go = rewriteExpr(known, plainKnown)
     expr match
-      case Expr.Link(link, display, args) =>
+      case Expr.Link(link, args) =>
         val resolvedArgs = args.map(go)
-        // heuristic split between AlgoCall/Case — see class doc above.
-        // `display`, when present, is usually the real tag (Expr.Case's doc),
-        // so it — not `link` — is what the "no space" check must apply to.
-        val candidateTag = display.getOrElse(stripLink(link))
         if known.contains(stripLink(link).toLowerCase) then
           Expr.AlgoCall(link, resolvedArgs)
-        else if args.nonEmpty && !candidateTag.contains(" ") then
-          Expr.Case(display.fold(link)(d => s"[=$d=]"), resolvedArgs)
+        else if args.nonEmpty && !lastSegment(stripLink(link)).contains(
+            " ",
+          )
+        then
+          // heuristic split between AlgoCall/Case — see class doc above
+          Expr.Case(link, resolvedArgs)
         else if args.nonEmpty then Expr.AlgoCall(link, resolvedArgs)
         else Expr.SpecTerm(stripLink(link))
       // ExprParser's `[=link=](args)` form (unambiguous call syntax) already

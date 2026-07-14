@@ -252,6 +252,21 @@ object SpecPatch:
     "    1. If |funcinst| is of the form {type <var ignore>functype</var>, hostcode |hostfunc|},\n        1. Assert: |hostfunc| is a JavaScript object and [$IsCallable$](|hostfunc|) is true.\n        1. Let |index| be the [=index of the host function=] |funcaddr|.\n    1. Otherwise,\n        1. Let |moduleinst| be |funcinst|.module.\n        1. Assert: |funcaddr| is contained in |moduleinst|.funcaddrs.\n        1. Let |index| be the index of |moduleinst|.funcaddrs where |funcaddr| is found."
     ->
     "    1. Let |moduleinst| be |funcinst|.module.\n    1. Assert: |funcaddr| is contained in |moduleinst|.funcaddrs.\n    1. Let |index| be the index of |moduleinst|.funcaddrs where |funcaddr| is found.",
+
+    // #15 (spec bug) — the "external value" family's 4 non-tag variants
+    // (func/global/mem/table) are written `[=external value|X=]` (Bikeshed
+    // pipe-display aliasing) instead of the `for`-scoped `[=external
+    // value/X=]` form its 5th variant, tag, already correctly uses (line
+    // ~220's link-defaults block declares `for: external value` / `text: tag`
+    // — but never registers func/global/mem/table the same way, unlike the
+    // parallel "external-type" block a few lines below it, which does
+    // register all 5 of *its* variants `for: external-type`). Normalized to
+    // the `for`-scoped form for consistency with `tag` and with
+    // `external-type`'s own 5 variants.
+    "[=external value|func=]" -> "[=external value/func=]",
+    "[=external value|global=]" -> "[=external value/global=]",
+    "[=external value|mem=]" -> "[=external value/mem=]",
+    "[=external value|table=]" -> "[=external value/table=]",
   )
 
   def apply(source: String): String =

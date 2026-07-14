@@ -79,7 +79,7 @@ object FreeVarAnalysis:
     case Expr.Var(name)         => Set(name)
     case Expr.Field(base, _)    => varsOf(base)
     case Expr.Index(base, key)  => varsOf(base) ++ varsOf(key)
-    case Expr.Link(_, _, args)  => args.flatMap(varsOf).toSet
+    case Expr.Link(_, args)     => args.flatMap(varsOf).toSet
     case Expr.AlgoCall(_, args) => args.flatMap(varsOf).toSet
     case Expr.Case(_, args)     => args.flatMap(varsOf).toSet
     case Expr.JSCall(_, args)   => args.flatMap(varsOf).toSet

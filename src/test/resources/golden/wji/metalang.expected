@@ -12,7 +12,7 @@
 # validate builtins and imported string for a WebAssembly module
   params: |module|, |builtinSetNames|, |importedStringModule|
   head: To <dfn>validate builtins and imported string for a WebAssembly module</dfn> from module |module|, enabled builtins |builtinSetNames|, and |importedStringModule|, perform the following steps:
-  If([=validate builtin set names|validating builtin set names=](|builtinSetNames|) is false)
+  If([=validate builtin set names=](|builtinSetNames|) is false)
     Return(false)
   ForEach(|import|, [=module_imports=](|module|))
     If(|importedStringModule| is not null, and |import|[0] is |importedStringModule|)
@@ -29,7 +29,7 @@
   kind: method for WebAssembly
   params: |bytes|, |options|
   head: The <dfn method for="WebAssembly">validate(|bytes|, |options|)</dfn> method, when invoked, performs the following steps:
-  Let(|stableBytes|, [=get a copy of the buffer source|copy of the bytes held by the buffer=](|bytes|))
+  Let(|stableBytes|, [=get a copy of the buffer source=](|bytes|))
   PerformAndLet([=Compile a WebAssembly module=](|stableBytes|), |module|)
   If(|module| is [=error=])
     Return(false)
@@ -72,7 +72,7 @@
   kind: method for WebAssembly
   params: |bytes|, |options|
   head: The <dfn method for="WebAssembly">compile(|bytes|, |options|)</dfn> method, when invoked, performs the following steps:
-  Let(|stableBytes|, [=get a copy of the buffer source|copy of the bytes held by the buffer=](|bytes|))
+  Let(|stableBytes|, [=get a copy of the buffer source=](|bytes|))
   PerformAndReturn([=Asynchronously compile a WebAssembly module=](|stableBytes|, |options|))
 
 # instantiate imported strings
@@ -123,7 +123,7 @@
         Let(|funcaddr|, |v|.[[FunctionAddress]])
       Else
         PerformAndLet([=Create a host function=](|v|, |functype|), |funcaddr|)
-      Let(|externfunc|, [=external value|func=](|funcaddr|))
+      Let(|externfunc|, [=external value/func=](|funcaddr|))
       Append(|externfunc|, |imports|)
     If(|externtype| is of the form [=external-type/global=](|mut|, |valtype|))
       If(|v| [=implements=] {{Global}})
@@ -142,18 +142,18 @@
         Let(|store|, [=surrounding agent=].[[associated store]])
         Let((|store|, |globaladdr|), [=global_alloc=](|store|, [=const=](|valtype|), |value|))
         Set([=surrounding agent=].[[associated store]], |store|)
-      Let(|externglobal|, [=external value|global=](|globaladdr|))
+      Let(|externglobal|, [=external value/global=](|globaladdr|))
       Append(|externglobal|, |imports|)
     If(|externtype| is of the form [=external-type/mem=](|memtype|))
       If(|v| does not [=implement=] {{Memory}})
         Throw(a {{LinkError}} exception)
-      Let(|externmem|, [=external value|mem=](|v|.[[Memory]]))
+      Let(|externmem|, [=external value/mem=](|v|.[[Memory]]))
       Append(|externmem|, |imports|)
     If(|externtype| is of the form [=external-type/table=](|tabletype|))
       If(|v| does not [=implement=] {{Table}})
         Throw(a {{LinkError}} exception)
       Let(|tableaddr|, |v|.[[Table]])
-      Let(|externtable|, [=external value|table=](|tableaddr|))
+      Let(|externtable|, [=external value/table=](|tableaddr|))
       Append(|externtable|, |imports|)
     If(|externtype| is of the form [=external-type/tag=](|attribute|, |functype|))
       Assert(|attribute| is [=tagtype/attribute/exception=])
@@ -173,30 +173,30 @@
     Let(|externval|, [=instance_export=](|instance|, |name|))
     Assert(|externval| is not [=error=])
     If(|externtype| is of the form [=external-type/func=](|functype|))
-      Assert(|externval| is of the form [=external value|func=](|funcaddr|))
-      Let([=external value|func=](|funcaddr|), |externval|)
+      Assert(|externval| is of the form [=external value/func=](|funcaddr|))
+      Let([=external value/func=](|funcaddr|), |externval|)
       Let(|func|, [=a new Exported Function=](|funcaddr|))
       Let(|value|, |func|)
     If(|externtype| is of the form [=external-type/global=](|mut|, |globaltype|))
-      Assert(|externval| is of the form [=external value|global=](|globaladdr|))
-      Let([=external value|global=](|globaladdr|), |externval|)
-      Let(|global|, [=create a global object|a new Global object=](|globaladdr|))
+      Assert(|externval| is of the form [=external value/global=](|globaladdr|))
+      Let([=external value/global=](|globaladdr|), |externval|)
+      Let(|global|, [=create a global object=](|globaladdr|))
       Let(|value|, |global|)
     If(|externtype| is of the form [=external-type/mem=](|memtype|))
-      Assert(|externval| is of the form [=external value|mem=](|memaddr|))
-      Let([=external value|mem=](|memaddr|), |externval|)
-      Let(|memory|, [=create a memory object|a new Memory object=](|memaddr|))
+      Assert(|externval| is of the form [=external value/mem=](|memaddr|))
+      Let([=external value/mem=](|memaddr|), |externval|)
+      Let(|memory|, [=create a memory object=](|memaddr|))
       Let(|value|, |memory|)
     If(|externtype| is of the form [=external-type/table=](|tabletype|))
-      Assert(|externval| is of the form [=external value|table=](|tableaddr|))
-      Let([=external value|table=](|tableaddr|), |externval|)
-      Let(|table|, [=create a Table object|a new Table object=](|tableaddr|))
+      Assert(|externval| is of the form [=external value/table=](|tableaddr|))
+      Let([=external value/table=](|tableaddr|), |externval|)
+      Let(|table|, [=create a Table object=](|tableaddr|))
       Let(|value|, |table|)
     If(|externtype| is of the form [=external-type/tag=](|attribute|, |functype|))
       Assert(|attribute| is [=tagtype/attribute/exception=])
       Assert(|externval| is of the form [=external value/tag=](|tagaddr|))
       Let([=external value/tag=](|tagaddr|), |externval|)
-      Let(|tag|, [=create a Tag object|a new Tag object=](|tagaddr|))
+      Let(|tag|, [=create a Tag object=](|tagaddr|))
       Let(|value|, |tag|)
     Let(|status|, [=!=] [$CreateDataProperty$](|exportsObject|, |name|, |value|))
     Assert(|status| is true)
@@ -274,7 +274,7 @@
   kind: method for WebAssembly
   params: |bytes|, |importObject|, |options|
   head: The <dfn method for="WebAssembly">instantiate(|bytes|, |importObject|, |options|)</dfn> method, when invoked, performs the following steps:
-  Let(|stableBytes|, [=get a copy of the buffer source|copy of the bytes held by the buffer=](|bytes|))
+  Let(|stableBytes|, [=get a copy of the buffer source=](|bytes|))
   PerformAndLet([=Asynchronously compile a WebAssembly module=](|stableBytes|, |options|), |promiseOfModule|)
   PerformAndReturn([=Instantiate a promise of a module=](|promiseOfModule|, |importObject|))
 
@@ -340,7 +340,7 @@
   kind: constructor for Module
   params: |bytes|, |options|
   head: The <dfn constructor for="Module">Module(|bytes|, |options|)</dfn> constructor, when invoked, performs the following steps:
-  Let(|stableBytes|, [=get a copy of the buffer source|copy of the bytes held by the buffer=](|bytes|))
+  Let(|stableBytes|, [=get a copy of the buffer source=](|bytes|))
   PerformAndLet([=Compile a WebAssembly module=](|stableBytes|), |module|)
   If(|module| is [=error=])
     Throw(a {{CompileError}} exception)
@@ -397,7 +397,7 @@
   head: To <dfn>initialize a memory object</dfn> |memory| from a [=memory address=] |memaddr|, perform the following steps:
   Let(|map|, [=surrounding agent=].[[Memory object cache]])
   Assert(|map|[|memaddr|] [=map/doesn't exist=])
-  Let(|buffer|, [=create a fixed length memory buffer|creating a fixed length memory buffer=](|memaddr|))
+  Let(|buffer|, [=create a fixed length memory buffer=](|memaddr|))
   Set(|memory|.[[Memory]], |memaddr|)
   Set(|memory|.[[BufferObject]], |buffer|)
   Set(|map|[|memaddr|], |memory|)
@@ -426,7 +426,7 @@
   Else
     Let(|maximum|, empty)
   Let(|memtype|, [=memory type=](|addrtype|, **min**, |initial|, **max**, |maximum|))
-  If(|memtype| is not [=valid memtype|valid=])
+  If(|memtype| is not [=valid memtype=])
     Throw(a {{RangeError}} exception)
   Let(|store|, [=surrounding agent=].[[associated store]])
   Let((|store|, |memaddr|), [=mem_alloc=](|store|, |memtype|))
@@ -444,7 +444,7 @@
   Let(|buffer|, |memory|.[[BufferObject]])
   If([=IsFixedLengthArrayBuffer=](|buffer|) is true)
     Perform(DetachArrayBuffer(|buffer|, "WebAssembly.Memory"))
-    Let(|buffer|, [=create a fixed length memory buffer|creating a fixed length memory buffer=](|memaddr|))
+    Let(|buffer|, [=create a fixed length memory buffer=](|memaddr|))
     Set(|memory|.[[BufferObject]], |buffer|)
   Else
     Let(|block|, [=Data Block=] which is [=identified with=] the underlying memory of |memaddr|)
@@ -472,7 +472,7 @@
   Let(|store|, [=surrounding agent=].[[associated store]])
   Let(|addrtype|, ?(the [=address type=] in [=mem_type=](|store|, |memaddr|)))
   Let(|delta64|, [=?=] [=AddressValueToU64=](|delta|, |addrtype|))
-  Let(|ret|, [=grow the memory buffer|growing the memory buffer=](|memaddr|, |delta64|))
+  Let(|ret|, [=grow the memory buffer=](|memaddr|, |delta64|))
   Return([=U64ToAddressValue=](|ret|, |addrtype|))
 
 # memory.grow
@@ -491,7 +491,7 @@
   If([=IsFixedLengthArrayBuffer=](|buffer|) is true)
     Return(|buffer|)
   Let(|memaddr|, **this**.[[Memory]])
-  Let(|fixedBuffer|, [=create a fixed length memory buffer|creating a fixed length memory buffer=](|memaddr|))
+  Let(|fixedBuffer|, [=create a fixed length memory buffer=](|memaddr|))
   Perform(DetachArrayBuffer(|buffer|, "WebAssembly.Memory"))
   Set(**this**.[[BufferObject]], |fixedBuffer|)
   Return(|fixedBuffer|)
@@ -510,7 +510,7 @@
     Return(|buffer|)
   Assert(?(|memtype| has a max))
   Let(|maxsize|, ?(the max value in |memtype|) * 65536)
-  Let(|resizableBuffer|, [=create a resizable memory buffer|creating a resizable memory buffer=](|memaddr|, |maxsize|))
+  Let(|resizableBuffer|, [=create a resizable memory buffer=](|memaddr|, |maxsize|))
   Perform(DetachArrayBuffer(|buffer|, "WebAssembly.Memory"))
   Set(**this**.[[BufferObject]], |resizableBuffer|)
   Return(|resizableBuffer|)
@@ -572,7 +572,7 @@
   Else
     Let(|maximum|, empty)
   Let(|type|, ?(the [=table type=] |addrtype| { <b>[=limits|min=]</b> |initial|, <b>[=limits|max=]</b> |maximum| } |elementtype|))
-  If(|type| is not [=valid tabletype|valid=])
+  If(|type| is not [=valid tabletype=])
     Throw(a {{RangeError}} exception)
   If(|value| is missing)
     Let(|ref|, [=DefaultValue=](|elementtype|))
@@ -814,11 +814,11 @@
   If(|ret| is [=exception=](|exnaddr|))
     Let(|tagaddr|, [=exn_tag=](|store|, |exnaddr|))
     Let(|payload|, [=exn_read=](|store|, |exnaddr|))
-    Let(|jsTagAddr|, [=get the JavaScript exception tag|getting the JavaScript exception tag=])
+    Let(|jsTagAddr|, [=get the JavaScript exception tag=])
     If(|tagaddr| is |jsTagAddr|)
       Throw([=!=] [=ToJSValue=](|payload|[0]))
     Else
-      Let(|exception|, [=create an Exception object|a new Exception=](|exnaddr|))
+      Let(|exception|, [=create an Exception object=](|exnaddr|))
       Throw(|exception|)
   Let(|outArity|, length(|ret|))
   If(|outArity| is 0)
@@ -868,7 +868,7 @@
     Let(|relevant settings|, realm/settings object)
     Perform([=Prepare to run script=](|relevant settings|))
     Perform([=Prepare to run a callback=](|stored settings|))
-    Let(|result|, [=run a host function|running a host function=](|func|, |functype|, |arguments|))
+    Let(|result|, [=run a host function=](|func|, |functype|, |arguments|))
     Perform([=Clean up after running a callback=](|stored settings|))
     Perform([=Clean up after running script=](|relevant settings|))
     Assert(|result|.[[Type]] is <emu-const>throw</emu-const> or <emu-const>normal</emu-const>)
@@ -878,7 +878,7 @@
       If(|v| [=implements=] {{Exception}})
         Let(|address|, |v|.[[Address]])
       Else
-        Let(|type|, [=get the JavaScript exception tag|getting the JavaScript exception tag=])
+        Let(|type|, [=get the JavaScript exception tag=])
         Let(|payload|, [=!=] [=ToWebAssemblyValue=](|v|, [=externref=]))
         Let((|store|, |address|), [=exn_alloc=](|store|, |type|, « |payload| »))
         Set([=surrounding agent=].[[associated store]], |store|)
@@ -1152,7 +1152,7 @@
 # Exception
   params: |exceptionTag|, |payload|, |options|
   head: The <dfn constructor for=Exception lt="Exception(exceptionTag, payload, options)">new Exception(|exceptionTag|, |payload|, |options|)</dfn> constructor steps are:
-  Let(|JSTagAddr|, [=get the JavaScript exception tag|getting the JavaScript exception tag=])
+  Let(|JSTagAddr|, [=get the JavaScript exception tag=])
   If(|exceptionTag|.[[Address]] is |JSTagAddr|)
     Throw(a {{TypeError}})
   Let(|store|, [=surrounding agent=].[[associated store]])
@@ -1274,7 +1274,7 @@
   params: |import|, |builtinSetNames|
   head: To <dfn>validate an import for builtins</dfn> with |import|, enabled builtins |builtinSetNames|, perform the following steps:
   Assert([=validate builtin set names=](|builtinSetNames|) is true)
-  Let(|maybeBuiltin|, [=find a builtin|finding a builtin=](|import|, |builtinSetNames|))
+  Let(|maybeBuiltin|, [=find a builtin=](|import|, |builtinSetNames|))
   If(|maybeBuiltin| is null)
     Return(true)
   Let(|importExternType|, |import|[2])
@@ -1445,7 +1445,7 @@
   head: To <dfn export>resolve</dfn> a <code><a interface>Promise</a>&lt;|T|&gt;</code> |p| with |x| (a value of type |T|), perform the following steps:
   If(|x| is not ?(given))
     Let(?(it), ?(the {{undefined}} value))
-  Let(|value|, [=converted to a JavaScript value|converting=](|x|))
+  Let(|value|, [=converted to a JavaScript value=](|x|))
   Perform(Call(|p|.[[Resolve]], ?(<emu-val>undefined</emu-val>), « |value| »))
   If(|T| is undefined)
     ?(the |x| argument is optional, allowing a simpler "[=resolve=] p" usage)
@@ -1459,7 +1459,7 @@
   params: |T|, |promise|, |realm|
   head: To <dfn id="dfn-perform-steps-once-promise-is-settled" export lt="react|reacting" for="promise">react</dfn> to a <code><a interface>Promise</a>&lt;|T|&gt;</code> |promise| in a [=realm=] |realm|, given one or two sets of steps to perform, covering when the promise is fulfilled, rejected, or both, perform the following steps:
   Let(|onFulfilledSteps|, followingSteps(V))
-    Let(|value|, [=converted to an IDL value|converting=](|V|, |T|))
+    Let(|value|, [=converted to an IDL value=](|V|, |T|))
     If(?(there) is ?(a set of steps to be run if the promise was fulfilled))
       Let(|result|, ?(performing them, given |value| if |T| is not {{undefined}}))
     Else
@@ -1467,7 +1467,7 @@
     Return(?(|result|, [=converted to a JavaScript value=]))
   Let(|onFulfilled|, [$CreateBuiltinFunction$](|onFulfilledSteps|, 1, "", « »))
   Let(|onRejectedSteps|, followingSteps(R))
-    Let(|reason|, [=converted to an IDL value|converting=](|R|, any))
+    Let(|reason|, [=converted to an IDL value=](|R|, any))
     If(?(there) is ?(a set of steps to be run if the promise was rejected))
       Let(|result|, ?(performing them, given |reason|))
     Else
@@ -1484,7 +1484,7 @@
 # get a copy of the buffer source
   params: |bufferSource|
   head: To <dfn id="dfn-get-buffer-source-copy" export lt="get a copy of the buffer source|get a copy of the bytes held by the buffer source">get a copy of the bytes held by the buffer source</dfn> given a [=buffer source type=] instance |bufferSource|:
-  Let(|jsBufferSource|, [=converted to a JavaScript value|converting=](|bufferSource|))
+  Let(|jsBufferSource|, [=converted to a JavaScript value=](|bufferSource|))
   Let(|jsArrayBuffer|, |jsBufferSource|)
   Let(|offset|, 0)
   Let(|length|, 0)

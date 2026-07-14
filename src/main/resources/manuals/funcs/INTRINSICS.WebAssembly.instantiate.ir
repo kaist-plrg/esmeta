@@ -16,5 +16,6 @@ def <BUILTIN>:INTRINSICS.WebAssembly.instantiate(
   call %1 = clo<"instantiate">(%0, importObject, undefined)
   if (? %1: Completion) return %1
   call %2 = clo<"NormalCompletion">(%1)
-  return %2
+  let %3 = %2.Promise
+  return %3
 }

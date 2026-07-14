@@ -264,10 +264,10 @@
       Perform([=Resolve=](WebAssemblyInstantiatedSource, |promise|, |result|))
     Let(|innerOnRejectedSteps|, followingSteps(reason))
       Perform([=Reject=](WebAssemblyInstantiatedSource, |promise|, |reason|))
-    Perform([=React=](WebAssemblyInstantiatedSource, |innerPromise|, |innerOnFullfilledSteps|, |innerOnRejectedSteps|, [=current realm=]))
+    Perform([=React=](WebAssemblyInstantiatedSource, |innerPromise|, |innerOnFullfilledSteps|, |innerOnRejectedSteps|, [=current Realm=]))
   Let(|onRejectedSteps|, followingSteps(reason))
     Perform([=Reject=](WebAssemblyInstantiatedSource, |promise|, |reason|))
-  Perform([=React=](WebAssemblyInstantiatedSource, |promiseOfModule|, |onFullfilledSteps|, |onRejectedSteps|, [=current realm=]))
+  Perform([=React=](WebAssemblyInstantiatedSource, |promiseOfModule|, |onFullfilledSteps|, |onRejectedSteps|, [=current Realm=]))
   Return(|promise|)
 
 # instantiate

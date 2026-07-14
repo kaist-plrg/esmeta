@@ -396,7 +396,7 @@ def instantiate_a_promise_of_a_module(
   call promise = clo<"a_new_promise">(~WebAssemblyInstantiatedSource~, @EXECUTION_STACK[0].Realm)
   let onFullfilledSteps = clo<"instantiate_a_promise_of_a_module_closure1", [importObject, promise]>
   let onRejectedSteps = clo<"instantiate_a_promise_of_a_module_closure4", [promise]>
-  call _ = clo<"react">(~WebAssemblyInstantiatedSource~, promiseOfModule, onFullfilledSteps, onRejectedSteps, ~current realm~)
+  call _ = clo<"react">(~WebAssemblyInstantiatedSource~, promiseOfModule, onFullfilledSteps, onRejectedSteps, @EXECUTION_STACK[0].Realm)
   return promise
 }
 def instantiate(
@@ -2388,7 +2388,7 @@ def instantiate_a_promise_of_a_module_closure1(
   call innerPromise = clo<"asynchronously_instantiate_a_webassembly_module">(module, importObject)
   let innerOnFullfilledSteps = clo<"instantiate_a_promise_of_a_module_closure2", [promise]>
   let innerOnRejectedSteps = clo<"instantiate_a_promise_of_a_module_closure3", [promise]>
-  call _ = clo<"react">(~WebAssemblyInstantiatedSource~, innerPromise, innerOnFullfilledSteps, innerOnRejectedSteps, ~current realm~)
+  call _ = clo<"react">(~WebAssemblyInstantiatedSource~, innerPromise, innerOnFullfilledSteps, innerOnRejectedSteps, @EXECUTION_STACK[0].Realm)
   return ~unused~
 }
 def instantiate_a_promise_of_a_module_closure4(

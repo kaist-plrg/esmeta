@@ -287,14 +287,14 @@ object SpecPatch:
     )} |promise| with |reason|.
        #        1. [=React=] ${ofTypePromise(
       "WebAssemblyInstantiatedSource",
-    )} to |innerPromise| with |innerOnFullfilledSteps|, and |innerOnRejectedSteps| in the [=current realm=].
+    )} to |innerPromise| with |innerOnFullfilledSteps|, and |innerOnRejectedSteps| in the [=current Realm=].
        #    1. Let |onRejectedSteps| be the following steps given argument |reason|:
        #        1. [=Reject=] ${ofTypePromise(
       "WebAssemblyInstantiatedSource",
     )} |promise| with |reason|.
        #    1. [=React=] ${ofTypePromise(
       "WebAssemblyInstantiatedSource",
-    )} to |promiseOfModule| with |onFullfilledSteps|, and |onRejectedSteps| in the [=current realm=]."""
+    )} to |promiseOfModule| with |onFullfilledSteps|, and |onRejectedSteps| in the [=current Realm=]."""
       .stripMargin('#'),
 
     // #13 (spec bug) — a host function's "name" (used for

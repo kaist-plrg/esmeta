@@ -14,7 +14,7 @@ package esmeta.wji.lang
   *   - *(spec bug)* fixes an actual defect in the spec prose itself — a typo,
   *     stale phrasing, or markup that violates the surrounding file's own
   *     conventions. These correspond 1-to-1 with the errors documented in
-  *     `mechanize/spec_errors.md`.
+  *     `docs/spec_errors.md`.
   *   - *(suggestion)* makes an already-valid elision explicit — a spot where
   *     Bikeshed prose conventionally omits an argument (a generic type
   *     parameter, an implicit realm) that this project's extractor/compiler

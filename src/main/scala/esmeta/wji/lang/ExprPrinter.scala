@@ -4,17 +4,18 @@ import Expr.*
 
 object ExprPrinter:
   def render(expr: Expr): String = expr match
-    case Var(name)            => s"|$name|"
-    case This                 => "**this**"
-    case Num(value)           => value
-    case Byte(v)              => s"0x$v"
-    case Bool(v)              => v.toString
-    case Str(v)               => s""""$v""""
-    case SpecTerm(name)       => name
-    case Field(base, name)    => s"${render(base)}.[[${name}]]"
-    case Index(base, key)     => s"${render(base)}[${render(key)}]"
-    case Link(link, Nil)      => link
-    case Link(link, args)     => s"$link(${args.map(render).mkString(", ")})"
+    case Var(name)                => s"|$name|"
+    case This                     => "**this**"
+    case Num(value)               => value
+    case Byte(v)                  => s"0x$v"
+    case Bool(v)                  => v.toString
+    case Str(v)                   => s""""$v""""
+    case SpecTerm(name)           => name
+    case Field(base, name)        => s"${render(base)}.[[${name}]]"
+    case Index(base, key)         => s"${render(base)}[${render(key)}]"
+    case Link(link, display, Nil) => renderLink(link, display)
+    case Link(link, display, args) =>
+      s"${renderLink(link, display)}(${args.map(render).mkString(", ")})"
     case AlgoCall(link, Nil)  => link
     case AlgoCall(link, args) => s"$link(${args.map(render).mkString(", ")})"
     case Case(tag, Nil)       => tag
@@ -49,6 +50,9 @@ object ExprPrinter:
       s"followingSteps(${params.mkString(", ")})"
     case TupleProj(base, idx) => s"${render(base)}.$idx"
     case CaseTag(base)        => s"case-tag(${render(base)})"
+
+  private def renderLink(link: String, display: Option[String]): String =
+    display.fold(link)(d => link.stripSuffix("=]") + s"|$d=]")
 
   private def renderBOp(op: BOp): String = op match
     case BOp.Add => "+"

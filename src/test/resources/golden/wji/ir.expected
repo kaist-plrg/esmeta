@@ -209,7 +209,7 @@ def read_the_imports(
       } else {
         call funcaddr = clo<"create_a_host_function">(v, functype)
       }
-      let externfunc = (yet "the [=external value=] [=external value|func=] |funcaddr|")
+      let externfunc = (case "func" funcaddr)
       push imports < externfunc
     } else nop
     if (yet "is of form") {
@@ -242,14 +242,14 @@ def read_the_imports(
         let globaladdr = (proj _tuple3 1)
         @AGENT_RECORD["associated store"] = store
       }
-      call externglobal = clo<"external_value">(globaladdr)
+      let externglobal = (case "global" globaladdr)
       push imports < externglobal
     } else nop
     if (yet "is of form") {
       if (yet "implements Memory") {
         (yet "throw a {{LinkError}} exception")
       } else nop
-      let externmem = _ref_Unknown.Memory
+      let externmem = (case "mem" v.Memory)
       push imports < externmem
     } else nop
     if (yet "is of form") {
@@ -257,7 +257,7 @@ def read_the_imports(
         (yet "throw a {{LinkError}} exception")
       } else nop
       let tableaddr = v.Table
-      let externtable = (yet "the [=external value=] [=external value|table=] |tableaddr|")
+      let externtable = (case "table" tableaddr)
       push imports < externtable
     } else nop
     if (yet "is of form") {
@@ -266,7 +266,7 @@ def read_the_imports(
         (yet "throw a {{LinkError}} exception")
       } else nop
       let tagaddr = v.Address
-      let externtag = (yet "the [=external value=] [=external value/tag=] |tagaddr|")
+      call externtag = clo<"external_value/tag">(tagaddr)
       push imports < externtag
     } else nop
     _iterIdx8 = (+ _iterIdx8 1)
@@ -295,25 +295,25 @@ def create_an_exports_object(
     if (= (case-tag externtype) "FUNC") {
       let functype = (proj externtype 0)
       assert (yet "is of form")
-      let _ = (yet "unsupported Let lhs: AlgoCall([=external_value=],List(Var(funcaddr)))")
+      let _ = (yet "unsupported Let lhs: Case([=func=],List(Var(funcaddr)))")
       call func = clo<"a_new_exported_function">(funcaddr)
       let value = func
     } else nop
     if (yet "is of form") {
       assert (yet "is of form")
-      let _ = (yet "unsupported Let lhs: AlgoCall([=external_value=],List(Var(globaladdr)))")
+      let _ = (yet "unsupported Let lhs: Case([=global=],List(Var(globaladdr)))")
       call global = clo<"create_a_global_object">(globaladdr)
       let value = global
     } else nop
     if (yet "is of form") {
       assert (yet "is of form")
-      let _ = (yet "unsupported Let lhs: AlgoCall([=external_value=],List(Var(memaddr)))")
+      let _ = (yet "unsupported Let lhs: Case([=mem=],List(Var(memaddr)))")
       call memory = clo<"create_a_memory_object">(memaddr)
       let value = memory
     } else nop
     if (yet "is of form") {
       assert (yet "is of form")
-      let _ = (yet "unsupported Let lhs: AlgoCall([=external_value=],List(Var(tableaddr)))")
+      let _ = (yet "unsupported Let lhs: Case([=table=],List(Var(tableaddr)))")
       call table = clo<"create_a_table_object">(tableaddr)
       let value = table
     } else nop
@@ -2266,7 +2266,7 @@ def resolve(
   if (! (= x (yet "given"))) {
     let _ = (yet "unsupported Let lhs: Unknown(it)")
   } else nop
-  call value = clo<"converted_to_a_javascript_value">(x)
+  let value = (case "converting" x)
   call _ = clo<"Call">(p.Resolve, (yet "<emu-val>undefined</emu-val>"), (list [value]))
   if (= T undefined) {
     (yet "the |x| argument is optional, allowing a simpler \"[=resolve=] p\" usage")
@@ -2307,7 +2307,7 @@ def react(
 def get_a_copy_of_the_buffer_source(
   bufferSource: Unknown,
 ): Unknown = {
-  call jsBufferSource = clo<"converted_to_a_javascript_value">(bufferSource)
+  let jsBufferSource = (case "converting" bufferSource)
   let jsArrayBuffer = jsBufferSource
   let offset = 0
   let length = 0
@@ -2414,7 +2414,7 @@ def create_a_host_function_closure1(
 def react_closure1(
   V: Unknown,
 ): Unknown = {
-  call value = clo<"converted_to_an_idl_value">(V, T)
+  let value = (case "converting" V T)
   if (= (yet "there") (yet "a set of steps to be run if the promise was fulfilled")) {
     let result = (yet "performing them, given |value| if |T| is not {{undefined}}")
   } else {
@@ -2425,7 +2425,7 @@ def react_closure1(
 def react_closure2(
   R: Unknown,
 ): Unknown = {
-  call reason = clo<"converted_to_an_idl_value">(R, ~any~)
+  let reason = (case "converting" R ~any~)
   if (= (yet "there") (yet "a set of steps to be run if the promise was rejected")) {
     let result = (yet "performing them, given |reason|")
   } else {

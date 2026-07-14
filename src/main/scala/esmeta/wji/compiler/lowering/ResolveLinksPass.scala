@@ -30,7 +30,9 @@ import esmeta.wji.lang.{Algorithm, AlgorithmKind, Cond, Expr, Instr}
   *     algorithm and stays `AlgoCall`; anything else becomes `Case`. This is
   *     imperfect — a handful of genuine multi-word SpecTec constructor names
   *     (`external value`, `memory type`) are misclassified as `AlgoCall` too —
-  *     but it's a deliberate, simple tradeoff over a larger lookup table.
+  *     but it's a deliberate, simple tradeoff over a larger lookup table. When
+  *     the `Link` also carries a `display` (its `[=X|Y=]` form), a resulting
+  *     `Case`'s tag is `Y`, not `X` — see `Expr.Case`'s doc for why.
   *   - a zero-arg `Link` that doesn't match a known algorithm becomes a
   *     `SpecTerm` — a bare reference to something else.
   */
@@ -108,13 +110,16 @@ object ResolveLinksPass extends LoweringPass:
   ): Expr =
     val go = rewriteExpr(known, plainKnown)
     expr match
-      case Expr.Link(link, args) =>
+      case Expr.Link(link, display, args) =>
         val resolvedArgs = args.map(go)
+        // heuristic split between AlgoCall/Case — see class doc above.
+        // `display`, when present, is usually the real tag (Expr.Case's doc),
+        // so it — not `link` — is what the "no space" check must apply to.
+        val candidateTag = display.getOrElse(stripLink(link))
         if known.contains(stripLink(link).toLowerCase) then
           Expr.AlgoCall(link, resolvedArgs)
-        else if args.nonEmpty && !stripLink(link).contains(" ") then
-          // heuristic split between AlgoCall/Case — see class doc above
-          Expr.Case(link, resolvedArgs)
+        else if args.nonEmpty && !candidateTag.contains(" ") then
+          Expr.Case(display.fold(link)(d => s"[=$d=]"), resolvedArgs)
         else if args.nonEmpty then Expr.AlgoCall(link, resolvedArgs)
         else Expr.SpecTerm(stripLink(link))
       // ExprParser's `[=link=](args)` form (unambiguous call syntax) already

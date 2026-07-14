@@ -9,6 +9,14 @@ object ExprParser:
   private val AbruptPrefix = """(?s)^\[=([?!])=\]\s+(.+)$""".r
   private val ResultOf = """(?si)^the result of (?:creating\s+)?(.+)$""".r
   private val EitherPat = """(?si)^either\s+(.+)$""".r
+  // "the [=TERM=] EXPR" — TERM names EXPR's type/category (e.g. "the
+  // external value [=external value|func=] |funcaddr|" ~ "the (external
+  // value) func funcaddr", mirroring how "the number 5"/"the list «1, 2»"
+  // name a value's type before the value itself). Safe to drop TERM and
+  // parse only EXPR: EXPR's own dfn/tag already carries that information on
+  // its own (see Link/Case), so nothing is lost. General over TERM — not
+  // specific to any one dfn.
+  private val TypeAnnotatedPrefix = """(?si)^the\s+\[=[^\]]+=\]\s+(\[=.+)$""".r
   // Three phrasings of the spec's "the following steps ...:" closure idiom —
   // all parse straight to a FollowingSteps placeholder, later hoisted into a
   // real Closure by ExpandFollowingStepsPass (the substeps themselves stay on
@@ -194,6 +202,18 @@ object ExprParser:
   def normalizeLink(link: String): String =
     link.replaceAll("""\|[^=\]]*(?==\])""", "")
 
+  private val PipeDisplay = """\|([^=\]]*)(?==\])""".r
+
+  /** Splits a Bikeshed `[=linking-text|display-text=]` autolink into its
+    * linking text (bracketed, same shape [[normalizeLink]] produces) and, if
+    * present, its display text — see [[Expr.Link]]'s doc for why both are kept
+    * here rather than discarding the display text the way [[normalizeLink]]
+    * does (still used for links where only the linking text is ever meaningful,
+    * e.g. [[AlgoCall]]'s explicit-call forms).
+    */
+  private def splitLinkDisplay(link: String): (String, Option[String]) =
+    (normalizeLink(link), PipeDisplay.findFirstMatchIn(link).map(_.group(1)))
+
   /** Strips a Bikeshed `{{...}}` IDL-reference wrapper, e.g. a `[[...]]`
     * internal slot named after an intrinsic is conventionally written
     * `[[{{%Promise%}}]]` rather than `[[%Promise%]]`.
@@ -207,6 +227,7 @@ object ExprParser:
       case AbruptPrefix(check, rest) => Abrupt(check, parse(rest))
       case ResultOf(rest)            => parse(rest)
       case EitherPat(rest)           => parse(rest)
+      case TypeAnnotatedPrefix(rest) => parse(rest)
       case StepsClosurePrefix(paramsRaw) =>
         FollowingSteps(
           PipeVarInline.findAllMatchIn(paramsRaw).map(_.group(1)).toList,
@@ -237,8 +258,11 @@ object ExprParser:
       case LinkFull(link, argsRaw) =>
         AlgoCall(normalizeLink(link), splitComma(argsRaw).map(parse))
       case LinkProse(link, prose) =>
-        Link(normalizeLink(link), parseArgs(prose))
-      case LinkOnly(link)            => Link(normalizeLink(link), Nil)
+        val (l, d) = splitLinkDisplay(link)
+        Link(l, d, parseArgs(prose))
+      case LinkOnly(link) =>
+        val (l, d) = splitLinkDisplay(link)
+        Link(l, d, Nil)
       case ThisOnly()                => This
       case VarOnly(name)             => Var(name)
       case VarIgnore(name)           => Var(name.trim)
@@ -273,7 +297,8 @@ object ExprParser:
       case SuchThatDesc(desc, cond) =>
         SuchThat(desc.trim, cond.trim)
       case LinkIndefVar(link, arg) =>
-        Link(normalizeLink(link), List(parse(arg)))
+        val (l, d) = splitLinkDisplay(link)
+        Link(l, d, List(parse(arg)))
       case AsMathPat(inner)       => AsMath(parse(inner))
       case PowPat(base, exp)      => Pow(parse(base), parse(exp))
       case BinOpPat(lhs, op, rhs) => BinOp(parse(lhs), parseBOp(op), parse(rhs))

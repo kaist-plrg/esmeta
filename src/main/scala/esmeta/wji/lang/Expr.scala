@@ -38,11 +38,23 @@ object Expr:
     * actually verify (that requires the full set of extracted algorithm names,
     * which only exists once every algorithm has been parsed). This ambiguity
     * only exists for the bare-link and prose-args forms, though — see
-    * [[AlgoCall]]. `ResolveLinksPass` resolves every remaining `Link` into
-    * either an [[AlgoCall]] (name matches a known algorithm, or it's invoked
-    * with args) or a [[SpecTerm]] (a bare reference to something else).
+    * [[AlgoCall]]. `ResolveLinksPass` resolves every remaining `Link` into an
+    * [[AlgoCall]] (name matches a known algorithm, or it's invoked with args),
+    * a [[Case]] (see its own doc for when `display` — not `link` — ends up as
+    * the tag), or a [[SpecTerm]] (a bare reference to something else).
+    *
+    * @param display
+    *   the `Y` of a `[=X|Y=]` Bikeshed link, if present — usually pure display
+    *   aliasing of `X` (e.g. `[=map/exist|contains=]`, still meaning
+    *   `map/exist`), but occasionally the actual semantic discriminator where
+    *   several variants share one generic dfn `X` written with a different `Y`
+    *   per variant (e.g. `[=external value|func=]`, `[=external
+    *   value|global=]`, ... — see [[Case]]). [[ExprParser]] can't tell these
+    *   two uses apart any more than it can tell a term reference from a call,
+    *   so both are preserved here and `ResolveLinksPass` decides.
     */
-  case class Link(link: String, args: List[Expr]) extends Expr
+  case class Link(link: String, display: Option[String], args: List[Expr])
+    extends Expr
 
   /** A confirmed call to an extracted WJI algorithm (or, for an args-carrying
     * link that names something else — a Wasm embedding function, an
@@ -64,6 +76,15 @@ object Expr:
     * but semantically a constructor/pattern rather than a call, so it's kept
     * distinct rather than resolved elsewhere at compile time the way an
     * unrecognized [[AlgoCall]] is.
+    *
+    * `tag` comes from the `Link`'s `display` when present, otherwise its `link`
+    * — several Wasm Core Spec variant families are all written as a `[=one
+    * shared generic dfn|per-variant word=]` link rather than each getting a
+    * distinct `for`-scoped one (e.g. `[=external value|func=]`, `[=external
+    * value|global=]`, ... all link to the one `external value` dfn, using the
+    * display text to spell the actual variant), so the display text is the real
+    * tag there — the same syntax [[Link]]'s own doc notes is ordinarily pure
+    * aliasing (`[=map/exist|contains=]`).
     */
   case class Case(tag: String, args: List[Expr]) extends Expr
   case class JSCall(name: String, args: List[Expr]) extends Expr

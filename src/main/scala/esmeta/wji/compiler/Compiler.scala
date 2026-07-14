@@ -238,7 +238,7 @@ object Compiler:
     // any expression depth.
     case metalang.Expr.Abrupt(marker, e) =>
       EYet(s"nested $marker-abrupt: $e")
-    case metalang.Expr.Link(link, args) =>
+    case metalang.Expr.Link(link, _, args) =>
       // ResolveLinksPass resolves every Link into an AlgoCall/Case/SpecTerm
       // before compilation ever sees it; this is only here for exhaustivity.
       EYet(s"unresolved link: $link") // should not happen

@@ -20,6 +20,24 @@ package esmeta.wji.lang
   *     parameter, an implicit realm) that this project's extractor/compiler
   *     needs spelled out in order to compile. Nothing here is wrong in the spec
   *     as written; it's just not explicit enough for this tool.
+  *
+  * The *(suggestion)* patches all serve one of two purposes, each showing up
+  * folded into several numbered entries below rather than as a pair of its own,
+  * so it's called out here instead of at every site:
+  *
+  *   - *current realm* — `a new promise` and `react` (webidl/index.bs) each
+  *     need the calling realm threaded through explicitly: {{Promise}}
+  *     instances are ordinary objects, and ordinary objects carry no [[Realm]]
+  *     internal slot in ECMA-262 (only function objects do), so there's no slot
+  *     for `react` to derive it from, and `a new promise` simply declares the
+  *     parameter without every caller supplying it. Fixed in #4 (`a new
+  *     promise`'s 3 call sites) and #12 (`react`'s own signature plus its 2
+  *     call sites).
+  *   - *type parameter* — `a new promise`, `resolve`, `react`, and `reject`
+  *     each declare a leading type parameter T (see
+  *     `AlgorithmExtractor.GenericVarIgnore`), but every real call site elides
+  *     it. Fixed in #4, #10, #11, and #12, each supplying the type of the
+  *     `promise`/`p` argument being acted on at that site.
   */
 object SpecPatch:
 

@@ -3,9 +3,9 @@ package esmeta.wji.compiler.lowering
 import esmeta.wji.lang.{Algorithm, Instr}
 
 /** Elides WHATWG HTML's job-callback bookkeeping hooks — "Prepare to run
-  * script" / "Prepare to run a callback" / "Clean up after running a
-  * callback" / "Clean up after running script" — only ever seen wrapping
-  * `create a host function`'s inner call (js-api/index.bs:1351-1355).
+  * script" / "Prepare to run a callback" / "Clean up after running a callback"
+  * / "Clean up after running script" — only ever seen wrapping `create a host
+  * function`'s inner call (js-api/index.bs:1351-1355).
   *
   * ECMA-262 itself deliberately leaves all of this host-defined (see
   * `ExprParser.CrossSpecRef`'s doc for the "incumbent settings object"/
@@ -16,10 +16,10 @@ import esmeta.wji.lang.{Algorithm, Instr}
   * dropped entirely here, mirroring that default.
   *
   * Kept as a lowering pass rather than a parser-level special case so the
-  * initial (pre-lowering) parse stays a faithful structural mirror of the
-  * spec prose — a real `Perform` targeting these names, not already-elided —
-  * and this scoping decision (as opposed to a syntax-recognition one) stays
-  * visible as its own, separately-inspectable transformation step.
+  * initial (pre-lowering) parse stays a faithful structural mirror of the spec
+  * prose — a real `Perform` targeting these names, not already-elided — and
+  * this scoping decision (as opposed to a syntax-recognition one) stays visible
+  * as its own, separately-inspectable transformation step.
   */
 object ElideHtmlHostHooksPass extends LoweringPass:
 

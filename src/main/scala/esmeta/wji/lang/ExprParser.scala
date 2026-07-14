@@ -27,6 +27,18 @@ object ExprParser:
   // ExpandFollowingStepsPass hoists it.
   private val QueueTaskClosureSuffix =
     """(?is)^(?:if\s+provided,\s*)?to\s+perform\s+the\s+following\s+steps:?\s*$""".r
+  // "a [=host function=] which performs the following steps when called with
+  // arguments |arguments|:" — a third phrasing of the same "the following
+  // steps ...:" closure idiom, this time introduced as a relative clause on
+  // some `[=term=]` (js-api/index.bs's own idiom for defining a host
+  // function) rather than "the following steps given ..."/"to perform the
+  // following steps". The `[=term=]` itself carries no separate meaning we
+  // model — same as RelativeClauseDesc discards its `[=link=]` for any other
+  // relative clause — only the trailing params list matters. Must be tried
+  // before RelativeClauseDesc, which would otherwise swallow this into an
+  // unevaluable Described.
+  private val WhichPerformsStepsClosure =
+    """(?si)^an?\s+\[=[^\]]+=\]\s+which\s+performs\s+the\s+following\s+steps\s+when\s+called\s+with\s+(?:arguments?\s+)?(\|[^|]+\|(?:\s*(?:,|and)\s*\|[^|]+\|)*)\s*:?\s*$""".r
   private val PipeVarInline = """\|([^|]+)\|""".r
   private val Backticked = """(?s)^`(.+)`$""".r
   private val BacktickedQuotedStr = """(?s)^`"([^"]*)"`$""".r
@@ -214,6 +226,10 @@ object ExprParser:
           PipeVarInline.findAllMatchIn(paramsRaw).map(_.group(1)).toList,
         )
       case QueueTaskClosureSuffix() => FollowingSteps(Nil)
+      case WhichPerformsStepsClosure(paramsRaw) =>
+        FollowingSteps(
+          PipeVarInline.findAllMatchIn(paramsRaw).map(_.group(1)).toList,
+        )
       // A backtick-wrapped *quoted* string (e.g. `"frozen"`, the argument to
       // [$SetIntegrityLevel$]) isn't a real ECMAScript string value — it's
       // Bikeshed's way of typesetting an ECMA-262 "specification type" enum

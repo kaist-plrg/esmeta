@@ -1,4 +1,4 @@
-115 func(s)
+116 func(s)
 def compile_a_webassembly_module(
   bytes: Unknown,
 ): Unknown = {
@@ -1337,34 +1337,7 @@ def create_a_host_function(
 ): Unknown = {
   assert (yet "[$IsCallable$](|func|)")
   let stored settings = ~incumbent settings object~
-  let hostfunc = (yet "[=host function=] which performs the following steps when called with arguments |arguments|:")
-  let realm = (yet "|func|'s [=associated Realm=]")
-  let relevant settings = ~realm/settings object~
-  call result = clo<"run_a_host_function">(func, functype, arguments)
-  assert (|| (= result.Type ~<emu-const>throw</emu-const>~) (= result.Type ~<emu-const>normal</emu-const>~))
-  let store = @AGENT_RECORD["associated store"]
-  if (= result.Type ~<emu-const>throw</emu-const>~) {
-    let v = result.Value
-    if (yet "implements Exception") {
-      let address = v.Address
-    } else {
-      call type = clo<"get_the_javascript_exception_tag">()
-      call _comp30 = clo<"towebassemblyvalue">(v, ~externref~)
-      if (exists _comp30.Type) {
-        assert (= _comp30.Type ~normal~)
-        let payload = _comp30.Value
-      } else {
-        let payload = _comp30
-      }
-      call-embed _tuple15 = <exn_alloc>(store, type, (list [payload]))
-      let store = (proj _tuple15 0)
-      let address = (proj _tuple15 1)
-      @AGENT_RECORD["associated store"] = store
-    }
-    (yet "Execute the WebAssembly instructions ([=ref.exn=] |address|) ([=throw_ref=])")
-  } else {
-    return result.Value
-  }
+  let hostfunc = clo<"create_a_host_function_closure1", [func, functype]>
   let store = @AGENT_RECORD["associated store"]
   call-embed _tuple16 = <func_alloc>(store, functype, hostfunc)
   let store = (proj _tuple16 0)
@@ -2411,6 +2384,38 @@ def asynchronously_instantiate_a_webassembly_module_closure1(
     } else nop
   } else nop
   call _ = clo<"resolve">(~Instance~, promise, instanceObject)
+  return ~unused~
+}
+def create_a_host_function_closure1(
+  arguments: Unknown,
+): Unknown = {
+  let realm = (yet "|func|'s [=associated Realm=]")
+  let relevant settings = ~realm/settings object~
+  call result = clo<"run_a_host_function">(func, functype, arguments)
+  assert (|| (= result.Type ~<emu-const>throw</emu-const>~) (= result.Type ~<emu-const>normal</emu-const>~))
+  let store = @AGENT_RECORD["associated store"]
+  if (= result.Type ~<emu-const>throw</emu-const>~) {
+    let v = result.Value
+    if (yet "implements Exception") {
+      let address = v.Address
+    } else {
+      call type = clo<"get_the_javascript_exception_tag">()
+      call _comp30 = clo<"towebassemblyvalue">(v, ~externref~)
+      if (exists _comp30.Type) {
+        assert (= _comp30.Type ~normal~)
+        let payload = _comp30.Value
+      } else {
+        let payload = _comp30
+      }
+      call-embed _tuple15 = <exn_alloc>(store, type, (list [payload]))
+      let store = (proj _tuple15 0)
+      let address = (proj _tuple15 1)
+      @AGENT_RECORD["associated store"] = store
+    }
+    (yet "Execute the WebAssembly instructions ([=ref.exn=] |address|) ([=throw_ref=])")
+  } else {
+    return result.Value
+  }
   return ~unused~
 }
 def react_closure1(

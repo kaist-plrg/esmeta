@@ -77,7 +77,7 @@ def asynchronously_compile_a_webassembly_module(
 ): Unknown = {
   call promise = clo<"a_new_promise">(~Module~, @EXECUTION_STACK[0].Realm)
   call module = clo<"compile_a_webassembly_module">(bytes)
-  call _ = clo<"HostEnqueuePromiseJob">(clo<"asynchronously compile a WebAssembly module_closure1", [bytes, module, options, promise]>, @EXECUTION_STACK[0].Realm)
+  call _ = clo<"HostEnqueuePromiseJob">(clo<"asynchronously_compile_a_webassembly_module_closure1", [bytes, module, options, promise]>, @EXECUTION_STACK[0].Realm)
   return promise
 }
 def compile(
@@ -388,7 +388,7 @@ def asynchronously_instantiate_a_webassembly_module(
   } else {
     let imports = _throwComp2
   }
-  call _ = clo<"HostEnqueuePromiseJob">(clo<"asynchronously instantiate a WebAssembly module_closure1", [imports, module, promise]>, @EXECUTION_STACK[0].Realm)
+  call _ = clo<"HostEnqueuePromiseJob">(clo<"asynchronously_instantiate_a_webassembly_module_closure1", [imports, module, promise]>, @EXECUTION_STACK[0].Realm)
   return promise
 }
 def instantiate_a_promise_of_a_module(

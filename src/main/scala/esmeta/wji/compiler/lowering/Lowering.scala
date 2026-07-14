@@ -20,7 +20,7 @@ object Lowering:
     ExpandAbbreviatedCondPass,
     ExpandFollowingStepsPass,
     ExpandQueueATaskPass,
-    ReplaceSpaceWithUnderscore,
+    NormalizeAlgoNamePass,
   )
 
   def run(algos: List[Algorithm]): List[Algorithm] =

@@ -39,7 +39,7 @@ import esmeta.wji.lang.{Algorithm, Expr, Instr}
   * `Set`/`Return` RHS, if a future spec phrasing needs it) is a same-shaped
   * addition to `transform` below, not a new pass.
   *
-  * Runs late, right before [[ReplaceSpaceWithUnderscore]] (and before
+  * Runs late, right before [[NormalizeAlgoNamePass]] (and before
   * [[ExpandQueueATaskPass]], which depends on the `Closure` this pass leaves
   * behind in a "queue a task" `Perform`'s `args`): `body` rides through every
   * earlier pass as ordinary nested `Let.body`/`Perform.body` content (every

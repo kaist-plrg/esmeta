@@ -2,10 +2,23 @@ package esmeta.wji.compiler.lowering
 
 import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr}
 
-/** Replaces every space in each algorithm's `name` with an underscore, so it
-  * can be used as a valid function identifier, and does the same inside every
-  * [[Expr.AlgoCall]] link and [[Instr.Perform]]'s `func` link so calls keep
-  * matching their (renamed) target.
+/** Normalizes each algorithm's `name` — space-to-underscore *and* lower-cased,
+  * so it's both a valid function identifier and matches how
+  * `esmeta.wji.compiler.Compiler.compileAlgo` registers `Func` names — and does
+  * the same inside every [[Expr.Closure]] reference to a (possibly synthetic,
+  * lowering-pass-generated) algorithm name, so a closure reference always
+  * matches its target's registered name exactly (`cfg.fnameMap` lookups are
+  * case-sensitive even though the Bikeshed prose these names ultimately derive
+  * from is not).
+  *
+  * [[Expr.AlgoCall]]'s `link` and [[Instr.Perform]]'s `func` are deliberately
+  * left on space-only normalization here (not lower-cased): unlike
+  * `Algorithm.name`/`Closure.name`, a `func`/`link` can also be a literal
+  * reference to a manually-registered native hook (e.g.
+  * `"HostEnqueuePromiseJob"`) whose real name is case-sensitive, not a
+  * lower-cased Bikeshed dfn — lower-casing those is instead handled
+  * conditionally at compile time by `Compiler.nameFromLink`, which only folds
+  * case for `[=...=]`-wrapped (i.e. genuinely Bikeshed-derived) references.
   *
   * This isn't a desugaring/lowering (it changes no control-flow/expression
   * shape) but lives alongside the other passes since it needs to run over the
@@ -13,13 +26,14 @@ import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr}
   * runs right after [[ResolveLinksPass]], before any pass that would otherwise
   * convert `AlgoCall`s into `Perform`s.
   */
-object ReplaceSpaceWithUnderscore extends LoweringPass:
+object NormalizeAlgoNamePass extends LoweringPass:
   def run(algos: List[Algorithm]): List[Algorithm] =
     algos.map { a =>
-      a.copy(name = a.name.map(underscore), body = a.body.map(rewriteInstr))
+      a.copy(name = a.name.map(normalize), body = a.body.map(rewriteInstr))
     }
 
   private def underscore(s: String): String = s.replace(' ', '_')
+  private def normalize(s: String): String = underscore(s).toLowerCase
 
   private def rewriteInstr(instr: Instr): Instr =
     val e = rewriteExpr
@@ -65,7 +79,9 @@ object ReplaceSpaceWithUnderscore extends LoweringPass:
       case Expr.Neg(e)          => Expr.Neg(go(e))
       case Expr.AsMath(e)       => Expr.AsMath(go(e))
       case Expr.Tuple(elems)    => Expr.Tuple(elems.map(go))
-      case other                => other
+      case Expr.Closure(name, captured) =>
+        Expr.Closure(normalize(name), captured)
+      case other => other
 
   private def rewriteCond(cond: Cond): Cond =
     val e = rewriteExpr

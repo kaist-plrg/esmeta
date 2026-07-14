@@ -29,8 +29,8 @@ import esmeta.wji.lang.Instr.PerformOutcome
   * contain a `Closure` here.
   *
   * Runs right after [[ExpandFollowingStepsPass]] and before
-  * [[ReplaceSpaceWithUnderscore]] (which stays last, to also normalize the
-  * synthetic [[Algorithm]] that pass split off).
+  * [[NormalizeAlgoNamePass]] (which stays last, to also normalize the synthetic
+  * [[Algorithm]] that pass split off).
   */
 object ExpandQueueATaskPass extends LoweringPass:
   def run(algos: List[Algorithm]): List[Algorithm] =

@@ -20,6 +20,13 @@ package esmeta.wji.lang
   *     parameter, an implicit realm) that this project's extractor/compiler
   *     needs spelled out in order to compile. Nothing here is wrong in the spec
   *     as written; it's just not explicit enough for this tool.
+  *   - *(hardcoding)* invents a call convention with no literal counterpart in
+  *     the spec prose at all — needed where this project can't yet parse a
+  *     shape the spec actually uses, rather than just an elided argument.
+  *     Currently only `react`'s call sites (see #12): the spec nests a call's
+  *     fulfilled/rejected continuations as bulleted branches directly under
+  *     `[=React=] to |X|:`, a shape nothing in this project parses specially,
+  *     so they're rewritten as two named closures passed explicitly instead.
   *
   * The *(suggestion)* patches all serve one of two purposes, each showing up
   * folded into several numbered entries below rather than as a pair of its own,
@@ -85,9 +92,6 @@ object SpecPatch:
     "1. Let |promise| be [=a new promise=].\n    1. Let |module| be |moduleObject|.\\[[Module]]."
     ->
     s"1. Let |promise| be [=a new promise=] ${ofTypePromise("Instance")} in the [=current Realm=].\n    1. Let |module| be |moduleObject|.\\[[Module]].",
-    "1. Let |promise| be [=a new promise=].\n    1. [=React=] to |promiseOfModule|:"
-    ->
-    s"1. Let |promise| be [=a new promise=] ${ofTypePromise("WebAssemblyInstantiatedSource")} in the [=current Realm=].\n    1. [=React=] to |promiseOfModule|:",
 
     // #5 (spec bug) — `|module|.[=imports=]` treats a decoded `module` as a
     // record with named fields, a leftover from an older version of the Wasm
@@ -183,18 +187,6 @@ object SpecPatch:
     "1. [=Resolve=] |promise| with |instanceObject|."
     ->
     s"1. [=Resolve=] ${ofTypePromise("Instance")} |promise| with |instanceObject|.",
-    "1. [=Resolve=] |promise| with |result|."
-    ->
-    s"1. [=Resolve=] ${ofTypePromise("WebAssemblyInstantiatedSource")} |promise| with |result|.",
-    // the innerPromise-rejected/promiseOfModule-rejected branches share
-    // byte-identical reject text, anchored the same way as the reject pair
-    // above.
-    "* If |innerPromise| was rejected with reason |reason|:\n                    1. [=Reject=] |promise| with |reason|."
-    ->
-    s"* If |innerPromise| was rejected with reason |reason|:\n                    1. [=Reject=] ${ofTypePromise("WebAssemblyInstantiatedSource")} |promise| with |reason|.",
-    "* If |promiseOfModule| was rejected with reason |reason|:\n            1. [=Reject=] |promise| with |reason|."
-    ->
-    s"* If |promiseOfModule| was rejected with reason |reason|:\n            1. [=Reject=] ${ofTypePromise("WebAssemblyInstantiatedSource")} |promise| with |reason|.",
 
     // #11 (spec bug) — the compile algorithm's two CompileError rejections
     // are written as plain "reject ... exception" prose with no [=...=] link,
@@ -209,29 +201,101 @@ object SpecPatch:
     ->
     s"1. If [=validate builtins and imported string for a WebAssembly module|validating builtins and imported strings=] for |module| with |builtinSetNames| and |importedStringModule| is false, [=reject=] ${ofTypePromise("Module")} |promise| with a {{CompileError}} exception.",
 
-    // #12 (spec bug) — unlike `a new promise` (which takes an explicit
-    // |realm| parameter, see #4), webidl/index.bs's `react` tries to derive
-    // the realm for its returned promise capability by chasing
-    // |promise|.[[Promise]].[[Realm]] off the promise being reacted to. But
-    // {{Promise}} instances are ordinary objects, and ordinary objects carry
-    // no [[Realm]] internal slot in ECMA-262 (only function objects do) — so
-    // there's no such slot to chase in the first place. Give `react` the same
-    // explicit `|realm|` parameter `a new promise` already has, and source
-    // the {{Promise}} constructor from it directly instead of trying to
-    // re-derive it from |promise|. The two call sites in js-api/index.bs are
-    // patched to supply it.
+    // #12 (spec bug, suggestion, and hardcoding) — three fixes to `react`
+    // (webidl/index.bs) and its 2 call sites in js-api/index.bs:
+    //
+    //   - (spec bug) unlike `a new promise` (which takes an explicit |realm|
+    //     parameter, see #4), `react` tries to derive the realm for its
+    //     returned promise capability by chasing |promise|.[[Promise]].[[Realm]]
+    //     off the promise being reacted to. But {{Promise}} instances are
+    //     ordinary objects, and ordinary objects carry no [[Realm]] internal
+    //     slot in ECMA-262 (only function objects do) — so there's no such slot
+    //     to chase in the first place. Give `react` the same explicit `|realm|`
+    //     parameter `a new promise` already has, and source the {{Promise}}
+    //     constructor from it directly instead of trying to re-derive it from
+    //     |promise|.
+    //   - (suggestion) `react` also declares a leading type parameter T, same
+    //     as `a new promise`/`resolve`/`reject` (see #4/#10/#11), elided at
+    //     every call site; supplied explicitly here too, same as #10.
+    //   - (hardcoding) each call site's `[=React=] to |X|:` step nests its
+    //     fulfilled/rejected continuations as bulleted `* If |X| was
+    //     fulfilled...:` / `* If |X| was rejected...:` branches directly
+    //     beneath it — a shape nothing in this project parses specially, so
+    //     the branches were silently dropped rather than compiled (`Perform`'s
+    //     `body` never got read back out of them). Rewritten as two named
+    //     closures per call site (`Let |onFulfilledSteps| be the following
+    //     steps given argument |V|: ...`), passed to `[=React=]` explicitly
+    //     via `with |A|, and |B|`, mirroring the closure style `react`'s own
+    //     definition already uses for its `onFulfilled`/`onRejected`
+    //     `CreateBuiltinFunction` steps (see #8) — a convention
+    //     `ExprParser.StepsClosurePrefix` and `ExpandFollowingStepsPass`
+    //     already know how to hoist into real closures. Every referenced
+    //     closure name must be pipe-delimited (`|onFulfilledSteps|`, not
+    //     `onFulfilledSteps`) like every other variable reference in this
+    //     file — `ExprParser.parseArgs` only recognizes the piped form and
+    //     silently drops anything else, the same way it drops stray prose
+    //     words like "with"/"and". `react`'s own definition is patched to
+    //     match on the receiving end: its vague "given one or two sets of
+    //     steps to perform" prose (never a real parameter — nothing a caller
+    //     could actually supply a value for) is replaced with two new
+    //     explicit pipe params, `|onFullfilledStepsArg|` and
+    //     `|onRejectedStepsArg|`, so the closures passed at each call site
+    //     above have somewhere to bind. Its body's two "If there is a set of
+    //     steps to be run if the promise was fulfilled/rejected" checks —
+    //     previously untestable prose, since "a set of steps" named nothing —
+    //     are rewritten to test the corresponding param directly
+    //     (`|onFullfilledStepsArg| is not undefined` / `|onRejectedStepsArg|
+    //     is not undefined`).
     "to a <code><a interface>Promise</a>&lt;|T|&gt;</code> |promise|, given one or two sets of steps"
     ->
-    "to a <code><a interface>Promise</a>&lt;|T|&gt;</code> |promise| in a [=realm=] |realm|, given one or two sets of steps",
+    "to a <code><a interface>Promise</a>&lt;|T|&gt;</code> |promise|, |onFullfilledStepsArg|, and |onRejectedStepsArg| in a [=realm=] |realm|, ",
+    "there is a set of steps to be run if the promise was fulfilled"
+    ->
+    "|onFullfilledStepsArg| is not undefined",
+    "there is a set of steps to be run if the promise was rejected"
+    ->
+    "|onRejectedStepsArg| is not undefined",
     "1.  Let |constructor| be |promise|.\\[[Promise]].\\[[Realm]].\\[[Intrinsics]].\\[[{{%Promise%}}]]."
     ->
     "1.  Let |constructor| be |realm|.\\[[Intrinsics]].\\[[{{%Promise%}}]].",
-    "1. [=React=] to |promiseOfModule|:"
+    """    1. Let |promise| be [=a new promise=].
+      #    1. [=React=] to |promiseOfModule|:
+      #        * If |promiseOfModule| was fulfilled with value |module|:
+      #            1. [=asynchronously instantiate a WebAssembly module|Instantiate the WebAssembly module=] |module| importing |importObject|, and let |innerPromise| be the result.
+      #            1. [=React=] to |innerPromise|:
+      #                * If |innerPromise| was fulfilled with value |instance|.
+      #                    1. Let |result| be the {{WebAssemblyInstantiatedSource}} value «[ "{{WebAssemblyInstantiatedSource/module}}" → |module|, "{{WebAssemblyInstantiatedSource/instance}}" → |instance| ]».
+      #                    1. [=Resolve=] |promise| with |result|.
+      #                * If |innerPromise| was rejected with reason |reason|:
+      #                    1. [=Reject=] |promise| with |reason|.
+      #        * If |promiseOfModule| was rejected with reason |reason|:
+      #            1. [=Reject=] |promise| with |reason|.""".stripMargin('#')
     ->
-    s"1. [=React=] ${ofTypePromise("Module")} to |promiseOfModule| in the [=current Realm=]:",
-    "1. [=React=] to |innerPromise|:"
-    ->
-    s"1. [=React=] ${ofTypePromise("Instance")} to |innerPromise| in the [=current Realm=]:",
+    s"""    1. Let |promise| be [=a new promise=] ${ofTypePromise(
+      "WebAssemblyInstantiatedSource",
+    )} in the [=current Realm=].
+       #    1. Let |onFullfilledSteps| be the following steps given argument |module|:
+       #        1. [=asynchronously instantiate a WebAssembly module|Instantiate the WebAssembly module=] |module| importing |importObject|, and let |innerPromise| be the result.
+       #        1. Let |innerOnFullfilledSteps| be the following steps given argument |instance|:
+       #            1. Let |result| be the {{WebAssemblyInstantiatedSource}} value «[ "{{WebAssemblyInstantiatedSource/module}}" → |module|, "{{WebAssemblyInstantiatedSource/instance}}" → |instance| ]».
+       #            1. [=Resolve=] ${ofTypePromise(
+      "WebAssemblyInstantiatedSource",
+    )} |promise| with |result|.
+       #        1. Let |innerOnRejectedSteps| be the following steps given argument |reason|:
+       #            1. [=Reject=] ${ofTypePromise(
+      "WebAssemblyInstantiatedSource",
+    )} |promise| with |reason|.
+       #        1. [=React=] ${ofTypePromise(
+      "WebAssemblyInstantiatedSource",
+    )} to |innerPromise| with |innerOnFullfilledSteps|, and |innerOnRejectedSteps| in the [=current realm=].
+       #    1. Let |onRejectedSteps| be the following steps given argument |reason|:
+       #        1. [=Reject=] ${ofTypePromise(
+      "WebAssemblyInstantiatedSource",
+    )} |promise| with |reason|.
+       #    1. [=React=] ${ofTypePromise(
+      "WebAssemblyInstantiatedSource",
+    )} to |promiseOfModule| with |onFullfilledSteps|, and |onRejectedSteps| in the [=current realm=]."""
+      .stripMargin('#'),
 
     // #13 (spec bug) — a host function's "name" (used for
     // Function.prototype.name/.length-style introspection) was derived

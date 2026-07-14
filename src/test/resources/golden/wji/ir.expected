@@ -1,4 +1,4 @@
-116 func(s)
+118 func(s)
 def compile_a_webassembly_module(
   bytes: Unknown,
 ): Unknown = {
@@ -394,21 +394,9 @@ def instantiate_a_promise_of_a_module(
   importObject: Unknown,
 ): Unknown = {
   call promise = clo<"a_new_promise">(~WebAssemblyInstantiatedSource~, @EXECUTION_STACK[0].Realm)
-  call _ = clo<"react">(~Module~, promiseOfModule, @EXECUTION_STACK[0].Realm)
-  if (yet "|promiseOfModule| was fulfilled with value |module|") {
-    call innerPromise = clo<"asynchronously_instantiate_a_webassembly_module">(module, importObject)
-    call _ = clo<"react">(~Instance~, innerPromise, @EXECUTION_STACK[0].Realm)
-    if (yet "|innerPromise| was fulfilled with value |instance|") {
-      let result = (yet "the {{WebAssemblyInstantiatedSource}} value «[ \"{{WebAssemblyInstantiatedSource/module}}\" → |module|, \"{{WebAssemblyInstantiatedSource/instance}}\" → |instance| ]»")
-      call _ = clo<"resolve">(~WebAssemblyInstantiatedSource~, promise, result)
-    } else nop
-    if (yet "|innerPromise| was rejected with reason |reason|") {
-      call _ = clo<"reject">(~WebAssemblyInstantiatedSource~, promise, reason)
-    } else nop
-  } else nop
-  if (yet "|promiseOfModule| was rejected with reason |reason|") {
-    call _ = clo<"reject">(~WebAssemblyInstantiatedSource~, promise, reason)
-  } else nop
+  let onFullfilledSteps = clo<"instantiate_a_promise_of_a_module_closure1", [importObject, promise, reason]>
+  let onRejectedSteps = clo<"instantiate_a_promise_of_a_module_closure2", [promise]>
+  call _ = clo<"react">(~WebAssemblyInstantiatedSource~, promiseOfModule, onFullfilledSteps, onRejectedSteps, ~current realm~)
   return promise
 }
 def instantiate(
@@ -2284,11 +2272,13 @@ def reject(
 def react(
   T: Unknown,
   promise: Unknown,
+  onFullfilledStepsArg: Unknown,
+  onRejectedStepsArg: Unknown,
   realm: Unknown,
 ): Unknown = {
-  let onFulfilledSteps = clo<"react_closure1", [T]>
+  let onFulfilledSteps = clo<"react_closure1", [T, onFullfilledStepsArg]>
   call onFulfilled = clo<"CreateBuiltinFunction">(onFulfilledSteps, 1, "", (list []))
-  let onRejectedSteps = clo<"react_closure2">
+  let onRejectedSteps = clo<"react_closure2", [onRejectedStepsArg]>
   call onRejected = clo<"CreateBuiltinFunction">(onRejectedSteps, 1, "", (list []))
   let constructor = realm.Intrinsics["%Promise%"]
   call _comp59 = clo<"NewPromiseCapability">(constructor)
@@ -2379,6 +2369,24 @@ def asynchronously_instantiate_a_webassembly_module_closure1(
   call _ = clo<"resolve">(~Instance~, promise, instanceObject)
   return ~unused~
 }
+def instantiate_a_promise_of_a_module_closure1(
+  module: Unknown,
+): Unknown = {
+  call innerPromise = clo<"asynchronously_instantiate_a_webassembly_module">(module, importObject)
+  let innerOnFullfilledSteps = (yet "unlowered following-steps closure given instance")
+  let result = (yet "the {{WebAssemblyInstantiatedSource}} value «[ \"{{WebAssemblyInstantiatedSource/module}}\" → |module|, \"{{WebAssemblyInstantiatedSource/instance}}\" → |instance| ]»")
+  call _ = clo<"resolve">(~WebAssemblyInstantiatedSource~, promise, result)
+  let innerOnRejectedSteps = (yet "unlowered following-steps closure given reason")
+  call _ = clo<"reject">(~WebAssemblyInstantiatedSource~, promise, reason)
+  call _ = clo<"react">(~WebAssemblyInstantiatedSource~, innerPromise, innerOnFullfilledSteps, innerOnRejectedSteps, ~current realm~)
+  return ~unused~
+}
+def instantiate_a_promise_of_a_module_closure2(
+  reason: Unknown,
+): Unknown = {
+  call _ = clo<"reject">(~WebAssemblyInstantiatedSource~, promise, reason)
+  return ~unused~
+}
 def create_a_host_function_closure1(
   arguments: Unknown,
 ): Unknown = {
@@ -2415,7 +2423,7 @@ def react_closure1(
   V: Unknown,
 ): Unknown = {
   call value = clo<"converted_to_an_idl_value">(V, T)
-  if (= (yet "there") (yet "a set of steps to be run if the promise was fulfilled")) {
+  if (! (= onFullfilledStepsArg undefined)) {
     let result = (yet "performing them, given |value| if |T| is not {{undefined}}")
   } else {
     let result = value
@@ -2426,7 +2434,7 @@ def react_closure2(
   R: Unknown,
 ): Unknown = {
   call reason = clo<"converted_to_an_idl_value">(R, ~any~)
-  if (= (yet "there") (yet "a set of steps to be run if the promise was rejected")) {
+  if (! (= onRejectedStepsArg undefined)) {
     let result = (yet "performing them, given |reason|")
   } else {
     call result = clo<"a_promise_rejected_with">(reason)

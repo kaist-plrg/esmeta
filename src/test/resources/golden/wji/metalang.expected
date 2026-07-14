@@ -257,17 +257,17 @@
   params: |promiseOfModule|, |importObject|
   head: To <dfn>instantiate a promise of a module</dfn> |promiseOfModule| with imports |importObject|, perform the following steps:
   Let(|promise|, [=a new promise=](WebAssemblyInstantiatedSource, [=current Realm=]))
-  Perform([=React=](Module, |promiseOfModule|, [=current Realm=]))
-    If(?(|promiseOfModule| was fulfilled with value |module|))
-      PerformAndLet([=asynchronously instantiate a WebAssembly module=](|module|, |importObject|), |innerPromise|)
-      Perform([=React=](Instance, |innerPromise|, [=current Realm=]))
-        If(?(|innerPromise| was fulfilled with value |instance|))
-          Let(|result|, ?(the {{WebAssemblyInstantiatedSource}} value «[ "{{WebAssemblyInstantiatedSource/module}}" → |module|, "{{WebAssemblyInstantiatedSource/instance}}" → |instance| ]»))
-          Perform([=Resolve=](WebAssemblyInstantiatedSource, |promise|, |result|))
-        If(?(|innerPromise| was rejected with reason |reason|))
-          Perform([=Reject=](WebAssemblyInstantiatedSource, |promise|, |reason|))
-    If(?(|promiseOfModule| was rejected with reason |reason|))
+  Let(|onFullfilledSteps|, followingSteps(module))
+    PerformAndLet([=asynchronously instantiate a WebAssembly module=](|module|, |importObject|), |innerPromise|)
+    Let(|innerOnFullfilledSteps|, followingSteps(instance))
+      Let(|result|, ?(the {{WebAssemblyInstantiatedSource}} value «[ "{{WebAssemblyInstantiatedSource/module}}" → |module|, "{{WebAssemblyInstantiatedSource/instance}}" → |instance| ]»))
+      Perform([=Resolve=](WebAssemblyInstantiatedSource, |promise|, |result|))
+    Let(|innerOnRejectedSteps|, followingSteps(reason))
       Perform([=Reject=](WebAssemblyInstantiatedSource, |promise|, |reason|))
+    Perform([=React=](WebAssemblyInstantiatedSource, |innerPromise|, |innerOnFullfilledSteps|, |innerOnRejectedSteps|, [=current realm=]))
+  Let(|onRejectedSteps|, followingSteps(reason))
+    Perform([=Reject=](WebAssemblyInstantiatedSource, |promise|, |reason|))
+  Perform([=React=](WebAssemblyInstantiatedSource, |promiseOfModule|, |onFullfilledSteps|, |onRejectedSteps|, [=current realm=]))
   Return(|promise|)
 
 # instantiate
@@ -1456,11 +1456,11 @@
   Perform(Call(|p|.[[Reject]], ?(<emu-val>undefined</emu-val>), « |r| »))
 
 # react
-  params: |T|, |promise|, |realm|
-  head: To <dfn id="dfn-perform-steps-once-promise-is-settled" export lt="react|reacting" for="promise">react</dfn> to a <code><a interface>Promise</a>&lt;|T|&gt;</code> |promise| in a [=realm=] |realm|, given one or two sets of steps to perform, covering when the promise is fulfilled, rejected, or both, perform the following steps:
+  params: |T|, |promise|, |onFullfilledStepsArg|, |onRejectedStepsArg|, |realm|
+  head: To <dfn id="dfn-perform-steps-once-promise-is-settled" export lt="react|reacting" for="promise">react</dfn> to a <code><a interface>Promise</a>&lt;|T|&gt;</code> |promise|, |onFullfilledStepsArg|, and |onRejectedStepsArg| in a [=realm=] |realm|, to perform, covering when the promise is fulfilled, rejected, or both, perform the following steps:
   Let(|onFulfilledSteps|, followingSteps(V))
     Let(|value|, [=converted to an IDL value=](|V|, |T|))
-    If(?(there) is ?(a set of steps to be run if the promise was fulfilled))
+    If(|onFullfilledStepsArg| is not undefined)
       Let(|result|, ?(performing them, given |value| if |T| is not {{undefined}}))
     Else
       Let(|result|, |value|)
@@ -1468,7 +1468,7 @@
   Let(|onFulfilled|, [$CreateBuiltinFunction$](|onFulfilledSteps|, 1, "", « »))
   Let(|onRejectedSteps|, followingSteps(R))
     Let(|reason|, [=converted to an IDL value=](|R|, any))
-    If(?(there) is ?(a set of steps to be run if the promise was rejected))
+    If(|onRejectedStepsArg| is not undefined)
       Let(|result|, ?(performing them, given |reason|))
     Else
       Let(|result|, [=a promise rejected with=](|reason|))

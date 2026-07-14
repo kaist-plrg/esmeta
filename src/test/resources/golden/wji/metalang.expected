@@ -123,8 +123,6 @@
         Let(|funcaddr|, |v|.[[FunctionAddress]])
       Else
         PerformAndLet([=Create a host function=](|v|, |functype|), |funcaddr|)
-        Let(|index|, ?(the number of external functions in |imports|))
-        ?(This value |index| is known as the <dfn>index of the host function</dfn> |funcaddr|)
       Let(|externfunc|, ?(the [=external value=] [=external value|func=] |funcaddr|))
       Append(|externfunc|, |imports|)
     If(|externtype| is of the form [=external-type/global=](|mut|, |valtype|))
@@ -767,13 +765,9 @@
   head: The <dfn>name of the WebAssembly function</dfn> |funcaddr| is found by performing the following steps:
   Let(|store|, [=surrounding agent=].[[associated store]])
   Let(|funcinst|, ?(|store|.funcs)[|funcaddr|])
-  If(|funcinst| is of the form ?({type <var ignore>functype</var>, hostcode |hostfunc|}))
-    Assert(|hostfunc| is ?(a JavaScript object), and [$IsCallable$](|hostfunc|) is true)
-    Let(|index|, ?(the [=index of the host function=] |funcaddr|))
-  Else
-    Let(|moduleinst|, ?(|funcinst|.module))
-    Assert(|funcaddr| is ?(contained in |moduleinst|.funcaddrs))
-    Let(|index|, ?(the index of |moduleinst|.funcaddrs where |funcaddr| is found))
+  Let(|moduleinst|, ?(|funcinst|.module))
+  Assert(|funcaddr| is ?(contained in |moduleinst|.funcaddrs))
+  Let(|index|, ?(the index of |moduleinst|.funcaddrs where |funcaddr| is found))
   Return([=!=] [$ToString$](|index|))
 
 # a new Exported Function

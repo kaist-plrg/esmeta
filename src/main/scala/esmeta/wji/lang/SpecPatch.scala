@@ -232,6 +232,26 @@ object SpecPatch:
     "1. [=React=] to |innerPromise|:"
     ->
     s"1. [=React=] ${ofTypePromise("Instance")} to |innerPromise| in the [=current Realm=]:",
+
+    // #13 (spec bug) — a host function's "name" (used for
+    // Function.prototype.name/.length-style introspection) was derived
+    // differently depending on whether |funcaddr| pointed at a host function
+    // or a module-defined one, because a host function's `funcinst` used to
+    // be shaped `{type, hostcode hostfunc}` — no `module` field at all — so
+    // `name of the WebAssembly function` branched on that shape, and `read
+    // the imports` had to separately track "index of the host function"
+    // (a host function's position among |imports|) since it couldn't fall
+    // back to the module-defined path's |funcaddrs| lookup. The underlying
+    // Wasm Core Spec's `funcinst` representation has since changed so that
+    // both kinds of function instance carry a `module` field — the branch
+    // (and the index-of-the-host-function tracking that only existed to feed
+    // it) is now dead code that js-api/index.bs never updated to drop.
+    "                1. [=Create a host function=] from |v| and |functype|, and let |funcaddr| be the result.\n                1. Let |index| be the number of external functions in |imports|. This value |index| is known as the <dfn>index of the host function</dfn> |funcaddr|.\n            1. Let |externfunc| be the [=external value=] [=external value|func=] |funcaddr|."
+    ->
+    "                1. [=Create a host function=] from |v| and |functype|, and let |funcaddr| be the result.\n            1. Let |externfunc| be the [=external value=] [=external value|func=] |funcaddr|.",
+    "    1. If |funcinst| is of the form {type <var ignore>functype</var>, hostcode |hostfunc|},\n        1. Assert: |hostfunc| is a JavaScript object and [$IsCallable$](|hostfunc|) is true.\n        1. Let |index| be the [=index of the host function=] |funcaddr|.\n    1. Otherwise,\n        1. Let |moduleinst| be |funcinst|.module.\n        1. Assert: |funcaddr| is contained in |moduleinst|.funcaddrs.\n        1. Let |index| be the index of |moduleinst|.funcaddrs where |funcaddr| is found."
+    ->
+    "    1. Let |moduleinst| be |funcinst|.module.\n    1. Assert: |funcaddr| is contained in |moduleinst|.funcaddrs.\n    1. Let |index| be the index of |moduleinst|.funcaddrs where |funcaddr| is found.",
   )
 
   def apply(source: String): String =

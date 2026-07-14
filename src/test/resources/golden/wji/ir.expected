@@ -208,8 +208,6 @@ def read_the_imports(
         let funcaddr = v.FunctionAddress
       } else {
         call funcaddr = clo<"create_a_host_function">(v, functype)
-        let index = (yet "the number of external functions in |imports|")
-        (yet "This value |index| is known as the <dfn>index of the host function</dfn> |funcaddr|")
       }
       let externfunc = (yet "the [=external value=] [=external value|func=] |funcaddr|")
       push imports < externfunc
@@ -1148,14 +1146,9 @@ def name_of_the_webassembly_function(
 ): Unknown = {
   let store = @AGENT_RECORD["associated store"]
   let funcinst = _ref_Unknown[funcaddr]
-  if (yet "is of form") {
-    assert (&& (= hostfunc (yet "a JavaScript object")) (= (yet "$IsCallable(Var(hostfunc))") true))
-    let index = (yet "the [=index of the host function=] |funcaddr|")
-  } else {
-    let moduleinst = (yet "|funcinst|.module")
-    assert (= funcaddr (yet "contained in |moduleinst|.funcaddrs"))
-    let index = (yet "the index of |moduleinst|.funcaddrs where |funcaddr| is found")
-  }
+  let moduleinst = (yet "|funcinst|.module")
+  assert (= funcaddr (yet "contained in |moduleinst|.funcaddrs"))
+  let index = (yet "the index of |moduleinst|.funcaddrs where |funcaddr| is found")
   call _comp24 = clo<"ToString">(index)
   if (exists _comp24.Type) {
     assert (= _comp24.Type ~normal~)

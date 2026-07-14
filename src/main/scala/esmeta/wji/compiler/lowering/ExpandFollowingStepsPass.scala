@@ -24,16 +24,15 @@ import esmeta.wji.lang.{Algorithm, Expr, Instr}
   * }}}
   * where `substeps` — always the *owning instruction's* own `body`, since
   * [[esmeta.wji.lang.ExprParser]] only ever sees the one prose string
-  * introducing the phrase, never the nested list items it introduces — is
-  * split off into a fresh [[Algorithm]] named `closureName` taking `params`
-  * as formal parameters, and `captured` is every other free variable
-  * `substeps` references (computed by [[FreeVarAnalysis]], excluding
-  * `params`). `closureName` is derived from the *enclosing* top-level
-  * [[Algorithm]]'s own name/id — the algorithm the "following steps" phrase
-  * textually resides in — suffixed with a counter scoped to that one
-  * algorithm (`"react_closure1"`, `"react_closure2"`, ...), so it's
-  * traceable back to its spec source rather than an opaque global sequence
-  * number.
+  * introducing the phrase, never the nested list items it introduces — is split
+  * off into a fresh [[Algorithm]] named `closureName` taking `params` as formal
+  * parameters, and `captured` is every other free variable `substeps`
+  * references (computed by [[FreeVarAnalysis]], excluding `params`).
+  * `closureName` is derived from the *enclosing* top-level [[Algorithm]]'s own
+  * name/id — the algorithm the "following steps" phrase textually resides in —
+  * suffixed with a counter scoped to that one algorithm (`"react_closure1"`,
+  * `"react_closure2"`, ...), so it's traceable back to its spec source rather
+  * than an opaque global sequence number.
   *
   * Generic over instruction shape: a `FollowingSteps` may sit directly as a
   * `Let`'s RHS or among a `Perform`'s `args`; adding a third shape (e.g. a
@@ -44,8 +43,8 @@ import esmeta.wji.lang.{Algorithm, Expr, Instr}
   * [[ExpandQueueATaskPass]], which depends on the `Closure` this pass leaves
   * behind in a "queue a task" `Perform`'s `args`): `body` rides through every
   * earlier pass as ordinary nested `Let.body`/`Perform.body` content (every
-  * pass already recurses into it via `Instr.mapBody`), so by the time this
-  * pass sees it, it's already fully lowered.
+  * pass already recurses into it via `Instr.mapBody`), so by the time this pass
+  * sees it, it's already fully lowered.
   */
 object ExpandFollowingStepsPass extends LoweringPass:
   def run(algos: List[Algorithm]): List[Algorithm] =
@@ -82,7 +81,9 @@ object ExpandFollowingStepsPass extends LoweringPass:
       transform(rest, freshName, extra)
     case (p: Instr.Perform) :: rest
         if p.body.nonEmpty &&
-        p.args.exists { case Expr.FollowingSteps(_) => true; case _ => false } =>
+        p.args.exists {
+          case Expr.FollowingSteps(_) => true; case _ => false
+        } =>
       val params =
         p.args.collectFirst { case Expr.FollowingSteps(ps) => ps }.get
       val closure = hoist(params, p.body, freshName, extra)

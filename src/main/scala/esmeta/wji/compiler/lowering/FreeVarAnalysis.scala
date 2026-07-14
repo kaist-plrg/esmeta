@@ -41,6 +41,10 @@ object FreeVarAnalysis:
         p.outcome match
           case PerformOutcome.BindResult(v) => Set(stripPipes(v))
           case _                            => Set.empty
+      case p: Instr.PerformClosure =>
+        p.outcome match
+          case PerformOutcome.BindResult(v) => Set(stripPipes(v))
+          case _                            => Set.empty
       case _ => Set.empty
     val nested: Set[String] = instr match
       case Instr.IfChain(branches, fallback) =>
@@ -64,6 +68,8 @@ object FreeVarAnalysis:
       case Instr.Append(item, collection, _) =>
         varsOf(item) ++ varsOf(collection)
       case p: Instr.Perform => p.args.flatMap(varsOf).toSet
+      case p: Instr.PerformClosure =>
+        varsOf(p.closure) ++ p.args.flatMap(varsOf).toSet
       case Instr.IfChain(branches, _) =>
         branches.flatMap((c, _) => varsOfCond(c)).toSet
       case _ => Set.empty
@@ -95,7 +101,9 @@ object FreeVarAnalysis:
     case Expr.Tuple(elems)         => elems.flatMap(varsOf).toSet
     case Expr.Closure(_, captured) => captured.toSet
     case Expr.CaseTag(base)        => varsOf(base)
-    case _                         => Set.empty
+    case Expr.ClosureCall(closure, args) =>
+      varsOf(closure) ++ args.flatMap(varsOf).toSet
+    case _ => Set.empty
 
   private def varsOfCond(cond: Cond): Set[String] = cond match
     case Cond.Eq(l, r, _)         => varsOf(l) ++ varsOf(r)

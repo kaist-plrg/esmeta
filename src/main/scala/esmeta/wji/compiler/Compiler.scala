@@ -157,6 +157,23 @@ object Compiler:
           val tmp = Name("_ret")
           bodyInsts :+ mkCall(tmp) :+ IReturn(ERef(tmp))
 
+    case Instr.PerformClosure(closure, args, outcome, body) =>
+      val callArgs = args.map(compileExpr)
+      val calleeExpr = compileExpr(closure)
+      val bodyInsts = compileSeq(body)
+      // unlike Instr.Perform's mkCall, the callee is a runtime value (e.g. a
+      // |var| parameter), never a WasmHost embedding-function name, so this
+      // always emits ICall — never ICallEmbed.
+      def mkCall(lhs: Name): Inst = ICall(lhs, calleeExpr, callArgs)
+      outcome match
+        case PerformOutcome.Discard =>
+          mkCall(Name("_")) :: bodyInsts
+        case PerformOutcome.BindResult(v) =>
+          mkCall(Name(stripPipes(v))) :: bodyInsts
+        case PerformOutcome.ReturnResult =>
+          val tmp = Name("_ret")
+          bodyInsts :+ mkCall(tmp) :+ IReturn(ERef(tmp))
+
     case Instr.Append(item, collection, body) =>
       IPush(
         compileExpr(item),
@@ -280,6 +297,17 @@ object Compiler:
       // ExpandFollowingStepsPass hoists every FollowingSteps into a Closure
       // before compilation ever sees it; this is only here for exhaustivity.
       EYet(s"unlowered following-steps closure given ${params.mkString(", ")}")
+    case metalang.Expr.ClosureCall(closure, args) =>
+      // ExpandClosureCallPass rewrites every direct-RHS ClosureCall into a
+      // PerformClosure before compilation ever sees it; this only remains for
+      // a *nested* occurrence (no spec text seen so far produces one — see
+      // ExpandClosureCallPass's doc) and for exhaustivity, mirroring AlgoCall's
+      // identical args-nonempty gap above.
+      EYet(
+        s"call ${metalang.ExprPrinter.render(closure)} given ${args
+          .map(metalang.ExprPrinter.render)
+          .mkString(", ")}",
+      )
     case metalang.Expr.TupleProj(base, idx) => EProj(compileExpr(base), idx)
     case metalang.Expr.CaseTag(base)        => ECaseTag(compileExpr(base))
 

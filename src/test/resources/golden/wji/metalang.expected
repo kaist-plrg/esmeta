@@ -1461,7 +1461,7 @@
   Let(|onFulfilledSteps|, followingSteps(V))
     Let(|value|, [=converted to an IDL value=](|V|, |T|))
     If(|onFullfilledStepsArg| is not undefined, and |T| is not undefined)
-      Let(|result|, ?(performing |onFullfilledStepsArg| given |value|))
+      Let(|result|, |onFullfilledStepsArg|(|value|))
     Else
       Let(|result|, |value|)
     Return(?(|result|, [=converted to a JavaScript value=]))
@@ -1469,7 +1469,7 @@
   Let(|onRejectedSteps|, followingSteps(R))
     Let(|reason|, [=converted to an IDL value=](|R|, any))
     If(|onRejectedStepsArg| is not undefined)
-      Let(|result|, ?(performing |onRejectedStepsArg| given |reason|))
+      Let(|result|, |onRejectedStepsArg|(|reason|))
     Else
       Let(|result|, [=a promise rejected with=](|reason|))
     Return(?(|result|, [=converted to a JavaScript value=]))

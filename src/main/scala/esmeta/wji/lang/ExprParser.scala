@@ -33,6 +33,13 @@ object ExprParser:
   // otherwise swallow it into an unevaluable Described.
   private val WhichPerformsStepsClosure =
     """(?si)^an?\s+\[=[^\]]+=\]\s+which\s+performs\s+the\s+following\s+steps\s+when\s+called\s+with\s+(?:arguments?\s+)?(\|[^|]+\|(?:\s*(?:,|and)\s*\|[^|]+\|)*)\s*:?\s*$""".r
+  // "performing CLOSURE[,] given ARG[, ARG...]" — invoking a closure *value*
+  // (contrast with the three "the following steps ...:" forms above, which
+  // *define* one), e.g. "the result of performing |onFullfilledStepsArg|
+  // given |value|" (patched PromiseReactionJob text, see SpecPatch). CLOSURE
+  // is parsed as a general Expr (not just a bare |var|) since nothing about
+  // the phrasing restricts it to a variable reference.
+  private val PerformingClosureCall = """(?si)^performing\s+(.+)$""".r
   private val PipeVarInline = """\|([^|]+)\|""".r
   private val Backticked = """(?s)^`(.+)`$""".r
   private val BacktickedQuotedStr = """(?s)^`"([^"]*)"`$""".r
@@ -224,6 +231,14 @@ object ExprParser:
       case WhichPerformsStepsClosure(paramsRaw) =>
         FollowingSteps(
           PipeVarInline.findAllMatchIn(paramsRaw).map(_.group(1)).toList,
+        )
+      case PerformingClosureCall(rest)
+          if findTopLevel(rest, " given ").isDefined =>
+        val (closureRaw, argsRaw) = splitTopLevel(rest, " given ").get
+        ClosureCall(
+          parse(closureRaw.stripSuffix(",").trim),
+          splitComma(argsRaw.trim.replaceFirst("""(?i)^arguments?\s+""", ""))
+            .map(parse),
         )
       // A backtick-wrapped *quoted* string (e.g. `"frozen"`, the argument to
       // [$SetIntegrityLevel$]) isn't a real ECMAScript string value — it's

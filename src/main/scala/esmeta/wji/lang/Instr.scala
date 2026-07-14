@@ -81,6 +81,19 @@ object Instr:
     body: List[Instr] = Nil,
   ) extends Instr
 
+  /** a closure-*value* call used as a statement (contrast with [[Perform]],
+    * whose `func` is a static `[=link=]` name); produced by
+    * `esmeta.wji.compiler.lowering.ExpandClosureCallPass` from an
+    * [[Expr.ClosureCall]] found in `Let`/`Return` RHS position. `outcome`
+    * mirrors [[Perform]]'s.
+    */
+  case class PerformClosure(
+    closure: Expr,
+    args: List[Expr],
+    outcome: PerformOutcome = PerformOutcome.Discard,
+    body: List[Instr] = Nil,
+  ) extends Instr
+
   /** `Note: TEXT` */
   case class Note(text: String, body: List[Instr] = Nil) extends Instr
 
@@ -106,23 +119,24 @@ object Instr:
     */
   extension (instr: Instr)
     def mapBody(f: List[Instr] => List[Instr]): Instr = instr match
-      case i: Let           => i.copy(body = f(i.body))
-      case i: Set           => i.copy(body = f(i.body))
-      case i: If            => i.copy(body = f(i.body))
-      case i: ElseIf        => i.copy(body = f(i.body))
-      case i: Else          => i.copy(body = f(i.body))
-      case i: Return        => i.copy(body = f(i.body))
-      case i: Assert        => i.copy(body = f(i.body))
-      case i: Throw         => i.copy(body = f(i.body))
-      case i: ForEach       => i.copy(body = f(i.body))
-      case i: For           => i.copy(body = f(i.body))
-      case i: While         => i.copy(body = f(i.body))
-      case i: RunInParallel => i.copy(body = f(i.body))
-      case i: Append        => i.copy(body = f(i.body))
-      case i: Continue      => i.copy(body = f(i.body))
-      case i: Perform       => i.copy(body = f(i.body))
-      case i: Note          => i.copy(body = f(i.body))
-      case i: Unknown       => i.copy(body = f(i.body))
+      case i: Let            => i.copy(body = f(i.body))
+      case i: Set            => i.copy(body = f(i.body))
+      case i: If             => i.copy(body = f(i.body))
+      case i: ElseIf         => i.copy(body = f(i.body))
+      case i: Else           => i.copy(body = f(i.body))
+      case i: Return         => i.copy(body = f(i.body))
+      case i: Assert         => i.copy(body = f(i.body))
+      case i: Throw          => i.copy(body = f(i.body))
+      case i: ForEach        => i.copy(body = f(i.body))
+      case i: For            => i.copy(body = f(i.body))
+      case i: While          => i.copy(body = f(i.body))
+      case i: RunInParallel  => i.copy(body = f(i.body))
+      case i: Append         => i.copy(body = f(i.body))
+      case i: Continue       => i.copy(body = f(i.body))
+      case i: Perform        => i.copy(body = f(i.body))
+      case i: PerformClosure => i.copy(body = f(i.body))
+      case i: Note           => i.copy(body = f(i.body))
+      case i: Unknown        => i.copy(body = f(i.body))
       case i: IfChain =>
         i.copy(
           branches = i.branches.map((c, b) => (c, f(b))),

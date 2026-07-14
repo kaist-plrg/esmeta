@@ -191,6 +191,19 @@ object Expr:
     * read, whereas this compiles directly to `ir.EProj`, the IR node dedicated
     * to unpacking a `Wasm(TupV(...))`. See `esmeta.wji.compiler.Compiler`.
     */
+  /** "performing CLOSURE given ARG[, ARG...][ and ARG]" — invoking a closure
+    * *value* (as opposed to [[Instr.Perform]], which invokes a *named*
+    * `[=link=]` as a statement). `closure` is typically a bare [[Var]] holding
+    * a closure passed in as a parameter (e.g. `|onFullfilledStepsArg|` in the
+    * (patched) PromiseReactionJob text — see `SpecPatch`), but is kept as a
+    * general `Expr` rather than a bare name since nothing about the "performing
+    * ... given ..." phrasing restricts it to a variable. Mirrors [[AlgoCall]]/
+    * [[Case]]'s `args: List[Expr]` shape rather than [[FollowingSteps]]'s
+    * bare-name `params: List[String]`, since a call's arguments are arbitrary
+    * expressions, not formal parameter names.
+    */
+  case class ClosureCall(closure: Expr, args: List[Expr]) extends Expr
+
   case class TupleProj(base: Expr, idx: Int) extends Expr
 
   /** Reads `base`'s SpecTec `CaseV` constructor tag as a string (mirrors

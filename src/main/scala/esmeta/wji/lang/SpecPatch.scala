@@ -263,7 +263,6 @@ object SpecPatch:
     """        1.  If |onRejectedStepsArg| is not undefined, then let |result| be
       #            the result of performing |onRejectedStepsArg| given |reason|. Otherwise, let |result| be
       #            [=a promise rejected with=] |reason|.""".stripMargin('#'),
-
     "1.  Let |constructor| be |promise|.\\[[Promise]].\\[[Realm]].\\[[Intrinsics]].\\[[{{%Promise%}}]]."
     ->
     "1.  Let |constructor| be |realm|.\\[[Intrinsics]].\\[[{{%Promise%}}]].",

@@ -47,6 +47,8 @@ object ExprPrinter:
       s"closure $name captures(${captured.mkString(", ")})"
     case FollowingSteps(params) =>
       s"followingSteps(${params.mkString(", ")})"
+    case ClosureCall(closure, args) =>
+      s"${render(closure)}(${args.map(render).mkString(", ")})"
     case TupleProj(base, idx) => s"${render(base)}.$idx"
     case CaseTag(base)        => s"case-tag(${render(base)})"
 

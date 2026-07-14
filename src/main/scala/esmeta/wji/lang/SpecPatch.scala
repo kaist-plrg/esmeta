@@ -267,6 +267,19 @@ object SpecPatch:
     "[=external value|global=]" -> "[=external value/global=]",
     "[=external value|mem=]" -> "[=external value/mem=]",
     "[=external value|table=]" -> "[=external value/table=]",
+
+    // #16 (spec bug) — the link-defaults block that registers "external
+    // value"'s linkable sub-terms (see #15's reasoning) only ever registers
+    // `tag`, never `func`/`global`/`mem`/`table` — unlike the parallel
+    // "external-type" block just below it, which registers all 5 of its own
+    // variants `for: external-type`. This is the root cause #15 patches
+    // around (prose can't validly link `[=external value/func=]` etc.
+    // without a matching registered anchor) — registering the missing 4 here
+    // too, so the anchors actually back the `for`-scoped links #15
+    // normalizes the prose to.
+    "    url: exec/runtime.html#syntax-externval\n        text: external value\n        for: external value\n            text: tag"
+    ->
+    "    url: exec/runtime.html#syntax-externval\n        text: external value\n        for: external value\n            text: func\n            text: global\n            text: mem\n            text: table\n            text: tag",
   )
 
   def apply(source: String): String =

@@ -249,12 +249,21 @@ object SpecPatch:
     "to a <code><a interface>Promise</a>&lt;|T|&gt;</code> |promise|, given one or two sets of steps"
     ->
     "to a <code><a interface>Promise</a>&lt;|T|&gt;</code> |promise|, |onFullfilledStepsArg|, and |onRejectedStepsArg| in a [=realm=] |realm|, ",
-    "there is a set of steps to be run if the promise was fulfilled"
+    """        1.  If there is a set of steps to be run if the promise was fulfilled, then let |result| be
+      #            the result of performing them, given |value| if |T| is not {{undefined}}. Otherwise, let
+      #            |result| be |value|.""".stripMargin('#')
     ->
-    "|onFullfilledStepsArg| is not undefined",
-    "there is a set of steps to be run if the promise was rejected"
+    """        1. If |onFullfilledStepsArg| is not undefined and |T| is not {{undefined}}, then let |result| be
+      #           the result of performing |onFullfilledStepsArg| given |value|. Otherwise, let
+      #           |result| be |value|.""".stripMargin('#'),
+    """        1.  If there is a set of steps to be run if the promise was rejected, then let |result| be
+      #            the result of performing them, given |reason|. Otherwise, let |result| be
+      #            [=a promise rejected with=] |reason|.""".stripMargin('#')
     ->
-    "|onRejectedStepsArg| is not undefined",
+    """        1.  If |onRejectedStepsArg| is not undefined, then let |result| be
+      #            the result of performing |onRejectedStepsArg| given |reason|. Otherwise, let |result| be
+      #            [=a promise rejected with=] |reason|.""".stripMargin('#'),
+
     "1.  Let |constructor| be |promise|.\\[[Promise]].\\[[Realm]].\\[[Intrinsics]].\\[[{{%Promise%}}]]."
     ->
     "1.  Let |constructor| be |realm|.\\[[Intrinsics]].\\[[{{%Promise%}}]].",

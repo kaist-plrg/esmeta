@@ -1460,8 +1460,8 @@
   head: To <dfn id="dfn-perform-steps-once-promise-is-settled" export lt="react|reacting" for="promise">react</dfn> to a <code><a interface>Promise</a>&lt;|T|&gt;</code> |promise|, |onFullfilledStepsArg|, and |onRejectedStepsArg| in a [=realm=] |realm|, to perform, covering when the promise is fulfilled, rejected, or both, perform the following steps:
   Let(|onFulfilledSteps|, followingSteps(V))
     Let(|value|, [=converted to an IDL value=](|V|, |T|))
-    If(|onFullfilledStepsArg| is not undefined)
-      Let(|result|, ?(performing them, given |value| if |T| is not {{undefined}}))
+    If(|onFullfilledStepsArg| is not undefined, and |T| is not undefined)
+      Let(|result|, ?(performing |onFullfilledStepsArg| given |value|))
     Else
       Let(|result|, |value|)
     Return(?(|result|, [=converted to a JavaScript value=]))
@@ -1469,7 +1469,7 @@
   Let(|onRejectedSteps|, followingSteps(R))
     Let(|reason|, [=converted to an IDL value=](|R|, any))
     If(|onRejectedStepsArg| is not undefined)
-      Let(|result|, ?(performing them, given |reason|))
+      Let(|result|, ?(performing |onRejectedStepsArg| given |reason|))
     Else
       Let(|result|, [=a promise rejected with=](|reason|))
     Return(?(|result|, [=converted to a JavaScript value=]))

@@ -2433,8 +2433,8 @@ def react_closure1(
   V: Unknown,
 ): Unknown = {
   call value = clo<"converted_to_an_idl_value">(V, T)
-  if (! (= onFullfilledStepsArg undefined)) {
-    let result = (yet "performing them, given |value| if |T| is not {{undefined}}")
+  if (&& (! (= onFullfilledStepsArg undefined)) (! (= T undefined))) {
+    let result = (yet "performing |onFullfilledStepsArg| given |value|")
   } else {
     let result = value
   }
@@ -2445,7 +2445,7 @@ def react_closure2(
 ): Unknown = {
   call reason = clo<"converted_to_an_idl_value">(R, ~any~)
   if (! (= onRejectedStepsArg undefined)) {
-    let result = (yet "performing them, given |reason|")
+    let result = (yet "performing |onRejectedStepsArg| given |reason|")
   } else {
     call result = clo<"a_promise_rejected_with">(reason)
   }

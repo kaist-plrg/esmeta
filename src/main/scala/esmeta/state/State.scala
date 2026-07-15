@@ -52,6 +52,7 @@ case class State(
     case AstValue(ast)           => AstValue(ast(field))
     case Str(str)                => apply(str, field)
     case Wasm(ALValue.ListV(vs)) => apply(vs, field)
+    case Wasm(ALValue.TupV(vs))  => apply(vs, field)
     case v                       => throw InvalidRefBase(v)
 
   /** string field getter */

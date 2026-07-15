@@ -263,13 +263,14 @@ object Compiler:
       // zero-arg AlgoCall used as an expression value (e.g. [=error=])
       if args.isEmpty then ERef(Global(nameFromLink(link)))
       else EYet(s"call $link") // TODO: inline call-as-expr
-    // a SpecTec Wasm Core Spec constructor/variant application (e.g.
-    // `[=i64.const=] |u64|`) used as a value — builds a real
-    // `Wasm(CaseV(tag, ...))`. `tag` isn't guaranteed to match SpecTec's own
-    // runtime constructor id in every case yet (see `Expr.Case`'s doc); it's
-    // resolved the same way an unrecognized `AlgoCall` link would be.
+    // a SpecTec Wasm Core Spec constructor/variant application (e.g. "the
+    // [=external value=] [=external value/func=] |funcaddr|") used as a
+    // value — builds a real `Wasm(CaseV(tag, ...))` to send back to SpecTec.
+    // `tag` needs SpecTec's own runtime constructor id (e.g. `FUNC`), a
+    // different namespace than `nameFromLink`'s WJI-algorithm-name lowercase
+    // convention — see `runtimeCaseTag`.
     case metalang.Expr.Case(tag, args) =>
-      ECase(nameFromLink(tag), args.map(compileExpr))
+      ECase(runtimeCaseTag(tag), args.map(compileExpr))
     case metalang.Expr.JSCall(name, args) =>
       EYet(s"$$${name}(${args.mkString})") // TODO
     case metalang.Expr.Tuple(elems) => EYet(s"tuple(${elems.mkString})") // TODO
@@ -376,6 +377,21 @@ object Compiler:
     // is an exact ECMA-262 AO name and must keep its case to match
     // `cfg.fnameMap`.
     if link.startsWith("[=") then name.toLowerCase else name
+
+  /** `Expr.Case`'s link text, mapped to the `ALValue.CaseV` tag SpecTec's
+    * runtime actually expects — a short uppercase variant id (e.g. `FUNC`), not
+    * a WJI algorithm name. A `for`-scoped dfn's linking text is always
+    * `family/variant` (e.g. `external value/func`, `external-type/global`; see
+    * `SpecPatch` #15/#16, which normalized every such link into exactly this
+    * shape), and SpecTec's own variant families consistently name their `CaseV`
+    * tag after the uppercased variant alone (confirmed against both
+    * `externtype` and `externaddr` in `4.0-execution.configurations.spectec` /
+    * `construct.ml`'s `al_of_externtype`) — so the last `/`-segment,
+    * uppercased, is the tag, with no per-family table needed.
+    */
+  private def runtimeCaseTag(link: String): String =
+    val name = link.stripPrefix("[=").stripSuffix("=]").trim
+    name.substring(name.lastIndexOf('/') + 1).trim.toUpperCase
 
   private def stripPipes(s: String): String =
     s.stripPrefix("|").stripSuffix("|")

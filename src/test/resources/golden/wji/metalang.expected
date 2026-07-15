@@ -810,7 +810,7 @@
   Let(|store|, [=surrounding agent=].[[associated store]])
   Let(|functype|, [=func_type=](|store|, |funcaddr|))
   Let(->(|parameters|, |results|), |functype|)
-  If(?(any type in |parameters|) or |results| [=matches/valtype=] [=v128=] or [=exnref=])
+  If(any type in |parameters| or |results| |type| [=matches/valtype=] [=v128=] or [=exnref=])
     Throw(a {{TypeError}})
   Note(the above error is thrown each time the \[[Call]] method is invoked)
   Let(|args|, « »)
@@ -851,7 +851,7 @@
   params: |func|, |functype|, |arguments|
   head: To <dfn>run a host function</dfn> from the JavaScript object |func|, type |functype|, and [=list=] of [=WebAssembly values=] |arguments|, perform the following steps:
   Let(->(|parameters|, |results|), |functype|)
-  If(?(any type in |parameters|) or |results| [=matches/valtype=] [=v128=] or [=exnref=])
+  If(any type in |parameters| or |results| |type| [=matches/valtype=] [=v128=] or [=exnref=])
     Throw(a {{TypeError}})
   Let(|jsArguments|, « »)
   ForEach(|arg|, |arguments|)

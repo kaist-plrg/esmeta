@@ -71,6 +71,24 @@ object CondParser:
   // Or has lower precedence than And, so we split by Or first
   private val IsOfFormRhs = """(?si)^of the form (.+)$""".r
 
+  // "any |t| in |parameters| or |results| [=matches/valtype|matches=]
+  // [=v128=] or [=exnref=]" — an existential quantifier over one or more
+  // collections. Checked before `parse`'s own top-level " or " splitting
+  // below: naively splitting at the *first* " or " here would cut between
+  // "parameters" and "results" — a collection-level "or" *nested inside*
+  // "any ... in ...", not a top-level condition-level "or" the way that
+  // splitter assumes. `predTail` (starting at the first `[=link=]` after the
+  // collection list) is re-parsed with `binder` prepended as its elided
+  // subject, e.g. "|t| [=matches/valtype|matches=] [=v128=] or [=exnref=]" —
+  // that recursive `parse` call is what actually resolves the *second* "or"
+  // (via the ordinary `Abbreviated`/`ExpandAbbreviatedCondPass` mechanism,
+  // same as every other bare "X matches/T Y or Z" site in this file).
+  // Requires each collection to be a bare `|var|` (every site reached so far
+  // is) and the predicate to open with a `[=link=]`; narrow on purpose,
+  // matching this file's other single-purpose patterns.
+  private val AnyIn =
+    """(?si)^any\s+(\S+)\s+in\s+((?:\|[^|]+\|)(?:\s+or\s+\|[^|]+\|)*)\s+(\[=.+)$""".r
+
   private val CompareOps = Seq(
     " >= ",
     " <= ",
@@ -105,6 +123,11 @@ object CondParser:
           Bool(boolStr.equalsIgnoreCase("true")),
           negated = isKind.trim.equalsIgnoreCase("is not"),
         )
+      case AnyIn(binder, collsRaw, predTail) =>
+        val collections = collsRaw.split("""\s+or\s+""").toList.map { c =>
+          ExprParser.parse(c.trim)
+        }
+        Exists(binder, collections, parse(s"|$binder| $predTail"))
       case _ =>
         // Or has lower precedence than And, so we try it first
         findTopLevel(s, " or ") match

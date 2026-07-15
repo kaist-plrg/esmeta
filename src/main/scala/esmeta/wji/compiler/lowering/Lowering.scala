@@ -21,6 +21,7 @@ object Lowering:
     ExpandIsOfFormPass,
     ExpandPerformReturnResultPass,
     ExpandAbbreviatedCondPass,
+    ExpandMatchesExistsPass,
     ExpandFollowingStepsPass,
     ExpandQueueATaskPass,
     NormalizeAlgoNamePass,

@@ -1066,7 +1066,9 @@ def global(
 ): Unknown = {
   let mutable = descriptor.mutable
   call valuetype = clo<"tovaluetype">(descriptor.value)
-  if (|| (yet "matches valtype") (yet "matches valtype")) {
+  call-embed _m1 = <match_valtype>(valuetype, ~v128~)
+  call-embed _m2 = <match_valtype>(valuetype, ~exnref~)
+  if (|| (= _m1 true) (= _m2 true)) {
     (yet "throw a {{TypeError}} exception")
   } else nop
   if (! (exists v)) {
@@ -1127,7 +1129,9 @@ def global-value-setter(
   let store = @AGENT_RECORD["associated store"]
   let globaladdr = @this.Global
   let _ = (yet "unsupported Let lhs: Unknown(|mut| |valuetype|)")
-  if (|| (yet "matches valtype") (yet "matches valtype")) {
+  call-embed _m3 = <match_valtype>(valuetype, ~v128~)
+  call-embed _m4 = <match_valtype>(valuetype, ~exnref~)
+  if (|| (= _m3 true) (= _m4 true)) {
     (yet "throw a {{TypeError}}")
   } else nop
   if (= mut ~const~) {
@@ -1206,7 +1210,28 @@ def call_an_exported_function(
   call-embed functype = <func_type>(store, funcaddr)
   let parameters = (proj functype 0)
   let results = (proj functype 1)
-  if (|| (yet "any type in |parameters|") (|| (yet "matches valtype") (yet "matches valtype"))) {
+  let _found7 = false
+  let _i8 = 0
+  while (&& (= _found7 false) (< _i8 (sizeof parameters))) {
+    let type = parameters[_i8]
+    call-embed _m5 = <match_valtype>(type, ~v128~)
+    call-embed _m6 = <match_valtype>(type, ~exnref~)
+    if (|| (= _m5 true) (= _m6 true)) {
+      _found7 = true
+    } else nop
+    _i8 = (+ _i8 1)
+  }
+  let _i9 = 0
+  while (&& (= _found7 false) (< _i9 (sizeof results))) {
+    let type = results[_i9]
+    call-embed _m5 = <match_valtype>(type, ~v128~)
+    call-embed _m6 = <match_valtype>(type, ~exnref~)
+    if (|| (= _m5 true) (= _m6 true)) {
+      _found7 = true
+    } else nop
+    _i9 = (+ _i9 1)
+  }
+  if (= _found7 true) {
     (yet "throw a {{TypeError}}")
   } else nop
   let args = (list [])
@@ -1278,7 +1303,28 @@ def run_a_host_function(
 ): Unknown = {
   let parameters = (proj functype 0)
   let results = (proj functype 1)
-  if (|| (yet "any type in |parameters|") (|| (yet "matches valtype") (yet "matches valtype"))) {
+  let _found12 = false
+  let _i13 = 0
+  while (&& (= _found12 false) (< _i13 (sizeof parameters))) {
+    let type = parameters[_i13]
+    call-embed _m10 = <match_valtype>(type, ~v128~)
+    call-embed _m11 = <match_valtype>(type, ~exnref~)
+    if (|| (= _m10 true) (= _m11 true)) {
+      _found12 = true
+    } else nop
+    _i13 = (+ _i13 1)
+  }
+  let _i14 = 0
+  while (&& (= _found12 false) (< _i14 (sizeof results))) {
+    let type = results[_i14]
+    call-embed _m10 = <match_valtype>(type, ~v128~)
+    call-embed _m11 = <match_valtype>(type, ~exnref~)
+    if (|| (= _m10 true) (= _m11 true)) {
+      _found12 = true
+    } else nop
+    _i14 = (+ _i14 1)
+  }
+  if (= _found12 true) {
     (yet "throw a {{TypeError}}")
   } else nop
   let jsArguments = (list [])
@@ -1432,7 +1478,8 @@ def towebassemblyvalue(
   type: Unknown,
 ): Unknown = {
   assert (! (= type ~v128~))
-  assert (yet "matches valtype")
+  call-embed _m15 = <match_valtype>(type, ~exnref~)
+  assert (! (= _m15 true))
   if (= type ~i64~) {
     call _comp31 = clo<"ToBigInt64">(v)
     if (exists _comp31.Type) {
@@ -1764,7 +1811,9 @@ def exception(
   } else nop
   let wasmPayload = (list [])
   (yet "foreach ?(|value| and |resultType|) in ?(|payload| and |types|)")
-  if (|| (yet "matches valtype") (yet "matches valtype")) {
+  call-embed _m16 = <match_valtype>(resultType, ~v128~)
+  call-embed _m17 = <match_valtype>(resultType, ~exnref~)
+  if (|| (= _m16 true) (= _m17 true)) {
     (yet "throw a {{TypeError}}")
   } else nop
   call _call23 = clo<"towebassemblyvalue">(value, resultType)
@@ -1794,7 +1843,9 @@ def getarg(
     (yet "throw a {{RangeError}}")
   } else nop
   let _ = (yet "unsupported Let lhs: Unknown([|types|] → [])")
-  if (|| (yet "matches valtype") (yet "matches valtype")) {
+  call-embed _m18 = <match_valtype>(types[index], ~v128~)
+  call-embed _m19 = <match_valtype>(types[index], ~exnref~)
+  if (|| (= _m18 true) (= _m19 true)) {
     (yet "throw a {{TypeError}}")
   } else nop
   call _comp39 = clo<"tojsvalue">(payload[index])

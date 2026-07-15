@@ -169,4 +169,6 @@ object ResolveLinksPass extends LoweringPass:
       case Cond.And(l, r)             => Cond.And(go(l), go(r))
       case Cond.Or(l, r)              => Cond.Or(go(l), go(r))
       case Cond.Abbreviated(ex)       => Cond.Abbreviated(e(ex))
-      case other                      => other
+      case Cond.Exists(binder, collections, body) =>
+        Cond.Exists(binder, collections.map(e), go(body))
+      case other => other

@@ -68,6 +68,18 @@ object Cond:
     */
   case class Abbreviated(expr: Expr) extends Cond
 
+  /** `any |binder| in COLLECTION[, or COLLECTION, ...] BODY` — "any type in
+    * |parameters| or |results| [=matches/valtype=] [=v128=] or [=exnref=]"
+    * ("does some element, across all of `collections`, satisfy `body`" — `body`
+    * refers to the bound element via `Expr.Var(binder)`). Every `collections`
+    * entry is searched, in order — mirrors mainline ESMeta's
+    * `ContainsCondition`/`SuchThat` ("list contains an element such that ..."),
+    * generalized to more than one list so the parser doesn't need to fold "in A
+    * or B" into this node's `Or`-of-two-`Exists` shape itself.
+    */
+  case class Exists(binder: String, collections: List[Expr], body: Cond)
+    extends Cond
+
   /** `This step is not reached.` */
   case object Unreachable extends Cond
 

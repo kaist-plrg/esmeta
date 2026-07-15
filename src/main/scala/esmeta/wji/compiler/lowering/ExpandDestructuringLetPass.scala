@@ -1,6 +1,6 @@
 package esmeta.wji.compiler.lowering
 
-import esmeta.wji.lang.{Algorithm, Expr, Instr}
+import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr}
 
 /** Expands `Let(Tuple([x, y, ...]), expr, body)` and `Let(Case(tag, [x, y,
   * ...]), expr, body)` into individual bindings.
@@ -26,10 +26,21 @@ import esmeta.wji.lang.{Algorithm, Expr, Instr}
   * |functype|.", parsed by `ExprParser.CompTypeArrow` into `Case("->",
   * [Var(parameters), Var(results)])`) destructures the very same way — the
   * runtime value is a `Wasm(CaseV(tag, args))` either way, `Case` only
-  * additionally names *which* variant it's shaped as (unchecked here, same as
-  * this pass already trusts a tuple-shaped `Let`'s RHS without asserting its
-  * arity). Only fires when every arg is a bare `Expr.Var`, mirroring
-  * `ExpandIsOfFormPass`'s same guard on the condition side.
+  * additionally names *which* variant it's shaped as. Unlike the plain-tuple
+  * case, this variant *does* assert the tag first (`Assert(Eq(CaseTag(base),
+  * Str(Expr.runtimeCaseTag(tag))))`) before projecting: `functype` genuinely is
+  * a `deftype`, not always already the expected `->`-shaped comptype (see
+  * `docs/spec_errors.md` on `$expand`), and positionally projecting the
+  * wrong-shaped value without checking silently hands the caller garbage (e.g.
+  * `_DEF`'s own inner `rectype`/index in place of a params/results list) that
+  * only surfaces as a confusing failure several instructions later, rather than
+  * right here where the actual mismatch is. Only fires when every arg is a bare
+  * `Expr.Var`, mirroring `ExpandIsOfFormPass`'s same guard on the condition
+  * side. `Expr.runtimeCaseTag` (shared with `Compiler`'s own `ECase`
+  * construction) translates `tag` the same way either way it's spelled —
+  * already a bare runtime tag (`CompTypeArrow`'s literal `"->"`) or spec-link
+  * text (`ResolveLinksPass`'s `[=external-type/func=]` shapes, e.g.
+  * `create_an_exports_object`'s `externval` destructuring).
   *
   * The original body (if non-empty) is appended after the destructured
   * bindings. In practice, tuple-destructuring Let nodes in the spec have empty
@@ -56,22 +67,28 @@ object ExpandDestructuringLetPass extends LoweringPass:
     elems: List[Expr],
     expr: Expr,
     body: List[Instr],
+    tagCheck: Option[String] = None,
   ): List[Instr] =
     val (base, binding) = expr match
       case v: Expr.Var => (v, Nil)
       case _ =>
         val tmp = Expr.Var(freshTuple())
         (tmp, List(Instr.Let(tmp, expr)))
+    val assertTag = tagCheck.toList.map { tag =>
+      Instr.Assert(
+        Cond.Eq(Expr.CaseTag(base), Expr.Str(Expr.runtimeCaseTag(tag))),
+      )
+    }
     val destructures = elems.zipWithIndex.map { (elem, i) =>
       Instr.Let(elem, Expr.TupleProj(base, i))
     }
-    binding ++ destructures ++ transform(body)
+    binding ++ assertTag ++ destructures ++ transform(body)
 
   private def expandInstr(instr: Instr): List[Instr] = instr match
     case Instr.Let(Expr.Tuple(elems), expr, body) =>
       destructure(elems, expr, body)
-    case Instr.Let(Expr.Case(_, args), expr, body)
+    case Instr.Let(Expr.Case(tag, args), expr, body)
         if args.forall(_.isInstanceOf[Expr.Var]) =>
-      destructure(args, expr, body)
+      destructure(args, expr, body, tagCheck = Some(tag))
     case _ =>
       List(instr.mapBody(transform))

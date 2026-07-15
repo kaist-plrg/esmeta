@@ -309,6 +309,7 @@ def create_an_exports_object(
     if (= (case-tag externtype) "FUNC") {
       let functype = (proj externtype 0)
       assert (yet "is of form Case([=external value/func=],List(Var(funcaddr)))")
+      assert (= (case-tag externval) "FUNC")
       let funcaddr = (proj externval 0)
       call func = clo<"a_new_exported_function">(funcaddr)
       let value = func
@@ -317,6 +318,7 @@ def create_an_exports_object(
       let mut = (proj (proj externtype 0) 0)
       let globaltype = (proj (proj externtype 0) 1)
       assert (yet "is of form Case([=external value/global=],List(Var(globaladdr)))")
+      assert (= (case-tag externval) "GLOBAL")
       let globaladdr = (proj externval 0)
       call global = clo<"create_a_global_object">(globaladdr)
       let value = global
@@ -324,6 +326,7 @@ def create_an_exports_object(
     if (= (case-tag externtype) "MEM") {
       let memtype = (proj externtype 0)
       assert (yet "is of form Case([=external value/mem=],List(Var(memaddr)))")
+      assert (= (case-tag externval) "MEM")
       let memaddr = (proj externval 0)
       call memory = clo<"create_a_memory_object">(memaddr)
       let value = memory
@@ -331,6 +334,7 @@ def create_an_exports_object(
     if (= (case-tag externtype) "TABLE") {
       let tabletype = (proj externtype 0)
       assert (yet "is of form Case([=external value/table=],List(Var(tableaddr)))")
+      assert (= (case-tag externval) "TABLE")
       let tableaddr = (proj externval 0)
       call table = clo<"create_a_table_object">(tableaddr)
       let value = table
@@ -338,6 +342,7 @@ def create_an_exports_object(
     if (= (case-tag externtype) "TAG") {
       let functype = (proj externtype 0)
       assert (yet "is of form Case([=external value/tag=],List(Var(tagaddr)))")
+      assert (= (case-tag externval) "TAG")
       let tagaddr = (proj externval 0)
       call tag = clo<"create_a_tag_object">(tagaddr)
       let value = tag
@@ -1187,6 +1192,7 @@ def a_new_exported_function(
   let realm = (yet "the [=current Realm=]")
   let store = @AGENT_RECORD["associated store"]
   call-embed functype = <func_type>(store, funcaddr)
+  assert (= (case-tag functype) "->")
   let paramTypes = (proj functype 0)
   let resultTypes = (proj functype 1)
   let arity = (sizeof paramTypes)
@@ -1208,6 +1214,7 @@ def call_an_exported_function(
 ): Unknown = {
   let store = @AGENT_RECORD["associated store"]
   call-embed functype = <func_type>(store, funcaddr)
+  assert (= (case-tag functype) "->")
   let parameters = (proj functype 0)
   let results = (proj functype 1)
   let _found7 = false
@@ -1301,6 +1308,7 @@ def run_a_host_function(
   functype: Unknown,
   arguments: Unknown,
 ): Unknown = {
+  assert (= (case-tag functype) "->")
   let parameters = (proj functype 0)
   let results = (proj functype 1)
   let _found12 = false

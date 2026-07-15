@@ -219,10 +219,12 @@ def read_the_imports(
       } else {
         call funcaddr = clo<"create_a_host_function">(v, functype)
       }
-      let externfunc = (case "external value/func" funcaddr)
+      let externfunc = (case "FUNC" funcaddr)
       push imports < externfunc
     } else nop
-    if (yet "is of form") {
+    if (= (case-tag externtype) "GLOBAL") {
+      let mut = (proj (proj externtype 0) 0)
+      let valtype = (proj (proj externtype 0) 1)
       if (yet "implements Global") {
         let globaladdr = v.Global
       } else {
@@ -247,36 +249,38 @@ def read_the_imports(
           let value = _throwComp1
         }
         let store = @AGENT_RECORD["associated store"]
-        call-embed _tuple3 = <global_alloc>(store, (case "const" valtype), value)
+        call-embed _tuple3 = <global_alloc>(store, (case "CONST" valtype), value)
         let store = (proj _tuple3 0)
         let globaladdr = (proj _tuple3 1)
         @AGENT_RECORD["associated store"] = store
       }
-      let externglobal = (case "external value/global" globaladdr)
+      let externglobal = (case "GLOBAL" globaladdr)
       push imports < externglobal
     } else nop
-    if (yet "is of form") {
+    if (= (case-tag externtype) "MEM") {
+      let memtype = (proj externtype 0)
       if (yet "implements Memory") {
         (yet "throw a {{LinkError}} exception")
       } else nop
-      let externmem = (case "external value/mem" v.Memory)
+      let externmem = (case "MEM" v.Memory)
       push imports < externmem
     } else nop
-    if (yet "is of form") {
+    if (= (case-tag externtype) "TABLE") {
+      let tabletype = (proj externtype 0)
       if (yet "implements Table") {
         (yet "throw a {{LinkError}} exception")
       } else nop
       let tableaddr = v.Table
-      let externtable = (case "external value/table" tableaddr)
+      let externtable = (case "TABLE" tableaddr)
       push imports < externtable
     } else nop
-    if (yet "is of form") {
-      assert (= attribute ~tagtype/attribute/exception~)
+    if (= (case-tag externtype) "TAG") {
+      let functype = (proj externtype 0)
       if (yet "implements Tag") {
         (yet "throw a {{LinkError}} exception")
       } else nop
       let tagaddr = v.Address
-      let externtag = (case "external value/tag" tagaddr)
+      let externtag = (case "TAG" tagaddr)
       push imports < externtag
     } else nop
     _iterIdx8 = (+ _iterIdx8 1)
@@ -304,32 +308,36 @@ def create_an_exports_object(
     assert (! (= externval ~error~))
     if (= (case-tag externtype) "FUNC") {
       let functype = (proj externtype 0)
-      assert (yet "is of form")
+      assert (yet "is of form Case([=external value/func=],List(Var(funcaddr)))")
       let _ = (yet "unsupported Let lhs: Case([=external value/func=],List(Var(funcaddr)))")
       call func = clo<"a_new_exported_function">(funcaddr)
       let value = func
     } else nop
-    if (yet "is of form") {
-      assert (yet "is of form")
+    if (= (case-tag externtype) "GLOBAL") {
+      let mut = (proj (proj externtype 0) 0)
+      let globaltype = (proj (proj externtype 0) 1)
+      assert (yet "is of form Case([=external value/global=],List(Var(globaladdr)))")
       let _ = (yet "unsupported Let lhs: Case([=external value/global=],List(Var(globaladdr)))")
       call global = clo<"create_a_global_object">(globaladdr)
       let value = global
     } else nop
-    if (yet "is of form") {
-      assert (yet "is of form")
+    if (= (case-tag externtype) "MEM") {
+      let memtype = (proj externtype 0)
+      assert (yet "is of form Case([=external value/mem=],List(Var(memaddr)))")
       let _ = (yet "unsupported Let lhs: Case([=external value/mem=],List(Var(memaddr)))")
       call memory = clo<"create_a_memory_object">(memaddr)
       let value = memory
     } else nop
-    if (yet "is of form") {
-      assert (yet "is of form")
+    if (= (case-tag externtype) "TABLE") {
+      let tabletype = (proj externtype 0)
+      assert (yet "is of form Case([=external value/table=],List(Var(tableaddr)))")
       let _ = (yet "unsupported Let lhs: Case([=external value/table=],List(Var(tableaddr)))")
       call table = clo<"create_a_table_object">(tableaddr)
       let value = table
     } else nop
-    if (yet "is of form") {
-      assert (= attribute ~tagtype/attribute/exception~)
-      assert (yet "is of form")
+    if (= (case-tag externtype) "TAG") {
+      let functype = (proj externtype 0)
+      assert (yet "is of form Case([=external value/tag=],List(Var(tagaddr)))")
       let _ = (yet "unsupported Let lhs: Case([=external value/tag=],List(Var(tagaddr)))")
       call tag = clo<"create_a_tag_object">(tagaddr)
       let value = tag
@@ -1078,9 +1086,9 @@ def global(
     }
   }
   if (= mutable true) {
-    let globaltype = (case "var" valuetype)
+    let globaltype = (case "VAR" valuetype)
   } else {
-    let globaltype = (case "const" valuetype)
+    let globaltype = (case "CONST" valuetype)
   }
   let store = @AGENT_RECORD["associated store"]
   call-embed _tuple13 = <global_alloc>(store, globaltype, value)
@@ -1097,7 +1105,7 @@ def getglobalvalue(
   let store = @AGENT_RECORD["associated store"]
   let globaladdr = global.Global
   call-embed globaltype = <global_type>(store, globaladdr)
-  if (|| (yet "is of form") ~exnref~) {
+  if (|| (yet "is of form Unknown(<var ignore>mut</var> |valuetype|)") ~exnref~) {
     (yet "throw a {{TypeError}}")
   } else nop
   call-embed value = <global_read>(store, globaladdr)
@@ -1348,19 +1356,19 @@ def create_a_host_function(
 def tojsvalue(
   w: Unknown,
 ): Unknown = {
-  assert (yet "is of form")
-  assert (yet "is of form")
-  if (yet "is of form") {
+  assert (yet "is of form Case([=v128.const=],List(Var(v128)))")
+  assert (yet "is of form Case([=ref.exn=],List(Var(exnaddr)))")
+  if (yet "is of form Case([=i64.const=],List(Var(u64)))") {
     call i64 = clo<"signed_64">(u64)
     call _ret11 = clo<"ℤ">(i64)
     return _ret11
   } else nop
-  if (yet "is of form") {
+  if (yet "is of form Case([=i32.const=],List(Var(u32)))") {
     call i32 = clo<"signed_32">(u32)
     call _ret12 = clo<"𝔽">(i32)
     return _ret12
   } else nop
-  if (yet "is of form") {
+  if (yet "is of form Case([=f32.const=],List(Var(f32)))") {
     if (|| (= f32 ~+∞~) (= f32 ~−∞~)) {
       return (yet "**+∞**<sub>𝔽</sub> or **-∞**<sub>𝔽</sub>, respectively")
     } else nop
@@ -1370,7 +1378,7 @@ def tojsvalue(
     call _ret13 = clo<"𝔽">(f32)
     return _ret13
   } else nop
-  if (yet "is of form") {
+  if (yet "is of form Case([=f64.const=],List(Var(f64)))") {
     if (|| (= f64 ~+∞~) (= f64 ~−∞~)) {
       return (yet "**+∞**<sub>𝔽</sub> or **-∞**<sub>𝔽</sub>, respectively")
     } else nop
@@ -1380,31 +1388,31 @@ def tojsvalue(
     call _ret14 = clo<"𝔽">(f64)
     return _ret14
   } else nop
-  if (yet "is of form") {
+  if (yet "is of form Case([=ref.null=],List(Var(t)))") {
     return null
   } else nop
-  if (yet "is of form") {
+  if (yet "is of form Case([=ref.i31=],List(Var(u31)))") {
     call i31 = clo<"signed_31">(u31)
     call _ret15 = clo<"𝔽">(i31)
     return _ret15
   } else nop
-  if (yet "is of form") {
+  if (yet "is of form Case([=ref.struct=],List(Var(structaddr)))") {
     call _ret16 = clo<"a_new_exported_gc_object">(structaddr, "struct")
     return _ret16
   } else nop
-  if (yet "is of form") {
+  if (yet "is of form Case([=ref.array=],List(Var(arrayaddr)))") {
     call _ret17 = clo<"a_new_exported_gc_object">(arrayaddr, "array")
     return _ret17
   } else nop
-  if (yet "is of form") {
+  if (yet "is of form Case([=ref.func=],List(Var(funcaddr)))") {
     call _ret18 = clo<"a_new_exported_function">(funcaddr)
     return _ret18
   } else nop
-  if (yet "is of form") {
+  if (yet "is of form Case([=ref.host=],List(Var(hostaddr)))") {
     call _ret19 = clo<"retrieving_a_host_value">(hostaddr)
     return _ret19
   } else nop
-  if (yet "is of form") {
+  if (yet "is of form Case([=ref.extern=],List(Var(ref)))") {
     call _ret20 = clo<"tojsvalue">(ref)
     return _ret20
   } else nop
@@ -1435,7 +1443,7 @@ def towebassemblyvalue(
       let i64 = _comp31
     }
     let u64 = (yet "unsigned integer such that |i64| is [=signed_64=](|u64|)")
-    return (case "i64.const" u64)
+    return (case "I64.CONST" u64)
   } else nop
   if (= type ~i32~) {
     call _comp32 = clo<"ToInt32">(v)
@@ -1449,7 +1457,7 @@ def towebassemblyvalue(
       let i32 = _comp32
     }
     let u32 = (yet "unsigned integer such that |i32| is [=signed_32=](|u32|)")
-    return (case "i32.const" u32)
+    return (case "I32.CONST" u32)
   } else nop
   if (= type ~f32~) {
     call _comp33 = clo<"ToNumber">(v)
@@ -1469,7 +1477,7 @@ def towebassemblyvalue(
       let f32 = (yet "|number| rounded to the nearest representable value using IEEE 754-2019 round to nearest, ties to even mode")
       (yet "[[IEEE-754]]")
     }
-    return (case "f32.const" f32)
+    return (case "F32.CONST" f32)
   } else nop
   if (= type ~f64~) {
     call _comp34 = clo<"ToNumber">(v)
@@ -1488,23 +1496,23 @@ def towebassemblyvalue(
     } else {
       let f64 = number
     }
-    return (case "f64.const" f64)
+    return (case "F64.CONST" f64)
   } else nop
-  if (yet "is of form") {
+  if (yet "is of form Case([=ref=],List(Var(null), Var(heaptype)))") {
     if (= v null) {
-      let r = (case "ref.null" heaptype)
+      let r = (case "REF.NULL" heaptype)
     } else if (yet "[=match_valtype=](|type|, [=ref=] |null| [=heap-type/extern=])") {
-      call _comp35 = clo<"towebassemblyvalue">(v, (case "ref" ~heap-type/any~))
+      call _comp35 = clo<"towebassemblyvalue">(v, (case "REF" ~heap-type/any~))
       if (exists _comp35.Type) {
         assert (= _comp35.Type ~normal~)
         let ref = _comp35.Value
       } else {
         let ref = _comp35
       }
-      let r = (case "ref.extern" ref)
+      let r = (case "REF.EXTERN" ref)
     } else if (&& (= v (yet "an [=Exported Function=]")) (= v (yet "call [=match_valtype=]"))) {
       let funcaddr = v.FunctionAddress
-      let r = (case "ref.func" funcaddr)
+      let r = (case "REF.FUNC" funcaddr)
     } else if (&& (? v: Number) (&& (= v (yet "nested ?-abrupt: JSCall(ToInt32,List(Var(v)))")) (&& (< (yet "call [=ℝ=]") (** 2 30)) (! (< (yet "call [=ℝ=]") (- (** 2 30))))))) {
       call _comp36 = clo<"ToInt32">(v)
       if (exists _comp36.Type) {
@@ -1517,23 +1525,23 @@ def towebassemblyvalue(
         let i31 = _comp36
       }
       let u31 = (yet "unsigned integer such that |i31| is [=signed_31=](|u31|)")
-      let r = (case "ref.i31" u31)
+      let r = (case "REF.I31" u31)
     } else if (= v (yet "an [=Exported GC Object=]")) {
       let objectaddr = v.ObjectAddress
       let objectkind = v.ObjectKind
       if (= objectkind "array") {
-        let r = (case "ref.array" objectaddr)
+        let r = (case "REF.ARRAY" objectaddr)
       } else if (= objectkind "struct") {
-        let r = (case "ref.struct" objectaddr)
+        let r = (case "REF.STRUCT" objectaddr)
       } else nop
     } else {
       let map = @AGENT_RECORD["host value cache"]
       if (= _ref_SuchThat[hostaddr] (yet "the same as |v|")) {
-        return (case "ref.host" hostaddr)
+        return (case "REF.HOST" hostaddr)
       } else nop
       let _ = (yet "unsupported Let lhs: AlgoCall([=host_address=],List(Var(hostaddr)))")
       map[hostaddr] = v
-      let r = (case "ref.host" hostaddr)
+      let r = (case "REF.HOST" hostaddr)
     }
     let store = @AGENT_RECORD["associated store"]
     call-embed actualtype = <ref_type>(store, r)
@@ -2444,7 +2452,7 @@ def instantiate_a_promise_of_a_module_closure4(
 def create_a_host_function_closure1(
   arguments: Unknown,
 ): Unknown = {
-  let realm = (yet "|func|'s [=associated Realm=]")
+  let realm = func.Realm
   let relevant settings = ~realm/settings object~
   call result = clo<"run_a_host_function">(func, functype, arguments)
   assert (|| (= result.Type ~<emu-const>throw</emu-const>~) (= result.Type ~<emu-const>normal</emu-const>~))

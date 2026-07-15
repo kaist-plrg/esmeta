@@ -158,6 +158,18 @@ object ExprParser:
   private val PossessiveSize = """(?si)^(.+)'s \[=list/size=\]$""".r
   private val PossessiveAssociation =
     """(?si)^the (.+)'s (?:associated )?(\[=[^\]]+\])$""".r
+  // "|func|'s [=associated Realm=]" — narrower than PossessiveAssociation
+  // (which keeps "the surrounding agent's associated store/cache" style
+  // field names as literal WJI-only state, and requires a leading "the").
+  // webidl/index.bs's own "associated realm" dfn defines this, for the
+  // common case (a non-exotic function object — not a callable proxy, not a
+  // bound function), as *equal to* the object's real ECMA-262 [[Realm]]
+  // internal slot, so this reads straight through to that slot rather than
+  // a made-up "associated realm" field nothing else produces or consumes.
+  // Bound functions / callable proxies aren't handled (webidl/index.bs
+  // itself calls the general mechanism "underspecified"); revisit if one
+  // is ever passed here as `func`.
+  private val AssociatedRealm = """(?si)^(.+)'s \[=associated Realm=\]$""".r
   private val IndexByStr = """(?s)^(.+)\["([^"]+)"\]$""".r
   private val IndexByVar = """(?s)^(.+)\[(\|[^|]+\|)\]$""".r
   private val IndexByNum = """(?s)^(.+)\[(-?\d+)\]$""".r
@@ -304,10 +316,11 @@ object ExprParser:
         )
       case TrailingLinkCall(valueRaw, link) =>
         Link(normalizeLink(link), List(parse(valueRaw.trim)))
-      case LengthOf(inner)       => Length(parse(inner.trim))
-      case ElementCount(inner)   => Length(parse(inner.trim))
-      case ElementAt(idx, arr)   => Index(parse(arr.trim), parse(idx.trim))
-      case PossessiveSize(inner) => Length(parse(inner.trim))
+      case LengthOf(inner)          => Length(parse(inner.trim))
+      case ElementCount(inner)      => Length(parse(inner.trim))
+      case ElementAt(idx, arr)      => Index(parse(arr.trim), parse(idx.trim))
+      case PossessiveSize(inner)    => Length(parse(inner.trim))
+      case AssociatedRealm(baseRaw) => Field(parse(baseRaw.trim), "Realm")
       case PossessiveAssociation(baseRaw, link) =>
         Field(
           parse(baseRaw),

@@ -33,7 +33,8 @@ def validate_builtins_and_imported_string_for_a_webassembly_module(
         return false
       } else nop
     } else {
-      if (&& (yet "[=validate an import for builtins|validating an import for builtins=] with |import|") (= builtinSetNames false)) {
+      call _call4 = clo<"validate_an_import_for_builtins">(import, builtinSetNames)
+      if (= _call4 false) {
         return false
       } else nop
     }
@@ -60,7 +61,8 @@ def validate(
   } else {
     let importedStringModule = null
   }
-  if (&& (yet "[=validate builtins and imported string for a WebAssembly module|validating builtins and imported strings=] for |module| with |builtinSetNames|") (yet "|importedStringModule| returns false")) {
+  call _call5 = clo<"validate_builtins_and_imported_string_for_a_webassembly_module">(module, builtinSetNames, importedStringModule)
+  if (= _call5 false) {
     return false
   } else nop
   return true
@@ -137,8 +139,8 @@ def read_the_imports(
   builtinSetNames: Unknown,
   importedStringModule: Unknown,
 ): Unknown = {
-  call-embed _call4 = <module_imports>(module)
-  if (&& (! (= (sizeof _call4) 0)) (= importObject undefined)) {
+  call-embed _call7 = <module_imports>(module)
+  if (&& (! (= (sizeof _call7) 0)) (= importObject undefined)) {
     (yet "throw a {{TypeError}} exception")
   } else nop
   let builtinOrStringImports = (map[Unknown, Unknown])
@@ -208,8 +210,8 @@ def read_the_imports(
     }
     if (= (case-tag externtype) "FUNC") {
       let functype = (proj externtype 0)
-      call _call5 = clo<"IsCallable">(v)
-      if (= _call5 false) {
+      call _call8 = clo<"IsCallable">(v)
+      if (= _call8 false) {
         (yet "throw a {{LinkError}} exception")
       } else nop
       if (&& (exists v.FunctionAddress) (= (yet "therefore") (yet "an [=Exported Function=]"))) {
@@ -519,7 +521,8 @@ def module(
   } else {
     let importedStringModule = null
   }
-  if (&& (yet "[=validate builtins and imported string for a WebAssembly module|validating builtins and imported strings=] for |module| with |builtinSetNames|") (yet "|importedStringModule| returns false")) {
+  call _call9 = clo<"validate_builtins_and_imported_string_for_a_webassembly_module">(module, builtinSetNames, importedStringModule)
+  if (= _call9 false) {
     (yet "throw a {{CompileError}} exception")
   } else nop
   @this.Module = module
@@ -644,8 +647,8 @@ def refresh_the_memory_buffer(
   assert (exists map[memaddr])
   let memory = map[memaddr]
   let buffer = memory.BufferObject
-  call _call6 = clo<"isfixedlengtharraybuffer">(buffer)
-  if (= _call6 true) {
+  call _call10 = clo<"isfixedlengtharraybuffer">(buffer)
+  if (= _call10 true) {
     call _ = clo<"DetachArrayBuffer">(buffer, "WebAssembly.Memory")
     call buffer = clo<"create_a_fixed_length_memory_buffer">(memaddr)
     memory.BufferObject = buffer
@@ -692,8 +695,8 @@ def grow(
 }
 def memory.grow(
 ): Unknown = {
-  call _call7 = clo<"i32.const">((- 1))
-  if (&& (! (= (yet "the top of the stack") _call7)) (! (= (yet "the top of the stack") (yet "call [=i64.const=]")))) {
+  call _call11 = clo<"i32.const">((- 1))
+  if (&& (! (= (yet "the top of the stack") _call11)) (! (= (yet "the top of the stack") (yet "call [=i64.const=]")))) {
     let frame = (yet "the [=current frame=]")
     assert (yet "due to validation, |frame|.[=frame/module=].[=moduleinst/memaddrs=][|x|] exists")
     let memaddr = _ref_Unknown["frame/module"]["moduleinst/memaddrs"][x]
@@ -704,8 +707,8 @@ def memory.grow(
 def tofixedlengthbuffer(
 ): Unknown = {
   let buffer = @this.BufferObject
-  call _call8 = clo<"isfixedlengtharraybuffer">(buffer)
-  if (= _call8 true) {
+  call _call12 = clo<"isfixedlengtharraybuffer">(buffer)
+  if (= _call12 true) {
     return buffer
   } else nop
   let memaddr = @this.Memory
@@ -723,8 +726,8 @@ def toresizablebuffer(
     (yet "throw a {{TypeError}} exception")
   } else nop
   let buffer = @this.BufferObject
-  call _call9 = clo<"isfixedlengtharraybuffer">(buffer)
-  if (= _call9 false) {
+  call _call13 = clo<"isfixedlengtharraybuffer">(buffer)
+  if (= _call13 false) {
     return buffer
   } else nop
   assert (yet "|memtype| has a max")
@@ -742,8 +745,8 @@ def abstract_operation_[=hostresizearraybuffer=](
     let map = @AGENT_RECORD["Memory object cache"]
     assert (= buffer (yet "the \\[[BufferObject]] of exactly one value in |map|"))
     (yet "foreach ?(|memaddr| &rarr; |mem|) in |map|")
-    call _call10 = clo<"samevalue">(mem.BufferObject, buffer)
-    if (= _call10 true) {
+    call _call14 = clo<"samevalue">(mem.BufferObject, buffer)
+    if (= _call14 true) {
       assert (= (% buffer.ArrayBufferByteLength 65536) 0)
       let lengthDelta = _ref_BinOp.ArrayBufferByteLength
       if (|| (< lengthDelta 0) (! (= (% lengthDelta 65536) 0))) {
@@ -1208,8 +1211,8 @@ def call_an_exported_function(
     } else {
       let arg = undefined
     }
-    call _call11 = clo<"towebassemblyvalue">(arg, t)
-    push args < (yet "nested ?-abrupt: Var(_call11)")
+    call _call15 = clo<"towebassemblyvalue">(arg, t)
+    push args < (yet "nested ?-abrupt: Var(_call15)")
     i = (+ i 1)
     _iterIdx16 = (+ _iterIdx16 1)
   }
@@ -1221,8 +1224,8 @@ def call_an_exported_function(
     (yet "throw an exception")
   } else nop
   (yet "This exception should be a WebAssembly {{RuntimeError}} exception, unless otherwise indicated by <a href=\"#errors\">the WebAssembly error mapping</a>")
-  call _call12 = clo<"exception">(exnaddr)
-  if (= ret _call12) {
+  call _call16 = clo<"exception">(exnaddr)
+  if (= ret _call16) {
     call-embed tagaddr = <exn_tag>(store, exnaddr)
     call-embed payload = <exn_read>(store, exnaddr)
     call jsTagAddr = clo<"get_the_javascript_exception_tag">()
@@ -1250,8 +1253,8 @@ def call_an_exported_function(
     let _iterIdx18 = 0
     while (< _iterIdx18 (sizeof _iterList17)) {
       let r = _iterList17[_iterIdx18]
-      call _call13 = clo<"tojsvalue">(r)
-      push values < _call13
+      call _call17 = clo<"tojsvalue">(r)
+      push values < _call17
       _iterIdx18 = (+ _iterIdx18 1)
     }
     call _ret10 = clo<"CreateArrayFromList">(values)
@@ -1273,8 +1276,8 @@ def run_a_host_function(
   let _iterIdx20 = 0
   while (< _iterIdx20 (sizeof _iterList19)) {
     let arg = _iterList19[_iterIdx20]
-    call _call14 = clo<"tojsvalue">(arg)
-    push jsArguments < _call14
+    call _call18 = clo<"tojsvalue">(arg)
+    push jsArguments < _call18
     _iterIdx20 = (+ _iterIdx20 1)
   }
   call _comp27 = clo<"Call">(func, undefined, jsArguments)
@@ -1291,8 +1294,8 @@ def run_a_host_function(
   if (= resultsSize 0) {
     return (list [])
   } else if (= resultsSize 1) {
-    call _call15 = clo<"towebassemblyvalue">(ret, results[0])
-    return (list [(yet "nested ?-abrupt: Var(_call15)")])
+    call _call19 = clo<"towebassemblyvalue">(ret, results[0])
+    return (list [(yet "nested ?-abrupt: Var(_call19)")])
   } else {
     call _comp28 = clo<"GetMethod">(ret, @SYMBOL.iterator)
     if (exists _comp28.Type) {
@@ -1322,8 +1325,8 @@ def run_a_host_function(
       (yet "throw a {{TypeError}} exception")
     } else nop
     (yet "foreach ?(|value| and |resultType|) in ?(|values| and |results|)")
-    call _call16 = clo<"towebassemblyvalue">(value, resultType)
-    push wasmValues < (yet "nested ?-abrupt: Var(_call16)")
+    call _call20 = clo<"towebassemblyvalue">(value, resultType)
+    push wasmValues < (yet "nested ?-abrupt: Var(_call20)")
     return wasmValues
   }
   return ~unused~
@@ -1534,8 +1537,8 @@ def towebassemblyvalue(
     }
     let store = @AGENT_RECORD["associated store"]
     call-embed actualtype = <ref_type>(store, r)
-    call-embed _call17 = <match_valtype>(actualtype, type)
-    if (= _call17 false) {
+    call-embed _call21 = <match_valtype>(actualtype, type)
+    if (= _call21 false) {
       (yet "throw a {{TypeError}}")
     } else nop
     return r
@@ -1623,8 +1626,8 @@ def tag(
   let _iterIdx22 = 0
   while (< _iterIdx22 (sizeof _iterList21)) {
     let paramType = _iterList21[_iterIdx22]
-    call _call18 = clo<"tovaluetype">(paramType)
-    push wasmParameters < _call18
+    call _call22 = clo<"tovaluetype">(paramType)
+    push wasmParameters < _call22
     _iterIdx22 = (+ _iterIdx22 1)
   }
   let store = @AGENT_RECORD["associated store"]
@@ -1754,8 +1757,8 @@ def exception(
   if (|| (yet "matches valtype") (yet "matches valtype")) {
     (yet "throw a {{TypeError}}")
   } else nop
-  call _call19 = clo<"towebassemblyvalue">(value, resultType)
-  push wasmPayload < (yet "nested ?-abrupt: Var(_call19)")
+  call _call23 = clo<"towebassemblyvalue">(value, resultType)
+  push wasmPayload < (yet "nested ?-abrupt: Var(_call23)")
   call-embed _tuple18 = <exn_alloc>(store, exceptionTag.Address, wasmPayload)
   let store = (proj _tuple18 0)
   let exceptionAddr = (proj _tuple18 1)
@@ -1840,8 +1843,8 @@ def find_a_builtin(
   import: Unknown,
   builtinSetNames: Unknown,
 ): Unknown = {
-  call _call20 = clo<"validate_builtin_set_names">(builtinSetNames)
-  assert (= _call20 true)
+  call _call24 = clo<"validate_builtin_set_names">(builtinSetNames)
+  assert (= _call24 true)
   let importModuleName = import[0]
   let importName = import[1]
   let _iterList25 = builtinSetNames
@@ -1926,8 +1929,8 @@ def validate_an_import_for_builtins(
   import: Unknown,
   builtinSetNames: Unknown,
 ): Unknown = {
-  call _call21 = clo<"validate_builtin_set_names">(builtinSetNames)
-  assert (= _call21 true)
+  call _call25 = clo<"validate_builtin_set_names">(builtinSetNames)
+  assert (= _call25 true)
   call maybeBuiltin = clo<"find_a_builtin">(import, builtinSetNames)
   if (= maybeBuiltin null) {
     return true
@@ -2044,8 +2047,8 @@ def js-string-intocharcodearray(
   let i = 0
   while (< i stringLength) {
     call charCode = clo<"charcodeat">(string, i)
-    call _call22 = clo<"towebassemblyvalue">(charCode, ~i32~)
-    _ref_BinOp = _call22
+    call _call26 = clo<"towebassemblyvalue">(charCode, ~i32~)
+    _ref_BinOp = _call26
     i = (+ i 1)
   }
   return stringLength
@@ -2205,8 +2208,8 @@ def js-string-equals(
   if (&& (! (= second null)) (! (? second: String))) {
     (yet "throw a {{RuntimeError}} exception as if a [=trap=] was executed")
   } else nop
-  call _call23 = clo<"isstrictlyequal">(first, second)
-  if (= _call23 true) {
+  call _call27 = clo<"isstrictlyequal">(first, second)
+  if (= _call27 true) {
     return 1
   } else nop
   return 0
@@ -2235,12 +2238,12 @@ def js-string-compare(
   } else {
     let second = _comp57
   }
-  call _call24 = clo<"isstrictlyequal">(first, second)
-  if (= _call24 true) {
+  call _call28 = clo<"isstrictlyequal">(first, second)
+  if (= _call28 true) {
     return 0
   } else nop
-  call _call25 = clo<"islessthan">(first, second, true)
-  if (= _call25 true) {
+  call _call29 = clo<"islessthan">(first, second, true)
+  if (= _call29 true) {
     return (- 1)
   } else nop
   return 1
@@ -2325,8 +2328,8 @@ def get_a_copy_of_the_buffer_source(
     assert (|| (= jsBufferSource (yet "an {{ArrayBuffer}}")) (yet "{{SharedArrayBuffer}} object"))
     length = jsBufferSource.ArrayBufferByteLength
   }
-  call _call26 = clo<"IsDetachedBuffer">(jsArrayBuffer)
-  if (= _call26 true) {
+  call _call30 = clo<"IsDetachedBuffer">(jsArrayBuffer)
+  if (= _call30 true) {
     return (yet "the empty [=byte sequence=]")
   } else nop
   let bytes = (list [])
@@ -2337,8 +2340,8 @@ def get_a_copy_of_the_buffer_source(
   }
   let i = offset
   while (! (< (- (+ offset length) 1) i)) {
-    call _call27 = clo<"GetValueFromBuffer">(jsArrayBuffer, i, ~uint8~, true, ~unordered~)
-    bytes[(- i offset)] = _call27
+    call _call31 = clo<"GetValueFromBuffer">(jsArrayBuffer, i, ~uint8~, true, ~unordered~)
+    bytes[(- i offset)] = _call31
     i = (+ i 1)
   }
   return bytes
@@ -2359,7 +2362,8 @@ def asynchronously_compile_a_webassembly_module_closure1(
   } else {
     let importedStringModule = null
   }
-  if (&& (yet "[=validate builtins and imported string for a WebAssembly module|validating builtins and imported strings=] for |module| with |builtinSetNames|") (= importedStringModule false)) {
+  call _call6 = clo<"validate_builtins_and_imported_string_for_a_webassembly_module">(module, builtinSetNames, importedStringModule)
+  if (= _call6 false) {
     call _ = clo<"reject">(~Module~, promise, (record [CompileError]))
   } else {
     call moduleObject = clo<"construct_a_webassembly_module_object">(module, bytes, builtinSetNames, importedStringModule)

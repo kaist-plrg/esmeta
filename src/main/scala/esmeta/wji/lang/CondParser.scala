@@ -40,6 +40,21 @@ object CondParser:
     """(?si)^(.+?)\s+has\s+an?\s+\\?\[\[([^\]]+)\]\]\s+(?:\[=/?internal slot=\]|internal slot)$""".r
   private val HasSlotNeg =
     """(?si)^(.+?)\s+does not have\s+an?\s+\\?\[\[([^\]]+)\]\]\s+(?:\[=/?internal slot=\]|internal slot)$""".r
+  // "[=algo|display=] for ARG1 [with ARG2[, ...] [and ARGN]] IS/RETURNS BOOL"
+  // — a spec call phrased with "for"/"with"/"and" as its own English
+  // argument-list connectors (mirrors the "from X, enabled Y, and Z" phrasing
+  // an algorithm's own <dfn> head uses for its parameter list), immediately
+  // compared against a boolean result. Matched as a whole *before* the
+  // generic and/or top-level split in `parse` below, since that split can't
+  // tell this "and" apart from a real boolean and — splitting first severs
+  // the last argument from its call (see index.bs:411,423,455,765, all
+  // "... for |module| with |builtinSetNames| and |importedStringModule|
+  // returns/is false"). Restricted to a pure `|var|`-only argument list (no
+  // free text) so it can't accidentally swallow a genuine "COND1 and COND2"
+  // where COND1 itself happens to read "... for X is Y".
+  private val LinkCallArgsEndsBool =
+    """(?si)^(\[=[^\]]+\])\s+((?:for|with)\s+\|[^|]+\|(?:\s*(?:,\s*|and\s+|with\s+)\|[^|]+\|)*)\s+(is not|is|returns)\s+(true|false)$""".r
+
   private val UnreachableStep = """(?si)^this step is not reached$""".r
   // "If this [operation] throws an exception, ..." (untyped) or
   // "If this [operation] throws a {{TypeError}}, ..." (typed): group 1 is the
@@ -77,20 +92,28 @@ object CondParser:
 
   def parse(raw: String): Cond =
     val s = raw.trim.stripSuffix(".")
-    // Or has lower precedence than And, so we try it first
-    findTopLevel(s, " or ") match
-      case Some(i) =>
-        Or(
-          parse(s.substring(0, i).trim),
-          parseOrAbbreviated(s.substring(i + 4).trim),
+    s match
+      case LinkCallArgsEndsBool(link, argsPhrase, isKind, boolStr) =>
+        Eq(
+          ExprParser.parse(s"$link $argsPhrase"),
+          Bool(boolStr.equalsIgnoreCase("true")),
+          negated = isKind.trim.equalsIgnoreCase("is not"),
         )
-      case None =>
-        findTopLevel(s, " and ") match
+      case _ =>
+        // Or has lower precedence than And, so we try it first
+        findTopLevel(s, " or ") match
           case Some(i) =>
-            val left = s.substring(0, i).trim.stripSuffix(",").trim
-            val right = s.substring(i + 5).trim
-            And(parse(left), parseOrAbbreviated(right))
-          case None => parseAtomic(s)
+            Or(
+              parse(s.substring(0, i).trim),
+              parseOrAbbreviated(s.substring(i + 4).trim),
+            )
+          case None =>
+            findTopLevel(s, " and ") match
+              case Some(i) =>
+                val left = s.substring(0, i).trim.stripSuffix(",").trim
+                val right = s.substring(i + 5).trim
+                And(parse(left), parseOrAbbreviated(right))
+              case None => parseAtomic(s)
 
   /** Tries full condition parse; if it falls back to [[Unknown]], attempts to
     * salvage the text as an [[Abbreviated]] when [[ExprParser]] recognises it.

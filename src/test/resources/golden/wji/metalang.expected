@@ -21,7 +21,7 @@
       If([=match_externtype=](|stringExternType|, |importExternType|) is false)
         Return(false)
     Else
-      If(?([=validate an import for builtins|validating an import for builtins=] with |import|), and |builtinSetNames| is false)
+      If([=validate an import for builtins=](|import|, |builtinSetNames|) is false)
         Return(false)
   Return(true)
 
@@ -41,7 +41,7 @@
     Let(|importedStringModule|, |options|["builtin"])
   Else
     Let(|importedStringModule|, null)
-  If(?([=validate builtins and imported string for a WebAssembly module|validating builtins and imported strings=] for |module| with |builtinSetNames|), and ?(|importedStringModule| returns false))
+  If([=validate builtins and imported string for a WebAssembly module=](|module|, |builtinSetNames|, |importedStringModule|) is false)
     Return(false)
   Return(true)
 
@@ -73,7 +73,7 @@
         Let(|importedStringModule|, |options|["builtin"])
       Else
         Let(|importedStringModule|, null)
-      If(?([=validate builtins and imported string for a WebAssembly module|validating builtins and imported strings=] for |module| with |builtinSetNames|), and |importedStringModule| is false)
+      If([=validate builtins and imported string for a WebAssembly module=](|module|, |builtinSetNames|, |importedStringModule|) is false)
         Perform([=reject=](Module, |promise|, new {{CompileError}}))
       Else
         PerformAndLet([=Construct a WebAssembly module object=](|module|, |bytes|, |builtinSetNames|, |importedStringModule|), |moduleObject|)
@@ -364,7 +364,7 @@
     Let(|importedStringModule|, |options|["builtin"])
   Else
     Let(|importedStringModule|, null)
-  If(?([=validate builtins and imported string for a WebAssembly module|validating builtins and imported strings=] for |module| with |builtinSetNames|), and ?(|importedStringModule| returns false))
+  If([=validate builtins and imported string for a WebAssembly module=](|module|, |builtinSetNames|, |importedStringModule|) is false)
     Throw(a {{CompileError}} exception)
   Set(**this**.[[Module]], |module|)
   Set(**this**.[[Bytes]], |stableBytes|)

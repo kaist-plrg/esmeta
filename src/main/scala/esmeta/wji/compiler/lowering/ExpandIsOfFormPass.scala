@@ -10,27 +10,29 @@ import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr}
   * A decoded WebAssembly value like `externtype` arrives as a SpecTec
   * `ALValue.CaseV(tag, args)` (see `construct.ml`'s `al_of_externtype`) — "is
   * of the form [=LINK=] |v1| |v2| ..." checks `tag` against the variant `LINK`
-  * names, then binds each `|vN|` to the `N`th positional payload, i.e.
+  * name, then binds each `|vN|` to where that payload actually lives. Most
+  * variants are flat (`|vN|` is directly the `N`th positional arg of the
+  * `CaseV`), but some nest a sub-tuple (e.g. GLOBAL's sole positional arg is
+  * itself a `CaseV("", [mut, valtype])` — see [[FormSpec.argPaths]]):
   * {{{
   *   IfChain([(IsOfForm(e, Case(link, [Var(v1), Var(v2), ...]), None, neg), body)], fallback)
   * }}}
   * becomes
   * {{{
   *   IfChain([(Eq(CaseTag(e), Str(tag), neg),
-  *             Let(v1, TupleProj(e, 0)) :: Let(v2, TupleProj(e, 1)) :: ... :: body)], fallback)
+  *             Let(v1, TupleProj(e, path1)) :: Let(v2, TupleProj(e, path2)) :: ... :: body)], fallback)
   * }}}
   * — a form check is just a string-equality once the tag is read out, so this
   * reuses the existing [[Cond.Eq]] rather than a dedicated condition node.
   *
-  * Only fires when `link` is a known entry of [[formTag]] and every binding is
-  * a bare `Expr.Var` (never seen otherwise) with no `where` clause. Every other
-  * shape — the nested variant destructuring GLOBAL/TABLE/MEM/TAG need (their
-  * payload is itself another `CaseV`/tuple, not flat positional args; see
-  * `al_of_globaltype`/`al_of_tabletype`/`al_of_memorytype`, and they're
-  * version-dependent besides), the `where`-guarded form (index.bs:1212), and
-  * the `{type ..., hostcode |hostfunc|}` record-shaped form (index.bs:1249) —
-  * is left as `Cond.IsOfForm` for `Compiler` to report as `EYet("is of form")`,
-  * until a concrete need for it is actually reached.
+  * Only fires when `link` is a known entry of [[forms]] and every binding is a
+  * bare `Expr.Var` (never seen otherwise) with no `where` clause. Every other
+  * shape — TAG's form (its payload's real `construct.ml` shape doesn't even
+  * match what the spec prose asks for — a spec bug, not a nesting gap), the
+  * `where`-guarded form (index.bs:1212), and the `{type ..., hostcode
+  * |hostfunc|}` record-shaped form (index.bs:1249) — is left as `Cond.IsOfForm`
+  * for `Compiler` to report as `EYet("is of form")`, until a concrete need for
+  * it is actually reached.
   *
   * Must run after `ResolveLinksPass` (so the form is already a resolved
   * `Expr.Case`, not a raw `Expr.Link`) and `GroupIfChainPass` (so the condition
@@ -38,13 +40,37 @@ import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr}
   */
 object ExpandIsOfFormPass extends LoweringPass:
 
-  /** `Cond.IsOfForm`'s link text, mapped to the runtime `ALValue.CaseV` tag
-    * SpecTec's `construct.ml` (`al_of_externtype`) actually produces. Only the
-    * one variant reached so far — the function-import branch of "read the
-    * imports" (js-api/index.bs:506) — is covered; extend as more are reached.
+  /** @param runtimeTag
+    *   the `ALValue.CaseV` tag SpecTec's `construct.ml` actually produces for
+    *   this variant.
+    * @param argPaths
+    *   for each bound `|vN|` in prose order, the chain of `TupleProj` indices
+    *   from the matched value `e` down to that binding's actual payload. `None`
+    *   means the common case — every variant is flat, so `|vN|` defaults to
+    *   `TupleProj(e, N)` — and only needs overriding when a variant's payload
+    *   nests a sub-tuple, as GLOBAL's does.
     */
-  private val formTag: Map[String, String] = Map(
-    "external-type/func" -> "FUNC",
+  private case class FormSpec(
+    runtimeTag: String,
+    argPaths: Option[List[List[Int]]] = None,
+  )
+
+  /** `Cond.IsOfForm`'s link text, mapped to how SpecTec actually represents
+    * that variant. Only the variants reached so far, in "read the imports"
+    * (js-api/index.bs:506-538), are covered; extend as more are reached.
+    */
+  private val forms: Map[String, FormSpec] = Map(
+    "external-type/func" -> FormSpec("FUNC"),
+    "external-type/mem" -> FormSpec("MEM"),
+    "external-type/table" -> FormSpec("TABLE"),
+    // globaltype = CaseV("", [mut, valtype]) is itself externtype's sole
+    // positional arg (al_of_externtype / al_of_globaltype), so both bindings
+    // nest one level under index 0 rather than sitting flat at 0 and 1.
+    "external-type/global" -> FormSpec(
+      "GLOBAL",
+      Some(List(List(0, 0), List(0, 1))),
+    ),
+    "external-type/tag" -> FormSpec("TAG"),
   )
 
   private def stripLink(link: String): String =
@@ -67,12 +93,13 @@ object ExpandIsOfFormPass extends LoweringPass:
     cond match
       case Cond.IsOfForm(e, Expr.Case(tag, args), None, neg)
           if args.forall(_.isInstanceOf[Expr.Var]) &&
-          formTag.contains(stripLink(tag)) =>
-        val runtimeTag = formTag(stripLink(tag))
-        val binds = args.zipWithIndex.collect {
-          case (v: Expr.Var, idx) =>
-            Instr.Let(v, Expr.TupleProj(e, idx))
+          forms.contains(stripLink(tag)) =>
+        val spec = forms(stripLink(tag))
+        val paths = spec.argPaths.getOrElse(args.indices.map(List(_)).toList)
+        val binds = args.zip(paths).collect {
+          case (v: Expr.Var, path) =>
+            Instr.Let(v, path.foldLeft(e)(Expr.TupleProj(_, _)))
         }
-        val check = Cond.Eq(Expr.CaseTag(e), Expr.Str(runtimeTag), neg)
+        val check = Cond.Eq(Expr.CaseTag(e), Expr.Str(spec.runtimeTag), neg)
         (check, binds ++ transform(body))
       case _ => (cond, transform(body))

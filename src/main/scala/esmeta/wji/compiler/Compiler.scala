@@ -337,7 +337,7 @@ object Compiler:
     case Cond.HasDuplicates(e, neg) =>
       EYet("contains duplicates") // TODO — expanded by ExpandHasDuplicatesPass
     case Cond.Implements(e, iface, neg) => EYet(s"implements $iface") // TODO
-    case Cond.IsOfForm(e, f, _, neg)    => EYet(s"is of form") // TODO
+    case Cond.IsOfForm(e, f, _, neg)    => EYet(s"is of form $f") // TODO
     case Cond.Matches(l, t, r, neg)     => EYet(s"matches $t") // TODO
     case Cond.Throws(kind) =>
       EYet(s"throws${kind.fold("")(k => s" $k")}") // TODO

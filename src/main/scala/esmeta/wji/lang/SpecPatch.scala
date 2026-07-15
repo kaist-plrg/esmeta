@@ -361,10 +361,24 @@ object SpecPatch:
     ->
     """1. If |options|["importedStringConstants"] [=map/exists=], let |importedStringModule| be |options|["builtin"]; otherwise, let |importedStringModule| be null.""",
 
-    // #17 hardcoded patch for non-normative style
+    // #18 hardcoded patch for non-normative style
     "1.  If |x| is not given, then let it be the {{undefined}} value."
     ->
     "1.  If |x| is not given, then let |x| be the {{undefined}} value.",
+
+    // #19 (spec bug) — "is of the form [=external-type/tag=] |attribute|
+    // <var ignore>functype</var>" binds an |attribute| that no longer exists
+    // in the runtime representation: `al_of_tagtype`/`TagT` (construct.ml)
+    // wrap a tag's typeuse directly, with no separate attribute-kind field,
+    // because "exception" is still the only tag attribute this proposal
+    // defines. The very next step only asserts |attribute| always equals
+    // that one constant, then never uses it again — a vestigial binding left
+    // behind from before the representation dropped the field, same as #13.
+    // Dropped at both of this form's occurrences (js-api/index.bs:540, 579;
+    // `.replace` matches both since the text is byte-identical).
+    "1. If |externtype| is of the form [=external-type/tag=] |attribute| <var ignore>functype</var>,\n            1. Assert: |attribute| is [=tagtype/attribute/exception=]."
+    ->
+    "1. If |externtype| is of the form [=external-type/tag=] <var ignore>functype</var>,",
   )
 
   def apply(source: String): String =

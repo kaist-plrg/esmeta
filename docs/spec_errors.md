@@ -79,3 +79,14 @@
 - **Current**: `[=external value|func=]`, `[=external value|global=]`, `[=external value|mem=]`, `[=external value|table=]` (Bikeshed pipe-display aliasing: linking text `external value`, display text the variant name).
 - **Expected**: `[=external value/func=]`, `[=external value/global=]`, `[=external value/mem=]`, `[=external value/table=]` — matching the file's own already-correct `[=external value/tag=]` (lines 544, 581, 582), which links `for`-scoped to `external value` the proper Bikeshed way.
 - **Reason**: the file's own link-defaults block (lines 217-220) registered exactly one `for`-scoped sub-term under `external value`: `tag`. It never registered `func`/`global`/`mem`/`table` the same way — unlike the parallel "external-type" block a few lines below (226-233), which correctly registers all 5 of *its* own variants (`func`/`table`/`mem`/`global`/`tag`) `for: external-type`. Without a registered anchor, `[=external value/func=]` wouldn't validly resolve under Bikeshed, so the spec author fell back to pipe-display aliasing for 4 of the 5 "external value" variants, leaving only `tag` — the one that happened to get registered — using the "correct" `for`-scoped form. Fixed at both ends: `SpecPatch` #16 registers the 4 missing anchors in the link-defaults block (matching "external-type"'s pattern), and #15 normalizes the prose to the now-valid `for`-scoped form.
+
+## 9. `is of the form [=external-type/tag=] |attribute| ...` binds a field the runtime representation no longer has
+
+- **File**: `spectec/document/js-api/index.bs`, lines 540-541 and 579-580 (`read the imports` and `create an exports object`)
+- **Current**:
+  ```
+  1. If |externtype| is of the form [=external-type/tag=] |attribute| <var ignore>functype</var>,
+      1. Assert: |attribute| is [=tagtype/attribute/exception=].
+  ```
+- **Expected**: `1. If |externtype| is of the form [=external-type/tag=] <var ignore>functype</var>,` (drop the `|attribute|` binding and the Assert that follows it).
+- **Reason**: `al_of_tagtype`/`TagT` (`spectec/spectec/src/backend-interpreter/construct.ml:1198-1199`) wrap a tag's typeuse directly, with no separate attribute-kind field — "exception" is still the only tag attribute this proposal defines, so the runtime representation dropped the field entirely. The very next step only asserts `|attribute|` always equals that one constant, then never uses it again anywhere in either branch — a vestigial binding left over from before the representation change, the same pattern as #7's dead host-function branch.

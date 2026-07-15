@@ -11,9 +11,17 @@ object Tmp extends LoweringPass:
 
   private def expandInstr(instr: Instr): List[Instr] = instr match
     case Instr.Let(Expr.Var(x), Expr.New(iface), body) =>
-      val ifaceObj = Expr.Field(Expr.Field(Expr.SpecTerm("current Realm"), "Intrinsics"), s"%WebAssembly.$iface%")
+      val ifaceObj = Expr.Field(
+        Expr.Field(Expr.SpecTerm("current Realm"), "Intrinsics"),
+        s"%WebAssembly.$iface%",
+      )
       List(
-        Instr.Perform("create_new_object_implementing_the_interface", List(ifaceObj), Instr.PerformOutcome.BindResult(x), transform(body)),
+        Instr.Perform(
+          "create_new_object_implementing_the_interface",
+          List(ifaceObj),
+          Instr.PerformOutcome.BindResult(x),
+          transform(body),
+        ),
       )
     case _ =>
       List(instr.mapBody(transform))

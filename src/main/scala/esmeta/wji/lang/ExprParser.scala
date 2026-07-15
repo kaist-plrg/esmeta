@@ -170,6 +170,20 @@ object ExprParser:
   // itself calls the general mechanism "underspecified"); revisit if one
   // is ever passed here as `func`.
   private val AssociatedRealm = """(?si)^(.+)'s \[=associated Realm=\]$""".r
+  // "[|parameters|] → [|results|]" — SpecTec's comptype arrow notation for a
+  // functype (`al_of_comptype`'s `FuncT (rt1, rt2) -> CaseV ("->", [rt1;
+  // rt2])`): a params-list and a results-list side by side, each written
+  // wrapped in its own `[...]` (decorating it as list-shaped, not a nested
+  // destructure — `rt1`/`rt2` are each already an AL list value in their own
+  // right, so the *whole* bracket content names one variable bound to that
+  // whole list, mirroring `Cond.IsOfForm`'s `Expr.Case` args). Placed before
+  // IndexByStr/IndexByVar/etc below — those would otherwise misparse this as
+  // `base[key]` indexing, since the text happens to end in `[...]` too.
+  // Requires non-empty content on both sides (a bare `[]` side, e.g. "Let
+  // [|types|] → [] be ...", isn't reached yet — left as a gap to extend
+  // into if/when it is).
+  private val CompTypeArrow =
+    """(?s)^\[\s*([^\[\]]+)\s*\]\s*→\s*\[\s*([^\[\]]+)\s*\]$""".r
   private val IndexByStr = """(?s)^(.+)\["([^"]+)"\]$""".r
   private val IndexByVar = """(?s)^(.+)\[(\|[^|]+\|)\]$""".r
   private val IndexByNum = """(?s)^(.+)\[(-?\d+)\]$""".r
@@ -326,6 +340,8 @@ object ExprParser:
           parse(baseRaw),
           normalizeLink(link).stripPrefix("[=").stripSuffix("=]"),
         )
+      case CompTypeArrow(paramsRaw, resultsRaw) =>
+        Case("->", List(parse(paramsRaw), parse(resultsRaw)))
       case IndexByStr(baseRaw, key)    => Index(parse(baseRaw), Str(key))
       case IndexByVar(baseRaw, varRaw) => Index(parse(baseRaw), parse(varRaw))
       case IndexByNum(baseRaw, n)      => Index(parse(baseRaw), parse(n))

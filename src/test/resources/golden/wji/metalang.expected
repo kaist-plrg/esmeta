@@ -796,7 +796,7 @@
   Let(|realm|, ?(the [=current Realm=]))
   Let(|store|, [=surrounding agent=].[[associated store]])
   Let(|functype|, [=func_type=](|store|, |funcaddr|))
-  Let(?([|paramTypes|] → [<var ignore>resultTypes</var>]), |functype|)
+  Let(->(|paramTypes|, |resultTypes|), |functype|)
   Let(|arity|, length(|paramTypes|))
   Let(|name|, ?(the [=name of the WebAssembly function=] |funcaddr|))
   Let(|function|, [=!=] [$CreateBuiltinFunction$](|steps|, |arity|, |name|, « ?(\[[FunctionAddress]]) », |realm|))
@@ -809,7 +809,7 @@
   head: To <dfn>call an Exported Function</dfn> with [=function address=] |funcaddr| and a [=list=] of JavaScript arguments |argValues|, perform the following steps:
   Let(|store|, [=surrounding agent=].[[associated store]])
   Let(|functype|, [=func_type=](|store|, |funcaddr|))
-  Let(?([|parameters|] →)[|results|], |functype|)
+  Let(->(|parameters|, |results|), |functype|)
   If(?(any type in |parameters|) or |results| [=matches/valtype=] [=v128=] or [=exnref=])
     Throw(a {{TypeError}})
   Note(the above error is thrown each time the \[[Call]] method is invoked)
@@ -850,7 +850,7 @@
 # run a host function
   params: |func|, |functype|, |arguments|
   head: To <dfn>run a host function</dfn> from the JavaScript object |func|, type |functype|, and [=list=] of [=WebAssembly values=] |arguments|, perform the following steps:
-  Let(?([|parameters|] →)[|results|], |functype|)
+  Let(->(|parameters|, |results|), |functype|)
   If(?(any type in |parameters|) or |results| [=matches/valtype=] [=v128=] or [=exnref=])
     Throw(a {{TypeError}})
   Let(|jsArguments|, « »)

@@ -379,6 +379,21 @@ object SpecPatch:
     "1. If |externtype| is of the form [=external-type/tag=] |attribute| <var ignore>functype</var>,\n            1. Assert: |attribute| is [=tagtype/attribute/exception=]."
     ->
     "1. If |externtype| is of the form [=external-type/tag=] <var ignore>functype</var>,",
+
+    // #18 (spec bug) — "Let [|parameters|] → [|results|] be |functype|."
+    // destructures |functype| as if it already were its own underlying
+    // comptype (a flat params/results pair), but |functype| is a deftype
+    // (e.g. `func_type`'s own declared return type, or an imported
+    // function's externtype payload) — per the Wasm Core Spec's Embedding
+    // API (embedding.rst's func_type post-condition: "the returned defined
+    // type ... expands to a function type"), the caller is responsible for
+    // expanding it first via the $Expand relation. Every occurrence in this
+    // file elides that step; made explicit here via the wjmeta-bridge's
+    // `expand` convenience (see docs/esmeta_errors.md's sibling note on
+    // spectec's own Embedding.expand). All 3 occurrences share byte-identical
+    // trailing text, so one replacement covers all of them.
+    "be |functype|."
+    -> "be [=expand=](|functype|).",
   )
 
   def apply(source: String): String =

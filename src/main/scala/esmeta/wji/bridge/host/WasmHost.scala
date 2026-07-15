@@ -77,6 +77,12 @@ object WasmHost:
     "module_imports" -> List("module"),
     // module_exports(module) : (name, externtype)*
     "module_exports" -> List("module"),
+    // expand(deftype) : comptype — not part of the Wasm Core Spec's own
+    // Embedding API; a wjmeta-bridge-specific convenience wrapping the
+    // $Expand relation (see spectec-server's Embedding.expand), needed
+    // because js-api/index.bs destructures a deftype's underlying comptype
+    // directly without ever calling out to $expand itself (docs/spec_errors.md).
+    "expand" -> List("deftype"),
     // instance_export(moduleinst, name) : externaddr | error
     "instance_export" -> List("moduleinst", "name"),
     // func_type(store, funcaddr) : deftype

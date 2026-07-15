@@ -1192,9 +1192,10 @@ def a_new_exported_function(
   let realm = (yet "the [=current Realm=]")
   let store = @AGENT_RECORD["associated store"]
   call-embed functype = <func_type>(store, funcaddr)
-  assert (= (case-tag functype) "->")
-  let paramTypes = (proj functype 0)
-  let resultTypes = (proj functype 1)
+  call-embed _tuple13 = <expand>(functype)
+  assert (= (case-tag _tuple13) "->")
+  let paramTypes = (proj _tuple13 0)
+  let resultTypes = (proj _tuple13 1)
   let arity = (sizeof paramTypes)
   let name = (yet "the [=name of the WebAssembly function=] |funcaddr|")
   call _comp25 = clo<"CreateBuiltinFunction">(steps, arity, name, (list [(yet "\\[[FunctionAddress]]")]), realm)
@@ -1214,9 +1215,10 @@ def call_an_exported_function(
 ): Unknown = {
   let store = @AGENT_RECORD["associated store"]
   call-embed functype = <func_type>(store, funcaddr)
-  assert (= (case-tag functype) "->")
-  let parameters = (proj functype 0)
-  let results = (proj functype 1)
+  call-embed _tuple14 = <expand>(functype)
+  assert (= (case-tag _tuple14) "->")
+  let parameters = (proj _tuple14 0)
+  let results = (proj _tuple14 1)
   let _found7 = false
   let _i8 = 0
   while (&& (= _found7 false) (< _i8 (sizeof parameters))) {
@@ -1257,9 +1259,9 @@ def call_an_exported_function(
     i = (+ i 1)
     _iterIdx16 = (+ _iterIdx16 1)
   }
-  call-embed _tuple13 = <func_invoke>(store, funcaddr, args)
-  let store = (proj _tuple13 0)
-  let ret = (proj _tuple13 1)
+  call-embed _tuple15 = <func_invoke>(store, funcaddr, args)
+  let store = (proj _tuple15 0)
+  let ret = (proj _tuple15 1)
   @AGENT_RECORD["associated store"] = store
   if (= ret ~error~) {
     (yet "throw an exception")
@@ -1308,9 +1310,10 @@ def run_a_host_function(
   functype: Unknown,
   arguments: Unknown,
 ): Unknown = {
-  assert (= (case-tag functype) "->")
-  let parameters = (proj functype 0)
-  let results = (proj functype 1)
+  call-embed _tuple16 = <expand>(functype)
+  assert (= (case-tag _tuple16) "->")
+  let parameters = (proj _tuple16 0)
+  let results = (proj _tuple16 1)
   let _found12 = false
   let _i13 = 0
   while (&& (= _found12 false) (< _i13 (sizeof parameters))) {
@@ -1403,9 +1406,9 @@ def create_a_host_function(
   let stored settings = ~incumbent settings object~
   let hostfunc = clo<"create_a_host_function_closure1", [func, functype]>
   let store = @AGENT_RECORD["associated store"]
-  call-embed _tuple15 = <func_alloc>(store, functype, hostfunc)
-  let store = (proj _tuple15 0)
-  let funcaddr = (proj _tuple15 1)
+  call-embed _tuple18 = <func_alloc>(store, functype, hostfunc)
+  let store = (proj _tuple18 0)
+  let funcaddr = (proj _tuple18 1)
   @AGENT_RECORD["associated store"] = store
   return funcaddr
 }
@@ -1696,9 +1699,9 @@ def tag(
     _iterIdx22 = (+ _iterIdx22 1)
   }
   let store = @AGENT_RECORD["associated store"]
-  call-embed _tuple16 = <tag_alloc>(store, (yet "|wasmParameters| → « »"))
-  let store = (proj _tuple16 0)
-  let tagAddress = (proj _tuple16 1)
+  call-embed _tuple19 = <tag_alloc>(store, (yet "|wasmParameters| → « »"))
+  let store = (proj _tuple19 0)
+  let tagAddress = (proj _tuple19 1)
   @AGENT_RECORD["associated store"] = store
   call _ = clo<"initialize_a_tag_object">(@this, tagAddress)
   return ~unused~
@@ -1826,9 +1829,9 @@ def exception(
   } else nop
   call _call23 = clo<"towebassemblyvalue">(value, resultType)
   push wasmPayload < (yet "nested ?-abrupt: Var(_call23)")
-  call-embed _tuple17 = <exn_alloc>(store, exceptionTag.Address, wasmPayload)
-  let store = (proj _tuple17 0)
-  let exceptionAddr = (proj _tuple17 1)
+  call-embed _tuple20 = <exn_alloc>(store, exceptionTag.Address, wasmPayload)
+  let store = (proj _tuple20 0)
+  let exceptionAddr = (proj _tuple20 1)
   @AGENT_RECORD["associated store"] = store
   call _ = clo<"initialize_an_exception_object">(@this, exceptionAddr)
   if (= options.traceStack true) {
@@ -1883,9 +1886,9 @@ def get_the_javascript_exception_tag(
     return @AGENT_RECORD["JavaScript exception tag"]
   } else nop
   let store = @AGENT_RECORD["associated store"]
-  call-embed _tuple18 = <tag_alloc>(store, (list [~externref~]))
-  let store = (proj _tuple18 0)
-  let tagAddress = (proj _tuple18 1)
+  call-embed _tuple21 = <tag_alloc>(store, (list [~externref~]))
+  let store = (proj _tuple21 0)
+  let tagAddress = (proj _tuple21 1)
   @AGENT_RECORD["associated store"] = store
   @AGENT_RECORD["JavaScript exception tag"] = tagAddress
   return tagAddress
@@ -1968,9 +1971,9 @@ def create_a_builtin_function(
 ): Unknown = {
   let hostfunc = (yet "[=host function=] which executes |steps| when called")
   let store = @AGENT_RECORD["associated store"]
-  call-embed _tuple19 = <func_alloc>(store, funcType, hostfunc)
-  let store = (proj _tuple19 0)
-  let funcaddr = (proj _tuple19 1)
+  call-embed _tuple22 = <func_alloc>(store, funcType, hostfunc)
+  let store = (proj _tuple22 0)
+  let funcaddr = (proj _tuple22 1)
   @AGENT_RECORD["associated store"] = store
   return funcaddr
 }
@@ -1988,10 +1991,10 @@ def instantiate_a_builtin_set(
   let _iterList29 = builtins
   let _iterIdx30 = 0
   while (< _iterIdx30 (sizeof _iterList29)) {
-    let _tuple20 = _iterList29[_iterIdx30]
-    let name = (proj _tuple20 0)
-    let funcType = (proj _tuple20 1)
-    let steps = (proj _tuple20 2)
+    let _tuple23 = _iterList29[_iterIdx30]
+    let name = (proj _tuple23 0)
+    let funcType = (proj _tuple23 1)
+    let steps = (proj _tuple23 2)
     call funcaddr = clo<"create_a_builtin_function">(funcType, steps)
     call func = clo<"a_new_exported_function">(funcaddr)
     let value = func
@@ -2531,9 +2534,9 @@ def create_a_host_function_closure1(
       } else {
         let payload = _comp30
       }
-      call-embed _tuple14 = <exn_alloc>(store, type, (list [payload]))
-      let store = (proj _tuple14 0)
-      let address = (proj _tuple14 1)
+      call-embed _tuple17 = <exn_alloc>(store, type, (list [payload]))
+      let store = (proj _tuple17 0)
+      let address = (proj _tuple17 1)
       @AGENT_RECORD["associated store"] = store
     }
     (yet "Execute the WebAssembly instructions ([=ref.exn=] |address|) ([=throw_ref=])")

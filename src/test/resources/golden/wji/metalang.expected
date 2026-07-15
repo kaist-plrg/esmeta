@@ -33,8 +33,14 @@
   PerformAndLet([=Compile a WebAssembly module=](|stableBytes|), |module|)
   If(|module| is [=error=])
     Return(false)
-  Let(|builtinSetNames|, |options|["builtins"])
-  Let(|importedStringModule|, |options|["importedStringConstants"])
+  If(|options|["builtins"] [=map/exists=])
+    Let(|builtinSetNames|, |options|["builtin"])
+  Else
+    Let(|builtinSetNames|, « »)
+  If(|options|["importedStringConstants"] [=map/exists=])
+    Let(|importedStringModule|, |options|["builtin"])
+  Else
+    Let(|importedStringModule|, null)
   If(?([=validate builtins and imported string for a WebAssembly module|validating builtins and imported strings=] for |module| with |builtinSetNames|), and ?(|importedStringModule| returns false))
     Return(false)
   Return(true)
@@ -59,8 +65,14 @@
       If(|module| is [=error=])
         Perform([=reject=](Module, |promise|, new {{CompileError}}))
           Return()
-      Let(|builtinSetNames|, |options|["builtins"])
-      Let(|importedStringModule|, |options|["importedStringConstants"])
+      If(|options|["builtins"] [=map/exists=])
+        Let(|builtinSetNames|, |options|["builtin"])
+      Else
+        Let(|builtinSetNames|, « »)
+      If(|options|["importedStringConstants"] [=map/exists=])
+        Let(|importedStringModule|, |options|["builtin"])
+      Else
+        Let(|importedStringModule|, null)
       If(?([=validate builtins and imported string for a WebAssembly module|validating builtins and imported strings=] for |module| with |builtinSetNames|), and |importedStringModule| is false)
         Perform([=reject=](Module, |promise|, new {{CompileError}}))
       Else
@@ -344,8 +356,14 @@
   PerformAndLet([=Compile a WebAssembly module=](|stableBytes|), |module|)
   If(|module| is [=error=])
     Throw(a {{CompileError}} exception)
-  Let(|builtinSetNames|, |options|["builtins"])
-  Let(|importedStringModule|, |options|["importedStringConstants"])
+  If(|options|["builtins"] [=map/exists=])
+    Let(|builtinSetNames|, |options|["builtin"])
+  Else
+    Let(|builtinSetNames|, « »)
+  If(|options|["importedStringConstants"] [=map/exists=])
+    Let(|importedStringModule|, |options|["builtin"])
+  Else
+    Let(|importedStringModule|, null)
   If(?([=validate builtins and imported string for a WebAssembly module|validating builtins and imported strings=] for |module| with |builtinSetNames|), and ?(|importedStringModule| returns false))
     Throw(a {{CompileError}} exception)
   Set(**this**.[[Module]], |module|)

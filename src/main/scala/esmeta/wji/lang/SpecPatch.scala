@@ -352,6 +352,14 @@ object SpecPatch:
     "    url: exec/runtime.html#syntax-externval\n        text: external value\n        for: external value\n            text: tag"
     ->
     "    url: exec/runtime.html#syntax-externval\n        text: external value\n        for: external value\n            text: func\n            text: global\n            text: mem\n            text: table\n            text: tag",
+
+    // # 17 (spec bug) -- it needs to explicitly handle the case where builtins and importedStringConstants are omited. (see https://webidl.spec.whatwg.org/#example-f7efabfd)
+    """1. Let |builtinSetNames| be |options|["builtins"]."""
+    ->
+    """1. If |options|["builtins"] [=map/exists=], let |builtinSetNames| be |options|["builtin"]; otherwise, let |builtinSetNames| be « ».""",
+    """1. Let |importedStringModule| be |options|["importedStringConstants"]."""
+    ->
+    """1. If |options|["importedStringConstants"] [=map/exists=], let |importedStringModule| be |options|["builtin"]; otherwise, let |importedStringModule| be null.""",
   )
 
   def apply(source: String): String =

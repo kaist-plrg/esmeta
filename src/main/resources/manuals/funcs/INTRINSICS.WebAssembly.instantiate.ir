@@ -12,8 +12,12 @@ def <BUILTIN>:INTRINSICS.WebAssembly.instantiate(
     pop importObject < ArgumentsList
     expand __args__.importObject
   } else let importObject = undefined
+  if (< 0 (sizeof ArgumentsList)) {
+    pop option < ArgumentsList
+    expand __args__.option
+  } else let options = (map[String, Unknown])
   call %0 = clo<"ToWebIDLArrayBuffer">(bytes)
-  call %1 = clo<"instantiate">(%0, importObject, undefined)
+  call %1 = clo<"instantiate">(%0, importObject, options)
   %2 = %1.Promise
   call %3 = clo<"NormalCompletion">(%2)
   return %3

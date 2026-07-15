@@ -50,8 +50,16 @@ def validate(
   if (= module ~error~) {
     return false
   } else nop
-  let builtinSetNames = options.builtins
-  let importedStringModule = options.importedStringConstants
+  if (exists options.builtins) {
+    let builtinSetNames = options.builtin
+  } else {
+    let builtinSetNames = (list [])
+  }
+  if (exists options.importedStringConstants) {
+    let importedStringModule = options.builtin
+  } else {
+    let importedStringModule = null
+  }
   if (&& (yet "[=validate builtins and imported string for a WebAssembly module|validating builtins and imported strings=] for |module| with |builtinSetNames|") (yet "|importedStringModule| returns false")) {
     return false
   } else nop
@@ -501,8 +509,16 @@ def module(
   if (= module ~error~) {
     (yet "throw a {{CompileError}} exception")
   } else nop
-  let builtinSetNames = options.builtins
-  let importedStringModule = options.importedStringConstants
+  if (exists options.builtins) {
+    let builtinSetNames = options.builtin
+  } else {
+    let builtinSetNames = (list [])
+  }
+  if (exists options.importedStringConstants) {
+    let importedStringModule = options.builtin
+  } else {
+    let importedStringModule = null
+  }
   if (&& (yet "[=validate builtins and imported string for a WebAssembly module|validating builtins and imported strings=] for |module| with |builtinSetNames|") (yet "|importedStringModule| returns false")) {
     (yet "throw a {{CompileError}} exception")
   } else nop
@@ -2333,8 +2349,16 @@ def asynchronously_compile_a_webassembly_module_closure1(
     call _ = clo<"reject">(~Module~, promise, (record [CompileError]))
     return ~unused~
   } else nop
-  let builtinSetNames = options.builtins
-  let importedStringModule = options.importedStringConstants
+  if (exists options.builtins) {
+    let builtinSetNames = options.builtin
+  } else {
+    let builtinSetNames = (list [])
+  }
+  if (exists options.importedStringConstants) {
+    let importedStringModule = options.builtin
+  } else {
+    let importedStringModule = null
+  }
   if (&& (yet "[=validate builtins and imported string for a WebAssembly module|validating builtins and imported strings=] for |module| with |builtinSetNames|") (= importedStringModule false)) {
     call _ = clo<"reject">(~Module~, promise, (record [CompileError]))
   } else {

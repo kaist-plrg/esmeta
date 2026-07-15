@@ -50,6 +50,11 @@ object Cond:
   case class HasSlot(expr: Expr, slot: String, negated: Boolean = false)
     extends Cond
 
+  /** EXPR contains any duplicates / EXPR contains no duplicates (also "does not
+    * contain any duplicates") — checks a list for duplicate elements.
+    */
+  case class HasDuplicates(list: Expr, negated: Boolean = false) extends Cond
+
   /** EXPR [=is [not] a[n] TYPE=] — spec type-check predicate */
   case class IsType(expr: Expr, typeName: String, negated: Boolean = false)
     extends Cond

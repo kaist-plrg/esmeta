@@ -40,6 +40,12 @@ object CondParser:
     """(?si)^(.+?)\s+has\s+an?\s+\\?\[\[([^\]]+)\]\]\s+(?:\[=/?internal slot=\]|internal slot)$""".r
   private val HasSlotNeg =
     """(?si)^(.+?)\s+does not have\s+an?\s+\\?\[\[([^\]]+)\]\]\s+(?:\[=/?internal slot=\]|internal slot)$""".r
+  // "X contains any duplicates" / "X contains no duplicates" / "X does not
+  // contain any duplicates" — see index.bs:1863.
+  private val ContainsDuplicatesNeg =
+    """(?si)^(.+?)\s+(?:contains no duplicates|does not contain any duplicates)$""".r
+  private val ContainsDuplicatesPos =
+    """(?si)^(.+?)\s+contains any duplicates$""".r
   // "[=algo|display=] for ARG1 [with ARG2[, ...] [and ARGN]] IS/RETURNS BOOL"
   // — a spec call phrased with "for"/"with"/"and" as its own English
   // argument-list connectors (mirrors the "from X, enabled Y, and Z" phrasing
@@ -146,6 +152,10 @@ object CondParser:
       HasSlot(ExprParser.parse(exprRaw.trim), slot)
     case HasSlotNeg(exprRaw, slot) =>
       HasSlot(ExprParser.parse(exprRaw.trim), slot, negated = true)
+    case ContainsDuplicatesNeg(exprRaw) =>
+      HasDuplicates(ExprParser.parse(exprRaw.trim), negated = true)
+    case ContainsDuplicatesPos(exprRaw) =>
+      HasDuplicates(ExprParser.parse(exprRaw.trim))
     case _ => parseEqOrCompare(s)
 
   private def parseEqOrCompare(s: String): Cond =

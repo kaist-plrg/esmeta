@@ -31,6 +31,10 @@ object CondPrinter:
       s"${ExprPrinter.render(expr)} has a [[$slot]] internal slot"
     case HasSlot(expr, slot, true) =>
       s"${ExprPrinter.render(expr)} does not have a [[$slot]] internal slot"
+    case HasDuplicates(expr, false) =>
+      s"${ExprPrinter.render(expr)} contains any duplicates"
+    case HasDuplicates(expr, true) =>
+      s"${ExprPrinter.render(expr)} does not contain any duplicates"
     case IsType(expr, t, neg) =>
       val article = if "aeiouAEIOU".contains(t.head) then "an" else "a"
       val verb = if neg then "is not" else "is"

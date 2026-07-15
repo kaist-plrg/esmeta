@@ -1875,7 +1875,20 @@ def find_a_builtin(
 def validate_builtin_set_names(
   builtinSetNames: Unknown,
 ): Unknown = {
-  if (yet "|builtinSetNames| contains any duplicates") {
+  let _dupList1 = builtinSetNames
+  let _dupFound2 = false
+  let _dupI3 = 1
+  while (< _dupI3 (sizeof _dupList1)) {
+    let _dupJ4 = 0
+    while (< _dupJ4 _dupI3) {
+      if (= _dupList1[_dupI3] _dupList1[_dupJ4]) {
+        _dupFound2 = true
+      } else nop
+      _dupJ4 = (+ _dupJ4 1)
+    }
+    _dupI3 = (+ _dupI3 1)
+  }
+  if (= _dupFound2 true) {
     return false
   } else nop
   return true

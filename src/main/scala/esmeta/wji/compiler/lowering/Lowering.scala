@@ -8,6 +8,7 @@ object Lowering:
     ResolveLinksPass,
     DropNotesPass,
     GroupIfChainPass,
+    ExpandHasDuplicatesPass,
     ExpandAbruptPass,
     ExpandForEachPass,
     ExpandForPass,

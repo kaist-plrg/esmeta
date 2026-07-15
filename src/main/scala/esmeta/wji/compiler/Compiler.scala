@@ -334,6 +334,8 @@ object Compiler:
       EExists(Field(compileRef(e), EStr(slot)))
     case Cond.HasSlot(e, slot, true) =>
       EUnary(UOp.Not, EExists(Field(compileRef(e), EStr(slot))))
+    case Cond.HasDuplicates(e, neg) =>
+      EYet("contains duplicates") // TODO — expanded by ExpandHasDuplicatesPass
     case Cond.Implements(e, iface, neg) => EYet(s"implements $iface") // TODO
     case Cond.IsOfForm(e, f, _, neg)    => EYet(s"is of form") // TODO
     case Cond.Matches(l, t, r, neg)     => EYet(s"matches $t") // TODO

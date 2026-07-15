@@ -272,7 +272,7 @@
   Let(|onFullfilledSteps|, followingSteps(module))
     PerformAndLet([=asynchronously instantiate a WebAssembly module=](|module|, |importObject|), |innerPromise|)
     Let(|innerOnFullfilledSteps|, followingSteps(instance))
-      Let(|result|, ?(the {{WebAssemblyInstantiatedSource}} value «[ "{{WebAssemblyInstantiatedSource/module}}" → |module|, "{{WebAssemblyInstantiatedSource/instance}}" → |instance| ]»))
+      Let(|result|, «[ "{{WebAssemblyInstantiatedSource/module}}" → |module|, "{{WebAssemblyInstantiatedSource/instance}}" → |instance| ]»)
       Perform([=Resolve=](WebAssemblyInstantiatedSource, |promise|, |result|))
     Let(|innerOnRejectedSteps|, followingSteps(reason))
       Perform([=Reject=](WebAssemblyInstantiatedSource, |promise|, |reason|))
@@ -342,7 +342,7 @@
   Let(|bytes|, |moduleObject|.[[Bytes]])
   Let(|customSections|, « »)
   ForEach([=custom section=](|customSection|), |bytes|)
-    Let(|name|, ?(the <code>name</code> of |customSection|, [=UTF-8 decode without BOM or fail|decoded as UTF-8=]))
+    Let(|name|, [=UTF-8 decode without BOM or fail=](?(the <code>name</code> of |customSection|)))
     Assert(|name| is not ?(failure (|moduleObject|.\[[Module]] is [=valid=])))
     If(|name| is ?(|sectionName| as string values))
       Append(?(a new {{ArrayBuffer}} containing a copy of the bytes in |bytes| for the range matched by this [=customsec=] production), |customSections|)
@@ -1461,17 +1461,17 @@
 # resolve
   params: |T|, |p|, |x|
   head: To <dfn export>resolve</dfn> a <code><a interface>Promise</a>&lt;|T|&gt;</code> |p| with |x| (a value of type |T|), perform the following steps:
-  If(|x| is not ?(given))
-    Let(?(it), ?(the {{undefined}} value))
+  If(|x| is undefined)
+    Let(|x|, undefined)
   Let(|value|, [=converted to a JavaScript value=](|x|))
-  Perform(Call(|p|.[[Resolve]], ?(<emu-val>undefined</emu-val>), « |value| »))
+  Perform(Call(|p|.[[Resolve]], undefined, « |value| »))
   If(|T| is undefined)
     ?(the |x| argument is optional, allowing a simpler "[=resolve=] p" usage)
 
 # reject
   params: |T|, |p|, |r|
   head: To <dfn export>reject</dfn> a <code><a interface>Promise</a>&lt;<var ignore>T</var>&gt;</code> |p| with reason |r| (a JavaScript value), perform the following steps:
-  Perform(Call(|p|.[[Reject]], ?(<emu-val>undefined</emu-val>), « |r| »))
+  Perform(Call(|p|.[[Reject]], undefined, « |r| »))
 
 # react
   params: |T|, |promise|, |onFullfilledStepsArg|, |onRejectedStepsArg|, |realm|
@@ -1482,7 +1482,7 @@
       Let(|result|, |onFullfilledStepsArg|(|value|))
     Else
       Let(|result|, |value|)
-    Return(?(|result|, [=converted to a JavaScript value=]))
+    Return([=converted to a JavaScript value=](|result|))
   Let(|onFulfilled|, [$CreateBuiltinFunction$](|onFulfilledSteps|, 1, "", « »))
   Let(|onRejectedSteps|, followingSteps(R))
     Let(|reason|, [=converted to an IDL value=](|R|, any))
@@ -1490,7 +1490,7 @@
       Let(|result|, |onRejectedStepsArg|(|reason|))
     Else
       Let(|result|, [=a promise rejected with=](|reason|))
-    Return(?(|result|, [=converted to a JavaScript value=]))
+    Return([=converted to a JavaScript value=](|result|))
   Let(|onRejected|, [$CreateBuiltinFunction$](|onRejectedSteps|, 1, "", « »))
   Let(|constructor|, |realm|.[[Intrinsics]].[[%Promise%]])
   Let(|newCapability|, [=?=] [$NewPromiseCapability$](|constructor|))

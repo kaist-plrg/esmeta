@@ -495,7 +495,7 @@ def customsections(
   let bytes = moduleObject.Bytes
   let customSections = (list [])
   (yet "foreach [=custom_section=](|customSection|) in |bytes|")
-  let name = (yet "the <code>name</code> of |customSection|, [=UTF-8 decode without BOM or fail|decoded as UTF-8=]")
+  call name = clo<"utf-8_decode_without_bom_or_fail">((yet "the <code>name</code> of |customSection|"))
   assert (! (= name (yet "failure (|moduleObject|.\\[[Module]] is [=valid=])")))
   if (= name (yet "|sectionName| as string values")) {
     push customSections < (yet "a new {{ArrayBuffer}} containing a copy of the bytes in |bytes| for the range matched by this [=customsec=] production")
@@ -2283,11 +2283,11 @@ def resolve(
   p: Unknown,
   x: Unknown,
 ): Unknown = {
-  if (! (= x (yet "given"))) {
-    let _ = (yet "unsupported Let lhs: Unknown(it)")
+  if (= x undefined) {
+    let x = undefined
   } else nop
   call value = clo<"converted_to_a_javascript_value">(x)
-  call _ = clo<"Call">(p.Resolve, (yet "<emu-val>undefined</emu-val>"), (list [value]))
+  call _ = clo<"Call">(p.Resolve, undefined, (list [value]))
   if (= T undefined) {
     (yet "the |x| argument is optional, allowing a simpler \"[=resolve=] p\" usage")
   } else nop
@@ -2298,7 +2298,7 @@ def reject(
   p: Unknown,
   r: Unknown,
 ): Unknown = {
-  call _ = clo<"Call">(p.Reject, (yet "<emu-val>undefined</emu-val>"), (list [r]))
+  call _ = clo<"Call">(p.Reject, undefined, (list [r]))
   return ~unused~
 }
 def react(
@@ -2413,7 +2413,10 @@ def asynchronously_instantiate_a_webassembly_module_closure1(
 def instantiate_a_promise_of_a_module_closure2(
   instance: Unknown,
 ): Unknown = {
-  let result = (yet "the {{WebAssemblyInstantiatedSource}} value «[ \"{{WebAssemblyInstantiatedSource/module}}\" → |module|, \"{{WebAssemblyInstantiatedSource/instance}}\" → |instance| ]»")
+  let result = (map [Unknown, Unknown] {
+    "{{WebAssemblyInstantiatedSource/module}}" -> module,
+    "{{WebAssemblyInstantiatedSource/instance}}" -> instance,
+  })
   call _ = clo<"resolve">(~WebAssemblyInstantiatedSource~, promise, result)
   return ~unused~
 }
@@ -2427,7 +2430,7 @@ def instantiate_a_promise_of_a_module_closure1(
   module: Unknown,
 ): Unknown = {
   call innerPromise = clo<"asynchronously_instantiate_a_webassembly_module">(module, importObject)
-  let innerOnFullfilledSteps = clo<"instantiate_a_promise_of_a_module_closure2", [promise]>
+  let innerOnFullfilledSteps = clo<"instantiate_a_promise_of_a_module_closure2", [module, promise]>
   let innerOnRejectedSteps = clo<"instantiate_a_promise_of_a_module_closure3", [promise]>
   call _ = clo<"react">(~WebAssemblyInstantiatedSource~, innerPromise, innerOnFullfilledSteps, innerOnRejectedSteps, @EXECUTION_STACK[0].Realm)
   return ~unused~
@@ -2479,7 +2482,8 @@ def react_closure1(
   } else {
     let result = value
   }
-  return (yet "|result|, [=converted to a JavaScript value=]")
+  call _ret26 = clo<"converted_to_a_javascript_value">(result)
+  return _ret26
 }
 def react_closure2(
   R: Unknown,
@@ -2490,5 +2494,6 @@ def react_closure2(
   } else {
     call result = clo<"a_promise_rejected_with">(reason)
   }
-  return (yet "|result|, [=converted to a JavaScript value=]")
+  call _ret27 = clo<"converted_to_a_javascript_value">(result)
+  return _ret27
 }

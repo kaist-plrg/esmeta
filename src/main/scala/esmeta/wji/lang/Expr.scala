@@ -17,9 +17,9 @@ object Expr:
   case class Byte(value: Int) extends Expr
 
   /** A reference to an ECMA-262/Wasm-specific term (a `[=...=]`/`**...**`/
-    * `<emu-const>` token whose meaning is fixed by the spec's own glossary
-    * rather than by an extracted `<div algorithm>`), e.g. `null`, `undefined`,
-    * `current Realm`.
+    * `<emu-const>`/`<emu-val>` token whose meaning is fixed by the spec's own
+    * glossary rather than by an extracted `<div algorithm>`), e.g. `null`,
+    * `undefined`, `current Realm`.
     */
   case class SpecTerm(name: String) extends Expr
 

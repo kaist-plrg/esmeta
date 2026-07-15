@@ -173,6 +173,13 @@ object CondParser:
     def parseRhs(lhsRaw: String, rhsRaw: String, negated: Boolean): Cond =
       rhsRaw.trim match
         case "missing" => IsMissing(ExprParser.parse(lhsRaw.trim), negated)
+        case "given"   =>
+          // "X is not given" / "X is given" — WebIDL's phrasing for an
+          // omitted optional argument (webidl/index.bs:8648, 9461), which the
+          // spec immediately treats as the JS `undefined` value rather than
+          // an absent binding, so this parses the same as "X is [not]
+          // undefined" (an Eq) instead of IsMissing (an existence check).
+          Eq(ExprParser.parse(lhsRaw.trim), SpecTerm("undefined"), !negated)
         case IsOfFormRhs(text) => parseIsOfForm(lhsRaw.trim, text, negated)
         case _ =>
           Eq(

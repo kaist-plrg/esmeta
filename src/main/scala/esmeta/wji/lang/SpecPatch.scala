@@ -360,6 +360,11 @@ object SpecPatch:
     """1. Let |importedStringModule| be |options|["importedStringConstants"]."""
     ->
     """1. If |options|["importedStringConstants"] [=map/exists=], let |importedStringModule| be |options|["builtin"]; otherwise, let |importedStringModule| be null.""",
+
+    // #17 hardcoded patch for non-normative style
+    "1.  If |x| is not given, then let it be the {{undefined}} value."
+    ->
+    "1.  If |x| is not given, then let |x| be the {{undefined}} value.",
   )
 
   def apply(source: String): String =

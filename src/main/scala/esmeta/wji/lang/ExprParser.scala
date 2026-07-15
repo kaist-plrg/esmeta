@@ -17,6 +17,17 @@ object ExprParser:
   // its own (see Link/Case), so nothing is lost. General over TERM — not
   // specific to any one dfn.
   private val TypeAnnotatedPrefix = """(?si)^the\s+\[=[^\]]+=\]\s+(\[=.+)$""".r
+  // "the {{TERM}} value" — the `{{...}}` (Bikeshed/WebIDL autolink) form of
+  // the TERM annotation above, e.g. "the {{undefined}} value" (bare — the
+  // value *is* the named term, so it parses straight to a SpecTerm) or "the
+  // {{WebAssemblyInstantiatedSource}} value «[ ... ]»" (a payload follows —
+  // TERM only annotates the payload's type, so it's dropped and the payload
+  // parsed on its own, same idiom as TypeAnnotatedPrefix). The prefix form
+  // (with payload) is tried first since it's the more specific match.
+  private val BracedTermValuePrefix =
+    """(?si)^the\s+\{\{[^}]+\}\}\s+value\s+(.+)$""".r
+  private val BracedTermValueOnly =
+    """(?si)^the\s+\{\{([^}]+)\}\}\s+value$""".r
   // Three phrasings of the spec's "the following steps ...:" closure idiom —
   // all parse straight to a FollowingSteps placeholder, later hoisted into a
   // real Closure by ExpandFollowingStepsPass (the substeps themselves stay on
@@ -118,6 +129,14 @@ object ExprParser:
   // name rather than a call (contrast with `LinkFull`/`LinkProse`,
   // which require the string to *start* with `[=`).
   private val DotFieldLink = """(?s)^(.+)\.(\[=[^\]]+\])$""".r
+  // "VALUE, [=link=]" — spec's passive-voice idiom for a unary conversion
+  // applied to the value stated just before it (e.g. "|result|,
+  // [=converted to a JavaScript value=]", "|map|'s [=map/size=], [=converted
+  // to a JavaScript value=]." — both from webidl/index.bs). Mirrors
+  // DotFieldLink's `base.[=name=]` shape but with a comma rather than a dot;
+  // unlike DotFieldLink (a field read), this is a call, so it produces a
+  // Link (resolved to AlgoCall/Case by ResolveLinksPass), not Field.
+  private val TrailingLinkCall = """(?s)^(.+),\s*(\[=[^\]]+\])$""".r
   private val LengthOf =
     """(?si)^the (?:\[=(?:string/length|list/size)=\]|length) of (.+)$""".r
   private val ElementCount = """(?si)^the number of elements in (.+)$""".r
@@ -173,6 +192,13 @@ object ExprParser:
   private val TheException = """(?i)^the exception$""".r
   private val SpecTermPat = """(?i)^(?:undefined|null|empty|absent)$""".r
   private val EmuConst = """(?s)^(<emu-const>[^<]*</emu-const>)$""".r
+  // Unlike `<emu-const>` (an opaque spec-constant name, kept tag-and-all as
+  // the SpecTerm), `<emu-val>` wraps an actual JS literal (`undefined`,
+  // `null`, `true`, `false`) — only the inner text is captured, so
+  // `<emu-val>undefined</emu-val>` becomes `SpecTerm("undefined")` and
+  // unifies with the existing bare-`undefined`/`null` cases in the compiler
+  // instead of falling through to a bogus EEnum.
+  private val EmuVal = """(?s)^<emu-val>([^<]*)</emu-val>$""".r
   // A bare Bikeshed/WebIDL `{{...}}` autolink used as a value — a WebIDL type
   // or enumeration reference (e.g. `{{uint8}}`, `{{unordered}}`,
   // `{{undefined}}`, `{{%Symbol.iterator%}}`). The braces are a link marker,
@@ -219,10 +245,12 @@ object ExprParser:
   def parse(raw: String): Expr =
     val s = raw.trim
     s match
-      case AbruptPrefix(check, rest) => Abrupt(check, parse(rest))
-      case ResultOf(rest)            => parse(rest)
-      case EitherPat(rest)           => parse(rest)
-      case TypeAnnotatedPrefix(rest) => parse(rest)
+      case AbruptPrefix(check, rest)   => Abrupt(check, parse(rest))
+      case ResultOf(rest)              => parse(rest)
+      case EitherPat(rest)             => parse(rest)
+      case TypeAnnotatedPrefix(rest)   => parse(rest)
+      case BracedTermValuePrefix(rest) => parse(rest)
+      case BracedTermValueOnly(term)   => SpecTerm(term)
       case StepsClosurePrefix(paramsRaw) =>
         FollowingSteps(
           PipeVarInline.findAllMatchIn(paramsRaw).map(_.group(1)).toList,
@@ -274,6 +302,8 @@ object ExprParser:
           parse(baseRaw),
           normalizeLink(link).stripPrefix("[=").stripSuffix("=]"),
         )
+      case TrailingLinkCall(valueRaw, link) =>
+        Link(normalizeLink(link), List(parse(valueRaw.trim)))
       case LengthOf(inner)       => Length(parse(inner.trim))
       case ElementCount(inner)   => Length(parse(inner.trim))
       case ElementAt(idx, arr)   => Index(parse(arr.trim), parse(idx.trim))
@@ -324,6 +354,7 @@ object ExprParser:
       case BoldConst(_)          => SpecTerm(s)
       case SpecTermPat()         => SpecTerm(s)
       case EmuConst(v)           => SpecTerm(v)
+      case EmuVal(v)             => SpecTerm(v)
       case BracedTerm(inner)     => SpecTerm(inner)
       case CrossSpecRef(text)    => SpecTerm(text)
       case RealmSettingsObject() => SpecTerm("realm/settings object")

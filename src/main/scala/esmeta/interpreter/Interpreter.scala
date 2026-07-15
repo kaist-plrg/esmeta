@@ -237,11 +237,19 @@ class Interpreter(
   /** build a [[HostFunction]] from a [[Value.Clo]]/[[Value.Cont]] so SpecTec
     * can call back into this SAME interpreter (on the SAME `st`) during Wasm
     * execution — no separate WJI interpreter or heap involved.
+    *
+    * `hostfunc`'s contract (`embed-invoke-host`) is `val* -> val* | exception
+    * | error` — the incoming `vals` is one `val*` *list*, not one value per
+    * formal parameter, so `callee` (compiled from "... which performs the
+    * following steps when called with arguments |arguments|") always takes
+    * exactly one parameter bound to that whole list; passing `vals` as N
+    * splatted positional args (as opposed to one list arg) starves that
+    * parameter whenever `vals`'s length isn't exactly 1.
     */
   private def toHostFunc(v: Value, call: Call): HostFunction =
     val callee = v.asCallable
     (vals: List[ALValue]) =>
-      invokeCallable(callee, vals.map(Wasm.apply), call) match
+      invokeCallable(callee, List(Wasm(ALValue.ListV(vals))), call) match
         case Wasm(ALValue.ListV(rs)) => Right(rs)
         case Wasm(av)                => Right(List(av))
         case addr: Addr =>
@@ -503,7 +511,12 @@ class Interpreter(
       case (Nil, Nil) =>
       case (Param(lhs, ty, optional, _) :: pl, Nil) =>
         if (optional) aux(idx + 1, pl, Nil)
-        else RemainingParams(ps)
+        else
+          // XXX Handle GeneratorStart <-> GeneratorResume arith mismatch
+          // (mirrors the symmetric remaining-args case just below)
+          callee match
+            case _: Cont =>
+            case _       => throw RemainingParams(ps)
       case (Nil, args) =>
         // XXX Handle GeneratorStart <-> GeneratorResume arith mismatch
         callee match

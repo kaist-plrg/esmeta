@@ -50,27 +50,27 @@ object CompletionAlgorithms:
   def normalize(name: String): String =
     name.stripPrefix("[=").stripSuffix("=]").trim.toLowerCase
 
-  /** One call embedded in a single instruction: its target, whether it's
-    * `?`/`!`-marked, and the variable (if any) bound to its result.
+  /** One call embedded in a single instruction: its target, its `?`/`!` marker
+    * if any, and the variable (if any) bound to its result.
     */
   private case class CallInfo(
     callee: String,
-    marked: Boolean,
+    marker: Option[String],
     boundTo: Option[String],
   )
 
   private def callInfo(instr: Instr): Option[CallInfo] =
     def fromExpr(e: Expr, bound: Option[String]): Option[CallInfo] = e match
       case Expr.AlgoCall(link, _) =>
-        Some(CallInfo(normalize(link), false, bound))
-      case Expr.Abrupt(_, Expr.AlgoCall(link, _)) =>
-        Some(CallInfo(normalize(link), true, bound))
+        Some(CallInfo(normalize(link), None, bound))
+      case Expr.Abrupt(marker, Expr.AlgoCall(link, _)) =>
+        Some(CallInfo(normalize(link), Some(marker), bound))
       case _ => None
     instr match
       case Instr.Perform(func, _, PerformOutcome.BindResult(v), _) =>
-        Some(CallInfo(normalize(func), false, Some(stripPipes(v))))
+        Some(CallInfo(normalize(func), None, Some(stripPipes(v))))
       case Instr.Perform(func, _, _, _) =>
-        Some(CallInfo(normalize(func), false, None))
+        Some(CallInfo(normalize(func), None, None))
       case Instr.Let(Expr.Var(v), expr, _) => fromExpr(expr, Some(v))
       case Instr.Set(Expr.Var(v), expr, _) => fromExpr(expr, Some(v))
       case Instr.Return(Some(expr), _)     => fromExpr(expr, None)
@@ -95,8 +95,13 @@ object CompletionAlgorithms:
       // function`, whose own top-level steps never use ?/! at all, only its
       // nested hostfunc closure does — wrongly inherited before this guard).
       case Instr.Let(_, Expr.FollowingSteps(_), _) => false
-      case i =>
-        callInfo(i).exists(_.marked) || (i match
+      case i                                       =>
+        // only `?` is a signal that *this* algorithm can itself abruptly
+        // complete — ExpandAbruptPass's `!` handling never introduces a
+        // Return at all (`Assert` the value is normal, then unconditionally
+        // unwrap `.Value`), so a `!`-marked call creates no new exit path
+        // here, unlike `?`'s early "if abrupt, propagate" Return.
+        callInfo(i).exists(_.marker.contains("?")) || (i match
           case _: Instr.Throw => true
           case c: Instr.IfChain =>
             c.branches.exists((_, b) => hasOwnAbrupt(b)) || hasOwnAbrupt(
@@ -182,8 +187,14 @@ object CompletionAlgorithms:
       case Instr.Let(_, Expr.FollowingSteps(_), _) :: rest =>
         hasUnguardedCallInto(rest, s) // closure content — see hasOwnAbrupt
       case i :: rest =>
+        // both `?` and `!` are already explicit, ExpandAbruptPass-handled
+        // treatments — only a truly unmarked call needs this pass's own
+        // implicit-propagation guard.
         val here = callInfo(i).exists { c =>
-          !c.marked && s.contains(c.callee) && !isAbsorbed(c.boundTo, rest)
+          c.marker.isEmpty && s.contains(c.callee) && !isAbsorbed(
+            c.boundTo,
+            rest,
+          )
         }
         here ||
         (i match

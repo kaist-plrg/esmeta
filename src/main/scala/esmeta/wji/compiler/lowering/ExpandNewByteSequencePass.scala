@@ -1,6 +1,7 @@
 package esmeta.wji.compiler.lowering
 
 import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr}
+import esmeta.error.UnsupportedSpecShape
 
 /** Expands `Expr.NewByteSequence(length)` into an explicit allocate-then-fill
   * sequence, mirroring how [[ExpandForEachPass]] expands `ForEach` into an
@@ -25,8 +26,9 @@ import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr}
   *
   * Only handles `NewByteSequence` in these two positions — the only ones
   * observed in practice ("Let |bytes| be a new byte sequence of length equal to
-  * ..."). `NewByteSequence` nested elsewhere is left alone; the compiler still
-  * reports it via `EYet` so it's never silently mis-compiled.
+  * ..."). If one ever turns up nested elsewhere, `run` throws
+  * `UnsupportedSpecShape` rather than silently leaving it for `Compiler`'s much
+  * later, less specific `EYet` fallback.
   */
 object ExpandNewByteSequencePass extends LoweringPass:
   private var counter = 0
@@ -34,7 +36,16 @@ object ExpandNewByteSequencePass extends LoweringPass:
   private def freshVar(): String = { counter += 1; s"_byteSeq$counter" }
 
   def run(algos: List[Algorithm]): List[Algorithm] =
-    algos.map(a => a.copy(body = transform(a.body)))
+    val result = algos.map(a => a.copy(body = transform(a.body)))
+    result.foreach { a =>
+      if AstQuery.existsExpr(a.body)(_.isInstanceOf[Expr.NewByteSequence]) then
+        throw UnsupportedSpecShape(
+          "ExpandNewByteSequencePass",
+          s"NewByteSequence outside direct Let/Return RHS position, in ${a.name
+            .orElse(a.id)}",
+        )
+    }
+    result
 
   private def transform(instrs: List[Instr]): List[Instr] =
     instrs.flatMap(expandInstr)

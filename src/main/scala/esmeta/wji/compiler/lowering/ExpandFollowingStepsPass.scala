@@ -1,6 +1,7 @@
 package esmeta.wji.compiler.lowering
 
 import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr, WjiParam}
+import esmeta.error.UnsupportedSpecShape
 
 /** Rewrites every `Expr.FollowingSteps(params)` placeholder — "the following
   * steps ...:", wherever it appears as an argument/value (see
@@ -37,7 +38,13 @@ import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr, WjiParam}
   * Generic over instruction shape: a `FollowingSteps` may sit directly as a
   * `Let`'s RHS or among a `Perform`'s `args`; adding a third shape (e.g. a
   * `Set`/`Return` RHS, if a future spec phrasing needs it) is a same-shaped
-  * addition to `transform` below, not a new pass.
+  * addition to `transform` below, not a new pass. `run` checks, once
+  * `transform` is done, that no `FollowingSteps` remains anywhere in the output
+  * — covering both a third shape like that and the narrower gap of one of the
+  * two known shapes with an empty owning `body` (`transform`'s guards require
+  * `body.nonEmpty`, since a hoist needs actual substeps to hoist) — and throws
+  * `UnsupportedSpecShape` instead of silently leaving it for `Compiler`'s much
+  * later, less specific `EYet` fallback.
   *
   * Runs late, right before [[NormalizeAlgoNamePass]] (and before
   * [[ExpandQueueATaskPass]], which depends on the `Closure` this pass leaves
@@ -56,7 +63,16 @@ object ExpandFollowingStepsPass extends LoweringPass:
         counter += 1; s"${base}_closure$counter"
       a.copy(body = transform(a.body, freshName, extra))
     }
-    rewritten ++ extra.toList
+    val result = rewritten ++ extra.toList
+    result.foreach { a =>
+      if AstQuery.existsExpr(a.body)(_.isInstanceOf[Expr.FollowingSteps]) then
+        throw UnsupportedSpecShape(
+          "ExpandFollowingStepsPass",
+          s"FollowingSteps left unhoisted (only a Let RHS / Perform arg with a " +
+          s"non-empty owning body are handled), in ${a.name.orElse(a.id)}",
+        )
+    }
+    result
 
   /** formal parameter names `BuiltinCallOrConstruct`'s hand-patched IR
     * (`manuals/rule.json`'s rule for step-call-builtin-function-result) always

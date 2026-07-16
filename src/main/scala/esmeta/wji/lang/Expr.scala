@@ -236,3 +236,39 @@ object Expr:
     * `esmeta.wji.compiler.Compiler`.
     */
   case class CaseTag(base: Expr) extends Expr
+
+  extension (expr: Expr)
+    /** Every `Expr` directly nested one level inside this one — used for
+      * generic "is a residual X still anywhere in here" invariant checks (e.g.
+      * a lowering pass asserting a construct it only partially expands is
+      * really gone), rather than hand-writing that traversal at each call site.
+      * Mirrors `Instr.mapBody`'s role for instruction-level nesting.
+      */
+    def children: List[Expr] = expr match
+      case Field(base, _)             => List(base)
+      case Index(base, key)           => List(base, key)
+      case Link(_, args)              => args
+      case AlgoCall(_, args)          => args
+      case Case(tag, args)            => args
+      case JSCall(_, args)            => args
+      case Abrupt(_, e)               => List(e)
+      case List_(elems)               => elems
+      case Map_(entries)              => entries.flatMap((k, v) => List(k, v))
+      case Length(e)                  => List(e)
+      case BinOp(l, _, r)             => List(l, r)
+      case Pow(base, exp)             => List(base, exp)
+      case Neg(e)                     => List(e)
+      case AsMath(e)                  => List(e)
+      case Tuple(elems)               => elems
+      case NewByteSequence(length)    => List(length)
+      case Range(low, high)           => List(low, high)
+      case ClosureCall(closure, args) => closure :: args
+      case TupleProj(base, _)         => List(base)
+      case CaseTag(base)              => List(base)
+      case _                          => Nil
+
+    /** Whether `pred` holds for this `Expr` or any `Expr` nested inside it, at
+      * any depth.
+      */
+    def containsWhere(pred: Expr => Boolean): Boolean =
+      pred(expr) || expr.children.exists(_.containsWhere(pred))

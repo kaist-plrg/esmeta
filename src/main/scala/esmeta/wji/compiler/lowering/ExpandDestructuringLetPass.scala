@@ -1,6 +1,7 @@
 package esmeta.wji.compiler.lowering
 
 import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr}
+import esmeta.error.UnsupportedSpecShape
 
 /** Expands `Let(Tuple([x, y, ...]), expr, body)` and `Let(Case(tag, [x, y,
   * ...]), expr, body)` into individual bindings.
@@ -36,7 +37,9 @@ import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr}
   * only surfaces as a confusing failure several instructions later, rather than
   * right here where the actual mismatch is. Only fires when every arg is a bare
   * `Expr.Var`, mirroring `ExpandIsOfFormPass`'s same guard on the condition
-  * side. `Expr.runtimeCaseTag` (shared with `Compiler`'s own `ECase`
+  * side — a `Case`-lhs `Let` with a non-`Var` arg throws `UnsupportedSpecShape`
+  * instead of silently reaching `Compiler`'s much later, less specific `EYet`
+  * fallback. `Expr.runtimeCaseTag` (shared with `Compiler`'s own `ECase`
   * construction) translates `tag` the same way either way it's spelled —
   * already a bare runtime tag (`CompTypeArrow`'s literal `"->"`) or spec-link
   * text (`ResolveLinksPass`'s `[=external-type/func=]` shapes, e.g.
@@ -90,5 +93,10 @@ object ExpandDestructuringLetPass extends LoweringPass:
     case Instr.Let(Expr.Case(tag, args), expr, body)
         if args.forall(_.isInstanceOf[Expr.Var]) =>
       destructure(args, expr, body, tagCheck = Some(tag))
+    case Instr.Let(lhs @ Expr.Case(_, _), _, _) =>
+      throw UnsupportedSpecShape(
+        "ExpandDestructuringLetPass",
+        s"Case-lhs Let with a non-Var arg: $lhs",
+      )
     case _ =>
       List(instr.mapBody(transform))

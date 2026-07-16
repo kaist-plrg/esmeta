@@ -13,3 +13,16 @@ sealed abstract class WjiError(msg: String) extends ESMetaError(msg, "WjiError")
   */
 case class UnreachableAfterLowering(msg: String)
   extends WjiError(s"unreachable after lowering: $msg")
+
+/** An AST shape that a `esmeta.wji.compiler.lowering` pass only partially
+  * covers by design — e.g. `NewByteSequence` only in direct `Let`/`Return` RHS
+  * position, a destructuring `Let` only when every bound name is a bare `Var` —
+  * because every spec occurrence seen so far fits that narrower shape. Thrown
+  * by the pass itself the moment it finds an occurrence outside that documented
+  * shape, rather than silently leaving it for `Compiler`'s own, much later (and
+  * less specific) `EYet` fallback: failing here names the exact pass and
+  * construct that needs to be generalized, at the point in the pipeline where
+  * that's actually knowable.
+  */
+case class UnsupportedSpecShape(pass: String, msg: String)
+  extends WjiError(s"[$pass] $msg")

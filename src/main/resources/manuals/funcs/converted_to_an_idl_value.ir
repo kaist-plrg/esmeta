@@ -1,0 +1,6 @@
+def converted_to_an_idl_value(
+  argument: Unknown,
+  T: Unknown
+): ESValue = {
+  return argument
+}

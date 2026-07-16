@@ -2474,8 +2474,15 @@ def create_a_host_function_closure1(
   return ~unused~
 }
 def react_closure1(
-  V: Unknown,
+  thisArgument: Unknown,
+  argumentsList: Unknown,
+  newTarget: Unknown,
 ): Unknown = {
+  if (< 0 (sizeof argumentsList)) {
+    let V = argumentsList[0]
+  } else {
+    let V = undefined
+  }
   call value = clo<"converted_to_an_idl_value">(V, T)
   if (&& (! (= onFullfilledStepsArg undefined)) (! (= T undefined))) {
     call result = onFullfilledStepsArg(value)
@@ -2486,8 +2493,15 @@ def react_closure1(
   return _ret26
 }
 def react_closure2(
-  R: Unknown,
+  thisArgument: Unknown,
+  argumentsList: Unknown,
+  newTarget: Unknown,
 ): Unknown = {
+  if (< 0 (sizeof argumentsList)) {
+    let R = argumentsList[0]
+  } else {
+    let R = undefined
+  }
   call reason = clo<"converted_to_an_idl_value">(R, ~any~)
   if (! (= onRejectedStepsArg undefined)) {
     call result = onRejectedStepsArg(reason)

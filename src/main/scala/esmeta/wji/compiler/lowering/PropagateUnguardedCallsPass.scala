@@ -16,28 +16,35 @@ import esmeta.wji.lang.Instr.PerformOutcome
   * becomes:
   * {{{
   *   Perform(f, args, BindResult(x))
-  *   If(x has field "Type", [
-  *     If(x is AbruptCompletion, [Return(Some(x))])
-  *     Else [Set(x, x.Value)]
-  *   ])
+  *   If(x is AbruptCompletion, [Return(Some(x))])
+  *   Else [Set(x, x.Value)]
   *   <rest>
   * }}}
   *
-  * Deliberately *doesn't* try to determine statically whether `f` actually
-  * returns a completion — the `HasField` check is a runtime test, exactly like
-  * `?`'s own, so applying it to a call that turns out not to be
-  * completion-shaped is harmless (the `If` just never taking its branch). What
-  * *is* significant is *whether to insert the guard at all*: only
+  * A 2-way check, not `?`'s own defensive 3-way one (which also asks "is this
+  * even a completion at all?" before trusting `.Type") — safe *only* because
+  * `f` is always a `completionAlgos` member here, and every member's every exit
+  * path is provably completion-shaped by construction:
+  * `WrapCompletionReturnsPass` wraps every `Instr.Return`/`Instr.Throw` it
+  * finds, and `InsertFallthroughReturnPass` (run before it) guarantees one
+  * exists even for an algorithm that would otherwise just fall off the end.
+  * `ExpandAbruptPass`'s own guard for an explicit `?`/`!` stays 3-way, since
+  * `?`/`!` can just as well target a mainline ECMA-262 AO nothing here tracks.
+  *
+  * *Whether to insert the guard at all* is still significant: only
   * `completionAlgos` members are targeted, and only when
   * `CompletionAlgorithms.isAbsorbed` says the caller doesn't already handle it
   * — otherwise every single `Perform` in the file would grow a dead guard.
   *
-  * Must run after [[MarkCompletionAlgorithmsPass]] (needs `returnsCompletion`
-  * already stamped on every `Algorithm`), [[ExtractInlineAlgoCallPass]] (so
-  * every call is already a `Perform`), and [[ExpandThrowsPass]] (so a
-  * `Cond.Throws`-guarded call is already transformed away and won't be mistaken
-  * for unguarded — though `CompletionAlgorithms.isAbsorbed`'s own `Cond.Throws`
-  * case makes this pass's outcome the same either way, this ordering is what
+  * Must run after [[InsertFallthroughReturnPass]] and
+  * [[WrapCompletionReturnsPass]] (both needed for the "every exit path is
+  * already completion-shaped" guarantee above),
+  * [[MarkCompletionAlgorithmsPass]] (needs `returnsCompletion` already stamped
+  * on every `Algorithm`), [[ExtractInlineAlgoCallPass]] (so every call is
+  * already a `Perform`), and [[ExpandThrowsPass]] (so a `Cond.Throws`-guarded
+  * call is already transformed away and won't be mistaken for unguarded —
+  * though `CompletionAlgorithms.isAbsorbed`'s own `Cond.Throws` case makes this
+  * pass's outcome the same either way, this ordering is what
   * `CompletionAlgorithms.compute`'s *own* analysis assumed when it observed the
   * pre-`GroupIfChainPass` shape of the same call sites).
   */
@@ -90,20 +97,10 @@ object PropagateUnguardedCallsPass extends LoweringPass:
       Instr.IfChain(
         branches = List(
           (
-            Cond.HasField(Expr.Field(xVar, "Type")),
-            List(
-              Instr.IfChain(
-                branches = List(
-                  (
-                    Cond.IsType(xVar, "AbruptCompletion"),
-                    List(Instr.Return(Some(xVar))),
-                  ),
-                ),
-                fallback = List(Instr.Set(xVar, Expr.Field(xVar, "Value"))),
-              ),
-            ),
+            Cond.IsType(xVar, "AbruptCompletion"),
+            List(Instr.Return(Some(xVar))),
           ),
         ),
-        fallback = Nil,
+        fallback = List(Instr.Set(xVar, Expr.Field(xVar, "Value"))),
       ),
     )

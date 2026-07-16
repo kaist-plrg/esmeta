@@ -106,7 +106,15 @@ case class State(
   def exists(base: Value, field: Value): Boolean = base match
     case addr: Addr    => heap.exists(addr, field)
     case AstValue(ast) => ast.exists(field)
-    case _             => raise(s"illegal field existence check: $base[$field]")
+    // a Wasm-embedding value (e.g. a moduleinst/funcaddr) is never an
+    // ECMAScript record — mirrors Obj.exists's own graceful "unrecognized
+    // combination" default (`case _ => false`) rather than raising, so a
+    // completion-record field probe (`Cond.HasField`, e.g.
+    // WrapCompletionReturnsPass/PropagateUnguardedCallsPass's "is this
+    // already/still a completion" check) correctly answers "no" for a raw
+    // Wasm value instead of crashing.
+    case Wasm(_) => false
+    case _       => raise(s"illegal field existence check: $base[$field]")
 
   /** expand a field of a record object */
   def expand(base: Value, field: Value): Unit = heap.expand(base.asAddr, field)

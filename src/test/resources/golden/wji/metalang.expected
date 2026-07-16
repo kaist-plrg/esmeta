@@ -545,9 +545,9 @@
           Throw(a {{RangeError}} exception)
         Let(|delta|, |lengthDelta| / 65536)
         Perform([=Grow the memory buffer=](|memaddr|, |delta|))
-    Return(<emu-const>handled</emu-const>)
+    Return(handled)
   Else
-    Return(<emu-const>unhandled</emu-const>)
+    Return(unhandled)
 
 # buffer
   kind: getter for Memory
@@ -887,9 +887,9 @@
     Let(|result|, [=run a host function=](|func|, |functype|, |arguments|))
     Perform([=Clean up after running a callback=](|stored settings|))
     Perform([=Clean up after running script=](|relevant settings|))
-    Assert(|result|.[[Type]] is <emu-const>throw</emu-const> or <emu-const>normal</emu-const>)
+    Assert(|result|.[[Type]] is throw or normal)
     Let(|store|, [=surrounding agent=].[[associated store]])
-    If(|result|.[[Type]] is <emu-const>throw</emu-const>)
+    If(|result|.[[Type]] is throw)
       Let(|v|, |result|.[[Value]])
       If(|v| [=implements=] {{Exception}})
         Let(|address|, |v|.[[Address]])

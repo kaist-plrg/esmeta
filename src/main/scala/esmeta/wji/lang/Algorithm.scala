@@ -63,6 +63,13 @@ enum AlgorithmKind:
   *   [[AlgorithmKind.Plain]] for algorithms synthesized outside
   *   [[AlgorithmExtractor]] (e.g. `ExpandQueueATaskPass`'s job closures), which
   *   are never a WebIDL interface member.
+  * @param returnsCompletion
+  *   whether this algorithm must return an ECMA-262 Completion Record —
+  *   computed once, early in the lowering pipeline, by
+  *   `esmeta.wji.compiler.lowering.MarkCompletionAlgorithmsPass` (see
+  *   `CompletionAlgorithms`'s doc for how); every later pass that cares just
+  *   reads this field off whichever `Algorithm` it's looking at, rather than
+  *   needing the computed set threaded through as an out-of-band parameter.
   */
 case class Algorithm(
   id: Option[String],
@@ -71,4 +78,5 @@ case class Algorithm(
   head: String,
   body: List[Instr],
   kind: AlgorithmKind = AlgorithmKind.Plain,
+  returnsCompletion: Boolean = false,
 )

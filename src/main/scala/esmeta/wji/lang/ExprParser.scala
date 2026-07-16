@@ -217,7 +217,9 @@ object ExprParser:
   // to resolve to a variable.
   private val TheException = """(?i)^the exception$""".r
   private val SpecTermPat = """(?i)^(?:undefined|null|empty|absent)$""".r
-  private val EmuConst = """(?s)^(<emu-const>[^<]*</emu-const>)$""".r
+  // captures just the inner text (e.g. "throw"/"normal") — the enum value a
+  // real completion record's [[Type]] actually holds, not the markup itself.
+  private val EmuConst = """(?s)^<emu-const>([^<]*)</emu-const>$""".r
   // Unlike `<emu-const>` (an opaque spec-constant name, kept tag-and-all as
   // the SpecTerm), `<emu-val>` wraps an actual JS literal (`undefined`,
   // `null`, `true`, `false`) — only the inner text is captured, so

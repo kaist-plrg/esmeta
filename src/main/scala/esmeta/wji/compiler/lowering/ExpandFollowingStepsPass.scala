@@ -68,23 +68,23 @@ object ExpandFollowingStepsPass extends LoweringPass:
   /** whether the closure being hoisted for `varName` is passed as
     * `CreateBuiltinFunction`'s `behaviour` argument among its hoisting site's
     * sibling steps (`rest`) — the shape every WJI spec text with this pattern
-    * uses so far, e.g. WebIDL's `react`: `Let onFulfilledSteps be the
-    * following steps given argument V: ...` immediately followed by `Let
-    * onFulfilled be CreateBuiltinFunction(onFulfilledSteps, 1, "", « »).` in
-    * the very same algorithm.
+    * uses so far, e.g. WebIDL's `react`: `Let onFulfilledSteps be the following
+    * steps given argument V: ...` immediately followed by `Let onFulfilled be
+    * CreateBuiltinFunction(onFulfilledSteps, 1, "", « »).` in the very same
+    * algorithm.
     *
     * This matters because `CreateBuiltinFunction` (mainline's real algorithm,
     * hand-patched into `manuals/rule.json`) stores the closure verbatim as
-    * `func.__CODE__`, but `BuiltinCallOrConstruct` (also mainline, same
-    * manual file) always invokes it as `func.__CODE__(thisArgument,
-    * argumentsList, newTarget)` — a fixed 3-argument calling convention.  A
-    * closure hoisted with its own spec-declared parameters (e.g. just `V`)
-    * would blow up on that call with a `RemainingArgs` interpreter error.
-    * Mirrors mainline `esmeta.compiler.Compiler`'s `fixClosurePrefixAOs` /
-    * `getBuiltinPrefix`, which solves the exact same gap for ECMA-262's own
-    * Abstract Closures (e.g. `NewPromiseCapability`'s resolve/reject
-    * functions) by giving them the builtin signature plus a prefix that
-    * unpacks `argumentsList` positionally into the real parameter names.
+    * `func.__CODE__`, but `BuiltinCallOrConstruct` (also mainline, same manual
+    * file) always invokes it as `func.__CODE__(thisArgument, argumentsList,
+    * newTarget)` — a fixed 3-argument calling convention. A closure hoisted
+    * with its own spec-declared parameters (e.g. just `V`) would blow up on
+    * that call with a `RemainingArgs` interpreter error. Mirrors mainline
+    * `esmeta.compiler.Compiler`'s `fixClosurePrefixAOs` / `getBuiltinPrefix`,
+    * which solves the exact same gap for ECMA-262's own Abstract Closures (e.g.
+    * `NewPromiseCapability`'s resolve/reject functions) by giving them the
+    * builtin signature plus a prefix that unpacks `argumentsList` positionally
+    * into the real parameter names.
     */
   private def isBuiltinBehaviour(varName: String, rest: List[Instr]): Boolean =
     rest.exists {
@@ -101,22 +101,23 @@ object ExpandFollowingStepsPass extends LoweringPass:
     * parameter, so there's no need for the other cases that function has).
     */
   private def unpackArgumentsList(params: List[String]): List[Instr] =
-    params.zipWithIndex.map { case (p, i) =>
-      Instr.IfChain(
-        List(
-          Cond.Compare(
-            Expr.Num(i.toString),
-            Cond.CompareOp.Lt,
-            Expr.Length(Expr.Var("argumentsList")),
-          ) -> List(
-            Instr.Let(
-              Expr.Var(p),
-              Expr.Index(Expr.Var("argumentsList"), Expr.Num(i.toString)),
+    params.zipWithIndex.map {
+      case (p, i) =>
+        Instr.IfChain(
+          List(
+            Cond.Compare(
+              Expr.Num(i.toString),
+              Cond.CompareOp.Lt,
+              Expr.Length(Expr.Var("argumentsList")),
+            ) -> List(
+              Instr.Let(
+                Expr.Var(p),
+                Expr.Index(Expr.Var("argumentsList"), Expr.Num(i.toString)),
+              ),
             ),
           ),
-        ),
-        List(Instr.Let(Expr.Var(p), Expr.SpecTerm("undefined"))),
-      )
+          List(Instr.Let(Expr.Var(p), Expr.SpecTerm("undefined"))),
+        )
     }
 
   private def hoist(
@@ -156,7 +157,7 @@ object ExpandFollowingStepsPass extends LoweringPass:
         if body.nonEmpty =>
       val asBuiltinBehaviour = lhs match
         case Expr.Var(name) => isBuiltinBehaviour(name, rest)
-        case _               => false
+        case _              => false
       Instr.Let(
         lhs,
         hoist(params, body, freshName, extra, asBuiltinBehaviour),

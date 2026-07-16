@@ -16,10 +16,22 @@ import esmeta.wji.lang.Instr.PerformOutcome
   *   Return(Var("_retN"))
   * }}}
   *
-  * This removes the `ReturnResult` outcome from the AST so the compiler only
-  * needs to handle `Discard` and `BindResult`.
+  * This removes the `ReturnResult` outcome from `Instr.Perform` so the compiler
+  * only needs to handle `Discard`/`BindResult` there (unlike
+  * `Instr.PerformClosure`, whose `ReturnResult` case `Compiler` compiles
+  * directly — see its doc — so this pass deliberately doesn't touch it).
   */
 object ExpandPerformReturnResultPass extends LoweringPass:
+
+  /** Requires:
+    *   - [[ExtractInlineAlgoCallPass]]: needs a `Return(Some(AlgoCall(...)))`
+    *     already converted to `Instr.Perform(..., ReturnResult, ...)` — one
+    *     that arrives late (after this pass has already run) would never get
+    *     simplified, and would reach `Compiler`'s `impossible()` guard for
+    *     `Instr.Perform`'s `ReturnResult` case instead.
+    */
+  override def requires: Set[LoweringPass] = Set(ExtractInlineAlgoCallPass)
+
   private var counter = 0
   private def freshRet(): String = { counter += 1; s"_ret$counter" }
 

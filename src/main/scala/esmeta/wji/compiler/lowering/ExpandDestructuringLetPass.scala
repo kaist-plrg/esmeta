@@ -55,8 +55,22 @@ import esmeta.error.UnsupportedSpecShape
   * plain variable reference can't have a side effect worth deduplicating (the
   * temp only exists so an effectful RHS, e.g. an embedding call like
   * `tag_alloc`, is evaluated once and shared, not once per projected field).
+  *
+  * Open question, not yet confirmed either way: the `Case`-lhs branch below may
+  * also need [[ResolveLinksPass]] if a Link-derived `Expr.Case` (as opposed to
+  * `ExprParser.CompTypeArrow`'s directly-parsed `"->"` tag) ever shows up as a
+  * destructuring target — not added to `requires` until that's actually
+  * confirmed.
   */
 object ExpandDestructuringLetPass extends LoweringPass:
+
+  /** Requires:
+    *   - [[ExpandForEachPass]]: destructures the `Let(Tuple(elems), ...)` that
+    *     pass produces for a `Tuple`-shaped `ForEach` element — this pass is
+    *     the one that unpacks it into individual bindings.
+    */
+  override def requires: Set[LoweringPass] = Set(ExpandForEachPass)
+
   private var counter = 0
   private def freshTuple(): String = { counter += 1; s"_tuple$counter" }
 

@@ -22,9 +22,18 @@ import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr}
   *
   * This isn't a desugaring/lowering (it changes no control-flow/expression
   * shape) but lives alongside the other passes since it needs to run over the
-  * same `List[Algorithm]` before/after which the rest of the pipeline runs. It
-  * runs right after [[ResolveLinksPass]], before any pass that would otherwise
-  * convert `AlgoCall`s into `Perform`s.
+  * same `List[Algorithm]` before/after which the rest of the pipeline runs.
+  *
+  * Deliberately positioned last, not because it `requires` any one specific
+  * pass, but because it needs to see the *final* set of `Algorithm.name`/
+  * `Expr.Closure`/`Expr.AlgoCall`/`Instr.Perform.func` occurrences — several
+  * earlier passes (`ExpandFollowingStepsPass`, `ExpandQueueATaskPass`,
+  * `WrapCompletionReturnsPass`, ...) each introduce more of these as they run.
+  * Normalization is idempotent and order-independent given the final tree, so
+  * running last (rather than declaring a `requires` on every producer) is both
+  * correct and simpler — no `LoweringPass` before it needs anything back *from*
+  * it, so nothing stops it running anywhere after all of them; last just
+  * guarantees it's really seen everything.
   */
 object NormalizeAlgoNamePass extends LoweringPass:
   def run(algos: List[Algorithm]): List[Algorithm] =

@@ -8,6 +8,16 @@ import esmeta.wji.lang.{Algorithm, Instr}
   * into a proper tree so the compiler no longer needs `collectElseChain`.
   */
 object GroupIfChainPass extends LoweringPass:
+
+  /** Requires:
+    *   - [[DropNotesPass]]: `collectChain` only recognizes an `ElseIf`/`Else`
+    *     as a chain continuation when it's the literal next element in the
+    *     instruction list — a `Note` step sitting between an `If` and its
+    *     following `Else if` would otherwise silently split one real
+    *     if/elseif/else chain into disconnected pieces.
+    */
+  override def requires: Set[LoweringPass] = Set(DropNotesPass)
+
   def run(algos: List[Algorithm]): List[Algorithm] =
     algos.map(a => a.copy(body = transform(a.body)))
 

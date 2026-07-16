@@ -41,13 +41,21 @@ import esmeta.wji.lang.Instr.PerformOutcome
   * `Cond.Throws(Some("TypeError"))`) is ignored for now — every `Throws` is
   * treated the same regardless of the specific type named.
   *
-  * Must run after [[GroupIfChainPass]] (so the check is already an `IfChain`)
-  * and after [[ExtractInlineAlgoCallPass]] (so the preceding call is already a
-  * `Perform`). Only fires when that `Perform` has no `body` of its own — true
-  * for every occurrence seen in the spec so far; otherwise the pattern is left
-  * alone for a future pass.
+  * Only fires when that `Perform` has no `body` of its own — true for every
+  * occurrence seen in the spec so far; otherwise the pattern is left alone for
+  * a future pass.
   */
 object ExpandThrowsPass extends LoweringPass:
+
+  /** Requires:
+    *   - [[GroupIfChainPass]]: needs the check already grouped into an
+    *     `Instr.IfChain`, not a raw `If` sibling.
+    *   - [[ExtractInlineAlgoCallPass]]: needs the preceding call already
+    *     converted to `Instr.Perform`.
+    */
+  override def requires: Set[LoweringPass] =
+    Set(GroupIfChainPass, ExtractInlineAlgoCallPass)
+
   private var counter = 0
   private def freshComp(): String = { counter += 1; s"_throwComp$counter" }
 

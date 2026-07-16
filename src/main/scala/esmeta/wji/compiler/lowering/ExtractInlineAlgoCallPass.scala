@@ -20,13 +20,29 @@ import esmeta.wji.lang.Instr.PerformOutcome
   * Zero-argument `AlgoCall`s in `Return` position are left alone (the compiler
   * emits `ERef(Global(name))` for those, which is already correct); `JSCall`
   * has no such zero-arg ambiguity and is always extracted.
-  *
-  * Must run after [[ExpandAbruptPass]] and [[ExpandDestructuringLetPass]] (so
-  * `Let(_tupleN, AlgoCall(...))` nodes are visible), and before
-  * [[ExpandPerformReturnResultPass]] (which expands the `ReturnResult`
-  * outcome).
   */
 object ExtractInlineAlgoCallPass extends LoweringPass:
+
+  /** Requires:
+    *   - [[ResolveLinksPass]]: matches `Expr.AlgoCall`/`Expr.JSCall`
+    *     specifically — a raw `Expr.Link` is invisible to it.
+    *   - [[ExpandAbruptPass]]: needs `Let(_tupleN, AlgoCall(...))` nodes
+    *     already visible (no leftover `?`/`!` wrapper hiding the call).
+    *   - [[ExpandDestructuringLetPass]]: same — needs destructuring already
+    *     expanded so the `AlgoCall` sits directly in `Let`/`Return` RHS.
+    *   - [[NormalizeAlgoCallPass]]: needs every nested call already hoisted out
+    *     of a top-level `AlgoCall`'s own `args` first.
+    *   - [[WrapCompletionReturnsPass]]: needs the `NormalCompletion`/
+    *     `ThrowCompletion` `AlgoCall`s it produces already in place to convert
+    *     into `Perform`s.
+    */
+  override def requires: Set[LoweringPass] = Set(
+    ResolveLinksPass,
+    ExpandAbruptPass,
+    ExpandDestructuringLetPass,
+    NormalizeAlgoCallPass,
+    WrapCompletionReturnsPass,
+  )
 
   def run(algos: List[Algorithm]): List[Algorithm] =
     algos.map(a => a.copy(body = transform(a.body)))

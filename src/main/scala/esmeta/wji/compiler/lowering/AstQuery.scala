@@ -13,8 +13,8 @@ import esmeta.wji.lang.{Cond, Expr, Instr}
 object AstQuery:
 
   /** Every direct (non-nested-body) `Expr` field of `instr` — the Exprs a
-    * pass's own per-instruction pattern match would see, before recursing
-    * into `instr.body`.
+    * pass's own per-instruction pattern match would see, before recursing into
+    * `instr.body`.
     */
   private def ownExprs(instr: Instr): List[Expr] = instr match
     case i: Instr.Let            => List(i.lhs, i.expr)
@@ -65,11 +65,10 @@ object AstQuery:
   private def allExprsOfCond(cond: Cond): List[Expr] =
     condExprs(cond) ++ condChildren(cond).flatMap(allExprsOfCond)
 
-  /** Whether `pred` holds for any `Expr` reachable from `instrs`, at any
-    * depth: every instruction's own direct fields (including inside its
-    * `Cond`s), plus every nested instruction body (`IfChain`'s branches/
-    * fallback included, since its `body` is always `Nil` — see
-    * [[esmeta.wji.lang.Instr.IfChain]]).
+  /** Whether `pred` holds for any `Expr` reachable from `instrs`, at any depth:
+    * every instruction's own direct fields (including inside its `Cond`s), plus
+    * every nested instruction body (`IfChain`'s branches/ fallback included,
+    * since its `body` is always `Nil` — see [[esmeta.wji.lang.Instr.IfChain]]).
     */
   def existsExpr(instrs: List[Instr])(pred: Expr => Boolean): Boolean =
     instrs.exists { instr =>

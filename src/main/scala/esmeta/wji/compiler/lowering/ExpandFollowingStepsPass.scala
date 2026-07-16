@@ -46,14 +46,22 @@ import esmeta.error.UnsupportedSpecShape
   * `UnsupportedSpecShape` instead of silently leaving it for `Compiler`'s much
   * later, less specific `EYet` fallback.
   *
-  * Runs late, right before [[NormalizeAlgoNamePass]] (and before
-  * [[ExpandQueueATaskPass]], which depends on the `Closure` this pass leaves
-  * behind in a "queue a task" `Perform`'s `args`): `body` rides through every
-  * earlier pass as ordinary nested `Let.body`/`Perform.body` content (every
-  * pass already recurses into it via `Instr.mapBody`), so by the time this pass
-  * sees it, it's already fully lowered.
+  * Runs late: `body` rides through every earlier pass as ordinary nested
+  * `Let.body`/`Perform.body` content (every pass already recurses into it via
+  * `Instr.mapBody`), so by the time this pass sees it, it's already fully
+  * lowered.
   */
 object ExpandFollowingStepsPass extends LoweringPass:
+
+  /** Requires:
+    *   - [[ExtractInlineAlgoCallPass]]: `isBuiltinBehaviour` matches
+    *     `Instr.Perform("CreateBuiltinFunction", args, _, _)` — a shape "Let X
+    *     be CreateBuiltinFunction(...)." only takes once that pass converts it
+    *     from an `AlgoCall`. Without it the match silently misses, and the
+    *     hoisted closure gets the wrong (bare, un-prefixed) parameter list.
+    */
+  override def requires: Set[LoweringPass] = Set(ExtractInlineAlgoCallPass)
+
   def run(algos: List[Algorithm]): List[Algorithm] =
     val extra = collection.mutable.ListBuffer.empty[Algorithm]
     val rewritten = algos.map { a =>

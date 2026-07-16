@@ -26,3 +26,11 @@ case class UnreachableAfterLowering(msg: String)
   */
 case class UnsupportedSpecShape(pass: String, msg: String)
   extends WjiError(s"[$pass] $msg")
+
+/** `esmeta.wji.compiler.lowering.Lowering.pipeline`'s actual order doesn't
+  * satisfy some pass's declared `LoweringPass.requires`/`mustPrecede`. Thrown
+  * by `Lowering.run` before any algorithm is touched, so a pipeline reordering
+  * that breaks a real dependency fails immediately and by name, instead of
+  * silently mis-lowering (or not lowering at all) whatever depended on it.
+  */
+case class PipelineOrderError(msg: String) extends WjiError(msg)

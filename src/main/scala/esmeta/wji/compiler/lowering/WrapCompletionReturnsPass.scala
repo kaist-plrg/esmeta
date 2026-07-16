@@ -49,16 +49,27 @@ import esmeta.wji.lang.Instr.PerformOutcome
   * {{Iface}} exception"` shape (every occurrence reached so far); any other
   * phrasing is left as `Instr.Unknown` rather than guessed at.
   *
-  * Must run after [[ExpandAbruptPass]]/[[ExpandDestructuringLetPass]] (so a
-  * `Throw`/`Return`'s own `body`/`expr` are already in their final shape) and
-  * before [[ExtractInlineAlgoCallPass]] (which hoists the `AlgoCall`s this pass
-  * produces into real `Perform`s).
-  *
   * Targets every `Algorithm` with `returnsCompletion = true` — see
-  * [[MarkCompletionAlgorithmsPass]], which must run earlier in the pipeline to
-  * compute and stamp that field on.
+  * [[MarkCompletionAlgorithmsPass]].
   */
 object WrapCompletionReturnsPass extends LoweringPass:
+
+  /** Requires:
+    *   - [[ExpandAbruptPass]]: needs a `Throw`/`Return`'s own `body`/`expr`
+    *     already in their final shape (no leftover `?`/`!` markers to expand).
+    *   - [[ExpandDestructuringLetPass]]: same — needs destructuring `Let`s
+    *     already expanded before it inspects `body`/`expr`.
+    *   - [[InsertFallthroughReturnPass]]: needs a real `Instr.Return` to wrap
+    *     even for an algorithm that would otherwise just fall off the end.
+    *   - [[MarkCompletionAlgorithmsPass]]: needs `returnsCompletion` already
+    *     stamped onto every `Algorithm` to know which ones to target.
+    */
+  override def requires: Set[LoweringPass] = Set(
+    ExpandAbruptPass,
+    ExpandDestructuringLetPass,
+    InsertFallthroughReturnPass,
+    MarkCompletionAlgorithmsPass,
+  )
 
   private var counter = 0
   private def freshErr(): String = { counter += 1; s"_err$counter" }

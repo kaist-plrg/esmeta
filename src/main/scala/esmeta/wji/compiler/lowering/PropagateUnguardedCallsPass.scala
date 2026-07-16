@@ -36,19 +36,38 @@ import esmeta.wji.lang.Instr.PerformOutcome
   * `CompletionAlgorithms.isAbsorbed` says the caller doesn't already handle it
   * — otherwise every single `Perform` in the file would grow a dead guard.
   *
-  * Must run after [[InsertFallthroughReturnPass]] and
-  * [[WrapCompletionReturnsPass]] (both needed for the "every exit path is
-  * already completion-shaped" guarantee above),
-  * [[MarkCompletionAlgorithmsPass]] (needs `returnsCompletion` already stamped
-  * on every `Algorithm`), [[ExtractInlineAlgoCallPass]] (so every call is
-  * already a `Perform`), and [[ExpandThrowsPass]] (so a `Cond.Throws`-guarded
-  * call is already transformed away and won't be mistaken for unguarded —
-  * though `CompletionAlgorithms.isAbsorbed`'s own `Cond.Throws` case makes this
-  * pass's outcome the same either way, this ordering is what
-  * `CompletionAlgorithms.compute`'s *own* analysis assumed when it observed the
-  * pre-`GroupIfChainPass` shape of the same call sites).
+  * KNOWN GAP: `CompletionAlgorithms.isAbsorbed`'s own `Cond.Throws` case (`case
+  * Instr.If(Cond.Throws(_), _) :: _ => true`) only ever matches a raw
+  * `Instr.If` — a shape [[GroupIfChainPass]] eliminates well before this pass
+  * runs, so from here that branch is structurally dead. Harmless only because
+  * [[ExpandThrowsPass]] (required below) already absorbs every real
+  * `Cond.Throws` occurrence first; if one ever slipped past that pass, this one
+  * couldn't recognize it as already-handled either, and would insert a
+  * redundant (if likely harmless) propagation guard next to it.
   */
 object PropagateUnguardedCallsPass extends LoweringPass:
+
+  /** Requires:
+    *   - [[InsertFallthroughReturnPass]]: needed, with
+    *     `WrapCompletionReturnsPass`, for the "every exit path of a
+    *     `returnsCompletion` algorithm is already completion-shaped" guarantee
+    *     this pass's 2-way (rather than `?`'s defensive 3-way) check relies on.
+    *   - [[WrapCompletionReturnsPass]]: see above.
+    *   - [[MarkCompletionAlgorithmsPass]]: needs `returnsCompletion` already
+    *     stamped on every `Algorithm`.
+    *   - [[ExtractInlineAlgoCallPass]]: needs every call already converted to
+    *     `Instr.Perform`.
+    *   - [[ExpandThrowsPass]]: needs a `Cond.Throws`-guarded call already
+    *     transformed away, so it isn't mistaken for unguarded — see the KNOWN
+    *     GAP above for why this is load-bearing in a second way too.
+    */
+  override def requires: Set[LoweringPass] = Set(
+    InsertFallthroughReturnPass,
+    WrapCompletionReturnsPass,
+    MarkCompletionAlgorithmsPass,
+    ExtractInlineAlgoCallPass,
+    ExpandThrowsPass,
+  )
 
   def run(algos: List[Algorithm]): List[Algorithm] =
     val completionAlgos: Set[String] = algos

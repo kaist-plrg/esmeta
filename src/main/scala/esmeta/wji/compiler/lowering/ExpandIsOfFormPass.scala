@@ -33,12 +33,17 @@ import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr}
   * |hostfunc|}` record-shaped form (index.bs:1249) — is left as `Cond.IsOfForm`
   * for `Compiler` to report as `EYet("is of form")`, until a concrete need for
   * it is actually reached.
-  *
-  * Must run after `ResolveLinksPass` (so the form is already a resolved
-  * `Expr.Case`, not a raw `Expr.Link`) and `GroupIfChainPass` (so the condition
-  * is already inside an `IfChain` branch).
   */
 object ExpandIsOfFormPass extends LoweringPass:
+
+  /** Requires:
+    *   - [[ResolveLinksPass]]: needs the form already resolved to `Expr.Case`,
+    *     not a raw `Expr.Link`.
+    *   - [[GroupIfChainPass]]: needs the condition already inside an
+    *     `Instr.IfChain` branch.
+    */
+  override def requires: Set[LoweringPass] =
+    Set(ResolveLinksPass, GroupIfChainPass)
 
   /** @param runtimeTag
     *   the `ALValue.CaseV` tag SpecTec's `construct.ml` actually produces for

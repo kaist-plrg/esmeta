@@ -23,6 +23,16 @@ import esmeta.wji.lang.{Algorithm, Instr}
   */
 object ElideHtmlHostHooksPass extends LoweringPass:
 
+  /** Must precede:
+    *   - [[NormalizeAlgoNamePass]]: `elided` matches `Instr.Perform.func`
+    *     against space-separated phrases; `NormalizeAlgoNamePass` later
+    *     replaces every such space with an underscore, which would silently
+    *     stop every entry from matching. Unlike [[ExpandQueueATaskPass]]'s
+    *     equivalent string match, `elided` isn't defensively normalized against
+    *     that substitution, so the order is load-bearing.
+    */
+  override def mustPrecede: Set[LoweringPass] = Set(NormalizeAlgoNamePass)
+
   private val elided: Set[String] = Set(
     "prepare to run script",
     "prepare to run a callback",

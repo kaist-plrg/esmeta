@@ -34,10 +34,16 @@ import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr}
   * may be arbitrary code, not just "return true".
   *
   * Only fires when `HasDuplicates` is the (sole) top-level condition of an
-  * `IfChain` branch — the only shape reached so far. Must run after
-  * `GroupIfChainPass` (so the condition is already inside an `IfChain` branch).
+  * `IfChain` branch — the only shape reached so far.
   */
 object ExpandHasDuplicatesPass extends LoweringPass:
+
+  /** Requires:
+    *   - [[GroupIfChainPass]]: needs the condition already inside an
+    *     `Instr.IfChain` branch, not a raw `If`/`ElseIf` sibling.
+    */
+  override def requires: Set[LoweringPass] = Set(GroupIfChainPass)
+
   private var counter = 0
   private def freshList(): String = { counter += 1; s"_dupList$counter" }
   private def freshFound(): String = { counter += 1; s"_dupFound$counter" }

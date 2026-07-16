@@ -9,12 +9,26 @@ import esmeta.wji.lang.Algorithm
   * computed set threaded through as a constructor parameter — keeps this a
   * perfectly ordinary `List[LoweringPass]` entry like every other pass.
   *
-  * Must run right after `ResolveLinksPass` (so call targets are already
-  * resolved names) and before `GroupIfChainPass`/`ExpandAbruptPass` — see
-  * `CompletionAlgorithms`'s own doc for why the analysis needs to observe that
-  * particular shape.
+  * See `CompletionAlgorithms`'s own doc for why the analysis needs to observe
+  * that particular shape.
   */
 object MarkCompletionAlgorithmsPass extends LoweringPass:
+
+  /** Requires:
+    *   - [[ResolveLinksPass]]: needs call targets already resolved to real
+    *     names (`Expr.AlgoCall`, not a raw `Expr.Link`) for
+    *     `CompletionAlgorithms`'s call-graph analysis to recognize them.
+    *
+    * Must precede:
+    *   - [[GroupIfChainPass]]: needs a `Cond.Throws` catch still as a bare
+    *     `Instr.If` sibling, not yet a grouped `IfChain`.
+    *   - [[ExpandAbruptPass]]: needs `Expr.Abrupt` `?`/`!` markers still
+    *     present to detect.
+    */
+  override def requires: Set[LoweringPass] = Set(ResolveLinksPass)
+  override def mustPrecede: Set[LoweringPass] =
+    Set(GroupIfChainPass, ExpandAbruptPass)
+
   def run(algos: List[Algorithm]): List[Algorithm] =
     val completionAlgos = CompletionAlgorithms.compute(algos)
     algos.map { a =>

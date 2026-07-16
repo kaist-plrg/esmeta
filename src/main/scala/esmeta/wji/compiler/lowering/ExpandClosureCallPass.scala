@@ -18,12 +18,6 @@ import esmeta.wji.lang.Instr.PerformOutcome
   *   Return(Some(ClosureCall(closure, args)), body)  → PerformClosure(closure, args, ReturnResult, body)
   * }}}
   *
-  * Must run after [[ExpandAbruptPass]] (so a `Abrupt(marker, ClosureCall(...))`
-  * direct-RHS wrapper has already been unwrapped into a plain `Let` binding —
-  * `ExpandAbruptPass.expand` binds its unwrapped `inner` via a fresh `Let`
-  * regardless of what `inner` is, so no separate `Abrupt`-stripping is needed
-  * here).
-  *
   * Only handles the direct top-level RHS position — like
   * `NormalizeAlgoCallPass` does for `AlgoCall`/`JSCall`, a `ClosureCall` nested
   * inside a larger expression (e.g. as a `BinOp` operand) would need ANF-style
@@ -31,6 +25,15 @@ import esmeta.wji.lang.Instr.PerformOutcome
   * as a known gap rather than speculatively generalized.
   */
 object ExpandClosureCallPass extends LoweringPass:
+
+  /** Requires:
+    *   - [[ExpandAbruptPass]]: needs a `Abrupt(marker, ClosureCall(...))`
+    *     direct-RHS wrapper already unwrapped into a plain `Let` binding —
+    *     `ExpandAbruptPass.expand` binds its unwrapped `inner` via a fresh
+    *     `Let` regardless of what `inner` is, so no separate `Abrupt`-
+    *     stripping is needed here.
+    */
+  override def requires: Set[LoweringPass] = Set(ExpandAbruptPass)
 
   def run(algos: List[Algorithm]): List[Algorithm] =
     algos.map(a => a.copy(body = transform(a.body)))

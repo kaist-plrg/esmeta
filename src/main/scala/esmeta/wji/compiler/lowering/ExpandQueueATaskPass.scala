@@ -27,12 +27,15 @@ import esmeta.wji.lang.Instr.PerformOutcome
   * hoists the step's `"...to perform the following steps:"` clause — parsed as
   * one of this `Perform`'s `args` — into one, so `args` is guaranteed to
   * contain a `Closure` here.
-  *
-  * Runs right after [[ExpandFollowingStepsPass]] and before
-  * [[NormalizeAlgoNamePass]] (which stays last, to also normalize the synthetic
-  * [[Algorithm]] that pass split off).
   */
 object ExpandQueueATaskPass extends LoweringPass:
+
+  /** Requires:
+    *   - [[ExpandFollowingStepsPass]]: needs `args` to already contain a
+    *     `Closure`, not a `FollowingSteps` placeholder — `p.args.collectFirst {
+    *     case c: Expr.Closure => c }.get` crashes outright if it doesn't.
+    */
+  override def requires: Set[LoweringPass] = Set(ExpandFollowingStepsPass)
   def run(algos: List[Algorithm]): List[Algorithm] =
     algos.map(a => a.copy(body = transform(a.body)))
 

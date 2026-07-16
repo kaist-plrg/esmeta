@@ -54,12 +54,21 @@ import esmeta.wji.lang.Instr.PerformOutcome
   * later branch's precondition correctly requires nesting it inside the earlier
   * branches' "false" case, which no current call site needs; left unexpanded
   * (so `Compiler` reports `EYet`) until one does.
-  *
-  * Must run after [[ExpandAbbreviatedCondPass]] (a `Cond.Exists`'s `body`, and
-  * any bare `Cond.Matches`, may still contain `Cond.Abbreviated` until then)
-  * and [[GroupIfChainPass]] (matches on `Instr.IfChain`, not raw `If`).
   */
 object ExpandMatchesExistsPass extends LoweringPass:
+
+  /** Requires:
+    *   - [[ExpandAbbreviatedCondPass]]: a `Cond.Exists`'s `body`, and any bare
+    *     `Cond.Matches`, may still contain `Cond.Abbreviated` until then.
+    *   - [[GroupIfChainPass]]: matches on `Instr.IfChain`, not a raw `If`.
+    *   - [[NormalizeAlgoCallPass]]: needs any call embedded in a
+    *     `Cond.Exists`'s `collections` already hoisted out first — evaluated
+    *     once before the generated loop starts, so it's safe to hoist there,
+    *     unlike `body` (evaluated once per iteration, deliberately left alone —
+    *     see `NormalizeAlgoCallPass.extractFromCond`'s own doc).
+    */
+  override def requires: Set[LoweringPass] =
+    Set(ExpandAbbreviatedCondPass, GroupIfChainPass, NormalizeAlgoCallPass)
 
   private var counter = 0
   private def fresh(prefix: String): String = {

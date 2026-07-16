@@ -38,6 +38,14 @@ import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr}
   * iteration; extraction would change semantics).
   */
 object NormalizeAlgoCallPass extends LoweringPass:
+
+  /** Requires:
+    *   - [[ResolveLinksPass]]: every case here matches `Expr.AlgoCall`/
+    *     `Expr.JSCall` specifically — a raw `Expr.Link` falls through the
+    *     catch-all cases untouched, so nothing gets extracted at all.
+    */
+  override def requires: Set[LoweringPass] = Set(ResolveLinksPass)
+
   private var counter = 0
   private def fresh(): String = { counter += 1; s"_call$counter" }
 

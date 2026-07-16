@@ -19,13 +19,24 @@ class SpecAnchorsSpec extends AnyFunSuite:
     */
   private val unusedSpecAnchors: Set[String] = Set("mem_read", "mem_write")
 
+  /** `WasmHost` names with no matching js-api/index.bs anchor at all, because
+    * they aren't part of the Wasm Core Spec's own Embedding API
+    * (`embedding.rst`) to begin with: `expand` is a `wjmeta-bridge`-specific
+    * convenience wrapping the `$Expand` relation, added to work around
+    * js-api/index.bs destructuring a `deftype` without ever calling `$expand`
+    * itself — see `WasmHost.paramNames`'s `expand` entry and
+    * `docs/spec_errors.md`. Not a spec gap `WasmHost` needs to close; the spec
+    * was never going to anchor it.
+    */
+  private val bridgeOnlyNames: Set[String] = Set("expand")
+
   test(
     "WasmHost.names matches every embedding function js-api/index.bs's anchors block declares",
   ) {
     val specNames =
       SpecAnchors.embeddingFunctionNames(source) -- unusedSpecAnchors
     val missing = specNames -- WasmHost.names
-    val extra = WasmHost.names -- specNames
+    val extra = WasmHost.names -- specNames -- bridgeOnlyNames
     assert(missing.isEmpty, s"WasmHost is missing: ${missing.toList.sorted}")
     assert(
       extra.isEmpty,

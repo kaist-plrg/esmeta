@@ -100,34 +100,66 @@ object NormalizeAlgoCallPass extends LoweringPass:
     * without an intermediate variable.
     */
   private def skipTopAlgoCall(expr: Expr): (List[Instr.Let], Expr) = expr match
-    case Expr.AlgoCall(_, _)                   => (Nil, expr)
-    case Expr.Abrupt("!", Expr.AlgoCall(_, _)) => (Nil, expr)
-    case Expr.JSCall(_, _)                     => (Nil, expr)
-    case Expr.Abrupt("!", Expr.JSCall(_, _))   => (Nil, expr)
-    case _                                     => extractFromExpr(expr)
+    // the call itself is left in place for ExtractInlineAlgoCallPass to
+    // convert directly to Perform, but its own args can still hide a nested
+    // call (e.g. `Let x be F(G(...))`) that needs hoisting first — args.map
+    // is applied at the same level as extractFromExpr's own AlgoCall/JSCall
+    // cases below, so both paths agree on what "already extracted" means.
+    case Expr.AlgoCall(link, args) =>
+      val (bs, newArgs) = args.map(extractFromExpr).unzip
+      (bs.flatten, Expr.AlgoCall(link, newArgs))
+    case Expr.Abrupt("!", Expr.AlgoCall(link, args)) =>
+      val (bs, newArgs) = args.map(extractFromExpr).unzip
+      (bs.flatten, Expr.Abrupt("!", Expr.AlgoCall(link, newArgs)))
+    case Expr.JSCall(name, args) =>
+      val (bs, newArgs) = args.map(extractFromExpr).unzip
+      (bs.flatten, Expr.JSCall(name, newArgs))
+    case Expr.Abrupt("!", Expr.JSCall(name, args)) =>
+      val (bs, newArgs) = args.map(extractFromExpr).unzip
+      (bs.flatten, Expr.Abrupt("!", Expr.JSCall(name, newArgs)))
+    case _ => extractFromExpr(expr)
 
   // ── Expr normalization ───────────────────────────────────────────────────────
 
   private def extractFromExpr(expr: Expr): (List[Instr.Let], Expr) = expr match
 
     case Expr.AlgoCall(link, args) if args.nonEmpty =>
+      // hoist any call nested in this call's own args first (e.g. `F(G(...))`)
+      // — otherwise G survives, unextracted, as a nonempty-arg AlgoCall inside
+      // the Let this produces, which compileExpr can't handle either.
+      val (argBs, newArgs) = args.map(extractFromExpr).unzip
       val tmp = fresh()
-      (List(Instr.Let(Expr.Var(tmp), expr)), Expr.Var(tmp))
+      (
+        argBs.flatten :+ Instr.Let(Expr.Var(tmp), Expr.AlgoCall(link, newArgs)),
+        Expr.Var(tmp),
+      )
 
     case Expr.Abrupt("!", Expr.AlgoCall(link, args)) if args.nonEmpty =>
+      val (argBs, newArgs) = args.map(extractFromExpr).unzip
       val tmp = fresh()
-      (List(Instr.Let(Expr.Var(tmp), Expr.AlgoCall(link, args))), Expr.Var(tmp))
+      (
+        argBs.flatten :+ Instr.Let(Expr.Var(tmp), Expr.AlgoCall(link, newArgs)),
+        Expr.Var(tmp),
+      )
 
     // unlike AlgoCall, JSCall's `[$name$](...)` syntax always carries a
     // (possibly empty) argument list, so there is no zero-arg/bare-reference
     // ambiguity to preserve — every JSCall is a call.
-    case Expr.JSCall(_, _) =>
+    case Expr.JSCall(name, args) =>
+      val (argBs, newArgs) = args.map(extractFromExpr).unzip
       val tmp = fresh()
-      (List(Instr.Let(Expr.Var(tmp), expr)), Expr.Var(tmp))
+      (
+        argBs.flatten :+ Instr.Let(Expr.Var(tmp), Expr.JSCall(name, newArgs)),
+        Expr.Var(tmp),
+      )
 
     case Expr.Abrupt("!", Expr.JSCall(name, args)) =>
+      val (argBs, newArgs) = args.map(extractFromExpr).unzip
       val tmp = fresh()
-      (List(Instr.Let(Expr.Var(tmp), Expr.JSCall(name, args))), Expr.Var(tmp))
+      (
+        argBs.flatten :+ Instr.Let(Expr.Var(tmp), Expr.JSCall(name, newArgs)),
+        Expr.Var(tmp),
+      )
 
     // a Case is a constructor/pattern, not a call — never itself hoisted the
     // way an AlgoCall/JSCall is — but its args may still contain calls
@@ -219,5 +251,15 @@ object NormalizeAlgoCallPass extends LoweringPass:
     case Cond.Or(l, r) =>
       val (lb, lc) = extractFromCond(l)
       (lb, Cond.Or(lc, r))
+
+    // `collections` is evaluated once, before ExpandMatchesExistsPass's
+    // generated loop even starts, so hoisting a call out of it here is safe
+    // — unlike `body`, which runs once per iteration and references the
+    // loop-bound `binder`; extracting from `body` at this stage (before that
+    // loop exists) would evaluate it in the wrong scope, so it's deliberately
+    // left alone for ExpandMatchesExistsPass's own (loop-aware) handling.
+    case Cond.Exists(binder, collections, body) =>
+      val (bs, es) = collections.map(extractFromExpr).unzip
+      (bs.flatten, Cond.Exists(binder, es, body))
 
     case other => (Nil, other)

@@ -148,7 +148,15 @@ object ResolveLinksPass extends LoweringPass:
       case Expr.Neg(e)          => Expr.Neg(go(e))
       case Expr.AsMath(e)       => Expr.AsMath(go(e))
       case Expr.Tuple(elems)    => Expr.Tuple(elems.map(go))
-      case other                => other
+      // parsed directly by ExprParser (not synthesized by a later pass), so a
+      // Link nested in one of these can already be present when this — the
+      // only Link-resolving pass — runs; skipping them here would let it
+      // silently reach compileExpr's "unresolved link" case instead.
+      case Expr.NewByteSequence(length) => Expr.NewByteSequence(go(length))
+      case Expr.Range(low, high)        => Expr.Range(go(low), go(high))
+      case Expr.ClosureCall(closure, args) =>
+        Expr.ClosureCall(go(closure), args.map(go))
+      case other => other
 
   private def rewriteCond(known: Set[String], plainKnown: Set[String])(
     cond: Cond,

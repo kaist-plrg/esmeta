@@ -102,9 +102,14 @@ object Compiler:
 
     case Instr.Let(lhs, expr, body) =>
       val binding: Inst = lhs match
-        case metalang.Expr.Var(name) => ILet(Name(name), compileExpr(expr))
+        case metalang.Expr.Var(name)    => ILet(Name(name), compileExpr(expr))
         case metalang.Expr.Tuple(elems) =>
-          ILet(Name("_tuple"), compileExpr(expr)) // TODO: destructure
+          // ExpandDestructuringLetPass unconditionally rewrites every
+          // Tuple-lhs Let before compilation ever sees it, and no later pass
+          // synthesizes one — see UnreachableAfterLowering's doc.
+          impossible(
+            s"Tuple-lhs Let not eliminated by ExpandDestructuringLetPass: $lhs",
+          )
         case _ => ILet(Name("_"), EYet(s"unsupported Let lhs: $lhs"))
       binding :: compileSeq(body)
 

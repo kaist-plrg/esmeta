@@ -1728,7 +1728,8 @@ def run_a_host_function(
       call _ret90 = clo<"ThrowCompletion">(_err74)
       return _ret90
     } else nop
-    call _comp29 = clo<"IteratorToList">((yet "nested ?-abrupt: JSCall(GetIteratorFromMethod,List(Var(ret), Var(method)))"))
+    call _call20 = clo<"GetIteratorFromMethod">(ret, method)
+    call _comp29 = clo<"IteratorToList">((yet "nested ?-abrupt: Var(_call20)"))
     if (exists _comp29.Type) {
       if (? _comp29: Abrupt) {
         let _v75 = _comp29
@@ -1751,13 +1752,13 @@ def run_a_host_function(
       return _ret92
     } else nop
     (yet "foreach ?(|value| and |resultType|) in ?(|values| and |results|)")
-    call _call20 = clo<"towebassemblyvalue">(value, resultType)
-    if (? _call20: Abrupt) {
-      return _call20
+    call _call21 = clo<"towebassemblyvalue">(value, resultType)
+    if (? _call21: Abrupt) {
+      return _call21
     } else {
-      _call20 = _call20.Value
+      _call21 = _call21.Value
     }
-    push wasmValues < (yet "nested ?-abrupt: Var(_call20)")
+    push wasmValues < (yet "nested ?-abrupt: Var(_call21)")
     let _v77 = wasmValues
     if (exists _v77.Type) {
       return _v77
@@ -2036,8 +2037,8 @@ def towebassemblyvalue(
     }
     let store = @AGENT_RECORD["associated store"]
     call-embed actualtype = <ref_type>(store, r)
-    call-embed _call21 = <match_valtype>(actualtype, type)
-    if (= _call21 false) {
+    call-embed _call22 = <match_valtype>(actualtype, type)
+    if (= _call22 false) {
       call _err88 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
       call _ret115 = clo<"ThrowCompletion">(_err88)
       return _ret115
@@ -2161,8 +2162,8 @@ def tag(
   let _iterIdx22 = 0
   while (< _iterIdx22 (sizeof _iterList21)) {
     let paramType = _iterList21[_iterIdx22]
-    call _call22 = clo<"tovaluetype">(paramType)
-    push wasmParameters < _call22
+    call _call23 = clo<"tovaluetype">(paramType)
+    push wasmParameters < _call23
     _iterIdx22 = (+ _iterIdx22 1)
   }
   let store = @AGENT_RECORD["associated store"]
@@ -2306,13 +2307,13 @@ def exception(
     call _ret132 = clo<"ThrowCompletion">(_err99)
     return _ret132
   } else nop
-  call _call23 = clo<"towebassemblyvalue">(value, resultType)
-  if (? _call23: Abrupt) {
-    return _call23
+  call _call24 = clo<"towebassemblyvalue">(value, resultType)
+  if (? _call24: Abrupt) {
+    return _call24
   } else {
-    _call23 = _call23.Value
+    _call24 = _call24.Value
   }
-  push wasmPayload < (yet "nested ?-abrupt: Var(_call23)")
+  push wasmPayload < (yet "nested ?-abrupt: Var(_call24)")
   call-embed _tuple20 = <exn_alloc>(store, exceptionTag.Address, wasmPayload)
   let store = (proj _tuple20 0)
   let exceptionAddr = (proj _tuple20 1)
@@ -2419,8 +2420,8 @@ def find_a_builtin(
   import: Unknown,
   builtinSetNames: Unknown,
 ): Unknown = {
-  call _call24 = clo<"validate_builtin_set_names">(builtinSetNames)
-  assert (= _call24 true)
+  call _call25 = clo<"validate_builtin_set_names">(builtinSetNames)
+  assert (= _call25 true)
   let importModuleName = import[0]
   let importName = import[1]
   let _iterList25 = builtinSetNames
@@ -2518,8 +2519,8 @@ def validate_an_import_for_builtins(
   import: Unknown,
   builtinSetNames: Unknown,
 ): Unknown = {
-  call _call25 = clo<"validate_builtin_set_names">(builtinSetNames)
-  assert (= _call25 true)
+  call _call26 = clo<"validate_builtin_set_names">(builtinSetNames)
+  assert (= _call26 true)
   call maybeBuiltin = clo<"find_a_builtin">(import, builtinSetNames)
   if (= maybeBuiltin null) {
     return true
@@ -2549,7 +2550,8 @@ def fromcharcode(
   v: Unknown,
 ): Unknown = {
   assert (= v (yet "of type [=i32=]"))
-  call _comp42 = clo<"Call">(~String.fromCharCode~, undefined, (list [(yet "call [=ToJSValue=]")]))
+  call _call27 = clo<"tojsvalue">(v)
+  call _comp42 = clo<"Call">(~String.fromCharCode~, undefined, (list [_call27]))
   if (exists _comp42.Type) {
     assert (= _comp42.Type ~normal~)
     return _comp42.Value
@@ -2563,7 +2565,8 @@ def charcodeat(
   index: Unknown,
 ): Unknown = {
   assert (= index (yet "of type [=i32=]"))
-  call _comp43 = clo<"Call">(~String.prototype.charCodeAt~, string, (list [(yet "call [=ToJSValue=]")]))
+  call _call28 = clo<"tojsvalue">(index)
+  call _comp43 = clo<"Call">(~String.prototype.charCodeAt~, string, (list [_call28]))
   if (exists _comp43.Type) {
     assert (= _comp43.Type ~normal~)
     return _comp43.Value
@@ -2656,13 +2659,13 @@ def js-string-intocharcodearray(
   let i = 0
   while (< i stringLength) {
     call charCode = clo<"charcodeat">(string, i)
-    call _call26 = clo<"towebassemblyvalue">(charCode, ~i32~)
-    if (? _call26: Abrupt) {
-      return _call26
+    call _call29 = clo<"towebassemblyvalue">(charCode, ~i32~)
+    if (? _call29: Abrupt) {
+      return _call29
     } else {
-      _call26 = _call26.Value
+      _call29 = _call29.Value
     }
-    _ref_BinOp = _call26
+    _ref_BinOp = _call29
     i = (+ i 1)
   }
   let _v108 = stringLength
@@ -2686,7 +2689,8 @@ def js-string-fromcodepoint(
   if (< 1114111 v) {
     (yet "throw a {{RuntimeError}} exception as if a [=trap=] was executed")
   } else nop
-  call _comp46 = clo<"Call">(~String.fromCodePoint~, undefined, (list [(yet "call [=ToJSValue=]")]))
+  call _call30 = clo<"tojsvalue">(v)
+  call _comp46 = clo<"Call">(~String.fromCodePoint~, undefined, (list [_call30]))
   if (exists _comp46.Type) {
     assert (= _comp46.Type ~normal~)
     let _v109 = _comp46.Value
@@ -2765,7 +2769,8 @@ def js-string-codepointat(
   if (! (< index length)) {
     (yet "throw a {{RuntimeError}} exception as if a [=trap=] was executed")
   } else nop
-  call _comp49 = clo<"Call">(~String.prototype.codePointAt~, string, (list [(yet "call [=ToJSValue=]")]))
+  call _call31 = clo<"tojsvalue">(index)
+  call _comp49 = clo<"Call">(~String.prototype.codePointAt~, string, (list [_call31]))
   if (exists _comp49.Type) {
     assert (= _comp49.Type ~normal~)
     let _v114 = _comp49.Value
@@ -2854,7 +2859,9 @@ def js-string-substring(
   if (|| (< end start) (< length start)) {
     return ""
   } else nop
-  call _comp55 = clo<"Call">(~String.prototype.substring~, string, (list [(yet "call [=ToJSValue=]"), (yet "call [=ToJSValue=]")]))
+  call _call32 = clo<"tojsvalue">(start)
+  call _call33 = clo<"tojsvalue">(end)
+  call _comp55 = clo<"Call">(~String.prototype.substring~, string, (list [_call32, _call33]))
   if (exists _comp55.Type) {
     assert (= _comp55.Type ~normal~)
     return _comp55.Value
@@ -2873,8 +2880,8 @@ def js-string-equals(
   if (&& (! (= second null)) (! (? second: String))) {
     (yet "throw a {{RuntimeError}} exception as if a [=trap=] was executed")
   } else nop
-  call _call27 = clo<"isstrictlyequal">(first, second)
-  if (= _call27 true) {
+  call _call34 = clo<"isstrictlyequal">(first, second)
+  if (= _call34 true) {
     let _v116 = 1
     if (exists _v116.Type) {
       return _v116
@@ -2916,12 +2923,12 @@ def js-string-compare(
   } else {
     let second = _comp57
   }
-  call _call28 = clo<"isstrictlyequal">(first, second)
-  if (= _call28 true) {
+  call _call35 = clo<"isstrictlyequal">(first, second)
+  if (= _call35 true) {
     return 0
   } else nop
-  call _call29 = clo<"islessthan">(first, second, true)
-  if (= _call29 true) {
+  call _call36 = clo<"islessthan">(first, second, true)
+  if (= _call36 true) {
     return (- 1)
   } else nop
   return 1
@@ -3006,8 +3013,8 @@ def get_a_copy_of_the_buffer_source(
     assert (|| (= jsBufferSource (yet "an {{ArrayBuffer}}")) (yet "{{SharedArrayBuffer}} object"))
     length = jsBufferSource.ArrayBufferByteLength
   }
-  call _call30 = clo<"IsDetachedBuffer">(jsArrayBuffer)
-  if (= _call30 true) {
+  call _call37 = clo<"IsDetachedBuffer">(jsArrayBuffer)
+  if (= _call37 true) {
     return (yet "the empty [=byte sequence=]")
   } else nop
   let bytes = (list [])
@@ -3018,8 +3025,8 @@ def get_a_copy_of_the_buffer_source(
   }
   let i = offset
   while (! (< (- (+ offset length) 1) i)) {
-    call _call31 = clo<"GetValueFromBuffer">(jsArrayBuffer, i, ~uint8~, true, ~unordered~)
-    bytes[(- i offset)] = _call31
+    call _call38 = clo<"GetValueFromBuffer">(jsArrayBuffer, i, ~uint8~, true, ~unordered~)
+    bytes[(- i offset)] = _call38
     i = (+ i 1)
   }
   return bytes

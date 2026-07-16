@@ -264,6 +264,12 @@ class Interpreter(
     * (`st.context`/`st.callStack`) is saved and restored around the nested run
     * so it doesn't clobber the suspended outer frame that triggered this
     * embedding call.
+    *
+    * On failure, the nested context's own function/cursor is logged to stderr
+    * before rethrowing — the `finally` below always restores the outer context
+    * first, so a caller's own crash report (e.g. `WjiInterp`'s) only ever sees
+    * the *outer* frame that happened to be suspended here, never where inside
+    * the reentrant call things actually went wrong.
     */
   private def invokeCallable(
     callee: Callable,
@@ -279,6 +285,12 @@ class Interpreter(
     try
       while (step) {}
       st.globals.getOrElse(GLOBAL_RESULT, Undef)
+    catch
+      case e: Throwable =>
+        Console.err.println(
+          s"[invokeCallable] failed in ${st.context.name} at ${st.context.cursor}: $e",
+        )
+        throw e
     finally
       st.context = savedContext
       st.callStack = savedCallStack

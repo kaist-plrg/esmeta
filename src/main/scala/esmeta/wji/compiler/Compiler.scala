@@ -7,6 +7,7 @@ import esmeta.wji.bridge.host.WasmHost
 import esmeta.ir
 import esmeta.ir.*
 import esmeta.ty.*
+import esmeta.error.UnreachableAfterLowering
 
 /** Compiles a list of [[metalang.Algorithm]]s into a real ESMeta IR [[Program]]
   * (the same `esmeta.ir` types the ECMA-262 spec compiles to), so compiled WJI
@@ -31,6 +32,13 @@ object Compiler:
   // strips the `{{...}}` autolink braces. Mirrors mainline ESMeta's
   // `SymbolLiteral(sym) => toERef(GLOBAL_SYMBOL, EStr(sym))`.
   private val SymbolTerm = """^%Symbol\.(.+)%$""".r
+
+  /** Throws immediately for an AST shape that lowering guarantees eliminates
+    * before `Compiler` ever runs — unlike `EYet`, which only fails once the
+    * IR is actually evaluated. See [[UnreachableAfterLowering]].
+    */
+  private def impossible(msg: String): Nothing =
+    throw UnreachableAfterLowering(msg)
 
   def compile(algos: List[Algorithm]): Program =
     Program(algos.flatMap(compileAlgo))
@@ -153,9 +161,14 @@ object Compiler:
         case PerformOutcome.BindResult(v) =>
           mkCall(Name(stripPipes(v))) :: bodyInsts
         case PerformOutcome.ReturnResult =>
-          // should have been eliminated by ExpandPerformReturnResultPass
-          val tmp = Name("_ret")
-          bodyInsts :+ mkCall(tmp) :+ IReturn(ERef(tmp))
+          // ExpandPerformReturnResultPass rewrites every ReturnResult-outcome
+          // Instr.Perform before compilation ever sees it (unlike the
+          // superficially similar PerformClosure case below, which is
+          // ExpandClosureCallPass's normal output shape, not eliminated by
+          // any pass) — see UnreachableAfterLowering's doc.
+          impossible(
+            s"Instr.Perform's ReturnResult outcome not eliminated by ExpandPerformReturnResultPass: $func",
+          )
 
     case Instr.PerformClosure(closure, args, outcome, body) =>
       val callArgs = args.map(compileExpr)
@@ -171,6 +184,11 @@ object Compiler:
         case PerformOutcome.BindResult(v) =>
           mkCall(Name(stripPipes(v))) :: bodyInsts
         case PerformOutcome.ReturnResult =>
+          // NOT dead code, despite looking like Instr.Perform's eliminated
+          // case above: ExpandClosureCallPass always rewrites
+          // `Return(Some(ClosureCall(...)))` directly into this shape, so
+          // this is the normal, always-exercised path for a returned closure
+          // call, not a fallback for something a pass failed to remove.
           val tmp = Name("_ret")
           bodyInsts :+ mkCall(tmp) :+ IReturn(ERef(tmp))
 
@@ -199,8 +217,11 @@ object Compiler:
           IIf(compileCond(c), compileInstrs(b), buildChain(rest))
       buildChain(branches) :: Nil
 
-    case _: Instr.If | _: Instr.ElseIf | _: Instr.Else =>
-      Nil // should have been grouped by GroupIfChainPass
+    case i @ (_: Instr.If | _: Instr.ElseIf | _: Instr.Else) =>
+      // GroupIfChainPass folds every If/ElseIf/Else sibling group into a
+      // single IfChain before compilation ever sees it, unconditionally and
+      // recursively — see UnreachableAfterLowering's doc.
+      impossible(s"bare If/ElseIf/Else not grouped by GroupIfChainPass: $i")
 
   // ── Expression ───────────────────────────────────────────────────────────────
 

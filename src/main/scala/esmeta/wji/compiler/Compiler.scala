@@ -282,10 +282,6 @@ object Compiler:
     // any expression depth.
     case metalang.Expr.Abrupt(marker, e) =>
       EYet(s"nested $marker-abrupt: $e")
-    case metalang.Expr.Link(link, args) =>
-      // ResolveLinksPass resolves every Link into an AlgoCall/Case/SpecTerm
-      // before compilation ever sees it; this is only here for exhaustivity.
-      EYet(s"unresolved link: $link") // should not happen
     case metalang.Expr.AlgoCall(link, args) =>
       // zero-arg AlgoCall used as an expression value (e.g. [=error=])
       if args.isEmpty then ERef(Global(nameFromLink(link)))
@@ -298,8 +294,6 @@ object Compiler:
     // convention — see `metalang.Expr.runtimeCaseTag`.
     case metalang.Expr.Case(tag, args) =>
       ECase(metalang.Expr.runtimeCaseTag(tag), args.map(compileExpr))
-    case metalang.Expr.JSCall(name, args) =>
-      EYet(s"$$${name}(${args.mkString})") // TODO
     case metalang.Expr.Tuple(elems) => EYet(s"tuple(${elems.mkString})") // TODO
     case metalang.Expr.Map_(entries) =>
       EMap(
@@ -313,34 +307,40 @@ object Compiler:
       EYet(
         s"$desc such that $cond",
       ) // TODO: existential/definite-description search
-    case metalang.Expr.NewByteSequence(length) =>
-      // should have been eliminated by ExpandNewByteSequencePass
-      EYet(s"new byte sequence of length ${length}")
-    case metalang.Expr.Range(low, high) =>
-      EYet(s"range ${low} to ${high}") // TODO: proper range value
-    case metalang.Expr.IndexOf(list, elem) =>
-      // should have been eliminated by ExpandIndexOfPass
-      EYet(s"index of ${list} where ${elem} is found")
     case metalang.Expr.Unknown(raw) => EYet(raw)
     case metalang.Expr.Closure(name, captured) =>
       EClo(name, captured.map(Name(_)))
+    case metalang.Expr.TupleProj(base, idx) => EProj(compileExpr(base), idx)
+    case metalang.Expr.CaseTag(base)        => ECaseTag(compileExpr(base))
+
+    // ── unreachable after lowering ──
+    // Every shape below is guaranteed gone by the time `Compiler` runs —
+    // each eliminated unconditionally by its own named pass (`ResolveLinksPass`,
+    // `ExpandNewByteSequencePass`, `ExpandIndexOfPass`, `ExpandFollowingStepsPass`)
+    // or, for `JSCall`/nested `ClosureCall`, simply never produced by any spec
+    // text seen so far. Grouped here, all crashing via `impossible`, rather than
+    // interleaved with the genuine `EYet` "not yet implemented" cases above —
+    // confirmed empirically by converting every candidate to `impossible` and
+    // recompiling the whole corpus (`sbt testOnly esmeta.wji.SnapshotSpec`),
+    // one at a time, to see which ones actually fire.
+    case metalang.Expr.Link(link, _) => impossible(s"unresolved link: $link")
+    case metalang.Expr.JSCall(name, args) =>
+      impossible(s"$$${name}(${args.mkString})")
+    case metalang.Expr.NewByteSequence(length) =>
+      impossible(s"new byte sequence of length ${length}")
+    case metalang.Expr.Range(low, high) => impossible(s"range ${low} to ${high}")
+    case metalang.Expr.IndexOf(list, elem) =>
+      impossible(s"index of ${list} where ${elem} is found")
     case metalang.Expr.FollowingSteps(params) =>
-      // ExpandFollowingStepsPass hoists every FollowingSteps into a Closure
-      // before compilation ever sees it; this is only here for exhaustivity.
-      EYet(s"unlowered following-steps closure given ${params.mkString(", ")}")
+      impossible(
+        s"unlowered following-steps closure given ${params.mkString(", ")}",
+      )
     case metalang.Expr.ClosureCall(closure, args) =>
-      // ExpandClosureCallPass rewrites every direct-RHS ClosureCall into a
-      // PerformClosure before compilation ever sees it; this only remains for
-      // a *nested* occurrence (no spec text seen so far produces one — see
-      // ExpandClosureCallPass's doc) and for exhaustivity, mirroring AlgoCall's
-      // identical args-nonempty gap above.
-      EYet(
+      impossible(
         s"call ${metalang.ExprPrinter.render(closure)} given ${args
           .map(metalang.ExprPrinter.render)
           .mkString(", ")}",
       )
-    case metalang.Expr.TupleProj(base, idx) => EProj(compileExpr(base), idx)
-    case metalang.Expr.CaseTag(base)        => ECaseTag(compileExpr(base))
 
   // ── Condition ────────────────────────────────────────────────────────────────
 
@@ -365,8 +365,6 @@ object Compiler:
       EExists(Field(compileRef(e), EStr(slot)))
     case Cond.HasSlot(e, slot, true) =>
       EUnary(UOp.Not, EExists(Field(compileRef(e), EStr(slot))))
-    case Cond.HasDuplicates(e, neg) =>
-      EYet("contains duplicates") // TODO — expanded by ExpandHasDuplicatesPass
     case Cond.Contains(elem, list, false) =>
       EContains(compileExpr(list), compileExpr(elem))
     case Cond.Contains(elem, list, true) =>
@@ -374,11 +372,18 @@ object Compiler:
     case Cond.Implements(e, iface, neg) => EYet(s"implements $iface") // TODO
     case Cond.IsOfForm(e, f, _, neg)    => EYet(s"is of form $f") // TODO
     case Cond.Matches(l, t, r, neg)     => EYet(s"matches $t") // TODO
-    // should have been eliminated by ExpandMatchesExistsPass
-    case Cond.Exists(binder, _, _) => EYet(s"exists $binder") // TODO
-    case Cond.Throws(kind) =>
-      EYet(s"throws${kind.fold("")(k => s" $k")}") // TODO
     case Cond.Unknown(raw) => EYet(raw)
+
+    // ── unreachable after lowering ──
+    // See compileExpr's identically-named, identically-verified group above:
+    // `ExpandHasDuplicatesPass`/`ExpandMatchesExistsPass`/`ExpandThrowsPass`
+    // each intend to eliminate every occurrence (not just the narrow shape
+    // their own doc comments enumerate), and empirically do, for every
+    // algorithm in the corpus today.
+    case Cond.HasDuplicates(e, neg) => impossible("contains duplicates")
+    case Cond.Exists(binder, _, _)  => impossible(s"exists $binder")
+    case Cond.Throws(kind) =>
+      impossible(s"throws${kind.fold("")(k => s" $k")}")
 
   // ── Ref ──────────────────────────────────────────────────────────────────────
 

@@ -2,7 +2,6 @@ package esmeta.wji.compiler.lowering
 
 import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr}
 
-
 // TODO: It calls a hardcoded algorithm. It should be replaced to actual WebIDL
 // algorithm call.
 

@@ -2948,7 +2948,7 @@ def resolve(
   p: Unknown,
   x: Unknown,
 ): Unknown = {
-  if (= x undefined) {
+  if (! (exists x)) {
     let x = undefined
   } else nop
   call value = clo<"converted_to_a_javascript_value">(x)

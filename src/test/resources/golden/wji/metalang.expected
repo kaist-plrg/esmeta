@@ -1459,7 +1459,7 @@
 # resolve
   params: |T|, |p|, |x|
   head: To <dfn export>resolve</dfn> a <code><a interface>Promise</a>&lt;|T|&gt;</code> |p| with |x| (a value of type |T|), perform the following steps:
-  If(|x| is undefined)
+  If(|x| is missing)
     Let(|x|, undefined)
   Let(|value|, [=converted to a JavaScript value=](|x|))
   Perform(Call(|p|.[[Resolve]], undefined, « |value| »))

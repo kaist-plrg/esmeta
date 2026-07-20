@@ -38,6 +38,23 @@ private[wji] object TextSplit:
       (text.substring(0, i), text.substring(i + sep.length)),
     )
 
+  /** the index (and matched separator) of the *last* top-level occurrence of
+    * any of `seps` in `text`, if any — e.g. for splitting a chain of binary
+    * operators (`a + b - c`) at its rightmost top-level operator, so the
+    * left-hand side recurses out left-associatively.
+    */
+  def findLastTopLevelAny(text: String, seps: Seq[String]): Option[(Int, String)] =
+    var last: Option[(Int, String)] = None
+    var from = 0
+    var continue = true
+    while continue do
+      findTopLevelAny(text.substring(from), seps) match
+        case Some((i, sep)) =>
+          last = Some((from + i, sep))
+          from = from + i + sep.length
+        case None => continue = false
+    last
+
   /** splits `text` at every top-level occurrence of `sep` */
   def splitTopLevelAll(text: String, sep: String): List[String] =
     val parts = scala.collection.mutable.ListBuffer[String]()

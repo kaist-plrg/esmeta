@@ -128,6 +128,18 @@ object ExprParser:
   private val LinkIndefVar =
     """(?si)^(?:the|an?)\s+(\[=[^\]]+\])\s+(?:of\s+)?(\|[^|]+\|)$""".r
   private val PlainNewExpr = """(?si)^a\s+new\s+.+""".r
+  // binary operators, matched at the top level only (see BinOpSeps' use with
+  // findLastTopLevelAny below) — tried before SlotAccess/DotFieldLink/
+  // PossessiveSlot/IndexBy* so their own greedy "everything to the left is
+  // the base" patterns can't swallow a top-level operator into their base
+  // (e.g. "|newLength| - |buffer|.\[[ArrayBufferByteLength]]" must split as
+  // "|newLength| - (|buffer|.[[ArrayBufferByteLength]])", not
+  // "(|newLength| - |buffer|).[[ArrayBufferByteLength]]" — field/slot access
+  // binds tighter than arithmetic). The *last* top-level occurrence is used,
+  // not the first, so a chain (e.g. "a + b - c") still recurses out
+  // left-associatively.
+  private val BinOpSeps =
+    Seq(" modulo ", " + ", " - ", " * ", " &div; ", " &minus; ")
   private val SlotAccess = """(?s)^(.+)\.\\?\[\[([^\]]+)\]\]$""".r
   private val PossessiveSlot =
     """(?si)^the value of (.+)'s \\?\[\[([^\]]+)\]\] internal slot$""".r
@@ -152,9 +164,7 @@ object ExprParser:
   private val AsMathPat =
     """(?si)^(.+)\s+interpreted as a \[=mathematical value=\]$""".r
   private val PowPat = """(?s)^(\d+)<sup>(.+?)</sup>$""".r
-  private val BinOpPat =
-    """(?s)^(.+)\s+(modulo|\+|-|\*|&div;|&minus;)\s+(.+)$""".r
-  private def parseBOp(op: String): BOp = op match
+  private def parseBOp(op: String): BOp = op.trim match
     case "+"             => BOp.Add
     case "-" | "&minus;" => BOp.Sub
     case "*"             => BOp.Mul
@@ -195,10 +205,11 @@ object ExprParser:
   private val IndexByVar = """(?s)^(.+)\[(\|[^|]+\|)\]$""".r
   private val IndexByNum = """(?s)^(.+)\[(-?\d+)\]$""".r
   // a general `base[EXPR]` index whose key is a compound expression rather than
-  // a bare string/var/number (e.g. `|bytes|[|i| &minus; |offset|]`). The key
-  // holds no further brackets, so the whole bracketed suffix stays together and
-  // isn't split by a `&minus;`/`+` inside it (which BinOpPat, tried later, is
-  // not bracket-aware about). The base must end in a non-space char (index
+  // a bare string/var/number (e.g. `|bytes|[|i| &minus; |offset|]`). The
+  // `&minus;`/`+` inside the brackets is at bracket-depth 1, so the BinOp
+  // case above (tried first, but findLastTopLevelAny-based and thus
+  // bracket-aware) correctly steps aside and leaves the whole bracketed
+  // suffix for this pattern instead. The base must end in a non-space char (index
   // syntax is written `base[key]` with no gap, so a space-then-`[` like the
   // `→ [...]` in a func-type destructuring is not an index) and the key must
   // not start with `=` (so a trailing `[=link=]` documentation link such as
@@ -329,6 +340,9 @@ object ExprParser:
       case ThisOnly()                => This
       case VarOnly(name)             => Var(name)
       case VarIgnore(name)           => Var(name.trim)
+      case _ if findLastTopLevelAny(s, BinOpSeps).isDefined =>
+        val (i, sep) = findLastTopLevelAny(s, BinOpSeps).get
+        BinOp(parse(s.substring(0, i)), parseBOp(sep), parse(s.substring(i + sep.length)))
       case SlotAccess(baseRaw, slot) => Field(parse(baseRaw), stripBraces(slot))
       case PossessiveSlot(baseRaw, slot) =>
         Field(parse(baseRaw), stripBraces(slot))
@@ -368,7 +382,6 @@ object ExprParser:
         Link(normalizeLink(link), List(parse(arg)))
       case AsMathPat(inner)       => AsMath(parse(inner))
       case PowPat(base, exp)      => Pow(parse(base), parse(exp))
-      case BinOpPat(lhs, op, rhs) => BinOp(parse(lhs), parseBOp(op), parse(rhs))
       case PlainNewExpr()         => UnknownNew(s)
       case EmptyMapProse()        => Map_(Nil)
       case MapLiteral(inner) =>

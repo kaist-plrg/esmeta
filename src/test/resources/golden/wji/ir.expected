@@ -97,6 +97,7 @@ def compile(
   call stableBytes = clo<"get_a_copy_of_the_buffer_source">(bytes)
   call _ret1 = clo<"asynchronously_compile_a_webassembly_module">(stableBytes, options)
   return _ret1
+  return ~unused~
 }
 def instantiate_imported_strings(
   module: Unknown,
@@ -482,6 +483,7 @@ def instantiate(
   call promiseOfModule = clo<"asynchronously_compile_a_webassembly_module">(stableBytes, options)
   call _ret17 = clo<"instantiate_a_promise_of_a_module">(promiseOfModule, importObject)
   return _ret17
+  return ~unused~
 }
 def instantiate_object(
   moduleObject: Unknown,
@@ -489,6 +491,7 @@ def instantiate_object(
 ): Unknown = {
   call _ret18 = clo<"asynchronously_instantiate_a_webassembly_module">(moduleObject, importObject)
   return _ret18
+  return ~unused~
 }
 def string_value_of_the_extern_type(
   type: Unknown,
@@ -597,7 +600,8 @@ def module(
   @this.Bytes = stableBytes
   @this.BuiltinSets = builtinSetNames
   @this.ImportedStringModule = importedStringModule
-  return ~unused~
+  call _ret21 = clo<"NormalCompletion">(~unused~)
+  return _ret21
 }
 def instance(
   moduleObject: Unknown,
@@ -619,7 +623,8 @@ def instance(
     instance = instance.Value
   }
   call _ = clo<"initialize_an_instance_object">(@this, module, instance)
-  return ~unused~
+  call _ret22 = clo<"NormalCompletion">(~unused~)
+  return _ret22
 }
 def exports(
 ): Unknown = {
@@ -686,8 +691,8 @@ def memory(
       if (exists _v18.Type) {
         return _v18
       } else {
-        call _ret21 = clo<"NormalCompletion">(_v18)
-        return _ret21
+        call _ret23 = clo<"NormalCompletion">(_v18)
+        return _ret23
       }
     } else {
       let initial = _comp8.Value
@@ -703,8 +708,8 @@ def memory(
         if (exists _v19.Type) {
           return _v19
         } else {
-          call _ret22 = clo<"NormalCompletion">(_v19)
-          return _ret22
+          call _ret24 = clo<"NormalCompletion">(_v19)
+          return _ret24
         }
       } else {
         let maximum = _comp9.Value
@@ -718,8 +723,8 @@ def memory(
   call memtype = clo<"memory_type">(addrtype, ~**min**~, initial, ~**max**~, maximum)
   if (! (= memtype ~valid memtype~)) {
     call _err20 = clo<"__NEW_ERROR_OBJ__">("%RangeError.prototype%")
-    call _ret23 = clo<"ThrowCompletion">(_err20)
-    return _ret23
+    call _ret25 = clo<"ThrowCompletion">(_err20)
+    return _ret25
   } else nop
   let store = @AGENT_RECORD["associated store"]
   call-embed _tuple7 = <mem_alloc>(store, memtype)
@@ -727,12 +732,13 @@ def memory(
   let memaddr = (proj _tuple7 1)
   if (yet "allocation fails") {
     call _err21 = clo<"__NEW_ERROR_OBJ__">("%RangeError.prototype%")
-    call _ret24 = clo<"ThrowCompletion">(_err21)
-    return _ret24
+    call _ret26 = clo<"ThrowCompletion">(_err21)
+    return _ret26
   } else nop
   @AGENT_RECORD["associated store"] = store
   call _ = clo<"initialize_a_memory_object">(@this, memaddr)
-  return ~unused~
+  call _ret27 = clo<"NormalCompletion">(~unused~)
+  return _ret27
 }
 def refresh_the_memory_buffer(
   memaddr: Unknown,
@@ -762,8 +768,8 @@ def grow_the_memory_buffer(
   call-embed store = <mem_grow>(store, memaddr, delta)
   if (= store ~error~) {
     call _err22 = clo<"__NEW_ERROR_OBJ__">("%RangeError.prototype%")
-    call _ret25 = clo<"ThrowCompletion">(_err22)
-    return _ret25
+    call _ret28 = clo<"ThrowCompletion">(_err22)
+    return _ret28
   } else nop
   @AGENT_RECORD["associated store"] = store
   call _ = clo<"refresh_the_memory_buffer">(memaddr)
@@ -771,8 +777,8 @@ def grow_the_memory_buffer(
   if (exists _v23.Type) {
     return _v23
   } else {
-    call _ret26 = clo<"NormalCompletion">(_v23)
-    return _ret26
+    call _ret29 = clo<"NormalCompletion">(_v23)
+    return _ret29
   }
   return ~unused~
 }
@@ -789,8 +795,8 @@ def grow(
       if (exists _v24.Type) {
         return _v24
       } else {
-        call _ret27 = clo<"NormalCompletion">(_v24)
-        return _ret27
+        call _ret30 = clo<"NormalCompletion">(_v24)
+        return _ret30
       }
     } else {
       let delta64 = _comp10.Value
@@ -808,8 +814,8 @@ def grow(
   if (exists _v25.Type) {
     return _v25
   } else {
-    call _ret28 = clo<"NormalCompletion">(_v25)
-    return _ret28
+    call _ret31 = clo<"NormalCompletion">(_v25)
+    return _ret31
   }
   return ~unused~
 }
@@ -844,8 +850,8 @@ def toresizablebuffer(
   call-embed memtype = <mem_type>(store, memaddr)
   if (yet "|memtype| does not have a max") {
     call _err26 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-    call _ret29 = clo<"ThrowCompletion">(_err26)
-    return _ret29
+    call _ret32 = clo<"ThrowCompletion">(_err26)
+    return _ret32
   } else nop
   let buffer = @this.BufferObject
   call _call13 = clo<"isfixedlengtharraybuffer">(buffer)
@@ -854,8 +860,8 @@ def toresizablebuffer(
     if (exists _v27.Type) {
       return _v27
     } else {
-      call _ret30 = clo<"NormalCompletion">(_v27)
-      return _ret30
+      call _ret33 = clo<"NormalCompletion">(_v27)
+      return _ret33
     }
   } else nop
   assert (yet "|memtype| has a max")
@@ -867,8 +873,8 @@ def toresizablebuffer(
   if (exists _v28.Type) {
     return _v28
   } else {
-    call _ret31 = clo<"NormalCompletion">(_v28)
-    return _ret31
+    call _ret34 = clo<"NormalCompletion">(_v28)
+    return _ret34
   }
   return ~unused~
 }
@@ -886,8 +892,8 @@ def abstract_operation_[=hostresizearraybuffer=](
       let lengthDelta = _ref_BinOp.ArrayBufferByteLength
       if (|| (< lengthDelta 0) (! (= (% lengthDelta 65536) 0))) {
         call _err29 = clo<"__NEW_ERROR_OBJ__">("%RangeError.prototype%")
-        call _ret32 = clo<"ThrowCompletion">(_err29)
-        return _ret32
+        call _ret35 = clo<"ThrowCompletion">(_err29)
+        return _ret35
       } else nop
       let delta = (/ lengthDelta 65536)
       call _ = clo<"grow_the_memory_buffer">(memaddr, delta)
@@ -896,19 +902,20 @@ def abstract_operation_[=hostresizearraybuffer=](
     if (exists _v30.Type) {
       return _v30
     } else {
-      call _ret33 = clo<"NormalCompletion">(_v30)
-      return _ret33
+      call _ret36 = clo<"NormalCompletion">(_v30)
+      return _ret36
     }
   } else {
     let _v31 = ~unhandled~
     if (exists _v31.Type) {
       return _v31
     } else {
-      call _ret34 = clo<"NormalCompletion">(_v31)
-      return _ret34
+      call _ret37 = clo<"NormalCompletion">(_v31)
+      return _ret37
     }
   }
-  return ~unused~
+  call _ret38 = clo<"NormalCompletion">(~unused~)
+  return _ret38
 }
 def buffer(
 ): Unknown = {
@@ -942,8 +949,8 @@ def table(
   call elementtype = clo<"tovaluetype">(descriptor.element)
   if (! (= elementtype (yet "a [=reftype=]"))) {
     call _err32 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-    call _ret35 = clo<"ThrowCompletion">(_err32)
-    return _ret35
+    call _ret39 = clo<"ThrowCompletion">(_err32)
+    return _ret39
   } else nop
   if (exists descriptor.address) {
     let addrtype = descriptor.address
@@ -957,8 +964,8 @@ def table(
       if (exists _v33.Type) {
         return _v33
       } else {
-        call _ret36 = clo<"NormalCompletion">(_v33)
-        return _ret36
+        call _ret40 = clo<"NormalCompletion">(_v33)
+        return _ret40
       }
     } else {
       let initial = _comp11.Value
@@ -974,8 +981,8 @@ def table(
         if (exists _v34.Type) {
           return _v34
         } else {
-          call _ret37 = clo<"NormalCompletion">(_v34)
-          return _ret37
+          call _ret41 = clo<"NormalCompletion">(_v34)
+          return _ret41
         }
       } else {
         let maximum = _comp12.Value
@@ -989,8 +996,8 @@ def table(
   let type = (yet "the [=table type=] |addrtype| { <b>[=limits|min=]</b> |initial|, <b>[=limits|max=]</b> |maximum| } |elementtype|")
   if (! (= type ~valid tabletype~)) {
     call _err35 = clo<"__NEW_ERROR_OBJ__">("%RangeError.prototype%")
-    call _ret38 = clo<"ThrowCompletion">(_err35)
-    return _ret38
+    call _ret42 = clo<"ThrowCompletion">(_err35)
+    return _ret42
   } else nop
   if (! (exists value)) {
     call ref = clo<"defaultvalue">(elementtype)
@@ -1003,8 +1010,8 @@ def table(
         if (exists _v36.Type) {
           return _v36
         } else {
-          call _ret39 = clo<"NormalCompletion">(_v36)
-          return _ret39
+          call _ret43 = clo<"NormalCompletion">(_v36)
+          return _ret43
         }
       } else {
         let ref = _comp13.Value
@@ -1019,12 +1026,13 @@ def table(
   let tableaddr = (proj _tuple8 1)
   if (yet "allocation fails") {
     call _err37 = clo<"__NEW_ERROR_OBJ__">("%RangeError.prototype%")
-    call _ret40 = clo<"ThrowCompletion">(_err37)
-    return _ret40
+    call _ret44 = clo<"ThrowCompletion">(_err37)
+    return _ret44
   } else nop
   @AGENT_RECORD["associated store"] = store
   call _ = clo<"initialize_a_table_object">(@this, tableaddr)
-  return ~unused~
+  call _ret45 = clo<"NormalCompletion">(~unused~)
+  return _ret45
 }
 def grow(
   delta: Unknown,
@@ -1044,8 +1052,8 @@ def grow(
       if (exists _v38.Type) {
         return _v38
       } else {
-        call _ret41 = clo<"NormalCompletion">(_v38)
-        return _ret41
+        call _ret46 = clo<"NormalCompletion">(_v38)
+        return _ret46
       }
     } else {
       let delta64 = _comp14.Value
@@ -1057,8 +1065,8 @@ def grow(
     call ref = clo<"defaultvalue">(elementtype)
     if (= ref ~error~) {
       call _err39 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-      call _ret42 = clo<"ThrowCompletion">(_err39)
-      return _ret42
+      call _ret47 = clo<"ThrowCompletion">(_err39)
+      return _ret47
     } else nop
   } else {
     call _comp15 = clo<"towebassemblyvalue">(value, elementtype)
@@ -1068,8 +1076,8 @@ def grow(
         if (exists _v40.Type) {
           return _v40
         } else {
-          call _ret43 = clo<"NormalCompletion">(_v40)
-          return _ret43
+          call _ret48 = clo<"NormalCompletion">(_v40)
+          return _ret48
         }
       } else {
         let ref = _comp15.Value
@@ -1081,16 +1089,16 @@ def grow(
   call-embed result = <table_grow>(store, tableaddr, delta64, ref)
   if (= result ~error~) {
     call _err41 = clo<"__NEW_ERROR_OBJ__">("%RangeError.prototype%")
-    call _ret44 = clo<"ThrowCompletion">(_err41)
-    return _ret44
+    call _ret49 = clo<"ThrowCompletion">(_err41)
+    return _ret49
   } else nop
   @AGENT_RECORD["associated store"] = result
   call _v42 = clo<"u64toaddressvalue">(initialSize, addrtype)
   if (exists _v42.Type) {
     return _v42
   } else {
-    call _ret45 = clo<"NormalCompletion">(_v42)
-    return _ret45
+    call _ret50 = clo<"NormalCompletion">(_v42)
+    return _ret50
   }
   return ~unused~
 }
@@ -1100,8 +1108,8 @@ def length(
   let store = @AGENT_RECORD["associated store"]
   let addrtype = (yet "the [=address type=] in [=table_type=](|store|, |tableaddr|)")
   call-embed length64 = <table_size>(store, tableaddr)
-  call _ret46 = clo<"u64toaddressvalue">(length64, addrtype)
-  return _ret46
+  call _ret51 = clo<"u64toaddressvalue">(length64, addrtype)
+  return _ret51
 }
 def get(
   index: Unknown,
@@ -1114,8 +1122,8 @@ def get(
   let elementtype = (proj _tuple10 2)
   if (yet "matches reftype") {
     call _err43 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-    call _ret47 = clo<"ThrowCompletion">(_err43)
-    return _ret47
+    call _ret52 = clo<"ThrowCompletion">(_err43)
+    return _ret52
   } else nop
   call _comp16 = clo<"addressvaluetou64">(index, addrtype)
   if (exists _comp16.Type) {
@@ -1124,8 +1132,8 @@ def get(
       if (exists _v44.Type) {
         return _v44
       } else {
-        call _ret48 = clo<"NormalCompletion">(_v44)
-        return _ret48
+        call _ret53 = clo<"NormalCompletion">(_v44)
+        return _ret53
       }
     } else {
       let index64 = _comp16.Value
@@ -1136,8 +1144,8 @@ def get(
   call-embed result = <table_read>(store, tableaddr, index64)
   if (= result ~error~) {
     call _err45 = clo<"__NEW_ERROR_OBJ__">("%RangeError.prototype%")
-    call _ret49 = clo<"ThrowCompletion">(_err45)
-    return _ret49
+    call _ret54 = clo<"ThrowCompletion">(_err45)
+    return _ret54
   } else nop
   call _comp17 = clo<"tojsvalue">(result)
   if (exists _comp17.Type) {
@@ -1146,19 +1154,20 @@ def get(
     if (exists _v46.Type) {
       return _v46
     } else {
-      call _ret50 = clo<"NormalCompletion">(_v46)
-      return _ret50
+      call _ret55 = clo<"NormalCompletion">(_v46)
+      return _ret55
     }
   } else {
     let _v47 = _comp17
     if (exists _v47.Type) {
       return _v47
     } else {
-      call _ret51 = clo<"NormalCompletion">(_v47)
-      return _ret51
+      call _ret56 = clo<"NormalCompletion">(_v47)
+      return _ret56
     }
   }
-  return ~unused~
+  call _ret57 = clo<"NormalCompletion">(~unused~)
+  return _ret57
 }
 def set(
   index: Unknown,
@@ -1172,8 +1181,8 @@ def set(
   let elementtype = (proj _tuple11 2)
   if (yet "matches reftype") {
     call _err48 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-    call _ret52 = clo<"ThrowCompletion">(_err48)
-    return _ret52
+    call _ret58 = clo<"ThrowCompletion">(_err48)
+    return _ret58
   } else nop
   call _comp18 = clo<"addressvaluetou64">(index, addrtype)
   if (exists _comp18.Type) {
@@ -1182,8 +1191,8 @@ def set(
       if (exists _v49.Type) {
         return _v49
       } else {
-        call _ret53 = clo<"NormalCompletion">(_v49)
-        return _ret53
+        call _ret59 = clo<"NormalCompletion">(_v49)
+        return _ret59
       }
     } else {
       let index64 = _comp18.Value
@@ -1195,8 +1204,8 @@ def set(
     call ref = clo<"defaultvalue">(elementtype)
     if (= ref ~error~) {
       call _err50 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-      call _ret54 = clo<"ThrowCompletion">(_err50)
-      return _ret54
+      call _ret60 = clo<"ThrowCompletion">(_err50)
+      return _ret60
     } else nop
   } else {
     call _comp19 = clo<"towebassemblyvalue">(value, elementtype)
@@ -1206,8 +1215,8 @@ def set(
         if (exists _v51.Type) {
           return _v51
         } else {
-          call _ret55 = clo<"NormalCompletion">(_v51)
-          return _ret55
+          call _ret61 = clo<"NormalCompletion">(_v51)
+          return _ret61
         }
       } else {
         let ref = _comp19.Value
@@ -1219,11 +1228,12 @@ def set(
   call-embed store = <table_write>(store, tableaddr, index64, ref)
   if (= store ~error~) {
     call _err52 = clo<"__NEW_ERROR_OBJ__">("%RangeError.prototype%")
-    call _ret56 = clo<"ThrowCompletion">(_err52)
-    return _ret56
+    call _ret62 = clo<"ThrowCompletion">(_err52)
+    return _ret62
   } else nop
   @AGENT_RECORD["associated store"] = store
-  return ~unused~
+  call _ret63 = clo<"NormalCompletion">(~unused~)
+  return _ret63
 }
 def initialize_a_global_object(
   global: Unknown,
@@ -1285,8 +1295,8 @@ def defaultvalue(
       return _comp20
     }
   } else nop
-  call-embed _ret57 = <val_default>(valuetype)
-  return _ret57
+  call-embed _ret64 = <val_default>(valuetype)
+  return _ret64
 }
 def global(
   descriptor: Unknown,
@@ -1298,8 +1308,8 @@ def global(
   call-embed _m2 = <match_valtype>(valuetype, ~exnref~)
   if (|| (= _m1 true) (= _m2 true)) {
     call _err53 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-    call _ret58 = clo<"ThrowCompletion">(_err53)
-    return _ret58
+    call _ret65 = clo<"ThrowCompletion">(_err53)
+    return _ret65
   } else nop
   if (! (exists v)) {
     call value = clo<"defaultvalue">(valuetype)
@@ -1312,8 +1322,8 @@ def global(
         if (exists _v54.Type) {
           return _v54
         } else {
-          call _ret59 = clo<"NormalCompletion">(_v54)
-          return _ret59
+          call _ret66 = clo<"NormalCompletion">(_v54)
+          return _ret66
         }
       } else {
         let value = _comp21.Value
@@ -1334,7 +1344,8 @@ def global(
   (yet "<!-- TODO(littledan): Report allocation failure https://github.com/WebAssembly/spec/issues/584 -->")
   @AGENT_RECORD["associated store"] = store
   call _ = clo<"initialize_a_global_object">(@this, globaladdr)
-  return ~unused~
+  call _ret67 = clo<"NormalCompletion">(~unused~)
+  return _ret67
 }
 def getglobalvalue(
   global: Unknown,
@@ -1344,8 +1355,8 @@ def getglobalvalue(
   call-embed globaltype = <global_type>(store, globaladdr)
   if (|| (yet "is of form Unknown(<var ignore>mut</var> |valuetype|)") ~exnref~) {
     call _err55 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-    call _ret60 = clo<"ThrowCompletion">(_err55)
-    return _ret60
+    call _ret68 = clo<"ThrowCompletion">(_err55)
+    return _ret68
   } else nop
   call-embed value = <global_read>(store, globaladdr)
   call _comp22 = clo<"tojsvalue">(value)
@@ -1355,19 +1366,20 @@ def getglobalvalue(
     if (exists _v56.Type) {
       return _v56
     } else {
-      call _ret61 = clo<"NormalCompletion">(_v56)
-      return _ret61
+      call _ret69 = clo<"NormalCompletion">(_v56)
+      return _ret69
     }
   } else {
     let _v57 = _comp22
     if (exists _v57.Type) {
       return _v57
     } else {
-      call _ret62 = clo<"NormalCompletion">(_v57)
-      return _ret62
+      call _ret70 = clo<"NormalCompletion">(_v57)
+      return _ret70
     }
   }
-  return ~unused~
+  call _ret71 = clo<"NormalCompletion">(~unused~)
+  return _ret71
 }
 def value(
 ): Unknown = {
@@ -1375,8 +1387,8 @@ def value(
   if (exists _v58.Type) {
     return _v58
   } else {
-    call _ret63 = clo<"NormalCompletion">(_v58)
-    return _ret63
+    call _ret72 = clo<"NormalCompletion">(_v58)
+    return _ret72
   }
   return ~unused~
 }
@@ -1389,13 +1401,13 @@ def global-value-setter(
   call-embed _m4 = <match_valtype>(valuetype, ~exnref~)
   if (|| (= _m3 true) (= _m4 true)) {
     call _err59 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-    call _ret64 = clo<"ThrowCompletion">(_err59)
-    return _ret64
+    call _ret73 = clo<"ThrowCompletion">(_err59)
+    return _ret73
   } else nop
   if (= mut ~const~) {
     call _err60 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-    call _ret65 = clo<"ThrowCompletion">(_err60)
-    return _ret65
+    call _ret74 = clo<"ThrowCompletion">(_err60)
+    return _ret74
   } else nop
   call _comp23 = clo<"towebassemblyvalue">(~**the given value**~, valuetype)
   if (exists _comp23.Type) {
@@ -1404,8 +1416,8 @@ def global-value-setter(
       if (exists _v61.Type) {
         return _v61
       } else {
-        call _ret66 = clo<"NormalCompletion">(_v61)
-        return _ret66
+        call _ret75 = clo<"NormalCompletion">(_v61)
+        return _ret75
       }
     } else {
       let value = _comp23.Value
@@ -1416,11 +1428,12 @@ def global-value-setter(
   call-embed store = <global_write>(store, globaladdr, value)
   if (= store ~error~) {
     call _err62 = clo<"__NEW_ERROR_OBJ__">("%RangeError.prototype%")
-    call _ret67 = clo<"ThrowCompletion">(_err62)
-    return _ret67
+    call _ret76 = clo<"ThrowCompletion">(_err62)
+    return _ret76
   } else nop
   @AGENT_RECORD["associated store"] = store
-  return ~unused~
+  call _ret77 = clo<"NormalCompletion">(~unused~)
+  return _ret77
 }
 def valueof(
 ): Unknown = {
@@ -1428,8 +1441,8 @@ def valueof(
   if (exists _v63.Type) {
     return _v63
   } else {
-    call _ret68 = clo<"NormalCompletion">(_v63)
-    return _ret68
+    call _ret78 = clo<"NormalCompletion">(_v63)
+    return _ret78
   }
   return ~unused~
 }
@@ -1511,8 +1524,8 @@ def call_an_exported_function(
   }
   if (= _found7 true) {
     call _err64 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-    call _ret69 = clo<"ThrowCompletion">(_err64)
-    return _ret69
+    call _ret79 = clo<"ThrowCompletion">(_err64)
+    return _ret79
   } else nop
   let args = (list [])
   let i = 0
@@ -1566,8 +1579,8 @@ def call_an_exported_function(
     if (exists _v65.Type) {
       return _v65
     } else {
-      call _ret70 = clo<"NormalCompletion">(_v65)
-      return _ret70
+      call _ret80 = clo<"NormalCompletion">(_v65)
+      return _ret80
     }
   } else if (= outArity 1) {
     call _comp26 = clo<"tojsvalue">(ret[0])
@@ -1577,16 +1590,16 @@ def call_an_exported_function(
       if (exists _v66.Type) {
         return _v66
       } else {
-        call _ret71 = clo<"NormalCompletion">(_v66)
-        return _ret71
+        call _ret81 = clo<"NormalCompletion">(_v66)
+        return _ret81
       }
     } else {
       let _v67 = _comp26
       if (exists _v67.Type) {
         return _v67
       } else {
-        call _ret72 = clo<"NormalCompletion">(_v67)
-        return _ret72
+        call _ret82 = clo<"NormalCompletion">(_v67)
+        return _ret82
       }
     }
   } else {
@@ -1603,11 +1616,12 @@ def call_an_exported_function(
     if (exists _v68.Type) {
       return _v68
     } else {
-      call _ret73 = clo<"NormalCompletion">(_v68)
-      return _ret73
+      call _ret83 = clo<"NormalCompletion">(_v68)
+      return _ret83
     }
   }
-  return ~unused~
+  call _ret84 = clo<"NormalCompletion">(~unused~)
+  return _ret84
 }
 def run_a_host_function(
   func: Unknown,
@@ -1641,8 +1655,8 @@ def run_a_host_function(
   }
   if (= _found12 true) {
     call _err69 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-    call _ret74 = clo<"ThrowCompletion">(_err69)
-    return _ret74
+    call _ret85 = clo<"ThrowCompletion">(_err69)
+    return _ret85
   } else nop
   let jsArguments = (list [])
   let _iterList19 = arguments
@@ -1660,8 +1674,8 @@ def run_a_host_function(
       if (exists _v70.Type) {
         return _v70
       } else {
-        call _ret75 = clo<"NormalCompletion">(_v70)
-        return _ret75
+        call _ret86 = clo<"NormalCompletion">(_v70)
+        return _ret86
       }
     } else {
       let ret = _comp27.Value
@@ -1675,8 +1689,8 @@ def run_a_host_function(
     if (exists _v71.Type) {
       return _v71
     } else {
-      call _ret76 = clo<"NormalCompletion">(_v71)
-      return _ret76
+      call _ret87 = clo<"NormalCompletion">(_v71)
+      return _ret87
     }
   } else if (= resultsSize 1) {
     call _call19 = clo<"towebassemblyvalue">(ret, results[0])
@@ -1689,8 +1703,8 @@ def run_a_host_function(
     if (exists _v72.Type) {
       return _v72
     } else {
-      call _ret77 = clo<"NormalCompletion">(_v72)
-      return _ret77
+      call _ret88 = clo<"NormalCompletion">(_v72)
+      return _ret88
     }
   } else {
     call _comp28 = clo<"GetMethod">(ret, @SYMBOL.iterator)
@@ -1700,8 +1714,8 @@ def run_a_host_function(
         if (exists _v73.Type) {
           return _v73
         } else {
-          call _ret78 = clo<"NormalCompletion">(_v73)
-          return _ret78
+          call _ret89 = clo<"NormalCompletion">(_v73)
+          return _ret89
         }
       } else {
         let method = _comp28.Value
@@ -1711,8 +1725,8 @@ def run_a_host_function(
     }
     if (= method undefined) {
       call _err74 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-      call _ret79 = clo<"ThrowCompletion">(_err74)
-      return _ret79
+      call _ret90 = clo<"ThrowCompletion">(_err74)
+      return _ret90
     } else nop
     call _call20 = clo<"GetIteratorFromMethod">(ret, method)
     call _comp29 = clo<"IteratorToList">((yet "nested ?-abrupt: Var(_call20)"))
@@ -1722,8 +1736,8 @@ def run_a_host_function(
         if (exists _v75.Type) {
           return _v75
         } else {
-          call _ret80 = clo<"NormalCompletion">(_v75)
-          return _ret80
+          call _ret91 = clo<"NormalCompletion">(_v75)
+          return _ret91
         }
       } else {
         let values = _comp29.Value
@@ -1734,8 +1748,8 @@ def run_a_host_function(
     let wasmValues = (list [])
     if (! (= (sizeof values) resultsSize)) {
       call _err76 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-      call _ret81 = clo<"ThrowCompletion">(_err76)
-      return _ret81
+      call _ret92 = clo<"ThrowCompletion">(_err76)
+      return _ret92
     } else nop
     (yet "foreach ?(|value| and |resultType|) in ?(|values| and |results|)")
     call _call21 = clo<"towebassemblyvalue">(value, resultType)
@@ -1749,11 +1763,12 @@ def run_a_host_function(
     if (exists _v77.Type) {
       return _v77
     } else {
-      call _ret82 = clo<"NormalCompletion">(_v77)
-      return _ret82
+      call _ret93 = clo<"NormalCompletion">(_v77)
+      return _ret93
     }
   }
-  return ~unused~
+  call _ret94 = clo<"NormalCompletion">(~unused~)
+  return _ret94
 }
 def create_a_host_function(
   func: Unknown,
@@ -1776,13 +1791,13 @@ def tojsvalue(
   assert (yet "is of form Case([=ref.exn=],List(Var(exnaddr)))")
   if (yet "is of form Case([=i64.const=],List(Var(u64)))") {
     call i64 = clo<"signed_64">(u64)
-    call _ret83 = clo<"ℤ">(i64)
-    return _ret83
+    call _ret95 = clo<"ℤ">(i64)
+    return _ret95
   } else nop
   if (yet "is of form Case([=i32.const=],List(Var(u32)))") {
     call i32 = clo<"signed_32">(u32)
-    call _ret84 = clo<"𝔽">(i32)
-    return _ret84
+    call _ret96 = clo<"𝔽">(i32)
+    return _ret96
   } else nop
   if (yet "is of form Case([=f32.const=],List(Var(f32)))") {
     if (|| (= f32 ~+∞~) (= f32 ~−∞~)) {
@@ -1791,8 +1806,8 @@ def tojsvalue(
     if (= f32 ~nan~) {
       return ~**NaN**~
     } else nop
-    call _ret85 = clo<"𝔽">(f32)
-    return _ret85
+    call _ret97 = clo<"𝔽">(f32)
+    return _ret97
   } else nop
   if (yet "is of form Case([=f64.const=],List(Var(f64)))") {
     if (|| (= f64 ~+∞~) (= f64 ~−∞~)) {
@@ -1801,36 +1816,36 @@ def tojsvalue(
     if (= f64 ~nan~) {
       return ~**NaN**~
     } else nop
-    call _ret86 = clo<"𝔽">(f64)
-    return _ret86
+    call _ret98 = clo<"𝔽">(f64)
+    return _ret98
   } else nop
   if (yet "is of form Case([=ref.null=],List(Var(t)))") {
     return null
   } else nop
   if (yet "is of form Case([=ref.i31=],List(Var(u31)))") {
     call i31 = clo<"signed_31">(u31)
-    call _ret87 = clo<"𝔽">(i31)
-    return _ret87
+    call _ret99 = clo<"𝔽">(i31)
+    return _ret99
   } else nop
   if (yet "is of form Case([=ref.struct=],List(Var(structaddr)))") {
-    call _ret88 = clo<"a_new_exported_gc_object">(structaddr, "struct")
-    return _ret88
+    call _ret100 = clo<"a_new_exported_gc_object">(structaddr, "struct")
+    return _ret100
   } else nop
   if (yet "is of form Case([=ref.array=],List(Var(arrayaddr)))") {
-    call _ret89 = clo<"a_new_exported_gc_object">(arrayaddr, "array")
-    return _ret89
+    call _ret101 = clo<"a_new_exported_gc_object">(arrayaddr, "array")
+    return _ret101
   } else nop
   if (yet "is of form Case([=ref.func=],List(Var(funcaddr)))") {
-    call _ret90 = clo<"a_new_exported_function">(funcaddr)
-    return _ret90
+    call _ret102 = clo<"a_new_exported_function">(funcaddr)
+    return _ret102
   } else nop
   if (yet "is of form Case([=ref.host=],List(Var(hostaddr)))") {
-    call _ret91 = clo<"retrieving_a_host_value">(hostaddr)
-    return _ret91
+    call _ret103 = clo<"retrieving_a_host_value">(hostaddr)
+    return _ret103
   } else nop
   if (yet "is of form Case([=ref.extern=],List(Var(ref)))") {
-    call _ret92 = clo<"tojsvalue">(ref)
-    return _ret92
+    call _ret104 = clo<"tojsvalue">(ref)
+    return _ret104
   } else nop
   return ~unused~
 }
@@ -1856,8 +1871,8 @@ def towebassemblyvalue(
         if (exists _v78.Type) {
           return _v78
         } else {
-          call _ret93 = clo<"NormalCompletion">(_v78)
-          return _ret93
+          call _ret105 = clo<"NormalCompletion">(_v78)
+          return _ret105
         }
       } else {
         let i64 = _comp31.Value
@@ -1870,8 +1885,8 @@ def towebassemblyvalue(
     if (exists _v79.Type) {
       return _v79
     } else {
-      call _ret94 = clo<"NormalCompletion">(_v79)
-      return _ret94
+      call _ret106 = clo<"NormalCompletion">(_v79)
+      return _ret106
     }
   } else nop
   if (= type ~i32~) {
@@ -1882,8 +1897,8 @@ def towebassemblyvalue(
         if (exists _v80.Type) {
           return _v80
         } else {
-          call _ret95 = clo<"NormalCompletion">(_v80)
-          return _ret95
+          call _ret107 = clo<"NormalCompletion">(_v80)
+          return _ret107
         }
       } else {
         let i32 = _comp32.Value
@@ -1896,8 +1911,8 @@ def towebassemblyvalue(
     if (exists _v81.Type) {
       return _v81
     } else {
-      call _ret96 = clo<"NormalCompletion">(_v81)
-      return _ret96
+      call _ret108 = clo<"NormalCompletion">(_v81)
+      return _ret108
     }
   } else nop
   if (= type ~f32~) {
@@ -1908,8 +1923,8 @@ def towebassemblyvalue(
         if (exists _v82.Type) {
           return _v82
         } else {
-          call _ret97 = clo<"NormalCompletion">(_v82)
-          return _ret97
+          call _ret109 = clo<"NormalCompletion">(_v82)
+          return _ret109
         }
       } else {
         let number = _comp33.Value
@@ -1928,8 +1943,8 @@ def towebassemblyvalue(
     if (exists _v83.Type) {
       return _v83
     } else {
-      call _ret98 = clo<"NormalCompletion">(_v83)
-      return _ret98
+      call _ret110 = clo<"NormalCompletion">(_v83)
+      return _ret110
     }
   } else nop
   if (= type ~f64~) {
@@ -1940,8 +1955,8 @@ def towebassemblyvalue(
         if (exists _v84.Type) {
           return _v84
         } else {
-          call _ret99 = clo<"NormalCompletion">(_v84)
-          return _ret99
+          call _ret111 = clo<"NormalCompletion">(_v84)
+          return _ret111
         }
       } else {
         let number = _comp34.Value
@@ -1959,8 +1974,8 @@ def towebassemblyvalue(
     if (exists _v85.Type) {
       return _v85
     } else {
-      call _ret100 = clo<"NormalCompletion">(_v85)
-      return _ret100
+      call _ret112 = clo<"NormalCompletion">(_v85)
+      return _ret112
     }
   } else nop
   if (yet "is of form Case([=ref=],List(Var(null), Var(heaptype)))") {
@@ -1986,8 +2001,8 @@ def towebassemblyvalue(
           if (exists _v86.Type) {
             return _v86
           } else {
-            call _ret101 = clo<"NormalCompletion">(_v86)
-            return _ret101
+            call _ret113 = clo<"NormalCompletion">(_v86)
+            return _ret113
           }
         } else {
           let i31 = _comp36.Value
@@ -2012,8 +2027,8 @@ def towebassemblyvalue(
         if (exists _v87.Type) {
           return _v87
         } else {
-          call _ret102 = clo<"NormalCompletion">(_v87)
-          return _ret102
+          call _ret114 = clo<"NormalCompletion">(_v87)
+          return _ret114
         }
       } else nop
       let _ = (yet "unsupported Let lhs: AlgoCall([=host_address=],List(Var(hostaddr)))")
@@ -2025,19 +2040,20 @@ def towebassemblyvalue(
     call-embed _call22 = <match_valtype>(actualtype, type)
     if (= _call22 false) {
       call _err88 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-      call _ret103 = clo<"ThrowCompletion">(_err88)
-      return _ret103
+      call _ret115 = clo<"ThrowCompletion">(_err88)
+      return _ret115
     } else nop
     let _v89 = r
     if (exists _v89.Type) {
       return _v89
     } else {
-      call _ret104 = clo<"NormalCompletion">(_v89)
-      return _ret104
+      call _ret116 = clo<"NormalCompletion">(_v89)
+      return _ret116
     }
   } else nop
   assert false
-  return ~unused~
+  call _ret117 = clo<"NormalCompletion">(~unused~)
+  return _ret117
 }
 def addressvaluetou64(
   v: Unknown,
@@ -2051,8 +2067,8 @@ def addressvaluetou64(
         if (exists _v90.Type) {
           return _v90
         } else {
-          call _ret105 = clo<"NormalCompletion">(_v90)
-          return _ret105
+          call _ret118 = clo<"NormalCompletion">(_v90)
+          return _ret118
         }
       } else {
         let n = _comp37.Value
@@ -2064,8 +2080,8 @@ def addressvaluetou64(
     if (exists _v91.Type) {
       return _v91
     } else {
-      call _ret106 = clo<"NormalCompletion">(_v91)
-      return _ret106
+      call _ret119 = clo<"NormalCompletion">(_v91)
+      return _ret119
     }
   } else nop
   if (= addrtype "i64") {
@@ -2076,8 +2092,8 @@ def addressvaluetou64(
         if (exists _v92.Type) {
           return _v92
         } else {
-          call _ret107 = clo<"NormalCompletion">(_v92)
-          return _ret107
+          call _ret120 = clo<"NormalCompletion">(_v92)
+          return _ret120
         }
       } else {
         let n = _comp38.Value
@@ -2087,30 +2103,31 @@ def addressvaluetou64(
     }
     if (|| (< n 0) (< (- (** 2 64) 1) n)) {
       call _err93 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-      call _ret108 = clo<"ThrowCompletion">(_err93)
-      return _ret108
+      call _ret121 = clo<"ThrowCompletion">(_err93)
+      return _ret121
     } else nop
     let _v94 = (yet "[=ℝ=](|n|) as a WebAssembly [=u64=]")
     if (exists _v94.Type) {
       return _v94
     } else {
-      call _ret109 = clo<"NormalCompletion">(_v94)
-      return _ret109
+      call _ret122 = clo<"NormalCompletion">(_v94)
+      return _ret122
     }
   } else nop
   assert false
-  return ~unused~
+  call _ret123 = clo<"NormalCompletion">(~unused~)
+  return _ret123
 }
 def u64toaddressvalue(
   v: Unknown,
   addrtype: Unknown,
 ): Unknown = {
   if (= addrtype "i32") {
-    call _ret110 = clo<"𝔽">(v)
-    return _ret110
+    call _ret124 = clo<"𝔽">(v)
+    return _ret124
   } else if (= addrtype "i64") {
-    call _ret111 = clo<"ℤ">(v)
-    return _ret111
+    call _ret125 = clo<"ℤ">(v)
+    return _ret125
   } else nop
   assert false
   return ~unused~
@@ -2192,14 +2209,18 @@ def \[[get]]_internal_method_of_an_exported_gc_object(
 def \[[set]]_internal_method_of_an_exported_gc_object(
 ): Unknown = {
   call _err95 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-  call _ret112 = clo<"ThrowCompletion">(_err95)
-  return _ret112
+  call _ret126 = clo<"ThrowCompletion">(_err95)
+  return _ret126
+  call _ret127 = clo<"NormalCompletion">(~unused~)
+  return _ret127
 }
 def \[[delete]]_internal_method_of_an_exported_gc_object(
 ): Unknown = {
   call _err96 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-  call _ret113 = clo<"ThrowCompletion">(_err96)
-  return _ret113
+  call _ret128 = clo<"ThrowCompletion">(_err96)
+  return _ret128
+  call _ret129 = clo<"NormalCompletion">(~unused~)
+  return _ret129
 }
 def \[[ownpropertykeys]]_internal_method_of_an_exported_gc_object(
 ): Unknown = {
@@ -2267,15 +2288,15 @@ def exception(
   call JSTagAddr = clo<"get_the_javascript_exception_tag">()
   if (= exceptionTag.Address JSTagAddr) {
     call _err97 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-    call _ret114 = clo<"ThrowCompletion">(_err97)
-    return _ret114
+    call _ret130 = clo<"ThrowCompletion">(_err97)
+    return _ret130
   } else nop
   let store = @AGENT_RECORD["associated store"]
   let _ = (yet "unsupported Let lhs: Unknown([|types|] → [])")
   if (! (= (sizeof types) (sizeof payload))) {
     call _err98 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-    call _ret115 = clo<"ThrowCompletion">(_err98)
-    return _ret115
+    call _ret131 = clo<"ThrowCompletion">(_err98)
+    return _ret131
   } else nop
   let wasmPayload = (list [])
   (yet "foreach ?(|value| and |resultType|) in ?(|payload| and |types|)")
@@ -2283,8 +2304,8 @@ def exception(
   call-embed _m17 = <match_valtype>(resultType, ~exnref~)
   if (|| (= _m16 true) (= _m17 true)) {
     call _err99 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-    call _ret116 = clo<"ThrowCompletion">(_err99)
-    return _ret116
+    call _ret132 = clo<"ThrowCompletion">(_err99)
+    return _ret132
   } else nop
   call _call24 = clo<"towebassemblyvalue">(value, resultType)
   if (? _call24: Abrupt) {
@@ -2301,7 +2322,8 @@ def exception(
   if (= options.traceStack true) {
     @this.Stack = (yet "a {{DOMString}} representation of the current call stack or undefined")
   } else nop
-  return ~unused~
+  call _ret133 = clo<"NormalCompletion">(~unused~)
+  return _ret133
 }
 def getarg(
   exceptionTag: Unknown,
@@ -2310,24 +2332,24 @@ def getarg(
   let store = @AGENT_RECORD["associated store"]
   if (! (= @this.Type exceptionTag.Address)) {
     call _err100 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-    call _ret117 = clo<"ThrowCompletion">(_err100)
-    return _ret117
+    call _ret134 = clo<"ThrowCompletion">(_err100)
+    return _ret134
   } else nop
   call-embed tagaddr = <exn_tag>(store, @this.Address)
   call-embed payload = <exn_read>(store, @this.Address)
   assert (= tagaddr @this.Type)
   if (! (< index (sizeof payload))) {
     call _err101 = clo<"__NEW_ERROR_OBJ__">("%RangeError.prototype%")
-    call _ret118 = clo<"ThrowCompletion">(_err101)
-    return _ret118
+    call _ret135 = clo<"ThrowCompletion">(_err101)
+    return _ret135
   } else nop
   let _ = (yet "unsupported Let lhs: Unknown([|types|] → [])")
   call-embed _m18 = <match_valtype>(types[index], ~v128~)
   call-embed _m19 = <match_valtype>(types[index], ~exnref~)
   if (|| (= _m18 true) (= _m19 true)) {
     call _err102 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-    call _ret119 = clo<"ThrowCompletion">(_err102)
-    return _ret119
+    call _ret136 = clo<"ThrowCompletion">(_err102)
+    return _ret136
   } else nop
   call _comp39 = clo<"tojsvalue">(payload[index])
   if (exists _comp39.Type) {
@@ -2336,19 +2358,20 @@ def getarg(
     if (exists _v103.Type) {
       return _v103
     } else {
-      call _ret120 = clo<"NormalCompletion">(_v103)
-      return _ret120
+      call _ret137 = clo<"NormalCompletion">(_v103)
+      return _ret137
     }
   } else {
     let _v104 = _comp39
     if (exists _v104.Type) {
       return _v104
     } else {
-      call _ret121 = clo<"NormalCompletion">(_v104)
-      return _ret121
+      call _ret138 = clo<"NormalCompletion">(_v104)
+      return _ret138
     }
   }
-  return ~unused~
+  call _ret139 = clo<"NormalCompletion">(~unused~)
+  return _ret139
 }
 def is(
   exceptionTag: Unknown,
@@ -2505,8 +2528,8 @@ def validate_an_import_for_builtins(
   let importExternType = import[2]
   let builtinFuncType = maybeBuiltin[1][1]
   let builtinExternType = (yet "func |builtinFuncType|")
-  call-embed _ret122 = <match_externtype>(builtinExternType, importExternType)
-  return _ret122
+  call-embed _ret140 = <match_externtype>(builtinExternType, importExternType)
+  return _ret140
 }
 def unwrapstring(
   v: Unknown,
@@ -2518,8 +2541,8 @@ def unwrapstring(
   if (exists _v105.Type) {
     return _v105
   } else {
-    call _ret123 = clo<"NormalCompletion">(_v105)
-    return _ret123
+    call _ret141 = clo<"NormalCompletion">(_v105)
+    return _ret141
   }
   return ~unused~
 }
@@ -2599,8 +2622,8 @@ def js-string-fromcharcodearray(
   if (exists _v106.Type) {
     return _v106
   } else {
-    call _ret124 = clo<"NormalCompletion">(_v106)
-    return _ret124
+    call _ret142 = clo<"NormalCompletion">(_v106)
+    return _ret142
   }
   return ~unused~
 }
@@ -2619,8 +2642,8 @@ def js-string-intocharcodearray(
       if (exists _v107.Type) {
         return _v107
       } else {
-        call _ret125 = clo<"NormalCompletion">(_v107)
-        return _ret125
+        call _ret143 = clo<"NormalCompletion">(_v107)
+        return _ret143
       }
     } else {
       let string = _comp45.Value
@@ -2649,16 +2672,16 @@ def js-string-intocharcodearray(
   if (exists _v108.Type) {
     return _v108
   } else {
-    call _ret126 = clo<"NormalCompletion">(_v108)
-    return _ret126
+    call _ret144 = clo<"NormalCompletion">(_v108)
+    return _ret144
   }
   return ~unused~
 }
 def js-string-fromcharcode(
   v: Unknown,
 ): Unknown = {
-  call _ret127 = clo<"fromcharcode">(v)
-  return _ret127
+  call _ret145 = clo<"fromcharcode">(v)
+  return _ret145
 }
 def js-string-fromcodepoint(
   v: Unknown,
@@ -2674,19 +2697,20 @@ def js-string-fromcodepoint(
     if (exists _v109.Type) {
       return _v109
     } else {
-      call _ret128 = clo<"NormalCompletion">(_v109)
-      return _ret128
+      call _ret146 = clo<"NormalCompletion">(_v109)
+      return _ret146
     }
   } else {
     let _v110 = _comp46
     if (exists _v110.Type) {
       return _v110
     } else {
-      call _ret129 = clo<"NormalCompletion">(_v110)
-      return _ret129
+      call _ret147 = clo<"NormalCompletion">(_v110)
+      return _ret147
     }
   }
-  return ~unused~
+  call _ret148 = clo<"NormalCompletion">(~unused~)
+  return _ret148
 }
 def js-string-charcodeat(
   string: Unknown,
@@ -2699,8 +2723,8 @@ def js-string-charcodeat(
       if (exists _v111.Type) {
         return _v111
       } else {
-        call _ret130 = clo<"NormalCompletion">(_v111)
-        return _ret130
+        call _ret149 = clo<"NormalCompletion">(_v111)
+        return _ret149
       }
     } else {
       let string = _comp47.Value
@@ -2716,8 +2740,8 @@ def js-string-charcodeat(
   if (exists _v112.Type) {
     return _v112
   } else {
-    call _ret131 = clo<"NormalCompletion">(_v112)
-    return _ret131
+    call _ret150 = clo<"NormalCompletion">(_v112)
+    return _ret150
   }
   return ~unused~
 }
@@ -2732,8 +2756,8 @@ def js-string-codepointat(
       if (exists _v113.Type) {
         return _v113
       } else {
-        call _ret132 = clo<"NormalCompletion">(_v113)
-        return _ret132
+        call _ret151 = clo<"NormalCompletion">(_v113)
+        return _ret151
       }
     } else {
       let string = _comp48.Value
@@ -2753,19 +2777,20 @@ def js-string-codepointat(
     if (exists _v114.Type) {
       return _v114
     } else {
-      call _ret133 = clo<"NormalCompletion">(_v114)
-      return _ret133
+      call _ret152 = clo<"NormalCompletion">(_v114)
+      return _ret152
     }
   } else {
     let _v115 = _comp49
     if (exists _v115.Type) {
       return _v115
     } else {
-      call _ret134 = clo<"NormalCompletion">(_v115)
-      return _ret134
+      call _ret153 = clo<"NormalCompletion">(_v115)
+      return _ret153
     }
   }
-  return ~unused~
+  call _ret154 = clo<"NormalCompletion">(~unused~)
+  return _ret154
 }
 def js-string-length(
   v: Unknown,
@@ -2861,16 +2886,16 @@ def js-string-equals(
     if (exists _v116.Type) {
       return _v116
     } else {
-      call _ret135 = clo<"NormalCompletion">(_v116)
-      return _ret135
+      call _ret155 = clo<"NormalCompletion">(_v116)
+      return _ret155
     }
   } else nop
   let _v117 = 0
   if (exists _v117.Type) {
     return _v117
   } else {
-    call _ret136 = clo<"NormalCompletion">(_v117)
-    return _ret136
+    call _ret156 = clo<"NormalCompletion">(_v117)
+    return _ret156
   }
   return ~unused~
 }
@@ -3136,8 +3161,8 @@ def react_closure1(
   } else {
     let result = value
   }
-  call _ret137 = clo<"converted_to_a_javascript_value">(result)
-  return _ret137
+  call _ret157 = clo<"converted_to_a_javascript_value">(result)
+  return _ret157
 }
 def react_closure2(
   thisArgument: Unknown,
@@ -3155,6 +3180,6 @@ def react_closure2(
   } else {
     call result = clo<"a_promise_rejected_with">(reason)
   }
-  call _ret138 = clo<"converted_to_a_javascript_value">(result)
-  return _ret138
+  call _ret158 = clo<"converted_to_a_javascript_value">(result)
+  return _ret158
 }

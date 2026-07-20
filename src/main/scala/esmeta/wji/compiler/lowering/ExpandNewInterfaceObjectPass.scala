@@ -2,7 +2,11 @@ package esmeta.wji.compiler.lowering
 
 import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr}
 
-object Tmp extends LoweringPass:
+
+// TODO: It calls a hardcoded algorithm. It should be replaced to actual WebIDL
+// algorithm call.
+
+object ExpandNewInterfaceObjectPass extends LoweringPass:
   def run(algos: List[Algorithm]): List[Algorithm] =
     algos.map(a => a.copy(body = transform(a.body)))
 

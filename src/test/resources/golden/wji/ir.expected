@@ -73,7 +73,7 @@ def construct_a_webassembly_module_object(
   builtinSetNames: Unknown,
   importedStringModule: Unknown,
 ): Unknown = {
-  let moduleObject = (record [Module])
+  call moduleObject = clo<"create_new_object_implementing_the_interface">(_ref_SpecTerm.Intrinsics["%WebAssembly.Module%"])
   moduleObject.Module = module
   moduleObject.Bytes = bytes
   moduleObject.BuiltinSets = builtinSetNames
@@ -672,7 +672,7 @@ def create_a_memory_object(
   if (exists map[memaddr]) {
     return map[memaddr]
   } else nop
-  let memory = (record [Memory])
+  call memory = clo<"create_new_object_implementing_the_interface">(_ref_SpecTerm.Intrinsics["%WebAssembly.Memory%"])
   call _ = clo<"initialize_a_memory_object">(memory, memaddr)
   return memory
 }
@@ -938,7 +938,7 @@ def create_a_table_object(
   if (exists map[tableaddr]) {
     return map[tableaddr]
   } else nop
-  let table = (record [Table])
+  call table = clo<"create_new_object_implementing_the_interface">(_ref_SpecTerm.Intrinsics["%WebAssembly.Table%"])
   call _ = clo<"initialize_a_table_object">(table, tableaddr)
   return table
 }
@@ -1252,7 +1252,7 @@ def create_a_global_object(
   if (exists map[globaladdr]) {
     return map[globaladdr]
   } else nop
-  let global = (record [Global])
+  call global = clo<"create_new_object_implementing_the_interface">(_ref_SpecTerm.Intrinsics["%WebAssembly.Global%"])
   call _ = clo<"initialize_a_global_object">(global, globaladdr)
   return global
 }
@@ -2148,7 +2148,7 @@ def create_a_tag_object(
   if (exists map[tagAddress]) {
     return map[tagAddress]
   } else nop
-  let tag = (record [Tag])
+  call tag = clo<"create_new_object_implementing_the_interface">(_ref_SpecTerm.Intrinsics["%WebAssembly.Tag%"])
   call _ = clo<"initialize_a_tag_object">(tag, tagAddress)
   return tag
 }
@@ -2275,7 +2275,7 @@ def create_an_exception_object(
   if (exists map[exnAddress]) {
     return map[exnAddress]
   } else nop
-  let exn = (record [Exception])
+  call exn = clo<"create_new_object_implementing_the_interface">(_ref_SpecTerm.Intrinsics["%WebAssembly.Exception%"])
   call _ = clo<"initialize_an_exception_object">(exn, exnAddress)
   return exn
 }
@@ -3063,7 +3063,7 @@ def asynchronously_instantiate_a_webassembly_module_closure1(
   } else {
     let instance = _throwComp3
   }
-  let instanceObject = (record [Instance])
+  call instanceObject = clo<"create_new_object_implementing_the_interface">(_ref_SpecTerm.Intrinsics["%WebAssembly.Instance%"])
   call _throwComp4 = clo<"initialize_an_instance_object">(instanceObject, module, instance)
   if (exists _throwComp4.Type) {
     if (= _throwComp4.Type ~throw~) {

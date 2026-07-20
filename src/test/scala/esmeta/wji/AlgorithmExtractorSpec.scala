@@ -92,12 +92,12 @@ class AlgorithmExtractorSpec extends AnyFunSuite:
   ) {
     val algo = algorithms.find(_.name.contains("CharCodeAt")).get
     assert(algo.name.contains("CharCodeAt"))
-    assert(algo.params == List("|string|", "|index|"))
+    assert(algo.params == List(WjiParam("|string|"), WjiParam("|index|")))
   }
 
   test("extracts params written in the prose after '<dfn>name</dfn>'") {
     val algo = algorithms.find(_.name.contains("create an exports object")).get
-    assert(algo.params == List("|module|", "|instance|"))
+    assert(algo.params == List(WjiParam("|module|"), WjiParam("|instance|")))
   }
 
   test(
@@ -105,7 +105,27 @@ class AlgorithmExtractorSpec extends AnyFunSuite:
   ) {
     val algo =
       algorithms.find(_.name.contains("initialize an instance object")).get
-    assert(algo.params == List("|instanceObject|", "|module|", "|instance|"))
+    assert(
+      algo.params == List(
+        WjiParam("|instanceObject|"),
+        WjiParam("|module|"),
+        WjiParam("|instance|"),
+      ),
+    )
+  }
+
+  test("marks a parameter optional when 'head' says 'using optional ...'") {
+    val algo =
+      algorithms
+        .find(_.name.contains("asynchronously compile a WebAssembly module"))
+        .get
+    assert(
+      algo.params == List(
+        WjiParam("|bytes|"),
+        WjiParam("|options|"),
+        WjiParam("|taskSource|", optional = true),
+      ),
+    )
   }
 
   test("supports algorithms with no params") {

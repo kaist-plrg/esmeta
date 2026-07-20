@@ -25,7 +25,9 @@ object InstrPrinter:
       case AlgorithmKind.Constructor(iface) =>
         sb.append(s"  kind: constructor for $iface\n")
     if algo.params.nonEmpty then
-      sb.append(s"  params: ${algo.params.mkString(", ")}\n")
+      val params =
+        algo.params.map(p => p.name + (if p.optional then "?" else ""))
+      sb.append(s"  params: ${params.mkString(", ")}\n")
     if algo.head.nonEmpty then sb.append(s"  head: ${algo.head}\n")
     renderInstrs(sb, algo.body, indent = 1)
     sb.toString

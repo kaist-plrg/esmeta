@@ -195,22 +195,39 @@ object AlgorithmExtractor:
             case name                 => name
     }
 
+  /** matches the standalone word "optional", used by [[extractParams]] to
+    * detect a parameter marked optional in prose (e.g. "using optional [=task
+    * source=] |taskSource|").
+    */
+  private val OptionalWord = """(?i)\boptional\b""".r
+
   /** distinct formal parameters in `head`, in order of first appearance — both
     * ordinary `|variable|` references and generic-bracket type parameters (see
     * [[GenericVarIgnore]]), the latter normalized to pipe form (`|T|`) so every
     * entry in [[Algorithm.params]] has a uniform representation regardless of
     * which surface syntax declared it.
+    *
+    * A parameter is marked optional when the word "optional" appears anywhere
+    * between the end of the previous parameter's token (or the start of `head`,
+    * for the first parameter) and the start of this one — e.g. in "... bytes
+    * |bytes| and {{WebAssemblyCompileOptions}} |options| using optional [=task
+    * source=] |taskSource|, perform ...", the window before `|taskSource|` is "
+    * using optional [=task source=] ", which contains "optional", while the
+    * windows before `|bytes|`/`|options|` don't.
     */
-  private def extractParams(head: String): List[String] =
-    ParamToken
-      .findAllMatchIn(head)
-      .map { m =>
-        val text = m.matched
+  private def extractParams(head: String): List[WjiParam] =
+    val seen = collection.mutable.LinkedHashMap.empty[String, Boolean]
+    var prevEnd = 0
+    for m <- ParamToken.findAllMatchIn(head) do
+      val text = m.matched
+      val name =
         if text.startsWith("|") then text
         else s"|${GenericVarIgnore.findFirstMatchIn(text).get.group(1)}|"
-      }
-      .toList
-      .distinct
+      val optional =
+        OptionalWord.findFirstIn(head.substring(prevEnd, m.start)).isDefined
+      if !seen.contains(name) then seen(name) = optional
+      prevEnd = m.end
+    seen.map { case (name, optional) => WjiParam(name, optional) }.toList
 
   /** what `head` declares this algorithm to implement — see [[AlgorithmKind]].
     */

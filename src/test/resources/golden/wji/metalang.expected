@@ -56,7 +56,7 @@
   Return(|moduleObject|)
 
 # asynchronously compile a WebAssembly module
-  params: |bytes|, |options|, |taskSource|
+  params: |bytes|, |options|, |taskSource|?
   head: To <dfn>asynchronously compile a WebAssembly module</dfn> from source bytes |bytes| and {{WebAssemblyCompileOptions}} |options| using optional [=task source=] |taskSource|, perform the following steps:
   Let(|promise|, [=a new promise=](Module, [=current Realm=]))
   RunInParallel

@@ -1,6 +1,6 @@
 package esmeta.wji.compiler.lowering
 
-import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr}
+import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr, WjiParam}
 
 /** Rewrites every `Expr.FollowingSteps(params)` placeholder — "the following
   * steps ...:", wherever it appears as an argument/value (see
@@ -141,7 +141,7 @@ object ExpandFollowingStepsPass extends LoweringPass:
     extra += Algorithm(
       None,
       Some(name),
-      formalParams.map(p => s"|$p|"),
+      formalParams.map(p => WjiParam(s"|$p|")),
       "",
       fullBody,
     )

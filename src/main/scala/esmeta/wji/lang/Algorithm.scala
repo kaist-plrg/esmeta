@@ -38,6 +38,18 @@ enum AlgorithmKind:
   /** "The <dfn constructor for="X">name(...)</dfn> constructor, ..." */
   case Constructor(interface: String)
 
+/** A formal parameter of an [[Algorithm]], as declared in its `head` prose.
+  *
+  * @param name
+  *   the pipe-wrapped variable name, e.g. `"|taskSource|"`
+  * @param optional
+  *   whether `head` marks this parameter optional, e.g. "using optional [=task
+  *   source=] |taskSource|" (see [[AlgorithmExtractor.extractParams]] for how
+  *   this is detected). Mirrors `esmeta.ir.Param.optional`, which this flows
+  *   into via `esmeta.wji.compiler.Compiler`.
+  */
+case class WjiParam(name: String, optional: Boolean = false)
+
 /** An algorithm extracted from a `<div algorithm>` block.
   *
   * @param id
@@ -51,7 +63,8 @@ enum AlgorithmKind:
   * instead)
   * @param params
   *   every distinct `|variable|` reference in `head`, in order of first
-  *   appearance
+  *   appearance, each paired with whether `head` marks it optional (see
+  *   [[WjiParam]])
   * @param head
   *   the descriptive text preceding the step list, e.g. "To <dfn>compile a
   *   WebAssembly module</dfn> from source bytes
@@ -74,7 +87,7 @@ enum AlgorithmKind:
 case class Algorithm(
   id: Option[String],
   name: Option[String],
-  params: List[String],
+  params: List[WjiParam],
   head: String,
   body: List[Instr],
   kind: AlgorithmKind = AlgorithmKind.Plain,

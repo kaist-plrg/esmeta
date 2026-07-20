@@ -47,7 +47,8 @@ object Compiler:
 
   private def compileAlgo(algo: Algorithm): Option[Func] =
     algo.name.orElse(algo.id).map { name =>
-      val params = algo.params.map(p => Param(Name(stripPipes(p))))
+      val params = algo.params
+        .map(p => Param(Name(stripPipes(p.name)), optional = p.optional))
       Func(
         main = false,
         kind = FuncKind.AbsOp,

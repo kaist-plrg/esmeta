@@ -83,7 +83,7 @@ def construct_a_webassembly_module_object(
 def asynchronously_compile_a_webassembly_module(
   bytes: Unknown,
   options: Unknown,
-  taskSource: Unknown,
+  taskSource?: Unknown,
 ): Unknown = {
   call promise = clo<"a_new_promise">(~Module~, @EXECUTION_STACK[0].Realm)
   call module = clo<"compile_a_webassembly_module">(bytes)

@@ -141,6 +141,12 @@ object ExprParser:
   private val BinOpSeps =
     Seq(" modulo ", " + ", " - ", " * ", " &div; ", " &minus; ")
   private val SlotAccess = """(?s)^(.+)\.\\?\[\[([^\]]+)\]\]$""".r
+  // a bare "\[[SlotName]]" with no base — the slot's *name*, used as a value
+  // rather than read off a specific object (e.g. CreateBuiltinFunction's
+  // `additionalInternalSlotsList` argument, « \[[FunctionAddress]] »).
+  // Mirrors mainline `esmeta.compiler.Compiler`'s own `InternalSlots` XRef
+  // handling, which likewise compiles a bare slot name to `EStr`.
+  private val BareSlotName = """(?s)^\\?\[\[([^\]]+)\]\]$""".r
   private val PossessiveSlot =
     """(?si)^the value of (.+)'s \\?\[\[([^\]]+)\]\] internal slot$""".r
   // e.g. "|module|.[=imports=]" — a WebAssembly-spec record field written
@@ -358,6 +364,7 @@ object ExprParser:
           parse(s.substring(i + sep.length)),
         )
       case SlotAccess(baseRaw, slot) => Field(parse(baseRaw), stripBraces(slot))
+      case BareSlotName(slot)        => Str(stripBraces(slot))
       case PossessiveSlot(baseRaw, slot) =>
         Field(parse(baseRaw), stripBraces(slot))
       case DotFieldLink(baseRaw, link) =>

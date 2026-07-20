@@ -1484,7 +1484,7 @@ def a_new_exported_function(
   let resultTypes = (proj _tuple13 1)
   let arity = (sizeof paramTypes)
   call name = clo<"name_of_the_webassembly_function">(funcaddr)
-  call _comp25 = clo<"CreateBuiltinFunction">(steps, arity, name, (list [(yet "\\[[FunctionAddress]]")]), realm)
+  call _comp25 = clo<"CreateBuiltinFunction">(steps, arity, name, (list ["FunctionAddress"]), realm)
   if (exists _comp25.Type) {
     assert (= _comp25.Type ~normal~)
     let function = _comp25.Value
@@ -2240,7 +2240,7 @@ def a_new_exported_gc_object(
   if (exists map[objectaddr]) {
     return map[objectaddr]
   } else nop
-  call object = clo<"makebasicobject">((list [(yet "\\[[ObjectAddress]]"), (yet "\\[[ObjectKind]]")]))
+  call object = clo<"makebasicobject">((list ["ObjectAddress", "ObjectKind"]))
   object.ObjectAddress = objectaddr
   object.ObjectKind = objectkind
   object.GetPrototypeOf = (yet "[=[[GetPrototypeOf]] internal method of an Exported GC Object=]")

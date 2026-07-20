@@ -58,7 +58,9 @@ class InstrParserSpec extends AnyFunSuite:
   test("for-in-range, with an inline trailing action") {
     assert(
       parse("For |i| in [=the range=] |a| to |b|, inclusive, return |i|.") ==
-      List(For(Var("i"), Range(Var("a"), Var("b")), List(Return(Some(Var("i")))))),
+      List(
+        For(Var("i"), Range(Var("a"), Var("b")), List(Return(Some(Var("i"))))),
+      ),
     )
   }
 
@@ -101,7 +103,9 @@ class InstrParserSpec extends AnyFunSuite:
     )
   }
 
-  test("perform ... and let VAR be the result / ... and store the result as VAR") {
+  test(
+    "perform ... and let VAR be the result / ... and store the result as VAR",
+  ) {
     assert(
       parse("Perform [$Foo$](|x|), and let |y| be the result.") ==
       List(Perform("Foo", List(Var("x")), BindResult("|y|"))),
@@ -124,7 +128,9 @@ class InstrParserSpec extends AnyFunSuite:
   // only holds if the relevant case order in InstrParser.scala stays as-is
   // — see personal/parser_refactor_ideas.md (D-1) for the full audit. ----
 
-  test("order: AbruptCallPrefix is tried before LeadingAlgoLink, inside parseCall") {
+  test(
+    "order: AbruptCallPrefix is tried before LeadingAlgoLink, inside parseCall",
+  ) {
     // "[=!=]" also matches LeadingAlgoLink's "[=...=]" shape (any non-']'
     // content is accepted as a link name) — if LeadingAlgoLink won this
     // race, "!" would be parsed as the call target itself, and the real

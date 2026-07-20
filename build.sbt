@@ -214,6 +214,10 @@ lazy val root = project
         List(
           "*TinyTest",
           "*SmallTest",
+          // every esmeta.wji test (SnapshotSpec and friends) — a package
+          // glob rather than an explicit per-class list, so a new test file
+          // added under esmeta.wji is picked up automatically
+          "esmeta.wji.*",
         ).mkString(" ", " ", ""),
       )
       .value,

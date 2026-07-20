@@ -47,7 +47,9 @@ class ExprParserSpec extends AnyFunSuite:
     )
   }
 
-  test("backtick-wrapped quoted string is a SpecTerm, plain backticks are transparent") {
+  test(
+    "backtick-wrapped quoted string is a SpecTerm, plain backticks are transparent",
+  ) {
     assert(ExprParser.parse("`\"frozen\"`") == SpecTerm("frozen"))
     assert(ExprParser.parse("`code`") == Unknown("code"))
   }
@@ -58,7 +60,9 @@ class ExprParserSpec extends AnyFunSuite:
     )
   }
 
-  test("call syntaxes: JSCall / explicit-paren AlgoCall / prose Link / bare Link") {
+  test(
+    "call syntaxes: JSCall / explicit-paren AlgoCall / prose Link / bare Link",
+  ) {
     assert(
       ExprParser.parse("[$Foo$](|a|, |b|)") ==
       JSCall("Foo", List(Var("a"), Var("b"))),
@@ -123,7 +127,12 @@ class ExprParserSpec extends AnyFunSuite:
   }
 
   test("associated realm / possessive association") {
-    assert(ExprParser.parse("|func|'s [=associated Realm=]") == Field(Var("func"), "Realm"))
+    assert(
+      ExprParser.parse("|func|'s [=associated Realm=]") == Field(
+        Var("func"),
+        "Realm",
+      ),
+    )
     assert(
       ExprParser.parse("the |map|'s [=map/entries=]") ==
       Field(Var("map"), "map/entries"),
@@ -131,7 +140,9 @@ class ExprParserSpec extends AnyFunSuite:
   }
 
   test("index syntax: string / var / number / general-expr key") {
-    assert(ExprParser.parse("""|obj|["key"]""") == Index(Var("obj"), Str("key")))
+    assert(
+      ExprParser.parse("""|obj|["key"]""") == Index(Var("obj"), Str("key")),
+    )
     assert(ExprParser.parse("|obj|[|key|]") == Index(Var("obj"), Var("key")))
     assert(ExprParser.parse("|obj|[3]") == Index(Var("obj"), Num("3")))
   }
@@ -189,7 +200,9 @@ class ExprParserSpec extends AnyFunSuite:
     assert(ExprParser.parse("2<sup>32</sup>") == Pow(Num("2"), Num("32")))
   }
 
-  test("generic 'a new ...' with no more specific pattern falls to UnknownNew") {
+  test(
+    "generic 'a new ...' with no more specific pattern falls to UnknownNew",
+  ) {
     assert(ExprParser.parse("a new Foo Bar") == UnknownNew("a new Foo Bar"))
   }
 

@@ -163,7 +163,8 @@ class CondParserSpec extends AnyFunSuite:
       CondParser.parse("|a| < |b|") == Compare(Var("a"), CompareOp.Lt, Var("b")),
     )
     assert(
-      CondParser.parse("|a| >= |b|") == Compare(Var("a"), CompareOp.Ge, Var("b")),
+      CondParser
+        .parse("|a| >= |b|") == Compare(Var("a"), CompareOp.Ge, Var("b")),
     )
   }
 

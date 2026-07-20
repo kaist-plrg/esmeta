@@ -385,7 +385,7 @@ object Compiler:
     case metalang.Expr.Index(base, key) =>
       Field(compileRef(base), compileExpr(key))
     case metalang.Expr.AlgoCall(link, Nil) => Global(nameFromLink(link))
-    case other => Name(s"_ref_${other.getClass.getSimpleName}")
+    case other => impossible(s"unresolved ref: $other")
 
   // ── Helpers ──────────────────────────────────────────────────────────────────
 

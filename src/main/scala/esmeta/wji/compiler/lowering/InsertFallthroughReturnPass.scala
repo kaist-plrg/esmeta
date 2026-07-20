@@ -32,6 +32,10 @@ import esmeta.wji.lang.{Algorithm, Instr}
   * as a general safety net besides).
   */
 object InsertFallthroughReturnPass extends LoweringPass:
+  override def require: Set[LoweringPass] = Set(
+    ExpandPerformReturnResultPass,
+  )
+
   def run(algos: List[Algorithm]): List[Algorithm] =
     algos.map { a =>
       if a.body.exists(_.isInstanceOf[Instr.Return]) then a

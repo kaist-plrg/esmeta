@@ -387,7 +387,7 @@ object Compiler:
     case metalang.Expr.Index(base, key) =>
       Field(compileRef(base), compileExpr(key))
     case metalang.Expr.AlgoCall(link, Nil) => Global(nameFromLink(link))
-    case other => impossible(s"unresolved ref: $other")
+    case other => Name(s"@@yet: unresolved ref: $other")
 
   // ── Helpers ──────────────────────────────────────────────────────────────────
 

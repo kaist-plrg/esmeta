@@ -825,7 +825,7 @@ def memory.grow(
   if (&& (! (= (yet "the top of the stack") _call11)) (! (= (yet "the top of the stack") (yet "call [=i64.const=]")))) {
     let frame = ~current frame~
     assert (yet "due to validation, |frame|.[=frame/module=].[=moduleinst/memaddrs=][|x|] exists")
-    let memaddr = _ref_Unknown["frame/module"]["moduleinst/memaddrs"][x]
+    let memaddr = frame["frame/module"]["moduleinst/memaddrs"][x]
     call _ = clo<"refresh_the_memory_buffer">(memaddr)
   } else nop
   return ~unused~
@@ -889,7 +889,7 @@ def abstract_operation_[=hostresizearraybuffer=](
     call _call14 = clo<"samevalue">(mem.BufferObject, buffer)
     if (= _call14 true) {
       assert (= (% buffer.ArrayBufferByteLength 65536) 0)
-      let lengthDelta = _ref_BinOp.ArrayBufferByteLength
+      let lengthDelta = (- newLength buffer.ArrayBufferByteLength)
       if (|| (< lengthDelta 0) (! (= (% lengthDelta 65536) 0))) {
         call _err29 = clo<"__NEW_ERROR_OBJ__">("%RangeError.prototype%")
         call _ret35 = clo<"ThrowCompletion">(_err29)
@@ -993,7 +993,7 @@ def table(
   } else {
     let maximum = ~empty~
   }
-  let type = (yet "the [=table type=] |addrtype| { <b>[=limits|min=]</b> |initial|, <b>[=limits|max=]</b> |maximum| } |elementtype|")
+  let type = (yet "|addrtype| { <b>[=limits|min=]</b> |initial|, <b>[=limits|max=]</b> |maximum| } |elementtype|")
   if (! (= type ~valid tabletype~)) {
     call _err35 = clo<"__NEW_ERROR_OBJ__">("%RangeError.prototype%")
     call _ret42 = clo<"ThrowCompletion">(_err35)
@@ -1450,7 +1450,7 @@ def name_of_the_webassembly_function(
   funcaddr: Unknown,
 ): Unknown = {
   let store = @AGENT_RECORD["associated store"]
-  let funcinst = _ref_Unknown[funcaddr]
+  let funcinst = @@yet: unresolved ref: Unknown(|store|.funcs)[funcaddr]
   let moduleinst = (yet "|funcinst|.module")
   assert (= funcaddr (yet "contained in |moduleinst|.funcaddrs"))
   let index = (yet "the index of |moduleinst|.funcaddrs where |funcaddr| is found")
@@ -2022,7 +2022,7 @@ def towebassemblyvalue(
       } else nop
     } else {
       let map = @AGENT_RECORD["host value cache"]
-      if (= _ref_SuchThat[hostaddr] (yet "the same as |v|")) {
+      if (= @@yet: unresolved ref: SuchThat([=host address=] |hostaddr| exists,|map|)[hostaddr] (yet "the same as |v|")) {
         let _v87 = (case "REF.HOST" hostaddr)
         if (exists _v87.Type) {
           return _v87
@@ -2665,7 +2665,7 @@ def js-string-intocharcodearray(
     } else {
       _call29 = _call29.Value
     }
-    _ref_BinOp = _call29
+    @@yet: unresolved ref: BinOp(Unknown(the element at index |start|),Add,Unknown(|i| in |array|)) = _call29
     i = (+ i 1)
   }
   let _v108 = stringLength

@@ -6,13 +6,11 @@ import esmeta.cfg.CFG
 import esmeta.cfgBuilder.CFGBuilder
 import esmeta.error.ESMetaError
 import esmeta.es.Initialize
-import esmeta.es.builtin.{AGENT_RECORD, EXECUTION_STACK, realmAddr}
+import esmeta.es.builtin.{EXECUTION_STACK, realmAddr}
 import esmeta.interpreter.{Interpreter => EsInterpreter}
 import esmeta.ir.{Global, Local, Program}
 import esmeta.state.*
-import esmeta.wji.bridge.SpecTecWasmHost
-import esmeta.wji.bridge.process.SpecTecProcess
-import esmeta.wji.bridge.rpc.JsonRpcConnection
+import esmeta.wji
 import esmeta.wji.compiler.Compiler
 import esmeta.wji.compiler.lowering.Lowering
 import esmeta.wji.lang.SpecFile
@@ -40,8 +38,9 @@ import scala.collection.mutable.{Map => MMap}
   * stand-in for "a minimal JS driver called `entry`".
   *
   * Wasm embedding calls (`ICallEmbed`) are dispatched to a live
-  * [[SpecTecWasmHost]] over JSON-RPC, so this requires a live SpecTec process
-  * on `PATH` (see [[SpecTecProcess]]).
+  * [[esmeta.wji.bridge.SpecTecWasmHost]] over JSON-RPC, built by
+  * [[esmeta.wji.Initialize]], so this requires a live SpecTec process on `PATH`
+  * (see [[esmeta.wji.bridge.process.SpecTecProcess]]).
   */
 case object WjiInterp extends Phase[CFG, Value] {
   val name = "wji-interp"
@@ -130,26 +129,7 @@ case object WjiInterp extends Phase[CFG, Value] {
 
     val func = mergedCfg.getFunc(config.entry)
 
-    val process = SpecTecProcess.start()
-    val connection = JsonRpcConnection.stdio(process)
-    val host = SpecTecWasmHost(connection)
-
-    // "Each agent has an associated store. When a new agent is created, its
-    // associated store is set to the result of store_init()." (index.bs:334)
-    // — plain prose, not a `<div algorithm>`, so it's never mechanized as a
-    // step; the harness seeds it directly here, the same way it manually
-    // re-wires the execution context above. See Compiler's
-    // `SpecTerm("surrounding agent")` case for how spec references to it
-    // (`the surrounding agent's associated store`, etc.) resolve to this slot.
-    host.call("store_init", Nil) match
-      case Right(store) =>
-        st.heap.update(
-          NamedAddr(AGENT_RECORD),
-          Str("associated store"),
-          Wasm(store),
-        )
-      case Left(err) =>
-        throw new RuntimeException(s"store_init failed: $err")
+    val (host, connection) = wji.Initialize(st)
 
     // js-api/index.bs's own sample usage (§Sample API Usage, index.bs:288-301,
     // `demo.wat`): two func imports ("js"."import1"/"import2"), a start

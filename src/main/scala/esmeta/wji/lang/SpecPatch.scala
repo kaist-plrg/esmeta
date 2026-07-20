@@ -69,12 +69,11 @@ object SpecPatch:
   /** All patches in application order. */
   val patches: List[(String, String)] = List(
     // #1 (spec bug) — empty ordered map literal written as « » instead of «[ ]»
-    "Let |builtinOrStringImports| be the ordered map « »."
-    -> "Let |builtinOrStringImports| be the ordered map «[ ]».",
+    "the ordered map « »" -> "the ordered map «[ ]»",
 
     // #2 (spec bug) — variable `keys` missing pipe delimiters in [[OwnPropertyKeys]]
-    "1. Let keys be a new empty list.\n    1. Return keys."
-    -> "1. Let |keys| be a new empty list.\n    1. Return |keys|.",
+    "Let keys be"  -> "Let |keys| be",
+    "Return keys." -> "Return |keys|.",
 
     // #3 (TODO: this is temporary, and should be removed)
     // esmeta doesn't support overloaded methods, but {{WebAssembly}}'s
@@ -108,9 +107,7 @@ object SpecPatch:
     // fields — the only correct way to read its imports is through the
     // `module_imports` embedding function, exactly as every other use site in
     // this file already does (e.g. lines 405, 474, 497, 736).
-    "1. If |module|.[=imports=] [=list/is empty|is not empty=], and |importObject| is undefined, throw a {{TypeError}} exception."
-    ->
-    "1. If [=module_imports=](|module|) [=list/is empty|is not empty=], and |importObject| is undefined, throw a {{TypeError}} exception.",
+    "|module|.[=imports=]" -> "[=module_imports=](|module|)",
 
     // #6 (spec bug) — {{Global}}'s `value` getter and setter are both written
     // inside a single `<div algorithm>`, the only place in the file where two

@@ -119,7 +119,7 @@ object ExprParser:
   // ever removed. Placed after the more specific "a [=/new=] ..." / "a new,
   // empty ..." patterns above so it only catches the general case.
   private val LinkIndefVar =
-    """(?si)^an?\s+(\[=[^\]]+\])\s+(?:of\s+)?(\|[^|]+\|)$""".r
+    """(?si)^(?:the|an?)\s+(\[=[^\]]+\])\s+(?:of\s+)?(\|[^|]+\|)$""".r
   private val PlainNewExpr = """(?si)^a\s+new\s+.+""".r
   private val SlotAccess = """(?s)^(.+)\.\\?\[\[([^\]]+)\]\]$""".r
   private val PossessiveSlot =

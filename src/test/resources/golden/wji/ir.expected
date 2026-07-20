@@ -514,7 +514,7 @@ def exports(
     let _tuple5 = _iterList11[_iterIdx12]
     let name = (proj _tuple5 0)
     let type = (proj _tuple5 1)
-    let kind = (yet "the [=string value of the extern type=] |type|")
+    call kind = clo<"string_value_of_the_extern_type">(type)
     let obj = (map [Unknown, Unknown] {
       "{{ModuleExportDescriptor/name}}" -> name,
       "{{ModuleExportDescriptor/kind}}" -> kind,
@@ -544,7 +544,7 @@ def imports(
     if (&& (! (= importedStringModule null)) (= moduleName importedStringModule)) {
       (yet "continue")
     } else nop
-    let kind = (yet "the [=string value of the extern type=] |type|")
+    call kind = clo<"string_value_of_the_extern_type">(type)
     let obj = (map [Unknown, Unknown] {
       "{{ModuleImportDescriptor/module}}" -> moduleName,
       "{{ModuleImportDescriptor/name}}" -> name,
@@ -1479,7 +1479,7 @@ def a_new_exported_function(
   let paramTypes = (proj _tuple13 0)
   let resultTypes = (proj _tuple13 1)
   let arity = (sizeof paramTypes)
-  let name = (yet "the [=name of the WebAssembly function=] |funcaddr|")
+  call name = clo<"name_of_the_webassembly_function">(funcaddr)
   call _comp25 = clo<"CreateBuiltinFunction">(steps, arity, name, (list [(yet "\\[[FunctionAddress]]")]), realm)
   if (exists _comp25.Type) {
     assert (= _comp25.Type ~normal~)

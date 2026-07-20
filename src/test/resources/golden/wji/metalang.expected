@@ -310,7 +310,7 @@
   Let(|module|, |moduleObject|.[[Module]])
   Let(|exports|, « »)
   ForEach((|name|, |type|), [=module_exports=](|module|))
-    Let(|kind|, ?(the [=string value of the extern type=] |type|))
+    Let(|kind|, [=string value of the extern type=](|type|))
     Let(|obj|, «[ "{{ModuleExportDescriptor/name}}" → |name|, "{{ModuleExportDescriptor/kind}}" → |kind| ]»)
     Append(|obj|, |exports|)
   Return(|exports|)
@@ -328,7 +328,7 @@
       Continue
     If(|importedStringModule| is not null, and |moduleName| is |importedStringModule|)
       Continue
-    Let(|kind|, ?(the [=string value of the extern type=] |type|))
+    Let(|kind|, [=string value of the extern type=](|type|))
     Let(|obj|, «[ "{{ModuleImportDescriptor/module}}" → |moduleName|, "{{ModuleImportDescriptor/name}}" → |name|, "{{ModuleImportDescriptor/kind}}" → |kind| ]»)
     Append(|obj|, |imports|)
   Return(|imports|)
@@ -798,7 +798,7 @@
   Let(|functype|, [=func_type=](|store|, |funcaddr|))
   Let(->(|paramTypes|, |resultTypes|), [=expand=](|functype|))
   Let(|arity|, length(|paramTypes|))
-  Let(|name|, ?(the [=name of the WebAssembly function=] |funcaddr|))
+  Let(|name|, [=name of the WebAssembly function=](|funcaddr|))
   Let(|function|, [=!=] [$CreateBuiltinFunction$](|steps|, |arity|, |name|, « ?(\[[FunctionAddress]]) », |realm|))
   Set(|function|.[[FunctionAddress]], |funcaddr|)
   Set(|map|[|funcaddr|], |function|)

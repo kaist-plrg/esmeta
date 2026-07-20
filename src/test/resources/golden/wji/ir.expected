@@ -823,7 +823,7 @@ def memory.grow(
 ): Unknown = {
   call _call11 = clo<"i32.const">((- 1))
   if (&& (! (= (yet "the top of the stack") _call11)) (! (= (yet "the top of the stack") (yet "call [=i64.const=]")))) {
-    let frame = (yet "the [=current frame=]")
+    let frame = ~current frame~
     assert (yet "due to validation, |frame|.[=frame/module=].[=moduleinst/memaddrs=][|x|] exists")
     let memaddr = _ref_Unknown["frame/module"]["moduleinst/memaddrs"][x]
     call _ = clo<"refresh_the_memory_buffer">(memaddr)
@@ -1471,7 +1471,7 @@ def a_new_exported_function(
     return map[funcaddr]
   } else nop
   let steps = "[=call an Exported Function|call the Exported Function=] |funcaddr| with arguments."
-  let realm = (yet "the [=current Realm=]")
+  let realm = @EXECUTION_STACK[0].Realm
   let store = @AGENT_RECORD["associated store"]
   call-embed functype = <func_type>(store, funcaddr)
   call-embed _tuple13 = <expand>(functype)
@@ -2400,7 +2400,7 @@ def get_the_javascript_exception_tag(
 }
 def create the webassembly namespace object(
 ): Unknown = {
-  let namespaceObject = (yet "the [=namespace object=]")
+  let namespaceObject = ~namespace object~
   let _iterList23 = (list ["CompileError", "LinkError", "RuntimeError"])
   let _iterIdx24 = 0
   while (< _iterIdx24 (sizeof _iterList23)) {

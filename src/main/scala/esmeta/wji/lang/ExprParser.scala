@@ -57,7 +57,7 @@ object ExprParser:
   private val JSCallFull = """(?s)^\[\$([^\$]+)\$\]\((.*)\)$""".r
   private val LinkFull = """(?s)^(\[=[^\]]+\])\s*\((.*)\)$""".r
   private val LinkProse = """(?s)^(\[=[^\]]+\])\s+(.+)$""".r
-  private val LinkOnly = """(?s)^(\[=[^\]]+\])$""".r
+  private val LinkOnly = """(?s)^(?:the\s+)?(\[=[^\]]+\])$""".r
   private val VarOnly = """(?s)^\|([^|]+)\|$""".r
   private val VarIgnore = """(?s)^<var\s+ignore>([^<]*)</var>$""".r
   private val ThisOnly = """(?s)^\*\*this\*\*$""".r

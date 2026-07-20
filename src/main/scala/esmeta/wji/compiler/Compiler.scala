@@ -34,8 +34,8 @@ object Compiler:
   private val SymbolTerm = """^%Symbol\.(.+)%$""".r
 
   /** Throws immediately for an AST shape that lowering guarantees eliminates
-    * before `Compiler` ever runs — unlike `EYet`, which only fails once the
-    * IR is actually evaluated. See [[UnreachableAfterLowering]].
+    * before `Compiler` ever runs — unlike `EYet`, which only fails once the IR
+    * is actually evaluated. See [[UnreachableAfterLowering]].
     */
   private def impossible(msg: String): Nothing =
     throw UnreachableAfterLowering(msg)

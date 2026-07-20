@@ -43,6 +43,9 @@ object InstrPrinter:
     if args.isEmpty then func
     else s"$func(${args.map(ExprPrinter.render).mkString(", ")})"
 
+  private def renderClosureCall(closure: Expr, args: List[Expr]): String =
+    renderCall(ExprPrinter.render(closure), args)
+
   def render(instr: Instr): String = instr match
     case Let(lhs, expr, _) =>
       s"Let(${ExprPrinter.render(lhs)}, ${ExprPrinter.render(expr)})"
@@ -70,6 +73,12 @@ object InstrPrinter:
       s"PerformAndReturn(${renderCall(func, args)})"
     case Perform(func, args, BindResult(v), _) =>
       s"PerformAndLet(${renderCall(func, args)}, $v)"
+    case PerformClosure(closure, args, Discard, _) =>
+      s"PerformClosure(${renderClosureCall(closure, args)})"
+    case PerformClosure(closure, args, ReturnResult, _) =>
+      s"PerformClosureAndReturn(${renderClosureCall(closure, args)})"
+    case PerformClosure(closure, args, BindResult(v), _) =>
+      s"PerformClosureAndLet(${renderClosureCall(closure, args)}, $v)"
     case Note(text, _)          => s"Note($text)"
     case Instr.Unknown(text, _) => s"?($text)"
     case IfChain(branches, fallback) =>

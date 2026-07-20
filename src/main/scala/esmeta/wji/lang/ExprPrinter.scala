@@ -44,7 +44,7 @@ object ExprPrinter:
     case Range(low, high)        => s"Range(${render(low)}, ${render(high)})"
     case IndexOf(list, elem) =>
       s"the index of ${render(list)} where ${render(elem)} is found"
-    case Expr.Unknown(raw)       => s"?($raw)"
+    case Expr.Unknown(raw) => s"?($raw)"
     case Closure(name, captured) =>
       s"closure $name captures(${captured.mkString(", ")})"
     case FollowingSteps(params) =>

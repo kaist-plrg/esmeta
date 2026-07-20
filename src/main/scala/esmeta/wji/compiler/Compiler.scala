@@ -328,7 +328,8 @@ object Compiler:
       impossible(s"$$${name}(${args.mkString})")
     case metalang.Expr.NewByteSequence(length) =>
       impossible(s"new byte sequence of length ${length}")
-    case metalang.Expr.Range(low, high) => impossible(s"range ${low} to ${high}")
+    case metalang.Expr.Range(low, high) =>
+      impossible(s"range ${low} to ${high}")
     case metalang.Expr.IndexOf(list, elem) =>
       impossible(s"index of ${list} where ${elem} is found")
     case metalang.Expr.FollowingSteps(params) =>
@@ -372,7 +373,7 @@ object Compiler:
     case Cond.Implements(e, iface, neg) => EYet(s"implements $iface") // TODO
     case Cond.IsOfForm(e, f, _, neg)    => EYet(s"is of form $f") // TODO
     case Cond.Matches(l, t, r, neg)     => EYet(s"matches $t") // TODO
-    case Cond.Unknown(raw) => EYet(raw)
+    case Cond.Unknown(raw)              => EYet(raw)
 
     // ── unreachable after lowering ──
     // See compileExpr's identically-named, identically-verified group above:

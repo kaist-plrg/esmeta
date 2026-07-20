@@ -18,11 +18,11 @@ import esmeta.error.UnsupportedSpecShape
   *   ...body...
   * }}}
   *
-  * Only handles `IndexOf` in direct `Let` RHS position — the only one
-  * observed in practice ("the index of |moduleinst|.funcaddrs where
-  * |funcaddr| is found", index.bs:1255). If one ever turns up nested
-  * elsewhere, `run` throws `UnsupportedSpecShape` rather than silently
-  * leaving it for `Compiler`'s much later, less specific `EYet` fallback.
+  * Only handles `IndexOf` in direct `Let` RHS position — the only one observed
+  * in practice ("the index of |moduleinst|.funcaddrs where
+  * |funcaddr| is found", index.bs:1255). If one ever turns up nested elsewhere,
+  * `run` throws `UnsupportedSpecShape` rather than silently leaving it for
+  * `Compiler`'s much later, less specific `EYet` fallback.
   */
 object ExpandIndexOfPass extends LoweringPass:
   private var counter = 0

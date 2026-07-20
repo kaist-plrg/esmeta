@@ -15,14 +15,14 @@ package esmeta.wji.lang
   *     stale phrasing, or markup that violates the surrounding file's own
   *     conventions.
   *
-  *     REQUIRED, every time you add a *(spec bug)* entry: add a matching
-  *     numbered section to `docs/spec_errors.md` in the SAME change (title,
-  *     File/Current/Expected/Reason, same shape as its existing entries).
-  *     `docs/spec_errors.md` is what actually gets reported upstream to the
-  *     spec authors — a patch added here without a matching entry there
-  *     never reaches them and just silently rots as tribal knowledge in this
-  *     file. Do not defer this to a follow-up commit; do it now, in the same
-  *     patch that adds the entry below.
+  * REQUIRED, every time you add a *(spec bug)* entry: add a matching numbered
+  * section to `docs/spec_errors.md` in the SAME change (title,
+  * File/Current/Expected/Reason, same shape as its existing entries).
+  * `docs/spec_errors.md` is what actually gets reported upstream to the spec
+  * authors — a patch added here without a matching entry there never reaches
+  * them and just silently rots as tribal knowledge in this file. Do not defer
+  * this to a follow-up commit; do it now, in the same patch that adds the entry
+  * below.
   *   - *(suggestion)* makes an already-valid elision explicit — a spot where
   *     Bikeshed prose conventionally omits an argument (a generic type
   *     parameter, an implicit realm) that this project's extractor/compiler
@@ -72,7 +72,7 @@ object SpecPatch:
     "the ordered map « »" -> "the ordered map «[ ]»",
 
     // #2 (spec bug) — variable `keys` missing pipe delimiters in [[OwnPropertyKeys]]
-    "Let keys be"  -> "Let |keys| be",
+    "Let keys be" -> "Let |keys| be",
     "Return keys." -> "Return |keys|.",
 
     // #3 (TODO: this is temporary, and should be removed)

@@ -43,7 +43,10 @@ private[wji] object TextSplit:
     * operators (`a + b - c`) at its rightmost top-level operator, so the
     * left-hand side recurses out left-associatively.
     */
-  def findLastTopLevelAny(text: String, seps: Seq[String]): Option[(Int, String)] =
+  def findLastTopLevelAny(
+    text: String,
+    seps: Seq[String],
+  ): Option[(Int, String)] =
     var last: Option[(Int, String)] = None
     var from = 0
     var continue = true

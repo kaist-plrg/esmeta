@@ -346,13 +346,17 @@ object ExprParser:
         AlgoCall(normalizeLink(link), splitComma(argsRaw).map(parse))
       case LinkProse(link, prose) =>
         Link(normalizeLink(link), parseArgs(prose))
-      case LinkOnly(link)            => Link(normalizeLink(link), Nil)
-      case ThisOnly()                => This
-      case VarOnly(name)             => Var(name)
-      case VarIgnore(name)           => Var(name.trim)
+      case LinkOnly(link)  => Link(normalizeLink(link), Nil)
+      case ThisOnly()      => This
+      case VarOnly(name)   => Var(name)
+      case VarIgnore(name) => Var(name.trim)
       case _ if findLastTopLevelAny(s, BinOpSeps).isDefined =>
         val (i, sep) = findLastTopLevelAny(s, BinOpSeps).get
-        BinOp(parse(s.substring(0, i)), parseBOp(sep), parse(s.substring(i + sep.length)))
+        BinOp(
+          parse(s.substring(0, i)),
+          parseBOp(sep),
+          parse(s.substring(i + sep.length)),
+        )
       case SlotAccess(baseRaw, slot) => Field(parse(baseRaw), stripBraces(slot))
       case PossessiveSlot(baseRaw, slot) =>
         Field(parse(baseRaw), stripBraces(slot))
@@ -364,11 +368,11 @@ object ExprParser:
       case DotField(baseRaw, field) => Field(parse(baseRaw), field)
       case TrailingLinkCall(valueRaw, link) =>
         Link(normalizeLink(link), List(parse(valueRaw.trim)))
-      case LengthOf(inner)          => Length(parse(inner.trim))
-      case ElementCount(inner)      => Length(parse(inner.trim))
-      case ElementAt(idx, arr)      => Index(parse(arr.trim), parse(idx.trim))
-      case IndexOfPat(list, elem)   => IndexOf(parse(list.trim), parse(elem.trim))
-      case PossessiveSize(inner)    => Length(parse(inner.trim))
+      case LengthOf(inner)        => Length(parse(inner.trim))
+      case ElementCount(inner)    => Length(parse(inner.trim))
+      case ElementAt(idx, arr)    => Index(parse(arr.trim), parse(idx.trim))
+      case IndexOfPat(list, elem) => IndexOf(parse(list.trim), parse(elem.trim))
+      case PossessiveSize(inner)  => Length(parse(inner.trim))
       case AssociatedRealm(baseRaw) => Field(parse(baseRaw.trim), "Realm")
       case PossessiveAssociation(baseRaw, link) =>
         Field(
@@ -392,10 +396,10 @@ object ExprParser:
         SuchThat(desc.trim, cond.trim)
       case LinkIndefVar(link, arg) =>
         Link(normalizeLink(link), List(parse(arg)))
-      case AsMathPat(inner)       => AsMath(parse(inner))
-      case PowPat(base, exp)      => Pow(parse(base), parse(exp))
-      case PlainNewExpr()         => UnknownNew(s)
-      case EmptyMapProse()        => Map_(Nil)
+      case AsMathPat(inner)  => AsMath(parse(inner))
+      case PowPat(base, exp) => Pow(parse(base), parse(exp))
+      case PlainNewExpr()    => UnknownNew(s)
+      case EmptyMapProse()   => Map_(Nil)
       case MapLiteral(inner) =>
         val entries = splitComma(inner).map { e =>
           splitTopLevel(e, " → ") match

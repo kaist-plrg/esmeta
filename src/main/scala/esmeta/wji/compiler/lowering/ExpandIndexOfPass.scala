@@ -14,9 +14,15 @@ import esmeta.error.UnsupportedSpecShape
   *   Let(_idxN, 0)
   *   While(_idxN < length(list) and list[_idxN] is not elem,
   *     Set(_idxN, _idxN + 1))
-  *   Let(index, _idxN)
+  *   Let(index, AsNumber(_idxN))
   *   ...body...
   * }}}
+  * `_idxN` is a WJI-internal math value (a loop counter); `index` itself leaves
+  * this pass and flows into real ECMA-262 AOs (e.g. `name of the WebAssembly
+  * function`'s own `[$ToString$](|index|)`), which — unlike list-indexing —
+  * actually inspect the spec-level type of their argument, so it's cast to a
+  * real Number via `AsNumber` before the final bind rather than left as a bare
+  * math value.
   *
   * Only handles `IndexOf` in direct `Let` RHS position — the only one observed
   * in practice ("the index of |moduleinst|.funcaddrs where
@@ -56,7 +62,7 @@ object ExpandIndexOfPass extends LoweringPass:
             Instr.Set(idxVar, Expr.BinOp(idxVar, Expr.BOp.Add, Expr.Num("1"))),
           ),
         ),
-        Instr.Let(target, idxVar),
+        Instr.Let(target, Expr.AsNumber(idxVar)),
       ) ::: transform(body)
 
     case _ =>

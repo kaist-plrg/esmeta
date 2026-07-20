@@ -118,6 +118,15 @@ object Expr:
   /** `|x| interpreted as a [=mathematical value=]` — cast to math value. */
   case class AsMath(expr: Expr) extends Expr
 
+  /** `AsMath`'s inverse — casts a math value back to a real ECMAScript Number.
+    * No spec prose produces this directly (nothing in the spec ever needs to
+    * say "cast back to Number"); it exists purely as a lowering-pass-internal
+    * marker for a WJI-synthesized math value (e.g. a loop counter) that needs
+    * to leave WJI's own bookkeeping and flow into a real ECMA-262 AO — see
+    * `ExpandIndexOfPass`, its only producer so far.
+    */
+  case class AsNumber(expr: Expr) extends Expr
+
   /** `(E1, E2, ...)` — parenthesised tuple, used in destructuring Let LHS. */
   case class Tuple(elems: List[Expr]) extends Expr
 

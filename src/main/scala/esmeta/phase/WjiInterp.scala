@@ -75,8 +75,8 @@ case object WjiInterp extends Phase[CFG, Value] {
     val st = EsInterpreter(
       Initialize(mergedCfg).from("""
         var importObj = {js: {
-          import1: function() {},
-          import2: function() {}
+          import1: function() { print("import1"); },
+          import2: function() { print("import2"); }
         }};
       """),
     )

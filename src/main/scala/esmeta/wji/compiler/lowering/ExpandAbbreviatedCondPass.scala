@@ -19,6 +19,8 @@ import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr}
   * The template (subject + operator) is taken from the leftmost concrete
   * condition in the `Or`/`And` chain and applied to every `Abbreviated` on the
   * right.
+  *
+  * Category: Structural desugaring.
   */
 object ExpandAbbreviatedCondPass extends LoweringPass:
 

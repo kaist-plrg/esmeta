@@ -34,6 +34,8 @@ import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr}
   * correct and simpler — no `LoweringPass` before it needs anything back *from*
   * it, so nothing stops it running anywhere after all of them; last just
   * guarantees it's really seen everything.
+  *
+  * Category: Housekeeping.
   */
 object NormalizeAlgoNamePass extends LoweringPass:
   def run(algos: List[Algorithm]): List[Algorithm] =

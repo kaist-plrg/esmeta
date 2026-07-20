@@ -61,6 +61,8 @@ import esmeta.error.UnsupportedSpecShape
   * `ExprParser.CompTypeArrow`'s directly-parsed `"->"` tag) ever shows up as a
   * destructuring target — not added to `requires` until that's actually
   * confirmed.
+  *
+  * Category: Structural desugaring.
   */
 object ExpandDestructuringLetPass extends LoweringPass:
 

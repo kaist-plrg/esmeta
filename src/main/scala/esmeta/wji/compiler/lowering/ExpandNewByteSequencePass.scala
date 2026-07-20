@@ -29,6 +29,8 @@ import esmeta.error.UnsupportedSpecShape
   * ..."). If one ever turns up nested elsewhere, `run` throws
   * `UnsupportedSpecShape` rather than silently leaving it for `Compiler`'s much
   * later, less specific `EYet` fallback.
+  *
+  * Category: Structural desugaring.
   */
 object ExpandNewByteSequencePass extends LoweringPass:
   private var counter = 0

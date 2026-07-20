@@ -27,6 +27,8 @@ import esmeta.wji.lang.Instr.PerformOutcome
   * hoists the step's `"...to perform the following steps:"` clause — parsed as
   * one of this `Perform`'s `args` — into one, so `args` is guaranteed to
   * contain a `Closure` here.
+  *
+  * Category: Structural desugaring.
   */
 object ExpandQueueATaskPass extends LoweringPass:
 

@@ -51,6 +51,8 @@ import esmeta.wji.lang.Instr.PerformOutcome
   *
   * Targets every `Algorithm` with `returnsCompletion = true` — see
   * [[MarkCompletionAlgorithmsPass]].
+  *
+  * Category: Completion-record convention.
   */
 object WrapCompletionReturnsPass extends LoweringPass:
 

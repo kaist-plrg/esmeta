@@ -41,6 +41,8 @@ import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr}
   * Handles `?`/`!` in the direct-RHS position of `Let`, `Set`, and `Return`.
   * Nested occurrences (e.g. inside a larger expression) are left as-is — see
   * `Compiler`'s `Expr.Abrupt` fallback.
+  *
+  * Category: Completion-record convention.
   */
 object ExpandAbruptPass extends LoweringPass:
   private var counter = 0

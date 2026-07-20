@@ -36,6 +36,8 @@ import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr}
   *
   * [[Instr.While]] conditions are never extracted (they are re-evaluated each
   * iteration; extraction would change semantics).
+  *
+  * Category: Structural desugaring.
   */
 object NormalizeAlgoCallPass extends LoweringPass:
 

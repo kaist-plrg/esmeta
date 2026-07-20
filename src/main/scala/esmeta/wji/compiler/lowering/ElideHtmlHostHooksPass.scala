@@ -20,6 +20,8 @@ import esmeta.wji.lang.{Algorithm, Instr}
   * prose — a real `Perform` targeting these names, not already-elided — and
   * this scoping decision (as opposed to a syntax-recognition one) stays visible
   * as its own, separately-inspectable transformation step.
+  *
+  * Category: Housekeeping.
   */
 object ElideHtmlHostHooksPass extends LoweringPass:
 

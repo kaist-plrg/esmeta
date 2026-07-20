@@ -44,6 +44,8 @@ import esmeta.wji.lang.Instr.PerformOutcome
   * Only fires when that `Perform` has no `body` of its own — true for every
   * occurrence seen in the spec so far; otherwise the pattern is left alone for
   * a future pass.
+  *
+  * Category: Completion-record convention.
   */
 object ExpandThrowsPass extends LoweringPass:
 

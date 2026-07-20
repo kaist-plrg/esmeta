@@ -23,6 +23,8 @@ import esmeta.wji.lang.Instr.PerformOutcome
   * inside a larger expression (e.g. as a `BinOp` operand) would need ANF-style
   * hoisting first; no spec text seen so far nests one that way, so this is left
   * as a known gap rather than speculatively generalized.
+  *
+  * Category: Structural desugaring.
   */
 object ExpandClosureCallPass extends LoweringPass:
 

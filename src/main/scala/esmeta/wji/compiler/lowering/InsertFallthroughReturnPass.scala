@@ -30,6 +30,8 @@ import esmeta.wji.lang.{Algorithm, Instr}
   * own `Algorithm` at this pipeline stage — see `CompletionAlgorithms`);
   * `Compiler.compileAlgo`'s own fallback stays in place to cover that case (and
   * as a general safety net besides).
+  *
+  * Category: Completion-record convention.
   */
 object InsertFallthroughReturnPass extends LoweringPass:
   def run(algos: List[Algorithm]): List[Algorithm] =

@@ -44,6 +44,8 @@ import esmeta.wji.lang.Instr.PerformOutcome
   * `Cond.Throws` occurrence first; if one ever slipped past that pass, this one
   * couldn't recognize it as already-handled either, and would insert a
   * redundant (if likely harmless) propagation guard next to it.
+  *
+  * Category: Completion-record convention.
   */
 object PropagateUnguardedCallsPass extends LoweringPass:
 

@@ -11,6 +11,8 @@ import esmeta.wji.lang.Algorithm
   *
   * See `CompletionAlgorithms`'s own doc for why the analysis needs to observe
   * that particular shape.
+  *
+  * Category: Completion-record convention.
   */
 object MarkCompletionAlgorithmsPass extends LoweringPass:
 

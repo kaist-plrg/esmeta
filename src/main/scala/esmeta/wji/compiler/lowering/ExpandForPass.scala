@@ -22,6 +22,8 @@ import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr}
   *
   * Only handles a bare `Var` `elem` over a `Range` `collection`. Any other
   * shape is left as `For` for a future pass.
+  *
+  * Category: Structural desugaring.
   */
 object ExpandForPass extends LoweringPass:
   def run(algos: List[Algorithm]): List[Algorithm] =

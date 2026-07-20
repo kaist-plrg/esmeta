@@ -20,6 +20,8 @@ import esmeta.wji.lang.Instr.PerformOutcome
   * only needs to handle `Discard`/`BindResult` there (unlike
   * `Instr.PerformClosure`, whose `ReturnResult` case `Compiler` compiles
   * directly — see its doc — so this pass deliberately doesn't touch it).
+  *
+  * Category: Structural desugaring.
   */
 object ExpandPerformReturnResultPass extends LoweringPass:
 

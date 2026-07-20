@@ -3,6 +3,30 @@ package esmeta.wji.compiler.lowering
 import esmeta.wji.lang.Algorithm
 import esmeta.error.PipelineOrderError
 
+/** Runs the WJI lowering pipeline: a fixed sequence of [[LoweringPass]]es that
+  * rewrite spec-text-shaped `Algorithm`s into a form
+  * [[esmeta.wji.compiler.Compiler]] can compile directly.
+  *
+  * Every pass falls into one of three categories (see each pass's own doc
+  * comment for its specific tag):
+  *   - '''Housekeeping''': identity-level cleanup (naming, dead-link
+  *     resolution, note-stripping) with no semantic effect on control flow.
+  *   - '''Structural desugaring''': re-expresses an explicit spec construct
+  *     (`for each`, destructuring `Let`, inline algorithm calls, ...) into
+  *     lower-level syntax. This is the bulk of the pipeline.
+  *   - '''Completion-record convention''': the one piece of *implicit*
+  *     spec-wide behavior — ECMA-262/Infra's automatic abrupt-completion
+  *     propagation — made explicit as real control flow.
+  *
+  * The category grouping is documentation only, not machine-checked: unlike
+  * ordering (see [[LoweringPass.requires]]/[[LoweringPass.mustPrecede]] and
+  * [[validate]]), a pass being miscategorized can't silently produce a wrong
+  * compile, so there's no correctness reason to enforce it in code.
+  * [[pipeline]] below is *not* grouped by category — several passes need to
+  * interleave (e.g. a Structural pass needs something a Completion pass
+  * produces, followed by another Structural pass that needs the result) — so
+  * don't read adjacency in [[pipeline]] as a category boundary.
+  */
 object Lowering:
   val pipeline: List[LoweringPass] = List(
     ElideHtmlHostHooksPass,

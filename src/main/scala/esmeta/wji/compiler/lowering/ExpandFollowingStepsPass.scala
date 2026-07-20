@@ -50,6 +50,8 @@ import esmeta.error.UnsupportedSpecShape
   * `Let.body`/`Perform.body` content (every pass already recurses into it via
   * `Instr.mapBody`), so by the time this pass sees it, it's already fully
   * lowered.
+  *
+  * Category: Structural desugaring.
   */
 object ExpandFollowingStepsPass extends LoweringPass:
 

@@ -20,6 +20,8 @@ import esmeta.wji.lang.Instr.PerformOutcome
   * Zero-argument `AlgoCall`s in `Return` position are left alone (the compiler
   * emits `ERef(Global(name))` for those, which is already correct); `JSCall`
   * has no such zero-arg ambiguity and is always extracted.
+  *
+  * Category: Structural desugaring.
   */
 object ExtractInlineAlgoCallPass extends LoweringPass:
 

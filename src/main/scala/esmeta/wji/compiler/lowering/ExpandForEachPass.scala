@@ -30,6 +30,8 @@ import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr}
   * ("`[=custom section=] x` of `y`") — parse to something other than a bare
   * `Var`/`Tuple` and are left as `ForEach` for a future pass, so the compiler
   * still reports them as unsupported instead of silently mis-compiling.
+  *
+  * Category: Structural desugaring.
   */
 object ExpandForEachPass extends LoweringPass:
   private var counter = 0

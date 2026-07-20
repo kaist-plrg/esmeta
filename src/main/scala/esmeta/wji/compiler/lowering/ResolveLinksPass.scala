@@ -36,6 +36,8 @@ import esmeta.wji.lang.{Algorithm, AlgorithmKind, Cond, Expr, Instr}
   *     larger lookup table.
   *   - a zero-arg `Link` that doesn't match a known algorithm becomes a
   *     `SpecTerm` — a bare reference to something else.
+  *
+  * Category: Housekeeping.
   */
 object ResolveLinksPass extends LoweringPass:
   def run(algos: List[Algorithm]): List[Algorithm] =

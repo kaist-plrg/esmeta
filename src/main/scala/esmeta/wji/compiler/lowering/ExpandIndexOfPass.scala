@@ -29,6 +29,8 @@ import esmeta.error.UnsupportedSpecShape
   * |funcaddr| is found", index.bs:1255). If one ever turns up nested elsewhere,
   * `run` throws `UnsupportedSpecShape` rather than silently leaving it for
   * `Compiler`'s much later, less specific `EYet` fallback.
+  *
+  * Category: Structural desugaring.
   */
 object ExpandIndexOfPass extends LoweringPass:
   private var counter = 0

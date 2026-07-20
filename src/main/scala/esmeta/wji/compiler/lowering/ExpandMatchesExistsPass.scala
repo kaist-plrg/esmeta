@@ -54,6 +54,8 @@ import esmeta.wji.lang.Instr.PerformOutcome
   * later branch's precondition correctly requires nesting it inside the earlier
   * branches' "false" case, which no current call site needs; left unexpanded
   * (so `Compiler` reports `EYet`) until one does.
+  *
+  * Category: Structural desugaring.
   */
 object ExpandMatchesExistsPass extends LoweringPass:
 

@@ -33,6 +33,8 @@ import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr}
   * |hostfunc|}` record-shaped form (index.bs:1249) — is left as `Cond.IsOfForm`
   * for `Compiler` to report as `EYet("is of form")`, until a concrete need for
   * it is actually reached.
+  *
+  * Category: Structural desugaring.
   */
 object ExpandIsOfFormPass extends LoweringPass:
 

@@ -32,7 +32,7 @@ import esmeta.wji.lang.{Algorithm, Instr}
   * as a general safety net besides).
   */
 object InsertFallthroughReturnPass extends LoweringPass:
-  override def require: Set[LoweringPass] = Set(
+  override def requires: Set[LoweringPass] = Set(
     ExpandPerformReturnResultPass,
   )
 

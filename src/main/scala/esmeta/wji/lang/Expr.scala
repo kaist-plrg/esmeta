@@ -155,6 +155,14 @@ object Expr:
     */
   case class Range(low: Expr, high: Expr) extends Expr
 
+  /** "the index of LIST where ELEM is found" — the position of `elem` in
+    * `list` (index.bs:1255, `name of the WebAssembly function`). Not directly
+    * evaluable; expanded into a real search loop by `ExpandIndexOfPass`,
+    * which only handles it in direct `Let` RHS position (the only shape seen
+    * so far) — see that pass's own doc.
+    */
+  case class IndexOf(list: Expr, elem: Expr) extends Expr
+
   /** Spec prose that didn't match any recognised expression pattern. */
   case class Unknown(raw: String) extends Expr
 

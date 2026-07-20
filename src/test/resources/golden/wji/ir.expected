@@ -1452,8 +1452,12 @@ def name_of_the_webassembly_function(
   let store = @AGENT_RECORD["associated store"]
   let funcinst = store.funcs[funcaddr]
   let moduleinst = funcinst.module
-  assert (= funcaddr @@yet: unresolved ref: Unknown(contained in |moduleinst|).funcaddrs)
-  let index = (yet "the index of |moduleinst|.funcaddrs where |funcaddr| is found")
+  assert (contains moduleinst.funcaddrs funcaddr)
+  let _idxOf1 = 0
+  while (&& (< _idxOf1 (sizeof moduleinst.funcaddrs)) (! (= moduleinst.funcaddrs[_idxOf1] funcaddr))) {
+    _idxOf1 = (+ _idxOf1 1)
+  }
+  let index = _idxOf1
   call _comp24 = clo<"ToString">(index)
   if (exists _comp24.Type) {
     assert (= _comp24.Type ~normal~)

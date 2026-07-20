@@ -782,8 +782,8 @@
   Let(|store|, [=surrounding agent=].[[associated store]])
   Let(|funcinst|, |store|.[[funcs]][|funcaddr|])
   Let(|moduleinst|, |funcinst|.[[module]])
-  Assert(|funcaddr| is ?(contained in |moduleinst|).[[funcaddrs]])
-  Let(|index|, ?(the index of |moduleinst|.funcaddrs where |funcaddr| is found))
+  Assert(|funcaddr| is contained in |moduleinst|.[[funcaddrs]])
+  Let(|index|, the index of |moduleinst|.[[funcaddrs]] where |funcaddr| is found)
   Return([=!=] [$ToString$](|index|))
 
 # a new Exported Function

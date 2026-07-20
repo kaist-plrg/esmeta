@@ -15,6 +15,7 @@ object Lowering:
     ExpandForEachPass,
     ExpandForPass,
     ExpandNewByteSequencePass,
+    ExpandIndexOfPass,
     ExpandDestructuringLetPass,
     InsertFallthroughReturnPass,
     WrapCompletionReturnsPass,

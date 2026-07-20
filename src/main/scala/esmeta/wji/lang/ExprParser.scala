@@ -167,6 +167,10 @@ object ExprParser:
   private val ElementCount = """(?si)^the number of elements in (.+)$""".r
   private val ElementAt =
     """(?si)^the value of the element stored at index (.+) in (.+)$""".r
+  // "the index of LIST where ELEM is found" (index.bs:1255) — see
+  // Expr.IndexOf / ExpandIndexOfPass.
+  private val IndexOfPat =
+    """(?si)^the index of (.+) where (.+) is found$""".r
   private val AsMathPat =
     """(?si)^(.+)\s+interpreted as a \[=mathematical value=\]$""".r
   private val PowPat = """(?s)^(\d+)<sup>(.+?)</sup>$""".r
@@ -363,6 +367,7 @@ object ExprParser:
       case LengthOf(inner)          => Length(parse(inner.trim))
       case ElementCount(inner)      => Length(parse(inner.trim))
       case ElementAt(idx, arr)      => Index(parse(arr.trim), parse(idx.trim))
+      case IndexOfPat(list, elem)   => IndexOf(parse(list.trim), parse(elem.trim))
       case PossessiveSize(inner)    => Length(parse(inner.trim))
       case AssociatedRealm(baseRaw) => Field(parse(baseRaw.trim), "Realm")
       case PossessiveAssociation(baseRaw, link) =>

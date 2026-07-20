@@ -318,6 +318,9 @@ object Compiler:
       EYet(s"new byte sequence of length ${length}")
     case metalang.Expr.Range(low, high) =>
       EYet(s"range ${low} to ${high}") // TODO: proper range value
+    case metalang.Expr.IndexOf(list, elem) =>
+      // should have been eliminated by ExpandIndexOfPass
+      EYet(s"index of ${list} where ${elem} is found")
     case metalang.Expr.Unknown(raw) => EYet(raw)
     case metalang.Expr.Closure(name, captured) =>
       EClo(name, captured.map(Name(_)))
@@ -364,6 +367,10 @@ object Compiler:
       EUnary(UOp.Not, EExists(Field(compileRef(e), EStr(slot))))
     case Cond.HasDuplicates(e, neg) =>
       EYet("contains duplicates") // TODO — expanded by ExpandHasDuplicatesPass
+    case Cond.Contains(elem, list, false) =>
+      EContains(compileExpr(list), compileExpr(elem))
+    case Cond.Contains(elem, list, true) =>
+      EUnary(UOp.Not, EContains(compileExpr(list), compileExpr(elem)))
     case Cond.Implements(e, iface, neg) => EYet(s"implements $iface") // TODO
     case Cond.IsOfForm(e, f, _, neg)    => EYet(s"is of form $f") // TODO
     case Cond.Matches(l, t, r, neg)     => EYet(s"matches $t") // TODO

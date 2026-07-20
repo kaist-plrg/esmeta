@@ -61,6 +61,11 @@ object CondParser:
   private val LinkCallArgsEndsBool =
     """(?si)^(\[=[^\]]+\])\s+((?:for|with)\s+\|[^|]+\|(?:\s*(?:,\s*|and\s+|with\s+)\|[^|]+\|)*)\s+(is not|is|returns)\s+(true|false)$""".r
 
+  // "contained in LIST" — the RHS of "ELEM is [not] contained in LIST"
+  // (index.bs:1254), handled by parseRhs alongside "missing"/"given"/"of the
+  // form ...".
+  private val ContainedIn = """(?si)^contained in (.+)$""".r
+
   private val UnreachableStep = """(?si)^this step is not reached$""".r
   // "If this [operation] throws an exception, ..." (untyped) or
   // "If this [operation] throws a {{TypeError}}, ..." (typed): group 1 is the
@@ -198,6 +203,12 @@ object CondParser:
         case "missing" => IsMissing(ExprParser.parse(lhsRaw.trim), negated)
         case "given"   => IsMissing(ExprParser.parse(lhsRaw.trim), !negated)
         case IsOfFormRhs(text) => parseIsOfForm(lhsRaw.trim, text, negated)
+        case ContainedIn(listRaw) =>
+          Contains(
+            ExprParser.parse(lhsRaw.trim),
+            ExprParser.parse(listRaw.trim),
+            negated,
+          )
         case _ =>
           Eq(
             ExprParser.parse(lhsRaw.trim),

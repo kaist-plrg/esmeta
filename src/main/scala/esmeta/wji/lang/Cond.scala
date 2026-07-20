@@ -55,6 +55,12 @@ object Cond:
     */
   case class HasDuplicates(list: Expr, negated: Boolean = false) extends Cond
 
+  /** ELEM is [not] contained in LIST — list-membership check, e.g. "|funcaddr|
+    * is contained in |moduleinst|.funcaddrs".
+    */
+  case class Contains(elem: Expr, list: Expr, negated: Boolean = false)
+    extends Cond
+
   /** EXPR [=is [not] a[n] TYPE=] — spec type-check predicate */
   case class IsType(expr: Expr, typeName: String, negated: Boolean = false)
     extends Cond

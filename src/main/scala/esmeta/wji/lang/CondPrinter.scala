@@ -35,6 +35,10 @@ object CondPrinter:
       s"${ExprPrinter.render(expr)} contains any duplicates"
     case HasDuplicates(expr, true) =>
       s"${ExprPrinter.render(expr)} does not contain any duplicates"
+    case Contains(elem, list, false) =>
+      s"${ExprPrinter.render(elem)} is contained in ${ExprPrinter.render(list)}"
+    case Contains(elem, list, true) =>
+      s"${ExprPrinter.render(elem)} is not contained in ${ExprPrinter.render(list)}"
     case IsType(expr, t, neg) =>
       val article = if "aeiouAEIOU".contains(t.head) then "an" else "a"
       val verb = if neg then "is not" else "is"

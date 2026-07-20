@@ -780,9 +780,9 @@
   params: |funcaddr|
   head: The <dfn>name of the WebAssembly function</dfn> |funcaddr| is found by performing the following steps:
   Let(|store|, [=surrounding agent=].[[associated store]])
-  Let(|funcinst|, ?(|store|.funcs)[|funcaddr|])
-  Let(|moduleinst|, ?(|funcinst|.module))
-  Assert(|funcaddr| is ?(contained in |moduleinst|.funcaddrs))
+  Let(|funcinst|, |store|.[[funcs]][|funcaddr|])
+  Let(|moduleinst|, |funcinst|.[[module]])
+  Assert(|funcaddr| is ?(contained in |moduleinst|).[[funcaddrs]])
   Let(|index|, ?(the index of |moduleinst|.funcaddrs where |funcaddr| is found))
   Return([=!=] [$ToString$](|index|))
 

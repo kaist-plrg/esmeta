@@ -148,6 +148,12 @@ object ExprParser:
   // name rather than a call (contrast with `LinkFull`/`LinkProse`,
   // which require the string to *start* with `[=`).
   private val DotFieldLink = """(?s)^(.+)\.(\[=[^\]]+\])$""".r
+  // "BASE.field" — a plain, undecorated record-field access, the Wasm Core
+  // Spec's own formal notation (e.g. `store.funcs`, mirroring `S.FUNCS`)
+  // written directly in prose rather than through a Bikeshed dfn-link
+  // (contrast SlotAccess's `.[[slot]]`/DotFieldLink's `.[=field=]` above,
+  // both tried first so a decorated dot-suffix isn't mistaken for this).
+  private val DotField = """(?s)^(.+)\.([A-Za-z][A-Za-z0-9]*)$""".r
   // "VALUE, [=link=]" — spec's passive-voice idiom for a unary conversion
   // applied to the value stated just before it (e.g. "|result|,
   // [=converted to a JavaScript value=]", "|map|'s [=map/size=], [=converted
@@ -351,6 +357,7 @@ object ExprParser:
           parse(baseRaw),
           normalizeLink(link).stripPrefix("[=").stripSuffix("=]"),
         )
+      case DotField(baseRaw, field) => Field(parse(baseRaw), field)
       case TrailingLinkCall(valueRaw, link) =>
         Link(normalizeLink(link), List(parse(valueRaw.trim)))
       case LengthOf(inner)          => Length(parse(inner.trim))

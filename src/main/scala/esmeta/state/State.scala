@@ -48,26 +48,49 @@ case class State(
 
   /** field getter */
   def apply(base: Value, field: Value): Value = base match
-    case addr: Addr              => heap(addr, field)
-    case AstValue(ast)           => AstValue(ast(field))
-    case Str(str)                => apply(str, field)
-    case Wasm(ALValue.ListV(vs)) => apply(vs, field)
-    case Wasm(ALValue.TupV(vs))  => apply(vs, field)
-    case v                       => throw InvalidRefBase(v)
+    case addr: Addr                 => heap(addr, field)
+    case AstValue(ast)               => AstValue(ast(field))
+    case Str(str)                    => apply(str, field)
+    case Wasm(ALValue.ListV(vs))     => apply(vs, field)
+    case Wasm(ALValue.TupV(vs))      => apply(vs, field)
+    case Wasm(ALValue.StrV(fields))  => applyFields(fields, field)
+    case v                           => throw InvalidRefBase(v)
 
   /** string field getter */
   def apply(str: String, field: Value): Value = field match
     case Math(k) => CodeUnit(str(k.toInt))
     case _       => throw WrongStringRef(str, field)
 
-  /** Wasm-embedding list field getter */
+  /** Wasm-embedding list field getter. The index may be a native `Math`
+    * (e.g. a loop counter) or, since a Wasm address (funcaddr, memaddr, ...)
+    * stays opaquely `Wasm`-wrapped end to end rather than being unwrapped
+    * into a native number, a `Wasm(NumV(Nat(...)))` (e.g. `|store|.funcs[
+    * |funcaddr|]`, where `|funcaddr|` was never unwrapped).
+    */
   def apply(vs: List[ALValue], field: Value): Value =
     lazy val base = Wasm(ALValue.ListV(vs))
+    val idx: Option[Int] = field match
+      case Math(k) if k.isValidInt                          => Some(k.toInt)
+      case Wasm(ALValue.NumV(ALNum.Nat(k))) if k.isValidInt  => Some(k.toInt)
+      case _                                                  => None
+    idx.flatMap(vs.lift) match
+      case Some(v) => Wasm(v)
+      case None    => throw InvalidRefBase(base)
+
+  /** Wasm-embedding record field getter. Case-insensitive: the Wasm Core
+    * Spec's own runtime representation names every record field in all-caps
+    * (`FUNCS`, `MODULE`, `TYPE`, ...), but js-api spec prose written directly
+    * in this math notation (e.g. `store.funcs`, `funcinst.module`) uses
+    * whatever casing reads naturally there, unlike the js-api spec's own
+    * dfn-linked fields (which always name the field exactly).
+    */
+  def applyFields(fields: List[(String, ALValue)], field: Value): Value =
+    lazy val base = Wasm(ALValue.StrV(fields))
     field match
-      case Math(k) if k.isValidInt =>
-        vs.lift(k.toInt) match
-          case Some(v) => Wasm(v)
-          case None    => throw InvalidRefBase(base)
+      case Str(name) =>
+        fields.find(_._1.equalsIgnoreCase(name)) match
+          case Some((_, v)) => Wasm(v)
+          case None         => throw InvalidRefBase(base)
       case _ => throw InvalidRefBase(base)
 
   /** address getter */

@@ -6,7 +6,7 @@ import esmeta.cfg.CFG
 import esmeta.cfgBuilder.CFGBuilder
 import esmeta.error.ESMetaError
 import esmeta.es.Initialize
-import esmeta.es.builtin.{EXECUTION_STACK, realmAddr}
+import esmeta.es.builtin.{AGENT_RECORD, EXECUTION_STACK, realmAddr}
 import esmeta.interpreter.{Interpreter => EsInterpreter}
 import esmeta.ir.{Global, Local, Program}
 import esmeta.state.*
@@ -130,6 +130,18 @@ case object WjiInterp extends Phase[CFG, Value] {
     val func = mergedCfg.getFunc(config.entry)
 
     val (host, connection) = wji.Initialize(st)
+
+    // "Each agent is associated with the following ordered maps: ... The
+    // Exported Function cache, mapping function addresses to Exported
+    // Function objects." (index.bs:346-348) — another agent-associated field
+    // that's only prose, not a `<div algorithm>`, so (like `associated store`
+    // above) it's never mechanized as a step; seeded here as an empty ordered
+    // map so `a new Exported Function` (index.bs:1259-1275) can look it up.
+    st.heap.update(
+      NamedAddr(AGENT_RECORD),
+      Str("Exported Function cache"),
+      st.heap.allocMap(Nil),
+    )
 
     // js-api/index.bs's own sample usage (§Sample API Usage, index.bs:288-301,
     // `demo.wat`): two func imports ("js"."import1"/"import2"), a start

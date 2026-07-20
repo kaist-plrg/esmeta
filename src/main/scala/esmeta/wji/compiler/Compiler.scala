@@ -381,6 +381,8 @@ object Compiler:
     case metalang.Expr.Var(name)                     => Name(name)
     case metalang.Expr.This                          => Global("this")
     case metalang.Expr.SpecTerm("surrounding agent") => GLOBAL_AGENT_RECORD
+    case metalang.Expr.SpecTerm("current Realm") =>
+      Field(GLOBAL_CONTEXT, EStr("Realm"))
     case metalang.Expr.Field(base, name) => Field(compileRef(base), EStr(name))
     case metalang.Expr.Index(base, key) =>
       Field(compileRef(base), compileExpr(key))

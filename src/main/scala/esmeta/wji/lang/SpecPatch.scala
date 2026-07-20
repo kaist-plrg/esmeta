@@ -13,8 +13,16 @@ package esmeta.wji.lang
   *
   *   - *(spec bug)* fixes an actual defect in the spec prose itself — a typo,
   *     stale phrasing, or markup that violates the surrounding file's own
-  *     conventions. These correspond 1-to-1 with the errors documented in
-  *     `docs/spec_errors.md`.
+  *     conventions.
+  *
+  *     REQUIRED, every time you add a *(spec bug)* entry: add a matching
+  *     numbered section to `docs/spec_errors.md` in the SAME change (title,
+  *     File/Current/Expected/Reason, same shape as its existing entries).
+  *     `docs/spec_errors.md` is what actually gets reported upstream to the
+  *     spec authors — a patch added here without a matching entry there
+  *     never reaches them and just silently rots as tribal knowledge in this
+  *     file. Do not defer this to a follow-up commit; do it now, in the same
+  *     patch that adds the entry below.
   *   - *(suggestion)* makes an already-valid elision explicit — a spot where
   *     Bikeshed prose conventionally omits an argument (a generic type
   *     parameter, an implicit realm) that this project's extractor/compiler
@@ -394,6 +402,16 @@ object SpecPatch:
     // trailing text, so one replacement covers all of them.
     "be |functype|."
     -> "be [=expand=](|functype|).",
+
+    // #20 (spec bug) — "the memory address |frame|.[=frame/module=]..."
+    // (`memory.grow`, index.bs:929) writes the [=memory address=] dfn-link
+    // bare, unlike every other of its 6 occurrences in this file, which all
+    // bracket it. Bracketed here to match; `TypeAnnotatedPrefix` (ExprParser)
+    // now accepts a trailing `|var|...` EXPR (not just a `[=...=]`-led one),
+    // so "the [=TERM=] EXPR" still parses to just EXPR — TERM is dropped as a
+    // pure type annotation, same idiom as every other TypeAnnotatedPrefix use.
+    "Let |memaddr| be the memory address |frame|.[=frame/module=].[=moduleinst/memaddrs=][|x|]."
+    -> "Let |memaddr| be the [=memory address=] |frame|.[=frame/module=].[=moduleinst/memaddrs=][|x|].",
   )
 
   def apply(source: String): String =

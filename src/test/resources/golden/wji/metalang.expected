@@ -496,7 +496,7 @@
   If(?(the top of the stack) is not [=i32.const=](-1), and ?(the top of the stack) is not [=i64.const=](-1))
     Let(|frame|, [=current frame=])
     Assert(?(due to validation, |frame|.[=frame/module=].[=moduleinst/memaddrs=][|x|] exists))
-    Let(|memaddr|, ?(the memory address |frame|).[[frame/module]].[[moduleinst/memaddrs]][|x|])
+    Let(|memaddr|, |frame|.[[frame/module]].[[moduleinst/memaddrs]][|x|])
     Perform([=Refresh the memory buffer=](|memaddr|))
 
 # toFixedLengthBuffer
@@ -587,7 +587,7 @@
     Let(|maximum|, [=?=] [=AddressValueToU64=](|descriptor|["maximum"], |addrtype|))
   Else
     Let(|maximum|, empty)
-  Let(|type|, ?(the [=table type=] |addrtype| { <b>[=limits|min=]</b> |initial|, <b>[=limits|max=]</b> |maximum| } |elementtype|))
+  Let(|type|, ?(|addrtype| { <b>[=limits|min=]</b> |initial|, <b>[=limits|max=]</b> |maximum| } |elementtype|))
   If(|type| is not [=valid tabletype=])
     Throw(a {{RangeError}} exception)
   If(|value| is missing)

@@ -15,8 +15,15 @@ object ExprParser:
   // name a value's type before the value itself). Safe to drop TERM and
   // parse only EXPR: EXPR's own dfn/tag already carries that information on
   // its own (see Link/Case), so nothing is lost. General over TERM — not
-  // specific to any one dfn.
-  private val TypeAnnotatedPrefix = """(?si)^the\s+\[=[^\]]+=\]\s+(\[=.+)$""".r
+  // specific to any one dfn. EXPR is either another `[=...=]` link (the
+  // common case above) or a `|var|` reference chain with more after it (e.g.
+  // "the [=memory address=] |frame|.[=frame/module=]...[|x|]") — the `.+`
+  // after the closing `|` requires at least one more character, so a *bare*
+  // "the [=TERM=] |var|" (nothing trailing) still falls through to
+  // LinkIndefVar below, where TERM is the call and |var| is its argument
+  // rather than droppable annotation.
+  private val TypeAnnotatedPrefix =
+    """(?si)^the\s+\[=[^\]]+=\]\s+(\[=.+|\|[^|]+\|.+)$""".r
   // "the {{TERM}} value" — the `{{...}}` (Bikeshed/WebIDL autolink) form of
   // the TERM annotation above, e.g. "the {{undefined}} value" (bare — the
   // value *is* the named term, so it parses straight to a SpecTerm) or "the

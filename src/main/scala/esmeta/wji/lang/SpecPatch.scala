@@ -412,6 +412,17 @@ object SpecPatch:
     // pure type annotation, same idiom as every other TypeAnnotatedPrefix use.
     "Let |memaddr| be the memory address |frame|.[=frame/module=].[=moduleinst/memaddrs=][|x|]."
     -> "Let |memaddr| be the [=memory address=] |frame|.[=frame/module=].[=moduleinst/memaddrs=][|x|].",
+
+    // #21 (spec bug) — `name of the WebAssembly function` (index.bs:1254-1255)
+    // reads a moduleinst's function-address list as `|moduleinst|.funcaddrs`,
+    // but the Wasm Core Spec's actual runtime `moduleinst` record names that
+    // field `FUNCS` (see `Ds.Store`/`Construct`'s moduleinst construction) —
+    // there is no `funcaddrs` field at all. This exact fragment occurs
+    // nowhere else in the file, so one small replacement (rather than
+    // anchoring a whole indentation-sensitive block, fragile against #13
+    // above reformatting this same text before this patch runs) covers both
+    // of its occurrences.
+    "|moduleinst|.funcaddrs" -> "|moduleinst|.funcs",
   )
 
   def apply(source: String): String =

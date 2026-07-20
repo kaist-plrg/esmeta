@@ -104,3 +104,10 @@
 - **Current**: `1. Let |memaddr| be the memory address |frame|.[=frame/module=].[=moduleinst/memaddrs=][|x|].`
 - **Expected**: `1. Let |memaddr| be the [=memory address=] |frame|.[=frame/module=].[=moduleinst/memaddrs=][|x|].`
 - **Reason**: `memory address` is a real dfn, linked with `[= =]` at all 6 of its other occurrences in this file (e.g. lines 346, 827, 838, 851, 861, 902). Only this one instance writes it bare, with no link brackets — a markup inconsistency with the file's own established convention for this term.
+
+## 12. `|moduleinst|.funcaddrs` names a field the runtime `moduleinst` record doesn't have
+
+- **File**: `spectec/document/js-api/index.bs`, lines 1254-1255 (`name of the WebAssembly function`)
+- **Current**: `1. Assert: |funcaddr| is contained in |moduleinst|.funcaddrs.` and `1. Let |index| be the index of |moduleinst|.funcaddrs where |funcaddr| is found.`
+- **Expected**: `1. Assert: |funcaddr| is contained in |moduleinst|.funcs.` and `1. Let |index| be the index of |moduleinst|.funcs where |funcaddr| is found.`
+- **Reason**: the Wasm Core Spec's actual runtime `moduleinst` record names its function-address list `FUNCS`, not `funcaddrs` — confirmed directly off a live decoded module instance (its printed record has `TYPES`/`TAGS`/`GLOBALS`/`MEMS`/`TABLES`/`FUNCS`/`DATAS`/`ELEMS`/`EXPORTS` fields, no `FUNCADDRS`). `funcaddrs` reads like a plausible field name (mirroring `funcaddr`, the element type) but doesn't correspond to anything in the actual representation.

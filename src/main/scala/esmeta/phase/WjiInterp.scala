@@ -14,6 +14,7 @@ import esmeta.wji
 import esmeta.wji.compiler.Compiler
 import esmeta.wji.compiler.lowering.Lowering
 import esmeta.wji.lang.SpecFile
+import esmeta.wji.util.AlgoCallStack
 import scala.collection.mutable.{Map => MMap}
 
 /** `wji-interp` phase
@@ -203,29 +204,14 @@ case object WjiInterp extends Phase[CFG, Value] {
       case e: (ESMetaError | NotImplementedError) =>
         println(sep)
         println(s"[${e.getClass.getSimpleName}] ${e.getMessage}")
-        printCallStack(st)
+        AlgoCallStack.printCallStack(st)
         Undef
       case e: scala.MatchError =>
         println(sep)
         println(s"[MatchError — unhandled IR node] ${e.getMessage}")
-        printCallStack(st)
+        AlgoCallStack.printCallStack(st)
         Undef
     finally connection.close()
-
-  /** Prints the call stack (outermost first) plus the innermost frame's own
-    * cursor — the exact node execution stopped at, not just which function.
-    * Only tells the whole story for a failure in the *outermost* running
-    * context, though: a reentrant call via `Interpreter.invokeCallable` (e.g.
-    * servicing a Wasm `host_func_invoke`) restores the outer `st.context`
-    * before its own exception propagates here, so a failure *inside* one of
-    * those instead surfaces via that method's own stderr log, not this one.
-    */
-  private def printCallStack(st: State): Unit =
-    val stack =
-      (st.context.name :: st.callStack.map(_.context.name)).reverse
-    println("Call stack (outermost first):")
-    stack.zipWithIndex.foreach((f, i) => println(s"  ${"  " * i}$f"))
-    println(s"Cursor: ${st.context.cursor}")
 
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(

@@ -3,12 +3,14 @@ package esmeta.phase
 import esmeta.*
 import esmeta.cfg.CFG
 import esmeta.cfgBuilder.CFGBuilder
+import esmeta.error.ESMetaError
 import esmeta.interpreter.{Interpreter => EsInterpreter}
 import esmeta.ir.Program
 import esmeta.state.State
 import esmeta.util.*
 import esmeta.util.SystemUtils.*
 import esmeta.wji
+import esmeta.wji.util.AlgoCallStack
 
 /** `wji-eval` phase
   *
@@ -49,7 +51,19 @@ case object WjiEval extends Phase[CFG, State] {
 
     val st = mergedCfg.init.fromFile(filename)
     val (host, connection) = wji.Initialize(st)
+    val sep = "─" * 64
     try EsInterpreter(st, log = config.log, wasmHost = Some(host))
+    catch
+      case e: (ESMetaError | NotImplementedError) =>
+        println(sep)
+        println(s"[${e.getClass.getSimpleName}] ${e.getMessage}")
+        AlgoCallStack.printCallStack(st)
+        throw e
+      case e: scala.MatchError =>
+        println(sep)
+        println(s"[MatchError — unhandled IR node] ${e.getMessage}")
+        AlgoCallStack.printCallStack(st)
+        throw e
     finally connection.close()
 
   def defaultConfig: Config = Config()

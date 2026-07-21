@@ -266,7 +266,7 @@
   Let(|onFullfilledSteps|, followingSteps(module))
     PerformAndLet([=asynchronously instantiate a WebAssembly module=](|module|, |importObject|), |innerPromise|)
     Let(|innerOnFullfilledSteps|, followingSteps(instance))
-      Let(|result|, «[ "{{WebAssemblyInstantiatedSource/module}}" → |module|, "{{WebAssemblyInstantiatedSource/instance}}" → |instance| ]»)
+      Let(|result|, «[ "module" → |module|, "instance" → |instance| ]»)
       Perform([=Resolve=](WebAssemblyInstantiatedSource, |promise|, |result|))
     Let(|innerOnRejectedSteps|, followingSteps(reason))
       Perform([=Reject=](WebAssemblyInstantiatedSource, |promise|, |reason|))
@@ -307,7 +307,7 @@
   Let(|exports|, « »)
   ForEach((|name|, |type|), [=module_exports=](|module|))
     Let(|kind|, [=string value of the extern type=](|type|))
-    Let(|obj|, «[ "{{ModuleExportDescriptor/name}}" → |name|, "{{ModuleExportDescriptor/kind}}" → |kind| ]»)
+    Let(|obj|, «[ "name" → |name|, "kind" → |kind| ]»)
     Append(|obj|, |exports|)
   Return(|exports|)
 
@@ -325,7 +325,7 @@
     If(|importedStringModule| is not null, and |moduleName| is |importedStringModule|)
       Continue
     Let(|kind|, [=string value of the extern type=](|type|))
-    Let(|obj|, «[ "{{ModuleImportDescriptor/module}}" → |moduleName|, "{{ModuleImportDescriptor/name}}" → |name|, "{{ModuleImportDescriptor/kind}}" → |kind| ]»)
+    Let(|obj|, «[ "module" → |moduleName|, "name" → |name|, "kind" → |kind| ]»)
     Append(|obj|, |imports|)
   Return(|imports|)
 

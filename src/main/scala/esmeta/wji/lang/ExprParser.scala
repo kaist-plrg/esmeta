@@ -331,6 +331,14 @@ object ExprParser:
 
   private val NumberPat = """^\d+(?:\.\d+)?$""".r
   private val HexPat = """^0x[0-9a-fA-F]+$""".r
+  // `"{{Dict/member}}"` — a Bikeshed dfn-link to a dictionary/interface
+  // member, used (unusually) as a literal ordered-map key rather than in
+  // prose (e.g. js-api's «[ "{{WebAssemblyInstantiatedSource/module}}" →
+  // |module|, ... ]»). Bikeshed renders this as a hyperlinked "module" — only
+  // the member name after the slash is real string content, so this must be
+  // tried before the plain QuotedStr below (which would otherwise keep the
+  // braces/interface-name literally, producing a key nothing ever looks up).
+  private val QuotedBracedMemberLink = """(?s)^"\{\{[^/"}]+/([^"}]+)\}\}"$""".r
   private val QuotedStr = """^"([^"]*)"$""".r
   private val EmptyString = """(?i)^the empty string$""".r
   // the value bound by a preceding `Cond.Throws` check ("If this throws an
@@ -514,20 +522,21 @@ object ExprParser:
         Link(normalizeLink(link), List(parse(arg)))
 
       // ---- Scalars & glossary terms ----
-      case NumberPat()           => Num(s)
-      case HexPat()              => Num(s)
-      case QuotedStr(v)          => Str(v)
-      case EmptyString()         => Str("")
-      case TheException()        => Var("exception")
-      case BoolTrue()            => Bool(true)
-      case BoolFalse()           => Bool(false)
-      case BoldConst(_)          => SpecTerm(s)
-      case SpecTermPat()         => SpecTerm(s)
-      case EmuConst(v)           => SpecTerm(v)
-      case EmuVal(v)             => SpecTerm(v)
-      case BracedTerm(inner)     => SpecTerm(inner)
-      case CrossSpecRef(text)    => SpecTerm(text)
-      case RealmSettingsObject() => SpecTerm("realm/settings object")
+      case NumberPat()                    => Num(s)
+      case HexPat()                       => Num(s)
+      case QuotedBracedMemberLink(member) => Str(member)
+      case QuotedStr(v)                   => Str(v)
+      case EmptyString()                  => Str("")
+      case TheException()                 => Var("exception")
+      case BoolTrue()                     => Bool(true)
+      case BoolFalse()                    => Bool(false)
+      case BoldConst(_)                   => SpecTerm(s)
+      case SpecTermPat()                  => SpecTerm(s)
+      case EmuConst(v)                    => SpecTerm(v)
+      case EmuVal(v)                      => SpecTerm(v)
+      case BracedTerm(inner)              => SpecTerm(inner)
+      case CrossSpecRef(text)             => SpecTerm(text)
+      case RealmSettingsObject()          => SpecTerm("realm/settings object")
 
       case _ => Unknown(s)
 

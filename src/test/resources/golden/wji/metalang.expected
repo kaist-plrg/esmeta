@@ -256,10 +256,6 @@
         ?(terminate these substeps)
       Let(|instanceObject|, new {{Instance}})
       Perform([=initialize an instance object=](|instanceObject|, |module|, |instance|))
-      If(Throws)
-        Note(catch it)
-        Perform([=reject=](Instance, |promise|, |exception|))
-        ?(terminate these substeps)
       Perform([=Resolve=](Instance, |promise|, |instanceObject|))
   Return(|promise|)
 

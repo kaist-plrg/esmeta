@@ -3027,14 +3027,7 @@ def asynchronously_instantiate_a_webassembly_module_closure1(
     let instance = _throwComp3
   }
   let instanceObject = (record [Instance])
-  call _throwComp4 = clo<"initialize_an_instance_object">(instanceObject, module, instance)
-  if (exists _throwComp4.Type) {
-    if (= _throwComp4.Type ~throw~) {
-      let exception = _throwComp4.Value
-      call _ = clo<"reject">(~Instance~, promise, exception)
-      (yet "terminate these substeps")
-    } else nop
-  } else nop
+  call _ = clo<"initialize_an_instance_object">(instanceObject, module, instance)
   call _ = clo<"resolve">(~Instance~, promise, instanceObject)
   return ~unused~
 }

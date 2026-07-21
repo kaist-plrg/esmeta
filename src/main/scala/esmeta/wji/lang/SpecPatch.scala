@@ -68,6 +68,13 @@ object SpecPatch:
 
   /** All patches in application order. */
   val patches: List[(String, String)] = List(
+
+
+    // #0 (hardcoding) -- assume initialize an instance object never throws
+    """1.  [=initialize an instance object|Initialize=] |instanceObject| from |module| and |instance|.
+                If this throws an exception, catch it, [=reject=] |promise| with the exception, and terminate these substeps."""
+    ->
+    """1.  [=initialize an instance object|Initialize=] |instanceObject| from |module| and |instance|.""",
     // #1 (spec bug) — empty ordered map literal written as « » instead of «[ ]»
     "the ordered map « »" -> "the ordered map «[ ]»",
 
@@ -420,6 +427,7 @@ object SpecPatch:
     // above reformatting this same text before this patch runs) covers both
     // of its occurrences.
     "|moduleinst|.funcaddrs" -> "|moduleinst|.funcs",
+
   )
 
   def apply(source: String): String =

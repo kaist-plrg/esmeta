@@ -276,9 +276,11 @@ object Expr:
       case Pow(base, exp)             => List(base, exp)
       case Neg(e)                     => List(e)
       case AsMath(e)                  => List(e)
+      case AsNumber(e)                => List(e)
       case Tuple(elems)               => elems
       case NewByteSequence(length)    => List(length)
       case Range(low, high)           => List(low, high)
+      case IndexOf(list, elem)        => List(list, elem)
       case ClosureCall(closure, args) => closure :: args
       case TupleProj(base, _)         => List(base)
       case CaseTag(base)              => List(base)

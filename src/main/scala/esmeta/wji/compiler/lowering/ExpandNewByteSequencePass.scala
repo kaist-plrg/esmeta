@@ -38,7 +38,10 @@ object ExpandNewByteSequencePass extends LoweringPass:
   private def freshVar(): String = { counter += 1; s"_byteSeq$counter" }
 
   def run(algos: List[Algorithm]): List[Algorithm] =
-    val result = algos.map(a => a.copy(body = transform(a.body)))
+    val result = algos.map { a =>
+      counter = 0
+      a.copy(body = transform(a.body))
+    }
     result.foreach { a =>
       if AstQuery.existsExpr(a.body)(_.isInstanceOf[Expr.NewByteSequence]) then
         throw UnsupportedSpecShape(

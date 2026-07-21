@@ -3,14 +3,13 @@ package esmeta.wji.compiler.lowering
 import esmeta.wji.lang.{Cond, Expr, Instr}
 import esmeta.wji.lang.Instr.PerformOutcome
 
-/** Shared logic for wrapping every `Return`/`Throw` exit path of an
-  * algorithm's body in an ECMA-262 Completion Record: converts a
-  * `Instr.Throw` into a real `ThrowCompletion` return, and wraps every other
-  * `Instr.Return` in `NormalCompletion` unless the value being returned is
-  * already itself a completion (checked at runtime via `HasField`, mirroring
-  * mainline `esmeta.compiler.Compiler`'s own `isCompletion(x)` guard on
-  * `ReturnStep`) — so a caller can always assume the result has a `.Type`
-  * field.
+/** Shared logic for wrapping every `Return`/`Throw` exit path of an algorithm's
+  * body in an ECMA-262 Completion Record: converts a `Instr.Throw` into a real
+  * `ThrowCompletion` return, and wraps every other `Instr.Return` in
+  * `NormalCompletion` unless the value being returned is already itself a
+  * completion (checked at runtime via `HasField`, mirroring mainline
+  * `esmeta.compiler.Compiler`'s own `isCompletion(x)` guard on `ReturnStep`) —
+  * so a caller can always assume the result has a `.Type` field.
   *
   * {{{
   *   If(cond, [Throw("a {{TypeError}} exception")])
@@ -47,10 +46,10 @@ import esmeta.wji.lang.Instr.PerformOutcome
   *     `returnsCompletion = true`, a whole-program fixed point over "can this
   *     algorithm itself abruptly complete" (see [[CompletionAlgorithms]]).
   *   - [[AddBuiltinBehaviourPass]] targets a `CreateBuiltinFunction`-behaviour
-  *     closure unconditionally, regardless of that fixed point (mainline's
-  *     own `esmeta.compiler.Compiler.compile`'s `Builtin => needRetComp =
-  *     true` — a calling-convention requirement, not a "can it throw" one),
-  *     for an `Algorithm` that didn't even exist yet when
+  *     closure unconditionally, regardless of that fixed point (mainline's own
+  *     `esmeta.compiler.Compiler.compile`'s `Builtin => needRetComp = true` — a
+  *     calling-convention requirement, not a "can it throw" one), for an
+  *     `Algorithm` that didn't even exist yet when
   *     `WrapCompletionReturnsPass`'s own `algos.map` ran.
   */
 object CompletionWrapping:
@@ -63,6 +62,17 @@ object CompletionWrapping:
   // "a {{TypeError}} exception" / "a {{TypeError}} exception." / "a {{TypeError}}"
   private val ThrowTarget =
     """(?si)^an?\s+\{\{([^}]+)\}\}(?:\s+exception)?\.?$""".r
+
+  /** Entry point for a caller's per-`Algorithm` pass over `expand`: resets
+    * `counter` first so fresh names start over at each algorithm instead of
+    * accumulating across the whole program (`expand` itself also recurses into
+    * nested bodies, e.g. `Return(None, body)`'s `body` — those inner calls must
+    * NOT reset the counter mid-algorithm, so the reset lives here rather than
+    * inside `expand`).
+    */
+  def expandAlgorithm(instrs: List[Instr]): List[Instr] =
+    counter = 0
+    expand(instrs)
 
   def expand(instrs: List[Instr]): List[Instr] =
     instrs.flatMap(expandInstr)

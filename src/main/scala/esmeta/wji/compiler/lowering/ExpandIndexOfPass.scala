@@ -37,7 +37,10 @@ object ExpandIndexOfPass extends LoweringPass:
   private def freshIdx(): String = { counter += 1; s"_idxOf$counter" }
 
   def run(algos: List[Algorithm]): List[Algorithm] =
-    val result = algos.map(a => a.copy(body = transform(a.body)))
+    val result = algos.map { a =>
+      counter = 0
+      a.copy(body = transform(a.body))
+    }
     result.foreach { a =>
       if AstQuery.existsExpr(a.body)(_.isInstanceOf[Expr.IndexOf]) then
         throw UnsupportedSpecShape(

@@ -62,7 +62,10 @@ object ExpandThrowsPass extends LoweringPass:
   private def freshComp(): String = { counter += 1; s"_throwComp$counter" }
 
   def run(algos: List[Algorithm]): List[Algorithm] =
-    algos.map(a => a.copy(body = transform(a.body)))
+    algos.map { a =>
+      counter = 0
+      a.copy(body = transform(a.body))
+    }
 
   private def stripPipes(s: String): String =
     s.stripPrefix("|").stripSuffix("|")

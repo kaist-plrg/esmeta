@@ -6,9 +6,9 @@ import esmeta.wji.lang.Algorithm
   * transitively-inferred completion-returning operation (see
   * [[CompletionAlgorithms]]/[[MarkCompletionAlgorithmsPass]]) — wraps every
   * `Return`/`Throw` exit path in an ECMA-262 Completion Record via
-  * [[CompletionWrapping.expand]] (see that object's own doc for the actual
-  * rewrite, the ECMA-262 rationale, and why the wrapping logic itself lives
-  * there rather than in this pass).
+  * [[CompletionWrapping.expandAlgorithm]] (see that object's own doc for the
+  * actual rewrite, the ECMA-262 rationale, and why the wrapping logic itself
+  * lives there rather than in this pass).
   *
   * Per ECMA-262 convention, an operation that can abruptly complete must
   * consistently return a Completion Record on *every* exit path, not just the
@@ -39,6 +39,6 @@ object WrapCompletionReturnsPass extends LoweringPass:
   def run(algos: List[Algorithm]): List[Algorithm] =
     algos.map { a =>
       if a.returnsCompletion then
-        a.copy(body = CompletionWrapping.expand(a.body))
+        a.copy(body = CompletionWrapping.expandAlgorithm(a.body))
       else a
     }

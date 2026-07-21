@@ -12,8 +12,8 @@ import esmeta.wji.lang.Instr.PerformOutcome
   * becomes:
   * {{{
   *   <body>
-  *   Perform(func, args, BindResult("_retN"), [])
-  *   Return(Var("_retN"))
+  *   Perform(func, args, BindResult("_resultN"), [])
+  *   Return(Var("_resultN"))
   * }}}
   *
   * This removes the `ReturnResult` outcome from `Instr.Perform` so the compiler
@@ -35,10 +35,13 @@ object ExpandPerformReturnResultPass extends LoweringPass:
   override def requires: Set[LoweringPass] = Set(ExtractInlineAlgoCallPass)
 
   private var counter = 0
-  private def freshRet(): String = { counter += 1; s"_ret$counter" }
+  private def freshRet(): String = { counter += 1; s"_result$counter" }
 
   def run(algos: List[Algorithm]): List[Algorithm] =
-    algos.map(a => a.copy(body = transform(a.body)))
+    algos.map { a =>
+      counter = 0
+      a.copy(body = transform(a.body))
+    }
 
   private def transform(instrs: List[Instr]): List[Instr] =
     instrs.flatMap(expandInstr)

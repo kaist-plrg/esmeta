@@ -39,7 +39,10 @@ object ExpandForEachPass extends LoweringPass:
   private def freshIdx(): String = { counter += 1; s"_iterIdx$counter" }
 
   def run(algos: List[Algorithm]): List[Algorithm] =
-    algos.map(a => a.copy(body = transform(a.body)))
+    algos.map { a =>
+      counter = 0
+      a.copy(body = transform(a.body))
+    }
 
   private def transform(instrs: List[Instr]): List[Instr] =
     instrs.flatMap(expandInstr)

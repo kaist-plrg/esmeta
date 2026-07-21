@@ -94,30 +94,25 @@ object CondParser:
   private val AnyIn =
     """(?si)^any\s+(\S+)\s+in\s+((?:\|[^|]+\|)(?:\s+or\s+\|[^|]+\|)*)\s+(\[=.+)$""".r
 
-  private val CompareOps = Seq(
-    " >= ",
-    " <= ",
-    " ≥ ",
-    " ⩾ ",
-    " > ",
-    " < ",
-    " &gt;= ",
-    " &lt;= ",
-    " &gt; ",
-    " &lt; ",
-  )
-  private val NormalizeOp: Map[String, CompareOp] = Map(
+  // single source of truth for every comparison-operator spelling (spec
+  // prose writes both the literal symbol and its HTML-entity escape) — the
+  // separator list `findTopLevelAny` scans and the op each one normalizes to
+  // are derived from this pair list below, rather than kept as two
+  // hand-synchronized `Seq`/`Map` literals that could silently drift apart.
+  private val CompareOps: Seq[(String, CompareOp)] = Seq(
     " >= " -> CompareOp.Ge,
     " <= " -> CompareOp.Le,
-    " > " -> CompareOp.Gt,
-    " < " -> CompareOp.Lt,
     " ≥ " -> CompareOp.Ge,
     " ⩾ " -> CompareOp.Ge,
+    " > " -> CompareOp.Gt,
+    " < " -> CompareOp.Lt,
     " &gt;= " -> CompareOp.Ge,
     " &lt;= " -> CompareOp.Le,
     " &gt; " -> CompareOp.Gt,
     " &lt; " -> CompareOp.Lt,
   )
+  private val CompareOpSeps: Seq[String] = CompareOps.map(_._1)
+  private val NormalizeOp: Map[String, CompareOp] = CompareOps.toMap
 
   def parse(raw: String): Cond =
     val s = raw.trim.stripSuffix(".")
@@ -239,7 +234,7 @@ object CondParser:
       .orElse(splitTopLevel(s, " equals ").map {
         case (l, r) => Eq(ExprParser.parse(l.trim), ExprParser.parse(r.trim))
       })
-      .orElse(findTopLevelAny(s, CompareOps).map {
+      .orElse(findTopLevelAny(s, CompareOpSeps).map {
         case (i, op) =>
           Compare(
             ExprParser.parse(s.substring(0, i).trim),

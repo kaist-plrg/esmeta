@@ -54,3 +54,10 @@
 - **Spec source**: `webidl/index.bs`의 `react` 알고리즘과 `spectec/document/js-api/index.bs`에 있는 그 2개 호출부(`asynchronously compile a WebAssembly module` / `asynchronously instantiate a WebAssembly module`) — `[=React=] to |X|:` 스텝 바로 아래에 `* If |X| was fulfilled...:` / `* If |X| was rejected...:` 형태의 bullet 하위 분기가 붙어 있는 모양입니다.
 - **What's hardcoded**: 어떤 스텝의 "body"가 그 스텝 자신의 중첩 bullet 목록으로 표현되는 이 모양은 `AlgorithmExtractor`/`InstrParser`가 지금 스텝의 연속으로 인식하는 형태가 아니라서, `Perform`의 `body`로 다시 읽혀 들어가지 못하고 fulfilled/rejected 분기 전체가 조용히 버려지고 있었습니다. 이 패치는 소스 텍스트 자체를 재작성해서 이 문제를 피해갑니다 — 두 분기를 명시적인 이름 있는 closure 두 개(`Let |onFulfilledSteps| be the following steps given argument |V|: ...`)로 뽑아내서 `[=React=]`에 일반 인자로 넘기는 식인데, 이건 `ExpandFollowingStepsPass`가 이미 hoist할 줄 아는 모양입니다.
 - **Why not mechanized**: `InstrParser`가 bullet 하위 목록을 (이미 이름 붙은 스텝 자신의 `body`로서만이 아니라) *바로 앞* 한 줄짜리 스텝의 연속으로도 인식하게 만드는 건 파서의 구조 자체를 바꾸는 일인데, 지금까지는 이 호출부 한 쌍에만 필요해서 그것 하나만을 위해 일반화할 만한 가치는 아직 없습니다.
+
+## 8. `Expr.New(iface)`가 만드는 인터페이스 객체에 기본 오디너리 오브젝트 필드 하드코딩
+
+- **File**: `src/main/scala/esmeta/wji/compiler/Compiler.scala` (`ordinaryObjectFields`, `Expr.New` 컴파일 케이스)
+- **Spec source**: `webidl/index.bs`의 "internally create a new object implementing the interface" — 4번 항목(`ExpandNewInterfaceObjectPass`)이 다루는 것과 같은 근본 gap의 다른 발현입니다.
+- **What's hardcoded**: `Expr.New(iface)`("a new X")는 원래 `ERecord(iface, Nil)`(인터페이스가 선언한 슬롯만 있는 맨몸 레코드)로 컴파일되고 있었는데, `TyModel.registerDynamicSubtype`으로 `Type(v)`가 이런 레코드를 이제 제대로 `"Object"`로 분류하게 되면서, mainline 코드가 `.Get`/`.Set` 등을 직접 호출하려다 그 필드가 없어서 크래시하는 게 드러났습니다. 이 커밋은 `manuals/funcs/__NEW_OBJ__.ir`을 그대로 본떠, 표준 오디너리 오브젝트 내부 메서드 11개(전부 `Record[OrdinaryObject]`의 진짜 구현을 가리키는 클로저)와 `Prototype`(항상 `null`), `Extensible`(항상 `true`), `PrivateElements`, `__MAP__`을 모든 `New(iface)` 호출에 하드코딩으로 붙여줍니다.
+- **Why not mechanized**: 진짜 WebIDL 알고리즘은 `Prototype`을 그 인터페이스의 실제 `%WebAssembly.<iface>.prototype%` intrinsic으로 연결해야 하고, WebIDL의 "새 플랫폼 객체 생성" 전체 preamble(이 문서 4번 항목이 이미 다루는 그 gap)을 따라가야 하는데, 이건 아직 안 되어 있습니다. 지금은 그냥 "테스트를 더 진행시킬 수 있을 정도"만 급하게 만들어 둔 것 — **4번 항목(`ExpandNewInterfaceObjectPass`)과 함께 별도로 제대로 구현될 예정. 그때 이 항목과 코드의 `*(hardcoding)*` 주석도 같이 지울 것.**

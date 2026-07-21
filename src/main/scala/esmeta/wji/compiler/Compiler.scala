@@ -27,6 +27,45 @@ object Compiler:
     * handling and `compileInstr`'s bare `Return.` case.
     */
   private val EUnused = EEnum("unused")
+
+  /** *(hardcoding)* A quick stand-in for the base ordinary-object shape
+    * (`Prototype`/`Extensible`/`__MAP__`/every standard internal method,
+    * mirroring `manuals/funcs/__NEW_OBJ__.ir`) every `Expr.New(iface)`
+    * -constructed WJI interface object (`Instance`, `Module`, ...) needs to
+    * behave like a real JS object — e.g. so `.Get`/`.Set` don't fail with
+    * "invalid object field" once `Type(v)` correctly classifies it as an Object
+    * (see `esmeta.ty.TyModel.registerDynamicSubtype`). `Prototype` stays `null`
+    * rather than the interface's real `%WebAssembly.<iface>.prototype%`
+    * intrinsic — wiring that up properly, along with the rest of WebIDL's
+    * "internally create a new object implementing the interface" preamble, is
+    * left for later.
+    *
+    * Documented in `docs/hardcodes.md` (#8) — when this gets properly
+    * implemented, delete that entry too.
+    */
+  private val ordinaryObjectFields: List[(String, Expr)] = List(
+    "GetPrototypeOf" -> EClo("Record[OrdinaryObject].GetPrototypeOf", Nil),
+    "SetPrototypeOf" -> EClo("Record[OrdinaryObject].SetPrototypeOf", Nil),
+    "IsExtensible" -> EClo("Record[OrdinaryObject].IsExtensible", Nil),
+    "PreventExtensions" -> EClo(
+      "Record[OrdinaryObject].PreventExtensions",
+      Nil,
+    ),
+    "GetOwnProperty" -> EClo("Record[OrdinaryObject].GetOwnProperty", Nil),
+    "DefineOwnProperty" -> EClo(
+      "Record[OrdinaryObject].DefineOwnProperty",
+      Nil,
+    ),
+    "HasProperty" -> EClo("Record[OrdinaryObject].HasProperty", Nil),
+    "Get" -> EClo("Record[OrdinaryObject].Get", Nil),
+    "Set" -> EClo("Record[OrdinaryObject].Set", Nil),
+    "Delete" -> EClo("Record[OrdinaryObject].Delete", Nil),
+    "OwnPropertyKeys" -> EClo("Record[OrdinaryObject].OwnPropertyKeys", Nil),
+    "Prototype" -> ENull(),
+    "Extensible" -> EBool(true),
+    "PrivateElements" -> EList(Nil),
+    "__MAP__" -> EMap((UnknownType, UnknownType), Nil),
+  )
   // A well-known-symbol reference written `%Symbol.NAME%` (e.g.
   // `%Symbol.iterator%`), reaching us as a `SpecTerm` once `ExprParser`
   // strips the `{{...}}` autolink braces. Mirrors mainline ESMeta's
@@ -265,7 +304,7 @@ object Compiler:
       ERef(Field(compileRef(base), EStr(name)))
     case metalang.Expr.Index(base, key) =>
       ERef(Field(compileRef(base), compileExpr(key)))
-    case metalang.Expr.New(iface)      => ERecord(iface, Nil)
+    case metalang.Expr.New(iface)      => ERecord(iface, ordinaryObjectFields)
     case metalang.Expr.List_(elems)    => EList(elems.map(compileExpr))
     case metalang.Expr.Length(e)       => ESizeOf(compileExpr(e))
     case metalang.Expr.BinOp(l, op, r) => compileBinOp(op, l, r)

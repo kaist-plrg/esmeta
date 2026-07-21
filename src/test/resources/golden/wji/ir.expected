@@ -73,7 +73,23 @@ def construct_a_webassembly_module_object(
   builtinSetNames: Unknown,
   importedStringModule: Unknown,
 ): Unknown = {
-  let moduleObject = (record [Module])
+  let moduleObject = (record [Module] {
+    "GetPrototypeOf" : clo<"Record[OrdinaryObject].GetPrototypeOf">,
+    "SetPrototypeOf" : clo<"Record[OrdinaryObject].SetPrototypeOf">,
+    "IsExtensible" : clo<"Record[OrdinaryObject].IsExtensible">,
+    "PreventExtensions" : clo<"Record[OrdinaryObject].PreventExtensions">,
+    "GetOwnProperty" : clo<"Record[OrdinaryObject].GetOwnProperty">,
+    "DefineOwnProperty" : clo<"Record[OrdinaryObject].DefineOwnProperty">,
+    "HasProperty" : clo<"Record[OrdinaryObject].HasProperty">,
+    "Get" : clo<"Record[OrdinaryObject].Get">,
+    "Set" : clo<"Record[OrdinaryObject].Set">,
+    "Delete" : clo<"Record[OrdinaryObject].Delete">,
+    "OwnPropertyKeys" : clo<"Record[OrdinaryObject].OwnPropertyKeys">,
+    "Prototype" : null,
+    "Extensible" : true,
+    "PrivateElements" : (list []),
+    "__MAP__" : (map[Unknown, Unknown]),
+  })
   moduleObject.Module = module
   moduleObject.Bytes = bytes
   moduleObject.BuiltinSets = builtinSetNames
@@ -664,7 +680,23 @@ def create_a_memory_object(
   if (exists map[memaddr]) {
     return map[memaddr]
   } else nop
-  let memory = (record [Memory])
+  let memory = (record [Memory] {
+    "GetPrototypeOf" : clo<"Record[OrdinaryObject].GetPrototypeOf">,
+    "SetPrototypeOf" : clo<"Record[OrdinaryObject].SetPrototypeOf">,
+    "IsExtensible" : clo<"Record[OrdinaryObject].IsExtensible">,
+    "PreventExtensions" : clo<"Record[OrdinaryObject].PreventExtensions">,
+    "GetOwnProperty" : clo<"Record[OrdinaryObject].GetOwnProperty">,
+    "DefineOwnProperty" : clo<"Record[OrdinaryObject].DefineOwnProperty">,
+    "HasProperty" : clo<"Record[OrdinaryObject].HasProperty">,
+    "Get" : clo<"Record[OrdinaryObject].Get">,
+    "Set" : clo<"Record[OrdinaryObject].Set">,
+    "Delete" : clo<"Record[OrdinaryObject].Delete">,
+    "OwnPropertyKeys" : clo<"Record[OrdinaryObject].OwnPropertyKeys">,
+    "Prototype" : null,
+    "Extensible" : true,
+    "PrivateElements" : (list []),
+    "__MAP__" : (map[Unknown, Unknown]),
+  })
   call _ = clo<"initialize_a_memory_object">(memory, memaddr)
   return memory
 }
@@ -924,7 +956,23 @@ def create_a_table_object(
   if (exists map[tableaddr]) {
     return map[tableaddr]
   } else nop
-  let table = (record [Table])
+  let table = (record [Table] {
+    "GetPrototypeOf" : clo<"Record[OrdinaryObject].GetPrototypeOf">,
+    "SetPrototypeOf" : clo<"Record[OrdinaryObject].SetPrototypeOf">,
+    "IsExtensible" : clo<"Record[OrdinaryObject].IsExtensible">,
+    "PreventExtensions" : clo<"Record[OrdinaryObject].PreventExtensions">,
+    "GetOwnProperty" : clo<"Record[OrdinaryObject].GetOwnProperty">,
+    "DefineOwnProperty" : clo<"Record[OrdinaryObject].DefineOwnProperty">,
+    "HasProperty" : clo<"Record[OrdinaryObject].HasProperty">,
+    "Get" : clo<"Record[OrdinaryObject].Get">,
+    "Set" : clo<"Record[OrdinaryObject].Set">,
+    "Delete" : clo<"Record[OrdinaryObject].Delete">,
+    "OwnPropertyKeys" : clo<"Record[OrdinaryObject].OwnPropertyKeys">,
+    "Prototype" : null,
+    "Extensible" : true,
+    "PrivateElements" : (list []),
+    "__MAP__" : (map[Unknown, Unknown]),
+  })
   call _ = clo<"initialize_a_table_object">(table, tableaddr)
   return table
 }
@@ -1229,7 +1277,23 @@ def create_a_global_object(
   if (exists map[globaladdr]) {
     return map[globaladdr]
   } else nop
-  let global = (record [Global])
+  let global = (record [Global] {
+    "GetPrototypeOf" : clo<"Record[OrdinaryObject].GetPrototypeOf">,
+    "SetPrototypeOf" : clo<"Record[OrdinaryObject].SetPrototypeOf">,
+    "IsExtensible" : clo<"Record[OrdinaryObject].IsExtensible">,
+    "PreventExtensions" : clo<"Record[OrdinaryObject].PreventExtensions">,
+    "GetOwnProperty" : clo<"Record[OrdinaryObject].GetOwnProperty">,
+    "DefineOwnProperty" : clo<"Record[OrdinaryObject].DefineOwnProperty">,
+    "HasProperty" : clo<"Record[OrdinaryObject].HasProperty">,
+    "Get" : clo<"Record[OrdinaryObject].Get">,
+    "Set" : clo<"Record[OrdinaryObject].Set">,
+    "Delete" : clo<"Record[OrdinaryObject].Delete">,
+    "OwnPropertyKeys" : clo<"Record[OrdinaryObject].OwnPropertyKeys">,
+    "Prototype" : null,
+    "Extensible" : true,
+    "PrivateElements" : (list []),
+    "__MAP__" : (map[Unknown, Unknown]),
+  })
   call _ = clo<"initialize_a_global_object">(global, globaladdr)
   return global
 }
@@ -2124,7 +2188,23 @@ def create_a_tag_object(
   if (exists map[tagAddress]) {
     return map[tagAddress]
   } else nop
-  let tag = (record [Tag])
+  let tag = (record [Tag] {
+    "GetPrototypeOf" : clo<"Record[OrdinaryObject].GetPrototypeOf">,
+    "SetPrototypeOf" : clo<"Record[OrdinaryObject].SetPrototypeOf">,
+    "IsExtensible" : clo<"Record[OrdinaryObject].IsExtensible">,
+    "PreventExtensions" : clo<"Record[OrdinaryObject].PreventExtensions">,
+    "GetOwnProperty" : clo<"Record[OrdinaryObject].GetOwnProperty">,
+    "DefineOwnProperty" : clo<"Record[OrdinaryObject].DefineOwnProperty">,
+    "HasProperty" : clo<"Record[OrdinaryObject].HasProperty">,
+    "Get" : clo<"Record[OrdinaryObject].Get">,
+    "Set" : clo<"Record[OrdinaryObject].Set">,
+    "Delete" : clo<"Record[OrdinaryObject].Delete">,
+    "OwnPropertyKeys" : clo<"Record[OrdinaryObject].OwnPropertyKeys">,
+    "Prototype" : null,
+    "Extensible" : true,
+    "PrivateElements" : (list []),
+    "__MAP__" : (map[Unknown, Unknown]),
+  })
   call _ = clo<"initialize_a_tag_object">(tag, tagAddress)
   return tag
 }
@@ -2251,7 +2331,23 @@ def create_an_exception_object(
   if (exists map[exnAddress]) {
     return map[exnAddress]
   } else nop
-  let exn = (record [Exception])
+  let exn = (record [Exception] {
+    "GetPrototypeOf" : clo<"Record[OrdinaryObject].GetPrototypeOf">,
+    "SetPrototypeOf" : clo<"Record[OrdinaryObject].SetPrototypeOf">,
+    "IsExtensible" : clo<"Record[OrdinaryObject].IsExtensible">,
+    "PreventExtensions" : clo<"Record[OrdinaryObject].PreventExtensions">,
+    "GetOwnProperty" : clo<"Record[OrdinaryObject].GetOwnProperty">,
+    "DefineOwnProperty" : clo<"Record[OrdinaryObject].DefineOwnProperty">,
+    "HasProperty" : clo<"Record[OrdinaryObject].HasProperty">,
+    "Get" : clo<"Record[OrdinaryObject].Get">,
+    "Set" : clo<"Record[OrdinaryObject].Set">,
+    "Delete" : clo<"Record[OrdinaryObject].Delete">,
+    "OwnPropertyKeys" : clo<"Record[OrdinaryObject].OwnPropertyKeys">,
+    "Prototype" : null,
+    "Extensible" : true,
+    "PrivateElements" : (list []),
+    "__MAP__" : (map[Unknown, Unknown]),
+  })
   call _ = clo<"initialize_an_exception_object">(exn, exnAddress)
   return exn
 }
@@ -3000,7 +3096,23 @@ def get_a_copy_of_the_buffer_source(
 def asynchronously_compile_a_webassembly_module_closure1(
 ): Unknown = {
   if (= module ~error~) {
-    call _ = clo<"reject">(~Module~, promise, (record [CompileError]))
+    call _ = clo<"reject">(~Module~, promise, (record [CompileError] {
+      "GetPrototypeOf" : clo<"Record[OrdinaryObject].GetPrototypeOf">,
+      "SetPrototypeOf" : clo<"Record[OrdinaryObject].SetPrototypeOf">,
+      "IsExtensible" : clo<"Record[OrdinaryObject].IsExtensible">,
+      "PreventExtensions" : clo<"Record[OrdinaryObject].PreventExtensions">,
+      "GetOwnProperty" : clo<"Record[OrdinaryObject].GetOwnProperty">,
+      "DefineOwnProperty" : clo<"Record[OrdinaryObject].DefineOwnProperty">,
+      "HasProperty" : clo<"Record[OrdinaryObject].HasProperty">,
+      "Get" : clo<"Record[OrdinaryObject].Get">,
+      "Set" : clo<"Record[OrdinaryObject].Set">,
+      "Delete" : clo<"Record[OrdinaryObject].Delete">,
+      "OwnPropertyKeys" : clo<"Record[OrdinaryObject].OwnPropertyKeys">,
+      "Prototype" : null,
+      "Extensible" : true,
+      "PrivateElements" : (list []),
+      "__MAP__" : (map[Unknown, Unknown]),
+    }))
     return ~unused~
   } else nop
   if (exists options.builtins) {
@@ -3015,7 +3127,23 @@ def asynchronously_compile_a_webassembly_module_closure1(
   }
   call _call1 = clo<"validate_builtins_and_imported_string_for_a_webassembly_module">(module, builtinSetNames, importedStringModule)
   if (= _call1 false) {
-    call _ = clo<"reject">(~Module~, promise, (record [CompileError]))
+    call _ = clo<"reject">(~Module~, promise, (record [CompileError] {
+      "GetPrototypeOf" : clo<"Record[OrdinaryObject].GetPrototypeOf">,
+      "SetPrototypeOf" : clo<"Record[OrdinaryObject].SetPrototypeOf">,
+      "IsExtensible" : clo<"Record[OrdinaryObject].IsExtensible">,
+      "PreventExtensions" : clo<"Record[OrdinaryObject].PreventExtensions">,
+      "GetOwnProperty" : clo<"Record[OrdinaryObject].GetOwnProperty">,
+      "DefineOwnProperty" : clo<"Record[OrdinaryObject].DefineOwnProperty">,
+      "HasProperty" : clo<"Record[OrdinaryObject].HasProperty">,
+      "Get" : clo<"Record[OrdinaryObject].Get">,
+      "Set" : clo<"Record[OrdinaryObject].Set">,
+      "Delete" : clo<"Record[OrdinaryObject].Delete">,
+      "OwnPropertyKeys" : clo<"Record[OrdinaryObject].OwnPropertyKeys">,
+      "Prototype" : null,
+      "Extensible" : true,
+      "PrivateElements" : (list []),
+      "__MAP__" : (map[Unknown, Unknown]),
+    }))
   } else {
     call moduleObject = clo<"construct_a_webassembly_module_object">(module, bytes, builtinSetNames, importedStringModule)
     call _ = clo<"resolve">(~Module~, promise, moduleObject)
@@ -3036,7 +3164,23 @@ def asynchronously_instantiate_a_webassembly_module_closure1(
   } else {
     let instance = _throwComp2
   }
-  let instanceObject = (record [Instance])
+  let instanceObject = (record [Instance] {
+    "GetPrototypeOf" : clo<"Record[OrdinaryObject].GetPrototypeOf">,
+    "SetPrototypeOf" : clo<"Record[OrdinaryObject].SetPrototypeOf">,
+    "IsExtensible" : clo<"Record[OrdinaryObject].IsExtensible">,
+    "PreventExtensions" : clo<"Record[OrdinaryObject].PreventExtensions">,
+    "GetOwnProperty" : clo<"Record[OrdinaryObject].GetOwnProperty">,
+    "DefineOwnProperty" : clo<"Record[OrdinaryObject].DefineOwnProperty">,
+    "HasProperty" : clo<"Record[OrdinaryObject].HasProperty">,
+    "Get" : clo<"Record[OrdinaryObject].Get">,
+    "Set" : clo<"Record[OrdinaryObject].Set">,
+    "Delete" : clo<"Record[OrdinaryObject].Delete">,
+    "OwnPropertyKeys" : clo<"Record[OrdinaryObject].OwnPropertyKeys">,
+    "Prototype" : null,
+    "Extensible" : true,
+    "PrivateElements" : (list []),
+    "__MAP__" : (map[Unknown, Unknown]),
+  })
   call _ = clo<"initialize_an_instance_object">(instanceObject, module, instance)
   call _ = clo<"resolve">(~Instance~, promise, instanceObject)
   return ~unused~

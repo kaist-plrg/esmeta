@@ -13,12 +13,19 @@ private[wji] object TextSplit:
     findTopLevelAny(text, Seq(sep)).map(_._1)
 
   /** the index (and matched separator) of the first top-level occurrence of any
-    * of `seps` in `text`, if any
+    * of `seps` in `text` at or after `from`, if any. `from` must itself be a
+    * top-level position (bracket depth 0, outside any string) in `text` —
+    * [[findLastTopLevelAny]] relies on this to resume scanning without
+    * re-deriving depth/string state for the part of `text` before `from`.
     */
-  def findTopLevelAny(text: String, seps: Seq[String]): Option[(Int, String)] =
+  def findTopLevelAny(
+    text: String,
+    seps: Seq[String],
+    from: Int = 0,
+  ): Option[(Int, String)] =
     var depth = 0
     var inString = false
-    var i = 0
+    var i = from
     while i < text.length do
       if !inString && depth == 0 then
         seps.find(text.startsWith(_, i)) match
@@ -51,10 +58,10 @@ private[wji] object TextSplit:
     var from = 0
     var continue = true
     while continue do
-      findTopLevelAny(text.substring(from), seps) match
+      findTopLevelAny(text, seps, from) match
         case Some((i, sep)) =>
-          last = Some((from + i, sep))
-          from = from + i + sep.length
+          last = Some((i, sep))
+          from = i + sep.length
         case None => continue = false
     last
 

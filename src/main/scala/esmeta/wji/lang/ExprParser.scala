@@ -304,6 +304,18 @@ object ExprParser:
   private def stripBraces(s: String): String =
     s.stripPrefix("{{").stripSuffix("}}")
 
+  /** `Field(parse(baseRaw), name)`, where `name` is `link`'s dfn text with its
+    * `[=`/`=]` markers stripped — shared by [[DotFieldLink]] (`base.[=name=]`)
+    * and [[PossessiveAssociation]] (`base's [=name=]`), the two field-access
+    * spellings that carry the field name as a dfn link rather than a plain
+    * identifier (contrast [[DotField]]'s `base.field`).
+    */
+  private def fieldFromLink(baseRaw: String, link: String): Expr =
+    Field(
+      parse(baseRaw),
+      normalizeLink(link).stripPrefix("[=").stripSuffix("=]"),
+    )
+
   def parse(raw: String): Expr =
     val s = raw.trim
     s match
@@ -367,12 +379,8 @@ object ExprParser:
       case BareSlotName(slot)        => Str(stripBraces(slot))
       case PossessiveSlot(baseRaw, slot) =>
         Field(parse(baseRaw), stripBraces(slot))
-      case DotFieldLink(baseRaw, link) =>
-        Field(
-          parse(baseRaw),
-          normalizeLink(link).stripPrefix("[=").stripSuffix("=]"),
-        )
-      case DotField(baseRaw, field) => Field(parse(baseRaw), field)
+      case DotFieldLink(baseRaw, link) => fieldFromLink(baseRaw, link)
+      case DotField(baseRaw, field)    => Field(parse(baseRaw), field)
       case TrailingLinkCall(valueRaw, link) =>
         Link(normalizeLink(link), List(parse(valueRaw.trim)))
       case LengthOf(inner)        => Length(parse(inner.trim))
@@ -381,11 +389,7 @@ object ExprParser:
       case IndexOfPat(list, elem) => IndexOf(parse(list.trim), parse(elem.trim))
       case PossessiveSize(inner)  => Length(parse(inner.trim))
       case AssociatedRealm(baseRaw) => Field(parse(baseRaw.trim), "Realm")
-      case PossessiveAssociation(baseRaw, link) =>
-        Field(
-          parse(baseRaw),
-          normalizeLink(link).stripPrefix("[=").stripSuffix("=]"),
-        )
+      case PossessiveAssociation(baseRaw, link) => fieldFromLink(baseRaw, link)
       case CompTypeArrow(paramsRaw, resultsRaw) =>
         Case("->", List(parse(paramsRaw), parse(resultsRaw)))
       case IndexByStr(baseRaw, key)    => Index(parse(baseRaw), Str(key))

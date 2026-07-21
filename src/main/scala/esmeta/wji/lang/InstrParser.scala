@@ -235,23 +235,21 @@ object InstrParser:
           case None => Unknown(text, trailingBody)
       case _ if IterationContinuePrefix.matches(text) => Continue(trailingBody)
       case _ if RunInParallelPrefix.matches(text) => RunInParallel(trailingBody)
-      case PerformPrefix(expr) =>
-        expr.trim match
-          case PerformAndReturnSuffix(op) =>
-            val (func, args) = parseCall(op.trim)
-            Perform(func, args, ReturnResult, trailingBody)
+      case PerformPrefix(expr)                    =>
+        // each suffix only changes the outcome/trailing body, not how the
+        // call itself is parsed — so determine those first, then call
+        // parseCall exactly once instead of once per suffix case.
+        val (op, outcome, body) = expr.trim match
+          case PerformAndReturnSuffix(op) => (op, ReturnResult, trailingBody)
           case PerformAndLetSuffix(op, variable) =>
-            val (func, args) = parseCall(op.trim)
-            Perform(func, args, BindResult(variable), trailingBody)
+            (op, BindResult(variable), trailingBody)
           case PerformAndStoreSuffix(op, variable) =>
-            val (func, args) = parseCall(op.trim)
-            Perform(func, args, BindResult(variable), trailingBody)
+            (op, BindResult(variable), trailingBody)
           case PerformAndBareReturnSuffix(op) =>
-            val (func, args) = parseCall(op.trim)
-            Perform(func, args, Discard, Return(None) :: trailingBody)
-          case op =>
-            val (func, args) = parseCall(op)
-            Perform(func, args, Discard, trailingBody)
+            (op, Discard, Return(None) :: trailingBody)
+          case op => (op, Discard, trailingBody)
+        val (func, args) = parseCall(op)
+        Perform(func, args, outcome, body)
       case _ => Unknown(text, trailingBody)
 
   /** splits the text following `If`/`Else if`/... into its condition and the

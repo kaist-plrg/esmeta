@@ -160,8 +160,8 @@ object InstrParser:
         splitTopLevel(rest, " be ") match
           case Some((lhs, expr)) =>
             Let(
-              ExprParser.parse(lhs.trim),
-              ExprParser.parse(expr.trim),
+              ExprParser.parse(lhs),
+              ExprParser.parse(expr),
               trailingBody,
             )
           case None => Unknown(text, trailingBody)
@@ -171,17 +171,17 @@ object InstrParser:
         ) match
           case Some((lhs, expr)) =>
             Set(
-              ExprParser.parse(lhs.trim),
-              ExprParser.parse(expr.trim),
+              ExprParser.parse(lhs),
+              ExprParser.parse(expr),
               trailingBody,
             )
           case None => Unknown(text, trailingBody)
       case AssertPrefix(cond) =>
-        Assert(CondParser.parse(cond.trim), trailingBody)
+        Assert(CondParser.parse(cond), trailingBody)
       case NotePrefix(note) => Note(note.trim, trailingBody)
       case ReturnPrefix(expr) =>
         Return(
-          Option.when(expr.nonEmpty)(ExprParser.parse(expr.trim)),
+          Option.when(expr.nonEmpty)(ExprParser.parse(expr)),
           trailingBody,
         )
       case ThrowPrefix(target) => Throw(target.trim, trailingBody)
@@ -209,18 +209,18 @@ object InstrParser:
       case ForPrefix(elemStr, rest) =>
         val (collection, bodyText) = splitForCollection(rest)
         For(
-          ExprParser.parse(elemStr.trim),
+          ExprParser.parse(elemStr),
           ExprParser.parse(collection),
           deriveBody(bodyText, trailingBody),
         )
       case WhilePrefix(rest) =>
-        While(CondParser.parse(rest.stripSuffix(":").trim), trailingBody)
+        While(CondParser.parse(rest.stripSuffix(":")), trailingBody)
       case AppendPrefix(rest) =>
         splitTopLevel(rest, " to ") match
           case Some((item, collection)) =>
             Append(
-              ExprParser.parse(item.trim),
-              ExprParser.parse(collection.trim),
+              ExprParser.parse(item),
+              ExprParser.parse(collection),
               trailingBody,
             )
           case None => Unknown(text, trailingBody)
@@ -228,8 +228,8 @@ object InstrParser:
         splitTopLevel(rest, " to ") match
           case Some((lhs, expr)) =>
             Set(
-              ExprParser.parse(lhs.trim),
-              ExprParser.parse(expr.trim),
+              ExprParser.parse(lhs),
+              ExprParser.parse(expr),
               trailingBody,
             )
           case None => Unknown(text, trailingBody)

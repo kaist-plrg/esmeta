@@ -429,7 +429,7 @@ object ExprParser:
           if findTopLevel(rest, " given ").isDefined =>
         val (closureRaw, argsRaw) = splitTopLevel(rest, " given ").get
         ClosureCall(
-          parse(closureRaw.stripSuffix(",").trim),
+          parse(closureRaw.stripSuffix(",")),
           splitComma(argsRaw.trim.replaceFirst("""(?i)^arguments?\s+""", ""))
             .map(parse),
         )
@@ -441,13 +441,13 @@ object ExprParser:
       case NewExpr(iface)             => New(iface)
       case NewExceptionExpr(iface)    => New(iface)
       case EmptyList()                => List_(Nil)
-      case NewByteSeqOfLength(lenRaw) => NewByteSequence(parse(lenRaw.trim))
+      case NewByteSeqOfLength(lenRaw) => NewByteSequence(parse(lenRaw))
       case PlainNewExpr()             => UnknownNew(s)
       case EmptyMapProse()            => Map_(Nil)
       case MapLiteral(inner) =>
         val entries = splitComma(inner).map { e =>
           splitTopLevel(e, " → ") match
-            case Some((k, v)) => (parse(k.trim), parse(v.trim))
+            case Some((k, v)) => (parse(k), parse(v))
             case None         => (Unknown(e), Unknown(""))
         }
         Map_(entries)
@@ -464,7 +464,7 @@ object ExprParser:
         Link(normalizeLink(link), parseArgs(prose))
       case LinkOnly(link) => Link(normalizeLink(link), Nil)
       case TrailingLinkCall(valueRaw, link) =>
-        Link(normalizeLink(link), List(parse(valueRaw.trim)))
+        Link(normalizeLink(link), List(parse(valueRaw)))
 
       // ---- Bare references ----
       case ThisOnly()      => This
@@ -490,12 +490,12 @@ object ExprParser:
         Field(parse(baseRaw), stripBraces(slot))
       case DotFieldLink(baseRaw, link) => fieldFromLink(baseRaw, link)
       case DotField(baseRaw, field)    => Field(parse(baseRaw), field)
-      case LengthOf(inner)             => Length(parse(inner.trim))
-      case ElementCount(inner)         => Length(parse(inner.trim))
-      case PossessiveSize(inner)       => Length(parse(inner.trim))
-      case ElementAt(idx, arr)    => Index(parse(arr.trim), parse(idx.trim))
-      case IndexOfPat(list, elem) => IndexOf(parse(list.trim), parse(elem.trim))
-      case AssociatedRealm(baseRaw) => Field(parse(baseRaw.trim), "Realm")
+      case LengthOf(inner)             => Length(parse(inner))
+      case ElementCount(inner)         => Length(parse(inner))
+      case PossessiveSize(inner)       => Length(parse(inner))
+      case ElementAt(idx, arr)         => Index(parse(arr), parse(idx))
+      case IndexOfPat(list, elem)      => IndexOf(parse(list), parse(elem))
+      case AssociatedRealm(baseRaw)    => Field(parse(baseRaw), "Realm")
       case PossessiveAssociation(baseRaw, link) => fieldFromLink(baseRaw, link)
       case CompTypeArrow(paramsRaw, resultsRaw) =>
         Case("->", List(parse(paramsRaw), parse(resultsRaw)))

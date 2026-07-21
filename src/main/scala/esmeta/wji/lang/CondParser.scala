@@ -125,7 +125,7 @@ object CondParser:
         )
       case AnyIn(binder, collsRaw, predTail) =>
         val collections = collsRaw.split("""\s+or\s+""").toList.map { c =>
-          ExprParser.parse(c.trim)
+          ExprParser.parse(c)
         }
         Exists(binder, collections, parse(s"|$binder| $predTail"))
       case _ =>
@@ -133,7 +133,7 @@ object CondParser:
         findTopLevel(s, " or ") match
           case Some(i) =>
             Or(
-              parse(s.substring(0, i).trim),
+              parse(s.substring(0, i)),
               parseOrAbbreviated(s.substring(i + 4).trim),
             )
           case None =>
@@ -166,25 +166,25 @@ object CondParser:
       HasField(ExprParser.parse(baseRaw), negated = true)
     case ListIsEmpty(baseRaw, alias) =>
       val negated = Option(alias).exists(_.toLowerCase.contains("not"))
-      Eq(Length(ExprParser.parse(baseRaw.trim)), Num("0"), negated)
+      Eq(Length(ExprParser.parse(baseRaw)), Num("0"), negated)
     case ImplementsPos(exprRaw, face) =>
       Implements(ExprParser.parse(exprRaw), face)
     case ImplementsNeg(exprRaw, face) =>
       Implements(ExprParser.parse(exprRaw), face, negated = true)
     case HasSlotPos(exprRaw, slot) =>
-      HasSlot(ExprParser.parse(exprRaw.trim), slot)
+      HasSlot(ExprParser.parse(exprRaw), slot)
     case HasSlotNeg(exprRaw, slot) =>
-      HasSlot(ExprParser.parse(exprRaw.trim), slot, negated = true)
+      HasSlot(ExprParser.parse(exprRaw), slot, negated = true)
     case ContainsDuplicatesNeg(exprRaw) =>
-      HasDuplicates(ExprParser.parse(exprRaw.trim), negated = true)
+      HasDuplicates(ExprParser.parse(exprRaw), negated = true)
     case ContainsDuplicatesPos(exprRaw) =>
-      HasDuplicates(ExprParser.parse(exprRaw.trim))
+      HasDuplicates(ExprParser.parse(exprRaw))
     case _ => parseEqOrCompare(s)
 
   private def parseEqOrCompare(s: String): Cond =
     def parseIsOfForm(lhsRaw: String, rhsText: String, negated: Boolean): Cond =
       val (formRaw, condOpt) = splitTopLevel(rhsText.trim, " where ") match
-        case Some((f, c)) => (f.trim, Some(parse(c.trim)))
+        case Some((f, c)) => (f.trim, Some(parse(c)))
         case None         => (rhsText.trim, None)
       IsOfForm(
         ExprParser.parse(lhsRaw),
@@ -195,19 +195,19 @@ object CondParser:
 
     def parseRhs(lhsRaw: String, rhsRaw: String, negated: Boolean): Cond =
       rhsRaw.trim match
-        case "missing" => IsMissing(ExprParser.parse(lhsRaw.trim), negated)
-        case "given"   => IsMissing(ExprParser.parse(lhsRaw.trim), !negated)
+        case "missing"         => IsMissing(ExprParser.parse(lhsRaw), negated)
+        case "given"           => IsMissing(ExprParser.parse(lhsRaw), !negated)
         case IsOfFormRhs(text) => parseIsOfForm(lhsRaw.trim, text, negated)
         case ContainedIn(listRaw) =>
           Contains(
-            ExprParser.parse(lhsRaw.trim),
-            ExprParser.parse(listRaw.trim),
+            ExprParser.parse(lhsRaw),
+            ExprParser.parse(listRaw),
             negated,
           )
         case _ =>
           Eq(
-            ExprParser.parse(lhsRaw.trim),
-            ExprParser.parse(rhsRaw.trim),
+            ExprParser.parse(lhsRaw),
+            ExprParser.parse(rhsRaw),
             negated,
           )
 
@@ -227,10 +227,10 @@ object CondParser:
     splitEq(Seq(" is not equal to ", " does not equal "))
       .map {
         case (l, r) =>
-          Eq(ExprParser.parse(l.trim), ExprParser.parse(r.trim), negated = true)
+          Eq(ExprParser.parse(l), ExprParser.parse(r), negated = true)
       }
       .orElse(splitEq(Seq(" is equal to ", " equals ")).map {
-        case (l, r) => Eq(ExprParser.parse(l.trim), ExprParser.parse(r.trim))
+        case (l, r) => Eq(ExprParser.parse(l), ExprParser.parse(r))
       })
       .orElse(splitTopLevel(s, " is not ").map {
         case (l, r) => parseRhs(l, r, negated = true)
@@ -243,28 +243,28 @@ object CondParser:
       .orElse(findTopLevelAny(s, CompareOpSeps).map {
         case (i, op) =>
           Compare(
-            ExprParser.parse(s.substring(0, i).trim),
+            ExprParser.parse(s.substring(0, i)),
             NormalizeOp(op),
-            ExprParser.parse(s.substring(i + op.length).trim),
+            ExprParser.parse(s.substring(i + op.length)),
           )
       })
       .getOrElse(s match
         case IsTypeNeg(exprRaw, t) =>
-          IsType(ExprParser.parse(exprRaw.trim), t.trim, negated = true)
+          IsType(ExprParser.parse(exprRaw), t.trim, negated = true)
         case IsTypePos(exprRaw, t) =>
-          IsType(ExprParser.parse(exprRaw.trim), t.trim)
+          IsType(ExprParser.parse(exprRaw), t.trim)
         case MatchesNeg(l, link, r) =>
           Matches(
-            ExprParser.parse(l.trim),
+            ExprParser.parse(l),
             matchType(link),
-            ExprParser.parse(r.trim),
+            ExprParser.parse(r),
             negated = true,
           )
         case MatchesPos(l, link, r) =>
           Matches(
-            ExprParser.parse(l.trim),
+            ExprParser.parse(l),
             matchType(link),
-            ExprParser.parse(r.trim),
+            ExprParser.parse(r),
           )
         case _ => Cond.Unknown(s),
       )

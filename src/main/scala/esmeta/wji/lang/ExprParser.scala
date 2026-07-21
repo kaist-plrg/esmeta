@@ -3,8 +3,36 @@ package esmeta.wji.lang
 import Expr.*
 import TextSplit.*
 
-/** Parses raw spec prose strings into [[Expr]] trees. */
+/** Parses raw spec prose strings into [[Expr]] trees.
+  *
+  * `parse`'s cases are grouped into roles (see the section headers below and
+  * each pattern's own doc comment for which role it belongs to):
+  *   - '''Wrappers''': strip an outer decoration/annotation and recurse into
+  *     what's left (or, if there's no payload, terminate directly).
+  *   - '''Closures''': the "the following steps ...:" definition idioms, and
+  *     invoking a closure *value*.
+  *   - '''Construction''': builds a new composite value — object, exception,
+  *     list/map/byte-sequence, or range.
+  *   - '''Call syntax''': explicit invocation of a named algorithm/AO.
+  *   - '''Bare references''': `|var|`/`**this**` and nothing else.
+  *   - '''Arithmetic & casts''': binary/unary operators and math-value casts.
+  *   - '''Structural access''': reading a field/slot/index/length/association
+  *     off a base value.
+  *   - '''Noun-phrase descriptions''': indefinite/definite descriptions that
+  *     are either not yet evaluable, or a narrowly-scoped single-arg call.
+  *   - '''Scalars & glossary terms''': literal values and fixed spec-glossary
+  *     constants.
+  *
+  * As with [[esmeta.wji.compiler.lowering.Lowering]]'s pass categories, this
+  * grouping is documentation only: `parse` is one Scala `match`, so within a
+  * role (and, where noted, across roles — e.g. arithmetic before structural
+  * access) the *order* cases appear in still matters and is what's actually
+  * checked by `ExprParserSpec`'s "order:"-tagged tests, not the role grouping
+  * itself.
+  */
 object ExprParser:
+
+  // ---- Wrappers ----
 
   private val AbruptPrefix = """(?s)^\[=([?!])=\]\s+(.+)$""".r
   private val ResultOf = """(?si)^the result of (?:creating\s+)?(.+)$""".r
@@ -35,6 +63,20 @@ object ExprParser:
     """(?si)^the\s+\{\{[^}]+\}\}\s+value\s+(.+)$""".r
   private val BracedTermValueOnly =
     """(?si)^the\s+\{\{([^}]+)\}\}\s+value$""".r
+  // A backtick-wrapped *quoted* string (e.g. `"frozen"`, the argument to
+  // [$SetIntegrityLevel$]) isn't a real ECMAScript string value — it's
+  // Bikeshed's way of typesetting an ECMA-262 "specification type" enum
+  // constant (mirroring how `~frozen~` reads in ecmarkup), so it parses
+  // as a SpecTerm (-> `ir.EEnum`), same as any other bare spec constant,
+  // not as a `Str` (-> `ir.EStr`). Plain backtick-wrapped code (no inner
+  // quotes) carries no meaning of its own; strip it and re-parse. Tried
+  // before the plain form below since it's the more specific match.
+  private val BacktickedQuotedStr = """(?s)^`"([^"]*)"`$""".r
+  private val Backticked = """(?s)^`(.+)`$""".r
+
+  // ---- Closures: "the following steps ...:" definitions, and invoking a
+  // closure value ----
+
   // Three phrasings of the spec's "the following steps ...:" closure idiom —
   // all parse straight to a FollowingSteps placeholder, later hoisted into a
   // real Closure by ExpandFollowingStepsPass (the substeps themselves stay on
@@ -59,15 +101,15 @@ object ExprParser:
   // the phrasing restricts it to a variable reference.
   private val PerformingClosureCall = """(?si)^performing\s+(.+)$""".r
   private val PipeVarInline = """\|([^|]+)\|""".r
-  private val Backticked = """(?s)^`(.+)`$""".r
-  private val BacktickedQuotedStr = """(?s)^`"([^"]*)"`$""".r
-  private val JSCallFull = """(?s)^\[\$([^\$]+)\$\]\((.*)\)$""".r
-  private val LinkFull = """(?s)^(\[=[^\]]+\])\s*\((.*)\)$""".r
-  private val LinkProse = """(?s)^(\[=[^\]]+\])\s+(.+)$""".r
-  private val LinkOnly = """(?s)^(?:the\s+)?(\[=[^\]]+\])$""".r
-  private val VarOnly = """(?s)^\|([^|]+)\|$""".r
-  private val VarIgnore = """(?s)^<var\s+ignore>([^<]*)</var>$""".r
-  private val ThisOnly = """(?s)^\*\*this\*\*$""".r
+
+  // ---- Construction: builds a new composite value ----
+
+  // "[=the range=] LOW to HIGH" — the leading link text varies ("the range",
+  // "range", ...) but always mentions "range". Both bounds are assumed
+  // inclusive (see [[Expr.Range]]), so a trailing ", inclusive" is left for
+  // the caller to strip along with the rest of the sentence. Must precede
+  // LinkProse below, which would otherwise misparse this as a call.
+  private val RangePrefix = """(?is)^\[=[^=]*range[^=]*=\]\s+(.+)$""".r
   private val NewExpr =
     """(?si)^a\s+\[=/new=\]\s+\{\{([^}]+)\}\}(?:\s+object)?$""".r
   // "a {{X}} exception" — Bikeshed's common idiom for constructing a new
@@ -83,6 +125,157 @@ object ExprParser:
   // freshly allocated all-zero byte sequence of the given length.
   private val NewByteSeqOfLength =
     """(?si)^a\s+new\s+\[=byte sequence=\]\s+of\s+\[=byte sequence/length=\]\s+equal to\s+(.+)$""".r
+  // catch-all for "a new ..." not matched by the more specific forms above —
+  // EmptyList/NewByteSeqOfLength (the only two that literally start with "a
+  // new") must precede this.
+  private val PlainNewExpr = """(?si)^a\s+new\s+.+""".r
+  private val EmptyMapProse = """(?si)^the ordered map «(?:\[\s*\])?\s*»$""".r
+  // must precede ListLiteral below — «[ ... ]» would otherwise also match
+  // ListLiteral's more general «...» shape, with the "[ ... ]" folded into
+  // its content instead of recognized as a map literal.
+  // spec error #1 (spec_errors.md): written as «  » instead of «[ ]»;
+  // SpecPatch corrects it, but we match both forms for robustness
+  private val MapLiteral = """(?s)^«\[\s*(.*?)\s*\]»$""".r
+  private val ListLiteral = """(?s)^«\s*(.*?)\s*»$""".r
+  private val TuplePat = """(?s)^\((.+)\)$""".r
+
+  // ---- Call syntax: explicit invocation of a named algorithm/AO ----
+
+  private val JSCallFull = """(?s)^\[\$([^\$]+)\$\]\((.*)\)$""".r
+  // unlike LinkProse/LinkOnly below, the explicit `(...)` here is
+  // unambiguous call syntax (mirrors JSCallFull) — no term/value
+  // reference is ever written this way — so this can go straight to
+  // AlgoCall without waiting for ResolveLinksPass.
+  private val LinkFull = """(?s)^(\[=[^\]]+\])\s*\((.*)\)$""".r
+  private val LinkProse = """(?s)^(\[=[^\]]+\])\s+(.+)$""".r
+  private val LinkOnly = """(?s)^(?:the\s+)?(\[=[^\]]+\])$""".r
+  // "VALUE, [=link=]" — spec's passive-voice idiom for a unary conversion
+  // applied to the value stated just before it (e.g. "|result|,
+  // [=converted to a JavaScript value=]", "|map|'s [=map/size=], [=converted
+  // to a JavaScript value=]." — both from webidl/index.bs). Mirrors
+  // DotFieldLink's `base.[=name=]` shape but with a comma rather than a dot;
+  // unlike DotFieldLink (a field read), this is a call, so it produces a
+  // Link (resolved to AlgoCall/Case by ResolveLinksPass), not Field. Its
+  // trailing separator (",") is disjoint from every other call/field-access
+  // pattern's own trailing separator, so it can go anywhere in this list.
+  private val TrailingLinkCall = """(?s)^(.+),\s*(\[=[^\]]+\])$""".r
+
+  // ---- Bare references ----
+
+  private val ThisOnly = """(?s)^\*\*this\*\*$""".r
+  private val VarOnly = """(?s)^\|([^|]+)\|$""".r
+  private val VarIgnore = """(?s)^<var\s+ignore>([^<]*)</var>$""".r
+
+  // ---- Arithmetic & casts ----
+
+  // binary operators, matched at the top level only (see BinOpSeps' use with
+  // findLastTopLevelAny below) — tried before SlotAccess/DotFieldLink/
+  // PossessiveSlot/IndexBy* so their own greedy "everything to the left is
+  // the base" patterns can't swallow a top-level operator into their base
+  // (e.g. "|newLength| - |buffer|.\[[ArrayBufferByteLength]]" must split as
+  // "|newLength| - (|buffer|.[[ArrayBufferByteLength]])", not
+  // "(|newLength| - |buffer|).[[ArrayBufferByteLength]]" — field/slot access
+  // binds tighter than arithmetic). The *last* top-level occurrence is used,
+  // not the first, so a chain (e.g. "a + b - c") still recurses out
+  // left-associatively.
+  private val BinOpSeps =
+    Seq(" modulo ", " + ", " - ", " * ", " &div; ", " &minus; ")
+  private def parseBOp(op: String): BOp = op.trim match
+    case "+"             => BOp.Add
+    case "-" | "&minus;" => BOp.Sub
+    case "*"             => BOp.Mul
+    case "&div;"         => BOp.Div
+    case "modulo"        => BOp.Mod
+  private val AsMathPat =
+    """(?si)^(.+)\s+interpreted as a \[=mathematical value=\]$""".r
+  private val PowPat = """(?s)^(\d+)<sup>(.+?)</sup>$""".r
+  private val NegPat = """(?s)^[-−](.+)$""".r
+
+  // ---- Structural access: field/slot/index/length/association off a base
+  // value ----
+
+  private val SlotAccess = """(?s)^(.+)\.\\?\[\[([^\]]+)\]\]$""".r
+  // a bare "\[[SlotName]]" with no base — the slot's *name*, used as a value
+  // rather than read off a specific object (e.g. CreateBuiltinFunction's
+  // `additionalInternalSlotsList` argument, « \[[FunctionAddress]] »).
+  // Mirrors mainline `esmeta.compiler.Compiler`'s own `InternalSlots` XRef
+  // handling, which likewise compiles a bare slot name to `EStr`.
+  private val BareSlotName = """(?s)^\\?\[\[([^\]]+)\]\]$""".r
+  private val PossessiveSlot =
+    """(?si)^the value of (.+)'s \\?\[\[([^\]]+)\]\] internal slot$""".r
+  // e.g. "|module|.[=imports=]" — a WebAssembly-spec record field written
+  // with a dot, where the `[=...=]` is a documentation link on the field
+  // name rather than a call (contrast with `LinkFull`/`LinkProse`,
+  // which require the string to *start* with `[=`).
+  private val DotFieldLink = """(?s)^(.+)\.(\[=[^\]]+\])$""".r
+  // "BASE.field" — a plain, undecorated record-field access, the Wasm Core
+  // Spec's own formal notation (e.g. `store.funcs`, mirroring `S.FUNCS`)
+  // written directly in prose rather than through a Bikeshed dfn-link
+  // (contrast SlotAccess's `.[[slot]]`/DotFieldLink's `.[=field=]` above,
+  // both tried first so a decorated dot-suffix isn't mistaken for this).
+  private val DotField = """(?s)^(.+)\.([A-Za-z][A-Za-z0-9]*)$""".r
+  private val LengthOf =
+    """(?si)^the (?:\[=(?:string/length|list/size)=\]|length) of (.+)$""".r
+  private val ElementCount = """(?si)^the number of elements in (.+)$""".r
+  private val ElementAt =
+    """(?si)^the value of the element stored at index (.+) in (.+)$""".r
+  // "the index of LIST where ELEM is found" (index.bs:1255) — see
+  // Expr.IndexOf / ExpandIndexOfPass.
+  private val IndexOfPat =
+    """(?si)^the index of (.+) where (.+) is found$""".r
+  private val PossessiveSize = """(?si)^(.+)'s \[=list/size=\]$""".r
+  private val AssociatedRealm = """(?si)^(.+)'s \[=associated Realm=\]$""".r
+  // "|func|'s [=associated Realm=]" — narrower than PossessiveAssociation
+  // (which keeps "the surrounding agent's associated store/cache" style
+  // field names as literal WJI-only state, and requires a leading "the").
+  // webidl/index.bs's own "associated realm" dfn defines this, for the
+  // common case (a non-exotic function object — not a callable proxy, not a
+  // bound function), as *equal to* the object's real ECMA-262 [[Realm]]
+  // internal slot, so this reads straight through to that slot rather than
+  // a made-up "associated realm" field nothing else produces or consumes.
+  // Bound functions / callable proxies aren't handled (webidl/index.bs
+  // itself calls the general mechanism "underspecified"); revisit if one
+  // is ever passed here as `func`. Must precede PossessiveAssociation below
+  // — "the X's [=associated Realm=]" would otherwise also match its more
+  // general "'s [=link=]" shape.
+  private val PossessiveAssociation =
+    """(?si)^the (.+)'s (?:associated )?(\[=[^\]]+\])$""".r
+  // "[|parameters|] → [|results|]" — SpecTec's comptype arrow notation for a
+  // functype (`al_of_comptype`'s `FuncT (rt1, rt2) -> CaseV ("->", [rt1;
+  // rt2])`): a params-list and a results-list side by side, each written
+  // wrapped in its own `[...]` (decorating it as list-shaped, not a nested
+  // destructure — `rt1`/`rt2` are each already an AL list value in their own
+  // right, so the *whole* bracket content names one variable bound to that
+  // whole list, mirroring `Cond.IsOfForm`'s `Expr.Case` args). Placed before
+  // IndexByStr/IndexByVar/etc below — those would otherwise misparse this as
+  // `base[key]` indexing, since the text happens to end in `[...]` too.
+  // Requires non-empty content on both sides (a bare `[]` side, e.g. "Let
+  // [|types|] → [] be ...", isn't reached yet — left as a gap to extend
+  // into if/when it is).
+  private val CompTypeArrow =
+    """(?s)^\[\s*([^\[\]]+)\s*\]\s*→\s*\[\s*([^\[\]]+)\s*\]$""".r
+  private val IndexByStr = """(?s)^(.+)\["([^"]+)"\]$""".r
+  private val IndexByVar = """(?s)^(.+)\[(\|[^|]+\|)\]$""".r
+  private val IndexByNum = """(?s)^(.+)\[(-?\d+)\]$""".r
+  // a general `base[EXPR]` index whose key is a compound expression rather than
+  // a bare string/var/number (e.g. `|bytes|[|i| &minus; |offset|]`). The
+  // `&minus;`/`+` inside the brackets is at bracket-depth 1, so the BinOp
+  // case above (tried first, but findLastTopLevelAny-based and thus
+  // bracket-aware) correctly steps aside and leaves the whole bracketed
+  // suffix for this pattern instead. The base must end in a non-space char (index
+  // syntax is written `base[key]` with no gap, so a space-then-`[` like the
+  // `→ [...]` in a func-type destructuring is not an index) and the key must
+  // not start with `=` (so a trailing `[=link=]` documentation link such as
+  // `|func|'s [=associated Realm=]` is not mistaken for an index). Placed after
+  // the specific IndexBy* forms above (though, since `parse` re-derives the
+  // same Str/Var/Num from the raw bracket content either way, the four
+  // IndexBy* forms actually produce identical results regardless of their
+  // relative order — see personal/parser_refactor_ideas.md's A-2).
+  private val IndexByExpr = """(?s)^(.+\S)\[([^\[\]=][^\[\]]*)\]$""".r
+
+  // ---- Noun-phrase descriptions: not-yet-evaluable, or a narrow single-arg
+  // call ----
+
   // "a [=X=] which ..." — a relative-clause description of X, not a call
   // (e.g. "a [=Data Block=] which is [=identified with=] the underlying
   // memory of |memaddr|"). Not yet evaluable (see Expr.Described); matched
@@ -124,132 +317,24 @@ object ExprParser:
   // like RelativeClauseDesc/SuchThatDesc above (which have more text after
   // the bracket/variable) can't match here even if the guards above it were
   // ever removed. Placed after the more specific "a [=/new=] ..." / "a new,
-  // empty ..." patterns above so it only catches the general case.
+  // empty ..." construction patterns so it only catches the general case.
   private val LinkIndefVar =
     """(?si)^(?:the|an?)\s+(\[=[^\]]+\])\s+(?:of\s+)?(\|[^|]+\|)$""".r
-  private val PlainNewExpr = """(?si)^a\s+new\s+.+""".r
-  // binary operators, matched at the top level only (see BinOpSeps' use with
-  // findLastTopLevelAny below) — tried before SlotAccess/DotFieldLink/
-  // PossessiveSlot/IndexBy* so their own greedy "everything to the left is
-  // the base" patterns can't swallow a top-level operator into their base
-  // (e.g. "|newLength| - |buffer|.\[[ArrayBufferByteLength]]" must split as
-  // "|newLength| - (|buffer|.[[ArrayBufferByteLength]])", not
-  // "(|newLength| - |buffer|).[[ArrayBufferByteLength]]" — field/slot access
-  // binds tighter than arithmetic). The *last* top-level occurrence is used,
-  // not the first, so a chain (e.g. "a + b - c") still recurses out
-  // left-associatively.
-  private val BinOpSeps =
-    Seq(" modulo ", " + ", " - ", " * ", " &div; ", " &minus; ")
-  private val SlotAccess = """(?s)^(.+)\.\\?\[\[([^\]]+)\]\]$""".r
-  // a bare "\[[SlotName]]" with no base — the slot's *name*, used as a value
-  // rather than read off a specific object (e.g. CreateBuiltinFunction's
-  // `additionalInternalSlotsList` argument, « \[[FunctionAddress]] »).
-  // Mirrors mainline `esmeta.compiler.Compiler`'s own `InternalSlots` XRef
-  // handling, which likewise compiles a bare slot name to `EStr`.
-  private val BareSlotName = """(?s)^\\?\[\[([^\]]+)\]\]$""".r
-  private val PossessiveSlot =
-    """(?si)^the value of (.+)'s \\?\[\[([^\]]+)\]\] internal slot$""".r
-  // e.g. "|module|.[=imports=]" — a WebAssembly-spec record field written
-  // with a dot, where the `[=...=]` is a documentation link on the field
-  // name rather than a call (contrast with `LinkFull`/`LinkProse`,
-  // which require the string to *start* with `[=`).
-  private val DotFieldLink = """(?s)^(.+)\.(\[=[^\]]+\])$""".r
-  // "BASE.field" — a plain, undecorated record-field access, the Wasm Core
-  // Spec's own formal notation (e.g. `store.funcs`, mirroring `S.FUNCS`)
-  // written directly in prose rather than through a Bikeshed dfn-link
-  // (contrast SlotAccess's `.[[slot]]`/DotFieldLink's `.[=field=]` above,
-  // both tried first so a decorated dot-suffix isn't mistaken for this).
-  private val DotField = """(?s)^(.+)\.([A-Za-z][A-Za-z0-9]*)$""".r
-  // "VALUE, [=link=]" — spec's passive-voice idiom for a unary conversion
-  // applied to the value stated just before it (e.g. "|result|,
-  // [=converted to a JavaScript value=]", "|map|'s [=map/size=], [=converted
-  // to a JavaScript value=]." — both from webidl/index.bs). Mirrors
-  // DotFieldLink's `base.[=name=]` shape but with a comma rather than a dot;
-  // unlike DotFieldLink (a field read), this is a call, so it produces a
-  // Link (resolved to AlgoCall/Case by ResolveLinksPass), not Field.
-  private val TrailingLinkCall = """(?s)^(.+),\s*(\[=[^\]]+\])$""".r
-  private val LengthOf =
-    """(?si)^the (?:\[=(?:string/length|list/size)=\]|length) of (.+)$""".r
-  private val ElementCount = """(?si)^the number of elements in (.+)$""".r
-  private val ElementAt =
-    """(?si)^the value of the element stored at index (.+) in (.+)$""".r
-  // "the index of LIST where ELEM is found" (index.bs:1255) — see
-  // Expr.IndexOf / ExpandIndexOfPass.
-  private val IndexOfPat =
-    """(?si)^the index of (.+) where (.+) is found$""".r
-  private val AsMathPat =
-    """(?si)^(.+)\s+interpreted as a \[=mathematical value=\]$""".r
-  private val PowPat = """(?s)^(\d+)<sup>(.+?)</sup>$""".r
-  private def parseBOp(op: String): BOp = op.trim match
-    case "+"             => BOp.Add
-    case "-" | "&minus;" => BOp.Sub
-    case "*"             => BOp.Mul
-    case "&div;"         => BOp.Div
-    case "modulo"        => BOp.Mod
-  private val TuplePat = """(?s)^\((.+)\)$""".r
-  private val NegPat = """(?s)^[-−](.+)$""".r
-  private val PossessiveSize = """(?si)^(.+)'s \[=list/size=\]$""".r
-  private val PossessiveAssociation =
-    """(?si)^the (.+)'s (?:associated )?(\[=[^\]]+\])$""".r
-  // "|func|'s [=associated Realm=]" — narrower than PossessiveAssociation
-  // (which keeps "the surrounding agent's associated store/cache" style
-  // field names as literal WJI-only state, and requires a leading "the").
-  // webidl/index.bs's own "associated realm" dfn defines this, for the
-  // common case (a non-exotic function object — not a callable proxy, not a
-  // bound function), as *equal to* the object's real ECMA-262 [[Realm]]
-  // internal slot, so this reads straight through to that slot rather than
-  // a made-up "associated realm" field nothing else produces or consumes.
-  // Bound functions / callable proxies aren't handled (webidl/index.bs
-  // itself calls the general mechanism "underspecified"); revisit if one
-  // is ever passed here as `func`.
-  private val AssociatedRealm = """(?si)^(.+)'s \[=associated Realm=\]$""".r
-  // "[|parameters|] → [|results|]" — SpecTec's comptype arrow notation for a
-  // functype (`al_of_comptype`'s `FuncT (rt1, rt2) -> CaseV ("->", [rt1;
-  // rt2])`): a params-list and a results-list side by side, each written
-  // wrapped in its own `[...]` (decorating it as list-shaped, not a nested
-  // destructure — `rt1`/`rt2` are each already an AL list value in their own
-  // right, so the *whole* bracket content names one variable bound to that
-  // whole list, mirroring `Cond.IsOfForm`'s `Expr.Case` args). Placed before
-  // IndexByStr/IndexByVar/etc below — those would otherwise misparse this as
-  // `base[key]` indexing, since the text happens to end in `[...]` too.
-  // Requires non-empty content on both sides (a bare `[]` side, e.g. "Let
-  // [|types|] → [] be ...", isn't reached yet — left as a gap to extend
-  // into if/when it is).
-  private val CompTypeArrow =
-    """(?s)^\[\s*([^\[\]]+)\s*\]\s*→\s*\[\s*([^\[\]]+)\s*\]$""".r
-  private val IndexByStr = """(?s)^(.+)\["([^"]+)"\]$""".r
-  private val IndexByVar = """(?s)^(.+)\[(\|[^|]+\|)\]$""".r
-  private val IndexByNum = """(?s)^(.+)\[(-?\d+)\]$""".r
-  // a general `base[EXPR]` index whose key is a compound expression rather than
-  // a bare string/var/number (e.g. `|bytes|[|i| &minus; |offset|]`). The
-  // `&minus;`/`+` inside the brackets is at bracket-depth 1, so the BinOp
-  // case above (tried first, but findLastTopLevelAny-based and thus
-  // bracket-aware) correctly steps aside and leaves the whole bracketed
-  // suffix for this pattern instead. The base must end in a non-space char (index
-  // syntax is written `base[key]` with no gap, so a space-then-`[` like the
-  // `→ [...]` in a func-type destructuring is not an index) and the key must
-  // not start with `=` (so a trailing `[=link=]` documentation link such as
-  // `|func|'s [=associated Realm=]` is not mistaken for an index). Placed after
-  // the specific IndexBy* forms above.
-  private val IndexByExpr = """(?s)^(.+\S)\[([^\[\]=][^\[\]]*)\]$""".r
 
-  private val MapLiteral = """(?s)^«\[\s*(.*?)\s*\]»$""".r
-  // spec error #1 (spec_errors.md): written as «  » instead of «[ ]»; SpecPatch corrects it,
-  // but we match both forms for robustness
-  private val EmptyMapProse = """(?si)^the ordered map «(?:\[\s*\])?\s*»$""".r
-  private val ListLiteral = """(?s)^«\s*(.*?)\s*»$""".r
+  // ---- Scalars & glossary terms ----
+
   private val NumberPat = """^\d+(?:\.\d+)?$""".r
   private val HexPat = """^0x[0-9a-fA-F]+$""".r
   private val QuotedStr = """^"([^"]*)"$""".r
-  private val BoolTrue = """(?i)^true$""".r
-  private val BoolFalse = """(?i)^false$""".r
-  private val BoldConst = """(?s)^\*\*([^*]+)\*\*$""".r
   private val EmptyString = """(?i)^the empty string$""".r
   // the value bound by a preceding `Cond.Throws` check ("If this throws an
   // exception, catch it, ... with the exception, ..."); "catch it" itself
   // carries no separate binding, so this is the only place that name needs
   // to resolve to a variable.
   private val TheException = """(?i)^the exception$""".r
+  private val BoolTrue = """(?i)^true$""".r
+  private val BoolFalse = """(?i)^false$""".r
+  private val BoldConst = """(?s)^\*\*([^*]+)\*\*$""".r
   private val SpecTermPat = """(?i)^(?:undefined|null|empty|absent)$""".r
   // captures just the inner text (e.g. "throw"/"normal") — the enum value a
   // real completion record's [[Type]] actually holds, not the markup itself.
@@ -288,11 +373,6 @@ object ExprParser:
   // modeled as a real field read, for the same reason.
   private val RealmSettingsObject =
     """(?si)^\|[^|]+\|'s \[=realm/settings object=\]$""".r
-  // "[=the range=] LOW to HIGH" — the leading link text varies ("the range",
-  // "range", ...) but always mentions "range". Both bounds are assumed
-  // inclusive (see [[Expr.Range]]), so a trailing ", inclusive" is left for
-  // the caller to strip along with the rest of the sentence.
-  private val RangePrefix = """(?is)^\[=[^=]*range[^=]*=\]\s+(.+)$""".r
 
   def normalizeLink(link: String): String =
     link.replaceAll("""\|[^=\]]*(?==\])""", "")
@@ -319,12 +399,17 @@ object ExprParser:
   def parse(raw: String): Expr =
     val s = raw.trim
     s match
+      // ---- Wrappers ----
       case AbruptPrefix(check, rest)   => Abrupt(check, parse(rest))
       case ResultOf(rest)              => parse(rest)
       case EitherPat(rest)             => parse(rest)
       case TypeAnnotatedPrefix(rest)   => parse(rest)
       case BracedTermValuePrefix(rest) => parse(rest)
       case BracedTermValueOnly(term)   => SpecTerm(term)
+      case BacktickedQuotedStr(v)      => SpecTerm(v)
+      case Backticked(inner)           => parse(inner)
+
+      // ---- Closures ----
       case StepsClosurePrefix(paramsRaw) =>
         FollowingSteps(
           PipeVarInline.findAllMatchIn(paramsRaw).map(_.group(1)).toList,
@@ -342,32 +427,45 @@ object ExprParser:
           splitComma(argsRaw.trim.replaceFirst("""(?i)^arguments?\s+""", ""))
             .map(parse),
         )
-      // A backtick-wrapped *quoted* string (e.g. `"frozen"`, the argument to
-      // [$SetIntegrityLevel$]) isn't a real ECMAScript string value — it's
-      // Bikeshed's way of typesetting an ECMA-262 "specification type" enum
-      // constant (mirroring how `~frozen~` reads in ecmarkup), so it parses
-      // as a SpecTerm (-> `ir.EEnum`), same as any other bare spec constant,
-      // not as a `Str` (-> `ir.EStr`). Plain backtick-wrapped code (no inner
-      // quotes) carries no meaning of its own; strip it and re-parse.
-      case BacktickedQuotedStr(v) => SpecTerm(v)
-      case Backticked(inner)      => parse(inner)
+
+      // ---- Construction ----
       case RangePrefix(rest) if findTopLevel(rest, " to ").isDefined =>
         val i = findTopLevel(rest, " to ").get
         Range(parse(rest.substring(0, i)), parse(rest.substring(i + 4)))
+      case NewExpr(iface)             => New(iface)
+      case NewExceptionExpr(iface)    => New(iface)
+      case EmptyList()                => List_(Nil)
+      case NewByteSeqOfLength(lenRaw) => NewByteSequence(parse(lenRaw.trim))
+      case PlainNewExpr()             => UnknownNew(s)
+      case EmptyMapProse()            => Map_(Nil)
+      case MapLiteral(inner) =>
+        val entries = splitComma(inner).map { e =>
+          splitTopLevel(e, " → ") match
+            case Some((k, v)) => (parse(k.trim), parse(v.trim))
+            case None         => (Unknown(e), Unknown(""))
+        }
+        Map_(entries)
+      case ListLiteral(inner) =>
+        List_(splitComma(inner).map(parse))
+      case TuplePat(inner) => Tuple(splitComma(inner).map(parse))
+
+      // ---- Call syntax ----
       case JSCallFull(name, argsRaw) =>
         JSCall(name, splitComma(argsRaw).map(parse))
-      // unlike LinkProse/LinkOnly below, the explicit `(...)` here is
-      // unambiguous call syntax (mirrors JSCallFull) — no term/value
-      // reference is ever written this way — so this can go straight to
-      // AlgoCall without waiting for ResolveLinksPass.
       case LinkFull(link, argsRaw) =>
         AlgoCall(normalizeLink(link), splitComma(argsRaw).map(parse))
       case LinkProse(link, prose) =>
         Link(normalizeLink(link), parseArgs(prose))
-      case LinkOnly(link)  => Link(normalizeLink(link), Nil)
+      case LinkOnly(link) => Link(normalizeLink(link), Nil)
+      case TrailingLinkCall(valueRaw, link) =>
+        Link(normalizeLink(link), List(parse(valueRaw.trim)))
+
+      // ---- Bare references ----
       case ThisOnly()      => This
       case VarOnly(name)   => Var(name)
       case VarIgnore(name) => Var(name.trim)
+
+      // ---- Arithmetic & casts ----
       case _ if findLastTopLevelAny(s, BinOpSeps).isDefined =>
         val (i, sep) = findLastTopLevelAny(s, BinOpSeps).get
         BinOp(
@@ -375,16 +473,19 @@ object ExprParser:
           parseBOp(sep),
           parse(s.substring(i + sep.length)),
         )
+      case AsMathPat(inner)  => AsMath(parse(inner))
+      case PowPat(base, exp) => Pow(parse(base), parse(exp))
+      case NegPat(inner)     => Neg(parse(inner))
+
+      // ---- Structural access ----
       case SlotAccess(baseRaw, slot) => Field(parse(baseRaw), stripBraces(slot))
       case BareSlotName(slot)        => Str(stripBraces(slot))
       case PossessiveSlot(baseRaw, slot) =>
         Field(parse(baseRaw), stripBraces(slot))
       case DotFieldLink(baseRaw, link) => fieldFromLink(baseRaw, link)
       case DotField(baseRaw, field)    => Field(parse(baseRaw), field)
-      case TrailingLinkCall(valueRaw, link) =>
-        Link(normalizeLink(link), List(parse(valueRaw.trim)))
-      case LengthOf(inner)        => Length(parse(inner.trim))
-      case ElementCount(inner)    => Length(parse(inner.trim))
+      case LengthOf(inner)             => Length(parse(inner.trim))
+      case ElementCount(inner)         => Length(parse(inner.trim))
       case ElementAt(idx, arr)    => Index(parse(arr.trim), parse(idx.trim))
       case IndexOfPat(list, elem) => IndexOf(parse(list.trim), parse(elem.trim))
       case PossessiveSize(inner)  => Length(parse(inner.trim))
@@ -396,10 +497,8 @@ object ExprParser:
       case IndexByVar(baseRaw, varRaw) => Index(parse(baseRaw), parse(varRaw))
       case IndexByNum(baseRaw, n)      => Index(parse(baseRaw), parse(n))
       case IndexByExpr(baseRaw, idx)   => Index(parse(baseRaw), parse(idx))
-      case NewExpr(iface)              => New(iface)
-      case NewExceptionExpr(iface)     => New(iface)
-      case EmptyList()                 => List_(Nil)
-      case NewByteSeqOfLength(lenRaw)  => NewByteSequence(parse(lenRaw.trim))
+
+      // ---- Noun-phrase descriptions ----
       case RelativeClauseDesc(link, desc) =>
         Described(normalizeLink(link), desc.trim)
       case OfTypeGeneric(typeArg) => SpecTerm(typeArg)
@@ -407,21 +506,8 @@ object ExprParser:
         SuchThat(desc.trim, cond.trim)
       case LinkIndefVar(link, arg) =>
         Link(normalizeLink(link), List(parse(arg)))
-      case AsMathPat(inner)  => AsMath(parse(inner))
-      case PowPat(base, exp) => Pow(parse(base), parse(exp))
-      case PlainNewExpr()    => UnknownNew(s)
-      case EmptyMapProse()   => Map_(Nil)
-      case MapLiteral(inner) =>
-        val entries = splitComma(inner).map { e =>
-          splitTopLevel(e, " → ") match
-            case Some((k, v)) => (parse(k.trim), parse(v.trim))
-            case None         => (Unknown(e), Unknown(""))
-        }
-        Map_(entries)
-      case ListLiteral(inner) =>
-        List_(splitComma(inner).map(parse))
-      case TuplePat(inner)       => Tuple(splitComma(inner).map(parse))
-      case NegPat(inner)         => Neg(parse(inner))
+
+      // ---- Scalars & glossary terms ----
       case NumberPat()           => Num(s)
       case HexPat()              => Num(s)
       case QuotedStr(v)          => Str(v)
@@ -436,7 +522,8 @@ object ExprParser:
       case BracedTerm(inner)     => SpecTerm(inner)
       case CrossSpecRef(text)    => SpecTerm(text)
       case RealmSettingsObject() => SpecTerm("realm/settings object")
-      case _                     => Unknown(s)
+
+      case _ => Unknown(s)
 
   /** Extracts argument [[Expr]]s from a prose string.
     *

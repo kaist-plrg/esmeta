@@ -11,18 +11,18 @@ import esmeta.error.UnsupportedSpecShape
   * }}}
   * becomes:
   * {{{
-  *   Let(_idxN, 0)
-  *   While(_idxN < length(list) and list[_idxN] is not elem,
-  *     Set(_idxN, _idxN + 1))
-  *   Let(index, AsNumber(_idxN))
+  *   Let(_idxOfN, 0)
+  *   While(_idxOfN < length(list) and list[_idxOfN] is not elem,
+  *     Set(_idxOfN, _idxOfN + 1))
+  *   Let(index, AsNumber(_idxOfN))
   *   ...body...
   * }}}
-  * `_idxN` is a WJI-internal math value (a loop counter); `index` itself leaves
-  * this pass and flows into real ECMA-262 AOs (e.g. `name of the WebAssembly
-  * function`'s own `[$ToString$](|index|)`), which — unlike list-indexing —
-  * actually inspect the spec-level type of their argument, so it's cast to a
-  * real Number via `AsNumber` before the final bind rather than left as a bare
-  * math value.
+  * `_idxOfN` is a WJI-internal math value (a loop counter); `index` itself
+  * leaves this pass and flows into real ECMA-262 AOs (e.g. `name of the
+  * WebAssembly function`'s own `[$ToString$](|index|)`), which — unlike
+  * list-indexing — actually inspect the spec-level type of their argument, so
+  * it's cast to a real Number via `AsNumber` before the final bind rather than
+  * left as a bare math value.
   *
   * Only handles `IndexOf` in direct `Let` RHS position — the only one observed
   * in practice ("the index of |moduleinst|.funcaddrs where

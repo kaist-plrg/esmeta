@@ -6,7 +6,8 @@ import esmeta.wji.lang.{Cond, Expr, Instr}
   * tree, shared by lowering passes that only handle a construct in a
   * documented-narrow set of positions and need to check, once they're done,
   * whether an occurrence outside that set slipped through — see
-  * [[ExpandNewByteSequencePass]] and [[ExpandFollowingStepsPass]], which throw
+  * [[ExpandNewByteSequencePass]], [[ExpandIndexOfPass]], and
+  * [[ExpandFollowingStepsPass]], which throw
   * `esmeta.error.UnsupportedSpecShape` when [[existsExpr]] finds one, rather
   * than silently leaving it for `Compiler`'s own, much later `EYet` fallback.
   */

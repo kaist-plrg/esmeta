@@ -15,10 +15,6 @@ import esmeta.wji.spec.Spec
   * parsed HTML `Document`); this one works directly on raw Bikeshed text
   * instead, like every other WJI extractor, since WJI has no separate
   * HTML-parsing step.
-  *
-  * Replaces the old, disjoint `SpecFile.loadAllAlgorithms()` (algorithms only)
-  * plus ad hoc `SpecAnchors.parseAnchors(...)` calls (anchors only) with one
-  * call producing everything at once.
   */
 object Extractor:
   def apply(): Spec =
@@ -30,5 +26,5 @@ object Extractor:
       .extractFromFile(SpecFile.webidlIndex)
       .filter(a => a.name.exists(SpecFile.webidlFilter.contains))
     val interfaces = InterfaceExtractor.extract(jsApiSource)
-    val anchors = SpecAnchors.parseAnchors(jsApiSource)
+    val anchors = SpecAnchors.extract(jsApiSource)
     Spec(jsApiAlgorithms ++ webidlAlgorithms, interfaces, anchors)

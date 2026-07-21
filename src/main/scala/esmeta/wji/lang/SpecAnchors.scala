@@ -15,7 +15,7 @@ object SpecAnchors:
 
   /** One `text: ...` entry, resolved against every `urlPrefix:`/`spec:`/
     * `type:`/`for:`/`url:` key active in its enclosing indentation scope (see
-    * `parseAnchors`).
+    * `extract`).
     *
     * @param url
     *   the fully-resolved URL (`urlPrefix` concatenated with the entry's own or
@@ -76,7 +76,7 @@ object SpecAnchors:
     * `AlgorithmExtractor.parseBody` reconstructs `<div algorithm>` step
     * structure with, via the same indentation-stack technique.
     */
-  def parseAnchors(source: String): List[Anchor] =
+  def extract(source: String): List[Anchor] =
     val block = extractBlock(source)
     val results = collection.mutable.ListBuffer[Anchor]()
     // stack of (indent, context) — context(es) active at/above that indent;
@@ -130,7 +130,7 @@ object SpecAnchors:
     * function of their own.
     */
   def embeddingFunctionNames(source: String): Set[String] =
-    parseAnchors(source)
+    extract(source)
       .filter(_.url.contains("appendix/embedding.html#embed-"))
       .map(_.text)
       .filterNot(name => name == "error" || name == "exception")

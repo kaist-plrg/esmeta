@@ -34,6 +34,18 @@ import esmeta.wji.lang.{Algorithm, Instr}
   * Category: Completion-record convention.
   */
 object InsertFallthroughReturnPass extends LoweringPass:
+
+  /** Requires:
+    *   - [[ExpandPerformReturnResultPass]]: needs every `Instr.Perform(...,
+    *     ReturnResult, ...)` — the implicit-return shape `ExtractInlineAlgoCallPass`
+    *     produces for a bare `Return(Some(AlgoCall(...)))` — already expanded
+    *     back into a real `Instr.Return` first, so the "does this algorithm's
+    *     top-level body already end in a `Return`" check below isn't fooled by
+    *     one that hasn't been rewritten yet (which would otherwise get a
+    *     spurious extra `Instr.Return(None)` appended after it).
+    */
+  override def requires: Set[LoweringPass] = Set(ExpandPerformReturnResultPass)
+
   def run(algos: List[Algorithm]): List[Algorithm] =
     algos.map { a =>
       if a.body.exists(_.isInstanceOf[Instr.Return]) then a

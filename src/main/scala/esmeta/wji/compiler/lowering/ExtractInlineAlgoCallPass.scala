@@ -34,16 +34,12 @@ object ExtractInlineAlgoCallPass extends LoweringPass:
     *     expanded so the `AlgoCall` sits directly in `Let`/`Return` RHS.
     *   - [[NormalizeAlgoCallPass]]: needs every nested call already hoisted out
     *     of a top-level `AlgoCall`'s own `args` first.
-    *   - [[WrapCompletionReturnsPass]]: needs the `NormalCompletion`/
-    *     `ThrowCompletion` `AlgoCall`s it produces already in place to convert
-    *     into `Perform`s.
     */
   override def requires: Set[LoweringPass] = Set(
     ResolveLinksPass,
     ExpandAbruptPass,
     ExpandDestructuringLetPass,
     NormalizeAlgoCallPass,
-    WrapCompletionReturnsPass,
   )
 
   def run(algos: List[Algorithm]): List[Algorithm] =

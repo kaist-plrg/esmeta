@@ -20,15 +20,17 @@ import esmeta.wji.lang.Instr.PerformOutcome
   * completion" apart otherwise. Both `NormalCompletion` and `ThrowCompletion`
   * are real ECMA-262 abstract operations already present in the merged CFG
   * (`WjiInterp` merges WJI's functions into the same `Program` as mainline's),
-  * so this only needs to *call* them — via the ordinary `Expr.AlgoCall` +
-  * `ExtractInlineAlgoCallPass` machinery already in the pipeline — not
-  * construct a completion record by hand. Building the thrown error object
-  * itself reuses mainline's own `__NEW_ERROR_OBJ__` auxiliary function
-  * (`esmeta.ir.package.AUX_NEW_ERROR_OBJ`) the exact same way
-  * `esmeta.compiler.Compiler`'s `ThrowStep` case does, just spelled as a
-  * `Perform` (`Compiler.compileInstr`'s generic non-embedding `Perform`
-  * dispatch already produces the matching `EClo("__NEW_ERROR_OBJ__", Nil)` for
-  * that name).
+  * so this only needs to *call* them — not construct a completion record by
+  * hand. Runs after `ExtractInlineAlgoCallPass`/`ExpandPerformReturnResultPass`
+  * (see `requires` below), so unlike an ordinary spec-prose call this can't
+  * lean on either of those to turn a call into a `Perform` for it — it emits
+  * the fully-lowered `Instr.Perform(..., BindResult(_), ...)` + `Instr.Return`
+  * pair itself. Building the thrown error object itself reuses mainline's own
+  * `__NEW_ERROR_OBJ__` auxiliary function (`esmeta.ir.package.AUX_NEW_ERROR_OBJ`)
+  * the exact same way `esmeta.compiler.Compiler`'s `ThrowStep` case does, just
+  * spelled as a `Perform` (`Compiler.compileInstr`'s generic non-embedding
+  * `Perform` dispatch already produces the matching
+  * `EClo("__NEW_ERROR_OBJ__", Nil)` for that name).
   *
   * {{{
   *   If(cond, [Throw("a {{TypeError}} exception")])
@@ -38,11 +40,15 @@ import esmeta.wji.lang.Instr.PerformOutcome
   * {{{
   *   If(cond, [
   *     Perform("__NEW_ERROR_OBJ__", [Str("%TypeError.prototype%")], BindResult(_err1)),
-  *     Return(Some(AlgoCall("ThrowCompletion", [Var(_err1)]))),
+  *     Perform("ThrowCompletion", [Var(_err1)], BindResult(_ret1)),
+  *     Return(Some(Var(_ret1))),
   *   ])
   *   Let(_v1, expr)
   *   If(_v1 has field "Type", [Return(Some(_v1))])
-  *   Else [Return(Some(AlgoCall("NormalCompletion", [_v1])))]
+  *   Else [
+  *     Perform("NormalCompletion", [_v1], BindResult(_ret2)),
+  *     Return(Some(Var(_ret2))),
+  *   ]
   * }}}
   *
   * Only recognizes a `Throw` target of the exact `"a {{Iface}}"` / `"a
@@ -76,6 +82,7 @@ object WrapCompletionReturnsPass extends LoweringPass:
   private var counter = 0
   private def freshErr(): String = { counter += 1; s"_err$counter" }
   private def freshVal(): String = { counter += 1; s"_v$counter" }
+  private def freshRet(): String = { counter += 1; s"_ret$counter" }
 
   // "a {{TypeError}} exception" / "a {{TypeError}} exception." / "a {{TypeError}}"
   private val ThrowTarget =
@@ -96,23 +103,36 @@ object WrapCompletionReturnsPass extends LoweringPass:
     case i @ Instr.Let(_, Expr.FollowingSteps(_), _) => List(i)
     case Instr.Throw(ThrowTarget(iface), _) =>
       val err = freshErr()
+      val ret = freshRet()
       List(
         Instr.Perform(
           "__NEW_ERROR_OBJ__",
           List(Expr.Str(s"%$iface.prototype%")),
           PerformOutcome.BindResult(err),
         ),
-        Instr.Return(
-          Some(Expr.AlgoCall("ThrowCompletion", List(Expr.Var(err)))),
+        Instr.Perform(
+          "ThrowCompletion",
+          List(Expr.Var(err)),
+          PerformOutcome.BindResult(ret),
         ),
+        Instr.Return(Some(Expr.Var(ret))),
       )
     case t: Instr.Throw =>
       List(Instr.Unknown(s"throw ${t.target}"))
     case Instr.Return(Some(expr), _) =>
-      val v = freshVal()
-      val vVar = Expr.Var(v)
-      List(
-        Instr.Let(vVar, expr),
+      // a bare Var (the common case now that ExtractInlineAlgoCallPass/
+      // ExpandPerformReturnResultPass already ran) needs no re-binding —
+      // testing/returning it directly (instead of aliasing it under a fresh
+      // name first) keeps its name intact for PropagateUnguardedCallsPass's
+      // own `isAbsorbed` name-matching against the same variable.
+      val (bindings, vVar) = expr match
+        case v: Expr.Var => (Nil, v)
+        case _ =>
+          val v = freshVal()
+          val vVar = Expr.Var(v)
+          (List(Instr.Let(vVar, expr)), vVar)
+      val ret = freshRet()
+      bindings ++ List(
         Instr.IfChain(
           branches = List(
             (
@@ -121,18 +141,24 @@ object WrapCompletionReturnsPass extends LoweringPass:
             ),
           ),
           fallback = List(
-            Instr.Return(Some(Expr.AlgoCall("NormalCompletion", List(vVar)))),
+            Instr.Perform(
+              "NormalCompletion",
+              List(vVar),
+              PerformOutcome.BindResult(ret),
+            ),
+            Instr.Return(Some(Expr.Var(ret))),
           ),
         ),
       )
     case Instr.Return(None, body) =>
+      val ret = freshRet()
       List(
-        Instr.Return(
-          Some(
-            Expr.AlgoCall("NormalCompletion", List(Expr.SpecTerm("unused"))),
-          ),
-          expand(body),
+        Instr.Perform(
+          "NormalCompletion",
+          List(Expr.SpecTerm("unused")),
+          PerformOutcome.BindResult(ret),
         ),
+        Instr.Return(Some(Expr.Var(ret)), expand(body)),
       )
     case other =>
       List(other.mapBody(expand))

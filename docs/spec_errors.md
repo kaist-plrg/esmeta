@@ -111,3 +111,42 @@
 - **Current**: `1. Assert: |funcaddr| is contained in |moduleinst|.funcaddrs.` and `1. Let |index| be the index of |moduleinst|.funcaddrs where |funcaddr| is found.`
 - **Expected**: `1. Assert: |funcaddr| is contained in |moduleinst|.funcs.` and `1. Let |index| be the index of |moduleinst|.funcs where |funcaddr| is found.`
 - **Reason**: the Wasm Core Spec's actual runtime `moduleinst` record names its function-address list `FUNCS`, not `funcaddrs` — confirmed directly off a live decoded module instance (its printed record has `TYPES`/`TAGS`/`GLOBALS`/`MEMS`/`TABLES`/`FUNCS`/`DATAS`/`ELEMS`/`EXPORTS` fields, no `FUNCADDRS`). `funcaddrs` reads like a plausible field name (mirroring `funcaddr`, the element type) but doesn't correspond to anything in the actual representation.
+
+## 13. Steps 2 and 4 of `react` end with a colon instead of a period
+
+- **File**: `webidl/index.bs`, lines 8678 and 8686 (`react` to a Promise)
+- **Current**:
+  ```
+  1.  Let |onFulfilled| be [$CreateBuiltinFunction$](|onFulfilledSteps|, 1, "", « »):
+  ```
+  and
+  ```
+  1.  Let |onRejected| be [$CreateBuiltinFunction$](|onRejectedSteps|, 1, "", « »):
+  ```
+- **Expected**: both steps should end with a period (`.`), not a colon:
+  ```
+  1.  Let |onFulfilled| be [$CreateBuiltinFunction$](|onFulfilledSteps|, 1, "", « »).
+  ```
+  and
+  ```
+  1.  Let |onRejected| be [$CreateBuiltinFunction$](|onRejectedSteps|, 1, "", « »).
+  ```
+- **Reason**: in this algorithm's own step numbering, a trailing colon is used exactly where a step introduces a nested list of substeps — e.g. step 1 (`Let |onFulfilledSteps| be the following steps given argument |V|:`) and step 3 (`Let |onRejectedSteps| be the following steps given argument |R|:`) both end with `:` and are immediately followed by indented substeps. Steps 2 and 4 are plain, self-contained `Let` bindings with no substeps of their own — the next line at each point is a new top-level step (3 and 5 respectively), not a continuation — so ending them with `:` instead of `.` is inconsistent with the file's own convention and misleadingly suggests each introduces steps that were never written.
+
+## 14. `reject` used unlinked in `asynchronously compile a WebAssembly module`
+
+- **File**: `spectec/document/js-api/index.bs`, lines 452 and 455 (`asynchronously compile a WebAssembly module`)
+- **Current**: `1. If |module| is [=error=], reject |promise| with a {{CompileError}} exception and return.` and `1. If [=validate builtins and imported string for a WebAssembly module|validating builtins and imported strings=] for |module| with |builtinSetNames| and |importedStringModule| is false, reject |promise| with a {{CompileError}} exception.`
+- **Expected**: `1. If |module| is [=error=], [=reject=] |promise| with a {{CompileError}} exception and return.` and `1. If [=validate builtins and imported string for a WebAssembly module|validating builtins and imported strings=] for |module| with |builtinSetNames| and |importedStringModule| is false, [=reject=] |promise| with a {{CompileError}} exception.` — linking `reject` to the WebIDL algorithm `To reject a Promise<T> ... with reason r` (`webidl/index.bs`, [=reject=] dfn around line 8658).
+- **Reason**: every other call to this same WebIDL algorithm in the file is linked, both lower- and upper-case (`[=reject=]`/`[=Reject=]` at lines 621, 626, 629, 646, 648), and its counterpart `[=Resolve=]` at line 458 — three lines below the second unlinked `reject` — is correctly linked. Only these two occurrences, both inside `asynchronously compile a WebAssembly module`, write `reject` as plain prose with no link to the algorithm it's invoking, breaking mechanized extraction that relies on the `[= =]` markup to find the algorithm call.
+
+## 15. `|options|["builtins"]` / `|options|["importedStringConstants"]` map-indexed without accounting for the WebIDL default empty dictionary
+
+- **File**: `spectec/document/js-api/index.bs`, lines 421-422 (`validate`) and 453-454 (`asynchronously compile a WebAssembly module`, reached from both `compile()` and `WebAssembly.instantiate(bytes, importObject, options)`)
+- **Current**:
+  ```
+  1. Let |builtinSetNames| be |options|["builtins"].
+  1. Let |importedStringModule| be |options|["importedStringConstants"].
+  ```
+- **Expected**: something that accounts for the keys being absent, e.g. `1. Let |builtinSetNames| be |options|["builtins"] if it [=map/exists=], otherwise an empty list.` and `1. Let |importedStringModule| be |options|["importedStringConstants"] if it [=map/exists=], otherwise null.` — matching the `|map|[|key|] [=map/exists=]` idiom used everywhere else map membership is checked in this file (see spec error #6).
+- **Reason**: `options`'s IDL type, `WebAssemblyCompileOptions` (lines 364-367), declares `importedStringConstants` and `builtins` as plain optional members with no `=` default value. Per `webidl/index.bs` lines 4654-4657, only members that are `required` or carry an explicit default value are guaranteed a corresponding entry when a dictionary value is converted to an ordered map — other optional members may or may not have an entry, depending on what the caller actually supplied. The IDL also defaults the `options` argument itself to `{}` when omitted (line 371-375, `optional WebAssemblyCompileOptions options = {}`), which is the common case for calls like `WebAssembly.instantiate(bytes, importObject)` or `WebAssembly.compile(bytes)`. Converting that empty `{}` yields a map with *no* entries for either key, yet `|options|["builtins"]`/`|options|["importedStringConstants"]` index into it unconditionally, with no `[=map/exists=]` guard — unlike every other map-key access in this file (spec error #6). The result is that the algorithm is unhandled precisely for its most common call pattern, where no options object (or an options object missing one of these two properties) is supplied at all.

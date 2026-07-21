@@ -146,6 +146,30 @@ object ExpandFollowingStepsPass extends LoweringPass:
         )
     }
 
+  private def wrapCompletion(body: List[Instr]): List[Instr] =
+    body.flatMap {
+      case Instr.Return(Some(e), body) =>
+        List(
+          Instr.IfChain(
+            branches = List(
+              (
+                Cond.IsType(e, "AbruptCompletion"),
+                List(Instr.Return(Some(e))),
+              ),
+            ),
+            fallback = List(
+              Instr.Perform(
+                "NormalCompletion",
+                List(e),
+                Instr.PerformOutcome.BindResult("tmp"),
+              ),
+              Instr.Return(Some(Expr.Var("tmp")))
+            ),
+          ),
+        )
+      case i => List(i)
+    }
+
   private def hoist(
     params: List[String],
     body: List[Instr],
@@ -162,7 +186,7 @@ object ExpandFollowingStepsPass extends LoweringPass:
     val captured = (FreeVarAnalysis.freeVars(lowered) -- params).toList.sorted
     val (formalParams, fullBody) =
       if asBuiltinBehaviour then
-        (BuiltinParams, unpackArgumentsList(params) ++ lowered)
+        (BuiltinParams, unpackArgumentsList(params) ++ wrapCompletion(lowered))
       else (params, lowered)
     extra += Algorithm(
       None,

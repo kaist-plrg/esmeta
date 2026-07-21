@@ -3111,11 +3111,11 @@ def react_closure1(
     let result = value
   }
   call _ret26 = clo<"converted_to_a_javascript_value">(result)
-  if (? _ret26: Abrupt) {
+  if (exists _ret26.Type) {
     return _ret26
   } else {
-    call tmp = clo<"NormalCompletion">(_ret26)
-    return tmp
+    call _ret204 = clo<"NormalCompletion">(_ret26)
+    return _ret204
   }
   return ~unused~
 }
@@ -3136,11 +3136,11 @@ def react_closure2(
     call result = clo<"a_promise_rejected_with">(reason)
   }
   call _ret27 = clo<"converted_to_a_javascript_value">(result)
-  if (? _ret27: Abrupt) {
+  if (exists _ret27.Type) {
     return _ret27
   } else {
-    call tmp = clo<"NormalCompletion">(_ret27)
-    return tmp
+    call _ret205 = clo<"NormalCompletion">(_ret27)
+    return _ret205
   }
   return ~unused~
 }

@@ -53,6 +53,7 @@ object Lowering:
     ExpandAbbreviatedCondPass,
     ExpandMatchesExistsPass,
     ExpandFollowingStepsPass,
+    AddBuiltinBehaviourPass,
     ExpandQueueATaskPass,
     NormalizeAlgoNamePass,
   )

@@ -1,13 +1,13 @@
 package esmeta.wji
 
 import org.scalatest.funsuite.AnyFunSuite
-import esmeta.wji.lang.{SpecAnchors, SpecFile}
+import esmeta.wji.lang.{AnchorExtractor, SpecFile}
 import esmeta.wji.bridge.host.WasmHost
-import java.nio.file.Files
 
-class SpecAnchorsSpec extends AnyFunSuite:
+class AnchorExtractorSpec extends AnyFunSuite:
 
-  private lazy val source = Files.readString(SpecFile.jsApiIndex)
+  private lazy val anchors =
+    AnchorExtractor.extractFromFile(SpecFile.jsApiIndex)
 
   /** Anchors the spec's own `<pre class="anchors">` block declares but that
     * `WasmHost` doesn't need to mirror: `mem_read`/`mem_write` are registered
@@ -17,7 +17,7 @@ class SpecAnchorsSpec extends AnyFunSuite:
     * or its SpecTec backend (`embedding.ml`) either — dead anchor
     * registrations, not a real gap in `WasmHost`.
     */
-  private val unusedSpecAnchors: Set[String] = Set("mem_read", "mem_write")
+  private val unusedAnchors: Set[String] = Set("mem_read", "mem_write")
 
   /** `WasmHost` names with no matching js-api/index.bs anchor at all, because
     * they aren't part of the Wasm Core Spec's own Embedding API
@@ -34,7 +34,7 @@ class SpecAnchorsSpec extends AnyFunSuite:
     "WasmHost.names matches every embedding function js-api/index.bs's anchors block declares",
   ) {
     val specNames =
-      SpecAnchors.embeddingFunctionNames(source) -- unusedSpecAnchors
+      AnchorExtractor.embeddingFunctionNames(anchors) -- unusedAnchors
     val missing = specNames -- WasmHost.names
     val extra = WasmHost.names -- specNames -- bridgeOnlyNames
     assert(missing.isEmpty, s"WasmHost is missing: ${missing.toList.sorted}")

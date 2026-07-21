@@ -4,7 +4,7 @@ import java.io.File
 import java.nio.file.Path
 
 /** Locates spec files, used by [[AlgorithmExtractor]]/[[InterfaceExtractor]]/
-  * [[SpecAnchors]] and the unified [[esmeta.wji.extractor.Extractor]].
+  * [[AnchorExtractor]] and the unified [[esmeta.wji.extractor.Extractor]].
   */
 object SpecFile:
 

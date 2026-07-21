@@ -3,8 +3,8 @@ package esmeta.wji.extractor
 import esmeta.util.SystemUtils.*
 import esmeta.wji.lang.{
   AlgorithmExtractor,
+  AnchorExtractor,
   InterfaceExtractor,
-  SpecAnchors,
   SpecFile,
   SpecPatch,
 }
@@ -26,5 +26,5 @@ object Extractor:
       .extractFromFile(SpecFile.webidlIndex)
       .filter(a => a.name.exists(SpecFile.webidlFilter.contains))
     val interfaces = InterfaceExtractor.extract(jsApiSource)
-    val anchors = SpecAnchors.extract(jsApiSource)
+    val anchors = AnchorExtractor.extract(jsApiSource)
     Spec(jsApiAlgorithms ++ webidlAlgorithms, interfaces, anchors)

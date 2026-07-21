@@ -1,7 +1,7 @@
 package esmeta.wji.spec
 
 import esmeta.util.ManualInfo
-import esmeta.wji.lang.{Algorithm, Interface, SpecAnchors}
+import esmeta.wji.lang.{Algorithm, Anchor, Interface}
 
 /** The WebAssembly JS-API specification, mirroring mainline's
   * `esmeta.spec.Spec` — a plain container for everything
@@ -10,7 +10,7 @@ import esmeta.wji.lang.{Algorithm, Interface, SpecAnchors}
 case class Spec(
   algorithms: List[Algorithm] = Nil,
   interfaces: List[Interface] = Nil,
-  anchors: List[SpecAnchors.Anchor] = Nil,
+  anchors: List[Anchor] = Nil,
 ):
 
   /** mapping from interface names to interfaces */

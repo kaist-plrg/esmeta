@@ -1,33 +1,19 @@
 package esmeta.wji.lang
 
-/** Structured data pulled out of js-api/index.bs's own `<pre class="anchors">`
-  * block (spectec/document/js-api/index.bs) — the Bikeshed external-link
-  * registry declaring every term this file references but doesn't itself define
-  * (which spec it's from, what kind of thing it is, and the URL it resolves
-  * to).
+import java.nio.file.{Files, Path}
+
+/** Extracts structured data out of js-api/index.bs's own `<pre
+  * class="anchors">` block (spectec/document/js-api/index.bs) — the Bikeshed
+  * external-link registry declaring every term this file references but doesn't
+  * itself define (which spec it's from, what kind of thing it is, and the URL
+  * it resolves to).
   *
   * Lets WJI's own hand-maintained tables (e.g. `WasmHost.names`) be
   * cross-checked against what the spec source actually declares, rather than
   * trusting a hand-copied list to stay in sync as the spec evolves — see
-  * `SpecAnchorsSpec`.
+  * `AnchorExtractorSpec`.
   */
-object SpecAnchors:
-
-  /** One `text: ...` entry, resolved against every `urlPrefix:`/`spec:`/
-    * `type:`/`for:`/`url:` key active in its enclosing indentation scope (see
-    * `extract`).
-    *
-    * @param url
-    *   the fully-resolved URL (`urlPrefix` concatenated with the entry's own or
-    *   an enclosing `url:`), not just the relative path the source writes
-    */
-  case class Anchor(
-    text: String,
-    url: String,
-    spec: Option[String],
-    typ: Option[String],
-    forScope: Option[String],
-  )
+object AnchorExtractor:
 
   private val PreOpen = """<pre\s+class=['"]anchors['"]>""".r
   private val PreClose = "</pre>"
@@ -112,6 +98,9 @@ object SpecAnchors:
 
     results.toList
 
+  def extractFromFile(path: Path): List[Anchor] =
+    extract(SpecPatch(Files.readString(path)))
+
   private def extractBlock(source: String): String =
     PreOpen.findFirstMatchIn(source) match
       case None => ""
@@ -120,17 +109,18 @@ object SpecAnchors:
         if end < 0 then source.substring(m.end)
         else source.substring(m.end, end)
 
-  /** Every anchor whose URL points at the Wasm Core Spec's Embedding interface
-    * (`appendix/embedding.html#embed-...`) — i.e. every name
-    * `esmeta.wji.bridge.host.WasmHost` should mirror (see `SpecAnchorsSpec`).
+  /** Every anchor, among already-extracted `anchors`, whose URL points at the
+    * Wasm Core Spec's Embedding interface (`appendix/embedding.html#embed-...`)
+    * — i.e. every name `esmeta.wji.bridge.host.WasmHost` should mirror (see
+    * `AnchorExtractorSpec`).
     *
     * `error`/`exception` are excluded: both alias the same `#embed-error`
     * anchor, the shared "operation failed" result marker every embedding
     * function's own signature can return (`... : X | error`), not a callable
     * function of their own.
     */
-  def embeddingFunctionNames(source: String): Set[String] =
-    extract(source)
+  def embeddingFunctionNames(anchors: List[Anchor]): Set[String] =
+    anchors
       .filter(_.url.contains("appendix/embedding.html#embed-"))
       .map(_.text)
       .filterNot(name => name == "error" || name == "exception")

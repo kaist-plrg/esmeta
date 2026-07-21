@@ -214,16 +214,22 @@ object ExprParser:
   // (contrast SlotAccess's `.[[slot]]`/DotFieldLink's `.[=field=]` above,
   // both tried first so a decorated dot-suffix isn't mistaken for this).
   private val DotField = """(?s)^(.+)\.([A-Za-z][A-Za-z0-9]*)$""".r
+  // three phrasings that all normalize to the same Length node — kept as
+  // separate patterns since spec prose spells "length" three different ways,
+  // but grouped here so a fourth phrasing gets added next to its siblings
+  // rather than off on its own.
   private val LengthOf =
     """(?si)^the (?:\[=(?:string/length|list/size)=\]|length) of (.+)$""".r
   private val ElementCount = """(?si)^the number of elements in (.+)$""".r
+  // must precede PossessiveAssociation below — "the X's [=list/size=]"
+  // would otherwise also match its more general "'s [=link=]" shape.
+  private val PossessiveSize = """(?si)^(.+)'s \[=list/size=\]$""".r
   private val ElementAt =
     """(?si)^the value of the element stored at index (.+) in (.+)$""".r
   // "the index of LIST where ELEM is found" (index.bs:1255) — see
   // Expr.IndexOf / ExpandIndexOfPass.
   private val IndexOfPat =
     """(?si)^the index of (.+) where (.+) is found$""".r
-  private val PossessiveSize = """(?si)^(.+)'s \[=list/size=\]$""".r
   private val AssociatedRealm = """(?si)^(.+)'s \[=associated Realm=\]$""".r
   // "|func|'s [=associated Realm=]" — narrower than PossessiveAssociation
   // (which keeps "the surrounding agent's associated store/cache" style
@@ -486,9 +492,9 @@ object ExprParser:
       case DotField(baseRaw, field)    => Field(parse(baseRaw), field)
       case LengthOf(inner)             => Length(parse(inner.trim))
       case ElementCount(inner)         => Length(parse(inner.trim))
+      case PossessiveSize(inner)       => Length(parse(inner.trim))
       case ElementAt(idx, arr)    => Index(parse(arr.trim), parse(idx.trim))
       case IndexOfPat(list, elem) => IndexOf(parse(list.trim), parse(elem.trim))
-      case PossessiveSize(inner)  => Length(parse(inner.trim))
       case AssociatedRealm(baseRaw) => Field(parse(baseRaw.trim), "Realm")
       case PossessiveAssociation(baseRaw, link) => fieldFromLink(baseRaw, link)
       case CompTypeArrow(paramsRaw, resultsRaw) =>

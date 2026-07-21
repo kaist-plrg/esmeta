@@ -325,3 +325,43 @@ class ExprParserSpec extends AnyFunSuite:
       ExprParser.parse("[=the range=] |a| to |b|") == Range(Var("a"), Var("b")),
     )
   }
+
+  // found while regrouping ExprParser.scala into role-based sections (C-1) —
+  // undocumented in the source itself before that, unlike the four above.
+
+  test("order: PossessiveSize is tried before PossessiveAssociation") {
+    // "the X's [=list/size=]" matches both: PossessiveSize doesn't require a
+    // leading "the" (its base is a bare `(.+)`, which happily absorbs one),
+    // while PossessiveAssociation requires one. If PossessiveAssociation won
+    // this race, the result would be a plain field read (Field(_, "list/size"))
+    // instead of a Length.
+    assert(
+      ExprParser.parse("the [=current object=]'s [=list/size=]") ==
+      Length(Link("[=current object=]", Nil)),
+    )
+  }
+
+  test("order: MapLiteral is tried before ListLiteral") {
+    // "«[ ... ]»" also matches ListLiteral's more general "«...»" shape (its
+    // non-greedy capture still stretches to include the "[ ... ]" as one
+    // opaque element), which would produce a one-element List_ instead of
+    // recognizing the map-literal brackets.
+    assert(
+      ExprParser.parse("«[ |a| → |b| ]»") ==
+      Map_(List(Var("a") -> Var("b"))),
+    )
+  }
+
+  test(
+    "order: EmptyList/NewByteSeqOfLength are tried before the generic PlainNewExpr fallback",
+  ) {
+    // both start with the literal words "a new ...", which PlainNewExpr's
+    // catch-all `^a\s+new\s+.+$` would otherwise also match, producing an
+    // opaque UnknownNew instead of the specific node each really means.
+    assert(ExprParser.parse("a new, empty list") == List_(Nil))
+    assert(
+      ExprParser.parse(
+        "a new [=byte sequence=] of [=byte sequence/length=] equal to |n|",
+      ) == NewByteSequence(Var("n")),
+    )
+  }

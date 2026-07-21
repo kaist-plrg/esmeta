@@ -3,8 +3,8 @@ package esmeta.wji.lang
 import java.io.File
 import java.nio.file.Path
 
-/** Locates spec files and provides a unified algorithm loader for the full
-  * pipeline.
+/** Locates spec files, used by [[AlgorithmExtractor]]/[[InterfaceExtractor]]/
+  * [[SpecAnchors]] and the unified [[esmeta.wji.extractor.Extractor]].
   */
 object SpecFile:
 
@@ -22,15 +22,6 @@ object SpecFile:
     "a new promise",
     "get a copy of the buffer source",
   )
-
-  /** loads algorithms from all specs: all of jsApi plus the filtered subset of
-    * webidl, merged into a single list for the shared pipeline
-    */
-  def loadAllAlgorithms(): List[Algorithm] =
-    AlgorithmExtractor.extractFromFile(jsApiIndex) ++
-    AlgorithmExtractor
-      .extractFromFile(webidlIndex)
-      .filter(a => a.name.exists(webidlFilter.contains))
 
   /** finds `relPath` in the nearest ancestor of the current directory */
   def locate(relPath: String): Path =

@@ -4,7 +4,8 @@ import org.scalatest.{Args, Status}
 import org.scalatest.funsuite.AnyFunSuite
 import java.nio.file.{Files, Paths}
 import esmeta.BASE_DIR
-import esmeta.wji.lang.{AlgorithmExtractor, InstrPrinter, SpecFile}
+import esmeta.wji.extractor.Extractor
+import esmeta.wji.lang.InstrPrinter
 import esmeta.wji.compiler.lowering.Lowering
 import esmeta.wji.compiler.Compiler
 
@@ -27,7 +28,7 @@ class SnapshotSpec extends AnyFunSuite:
     update = args.configMap.getWithDefault("update", "false") == "true"
     super.run(testName, args)
 
-  private lazy val algorithms = SpecFile.loadAllAlgorithms()
+  private lazy val algorithms = Extractor().algorithms
 
   test("metalang (metalang.expected)") {
     val sb = new StringBuilder

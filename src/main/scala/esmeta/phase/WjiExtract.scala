@@ -2,7 +2,8 @@ package esmeta.phase
 
 import esmeta.*
 import esmeta.util.*
-import esmeta.wji.lang.{Algorithm, InstrPrinter, SpecFile}
+import esmeta.wji.extractor.Extractor
+import esmeta.wji.lang.{Algorithm, InstrPrinter}
 
 /** `wji-extract` phase
   *
@@ -19,8 +20,8 @@ case object WjiExtract extends Phase[Unit, List[Algorithm]] {
     cmdConfig: CommandConfig,
     config: Config,
   ): List[Algorithm] =
-    val algorithms = SpecFile.loadAllAlgorithms()
-    val selected = select(algorithms, config.filter)
+    val spec = Extractor()
+    val selected = select(spec.algorithms, config.filter)
     if (config.log)
       if (selected.isEmpty) println(s"no algorithm matches '${config.filter}'")
       else

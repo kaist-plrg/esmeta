@@ -13,7 +13,7 @@ import esmeta.state.*
 import esmeta.wji
 import esmeta.wji.compiler.Compiler
 import esmeta.wji.compiler.lowering.Lowering
-import esmeta.wji.lang.SpecFile
+import esmeta.wji.extractor.Extractor
 import esmeta.wji.util.AlgoCallStack
 import scala.collection.mutable.{Map => MMap}
 
@@ -53,8 +53,8 @@ case object WjiInterp extends Phase[CFG, Value] {
     cmdConfig: CommandConfig,
     config: Config,
   ): Value =
-    val algorithms = SpecFile.loadAllAlgorithms()
-    val wjiProgram = Compiler.compile(Lowering.run(algorithms))
+    val spec = Extractor()
+    val wjiProgram = Compiler.compile(Lowering.run(spec.algorithms))
     val merged =
       Program(cfg.program.funcs ++ wjiProgram.funcs, cfg.program.spec)
     val mergedCfg = CFGBuilder(merged)

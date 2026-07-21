@@ -26,11 +26,12 @@ import esmeta.wji.lang.Instr.PerformOutcome
   * lean on either of those to turn a call into a `Perform` for it — it emits
   * the fully-lowered `Instr.Perform(..., BindResult(_), ...)` + `Instr.Return`
   * pair itself. Building the thrown error object itself reuses mainline's own
-  * `__NEW_ERROR_OBJ__` auxiliary function (`esmeta.ir.package.AUX_NEW_ERROR_OBJ`)
-  * the exact same way `esmeta.compiler.Compiler`'s `ThrowStep` case does, just
-  * spelled as a `Perform` (`Compiler.compileInstr`'s generic non-embedding
-  * `Perform` dispatch already produces the matching
-  * `EClo("__NEW_ERROR_OBJ__", Nil)` for that name).
+  * `__NEW_ERROR_OBJ__` auxiliary function
+  * (`esmeta.ir.package.AUX_NEW_ERROR_OBJ`) the exact same way
+  * `esmeta.compiler.Compiler`'s `ThrowStep` case does, just spelled as a
+  * `Perform` (`Compiler.compileInstr`'s generic non-embedding `Perform`
+  * dispatch already produces the matching `EClo("__NEW_ERROR_OBJ__", Nil)` for
+  * that name).
   *
   * {{{
   *   If(cond, [Throw("a {{TypeError}} exception")])

@@ -13,8 +13,8 @@ const arr = new Uint8Array(
 const buffer = arr.buffer;
 
 var importObj = {js: {
-    import1: () => console.log("hello,"),
-    import2: () => console.log("world!")
+    import1: () => print("hello,"),
+    import2: () => print("world!")
 }};
 
 WebAssembly

@@ -163,7 +163,7 @@ object ExpandFollowingStepsPass extends LoweringPass:
                 List(e),
                 Instr.PerformOutcome.BindResult("tmp"),
               ),
-              Instr.Return(Some(Expr.Var("tmp")))
+              Instr.Return(Some(Expr.Var("tmp"))),
             ),
           ),
         )

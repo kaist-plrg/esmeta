@@ -41,4 +41,52 @@ object Initialize:
         connection.close()
         throw new RuntimeException(s"store_init failed: $err")
 
+    st.heap.update(
+      NamedAddr(AGENT_RECORD),
+      Str("Exported Function cache"),
+      st.heap.allocMap(Nil),
+    )
+
+    st.heap.update(
+      NamedAddr(AGENT_RECORD),
+      Str("Memory object cache"),
+      st.heap.allocMap(Nil),
+    )
+
+    st.heap.update(
+      NamedAddr(AGENT_RECORD),
+      Str("Table object cache"),
+      st.heap.allocMap(Nil),
+    )
+
+    st.heap.update(
+      NamedAddr(AGENT_RECORD),
+      Str("Exported GC object cache"),
+      st.heap.allocMap(Nil),
+    )
+
+    st.heap.update(
+      NamedAddr(AGENT_RECORD),
+      Str("Global object cache"),
+      st.heap.allocMap(Nil),
+    )
+
+    st.heap.update(
+      NamedAddr(AGENT_RECORD),
+      Str("Tag object cache"),
+      st.heap.allocMap(Nil),
+    )
+
+    st.heap.update(
+      NamedAddr(AGENT_RECORD),
+      Str("Exception object cache"),
+      st.heap.allocMap(Nil),
+    )
+
+    st.heap.update(
+      NamedAddr(AGENT_RECORD),
+      Str("host value cache"),
+      st.heap.allocMap(Nil),
+    )
+
     (host, connection)

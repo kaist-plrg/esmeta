@@ -21,6 +21,9 @@ case object WjiExtract extends Phase[Unit, List[Algorithm]] {
     config: Config,
   ): List[Algorithm] =
     val spec = Extractor()
+    // must happen before the interpreter runs (see RecordTy's doc) — done
+    // here since every wji-eval/wji-interp run passes through this phase
+    spec.registerInterfaceTypes()
     val selected = select(spec.algorithms, config.filter)
     if (config.log)
       if (selected.isEmpty) println(s"no algorithm matches '${config.filter}'")

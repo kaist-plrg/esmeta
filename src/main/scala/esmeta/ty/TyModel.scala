@@ -9,6 +9,44 @@ case class TyModel(decls: List[TyDecl] = Nil) extends TyElem {
 
   import TyDecl.Elem.*
 
+  /** A dynamic subtype registry, independent of `decls` (and thus of every
+    * `cached` lazy val derived from it, e.g. `strictSubTysOf`) — lets another
+    * package declare "this record type is a subtype of that one" at runtime,
+    * for cases where the subtype isn't known ahead of time as a hand-written
+    * `manuals/types` entry. Plain mutable instance state works fine here even
+    * though `TyModel` is otherwise treated as an immutable value: it's never
+    * consulted by the `decls`-derived caches above, and `ManualInfo.tyModel`
+    * (the one instance every runtime subtype check actually goes through) is a
+    * stable, never-replaced singleton — only *its own* internals change.
+    *
+    * WJI uses this to register each WebIDL interface it extracts (`Instance`,
+    * `Module`, ...) as a subtype of `"Object"`, so `Type(v)` classifies a
+    * WJI-constructed interface object correctly. `ManualInfo.tyModel` itself
+    * can't grow a *new* declared type the ordinary way (editing
+    * `manuals/types`) for this: mainline `esmeta.compiler.Compiler`'s own
+    * (eager, non-lazy) `tyModel` field forces this whole model while compiling
+    * any `RecordExpression` (i.e. during the ordinary "compile" phase, for any
+    * ECMA-262 algorithm with a record literal) — long before a downstream phase
+    * like `wji-eval`/`wji-interp` gets a chance to register anything.
+    * Registering into this separate piece of mutable state instead works
+    * correctly regardless of that ordering, as long as it happens before the
+    * interpreter actually evaluates `Type(v)` on an affected value.
+    */
+  private var dynamicParents: Map[String, String] = Map()
+
+  /** registers `child` as a (possibly indirect, via another dynamically- or
+    * statically-registered parent) subtype of `parent`
+    */
+  def registerDynamicSubtype(child: String, parent: String): Unit =
+    dynamicParents += child -> parent
+
+  /** whether `l` is a subtype of `r` via the dynamic registry — `p`'s own
+    * further ancestry (dynamic or static) is covered by recursing through
+    * `isStrictSubTy` itself, since it already checks both
+    */
+  private def isDynamicSubTy(l: String, r: String): Boolean =
+    dynamicParents.get(l).exists(p => p == r || isStrictSubTy(p, r))
+
   /** type declaration map */
   lazy val declMap: Map[String, TyDecl] = (for {
     decl <- decls
@@ -117,7 +155,7 @@ case class TyModel(decls: List[TyDecl] = Nil) extends TyElem {
   def isStrictSubTy(ls: Set[String], rs: Set[String]): Boolean =
     ls.forall(isStrictSubTy(_, rs))
   def isStrictSubTy(l: String, r: String): Boolean =
-    strictSubTysOf(r).contains(l)
+    strictSubTysOf(r).contains(l) || isDynamicSubTy(l, r)
 
   /** check if a type is a subtype of another */
   def isSubTy(

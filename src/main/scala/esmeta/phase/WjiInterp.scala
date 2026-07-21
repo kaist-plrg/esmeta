@@ -54,6 +54,8 @@ case object WjiInterp extends Phase[CFG, Value] {
     config: Config,
   ): Value =
     val spec = Extractor()
+    // must happen before the interpreter runs below (see RecordTy's doc)
+    spec.registerInterfaceTypes()
     val wjiProgram = Compiler.compile(Lowering.run(spec.algorithms))
     val merged =
       Program(cfg.program.funcs ++ wjiProgram.funcs, cfg.program.spec)

@@ -211,12 +211,25 @@ object CondParser:
             negated,
           )
 
-    splitTopLevel(s, " is not equal to ")
+    // "is not equal to"/"does not equal" (and their positive counterparts)
+    // are synonyms with the same handler — matched together via
+    // findTopLevelAny, the same synonym-list idiom BinOpSeps/CompareOps use,
+    // rather than two separately-duplicated `.orElse` stages. Order matters
+    // here: each synonym pair must be tried before the shorter separator
+    // it's a superstring of (" is not equal to " before " is not ", " is
+    // equal to " before " is ") — see ExprParserSpec/CondParserSpec's
+    // "order:"-tagged tests, which pin exactly this.
+    def splitEq(seps: Seq[String]): Option[(String, String)] =
+      findTopLevelAny(s, seps).map {
+        case (i, sep) => (s.substring(0, i), s.substring(i + sep.length))
+      }
+
+    splitEq(Seq(" is not equal to ", " does not equal "))
       .map {
         case (l, r) =>
           Eq(ExprParser.parse(l.trim), ExprParser.parse(r.trim), negated = true)
       }
-      .orElse(splitTopLevel(s, " is equal to ").map {
+      .orElse(splitEq(Seq(" is equal to ", " equals ")).map {
         case (l, r) => Eq(ExprParser.parse(l.trim), ExprParser.parse(r.trim))
       })
       .orElse(splitTopLevel(s, " is not ").map {
@@ -227,13 +240,6 @@ object CondParser:
           .filter { case (_, r) => !r.trim.startsWith("one of") }
           .map { case (l, r) => parseRhs(l, r, negated = false) },
       )
-      .orElse(splitTopLevel(s, " does not equal ").map {
-        case (l, r) =>
-          Eq(ExprParser.parse(l.trim), ExprParser.parse(r.trim), negated = true)
-      })
-      .orElse(splitTopLevel(s, " equals ").map {
-        case (l, r) => Eq(ExprParser.parse(l.trim), ExprParser.parse(r.trim))
-      })
       .orElse(findTopLevelAny(s, CompareOpSeps).map {
         case (i, op) =>
           Compare(

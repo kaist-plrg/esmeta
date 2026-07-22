@@ -34,16 +34,24 @@ object Compiler:
     * -constructed WJI interface object (`Instance`, `Module`, ...) needs to
     * behave like a real JS object — e.g. so `.Get`/`.Set` don't fail with
     * "invalid object field" once `Type(v)` correctly classifies it as an Object
-    * (see `esmeta.ty.TyModel.registerDynamicSubtype`). `Prototype` stays `null`
-    * rather than the interface's real `%WebAssembly.<iface>.prototype%`
-    * intrinsic — wiring that up properly, along with the rest of WebIDL's
-    * "internally create a new object implementing the interface" preamble, is
-    * left for later.
+    * (see `esmeta.ty.TyModel.registerDynamicSubtype`). `Prototype` points at
+    * the interface's real `%WebAssembly.<iface>.prototype%` intrinsic only for
+    * interfaces where `manuals/intrinsics` actually declares one today (just
+    * `Instance`, so its `exports` getter — hand-written as
+    * `manuals/funcs/INTRINSICS.get:WebAssembly.Instance.prototype.exports.ir` —
+    * resolves); every other interface (`Module`, `Memory`, ...) has no such
+    * intrinsic declared at all, so referencing it would itself crash, and falls
+    * back to `null` as before. The rest of WebIDL's "internally create a new
+    * object implementing the interface" preamble — and actually mechanizing
+    * each interface's own attribute getters/methods, rather than hand-writing
+    * them one at a time — is left for later.
     *
     * Documented in `docs/hardcodes.md` (#8) — when this gets properly
     * implemented, delete that entry too.
     */
-  private val ordinaryObjectFields: List[(String, Expr)] = List(
+  private val interfacesWithPrototypeIntrinsic: Set[String] = Set("Instance")
+
+  private def ordinaryObjectFields(iface: String): List[(String, Expr)] = List(
     "GetPrototypeOf" -> EClo("Record[OrdinaryObject].GetPrototypeOf", Nil),
     "SetPrototypeOf" -> EClo("Record[OrdinaryObject].SetPrototypeOf", Nil),
     "IsExtensible" -> EClo("Record[OrdinaryObject].IsExtensible", Nil),
@@ -61,7 +69,15 @@ object Compiler:
     "Set" -> EClo("Record[OrdinaryObject].Set", Nil),
     "Delete" -> EClo("Record[OrdinaryObject].Delete", Nil),
     "OwnPropertyKeys" -> EClo("Record[OrdinaryObject].OwnPropertyKeys", Nil),
-    "Prototype" -> ENull(),
+    "Prototype" ->
+    (if interfacesWithPrototypeIntrinsic(iface) then
+       ERef(
+         Field(
+           Field(Field(GLOBAL_CONTEXT, EStr("Realm")), EStr("Intrinsics")),
+           EStr(s"%WebAssembly.$iface.prototype%"),
+         ),
+       )
+     else ENull()),
     "Extensible" -> EBool(true),
     "PrivateElements" -> EList(Nil),
     "__MAP__" -> EMap((UnknownType, UnknownType), Nil),
@@ -304,7 +320,7 @@ object Compiler:
       ERef(Field(compileRef(base), EStr(name)))
     case metalang.Expr.Index(base, key) =>
       ERef(Field(compileRef(base), compileExpr(key)))
-    case metalang.Expr.New(iface)      => ERecord(iface, ordinaryObjectFields)
+    case metalang.Expr.New(iface) => ERecord(iface, ordinaryObjectFields(iface))
     case metalang.Expr.List_(elems)    => EList(elems.map(compileExpr))
     case metalang.Expr.Length(e)       => ESizeOf(compileExpr(e))
     case metalang.Expr.BinOp(l, op, r) => compileBinOp(op, l, r)

@@ -1600,6 +1600,7 @@ INTRINSICS.get:TypedArray.prototype.byteOffset
 INTRINSICS.get:TypedArray.prototype.length
 INTRINSICS.get:TypedArray.prototype[%Symbol.toStringTag%]
 INTRINSICS.get:TypedArray[%Symbol.species%]
+INTRINSICS.get:WebAssembly.Instance.prototype.exports
 INTRINSICS.isFinite
 INTRINSICS.isNaN
 INTRINSICS.print

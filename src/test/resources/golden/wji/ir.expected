@@ -3176,7 +3176,7 @@ def asynchronously_instantiate_a_webassembly_module_closure1(
     "Set" : clo<"Record[OrdinaryObject].Set">,
     "Delete" : clo<"Record[OrdinaryObject].Delete">,
     "OwnPropertyKeys" : clo<"Record[OrdinaryObject].OwnPropertyKeys">,
-    "Prototype" : null,
+    "Prototype" : @EXECUTION_STACK[0].Realm.Intrinsics["%WebAssembly.Instance.prototype%"],
     "Extensible" : true,
     "PrivateElements" : (list []),
     "__MAP__" : (map[Unknown, Unknown]),

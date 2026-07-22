@@ -1696,13 +1696,7 @@ def call_an_exported_function(
     call _ret4 = clo<"ThrowCompletion">(_err3)
     return _ret4
   } else nop
-  call _call2 = clo<"exception">(exnaddr)
-  if (? _call2: Abrupt) {
-    return _call2
-  } else {
-    _call2 = _call2.Value
-  }
-  if (= ret _call2) {
+  if (yet "is of form Case([=exception=],List(Var(exnaddr)))") {
     call-embed tagaddr = <exn_tag>(store, exnaddr)
     call-embed payload = <exn_read>(store, exnaddr)
     call jsTagAddr = clo<"get_the_javascript_exception_tag">()
@@ -1747,8 +1741,8 @@ def call_an_exported_function(
     let _iterIdx4 = 0
     while (< _iterIdx4 (sizeof _iterList3)) {
       let r = _iterList3[_iterIdx4]
-      call _call3 = clo<"tojsvalue">(r)
-      push values < _call3
+      call _call2 = clo<"tojsvalue">(r)
+      push values < _call2
       _iterIdx4 = (+ _iterIdx4 1)
     }
     call _result1 = clo<"CreateArrayFromList">(values)
@@ -2447,11 +2441,26 @@ def create_an_exception_object(
   call _ = clo<"initialize_an_exception_object">(exn, exnAddress)
   return exn
 }
-def exception(
-  exceptionTag: Unknown,
-  payload: Unknown,
-  options: Unknown,
+def <BUILTIN>:INTRINSICS.WebAssembly.Exception(
+  this: Unknown,
+  ArgumentsList: Unknown,
+  NewTarget: Unknown,
 ): Unknown = {
+  if (< 0 (sizeof ArgumentsList)) {
+    let exceptionTag = ArgumentsList[0]
+  } else {
+    let exceptionTag = undefined
+  }
+  if (< 1 (sizeof ArgumentsList)) {
+    let payload = ArgumentsList[1]
+  } else {
+    let payload = undefined
+  }
+  if (< 2 (sizeof ArgumentsList)) {
+    let options = ArgumentsList[2]
+  } else {
+    let options = undefined
+  }
   call JSTagAddr = clo<"get_the_javascript_exception_tag">()
   if (= exceptionTag.Address JSTagAddr) {
     call _err1 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")

@@ -43,10 +43,12 @@ object AlgorithmExtractor:
   /** matches the first `<dfn ...>...</dfn>` in a string */
   private val Dfn = """(?is)<dfn\b[^>]*>(.*?)</dfn>""".r
 
-  /** matches the `lt` attribute in a `<dfn>` opening tag (double or single
-    * quotes)
+  /** matches the `lt` attribute in a `<dfn>` opening tag — double-quoted,
+    * single-quoted, or (valid, if unusual, HTML) bare/unquoted (e.g. `<dfn
+    * export lt=new>`, webidl/index.bs:13818) — group 1/2/3 respectively.
     */
-  private val DfnLtAttr = """(?is)\blt\s*=\s*(?:"([^"]*)"|'([^']*)')""".r
+  private val DfnLtAttr =
+    """(?is)\blt\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+))""".r
 
   /** matches a Bikeshed variable reference, e.g. `|bytes|` or `|importObject|`
     */
@@ -87,11 +89,13 @@ object AlgorithmExtractor:
   private val TrailingParamsPlain = """^(.+?)\s*\([^)]*\)$""".r
 
   /** matches a `<dfn method|attribute|constructor for="...">` opening tag,
-    * capturing the kind word and the `for` value (double or single quotes) —
-    * see [[AlgorithmKind]].
+    * capturing the kind word and the `for` value — double-quoted,
+    * single-quoted, or (valid, if unusual, HTML) bare/unquoted (e.g. `<dfn
+    * constructor for=Exception>`, js-api/index.bs:1722) — group 2/3/4
+    * respectively. See [[AlgorithmKind]].
     */
   private val DfnKindFor =
-    """(?is)<dfn\s+(method|attribute|constructor)\s+for\s*=\s*(?:"([^"]*)"|'([^']*)')""".r
+    """(?is)<dfn\s+(method|attribute|constructor)\s+for\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+))""".r
 
   /** matches "The setter of the X attribute of {{Interface}}" — a setter never
     * has its own `<dfn attribute for=...>` (see [[AlgorithmKind.Setter]]), so
@@ -213,6 +217,7 @@ object AlgorithmExtractor:
         case Some(ltMatch) =>
           val ltValue = Option(ltMatch.group(1))
             .orElse(Option(ltMatch.group(2)))
+            .orElse(Option(ltMatch.group(3)))
             .getOrElse("")
           val primary = ltValue.split('|').head.trim
           primary match
@@ -264,7 +269,10 @@ object AlgorithmExtractor:
     DfnKindFor.findFirstMatchIn(head) match
       case Some(m) =>
         val iface =
-          Option(m.group(2)).orElse(Option(m.group(3))).getOrElse("")
+          Option(m.group(2))
+            .orElse(Option(m.group(3)))
+            .orElse(Option(m.group(4)))
+            .getOrElse("")
         m.group(1).toLowerCase match
           case "method"      => AlgorithmKind.Method(iface)
           case "attribute"   => AlgorithmKind.Getter(iface)

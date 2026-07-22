@@ -37,6 +37,14 @@ import esmeta.wji.lang.{Algorithm, AlgorithmKind, Cond, Expr, Instr}
   *   - a zero-arg `Link` that doesn't match a known algorithm becomes a
   *     `SpecTerm` — a bare reference to something else.
   *
+  * A [[Cond.IsOfForm]]'s `form` field is the one exception to the first rule
+  * above: it's always a pattern to destructure against (`ExpandIsOfFormPass`
+  * only ever handles a `form` that's already `Expr.Case`), never a genuine
+  * call, even when its link text happens to also be a real algorithm's
+  * (lowercased) name — e.g. embedding.rst's 1-arg `exception` case tag collides
+  * with js-api's `Exception` constructor (index.bs:1297 vs. 1722). Resolved via
+  * [[resolveForm]], the same heuristic minus that first check.
+  *
   * Category: Housekeeping.
   */
 object ResolveLinksPass extends LoweringPass:
@@ -114,6 +122,27 @@ object ResolveLinksPass extends LoweringPass:
   private def resolveFuncName(plainKnown: Set[String], name: String): String =
     if plainKnown.contains(name.toLowerCase) then name.toLowerCase else name
 
+  /** Resolves a [[Cond.IsOfForm]]'s `form` field specifically — the same
+    * AlgoCall/Case/SpecTerm heuristic [[rewriteExpr]]'s `Expr.Link` case uses,
+    * minus its first branch (a name matching a known algorithm). A form is
+    * always a pattern to destructure against, never a call, so that branch
+    * would only ever mask the correct `Case`/`SpecTerm` resolution when the
+    * form's link text happens to coincide with some unrelated algorithm's name
+    * (see class doc).
+    */
+  private def resolveForm(known: Set[String], plainKnown: Set[String])(
+    form: Expr,
+  ): Expr =
+    val e = rewriteExpr(known, plainKnown)
+    form match
+      case Expr.Link(link, args) =>
+        val resolvedArgs = args.map(e)
+        if args.nonEmpty && !lastSegment(stripLink(link)).contains(" ") then
+          Expr.Case(link, resolvedArgs)
+        else if args.nonEmpty then Expr.AlgoCall(link, resolvedArgs)
+        else Expr.SpecTerm(stripLink(link))
+      case other => e(other)
+
   private def rewriteExpr(known: Set[String], plainKnown: Set[String])(
     expr: Expr,
   ): Expr =
@@ -172,7 +201,12 @@ object ResolveLinksPass extends LoweringPass:
       case Cond.Implements(ex, iface, neg) =>
         Cond.Implements(e(ex), iface, neg)
       case Cond.IsOfForm(ex, form, condOpt, neg) =>
-        Cond.IsOfForm(e(ex), e(form), condOpt.map(go), neg)
+        Cond.IsOfForm(
+          e(ex),
+          resolveForm(known, plainKnown)(form),
+          condOpt.map(go),
+          neg,
+        )
       case Cond.Matches(l, t, r, neg) => Cond.Matches(e(l), t, e(r), neg)
       case Cond.IsMissing(ex, neg)    => Cond.IsMissing(e(ex), neg)
       case Cond.IsType(ex, t, neg)    => Cond.IsType(e(ex), t, neg)

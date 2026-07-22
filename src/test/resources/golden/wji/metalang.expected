@@ -825,7 +825,7 @@
   Set([=surrounding agent=].[[associated store]], |store|)
   If(|ret| is [=error=])
     Throw(a {{RuntimeError}} exception)
-  If(|ret| is [=exception=](|exnaddr|))
+  If(|ret| is of the form [=exception=](|exnaddr|))
     Let(|tagaddr|, [=exn_tag=](|store|, |exnaddr|))
     Let(|payload|, [=exn_read=](|store|, |exnaddr|))
     Let(|jsTagAddr|, [=get the JavaScript exception tag=])
@@ -1164,6 +1164,7 @@
   Return(|exn|)
 
 # Exception
+  kind: constructor for Exception
   params: |exceptionTag|, |payload|, |options|
   head: The <dfn constructor for=Exception lt="Exception(exceptionTag, payload, options)">new Exception(|exceptionTag|, |payload|, |options|)</dfn> constructor steps are:
   Let(|JSTagAddr|, [=get the JavaScript exception tag=])

@@ -77,3 +77,10 @@
 - **Spec source**: `spectec/document/js-api/index.bs:1296` — `func_invoke`가 실패했을 때 "throw an exception. This exception should be a WebAssembly {{RuntimeError}} exception, unless otherwise indicated by the WebAssembly error mapping." 두 문장으로 서술돼 있습니다.
 - **What's hardcoded**: 뒤 문장("This exception should be...")이 `AlgorithmExtractor`에 의해 앞의 `If |ret| is [=error=], throw an exception.`과 같은 `If` 안에 안 들어가고 **형제 스텝으로 잘못 분리**돼서, `|ret|`가 에러든 아니든 항상 무조건 실행되며 컴파일러가 처리 못 해 `NotSupported`로 죽습니다(`demo.js`가 실제로 이걸로 막혀있었습니다). 게다가 `Throw("an exception")` 자체도 `{{Type}}`이 안 붙어 있어서 `CompletionWrapping.ThrowTarget`(`"a {{X}} exception"` 형태만 인식)에 안 걸려, 실제로 `|ret|`가 에러인 경우엔 이것도 따로 크래시났을 것입니다. 이 패치는 두 문장을 `throw a {{RuntimeError}} exception.` 하나로 합쳐서 두 문제를 한 번에 없앱니다 — "unless otherwise indicated by the WebAssembly error mapping"라는 예외 케이스는 버립니다.
 - **Why not mechanized**: "WebAssembly 실행 실패가 항상 RuntimeError로 나타나는 게 아니라 경우에 따라 다른 에러 매핑을 따를 수 있다"는 걸 제대로 반영하려면 `#errors`가 가리키는 WebAssembly 에러 매핑 테이블 전체를 별도로 기계화해야 하는데, 지금 어떤 스펙 텍스트도 RuntimeError가 아닌 다른 결과를 요구하지 않아서 그 구분을 지금 당장 만들 가치가 없습니다.
+
+## 11. "call an Exported Function"의 "is [=exception=] |exnaddr|"에 "of the form" 보충 (`SpecPatch` #24)
+
+- **File**: `src/main/scala/esmeta/wji/lang/SpecPatch.scala` (patch #24)
+- **Spec source**: `spectec/document/js-api/index.bs:1297` — "If |ret| is [=exception=] |exnaddr|, then"
+- **What's hardcoded**: `[=exception=]`은 `embedding.rst:49`("exception ::= EXCEPTION exnaddr")가 정의하는 1-인자 case라서, 이 스텝은 원래 "ret가 EXCEPTION 태그면 그 payload를 exnaddr로 바인딩하라"는 destructuring 매치여야 합니다. 근데 `CondParser`는 `"X is of the form [=term=] |var|"` 형태만 이런 매치(`Cond.IsOfForm`)로 인식하고, "of the form"이 빠진 이 문장은 그냥 기본 `Eq(ret, ...)`로 떨어져서, `|exnaddr|`을 바인딩 대상이 아니라 이미 존재하는 변수처럼 읽으려다 `unknown variable: exnaddr`로 죽습니다(`error`는 0-인자 case라 이 문제가 없고, 코퍼스에서 payload 있는 case를 "of the form" 없이 비교하는 건 이 한 줄뿐입니다). 이 패치는 "of the form"을 끼워넣어서 이미 지원되는 형태로 맞춥니다.
+- **Why not mechanized**: `CondParser`가 이미 처리하는 "of the form" 관용구와 의미가 완전히 같은데, "of the form"이 생략된 경우까지 파서가 별도로 인식하게 만드는 건 이 한 줄만을 위해 파서 표면적을 넓히는 것보다 텍스트를 이미 지원되는 형태로 맞추는 쪽이 낫다고 판단했습니다.

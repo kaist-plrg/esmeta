@@ -116,6 +116,8 @@ trait Walker extends BasicWalker {
       ECaseTag(walk(expr))
     case ECase(tag, args) =>
       ECase(walk(tag), walkList(args, walk))
+    case EOpt(expr) =>
+      EOpt(walkOpt(expr, walk))
     case EDebug(expr) =>
       EDebug(walk(expr))
     case expr: ERandom     => walk(expr)

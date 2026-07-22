@@ -773,6 +773,10 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         notSupported(
           s"TODO: ECase ($tag) not yet supported by the type analyzer",
         )
+      case EOpt(_) =>
+        notSupported(
+          "TODO: EOpt not yet supported by the type analyzer",
+        )
     }
 
     // short circuit evaluation

@@ -265,7 +265,7 @@ def read_the_imports(
       if (yet "implements Global") {
         let globaladdr = v.Global
       } else {
-        if (&& (= valtype ~i64~) (! (? v: BigInt))) {
+        if (&& (= valtype (case "I64" )) (! (? v: BigInt))) {
           call _err10 = clo<"__NEW_ERROR_OBJ__">("%LinkError.prototype%")
           call _ret11 = clo<"ThrowCompletion">(_err10)
           return _ret11
@@ -275,7 +275,7 @@ def read_the_imports(
           call _ret13 = clo<"ThrowCompletion">(_err12)
           return _ret13
         } else nop
-        if (= valtype ~v128~) {
+        if (= valtype (case "V128" )) {
           call _err14 = clo<"__NEW_ERROR_OBJ__">("%LinkError.prototype%")
           call _ret15 = clo<"ThrowCompletion">(_err14)
           return _ret15
@@ -1370,25 +1370,25 @@ def tovaluetype(
   s: Unknown,
 ): Unknown = {
   if (= s "i32") {
-    return ~i32~
+    return (case "I32" )
   } else nop
   if (= s "i64") {
-    return ~i64~
+    return (case "I64" )
   } else nop
   if (= s "f32") {
-    return ~f32~
+    return (case "F32" )
   } else nop
   if (= s "f64") {
-    return ~f64~
+    return (case "F64" )
   } else nop
   if (= s "v128") {
-    return ~v128~
+    return (case "V128" )
   } else nop
   if (= s "anyfunc") {
-    return ~funcref~
+    return (case "REF" (opt (case "NULL" )) (case "FUNC" ))
   } else nop
   if (= s "externref") {
-    return ~externref~
+    return (case "REF" (opt (case "NULL" )) (case "EXTERN" ))
   } else nop
   assert false
   return ~unused~
@@ -1396,7 +1396,7 @@ def tovaluetype(
 def defaultvalue(
   valuetype: Unknown,
 ): Unknown = {
-  if (= valuetype ~externref~) {
+  if (= valuetype (case "REF" (opt (case "NULL" )) (case "EXTERN" ))) {
     call _comp1 = clo<"towebassemblyvalue">(undefined, valuetype)
     if (exists _comp1.Type) {
       assert (= _comp1.Type ~normal~)
@@ -1425,8 +1425,8 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Global(
   }
   let mutable = descriptor.mutable
   call valuetype = clo<"tovaluetype">(descriptor.value)
-  call-embed _m1 = <match_valtype>(valuetype, ~v128~)
-  call-embed _m2 = <match_valtype>(valuetype, ~exnref~)
+  call-embed _m1 = <match_valtype>(valuetype, (case "V128" ))
+  call-embed _m2 = <match_valtype>(valuetype, (case "REF" (opt (case "NULL" )) (case "EXN" )))
   if (|| (= _m1 true) (= _m2 true)) {
     call _err1 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
     call _ret2 = clo<"ThrowCompletion">(_err1)
@@ -1473,7 +1473,7 @@ def getglobalvalue(
   let store = @AGENT_RECORD["associated store"]
   let globaladdr = global.Global
   call-embed globaltype = <global_type>(store, globaladdr)
-  if (|| (yet "is of form Unknown(<var ignore>mut</var> |valuetype|)") ~exnref~) {
+  if (|| (yet "is of form Unknown(<var ignore>mut</var> |valuetype|)") (case "REF" (opt (case "NULL" )) (case "EXN" ))) {
     call _err1 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
     call _ret2 = clo<"ThrowCompletion">(_err1)
     return _ret2
@@ -1528,8 +1528,8 @@ def <BUILTIN>:INTRINSICS.set:WebAssembly.Global.prototype.value(
   let store = @AGENT_RECORD["associated store"]
   let globaladdr = this.Global
   let _ = (yet "unsupported Let lhs: Unknown(|mut| |valuetype|)")
-  call-embed _m1 = <match_valtype>(valuetype, ~v128~)
-  call-embed _m2 = <match_valtype>(valuetype, ~exnref~)
+  call-embed _m1 = <match_valtype>(valuetype, (case "V128" ))
+  call-embed _m2 = <match_valtype>(valuetype, (case "REF" (opt (case "NULL" )) (case "EXN" )))
   if (|| (= _m1 true) (= _m2 true)) {
     call _err1 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
     call _ret2 = clo<"ThrowCompletion">(_err1)
@@ -1644,8 +1644,8 @@ def call_an_exported_function(
   let _i4 = 0
   while (&& (= _found3 false) (< _i4 (sizeof parameters))) {
     let type = parameters[_i4]
-    call-embed _m1 = <match_valtype>(type, ~v128~)
-    call-embed _m2 = <match_valtype>(type, ~exnref~)
+    call-embed _m1 = <match_valtype>(type, (case "V128" ))
+    call-embed _m2 = <match_valtype>(type, (case "REF" (opt (case "NULL" )) (case "EXN" )))
     if (|| (= _m1 true) (= _m2 true)) {
       _found3 = true
     } else nop
@@ -1654,8 +1654,8 @@ def call_an_exported_function(
   let _i5 = 0
   while (&& (= _found3 false) (< _i5 (sizeof results))) {
     let type = results[_i5]
-    call-embed _m1 = <match_valtype>(type, ~v128~)
-    call-embed _m2 = <match_valtype>(type, ~exnref~)
+    call-embed _m1 = <match_valtype>(type, (case "V128" ))
+    call-embed _m2 = <match_valtype>(type, (case "REF" (opt (case "NULL" )) (case "EXN" )))
     if (|| (= _m1 true) (= _m2 true)) {
       _found3 = true
     } else nop
@@ -1774,8 +1774,8 @@ def run_a_host_function(
   let _i4 = 0
   while (&& (= _found3 false) (< _i4 (sizeof parameters))) {
     let type = parameters[_i4]
-    call-embed _m1 = <match_valtype>(type, ~v128~)
-    call-embed _m2 = <match_valtype>(type, ~exnref~)
+    call-embed _m1 = <match_valtype>(type, (case "V128" ))
+    call-embed _m2 = <match_valtype>(type, (case "REF" (opt (case "NULL" )) (case "EXN" )))
     if (|| (= _m1 true) (= _m2 true)) {
       _found3 = true
     } else nop
@@ -1784,8 +1784,8 @@ def run_a_host_function(
   let _i5 = 0
   while (&& (= _found3 false) (< _i5 (sizeof results))) {
     let type = results[_i5]
-    call-embed _m1 = <match_valtype>(type, ~v128~)
-    call-embed _m2 = <match_valtype>(type, ~exnref~)
+    call-embed _m1 = <match_valtype>(type, (case "V128" ))
+    call-embed _m2 = <match_valtype>(type, (case "REF" (opt (case "NULL" )) (case "EXN" )))
     if (|| (= _m1 true) (= _m2 true)) {
       _found3 = true
     } else nop
@@ -1994,10 +1994,10 @@ def towebassemblyvalue(
   v: Unknown,
   type: Unknown,
 ): Unknown = {
-  assert (! (= type ~v128~))
-  call-embed _m1 = <match_valtype>(type, ~exnref~)
+  assert (! (= type (case "V128" )))
+  call-embed _m1 = <match_valtype>(type, (case "REF" (opt (case "NULL" )) (case "EXN" )))
   assert (! (= _m1 true))
-  if (= type ~i64~) {
+  if (= type (case "I64" )) {
     call _comp1 = clo<"ToBigInt64">(v)
     if (exists _comp1.Type) {
       if (? _comp1: Abrupt) {
@@ -2022,7 +2022,7 @@ def towebassemblyvalue(
       return _ret3
     }
   } else nop
-  if (= type ~i32~) {
+  if (= type (case "I32" )) {
     call _comp2 = clo<"ToInt32">(v)
     if (exists _comp2.Type) {
       if (? _comp2: Abrupt) {
@@ -2047,7 +2047,7 @@ def towebassemblyvalue(
       return _ret6
     }
   } else nop
-  if (= type ~f32~) {
+  if (= type (case "F32" )) {
     call _comp3 = clo<"ToNumber">(v)
     if (exists _comp3.Type) {
       if (? _comp3: Abrupt) {
@@ -2078,7 +2078,7 @@ def towebassemblyvalue(
       return _ret9
     }
   } else nop
-  if (= type ~f64~) {
+  if (= type (case "F64" )) {
     call _comp4 = clo<"ToNumber">(v)
     if (exists _comp4.Type) {
       if (? _comp4: Abrupt) {
@@ -2466,8 +2466,8 @@ def exception(
   } else nop
   let wasmPayload = (list [])
   (yet "foreach ?(|value| and |resultType|) in ?(|payload| and |types|)")
-  call-embed _m1 = <match_valtype>(resultType, ~v128~)
-  call-embed _m2 = <match_valtype>(resultType, ~exnref~)
+  call-embed _m1 = <match_valtype>(resultType, (case "V128" ))
+  call-embed _m2 = <match_valtype>(resultType, (case "REF" (opt (case "NULL" )) (case "EXN" )))
   if (|| (= _m1 true) (= _m2 true)) {
     call _err5 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
     call _ret6 = clo<"ThrowCompletion">(_err5)
@@ -2510,8 +2510,8 @@ def getarg(
     return _ret4
   } else nop
   let _ = (yet "unsupported Let lhs: Unknown([|types|] → [])")
-  call-embed _m1 = <match_valtype>(types[index], ~v128~)
-  call-embed _m2 = <match_valtype>(types[index], ~exnref~)
+  call-embed _m1 = <match_valtype>(types[index], (case "V128" ))
+  call-embed _m2 = <match_valtype>(types[index], (case "REF" (opt (case "NULL" )) (case "EXN" )))
   if (|| (= _m1 true) (= _m2 true)) {
     call _err5 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
     call _ret6 = clo<"ThrowCompletion">(_err5)
@@ -2566,7 +2566,7 @@ def get_the_javascript_exception_tag(
     return @AGENT_RECORD["JavaScript exception tag"]
   } else nop
   let store = @AGENT_RECORD["associated store"]
-  call-embed _tuple1 = <tag_alloc>(store, (list [~externref~]))
+  call-embed _tuple1 = <tag_alloc>(store, (list [(case "REF" (opt (case "NULL" )) (case "EXTERN" ))]))
   let store = (proj _tuple1 0)
   let tagAddress = (proj _tuple1 1)
   @AGENT_RECORD["associated store"] = store
@@ -2831,7 +2831,7 @@ def js-string-intocharcodearray(
   let i = 0
   while (< i stringLength) {
     call charCode = clo<"charcodeat">(string, i)
-    call _call1 = clo<"towebassemblyvalue">(charCode, ~i32~)
+    call _call1 = clo<"towebassemblyvalue">(charCode, (case "I32" ))
     if (? _call1: Abrupt) {
       return _call1
     } else {
@@ -3354,7 +3354,7 @@ def create_a_host_function_closure1(
       let address = v.Address
     } else {
       call type = clo<"get_the_javascript_exception_tag">()
-      call _comp1 = clo<"towebassemblyvalue">(v, ~externref~)
+      call _comp1 = clo<"towebassemblyvalue">(v, (case "REF" (opt (case "NULL" )) (case "EXTERN" )))
       if (exists _comp1.Type) {
         assert (= _comp1.Type ~normal~)
         let payload = _comp1.Value

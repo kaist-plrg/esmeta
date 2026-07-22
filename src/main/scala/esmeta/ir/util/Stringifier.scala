@@ -185,6 +185,10 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case ECase(tag, args) =>
         given Rule[Iterable[Expr]] = iterableRule(sep = " ")
         app >> "(case \"" >> tag >> "\" " >> args >> ")"
+      case EOpt(expr) =>
+        app >> "(opt"
+        expr.map(app >> " " >> _)
+        app >> ")"
       case EDebug(expr) =>
         app >> "(debug " >> expr >> ")"
       case expr: ERandom =>

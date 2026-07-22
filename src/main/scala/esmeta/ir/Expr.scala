@@ -77,3 +77,4 @@ sealed trait SpecTecExpr extends Expr
 case class EProj(expr: Expr, idx: Int) extends SpecTecExpr
 case class ECaseTag(expr: Expr) extends SpecTecExpr
 case class ECase(tag: String, args: List[Expr]) extends SpecTecExpr
+case class EOpt(expr: Option[Expr]) extends SpecTecExpr

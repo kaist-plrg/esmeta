@@ -448,6 +448,8 @@ class Interpreter(
         case v                           => throw NoWasmCase(v)
     case ECase(tag, args) =>
       Wasm(ALValue.CaseV(tag, args.map(a => toAL(eval(a)))))
+    case EOpt(exprOpt) =>
+      Wasm(ALValue.OptV(exprOpt.map(e => toAL(eval(e)))))
     case ESizeOf(expr) =>
       Math(eval(expr) match
         case Str(s)                  => s.length

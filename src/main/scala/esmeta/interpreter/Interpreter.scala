@@ -445,7 +445,16 @@ class Interpreter(
     case ECaseTag(expr) =>
       eval(expr) match
         case Wasm(ALValue.CaseV(tag, _)) => Str(tag)
-        case v                           => throw NoWasmCase(v)
+        // A Wasm-boundary value that isn't case-tagged at all is a
+        // legitimate "doesn't match any form" result, not a bug — e.g.
+        // func_invoke's `val* | exception | error` union (embedding.rst:328)
+        // returns a plain (untagged) ListV on success, alongside
+        // CaseV("EXCEPTION", ...)/CaseV("ERROR", ...) for the other two
+        // outcomes; `Cond.IsOfForm`'s compiled tag-equality check needs this
+        // to read as "no match" rather than crash. A non-Wasm value reaching
+        // here is still a genuine bug, so that keeps throwing.
+        case Wasm(_) => Undef
+        case v       => throw NoWasmCase(v)
     case ECase(tag, args) =>
       Wasm(ALValue.CaseV(tag, args.map(a => toAL(eval(a)))))
     case EOpt(exprOpt) =>

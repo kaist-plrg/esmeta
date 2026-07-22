@@ -1696,7 +1696,8 @@ def call_an_exported_function(
     call _ret4 = clo<"ThrowCompletion">(_err3)
     return _ret4
   } else nop
-  if (yet "is of form Case([=exception=],List(Var(exnaddr)))") {
+  if (= (case-tag ret) "EXCEPTION") {
+    let exnaddr = (proj ret 0)
     call-embed tagaddr = <exn_tag>(store, exnaddr)
     call-embed payload = <exn_read>(store, exnaddr)
     call jsTagAddr = clo<"get_the_javascript_exception_tag">()

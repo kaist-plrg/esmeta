@@ -64,7 +64,8 @@ object ExpandIsOfFormPass extends LoweringPass:
 
   /** `Cond.IsOfForm`'s link text, mapped to how SpecTec actually represents
     * that variant. Only the variants reached so far, in "read the imports"
-    * (js-api/index.bs:506-538), are covered; extend as more are reached.
+    * (js-api/index.bs:506-538) and "call an Exported Function"
+    * (js-api/index.bs:1297), are covered; extend as more are reached.
     */
   private val forms: Map[String, FormSpec] = Map(
     "external-type/func" -> FormSpec("FUNC"),
@@ -78,6 +79,11 @@ object ExpandIsOfFormPass extends LoweringPass:
       Some(List(List(0, 0), List(0, 1))),
     ),
     "external-type/tag" -> FormSpec("TAG"),
+    // func_invoke's `val* | exception | error` union (embedding.rst:328) —
+    // the `val*` (success) branch is a plain, untagged ListV, which
+    // Interpreter.ECaseTag now reads as "no case tag" (Undef) rather than
+    // crashing, so this check safely reads as "not this form" for it.
+    "exception" -> FormSpec("EXCEPTION"),
   )
 
   private def stripLink(link: String): String =

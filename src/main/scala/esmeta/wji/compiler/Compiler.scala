@@ -439,6 +439,7 @@ object Compiler:
     "Number" -> NumberT,
     "String" -> StrT,
     "AbruptCompletion" -> AbruptT,
+    "Completion" -> CompT,
   )
 
   private def irTypeOf(name: String): ir.Type =

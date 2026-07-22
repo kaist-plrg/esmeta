@@ -119,7 +119,7 @@ object CompletionWrapping:
         Instr.IfChain(
           branches = List(
             (
-              Cond.HasField(Expr.Field(vVar, "Type")),
+              Cond.IsType(vVar, "Completion"),
               List(Instr.Return(Some(vVar))),
             ),
           ),

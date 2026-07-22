@@ -10,13 +10,13 @@ import esmeta.wji.lang.{Algorithm, Expr, Instr}
   * [[WrapCompletionReturnsPass]] — see that pass's own doc for the general
   * shape of this mark-then-consume split.
   *
-  * Detects the shape `ExpandFollowingStepsPass` leaves behind: a
-  * `Let(Var(x), Closure(closureName, _), _)` whose sibling steps (`rest`)
-  * contain a `CreateBuiltinFunction(Var(x), ...)` call — the same detection
+  * Detects the shape `ExpandFollowingStepsPass` leaves behind: a `Let(Var(x),
+  * Closure(closureName, _), _)` whose sibling steps (`rest`) contain a
+  * `CreateBuiltinFunction(Var(x), ...)` call — the same detection
   * `ExpandFollowingStepsPass` itself used to do inline before this pass
   * existed. Kept as its own pass (rather than folded back into
-  * `ExpandFollowingStepsPass`) specifically so the classification only
-  * happens once: both `AddBuiltinBehaviourPass`'s `preconditions` (checked by
+  * `ExpandFollowingStepsPass`) specifically so the classification only happens
+  * once: both `AddBuiltinBehaviourPass`'s `preconditions` (checked by
   * `Lowering.run` before its `run`) and `run` itself can read the persisted
   * field instead of each independently re-walking every algorithm's body to
   * recompute the same `Set[String]` of closure names.
@@ -26,20 +26,20 @@ import esmeta.wji.lang.{Algorithm, Expr, Instr}
 object MarkBuiltinBehaviourPass extends LoweringPass:
 
   /** Requires:
-    *   - [[ExpandFollowingStepsPass]]: needs its `Closure`s already hoisted
-    *     to scan for.
+    *   - [[ExpandFollowingStepsPass]]: needs its `Closure`s already hoisted to
+    *     scan for.
     *   - [[ExtractInlineAlgoCallPass]]: needs a `CreateBuiltinFunction` call
-    *     already in `Perform` form (not a raw `Expr.AlgoCall`) to recognize
-    *     it among a closure's sibling steps.
+    *     already in `Perform` form (not a raw `Expr.AlgoCall`) to recognize it
+    *     among a closure's sibling steps.
     */
   override def requires: Set[LoweringPass] =
     Set(ExpandFollowingStepsPass, ExtractInlineAlgoCallPass)
 
   /** whether the closure bound to `varName` is passed as
     * `CreateBuiltinFunction`'s `behaviour` argument among its sibling steps
-    * `rest` — the shape every WJI spec text with this pattern uses so far,
-    * e.g. WebIDL's `react`: `Let onFulfilledSteps be the following steps
-    * given argument V: ...` immediately followed by `Let onFulfilled be
+    * `rest` — the shape every WJI spec text with this pattern uses so far, e.g.
+    * WebIDL's `react`: `Let onFulfilledSteps be the following steps given
+    * argument V: ...` immediately followed by `Let onFulfilled be
     * CreateBuiltinFunction(onFulfilledSteps, 1, "", « »).` in the very same
     * algorithm.
     */
@@ -50,12 +50,12 @@ object MarkBuiltinBehaviourPass extends LoweringPass:
       case _ => false
     }
 
-  /** Collects every hoisted closure's name that's used as a builtin
-    * behaviour, recursing through nested branches/loops the same way
-    * `CompletionAlgorithms`'s own traversal helpers do (an `IfChain`'s
-    * `body` is always `Nil` — its real nested content lives in `branches`/
-    * `fallback` instead, so it needs its own case rather than the generic
-    * `instr.body` fallback).
+  /** Collects every hoisted closure's name that's used as a builtin behaviour,
+    * recursing through nested branches/loops the same way
+    * `CompletionAlgorithms`'s own traversal helpers do (an `IfChain`'s `body`
+    * is always `Nil` — its real nested content lives in `branches`/ `fallback`
+    * instead, so it needs its own case rather than the generic `instr.body`
+    * fallback).
     */
   private def collectBuiltinClosureNames(instrs: List[Instr]): Set[String] =
     instrs match

@@ -1,6 +1,7 @@
 package esmeta.wji.compiler.lowering
 
 import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr, WjiParam}
+import esmeta.error.UnsupportedSpecShape
 
 /** Adapts every closure [[ExpandFollowingStepsPass]] hoisted for
   * `CreateBuiltinFunction`'s `behaviour` argument into a valid builtin function
@@ -39,6 +40,21 @@ import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr, WjiParam}
   * not persisted as an `Algorithm` field the way `returnsCompletion` is: unlike
   * that field, nothing else in the pipeline needs this fact, so a separate
   * mark-then-consume pair of passes would only add indirection here.
+  *
+  * Assumes every such closure's body already ends in an explicit top-level
+  * `Return`/`Throw` — `CreateBuiltinFunction`'s own `behaviour` parameter is
+  * defined as an Abstract Closure that "must return either a normal
+  * completion containing an ECMAScript language value or a throw completion",
+  * so a real spec text satisfying that contract can never actually fall off
+  * the end. [[CompletionWrapping.expandAlgorithm]] only rewrites *existing*
+  * `Return`/`Throw` nodes (same as [[WrapCompletionReturnsPass]]); unlike that
+  * pass, this one has no [[InsertFallthroughReturnPass]] upstream of it to
+  * guarantee one exists first (that pass runs before
+  * [[ExpandFollowingStepsPass]] hoists these closures out at all — see its own
+  * doc), so `run` checks the assumption directly and throws
+  * `UnsupportedSpecShape` rather than silently falling through to
+  * `Compiler.compileAlgo`'s raw, un-wrapped `~unused~` fallback if it's ever
+  * wrong.
   *
   * Category: Structural desugaring.
   */
@@ -133,6 +149,27 @@ object AddBuiltinBehaviourPass extends LoweringPass:
       algos.flatMap(a => collectBuiltinClosureNames(a.body)).toSet
     algos.map { a =>
       if a.name.exists(builtinNames.contains) then
+        // CreateBuiltinFunction's own `behaviour` contract guarantees a real
+        // spec text always ends in an explicit Return/Throw (see this
+        // object's own doc) — checked here, not patched around, so a
+        // violation fails loudly instead of silently leaving the closure
+        // un-wrapped.
+        //
+        // TODO: this only checks that *some* top-level Return exists (same
+        // shallow convention InsertFallthroughReturnPass/Compiler.compileAlgo
+        // use elsewhere), not that *every* control-flow path through the body
+        // actually reaches a Return/Throw (e.g. an IfChain with a covered
+        // `then` but a fallthrough `else` would pass this check yet still
+        // leave that branch's exit un-wrapped by CompletionWrapping). A real
+        // fix needs a proper reachability/exhaustiveness walk over
+        // IfChain/While/ForEach bodies, not just a top-level existence check.
+        if !a.body.exists(_.isInstanceOf[Instr.Return]) then
+          throw UnsupportedSpecShape(
+            "AddBuiltinBehaviourPass",
+            s"builtin behaviour closure falls off the end without an " +
+            s"explicit Return, violating CreateBuiltinFunction's behaviour " +
+            s"contract, in ${a.name.orElse(a.id)}",
+          )
         val originalParams = a.params.map(p => stripPipes(p.name))
         a.copy(
           params = BuiltinParams.map(p => WjiParam(s"|$p|")),

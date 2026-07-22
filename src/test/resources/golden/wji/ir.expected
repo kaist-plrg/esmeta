@@ -342,7 +342,6 @@ def read_the_imports(
     call _ret24 = clo<"NormalCompletion">(imports)
     return _ret24
   }
-  return ~unused~
 }
 def create_an_exports_object(
   module: Unknown,
@@ -449,7 +448,6 @@ def instantiate_the_core_of_a_webassembly_module(
     call _ret1 = clo<"NormalCompletion">(instance)
     return _ret1
   }
-  return ~unused~
 }
 def asynchronously_instantiate_a_webassembly_module(
   moduleObject: Unknown,
@@ -668,7 +666,6 @@ def <BUILTIN>:INTRINSICS.get:WebAssembly.Instance.prototype.exports(
     call _ret2 = clo<"NormalCompletion">(_v1)
     return _ret2
   }
-  return ~unused~
 }
 def create_a_fixed_length_memory_buffer(
   memaddr: Unknown,
@@ -840,7 +837,6 @@ def grow_the_memory_buffer(
     call _ret3 = clo<"NormalCompletion">(ret)
     return _ret3
   }
-  return ~unused~
 }
 def grow(
   delta: Unknown,
@@ -876,7 +872,6 @@ def grow(
     call _ret2 = clo<"NormalCompletion">(_result1)
     return _ret2
   }
-  return ~unused~
 }
 def memory.grow(
 ): Unknown = {
@@ -933,7 +928,6 @@ def toresizablebuffer(
     call _ret4 = clo<"NormalCompletion">(resizableBuffer)
     return _ret4
   }
-  return ~unused~
 }
 def abstract_operation_[=hostresizearraybuffer=](
   buffer: Unknown,
@@ -971,8 +965,6 @@ def abstract_operation_[=hostresizearraybuffer=](
       return _ret6
     }
   }
-  call _ret7 = clo<"NormalCompletion">(~unused~)
-  return _ret7
 }
 def <BUILTIN>:INTRINSICS.get:WebAssembly.Memory.prototype.buffer(
   this: Unknown,
@@ -986,7 +978,6 @@ def <BUILTIN>:INTRINSICS.get:WebAssembly.Memory.prototype.buffer(
     call _ret2 = clo<"NormalCompletion">(_v1)
     return _ret2
   }
-  return ~unused~
 }
 def initialize_a_table_object(
   table: Unknown,
@@ -1189,7 +1180,6 @@ def grow(
     call _ret7 = clo<"NormalCompletion">(_result1)
     return _ret7
   }
-  return ~unused~
 }
 def <BUILTIN>:INTRINSICS.get:WebAssembly.Table.prototype.length(
   this: Unknown,
@@ -1207,7 +1197,6 @@ def <BUILTIN>:INTRINSICS.get:WebAssembly.Table.prototype.length(
     call _ret1 = clo<"NormalCompletion">(_result1)
     return _ret1
   }
-  return ~unused~
 }
 def get(
   index: Unknown,
@@ -1262,8 +1251,6 @@ def get(
       return _ret8
     }
   }
-  call _ret9 = clo<"NormalCompletion">(~unused~)
-  return _ret9
 }
 def set(
   index: Unknown,
@@ -1497,8 +1484,6 @@ def getglobalvalue(
       return _ret5
     }
   }
-  call _ret6 = clo<"NormalCompletion">(~unused~)
-  return _ret6
 }
 def <BUILTIN>:INTRINSICS.get:WebAssembly.Global.prototype.value(
   this: Unknown,
@@ -1517,7 +1502,6 @@ def <BUILTIN>:INTRINSICS.get:WebAssembly.Global.prototype.value(
     call _ret1 = clo<"NormalCompletion">(_result1)
     return _ret1
   }
-  return ~unused~
 }
 def <BUILTIN>:INTRINSICS.set:WebAssembly.Global.prototype.value(
   this: Unknown,
@@ -1579,7 +1563,6 @@ def valueof(
     call _ret1 = clo<"NormalCompletion">(_result1)
     return _ret1
   }
-  return ~unused~
 }
 def name_of_the_webassembly_function(
   funcaddr: Unknown,
@@ -1600,7 +1583,6 @@ def name_of_the_webassembly_function(
   } else {
     return _comp1
   }
-  return ~unused~
 }
 def a_new_exported_function(
   funcaddr: Unknown,
@@ -1754,8 +1736,6 @@ def call_an_exported_function(
       return _ret10
     }
   }
-  call _ret11 = clo<"NormalCompletion">(~unused~)
-  return _ret11
 }
 def run_a_host_function(
   func: Unknown,
@@ -1897,8 +1877,6 @@ def run_a_host_function(
       return _ret14
     }
   }
-  call _ret15 = clo<"NormalCompletion">(~unused~)
-  return _ret15
 }
 def create_a_host_function(
   func: Unknown,
@@ -2357,16 +2335,12 @@ def \[[set]]_internal_method_of_an_exported_gc_object(
   call _err1 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
   call _ret2 = clo<"ThrowCompletion">(_err1)
   return _ret2
-  call _ret3 = clo<"NormalCompletion">(~unused~)
-  return _ret3
 }
 def \[[delete]]_internal_method_of_an_exported_gc_object(
 ): Unknown = {
   call _err1 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
   call _ret2 = clo<"ThrowCompletion">(_err1)
   return _ret2
-  call _ret3 = clo<"NormalCompletion">(~unused~)
-  return _ret3
 }
 def \[[ownpropertykeys]]_internal_method_of_an_exported_gc_object(
 ): Unknown = {
@@ -2546,8 +2520,6 @@ def getarg(
       return _ret9
     }
   }
-  call _ret10 = clo<"NormalCompletion">(~unused~)
-  return _ret10
 }
 def is(
   exceptionTag: Unknown,
@@ -2569,7 +2541,6 @@ def <BUILTIN>:INTRINSICS.get:WebAssembly.Exception.prototype.stack(
     call _ret2 = clo<"NormalCompletion">(_v1)
     return _ret2
   }
-  return ~unused~
 }
 def get_the_javascript_exception_tag(
 ): Unknown = {
@@ -2729,7 +2700,6 @@ def unwrapstring(
     call _ret1 = clo<"NormalCompletion">(v)
     return _ret1
   }
-  return ~unused~
 }
 def fromcharcode(
   v: Unknown,
@@ -2743,7 +2713,6 @@ def fromcharcode(
   } else {
     return _comp1
   }
-  return ~unused~
 }
 def charcodeat(
   string: Unknown,
@@ -2758,7 +2727,6 @@ def charcodeat(
   } else {
     return _comp1
   }
-  return ~unused~
 }
 def js-string-cast(
   v: Unknown,
@@ -2773,7 +2741,6 @@ def js-string-cast(
   } else {
     return _comp1
   }
-  return ~unused~
 }
 def js-string-test(
   v: Unknown,
@@ -2809,7 +2776,6 @@ def js-string-fromcharcodearray(
     call _ret1 = clo<"NormalCompletion">(result)
     return _ret1
   }
-  return ~unused~
 }
 def js-string-intocharcodearray(
   string: Unknown,
@@ -2857,7 +2823,6 @@ def js-string-intocharcodearray(
     call _ret2 = clo<"NormalCompletion">(stringLength)
     return _ret2
   }
-  return ~unused~
 }
 def js-string-fromcharcode(
   v: Unknown,
@@ -2890,8 +2855,6 @@ def js-string-fromcodepoint(
       return _ret3
     }
   }
-  call _ret4 = clo<"NormalCompletion">(~unused~)
-  return _ret4
 }
 def js-string-charcodeat(
   string: Unknown,
@@ -2923,7 +2886,6 @@ def js-string-charcodeat(
     call _ret2 = clo<"NormalCompletion">(_result1)
     return _ret2
   }
-  return ~unused~
 }
 def js-string-codepointat(
   string: Unknown,
@@ -2967,8 +2929,6 @@ def js-string-codepointat(
       return _ret4
     }
   }
-  call _ret5 = clo<"NormalCompletion">(~unused~)
-  return _ret5
 }
 def js-string-length(
   v: Unknown,
@@ -3016,7 +2976,6 @@ def js-string-concat(
   } else {
     return _comp3
   }
-  return ~unused~
 }
 def js-string-substring(
   string: Unknown,
@@ -3046,7 +3005,6 @@ def js-string-substring(
   } else {
     return _comp2
   }
-  return ~unused~
 }
 def js-string-equals(
   first: Unknown,
@@ -3075,7 +3033,6 @@ def js-string-equals(
     call _ret4 = clo<"NormalCompletion">(_v3)
     return _ret4
   }
-  return ~unused~
 }
 def js-string-compare(
   first: Unknown,
@@ -3126,7 +3083,6 @@ def a_new_promise(
   } else {
     return _comp1
   }
-  return ~unused~
 }
 def resolve(
   T: Unknown,
@@ -3345,7 +3301,6 @@ def a_new_exported_function_closure1(
     call _ret1 = clo<"NormalCompletion">(_result1)
     return _ret1
   }
-  return ~unused~
 }
 def create_a_host_function_closure1(
   arguments: Unknown,
@@ -3402,7 +3357,6 @@ def react_closure1(
     call _ret1 = clo<"NormalCompletion">(_result1)
     return _ret1
   }
-  return ~unused~
 }
 def react_closure2(
   thisArgument: Unknown,
@@ -3427,5 +3381,4 @@ def react_closure2(
     call _ret1 = clo<"NormalCompletion">(_result2)
     return _ret1
   }
-  return ~unused~
 }

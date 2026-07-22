@@ -18,18 +18,18 @@ import esmeta.wji.lang.{Algorithm, Instr}
   * call site targeting one can assume the result always already has a `.Type`
   * field.
   *
-  * Same "top-level only" check as `Compiler.compileAlgo`'s own (not recursive
-  * into `IfChain` branches) — deliberately, to match that existing,
-  * already-relied-on behavior exactly rather than second-guessing it here.
-  * Applied to every algorithm, not just `returnsCompletion` ones — harmless
-  * either way (this is exactly what `Compiler.compileAlgo`'s own fallback would
-  * have done at compile time regardless), and simpler than threading a
-  * condition through.
-  *
-  * Doesn't reach a `FollowingSteps` closure's own body (not yet split into its
-  * own `Algorithm` at this pipeline stage — see `CompletionAlgorithms`);
-  * `Compiler.compileAlgo`'s own fallback stays in place to cover that case (and
-  * as a general safety net besides).
+  * Uses `Instr.alwaysExits` (same helper `Compiler.compileAlgo` uses) to decide
+  * whether a fallback is needed — this recognizes an `IfChain` whose every
+  * branch (including a real `else`) already returns/throws as already
+  * exhaustive, so it doesn't append a redundant, unreachable `Return` after
+  * one. Still doesn't look inside loop bodies (`ForEach`/`For`/`While`) or a
+  * `FollowingSteps` closure's own body (not yet split into its own `Algorithm`
+  * at this pipeline stage — see `CompletionAlgorithms`);
+  * `Compiler.compileAlgo`'s own fallback stays in place to cover the closure
+  * case (and as a general safety net besides). Applied to every algorithm, not
+  * just `returnsCompletion` ones — harmless either way (this is exactly what
+  * `Compiler.compileAlgo`'s own fallback would have done at compile time
+  * regardless), and simpler than threading a condition through.
   *
   * Category: Completion-record convention.
   */
@@ -49,6 +49,6 @@ object InsertFallthroughReturnPass extends LoweringPass:
 
   def run(algos: List[Algorithm]): List[Algorithm] =
     algos.map { a =>
-      if a.body.exists(_.isInstanceOf[Instr.Return]) then a
+      if Instr.alwaysExits(a.body) then a
       else a.copy(body = a.body :+ Instr.Return(None))
     }

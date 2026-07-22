@@ -127,18 +127,20 @@ object Compiler:
       // `compileInstr`'s `Return(None, ...)` case), mirroring
       // `esmeta.compiler`'s own fall-off-the-end handling.
       //
-      // Only appended when the body has no top-level `Return` at all — not
-      // just when the last instruction isn't one. An `IfChain`'s branches
-      // each reach the function exit directly (harmless dead code after), but
-      // sibling `IReturn`s in a flat list share one CFG `Block`, which runs
-      // every inst in sequence with no early exit — so appending after an
+      // `Instr.alwaysExits` decides whether a fallback is needed at all: it
+      // recognizes an `IfChain` whose every branch (including a real `else`)
+      // already returns/throws as exhaustive, so no fallback is appended
+      // after one (each branch's real `Return` exits the function directly —
+      // appending one more after would just be dead code). It's still
+      // "exists anywhere in the top-level body", not "last instruction isn't
+      // one": sibling `IReturn`s in a flat list share one CFG `Block`, which
+      // runs every inst in sequence with no early exit, so appending after an
       // already-unconditional `Return` would silently overwrite its value.
-      // Checking "no Return anywhere" (not just "last isn't Return") also
-      // turns a spec typo — stray steps left after a `Return` — into a loud
+      // Checking "no exit anywhere" (not just "last isn't one") also turns a
+      // spec typo — stray steps left after a `Return` — into a loud
       // `NoReturnValue` instead of silently corrupting the real value.
       val body = ISeq(
-        if algo.body.exists(_.isInstanceOf[Instr.Return]) then
-          compileSeq(algo.body)
+        if Instr.alwaysExits(algo.body) then compileSeq(algo.body)
         else compileSeq(algo.body) :+ IReturn(EUnused),
       )
       // AddInterfaceMemberBuiltinBehaviourPass has already reshaped a

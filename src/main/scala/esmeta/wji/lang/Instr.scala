@@ -113,6 +113,36 @@ object Instr:
   ) extends Instr:
     def body: List[Instr] = Nil
 
+  /** Whether every path through `body` is guaranteed to reach a `Return` or
+    * `Throw` — i.e. execution can never fall off the end. Also recognizes a
+    * `Perform`/`PerformClosure` with a `ReturnResult` outcome — the "call X and
+    * return the result" shape — as an exit: `Perform`'s own `ReturnResult` is
+    * ordinarily eliminated by
+    * `esmeta.wji.compiler.lowering.ExpandPerformReturnResultPass` well before
+    * any `alwaysExits` call site runs, but recognizing it here too avoids
+    * silently depending on that pass having already run first;
+    * `PerformClosure`'s `ReturnResult` is never eliminated at all — it's the
+    * normal output of `esmeta.wji.compiler.lowering.ExpandClosureCallPass`,
+    * which `Compiler` compiles directly into a real `IReturn` (see its own
+    * doc). Recognizes an `IfChain` as exhaustive only when it has a non-empty
+    * `fallback` (a real `else`) and every branch, including the fallback,
+    * itself always exits. Does not look inside loop bodies
+    * (`ForEach`/`For`/`While`) or `RunInParallel` — none of those guarantee
+    * they run at all, or that the current algorithm exits when they do.
+    */
+  def alwaysExits(body: List[Instr]): Boolean =
+    body.exists {
+      case _: Return                                            => true
+      case _: Throw                                             => true
+      case Perform(_, _, PerformOutcome.ReturnResult, _)        => true
+      case PerformClosure(_, _, PerformOutcome.ReturnResult, _) => true
+      case IfChain(branches, fallback) =>
+        fallback.nonEmpty &&
+        branches.forall((_, b) => alwaysExits(b)) &&
+        alwaysExits(fallback)
+      case _ => false
+    }
+
   /** Apply `f` to the direct `body` of this instruction, returning a copy with
     * the transformed body. Does not recurse — callers are responsible for
     * traversal.

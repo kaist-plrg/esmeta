@@ -63,22 +63,17 @@ object AddBuiltinBehaviourPass extends LoweringPass:
     */
   override def requires: Set[LoweringPass] = Set(MarkBuiltinBehaviourPass)
 
-  /** TODO: only checks that *some* top-level Return exists (same shallow
-    * convention `InsertFallthroughReturnPass`/`Compiler.compileAlgo` use
-    * elsewhere), not that *every* control-flow path through the body actually
-    * reaches a Return/Throw (e.g. an `IfChain` with a covered `then` but a
-    * fallthrough `else` would pass this check yet still leave that branch's
-    * exit un-wrapped by `CompletionWrapping`). A real fix needs a proper
-    * reachability/exhaustiveness walk over `IfChain`/`While`/`ForEach` bodies,
-    * not just a top-level existence check.
+  /** Delegates to `Instr.alwaysExits` (same helper
+    * `InsertFallthroughReturnPass` and `Compiler.compileAlgo` use), which
+    * recognizes an `IfChain` as exhaustive only when it has a real `else` and
+    * every branch, including the fallback, itself always exits — same caveat as
+    * there: doesn't look inside loop bodies (`ForEach`/`For`/`While`).
     */
   override def preconditions: List[Condition] = List(
     Condition(
       "every isBuiltinBehaviour closure ends in an explicit top-level " +
       "Return/Throw (CreateBuiltinFunction's behaviour contract)",
-      _.forall(a =>
-        !a.isBuiltinBehaviour || a.body.exists(_.isInstanceOf[Instr.Return]),
-      ),
+      _.forall(a => !a.isBuiltinBehaviour || Instr.alwaysExits(a.body)),
     ),
   )
 

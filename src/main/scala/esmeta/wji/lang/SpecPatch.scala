@@ -425,6 +425,25 @@ object SpecPatch:
     // above reformatting this same text before this patch runs) covers both
     // of its occurrences.
     "|moduleinst|.funcaddrs" -> "|moduleinst|.funcs",
+
+    // #22 (hardcoding) — "create a new Exported Function" (index.bs:1265)
+    // defines its `CreateBuiltinFunction` `behaviour` argument as a quoted
+    // sentence linking to a separately-defined algorithm ("call an Exported
+    // Function"), rather than either of the two closure idioms this pipeline
+    // already parses ("the following steps[, given argument(s) ...]: ..." /
+    // "a [=term=] which performs the following steps when called with
+    // arguments ...: ..."). This is a legitimate form — ECMA-262's own
+    // `CreateBuiltinFunction` explicitly allows `behaviour` to be "an
+    // Abstract Closure, a set of algorithm steps, or *some other definition
+    // of a function's behaviour provided in this specification*" — just one
+    // this pipeline doesn't structurally recognize yet. Rewritten into the
+    // equivalent, already-supported "the following steps given argument V:"
+    // form instead of teaching the parser this one-off phrasing (only
+    // occurrence in the corpus).
+    "Let |steps| be \"[=call an Exported Function|call the Exported Function=] |funcaddr| with arguments.\""
+    ->
+    """Let |steps| be the following steps given argument |argValues|:
+        1. Return the result of [=call an Exported Function=] with |funcaddr| and |argValues|.""",
   )
 
   def apply(source: String): String =

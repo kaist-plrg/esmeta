@@ -1,4 +1,4 @@
-120 func(s)
+121 func(s)
 def compile_a_webassembly_module(
   bytes: Unknown,
 ): Unknown = {
@@ -1609,7 +1609,7 @@ def a_new_exported_function(
   if (exists map[funcaddr]) {
     return map[funcaddr]
   } else nop
-  let steps = "[=call an Exported Function|call the Exported Function=] |funcaddr| with arguments."
+  let steps = clo<"a_new_exported_function_closure1", [funcaddr]>
   let realm = @EXECUTION_STACK[0].Realm
   let store = @AGENT_RECORD["associated store"]
   call-embed functype = <func_type>(store, funcaddr)
@@ -3319,6 +3319,25 @@ def instantiate_a_promise_of_a_module_closure4(
   reason: Unknown,
 ): Unknown = {
   call _ = clo<"reject">(~WebAssemblyInstantiatedSource~, promise, reason)
+  return ~unused~
+}
+def a_new_exported_function_closure1(
+  thisArgument: Unknown,
+  argumentsList: Unknown,
+  newTarget: Unknown,
+): Unknown = {
+  if (< 0 (sizeof argumentsList)) {
+    let argValues = argumentsList[0]
+  } else {
+    let argValues = undefined
+  }
+  call _result1 = clo<"call_an_exported_function">(funcaddr, argValues)
+  if (? _result1: Completion) {
+    return _result1
+  } else {
+    call _ret1 = clo<"NormalCompletion">(_result1)
+    return _ret1
+  }
   return ~unused~
 }
 def create_a_host_function_closure1(

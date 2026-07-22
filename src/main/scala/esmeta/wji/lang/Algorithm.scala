@@ -83,6 +83,14 @@ case class WjiParam(name: String, optional: Boolean = false)
   *   `CompletionAlgorithms`'s doc for how); every later pass that cares just
   *   reads this field off whichever `Algorithm` it's looking at, rather than
   *   needing the computed set threaded through as an out-of-band parameter.
+  * @param isBuiltinBehaviour
+  *   whether this is a closure
+  *   `esmeta.wji.compiler.lowering.ExpandFollowingStepsPass` hoisted for
+  *   `CreateBuiltinFunction`'s `behaviour` argument — computed once, right
+  *   after hoisting, by
+  *   `esmeta.wji.compiler.lowering.MarkBuiltinBehaviourPass`; every later pass
+  *   that cares (`AddBuiltinBehaviourPass`, and its own `preconditions`) just
+  *   reads this field, the same reasoning as `returnsCompletion` above.
   */
 case class Algorithm(
   id: Option[String],
@@ -92,4 +100,5 @@ case class Algorithm(
   body: List[Instr],
   kind: AlgorithmKind = AlgorithmKind.Plain,
   returnsCompletion: Boolean = false,
+  isBuiltinBehaviour: Boolean = false,
 )

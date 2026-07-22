@@ -2,6 +2,15 @@ package esmeta.wji.compiler.lowering
 
 import esmeta.wji.lang.Algorithm
 
+/** A single content-level assumption a [[LoweringPass]] relies on or guarantees
+  * — as opposed to [[LoweringPass.requires]]/[[LoweringPass.mustPrecede]],
+  * which are about pipeline *ordering*, a `Condition` is about the actual
+  * `Algorithm`/`Instr` *shape* of the list it's checked against. `description`
+  * is surfaced verbatim in the `UnsupportedSpecShape` thrown on violation (see
+  * `Lowering.run`), so it should read as a complete, human-readable sentence.
+  */
+case class Condition(description: String, holds: List[Algorithm] => Boolean)
+
 /** One step of the `esmeta.wji.compiler.lowering` pipeline (see
   * [[Lowering.pipeline]]) — a rewrite over the full `List[Algorithm]` that
   * assumes some earlier steps have already run and some later ones haven't yet.
@@ -34,6 +43,22 @@ trait LoweringPass:
     * per-entry form as [[requires]].
     */
   def mustPrecede: Set[LoweringPass] = Set.empty
+
+  /** [[Condition]]s this pass's own `run` relies on about its *input* —
+    * distinct from [[requires]] (pipeline ordering): a precondition is about
+    * the actual `Algorithm`/`Instr` content at that point, not about which
+    * other passes already ran. Checked by `Lowering.run` immediately before
+    * calling `run`, so a violation fails loudly via `UnsupportedSpecShape`
+    * instead of surfacing later as a confusing `MatchError` deep in some
+    * private helper, or silently producing wrong output.
+    */
+  def preconditions: List[Condition] = List.empty
+
+  /** [[Condition]]s this pass's own `run` guarantees about its *output* —
+    * checked by `Lowering.run` immediately after calling `run`, for the same
+    * reason [[preconditions]] are checked before it.
+    */
+  def postconditions: List[Condition] = List.empty
 
   /** Reflection-free display name for error messages — a Scala `object`'s own
     * `getClass.getSimpleName` carries a trailing `$` that's noisy in output.

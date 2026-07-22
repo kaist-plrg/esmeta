@@ -1,7 +1,7 @@
 package esmeta.wji.compiler.lowering
 
 import esmeta.wji.lang.Algorithm
-import esmeta.error.PipelineOrderError
+import esmeta.error.{PipelineOrderError, UnsupportedSpecShape}
 
 /** Runs the WJI lowering pipeline: a fixed sequence of [[LoweringPass]]es that
   * rewrite spec-text-shaped `Algorithm`s into a form
@@ -53,6 +53,7 @@ object Lowering:
     ExpandAbbreviatedCondPass,
     ExpandMatchesExistsPass,
     ExpandFollowingStepsPass,
+    MarkBuiltinBehaviourPass,
     AddBuiltinBehaviourPass,
     ExpandQueueATaskPass,
     NormalizeAlgoNamePass,
@@ -93,6 +94,30 @@ object Lowering:
             s"(position ${j + 1}) in Lowering.pipeline, but it doesn't",
           )
 
+  /** Throws [[esmeta.error.UnsupportedSpecShape]] naming `pass` and `phase`
+    * (`"precondition"`/`"postcondition"`) for the first [[Condition]] in
+    * `conditions` whose `holds` returns `false` against `algos` — see
+    * [[LoweringPass.preconditions]]/[[LoweringPass.postconditions]]'s own doc
+    * for why this is a distinct check from [[validate]]'s ordering one.
+    */
+  private def checkConditions(
+    pass: LoweringPass,
+    phase: String,
+    conditions: List[Condition],
+    algos: List[Algorithm],
+  ): Unit =
+    conditions.find(c => !c.holds(algos)).foreach { c =>
+      throw UnsupportedSpecShape(
+        pass.name,
+        s"$phase violated: ${c.description}",
+      )
+    }
+
   def run(algos: List[Algorithm]): List[Algorithm] =
     validate()
-    pipeline.foldLeft(algos)((acc, pass) => pass.run(acc))
+    pipeline.foldLeft(algos) { (acc, pass) =>
+      checkConditions(pass, "precondition", pass.preconditions, acc)
+      val result = pass.run(acc)
+      checkConditions(pass, "postcondition", pass.postconditions, result)
+      result
+    }

@@ -1,11 +1,10 @@
 package esmeta.wji.compiler.lowering
 
 import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr, WjiParam}
-import esmeta.error.UnsupportedSpecShape
 
-/** Adapts every closure [[ExpandFollowingStepsPass]] hoisted for
-  * `CreateBuiltinFunction`'s `behaviour` argument into a valid builtin function
-  * body. Two independent fix-ups `manuals/rule.json`'s hand-patched
+/** Adapts every `Algorithm` [[MarkBuiltinBehaviourPass]] flagged
+  * `isBuiltinBehaviour = true` into a valid builtin function body. Two
+  * independent fix-ups `manuals/rule.json`'s hand-patched
   * `BuiltinCallOrConstruct` rule requires, neither of which
   * `ExpandFollowingStepsPass` itself is responsible for — that pass only hoists
   * a closure/`Algorithm` pair, with no notion of what convention the closure is
@@ -31,44 +30,56 @@ import esmeta.error.UnsupportedSpecShape
   *     directly — see that object's own doc for why it's a shared plain
   *     function rather than living inside `WrapCompletionReturnsPass`.
   *
-  * Detects which hoisted `Algorithm` needs this by re-scanning for the exact
-  * shape `ExpandFollowingStepsPass` leaves behind: a `Let(Var(x),
-  * Closure(closureName, _), _)` whose sibling steps (`rest`) contain a
-  * `CreateBuiltinFunction(Var(x), ...)` call — the same detection
-  * `ExpandFollowingStepsPass` itself used to do inline before this pass
-  * existed. Collected as a plain `Set[String]` of closure names local to `run`,
-  * not persisted as an `Algorithm` field the way `returnsCompletion` is: unlike
-  * that field, nothing else in the pipeline needs this fact, so a separate
-  * mark-then-consume pair of passes would only add indirection here.
+  * Doesn't itself detect which `Algorithm` needs this — see
+  * [[MarkBuiltinBehaviourPass]] for that (kept as a separate pass so its
+  * classification is computed once and shared between this pass's own `run` and
+  * its [[preconditions]], rather than each independently re-deriving the same
+  * information).
   *
-  * Assumes every such closure's body already ends in an explicit top-level
-  * `Return`/`Throw` — `CreateBuiltinFunction`'s own `behaviour` parameter is
-  * defined as an Abstract Closure that "must return either a normal
-  * completion containing an ECMAScript language value or a throw completion",
-  * so a real spec text satisfying that contract can never actually fall off
-  * the end. [[CompletionWrapping.expandAlgorithm]] only rewrites *existing*
+  * [[preconditions]] checks the one assumption `run` relies on: every flagged
+  * closure's body already ends in an explicit top-level `Return`/`Throw`.
+  * `CreateBuiltinFunction`'s own `behaviour` parameter is defined as an
+  * Abstract Closure that "must return either a normal completion containing an
+  * ECMAScript language value or a throw completion", so a real spec text
+  * satisfying that contract can never actually fall off the end.
+  * [[CompletionWrapping.expandAlgorithm]] only rewrites *existing*
   * `Return`/`Throw` nodes (same as [[WrapCompletionReturnsPass]]); unlike that
   * pass, this one has no [[InsertFallthroughReturnPass]] upstream of it to
   * guarantee one exists first (that pass runs before
   * [[ExpandFollowingStepsPass]] hoists these closures out at all — see its own
-  * doc), so `run` checks the assumption directly and throws
-  * `UnsupportedSpecShape` rather than silently falling through to
-  * `Compiler.compileAlgo`'s raw, un-wrapped `~unused~` fallback if it's ever
-  * wrong.
+  * doc), so the assumption is checked directly rather than patched around,
+  * failing loudly via `UnsupportedSpecShape` (see `Lowering.run`) instead of
+  * silently falling through to `Compiler.compileAlgo`'s raw, un-wrapped
+  * `~unused~` fallback if it's ever wrong.
   *
   * Category: Structural desugaring.
   */
 object AddBuiltinBehaviourPass extends LoweringPass:
 
   /** Requires:
-    *   - [[ExpandFollowingStepsPass]]: needs its `Closure`s already hoisted to
-    *     scan for.
-    *   - [[ExtractInlineAlgoCallPass]]: needs a `CreateBuiltinFunction` call
-    *     already in `Perform` form (not a raw `Expr.AlgoCall`) to recognize it
-    *     among a closure's sibling steps.
+    *   - [[MarkBuiltinBehaviourPass]]: needs `isBuiltinBehaviour` already
+    *     stamped onto every `Algorithm` to know which ones to target.
     */
-  override def requires: Set[LoweringPass] =
-    Set(ExpandFollowingStepsPass, ExtractInlineAlgoCallPass)
+  override def requires: Set[LoweringPass] = Set(MarkBuiltinBehaviourPass)
+
+  /** TODO: only checks that *some* top-level Return exists (same shallow
+    * convention `InsertFallthroughReturnPass`/`Compiler.compileAlgo` use
+    * elsewhere), not that *every* control-flow path through the body actually
+    * reaches a Return/Throw (e.g. an `IfChain` with a covered `then` but a
+    * fallthrough `else` would pass this check yet still leave that branch's
+    * exit un-wrapped by `CompletionWrapping`). A real fix needs a proper
+    * reachability/exhaustiveness walk over `IfChain`/`While`/`ForEach` bodies,
+    * not just a top-level existence check.
+    */
+  override def preconditions: List[Condition] = List(
+    Condition(
+      "every isBuiltinBehaviour closure ends in an explicit top-level " +
+      "Return/Throw (CreateBuiltinFunction's behaviour contract)",
+      _.forall(a =>
+        !a.isBuiltinBehaviour || a.body.exists(_.isInstanceOf[Instr.Return]),
+      ),
+    ),
+  )
 
   /** formal parameter names `BuiltinCallOrConstruct`'s hand-patched IR always
     * calls `func.__CODE__` with, regardless of what parameters the underlying
@@ -78,44 +89,6 @@ object AddBuiltinBehaviourPass extends LoweringPass:
 
   private def stripPipes(s: String): String =
     s.stripPrefix("|").stripSuffix("|")
-
-  /** whether the closure bound to `varName` is passed as
-    * `CreateBuiltinFunction`'s `behaviour` argument among its sibling steps
-    * `rest` — the shape every WJI spec text with this pattern uses so far, e.g.
-    * WebIDL's `react`: `Let onFulfilledSteps be the following steps given
-    * argument V: ...` immediately followed by `Let onFulfilled be
-    * CreateBuiltinFunction(onFulfilledSteps, 1, "", « »).` in the very same
-    * algorithm.
-    */
-  private def isBuiltinBehaviour(varName: String, rest: List[Instr]): Boolean =
-    rest.exists {
-      case Instr.Perform("CreateBuiltinFunction", args, _, _) =>
-        args.headOption.contains(Expr.Var(varName))
-      case _ => false
-    }
-
-  /** Collects every hoisted closure's name that's used as a builtin behaviour,
-    * recursing through nested branches/loops the same way
-    * `CompletionAlgorithms`'s own traversal helpers do (an `IfChain`'s `body`
-    * is always `Nil` — its real nested content lives in `branches`/ `fallback`
-    * instead, so it needs its own case rather than the generic `instr.body`
-    * fallback).
-    */
-  private def collectBuiltinClosureNames(instrs: List[Instr]): Set[String] =
-    instrs match
-      case Nil => Set.empty
-      case Instr.Let(Expr.Var(x), Expr.Closure(closureName, _), _) :: rest =>
-        val here =
-          if isBuiltinBehaviour(x, rest) then Set(closureName) else Set.empty
-        here ++ collectBuiltinClosureNames(rest)
-      case (c: Instr.IfChain) :: rest =>
-        c.branches.flatMap((_, b) => collectBuiltinClosureNames(b)).toSet ++
-        collectBuiltinClosureNames(c.fallback) ++
-        collectBuiltinClosureNames(rest)
-      case instr :: rest =>
-        collectBuiltinClosureNames(instr.body) ++ collectBuiltinClosureNames(
-          rest,
-        )
 
   /** the `params.zipWithIndex` prefix instructions that unpack a builtin's
     * `argumentsList` positionally into the closure's own declared parameter
@@ -145,31 +118,8 @@ object AddBuiltinBehaviourPass extends LoweringPass:
     }
 
   def run(algos: List[Algorithm]): List[Algorithm] =
-    val builtinNames =
-      algos.flatMap(a => collectBuiltinClosureNames(a.body)).toSet
     algos.map { a =>
-      if a.name.exists(builtinNames.contains) then
-        // CreateBuiltinFunction's own `behaviour` contract guarantees a real
-        // spec text always ends in an explicit Return/Throw (see this
-        // object's own doc) — checked here, not patched around, so a
-        // violation fails loudly instead of silently leaving the closure
-        // un-wrapped.
-        //
-        // TODO: this only checks that *some* top-level Return exists (same
-        // shallow convention InsertFallthroughReturnPass/Compiler.compileAlgo
-        // use elsewhere), not that *every* control-flow path through the body
-        // actually reaches a Return/Throw (e.g. an IfChain with a covered
-        // `then` but a fallthrough `else` would pass this check yet still
-        // leave that branch's exit un-wrapped by CompletionWrapping). A real
-        // fix needs a proper reachability/exhaustiveness walk over
-        // IfChain/While/ForEach bodies, not just a top-level existence check.
-        if !a.body.exists(_.isInstanceOf[Instr.Return]) then
-          throw UnsupportedSpecShape(
-            "AddBuiltinBehaviourPass",
-            s"builtin behaviour closure falls off the end without an " +
-            s"explicit Return, violating CreateBuiltinFunction's behaviour " +
-            s"contract, in ${a.name.orElse(a.id)}",
-          )
+      if a.isBuiltinBehaviour then
         val originalParams = a.params.map(p => stripPipes(p.name))
         a.copy(
           params = BuiltinParams.map(p => WjiParam(s"|$p|")),

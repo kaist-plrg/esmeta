@@ -1,7 +1,6 @@
 package esmeta.wji.compiler.lowering
 
 import esmeta.wji.lang.{Algorithm, Expr, Instr, WjiParam}
-import esmeta.error.UnsupportedSpecShape
 
 /** Rewrites every `Expr.FollowingSteps(params)` placeholder — "the following
   * steps ...:", wherever it appears as an argument/value (see
@@ -47,13 +46,13 @@ import esmeta.error.UnsupportedSpecShape
   * Generic over instruction shape: a `FollowingSteps` may sit directly as a
   * `Let`'s RHS or among a `Perform`'s `args`; adding a third shape (e.g. a
   * `Set`/`Return` RHS, if a future spec phrasing needs it) is a same-shaped
-  * addition to `transform` below, not a new pass. `run` checks, once
-  * `transform` is done, that no `FollowingSteps` remains anywhere in the output
-  * — covering both a third shape like that and the narrower gap of one of the
-  * two known shapes with an empty owning `body` (`transform`'s guards require
-  * `body.nonEmpty`, since a hoist needs actual substeps to hoist) — and throws
-  * `UnsupportedSpecShape` instead of silently leaving it for `Compiler`'s much
-  * later, less specific `EYet` fallback.
+  * addition to `transform` below, not a new pass. [[postconditions]] checks
+  * that no `FollowingSteps` remains anywhere once `transform` is done —
+  * covering both a third shape like that and the narrower gap of one of the two
+  * known shapes with an empty owning `body` (`transform`'s guards require
+  * `body.nonEmpty`, since a hoist needs actual substeps to hoist) — so
+  * `Lowering.run` throws `UnsupportedSpecShape` instead of silently leaving it
+  * for `Compiler`'s much later, less specific `EYet` fallback.
   *
   * Runs late: `body` rides through every earlier pass as ordinary nested
   * `Let.body`/`Perform.body` content (every pass already recurses into it via
@@ -64,6 +63,16 @@ import esmeta.error.UnsupportedSpecShape
   */
 object ExpandFollowingStepsPass extends LoweringPass:
 
+  override def postconditions: List[Condition] = List(
+    Condition(
+      "no FollowingSteps remains unhoisted (only a Let RHS / Perform arg " +
+      "with a non-empty owning body are handled)",
+      _.forall(a =>
+        !AstQuery.existsExpr(a.body)(_.isInstanceOf[Expr.FollowingSteps]),
+      ),
+    ),
+  )
+
   def run(algos: List[Algorithm]): List[Algorithm] =
     val extra = collection.mutable.ListBuffer.empty[Algorithm]
     val rewritten = algos.map { a =>
@@ -73,16 +82,7 @@ object ExpandFollowingStepsPass extends LoweringPass:
         counter += 1; s"${base}_closure$counter"
       a.copy(body = transform(a.body, freshName, extra))
     }
-    val result = rewritten ++ extra.toList
-    result.foreach { a =>
-      if AstQuery.existsExpr(a.body)(_.isInstanceOf[Expr.FollowingSteps]) then
-        throw UnsupportedSpecShape(
-          "ExpandFollowingStepsPass",
-          s"FollowingSteps left unhoisted (only a Let RHS / Perform arg with a " +
-          s"non-empty owning body are handled), in ${a.name.orElse(a.id)}",
-        )
-    }
-    result
+    rewritten ++ extra.toList
 
   private def hoist(
     params: List[String],

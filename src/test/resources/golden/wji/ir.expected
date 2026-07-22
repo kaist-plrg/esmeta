@@ -1692,9 +1692,10 @@ def call_an_exported_function(
   let ret = (proj _tuple2 1)
   @AGENT_RECORD["associated store"] = store
   if (= ret ~error~) {
-    (yet "throw an exception")
+    call _err3 = clo<"__NEW_ERROR_OBJ__">("%RuntimeError.prototype%")
+    call _ret4 = clo<"ThrowCompletion">(_err3)
+    return _ret4
   } else nop
-  (yet "This exception should be a WebAssembly {{RuntimeError}} exception, unless otherwise indicated by <a href=\"#errors\">the WebAssembly error mapping</a>")
   call _call2 = clo<"exception">(exnaddr)
   if (? _call2: Abrupt) {
     return _call2
@@ -1714,30 +1715,30 @@ def call_an_exported_function(
   } else nop
   let outArity = (sizeof ret)
   if (= outArity 0) {
-    let _v3 = undefined
-    if (? _v3: Completion) {
-      return _v3
+    let _v5 = undefined
+    if (? _v5: Completion) {
+      return _v5
     } else {
-      call _ret4 = clo<"NormalCompletion">(_v3)
-      return _ret4
+      call _ret6 = clo<"NormalCompletion">(_v5)
+      return _ret6
     }
   } else if (= outArity 1) {
     call _comp1 = clo<"tojsvalue">(ret[0])
     if (exists _comp1.Type) {
       assert (= _comp1.Type ~normal~)
-      let _v5 = _comp1.Value
-      if (? _v5: Completion) {
-        return _v5
+      let _v7 = _comp1.Value
+      if (? _v7: Completion) {
+        return _v7
       } else {
-        call _ret6 = clo<"NormalCompletion">(_v5)
-        return _ret6
+        call _ret8 = clo<"NormalCompletion">(_v7)
+        return _ret8
       }
     } else {
       if (? _comp1: Completion) {
         return _comp1
       } else {
-        call _ret7 = clo<"NormalCompletion">(_comp1)
-        return _ret7
+        call _ret9 = clo<"NormalCompletion">(_comp1)
+        return _ret9
       }
     }
   } else {
@@ -1754,12 +1755,12 @@ def call_an_exported_function(
     if (? _result1: Completion) {
       return _result1
     } else {
-      call _ret8 = clo<"NormalCompletion">(_result1)
-      return _ret8
+      call _ret10 = clo<"NormalCompletion">(_result1)
+      return _ret10
     }
   }
-  call _ret9 = clo<"NormalCompletion">(~unused~)
-  return _ret9
+  call _ret11 = clo<"NormalCompletion">(~unused~)
+  return _ret11
 }
 def run_a_host_function(
   func: Unknown,

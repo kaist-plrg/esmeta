@@ -447,6 +447,25 @@ object SpecPatch:
     ->
     """Let |steps| be the following steps given the list of arguments |argValues|:
         1. Return the result of [=call an Exported Function=] with |funcaddr| and |argValues|.""",
+
+    // #23 (hardcoding) — "call an Exported Function" (index.bs:1296) throws
+    // an untyped "an exception" when `func_invoke` fails, then a *separate*
+    // sentence ("This exception should be a WebAssembly {{RuntimeError}}
+    // exception, unless otherwise indicated by the WebAssembly error
+    // mapping.") clarifies what type it should actually be. AlgorithmExtractor
+    // splits that clarifying sentence off as its own sibling step rather than
+    // folding it into the same `If`, so it runs unconditionally regardless of
+    // whether |ret| was actually an error — and even if it didn't, an untyped
+    // `Throw("an exception")` doesn't match CompletionWrapping's `ThrowTarget`
+    // (only "a {{X}} exception" does) and would itself fall through to an
+    // unimplemented placeholder. Rewritten into a single concrete
+    // `throw a {{RuntimeError}} exception.` step, dropping the "unless
+    // otherwise indicated by the WebAssembly error mapping" escape hatch —
+    // no current spec text needs a WebAssembly failure to surface as anything
+    // other than a RuntimeError.
+    "throw an exception. This exception should be a WebAssembly {{RuntimeError}} exception, unless otherwise indicated by <a href=\"#errors\">the WebAssembly error mapping</a>."
+    ->
+    "throw a {{RuntimeError}} exception.",
   )
 
   def apply(source: String): String =

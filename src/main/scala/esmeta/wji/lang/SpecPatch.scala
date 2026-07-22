@@ -467,22 +467,19 @@ object SpecPatch:
     ->
     "throw a {{RuntimeError}} exception.",
 
-    // #24 (hardcoding) — "call an Exported Function" (index.bs:1297) writes
-    // "If |ret| is [=exception=] |exnaddr|, then" — omitting the "of the
-    // form" `CondParser` needs to recognize this as a destructuring match
-    // (`Cond.IsOfForm`, binding |exnaddr| from |ret|'s payload) rather than a
-    // plain equality comparison. Without it, `CondParser` falls through to
-    // its default `Eq(ret, ...)` handling, which evaluates the RHS as an
-    // ordinary expression — reading `|exnaddr|` as if it already existed
-    // (`Case("EXCEPTION", [Var("exnaddr")])`) instead of binding it, crashing
-    // with "unknown variable: exnaddr". `error` (a 0-arg case, embedding.rst
-    // "error ::= ERROR") doesn't have this problem — only a payload-carrying
-    // case like `exception` (embedding.rst:49, "exception ::= EXCEPTION
-    // exnaddr") does, and this is the only such comparison in the corpus.
-    // Adding "of the form" to match the phrasing already used everywhere
-    // else this pipeline needs a destructuring match is simpler than
-    // teaching CondParser a second, rarely-used phrasing for the exact same
-    // thing.
+    // #24 (spec bug, docs/spec_errors.md #16) — "call an Exported Function"
+    // (index.bs:1297) writes "If |ret| is [=exception=] |exnaddr|, then",
+    // omitting the "of the form" every other destructuring match against a
+    // payload-carrying case in this same file uses (e.g. "is of the form
+    // [=external-type/func=] |functype|"). Without it, `CondParser` falls
+    // through to its default `Eq(ret, ...)` handling, which evaluates the RHS
+    // as an ordinary expression — reading `|exnaddr|` as if it already
+    // existed (`Case("EXCEPTION", [Var("exnaddr")])`) instead of binding it,
+    // crashing with "unknown variable: exnaddr". `error` (a 0-arg case,
+    // embedding.rst "error ::= ERROR") doesn't have this problem — only a
+    // payload-carrying case like `exception` (embedding.rst:49, "exception
+    // ::= EXCEPTION exnaddr") does, and this is the only such comparison in
+    // the corpus missing the "of the form" it needs.
     "If |ret| is [=exception=] |exnaddr|, then"
     ->
     "If |ret| is of the form [=exception=] |exnaddr|, then",

@@ -150,3 +150,28 @@
   ```
 - **Expected**: something that accounts for the keys being absent, e.g. `1. Let |builtinSetNames| be |options|["builtins"] if it [=map/exists=], otherwise an empty list.` and `1. Let |importedStringModule| be |options|["importedStringConstants"] if it [=map/exists=], otherwise null.` — matching the `|map|[|key|] [=map/exists=]` idiom used everywhere else map membership is checked in this file (see spec error #6).
 - **Reason**: `options`'s IDL type, `WebAssemblyCompileOptions` (lines 364-367), declares `importedStringConstants` and `builtins` as plain optional members with no `=` default value. Per `webidl/index.bs` lines 4654-4657, only members that are `required` or carry an explicit default value are guaranteed a corresponding entry when a dictionary value is converted to an ordered map — other optional members may or may not have an entry, depending on what the caller actually supplied. The IDL also defaults the `options` argument itself to `{}` when omitted (line 371-375, `optional WebAssemblyCompileOptions options = {}`), which is the common case for calls like `WebAssembly.instantiate(bytes, importObject)` or `WebAssembly.compile(bytes)`. Converting that empty `{}` yields a map with *no* entries for either key, yet `|options|["builtins"]`/`|options|["importedStringConstants"]` index into it unconditionally, with no `[=map/exists=]` guard — unlike every other map-key access in this file (spec error #6). The result is that the algorithm is unhandled precisely for its most common call pattern, where no options object (or an options object missing one of these two properties) is supplied at all.
+
+## 16. `is [=exception=] |exnaddr|` omits the `of the form` every other destructuring match uses
+
+- **File**: `spectec/document/js-api/index.bs`, line 1297 (`call an Exported Function`)
+- **Current**: `1. If |ret| is [=exception=] |exnaddr|, then`
+- **Expected**: `1. If |ret| is of the form [=exception=] |exnaddr|, then` — matching every other place this same file destructures a payload-carrying case (e.g. `is of the form [=external-type/func=] |functype|`, lines 506+).
+- **Reason**: `[=exception=]` links to `embedding.rst`'s `exception ::= EXCEPTION exnaddr` (line 49) — a case that carries a payload (`exnaddr`), which per this file's own established convention must be introduced with "is of the form" for the payload variable to be recognized as something being *bound out* of `|ret|`, not a value `|ret|` is being compared against. Without it, the sentence reads as a plain equality check whose RHS happens to construct an `EXCEPTION` value from a variable `|exnaddr|` that was never actually declared anywhere — the same shape as `SpecPatch` #24 fixes by inserting the missing words. `[=error=]` (a 0-arg case, `error ::= ERROR`) never runs into this, since it has no payload to bind; this is the only payload-carrying case in the file compared without "of the form."
+
+## 17. `[=exception=]` ambiguous between two anchors registered in the same `<pre class=anchors>` block
+
+- **File**: `spectec/document/js-api/index.bs`, line 1297 (`call an Exported Function`'s use of `[=exception=]`); the colliding registrations: lines 165 and 248, in the same `<pre class="anchors">` block (starting line 37)
+- **Current**: two separate `text: exception` entries are registered in the same anchors block:
+  ```
+  text: exception; url: appendix/embedding.html#embed-error          (line 165, unscoped)
+  text: exception; for: tagtype/attribute; url: syntax/types.html#syntax-tagtype   (line 248, `for: tagtype/attribute`)
+  ```
+  Confirmed by actually running `bikeshed spec` on this file, which reports at line 1297:
+  ```
+  Multiple possible 'exception' dfn refs.
+  Arbitrarily chose https://webassembly.github.io/spec/core/appendix/embedding.html#embed-error
+  spec:webassembly; type:dfn; for:/; text:exception
+  spec:webassembly; type:dfn; for:tagtype/attribute; text:exception
+  ```
+- **Expected**: disambiguate the bare `[=exception=]` at line 1297 — e.g. `[=exception|exception=]` with an explicit `for`-scope, or add a `<pre class=link-defaults>` entry selecting `for:/` for this text — so the choice isn't left to Bikeshed's arbitrary tie-breaking.
+- **Reason**: not a missing/dead link (Bikeshed does resolve it, to `#embed-error`, the section covering both `embedding.rst`'s `exception`/`error` productions) — the actual problem is that two independently-registered anchors share the exact same linking text ("exception") within the same anchors block, one unscoped (line 165, meant for the embedding-API production `[=exception=]` at line 1297 needs) and one `for`-scoped to `tagtype/attribute` (line 248, meant for `[=tagtype/attribute/exception=]`, used at lines 541/580). Bikeshed currently happens to pick the right one, but says so explicitly as an arbitrary, non-deterministic choice — a small unrelated edit elsewhere in the file could flip it to the wrong candidate with no visible change at the call site itself.

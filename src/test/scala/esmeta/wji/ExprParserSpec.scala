@@ -38,6 +38,11 @@ class ExprParserSpec extends AnyFunSuite:
     assert(
       ExprParser.parse("to perform the following steps:") == FollowingSteps(Nil),
     )
+    assert(
+      ExprParser.parse(
+        "the following steps given the list of arguments |argValues|:",
+      ) == FollowingSteps(List("argValues"), variadicLast = true),
+    )
   }
 
   test("'performing CLOSURE given ARGS' invokes a closure value") {

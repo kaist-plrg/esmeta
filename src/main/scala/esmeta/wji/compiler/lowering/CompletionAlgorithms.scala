@@ -94,8 +94,8 @@ object CompletionAlgorithms:
       // algorithm, so don't recurse into it here (see e.g. `create a host
       // function`, whose own top-level steps never use ?/! at all, only its
       // nested hostfunc closure does — wrongly inherited before this guard).
-      case Instr.Let(_, Expr.FollowingSteps(_), _) => false
-      case i                                       =>
+      case Instr.Let(_, Expr.FollowingSteps(_, _), _) => false
+      case i                                          =>
         // only `?` is a signal that *this* algorithm can itself abruptly
         // complete — ExpandAbruptPass's `!` handling never introduces a
         // Return at all (`Assert` the value is normal, then unconditionally
@@ -131,7 +131,7 @@ object CompletionAlgorithms:
     */
   def mentionsTypeField(x: String, instrs: List[Instr]): Boolean =
     instrs.exists {
-      case Instr.Let(_, Expr.FollowingSteps(_), _) => false
+      case Instr.Let(_, Expr.FollowingSteps(_, _), _) => false
       case i =>
         exprsOf(i).exists(mentionsField(x, _)) ||
         condsOf(i).exists(mentionsField(x, _)) || (i match
@@ -184,7 +184,7 @@ object CompletionAlgorithms:
   ): Boolean =
     instrs match
       case Nil => false
-      case Instr.Let(_, Expr.FollowingSteps(_), _) :: rest =>
+      case Instr.Let(_, Expr.FollowingSteps(_, _), _) :: rest =>
         hasUnguardedCallInto(rest, s) // closure content — see hasOwnAbrupt
       case i :: rest =>
         // both `?` and `!` are already explicit, ExpandAbruptPass-handled

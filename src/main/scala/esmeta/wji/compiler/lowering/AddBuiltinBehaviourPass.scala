@@ -1,6 +1,7 @@
 package esmeta.wji.compiler.lowering
 
 import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr, WjiParam}
+import esmeta.error.UnsupportedSpecShape
 
 /** Adapts every `Algorithm` [[MarkBuiltinBehaviourPass]] flagged
   * `isBuiltinBehaviour = true` into a valid builtin function body. Two
@@ -91,15 +92,36 @@ object AddBuiltinBehaviourPass extends LoweringPass:
     s.stripPrefix("|").stripSuffix("|")
 
   /** the `params.zipWithIndex` prefix instructions that unpack a builtin's
-    * `argumentsList` positionally into the closure's own declared parameter
-    * names, defaulting to `undefined` past the end of the list — mirrors
-    * mainline `Compiler.getBuiltinPrefix`'s `Param(name, _, Normal)` case (a
-    * hoisted WJI closure never has a variadic/optional parameter, so there's no
-    * need for the other cases that function has).
+    * `argumentsList` into the closure's own declared parameter names — mirrors
+    * mainline `Compiler.getBuiltinPrefix`'s two param kinds:
+    *
+    *   - a `Normal` param (the common case) is unpacked positionally,
+    *     defaulting to `undefined` past the end of the list.
+    *   - a `variadic` param ([[WjiParam.variadic]] — see
+    *     `esmeta.wji.lang.Expr.FollowingSteps`'s "given the list of arguments
+    *     V" phrasing) binds the *entire* `argumentsList` directly, mirroring
+    *     `getBuiltinPrefix`'s `Param(name, _, Variadic)` case for `remaining ==
+    *     0` (a direct alias, no slicing needed) — the only shape seen in the
+    *     corpus today (`create a new Exported Function`'s hoisted `argValues`
+    *     closure, SpecPatch #22) has no preceding `Normal` params to skip. A
+    *     variadic param anywhere but index 0 would need `getBuiltinPrefix`'s
+    *     fuller slice-construction (copying from an offset into a fresh list);
+    *     nothing needs that yet, so it fails loudly via `UnsupportedSpecShape`
+    *     instead of being spec­ulatively built.
     */
-  private def unpackArgumentsList(params: List[String]): List[Instr] =
+  private def unpackArgumentsList(params: List[WjiParam]): List[Instr] =
     params.zipWithIndex.map {
+      case (p, i) if p.variadic =>
+        if i == 0 then
+          Instr.Let(Expr.Var(stripPipes(p.name)), Expr.Var("argumentsList"))
+        else
+          throw UnsupportedSpecShape(
+            "AddBuiltinBehaviourPass",
+            s"variadic parameter ${p.name} at index $i — only a sole " +
+            "variadic parameter at index 0 is supported today",
+          )
       case (p, i) =>
+        val name = stripPipes(p.name)
         Instr.IfChain(
           List(
             Cond.Compare(
@@ -108,22 +130,21 @@ object AddBuiltinBehaviourPass extends LoweringPass:
               Expr.Length(Expr.Var("argumentsList")),
             ) -> List(
               Instr.Let(
-                Expr.Var(p),
+                Expr.Var(name),
                 Expr.Index(Expr.Var("argumentsList"), Expr.Num(i.toString)),
               ),
             ),
           ),
-          List(Instr.Let(Expr.Var(p), Expr.SpecTerm("undefined"))),
+          List(Instr.Let(Expr.Var(name), Expr.SpecTerm("undefined"))),
         )
     }
 
   def run(algos: List[Algorithm]): List[Algorithm] =
     algos.map { a =>
       if a.isBuiltinBehaviour then
-        val originalParams = a.params.map(p => stripPipes(p.name))
         a.copy(
           params = BuiltinParams.map(p => WjiParam(s"|$p|")),
-          body = unpackArgumentsList(originalParams) ++ CompletionWrapping
+          body = unpackArgumentsList(a.params) ++ CompletionWrapping
             .expandAlgorithm(a.body),
         )
       else a

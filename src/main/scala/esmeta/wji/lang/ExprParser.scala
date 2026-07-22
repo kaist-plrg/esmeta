@@ -77,10 +77,20 @@ object ExprParser:
   // ---- Closures: "the following steps ...:" definitions, and invoking a
   // closure value ----
 
-  // Three phrasings of the spec's "the following steps ...:" closure idiom —
+  // Four phrasings of the spec's "the following steps ...:" closure idiom —
   // all parse straight to a FollowingSteps placeholder, later hoisted into a
   // real Closure by ExpandFollowingStepsPass (the substeps themselves stay on
   // the owning instruction's `body` until then).
+  // "the following steps given the list of arguments |V|:" — WJI-invented
+  // phrasing (SpecPatch-authored, not real spec prose): a variadic-style
+  // closure param binding the *entire* JS arguments list itself, not one
+  // positional value (contrast StepsClosurePrefix just below). Single var
+  // only — no real text needs more than one variadic param. Wording echoes
+  // `call an Exported Function`'s own declared param ("a list of JavaScript
+  // arguments |argValues|", index.bs:1279). Tried first since it's the more
+  // specific of the two "given ...:" phrasings. See SpecPatch #22.
+  private val VariadicStepsClosurePrefix =
+    """(?is)^the following steps,?\s+given\s+the\s+list\s+of\s+arguments\s+\|([^|]+)\|\s*:?\s*$""".r
   // "the following steps given argument(s) |V|[, |W|, ...]:"
   private val StepsClosurePrefix =
     """(?is)^the following steps,?\s+given\s+(?:arguments?\s+)?(\|[^|]+\|(?:\s*(?:,|and)\s*\|[^|]+\|)*)\s*:?\s*$""".r
@@ -428,6 +438,8 @@ object ExprParser:
       case Backticked(inner)           => parse(inner)
 
       // ---- Closures ----
+      case VariadicStepsClosurePrefix(v) =>
+        FollowingSteps(List(v), variadicLast = true)
       case StepsClosurePrefix(paramsRaw) =>
         FollowingSteps(
           PipeVarInline.findAllMatchIn(paramsRaw).map(_.group(1)).toList,

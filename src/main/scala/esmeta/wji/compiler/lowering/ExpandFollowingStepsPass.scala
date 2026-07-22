@@ -86,6 +86,7 @@ object ExpandFollowingStepsPass extends LoweringPass:
 
   private def hoist(
     params: List[String],
+    variadicLast: Boolean,
     body: List[Instr],
     freshName: () => String,
     extra: collection.mutable.ListBuffer[Algorithm],
@@ -97,13 +98,11 @@ object ExpandFollowingStepsPass extends LoweringPass:
     // never themselves passed back through `transform`.
     val lowered = transform(body, freshName, extra)
     val captured = (FreeVarAnalysis.freeVars(lowered) -- params).toList.sorted
-    extra += Algorithm(
-      None,
-      Some(name),
-      params.map(p => WjiParam(s"|$p|")),
-      "",
-      lowered,
-    )
+    val wjiParams = params.zipWithIndex.map {
+      case (p, i) =>
+        WjiParam(s"|$p|", variadic = variadicLast && i == params.size - 1)
+    }
+    extra += Algorithm(None, Some(name), wjiParams, "", lowered)
     Expr.Closure(name, captured)
 
   private def transform(
@@ -112,21 +111,25 @@ object ExpandFollowingStepsPass extends LoweringPass:
     extra: collection.mutable.ListBuffer[Algorithm],
   ): List[Instr] = instrs match
     case Nil => Nil
-    case Instr.Let(lhs, Expr.FollowingSteps(params), body) :: rest
-        if body.nonEmpty =>
-      Instr.Let(lhs, hoist(params, body, freshName, extra), Nil) ::
+    case Instr.Let(lhs, Expr.FollowingSteps(params, variadicLast), body) ::
+        rest if body.nonEmpty =>
+      Instr.Let(
+        lhs,
+        hoist(params, variadicLast, body, freshName, extra),
+        Nil,
+      ) ::
       transform(rest, freshName, extra)
     case (p: Instr.Perform) :: rest
         if p.body.nonEmpty &&
         p.args.exists {
-          case Expr.FollowingSteps(_) => true; case _ => false
+          case Expr.FollowingSteps(_, _) => true; case _ => false
         } =>
-      val params =
-        p.args.collectFirst { case Expr.FollowingSteps(ps) => ps }.get
-      val closure = hoist(params, p.body, freshName, extra)
+      val (params, variadicLast) =
+        p.args.collectFirst { case Expr.FollowingSteps(ps, vl) => (ps, vl) }.get
+      val closure = hoist(params, variadicLast, p.body, freshName, extra)
       val newArgs = p.args.map {
-        case Expr.FollowingSteps(_) => closure
-        case other                  => other
+        case Expr.FollowingSteps(_, _) => closure
+        case other                     => other
       }
       p.copy(args = newArgs, body = Nil) :: transform(rest, freshName, extra)
     case instr :: rest =>

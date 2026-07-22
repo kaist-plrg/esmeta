@@ -86,7 +86,7 @@ object PropagateUnguardedCallsPass extends LoweringPass:
   ): List[Instr] = instrs match
     case Nil => Nil
     // a closure's substeps are out of scope here too — see CompletionAlgorithms
-    case (i @ Instr.Let(_, Expr.FollowingSteps(_), _)) :: rest =>
+    case (i @ Instr.Let(_, Expr.FollowingSteps(_, _), _)) :: rest =>
       i :: transform(rest, completionAlgos)
     case (p @ Instr.Perform(
           func,

@@ -83,7 +83,7 @@ object CompletionWrapping:
     // of this algorithm's business to wrap. (A no-op by the time
     // AddBuiltinBehaviourPass calls this: no FollowingSteps remain anywhere
     // in the program past ExpandFollowingStepsPass.)
-    case i @ Instr.Let(_, Expr.FollowingSteps(_), _) => List(i)
+    case i @ Instr.Let(_, Expr.FollowingSteps(_, _), _) => List(i)
     case Instr.Throw(ThrowTarget(iface), _) =>
       val err = freshErr()
       val ret = freshRet()

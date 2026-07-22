@@ -469,7 +469,7 @@ object Compiler:
       impossible(s"range ${low} to ${high}")
     case metalang.Expr.IndexOf(list, elem) =>
       impossible(s"index of ${list} where ${elem} is found")
-    case metalang.Expr.FollowingSteps(params) =>
+    case metalang.Expr.FollowingSteps(params, _) =>
       impossible(
         s"unlowered following-steps closure given ${params.mkString(", ")}",
       )

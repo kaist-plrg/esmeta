@@ -202,12 +202,20 @@ object Expr:
 
   /** An unnamed, not-yet-hoisted closure literal — "the following steps ...:"
     * itself, wherever it appears as an argument/value, taking `params` as
-    * formal parameters (no `|` delimiters). Two spec phrasings currently
+    * formal parameters (no `|` delimiters). Three spec phrasings currently
     * produce this (see [[ExprParser]]):
     *
     *   - `"Let |x| be the following steps given argument |V|: substeps"` —
     *     parsed directly as `Instr.Let`'s RHS, with `params` from the `given
-    *     argument(s)` list.
+    *     argument(s)` list, each bound to one positional value (`variadicLast =
+    *     false`).
+    *   - `"Let |x| be the following steps given the list of arguments |V|:
+    *     substeps"` — a WJI-invented phrasing (not real spec prose; used by
+    *     `SpecPatch`-authored rewrites, e.g. patch #22) for a closure whose
+    *     sole param binds the *entire* JS arguments list itself, rather than
+    *     one positional value (mirrors mainline `esmeta.compiler.Compiler
+    *     .getBuiltinPrefix`'s `ParamKind.Variadic`) — `params` is always a
+    *     single-element list and `variadicLast = true`.
     *   - `"[=Queue a task=] ... to perform the following steps: substeps"` —
     *     parsed as one of `Instr.Perform`'s `args` (`params` always `Nil`,
     *     mirroring ECMA-262's "a new Job Abstract Closure ... that captures
@@ -220,10 +228,12 @@ object Expr:
     * via `Instr.mapBody`), so a `body` field here would only ever hold `Nil`.
     * `esmeta.wji.compiler.lowering.ExpandFollowingStepsPass` recognizes an
     * unlowered `FollowingSteps` by the owning instruction's `body` still being
-    * non-empty, hoists that `body` into a fresh top-level [[Algorithm]], and
+    * non-empty, hoists that `body` into a fresh top-level [[Algorithm]] (whose
+    * last parameter is marked [[WjiParam.variadic]] when `variadicLast`), and
     * replaces the `FollowingSteps` with a [[Closure]] referencing it.
     */
-  case class FollowingSteps(params: List[String]) extends Expr
+  case class FollowingSteps(params: List[String], variadicLast: Boolean = false)
+    extends Expr
 
   /** Projects component `idx` out of `base`, a Wasm-embedding call's `(store,
     * X)`-shaped result (e.g. `module_instantiate`, `func_invoke`, `func_alloc`,

@@ -47,8 +47,22 @@ enum AlgorithmKind:
   *   source=] |taskSource|" (see [[AlgorithmExtractor.extractParams]] for how
   *   this is detected). Mirrors `esmeta.ir.Param.optional`, which this flows
   *   into via `esmeta.wji.compiler.Compiler`.
+  * @param variadic
+  *   whether this parameter binds the *entire* remaining JS arguments list,
+  *   rather than one positional value — only ever set by
+  *   `esmeta.wji.compiler.lowering.ExpandFollowingStepsPass` when hoisting a
+  *   `"the following steps given the list of arguments |V|:"` closure (see
+  *   `Expr.FollowingSteps`), never by [[AlgorithmExtractor.extractParams]].
+  *   Consumed and discarded by
+  *   `esmeta.wji.compiler.lowering.AddBuiltinBehaviourPass` before
+  *   `esmeta.wji.compiler.Compiler.compileAlgo` ever sees it —
+  *   `esmeta.ir.Param` has no equivalent field.
   */
-case class WjiParam(name: String, optional: Boolean = false)
+case class WjiParam(
+  name: String,
+  optional: Boolean = false,
+  variadic: Boolean = false,
+)
 
 /** An algorithm extracted from a `<div algorithm>` block.
   *

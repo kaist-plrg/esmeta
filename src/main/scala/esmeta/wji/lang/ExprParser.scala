@@ -163,6 +163,10 @@ object ExprParser:
   // ---- Bare references ----
 
   private val ThisOnly = """(?s)^\*\*this\*\*$""".r
+  // WebIDL's implicit setter argument (see Expr.GivenValue) — must precede
+  // the generic BoldConst below, which would otherwise swallow it into a
+  // meaningless SpecTerm.
+  private val GivenValueOnly = """(?s)^\*\*the given value\*\*$""".r
   private val VarOnly = """(?s)^\|([^|]+)\|$""".r
   private val VarIgnore = """(?s)^<var\s+ignore>([^<]*)</var>$""".r
 
@@ -475,9 +479,10 @@ object ExprParser:
         Link(normalizeLink(link), List(parse(valueRaw)))
 
       // ---- Bare references ----
-      case ThisOnly()      => This
-      case VarOnly(name)   => Var(name)
-      case VarIgnore(name) => Var(name.trim)
+      case ThisOnly()       => This
+      case GivenValueOnly() => GivenValue
+      case VarOnly(name)    => Var(name)
+      case VarIgnore(name)  => Var(name.trim)
 
       // ---- Arithmetic & casts ----
       case _ if findLastTopLevelAny(s, BinOpSeps).isDefined =>

@@ -55,7 +55,7 @@ object Lowering:
     ExpandFollowingStepsPass,
     MarkBuiltinBehaviourPass,
     AddBuiltinBehaviourPass,
-    AddGetterBuiltinBehaviourPass,
+    AddInterfaceMemberBuiltinBehaviourPass,
     ExpandQueueATaskPass,
     NormalizeAlgoNamePass,
   )

@@ -93,13 +93,15 @@ object AlgorithmExtractor:
   private val DfnKindFor =
     """(?is)<dfn\s+(method|attribute|constructor)\s+for\s*=\s*(?:"([^"]*)"|'([^']*)')""".r
 
-  /** matches "The setter of the ... attribute of {{Interface}}" — a setter
-    * never has its own `<dfn attribute for=...>` (see
-    * [[AlgorithmKind.Setter]]), so it's recognized from this prose pattern
-    * instead, capturing the interface name out of the `{{...}}` IDL reference.
+  /** matches "The setter of the X attribute of {{Interface}}" — a setter never
+    * has its own `<dfn attribute for=...>` (see [[AlgorithmKind.Setter]]), so
+    * both its interface (group 2, out of the `{{...}}` IDL reference) and its
+    * own attribute name (group 1) are recognized from this prose pattern
+    * instead — the latter used as this algorithm's `name` in [[extract]], since
+    * there's no `<dfn>` to pull one from otherwise.
     */
   private val SetterOfAttribute =
-    """(?is)^\s*The setter of the .+? attribute of \{\{([^}]+)\}\}""".r
+    """(?is)^\s*The setter of the (.+?) attribute of \{\{([^}]+)\}\}""".r
 
   /** matches a one-sentence Infra-style algorithm with no numbered step list at
     * all, e.g. "The getter of the <dfn attribute for="Instance">exports</ dfn>
@@ -120,14 +122,15 @@ object AlgorithmExtractor:
       for bodyEnd <- findBodyEnd(source, m.end) yield
         val body = source.substring(m.end, bodyEnd)
         val (head, instrs) = parseBody(body)
-        Algorithm(
-          id,
-          extractName(head),
-          extractParams(head),
-          head,
-          instrs,
-          extractKind(head),
-        )
+        val kind = extractKind(head)
+        // a setter has no <dfn> of its own for extractName to find (see
+        // SetterOfAttribute's doc) — its name is the attribute name that
+        // same prose match already captured.
+        val name = kind match
+          case AlgorithmKind.Setter(_) =>
+            SetterOfAttribute.findFirstMatchIn(head).map(_.group(1).trim)
+          case _ => extractName(head)
+        Algorithm(id, name, extractParams(head), head, instrs, kind)
     }
 
   def extractFromFile(path: Path): List[Algorithm] =
@@ -269,5 +272,5 @@ object AlgorithmExtractor:
           case _             => AlgorithmKind.Plain
       case None =>
         SetterOfAttribute.findFirstMatchIn(head) match
-          case Some(m) => AlgorithmKind.Setter(m.group(1).trim)
+          case Some(m) => AlgorithmKind.Setter(m.group(2).trim)
           case None    => AlgorithmKind.Plain

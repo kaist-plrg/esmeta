@@ -752,7 +752,7 @@
   head: The getter of the <dfn attribute for="Global">value</dfn> attribute of {{Global}}, when invoked, performs the following steps:
   Return([=GetGlobalValue=](**this**))
 
-# global-value-setter
+# value
   id: global-value-setter
   kind: setter for Global
   head: The setter of the value attribute of {{Global}}, when invoked, performs the following steps:

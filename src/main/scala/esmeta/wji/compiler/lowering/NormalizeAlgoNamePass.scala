@@ -1,15 +1,27 @@
 package esmeta.wji.compiler.lowering
 
-import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr}
+import esmeta.wji.lang.{Algorithm, AlgorithmKind, Cond, Expr, Instr}
 
-/** Normalizes each algorithm's `name` — space-to-underscore *and* lower-cased,
-  * so it's both a valid function identifier and matches how
-  * `esmeta.wji.compiler.Compiler.compileAlgo` registers `Func` names — and does
-  * the same inside every [[Expr.Closure]] reference to a (possibly synthetic,
-  * lowering-pass-generated) algorithm name, so a closure reference always
-  * matches its target's registered name exactly (`cfg.fnameMap` lookups are
-  * case-sensitive even though the Bikeshed prose these names ultimately derive
-  * from is not).
+/** Normalizes each `Plain`/`Method`-kind algorithm's `name` —
+  * space-to-underscore *and* lower-cased, so it's both a valid function
+  * identifier and matches how `esmeta.wji.compiler.Compiler.compileAlgo`
+  * registers `Func` names — and does the same inside every [[Expr.Closure]]
+  * reference to a (possibly synthetic, lowering-pass-generated) algorithm name,
+  * so a closure reference always matches its target's registered name exactly
+  * (`cfg.fnameMap` lookups are case-sensitive even though the Bikeshed prose
+  * these names ultimately derive from is not).
+  *
+  * A Getter/Setter/Constructor-kind algorithm's `name` is left exactly as
+  * extracted instead — `Compiler.compileAlgo` registers those case-preserved
+  * (see `AddInterfaceMemberBuiltinBehaviourPass`), matching the real,
+  * case-sensitive JS property names `manuals/intrinsics` expects (e.g.
+  * `Global.value`'s setter) — every one of those kinds is only ever reached via
+  * real property/call access, never via a `[=link=]`-style reference
+  * `nameFromLink`'s Bikeshed case-insensitivity exists for in the first place.
+  * `Method` is still normalized/lowercased like `Plain` for now — it's
+  * deliberately excluded from that case-preserved builtin treatment (TODO, see
+  * `AddInterfaceMemberBuiltinBehaviourPass`'s doc), so it's still only ever
+  * reached via `[=link=]`-style references today.
   *
   * [[Expr.AlgoCall]]'s `link` and [[Instr.Perform]]'s `func` are deliberately
   * left on space-only normalization here (not lower-cased): unlike
@@ -40,7 +52,11 @@ import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr}
 object NormalizeAlgoNamePass extends LoweringPass:
   def run(algos: List[Algorithm]): List[Algorithm] =
     algos.map { a =>
-      a.copy(name = a.name.map(normalize), body = a.body.map(rewriteInstr))
+      val name = a.kind match
+        case AlgorithmKind.Plain | AlgorithmKind.Method(_) =>
+          a.name.map(normalize)
+        case _ => a.name
+      a.copy(name = name, body = a.body.map(rewriteInstr))
     }
 
   private def underscore(s: String): String = s.replace(' ', '_')

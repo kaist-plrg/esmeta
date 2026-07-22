@@ -8,7 +8,7 @@ import esmeta.error.ESMetaError
 import esmeta.es.Initialize
 import esmeta.es.builtin.{AGENT_RECORD, EXECUTION_STACK, realmAddr}
 import esmeta.interpreter.{Interpreter => EsInterpreter}
-import esmeta.ir.{Global, Local, Program}
+import esmeta.ir.{FuncKind, Local, Program}
 import esmeta.state.*
 import esmeta.wji
 import esmeta.wji.compiler.Compiler
@@ -177,23 +177,36 @@ case object WjiInterp extends Phase[CFG, Value] {
         "ImportedStringModule" -> Null,
       ),
     )
+    // `**this**` in a WebIDL constructor/getter/setter/method's steps (e.g.
+    // {{Instance}}'s constructor) refers to a platform object that WebIDL's
+    // own "internally create a new object implementing the interface"
+    // algorithm allocates *before* the member's steps run (webidl/index.bs,
+    // "interface object" [[Construct]] — not mechanized here, see
+    // personal/constructor.md) — so, like moduleObject above, the harness
+    // fabricates a placeholder directly rather than actually running that
+    // preamble. {{Instance}}'s only interface-specific slot is [[Exports]]
+    // (js-api/index.bs's "initialize an instance object" sets it); harmless
+    // to bind even for entry points that don't reference `this` at all.
+    val thisObject = st.heap.allocRecord("Instance", List("Exports" -> Undef))
+
     val locals: MMap[Local, Value] =
-      MMap.from(func.params.map(_.lhs).zip(List(moduleObject, importObj)))
+      if func.kind == FuncKind.Builtin then
+        // AddInterfaceMemberBuiltinBehaviourPass reshapes a
+        // Getter/Setter/Constructor-kind algorithm's params into the real
+        // `<BUILTIN>:` calling convention (`this`, `ArgumentsList`,
+        // `NewTarget`) — bind it the same way a real `BuiltinCallOrConstruct`
+        // call would, rather than the flat positional zip below (which
+        // applies to a Plain/Method algorithm's own declared params —
+        // `Method` is still TODO there, see that pass's doc).
+        val argumentsList = st.heap.allocList(List(moduleObject, importObj))
+        MMap.from(
+          func.params
+            .map(_.lhs)
+            .zip(List(thisObject, argumentsList, Undef)),
+        )
+      else MMap.from(func.params.map(_.lhs).zip(List(moduleObject, importObj)))
     st.context = Context(func, locals)
     st.callStack = Nil
-
-    // `**this**` in a WebIDL constructor's steps (e.g. {{Instance}}'s) refers
-    // to a platform object that WebIDL's own "internally create a new object
-    // implementing the interface" algorithm allocates *before* the
-    // constructor steps run (webidl/index.bs, "interface object" [[Construct]]
-    // — not mechanized here, see personal/constructor.md) — so, like
-    // moduleObject above, the harness fabricates a placeholder directly rather
-    // than actually running that preamble. {{Instance}}'s only
-    // interface-specific slot is [[Exports]] (js-api/index.bs's "initialize an
-    // instance object" sets it); harmless to bind even for entry points that
-    // don't reference `this` at all.
-    val thisObject = st.heap.allocRecord("Instance", List("Exports" -> Undef))
-    st.globals += Global("this") -> thisObject
 
     val sep = "─" * 64
     println(s"invoke: ${config.entry}($moduleObject, $importObj)")
@@ -224,6 +237,10 @@ case object WjiInterp extends Phase[CFG, Value] {
     ),
   )
   case class Config(
+    // `Method`-kind algorithms (like `instantiate_object`, see `SpecPatch`
+    // #3's rename) are still TODO in `AddInterfaceMemberBuiltinBehaviourPass`
+    // (see its doc) — they still compile the old way (plain `AbsOp`,
+    // lowercased name), not the `INTRINSICS...`-prefixed `<BUILTIN>:` shape.
     var entry: String = "instantiate_object",
   )
 }

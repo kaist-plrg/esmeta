@@ -4,6 +4,13 @@ sealed trait Expr
 object Expr:
   case class Var(name: String) extends Expr
   case object This extends Expr
+
+  /** WebIDL's implicit "the given value" — the value being assigned, only
+    * available inside a setter's steps (mirrors [[This]]'s "only available
+    * inside constructor/getter/setter/method steps"). Only one occurrence in
+    * the corpus today: `Global.value`'s setter (js-api/index.bs:1227).
+    */
+  case object GivenValue extends Expr
   // value is a decimal or hex (0x...) string literal
   case class Num(value: String) extends Expr
   case class Bool(value: Boolean) extends Expr

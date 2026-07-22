@@ -39,11 +39,11 @@ object Compiler:
     * interfaces where `manuals/intrinsics` actually declares one today (just
     * `Instance`, so its `exports` getter — compiled from the real spec text,
     * see `compileAlgo`'s `AlgorithmKind.Getter` case below and
-    * `esmeta.wji.compiler.lowering.AddGetterBuiltinBehaviourPass` — resolves);
-    * every other interface (`Module`, `Memory`, ...) has no such intrinsic
-    * declared at all, so referencing it would itself crash, and falls back to
-    * `null` as before. The rest of WebIDL's "internally create a new object
-    * implementing the interface" preamble is left for later.
+    * `esmeta.wji.compiler.lowering.AddInterfaceMemberBuiltinBehaviourPass` —
+    * resolves); every other interface (`Module`, `Memory`, ...) has no such
+    * intrinsic declared at all, so referencing it would itself crash, and falls
+    * back to `null` as before. The rest of WebIDL's "internally create a new
+    * object implementing the interface" preamble is left for later.
     *
     * Documented in `docs/hardcodes.md` (#8) — when this gets properly
     * implemented, delete that entry too.
@@ -121,30 +121,44 @@ object Compiler:
           compileSeq(algo.body)
         else compileSeq(algo.body) :+ IReturn(EUnused),
       )
+      // AddInterfaceMemberBuiltinBehaviourPass has already reshaped a
+      // Getter/Setter/Constructor-kind algorithm's params/body into the real
+      // `<BUILTIN>:` calling convention (ArgumentsList unpacking, every
+      // Return wrapped in a Completion) by the time lowering hands it here —
+      // compiled exactly like any other algorithm, just registered under the
+      // exact case-preserved name `manuals/intrinsics` references for that
+      // kind (e.g. `INTRINSICS.get:WebAssembly.Instance.prototype.exports`,
+      // `INTRINSICS.WebAssembly.Instance`) with `FuncKind.Builtin`, instead
+      // of the usual lowercased/AbsOp shape — so a real `instance.exports`
+      // property read (or `new WebAssembly.Instance(...)`, once the rest of
+      // `docs/hardcodes.md` #8's gap is closed) reaches it directly, no
+      // hand-written `manuals/funcs/...` stub needed.
+      //
+      // `Method` is NOT included here (TODO — see
+      // `AddInterfaceMemberBuiltinBehaviourPass`'s doc): a WebIDL method name
+      // isn't unique per interface (`WebAssembly.instantiate` is overloaded),
+      // and at least one already has a hand-written `manuals/funcs/...ir`
+      // glue file claiming its intrinsic name — registering it here too would
+      // collide. It still falls through to the same plain-`AbsOp`/lowercased
+      // compilation every `Plain` algorithm gets below, same as before this
+      // pass existed.
+      def builtinFunc(fname: String): Func =
+        Func(
+          main = false,
+          kind = FuncKind.Builtin,
+          name = fname,
+          params = params,
+          retTy = UnknownType,
+          body = body,
+        )
       algo.kind match
-        // AddGetterBuiltinBehaviourPass has already reshaped a Getter-kind
-        // algorithm's params/body into the real `<BUILTIN>:` calling
-        // convention (this-binding, every Return wrapped in a Completion) by
-        // the time lowering hands it here — compiled exactly like any other
-        // algorithm below, just registered under the exact
-        // case-preserved name `manuals/intrinsics` references for it (e.g.
-        // `INTRINSICS.get:WebAssembly.Instance.prototype.exports`) with
-        // `FuncKind.Builtin`, instead of the usual lowercased/AbsOp shape —
-        // so a real `instance.exports` property read reaches it directly, no
-        // hand-written `manuals/funcs/get:...` stub needed. See
-        // `docs/hardcodes.md` (#8) for what's still missing (every other
-        // interface's own `.prototype` intrinsic, and the same wiring for
-        // Method/Setter/Constructor kinds).
         case AlgorithmKind.Getter(iface) =>
-          Func(
-            main = false,
-            kind = FuncKind.Builtin,
-            name = s"INTRINSICS.get:WebAssembly.$iface.prototype.$name",
-            params = params,
-            retTy = UnknownType,
-            body = body,
-          )
-        case _ =>
+          builtinFunc(s"INTRINSICS.get:WebAssembly.$iface.prototype.$name")
+        case AlgorithmKind.Setter(iface) =>
+          builtinFunc(s"INTRINSICS.set:WebAssembly.$iface.prototype.$name")
+        case AlgorithmKind.Constructor(iface) =>
+          builtinFunc(s"INTRINSICS.WebAssembly.$iface")
+        case AlgorithmKind.Plain | AlgorithmKind.Method(_) =>
           Func(
             main = false,
             kind = FuncKind.AbsOp,
@@ -310,8 +324,13 @@ object Compiler:
   // ── Expression ───────────────────────────────────────────────────────────────
 
   private def compileExpr(expr: metalang.Expr): ir.Expr = expr match
-    case metalang.Expr.Var(name)             => ERef(Name(name))
-    case metalang.Expr.This                  => ERef(Global("this"))
+    case metalang.Expr.Var(name) => ERef(Name(name))
+    // Both only ever occur inside a constructor/getter/setter/method's own
+    // steps (see AddInterfaceMemberBuiltinBehaviourPass), which always
+    // declares a same-named parameter — so these compile as plain local
+    // references, exactly like any other Var, not a global.
+    case metalang.Expr.This                  => ERef(Name("this"))
+    case metalang.Expr.GivenValue            => ERef(Name("givenValue"))
     case metalang.Expr.Num(s)                => compileNum(s)
     case metalang.Expr.Byte(v)               => ENumber(v.toDouble)
     case metalang.Expr.Bool(b)               => EBool(b)
@@ -471,7 +490,8 @@ object Compiler:
     */
   private def compileRef(expr: metalang.Expr): Ref = expr match
     case metalang.Expr.Var(name)                     => Name(name)
-    case metalang.Expr.This                          => Global("this")
+    case metalang.Expr.This                          => Name("this")
+    case metalang.Expr.GivenValue                    => Name("givenValue")
     case metalang.Expr.SpecTerm("surrounding agent") => GLOBAL_AGENT_RECORD
     case metalang.Expr.SpecTerm("current Realm") =>
       Field(GLOBAL_CONTEXT, EStr("Realm"))

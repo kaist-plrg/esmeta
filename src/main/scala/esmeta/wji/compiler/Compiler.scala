@@ -1,7 +1,7 @@
 package esmeta.wji.compiler
 
 import esmeta.wji.lang as metalang
-import esmeta.wji.lang.{Algorithm, Cond, Instr}
+import esmeta.wji.lang.{Algorithm, AlgorithmKind, Cond, Instr}
 import esmeta.wji.lang.Instr.PerformOutcome
 import esmeta.wji.bridge.host.WasmHost
 import esmeta.ir
@@ -37,14 +37,13 @@ object Compiler:
     * (see `esmeta.ty.TyModel.registerDynamicSubtype`). `Prototype` points at
     * the interface's real `%WebAssembly.<iface>.prototype%` intrinsic only for
     * interfaces where `manuals/intrinsics` actually declares one today (just
-    * `Instance`, so its `exports` getter — hand-written as
-    * `manuals/funcs/INTRINSICS.get:WebAssembly.Instance.prototype.exports.ir` —
-    * resolves); every other interface (`Module`, `Memory`, ...) has no such
-    * intrinsic declared at all, so referencing it would itself crash, and falls
-    * back to `null` as before. The rest of WebIDL's "internally create a new
-    * object implementing the interface" preamble — and actually mechanizing
-    * each interface's own attribute getters/methods, rather than hand-writing
-    * them one at a time — is left for later.
+    * `Instance`, so its `exports` getter — compiled from the real spec text,
+    * see `compileAlgo`'s `AlgorithmKind.Getter` case below and
+    * `esmeta.wji.compiler.lowering.AddGetterBuiltinBehaviourPass` — resolves);
+    * every other interface (`Module`, `Memory`, ...) has no such intrinsic
+    * declared at all, so referencing it would itself crash, and falls back to
+    * `null` as before. The rest of WebIDL's "internally create a new object
+    * implementing the interface" preamble is left for later.
     *
     * Documented in `docs/hardcodes.md` (#8) — when this gets properly
     * implemented, delete that entry too.
@@ -104,37 +103,61 @@ object Compiler:
     algo.name.orElse(algo.id).map { name =>
       val params = algo.params
         .map(p => Param(Name(stripPipes(p.name)), optional = p.optional))
-      Func(
-        main = false,
-        kind = FuncKind.AbsOp,
-        // lower-cased to match `nameFromLink`: Bikeshed link matching is
-        // case-insensitive (e.g. a sentence-initial "Read the imports" links
-        // to a dfn written "read the imports"), but Scala map lookups
-        // (`cfg.fnameMap`) aren't, so both the registered name and every
-        // reference to it are normalized to the same case.
-        name = name.toLowerCase,
-        params = params,
-        retTy = UnknownType,
-        // Falling off the end implicitly returns `~unused~` (see
-        // `compileInstr`'s `Return(None, ...)` case), mirroring
-        // `esmeta.compiler`'s own fall-off-the-end handling.
-        //
-        // Only appended when the body has no top-level `Return` at all — not
-        // just when the last instruction isn't one. An `IfChain`'s branches
-        // each reach the function exit directly (harmless dead code after),
-        // but sibling `IReturn`s in a flat list share one CFG `Block`, which
-        // runs every inst in sequence with no early exit — so appending
-        // after an already-unconditional `Return` would silently overwrite
-        // its value. Checking "no Return anywhere" (not just "last isn't
-        // Return") also turns a spec typo — stray steps left after a
-        // `Return` — into a loud `NoReturnValue` instead of silently
-        // corrupting the real value.
-        body = ISeq(
-          if algo.body.exists(_.isInstanceOf[Instr.Return]) then
-            compileSeq(algo.body)
-          else compileSeq(algo.body) :+ IReturn(EUnused),
-        ),
+      // Falling off the end implicitly returns `~unused~` (see
+      // `compileInstr`'s `Return(None, ...)` case), mirroring
+      // `esmeta.compiler`'s own fall-off-the-end handling.
+      //
+      // Only appended when the body has no top-level `Return` at all — not
+      // just when the last instruction isn't one. An `IfChain`'s branches
+      // each reach the function exit directly (harmless dead code after), but
+      // sibling `IReturn`s in a flat list share one CFG `Block`, which runs
+      // every inst in sequence with no early exit — so appending after an
+      // already-unconditional `Return` would silently overwrite its value.
+      // Checking "no Return anywhere" (not just "last isn't Return") also
+      // turns a spec typo — stray steps left after a `Return` — into a loud
+      // `NoReturnValue` instead of silently corrupting the real value.
+      val body = ISeq(
+        if algo.body.exists(_.isInstanceOf[Instr.Return]) then
+          compileSeq(algo.body)
+        else compileSeq(algo.body) :+ IReturn(EUnused),
       )
+      algo.kind match
+        // AddGetterBuiltinBehaviourPass has already reshaped a Getter-kind
+        // algorithm's params/body into the real `<BUILTIN>:` calling
+        // convention (this-binding, every Return wrapped in a Completion) by
+        // the time lowering hands it here — compiled exactly like any other
+        // algorithm below, just registered under the exact
+        // case-preserved name `manuals/intrinsics` references for it (e.g.
+        // `INTRINSICS.get:WebAssembly.Instance.prototype.exports`) with
+        // `FuncKind.Builtin`, instead of the usual lowercased/AbsOp shape —
+        // so a real `instance.exports` property read reaches it directly, no
+        // hand-written `manuals/funcs/get:...` stub needed. See
+        // `docs/hardcodes.md` (#8) for what's still missing (every other
+        // interface's own `.prototype` intrinsic, and the same wiring for
+        // Method/Setter/Constructor kinds).
+        case AlgorithmKind.Getter(iface) =>
+          Func(
+            main = false,
+            kind = FuncKind.Builtin,
+            name = s"INTRINSICS.get:WebAssembly.$iface.prototype.$name",
+            params = params,
+            retTy = UnknownType,
+            body = body,
+          )
+        case _ =>
+          Func(
+            main = false,
+            kind = FuncKind.AbsOp,
+            // lower-cased to match `nameFromLink`: Bikeshed link matching is
+            // case-insensitive (e.g. a sentence-initial "Read the imports"
+            // links to a dfn written "read the imports"), but Scala map
+            // lookups (`cfg.fnameMap`) aren't, so both the registered name
+            // and every reference to it are normalized to the same case.
+            name = name.toLowerCase,
+            params = params,
+            retTy = UnknownType,
+            body = body,
+          )
     }
 
   // ── Instruction sequence ─────────────────────────────────────────────────────

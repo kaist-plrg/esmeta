@@ -80,11 +80,14 @@ class AlgorithmExtractorSpec extends AnyFunSuite:
     )
   }
 
-  test("supports algorithms with no instrs at all") {
+  test(
+    "parses a one-line \"... returns EXPR.\" algorithm (no numbered step list) into a single Return",
+  ) {
     val algo =
       algorithms.find(a => a.name.contains("exports") && a.params.isEmpty).get
-    assert(algo.body.isEmpty)
+    assert(algo.body == List(Return(Some(Field(This, "Exports")))))
     assert(algo.head.nonEmpty)
+    assert(!algo.head.contains("returns"))
   }
 
   test(

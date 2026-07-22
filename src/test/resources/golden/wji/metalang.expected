@@ -380,7 +380,8 @@
 
 # exports
   kind: getter for Instance
-  head: The getter of the <dfn attribute for="Instance">exports</dfn> attribute of {{Instance}} returns **this**.\[[Exports]].
+  head: The getter of the <dfn attribute for="Instance">exports</dfn> attribute of {{Instance}}
+  Return(**this**.[[Exports]])
 
 # create a fixed length memory buffer
   params: |memaddr|
@@ -547,7 +548,8 @@
 
 # buffer
   kind: getter for Memory
-  head: The getter of the <dfn attribute for="Memory">buffer</dfn> attribute of {{Memory}} returns **this**.\[[BufferObject]].
+  head: The getter of the <dfn attribute for="Memory">buffer</dfn> attribute of {{Memory}}
+  Return(**this**.[[BufferObject]])
 
 # initialize a table object
   params: |table|, |tableaddr|

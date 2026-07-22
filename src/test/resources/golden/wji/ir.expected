@@ -634,8 +634,19 @@ def instance(
   call _ret1 = clo<"NormalCompletion">(~unused~)
   return _ret1
 }
-def exports(
+def <BUILTIN>:INTRINSICS.get:WebAssembly.Instance.prototype.exports(
+  this: Unknown,
+  ArgumentsList: Unknown,
+  NewTarget: Unknown,
 ): Unknown = {
+  @this = this
+  let _v1 = @this.Exports
+  if (? _v1: Completion) {
+    return _v1
+  } else {
+    call _ret2 = clo<"NormalCompletion">(_v1)
+    return _ret2
+  }
   return ~unused~
 }
 def create_a_fixed_length_memory_buffer(
@@ -935,8 +946,19 @@ def abstract_operation_[=hostresizearraybuffer=](
   call _ret7 = clo<"NormalCompletion">(~unused~)
   return _ret7
 }
-def buffer(
+def <BUILTIN>:INTRINSICS.get:WebAssembly.Memory.prototype.buffer(
+  this: Unknown,
+  ArgumentsList: Unknown,
+  NewTarget: Unknown,
 ): Unknown = {
+  @this = this
+  let _v1 = @this.BufferObject
+  if (? _v1: Completion) {
+    return _v1
+  } else {
+    call _ret2 = clo<"NormalCompletion">(_v1)
+    return _ret2
+  }
   return ~unused~
 }
 def initialize_a_table_object(
@@ -1131,14 +1153,24 @@ def grow(
   }
   return ~unused~
 }
-def length(
+def <BUILTIN>:INTRINSICS.get:WebAssembly.Table.prototype.length(
+  this: Unknown,
+  ArgumentsList: Unknown,
+  NewTarget: Unknown,
 ): Unknown = {
+  @this = this
   let tableaddr = @this.Table
   let store = @AGENT_RECORD["associated store"]
   let addrtype = (yet "the [=address type=] in [=table_type=](|store|, |tableaddr|)")
   call-embed length64 = <table_size>(store, tableaddr)
   call _result1 = clo<"u64toaddressvalue">(length64, addrtype)
-  return _result1
+  if (? _result1: Completion) {
+    return _result1
+  } else {
+    call _ret1 = clo<"NormalCompletion">(_result1)
+    return _ret1
+  }
+  return ~unused~
 }
 def get(
   index: Unknown,
@@ -1420,8 +1452,12 @@ def getglobalvalue(
   call _ret6 = clo<"NormalCompletion">(~unused~)
   return _ret6
 }
-def value(
+def <BUILTIN>:INTRINSICS.get:WebAssembly.Global.prototype.value(
+  this: Unknown,
+  ArgumentsList: Unknown,
+  NewTarget: Unknown,
 ): Unknown = {
+  @this = this
   call _result1 = clo<"getglobalvalue">(@this)
   if (? _result1: Abrupt) {
     return _result1
@@ -2451,9 +2487,20 @@ def is(
   } else nop
   return true
 }
-def stack(
+def <BUILTIN>:INTRINSICS.get:WebAssembly.Exception.prototype.stack(
+  this: Unknown,
+  ArgumentsList: Unknown,
+  NewTarget: Unknown,
 ): Unknown = {
-  return @this.Stack
+  @this = this
+  let _v1 = @this.Stack
+  if (? _v1: Completion) {
+    return _v1
+  } else {
+    call _ret2 = clo<"NormalCompletion">(_v1)
+    return _ret2
+  }
+  return ~unused~
 }
 def get_the_javascript_exception_tag(
 ): Unknown = {

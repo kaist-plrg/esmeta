@@ -101,6 +101,18 @@ object AlgorithmExtractor:
   private val SetterOfAttribute =
     """(?is)^\s*The setter of the .+? attribute of \{\{([^}]+)\}\}""".r
 
+  /** matches a one-sentence Infra-style algorithm with no numbered step list at
+    * all, e.g. "The getter of the <dfn attribute for="Instance">exports</ dfn>
+    * attribute of {{Instance}} returns **this**.\[[Exports]]." — captures
+    * everything before " returns" (group 1, kept as the real head) and the
+    * returned expression's own raw text (group 2, with the trailing sentence
+    * period stripped). Greedy on group 1 so a `returns` appearing earlier in
+    * the sentence (unseen so far, but not impossible) doesn't get picked over
+    * the last one. See [[parseBody]].
+    */
+  private val OneLineReturns =
+    """(?is)^(.*)\breturns\s+(.+)\.\s*$""".r
+
   def extract(source: String): List[Algorithm] =
     OpenTag.findAllMatchIn(source).toList.flatMap { m =>
       val id =
@@ -167,7 +179,21 @@ object AlgorithmExtractor:
             val top = stack.last._2
             top.text = s"${top.text} $text".trim
 
-    (headLines.mkString(" ").trim, roots.flatMap(_.toInstrs).toList)
+    val head = headLines.mkString(" ").trim
+    val instrs = roots.flatMap(_.toInstrs).toList
+    // one-line algorithms (no numbered step list) fall back to recognizing a
+    // trailing "returns EXPR." clause in the head itself as an implicit
+    // single-instruction body — only when there really is no step list, so
+    // this can never shadow a normal numbered algorithm
+    if instrs.isEmpty then
+      head match
+        case OneLineReturns(headOnly, exprRaw) =>
+          (
+            headOnly.trim,
+            List(Instr.Return(Some(ExprParser.parse(exprRaw.trim)))),
+          )
+        case _ => (head, instrs)
+    else (head, instrs)
 
   /** name from the first `<dfn>` in `head`.
     *

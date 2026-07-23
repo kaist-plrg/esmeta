@@ -1,0 +1,39 @@
+#!/bin/bash
+# ------------------------------------------------------------------------------
+# Usage: scripts/wji-node-check [file.js ...]
+#
+# Cross-checks tests/wji/*.js fixtures against a real engine (Node's
+# WebAssembly implementation), one fresh `node` subprocess per fixture for
+# isolation. With no arguments, checks every tests/wji/*.js fixture.
+#
+# This validates the fixture itself (wasm bytes + JS driver + assertions +
+# the __wjiOk convention), independent of ESMeta/WJI's own mechanization
+# state -- see scripts/wji-node-check.js for what "correct" means here.
+# Requires Node.js on PATH.
+# ------------------------------------------------------------------------------
+
+set -euo pipefail
+
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+repo_root="$(cd "$script_dir/.." && pwd)"
+
+if ! command -v node >/dev/null 2>&1; then
+  echo "error: node not found on PATH" >&2
+  exit 1
+fi
+
+if [ $# -gt 0 ]; then
+  files=("$@")
+else
+  files=("$repo_root"/tests/wji/*.js)
+fi
+
+fail=0
+for f in "${files[@]}"; do
+  echo "=== $(basename "$f") ==="
+  if ! node "$script_dir/wji-node-check.js" "$f"; then
+    fail=1
+  fi
+done
+
+exit $fail

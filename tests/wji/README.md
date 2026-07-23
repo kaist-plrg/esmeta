@@ -57,6 +57,25 @@ opt-in task입니다 (fixture마다 외부 SpecTec 프로세스를 새로 띄우
 sbt --client wjiEvalTest
 ```
 
+## 진짜 엔진으로 fixture 자체를 검증하기
+
+`.js` fixture가 standalone이라, 실제 엔진에서도 그대로 돌려볼 수 있습니다.
+`wjiEvalTest`에서 fixture가 실패(또는 cancel)했을 때 "이게 WJI의 gap인지,
+아니면 애초에 내가 시나리오/assert를 잘못 짠 건지"를 구분하고 싶을 때
+유용합니다:
+
+```
+scripts/wji-node-check                    # tests/wji/*.js 전부
+scripts/wji-node-check tests/wji/foo.js    # 특정 fixture만
+```
+
+Node의 `WebAssembly` 구현으로 fixture마다 별도 프로세스에서 돌리고,
+`__wjiOk === true`(그리고 uncaught exception/unhandled rejection 없음)를
+확인합니다. 여기서 FAIL이 나오면 fixture 자체(assert 값, wasm 모듈 등)가
+잘못된 것 — WJI 쪽 문제라면 여기선 PASS하고 `wjiEvalTest`에서만
+실패/cancel돼야 정상입니다. Node가 PATH에 있어야 하고, `sbt
+compile`/`test`와는 무관한 별도 검증 도구입니다.
+
 ## 아직 기계화가 안 된 부분에 막힌 fixture
 
 새 fixture가 진짜 버그가 아니라 WJI가 아직 못 다루는 스펙 구문/동작에 막히는

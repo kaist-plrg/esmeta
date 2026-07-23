@@ -22,6 +22,19 @@ private val knownFailing: Map[String, String] = Map(
     "(personal/TODO.md #3): [NotSupported] metalanguage/[=Data Block=] " +
     "which is [=identified with=] the underlying memory of |memaddr|"
   ),
+  "global-mutation.js" -> (
+    "ExpandIsOfFormPass can't distinguish CONST/I32 from CONST/I64 (both " +
+    "share the outer \"CONST\" tag, discriminated only by a nested tag) " +
+    "(personal/TODO.md #4): [NotSupported] metalanguage/is of form " +
+    "Case([=i64.const=],List(Var(u64)))"
+  ),
+  "trap-propagation.js" -> (
+    "func_invoke (spectec OCaml side) doesn't catch Exception.Trap at all, " +
+    "so it escapes the JSON-RPC bridge as a raw protocol error instead of " +
+    "becoming a RuntimeError (personal/TODO.md #1): " +
+    "esmeta.error.WasmHostFailure: WasmHost error: " +
+    "ProtocolError(Backend_interpreter.Exception.Trap...)"
+  ),
 )
 
 /** Runs every `.js` fixture under `tests/wji` end to end through the merged WJI

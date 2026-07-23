@@ -19,6 +19,7 @@ var importObj = {js: {
 
 WebAssembly
   .instantiate(buffer, importObj)
-  .then(
-    ({module, instance}) => instance.exports.f()
-  );
+  .then(({module, instance}) => {
+    instance.exports.f();
+    globalThis.__wjiOk = true;
+  });

@@ -134,6 +134,11 @@ lazy val test262ParseTest =
 lazy val test262EvalTest =
   taskKey[Unit]("Launch eval tests for Test262 (large)")
 
+// wji
+lazy val wjiEvalTest = taskKey[Unit](
+  "Launch eval tests for tests/wji/*.js fixtures (opt-in, not part of basicTest)",
+)
+
 // Java options for assembly
 lazy val assemblyJavaOpts = Seq(
   "-Xms1g",
@@ -216,8 +221,14 @@ lazy val root = project
           "*SmallTest",
           // every esmeta.wji test (SnapshotSpec and friends) — a package
           // glob rather than an explicit per-class list, so a new test file
-          // added under esmeta.wji is picked up automatically
+          // added under esmeta.wji is picked up automatically. EvalSpec's
+          // tests are excluded via tag (see below) since they spawn a real
+          // external SpecTec process per fixture — run those with
+          // `wjiEvalTest` instead.
           "esmeta.wji.*",
+          "--",
+          "-l",
+          "esmeta.wji.EvalTag",
         ).mkString(" ", " ", ""),
       )
       .value,
@@ -296,6 +307,9 @@ lazy val root = project
     // test262
     test262ParseTest := (Test / testOnly).toTask(" *.test262.Parse*Test").value,
     test262EvalTest := (Test / testOnly).toTask(" *.test262.Eval*Test").value,
+    // wji (opt-in: excluded from basicTest, see EvalTag above — each fixture
+    // spawns a real external SpecTec process)
+    wjiEvalTest := (Test / testOnly).toTask(" esmeta.wji.EvalSpec").value,
   )
 
 // create the `.completion` file for autocompletion in shell

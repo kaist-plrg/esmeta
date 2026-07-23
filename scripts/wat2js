@@ -1,0 +1,27 @@
+#!/bin/bash
+# ------------------------------------------------------------------------------
+# Usage: scripts/wat2js path/to/foo.wat
+#
+# Converts a WAT (WebAssembly Text) source file into a `new Uint8Array([...])`
+# JS snippet printed to stdout, ready to paste into a tests/wji/*.js fixture.
+#
+# Requires `wat2wasm` (from the WABT toolchain) on PATH. This is NOT a build
+# dependency of this project -- it's an authoring-time convenience only. If a
+# .wat sidecar changes, re-run this and paste the new array into the .js by
+# hand; nothing verifies automatically that the two stay in sync.
+# ------------------------------------------------------------------------------
+
+set -euo pipefail
+
+if [ $# -ne 1 ]; then
+  echo "Usage: scripts/wat2js path/to/foo.wat" >&2
+  exit 1
+fi
+
+if ! command -v wat2wasm >/dev/null 2>&1; then
+  echo "error: wat2wasm not found on PATH (install WABT: https://github.com/WebAssembly/wabt)" >&2
+  exit 1
+fi
+
+wat2wasm --output=- "$1" | xxd -i | sed -n '/^ /p' | sed 's/^ */  /' \
+  | { echo "new Uint8Array(["; cat; echo "])"; }

@@ -80,7 +80,8 @@ compile`/`test`와는 무관한 별도 검증 도구입니다.
 
 새 fixture가 진짜 버그가 아니라 WJI가 아직 못 다루는 스펙 구문/동작에 막히는
 경우가 있습니다. 이런 경우엔 fixture를 지우지 말고, `EvalSpec.scala`의
-`knownFailing` map에 파일명과 이유(및 `personal/TODO.md` 항목 참조)를
-추가하세요 — 실행 대신 `cancel(reason)`으로 처리돼서 `wjiEvalTest`는 계속
-초록불을 유지하면서 gap은 계속 추적됩니다. gap이 실제로 해결되면
-`knownFailing`에서 그 항목을 지우세요.
+`knownFailing` set에 파일명을 추가하세요 — 실행 대신 `cancel(...)`로
+처리돼서 `wjiEvalTest`는 계속 초록불을 유지합니다. 구체적인 이유/원인은
+여기 코드에 적어두지 않습니다 — fix가 하나씩 들어갈 때마다 계속 바뀌므로,
+필요하면 `sbt run wji-eval tests/wji/<name>.js -silent`로 다시 재현해서
+확인하세요. gap이 실제로 해결되면 `knownFailing`에서 그 항목을 지우세요.

@@ -13,29 +13,14 @@ import org.scalatest.funsuite.AnyFunSuite
 object EvalTag extends Tag("esmeta.wji.EvalTag")
 
 /** fixtures that are known to hit an unmechanized gap rather than a bug in the
-  * fixture itself — see `personal/TODO.md` for each reason. Cancelled rather
-  * than run, so `wjiEvalTest` stays green while the gap is tracked.
+  * fixture itself. Cancelled rather than run, so `wjiEvalTest` stays green
+  * while the gap is worked on — remove a fixture's name here once it's fixed.
+  * No per-fixture reason kept here — it shifts with every partial fix, so
+  * keeping it in sync would be pure churn; re-reproduce with `sbt run wji-eval
+  * tests/wji/<name>.js -silent` when picking one back up.
   */
-private val knownFailing: Map[String, String] = Map(
-  "memory-mutation.js" -> (
-    "Memory.prototype.buffer isn't live-aliased to wasm linear memory yet " +
-    "(personal/TODO.md #3): [NotSupported] metalanguage/[=Data Block=] " +
-    "which is [=identified with=] the underlying memory of |memaddr|"
-  ),
-  "global-mutation.js" -> (
-    "ExpandIsOfFormPass can't distinguish CONST/I32 from CONST/I64 (both " +
-    "share the outer \"CONST\" tag, discriminated only by a nested tag) " +
-    "(personal/TODO.md #4): [NotSupported] metalanguage/is of form " +
-    "Case([=i64.const=],List(Var(u64)))"
-  ),
-  "trap-propagation.js" -> (
-    "func_invoke (spectec OCaml side) doesn't catch Exception.Trap at all, " +
-    "so it escapes the JSON-RPC bridge as a raw protocol error instead of " +
-    "becoming a RuntimeError (personal/TODO.md #1): " +
-    "esmeta.error.WasmHostFailure: WasmHost error: " +
-    "ProtocolError(Backend_interpreter.Exception.Trap...)"
-  ),
-)
+private val knownFailing: Set[String] =
+  Set("memory-mutation.js", "global-mutation.js", "trap-propagation.js")
 
 /** Runs every `.js` fixture under `tests/wji` end to end through the merged WJI
   * IR program (see [[WjiTest]]). Each fixture is standalone and self-checking:
@@ -54,7 +39,6 @@ class EvalSpec extends AnyFunSuite:
   for file <- walkTree(WJI_TEST_DIR) if jsFilter(file.getName) do
     val name = file.getName
     test(name, EvalTag) {
-      knownFailing.get(name) match
-        case Some(reason) => cancel(reason)
-        case None         => checkExit(WjiTest.evalFile(file.toString))
+      if knownFailing(name) then cancel("known WJI mechanization gap")
+      else checkExit(WjiTest.evalFile(file.toString))
     }

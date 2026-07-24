@@ -209,12 +209,14 @@ object SpecPatch:
     ->
     s"1. [=Resolve=] ${ofTypePromise("Instance")} |promise| with |instanceObject|.",
 
-    // #11 (spec bug) — the compile algorithm's two CompileError rejections
-    // are written as plain "reject ... exception" prose with no [=...=] link,
-    // so they don't parse as a call to `reject` at all today. Bracket them
-    // into real links (now parseable thanks to ExprParser.NewExceptionExpr's
-    // "a {{X}} exception" rule and, for the first site, InstrParser's bare
-    // "and return" rule) and annotate with the type, same as #10.
+    // #11 (spec inconsistency, docs/spec_inconsistencies.md #4) — the compile
+    // algorithm's two CompileError rejections are written as plain "reject
+    // ... exception" prose with no [=...=] link, unlike every other call to
+    // `reject` in the file, so they don't parse as a call to `reject` at all
+    // today. Bracket them into real links (now parseable thanks to
+    // ExprParser.NewExceptionExpr's "a {{X}} exception" rule and, for the
+    // first site, InstrParser's bare "and return" rule) and annotate with the
+    // type, same as #10.
     "1. If |module| is [=error=], reject |promise| with a {{CompileError}} exception and return."
     ->
     s"1. If |module| is [=error=], [=reject=] ${ofTypePromise("Module")} |promise| with a {{CompileError}} exception and return.",
@@ -346,30 +348,32 @@ object SpecPatch:
     ->
     "    1. Let |moduleinst| be |funcinst|.module.\n    1. Assert: |funcaddr| is contained in |moduleinst|.funcaddrs.\n    1. Let |index| be the index of |moduleinst|.funcaddrs where |funcaddr| is found.",
 
-    // #15 (spec bug) — the "external value" family's 4 non-tag variants
-    // (func/global/mem/table) are written `[=external value|X=]` (Bikeshed
-    // pipe-display aliasing) instead of the `for`-scoped `[=external
-    // value/X=]` form its 5th variant, tag, already correctly uses (line
-    // ~220's link-defaults block declares `for: external value` / `text: tag`
-    // — but never registers func/global/mem/table the same way, unlike the
-    // parallel "external-type" block a few lines below it, which does
-    // register all 5 of *its* variants `for: external-type`). Normalized to
-    // the `for`-scoped form for consistency with `tag` and with
+    // #15 (spec inconsistency, docs/spec_inconsistencies.md #2) — the
+    // "external value" family's 4 non-tag variants (func/global/mem/table)
+    // are written `[=external value|X=]` (Bikeshed pipe-display aliasing)
+    // instead of the `for`-scoped `[=external value/X=]` form its 5th
+    // variant, tag, already correctly uses (line ~220's link-defaults block
+    // declares `for: external value` / `text: tag` — but never registers
+    // func/global/mem/table the same way, unlike the parallel
+    // "external-type" block a few lines below it, which does register all 5
+    // of *its* variants `for: external-type`). Normalized to the
+    // `for`-scoped form for consistency with `tag` and with
     // `external-type`'s own 5 variants.
     "[=external value|func=]" -> "[=external value/func=]",
     "[=external value|global=]" -> "[=external value/global=]",
     "[=external value|mem=]" -> "[=external value/mem=]",
     "[=external value|table=]" -> "[=external value/table=]",
 
-    // #16 (spec bug) — the link-defaults block that registers "external
-    // value"'s linkable sub-terms (see #15's reasoning) only ever registers
-    // `tag`, never `func`/`global`/`mem`/`table` — unlike the parallel
-    // "external-type" block just below it, which registers all 5 of its own
-    // variants `for: external-type`. This is the root cause #15 patches
-    // around (prose can't validly link `[=external value/func=]` etc.
-    // without a matching registered anchor) — registering the missing 4 here
-    // too, so the anchors actually back the `for`-scoped links #15
-    // normalizes the prose to.
+    // #16 (spec inconsistency, docs/spec_inconsistencies.md #2) — the
+    // link-defaults block that registers "external value"'s linkable
+    // sub-terms (see #15's reasoning) only ever registers `tag`, never
+    // `func`/`global`/`mem`/`table` — unlike the parallel "external-type"
+    // block just below it, which registers all 5 of its own variants
+    // `for: external-type`. This is the root cause #15 patches around (prose
+    // can't validly link `[=external value/func=]` etc. without a matching
+    // registered anchor) — registering the missing 4 here too, so the
+    // anchors actually back the `for`-scoped links #15 normalizes the prose
+    // to.
     "    url: exec/runtime.html#syntax-externval\n        text: external value\n        for: external value\n            text: tag"
     ->
     "    url: exec/runtime.html#syntax-externval\n        text: external value\n        for: external value\n            text: func\n            text: global\n            text: mem\n            text: table\n            text: tag",
@@ -416,10 +420,11 @@ object SpecPatch:
     "be |functype|."
     -> "be [=expand=](|functype|).",
 
-    // #20 (spec bug) — "the memory address |frame|.[=frame/module=]..."
-    // (`memory.grow`, index.bs:929) writes the [=memory address=] dfn-link
-    // bare, unlike every other of its 6 occurrences in this file, which all
-    // bracket it. Bracketed here to match; `TypeAnnotatedPrefix` (ExprParser)
+    // #20 (spec inconsistency, docs/spec_inconsistencies.md #3) — "the
+    // memory address |frame|.[=frame/module=]..." (`memory.grow`,
+    // index.bs:929) writes the [=memory address=] dfn-link bare, unlike every
+    // other of its 6 occurrences in this file, which all bracket it.
+    // Bracketed here to match; `TypeAnnotatedPrefix` (ExprParser)
     // now accepts a trailing `|var|...` EXPR (not just a `[=...=]`-led one),
     // so "the [=TERM=] EXPR" still parses to just EXPR — TERM is dropped as a
     // pure type annotation, same idiom as every other TypeAnnotatedPrefix use.
@@ -478,8 +483,9 @@ object SpecPatch:
     ->
     "throw a {{RuntimeError}} exception.",
 
-    // #24 (spec bug, docs/spec_errors.md #16) — "call an Exported Function"
-    // (index.bs:1297) writes "If |ret| is [=exception=] |exnaddr|, then",
+    // #24 (spec inconsistency, docs/spec_inconsistencies.md #5) — "call an
+    // Exported Function" (index.bs:1297) writes "If |ret| is [=exception=]
+    // |exnaddr|, then",
     // omitting the "of the form" every other destructuring match against a
     // payload-carrying case in this same file uses (e.g. "is of the form
     // [=external-type/func=] |functype|"). Without it, `CondParser` falls

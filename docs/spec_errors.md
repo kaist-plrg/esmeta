@@ -50,7 +50,7 @@
 - **File**: `spectec/document/js-api/index.bs`, line 498
 - **Current**: `1. If |builtinOrStringImports| [=map/exist|contains=] |moduleName|,`
 - **Expected**: `1. If |builtinOrStringImports|[|moduleName|] [=map/exists=],` — matching every other map-membership check in the file (15+ occurrences, e.g. lines 864, 1028, 1164, 1263, all written `|map|[|key|] [=map/exists=]`, with negation as `|map|[|key|] doesn't [=map/exist=]`).
-- **Reason**: `[=map/exist|contains=]` links to the `map/exist` dfn but *displays* "contains" (Bikeshed's `|display-text=]` aliasing), and the sentence around it — `X contains Y` — is exactly WebIDL/Infra's "list contains" idiom, not the map-membership idiom used everywhere else in this file (`base[key] exists`). This reads like a leftover from when `builtinOrStringImports` was a list: spec error #1 already shows its empty-literal is still written `« »` (the *list* notation) instead of `«[ ]»` (the *ordered map* notation), i.e. the same variable's declaration has the same kind of leftover. It looks like only the link target was updated from `list/contains` to `map/exist` when the type changed from list to map, without updating the surrounding sentence to the map idiom.
+- **Reason**: `[=map/exist|contains=]` links to the `map/exist` dfn but *displays* "contains" (Bikeshed's `|display-text=]` aliasing), and the sentence around it — `X contains Y` — is exactly WebIDL/Infra's "list contains" idiom, not the map-membership idiom used everywhere else in this file (`base[key] exists`). Per the Infra Standard, `contains` is only defined for lists — maps have no such operation — so this isn't just stylistically off, it names an operation that doesn't exist for `|builtinOrStringImports|`'s actual (map) type. This reads like a leftover from when `builtinOrStringImports` was a list: spec error #1 already shows its empty-literal is still written `« »` (the *list* notation) instead of `«[ ]»` (the *ordered map* notation), i.e. the same variable's declaration has the same kind of leftover. It looks like only the link target was updated from `list/contains` to `map/exist` when the type changed from list to map, without updating the surrounding sentence to the map idiom.
 
 ## 7. Dead host-function/module-function branch in `name of the WebAssembly function`
 
@@ -73,14 +73,7 @@
 - **Expected**: drop the "index of the host function" tracking in `read the imports`, and collapse `name of the WebAssembly function` to just the `Otherwise` branch's steps unconditionally.
 - **Reason**: this branch exists because a host function's `funcinst` used to be shaped `{type, hostcode hostfunc}` — no `module` field — so it couldn't use the module-defined path's `|funcinst|.module`/`|funcaddrs|` lookup, and `read the imports` had to separately track a host function's position among `|imports|` ("index of the host function") to feed the other branch. The underlying Wasm Core Spec's `funcinst` representation has since changed so that both a host function's and a module-defined function's instance carry a `module` field — the branch (and the index-tracking that only existed to feed it) is now dead code the spec was never updated to drop.
 
-## 8. `[=external value|X=]` pipe-aliasing instead of the registered `for`-scoped `[=external value/X=]` form
-
-- **File**: `spectec/document/js-api/index.bs`, lines 513, 529, 533, 538, 560, 561, 565, 566, 570, 571, 575, 576 (12 occurrences across `read the imports` and `create an exports object`)
-- **Current**: `[=external value|func=]`, `[=external value|global=]`, `[=external value|mem=]`, `[=external value|table=]` (Bikeshed pipe-display aliasing: linking text `external value`, display text the variant name).
-- **Expected**: `[=external value/func=]`, `[=external value/global=]`, `[=external value/mem=]`, `[=external value/table=]` — matching the file's own already-correct `[=external value/tag=]` (lines 544, 581, 582), which links `for`-scoped to `external value` the proper Bikeshed way.
-- **Reason**: the file's own link-defaults block (lines 217-220) registered exactly one `for`-scoped sub-term under `external value`: `tag`. It never registered `func`/`global`/`mem`/`table` the same way — unlike the parallel "external-type" block a few lines below (226-233), which correctly registers all 5 of *its* own variants (`func`/`table`/`mem`/`global`/`tag`) `for: external-type`. Without a registered anchor, `[=external value/func=]` wouldn't validly resolve under Bikeshed, so the spec author fell back to pipe-display aliasing for 4 of the 5 "external value" variants, leaving only `tag` — the one that happened to get registered — using the "correct" `for`-scoped form. Fixed at both ends: `SpecPatch` #16 registers the 4 missing anchors in the link-defaults block (matching "external-type"'s pattern), and #15 normalizes the prose to the now-valid `for`-scoped form.
-
-## 9. `is of the form [=external-type/tag=] |attribute| ...` binds a field the runtime representation no longer has
+## 8. `is of the form [=external-type/tag=] |attribute| ...` binds a field the runtime representation no longer has
 
 - **File**: `spectec/document/js-api/index.bs`, lines 540-541 and 579-580 (`read the imports` and `create an exports object`)
 - **Current**:
@@ -91,28 +84,21 @@
 - **Expected**: `1. If |externtype| is of the form [=external-type/tag=] <var ignore>functype</var>,` (drop the `|attribute|` binding and the Assert that follows it).
 - **Reason**: `al_of_tagtype`/`TagT` (`spectec/spectec/src/backend-interpreter/construct.ml:1198-1199`) wrap a tag's typeuse directly, with no separate attribute-kind field — "exception" is still the only tag attribute this proposal defines, so the runtime representation dropped the field entirely. The very next step only asserts `|attribute|` always equals that one constant, then never uses it again anywhere in either branch — a vestigial binding left over from before the representation change, the same pattern as #7's dead host-function branch.
 
-## 10. `Let [|parameters|] → [|results|] be |functype|.` destructures a `deftype` as if it were already its own comptype
+## 9. `Let [|parameters|] → [|results|] be |functype|.` destructures a `deftype` as if it were already its own comptype
 
 - **File**: `spectec/document/js-api/index.bs`, lines 1269, 1283, 1323 (`a new Exported Function`, `call an Exported Function`, `run a host function`)
 - **Current**: `1. Let [|parameters|] → [|results|] be |functype|.` (and the `[|paramTypes|] → [<var ignore>resultTypes</var>]` variant at line 1269).
 - **Expected**: `1. Let [|parameters|] → [|results|] be [=expand=](|functype|).`
 - **Reason**: `|functype|` here is a `deftype` — either `func_type`'s own return value, or (for `run a host function`) the payload of an imported function's externtype, itself resolved to a `deftype` by `module_imports` (see `spectec/spectec/src/backend-interpreter/embedding.ml`'s `module_imports`, which resolves it via the `$Module_ok` relation). Per the Wasm Core Spec's Embedding API (`embedding.rst`'s `func_type` post-condition: "the returned defined type ... expands to a function type"), a `deftype` is only a `params -> results` comptype *after* the `$Expand` relation (`2.1-validation.types.spectec`) is applied to it — the caller's responsibility, not something `func_type` (or any embedding function returning a `deftype`) does automatically. Every occurrence in this file skips that step and destructures `|functype|` directly, silently projecting into the wrong fields (e.g. a recursive-type wrapper's own inner fields, instead of the function's actual parameter/result lists) whenever `|functype|` isn't already flat. Made explicit via a new `expand` convenience `wjmeta-bridge`/`spectec-server` exposes, wrapping the same `$Expand` relation (`spectec/spectec/src/backend-interpreter/embedding.ml`'s `expand`, backed by `Relation.expand`, already implemented in `relation.ml`).
 
-## 11. `the memory address |frame|...` omits the `[=memory address=]` dfn-link that every other occurrence uses
-
-- **File**: `spectec/document/js-api/index.bs`, line 929 (`memory.grow`)
-- **Current**: `1. Let |memaddr| be the memory address |frame|.[=frame/module=].[=moduleinst/memaddrs=][|x|].`
-- **Expected**: `1. Let |memaddr| be the [=memory address=] |frame|.[=frame/module=].[=moduleinst/memaddrs=][|x|].`
-- **Reason**: `memory address` is a real dfn, linked with `[= =]` at all 6 of its other occurrences in this file (e.g. lines 346, 827, 838, 851, 861, 902). Only this one instance writes it bare, with no link brackets — a markup inconsistency with the file's own established convention for this term.
-
-## 12. `|moduleinst|.funcaddrs` names a field the runtime `moduleinst` record doesn't have
+## 10. `|moduleinst|.funcaddrs` names a field the runtime `moduleinst` record doesn't have
 
 - **File**: `spectec/document/js-api/index.bs`, lines 1254-1255 (`name of the WebAssembly function`)
 - **Current**: `1. Assert: |funcaddr| is contained in |moduleinst|.funcaddrs.` and `1. Let |index| be the index of |moduleinst|.funcaddrs where |funcaddr| is found.`
 - **Expected**: `1. Assert: |funcaddr| is contained in |moduleinst|.funcs.` and `1. Let |index| be the index of |moduleinst|.funcs where |funcaddr| is found.`
 - **Reason**: the Wasm Core Spec's actual runtime `moduleinst` record names its function-address list `FUNCS`, not `funcaddrs` — confirmed directly off a live decoded module instance (its printed record has `TYPES`/`TAGS`/`GLOBALS`/`MEMS`/`TABLES`/`FUNCS`/`DATAS`/`ELEMS`/`EXPORTS` fields, no `FUNCADDRS`). `funcaddrs` reads like a plausible field name (mirroring `funcaddr`, the element type) but doesn't correspond to anything in the actual representation.
 
-## 13. Steps 2 and 4 of `react` end with a colon instead of a period
+## 11. Steps 2 and 4 of `react` end with a colon instead of a period
 
 - **File**: `webidl/index.bs`, lines 8678 and 8686 (`react` to a Promise)
 - **Current**:
@@ -131,16 +117,9 @@
   ```
   1.  Let |onRejected| be [$CreateBuiltinFunction$](|onRejectedSteps|, 1, "", « »).
   ```
-- **Reason**: in this algorithm's own step numbering, a trailing colon is used exactly where a step introduces a nested list of substeps — e.g. step 1 (`Let |onFulfilledSteps| be the following steps given argument |V|:`) and step 3 (`Let |onRejectedSteps| be the following steps given argument |R|:`) both end with `:` and are immediately followed by indented substeps. Steps 2 and 4 are plain, self-contained `Let` bindings with no substeps of their own — the next line at each point is a new top-level step (3 and 5 respectively), not a continuation — so ending them with `:` instead of `.` is inconsistent with the file's own convention and misleadingly suggests each introduces steps that were never written.
+- **Reason**: a trailing colon immediately followed by an indented step list reads as a typo for a period here — steps 2 and 4 are plain, self-contained `Let` bindings with no substeps of their own (unlike steps 1 and 3, `Let |onFulfilledSteps|/|onRejectedSteps| be the following steps ...:`, which genuinely do introduce indented substeps) — the next line at each point is a new top-level step (3 and 5 respectively), not a continuation. Ending them with `:` instead of `.` misleadingly suggests each introduces steps that were never written.
 
-## 14. `reject` used unlinked in `asynchronously compile a WebAssembly module`
-
-- **File**: `spectec/document/js-api/index.bs`, lines 452 and 455 (`asynchronously compile a WebAssembly module`)
-- **Current**: `1. If |module| is [=error=], reject |promise| with a {{CompileError}} exception and return.` and `1. If [=validate builtins and imported string for a WebAssembly module|validating builtins and imported strings=] for |module| with |builtinSetNames| and |importedStringModule| is false, reject |promise| with a {{CompileError}} exception.`
-- **Expected**: `1. If |module| is [=error=], [=reject=] |promise| with a {{CompileError}} exception and return.` and `1. If [=validate builtins and imported string for a WebAssembly module|validating builtins and imported strings=] for |module| with |builtinSetNames| and |importedStringModule| is false, [=reject=] |promise| with a {{CompileError}} exception.` — linking `reject` to the WebIDL algorithm `To reject a Promise<T> ... with reason r` (`webidl/index.bs`, [=reject=] dfn around line 8658).
-- **Reason**: every other call to this same WebIDL algorithm in the file is linked, both lower- and upper-case (`[=reject=]`/`[=Reject=]` at lines 621, 626, 629, 646, 648), and its counterpart `[=Resolve=]` at line 458 — three lines below the second unlinked `reject` — is correctly linked. Only these two occurrences, both inside `asynchronously compile a WebAssembly module`, write `reject` as plain prose with no link to the algorithm it's invoking, breaking mechanized extraction that relies on the `[= =]` markup to find the algorithm call.
-
-## 15. `|options|["builtins"]` / `|options|["importedStringConstants"]` map-indexed without accounting for the WebIDL default empty dictionary
+## 12. `|options|["builtins"]` / `|options|["importedStringConstants"]` map-indexed without accounting for the WebIDL default empty dictionary
 
 - **File**: `spectec/document/js-api/index.bs`, lines 421-422 (`validate`) and 453-454 (`asynchronously compile a WebAssembly module`, reached from both `compile()` and `WebAssembly.instantiate(bytes, importObject, options)`)
 - **Current**:
@@ -151,14 +130,7 @@
 - **Expected**: something that accounts for the keys being absent, e.g. `1. Let |builtinSetNames| be |options|["builtins"] if it [=map/exists=], otherwise an empty list.` and `1. Let |importedStringModule| be |options|["importedStringConstants"] if it [=map/exists=], otherwise null.` — matching the `|map|[|key|] [=map/exists=]` idiom used everywhere else map membership is checked in this file (see spec error #6).
 - **Reason**: `options`'s IDL type, `WebAssemblyCompileOptions` (lines 364-367), declares `importedStringConstants` and `builtins` as plain optional members with no `=` default value. Per `webidl/index.bs` lines 4654-4657, only members that are `required` or carry an explicit default value are guaranteed a corresponding entry when a dictionary value is converted to an ordered map — other optional members may or may not have an entry, depending on what the caller actually supplied. The IDL also defaults the `options` argument itself to `{}` when omitted (line 371-375, `optional WebAssemblyCompileOptions options = {}`), which is the common case for calls like `WebAssembly.instantiate(bytes, importObject)` or `WebAssembly.compile(bytes)`. Converting that empty `{}` yields a map with *no* entries for either key, yet `|options|["builtins"]`/`|options|["importedStringConstants"]` index into it unconditionally, with no `[=map/exists=]` guard — unlike every other map-key access in this file (spec error #6). The result is that the algorithm is unhandled precisely for its most common call pattern, where no options object (or an options object missing one of these two properties) is supplied at all.
 
-## 16. `is [=exception=] |exnaddr|` omits the `of the form` every other destructuring match uses
-
-- **File**: `spectec/document/js-api/index.bs`, line 1297 (`call an Exported Function`)
-- **Current**: `1. If |ret| is [=exception=] |exnaddr|, then`
-- **Expected**: `1. If |ret| is of the form [=exception=] |exnaddr|, then` — matching every other place this same file destructures a payload-carrying case (e.g. `is of the form [=external-type/func=] |functype|`, lines 506+).
-- **Reason**: `[=exception=]` links to `embedding.rst`'s `exception ::= EXCEPTION exnaddr` (line 49) — a case that carries a payload (`exnaddr`), which per this file's own established convention must be introduced with "is of the form" for the payload variable to be recognized as something being *bound out* of `|ret|`, not a value `|ret|` is being compared against. Without it, the sentence reads as a plain equality check whose RHS happens to construct an `EXCEPTION` value from a variable `|exnaddr|` that was never actually declared anywhere — the same shape as `SpecPatch` #24 fixes by inserting the missing words. `[=error=]` (a 0-arg case, `error ::= ERROR`) never runs into this, since it has no payload to bind; this is the only payload-carrying case in the file compared without "of the form."
-
-## 17. `[=exception=]` ambiguous between two anchors registered in the same `<pre class=anchors>` block
+## 13. `[=exception=]` ambiguous between two anchors registered in the same `<pre class=anchors>` block
 
 - **File**: `spectec/document/js-api/index.bs`, line 1297 (`call an Exported Function`'s use of `[=exception=]`); the colliding registrations: lines 165 and 248, in the same `<pre class="anchors">` block (starting line 37)
 - **Current**: two separate `text: exception` entries are registered in the same anchors block:

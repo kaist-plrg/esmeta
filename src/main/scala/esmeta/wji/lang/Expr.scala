@@ -228,16 +228,6 @@ object Expr:
   case class FollowingSteps(params: List[String], variadicLast: Boolean = false)
     extends Expr
 
-  /** Projects component `idx` out of `base`, a Wasm-embedding call's `(store,
-    * X)`-shaped result (e.g. `module_instantiate`, `func_invoke`, `func_alloc`,
-    * `global_alloc`, ... — every embedding function that returns a tuple pairs
-    * the updated store with its own result). Produced by
-    * `esmeta.wji.compiler.lowering.ExpandDestructuringLetPass` in place of a
-    * plain [[Index]], since the runtime representation is a Wasm-side `TupV`,
-    * not a heap list/record — [[Index]] compiles to a `Field` (heap-addressed)
-    * read, whereas this compiles directly to `ir.EProj`, the IR node dedicated
-    * to unpacking a `Wasm(TupV(...))`. See `esmeta.wji.compiler.Compiler`.
-    */
   /** "performing CLOSURE given ARG[, ARG...][ and ARG]" — invoking a closure
     * *value* (as opposed to [[Instr.Perform]], which invokes a *named*
     * `[=link=]` as a statement). `closure` is typically a bare [[Var]] holding
@@ -251,6 +241,19 @@ object Expr:
     */
   case class ClosureCall(closure: Expr, args: List[Expr]) extends Expr
 
+  /** Projects component `idx` out of `base`, a Wasm-embedding call's `(store,
+    * X)`-shaped result (e.g. `module_instantiate`, `func_invoke`, `func_alloc`,
+    * `global_alloc`, ... — every embedding function that returns a tuple pairs
+    * the updated store with its own result), or the `idx`-th positional
+    * constructor argument of a `Wasm(CaseV(...))`. Produced by
+    * `esmeta.wji.compiler.lowering.ExpandDestructuringLetPass`/
+    * `ExpandIsOfFormPass`. Compiles to the same `ir.Field` ref [[Index]] does
+    * (see `esmeta.wji.compiler.Compiler`) — `State.apply` dispatches on the
+    * base value's runtime shape, so the identical `Field` read works whether it
+    * turns out to be a heap object or an opaque `Wasm` value; kept as its own
+    * metalang node rather than reusing [[Index]] outright since the index here
+    * is always a literal `Int`, not an arbitrary key `Expr`.
+    */
   case class TupleProj(base: Expr, idx: Int) extends Expr
 
   /** Reads `base`'s SpecTec `CaseV` constructor tag as a string (mirrors

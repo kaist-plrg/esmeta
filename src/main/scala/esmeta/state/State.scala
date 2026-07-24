@@ -53,6 +53,7 @@ case class State(
     case Str(str)                   => apply(str, field)
     case Wasm(ALValue.ListV(vs))    => apply(vs, field)
     case Wasm(ALValue.TupV(vs))     => apply(vs, field)
+    case Wasm(ALValue.CaseV(_, vs)) => apply(vs, field)
     case Wasm(ALValue.StrV(fields)) => applyFields(fields, field)
     case v                          => throw InvalidRefBase(v)
 
@@ -61,11 +62,13 @@ case class State(
     case Math(k) => CodeUnit(str(k.toInt))
     case _       => throw WrongStringRef(str, field)
 
-  /** Wasm-embedding list field getter. The index may be a native `Math` (e.g. a
-    * loop counter) or, since a Wasm address (funcaddr, memaddr, ...) stays
-    * opaquely `Wasm`-wrapped end to end rather than being unwrapped into a
-    * native number, a `Wasm(NumV(Nat(...)))` (e.g. `|store|.funcs[
-    * |funcaddr|]`, where `|funcaddr|` was never unwrapped).
+  /** Wasm-embedding positional field getter, shared by `ListV`/`TupV`/`CaseV`
+    * (all just a `List[ALValue]` once unwrapped — `CaseV`'s tag doesn't affect
+    * indexing). The index may be a native `Math` (e.g. a loop counter) or,
+    * since a Wasm address (funcaddr, memaddr, ...) stays opaquely
+    * `Wasm`-wrapped end to end rather than being unwrapped into a native
+    * number, a `Wasm(NumV(Nat(...)))` (e.g. `|store|.funcs[|funcaddr|]`, where
+    * `|funcaddr|` was never unwrapped).
     */
   def apply(vs: List[ALValue], field: Value): Value =
     lazy val base = Wasm(ALValue.ListV(vs))

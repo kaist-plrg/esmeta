@@ -130,9 +130,9 @@ def instantiate_imported_strings(
   let _iterIdx2 = 0
   while (< _iterIdx2 (sizeof _iterList1)) {
     let _tuple1 = _iterList1[_iterIdx2]
-    let moduleName = (proj _tuple1 0)
-    let componentName = (proj _tuple1 1)
-    let externtype = (proj _tuple1 2)
+    let moduleName = _tuple1[0]
+    let componentName = _tuple1[1]
+    let externtype = _tuple1[2]
     if (! (= moduleName importedStringModule)) {
       (yet "continue")
     } else nop
@@ -184,9 +184,9 @@ def read_the_imports(
   let _iterIdx4 = 0
   while (< _iterIdx4 (sizeof _iterList3)) {
     let _tuple1 = _iterList3[_iterIdx4]
-    let moduleName = (proj _tuple1 0)
-    let componentName = (proj _tuple1 1)
-    let externtype = (proj _tuple1 2)
+    let moduleName = _tuple1[0]
+    let componentName = _tuple1[1]
+    let externtype = _tuple1[2]
     if (exists builtinOrStringImports[moduleName]) {
       let o = builtinOrStringImports[moduleName]
       if (|| (! (? o: Record[Object])) (= (yet "if [$HasProperty$](|o|, |componentName|)") false)) {
@@ -244,7 +244,7 @@ def read_the_imports(
       let v = _comp3
     }
     if (= (case-tag externtype) "FUNC") {
-      let functype = (proj externtype 0)
+      let functype = externtype[0]
       call _call2 = clo<"IsCallable">(v)
       if (= _call2 false) {
         call _err8 = clo<"__NEW_ERROR_OBJ__">("%LinkError.prototype%")
@@ -260,8 +260,8 @@ def read_the_imports(
       push imports < externfunc
     } else nop
     if (= (case-tag externtype) "GLOBAL") {
-      let mut = (proj (proj externtype 0) 0)
-      let valtype = (proj (proj externtype 0) 1)
+      let mut = externtype[0][0]
+      let valtype = externtype[0][1]
       if (yet "implements Global") {
         let globaladdr = v.Global
       } else {
@@ -295,15 +295,15 @@ def read_the_imports(
         }
         let store = @AGENT_RECORD["associated store"]
         call-embed _tuple2 = <global_alloc>(store, (case "CONST" valtype), value)
-        let store = (proj _tuple2 0)
-        let globaladdr = (proj _tuple2 1)
+        let store = _tuple2[0]
+        let globaladdr = _tuple2[1]
         @AGENT_RECORD["associated store"] = store
       }
       let externglobal = (case "GLOBAL" globaladdr)
       push imports < externglobal
     } else nop
     if (= (case-tag externtype) "MEM") {
-      let memtype = (proj externtype 0)
+      let memtype = externtype[0]
       if (yet "implements Memory") {
         call _err18 = clo<"__NEW_ERROR_OBJ__">("%LinkError.prototype%")
         call _ret19 = clo<"ThrowCompletion">(_err18)
@@ -313,7 +313,7 @@ def read_the_imports(
       push imports < externmem
     } else nop
     if (= (case-tag externtype) "TABLE") {
-      let tabletype = (proj externtype 0)
+      let tabletype = externtype[0]
       if (yet "implements Table") {
         call _err20 = clo<"__NEW_ERROR_OBJ__">("%LinkError.prototype%")
         call _ret21 = clo<"ThrowCompletion">(_err20)
@@ -324,7 +324,7 @@ def read_the_imports(
       push imports < externtable
     } else nop
     if (= (case-tag externtype) "TAG") {
-      let functype = (proj externtype 0)
+      let functype = externtype[0]
       if (yet "implements Tag") {
         call _err22 = clo<"__NEW_ERROR_OBJ__">("%LinkError.prototype%")
         call _ret23 = clo<"ThrowCompletion">(_err22)
@@ -358,48 +358,48 @@ def create_an_exports_object(
   let _iterIdx2 = 0
   while (< _iterIdx2 (sizeof _iterList1)) {
     let _tuple1 = _iterList1[_iterIdx2]
-    let name = (proj _tuple1 0)
-    let externtype = (proj _tuple1 1)
+    let name = _tuple1[0]
+    let externtype = _tuple1[1]
     call-embed externval = <instance_export>(instance, name)
     assert (! (= externval ~error~))
     if (= (case-tag externtype) "FUNC") {
-      let functype = (proj externtype 0)
+      let functype = externtype[0]
       assert (yet "is of form Case([=external value/func=],List(Var(funcaddr)))")
       assert (= (case-tag externval) "FUNC")
-      let funcaddr = (proj externval 0)
+      let funcaddr = externval[0]
       call func = clo<"a_new_exported_function">(funcaddr)
       let value = func
     } else nop
     if (= (case-tag externtype) "GLOBAL") {
-      let mut = (proj (proj externtype 0) 0)
-      let globaltype = (proj (proj externtype 0) 1)
+      let mut = externtype[0][0]
+      let globaltype = externtype[0][1]
       assert (yet "is of form Case([=external value/global=],List(Var(globaladdr)))")
       assert (= (case-tag externval) "GLOBAL")
-      let globaladdr = (proj externval 0)
+      let globaladdr = externval[0]
       call global = clo<"create_a_global_object">(globaladdr)
       let value = global
     } else nop
     if (= (case-tag externtype) "MEM") {
-      let memtype = (proj externtype 0)
+      let memtype = externtype[0]
       assert (yet "is of form Case([=external value/mem=],List(Var(memaddr)))")
       assert (= (case-tag externval) "MEM")
-      let memaddr = (proj externval 0)
+      let memaddr = externval[0]
       call memory = clo<"create_a_memory_object">(memaddr)
       let value = memory
     } else nop
     if (= (case-tag externtype) "TABLE") {
-      let tabletype = (proj externtype 0)
+      let tabletype = externtype[0]
       assert (yet "is of form Case([=external value/table=],List(Var(tableaddr)))")
       assert (= (case-tag externval) "TABLE")
-      let tableaddr = (proj externval 0)
+      let tableaddr = externval[0]
       call table = clo<"create_a_table_object">(tableaddr)
       let value = table
     } else nop
     if (= (case-tag externtype) "TAG") {
-      let functype = (proj externtype 0)
+      let functype = externtype[0]
       assert (yet "is of form Case([=external value/tag=],List(Var(tagaddr)))")
       assert (= (case-tag externval) "TAG")
-      let tagaddr = (proj externval 0)
+      let tagaddr = externval[0]
       call tag = clo<"create_a_tag_object">(tagaddr)
       let value = tag
     } else nop
@@ -439,8 +439,8 @@ def instantiate_the_core_of_a_webassembly_module(
     } else nop
     (yet "Another error type if appropriate, for example an out-of-memory exception, as documented in <a href=\"#errors\">the WebAssembly error mapping</a>")
   } else nop
-  let store = (proj result 0)
-  let instance = (proj result 1)
+  let store = result[0]
+  let instance = result[1]
   @AGENT_RECORD["associated store"] = store
   if (? instance: Completion) {
     return instance
@@ -518,8 +518,8 @@ def exports(
   let _iterIdx2 = 0
   while (< _iterIdx2 (sizeof _iterList1)) {
     let _tuple1 = _iterList1[_iterIdx2]
-    let name = (proj _tuple1 0)
-    let type = (proj _tuple1 1)
+    let name = _tuple1[0]
+    let type = _tuple1[1]
     call kind = clo<"string_value_of_the_extern_type">(type)
     let obj = (map [Unknown, Unknown] {
       "name" -> name,
@@ -541,9 +541,9 @@ def imports(
   let _iterIdx2 = 0
   while (< _iterIdx2 (sizeof _iterList1)) {
     let _tuple1 = _iterList1[_iterIdx2]
-    let moduleName = (proj _tuple1 0)
-    let name = (proj _tuple1 1)
-    let type = (proj _tuple1 2)
+    let moduleName = _tuple1[0]
+    let name = _tuple1[1]
+    let type = _tuple1[2]
     if (&& (yet "[=find a builtin=] for (|moduleName|, |name|, |type|)") (! (= builtinSetNames null))) {
       (yet "continue")
     } else nop
@@ -786,8 +786,8 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Memory(
   } else nop
   let store = @AGENT_RECORD["associated store"]
   call-embed _tuple1 = <mem_alloc>(store, memtype)
-  let store = (proj _tuple1 0)
-  let memaddr = (proj _tuple1 1)
+  let store = _tuple1[0]
+  let memaddr = _tuple1[1]
   if (yet "allocation fails") {
     call _err5 = clo<"__NEW_ERROR_OBJ__">("%RangeError.prototype%")
     call _ret6 = clo<"ThrowCompletion">(_err5)
@@ -1104,8 +1104,8 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Table(
   }
   let store = @AGENT_RECORD["associated store"]
   call-embed _tuple1 = <table_alloc>(store, type, ref)
-  let store = (proj _tuple1 0)
-  let tableaddr = (proj _tuple1 1)
+  let store = _tuple1[0]
+  let tableaddr = _tuple1[1]
   if (yet "allocation fails") {
     call _err8 = clo<"__NEW_ERROR_OBJ__">("%RangeError.prototype%")
     call _ret9 = clo<"ThrowCompletion">(_err8)
@@ -1124,9 +1124,9 @@ def grow(
   let store = @AGENT_RECORD["associated store"]
   call-embed initialSize = <table_size>(store, tableaddr)
   call-embed _tuple1 = <table_type>(store, tableaddr)
-  let addrtype = (proj _tuple1 0)
-  let limits = (proj _tuple1 1)
-  let elementtype = (proj _tuple1 2)
+  let addrtype = _tuple1[0]
+  let limits = _tuple1[1]
+  let elementtype = _tuple1[2]
   call _comp1 = clo<"addressvaluetou64">(delta, addrtype)
   if (exists _comp1.Type) {
     if (? _comp1: Abrupt) {
@@ -1204,9 +1204,9 @@ def get(
   let tableaddr = this.Table
   let store = @AGENT_RECORD["associated store"]
   call-embed _tuple1 = <table_type>(store, tableaddr)
-  let addrtype = (proj _tuple1 0)
-  let limits = (proj _tuple1 1)
-  let elementtype = (proj _tuple1 2)
+  let addrtype = _tuple1[0]
+  let limits = _tuple1[1]
+  let elementtype = _tuple1[2]
   if (yet "matches reftype") {
     call _err1 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
     call _ret2 = clo<"ThrowCompletion">(_err1)
@@ -1259,9 +1259,9 @@ def set(
   let tableaddr = this.Table
   let store = @AGENT_RECORD["associated store"]
   call-embed _tuple1 = <table_type>(store, tableaddr)
-  let addrtype = (proj _tuple1 0)
-  let limits = (proj _tuple1 1)
-  let elementtype = (proj _tuple1 2)
+  let addrtype = _tuple1[0]
+  let limits = _tuple1[1]
+  let elementtype = _tuple1[2]
   if (yet "matches reftype") {
     call _err1 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
     call _ret2 = clo<"ThrowCompletion">(_err1)
@@ -1446,8 +1446,8 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Global(
   }
   let store = @AGENT_RECORD["associated store"]
   call-embed _tuple1 = <global_alloc>(store, globaltype, value)
-  let store = (proj _tuple1 0)
-  let globaladdr = (proj _tuple1 1)
+  let store = _tuple1[0]
+  let globaladdr = _tuple1[1]
   (yet "<!-- TODO(littledan): Report allocation failure https://github.com/WebAssembly/spec/issues/584 -->")
   @AGENT_RECORD["associated store"] = store
   call _ = clo<"initialize_a_global_object">(this, globaladdr)
@@ -1597,8 +1597,8 @@ def a_new_exported_function(
   call-embed functype = <func_type>(store, funcaddr)
   call-embed _tuple1 = <expand>(functype)
   assert (= (case-tag _tuple1) "->")
-  let paramTypes = (proj _tuple1 0)
-  let resultTypes = (proj _tuple1 1)
+  let paramTypes = _tuple1[0]
+  let resultTypes = _tuple1[1]
   let arity = (sizeof paramTypes)
   call name = clo<"name_of_the_webassembly_function">(funcaddr)
   call _comp1 = clo<"CreateBuiltinFunction">(steps, arity, name, (list ["FunctionAddress"]), realm)
@@ -1620,8 +1620,8 @@ def call_an_exported_function(
   call-embed functype = <func_type>(store, funcaddr)
   call-embed _tuple1 = <expand>(functype)
   assert (= (case-tag _tuple1) "->")
-  let parameters = (proj _tuple1 0)
-  let results = (proj _tuple1 1)
+  let parameters = _tuple1[0]
+  let results = _tuple1[1]
   let _found3 = false
   let _i4 = 0
   while (&& (= _found3 false) (< _i4 (sizeof parameters))) {
@@ -1670,8 +1670,8 @@ def call_an_exported_function(
     _iterIdx2 = (+ _iterIdx2 1)
   }
   call-embed _tuple2 = <func_invoke>(store, funcaddr, args)
-  let store = (proj _tuple2 0)
-  let ret = (proj _tuple2 1)
+  let store = _tuple2[0]
+  let ret = _tuple2[1]
   @AGENT_RECORD["associated store"] = store
   if (= ret ~error~) {
     call _err3 = clo<"__NEW_ERROR_OBJ__">("%RuntimeError.prototype%")
@@ -1679,7 +1679,7 @@ def call_an_exported_function(
     return _ret4
   } else nop
   if (= (case-tag ret) "EXCEPTION") {
-    let exnaddr = (proj ret 0)
+    let exnaddr = ret[0]
     call-embed tagaddr = <exn_tag>(store, exnaddr)
     call-embed payload = <exn_read>(store, exnaddr)
     call jsTagAddr = clo<"get_the_javascript_exception_tag">()
@@ -1744,8 +1744,8 @@ def run_a_host_function(
 ): Unknown = {
   call-embed _tuple1 = <expand>(functype)
   assert (= (case-tag _tuple1) "->")
-  let parameters = (proj _tuple1 0)
-  let results = (proj _tuple1 1)
+  let parameters = _tuple1[0]
+  let results = _tuple1[1]
   let _found3 = false
   let _i4 = 0
   while (&& (= _found3 false) (< _i4 (sizeof parameters))) {
@@ -1887,8 +1887,8 @@ def create_a_host_function(
   let hostfunc = clo<"create_a_host_function_closure1", [func, functype]>
   let store = @AGENT_RECORD["associated store"]
   call-embed _tuple2 = <func_alloc>(store, functype, hostfunc)
-  let store = (proj _tuple2 0)
-  let funcaddr = (proj _tuple2 1)
+  let store = _tuple2[0]
+  let funcaddr = _tuple2[1]
   @AGENT_RECORD["associated store"] = store
   return funcaddr
 }
@@ -1897,18 +1897,18 @@ def tojsvalue(
 ): Unknown = {
   assert (yet "is of form Case([=v128.const=],List(Var(v128)))")
   assert (yet "is of form Case([=ref.exn=],List(Var(exnaddr)))")
-  if (&& (= (case-tag w) "CONST") (= (case-tag (proj w 0)) "I64")) {
-    let u64 = (proj w 1)
+  if (&& (= (case-tag w) "CONST") (= (case-tag w[0]) "I64")) {
+    let u64 = w[1]
     call-embed i64 = <signed_64>(u64)
     return ([bigInt] ([math] i64))
   } else nop
-  if (&& (= (case-tag w) "CONST") (= (case-tag (proj w 0)) "I32")) {
-    let u32 = (proj w 1)
+  if (&& (= (case-tag w) "CONST") (= (case-tag w[0]) "I32")) {
+    let u32 = w[1]
     call-embed i32 = <signed_32>(u32)
     return ([number] ([math] i32))
   } else nop
-  if (&& (= (case-tag w) "CONST") (= (case-tag (proj w 0)) "F32")) {
-    let f32 = (proj w 1)
+  if (&& (= (case-tag w) "CONST") (= (case-tag w[0]) "F32")) {
+    let f32 = w[1]
     if (|| (= f32 ~+∞~) (= f32 ~−∞~)) {
       return (yet "**+∞**<sub>𝔽</sub> or **-∞**<sub>𝔽</sub>, respectively")
     } else nop
@@ -1917,8 +1917,8 @@ def tojsvalue(
     } else nop
     return ([number] ([math] f32))
   } else nop
-  if (&& (= (case-tag w) "CONST") (= (case-tag (proj w 0)) "F64")) {
-    let f64 = (proj w 1)
+  if (&& (= (case-tag w) "CONST") (= (case-tag w[0]) "F64")) {
+    let f64 = w[1]
     if (|| (= f64 ~+∞~) (= f64 ~−∞~)) {
       return (yet "**+∞**<sub>𝔽</sub> or **-∞**<sub>𝔽</sub>, respectively")
     } else nop
@@ -2288,8 +2288,8 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Tag(
   }
   let store = @AGENT_RECORD["associated store"]
   call-embed _tuple1 = <tag_alloc>(store, (yet "|wasmParameters| → « »"))
-  let store = (proj _tuple1 0)
-  let tagAddress = (proj _tuple1 1)
+  let store = _tuple1[0]
+  let tagAddress = _tuple1[1]
   @AGENT_RECORD["associated store"] = store
   call _ = clo<"initialize_a_tag_object">(this, tagAddress)
   call _ret1 = clo<"NormalCompletion">(~unused~)
@@ -2463,8 +2463,8 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Exception(
   }
   push wasmPayload < (yet "nested ?-abrupt: Var(_call1)")
   call-embed _tuple1 = <exn_alloc>(store, exceptionTag.Address, wasmPayload)
-  let store = (proj _tuple1 0)
-  let exceptionAddr = (proj _tuple1 1)
+  let store = _tuple1[0]
+  let exceptionAddr = _tuple1[1]
   @AGENT_RECORD["associated store"] = store
   call _ = clo<"initialize_an_exception_object">(this, exceptionAddr)
   if (= options.traceStack true) {
@@ -2546,8 +2546,8 @@ def get_the_javascript_exception_tag(
   } else nop
   let store = @AGENT_RECORD["associated store"]
   call-embed _tuple1 = <tag_alloc>(store, (list [(case "REF" (opt (case "NULL" )) (case "EXTERN" ))]))
-  let store = (proj _tuple1 0)
-  let tagAddress = (proj _tuple1 1)
+  let store = _tuple1[0]
+  let tagAddress = _tuple1[1]
   @AGENT_RECORD["associated store"] = store
   @AGENT_RECORD["JavaScript exception tag"] = tagAddress
   return tagAddress
@@ -2631,8 +2631,8 @@ def create_a_builtin_function(
   let hostfunc = (yet "[=host function=] which executes |steps| when called")
   let store = @AGENT_RECORD["associated store"]
   call-embed _tuple1 = <func_alloc>(store, funcType, hostfunc)
-  let store = (proj _tuple1 0)
-  let funcaddr = (proj _tuple1 1)
+  let store = _tuple1[0]
+  let funcaddr = _tuple1[1]
   @AGENT_RECORD["associated store"] = store
   return funcaddr
 }
@@ -2651,9 +2651,9 @@ def instantiate_a_builtin_set(
   let _iterIdx2 = 0
   while (< _iterIdx2 (sizeof _iterList1)) {
     let _tuple1 = _iterList1[_iterIdx2]
-    let name = (proj _tuple1 0)
-    let funcType = (proj _tuple1 1)
-    let steps = (proj _tuple1 2)
+    let name = _tuple1[0]
+    let funcType = _tuple1[1]
+    let steps = _tuple1[2]
     call funcaddr = clo<"create_a_builtin_function">(funcType, steps)
     call func = clo<"a_new_exported_function">(funcaddr)
     let value = func
@@ -3321,8 +3321,8 @@ def create_a_host_function_closure1(
         let payload = _comp1
       }
       call-embed _tuple1 = <exn_alloc>(store, type, (list [payload]))
-      let store = (proj _tuple1 0)
-      let address = (proj _tuple1 1)
+      let store = _tuple1[0]
+      let address = _tuple1[1]
       @AGENT_RECORD["associated store"] = store
     }
     (yet "Execute the WebAssembly instructions ([=ref.exn=] |address|) ([=throw_ref=])")

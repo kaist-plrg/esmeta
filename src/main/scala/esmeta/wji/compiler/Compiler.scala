@@ -446,8 +446,13 @@ object Compiler:
     case metalang.Expr.Unknown(raw) => EYet(raw)
     case metalang.Expr.Closure(name, captured) =>
       EClo(name, captured.map(Name(_)))
-    case metalang.Expr.TupleProj(base, idx) => EProj(compileExpr(base), idx)
-    case metalang.Expr.CaseTag(base)        => ECaseTag(compileExpr(base))
+    // a `Wasm(TupV(...))`/`Wasm(CaseV(...))`'s positional field, read exactly
+    // like any other `base[key]` indexing (`Expr.Index` above) — `State.apply`
+    // dispatches on the runtime value's shape, so the same `Field` ref works
+    // whether `base` turns out to be a heap object or an opaque Wasm value.
+    case metalang.Expr.TupleProj(base, idx) =>
+      ERef(Field(compileRef(base), EMath(idx)))
+    case metalang.Expr.CaseTag(base) => ECaseTag(compileExpr(base))
 
     // ── unreachable after lowering ──
     // Every shape below is guaranteed gone by the time `Compiler` runs —
@@ -536,6 +541,8 @@ object Compiler:
     case metalang.Expr.Field(base, name) => Field(compileRef(base), EStr(name))
     case metalang.Expr.Index(base, key) =>
       Field(compileRef(base), compileExpr(key))
+    case metalang.Expr.TupleProj(base, idx) =>
+      Field(compileRef(base), EMath(idx))
     case metalang.Expr.AlgoCall(link, Nil) => Global(nameFromLink(link))
     case other => Name(s"@@yet: unresolved ref: $other")
 

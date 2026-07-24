@@ -114,17 +114,11 @@ case class AssertionFail(expr: Expr)
 case class OutOfRange(list: ListObj, k: Int)
   extends InterpreterError(s"out of range: $k of $list")
 
-// Wasm embedding boundary (ICallEmbed / EProj)
+// Wasm embedding boundary (ICallEmbed)
 case class UnknownEmbedding(fname: String)
   extends InterpreterError(s"unknown embedding function: $fname")
 case class WasmHostFailure(msg: String)
   extends InterpreterError(s"WasmHost error: $msg")
-case class NoWasmTuple(v: Value)
-  extends InterpreterError(s"proj: expected a Wasm tuple or case value, got $v")
-case class WasmTupleIndexOutOfRange(idx: Int, size: Int)
-  extends InterpreterError(
-    s"proj: index $idx out of bounds for tuple of size $size",
-  )
 case class NoWasmCase(v: Value)
   extends InterpreterError(s"case-tag: expected a Wasm case value, got $v")
 case class NoWasmValue(v: Value)

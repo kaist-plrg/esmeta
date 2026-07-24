@@ -19,9 +19,11 @@ import esmeta.error.UnsupportedSpecShape
   * Every tuple-destructuring `Let` in the spec (directly or indirectly, via a
   * preceding `Let |result| be ...`) unpacks the `(store, X)` result of a Wasm
   * embedding call — a `Wasm(TupV(...))`, not a heap list/record — so the
-  * destructured fields are built as [[Expr.TupleProj]] (compiles to
-  * `ir.EProj`), not a plain [[Expr.Index]] (compiles to a heap `Field` read;
-  * see `esmeta.wji.compiler.Compiler`).
+  * destructured fields are built as [[Expr.TupleProj]] rather than a plain
+  * [[Expr.Index]]: both compile to the same `ir.Field` ref (see
+  * `esmeta.wji.compiler.Compiler`, `State.apply` dispatches on the base value's
+  * actual runtime shape either way), but `TupleProj`'s index is always a
+  * literal `Int` known at lowering time, not an arbitrary key `Expr`.
   *
   * `Case(tag, args)` as a `Let` LHS (e.g. "Let [|parameters|] → [|results|] be
   * |functype|.", parsed by `ExprParser.CompTypeArrow` into `Case("->",

@@ -182,10 +182,10 @@ enum ALValue:
   * moduleName)`) — never passed back across the WasmHost boundary as a bare
   * value itself — so the smart constructor below unwraps it to a real [[Str]]
   * instead of leaving it `Wasm`-wrapped. This lives here, in the one place
-  * every `Wasm(...)` construction goes through (`EProj`, list-indexing a
-  * `Wasm(ALValue.ListV(...))`, a raw embedding-call result, ...), rather than
-  * at each of those call sites individually, so `Wasm(ALValue.TextV(_))` can't
-  * accidentally exist anywhere.
+  * every `Wasm(...)` construction goes through (positional indexing into a
+  * `Wasm(ALValue.TupV(...))`/`CaseV(...)`/`ListV(...)` via `State.apply`, a raw
+  * embedding-call result, ...), rather than at each of those call sites
+  * individually, so `Wasm(ALValue.TextV(_))` can't accidentally exist anywhere.
   */
 case class Wasm private (v: ALValue) extends Value
 object Wasm:

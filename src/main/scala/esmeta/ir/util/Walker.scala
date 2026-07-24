@@ -110,8 +110,6 @@ trait Walker extends BasicWalker {
       EClo(walk(fname), walkList(captured, walk))
     case ECont(fname) =>
       ECont(walk(fname))
-    case EProj(expr, idx) =>
-      EProj(walk(expr), walk(idx))
     case ECaseTag(expr) =>
       ECaseTag(walk(expr))
     case ECase(tag, args) =>

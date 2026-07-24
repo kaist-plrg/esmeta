@@ -135,6 +135,16 @@ object WasmHost:
     "match_valtype" -> List("valtype1", "valtype2"),
     // match_externtype(externtype, externtype) : bool
     "match_externtype" -> List("externtype1", "externtype2"),
+    // Not part of the formal embedding.rst boundary -- these are Wasm Core
+    // spec numerics (signed_(N)) that js-api prose calls directly by their
+    // rendered per-width names. The server translates the name back to the
+    // real parametric `signed` op; see `server.ml`'s `call_signed`.
+    // signed_31(i: u31) : i31 (interpreted as a mathematical value)
+    "signed_31" -> List("i"),
+    // signed_32(i: u32) : i32 (interpreted as a mathematical value)
+    "signed_32" -> List("i"),
+    // signed_64(i: u64) : i64 (interpreted as a mathematical value)
+    "signed_64" -> List("i"),
   )
 
   /** The embedding function names this trait implements (`paramNames`'s keys,

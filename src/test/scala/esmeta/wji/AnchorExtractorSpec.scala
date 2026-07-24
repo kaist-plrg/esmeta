@@ -25,10 +25,16 @@ class AnchorExtractorSpec extends AnyFunSuite:
     * convenience wrapping the `$Expand` relation, added to work around
     * js-api/index.bs destructuring a `deftype` without ever calling `$expand`
     * itself — see `WasmHost.paramNames`'s `expand` entry and
-    * `docs/spec_errors.md`. Not a spec gap `WasmHost` needs to close; the spec
-    * was never going to anchor it.
+    * `docs/spec_errors.md`. `signed_31`/`signed_32`/`signed_64` are Wasm Core
+    * spec numerics (`signed_(N)`) that js-api prose calls directly by their
+    * rendered per-width name; the SpecTec server translates that name back to
+    * the real parametric `signed` op itself (`server.ml`'s `call_signed`), so
+    * `WasmHost` just forwards the call like any other embedding function. None
+    * of these are a spec gap `WasmHost` needs to close; the spec was never
+    * going to anchor them.
     */
-  private val bridgeOnlyNames: Set[String] = Set("expand")
+  private val bridgeOnlyNames: Set[String] =
+    Set("expand", "signed_31", "signed_32", "signed_64")
 
   test(
     "WasmHost.names matches every embedding function js-api/index.bs's anchors block declares",

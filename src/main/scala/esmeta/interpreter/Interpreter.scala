@@ -385,7 +385,17 @@ class Interpreter(
       Interpreter.eval(mop, st, vs)
     case EConvert(cop, expr) =>
       import COp.*
-      (eval(expr), cop) match {
+      // wasm-embedding numeric values normalize to Math up front, so every
+      // conversion target below (ToNumber/ToBigInt/ToMath/...) handles a
+      // wasm-origin number exactly like a native one. The only ALNum shape
+      // SpecTec actually produces for wasm integers (`construct.ml`'s
+      // `al_of_nat32` etc. always emit `Nat`); `Rat`/`Real` aren't reached
+      // here.
+      val v = eval(expr) match
+        case Wasm(ALValue.NumV(ALNum.Nat(n))) => Math(n)
+        case Wasm(ALValue.NumV(ALNum.Int(n))) => Math(n)
+        case other                            => other
+      (v, cop) match {
         // code unit
         case (CodeUnit(c), ToMath) => Math(c.toInt)
         case (Math(n), ToCodeUnit) => CodeUnit(n.toChar)

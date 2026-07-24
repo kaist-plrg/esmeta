@@ -1899,13 +1899,13 @@ def tojsvalue(
   assert (yet "is of form Case([=ref.exn=],List(Var(exnaddr)))")
   if (&& (= (case-tag w) "CONST") (= (case-tag (proj w 0)) "I64")) {
     let u64 = (proj w 1)
-    call i64 = clo<"signed_64">(u64)
+    call-embed i64 = <signed_64>(u64)
     call _result1 = clo<"ℤ">(i64)
     return _result1
   } else nop
   if (&& (= (case-tag w) "CONST") (= (case-tag (proj w 0)) "I32")) {
     let u32 = (proj w 1)
-    call i32 = clo<"signed_32">(u32)
+    call-embed i32 = <signed_32>(u32)
     call _result2 = clo<"𝔽">(i32)
     return _result2
   } else nop
@@ -1935,7 +1935,7 @@ def tojsvalue(
     return null
   } else nop
   if (yet "is of form Case([=ref.i31=],List(Var(u31)))") {
-    call i31 = clo<"signed_31">(u31)
+    call-embed i31 = <signed_31>(u31)
     call _result5 = clo<"𝔽">(i31)
     return _result5
   } else nop

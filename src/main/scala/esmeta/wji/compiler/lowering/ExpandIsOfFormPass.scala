@@ -89,6 +89,18 @@ object ExpandIsOfFormPass extends LoweringPass:
   private def stripLink(link: String): String =
     link.stripPrefix("[=").stripSuffix("=]").trim.toLowerCase
 
+  /** link text for a numeric const form, mapped to its nested type tag
+    * (`construct.ml`'s `al_of_num`: `CaseV ("CONST", [ nullary "I32"; ... ])`
+    * etc.) — the outer tag is always `"CONST"`; this nested tag at position 0
+    * is what actually distinguishes them, with the payload at position 1.
+    */
+  private val constKindTags: Map[String, String] = Map(
+    "i32.const" -> "I32",
+    "i64.const" -> "I64",
+    "f32.const" -> "F32",
+    "f64.const" -> "F64",
+  )
+
   def run(algos: List[Algorithm]): List[Algorithm] =
     algos.map(a => a.copy(body = transform(a.body)))
 
@@ -104,6 +116,15 @@ object ExpandIsOfFormPass extends LoweringPass:
 
   private def expandBranch(cond: Cond, body: List[Instr]): (Cond, List[Instr]) =
     cond match
+      case Cond.IsOfForm(e, Expr.Case(tag, List(v: Expr.Var)), None, neg)
+          if constKindTags.contains(stripLink(tag)) =>
+        val nestedTag = constKindTags(stripLink(tag))
+        val outer = Cond.Eq(Expr.CaseTag(e), Expr.Str("CONST"), neg)
+        val inner =
+          Cond.Eq(Expr.CaseTag(Expr.TupleProj(e, 0)), Expr.Str(nestedTag), neg)
+        val check =
+          if neg then Cond.Or(outer, inner) else Cond.And(outer, inner)
+        (check, Instr.Let(v, Expr.TupleProj(e, 1)) :: transform(body))
       case Cond.IsOfForm(e, Expr.Case(tag, args), None, neg)
           if args.forall(_.isInstanceOf[Expr.Var]) &&
           forms.contains(stripLink(tag)) =>

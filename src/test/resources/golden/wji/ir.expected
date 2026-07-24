@@ -1897,17 +1897,20 @@ def tojsvalue(
 ): Unknown = {
   assert (yet "is of form Case([=v128.const=],List(Var(v128)))")
   assert (yet "is of form Case([=ref.exn=],List(Var(exnaddr)))")
-  if (yet "is of form Case([=i64.const=],List(Var(u64)))") {
+  if (&& (= (case-tag w) "CONST") (= (case-tag (proj w 0)) "I64")) {
+    let u64 = (proj w 1)
     call i64 = clo<"signed_64">(u64)
     call _result1 = clo<"ℤ">(i64)
     return _result1
   } else nop
-  if (yet "is of form Case([=i32.const=],List(Var(u32)))") {
+  if (&& (= (case-tag w) "CONST") (= (case-tag (proj w 0)) "I32")) {
+    let u32 = (proj w 1)
     call i32 = clo<"signed_32">(u32)
     call _result2 = clo<"𝔽">(i32)
     return _result2
   } else nop
-  if (yet "is of form Case([=f32.const=],List(Var(f32)))") {
+  if (&& (= (case-tag w) "CONST") (= (case-tag (proj w 0)) "F32")) {
+    let f32 = (proj w 1)
     if (|| (= f32 ~+∞~) (= f32 ~−∞~)) {
       return (yet "**+∞**<sub>𝔽</sub> or **-∞**<sub>𝔽</sub>, respectively")
     } else nop
@@ -1917,7 +1920,8 @@ def tojsvalue(
     call _result3 = clo<"𝔽">(f32)
     return _result3
   } else nop
-  if (yet "is of form Case([=f64.const=],List(Var(f64)))") {
+  if (&& (= (case-tag w) "CONST") (= (case-tag (proj w 0)) "F64")) {
+    let f64 = (proj w 1)
     if (|| (= f64 ~+∞~) (= f64 ~−∞~)) {
       return (yet "**+∞**<sub>𝔽</sub> or **-∞**<sub>𝔽</sub>, respectively")
     } else nop

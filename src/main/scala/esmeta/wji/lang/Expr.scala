@@ -125,14 +125,20 @@ object Expr:
   /** `|x| interpreted as a [=mathematical value=]` — cast to math value. */
   case class AsMath(expr: Expr) extends Expr
 
-  /** `AsMath`'s inverse — casts a math value back to a real ECMAScript Number.
-    * No spec prose produces this directly (nothing in the spec ever needs to
-    * say "cast back to Number"); it exists purely as a lowering-pass-internal
-    * marker for a WJI-synthesized math value (e.g. a loop counter) that needs
-    * to leave WJI's own bookkeeping and flow into a real ECMA-262 AO — see
-    * `ExpandIndexOfPass`, its only producer so far.
+  /** `AsMath`'s inverse — casts a math value to a real ECMAScript Number.
+    * Produced two ways: directly from spec prose's `[=𝔽=](...)` call syntax
+    * (ECMA-262's "the Number value for" notation — see `ExprParser`), and as a
+    * lowering-pass-internal marker for a WJI-synthesized math value (e.g. a
+    * loop counter) that needs to leave WJI's own bookkeeping and flow into a
+    * real ECMA-262 AO — see `ExpandIndexOfPass`.
     */
   case class AsNumber(expr: Expr) extends Expr
+
+  /** `[=ℤ=](...)` — ECMA-262's "the BigInt value for" notation: casts a math
+    * value to a real ECMAScript BigInt. Produced directly from spec prose by
+    * `ExprParser`, mirroring `AsNumber`'s `𝔽` case.
+    */
+  case class AsBigInt(expr: Expr) extends Expr
 
   /** `(E1, E2, ...)` — parenthesised tuple, used in destructuring Let LHS. */
   case class Tuple(elems: List[Expr]) extends Expr
@@ -294,6 +300,7 @@ object Expr:
       case Neg(e)                     => List(e)
       case AsMath(e)                  => List(e)
       case AsNumber(e)                => List(e)
+      case AsBigInt(e)                => List(e)
       case Tuple(elems)               => elems
       case NewByteSequence(length)    => List(length)
       case Range(low, high)           => List(low, high)

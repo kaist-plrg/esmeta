@@ -482,6 +482,18 @@ object ExprParser:
       // ---- Call syntax ----
       case JSCallFull(name, argsRaw) =>
         JSCall(name, splitComma(argsRaw).map(parse))
+      // "[=𝔽=](x)"/"[=ℤ=](x)" — ECMA-262's "the Number/BigInt value for x"
+      // notation (mainline ESMeta's own separate parser special-cases this
+      // the same way, `esmeta.lang.util.Parser`). Matched explicitly, ahead
+      // of the generic LinkFull case below, so these two never fall through
+      // to an ordinary AlgoCall against a function literally named 𝔽/ℤ
+      // (which doesn't exist).
+      case LinkFull(link, argsRaw)
+          if link.stripPrefix("[=").stripSuffix("=]").trim == "𝔽" =>
+        AsNumber(parse(argsRaw))
+      case LinkFull(link, argsRaw)
+          if link.stripPrefix("[=").stripSuffix("=]").trim == "ℤ" =>
+        AsBigInt(parse(argsRaw))
       case LinkFull(link, argsRaw) =>
         AlgoCall(normalizeLink(link), splitComma(argsRaw).map(parse))
       case LinkProse(link, prose) =>

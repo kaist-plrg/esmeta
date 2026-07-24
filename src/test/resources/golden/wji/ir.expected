@@ -1900,14 +1900,12 @@ def tojsvalue(
   if (&& (= (case-tag w) "CONST") (= (case-tag (proj w 0)) "I64")) {
     let u64 = (proj w 1)
     call-embed i64 = <signed_64>(u64)
-    call _result1 = clo<"ℤ">(i64)
-    return _result1
+    return ([bigInt] ([math] i64))
   } else nop
   if (&& (= (case-tag w) "CONST") (= (case-tag (proj w 0)) "I32")) {
     let u32 = (proj w 1)
     call-embed i32 = <signed_32>(u32)
-    call _result2 = clo<"𝔽">(i32)
-    return _result2
+    return ([number] ([math] i32))
   } else nop
   if (&& (= (case-tag w) "CONST") (= (case-tag (proj w 0)) "F32")) {
     let f32 = (proj w 1)
@@ -1917,8 +1915,7 @@ def tojsvalue(
     if (= f32 ~nan~) {
       return ~**NaN**~
     } else nop
-    call _result3 = clo<"𝔽">(f32)
-    return _result3
+    return ([number] ([math] f32))
   } else nop
   if (&& (= (case-tag w) "CONST") (= (case-tag (proj w 0)) "F64")) {
     let f64 = (proj w 1)
@@ -1928,36 +1925,34 @@ def tojsvalue(
     if (= f64 ~nan~) {
       return ~**NaN**~
     } else nop
-    call _result4 = clo<"𝔽">(f64)
-    return _result4
+    return ([number] ([math] f64))
   } else nop
   if (yet "is of form Case([=ref.null=],List(Var(t)))") {
     return null
   } else nop
   if (yet "is of form Case([=ref.i31=],List(Var(u31)))") {
     call-embed i31 = <signed_31>(u31)
-    call _result5 = clo<"𝔽">(i31)
-    return _result5
+    return ([number] ([math] i31))
   } else nop
   if (yet "is of form Case([=ref.struct=],List(Var(structaddr)))") {
-    call _result6 = clo<"a_new_exported_gc_object">(structaddr, "struct")
-    return _result6
+    call _result1 = clo<"a_new_exported_gc_object">(structaddr, "struct")
+    return _result1
   } else nop
   if (yet "is of form Case([=ref.array=],List(Var(arrayaddr)))") {
-    call _result7 = clo<"a_new_exported_gc_object">(arrayaddr, "array")
-    return _result7
+    call _result2 = clo<"a_new_exported_gc_object">(arrayaddr, "array")
+    return _result2
   } else nop
   if (yet "is of form Case([=ref.func=],List(Var(funcaddr)))") {
-    call _result8 = clo<"a_new_exported_function">(funcaddr)
-    return _result8
+    call _result3 = clo<"a_new_exported_function">(funcaddr)
+    return _result3
   } else nop
   if (yet "is of form Case([=ref.host=],List(Var(hostaddr)))") {
-    call _result9 = clo<"retrieving_a_host_value">(hostaddr)
-    return _result9
+    call _result4 = clo<"retrieving_a_host_value">(hostaddr)
+    return _result4
   } else nop
   if (yet "is of form Case([=ref.extern=],List(Var(ref)))") {
-    call _result10 = clo<"tojsvalue">(ref)
-    return _result10
+    call _result5 = clo<"tojsvalue">(ref)
+    return _result5
   } else nop
   return ~unused~
 }
@@ -2227,11 +2222,9 @@ def u64toaddressvalue(
   addrtype: Unknown,
 ): Unknown = {
   if (= addrtype "i32") {
-    call _result1 = clo<"𝔽">(v)
-    return _result1
+    return ([number] ([math] v))
   } else if (= addrtype "i64") {
-    call _result2 = clo<"ℤ">(v)
-    return _result2
+    return ([bigInt] ([math] v))
   } else nop
   assert false
   return ~unused~

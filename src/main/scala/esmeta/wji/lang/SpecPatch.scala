@@ -35,6 +35,17 @@ package esmeta.wji.lang
   *     fulfilled/rejected continuations as bulleted branches directly under
   *     `[=React=] to |X|:`, a shape nothing in this project parses specially,
   *     so they're rewritten as two named closures passed explicitly instead.
+  *   - *(spec inconsistency)* nothing here is independently wrong — the
+  *     phrasing/markup is valid on its own — but it deviates from a pattern the
+  *     *same* document already establishes at other, structurally identical
+  *     call sites, in a way that breaks mechanization (e.g. one variant of a
+  *     repeated idiom omitting a link/qualifier the other variants all
+  *     include). Distinct from *(spec bug)*, which is wrong on its own terms
+  *     without needing a sibling to compare against.
+  *
+  * REQUIRED, every time you add a *(spec inconsistency)* entry: add a matching
+  * numbered section to `docs/spec_inconsistencies.md` in the SAME change, same
+  * shape/requirement as *(spec bug)*'s `docs/spec_errors.md` entries above.
   *
   * The *(suggestion)* patches all serve one of two purposes, each showing up
   * folded into several numbered entries below rather than as a pair of its own,
@@ -483,6 +494,20 @@ object SpecPatch:
     "If |ret| is [=exception=] |exnaddr|, then"
     ->
     "If |ret| is of the form [=exception=] |exnaddr|, then",
+
+    // #25 (spec inconsistency, docs/spec_inconsistencies.md #1) — ToJSValue's
+    // ref.i31 case (index.bs:1397) calls "Return [=𝔽=](|i31|)." directly,
+    // while its 4 sibling cases in the same algorithm (i64, i32, f32, f64,
+    // lines 1382-1393) all write "[=𝔽=](|X| interpreted as a [=mathematical
+    // value=])" — even though |i31| is produced exactly the same way as |i64|
+    // (both are the direct return value of a `signed_N` call, bound one step
+    // earlier). `AsMath` (compiled from "interpreted as a [=mathematical
+    // value=]") is what actually converts a raw wasm-origin value into a real
+    // math value; without it here, `𝔽(|i31|)` receives the still-wasm-wrapped
+    // value and can't convert it.
+    "1. Return [=𝔽=](|i31|)."
+    ->
+    "1. Return [=𝔽=](|i31| interpreted as a [=mathematical value=]).",
   )
 
   def apply(source: String): String =

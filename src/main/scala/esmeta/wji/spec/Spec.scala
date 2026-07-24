@@ -13,7 +13,6 @@ case class Spec(
   anchors: List[Anchor] = Nil,
 ):
 
-  /** mapping from interface names to interfaces */
   lazy val interfaceMap: Map[String, Interface] =
     interfaces.map(i => i.name -> i).toMap
 

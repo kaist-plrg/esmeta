@@ -24,7 +24,7 @@ enum WasmError:
   * same name sent to `spectec-server` (`wjmeta-bridge/spectec-server`), and
   * (except [[WasmHost.funcAlloc]]) is a pure "encode positional AL args as a
   * named JSON object, send, decode the result" round trip with no logic of its
-  * own — so rather than one Scala method per function (33 near-identical
+  * own — so rather than one Scala method per function (many near-identical
   * bodies, each just re-stating its own name three times: the `names` entry,
   * the method name, and the JSON-RPC method string), every one of them is
   * dispatched generically through [[WasmHost.call]], keyed by the same

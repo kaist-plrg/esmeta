@@ -104,7 +104,7 @@ object ExprParser:
   private val WhichPerformsStepsClosure =
     """(?si)^an?\s+\[=[^\]]+=\]\s+which\s+performs\s+the\s+following\s+steps\s+when\s+called\s+with\s+(?:arguments?\s+)?(\|[^|]+\|(?:\s*(?:,|and)\s*\|[^|]+\|)*)\s*:?\s*$""".r
   // "performing CLOSURE[,] given ARG[, ARG...]" — invoking a closure *value*
-  // (contrast with the three "the following steps ...:" forms above, which
+  // (contrast with the four "the following steps ...:" forms above, which
   // *define* one), e.g. "the result of performing |onFullfilledStepsArg|
   // given |value|" (patched PromiseReactionJob text, see SpecPatch). CLOSURE
   // is parsed as a general Expr (not just a bare |var|) since nothing about

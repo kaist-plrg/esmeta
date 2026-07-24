@@ -9,20 +9,14 @@ import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr}
   * the RHS of a `Let` or `Return` (handled by [[ExtractInlineAlgoCallPass]]) or
   * fully eliminated by substitution.
   *
-  * Examples:
+  * Example:
   * {{{
   *   Append(AlgoCall(f, args), coll)
   *   →  Let(_callN, AlgoCall(f, args))
   *       Append(Var("_callN"), coll)
-  *
-  *   IfChain([(Eq(AlgoCall(f, args), Bool(false)), body), ...], fb)
-  *   →  Let(_callN, AlgoCall(f, args))
-  *       IfChain([(Eq(Var("_callN"), Bool(false)), body), ...], fb)
-  *
-  *   Set(lhs, BinOp(AlgoCall(f, args), "+", Num("1")))
-  *   →  Let(_callN, AlgoCall(f, args))
-  *       Set(lhs, BinOp(Var("_callN"), "+", Num("1")))
   * }}}
+  * The same hoist applies at any other non-trivial expression position
+  * (`IfChain` conditions, `Set` RHS, etc.).
   *
   * [[Instr.Let]] RHS and [[Instr.Return]] value are intentionally skipped at
   * the top level — [[ExtractInlineAlgoCallPass]] converts those to `Perform`

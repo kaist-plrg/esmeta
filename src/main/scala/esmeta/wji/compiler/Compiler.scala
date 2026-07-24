@@ -157,13 +157,9 @@ object Compiler:
       // hand-written `manuals/funcs/...` stub needed.
       //
       // `Method` is NOT included here (TODO — see
-      // `AddInterfaceMemberBuiltinBehaviourPass`'s doc): a WebIDL method name
-      // isn't unique per interface (`WebAssembly.instantiate` is overloaded),
-      // and at least one already has a hand-written `manuals/funcs/...ir`
-      // glue file claiming its intrinsic name — registering it here too would
-      // collide. It still falls through to the same plain-`AbsOp`/lowercased
-      // compilation every `Plain` algorithm gets below, same as before this
-      // pass existed.
+      // `AddInterfaceMemberBuiltinBehaviourPass`'s doc for why) and still
+      // falls through to the same plain-`AbsOp`/lowercased compilation every
+      // `Plain` algorithm gets below.
       def builtinFunc(fname: String): Func =
         Func(
           main = false,

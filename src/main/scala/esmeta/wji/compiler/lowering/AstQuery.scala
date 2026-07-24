@@ -28,7 +28,6 @@ object AstQuery:
     case i: Instr.PerformClosure => i.closure :: i.args
     case _                       => Nil
 
-  /** Every direct `Cond` field of `instr`. */
   private def ownConds(instr: Instr): List[Cond] = instr match
     case i: Instr.If                => List(i.cond)
     case i: Instr.ElseIf            => List(i.cond)

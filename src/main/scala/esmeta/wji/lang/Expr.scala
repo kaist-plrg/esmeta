@@ -208,24 +208,11 @@ object Expr:
 
   /** An unnamed, not-yet-hoisted closure literal — "the following steps ...:"
     * itself, wherever it appears as an argument/value, taking `params` as
-    * formal parameters (no `|` delimiters). Three spec phrasings currently
-    * produce this (see [[ExprParser]]):
-    *
-    *   - `"Let |x| be the following steps given argument |V|: substeps"` —
-    *     parsed directly as `Instr.Let`'s RHS, with `params` from the `given
-    *     argument(s)` list, each bound to one positional value (`variadicLast =
-    *     false`).
-    *   - `"Let |x| be the following steps given the list of arguments |V|:
-    *     substeps"` — a WJI-invented phrasing (not real spec prose; used by
-    *     `SpecPatch`-authored rewrites, e.g. patch #22) for a closure whose
-    *     sole param binds the *entire* JS arguments list itself, rather than
-    *     one positional value (mirrors mainline `esmeta.compiler.Compiler
-    *     .getBuiltinPrefix`'s `ParamKind.Variadic`) — `params` is always a
-    *     single-element list and `variadicLast = true`.
-    *   - `"[=Queue a task=] ... to perform the following steps: substeps"` —
-    *     parsed as one of `Instr.Perform`'s `args` (`params` always `Nil`,
-    *     mirroring ECMA-262's "a new Job Abstract Closure ... that captures
-    *     ...").
+    * formal parameters (no `|` delimiters). Produced by several spec phrasings
+    * — see [[ExprParser]]'s closure-defining regexes
+    * (`VariadicStepsClosurePrefix`, `StepsClosurePrefix`,
+    * `QueueTaskClosureSuffix`, `WhichPerformsStepsClosure`) for exactly which,
+    * and how each derives `params`/`variadicLast`.
     *
     * No `body` field: [[ExprParser]] only ever sees the one prose string
     * introducing the phrase, not the nested list items it introduces — those

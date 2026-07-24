@@ -42,8 +42,8 @@ import esmeta.wji.lang.{Algorithm, AlgorithmKind, Cond, Expr, Instr}
   * only ever handles a `form` that's already `Expr.Case`), never a genuine
   * call, even when its link text happens to also be a real algorithm's
   * (lowercased) name — e.g. embedding.rst's 1-arg `exception` case tag collides
-  * with js-api's `Exception` constructor (index.bs:1297 vs. 1722). Resolved via
-  * [[resolveForm]], the same heuristic minus that first check.
+  * with js-api's `Exception` constructor. Resolved via [[resolveForm]], the
+  * same heuristic minus that first check.
   *
   * Category: Housekeeping.
   */

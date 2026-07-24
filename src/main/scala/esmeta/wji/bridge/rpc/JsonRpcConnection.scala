@@ -31,7 +31,6 @@ trait JsonRpcConnection:
     */
   def onRequest(handler: (String, Json) => Either[RpcError, Json]): Unit
 
-  /** close the underlying transport */
   def close(): Unit
 
 /** [[JsonRpcConnection]] over a [[esmeta.wji.bridge.process.SpecTecProcess]]'s

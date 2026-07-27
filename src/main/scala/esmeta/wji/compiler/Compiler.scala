@@ -47,7 +47,7 @@ object Compiler:
     * "internally create a new object implementing the interface" preamble is
     * left for later.
     *
-    * Documented in `docs/hardcodes.md` (#8) — when this gets properly
+    * Documented in `docs/hardcodes.md` (#7) — when this gets properly
     * implemented, delete that entry too.
     */
   private val interfacesWithPrototypeIntrinsic: Set[String] =
@@ -156,7 +156,7 @@ object Compiler:
       // `INTRINSICS.WebAssembly.Instance`) with `FuncKind.Builtin`, instead
       // of the usual lowercased/AbsOp shape — so a real `instance.exports`
       // property read (or `new WebAssembly.Instance(...)`, once the rest of
-      // `docs/hardcodes.md` #8's gap is closed) reaches it directly, no
+      // `docs/hardcodes.md` #7's gap is closed) reaches it directly, no
       // hand-written `manuals/funcs/...` stub needed.
       //
       // `Method` is NOT included here (TODO — see

@@ -11,8 +11,11 @@ import esmeta.wji.lang.Instr.PerformOutcome
   *
   * A name is in the result when, anywhere in its own body (recursively through
   * nested branches, but not through other algorithms):
-  *   - it has a `Throw` step, or a `?`/`!`-marked call (`Expr.Abrupt`) — a
-  *     direct, local signal the spec text itself gives (no transitivity needed
+  *   - it has a `Throw` step, a `?`/`!`-marked call (`Expr.Abrupt`), or
+  *     constructs a WebIDL object (`Expr.New` — "create a new object
+  *     implementing the interface" can itself throw, e.g. `initialize an
+  *     instance object`'s transitive `Let |global| be a new Global.` step) —
+  *     direct, local signals the spec text itself gives (no transitivity needed
   *     to know these, unlike the case below); or
   *   - it makes an *unmarked* call to another algorithm already known to be in
   *     the set, and that call's result isn't itself manually handled — either
@@ -101,7 +104,15 @@ object CompletionAlgorithms:
         // Return at all (`Assert` the value is normal, then unconditionally
         // unwrap `.Value`), so a `!`-marked call creates no new exit path
         // here, unlike `?`'s early "if abrupt, propagate" Return.
-        callInfo(i).exists(_.marker.contains("?")) || (i match
+        callInfo(i).exists(_.marker.contains("?")) ||
+        // `Expr.New` — WebIDL's real "create a new object implementing the
+        // interface" can itself throw, even though `Compiler` currently
+        // compiles it as an infallible record literal (see `docs/hardcodes.md`
+        // #7) — treated as abrupt here anyway, ahead of that gap actually
+        // closing, since nothing marks a `New` step with `?`/`!` the way a
+        // real call would be.
+        exprsOf(i).exists(_.containsWhere(_.isInstanceOf[Expr.New])) ||
+        (i match
           case _: Instr.Throw => true
           case c: Instr.IfChain =>
             c.branches.exists((_, b) => hasOwnAbrupt(b)) || hasOwnAbrupt(

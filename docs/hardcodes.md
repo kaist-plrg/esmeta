@@ -41,21 +41,14 @@
 - **What's hardcoded**: 이 pass는 모든 `"[=Queue a task=] on |taskSource|, if provided, to perform the following steps: ..."` 스텝을 ECMA-262 자체의 `HostEnqueuePromiseJob` 훅에 대한 단순 호출로 재작성하면서 `|taskSource|` 인자를 통째로 버립니다 — `HostEnqueuePromiseJob`은 HTML task source라는 개념 자체가 없어서, 큐잉되는 모든 task가 실제 명세가 지정한 source가 무엇이든 상관없이 전부 같은 하나의 job queue로 합쳐집니다.
 - **Why not mechanized**: WJI는 ECMA-262의 Job Queue(`@JOB_QUEUE`)는 모델링하지만 HTML의 별도 task-source/event-loop 메커니즘은 전혀 모델링하지 않습니다 — 그걸 제대로 만드는 건 이 근사보다 훨씬 큰 작업이고, 이 근사는 (pass 자신의 doc에 적힌 대로) "job이 실제로 돌아가게 만들 정도로는 충분"하지만 "HTML event-loop task-queueing semantics를 충실히 기계화한 것"은 아닙니다.
 
-## 6. `initialize an instance object`의 catch 절 삭제 (`SpecPatch` #0)
-
-- **File**: `src/main/scala/esmeta/wji/lang/SpecPatch.scala` (patch #0)
-- **Spec source**: `spectec/document/js-api/index.bs:594` ("initialize an instance object"), `index.bs:628`에서 호출되며 바로 뒤에 "If this throws an exception, catch it, [=reject=] |promise| with the exception, and terminate these substeps" 절이 따라옵니다.
-- **What's hardcoded**: 이 패치는 해당 호출부에 있는 "If this throws an exception, catch it, ..." 절 전체를 삭제해서, `initialize an instance object`가 절대 예외를 던지지 않는 것처럼 취급합니다.
-- **Why not mechanized**: 파싱이 안 돼서가 아닙니다 — `Cond.Throws`/`ExpandThrowsPass`는 바로 같은 파일의 다른 곳(patch #10의 이웃 호출부 참고)에서 정확히 이 "catch it, reject, terminate" 관용구를 이미 처리하고 있습니다. 이건 그냥 근거 문서화 없이 남아있는 동작상의 가정일 뿐이고, 이걸 지워도 정말 안전한지에 대한 설명은 아직 없습니다.
-
-## 7. `react`의 중첩된 fulfilled/rejected 분기를 closure로 재작성 (`SpecPatch` #12)
+## 6. `react`의 중첩된 fulfilled/rejected 분기를 closure로 재작성 (`SpecPatch` #12)
 
 - **File**: `src/main/scala/esmeta/wji/lang/SpecPatch.scala` (patch #12의 `(hardcoding)` 부분)
 - **Spec source**: `webidl/index.bs`의 `react` 알고리즘과 `spectec/document/js-api/index.bs`에 있는 그 2개 호출부(`asynchronously compile a WebAssembly module` / `asynchronously instantiate a WebAssembly module`) — `[=React=] to |X|:` 스텝 바로 아래에 `* If |X| was fulfilled...:` / `* If |X| was rejected...:` 형태의 bullet 하위 분기가 붙어 있는 모양입니다.
 - **What's hardcoded**: 어떤 스텝의 "body"가 그 스텝 자신의 중첩 bullet 목록으로 표현되는 이 모양은 `AlgorithmExtractor`/`InstrParser`가 지금 스텝의 연속으로 인식하는 형태가 아니라서, `Perform`의 `body`로 다시 읽혀 들어가지 못하고 fulfilled/rejected 분기 전체가 조용히 버려지고 있었습니다. 이 패치는 소스 텍스트 자체를 재작성해서 이 문제를 피해갑니다 — 두 분기를 명시적인 이름 있는 closure 두 개(`Let |onFulfilledSteps| be the following steps given argument |V|: ...`)로 뽑아내서 `[=React=]`에 일반 인자로 넘기는 식인데, 이건 `ExpandFollowingStepsPass`가 이미 hoist할 줄 아는 모양입니다.
 - **Why not mechanized**: `InstrParser`가 bullet 하위 목록을 (이미 이름 붙은 스텝 자신의 `body`로서만이 아니라) *바로 앞* 한 줄짜리 스텝의 연속으로도 인식하게 만드는 건 파서의 구조 자체를 바꾸는 일인데, 지금까지는 이 호출부 한 쌍에만 필요해서 그것 하나만을 위해 일반화할 만한 가치는 아직 없습니다.
 
-## 8. `Expr.New(iface)`가 만드는 인터페이스 객체에 기본 오디너리 오브젝트 필드 하드코딩
+## 7. `Expr.New(iface)`가 만드는 인터페이스 객체에 기본 오디너리 오브젝트 필드 하드코딩
 
 - **File**: `src/main/scala/esmeta/wji/compiler/Compiler.scala` (`ordinaryObjectFields`, `interfacesWithPrototypeIntrinsic`, `Expr.New` 컴파일 케이스)
 - **Spec source**: `webidl/index.bs`의 "internally create a new object implementing the interface" — 4번 항목(`ExpandNewInterfaceObjectPass`)이 다루는 것과 같은 근본 gap의 다른 발현입니다.
@@ -64,14 +57,14 @@
   - **`Method`는 여전히 TODO로 남겨둠**: 이 3종류와 달리, WebIDL method 이름은 인터페이스 안에서 유일하지 않을 수 있습니다(`WebAssembly`가 파라미터 타입만 다른 `instantiate` 오버로드 2개를 선언 — `AlgorithmExtractor`가 이 둘을 구분 못 해서 `SpecPatch` #3이 그중 하나를 이미 rename해둔 상태). 게다가 그중 하나(`INTRINSICS.WebAssembly.instantiate`)는 이미 손으로 쓴 `manuals/funcs/INTRINSICS.WebAssembly.instantiate.ir` glue 파일이 그 intrinsic 이름을 쓰고 있어서(WebIDL의 "선언된 반환 타입이 `Promise<T>`일 때 내부 `PromiseCapabilityRecord`에서 `.Promise`를 꺼내는" 변환 — 이 파이프라인이 아직 범용으로 안 함), Method까지 여기서 같이 처리하면 그 파일과 이름이 충돌합니다. 그래서 `AddInterfaceMemberBuiltinBehaviourPass`/`Compiler.compileAlgo` 둘 다 `Method`는 건드리지 않고, 이 pass가 생기기 전과 똑같이(평범한 `AbsOp`, 소문자화된 이름) 컴파일합니다 — 오버로드 충돌과 WebIDL 반환 타입 변환 gap을 같이 정리한 뒤에 처리할 예정.
 - **Why not mechanized**: 진짜 WebIDL 알고리즘은 모든 인터페이스에 대해 WebIDL의 "새 플랫폼 객체 생성" 전체 preamble(이 문서 4번 항목이 이미 다루는 그 gap)을 따라가야 하고, getter뿐 아니라 method/setter/constructor도 똑같이 실제 intrinsic 이름으로 배선돼야 하는데, 이건 아직 다 안 되어 있습니다. 지금은 그냥 "테스트를 더 진행시킬 수 있을 정도"만 급하게 만들어 둔 것 — **4번 항목(`ExpandNewInterfaceObjectPass`)과 함께 별도로 제대로 구현될 예정. 그때 이 항목과 코드의 `*(hardcoding)*` 주석도 같이 지울 것.**
 
-## 9. "create a new Exported Function"의 `steps`를 closure 관용구로 재작성 (`SpecPatch` #22)
+## 8. "create a new Exported Function"의 `steps`를 closure 관용구로 재작성 (`SpecPatch` #22)
 
 - **File**: `src/main/scala/esmeta/wji/lang/SpecPatch.scala` (patch #22)
 - **Spec source**: `spectec/document/js-api/index.bs:1265` — `create a new Exported Function` 알고리즘이 `[$CreateBuiltinFunction$]`에 넘기는 `|steps|`를, 이미 따로 정의된 `call an Exported Function` 알고리즘을 가리키는 따옴표 문장(`"[=call an Exported Function=] |funcaddr| with arguments."`)으로 정의하는 모양입니다.
 - **What's hardcoded**: 이 모양은 `AlgorithmExtractor`/`ExprParser`가 지금 인식하는 closure 관용구들(`"the following steps[, given argument(s) ...]: ..."` / `"the following steps given the list of arguments V: ..."` / `"a [=term=] which performs the following steps when called with arguments ...: ..."`) 어디에도 안 맞아서, 그냥 통짜 문자열(`Expr.Str`)로 파싱돼버리고, 나중에 `CreateBuiltinFunction`이 그 문자열을 실제 코드인 것처럼 저장했다가 호출 시점에 `NoCallable`로 죽습니다. 이 패치는 소스 텍스트를 `"the following steps given the list of arguments |argValues|: ..."` 형태로 재작성해서 이 문제를 피해갑니다 — `argValues`가 "a list of JavaScript arguments"(index.bs:1279, `call an Exported Function`의 실제 선언된 파라미터)라서, WebAssembly 함수의 arity가 동적인 이상 이름 붙인 개별 값(`"given argument V"`)이 아니라 리스트 전체를 통째로 바인딩하는 두 번째 관용구(`variadicLast`, `ExprParser.VariadicStepsClosurePrefix`)가 필요했습니다. `ExpandFollowingStepsPass`/`AddBuiltinBehaviourPass`가 그대로 hoist/3-arg builtin 변환(마지막 파라미터가 variadic이면 `argumentsList`를 통째로 별칭)을 해줍니다.
 - **Why not mechanized**: 이 phrasing(따옴표로 감싼 문장이 다른 곳에 정의된 알고리즘을 가리키고, 그 문장에서 언급된 변수가 캡처된 파라미터가 되는 것) 자체는 스펙 오류가 아닙니다 — ECMA-262의 `CreateBuiltinFunction` 정의(`ecma262/spec.html`) 자체가 `behaviour` 파라미터를 "an Abstract Closure, a set of algorithm steps, or *some other definition of a function's behaviour provided in this specification*"라고 명시해서 이런 형태를 명시적으로 허용하고 있습니다. 코퍼스 전체에서 이 한 곳에만 등장해서, 파서 구조를 바꿔 일반화할 만한 가치는 아직 없습니다.
 
-## 10. "call an Exported Function"의 애매한 예외 타입/문장 분리 (`SpecPatch` #23)
+## 9. "call an Exported Function"의 애매한 예외 타입/문장 분리 (`SpecPatch` #23)
 
 - **File**: `src/main/scala/esmeta/wji/lang/SpecPatch.scala` (patch #23)
 - **Spec source**: `spectec/document/js-api/index.bs:1296` — `func_invoke`가 실패했을 때 "throw an exception. This exception should be a WebAssembly {{RuntimeError}} exception, unless otherwise indicated by the WebAssembly error mapping." 두 문장으로 서술돼 있습니다.

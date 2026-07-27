@@ -62,6 +62,15 @@ object PropagateUnguardedCallsPass extends LoweringPass:
     *   - [[ExpandThrowsPass]]: needs a `Cond.Throws`-guarded call already
     *     transformed away, so it isn't mistaken for unguarded — see the KNOWN
     *     GAP above for why this is load-bearing in a second way too.
+    *   - [[ExpandFollowingStepsPass]]: needs a `FollowingSteps` closure's
+    *     substeps already hoisted into their own top-level `Algorithm` — unlike
+    *     `CompletionAlgorithms.hasOwnAbrupt`/`hasUnguardedCallInto` (which
+    *     correctly must *not* look inside a closure, since a closure's own
+    *     behavior says nothing about the *enclosing* algorithm), this pass
+    *     inserts real guard instructions wherever an unguarded call appears —
+    *     including inside what will become the closure's own body — so running
+    *     after hoisting means every algorithm (closures included) just gets the
+    *     same uniform treatment, with nothing left to special-case.
     */
   override def requires: Set[LoweringPass] = Set(
     InsertFallthroughReturnPass,
@@ -69,6 +78,7 @@ object PropagateUnguardedCallsPass extends LoweringPass:
     MarkCompletionAlgorithmsPass,
     ExtractInlineAlgoCallPass,
     ExpandThrowsPass,
+    ExpandFollowingStepsPass,
   )
 
   def run(algos: List[Algorithm]): List[Algorithm] =
@@ -85,9 +95,6 @@ object PropagateUnguardedCallsPass extends LoweringPass:
     completionAlgos: Set[String],
   ): List[Instr] = instrs match
     case Nil => Nil
-    // a closure's substeps are out of scope here too — see CompletionAlgorithms
-    case (i @ Instr.Let(_, Expr.FollowingSteps(_, _), _)) :: rest =>
-      i :: transform(rest, completionAlgos)
     case (p @ Instr.Perform(
           func,
           _,

@@ -2081,8 +2081,8 @@ def towebassemblyvalue(
     } else {
       let i64 = _comp1
     }
-    let u64 = (yet "unsigned integer such that |i64| is [=signed_64=](|u64|)")
-    let _v2 = (case "I64.CONST" u64)
+    call-embed u64 = <inv_signed_64>(([math] i64))
+    let _v2 = (case "CONST" (case "I64" ) u64)
     if (? _v2: Completion) {
       return _v2
     } else {
@@ -2106,8 +2106,8 @@ def towebassemblyvalue(
     } else {
       let i32 = _comp2
     }
-    let u32 = (yet "unsigned integer such that |i32| is [=signed_32=](|u32|)")
-    let _v5 = (case "I32.CONST" u32)
+    call-embed u32 = <inv_signed_32>(([math] i32))
+    let _v5 = (case "CONST" (case "I32" ) u32)
     if (? _v5: Completion) {
       return _v5
     } else {
@@ -2138,7 +2138,7 @@ def towebassemblyvalue(
       let f32 = (yet "|number| rounded to the nearest representable value using IEEE 754-2019 round to nearest, ties to even mode")
       (yet "[[IEEE-754]]")
     }
-    let _v8 = (case "F32.CONST" f32)
+    let _v8 = (case "CONST" (case "F32" ) f32)
     if (? _v8: Completion) {
       return _v8
     } else {
@@ -2168,7 +2168,7 @@ def towebassemblyvalue(
     } else {
       let f64 = number
     }
-    let _v11 = (case "F64.CONST" f64)
+    let _v11 = (case "CONST" (case "F64" ) f64)
     if (? _v11: Completion) {
       return _v11
     } else {
@@ -2207,7 +2207,7 @@ def towebassemblyvalue(
       } else {
         let i31 = _comp6
       }
-      let u31 = (yet "unsigned integer such that |i31| is [=signed_31=](|u31|)")
+      call-embed u31 = <inv_signed_31>(([math] i31))
       let r = (case "REF.I31" u31)
     } else if (= v (yet "an [=Exported GC Object=]")) {
       let objectaddr = v.ObjectAddress

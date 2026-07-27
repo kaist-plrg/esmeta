@@ -41,6 +41,7 @@ object Lowering:
     ExpandNewByteSequencePass,
     ExpandIndexOfPass,
     ExpandDestructuringLetPass,
+    ExpandSuchThatPass,
     NormalizeAlgoCallPass,
     ExtractInlineAlgoCallPass,
     ExpandClosureCallPass,

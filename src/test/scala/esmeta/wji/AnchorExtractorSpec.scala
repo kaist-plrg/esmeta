@@ -31,10 +31,24 @@ class AnchorExtractorSpec extends AnyFunSuite:
     * the real parametric `signed` op itself (`server.ml`'s `call_signed`), so
     * `WasmHost` just forwards the call like any other embedding function. None
     * of these are a spec gap `WasmHost` needs to close; the spec was never
-    * going to anchor them.
+    * going to anchor them. `inv_signed_31`/`inv_signed_32`/`inv_signed_64` are
+    * the same story one level further removed: js-api prose never even names
+    * `signed_N`'s inverse directly (only describes it via "the unsigned integer
+    * such that ... is [=signed_N=](...)"), so there's no dfn text to anchor at
+    * all — `ExpandSuchThatPass` recognizes that idiom and emits these as a
+    * WJI-invented per-width name, translated the same way (`server.ml`'s
+    * `call_inv_signed`).
     */
   private val bridgeOnlyNames: Set[String] =
-    Set("expand", "signed_31", "signed_32", "signed_64")
+    Set(
+      "expand",
+      "signed_31",
+      "signed_32",
+      "signed_64",
+      "inv_signed_31",
+      "inv_signed_32",
+      "inv_signed_64",
+    )
 
   test(
     "WasmHost.names matches every embedding function js-api/index.bs's anchors block declares",

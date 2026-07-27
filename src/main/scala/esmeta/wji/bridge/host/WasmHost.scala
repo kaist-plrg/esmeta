@@ -145,6 +145,18 @@ object WasmHost:
     "signed_32" -> List("i"),
     // signed_64(i: u64) : i64 (interpreted as a mathematical value)
     "signed_64" -> List("i"),
+    // Not spec-link text at all -- WJI's own name for `signed_N`'s inverse
+    // (js-api prose never names it directly, only describes it via "the
+    // unsigned integer such that |i| is [=signed_N=](|u|)";
+    // `ExpandSuchThatPass` is what recognizes that idiom and emits this call).
+    // Same per-width/server-translates-to-parametric split as signed_N above;
+    // see server.ml's `call_inv_signed`.
+    // inv_signed_31(i: i31) : u31
+    "inv_signed_31" -> List("i"),
+    // inv_signed_32(i: i32) : u32
+    "inv_signed_32" -> List("i"),
+    // inv_signed_64(i: i64) : u64
+    "inv_signed_64" -> List("i"),
   )
 
   /** The embedding function names this trait implements (`paramNames`'s keys,

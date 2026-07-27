@@ -33,7 +33,13 @@ import esmeta.wji.lang.{Algorithm, AlgorithmKind, Cond, Expr, Instr}
   *     prose referring to an algorithm and stays `AlgoCall`; anything else
   *     becomes `Case`. Imperfect — a multi-word variant name (none seen so far)
   *     would still be misclassified — but a deliberate, simple tradeoff over a
-  *     larger lookup table.
+  *     larger lookup table. A numeric-const link (`i32.const`/`i64.const`/
+  *     `f32.const`/`f64.const`, see [[numConstTags]]) is the one shape built as
+  *     a nested `Case("CONST", [Case(numtypeTag, []), payload])` instead of the
+  *     flat `Case(link, args)` every other variant gets — the nested form is
+  *     what `construct.ml`'s `al_to_num` actually recognizes as a real Wasm
+  *     value, needed once such a value flows into real Wasm execution (e.g.
+  *     `global_write`ed then read back by `global.get`).
   *   - a zero-arg `Link` that doesn't match a known algorithm becomes a
   *     `SpecTerm` — a bare reference to something else.
   *
@@ -107,6 +113,22 @@ object ResolveLinksPass extends LoweringPass:
   private def lastSegment(text: String): String =
     text.substring(text.lastIndexOf('/') + 1)
 
+  /** A numeric-const link (e.g. `[=i32.const=]`), mapped to the nested numtype
+    * tag `construct.ml`'s `al_to_num` actually expects to find at position 0 of
+    * a `CaseV("CONST", [nested, payload])` — *not* the single flat tag
+    * (`"I32.CONST"`) `Expr.runtimeCaseTag`'s generic uppercase-last-segment
+    * rule would otherwise produce here. Only the `Case`-construction site below
+    * needs this: `ExpandIsOfFormPass`'s own `constKindTags` already matches
+    * this same nested shape on the reading side, so a numeric-const value built
+    * here round-trips correctly either way it's later checked.
+    */
+  private val numConstTags: Map[String, String] = Map(
+    "i32.const" -> "I32",
+    "i64.const" -> "I64",
+    "f32.const" -> "F32",
+    "f64.const" -> "F64",
+  )
+
   /** `Instr.Perform`'s `func` / `Expr.JSCall`'s `name`, case-corrected when it
     * actually names a known *free-standing* WJI algorithm (`plainKnown` —
     * excludes interface members, see `run`'s comment) rather than a genuine
@@ -129,6 +151,19 @@ object ResolveLinksPass extends LoweringPass:
     * would only ever mask the correct `Case`/`SpecTerm` resolution when the
     * form's link text happens to coincide with some unrelated algorithm's name
     * (see class doc).
+    *
+    * Confirmed load-bearing, not just theoretical: temporarily replacing this
+    * call with plain `rewriteExpr` regresses `call an Exported Function`'s "If
+    * |ret| is of the form [=exception=] |exnaddr|" — `[=exception=]` collides
+    * (case-insensitively, `known` is lower-cased) with the real `Exception`
+    * constructor algorithm, so without this it resolves to `AlgoCall` and
+    * `ExpandIsOfFormPass` no longer recognizes it, falling back to `EYet`.
+    *
+    * Room for improvement: this now duplicates (and has already drifted from —
+    * see [[numConstTags]], only wired into `rewriteExpr`'s own `Case` branch)
+    * `rewriteExpr`'s `Expr.Link` case in everything but that one branch. A
+    * cleaner fix would factor the shared part out so the two can't silently
+    * diverge again, rather than hand-copying future changes into both.
     */
   private def resolveForm(known: Set[String], plainKnown: Set[String])(
     form: Expr,
@@ -157,7 +192,10 @@ object ResolveLinksPass extends LoweringPass:
           )
         then
           // heuristic split between AlgoCall/Case — see class doc above
-          Expr.Case(link, resolvedArgs)
+          numConstTags.get(stripLink(link).toLowerCase) match
+            case Some(nestedTag) =>
+              Expr.Case("CONST", Expr.Case(nestedTag, Nil) :: resolvedArgs)
+            case None => Expr.Case(link, resolvedArgs)
         else if args.nonEmpty then Expr.AlgoCall(link, resolvedArgs)
         else Expr.SpecTerm(stripLink(link))
       // ExprParser's `[=link=](args)` form (unambiguous call syntax) already

@@ -2,6 +2,8 @@ package esmeta.wji.compiler.lowering
 
 import esmeta.wji.lang.{Cond, Expr, Instr}
 import esmeta.wji.lang.Instr.PerformOutcome
+import esmeta.wji.lang.util.UnitWalker
+import scala.collection.mutable
 
 /** Free-variable analysis for a block of already-lowered [[Instr]]s, shared by
   * lowering passes that split a nested instruction body off into its own
@@ -81,42 +83,26 @@ object FreeVarAnalysis:
       case other => referencedVars(other.body)
     here ++ nested
 
-  private def varsOf(expr: Expr): Set[String] = expr match
-    case Expr.Var(name)         => Set(name)
-    case Expr.Field(base, _)    => varsOf(base)
-    case Expr.Index(base, key)  => varsOf(base) ++ varsOf(key)
-    case Expr.Link(_, args)     => args.flatMap(varsOf).toSet
-    case Expr.AlgoCall(_, args) => args.flatMap(varsOf).toSet
-    case Expr.Case(_, args)     => args.flatMap(varsOf).toSet
-    case Expr.JSCall(_, args)   => args.flatMap(varsOf).toSet
-    case Expr.Abrupt(_, e)      => varsOf(e)
-    case Expr.List_(elems)      => elems.flatMap(varsOf).toSet
-    case Expr.Map_(entries) =>
-      entries.flatMap((k, v) => varsOf(k) ++ varsOf(v)).toSet
-    case Expr.Length(e)            => varsOf(e)
-    case Expr.BinOp(l, _, r)       => varsOf(l) ++ varsOf(r)
-    case Expr.Pow(base, exp)       => varsOf(base) ++ varsOf(exp)
-    case Expr.Neg(e)               => varsOf(e)
-    case Expr.AsMath(e)            => varsOf(e)
-    case Expr.Tuple(elems)         => elems.flatMap(varsOf).toSet
-    case Expr.Closure(_, captured) => captured.toSet
-    case Expr.CaseTag(base)        => varsOf(base)
-    case Expr.ClosureCall(closure, args) =>
-      varsOf(closure) ++ args.flatMap(varsOf).toSet
-    case _ => Set.empty
+  /** Every `Var` name reachable from an `Expr`/`Cond`, at any depth. Only
+    * overrides [[Expr.Var]] itself and [[Expr.Closure]] (whose `captured:
+    * List[String]` isn't reachable via generic `Expr` recursion — it's plain
+    * names, not nested `Expr`s, same reason `Expr.children` leaves it a leaf
+    * too) — every other node is reached by [[UnitWalker]]'s own exhaustive
+    * default recursion.
+    */
+  private class VarCollector extends UnitWalker:
+    val vars = mutable.Set.empty[String]
+    override def walk(expr: Expr): Unit = expr match
+      case Expr.Var(name)            => vars += name
+      case Expr.Closure(_, captured) => vars ++= captured
+      case other                     => super.walk(other)
 
-  private def varsOfCond(cond: Cond): Set[String] = cond match
-    case Cond.Eq(l, r, _)         => varsOf(l) ++ varsOf(r)
-    case Cond.Compare(l, _, r)    => varsOf(l) ++ varsOf(r)
-    case Cond.HasField(e, _)      => varsOf(e)
-    case Cond.Implements(e, _, _) => varsOf(e)
-    case Cond.IsOfForm(e, f, condOpt, _) =>
-      varsOf(e) ++ varsOf(f) ++ condOpt.toSet.flatMap(varsOfCond)
-    case Cond.Matches(l, _, r, _) => varsOf(l) ++ varsOf(r)
-    case Cond.IsMissing(e, _)     => varsOf(e)
-    case Cond.HasSlot(e, _, _)    => varsOf(e)
-    case Cond.IsType(e, _, _)     => varsOf(e)
-    case Cond.And(l, r)           => varsOfCond(l) ++ varsOfCond(r)
-    case Cond.Or(l, r)            => varsOfCond(l) ++ varsOfCond(r)
-    case Cond.Abbreviated(e)      => varsOf(e)
-    case _                        => Set.empty
+  private def varsOf(expr: Expr): Set[String] =
+    val w = VarCollector()
+    w.walk(expr)
+    w.vars.toSet
+
+  private def varsOfCond(cond: Cond): Set[String] =
+    val w = VarCollector()
+    w.walk(cond)
+    w.vars.toSet

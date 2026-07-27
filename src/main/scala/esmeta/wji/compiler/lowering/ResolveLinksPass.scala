@@ -1,6 +1,7 @@
 package esmeta.wji.compiler.lowering
 
 import esmeta.wji.lang.{Algorithm, AlgorithmKind, Cond, Expr, Instr}
+import esmeta.wji.lang.util.Walker
 
 /** Resolves every [[Expr.Link]] — a raw `[=...=]` Bikeshed autolink, parsed
   * before it's known whether it names a callable algorithm — into an
@@ -44,8 +45,8 @@ import esmeta.wji.lang.{Algorithm, AlgorithmKind, Cond, Expr, Instr}
   * only ever handles a `form` that's already `Expr.Case`), never a genuine
   * call, even when its link text happens to also be a real algorithm's
   * (lowercased) name — e.g. embedding.rst's 1-arg `exception` case tag collides
-  * with js-api's `Exception` constructor. Resolved via [[resolveForm]], the
-  * same heuristic minus that first check.
+  * with js-api's `Exception` constructor. Resolved via
+  * [[LinkResolver.resolveForm]], the same heuristic minus that first check.
   *
   * Category: Housekeeping.
   */
@@ -67,34 +68,8 @@ object ResolveLinksPass extends LoweringPass:
       .flatMap(_.name)
       .map(_.toLowerCase)
       .toSet
-    algos.map(a => a.copy(body = a.body.map(rewriteInstr(known, plainKnown))))
-
-  private def rewriteInstr(known: Set[String], plainKnown: Set[String])(
-    instr: Instr,
-  ): Instr =
-    val e = rewriteExpr(known, plainKnown)
-    val c = rewriteCond(known, plainKnown)
-    val rewritten: Instr = instr match
-      case i: Instr.Let    => i.copy(lhs = e(i.lhs), expr = e(i.expr))
-      case i: Instr.Set    => i.copy(lhs = e(i.lhs), expr = e(i.expr))
-      case i: Instr.If     => i.copy(cond = c(i.cond))
-      case i: Instr.ElseIf => i.copy(cond = c(i.cond))
-      case i: Instr.Return => i.copy(expr = i.expr.map(e))
-      case i: Instr.Assert => i.copy(cond = c(i.cond))
-      case i: Instr.While  => i.copy(cond = c(i.cond))
-      case i: Instr.Append =>
-        i.copy(item = e(i.item), collection = e(i.collection))
-      case i: Instr.ForEach =>
-        i.copy(elem = e(i.elem), collection = e(i.collection))
-      case i: Instr.Perform =>
-        i.copy(
-          func = resolveFuncName(plainKnown, i.func),
-          args = i.args.map(e),
-        )
-      case i: Instr.IfChain =>
-        i.copy(branches = i.branches.map((cond, body) => (c(cond), body)))
-      case other => other
-    rewritten.mapBody(_.map(rewriteInstr(known, plainKnown)))
+    val resolver = LinkResolver(known, plainKnown)
+    algos.map(a => a.copy(body = a.body.map(resolver.walk)))
 
   /** `Link`/`AlgoCall`'s `link` field is stored with its `[=...=]` delimiters
     * (see `Compiler.nameFromLink`); `Algorithm.name` is not, so the two must be
@@ -126,10 +101,10 @@ object ResolveLinksPass extends LoweringPass:
 
   /** The `AlgoCall`/`Case`/`SpecTerm` a link with already-resolved `args`
     * becomes, once it's known not to be a call to a known algorithm — shared
-    * between [[rewriteExpr]] and [[resolveForm]] (the latter skips the "known
-    * algorithm" branch above this one, but needs the exact same Case/AlgoCall
-    * split otherwise). Kept as one function so the two can't silently diverge
-    * on this.
+    * between [[LinkResolver.walk(Expr)]] and [[LinkResolver.resolveForm]] (the
+    * latter skips the "known algorithm" branch above this one, but needs the
+    * exact same Case/AlgoCall split otherwise). Kept as one function so the two
+    * can't silently diverge on this.
     */
   private def buildCaseOrCall(link: String, resolvedArgs: List[Expr]): Expr =
     if resolvedArgs.nonEmpty && !lastSegment(stripLink(link)).contains(" ") then
@@ -138,91 +113,50 @@ object ResolveLinksPass extends LoweringPass:
     else if resolvedArgs.nonEmpty then Expr.AlgoCall(link, resolvedArgs)
     else Expr.SpecTerm(stripLink(link))
 
-  /** Resolves a [[Cond.IsOfForm]]'s `form` field specifically — the same
-    * [[buildCaseOrCall]] heuristic [[rewriteExpr]]'s `Expr.Link` case uses,
-    * minus its "known algorithm" branch. A form is always a pattern to
-    * destructure against, never a call, so that branch would only ever mask the
-    * correct `Case`/`SpecTerm` resolution when the form's link text happens to
-    * coincide with some unrelated algorithm's name (see class doc).
-    *
-    * Confirmed load-bearing, not just theoretical: temporarily replacing this
-    * call with plain `rewriteExpr` regresses `call an Exported Function`'s "If
-    * |ret| is of the form [=exception=] |exnaddr|" — `[=exception=]` collides
-    * (case-insensitively, `known` is lower-cased) with the real `Exception`
-    * constructor algorithm, so without this it resolves to `AlgoCall` and
-    * `ExpandIsOfFormPass` no longer recognizes it, falling back to `EYet`.
+  /** Walks a single algorithm body once, resolving every [[Expr.Link]] against
+    * `known`/`plainKnown` — see class doc. Only overrides the node types it
+    * actually needs to inspect ([[Expr.Link]]/[[Expr.JSCall]],
+    * `Instr.Perform.func`, and [[Cond.IsOfForm]]'s `form`); every other
+    * `Expr`/`Cond`/`Instr` is reached by [[Walker]]'s own default recursion.
     */
-  private def resolveForm(known: Set[String], plainKnown: Set[String])(
-    form: Expr,
-  ): Expr =
-    val e = rewriteExpr(known, plainKnown)
-    form match
-      case Expr.Link(link, args) => buildCaseOrCall(link, args.map(e))
-      case other                 => e(other)
+  private class LinkResolver(known: Set[String], plainKnown: Set[String])
+    extends Walker:
 
-  private def rewriteExpr(known: Set[String], plainKnown: Set[String])(
-    expr: Expr,
-  ): Expr =
-    val go = rewriteExpr(known, plainKnown)
-    expr match
+    override def walk(expr: Expr): Expr = expr match
       case Expr.Link(link, args) =>
-        val resolvedArgs = args.map(go)
+        val resolvedArgs = args.map(walk)
         if known.contains(stripLink(link).toLowerCase) then
           Expr.AlgoCall(link, resolvedArgs)
         else buildCaseOrCall(link, resolvedArgs)
-      // ExprParser's `[=link=](args)` form (unambiguous call syntax) already
-      // parses straight into AlgoCall; still need to recurse into its args
-      // in case one of them is itself an unresolved Link.
-      case Expr.AlgoCall(link, args) => Expr.AlgoCall(link, args.map(go))
-      case Expr.Case(tag, args)      => Expr.Case(tag, args.map(go))
       case Expr.JSCall(name, args) =>
-        Expr.JSCall(resolveFuncName(plainKnown, name), args.map(go))
-      case Expr.Field(base, name) => Expr.Field(go(base), name)
-      case Expr.Index(base, key)  => Expr.Index(go(base), go(key))
-      case Expr.Abrupt(check, e)  => Expr.Abrupt(check, go(e))
-      case Expr.List_(elems)      => Expr.List_(elems.map(go))
-      case Expr.Map_(entries) =>
-        Expr.Map_(entries.map((k, v) => (go(k), go(v))))
-      case Expr.Length(e)       => Expr.Length(go(e))
-      case Expr.BinOp(l, op, r) => Expr.BinOp(go(l), op, go(r))
-      case Expr.Pow(base, exp)  => Expr.Pow(go(base), go(exp))
-      case Expr.Neg(e)          => Expr.Neg(go(e))
-      case Expr.AsMath(e)       => Expr.AsMath(go(e))
-      case Expr.Tuple(elems)    => Expr.Tuple(elems.map(go))
-      // parsed directly by ExprParser (not synthesized by a later pass), so a
-      // Link nested in one of these can already be present when this — the
-      // only Link-resolving pass — runs; skipping them here would let it
-      // silently reach compileExpr's "unresolved link" case instead.
-      case Expr.NewByteSequence(length) => Expr.NewByteSequence(go(length))
-      case Expr.Range(low, high)        => Expr.Range(go(low), go(high))
-      case Expr.ClosureCall(closure, args) =>
-        Expr.ClosureCall(go(closure), args.map(go))
-      case other => other
+        Expr.JSCall(resolveFuncName(plainKnown, name), args.map(walk))
+      case other => super.walk(other)
 
-  private def rewriteCond(known: Set[String], plainKnown: Set[String])(
-    cond: Cond,
-  ): Cond =
-    val e = rewriteExpr(known, plainKnown)
-    val go = rewriteCond(known, plainKnown)
-    cond match
-      case Cond.Eq(l, r, neg)     => Cond.Eq(e(l), e(r), neg)
-      case Cond.Compare(l, op, r) => Cond.Compare(e(l), op, e(r))
-      case Cond.HasField(ex, neg) => Cond.HasField(e(ex), neg)
-      case Cond.Implements(ex, iface, neg) =>
-        Cond.Implements(e(ex), iface, neg)
-      case Cond.IsOfForm(ex, form, condOpt, neg) =>
-        Cond.IsOfForm(
-          e(ex),
-          resolveForm(known, plainKnown)(form),
-          condOpt.map(go),
-          neg,
-        )
-      case Cond.Matches(l, t, r, neg) => Cond.Matches(e(l), t, e(r), neg)
-      case Cond.IsMissing(ex, neg)    => Cond.IsMissing(e(ex), neg)
-      case Cond.IsType(ex, t, neg)    => Cond.IsType(e(ex), t, neg)
-      case Cond.And(l, r)             => Cond.And(go(l), go(r))
-      case Cond.Or(l, r)              => Cond.Or(go(l), go(r))
-      case Cond.Abbreviated(ex)       => Cond.Abbreviated(e(ex))
-      case Cond.Exists(binder, collections, body) =>
-        Cond.Exists(binder, collections.map(e), go(body))
-      case other => other
+    override def walk(instr: Instr): Instr = instr match
+      case i: Instr.Perform =>
+        super.walk(i.copy(func = resolveFuncName(plainKnown, i.func)))
+      case other => super.walk(other)
+
+    override def walk(cond: Cond): Cond = cond match
+      case Cond.IsOfForm(e, form, condOpt, neg) =>
+        Cond.IsOfForm(walk(e), resolveForm(form), condOpt.map(walk), neg)
+      case other => super.walk(other)
+
+    /** Resolves a [[Cond.IsOfForm]]'s `form` field specifically — the same
+      * [[buildCaseOrCall]] heuristic `walk(Expr)`'s `Expr.Link` case uses,
+      * minus its "known algorithm" branch. A form is always a pattern to
+      * destructure against, never a call, so that branch would only ever mask
+      * the correct `Case`/`SpecTerm` resolution when the form's link text
+      * happens to coincide with some unrelated algorithm's name (see class
+      * doc).
+      *
+      * Confirmed load-bearing, not just theoretical: temporarily replacing this
+      * call with plain `walk` regresses `call an Exported Function`'s "If
+      * |ret| is of the form [=exception=] |exnaddr|" — `[=exception=]` collides
+      * (case-insensitively, `known` is lower-cased) with the real `Exception`
+      * constructor algorithm, so without this it resolves to `AlgoCall` and
+      * `ExpandIsOfFormPass` no longer recognizes it, falling back to `EYet`.
+      */
+    private def resolveForm(form: Expr): Expr = form match
+      case Expr.Link(link, args) => buildCaseOrCall(link, args.map(walk))
+      case other                 => walk(other)

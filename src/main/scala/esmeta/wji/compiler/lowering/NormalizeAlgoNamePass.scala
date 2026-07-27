@@ -1,6 +1,7 @@
 package esmeta.wji.compiler.lowering
 
-import esmeta.wji.lang.{Algorithm, AlgorithmKind, Cond, Expr, Instr}
+import esmeta.wji.lang.{Algorithm, AlgorithmKind, Expr, Instr}
+import esmeta.wji.lang.util.Walker
 
 /** Normalizes each `Plain`/`Method`-kind algorithm's `name` —
   * space-to-underscore *and* lower-cased, so it's both a valid function
@@ -56,75 +57,27 @@ object NormalizeAlgoNamePass extends LoweringPass:
         case AlgorithmKind.Plain | AlgorithmKind.Method(_) =>
           a.name.map(normalize)
         case _ => a.name
-      a.copy(name = name, body = a.body.map(rewriteInstr))
+      a.copy(name = name, body = a.body.map(normalizer.walk))
     }
 
   private def underscore(s: String): String = s.replace(' ', '_')
   private def normalize(s: String): String = underscore(s).toLowerCase
 
-  private def rewriteInstr(instr: Instr): Instr =
-    val e = rewriteExpr
-    val c = rewriteCond
-    val rewritten: Instr = instr match
-      case i: Instr.Let    => i.copy(lhs = e(i.lhs), expr = e(i.expr))
-      case i: Instr.Set    => i.copy(lhs = e(i.lhs), expr = e(i.expr))
-      case i: Instr.If     => i.copy(cond = c(i.cond))
-      case i: Instr.ElseIf => i.copy(cond = c(i.cond))
-      case i: Instr.Return => i.copy(expr = i.expr.map(e))
-      case i: Instr.Assert => i.copy(cond = c(i.cond))
-      case i: Instr.While  => i.copy(cond = c(i.cond))
-      case i: Instr.Append =>
-        i.copy(item = e(i.item), collection = e(i.collection))
-      case i: Instr.ForEach =>
-        i.copy(elem = e(i.elem), collection = e(i.collection))
-      case i: Instr.Perform =>
-        i.copy(func = underscore(i.func), args = i.args.map(e))
-      case i: Instr.IfChain =>
-        i.copy(branches = i.branches.map((cond, body) => (c(cond), body)))
-      case other => other
-    rewritten.mapBody(_.map(rewriteInstr))
-
-  private def rewriteExpr(expr: Expr): Expr =
-    val go = rewriteExpr
-    expr match
+  /** Only overrides the node types it actually renames ([[Expr.AlgoCall]]'s
+    * `link`, [[Expr.Closure]]'s `name`, `Instr.Perform`'s `func`) — every other
+    * `Expr`/`Cond`/`Instr` (including [[Expr.Case]], whose `tag` is never a
+    * function name and so is deliberately left untouched — see class doc) is
+    * reached by [[Walker]]'s own default recursion, with no override needed to
+    * leave it alone.
+    */
+  private object normalizer extends Walker:
+    override def walk(expr: Expr): Expr = expr match
       case Expr.AlgoCall(link, args) =>
-        Expr.AlgoCall(underscore(link), args.map(go))
-      // unlike AlgoCall's link, a Case's tag is never looked up as a function
-      // name (it compiles to a literal runtime CaseV tag string, see
-      // Compiler), so it's left untouched — only its args are rewritten.
-      case Expr.Case(tag, args)    => Expr.Case(tag, args.map(go))
-      case Expr.JSCall(name, args) => Expr.JSCall(name, args.map(go))
-      case Expr.Field(base, name)  => Expr.Field(go(base), name)
-      case Expr.Index(base, key)   => Expr.Index(go(base), go(key))
-      case Expr.Abrupt(check, e)   => Expr.Abrupt(check, go(e))
-      case Expr.List_(elems)       => Expr.List_(elems.map(go))
-      case Expr.Map_(entries) =>
-        Expr.Map_(entries.map((k, v) => (go(k), go(v))))
-      case Expr.Length(e)       => Expr.Length(go(e))
-      case Expr.BinOp(l, op, r) => Expr.BinOp(go(l), op, go(r))
-      case Expr.Pow(base, exp)  => Expr.Pow(go(base), go(exp))
-      case Expr.Neg(e)          => Expr.Neg(go(e))
-      case Expr.AsMath(e)       => Expr.AsMath(go(e))
-      case Expr.Tuple(elems)    => Expr.Tuple(elems.map(go))
+        Expr.AlgoCall(underscore(link), args.map(walk))
       case Expr.Closure(name, captured) =>
         Expr.Closure(normalize(name), captured)
-      case other => other
+      case other => super.walk(other)
 
-  private def rewriteCond(cond: Cond): Cond =
-    val e = rewriteExpr
-    val go = rewriteCond
-    cond match
-      case Cond.Eq(l, r, neg)     => Cond.Eq(e(l), e(r), neg)
-      case Cond.Compare(l, op, r) => Cond.Compare(e(l), op, e(r))
-      case Cond.HasField(ex, neg) => Cond.HasField(e(ex), neg)
-      case Cond.Implements(ex, iface, neg) =>
-        Cond.Implements(e(ex), iface, neg)
-      case Cond.IsOfForm(ex, form, condOpt, neg) =>
-        Cond.IsOfForm(e(ex), e(form), condOpt.map(go), neg)
-      case Cond.Matches(l, t, r, neg) => Cond.Matches(e(l), t, e(r), neg)
-      case Cond.IsMissing(ex, neg)    => Cond.IsMissing(e(ex), neg)
-      case Cond.IsType(ex, t, neg)    => Cond.IsType(e(ex), t, neg)
-      case Cond.And(l, r)             => Cond.And(go(l), go(r))
-      case Cond.Or(l, r)              => Cond.Or(go(l), go(r))
-      case Cond.Abbreviated(ex)       => Cond.Abbreviated(e(ex))
-      case other                      => other
+    override def walk(instr: Instr): Instr = instr match
+      case i: Instr.Perform => super.walk(i.copy(func = underscore(i.func)))
+      case other            => super.walk(other)

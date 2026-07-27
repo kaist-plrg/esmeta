@@ -1,6 +1,8 @@
 package esmeta.wji.compiler.lowering
 
 import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr}
+import esmeta.wji.lang.util.Walker
+import scala.collection.mutable.ListBuffer
 
 /** ANF-style normalization: extracts every `AlgoCall`-with-args that appears in
   * a non-trivial expression position into a preceding `Let` binding.
@@ -31,6 +33,17 @@ import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr}
   * [[Instr.While]] conditions are never extracted (they are re-evaluated each
   * iteration; extraction would change semantics).
   *
+  * `extractFromCond` deliberately does *not* recurse into every `Cond` variant
+  * — only the ones spec prose has actually needed extraction inside so far
+  * (`Eq`/`Compare`/`IsType`/`HasField`/`Implements`/`IsMissing`, plus
+  * `IsOfForm`'s `expr` but never its `form`, and `And`/`Or`/`Exists`'s
+  * position-sensitive halves below); `Matches`/`HasSlot`/`HasDuplicates`/
+  * `Contains`/`Abbreviated`/etc. pass through untouched, same as always — this
+  * narrower-than-generic scope is why `extractFromCond` stays its own
+  * hand-written function rather than a [[Walker]] override (a `Walker`'s
+  * default `walk(Cond)` recurses into every variant, which would extract calls
+  * from cases this pass has never touched).
+  *
   * Category: Structural desugaring.
   */
 object NormalizeAlgoCallPass extends LoweringPass:
@@ -44,6 +57,57 @@ object NormalizeAlgoCallPass extends LoweringPass:
 
   private var counter = 0
   private def fresh(): String = { counter += 1; s"_call$counter" }
+
+  /** Extracts every non-trivial `AlgoCall`/`JSCall` reachable from an `Expr`
+    * into `hoisted`, substituting a fresh `Var` in its place — accumulates as a
+    * side effect during the walk (same trick `esmeta.ir.util.YetCollector` uses
+    * for its own mutable buffer), so a single call to `walk`/`extract` both
+    * transforms the expression and collects everything that needed hoisting out
+    * of it. Only overrides the four call-shaped cases
+    * ([[Expr.AlgoCall]]/[[Expr.JSCall]], and their `!`-wrapped forms); every
+    * other `Expr` (`BinOp`/`Pow`/`Neg`/`AsMath`/`Length`/`Abrupt`/`Field`/
+    * `Index`/`List_`/`Tuple`/`Map_`/[[Expr.Case]] — whose own args may still
+    * hide a call, but the `Case` itself is a constructor/pattern, never itself
+    * hoisted — and so on) is reached by [[Walker]]'s own exhaustive default
+    * recursion.
+    */
+  private class Extractor extends Walker:
+    private val buf = ListBuffer.empty[Instr.Let]
+    def hoisted: List[Instr.Let] = buf.toList
+
+    override def walk(expr: Expr): Expr = expr match
+      case Expr.AlgoCall(link, args) if args.nonEmpty =>
+        // hoist any call nested in this call's own args first (e.g.
+        // `F(G(...))`) — otherwise G survives, unextracted, as a
+        // nonempty-arg AlgoCall inside the Let this produces, which
+        // compileExpr can't handle either.
+        val newArgs = args.map(walk)
+        val tmp = fresh()
+        buf += Instr.Let(Expr.Var(tmp), Expr.AlgoCall(link, newArgs))
+        Expr.Var(tmp)
+      case Expr.Abrupt("!", Expr.AlgoCall(link, args)) if args.nonEmpty =>
+        val newArgs = args.map(walk)
+        val tmp = fresh()
+        buf += Instr.Let(Expr.Var(tmp), Expr.AlgoCall(link, newArgs))
+        Expr.Var(tmp)
+      // unlike AlgoCall, JSCall's `[$name$](...)` syntax always carries a
+      // (possibly empty) argument list, so there is no zero-arg/bare-reference
+      // ambiguity to preserve — every JSCall is a call.
+      case Expr.JSCall(name, args) =>
+        val newArgs = args.map(walk)
+        val tmp = fresh()
+        buf += Instr.Let(Expr.Var(tmp), Expr.JSCall(name, newArgs))
+        Expr.Var(tmp)
+      case Expr.Abrupt("!", Expr.JSCall(name, args)) =>
+        val newArgs = args.map(walk)
+        val tmp = fresh()
+        buf += Instr.Let(Expr.Var(tmp), Expr.JSCall(name, newArgs))
+        Expr.Var(tmp)
+      case other => super.walk(other)
+
+    def extract(expr: Expr): (List[Instr.Let], Expr) =
+      val e = walk(expr)
+      (hoisted, e)
 
   def run(algos: List[Algorithm]): List[Algorithm] =
     algos.map { a =>
@@ -67,17 +131,21 @@ object NormalizeAlgoCallPass extends LoweringPass:
       bindings ++ List(Instr.Return(Some(newRhs), transform(body)))
 
     case Instr.Set(lhs, rhs, body) =>
-      val (bindings, newRhs) = extractFromExpr(rhs)
+      val (bindings, newRhs) = Extractor().extract(rhs)
       bindings ++ List(Instr.Set(lhs, newRhs, transform(body)))
 
     case Instr.Append(item, coll, body) =>
-      val (ib, ie) = extractFromExpr(item)
-      val (cb, ce) = extractFromExpr(coll)
-      ib ++ cb ++ List(Instr.Append(ie, ce, transform(body)))
+      val ext = Extractor()
+      val ie = ext.walk(item)
+      val ce = ext.walk(coll)
+      ext.hoisted ++ List(Instr.Append(ie, ce, transform(body)))
 
     case Instr.Perform(func, args, outcome, body) =>
-      val (bs, newArgs) = args.map(extractFromExpr).unzip
-      bs.flatten ++ List(Instr.Perform(func, newArgs, outcome, transform(body)))
+      val ext = Extractor()
+      val newArgs = args.map(ext.walk)
+      ext.hoisted ++ List(
+        Instr.Perform(func, newArgs, outcome, transform(body)),
+      )
 
     case Instr.Assert(cond, body) =>
       val (bindings, newCond) = extractFromCond(cond)
@@ -101,154 +169,62 @@ object NormalizeAlgoCallPass extends LoweringPass:
     case _ =>
       List(instr.mapBody(transform))
 
-  /** Like [[extractFromExpr]] but returns `(Nil, expr)` when the top-level
-    * expression is already a bare AlgoCall/JSCall (or `!`-wrapped) — those are
-    * left for [[ExtractInlineAlgoCallPass]] to convert directly to `Perform`
-    * without an intermediate variable.
+  /** Like [[Extractor.extract]] but returns `(Nil, expr)`-shaped results (its
+    * own args still extracted) when the top-level expression is already a bare
+    * AlgoCall/JSCall (or `!`-wrapped) — those are left for
+    * [[ExtractInlineAlgoCallPass]] to convert directly to `Perform` without an
+    * intermediate variable.
     */
   private def skipTopAlgoCall(expr: Expr): (List[Instr.Let], Expr) = expr match
     // the call itself is left in place for ExtractInlineAlgoCallPass to
     // convert directly to Perform, but its own args can still hide a nested
-    // call (e.g. `Let x be F(G(...))`) that needs hoisting first — args.map
-    // is applied at the same level as extractFromExpr's own AlgoCall/JSCall
-    // cases below, so both paths agree on what "already extracted" means.
+    // call (e.g. `Let x be F(G(...))`) that needs hoisting first.
     case Expr.AlgoCall(link, args) =>
-      val (bs, newArgs) = args.map(extractFromExpr).unzip
-      (bs.flatten, Expr.AlgoCall(link, newArgs))
+      val ext = Extractor()
+      val newArgs = args.map(ext.walk)
+      (ext.hoisted, Expr.AlgoCall(link, newArgs))
     case Expr.Abrupt("!", Expr.AlgoCall(link, args)) =>
-      val (bs, newArgs) = args.map(extractFromExpr).unzip
-      (bs.flatten, Expr.Abrupt("!", Expr.AlgoCall(link, newArgs)))
+      val ext = Extractor()
+      val newArgs = args.map(ext.walk)
+      (ext.hoisted, Expr.Abrupt("!", Expr.AlgoCall(link, newArgs)))
     case Expr.JSCall(name, args) =>
-      val (bs, newArgs) = args.map(extractFromExpr).unzip
-      (bs.flatten, Expr.JSCall(name, newArgs))
+      val ext = Extractor()
+      val newArgs = args.map(ext.walk)
+      (ext.hoisted, Expr.JSCall(name, newArgs))
     case Expr.Abrupt("!", Expr.JSCall(name, args)) =>
-      val (bs, newArgs) = args.map(extractFromExpr).unzip
-      (bs.flatten, Expr.Abrupt("!", Expr.JSCall(name, newArgs)))
-    case _ => extractFromExpr(expr)
-
-  // ── Expr normalization ───────────────────────────────────────────────────────
-
-  private def extractFromExpr(expr: Expr): (List[Instr.Let], Expr) = expr match
-
-    case Expr.AlgoCall(link, args) if args.nonEmpty =>
-      // hoist any call nested in this call's own args first (e.g. `F(G(...))`)
-      // — otherwise G survives, unextracted, as a nonempty-arg AlgoCall inside
-      // the Let this produces, which compileExpr can't handle either.
-      val (argBs, newArgs) = args.map(extractFromExpr).unzip
-      val tmp = fresh()
-      (
-        argBs.flatten :+ Instr.Let(Expr.Var(tmp), Expr.AlgoCall(link, newArgs)),
-        Expr.Var(tmp),
-      )
-
-    case Expr.Abrupt("!", Expr.AlgoCall(link, args)) if args.nonEmpty =>
-      val (argBs, newArgs) = args.map(extractFromExpr).unzip
-      val tmp = fresh()
-      (
-        argBs.flatten :+ Instr.Let(Expr.Var(tmp), Expr.AlgoCall(link, newArgs)),
-        Expr.Var(tmp),
-      )
-
-    // unlike AlgoCall, JSCall's `[$name$](...)` syntax always carries a
-    // (possibly empty) argument list, so there is no zero-arg/bare-reference
-    // ambiguity to preserve — every JSCall is a call.
-    case Expr.JSCall(name, args) =>
-      val (argBs, newArgs) = args.map(extractFromExpr).unzip
-      val tmp = fresh()
-      (
-        argBs.flatten :+ Instr.Let(Expr.Var(tmp), Expr.JSCall(name, newArgs)),
-        Expr.Var(tmp),
-      )
-
-    case Expr.Abrupt("!", Expr.JSCall(name, args)) =>
-      val (argBs, newArgs) = args.map(extractFromExpr).unzip
-      val tmp = fresh()
-      (
-        argBs.flatten :+ Instr.Let(Expr.Var(tmp), Expr.JSCall(name, newArgs)),
-        Expr.Var(tmp),
-      )
-
-    // a Case is a constructor/pattern, not a call — never itself hoisted the
-    // way an AlgoCall/JSCall is — but its args may still contain calls
-    case Expr.Case(tag, args) =>
-      val (bs, es) = args.map(extractFromExpr).unzip
-      (bs.flatten, Expr.Case(tag, es))
-
-    case Expr.BinOp(l, op, r) =>
-      val (lb, le) = extractFromExpr(l)
-      val (rb, re) = extractFromExpr(r)
-      (lb ++ rb, Expr.BinOp(le, op, re))
-
-    case Expr.Pow(base, exp) =>
-      val (bb, be) = extractFromExpr(base)
-      val (eb, ee) = extractFromExpr(exp)
-      (bb ++ eb, Expr.Pow(be, ee))
-
-    case Expr.Neg(e) => val (b, ne) = extractFromExpr(e); (b, Expr.Neg(ne))
-    case Expr.AsMath(e) =>
-      val (b, ne) = extractFromExpr(e); (b, Expr.AsMath(ne))
-    case Expr.Length(e) =>
-      val (b, ne) = extractFromExpr(e); (b, Expr.Length(ne))
-
-    case Expr.Abrupt(check, e) =>
-      val (b, ne) = extractFromExpr(e)
-      (b, Expr.Abrupt(check, ne))
-
-    case Expr.Field(base, name) =>
-      val (b, be) = extractFromExpr(base)
-      (b, Expr.Field(be, name))
-
-    case Expr.Index(base, key) =>
-      val (bb, be) = extractFromExpr(base)
-      val (kb, ke) = extractFromExpr(key)
-      (bb ++ kb, Expr.Index(be, ke))
-
-    case Expr.List_(elems) =>
-      val (bs, es) = elems.map(extractFromExpr).unzip
-      (bs.flatten, Expr.List_(es))
-
-    case Expr.Tuple(elems) =>
-      val (bs, es) = elems.map(extractFromExpr).unzip
-      (bs.flatten, Expr.Tuple(es))
-
-    case Expr.Map_(entries) =>
-      val (bs, es) = entries.map { (k, v) =>
-        val (kb, ke) = extractFromExpr(k)
-        val (vb, ve) = extractFromExpr(v)
-        (kb ++ vb, (ke, ve))
-      }.unzip
-      (bs.flatten, Expr.Map_(es))
-
-    case _ => (Nil, expr)
+      val ext = Extractor()
+      val newArgs = args.map(ext.walk)
+      (ext.hoisted, Expr.Abrupt("!", Expr.JSCall(name, newArgs)))
+    case _ => Extractor().extract(expr)
 
   // ── Cond normalization ───────────────────────────────────────────────────────
 
   private def extractFromCond(cond: Cond): (List[Instr.Let], Cond) = cond match
 
     case Cond.Eq(l, r, neg) =>
-      val (lb, le) = extractFromExpr(l)
-      val (rb, re) = extractFromExpr(r)
-      (lb ++ rb, Cond.Eq(le, re, neg))
+      val ext = Extractor()
+      val (le, re) = (ext.walk(l), ext.walk(r))
+      (ext.hoisted, Cond.Eq(le, re, neg))
 
     case Cond.Compare(l, op, r) =>
-      val (lb, le) = extractFromExpr(l)
-      val (rb, re) = extractFromExpr(r)
-      (lb ++ rb, Cond.Compare(le, op, re))
+      val ext = Extractor()
+      val (le, re) = (ext.walk(l), ext.walk(r))
+      (ext.hoisted, Cond.Compare(le, op, re))
 
     case Cond.IsType(e, t, neg) =>
-      val (b, ne) = extractFromExpr(e); (b, Cond.IsType(ne, t, neg))
+      val (b, ne) = Extractor().extract(e); (b, Cond.IsType(ne, t, neg))
 
     case Cond.HasField(e, neg) =>
-      val (b, ne) = extractFromExpr(e); (b, Cond.HasField(ne, neg))
+      val (b, ne) = Extractor().extract(e); (b, Cond.HasField(ne, neg))
 
     case Cond.Implements(e, iface, neg) =>
-      val (b, ne) = extractFromExpr(e); (b, Cond.Implements(ne, iface, neg))
+      val (b, ne) = Extractor().extract(e); (b, Cond.Implements(ne, iface, neg))
 
     case Cond.IsMissing(e, neg) =>
-      val (b, ne) = extractFromExpr(e); (b, Cond.IsMissing(ne, neg))
+      val (b, ne) = Extractor().extract(e); (b, Cond.IsMissing(ne, neg))
 
     case Cond.IsOfForm(e, form, condOpt, neg) =>
-      val (b, ne) = extractFromExpr(e);
+      val (b, ne) = Extractor().extract(e)
       (b, Cond.IsOfForm(ne, form, condOpt, neg))
 
     case Cond.And(l, r) =>
@@ -266,7 +242,8 @@ object NormalizeAlgoCallPass extends LoweringPass:
     // loop exists) would evaluate it in the wrong scope, so it's deliberately
     // left alone for ExpandMatchesExistsPass's own (loop-aware) handling.
     case Cond.Exists(binder, collections, body) =>
-      val (bs, es) = collections.map(extractFromExpr).unzip
-      (bs.flatten, Cond.Exists(binder, es, body))
+      val ext = Extractor()
+      val es = collections.map(ext.walk)
+      (ext.hoisted, Cond.Exists(binder, es, body))
 
     case other => (Nil, other)

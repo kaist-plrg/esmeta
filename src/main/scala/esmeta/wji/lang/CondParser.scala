@@ -129,15 +129,26 @@ object CondParser:
         }
         Exists(binder, collections, parse(s"|$binder| $predTail"))
       case _ =>
+        // A top-level " where " (e.g. "X is of the form Y where Z1 or Z2",
+        // index.bs:1212) scopes everything after it to a nested
+        // sub-condition — bound the or/and search below to end there, so an
+        // "or"/"and" that's actually *inside* the where-clause (like "Z1 or
+        // Z2" above) doesn't get mistaken for splitting the *whole* thing
+        // into top-level siblings. `parseIsOfForm` below re-parses the
+        // where-clause fresh once reached, correctly rescoped to just that
+        // fragment.
+        val searchIn = findTopLevel(s, " where ") match
+          case Some(i) => s.substring(0, i)
+          case None    => s
         // Or has lower precedence than And, so we try it first
-        findTopLevel(s, " or ") match
+        findTopLevel(searchIn, " or ") match
           case Some(i) =>
             Or(
               parse(s.substring(0, i)),
               parseOrAbbreviated(s.substring(i + 4).trim),
             )
           case None =>
-            findTopLevel(s, " and ") match
+            findTopLevel(searchIn, " and ") match
               case Some(i) =>
                 val left = s.substring(0, i).trim.stripSuffix(",").trim
                 val right = s.substring(i + 5).trim
@@ -188,7 +199,7 @@ object CondParser:
         case None         => (rhsText.trim, None)
       IsOfForm(
         ExprParser.parse(lhsRaw),
-        ExprParser.parse(formRaw),
+        ExprParser.parseUntaggedForm(formRaw),
         condOpt,
         negated,
       )

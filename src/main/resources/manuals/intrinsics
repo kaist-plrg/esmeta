@@ -1006,3 +1006,23 @@ WebAssembly.Instance.prototype = OrdinaryObject [
     Set: undefined;
   };
 }
+
+WebAssembly.Global = BuiltinFunctionObject [
+  Extensible: true;
+  Construct: clo<Record[BuiltinFunctionObject].Construct>;
+] {
+  length: [FFT] 1.0f;
+  name: [FFT] "Global";
+  prototype: [FFF] #INTRINSICS.WebAssembly.Global.prototype;
+}
+
+WebAssembly.Global.prototype = OrdinaryObject [
+  Extensible: true;
+  Prototype: #INTRINSICS.Object.prototype;
+] {
+  %Symbol.toStringTag%: [FFT] "WebAssembly.Global";
+  value: [TT] {
+    Get: #INTRINSICS.get:WebAssembly.Global.prototype.value;
+    Set: #INTRINSICS.set:WebAssembly.Global.prototype.value;
+  };
+}

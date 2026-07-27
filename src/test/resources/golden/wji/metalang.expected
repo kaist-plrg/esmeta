@@ -741,7 +741,7 @@
   Let(|store|, [=surrounding agent=].[[associated store]])
   Let(|globaladdr|, |global|.[[Global]])
   Let(|globaltype|, [=global_type=](|store|, |globaladdr|))
-  If(|globaltype| is of the form ?(<var ignore>mut</var> |valuetype|) where |valuetype| [=matches/valtype=] [=v128=] or [=exnref=])
+  If(|globaltype| is of the form (|mut|, |valuetype|) where |valuetype| [=matches/valtype=] [=v128=] or [=exnref=])
     Throw(a {{TypeError}})
   Let(|value|, [=global_read=](|store|, |globaladdr|))
   Return([=ToJSValue=](|value|))

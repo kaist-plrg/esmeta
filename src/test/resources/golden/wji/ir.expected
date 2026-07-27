@@ -1334,7 +1334,7 @@ def create_a_global_object(
     "Set" : clo<"Record[OrdinaryObject].Set">,
     "Delete" : clo<"Record[OrdinaryObject].Delete">,
     "OwnPropertyKeys" : clo<"Record[OrdinaryObject].OwnPropertyKeys">,
-    "Prototype" : null,
+    "Prototype" : @EXECUTION_STACK[0].Realm.Intrinsics["%WebAssembly.Global.prototype%"],
     "Extensible" : true,
     "PrivateElements" : (list []),
     "__MAP__" : (map[Unknown, Unknown]),
@@ -1449,10 +1449,16 @@ def getglobalvalue(
   let store = @AGENT_RECORD["associated store"]
   let globaladdr = global.Global
   call-embed globaltype = <global_type>(store, globaladdr)
-  if (|| (yet "is of form Unknown(<var ignore>mut</var> |valuetype|)") (case "REF" (opt (case "NULL" )) (case "EXN" ))) {
-    call _err1 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-    call _ret2 = clo<"ThrowCompletion">(_err1)
-    return _ret2
+  if (= (case-tag globaltype) "") {
+    let mut = globaltype[0]
+    let valuetype = globaltype[1]
+    call-embed _m1 = <match_valtype>(valuetype, (case "V128" ))
+    call-embed _m2 = <match_valtype>(valuetype, (case "REF" (opt (case "NULL" )) (case "EXN" )))
+    if (|| (= _m1 true) (= _m2 true)) {
+      call _err1 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
+      call _ret2 = clo<"ThrowCompletion">(_err1)
+      return _ret2
+    } else nop
   } else nop
   call-embed value = <global_read>(store, globaladdr)
   call _result1 = clo<"tojsvalue">(value)

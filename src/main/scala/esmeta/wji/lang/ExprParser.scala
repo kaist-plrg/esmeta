@@ -596,34 +596,49 @@ object ExprParser:
       if !found then si += 1
     result.toList
 
-  // "|mut| |valuetype|" — SpecTec's own AL `CaseE` supports an empty mixop
-  // for a syntax rule with no keyword tokens of its own (Wasm Core's
-  // `globaltype ::= mut valtype`; `Global.value`'s setter, "Let |mut|
-  // |valuetype| be [=global_type=](...)", the only occurrence in the corpus
-  // today): N ≥ 2 components named positionally, separated by nothing but
-  // whitespace — no tag/keyword between them the way `CompTypeArrow`'s "->"
-  // or a `Cond.IsOfForm`'s "REF ..." has one. Requires 2+ vars so it doesn't
+  // A single positional component of an untagged multi-var form: either a
+  // bare `|var|`, or `<var ignore>X</var>` for a component the surrounding
+  // prose never refers to again (e.g. `GetGlobalValue`'s "<var
+  // ignore>mut</var> |valuetype|", index.bs:1212 — contrast the `Let`-LHS
+  // form below, where every component is always bound and so always a bare
+  // `|var|`).
+  private val UntaggedFormComponent =
+    """\|[^|]+\||<var\s+ignore>[^<]*</var>""".r
+  // "|mut| |valuetype|" / "<var ignore>mut</var> |valuetype|" — SpecTec's own
+  // AL `CaseE` supports an empty mixop for a syntax rule with no keyword
+  // tokens of its own (Wasm Core's `globaltype ::= mut valtype`): N ≥ 2
+  // components named positionally, separated by nothing but whitespace — no
+  // tag/keyword between them the way `CompTypeArrow`'s "->" or a
+  // `Cond.IsOfForm`'s "REF ..." has one. Requires 2+ components so it doesn't
   // also swallow `VarOnly`'s single-`|var|` case.
-  private val UntaggedMultiVar =
-    """(?s)^(\|[^|]+\|(?:\s+\|[^|]+\|)+)$""".r
+  private val UntaggedForm =
+    ("""(?s)^(?:""" + UntaggedFormComponent.regex + """)""" +
+      """(?:\s+(?:""" + UntaggedFormComponent.regex + """))+$""").r
 
-  /** `Let`-LHS-only entry point: recognizes [[UntaggedMultiVar]] before falling
-    * back to the general [[parse]]. Deliberately kept out of `parse` itself,
-    * even though it builds a plain [[Case]] the same way [[CompTypeArrow]]
-    * does: `parseArgs`'s tokenizer above greedily tries the *longest* parseable
-    * prefix at each word boundary, so if this shape were reachable from general
-    * `parse`, a genuine `Case`'s own multi-arg list written the same bare,
-    * space-separated way (e.g. "[=ref=] |null|
-    * |heaptype|", parsed via `parseArgs`) would get swallowed into one nested
-    * `Case("", [Var(null), Var(heaptype)])` instead of staying two separate
-    * top-level args — confirmed by `SnapshotSpec` regressing
+  /** Untagged-form-only entry point — used for a `Let` LHS (`InstrParser`) and
+    * a `Cond.IsOfForm`'s "form" text (`CondParser`), never reachable from
+    * general [[parse]] itself, even though it builds a plain [[Case]] the same
+    * way [[CompTypeArrow]] does: `parseArgs`'s tokenizer above greedily tries
+    * the *longest* parseable prefix at each word boundary, so if this shape
+    * were reachable from general `parse`, a genuine `Case`'s own multi-arg list
+    * written the same bare, space-separated way (e.g. "[=ref=]
+    * |null| |heaptype|", parsed via `parseArgs`) would get swallowed into one
+    * nested `Case("", [Var(null), Var(heaptype)])` instead of staying two
+    * separate top-level args — confirmed by `SnapshotSpec` regressing
     * `ToWebAssemblyValue`'s `ref` case exactly this way when this was first
     * tried as a general `parse` case. `Case("", ...)` mirrors SpecTec's empty
     * mixop directly rather than inventing a separate node —
-    * `ExpandDestructuringLetPass` already treats an empty tag as "skip the tag
-    * assert" the same way it treats a bare `Expr.Tuple`.
+    * `ExpandDestructuringLetPass`/`ExpandIsOfFormPass` both treat an empty tag
+    * as "always matches, nothing to assert" rather than special-casing it.
     */
-  private[wji] def parseLetLhs(raw: String): Expr = raw.trim match
-    case UntaggedMultiVar(varsRaw) =>
-      Case("", varsRaw.trim.split("\\s+").toList.map(parse))
-    case other => parse(other)
+  private[wji] def parseUntaggedForm(raw: String): Expr =
+    val trimmed = raw.trim
+    if UntaggedForm.matches(trimmed) then
+      Case(
+        "",
+        UntaggedFormComponent
+          .findAllMatchIn(trimmed)
+          .map(m => parse(m.matched))
+          .toList,
+      )
+    else parse(trimmed)

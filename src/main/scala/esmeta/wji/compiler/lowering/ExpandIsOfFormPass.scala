@@ -26,13 +26,15 @@ import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr}
   * reuses the existing [[Cond.Eq]] rather than a dedicated condition node.
   *
   * Only fires when `link` is a known entry of [[forms]] and every binding is a
-  * bare `Expr.Var` (never seen otherwise) with no `where` clause. Every other
+  * bare `Expr.Var` (never seen otherwise) with no `where` clause. The
+  * `where`-guarded, untagged form (`GetGlobalValue`'s "If |globaltype| is of
+  * the form <var ignore>mut</var> |valuetype| where ...", index.bs:1212) is
+  * handled separately, below — see that case's own doc comment. Every other
   * shape — TAG's form (its payload's real `construct.ml` shape doesn't even
-  * match what the spec prose asks for — a spec bug, not a nesting gap), the
-  * `where`-guarded form (index.bs:1212), and the `{type ..., hostcode
-  * |hostfunc|}` record-shaped form (index.bs:1249) — is left as `Cond.IsOfForm`
-  * for `Compiler` to report as `EYet("is of form")`, until a concrete need for
-  * it is actually reached.
+  * match what the spec prose asks for — a spec bug, not a nesting gap), and the
+  * `{type ..., hostcode |hostfunc|}` record-shaped form (index.bs:1249) — is
+  * left as `Cond.IsOfForm` for `Compiler` to report as `EYet("is of form")`,
+  * until a concrete need for it is actually reached.
   *
   * Category: Structural desugaring.
   */
@@ -136,4 +138,28 @@ object ExpandIsOfFormPass extends LoweringPass:
         }
         val check = Cond.Eq(Expr.CaseTag(e), Expr.Str(spec.runtimeTag), neg)
         (check, binds ++ transform(body))
+      // the `where`-guarded, untagged-form idiom (`GetGlobalValue`'s "If
+      // |globaltype| is of the form <var ignore>mut</var> |valuetype| where
+      // |valuetype| [=matches/valtype|matches=] [=v128=] or [=exnref=], throw
+      // ...", index.bs:1212 — the only occurrence in the corpus today, hence
+      // `neg = false` only: a negated compound condition would need De
+      // Morgan's over an arbitrary `whereCond`, and there's no generic
+      // `Cond.Not` to express that with). Unlike the tagged-forms case above,
+      // the match itself is unconditional (an untagged `Case("", ...)`'s
+      // runtime tag is always `""` — see `ExprParser.parseUntaggedForm`/
+      // `ExpandDestructuringLetPass`'s identical reasoning for `Let`), so
+      // there's nothing to guard the bindings on: they're hoisted out
+      // unconditionally, and only `whereCond` itself becomes a real
+      // (nested) branch condition.
+      case Cond.IsOfForm(e, Expr.Case("", args), Some(whereCond), false)
+          if args.forall(_.isInstanceOf[Expr.Var]) =>
+        val binds = args.zipWithIndex.collect {
+          case (v: Expr.Var, i) => Instr.Let(v, Expr.TupleProj(e, i))
+        }
+        val alwaysTrue = Cond.Eq(Expr.CaseTag(e), Expr.Str(""))
+        val guarded = Instr.IfChain(
+          branches = List((whereCond, transform(body))),
+          fallback = Nil,
+        )
+        (alwaysTrue, binds :+ guarded)
       case _ => (cond, transform(body))

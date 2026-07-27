@@ -36,19 +36,22 @@ object Compiler:
     * "invalid object field" once `Type(v)` correctly classifies it as an Object
     * (see `esmeta.ty.TyModel.registerDynamicSubtype`). `Prototype` points at
     * the interface's real `%WebAssembly.<iface>.prototype%` intrinsic only for
-    * interfaces where `manuals/intrinsics` actually declares one today (just
-    * `Instance`, so its `exports` getter — compiled from the real spec text,
-    * see `compileAlgo`'s `AlgorithmKind.Getter` case below and
-    * `esmeta.wji.compiler.lowering.AddInterfaceMemberBuiltinBehaviourPass` —
-    * resolves); every other interface (`Module`, `Memory`, ...) has no such
-    * intrinsic declared at all, so referencing it would itself crash, and falls
-    * back to `null` as before. The rest of WebIDL's "internally create a new
-    * object implementing the interface" preamble is left for later.
+    * interfaces where `manuals/intrinsics` actually declares one today
+    * (`Instance` and `Global` — their getter/setter/constructor members,
+    * compiled from the real spec text via `compileAlgo`'s
+    * `AlgorithmKind.Getter`/`Setter`/ `Constructor` cases below and
+    * `esmeta.wji.compiler.lowering.AddInterfaceMemberBuiltinBehaviourPass`,
+    * resolve against these); every other interface (`Module`, `Memory`, ...)
+    * has no such intrinsic declared at all, so referencing it would itself
+    * crash, and falls back to `null` as before. The rest of WebIDL's
+    * "internally create a new object implementing the interface" preamble is
+    * left for later.
     *
     * Documented in `docs/hardcodes.md` (#8) — when this gets properly
     * implemented, delete that entry too.
     */
-  private val interfacesWithPrototypeIntrinsic: Set[String] = Set("Instance")
+  private val interfacesWithPrototypeIntrinsic: Set[String] =
+    Set("Instance", "Global")
 
   private def ordinaryObjectFields(iface: String): List[(String, Expr)] = List(
     "GetPrototypeOf" -> EClo("Record[OrdinaryObject].GetPrototypeOf", Nil),

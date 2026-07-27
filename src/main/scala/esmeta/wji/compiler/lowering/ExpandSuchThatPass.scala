@@ -7,11 +7,10 @@ import esmeta.wji.lang.{Algorithm, Expr, Instr}
   * `ToWebAssemblyValue`'s i32/i64/i31 cases, index.bs:1425/1429/1458) into a
   * direct call to `inv_signed_N` (`WasmHost.paramNames`'s
   * `inv_signed_31`/`32`/`64` entries, `server.ml`'s `call_inv_signed`) — "the
-  * unsigned integer such that |i32| is [=signed_32=](|u32|)" describes
-  * exactly `inv_signed_32(|i32|)` (`3.1-numerics.scalar.spectec`'s own
-  * `hint(inverse ...)` on `$signed_`/`$inv_signed_` says as much), so this
-  * needs no runtime search — just calling the already-known inverse
-  * function directly:
+  * unsigned integer such that |i32| is [=signed_32=](|u32|)" describes exactly
+  * `inv_signed_32(|i32|)` (`3.1-numerics.scalar.spectec`'s own `hint(inverse
+  * ...)` on `$signed_`/`$inv_signed_` says as much), so this needs no runtime
+  * search — just calling the already-known inverse function directly:
   * {{{
   *   Let(u32, SuchThat("unsigned integer", "|i32| is [=signed_32=](|u32|)"))
   * }}}
@@ -19,21 +18,21 @@ import esmeta.wji.lang.{Algorithm, Expr, Instr}
   * {{{
   *   Let(u32, AlgoCall("inv_signed_32", [Var(i32)]))
   * }}}
-  * — left as a plain `AlgoCall`-with-args rather than expanded further here,
-  * so [[ExtractInlineAlgoCallPass]] (which already handles exactly this
-  * `Let(x, AlgoCall(f, args), body)` shape generically, turning it into
-  * `Perform(f, args, BindResult(x), body)`) does the rest; that's also why
-  * this pass must run before it.
+  * — left as a plain `AlgoCall`-with-args rather than expanded further here, so
+  * [[ExtractInlineAlgoCallPass]] (which already handles exactly this `Let(x,
+  * AlgoCall(f, args), body)` shape generically, turning it into `Perform(f,
+  * args, BindResult(x), body)`) does the rest; that's also why this pass must
+  * run before it.
   *
-  * Only fires when the `such that` clause's own bound variable (the `Let`
-  * it's the RHS of) is exactly the variable `signed_N` is applied to inside
-  * the condition — true of every occurrence in the corpus today, and the
-  * only shape that's unambiguously "solve for this one variable" rather than
-  * some other existential. Every other `Expr.SuchThat` shape —
-  * implementation-defined choices constrained to a range (the NaN-payload
-  * cases, index.bs:1434/1442) and existence/smallest-element searches
-  * (index.bs:1469/1471) — is left untouched, same as before: `Compiler`
-  * reports it as `EYet(s"$desc such that $cond")`. See `personal/TODO.md` #2.
+  * Only fires when the `such that` clause's own bound variable (the `Let` it's
+  * the RHS of) is exactly the variable `signed_N` is applied to inside the
+  * condition — true of every occurrence in the corpus today, and the only shape
+  * that's unambiguously "solve for this one variable" rather than some other
+  * existential. Every other `Expr.SuchThat` shape — implementation-defined
+  * choices constrained to a range (the NaN-payload cases, index.bs:1434/1442)
+  * and existence/smallest-element searches (index.bs:1469/1471) — is left
+  * untouched, same as before: `Compiler` reports it as `EYet(s"$desc such that
+  * $cond")`. See `personal/TODO.md` #2.
   *
   * Category: Structural desugaring.
   */
@@ -57,7 +56,11 @@ object ExpandSuchThatPass extends LoweringPass:
 
   private def transform(instrs: List[Instr]): List[Instr] =
     instrs.map {
-      case Instr.Let(lhs @ Expr.Var(lhsName), Expr.SuchThat(desc, cond), body) =>
+      case Instr.Let(
+            lhs @ Expr.Var(lhsName),
+            Expr.SuchThat(desc, cond),
+            body,
+          ) =>
         val newRhs = cond.trim match
           case SignedInverseCond(valueVar, bits, targetVar)
               if targetVar.trim == lhsName =>

@@ -144,13 +144,31 @@ object ResolveLinksPass extends LoweringPass:
   private def resolveFuncName(plainKnown: Set[String], name: String): String =
     if plainKnown.contains(name.toLowerCase) then name.toLowerCase else name
 
+  /** The `AlgoCall`/`Case`/`SpecTerm` a link with already-resolved `args`
+    * becomes, once it's known not to be a call to a known algorithm — shared
+    * between [[rewriteExpr]] and [[resolveForm]] (the latter skips the "known
+    * algorithm" branch above this one, but needs the exact same Case/AlgoCall
+    * split otherwise, numeric-const nesting included). Kept as one function
+    * specifically so the two can't silently diverge on this the way they once
+    * did (see git history: `resolveForm` briefly had its own stale copy of
+    * this, missing the [[numConstTags]] nesting).
+    */
+  private def buildCaseOrCall(link: String, resolvedArgs: List[Expr]): Expr =
+    if resolvedArgs.nonEmpty && !lastSegment(stripLink(link)).contains(" ") then
+      // heuristic split between AlgoCall/Case — see class doc above
+      numConstTags.get(stripLink(link).toLowerCase) match
+        case Some(nestedTag) =>
+          Expr.Case("CONST", Expr.Case(nestedTag, Nil) :: resolvedArgs)
+        case None => Expr.Case(link, resolvedArgs)
+    else if resolvedArgs.nonEmpty then Expr.AlgoCall(link, resolvedArgs)
+    else Expr.SpecTerm(stripLink(link))
+
   /** Resolves a [[Cond.IsOfForm]]'s `form` field specifically — the same
-    * AlgoCall/Case/SpecTerm heuristic [[rewriteExpr]]'s `Expr.Link` case uses,
-    * minus its first branch (a name matching a known algorithm). A form is
-    * always a pattern to destructure against, never a call, so that branch
-    * would only ever mask the correct `Case`/`SpecTerm` resolution when the
-    * form's link text happens to coincide with some unrelated algorithm's name
-    * (see class doc).
+    * [[buildCaseOrCall]] heuristic [[rewriteExpr]]'s `Expr.Link` case uses,
+    * minus its "known algorithm" branch. A form is always a pattern to
+    * destructure against, never a call, so that branch would only ever mask the
+    * correct `Case`/`SpecTerm` resolution when the form's link text happens to
+    * coincide with some unrelated algorithm's name (see class doc).
     *
     * Confirmed load-bearing, not just theoretical: temporarily replacing this
     * call with plain `rewriteExpr` regresses `call an Exported Function`'s "If
@@ -158,25 +176,14 @@ object ResolveLinksPass extends LoweringPass:
     * (case-insensitively, `known` is lower-cased) with the real `Exception`
     * constructor algorithm, so without this it resolves to `AlgoCall` and
     * `ExpandIsOfFormPass` no longer recognizes it, falling back to `EYet`.
-    *
-    * Room for improvement: this now duplicates (and has already drifted from —
-    * see [[numConstTags]], only wired into `rewriteExpr`'s own `Case` branch)
-    * `rewriteExpr`'s `Expr.Link` case in everything but that one branch. A
-    * cleaner fix would factor the shared part out so the two can't silently
-    * diverge again, rather than hand-copying future changes into both.
     */
   private def resolveForm(known: Set[String], plainKnown: Set[String])(
     form: Expr,
   ): Expr =
     val e = rewriteExpr(known, plainKnown)
     form match
-      case Expr.Link(link, args) =>
-        val resolvedArgs = args.map(e)
-        if args.nonEmpty && !lastSegment(stripLink(link)).contains(" ") then
-          Expr.Case(link, resolvedArgs)
-        else if args.nonEmpty then Expr.AlgoCall(link, resolvedArgs)
-        else Expr.SpecTerm(stripLink(link))
-      case other => e(other)
+      case Expr.Link(link, args) => buildCaseOrCall(link, args.map(e))
+      case other                 => e(other)
 
   private def rewriteExpr(known: Set[String], plainKnown: Set[String])(
     expr: Expr,
@@ -187,17 +194,7 @@ object ResolveLinksPass extends LoweringPass:
         val resolvedArgs = args.map(go)
         if known.contains(stripLink(link).toLowerCase) then
           Expr.AlgoCall(link, resolvedArgs)
-        else if args.nonEmpty && !lastSegment(stripLink(link)).contains(
-            " ",
-          )
-        then
-          // heuristic split between AlgoCall/Case — see class doc above
-          numConstTags.get(stripLink(link).toLowerCase) match
-            case Some(nestedTag) =>
-              Expr.Case("CONST", Expr.Case(nestedTag, Nil) :: resolvedArgs)
-            case None => Expr.Case(link, resolvedArgs)
-        else if args.nonEmpty then Expr.AlgoCall(link, resolvedArgs)
-        else Expr.SpecTerm(stripLink(link))
+        else buildCaseOrCall(link, resolvedArgs)
       // ExprParser's `[=link=](args)` form (unambiguous call syntax) already
       // parses straight into AlgoCall; still need to recurse into its args
       // in case one of them is itself an unresolved Link.

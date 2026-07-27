@@ -24,13 +24,13 @@ import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr}
   *
   * No SpecTec-specific knowledge lives here — no per-link tag table, no
   * hand-written nesting paths: `form` is trusted to already be shaped exactly
-  * like the real runtime `ALValue.CaseV` it's checked against (`tag` need not
-  * even be pre-translated — `Expr.runtimeCaseTag` is idempotent on an
-  * already-final tag like `"CONST"`/`"I32"`). Producing that correctly-shaped
-  * `form` — including cases where spec prose writes it flatter than the runtime
-  * actually is, e.g. a numeric const's nested numtype tag or
-  * `external-type/global`'s nested `mut`/`valuetype` pair — is entirely
-  * `ResolveLinksPass`'s job (see its `numConstTags`/`nestedFormLinks`).
+  * like the real runtime `ALValue.CaseV` it's checked against, tag included —
+  * `NormalizeSpecTecCaseShapePass` (which every `Case` reaching this pass has
+  * already been through, `requires` below) unconditionally translates every
+  * `Case.tag` into its final runtime form, and also reshapes the cases where
+  * spec prose writes `form` flatter than the runtime actually is (e.g. a
+  * numeric const's nested numtype tag, or `external-type/global`'s nested
+  * `mut`/`valuetype` pair) — see that pass's own doc comment.
   *
   * Only fires when every non-`Case` arg is a bare `Expr.Var` (never seen
   * otherwise) and there's no `where` clause. The `where`-guarded, untagged form
@@ -48,11 +48,14 @@ object ExpandIsOfFormPass extends LoweringPass:
   /** Requires:
     *   - [[ResolveLinksPass]]: needs the form already resolved to `Expr.Case`,
     *     not a raw `Expr.Link`.
+    *   - [[NormalizeSpecTecCaseShapePass]]: needs every `Case.tag` in `form`
+    *     already translated to its final runtime tag — this pass does no
+    *     translation of its own.
     *   - [[GroupIfChainPass]]: needs the condition already inside an
     *     `Instr.IfChain` branch.
     */
   override def requires: Set[LoweringPass] =
-    Set(ResolveLinksPass, GroupIfChainPass)
+    Set(ResolveLinksPass, NormalizeSpecTecCaseShapePass, GroupIfChainPass)
 
   def run(algos: List[Algorithm]): List[Algorithm] =
     algos.map(a => a.copy(body = transform(a.body)))
@@ -82,8 +85,7 @@ object ExpandIsOfFormPass extends LoweringPass:
     neg: Boolean,
   ): (Cond, List[Instr]) =
     val Expr.Case(tag, args) = pattern: @unchecked
-    val tagCheck =
-      Cond.Eq(Expr.CaseTag(e), Expr.Str(Expr.runtimeCaseTag(tag)), neg)
+    val tagCheck = Cond.Eq(Expr.CaseTag(e), Expr.Str(tag), neg)
     val (nestedChecks, binds) = args.zipWithIndex.foldRight(
       (List.empty[Cond], List.empty[Instr]),
     ) {

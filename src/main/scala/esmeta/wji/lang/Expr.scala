@@ -71,28 +71,17 @@ object Expr:
     * but semantically a constructor/pattern rather than a call, so it's kept
     * distinct rather than resolved elsewhere at compile time the way an
     * unrecognized [[AlgoCall]] is.
+    *
+    * `tag` is guaranteed to already be SpecTec's real runtime `ALValue.CaseV`
+    * tag (e.g. `FUNC`, `CONST`, `""`) — never spec-link text like
+    * `[=external-type/func=]` — by the time any pass after
+    * `esmeta.wji.compiler.lowering.NormalizeSpecTecCaseShapePass` sees this
+    * node; that pass is the sole place link text is translated into a runtime
+    * tag, and it also reshapes any `Case` whose runtime nesting is deeper than
+    * spec prose writes it (see its own doc comment).
     */
   case class Case(tag: String, args: List[Expr]) extends Expr
 
-  /** `Case.tag`/`CaseTag`, mapped to the runtime `ALValue.CaseV` tag SpecTec's
-    * runtime actually expects/produces — a short uppercase variant id (e.g.
-    * `FUNC`), not spec-link text. A `for`-scoped dfn's linking text is always
-    * `family/variant` (e.g. `external value/func`, `external-type/global`; see
-    * `SpecPatch` #15/#16, which normalized every such link into exactly this
-    * shape), and SpecTec's own variant families consistently name their `CaseV`
-    * tag after the uppercased variant alone (confirmed against both
-    * `externtype` and `externaddr` in `4.0-execution.configurations.spectec` /
-    * `construct.ml`'s `al_of_externtype`) — so the last `/`-segment,
-    * uppercased, is the tag, with no per-family table needed. A `tag` that's
-    * already a bare runtime tag (e.g. `ExprParser.CompTypeArrow`'s literal
-    * `"->"`, no `/` and already the right case) passes through unchanged.
-    * Shared by `Compiler` (constructing an `ECase`) and
-    * `ExpandDestructuringLetPass` (asserting a `Case`-shaped `Let`'s LHS tag
-    * matches before projecting it) so both agree on the same translation.
-    */
-  def runtimeCaseTag(tag: String): String =
-    val name = tag.stripPrefix("[=").stripSuffix("=]").trim
-    name.substring(name.lastIndexOf('/') + 1).trim.toUpperCase
   case class JSCall(name: String, args: List[Expr]) extends Expr
   case class Abrupt(check: String, expr: Expr) extends Expr
   case class New(iface: String) extends Expr

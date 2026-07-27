@@ -31,26 +31,28 @@ import esmeta.error.UnsupportedSpecShape
   * runtime value is a `Wasm(CaseV(tag, args))` either way, `Case` only
   * additionally names *which* variant it's shaped as. Unlike the plain-tuple
   * case, this variant *does* assert the tag first (`Assert(Eq(CaseTag(base),
-  * Str(Expr.runtimeCaseTag(tag))))`) before projecting: `functype` genuinely is
-  * a `deftype`, not always already the expected `->`-shaped comptype (see
-  * `docs/spec_errors.md` on `$expand`), and positionally projecting the
-  * wrong-shaped value without checking silently hands the caller garbage (e.g.
-  * `_DEF`'s own inner `rectype`/index in place of a params/results list) that
-  * only surfaces as a confusing failure several instructions later, rather than
-  * right here where the actual mismatch is. Only fires when every arg is a bare
-  * `Expr.Var`, mirroring `ExpandIsOfFormPass`'s same guard on the condition
-  * side — a `Case`-lhs `Let` with a non-`Var` arg throws `UnsupportedSpecShape`
-  * instead of silently reaching `Compiler`'s much later, less specific `EYet`
-  * fallback. `Expr.runtimeCaseTag` (shared with `Compiler`'s own `ECase`
-  * construction) translates `tag` the same way either way it's spelled —
-  * already a bare runtime tag (`CompTypeArrow`'s literal `"->"`) or spec-link
-  * text (`ResolveLinksPass`'s `[=external-type/func=]` shapes, e.g.
-  * `create_an_exports_object`'s `externval` destructuring). An empty tag
+  * Str(tag)))`) before projecting: `functype` genuinely is a `deftype`, not
+  * always already the expected `->`-shaped comptype (see `docs/spec_errors.md`
+  * on `$expand`), and positionally projecting the wrong-shaped value without
+  * checking silently hands the caller garbage (e.g. `_DEF`'s own inner
+  * `rectype`/index in place of a params/results list) that only surfaces as a
+  * confusing failure several instructions later, rather than right here where
+  * the actual mismatch is. Only fires when every arg is a bare `Expr.Var`,
+  * mirroring `ExpandIsOfFormPass`'s same guard on the condition side — a
+  * `Case`-lhs `Let` with a non-`Var` arg throws `UnsupportedSpecShape` instead
+  * of silently reaching `Compiler`'s much later, less specific `EYet` fallback.
+  * `tag` itself needs no translation here: `NormalizeSpecTecCaseShapePass`
+  * (which every `Case` this pass sees has already been through, `requires`
+  * below) already normalized it into the real runtime tag, whichever way it was
+  * originally spelled — a bare runtime tag to begin with (`CompTypeArrow`'s
+  * literal `"->"`), spec-link text (`ResolveLinksPass`'s
+  * `[=external-type/func=]` shapes, e.g. `create_an_exports_object`'s
+  * `externval` destructuring), or the empty tag
   * (`ExprParser.UntaggedMultiVar`'s "Let |mut| |valuetype| be ..." shape, no
-  * keyword between the components) needs no special-casing either — the assert
+  * keyword between the components — needs no special-casing either, the assert
   * just compares against `""` like any other tag, and that's exactly what a
-  * value shaped this way actually carries at runtime (`construct.ml`'s
-  * `al_of_globaltype`: `GlobalT (mut, vt) -> CaseV ("", [al_of_mut mut;
+  * value shaped this way actually carries at runtime: `construct.ml`'s
+  * `al_of_globaltype`, `GlobalT (mut, vt) -> CaseV ("", [al_of_mut mut;
   * al_of_valtype vt])`).
   *
   * The original body (if non-empty) is appended after the destructured
@@ -78,8 +80,12 @@ object ExpandDestructuringLetPass extends LoweringPass:
     *   - [[ExpandForEachPass]]: destructures the `Let(Tuple(elems), ...)` that
     *     pass produces for a `Tuple`-shaped `ForEach` element — this pass is
     *     the one that unpacks it into individual bindings.
+    *   - [[NormalizeSpecTecCaseShapePass]]: a `Case`-lhs `Let`'s `tag` must
+    *     already be the real runtime tag by the time `destructure` asserts
+    *     against it — this pass does no translation of its own.
     */
-  override def requires: Set[LoweringPass] = Set(ExpandForEachPass)
+  override def requires: Set[LoweringPass] =
+    Set(ExpandForEachPass, NormalizeSpecTecCaseShapePass)
 
   private var counter = 0
   private def freshTuple(): String = { counter += 1; s"_tuple$counter" }
@@ -105,9 +111,7 @@ object ExpandDestructuringLetPass extends LoweringPass:
         val tmp = Expr.Var(freshTuple())
         (tmp, List(Instr.Let(tmp, expr)))
     val assertTag = tagCheck.toList.map { tag =>
-      Instr.Assert(
-        Cond.Eq(Expr.CaseTag(base), Expr.Str(Expr.runtimeCaseTag(tag))),
-      )
+      Instr.Assert(Cond.Eq(Expr.CaseTag(base), Expr.Str(tag)))
     }
     val destructures = elems.zipWithIndex.map { (elem, i) =>
       Instr.Let(elem, Expr.TupleProj(base, i))

@@ -384,7 +384,7 @@ def create_an_exports_object(
     assert (! (= externval ~error~))
     if (= (case-tag externtype) "FUNC") {
       let functype = externtype[0]
-      assert (yet "is of form Case([=external value/func=],List(Var(funcaddr)))")
+      assert (yet "is of form Case(FUNC,List(Var(funcaddr)))")
       assert (= (case-tag externval) "FUNC")
       let funcaddr = externval[0]
       call func = clo<"a_new_exported_function">(funcaddr)
@@ -393,7 +393,7 @@ def create_an_exports_object(
     if (&& (= (case-tag externtype) "GLOBAL") (= (case-tag externtype[0]) "")) {
       let mut = externtype[0][0]
       let globaltype = externtype[0][1]
-      assert (yet "is of form Case([=external value/global=],List(Var(globaladdr)))")
+      assert (yet "is of form Case(GLOBAL,List(Var(globaladdr)))")
       assert (= (case-tag externval) "GLOBAL")
       let globaladdr = externval[0]
       call global = clo<"create_a_global_object">(globaladdr)
@@ -406,7 +406,7 @@ def create_an_exports_object(
     } else nop
     if (= (case-tag externtype) "MEM") {
       let memtype = externtype[0]
-      assert (yet "is of form Case([=external value/mem=],List(Var(memaddr)))")
+      assert (yet "is of form Case(MEM,List(Var(memaddr)))")
       assert (= (case-tag externval) "MEM")
       let memaddr = externval[0]
       call memory = clo<"create_a_memory_object">(memaddr)
@@ -419,7 +419,7 @@ def create_an_exports_object(
     } else nop
     if (= (case-tag externtype) "TABLE") {
       let tabletype = externtype[0]
-      assert (yet "is of form Case([=external value/table=],List(Var(tableaddr)))")
+      assert (yet "is of form Case(TABLE,List(Var(tableaddr)))")
       assert (= (case-tag externval) "TABLE")
       let tableaddr = externval[0]
       call table = clo<"create_a_table_object">(tableaddr)
@@ -432,7 +432,7 @@ def create_an_exports_object(
     } else nop
     if (= (case-tag externtype) "TAG") {
       let functype = externtype[0]
-      assert (yet "is of form Case([=external value/tag=],List(Var(tagaddr)))")
+      assert (yet "is of form Case(TAG,List(Var(tagaddr)))")
       assert (= (case-tag externval) "TAG")
       let tagaddr = externval[0]
       call tag = clo<"create_a_tag_object">(tagaddr)
@@ -1990,8 +1990,8 @@ def create_a_host_function(
 def tojsvalue(
   w: Unknown,
 ): Unknown = {
-  assert (yet "is of form Case([=v128.const=],List(Var(v128)))")
-  assert (yet "is of form Case([=ref.exn=],List(Var(exnaddr)))")
+  assert (yet "is of form Case(V128.CONST,List(Var(v128)))")
+  assert (yet "is of form Case(REF.EXN,List(Var(exnaddr)))")
   if (&& (= (case-tag w) "CONST") (= (case-tag w[0]) "I64")) {
     let u64 = w[1]
     call-embed i64 = <signed_64>(u64)

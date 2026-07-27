@@ -428,11 +428,11 @@ object Compiler:
     // a SpecTec Wasm Core Spec constructor/variant application (e.g. "the
     // [=external value=] [=external value/func=] |funcaddr|") used as a
     // value — builds a real `Wasm(CaseV(tag, ...))` to send back to SpecTec.
-    // `tag` needs SpecTec's own runtime constructor id (e.g. `FUNC`), a
-    // different namespace than `nameFromLink`'s WJI-algorithm-name lowercase
-    // convention — see `metalang.Expr.runtimeCaseTag`.
+    // `tag` is already SpecTec's own runtime constructor id (e.g. `FUNC`) by
+    // this point — `lowering.NormalizeSpecTecCaseShapePass` translates every
+    // `Case`'s tag out of spec-link-text form long before `Compiler` runs.
     case metalang.Expr.Case(tag, args) =>
-      ECase(metalang.Expr.runtimeCaseTag(tag), args.map(compileExpr))
+      ECase(tag, args.map(compileExpr))
     case metalang.Expr.Tuple(elems) => EYet(s"tuple(${elems.mkString})") // TODO
     case metalang.Expr.Map_(entries) =>
       EMap(

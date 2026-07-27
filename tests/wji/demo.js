@@ -22,4 +22,5 @@ WebAssembly
   .then(({module, instance}) => {
     instance.exports.f();
     globalThis.__wjiOk = true;
-  });
+  })
+  .catch(e => print("uncaught: " + e));

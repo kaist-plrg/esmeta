@@ -33,4 +33,4 @@ WebAssembly.instantiate(bytes.buffer, {}).then(({module, instance}) => {
   assertEq(fromJs, 99, "JS write not visible to wasm");
 
   globalThis.__wjiOk = true;
-});
+}).catch(e => print("uncaught: " + e));

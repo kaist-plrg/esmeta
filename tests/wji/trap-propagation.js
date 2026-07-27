@@ -20,4 +20,4 @@ WebAssembly.instantiate(bytes.buffer, {}).then(({module, instance}) => {
     throw new Error("expected a WebAssembly.RuntimeError, got " + caught);
 
   globalThis.__wjiOk = true;
-});
+}).catch(e => print("uncaught: " + e));

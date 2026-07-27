@@ -27,6 +27,14 @@ standalone 테스트입니다. 규칙은 하나: **모든 체크(동기든 비�
   { throw ... })`로 확인함 — `@RESULT`가 그래도 `undefined`로 남음). 그러니
   async 콜백 안에서도 가독성을 위해 `throw`는 그대로 쓰되, 콜백 맨 끝에
   성공 시에만 `globalThis.__wjiOk = true;`를 반드시 추가하세요.
+- **위와 같은 이유로, `.then(cb)` 체인 끝에 `.catch(e => print("uncaught: " +
+  e))`를 항상 붙이세요.** `__wjiOk`가 harness 통과 여부는 이미 정확히
+  판정하지만, 실패 시 *왜* 실패했는지는 아무 데도 안 찍힙니다 — `.catch()`
+  없이는 `wji-eval`을 직접 돌려봐도 `[success]`만 뜨고 끝나버려서(진짜 async
+  throw는 completion record로만 처리되고 Scala 예외로 안 올라옴 — mainline
+  WJI 미기계화 gap(`EYet`/`NotSupported`)과는 다름, 그건 최상단까지 정상
+  전파됨) 원인 파악에 fixture를 직접 고쳐 `print`를 끼워넣는 수밖에 없었습니다.
+  `.catch()`를 달아두면 이 경우도 최소한 실패 메시지는 바로 보입니다.
 - harness(`EvalSpec`, `src/test/scala/esmeta/wji/EvalSpec.scala`)는 실행 후
   `GLOBAL_RESULT === Undef`(동기 throw 잡힘) **그리고** `__wjiOk === true`
   (async 실패나, promise가 애초에 안 불린 경우까지 잡힘) 둘 다 확인합니다.

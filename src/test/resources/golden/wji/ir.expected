@@ -1233,23 +1233,12 @@ def get(
     call _ret5 = clo<"ThrowCompletion">(_err4)
     return _ret5
   } else nop
-  call _comp2 = clo<"tojsvalue">(result)
-  if (exists _comp2.Type) {
-    assert (= _comp2.Type ~normal~)
-    let _v6 = _comp2.Value
-    if (? _v6: Completion) {
-      return _v6
-    } else {
-      call _ret7 = clo<"NormalCompletion">(_v6)
-      return _ret7
-    }
+  call _result1 = clo<"tojsvalue">(result)
+  if (? _result1: Completion) {
+    return _result1
   } else {
-    if (? _comp2: Completion) {
-      return _comp2
-    } else {
-      call _ret8 = clo<"NormalCompletion">(_comp2)
-      return _ret8
-    }
+    call _ret6 = clo<"NormalCompletion">(_result1)
+    return _ret6
   }
 }
 def set(
@@ -1466,23 +1455,12 @@ def getglobalvalue(
     return _ret2
   } else nop
   call-embed value = <global_read>(store, globaladdr)
-  call _comp1 = clo<"tojsvalue">(value)
-  if (exists _comp1.Type) {
-    assert (= _comp1.Type ~normal~)
-    let _v3 = _comp1.Value
-    if (? _v3: Completion) {
-      return _v3
-    } else {
-      call _ret4 = clo<"NormalCompletion">(_v3)
-      return _ret4
-    }
+  call _result1 = clo<"tojsvalue">(value)
+  if (? _result1: Completion) {
+    return _result1
   } else {
-    if (? _comp1: Completion) {
-      return _comp1
-    } else {
-      call _ret5 = clo<"NormalCompletion">(_comp1)
-      return _ret5
-    }
+    call _ret3 = clo<"NormalCompletion">(_result1)
+    return _ret3
   }
 }
 def <BUILTIN>:INTRINSICS.get:WebAssembly.Global.prototype.value(
@@ -1684,7 +1662,7 @@ def call_an_exported_function(
     call-embed payload = <exn_read>(store, exnaddr)
     call jsTagAddr = clo<"get_the_javascript_exception_tag">()
     if (= tagaddr jsTagAddr) {
-      (yet "throw [=!=] [=ToJSValue=](|payload|[0])")
+      (yet "throw [=ToJSValue=](|payload|[0])")
     } else {
       call exception = clo<"create_an_exception_object">(exnaddr)
       (yet "throw |exception|")
@@ -1700,23 +1678,12 @@ def call_an_exported_function(
       return _ret6
     }
   } else if (= outArity 1) {
-    call _comp1 = clo<"tojsvalue">(ret[0])
-    if (exists _comp1.Type) {
-      assert (= _comp1.Type ~normal~)
-      let _v7 = _comp1.Value
-      if (? _v7: Completion) {
-        return _v7
-      } else {
-        call _ret8 = clo<"NormalCompletion">(_v7)
-        return _ret8
-      }
+    call _result1 = clo<"tojsvalue">(ret[0])
+    if (? _result1: Completion) {
+      return _result1
     } else {
-      if (? _comp1: Completion) {
-        return _comp1
-      } else {
-        call _ret9 = clo<"NormalCompletion">(_comp1)
-        return _ret9
-      }
+      call _ret7 = clo<"NormalCompletion">(_result1)
+      return _ret7
     }
   } else {
     let values = (list [])
@@ -1728,12 +1695,12 @@ def call_an_exported_function(
       push values < _call2
       _iterIdx4 = (+ _iterIdx4 1)
     }
-    call _result1 = clo<"CreateArrayFromList">(values)
-    if (? _result1: Completion) {
-      return _result1
+    call _result2 = clo<"CreateArrayFromList">(values)
+    if (? _result2: Completion) {
+      return _result2
     } else {
-      call _ret10 = clo<"NormalCompletion">(_result1)
-      return _ret10
+      call _ret8 = clo<"NormalCompletion">(_result2)
+      return _ret8
     }
   }
 }
@@ -2499,23 +2466,12 @@ def getarg(
     call _ret6 = clo<"ThrowCompletion">(_err5)
     return _ret6
   } else nop
-  call _comp1 = clo<"tojsvalue">(payload[index])
-  if (exists _comp1.Type) {
-    assert (= _comp1.Type ~normal~)
-    let _v7 = _comp1.Value
-    if (? _v7: Completion) {
-      return _v7
-    } else {
-      call _ret8 = clo<"NormalCompletion">(_v7)
-      return _ret8
-    }
+  call _result1 = clo<"tojsvalue">(payload[index])
+  if (? _result1: Completion) {
+    return _result1
   } else {
-    if (? _comp1: Completion) {
-      return _comp1
-    } else {
-      call _ret9 = clo<"NormalCompletion">(_comp1)
-      return _ret9
-    }
+    call _ret7 = clo<"NormalCompletion">(_result1)
+    return _ret7
   }
 }
 def is(

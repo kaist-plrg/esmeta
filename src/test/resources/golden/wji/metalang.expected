@@ -645,7 +645,7 @@
   Let(|result|, [=table_read=](|store|, |tableaddr|, |index64|))
   If(|result| is [=error=])
     Throw(a {{RangeError}} exception)
-  Return([=!=] [=ToJSValue=](|result|))
+  Return([=ToJSValue=](|result|))
 
 # set
   kind: method for Table
@@ -744,7 +744,7 @@
   If(|globaltype| is of the form ?(<var ignore>mut</var> |valuetype|) where |valuetype| [=matches/valtype=] [=v128=] or [=exnref=])
     Throw(a {{TypeError}})
   Let(|value|, [=global_read=](|store|, |globaladdr|))
-  Return([=!=] [=ToJSValue=](|value|))
+  Return([=ToJSValue=](|value|))
 
 # value
   id: global-value-getter
@@ -830,7 +830,7 @@
     Let(|payload|, [=exn_read=](|store|, |exnaddr|))
     Let(|jsTagAddr|, [=get the JavaScript exception tag=])
     If(|tagaddr| is |jsTagAddr|)
-      Throw([=!=] [=ToJSValue=](|payload|[0]))
+      Throw([=ToJSValue=](|payload|[0]))
     Else
       Let(|exception|, [=create an Exception object=](|exnaddr|))
       Throw(|exception|)
@@ -838,11 +838,11 @@
   If(|outArity| is 0)
     Return(undefined)
   ElseIf(|outArity| is 1)
-    Return([=!=] [=ToJSValue=](|ret|[0]))
+    Return([=ToJSValue=](|ret|[0]))
   Else
     Let(|values|, « »)
     ForEach(|r|, |ret|)
-      Append([=!=] [=ToJSValue=](|r|), |values|)
+      Append([=ToJSValue=](|r|), |values|)
     Return([$CreateArrayFromList$](|values|))
 
 # run a host function
@@ -853,7 +853,7 @@
     Throw(a {{TypeError}})
   Let(|jsArguments|, « »)
   ForEach(|arg|, |arguments|)
-    Append([=!=] [=ToJSValue=](|arg|), |jsArguments|)
+    Append([=ToJSValue=](|arg|), |jsArguments|)
   Let(|ret|, [=?=] [$Call$](|func|, undefined, |jsArguments|))
   Let(|resultsSize|, length(|results|))
   If(|resultsSize| is 0)
@@ -1200,7 +1200,7 @@
   Let(?([|types|] → []), [=tag_type=](|store|, |tagaddr|))
   If(|types|[|index|] [=matches/valtype=] [=v128=] or [=exnref=])
     Throw(a {{TypeError}})
-  Return([=!=] [=ToJSValue=](|payload|[|index|]))
+  Return([=ToJSValue=](|payload|[|index|]))
 
 # is
   kind: method for Exception

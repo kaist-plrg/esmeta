@@ -514,6 +514,23 @@ object SpecPatch:
     "1. Return [=𝔽=](|i31|)."
     ->
     "1. Return [=𝔽=](|i31| interpreted as a [=mathematical value=]).",
+
+    // #26 (spec bug, docs/spec_errors.md #14) — `ToJSValue` (index.bs:1376-1402)
+    // is a plain value-producing algorithm: every one of its 12 steps is a bare
+    // `Return`/`If ... return`, with no `Throw`, `NormalCompletion`, or
+    // `ThrowCompletion` anywhere in its body — not completion-returning at all.
+    // Its own single self-recursive call (line 1402, the ref.extern case)
+    // correctly calls it bare. Every *other* call site in the document,
+    // though, prefixes it with `[=!=]` — the ECMA-262 ReturnIfAbrupt shorthand,
+    // only meaningful against an algorithm that itself returns a Completion
+    // Record. One replace handles all 7 sites that apply `!` directly to
+    // `ToJSValue` (index.bs:1096, 1214, 1302, 1308, 1312, 1327, 1762); the
+    // other 5 occurrences of `ToJSValue` (index.bs:1934, 1943, 2048, 2080,
+    // 2123) are untouched — there `!` legitimately targets `$Call$`, with
+    // `ToJSValue(...)` merely passed in as a plain argument.
+    "[=!=] [=ToJSValue=]"
+    ->
+    "[=ToJSValue=]",
   )
 
   def apply(source: String): String =

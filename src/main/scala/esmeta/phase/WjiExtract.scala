@@ -3,7 +3,8 @@ package esmeta.phase
 import esmeta.*
 import esmeta.util.*
 import esmeta.wji.extractor.Extractor
-import esmeta.wji.lang.{Algorithm, InstrPrinter}
+import esmeta.wji.lang.Algorithm
+import esmeta.wji.lang.printer.InstrPrinter
 
 /** `wji-extract` phase
   *

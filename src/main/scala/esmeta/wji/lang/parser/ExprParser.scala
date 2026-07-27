@@ -1,4 +1,6 @@
-package esmeta.wji.lang
+package esmeta.wji.lang.parser
+
+import esmeta.wji.lang.*
 
 import Expr.*
 import TextSplit.*

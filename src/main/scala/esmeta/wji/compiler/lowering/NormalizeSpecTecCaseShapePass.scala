@@ -1,7 +1,7 @@
 package esmeta.wji.compiler.lowering
 
 import esmeta.wji.lang.{Algorithm, Expr}
-import esmeta.wji.lang.util.Walker
+import esmeta.wji.lang.walker.Walker
 
 /** Finalizes every `Expr.Case`'s `tag` into SpecTec's real runtime
   * `ALValue.CaseV` tag, and reshapes the handful whose runtime nesting is

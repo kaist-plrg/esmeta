@@ -1,4 +1,4 @@
-package esmeta.wji.lang.util
+package esmeta.wji.lang.walker
 
 import esmeta.wji.lang.{Cond, Expr, Instr}
 

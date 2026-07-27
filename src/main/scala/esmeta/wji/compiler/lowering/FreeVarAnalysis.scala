@@ -2,7 +2,7 @@ package esmeta.wji.compiler.lowering
 
 import esmeta.wji.lang.{Cond, Expr, Instr}
 import esmeta.wji.lang.Instr.PerformOutcome
-import esmeta.wji.lang.util.UnitWalker
+import esmeta.wji.lang.walker.UnitWalker
 import scala.collection.mutable
 
 /** Free-variable analysis for a block of already-lowered [[Instr]]s, shared by

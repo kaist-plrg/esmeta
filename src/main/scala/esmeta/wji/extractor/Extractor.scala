@@ -1,14 +1,7 @@
 package esmeta.wji.extractor
 
 import esmeta.util.SystemUtils.*
-import esmeta.wji.lang.{
-  AlgorithmExtractor,
-  AnchorExtractor,
-  InterfaceExtractor,
-  SpecFile,
-  SpecPatch,
-}
-import esmeta.wji.spec.Spec
+import esmeta.wji.spec.{Spec, SpecFile, SpecPatch}
 
 /** Unified entry point producing a [[Spec]] from the WebAssembly JS-API spec
   * sources — mirrors mainline's `esmeta.extractor.Extractor` (which takes a

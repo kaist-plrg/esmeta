@@ -1,7 +1,7 @@
 package esmeta.wji.compiler.lowering
 
 import esmeta.wji.lang.{Algorithm, AlgorithmKind, Cond, Expr, Instr}
-import esmeta.wji.lang.util.Walker
+import esmeta.wji.lang.walker.Walker
 
 /** Resolves every [[Expr.Link]] — a raw `[=...=]` Bikeshed autolink, parsed
   * before it's known whether it names a callable algorithm — into an

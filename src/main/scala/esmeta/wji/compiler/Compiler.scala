@@ -3,6 +3,7 @@ package esmeta.wji.compiler
 import esmeta.wji.lang as metalang
 import esmeta.wji.lang.{Algorithm, AlgorithmKind, Cond, Instr}
 import esmeta.wji.lang.Instr.PerformOutcome
+import esmeta.wji.lang.printer.ExprPrinter
 import esmeta.wji.bridge.host.WasmHost
 import esmeta.ir
 import esmeta.ir.*
@@ -250,8 +251,8 @@ object Compiler:
       // TODO: proper foreach — needs ERef of collection + loop var
       IExpr(
         EYet(
-          s"foreach ${metalang.ExprPrinter
-            .render(elem)} in ${metalang.ExprPrinter.render(collection)}",
+          s"foreach ${ExprPrinter
+            .render(elem)} in ${ExprPrinter.render(collection)}",
         ),
       ) :: compileSeq(body)
 
@@ -259,8 +260,8 @@ object Compiler:
       // TODO: proper counting loop — needs a real IWhile over the collection
       IExpr(
         EYet(
-          s"for ${metalang.ExprPrinter
-            .render(elem)} in ${metalang.ExprPrinter.render(collection)}",
+          s"for ${ExprPrinter
+            .render(elem)} in ${ExprPrinter.render(collection)}",
         ),
       ) :: compileSeq(body)
 
@@ -482,8 +483,8 @@ object Compiler:
       )
     case metalang.Expr.ClosureCall(closure, args) =>
       impossible(
-        s"call ${metalang.ExprPrinter.render(closure)} given ${args
-          .map(metalang.ExprPrinter.render)
+        s"call ${ExprPrinter.render(closure)} given ${args
+          .map(ExprPrinter.render)
           .mkString(", ")}",
       )
 

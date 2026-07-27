@@ -2,6 +2,7 @@ package esmeta.wji
 
 import org.scalatest.funsuite.AnyFunSuite
 import esmeta.wji.lang.*
+import esmeta.wji.lang.parser.ExprParser
 import Expr.*
 
 class ExprParserSpec extends AnyFunSuite:

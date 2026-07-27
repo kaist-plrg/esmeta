@@ -1,4 +1,4 @@
-package esmeta.wji.lang
+package esmeta.wji.spec
 
 /** Known corrections applied to `spectec/document/js-api/index.bs` and, for the
   * small subset of algorithms `SpecFile.webidlFilter` pulls in from it,

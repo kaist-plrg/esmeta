@@ -1,7 +1,8 @@
 package esmeta.wji
 
 import org.scalatest.funsuite.AnyFunSuite
-import esmeta.wji.lang.{AnchorExtractor, SpecFile}
+import esmeta.wji.extractor.AnchorExtractor
+import esmeta.wji.spec.SpecFile
 import esmeta.wji.bridge.host.WasmHost
 
 class AnchorExtractorSpec extends AnyFunSuite:

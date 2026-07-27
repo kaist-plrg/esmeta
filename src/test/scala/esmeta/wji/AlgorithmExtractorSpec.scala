@@ -2,6 +2,8 @@ package esmeta.wji
 
 import org.scalatest.funsuite.AnyFunSuite
 import esmeta.wji.lang.*
+import esmeta.wji.extractor.AlgorithmExtractor
+import esmeta.wji.spec.{SpecFile, SpecPatch}
 import Instr.*
 import Expr.*
 import Cond.*

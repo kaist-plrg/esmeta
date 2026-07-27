@@ -2,6 +2,8 @@ package esmeta.wji
 
 import org.scalatest.funsuite.AnyFunSuite
 import esmeta.wji.lang.*
+import esmeta.wji.extractor.InterfaceExtractor
+import esmeta.wji.spec.SpecFile
 
 class InterfaceExtractorSpec extends AnyFunSuite:
 

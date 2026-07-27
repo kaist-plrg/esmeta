@@ -1,4 +1,4 @@
-package esmeta.wji.lang
+package esmeta.wji.spec
 
 import java.io.File
 import java.nio.file.Path

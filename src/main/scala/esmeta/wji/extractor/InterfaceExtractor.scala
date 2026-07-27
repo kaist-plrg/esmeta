@@ -1,4 +1,7 @@
-package esmeta.wji.lang
+package esmeta.wji.extractor
+
+import esmeta.wji.lang.*
+import esmeta.wji.spec.SpecPatch
 
 import esmeta.util.HtmlUtils.*
 import java.nio.file.{Files, Path}

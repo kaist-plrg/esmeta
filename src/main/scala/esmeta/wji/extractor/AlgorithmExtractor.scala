@@ -1,5 +1,9 @@
-package esmeta.wji.lang
+package esmeta.wji.extractor
 
+import esmeta.wji.lang.*
+import esmeta.wji.spec.SpecPatch
+
+import esmeta.wji.lang.parser.{ExprParser, InstrParser}
 import scala.collection.mutable.ListBuffer
 import java.nio.file.{Files, Path}
 

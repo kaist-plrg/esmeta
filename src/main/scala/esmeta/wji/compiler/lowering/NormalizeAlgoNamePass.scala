@@ -1,7 +1,7 @@
 package esmeta.wji.compiler.lowering
 
 import esmeta.wji.lang.{Algorithm, AlgorithmKind, Expr, Instr}
-import esmeta.wji.lang.util.Walker
+import esmeta.wji.lang.walker.Walker
 
 /** Normalizes each `Plain`/`Method`-kind algorithm's `name` —
   * space-to-underscore *and* lower-cased, so it's both a valid function

@@ -1,7 +1,7 @@
 package esmeta.wji.compiler.lowering
 
 import esmeta.wji.lang.{Expr, Instr}
-import esmeta.wji.lang.util.UnitWalker
+import esmeta.wji.lang.walker.UnitWalker
 
 /** Generic read-only queries over an already-(partially-)lowered [[Instr]]
   * tree, shared by lowering passes that only handle a construct in a

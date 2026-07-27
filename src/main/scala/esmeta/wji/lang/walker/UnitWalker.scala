@@ -1,34 +1,34 @@
-package esmeta.wji.lang.util
+package esmeta.wji.lang.walker
 
 import esmeta.wji.lang.{Cond, Expr, Instr}
 
 /** The read-only, `Unit`-returning sibling of [[Walker]] — mirrors
   * `esmeta.ir.util.UnitWalker`. A concrete subclass overrides `walk` for the
-  * node type(s) it cares about, typically accumulating into a mutable field
-  * as a side effect, and calls `super.walk(...)` to keep recursing (see
-  * `esmeta.ir.util.YetCollector` for the canonical shape this mirrors).
-  * Same exhaustive default recursion as [[Walker]], just without
-  * reconstructing anything.
+  * node type(s) it cares about, typically accumulating into a mutable field as
+  * a side effect, and calls `super.walk(...)` to keep recursing (see
+  * `esmeta.ir.util.YetCollector` for the canonical shape this mirrors). Same
+  * exhaustive default recursion as [[Walker]], just without reconstructing
+  * anything.
   */
 trait UnitWalker:
   def walk(expr: Expr): Unit = expr match
-    case Expr.Field(base, _)       => walk(base)
-    case Expr.Index(base, key)     => walk(base); walk(key)
-    case Expr.Link(_, args)        => args.foreach(walk)
-    case Expr.AlgoCall(_, args)    => args.foreach(walk)
-    case Expr.Case(_, args)        => args.foreach(walk)
-    case Expr.JSCall(_, args)      => args.foreach(walk)
-    case Expr.Abrupt(_, e)         => walk(e)
-    case Expr.List_(elems)         => elems.foreach(walk)
-    case Expr.Map_(entries)        => entries.foreach((k, v) => { walk(k); walk(v) })
-    case Expr.Length(e)            => walk(e)
-    case Expr.BinOp(l, _, r)       => walk(l); walk(r)
-    case Expr.Pow(base, exp)       => walk(base); walk(exp)
-    case Expr.Neg(e)               => walk(e)
-    case Expr.AsMath(e)            => walk(e)
-    case Expr.AsNumber(e)          => walk(e)
-    case Expr.AsBigInt(e)          => walk(e)
-    case Expr.Tuple(elems)         => elems.foreach(walk)
+    case Expr.Field(base, _)    => walk(base)
+    case Expr.Index(base, key)  => walk(base); walk(key)
+    case Expr.Link(_, args)     => args.foreach(walk)
+    case Expr.AlgoCall(_, args) => args.foreach(walk)
+    case Expr.Case(_, args)     => args.foreach(walk)
+    case Expr.JSCall(_, args)   => args.foreach(walk)
+    case Expr.Abrupt(_, e)      => walk(e)
+    case Expr.List_(elems)      => elems.foreach(walk)
+    case Expr.Map_(entries)  => entries.foreach((k, v) => { walk(k); walk(v) })
+    case Expr.Length(e)      => walk(e)
+    case Expr.BinOp(l, _, r) => walk(l); walk(r)
+    case Expr.Pow(base, exp) => walk(base); walk(exp)
+    case Expr.Neg(e)         => walk(e)
+    case Expr.AsMath(e)      => walk(e)
+    case Expr.AsNumber(e)    => walk(e)
+    case Expr.AsBigInt(e)    => walk(e)
+    case Expr.Tuple(elems)   => elems.foreach(walk)
     case Expr.NewByteSequence(len) => walk(len)
     case Expr.Range(low, high)     => walk(low); walk(high)
     case Expr.IndexOf(list, elem)  => walk(list); walk(elem)
@@ -48,15 +48,15 @@ trait UnitWalker:
     case Cond.Implements(e, _, _) => walk(e)
     case Cond.IsOfForm(e, form, condOpt, _) =>
       walk(e); walk(form); condOpt.foreach(walk)
-    case Cond.Matches(l, _, r, _)      => walk(l); walk(r)
-    case Cond.IsMissing(e, _)          => walk(e)
-    case Cond.HasSlot(e, _, _)         => walk(e)
-    case Cond.HasDuplicates(list, _)   => walk(list)
-    case Cond.Contains(elem, list, _)  => walk(elem); walk(list)
-    case Cond.IsType(e, _, _)          => walk(e)
-    case Cond.And(l, r)                => walk(l); walk(r)
-    case Cond.Or(l, r)                 => walk(l); walk(r)
-    case Cond.Abbreviated(e)           => walk(e)
+    case Cond.Matches(l, _, r, _)     => walk(l); walk(r)
+    case Cond.IsMissing(e, _)         => walk(e)
+    case Cond.HasSlot(e, _, _)        => walk(e)
+    case Cond.HasDuplicates(list, _)  => walk(list)
+    case Cond.Contains(elem, list, _) => walk(elem); walk(list)
+    case Cond.IsType(e, _, _)         => walk(e)
+    case Cond.And(l, r)               => walk(l); walk(r)
+    case Cond.Or(l, r)                => walk(l); walk(r)
+    case Cond.Abbreviated(e)          => walk(e)
     case Cond.Exists(_, collections, body) =>
       collections.foreach(walk); walk(body)
     // leaves: Unreachable, Throws, Unknown.

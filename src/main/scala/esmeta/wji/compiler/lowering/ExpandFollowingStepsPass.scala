@@ -23,7 +23,7 @@ import esmeta.wji.lang.{Algorithm, Expr, Instr, WjiParam}
   *   Perform("[=Queue a task=]", [Var("taskSource"), Closure(closureName, captured)], Discard)
   * }}}
   * where `substeps` — always the *owning instruction's* own `body`, since
-  * [[esmeta.wji.lang.ExprParser]] only ever sees the one prose string
+  * [[esmeta.wji.lang.parser.ExprParser]] only ever sees the one prose string
   * introducing the phrase, never the nested list items it introduces — is split
   * off into a fresh [[Algorithm]] named `closureName` taking `params` as formal
   * parameters, and `captured` is every other free variable `substeps`

@@ -1,4 +1,6 @@
-package esmeta.wji.lang
+package esmeta.wji.lang.printer
+
+import esmeta.wji.lang.*
 
 import Instr.*
 import Instr.PerformOutcome.*

@@ -1,7 +1,7 @@
 package esmeta.wji.compiler.lowering
 
 import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr}
-import esmeta.wji.lang.util.Walker
+import esmeta.wji.lang.walker.Walker
 import scala.collection.mutable.ListBuffer
 
 /** ANF-style normalization: extracts every `AlgoCall`-with-args that appears in

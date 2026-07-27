@@ -1,4 +1,4 @@
-package esmeta.wji.lang
+package esmeta.wji.lang.parser
 
 /** Bracket/quote-aware substring search and splitting, used to find separators
   * at the "top level" of spec prose — i.e. outside any `(...)`, `[...]`,

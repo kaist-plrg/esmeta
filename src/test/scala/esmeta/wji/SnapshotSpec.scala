@@ -5,7 +5,7 @@ import org.scalatest.funsuite.AnyFunSuite
 import java.nio.file.{Files, Paths}
 import esmeta.BASE_DIR
 import esmeta.wji.extractor.Extractor
-import esmeta.wji.lang.InstrPrinter
+import esmeta.wji.lang.printer.InstrPrinter
 import esmeta.wji.compiler.lowering.Lowering
 import esmeta.wji.compiler.Compiler
 

@@ -2,6 +2,7 @@ package esmeta.wji
 
 import org.scalatest.funsuite.AnyFunSuite
 import esmeta.wji.lang.*
+import esmeta.wji.lang.parser.CondParser
 import Expr.*
 import Cond.*
 

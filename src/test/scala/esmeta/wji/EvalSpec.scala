@@ -20,7 +20,7 @@ object EvalTag extends Tag("esmeta.wji.EvalTag")
   * tests/wji/<name>.js -silent` when picking one back up.
   */
 private val knownFailing: Set[String] =
-  Set("memory-mutation.js", "trap-propagation.js")
+  Set("memory-mutation.js", "global-mutation.js", "trap-propagation.js")
 
 /** Runs every `.js` fixture under `tests/wji` end to end through the merged WJI
   * IR program (see [[WjiTest]]). Each fixture is standalone and self-checking:

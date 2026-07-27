@@ -31,6 +31,7 @@ class Interpreter(
   val logPW: Option[PrintWriter] = None,
   val timeLimit: Option[Int] = None,
   val wasmHost: Option[WasmHost] = None,
+  val statePW: Option[PrintWriter] = None,
 ) {
   import Interpreter.*
 
@@ -44,8 +45,9 @@ class Interpreter(
   lazy val result: State =
     while (step) {}
     if (log)
-      pw.println(st)
-      pw.close
+      statePw.println(st)
+      stepPw.close
+      statePw.close
       println("[Interpreter] Logging finished")
     st
 
@@ -60,9 +62,9 @@ class Interpreter(
     try {
       // text-based logging
       if (log)
-        pw.println(st.getCursorString + s" StepCnt : $stepCnt")
-        if (detail) pw.println(st.context)
-        pw.flush
+        stepPw.println(st.getCursorString + s" StepCnt : $stepCnt")
+        if (detail) stepPw.println(st.context)
+        stepPw.flush
 
       // garbage collection
       iter += 1
@@ -78,10 +80,11 @@ class Interpreter(
     } catch {
       case e =>
         if (log)
-          pw.println(st)
-          pw.println("[Interpreter] unexpected error: " + e)
-          pw.println(e.getStackTrace.mkString(LINE_SEP))
-          pw.flush
+          statePw.println(st)
+          statePw.flush
+          stepPw.println("[Interpreter] unexpected error: " + e)
+          stepPw.println(e.getStackTrace.mkString(LINE_SEP))
+          stepPw.flush
         throw e
     }
 
@@ -606,9 +609,11 @@ class Interpreter(
     prevLoc = curLoc
   def getStepCnt = stepCnt
 
-  /** logging */
-  private lazy val pw: PrintWriter =
-    logPW.getOrElse(getPrintWriter(s"$EVAL_LOG_DIR/log"))
+  /** logging * */
+  private lazy val stepPw: PrintWriter =
+    logPW.getOrElse(getPrintWriter(s"$EVAL_LOG_DIR/step.log"))
+  private lazy val statePw: PrintWriter =
+    statePW.getOrElse(getPrintWriter(s"$EVAL_LOG_DIR/state.log"))
 
   /** cache to get syntax-directed operation (SDO) */
   private val getSdo = cached[(Ast, String), Option[(Ast, Func)]](_.getSdo(_))
@@ -665,8 +670,18 @@ object Interpreter {
     logPW: Option[PrintWriter] = None,
     timeLimit: Option[Int] = None,
     wasmHost: Option[WasmHost] = None,
+    statePW: Option[PrintWriter] = None,
   ): State =
-    new Interpreter(st, tyCheck, log, detail, logPW, timeLimit, wasmHost).result
+    new Interpreter(
+      st,
+      tyCheck,
+      log,
+      detail,
+      logPW,
+      timeLimit,
+      wasmHost,
+      statePW,
+    ).result
 
   /** transition for lexical SDO */
   def eval(lex: Lexical, sdoName: String): Value = {

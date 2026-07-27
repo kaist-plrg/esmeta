@@ -38,11 +38,9 @@ case object WjiEval extends Phase[CFG, State] {
 
     val extractConfig = WjiExtract.defaultConfig
     extractConfig.filter = config.filter
-    extractConfig.log = config.log
     val algorithms = WjiExtract((), cmdConfig, extractConfig)
 
     val compileConfig = WjiCompile.defaultConfig
-    compileConfig.log = config.log
     val wjiProgram = WjiCompile(algorithms, cmdConfig, compileConfig)
 
     val merged =

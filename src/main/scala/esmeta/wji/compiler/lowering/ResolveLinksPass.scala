@@ -117,10 +117,9 @@ object ResolveLinksPass extends LoweringPass:
     * tag `construct.ml`'s `al_to_num` actually expects to find at position 0 of
     * a `CaseV("CONST", [nested, payload])` — *not* the single flat tag
     * (`"I32.CONST"`) `Expr.runtimeCaseTag`'s generic uppercase-last-segment
-    * rule would otherwise produce here. Only the `Case`-construction site below
-    * needs this: `ExpandIsOfFormPass`'s own `constKindTags` already matches
-    * this same nested shape on the reading side, so a numeric-const value built
-    * here round-trips correctly either way it's later checked.
+    * rule would otherwise produce here. `ExpandIsOfFormPass` needs no matching
+    * knowledge of its own: it just reads whatever nested `Case` structure shows
+    * up in a `form` built here, purely structurally.
     */
   private val numConstTags: Map[String, String] = Map(
     "i32.const" -> "I32",
@@ -177,11 +176,27 @@ object ResolveLinksPass extends LoweringPass:
     * constructor algorithm, so without this it resolves to `AlgoCall` and
     * `ExpandIsOfFormPass` no longer recognizes it, falling back to `EYet`.
     */
+  /** Link names whose `Cond.IsOfForm` *pattern* is written flat in spec prose
+    * (every component listed as a direct arg under the outer link) but whose
+    * real runtime value nests them one level deeper — see
+    * `al_of_externtype`/`al_of_globaltype`: externtype's GLOBAL variant has
+    * exactly one positional arg, itself the `globaltype` pair, but "If
+    * |externtype| is of the form [=external-type/global=] <var ignore>mut</var>
+    * |valtype|," (index.bs:515, 564) writes both components directly under
+    * `external-type/global` with nothing marking that nesting. Only
+    * [[resolveForm]] needs this — a genuine *value* is never constructed
+    * against this link in the corpus today, so `rewriteExpr` never hits it.
+    */
+  private val nestedFormLinks: Set[String] = Set("external-type/global")
+
   private def resolveForm(known: Set[String], plainKnown: Set[String])(
     form: Expr,
   ): Expr =
     val e = rewriteExpr(known, plainKnown)
     form match
+      case Expr.Link(link, args)
+          if nestedFormLinks.contains(stripLink(link).toLowerCase) =>
+        Expr.Case(link, List(Expr.Case("", args.map(e))))
       case Expr.Link(link, args) => buildCaseOrCall(link, args.map(e))
       case other                 => e(other)
 

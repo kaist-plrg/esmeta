@@ -279,7 +279,7 @@ def read_the_imports(
       let externfunc = (case "FUNC" funcaddr)
       push imports < externfunc
     } else nop
-    if (= (case-tag externtype) "GLOBAL") {
+    if (&& (= (case-tag externtype) "GLOBAL") (= (case-tag externtype[0]) "")) {
       let mut = externtype[0][0]
       let valtype = externtype[0][1]
       if (yet "implements Global") {
@@ -390,7 +390,7 @@ def create_an_exports_object(
       call func = clo<"a_new_exported_function">(funcaddr)
       let value = func
     } else nop
-    if (= (case-tag externtype) "GLOBAL") {
+    if (&& (= (case-tag externtype) "GLOBAL") (= (case-tag externtype[0]) "")) {
       let mut = externtype[0][0]
       let globaltype = externtype[0][1]
       assert (yet "is of form Case([=external value/global=],List(Var(globaladdr)))")
@@ -2022,30 +2022,37 @@ def tojsvalue(
     } else nop
     return ([number] ([math] f64))
   } else nop
-  if (yet "is of form Case([=ref.null=],List(Var(t)))") {
+  if (= (case-tag w) "REF.NULL") {
+    let t = w[0]
     return null
   } else nop
-  if (yet "is of form Case([=ref.i31=],List(Var(u31)))") {
+  if (= (case-tag w) "REF.I31") {
+    let u31 = w[0]
     call-embed i31 = <signed_31>(u31)
     return ([number] ([math] i31))
   } else nop
-  if (yet "is of form Case([=ref.struct=],List(Var(structaddr)))") {
+  if (= (case-tag w) "REF.STRUCT") {
+    let structaddr = w[0]
     call _result1 = clo<"a_new_exported_gc_object">(structaddr, "struct")
     return _result1
   } else nop
-  if (yet "is of form Case([=ref.array=],List(Var(arrayaddr)))") {
+  if (= (case-tag w) "REF.ARRAY") {
+    let arrayaddr = w[0]
     call _result2 = clo<"a_new_exported_gc_object">(arrayaddr, "array")
     return _result2
   } else nop
-  if (yet "is of form Case([=ref.func=],List(Var(funcaddr)))") {
+  if (= (case-tag w) "REF.FUNC") {
+    let funcaddr = w[0]
     call _result3 = clo<"a_new_exported_function">(funcaddr)
     return _result3
   } else nop
-  if (yet "is of form Case([=ref.host=],List(Var(hostaddr)))") {
+  if (= (case-tag w) "REF.HOST") {
+    let hostaddr = w[0]
     call _result4 = clo<"retrieving_a_host_value">(hostaddr)
     return _result4
   } else nop
-  if (yet "is of form Case([=ref.extern=],List(Var(ref)))") {
+  if (= (case-tag w) "REF.EXTERN") {
+    let ref = w[0]
     call _result5 = clo<"tojsvalue">(ref)
     return _result5
   } else nop
@@ -2176,7 +2183,9 @@ def towebassemblyvalue(
       return _ret12
     }
   } else nop
-  if (yet "is of form Case([=ref=],List(Var(null), Var(heaptype)))") {
+  if (= (case-tag type) "REF") {
+    let null = type[0]
+    let heaptype = type[1]
     if (= v null) {
       let r = (case "REF.NULL" heaptype)
     } else if (yet "[=match_valtype=](|type|, [=ref=] |null| [=heap-type/extern=])") {

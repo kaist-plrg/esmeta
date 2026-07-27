@@ -5,36 +5,41 @@ import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr}
 /** Expands a `Cond.IsOfForm` branch condition of an `Instr.IfChain` (e.g. "If
   * |externtype| is of the form [=external-type/func=] |functype|, ...",
   * js-api/index.bs:506) into a runtime tag check plus `Let`-bindings for the
-  * form's positional variables.
-  *
-  * A decoded WebAssembly value like `externtype` arrives as a SpecTec
-  * `ALValue.CaseV(tag, args)` (see `construct.ml`'s `al_of_externtype`) — "is
-  * of the form [=LINK=] |v1| |v2| ..." checks `tag` against the variant `LINK`
-  * name, then binds each `|vN|` to where that payload actually lives. Most
-  * variants are flat (`|vN|` is directly the `N`th positional arg of the
-  * `CaseV`), but some nest a sub-tuple (e.g. GLOBAL's sole positional arg is
-  * itself a `CaseV("", [mut, valtype])` — see [[FormSpec.argPaths]]):
+  * form's positional variables — purely structurally, recursing into any nested
+  * `Expr.Case` in `form`'s own args:
   * {{{
-  *   IfChain([(IsOfForm(e, Case(link, [Var(v1), Var(v2), ...]), None, neg), body)], fallback)
+  *   IfChain([(IsOfForm(e, Case(tag, [Var(v1), Case(subTag, [Var(v2)]), ...]), None, neg), body)], fallback)
   * }}}
   * becomes
   * {{{
-  *   IfChain([(Eq(CaseTag(e), Str(tag), neg),
-  *             Let(v1, TupleProj(e, path1)) :: Let(v2, TupleProj(e, path2)) :: ... :: body)], fallback)
+  *   IfChain([(Eq(CaseTag(e), Str(runtimeTag(tag)), neg) `And`/`Or`
+  *             Eq(CaseTag(TupleProj(e, 1)), Str(runtimeTag(subTag)), neg) `And`/`Or` ...,
+  *             Let(v1, TupleProj(e, 0)) :: Let(v2, TupleProj(TupleProj(e, 1), 0)) :: ... :: body)], fallback)
   * }}}
-  * — a form check is just a string-equality once the tag is read out, so this
-  * reuses the existing [[Cond.Eq]] rather than a dedicated condition node.
+  * — a form check is just a string-equality once each tag is read out, so this
+  * reuses the existing [[Cond.Eq]] rather than a dedicated condition node; `Or`
+  * instead of `And` when negated, De Morgan's over however many tag checks the
+  * recursion produced (`NOT(A AND B AND ...) = NOT(A) OR NOT(B) OR ...`, each
+  * individual `Eq` already carrying `neg`).
   *
-  * Only fires when `link` is a known entry of [[forms]] and every binding is a
-  * bare `Expr.Var` (never seen otherwise) with no `where` clause. The
-  * `where`-guarded, untagged form (`GetGlobalValue`'s "If |globaltype| is of
-  * the form <var ignore>mut</var> |valuetype| where ...", index.bs:1212) is
-  * handled separately, below — see that case's own doc comment. Every other
-  * shape — TAG's form (its payload's real `construct.ml` shape doesn't even
-  * match what the spec prose asks for — a spec bug, not a nesting gap), and the
-  * `{type ..., hostcode |hostfunc|}` record-shaped form (index.bs:1249) — is
-  * left as `Cond.IsOfForm` for `Compiler` to report as `EYet("is of form")`,
-  * until a concrete need for it is actually reached.
+  * No SpecTec-specific knowledge lives here — no per-link tag table, no
+  * hand-written nesting paths: `form` is trusted to already be shaped exactly
+  * like the real runtime `ALValue.CaseV` it's checked against (`tag` need not
+  * even be pre-translated — `Expr.runtimeCaseTag` is idempotent on an
+  * already-final tag like `"CONST"`/`"I32"`). Producing that correctly-shaped
+  * `form` — including cases where spec prose writes it flatter than the runtime
+  * actually is, e.g. a numeric const's nested numtype tag or
+  * `external-type/global`'s nested `mut`/`valuetype` pair — is entirely
+  * `ResolveLinksPass`'s job (see its `numConstTags`/`nestedFormLinks`).
+  *
+  * Only fires when every non-`Case` arg is a bare `Expr.Var` (never seen
+  * otherwise) and there's no `where` clause. The `where`-guarded, untagged form
+  * (`GetGlobalValue`'s "If |globaltype| is of the form <var ignore>mut</var>
+  * |valuetype| where ...", index.bs:1212) is handled separately, below — see
+  * that case's own doc comment. A `form` that isn't `Expr.Case` at all (e.g.
+  * index.bs:1249's `{type ..., hostcode |hostfunc|}` record shape, which never
+  * parses to one) is left as `Cond.IsOfForm` for `Compiler` to report as
+  * `EYet("is of form")`, until a concrete need for it is actually reached.
   *
   * Category: Structural desugaring.
   */
@@ -49,48 +54,6 @@ object ExpandIsOfFormPass extends LoweringPass:
   override def requires: Set[LoweringPass] =
     Set(ResolveLinksPass, GroupIfChainPass)
 
-  /** @param runtimeTag
-    *   the `ALValue.CaseV` tag SpecTec's `construct.ml` actually produces for
-    *   this variant.
-    * @param argPaths
-    *   for each bound `|vN|` in prose order, the chain of `TupleProj` indices
-    *   from the matched value `e` down to that binding's actual payload. `None`
-    *   means the common case — every variant is flat, so `|vN|` defaults to
-    *   `TupleProj(e, N)` — and only needs overriding when a variant's payload
-    *   nests a sub-tuple, as GLOBAL's does.
-    */
-  private case class FormSpec(
-    runtimeTag: String,
-    argPaths: Option[List[List[Int]]] = None,
-  )
-
-  /** `Cond.IsOfForm`'s link text, mapped to how SpecTec actually represents
-    * that variant. Only the variants reached so far, in "read the imports"
-    * (js-api/index.bs:506-538) and "call an Exported Function"
-    * (js-api/index.bs:1297), are covered; extend as more are reached.
-    */
-  private val forms: Map[String, FormSpec] = Map(
-    "external-type/func" -> FormSpec("FUNC"),
-    "external-type/mem" -> FormSpec("MEM"),
-    "external-type/table" -> FormSpec("TABLE"),
-    // globaltype = CaseV("", [mut, valtype]) is itself externtype's sole
-    // positional arg (al_of_externtype / al_of_globaltype), so both bindings
-    // nest one level under index 0 rather than sitting flat at 0 and 1.
-    "external-type/global" -> FormSpec(
-      "GLOBAL",
-      Some(List(List(0, 0), List(0, 1))),
-    ),
-    "external-type/tag" -> FormSpec("TAG"),
-    // func_invoke's `val* | exception | error` union (embedding.rst:328) —
-    // the `val*` (success) branch is a plain, untagged ListV, which
-    // Interpreter.ECaseTag now reads as "no case tag" (Undef) rather than
-    // crashing, so this check safely reads as "not this form" for it.
-    "exception" -> FormSpec("EXCEPTION"),
-  )
-
-  private def stripLink(link: String): String =
-    link.stripPrefix("[=").stripSuffix("=]").trim.toLowerCase
-
   def run(algos: List[Algorithm]): List[Algorithm] =
     algos.map(a => a.copy(body = transform(a.body)))
 
@@ -104,50 +67,52 @@ object ExpandIsOfFormPass extends LoweringPass:
       case other => other.mapBody(transform)
     }
 
+  /** Recursively builds the tag-check(s) and binding(s) for matching `e`
+    * against `pattern` — see class doc. Each positional arg of `pattern` is
+    * either a bare `Expr.Var` (bind `TupleProj(e, i)` to it) or itself an
+    * `Expr.Case` (recurse into `TupleProj(e, i)`, folding its own tag check(s)
+    * into the result via `And`/`Or`); any other arg shape is dropped from the
+    * check/bind results entirely; a bare `Cond.IsOfForm` whose `form` contains
+    * one is left for `expandBranch`'s catch-all to report as `EYet` instead of
+    * silently mismatching.
+    */
+  private def buildFormMatch(
+    e: Expr,
+    pattern: Expr.Case,
+    neg: Boolean,
+  ): (Cond, List[Instr]) =
+    val Expr.Case(tag, args) = pattern: @unchecked
+    val tagCheck =
+      Cond.Eq(Expr.CaseTag(e), Expr.Str(Expr.runtimeCaseTag(tag)), neg)
+    val (nestedChecks, binds) = args.zipWithIndex.foldRight(
+      (List.empty[Cond], List.empty[Instr]),
+    ) {
+      case ((v: Expr.Var, i), (checks, binds)) =>
+        (checks, Instr.Let(v, Expr.TupleProj(e, i)) :: binds)
+      case ((c: Expr.Case, i), (checks, binds)) =>
+        val (subCheck, subBinds) = buildFormMatch(Expr.TupleProj(e, i), c, neg)
+        (subCheck :: checks, subBinds ++ binds)
+      case (_, acc) => acc
+    }
+    val combine: (Cond, Cond) => Cond =
+      if neg then Cond.Or.apply else Cond.And.apply
+    ((tagCheck :: nestedChecks).reduce(combine), binds)
+
   private def expandBranch(cond: Cond, body: List[Instr]): (Cond, List[Instr]) =
     cond match
-      // A numeric-const form ("If |w| is of the form [=i32.const=] |u32|,
-      // ..."): `ResolveLinksPass.numConstTags` already builds the `form`
-      // pattern as the same nested `Case("CONST", [Case(numTag, []),
-      // Var(v)])` shape `construct.ml`'s `al_of_num` actually produces at
-      // runtime, so the nested tag is read directly off the pattern here —
-      // no separate lookup table needed on this (reading) side.
-      case Cond.IsOfForm(
-            e,
-            Expr.Case("CONST", List(Expr.Case(numTag, Nil), v: Expr.Var)),
-            None,
-            neg,
-          ) =>
-        val outer = Cond.Eq(Expr.CaseTag(e), Expr.Str("CONST"), neg)
-        val inner =
-          Cond.Eq(Expr.CaseTag(Expr.TupleProj(e, 0)), Expr.Str(numTag), neg)
-        val check =
-          if neg then Cond.Or(outer, inner) else Cond.And(outer, inner)
-        (check, Instr.Let(v, Expr.TupleProj(e, 1)) :: transform(body))
-      case Cond.IsOfForm(e, Expr.Case(tag, args), None, neg)
-          if args.forall(_.isInstanceOf[Expr.Var]) &&
-          forms.contains(stripLink(tag)) =>
-        val spec = forms(stripLink(tag))
-        val paths = spec.argPaths.getOrElse(args.indices.map(List(_)).toList)
-        val binds = args.zip(paths).collect {
-          case (v: Expr.Var, path) =>
-            Instr.Let(v, path.foldLeft(e)(Expr.TupleProj(_, _)))
-        }
-        val check = Cond.Eq(Expr.CaseTag(e), Expr.Str(spec.runtimeTag), neg)
-        (check, binds ++ transform(body))
       // the `where`-guarded, untagged-form idiom (`GetGlobalValue`'s "If
       // |globaltype| is of the form <var ignore>mut</var> |valuetype| where
       // |valuetype| [=matches/valtype|matches=] [=v128=] or [=exnref=], throw
       // ...", index.bs:1212 — the only occurrence in the corpus today, hence
       // `neg = false` only: a negated compound condition would need De
       // Morgan's over an arbitrary `whereCond`, and there's no generic
-      // `Cond.Not` to express that with). Unlike the tagged-forms case above,
-      // the match itself is unconditional (an untagged `Case("", ...)`'s
-      // runtime tag is always `""` — see `ExprParser.parseUntaggedForm`/
+      // `Cond.Not` to express that with). Unlike `buildFormMatch`, the match
+      // itself is unconditional (an untagged `Case("", ...)`'s runtime tag is
+      // always `""` — see `ExprParser.parseUntaggedForm`/
       // `ExpandDestructuringLetPass`'s identical reasoning for `Let`), so
       // there's nothing to guard the bindings on: they're hoisted out
-      // unconditionally, and only `whereCond` itself becomes a real
-      // (nested) branch condition.
+      // unconditionally, and only `whereCond` itself becomes a real (nested)
+      // branch condition.
       case Cond.IsOfForm(e, Expr.Case("", args), Some(whereCond), false)
           if args.forall(_.isInstanceOf[Expr.Var]) =>
         val binds = args.zipWithIndex.collect {
@@ -159,4 +124,11 @@ object ExpandIsOfFormPass extends LoweringPass:
           fallback = Nil,
         )
         (alwaysTrue, binds :+ guarded)
+      case Cond.IsOfForm(e, form: Expr.Case, None, neg) if form.args.forall {
+            case _: Expr.Var  => true
+            case _: Expr.Case => true
+            case _            => false
+          } =>
+        val (check, binds) = buildFormMatch(e, form, neg)
+        (check, binds ++ transform(body))
       case _ => (cond, transform(body))

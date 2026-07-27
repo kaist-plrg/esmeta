@@ -160,7 +160,7 @@ object InstrParser:
         splitTopLevel(rest, " be ") match
           case Some((lhs, expr)) =>
             Let(
-              ExprParser.parse(lhs),
+              ExprParser.parseLetLhs(lhs),
               ExprParser.parse(expr),
               trailingBody,
             )

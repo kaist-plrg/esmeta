@@ -1489,7 +1489,10 @@ def <BUILTIN>:INTRINSICS.set:WebAssembly.Global.prototype.value(
   let givenValue = ArgumentsList[0]
   let store = @AGENT_RECORD["associated store"]
   let globaladdr = this.Global
-  let _ = (yet "unsupported Let lhs: Unknown(|mut| |valuetype|)")
+  call-embed _tuple1 = <global_type>(store, globaladdr)
+  assert (= (case-tag _tuple1) "")
+  let mut = _tuple1[0]
+  let valuetype = _tuple1[1]
   call-embed _m1 = <match_valtype>(valuetype, (case "V128" ))
   call-embed _m2 = <match_valtype>(valuetype, (case "REF" (opt (case "NULL" )) (case "EXN" )))
   if (|| (= _m1 true) (= _m2 true)) {

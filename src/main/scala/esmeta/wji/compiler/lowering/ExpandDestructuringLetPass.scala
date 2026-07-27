@@ -45,7 +45,13 @@ import esmeta.error.UnsupportedSpecShape
   * construction) translates `tag` the same way either way it's spelled —
   * already a bare runtime tag (`CompTypeArrow`'s literal `"->"`) or spec-link
   * text (`ResolveLinksPass`'s `[=external-type/func=]` shapes, e.g.
-  * `create_an_exports_object`'s `externval` destructuring).
+  * `create_an_exports_object`'s `externval` destructuring). An empty tag
+  * (`ExprParser.UntaggedMultiVar`'s "Let |mut| |valuetype| be ..." shape, no
+  * keyword between the components) needs no special-casing either — the assert
+  * just compares against `""` like any other tag, and that's exactly what a
+  * value shaped this way actually carries at runtime (`construct.ml`'s
+  * `al_of_globaltype`: `GlobalT (mut, vt) -> CaseV ("", [al_of_mut mut;
+  * al_of_valtype vt])`).
   *
   * The original body (if non-empty) is appended after the destructured
   * bindings. In practice, tuple-destructuring Let nodes in the spec have empty

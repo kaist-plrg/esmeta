@@ -758,7 +758,7 @@
   head: The setter of the value attribute of {{Global}}, when invoked, performs the following steps:
   Let(|store|, [=surrounding agent=].[[associated store]])
   Let(|globaladdr|, **this**.[[Global]])
-  Let(?(|mut| |valuetype|), [=global_type=](|store|, |globaladdr|))
+  Let((|mut|, |valuetype|), [=global_type=](|store|, |globaladdr|))
   If(|valuetype| [=matches/valtype=] [=v128=] or [=exnref=])
     Throw(a {{TypeError}})
   If(|mut| is [=const=])

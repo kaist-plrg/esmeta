@@ -595,3 +595,35 @@ object ExprParser:
             found = true
       if !found then si += 1
     result.toList
+
+  // "|mut| |valuetype|" — SpecTec's own AL `CaseE` supports an empty mixop
+  // for a syntax rule with no keyword tokens of its own (Wasm Core's
+  // `globaltype ::= mut valtype`; `Global.value`'s setter, "Let |mut|
+  // |valuetype| be [=global_type=](...)", the only occurrence in the corpus
+  // today): N ≥ 2 components named positionally, separated by nothing but
+  // whitespace — no tag/keyword between them the way `CompTypeArrow`'s "->"
+  // or a `Cond.IsOfForm`'s "REF ..." has one. Requires 2+ vars so it doesn't
+  // also swallow `VarOnly`'s single-`|var|` case.
+  private val UntaggedMultiVar =
+    """(?s)^(\|[^|]+\|(?:\s+\|[^|]+\|)+)$""".r
+
+  /** `Let`-LHS-only entry point: recognizes [[UntaggedMultiVar]] before falling
+    * back to the general [[parse]]. Deliberately kept out of `parse` itself,
+    * even though it builds a plain [[Case]] the same way [[CompTypeArrow]]
+    * does: `parseArgs`'s tokenizer above greedily tries the *longest* parseable
+    * prefix at each word boundary, so if this shape were reachable from general
+    * `parse`, a genuine `Case`'s own multi-arg list written the same bare,
+    * space-separated way (e.g. "[=ref=] |null|
+    * |heaptype|", parsed via `parseArgs`) would get swallowed into one nested
+    * `Case("", [Var(null), Var(heaptype)])` instead of staying two separate
+    * top-level args — confirmed by `SnapshotSpec` regressing
+    * `ToWebAssemblyValue`'s `ref` case exactly this way when this was first
+    * tried as a general `parse` case. `Case("", ...)` mirrors SpecTec's empty
+    * mixop directly rather than inventing a separate node —
+    * `ExpandDestructuringLetPass` already treats an empty tag as "skip the tag
+    * assert" the same way it treats a bare `Expr.Tuple`.
+    */
+  private[wji] def parseLetLhs(raw: String): Expr = raw.trim match
+    case UntaggedMultiVar(varsRaw) =>
+      Case("", varsRaw.trim.split("\\s+").toList.map(parse))
+    case other => parse(other)

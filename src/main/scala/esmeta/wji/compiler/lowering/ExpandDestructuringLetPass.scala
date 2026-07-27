@@ -70,7 +70,7 @@ import esmeta.error.UnsupportedSpecShape
   * destructuring target — not added to `requires` until that's actually
   * confirmed.
   *
-  * Category: Structural desugaring.
+  * Category: SpecTec dependent.
   */
 object ExpandDestructuringLetPass extends LoweringPass:
 

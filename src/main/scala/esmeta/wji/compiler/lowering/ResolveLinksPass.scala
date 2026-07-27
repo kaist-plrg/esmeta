@@ -33,13 +33,9 @@ import esmeta.wji.lang.{Algorithm, AlgorithmKind, Cond, Expr, Instr}
   *     prose referring to an algorithm and stays `AlgoCall`; anything else
   *     becomes `Case`. Imperfect — a multi-word variant name (none seen so far)
   *     would still be misclassified — but a deliberate, simple tradeoff over a
-  *     larger lookup table. A numeric-const link (`i32.const`/`i64.const`/
-  *     `f32.const`/`f64.const`, see [[numConstTags]]) is the one shape built as
-  *     a nested `Case("CONST", [Case(numtypeTag, []), payload])` instead of the
-  *     flat `Case(link, args)` every other variant gets — the nested form is
-  *     what `construct.ml`'s `al_to_num` actually recognizes as a real Wasm
-  *     value, needed once such a value flows into real Wasm execution (e.g.
-  *     `global_write`ed then read back by `global.get`).
+  *     larger lookup table. Built flat here regardless of what the real
+  *     `ALValue.CaseV` shape actually nests like — see
+  *     [[NormalizeSpecTecCaseShapePass]], the very next pass, for that.
   *   - a zero-arg `Link` that doesn't match a known algorithm becomes a
   *     `SpecTerm` — a bare reference to something else.
   *
@@ -113,21 +109,6 @@ object ResolveLinksPass extends LoweringPass:
   private def lastSegment(text: String): String =
     text.substring(text.lastIndexOf('/') + 1)
 
-  /** A numeric-const link (e.g. `[=i32.const=]`), mapped to the nested numtype
-    * tag `construct.ml`'s `al_to_num` actually expects to find at position 0 of
-    * a `CaseV("CONST", [nested, payload])` — *not* the single flat tag
-    * (`"I32.CONST"`) `Expr.runtimeCaseTag`'s generic uppercase-last-segment
-    * rule would otherwise produce here. `ExpandIsOfFormPass` needs no matching
-    * knowledge of its own: it just reads whatever nested `Case` structure shows
-    * up in a `form` built here, purely structurally.
-    */
-  private val numConstTags: Map[String, String] = Map(
-    "i32.const" -> "I32",
-    "i64.const" -> "I64",
-    "f32.const" -> "F32",
-    "f64.const" -> "F64",
-  )
-
   /** `Instr.Perform`'s `func` / `Expr.JSCall`'s `name`, case-corrected when it
     * actually names a known *free-standing* WJI algorithm (`plainKnown` —
     * excludes interface members, see `run`'s comment) rather than a genuine
@@ -147,18 +128,13 @@ object ResolveLinksPass extends LoweringPass:
     * becomes, once it's known not to be a call to a known algorithm — shared
     * between [[rewriteExpr]] and [[resolveForm]] (the latter skips the "known
     * algorithm" branch above this one, but needs the exact same Case/AlgoCall
-    * split otherwise, numeric-const nesting included). Kept as one function
-    * specifically so the two can't silently diverge on this the way they once
-    * did (see git history: `resolveForm` briefly had its own stale copy of
-    * this, missing the [[numConstTags]] nesting).
+    * split otherwise). Kept as one function so the two can't silently diverge
+    * on this.
     */
   private def buildCaseOrCall(link: String, resolvedArgs: List[Expr]): Expr =
     if resolvedArgs.nonEmpty && !lastSegment(stripLink(link)).contains(" ") then
       // heuristic split between AlgoCall/Case — see class doc above
-      numConstTags.get(stripLink(link).toLowerCase) match
-        case Some(nestedTag) =>
-          Expr.Case("CONST", Expr.Case(nestedTag, Nil) :: resolvedArgs)
-        case None => Expr.Case(link, resolvedArgs)
+      Expr.Case(link, resolvedArgs)
     else if resolvedArgs.nonEmpty then Expr.AlgoCall(link, resolvedArgs)
     else Expr.SpecTerm(stripLink(link))
 
@@ -176,27 +152,11 @@ object ResolveLinksPass extends LoweringPass:
     * constructor algorithm, so without this it resolves to `AlgoCall` and
     * `ExpandIsOfFormPass` no longer recognizes it, falling back to `EYet`.
     */
-  /** Link names whose `Cond.IsOfForm` *pattern* is written flat in spec prose
-    * (every component listed as a direct arg under the outer link) but whose
-    * real runtime value nests them one level deeper — see
-    * `al_of_externtype`/`al_of_globaltype`: externtype's GLOBAL variant has
-    * exactly one positional arg, itself the `globaltype` pair, but "If
-    * |externtype| is of the form [=external-type/global=] <var ignore>mut</var>
-    * |valtype|," (index.bs:515, 564) writes both components directly under
-    * `external-type/global` with nothing marking that nesting. Only
-    * [[resolveForm]] needs this — a genuine *value* is never constructed
-    * against this link in the corpus today, so `rewriteExpr` never hits it.
-    */
-  private val nestedFormLinks: Set[String] = Set("external-type/global")
-
   private def resolveForm(known: Set[String], plainKnown: Set[String])(
     form: Expr,
   ): Expr =
     val e = rewriteExpr(known, plainKnown)
     form match
-      case Expr.Link(link, args)
-          if nestedFormLinks.contains(stripLink(link).toLowerCase) =>
-        Expr.Case(link, List(Expr.Case("", args.map(e))))
       case Expr.Link(link, args) => buildCaseOrCall(link, args.map(e))
       case other                 => e(other)
 

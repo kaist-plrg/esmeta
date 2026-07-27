@@ -2,6 +2,7 @@ package esmeta.wji.compiler.lowering
 
 import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr}
 import esmeta.wji.lang.Instr.PerformOutcome
+import esmeta.wji.bridge.host.WasmHost
 
 /** Hoists conditions that require real computation — a Wasm-matching embedding
   * call ([[Cond.Matches]]) or a "does any element satisfy..." search
@@ -55,7 +56,7 @@ import esmeta.wji.lang.Instr.PerformOutcome
   * branches' "false" case, which no current call site needs; left unexpanded
   * (so `Compiler` reports `EYet`) until one does.
   *
-  * Category: Structural desugaring.
+  * Category: SpecTec dependent.
   */
 object ExpandMatchesExistsPass extends LoweringPass:
 
@@ -77,20 +78,21 @@ object ExpandMatchesExistsPass extends LoweringPass:
     counter += 1; s"_$prefix$counter"
   }
 
-  /** `Cond.Matches`'s `matchType` string, mapped to the `WasmHost` embedding
-    * function that actually implements it. Only `valtype` is reached so far
-    * (`match_externtype` exists in `WasmHost` too but no call site here needs
-    * it yet). `matches/reftype`, seen elsewhere in the spec, has no matching
-    * embedding function at all — deliberately left unmapped: a `matchType`
-    * missing here is left as a bare `Cond.Matches` (see `needsHoist`/`hoist`
-    * below), so `Compiler` reports its existing honest `EYet("matches ...")`
-    * instead of this pass guessing a plausible-looking but nonexistent
-    * embedding name (e.g. `match_reftype`) that would silently miscompile into
-    * an ordinary (and wrong) algorithm call.
+  /** `Cond.Matches`'s `matchType` string (e.g. `"valtype"`), mapped to the
+    * `WasmHost` embedding function that actually implements it — always
+    * `s"match_$matchType"` (confirmed: `match_valtype`/`match_externtype` both
+    * exist in `WasmHost.names` this way, no exceptions). Checked against
+    * `WasmHost.names` directly rather than a hand-copied local table, so a
+    * `matchType` with no real embedding function (e.g. `reftype`, seen
+    * elsewhere in the spec) is left as a bare `Cond.Matches` (see
+    * `needsHoist`/`hoist` below) — `Compiler` reports its existing honest
+    * `EYet("matches ...")` instead of this pass guessing a plausible-looking
+    * but nonexistent embedding name that would silently miscompile into an
+    * ordinary (and wrong) algorithm call.
     */
-  private val matchEmbedding: Map[String, String] = Map(
-    "valtype" -> "match_valtype",
-  )
+  private def matchEmbeddingName(matchType: String): Option[String] =
+    val name = s"match_$matchType"
+    Option.when(WasmHost.names.contains(name))(name)
 
   def run(algos: List[Algorithm]): List[Algorithm] =
     algos.map { a =>
@@ -118,23 +120,24 @@ object ExpandMatchesExistsPass extends LoweringPass:
       List(other.mapBody(transform))
 
   private def needsHoist(cond: Cond): Boolean = cond match
-    case Cond.Matches(_, matchType, _, _) => matchEmbedding.contains(matchType)
-    case _: Cond.Exists                   => true
-    case Cond.And(l, r)                   => needsHoist(l) || needsHoist(r)
-    case Cond.Or(l, r)                    => needsHoist(l) || needsHoist(r)
-    case _                                => false
+    case Cond.Matches(_, matchType, _, _) =>
+      matchEmbeddingName(matchType).isDefined
+    case _: Cond.Exists => true
+    case Cond.And(l, r) => needsHoist(l) || needsHoist(r)
+    case Cond.Or(l, r)  => needsHoist(l) || needsHoist(r)
+    case _              => false
 
   /** Returns the instructions to run first, and a pure replacement condition
     * (no known-hoistable `Matches`/`Exists` left) to check afterward. A
-    * `Matches` with an unmapped `matchType` passes through unchanged (see
-    * `matchEmbedding`'s doc) rather than being hoisted.
+    * `Matches` with no real embedding function (see `matchEmbeddingName`'s doc)
+    * passes through unchanged rather than being hoisted.
     */
   private def hoist(cond: Cond): (List[Instr], Cond) = cond match
     case Cond.Matches(lhs, matchType, rhs, neg)
-        if matchEmbedding.contains(matchType) =>
+        if matchEmbeddingName(matchType).isDefined =>
       val tmp = fresh("m")
       val call = Instr.Perform(
-        matchEmbedding(matchType),
+        matchEmbeddingName(matchType).get,
         List(lhs, rhs),
         PerformOutcome.BindResult(tmp),
       )

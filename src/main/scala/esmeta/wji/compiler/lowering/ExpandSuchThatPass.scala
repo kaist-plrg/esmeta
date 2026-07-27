@@ -34,7 +34,7 @@ import esmeta.wji.lang.{Algorithm, Expr, Instr}
   * untouched, same as before: `Compiler` reports it as `EYet(s"$desc such that
   * $cond")`. See `personal/TODO.md` #2.
   *
-  * Category: Structural desugaring.
+  * Category: SpecTec dependent.
   */
 object ExpandSuchThatPass extends LoweringPass:
 

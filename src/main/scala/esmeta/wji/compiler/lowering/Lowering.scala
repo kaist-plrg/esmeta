@@ -7,7 +7,7 @@ import esmeta.error.{PipelineOrderError, UnsupportedSpecShape}
   * rewrite spec-text-shaped `Algorithm`s into a form
   * [[esmeta.wji.compiler.Compiler]] can compile directly.
   *
-  * Every pass falls into one of three categories (see each pass's own doc
+  * Every pass falls into one of four categories (see each pass's own doc
   * comment for its specific tag):
   *   - '''Housekeeping''': identity-level cleanup (naming, dead-link
   *     resolution, note-stripping) with no semantic effect on control flow.
@@ -17,6 +17,15 @@ import esmeta.error.{PipelineOrderError, UnsupportedSpecShape}
   *   - '''Completion-record convention''': the one piece of *implicit*
   *     spec-wide behavior — ECMA-262/Infra's automatic abrupt-completion
   *     propagation — made explicit as real control flow.
+  *   - '''SpecTec dependent''': correctness relies on knowing a specific
+  *     `CaseV` tag string, embedding/numerics function name, or nesting shape
+  *     SpecTec's own runtime (`spectec/spectec/src/backend-interpreter/
+  *     construct.ml`'s `al_of_*`/`al_to_*`, `backend-server/server.ml`'s
+  *     dispatch) actually uses — knowledge spec prose doesn't spell out
+  *     directly (e.g. a numeric const's nested numtype tag, or that
+  *     `signed_N`'s inverse is called `inv_signed_N`). Unlike Structural
+  *     desugaring, none of this would look the same if WJI mechanized a
+  *     different spec.
   *
   * The category grouping is documentation only, not machine-checked: unlike
   * ordering (see [[LoweringPass.requires]]/[[LoweringPass.mustPrecede]] and
@@ -31,6 +40,7 @@ object Lowering:
   val pipeline: List[LoweringPass] = List(
     ElideHtmlHostHooksPass,
     ResolveLinksPass,
+    NormalizeSpecTecCaseShapePass,
     MarkCompletionAlgorithmsPass,
     DropNotesPass,
     GroupIfChainPass,

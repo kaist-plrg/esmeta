@@ -53,3 +53,11 @@
 - **Expected**: `1. If |ret| is of the form [=exception=] |exnaddr|, then` — 이 파일에서 payload를 갖는 case를 destructure하는 다른 모든 자리(예: `is of the form [=external-type/func=] |functype|`, lines 506+)와 동일한 관용구.
 - **Reason**: `[=exception=]`은 `embedding.rst`의 `exception ::= EXCEPTION exnaddr`(line 49)에 링크되는데, payload(`exnaddr`)를 갖는 case입니다 — 이 파일 자체의 관례상 payload를 바인딩하려면 "is of the form"으로 도입해야 합니다. 이게 없으면 그냥 평범한 동등 비교로 읽혀서, RHS가 한 번도 선언된 적 없는 변수 `|exnaddr|`로 `EXCEPTION` 값을 구성하는 것처럼 보입니다. `[=error=]`(payload 없는 0-인자 case, `error ::= ERROR`)는 이 문제가 없습니다 — payload를 갖는 케이스를 "of the form" 없이 비교하는 건 이 코퍼스에서 이 자리 하나뿐입니다.
 - **WJI 쪽 처리**: `SpecPatch` #24로 우회.
+
+## 6. `mem_size`만 "the [=mem_size=](...)"로 호출되고, 다른 임베딩 함수 콜은 전부 "[=name=](...)"
+
+- **File**: `spectec/document/js-api/index.bs`, line 905 (`grow the memory buffer`)
+- **Current**: `1. Let |ret| be the [=mem_size=](|store|, |memaddr|).`
+- **Expected**: `1. Let |ret| be [=mem_size=](|store|, |memaddr|).` (앞의 "the " 제거) — 바로 다음 줄 `1. Let |store| be [=mem_grow=](|store|, |memaddr|, |delta|).`을 포함해, 이 문서 전체에서 임베딩 함수를 호출하는 모든 자리(`func_invoke`, `module_instantiate` 등)와 동일한 관용구.
+- **Reason**: `the [=X=](` 형태의 함수 콜은 이 파일(js-api/index.bs) 전체를 통틀어 이 자리 하나뿐입니다(대소문자 무시하고 확인, `webidl/index.bs`도 확인했지만 없음). 함수의 *이름*을 명사구로 가리키는 표현("the mem_size of X")이 실수로 호출 표현에 섞여 들어간 것으로 보입니다. 익스트랙터의 호출 구문 패턴은 링크가 표현식의 맨 앞에서 시작해야 인식하는데, 앞에 붙은 "the "가 이걸 못 미치게 만들어서 콜 자체가 조용히 인식 못 되는 표현으로 빠집니다.
+- **WJI 쪽 처리**: `SpecPatch` #27로 우회.

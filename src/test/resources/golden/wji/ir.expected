@@ -914,7 +914,7 @@ def grow_the_memory_buffer(
   delta: Unknown,
 ): Unknown = {
   let store = @AGENT_RECORD["associated store"]
-  let ret = (yet "the [=mem_size=](|store|, |memaddr|)")
+  call-embed ret = <mem_size>(store, memaddr)
   call-embed store = <mem_grow>(store, memaddr, delta)
   if (= store (case "ERROR" )) {
     call _err1 = clo<"__NEW_ERROR_OBJ__">("%RangeError.prototype%")

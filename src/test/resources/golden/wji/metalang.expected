@@ -472,7 +472,7 @@
   params: |memaddr|, |delta|
   head: To <dfn>grow the memory buffer</dfn> associated with a [=memory address=] |memaddr| by |delta|, perform the following steps:
   Let(|store|, [=surrounding agent=].[[associated store]])
-  Let(|ret|, ?(the [=mem_size=](|store|, |memaddr|)))
+  Let(|ret|, [=mem_size=](|store|, |memaddr|))
   Let(|store|, [=mem_grow=](|store|, |memaddr|, |delta|))
   If(|store| is [=error=])
     Throw(a {{RangeError}} exception)

@@ -526,6 +526,17 @@ object SpecPatch:
     "[=!=] [=ToJSValue=]"
     ->
     "[=ToJSValue=]",
+
+    // #27 (spec inconsistency, docs/spec_inconsistencies.md #6) — "grow the
+    // memory buffer" (index.bs:905) calls mem_size as "the [=mem_size=](...)"
+    // — every other embedding-function call in this document (including
+    // mem_grow, the very next step) is written bare, "[=name=](...)", with
+    // no leading "the ". The leading "the " pushes this one out of the
+    // extractor's call-syntax pattern (which requires the link to start the
+    // expression), silently dropping the call.
+    "1. Let |ret| be the [=mem_size=](|store|, |memaddr|)."
+    ->
+    "1. Let |ret| be [=mem_size=](|store|, |memaddr|).",
   )
 
   def apply(source: String): String =

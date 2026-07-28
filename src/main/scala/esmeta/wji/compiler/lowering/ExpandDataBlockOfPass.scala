@@ -11,9 +11,14 @@ import esmeta.wji.lang.{Algorithm, Expr, Instr}
   * }}}
   * becomes:
   * {{{
-  *   Let(x, [$mem_read_bytes$]([=surrounding agent=].[[associated store]], memaddr))
+  *   Let(x, [$mem_read_bytes$](memaddr))
   *   ...body...
   * }}}
+  *
+  * `mem_read_bytes` takes no `store` argument — deliberately implicit-store
+  * (mirrors `func_alloc`'s "the global store is authoritative" convention
+  * rather than every other embedding function's explicit one); see its own doc
+  * in `WasmHost.paramNames`/`embedding.ml`.
   *
   * A one-instruction rewrite, not an allocate-then-fill loop: unlike a generic
   * embedding call, `mem_read_bytes`'s result is materialized natively as a
@@ -45,11 +50,9 @@ object ExpandDataBlockOfPass extends LoweringPass:
 
   private def expandInstr(instr: Instr): List[Instr] = instr match
     case Instr.Let(target @ Expr.Var(_), Expr.DataBlockOf(memaddr), body) =>
-      val store =
-        Expr.Field(Expr.SpecTerm("surrounding agent"), "associated store")
       Instr.Let(
         target,
-        Expr.AlgoCall("mem_read_bytes", List(store, memaddr)),
+        Expr.AlgoCall("mem_read_bytes", List(memaddr)),
       ) :: transform(body)
 
     case _ =>

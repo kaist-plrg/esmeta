@@ -109,14 +109,24 @@ object WasmHost:
     "mem_size" -> List("store", "memaddr"),
     // mem_grow(store, memaddr, n: u64) : store | error
     "mem_grow" -> List("store", "memaddr", "n"),
-    // mem_read_bytes(store, memaddr) : byte* -- not part of embedding.rst
-    // (mem_read is byte-at-a-time and unused by js-api itself); a
-    // wjmeta-bridge-specific bulk read, for the JS ArrayBuffer/wasm linear
-    // memory sync bridge (docs/hardcodes.md).
-    "mem_read_bytes" -> List("store", "memaddr"),
-    // mem_write_bytes(store, memaddr, byte*) : store -- bulk write
-    // counterpart to mem_read_bytes above.
-    "mem_write_bytes" -> List("store", "memaddr", "bytes"),
+    // mem_read_bytes(memaddr) : byte* -- not part of embedding.rst (mem_read
+    // is byte-at-a-time and unused by js-api itself); a wjmeta-bridge-
+    // specific bulk read, for the JS ArrayBuffer/wasm linear memory sync
+    // bridge (docs/hardcodes.md). Deliberately implicit-store (unlike every
+    // other entry here) -- the sync hook calling this needs it to reflect
+    // the live SpecTec-side store even mid a still-in-flight func_invoke
+    // (a reentrant host_func_invoke callback), where there's no separate
+    // "caller's store" value to pass explicitly at all. See embedding.ml's
+    // own doc comment on this function for the full reasoning.
+    "mem_read_bytes" -> List("memaddr"),
+    // mem_write_bytes(memaddr, byte*) : store -- bulk write counterpart to
+    // mem_read_bytes above, implicit-store *input* for the same reason, but
+    // (unlike mem_read_bytes) still returns the now-mutated store: the
+    // caller must write it back into `[surrounding agent].[[associated
+    // store]]`, or the next explicit-store call (func_invoke/
+    // module_instantiate) silently clobbers this write with a stale
+    // snapshot. See embedding.ml's own doc comment on this function.
+    "mem_write_bytes" -> List("memaddr", "bytes"),
     // tag_alloc(store, tagtype) : (store, tagaddr)
     "tag_alloc" -> List("store", "tagtype"),
     // tag_type(store, tagaddr) : tagtype

@@ -3,18 +3,12 @@ package esmeta.wji.lang
 sealed trait Expr
 object Expr:
   case class Var(name: String) extends Expr
-  case object This extends Expr
-
-  /** WebIDL's implicit "the given value" — the value being assigned, only
-    * available inside a setter's steps (mirrors [[This]]'s "only available
-    * inside constructor/getter/setter/method steps"). Only one occurrence in
-    * the corpus today: `Global.value`'s setter (js-api/index.bs:1227).
-    */
-  case object GivenValue extends Expr
-  // value is a decimal or hex (0x...) string literal
-  case class Num(value: String) extends Expr
+  case class Num(value: String) extends Expr // decimal or hex string literal
   case class Bool(value: Boolean) extends Expr
   case class Str(value: String) extends Expr
+
+  case object This extends Expr // only used in interface member
+  case object GivenValue extends Expr // only used in setter
 
   /** A single byte value (0-255), e.g. the zero-fill element produced when
     * expanding [[NewByteSequence]]. Kept distinct from [[Num]] (a
@@ -23,66 +17,22 @@ object Expr:
     */
   case class Byte(value: Int) extends Expr
 
-  /** A reference to an ECMA-262/Wasm-specific term (a `[=...=]`/`**...**`/
-    * `<emu-const>`/`<emu-val>` token whose meaning is fixed by the spec's own
-    * glossary rather than by an extracted `<div algorithm>`), e.g. `null`,
-    * `undefined`, `current Realm`.
-    */
-  case class SpecTerm(name: String) extends Expr
-
   /** A field read on a record/structure: base's field named `name`. Covers both
     * ECMA-262's `.[[name]]` internal-slot syntax and a WebAssembly-spec field
-    * written as `base.[=name=]`, where the `[=...=]` is a plain documentation
-    * link rather than a call.
+    * written as `base.[=name=]`.
     */
   case class Field(base: Expr, name: String) extends Expr
   case class Index(base: Expr, key: Expr) extends Expr
 
-  /** A raw `[=...=]` Bikeshed autolink, parsed before it's known whether it
-    * names a callable algorithm — Bikeshed's `[=...=]` is plain autolink syntax
-    * and can just as well point to a term/value definition, so parsing it
-    * straight into [[AlgoCall]] would presuppose something the parser can't
-    * actually verify (that requires the full set of extracted algorithm names,
-    * which only exists once every algorithm has been parsed). This ambiguity
-    * only exists for the bare-link and prose-args forms, though — see
-    * [[AlgoCall]]. `ResolveLinksPass` resolves every remaining `Link` into
-    * either an [[AlgoCall]] (name matches a known algorithm, or it's invoked
-    * with args) or a [[SpecTerm]] (a bare reference to something else).
+  /** A raw `[=...=]` Bikeshed autolink. `ResolveLinksPass` resolves every
+    * `Link` into an [[AlgoCall]], [[Case]], or [[SpecTerm]].
     */
   case class Link(link: String, args: List[Expr]) extends Expr
-
-  /** A confirmed call to an extracted WJI algorithm (or, for an args-carrying
-    * link that names something else — a Wasm embedding function, an
-    * ECMA-262/WebIDL AO — still a call, just resolved elsewhere at compile
-    * time; see `esmeta.wji.compiler.Compiler`). Usually produced by
-    * `ResolveLinksPass` from a [[Link]], but [[ExprParser]] constructs this
-    * directly for the explicit-parens `[=link=](args)` form — that syntax is
-    * unambiguous call notation on its own (mirrors `JSCall`), so there's
-    * nothing for a later pass to decide.
-    */
   case class AlgoCall(link: String, args: List[Expr]) extends Expr
-
-  /** A SpecTec Wasm Core Spec constructor/variant application (mirrors AL's own
-    * `CaseE of mixop * expr list`), e.g. `[=i32.const=] |u32|` or the form that
-    * follows `is of the form` in a [[Cond.IsOfForm]] (e.g.
-    * `[=external-type/func=] |functype|`). Produced by `ResolveLinksPass` from
-    * a [[Link]] whose `link` isn't a known algorithm name but is used with args
-    * — syntactically identical to [[AlgoCall]]'s "unknown name with args" case,
-    * but semantically a constructor/pattern rather than a call, so it's kept
-    * distinct rather than resolved elsewhere at compile time the way an
-    * unrecognized [[AlgoCall]] is.
-    *
-    * `tag` is guaranteed to already be SpecTec's real runtime `ALValue.CaseV`
-    * tag (e.g. `FUNC`, `CONST`, `""`) — never spec-link text like
-    * `[=external-type/func=]` — by the time any pass after
-    * `esmeta.wji.compiler.lowering.NormalizeSpecTecCaseShapePass` sees this
-    * node; that pass is the sole place link text is translated into a runtime
-    * tag, and it also reshapes any `Case` whose runtime nesting is deeper than
-    * spec prose writes it (see its own doc comment).
-    */
-  case class Case(tag: String, args: List[Expr]) extends Expr
-
   case class JSCall(name: String, args: List[Expr]) extends Expr
+  case class Case(tag: String, args: List[Expr]) extends Expr
+  case class SpecTerm(name: String) extends Expr
+
   case class Abrupt(check: String, expr: Expr) extends Expr
   case class New(iface: String) extends Expr
   case class UnknownNew(raw: String) extends Expr
@@ -96,9 +46,6 @@ object Expr:
   /** The length/size of a string or list. */
   case class Length(expr: Expr) extends Expr
 
-  /** Arithmetic binary operator; `Sub` covers both "-" and "&minus;" as seen in
-    * spec prose.
-    */
   enum BOp:
     case Add, Sub, Mul, Div, Mod
 
@@ -114,19 +61,10 @@ object Expr:
   /** `|x| interpreted as a [=mathematical value=]` — cast to math value. */
   case class AsMath(expr: Expr) extends Expr
 
-  /** `AsMath`'s inverse — casts a math value to a real ECMAScript Number.
-    * Produced two ways: directly from spec prose's `[=𝔽=](...)` call syntax
-    * (ECMA-262's "the Number value for" notation — see `ExprParser`), and as a
-    * lowering-pass-internal marker for a WJI-synthesized math value (e.g. a
-    * loop counter) that needs to leave WJI's own bookkeeping and flow into a
-    * real ECMA-262 AO — see `ExpandIndexOfPass`.
-    */
+  /** `[=𝔽=](...)` call syntax — ECMA-262's "the Number value for" notation */
   case class AsNumber(expr: Expr) extends Expr
 
-  /** `[=ℤ=](...)` — ECMA-262's "the BigInt value for" notation: casts a math
-    * value to a real ECMAScript BigInt. Produced directly from spec prose by
-    * `ExprParser`, mirroring `AsNumber`'s `𝔽` case.
-    */
+  /** `[=ℤ=](...)` — ECMA-262's "the BigInt value for" notation */
   case class AsBigInt(expr: Expr) extends Expr
 
   /** `(E1, E2, ...)` — parenthesised tuple, used in destructuring Let LHS. */
@@ -174,8 +112,33 @@ object Expr:
     */
   case class IndexOf(list: Expr, elem: Expr) extends Expr
 
+  /** An unnamed, not-yet-hoisted closure literal — "the following steps ...:"
+    * itself, wherever it appears as an argument/value, taking `params` as
+    * formal parameters (no `|` delimiters). If vardadicLast is true, the last
+    * parameter of params consumes all of remaining args and stores as the list.
+    */
+  case class FollowingSteps(params: List[String], variadicLast: Boolean = false)
+    extends Expr
+
+  /** "performing CLOSURE given ARG[, ARG...][ and ARG]" — invoking a closure
+    * *value* (as opposed to [[Instr.Perform]], which invokes a *named*
+    * `[=link=]` as a statement). `closure` is typically a bare [[Var]] holding
+    * a closure passed in as a parameter (e.g. `|onFullfilledStepsArg|` in the
+    * (patched) PromiseReactionJob text — see `SpecPatch`), but is kept as a
+    * general `Expr` rather than a bare name since nothing about the "performing
+    * ... given ..." phrasing restricts it to a variable. Mirrors [[AlgoCall]]/
+    * [[Case]]'s `args: List[Expr]` shape rather than [[FollowingSteps]]'s
+    * bare-name `params: List[String]`, since a call's arguments are arbitrary
+    * expressions, not formal parameter names.
+    */
+  case class ClosureCall(closure: Expr, args: List[Expr]) extends Expr
+
   /** Spec prose that didn't match any recognised expression pattern. */
   case class Unknown(raw: String) extends Expr
+
+  // ---- Below: no spec surface syntax of their own. `ExprParser` never
+  // produces any of these — only later lowering/compilation passes do, once
+  // something needs an `Expr` shape spec prose doesn't literally write. ----
 
   /** A reference to a closure value over the synthetic algorithm `name`,
     * capturing the current values of `captured` variable names from the
@@ -194,45 +157,6 @@ object Expr:
     * `ir.EClo(name, captured)` — see `esmeta.wji.compiler.Compiler`.
     */
   case class Closure(name: String, captured: List[String]) extends Expr
-
-  /** An unnamed, not-yet-hoisted closure literal — "the following steps ...:"
-    * itself, wherever it appears as an argument/value, taking `params` as
-    * formal parameters (no `|` delimiters). Produced by several spec phrasings
-    * — see [[ExprParser]]'s closure-defining regexes
-    * (`VariadicStepsClosurePrefix`, `StepsClosurePrefix`,
-    * `QueueTaskClosureSuffix`, `WhichPerformsStepsClosure`) for exactly which,
-    * and how each derives `params`/`variadicLast`.
-    *
-    * No `body` field: [[ExprParser]] only ever sees the one prose string
-    * introducing the phrase, not the nested list items it introduces — those
-    * always sit in the *owning instruction's* own `body` (exactly like any
-    * other nested block; every earlier lowering pass already recurses into it
-    * via `Instr.mapBody`), so a `body` field here would only ever hold `Nil`.
-    * `esmeta.wji.compiler.lowering.ExpandFollowingStepsPass` recognizes an
-    * unlowered `FollowingSteps` by the owning instruction's `body` still being
-    * non-empty, hoists that `body` into a fresh top-level [[Algorithm]] (whose
-    * last parameter is marked [[WjiParam.variadic]] when `variadicLast`), and
-    * replaces the `FollowingSteps` with a [[Closure]] referencing it.
-    */
-  case class FollowingSteps(params: List[String], variadicLast: Boolean = false)
-    extends Expr
-
-  /** "performing CLOSURE given ARG[, ARG...][ and ARG]" — invoking a closure
-    * *value* (as opposed to [[Instr.Perform]], which invokes a *named*
-    * `[=link=]` as a statement). `closure` is typically a bare [[Var]] holding
-    * a closure passed in as a parameter (e.g. `|onFullfilledStepsArg|` in the
-    * (patched) PromiseReactionJob text — see `SpecPatch`), but is kept as a
-    * general `Expr` rather than a bare name since nothing about the "performing
-    * ... given ..." phrasing restricts it to a variable. Mirrors [[AlgoCall]]/
-    * [[Case]]'s `args: List[Expr]` shape rather than [[FollowingSteps]]'s
-    * bare-name `params: List[String]`, since a call's arguments are arbitrary
-    * expressions, not formal parameter names.
-    */
-  case class ClosureCall(closure: Expr, args: List[Expr]) extends Expr
-
-  // ---- Below: no spec surface syntax of their own. `ExprParser` never
-  // produces any of these — only later lowering/compilation passes do, once
-  // something needs an `Expr` shape spec prose doesn't literally write. ----
 
   /** Projects component `idx` out of `base`, a Wasm-embedding call's `(store,
     * X)`-shaped result (e.g. `module_instantiate`, `func_invoke`, `func_alloc`,

@@ -230,6 +230,10 @@ object Expr:
     */
   case class ClosureCall(closure: Expr, args: List[Expr]) extends Expr
 
+  // ---- Below: no spec surface syntax of their own. `ExprParser` never
+  // produces any of these — only later lowering/compilation passes do, once
+  // something needs an `Expr` shape spec prose doesn't literally write. ----
+
   /** Projects component `idx` out of `base`, a Wasm-embedding call's `(store,
     * X)`-shaped result (e.g. `module_instantiate`, `func_invoke`, `func_alloc`,
     * `global_alloc`, ... — every embedding function that returns a tuple pairs
@@ -255,6 +259,16 @@ object Expr:
     * `esmeta.wji.compiler.Compiler`.
     */
   case class CaseTag(base: Expr) extends Expr
+
+  /** `Some`/`None` wrapping around a `Case` constructor argument — e.g. Wasm's
+    * `null? heaptype` reftype shape, which SpecTec represents as a genuine
+    * `OptV` positional argument inside `CaseV("REF", [OptV(...), ...])`.
+    * Produced by `esmeta.wji.compiler.lowering.NormalizeSpecTecCaseShapePass`
+    * when reshaping a `SpecTerm` shorthand (e.g. `funcref`) into its real
+    * nested `Case` form. Compiles directly to `ir.EOpt`. See
+    * `esmeta.wji.compiler.Compiler`.
+    */
+  case class Opt(expr: Option[Expr]) extends Expr
 
   extension (expr: Expr)
     /** Every `Expr` directly nested one level inside this one — used for
@@ -287,6 +301,7 @@ object Expr:
       case ClosureCall(closure, args) => closure :: args
       case TupleProj(base, _)         => List(base)
       case CaseTag(base)              => List(base)
+      case Opt(inner)                 => inner.toList
       case _                          => Nil
 
     /** Whether `pred` holds for this `Expr` or any `Expr` nested inside it, at

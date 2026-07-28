@@ -59,6 +59,7 @@ object ExprPrinter:
       s"${render(closure)}(${args.map(render).mkString(", ")})"
     case TupleProj(base, idx) => s"${render(base)}.$idx"
     case CaseTag(base)        => s"case-tag(${render(base)})"
+    case Opt(inner)           => s"opt(${inner.map(render).getOrElse("none")})"
 
   private def renderBOp(op: BOp): String = op match
     case BOp.Add => "+"

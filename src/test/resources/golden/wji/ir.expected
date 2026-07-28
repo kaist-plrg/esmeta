@@ -3,12 +3,12 @@ def compile_a_webassembly_module(
   bytes: Unknown,
 ): Unknown = {
   call-embed module = <module_decode>(bytes)
-  if (= module ~error~) {
-    return ~error~
+  if (= module (case "ERROR" )) {
+    return (case "ERROR" )
   } else nop
   call-embed _call1 = <module_validate>(module)
-  if (= _call1 ~error~) {
-    return ~error~
+  if (= _call1 (case "ERROR" )) {
+    return (case "ERROR" )
   } else nop
   return module
 }
@@ -48,7 +48,7 @@ def validate(
 ): Unknown = {
   call stableBytes = clo<"get_a_copy_of_the_buffer_source">(bytes)
   call module = clo<"compile_a_webassembly_module">(stableBytes)
-  if (= module ~error~) {
+  if (= module (case "ERROR" )) {
     return false
   } else nop
   if (exists options.builtins) {
@@ -381,7 +381,7 @@ def create_an_exports_object(
     let name = _tuple1[0]
     let externtype = _tuple1[1]
     call-embed externval = <instance_export>(instance, name)
-    assert (! (= externval ~error~))
+    assert (! (= externval (case "ERROR" )))
     if (= (case-tag externtype) "FUNC") {
       let functype = externtype[0]
       assert (yet "is of form Case(FUNC,List(Var(funcaddr)))")
@@ -483,7 +483,7 @@ def instantiate_the_core_of_a_webassembly_module(
 ): Unknown = {
   let store = @AGENT_RECORD["associated store"]
   call-embed result = <module_instantiate>(store, module, imports)
-  if (= result ~error~) {
+  if (= result (case "ERROR" )) {
     (yet "A {{LinkError}} exception for most cases which occur during linking")
     if (yet "the error came when running the start function") {
       (yet "throw a {{RuntimeError}} for most errors which occur from WebAssembly, or the error object propagated from inner ECMAScript code")
@@ -673,7 +673,7 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Module(
   }
   call stableBytes = clo<"get_a_copy_of_the_buffer_source">(bytes)
   call module = clo<"compile_a_webassembly_module">(stableBytes)
-  if (= module ~error~) {
+  if (= module (case "ERROR" )) {
     call _err1 = clo<"__NEW_ERROR_OBJ__">("%CompileError.prototype%")
     call _ret2 = clo<"ThrowCompletion">(_err1)
     return _ret2
@@ -916,7 +916,7 @@ def grow_the_memory_buffer(
   let store = @AGENT_RECORD["associated store"]
   let ret = (yet "the [=mem_size=](|store|, |memaddr|)")
   call-embed store = <mem_grow>(store, memaddr, delta)
-  if (= store ~error~) {
+  if (= store (case "ERROR" )) {
     call _err1 = clo<"__NEW_ERROR_OBJ__">("%RangeError.prototype%")
     call _ret2 = clo<"ThrowCompletion">(_err1)
     return _ret2
@@ -1187,7 +1187,7 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Table(
   } else nop
   if (! (exists value)) {
     call ref = clo<"defaultvalue">(elementtype)
-    assert (! (= ref ~error~))
+    assert (! (= ref (case "ERROR" )))
   } else {
     call _call3 = clo<"towebassemblyvalue">(value, elementtype)
     if (exists _call3.Type) {
@@ -1247,7 +1247,7 @@ def grow(
   }
   if (! (exists value)) {
     call ref = clo<"defaultvalue">(elementtype)
-    if (= ref ~error~) {
+    if (= ref (case "ERROR" )) {
       call _err2 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
       call _ret3 = clo<"ThrowCompletion">(_err2)
       return _ret3
@@ -1270,7 +1270,7 @@ def grow(
     }
   }
   call-embed result = <table_grow>(store, tableaddr, delta64, ref)
-  if (= result ~error~) {
+  if (= result (case "ERROR" )) {
     call _err5 = clo<"__NEW_ERROR_OBJ__">("%RangeError.prototype%")
     call _ret6 = clo<"ThrowCompletion">(_err5)
     return _ret6
@@ -1331,7 +1331,7 @@ def get(
     let index64 = _call1
   }
   call-embed result = <table_read>(store, tableaddr, index64)
-  if (= result ~error~) {
+  if (= result (case "ERROR" )) {
     call _err4 = clo<"__NEW_ERROR_OBJ__">("%RangeError.prototype%")
     call _ret5 = clo<"ThrowCompletion">(_err4)
     return _ret5
@@ -1376,7 +1376,7 @@ def set(
   }
   if (! (exists value)) {
     call ref = clo<"defaultvalue">(elementtype)
-    if (= ref ~error~) {
+    if (= ref (case "ERROR" )) {
       call _err4 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
       call _ret5 = clo<"ThrowCompletion">(_err4)
       return _ret5
@@ -1399,7 +1399,7 @@ def set(
     }
   }
   call-embed store = <table_write>(store, tableaddr, index64, ref)
-  if (= store ~error~) {
+  if (= store (case "ERROR" )) {
     call _err7 = clo<"__NEW_ERROR_OBJ__">("%RangeError.prototype%")
     call _ret8 = clo<"ThrowCompletion">(_err7)
     return _ret8
@@ -1524,7 +1524,7 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Global(
   } else nop
   if (! (exists v)) {
     call value = clo<"defaultvalue">(valuetype)
-    assert (! (= value ~error~))
+    assert (! (= value (case "ERROR" )))
   } else {
     call _call1 = clo<"towebassemblyvalue">(v, valuetype)
     if (exists _call1.Type) {
@@ -1641,7 +1641,7 @@ def <BUILTIN>:INTRINSICS.set:WebAssembly.Global.prototype.value(
     let value = _call1
   }
   call-embed store = <global_write>(store, globaladdr, value)
-  if (= store ~error~) {
+  if (= store (case "ERROR" )) {
     call _err6 = clo<"__NEW_ERROR_OBJ__">("%RangeError.prototype%")
     call _ret7 = clo<"ThrowCompletion">(_err6)
     return _ret7
@@ -1783,7 +1783,7 @@ def call_an_exported_function(
   let store = _tuple2[0]
   let ret = _tuple2[1]
   @AGENT_RECORD["associated store"] = store
-  if (= ret ~error~) {
+  if (= ret (case "ERROR" )) {
     call _err4 = clo<"__NEW_ERROR_OBJ__">("%RuntimeError.prototype%")
     call _ret5 = clo<"ThrowCompletion">(_err4)
     return _ret5
@@ -3347,7 +3347,7 @@ def get_a_copy_of_the_buffer_source(
 }
 def asynchronously_compile_a_webassembly_module_closure1(
 ): Unknown = {
-  if (= module ~error~) {
+  if (= module (case "ERROR" )) {
     call _ = clo<"reject">(~Module~, promise, (record [CompileError] {
       "GetPrototypeOf" : clo<"Record[OrdinaryObject].GetPrototypeOf">,
       "SetPrototypeOf" : clo<"Record[OrdinaryObject].SetPrototypeOf">,

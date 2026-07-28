@@ -4,18 +4,24 @@ import esmeta.wji.lang.{Algorithm, Expr}
 import esmeta.wji.lang.walker.Walker
 
 /** Finalizes every `Expr.Case`'s `tag` into SpecTec's real runtime
-  * `ALValue.CaseV` tag, and reshapes the handful whose runtime nesting is
-  * deeper than spec prose writes it — wherever a `Case` shows up (a value under
-  * construction, or a `Cond.IsOfForm`'s `form` pattern). Runs immediately after
-  * [[ResolveLinksPass]], so every downstream pass (`ExpandIsOfFormPass`,
-  * `ExpandDestructuringLetPass`, `Compiler`) can treat `Case.tag` as already
-  * final and never needs to translate it itself.
+  * `ALValue.CaseV` tag, reshapes the handful whose runtime nesting is deeper
+  * than spec prose writes it, and converts every `Expr.SpecTerm` that's
+  * actually a Wasm-boundary nullary/shorthand case in disguise (`error`, a
+  * `valtype` literal like `i32`, a `reftype` shorthand like `funcref`) into the
+  * real `Expr.Case`/`Expr.Opt` it denotes — wherever any of these show up (a
+  * value under construction, or a `Cond.IsOfForm`'s `form` pattern). Runs
+  * immediately after [[ResolveLinksPass]], so every downstream pass
+  * (`ExpandIsOfFormPass`, `ExpandDestructuringLetPass`, `Compiler`) can treat
+  * `Expr.Case` as the sole representation of a Wasm-boundary constructor value
+  * — a `SpecTerm` reaching them is *never* secretly one of these, only a
+  * genuine spec-term reference (`null`, `current Realm`, ...).
   *
-  * Only overrides [[Walker.walk(Expr)]] for the one node type ([[Expr.Case]])
-  * it actually rewrites — every other `Expr`/`Cond`/`Instr` (including wherever
-  * a `Case` shows up nested, e.g. inside a `Cond.IsOfForm`'s `form`) is reached
-  * automatically by [[Walker]]'s own default structural recursion, with no
-  * per-pass exhaustive case list to keep in sync here.
+  * Only overrides [[Walker.walk(Expr)]] for the node types it actually rewrites
+  * ([[Expr.Case]], and the handful of [[Expr.SpecTerm]] names above) — every
+  * other `Expr`/`Cond`/`Instr` (including wherever one of these shows up
+  * nested, e.g. inside a `Cond.IsOfForm`'s `form`) is reached automatically by
+  * [[Walker]]'s own default structural recursion, with no per-pass exhaustive
+  * case list to keep in sync here.
   *
   * Tag translation: a `for`-scoped dfn's linking text is always
   * `family/variant` (e.g. `external value/func`, `external-type/global`; see
@@ -111,8 +117,53 @@ object NormalizeSpecTecCaseShapePass extends LoweringPass:
     */
   private val nestedFormLinks: Set[String] = Set("external-type/global")
 
+  /** A bare Wasm Core Spec `numtype`/`vectype` literal (`i32`/`i64`/`f32`/
+    * `f64`/`v128`) — matches iff `s` is one of exactly these 5, extracting the
+    * uppercased `Case` tag SpecTec's own `al_of_numtype`/`al_of_vectype`
+    * expect.
+    */
+  private object NullaryValtype:
+    private val names = Set("i32", "i64", "f32", "f64", "v128")
+    def unapply(s: String): Option[String] =
+      Option.when(names.contains(s))(s.toUpperCase)
+
+  /** `funcref`/`externref`/`exnref` — Wasm's nullable-`reftype` shorthand names
+    * — extracting the `heaptype` `Case` tag each abbreviates (wrapped below in
+    * the full `REF(null?, heaptype)` shape).
+    */
+  private object ShorthandReftype:
+    private val heaptypes =
+      Map("funcref" -> "FUNC", "externref" -> "EXTERN", "exnref" -> "EXN")
+    def unapply(s: String): Option[String] = heaptypes.get(s)
+
   private object reshaper extends Walker:
     override def walk(expr: Expr): Expr = expr match
+      // embedding.rst's `error` production (`error ::= ERROR`) crosses the
+      // Wasm boundary as `Wasm(CaseV("ERROR", []))` (see embedding.ml's
+      // `embedding_error`) — never a WJI-internal `EEnum`.
+      case Expr.SpecTerm("error") => Expr.Case("ERROR", Nil)
+      // Wasm Core Spec `valtype` literals (js-api/index.bs's `ToValueType`,
+      // `match_valtype` checks, ...) need to actually cross the WasmHost
+      // boundary as real SpecTec AL values, not a bare WJI-internal `EEnum`
+      // — confirmed against SpecTec's own `al_of_numtype`/`al_of_vectype`
+      // (`construct.ml`), which encode these as a plain nullary
+      // `CaseV(TAG, [])` tag, uppercased.
+      case Expr.SpecTerm(NullaryValtype(tag)) => Expr.Case(tag, Nil)
+      // `funcref`/`externref`/`exnref` aren't `valtype` constructors
+      // themselves — each is Wasm's own shorthand for a nullable `reftype`,
+      // i.e. `REF(null?, heaptype)` with `null?` always present (that's
+      // exactly what makes them the *nullable* shorthand). Confirmed against
+      // SpecTec's own `al_of_reftype`/`al_of_null` (`construct.ml`,
+      // `!version = 3`, this project's configured Wasm version):
+      // `CaseV("REF", [OptV(Some(CaseV("NULL", []))), CaseV(<heaptype>, [])])`.
+      case Expr.SpecTerm(ShorthandReftype(heaptype)) =>
+        Expr.Case(
+          "REF",
+          List(
+            Expr.Opt(Some(Expr.Case("NULL", Nil))),
+            Expr.Case(heaptype, Nil),
+          ),
+        )
       case Expr.Case(tag, args) =>
         val reshapedArgs = args.map(walk)
         val stripped = stripLink(tag).toLowerCase

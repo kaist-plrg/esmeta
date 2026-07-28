@@ -36,6 +36,7 @@ trait UnitWalker:
       walk(closure); args.foreach(walk)
     case Expr.TupleProj(base, _) => walk(base)
     case Expr.CaseTag(base)      => walk(base)
+    case Expr.Opt(inner)         => inner.foreach(walk)
     // leaves with no nested Expr: Var, This, GivenValue, Num, Bool, Str,
     // Byte, SpecTerm, New, UnknownNew, Described, SuchThat, Unknown,
     // Closure, FollowingSteps.

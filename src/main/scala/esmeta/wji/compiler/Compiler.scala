@@ -91,26 +91,6 @@ object Compiler:
   // `SymbolLiteral(sym) => toERef(GLOBAL_SYMBOL, EStr(sym))`.
   private val SymbolTerm = """^%Symbol\.(.+)%$""".r
 
-  /** A bare Wasm Core Spec `numtype`/`vectype` literal (`i32`/`i64`/`f32`/
-    * `f64`/`v128`) — matches iff `s` is one of exactly these 5, extracting the
-    * uppercased `ECase` tag SpecTec's own `al_of_numtype`/`al_of_vectype`
-    * expect (see the `SpecTerm` case using this).
-    */
-  private object NullaryValtype:
-    private val names = Set("i32", "i64", "f32", "f64", "v128")
-    def unapply(s: String): Option[String] =
-      Option.when(names.contains(s))(s.toUpperCase)
-
-  /** `funcref`/`externref`/`exnref` — Wasm's nullable-`reftype` shorthand names
-    * — extracting the `heaptype` `ECase` tag each abbreviates (see the
-    * `SpecTerm` case using this, which wraps it in the full `REF(null?,
-    * heaptype)` shape).
-    */
-  private object ShorthandReftype:
-    private val heaptypes =
-      Map("funcref" -> "FUNC", "externref" -> "EXTERN", "exnref" -> "EXN")
-    def unapply(s: String): Option[String] = heaptypes.get(s)
-
   /** Throws immediately for an AST shape that lowering guarantees eliminates
     * before `Compiler` ever runs — unlike `EYet`, which only fails once the IR
     * is actually evaluated. See [[UnreachableAfterLowering]].
@@ -379,25 +359,6 @@ object Compiler:
       ERef(GLOBAL_AGENT_RECORD)
     case metalang.Expr.SpecTerm(SymbolTerm(sym)) =>
       ERef(Field(GLOBAL_SYMBOL, EStr(sym)))
-    // Wasm Core Spec `valtype` literals (js-api/index.bs's `ToValueType`,
-    // `match_valtype` checks, ...) need to actually cross the WasmHost
-    // boundary as real SpecTec AL values, not a bare WJI-internal `EEnum` —
-    // confirmed against SpecTec's own `al_of_numtype`/`al_of_vectype`
-    // (`construct.ml`), which encode these as a plain nullary `CaseV(TAG, [])`
-    // tag, uppercased.
-    case metalang.Expr.SpecTerm(NullaryValtype(tag)) => ECase(tag, Nil)
-    // `funcref`/`externref`/`exnref` aren't `valtype` constructors themselves
-    // — each is Wasm's own shorthand for a nullable `reftype`, i.e.
-    // `REF(null?, heaptype)` with `null?` always present (that's exactly what
-    // makes them the *nullable* shorthand). Confirmed against SpecTec's own
-    // `al_of_reftype`/`al_of_null` (`construct.ml`, `!version = 3`, this
-    // project's configured Wasm version): `CaseV("REF", [OptV(Some(CaseV(
-    // "NULL", []))), CaseV(<heaptype>, [])])`.
-    case metalang.Expr.SpecTerm(ShorthandReftype(heaptype)) =>
-      ECase(
-        "REF",
-        List(EOpt(Some(ECase("NULL", Nil))), ECase(heaptype, Nil)),
-      )
     case metalang.Expr.SpecTerm(s) => EEnum(s)
     case metalang.Expr.Field(base, name) =>
       ERef(Field(compileRef(base), EStr(name)))
@@ -423,7 +384,7 @@ object Compiler:
     case metalang.Expr.Abrupt(marker, e) =>
       EYet(s"nested $marker-abrupt: $e")
     case metalang.Expr.AlgoCall(link, args) =>
-      // zero-arg AlgoCall used as an expression value (e.g. [=error=])
+      // zero-arg AlgoCall used as an expression value
       if args.isEmpty then ERef(Global(nameFromLink(link)))
       else EYet(s"call $link") // TODO: inline call-as-expr
     // a SpecTec Wasm Core Spec constructor/variant application (e.g. "the
@@ -457,6 +418,7 @@ object Compiler:
     case metalang.Expr.TupleProj(base, idx) =>
       ERef(Field(compileRef(base), EMath(idx)))
     case metalang.Expr.CaseTag(base) => ECaseTag(compileExpr(base))
+    case metalang.Expr.Opt(inner)    => EOpt(inner.map(compileExpr))
 
     // ── unreachable after lowering ──
     // Every shape below is guaranteed gone by the time `Compiler` runs —

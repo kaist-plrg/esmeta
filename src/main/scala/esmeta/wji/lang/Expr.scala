@@ -37,6 +37,19 @@ object Expr:
   case class New(iface: String) extends Expr
   case class UnknownNew(raw: String) extends Expr
 
+  /** "a new {{ArrayBuffer}} with the internal slots [[X]], [[Y]], ..." —
+    * js-api's own bespoke ArrayBuffer construction (`create a fixed length
+    * memory buffer`/`create a resizable memory buffer`), kept distinct from
+    * [[New]] (WebIDL's "a [=/new=] {{X}}" platform-object idiom) since
+    * `ArrayBuffer` isn't a js-api-defined interface at all — it's an ECMA-262
+    * primitive js-api merely reuses, so it needs a different construction path
+    * entirely (see docs/underspecified-behaviors.md: no algorithm is actually
+    * named for what this phrasing should call). Expanded by
+    * `esmeta.wji.compiler.lowering.ExpandNewArrayBufferPass` into a `JSCall` on
+    * ECMA-262's own `AllocateArrayBuffer`.
+    */
+  case object NewArrayBuffer extends Expr
+
   /** `« E1, E2, ... »` — Infra-spec List literal. */
   case class List_(elements: List[Expr]) extends Expr
 

@@ -2,9 +2,17 @@ package esmeta.wji.compiler.lowering
 
 import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr}
 
-// TODO: It calls a hardcoded algorithm. It should be replaced to actual WebIDL
-// algorithm call.
-
+// DEAD CODE — not registered in Lowering.pipeline, and the function it emits
+// a Perform for (`create_new_object_implementing_the_interface`) doesn't
+// exist anywhere in the repo (no extracted algorithm, no manuals/funcs
+// stub, no other reference). `Expr.New(iface)` is actually compiled
+// directly by `esmeta.wji.compiler.Compiler.compileExpr`
+// (`ERecord(iface, ordinaryObjectFields(iface))`) — see `docs/hardcodes.md`
+// #7. Left in place as a record of the originally-intended direction (call
+// WebIDL's real "internally create a new object implementing the
+// interface", webidl/index.bs:13827) for whenever that gets mechanized for
+// real; don't wire this back into the pipeline as-is without also fixing
+// `create_new_object_implementing_the_interface` itself.
 object ExpandNewInterfaceObjectPass extends LoweringPass:
   def run(algos: List[Algorithm]): List[Algorithm] =
     algos.map(a => a.copy(body = transform(a.body)))

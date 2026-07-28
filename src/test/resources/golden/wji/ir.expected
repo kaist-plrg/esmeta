@@ -758,7 +758,13 @@ def create_a_fixed_length_memory_buffer(
     push block < ([math] _wasmBytes1[_dataBlockIdx2])
     _dataBlockIdx2 = (+ _dataBlockIdx2 1)
   }
-  let buffer = (yet "a new {{ArrayBuffer}} with the internal slots \\[[ArrayBufferData]], \\[[ArrayBufferByteLength]], and \\[[ArrayBufferDetachKey]]")
+  call _call1 = clo<"AllocateArrayBuffer">(@EXECUTION_STACK[0].Realm.Intrinsics["%ArrayBuffer%"], 0)
+  if (exists _call1.Type) {
+    assert (= _call1.Type ~normal~)
+    let buffer = _call1.Value
+  } else {
+    let buffer = _call1
+  }
   buffer.ArrayBufferData = block
   buffer.ArrayBufferByteLength = (sizeof block)
   buffer.ArrayBufferDetachKey = "WebAssembly.Memory"
@@ -776,7 +782,13 @@ def create_a_resizable_memory_buffer(
     _dataBlockIdx2 = (+ _dataBlockIdx2 1)
   }
   let length = (sizeof block)
-  let buffer = (yet "a new {{ArrayBuffer}} with the internal slots \\[[ArrayBufferData]], \\[[ArrayBufferByteLength]], \\[[ArrayBufferMaxByteLength]], and \\[[ArrayBufferDetachKey]]")
+  call _call1 = clo<"AllocateArrayBuffer">(@EXECUTION_STACK[0].Realm.Intrinsics["%ArrayBuffer%"], 0)
+  if (exists _call1.Type) {
+    assert (= _call1.Type ~normal~)
+    let buffer = _call1.Value
+  } else {
+    let buffer = _call1
+  }
   buffer.ArrayBufferData = block
   buffer.ArrayBufferByteLength = length
   buffer.ArrayBufferMaxByteLength = maxsize
@@ -820,7 +832,7 @@ def create_a_memory_object(
     "Set" : clo<"Record[OrdinaryObject].Set">,
     "Delete" : clo<"Record[OrdinaryObject].Delete">,
     "OwnPropertyKeys" : clo<"Record[OrdinaryObject].OwnPropertyKeys">,
-    "Prototype" : null,
+    "Prototype" : @EXECUTION_STACK[0].Realm.Intrinsics["%WebAssembly.Memory.prototype%"],
     "Extensible" : true,
     "PrivateElements" : (list []),
     "__MAP__" : (map[Unknown, Unknown]),

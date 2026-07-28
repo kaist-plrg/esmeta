@@ -391,7 +391,7 @@
   params: |memaddr|
   head: To <dfn>create a fixed length memory buffer</dfn> from a [=memory address=] |memaddr|, perform the following steps:
   Let(|block|, dataBlockOf(|memaddr|))
-  Let(|buffer|, ?(a new {{ArrayBuffer}} with the internal slots \[[ArrayBufferData]], \[[ArrayBufferByteLength]], and \[[ArrayBufferDetachKey]]))
+  Let(|buffer|, new {{ArrayBuffer}}(with slots))
   Set(|buffer|.[[ArrayBufferData]], |block|)
   Set(|buffer|.[[ArrayBufferByteLength]], length(|block|))
   Set(|buffer|.[[ArrayBufferDetachKey]], "WebAssembly.Memory")
@@ -402,7 +402,7 @@
   head: To <dfn>create a resizable memory buffer</dfn> from a [=memory address=] |memaddr| and a |maxsize|, perform the following steps:
   Let(|block|, dataBlockOf(|memaddr|))
   Let(|length|, length(|block|))
-  Let(|buffer|, ?(a new {{ArrayBuffer}} with the internal slots \[[ArrayBufferData]], \[[ArrayBufferByteLength]], \[[ArrayBufferMaxByteLength]], and \[[ArrayBufferDetachKey]]))
+  Let(|buffer|, new {{ArrayBuffer}}(with slots))
   Set(|buffer|.[[ArrayBufferData]], |block|)
   Set(|buffer|.[[ArrayBufferByteLength]], |length|)
   Set(|buffer|.[[ArrayBufferMaxByteLength]], |maxsize|)

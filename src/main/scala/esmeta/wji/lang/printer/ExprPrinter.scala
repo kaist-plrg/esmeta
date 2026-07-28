@@ -28,6 +28,7 @@ object ExprPrinter:
     case Abrupt(check, e) => s"[=$check=] ${render(e)}"
     case New(iface)       => s"new {{$iface}}"
     case UnknownNew(raw)  => s"?($raw)"
+    case NewArrayBuffer   => "new {{ArrayBuffer}}(with slots)"
     case Length(e)        => s"length(${render(e)})"
     case BinOp(lhs, op, rhs) =>
       s"${render(lhs)} ${renderBOp(op)} ${render(rhs)}"

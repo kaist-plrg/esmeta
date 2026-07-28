@@ -137,9 +137,18 @@ object ExprParser:
   // freshly allocated all-zero byte sequence of the given length.
   private val NewByteSeqOfLength =
     """(?si)^a\s+new\s+\[=byte sequence=\]\s+of\s+\[=byte sequence/length=\]\s+equal to\s+(.+)$""".r
+  // "a new {{ArrayBuffer}} with the internal slots [[X]], [[Y]], ..." — the
+  // js-api Memory-buffer algorithms' bespoke ArrayBuffer construction (with a
+  // custom [[ArrayBufferDetachKey]]), distinct from NewExpr's "a [=/new=]
+  // {{X}}" platform-object idiom above (see docs/underspecified-behaviors.md:
+  // no algorithm is actually named here for what this should call). The
+  // trailing slot-name list is purely declarative — every occurrence
+  // immediately `Set`s each slot right after — so it's discarded, not parsed.
+  private val NewArrayBufferWithSlots =
+    """(?si)^a\s+new\s+\{\{ArrayBuffer\}\}\s+with\s+the\s+internal\s+slots\s+.+$""".r
   // catch-all for "a new ..." not matched by the more specific forms above —
-  // EmptyList/NewByteSeqOfLength (the only two that literally start with "a
-  // new") must precede this.
+  // EmptyList/NewByteSeqOfLength/NewArrayBufferWithSlots (the only ones that
+  // literally start with "a new") must precede this.
   private val PlainNewExpr = """(?si)^a\s+new\s+.+""".r
   private val EmptyMapProse = """(?si)^the ordered map «(?:\[\s*\])?\s*»$""".r
   // must precede ListLiteral below — «[ ... ]» would otherwise also match
@@ -477,6 +486,7 @@ object ExprParser:
       case NewExceptionExpr(iface)    => New(iface)
       case EmptyList()                => List_(Nil)
       case NewByteSeqOfLength(lenRaw) => NewByteSequence(parse(lenRaw))
+      case NewArrayBufferWithSlots()  => NewArrayBuffer
       case PlainNewExpr()             => UnknownNew(s)
       case EmptyMapProse()            => Map_(Nil)
       case MapLiteral(inner) =>

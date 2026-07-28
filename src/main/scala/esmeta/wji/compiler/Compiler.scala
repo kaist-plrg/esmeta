@@ -38,21 +38,21 @@ object Compiler:
     * (see `esmeta.ty.TyModel.registerDynamicSubtype`). `Prototype` points at
     * the interface's real `%WebAssembly.<iface>.prototype%` intrinsic only for
     * interfaces where `manuals/intrinsics` actually declares one today
-    * (`Instance` and `Global` — their getter/setter/constructor members,
-    * compiled from the real spec text via `compileAlgo`'s
+    * (`Instance`, `Global`, and `Memory` — their getter/setter/constructor
+    * members, compiled from the real spec text via `compileAlgo`'s
     * `AlgorithmKind.Getter`/`Setter`/ `Constructor` cases below and
     * `esmeta.wji.compiler.lowering.AddInterfaceMemberBuiltinBehaviourPass`,
-    * resolve against these); every other interface (`Module`, `Memory`, ...)
-    * has no such intrinsic declared at all, so referencing it would itself
-    * crash, and falls back to `null` as before. The rest of WebIDL's
-    * "internally create a new object implementing the interface" preamble is
-    * left for later.
+    * resolve against these); every other interface (`Module`, `Table`, ...) has
+    * no such intrinsic declared at all, so referencing it would itself crash,
+    * and falls back to `null` as before. The rest of WebIDL's "internally
+    * create a new object implementing the interface" preamble is left for
+    * later.
     *
     * Documented in `docs/hardcodes.md` (#7) — when this gets properly
     * implemented, delete that entry too.
     */
   private val interfacesWithPrototypeIntrinsic: Set[String] =
-    Set("Instance", "Global")
+    Set("Instance", "Global", "Memory")
 
   private def ordinaryObjectFields(iface: String): List[(String, Expr)] = List(
     "GetPrototypeOf" -> EClo("Record[OrdinaryObject].GetPrototypeOf", Nil),
@@ -423,8 +423,8 @@ object Compiler:
     // ── unreachable after lowering ──
     // Every shape below is guaranteed gone by the time `Compiler` runs —
     // each eliminated unconditionally by its own named pass (`ResolveLinksPass`,
-    // `ExpandNewByteSequencePass`, `ExpandDataBlockOfPass`, `ExpandIndexOfPass`,
-    // `ExpandFollowingStepsPass`)
+    // `ExpandNewByteSequencePass`, `ExpandDataBlockOfPass`,
+    // `ExpandNewArrayBufferPass`, `ExpandIndexOfPass`, `ExpandFollowingStepsPass`)
     // or, for `JSCall`/nested `ClosureCall`, simply never produced by any spec
     // text seen so far. Grouped here, all crashing via `impossible`, rather than
     // interleaved with the genuine `EYet` "not yet implemented" cases above —
@@ -438,6 +438,8 @@ object Compiler:
       impossible(s"new byte sequence of length ${length}")
     case metalang.Expr.DataBlockOf(memaddr) =>
       impossible(s"data block of ${ExprPrinter.render(memaddr)}")
+    case metalang.Expr.NewArrayBuffer =>
+      impossible("new ArrayBuffer with internal slots")
     case metalang.Expr.Range(low, high) =>
       impossible(s"range ${low} to ${high}")
     case metalang.Expr.IndexOf(list, elem) =>

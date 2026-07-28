@@ -3,9 +3,9 @@ package esmeta.wji.compiler.lowering
 import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr}
 
 /** Expands `Expr.DataBlockOf(memaddr)` — "a [=Data Block=] which is
-  * [=identified with=] the underlying memory of |memaddr|" — into an
-  * explicit `mem_read_bytes` bridge call plus a fill loop copying each byte
-  * out into a genuine heap list, mirroring `ExpandNewByteSequencePass`'s
+  * [=identified with=] the underlying memory of |memaddr|" — into an explicit
+  * `mem_read_bytes` bridge call plus a fill loop copying each byte out into a
+  * genuine heap list, mirroring `ExpandNewByteSequencePass`'s
   * allocate-then-fill idiom:
   *
   * {{{
@@ -28,9 +28,9 @@ import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr}
   * before it can be `Append`ed into an ordinary WJI list.
   *
   * Only handles `DataBlockOf` in direct `Let` RHS position — the only shape
-  * observed in practice (`create a fixed length memory buffer`/
-  * `create a resizable memory buffer`/`refresh the Memory buffer`, all
-  * `Let |block| be a [=Data Block=] which is [=identified with=] ...`).
+  * observed in practice (`create a fixed length memory buffer`/ `create a
+  * resizable memory buffer`/`refresh the Memory buffer`, all `Let |block| be a
+  * [=Data Block=] which is [=identified with=] ...`).
   *
   * Category: Structural desugaring.
   */

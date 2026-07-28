@@ -1038,3 +1038,23 @@ WebAssembly.Global.prototype = OrdinaryObject [
     Set: #INTRINSICS.set:WebAssembly.Global.prototype.value;
   };
 }
+
+WebAssembly.Memory = BuiltinFunctionObject [
+  Extensible: true;
+  Construct: clo<Record[BuiltinFunctionObject].Construct>;
+] {
+  length: [FFT] 1.0f;
+  name: [FFT] "Memory";
+  prototype: [FFF] #INTRINSICS.WebAssembly.Memory.prototype;
+}
+
+WebAssembly.Memory.prototype = OrdinaryObject [
+  Extensible: true;
+  Prototype: #INTRINSICS.Object.prototype;
+] {
+  %Symbol.toStringTag%: [FFT] "WebAssembly.Memory";
+  buffer: [TT] {
+    Get: #INTRINSICS.get:WebAssembly.Memory.prototype.buffer;
+    Set: undefined;
+  };
+}

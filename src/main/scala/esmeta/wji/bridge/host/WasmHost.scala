@@ -109,6 +109,14 @@ object WasmHost:
     "mem_size" -> List("store", "memaddr"),
     // mem_grow(store, memaddr, n: u64) : store | error
     "mem_grow" -> List("store", "memaddr", "n"),
+    // mem_read_bytes(store, memaddr) : byte* -- not part of embedding.rst
+    // (mem_read is byte-at-a-time and unused by js-api itself); a
+    // wjmeta-bridge-specific bulk read, for the JS ArrayBuffer/wasm linear
+    // memory sync bridge (docs/hardcodes.md).
+    "mem_read_bytes" -> List("store", "memaddr"),
+    // mem_write_bytes(store, memaddr, byte*) : store -- bulk write
+    // counterpart to mem_read_bytes above.
+    "mem_write_bytes" -> List("store", "memaddr", "bytes"),
     // tag_alloc(store, tagtype) : (store, tagaddr)
     "tag_alloc" -> List("store", "tagtype"),
     // tag_type(store, tagaddr) : tagtype

@@ -423,7 +423,8 @@ object Compiler:
     // ── unreachable after lowering ──
     // Every shape below is guaranteed gone by the time `Compiler` runs —
     // each eliminated unconditionally by its own named pass (`ResolveLinksPass`,
-    // `ExpandNewByteSequencePass`, `ExpandIndexOfPass`, `ExpandFollowingStepsPass`)
+    // `ExpandNewByteSequencePass`, `ExpandDataBlockOfPass`, `ExpandIndexOfPass`,
+    // `ExpandFollowingStepsPass`)
     // or, for `JSCall`/nested `ClosureCall`, simply never produced by any spec
     // text seen so far. Grouped here, all crashing via `impossible`, rather than
     // interleaved with the genuine `EYet` "not yet implemented" cases above —
@@ -435,6 +436,8 @@ object Compiler:
       impossible(s"$$${name}(${args.mkString})")
     case metalang.Expr.NewByteSequence(length) =>
       impossible(s"new byte sequence of length ${length}")
+    case metalang.Expr.DataBlockOf(memaddr) =>
+      impossible(s"data block of ${ExprPrinter.render(memaddr)}")
     case metalang.Expr.Range(low, high) =>
       impossible(s"range ${low} to ${high}")
     case metalang.Expr.IndexOf(list, elem) =>

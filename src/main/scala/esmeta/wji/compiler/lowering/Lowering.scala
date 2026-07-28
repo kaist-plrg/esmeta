@@ -51,6 +51,7 @@ object Lowering:
     ExpandIndexOfPass,
     ExpandDestructuringLetPass,
     ExpandSuchThatPass,
+    ExpandDataBlockOfPass,
     NormalizeEvaluationOrderPass,
     ExpandAbruptPass,
     ExtractInlineAlgoCallPass,

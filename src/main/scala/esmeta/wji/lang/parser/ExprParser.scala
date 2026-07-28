@@ -298,11 +298,20 @@ object ExprParser:
   // ---- Noun-phrase descriptions: not-yet-evaluable, or a narrow single-arg
   // call ----
 
+  // "a [=Data Block=] which is [=identified with=] the underlying memory of
+  // |memaddr|" — the one "which ..." phrasing that needs its own dedicated
+  // node (Expr.DataBlockOf) rather than falling into the generic
+  // RelativeClauseDesc/Described below, which also covers unrelated "which
+  // ..." shapes (e.g. "a [=host function=] which executes |steps| when
+  // called"). Tried first so RelativeClauseDesc doesn't swallow it.
+  private val DataBlockIdentifiedWith =
+    """(?si)^a\s+\[=Data Block=\]\s+which\s+is\s+\[=identified with=\]\s+the\s+underlying\s+memory\s+of\s+(\|[^|]+\|)$""".r
   // "a [=X=] which ..." — a relative-clause description of X, not a call
-  // (e.g. "a [=Data Block=] which is [=identified with=] the underlying
-  // memory of |memaddr|"). Not yet evaluable (see Expr.Described); matched
-  // explicitly (rather than left to fall through to the default `Unknown`
-  // case) so it can never be mistaken for LinkIndefVar below.
+  // (e.g. "a [=host function=] which executes |steps| when called"). Not yet
+  // evaluable (see Expr.Described); matched explicitly (rather than left to
+  // fall through to the default `Unknown` case) so it can never be mistaken
+  // for LinkIndefVar below. DataBlockIdentifiedWith above must be tried
+  // first — it's the one "which ..." phrasing that needs its own node.
   private val RelativeClauseDesc =
     """(?si)^an?\s+(\[=[^\]]+\])\s+which\s+(.+)$""".r
   // "of type <code>...&lt;X&gt;...</code>" — Bikeshed's convention for
@@ -544,6 +553,7 @@ object ExprParser:
       case IndexByExpr(baseRaw, idx)   => Index(parse(baseRaw), parse(idx))
 
       // ---- Noun-phrase descriptions ----
+      case DataBlockIdentifiedWith(memaddrRaw) => DataBlockOf(parse(memaddrRaw))
       case RelativeClauseDesc(link, desc) =>
         Described(normalizeLink(link), desc.trim)
       case OfTypeGeneric(typeArg) => SpecTerm(typeArg)

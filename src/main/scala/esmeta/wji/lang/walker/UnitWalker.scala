@@ -30,6 +30,7 @@ trait UnitWalker:
     case Expr.AsBigInt(e)    => walk(e)
     case Expr.Tuple(elems)   => elems.foreach(walk)
     case Expr.NewByteSequence(len) => walk(len)
+    case Expr.DataBlockOf(memaddr) => walk(memaddr)
     case Expr.Range(low, high)     => walk(low); walk(high)
     case Expr.IndexOf(list, elem)  => walk(list); walk(elem)
     case Expr.ClosureCall(closure, args) =>

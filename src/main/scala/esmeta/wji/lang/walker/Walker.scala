@@ -34,6 +34,7 @@ trait Walker:
     case Expr.AsBigInt(e)             => Expr.AsBigInt(walk(e))
     case Expr.Tuple(elems)            => Expr.Tuple(elems.map(walk))
     case Expr.NewByteSequence(length) => Expr.NewByteSequence(walk(length))
+    case Expr.DataBlockOf(memaddr)    => Expr.DataBlockOf(walk(memaddr))
     case Expr.Range(low, high)        => Expr.Range(walk(low), walk(high))
     case Expr.IndexOf(list, elem)     => Expr.IndexOf(walk(list), walk(elem))
     case Expr.ClosureCall(closure, args) =>

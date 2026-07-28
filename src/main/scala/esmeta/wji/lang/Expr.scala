@@ -97,6 +97,20 @@ object Expr:
     */
   case class NewByteSequence(length: Expr) extends Expr
 
+  /** "a [=Data Block=] which is [=identified with=] the underlying memory of
+    * |memaddr|" — the live-aliasing construct `create a fixed length memory
+    * buffer`/`create a resizable memory buffer`/`refresh the Memory buffer` all
+    * use for `WebAssembly.Memory.prototype.buffer`. Not directly evaluable —
+    * WJI can't truly alias JVM/OCaml memory across the process boundary —
+    * expanded by `esmeta.wji.compiler.lowering.ExpandDataBlockOfPass` into an
+    * explicit `mem_read_bytes` bridge call plus a fill loop. Parsed directly to
+    * this dedicated node (rather than falling into the generic [[Described]],
+    * which also covers unrelated "which ..." phrasings like "a [=host
+    * function=] which executes |steps| when called") since this is the one
+    * "which ..." shape that actually needs its own lowering.
+    */
+  case class DataBlockOf(memaddr: Expr) extends Expr
+
   /** "[=the range=] LOW to HIGH, inclusive" — an integer range used as the
     * collection of a `For` loop. Both bounds are assumed inclusive for now,
     * since every occurrence seen in the spec so far is written "...,
@@ -220,6 +234,7 @@ object Expr:
       case AsBigInt(e)                => List(e)
       case Tuple(elems)               => elems
       case NewByteSequence(length)    => List(length)
+      case DataBlockOf(memaddr)       => List(memaddr)
       case Range(low, high)           => List(low, high)
       case IndexOf(list, elem)        => List(list, elem)
       case ClosureCall(closure, args) => closure :: args

@@ -751,7 +751,13 @@ def <BUILTIN>:INTRINSICS.get:WebAssembly.Instance.prototype.exports(
 def create_a_fixed_length_memory_buffer(
   memaddr: Unknown,
 ): Unknown = {
-  let block = (yet "[=Data Block=] which is [=identified with=] the underlying memory of |memaddr|")
+  call-embed _wasmBytes1 = <mem_read_bytes>(@AGENT_RECORD["associated store"], memaddr)
+  let block = (list [])
+  let _dataBlockIdx2 = 0
+  while (< _dataBlockIdx2 (sizeof _wasmBytes1)) {
+    push block < ([math] _wasmBytes1[_dataBlockIdx2])
+    _dataBlockIdx2 = (+ _dataBlockIdx2 1)
+  }
   let buffer = (yet "a new {{ArrayBuffer}} with the internal slots \\[[ArrayBufferData]], \\[[ArrayBufferByteLength]], and \\[[ArrayBufferDetachKey]]")
   buffer.ArrayBufferData = block
   buffer.ArrayBufferByteLength = (sizeof block)
@@ -762,7 +768,13 @@ def create_a_resizable_memory_buffer(
   memaddr: Unknown,
   maxsize: Unknown,
 ): Unknown = {
-  let block = (yet "[=Data Block=] which is [=identified with=] the underlying memory of |memaddr|")
+  call-embed _wasmBytes1 = <mem_read_bytes>(@AGENT_RECORD["associated store"], memaddr)
+  let block = (list [])
+  let _dataBlockIdx2 = 0
+  while (< _dataBlockIdx2 (sizeof _wasmBytes1)) {
+    push block < ([math] _wasmBytes1[_dataBlockIdx2])
+    _dataBlockIdx2 = (+ _dataBlockIdx2 1)
+  }
   let length = (sizeof block)
   let buffer = (yet "a new {{ArrayBuffer}} with the internal slots \\[[ArrayBufferData]], \\[[ArrayBufferByteLength]], \\[[ArrayBufferMaxByteLength]], and \\[[ArrayBufferDetachKey]]")
   buffer.ArrayBufferData = block
@@ -903,7 +915,13 @@ def refresh_the_memory_buffer(
     call buffer = clo<"create_a_fixed_length_memory_buffer">(memaddr)
     memory.BufferObject = buffer
   } else {
-    let block = (yet "[=Data Block=] which is [=identified with=] the underlying memory of |memaddr|")
+    call-embed _wasmBytes1 = <mem_read_bytes>(@AGENT_RECORD["associated store"], memaddr)
+    let block = (list [])
+    let _dataBlockIdx2 = 0
+    while (< _dataBlockIdx2 (sizeof _wasmBytes1)) {
+      push block < ([math] _wasmBytes1[_dataBlockIdx2])
+      _dataBlockIdx2 = (+ _dataBlockIdx2 1)
+    }
     buffer.ArrayBufferData = block
     buffer.ArrayBufferByteLength = (sizeof block)
   }

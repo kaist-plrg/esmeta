@@ -390,7 +390,7 @@
 # create a fixed length memory buffer
   params: |memaddr|
   head: To <dfn>create a fixed length memory buffer</dfn> from a [=memory address=] |memaddr|, perform the following steps:
-  Let(|block|, [=Data Block=] which is [=identified with=] the underlying memory of |memaddr|)
+  Let(|block|, dataBlockOf(|memaddr|))
   Let(|buffer|, ?(a new {{ArrayBuffer}} with the internal slots \[[ArrayBufferData]], \[[ArrayBufferByteLength]], and \[[ArrayBufferDetachKey]]))
   Set(|buffer|.[[ArrayBufferData]], |block|)
   Set(|buffer|.[[ArrayBufferByteLength]], length(|block|))
@@ -400,7 +400,7 @@
 # create a resizable memory buffer
   params: |memaddr|, |maxsize|
   head: To <dfn>create a resizable memory buffer</dfn> from a [=memory address=] |memaddr| and a |maxsize|, perform the following steps:
-  Let(|block|, [=Data Block=] which is [=identified with=] the underlying memory of |memaddr|)
+  Let(|block|, dataBlockOf(|memaddr|))
   Let(|length|, length(|block|))
   Let(|buffer|, ?(a new {{ArrayBuffer}} with the internal slots \[[ArrayBufferData]], \[[ArrayBufferByteLength]], \[[ArrayBufferMaxByteLength]], and \[[ArrayBufferDetachKey]]))
   Set(|buffer|.[[ArrayBufferData]], |block|)
@@ -464,7 +464,7 @@
     Let(|buffer|, [=create a fixed length memory buffer=](|memaddr|))
     Set(|memory|.[[BufferObject]], |buffer|)
   Else
-    Let(|block|, [=Data Block=] which is [=identified with=] the underlying memory of |memaddr|)
+    Let(|block|, dataBlockOf(|memaddr|))
     Set(|buffer|.[[ArrayBufferData]], |block|)
     Set(|buffer|.[[ArrayBufferByteLength]], length(|block|))
 

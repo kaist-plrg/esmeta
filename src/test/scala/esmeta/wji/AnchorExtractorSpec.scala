@@ -38,7 +38,12 @@ class AnchorExtractorSpec extends AnyFunSuite:
     * such that ... is [=signed_N=](...)"), so there's no dfn text to anchor at
     * all — `ExpandSuchThatPass` recognizes that idiom and emits these as a
     * WJI-invented per-width name, translated the same way (`server.ml`'s
-    * `call_inv_signed`).
+    * `call_inv_signed`). `mem_read_bytes`/`mem_write_bytes` are a third case: a
+    * wjmeta-bridge-specific bulk-transfer extension for the
+    * `WebAssembly.Memory.prototype.buffer` JS/wasm byte-content sync bridge
+    * (`docs/hardcodes.md`) — `embedding.rst`'s own `mem_read`/`mem_write` are
+    * byte-at-a-time and (per `unusedAnchors` above) unused by js-api itself, so
+    * there was never a dfn to anchor a bulk variant against either.
     */
   private val bridgeOnlyNames: Set[String] =
     Set(
@@ -49,6 +54,8 @@ class AnchorExtractorSpec extends AnyFunSuite:
       "inv_signed_31",
       "inv_signed_32",
       "inv_signed_64",
+      "mem_read_bytes",
+      "mem_write_bytes",
     )
 
   test(

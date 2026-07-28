@@ -1233,6 +1233,7 @@ INTRINSICS.BigInt.prototype.valueOf
 INTRINSICS.Boolean
 INTRINSICS.Boolean.prototype.toString
 INTRINSICS.Boolean.prototype.valueOf
+INTRINSICS.CompileError
 INTRINSICS.DataView
 INTRINSICS.DataView.prototype.getBigInt64
 INTRINSICS.DataView.prototype.getBigUint64
@@ -1334,6 +1335,7 @@ INTRINSICS.Iterator.prototype[%Symbol.iterator%]
 INTRINSICS.IteratorHelperPrototype.next
 INTRINSICS.IteratorHelperPrototype.return
 INTRINSICS.JSON.parse
+INTRINSICS.LinkError
 INTRINSICS.Map
 INTRINSICS.Map.groupBy
 INTRINSICS.Map.prototype.clear
@@ -1457,6 +1459,7 @@ INTRINSICS.RegExp.prototype[%Symbol.matchAll%]
 INTRINSICS.RegExp.prototype[%Symbol.replace%]
 INTRINSICS.RegExp.prototype[%Symbol.search%]
 INTRINSICS.RegExp.prototype[%Symbol.split%]
+INTRINSICS.RuntimeError
 INTRINSICS.Set
 INTRINSICS.Set.prototype.add
 INTRINSICS.Set.prototype.entries

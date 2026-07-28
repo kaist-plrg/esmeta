@@ -107,6 +107,13 @@ Error.prototype = OrdinaryObject [
 }
 
 // https://tc39.es/ecma262/#sec-native-error-types-used-in-this-standard
+// CompileError/LinkError/RuntimeError aren't ECMA-262 NativeErrors, but
+// js-api/index.bs's "create the WebAssembly namespace object" (never actually
+// invoked by the mechanized pipeline -- see docs/hardcodes.md) explicitly
+// says each is "a new object, implementing the NativeError Object Structure"
+// -- i.e. the exact same shape, so they reuse this family rather than a
+// separate hand-written block (contrast AggregateError below, which has its
+// own extra `errors` field and so isn't part of this family either).
 _NativeError_ is {
   EvalError
   RangeError
@@ -114,6 +121,9 @@ _NativeError_ is {
   SyntaxError
   TypeError
   URIError
+  CompileError
+  LinkError
+  RuntimeError
 }
 
 // https://tc39.es/ecma262/#sec-properties-of-the-nativeerror-constructors
@@ -984,6 +994,8 @@ WebAssembly = OrdinaryObject [
   Prototype: #INTRINSICS.Object.prototype;
 ] {
   CompileError: [TFT] #INTRINSICS.CompileError;
+  LinkError: [TFT] #INTRINSICS.LinkError;
+  RuntimeError: [TFT] #INTRINSICS.RuntimeError;
   %Symbol.toStringTag%: [FFT] "WebAssembly";
 }
 

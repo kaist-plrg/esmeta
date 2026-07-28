@@ -228,6 +228,22 @@ class Interpreter(
             toHostFunc(args(2), call),
           ),
         )
+      // `mem_read_bytes` returns a `byte*` that a WJI lowering pass
+      // (`ExpandDataBlockOfPass`) needs as a genuine heap `ListObj`, not an
+      // opaque `Wasm(ALValue.ListV(...))` — materializing it natively here
+      // (one `Vector.map` over already-decoded ALValues) replaces what used
+      // to be a WJI-level `while` loop indexing one byte at a time (`Index`/
+      // `AsMath`/`Append`/`Set`, each a separately-interpreted IR step) --
+      // for a single Wasm page (64KiB) that loop dominated this fixture's
+      // whole runtime. See `personal/debugging-lessons.md`.
+      case "mem_read_bytes" =>
+        host.call(fname, args.map(toAL)) match
+          case Right(ALValue.ListV(bytes)) => st.allocList(bytes.map(fromALNum))
+          case Right(other) =>
+            throw WasmHostFailure(
+              s"mem_read_bytes: expected byte list, got $other",
+            )
+          case Left(err) => throw WasmHostFailure(err.toString)
       case name if WasmHost.names.contains(name) =>
         one(host.call(name, args.map(toAL)))
       case other => throw UnknownEmbedding(other)
@@ -236,6 +252,20 @@ class Interpreter(
     e match
       case Right(a)  => Wasm(a)
       case Left(err) => throw WasmHostFailure(err.toString)
+
+  /** Converts a single `byte` crossing the `mem_read_bytes` boundary (an
+    * [[ALValue.NumV]], `` `Nat ``- or `` `Int ``-tagged) to the [[Math]] value
+    * a genuine heap list element needs — the same conversion `EConvert(ToMath,
+    * ...)` already does for one `Wasm(NumV(...))` value at a time (see the
+    * `Wasm-embedding numeric value` cases in `eval`'s `EConvert` handling
+    * above), just applied without the `Wasm` wrapper since [[mem_read_bytes]]'s
+    * result never gets one.
+    */
+  private def fromALNum(av: ALValue): Value = av match
+    case ALValue.NumV(ALNum.Nat(n)) => Math(n)
+    case ALValue.NumV(ALNum.Int(n)) => Math(n)
+    case other =>
+      throw WasmHostFailure(s"mem_read_bytes: expected a byte, got $other")
 
   /** build a [[HostFunction]] from a [[Value.Clo]]/[[Value.Cont]] so SpecTec
     * can call back into this SAME interpreter (on the SAME `st`) during Wasm

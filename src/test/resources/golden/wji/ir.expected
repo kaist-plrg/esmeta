@@ -751,13 +751,7 @@ def <BUILTIN>:INTRINSICS.get:WebAssembly.Instance.prototype.exports(
 def create_a_fixed_length_memory_buffer(
   memaddr: Unknown,
 ): Unknown = {
-  call-embed _wasmBytes1 = <mem_read_bytes>(@AGENT_RECORD["associated store"], memaddr)
-  let block = (list [])
-  let _dataBlockIdx2 = 0
-  while (< _dataBlockIdx2 (sizeof _wasmBytes1)) {
-    push block < ([math] _wasmBytes1[_dataBlockIdx2])
-    _dataBlockIdx2 = (+ _dataBlockIdx2 1)
-  }
+  call-embed block = <mem_read_bytes>(@AGENT_RECORD["associated store"], memaddr)
   call _call1 = clo<"AllocateArrayBuffer">(@EXECUTION_STACK[0].Realm.Intrinsics["%ArrayBuffer%"], 0)
   if (exists _call1.Type) {
     assert (= _call1.Type ~normal~)
@@ -774,13 +768,7 @@ def create_a_resizable_memory_buffer(
   memaddr: Unknown,
   maxsize: Unknown,
 ): Unknown = {
-  call-embed _wasmBytes1 = <mem_read_bytes>(@AGENT_RECORD["associated store"], memaddr)
-  let block = (list [])
-  let _dataBlockIdx2 = 0
-  while (< _dataBlockIdx2 (sizeof _wasmBytes1)) {
-    push block < ([math] _wasmBytes1[_dataBlockIdx2])
-    _dataBlockIdx2 = (+ _dataBlockIdx2 1)
-  }
+  call-embed block = <mem_read_bytes>(@AGENT_RECORD["associated store"], memaddr)
   let length = (sizeof block)
   call _call1 = clo<"AllocateArrayBuffer">(@EXECUTION_STACK[0].Realm.Intrinsics["%ArrayBuffer%"], 0)
   if (exists _call1.Type) {
@@ -927,13 +915,7 @@ def refresh_the_memory_buffer(
     call buffer = clo<"create_a_fixed_length_memory_buffer">(memaddr)
     memory.BufferObject = buffer
   } else {
-    call-embed _wasmBytes1 = <mem_read_bytes>(@AGENT_RECORD["associated store"], memaddr)
-    let block = (list [])
-    let _dataBlockIdx2 = 0
-    while (< _dataBlockIdx2 (sizeof _wasmBytes1)) {
-      push block < ([math] _wasmBytes1[_dataBlockIdx2])
-      _dataBlockIdx2 = (+ _dataBlockIdx2 1)
-    }
+    call-embed block = <mem_read_bytes>(@AGENT_RECORD["associated store"], memaddr)
     buffer.ArrayBufferData = block
     buffer.ArrayBufferByteLength = (sizeof block)
   }

@@ -64,14 +64,18 @@ object ExpandMatchesExistsPass extends LoweringPass:
     *   - [[ExpandAbbreviatedCondPass]]: a `Cond.Exists`'s `body`, and any bare
     *     `Cond.Matches`, may still contain `Cond.Abbreviated` until then.
     *   - [[GroupIfChainPass]]: matches on `Instr.IfChain`, not a raw `If`.
-    *   - [[NormalizeAlgoCallPass]]: needs any call embedded in a
+    *   - [[NormalizeEvaluationOrderPass]]: needs any call embedded in a
     *     `Cond.Exists`'s `collections` already hoisted out first — evaluated
     *     once before the generated loop starts, so it's safe to hoist there,
     *     unlike `body` (evaluated once per iteration, deliberately left alone —
-    *     see `NormalizeAlgoCallPass.extractFromCond`'s own doc).
+    *     see `NormalizeEvaluationOrderPass.extractFromCond`'s own doc).
     */
   override def requires: Set[LoweringPass] =
-    Set(ExpandAbbreviatedCondPass, GroupIfChainPass, NormalizeAlgoCallPass)
+    Set(
+      ExpandAbbreviatedCondPass,
+      GroupIfChainPass,
+      NormalizeEvaluationOrderPass,
+    )
 
   private var counter = 0
   private def fresh(prefix: String): String = {

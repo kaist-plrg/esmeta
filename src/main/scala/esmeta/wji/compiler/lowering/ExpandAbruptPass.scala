@@ -20,39 +20,52 @@ import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr}
   * ever reading it, rather than assuming every `?`/`!` target returns a
   * completion record the way mainline safely can:
   * {{{
-  *   Let(x, Abrupt("?", call), body)
+  *   Let(x, Abrupt("?", inner), body)
   * }}}
   * becomes:
   * {{{
-  *   Let(_compN, call)
   *   IfChain(
-  *     [(_compN has field "Type",
+  *     [(inner has field "Type",
   *       [IfChain(
-  *           [(IsType(_compN, "AbruptCompletion"), [Return(_compN)])],
-  *           fallback = [Let(x, _compN.Value, body)],
+  *           [(IsType(inner, "AbruptCompletion"), [Return(inner)])],
+  *           fallback = [Let(x, inner.Value, body)],
   *       )])],
-  *     fallback = [Let(x, _compN, body)],   // not a completion at all
+  *     fallback = [Let(x, inner, body)],   // not a completion at all
   *   )
   * }}}
-  * and `Abrupt("!", call)` the same way, except the inner branch is a flat
-  * `Assert(_compN.Type is ~normal~)` followed by the `.Value` bind, rather than
+  * and `Abrupt("!", inner)` the same way, except the inner branch is a flat
+  * `Assert(inner.Type is ~normal~)` followed by the `.Value` bind, rather than
   * a further `IfChain`.
   *
-  * Handles `?`/`!` in the direct-RHS position of `Let`, `Set`, and `Return`.
-  * Nested occurrences (e.g. inside a larger expression) are left as-is — see
-  * `Compiler`'s `Expr.Abrupt` fallback.
+  * Only ever needs to recognize *one* shape: `inner` is always already a bare
+  * `Var` by the time this pass runs, and `Abrupt(marker, inner)` is always
+  * already directly the RHS of a `Let`/`Set`/`Return` — both guaranteed by
+  * [[NormalizeEvaluationOrderPass]]'s own "Evaluation Order" normalization
+  * (ECMA-262 5.2.4.3), which hoists every other occurrence (a nested argument,
+  * an un-atomic wrapped value, ...) into exactly this canonical shape first. No
+  * scanning of `Append`/`Perform`/`Assert`/`IfChain`/etc. is needed here at all
+  * — anything reaching one of those `Instr` shapes as an `Expr.Abrupt` is a bug
+  * in that earlier normalization pass, not something this one is expected to
+  * work around.
   *
   * Category: Completion-record convention.
   */
 object ExpandAbruptPass extends LoweringPass:
-  private var counter = 0
-  private def freshComp(): String = { counter += 1; s"_comp$counter" }
+
+  /** Requires:
+    *   - [[NormalizeEvaluationOrderPass]]: guarantees every remaining
+    *     `Expr.Abrupt` is already directly the RHS of a `Let`/`Set`/`Return`,
+    *     with its own `inner` already a bare `Var` — see class doc.
+    *
+    * Must precede:
+    *   - [[ExtractInlineAlgoCallPass]]: needs `Let(_tupleN, AlgoCall(...))`
+    *     nodes this pass produces already in place — see its own doc.
+    */
+  override def requires: Set[LoweringPass] = Set(NormalizeEvaluationOrderPass)
+  override def mustPrecede: Set[LoweringPass] = Set(ExtractInlineAlgoCallPass)
 
   def run(algos: List[Algorithm]): List[Algorithm] =
-    algos.map { a =>
-      counter = 0
-      a.copy(body = transform(a.body))
-    }
+    algos.map(a => a.copy(body = transform(a.body)))
 
   private def transform(instrs: List[Instr]): List[Instr] =
     instrs.flatMap(expandInstr)
@@ -72,17 +85,18 @@ object ExpandAbruptPass extends LoweringPass:
       List(instr.mapBody(transform))
 
   /** Shared `?`/`!` expansion. `bind` embeds the final unwrapped value into
-    * whichever instruction shape (`Let`/`Set`/`Return`) is using it.
+    * whichever instruction shape (`Let`/`Set`/`Return`) is using it. `inner` is
+    * always already a bare `Var` (see class doc), so — unlike before
+    * `NormalizeEvaluationOrderPass` took over hoisting it — this never needs to
+    * bind it under a fresh alias first.
     */
   private def expand(
     marker: String,
     inner: Expr,
     bind: Expr => Instr,
   ): List[Instr] =
-    val tmp = freshComp()
-    val tmpVar = Expr.Var(tmp)
-    val typeField = Expr.Field(tmpVar, "Type")
-    val valueField = Expr.Field(tmpVar, "Value")
+    val typeField = Expr.Field(inner, "Type")
+    val valueField = Expr.Field(inner, "Value")
 
     val onCompletion: List[Instr] = marker match
       case "?" =>
@@ -90,8 +104,8 @@ object ExpandAbruptPass extends LoweringPass:
           Instr.IfChain(
             branches = List(
               (
-                Cond.IsType(tmpVar, "AbruptCompletion"),
-                List(Instr.Return(Some(tmpVar))),
+                Cond.IsType(inner, "AbruptCompletion"),
+                List(Instr.Return(Some(inner))),
               ),
             ),
             fallback = List(bind(valueField)),
@@ -104,9 +118,8 @@ object ExpandAbruptPass extends LoweringPass:
         )
 
     List(
-      Instr.Let(Expr.Var(tmp), inner),
       Instr.IfChain(
         branches = List((Cond.HasField(typeField), onCompletion)),
-        fallback = List(bind(tmpVar)), // not a completion at all — a bare value
+        fallback = List(bind(inner)), // not a completion at all — a bare value
       ),
     )

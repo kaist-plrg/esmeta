@@ -19,23 +19,25 @@ import esmeta.wji.lang.Instr.PerformOutcome
   * }}}
   *
   * Only handles the direct top-level RHS position — like
-  * `NormalizeAlgoCallPass` does for `AlgoCall`/`JSCall`, a `ClosureCall` nested
-  * inside a larger expression (e.g. as a `BinOp` operand) would need ANF-style
-  * hoisting first; no spec text seen so far nests one that way, so this is left
-  * as a known gap rather than speculatively generalized.
+  * `NormalizeEvaluationOrderPass` does for `AlgoCall`/`JSCall`, a `ClosureCall`
+  * nested inside a larger expression (e.g. as a `BinOp` operand) would need
+  * ANF-style hoisting first; no spec text seen so far nests one that way, so
+  * this is left as a known gap rather than speculatively generalized.
   *
   * Category: Structural desugaring.
   */
 object ExpandClosureCallPass extends LoweringPass:
 
   /** Requires:
-    *   - [[ExpandAbruptPass]]: needs a `Abrupt(marker, ClosureCall(...))`
-    *     direct-RHS wrapper already unwrapped into a plain `Let` binding —
-    *     `ExpandAbruptPass.expand` binds its unwrapped `inner` via a fresh
-    *     `Let` regardless of what `inner` is, so no separate `Abrupt`-
-    *     stripping is needed here.
+    *   - [[NormalizeEvaluationOrderPass]]: needs a `Abrupt(marker,
+    *     ClosureCall(...))` direct-RHS wrapper already unwrapped — its own
+    *     `Extractor.ensureVar` hoists `ClosureCall` (any non-`Var` `inner`,
+    *     really) into a plain `Let` binding before `Abrupt` ever reaches
+    *     [[ExpandAbruptPass]], so by the time this pass runs, a `ClosureCall`
+    *     that was once `?`/`!`-wrapped already sits in its own bare `Let(x,
+    *     ClosureCall(...), body)`, same shape as one that never was.
     */
-  override def requires: Set[LoweringPass] = Set(ExpandAbruptPass)
+  override def requires: Set[LoweringPass] = Set(NormalizeEvaluationOrderPass)
 
   def run(algos: List[Algorithm]): List[Algorithm] =
     algos.map(a => a.copy(body = transform(a.body)))

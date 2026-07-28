@@ -301,7 +301,7 @@ object ExprParser:
   // the specific IndexBy* forms above (though, since `parse` re-derives the
   // same Str/Var/Num from the raw bracket content either way, the four
   // IndexBy* forms actually produce identical results regardless of their
-  // relative order — see personal/parser_refactor_ideas.md's A-2).
+  // relative order).
   private val IndexByExpr = """(?s)^(.+\S)\[([^\[\]=][^\[\]]*)\]$""".r
 
   // ---- Noun-phrase descriptions: not-yet-evaluable, or a narrow single-arg

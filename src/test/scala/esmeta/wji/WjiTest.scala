@@ -13,17 +13,17 @@ import esmeta.wji.extractor.Extractor
 import org.scalatest.Assertions.*
 import scala.util.{Success, Try}
 
-/** Support for running `.js` fixtures under `tests/wji` end to end — mirrors
+/** Support for running `.js` test cases under `tests/wji` end to end — mirrors
   * `esmeta.es.ESTest`'s role, but merges the WJI IR program into the shared
   * mainline CFG and threads a fresh [[WasmHost]]/SpecTec connection through the
-  * [[EsInterpreter]] per fixture, replicating [[esmeta.phase.WjiEval]]'s
+  * [[EsInterpreter]] per test case, replicating [[esmeta.phase.WjiEval]]'s
   * pipeline exactly.
   */
 object WjiTest:
 
   /** the WJI IR program merged into the SAME mainline CFG every
     * `esmeta.es`/`esmeta.ir` test already shares (`ESMetaTest.cfg`) — built
-    * once (JVM-wide `lazy val`) and reused across every fixture, rather than
+    * once (JVM-wide `lazy val`) and reused across every test case, rather than
     * re-extracting/re-compiling the spec per test.
     */
   lazy val mergedCfg: CFG =
@@ -39,10 +39,10 @@ object WjiTest:
     * (`esmeta.util.BaseUtils`), which swallows *any* `Throwable` — not just the
     * "not yet compiled" case it's meant for — as a deliberate way to skip
     * assertions referencing unmechanized spec text. That silently turns "the
-    * fixture never set `__wjiOk`" (`__MAP__` has no such key, so the field read
-    * itself throws `InvalidObjField`) into "assertion skipped, treated as
+    * test case never set `__wjiOk`" (`__MAP__` has no such key, so the field
+    * read itself throws `InvalidObjField`) into "assertion skipped, treated as
     * passing" — exactly the failure mode this check exists to catch, so an IR
-    * `assert` can't safely express it. Every fixture must set this global
+    * `assert` can't safely express it. Every test case must set this global
     * itself, as its very last action (synchronously or from inside a
     * `.then()`/callback), once every check it performs has passed — see
     * `tests/wji/README.md`. Plain `throw` alone isn't enough for assertions
@@ -78,9 +78,9 @@ object WjiTest:
       while (step) {}
       st
 
-  /** runs a single `.js` fixture: fresh `State`, fresh SpecTec process for the
-    * duration of the run, always torn down afterward. Always checks that the
-    * fixture itself set `__wjiOk` (see above).
+  /** runs a single `.js` test case: fresh `State`, fresh SpecTec process for
+    * the duration of the run, always torn down afterward. Always checks that
+    * the test case itself set `__wjiOk` (see above).
     */
   def evalFile(jsPath: String): State =
     val st = mergedCfg.init.fromFile(jsPath)
@@ -89,7 +89,7 @@ object WjiTest:
       val result = new RunToCompletion(st, Some(host)).result
       assert(
         wjiOk(result) == Success(Bool(true)),
-        s"fixture never set globalThis.__wjiOk = true: $jsPath (got ${wjiOk(result)})",
+        s"test case never set globalThis.__wjiOk = true: $jsPath (got ${wjiOk(result)})",
       )
       result
     finally connection.close()

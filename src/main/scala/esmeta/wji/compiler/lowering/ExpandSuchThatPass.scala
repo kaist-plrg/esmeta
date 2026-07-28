@@ -32,7 +32,7 @@ import esmeta.wji.lang.{Algorithm, Expr, Instr}
   * choices constrained to a range (the NaN-payload cases, index.bs:1434/1442)
   * and existence/smallest-element searches (index.bs:1469/1471) — is left
   * untouched, same as before: `Compiler` reports it as `EYet(s"$desc such that
-  * $cond")`. See `personal/TODO.md` #2.
+  * $cond")`.
   *
   * Category: SpecTec dependent.
   */

@@ -28,7 +28,7 @@ import esmeta.wji.lang.{Algorithm, Expr, Instr}
   * byte. An earlier version of this pass did emit such a loop (allocate `x`,
   * then `While`-index/`AsMath`/`Append` one byte at a time) — for a single Wasm
   * page (64KiB) that loop dominated `memory-mutation.js`'s whole runtime (~70s
-  * of an ~83s run). See `personal/debugging-lessons.md`.
+  * of an ~83s run).
   *
   * Only handles `DataBlockOf` in direct `Let` RHS position — the only shape
   * observed in practice (`create a fixed length memory buffer`/ `create a

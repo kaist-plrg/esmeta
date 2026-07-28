@@ -12,25 +12,25 @@ import org.scalatest.funsuite.AnyFunSuite
   */
 object EvalTag extends Tag("esmeta.wji.EvalTag")
 
-/** fixtures that are known to hit an unmechanized gap rather than a bug in the
-  * fixture itself. Cancelled rather than run, so `wjiEvalTest` stays green
-  * while the gap is worked on — remove a fixture's name here once it's fixed.
-  * No per-fixture reason kept here — it shifts with every partial fix, so
-  * keeping it in sync would be pure churn; re-reproduce with `sbt run wji-eval
-  * tests/wji/<name>.js -silent` when picking one back up.
+/** test cases that are known to hit an unmechanized gap rather than a bug in
+  * the test case itself. Cancelled rather than run, so `wjiEvalTest` stays
+  * green while the gap is worked on — remove a test case's name here once it's
+  * fixed. No per-test-case reason kept here — it shifts with every partial fix,
+  * so keeping it in sync would be pure churn; re-reproduce with `sbt run
+  * wji-eval tests/wji/<name>.js -silent` when picking one back up.
   */
 private val knownFailing: Set[String] =
   Set.empty
 
-/** Runs every `.js` fixture under `tests/wji` end to end through the merged WJI
-  * IR program (see [[WjiTest]]). Each fixture is standalone and self-checking:
-  * it must set `globalThis.__wjiOk = true` itself once every check it performs
-  * (sync `throw`, async or otherwise) has passed — see `tests/wji/README.md`
-  * and [[WjiTest]] for why a bare `throw` alone isn't enough for checks made
-  * inside a `.then()` callback.
+/** Runs every `.js` test case under `tests/wji` end to end through the merged
+  * WJI IR program (see [[WjiTest]]). Each test case is standalone and
+  * self-checking: it must set `globalThis.__wjiOk = true` itself once every
+  * check it performs (sync `throw`, async or otherwise) has passed — see
+  * `tests/wji/README.md` and [[WjiTest]] for why a bare `throw` alone isn't
+  * enough for checks made inside a `.then()` callback.
   *
-  * Not part of the default `sbt test`/`basicTest` tier — each fixture spawns a
-  * real external SpecTec process, so this is its own opt-in task:
+  * Not part of the default `sbt test`/`basicTest` tier — each test case spawns
+  * a real external SpecTec process, so this is its own opt-in task:
   * {{{
   *   sbt --client wjiEvalTest
   * }}}

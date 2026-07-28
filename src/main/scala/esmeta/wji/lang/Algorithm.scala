@@ -9,8 +9,8 @@ package esmeta.wji.lang
   * setter for the same attribute both derive the same `name` from their shared
   * `<dfn attribute for=...>` — see [[AlgorithmExtractor]]); kept as real data
   * now because building the WebIDL "internally create a new object implementing
-  * the interface" preamble (`this`-binding automation — see
-  * `personal/constructor.md`) will need exactly this information later.
+  * the interface" preamble (`this`-binding automation) will need exactly this
+  * information later.
   */
 enum AlgorithmKind:
   /** an operation not tied to any interface, e.g. "To <dfn>compile a

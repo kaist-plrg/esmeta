@@ -1,20 +1,20 @@
-# `tests/wji/` fixtures
+# `tests/wji/` 테스트 케이스
 
-WJI 상호작용 테스트 fixture들이 사는 디렉터리입니다. `tests/es/`(순수 ECMAScript
-fixture들)와 같은 컨벤션을 미러링하되, `WebAssembly.*` 관련 fixture를 위해
+WJI 상호작용 테스트 케이스들이 사는 디렉터리입니다. `tests/es/`(순수 ECMAScript
+테스트 케이스들)와 같은 컨벤션을 미러링하되, `WebAssembly.*` 관련 테스트 케이스를 위해
 `.wat` sidecar가 하나 더 있습니다.
 
 ```
-<name>.js      필수 -- 실제로 실행/리뷰되는, standalone self-checking fixture.
+<name>.js      필수 -- 실제로 실행/리뷰되는, standalone self-checking 테스트 케이스.
                wasm 바이트가 이미 `Uint8Array` 리터럴로 inline돼 있습니다.
 <name>.wat     선택 -- 그 바이트를 만든 WAT 소스 (provenance/재생성용).
 ```
 
-## fixture 작성 컨벤션: `.js` 하나로 self-checking
+## 테스트 케이스 작성 컨벤션: `.js` 하나로 self-checking
 
 `.ir` sidecar 같은 별도 assert 파일 없이, `.js` 파일 하나가 그 자체로
 standalone 테스트입니다. 규칙은 하나: **모든 체크(동기든 비동기든)가
-통과했을 때만, fixture 스스로 맨 마지막에 `globalThis.__wjiOk = true;`를
+통과했을 때만, 테스트 케이스 스스로 맨 마지막에 `globalThis.__wjiOk = true;`를
 세팅**합니다.
 
 - 동기적으로 검증 가능한 부분은 그냥 평범하게 `throw`로 assert하세요 (읽기
@@ -33,7 +33,7 @@ standalone 테스트입니다. 규칙은 하나: **모든 체크(동기든 비�
   없이는 `wji-eval`을 직접 돌려봐도 `[success]`만 뜨고 끝나버려서(진짜 async
   throw는 completion record로만 처리되고 Scala 예외로 안 올라옴 — mainline
   WJI 미기계화 gap(`EYet`/`NotSupported`)과는 다름, 그건 최상단까지 정상
-  전파됨) 원인 파악에 fixture를 직접 고쳐 `print`를 끼워넣는 수밖에 없었습니다.
+  전파됨) 원인 파악에 테스트 케이스를 직접 고쳐 `print`를 끼워넣는 수밖에 없었습니다.
   `.catch()`를 달아두면 이 경우도 최소한 실패 메시지는 바로 보입니다.
 - harness(`EvalSpec`, `src/test/scala/esmeta/wji/EvalSpec.scala`)는 실행 후
   `GLOBAL_RESULT === Undef`(동기 throw 잡힘) **그리고** `__wjiOk === true`
@@ -48,7 +48,7 @@ standalone 테스트입니다. 규칙은 하나: **모든 체크(동기든 비�
 scripts/wat2js tests/wji/<name>.wat
 ```
 
-가 `new Uint8Array([...])` 스니펫을 stdout에 출력합니다 — 그걸 `.js` fixture에
+가 `new Uint8Array([...])` 스니펫을 stdout에 출력합니다 — 그걸 `.js` 테스트 케이스에
 직접 붙여넣으세요. 이건 저작 시점 편의 도구일 뿐 빌드 의존성이 아닙니다:
 `wat2wasm`이 없어도 `sbt compile`/`sbt test`엔 전혀 영향 없습니다.
 
@@ -59,35 +59,35 @@ scripts/wat2js tests/wji/<name>.wat
 
 이 디렉터리를 순회하며 실제로 실행/검증하는 `EvalSpec`
 (`src/test/scala/esmeta/wji/EvalSpec.scala`)은 기본 `sbt test` 티어에는 없는
-opt-in task입니다 (fixture마다 외부 SpecTec 프로세스를 새로 띄우는 비용 때문):
+opt-in task입니다 (테스트 케이스마다 외부 SpecTec 프로세스를 새로 띄우는 비용 때문):
 
 ```
 sbt --client wjiEvalTest
 ```
 
-## 진짜 엔진으로 fixture 자체를 검증하기
+## 진짜 엔진으로 테스트 케이스 자체를 검증하기
 
-`.js` fixture가 standalone이라, 실제 엔진에서도 그대로 돌려볼 수 있습니다.
-`wjiEvalTest`에서 fixture가 실패(또는 cancel)했을 때 "이게 WJI의 gap인지,
+`.js` 테스트 케이스가 standalone이라, 실제 엔진에서도 그대로 돌려볼 수 있습니다.
+`wjiEvalTest`에서 테스트 케이스가 실패(또는 cancel)했을 때 "이게 WJI의 gap인지,
 아니면 애초에 내가 시나리오/assert를 잘못 짠 건지"를 구분하고 싶을 때
 유용합니다:
 
 ```
 scripts/wji-node-check                    # tests/wji/*.js 전부
-scripts/wji-node-check tests/wji/foo.js    # 특정 fixture만
+scripts/wji-node-check tests/wji/foo.js    # 특정 테스트 케이스만
 ```
 
-Node의 `WebAssembly` 구현으로 fixture마다 별도 프로세스에서 돌리고,
+Node의 `WebAssembly` 구현으로 테스트 케이스마다 별도 프로세스에서 돌리고,
 `__wjiOk === true`(그리고 uncaught exception/unhandled rejection 없음)를
-확인합니다. 여기서 FAIL이 나오면 fixture 자체(assert 값, wasm 모듈 등)가
+확인합니다. 여기서 FAIL이 나오면 테스트 케이스 자체(assert 값, wasm 모듈 등)가
 잘못된 것 — WJI 쪽 문제라면 여기선 PASS하고 `wjiEvalTest`에서만
 실패/cancel돼야 정상입니다. Node가 PATH에 있어야 하고, `sbt
 compile`/`test`와는 무관한 별도 검증 도구입니다.
 
-## 아직 기계화가 안 된 부분에 막힌 fixture
+## 아직 기계화가 안 된 부분에 막힌 테스트 케이스
 
-새 fixture가 진짜 버그가 아니라 WJI가 아직 못 다루는 스펙 구문/동작에 막히는
-경우가 있습니다. 이런 경우엔 fixture를 지우지 말고, `EvalSpec.scala`의
+새 테스트 케이스가 진짜 버그가 아니라 WJI가 아직 못 다루는 스펙 구문/동작에 막히는
+경우가 있습니다. 이런 경우엔 테스트 케이스를 지우지 말고, `EvalSpec.scala`의
 `knownFailing` set에 파일명을 추가하세요 — 실행 대신 `cancel(...)`로
 처리돼서 `wjiEvalTest`는 계속 초록불을 유지합니다. 구체적인 이유/원인은
 여기 코드에 적어두지 않습니다 — fix가 하나씩 들어갈 때마다 계속 바뀌므로,

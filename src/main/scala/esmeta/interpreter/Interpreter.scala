@@ -245,8 +245,8 @@ class Interpreter(
       // (one `Vector.map` over already-decoded ALValues) replaces what used
       // to be a WJI-level `while` loop indexing one byte at a time (`Index`/
       // `AsMath`/`Append`/`Set`, each a separately-interpreted IR step) --
-      // for a single Wasm page (64KiB) that loop dominated this fixture's
-      // whole runtime. See `personal/debugging-lessons.md`.
+      // for a single Wasm page (64KiB) that loop dominated this test case's
+      // whole runtime.
       case "mem_read_bytes" =>
         host.call(fname, args.map(toAL(st, _))) match
           case Right(ALValue.ListV(bytes)) => st.allocList(bytes.map(fromALNum))

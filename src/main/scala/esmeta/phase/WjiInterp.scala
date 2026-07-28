@@ -181,10 +181,10 @@ case object WjiInterp extends Phase[CFG, Value] {
     // {{Instance}}'s constructor) refers to a platform object that WebIDL's
     // own "internally create a new object implementing the interface"
     // algorithm allocates *before* the member's steps run (webidl/index.bs,
-    // "interface object" [[Construct]] — not mechanized here, see
-    // personal/constructor.md) — so, like moduleObject above, the harness
-    // fabricates a placeholder directly rather than actually running that
-    // preamble. {{Instance}}'s only interface-specific slot is [[Exports]]
+    // "interface object" [[Construct]] — not mechanized here) — so, like
+    // moduleObject above, the harness fabricates a placeholder directly
+    // rather than actually running that preamble. {{Instance}}'s only
+    // interface-specific slot is [[Exports]]
     // (js-api/index.bs's "initialize an instance object" sets it); harmless
     // to bind even for entry points that don't reference `this` at all.
     val thisObject = st.heap.allocRecord("Instance", List("Exports" -> Undef))

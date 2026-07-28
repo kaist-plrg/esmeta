@@ -126,8 +126,7 @@ class InstrParserSpec extends AnyFunSuite:
 
   // ---- order-sensitive cases: two patterns whose surface syntax genuinely
   // overlaps, where one must be tried before the other. Each assertion here
-  // only holds if the relevant case order in InstrParser.scala stays as-is
-  // — see personal/parser_refactor_ideas.md (D-1) for the full audit. ----
+  // only holds if the relevant case order in InstrParser.scala stays as-is. ----
 
   test(
     "order: AbruptCallPrefix is tried before LeadingAlgoLink, inside parseCall",

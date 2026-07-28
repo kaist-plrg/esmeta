@@ -5,12 +5,11 @@ import esmeta.state.*
 
 /** Converts a [[Value]] crossing the WasmHost boundary (an `ICallEmbed`
   * argument or a [[esmeta.wji.bridge.host.HostFunction]] result) to an
-  * [[ALValue]]. A heap-allocated ES list (e.g. from an Infra-spec list
-  * literal like `« |payload| »`, compiled to `EList`/`Addr`) is recursively
-  * converted into an [[ALValue.ListV]] — this is the one case that isn't
-  * already a [[Wasm]] value, needed by embedding functions whose
-  * `val*`/`externval*` argument wasn't itself built by a prior embedding
-  * call.
+  * [[ALValue]]. A heap-allocated ES list (e.g. from an Infra-spec list literal
+  * like `« |payload| »`, compiled to `EList`/`Addr`) is recursively converted
+  * into an [[ALValue.ListV]] — this is the one case that isn't already a
+  * [[Wasm]] value, needed by embedding functions whose `val*`/`externval*`
+  * argument wasn't itself built by a prior embedding call.
   */
 def toAL(st: State, v: Value): ALValue = v match
   case Wasm(av)  => av
@@ -24,9 +23,8 @@ def toAL(st: State, v: Value): ALValue = v match
       case other       => throw NoList(other)
   case other => throw NoWasmValue(other)
 
-/** [[toAL]]'s inverse for a single `` `Nat ``-/`` `Int ``-tagged AL number,
-  * the shape a single wasm byte always arrives as crossing the WasmHost
-  * boundary.
+/** [[toAL]]'s inverse for a single `` `Nat ``-/`` `Int ``-tagged AL number, the
+  * shape a single wasm byte always arrives as crossing the WasmHost boundary.
   */
 def fromALNum(av: ALValue): Value = av match
   case ALValue.NumV(ALNum.Nat(n)) => Math(n)

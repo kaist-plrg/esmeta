@@ -189,7 +189,7 @@ class CondParserSpec extends AnyFunSuite:
 
   // ---- order-sensitive cases: within parseEqOrCompare's `.orElse` chain,
   // the longer/more-specific separator must be tried before the shorter one
-  // it's a superstring of — see personal/parser_refactor_ideas.md (D-1). ----
+  // it's a superstring of. ----
 
   test("order: ' is not equal to ' is tried before ' is not '") {
     // " is not equal to " *contains* " is not " as a literal substring, so if

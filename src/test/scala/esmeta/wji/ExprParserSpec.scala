@@ -279,8 +279,7 @@ class ExprParserSpec extends AnyFunSuite:
 
   // ---- order-sensitive cases: two patterns whose surface syntax genuinely
   // overlaps, where one must be tried before the other. Each assertion here
-  // only holds if `parse`'s case order in ExprParser.scala stays as-is — see
-  // personal/parser_refactor_ideas.md (D-1) for the full audit. ----
+  // only holds if `parse`'s case order in ExprParser.scala stays as-is. ----
 
   test(
     "order: a top-level BinOp splits before SlotAccess's greedy left-hand base",

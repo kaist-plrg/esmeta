@@ -32,27 +32,37 @@ object Compiler:
   /** *(hardcoding)* A quick stand-in for the base ordinary-object shape
     * (`Prototype`/`Extensible`/`__MAP__`/every standard internal method,
     * mirroring `manuals/funcs/__NEW_OBJ__.ir`) every `Expr.New(iface)`
-    * -constructed WJI interface object (`Instance`, `Module`, ...) needs to
-    * behave like a real JS object — e.g. so `.Get`/`.Set` don't fail with
+    * -constructed WJI object (`Instance`, `Module`, `CompileError`, ...) needs
+    * to behave like a real JS object — e.g. so `.Get`/`.Set` don't fail with
     * "invalid object field" once `Type(v)` correctly classifies it as an Object
     * (see `esmeta.ty.TyModel.registerDynamicSubtype`). `Prototype` points at
-    * the interface's real `%WebAssembly.<iface>.prototype%` intrinsic only for
-    * interfaces where `manuals/intrinsics` actually declares one today
-    * (`Instance`, `Global`, and `Memory` — their getter/setter/constructor
-    * members, compiled from the real spec text via `compileAlgo`'s
-    * `AlgorithmKind.Getter`/`Setter`/ `Constructor` cases below and
-    * `esmeta.wji.compiler.lowering.AddInterfaceMemberBuiltinBehaviourPass`,
-    * resolve against these); every other interface (`Module`, `Table`, ...) has
-    * no such intrinsic declared at all, so referencing it would itself crash,
-    * and falls back to `null` as before. The rest of WebIDL's "internally
-    * create a new object implementing the interface" preamble is left for
-    * later.
+    * the real prototype intrinsic only for the names where `manuals/intrinsics`
+    * actually declares one today — `Instance`, `Global`, and `Memory` (true
+    * WebIDL interfaces) under `%WebAssembly.<iface>.prototype%` (their getter/
+    * setter/constructor members, compiled from the real spec text via
+    * `compileAlgo`'s `AlgorithmKind.Getter`/`Setter`/`Constructor` cases below
+    * and `esmeta.wji.compiler.lowering.AddInterfaceMemberBuiltinBehaviourPass`,
+    * resolve against these), plus `CompileError`/`LinkError`/`RuntimeError`
+    * (WebIDL `<dfn exception>`s, not interfaces — `Expr.New` doesn't
+    * distinguish the two, so they share this same map) under the bare
+    * `%<iface>.prototype%` (the `_NativeError_` family in `manuals/intrinsics`
+    * — these aren't `WebAssembly`-namespaced). Every other name (`Module`,
+    * `Table`, ...) has no such intrinsic declared at all, so referencing it
+    * would itself crash, and falls back to `null` as before. The rest of
+    * WebIDL's "internally create a new object implementing the interface"
+    * preamble is left for later.
     *
     * Documented in `docs/hardcodes.md` (#7) — when this gets properly
     * implemented, delete that entry too.
     */
-  private val interfacesWithPrototypeIntrinsic: Set[String] =
-    Set("Instance", "Global", "Memory")
+  private val namesWithPrototypeIntrinsic: Map[String, String] = Map(
+    "Instance" -> "%WebAssembly.Instance.prototype%",
+    "Global" -> "%WebAssembly.Global.prototype%",
+    "Memory" -> "%WebAssembly.Memory.prototype%",
+    "CompileError" -> "%CompileError.prototype%",
+    "LinkError" -> "%LinkError.prototype%",
+    "RuntimeError" -> "%RuntimeError.prototype%",
+  )
 
   private def ordinaryObjectFields(iface: String): List[(String, Expr)] = List(
     "GetPrototypeOf" -> EClo("Record[OrdinaryObject].GetPrototypeOf", Nil),
@@ -73,14 +83,16 @@ object Compiler:
     "Delete" -> EClo("Record[OrdinaryObject].Delete", Nil),
     "OwnPropertyKeys" -> EClo("Record[OrdinaryObject].OwnPropertyKeys", Nil),
     "Prototype" ->
-    (if interfacesWithPrototypeIntrinsic(iface) then
-       ERef(
-         Field(
-           Field(Field(GLOBAL_CONTEXT, EStr("Realm")), EStr("Intrinsics")),
-           EStr(s"%WebAssembly.$iface.prototype%"),
-         ),
-       )
-     else ENull()),
+    (namesWithPrototypeIntrinsic.get(iface) match
+      case Some(intrinsicKey) =>
+        ERef(
+          Field(
+            Field(Field(GLOBAL_CONTEXT, EStr("Realm")), EStr("Intrinsics")),
+            EStr(intrinsicKey),
+          ),
+        )
+      case None => ENull()
+    ),
     "Extensible" -> EBool(true),
     "PrivateElements" -> EList(Nil),
     "__MAP__" -> EMap((UnknownType, UnknownType), Nil),

@@ -61,3 +61,79 @@
 - **Expected**: `1. Let |ret| be [=mem_size=](|store|, |memaddr|).` (앞의 "the " 제거) — 바로 다음 줄 `1. Let |store| be [=mem_grow=](|store|, |memaddr|, |delta|).`을 포함해, 이 문서 전체에서 임베딩 함수를 호출하는 모든 자리(`func_invoke`, `module_instantiate` 등)와 동일한 관용구.
 - **Reason**: `the [=X=](` 형태의 함수 콜은 이 파일(js-api/index.bs) 전체를 통틀어 이 자리 하나뿐입니다(대소문자 무시하고 확인, `webidl/index.bs`도 확인했지만 없음). 함수의 *이름*을 명사구로 가리키는 표현("the mem_size of X")이 실수로 호출 표현에 섞여 들어간 것으로 보입니다. 익스트랙터의 호출 구문 패턴은 링크가 표현식의 맨 앞에서 시작해야 인식하는데, 앞에 붙은 "the "가 이걸 못 미치게 만들어서 콜 자체가 조용히 인식 못 되는 표현으로 빠집니다.
 - **WJI 쪽 처리**: `SpecPatch` #27로 우회.
+
+## 7. Host function 호출 지점만 store를 explicit하게 넘기지 않음 — 문서 전체가 지키는 explicit-threading 패턴의 유일한 예외
+
+- **File**: `spectec/document/core/exec/instructions.rst`, lines 385-437
+  ("Host Functions" 섹션); `spectec/document/js-api/index.bs`, lines
+  1207-1230 (`GetGlobalValue`/`Global.prototype.value`의 setter),
+  1344-1372 (`create a host function`)
+- **Current**: 이 문서 대부분은 store를 **명시적으로** 주고받는다 — 예를 들어
+  `GetGlobalValue`는
+  ```
+  1. Let |store| be the [surrounding agent]'s [[associated store]].
+  1. ...
+  1. Let |value| be [=global_read=](|store|, |globaladdr|).
+  ```
+  로 store를 받아서 그대로 넘기고, `value` attribute의 setter는
+  ```
+  1. Let |store| be [=global_write=](|store|, |globaladdr|, |value|).
+  1. ...
+  1. Set the [surrounding agent]'s [[associated store]] to |store|.
+  ```
+  로 결과 store를 다시 명시적으로 채워넣는다 — Wasm Core 명세 자신의
+  `func_invoke(S, ...) : (S', ...)`류 embedding 함수와 정확히 같은
+  explicit-threading 스타일이다. 그런데 `create a host function`이 정의하는
+  `hostfunc`(Core의 `hf` — `(S'; result) ∈ hf(S; val^n)`, "A host function
+  may also modify the store."라고 Core 자신이 명시한 바로 그 함수)만은 이
+  패턴을 따르지 않는다(발췌):
+  ```
+  1. Let |hostfunc| be a host function which performs the following steps
+     when called with arguments |arguments|:
+      1. ...
+      1. Let |result| be the result of running a host function from |func|,
+         |functype|, and |arguments|.
+      1. ...
+      1. Let |store| be the [surrounding agent]'s [[associated store]].
+      1. If |result|.[[Type]] is throw, then: ... (여기서만 |store|를 쓰고,
+         exn_alloc 등으로 갱신하며 [[associated store]]에 다시 씀)
+      1. Otherwise, return |result|.[[Value]].
+  ```
+  `store`를 인자로 받지도, 결과로 짝지어 반환하지도 않는다 — 성공 경로에서는
+  앞서 읽어온 `|store|`조차 쓰이지 않는다.
+- **Expected**: `hostfunc`도 나머지 알고리즘들과 같은 explicit-threading
+  관용구를 따라, `state`(store)를 인자로 받고 `(state, result)`를 짝지어
+  반환해야 한다 — 즉 Core 자신의 `(S'; result) ∈ hf(S; val^n)` 계약을
+  js-api 쪽에서도 그대로 명시적으로 구현하는 형태.
+- **Reason**: `[=associated store=]`가 등장하는 이 문서의 자리를 전부(약 40곳)
+  확인했다 — store를 바꾸는 알고리즘(`Table.grow`/`Table.set`/`grow the
+  memory buffer`/`initialize an Exception object`/`new Exception`
+  constructor/`get the JavaScript exception tag` 등)은 예외 없이 `Let
+  |store| be ...; Let (|store|, |x|) be [=mutating_fn=](|store|, ...); Set
+  the [surrounding agent]'s [[associated store]] to |store|` 패턴을 지키고,
+  순수하게 읽기만 하는 알고리즘(`Table.get`/`Table.length` 등)은 애초에
+  write-back이 필요 없어 `Let |store| be ...`만으로 끝난다 — 둘 다 정상이다.
+  즉 이 문서는 store를 다루는 명확하고 일관된 explicit-threading 관례를
+  갖고 있고, `create a host function`의 `hostfunc`가 그 관례를 깨는 **유일한
+  예외**다.
+- **시사점** (나중에 참고용으로 남겨둠): 이걸 단순한 "실수"로 보기는
+  어렵다고 본다. 오히려 **스타일이 서로 다른 두 명세(Core의 formal
+  store-passing calculus, js-api의 Web-platform 산문체)를 잇는 연결 다리
+  명세를 쓸 때 구조적으로 나타나기 쉬운 결과**로 보는 게 더 정확할 것
+  같다. js-api의 다른 알고리즘들(`Table.set`, exported function 호출 등)은
+  전부 "JS가 wasm 쪽으로 뭔가를 요청하는" 방향이라, Core의 embedding API
+  (`func_invoke`, `table_write` 등 이미 `(store, ...) -> (store, ...)`
+  형태로 formal하게 정의돼 있는 함수)를 그대로 감싸기만 하면 되고, 그
+  과정에서 자연스럽게 explicit-threading을 물려받는다. 반대로 `create a
+  host function`은 "wasm이 JS 쪽으로 뭔가를 요청하는" 유일한 방향이고,
+  Core의 formal calculus에는 애초에 "JS 콜백을 실행한다"는 개념 자체가
+  없다(`hf`는 그냥 미지의 "implementation-defined execution"으로만
+  선언돼 있다) — 그래서 이 지점을 쓴 저자는 감쌀 만한 기존 explicit
+  embedding 함수가 없는 상태에서, 대신 이 명세 생태계(HTML, ECMA-262 등)가
+  "현재 agent의 상태"를 다룰 때 흔히 쓰는 ambient-state 관용구를 가져다
+  썼을 가능성이 높다. 즉 이 불일치는 "두 명세의 서로 다른 멘탈 모델이
+  맞닿는 이음매(seam)"에서 정확히 발생했다 — 각 저자가 자기 쪽 명세
+  전통에서 가장 자연스러운 관용구를 그대로 가져오면서, 그 경계를 넘는
+  지점 자체는 누구의 스타일도 아닌 채로 붕 떠버린 셈. 이런 종류의
+  "연결 지점에서 발생하는 스타일 불일치"가 이 문서에서 재발하는지는
+  앞으로도 눈여겨볼 만하다.

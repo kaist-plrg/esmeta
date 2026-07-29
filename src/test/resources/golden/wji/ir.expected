@@ -2771,7 +2771,7 @@ def find_a_builtin(
         let builtin = _iterList3[_iterIdx4]
         let builtinName = builtin[0]
         if (= importName builtinName) {
-          return (yet "tuple(Var(builtinSetName)Var(builtin))")
+          return (tup builtinSetName builtin)
         } else nop
         _iterIdx4 = (+ _iterIdx4 1)
       }
@@ -3523,8 +3523,10 @@ def a_new_exported_function_closure1(
   }
 }
 def create_a_host_function_closure1(
+  state: Unknown,
   arguments: Unknown,
 ): Unknown = {
+  @AGENT_RECORD["associated store"] = state
   let realm = func.Realm
   let relevant settings = ~realm/settings object~
   call result = clo<"run_a_host_function">(func, functype, arguments)
@@ -3550,7 +3552,7 @@ def create_a_host_function_closure1(
     }
     (yet "Execute the WebAssembly instructions ([=ref.exn=] |address|) ([=throw_ref=])")
   } else {
-    return result.Value
+    return (tup store result.Value)
   }
   return ~unused~
 }

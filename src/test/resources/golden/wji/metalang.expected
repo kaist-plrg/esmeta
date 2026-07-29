@@ -881,7 +881,8 @@
   head: To <dfn>create a host function</dfn> from the JavaScript object |func| and type |functype|, perform the following steps:
   Assert(?([$IsCallable$](|func|)))
   Let(|stored settings|, incumbent settings object)
-  Let(|hostfunc|, followingSteps(arguments))
+  Let(|hostfunc|, followingSteps(state, arguments))
+    Set([=surrounding agent=].[[associated store]], |state|)
     Let(|realm|, |func|.[[Realm]])
     Let(|relevant settings|, realm/settings object)
     Perform([=Prepare to run script=](|relevant settings|))
@@ -902,7 +903,7 @@
         Set([=surrounding agent=].[[associated store]], |store|)
       ?(Execute the WebAssembly instructions ([=ref.exn=] |address|) ([=throw_ref=]))
     Else
-      Return(|result|.[[Value]])
+      Return((|store|, |result|.[[Value]]))
   Let(|store|, [=surrounding agent=].[[associated store]])
   Let((|store|, |funcaddr|), [=func_alloc=](|store|, |functype|, |hostfunc|))
   Set([=surrounding agent=].[[associated store]], |store|)

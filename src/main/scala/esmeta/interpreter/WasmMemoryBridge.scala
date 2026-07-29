@@ -5,7 +5,6 @@ import esmeta.error.WasmHostFailure
 import esmeta.ir.GLOBAL_AGENT_RECORD
 import esmeta.state.*
 import esmeta.state.util.{fromALNum, toAL}
-import esmeta.wji.bridge.host.WasmHost
 
 /** Syncs JS `ArrayBuffer` bytes with a wasm store's linear memory across the
   * ESMeta (JVM) / SpecTec (separate OCaml process) boundary. True aliasing —
@@ -15,8 +14,13 @@ import esmeta.wji.bridge.host.WasmHost
   * points where JS and wasm execution can actually observe each other:
   * [[Interpreter.callEmbedding]]'s `func_invoke`/`module_instantiate` case (JS
   * calls into wasm) and [[Interpreter.toHostFunc]] (wasm reentrantly calls back
-  * into JS) — see the push/pull methods below, which aren't symmetric
-  * implementations of each other, for why.
+  * into JS). Both call sites now have an explicit `store` value in hand
+  * (`create a host function`'s closure was `SpecPatch`-corrected to take/
+  * return `state` explicitly, same as every other store-touching js-api
+  * algorithm — see `docs/spec_inconsistencies.md` #7), so both go through the
+  * same pure-local, RPC-free pair below: [[pushMemoriesIntoStore]]/
+  * [[pullMemoriesFromStore]]. No separate `mem_read_bytes`/`mem_write_bytes`
+  * RPC-based pair is needed any more.
   *
   * Takes the owning [[Interpreter]] rather than just its [[State]] because
   * [[applyPulledBytes]]'s growable-memory path needs a genuine reentrant call
@@ -81,9 +85,7 @@ private[interpreter] class WasmMemoryBridge(interp: Interpreter):
     * `ArgMismatch` otherwise — confirmed empirically (`inv_ibytes: invalid
     * byte: +0`, `` `Int ``'s own string rendering of 0) when
     * [[pushMemoriesIntoStore]] first shipped bytes through plain [[toAL]].
-    * `embedding.ml`'s `mem_write_bytes` already does this same re-tag
-    * OCaml-side for its own RPC path; this is the equivalent for the pure-Scala
-    * `MEMS[i].BYTES` patch below, which never goes through it.
+    * Applied to every byte before it goes into the `MEMS[i].BYTES` patch below.
     */
   private def toALByte(v: Value): ALValue = toAL(st, v) match
     case ALValue.NumV(ALNum.Int(n)) => ALValue.NumV(ALNum.Nat(n))
@@ -96,10 +98,11 @@ private[interpreter] class WasmMemoryBridge(interp: Interpreter):
     * `func_invoke`/`module_instantiate`: their `store` argument is captured as
     * a local variable in the *caller* algorithm well before the call-embed
     * instruction (and this method) ever runs, so mutating some separate global
-    * afterward ([[pushMemories]]'s approach, correct for
-    * [[Interpreter.toHostFunc]]'s different call site) can never reach it in
-    * time — only patching the argument value itself, before it's ever sent,
-    * works.
+    * afterward can never reach it in time — only patching the argument value
+    * itself, before it's ever sent, works. [[Interpreter.toHostFunc]]'s
+    * different call site reuses this same method for the same reason: the
+    * `state` value it's about to hand back to SpecTec is itself a plain local
+    * value at that point, not a live reference either.
     */
   def pushMemoriesIntoStore(storeVal: Value): Value =
     toAL(st, storeVal) match
@@ -157,11 +160,10 @@ private[interpreter] class WasmMemoryBridge(interp: Interpreter):
 
   /** wasm→JS: pull every live memory's current bytes straight out of an
     * already-in-hand `store` [[ALValue]] — the mirror image of
-    * [[pushMemoriesIntoStore]], and the preferred pull path whenever one is
-    * available (see `callEmbedding`'s `func_invoke`/`module_instantiate` case,
-    * the only caller): both `func_invoke` and `module_instantiate` already
-    * return `(store, ...)`, so no separate `mem_read_bytes` RPC is needed at
-    * all here, unlike [[pullMemories]] below.
+    * [[pushMemoriesIntoStore]]. Both call sites (`callEmbedding`'s
+    * `func_invoke`/`module_instantiate` case, and [[Interpreter.toHostFunc]])
+    * already have a `store` value in hand by the time they call this — no
+    * separate RPC needed either way.
     */
   def pullMemoriesFromStore(storeAL: ALValue, call: Call): Unit =
     val mems: Option[List[ALValue]] = storeAL match
@@ -187,56 +189,3 @@ private[interpreter] class WasmMemoryBridge(interp: Interpreter):
             }
             .foreach(applyPulledBytes(memaddr, memoryObjAddr, _, call))
         case _ => ()
-
-  /** wasm→JS: pull every live memory's current bytes from the OCaml store
-    * (implicit `Ds.Store`, via a `mem_read_bytes` RPC) into its `Memory`
-    * object's `ArrayBuffer`. Used only by [[Interpreter.toHostFunc]]'s
-    * reentrant call — at that point there's no just-returned value to read from
-    * the way [[pullMemoriesFromStore]] does, only whatever `Ds.Store` currently
-    * holds; see `mem_read_bytes`'s own doc in `embedding.ml`/
-    * `WasmHost.paramNames` for why an *explicit* store argument would actually
-    * be wrong here, not just redundant.
-    */
-  def pullMemories(host: WasmHost, call: Call): Unit =
-    for (memaddr, memoryObjAddr) <- memoryObjectCacheEntries() do
-      host.call("mem_read_bytes", List(toAL(st, memaddr))) match
-        case Right(ALValue.ListV(bytes)) =>
-          applyPulledBytes(memaddr, memoryObjAddr, bytes, call)
-        case Right(other) =>
-          throw WasmHostFailure(
-            s"mem_read_bytes: expected byte list, got $other",
-          )
-        case Left(err) => throw WasmHostFailure(err.toString)
-
-  /** JS→wasm: push every live memory's current `ArrayBuffer` bytes into
-    * SpecTec's live `Ds.Store`, right before letting a reentrant host function
-    * run — see [[Interpreter.toHostFunc]], its one caller. `Ds.Store` really is
-    * the right thing to mutate *here* (unlike the
-    * `func_invoke`/`module_instantiate` push in `callEmbedding`, which needs
-    * [[pushMemoriesIntoStore]] instead — see its doc for why): at this exact
-    * reentrant point SpecTec's own execution is paused mid-flight with no
-    * explicit `store` argument in play at all, so `Ds.Store` is the sole live
-    * source of truth, not at risk of being clobbered by some already- evaluated
-    * stale snapshot. `mem_write_bytes` is implicit-store for the same reason
-    * `mem_read_bytes` is — see [[pullMemories]] — and its returned (mutated)
-    * store is written back into the wjmeta-side `[surrounding
-    * agent].[[associated store]]` mirror on general principle, though nothing
-    * in this specific call path depends on that mirror being fresh before this
-    * reentrant call itself returns.
-    */
-  def pushMemories(host: WasmHost): Unit =
-    for (memaddr, memoryObjAddr) <- memoryObjectCacheEntries() do
-      arrayBufferDataAddr(memoryObjAddr) match
-        case Some(addr) =>
-          host.call(
-            "mem_write_bytes",
-            List(toAL(st, memaddr), toAL(st, addr)),
-          ) match
-            case Right(newStore) =>
-              st.update(
-                agentRecordAddr,
-                Str("associated store"),
-                Wasm(newStore),
-              )
-            case Left(err) => throw WasmHostFailure(err.toString)
-        case None => () // detached -- nothing live to push

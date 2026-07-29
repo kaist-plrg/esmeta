@@ -407,7 +407,13 @@ object Compiler:
     // `Case`'s tag out of spec-link-text form long before `Compiler` runs.
     case metalang.Expr.Case(tag, args) =>
       ECase(tag, args.map(compileExpr))
-    case metalang.Expr.Tuple(elems) => EYet(s"tuple(${elems.mkString})") // TODO
+    // a genuine tuple *value* (e.g. "(|store|, |result|.[[Value]])" as a
+    // Return operand) — builds a real `Wasm(TupV(...))`, same idiom as
+    // Expr.Case above. Distinct from Expr.Tuple used as a Let-LHS
+    // (destructuring), which ExpandDestructuringLetPass eliminates before
+    // Compiler ever sees it — see compileInstr's impossible(...) guard.
+    case metalang.Expr.Tuple(elems) =>
+      ETup(elems.map(compileExpr))
     case metalang.Expr.Map_(entries) =>
       EMap(
         (UnknownType, UnknownType),

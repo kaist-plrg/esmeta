@@ -773,6 +773,10 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         notSupported(
           "TODO: EOpt not yet supported by the type analyzer",
         )
+      case ETup(_) =>
+        notSupported(
+          "TODO: ETup not yet supported by the type analyzer",
+        )
     }
 
     // short circuit evaluation

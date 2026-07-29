@@ -105,6 +105,14 @@ object ExprParser:
   // otherwise swallow it into an unevaluable Described.
   private val WhichPerformsStepsClosure =
     """(?si)^an?\s+\[=[^\]]+=\]\s+which\s+performs\s+the\s+following\s+steps\s+when\s+called\s+with\s+(?:arguments?\s+)?(\|[^|]+\|(?:\s*(?:,|and)\s*\|[^|]+\|)*)\s*:?\s*$""".r
+  // "a [=term=] which performs the following steps when called with state
+  // |S| and arguments |V|:" — SpecPatch-authored (`create a host function`,
+  // #28), a leading named `state` parameter ahead of the usual variadic
+  // `arguments` one. Tried before WhichPerformsStepsClosure above (more
+  // specific — that pattern's leading `(?:arguments?\s+)?` only tolerates
+  // the literal word "argument(s)" before the first `|var|`, not "state").
+  private val WhichPerformsStepsClosureWithState =
+    """(?si)^an?\s+\[=[^\]]+=\]\s+which\s+performs\s+the\s+following\s+steps\s+when\s+called\s+with\s+state\s+\|([^|]+)\|\s+and\s+arguments\s+\|([^|]+)\|\s*:?\s*$""".r
   // "performing CLOSURE[,] given ARG[, ARG...]" — invoking a closure *value*
   // (contrast with the four "the following steps ...:" forms above, which
   // *define* one), e.g. "the result of performing |onFullfilledStepsArg|
@@ -465,6 +473,8 @@ object ExprParser:
           PipeVarInline.findAllMatchIn(paramsRaw).map(_.group(1)).toList,
         )
       case QueueTaskClosureSuffix() => FollowingSteps(Nil)
+      case WhichPerformsStepsClosureWithState(stateVar, argsVar) =>
+        FollowingSteps(List(stateVar, argsVar))
       case WhichPerformsStepsClosure(paramsRaw) =>
         FollowingSteps(
           PipeVarInline.findAllMatchIn(paramsRaw).map(_.group(1)).toList,

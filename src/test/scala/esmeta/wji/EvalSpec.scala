@@ -20,7 +20,7 @@ object EvalTag extends Tag("esmeta.wji.EvalTag")
   * wji-eval tests/wji/<name>.js -silent` when picking one back up.
   */
 private val knownFailing: Set[String] =
-  Set("reentrant-global-sync.js")
+  Set.empty
 
 /** Runs every `.js` test case under `tests/wji` end to end through the merged
   * WJI IR program (see [[WjiTest]]). Each test case is standalone and

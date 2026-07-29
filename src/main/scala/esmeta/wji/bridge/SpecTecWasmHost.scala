@@ -49,8 +49,9 @@ final class SpecTecWasmHost(connection: JsonRpcConnection) extends WasmHost:
       val decoded =
         for
           id <- params.hcursor.get[String]("id")
+          store <- params.hcursor.get[ALValue]("store")
           args <- params.hcursor.get[List[ALValue]]("args")
-        yield (id, args)
+        yield (id, store, args)
       decoded match
         case Left(e) =>
           Left(
@@ -60,14 +61,15 @@ final class SpecTecWasmHost(connection: JsonRpcConnection) extends WasmHost:
               None,
             ),
           )
-        case Right((id, args)) =>
+        case Right((id, store, args)) =>
           hostFunctions.get(id) match
             case None =>
               Left(RpcError(-32602, s"unknown host function id: $id", None))
             case Some(hostFunc) =>
-              hostFunc(args) match
-                case Right(results) =>
-                  val out: ALValue = ALValue.ListV(results)
+              hostFunc(store, args) match
+                case Right((newStore, results)) =>
+                  val out: ALValue =
+                    ALValue.TupV(List(newStore, ALValue.ListV(results)))
                   Right(out.asJson)
                 case Left(WasmError.Trap(value)) =>
                   Left(

@@ -282,36 +282,51 @@ class Interpreter(
     * can call back into this SAME interpreter (on the SAME `st`) during Wasm
     * execution — no separate WJI interpreter or heap involved.
     *
-    * `hostfunc`'s contract (`embed-invoke-host`) is `val* -> val* | exception
-    * | error` — the incoming `vals` is one `val*` *list*, not one value per
-    * formal parameter, so `callee` (compiled from "... which performs the
-    * following steps when called with arguments |arguments|") always takes
-    * exactly one parameter bound to that whole list; passing `vals` as N
-    * splatted positional args (as opposed to one list arg) starves that
-    * parameter whenever `vals`'s length isn't exactly 1.
+    * `hostfunc`'s contract, after `create a host function`'s `SpecPatch`
+    * correction (#28/#29, `docs/spec_inconsistencies.md` #7), is `(state, val*)
+    * -> (state, val*) | exception | error` — `callee` (compiled from "... which
+    * performs the following steps when called with state |state| and arguments
+    * |arguments|") takes exactly two parameters: `state` bound to the whole
+    * incoming store value, and `arguments` bound to the whole `val*` list (not
+    * one value per formal parameter — passing `vals` as N splatted positional
+    * args, as opposed to one list arg, would starve that second parameter
+    * whenever `vals`'s length isn't exactly 1).
+    *
+    * Memory sync now goes through the same RPC-free
+    * `pullMemoriesFromStore`/`pushMemoriesIntoStore` pair `callEmbedding`'s
+    * `func_invoke`/`module_instantiate` case already uses — this call site has
+    * a genuine `state` value in hand for the first time, so the old
+    * `mem_read_bytes`/`mem_write_bytes`-RPC-based `pullMemories`/
+    * `pushMemories` are no longer needed.
     */
   private def toHostFunc(v: Value, call: Call): HostFunction =
     val callee = v.asCallable
-    (vals: List[ALValue]) =>
-      // the reentrant mirror of `func_invoke`/`module_instantiate`'s own
-      // sync in `callEmbedding` above: here we're the *receiver* -- Wasm is
-      // paused mid-flight about to let this host function run, so pull
-      // fresh bytes before it runs (it may read memory), then push whatever
-      // it wrote before returning control to Wasm.
-      val host = wasmHost.getOrElse(throw UnknownEmbedding("host_func_invoke"))
-      wasmMemoryBridge.pullMemories(host, call)
-      val result =
-        invokeCallable(callee, List(Wasm(ALValue.ListV(vals))), call) match
-          case Wasm(ALValue.ListV(rs)) => Right(rs)
-          case Wasm(av)                => Right(List(av))
-          case addr: Addr =>
-            st(addr) match
-              case ListObj(vs) => Right(vs.map(toAL(st, _)).toList)
-              case other       => Left(WasmError.ProtocolError(other.toString))
-          case other =>
-            Left(WasmError.ProtocolError(other.toString))
-      wasmMemoryBridge.pushMemories(host)
-      result
+    (state: ALValue, vals: List[ALValue]) =>
+      wasmMemoryBridge.pullMemoriesFromStore(state, call)
+      invokeCallable(
+        callee,
+        List(Wasm(state), Wasm(ALValue.ListV(vals))),
+        call,
+      ) match
+        case Wasm(ALValue.TupV(List(newStateAL, returnAL))) =>
+          val returnVals = returnAL match
+            case ALValue.ListV(rs) => rs
+            case av                => List(av)
+          // patch fresh ArrayBuffer bytes into newStateAL *before* handing
+          // it back -- not a separate mem_write_bytes RPC afterward, which
+          // would race against SpecTec's own `Ds.Store.set` of this same
+          // returned state (see `personal` plan notes on the ordering
+          // hazard this sidesteps).
+          val patchedState = wasmMemoryBridge.pushMemoriesIntoStore(
+            Wasm(newStateAL),
+          )
+          Right((toAL(st, patchedState), returnVals))
+        case other =>
+          Left(
+            WasmError.ProtocolError(
+              s"host function closure: expected a (state, result) pair, got $other",
+            ),
+          )
 
   /** synchronously invoke `callee` with `args`, reentrantly, on this same `st`
     * (sharing heap/globals) — the current execution position
@@ -494,6 +509,8 @@ class Interpreter(
       Wasm(ALValue.CaseV(tag, args.map(a => toAL(st, eval(a)))))
     case EOpt(exprOpt) =>
       Wasm(ALValue.OptV(exprOpt.map(e => toAL(st, eval(e)))))
+    case ETup(elems) =>
+      Wasm(ALValue.TupV(elems.map(e => toAL(st, eval(e)))))
     case ESizeOf(expr) =>
       Math(eval(expr) match
         case Str(s)                  => s.length

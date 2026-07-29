@@ -187,6 +187,9 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> "(opt"
         expr.map(app >> " " >> _)
         app >> ")"
+      case ETup(elems) =>
+        given Rule[Iterable[Expr]] = iterableRule(sep = " ")
+        app >> "(tup " >> elems >> ")"
       case EDebug(expr) =>
         app >> "(debug " >> expr >> ")"
       case expr: ERandom =>

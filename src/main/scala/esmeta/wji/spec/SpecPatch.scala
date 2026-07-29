@@ -537,6 +537,33 @@ object SpecPatch:
     "1. Let |ret| be the [=mem_size=](|store|, |memaddr|)."
     ->
     "1. Let |ret| be [=mem_size=](|store|, |memaddr|).",
+
+    // #28 (spec inconsistency, docs/spec_inconsistencies.md #7) — "create a
+    // host function" (index.bs:1344-1372) is the one place in this document
+    // that handles the surrounding agent's associated store ambiently
+    // instead of receiving/returning it explicitly like every other
+    // store-touching algorithm here (see #7's own audit of ~40 sites).
+    // Gives the closure an explicit |state| parameter, syncs it into the
+    // ambient field as its first step (the rest of the closure body still
+    // reads that field internally — untouched, since within one synchronous
+    // JS callback execution the ambient convention is fine; only the
+    // boundary crossing needed fixing).
+    "1. Let |hostfunc| be a [=host function=] which performs the following steps when called with arguments |arguments|:\n        1. Let |realm| be |func|'s [=associated Realm=]."
+    ->
+    "1. Let |hostfunc| be a [=host function=] which performs the following steps when called with state |state| and arguments |arguments|:\n        1. Set the [=surrounding agent=]'s [=associated store=] to |state|.\n        1. Let |realm| be |func|'s [=associated Realm=].",
+
+    // #29 (spec inconsistency, docs/spec_inconsistencies.md #7) — the other
+    // half of #28: the closure's success path returns just
+    // |result|.\[[Value]], dropping the store entirely instead of pairing it
+    // up the way every other store-touching algorithm in this document does
+    // (`Let (|store|, |x|) be [=mutating_fn=](...)`). |store| here is
+    // already the freshly re-read value from the existing "Let |store| be
+    // the surrounding agent's associated store" step just above (runs right
+    // after the callback, before this throw/success branch) — reuse it
+    // directly in a real pair.
+    "1. Otherwise, return |result|.\\[[Value]]."
+    ->
+    "1. Otherwise, return (|store|, |result|.\\[[Value]]).",
   )
 
   def apply(source: String): String =

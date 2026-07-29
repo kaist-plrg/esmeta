@@ -7,7 +7,7 @@ import esmeta.wji.lang.{Algorithm, Instr}
   * The spec emits these as adjacent numbered-list items; this pass groups them
   * into a proper tree so the compiler no longer needs `collectElseChain`.
   *
-  * Category: Structural desugaring.
+  * Category: Structural desugaring — Reordering.
   */
 object GroupIfChainPass extends LoweringPass:
 

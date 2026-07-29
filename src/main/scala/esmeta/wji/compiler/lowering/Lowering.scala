@@ -7,13 +7,27 @@ import esmeta.error.{PipelineOrderError, UnsupportedSpecShape}
   * rewrite spec-text-shaped `Algorithm`s into a form
   * [[esmeta.wji.compiler.Compiler]] can compile directly.
   *
-  * Every pass falls into one of four categories (see each pass's own doc
-  * comment for its specific tag):
+  * Every pass falls into one of six categories (see each pass's own doc comment
+  * for its specific tag). The middle three are all sub-kinds of what used to be
+  * one "Structural desugaring" bucket — split because they behave differently
+  * enough to be worth telling apart: '''Elimination''' is the only one of the
+  * three that provably removes a construct (see each such pass's own
+  * postconditions/[[AstQuery]] use, where present).
   *   - '''Housekeeping''': identity-level cleanup (naming, dead-link
   *     resolution, note-stripping) with no semantic effect on control flow.
-  *   - '''Structural desugaring''': re-expresses an explicit spec construct
-  *     (`for each`, destructuring `Let`, inline algorithm calls, ...) into
-  *     lower-level syntax. This is the bulk of the pipeline.
+  *   - '''Structural desugaring — Reordering''': reshapes the *arrangement* of
+  *     already-valid nodes (ANF-style evaluation-order hoisting, flat
+  *     `If`/`ElseIf`/`Else` siblings into a tree) without desugaring any
+  *     construct away.
+  *   - '''Structural desugaring — Elimination''': recognizes one explicit spec
+  *     construct (`for each`, destructuring `Let`, an inline algorithm call,
+  *     ...) and rewrites it into lower-level syntax, so that construct no
+  *     longer appears afterward. The largest group, and the bulk of the
+  *     pipeline overall.
+  *   - '''Structural desugaring — Injection''': adds calling-convention
+  *     machinery (builtin/interface-member argument unpacking, completion
+  *     wrapping) that has no corresponding spec-text construct to eliminate — a
+  *     WJI/ESMeta implementation requirement, not a spec idiom being desugared.
   *   - '''Completion-record convention''': the one piece of *implicit*
   *     spec-wide behavior — ECMA-262/Infra's automatic abrupt-completion
   *     propagation — made explicit as real control flow.
@@ -38,12 +52,14 @@ import esmeta.error.{PipelineOrderError, UnsupportedSpecShape}
   */
 object Lowering:
   val pipeline: List[LoweringPass] = List(
+    // prepare
     ElideHtmlHostHooksPass,
-    ResolveLinksPass,
-    NormalizeSpecTecCaseShapePass,
-    MarkCompletionAlgorithmsPass,
     DropNotesPass,
+    ResolveLinksPass,
+    MarkCompletionAlgorithmsPass,
     GroupIfChainPass,
+    NormalizeSpecTecCaseShapePass,
+    // eliminations
     ExpandHasDuplicatesPass,
     ExpandForEachPass,
     ExpandForPass,
@@ -53,23 +69,25 @@ object Lowering:
     ExpandSuchThatPass,
     ExpandDataBlockOfPass,
     ExpandNewArrayBufferPass,
-    NormalizeEvaluationOrderPass,
+    ExpandIsOfFormPass,
+    ExpandAbbreviatedCondPass,
+    NormalizeEvaluationOrderPass, // normalization point
     ExpandAbruptPass,
     ExtractInlineAlgoCallPass,
     ExpandClosureCallPass,
     ExpandThrowsPass,
-    ExpandIsOfFormPass,
     ExpandPerformReturnResultPass,
     InsertFallthroughReturnPass,
     WrapCompletionReturnsPass,
-    ExpandAbbreviatedCondPass,
     ExpandMatchesExistsPass,
     ExpandFollowingStepsPass,
+    ExpandQueueATaskPass,
     PropagateUnguardedCallsPass,
+    // injections
     MarkBuiltinBehaviourPass,
     AddBuiltinBehaviourPass,
     AddInterfaceMemberBuiltinBehaviourPass,
-    ExpandQueueATaskPass,
+    // cleanup
     NormalizeAlgoNamePass,
   )
 

@@ -31,7 +31,7 @@ import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr}
   * `Var`/`Tuple` and are left as `ForEach` for a future pass, so the compiler
   * still reports them as unsupported instead of silently mis-compiling.
   *
-  * Category: Structural desugaring.
+  * Category: Structural desugaring — Elimination.
   */
 object ExpandForEachPass extends LoweringPass:
   private var counter = 0

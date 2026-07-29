@@ -59,7 +59,7 @@ import esmeta.wji.lang.{Algorithm, Expr, Instr, WjiParam}
   * `Instr.mapBody`), so by the time this pass sees it, it's already fully
   * lowered.
   *
-  * Category: Structural desugaring.
+  * Category: Structural desugaring — Elimination.
   */
 object ExpandFollowingStepsPass extends LoweringPass:
 

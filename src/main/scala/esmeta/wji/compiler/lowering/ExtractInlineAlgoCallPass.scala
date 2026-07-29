@@ -21,7 +21,7 @@ import esmeta.wji.lang.Instr.PerformOutcome
   * emits `ERef(Global(name))` for those, which is already correct); `JSCall`
   * has no such zero-arg ambiguity and is always extracted.
   *
-  * Category: Structural desugaring.
+  * Category: Structural desugaring — Elimination.
   */
 object ExtractInlineAlgoCallPass extends LoweringPass:
 

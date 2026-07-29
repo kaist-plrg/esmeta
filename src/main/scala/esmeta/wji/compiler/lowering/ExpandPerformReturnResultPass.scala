@@ -21,7 +21,7 @@ import esmeta.wji.lang.Instr.PerformOutcome
   * `Instr.PerformClosure`, whose `ReturnResult` case `Compiler` compiles
   * directly — see its doc — so this pass deliberately doesn't touch it).
   *
-  * Category: Structural desugaring.
+  * Category: Structural desugaring — Elimination.
   */
 object ExpandPerformReturnResultPass extends LoweringPass:
 

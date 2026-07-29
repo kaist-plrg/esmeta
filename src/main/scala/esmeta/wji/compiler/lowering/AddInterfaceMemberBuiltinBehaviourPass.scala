@@ -68,7 +68,7 @@ import esmeta.wji.lang.{Algorithm, AlgorithmKind, Cond, Expr, Instr, WjiParam}
   * aren't things this metalang-level pipeline has any other reason to know
   * about.
   *
-  * Category: Structural desugaring.
+  * Category: Structural desugaring — Injection.
   */
 object AddInterfaceMemberBuiltinBehaviourPass extends LoweringPass:
 

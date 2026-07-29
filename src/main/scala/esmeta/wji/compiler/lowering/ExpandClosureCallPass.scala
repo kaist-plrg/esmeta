@@ -24,7 +24,7 @@ import esmeta.wji.lang.Instr.PerformOutcome
   * ANF-style hoisting first; no spec text seen so far nests one that way, so
   * this is left as a known gap rather than speculatively generalized.
   *
-  * Category: Structural desugaring.
+  * Category: Structural desugaring — Elimination.
   */
 object ExpandClosureCallPass extends LoweringPass:
 

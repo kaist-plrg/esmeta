@@ -30,7 +30,7 @@ import esmeta.error.UnsupportedSpecShape
   * `UnsupportedSpecShape` rather than silently leaving it for `Compiler`'s much
   * later, less specific `EYet` fallback.
   *
-  * Category: Structural desugaring.
+  * Category: Structural desugaring — Elimination.
   */
 object ExpandNewByteSequencePass extends LoweringPass:
   private var counter = 0

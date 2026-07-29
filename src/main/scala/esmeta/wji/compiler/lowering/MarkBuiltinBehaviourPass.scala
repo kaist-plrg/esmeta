@@ -21,7 +21,7 @@ import esmeta.wji.lang.{Algorithm, Expr, Instr}
   * field instead of each independently re-walking every algorithm's body to
   * recompute the same `Set[String]` of closure names.
   *
-  * Category: Structural desugaring.
+  * Category: Structural desugaring — Injection.
   */
 object MarkBuiltinBehaviourPass extends LoweringPass:
 

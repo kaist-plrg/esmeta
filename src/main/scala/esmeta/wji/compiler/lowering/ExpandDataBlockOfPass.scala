@@ -35,7 +35,7 @@ import esmeta.wji.lang.{Algorithm, Expr, Instr}
   * resizable memory buffer`/`refresh the Memory buffer`, all `Let |block| be a
   * [=Data Block=] which is [=identified with=] ...`).
   *
-  * Category: Structural desugaring.
+  * Category: Structural desugaring — Elimination.
   */
 object ExpandDataBlockOfPass extends LoweringPass:
 

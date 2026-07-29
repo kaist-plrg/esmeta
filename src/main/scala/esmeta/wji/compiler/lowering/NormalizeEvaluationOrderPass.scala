@@ -70,7 +70,7 @@ import scala.collection.mutable.ListBuffer
   * default `walk(Cond)` recurses into every variant, which would extract calls
   * from cases this pass has never touched).
   *
-  * Category: Structural desugaring.
+  * Category: Structural desugaring — Reordering.
   */
 object NormalizeEvaluationOrderPass extends LoweringPass:
 

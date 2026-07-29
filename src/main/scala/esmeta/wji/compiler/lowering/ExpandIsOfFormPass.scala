@@ -41,7 +41,7 @@ import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr}
   * parses to one) is left as `Cond.IsOfForm` for `Compiler` to report as
   * `EYet("is of form")`, until a concrete need for it is actually reached.
   *
-  * Category: Structural desugaring.
+  * Category: Structural desugaring — Elimination.
   */
 object ExpandIsOfFormPass extends LoweringPass:
 

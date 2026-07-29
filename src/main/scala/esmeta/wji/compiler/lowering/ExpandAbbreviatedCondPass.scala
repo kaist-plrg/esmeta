@@ -20,7 +20,7 @@ import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr}
   * condition in the `Or`/`And` chain and applied to every `Abbreviated` on the
   * right.
   *
-  * Category: Structural desugaring.
+  * Category: Structural desugaring — Elimination.
   */
 object ExpandAbbreviatedCondPass extends LoweringPass:
 

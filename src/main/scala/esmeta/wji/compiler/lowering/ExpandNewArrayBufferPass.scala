@@ -51,11 +51,23 @@ import esmeta.wji.lang.{Algorithm, Expr, Instr}
   * observed in practice (`create a fixed length memory buffer`/ `create a
   * resizable memory buffer`).
   *
-  * Category: Structural desugaring.
+  * Category: Structural desugaring — Elimination.
   */
 object ExpandNewArrayBufferPass extends LoweringPass:
 
-  override def mustPrecede: Set[LoweringPass] = Set(ExtractInlineAlgoCallPass)
+  /** Must precede:
+    *   - [[ExtractInlineAlgoCallPass]]: needs the `Let` RHS shape this pass
+    *     produces already in place.
+    *   - [[NormalizeEvaluationOrderPass]]: the `Expr.Abrupt("!", JSCall(...))`
+    *     this pass produces must exist before Normalize's ANF hoist walk runs,
+    *     so it gets rewritten into the canonical `Let(_callN, JSCall(...))`
+    *     shape [[ExpandAbruptPass]] (which itself `requires`
+    *     [[NormalizeEvaluationOrderPass]]) expects — otherwise the un-hoisted
+    *     `JSCall` ends up nested inside a `.Type`/`.Value` field access that
+    *     nothing downstream can compile.
+    */
+  override def mustPrecede: Set[LoweringPass] =
+    Set(ExtractInlineAlgoCallPass, NormalizeEvaluationOrderPass)
 
   private val arrayBufferIntrinsic =
     Expr.Field(

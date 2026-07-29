@@ -53,7 +53,7 @@ import esmeta.error.UnsupportedSpecShape
   * silently falling through to `Compiler.compileAlgo`'s raw, un-wrapped
   * `~unused~` fallback if it's ever wrong.
   *
-  * Category: Structural desugaring.
+  * Category: Structural desugaring — Injection.
   */
 object AddBuiltinBehaviourPass extends LoweringPass:
 

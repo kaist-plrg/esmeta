@@ -36,7 +36,7 @@ import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr}
   * Only fires when `HasDuplicates` is the (sole) top-level condition of an
   * `IfChain` branch — the only shape reached so far.
   *
-  * Category: Structural desugaring.
+  * Category: Structural desugaring — Elimination.
   */
 object ExpandHasDuplicatesPass extends LoweringPass:
 

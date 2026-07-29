@@ -771,7 +771,7 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
 ## #18 `define the static attributes`
 ## #19 `define the static operations`
 
-- #4, #8과 비슷하지만 WJI context에서는 unforgeable regular operation/attribute와 static operation/attribute가 없다고 가정합니다.
+- #4, #8과 비슷하지만 WJI context에서는 unforgeable regular operation/attribute와 static attribute가 없다고 가정합니다.
 
 ## #20 `define_the_constants`
 

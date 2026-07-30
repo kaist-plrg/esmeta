@@ -21,13 +21,36 @@ import esmeta.wji.bridge.rpc.JsonRpcConnection
   */
 object Initialize:
 
-  /** starts a live SpecTec process, seeds `st`'s AGENT_RECORD's "associated
-    * store" field in place, and returns the host + connection for the
-    * interpreter run (the caller owns the connection and must close it).
+  /** Spawns a fresh SpecTec `--server` process and wraps it in a
+    * [[JsonRpcConnection]] — the expensive part of the one-arg [[apply]]
+    * (process spawn + `.spectec` spec parse, ~10s measured), isolated so a
+    * caller that runs many `State`s against the same spec (see
+    * `esmeta.wji.WjiTest`/`EvalSpec`) can pay this cost once per test-suite run
+    * instead of once per test case. The caller owns the returned connection and
+    * must [[JsonRpcConnection.close]] it exactly once when done; repeated
+    * per-test use on one connection is safe because the two-arg [[apply]] below
+    * fully re-seeds everything test-scoped (`store_init`, the caches) on every
+    * call.
     */
-  def apply(st: State): (SpecTecWasmHost, JsonRpcConnection) =
-    val process = SpecTecProcess.start()
-    val connection = JsonRpcConnection.stdio(process)
+  def startProcess(): JsonRpcConnection =
+    JsonRpcConnection.stdio(SpecTecProcess.start())
+
+  /** Builds a fresh [[SpecTecWasmHost]] over an *already-running* `connection`
+    * and seeds `st`'s AGENT_RECORD's "associated store" field in place — the
+    * cheap, genuinely per-`State` part of initialization (a `store_init` RPC
+    * round trip + empty-map cache seeding, ~1-2s), split out from
+    * [[startProcess]] so it can be repeated per test case against one shared
+    * process/connection without re-paying the process-spawn cost each time.
+    * Safe to call repeatedly on the same `connection` across independent
+    * `State`s *in sequence* (never concurrently — a [[JsonRpcConnection]] only
+    * ever has one request in flight): [[SpecTecWasmHost]]'s constructor
+    * overwrites the connection's `host_func_invoke` handler, so each call gets
+    * its own isolated `hostFunctions` registry, and `store_init` fully replaces
+    * the prior SpecTec-side store rather than reusing state from a previous
+    * call. Does *not* close `connection` on failure — unlike the one-arg
+    * [[apply]], this overload doesn't own the connection's lifecycle.
+    */
+  def apply(st: State, connection: JsonRpcConnection): SpecTecWasmHost =
     val host = SpecTecWasmHost(connection)
 
     host.call("store_init", Nil) match
@@ -38,7 +61,6 @@ object Initialize:
           Wasm(store),
         )
       case Left(err) =>
-        connection.close()
         throw new RuntimeException(s"store_init failed: $err")
 
     st.heap.update(
@@ -89,4 +111,23 @@ object Initialize:
       st.heap.allocMap(Nil),
     )
 
-    (host, connection)
+    host
+
+  /** starts a live SpecTec process, seeds `st`'s AGENT_RECORD's "associated
+    * store" field in place, and returns the host + connection for the
+    * interpreter run (the caller owns the connection and must close it).
+    *
+    * For callers that only ever run ONE `State` per JVM run (`wji-eval`,
+    * `wji-interp` — see `esmeta.phase.WjiEval`/`WjiInterp`), one process per
+    * run is already optimal, so this just composes [[startProcess]] and the
+    * two-arg [[apply]] rather than something reused across calls — see
+    * `esmeta.wji.WjiTest`/`EvalSpec` for the multi-`State`-per-process case
+    * those were split out to support.
+    */
+  def apply(st: State): (SpecTecWasmHost, JsonRpcConnection) =
+    val connection = startProcess()
+    try (apply(st, connection), connection)
+    catch
+      case e: Throwable =>
+        connection.close()
+        throw e

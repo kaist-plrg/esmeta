@@ -7,6 +7,7 @@ import esmeta.interpreter.{Interpreter => EsInterpreter}
 import esmeta.ir.{Global, Program}
 import esmeta.state.{Bool, State, Str, Value}
 import esmeta.wji.bridge.host.WasmHost
+import esmeta.wji.bridge.rpc.JsonRpcConnection
 import esmeta.wji.compiler.Compiler
 import esmeta.wji.compiler.lowering.Lowering
 import esmeta.wji.extractor.Extractor
@@ -78,18 +79,24 @@ object WjiTest:
       while (step) {}
       st
 
-  /** runs a single `.js` test case: fresh `State`, fresh SpecTec process for
-    * the duration of the run, always torn down afterward. Always checks that
-    * the test case itself set `__wjiOk` (see above).
+  /** runs a single `.js` test case against an already-running SpecTec
+    * `connection` (built once per test-suite run by the caller — see
+    * `EvalSpec`'s `beforeAll` — rather than once per test case, since process
+    * spawn dominates per-test wall time: ~10s vs ~1-2s of actual test
+    * execution). Builds a fresh `State`/[[esmeta.wji.bridge.host.WasmHost]] for
+    * this one test via `Initialize(st, connection)`, but does *not* close
+    * `connection` — the caller owns its lifecycle across the whole suite, and
+    * must treat any exception escaping this method as a sign `connection` may
+    * be left desynced (see `EvalSpec`'s catch-and-respawn) rather than assume
+    * it's still safe to reuse. Always checks that the test case itself set
+    * `__wjiOk` (see above).
     */
-  def evalFile(jsPath: String): State =
+  def evalFile(jsPath: String, connection: JsonRpcConnection): State =
     val st = mergedCfg.init.fromFile(jsPath)
-    val (host, connection) = Initialize(st)
-    try
-      val result = new RunToCompletion(st, Some(host)).result
-      assert(
-        wjiOk(result) == Success(Bool(true)),
-        s"test case never set globalThis.__wjiOk = true: $jsPath (got ${wjiOk(result)})",
-      )
-      result
-    finally connection.close()
+    val host = Initialize(st, connection)
+    val result = new RunToCompletion(st, Some(host)).result
+    assert(
+      wjiOk(result) == Success(Bool(true)),
+      s"test case never set globalThis.__wjiOk = true: $jsPath (got ${wjiOk(result)})",
+    )
+    result

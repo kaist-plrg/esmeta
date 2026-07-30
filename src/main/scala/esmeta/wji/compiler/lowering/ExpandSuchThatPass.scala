@@ -34,7 +34,7 @@ import esmeta.wji.lang.{Algorithm, Expr, Instr}
   * untouched, same as before: `Compiler` reports it as `EYet(s"$desc such that
   * $cond")`.
   *
-  * Category: SpecTec dependent.
+  * Category: Spec-dependent — SpecTec.
   */
 object ExpandSuchThatPass extends LoweringPass:
 

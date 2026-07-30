@@ -271,7 +271,7 @@ def read_the_imports(
         call _ret9 = clo<"ThrowCompletion">(_err8)
         return _ret9
       } else nop
-      if (&& (exists v.FunctionAddress) (= (yet "therefore") (yet "an [=Exported Function=]"))) {
+      if (&& (exists v.FunctionAddress) (exists @@yet: unresolved ref: Unknown(therefore).FunctionAddress)) {
         let funcaddr = v.FunctionAddress
       } else {
         call funcaddr = clo<"create_a_host_function">(v, functype)
@@ -1210,7 +1210,7 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Table(
     let value = undefined
   }
   call elementtype = clo<"tovaluetype">(descriptor.element)
-  if (! (= elementtype (yet "a [=reftype=]"))) {
+  if (! (? elementtype: Unknown["reftype"])) {
     call _err1 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
     call _ret2 = clo<"ThrowCompletion">(_err1)
     return _ret2
@@ -2348,7 +2348,7 @@ def towebassemblyvalue(
         }
         let r = (case "REF.EXTERN" ref)
       } else {
-        if (&& (= v (yet "an [=Exported Function=]")) (= (yet "call [=match_valtype=]") true)) {
+        if (&& (exists v.FunctionAddress) (= (yet "call [=match_valtype=]") true)) {
           let funcaddr = v.FunctionAddress
           let r = (case "REF.FUNC" funcaddr)
         } else if (&& (? v: Number) (&& (= v (yet "nested ?-abrupt: JSCall(ToInt32,List(Var(v)))")) (&& (< (yet "call [=ℝ=]") (** 2 30)) (! (< (yet "call [=ℝ=]") (- (** 2 30))))))) {
@@ -2369,7 +2369,7 @@ def towebassemblyvalue(
           }
           call-embed u31 = <inv_signed_31>(([math] i31))
           let r = (case "REF.I31" u31)
-        } else if (= v (yet "an [=Exported GC Object=]")) {
+        } else if (exists v.ObjectAddress) {
           let objectaddr = v.ObjectAddress
           let objectkind = v.ObjectKind
           if (= objectkind "array") {

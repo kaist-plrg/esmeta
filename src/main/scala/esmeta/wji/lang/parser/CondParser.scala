@@ -13,6 +13,15 @@ object CondParser:
 
   private val IsTypePos = """(?si)^(.+)\s+\[=is an?\s+([^\]]+)=\]$""".r
   private val IsTypeNeg = """(?si)^(.+)\s+\[=is not an?\s+([^\]]+)=\]$""".r
+  // "EXPR is a/an [=NOUN=]" — unlike IsTypePos above (where "is a X" is
+  // itself one dfn-link, e.g. ECMA-262's own `[=is a Number=]` term), this is
+  // plain "is a/an" prose linking only the noun (e.g. "|v| is an [=Exported
+  // Function=]"). Grammatically the two are the same claim — English "X is a
+  // NOUN" is always kind-membership, never value equality — so both parse to
+  // the same `IsType`, letting a later lowering pass (not `Compiler`, which
+  // only knows genuine ECMAScript types) decide what a WJI-specific NOUN like
+  // "Exported Function" actually compiles to.
+  private val ArticleLink = """(?si)^an?\s+\[=([^\]]+)=\]$""".r
   private val MatchesNeg =
     """(?s)^(.+?)\s+does not\s+(\[=matches/[^\]]*\])\s+(.+)$""".r
   private val MatchesPos = """(?s)^(.+?)\s+(\[=matches/[^\]]*\])\s+(.+)$""".r
@@ -229,6 +238,8 @@ object CondParser:
             ExprParser.parse(listRaw),
             negated,
           )
+        case ArticleLink(noun) =>
+          IsType(ExprParser.parse(lhsRaw), noun, negated)
         case _ =>
           Eq(
             ExprParser.parse(lhsRaw),

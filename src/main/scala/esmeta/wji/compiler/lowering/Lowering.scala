@@ -7,12 +7,16 @@ import esmeta.error.{PipelineOrderError, UnsupportedSpecShape}
   * rewrite spec-text-shaped `Algorithm`s into a form
   * [[esmeta.wji.compiler.Compiler]] can compile directly.
   *
-  * Every pass falls into one of six categories (see each pass's own doc comment
-  * for its specific tag). The middle three are all sub-kinds of what used to be
-  * one "Structural desugaring" bucket — split because they behave differently
-  * enough to be worth telling apart: '''Elimination''' is the only one of the
-  * three that provably removes a construct (see each such pass's own
-  * postconditions/[[AstQuery]] use, where present).
+  * Every pass falls into one of seven categories (see each pass's own doc
+  * comment for its specific tag). The middle three are all sub-kinds of what
+  * used to be one "Structural desugaring" bucket — split because they behave
+  * differently enough to be worth telling apart: '''Elimination''' is the only
+  * one of the three that provably removes a construct (see each such pass's own
+  * postconditions/[[AstQuery]] use, where present). The last two are sub-kinds
+  * of what used to be one "Spec-dependent" bucket — split because the knowledge
+  * each relies on, while equally absent from spec prose itself, comes from a
+  * different place: SpecTec's own OCaml runtime source vs. WJI's own choices
+  * for how to represent something at runtime.
   *   - '''Housekeeping''': identity-level cleanup (naming, dead-link
   *     resolution, note-stripping) with no semantic effect on control flow.
   *   - '''Structural desugaring — Reordering''': reshapes the *arrangement* of
@@ -31,15 +35,21 @@ import esmeta.error.{PipelineOrderError, UnsupportedSpecShape}
   *   - '''Completion-record convention''': the one piece of *implicit*
   *     spec-wide behavior — ECMA-262/Infra's automatic abrupt-completion
   *     propagation — made explicit as real control flow.
-  *   - '''SpecTec dependent''': correctness relies on knowing a specific
+  *   - '''Spec-dependent — SpecTec''': correctness relies on knowing a specific
   *     `CaseV` tag string, embedding/numerics function name, or nesting shape
-  *     SpecTec's own runtime (`spectec/spectec/src/backend-interpreter/
-  *     construct.ml`'s `al_of_*`/`al_to_*`, `backend-server/server.ml`'s
-  *     dispatch) actually uses — knowledge spec prose doesn't spell out
-  *     directly (e.g. a numeric const's nested numtype tag, or that
-  *     `signed_N`'s inverse is called `inv_signed_N`). Unlike Structural
-  *     desugaring, none of this would look the same if WJI mechanized a
-  *     different spec.
+  *     SpecTec's own runtime (`spectec/spectec/src/
+  *     backend-interpreter/construct.ml`'s `al_of_*`/`al_to_*`,
+  *     `backend-server/server.ml`'s dispatch) actually uses — knowledge spec
+  *     prose doesn't spell out directly (e.g. a numeric const's nested numtype
+  *     tag, or that `signed_N`'s inverse is called `inv_signed_N`). None of
+  *     this would look the same if WJI mechanized a different spec.
+  *   - '''Spec-dependent — WJI''': correctness relies on knowing how WJI itself
+  *     chose to represent something at runtime, rather than on anything
+  *     SpecTec's own runtime does — e.g. recognizing that "is an Exported
+  *     Function"/"is an Exported GC Object" collapse to a `Cond.HasSlot` check
+  *     specifically because WJI represents these WebIDL exotic-object kinds as
+  *     ordinary records carrying the internal slot their own spec definition
+  *     already names, not because of anything about SpecTec.
   *
   * The category grouping is documentation only, not machine-checked: unlike
   * ordering (see [[LoweringPass.requires]]/[[LoweringPass.mustPrecede]] and
@@ -71,6 +81,7 @@ object Lowering:
     ExpandNewArrayBufferPass,
     ExpandIsOfFormPass,
     ExpandAbbreviatedCondPass,
+    ExpandExportedObjectIsTypePass,
     NormalizeEvaluationOrderPass, // normalization point
     ExpandAbruptPass,
     ExtractInlineAlgoCallPass,

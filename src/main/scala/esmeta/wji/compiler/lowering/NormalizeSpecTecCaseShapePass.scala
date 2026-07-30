@@ -83,7 +83,7 @@ import esmeta.wji.lang.walker.Walker
   * as already shaped exactly like the real `ALValue.CaseV` it corresponds to,
   * with zero SpecTec knowledge of its own.
   *
-  * Category: SpecTec dependent.
+  * Category: Spec-dependent — SpecTec.
   */
 object NormalizeSpecTecCaseShapePass extends LoweringPass:
 

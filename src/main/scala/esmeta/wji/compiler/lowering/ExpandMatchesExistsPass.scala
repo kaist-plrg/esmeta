@@ -56,7 +56,7 @@ import esmeta.wji.bridge.host.WasmHost
   * branches' "false" case, which no current call site needs; left unexpanded
   * (so `Compiler` reports `EYet`) until one does.
   *
-  * Category: SpecTec dependent.
+  * Category: Spec-dependent — SpecTec.
   */
 object ExpandMatchesExistsPass extends LoweringPass:
 

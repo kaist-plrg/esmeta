@@ -109,6 +109,8 @@ trait UnitWalker extends BasicUnitWalker {
       walkOpt(expr, walk)
     case ETup(elems) =>
       walkList(elems, walk)
+    case EImplements(expr, _) =>
+      walk(expr)
     case EDebug(expr) =>
       walk(expr)
     case expr: ERandom     => walk(expr)

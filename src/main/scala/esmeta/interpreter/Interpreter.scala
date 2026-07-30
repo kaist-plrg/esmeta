@@ -511,6 +511,14 @@ class Interpreter(
       Wasm(ALValue.OptV(exprOpt.map(e => toAL(st, eval(e)))))
     case ETup(elems) =>
       Wasm(ALValue.TupV(elems.map(e => toAL(st, eval(e)))))
+    case EImplements(expr, iface) =>
+      Bool(eval(expr) match
+        case addr: Addr =>
+          st(addr) match
+            case r: RecordObj => r.tname == iface
+            case _            => false
+        case _ => false,
+      )
     case ESizeOf(expr) =>
       Math(eval(expr) match
         case Str(s)                  => s.length

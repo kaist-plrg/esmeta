@@ -190,6 +190,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case ETup(elems) =>
         given Rule[Iterable[Expr]] = iterableRule(sep = " ")
         app >> "(tup " >> elems >> ")"
+      case EImplements(expr, iface) =>
+        app >> "(implements " >> expr >> " \"" >> iface >> "\")"
       case EDebug(expr) =>
         app >> "(debug " >> expr >> ")"
       case expr: ERandom =>

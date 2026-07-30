@@ -282,7 +282,7 @@ def read_the_imports(
     if (&& (= (case-tag externtype) "GLOBAL") (= (case-tag externtype[0]) "")) {
       let mut = externtype[0][0]
       let valtype = externtype[0][1]
-      if (yet "implements Global") {
+      if (implements v "Global") {
         let globaladdr = v.Global
       } else {
         if (&& (= valtype (case "I64" )) (! (? v: BigInt))) {
@@ -324,7 +324,7 @@ def read_the_imports(
     } else nop
     if (= (case-tag externtype) "MEM") {
       let memtype = externtype[0]
-      if (yet "implements Memory") {
+      if (! (implements v "Memory")) {
         call _err18 = clo<"__NEW_ERROR_OBJ__">("%LinkError.prototype%")
         call _ret19 = clo<"ThrowCompletion">(_err18)
         return _ret19
@@ -334,7 +334,7 @@ def read_the_imports(
     } else nop
     if (= (case-tag externtype) "TABLE") {
       let tabletype = externtype[0]
-      if (yet "implements Table") {
+      if (! (implements v "Table")) {
         call _err20 = clo<"__NEW_ERROR_OBJ__">("%LinkError.prototype%")
         call _ret21 = clo<"ThrowCompletion">(_err20)
         return _ret21
@@ -345,7 +345,7 @@ def read_the_imports(
     } else nop
     if (= (case-tag externtype) "TAG") {
       let functype = externtype[0]
-      if (yet "implements Tag") {
+      if (! (implements v "Tag")) {
         call _err22 = clo<"__NEW_ERROR_OBJ__">("%LinkError.prototype%")
         call _ret23 = clo<"ThrowCompletion">(_err22)
         return _ret23
@@ -3659,7 +3659,7 @@ def create_a_host_function_closure1(
   let store = @AGENT_RECORD["associated store"]
   if (= result.Type ~throw~) {
     let v = result.Value
-    if (yet "implements Exception") {
+    if (implements v "Exception") {
       let address = v.Address
     } else {
       call type = clo<"get_the_javascript_exception_tag">()

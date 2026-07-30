@@ -503,10 +503,13 @@ object Compiler:
       EContains(compileExpr(list), compileExpr(elem))
     case Cond.Contains(elem, list, true) =>
       EUnary(UOp.Not, EContains(compileExpr(list), compileExpr(elem)))
-    case Cond.Implements(e, iface, neg) => EYet(s"implements $iface") // TODO
-    case Cond.IsOfForm(e, f, _, neg)    => EYet(s"is of form $f") // TODO
-    case Cond.Matches(l, t, r, neg)     => EYet(s"matches $t") // TODO
-    case Cond.Unknown(raw)              => EYet(raw)
+    // *(hardcoding)* — see docs/hardcodes.md #11 and EImplements' own doc.
+    case Cond.Implements(e, iface, false) => EImplements(compileExpr(e), iface)
+    case Cond.Implements(e, iface, true) =>
+      EUnary(UOp.Not, EImplements(compileExpr(e), iface))
+    case Cond.IsOfForm(e, f, _, neg) => EYet(s"is of form $f") // TODO
+    case Cond.Matches(l, t, r, neg)  => EYet(s"matches $t") // TODO
+    case Cond.Unknown(raw)           => EYet(raw)
 
     // ── unreachable after lowering ──
     // See compileExpr's identically-named, identically-verified group above:

@@ -118,6 +118,8 @@ trait Walker extends BasicWalker {
       EOpt(walkOpt(expr, walk))
     case ETup(elems) =>
       ETup(walkList(elems, walk))
+    case EImplements(expr, iface) =>
+      EImplements(walk(expr), iface)
     case EDebug(expr) =>
       EDebug(walk(expr))
     case expr: ERandom     => walk(expr)

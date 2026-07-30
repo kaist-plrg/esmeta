@@ -78,3 +78,7 @@ case class ECaseTag(expr: Expr) extends SpecTecExpr
 case class ECase(tag: String, args: List[Expr]) extends SpecTecExpr
 case class EOpt(expr: Option[Expr]) extends SpecTecExpr
 case class ETup(elems: List[Expr]) extends SpecTecExpr
+
+// WJI expressions
+sealed trait WjiExpr extends Expr
+case class EImplements(expr: Expr, iface: String) extends WjiExpr

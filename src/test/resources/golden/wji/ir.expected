@@ -2348,7 +2348,7 @@ def towebassemblyvalue(
         }
         let r = (case "REF.EXTERN" ref)
       } else {
-        if (&& (exists v.FunctionAddress) (= (yet "call [=match_valtype=]") true)) {
+        if (&& (= v (yet "an [=Exported Function=]")) (= (yet "call [=match_valtype=]") true)) {
           let funcaddr = v.FunctionAddress
           let r = (case "REF.FUNC" funcaddr)
         } else if (&& (? v: Number) (&& (= v (yet "nested ?-abrupt: JSCall(ToInt32,List(Var(v)))")) (&& (< (yet "call [=ℝ=]") (** 2 30)) (! (< (yet "call [=ℝ=]") (- (** 2 30))))))) {

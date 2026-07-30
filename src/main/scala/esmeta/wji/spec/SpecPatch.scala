@@ -531,6 +531,27 @@ object SpecPatch:
     // full survey). Adds the missing "is true".
     "[=heap-type/extern=])," -> "[=heap-type/extern=]) is true,",
     "[=heap-type/func=])," -> "[=heap-type/func=]) is true,",
+
+    // #31 (suggestion) — `ToWebAssemblyValue`'s "|v| is an [=Exported
+    // Function=]" (index.bs:1453) is nothing this project's `CondParser`
+    // recognizes as a boolean check. The spec itself elsewhere spells out
+    // exactly what it means in fully mechanizable terms — "read the
+    // imports" (index.bs:508) phrases the identical check as "If |v| has a
+    // \[[FunctionAddress]] internal slot, and therefore is an [=Exported
+    // Function=]," (matching Exported Functions' own definition,
+    // index.bs:1241: "Built-in Function Objects ... which have a
+    // \[[FunctionAddress]] internal slot") — so this rewrites the check into
+    // that already-recognized `HasSlot` form. The "and therefore is an
+    // Exported Function" aside can't be preserved in the patched text itself
+    // as a trailing note the way it appears at line 508 — appending anything
+    // after "internal slot" (even parenthetically, even as an HTML comment;
+    // both tried) breaks `CondParser.HasSlotPos`'s `$`-anchored match, since
+    // this site is itself already one operand of a larger `... and
+    // match_valtype(...)` condition (`extractFromCond` only ever descends
+    // into `And`'s left operand — see `NormalizeEvaluationOrderPass` — so a
+    // three-way "and" chain here isn't just a wording risk, it silently
+    // stops working). Recorded here in the comment instead.
+    "|v| is an [=Exported Function=]" -> "|v| has a \\[[FunctionAddress]] internal slot",
   )
 
   def apply(source: String): String =

@@ -988,7 +988,7 @@
     ElseIf([=match_valtype=](|type|, [=ref=](|null|, [=heap-type/extern=])) is true)
       Let(|ref|, [=!=] [=ToWebAssemblyValue=](|v|, [=ref=]([=heap-type/any=])))
       Let(|r|, [=ref.extern=](|ref|))
-    ElseIf(|v| is ?(an [=Exported Function=]), and [=match_valtype=](|type|, [=ref=](|null|, [=heap-type/func=])) is true)
+    ElseIf(|v| has a [[FunctionAddress]] internal slot, and [=match_valtype=](|type|, [=ref=](|null|, [=heap-type/func=])) is true)
       Let(|funcaddr|, |v|.[[FunctionAddress]])
       Let(|r|, [=ref.func=](|funcaddr|))
     ElseIf(|v| is a Number, and |v| is [=?=] [$ToInt32$](|v|), and [=ℝ=](|v|) < 2 ** 30, and [=ℝ=](|v|) >= -(2 ** 30))

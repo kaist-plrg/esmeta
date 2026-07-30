@@ -1,6 +1,0 @@
-def create_a_namespace_object(
-  namespace: Unknown,
-  realm: Unknown
-): Unknown = {
-  return ~unused~
-}

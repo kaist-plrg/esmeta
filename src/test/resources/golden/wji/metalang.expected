@@ -1218,7 +1218,7 @@
 
 # get the JavaScript exception tag
   head: To <dfn>get the JavaScript exception tag</dfn>, perform the following steps:
-  If(?(the [=surrounding agent=]'s associated [=JavaScript exception tag=] has been initialized))
+  If([=surrounding agent=].[[JavaScript exception tag]] [=map/exists=])
     Return([=surrounding agent=].[[JavaScript exception tag]])
   Let(|store|, [=surrounding agent=].[[associated store]])
   Let((|store|, |tagAddress|), [=tag_alloc=](|store|, « [=externref=] »))

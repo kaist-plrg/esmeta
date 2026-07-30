@@ -2843,7 +2843,7 @@ def <BUILTIN>:INTRINSICS.get:WebAssembly.Exception.prototype.stack(
 }
 def get_the_javascript_exception_tag(
 ): Unknown = {
-  if (yet "the [=surrounding agent=]'s associated [=JavaScript exception tag=] has been initialized") {
+  if (exists @AGENT_RECORD["JavaScript exception tag"]) {
     return @AGENT_RECORD["JavaScript exception tag"]
   } else nop
   let store = @AGENT_RECORD["associated store"]

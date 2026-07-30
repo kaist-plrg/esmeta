@@ -21,6 +21,15 @@ object CondParser:
   private val MapExistsPos = """(?si)^(.*?)\s+\[=map/exists=\]$""".r
   private val MapExistsNeg =
     """(?si)^(.*?)\s+(?:\[=map/doesn't exist=\]|doesn't \[=map/exist=\])$""".r
+  // "EXPR has been initialized" / "EXPR has not been initialized" — a lazily-
+  // computed-and-cached per-agent field (index.bs:1795, "the surrounding
+  // agent's associated JavaScript exception tag has been initialized"), same
+  // HasField shape as MapExistsPos/Neg above: the field starts absent and
+  // this checks presence, not any particular value.
+  private val HasBeenInitializedPos =
+    """(?si)^(.+?)\s+has been initialized$""".r
+  private val HasBeenInitializedNeg =
+    """(?si)^(.+?)\s+has not been initialized$""".r
   // e.g. "|module|.[=imports=] [=list/is empty|is not empty=]" — the
   // `|alias=]` part is display text, not decoration: it's how the spec
   // writes the negated form ("is not empty") while still linking to the
@@ -176,6 +185,9 @@ object CondParser:
     case ThrowsException(kind) => Throws(Option(kind))
     case MapExistsPos(baseRaw) => HasField(ExprParser.parse(baseRaw))
     case MapExistsNeg(baseRaw) =>
+      HasField(ExprParser.parse(baseRaw), negated = true)
+    case HasBeenInitializedPos(baseRaw) => HasField(ExprParser.parse(baseRaw))
+    case HasBeenInitializedNeg(baseRaw) =>
       HasField(ExprParser.parse(baseRaw), negated = true)
     case ListIsEmpty(baseRaw, alias) =>
       val negated = Option(alias).exists(_.toLowerCase.contains("not"))

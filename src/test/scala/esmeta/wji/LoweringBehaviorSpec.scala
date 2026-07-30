@@ -86,6 +86,49 @@ class LoweringBehaviorSpec extends AnyFunSuite:
     ),
   )
 
+  /** An `And` whose right operand calls [[poison]] — `extractFromCond`
+    * deliberately hoists only `And`/`Or`'s left operand, never the right, to
+    * preserve short-circuit semantics (hoisting the right unconditionally to
+    * the top would evaluate it even when the left is already false). The right
+    * operand staying un-hoisted also means a call there can't currently be
+    * compiled at all (`Compiler.compileExpr` has no inline call-as-expression
+    * support yet) — a separate, known gap, and not what this algorithm exists
+    * to check: only the left-false case below is exercised, since the
+    * right-true case has no correct behavior to assert on yet.
+    *
+    * As spec prose, this would read:
+    * {{{
+    * To <dfn>test and short circuit</dfn> given |flag|, perform the
+    * following steps:
+    *   1. If |flag| is **true** and [=poison=](**true**) is **true**, then
+    *     1. Return "matched".
+    *   2. Return "not matched".
+    * }}}
+    */
+  private val testAndShortCircuit = Algorithm(
+    id = Some("test-and-short-circuit"),
+    name = Some("testAndShortCircuit"),
+    params = List(WjiParam("|flag|")),
+    head = "",
+    body = List(
+      Instr.IfChain(
+        branches = List(
+          (
+            Cond.And(
+              Cond.Eq(Expr.Var("flag"), Expr.Bool(true)),
+              Cond.Eq(
+                Expr.AlgoCall("[=poison=]", List(Expr.Bool(true))),
+                Expr.Bool(true),
+              ),
+            ),
+            List(Instr.Return(Some(Expr.Str("matched")))),
+          ),
+        ),
+        fallback = List(Instr.Return(Some(Expr.Str("not matched")))),
+      ),
+    ),
+  )
+
   /** Compiles `algos` through the full pipeline and invokes `fname` directly
     * with `args` — no JS entry point or builtin calling convention involved,
     * mirroring `esmeta.phase.WjiInterp`'s own `callAO` helper.
@@ -115,4 +158,14 @@ class LoweringBehaviorSpec extends AnyFunSuite:
     intercept[AssertionFail] {
       invoke(algos, "testifchain", List(Bool(false)))
     }
+  }
+
+  test(
+    "And short-circuit: the right operand's call must not run when the left operand is already false",
+  ) {
+    val algos = List(poison, testAndShortCircuit)
+
+    // left is false -> right (poison) must never be evaluated. The
+    // right-true case isn't checked here — see testAndShortCircuit's doc.
+    invoke(algos, "testandshortcircuit", List(Bool(false)))
   }

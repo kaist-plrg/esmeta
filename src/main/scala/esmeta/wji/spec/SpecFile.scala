@@ -3,7 +3,7 @@ package esmeta.wji.spec
 import java.io.File
 import java.nio.file.Path
 
-/** Locates spec files, used by [[AlgorithmExtractor]]/[[InterfaceExtractor]]/
+/** Locates spec files, used by [[AlgorithmExtractor]]/[[DefinitionExtractor]]/
   * [[AnchorExtractor]] and the unified [[esmeta.wji.extractor.Extractor]].
   */
 object SpecFile:

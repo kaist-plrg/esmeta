@@ -30,7 +30,7 @@ object WjiTest:
   lazy val mergedCfg: CFG =
     val spec = Extractor()
     // must happen before the interpreter runs (see esmeta.wji.spec.Spec's doc)
-    spec.registerInterfaceTypes()
+    spec.registerDefinitionTypes()
     val wjiProgram = Compiler.compile(Lowering.run(spec.algorithms))
     val mainline = ESMetaTest.cfg.program
     CFGBuilder(Program(mainline.funcs ++ wjiProgram.funcs, mainline.spec))

@@ -14,20 +14,11 @@ package esmeta.wji.spec
   *   - *(spec bug)* fixes an actual defect in the spec prose itself — a typo,
   *     stale phrasing, or markup that violates the surrounding file's own
   *     conventions.
-  *
-  * REQUIRED, every time you add a *(spec bug)* entry: add a matching numbered
-  * section to `docs/spec_errors.md` in the SAME change (title,
-  * File/Current/Expected/Reason, same shape as its existing entries).
-  * `docs/spec_errors.md` is what actually gets reported upstream to the spec
-  * authors — a patch added here without a matching entry there never reaches
-  * them and just silently rots as tribal knowledge in this file. Do not defer
-  * this to a follow-up commit; do it now, in the same patch that adds the entry
-  * below.
   *   - *(suggestion)* makes an already-valid elision explicit — a spot where
-  *     Bikeshed prose conventionally omits an argument (a generic type
-  *     parameter, an implicit realm) that this project's extractor/compiler
-  *     needs spelled out in order to compile. Nothing here is wrong in the spec
-  *     as written; it's just not explicit enough for this tool.
+  *     Bikeshed prose conventionally omits an argument (e.g. a generic type
+  *     parameter) that this project's extractor/compiler needs spelled out in
+  *     order to compile. Nothing here is wrong in the spec as written; it's
+  *     just not explicit enough for this tool.
   *   - *(hardcoding)* invents a call convention with no literal counterpart in
   *     the spec prose at all — needed where this project can't yet parse a
   *     shape the spec actually uses, rather than just an elided argument.
@@ -43,27 +34,29 @@ package esmeta.wji.spec
   *     include). Distinct from *(spec bug)*, which is wrong on its own terms
   *     without needing a sibling to compare against.
   *
-  * REQUIRED, every time you add a *(spec inconsistency)* entry: add a matching
-  * numbered section to `docs/spec_inconsistencies.md` in the SAME change, same
-  * shape/requirement as *(spec bug)*'s `docs/spec_errors.md` entries above.
+  * REQUIRED, every time you add a *(spec bug)* or *(spec inconsistency)* entry:
+  * add a matching numbered section to `docs/spec_errors.md` (for a spec bug) or
+  * `docs/spec_inconsistencies.md` (for a spec inconsistency) in the SAME change
+  * (title, File/Current/Expected/Reason, same shape as each doc's existing
+  * entries). Those two files are what actually get reported upstream to the
+  * spec authors — a patch added here without a matching entry there never
+  * reaches them and just silently rots as tribal knowledge in this file. Do not
+  * defer this to a follow-up commit; do it now, in the same patch that adds the
+  * entry below.
   *
-  * The *(suggestion)* patches all serve one of two purposes, each showing up
-  * folded into several numbered entries below rather than as a pair of its own,
-  * so it's called out here instead of at every site:
+  * The *(suggestion)* type-parameter fix shows up folded into several numbered
+  * entries below rather than as a pattern of its own, so it's called out here
+  * instead of repeating it at every site: `a new promise`, `resolve`, `react`,
+  * and `reject` (webidl/index.bs) each declare a leading type parameter T (see
+  * `AlgorithmExtractor.GenericVarIgnore`), but every real call site elides it.
+  * Fixed in #4, #10, #11, and #12, each supplying the type of the `promise`/`p`
+  * argument being acted on at that site.
   *
-  *   - *current realm* — `a new promise` and `react` (webidl/index.bs) each
-  *     need the calling realm threaded through explicitly: {{Promise}}
-  *     instances are ordinary objects, and ordinary objects carry no [[Realm]]
-  *     internal slot in ECMA-262 (only function objects do), so there's no slot
-  *     for `react` to derive it from, and `a new promise` simply declares the
-  *     parameter without every caller supplying it. Fixed in #4 (`a new
-  *     promise`'s 3 call sites) and #12 (`react`'s own signature plus its 2
-  *     call sites).
-  *   - *type parameter* — `a new promise`, `resolve`, `react`, and `reject`
-  *     each declare a leading type parameter T (see
-  *     `AlgorithmExtractor.GenericVarIgnore`), but every real call site elides
-  *     it. Fixed in #4, #10, #11, and #12, each supplying the type of the
-  *     `promise`/`p` argument being acted on at that site.
+  * (Not the same pattern as the *calling realm* fix also folded into #4 and #12
+  * — that one is a genuine *(spec bug)*, not a suggestion: `a new
+  * promise`/`react` declare a *required* `|realm|` parameter with no default,
+  * and every js-api/index.bs call site omits it outright, leaving nothing to
+  * bind it to. See docs/spec_errors.md #3 and #4/#12's own comments below.)
   */
 object SpecPatch:
 
@@ -86,20 +79,26 @@ object SpecPatch:
     "Let keys be" -> "Let |keys| be",
     "Return keys." -> "Return |keys|.",
 
-    // #3 (TODO: this is temporary, and should be removed)
-    // esmeta doesn't support overloaded methods, but {{WebAssembly}}'s
-    // `instantiate` is overloaded (module-first and buffer-source-first
-    // variants). Rename this one to avoid the collision.
+    // #3 (hardcoding) — esmeta doesn't support overloaded methods, but
+    // {{WebAssembly}}'s `instantiate` is overloaded (module-first and
+    // buffer-source-first variants). Renames the module-first one to avoid
+    // the collision — a naming distinction the spec itself doesn't make,
+    // invented purely to route around this project's lack of overload
+    // support.
     "The <dfn method for=\"WebAssembly\">instantiate(|moduleObject|, |importObject|)</dfn> method, when invoked, performs the following steps:"
     ->
     "The <dfn method for=\"WebAssembly\">instantiate_object(|moduleObject|, |importObject|)</dfn> method, when invoked, performs the following steps:",
 
-    // #4 (spec bug and suggestion) — `a new promise` is defined with an explicit |realm|
-    // parameter and type parameter T (webidl/index.bs), but js-api/index.bs
-    // calls it with no argument, eliding the realm the way Bikeshed prose
-    // conventionally does, and no type, eliding what the promise resolves
-    // with. Make both explicit so it compiles and so the type flows into the
-    // call. All 3 call sites open with the same "1. Let |promise| be [=a new
+    // #4 (spec bug, docs/spec_errors.md #3; and suggestion) — two distinct
+    // fixes bundled into the same replacements below, since both land on the
+    // same "1. Let |promise| be [=a new promise=]." call sites:
+    //   - (spec bug, docs/spec_errors.md #3) `a new promise` is called with
+    //     no |realm| argument, though its own declaration requires one.
+    //   - (suggestion) `a new promise` also declares a leading type
+    //     parameter T, elided at every call site the way a generic type
+    //     argument conventionally is — nothing wrong in the spec as written,
+    //     just not explicit enough for this tool.
+    // All 3 call sites open with the same "1. Let |promise| be [=a new
     // promise=]." line, so each patch below is anchored with enough of the
     // following line to target just the one site (and is given the type the
     // promise is actually resolved with at that site: Module, Instance, and
@@ -204,14 +203,11 @@ object SpecPatch:
     ->
     s"1. [=Resolve=] ${ofTypePromise("Instance")} |promise| with |instanceObject|.",
 
-    // #11 (spec inconsistency, docs/spec_inconsistencies.md #4) — the compile
-    // algorithm's two CompileError rejections are written as plain "reject
-    // ... exception" prose with no [=...=] link, unlike every other call to
-    // `reject` in the file, so they don't parse as a call to `reject` at all
-    // today. Bracket them into real links (now parseable thanks to
+    // #11 (spec inconsistency, docs/spec_inconsistencies.md #4) — links the
+    // two unlinked `reject`s (parseable now via
     // ExprParser.NewExceptionExpr's "a {{X}} exception" rule and, for the
-    // first site, InstrParser's bare "and return" rule) and annotate with the
-    // type, same as #10.
+    // first site, InstrParser's bare "and return" rule), and annotates with
+    // the type, same as #10.
     "1. If |module| is [=error=], reject |promise| with a {{CompileError}} exception and return."
     ->
     s"1. If |module| is [=error=], [=reject=] ${ofTypePromise("Module")} |promise| with a {{CompileError}} exception and return.",
@@ -343,37 +339,30 @@ object SpecPatch:
     ->
     "    1. Let |moduleinst| be |funcinst|.module.\n    1. Assert: |funcaddr| is contained in |moduleinst|.funcaddrs.\n    1. Let |index| be the index of |moduleinst|.funcaddrs where |funcaddr| is found.",
 
-    // #15 (spec inconsistency, docs/spec_inconsistencies.md #2) — the
-    // "external value" family's 4 non-tag variants (func/global/mem/table)
-    // are written `[=external value|X=]` (Bikeshed pipe-display aliasing)
-    // instead of the `for`-scoped `[=external value/X=]` form its 5th
-    // variant, tag, already correctly uses (line ~220's link-defaults block
-    // declares `for: external value` / `text: tag` — but never registers
-    // func/global/mem/table the same way, unlike the parallel
-    // "external-type" block a few lines below it, which does register all 5
-    // of *its* variants `for: external-type`). Normalized to the
-    // `for`-scoped form for consistency with `tag` and with
-    // `external-type`'s own 5 variants.
+    // #15 (spec inconsistency, docs/spec_inconsistencies.md #2) — normalizes
+    // the "external value" family's 4 non-tag variants from Bikeshed
+    // pipe-display aliasing (`[=external value|func=]`) to the `for`-scoped
+    // form its 5th variant, `tag`, already correctly uses
+    // (`[=external value/func=]`).
     "[=external value|func=]" -> "[=external value/func=]",
     "[=external value|global=]" -> "[=external value/global=]",
     "[=external value|mem=]" -> "[=external value/mem=]",
     "[=external value|table=]" -> "[=external value/table=]",
 
-    // #16 (spec inconsistency, docs/spec_inconsistencies.md #2) — the
-    // link-defaults block that registers "external value"'s linkable
-    // sub-terms (see #15's reasoning) only ever registers `tag`, never
-    // `func`/`global`/`mem`/`table` — unlike the parallel "external-type"
-    // block just below it, which registers all 5 of its own variants
-    // `for: external-type`. This is the root cause #15 patches around (prose
-    // can't validly link `[=external value/func=]` etc. without a matching
-    // registered anchor) — registering the missing 4 here too, so the
-    // anchors actually back the `for`-scoped links #15 normalizes the prose
-    // to.
+    // #16 (spec inconsistency, docs/spec_inconsistencies.md #2) — the other
+    // half of #15: registers the missing `func`/`global`/`mem`/`table`
+    // sub-terms in "external value"'s link-defaults block (only `tag` was
+    // registered), so the `for`-scoped links #15 normalizes the prose to
+    // actually resolve.
     "    url: exec/runtime.html#syntax-externval\n        text: external value\n        for: external value\n            text: tag"
     ->
     "    url: exec/runtime.html#syntax-externval\n        text: external value\n        for: external value\n            text: func\n            text: global\n            text: mem\n            text: table\n            text: tag",
 
-    // # 17 (spec bug) -- it needs to explicitly handle the case where builtins and importedStringConstants are omited. (see https://webidl.spec.whatwg.org/#example-f7efabfd)
+    // #17 (spec bug, docs/spec_errors.md #12) — `|options|["builtins"]`/
+    // `|options|["importedStringConstants"]` are indexed unconditionally with
+    // no `[=map/exists=]` guard, even though both are optional with no
+    // default. Guards both, falling back to an empty list / null
+    // respectively.
     """1. Let |builtinSetNames| be |options|["builtins"]."""
     ->
     """1. If |options|["builtins"] [=map/exists=], let |builtinSetNames| be |options|["builtin"]; otherwise, let |builtinSetNames| be « ».""",
@@ -381,7 +370,9 @@ object SpecPatch:
     ->
     """1. If |options|["importedStringConstants"] [=map/exists=], let |importedStringModule| be |options|["builtin"]; otherwise, let |importedStringModule| be null.""",
 
-    // #18 hardcoded patch for non-normative style
+    // #18 (spec inconsistency, docs/spec_inconsistencies.md #9) — refers back
+    // to |x| with the pronoun "it" instead of repeating the pipe-var, which
+    // ExprParser/CondParser can't resolve to a variable.
     "1.  If |x| is not given, then let it be the {{undefined}} value."
     ->
     "1.  If |x| is not given, then let |x| be the {{undefined}} value.",
@@ -400,7 +391,7 @@ object SpecPatch:
     ->
     "1. If |externtype| is of the form [=external-type/tag=] <var ignore>functype</var>,",
 
-    // #18 (spec bug) — "Let [|parameters|] → [|results|] be |functype|."
+    // #14 (spec bug) — "Let [|parameters|] → [|results|] be |functype|."
     // destructures |functype| as if it already were its own underlying
     // comptype (a flat params/results pair), but |functype| is a deftype
     // (e.g. `func_type`'s own declared return type, or an imported
@@ -415,14 +406,12 @@ object SpecPatch:
     "be |functype|."
     -> "be [=expand=](|functype|).",
 
-    // #20 (spec inconsistency, docs/spec_inconsistencies.md #3) — "the
-    // memory address |frame|.[=frame/module=]..." (`memory.grow`,
-    // index.bs:929) writes the [=memory address=] dfn-link bare, unlike every
-    // other of its 6 occurrences in this file, which all bracket it.
-    // Bracketed here to match; `TypeAnnotatedPrefix` (ExprParser)
-    // now accepts a trailing `|var|...` EXPR (not just a `[=...=]`-led one),
-    // so "the [=TERM=] EXPR" still parses to just EXPR — TERM is dropped as a
-    // pure type annotation, same idiom as every other TypeAnnotatedPrefix use.
+    // #20 (spec inconsistency, docs/spec_inconsistencies.md #3) — brackets
+    // the bare `memory address` dfn-link to match its other 6 occurrences.
+    // `TypeAnnotatedPrefix` (ExprParser) now accepts a trailing `|var|...`
+    // EXPR (not just a `[=...=]`-led one), so "the [=TERM=] EXPR" still
+    // parses to just EXPR — TERM dropped as a pure type annotation, same
+    // idiom as every other TypeAnnotatedPrefix use.
     "Let |memaddr| be the memory address |frame|.[=frame/module=].[=moduleinst/memaddrs=][|x|]."
     -> "Let |memaddr| be the [=memory address=] |frame|.[=frame/module=].[=moduleinst/memaddrs=][|x|].",
 
@@ -478,89 +467,59 @@ object SpecPatch:
     ->
     "throw a {{RuntimeError}} exception.",
 
-    // #24 (spec inconsistency, docs/spec_inconsistencies.md #5) — "call an
-    // Exported Function" (index.bs:1297) writes "If |ret| is [=exception=]
-    // |exnaddr|, then",
-    // omitting the "of the form" every other destructuring match against a
-    // payload-carrying case in this same file uses (e.g. "is of the form
-    // [=external-type/func=] |functype|"). Without it, `CondParser` falls
-    // through to its default `Eq(ret, ...)` handling, which evaluates the RHS
-    // as an ordinary expression — reading `|exnaddr|` as if it already
-    // existed (`Case("EXCEPTION", [Var("exnaddr")])`) instead of binding it,
-    // crashing with "unknown variable: exnaddr". `error` (a 0-arg case,
-    // embedding.rst "error ::= ERROR") doesn't have this problem — only a
-    // payload-carrying case like `exception` (embedding.rst:49, "exception
-    // ::= EXCEPTION exnaddr") does, and this is the only such comparison in
-    // the corpus missing the "of the form" it needs.
+    // #24 (spec inconsistency, docs/spec_inconsistencies.md #5) — missing "of
+    // the form" before `[=exception=] |exnaddr|` makes `CondParser` fall
+    // through to its default `Eq` handling instead of a destructuring match,
+    // reading `|exnaddr|` as if already bound instead of binding it —
+    // crashes with "unknown variable: exnaddr".
     "If |ret| is [=exception=] |exnaddr|, then"
     ->
     "If |ret| is of the form [=exception=] |exnaddr|, then",
 
     // #25 (spec inconsistency, docs/spec_inconsistencies.md #1) — ToJSValue's
-    // ref.i31 case (index.bs:1397) calls "Return [=𝔽=](|i31|)." directly,
-    // while its 4 sibling cases in the same algorithm (i64, i32, f32, f64,
-    // lines 1382-1393) all write "[=𝔽=](|X| interpreted as a [=mathematical
-    // value=])" — even though |i31| is produced exactly the same way as |i64|
-    // (both are the direct return value of a `signed_N` call, bound one step
-    // earlier). `AsMath` (compiled from "interpreted as a [=mathematical
-    // value=]") is what actually converts a raw wasm-origin value into a real
-    // math value; without it here, `𝔽(|i31|)` receives the still-wasm-wrapped
-    // value and can't convert it.
+    // ref.i31 case omits "interpreted as a [=mathematical value=]" that its 4
+    // sibling cases all include; without it, `𝔽(|i31|)` receives a still
+    // wasm-wrapped value instead of `AsMath`'s converted one.
     "1. Return [=𝔽=](|i31|)."
     ->
     "1. Return [=𝔽=](|i31| interpreted as a [=mathematical value=]).",
 
-    // #26 (spec bug, docs/spec_errors.md #14) — `ToJSValue` (index.bs:1376-1402)
-    // is a plain value-producing algorithm: every one of its 12 steps is a bare
-    // `Return`/`If ... return`, with no `Throw`, `NormalCompletion`, or
-    // `ThrowCompletion` anywhere in its body — not completion-returning at all.
-    // Its own single self-recursive call (line 1402, the ref.extern case)
-    // correctly calls it bare. Every *other* call site in the document,
-    // though, prefixes it with `[=!=]` — the ECMA-262 ReturnIfAbrupt shorthand,
-    // only meaningful against an algorithm that itself returns a Completion
-    // Record. One replace handles all 7 sites that apply `!` directly to
-    // `ToJSValue` (index.bs:1096, 1214, 1302, 1308, 1312, 1327, 1762); the
-    // other 5 occurrences of `ToJSValue` (index.bs:1934, 1943, 2048, 2080,
-    // 2123) are untouched — there `!` legitimately targets `$Call$`, with
-    // `ToJSValue(...)` merely passed in as a plain argument.
+    // #26 (spec bug, docs/spec_errors.md #14) — every call site prefixes
+    // `ToJSValue` with `[=!=]` (ReturnIfAbrupt) even though it never returns
+    // a Completion Record. Strips it from the 7 sites where `!` targets
+    // `ToJSValue` directly (index.bs:1096, 1214, 1302, 1308, 1312, 1327,
+    // 1762); leaves the other 5 (index.bs:1934, 1943, 2048, 2080, 2123)
+    // alone, where `!` legitimately targets `$Call$` and `ToJSValue(...)` is
+    // merely passed in as an argument.
     "[=!=] [=ToJSValue=]"
     ->
     "[=ToJSValue=]",
 
-    // #27 (spec inconsistency, docs/spec_inconsistencies.md #6) — "grow the
-    // memory buffer" (index.bs:905) calls mem_size as "the [=mem_size=](...)"
-    // — every other embedding-function call in this document (including
-    // mem_grow, the very next step) is written bare, "[=name=](...)", with
-    // no leading "the ". The leading "the " pushes this one out of the
-    // extractor's call-syntax pattern (which requires the link to start the
-    // expression), silently dropping the call.
+    // #27 (spec inconsistency, docs/spec_inconsistencies.md #6) — "the
+    // [=mem_size=](...)" has a leading "the " every other embedding-function
+    // call in this document omits, which pushes it out of the extractor's
+    // call-syntax pattern (requires the link to start the expression) and
+    // silently drops the call.
     "1. Let |ret| be the [=mem_size=](|store|, |memaddr|)."
     ->
     "1. Let |ret| be [=mem_size=](|store|, |memaddr|).",
 
     // #28 (spec inconsistency, docs/spec_inconsistencies.md #7) — "create a
-    // host function" (index.bs:1344-1372) is the one place in this document
-    // that handles the surrounding agent's associated store ambiently
+    // host function"'s closure handles the associated store ambiently
     // instead of receiving/returning it explicitly like every other
-    // store-touching algorithm here (see #7's own audit of ~40 sites).
-    // Gives the closure an explicit |state| parameter, syncs it into the
-    // ambient field as its first step (the rest of the closure body still
-    // reads that field internally — untouched, since within one synchronous
-    // JS callback execution the ambient convention is fine; only the
-    // boundary crossing needed fixing).
+    // store-touching algorithm here. Gives it an explicit |state| parameter,
+    // synced into the ambient field as its first step — only the boundary
+    // crossing needed fixing, so the rest of the closure body still reads
+    // the field directly.
     "1. Let |hostfunc| be a [=host function=] which performs the following steps when called with arguments |arguments|:\n        1. Let |realm| be |func|'s [=associated Realm=]."
     ->
     "1. Let |hostfunc| be a [=host function=] which performs the following steps when called with state |state| and arguments |arguments|:\n        1. Set the [=surrounding agent=]'s [=associated store=] to |state|.\n        1. Let |realm| be |func|'s [=associated Realm=].",
 
     // #29 (spec inconsistency, docs/spec_inconsistencies.md #7) — the other
     // half of #28: the closure's success path returns just
-    // |result|.\[[Value]], dropping the store entirely instead of pairing it
-    // up the way every other store-touching algorithm in this document does
-    // (`Let (|store|, |x|) be [=mutating_fn=](...)`). |store| here is
-    // already the freshly re-read value from the existing "Let |store| be
-    // the surrounding agent's associated store" step just above (runs right
-    // after the callback, before this throw/success branch) — reuse it
-    // directly in a real pair.
+    // |result|.\[[Value]], dropping the store instead of pairing it up like
+    // every other store-touching algorithm here. |store| is already freshly
+    // re-read just above — reuse it directly in a real pair.
     "1. Otherwise, return |result|.\\[[Value]]."
     ->
     "1. Otherwise, return (|store|, |result|.\\[[Value]]).",

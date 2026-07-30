@@ -150,3 +150,11 @@
 - **Expected**: 두 곳 다 `[=match_valtype=](...)` 뒤에 `is true`를 붙여야 함 — `[=match_valtype=](|type|, [=ref=] |null| [=heap-type/extern=]) is true,` / `... [=match_valtype=](|type|, [=ref=] |null| [=heap-type/func=]) is true,`.
 - **Reason**: 이 문서 전체가 boolean을 리턴하는 함수 호출을 조건으로 쓸 때 예외 없이 "is true"/"is false"를 명시적으로 붙이는 확립된 컨벤션입니다 — 함수 이름을 가리지 않고 전부 이 형태입니다: `[$IsCallable$](...) is true`(1250), `[$IsCallable$](...) is false`(507), `[$HasProperty$](...) is false`(500), `[=match_externtype=](...) is false`(409), `[=match_valtype=](...) is false`(1476), `[=IsFixedLengthArrayBuffer=](...) is true`(891, 936) / `is false`(952), `[=SameValue=](...) is true`(971), `[=IsStrictlyEqual=](...) is true`(2141, 2157), `[=IsLessThan=](...) is true`(2159) — 총 8개 서로 다른 함수, 13곳. 이 문서에서 함수 호출 하나가 "is true/false" 없이 그 자체로 boolean 조건인 것처럼 맨몸으로 쓰이는 곳은 이번에 발견한 두 곳(1450, 1453)이 유일합니다. `AlgorithmExtractor`/`CondParser`는 "함수 호출 하나가 통째로 조건으로 오는" 맨몸 형태를 인식하는 규칙이 없어서(다른 모든 조건은 `X is Y`/`X matches Y` 같은 명시적 비교꼴), 이 두 조건이 조용히 파싱 실패로 빠집니다(`tests/wji/js-throw-through-wasm.js` 작성 중 실제 재현).
 - **WJI 쪽 처리**: `SpecPatch` #30으로 우회 — 두 곳 다 "is true"를 추가해서, 이미 있는 "X is Y" 비교(`Cond.Eq`) 파싱 경로를 그대로 타게 만듦. 새 파서/`Cond` 변형 없이 해결됨.
+
+## 9. `webidl/index.bs`의 "is not given" 기본값 대입 관용구에서 한 곳만 `let it be`로 대명사를 씀
+
+- **File**: `webidl/index.bs`, line 8648
+- **Current**: `1.  If |x| is not given, then let it be the {{undefined}} value.`
+- **Expected**: `1.  If |x| is not given, then let |x| be the {{undefined}} value.` — 같은 파일의 동일한 "is not given" 관용구(line 9461: `If |targetRealm| is not given, let |targetRealm| be the [=current realm=].`)가 쓰는, pipe-var를 그대로 반복하는 정석적인 형태.
+- **Reason**: "it"이 가리키는 대상이 사람에게는 명백히 `|x|`지만, `ExprParser`/`CondParser`는 pipe로 감싼 변수 이름만 바인딩 대상으로 인식하기 때문에 대명사를 변수로 resolve하지 못합니다. 이 파일 안에서 같은 "기본값 대입" 관용구가 쓰이는 다른 자리(line 9461)는 전부 pipe-var를 반복해서 쓰므로, 이 자리만 그 관례에서 벗어나 있습니다.
+- **WJI 쪽 처리**: `SpecPatch` #18로 우회.

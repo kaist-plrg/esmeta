@@ -136,6 +136,22 @@ object NormalizeSpecTecCaseShapePass extends LoweringPass:
       Map("funcref" -> "FUNC", "externref" -> "EXTERN", "exnref" -> "EXN")
     def unapply(s: String): Option[String] = heaptypes.get(s)
 
+  /** A bare `heaptype` case tag, referenced with no operand of its own (e.g.
+    * `[=heap-type/extern=]`, naming the heaptype rather than constructing
+    * something from it) — `ResolveLinksPass.buildCaseOrCall` only applies the
+    * `family/variant` Case-vs-SpecTerm split when the link carries args, so a
+    * bare reference like this always lands here as a `SpecTerm` instead. Scoped
+    * to the `heap-type/` family specifically, not `/`-containing text in
+    * general — other `for`-scoped dfns (e.g. HTML's `realm/settings object`,
+    * also reachable as a zero-arg `SpecTerm` here) use the exact same link-text
+    * shape but aren't SpecTec constructs at all.
+    */
+  private object HeapType:
+    def unapply(s: String): Option[String] =
+      Option.when(s.startsWith("heap-type/"))(
+        s.substring("heap-type/".length).toUpperCase,
+      )
+
   private object reshaper extends Walker:
     override def walk(expr: Expr): Expr = expr match
       // embedding.rst's `error` production (`error ::= ERROR`) crosses the
@@ -164,6 +180,7 @@ object NormalizeSpecTecCaseShapePass extends LoweringPass:
             Expr.Case(heaptype, Nil),
           ),
         )
+      case Expr.SpecTerm(HeapType(tag)) => Expr.Case(tag, Nil)
       case Expr.Case(tag, args) =>
         val reshapedArgs = args.map(walk)
         val stripped = stripLink(tag).toLowerCase

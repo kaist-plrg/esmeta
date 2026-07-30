@@ -16,15 +16,14 @@ case class Spec(
   lazy val definitionMap: Map[String, Definition] =
     definitions.map(d => d.name -> d).toMap
 
-  /** Registers every extracted interface *and* namespace as a dynamic
-    * subtype of `"Object"` (see `esmeta.ty.TyModel.registerDynamicSubtype`)
-    * — fixes mainline's `Type(v)`/`HasPrimitiveBase` classification for
-    * WJI-constructed interface objects (e.g. a WebAssembly.Instance) as well
-    * as the WebAssembly namespace object itself, none of which
-    * `ManualInfo`'s static, file-based type hierarchy has any way to know
-    * about. Must be called before the interpreter runs (safe to call any
-    * time before that — see `TyModel`'s doc for why this can't just be a
-    * static `manuals/types` entry).
+  /** Registers every extracted interface *and* namespace as a dynamic subtype
+    * of `"Object"` (see `esmeta.ty.TyModel.registerDynamicSubtype`) — fixes
+    * mainline's `Type(v)`/`HasPrimitiveBase` classification for WJI-constructed
+    * interface objects (e.g. a WebAssembly.Instance) as well as the WebAssembly
+    * namespace object itself, none of which `ManualInfo`'s static, file-based
+    * type hierarchy has any way to know about. Must be called before the
+    * interpreter runs (safe to call any time before that — see `TyModel`'s doc
+    * for why this can't just be a static `manuals/types` entry).
     *
     * `CompileError`/`LinkError`/`RuntimeError` are `<dfn exception>`s, not
     * WebIDL interfaces, so they never show up in `interfaces` above — but

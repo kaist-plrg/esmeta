@@ -15,10 +15,10 @@ import java.nio.file.{Files, Path}
   * optionally preceded by a `[...]` extended attribute list (e.g.
   * `[LegacyNamespace=WebAssembly, Exposed=*]`).
   *
-  * Only `namespace`/`interface` blocks are extracted — a `<pre
-  * class="idl">` block also commonly holds `dictionary`/`enum` declarations
-  * (e.g. `WebAssemblyCompileOptions` right next to `WebAssembly`), which are
-  * a different WebIDL construct and matched separately elsewhere (see
+  * Only `namespace`/`interface` blocks are extracted — a `<pre class="idl">`
+  * block also commonly holds `dictionary`/`enum` declarations (e.g.
+  * `WebAssemblyCompileOptions` right next to `WebAssembly`), which are a
+  * different WebIDL construct and matched separately elsewhere (see
   * `ExprParser`'s `{{Dict/member}}` handling).
   */
 object DefinitionExtractor:
@@ -32,10 +32,10 @@ object DefinitionExtractor:
   private val IdlPreClose = "</pre>"
 
   /** matches the start of an `interface Name {` or `namespace Name {`
-    * declaration; the body end is found separately by [[findBodyEnd]] (a
-    * member can itself contain a nested `{}`, e.g. `optional
-    * WebAssemblyCompileOptions options = {}`, so a regex spanning the whole
-    * body can't safely find the matching close brace)
+    * declaration; the body end is found separately by [[findBodyEnd]] (a member
+    * can itself contain a nested `{}`, e.g. `optional WebAssemblyCompileOptions
+    * options = {}`, so a regex spanning the whole body can't safely find the
+    * matching close brace)
     */
   private val DefOpen =
     """\b(interface|namespace)\s+([A-Za-z][A-Za-z0-9]*)\s*\{""".r
@@ -89,8 +89,8 @@ object DefinitionExtractor:
       i += 1
     None
 
-  /** splits an interface/namespace body into its member declarations' raw
-    * text. Unescaped first — generic types are written HTML-escaped
+  /** splits an interface/namespace body into its member declarations' raw text.
+    * Unescaped first — generic types are written HTML-escaped
     * (`sequence&lt;X&gt;`), and `&lt;`/`&gt;` themselves end in `;`, which a
     * raw split would wrongly treat as a member separator. Safe to split on a
     * bare `;` after that: no member in this corpus nests one inside its own
@@ -99,22 +99,24 @@ object DefinitionExtractor:
   private def splitMemberTexts(body: String): List[String] =
     body.unescapeHtml.split(";").map(_.trim).filter(_.nonEmpty).toList
 
-  /** parses one member declaration's raw text (see [[splitMemberTexts]]) into
-    * a [[Member]] — one of:
-    *   - `constructor(PARAMS)` → an [[Operation]] with `id = "constructor"`
-    *     and `kind = MemberKind.Constructor` (WebIDL constructors have no
+  /** parses one member declaration's raw text (see [[splitMemberTexts]]) into a
+    * [[Member]] — one of:
+    *   - `constructor(PARAMS)` → an [[Operation]] with `id = "constructor"` and
+    *     `kind = MemberKind.Constructor` (WebIDL constructors have no
     *     name/return type of their own)
     *   - `[readonly] attribute TYPE ID` → an [[Attribute]]
     *   - `[static] RETTYPE ID(PARAMS)` → an [[Operation]], `kind` reflecting
     *     whether `static` was present
     *
-    * Any leading `[...]` extended attribute list (not seen on a member in
-    * this corpus, but allowed by WebIDL in general) is captured either way.
+    * Any leading `[...]` extended attribute list (not seen on a member in this
+    * corpus, but allowed by WebIDL in general) is captured either way.
     */
   private def parseMember(raw: String): Member =
     val (extAttr, rest) = stripLeadingExtAttr(raw)
     if rest.startsWith("constructor(") && rest.endsWith(")") then
-      val params = parseParams(rest.substring("constructor(".length, rest.length - 1))
+      val params = parseParams(
+        rest.substring("constructor(".length, rest.length - 1),
+      )
       Operation("constructor", params, "", MemberKind.Constructor, extAttr)
     else if rest.startsWith("readonly attribute ") then
       val (ty, id) = splitTypeAndId(rest.stripPrefix("readonly attribute "))
@@ -124,8 +126,8 @@ object DefinitionExtractor:
       Attribute(id, ty, readonly = false, extAttr = extAttr)
     else
       val (head, kind) =
-        if rest.startsWith("static ")
-        then (rest.stripPrefix("static "), MemberKind.Static)
+        if rest.startsWith("static ") then
+          (rest.stripPrefix("static "), MemberKind.Static)
         else (rest, MemberKind.Regular)
       val close = head.length - 1
       val open = findMatchingOpen(head, close)
@@ -136,8 +138,8 @@ object DefinitionExtractor:
   /** splits `RETTYPE ID` (an operation's return type + name) or `TYPE ID` (an
     * attribute's type + name) on its last top-level whitespace — the id is
     * always the final token, so this works even when the type itself is
-    * multiple words (`unsigned long`) or a parenthesized union
-    * (`(DOMString or undefined)`)
+    * multiple words (`unsigned long`) or a parenthesized union (`(DOMString or
+    * undefined)`)
     */
   private def splitTypeAndId(head: String): (String, String) =
     val tokens = splitTopLevelWhitespace(head)
@@ -150,8 +152,8 @@ object DefinitionExtractor:
   private def parseParams(raw: String): List[Param] =
     splitTopLevel(raw, ',').map(_.trim).filter(_.nonEmpty).map(parseParam)
 
-  /** parses one `[ExtAttrs] optional? TYPE NAME (= DEFAULT)?` parameter —
-    * the name itself isn't kept (see [[Param]]'s doc)
+  /** parses one `[ExtAttrs] optional? TYPE NAME (= DEFAULT)?` parameter — the
+    * name itself isn't kept (see [[Param]]'s doc)
     */
   private def parseParam(raw: String): Param =
     val (extAttr, afterExtAttr) = stripLeadingExtAttr(raw)
@@ -168,7 +170,9 @@ object DefinitionExtractor:
   /** strips a leading `[...]` extended attribute list, if present, returning
     * the parsed attributes and the remaining trimmed text
     */
-  private def stripLeadingExtAttr(raw: String): (List[ExtendedAttribute], String) =
+  private def stripLeadingExtAttr(
+    raw: String,
+  ): (List[ExtendedAttribute], String) =
     val trimmed = raw.trim
     if !trimmed.startsWith("[") then (Nil, trimmed)
     else
@@ -188,12 +192,12 @@ object DefinitionExtractor:
         val extAttr = parseExtAttrList(trimmed.substring(1, closeIdx))
         (extAttr, trimmed.substring(closeIdx + 1).trim)
 
-  /** finds the `[...]` extended attribute list immediately preceding
-    * `defStart` (i.e. nothing but whitespace between the `]` and the
+  /** finds the `[...]` extended attribute list immediately preceding `defStart`
+    * (i.e. nothing but whitespace between the `]` and the
     * `interface`/`namespace` keyword), if any — e.g. `[LegacyNamespace=
-    * WebAssembly, Exposed=*]` before `interface Module {`. Scans backward
-    * with bracket-depth counting since the list can itself hold nested `[]`
-    * (not seen in this corpus, but WebIDL allows it in general).
+    * WebAssembly, Exposed=*]` before `interface Module {`. Scans backward with
+    * bracket-depth counting since the list can itself hold nested `[]` (not
+    * seen in this corpus, but WebIDL allows it in general).
     */
   private def extAttrBefore(
     block: String,
@@ -216,11 +220,11 @@ object DefinitionExtractor:
       if openIdx < 0 then Nil
       else parseExtAttrList(before.substring(openIdx + 1, before.length - 1))
 
-  /** parses the comma-separated content of a `[...]` extended attribute
-    * list, e.g. `LegacyNamespace=WebAssembly, Exposed=*` or
-    * `Exposed=(Window,Worker,Worklet)` (the latter has a single attribute
-    * whose value itself contains commas, so splitting must ignore commas
-    * nested inside `()`/`[]`)
+  /** parses the comma-separated content of a `[...]` extended attribute list,
+    * e.g. `LegacyNamespace=WebAssembly, Exposed=*` or
+    * `Exposed=(Window,Worker,Worklet)` (the latter has a single attribute whose
+    * value itself contains commas, so splitting must ignore commas nested
+    * inside `()`/`[]`)
     */
   private def parseExtAttrList(content: String): List[ExtendedAttribute] =
     splitTopLevel(content, ',')
@@ -281,8 +285,8 @@ object DefinitionExtractor:
     parts.result()
 
   /** finds the index of the `(` matching the `)` at `closeIdx`, scanning
-    * backward with paren-depth counting (mirrors [[findBodyEnd]], but for
-    * `()` instead of `{}` and searching backward instead of forward)
+    * backward with paren-depth counting (mirrors [[findBodyEnd]], but for `()`
+    * instead of `{}` and searching backward instead of forward)
     */
   private def findMatchingOpen(s: String, closeIdx: Int): Int =
     var depth = 0

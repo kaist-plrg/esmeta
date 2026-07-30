@@ -1,11 +1,10 @@
 package esmeta.wji.lang
 
-/** A WebIDL `namespace`/`interface` block extracted from a `<pre
-  * class="idl">` in js-api/index.bs (e.g. `WebAssembly`, `Module`,
-  * `Instance`, `Memory`, `Table`, `Global`, `Tag`, `Exception`) — not a
-  * `dictionary`/`enum` block, which share the same `<pre class="idl">`
-  * container but are a separate WebIDL construct (see
-  * [[esmeta.wji.extractor.DefinitionExtractor]]).
+/** A WebIDL `namespace`/`interface` block extracted from a `<pre class="idl">`
+  * in js-api/index.bs (e.g. `WebAssembly`, `Module`, `Instance`, `Memory`,
+  * `Table`, `Global`, `Tag`, `Exception`) — not a `dictionary`/`enum` block,
+  * which share the same `<pre class="idl">` container but are a separate WebIDL
+  * construct (see [[esmeta.wji.extractor.DefinitionExtractor]]).
   *
   * `members` holds each member declaration parsed into an [[Operation]]
   * (method/constructor) or [[Attribute]] — see
@@ -13,8 +12,9 @@ package esmeta.wji.lang
   *
   * TODO: wire a `Getter`/`Method`/`Constructor` [[Algorithm]] to its real
   * WebIDL member declaration, or build the ordinary-object scaffolding
-  * `Expr.New(iface)` doesn't yet construct (see `esmeta.wji.compiler.Compiler`'s
-  * `Expr.New` case) — nothing consumes `members` for that yet.
+  * `Expr.New(iface)` doesn't yet construct (see
+  * `esmeta.wji.compiler.Compiler`'s `Expr.New` case) — nothing consumes
+  * `members` for that yet.
   */
 
 case class ExtendedAttribute(id: String, value: Option[String])
@@ -52,7 +52,7 @@ case class Attribute(
 ) extends Member
 case class Constant() extends Member // TODO
 
-case class Definition (
+case class Definition(
   name: String,
   members: List[Member],
   kind: DefinitionKind,

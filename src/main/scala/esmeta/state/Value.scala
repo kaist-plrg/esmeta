@@ -175,22 +175,39 @@ enum ALValue:
   * across the `esmeta.wji.bridge.host.WasmHost` boundary without being
   * interpreted on the ES side.
   *
-  * The one exception is [[ALValue.TextV]]: a Wasm `name` (Wasm Core Spec 5.2.4,
-  * a UTF-8 byte sequence) is always just an ECMAScript string once it crosses
-  * back out of a Wasm-side structure (e.g. `module_imports`'s `(name, name,
-  * externtype)` triples end up as property keys in `[$Get$](importObject,
-  * moduleName)`) — never passed back across the WasmHost boundary as a bare
-  * value itself — so the smart constructor below unwraps it to a real [[Str]]
-  * instead of leaving it `Wasm`-wrapped. This lives here, in the one place
-  * every `Wasm(...)` construction goes through (positional indexing into a
-  * `Wasm(ALValue.TupV(...))`/`CaseV(...)`/`ListV(...)` via `State.apply`, a raw
-  * embedding-call result, ...), rather than at each of those call sites
-  * individually, so `Wasm(ALValue.TextV(_))` can't accidentally exist anywhere.
+  * Two exceptions, both unwrapped by the smart constructor below into their
+  * direct ECMAScript-value equivalent rather than staying `Wasm`-wrapped:
+  *
+  *   - [[ALValue.TextV]]: a Wasm `name` (Wasm Core Spec 5.2.4, a UTF-8 byte
+  *     sequence) is always just an ECMAScript string once it crosses back out
+  *     of a Wasm-side structure (e.g. `module_imports`'s `(name, name,
+  *     externtype)` triples end up as property keys in `[$Get$] (importObject,
+  *     moduleName)`) — never passed back across the WasmHost boundary as a bare
+  *     value itself.
+  *   - [[ALValue.BoolV]]: compiled metalang conditions compare an embedding
+  *     call's boolean result directly against an ECMAScript `Bool` literal
+  *     (e.g. `match_valtype(...)` compiles to `(= _callN true)`) — left
+  *     `Wasm`-wrapped, that comparison silently always fails, since
+  *     `esmeta.interpreter.Interpreter.eval(bop, l, r)`'s generic `Eq` case is
+  *     plain Scala `==`, and `Wasm(ALValue.BoolV(b))` is never `==` to
+  *     `Bool(b)` even when `b` matches (different case classes). Unlike
+  *     [[ALValue.NumV]] (which must stay opaque — ES has more than one numeric
+  *     representation, so unwrapping could silently pick the wrong one) a Wasm
+  *     boolean has exactly one unambiguous ECMAScript equivalent, same as a
+  *     Wasm string.
+  *
+  * Both live here, in the one place every `Wasm(...)` construction goes through
+  * (positional indexing into a `Wasm(ALValue.TupV(...))`/
+  * `CaseV(...)`/`ListV(...)` via `State.apply`, a raw embedding-call result,
+  * ...), rather than at each of those call sites individually, so a
+  * `Wasm(ALValue.TextV(_))`/`Wasm(ALValue.BoolV(_))` can't accidentally exist
+  * anywhere.
   */
 case class Wasm private (v: ALValue) extends Value
 object Wasm:
   def apply(v: ALValue): Value = v match
     case ALValue.TextV(s) => Str(s)
+    case ALValue.BoolV(b) => Bool(b)
     case other            => new Wasm(other)
 
 /** simple values

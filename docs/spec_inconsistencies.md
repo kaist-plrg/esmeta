@@ -137,3 +137,16 @@
   지점 자체는 누구의 스타일도 아닌 채로 붕 떠버린 셈. 이런 종류의
   "연결 지점에서 발생하는 스타일 불일치"가 이 문서에서 재발하는지는
   앞으로도 눈여겨볼 만하다.
+
+## 8. `ToWebAssemblyValue`의 `[=match_valtype=](...)` 조건 2곳만 "is true"가 안 붙음
+
+- **File**: `spectec/document/js-api/index.bs`, line 1450, 1453 (`ToWebAssemblyValue`, `ref null heaptype` 분기)
+- **Current**:
+  ```
+  1. Else if [=match_valtype=](|type|, [=ref=] |null| [=heap-type/extern=]),
+  ...
+  1. Else if |v| is an [=Exported Function=] and [=match_valtype=](|type|, [=ref=] |null| [=heap-type/func=]),
+  ```
+- **Expected**: 두 곳 다 `[=match_valtype=](...)` 뒤에 `is true`를 붙여야 함 — `[=match_valtype=](|type|, [=ref=] |null| [=heap-type/extern=]) is true,` / `... [=match_valtype=](|type|, [=ref=] |null| [=heap-type/func=]) is true,`.
+- **Reason**: 이 문서 전체가 boolean을 리턴하는 함수 호출을 조건으로 쓸 때 예외 없이 "is true"/"is false"를 명시적으로 붙이는 확립된 컨벤션입니다 — 함수 이름을 가리지 않고 전부 이 형태입니다: `[$IsCallable$](...) is true`(1250), `[$IsCallable$](...) is false`(507), `[$HasProperty$](...) is false`(500), `[=match_externtype=](...) is false`(409), `[=match_valtype=](...) is false`(1476), `[=IsFixedLengthArrayBuffer=](...) is true`(891, 936) / `is false`(952), `[=SameValue=](...) is true`(971), `[=IsStrictlyEqual=](...) is true`(2141, 2157), `[=IsLessThan=](...) is true`(2159) — 총 8개 서로 다른 함수, 13곳. 이 문서에서 함수 호출 하나가 "is true/false" 없이 그 자체로 boolean 조건인 것처럼 맨몸으로 쓰이는 곳은 이번에 발견한 두 곳(1450, 1453)이 유일합니다. `AlgorithmExtractor`/`CondParser`는 "함수 호출 하나가 통째로 조건으로 오는" 맨몸 형태를 인식하는 규칙이 없어서(다른 모든 조건은 `X is Y`/`X matches Y` 같은 명시적 비교꼴), 이 두 조건이 조용히 파싱 실패로 빠집니다(`tests/wji/js-throw-through-wasm.js` 작성 중 실제 재현).
+- **WJI 쪽 처리**: `SpecPatch` #30으로 우회 — 두 곳 다 "is true"를 추가해서, 이미 있는 "X is Y" 비교(`Cond.Eq`) 파싱 경로를 그대로 타게 만듦. 새 파서/`Cond` 변형 없이 해결됨.

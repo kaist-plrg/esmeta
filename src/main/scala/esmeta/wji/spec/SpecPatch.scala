@@ -564,6 +564,14 @@ object SpecPatch:
     "1. Otherwise, return |result|.\\[[Value]]."
     ->
     "1. Otherwise, return (|store|, |result|.\\[[Value]]).",
+
+    // #30 (spec inconsistency, docs/spec_inconsistencies.md #8) —
+    // `ToWebAssemblyValue`'s two `[=match_valtype=](...)` conditions
+    // (index.bs:1450,1453) are the only boolean-function-call conditions in
+    // this document not spelled out with "is true"/"is false" (see #8 for the
+    // full survey). Adds the missing "is true".
+    "[=heap-type/extern=])," -> "[=heap-type/extern=]) is true,",
+    "[=heap-type/func=])," -> "[=heap-type/func=]) is true,",
   )
 
   def apply(source: String): String =

@@ -2336,63 +2336,68 @@ def towebassemblyvalue(
     let heaptype = type[1]
     if (= v null) {
       let r = (case "REF.NULL" heaptype)
-    } else if (yet "[=match_valtype=](|type|, [=ref=] |null| [=heap-type/extern=])") {
-      call _call5 = clo<"towebassemblyvalue">(v, (case "REF" ~heap-type/any~))
-      if (exists _call5.Type) {
-        assert (= _call5.Type ~normal~)
-        let ref = _call5.Value
-      } else {
-        let ref = _call5
-      }
-      let r = (case "REF.EXTERN" ref)
-    } else if (&& (= v (yet "an [=Exported Function=]")) (= v (yet "call [=match_valtype=]"))) {
-      let funcaddr = v.FunctionAddress
-      let r = (case "REF.FUNC" funcaddr)
-    } else if (&& (? v: Number) (&& (= v (yet "nested ?-abrupt: JSCall(ToInt32,List(Var(v)))")) (&& (< (yet "call [=ℝ=]") (** 2 30)) (! (< (yet "call [=ℝ=]") (- (** 2 30))))))) {
-      call _call6 = clo<"ToInt32">(v)
-      if (exists _call6.Type) {
-        if (? _call6: Abrupt) {
-          if (? _call6: Completion) {
-            return _call6
-          } else {
-            call _ret13 = clo<"NormalCompletion">(_call6)
-            return _ret13
-          }
-        } else {
-          let i31 = _call6.Value
-        }
-      } else {
-        let i31 = _call6
-      }
-      call-embed u31 = <inv_signed_31>(([math] i31))
-      let r = (case "REF.I31" u31)
-    } else if (= v (yet "an [=Exported GC Object=]")) {
-      let objectaddr = v.ObjectAddress
-      let objectkind = v.ObjectKind
-      if (= objectkind "array") {
-        let r = (case "REF.ARRAY" objectaddr)
-      } else if (= objectkind "struct") {
-        let r = (case "REF.STRUCT" objectaddr)
-      } else nop
     } else {
-      let map = @AGENT_RECORD["host value cache"]
-      if (= @@yet: unresolved ref: SuchThat([=host address=] |hostaddr| exists,|map|)[hostaddr] (yet "the same as |v|")) {
-        let _v14 = (case "REF.HOST" hostaddr)
-        if (? _v14: Completion) {
-          return _v14
+      call-embed _call5 = <match_valtype>(type, (case "REF" null ~heap-type/extern~))
+      if (= _call5 true) {
+        call _call6 = clo<"towebassemblyvalue">(v, (case "REF" ~heap-type/any~))
+        if (exists _call6.Type) {
+          assert (= _call6.Type ~normal~)
+          let ref = _call6.Value
         } else {
-          call _ret15 = clo<"NormalCompletion">(_v14)
-          return _ret15
+          let ref = _call6
         }
-      } else nop
-      let _ = (yet "unsupported Let lhs: AlgoCall([=host_address=],List(Var(hostaddr)))")
-      map[hostaddr] = v
-      let r = (case "REF.HOST" hostaddr)
+        let r = (case "REF.EXTERN" ref)
+      } else {
+        if (&& (= v (yet "an [=Exported Function=]")) (= (yet "call [=match_valtype=]") true)) {
+          let funcaddr = v.FunctionAddress
+          let r = (case "REF.FUNC" funcaddr)
+        } else if (&& (? v: Number) (&& (= v (yet "nested ?-abrupt: JSCall(ToInt32,List(Var(v)))")) (&& (< (yet "call [=ℝ=]") (** 2 30)) (! (< (yet "call [=ℝ=]") (- (** 2 30))))))) {
+          call _call7 = clo<"ToInt32">(v)
+          if (exists _call7.Type) {
+            if (? _call7: Abrupt) {
+              if (? _call7: Completion) {
+                return _call7
+              } else {
+                call _ret13 = clo<"NormalCompletion">(_call7)
+                return _ret13
+              }
+            } else {
+              let i31 = _call7.Value
+            }
+          } else {
+            let i31 = _call7
+          }
+          call-embed u31 = <inv_signed_31>(([math] i31))
+          let r = (case "REF.I31" u31)
+        } else if (= v (yet "an [=Exported GC Object=]")) {
+          let objectaddr = v.ObjectAddress
+          let objectkind = v.ObjectKind
+          if (= objectkind "array") {
+            let r = (case "REF.ARRAY" objectaddr)
+          } else if (= objectkind "struct") {
+            let r = (case "REF.STRUCT" objectaddr)
+          } else nop
+        } else {
+          let map = @AGENT_RECORD["host value cache"]
+          if (= @@yet: unresolved ref: SuchThat([=host address=] |hostaddr| exists,|map|)[hostaddr] (yet "the same as |v|")) {
+            let _v14 = (case "REF.HOST" hostaddr)
+            if (? _v14: Completion) {
+              return _v14
+            } else {
+              call _ret15 = clo<"NormalCompletion">(_v14)
+              return _ret15
+            }
+          } else nop
+          let _ = (yet "unsupported Let lhs: AlgoCall([=host_address=],List(Var(hostaddr)))")
+          map[hostaddr] = v
+          let r = (case "REF.HOST" hostaddr)
+        }
+      }
     }
     let store = @AGENT_RECORD["associated store"]
     call-embed actualtype = <ref_type>(store, r)
-    call-embed _call7 = <match_valtype>(actualtype, type)
-    if (= _call7 false) {
+    call-embed _call8 = <match_valtype>(actualtype, type)
+    if (= _call8 false) {
       call _err16 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
       call _ret17 = clo<"ThrowCompletion">(_err16)
       return _ret17

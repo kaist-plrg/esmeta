@@ -214,22 +214,51 @@ object NormalizeEvaluationOrderPass extends LoweringPass:
       bindings ++ List(Instr.Assert(newCond, transform(body)))
 
     case Instr.IfChain(branches, fallback) =>
-      branches match
-        case (cond, body) :: rest =>
-          val (bindings, newCond) = extractFromCond(cond)
-          val newChain = Instr.IfChain(
-            (newCond, transform(body)) :: rest.map((c, b) => (c, transform(b))),
-            transform(fallback),
-          )
-          bindings ++ List(newChain)
-        case Nil =>
-          List(Instr.IfChain(Nil, transform(fallback)))
+      buildChain(branches, fallback)
 
     case Instr.While(cond, body) =>
       List(Instr.While(cond, transform(body)))
 
     case _ =>
       List(instr.mapBody(transform))
+
+  /** Rebuilds an `IfChain`'s branch list back-to-front, hoisting each branch's
+    * own condition via [[extractFromCond]] as it goes. A branch whose condition
+    * needs nothing hoisted is folded back in as a flat sibling of whatever
+    * `rest` already built (so a chain that needs no hoisting anywhere
+    * round-trips through this function with its original flat shape completely
+    * unchanged — confirmed by `SnapshotSpec` showing zero diff outside the one
+    * algorithm this fix actually targets). Once a branch *does* need hoisting,
+    * flattening can't continue past it: that branch's `Let`s only belong where
+    * they're now placed — right before a `IfChain` wrapping *just* that branch,
+    * itself reachable only once every earlier branch's condition has already
+    * been false — so everything from there on nests one level deeper instead of
+    * staying a sibling. This is the fix for the bug the flat version had:
+    * hoisting only the *first* branch's condition and leaving every later
+    * `ElseIf`'s condition untouched, silently leaving a call embedded raw
+    * inside it (see `docs/hardcodes.md`/this pass's own class doc — a later
+    * branch's condition is only ever evaluated once earlier ones are known
+    * false, so its hoisted `Let`s can't just be flattened unconditionally to
+    * the top the way the first branch's already correctly are).
+    */
+  private def buildChain(
+    branches: List[(Cond, List[Instr])],
+    fallback: List[Instr],
+  ): List[Instr] = branches match
+    case Nil => transform(fallback)
+    case (cond, body) :: rest =>
+      val (bindings, newCond) = extractFromCond(cond)
+      val newBody = transform(body)
+      val restInstrs = buildChain(rest, fallback)
+      if bindings.isEmpty then
+        restInstrs match
+          case List(Instr.IfChain(restBranches, restFallback)) =>
+            List(
+              Instr.IfChain((newCond, newBody) :: restBranches, restFallback),
+            )
+          case other =>
+            List(Instr.IfChain(List((newCond, newBody)), other))
+      else bindings ++ List(Instr.IfChain(List((newCond, newBody)), restInstrs))
 
   // ── Cond normalization ───────────────────────────────────────────────────────
 

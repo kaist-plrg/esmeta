@@ -140,22 +140,19 @@ object Compiler:
         else compileSeq(algo.body) :+ IReturn(EUnused),
       )
       // AddInterfaceMemberBuiltinBehaviourPass has already reshaped a
-      // Getter/Setter/Constructor-kind algorithm's params/body into the real
-      // `<BUILTIN>:` calling convention (ArgumentsList unpacking, every
-      // Return wrapped in a Completion) by the time lowering hands it here —
-      // compiled exactly like any other algorithm, just registered under the
-      // exact case-preserved name `manuals/intrinsics` references for that
-      // kind (e.g. `INTRINSICS.get:WebAssembly.Instance.prototype.exports`,
-      // `INTRINSICS.WebAssembly.Instance`) with `FuncKind.Builtin`, instead
-      // of the usual lowercased/AbsOp shape — so a real `instance.exports`
-      // property read (or `new WebAssembly.Instance(...)`, once the rest of
-      // `docs/hardcodes.md` #7's gap is closed) reaches it directly, no
-      // hand-written `manuals/funcs/...` stub needed.
-      //
-      // `Method` is NOT included here (TODO — see
-      // `AddInterfaceMemberBuiltinBehaviourPass`'s doc for why) and still
-      // falls through to the same plain-`AbsOp`/lowercased compilation every
-      // `Plain` algorithm gets below.
+      // Getter/Setter/Constructor/Method-kind algorithm's params/body into
+      // the real `<BUILTIN>:` calling convention (ArgumentsList unpacking,
+      // every Return wrapped in a Completion) by the time lowering hands it
+      // here — compiled exactly like any other algorithm, just registered
+      // under the exact case-preserved name `manuals/intrinsics` references
+      // for that kind (e.g. `INTRINSICS.get:WebAssembly.Instance.prototype.
+      // exports`, `INTRINSICS.WebAssembly.Instance`,
+      // `INTRINSICS.WebAssembly.Global.prototype.valueOf`) with
+      // `FuncKind.Builtin`, instead of the usual lowercased/AbsOp shape — so
+      // a real `instance.exports` property read (or `new
+      // WebAssembly.Instance(...)`, once the rest of `docs/hardcodes.md` #7's
+      // gap is closed) reaches it directly, no hand-written
+      // `manuals/funcs/...` stub needed.
       def builtinFunc(fname: String): Func =
         Func(
           main = false,
@@ -172,7 +169,13 @@ object Compiler:
           builtinFunc(s"INTRINSICS.set:WebAssembly.$iface.prototype.$name")
         case AlgorithmKind.Constructor(iface) =>
           builtinFunc(s"INTRINSICS.WebAssembly.$iface")
-        case AlgorithmKind.Plain | AlgorithmKind.Method(_) =>
+        // `iface` here is guaranteed a real WebIDL interface, never a
+        // namespace (`WebAssembly` itself) — `esmeta.wji.extractor.Extractor`
+        // already downgrades any `Method` whose `for` isn't in the extracted
+        // interfaces list to `Plain`, so this case never sees it.
+        case AlgorithmKind.Method(iface) =>
+          builtinFunc(s"INTRINSICS.WebAssembly.$iface.prototype.$name")
+        case AlgorithmKind.Plain =>
           Func(
             main = false,
             kind = FuncKind.AbsOp,

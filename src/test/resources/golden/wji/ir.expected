@@ -590,9 +590,16 @@ def string_value_of_the_extern_type(
   (yet "\"tag\" if |type| is of the form [=external-type/tag=] <var ignore>tag</var>")
   return ~unused~
 }
-def exports(
-  moduleObject: Unknown,
+def <BUILTIN>:INTRINSICS.WebAssembly.Module.prototype.exports(
+  this: Unknown,
+  ArgumentsList: Unknown,
+  NewTarget: Unknown,
 ): Unknown = {
+  if (< 0 (sizeof ArgumentsList)) {
+    let moduleObject = ArgumentsList[0]
+  } else {
+    let moduleObject = undefined
+  }
   let module = moduleObject.Module
   let exports = (list [])
   call-embed _iterList1 = <module_exports>(module)
@@ -609,11 +616,23 @@ def exports(
     push exports < obj
     _iterIdx2 = (+ _iterIdx2 1)
   }
-  return exports
+  if (? exports: Completion) {
+    return exports
+  } else {
+    call _ret1 = clo<"NormalCompletion">(exports)
+    return _ret1
+  }
 }
-def imports(
-  moduleObject: Unknown,
+def <BUILTIN>:INTRINSICS.WebAssembly.Module.prototype.imports(
+  this: Unknown,
+  ArgumentsList: Unknown,
+  NewTarget: Unknown,
 ): Unknown = {
+  if (< 0 (sizeof ArgumentsList)) {
+    let moduleObject = ArgumentsList[0]
+  } else {
+    let moduleObject = undefined
+  }
   let module = moduleObject.Module
   let builtinSetNames = moduleObject.BuiltinSets
   let importedStringModule = moduleObject.ImportedStringModule
@@ -640,12 +659,28 @@ def imports(
     push imports < obj
     _iterIdx2 = (+ _iterIdx2 1)
   }
-  return imports
+  if (? imports: Completion) {
+    return imports
+  } else {
+    call _ret1 = clo<"NormalCompletion">(imports)
+    return _ret1
+  }
 }
-def customsections(
-  moduleObject: Unknown,
-  sectionName: Unknown,
+def <BUILTIN>:INTRINSICS.WebAssembly.Module.prototype.customsections(
+  this: Unknown,
+  ArgumentsList: Unknown,
+  NewTarget: Unknown,
 ): Unknown = {
+  if (< 0 (sizeof ArgumentsList)) {
+    let moduleObject = ArgumentsList[0]
+  } else {
+    let moduleObject = undefined
+  }
+  if (< 1 (sizeof ArgumentsList)) {
+    let sectionName = ArgumentsList[1]
+  } else {
+    let sectionName = undefined
+  }
   let bytes = moduleObject.Bytes
   let customSections = (list [])
   (yet "foreach [=custom_section=](|customSection|) in |bytes|")
@@ -654,7 +689,12 @@ def customsections(
   if (= name (yet "|sectionName| as string values")) {
     push customSections < (yet "a new {{ArrayBuffer}} containing a copy of the bytes in |bytes| for the range matched by this [=customsec=] production")
   } else nop
-  return customSections
+  if (? customSections: Completion) {
+    return customSections
+  } else {
+    call _ret1 = clo<"NormalCompletion">(customSections)
+    return _ret1
+  }
 }
 def <BUILTIN>:INTRINSICS.WebAssembly.Module(
   this: Unknown,
@@ -942,9 +982,16 @@ def grow_the_memory_buffer(
     return _ret3
   }
 }
-def grow(
-  delta: Unknown,
+def <BUILTIN>:INTRINSICS.WebAssembly.Memory.prototype.grow(
+  this: Unknown,
+  ArgumentsList: Unknown,
+  NewTarget: Unknown,
 ): Unknown = {
+  if (< 0 (sizeof ArgumentsList)) {
+    let delta = ArgumentsList[0]
+  } else {
+    let delta = undefined
+  }
   let memaddr = this.Memory
   let store = @AGENT_RECORD["associated store"]
   let addrtype = (yet "the [=address type=] in [=mem_type=](|store|, |memaddr|)")
@@ -988,20 +1035,36 @@ def memory.grow(
   } else nop
   return ~unused~
 }
-def tofixedlengthbuffer(
+def <BUILTIN>:INTRINSICS.WebAssembly.Memory.prototype.tofixedlengthbuffer(
+  this: Unknown,
+  ArgumentsList: Unknown,
+  NewTarget: Unknown,
 ): Unknown = {
   let buffer = this.BufferObject
   call _call1 = clo<"isfixedlengtharraybuffer">(buffer)
   if (= _call1 true) {
-    return buffer
+    if (? buffer: Completion) {
+      return buffer
+    } else {
+      call _ret1 = clo<"NormalCompletion">(buffer)
+      return _ret1
+    }
   } else nop
   let memaddr = this.Memory
   call fixedBuffer = clo<"create_a_fixed_length_memory_buffer">(memaddr)
   call _ = clo<"DetachArrayBuffer">(buffer, "WebAssembly.Memory")
   this.BufferObject = fixedBuffer
-  return fixedBuffer
+  if (? fixedBuffer: Completion) {
+    return fixedBuffer
+  } else {
+    call _ret2 = clo<"NormalCompletion">(fixedBuffer)
+    return _ret2
+  }
 }
-def toresizablebuffer(
+def <BUILTIN>:INTRINSICS.WebAssembly.Memory.prototype.toresizablebuffer(
+  this: Unknown,
+  ArgumentsList: Unknown,
+  NewTarget: Unknown,
 ): Unknown = {
   let memaddr = this.Memory
   let store = @AGENT_RECORD["associated store"]
@@ -1231,10 +1294,21 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Table(
   call _ret10 = clo<"NormalCompletion">(~unused~)
   return _ret10
 }
-def grow(
-  delta: Unknown,
-  value: Unknown,
+def <BUILTIN>:INTRINSICS.WebAssembly.Table.prototype.grow(
+  this: Unknown,
+  ArgumentsList: Unknown,
+  NewTarget: Unknown,
 ): Unknown = {
+  if (< 0 (sizeof ArgumentsList)) {
+    let delta = ArgumentsList[0]
+  } else {
+    let delta = undefined
+  }
+  if (< 1 (sizeof ArgumentsList)) {
+    let value = ArgumentsList[1]
+  } else {
+    let value = undefined
+  }
   let tableaddr = this.Table
   let store = @AGENT_RECORD["associated store"]
   call-embed initialSize = <table_size>(store, tableaddr)
@@ -1313,9 +1387,16 @@ def <BUILTIN>:INTRINSICS.get:WebAssembly.Table.prototype.length(
     return _ret1
   }
 }
-def get(
-  index: Unknown,
+def <BUILTIN>:INTRINSICS.WebAssembly.Table.prototype.get(
+  this: Unknown,
+  ArgumentsList: Unknown,
+  NewTarget: Unknown,
 ): Unknown = {
+  if (< 0 (sizeof ArgumentsList)) {
+    let index = ArgumentsList[0]
+  } else {
+    let index = undefined
+  }
   let tableaddr = this.Table
   let store = @AGENT_RECORD["associated store"]
   call-embed _tuple1 = <table_type>(store, tableaddr)
@@ -1356,10 +1437,21 @@ def get(
     return _ret6
   }
 }
-def set(
-  index: Unknown,
-  value: Unknown,
+def <BUILTIN>:INTRINSICS.WebAssembly.Table.prototype.set(
+  this: Unknown,
+  ArgumentsList: Unknown,
+  NewTarget: Unknown,
 ): Unknown = {
+  if (< 0 (sizeof ArgumentsList)) {
+    let index = ArgumentsList[0]
+  } else {
+    let index = undefined
+  }
+  if (< 1 (sizeof ArgumentsList)) {
+    let value = ArgumentsList[1]
+  } else {
+    let value = undefined
+  }
   let tableaddr = this.Table
   let store = @AGENT_RECORD["associated store"]
   call-embed _tuple1 = <table_type>(store, tableaddr)
@@ -1662,7 +1754,10 @@ def <BUILTIN>:INTRINSICS.set:WebAssembly.Global.prototype.value(
   call _ret8 = clo<"NormalCompletion">(~unused~)
   return _ret8
 }
-def valueof(
+def <BUILTIN>:INTRINSICS.WebAssembly.Global.prototype.valueof(
+  this: Unknown,
+  ArgumentsList: Unknown,
+  NewTarget: Unknown,
 ): Unknown = {
   call _result1 = clo<"getglobalvalue">(this)
   if (? _result1: Abrupt) {
@@ -2661,10 +2756,21 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Exception(
   call _ret8 = clo<"NormalCompletion">(~unused~)
   return _ret8
 }
-def getarg(
-  exceptionTag: Unknown,
-  index: Unknown,
+def <BUILTIN>:INTRINSICS.WebAssembly.Exception.prototype.getarg(
+  this: Unknown,
+  ArgumentsList: Unknown,
+  NewTarget: Unknown,
 ): Unknown = {
+  if (< 0 (sizeof ArgumentsList)) {
+    let exceptionTag = ArgumentsList[0]
+  } else {
+    let exceptionTag = undefined
+  }
+  if (< 1 (sizeof ArgumentsList)) {
+    let index = ArgumentsList[1]
+  } else {
+    let index = undefined
+  }
   let store = @AGENT_RECORD["associated store"]
   if (! (= this.Type exceptionTag.Address)) {
     call _err1 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
@@ -2695,13 +2801,32 @@ def getarg(
     return _ret7
   }
 }
-def is(
-  exceptionTag: Unknown,
+def <BUILTIN>:INTRINSICS.WebAssembly.Exception.prototype.is(
+  this: Unknown,
+  ArgumentsList: Unknown,
+  NewTarget: Unknown,
 ): Unknown = {
+  if (< 0 (sizeof ArgumentsList)) {
+    let exceptionTag = ArgumentsList[0]
+  } else {
+    let exceptionTag = undefined
+  }
   if (! (= this.Type exceptionTag.Address)) {
-    return false
+    let _v1 = false
+    if (? _v1: Completion) {
+      return _v1
+    } else {
+      call _ret2 = clo<"NormalCompletion">(_v1)
+      return _ret2
+    }
   } else nop
-  return true
+  let _v3 = true
+  if (? _v3: Completion) {
+    return _v3
+  } else {
+    call _ret4 = clo<"NormalCompletion">(_v3)
+    return _ret4
+  }
 }
 def <BUILTIN>:INTRINSICS.get:WebAssembly.Exception.prototype.stack(
   this: Unknown,

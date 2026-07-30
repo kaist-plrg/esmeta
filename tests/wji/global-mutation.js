@@ -29,5 +29,9 @@ WebAssembly.instantiate(bytes.buffer, {}).then(({module, instance}) => {
   const fromWasm = instance.exports.g.value;
   assertEq(fromWasm, 456, "wasm write to global not visible to JS");
 
+  // Global.prototype.valueOf() is spec'd as the same getter as .value.
+  const fromValueOf = instance.exports.g.valueOf();
+  assertEq(fromValueOf, 456, "g.valueOf() disagrees with g.value");
+
   globalThis.__wjiOk = true;
 }).catch(e => print("uncaught: " + e));

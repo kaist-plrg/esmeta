@@ -2,7 +2,7 @@ package esmeta.wji.compiler.lowering
 
 import esmeta.wji.lang.{Algorithm, AlgorithmKind, Cond, Expr, Instr, WjiParam}
 
-/** Reshapes every Getter/Setter/Constructor-kind [[Algorithm]] — 3 of the 4
+/** Reshapes every Getter/Setter/Constructor/Method-kind [[Algorithm]] — all 4
   * kinds WebIDL calls an interface "member", per `webidl/index.bs`'s own
   * "Members" section ("The constructor steps, getter steps, setter steps, and
   * method steps ... have access to a this value") — into the `<BUILTIN>:`
@@ -12,18 +12,38 @@ import esmeta.wji.lang.{Algorithm, AlgorithmKind, Cond, Expr, Instr, WjiParam}
   * calling-convention requirement, not conditional on whether the algorithm
   * itself can abruptly complete):
   *
-  * `Method` is deliberately left untouched for now (TODO) — unlike the other 3
-  * kinds, a WebIDL method's name isn't unique per interface (`WebAssembly`
-  * declares two overloads named `instantiate`, disambiguated only by parameter
-  * type, which `AlgorithmExtractor` can't tell apart — see `SpecPatch` #3's
-  * rename of one of them), and at least one
-  * (`INTRINSICS.WebAssembly.instantiate`) already has a hand-written
-  * `manuals/funcs/...ir` glue file claiming that exact intrinsic name for
-  * unrelated reasons (WebIDL return-type coercion this pipeline doesn't do
-  * generically yet — see `docs/hardcodes.md`). Reshaping `Method` the same way
-  * as the other 3 would silently collide with that file. A `Method` algorithm
-  * therefore still compiles the old way (plain `AbsOp`, lowercased name — see
-  * `Compiler.compileAlgo`), same as before this pass existed.
+  * `Method` here is only ever a *real interface* member (`Table.get`,
+  * `Global.valueOf`, ...) — `esmeta.wji.extractor.Extractor` already downgrades
+  * any `Method(for)` whose `for` isn't in the extracted interfaces list to
+  * `Plain` before lowering ever runs, so a *namespace* method
+  * (`WebAssembly.instantiate`/`compile`/`validate`) never reaches this pass.
+  * This isn't just a naming-collision workaround: `webidl/index.bs` itself
+  * treats a namespace's own operations and an interface's members as products
+  * of two genuinely different algorithms. "[=create a namespace object=]"
+  * builds the namespace object directly (`OrdinaryObjectCreate` off
+  * `%Object.prototype%`) and installs its operations straight onto *that*
+  * object; "[=create an interface object=]"/"create an interface prototype
+  * object" instead builds a *separate* interface prototype object, and it's
+  * only that second object getter/setter/constructor/method properties ever
+  * attach to — which is exactly the shape `unpackArgumentsList`/[[Compiler]]'s
+  * `INTRINSICS.WebAssembly.<iface>.prototype.<name>` naming below assumes (a
+  * namespace operation has no `.prototype` segment at all: `WebAssembly.
+  * instantiate`, never `WebAssembly.prototype.instantiate`). WJI's own
+  * interface-object mechanization (`ExpandNewInterfaceObjectPass`, `Compiler`'s
+  * `Expr.New`/`namesWithPrototypeIntrinsic`) only ever implements "create an
+  * interface object" — there's no "create a namespace object" mechanization at
+  * all yet, so treating `WebAssembly`'s own operations the same way as an
+  * interface's members would have been structurally wrong even before any bug
+  * showed up. One did show up when this was tried anyway, confirming it
+  * concretely rather than just in theory: `webidl/index.bs`'s exported term "a
+  * new promise" (`Return [=?=] [$NewPromiseCapability$] (...)`) returns the raw
+  * `PromiseCapabilityRecord`, not its `.[[Promise]]` — every namespace-level
+  * algorithm following `Let |promise| be [=a new promise=]. ... Return
+  * |promise|.` ends up returning the capability record instead of an actual
+  * `Promise` unless something explicitly unwraps `.Promise` first, which the
+  * hand-written `manuals/funcs/INTRINSICS. WebAssembly.instantiate.ir` glue
+  * does and nothing generic does yet. See `docs/hardcodes.md` #7 and
+  * `personal/TODO.md`.
   *
   *   - '''parameter unpacking''': `BuiltinCallOrConstruct` always invokes a
   *     builtin as `func.__CODE__(this, argumentsList, newTarget)` — a fixed
@@ -144,7 +164,7 @@ object AddInterfaceMemberBuiltinBehaviourPass extends LoweringPass:
     algos.map { a =>
       a.kind match
         case AlgorithmKind.Getter(_) | AlgorithmKind.Setter(_) |
-            AlgorithmKind.Constructor(_) =>
+            AlgorithmKind.Constructor(_) | AlgorithmKind.Method(_) =>
           val originalParams = a.params.map(p => stripPipes(p.name))
           val wrappedBody =
             if a.returnsCompletion then a.body
@@ -154,5 +174,5 @@ object AddInterfaceMemberBuiltinBehaviourPass extends LoweringPass:
             body = unpackArgumentsList(originalParams) ++
               givenValueBinding(a.kind) ++ wrappedBody,
           )
-        case AlgorithmKind.Plain | AlgorithmKind.Method(_) => a
+        case AlgorithmKind.Plain => a
     }

@@ -1037,6 +1037,7 @@ WebAssembly.Global.prototype = OrdinaryObject [
     Get: #INTRINSICS.get:WebAssembly.Global.prototype.value;
     Set: #INTRINSICS.set:WebAssembly.Global.prototype.value;
   };
+  valueOf: [TFT] #INTRINSICS.WebAssembly.Global.prototype.valueof;
 }
 
 WebAssembly.Memory = BuiltinFunctionObject [

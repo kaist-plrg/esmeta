@@ -26,7 +26,6 @@
   Return(true)
 
 # validate
-  kind: method for WebAssembly
   params: |bytes|, |options|
   head: The <dfn method for="WebAssembly">validate(|bytes|, |options|)</dfn> method, when invoked, performs the following steps:
   Let(|stableBytes|, [=get a copy of the buffer source=](|bytes|))
@@ -81,7 +80,6 @@
   Return(|promise|)
 
 # compile
-  kind: method for WebAssembly
   params: |bytes|, |options|
   head: The <dfn method for="WebAssembly">compile(|bytes|, |options|)</dfn> method, when invoked, performs the following steps:
   Let(|stableBytes|, [=get a copy of the buffer source=](|bytes|))
@@ -281,7 +279,6 @@
   Return(|promise|)
 
 # instantiate
-  kind: method for WebAssembly
   params: |bytes|, |importObject|, |options|
   head: The <dfn method for="WebAssembly">instantiate(|bytes|, |importObject|, |options|)</dfn> method, when invoked, performs the following steps:
   Let(|stableBytes|, [=get a copy of the buffer source=](|bytes|))
@@ -289,7 +286,6 @@
   PerformAndReturn([=Instantiate a promise of a module=](|promiseOfModule|, |importObject|))
 
 # instantiate_object
-  kind: method for WebAssembly
   params: |moduleObject|, |importObject|
   head: The <dfn method for="WebAssembly">instantiate_object(|moduleObject|, |importObject|)</dfn> method, when invoked, performs the following steps:
   PerformAndReturn([=asynchronously instantiate a WebAssembly module=](|moduleObject|, |importObject|))

@@ -2339,7 +2339,7 @@ def towebassemblyvalue(
     } else {
       call-embed _call5 = <match_valtype>(type, (case "REF" null (case "EXTERN" )))
       if (= _call5 true) {
-        call _call6 = clo<"towebassemblyvalue">(v, (case "REF" (case "ANY" )))
+        call _call6 = clo<"towebassemblyvalue">(v, (case "REF" (opt) (case "ANY" )))
         if (exists _call6.Type) {
           assert (= _call6.Type ~normal~)
           let ref = _call6.Value

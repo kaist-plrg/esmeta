@@ -43,6 +43,11 @@ import esmeta.wji.lang.walker.Walker
   *     `mut`/`valuetype` one level under externtype's GLOBAL variant's sole
   *     arg, even though index.bs writes both components flat directly under
   *     `external-type/global`.
+  *   - a non-nullable `reftype` (`[=ref=] |heaptype|`, no `|null|` token):
+  *     `al_to_valtype` requires `CaseV("REF", [nullability, heaptype])` always,
+  *     but prose only ever spells out the first (nullability) component when
+  *     the ref *is* nullable — a non-nullable one leaves it implicit, so only
+  *     one arg is ever parsed.
   * {{{
   *   Case("[=i32.const=]", [Var(u32)])
   * }}}
@@ -57,6 +62,14 @@ import esmeta.wji.lang.walker.Walker
   * becomes
   * {{{
   *   Case("GLOBAL", [Case("", [Var(mut), Var(valuetype)])])
+  * }}}
+  * and
+  * {{{
+  *   Case("[=ref=]", [Case("[=heap-type/any=]", [])])
+  * }}}
+  * becomes
+  * {{{
+  *   Case("REF", [Opt(None), Case("ANY", [])])
   * }}}
   *
   * Every other `Case` (an already-correctly-flat variant like
@@ -191,6 +204,21 @@ object NormalizeSpecTecCaseShapePass extends LoweringPass:
             val finalTag = runtimeCaseTag(tag)
             if nestedFormLinks.contains(stripped) then
               Expr.Case(finalTag, List(Expr.Case("", reshapedArgs)))
+            // `reftype ::= REF NULL? heaptype` always has 2 AL positions
+            // (nullability, heaptype) — but spec prose only writes an
+            // explicit `|null|` token when the ref *is* nullable
+            // (`[=ref=] |null| |heaptype|`); a non-nullable one
+            // (`[=ref=] |heaptype|`, e.g. index.bs:1451's `ref
+            // heap-type/any`) has nothing there at all, so `parseArgs` only
+            // ever extracts the one heaptype argument. Confirmed against
+            // SpecTec's own `al_to_valtype` (`construct.ml`): it rejects a
+            // 1-arg `CaseV("REF", [heaptype])` outright
+            // (`WrongConversion("reftype: invalid construction ...")`) —
+            // the missing nullability marker must be filled in as
+            // `OptV(None)` here, the same way the two mismatches above fill
+            // in structure spec prose leaves implicit.
+            else if finalTag == "REF" && reshapedArgs.size == 1 then
+              Expr.Case(finalTag, Expr.Opt(None) :: reshapedArgs)
             else Expr.Case(finalTag, reshapedArgs)
       case other => super.walk(other)
 

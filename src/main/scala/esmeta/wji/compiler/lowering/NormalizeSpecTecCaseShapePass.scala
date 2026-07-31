@@ -16,13 +16,6 @@ import esmeta.wji.lang.walker.Walker
   * — a `SpecTerm` reaching them is *never* secretly one of these, only a
   * genuine spec-term reference (`null`, `current Realm`, ...).
   *
-  * Only overrides [[Walker.walk(Expr)]] for the node types it actually rewrites
-  * ([[Expr.Case]], and the handful of [[Expr.SpecTerm]] names above) — every
-  * other `Expr`/`Cond`/`Instr` (including wherever one of these shows up
-  * nested, e.g. inside a `Cond.IsOfForm`'s `form`) is reached automatically by
-  * [[Walker]]'s own default structural recursion, with no per-pass exhaustive
-  * case list to keep in sync here.
-  *
   * Tag translation: a `for`-scoped dfn's linking text is always
   * `family/variant` (e.g. `external value/func`, `external-type/global`; see
   * `SpecPatch` #15/#16, which normalized every such link into exactly this
@@ -34,7 +27,7 @@ import esmeta.wji.lang.walker.Walker
   * runtime tag (e.g. `ExprParser.CompTypeArrow`'s literal `"->"`, no `/` and
   * already the right case) passes through unchanged.
   *
-  * Nesting mismatches, both `construct.ml`-confirmed:
+  * Nesting mismatches
   *   - a numeric const (`i32.const`/`i64.const`/`f32.const`/`f64.const`):
   *     `al_to_num` only recognizes `CaseV("CONST", [CaseV(numtypeTag, []),
   *     payload])` — a nested numtype tag, not the flat `CaseV("I32.CONST",
@@ -71,7 +64,7 @@ import esmeta.wji.lang.walker.Walker
   * {{{
   *   Case("REF", [Opt(None), Case("ANY", [])])
   * }}}
-  * and (see [[refAddrSuffix]]'s own doc for the full `ref`-variant table)
+  * and
   * {{{
   *   Case("[=ref.host=]", [Var(hostaddr)])
   * }}}
@@ -79,20 +72,15 @@ import esmeta.wji.lang.walker.Walker
   * {{{
   *   Case("REF.HOST_ADDR", [Var(hostaddr)])
   * }}}
-  * — `ref.null`'s sibling case is handled up in the `SpecTerm` group above, not
-  * here: SpecPatch #32 (docs/spec_errors.md #15) already strips its stale
-  * heaptype argument at the source, so it never reaches a `Case` at all.
   *
   * Every other `Case` (an already-correctly-flat variant like
   * `external-type/func`, or one [[ExprParser]] built directly rather than via a
   * link, like `CompTypeArrow`'s `"->"` or `parseUntaggedForm`'s `""`) has its
   * tag translated (a no-op if already final) and its args recursed into, with
-  * no extra nesting added — this pass only ever *adds* structure for the two
-  * nesting mismatches above, never removes or reinterprets anything else. Once
-  * this runs, every downstream pass (`ExpandIsOfFormPass`,
-  * `ExpandDestructuringLetPass`, `Compiler`) can treat any `Expr.Case` it sees
-  * as already shaped exactly like the real `ALValue.CaseV` it corresponds to,
-  * with zero SpecTec knowledge of its own.
+  * no extra nesting added. Once this runs, every downstream pass
+  * (`ExpandIsOfFormPass`, `ExpandDestructuringLetPass`, `Compiler`) can treat
+  * any `Expr.Case` it sees as already shaped exactly like the real
+  * `ALValue.CaseV` it corresponds to, with zero SpecTec knowledge of its own.
   *
   * Category: Spec-dependent — SpecTec.
   */
@@ -101,124 +89,73 @@ object NormalizeSpecTecCaseShapePass extends LoweringPass:
   /** Requires:
     *   - [[ResolveLinksPass]]: needs every `Expr.Link` already resolved to
     *     `Expr.Case`/`Expr.AlgoCall`/`Expr.SpecTerm` — nothing here resolves a
-    *     raw `Link` itself, just reshapes an already-built `Case`.
+    *     raw `Link` itself, just reshapes an already-built `Case` or
+    *     `SpecTerm`.
     */
   override def requires: Set[LoweringPass] = Set(ResolveLinksPass)
 
-  /** `Link`/`Case`'s tag text may still carry its `[=...=]` delimiters (see
-    * `ResolveLinksPass.stripLink`) — strip them the same way before comparing
-    * against [[numConstTags]]/[[nestedFormLinks]]'s (bare) keys.
-    */
-  private def stripLink(tag: String): String =
-    tag.stripPrefix("[=").stripSuffix("=]").trim
-
   /** Translates a `Case.tag` out of spec-link-text form into SpecTec's real
-    * runtime `ALValue.CaseV` tag — see class doc's "Tag translation" paragraph.
-    * Idempotent on an already-final tag (no `/`, already uppercase), so it's
-    * safe to apply unconditionally to every `Case` this pass sees, regardless
-    * of where its tag originally came from.
+    * runtime `ALValue.CaseV` tag. Idempotent on an already-final tag (stripped,
+    * no `/`, already uppercase), so it's safe to apply unconditionally to every
+    * `Case` this pass sees, regardless of where its tag originally came from.
     */
   private def runtimeCaseTag(tag: String): String =
-    val name = stripLink(tag)
-    name.substring(name.lastIndexOf('/') + 1).trim.toUpperCase
+    tag
+      .stripPrefix("[=")
+      .stripSuffix("=]")
+      .trim
+      .split('/')
+      .last
+      .trim
+      .toUpperCase
 
-  /** A numeric-const link (e.g. `[=i32.const=]`), mapped to the nested numtype
-    * tag `construct.ml`'s `al_to_num` actually expects at position 0 of a
-    * `CaseV("CONST", [nested, payload])`.
-    */
-  private val numConstTags: Map[String, String] = Map(
-    "i32.const" -> "I32",
-    "i64.const" -> "I64",
-    "f32.const" -> "F32",
-    "f64.const" -> "F64",
-  )
+  private object RenamedTag:
+    private val heapTypePrefix = "heap-type/"
+    private val table: PartialFunction[String, String] =
+      case "I32"        => "I32"
+      case "I64"        => "I64"
+      case "F32"        => "F32"
+      case "F64"        => "F64"
+      case "V128"       => "V128"
+      case "ERROR"      => "ERROR"
+      case "REF.NULL"   => "REF.NULL_ADDR"
+      case "REF.I31"    => "REF.I31_NUM"
+      case "REF.STRUCT" => "REF.STRUCT_ADDR"
+      case "REF.ARRAY"  => "REF.ARRAY_ADDR"
+      case "REF.FUNC"   => "REF.FUNC_ADDR"
+      case "REF.EXN"    => "REF.EXN_ADDR"
+      case "REF.HOST"   => "REF.HOST_ADDR"
+      case tag if tag.startsWith(heapTypePrefix.toUpperCase) =>
+        tag.substring(heapTypePrefix.length)
 
-  /** Link names whose args should be wrapped in one extra untagged `Case("",
-    * args)` — see class doc's `external-type/global` example. A genuine *value*
-    * is never constructed against this link in the corpus today (only matched
-    * against, via `Cond.IsOfForm`), but the reshaping itself doesn't need to
-    * care which context a matching `Case` shows up in.
-    */
-  private val nestedFormLinks: Set[String] = Set("external-type/global")
+    def unapply(s: String): Option[String] = table.lift(s.toUpperCase)
 
-  /** `ref`'s address/immediate-carrying variants, mapped to the suffixed tag
-    * SpecTec's actual runtime `CaseV` uses that spec prose's own `[=ref.X=]`
-    * link text never spells out — the single source of truth for all 6
-    * (`REF.EXTERN` needs no entry: it already carries no suffix, spec prose and
-    * runtime tag agree). Confirmed against the canonical `ref` syntax rule
-    * (`4.1-execution.values.spectec`): `REF.NULL_ADDR | REF.I31_NUM i |
-    * REF.STRUCT_ADDR a | REF.ARRAY_ADDR a | REF.FUNC_ADDR a | REF.EXN_ADDR a
-    * | REF.HOST_ADDR a` — `NULL`/`I31` get `_ADDR`/`_NUM` respectively (an
-    * inline immediate rather than a store index, for `I31`); the rest all get
-    * `_ADDR`. Looked up two different ways below: the `Case`-tag branch in
-    * [[reshaper]] for the 5 that keep their one argument as-is, and the
-    * `SpecTerm("ref.null")` case for the one that doesn't (see its own doc).
-    */
-  private val refAddrSuffix: Map[String, String] = Map(
-    "REF.NULL" -> "REF.NULL_ADDR",
-    "REF.I31" -> "REF.I31_NUM",
-    "REF.STRUCT" -> "REF.STRUCT_ADDR",
-    "REF.ARRAY" -> "REF.ARRAY_ADDR",
-    "REF.FUNC" -> "REF.FUNC_ADDR",
-    "REF.EXN" -> "REF.EXN_ADDR",
-    "REF.HOST" -> "REF.HOST_ADDR",
-  )
-
-  /** A bare Wasm Core Spec `numtype`/`vectype` literal (`i32`/`i64`/`f32`/
-    * `f64`/`v128`) — matches iff `s` is one of exactly these 5, extracting the
-    * uppercased `Case` tag SpecTec's own `al_of_numtype`/`al_of_vectype`
-    * expect.
-    */
-  private object NullaryValtype:
-    private val names = Set("i32", "i64", "f32", "f64", "v128")
-    def unapply(s: String): Option[String] =
-      Option.when(names.contains(s))(s.toUpperCase)
-
-  /** `funcref`/`externref`/`exnref` — Wasm's nullable-`reftype` shorthand names
-    * — extracting the `heaptype` `Case` tag each abbreviates (wrapped below in
-    * the full `REF(null?, heaptype)` shape).
-    */
+  /** Extract heaptype from Wasm's nullable-`reftype` shorthand names */
   private object ShorthandReftype:
-    private val heaptypes =
-      Map("funcref" -> "FUNC", "externref" -> "EXTERN", "exnref" -> "EXN")
-    def unapply(s: String): Option[String] = heaptypes.get(s)
+    private val heaptypes: Map[String, String] = Map(
+      "FUNCREF" -> "FUNC",
+      "EXTERNREF" -> "EXTERN",
+      "EXNREF" -> "EXN",
+    )
+    def unapply(s: String): Option[String] = heaptypes.get(s.toUpperCase)
 
-  /** A bare `heaptype` case tag, referenced with no operand of its own (e.g.
-    * `[=heap-type/extern=]`, naming the heaptype rather than constructing
-    * something from it) — `ResolveLinksPass.buildCaseOrCall` only applies the
-    * `family/variant` Case-vs-SpecTerm split when the link carries args, so a
-    * bare reference like this always lands here as a `SpecTerm` instead. Scoped
-    * to the `heap-type/` family specifically, not `/`-containing text in
-    * general — other `for`-scoped dfns (e.g. HTML's `realm/settings object`,
-    * also reachable as a zero-arg `SpecTerm` here) use the exact same link-text
-    * shape but aren't SpecTec constructs at all.
+  /** Extract numtype from raw const tags */
+  private object ShorthandConst:
+    private val numtypes: Map[String, String] = Map(
+      "I32.CONST" -> "I32",
+      "I64.CONST" -> "I64",
+      "F32.CONST" -> "F32",
+      "F64.CONST" -> "F64",
+    )
+    def unapply(tag: String): Option[String] = numtypes.get(tag)
+
+  /** Swaps every nullary/shorthand `SpecTerm` that's secretly a Wasm-boundary
+    * `Case` in disguise, then finalizes every genuine `Case`'s tag (and, for
+    * the handful with mismatched nesting, its shape)
     */
-  private object HeapType:
-    def unapply(s: String): Option[String] =
-      Option.when(s.startsWith("heap-type/"))(
-        s.substring("heap-type/".length).toUpperCase,
-      )
-
   private object reshaper extends Walker:
     override def walk(expr: Expr): Expr = expr match
-      // embedding.rst's `error` production (`error ::= ERROR`) crosses the
-      // Wasm boundary as `Wasm(CaseV("ERROR", []))` (see embedding.ml's
-      // `embedding_error`) — never a WJI-internal `EEnum`.
-      case Expr.SpecTerm("error") => Expr.Case("ERROR", Nil)
-      // Wasm Core Spec `valtype` literals (js-api/index.bs's `ToValueType`,
-      // `match_valtype` checks, ...) need to actually cross the WasmHost
-      // boundary as real SpecTec AL values, not a bare WJI-internal `EEnum`
-      // — confirmed against SpecTec's own `al_of_numtype`/`al_of_vectype`
-      // (`construct.ml`), which encode these as a plain nullary
-      // `CaseV(TAG, [])` tag, uppercased.
-      case Expr.SpecTerm(NullaryValtype(tag)) => Expr.Case(tag, Nil)
-      // `funcref`/`externref`/`exnref` aren't `valtype` constructors
-      // themselves — each is Wasm's own shorthand for a nullable `reftype`,
-      // i.e. `REF(null?, heaptype)` with `null?` always present (that's
-      // exactly what makes them the *nullable* shorthand). Confirmed against
-      // SpecTec's own `al_of_reftype`/`al_of_null` (`construct.ml`,
-      // `!version = 3`, this project's configured Wasm version):
-      // `CaseV("REF", [OptV(Some(CaseV("NULL", []))), CaseV(<heaptype>, [])])`.
+      case Expr.SpecTerm(RenamedTag(tag)) => Expr.Case(tag, Nil)
       case Expr.SpecTerm(ShorthandReftype(heaptype)) =>
         Expr.Case(
           "REF",
@@ -227,41 +164,28 @@ object NormalizeSpecTecCaseShapePass extends LoweringPass:
             Expr.Case(heaptype, Nil),
           ),
         )
-      case Expr.SpecTerm(HeapType(tag)) => Expr.Case(tag, Nil)
-      // `[=ref.null=]` (SpecPatch #32, docs/spec_errors.md #15) is patched
-      // down to zero args, so it resolves to a bare `SpecTerm` rather than
-      // reaching the `Case` branch below at all — [[refAddrSuffix]]("REF.NULL")
-      // is `REF.NULL_ADDR`, the runtime null-ref value's own nullary shape.
-      case Expr.SpecTerm("ref.null") =>
-        Expr.Case(refAddrSuffix("REF.NULL"), Nil)
+
       case Expr.Case(tag, args) =>
+        val finalTag = runtimeCaseTag(tag)
         val reshapedArgs = args.map(walk)
-        val stripped = stripLink(tag).toLowerCase
-        numConstTags.get(stripped) match
-          case Some(numTag) =>
+
+        finalTag match
+          case RenamedTag(renamedTag) =>
+            Expr.Case(renamedTag, reshapedArgs)
+
+          // [=i32.const=] u32 -> CONST(I32, u32)
+          case ShorthandConst(numTag) =>
             Expr.Case("CONST", Expr.Case(numTag, Nil) :: reshapedArgs)
-          case None =>
-            val finalTag = runtimeCaseTag(tag)
-            if nestedFormLinks.contains(stripped) then
-              Expr.Case(finalTag, List(Expr.Case("", reshapedArgs)))
-            // `reftype ::= REF NULL? heaptype` always has 2 AL positions
-            // (nullability, heaptype) — but spec prose only writes an
-            // explicit `|null|` token when the ref *is* nullable
-            // (`[=ref=] |null| |heaptype|`); a non-nullable one
-            // (`[=ref=] |heaptype|`, e.g. index.bs:1451's `ref
-            // heap-type/any`) has nothing there at all, so `parseArgs` only
-            // ever extracts the one heaptype argument. Confirmed against
-            // SpecTec's own `al_to_valtype` (`construct.ml`): it rejects a
-            // 1-arg `CaseV("REF", [heaptype])` outright
-            // (`WrongConversion("reftype: invalid construction ...")`) —
-            // the missing nullability marker must be filled in as
-            // `OptV(None)` here, the same way the two mismatches above fill
-            // in structure spec prose leaves implicit.
-            else if finalTag == "REF" && reshapedArgs.size == 1 then
-              Expr.Case(finalTag, Expr.Opt(None) :: reshapedArgs)
-            else if refAddrSuffix.contains(finalTag) then
-              Expr.Case(refAddrSuffix(finalTag), reshapedArgs)
-            else Expr.Case(finalTag, reshapedArgs)
+
+          // [=ref=] heaptype -> REF(Opt(None), heaptype)
+          case "REF" if reshapedArgs.size == 1 =>
+            Expr.Case(finalTag, Expr.Opt(None) :: reshapedArgs)
+
+          // [=external-type/global=] mut vt -> GLOBAL((mut, vt))
+          case _ if tag == "[=external-type/global=]" =>
+            Expr.Case(finalTag, List(Expr.Case("", reshapedArgs)))
+
+          case _ => Expr.Case(finalTag, reshapedArgs)
       case other => super.walk(other)
 
   def run(algos: List[Algorithm]): List[Algorithm] =

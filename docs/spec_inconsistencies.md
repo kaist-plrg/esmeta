@@ -158,3 +158,11 @@
 - **Expected**: `1.  If |x| is not given, then let |x| be the {{undefined}} value.` — 같은 파일의 동일한 "is not given" 관용구(line 9461: `If |targetRealm| is not given, let |targetRealm| be the [=current realm=].`)가 쓰는, pipe-var를 그대로 반복하는 정석적인 형태.
 - **Reason**: "it"이 가리키는 대상이 사람에게는 명백히 `|x|`지만, `ExprParser`/`CondParser`는 pipe로 감싼 변수 이름만 바인딩 대상으로 인식하기 때문에 대명사를 변수로 resolve하지 못합니다. 이 파일 안에서 같은 "기본값 대입" 관용구가 쓰이는 다른 자리(line 9461)는 전부 pipe-var를 반복해서 쓰므로, 이 자리만 그 관례에서 벗어나 있습니다.
 - **WJI 쪽 처리**: `SpecPatch` #18로 우회.
+
+## 10. `Let [=host address=] |hostaddr| be ...`만 스칼라 값을 타입 링크로 annotate — 다른 모든 `Let |var| be ...`는 안 그럼
+
+- **File**: `spectec/document/js-api/index.bs`, line 1471 (`ToWebAssemblyValue`, host value cache 할당)
+- **Current**: `1. Let [=host address=] |hostaddr| be the smallest address such that |map|[|hostaddr|] [=map/exists=] is false.`
+- **Expected**: `1. Let |hostaddr| be the smallest address such that |map|[|hostaddr|] [=map/exists=] is false.` — 스칼라 값을 선언하는 다른 모든 `Let |var| be ...`와 동일하게, 타입 링크 없이.
+- **Reason**: 이 파일에서 `Let [=TYPE=] |var| be ...` 형태로 쓰이는 곳은 총 6곳뿐인데, 그중 5곳(`external value|func`/`global`/`mem`/`table`/`tag`, line 561/566/571/576/582)은 진짜 SpecTec 태그드 유니온 값을 destructure하는 표기(런타임에서 실제로 Case 태그를 갖는 값)이고, 이 한 곳만 순수 스칼라(정수) 값에 타입 annotation을 붙인 유일한 경우입니다. 다른 스칼라 `Let`은 전부 그냥 `Let |var| be ...`만 씁니다. `ExprParser`는 "[=link=] |var|"(공백만 있고 괄호 없음) 모양을 늘 "링크를 |var| 인자로 호출"로 해석하므로(`LinkProse`), 이 자리는 Let의 LHS가 `AlgoCall`로 잘못 파싱됩니다.
+- **WJI 쪽 처리**: `SpecPatch` #31로 우회 — "[=host address=] " 부분을 그냥 삭제.

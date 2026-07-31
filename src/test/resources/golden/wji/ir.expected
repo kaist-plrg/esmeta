@@ -2390,7 +2390,7 @@ def towebassemblyvalue(
               return _ret15
             }
           } else nop
-          let _ = (yet "unsupported Let lhs: AlgoCall([=host_address=],List(Var(hostaddr)))")
+          let hostaddr = (sizeof map)
           map[hostaddr] = v
           let r = (case "REF.HOST" hostaddr)
         }

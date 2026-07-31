@@ -1006,7 +1006,7 @@
       Let(|map|, [=surrounding agent=].[[host value cache]])
       If([=host address=] |hostaddr| exists such that ?(|map|)[|hostaddr|] is ?(the same as |v|))
         Return([=ref.host=](|hostaddr|))
-      Let([=host address=](|hostaddr|), smallest address such that |map|[|hostaddr|] [=map/doesn't exist=])
+      Let(|hostaddr|, smallest address such that |map|[|hostaddr|] [=map/doesn't exist=])
       Set(|map|[|hostaddr|], |v|)
       Let(|r|, [=ref.host=](|hostaddr|))
     Let(|store|, [=surrounding agent=].[[associated store]])

@@ -531,6 +531,19 @@ object SpecPatch:
     // full survey). Adds the missing "is true".
     "[=heap-type/extern=])," -> "[=heap-type/extern=]) is true,",
     "[=heap-type/func=])," -> "[=heap-type/func=]) is true,",
+
+    // #31 (spec inconsistency, docs/spec_inconsistencies.md #10) — the only
+    // `Let |var| be ...` in this file that annotates a plain scalar with a
+    // type link. `ExprParser` reads bare "[=link=] |var|" (space, no parens)
+    // as a call (`LinkProse`) wherever it appears, so this Let's LHS parses
+    // as `AlgoCall`, not `Var` — `Compiler` reports it as "unsupported Let
+    // lhs". Dropped outright rather than reformatted, since nothing here
+    // needs the link kept: unlike the 5 `external value|X` Let-LHS sites
+    // (line 561/566/571/576/582), which destructure a genuine SpecTec
+    // tagged-union value and so already work via `ExpandDestructuringLetPass`,
+    // |hostaddr| here is just a plain integer with no runtime tag of its own.
+    "Let [=host address=] |hostaddr| be the smallest address"
+    -> "Let |hostaddr| be the smallest address",
   )
 
   def apply(source: String): String =

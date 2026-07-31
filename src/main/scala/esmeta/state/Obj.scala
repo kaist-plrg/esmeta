@@ -49,6 +49,7 @@ sealed trait Obj extends StateElem {
   /** size */
   def size: Int = this match
     case l: ListObj => l.values.length
+    case m: MapObj  => m.map.size
     case _          => throw InvalidSizeOf(this)
 
   /** expand */

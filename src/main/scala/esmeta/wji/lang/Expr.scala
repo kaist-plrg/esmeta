@@ -56,7 +56,7 @@ object Expr:
   /** `«[ K1 → V1, K2 → V2, ... ]»` — Infra-spec ordered map literal. */
   case class Map_(entries: List[(Expr, Expr)]) extends Expr
 
-  /** The length/size of a string or list. */
+  /** The length/size of a string, list, or map (entry count). */
   case class Length(expr: Expr) extends Expr
 
   enum BOp:

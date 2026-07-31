@@ -66,8 +66,8 @@ object Lowering:
     ElideHtmlHostHooksPass,
     DropNotesPass,
     ResolveLinksPass,
-    MarkCompletionAlgorithmsPass,
     GroupIfChainPass,
+    MarkCompletionAlgorithmsPass,
     NormalizeSpecTecCaseShapePass,
     // eliminations
     ExpandHasDuplicatesPass,

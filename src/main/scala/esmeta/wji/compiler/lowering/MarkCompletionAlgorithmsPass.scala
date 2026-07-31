@@ -20,16 +20,18 @@ object MarkCompletionAlgorithmsPass extends LoweringPass:
     *   - [[ResolveLinksPass]]: needs call targets already resolved to real
     *     names (`Expr.AlgoCall`, not a raw `Expr.Link`) for
     *     `CompletionAlgorithms`'s call-graph analysis to recognize them.
+    *   - [[GroupIfChainPass]]: needs a `Cond.Throws` catch already grouped into
+    *     an `Instr.IfChain` — the one shape `CompletionAlgorithms` itself
+    *     recognizes for that idiom (see its own class doc).
     *
     * Must precede:
-    *   - [[GroupIfChainPass]]: needs a `Cond.Throws` catch still as a bare
-    *     `Instr.If` sibling, not yet a grouped `IfChain`.
     *   - [[ExpandAbruptPass]]: needs `Expr.Abrupt` `?`/`!` markers still
     *     present to detect.
     */
-  override def requires: Set[LoweringPass] = Set(ResolveLinksPass)
+  override def requires: Set[LoweringPass] =
+    Set(ResolveLinksPass, GroupIfChainPass)
   override def mustPrecede: Set[LoweringPass] =
-    Set(GroupIfChainPass, ExpandAbruptPass)
+    Set(ExpandAbruptPass)
 
   def run(algos: List[Algorithm]): List[Algorithm] =
     val completionAlgos = CompletionAlgorithms.compute(algos)

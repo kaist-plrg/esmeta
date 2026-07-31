@@ -29,13 +29,13 @@ import esmeta.wji.lang.Instr.PerformOutcome
   *
   * This is only ever computed once, from the algorithms as they exist right
   * after `ResolveLinksPass` (so call targets are already resolved names) and
-  * before any later pass changes shape — in particular before
-  * `GroupIfChainPass` (so an `Cond.Throws` catch is still a bare `Instr.If`
-  * sibling, not yet a grouped `IfChain`) and before `ExpandAbruptPass` (so
-  * `Expr.Abrupt` markers are still present to detect). See
-  * [[MarkCompletionAlgorithmsPass]], which runs this and stamps the result onto
-  * each `Algorithm`'s own `returnsCompletion` field, so
-  * [[WrapCompletionReturnsPass]] (wraps a member's own `Return`s) and
+  * `GroupIfChainPass` (so a `Cond.Throws` catch is already a grouped `IfChain`,
+  * the one shape every later pass — including this analysis itself — ever sees
+  * for that idiom; nothing in this file needs to understand a bare `Instr.If`
+  * sibling), but before `ExpandAbruptPass` (so `Expr.Abrupt` markers are still
+  * present to detect). See [[MarkCompletionAlgorithmsPass]], which runs this
+  * and stamps the result onto each `Algorithm`'s own `returnsCompletion` field,
+  * so [[WrapCompletionReturnsPass]] (wraps a member's own `Return`s) and
   * [[PropagateUnguardedCallsPass]] (adds the same runtime propagation `?` gives
   * to an unmarked call site into a member) can each just read that field off
   * whichever `Algorithm` they're handed, rather than needing the computed set
@@ -127,12 +127,17 @@ object CompletionAlgorithms:
     * [[PropagateUnguardedCallsPass]], which needs the exact same "is this
     * particular call already handled" check at the point it actually inserts
     * the propagation guard.
+    *
+    * Only recognizes the `Cond.Throws` idiom in its already-grouped
+    * `Instr.IfChain` form — every call site of this function runs after
+    * `GroupIfChainPass` (see [[CompletionAlgorithms]]'s own class doc), so a
+    * bare `Instr.If` sibling for this idiom never actually reaches here.
     */
   def isAbsorbed(x: Option[String], rest: List[Instr]): Boolean =
     x.exists(v => mentionsTypeField(v, rest)) ||
     (rest match
-      case Instr.If(Cond.Throws(_), _) :: _ => true
-      case _                                => false
+      case Instr.IfChain(List((Cond.Throws(_), _)), Nil) :: _ => true
+      case _                                                  => false
     )
 
   /** Whether `x.[[Type]]`/`x.Type` is read anywhere in `instrs`, recursively —

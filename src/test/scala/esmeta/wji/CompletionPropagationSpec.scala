@@ -33,13 +33,13 @@ import scala.collection.mutable.{Map => MMap}
   * the *interaction* between these passes, not any one of them in isolation —
   * mirrors [[LoweringBehaviorSpec]]'s pattern of running hand-built
   * `Algorithm`s through the real `Lowering.run` -> `Compiler.compile` ->
-  * `CFGBuilder` -> `Interpreter`, but checks the top-level *return value*
-  * (via `GLOBAL_RESULT`, same as `esmeta.phase.WjiInterp.callAO`) rather than
+  * `CFGBuilder` -> `Interpreter`, but checks the top-level *return value* (via
+  * `GLOBAL_RESULT`, same as `esmeta.phase.WjiInterp.callAO`) rather than
   * reachability of a poison marker — what matters here is which value comes
   * out, not whether some line ran at all.
   *
-  * Most scenario algorithms below are built so their own call site of
-  * interest either (a) is genuinely unguarded/unmarked — the exact shape
+  * Most scenario algorithms below are built so their own call site of interest
+  * either (a) is genuinely unguarded/unmarked — the exact shape
   * `PropagateUnguardedCallsPass` targets — or (b) manually absorbs the result
   * itself (reading `.[[Type]]`/`.[[Value]]` directly, or the "if this throws,
   * catch it" idiom) so their own `Return`s stay un-wrapped by
@@ -47,26 +47,26 @@ import scala.collection.mutable.{Map => MMap}
   * `Value`. [[explode]]/[[callExplodeUnguarded]] are the two algorithms
   * expected to themselves become `completionAlgos`-classified (that's the
   * behavior under test) — the last scenario below invokes them directly and
-  * inspects the raw `CompletionRecord` shape on the heap; every other
-  * scenario instead puts a small absorbing "driver"/self-check on top to get
-  * a directly-comparable plain value back out.
+  * inspects the raw `CompletionRecord` shape on the heap; every other scenario
+  * instead puts a small absorbing "driver"/self-check on top to get a
+  * directly-comparable plain value back out.
   *
   * Written *before* the `PropagateUnguardedCallsPass` reorder it's meant to
-  * guard, and run once against the pre-reorder pipeline to record a baseline
-  * — see git history for which scenarios passed/failed before that change.
+  * guard, and run once against the pre-reorder pipeline to record a baseline —
+  * see git history for which scenarios passed/failed before that change.
   */
 class CompletionPropagationSpec extends AnyFunSuite:
 
   /** Returns a bare `ThrowCompletion` directly, bypassing `Instr.Throw`'s own
-    * `CompletionWrapping`-driven expansion (which calls `__NEW_ERROR_OBJ__`
-    * to build a real `%TypeError.prototype%`-based error object — needing a
-    * fully bootstrapped `@EXECUTION_STACK`/`Realm`, unnecessary machinery for
-    * what this file needs). `ThrowCompletion` itself (ECMA-262 6.2.4.2:
-    * `Return Completion Record { [[Type]]: throw, [[Value]]: argument,
-    * [[Target]]: empty }`) needs no Realm access at all. Not itself
-    * `completionAlgos`-classified (no `Throw`/`?`/`!`/`Expr.New` of its own)
-    * — its `Return` is never wrapped, so it hands back the raw completion
-    * record as-is.
+    * `CompletionWrapping`-driven expansion (which calls `__NEW_ERROR_OBJ__` to
+    * build a real `%TypeError.prototype%`-based error object — needing a fully
+    * bootstrapped `@EXECUTION_STACK`/`Realm`, unnecessary machinery for what
+    * this file needs). `ThrowCompletion` itself (ECMA-262 6.2.4.2: `Return
+    * Completion Record { [[Type]]: throw, [[Value]]: argument, [[Target]]:
+    * empty }`) needs no Realm access at all. Not itself
+    * `completionAlgos`-classified (no `Throw`/`?`/`!`/`Expr.New` of its own) —
+    * its `Return` is never wrapped, so it hands back the raw completion record
+    * as-is.
     *
     * As spec prose:
     * {{{
@@ -90,8 +90,8 @@ class CompletionPropagationSpec extends AnyFunSuite:
     ),
   )
 
-  /** A completion-returning algorithm (via its own explicit `?`-marked call
-    * to [[makeThrowCompletion]], so `MarkCompletionAlgorithmsPass` puts it in
+  /** A completion-returning algorithm (via its own explicit `?`-marked call to
+    * [[makeThrowCompletion]], so `MarkCompletionAlgorithmsPass` puts it in
     * `completionAlgos`): abruptly completes when `flag` is true, otherwise
     * returns `true`.
     *
@@ -124,13 +124,13 @@ class CompletionPropagationSpec extends AnyFunSuite:
 
   // ---- Scenario 1: implicit propagation through a genuinely unguarded call ----
 
-  /** Calls [[explode]] with no `?`/`!` marker and no manual handling — the
-    * call site `PropagateUnguardedCallsPass` exists for. This algorithm
-    * itself becomes `completionAlgos`-classified as a result (it transitively
-    * inherits [[explode]]'s abruptness), so its own return is itself a
-    * Completion Record — see [[runImplicitPropagation]] for the driver that
-    * unwraps it back to a plain value (and the last test below, which invokes
-    * this one directly and checks the raw Completion Record shape instead).
+  /** Calls [[explode]] with no `?`/`!` marker and no manual handling — the call
+    * site `PropagateUnguardedCallsPass` exists for. This algorithm itself
+    * becomes `completionAlgos`-classified as a result (it transitively inherits
+    * [[explode]]'s abruptness), so its own return is itself a Completion Record
+    * — see [[runImplicitPropagation]] for the driver that unwraps it back to a
+    * plain value (and the last test below, which invokes this one directly and
+    * checks the raw Completion Record shape instead).
     *
     * As spec prose:
     * {{{
@@ -179,7 +179,8 @@ class CompletionPropagationSpec extends AnyFunSuite:
         Expr.AlgoCall("[=callExplodeUnguarded=]", List(Expr.Var("flag"))),
       ),
       Instr.If(
-        Cond.Eq(Expr.Field(Expr.Var("outcome"), "Type"), Expr.SpecTerm("throw")),
+        Cond
+          .Eq(Expr.Field(Expr.Var("outcome"), "Type"), Expr.SpecTerm("throw")),
         List(Instr.Return(Some(Expr.Str("threw")))),
       ),
       Instr.Return(Some(Expr.Field(Expr.Var("outcome"), "Value"))),
@@ -188,14 +189,14 @@ class CompletionPropagationSpec extends AnyFunSuite:
 
   // ---- Scenario 2: unguarded call already manually handled ----
 
-  /** Calls [[explode]] with no marker, but manually inspects `.[[Type]]`
-    * itself before ever reading `.[[Value]]` — the shape
-    * `isAbsorbed`/`mentionsTypeField` must recognize as "already handled" so
-    * no second, machine-inserted guard gets stacked on top and double-unwraps
+  /** Calls [[explode]] with no marker, but manually inspects `.[[Type]]` itself
+    * before ever reading `.[[Value]]` — the shape
+    * `isAbsorbed`/`mentionsTypeField` must recognize as "already handled" so no
+    * second, machine-inserted guard gets stacked on top and double-unwraps
     * `result` (exactly the bug found and fixed earlier this session for
     * `OrdinaryObjectCreate`-shaped calls). Stays out of `completionAlgos`
-    * itself (the manual check absorbs the only abrupt-capable call), so its
-    * own return is directly comparable with no driver needed.
+    * itself (the manual check absorbs the only abrupt-capable call), so its own
+    * return is directly comparable with no driver needed.
     *
     * As spec prose:
     * {{{
@@ -286,8 +287,8 @@ class CompletionPropagationSpec extends AnyFunSuite:
     body = List(Instr.Return(Some(Expr.Bool(true)))),
   )
 
-  /** Calls [[harmless]] with no marker — must get no guard at all, not even
-    * a 2-way one, and the raw value must flow straight through.
+  /** Calls [[harmless]] with no marker — must get no guard at all, not even a
+    * 2-way one, and the raw value must flow straight through.
     *
     * As spec prose:
     * {{{
@@ -310,16 +311,15 @@ class CompletionPropagationSpec extends AnyFunSuite:
   /** All scenario algorithms declared above, merged into the SAME shared
     * mainline CFG every `esmeta.es`/`esmeta.ir` test already uses
     * (`ESMetaTest.cfg`) — mirrors `WjiTest.mergedCfg` exactly, substituting
-    * this file's own hand-built algorithms for the real extracted spec.
-    * Unlike `LoweringBehaviorSpec` (whose fixtures deliberately call nothing
-    * outside themselves, so a standalone `CFGBuilder(Compiler.compile(...))`
-    * is enough), every completion-returning algorithm here goes through
+    * this file's own hand-built algorithms for the real extracted spec. Unlike
+    * `LoweringBehaviorSpec` (whose fixtures deliberately call nothing outside
+    * themselves, so a standalone `CFGBuilder(Compiler.compile(...))` is
+    * enough), every completion-returning algorithm here goes through
     * `WrapCompletionReturnsPass`, which calls the real
-    * `ThrowCompletion`/`NormalCompletion` bridge functions — those only
-    * exist in the real mainline CFG, so this merge is required, not
-    * optional. Built once and reused across every test in this file;
-    * function-name collisions aren't a concern since every algorithm here
-    * has a distinct, made-up name.
+    * `ThrowCompletion`/`NormalCompletion` bridge functions — those only exist
+    * in the real mainline CFG, so this merge is required, not optional. Built
+    * once and reused across every test in this file; function-name collisions
+    * aren't a concern since every algorithm here has a distinct, made-up name.
     */
   private lazy val cfg: CFG =
     val allAlgos = List(
@@ -336,16 +336,16 @@ class CompletionPropagationSpec extends AnyFunSuite:
     val mainline = ESMetaTest.cfg.program
     CFGBuilder(Program(mainline.funcs ++ wjiProgram.funcs, mainline.spec))
 
-  /** Invokes `fname` directly with `args` and returns `(State, top-level
-    * return value)` via `GLOBAL_RESULT` — mirrors
-    * `esmeta.phase.WjiInterp.callAO`'s call-construction (fresh `Context`,
-    * empty `callStack`), minus the `CompletionRecord` unwrapping it also does
-    * (most scenarios above are deliberately built so their own top-level
-    * return is already a plain value — see class doc; the last scenario
-    * below is the exception, and inspects the raw completion record on
-    * `st.heap` directly instead). No `Realm`/`@EXECUTION_STACK` bootstrap
-    * needed — see [[makeThrowCompletion]]'s doc for why every algorithm here
-    * deliberately avoids anything that would require one.
+  /** Invokes `fname` directly with `args` and returns `(State, top-level return
+    * value)` via `GLOBAL_RESULT` — mirrors `esmeta.phase.WjiInterp.callAO`'s
+    * call-construction (fresh `Context`, empty `callStack`), minus the
+    * `CompletionRecord` unwrapping it also does (most scenarios above are
+    * deliberately built so their own top-level return is already a plain value
+    * — see class doc; the last scenario below is the exception, and inspects
+    * the raw completion record on `st.heap` directly instead). No
+    * `Realm`/`@EXECUTION_STACK` bootstrap needed — see
+    * [[makeThrowCompletion]]'s doc for why every algorithm here deliberately
+    * avoids anything that would require one.
     */
   private def invokeRaw(fname: String, args: List[Value]): (State, Value) =
     val f = cfg.getFunc(fname)
@@ -357,9 +357,9 @@ class CompletionPropagationSpec extends AnyFunSuite:
     invokeRaw(fname, args)._2
 
   /** Resolves `v` as a heap `Addr` pointing to a genuine `CompletionRecord`
-    * `RecordObj` and returns its `(Type name, Value field)` — fails loudly
-    * (not silently) if `v` isn't shaped that way at all, since that itself
-    * would mean completion-wrapping didn't happen where it should have.
+    * `RecordObj` and returns its `(Type name, Value field)` — fails loudly (not
+    * silently) if `v` isn't shaped that way at all, since that itself would
+    * mean completion-wrapping didn't happen where it should have.
     */
   private def completionFields(st: State, v: Value): (String, Value) =
     v match
@@ -373,17 +373,29 @@ class CompletionPropagationSpec extends AnyFunSuite:
           case other => fail(s"expected a CompletionRecord, got: $other")
       case other => fail(s"expected an Addr (heap object), got: $other")
 
-  test("implicit propagation: an unguarded call's abrupt completion must propagate out, not fall through") {
+  test(
+    "implicit propagation: an unguarded call's abrupt completion must propagate out, not fall through",
+  ) {
     assert(invoke("runimplicitpropagation", List(Bool(true))) == Str("threw"))
-    assert(invoke("runimplicitpropagation", List(Bool(false))) == Str("reached-end"))
+    assert(
+      invoke("runimplicitpropagation", List(Bool(false))) == Str("reached-end"),
+    )
   }
 
-  test("manual .[[Type]] handling: no machine-inserted guard should double-unwrap the result") {
-    assert(invoke("callexplodemanuallyhandled", List(Bool(true))) == Str("threw"))
-    assert(invoke("callexplodemanuallyhandled", List(Bool(false))) == Bool(true))
+  test(
+    "manual .[[Type]] handling: no machine-inserted guard should double-unwrap the result",
+  ) {
+    assert(
+      invoke("callexplodemanuallyhandled", List(Bool(true))) == Str("threw"),
+    )
+    assert(
+      invoke("callexplodemanuallyhandled", List(Bool(false))) == Bool(true),
+    )
   }
 
-  test("if-this-throws-catch-it idiom: no machine-inserted guard should duplicate or interfere with ExpandThrowsPass's own handling") {
+  test(
+    "if-this-throws-catch-it idiom: no machine-inserted guard should duplicate or interfere with ExpandThrowsPass's own handling",
+  ) {
     assert(invoke("explodewithcatch", List(Bool(true))) == Str("caught"))
     assert(invoke("explodewithcatch", List(Bool(false))) == Bool(true))
   }
@@ -392,7 +404,9 @@ class CompletionPropagationSpec extends AnyFunSuite:
     assert(invoke("callharmlessunguarded", Nil) == Bool(true))
   }
 
-  test("explode and callExplodeUnguarded, called directly, actually return real Completion Records") {
+  test(
+    "explode and callExplodeUnguarded, called directly, actually return real Completion Records",
+  ) {
     val (st1t, v1t) = invokeRaw("explode", List(Bool(true)))
     assert(completionFields(st1t, v1t)._1 == "throw")
 

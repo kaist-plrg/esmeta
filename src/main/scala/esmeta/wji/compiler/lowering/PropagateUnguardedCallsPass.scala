@@ -1,85 +1,62 @@
 package esmeta.wji.compiler.lowering
 
-import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr}
+import esmeta.wji.lang.{Algorithm, Expr, Instr}
 import esmeta.wji.lang.Instr.PerformOutcome
 
 /** Mirrors the Infra Standard's "no explicit catch → automatically re-throw"
   * convention for any call to a known completion-returning algorithm (see
   * [[CompletionAlgorithms]]) that the spec prose doesn't mark with `?`/`!` and
-  * doesn't otherwise handle itself — inserting the exact same runtime
-  * propagation guard `ExpandAbruptPass` gives an explicit `?`.
+  * doesn't otherwise handle itself: synthesizes the exact same
+  * `Expr.Abrupt("?", ...)` marker a genuine spec-authored `?` would produce, so
+  * [[ExpandAbruptPass]] — which runs immediately after this pass, see
+  * `Lowering.pipeline` — is the *one* place in the whole pipeline that ever
+  * lowers an abrupt-completion check into real instructions. This pass's own
+  * job is entirely detection: *whether* a guard belongs at a given call site,
+  * never *how* to build one.
   *
   * {{{
-  *   Perform(f, args, BindResult(x))
-  *   <rest, none of which reads x.[[Type]]>
+  *   Let(x, AlgoCall(f, args), body)
+  *   <no read of x.[[Type]] anywhere in body>
   * }}}
   * becomes:
   * {{{
-  *   Perform(f, args, BindResult(x))
-  *   If(x is AbruptCompletion, [Return(Some(x))])
-  *   Else [Set(x, x.Value)]
-  *   <rest>
+  *   Let(_guardN, AlgoCall(f, args))
+  *   Let(x, Abrupt("?", Var(_guardN)), body)
   * }}}
+  * and likewise for the native `Perform(f, args, BindResult(x))` verb-phrase
+  * shape (`InstrParser`'s `PerformAndLetSuffix`, e.g. "Perform F(args), and let
+  * X be the result." — parses straight to `Perform` without ever going through
+  * `Let`/`AlgoCall`), except no fresh var is needed there: `x` is already bound
+  * to the raw call result, so the marker can just wrap a reference to `x`
+  * itself.
   *
-  * A 2-way check, not `?`'s own defensive 3-way one (which also asks "is this
-  * even a completion at all?" before trusting `.Type") — safe *only* because
-  * `f` is always a `completionAlgos` member here, and every member's every exit
-  * path is provably completion-shaped by construction:
-  * `WrapCompletionReturnsPass` wraps every `Instr.Return`/`Instr.Throw` it
-  * finds, and `InsertFallthroughReturnPass` (run before it) guarantees one
-  * exists even for an algorithm that would otherwise just fall off the end.
-  * `ExpandAbruptPass`'s own guard for an explicit `?`/`!` stays 3-way, since
-  * `?`/`!` can just as well target a mainline ECMA-262 AO nothing here tracks.
-  *
-  * *Whether to insert the guard at all* is still significant: only
+  * *Whether to insert the guard at all* is the real work here: only
   * `completionAlgos` members are targeted, and only when
   * `CompletionAlgorithms.isAbsorbed` says the caller doesn't already handle it
-  * — otherwise every single `Perform` in the file would grow a dead guard.
-  *
-  * KNOWN GAP: `CompletionAlgorithms.isAbsorbed`'s own `Cond.Throws` case (`case
-  * Instr.If(Cond.Throws(_), _) :: _ => true`) only ever matches a raw
-  * `Instr.If` — a shape [[GroupIfChainPass]] eliminates well before this pass
-  * runs, so from here that branch is structurally dead. Harmless only because
-  * [[ExpandThrowsPass]] (required below) already absorbs every real
-  * `Cond.Throws` occurrence first; if one ever slipped past that pass, this one
-  * couldn't recognize it as already-handled either, and would insert a
-  * redundant (if likely harmless) propagation guard next to it.
+  * — otherwise every single call in the file would grow a dead guard.
   *
   * Category: Completion-record convention.
   */
 object PropagateUnguardedCallsPass extends LoweringPass:
 
   /** Requires:
-    *   - [[InsertFallthroughReturnPass]]: needed, with
-    *     `WrapCompletionReturnsPass`, for the "every exit path of a
-    *     `returnsCompletion` algorithm is already completion-shaped" guarantee
-    *     this pass's 2-way (rather than `?`'s defensive 3-way) check relies on.
-    *   - [[WrapCompletionReturnsPass]]: see above.
     *   - [[MarkCompletionAlgorithmsPass]]: needs `returnsCompletion` already
     *     stamped on every `Algorithm`.
-    *   - [[ExtractInlineAlgoCallPass]]: needs every call already converted to
-    *     `Instr.Perform`.
-    *   - [[ExpandThrowsPass]]: needs a `Cond.Throws`-guarded call already
-    *     transformed away, so it isn't mistaken for unguarded — see the KNOWN
-    *     GAP above for why this is load-bearing in a second way too.
-    *   - [[ExpandFollowingStepsPass]]: needs a `FollowingSteps` closure's
-    *     substeps already hoisted into their own top-level `Algorithm` — unlike
-    *     `CompletionAlgorithms.hasOwnAbrupt`/`hasUnguardedCallInto` (which
-    *     correctly must *not* look inside a closure, since a closure's own
-    *     behavior says nothing about the *enclosing* algorithm), this pass
-    *     inserts real guard instructions wherever an unguarded call appears —
-    *     including inside what will become the closure's own body — so running
-    *     after hoisting means every algorithm (closures included) just gets the
-    *     same uniform treatment, with nothing left to special-case.
+    *   - [[NormalizeEvaluationOrderPass]]: needs every `AlgoCall`/`JSCall`
+    *     already hoisted to `Let`/`Return` direct-RHS position — the same
+    *     guarantee [[ExpandAbruptPass]]/[[ExtractInlineAlgoCallPass]] rely on
+    *     for the identical reason.
+    *
+    * Must precede:
+    *   - [[ExpandAbruptPass]]: the synthesized `Expr.Abrupt` marker this pass
+    *     produces must be swept up by the very next pass, or it's stranded —
+    *     `Expr.Abrupt` has no other consumer anywhere in the pipeline.
     */
   override def requires: Set[LoweringPass] = Set(
-    InsertFallthroughReturnPass,
-    WrapCompletionReturnsPass,
     MarkCompletionAlgorithmsPass,
-    ExtractInlineAlgoCallPass,
-    ExpandThrowsPass,
-    ExpandFollowingStepsPass,
+    NormalizeEvaluationOrderPass,
   )
+  override def mustPrecede: Set[LoweringPass] = Set(ExpandAbruptPass)
 
   def run(algos: List[Algorithm]): List[Algorithm] =
     val completionAlgos: Set[String] = algos
@@ -88,13 +65,24 @@ object PropagateUnguardedCallsPass extends LoweringPass:
       }
       .flatten
       .toSet
-    algos.map(a => a.copy(body = transform(a.body, completionAlgos)))
+    algos.map { a =>
+      counter = 0
+      a.copy(body = transform(a.body, completionAlgos))
+    }
+
+  private var counter = 0
+  private def fresh(): String = { counter += 1; s"_guard$counter" }
 
   private def transform(
     instrs: List[Instr],
     completionAlgos: Set[String],
   ): List[Instr] = instrs match
     case Nil => Nil
+
+    // native verb-phrase call ("Perform F(args), and let X be the result.")
+    // — x is already bound, so the marker just wraps a reference to it (Set,
+    // not Let: this reassigns the same already-existing binding, unlike the
+    // Let case below's genuinely-new one).
     case (p @ Instr.Perform(
           func,
           _,
@@ -102,33 +90,81 @@ object PropagateUnguardedCallsPass extends LoweringPass:
           pbody,
         )) :: rest
         if completionAlgos.contains(CompletionAlgorithms.normalize(func)) &&
-        !CompletionAlgorithms.isAbsorbed(Some(stripPipes(rawX)), rest) =>
+        !CompletionAlgorithms
+          .isAbsorbed(Some(stripPipes(rawX)), pbody ++ rest) =>
       val x = stripPipes(rawX)
-      p.copy(body = Nil) :: (propagate(x) ++ transform(
-        pbody,
-        completionAlgos,
-      ) ++
+      val xVar = Expr.Var(x)
+      p.copy(body = Nil) :: (guard(Instr.Set(xVar, _, Nil), xVar) ++
+      transform(pbody, completionAlgos) ++
       transform(rest, completionAlgos))
+
+    // "Let X be F(args)." — f itself is still a bare AlgoCall/JSCall here
+    // (ExtractInlineAlgoCallPass, which converts this to Perform, runs after
+    // this pass now) — needs a fresh temp to hold the raw call result, since
+    // ExpandAbruptPass requires Expr.Abrupt's inner to always be a bare Var,
+    // never the call expression itself (see NormalizeEvaluationOrderPass's
+    // identical hoisting for a genuine spec-authored `?`).
+    //
+    // isBoundForAbrupt guards against a real ambiguity running this early
+    // introduces: NormalizeEvaluationOrderPass hoists a genuinely-marked
+    // "Let x be ? F(args)." into the exact same shape this case would
+    // otherwise match — Let(_tmp, AlgoCall(f,args)) immediately followed by
+    // Let(x, Abrupt("?", Var(_tmp)), ...) — before ExpandAbruptPass (which
+    // runs right after this pass) ever gets to consume it. Without this
+    // check, an explicitly-marked call gets double-guarded: this pass'
+    // synthesized guard unwraps _tmp into a bare value first, and
+    // ExpandAbruptPass's own expansion of the *real* marker then wrongly
+    // re-checks that already-unwrapped value as if it might still be a
+    // completion.
+    case Instr.Let(lhs @ Expr.Var(x), rhs, body) :: rest
+        if isUnguardedCompletionCall(rhs, completionAlgos) &&
+        !isBoundForAbrupt(x, body ++ rest) &&
+        !CompletionAlgorithms.isAbsorbed(Some(x), body ++ rest) =>
+      val tmpVar = Expr.Var(fresh())
+      Instr.Let(tmpVar, rhs, Nil) :: (guard(Instr.Let(lhs, _, Nil), tmpVar) ++
+      transform(body, completionAlgos) ++
+      transform(rest, completionAlgos))
+
     case i :: rest =>
       i.mapBody(transform(_, completionAlgos)) :: transform(
         rest,
         completionAlgos,
       )
 
+  private def isUnguardedCompletionCall(
+    expr: Expr,
+    completionAlgos: Set[String],
+  ): Boolean = expr match
+    case Expr.AlgoCall(link, _) =>
+      completionAlgos.contains(CompletionAlgorithms.normalize(link))
+    case Expr.JSCall(name, _) =>
+      completionAlgos.contains(CompletionAlgorithms.normalize(name))
+    case _ => false
+
+  /** Whether `x` is about to be consumed as the `inner` of an `Expr.Abrupt`
+    * marker in the very next instruction — see the call site's own doc for why
+    * this specific ambiguity only exists once this pass runs before
+    * `ExpandAbruptPass`.
+    */
+  private def isBoundForAbrupt(x: String, next: List[Instr]): Boolean =
+    next.headOption.exists {
+      case Instr.Let(_, Expr.Abrupt(_, Expr.Var(v)), _)       => v == x
+      case Instr.Set(_, Expr.Abrupt(_, Expr.Var(v)), _)       => v == x
+      case Instr.Return(Some(Expr.Abrupt(_, Expr.Var(v))), _) => v == x
+      case _                                                  => false
+    }
+
+  /** Synthesizes the same `Expr.Abrupt("?", ...)` marker a genuine
+    * spec-authored `?` produces. `bindLhs` — mirrors
+    * [[ExpandAbruptPass.expand]]'s own `bind` parameter exactly — embeds the
+    * marker into whichever instruction shape the call site is using
+    * (`Instr.Set(x, _, Nil)` to reassign an already-bound `x`, or `Instr.Let(x,
+    * _, Nil)` to introduce a genuinely new one); `inner` is the bare `Var`
+    * holding the raw call result to check.
+    */
+  private def guard(bindLhs: Expr => Instr, inner: Expr.Var): List[Instr] =
+    List(bindLhs(Expr.Abrupt("?", inner)))
+
   // see CompletionAlgorithms's identically-named/documented helper
   private def stripPipes(s: String): String =
     s.stripPrefix("|").stripSuffix("|")
-
-  private def propagate(x: String): List[Instr] =
-    val xVar = Expr.Var(x)
-    List(
-      Instr.IfChain(
-        branches = List(
-          (
-            Cond.IsType(xVar, "AbruptCompletion"),
-            List(Instr.Return(Some(xVar))),
-          ),
-        ),
-        fallback = List(Instr.Set(xVar, Expr.Field(xVar, "Value"))),
-      ),
-    )

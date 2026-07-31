@@ -112,8 +112,8 @@ def asynchronously_compile_a_webassembly_module(
   if (? promise: Completion) {
     return promise
   } else {
-    call _ret2 = clo<"NormalCompletion">(promise)
-    return _ret2
+    call _ret3 = clo<"NormalCompletion">(promise)
+    return _ret3
   }
 }
 def compile(
@@ -363,11 +363,16 @@ def create_an_exports_object(
       assert (yet "is of form Case(GLOBAL,List(Var(globaladdr)))")
       assert (= (case-tag externval) "GLOBAL")
       let globaladdr = externval[0]
-      call global = clo<"create_a_global_object">(globaladdr)
-      if (? global: Abrupt) {
-        return global
+      call _guard1 = clo<"create_a_global_object">(globaladdr)
+      if (? _guard1: Abrupt) {
+        if (? _guard1: Completion) {
+          return _guard1
+        } else {
+          call _ret1 = clo<"NormalCompletion">(_guard1)
+          return _ret1
+        }
       } else {
-        global = global.Value
+        let global = _guard1.Value
       }
       let value = global
     } else nop
@@ -376,11 +381,16 @@ def create_an_exports_object(
       assert (yet "is of form Case(MEM,List(Var(memaddr)))")
       assert (= (case-tag externval) "MEM")
       let memaddr = externval[0]
-      call memory = clo<"create_a_memory_object">(memaddr)
-      if (? memory: Abrupt) {
-        return memory
+      call _guard2 = clo<"create_a_memory_object">(memaddr)
+      if (? _guard2: Abrupt) {
+        if (? _guard2: Completion) {
+          return _guard2
+        } else {
+          call _ret2 = clo<"NormalCompletion">(_guard2)
+          return _ret2
+        }
       } else {
-        memory = memory.Value
+        let memory = _guard2.Value
       }
       let value = memory
     } else nop
@@ -389,11 +399,16 @@ def create_an_exports_object(
       assert (yet "is of form Case(TABLE,List(Var(tableaddr)))")
       assert (= (case-tag externval) "TABLE")
       let tableaddr = externval[0]
-      call table = clo<"create_a_table_object">(tableaddr)
-      if (? table: Abrupt) {
-        return table
+      call _guard3 = clo<"create_a_table_object">(tableaddr)
+      if (? _guard3: Abrupt) {
+        if (? _guard3: Completion) {
+          return _guard3
+        } else {
+          call _ret3 = clo<"NormalCompletion">(_guard3)
+          return _ret3
+        }
       } else {
-        table = table.Value
+        let table = _guard3.Value
       }
       let value = table
     } else nop
@@ -402,11 +417,16 @@ def create_an_exports_object(
       assert (yet "is of form Case(TAG,List(Var(tagaddr)))")
       assert (= (case-tag externval) "TAG")
       let tagaddr = externval[0]
-      call tag = clo<"create_a_tag_object">(tagaddr)
-      if (? tag: Abrupt) {
-        return tag
+      call _guard4 = clo<"create_a_tag_object">(tagaddr)
+      if (? _guard4: Abrupt) {
+        if (? _guard4: Completion) {
+          return _guard4
+        } else {
+          call _ret4 = clo<"NormalCompletion">(_guard4)
+          return _ret4
+        }
       } else {
-        tag = tag.Value
+        let tag = _guard4.Value
       }
       let value = tag
     } else nop
@@ -420,8 +440,8 @@ def create_an_exports_object(
   if (? exportsObject: Completion) {
     return exportsObject
   } else {
-    call _ret1 = clo<"NormalCompletion">(exportsObject)
-    return _ret1
+    call _ret5 = clo<"NormalCompletion">(exportsObject)
+    return _ret5
   }
 }
 def initialize_an_instance_object(
@@ -431,14 +451,19 @@ def initialize_an_instance_object(
 ): Unknown = {
   call exportsObject = clo<"create_an_exports_object">(module, instance)
   if (? exportsObject: Abrupt) {
-    return exportsObject
+    if (? exportsObject: Completion) {
+      return exportsObject
+    } else {
+      call _ret1 = clo<"NormalCompletion">(exportsObject)
+      return _ret1
+    }
   } else {
     exportsObject = exportsObject.Value
   }
   instanceObject.Instance = instance
   instanceObject.Exports = exportsObject
-  call _ret1 = clo<"NormalCompletion">(~unused~)
-  return _ret1
+  call _ret2 = clo<"NormalCompletion">(~unused~)
+  return _ret2
 }
 def instantiate_the_core_of_a_webassembly_module(
   module: Unknown,
@@ -514,7 +539,12 @@ def instantiate(
   call stableBytes = clo<"get_a_copy_of_the_buffer_source">(bytes)
   call promiseOfModule = clo<"asynchronously_compile_a_webassembly_module">(stableBytes, options)
   if (? promiseOfModule: Abrupt) {
-    return promiseOfModule
+    if (? promiseOfModule: Completion) {
+      return promiseOfModule
+    } else {
+      call _ret1 = clo<"NormalCompletion">(promiseOfModule)
+      return _ret1
+    }
   } else {
     promiseOfModule = promiseOfModule.Value
   }
@@ -522,8 +552,8 @@ def instantiate(
   if (? _result1: Completion) {
     return _result1
   } else {
-    call _ret1 = clo<"NormalCompletion">(_result1)
-    return _ret1
+    call _ret2 = clo<"NormalCompletion">(_result1)
+    return _ret2
   }
 }
 def instantiate_object(
@@ -719,19 +749,29 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Instance(
   let module = moduleObject.Module
   call imports = clo<"read_the_imports">(module, importObject, builtinSetNames, importedStringModule)
   if (? imports: Abrupt) {
-    return imports
+    if (? imports: Completion) {
+      return imports
+    } else {
+      call _ret1 = clo<"NormalCompletion">(imports)
+      return _ret1
+    }
   } else {
     imports = imports.Value
   }
   call instance = clo<"instantiate_the_core_of_a_webassembly_module">(module, imports)
   if (? instance: Abrupt) {
-    return instance
+    if (? instance: Completion) {
+      return instance
+    } else {
+      call _ret2 = clo<"NormalCompletion">(instance)
+      return _ret2
+    }
   } else {
     instance = instance.Value
   }
   call _ = clo<"initialize_an_instance_object">(this, module, instance)
-  call _ret1 = clo<"NormalCompletion">(~unused~)
-  return _ret1
+  call _ret3 = clo<"NormalCompletion">(~unused~)
+  return _ret3
 }
 def <BUILTIN>:INTRINSICS.get:WebAssembly.Instance.prototype.exports(
   this: Unknown,
@@ -948,18 +988,23 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Memory.prototype.grow(
   } else {
     let delta64 = _call1.Value
   }
-  call ret = clo<"grow_the_memory_buffer">(memaddr, delta64)
-  if (? ret: Abrupt) {
-    return ret
+  call _guard1 = clo<"grow_the_memory_buffer">(memaddr, delta64)
+  if (? _guard1: Abrupt) {
+    if (? _guard1: Completion) {
+      return _guard1
+    } else {
+      call _ret2 = clo<"NormalCompletion">(_guard1)
+      return _ret2
+    }
   } else {
-    ret = ret.Value
+    let ret = _guard1.Value
   }
   call _result1 = clo<"u64toaddressvalue">(ret, addrtype)
   if (? _result1: Completion) {
     return _result1
   } else {
-    call _ret2 = clo<"NormalCompletion">(_result1)
-    return _ret2
+    call _ret3 = clo<"NormalCompletion">(_result1)
+    return _ret3
   }
 }
 def memory.grow(
@@ -1773,31 +1818,36 @@ def call_an_exported_function(
     if (= tagaddr jsTagAddr) {
       (yet "throw [=ToJSValue=](|payload|[0])")
     } else {
-      call exception = clo<"create_an_exception_object">(exnaddr)
-      if (? exception: Abrupt) {
-        return exception
+      call _guard1 = clo<"create_an_exception_object">(exnaddr)
+      if (? _guard1: Abrupt) {
+        if (? _guard1: Completion) {
+          return _guard1
+        } else {
+          call _ret6 = clo<"NormalCompletion">(_guard1)
+          return _ret6
+        }
       } else {
-        exception = exception.Value
+        let exception = _guard1.Value
       }
       (yet "throw |exception|")
     }
   } else nop
   let outArity = (sizeof ret)
   if (= outArity 0) {
-    let _v6 = undefined
-    if (? _v6: Completion) {
-      return _v6
+    let _v7 = undefined
+    if (? _v7: Completion) {
+      return _v7
     } else {
-      call _ret7 = clo<"NormalCompletion">(_v6)
-      return _ret7
+      call _ret8 = clo<"NormalCompletion">(_v7)
+      return _ret8
     }
   } else if (= outArity 1) {
     call _result1 = clo<"tojsvalue">(ret[0])
     if (? _result1: Completion) {
       return _result1
     } else {
-      call _ret8 = clo<"NormalCompletion">(_result1)
-      return _ret8
+      call _ret9 = clo<"NormalCompletion">(_result1)
+      return _ret9
     }
   } else {
     let values = (list [])
@@ -1813,8 +1863,8 @@ def call_an_exported_function(
     if (? _result2: Completion) {
       return _result2
     } else {
-      call _ret9 = clo<"NormalCompletion">(_result2)
-      return _ret9
+      call _ret10 = clo<"NormalCompletion">(_result2)
+      return _ret10
     }
   }
 }
@@ -2906,11 +2956,16 @@ def js-string-intocharcodearray(
   let i = 0
   while (< i stringLength) {
     call charCode = clo<"charcodeat">(string, i)
-    call _call2 = clo<"towebassemblyvalue">(charCode, (case "I32" ))
-    if (? _call2: Abrupt) {
-      return _call2
+    call _guard1 = clo<"towebassemblyvalue">(charCode, (case "I32" ))
+    if (? _guard1: Abrupt) {
+      if (? _guard1: Completion) {
+        return _guard1
+      } else {
+        call _ret2 = clo<"NormalCompletion">(_guard1)
+        return _ret2
+      }
     } else {
-      _call2 = _call2.Value
+      let _call2 = _guard1.Value
     }
     @@yet: unresolved ref: BinOp(Unknown(the element at index |start|),Add,Unknown(|i| in |array|)) = _call2
     i = (+ i 1)
@@ -2918,8 +2973,8 @@ def js-string-intocharcodearray(
   if (? stringLength: Completion) {
     return stringLength
   } else {
-    call _ret2 = clo<"NormalCompletion">(stringLength)
-    return _ret2
+    call _ret3 = clo<"NormalCompletion">(stringLength)
+    return _ret3
   }
 }
 def js-string-fromcharcode(
@@ -3258,7 +3313,12 @@ def asynchronously_compile_a_webassembly_module_closure1(
   } else {
     call moduleObject = clo<"construct_a_webassembly_module_object">(module, bytes, builtinSetNames, importedStringModule)
     if (? moduleObject: Abrupt) {
-      return moduleObject
+      if (? moduleObject: Completion) {
+        return moduleObject
+      } else {
+        call _ret2 = clo<"NormalCompletion">(moduleObject)
+        return _ret2
+      }
     } else {
       moduleObject = moduleObject.Value
     }
@@ -3351,21 +3411,11 @@ def a_new_exported_function_closure1(
 ): Unknown = {
   let argValues = argumentsList
   call _result1 = clo<"call_an_exported_function">(funcaddr, argValues)
-  if (? _result1: Abrupt) {
-    if (? _result1: Completion) {
-      return _result1
-    } else {
-      call _ret1 = clo<"NormalCompletion">(_result1)
-      return _ret1
-    }
-  } else {
-    _result1 = _result1.Value
-  }
   if (? _result1: Completion) {
     return _result1
   } else {
-    call _ret2 = clo<"NormalCompletion">(_result1)
-    return _ret2
+    call _ret1 = clo<"NormalCompletion">(_result1)
+    return _ret1
   }
 }
 def create_a_host_function_closure1(

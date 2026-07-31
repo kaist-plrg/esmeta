@@ -105,9 +105,8 @@ object CompletionWrapping:
     case Instr.Return(Some(expr), _) =>
       // a bare Var (the common case now that ExtractInlineAlgoCallPass/
       // ExpandPerformReturnResultPass already ran) needs no re-binding —
-      // testing/returning it directly (instead of aliasing it under a fresh
-      // name first) keeps its name intact for PropagateUnguardedCallsPass's
-      // own `isAbsorbed` name-matching against the same variable.
+      // testing/returning it directly, rather than aliasing it under a fresh
+      // name first, avoids a pointless extra Let.
       val (bindings, vVar) = expr match
         case v: Expr.Var => (Nil, v)
         case _ =>

@@ -10,13 +10,11 @@ import esmeta.wji.lang.{Algorithm, Instr}
   *
   * Exists so `WrapCompletionReturnsPass` (which only wraps *existing*
   * `Instr.Return`/`Instr.Throw` nodes) sees a real exit path to wrap for an
-  * algorithm that would otherwise just fall off the end — closing the one gap
-  * that would otherwise keep `PropagateUnguardedCallsPass`'s runtime guard from
-  * being safely simplified from a defensive 3-way check ("is this even a
-  * completion?") down to a 2-way one ("is it abrupt or normal?"): once every
-  * `returnsCompletion` algorithm's *every* exit path is provably wrapped, a
-  * call site targeting one can assume the result always already has a `.Type`
-  * field.
+  * algorithm that would otherwise just fall off the end — without this, a
+  * `returnsCompletion` algorithm reachable only via implicit fall-through would
+  * have one exit path left un-wrapped, breaking the guarantee every caller
+  * relies on: that a `completionAlgos` member's result always already has a
+  * `.Type` field, with no need to check for that defensively first.
   *
   * Uses `Instr.alwaysExits` (same helper `Compiler.compileAlgo` uses) to decide
   * whether a fallback is needed — this recognizes an `IfChain` whose every

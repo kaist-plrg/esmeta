@@ -83,6 +83,7 @@ object Lowering:
     ExpandAbbreviatedCondPass,
     ExpandExportedObjectIsTypePass,
     NormalizeEvaluationOrderPass, // normalization point
+    PropagateUnguardedCallsPass,
     ExpandAbruptPass,
     ExtractInlineAlgoCallPass,
     ExpandClosureCallPass,
@@ -93,7 +94,6 @@ object Lowering:
     ExpandMatchesExistsPass,
     ExpandFollowingStepsPass,
     ExpandQueueATaskPass,
-    PropagateUnguardedCallsPass,
     // injections
     MarkBuiltinBehaviourPass,
     AddBuiltinBehaviourPass,

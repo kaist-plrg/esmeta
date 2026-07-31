@@ -79,11 +79,9 @@ import esmeta.wji.lang.walker.Walker
   * {{{
   *   Case("REF.HOST_ADDR", [Var(hostaddr)])
   * }}}
-  * — one variant, `REF.NULL`, both renames *and* drops its argument (spec prose
-  * always writes a heaptype alongside it, but the runtime null-ref value
-  * carries none: `REF.NULL_ADDR` always types as the bottom heap type
-  * regardless of context), so `Case("[=ref.null=]", [Var(heaptype)])` becomes
-  * the argument-less `Case("REF.NULL_ADDR", [])`.
+  * — `ref.null`'s sibling case is handled up in the `SpecTerm` group above, not
+  * here: SpecPatch #32 (docs/spec_errors.md #15) already strips its stale
+  * heaptype argument at the source, so it never reaches a `Case` at all.
   *
   * Every other `Case` (an already-correctly-flat variant like
   * `external-type/func`, or one [[ExprParser]] built directly rather than via a
@@ -143,17 +141,21 @@ object NormalizeSpecTecCaseShapePass extends LoweringPass:
     */
   private val nestedFormLinks: Set[String] = Set("external-type/global")
 
-  /** `ref`'s address/immediate-carrying variants — every one whose runtime
-    * `CaseV` tag needs a suffix spec prose's own `[=ref.X=]` link text never
-    * spells out, but keeps its single argument as-is (contrast `REF.NULL`,
-    * handled separately just below, and `REF.EXTERN`, which needs no change at
-    * all — it already carries no suffix). Confirmed against the canonical `ref`
-    * syntax rule (`4.1-execution.values.spectec`): `REF.I31_NUM i |
+  /** `ref`'s address/immediate-carrying variants, mapped to the suffixed tag
+    * SpecTec's actual runtime `CaseV` uses that spec prose's own `[=ref.X=]`
+    * link text never spells out — the single source of truth for all 6
+    * (`REF.EXTERN` needs no entry: it already carries no suffix, spec prose and
+    * runtime tag agree). Confirmed against the canonical `ref` syntax rule
+    * (`4.1-execution.values.spectec`): `REF.NULL_ADDR | REF.I31_NUM i |
     * REF.STRUCT_ADDR a | REF.ARRAY_ADDR a | REF.FUNC_ADDR a | REF.EXN_ADDR a
-    * | REF.HOST_ADDR a` — `I31` alone gets `_NUM` (an inline immediate, not a
-    * store index); the rest get `_ADDR`.
+    * | REF.HOST_ADDR a` — `NULL`/`I31` get `_ADDR`/`_NUM` respectively (an
+    * inline immediate rather than a store index, for `I31`); the rest all get
+    * `_ADDR`. Looked up two different ways below: the `Case`-tag branch in
+    * [[reshaper]] for the 5 that keep their one argument as-is, and the
+    * `SpecTerm("ref.null")` case for the one that doesn't (see its own doc).
     */
   private val refAddrSuffix: Map[String, String] = Map(
+    "REF.NULL" -> "REF.NULL_ADDR",
     "REF.I31" -> "REF.I31_NUM",
     "REF.STRUCT" -> "REF.STRUCT_ADDR",
     "REF.ARRAY" -> "REF.ARRAY_ADDR",
@@ -226,6 +228,12 @@ object NormalizeSpecTecCaseShapePass extends LoweringPass:
           ),
         )
       case Expr.SpecTerm(HeapType(tag)) => Expr.Case(tag, Nil)
+      // `[=ref.null=]` (SpecPatch #32, docs/spec_errors.md #15) is patched
+      // down to zero args, so it resolves to a bare `SpecTerm` rather than
+      // reaching the `Case` branch below at all — [[refAddrSuffix]]("REF.NULL")
+      // is `REF.NULL_ADDR`, the runtime null-ref value's own nullary shape.
+      case Expr.SpecTerm("ref.null") =>
+        Expr.Case(refAddrSuffix("REF.NULL"), Nil)
       case Expr.Case(tag, args) =>
         val reshapedArgs = args.map(walk)
         val stripped = stripLink(tag).toLowerCase
@@ -251,15 +259,6 @@ object NormalizeSpecTecCaseShapePass extends LoweringPass:
             // in structure spec prose leaves implicit.
             else if finalTag == "REF" && reshapedArgs.size == 1 then
               Expr.Case(finalTag, Expr.Opt(None) :: reshapedArgs)
-            // `REF.NULL_ADDR` (the runtime null-ref *value*) takes no
-            // argument at all — `s |- REF.NULL_ADDR : REF NULL BOT` always
-            // types it as the bottom heap type regardless of context, so
-            // the heaptype spec prose always writes alongside it (either as
-            // a literal construction argument or an ignored `<var
-            // ignore>` in a match) plays no role at the value level and is
-            // dropped here, not just renamed — unlike every other `REF.*`
-            // variant below, which keeps its one argument as-is.
-            else if finalTag == "REF.NULL" then Expr.Case("REF.NULL_ADDR", Nil)
             else if refAddrSuffix.contains(finalTag) then
               Expr.Case(refAddrSuffix(finalTag), reshapedArgs)
             else Expr.Case(finalTag, reshapedArgs)

@@ -544,6 +544,21 @@ object SpecPatch:
     // |hostaddr| here is just a plain integer with no runtime tag of its own.
     "Let [=host address=] |hostaddr| be the smallest address"
     -> "Let |hostaddr| be the smallest address",
+
+    // #32 (spec bug, docs/spec_errors.md #15) — stale phrasing left over
+    // from an older Wasm Core Spec revision, where the `ref.null` runtime
+    // value still carried its heap type. The current spec's `ref` value
+    // grammar (`4.1-execution.values.spectec`) dropped that: `REF.NULL_ADDR`
+    // is a bare nullary constructor, always typed as the bottom heap type
+    // regardless of context (`s |- REF.NULL_ADDR : REF NULL BOT`) — unlike
+    // every sibling `[=ref.X=]` value link in this file (func/host/i31/
+    // struct/array/extern, all linking the same `exec/runtime.html#values`
+    // target), whose argument genuinely is part of the value. Both
+    // occurrences drop the now-nonexistent heaptype argument.
+    "[=ref.null=] <var ignore>t</var>, return null."
+    -> "[=ref.null=], return null.",
+    "1. Let |r| be [=ref.null=] |heaptype|."
+    -> "1. Let |r| be [=ref.null=].",
   )
 
   def apply(source: String): String =

@@ -161,3 +161,14 @@
 - **Current**: `1. If |w| is of the form [=ref.null=] <var ignore>t</var>, return null.` and `1. Let |r| be [=ref.null=] |heaptype|.`
 - **Expected**: `1. If |w| is of the form [=ref.null=], return null.` and `1. Let |r| be [=ref.null=].` — drop the now-nonexistent argument at both sites.
 - **Reason**: `[=ref.null=]` links to `exec/runtime.html#values` (the Core Spec's runtime `ref` value grammar), the same target every sibling `[=ref.X=]` link in this file uses (`ref.func`/`ref.host`/`ref.i31`/`ref.struct`/`ref.array`/`ref.extern`) — and for every one of those siblings, the written argument genuinely is part of the produced value (confirmed against `4.1-execution.values.spectec`, e.g. `s |- REF.FUNC_ADDR a : REF dt`). `ref.null` is the sole exception: its current runtime grammar is a bare nullary `REF.NULL_ADDR`, always typed as the bottom heap type regardless of context (`s |- REF.NULL_ADDR : REF NULL BOT`) — an older Wasm Core Spec revision *did* carry the heap type as part of the null value itself, and this phrasing was never updated when that representation changed, leaving behind an argument the current value grammar has no room for.
+
+## 16. `!` (ReturnIfAbrupt) applied to ECMA-262 abstract operations that never return a Completion Record (`OrdinaryObjectCreate`, `CreateBuiltinFunction`)
+
+- **File**: `spectec/document/js-api/index.bs`
+  - lines 473, 555, 1885 (`OrdinaryObjectCreate`, `read the imports`/instantiation-exports-object construction sites)
+  - line 1272 (`CreateBuiltinFunction`, `a new Exported Function`)
+- **Current**:
+  - `1. Let |exportsObject| be [=!=] [$OrdinaryObjectCreate$](null).` (3 sites, byte-identical)
+  - `1. Let |function| be [=!=] [$CreateBuiltinFunction$](|steps|, |arity|, |name|, « [[FunctionAddress]] », |realm|).`
+- **Expected**: drop the `[=!=]` prefix at all 4 sites.
+- **Reason**: same class of mistake as spec error #14's `ToJSValue`. ECMA-262's own "ReturnIfAbrupt Shorthands" (`sec-returnifabrupt-shorthands`) defines `!` as unconditionally asserting its operand is a normal completion before unwrapping `.[[Value]]` — not a graceful no-op when the operand isn't a Completion Record at all. Both `OrdinaryObjectCreate` (10.1.12, "returns an Object") and `CreateBuiltinFunction` (10.3.3, "returns a built-in function object") declare non-completion return types, and every step in either body is `Let`/`Set`/`Perform`/`Return` only — no `Throw`/`NormalCompletion`/`ThrowCompletion` anywhere — so neither can fail nor ever produces a Completion Record; `!` should never have been written before either. (Every other `CreateBuiltinFunction` call site in this project's corpus — `webidl/index.bs`, ~40 occurrences — correctly omits `!`; this is the sole exception for that operation.)

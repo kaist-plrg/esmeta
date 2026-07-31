@@ -559,6 +559,19 @@ object SpecPatch:
     -> "[=ref.null=], return null.",
     "1. Let |r| be [=ref.null=] |heaptype|."
     -> "1. Let |r| be [=ref.null=].",
+
+    // #33 (spec bug, docs/spec_errors.md #16) — `[=!=]` (ReturnIfAbrupt)
+    // prefixes two ECMA-262 AO calls whose own declared signatures never
+    // wrap a result in a Completion Record: `OrdinaryObjectCreate` ("returns
+    // an Object", 3 call sites) and `CreateBuiltinFunction` ("returns a
+    // built-in function object", 1 call site, in `a new Exported Function`)
+    // — the same class of mistake as #26's `ToJSValue`.
+    "[=!=] [$OrdinaryObjectCreate$]"
+    ->
+    "[$OrdinaryObjectCreate$]",
+    "[=!=] [$CreateBuiltinFunction$]"
+    ->
+    "[$CreateBuiltinFunction$]",
   )
 
   def apply(source: String): String =

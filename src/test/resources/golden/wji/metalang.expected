@@ -89,7 +89,7 @@
   params: |module|, |importedStringModule|
   head: To <dfn>instantiate imported strings</dfn> with module |module| and |importedStringModule|, perform the following steps:
   Assert(|importedStringModule| is not null)
-  Let(|exportsObject|, [=!=] [$OrdinaryObjectCreate$](null))
+  Let(|exportsObject|, [$OrdinaryObjectCreate$](null))
   ForEach((|moduleName|, |componentName|, |externtype|), [=module_imports=](|module|))
     If(|moduleName| is not |importedStringModule|)
       Continue
@@ -177,7 +177,7 @@
 # create an exports object
   params: |module|, |instance|
   head: To <dfn>create an exports object</dfn> from a WebAssembly module |module| and instance |instance|, perform the following steps:
-  Let(|exportsObject|, [=!=] [$OrdinaryObjectCreate$](null))
+  Let(|exportsObject|, [$OrdinaryObjectCreate$](null))
   ForEach((|name|, |externtype|), [=module_exports=](|module|))
     Let(|externval|, [=instance_export=](|instance|, |name|))
     Assert(|externval| is not [=error=])
@@ -798,7 +798,7 @@
   Let(->(|paramTypes|, |resultTypes|), [=expand=](|functype|))
   Let(|arity|, length(|paramTypes|))
   Let(|name|, [=name of the WebAssembly function=](|funcaddr|))
-  Let(|function|, [=!=] [$CreateBuiltinFunction$](|steps|, |arity|, |name|, « "FunctionAddress" », |realm|))
+  Let(|function|, [$CreateBuiltinFunction$](|steps|, |arity|, |name|, « "FunctionAddress" », |realm|))
   Set(|function|.[[FunctionAddress]], |funcaddr|)
   Set(|map|[|funcaddr|], |function|)
   Return(|function|)
@@ -1277,7 +1277,7 @@
   params: |builtinSetName|
   head: To <dfn>instantiate a builtin set</dfn> with name |builtinSetName|, perform the following steps:
   Let(|builtins|, [=get the builtins for a builtin set=](|builtinSetName|))
-  Let(|exportsObject|, [=!=] [$OrdinaryObjectCreate$](null))
+  Let(|exportsObject|, [$OrdinaryObjectCreate$](null))
   ForEach((|name|, |funcType|, |steps|), |builtins|)
     Let(|funcaddr|, [=create a builtin function=](|funcType|, |steps|))
     Let(|func|, [=a new Exported Function=](|funcaddr|))

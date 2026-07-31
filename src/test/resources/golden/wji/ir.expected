@@ -134,13 +134,7 @@ def instantiate_imported_strings(
   importedStringModule: Unknown,
 ): Unknown = {
   assert (! (= importedStringModule null))
-  call _call1 = clo<"OrdinaryObjectCreate">(null)
-  if (exists _call1.Type) {
-    assert (= _call1.Type ~normal~)
-    let exportsObject = _call1.Value
-  } else {
-    let exportsObject = _call1
-  }
+  call exportsObject = clo<"OrdinaryObjectCreate">(null)
   call-embed _iterList1 = <module_imports>(module)
   let _iterIdx2 = 0
   while (< _iterIdx2 (sizeof _iterList1)) {
@@ -152,12 +146,12 @@ def instantiate_imported_strings(
       (yet "continue")
     } else nop
     let stringConstant = componentName
-    call _call2 = clo<"CreateDataProperty">(exportsObject, stringConstant, stringConstant)
-    if (exists _call2.Type) {
-      assert (= _call2.Type ~normal~)
-      let status = _call2.Value
+    call _call1 = clo<"CreateDataProperty">(exportsObject, stringConstant, stringConstant)
+    if (exists _call1.Type) {
+      assert (= _call1.Type ~normal~)
+      let status = _call1.Value
     } else {
-      let status = _call2
+      let status = _call1
     }
     assert (= status true)
     _iterIdx2 = (+ _iterIdx2 1)
@@ -362,13 +356,7 @@ def create_an_exports_object(
   module: Unknown,
   instance: Unknown,
 ): Unknown = {
-  call _call1 = clo<"OrdinaryObjectCreate">(null)
-  if (exists _call1.Type) {
-    assert (= _call1.Type ~normal~)
-    let exportsObject = _call1.Value
-  } else {
-    let exportsObject = _call1
-  }
+  call exportsObject = clo<"OrdinaryObjectCreate">(null)
   call-embed _iterList1 = <module_exports>(module)
   let _iterIdx2 = 0
   while (< _iterIdx2 (sizeof _iterList1)) {
@@ -438,12 +426,12 @@ def create_an_exports_object(
       }
       let value = tag
     } else nop
-    call _call2 = clo<"CreateDataProperty">(exportsObject, name, value)
-    if (exists _call2.Type) {
-      assert (= _call2.Type ~normal~)
-      let status = _call2.Value
+    call _call1 = clo<"CreateDataProperty">(exportsObject, name, value)
+    if (exists _call1.Type) {
+      assert (= _call1.Type ~normal~)
+      let status = _call1.Value
     } else {
-      let status = _call2
+      let status = _call1
     }
     assert (= status true)
     _iterIdx2 = (+ _iterIdx2 1)
@@ -1789,13 +1777,7 @@ def a_new_exported_function(
   let resultTypes = _tuple1[1]
   let arity = (sizeof paramTypes)
   call name = clo<"name_of_the_webassembly_function">(funcaddr)
-  call _call1 = clo<"CreateBuiltinFunction">(steps, arity, name, (list ["FunctionAddress"]), realm)
-  if (exists _call1.Type) {
-    assert (= _call1.Type ~normal~)
-    let function = _call1.Value
-  } else {
-    let function = _call1
-  }
+  call function = clo<"CreateBuiltinFunction">(steps, arity, name, (list ["FunctionAddress"]), realm)
   function.FunctionAddress = funcaddr
   map[funcaddr] = function
   return function
@@ -2937,13 +2919,7 @@ def instantiate_a_builtin_set(
   builtinSetName: Unknown,
 ): Unknown = {
   call builtins = clo<"get_the_builtins_for_a_builtin_set">(builtinSetName)
-  call _call1 = clo<"OrdinaryObjectCreate">(null)
-  if (exists _call1.Type) {
-    assert (= _call1.Type ~normal~)
-    let exportsObject = _call1.Value
-  } else {
-    let exportsObject = _call1
-  }
+  call exportsObject = clo<"OrdinaryObjectCreate">(null)
   let _iterList1 = builtins
   let _iterIdx2 = 0
   while (< _iterIdx2 (sizeof _iterList1)) {
@@ -2954,12 +2930,12 @@ def instantiate_a_builtin_set(
     call funcaddr = clo<"create_a_builtin_function">(funcType, steps)
     call func = clo<"a_new_exported_function">(funcaddr)
     let value = func
-    call _call2 = clo<"CreateDataProperty">(exportsObject, name, value)
-    if (exists _call2.Type) {
-      assert (= _call2.Type ~normal~)
-      let status = _call2.Value
+    call _call1 = clo<"CreateDataProperty">(exportsObject, name, value)
+    if (exists _call1.Type) {
+      assert (= _call1.Type ~normal~)
+      let status = _call1.Value
     } else {
-      let status = _call2
+      let status = _call1
     }
     assert (= status true)
     _iterIdx2 = (+ _iterIdx2 1)

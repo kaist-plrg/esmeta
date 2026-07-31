@@ -11,29 +11,27 @@ import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr}
   * mainline's own `IAssert(ETypeCheck(xExpr, IRType(NormalT)))` — `!` is not
   * simply a no-op there either).
   *
-  * Unlike mainline (where `needRetComp` guarantees every `?`/`!`-reachable
-  * callee's `Return` is wrapped in a completion record, computed from the
-  * spec's own declared return types), a WJI-compiled algorithm's `Return` is
-  * never wrapped — WJI has no such declared-type info to compute an equivalent
-  * from. So, mirroring `ExpandThrowsPass`'s three-way completion check, this
-  * first tests whether the callee's result even *has* a `.Type` field before
-  * ever reading it, rather than assuming every `?`/`!` target returns a
-  * completion record the way mainline safely can:
+  * Both markers presuppose `inner` genuinely *is* a Completion Record —
+  * ECMA-262's own "ReturnIfAbrupt Shorthands" bakes in the exact same
+  * assumption, via an unconditional `Assert: ... is a Completion Record` with
+  * no graceful fallback for a non-completion operand. `inner` failing that here
+  * is never something this pass should defend against silently; it means either
+  * `inner`'s target isn't actually completion-returning (a spec bug — `?`/`!`
+  * should never have been written there at all, see docs/spec_errors.md
+  * #14/#16, fixed via `SpecPatch` rather than papered over here) or, for a
+  * WJI-compiled target, that `WrapCompletionReturnsPass` hasn't actually
+  * wrapped every one of its exit paths yet:
   * {{{
   *   Let(x, Abrupt("?", inner), body)
   * }}}
   * becomes:
   * {{{
   *   IfChain(
-  *     [(inner has field "Type",
-  *       [IfChain(
-  *           [(IsType(inner, "AbruptCompletion"), [Return(inner)])],
-  *           fallback = [Let(x, inner.Value, body)],
-  *       )])],
-  *     fallback = [Let(x, inner, body)],   // not a completion at all
+  *     [(IsType(inner, "AbruptCompletion"), [Return(inner)])],
+  *     fallback = [Let(x, inner.Value, body)],
   *   )
   * }}}
-  * and `Abrupt("!", inner)` the same way, except the inner branch is a flat
+  * and `Abrupt("!", inner)` the same way, except the branch is a flat
   * `Assert(inner.Type is ~normal~)` followed by the `.Value` bind, rather than
   * a further `IfChain`.
   *
@@ -98,7 +96,7 @@ object ExpandAbruptPass extends LoweringPass:
     val typeField = Expr.Field(inner, "Type")
     val valueField = Expr.Field(inner, "Value")
 
-    val onCompletion: List[Instr] = marker match
+    marker match
       case "?" =>
         List(
           Instr.IfChain(
@@ -116,10 +114,3 @@ object ExpandAbruptPass extends LoweringPass:
           Instr.Assert(Cond.Eq(typeField, Expr.SpecTerm("normal"))),
           bind(valueField),
         )
-
-    List(
-      Instr.IfChain(
-        branches = List((Cond.HasField(typeField), onCompletion)),
-        fallback = List(bind(inner)), // not a completion at all — a bare value
-      ),
-    )

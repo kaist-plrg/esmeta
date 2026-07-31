@@ -147,12 +147,8 @@ def instantiate_imported_strings(
     } else nop
     let stringConstant = componentName
     call _call1 = clo<"CreateDataProperty">(exportsObject, stringConstant, stringConstant)
-    if (exists _call1.Type) {
-      assert (= _call1.Type ~normal~)
-      let status = _call1.Value
-    } else {
-      let status = _call1
-    }
+    assert (= _call1.Type ~normal~)
+    let status = _call1.Value
     assert (= status true)
     _iterIdx2 = (+ _iterIdx2 1)
   }
@@ -200,36 +196,28 @@ def read_the_imports(
       let o = builtinOrStringImports[moduleName]
       if (|| (! (? o: Record[Object])) (= (yet "if [$HasProperty$](|o|, |componentName|)") false)) {
         call _call2 = clo<"Get">(importObject, moduleName)
-        if (exists _call2.Type) {
-          if (? _call2: Abrupt) {
-            if (? _call2: Completion) {
-              return _call2
-            } else {
-              call _ret3 = clo<"NormalCompletion">(_call2)
-              return _ret3
-            }
+        if (? _call2: Abrupt) {
+          if (? _call2: Completion) {
+            return _call2
           } else {
-            o = _call2.Value
+            call _ret3 = clo<"NormalCompletion">(_call2)
+            return _ret3
           }
         } else {
-          o = _call2
+          o = _call2.Value
         }
       } else nop
     } else {
       call _call3 = clo<"Get">(importObject, moduleName)
-      if (exists _call3.Type) {
-        if (? _call3: Abrupt) {
-          if (? _call3: Completion) {
-            return _call3
-          } else {
-            call _ret4 = clo<"NormalCompletion">(_call3)
-            return _ret4
-          }
+      if (? _call3: Abrupt) {
+        if (? _call3: Completion) {
+          return _call3
         } else {
-          let o = _call3.Value
+          call _ret4 = clo<"NormalCompletion">(_call3)
+          return _ret4
         }
       } else {
-        let o = _call3
+        let o = _call3.Value
       }
     }
     if (! (? o: Record[Object])) {
@@ -238,19 +226,15 @@ def read_the_imports(
       return _ret6
     } else nop
     call _call4 = clo<"Get">(o, componentName)
-    if (exists _call4.Type) {
-      if (? _call4: Abrupt) {
-        if (? _call4: Completion) {
-          return _call4
-        } else {
-          call _ret7 = clo<"NormalCompletion">(_call4)
-          return _ret7
-        }
+    if (? _call4: Abrupt) {
+      if (? _call4: Completion) {
+        return _call4
       } else {
-        let v = _call4.Value
+        call _ret7 = clo<"NormalCompletion">(_call4)
+        return _ret7
       }
     } else {
-      let v = _call4
+      let v = _call4.Value
     }
     if (= (case-tag externtype) "FUNC") {
       let functype = externtype[0]
@@ -427,12 +411,8 @@ def create_an_exports_object(
       let value = tag
     } else nop
     call _call1 = clo<"CreateDataProperty">(exportsObject, name, value)
-    if (exists _call1.Type) {
-      assert (= _call1.Type ~normal~)
-      let status = _call1.Value
-    } else {
-      let status = _call1
-    }
+    assert (= _call1.Type ~normal~)
+    let status = _call1.Value
     assert (= status true)
     _iterIdx2 = (+ _iterIdx2 1)
   }
@@ -771,12 +751,8 @@ def create_a_fixed_length_memory_buffer(
 ): Unknown = {
   call-embed block = <mem_read_bytes>(memaddr)
   call _call1 = clo<"AllocateArrayBuffer">(@EXECUTION_STACK[0].Realm.Intrinsics["%ArrayBuffer%"], 0)
-  if (exists _call1.Type) {
-    assert (= _call1.Type ~normal~)
-    let buffer = _call1.Value
-  } else {
-    let buffer = _call1
-  }
+  assert (= _call1.Type ~normal~)
+  let buffer = _call1.Value
   buffer.ArrayBufferData = block
   buffer.ArrayBufferByteLength = (sizeof block)
   buffer.ArrayBufferDetachKey = "WebAssembly.Memory"
@@ -789,12 +765,8 @@ def create_a_resizable_memory_buffer(
   call-embed block = <mem_read_bytes>(memaddr)
   let length = (sizeof block)
   call _call1 = clo<"AllocateArrayBuffer">(@EXECUTION_STACK[0].Realm.Intrinsics["%ArrayBuffer%"], 0)
-  if (exists _call1.Type) {
-    assert (= _call1.Type ~normal~)
-    let buffer = _call1.Value
-  } else {
-    let buffer = _call1
-  }
+  assert (= _call1.Type ~normal~)
+  let buffer = _call1.Value
   buffer.ArrayBufferData = block
   buffer.ArrayBufferByteLength = length
   buffer.ArrayBufferMaxByteLength = maxsize
@@ -867,35 +839,27 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Memory(
     let addrtype = "i32"
   }
   call _call1 = clo<"addressvaluetou64">(descriptor.initial, addrtype)
-  if (exists _call1.Type) {
-    if (? _call1: Abrupt) {
-      if (? _call1: Completion) {
-        return _call1
-      } else {
-        call _ret1 = clo<"NormalCompletion">(_call1)
-        return _ret1
-      }
+  if (? _call1: Abrupt) {
+    if (? _call1: Completion) {
+      return _call1
     } else {
-      let initial = _call1.Value
+      call _ret1 = clo<"NormalCompletion">(_call1)
+      return _ret1
     }
   } else {
-    let initial = _call1
+    let initial = _call1.Value
   }
   if (exists descriptor.maximum) {
     call _call2 = clo<"addressvaluetou64">(descriptor.maximum, addrtype)
-    if (exists _call2.Type) {
-      if (? _call2: Abrupt) {
-        if (? _call2: Completion) {
-          return _call2
-        } else {
-          call _ret2 = clo<"NormalCompletion">(_call2)
-          return _ret2
-        }
+    if (? _call2: Abrupt) {
+      if (? _call2: Completion) {
+        return _call2
       } else {
-        let maximum = _call2.Value
+        call _ret2 = clo<"NormalCompletion">(_call2)
+        return _ret2
       }
     } else {
-      let maximum = _call2
+      let maximum = _call2.Value
     }
   } else {
     let maximum = ~empty~
@@ -974,19 +938,15 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Memory.prototype.grow(
   let store = @AGENT_RECORD["associated store"]
   let addrtype = (yet "the [=address type=] in [=mem_type=](|store|, |memaddr|)")
   call _call1 = clo<"addressvaluetou64">(delta, addrtype)
-  if (exists _call1.Type) {
-    if (? _call1: Abrupt) {
-      if (? _call1: Completion) {
-        return _call1
-      } else {
-        call _ret1 = clo<"NormalCompletion">(_call1)
-        return _ret1
-      }
+  if (? _call1: Abrupt) {
+    if (? _call1: Completion) {
+      return _call1
     } else {
-      let delta64 = _call1.Value
+      call _ret1 = clo<"NormalCompletion">(_call1)
+      return _ret1
     }
   } else {
-    let delta64 = _call1
+    let delta64 = _call1.Value
   }
   call ret = clo<"grow_the_memory_buffer">(memaddr, delta64)
   if (? ret: Abrupt) {
@@ -1199,35 +1159,27 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Table(
     let addrtype = "i32"
   }
   call _call1 = clo<"addressvaluetou64">(descriptor.initial, addrtype)
-  if (exists _call1.Type) {
-    if (? _call1: Abrupt) {
-      if (? _call1: Completion) {
-        return _call1
-      } else {
-        call _ret3 = clo<"NormalCompletion">(_call1)
-        return _ret3
-      }
+  if (? _call1: Abrupt) {
+    if (? _call1: Completion) {
+      return _call1
     } else {
-      let initial = _call1.Value
+      call _ret3 = clo<"NormalCompletion">(_call1)
+      return _ret3
     }
   } else {
-    let initial = _call1
+    let initial = _call1.Value
   }
   if (exists descriptor.maximum) {
     call _call2 = clo<"addressvaluetou64">(descriptor.maximum, addrtype)
-    if (exists _call2.Type) {
-      if (? _call2: Abrupt) {
-        if (? _call2: Completion) {
-          return _call2
-        } else {
-          call _ret4 = clo<"NormalCompletion">(_call2)
-          return _ret4
-        }
+    if (? _call2: Abrupt) {
+      if (? _call2: Completion) {
+        return _call2
       } else {
-        let maximum = _call2.Value
+        call _ret4 = clo<"NormalCompletion">(_call2)
+        return _ret4
       }
     } else {
-      let maximum = _call2
+      let maximum = _call2.Value
     }
   } else {
     let maximum = ~empty~
@@ -1243,19 +1195,15 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Table(
     assert (! (= ref (case "ERROR" )))
   } else {
     call _call3 = clo<"towebassemblyvalue">(value, elementtype)
-    if (exists _call3.Type) {
-      if (? _call3: Abrupt) {
-        if (? _call3: Completion) {
-          return _call3
-        } else {
-          call _ret7 = clo<"NormalCompletion">(_call3)
-          return _ret7
-        }
+    if (? _call3: Abrupt) {
+      if (? _call3: Completion) {
+        return _call3
       } else {
-        let ref = _call3.Value
+        call _ret7 = clo<"NormalCompletion">(_call3)
+        return _ret7
       }
     } else {
-      let ref = _call3
+      let ref = _call3.Value
     }
   }
   let store = @AGENT_RECORD["associated store"]
@@ -1295,19 +1243,15 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Table.prototype.grow(
   let limits = _tuple1[1]
   let elementtype = _tuple1[2]
   call _call1 = clo<"addressvaluetou64">(delta, addrtype)
-  if (exists _call1.Type) {
-    if (? _call1: Abrupt) {
-      if (? _call1: Completion) {
-        return _call1
-      } else {
-        call _ret1 = clo<"NormalCompletion">(_call1)
-        return _ret1
-      }
+  if (? _call1: Abrupt) {
+    if (? _call1: Completion) {
+      return _call1
     } else {
-      let delta64 = _call1.Value
+      call _ret1 = clo<"NormalCompletion">(_call1)
+      return _ret1
     }
   } else {
-    let delta64 = _call1
+    let delta64 = _call1.Value
   }
   if (! (exists value)) {
     call ref = clo<"defaultvalue">(elementtype)
@@ -1318,19 +1262,15 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Table.prototype.grow(
     } else nop
   } else {
     call _call2 = clo<"towebassemblyvalue">(value, elementtype)
-    if (exists _call2.Type) {
-      if (? _call2: Abrupt) {
-        if (? _call2: Completion) {
-          return _call2
-        } else {
-          call _ret4 = clo<"NormalCompletion">(_call2)
-          return _ret4
-        }
+    if (? _call2: Abrupt) {
+      if (? _call2: Completion) {
+        return _call2
       } else {
-        let ref = _call2.Value
+        call _ret4 = clo<"NormalCompletion">(_call2)
+        return _ret4
       }
     } else {
-      let ref = _call2
+      let ref = _call2.Value
     }
   }
   call-embed result = <table_grow>(store, tableaddr, delta64, ref)
@@ -1387,19 +1327,15 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Table.prototype.get(
     return _ret2
   } else nop
   call _call1 = clo<"addressvaluetou64">(index, addrtype)
-  if (exists _call1.Type) {
-    if (? _call1: Abrupt) {
-      if (? _call1: Completion) {
-        return _call1
-      } else {
-        call _ret3 = clo<"NormalCompletion">(_call1)
-        return _ret3
-      }
+  if (? _call1: Abrupt) {
+    if (? _call1: Completion) {
+      return _call1
     } else {
-      let index64 = _call1.Value
+      call _ret3 = clo<"NormalCompletion">(_call1)
+      return _ret3
     }
   } else {
-    let index64 = _call1
+    let index64 = _call1.Value
   }
   call-embed result = <table_read>(store, tableaddr, index64)
   if (= result (case "ERROR" )) {
@@ -1442,19 +1378,15 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Table.prototype.set(
     return _ret2
   } else nop
   call _call1 = clo<"addressvaluetou64">(index, addrtype)
-  if (exists _call1.Type) {
-    if (? _call1: Abrupt) {
-      if (? _call1: Completion) {
-        return _call1
-      } else {
-        call _ret3 = clo<"NormalCompletion">(_call1)
-        return _ret3
-      }
+  if (? _call1: Abrupt) {
+    if (? _call1: Completion) {
+      return _call1
     } else {
-      let index64 = _call1.Value
+      call _ret3 = clo<"NormalCompletion">(_call1)
+      return _ret3
     }
   } else {
-    let index64 = _call1
+    let index64 = _call1.Value
   }
   if (! (exists value)) {
     call ref = clo<"defaultvalue">(elementtype)
@@ -1465,19 +1397,15 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Table.prototype.set(
     } else nop
   } else {
     call _call2 = clo<"towebassemblyvalue">(value, elementtype)
-    if (exists _call2.Type) {
-      if (? _call2: Abrupt) {
-        if (? _call2: Completion) {
-          return _call2
-        } else {
-          call _ret6 = clo<"NormalCompletion">(_call2)
-          return _ret6
-        }
+    if (? _call2: Abrupt) {
+      if (? _call2: Completion) {
+        return _call2
       } else {
-        let ref = _call2.Value
+        call _ret6 = clo<"NormalCompletion">(_call2)
+        return _ret6
       }
     } else {
-      let ref = _call2
+      let ref = _call2.Value
     }
   }
   call-embed store = <table_write>(store, tableaddr, index64, ref)
@@ -1570,12 +1498,8 @@ def defaultvalue(
 ): Unknown = {
   if (= valuetype (case "REF" (opt (case "NULL" )) (case "EXTERN" ))) {
     call _call1 = clo<"towebassemblyvalue">(undefined, valuetype)
-    if (exists _call1.Type) {
-      assert (= _call1.Type ~normal~)
-      return _call1.Value
-    } else {
-      return _call1
-    }
+    assert (= _call1.Type ~normal~)
+    return _call1.Value
   } else nop
   call-embed _result1 = <val_default>(valuetype)
   return _result1
@@ -1609,19 +1533,15 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Global(
     assert (! (= value (case "ERROR" )))
   } else {
     call _call1 = clo<"towebassemblyvalue">(v, valuetype)
-    if (exists _call1.Type) {
-      if (? _call1: Abrupt) {
-        if (? _call1: Completion) {
-          return _call1
-        } else {
-          call _ret3 = clo<"NormalCompletion">(_call1)
-          return _ret3
-        }
+    if (? _call1: Abrupt) {
+      if (? _call1: Completion) {
+        return _call1
       } else {
-        let value = _call1.Value
+        call _ret3 = clo<"NormalCompletion">(_call1)
+        return _ret3
       }
     } else {
-      let value = _call1
+      let value = _call1.Value
     }
   }
   if (= mutable true) {
@@ -1703,19 +1623,15 @@ def <BUILTIN>:INTRINSICS.set:WebAssembly.Global.prototype.value(
     return _ret4
   } else nop
   call _call1 = clo<"towebassemblyvalue">(givenValue, valuetype)
-  if (exists _call1.Type) {
-    if (? _call1: Abrupt) {
-      if (? _call1: Completion) {
-        return _call1
-      } else {
-        call _ret5 = clo<"NormalCompletion">(_call1)
-        return _ret5
-      }
+  if (? _call1: Abrupt) {
+    if (? _call1: Completion) {
+      return _call1
     } else {
-      let value = _call1.Value
+      call _ret5 = clo<"NormalCompletion">(_call1)
+      return _ret5
     }
   } else {
-    let value = _call1
+    let value = _call1.Value
   }
   call-embed store = <global_write>(store, globaladdr, value)
   if (= store (case "ERROR" )) {
@@ -1753,12 +1669,8 @@ def name_of_the_webassembly_function(
   }
   let index = ([number] _idxOf1)
   call _call1 = clo<"ToString">(index)
-  if (exists _call1.Type) {
-    assert (= _call1.Type ~normal~)
-    return _call1.Value
-  } else {
-    return _call1
-  }
+  assert (= _call1.Type ~normal~)
+  return _call1.Value
 }
 def a_new_exported_function(
   funcaddr: Unknown,
@@ -1830,19 +1742,15 @@ def call_an_exported_function(
       let arg = undefined
     }
     call _call1 = clo<"towebassemblyvalue">(arg, t)
-    if (exists _call1.Type) {
-      if (? _call1: Abrupt) {
-        if (? _call1: Completion) {
-          return _call1
-        } else {
-          call _ret3 = clo<"NormalCompletion">(_call1)
-          return _ret3
-        }
+    if (? _call1: Abrupt) {
+      if (? _call1: Completion) {
+        return _call1
       } else {
-        let _call2 = _call1.Value
+        call _ret3 = clo<"NormalCompletion">(_call1)
+        return _ret3
       }
     } else {
-      let _call2 = _call1
+      let _call2 = _call1.Value
     }
     push args < _call2
     i = (+ i 1)
@@ -1955,19 +1863,15 @@ def run_a_host_function(
     _iterIdx2 = (+ _iterIdx2 1)
   }
   call _call2 = clo<"Call">(func, undefined, jsArguments)
-  if (exists _call2.Type) {
-    if (? _call2: Abrupt) {
-      if (? _call2: Completion) {
-        return _call2
-      } else {
-        call _ret3 = clo<"NormalCompletion">(_call2)
-        return _ret3
-      }
+  if (? _call2: Abrupt) {
+    if (? _call2: Completion) {
+      return _call2
     } else {
-      let ret = _call2.Value
+      call _ret3 = clo<"NormalCompletion">(_call2)
+      return _ret3
     }
   } else {
-    let ret = _call2
+    let ret = _call2.Value
   }
   let resultsSize = (sizeof results)
   if (= resultsSize 0) {
@@ -1980,19 +1884,15 @@ def run_a_host_function(
     }
   } else if (= resultsSize 1) {
     call _call3 = clo<"towebassemblyvalue">(ret, results[0])
-    if (exists _call3.Type) {
-      if (? _call3: Abrupt) {
-        if (? _call3: Completion) {
-          return _call3
-        } else {
-          call _ret6 = clo<"NormalCompletion">(_call3)
-          return _ret6
-        }
+    if (? _call3: Abrupt) {
+      if (? _call3: Completion) {
+        return _call3
       } else {
-        let _call4 = _call3.Value
+        call _ret6 = clo<"NormalCompletion">(_call3)
+        return _ret6
       }
     } else {
-      let _call4 = _call3
+      let _call4 = _call3.Value
     }
     let _v7 = (list [_call4])
     if (? _v7: Completion) {
@@ -2003,19 +1903,15 @@ def run_a_host_function(
     }
   } else {
     call _call5 = clo<"GetMethod">(ret, @SYMBOL.iterator)
-    if (exists _call5.Type) {
-      if (? _call5: Abrupt) {
-        if (? _call5: Completion) {
-          return _call5
-        } else {
-          call _ret9 = clo<"NormalCompletion">(_call5)
-          return _ret9
-        }
+    if (? _call5: Abrupt) {
+      if (? _call5: Completion) {
+        return _call5
       } else {
-        let method = _call5.Value
+        call _ret9 = clo<"NormalCompletion">(_call5)
+        return _ret9
       }
     } else {
-      let method = _call5
+      let method = _call5.Value
     }
     if (= method undefined) {
       call _err10 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
@@ -2023,34 +1919,26 @@ def run_a_host_function(
       return _ret11
     } else nop
     call _call6 = clo<"GetIteratorFromMethod">(ret, method)
-    if (exists _call6.Type) {
-      if (? _call6: Abrupt) {
-        if (? _call6: Completion) {
-          return _call6
-        } else {
-          call _ret12 = clo<"NormalCompletion">(_call6)
-          return _ret12
-        }
+    if (? _call6: Abrupt) {
+      if (? _call6: Completion) {
+        return _call6
       } else {
-        let _call7 = _call6.Value
+        call _ret12 = clo<"NormalCompletion">(_call6)
+        return _ret12
       }
     } else {
-      let _call7 = _call6
+      let _call7 = _call6.Value
     }
     call _call8 = clo<"IteratorToList">(_call7)
-    if (exists _call8.Type) {
-      if (? _call8: Abrupt) {
-        if (? _call8: Completion) {
-          return _call8
-        } else {
-          call _ret13 = clo<"NormalCompletion">(_call8)
-          return _ret13
-        }
+    if (? _call8: Abrupt) {
+      if (? _call8: Completion) {
+        return _call8
       } else {
-        let values = _call8.Value
+        call _ret13 = clo<"NormalCompletion">(_call8)
+        return _ret13
       }
     } else {
-      let values = _call8
+      let values = _call8.Value
     }
     let wasmValues = (list [])
     if (! (= (sizeof values) resultsSize)) {
@@ -2060,19 +1948,15 @@ def run_a_host_function(
     } else nop
     (yet "foreach ?(|value| and |resultType|) in ?(|values| and |results|)")
     call _call9 = clo<"towebassemblyvalue">(value, resultType)
-    if (exists _call9.Type) {
-      if (? _call9: Abrupt) {
-        if (? _call9: Completion) {
-          return _call9
-        } else {
-          call _ret16 = clo<"NormalCompletion">(_call9)
-          return _ret16
-        }
+    if (? _call9: Abrupt) {
+      if (? _call9: Completion) {
+        return _call9
       } else {
-        let _call10 = _call9.Value
+        call _ret16 = clo<"NormalCompletion">(_call9)
+        return _ret16
       }
     } else {
-      let _call10 = _call9
+      let _call10 = _call9.Value
     }
     push wasmValues < _call10
     if (? wasmValues: Completion) {
@@ -2183,19 +2067,15 @@ def towebassemblyvalue(
   assert (! (= _m1 true))
   if (= type (case "I64" )) {
     call _call1 = clo<"ToBigInt64">(v)
-    if (exists _call1.Type) {
-      if (? _call1: Abrupt) {
-        if (? _call1: Completion) {
-          return _call1
-        } else {
-          call _ret1 = clo<"NormalCompletion">(_call1)
-          return _ret1
-        }
+    if (? _call1: Abrupt) {
+      if (? _call1: Completion) {
+        return _call1
       } else {
-        let i64 = _call1.Value
+        call _ret1 = clo<"NormalCompletion">(_call1)
+        return _ret1
       }
     } else {
-      let i64 = _call1
+      let i64 = _call1.Value
     }
     call-embed u64 = <inv_signed_64>(([math] i64))
     let _v2 = (case "CONST" (case "I64" ) u64)
@@ -2208,19 +2088,15 @@ def towebassemblyvalue(
   } else nop
   if (= type (case "I32" )) {
     call _call2 = clo<"ToInt32">(v)
-    if (exists _call2.Type) {
-      if (? _call2: Abrupt) {
-        if (? _call2: Completion) {
-          return _call2
-        } else {
-          call _ret4 = clo<"NormalCompletion">(_call2)
-          return _ret4
-        }
+    if (? _call2: Abrupt) {
+      if (? _call2: Completion) {
+        return _call2
       } else {
-        let i32 = _call2.Value
+        call _ret4 = clo<"NormalCompletion">(_call2)
+        return _ret4
       }
     } else {
-      let i32 = _call2
+      let i32 = _call2.Value
     }
     call-embed u32 = <inv_signed_32>(([math] i32))
     let _v5 = (case "CONST" (case "I32" ) u32)
@@ -2233,19 +2109,15 @@ def towebassemblyvalue(
   } else nop
   if (= type (case "F32" )) {
     call _call3 = clo<"ToNumber">(v)
-    if (exists _call3.Type) {
-      if (? _call3: Abrupt) {
-        if (? _call3: Completion) {
-          return _call3
-        } else {
-          call _ret7 = clo<"NormalCompletion">(_call3)
-          return _ret7
-        }
+    if (? _call3: Abrupt) {
+      if (? _call3: Completion) {
+        return _call3
       } else {
-        let number = _call3.Value
+        call _ret7 = clo<"NormalCompletion">(_call3)
+        return _ret7
       }
     } else {
-      let number = _call3
+      let number = _call3.Value
     }
     if (= number ~**NaN**~) {
       call _call4 = clo<"signif">(32)
@@ -2265,19 +2137,15 @@ def towebassemblyvalue(
   } else nop
   if (= type (case "F64" )) {
     call _call5 = clo<"ToNumber">(v)
-    if (exists _call5.Type) {
-      if (? _call5: Abrupt) {
-        if (? _call5: Completion) {
-          return _call5
-        } else {
-          call _ret10 = clo<"NormalCompletion">(_call5)
-          return _ret10
-        }
+    if (? _call5: Abrupt) {
+      if (? _call5: Completion) {
+        return _call5
       } else {
-        let number = _call5.Value
+        call _ret10 = clo<"NormalCompletion">(_call5)
+        return _ret10
       }
     } else {
-      let number = _call5
+      let number = _call5.Value
     }
     if (= number ~**NaN**~) {
       call _call6 = clo<"signif">(64)
@@ -2303,12 +2171,8 @@ def towebassemblyvalue(
       call-embed _call7 = <match_valtype>(type, (case "REF" null (case "EXTERN" )))
       if (= _call7 true) {
         call _call8 = clo<"towebassemblyvalue">(v, (case "REF" (opt) (case "ANY" )))
-        if (exists _call8.Type) {
-          assert (= _call8.Type ~normal~)
-          let ref = _call8.Value
-        } else {
-          let ref = _call8
-        }
+        assert (= _call8.Type ~normal~)
+        let ref = _call8.Value
         let r = (case "REF.EXTERN" ref)
       } else {
         if (&& (exists v.FunctionAddress) (= (yet "call [=match_valtype=]") true)) {
@@ -2316,19 +2180,15 @@ def towebassemblyvalue(
           let r = (case "REF.FUNC_ADDR" funcaddr)
         } else if (&& (? v: Number) (&& (= v (yet "nested ?-abrupt: JSCall(ToInt32,List(Var(v)))")) (&& (< (yet "call [=ℝ=]") (** 2 30)) (! (< (yet "call [=ℝ=]") (- (** 2 30))))))) {
           call _call9 = clo<"ToInt32">(v)
-          if (exists _call9.Type) {
-            if (? _call9: Abrupt) {
-              if (? _call9: Completion) {
-                return _call9
-              } else {
-                call _ret13 = clo<"NormalCompletion">(_call9)
-                return _ret13
-              }
+          if (? _call9: Abrupt) {
+            if (? _call9: Completion) {
+              return _call9
             } else {
-              let i31 = _call9.Value
+              call _ret13 = clo<"NormalCompletion">(_call9)
+              return _ret13
             }
           } else {
-            let i31 = _call9
+            let i31 = _call9.Value
           }
           call-embed u31 = <inv_signed_31>(([math] i31))
           let r = (case "REF.I31_NUM" u31)
@@ -2391,19 +2251,15 @@ def addressvaluetou64(
 ): Unknown = {
   if (= addrtype "i32") {
     let _call1 = (yet "[$ConvertToInt$](|v|, 32, \"unsigned\"), where the destination type is associated with [=[EnforceRange]=]")
-    if (exists _call1.Type) {
-      if (? _call1: Abrupt) {
-        if (? _call1: Completion) {
-          return _call1
-        } else {
-          call _ret1 = clo<"NormalCompletion">(_call1)
-          return _ret1
-        }
+    if (? _call1: Abrupt) {
+      if (? _call1: Completion) {
+        return _call1
       } else {
-        let n = _call1.Value
+        call _ret1 = clo<"NormalCompletion">(_call1)
+        return _ret1
       }
     } else {
-      let n = _call1
+      let n = _call1.Value
     }
     let _v2 = (yet "[=ℝ=](|n|) as a WebAssembly [=u64=]")
     if (? _v2: Completion) {
@@ -2415,19 +2271,15 @@ def addressvaluetou64(
   } else nop
   if (= addrtype "i64") {
     call _call2 = clo<"ToBigInt">(v)
-    if (exists _call2.Type) {
-      if (? _call2: Abrupt) {
-        if (? _call2: Completion) {
-          return _call2
-        } else {
-          call _ret4 = clo<"NormalCompletion">(_call2)
-          return _ret4
-        }
+    if (? _call2: Abrupt) {
+      if (? _call2: Completion) {
+        return _call2
       } else {
-        let n = _call2.Value
+        call _ret4 = clo<"NormalCompletion">(_call2)
+        return _ret4
       }
     } else {
-      let n = _call2
+      let n = _call2.Value
     }
     if (|| (< n 0) (< (- (** 2 64) 1) n)) {
       call _err5 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
@@ -2707,19 +2559,15 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Exception(
     return _ret6
   } else nop
   call _call1 = clo<"towebassemblyvalue">(value, resultType)
-  if (exists _call1.Type) {
-    if (? _call1: Abrupt) {
-      if (? _call1: Completion) {
-        return _call1
-      } else {
-        call _ret7 = clo<"NormalCompletion">(_call1)
-        return _ret7
-      }
+  if (? _call1: Abrupt) {
+    if (? _call1: Completion) {
+      return _call1
     } else {
-      let _call2 = _call1.Value
+      call _ret7 = clo<"NormalCompletion">(_call1)
+      return _ret7
     }
   } else {
-    let _call2 = _call1
+    let _call2 = _call1.Value
   }
   push wasmPayload < _call2
   call-embed _tuple1 = <exn_alloc>(store, exceptionTag.Address, wasmPayload)
@@ -2931,12 +2779,8 @@ def instantiate_a_builtin_set(
     call func = clo<"a_new_exported_function">(funcaddr)
     let value = func
     call _call1 = clo<"CreateDataProperty">(exportsObject, name, value)
-    if (exists _call1.Type) {
-      assert (= _call1.Type ~normal~)
-      let status = _call1.Value
-    } else {
-      let status = _call1
-    }
+    assert (= _call1.Type ~normal~)
+    let status = _call1.Value
     assert (= status true)
     _iterIdx2 = (+ _iterIdx2 1)
   }
@@ -2977,12 +2821,8 @@ def fromcharcode(
   assert (= v (yet "of type [=i32=]"))
   call _call1 = clo<"tojsvalue">(v)
   call _call2 = clo<"Call">(~String.fromCharCode~, undefined, (list [_call1]))
-  if (exists _call2.Type) {
-    assert (= _call2.Type ~normal~)
-    return _call2.Value
-  } else {
-    return _call2
-  }
+  assert (= _call2.Type ~normal~)
+  return _call2.Value
 }
 def charcodeat(
   string: Unknown,
@@ -2991,25 +2831,17 @@ def charcodeat(
   assert (= index (yet "of type [=i32=]"))
   call _call1 = clo<"tojsvalue">(index)
   call _call2 = clo<"Call">(~String.prototype.charCodeAt~, string, (list [_call1]))
-  if (exists _call2.Type) {
-    assert (= _call2.Type ~normal~)
-    return _call2.Value
-  } else {
-    return _call2
-  }
+  assert (= _call2.Type ~normal~)
+  return _call2.Value
 }
 def js-string-cast(
   v: Unknown,
 ): Unknown = {
   call _call1 = clo<"unwrapstring">(v)
-  if (exists _call1.Type) {
-    if (? _call1: Abrupt) {
-      return _call1
-    } else {
-      return _call1.Value
-    }
-  } else {
+  if (? _call1: Abrupt) {
     return _call1
+  } else {
+    return _call1.Value
   }
 }
 def js-string-test(
@@ -3056,19 +2888,15 @@ def js-string-intocharcodearray(
     (yet "throw a {{RuntimeError}} exception as if a [=trap=] was executed")
   } else nop
   call _call1 = clo<"unwrapstring">(string)
-  if (exists _call1.Type) {
-    if (? _call1: Abrupt) {
-      if (? _call1: Completion) {
-        return _call1
-      } else {
-        call _ret1 = clo<"NormalCompletion">(_call1)
-        return _ret1
-      }
+  if (? _call1: Abrupt) {
+    if (? _call1: Completion) {
+      return _call1
     } else {
-      let string = _call1.Value
+      call _ret1 = clo<"NormalCompletion">(_call1)
+      return _ret1
     }
   } else {
-    let string = _call1
+    let string = _call1.Value
   }
   let stringLength = (sizeof string)
   let arrayLength = (sizeof array)
@@ -3108,22 +2936,13 @@ def js-string-fromcodepoint(
   } else nop
   call _call1 = clo<"tojsvalue">(v)
   call _call2 = clo<"Call">(~String.fromCodePoint~, undefined, (list [_call1]))
-  if (exists _call2.Type) {
-    assert (= _call2.Type ~normal~)
-    let _v1 = _call2.Value
-    if (? _v1: Completion) {
-      return _v1
-    } else {
-      call _ret2 = clo<"NormalCompletion">(_v1)
-      return _ret2
-    }
+  assert (= _call2.Type ~normal~)
+  let _v1 = _call2.Value
+  if (? _v1: Completion) {
+    return _v1
   } else {
-    if (? _call2: Completion) {
-      return _call2
-    } else {
-      call _ret3 = clo<"NormalCompletion">(_call2)
-      return _ret3
-    }
+    call _ret2 = clo<"NormalCompletion">(_v1)
+    return _ret2
   }
 }
 def js-string-charcodeat(
@@ -3131,19 +2950,15 @@ def js-string-charcodeat(
   index: Unknown,
 ): Unknown = {
   call _call1 = clo<"unwrapstring">(string)
-  if (exists _call1.Type) {
-    if (? _call1: Abrupt) {
-      if (? _call1: Completion) {
-        return _call1
-      } else {
-        call _ret1 = clo<"NormalCompletion">(_call1)
-        return _ret1
-      }
+  if (? _call1: Abrupt) {
+    if (? _call1: Completion) {
+      return _call1
     } else {
-      let string = _call1.Value
+      call _ret1 = clo<"NormalCompletion">(_call1)
+      return _ret1
     }
   } else {
-    let string = _call1
+    let string = _call1.Value
   }
   let length = (sizeof string)
   if (! (< index length)) {
@@ -3162,19 +2977,15 @@ def js-string-codepointat(
   index: Unknown,
 ): Unknown = {
   call _call1 = clo<"unwrapstring">(string)
-  if (exists _call1.Type) {
-    if (? _call1: Abrupt) {
-      if (? _call1: Completion) {
-        return _call1
-      } else {
-        call _ret1 = clo<"NormalCompletion">(_call1)
-        return _ret1
-      }
+  if (? _call1: Abrupt) {
+    if (? _call1: Completion) {
+      return _call1
     } else {
-      let string = _call1.Value
+      call _ret1 = clo<"NormalCompletion">(_call1)
+      return _ret1
     }
   } else {
-    let string = _call1
+    let string = _call1.Value
   }
   let length = (sizeof string)
   if (! (< index length)) {
@@ -3182,36 +2993,23 @@ def js-string-codepointat(
   } else nop
   call _call2 = clo<"tojsvalue">(index)
   call _call3 = clo<"Call">(~String.prototype.codePointAt~, string, (list [_call2]))
-  if (exists _call3.Type) {
-    assert (= _call3.Type ~normal~)
-    let _v2 = _call3.Value
-    if (? _v2: Completion) {
-      return _v2
-    } else {
-      call _ret3 = clo<"NormalCompletion">(_v2)
-      return _ret3
-    }
+  assert (= _call3.Type ~normal~)
+  let _v2 = _call3.Value
+  if (? _v2: Completion) {
+    return _v2
   } else {
-    if (? _call3: Completion) {
-      return _call3
-    } else {
-      call _ret4 = clo<"NormalCompletion">(_call3)
-      return _ret4
-    }
+    call _ret3 = clo<"NormalCompletion">(_v2)
+    return _ret3
   }
 }
 def js-string-length(
   v: Unknown,
 ): Unknown = {
   call _call1 = clo<"unwrapstring">(v)
-  if (exists _call1.Type) {
-    if (? _call1: Abrupt) {
-      return _call1
-    } else {
-      let string = _call1.Value
-    }
+  if (? _call1: Abrupt) {
+    return _call1
   } else {
-    let string = _call1
+    let string = _call1.Value
   }
   return (sizeof string)
 }
@@ -3220,32 +3018,20 @@ def js-string-concat(
   second: Unknown,
 ): Unknown = {
   call _call1 = clo<"unwrapstring">(first)
-  if (exists _call1.Type) {
-    if (? _call1: Abrupt) {
-      return _call1
-    } else {
-      let first = _call1.Value
-    }
+  if (? _call1: Abrupt) {
+    return _call1
   } else {
-    let first = _call1
+    let first = _call1.Value
   }
   call _call2 = clo<"unwrapstring">(second)
-  if (exists _call2.Type) {
-    if (? _call2: Abrupt) {
-      return _call2
-    } else {
-      let second = _call2.Value
-    }
+  if (? _call2: Abrupt) {
+    return _call2
   } else {
-    let second = _call2
+    let second = _call2.Value
   }
   call _call3 = clo<"Call">(~String.prototype.concat~, first, (list [second]))
-  if (exists _call3.Type) {
-    assert (= _call3.Type ~normal~)
-    return _call3.Value
-  } else {
-    return _call3
-  }
+  assert (= _call3.Type ~normal~)
+  return _call3.Value
 }
 def js-string-substring(
   string: Unknown,
@@ -3253,14 +3039,10 @@ def js-string-substring(
   end: Unknown,
 ): Unknown = {
   call _call1 = clo<"unwrapstring">(string)
-  if (exists _call1.Type) {
-    if (? _call1: Abrupt) {
-      return _call1
-    } else {
-      let string = _call1.Value
-    }
+  if (? _call1: Abrupt) {
+    return _call1
   } else {
-    let string = _call1
+    let string = _call1.Value
   }
   let length = (sizeof string)
   if (|| (< end start) (< length start)) {
@@ -3269,12 +3051,8 @@ def js-string-substring(
   call _call2 = clo<"tojsvalue">(start)
   call _call3 = clo<"tojsvalue">(end)
   call _call4 = clo<"Call">(~String.prototype.substring~, string, (list [_call2, _call3]))
-  if (exists _call4.Type) {
-    assert (= _call4.Type ~normal~)
-    return _call4.Value
-  } else {
-    return _call4
-  }
+  assert (= _call4.Type ~normal~)
+  return _call4.Value
 }
 def js-string-equals(
   first: Unknown,
@@ -3287,12 +3065,8 @@ def js-string-equals(
     (yet "throw a {{RuntimeError}} exception as if a [=trap=] was executed")
   } else nop
   call _call1 = clo<"isstrictlyequal">(first, second)
-  if (exists _call1.Type) {
-    assert (= _call1.Type ~normal~)
-    let _call2 = _call1.Value
-  } else {
-    let _call2 = _call1
-  }
+  assert (= _call1.Type ~normal~)
+  let _call2 = _call1.Value
   if (= _call2 true) {
     let _v1 = 1
     if (? _v1: Completion) {
@@ -3315,42 +3089,26 @@ def js-string-compare(
   second: Unknown,
 ): Unknown = {
   call _call1 = clo<"unwrapstring">(first)
-  if (exists _call1.Type) {
-    if (? _call1: Abrupt) {
-      return _call1
-    } else {
-      let first = _call1.Value
-    }
+  if (? _call1: Abrupt) {
+    return _call1
   } else {
-    let first = _call1
+    let first = _call1.Value
   }
   call _call2 = clo<"unwrapstring">(second)
-  if (exists _call2.Type) {
-    if (? _call2: Abrupt) {
-      return _call2
-    } else {
-      let second = _call2.Value
-    }
+  if (? _call2: Abrupt) {
+    return _call2
   } else {
-    let second = _call2
+    let second = _call2.Value
   }
   call _call3 = clo<"isstrictlyequal">(first, second)
-  if (exists _call3.Type) {
-    assert (= _call3.Type ~normal~)
-    let _call4 = _call3.Value
-  } else {
-    let _call4 = _call3
-  }
+  assert (= _call3.Type ~normal~)
+  let _call4 = _call3.Value
   if (= _call4 true) {
     return 0
   } else nop
   call _call5 = clo<"islessthan">(first, second, true)
-  if (exists _call5.Type) {
-    assert (= _call5.Type ~normal~)
-    let _call6 = _call5.Value
-  } else {
-    let _call6 = _call5
-  }
+  assert (= _call5.Type ~normal~)
+  let _call6 = _call5.Value
   if (= _call6 true) {
     return (- 1)
   } else nop
@@ -3362,14 +3120,10 @@ def a_new_promise(
 ): Unknown = {
   let constructor = realm.Intrinsics["%Promise%"]
   call _call1 = clo<"NewPromiseCapability">(constructor)
-  if (exists _call1.Type) {
-    if (? _call1: Abrupt) {
-      return _call1
-    } else {
-      return _call1.Value
-    }
-  } else {
+  if (? _call1: Abrupt) {
     return _call1
+  } else {
+    return _call1.Value
   }
 }
 def resolve(
@@ -3408,14 +3162,10 @@ def react(
   call onRejected = clo<"CreateBuiltinFunction">(onRejectedSteps, 1, "", (list []))
   let constructor = realm.Intrinsics["%Promise%"]
   call _call1 = clo<"NewPromiseCapability">(constructor)
-  if (exists _call1.Type) {
-    if (? _call1: Abrupt) {
-      return _call1
-    } else {
-      let newCapability = _call1.Value
-    }
+  if (? _call1: Abrupt) {
+    return _call1
   } else {
-    let newCapability = _call1
+    let newCapability = _call1.Value
   }
   call _ = clo<"PerformPromiseThen">(promise.Promise, onFulfilled, onRejected, newCapability)
   return newCapability
@@ -3635,12 +3385,8 @@ def create_a_host_function_closure1(
     } else {
       call type = clo<"get_the_javascript_exception_tag">()
       call _call1 = clo<"towebassemblyvalue">(v, (case "REF" (opt (case "NULL" )) (case "EXTERN" )))
-      if (exists _call1.Type) {
-        assert (= _call1.Type ~normal~)
-        let payload = _call1.Value
-      } else {
-        let payload = _call1
-      }
+      assert (= _call1.Type ~normal~)
+      let payload = _call1.Value
       call-embed _tuple1 = <exn_alloc>(store, type, (list [payload]))
       let store = _tuple1[0]
       let address = _tuple1[1]

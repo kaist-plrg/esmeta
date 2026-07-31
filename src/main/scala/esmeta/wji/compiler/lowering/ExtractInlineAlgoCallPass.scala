@@ -10,10 +10,8 @@ import esmeta.wji.lang.Instr.PerformOutcome
   *
   * Handles:
   * {{{
-  *   Let(x, AlgoCall(f, args), body)                   → Perform(f, args, BindResult(x), body)
-  *   Let(x, Abrupt("!", AlgoCall(f, args)), body)       → same  (strips ! wrapper)
-  *   Return(Some(AlgoCall(f, args)), body)              → Perform(f, args, ReturnResult, body)
-  *   Return(Some(Abrupt("!", AlgoCall(f, args))), body) → same
+  *   Let(x, AlgoCall(f, args), body)       → Perform(f, args, BindResult(x), body)
+  *   Return(Some(AlgoCall(f, args)), body) → Perform(f, args, ReturnResult, body)
   *   (and likewise for JSCall(f, args) in each position)
   * }}}
   *
@@ -83,8 +81,7 @@ object ExtractInlineAlgoCallPass extends LoweringPass:
     case _ =>
       List(instr.mapBody(transform))
 
-  /** Unwraps an optional `!` (assert-not-abrupt) wrapper and returns `(name,
-    * args)` if the expression is an `AlgoCall` or a `JSCall`.
+  /** Returns `(name, args)` if the expression is an `AlgoCall` or a `JSCall`.
     *
     * @param zeroArg
     *   if true, zero-argument `AlgoCall`s are included (for Let RHS); if false,
@@ -99,12 +96,7 @@ object ExtractInlineAlgoCallPass extends LoweringPass:
   ): Option[(String, List[Expr])] = expr match
     case Expr.AlgoCall(link, args) if zeroArg || args.nonEmpty =>
       Some((link, args))
-    case Expr.Abrupt("!", Expr.AlgoCall(link, args))
-        if zeroArg || args.nonEmpty =>
-      Some((link, args))
     case Expr.JSCall(name, args) =>
-      Some((name, args))
-    case Expr.Abrupt("!", Expr.JSCall(name, args)) =>
       Some((name, args))
     case _ =>
       None

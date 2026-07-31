@@ -122,11 +122,6 @@ def compile(
 ): Unknown = {
   call stableBytes = clo<"get_a_copy_of_the_buffer_source">(bytes)
   call _result1 = clo<"asynchronously_compile_a_webassembly_module">(stableBytes, options)
-  if (? _result1: Abrupt) {
-    return _result1
-  } else {
-    _result1 = _result1.Value
-  }
   if (? _result1: Completion) {
     return _result1
   } else {
@@ -568,11 +563,6 @@ def instantiate_object(
   importObject: Unknown,
 ): Unknown = {
   call _result1 = clo<"asynchronously_instantiate_a_webassembly_module">(moduleObject, importObject)
-  if (? _result1: Abrupt) {
-    return _result1
-  } else {
-    _result1 = _result1.Value
-  }
   if (? _result1: Completion) {
     return _result1
   } else {
@@ -1693,11 +1683,6 @@ def <BUILTIN>:INTRINSICS.get:WebAssembly.Global.prototype.value(
   NewTarget: Unknown,
 ): Unknown = {
   call _result1 = clo<"getglobalvalue">(this)
-  if (? _result1: Abrupt) {
-    return _result1
-  } else {
-    _result1 = _result1.Value
-  }
   if (? _result1: Completion) {
     return _result1
   } else {
@@ -1760,11 +1745,6 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Global.prototype.valueof(
   NewTarget: Unknown,
 ): Unknown = {
   call _result1 = clo<"getglobalvalue">(this)
-  if (? _result1: Abrupt) {
-    return _result1
-  } else {
-    _result1 = _result1.Value
-  }
   if (? _result1: Completion) {
     return _result1
   } else {

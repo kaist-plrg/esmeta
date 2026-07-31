@@ -180,10 +180,17 @@ object CompletionAlgorithms:
     case _                       => false
 
   private def mentionsField(x: String, cond: Cond): Boolean = cond match
-    case Cond.Eq(l, r, _)         => mentionsField(x, l) || mentionsField(x, r)
-    case Cond.And(l, r)           => mentionsField(x, l) || mentionsField(x, r)
-    case Cond.Or(l, r)            => mentionsField(x, l) || mentionsField(x, r)
-    case Cond.HasField(e, _)      => mentionsField(x, e)
+    case Cond.Eq(l, r, _)    => mentionsField(x, l) || mentionsField(x, r)
+    case Cond.And(l, r)      => mentionsField(x, l) || mentionsField(x, r)
+    case Cond.Or(l, r)       => mentionsField(x, l) || mentionsField(x, r)
+    case Cond.HasField(e, _) => mentionsField(x, e)
+    // `IsType(Var(x), "AbruptCompletion"/"Completion")` is itself a
+    // completion-status check on x (`ExpandAbruptPass`'s `?`, `Propagate
+    // UnguardedCallsPass`'s own guard, `CompletionWrapping`'s Return-wrap
+    // check all produce exactly this shape) — not a `.Type` field read, so
+    // the generic recursion below would otherwise miss it entirely.
+    case Cond.IsType(Expr.Var(v), "AbruptCompletion" | "Completion", _) =>
+      v == x
     case Cond.IsType(e, _, _)     => mentionsField(x, e)
     case Cond.Compare(l, _, r)    => mentionsField(x, l) || mentionsField(x, r)
     case Cond.Matches(l, _, r, _) => mentionsField(x, l) || mentionsField(x, r)

@@ -119,6 +119,23 @@ object CondParser:
   private val AnyIn =
     """(?si)^any\s+(\S+)\s+in\s+((?:\|[^|]+\|)(?:\s+or\s+\|[^|]+\|)*)\s+(\[=.+)$""".r
 
+  // "a/an [=NOUN=] |binder| exists such that BODY" — a genuine existential
+  // with no explicit search domain (contrast AnyIn above), e.g. "a [=host
+  // address=] |hostaddr| exists such that |map|[|hostaddr|] is the same as
+  // |v|" (index.bs:1469). Checked before `parse`'s own top-level " is "/
+  // "or"/"and" splitting for the same reason as AnyIn: naive splitting would
+  // otherwise cut this apart wrongly (the first top-level " is " here sits
+  // *inside* `body`, not between some outer subject and this whole clause —
+  // confirmed empirically: without this case, the trailing "[|hostaddr|]"
+  // gets misread as an `Index` on the *whole* preceding clause, and "is the
+  // same as |v|" splits off as if this were a top-level equality). `body`
+  // (everything after "such that") already refers to `binder` via a real
+  // `|binder|` pipe-var directly (unlike AnyIn's `predTail`, whose subject is
+  // elided and must be reconstructed), so it's parsed as-is with no prefix
+  // injection needed.
+  private val ExistsSuchThat =
+    """(?si)^an?\s+\[=[^\]]+=\]\s+\|(\w+)\|\s+exists\s+such\s+that\s+(.+)$""".r
+
   // single source of truth for every comparison-operator spelling (spec
   // prose writes both the literal symbol and its HTML-entity escape) — the
   // separator list `findTopLevelAny` scans and the op each one normalizes to
@@ -152,7 +169,9 @@ object CondParser:
         val collections = collsRaw.split("""\s+or\s+""").toList.map { c =>
           ExprParser.parse(c)
         }
-        Exists(binder, collections, parse(s"|$binder| $predTail"))
+        Any(binder, collections, parse(s"|$binder| $predTail"))
+      case ExistsSuchThat(binder, body) =>
+        Exists(binder, parse(body))
       case _ =>
         // A top-level " where " (e.g. "X is of the form Y where Z1 or Z2",
         // index.bs:1212) scopes everything after it to a nested
@@ -265,14 +284,18 @@ object CondParser:
         case (i, sep) => (s.substring(0, i), s.substring(i + sep.length))
       }
 
-    splitEq(Seq(" is not equal to ", " does not equal "))
+    splitEq(
+      Seq(" is not equal to ", " does not equal ", " is not the same as "),
+    )
       .map {
         case (l, r) =>
           Eq(ExprParser.parse(l), ExprParser.parse(r), negated = true)
       }
-      .orElse(splitEq(Seq(" is equal to ", " equals ")).map {
-        case (l, r) => Eq(ExprParser.parse(l), ExprParser.parse(r))
-      })
+      .orElse(
+        splitEq(Seq(" is equal to ", " equals ", " is the same as ")).map {
+          case (l, r) => Eq(ExprParser.parse(l), ExprParser.parse(r))
+        },
+      )
       .orElse(splitTopLevel(s, " is not ").map {
         case (l, r) => parseRhs(l, r, negated = true)
       })

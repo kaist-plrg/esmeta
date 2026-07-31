@@ -60,8 +60,9 @@ trait UnitWalker:
     case Cond.And(l, r)               => walk(l); walk(r)
     case Cond.Or(l, r)                => walk(l); walk(r)
     case Cond.Abbreviated(e)          => walk(e)
-    case Cond.Exists(_, collections, body) =>
+    case Cond.Any(_, collections, body) =>
       collections.foreach(walk); walk(body)
+    case Cond.Exists(_, body) => walk(body)
     // leaves: Unreachable, Throws, Unknown.
     case _ =>
 

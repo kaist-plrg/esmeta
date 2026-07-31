@@ -76,7 +76,7 @@ object Lowering:
     ExpandNewByteSequencePass,
     ExpandIndexOfPass,
     ExpandDestructuringLetPass,
-    ExpandSuchThatPass,
+    ExpandExistentialsPass,
     ExpandDataBlockOfPass,
     ExpandNewArrayBufferPass,
     ExpandIsOfFormPass,

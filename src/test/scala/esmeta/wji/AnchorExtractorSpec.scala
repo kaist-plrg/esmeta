@@ -36,7 +36,7 @@ class AnchorExtractorSpec extends AnyFunSuite:
     * the same story one level further removed: js-api prose never even names
     * `signed_N`'s inverse directly (only describes it via "the unsigned integer
     * such that ... is [=signed_N=](...)"), so there's no dfn text to anchor at
-    * all — `ExpandSuchThatPass` recognizes that idiom and emits these as a
+    * all — `ExpandExistentialsPass` recognizes that idiom and emits these as a
     * WJI-invented per-width name, translated the same way (`server.ml`'s
     * `call_inv_signed`). `mem_read_bytes`/`mem_write_bytes` are a third case: a
     * wjmeta-bridge-specific bulk-transfer extension for the

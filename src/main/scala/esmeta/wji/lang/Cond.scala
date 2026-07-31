@@ -81,10 +81,22 @@ object Cond:
     * entry is searched, in order — mirrors mainline ESMeta's
     * `ContainsCondition`/`SuchThat` ("list contains an element such that ..."),
     * generalized to more than one list so the parser doesn't need to fold "in A
-    * or B" into this node's `Or`-of-two-`Exists` shape itself.
+    * or B" into this node's `Or`-of-two-`Any` shape itself.
     */
-  case class Exists(binder: String, collections: List[Expr], body: Cond)
+  case class Any(binder: String, collections: List[Expr], body: Cond)
     extends Cond
+
+  /** `a/an NOUN |binder| exists such that BODY` — "a [=host address=]
+    * |hostaddr| exists such that |map|[|hostaddr|] is the same as |v|"
+    * (index.bs:1469) — genuine existential quantification over some implicit,
+    * unstated-in-the-prose domain (contrast [[Any]], whose `collections` are
+    * spelled out directly). Which domain `binder` actually ranges over has to
+    * be inferred from `body`'s own structure (e.g. a `map[binder]` reference
+    * implies searching that map's key domain) — a lowering pass's job
+    * (`ExpandExistentialsPass`), not this node's; `body` refers to the bound
+    * value via `Expr.Var(binder)`, same as [[Any]].
+    */
+  case class Exists(binder: String, body: Cond) extends Cond
 
   /** `This step is not reached.` */
   case object Unreachable extends Cond

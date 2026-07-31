@@ -509,7 +509,14 @@ object Compiler:
       EUnary(UOp.Not, EImplements(compileExpr(e), iface))
     case Cond.IsOfForm(e, f, _, neg) => EYet(s"is of form $f") // TODO
     case Cond.Matches(l, t, r, neg)  => EYet(s"matches $t") // TODO
-    case Cond.Unknown(raw)           => EYet(raw)
+    // `ExpandExistentialsPass` only eliminates the specific solvable shapes
+    // it recognizes (mirrors `Expr.SuchThat`'s own EYet fallback below,
+    // `metalang.Expr.SuchThat`'s case) — an `Exists` describing some other,
+    // not-yet-recognized existential is left as-is and reported here, same
+    // as any other not-yet-mechanized construct.
+    case Cond.Exists(binder, body) =>
+      EYet(s"a value $binder exists such that ${CondPrinter.render(body)}")
+    case Cond.Unknown(raw) => EYet(raw)
 
     // ── unreachable after lowering ──
     // See compileExpr's identically-named, identically-verified group above:
@@ -518,7 +525,7 @@ object Compiler:
     // their own doc comments enumerate), and empirically do, for every
     // algorithm in the corpus today.
     case Cond.HasDuplicates(e, neg) => impossible("contains duplicates")
-    case Cond.Exists(binder, _, _)  => impossible(s"exists $binder")
+    case Cond.Any(binder, _, _)     => impossible(s"any $binder")
     case Cond.Throws(kind) =>
       impossible(s"throws${kind.fold("")(k => s" $k")}")
 

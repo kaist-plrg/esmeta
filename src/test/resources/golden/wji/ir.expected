@@ -2381,7 +2381,16 @@ def towebassemblyvalue(
           } else nop
         } else {
           let map = @AGENT_RECORD["host value cache"]
-          if (= @@yet: unresolved ref: SuchThat([=host address=] |hostaddr| exists,Unknown(|map|))[hostaddr] (yet "the same as |v|")) {
+          let _found1 = false
+          let hostaddr = 0
+          while (&& (= _found1 false) (< hostaddr (sizeof map))) {
+            if (= map[hostaddr] v) {
+              _found1 = true
+            } else {
+              hostaddr = (+ hostaddr 1)
+            }
+          }
+          if (= _found1 true) {
             let _v14 = (case "REF.HOST" hostaddr)
             if (? _v14: Completion) {
               return _v14

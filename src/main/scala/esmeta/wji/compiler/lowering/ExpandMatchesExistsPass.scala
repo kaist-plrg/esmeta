@@ -6,14 +6,14 @@ import esmeta.wji.bridge.host.WasmHost
 
 /** Hoists conditions that require real computation — a Wasm-matching embedding
   * call ([[Cond.Matches]]) or a "does any element satisfy..." search
-  * ([[Cond.Exists]]) — out of a branch/assert/while's condition and into
-  * ordinary preceding instructions. `Compiler.compileCond` is a pure `Cond =>
-  * ir.Expr` mapping with no way to emit instructions of its own (unlike
-  * mainline ESMeta's `FuncBuilder`-threaded compiler, which can interleave
-  * instruction emission with expression compilation — see its
+  * ([[Cond.Any]]) — out of a branch/assert/while's condition and into ordinary
+  * preceding instructions. `Compiler.compileCond` is a pure `Cond => ir.Expr`
+  * mapping with no way to emit instructions of its own (unlike mainline
+  * ESMeta's `FuncBuilder`-threaded compiler, which can interleave instruction
+  * emission with expression compilation — see its
   * `ContainsCondition`/`SuchThat` handling, the direct precedent for
-  * [[Cond.Exists]]'s compiled shape below), so both have to be reduced to a
-  * plain, already-computed boolean before `Compiler` ever sees them.
+  * [[Cond.Any]]'s compiled shape below), so both have to be reduced to a plain,
+  * already-computed boolean before `Compiler` ever sees them.
   *
   * {{{
   *   Assert(Matches(v, "valtype", v128))
@@ -26,7 +26,7 @@ import esmeta.wji.bridge.host.WasmHost
   *
   * and
   * {{{
-  *   If(Exists("t", [parameters, results], Matches(Var("t"), "valtype", v128)))
+  *   If(Any("t", [parameters, results], Matches(Var("t"), "valtype", v128)))
   * }}}
   * becomes a `found` accumulator plus one `While` loop per collection
   * (mirroring mainline's `ContainsCondition`+`SuchThat` compiled shape —
@@ -61,14 +61,14 @@ import esmeta.wji.bridge.host.WasmHost
 object ExpandMatchesExistsPass extends LoweringPass:
 
   /** Requires:
-    *   - [[ExpandAbbreviatedCondPass]]: a `Cond.Exists`'s `body`, and any bare
+    *   - [[ExpandAbbreviatedCondPass]]: a `Cond.Any`'s `body`, and any bare
     *     `Cond.Matches`, may still contain `Cond.Abbreviated` until then.
     *   - [[GroupIfChainPass]]: matches on `Instr.IfChain`, not a raw `If`.
     *   - [[NormalizeEvaluationOrderPass]]: needs any call embedded in a
-    *     `Cond.Exists`'s `collections` already hoisted out first — evaluated
-    *     once before the generated loop starts, so it's safe to hoist there,
-    *     unlike `body` (evaluated once per iteration, deliberately left alone —
-    *     see `NormalizeEvaluationOrderPass.extractFromCond`'s own doc).
+    *     `Cond.Any`'s `collections` already hoisted out first — evaluated once
+    *     before the generated loop starts, so it's safe to hoist there, unlike
+    *     `body` (evaluated once per iteration, deliberately left alone — see
+    *     `NormalizeEvaluationOrderPass.extractFromCond`'s own doc).
     */
   override def requires: Set[LoweringPass] =
     Set(
@@ -126,15 +126,15 @@ object ExpandMatchesExistsPass extends LoweringPass:
   private def needsHoist(cond: Cond): Boolean = cond match
     case Cond.Matches(_, matchType, _, _) =>
       matchEmbeddingName(matchType).isDefined
-    case _: Cond.Exists => true
+    case _: Cond.Any    => true
     case Cond.And(l, r) => needsHoist(l) || needsHoist(r)
     case Cond.Or(l, r)  => needsHoist(l) || needsHoist(r)
     case _              => false
 
   /** Returns the instructions to run first, and a pure replacement condition
-    * (no known-hoistable `Matches`/`Exists` left) to check afterward. A
-    * `Matches` with no real embedding function (see `matchEmbeddingName`'s doc)
-    * passes through unchanged rather than being hoisted.
+    * (no known-hoistable `Matches`/`Any` left) to check afterward. A `Matches`
+    * with no real embedding function (see `matchEmbeddingName`'s doc) passes
+    * through unchanged rather than being hoisted.
     */
   private def hoist(cond: Cond): (List[Instr], Cond) = cond match
     case Cond.Matches(lhs, matchType, rhs, neg)
@@ -146,7 +146,7 @@ object ExpandMatchesExistsPass extends LoweringPass:
         PerformOutcome.BindResult(tmp),
       )
       (List(call), Cond.Eq(Expr.Var(tmp), Expr.Bool(true), neg))
-    case Cond.Exists(binder, collections, body) =>
+    case Cond.Any(binder, collections, body) =>
       val (bodyPre, bodyCond) = hoist(body)
       val found = fresh("found")
       val init = Instr.Let(Expr.Var(found), Expr.Bool(false))

@@ -106,7 +106,7 @@ class CondParserSpec extends AnyFunSuite:
     // |results| |type| [=matches/valtype=] ..." occurrences.
     assert(
       CondParser.parse("any t in |xs| [=matches/valtype|matches=] |v|") ==
-      Exists(
+      Any(
         "t",
         List(Var("xs")),
         Matches(Var("t"), "valtype", Var("v")),

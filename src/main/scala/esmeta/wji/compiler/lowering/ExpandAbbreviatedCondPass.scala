@@ -62,11 +62,13 @@ object ExpandAbbreviatedCondPass extends LoweringPass:
       Cond.And(expandedLeft, applyTemplate(right, tmpl))
     // `body` is its own self-contained Or/And chain (e.g. "matches v128 or
     // exnref") — it needs the very same expansion, just not folded into the
-    // outer template (an Exists's `collections` list already carries "in A
-    // or B" directly, so there's no outer Or wrapping this Exists to inherit
-    // a template from).
-    case Cond.Exists(binder, collections, body) =>
-      Cond.Exists(binder, collections, expandCond(body))
+    // outer template (an Any's `collections` list already carries "in A or
+    // B" directly, so there's no outer Or wrapping this Any to inherit a
+    // template from).
+    case Cond.Any(binder, collections, body) =>
+      Cond.Any(binder, collections, expandCond(body))
+    case Cond.Exists(binder, body) =>
+      Cond.Exists(binder, expandCond(body))
     case other => other
 
   /** Extract a fill-in template `Expr => Cond` from the leftmost concrete

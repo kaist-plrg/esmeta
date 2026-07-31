@@ -1004,7 +1004,7 @@
         Let(|r|, [=ref.struct=](|objectaddr|))
     Else
       Let(|map|, [=surrounding agent=].[[host value cache]])
-      If([=host address=] |hostaddr| exists such that ?(|map|)[|hostaddr|] is ?(the same as |v|))
+      If(a value hostaddr exists such that |map|[|hostaddr|] is |v|)
         Return([=ref.host=](|hostaddr|))
       Let(|hostaddr|, smallest address such that |map|[|hostaddr|] [=map/doesn't exist=])
       Set(|map|[|hostaddr|], |v|)

@@ -159,7 +159,7 @@ object WasmHost:
     // Not spec-link text at all -- WJI's own name for `signed_N`'s inverse
     // (js-api prose never names it directly, only describes it via "the
     // unsigned integer such that |i| is [=signed_N=](|u|)";
-    // `ExpandSuchThatPass` is what recognizes that idiom and emits this call).
+    // `ExpandExistentialsPass` is what recognizes that idiom and emits this call).
     // Same per-width/server-translates-to-parametric split as signed_N above;
     // see server.ml's `call_inv_signed`.
     // inv_signed_31(i: i31) : u31

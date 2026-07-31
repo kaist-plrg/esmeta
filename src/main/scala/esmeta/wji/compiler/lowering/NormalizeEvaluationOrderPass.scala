@@ -90,11 +90,9 @@ object NormalizeEvaluationOrderPass extends LoweringPass:
     * `esmeta.ir.util.YetCollector` uses for its own mutable buffer), so a
     * single call to `walk`/`extract` both transforms the expression and
     * collects everything that needed hoisting out of it. Only overrides the
-    * three hoistable-shape cases; every other `Expr` (`BinOp`/`Pow`/`Neg`/
-    * `AsMath`/`Length`/`Field`/`Index`/`List_`/`Tuple`/`Map_`/[[Expr.Case]] —
-    * whose own args may still hide a call or `?`/`!`, but the `Case` itself is
-    * a constructor/pattern, never itself hoisted — and so on) is reached by
-    * [[Walker]]'s own exhaustive default recursion.
+    * three hoistable-shape cases — e.g. [[Expr.Case]]'s own args may still hide
+    * a call or `?`/`!`, but the `Case` itself is a constructor/pattern, never
+    * itself hoisted.
     */
   private class Extractor extends Walker:
     private val buf = ListBuffer.empty[Instr.Let]

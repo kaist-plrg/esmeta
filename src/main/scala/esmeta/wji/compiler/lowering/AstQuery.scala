@@ -20,10 +20,7 @@ object AstQuery:
       if pred(expr) then found = true
       super.walk(expr)
 
-  /** Whether `pred` holds for any `Expr` reachable from `instrs`, at any depth
-    * — every instruction's own direct fields (including inside its `Cond`s),
-    * plus every nested instruction body, via [[UnitWalker]]'s own exhaustive
-    * default recursion.
+  /** Whether `pred` holds for any `Expr` reachable from `instrs`, at any depth.
     */
   def existsExpr(instrs: List[Instr])(pred: Expr => Boolean): Boolean =
     val w = ExistsWalker(pred)

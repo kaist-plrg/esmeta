@@ -87,8 +87,7 @@ object FreeVarAnalysis:
     * overrides [[Expr.Var]] itself and [[Expr.Closure]] (whose `captured:
     * List[String]` isn't reachable via generic `Expr` recursion — it's plain
     * names, not nested `Expr`s, same reason `Expr.children` leaves it a leaf
-    * too) — every other node is reached by [[UnitWalker]]'s own exhaustive
-    * default recursion.
+    * too).
     */
   private class VarCollector extends UnitWalker:
     val vars = mutable.Set.empty[String]

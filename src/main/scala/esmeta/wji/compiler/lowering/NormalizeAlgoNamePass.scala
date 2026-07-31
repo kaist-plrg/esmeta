@@ -64,11 +64,9 @@ object NormalizeAlgoNamePass extends LoweringPass:
   private def normalize(s: String): String = underscore(s).toLowerCase
 
   /** Only overrides the node types it actually renames ([[Expr.AlgoCall]]'s
-    * `link`, [[Expr.Closure]]'s `name`, `Instr.Perform`'s `func`) — every other
-    * `Expr`/`Cond`/`Instr` (including [[Expr.Case]], whose `tag` is never a
-    * function name and so is deliberately left untouched — see class doc) is
-    * reached by [[Walker]]'s own default recursion, with no override needed to
-    * leave it alone.
+    * `link`, [[Expr.Closure]]'s `name`, `Instr.Perform`'s `func`) —
+    * [[Expr.Case]] is deliberately left alone: its `tag` is never a function
+    * name (see class doc).
     */
   private object normalizer extends Walker:
     override def walk(expr: Expr): Expr = expr match

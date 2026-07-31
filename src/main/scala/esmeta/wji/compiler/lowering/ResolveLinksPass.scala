@@ -116,8 +116,7 @@ object ResolveLinksPass extends LoweringPass:
   /** Walks a single algorithm body once, resolving every [[Expr.Link]] against
     * `known`/`plainKnown` — see class doc. Only overrides the node types it
     * actually needs to inspect ([[Expr.Link]]/[[Expr.JSCall]],
-    * `Instr.Perform.func`, and [[Cond.IsOfForm]]'s `form`); every other
-    * `Expr`/`Cond`/`Instr` is reached by [[Walker]]'s own default recursion.
+    * `Instr.Perform.func`, and [[Cond.IsOfForm]]'s `form`).
     */
   private class LinkResolver(known: Set[String], plainKnown: Set[String])
     extends Walker:

@@ -2139,7 +2139,7 @@ def tojsvalue(
   w: Unknown,
 ): Unknown = {
   assert (yet "is of form Case(V128.CONST,List(Var(v128)))")
-  assert (yet "is of form Case(REF.EXN,List(Var(exnaddr)))")
+  assert (yet "is of form Case(REF.EXN_ADDR,List(Var(exnaddr)))")
   if (&& (= (case-tag w) "CONST") (= (case-tag w[0]) "I64")) {
     let u64 = w[1]
     call-embed i64 = <signed_64>(u64)
@@ -2170,31 +2170,30 @@ def tojsvalue(
     } else nop
     return ([number] ([math] f64))
   } else nop
-  if (= (case-tag w) "REF.NULL") {
-    let t = w[0]
+  if (= (case-tag w) "REF.NULL_ADDR") {
     return null
   } else nop
-  if (= (case-tag w) "REF.I31") {
+  if (= (case-tag w) "REF.I31_NUM") {
     let u31 = w[0]
     call-embed i31 = <signed_31>(u31)
     return ([number] ([math] i31))
   } else nop
-  if (= (case-tag w) "REF.STRUCT") {
+  if (= (case-tag w) "REF.STRUCT_ADDR") {
     let structaddr = w[0]
     call _result1 = clo<"a_new_exported_gc_object">(structaddr, "struct")
     return _result1
   } else nop
-  if (= (case-tag w) "REF.ARRAY") {
+  if (= (case-tag w) "REF.ARRAY_ADDR") {
     let arrayaddr = w[0]
     call _result2 = clo<"a_new_exported_gc_object">(arrayaddr, "array")
     return _result2
   } else nop
-  if (= (case-tag w) "REF.FUNC") {
+  if (= (case-tag w) "REF.FUNC_ADDR") {
     let funcaddr = w[0]
     call _result3 = clo<"a_new_exported_function">(funcaddr)
     return _result3
   } else nop
-  if (= (case-tag w) "REF.HOST") {
+  if (= (case-tag w) "REF.HOST_ADDR") {
     let hostaddr = w[0]
     call _result4 = clo<"retrieving_a_host_value">(hostaddr)
     return _result4
@@ -2337,7 +2336,7 @@ def towebassemblyvalue(
     let null = type[0]
     let heaptype = type[1]
     if (= v null) {
-      let r = (case "REF.NULL" heaptype)
+      let r = (case "REF.NULL_ADDR" )
     } else {
       call-embed _call7 = <match_valtype>(type, (case "REF" null (case "EXTERN" )))
       if (= _call7 true) {
@@ -2352,7 +2351,7 @@ def towebassemblyvalue(
       } else {
         if (&& (exists v.FunctionAddress) (= (yet "call [=match_valtype=]") true)) {
           let funcaddr = v.FunctionAddress
-          let r = (case "REF.FUNC" funcaddr)
+          let r = (case "REF.FUNC_ADDR" funcaddr)
         } else if (&& (? v: Number) (&& (= v (yet "nested ?-abrupt: JSCall(ToInt32,List(Var(v)))")) (&& (< (yet "call [=ℝ=]") (** 2 30)) (! (< (yet "call [=ℝ=]") (- (** 2 30))))))) {
           call _call9 = clo<"ToInt32">(v)
           if (exists _call9.Type) {
@@ -2370,14 +2369,14 @@ def towebassemblyvalue(
             let i31 = _call9
           }
           call-embed u31 = <inv_signed_31>(([math] i31))
-          let r = (case "REF.I31" u31)
+          let r = (case "REF.I31_NUM" u31)
         } else if (exists v.ObjectAddress) {
           let objectaddr = v.ObjectAddress
           let objectkind = v.ObjectKind
           if (= objectkind "array") {
-            let r = (case "REF.ARRAY" objectaddr)
+            let r = (case "REF.ARRAY_ADDR" objectaddr)
           } else if (= objectkind "struct") {
-            let r = (case "REF.STRUCT" objectaddr)
+            let r = (case "REF.STRUCT_ADDR" objectaddr)
           } else nop
         } else {
           let map = @AGENT_RECORD["host value cache"]
@@ -2391,7 +2390,7 @@ def towebassemblyvalue(
             }
           }
           if (= _found1 true) {
-            let _v14 = (case "REF.HOST" hostaddr)
+            let _v14 = (case "REF.HOST_ADDR" hostaddr)
             if (? _v14: Completion) {
               return _v14
             } else {
@@ -2401,7 +2400,7 @@ def towebassemblyvalue(
           } else nop
           let hostaddr = (sizeof map)
           map[hostaddr] = v
-          let r = (case "REF.HOST" hostaddr)
+          let r = (case "REF.HOST_ADDR" hostaddr)
         }
       }
     }

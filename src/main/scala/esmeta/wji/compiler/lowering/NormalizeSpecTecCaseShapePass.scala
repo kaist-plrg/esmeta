@@ -71,6 +71,19 @@ import esmeta.wji.lang.walker.Walker
   * {{{
   *   Case("REF", [Opt(None), Case("ANY", [])])
   * }}}
+  * and (see [[refAddrSuffix]]'s own doc for the full `ref`-variant table)
+  * {{{
+  *   Case("[=ref.host=]", [Var(hostaddr)])
+  * }}}
+  * becomes
+  * {{{
+  *   Case("REF.HOST_ADDR", [Var(hostaddr)])
+  * }}}
+  * — one variant, `REF.NULL`, both renames *and* drops its argument (spec prose
+  * always writes a heaptype alongside it, but the runtime null-ref value
+  * carries none: `REF.NULL_ADDR` always types as the bottom heap type
+  * regardless of context), so `Case("[=ref.null=]", [Var(heaptype)])` becomes
+  * the argument-less `Case("REF.NULL_ADDR", [])`.
   *
   * Every other `Case` (an already-correctly-flat variant like
   * `external-type/func`, or one [[ExprParser]] built directly rather than via a
@@ -129,6 +142,25 @@ object NormalizeSpecTecCaseShapePass extends LoweringPass:
     * care which context a matching `Case` shows up in.
     */
   private val nestedFormLinks: Set[String] = Set("external-type/global")
+
+  /** `ref`'s address/immediate-carrying variants — every one whose runtime
+    * `CaseV` tag needs a suffix spec prose's own `[=ref.X=]` link text never
+    * spells out, but keeps its single argument as-is (contrast `REF.NULL`,
+    * handled separately just below, and `REF.EXTERN`, which needs no change at
+    * all — it already carries no suffix). Confirmed against the canonical `ref`
+    * syntax rule (`4.1-execution.values.spectec`): `REF.I31_NUM i |
+    * REF.STRUCT_ADDR a | REF.ARRAY_ADDR a | REF.FUNC_ADDR a | REF.EXN_ADDR a
+    * | REF.HOST_ADDR a` — `I31` alone gets `_NUM` (an inline immediate, not a
+    * store index); the rest get `_ADDR`.
+    */
+  private val refAddrSuffix: Map[String, String] = Map(
+    "REF.I31" -> "REF.I31_NUM",
+    "REF.STRUCT" -> "REF.STRUCT_ADDR",
+    "REF.ARRAY" -> "REF.ARRAY_ADDR",
+    "REF.FUNC" -> "REF.FUNC_ADDR",
+    "REF.EXN" -> "REF.EXN_ADDR",
+    "REF.HOST" -> "REF.HOST_ADDR",
+  )
 
   /** A bare Wasm Core Spec `numtype`/`vectype` literal (`i32`/`i64`/`f32`/
     * `f64`/`v128`) — matches iff `s` is one of exactly these 5, extracting the
@@ -219,6 +251,17 @@ object NormalizeSpecTecCaseShapePass extends LoweringPass:
             // in structure spec prose leaves implicit.
             else if finalTag == "REF" && reshapedArgs.size == 1 then
               Expr.Case(finalTag, Expr.Opt(None) :: reshapedArgs)
+            // `REF.NULL_ADDR` (the runtime null-ref *value*) takes no
+            // argument at all — `s |- REF.NULL_ADDR : REF NULL BOT` always
+            // types it as the bottom heap type regardless of context, so
+            // the heaptype spec prose always writes alongside it (either as
+            // a literal construction argument or an ignored `<var
+            // ignore>` in a match) plays no role at the value level and is
+            // dropped here, not just renamed — unlike every other `REF.*`
+            // variant below, which keeps its one argument as-is.
+            else if finalTag == "REF.NULL" then Expr.Case("REF.NULL_ADDR", Nil)
+            else if refAddrSuffix.contains(finalTag) then
+              Expr.Case(refAddrSuffix(finalTag), reshapedArgs)
             else Expr.Case(finalTag, reshapedArgs)
       case other => super.walk(other)
 

@@ -353,8 +353,13 @@ object ExprParser:
   // such that ...". `desc` (non-greedy up to the first "such that") may or
   // may not itself contain a `[=link=]`/`|var|`/qualifier word like "exists"
   // or "smallest" — kept as raw text since the phrasing varies too much to
-  // structure further. Not yet evaluable (see Expr.SuchThat); matched
-  // explicitly for the same reason as RelativeClauseDesc above.
+  // structure further; `cond` (everything after), by contrast, is parsed via
+  // `CondParser.parse` right here (the only place `ExprParser` calls into
+  // `CondParser` — a deliberate mutual reference, mirroring `CondParser`'s own
+  // existing calls back into `ExprParser` for every condition's sub-`Expr`s,
+  // and `CondPrinter`/`ExprPrinter`'s identical mutual shape). The whole
+  // `SuchThat` node is still not directly evaluable (see `Expr.SuchThat`);
+  // matched explicitly for the same reason as RelativeClauseDesc above.
   private val SuchThatDesc =
     """(?si)^(?:the|an?)\s+(.+?)\s+such\s+that\s+(.+)$""".r
   // "a [=algo|display text=] (of)? |arg|" — a single-argument algorithm
@@ -578,7 +583,7 @@ object ExprParser:
         Described(normalizeLink(link), desc.trim)
       case OfTypeGeneric(typeArg) => SpecTerm(typeArg)
       case SuchThatDesc(desc, cond) =>
-        SuchThat(desc.trim, cond.trim)
+        SuchThat(desc.trim, CondParser.parse(cond.trim))
       case LinkIndefVar(link, arg) =>
         Link(normalizeLink(link), List(parse(arg)))
 

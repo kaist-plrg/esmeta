@@ -28,8 +28,13 @@ object CondParser:
   private val MatchesType = """^\[=matches/([^\]|]+)""".r
 
   private val MapExistsPos = """(?si)^(.*?)\s+\[=map/exists=\]$""".r
+  // "EXPR doesn't [=map/exist=]" / "EXPR [=map/doesn't exist=]" / "EXPR
+  // [=map/exists=] is false" — three spellings of the same negation seen in
+  // the corpus; the third (index.bs:1471) restates the positive
+  // `[=map/exists=]` term rather than linking a dedicated negative dfn.
   private val MapExistsNeg =
-    """(?si)^(.*?)\s+(?:\[=map/doesn't exist=\]|doesn't \[=map/exist=\])$""".r
+    ("""(?si)^(.*?)\s+(?:\[=map/doesn't exist=\]|doesn't \[=map/exist=\]""" +
+      """|\[=map/exists=\]\s+is\s+false)$""").r
   // "EXPR has been initialized" / "EXPR has not been initialized" — a lazily-
   // computed-and-cached per-agent field (index.bs:1795, "the surrounding
   // agent's associated JavaScript exception tag has been initialized"), same

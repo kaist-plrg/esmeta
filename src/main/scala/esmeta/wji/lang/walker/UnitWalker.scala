@@ -38,9 +38,10 @@ trait UnitWalker:
     case Expr.TupleProj(base, _) => walk(base)
     case Expr.CaseTag(base)      => walk(base)
     case Expr.Opt(inner)         => inner.foreach(walk)
+    case Expr.SuchThat(_, cond)  => walk(cond)
     // leaves with no nested Expr: Var, This, GivenValue, Num, Bool, Str,
-    // Byte, SpecTerm, New, UnknownNew, Described, SuchThat, Unknown,
-    // Closure, FollowingSteps.
+    // Byte, SpecTerm, New, UnknownNew, Described, Unknown, Closure,
+    // FollowingSteps.
     case _ =>
 
   def walk(cond: Cond): Unit = cond match

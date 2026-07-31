@@ -2,7 +2,7 @@ package esmeta.wji
 
 import org.scalatest.funsuite.AnyFunSuite
 import esmeta.wji.lang.*
-import esmeta.wji.lang.parser.ExprParser
+import esmeta.wji.lang.parser.{CondParser, ExprParser}
 import Expr.*
 
 class ExprParserSpec extends AnyFunSuite:
@@ -182,10 +182,10 @@ class ExprParserSpec extends AnyFunSuite:
     )
   }
 
-  test("'such that' description, desc and cond kept as raw text") {
+  test("'such that' description: desc kept as raw text, cond parsed as Cond") {
     assert(
       ExprParser.parse("the unsigned integer such that |i64| is foo") ==
-      SuchThat("unsigned integer", "|i64| is foo"),
+      SuchThat("unsigned integer", CondParser.parse("|i64| is foo")),
     )
   }
 

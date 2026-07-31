@@ -1,6 +1,6 @@
 package esmeta.wji.compiler.lowering
 
-import esmeta.wji.lang.{Algorithm, Expr, Instr}
+import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr}
 
 /** Expands two shapes of `Expr.SuchThat` that don't need a real runtime search
   * despite the "such that" phrasing — each solves algebraically for the `Let`
@@ -15,7 +15,7 @@ import esmeta.wji.lang.{Algorithm, Expr, Instr}
   *     `inv_signed_32(|i32|)` (`3.1-numerics.scalar.spectec`'s own
   *     `hint(inverse ...)` on `$signed_`/`$inv_signed_` says as much):
   * {{{
-  *       Let(u32, SuchThat("unsigned integer", "|i32| is [=signed_32=](|u32|)"))
+  *       Let(u32, SuchThat("unsigned integer", Eq(Var(i32), AlgoCall("[=signed_32=]", [Var(u32)]))))
   * }}}
   * becomes
   * {{{
@@ -25,7 +25,11 @@ import esmeta.wji.lang.{Algorithm, Expr, Instr}
   * [[ExtractInlineAlgoCallPass]] (which already handles exactly this `Let(x,
   * AlgoCall(f, args), body)` shape generically, turning it into `Perform(f,
   * args, BindResult(x), body)`) does the rest; that's also why this pass must
-  * run before it.
+  * run before it. `signed_N`'s own link resolves to [[Expr.AlgoCall]] rather
+  * than [[Expr.Case]] here (unlike most bracket-args links this pass sees
+  * elsewhere) because it's a genuinely-extracted WJI algorithm name, not just a
+  * SpecTec variant tag — confirmed via [[ResolveLinksPass]]'s own `known`-name
+  * branch, not its `Case`/`AlgoCall` fallback heuristic.
   *
   *   - The "smallest missing map key" shape (e.g. "Let [=host address=]
   * |hostaddr| be the smallest address such that |map|[|hostaddr|]
@@ -36,7 +40,7 @@ import esmeta.wji.lang.{Algorithm, Expr, Instr}
   * smallest missing address is therefore just its current size (`Obj.size`'s
   * `MapObj` case), with no search needed:
   * {{{
-  *       Let(hostaddr, SuchThat("smallest address", "|map|[|hostaddr|] [=map/exists=] is false"))
+  *       Let(hostaddr, SuchThat("smallest address", HasField(Index(Var(map), Var(hostaddr)), negated = true)))
   * }}}
   * becomes
   * {{{
@@ -51,29 +55,24 @@ import esmeta.wji.lang.{Algorithm, Expr, Instr}
   * choices constrained to a range (the NaN-payload cases, index.bs:1434/1442)
   * and the sibling existence search (index.bs:1469, "does some key map to
   * |v|") — is left untouched, same as before: `Compiler` reports it as
-  * `EYet(s"$desc such that $cond")`.
+  * `EYet(s"$desc such that ...")`.
   *
   * Category: Spec-dependent — SpecTec.
   */
 object ExpandSuchThatPass extends LoweringPass:
 
-  /** Requires: nothing — `Expr.SuchThat`'s `cond` is raw prose text, untouched
-    * by any earlier pass (unlike a real `Expr`/`Cond` tree, nothing resolves
-    * links inside it), so this can run anywhere before
-    * [[ExtractInlineAlgoCallPass]] needs to see the `AlgoCall` it produces.
+  /** Requires:
+    *   - [[ResolveLinksPass]]: `Expr.SuchThat`'s `cond` is a real [[Cond]] as
+    *     of `ExprParser`/`CondParser` (parsed together, `Expr.SuchThat`'s own
+    *     doc), but any link inside it (e.g. `signed_32`) is still a raw
+    *     `Expr.Link` until this runs — both patterns below match on the
+    *     resolved `Expr.AlgoCall`/`Cond.HasField` shape, not `Link`.
     */
-  override def requires: Set[LoweringPass] = Set.empty
+  override def requires: Set[LoweringPass] = Set(ResolveLinksPass)
   override def mustPrecede: Set[LoweringPass] = Set(ExtractInlineAlgoCallPass)
 
-  // "|i32| is [=signed_32=](|u32|)" — the value being inverted, the bit
-  // width, and the variable `signed_N` is applied to, in that order.
-  private val SignedInverseCond =
-    """(?s)^\|([^|]+)\|\s+is\s+\[=signed_(31|32|64)=\]\(\|([^|]+)\|\)$""".r
-
-  // "|map|[|hostaddr|] [=map/exists=] is false" — the map, and the variable
-  // `hostaddr` is indexed by, in that order.
-  private val MapDoesNotExistCond =
-    """(?s)^\|([^|]+)\|\[\|([^|]+)\|\]\s+\[=map/exists=\]\s+is\s+false$""".r
+  // "[=signed_31=]" / "[=signed_32=]" / "[=signed_64=]" — the bit width.
+  private val SignedLink = """(?s)^\[=signed_(31|32|64)=\]$""".r
 
   def run(algos: List[Algorithm]): List[Algorithm] =
     algos.map(a => a.copy(body = transform(a.body)))
@@ -85,9 +84,12 @@ object ExpandSuchThatPass extends LoweringPass:
             Expr.SuchThat(desc, cond),
             body,
           ) =>
-        val newRhs = cond.trim match
-          case SignedInverseCond(valueVar, bits, targetVar)
-              if targetVar.trim == lhsName =>
+        val newRhs = cond match
+          case Cond.Eq(
+                Expr.Var(valueVar),
+                Expr.AlgoCall(SignedLink(bits), List(Expr.Var(targetVar))),
+                false,
+              ) if targetVar == lhsName =>
             // `inv_signed_N`'s declared parameter type is `int` (a
             // mathematical integer, AL `Int`), but the value being inverted
             // here (e.g. ToInt32's result) is a plain ECMAScript `Number`
@@ -97,16 +99,16 @@ object ExpandSuchThatPass extends LoweringPass:
             // parameter (`3.1-numerics.scalar.spectec`).
             Expr.AlgoCall(
               s"inv_signed_$bits",
-              List(Expr.AsMath(Expr.Var(valueVar.trim))),
+              List(Expr.AsMath(Expr.Var(valueVar))),
             )
-          case MapDoesNotExistCond(mapVar, indexVar)
-              if indexVar.trim == lhsName =>
+          case Cond.HasField(Expr.Index(mapExpr, Expr.Var(indexVar)), true)
+              if indexVar == lhsName =>
             // the map is only ever grown by this same rule (fill the
             // smallest missing address, never removed from — see
             // index.bs's own use of `host value cache`), so its key domain
             // is always exactly 0..size-1; the smallest missing address is
             // therefore just its current size, with no search needed.
-            Expr.Length(Expr.Var(mapVar.trim))
+            Expr.Length(mapExpr)
           case _ => Expr.SuchThat(desc, cond)
         Instr.Let(lhs, newRhs, transform(body))
       case other => other.mapBody(transform)

@@ -2287,7 +2287,8 @@ def towebassemblyvalue(
       let number = _call3
     }
     if (= number ~**NaN**~) {
-      let n = (yet "implementation-defined integer such that [=canon=]<sub>32</sub> &leq; |n| &lt; 2<sup>[=signif=](32)</sup>")
+      call _call4 = clo<"signif">(32)
+      let n = (yet "implementation-defined integer such that ?([=canon=]<sub>32</sub> &leq; |n|) < 2 ** |_call4|")
       call f32 = clo<"nan">((yet "n"))
     } else {
       let f32 = (yet "|number| rounded to the nearest representable value using IEEE 754-2019 round to nearest, ties to even mode")
@@ -2302,23 +2303,24 @@ def towebassemblyvalue(
     }
   } else nop
   if (= type (case "F64" )) {
-    call _call4 = clo<"ToNumber">(v)
-    if (exists _call4.Type) {
-      if (? _call4: Abrupt) {
-        if (? _call4: Completion) {
-          return _call4
+    call _call5 = clo<"ToNumber">(v)
+    if (exists _call5.Type) {
+      if (? _call5: Abrupt) {
+        if (? _call5: Completion) {
+          return _call5
         } else {
-          call _ret10 = clo<"NormalCompletion">(_call4)
+          call _ret10 = clo<"NormalCompletion">(_call5)
           return _ret10
         }
       } else {
-        let number = _call4.Value
+        let number = _call5.Value
       }
     } else {
-      let number = _call4
+      let number = _call5
     }
     if (= number ~**NaN**~) {
-      let n = (yet "implementation-defined integer such that [=canon=]<sub>64</sub> &leq; |n| &lt; 2<sup>[=signif=](64)</sup>")
+      call _call6 = clo<"signif">(64)
+      let n = (yet "implementation-defined integer such that ?([=canon=]<sub>64</sub> &leq; |n|) < 2 ** |_call6|")
       call f64 = clo<"nan">((yet "n"))
     } else {
       let f64 = number
@@ -2337,14 +2339,14 @@ def towebassemblyvalue(
     if (= v null) {
       let r = (case "REF.NULL" heaptype)
     } else {
-      call-embed _call5 = <match_valtype>(type, (case "REF" null (case "EXTERN" )))
-      if (= _call5 true) {
-        call _call6 = clo<"towebassemblyvalue">(v, (case "REF" (opt) (case "ANY" )))
-        if (exists _call6.Type) {
-          assert (= _call6.Type ~normal~)
-          let ref = _call6.Value
+      call-embed _call7 = <match_valtype>(type, (case "REF" null (case "EXTERN" )))
+      if (= _call7 true) {
+        call _call8 = clo<"towebassemblyvalue">(v, (case "REF" (opt) (case "ANY" )))
+        if (exists _call8.Type) {
+          assert (= _call8.Type ~normal~)
+          let ref = _call8.Value
         } else {
-          let ref = _call6
+          let ref = _call8
         }
         let r = (case "REF.EXTERN" ref)
       } else {
@@ -2352,20 +2354,20 @@ def towebassemblyvalue(
           let funcaddr = v.FunctionAddress
           let r = (case "REF.FUNC" funcaddr)
         } else if (&& (? v: Number) (&& (= v (yet "nested ?-abrupt: JSCall(ToInt32,List(Var(v)))")) (&& (< (yet "call [=ℝ=]") (** 2 30)) (! (< (yet "call [=ℝ=]") (- (** 2 30))))))) {
-          call _call7 = clo<"ToInt32">(v)
-          if (exists _call7.Type) {
-            if (? _call7: Abrupt) {
-              if (? _call7: Completion) {
-                return _call7
+          call _call9 = clo<"ToInt32">(v)
+          if (exists _call9.Type) {
+            if (? _call9: Abrupt) {
+              if (? _call9: Completion) {
+                return _call9
               } else {
-                call _ret13 = clo<"NormalCompletion">(_call7)
+                call _ret13 = clo<"NormalCompletion">(_call9)
                 return _ret13
               }
             } else {
-              let i31 = _call7.Value
+              let i31 = _call9.Value
             }
           } else {
-            let i31 = _call7
+            let i31 = _call9
           }
           call-embed u31 = <inv_signed_31>(([math] i31))
           let r = (case "REF.I31" u31)
@@ -2379,7 +2381,7 @@ def towebassemblyvalue(
           } else nop
         } else {
           let map = @AGENT_RECORD["host value cache"]
-          if (= @@yet: unresolved ref: SuchThat([=host address=] |hostaddr| exists,|map|)[hostaddr] (yet "the same as |v|")) {
+          if (= @@yet: unresolved ref: SuchThat([=host address=] |hostaddr| exists,Unknown(|map|))[hostaddr] (yet "the same as |v|")) {
             let _v14 = (case "REF.HOST" hostaddr)
             if (? _v14: Completion) {
               return _v14
@@ -2396,8 +2398,8 @@ def towebassemblyvalue(
     }
     let store = @AGENT_RECORD["associated store"]
     call-embed actualtype = <ref_type>(store, r)
-    call-embed _call8 = <match_valtype>(actualtype, type)
-    if (= _call8 false) {
+    call-embed _call10 = <match_valtype>(actualtype, type)
+    if (= _call10 false) {
       call _err16 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
       call _ret17 = clo<"ThrowCompletion">(_err16)
       return _ret17

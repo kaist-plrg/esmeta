@@ -97,10 +97,15 @@ object Expr:
     * ...", "the unsigned integer such that |i64| is [=signed_64=](|u64|)", "the
     * smallest address such that ..."). `desc` is kept as raw text since it may
     * or may not contain a `[=link=]`/`|var|` — the phrasing varies across the
-    * spec. Not yet evaluable; kept as a distinct node for the same reason as
-    * [[Described]].
+    * spec. `cond` is a real [[Cond]] (parsed via `CondParser` at the same time
+    * `desc`/`cond` are split out, `ExprParser`'s only use of `CondParser`) —
+    * unlike `desc`, it's an actual predicate every other part of this AST
+    * already knows how to walk/resolve/hoist (`ResolveLinksPass`, evaluation-
+    * order normalization, ...), so keeping it as opaque prose would hide it
+    * from all of that for no reason. Not yet evaluable itself; kept as a
+    * distinct node for the same reason as [[Described]].
     */
-  case class SuchThat(desc: String, cond: String) extends Expr
+  case class SuchThat(desc: String, cond: Cond) extends Expr
 
   /** "a new [=byte sequence=] of [=byte sequence/length=] equal to LENGTH" — a
     * freshly allocated byte sequence of the given length (each byte 0, per the

@@ -3,7 +3,7 @@ package esmeta.wji.compiler
 import esmeta.wji.lang as metalang
 import esmeta.wji.lang.{Algorithm, AlgorithmKind, Cond, Instr}
 import esmeta.wji.lang.Instr.PerformOutcome
-import esmeta.wji.lang.printer.ExprPrinter
+import esmeta.wji.lang.printer.{CondPrinter, ExprPrinter}
 import esmeta.wji.bridge.host.WasmHost
 import esmeta.ir
 import esmeta.ir.*
@@ -427,7 +427,7 @@ object Compiler:
       EYet(s"$link which $desc") // TODO: relative-clause construction
     case metalang.Expr.SuchThat(desc, cond) =>
       EYet(
-        s"$desc such that $cond",
+        s"$desc such that ${CondPrinter.render(cond)}",
       ) // TODO: existential/definite-description search
     case metalang.Expr.Unknown(raw) => EYet(raw)
     case metalang.Expr.Closure(name, captured) =>

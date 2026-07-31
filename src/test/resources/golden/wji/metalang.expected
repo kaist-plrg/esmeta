@@ -968,7 +968,7 @@
   If(|type| is [=f32=])
     Let(|number|, [=?=] [$ToNumber$](|v|))
     If(|number| is **NaN**)
-      Let(|n|, implementation-defined integer such that [=canon=]<sub>32</sub> &leq; |n| &lt; 2<sup>[=signif=](32)</sup>)
+      Let(|n|, implementation-defined integer such that ?([=canon=]<sub>32</sub> &leq; |n|) < 2 ** [=signif=](32))
       Let(|f32|, [=nan=](?(n)))
     Else
       Let(|f32|, ?(|number| rounded to the nearest representable value using IEEE 754-2019 round to nearest, ties to even mode))
@@ -977,7 +977,7 @@
   If(|type| is [=f64=])
     Let(|number|, [=?=] [$ToNumber$](|v|))
     If(|number| is **NaN**)
-      Let(|n|, implementation-defined integer such that [=canon=]<sub>64</sub> &leq; |n| &lt; 2<sup>[=signif=](64)</sup>)
+      Let(|n|, implementation-defined integer such that ?([=canon=]<sub>64</sub> &leq; |n|) < 2 ** [=signif=](64))
       Let(|f64|, [=nan=](?(n)))
     Else
       Let(|f64|, |number|)
@@ -1004,9 +1004,9 @@
         Let(|r|, [=ref.struct=](|objectaddr|))
     Else
       Let(|map|, [=surrounding agent=].[[host value cache]])
-      If([=host address=] |hostaddr| exists such that |map|[|hostaddr|] is ?(the same as |v|))
+      If([=host address=] |hostaddr| exists such that ?(|map|)[|hostaddr|] is ?(the same as |v|))
         Return([=ref.host=](|hostaddr|))
-      Let([=host address=](|hostaddr|), smallest address such that |map|[|hostaddr|] [=map/exists=] is false)
+      Let([=host address=](|hostaddr|), smallest address such that |map|[|hostaddr|] [=map/doesn't exist=])
       Set(|map|[|hostaddr|], |v|)
       Let(|r|, [=ref.host=](|hostaddr|))
     Let(|store|, [=surrounding agent=].[[associated store]])

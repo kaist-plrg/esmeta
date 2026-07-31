@@ -42,9 +42,10 @@ trait Walker:
     case Expr.TupleProj(base, idx) => Expr.TupleProj(walk(base), idx)
     case Expr.CaseTag(base)        => Expr.CaseTag(walk(base))
     case Expr.Opt(inner)           => Expr.Opt(inner.map(walk))
+    case Expr.SuchThat(desc, cond) => Expr.SuchThat(desc, walk(cond))
     // leaves with no nested Expr: Var, This, GivenValue, Num, Bool, Str,
-    // Byte, SpecTerm, New, UnknownNew, Described, SuchThat, Unknown,
-    // Closure, FollowingSteps.
+    // Byte, SpecTerm, New, UnknownNew, Described, Unknown, Closure,
+    // FollowingSteps.
     case other => other
 
   def walk(cond: Cond): Cond = cond match

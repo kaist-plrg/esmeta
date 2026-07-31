@@ -109,6 +109,12 @@ object NormalizeSpecTecCaseShapePass extends LoweringPass:
       .trim
       .toUpperCase
 
+  /** Pure tag rename — output arity always matches input arity (`Nil` stays
+    * `Nil`). Kept separate from [[ShorthandReftype]]/[[ShorthandConst]] below:
+    * those two don't just rename a tag, they also restructure args (wrap into a
+    * compound `Case`, prepend a nested tag), so folding them in here would
+    * conflate "what to call it" with "what shape to build".
+    */
   private object RenamedTag:
     private val heapTypePrefix = "heap-type/"
     private val table: PartialFunction[String, String] =

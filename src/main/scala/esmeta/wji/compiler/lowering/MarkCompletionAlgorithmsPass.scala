@@ -23,15 +23,34 @@ object MarkCompletionAlgorithmsPass extends LoweringPass:
     *   - [[GroupIfChainPass]]: needs a `Cond.Throws` catch already grouped into
     *     an `Instr.IfChain` — the one shape `CompletionAlgorithms` itself
     *     recognizes for that idiom (see its own class doc).
+    *   - [[ExpandFollowingStepsPass]]: needs a "following steps" closure
+    *     already split off into its own top-level `Algorithm` so it gets
+    *     analyzed (and `returnsCompletion`-stamped) on its own, independently
+    *     of the algorithm it was textually nested in — otherwise the closure's
+    *     name doesn't exist in `algos` yet at all, and it silently never gets
+    *     stamped (defaulting to `returnsCompletion = false`, which happens to
+    *     be right for e.g. `create a host function`'s own hostfunc closure, but
+    *     only by accident of never being analyzed).
     *
     * Must precede:
     *   - [[ExpandAbruptPass]]: needs `Expr.Abrupt` `?`/`!` markers still
     *     present to detect.
+    *   - [[NormalizeEvaluationOrderPass]]: needs a marked call still in its
+    *     original `Expr.Abrupt(marker, Expr.AlgoCall(...))` shape —
+    *     `NormalizeEvaluationOrderPass` hoists the `AlgoCall` out into a
+    *     preceding `Let`, leaving `Expr.Abrupt(marker, Var(...))` behind, a
+    *     shape `CompletionAlgorithms.callInfo` doesn't recognize as a marked
+    *     call at all. Once that split happens, a legitimately `?`/`!`-marked
+    *     call looks identical to a bare unmarked one, so `hasUnguardedCallInto`
+    *     wrongly treats it as an unhandled call into a completion algorithm
+    *     (see e.g. `create a host function`'s hostfunc closure, whose
+    *     `!`-marked `ToWebAssemblyValue` call was wrongly flagged this way once
+    *     this pass ran after the split).
     */
   override def requires: Set[LoweringPass] =
-    Set(ResolveLinksPass, GroupIfChainPass)
+    Set(ResolveLinksPass, GroupIfChainPass, ExpandFollowingStepsPass)
   override def mustPrecede: Set[LoweringPass] =
-    Set(ExpandAbruptPass)
+    Set(ExpandAbruptPass, NormalizeEvaluationOrderPass)
 
   def run(algos: List[Algorithm]): List[Algorithm] =
     val completionAlgos = CompletionAlgorithms.compute(algos)

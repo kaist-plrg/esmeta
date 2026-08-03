@@ -54,10 +54,16 @@ import esmeta.wji.lang.{Algorithm, Expr, Instr, WjiParam}
   * `Lowering.run` throws `UnsupportedSpecShape` instead of silently leaving it
   * for `Compiler`'s much later, less specific `EYet` fallback.
   *
-  * Runs late: `body` rides through every earlier pass as ordinary nested
-  * `Let.body`/`Perform.body` content (every pass already recurses into it via
-  * `Instr.mapBody`), so by the time this pass sees it, it's already fully
-  * lowered.
+  * Runs right after the other pure structural eliminations, and in particular
+  * before [[MarkCompletionAlgorithmsPass]] (see that pass's own `requires`
+  * doc): a closure's substeps need to already be split off into their own
+  * top-level `Algorithm` for that completion-record analysis to consider them
+  * independently of the algorithm they were textually nested in, rather than
+  * silently never analyzing them at all. Since `body` isn't fully lowered yet
+  * at that point, `hoist`'s own [[FreeVarAnalysis]] call has to be able to
+  * compute captured variables correctly against not-yet-desugared idioms that
+  * implicitly bind a name (e.g. `Cond.Throws`'s `exception`) — see
+  * `FreeVarAnalysis`'s own doc for how it handles that.
   *
   * Category: Structural desugaring — Elimination.
   */

@@ -109,12 +109,7 @@ def asynchronously_compile_a_webassembly_module(
   call promise = clo<"a_new_promise">(~Module~, @EXECUTION_STACK[0].Realm)
   call module = clo<"compile_a_webassembly_module">(bytes)
   call _ = clo<"HostEnqueuePromiseJob">(clo<"asynchronously_compile_a_webassembly_module_closure1", [bytes, module, options, promise]>, @EXECUTION_STACK[0].Realm)
-  if (? promise: Completion) {
-    return promise
-  } else {
-    call _ret3 = clo<"NormalCompletion">(promise)
-    return _ret3
-  }
+  return promise
 }
 def compile(
   bytes: Unknown,
@@ -122,12 +117,7 @@ def compile(
 ): Unknown = {
   call stableBytes = clo<"get_a_copy_of_the_buffer_source">(bytes)
   call _result1 = clo<"asynchronously_compile_a_webassembly_module">(stableBytes, options)
-  if (? _result1: Completion) {
-    return _result1
-  } else {
-    call _ret1 = clo<"NormalCompletion">(_result1)
-    return _ret1
-  }
+  return _result1
 }
 def instantiate_imported_strings(
   module: Unknown,
@@ -501,12 +491,7 @@ def asynchronously_instantiate_a_webassembly_module(
     if (= _throwComp1.Type ~throw~) {
       let exception = _throwComp1.Value
       call _ = clo<"reject">(~Instance~, promise, exception)
-      if (? promise: Completion) {
-        return promise
-      } else {
-        call _ret1 = clo<"NormalCompletion">(promise)
-        return _ret1
-      }
+      return promise
     } else {
       let imports = _throwComp1.Value
     }
@@ -514,12 +499,7 @@ def asynchronously_instantiate_a_webassembly_module(
     let imports = _throwComp1
   }
   call _ = clo<"HostEnqueuePromiseJob">(clo<"asynchronously_instantiate_a_webassembly_module_closure1", [imports, module, promise]>, @EXECUTION_STACK[0].Realm)
-  if (? promise: Completion) {
-    return promise
-  } else {
-    call _ret2 = clo<"NormalCompletion">(promise)
-    return _ret2
-  }
+  return promise
 }
 def instantiate_a_promise_of_a_module(
   promiseOfModule: Unknown,
@@ -538,35 +518,15 @@ def instantiate(
 ): Unknown = {
   call stableBytes = clo<"get_a_copy_of_the_buffer_source">(bytes)
   call promiseOfModule = clo<"asynchronously_compile_a_webassembly_module">(stableBytes, options)
-  if (? promiseOfModule: Abrupt) {
-    if (? promiseOfModule: Completion) {
-      return promiseOfModule
-    } else {
-      call _ret1 = clo<"NormalCompletion">(promiseOfModule)
-      return _ret1
-    }
-  } else {
-    promiseOfModule = promiseOfModule.Value
-  }
   call _result1 = clo<"instantiate_a_promise_of_a_module">(promiseOfModule, importObject)
-  if (? _result1: Completion) {
-    return _result1
-  } else {
-    call _ret2 = clo<"NormalCompletion">(_result1)
-    return _ret2
-  }
+  return _result1
 }
 def instantiate_object(
   moduleObject: Unknown,
   importObject: Unknown,
 ): Unknown = {
   call _result1 = clo<"asynchronously_instantiate_a_webassembly_module">(moduleObject, importObject)
-  if (? _result1: Completion) {
-    return _result1
-  } else {
-    call _ret1 = clo<"NormalCompletion">(_result1)
-    return _ret1
-  }
+  return _result1
 }
 def string_value_of_the_extern_type(
   type: Unknown,
@@ -3324,21 +3284,22 @@ def asynchronously_compile_a_webassembly_module_closure1(
     }
     call _ = clo<"resolve">(~Module~, promise, moduleObject)
   }
-  return ~unused~
+  call _ret3 = clo<"NormalCompletion">(~unused~)
+  return _ret3
 }
 def asynchronously_instantiate_a_webassembly_module_closure1(
 ): Unknown = {
-  call _throwComp2 = clo<"instantiate_the_core_of_a_webassembly_module">(module, imports)
-  if (exists _throwComp2.Type) {
-    if (= _throwComp2.Type ~throw~) {
-      let exception = _throwComp2.Value
+  call _throwComp1 = clo<"instantiate_the_core_of_a_webassembly_module">(module, imports)
+  if (exists _throwComp1.Type) {
+    if (= _throwComp1.Type ~throw~) {
+      let exception = _throwComp1.Value
       call _ = clo<"reject">(~Instance~, promise, exception)
       (yet "terminate these substeps")
     } else {
-      let instance = _throwComp2.Value
+      let instance = _throwComp1.Value
     }
   } else {
-    let instance = _throwComp2
+    let instance = _throwComp1
   }
   let instanceObject = (record [Instance] {
     "GetPrototypeOf" : clo<"Record[OrdinaryObject].GetPrototypeOf">,
@@ -3357,16 +3318,17 @@ def asynchronously_instantiate_a_webassembly_module_closure1(
     "PrivateElements" : (list []),
     "__MAP__" : (map[Unknown, Unknown]),
   })
-  call _throwComp3 = clo<"initialize_an_instance_object">(instanceObject, module, instance)
-  if (exists _throwComp3.Type) {
-    if (= _throwComp3.Type ~throw~) {
-      let exception = _throwComp3.Value
+  call _throwComp2 = clo<"initialize_an_instance_object">(instanceObject, module, instance)
+  if (exists _throwComp2.Type) {
+    if (= _throwComp2.Type ~throw~) {
+      let exception = _throwComp2.Value
       call _ = clo<"reject">(~Instance~, promise, exception)
       (yet "terminate these substeps")
     } else nop
   } else nop
   call _ = clo<"resolve">(~Instance~, promise, instanceObject)
-  return ~unused~
+  call _ret1 = clo<"NormalCompletion">(~unused~)
+  return _ret1
 }
 def instantiate_a_promise_of_a_module_closure2(
   instance: Unknown,
@@ -3388,11 +3350,6 @@ def instantiate_a_promise_of_a_module_closure1(
   module: Unknown,
 ): Unknown = {
   call innerPromise = clo<"asynchronously_instantiate_a_webassembly_module">(module, importObject)
-  if (? innerPromise: Abrupt) {
-    return innerPromise
-  } else {
-    innerPromise = innerPromise.Value
-  }
   let innerOnFullfilledSteps = clo<"instantiate_a_promise_of_a_module_closure2", [module, promise]>
   let innerOnRejectedSteps = clo<"instantiate_a_promise_of_a_module_closure3", [promise]>
   call _ = clo<"react">(~WebAssemblyInstantiatedSource~, innerPromise, innerOnFullfilledSteps, innerOnRejectedSteps, @EXECUTION_STACK[0].Realm)
@@ -3412,10 +3369,20 @@ def a_new_exported_function_closure1(
   let argValues = argumentsList
   call _result1 = clo<"call_an_exported_function">(funcaddr, argValues)
   if (? _result1: Completion) {
-    return _result1
+    if (? _result1: Completion) {
+      return _result1
+    } else {
+      call _ret1 = clo<"NormalCompletion">(_result1)
+      return _ret1
+    }
   } else {
     call _ret1 = clo<"NormalCompletion">(_result1)
-    return _ret1
+    if (? _ret1: Completion) {
+      return _ret1
+    } else {
+      call _ret2 = clo<"NormalCompletion">(_ret1)
+      return _ret2
+    }
   }
 }
 def create_a_host_function_closure1(
@@ -3488,11 +3455,11 @@ def react_closure2(
   } else {
     call result = clo<"a_promise_rejected_with">(reason)
   }
-  call _result2 = clo<"converted_to_a_javascript_value">(result)
-  if (? _result2: Completion) {
-    return _result2
+  call _result1 = clo<"converted_to_a_javascript_value">(result)
+  if (? _result1: Completion) {
+    return _result1
   } else {
-    call _ret1 = clo<"NormalCompletion">(_result2)
+    call _ret1 = clo<"NormalCompletion">(_result1)
     return _ret1
   }
 }

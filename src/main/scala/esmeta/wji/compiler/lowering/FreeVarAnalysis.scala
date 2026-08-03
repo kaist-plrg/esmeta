@@ -51,9 +51,11 @@ object FreeVarAnalysis:
     val bound = mutable.Set.empty[String]
 
     override def walk(cond: Cond): Unit = cond match
-      // Unreachable today (ExpandThrowsPass desugars Cond.Throws away before
-      // freeVars's only caller runs) — kept for callers earlier in the pipeline,
-      // where a Throws catch branch implicitly binds "exception" pre-desugaring.
+      // freeVars's only caller (ExpandFollowingStepsPass) now runs before
+      // ExpandThrowsPass desugars this away, so a Throws catch branch's
+      // implicit "exception" binding is still in this pre-desugared form at
+      // analysis time — without this case it'd wrongly look like a free
+      // reference and get captured.
       case Cond.Throws(_) => bound += "exception"
       case other          => super.walk(other)
 

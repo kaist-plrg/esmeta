@@ -28,14 +28,22 @@ import esmeta.wji.lang.Instr.PerformOutcome
   *     case on its own).
   *
   * This is only ever computed once, from the algorithms as they exist right
-  * after `ResolveLinksPass` (so call targets are already resolved names) and
+  * after `ResolveLinksPass` (so call targets are already resolved names),
   * `GroupIfChainPass` (so a `Cond.Throws` catch is already a grouped `IfChain`,
   * the one shape every later pass — including this analysis itself — ever sees
   * for that idiom; nothing in this file needs to understand a bare `Instr.If`
-  * sibling), but before `ExpandAbruptPass` (so `Expr.Abrupt` markers are still
-  * present to detect). See [[MarkCompletionAlgorithmsPass]], which runs this
-  * and stamps the result onto each `Algorithm`'s own `returnsCompletion` field,
-  * so [[WrapCompletionReturnsPass]] (wraps a member's own `Return`s) and
+  * sibling), and `ExpandFollowingStepsPass` (so a "following steps" closure is
+  * already its own top-level `Algorithm`, analyzed independently of whatever
+  * algorithm it was textually nested in), but before `ExpandAbruptPass` and
+  * `NormalizeEvaluationOrderPass`: `callInfo` only recognizes a marked call in
+  * its original, un-hoisted `Expr.Abrupt(marker, Expr.AlgoCall(...))` shape —
+  * `NormalizeEvaluationOrderPass` hoists the `AlgoCall` into a preceding `Let`
+  * and leaves `Expr.Abrupt(marker, Var(...))` behind, which `callInfo` doesn't
+  * recognize as a call at all, so a marked call would look like a bare unmarked
+  * one to `hasUnguardedCallInto` once that hoist has happened. See
+  * [[MarkCompletionAlgorithmsPass]], which runs this and stamps the result onto
+  * each `Algorithm`'s own `returnsCompletion` field, so
+  * [[WrapCompletionReturnsPass]] (wraps a member's own `Return`s) and
   * [[PropagateUnguardedCallsPass]] (adds the same runtime propagation `?` gives
   * to an unmarked call site into a member) can each just read that field off
   * whichever `Algorithm` they're handed, rather than needing the computed set

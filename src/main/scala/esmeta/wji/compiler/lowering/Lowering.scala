@@ -67,7 +67,6 @@ object Lowering:
     DropNotesPass,
     ResolveLinksPass,
     GroupIfChainPass,
-    MarkCompletionAlgorithmsPass,
     NormalizeSpecTecCaseShapePass,
     // eliminations
     ExpandHasDuplicatesPass,
@@ -82,6 +81,8 @@ object Lowering:
     ExpandIsOfFormPass,
     ExpandAbbreviatedCondPass,
     ExpandExportedObjectIsTypePass,
+    ExpandFollowingStepsPass,
+    MarkCompletionAlgorithmsPass,
     NormalizeEvaluationOrderPass, // normalization point
     PropagateUnguardedCallsPass,
     ExpandAbruptPass,
@@ -92,7 +93,6 @@ object Lowering:
     InsertFallthroughReturnPass,
     WrapCompletionReturnsPass,
     ExpandMatchesExistsPass,
-    ExpandFollowingStepsPass,
     ExpandQueueATaskPass,
     // injections
     MarkBuiltinBehaviourPass,

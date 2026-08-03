@@ -86,7 +86,7 @@ object Lowering:
     NormalizeEvaluationOrderPass, // normalization point
     PropagateUnguardedCallsPass,
     ExpandAbruptPass,
-    ExtractInlineAlgoCallPass,
+    ExpandInlineAlgoCallPass,
     ExpandClosureCallPass,
     ExpandThrowsPass,
     ExpandPerformReturnResultPass,

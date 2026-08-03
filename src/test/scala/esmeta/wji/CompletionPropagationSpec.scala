@@ -232,7 +232,7 @@ class CompletionPropagationSpec extends AnyFunSuite:
     * throws an exception, catch it" idiom (`Cond.Throws`) — the shape
     * `ExpandThrowsPass` itself expands. Built as raw `Instr.If`/`Let`+
     * `AlgoCall` (not pre-grouped/pre-extracted) so it goes through
-    * `GroupIfChainPass`/`ExtractInlineAlgoCallPass` exactly the way real
+    * `GroupIfChainPass`/`ExpandInlineAlgoCallPass` exactly the way real
     * spec-parsed "Let |result| be explode(flag). If this throws an exception,
     * catch it, ..." text would — this matters because
     * `MarkCompletionAlgorithmsPass`'s classification runs on the tree in this

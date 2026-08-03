@@ -52,11 +52,11 @@ object ExpandThrowsPass extends LoweringPass:
   /** Requires:
     *   - [[GroupIfChainPass]]: needs the check already grouped into an
     *     `Instr.IfChain`, not a raw `If` sibling.
-    *   - [[ExtractInlineAlgoCallPass]]: needs the preceding call already
+    *   - [[ExpandInlineAlgoCallPass]]: needs the preceding call already
     *     converted to `Instr.Perform`.
     */
   override def requires: Set[LoweringPass] =
-    Set(GroupIfChainPass, ExtractInlineAlgoCallPass)
+    Set(GroupIfChainPass, ExpandInlineAlgoCallPass)
 
   private var counter = 0
   private def freshComp(): String = { counter += 1; s"_throwComp$counter" }

@@ -17,7 +17,7 @@ import esmeta.wji.lang.Instr.PerformOutcome
   *
   * Category: Structural desugaring — Elimination.
   */
-object ExtractInlineAlgoCallPass extends LoweringPass:
+object ExpandInlineAlgoCallPass extends LoweringPass:
 
   /** Requires:
     *   - [[ResolveLinksPass]]: matches `Expr.AlgoCall`/`Expr.JSCall`

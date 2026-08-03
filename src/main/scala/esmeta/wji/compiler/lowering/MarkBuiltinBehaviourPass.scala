@@ -28,12 +28,12 @@ object MarkBuiltinBehaviourPass extends LoweringPass:
   /** Requires:
     *   - [[ExpandFollowingStepsPass]]: needs its `Closure`s already hoisted to
     *     scan for.
-    *   - [[ExtractInlineAlgoCallPass]]: needs a `CreateBuiltinFunction` call
+    *   - [[ExpandInlineAlgoCallPass]]: needs a `CreateBuiltinFunction` call
     *     already in `Perform` form (not a raw `Expr.AlgoCall`) to recognize it
     *     among a closure's sibling steps.
     */
   override def requires: Set[LoweringPass] =
-    Set(ExpandFollowingStepsPass, ExtractInlineAlgoCallPass)
+    Set(ExpandFollowingStepsPass, ExpandInlineAlgoCallPass)
 
   /** whether the closure bound to `varName` is passed as
     * `CreateBuiltinFunction`'s `behaviour` argument among its sibling steps

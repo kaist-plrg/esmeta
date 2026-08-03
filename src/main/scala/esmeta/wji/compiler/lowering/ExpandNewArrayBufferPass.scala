@@ -56,7 +56,7 @@ import esmeta.wji.lang.{Algorithm, Expr, Instr}
 object ExpandNewArrayBufferPass extends LoweringPass:
 
   /** Must precede:
-    *   - [[ExtractInlineAlgoCallPass]]: needs the `Let` RHS shape this pass
+    *   - [[ExpandInlineAlgoCallPass]]: needs the `Let` RHS shape this pass
     *     produces already in place.
     *   - [[NormalizeEvaluationOrderPass]]: the `Expr.Abrupt("!", JSCall(...))`
     *     this pass produces must exist before Normalize's ANF hoist walk runs,
@@ -67,7 +67,7 @@ object ExpandNewArrayBufferPass extends LoweringPass:
     *     nothing downstream can compile.
     */
   override def mustPrecede: Set[LoweringPass] =
-    Set(ExtractInlineAlgoCallPass, NormalizeEvaluationOrderPass)
+    Set(ExpandInlineAlgoCallPass, NormalizeEvaluationOrderPass)
 
   private val arrayBufferIntrinsic =
     Expr.Field(

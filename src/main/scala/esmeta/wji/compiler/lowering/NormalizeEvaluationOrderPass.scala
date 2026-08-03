@@ -17,7 +17,7 @@ import scala.collection.mutable.ListBuffer
   * about both, not two that might each be blind to the other's job.
   *
   * After this pass every `AlgoCall(f, args)` (args.nonEmpty) is either directly
-  * the RHS of a `Let`/`Return` (handled by [[ExtractInlineAlgoCallPass]]) or
+  * the RHS of a `Let`/`Return` (handled by [[ExpandInlineAlgoCallPass]]) or
   * fully eliminated by substitution; every `Expr.Abrupt(marker, inner)` has
   * `inner` already a bare `Var`, and is itself either directly the RHS of a
   * `Let`/`Set`/`Return` (handled by [[ExpandAbruptPass]], which now only ever
@@ -42,7 +42,7 @@ import scala.collection.mutable.ListBuffer
   *
   * [[Instr.Let]]/[[Instr.Return]]'s direct RHS is special-cased via
   * [[Extractor.walkTop]]: a bare `AlgoCall`/`JSCall` is left in place (that
-  * instruction already *is* a binding slot — [[ExtractInlineAlgoCallPass]]
+  * instruction already *is* a binding slot — [[ExpandInlineAlgoCallPass]]
   * converts it to `Perform` directly, without an intermediate variable), and an
   * `Expr.Abrupt` is left in place too, once its own `inner` is a bare `Var`
   * (same reasoning — the enclosing `Let`/`Return` is already the binding
@@ -142,7 +142,7 @@ object NormalizeEvaluationOrderPass extends LoweringPass:
       (hoisted, e)
 
     /** Like [[walk]] but leaves `expr` itself un-hoisted when it's a bare
-      * `AlgoCall`/`JSCall` (for [[ExtractInlineAlgoCallPass]] to convert
+      * `AlgoCall`/`JSCall` (for [[ExpandInlineAlgoCallPass]] to convert
       * directly) or an `Expr.Abrupt` whose `inner` is already atomic (for
       * [[ExpandAbruptPass]] to unwrap directly) — see class doc. Used only at a
       * `Let`/`Return`'s own direct-RHS position, where the enclosing

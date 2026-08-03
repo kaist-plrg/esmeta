@@ -35,7 +35,7 @@ import esmeta.wji.lang.Instr.PerformOutcome
   * phrasing is left as `Instr.Unknown` rather than guessed at. Always emits
   * already-compiler-ready `Instr.Perform(..., BindResult(_))` + `Instr.Return`
   * — never an inline `Expr.AlgoCall` — so a caller never needs a later pass
-  * (`ExtractInlineAlgoCallPass`/`ExpandPerformReturnResultPass`) to finish the
+  * (`ExpandInlineAlgoCallPass`/`ExpandPerformReturnResultPass`) to finish the
   * job for it.
   *
   * Kept as a plain object rather than folded into [[WrapCompletionReturnsPass]]
@@ -103,7 +103,7 @@ object CompletionWrapping:
     case t: Instr.Throw =>
       List(Instr.Unknown(s"throw ${t.target}"))
     case Instr.Return(Some(expr), _) =>
-      // a bare Var (the common case now that ExtractInlineAlgoCallPass/
+      // a bare Var (the common case now that ExpandInlineAlgoCallPass/
       // ExpandPerformReturnResultPass already ran) needs no re-binding —
       // testing/returning it directly, rather than aliasing it under a fresh
       // name first, avoids a pointless extra Let.

@@ -56,11 +56,11 @@ object ExpandAbruptPass extends LoweringPass:
     *     with its own `inner` already a bare `Var` — see class doc.
     *
     * Must precede:
-    *   - [[ExtractInlineAlgoCallPass]]: needs `Let(_tupleN, AlgoCall(...))`
+    *   - [[ExpandInlineAlgoCallPass]]: needs `Let(_tupleN, AlgoCall(...))`
     *     nodes this pass produces already in place — see its own doc.
     */
   override def requires: Set[LoweringPass] = Set(NormalizeEvaluationOrderPass)
-  override def mustPrecede: Set[LoweringPass] = Set(ExtractInlineAlgoCallPass)
+  override def mustPrecede: Set[LoweringPass] = Set(ExpandInlineAlgoCallPass)
 
   def run(algos: List[Algorithm]): List[Algorithm] =
     algos.map(a => a.copy(body = transform(a.body)))

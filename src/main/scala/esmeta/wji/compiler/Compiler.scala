@@ -398,7 +398,7 @@ object Compiler:
     // any expression depth.
     case metalang.Expr.Abrupt(marker, e) =>
       EYet(s"nested $marker-abrupt: $e")
-    // ExtractInlineAlgoCallPass extracts every AlgoCall in Let/Return RHS
+    // ExpandInlineAlgoCallPass extracts every AlgoCall in Let/Return RHS
     // position (regardless of arg count) before compilation ever sees it —
     // this only remains for a position that pass doesn't cover (e.g. a Set
     // RHS). TODO: inline call-as-expr, the way that pass does for Let/Return.

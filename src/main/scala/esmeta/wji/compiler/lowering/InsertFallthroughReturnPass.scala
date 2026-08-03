@@ -36,7 +36,7 @@ object InsertFallthroughReturnPass extends LoweringPass:
   /** Requires:
     *   - [[ExpandPerformReturnResultPass]]: needs every `Instr.Perform(...,
     *     ReturnResult, ...)` — the implicit-return shape
-    *     `ExtractInlineAlgoCallPass` produces for a bare
+    *     `ExpandInlineAlgoCallPass` produces for a bare
     *     `Return(Some(AlgoCall(...)))` — already expanded back into a real
     *     `Instr.Return` first, so the "does this algorithm's top-level body
     *     already end in a `Return`" check below isn't fooled by one that hasn't

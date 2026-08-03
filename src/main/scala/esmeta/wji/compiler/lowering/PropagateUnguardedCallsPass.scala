@@ -44,7 +44,7 @@ object PropagateUnguardedCallsPass extends LoweringPass:
     *     stamped on every `Algorithm`.
     *   - [[NormalizeEvaluationOrderPass]]: needs every `AlgoCall`/`JSCall`
     *     already hoisted to `Let`/`Return` direct-RHS position — the same
-    *     guarantee [[ExpandAbruptPass]]/[[ExtractInlineAlgoCallPass]] rely on
+    *     guarantee [[ExpandAbruptPass]]/[[ExpandInlineAlgoCallPass]] rely on
     *     for the identical reason.
     *
     * Must precede:
@@ -99,7 +99,7 @@ object PropagateUnguardedCallsPass extends LoweringPass:
       transform(rest, completionAlgos))
 
     // "Let X be F(args)." — f itself is still a bare AlgoCall/JSCall here
-    // (ExtractInlineAlgoCallPass, which converts this to Perform, runs after
+    // (ExpandInlineAlgoCallPass, which converts this to Perform, runs after
     // this pass now) — needs a fresh temp to hold the raw call result, since
     // ExpandAbruptPass requires Expr.Abrupt's inner to always be a bare Var,
     // never the call expression itself (see NormalizeEvaluationOrderPass's

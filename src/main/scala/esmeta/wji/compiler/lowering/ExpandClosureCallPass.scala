@@ -5,7 +5,7 @@ import esmeta.wji.lang.Instr.PerformOutcome
 
 /** Converts a `ClosureCall` that appears in `Let`/`Return` RHS position into an
   * explicit `PerformClosure` statement, so the compiler can emit a real `ICall`
-  * instead of `EYet("call ...")` — mirrors [[ExtractInlineAlgoCallPass]] for
+  * instead of `EYet("call ...")` — mirrors [[ExpandInlineAlgoCallPass]] for
   * `AlgoCall`/`JSCall`, except a `ClosureCall`'s callee is a dynamic `Expr`
   * (the closure *value*, e.g. a `|var|` parameter such as
   * `|onFullfilledStepsArg|`), not a static `[=link=]` name, so it can't reuse

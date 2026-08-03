@@ -26,13 +26,13 @@ import esmeta.wji.lang.Instr.PerformOutcome
 object ExpandPerformReturnResultPass extends LoweringPass:
 
   /** Requires:
-    *   - [[ExtractInlineAlgoCallPass]]: needs a `Return(Some(AlgoCall(...)))`
+    *   - [[ExpandInlineAlgoCallPass]]: needs a `Return(Some(AlgoCall(...)))`
     *     already converted to `Instr.Perform(..., ReturnResult, ...)` — one
     *     that arrives late (after this pass has already run) would never get
     *     simplified, and would reach `Compiler`'s `impossible()` guard for
     *     `Instr.Perform`'s `ReturnResult` case instead.
     */
-  override def requires: Set[LoweringPass] = Set(ExtractInlineAlgoCallPass)
+  override def requires: Set[LoweringPass] = Set(ExpandInlineAlgoCallPass)
 
   private var counter = 0
   private def freshRet(): String = { counter += 1; s"_result$counter" }

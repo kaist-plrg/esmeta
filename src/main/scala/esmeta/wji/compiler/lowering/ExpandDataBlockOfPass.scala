@@ -40,7 +40,7 @@ import esmeta.wji.lang.{Algorithm, Expr, Instr}
 object ExpandDataBlockOfPass extends LoweringPass:
 
   override def requires: Set[LoweringPass] = Set.empty
-  override def mustPrecede: Set[LoweringPass] = Set(ExtractInlineAlgoCallPass)
+  override def mustPrecede: Set[LoweringPass] = Set(ExpandInlineAlgoCallPass)
 
   def run(algos: List[Algorithm]): List[Algorithm] =
     algos.map(a => a.copy(body = transform(a.body)))

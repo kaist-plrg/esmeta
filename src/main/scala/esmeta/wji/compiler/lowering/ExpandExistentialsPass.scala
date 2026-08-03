@@ -24,7 +24,7 @@ import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr}
   *       Let(u32, AlgoCall("inv_signed_32", [Var(i32)]))
   * }}}
   * — left as a plain `AlgoCall`-with-args rather than expanded further here, so
-  * [[ExtractInlineAlgoCallPass]] (which already handles exactly this `Let(x,
+  * [[ExpandInlineAlgoCallPass]] (which already handles exactly this `Let(x,
   * AlgoCall(f, args), body)` shape generically, turning it into `Perform(f,
   * args, BindResult(x), body)`) does the rest; that's also why this pass must
   * run before it. `signed_N`'s own link resolves to [[Expr.AlgoCall]] rather
@@ -50,15 +50,15 @@ import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr}
   * }}}
   *
   *   - The "does some key map to this value" shape (e.g. "If a [=host address=]
-  *     |hostaddr| exists such that |map|[|hostaddr|] is the same as |v|,",
-  *     index.bs:1469, the same [=host value cache=]'s reverse lookup) reuses
-  *     the very same contiguous-key-domain fact as the previous case, but the
-  *     other direction: instead of computing a value directly, it needs a
-  *     genuine (if trivially bounded) search — walk `0..size-1` looking for a
-  *     match, since nothing shorter can decide existence. `binder` doubles as
-  *     both the loop counter and, once found, the result the original body goes
-  *     on to reference (e.g. this construct's own `Return [=ref.host=]
-  *     |hostaddr|.` right after):
+  * |hostaddr| exists such that |map|[|hostaddr|] is the same as |v|,",
+  * index.bs:1469, the same [=host value cache=]'s reverse lookup) reuses the
+  * very same contiguous-key-domain fact as the previous case, but the other
+  * direction: instead of computing a value directly, it needs a genuine (if
+  * trivially bounded) search — walk `0..size-1` looking for a match, since
+  * nothing shorter can decide existence. `binder` doubles as both the loop
+  * counter and, once found, the result the original body goes on to reference
+  * (e.g. this construct's own `Return [=ref.host=]
+  * |hostaddr|.` right after):
   * {{{
   *       If(Exists(hostaddr, Eq(Index(Var(map), Var(hostaddr)), Var(v))))
   *         ...body referencing hostaddr...
@@ -108,7 +108,7 @@ object ExpandExistentialsPass extends LoweringPass:
     */
   override def requires: Set[LoweringPass] =
     Set(ResolveLinksPass, GroupIfChainPass)
-  override def mustPrecede: Set[LoweringPass] = Set(ExtractInlineAlgoCallPass)
+  override def mustPrecede: Set[LoweringPass] = Set(ExpandInlineAlgoCallPass)
 
   // "[=signed_31=]" / "[=signed_32=]" / "[=signed_64=]" — the bit width.
   private val SignedLink = """(?s)^\[=signed_(31|32|64)=\]$""".r

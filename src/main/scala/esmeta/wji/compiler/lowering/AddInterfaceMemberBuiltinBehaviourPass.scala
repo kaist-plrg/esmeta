@@ -93,8 +93,8 @@ import esmeta.wji.lang.{Algorithm, AlgorithmKind, Cond, Expr, Instr, WjiParam}
 object AddInterfaceMemberBuiltinBehaviourPass extends LoweringPass:
 
   /** Requires:
-    *   - [[ExpandFollowingStepsPass]]/[[ExtractInlineAlgoCallPass]]: same
-    *     reason [[AddBuiltinBehaviourPass]] needs them before calling the same
+    *   - [[ExpandFollowingStepsPass]]/[[ExpandInlineAlgoCallPass]]: same reason
+    *     [[AddBuiltinBehaviourPass]] needs them before calling the same
     *     [[CompletionWrapping.expandAlgorithm]] utility — its own `Return`
     *     handling assumes a call already sitting in `Instr.Perform` form, not a
     *     raw inline `Expr.AlgoCall`.
@@ -104,7 +104,7 @@ object AddInterfaceMemberBuiltinBehaviourPass extends LoweringPass:
     */
   override def requires: Set[LoweringPass] = Set(
     ExpandFollowingStepsPass,
-    ExtractInlineAlgoCallPass,
+    ExpandInlineAlgoCallPass,
     WrapCompletionReturnsPass,
   )
 

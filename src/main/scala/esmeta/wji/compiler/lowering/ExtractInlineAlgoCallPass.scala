@@ -3,10 +3,10 @@ package esmeta.wji.compiler.lowering
 import esmeta.wji.lang.{Algorithm, Expr, Instr}
 import esmeta.wji.lang.Instr.PerformOutcome
 
-/** Converts `AlgoCall`-with-args and `JSCall` (a `[$name$](...)` reference into
-  * ECMA-262 itself, e.g. `[$NewPromiseCapability$](...)`) that appear in
-  * expression position into explicit `Perform` statements so the compiler can
-  * emit `ICall` instead of `EYet("call ...")`.
+/** Converts `AlgoCall` and `JSCall` (a `[$name$](...)` reference into ECMA-262
+  * itself, e.g. `[$NewPromiseCapability$](...)`) that appear in expression
+  * position into explicit `Perform` statements so the compiler can emit `ICall`
+  * instead of `EYet("call ...")`.
   *
   * Handles:
   * {{{
@@ -14,10 +14,6 @@ import esmeta.wji.lang.Instr.PerformOutcome
   *   Return(Some(AlgoCall(f, args)), body) → Perform(f, args, ReturnResult, body)
   *   (and likewise for JSCall(f, args) in each position)
   * }}}
-  *
-  * Zero-argument `AlgoCall`s in `Return` position are left alone (the compiler
-  * emits `ERef(Global(name))` for those, which is already correct); `JSCall`
-  * has no such zero-arg ambiguity and is always extracted.
   *
   * Category: Structural desugaring — Elimination.
   */
@@ -49,8 +45,7 @@ object ExtractInlineAlgoCallPass extends LoweringPass:
   private def expandInstr(instr: Instr): List[Instr] = instr match
 
     case Instr.Let(Expr.Var(x), rhs, body) =>
-      // include zero-arg AlgoCalls: "Let |p| be [=a new promise=]" is a call
-      extractCall(rhs, zeroArg = true) match
+      extractCall(rhs) match
         case Some((link, args)) =>
           List(
             Instr.Perform(
@@ -64,8 +59,7 @@ object ExtractInlineAlgoCallPass extends LoweringPass:
           List(instr.mapBody(transform))
 
     case Instr.Return(Some(rhs), body) =>
-      // zero-arg AlgoCalls in Return are spec value refs (e.g. [=error=]), not calls
-      extractCall(rhs, zeroArg = false) match
+      extractCall(rhs) match
         case Some((link, args)) =>
           List(
             Instr.Perform(
@@ -82,21 +76,8 @@ object ExtractInlineAlgoCallPass extends LoweringPass:
       List(instr.mapBody(transform))
 
   /** Returns `(name, args)` if the expression is an `AlgoCall` or a `JSCall`.
-    *
-    * @param zeroArg
-    *   if true, zero-argument `AlgoCall`s are included (for Let RHS); if false,
-    *   only `AlgoCall`s with arguments (for Return value). `JSCall` is always
-    *   included regardless — its `[$name$](...)` syntax always carries an
-    *   argument list, so (unlike a bare `[=link=]`) it is never ambiguous with
-    *   a plain spec-term reference.
     */
-  private def extractCall(
-    expr: Expr,
-    zeroArg: Boolean,
-  ): Option[(String, List[Expr])] = expr match
-    case Expr.AlgoCall(link, args) if zeroArg || args.nonEmpty =>
-      Some((link, args))
-    case Expr.JSCall(name, args) =>
-      Some((name, args))
-    case _ =>
-      None
+  private def extractCall(expr: Expr): Option[(String, List[Expr])] = expr match
+    case Expr.AlgoCall(link, args) => Some((link, args))
+    case Expr.JSCall(name, args)   => Some((name, args))
+    case _                         => None

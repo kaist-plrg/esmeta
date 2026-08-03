@@ -398,10 +398,11 @@ object Compiler:
     // any expression depth.
     case metalang.Expr.Abrupt(marker, e) =>
       EYet(s"nested $marker-abrupt: $e")
-    case metalang.Expr.AlgoCall(link, args) =>
-      // zero-arg AlgoCall used as an expression value
-      if args.isEmpty then ERef(Global(nameFromLink(link)))
-      else EYet(s"call $link") // TODO: inline call-as-expr
+    // ExtractInlineAlgoCallPass extracts every AlgoCall in Let/Return RHS
+    // position (regardless of arg count) before compilation ever sees it —
+    // this only remains for a position that pass doesn't cover (e.g. a Set
+    // RHS). TODO: inline call-as-expr, the way that pass does for Let/Return.
+    case metalang.Expr.AlgoCall(link, _) => EYet(s"call $link")
     // a SpecTec Wasm Core Spec constructor/variant application (e.g. "the
     // [=external value=] [=external value/func=] |funcaddr|") used as a
     // value — builds a real `Wasm(CaseV(tag, ...))` to send back to SpecTec.

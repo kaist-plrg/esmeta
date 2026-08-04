@@ -137,6 +137,13 @@
   지점 자체는 누구의 스타일도 아닌 채로 붕 떠버린 셈. 이런 종류의
   "연결 지점에서 발생하는 스타일 불일치"가 이 문서에서 재발하는지는
   앞으로도 눈여겨볼 만하다.
+- **WJI 쪽 처리**: `SpecPatch` #28(`|state|` 파라미터 추가)/#29(성공 경로를
+  `Return (|store|, |result|.\[[Value]])`로)/#34(throw 경로를 `Return
+  (|store|, «[=ref.exn=] |address|, [=throw_ref=]»)`로)로 세 지점 다
+  우회 — hostfunc 클로저의 모든 exit path가 이제 `(state, result)` 명시적
+  threading을 따름. spectec 서브모듈 쪽도 짝을 맞춰 `$callhostfunc`가
+  `(state, val*)` 대신 `(state, result)`를 리턴하도록 고쳐졌다(`[spec]
+  845143d10`).
 
 ## 8. `ToWebAssemblyValue`의 `[=match_valtype=](...)` 조건 2곳만 "is true"가 안 붙음
 

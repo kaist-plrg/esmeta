@@ -131,6 +131,7 @@ object NormalizeSpecTecCaseShapePass extends LoweringPass:
       case "REF.FUNC"   => "REF.FUNC_ADDR"
       case "REF.EXN"    => "REF.EXN_ADDR"
       case "REF.HOST"   => "REF.HOST_ADDR"
+      case "THROW_REF"  => "THROW_REF"
       case tag if tag.startsWith(heapTypePrefix.toUpperCase) =>
         tag.substring(heapTypePrefix.length)
 

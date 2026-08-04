@@ -572,6 +572,25 @@ object SpecPatch:
     "[=!=] [$CreateBuiltinFunction$]"
     ->
     "[$CreateBuiltinFunction$]",
+
+    // #34 (spec inconsistency, docs/spec_inconsistencies.md #7) — the last
+    // piece of #7/#28/#29: the throw branch is the one remaining exit of
+    // `create a host function`'s hostfunc closure that still doesn't follow
+    // the (state, result) explicit-threading convention #28/#29 already
+    // gave the rest of it — it just imperatively "executes" two Wasm
+    // instructions with no `Return` at all. Rewritten as an explicit
+    // `Return (store, result)` pair, using the same `result` shape
+    // (`(ref.exn a) throw_ref`, spectec's own `result` syntax,
+    // `4.0-execution.configurations.spectec`) the spectec submodule's
+    // `$callhostfunc` now expects on this exact path. The spaces just inside
+    // `« »` are load-bearing, not stylistic — `ExprParser.MapLiteral`
+    // matches a bracket touching `«`/`»` on either side (`«[...]»`) before
+    // `ListLiteral` ever gets a look, and this list's first/last elements
+    // are themselves `[=...=]`-bracketed spec links, so a tight `«[=ref.exn=]
+    // ...[=throw_ref=]»` would misparse as a (garbage) map literal instead.
+    "1. Execute the WebAssembly instructions ([=ref.exn=] |address|) ([=throw_ref=])."
+    ->
+    "1. Return (|store|, « [=ref.exn=] |address|, [=throw_ref=] »).",
   )
 
   def apply(source: String): String =

@@ -3495,11 +3495,10 @@ def create_a_host_function_closure1(
       let address = _tuple1[1]
       @AGENT_RECORD["associated store"] = store
     }
-    (yet "Execute the WebAssembly instructions ([=ref.exn=] |address|) ([=throw_ref=])")
+    return (tup store (list [(case "REF.EXN_ADDR" address), (case "THROW_REF" )]))
   } else {
     return (tup store result.Value)
   }
-  return ~unused~
 }
 def react_closure1(
   thisArgument: Unknown,

@@ -897,7 +897,7 @@
         Let(|payload|, [=!=] [=ToWebAssemblyValue=](|v|, [=externref=]))
         Let((|store|, |address|), [=exn_alloc=](|store|, |type|, « |payload| »))
         Set([=surrounding agent=].[[associated store]], |store|)
-      ?(Execute the WebAssembly instructions ([=ref.exn=] |address|) ([=throw_ref=]))
+      Return((|store|, « [=ref.exn=](|address|), [=throw_ref=] »))
     Else
       Return((|store|, |result|.[[Value]]))
   Let(|store|, [=surrounding agent=].[[associated store]])

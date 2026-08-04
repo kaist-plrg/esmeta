@@ -12,7 +12,7 @@ import esmeta.wji.lang.Instr.PerformOutcome
   * so a caller can always assume the result has a `.Type` field.
   *
   * {{{
-  *   If(cond, [Throw("a {{TypeError}} exception")])
+  *   If(cond, [Throw(New("TypeError"))])
   *   Return(Some(expr))
   * }}}
   * becomes:
@@ -30,9 +30,12 @@ import esmeta.wji.lang.Instr.PerformOutcome
   *   ]
   * }}}
   *
-  * Only recognizes a `Throw` target of the exact `"a {{Iface}}"` / `"a
-  * {{Iface}} exception"` shape (every occurrence reached so far); any other
-  * phrasing is left as `Instr.Unknown` rather than guessed at. Always emits
+  * `Instr.Throw`'s `target` is already a real `Expr` by the time this runs
+  * (parsed at `InstrParser`, not here — see `Instr.Throw`'s own doc): an
+  * `Expr.New(iface)` ("a {{Iface}} exception"/"a [=/new=] {{Iface}} object")
+  * constructs a fresh error via `__NEW_ERROR_OBJ__` as before; anything else is
+  * already a computed value (e.g. `ToJSValue(...)`, a bound variable) and gets
+  * wrapped in `ThrowCompletion` directly, no construction step. Always emits
   * already-compiler-ready `Instr.Perform(..., BindResult(_))` + `Instr.Return`
   * — never an inline `Expr.AlgoCall` — so a caller never needs a later pass
   * (`ExpandInlineAlgoCallPass`/`ExpandPerformReturnResultPass`) to finish the
@@ -59,10 +62,6 @@ object CompletionWrapping:
   private def freshVal(): String = { counter += 1; s"_v$counter" }
   private def freshRet(): String = { counter += 1; s"_ret$counter" }
 
-  // "a {{TypeError}} exception" / "a {{TypeError}} exception." / "a {{TypeError}}"
-  private val ThrowTarget =
-    """(?si)^an?\s+\{\{([^}]+)\}\}(?:\s+exception)?\.?$""".r
-
   /** Entry point for a caller's per-`Algorithm` pass over `expand`: resets
     * `counter` first so fresh names start over at each algorithm instead of
     * accumulating across the whole program (`expand` itself also recurses into
@@ -84,7 +83,7 @@ object CompletionWrapping:
     // AddBuiltinBehaviourPass calls this: no FollowingSteps remain anywhere
     // in the program past ExpandFollowingStepsPass.)
     case i @ Instr.Let(_, Expr.FollowingSteps(_, _), _) => List(i)
-    case Instr.Throw(ThrowTarget(iface), _) =>
+    case Instr.Throw(Expr.New(iface), _) =>
       val err = freshErr()
       val ret = freshRet()
       List(
@@ -100,8 +99,20 @@ object CompletionWrapping:
         ),
         Instr.Return(Some(Expr.Var(ret))),
       )
-    case t: Instr.Throw =>
-      List(Instr.Unknown(s"throw ${t.target}"))
+    // target is already a computed value (e.g. a ToJSValue(...) call, or a
+    // bound variable holding an already-constructed exception object) --
+    // unlike the Expr.New case above, there's nothing to construct, so wrap
+    // it in ThrowCompletion directly.
+    case Instr.Throw(target, _) =>
+      val ret = freshRet()
+      List(
+        Instr.Perform(
+          "ThrowCompletion",
+          List(target),
+          PerformOutcome.BindResult(ret),
+        ),
+        Instr.Return(Some(Expr.Var(ret))),
+      )
     case Instr.Return(Some(expr), _) =>
       // a bare Var (the common case now that ExpandInlineAlgoCallPass/
       // ExpandPerformReturnResultPass already ran) needs no re-binding —

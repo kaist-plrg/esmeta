@@ -237,7 +237,9 @@ object Compiler:
       IAssert(compileCond(cond)) :: compileSeq(body)
 
     case Instr.Throw(target, body) =>
-      compileSeq(body) :+ IExpr(EYet(s"throw $target")) // TODO: proper throw
+      // TODO: proper throw -- only reached for a Throw that CompletionWrapping
+      // didn't already consume (returnsCompletion = false).
+      compileSeq(body) :+ IExpr(EYet(s"throw ${ExprPrinter.render(target)}"))
 
     case Instr.While(cond, body) =>
       IWhile(compileCond(cond), compileInstrs(body)) :: Nil

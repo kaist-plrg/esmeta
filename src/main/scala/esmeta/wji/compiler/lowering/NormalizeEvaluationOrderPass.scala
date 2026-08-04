@@ -200,6 +200,11 @@ object NormalizeEvaluationOrderPass extends LoweringPass:
       val ce = ext.walk(coll)
       ext.hoisted ++ List(Instr.Append(ie, ce, transform(body)))
 
+    case Instr.Throw(target, body) =>
+      val ext = Extractor()
+      val newTarget = ext.walk(target)
+      ext.hoisted ++ List(Instr.Throw(newTarget, transform(body)))
+
     case Instr.Perform(func, args, outcome, body) =>
       val ext = Extractor()
       val newArgs = args.map(ext.walk)

@@ -61,7 +61,7 @@ object InstrPrinter:
     case Return(expr, _) =>
       s"Return(${expr.map(ExprPrinter.render).getOrElse("")})"
     case Assert(cond, _)  => s"Assert(${CondPrinter.render(cond)})"
-    case Throw(target, _) => s"Throw($target)"
+    case Throw(target, _) => s"Throw(${ExprPrinter.render(target)})"
     case ForEach(elem, coll, _) =>
       s"ForEach(${ExprPrinter.render(elem)}, ${ExprPrinter.render(coll)})"
     case Instr.For(elem, coll, _) =>

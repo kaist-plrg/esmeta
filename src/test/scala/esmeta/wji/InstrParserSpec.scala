@@ -35,7 +35,11 @@ class InstrParserSpec extends AnyFunSuite:
   test("throw") {
     assert(
       parse("Throw a {{TypeError}} exception.") ==
-      List(Throw("a {{TypeError}} exception")),
+      List(Throw(New("TypeError"))),
+    )
+    assert(
+      parse("Throw |exception|.") ==
+      List(Throw(Var("exception"))),
     )
   }
 

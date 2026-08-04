@@ -44,8 +44,14 @@ object Instr:
   /** `Assert: COND.` */
   case class Assert(cond: Cond, body: List[Instr] = Nil) extends Instr
 
-  /** `Throw TARGET.` / `[=Throw=] TARGET.` */
-  case class Throw(target: String, body: List[Instr] = Nil) extends Instr
+  /** `Throw TARGET.` / `[=Throw=] TARGET.` — `target` is either an
+    * `Expr.New(iface)` ("a {{TypeError}} exception"/"a [=/new=] {{X}} object",
+    * constructing a fresh error) or any other already-computed value expression
+    * (e.g. `[=ToJSValue=](|payload|[0])`, `|exception|`) to throw directly —
+    * see [[esmeta.wji.compiler.lowering.CompletionWrapping]] for how the two
+    * are told apart and compiled differently.
+    */
+  case class Throw(target: Expr, body: List[Instr] = Nil) extends Instr
 
   /** `For each ELEM of/in COLLECTION, ...` */
   case class ForEach(elem: Expr, collection: Expr, body: List[Instr])

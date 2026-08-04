@@ -103,7 +103,7 @@
   params: |module|, |importObject|, |builtinSetNames|, |importedStringModule|
   head: To <dfn>read the imports</dfn> from a WebAssembly module |module| from imports object |importObject|, enabled builtins |builtinSetNames|, and |importedStringModule|, perform the following steps:
   If(length([=module_imports=](|module|)) is not 0, and |importObject| is undefined)
-    Throw(a {{TypeError}} exception)
+    Throw(new {{TypeError}})
   Let(|builtinOrStringImports|, «[ ]»)
   ForEach(|builtinSetName|, |builtinSetNames|)
     Let(|builtinSetQualifiedName|, ?(|builtinSetName| prefixed with "wasm:"))
@@ -124,11 +124,11 @@
     Else
       Let(|o|, [=?=] [$Get$](|importObject|, |moduleName|))
     If(|o| is not an Object)
-      Throw(a {{TypeError}} exception)
+      Throw(new {{TypeError}})
     Let(|v|, [=?=] [$Get$](|o|, |componentName|))
     If(|externtype| is of the form [=external-type/func=](|functype|))
       If([$IsCallable$](|v|) is false)
-        Throw(a {{LinkError}} exception)
+        Throw(new {{LinkError}})
       If(|v| has a [[FunctionAddress]] internal slot, and ?(therefore) is an Exported Function)
         Let(|funcaddr|, |v|.[[FunctionAddress]])
       Else
@@ -140,15 +140,15 @@
         Let(|globaladdr|, |v|.[[Global]])
       Else
         If(|valtype| is [=i64=], and |v| is not a BigInt)
-          Throw(a {{LinkError}} exception)
+          Throw(new {{LinkError}})
         If(?(|valtype| is one of [=i32=]))
-          Throw(a {{LinkError}} exception)
+          Throw(new {{LinkError}})
         If(|valtype| is [=v128=])
-          Throw(a {{LinkError}} exception)
+          Throw(new {{LinkError}})
         Let(|value|, [=ToWebAssemblyValue=](|v|, |valtype|))
         If(Throws(TypeError))
           Note(catch it)
-          Throw(a {{LinkError}} exception)
+          Throw(new {{LinkError}})
         Let(|store|, [=surrounding agent=].[[associated store]])
         Let((|store|, |globaladdr|), [=global_alloc=](|store|, [=const=](|valtype|), |value|))
         Set([=surrounding agent=].[[associated store]], |store|)
@@ -156,18 +156,18 @@
       Append(|externglobal|, |imports|)
     If(|externtype| is of the form [=external-type/mem=](|memtype|))
       If(|v| does not [=implement=] {{Memory}})
-        Throw(a {{LinkError}} exception)
+        Throw(new {{LinkError}})
       Let(|externmem|, [=external value/mem=](|v|.[[Memory]]))
       Append(|externmem|, |imports|)
     If(|externtype| is of the form [=external-type/table=](|tabletype|))
       If(|v| does not [=implement=] {{Table}})
-        Throw(a {{LinkError}} exception)
+        Throw(new {{LinkError}})
       Let(|tableaddr|, |v|.[[Table]])
       Let(|externtable|, [=external value/table=](|tableaddr|))
       Append(|externtable|, |imports|)
     If(|externtype| is of the form [=external-type/tag=](|functype|))
       If(|v| does not [=implement=] {{Tag}})
-        Throw(a {{LinkError}} exception)
+        Throw(new {{LinkError}})
       Let(|tagaddr|, |v|.[[Address]])
       Let(|externtag|, [=external value/tag=](|tagaddr|))
       Append(|externtag|, |imports|)
@@ -227,7 +227,7 @@
   If(|result| is [=error=])
     ?(A {{LinkError}} exception for most cases which occur during linking)
     If(?(the error came when running the start function))
-      Throw(a {{RuntimeError}} for most errors which occur from WebAssembly, or the error object propagated from inner ECMAScript code)
+      Throw(?(a {{RuntimeError}} for most errors which occur from WebAssembly, or the error object propagated from inner ECMAScript code))
     ?(Another error type if appropriate, for example an out-of-memory exception, as documented in <a href="#errors">the WebAssembly error mapping</a>)
   Let((|store|, |instance|), |result|)
   Set([=surrounding agent=].[[associated store]], |store|)
@@ -349,7 +349,7 @@
   Let(|stableBytes|, [=get a copy of the buffer source=](|bytes|))
   PerformAndLet([=Compile a WebAssembly module=](|stableBytes|), |module|)
   If(|module| is [=error=])
-    Throw(a {{CompileError}} exception)
+    Throw(new {{CompileError}})
   If(|options|["builtins"] [=map/exists=])
     Let(|builtinSetNames|, |options|["builtin"])
   Else
@@ -359,7 +359,7 @@
   Else
     Let(|importedStringModule|, null)
   If([=validate builtins and imported string for a WebAssembly module=](|module|, |builtinSetNames|, |importedStringModule|) is false)
-    Throw(a {{CompileError}} exception)
+    Throw(new {{CompileError}})
   Set(**this**.[[Module]], |module|)
   Set(**this**.[[Bytes]], |stableBytes|)
   Set(**this**.[[BuiltinSets]], |builtinSetNames|)
@@ -440,11 +440,11 @@
     Let(|maximum|, empty)
   Let(|memtype|, [=memory type=](|addrtype|, **min**, |initial|, **max**, |maximum|))
   If(|memtype| is not [=valid memtype=])
-    Throw(a {{RangeError}} exception)
+    Throw(new {{RangeError}})
   Let(|store|, [=surrounding agent=].[[associated store]])
   Let((|store|, |memaddr|), [=mem_alloc=](|store|, |memtype|))
   If(?(allocation fails))
-    Throw(a {{RangeError}} exception)
+    Throw(new {{RangeError}})
   Set([=surrounding agent=].[[associated store]], |store|)
   Perform([=initialize a memory object=](**this**, |memaddr|))
 
@@ -471,7 +471,7 @@
   Let(|ret|, [=mem_size=](|store|, |memaddr|))
   Let(|store|, [=mem_grow=](|store|, |memaddr|, |delta|))
   If(|store| is [=error=])
-    Throw(a {{RangeError}} exception)
+    Throw(new {{RangeError}})
   Set([=surrounding agent=].[[associated store]], |store|)
   Perform([=Refresh the memory buffer=](|memaddr|))
   Return(|ret|)
@@ -517,7 +517,7 @@
   Let(|store|, [=surrounding agent=].[[associated store]])
   Let(|memtype|, [=mem_type=](|store|, |memaddr|))
   If(?(|memtype| does not have a max))
-    Throw(a {{TypeError}} exception)
+    Throw(new {{TypeError}})
   Let(|buffer|, **this**.[[BufferObject]])
   If([=IsFixedLengthArrayBuffer=](|buffer|) is false)
     Return(|buffer|)
@@ -539,7 +539,7 @@
         Assert(|buffer|.[[ArrayBufferByteLength]] modulo 65536 is 0)
         Let(|lengthDelta|, |newLength| - |buffer|.[[ArrayBufferByteLength]])
         If(|lengthDelta| < 0 or |lengthDelta| modulo 65536 is not 0)
-          Throw(a {{RangeError}} exception)
+          Throw(new {{RangeError}})
         Let(|delta|, |lengthDelta| / 65536)
         Perform([=Grow the memory buffer=](|memaddr|, |delta|))
     Return(handled)
@@ -575,7 +575,7 @@
   head: The <dfn constructor for="Table">Table(|descriptor|, |value|)</dfn> constructor, when invoked, performs the following steps:
   Let(|elementtype|, [=ToValueType=](|descriptor|["element"]))
   If(|elementtype| is not a reftype)
-    Throw(a {{TypeError}} exception)
+    Throw(new {{TypeError}})
   If(|descriptor|["address"] [=map/exists=])
     Let(|addrtype|, |descriptor|["address"])
   Else
@@ -587,7 +587,7 @@
     Let(|maximum|, empty)
   Let(|type|, ?(|addrtype| { <b>[=limits|min=]</b> |initial|, <b>[=limits|max=]</b> |maximum| } |elementtype|))
   If(|type| is not [=valid tabletype=])
-    Throw(a {{RangeError}} exception)
+    Throw(new {{RangeError}})
   If(|value| is missing)
     Let(|ref|, [=DefaultValue=](|elementtype|))
     Assert(|ref| is not [=error=])
@@ -596,7 +596,7 @@
   Let(|store|, [=surrounding agent=].[[associated store]])
   Let((|store|, |tableaddr|), [=table_alloc=](|store|, |type|, |ref|))
   If(?(allocation fails))
-    Throw(a {{RangeError}} exception)
+    Throw(new {{RangeError}})
   Set([=surrounding agent=].[[associated store]], |store|)
   Perform([=initialize a table object=](**this**, |tableaddr|))
 
@@ -613,12 +613,12 @@
   If(|value| is missing)
     Let(|ref|, [=DefaultValue=](|elementtype|))
     If(|ref| is [=error=])
-      Throw(a {{TypeError}} exception)
+      Throw(new {{TypeError}})
   Else
     Let(|ref|, [=?=] [=ToWebAssemblyValue=](|value|, |elementtype|))
   Let(|result|, [=table_grow=](|store|, |tableaddr|, |delta64|, |ref|))
   If(|result| is [=error=])
-    Throw(a {{RangeError}} exception)
+    Throw(new {{RangeError}})
   Note(The above exception can happen due to either insufficient memory or an invalid size parameter)
   Set([=surrounding agent=].[[associated store]], |result|)
   Return([=U64ToAddressValue=](|initialSize|, |addrtype|))
@@ -640,11 +640,11 @@
   Let(|store|, [=surrounding agent=].[[associated store]])
   Let((|addrtype|, |limits|, |elementtype|), [=table_type=](|store|, |tableaddr|))
   If(|elementtype| [=matches/reftype=] [=exnref=])
-    Throw(a {{TypeError}} exception)
+    Throw(new {{TypeError}})
   Let(|index64|, [=?=] [=AddressValueToU64=](|index|, |addrtype|))
   Let(|result|, [=table_read=](|store|, |tableaddr|, |index64|))
   If(|result| is [=error=])
-    Throw(a {{RangeError}} exception)
+    Throw(new {{RangeError}})
   Return([=ToJSValue=](|result|))
 
 # set
@@ -655,17 +655,17 @@
   Let(|store|, [=surrounding agent=].[[associated store]])
   Let((|addrtype|, |limits|, |elementtype|), [=table_type=](|store|, |tableaddr|))
   If(|elementtype| [=matches/reftype=] [=exnref=])
-    Throw(a {{TypeError}} exception)
+    Throw(new {{TypeError}})
   Let(|index64|, [=?=] [=AddressValueToU64=](|index|, |addrtype|))
   If(|value| is missing)
     Let(|ref|, [=DefaultValue=](|elementtype|))
     If(|ref| is [=error=])
-      Throw(a {{TypeError}} exception)
+      Throw(new {{TypeError}})
   Else
     Let(|ref|, [=?=] [=ToWebAssemblyValue=](|value|, |elementtype|))
   Let(|store|, [=table_write=](|store|, |tableaddr|, |index64|, |ref|))
   If(|store| is [=error=])
-    Throw(a {{RangeError}} exception)
+    Throw(new {{RangeError}})
   Set([=surrounding agent=].[[associated store]], |store|)
 
 # initialize a global object
@@ -719,7 +719,7 @@
   Let(|mutable|, |descriptor|["mutable"])
   Let(|valuetype|, [=ToValueType=](|descriptor|["value"]))
   If(|valuetype| [=matches/valtype=] [=v128=] or [=exnref=])
-    Throw(a {{TypeError}} exception)
+    Throw(new {{TypeError}})
   If(|v| is missing)
     Let(|value|, [=DefaultValue=](|valuetype|))
     Assert(|value| is not [=error=])
@@ -742,7 +742,7 @@
   Let(|globaladdr|, |global|.[[Global]])
   Let(|globaltype|, [=global_type=](|store|, |globaladdr|))
   If(|globaltype| is of the form (|mut|, |valuetype|) where |valuetype| [=matches/valtype=] [=v128=] or [=exnref=])
-    Throw(a {{TypeError}})
+    Throw(new {{TypeError}})
   Let(|value|, [=global_read=](|store|, |globaladdr|))
   Return([=ToJSValue=](|value|))
 
@@ -760,13 +760,13 @@
   Let(|globaladdr|, **this**.[[Global]])
   Let((|mut|, |valuetype|), [=global_type=](|store|, |globaladdr|))
   If(|valuetype| [=matches/valtype=] [=v128=] or [=exnref=])
-    Throw(a {{TypeError}})
+    Throw(new {{TypeError}})
   If(|mut| is [=const=])
-    Throw(a {{TypeError}})
+    Throw(new {{TypeError}})
   Let(|value|, [=?=] [=ToWebAssemblyValue=](**the given value**, |valuetype|))
   Let(|store|, [=global_write=](|store|, |globaladdr|, |value|))
   If(|store| is [=error=])
-    Throw(a {{RangeError}} exception)
+    Throw(new {{RangeError}})
   Set([=surrounding agent=].[[associated store]], |store|)
 
 # valueOf
@@ -810,7 +810,7 @@
   Let(|functype|, [=func_type=](|store|, |funcaddr|))
   Let(->(|parameters|, |results|), [=expand=](|functype|))
   If(any type in |parameters| or |results| |type| [=matches/valtype=] [=v128=] or [=exnref=])
-    Throw(a {{TypeError}})
+    Throw(new {{TypeError}})
   Note(the above error is thrown each time the \[[Call]] method is invoked)
   Let(|args|, « »)
   Let(|i|, 0)
@@ -824,7 +824,7 @@
   Let((|store|, |ret|), [=func_invoke=](|store|, |funcaddr|, |args|))
   Set([=surrounding agent=].[[associated store]], |store|)
   If(|ret| is [=error=])
-    Throw(a {{RuntimeError}} exception)
+    Throw(new {{RuntimeError}})
   If(|ret| is of the form [=exception=](|exnaddr|))
     Let(|tagaddr|, [=exn_tag=](|store|, |exnaddr|))
     Let(|payload|, [=exn_read=](|store|, |exnaddr|))
@@ -850,7 +850,7 @@
   head: To <dfn>run a host function</dfn> from the JavaScript object |func|, type |functype|, and [=list=] of [=WebAssembly values=] |arguments|, perform the following steps:
   Let(->(|parameters|, |results|), [=expand=](|functype|))
   If(any type in |parameters| or |results| |type| [=matches/valtype=] [=v128=] or [=exnref=])
-    Throw(a {{TypeError}})
+    Throw(new {{TypeError}})
   Let(|jsArguments|, « »)
   ForEach(|arg|, |arguments|)
     Append([=ToJSValue=](|arg|), |jsArguments|)
@@ -863,11 +863,11 @@
   Else
     Let(|method|, [=?=] [$GetMethod$](|ret|, %Symbol.iterator%))
     If(|method| is undefined)
-      Throw(a {{TypeError}})
+      Throw(new {{TypeError}})
     Let(|values|, [=?=] [$IteratorToList$]([=?=] [$GetIteratorFromMethod$](|ret|, |method|)))
     Let(|wasmValues|, « »)
     If(length(|values|) is not |resultsSize|)
-      Throw(a {{TypeError}} exception)
+      Throw(new {{TypeError}})
     ForEach(?(|value| and |resultType|), ?(|values| and |results|))
       Append([=?=] [=ToWebAssemblyValue=](|value|, |resultType|), |wasmValues|)
     Return(|wasmValues|)
@@ -1012,7 +1012,7 @@
     Let(|store|, [=surrounding agent=].[[associated store]])
     Let(|actualtype|, [=ref_type=](|store|, |r|))
     If([=match_valtype=](|actualtype|, |type|) is false)
-      Throw(a {{TypeError}})
+      Throw(new {{TypeError}})
     Return(|r|)
   Assert(Unreachable)
 
@@ -1026,7 +1026,7 @@
   If(|addrtype| is "i64")
     Let(|n|, [=?=] [$ToBigInt$](|v|))
     If(|n| < 0 or |n| > 2 ** 64 - 1)
-      Throw(a {{TypeError}})
+      Throw(new {{TypeError}})
     Note(This operation is designed to emulate [=[EnforceRange]=])
     Return(?([=ℝ=](|n|) as a WebAssembly [=u64=]))
   Assert(Unreachable)
@@ -1105,11 +1105,11 @@
 
 # \[[Set]] internal method of an Exported GC Object
   head: The <dfn>\[[Set]] internal method of an Exported GC Object</dfn> <var ignore>O</var> takes arguments <var ignore>P</var> (a property key), <var ignore>V</var> (an ECMAScript language value), and <var ignore>Receiver</var> (an ECMAScript language value) and throws an exception. It performs the following steps when called:
-  Throw(a {{TypeError}})
+  Throw(new {{TypeError}})
 
 # \[[Delete]] internal method of an Exported GC Object
   head: The <dfn>\[[Delete]] internal method of an Exported GC Object</dfn> <var ignore>O</var> takes argument <var ignore>P</var> (a property key) and throws an exception. It performs the following steps when called:
-  Throw(a {{TypeError}})
+  Throw(new {{TypeError}})
 
 # \[[OwnPropertyKeys]] internal method of an Exported GC Object
   head: The <dfn>\[[OwnPropertyKeys]] internal method of an Exported GC Object</dfn> <var ignore>O</var> takes no arguments and returns a list. It performs the following steps when called:
@@ -1170,15 +1170,15 @@
   head: The <dfn constructor for=Exception lt="Exception(exceptionTag, payload, options)">new Exception(|exceptionTag|, |payload|, |options|)</dfn> constructor steps are:
   Let(|JSTagAddr|, [=get the JavaScript exception tag=])
   If(|exceptionTag|.[[Address]] is |JSTagAddr|)
-    Throw(a {{TypeError}})
+    Throw(new {{TypeError}})
   Let(|store|, [=surrounding agent=].[[associated store]])
   Let(?([|types|] → []), [=tag_type=](|store|, |exceptionTag|.[[Address]]))
   If(length(|types|) is not length(|payload|))
-    Throw(a {{TypeError}})
+    Throw(new {{TypeError}})
   Let(|wasmPayload|, « »)
   ForEach(?(|value| and |resultType|), ?(|payload| and |types|))
     If(|resultType| [=matches/valtype=] [=v128=] or [=exnref=])
-      Throw(a {{TypeError}})
+      Throw(new {{TypeError}})
     Append([=?=] [=ToWebAssemblyValue=](|value|, |resultType|), |wasmPayload|)
   Let((|store|, |exceptionAddr|), [=exn_alloc=](|store|, |exceptionTag|.[[Address]], |wasmPayload|))
   Set([=surrounding agent=].[[associated store]], |store|)
@@ -1192,15 +1192,15 @@
   head: The <dfn method for="Exception">getArg(|exceptionTag|, |index|)</dfn> method steps are:
   Let(|store|, [=surrounding agent=].[[associated store]])
   If(**this**.[[Type]] is not |exceptionTag|.[[Address]])
-    Throw(a {{TypeError}})
+    Throw(new {{TypeError}})
   Let(|tagaddr|, [=exn_tag=](|store|, **this**.[[Address]]))
   Let(|payload|, [=exn_read=](|store|, **this**.[[Address]]))
   Assert(|tagaddr| is **this**.[[Type]])
   If(|index| >= length(|payload|))
-    Throw(a {{RangeError}})
+    Throw(new {{RangeError}})
   Let(?([|types|] → []), [=tag_type=](|store|, |tagaddr|))
   If(|types|[|index|] [=matches/valtype=] [=v128=] or [=exnref=])
-    Throw(a {{TypeError}})
+    Throw(new {{TypeError}})
   Return([=ToJSValue=](|payload|[|index|]))
 
 # is
@@ -1302,7 +1302,7 @@
   params: |v|
   head: The <dfn abstract-op lt="UnwrapString">UnwrapString(|v|)</dfn> abstract operation, when invoked, performs the following steps:
   If(|v| is not a String)
-    Throw(a {{RuntimeError}} exception as if a [=trap=] was executed)
+    Throw(?(a {{RuntimeError}} exception as if a [=trap=] was executed))
   Return(|v|)
 
 # FromCharCode
@@ -1336,10 +1336,10 @@
   params: |array|, |start|, |end|
   head: When this builtin is invoked with parameters |array|, |start|, and |end|, the following steps must be run:
   If(|array| is null)
-    Throw(a {{RuntimeError}} exception as if a [=trap=] was executed)
+    Throw(?(a {{RuntimeError}} exception as if a [=trap=] was executed))
   Let(|length|, length(|array|))
   If(|start| > |end| or |end| > |length|)
-    Throw(a {{RuntimeError}} exception as if a [=trap=] was executed)
+    Throw(?(a {{RuntimeError}} exception as if a [=trap=] was executed))
   Let(|result|, "")
   Let(|i|, |start|)
   While(|i| < |end|)
@@ -1354,12 +1354,12 @@
   params: |string|, |array|, |start|
   head: When this builtin is invoked with parameters |string|, |array|, and |start|, the following steps must be run:
   If(|array| is null)
-    Throw(a {{RuntimeError}} exception as if a [=trap=] was executed)
+    Throw(?(a {{RuntimeError}} exception as if a [=trap=] was executed))
   Let(|string|, [=?=] [$UnwrapString$](|string|))
   Let(|stringLength|, length(|string|))
   Let(|arrayLength|, length(|array|))
   If(|start| + |stringLength| > |arrayLength|)
-    Throw(a {{RuntimeError}} exception as if a [=trap=] was executed)
+    Throw(?(a {{RuntimeError}} exception as if a [=trap=] was executed))
   Let(|i|, 0)
   While(|i| < |stringLength|)
     Let(|charCode|, [$CharCodeAt$](|string|, |i|))
@@ -1378,7 +1378,7 @@
   params: |v|
   head: When this builtin is invoked with parameter |v|, the following steps must be run:
   If(|v| > 0x10ffff)
-    Throw(a {{RuntimeError}} exception as if a [=trap=] was executed)
+    Throw(?(a {{RuntimeError}} exception as if a [=trap=] was executed))
   Return([=!=] [$Call$]([=String.fromCodePoint=], undefined, « [=ToJSValue=](|v|) »))
 
 # js-string-charCodeAt
@@ -1388,7 +1388,7 @@
   Let(|string|, [=?=] [$UnwrapString$](|string|))
   Let(|length|, length(|string|))
   If(|index| >= |length|)
-    Throw(a {{RuntimeError}} exception as if a [=trap=] was executed)
+    Throw(?(a {{RuntimeError}} exception as if a [=trap=] was executed))
   Return([$CharCodeAt$](|string|, |index|))
 
 # js-string-codePointAt
@@ -1398,7 +1398,7 @@
   Let(|string|, [=?=] [$UnwrapString$](|string|))
   Let(|length|, length(|string|))
   If(|index| >= |length|)
-    Throw(a {{RuntimeError}} exception as if a [=trap=] was executed)
+    Throw(?(a {{RuntimeError}} exception as if a [=trap=] was executed))
   Return([=!=] [$Call$]([=String.prototype.codePointAt=], |string|, « [=ToJSValue=](|index|) »))
 
 # js-string-length
@@ -1431,9 +1431,9 @@
   params: |first|, |second|
   head: When this builtin is invoked with parameters |first| and |second|, the following steps must be run:
   If(|first| is not null, and |first| is not a String)
-    Throw(a {{RuntimeError}} exception as if a [=trap=] was executed)
+    Throw(?(a {{RuntimeError}} exception as if a [=trap=] was executed))
   If(|second| is not null, and |second| is not a String)
-    Throw(a {{RuntimeError}} exception as if a [=trap=] was executed)
+    Throw(?(a {{RuntimeError}} exception as if a [=trap=] was executed))
   If([=!=] [=IsStrictlyEqual=](|first|, |second|) is true)
     Return(1)
   Return(0)
@@ -1509,7 +1509,7 @@
     Set(|offset|, |jsBufferSource|.[[ByteOffset]])
     Set(|length|, |jsBufferSource|.[[ByteLength]])
   Else
-    Assert(|jsBufferSource| is ?(an {{ArrayBuffer}}) or ?({{SharedArrayBuffer}} object))
+    Assert(|jsBufferSource| is new {{ArrayBuffer}} or ?({{SharedArrayBuffer}} object))
     Set(|length|, |jsBufferSource|.[[ArrayBufferByteLength]])
   If([$IsDetachedBuffer$](|jsArrayBuffer|) is true)
     Return(?(the empty [=byte sequence=]))

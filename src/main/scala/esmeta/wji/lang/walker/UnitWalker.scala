@@ -74,7 +74,7 @@ trait UnitWalker:
     case i: Instr.Else   => i.body.foreach(walk)
     case i: Instr.Return => i.expr.foreach(walk); i.body.foreach(walk)
     case i: Instr.Assert => walk(i.cond); i.body.foreach(walk)
-    case i: Instr.Throw  => i.body.foreach(walk)
+    case i: Instr.Throw  => walk(i.target); i.body.foreach(walk)
     case i: Instr.ForEach =>
       walk(i.elem); walk(i.collection); i.body.foreach(walk)
     case i: Instr.For =>

@@ -80,7 +80,7 @@ trait Walker:
     case i: Instr.Else   => Instr.Else(i.body.map(walk))
     case i: Instr.Return => Instr.Return(i.expr.map(walk), i.body.map(walk))
     case i: Instr.Assert => Instr.Assert(walk(i.cond), i.body.map(walk))
-    case i: Instr.Throw  => Instr.Throw(i.target, i.body.map(walk))
+    case i: Instr.Throw  => Instr.Throw(walk(i.target), i.body.map(walk))
     case i: Instr.ForEach =>
       Instr.ForEach(walk(i.elem), walk(i.collection), i.body.map(walk))
     case i: Instr.For =>

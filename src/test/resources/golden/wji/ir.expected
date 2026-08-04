@@ -464,7 +464,8 @@ def instantiate_the_core_of_a_webassembly_module(
   if (= result (case "ERROR" )) {
     (yet "A {{LinkError}} exception for most cases which occur during linking")
     if (yet "the error came when running the start function") {
-      (yet "throw a {{RuntimeError}} for most errors which occur from WebAssembly, or the error object propagated from inner ECMAScript code")
+      call _ret1 = clo<"ThrowCompletion">((yet "a {{RuntimeError}} for most errors which occur from WebAssembly, or the error object propagated from inner ECMAScript code"))
+      return _ret1
     } else nop
     (yet "Another error type if appropriate, for example an out-of-memory exception, as documented in <a href=\"#errors\">the WebAssembly error mapping</a>")
   } else nop
@@ -474,8 +475,8 @@ def instantiate_the_core_of_a_webassembly_module(
   if (? instance: Completion) {
     return instance
   } else {
-    call _ret1 = clo<"NormalCompletion">(instance)
-    return _ret1
+    call _ret2 = clo<"NormalCompletion">(instance)
+    return _ret2
   }
 }
 def asynchronously_instantiate_a_webassembly_module(
@@ -1776,38 +1777,41 @@ def call_an_exported_function(
     call-embed payload = <exn_read>(store, exnaddr)
     call jsTagAddr = clo<"get_the_javascript_exception_tag">()
     if (= tagaddr jsTagAddr) {
-      (yet "throw [=ToJSValue=](|payload|[0])")
+      call _call3 = clo<"tojsvalue">(payload[0])
+      call _ret6 = clo<"ThrowCompletion">(_call3)
+      return _ret6
     } else {
       call _guard1 = clo<"create_an_exception_object">(exnaddr)
       if (? _guard1: Abrupt) {
         if (? _guard1: Completion) {
           return _guard1
         } else {
-          call _ret6 = clo<"NormalCompletion">(_guard1)
-          return _ret6
+          call _ret7 = clo<"NormalCompletion">(_guard1)
+          return _ret7
         }
       } else {
         let exception = _guard1.Value
       }
-      (yet "throw |exception|")
+      call _ret8 = clo<"ThrowCompletion">(exception)
+      return _ret8
     }
   } else nop
   let outArity = (sizeof ret)
   if (= outArity 0) {
-    let _v7 = undefined
-    if (? _v7: Completion) {
-      return _v7
+    let _v9 = undefined
+    if (? _v9: Completion) {
+      return _v9
     } else {
-      call _ret8 = clo<"NormalCompletion">(_v7)
-      return _ret8
+      call _ret10 = clo<"NormalCompletion">(_v9)
+      return _ret10
     }
   } else if (= outArity 1) {
     call _result1 = clo<"tojsvalue">(ret[0])
     if (? _result1: Completion) {
       return _result1
     } else {
-      call _ret9 = clo<"NormalCompletion">(_result1)
-      return _ret9
+      call _ret11 = clo<"NormalCompletion">(_result1)
+      return _ret11
     }
   } else {
     let values = (list [])
@@ -1815,16 +1819,16 @@ def call_an_exported_function(
     let _iterIdx4 = 0
     while (< _iterIdx4 (sizeof _iterList3)) {
       let r = _iterList3[_iterIdx4]
-      call _call3 = clo<"tojsvalue">(r)
-      push values < _call3
+      call _call4 = clo<"tojsvalue">(r)
+      push values < _call4
       _iterIdx4 = (+ _iterIdx4 1)
     }
     call _result2 = clo<"CreateArrayFromList">(values)
     if (? _result2: Completion) {
       return _result2
     } else {
-      call _ret10 = clo<"NormalCompletion">(_result2)
-      return _ret10
+      call _ret12 = clo<"NormalCompletion">(_result2)
+      return _ret12
     }
   }
 }
@@ -2816,13 +2820,14 @@ def unwrapstring(
   v: Unknown,
 ): Unknown = {
   if (! (? v: String)) {
-    (yet "throw a {{RuntimeError}} exception as if a [=trap=] was executed")
+    call _ret1 = clo<"ThrowCompletion">((yet "a {{RuntimeError}} exception as if a [=trap=] was executed"))
+    return _ret1
   } else nop
   if (? v: Completion) {
     return v
   } else {
-    call _ret1 = clo<"NormalCompletion">(v)
-    return _ret1
+    call _ret2 = clo<"NormalCompletion">(v)
+    return _ret2
   }
 }
 def fromcharcode(
@@ -2868,11 +2873,13 @@ def js-string-fromcharcodearray(
   end: Unknown,
 ): Unknown = {
   if (= array null) {
-    (yet "throw a {{RuntimeError}} exception as if a [=trap=] was executed")
+    call _ret1 = clo<"ThrowCompletion">((yet "a {{RuntimeError}} exception as if a [=trap=] was executed"))
+    return _ret1
   } else nop
   let length = (sizeof array)
   if (|| (< end start) (< length end)) {
-    (yet "throw a {{RuntimeError}} exception as if a [=trap=] was executed")
+    call _ret2 = clo<"ThrowCompletion">((yet "a {{RuntimeError}} exception as if a [=trap=] was executed"))
+    return _ret2
   } else nop
   let result = ""
   let i = start
@@ -2885,8 +2892,8 @@ def js-string-fromcharcodearray(
   if (? result: Completion) {
     return result
   } else {
-    call _ret1 = clo<"NormalCompletion">(result)
-    return _ret1
+    call _ret3 = clo<"NormalCompletion">(result)
+    return _ret3
   }
 }
 def js-string-intocharcodearray(
@@ -2895,15 +2902,16 @@ def js-string-intocharcodearray(
   start: Unknown,
 ): Unknown = {
   if (= array null) {
-    (yet "throw a {{RuntimeError}} exception as if a [=trap=] was executed")
+    call _ret1 = clo<"ThrowCompletion">((yet "a {{RuntimeError}} exception as if a [=trap=] was executed"))
+    return _ret1
   } else nop
   call _call1 = clo<"unwrapstring">(string)
   if (? _call1: Abrupt) {
     if (? _call1: Completion) {
       return _call1
     } else {
-      call _ret1 = clo<"NormalCompletion">(_call1)
-      return _ret1
+      call _ret2 = clo<"NormalCompletion">(_call1)
+      return _ret2
     }
   } else {
     let string = _call1.Value
@@ -2911,7 +2919,8 @@ def js-string-intocharcodearray(
   let stringLength = (sizeof string)
   let arrayLength = (sizeof array)
   if (< arrayLength (+ start stringLength)) {
-    (yet "throw a {{RuntimeError}} exception as if a [=trap=] was executed")
+    call _ret3 = clo<"ThrowCompletion">((yet "a {{RuntimeError}} exception as if a [=trap=] was executed"))
+    return _ret3
   } else nop
   let i = 0
   while (< i stringLength) {
@@ -2921,8 +2930,8 @@ def js-string-intocharcodearray(
       if (? _guard1: Completion) {
         return _guard1
       } else {
-        call _ret2 = clo<"NormalCompletion">(_guard1)
-        return _ret2
+        call _ret4 = clo<"NormalCompletion">(_guard1)
+        return _ret4
       }
     } else {
       let _call2 = _guard1.Value
@@ -2933,8 +2942,8 @@ def js-string-intocharcodearray(
   if (? stringLength: Completion) {
     return stringLength
   } else {
-    call _ret3 = clo<"NormalCompletion">(stringLength)
-    return _ret3
+    call _ret5 = clo<"NormalCompletion">(stringLength)
+    return _ret5
   }
 }
 def js-string-fromcharcode(
@@ -2947,17 +2956,18 @@ def js-string-fromcodepoint(
   v: Unknown,
 ): Unknown = {
   if (< 1114111 v) {
-    (yet "throw a {{RuntimeError}} exception as if a [=trap=] was executed")
+    call _ret1 = clo<"ThrowCompletion">((yet "a {{RuntimeError}} exception as if a [=trap=] was executed"))
+    return _ret1
   } else nop
   call _call1 = clo<"tojsvalue">(v)
   call _call2 = clo<"Call">(~String.fromCodePoint~, undefined, (list [_call1]))
   assert (= _call2.Type ~normal~)
-  let _v1 = _call2.Value
-  if (? _v1: Completion) {
-    return _v1
+  let _v2 = _call2.Value
+  if (? _v2: Completion) {
+    return _v2
   } else {
-    call _ret2 = clo<"NormalCompletion">(_v1)
-    return _ret2
+    call _ret3 = clo<"NormalCompletion">(_v2)
+    return _ret3
   }
 }
 def js-string-charcodeat(
@@ -2977,14 +2987,15 @@ def js-string-charcodeat(
   }
   let length = (sizeof string)
   if (! (< index length)) {
-    (yet "throw a {{RuntimeError}} exception as if a [=trap=] was executed")
+    call _ret2 = clo<"ThrowCompletion">((yet "a {{RuntimeError}} exception as if a [=trap=] was executed"))
+    return _ret2
   } else nop
   call _result1 = clo<"charcodeat">(string, index)
   if (? _result1: Completion) {
     return _result1
   } else {
-    call _ret2 = clo<"NormalCompletion">(_result1)
-    return _ret2
+    call _ret3 = clo<"NormalCompletion">(_result1)
+    return _ret3
   }
 }
 def js-string-codepointat(
@@ -3004,17 +3015,18 @@ def js-string-codepointat(
   }
   let length = (sizeof string)
   if (! (< index length)) {
-    (yet "throw a {{RuntimeError}} exception as if a [=trap=] was executed")
+    call _ret2 = clo<"ThrowCompletion">((yet "a {{RuntimeError}} exception as if a [=trap=] was executed"))
+    return _ret2
   } else nop
   call _call2 = clo<"tojsvalue">(index)
   call _call3 = clo<"Call">(~String.prototype.codePointAt~, string, (list [_call2]))
   assert (= _call3.Type ~normal~)
-  let _v2 = _call3.Value
-  if (? _v2: Completion) {
-    return _v2
+  let _v3 = _call3.Value
+  if (? _v3: Completion) {
+    return _v3
   } else {
-    call _ret3 = clo<"NormalCompletion">(_v2)
-    return _ret3
+    call _ret4 = clo<"NormalCompletion">(_v3)
+    return _ret4
   }
 }
 def js-string-length(
@@ -3074,29 +3086,31 @@ def js-string-equals(
   second: Unknown,
 ): Unknown = {
   if (&& (! (= first null)) (! (? first: String))) {
-    (yet "throw a {{RuntimeError}} exception as if a [=trap=] was executed")
+    call _ret1 = clo<"ThrowCompletion">((yet "a {{RuntimeError}} exception as if a [=trap=] was executed"))
+    return _ret1
   } else nop
   if (&& (! (= second null)) (! (? second: String))) {
-    (yet "throw a {{RuntimeError}} exception as if a [=trap=] was executed")
+    call _ret2 = clo<"ThrowCompletion">((yet "a {{RuntimeError}} exception as if a [=trap=] was executed"))
+    return _ret2
   } else nop
   call _call1 = clo<"isstrictlyequal">(first, second)
   assert (= _call1.Type ~normal~)
   let _call2 = _call1.Value
   if (= _call2 true) {
-    let _v1 = 1
-    if (? _v1: Completion) {
-      return _v1
+    let _v3 = 1
+    if (? _v3: Completion) {
+      return _v3
     } else {
-      call _ret2 = clo<"NormalCompletion">(_v1)
-      return _ret2
+      call _ret4 = clo<"NormalCompletion">(_v3)
+      return _ret4
     }
   } else nop
-  let _v3 = 0
-  if (? _v3: Completion) {
-    return _v3
+  let _v5 = 0
+  if (? _v5: Completion) {
+    return _v5
   } else {
-    call _ret4 = clo<"NormalCompletion">(_v3)
-    return _ret4
+    call _ret6 = clo<"NormalCompletion">(_v5)
+    return _ret6
   }
 }
 def js-string-compare(
@@ -3197,7 +3211,23 @@ def get_a_copy_of_the_buffer_source(
     offset = jsBufferSource.ByteOffset
     length = jsBufferSource.ByteLength
   } else {
-    assert (|| (= jsBufferSource (yet "an {{ArrayBuffer}}")) (yet "{{SharedArrayBuffer}} object"))
+    assert (|| (= jsBufferSource (record [ArrayBuffer] {
+      "GetPrototypeOf" : clo<"Record[OrdinaryObject].GetPrototypeOf">,
+      "SetPrototypeOf" : clo<"Record[OrdinaryObject].SetPrototypeOf">,
+      "IsExtensible" : clo<"Record[OrdinaryObject].IsExtensible">,
+      "PreventExtensions" : clo<"Record[OrdinaryObject].PreventExtensions">,
+      "GetOwnProperty" : clo<"Record[OrdinaryObject].GetOwnProperty">,
+      "DefineOwnProperty" : clo<"Record[OrdinaryObject].DefineOwnProperty">,
+      "HasProperty" : clo<"Record[OrdinaryObject].HasProperty">,
+      "Get" : clo<"Record[OrdinaryObject].Get">,
+      "Set" : clo<"Record[OrdinaryObject].Set">,
+      "Delete" : clo<"Record[OrdinaryObject].Delete">,
+      "OwnPropertyKeys" : clo<"Record[OrdinaryObject].OwnPropertyKeys">,
+      "Prototype" : null,
+      "Extensible" : true,
+      "PrivateElements" : (list []),
+      "__MAP__" : (map[Unknown, Unknown]),
+    })) (yet "{{SharedArrayBuffer}} object"))
     length = jsBufferSource.ArrayBufferByteLength
   }
   call _call1 = clo<"IsDetachedBuffer">(jsArrayBuffer)

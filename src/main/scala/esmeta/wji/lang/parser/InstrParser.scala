@@ -193,7 +193,8 @@ object InstrParser:
           Option.when(expr.nonEmpty)(ExprParser.parse(expr)),
           trailingBody,
         )
-      case ThrowPrefix(target) => Throw(target.trim, trailingBody)
+      case ThrowPrefix(target) =>
+        Throw(ExprParser.parse(target.trim), trailingBody)
       case ElseIfPrefix(rest) =>
         val (cond, tail) = splitCondAndRest(rest)
         ElseIf(CondParser.parse(cond), deriveBody(tail, trailingBody))

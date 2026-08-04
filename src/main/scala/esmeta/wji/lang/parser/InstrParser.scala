@@ -77,6 +77,13 @@ object InstrParser:
   // its own (`Cond.Throws` already implies the `|exception|` binding).
   private val CatchItPrefix = """(?si)^catch it\s*,\s*(.+)$""".r
 
+  // "[=list/Remove=] from |LIST| all the [=ELEMKIND=] that are [=PROPERTY=]."
+  // — Infra's list-filter idiom (webidl/index.bs's own `define the regular
+  // operations`/`define the regular attributes`, category I-O). Both
+  // ELEMKIND and PROPERTY are kept as raw text — see Instr.Remove.
+  private val ListRemovePrefix =
+    """(?si)^\[=list/Remove=\]\s+from\s+(\|[^|]+\|)\s+all\s+the\s+\[=([^=\]]*)=\]\s+that\s+are\s+\[=([^=\]]+)=\]$""".r
+
   private def parseCall(expr: String): (String, List[Expr]) = expr.trim match
     case AbruptCallPrefix(rest) => parseCall(rest)
     case LeadingJSCall(name, argsRaw) =>
@@ -226,6 +233,13 @@ object InstrParser:
               trailingBody,
             )
           case None => Unknown(text, trailingBody)
+      case ListRemovePrefix(listRaw, elemKindRaw, propertyRaw) =>
+        Remove(
+          ExprParser.parse(listRaw),
+          elemKindRaw.trim,
+          propertyRaw.trim,
+          trailingBody,
+        )
       case MapSetPrefix(rest) =>
         splitTopLevel(rest, " to ") match
           case Some((lhs, expr)) =>

@@ -70,6 +70,7 @@ object Lowering:
     NormalizeSpecTecCaseShapePass,
     // eliminations
     ExpandHasDuplicatesPass,
+    ExpandRemovePass,
     ExpandForEachPass,
     ExpandForPass,
     ExpandNewByteSequencePass,

@@ -1521,8 +1521,8 @@
 # define the regular operations
   params: |definition|, |target|, |realm|
   head: To <dfn>define the regular operations</dfn> of [=interface=] or [=namespace=] |definition| on |target|, given [=realm=] |realm|, run the following steps:
-  Let(|operations|, ?(the [=list=] of [=regular operations=] that are [=members=] of |definition|))
-  Perform([=list/Remove=](|operations|, [=operations=], [=unforgeable=]))
+  Let(|operations|, |definition|.[[regularOperations]])
+  Remove(|operations|, operations, unforgeable)
   Perform([=Define the operations=](|operations|, |definition|, |target|, |realm|))
 
 # define the operations

@@ -314,6 +314,12 @@ object Compiler:
         front = false,
       ) :: compileSeq(body)
 
+    case i: Instr.Remove =>
+      // ExpandRemovePass unconditionally rewrites every Remove into an
+      // explicit filter loop before compilation ever sees it — see
+      // UnreachableAfterLowering's doc.
+      impossible(s"Remove not eliminated by ExpandRemovePass: $i")
+
     case Instr.Continue(_) =>
       IExpr(EYet("continue")) :: Nil // TODO: represent loop continue
 

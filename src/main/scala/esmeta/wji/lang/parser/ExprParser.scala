@@ -263,6 +263,17 @@ object ExprParser:
   // Expr.IndexOf / ExpandIndexOfPass.
   private val IndexOfPat =
     """(?si)^the index of (.+) where (.+) is found$""".r
+  // "the [=list=] of [=regular operations=] that are [=members=] of |X|" —
+  // webidl/index.bs's `define the regular operations`/`define the
+  // operations` member-list projection. `esmeta.wji.Initialize` builds each
+  // WJI `Definition`'s operations directly as an `.operations` field on the
+  // record it hands to `create_a_namespace_object`, so this reduces to a
+  // plain field read — no separate interface/attribute/member record model
+  // needed for WJI's namespace-only reachable scope. Lowercase, matching the
+  // interface/namespace-member field naming convention (see
+  // [[fieldFromLink]]).
+  private val RegularOperationsOfDefinition =
+    """(?si)^the \[=list=\] of \[=regular operations=\] that are \[=members=\] of (.+)$""".r
   private val AssociatedRealm = """(?si)^(.+)'s \[=associated Realm=\]$""".r
   // "|func|'s [=associated Realm=]" — narrower than PossessiveAssociation
   // (which keeps "the surrounding agent's associated store/cache" style
@@ -569,6 +580,7 @@ object ExprParser:
       case ElementAt(idx, arr)         => Index(parse(arr), parse(idx))
       case IndexOfPat(list, elem)      => IndexOf(parse(list), parse(elem))
       case AssociatedRealm(baseRaw)    => Field(parse(baseRaw), "Realm")
+      case RegularOperationsOfDefinition(baseRaw) => Field(parse(baseRaw), "regularOperations")
       case PossessiveAssociation(baseRaw, link) => fieldFromLink(baseRaw, link)
       case CompTypeArrow(paramsRaw, resultsRaw) =>
         Case("->", List(parse(paramsRaw), parse(resultsRaw)))

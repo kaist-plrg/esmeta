@@ -70,6 +70,8 @@ object InstrPrinter:
     case RunInParallel(_) => "RunInParallel"
     case Append(item, coll, _) =>
       s"Append(${ExprPrinter.render(item)}, ${ExprPrinter.render(coll)})"
+    case Remove(list, elemKind, property, _) =>
+      s"Remove(${ExprPrinter.render(list)}, $elemKind, $property)"
     case Continue(_) => "Continue"
     case Perform(func, args, Discard, _) =>
       s"Perform(${renderCall(func, args)})"

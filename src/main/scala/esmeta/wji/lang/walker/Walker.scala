@@ -89,6 +89,13 @@ trait Walker:
     case i: Instr.RunInParallel => Instr.RunInParallel(i.body.map(walk))
     case i: Instr.Append =>
       Instr.Append(walk(i.item), walk(i.collection), i.body.map(walk))
+    case i: Instr.Remove =>
+      Instr.Remove(
+        walk(i.list),
+        i.elemKind,
+        i.property,
+        i.body.map(walk),
+      )
     case i: Instr.Continue => Instr.Continue(i.body.map(walk))
     case i: Instr.Perform =>
       Instr.Perform(i.func, i.args.map(walk), i.outcome, i.body.map(walk))

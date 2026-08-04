@@ -68,6 +68,23 @@ object Instr:
   case class Append(item: Expr, collection: Expr, body: List[Instr] = Nil)
     extends Instr
 
+  /** `[=list/Remove=] from LIST all the ELEMKIND that are PROPERTY.` —
+    * removes every element of `list` for which `property` holds. Both
+    * `elemKind` (e.g. `"operations"`) and `property` (e.g. `"unforgeable"`)
+    * are kept as raw spec text, not resolved at parse time: `elemKind`
+    * becomes an assertion about each element's kind and `property` becomes
+    * the actual filter condition, once
+    * `esmeta.wji.compiler.lowering.ExpandRemovePass` expands this into an
+    * explicit loop — including synthesizing a fresh per-element binder, since
+    * the spec prose itself never names one.
+    */
+  case class Remove(
+    list: Expr,
+    elemKind: String,
+    property: String,
+    body: List[Instr] = Nil,
+  ) extends Instr
+
   /** `[=iteration/continue=].` */
   case class Continue(body: List[Instr] = Nil) extends Instr
 
@@ -162,6 +179,7 @@ object Instr:
       case i: While          => i.copy(body = f(i.body))
       case i: RunInParallel  => i.copy(body = f(i.body))
       case i: Append         => i.copy(body = f(i.body))
+      case i: Remove         => i.copy(body = f(i.body))
       case i: Continue       => i.copy(body = f(i.body))
       case i: Perform        => i.copy(body = f(i.body))
       case i: PerformClosure => i.copy(body = f(i.body))

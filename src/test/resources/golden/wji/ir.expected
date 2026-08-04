@@ -3223,8 +3223,19 @@ def define_the_regular_operations(
   target: Unknown,
   realm: Unknown,
 ): Unknown = {
-  let operations = (yet "the [=list=] of [=regular operations=] that are [=members=] of |definition|")
-  call _ = clo<"list/remove">(operations, ~operations~, ~unforgeable~)
+  let operations = definition.regularOperations
+  let _removeKept1 = (list [])
+  let _iterList1 = operations
+  let _iterIdx2 = 0
+  while (< _iterIdx2 (sizeof _iterList1)) {
+    let _removeElem2 = _iterList1[_iterIdx2]
+    assert (? _removeElem2: Unknown["operation"])
+    if (! (= _removeElem2.unforgeable true)) {
+      push _removeKept1 < _removeElem2
+    } else nop
+    _iterIdx2 = (+ _iterIdx2 1)
+  }
+  operations = _removeKept1
   call _ = clo<"define_the_operations">(operations, definition, target, realm)
   return ~unused~
 }

@@ -2,9 +2,9 @@ package esmeta.wji.compiler.lowering
 
 import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr}
 
-/** Expands `Instr.Remove(list, elemKind, property, body)` —
-  * webidl/index.bs's `[=list/Remove=] from |list| all the [=elemKind=] that
-  * are [=property=].` idiom (category I-O) — into an explicit filter loop:
+/** Expands `Instr.Remove(list, elemKind, property, body)` — webidl/index.bs's
+  * `[=list/Remove=] from |list| all the [=elemKind=] that are [=property=].`
+  * idiom (category I-O) — into an explicit filter loop:
   *
   * {{{
   *   Remove(list, elemKind, property, body)
@@ -27,9 +27,9 @@ import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr}
   * (e.g. "unforgeable") becomes a boolean field read, capitalized to match
   * WJI's own record-field naming convention. Both are genuinely evaluated
   * against whatever record the list's elements actually are at runtime — see
-  * `esmeta.wji.Initialize`, which is what populates that field (always
-  * `false` for every `Operation` it constructs, since WebAssembly's own
-  * operations never declare `[Unforgeable]`).
+  * `esmeta.wji.Initialize`, which is what populates that field (always `false`
+  * for every `Operation` it constructs, since WebAssembly's own operations
+  * never declare `[Unforgeable]`).
   *
   * Category: Structural desugaring — Elimination.
   */
@@ -38,9 +38,9 @@ object ExpandRemovePass extends LoweringPass:
   /** Requires:
     *   - [[GroupIfChainPass]]: this pass emits a ready-made `Instr.IfChain`
     *     directly (mirroring [[ExpandHasDuplicatesPass]]'s own precedent),
-    *     rather than a bare `If` for a not-yet-run `GroupIfChainPass` to fold
-    *     — it runs among the eliminations, after `GroupIfChainPass`'s single
-    *     pass over the original (pre-lowering) `If`/`ElseIf`/`Else` siblings.
+    *     rather than a bare `If` for a not-yet-run `GroupIfChainPass` to fold —
+    *     it runs among the eliminations, after `GroupIfChainPass`'s single pass
+    *     over the original (pre-lowering) `If`/`ElseIf`/`Else` siblings.
     */
   override def requires: Set[LoweringPass] = Set(GroupIfChainPass)
 

@@ -580,7 +580,8 @@ object ExprParser:
       case ElementAt(idx, arr)         => Index(parse(arr), parse(idx))
       case IndexOfPat(list, elem)      => IndexOf(parse(list), parse(elem))
       case AssociatedRealm(baseRaw)    => Field(parse(baseRaw), "Realm")
-      case RegularOperationsOfDefinition(baseRaw) => Field(parse(baseRaw), "regularOperations")
+      case RegularOperationsOfDefinition(baseRaw) =>
+        Field(parse(baseRaw), "regularOperations")
       case PossessiveAssociation(baseRaw, link) => fieldFromLink(baseRaw, link)
       case CompTypeArrow(paramsRaw, resultsRaw) =>
         Case("->", List(parse(paramsRaw), parse(resultsRaw)))

@@ -1,4 +1,4 @@
-// trap-propagation.wat: exports a function that unconditionally traps
+// wasm-trap-propagation.wat: exports a function that unconditionally traps
 // (unreachable). Verifies a wasm trap surfaces to JS as a thrown
 // WebAssembly.RuntimeError.
 const bytes = new Uint8Array([

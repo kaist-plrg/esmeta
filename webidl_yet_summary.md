@@ -63,7 +63,7 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
    IR - let prototype = (yet "the [=interface prototype object=] for |interface| in |realm|")
            - prototype = (yet "the [=interface prototype object=] for |interface| in |targetRealm|")
 
-2. 카테고리 - IV-B + I-D
+2. 카테고리 - I-D + I-O
    원문 - [=list/iterate|For every=] [=interface=] |ancestor interface| in |interfaces|: ...
            - [=list|For each=] element |key| of |keys|: ...
    IR - call _ = clo<"list/iterate">((case "INTERFACE" ancestor interface interfaces))
@@ -235,7 +235,7 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
    원문 - Let |attributes| be the [=list=] of [=regular attributes=] that are [=members=] of |definition|.
    IR - let attributes = (yet "the [=list=] of [=regular attributes=] that are [=members=] of |definition|")
 
-2. 카테고리 - II-A + V + IV-B
+2. 카테고리 - I-O + II-A + V
    원문 - [=list/Remove=] from |attributes| all the [=attributes=] that are [=unforgeable=].
    IR - call _ = clo<"list/remove">(attributes, ~attributes~, ~unforgeable~)
 ```
@@ -249,7 +249,7 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
   `DefinePropertyOrThrow`로 `target`에 매단다.
 
 ```
-1. 카테고리 - IV-B + I-D
+1. 카테고리 - I-D + I-O
    원문 - [=list/For each=] [=attribute=] |attr| of |attributes|: ...
    IR - call _ = clo<"list/for_each">((case "ATTRIBUTE" attr attributes))
 
@@ -332,7 +332,7 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
    원문 - If |attribute| was specified with the [{{LegacyLenientThis}}] [=extended attribute=], then return <emu-val>undefined</emu-val>.
    IR - if (yet "|attribute| was specified with the [{{LegacyLenientThis}}] [=extended attribute=]") { return undefined }
 
-9. 카테고리 - I-I + IV-B
+9. 카테고리 - I-I + I-O
    원문 - Otherwise, [=JavaScript/throw=] a <l spec=ecmascript>{{TypeError}}</l>.
    IR - call _ = clo<"javascript/throw">()
 
@@ -425,7 +425,7 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
     원문 - If |validThis| is false and |attribute| was not specified with the [{{LegacyLenientThis}}] [=extended attribute=], then ...
     IR - if (&& (= validThis false) (yet "|attribute| was not specified with the [{{LegacyLenientThis}}] [=extended attribute=]")) {  }
 
-13. 카테고리 - I-I + IV-B
+13. 카테고리 - I-I + I-O
     원문 - [=JavaScript/throw=] a <l spec=ecmascript>{{TypeError}}</l>.
     IR - call _ = clo<"javascript/throw">()
 
@@ -487,7 +487,7 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
    원문 - Let |operations| be the [=list=] of [=regular operations=] that are [=members=] of |definition|.
    IR - let operations = (yet "the [=list=] of [=regular operations=] that are [=members=] of |definition|")
 
-2. 카테고리 - V + IV-B
+2. 카테고리 - V + I-O
    원문 - [=list/Remove=] from |operations| all the [=operations=] that are [=unforgeable=].
    IR - call _ = clo<"list/remove">(operations, ~operations~, ~unforgeable~)
 ```
@@ -502,7 +502,7 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
   버전입니다.
 
 ```
-1. 카테고리 - IV-B + I-D
+1. 카테고리 - I-D + I-O
    원문 - [=list/For each=] [=operation=] |op| of |operations|: ...
    IR - call _ = clo<"list/for_each">((case "OPERATION" op operations))
 
@@ -567,7 +567,7 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
    원문 - If |jsValue| [=is a platform object=], then ...
    IR - if (? jsValue: Unknown["platform object"])
 
-8. 카테고리 - I-I + II-H + IV-B
+8. 카테고리 - I-I + I-O + II-H
    원문 - If |jsValue| does not [=implement=] the interface |target|, [=JavaScript/throw=] a <l spec=ecmascript>{{TypeError}}</l>.
    IR - if (yet "|jsValue| does not [=implement=] the interface |target|") { call _ = clo<"javascript/throw">() }
 
@@ -675,7 +675,7 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
    IR - let types = (yet "a [=type list=]")
       - let optionalityValues = (yet "an [=optionality list=]")
 
-9. 카테고리 - IV-B
+9. 카테고리 - I-O
    원문 - [=list/For each=] |argument| in |arguments|: ...
    IR - call _ = clo<"list/for_each">(argument, arguments)
 
@@ -685,7 +685,7 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
     IR - push types < (yet "the type of |argument|")
        - push (yet "|optionalityValues| if |argument| is a final, variadic argument, \"optional\" if |argument| is [=optional argument|optional=], and \"required\" otherwise") < "variadic"
 
-11. 카테고리 - IV-B + I-K
+11. 카테고리 - I-K + I-O
     원문 - [=set/Append=] the [=tuple=] (|X|, |types|, |optionalityValues|) to |S|.
     IR - call _ = clo<"set/append">(~tuple~, (yet "tuple(Var(X)Var(types)Var(optionalityValues))"), S)
 
@@ -698,16 +698,16 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
     원문 - Let |i| be |n| − 1.
     IR - let i = (yet "|n| − 1")
 
-14. 카테고리 - IV-B
+14. 카테고리 - I-O
     원문 - [=iteration/While=] |i| ≥ 0: ...
     IR - call _ = clo<"iteration/while">(i, 0)
 
-15. 카테고리 - I-D + IV-B
+15. 카테고리 - I-D + II-K
     원문 - If |arguments|[|i|] is not [=optional argument|optional=] (i.e., it is not marked as "optional" and is not a final, variadic argument), ...
     IR - call _call1 = clo<"optional_argument">((yet "i.e."), (yet "it is not marked as \"optional\" and is not a final"), (yet "variadic argument"))
          if (! (= arguments[i] _call1)) { ... }
 
-16. 카테고리 - I-F + IV-B
+16. 카테고리 - I-F + I-O
     원문 - [=iteration/break=]
     IR - call _ = clo<"iteration/break">()
 
@@ -717,11 +717,11 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
     IR - let t = (yet "a [=type list=]")
        - let o = (yet "an [=optionality list=]")
 
-18. 카테고리 - IV-A + IV-B
+18. 카테고리 - I-O + IV-A
     원문 - [=list/For each=] |j| in [=the range=] 0 to |i| − 1, inclusive: ...
     IR - call _ = clo<"list/for_each">(j, (yet "IMPOSSIBLE (unreachable after lowering): range Num(0) to Unknown(|i| − 1, inclusive:)"))
 
-19. 카테고리 - IV-B + I-K
+19. 카테고리 - I-K + I-O
     원문 - [=set/Append=] the [=tuple=] (|X|, |t|, |o|) to |S|.
     IR - call _ = clo<"set/append">(~tuple~, (yet "tuple(Var(X)Var(t)Var(o))"), S)
 ```
@@ -775,7 +775,7 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
 
 ## #20 `define_the_constants`
 
-1. 카테고리 - I-D + IV-B
+1. 카테고리 - I-D + I-O
    원문 - [=list/For each=] [=constant=] |const| that is a [=member=] of |definition|:
    IR - call _ = clo<"list/for_each">((case "CONSTANT" const (case "MEMBER" definition)))
 

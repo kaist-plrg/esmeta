@@ -32,7 +32,7 @@
 - `#9-4` - the PropertyDescriptor{\[[Value]]: |method|, \[[Writable]]: |modifiable|, \[[Enumerable]]: <emu-val>true</emu-val>, \[[Configurable]]: |modifiable|}
 - `#20-3` - the PropertyDescriptor{\[[Writable]]: <emu-val>false</emu-val>, \[[Enumerable]]: <emu-val>true</emu-val>, \[[Configurable]]: <emu-val>false</emu-val> \[[Value]]: |value|}
 
-### I-D. `[=dfn-link=] |var|` 설명 주석이 case 태그로 오인됨
+### I-D. `[=dfn-link=] |var|` 설명 주석이 case 태그/알고리즘 호출로 오인됨
 - `#3-5` - [=identifier=] |id| on [=interface=] |I| and with argument count |n|
           => (case "IDENTIFIER" id (case "INTERFACE" I n))
 - `#3-12` - [=interface=] |I| in |realm|
@@ -49,6 +49,8 @@
             => (case "IDENTIFIER" id target n)
 - `#10-16` - [=identifier=] |id| on |target| and with argument count |0|
             => (case "IDENTIFIER" id target 0)
+- `#11-15` - [=optional argument|optional=] (i.e., it is not marked as "optional" and is not a final, variadic argument)
+            => call _call1 = clo<"optional_argument">((yet "i.e."), (yet "it is not marked as \"optional\" and is not a final"), (yet "variadic argument"))
 - `#20-1` - [=constant=] |const| that is a [=member=] of |definition|
             => (case "CONSTANT" const (case "MEMBER" definition))
 
@@ -125,6 +127,21 @@
 - `#12-9` - append to |values| that default value
           - append to |values| the special value “missing”
           - append to |values| the result of [=converted to an IDL value|converting=] |V| to IDL type |type|
+
+- `#1-2` - [=list/iterate|For every=] [=interface=] |ancestor interface| in |interfaces|: ...
+         - [=list|For each=] element |key| of |keys|: ...
+- `#4-2` - [=list/Remove=] from |attributes| all the [=attributes=] that are [=unforgeable=].
+- `#5-1` - [=list/For each=] [=attribute=] |attr| of |attributes|: ...
+- `#6-9`, `#7-13`, `#10-8` - [=JavaScript/throw=] a <l spec=ecmascript>{{TypeError}}</l>.
+- `#9-1` - [=list/For each=] [=operation=] |op| of |operations|: ...
+- `#11-6` - [=set/For each=] operation or extended attribute |X| in |F|: ...
+- `#11-9` - [=list/For each=] |argument| in |arguments|: ...
+- `#11-11` - [=set/Append=] the [=tuple=] (|X|, |types|, |optionalityValues|) to |S|.
+- `#11-14` - [=iteration/While=] |i| ≥ 0: ...
+- `#11-16` - [=iteration/break=]
+- `#11-18` - [=list/For each=] |j| in [=the range=] 0 to |i| − 1, inclusive: ...
+- `#11-19` - [=set/Append=] the [=tuple=] (|X|, |t|, |o|) to |S|.
+- `#20-1` - [=list/For each=] [=constant=] |const| that is a [=member=] of |definition|
 
 ---
 
@@ -285,22 +302,6 @@ attribute="))` 같은 케이스들이 속하는 곳입니다. 전부 "interface/
 
 ### IV-A. Range expression 관련
 - #11-18 - [=list/For each=] |j| in [=the range=] 0 to |i| − 1, inclusive: ...
-
-### IV-B. Linked instruction 관련
-- `#1-2` - [=list/iterate|For every=] [=interface=] |ancestor interface| in |interfaces|: ...
-         - [=list|For each=] element |key| of |keys|: ...
-- `#4-2` - [=list/Remove=] from |attributes| all the [=attributes=] that are [=unforgeable=].
-- `#5-1` - [=list/For each=] [=attribute=] |attr| of |attributes|: ...
-- `#6-9`, `#7-13`, `#10-8` - [=JavaScript/throw=] a <l spec=ecmascript>{{TypeError}}</l>.
-- `#11-6` - [=set/For each=] operation or extended attribute |X| in |F|: ...
-- `#11-9` - [=list/For each=] |argument| in |arguments|: ...
-- `#11-11` - [=set/Append=] the [=tuple=] (|X|, |types|, |optionalityValues|) to |S|.
-- `#11-14` - [=iteration/While=] |i| ≥ 0: ...
-- `#11-15` - [=optional argument|optional=] (i.e., it is not marked as "optional" and is not a final, variadic argument)
-- `#11-16` - [=iteration/break=]
-- `#11-18` - [=list/For each=] |j| in [=the range=] 0 to |i| − 1, inclusive: ...
-- `#11-19` - [=set/Append=] the [=tuple=] (|X|, |t|, |o|) to |S|.
-- `#20-1` - [=list/For each=] [=constant=] |const| that is a [=member=] of |definition|
 
 ---
 

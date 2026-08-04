@@ -67,14 +67,19 @@ case class State(
     * indexing). The index may be a native `Math` (e.g. a loop counter) or,
     * since a Wasm address (funcaddr, memaddr, ...) stays opaquely
     * `Wasm`-wrapped end to end rather than being unwrapped into a native
-    * number, a `Wasm(NumV(Nat(...)))` (e.g. `|store|.funcs[|funcaddr|]`, where
-    * `|funcaddr|` was never unwrapped).
+    * number, a `Wasm(NumV(Nat(...) | Int(...)))` (e.g.
+    * `|store|.funcs[|funcaddr|]`, where `|funcaddr|` was never unwrapped) — see
+    * `Obj.normalizeIndex`'s identical case for the heap-object
+    * (`MapObj`/`ListObj`) equivalent of this same "used as an index" spot, and
+    * its own doc for why this isn't done wherever a `Wasm` value is first
+    * constructed instead.
     */
   def apply(vs: List[ALValue], field: Value): Value =
     lazy val base = Wasm(ALValue.ListV(vs))
     val idx: Option[Int] = field match
       case Math(k) if k.isValidInt                          => Some(k.toInt)
       case Wasm(ALValue.NumV(ALNum.Nat(k))) if k.isValidInt => Some(k.toInt)
+      case Wasm(ALValue.NumV(ALNum.Int(k))) if k.isValidInt => Some(k.toInt)
       case _                                                => None
     idx.flatMap(vs.lift) match
       case Some(v) => Wasm(v)

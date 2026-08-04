@@ -76,6 +76,7 @@ private[interpreter] class WasmMemoryBridge(interp: Interpreter):
 
   private def memaddrIndex(memaddr: Value): Int = toAL(st, memaddr) match
     case ALValue.NumV(ALNum.Nat(n)) => n.toInt
+    case ALValue.NumV(ALNum.Int(n)) => n.toInt
     case other => throw WasmHostFailure(s"expected a nat memaddr, got $other")
 
   /** [[toAL]]'s inverse re-tagging for a single byte — plain [[toAL]] tags a

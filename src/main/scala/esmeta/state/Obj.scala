@@ -11,8 +11,30 @@ import scala.collection.mutable.{Map => MMap, LinkedHashMap => LMMap}
 // Objects
 sealed trait Obj extends StateElem {
 
+  /** Normalizes a Wasm-crossing address/index (`ALNum.Nat`/`ALNum.Int` -- e.g.
+    * a `hostaddr`/`funcaddr` extracted by indexing into a decoded Wasm case,
+    * which stays opaquely `Wasm`-wrapped rather than being unwrapped — see
+    * [[Wasm]]'s own doc) into the native [[Math]] a `Map`/`List` index
+    * comparison needs, so a value inserted under a *native* `Math` key/index
+    * (e.g. from `sizeof`) is still found by a lookup whose key/index came back
+    * `Wasm`-wrapped from the Wasm side instead. Scoped to this one "used as an
+    * index" position rather than done wherever a `Wasm` value is first
+    * constructed — unlike a genuine ECMAScript-side equivalent (a string, a
+    * boolean), an address doesn't have one *unambiguous* native shape in
+    * general (nat vs. int matters again once it's handed back to another
+    * embedding call, e.g. `$Externaddr_ok`), so unwrapping it globally would be
+    * wrong; only equality-as-a-key/index here actually requires the two sides
+    * to already agree on a shape. Applied in `get`/`update`/`exists`/`delete`
+    * alike, so every `MapObj` ends up storing one canonical (`Math`) key shape
+    * regardless of which side constructed it.
+    */
+  private def normalizeIndex(field: Value): Value = field match
+    case Wasm(ALValue.NumV(ALNum.Nat(n))) => Math(n)
+    case Wasm(ALValue.NumV(ALNum.Int(n))) => Math(n)
+    case other                            => other
+
   /** safe getter */
-  def get(field: Value): Option[Value] = (this, field) match
+  def get(field: Value): Option[Value] = (this, normalizeIndex(field)) match
     case (r: RecordObj, Str(f)) => r.get(f)
     case (m: MapObj, key)       => m.map.get(key)
     case (l: ListObj, Math(decimal)) if decimal.isValidInt =>
@@ -26,19 +48,20 @@ sealed trait Obj extends StateElem {
     case _                  => throw InvalidObjField(this, field)
 
   /** setter */
-  def update(field: Value, value: Value): Unit = (this, field) match
-    case (r: RecordObj, Str(field)) => r.map += field -> value
-    case (m: MapObj, key)           => m.map += key -> value
-    case (l: ListObj, Math(decimal)) if decimal.isValidInt =>
-      val i = decimal.toInt
-      val vs = l.values
-      if (vs.isDefinedAt(i)) l.values = vs.updated(i, value)
-      else throw InvalidObjField(this, field)
-    case (y: YetObj, _) => throw NotSupported(Feature)(y.msg)
-    case _              => throw InvalidObjField(this, field)
+  def update(field: Value, value: Value): Unit =
+    (this, normalizeIndex(field)) match
+      case (r: RecordObj, Str(field)) => r.map += field -> value
+      case (m: MapObj, key)           => m.map += key -> value
+      case (l: ListObj, Math(decimal)) if decimal.isValidInt =>
+        val i = decimal.toInt
+        val vs = l.values
+        if (vs.isDefinedAt(i)) l.values = vs.updated(i, value)
+        else throw InvalidObjField(this, field)
+      case (y: YetObj, _) => throw NotSupported(Feature)(y.msg)
+      case _              => throw InvalidObjField(this, field)
 
   /** existence check */
-  def exists(field: Value): Boolean = (this, field) match
+  def exists(field: Value): Boolean = (this, normalizeIndex(field)) match
     case (r: RecordObj, Str(field)) => r.map.contains(field)
     case (m: MapObj, key)           => m.map.contains(key)
     case (l: ListObj, Math(decimal)) =>
@@ -60,7 +83,7 @@ sealed trait Obj extends StateElem {
 
   /** delete */
   def delete(key: Value): Unit = this match
-    case m: MapObj => m.map -= key
+    case m: MapObj => m.map -= normalizeIndex(key)
     case _         => throw InvalidObjOp(this, s"delete $key")
 
   /** push */

@@ -21,6 +21,9 @@ object SpecFile:
     "reject",
     "a new promise",
     "get a copy of the buffer source",
+    "define the regular operations",
+    "define the operations",
+    "creating an operation function",
   )
 
   /** finds `relPath` in the nearest ancestor of the current directory */

@@ -1,4 +1,4 @@
-111 algorithm(s)
+114 algorithm(s)
 # compile a WebAssembly module
   params: |bytes|
   head: To <dfn>compile a WebAssembly module</dfn> from source bytes |bytes|, perform the following steps:
@@ -1517,4 +1517,59 @@
   For(|i|, Range(|offset|, |offset| + |length| - 1))
     Set(|bytes|[|i| - |offset|], [$GetValueFromBuffer$](|jsArrayBuffer|, |i|, uint8, true, unordered))
   Return(|bytes|)
+
+# define the regular operations
+  params: |definition|, |target|, |realm|
+  head: To <dfn>define the regular operations</dfn> of [=interface=] or [=namespace=] |definition| on |target|, given [=realm=] |realm|, run the following steps:
+  Let(|operations|, ?(the [=list=] of [=regular operations=] that are [=members=] of |definition|))
+  Perform([=list/Remove=](|operations|, [=operations=], [=unforgeable=]))
+  Perform([=Define the operations=](|operations|, |definition|, |target|, |realm|))
+
+# define the operations
+  params: |operations|, |definition|, |target|, |realm|
+  head: To <dfn>define the operations</dfn> |operations| of [=interface=] or [=namespace=] |definition| on |target|, given [=realm=] |realm|, run the following steps:
+  Perform([=list/For each=]([=operation=](|op|, |operations|)))
+    If(|op| is not [=exposed=](|realm|))
+      Continue
+    Let(|method|, [=creating an operation function=](|op|, |definition|, |realm|))
+    Let(|modifiable|, ?(<emu-val>false</emu-val> if |op| is [=unforgeable=] and <emu-val>true</emu-val> otherwise))
+    Let(|desc|, ?(the PropertyDescriptor{\[[Value]]: |method|, \[[Writable]]: |modifiable|, \[[Enumerable]]: <emu-val>true</emu-val>, \[[Configurable]]: |modifiable|}))
+    Let(|id|, ?(|op|'s [=identifier=]))
+    Perform(<a abstract-op>DefinePropertyOrThrow</a>(|target|, |id|, |desc|))
+
+# creating an operation function
+  params: |op|, |target|, |realm|
+  head: To <dfn id="dfn-create-operation-function" lt="creating an operation function">create an operation function</dfn>, given an [=operation=] |op|, a [=namespace=] or [=interface=] |target|, and a [=realm=] |realm|:
+  Let(|id|, ?(|op|'s [=identifier=]))
+  Let(|steps|, ?(the following series of steps, given function argument values |args|:))
+    ?(Try running the following steps:)
+      Let(|idlObject|, null)
+      If(|target| is an interface, and |op| is not a static operation)
+        Let(|jsValue|, ?(the <emu-val>this</emu-val> value, if it is not <emu-val>null</emu-val> or <emu-val>undefined</emu-val>, or |realm|'s [=realm/global object=] otherwise))
+        ?((This will subsequently cause a {{TypeError}} in a few steps, if the global object does not implement |target|.) <!-- https://www.w3.org/Bugs/Public/show_bug.cgi?id=18547#c9 -->)
+        If(|jsValue| is a platform object)
+          Perform([=perform a security check=](|jsValue|, |id|, "method"))
+        If(?(|jsValue| does not [=implement=] the interface |target|))
+          Perform([=JavaScript/throw=])
+        Set(|idlObject|, ?(the IDL [=interface type=] value that represents a reference to |jsValue|))
+      Let(|n|, length(|args|))
+      PerformAndLet([=Compute the effective overload set=]([=regular operations=]((?(if |op| is a regular operation) or for [=static operations=] (if |op| is a static operation)), [=identifier=](|id|, |target|, |n|))), |S|)
+      Let(?(&lt;|operation|, |values|&gt;), ?(passing |S| and |args| to the [=overload resolution algorithm=]))
+      Let(|R|, null)
+      If(|operation| is ?(declared with a [{{Default}}] [=extended attribute=]))
+        Assert(?(|operation| [=has default method steps=]))
+        Set(|R|, ?(running the [=default method steps=] for |operation|, with |idlObject| as [=this=] and |values| as the argument values))
+      Else
+        Set(|R|, ?(running the [=method steps=] of |operation|, with |idlObject| as [=this=] and |values| as the argument values))
+      Return([=converted to a JavaScript value=](|R|))
+      ?(Issue(whatwg/webidl#674): |R| is assumed to be an IDL value of the type |op| is declared to return)
+      ?(And then, if <a lt="an exception was thrown">an exception |E| was thrown</a>:)
+    If(?(|op| has a [=return type=] that) is a promise type)
+      Return([=!=] ?(<a abstract-op>Call</a>({{%Promise.reject%}}, {{%Promise%}}, «|E|»)))
+    Else
+      ?(end these steps and allow the exception to propagate)
+  PerformAndLet([=Compute the effective overload set=]([=regular operations=]((?(if |op| is a regular operation) or for [=static operations=] (if |op| is a static operation)), [=identifier=](|id|, |target|, 0))), |S|)
+  Let(|length|, length(?(the shortest argument list in the entries in |S|)))
+  Let(|F|, ?(<a abstract-op>CreateBuiltinFunction</a>(|steps|, |length|, |id|, « », |realm|)))
+  Return(|F|)
 

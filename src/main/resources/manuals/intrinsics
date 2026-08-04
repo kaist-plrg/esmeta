@@ -1059,3 +1059,93 @@ WebAssembly.Memory.prototype = OrdinaryObject [
     Set: undefined;
   };
 }
+
+WebAssembly.Table = BuiltinFunctionObject [
+  Extensible: true;
+  Construct: clo<Record[BuiltinFunctionObject].Construct>;
+] {
+  length: [FFT] 1.0f;
+  name: [FFT] "Table";
+  prototype: [FFF] #INTRINSICS.WebAssembly.Table.prototype;
+}
+
+WebAssembly.Table.prototype = OrdinaryObject [
+  Extensible: true;
+  Prototype: #INTRINSICS.Object.prototype;
+] {
+  %Symbol.toStringTag%: [FFT] "WebAssembly.Table";
+  length: [TT] {
+    Get: #INTRINSICS.get:WebAssembly.Table.prototype.length;
+    Set: undefined;
+  };
+  grow: [TFT] #INTRINSICS.WebAssembly.Table.prototype.grow;
+  get: [TFT] #INTRINSICS.WebAssembly.Table.prototype.get;
+  set: [TFT] #INTRINSICS.WebAssembly.Table.prototype.set;
+}
+
+// `exports`/`imports`/`customSections` are `static` WebIDL operations (own
+// properties of the constructor itself, e.g. `WebAssembly.Module.exports(m)`
+// -- never `m.exports()`), not interface members -- `AlgorithmKind.Method`
+// doesn't track WebIDL's `static` keyword, so nothing distinguishes this case
+// from a real interface member automatically. Wired here directly on the
+// constructor object rather than `.prototype` even though the compiled
+// function names still say `.prototype.` (just `compileAlgo`'s registration
+// key, not where it's actually attached) -- each function's own body already
+// reads its subject from `ArgumentsList[0]`, never `**this**`, so this is
+// correct regardless of what object it's called on.
+WebAssembly.Module = BuiltinFunctionObject [
+  Extensible: true;
+  Construct: clo<Record[BuiltinFunctionObject].Construct>;
+] {
+  length: [FFT] 1.0f;
+  name: [FFT] "Module";
+  prototype: [FFF] #INTRINSICS.WebAssembly.Module.prototype;
+  exports: [TFT] #INTRINSICS.WebAssembly.Module.prototype.exports;
+  imports: [TFT] #INTRINSICS.WebAssembly.Module.prototype.imports;
+  customSections: [TFT] #INTRINSICS.WebAssembly.Module.prototype.customsections;
+}
+
+WebAssembly.Module.prototype = OrdinaryObject [
+  Extensible: true;
+  Prototype: #INTRINSICS.Object.prototype;
+] {
+  %Symbol.toStringTag%: [FFT] "WebAssembly.Module";
+}
+
+WebAssembly.Tag = BuiltinFunctionObject [
+  Extensible: true;
+  Construct: clo<Record[BuiltinFunctionObject].Construct>;
+] {
+  length: [FFT] 1.0f;
+  name: [FFT] "Tag";
+  prototype: [FFF] #INTRINSICS.WebAssembly.Tag.prototype;
+}
+
+WebAssembly.Tag.prototype = OrdinaryObject [
+  Extensible: true;
+  Prototype: #INTRINSICS.Object.prototype;
+] {
+  %Symbol.toStringTag%: [FFT] "WebAssembly.Tag";
+}
+
+WebAssembly.Exception = BuiltinFunctionObject [
+  Extensible: true;
+  Construct: clo<Record[BuiltinFunctionObject].Construct>;
+] {
+  length: [FFT] 2.0f;
+  name: [FFT] "Exception";
+  prototype: [FFF] #INTRINSICS.WebAssembly.Exception.prototype;
+}
+
+WebAssembly.Exception.prototype = OrdinaryObject [
+  Extensible: true;
+  Prototype: #INTRINSICS.Object.prototype;
+] {
+  %Symbol.toStringTag%: [FFT] "WebAssembly.Exception";
+  stack: [TT] {
+    Get: #INTRINSICS.get:WebAssembly.Exception.prototype.stack;
+    Set: undefined;
+  };
+  getArg: [TFT] #INTRINSICS.WebAssembly.Exception.prototype.getarg;
+  is: [TFT] #INTRINSICS.WebAssembly.Exception.prototype.is;
+}

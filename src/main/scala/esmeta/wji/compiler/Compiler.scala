@@ -46,11 +46,10 @@ object Compiler:
     * (WebIDL `<dfn exception>`s, not interfaces — `Expr.New` doesn't
     * distinguish the two, so they share this same map) under the bare
     * `%<iface>.prototype%` (the `_NativeError_` family in `manuals/intrinsics`
-    * — these aren't `WebAssembly`-namespaced). Every other name (`Module`,
-    * `Table`, ...) has no such intrinsic declared at all, so referencing it
-    * would itself crash, and falls back to `null` as before. The rest of
-    * WebIDL's "internally create a new object implementing the interface"
-    * preamble is left for later.
+    * — these aren't `WebAssembly`-namespaced). Every other name has no such
+    * intrinsic declared at all, so referencing it would itself crash, and falls
+    * back to `null` as before. The rest of WebIDL's "internally create a new
+    * object implementing the interface" preamble is left for later.
     *
     * Documented in `docs/hardcodes.md` (#7) — when this gets properly
     * implemented, delete that entry too.
@@ -59,6 +58,10 @@ object Compiler:
     "Instance" -> "%WebAssembly.Instance.prototype%",
     "Global" -> "%WebAssembly.Global.prototype%",
     "Memory" -> "%WebAssembly.Memory.prototype%",
+    "Table" -> "%WebAssembly.Table.prototype%",
+    "Module" -> "%WebAssembly.Module.prototype%",
+    "Tag" -> "%WebAssembly.Tag.prototype%",
+    "Exception" -> "%WebAssembly.Exception.prototype%",
     "CompileError" -> "%CompileError.prototype%",
     "LinkError" -> "%LinkError.prototype%",
     "RuntimeError" -> "%RuntimeError.prototype%",

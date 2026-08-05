@@ -62,6 +62,9 @@ object ExprPrinter:
     case TupleProj(base, idx) => s"${render(base)}.$idx"
     case CaseTag(base)        => s"case-tag(${render(base)})"
     case Opt(inner)           => s"opt(${inner.map(render).getOrElse("none")})"
+    case Enum(s)              => s"enum($s)"
+    case GetMember(definition, member) =>
+      s"GetMember($definition, $member)"
 
   private def renderBOp(op: BOp): String = op match
     case BOp.Add => "+"

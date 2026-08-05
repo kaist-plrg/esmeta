@@ -28,6 +28,7 @@ case class Param(
 
 enum MemberKind:
   case StaticOperation
+  case StaticAttribute
   case RegularOperation
   case RegularAttribute
   case Constructor

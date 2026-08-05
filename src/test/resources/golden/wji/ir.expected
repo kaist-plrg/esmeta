@@ -3253,7 +3253,14 @@ def define_the_regular_operations(
   target: Unknown,
   realm: Unknown,
 ): Unknown = {
-  let operations = definition.regularOperations
+  let operations = (list [])
+  let _getMemberIdx1 = 0
+  while (< _getMemberIdx1 (sizeof definition.members)) {
+    if (= definition.members[_getMemberIdx1].kind ~RegularOperation~) {
+      push operations < definition.members[_getMemberIdx1]
+    } else nop
+    _getMemberIdx1 = (+ _getMemberIdx1 1)
+  }
   let _removeKept1 = (list [])
   let _iterList1 = operations
   let _iterIdx2 = 0

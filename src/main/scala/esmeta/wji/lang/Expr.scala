@@ -226,6 +226,10 @@ object Expr:
     */
   case class Opt(expr: Option[Expr]) extends Expr
 
+  case class Enum(s: String) extends Expr
+
+  case class GetMember(definition: Expr, member: MemberKind) extends Expr
+
   extension (expr: Expr)
     /** Every `Expr` directly nested one level inside this one — used for
       * generic "is a residual X still anywhere in here" invariant checks (e.g.

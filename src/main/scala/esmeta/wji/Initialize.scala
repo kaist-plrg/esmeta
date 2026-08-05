@@ -193,31 +193,24 @@ object Initialize:
           "id" -> Str(attr.id),
           "ty" -> Str(attr.ty),
           "readonly" -> Bool(attr.readonly),
-          "kind" -> Str(attr.kind.toString),
+          "kind" -> Enum(attr.kind.toString),
           "extendedAttributes" ->
           st.allocList(attr.extAttr.map(extAttrRecord)),
         ),
       )
 
     def definitionRecord(d: Definition): Addr =
-      val operations = d.members.collect {
-        case op: WjiOperation =>
-          operationRecord(op)
+      val members = d.members.map {
+        case op: WjiOperation   => operationRecord(op)
+        case attr: WjiAttribute => attributeRecord(attr)
+        case _                  => ???
       }
-      val attributes = d.members.collect {
-        case attr: WjiAttribute =>
-          attributeRecord(attr)
-      }
-      val tname = d.kind match
-        case DefinitionKind.Namespace => "namespace"
-        case DefinitionKind.Interface => "interface"
       st.allocRecord(
-        tname,
+        d.kind.toString,
         List(
           "id" -> Str(d.name),
-          "operations" -> st.allocList(operations),
-          "attributes" -> st.allocList(attributes),
-          "kind" -> Str(d.kind.toString),
+          "members" -> st.allocList(members),
+          "kind" -> Enum(d.kind.toString),
           "extendedAttributes" -> st.allocList(d.extAttr.map(extAttrRecord)),
         ),
       )
@@ -229,6 +222,8 @@ object Initialize:
         definitionRecord(definition),
       )
     }
+
+    println(st.heap)
 
   /** starts a live SpecTec process, seeds `st`'s AGENT_RECORD's "associated
     * store" field in place, and returns the host + connection for the

@@ -388,6 +388,7 @@ object Compiler:
     case metalang.Expr.Index(base, key) =>
       ERef(Field(compileRef(base), compileExpr(key)))
     case metalang.Expr.New(iface) => ERecord(iface, ordinaryObjectFields(iface))
+    case metalang.Expr.Enum(s)    => EEnum(s)
     case metalang.Expr.List_(elems)    => EList(elems.map(compileExpr))
     case metalang.Expr.Length(e)       => ESizeOf(compileExpr(e))
     case metalang.Expr.BinOp(l, op, r) => compileBinOp(op, l, r)
@@ -483,6 +484,10 @@ object Compiler:
         s"call ${ExprPrinter.render(closure)} given ${args
           .map(ExprPrinter.render)
           .mkString(", ")}",
+      )
+    case metalang.Expr.GetMember(definition, member) =>
+      impossible(
+        s"getting $member of $definition is found",
       )
 
   // ── Condition ────────────────────────────────────────────────────────────────

@@ -71,6 +71,7 @@ object Lowering:
     // eliminations
     ExpandHasDuplicatesPass,
     ExpandRemovePass,
+    ExpandGetMemberPass,
     ExpandForEachPass,
     ExpandForPass,
     ExpandNewByteSequencePass,

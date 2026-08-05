@@ -276,8 +276,8 @@ object ExprParser:
   // needed for WJI's namespace-only reachable scope. Lowercase, matching the
   // interface/namespace-member field naming convention (see
   // [[fieldFromLink]]).
-  private val RegularOperationsOfDefinition =
-    """(?si)^the \[=list=\] of \[=regular operations=\] that are \[=members=\] of (.+)$""".r
+  private val MemberOfDefinition =
+    """(?si)^the \[=list=\] of \[=([^\[]+)=\] that are \[=members=\] of (.+)$""".r
   private val AssociatedRealm = """(?si)^(.+)'s \[=associated Realm=\]$""".r
   // "|func|'s [=associated Realm=]" — narrower than PossessiveAssociation
   // (which keeps "the surrounding agent's associated store/cache" style
@@ -584,8 +584,14 @@ object ExprParser:
       case ElementAt(idx, arr)         => Index(parse(arr), parse(idx))
       case IndexOfPat(list, elem)      => IndexOf(parse(list), parse(elem))
       case AssociatedRealm(baseRaw)    => Field(parse(baseRaw), "Realm")
-      case RegularOperationsOfDefinition(baseRaw) =>
-        Field(parse(baseRaw), "regularOperations")
+      case MemberOfDefinition(kind, baseRaw) =>
+        val memberKind = kind match
+          case "regular attributes" => MemberKind.RegularAttribute
+          case "static attributes"  => MemberKind.StaticAttribute
+          case "regular operations" => MemberKind.RegularOperation
+          case "static operations"  => MemberKind.StaticOperation
+          case _                    => ???
+        GetMember(parse(baseRaw), memberKind)
       case PossessiveAssociation(baseRaw, link) => fieldFromLink(baseRaw, link)
       case CompTypeArrow(paramsRaw, resultsRaw) =>
         Case("->", List(parse(paramsRaw), parse(resultsRaw)))

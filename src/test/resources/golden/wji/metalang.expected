@@ -795,7 +795,7 @@
   Let(|realm|, [=current Realm=])
   Let(|store|, [=surrounding agent=].[[associated store]])
   Let(|functype|, [=func_type=](|store|, |funcaddr|))
-  Let(->(|paramTypes|, |resultTypes|), [=expand=](|functype|))
+  Let([=comp-type/func=](|paramTypes|, |resultTypes|), [=expand=](|functype|))
   Let(|arity|, length(|paramTypes|))
   Let(|name|, [=name of the WebAssembly function=](|funcaddr|))
   Let(|function|, [$CreateBuiltinFunction$](|steps|, |arity|, |name|, « "FunctionAddress" », |realm|))
@@ -808,7 +808,7 @@
   head: To <dfn>call an Exported Function</dfn> with [=function address=] |funcaddr| and a [=list=] of JavaScript arguments |argValues|, perform the following steps:
   Let(|store|, [=surrounding agent=].[[associated store]])
   Let(|functype|, [=func_type=](|store|, |funcaddr|))
-  Let(->(|parameters|, |results|), [=expand=](|functype|))
+  Let([=comp-type/func=](|parameters|, |results|), [=expand=](|functype|))
   If(any type in |parameters| or |results| |type| [=matches/valtype=] [=v128=] or [=exnref=])
     Throw(new {{TypeError}})
   Note(the above error is thrown each time the \[[Call]] method is invoked)
@@ -848,7 +848,7 @@
 # run a host function
   params: |func|, |functype|, |arguments|
   head: To <dfn>run a host function</dfn> from the JavaScript object |func|, type |functype|, and [=list=] of [=WebAssembly values=] |arguments|, perform the following steps:
-  Let(->(|parameters|, |results|), [=expand=](|functype|))
+  Let([=comp-type/func=](|parameters|, |results|), [=expand=](|functype|))
   If(any type in |parameters| or |results| |type| [=matches/valtype=] [=v128=] or [=exnref=])
     Throw(new {{TypeError}})
   Let(|jsArguments|, « »)
@@ -1067,7 +1067,7 @@
   ForEach(|paramType|, |parameters|)
     Append([=ToValueType=](|paramType|), |wasmParameters|)
   Let(|store|, [=surrounding agent=].[[associated store]])
-  Let((|store|, |tagAddress|), [=tag_alloc=](|store|, [=fold=](->(|wasmParameters|, « »))))
+  Let((|store|, |tagAddress|), [=tag_alloc=](|store|, [=fold=]([=comp-type/func=](|wasmParameters|, « »))))
   Set([=surrounding agent=].[[associated store]], |store|)
   Perform([=initialize a Tag object=](**this**, |tagAddress|))
 
@@ -1172,7 +1172,7 @@
   If(|exceptionTag|.[[Address]] is |JSTagAddr|)
     Throw(new {{TypeError}})
   Let(|store|, [=surrounding agent=].[[associated store]])
-  Let(->(|types|, |_|), [=expand=]([=tag_type=](|store|, |exceptionTag|.[[Address]])))
+  Let([=comp-type/func=](|types|, « »), [=expand=]([=tag_type=](|store|, |exceptionTag|.[[Address]])))
   If(length(|types|) is not length(|payload|))
     Throw(new {{TypeError}})
   Let(|wasmPayload|, « »)
@@ -1198,7 +1198,7 @@
   Assert(|tagaddr| is **this**.[[Type]])
   If(|index| >= length(|payload|))
     Throw(new {{RangeError}})
-  Let(->(|types|, |_|), [=expand=]([=tag_type=](|store|, |tagaddr|)))
+  Let([=comp-type/func=](|types|, « »), [=expand=]([=tag_type=](|store|, |tagaddr|)))
   If(|types|[|index|] [=matches/valtype=] [=v128=] or [=exnref=])
     Throw(new {{TypeError}})
   Return([=ToJSValue=](|payload|[|index|]))
@@ -1221,7 +1221,7 @@
   If([=surrounding agent=].[[JavaScript exception tag]] [=map/exists=])
     Return([=surrounding agent=].[[JavaScript exception tag]])
   Let(|store|, [=surrounding agent=].[[associated store]])
-  Let((|store|, |tagAddress|), [=tag_alloc=](|store|, [=fold=](->(« [=externref=] », « »))))
+  Let((|store|, |tagAddress|), [=tag_alloc=](|store|, [=fold=]([=comp-type/func=](« [=externref=] », « »))))
   Set([=surrounding agent=].[[associated store]], |store|)
   Set([=surrounding agent=].[[JavaScript exception tag]], |tagAddress|)
   Return(|tagAddress|)

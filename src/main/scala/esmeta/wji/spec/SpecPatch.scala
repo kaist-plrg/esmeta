@@ -394,20 +394,30 @@ object SpecPatch:
     ->
     "1. If |externtype| is of the form [=external-type/tag=] <var ignore>functype</var>,",
 
-    // #14 (spec bug) — "Let [|parameters|] → [|results|] be |functype|."
-    // destructures |functype| as if it already were its own underlying
-    // comptype (a flat params/results pair), but |functype| is a deftype
-    // (e.g. `func_type`'s own declared return type, or an imported
-    // function's externtype payload) — per the Wasm Core Spec's Embedding
-    // API (embedding.rst's func_type post-condition: "the returned defined
-    // type ... expands to a function type"), the caller is responsible for
-    // expanding it first via the $Expand relation. Every occurrence in this
-    // file elides that step; made explicit here via the wjmeta-bridge's
-    // `expand` convenience (see docs/esmeta_errors.md's sibling note on
-    // spectec's own Embedding.expand). All 3 occurrences share byte-identical
-    // trailing text, so one replacement covers all of them.
-    "be |functype|."
-    -> "be [=expand=](|functype|).",
+    // #14 (spec bug, docs/spec_errors.md #9/#18) — "Let [|parameters|] →
+    // [|results|] be |functype|." destructures |functype| as if it already
+    // were its own underlying comptype (a flat params/results pair), but
+    // |functype| is a deftype (e.g. `func_type`'s own declared return type,
+    // or an imported function's externtype payload) — per the Wasm Core
+    // Spec's Embedding API (embedding.rst's func_type post-condition: "the
+    // returned defined type ... expands to a function type"), the caller is
+    // responsible for expanding it first via the $Expand relation. Made
+    // explicit via the wjmeta-bridge's `expand` convenience. Also drops the
+    // `[...]`-bracket decoration around each side and adds the `FUNC`
+    // discriminator `.spectec`'s current `comptype` grammar requires
+    // (docs/spec_errors.md #18) — `[=comp-type/func=]` (dangling in a real
+    // Bikeshed render, since no unscoped `func` dfn exists for `comp-type`,
+    // only `for:`-scoped ones for unrelated productions; irrelevant here
+    // since this project never actually renders Bikeshed). Two occurrences
+    // share byte-identical text (1283, 1323); the third (1269) uses `<var
+    // ignore>` for the unused results side instead of a plain `|var|`, so
+    // it's a separate replacement.
+    "1. Let [|parameters|] → [|results|] be |functype|."
+    ->
+    "1. Let [=comp-type/func=] |parameters| → |results| be [=expand=](|functype|).",
+    "1. Let [|paramTypes|] → [<var ignore>resultTypes</var>] be |functype|."
+    ->
+    "1. Let [=comp-type/func=] |paramTypes| → <var ignore>resultTypes</var> be [=expand=](|functype|).",
 
     // #20 (spec inconsistency, docs/spec_inconsistencies.md #3) — brackets
     // the bare `memory address` dfn-link to match its other 6 occurrences.
@@ -595,31 +605,33 @@ object SpecPatch:
     ->
     "1. Return (|store|, « [=ref.exn=] |address|, [=throw_ref=] »).",
 
-    // #35 (spec bug, docs/spec_errors.md #9) — `tag_type` has the exact same
-    // deftype-returning shape as `func_type` (#9/#14 above), but isn't caught
-    // by that patch's literal `"be |functype|."` match (these two both call
-    // `[=tag_type=]`, not `|functype|`). Wraps each in `[=expand=]` the same
-    // way. Not byte-identical to each other (different `tag_type` arguments),
-    // so two separate replacements.
+    // #35 (spec bug, docs/spec_errors.md #9/#18) — `tag_type` has the exact
+    // same deftype-returning shape as `func_type` (#9/#14 above), but isn't
+    // caught by that patch's literal `"be |functype|."` match (these two both
+    // call `[=tag_type=]`, not `|functype|`). Wraps each in `[=expand=]` and
+    // adds the `FUNC` discriminator, the same fix and reasoning as #14. Not
+    // byte-identical to each other (different `tag_type` arguments), so two
+    // separate replacements.
     "1. Let [|types|] → [] be [=tag_type=](|store|, |exceptionTag|.\\[[Address]])."
     ->
-    "1. Let [|types|] → [] be [=expand=]([=tag_type=](|store|, |exceptionTag|.\\[[Address]])).",
+    "1. Let [=comp-type/func=] |types| → « » be [=expand=]([=tag_type=](|store|, |exceptionTag|.\\[[Address]])).",
     "1. Let [|types|] → [] be [=tag_type=](|store|, |tagaddr|)."
     ->
-    "1. Let [|types|] → [] be [=expand=]([=tag_type=](|store|, |tagaddr|)).",
+    "1. Let [=comp-type/func=] |types| → « » be [=expand=]([=tag_type=](|store|, |tagaddr|)).",
 
-    // #36 (spec bug, docs/spec_errors.md #17) — the construction-direction
+    // #36 (spec bug, docs/spec_errors.md #17/#18) — the construction-direction
     // mirror of #35/#9: `tag_alloc`'s second argument is built directly as a
     // bare comptype (SpecTec's `X → Y` arrow notation) where the Embedding
     // API's `tag_alloc(store, tagtype)` expects a real `deftype`. Wraps each
-    // in the new `fold` convenience. Not byte-identical to each other
-    // (different comptypes), so two separate replacements.
+    // in the new `fold` convenience, and adds the same `FUNC` discriminator as
+    // #14/#35. Not byte-identical to each other (different comptypes), so two
+    // separate replacements.
     "[=tag_alloc=](|store|, |wasmParameters| → « »)."
     ->
-    "[=tag_alloc=](|store|, [=fold=](|wasmParameters| → « »)).",
+    "[=tag_alloc=](|store|, [=fold=]([=comp-type/func=] |wasmParameters| → « »)).",
     "[=tag_alloc=](|store|, « [=externref=] » → « »)."
     ->
-    "[=tag_alloc=](|store|, [=fold=](« [=externref=] » → « »)).",
+    "[=tag_alloc=](|store|, [=fold=]([=comp-type/func=] « [=externref=] » → « »)).",
   )
 
   def apply(source: String): String =

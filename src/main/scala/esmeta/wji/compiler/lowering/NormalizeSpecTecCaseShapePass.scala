@@ -192,6 +192,23 @@ object NormalizeSpecTecCaseShapePass extends LoweringPass:
           case _ if tag == "[=external-type/global=]" =>
             Expr.Case(finalTag, List(Expr.Case("", reshapedArgs)))
 
+          // [=comp-type/func=] params results -> "->"(params, results) — a
+          // functype-shaped comptype's runtime tag is `"->"` itself
+          // (`construct.ml`'s `al_of_comptype`: `FuncT (rt1, rt2) -> CaseV
+          // ("->", [rt1; rt2])`); `.spectec`'s `FUNC resulttype -> resulttype`
+          // grammar keyword (`docs/spec_errors.md` #18) only exists at the
+          // surface-syntax level, to disambiguate `comptype`'s three variants.
+          // Checked against the *raw* `tag`, not `finalTag`, and kept out of
+          // `RenamedTag` above deliberately: `runtimeCaseTag`'s generic
+          // `for:`-scope stripping reduces `[=external-type/func=]` (a
+          // *different* Sort, whose own real runtime tag genuinely is `"FUNC"`
+          // — see e.g. `read the imports`'s `externtype` matching, unchanged)
+          // down to the exact same bare `"FUNC"` as this one — a shared
+          // string-keyed table can't tell the two apart once stripped, only
+          // the still-scoped raw link text can.
+          case _ if tag == "[=comp-type/func=]" =>
+            Expr.Case("->", reshapedArgs)
+
           case _ => Expr.Case(finalTag, reshapedArgs)
       case other => super.walk(other)
 

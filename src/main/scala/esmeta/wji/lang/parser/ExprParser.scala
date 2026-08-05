@@ -294,32 +294,27 @@ object ExprParser:
   // general "'s [=link=]" shape.
   private val PossessiveAssociation =
     """(?si)^the (.+)'s (?:associated )?(\[=[^\]]+\])$""".r
-  // "[|parameters|] → [|results|]" — SpecTec's comptype arrow notation for a
-  // functype (`al_of_comptype`'s `FuncT (rt1, rt2) -> CaseV ("->", [rt1;
-  // rt2])`): a params-list and a results-list side by side, each written
-  // wrapped in its own `[...]` (decorating it as list-shaped, not a nested
-  // destructure — `rt1`/`rt2` are each already an AL list value in their own
-  // right, so the *whole* bracket content names one variable bound to that
-  // whole list, mirroring `Cond.IsOfForm`'s `Expr.Case` args). This is the
-  // *destructuring* direction, used as a `Let` LHS (see
-  // `ExpandDestructuringLetPass`) — its match arm lives in the "Construction"
-  // section below, next to the construction-direction mirror image, along
-  // with the ordering rationale for both.
-  // A bare `[]` side (e.g. "Let [|types|] → [] be ...", meaning that side has
-  // zero elements to destructure -- see `getArg`/`exn_read`'s use, whose
-  // `functype` genuinely never has any results) parses that side to a
-  // discard `Var("_")` below, rather than to nothing: `Expr.Case`'s `args`
-  // has no way to mark "skip this position" while still keeping the other
-  // side's `TupleProj` index correct, and `ExpandDestructuringLetPass` only
-  // destructures when every arg is a bare `Var` (see that pass's doc) -- `_`
-  // is the same discard convention `Instr.Perform`'s `PerformOutcome.Discard`
-  // already uses. `_` being a *discard* (rather than, say, an `Assert` that
-  // the runtime list at that position really is empty) is itself a
-  // simplification: strictly, `[]` isn't just "don't bind this side", it's
-  // "assert this side is the empty list" -- not enforced here, left for
-  // whenever that distinction actually matters.
-  private val CompTypeArrow =
-    """(?s)^\[\s*([^\[\]]*)\s*\]\s*→\s*\[\s*([^\[\]]*)\s*\]$""".r
+  // "[=comp-type/func=] |parameters| → |results|" — SpecTec's comptype arrow
+  // notation for a functype (`al_of_comptype`'s `FuncT (rt1, rt2) -> CaseV
+  // ("->", [rt1; rt2])`), corrected to include the `FUNC` discriminator
+  // `.spectec`'s current `comptype` grammar requires (`comptype ::= STRUCT
+  // ... | ARRAY ... | FUNC resulttype -> resulttype`,
+  // `1.2-syntax.types.spectec:117`) — see `docs/spec_errors.md` #18. Every
+  // real occurrence in js-api/index.bs predates that grammar (from before
+  // `comptype` existed at all, when a functype's own arrow notation needed no
+  // discriminator to tell it apart from a struct/array shape) and is
+  // SpecPatch-corrected to this form. The tag is kept as the raw link text
+  // here (`"[=comp-type/func=]"`), not resolved to `"FUNC"`/`"->"` — that's
+  // `NormalizeSpecTecCaseShapePass.RenamedTag`'s job, same layering as every
+  // other SpecTec-runtime-tag lookup in this file. Its match arm lives in the
+  // "Construction" section below — `parse` handles each side generically
+  // there (a bare `|var|`, a `«...»` list literal, or `<var ignore>X</var>`),
+  // covering both this pattern's use as a `Let` LHS
+  // (`ExpandDestructuringLetPass`, which alone treats a literal empty `« »`
+  // side as "nothing to bind" rather than requiring every side to be a
+  // `Var`) and as an ordinary expression building a fresh functype value
+  // (`tag_alloc`'s argument, via `fold`).
+  private val CompTypeArrowPrefix = "[=comp-type/func=] "
   private val IndexByStr = """(?s)^(.+)\["([^"]+)"\]$""".r
   private val IndexByVar = """(?s)^(.+)\[(\|[^|]+\|)\]$""".r
   private val IndexByNum = """(?s)^(.+)\[(-?\d+)\]$""".r
@@ -531,37 +526,34 @@ object ExprParser:
       case NewArrayBufferWithSlots()  => NewArrayBuffer
       case PlainNewExpr()             => UnknownNew(s)
       case EmptyMapProse()            => Map_(Nil)
-      case CompTypeArrow(paramsRaw, resultsRaw) =>
-        def side(raw: String): Expr =
-          if raw.trim.isEmpty then Var("_") else parse(raw)
-        Case("->", List(side(paramsRaw), side(resultsRaw)))
-      // "|wasmParameters| → « »" / "« [=externref=] » → « »" — the
-      // *construction* mirror of CompTypeArrow just above: builds a new
-      // functype-shaped `Case("->", ...)` value from two already
-      // expression-shaped sides (no decorative `[...]` to strip — a bare
-      // `|var|` already holding a list, or a `«...»` list literal, parses as
-      // itself). `findTopLevel` is bracket-depth-aware (see `TextSplit`,
-      // tracking `«»` alongside `()[]{}`), so this only fires on a *top-level*
-      // arrow — critical here, since `ListLiteral`/`MapLiteral` just below are
-      // both a naive `^«...»$`-anchored regex that, given a string with two
-      // separate `«...»` groups like `« [=externref=] » → « »`, would
-      // non-greedily-but-`$`-anchored capture *through* the first group's
-      // closing `»` all the way to the *last* one, silently swallowing the
-      // arrow and everything after it (confirmed empirically — this used to
-      // silently mis-parse `get_the_javascript_exception_tag`'s `tag_alloc`
-      // argument into a bare 1-element list instead of a real functype, with
-      // no visible error). Placed here, before those two, so a genuine
-      // top-level arrow is never given the chance to reach either's greedy
-      // regex; `CompTypeArrow` (destructuring, always `[X] → [Y]`, both sides
-      // literally bracket-wrapped) is unaffected by this ordering either way
-      // — it's already tried first above — but is placed right next to this
-      // one for the same reason (kept out of the "Structural access" section
-      // below, where `IndexByVar`'s own `^.+\[\|VAR\|\]$` would otherwise
-      // wrongly match `[X] → [Y]`'s trailing `[|results|]` as `base[key]`
-      // indexing if tried first).
-      case _ if findTopLevel(s, " → ").isDefined =>
-        val (leftRaw, rightRaw) = splitTopLevel(s, " → ").get
-        Case("->", List(parse(leftRaw), parse(rightRaw)))
+      // "[=comp-type/func=] |parameters| → |results|" (destructuring, a
+      // `Let` LHS) / "[=comp-type/func=] |wasmParameters| → « »"
+      // (construction, an ordinary expression building a fresh functype
+      // value) — see `CompTypeArrowPrefix`'s own doc above. Both directions
+      // parse identically here (`parse` handles whatever's on each side —
+      // bare `|var|`, `«...»` list literal, or `<var ignore>X</var>` — the
+      // same way regardless of position); what differs downstream is only
+      // `ExpandDestructuringLetPass`'s Let-LHS handling. Uses `findTopLevel`/
+      // `splitTopLevel` (bracket-depth-aware, tracking `«»` alongside
+      // `()[]{}` — see `TextSplit`) rather than a plain regex specifically so
+      // this is safe even when a side is itself a `«...»` list literal (e.g.
+      // `« [=externref=] » → « »`): a naive `^«...»$`-anchored regex, tried
+      // on the *whole* string, would capture clean through the first group's
+      // closing `»` to the *last* one instead (confirmed empirically — this
+      // used to silently mis-parse `get_the_javascript_exception_tag`'s
+      // `tag_alloc` argument into a bare 1-element list instead of a real
+      // functype, with no visible error) — moot here regardless, since the
+      // required `[=comp-type/func=] ` prefix means `ListLiteral`/
+      // `MapLiteral` below never even attempt this string (neither starts
+      // with `«`), but kept for the same reason any top-level split in this
+      // file uses `TextSplit`: correctness shouldn't depend on what the
+      // *content* of either side happens to look like.
+      case _ if s.startsWith(CompTypeArrowPrefix) =>
+        val rest = s.substring(CompTypeArrowPrefix.length)
+        splitTopLevel(rest, " → ") match
+          case Some((leftRaw, rightRaw)) =>
+            Case("[=comp-type/func=]", List(parse(leftRaw), parse(rightRaw)))
+          case None => Unknown(s)
       case MapLiteral(inner) =>
         val entries = splitComma(inner).map { e =>
           splitTopLevel(e, " → ") match
@@ -709,8 +701,8 @@ object ExprParser:
   // AL `CaseE` supports an empty mixop for a syntax rule with no keyword
   // tokens of its own (Wasm Core's `globaltype ::= mut valtype`): N ≥ 2
   // components named positionally, separated by nothing but whitespace — no
-  // tag/keyword between them the way `CompTypeArrow`'s "->" or a
-  // `Cond.IsOfForm`'s "REF ..." has one. Requires 2+ components so it doesn't
+  // tag/keyword between them the way the comptype arrow's "[=comp-type/func=]"
+  // or a `Cond.IsOfForm`'s "REF ..." has one. Requires 2+ components so it doesn't
   // also swallow `VarOnly`'s single-`|var|` case.
   private val UntaggedForm =
     ("""(?s)^(?:""" + UntaggedFormComponent.regex + """)""" +
@@ -719,10 +711,10 @@ object ExprParser:
   /** Untagged-form-only entry point — used for a `Let` LHS (`InstrParser`) and
     * a `Cond.IsOfForm`'s "form" text (`CondParser`), never reachable from
     * general [[parse]] itself, even though it builds a plain [[Case]] the same
-    * way [[CompTypeArrow]] does: `parseArgs`'s tokenizer above greedily tries
-    * the *longest* parseable prefix at each word boundary, so if this shape
-    * were reachable from general `parse`, a genuine `Case`'s own multi-arg list
-    * written the same bare, space-separated way (e.g. "[=ref=]
+    * way the comptype arrow case does: `parseArgs`'s tokenizer above greedily
+    * tries the *longest* parseable prefix at each word boundary, so if this
+    * shape were reachable from general `parse`, a genuine `Case`'s own
+    * multi-arg list written the same bare, space-separated way (e.g. "[=ref=]
     * |null| |heaptype|", parsed via `parseArgs`) would get swallowed into one
     * nested `Case("", [Var(null), Var(heaptype)])` instead of staying two
     * separate top-level args — confirmed by `SnapshotSpec` regressing

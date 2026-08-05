@@ -313,12 +313,20 @@ class ExprParserSpec extends AnyFunSuite:
     )
   }
 
-  test("order: CompTypeArrow is tried before IndexByVar") {
-    // "[|types|] → [|results|]" also ends in "[|results|]", which
-    // IndexByVar would otherwise misparse as `base[|results|]` indexing.
+  test("comp-type/func arrow notation") {
+    // The required "[=comp-type/func=] " prefix (see docs/spec_errors.md #18)
+    // means this never collides with IndexByVar's own "base[|var|]" shape the
+    // old bracket-decorated form used to risk (no trailing "]" here at all).
+    // Each side parses generically -- a bare |var|, or a literal «...» list
+    // (e.g. an empty results side, "« »") -- and the tag stays the raw link
+    // text; NormalizeSpecTecCaseShapePass.RenamedTag resolves it to "->".
     assert(
-      ExprParser.parse("[|types|] → [|results|]") ==
-      Case("->", List(Var("types"), Var("results"))),
+      ExprParser.parse("[=comp-type/func=] |types| → |results|") ==
+      Case("[=comp-type/func=]", List(Var("types"), Var("results"))),
+    )
+    assert(
+      ExprParser.parse("[=comp-type/func=] |types| → « »") ==
+      Case("[=comp-type/func=]", List(Var("types"), List_(Nil))),
     )
   }
 

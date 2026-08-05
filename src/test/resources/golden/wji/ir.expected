@@ -2585,7 +2585,6 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Exception(
   call-embed _tuple1 = <expand>(_call1)
   assert (= (case-tag _tuple1) "->")
   let types = _tuple1[0]
-  let _ = _tuple1[1]
   if (! (= (sizeof types) (sizeof payload))) {
     call _err3 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
     call _ret4 = clo<"ThrowCompletion">(_err3)
@@ -2658,7 +2657,6 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Exception.prototype.getarg(
   call-embed _tuple1 = <expand>(_call1)
   assert (= (case-tag _tuple1) "->")
   let types = _tuple1[0]
-  let _ = _tuple1[1]
   call-embed _m1 = <match_valtype>(types[index], (case "V128" ))
   call-embed _m2 = <match_valtype>(types[index], (case "REF" (opt (case "NULL" )) (case "EXN" )))
   if (|| (= _m1 true) (= _m2 true)) {

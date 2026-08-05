@@ -594,6 +594,32 @@ object SpecPatch:
     "1. Execute the WebAssembly instructions ([=ref.exn=] |address|) ([=throw_ref=])."
     ->
     "1. Return (|store|, « [=ref.exn=] |address|, [=throw_ref=] »).",
+
+    // #35 (spec bug, docs/spec_errors.md #9) — `tag_type` has the exact same
+    // deftype-returning shape as `func_type` (#9/#14 above), but isn't caught
+    // by that patch's literal `"be |functype|."` match (these two both call
+    // `[=tag_type=]`, not `|functype|`). Wraps each in `[=expand=]` the same
+    // way. Not byte-identical to each other (different `tag_type` arguments),
+    // so two separate replacements.
+    "1. Let [|types|] → [] be [=tag_type=](|store|, |exceptionTag|.\\[[Address]])."
+    ->
+    "1. Let [|types|] → [] be [=expand=]([=tag_type=](|store|, |exceptionTag|.\\[[Address]])).",
+    "1. Let [|types|] → [] be [=tag_type=](|store|, |tagaddr|)."
+    ->
+    "1. Let [|types|] → [] be [=expand=]([=tag_type=](|store|, |tagaddr|)).",
+
+    // #36 (spec bug, docs/spec_errors.md #17) — the construction-direction
+    // mirror of #35/#9: `tag_alloc`'s second argument is built directly as a
+    // bare comptype (SpecTec's `X → Y` arrow notation) where the Embedding
+    // API's `tag_alloc(store, tagtype)` expects a real `deftype`. Wraps each
+    // in the new `fold` convenience. Not byte-identical to each other
+    // (different comptypes), so two separate replacements.
+    "[=tag_alloc=](|store|, |wasmParameters| → « »)."
+    ->
+    "[=tag_alloc=](|store|, [=fold=](|wasmParameters| → « »)).",
+    "[=tag_alloc=](|store|, « [=externref=] » → « »)."
+    ->
+    "[=tag_alloc=](|store|, [=fold=](« [=externref=] » → « »)).",
   )
 
   def apply(source: String): String =

@@ -26,7 +26,10 @@ class AnchorExtractorSpec extends AnyFunSuite:
     * convenience wrapping the `$Expand` relation, added to work around
     * js-api/index.bs destructuring a `deftype` without ever calling `$expand`
     * itself — see `WasmHost.paramNames`'s `expand` entry and
-    * `docs/spec_errors.md`. `signed_31`/`signed_32`/`signed_64` are Wasm Core
+    * `docs/spec_errors.md`. `fold` is `expand`'s own construction-direction
+    * mirror, added for the same reason in reverse (`docs/spec_errors.md` #17):
+    * it wraps a bare comptype into a `deftype` where `tag_alloc`'s call sites
+    * never do so themselves. `signed_31`/`signed_32`/`signed_64` are Wasm Core
     * spec numerics (`signed_(N)`) that js-api prose calls directly by their
     * rendered per-width name; the SpecTec server translates that name back to
     * the real parametric `signed` op itself (`server.ml`'s `call_signed`), so
@@ -48,6 +51,7 @@ class AnchorExtractorSpec extends AnyFunSuite:
   private val bridgeOnlyNames: Set[String] =
     Set(
       "expand",
+      "fold",
       "signed_31",
       "signed_32",
       "signed_64",

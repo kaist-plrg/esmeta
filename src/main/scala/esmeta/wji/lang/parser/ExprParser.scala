@@ -300,9 +300,11 @@ object ExprParser:
   // wrapped in its own `[...]` (decorating it as list-shaped, not a nested
   // destructure — `rt1`/`rt2` are each already an AL list value in their own
   // right, so the *whole* bracket content names one variable bound to that
-  // whole list, mirroring `Cond.IsOfForm`'s `Expr.Case` args). Placed before
-  // IndexByStr/IndexByVar/etc below — those would otherwise misparse this as
-  // `base[key]` indexing, since the text happens to end in `[...]` too.
+  // whole list, mirroring `Cond.IsOfForm`'s `Expr.Case` args). This is the
+  // *destructuring* direction, used as a `Let` LHS (see
+  // `ExpandDestructuringLetPass`) — its match arm lives in the "Construction"
+  // section below, next to the construction-direction mirror image, along
+  // with the ordering rationale for both.
   // A bare `[]` side (e.g. "Let [|types|] → [] be ...", meaning that side has
   // zero elements to destructure -- see `getArg`/`exn_read`'s use, whose
   // `functype` genuinely never has any results) parses that side to a
@@ -529,6 +531,37 @@ object ExprParser:
       case NewArrayBufferWithSlots()  => NewArrayBuffer
       case PlainNewExpr()             => UnknownNew(s)
       case EmptyMapProse()            => Map_(Nil)
+      case CompTypeArrow(paramsRaw, resultsRaw) =>
+        def side(raw: String): Expr =
+          if raw.trim.isEmpty then Var("_") else parse(raw)
+        Case("->", List(side(paramsRaw), side(resultsRaw)))
+      // "|wasmParameters| → « »" / "« [=externref=] » → « »" — the
+      // *construction* mirror of CompTypeArrow just above: builds a new
+      // functype-shaped `Case("->", ...)` value from two already
+      // expression-shaped sides (no decorative `[...]` to strip — a bare
+      // `|var|` already holding a list, or a `«...»` list literal, parses as
+      // itself). `findTopLevel` is bracket-depth-aware (see `TextSplit`,
+      // tracking `«»` alongside `()[]{}`), so this only fires on a *top-level*
+      // arrow — critical here, since `ListLiteral`/`MapLiteral` just below are
+      // both a naive `^«...»$`-anchored regex that, given a string with two
+      // separate `«...»` groups like `« [=externref=] » → « »`, would
+      // non-greedily-but-`$`-anchored capture *through* the first group's
+      // closing `»` all the way to the *last* one, silently swallowing the
+      // arrow and everything after it (confirmed empirically — this used to
+      // silently mis-parse `get_the_javascript_exception_tag`'s `tag_alloc`
+      // argument into a bare 1-element list instead of a real functype, with
+      // no visible error). Placed here, before those two, so a genuine
+      // top-level arrow is never given the chance to reach either's greedy
+      // regex; `CompTypeArrow` (destructuring, always `[X] → [Y]`, both sides
+      // literally bracket-wrapped) is unaffected by this ordering either way
+      // — it's already tried first above — but is placed right next to this
+      // one for the same reason (kept out of the "Structural access" section
+      // below, where `IndexByVar`'s own `^.+\[\|VAR\|\]$` would otherwise
+      // wrongly match `[X] → [Y]`'s trailing `[|results|]` as `base[key]`
+      // indexing if tried first).
+      case _ if findTopLevel(s, " → ").isDefined =>
+        val (leftRaw, rightRaw) = splitTopLevel(s, " → ").get
+        Case("->", List(parse(leftRaw), parse(rightRaw)))
       case MapLiteral(inner) =>
         val entries = splitComma(inner).map { e =>
           splitTopLevel(e, " → ") match
@@ -603,10 +636,6 @@ object ExprParser:
           case _                    => ???
         GetMember(parse(baseRaw), memberKind)
       case PossessiveAssociation(baseRaw, link) => fieldFromLink(baseRaw, link)
-      case CompTypeArrow(paramsRaw, resultsRaw) =>
-        def side(raw: String): Expr =
-          if raw.trim.isEmpty then Var("_") else parse(raw)
-        Case("->", List(side(paramsRaw), side(resultsRaw)))
       case IndexByStr(baseRaw, key)    => Index(parse(baseRaw), Str(key))
       case IndexByVar(baseRaw, varRaw) => Index(parse(baseRaw), parse(varRaw))
       case IndexByNum(baseRaw, n)      => Index(parse(baseRaw), parse(n))

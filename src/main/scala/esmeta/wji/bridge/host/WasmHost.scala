@@ -83,6 +83,15 @@ object WasmHost:
     // because js-api/index.bs destructures a deftype's underlying comptype
     // directly without ever calling out to $expand itself (docs/spec_errors.md).
     "expand" -> List("deftype"),
+    // fold(comptype) : deftype — the construction-direction mirror of
+    // expand just above; also not part of the Wasm Core Spec's own Embedding
+    // API. Wraps a bare comptype (e.g. tag_alloc's own arrow-notation
+    // argument) into a fresh, standalone (non-recursive, final, no
+    // supertypes) deftype, needed because js-api/index.bs builds that bare
+    // comptype directly where the real embedding API (tag_alloc(store,
+    // tagtype)) expects a deftype, again without ever calling out to a step
+    // that builds one (docs/spec_errors.md).
+    "fold" -> List("comptype"),
     // instance_export(moduleinst, name) : externaddr | error
     "instance_export" -> List("moduleinst", "name"),
     // func_type(store, funcaddr) : deftype

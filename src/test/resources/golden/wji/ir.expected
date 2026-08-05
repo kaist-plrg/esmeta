@@ -2413,7 +2413,8 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Tag(
     _iterIdx2 = (+ _iterIdx2 1)
   }
   let store = @AGENT_RECORD["associated store"]
-  call-embed _tuple1 = <tag_alloc>(store, (yet "|wasmParameters| → « »"))
+  call-embed _call2 = <fold>((case "->" wasmParameters (list [])))
+  call-embed _tuple1 = <tag_alloc>(store, _call2)
   let store = _tuple1[0]
   let tagAddress = _tuple1[1]
   @AGENT_RECORD["associated store"] = store
@@ -2580,7 +2581,8 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Exception(
     return _ret2
   } else nop
   let store = @AGENT_RECORD["associated store"]
-  call-embed _tuple1 = <tag_type>(store, exceptionTag.Address)
+  call-embed _call1 = <tag_type>(store, exceptionTag.Address)
+  call-embed _tuple1 = <expand>(_call1)
   assert (= (case-tag _tuple1) "->")
   let types = _tuple1[0]
   let _ = _tuple1[1]
@@ -2598,18 +2600,18 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Exception(
     call _ret6 = clo<"ThrowCompletion">(_err5)
     return _ret6
   } else nop
-  call _call1 = clo<"towebassemblyvalue">(value, resultType)
-  if (? _call1: Abrupt) {
-    if (? _call1: Completion) {
-      return _call1
+  call _call2 = clo<"towebassemblyvalue">(value, resultType)
+  if (? _call2: Abrupt) {
+    if (? _call2: Completion) {
+      return _call2
     } else {
-      call _ret7 = clo<"NormalCompletion">(_call1)
+      call _ret7 = clo<"NormalCompletion">(_call2)
       return _ret7
     }
   } else {
-    let _call2 = _call1.Value
+    let _call3 = _call2.Value
   }
-  push wasmPayload < _call2
+  push wasmPayload < _call3
   call-embed _tuple2 = <exn_alloc>(store, exceptionTag.Address, wasmPayload)
   let store = _tuple2[0]
   let exceptionAddr = _tuple2[1]
@@ -2652,7 +2654,8 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Exception.prototype.getarg(
     call _ret4 = clo<"ThrowCompletion">(_err3)
     return _ret4
   } else nop
-  call-embed _tuple1 = <tag_type>(store, tagaddr)
+  call-embed _call1 = <tag_type>(store, tagaddr)
+  call-embed _tuple1 = <expand>(_call1)
   assert (= (case-tag _tuple1) "->")
   let types = _tuple1[0]
   let _ = _tuple1[1]
@@ -2718,7 +2721,8 @@ def get_the_javascript_exception_tag(
     return @AGENT_RECORD["JavaScript exception tag"]
   } else nop
   let store = @AGENT_RECORD["associated store"]
-  call-embed _tuple1 = <tag_alloc>(store, (list [(case "REF" (opt (case "NULL" )) (case "EXTERN" ))]))
+  call-embed _call1 = <fold>((case "->" (list [(case "REF" (opt (case "NULL" )) (case "EXTERN" ))]) (list [])))
+  call-embed _tuple1 = <tag_alloc>(store, _call1)
   let store = _tuple1[0]
   let tagAddress = _tuple1[1]
   @AGENT_RECORD["associated store"] = store

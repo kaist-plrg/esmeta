@@ -44,7 +44,7 @@ class DefinitionExtractorSpec extends AnyFunSuite:
     assert(module.members.size == 4)
     val ops = module.members.collect { case o: Operation => o }
     assert(ops.exists(_.kind == MemberKind.Constructor))
-    assert(ops.count(_.kind == MemberKind.Static) == 3)
+    assert(ops.count(_.kind == MemberKind.StaticOperation) == 3)
   }
 
   test(

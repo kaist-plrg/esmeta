@@ -127,8 +127,8 @@ object DefinitionExtractor:
     else
       val (head, kind) =
         if rest.startsWith("static ") then
-          (rest.stripPrefix("static "), MemberKind.Static)
-        else (rest, MemberKind.Regular)
+          (rest.stripPrefix("static "), MemberKind.StaticOperation)
+        else (rest, MemberKind.RegularOperation)
       val close = head.length - 1
       val open = findMatchingOpen(head, close)
       val (ret, id) = splitTypeAndId(head.substring(0, open).trim)

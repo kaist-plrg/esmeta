@@ -27,8 +27,9 @@ case class Param(
 )
 
 enum MemberKind:
-  case Static
-  case Regular
+  case StaticOperation
+  case RegularOperation
+  case RegularAttribute
   case Constructor
 
 enum DefinitionKind:
@@ -40,14 +41,14 @@ case class Operation(
   id: String,
   params: List[Param],
   ret: String,
-  kind: MemberKind = MemberKind.Regular,
+  kind: MemberKind = MemberKind.RegularOperation,
   extAttr: List[ExtendedAttribute] = Nil,
 ) extends Member
 case class Attribute(
   id: String,
   ty: String,
   readonly: Boolean,
-  kind: MemberKind = MemberKind.Regular,
+  kind: MemberKind = MemberKind.RegularOperation,
   extAttr: List[ExtendedAttribute] = Nil,
 ) extends Member
 case class Constant() extends Member // TODO

@@ -57,11 +57,22 @@ enum AlgorithmKind:
   *   `esmeta.wji.compiler.lowering.AddBuiltinBehaviourPass` before
   *   `esmeta.wji.compiler.Compiler.compileAlgo` ever sees it —
   *   `esmeta.ir.Param` has no equivalent field.
+  * @param idlType
+  *   this parameter's declared WebIDL type text (e.g. `"unsigned long"`,
+  *   `"any"`), if this is a real interface member parameter and
+  *   `esmeta.wji.extractor.Extractor` found the matching
+  *   `esmeta.wji.lang.Definition`/`Operation` to read it off of — `None` for
+  *   every other algorithm (a `Plain` operation has no WebIDL parameter list at
+  *   all) or when the positional param counts didn't line up. Consumed by
+  *   `esmeta.wji.compiler.lowering.AddInterfaceMemberBuiltinBehaviourPass` to
+  *   route each argument through `converted_to_an_idl_value` (see
+  *   `docs/hardcodes.md` #2) during `ArgumentsList` unpacking.
   */
 case class WjiParam(
   name: String,
   optional: Boolean = false,
   variadic: Boolean = false,
+  idlType: Option[String] = None,
 )
 
 /** An algorithm extracted from a `<div algorithm>` block.

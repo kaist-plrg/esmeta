@@ -2,5 +2,12 @@ def converted_to_an_idl_value(
   argument: Unknown,
   T: Unknown
 ): ESValue = {
+  if (= T "unsigned long") {
+    let m = ([math] ([number] argument))
+    if (< m 0) {
+      return (% (- 0 (floor (abs m))) 4294967296)
+    }
+    return (% (floor m) 4294967296)
+  }
   return argument
 }

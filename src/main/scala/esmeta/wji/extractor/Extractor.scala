@@ -1,7 +1,14 @@
 package esmeta.wji.extractor
 
 import esmeta.util.SystemUtils.*
-import esmeta.wji.lang.{AlgorithmKind, DefinitionKind}
+import esmeta.wji.lang.{
+  Algorithm,
+  AlgorithmKind,
+  Definition,
+  DefinitionKind,
+  MemberKind,
+  Operation,
+}
 import esmeta.wji.spec.{Spec, SpecFile, SpecPatch}
 
 /** Unified entry point producing a [[Spec]] from the WebAssembly JS-API spec
@@ -42,10 +49,57 @@ object Extractor:
       .filter(_.kind == DefinitionKind.Interface)
       .map(_.name)
       .toSet
-    val algorithms = (jsApiAlgorithms ++ webidlAlgorithms).map { a =>
-      a.kind match
-        case AlgorithmKind.Method(forName) if !interfaceNames(forName) =>
-          a.copy(kind = AlgorithmKind.Plain)
-        case _ => a
-    }
+    val algorithms = (jsApiAlgorithms ++ webidlAlgorithms)
+      .map { a =>
+        a.kind match
+          case AlgorithmKind.Method(forName) if !interfaceNames(forName) =>
+            a.copy(kind = AlgorithmKind.Plain)
+          case _ => a
+      }
+      .map(enrichParamTypes(_, definitions))
     Spec(algorithms, definitions, anchors)
+
+  /** Finds `algo`'s matching WebIDL operation (its interface's `Definition`,
+    * looked up by `AlgorithmKind.Method`/`Constructor`'s own `interface` name,
+    * then the `Operation` member matching `algo.name`/its `Constructor` kind)
+    * and, if found and its positional param count agrees, stamps each
+    * `WjiParam.idlType` with that operation's declared WebIDL type text — see
+    * [[esmeta.wji.lang.WjiParam.idlType]]'s own doc for what consumes this. A
+    * `Getter`/`Setter`/`Plain` algorithm is left untouched: getters take no
+    * arguments, and a setter's implicit "the given value" isn't a positional
+    * `WjiParam` at all (see
+    * `esmeta.wji.compiler.lowering.AddInterfaceMemberBuiltinBehaviourPass.givenValueBinding`),
+    * so neither has anything here to stamp.
+    */
+  private def enrichParamTypes(
+    algo: Algorithm,
+    definitions: List[Definition],
+  ): Algorithm =
+    def operationParams(
+      iface: String,
+      matches: Operation => Boolean,
+    ): Option[List[String]] =
+      definitions
+        .find(d => d.kind == DefinitionKind.Interface && d.name == iface)
+        .flatMap(_.members.collectFirst {
+          case op: Operation if matches(op) => op.params.map(_.ty)
+        })
+    val webidlParamTypes: Option[List[String]] = algo.kind match
+      case AlgorithmKind.Method(iface) =>
+        operationParams(
+          iface,
+          op =>
+            op.kind != MemberKind.Constructor && op.id == algo.name.getOrElse(
+              "",
+            ),
+        )
+      case AlgorithmKind.Constructor(iface) =>
+        operationParams(iface, _.kind == MemberKind.Constructor)
+      case _ => None
+    webidlParamTypes match
+      case Some(tys) if tys.length == algo.params.length =>
+        algo.copy(params = algo.params.zip(tys).map {
+          case (p, ty) =>
+            p.copy(idlType = Some(ty))
+        })
+      case _ => algo

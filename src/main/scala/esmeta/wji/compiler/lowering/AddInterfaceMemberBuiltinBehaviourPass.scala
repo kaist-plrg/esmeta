@@ -124,11 +124,23 @@ object AddInterfaceMemberBuiltinBehaviourPass extends LoweringPass:
     * [[AddBuiltinBehaviourPass.unpackArgumentsList]] (see that method's own
     * doc); duplicated rather than shared since the two conventions use
     * differently-cased names for the list itself.
+    *
+    * Each param whose [[WjiParam.idlType]] is known (see
+    * `esmeta.wji.extractor.Extractor.enrichParamTypes`) gets one more step
+    * right after its own unpacking, running the raw JS argument through
+    * `converted_to_an_idl_value` — mirroring how WebIDL's own "overload
+    * resolution algorithm" converts every ES argument to its declared IDL type
+    * before the operation body ever runs. That function itself is still mostly
+    * an identity stub (see `docs/hardcodes.md` #2) — only `"unsigned long"`
+    * does a real conversion today — but routing every typed param through it
+    * uniformly, rather than special-casing `"unsigned long"` here, means a
+    * later type just needs a new case added there, not a change to this pass.
     */
-  private def unpackArgumentsList(params: List[String]): List[Instr] =
-    params.zipWithIndex.map {
+  private def unpackArgumentsList(params: List[WjiParam]): List[Instr] =
+    params.zipWithIndex.flatMap {
       case (p, i) =>
-        Instr.IfChain(
+        val name = stripPipes(p.name)
+        val unpack = Instr.IfChain(
           List(
             Cond.Compare(
               Expr.Num(i.toString),
@@ -136,13 +148,21 @@ object AddInterfaceMemberBuiltinBehaviourPass extends LoweringPass:
               Expr.Length(Expr.Var("ArgumentsList")),
             ) -> List(
               Instr.Let(
-                Expr.Var(p),
+                Expr.Var(name),
                 Expr.Index(Expr.Var("ArgumentsList"), Expr.Num(i.toString)),
               ),
             ),
           ),
-          List(Instr.Let(Expr.Var(p), Expr.SpecTerm("undefined"))),
+          List(Instr.Let(Expr.Var(name), Expr.SpecTerm("undefined"))),
         )
+        val convert = p.idlType.map { ty =>
+          Instr.Perform(
+            "converted_to_an_idl_value",
+            List(Expr.Var(name), Expr.Str(ty)),
+            Instr.PerformOutcome.BindResult(name),
+          )
+        }
+        unpack :: convert.toList
     }
 
   /** `**the given value**`'s binding, for a `Setter` only — WebIDL passes it as
@@ -165,13 +185,12 @@ object AddInterfaceMemberBuiltinBehaviourPass extends LoweringPass:
       a.kind match
         case AlgorithmKind.Getter(_) | AlgorithmKind.Setter(_) |
             AlgorithmKind.Constructor(_) | AlgorithmKind.Method(_) =>
-          val originalParams = a.params.map(p => stripPipes(p.name))
           val wrappedBody =
             if a.returnsCompletion then a.body
             else CompletionWrapping.expandAlgorithm(a.body)
           a.copy(
             params = BuiltinParams,
-            body = unpackArgumentsList(originalParams) ++
+            body = unpackArgumentsList(a.params) ++
               givenValueBinding(a.kind) ++ wrappedBody,
           )
         case AlgorithmKind.Plain => a

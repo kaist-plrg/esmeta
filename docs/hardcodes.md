@@ -17,8 +17,8 @@
 
 - **File**: `src/main/resources/manuals/funcs/converted_to_an_idl_value.ir`
 - **Spec source**: `webidl/index.bs`의 "converted to an IDL value" (`id="dfn-convert-ecmascript-to-idl-value"`, 7299번째 줄 근방)
-- **What's hardcoded**: 1번 항목의 반대 방향 버전인 거울상 갭입니다. 실제 알고리즘은 JS 값 `V`를 *선언된* IDL 타입에 대해 검증하고 변환합니다 — 타입이 안 맞으면 `TypeError`를 던지고, 숫자형/문자열/불리언은 각자의 IDL-타입별 규칙대로 변환하고, dictionary 멤버는 재귀적으로 처리하는 식입니다. 이 manual 스텁은 그냥 identity passthrough (`return argument`)입니다 — 검증도, 변환도, 타입에 따른 분기도 전혀 없습니다.
-- **Why not mechanized**: 1번과 근본 원인이 같습니다 — WJI 파이프라인엔 값의 선언된 IDL 타입이라는 개념이 흘러다니지 않아서, 타입별 변환 규칙을 범용적으로 고를 방법이 없습니다. 그게 만들어지기 전까지는 모든 호출자가 자기 JS 인자를 그대로 돌려받고, 이미 IDL 모양일 거라고 그냥 믿는 수밖에 없습니다.
+- **What's hardcoded**: 1번 항목의 반대 방향 버전인 거울상 갭입니다. 실제 알고리즘은 JS 값 `V`를 *선언된* IDL 타입에 대해 검증하고 변환합니다 — 타입이 안 맞으면 `TypeError`를 던지고, 숫자형/문자열/불리언은 각자의 IDL-타입별 규칙대로 변환하고, dictionary 멤버는 재귀적으로 처리하는 식입니다. `esmeta.wji.extractor.Extractor.enrichParamTypes`가 각 interface member 파라미터의 실제 WebIDL 타입 텍스트를 `Definition`에서 찾아 `WjiParam.idlType`에 채워두고, `AddInterfaceMemberBuiltinBehaviourPass.unpackArgumentsList`가 `ArgumentsList`를 풀 때마다 이 함수를 `(rawValue, idlType)`로 호출하도록 배선돼 있음(WebIDL의 "overload resolution algorithm"이 인자 하나하나를 변환하는 것과 같은 모양) — 그래서 이 함수는 이제 실제로 호출은 되지만, 몸통은 `"unsigned long"` 한 케이스만 진짜로 변환(`ToNumber` → 부호 있는 절삭 → 2^32 modulo, `[EnforceRange]`의 범위 초과 `RangeError`는 아직 없음)하고 나머지 타입(`any`/`object`/interface 타입/`DOMString`/dictionary/...)은 여전히 identity passthrough입니다.
+- **Why not mechanized**: 1번과 근본 원인이 같습니다 — WebIDL의 타입별 변환 규칙 전체(dictionary 재귀 변환, enum 매칭, `[EnforceRange]`/`[Clamp]` 등 확장 속성, `TypeError`/`RangeError` 발생)를 기계화하려면 아직 시간이 오래 걸림. `"unsigned long"`만 손으로 채운 건 `Exception.prototype.getArg`가 실제로 이 gap에 걸렸기 때문(`personal/TODO.md` #11) — 나머지 타입은 이 함수에 `case`를 하나 추가하면 되는 구조라, 실제로 막히는 자리가 나올 때마다 늘려나가면 됨.
 
 ## 3. WebIDL buffer-source 인자 변환 (`ToWebIDLArrayBuffer`)
 

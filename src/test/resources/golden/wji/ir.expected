@@ -549,6 +549,7 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Module.prototype.exports(
   } else {
     let moduleObject = undefined
   }
+  call moduleObject = clo<"converted_to_an_idl_value">(moduleObject, "Module")
   let module = moduleObject.Module
   let exports = (list [])
   call-embed _iterList1 = <module_exports>(module)
@@ -582,6 +583,7 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Module.prototype.imports(
   } else {
     let moduleObject = undefined
   }
+  call moduleObject = clo<"converted_to_an_idl_value">(moduleObject, "Module")
   let module = moduleObject.Module
   let builtinSetNames = moduleObject.BuiltinSets
   let importedStringModule = moduleObject.ImportedStringModule
@@ -625,11 +627,13 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Module.prototype.customsections(
   } else {
     let moduleObject = undefined
   }
+  call moduleObject = clo<"converted_to_an_idl_value">(moduleObject, "Module")
   if (< 1 (sizeof ArgumentsList)) {
     let sectionName = ArgumentsList[1]
   } else {
     let sectionName = undefined
   }
+  call sectionName = clo<"converted_to_an_idl_value">(sectionName, "DOMString")
   let bytes = moduleObject.Bytes
   let customSections = (list [])
   (yet "foreach [=custom_section=](|customSection|) in |bytes|")
@@ -655,11 +659,13 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Module(
   } else {
     let bytes = undefined
   }
+  call bytes = clo<"converted_to_an_idl_value">(bytes, "AllowSharedBufferSource")
   if (< 1 (sizeof ArgumentsList)) {
     let options = ArgumentsList[1]
   } else {
     let options = undefined
   }
+  call options = clo<"converted_to_an_idl_value">(options, "WebAssemblyCompileOptions")
   call stableBytes = clo<"get_a_copy_of_the_buffer_source">(bytes)
   call module = clo<"compile_a_webassembly_module">(stableBytes)
   if (= module (case "ERROR" )) {
@@ -700,11 +706,13 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Instance(
   } else {
     let moduleObject = undefined
   }
+  call moduleObject = clo<"converted_to_an_idl_value">(moduleObject, "Module")
   if (< 1 (sizeof ArgumentsList)) {
     let importObject = ArgumentsList[1]
   } else {
     let importObject = undefined
   }
+  call importObject = clo<"converted_to_an_idl_value">(importObject, "object")
   let builtinSetNames = moduleObject.BuiltinSets
   let importedStringModule = moduleObject.ImportedStringModule
   let module = moduleObject.Module
@@ -834,6 +842,7 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Memory(
   } else {
     let descriptor = undefined
   }
+  call descriptor = clo<"converted_to_an_idl_value">(descriptor, "MemoryDescriptor")
   if (exists descriptor.address) {
     let addrtype = descriptor.address
   } else {
@@ -935,6 +944,7 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Memory.prototype.grow(
   } else {
     let delta = undefined
   }
+  call delta = clo<"converted_to_an_idl_value">(delta, "AddressValue")
   let memaddr = this.Memory
   let store = @AGENT_RECORD["associated store"]
   let addrtype = (yet "the [=address type=] in [=mem_type=](|store|, |memaddr|)")
@@ -1148,11 +1158,13 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Table(
   } else {
     let descriptor = undefined
   }
+  call descriptor = clo<"converted_to_an_idl_value">(descriptor, "TableDescriptor")
   if (< 1 (sizeof ArgumentsList)) {
     let value = ArgumentsList[1]
   } else {
     let value = undefined
   }
+  call value = clo<"converted_to_an_idl_value">(value, "any")
   call elementtype = clo<"tovaluetype">(descriptor.element)
   if (! (? elementtype: Unknown["reftype"])) {
     call _err1 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
@@ -1236,11 +1248,13 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Table.prototype.grow(
   } else {
     let delta = undefined
   }
+  call delta = clo<"converted_to_an_idl_value">(delta, "AddressValue")
   if (< 1 (sizeof ArgumentsList)) {
     let value = ArgumentsList[1]
   } else {
     let value = undefined
   }
+  call value = clo<"converted_to_an_idl_value">(value, "any")
   let tableaddr = this.Table
   let store = @AGENT_RECORD["associated store"]
   call-embed initialSize = <table_size>(store, tableaddr)
@@ -1321,6 +1335,7 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Table.prototype.get(
   } else {
     let index = undefined
   }
+  call index = clo<"converted_to_an_idl_value">(index, "AddressValue")
   let tableaddr = this.Table
   let store = @AGENT_RECORD["associated store"]
   call-embed _tuple1 = <table_type>(store, tableaddr)
@@ -1367,11 +1382,13 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Table.prototype.set(
   } else {
     let index = undefined
   }
+  call index = clo<"converted_to_an_idl_value">(index, "AddressValue")
   if (< 1 (sizeof ArgumentsList)) {
     let value = ArgumentsList[1]
   } else {
     let value = undefined
   }
+  call value = clo<"converted_to_an_idl_value">(value, "any")
   let tableaddr = this.Table
   let store = @AGENT_RECORD["associated store"]
   call-embed _tuple1 = <table_type>(store, tableaddr)
@@ -1520,11 +1537,13 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Global(
   } else {
     let descriptor = undefined
   }
+  call descriptor = clo<"converted_to_an_idl_value">(descriptor, "GlobalDescriptor")
   if (< 1 (sizeof ArgumentsList)) {
     let v = ArgumentsList[1]
   } else {
     let v = undefined
   }
+  call v = clo<"converted_to_an_idl_value">(v, "any")
   let mutable = descriptor.mutable
   call valuetype = clo<"tovaluetype">(descriptor.value)
   call-embed _m1 = <match_valtype>(valuetype, (case "V128" ))
@@ -2382,6 +2401,7 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Tag(
   } else {
     let type = undefined
   }
+  call type = clo<"converted_to_an_idl_value">(type, "TagType")
   let parameters = type.parameters
   let wasmParameters = (list [])
   let _iterList1 = parameters
@@ -2540,16 +2560,19 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Exception(
   } else {
     let exceptionTag = undefined
   }
+  call exceptionTag = clo<"converted_to_an_idl_value">(exceptionTag, "Tag")
   if (< 1 (sizeof ArgumentsList)) {
     let payload = ArgumentsList[1]
   } else {
     let payload = undefined
   }
+  call payload = clo<"converted_to_an_idl_value">(payload, "sequence<any>")
   if (< 2 (sizeof ArgumentsList)) {
     let options = ArgumentsList[2]
   } else {
     let options = undefined
   }
+  call options = clo<"converted_to_an_idl_value">(options, "ExceptionOptions")
   call JSTagAddr = clo<"get_the_javascript_exception_tag">()
   if (= exceptionTag.Address JSTagAddr) {
     call _err1 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
@@ -2605,11 +2628,13 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Exception.prototype.getarg(
   } else {
     let exceptionTag = undefined
   }
+  call exceptionTag = clo<"converted_to_an_idl_value">(exceptionTag, "Tag")
   if (< 1 (sizeof ArgumentsList)) {
     let index = ArgumentsList[1]
   } else {
     let index = undefined
   }
+  call index = clo<"converted_to_an_idl_value">(index, "unsigned long")
   let store = @AGENT_RECORD["associated store"]
   if (! (= this.Type exceptionTag.Address)) {
     call _err1 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
@@ -2650,6 +2675,7 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Exception.prototype.is(
   } else {
     let exceptionTag = undefined
   }
+  call exceptionTag = clo<"converted_to_an_idl_value">(exceptionTag, "Tag")
   if (! (= this.Type exceptionTag.Address)) {
     let _v1 = false
     if (? _v1: Completion) {

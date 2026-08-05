@@ -303,11 +303,21 @@ object ExprParser:
   // whole list, mirroring `Cond.IsOfForm`'s `Expr.Case` args). Placed before
   // IndexByStr/IndexByVar/etc below — those would otherwise misparse this as
   // `base[key]` indexing, since the text happens to end in `[...]` too.
-  // Requires non-empty content on both sides (a bare `[]` side, e.g. "Let
-  // [|types|] → [] be ...", isn't reached yet — left as a gap to extend
-  // into if/when it is).
+  // A bare `[]` side (e.g. "Let [|types|] → [] be ...", meaning that side has
+  // zero elements to destructure -- see `getArg`/`exn_read`'s use, whose
+  // `functype` genuinely never has any results) parses that side to a
+  // discard `Var("_")` below, rather than to nothing: `Expr.Case`'s `args`
+  // has no way to mark "skip this position" while still keeping the other
+  // side's `TupleProj` index correct, and `ExpandDestructuringLetPass` only
+  // destructures when every arg is a bare `Var` (see that pass's doc) -- `_`
+  // is the same discard convention `Instr.Perform`'s `PerformOutcome.Discard`
+  // already uses. `_` being a *discard* (rather than, say, an `Assert` that
+  // the runtime list at that position really is empty) is itself a
+  // simplification: strictly, `[]` isn't just "don't bind this side", it's
+  // "assert this side is the empty list" -- not enforced here, left for
+  // whenever that distinction actually matters.
   private val CompTypeArrow =
-    """(?s)^\[\s*([^\[\]]+)\s*\]\s*→\s*\[\s*([^\[\]]+)\s*\]$""".r
+    """(?s)^\[\s*([^\[\]]*)\s*\]\s*→\s*\[\s*([^\[\]]*)\s*\]$""".r
   private val IndexByStr = """(?s)^(.+)\["([^"]+)"\]$""".r
   private val IndexByVar = """(?s)^(.+)\[(\|[^|]+\|)\]$""".r
   private val IndexByNum = """(?s)^(.+)\[(-?\d+)\]$""".r
@@ -594,7 +604,9 @@ object ExprParser:
         GetMember(parse(baseRaw), memberKind)
       case PossessiveAssociation(baseRaw, link) => fieldFromLink(baseRaw, link)
       case CompTypeArrow(paramsRaw, resultsRaw) =>
-        Case("->", List(parse(paramsRaw), parse(resultsRaw)))
+        def side(raw: String): Expr =
+          if raw.trim.isEmpty then Var("_") else parse(raw)
+        Case("->", List(side(paramsRaw), side(resultsRaw)))
       case IndexByStr(baseRaw, key)    => Index(parse(baseRaw), Str(key))
       case IndexByVar(baseRaw, varRaw) => Index(parse(baseRaw), parse(varRaw))
       case IndexByNum(baseRaw, n)      => Index(parse(baseRaw), parse(n))

@@ -11,6 +11,7 @@ import esmeta.wji.bridge.rpc.JsonRpcConnection
 import esmeta.wji.compiler.Compiler
 import esmeta.wji.compiler.lowering.Lowering
 import esmeta.wji.extractor.Extractor
+import esmeta.wji.spec.Spec
 import org.scalatest.Assertions.*
 import scala.util.{Success, Try}
 
@@ -22,13 +23,14 @@ import scala.util.{Success, Try}
   */
 object WjiTest:
 
+  lazy val spec = Extractor()
+
   /** the WJI IR program merged into the SAME mainline CFG every
     * `esmeta.es`/`esmeta.ir` test already shares (`ESMetaTest.cfg`) — built
     * once (JVM-wide `lazy val`) and reused across every test case, rather than
     * re-extracting/re-compiling the spec per test.
     */
   lazy val mergedCfg: CFG =
-    val spec = Extractor()
     // must happen before the interpreter runs (see esmeta.wji.spec.Spec's doc)
     spec.registerDefinitionTypes()
     val wjiProgram = Compiler.compile(Lowering.run(spec.algorithms))
@@ -91,9 +93,12 @@ object WjiTest:
     * it's still safe to reuse. Always checks that the test case itself set
     * `__wjiOk` (see above).
     */
-  def evalFile(jsPath: String, connection: JsonRpcConnection): State =
+  def evalFile(
+    jsPath: String,
+    connection: JsonRpcConnection,
+  ): State =
     val st = mergedCfg.init.fromFile(jsPath)
-    val host = Initialize(st, connection)
+    val host = Initialize(st, spec, connection)
     val result = new RunToCompletion(st, Some(host)).result
     assert(
       wjiOk(result) == Success(Bool(true)),

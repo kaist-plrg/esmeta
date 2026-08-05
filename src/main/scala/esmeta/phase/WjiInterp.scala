@@ -132,7 +132,7 @@ case object WjiInterp extends Phase[CFG, Value] {
 
     val func = mergedCfg.getFunc(config.entry)
 
-    val (host, connection) = wji.Initialize(st)
+    val (host, connection) = wji.Initialize(st, spec)
 
     // "Each agent is associated with the following ordered maps: ... The
     // Exported Function cache, mapping function addresses to Exported

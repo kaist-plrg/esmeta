@@ -1,10 +1,19 @@
 package esmeta.wji
 
-import esmeta.es.builtin.AGENT_RECORD
+import esmeta.cfg.CFG
+import esmeta.es.builtin.{AGENT_RECORD, HOST_DEFINED}
+import esmeta.ir.Global
 import esmeta.state.*
 import esmeta.wji.bridge.SpecTecWasmHost
 import esmeta.wji.bridge.process.SpecTecProcess
 import esmeta.wji.bridge.rpc.JsonRpcConnection
+import esmeta.wji.extractor.Extractor
+import esmeta.wji.spec.Spec
+import esmeta.wji.lang.{Definition, DefinitionKind}
+import esmeta.wji.lang.{Operation => WjiOperation}
+import esmeta.wji.lang.{Attribute => WjiAttribute}
+import esmeta.wji.lang.{Param => WjiParam}
+import esmeta.wji.lang.ExtendedAttribute
 
 /** WJI runtime initialization, shared by every phase that runs compiled WJI IR
   * against a live SpecTec process (`wji-eval`, `wji-interp`).
@@ -50,7 +59,11 @@ object Initialize:
     * call. Does *not* close `connection` on failure — unlike the one-arg
     * [[apply]], this overload doesn't own the connection's lifecycle.
     */
-  def apply(st: State, connection: JsonRpcConnection): SpecTecWasmHost =
+  def apply(
+    st: State,
+    spec: Spec,
+    connection: JsonRpcConnection,
+  ): SpecTecWasmHost =
     val host = SpecTecWasmHost(connection)
 
     host.call("store_init", Nil) match
@@ -111,7 +124,111 @@ object Initialize:
       st.heap.allocMap(Nil),
     )
 
+    seedHostDefined(st, spec)
+
     host
+
+  /** Builds a runtime record for the extracted `WebAssembly` [[Definition]] and
+    * writes it into `HOST_DEFINED.WebAssembly` — the namespace record
+    * `create_a_namespace_object` (see `manuals/rule.json`'s "Create any
+    * host-defined global object properties on _global_." patch) builds the real
+    * `WebAssembly` global object from, instead of a hardcoded intrinsic.
+    *
+    * Each runtime record mirrors its `esmeta.wji.lang` counterpart's own field
+    * shape 1:1 (`id`/`params`/`returnType`/`kind`/`extendedAttributes`, ...),
+    * so a mechanized WebIDL algorithm reads exactly the data the real spec text
+    * describes — no pre-filtered/pre-computed field (e.g. "the regular
+    * operations") is baked in here; that's the mechanized algorithms' own job
+    * once they read `kind`/`extendedAttributes` themselves. The one field with
+    * no `esmeta.wji.lang` counterpart at all is `operation`'s `methodSteps`:
+    * the actual compiled closure implementing that operation's algorithm body
+    * (looked up by `id` in the already-merged `cfg.fnameMap`), since nothing
+    * about the *syntactic* `Definition` extraction knows how its members ended
+    * up compiled. Requires `st.cfg` to be the merged CFG (WJI funcs included) —
+    * this must run after that merge, not before.
+    */
+  private def seedHostDefined(st: State, spec: Spec): Unit =
+    given CFG = st.cfg
+
+    def extAttrRecord(ea: ExtendedAttribute): Addr =
+      st.allocRecord(
+        "extendedAttribute",
+        List(
+          "id" -> Str(ea.id),
+          "value" -> ea.value.fold[Value](Undef)(Str(_)),
+        ),
+      )
+
+    def paramRecord(p: WjiParam): Addr =
+      st.allocRecord(
+        "param",
+        List(
+          "ty" -> Str(p.ty),
+          "optional" -> Bool(p.optional),
+          "default" -> Str(p.default),
+          "extendedAttributes" ->
+          st.allocList(p.extAttribute.map(extAttrRecord)),
+        ),
+      )
+
+    def operationRecord(op: WjiOperation): Addr =
+      st.allocRecord(
+        "operation",
+        List(
+          "id" -> Str(op.id),
+          "params" -> st.allocList(op.params.map(paramRecord)),
+          "returnType" -> Str(op.ret),
+          "kind" -> Str(op.kind.toString),
+          "extendedAttributes" -> st.allocList(op.extAttr.map(extAttrRecord)),
+          "methodSteps" -> st.cfg.fnameMap
+            .get(op.id)
+            .fold[Value](Undef)(f => Clo(f, Map())),
+        ),
+      )
+
+    def attributeRecord(attr: WjiAttribute): Addr =
+      st.allocRecord(
+        "attribute",
+        List(
+          "id" -> Str(attr.id),
+          "ty" -> Str(attr.ty),
+          "readonly" -> Bool(attr.readonly),
+          "kind" -> Str(attr.kind.toString),
+          "extendedAttributes" ->
+          st.allocList(attr.extAttr.map(extAttrRecord)),
+        ),
+      )
+
+    def definitionRecord(d: Definition): Addr =
+      val operations = d.members.collect {
+        case op: WjiOperation =>
+          operationRecord(op)
+      }
+      val attributes = d.members.collect {
+        case attr: WjiAttribute =>
+          attributeRecord(attr)
+      }
+      val tname = d.kind match
+        case DefinitionKind.Namespace => "namespace"
+        case DefinitionKind.Interface => "interface"
+      st.allocRecord(
+        tname,
+        List(
+          "id" -> Str(d.name),
+          "operations" -> st.allocList(operations),
+          "attributes" -> st.allocList(attributes),
+          "kind" -> Str(d.kind.toString),
+          "extendedAttributes" -> st.allocList(d.extAttr.map(extAttrRecord)),
+        ),
+      )
+
+    spec.definitions.foreach { definition =>
+      st.heap.update(
+        NamedAddr(HOST_DEFINED),
+        Str(definition.name),
+        definitionRecord(definition),
+      )
+    }
 
   /** starts a live SpecTec process, seeds `st`'s AGENT_RECORD's "associated
     * store" field in place, and returns the host + connection for the
@@ -124,9 +241,9 @@ object Initialize:
     * `esmeta.wji.WjiTest`/`EvalSpec` for the multi-`State`-per-process case
     * those were split out to support.
     */
-  def apply(st: State): (SpecTecWasmHost, JsonRpcConnection) =
+  def apply(st: State, spec: Spec): (SpecTecWasmHost, JsonRpcConnection) =
     val connection = startProcess()
-    try (apply(st, connection), connection)
+    try (apply(st, spec, connection), connection)
     catch
       case e: Throwable =>
         connection.close()

@@ -2,6 +2,7 @@ package esmeta.phase
 
 import esmeta.*
 import esmeta.util.*
+import esmeta.wji.spec.Spec
 import esmeta.wji.lang.Algorithm
 import esmeta.wji.compiler.Compiler
 import esmeta.wji.compiler.lowering.Lowering
@@ -14,16 +15,16 @@ import esmeta.ir.Program
   * can later be merged into the same `CFG`). Optionally prints the rendered IR
   * (replaces the old `printIR` entry point).
   */
-case object WjiCompile extends Phase[List[Algorithm], Program] {
+case object WjiCompile extends Phase[Spec, Program] {
   val name = "wji-compile"
   val help = "compiles WJI algorithms to a WJI IR program."
 
   def apply(
-    algorithms: List[Algorithm],
+    spec: Spec,
     cmdConfig: CommandConfig,
     config: Config,
   ): Program =
-    val program = Compiler.compile(Lowering.run(algorithms))
+    val program = Compiler.compile(Lowering.run(spec.algorithms))
     if (config.log)
       println(s"${program.funcs.size} func(s)")
       println(program.toString())

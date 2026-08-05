@@ -47,7 +47,7 @@ class Initialize(cfg: CFG) {
     EXECUTION_STACK ->
     (NamedAddr(EXECUTION_STACK), ListT(RecordT("ExecutionContext"))),
     SOURCE_TEXT -> (Str(""), StrT),
-    HOST_DEFINED -> (Undef, UndefT),
+    HOST_DEFINED -> (NamedAddr(HOST_DEFINED), RecordT("HostDefined")),
     INTRINSICS -> (NamedAddr(INTRINSICS), UnknownTy()),
     TYPED_ARRAY -> (NamedAddr(TYPED_ARRAY), MapT(StrT, taType)),
     GLOBAL -> (NamedAddr(GLOBAL), UnknownTy()),
@@ -99,6 +99,7 @@ class Initialize(cfg: CFG) {
       NamedAddr(EXECUTION_STACK) -> ListObj(),
       NamedAddr(JOB_QUEUE) -> ListObj(),
       NamedAddr(SYMBOL_REGISTRY) -> ListObj(),
+      NamedAddr(HOST_DEFINED) -> recordObj("HostDefined"),
     )
 
     // add symbols

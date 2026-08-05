@@ -38,17 +38,17 @@ case object WjiEval extends Phase[CFG, State] {
 
     val extractConfig = WjiExtract.defaultConfig
     extractConfig.filter = config.filter
-    val algorithms = WjiExtract((), cmdConfig, extractConfig)
+    val spec = WjiExtract((), cmdConfig, extractConfig)
 
     val compileConfig = WjiCompile.defaultConfig
-    val wjiProgram = WjiCompile(algorithms, cmdConfig, compileConfig)
+    val wjiProgram = WjiCompile(spec, cmdConfig, compileConfig)
 
     val merged =
       Program(cfg.program.funcs ++ wjiProgram.funcs, cfg.program.spec)
     val mergedCfg = CFGBuilder(merged)
 
     val st = mergedCfg.init.fromFile(filename)
-    val (host, connection) = wji.Initialize(st)
+    val (host, connection) = wji.Initialize(st, spec)
     val sep = "─" * 64
     try EsInterpreter(st, log = config.log, wasmHost = Some(host))
     catch

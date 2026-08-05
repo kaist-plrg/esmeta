@@ -88,6 +88,9 @@ object SpecPatch:
     "The <dfn method for=\"WebAssembly\">instantiate(|moduleObject|, |importObject|)</dfn> method, when invoked, performs the following steps:"
     ->
     "The <dfn method for=\"WebAssembly\">instantiate_object(|moduleObject|, |importObject|)</dfn> method, when invoked, performs the following steps:",
+    "Promise&lt;Instance> instantiate("
+    ->
+    "Promise&lt;Instance> instantiate_object(",
 
     // #4 (spec bug, docs/spec_errors.md #3; and suggestion) — two distinct
     // fixes bundled into the same replacements below, since both land on the

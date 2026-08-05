@@ -3,6 +3,7 @@ package esmeta.phase
 import esmeta.*
 import esmeta.util.*
 import esmeta.wji.extractor.Extractor
+import esmeta.wji.spec.Spec
 import esmeta.wji.lang.Algorithm
 import esmeta.wji.lang.printer.InstrPrinter
 
@@ -12,7 +13,7 @@ import esmeta.wji.lang.printer.InstrPrinter
   * Optionally narrows them with a substring `filter` and prints the rendered
   * metalanguage ASTs (replaces the old `printAlgorithms` entry point).
   */
-case object WjiExtract extends Phase[Unit, List[Algorithm]] {
+case object WjiExtract extends Phase[Unit, Spec] {
   val name = "wji-extract"
   val help = "extracts WJI algorithms from the WebAssembly JS API specs."
 
@@ -20,7 +21,7 @@ case object WjiExtract extends Phase[Unit, List[Algorithm]] {
     unit: Unit,
     cmdConfig: CommandConfig,
     config: Config,
-  ): List[Algorithm] =
+  ): Spec =
     val spec = Extractor()
     // must happen before the interpreter runs (see RecordTy's doc) — done
     // here since every wji-eval/wji-interp run passes through this phase
@@ -31,7 +32,7 @@ case object WjiExtract extends Phase[Unit, List[Algorithm]] {
       else
         println(s"${selected.size} algorithm(s)")
         for (algo <- selected) println(InstrPrinter.render(algo))
-    selected
+    spec.copy(algorithms = selected)
 
   /** keep algorithms whose `name` or `id` contains `filter` (case-insensitive)
     */

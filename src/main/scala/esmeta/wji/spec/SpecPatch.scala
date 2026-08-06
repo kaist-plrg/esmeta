@@ -322,25 +322,52 @@ object SpecPatch:
     )} to |promiseOfModule| with |onFullfilledSteps|, and |onRejectedSteps| in the [=current Realm=]."""
       .stripMargin('#'),
 
-    // #13 (spec bug) — a host function's "name" (used for
-    // Function.prototype.name/.length-style introspection) was derived
-    // differently depending on whether |funcaddr| pointed at a host function
-    // or a module-defined one, because a host function's `funcinst` used to
-    // be shaped `{type, hostcode hostfunc}` — no `module` field at all — so
-    // `name of the WebAssembly function` branched on that shape, and `read
-    // the imports` had to separately track "index of the host function"
-    // (a host function's position among |imports|) since it couldn't fall
-    // back to the module-defined path's |funcaddrs| lookup. The underlying
-    // Wasm Core Spec's `funcinst` representation has since changed so that
-    // both kinds of function instance carry a `module` field — the branch
-    // (and the index-of-the-host-function tracking that only existed to feed
-    // it) is now dead code that js-api/index.bs never updated to drop.
+    // #13 (spec inconsistency, docs/spec_inconsistencies.md #11) — a host
+    // function's "name" (used for Function.prototype.name/.length-style
+    // introspection) needs its position among the module's function-typed
+    // imports, computed once when the host function is created (`read the
+    // imports`) and needed again later, keyed by |funcaddr|, by an unrelated
+    // algorithm (`name of the WebAssembly function`). The original prose
+    // wrote this as an ad-hoc "Let |index| be N. This value |index| is known
+    // as the index of the host function |funcaddr|." — an inline dfn
+    // introduced mid-algorithm, a shape nothing else in this document uses
+    // and this project doesn't mechanize. Every structurally identical need
+    // elsewhere in this same document (funcaddr -> JS object, keyed lookup
+    // from a completely different algorithm) instead uses an explicit
+    // "surrounding agent's associated <ordered map/list>" (see the "Exported
+    // Function cache" family, index.bs:346-353) — rewritten here the same
+    // way, using a plain list rather than a map since the value being
+    // recovered later isn't a cached object, just a position, and "the index
+    // of X where Y is found" (already used by the sibling module-defined
+    // branch just below) recovers it without needing map/exists+map/Set.
+    // Also fixes the host/module-defined dispatch itself: the original `If
+    // |funcinst| is of the form {type functype, hostcode |hostfunc|}`
+    // pattern-matches a funcinst shape the Wasm Core Spec no longer has —
+    // funcinst is uniformly {TYPE deftype, MODULE moduleinst, CODE funccode}
+    // now (4.4-execution.modules.spectec:74-75), so this dispatches on
+    // |funcinst|.code's own HOSTFUNC-vs-FUNC shape instead
+    // (funccode = func | hostfunc, 4.0-execution.configurations.spectec:60-61).
+    // The dropped "Assert: |hostfunc| is a JavaScript object..." step is
+    // dropped for the same reason: a host function's CODE payload is an
+    // opaque id (`HOSTFUNC text`), not the JS object itself, so asserting
+    // that no longer makes sense either. Both branches converge on binding
+    // |funcaddrs| to just that one list — the sanity-check Assert (still
+    // meaningful either way: a funcaddr found this way is always actually in
+    // that list, by construction) and the final index lookup are each
+    // written once, after the branch, instead of duplicated per branch.
+    // Writes `|funcinst|.module.funcs` directly (chained field access,
+    // already a general `ExprParser`/`DotField` capability, no `|moduleinst|`
+    // intermediate needed) rather than `.funcaddrs` — this rewrite already
+    // produces the field name `docs/spec_errors.md` #10 separately fixes, so
+    // that patch's own `"|moduleinst|.funcaddrs"` text no longer occurs here
+    // for it to match; #10 stays (still an accurate, reportable bug against
+    // the *unpatched* spec text) but is now a no-op for this occurrence.
     "                1. [=Create a host function=] from |v| and |functype|, and let |funcaddr| be the result.\n                1. Let |index| be the number of external functions in |imports|. This value |index| is known as the <dfn>index of the host function</dfn> |funcaddr|.\n            1. Let |externfunc| be the [=external value=] [=external value|func=] |funcaddr|."
     ->
-    "                1. [=Create a host function=] from |v| and |functype|, and let |funcaddr| be the result.\n            1. Let |externfunc| be the [=external value=] [=external value|func=] |funcaddr|.",
+    "                1. [=Create a host function=] from |v| and |functype|, and let |funcaddr| be the result.\n            1. Let |externfunc| be the [=external value=] [=external value|func=] |funcaddr|.\n            1. [=list/Append=] |funcaddr| to the [=surrounding agent=]'s associated [=Function Import List=].",
     "    1. If |funcinst| is of the form {type <var ignore>functype</var>, hostcode |hostfunc|},\n        1. Assert: |hostfunc| is a JavaScript object and [$IsCallable$](|hostfunc|) is true.\n        1. Let |index| be the [=index of the host function=] |funcaddr|.\n    1. Otherwise,\n        1. Let |moduleinst| be |funcinst|.module.\n        1. Assert: |funcaddr| is contained in |moduleinst|.funcaddrs.\n        1. Let |index| be the index of |moduleinst|.funcaddrs where |funcaddr| is found."
     ->
-    "    1. Let |moduleinst| be |funcinst|.module.\n    1. Assert: |funcaddr| is contained in |moduleinst|.funcaddrs.\n    1. Let |index| be the index of |moduleinst|.funcaddrs where |funcaddr| is found.",
+    "    1. If |funcinst|.code is of the form [=hostfunc=] <var ignore>hostfunc</var>,\n        1. Let |funcaddrs| be the [=surrounding agent=]'s associated [=Function Import List=].\n    1. Otherwise,\n        1. Let |funcaddrs| be |funcinst|.module.funcs.\n    1. Assert: |funcaddr| is contained in |funcaddrs|.\n    1. Let |index| be the index of |funcaddrs| where |funcaddr| is found.",
 
     // #15 (spec inconsistency, docs/spec_inconsistencies.md #2) — normalizes
     // the "external value" family's 4 non-tag variants from Bikeshed

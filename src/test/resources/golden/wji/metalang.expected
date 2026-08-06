@@ -134,6 +134,7 @@
       Else
         PerformAndLet([=Create a host function=](|v|, |functype|), |funcaddr|)
       Let(|externfunc|, [=external value/func=](|funcaddr|))
+      Append(|funcaddr|, [=surrounding agent=].[[Function Import List]])
       Append(|externfunc|, |imports|)
     If(|externtype| is of the form [=external-type/global=](|mut|, |valtype|))
       If(|v| [=implements=] {{Global}})
@@ -779,9 +780,12 @@
   head: The <dfn>name of the WebAssembly function</dfn> |funcaddr| is found by performing the following steps:
   Let(|store|, [=surrounding agent=].[[associated store]])
   Let(|funcinst|, |store|.[[funcs]][|funcaddr|])
-  Let(|moduleinst|, |funcinst|.[[module]])
-  Assert(|funcaddr| is contained in |moduleinst|.[[funcs]])
-  Let(|index|, the index of |moduleinst|.[[funcs]] where |funcaddr| is found)
+  If(|funcinst|.[[code]] is of the form [=hostfunc=](|hostfunc|))
+    Let(|funcaddrs|, [=surrounding agent=].[[Function Import List]])
+  Else
+    Let(|funcaddrs|, |funcinst|.[[module]].[[funcs]])
+  Assert(|funcaddr| is contained in |funcaddrs|)
+  Let(|index|, the index of |funcaddrs| where |funcaddr| is found)
   Return([=!=] [$ToString$](|index|))
 
 # a new Exported Function

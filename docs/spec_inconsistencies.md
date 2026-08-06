@@ -173,3 +173,11 @@
 - **Expected**: `1. Let |hostaddr| be the smallest address such that |map|[|hostaddr|] [=map/exists=] is false.` — 스칼라 값을 선언하는 다른 모든 `Let |var| be ...`와 동일하게, 타입 링크 없이.
 - **Reason**: 이 파일에서 `Let [=TYPE=] |var| be ...` 형태로 쓰이는 곳은 총 6곳뿐인데, 그중 5곳(`external value|func`/`global`/`mem`/`table`/`tag`, line 561/566/571/576/582)은 진짜 SpecTec 태그드 유니온 값을 destructure하는 표기(런타임에서 실제로 Case 태그를 갖는 값)이고, 이 한 곳만 순수 스칼라(정수) 값에 타입 annotation을 붙인 유일한 경우입니다. 다른 스칼라 `Let`은 전부 그냥 `Let |var| be ...`만 씁니다. `ExprParser`는 "[=link=] |var|"(공백만 있고 괄호 없음) 모양을 늘 "링크를 |var| 인자로 호출"로 해석하므로(`LinkProse`), 이 자리는 Let의 LHS가 `AlgoCall`로 잘못 파싱됩니다.
 - **WJI 쪽 처리**: `SpecPatch` #31로 우회 — "[=host address=] " 부분을 그냥 삭제.
+
+## 11. `index of the host function`이 이 문서의 다른 곳과 다르게 "surrounding agent's associated map" 관용구 대신 mid-algorithm dfn으로 표현됨
+
+- **File**: `spectec/document/js-api/index.bs`, 원래 line ~512 (`read the imports`)와 ~1249-1255 (`name of the WebAssembly function`)
+- **Current**: `1. Let |index| be the number of external functions in |imports|. This value |index| is known as the <dfn>index of the host function</dfn> |funcaddr|.` — 알고리즘 실행 중 계산한 값에 그 자리에서 dfn을 붙여 이름 짓고, 나중에 다른 알고리즘(`name of the WebAssembly function`)이 그 dfn 링크(`[=index of the host function=] |funcaddr|`)로 역참조하는 형태.
+- **Expected**: 바로 옆 `a new Exported Function`(line 1260-)이 정확히 같은 문제(funcaddr로 나중에 값을 다시 찾아써야 함)를 이미 풀어놓은 방식 그대로 — `[=surrounding agent=]`의 `associated` map/list에 명시적으로 적어넣고 나중에 조회.
+- **Reason**: "지금 계산한 값을 funcaddr 같은 키로 나중에 다른 알고리즘이 다시 찾아쓴다"는 요구사항 자체는 이 문서에 이미 8번 반복되는 패턴(`Exported Function cache`/`Memory object cache`/`host value cache`/... 전부 `surrounding agent`가 소유한 map)인데, 이 한 자리만 그 관용구를 안 쓰고 "Let |X| be N. This value X is known as Y |key|." 라는 즉석 dfn 도입 형태로 써서, 이 문서 자체가 이미 세운 패턴과 어긋납니다.
+- **WJI 쪽 처리**: `SpecPatch` #13으로 우회 — `read the imports`는 `[=surrounding agent=]`의 새 `[=Function Import List=]`(캐시들과 달리 JS 객체가 아니라 순서 정보만 필요하므로 map이 아니라 plain list)에 `funcaddr`을 append하고, `name of the WebAssembly function`은 옆 module-defined 분기가 이미 쓰던 "the index of X where Y is found" 패턴을 그대로 재사용해 조회합니다. 덧붙여 host/module-defined 분기를 가르던 조건(`If |funcinst| is of the form {type functype, hostcode |hostfunc|}`)도 지금은 존재하지 않는 funcinst shape을 매칭하고 있길래, `|funcinst|.code`가 `[=hostfunc=]`/`[=func=]` 중 어느 태그인지로 판별하도록 같이 고쳤습니다 (배경은 `docs/spec_errors.md` #7의 retraction 참고).

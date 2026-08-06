@@ -240,6 +240,7 @@ def read_the_imports(
         call funcaddr = clo<"create_a_host_function">(v, functype)
       }
       let externfunc = (case "FUNC" funcaddr)
+      push @AGENT_RECORD["Function Import List"] < funcaddr
       push imports < externfunc
     } else nop
     if (&& (= (case-tag externtype) "GLOBAL") (= (case-tag externtype[0]) "")) {
@@ -1686,10 +1687,15 @@ def name_of_the_webassembly_function(
 ): Unknown = {
   let store = @AGENT_RECORD["associated store"]
   let funcinst = store.funcs[funcaddr]
-  let moduleinst = funcinst.module
-  assert (contains moduleinst.funcs funcaddr)
+  if (= (case-tag funcinst.code) "HOSTFUNC") {
+    let hostfunc = funcinst.code[0]
+    let funcaddrs = @AGENT_RECORD["Function Import List"]
+  } else {
+    let funcaddrs = funcinst.module.funcs
+  }
+  assert (contains funcaddrs funcaddr)
   let _idxOf1 = 0
-  while (&& (< _idxOf1 (sizeof moduleinst.funcs)) (! (= moduleinst.funcs[_idxOf1] funcaddr))) {
+  while (&& (< _idxOf1 (sizeof funcaddrs)) (! (= funcaddrs[_idxOf1] funcaddr))) {
     _idxOf1 = (+ _idxOf1 1)
   }
   let index = ([number] _idxOf1)

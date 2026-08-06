@@ -52,26 +52,9 @@
 - **Expected**: `1. If |builtinOrStringImports|[|moduleName|] [=map/exists=],` — matching every other map-membership check in the file (15+ occurrences, e.g. lines 864, 1028, 1164, 1263, all written `|map|[|key|] [=map/exists=]`, with negation as `|map|[|key|] doesn't [=map/exist=]`).
 - **Reason**: `[=map/exist|contains=]` links to the `map/exist` dfn but *displays* "contains" (Bikeshed's `|display-text=]` aliasing), and the sentence around it — `X contains Y` — is exactly WebIDL/Infra's "list contains" idiom, not the map-membership idiom used everywhere else in this file (`base[key] exists`). Per the Infra Standard, `contains` is only defined for lists — maps have no such operation — so this isn't just stylistically off, it names an operation that doesn't exist for `|builtinOrStringImports|`'s actual (map) type. This reads like a leftover from when `builtinOrStringImports` was a list: spec error #1 already shows its empty-literal is still written `« »` (the *list* notation) instead of `«[ ]»` (the *ordered map* notation), i.e. the same variable's declaration has the same kind of leftover. It looks like only the link target was updated from `list/contains` to `map/exist` when the type changed from list to map, without updating the surrounding sentence to the map idiom.
 
-## 7. Dead host-function/module-function branch in `name of the WebAssembly function`
+## 7. (retracted) Dead host-function/module-function branch in `name of the WebAssembly function`
 
-- **File**: `spectec/document/js-api/index.bs`, lines ~513 (`read the imports`) and ~1249-1255 (`name of the WebAssembly function`)
-- **Current**:
-  ```
-  1. [=Create a host function=] from |v| and |functype|, and let |funcaddr| be the result.
-  1. Let |index| be the number of external functions in |imports|. This value |index| is known as the <dfn>index of the host function</dfn> |funcaddr|.
-  ```
-  and
-  ```
-  1. If |funcinst| is of the form {type <var ignore>functype</var>, hostcode |hostfunc|},
-      1. Assert: |hostfunc| is a JavaScript object and [$IsCallable$](|hostfunc|) is true.
-      1. Let |index| be the [=index of the host function=] |funcaddr|.
-  1. Otherwise,
-      1. Let |moduleinst| be |funcinst|.module.
-      1. Assert: |funcaddr| is contained in |moduleinst|.funcaddrs.
-      1. Let |index| be the index of |moduleinst|.funcaddrs where |funcaddr| is found.
-  ```
-- **Expected**: drop the "index of the host function" tracking in `read the imports`, and collapse `name of the WebAssembly function` to just the `Otherwise` branch's steps unconditionally.
-- **Reason**: this branch exists because a host function's `funcinst` used to be shaped `{type, hostcode hostfunc}` — no `module` field — so it couldn't use the module-defined path's `|funcinst|.module`/`|funcaddrs|` lookup, and `read the imports` had to separately track a host function's position among `|imports|` ("index of the host function") to feed the other branch. The underlying Wasm Core Spec's `funcinst` representation has since changed so that both a host function's and a module-defined function's instance carry a `module` field — the branch (and the index-tracking that only existed to feed it) is now dead code the spec was never updated to drop.
+Retracted — its premise was wrong. This entry claimed the Wasm Core Spec's `funcinst` representation changed so that a host function's instance now carries a real `module` field, making the host-function branch (and `read the imports`'s "index of the host function" tracking that fed it) dead code. It doesn't: `embedding.rst`'s `func_alloc(store, deftype, hostfunc)` (the actual current Embedding API text) still allocates a host function with an *empty* module instance (`$allocfunc(S, dt, code, {})`) — `funcinst` does uniformly carry a `MODULE` field now, but for a host function that field's *value* is still empty, so the module-defined branch's `|funcinst|.module.funcaddrs` lookup this entry collapsed onto doesn't work for host functions after all. Left as a numbered gap (not renumbering the rest of this file) since other entries and `SpecPatch` cite entries here by number. See `docs/spec_inconsistencies.md` #11 for the actual fix.
 
 ## 8. `is of the form [=external-type/tag=] |attribute| ...` binds a field the runtime representation no longer has
 

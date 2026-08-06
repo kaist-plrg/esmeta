@@ -124,6 +124,12 @@ object Initialize:
       st.heap.allocMap(Nil),
     )
 
+    st.heap.update(
+      NamedAddr(AGENT_RECORD),
+      Str("Function Import List"),
+      st.heap.allocList(Nil),
+    )
+
     seedHostDefined(st, spec)
 
     host

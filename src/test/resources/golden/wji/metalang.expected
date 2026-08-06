@@ -133,8 +133,8 @@
         Let(|funcaddr|, |v|.[[FunctionAddress]])
       Else
         PerformAndLet([=Create a host function=](|v|, |functype|), |funcaddr|)
-      Let(|externfunc|, [=external value/func=](|funcaddr|))
       Append(|funcaddr|, [=surrounding agent=].[[Function Import List]])
+      Let(|externfunc|, [=external value/func=](|funcaddr|))
       Append(|externfunc|, |imports|)
     If(|externtype| is of the form [=external-type/global=](|mut|, |valtype|))
       If(|v| [=implements=] {{Global}})

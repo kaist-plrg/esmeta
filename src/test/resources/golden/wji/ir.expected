@@ -239,8 +239,8 @@ def read_the_imports(
       } else {
         call funcaddr = clo<"create_a_host_function">(v, functype)
       }
-      let externfunc = (case "FUNC" funcaddr)
       push @AGENT_RECORD["Function Import List"] < funcaddr
+      let externfunc = (case "FUNC" funcaddr)
       push imports < externfunc
     } else nop
     if (&& (= (case-tag externtype) "GLOBAL") (= (case-tag externtype[0]) "")) {

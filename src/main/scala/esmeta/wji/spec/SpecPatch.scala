@@ -106,12 +106,20 @@ object SpecPatch:
     // following line to target just the one site (and is given the type the
     // promise is actually resolved with at that site: Module, Instance, and
     // WebAssemblyInstantiatedSource respectively).
-    "1. Let |promise| be [=a new promise=].\n    1. Run the following steps [=in parallel=]:"
+    """1. Let |promise| be [=a new promise=].
+      #    1. Run the following steps [=in parallel=]:""".stripMargin('#')
     ->
-    s"1. Let |promise| be [=a new promise=] ${ofTypePromise("Module")} in the [=current Realm=].\n    1. Run the following steps [=in parallel=]:",
-    "1. Let |promise| be [=a new promise=].\n    1. Let |module| be |moduleObject|.\\[[Module]]."
+    s"""1. Let |promise| be [=a new promise=] ${ofTypePromise(
+      "Module",
+    )} in the [=current Realm=].
+      #    1. Run the following steps [=in parallel=]:""".stripMargin('#'),
+    """1. Let |promise| be [=a new promise=].
+      #    1. Let |module| be |moduleObject|.\[[Module]].""".stripMargin('#')
     ->
-    s"1. Let |promise| be [=a new promise=] ${ofTypePromise("Instance")} in the [=current Realm=].\n    1. Let |module| be |moduleObject|.\\[[Module]].",
+    s"""1. Let |promise| be [=a new promise=] ${ofTypePromise(
+      "Instance",
+    )} in the [=current Realm=].
+      #    1. Let |module| be |moduleObject|.\\[[Module]].""".stripMargin('#'),
 
     // #5 (spec bug) — `|module|.[=imports=]` treats a decoded `module` as a
     // record with named fields, a leftover from an older version of the Wasm
@@ -138,12 +146,22 @@ object SpecPatch:
     // close it and open a new one right before the setter's prose — rather
     // than one from/to pair spanning (and duplicating) the whole unchanged
     // setter body in between.
-    "<div algorithm>\n    The getter of the <dfn attribute for=\"Global\">value</dfn>"
+    """<div algorithm>
+      #    The getter of the <dfn attribute for="Global">value</dfn>"""
+      .stripMargin('#')
     ->
-    "<div algorithm=\"global-value-getter\">\n    The getter of the <dfn attribute for=\"Global\">value</dfn>",
-    "\n\n    The setter of the value attribute of {{Global}}"
+    """<div algorithm="global-value-getter">
+      #    The getter of the <dfn attribute for="Global">value</dfn>"""
+      .stripMargin('#'),
+    """
+      #
+      #    The setter of the value attribute of {{Global}}""".stripMargin('#')
     ->
-    "\n</div>\n\n<div algorithm=\"global-value-setter\">\n    The setter of the value attribute of {{Global}}",
+    """
+      #</div>
+      #
+      #<div algorithm="global-value-setter">
+      #    The setter of the value attribute of {{Global}}""".stripMargin('#'),
 
     // #7 (spec bug) — the enum values passed to `[$GetValueFromBuffer$]` are
     // written as bare `Uint8`/`Unordered` instead of the
@@ -192,16 +210,29 @@ object SpecPatch:
     "If this operation throws an exception, catch it, [=reject=] |promise| with the exception, and return |promise|."
     ->
     s"If this operation throws an exception, catch it, [=reject=] ${ofTypePromise("Instance")} |promise| with the exception, and return |promise|.",
+
     // the "Instantiate the core..."/"initialize an instance object..." catch
     // clauses share byte-identical reject text, so each patch below is
     // anchored with its own preceding line to target just the one site
     // (mirroring #4's technique for `a new promise`'s identical call sites).
-    "1.  [=Instantiate the core of a WebAssembly module=] |module| with |imports|, and let |instance| be the result.\n                If this throws an exception, catch it, [=reject=] |promise| with the exception, and terminate these substeps."
+    """1.  [=Instantiate the core of a WebAssembly module=] |module| with |imports|, and let |instance| be the result.
+      #                If this throws an exception, catch it, [=reject=] |promise| with the exception, and terminate these substeps."""
+      .stripMargin('#')
     ->
-    s"1.  [=Instantiate the core of a WebAssembly module=] |module| with |imports|, and let |instance| be the result.\n                If this throws an exception, catch it, [=reject=] ${ofTypePromise("Instance")} |promise| with the exception, and terminate these substeps.",
-    "1.  [=initialize an instance object|Initialize=] |instanceObject| from |module| and |instance|.\n                If this throws an exception, catch it, [=reject=] |promise| with the exception, and terminate these substeps."
+    s"""1.  [=Instantiate the core of a WebAssembly module=] |module| with |imports|, and let |instance| be the result.
+      #                If this throws an exception, catch it, [=reject=] ${ofTypePromise(
+      "Instance",
+    )} |promise| with the exception, and terminate these substeps."""
+      .stripMargin('#'),
+    """1.  [=initialize an instance object|Initialize=] |instanceObject| from |module| and |instance|.
+      #                If this throws an exception, catch it, [=reject=] |promise| with the exception, and terminate these substeps."""
+      .stripMargin('#')
     ->
-    s"1.  [=initialize an instance object|Initialize=] |instanceObject| from |module| and |instance|.\n                If this throws an exception, catch it, [=reject=] ${ofTypePromise("Instance")} |promise| with the exception, and terminate these substeps.",
+    s"""1.  [=initialize an instance object|Initialize=] |instanceObject| from |module| and |instance|.
+      #                If this throws an exception, catch it, [=reject=] ${ofTypePromise(
+      "Instance",
+    )} |promise| with the exception, and terminate these substeps."""
+      .stripMargin('#'),
     "1. [=Resolve=] |promise| with |instanceObject|."
     ->
     s"1. [=Resolve=] ${ofTypePromise("Instance")} |promise| with |instanceObject|.",
@@ -362,12 +393,25 @@ object SpecPatch:
     // that patch's own `"|moduleinst|.funcaddrs"` text no longer occurs here
     // for it to match; #10 stays (still an accurate, reportable bug against
     // the *unpatched* spec text) but is now a no-op for this occurrence.
-    "                1. [=Create a host function=] from |v| and |functype|, and let |funcaddr| be the result.\n                1. Let |index| be the number of external functions in |imports|. This value |index| is known as the <dfn>index of the host function</dfn> |funcaddr|.\n            1. Let |externfunc| be the [=external value=] [=external value|func=] |funcaddr|."
+    "    1. Let |index| be the number of external functions in |imports|. This value |index| is known as the <dfn>index of the host function</dfn> |funcaddr|."
     ->
-    "                1. [=Create a host function=] from |v| and |functype|, and let |funcaddr| be the result.\n            1. Let |externfunc| be the [=external value=] [=external value|func=] |funcaddr|.\n            1. [=list/Append=] |funcaddr| to the [=surrounding agent=]'s associated [=Function Import List=].",
-    "    1. If |funcinst| is of the form {type <var ignore>functype</var>, hostcode |hostfunc|},\n        1. Assert: |hostfunc| is a JavaScript object and [$IsCallable$](|hostfunc|) is true.\n        1. Let |index| be the [=index of the host function=] |funcaddr|.\n    1. Otherwise,\n        1. Let |moduleinst| be |funcinst|.module.\n        1. Assert: |funcaddr| is contained in |moduleinst|.funcaddrs.\n        1. Let |index| be the index of |moduleinst|.funcaddrs where |funcaddr| is found."
+    "1. [=list/Append=] |funcaddr| to the [=surrounding agent=]'s associated [=Function Import List=].",
+    """    1. If |funcinst| is of the form {type <var ignore>functype</var>, hostcode |hostfunc|},
+      #        1. Assert: |hostfunc| is a JavaScript object and [$IsCallable$](|hostfunc|) is true.
+      #        1. Let |index| be the [=index of the host function=] |funcaddr|.
+      #    1. Otherwise,
+      #        1. Let |moduleinst| be |funcinst|.module.
+      #        1. Assert: |funcaddr| is contained in |moduleinst|.funcaddrs.
+      #        1. Let |index| be the index of |moduleinst|.funcaddrs where |funcaddr| is found."""
+      .stripMargin('#')
     ->
-    "    1. If |funcinst|.code is of the form [=hostfunc=] <var ignore>hostfunc</var>,\n        1. Let |funcaddrs| be the [=surrounding agent=]'s associated [=Function Import List=].\n    1. Otherwise,\n        1. Let |funcaddrs| be |funcinst|.module.funcs.\n    1. Assert: |funcaddr| is contained in |funcaddrs|.\n    1. Let |index| be the index of |funcaddrs| where |funcaddr| is found.",
+    """    1. If |funcinst|.code is of the form [=hostfunc=] <var ignore>hostfunc</var>,
+      #        1. Let |funcaddrs| be the [=surrounding agent=]'s associated [=Function Import List=].
+      #    1. Otherwise,
+      #        1. Let |funcaddrs| be |funcinst|.module.funcs.
+      #    1. Assert: |funcaddr| is contained in |funcaddrs|.
+      #    1. Let |index| be the index of |funcaddrs| where |funcaddr| is found."""
+      .stripMargin('#'),
 
     // #15 (spec inconsistency, docs/spec_inconsistencies.md #2) — normalizes
     // the "external value" family's 4 non-tag variants from Bikeshed
@@ -384,9 +428,19 @@ object SpecPatch:
     // sub-terms in "external value"'s link-defaults block (only `tag` was
     // registered), so the `for`-scoped links #15 normalizes the prose to
     // actually resolve.
-    "    url: exec/runtime.html#syntax-externval\n        text: external value\n        for: external value\n            text: tag"
+    """    url: exec/runtime.html#syntax-externval
+      #        text: external value
+      #        for: external value
+      #            text: tag""".stripMargin('#')
     ->
-    "    url: exec/runtime.html#syntax-externval\n        text: external value\n        for: external value\n            text: func\n            text: global\n            text: mem\n            text: table\n            text: tag",
+    """    url: exec/runtime.html#syntax-externval
+      #        text: external value
+      #        for: external value
+      #            text: func
+      #            text: global
+      #            text: mem
+      #            text: table
+      #            text: tag""".stripMargin('#'),
 
     // #17 (spec bug, docs/spec_errors.md #12) — `|options|["builtins"]`/
     // `|options|["importedStringConstants"]` are indexed unconditionally with
@@ -417,7 +471,9 @@ object SpecPatch:
     // behind from before the representation dropped the field, same as #13.
     // Dropped at both of this form's occurrences (js-api/index.bs:540, 579;
     // `.replace` matches both since the text is byte-identical).
-    "1. If |externtype| is of the form [=external-type/tag=] |attribute| <var ignore>functype</var>,\n            1. Assert: |attribute| is [=tagtype/attribute/exception=]."
+    """1. If |externtype| is of the form [=external-type/tag=] |attribute| <var ignore>functype</var>,
+      #            1. Assert: |attribute| is [=tagtype/attribute/exception=]."""
+      .stripMargin('#')
     ->
     "1. If |externtype| is of the form [=external-type/tag=] <var ignore>functype</var>,",
 
@@ -551,9 +607,16 @@ object SpecPatch:
     // synced into the ambient field as its first step — only the boundary
     // crossing needed fixing, so the rest of the closure body still reads
     // the field directly.
-    "1. Let |hostfunc| be a [=host function=] which performs the following steps when called with arguments |arguments|:\n        1. Let |realm| be |func|'s [=associated Realm=]."
+    """1. Let |hostfunc| be a [=host function=] which performs the following steps when called with arguments |arguments|:
+      #        1. Let |realm| be |func|'s [=associated Realm=].""".stripMargin(
+      '#',
+    )
     ->
-    "1. Let |hostfunc| be a [=host function=] which performs the following steps when called with state |state| and arguments |arguments|:\n        1. Set the [=surrounding agent=]'s [=associated store=] to |state|.\n        1. Let |realm| be |func|'s [=associated Realm=].",
+    """1. Let |hostfunc| be a [=host function=] which performs the following steps when called with state |state| and arguments |arguments|:
+      #        1. Set the [=surrounding agent=]'s [=associated store=] to |state|.
+      #        1. Let |realm| be |func|'s [=associated Realm=].""".stripMargin(
+      '#',
+    ),
 
     // #29 (spec inconsistency, docs/spec_inconsistencies.md #7) — the other
     // half of #28: the closure's success path returns just
@@ -596,9 +659,11 @@ object SpecPatch:
     // target), whose argument genuinely is part of the value. Both
     // occurrences drop the now-nonexistent heaptype argument.
     "[=ref.null=] <var ignore>t</var>, return null."
-    -> "[=ref.null=], return null.",
+    ->
+    "[=ref.null=], return null.",
     "1. Let |r| be [=ref.null=] |heaptype|."
-    -> "1. Let |r| be [=ref.null=].",
+    ->
+    "1. Let |r| be [=ref.null=].",
 
     // #33 (spec bug, docs/spec_errors.md #16) — `[=!=]` (ReturnIfAbrupt)
     // prefixes two ECMA-262 AO calls whose own declared signatures never

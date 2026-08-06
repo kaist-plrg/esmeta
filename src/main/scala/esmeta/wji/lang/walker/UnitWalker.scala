@@ -84,6 +84,7 @@ trait UnitWalker:
     case i: Instr.Append =>
       walk(i.item); walk(i.collection); i.body.foreach(walk)
     case i: Instr.Remove   => walk(i.list); i.body.foreach(walk)
+    case i: Instr.Pop      => walk(i.lhs); walk(i.list); i.body.foreach(walk)
     case i: Instr.Continue => i.body.foreach(walk)
     case i: Instr.Perform  => i.args.foreach(walk); i.body.foreach(walk)
     case i: Instr.PerformClosure =>

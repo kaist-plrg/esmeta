@@ -41,12 +41,8 @@ object ExpandGetMemberPass extends LoweringPass:
     */
   override def requires: Set[LoweringPass] = Set(GroupIfChainPass)
 
-  private var counter = 0
-  private def freshIdx(): String = { counter += 1; s"_getMemberIdx$counter" }
-
   def run(algos: List[Algorithm]): List[Algorithm] =
     algos.map { a =>
-      counter = 0
       a.copy(body = transform(a.body))
     }
 
@@ -55,7 +51,7 @@ object ExpandGetMemberPass extends LoweringPass:
 
   private def expandInstr(instr: Instr): List[Instr] = instr match
     case Instr.Let(lhs, Expr.GetMember(definition, kind), body) =>
-      val idx = Expr.Var(freshIdx())
+      val idx = Expr.Var("_getMemberIdx")
       val members = Expr.Field(definition, "members")
       val elem = Expr.Index(members, idx)
       List(

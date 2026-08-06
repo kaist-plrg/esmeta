@@ -77,6 +77,10 @@ object FreeVarAnalysis:
         bound ++= bindableNames(i.elem)
         walk(i.collection)
         i.body.foreach(walk)
+      case i: Instr.Pop =>
+        bound ++= bindableNames(i.lhs)
+        walk(i.list)
+        i.body.foreach(walk)
       case i: Instr.Perform =>
         bindResultOf(i.outcome).foreach(bound += _)
         i.args.foreach(walk)

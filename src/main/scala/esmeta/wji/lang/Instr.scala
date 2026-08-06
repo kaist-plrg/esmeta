@@ -90,6 +90,11 @@ object Instr:
     body: List[Instr] = Nil,
   ) extends Instr
 
+  /** Removes and returns the last element of `list` in place, binding it to
+    * `lhs`. Compiles to a real `esmeta.ir.IPop`.
+    */
+  case class Pop(lhs: Expr, list: Expr, body: List[Instr] = Nil) extends Instr
+
   /** `[=iteration/continue=].` */
   case class Continue(body: List[Instr] = Nil) extends Instr
 
@@ -185,6 +190,7 @@ object Instr:
       case i: RunInParallel  => i.copy(body = f(i.body))
       case i: Append         => i.copy(body = f(i.body))
       case i: Remove         => i.copy(body = f(i.body))
+      case i: Pop            => i.copy(body = f(i.body))
       case i: Continue       => i.copy(body = f(i.body))
       case i: Perform        => i.copy(body = f(i.body))
       case i: PerformClosure => i.copy(body = f(i.body))

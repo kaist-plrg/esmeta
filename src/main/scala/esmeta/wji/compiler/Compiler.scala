@@ -325,6 +325,13 @@ object Compiler:
       // UnreachableAfterLowering's doc.
       impossible(s"Remove not eliminated by ExpandRemovePass: $i")
 
+    case Instr.Pop(lhs, list, body) =>
+      val binding: Inst = lhs match
+        case metalang.Expr.Var(name) =>
+          IPop(Name(name), compileExpr(list), front = false)
+        case _ => ILet(Name("_"), EYet(s"unsupported Pop lhs: $lhs"))
+      binding :: compileSeq(body)
+
     case Instr.Continue(_) =>
       IExpr(EYet("continue")) :: Nil // TODO: represent loop continue
 

@@ -3294,25 +3294,31 @@ def define_the_regular_operations(
   realm: Unknown,
 ): Unknown = {
   let operations = (list [])
-  let _getMemberIdx1 = 0
-  while (< _getMemberIdx1 (sizeof definition.members)) {
-    if (= definition.members[_getMemberIdx1].kind ~RegularOperation~) {
-      push operations < definition.members[_getMemberIdx1]
+  let _getMemberIdx = 0
+  while (< _getMemberIdx (sizeof definition.members)) {
+    if (= definition.members[_getMemberIdx].kind ~RegularOperation~) {
+      push operations < definition.members[_getMemberIdx]
     } else nop
-    _getMemberIdx1 = (+ _getMemberIdx1 1)
+    _getMemberIdx = (+ _getMemberIdx 1)
   }
-  let _removeKept1 = (list [])
-  let _iterList1 = operations
-  let _iterIdx2 = 0
-  while (< _iterIdx2 (sizeof _iterList1)) {
-    let _removeElem2 = _iterList1[_iterIdx2]
-    assert (? _removeElem2: Unknown["operation"])
-    if (! (= _removeElem2.unforgeable true)) {
-      push _removeKept1 < _removeElem2
+  let _removeTmp = (list [])
+  let _removeLen = (sizeof operations)
+  let _removeIdx = 0
+  while (< _removeIdx _removeLen) {
+    pop operations > _removeElem
+    push _removeTmp < _removeElem
+    _removeIdx = (+ _removeIdx 1)
+  }
+  let _removeTmpLen = (sizeof _removeTmp)
+  let _removeIdx2 = 0
+  while (< _removeIdx2 _removeTmpLen) {
+    pop _removeTmp > _removeElem
+    assert (? _removeElem: Unknown["operation"])
+    if (&& (exists _removeElem.extendedAttributes.LegacyUnforgeable) (= _removeElem.extendedAttributes.LegacyUnforgeable true)) {
+      push operations < _removeElem
     } else nop
-    _iterIdx2 = (+ _iterIdx2 1)
+    _removeIdx2 = (+ _removeIdx2 1)
   }
-  operations = _removeKept1
   call _ = clo<"define_the_operations">(operations, definition, target, realm)
   return ~unused~
 }

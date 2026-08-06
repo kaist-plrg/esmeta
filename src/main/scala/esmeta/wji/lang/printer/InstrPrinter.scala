@@ -72,6 +72,8 @@ object InstrPrinter:
       s"Append(${ExprPrinter.render(item)}, ${ExprPrinter.render(coll)})"
     case Remove(list, elemKind, property, _) =>
       s"Remove(${ExprPrinter.render(list)}, $elemKind, $property)"
+    case Pop(lhs, list, _) =>
+      s"Pop(${ExprPrinter.render(lhs)}, ${ExprPrinter.render(list)})"
     case Continue(_) => "Continue"
     case Perform(func, args, Discard, _) =>
       s"Perform(${renderCall(func, args)})"

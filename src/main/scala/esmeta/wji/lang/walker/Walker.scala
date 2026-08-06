@@ -96,6 +96,8 @@ trait Walker:
         i.property,
         i.body.map(walk),
       )
+    case i: Instr.Pop =>
+      Instr.Pop(walk(i.lhs), walk(i.list), i.body.map(walk))
     case i: Instr.Continue => Instr.Continue(i.body.map(walk))
     case i: Instr.Perform =>
       Instr.Perform(i.func, i.args.map(walk), i.outcome, i.body.map(walk))

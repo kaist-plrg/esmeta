@@ -89,20 +89,19 @@ object ExpandMatchesExistsPass extends LoweringPass:
     private var n = 0
     def fresh(prefix: String): String = { n += 1; s"_$prefix$n" }
 
-  /** `Cond.Matches`'s `matchType` string (e.g. `"valtype"`), mapped to the
-    * `WasmHost` embedding function that actually implements it — always
-    * `s"match_$matchType"` (confirmed: `match_valtype`/`match_externtype` both
-    * exist in `WasmHost.names` this way, no exceptions). Checked against
-    * `WasmHost.names` directly rather than a hand-copied local table, so a
-    * `matchType` with no real embedding function (e.g. `reftype`, seen
-    * elsewhere in the spec) is left as a bare `Cond.Matches` (see
-    * `needsHoist`/`hoist` below) — `Compiler` reports its existing honest
-    * `EYet("matches ...")` instead of this pass guessing a plausible-looking
-    * but nonexistent embedding name that would silently miscompile into an
-    * ordinary (and wrong) algorithm call.
+  /** `Cond.Matches`'s `matchType` (e.g. `"valtype"`) mapped to the `WasmHost`
+    * embedding function implementing it, normally `s"match_$matchType"` —
+    * except `"reftype"`, aliased to `match_valtype` (reftype is just a valtype
+    * variant, already handled there). Checked against `WasmHost.names` rather
+    * than assumed, so any other `matchType` with no real embedding function is
+    * left unhoisted — `Compiler` reports an honest `EYet("matches ...")`
+    * instead of miscompiling a guessed, nonexistent call.
     */
   private def matchEmbeddingName(matchType: String): Option[String] =
-    val name = s"match_$matchType"
+    val normalizedType = matchType match
+      case "reftype" => "valtype"
+      case s         => s
+    val name = s"match_$normalizedType"
     Option.when(WasmHost.names.contains(name))(name)
 
   def run(algos: List[Algorithm]): List[Algorithm] =

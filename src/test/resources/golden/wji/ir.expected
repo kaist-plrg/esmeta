@@ -1348,7 +1348,8 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Table.prototype.get(
   let addrtype = _tuple1[0]
   let limits = _tuple1[1]
   let elementtype = _tuple1[2]
-  if (yet "matches reftype") {
+  call-embed _m1 = <match_valtype>(elementtype, (case "REF" (opt (case "NULL" )) (case "EXN" )))
+  if (= _m1 true) {
     call _err1 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
     call _ret2 = clo<"ThrowCompletion">(_err1)
     return _ret2
@@ -1401,7 +1402,8 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Table.prototype.set(
   let addrtype = _tuple1[0]
   let limits = _tuple1[1]
   let elementtype = _tuple1[2]
-  if (yet "matches reftype") {
+  call-embed _m1 = <match_valtype>(elementtype, (case "REF" (opt (case "NULL" )) (case "EXN" )))
+  if (= _m1 true) {
     call _err1 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
     call _ret2 = clo<"ThrowCompletion">(_err1)
     return _ret2

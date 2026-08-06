@@ -2295,7 +2295,7 @@ def addressvaluetou64(
   v: Unknown,
   addrtype: Unknown,
 ): Unknown = {
-  if (= addrtype "i32") {
+  if (= addrtype (case "I32" )) {
     let _call1 = (yet "[$ConvertToInt$](|v|, 32, \"unsigned\"), where the destination type is associated with [=[EnforceRange]=]")
     if (? _call1: Abrupt) {
       if (? _call1: Completion) {
@@ -2315,7 +2315,7 @@ def addressvaluetou64(
       return _ret3
     }
   } else nop
-  if (= addrtype "i64") {
+  if (= addrtype (case "I64" )) {
     call _call2 = clo<"ToBigInt">(v)
     if (? _call2: Abrupt) {
       if (? _call2: Completion) {
@@ -2348,9 +2348,9 @@ def u64toaddressvalue(
   v: Unknown,
   addrtype: Unknown,
 ): Unknown = {
-  if (= addrtype "i32") {
+  if (= addrtype (case "I32" )) {
     return ([number] ([math] v))
-  } else if (= addrtype "i64") {
+  } else if (= addrtype (case "I64" )) {
     return ([bigInt] ([math] v))
   } else nop
   assert false

@@ -189,3 +189,11 @@
 - **Expected**: `[LegacyNamespace=WebAssembly, Exposed=*]` — 같은 `WebAssembly` 네임스페이스에 속한 다른 모든 인터페이스, 그리고 네임스페이스 자기 자신이 이미 쓰는 형태(`WebAssembly` 자신 line 369, `Module` line 701, `Instance` line 777, `Memory` line 809, `Table` line 1003, `Global` line 1139 — 전부 `Exposed=*`).
 - **Reason**: `WebAssembly`는 브라우저 전용이 아니라 아무 JS 호스트에서나 동작하도록 의도적으로 `Exposed=*`를 일관되게 써왔는데(네임스페이스 자신을 포함해 예외 없이 7곳 중 5곳), 나중에 exception-handling 제안으로 추가된 `Tag`/`Exception` 이 둘만 `(Window,Worker,Worklet)`으로 좁혀져 있습니다. 이 두 인터페이스 주변에는 왜 다른 제약을 두는지 설명하는 주석/근거가 전혀 없고, 흔한 브라우저 DOM API 템플릿에서 그대로 복사해온 관용구로 보입니다 — WebAssembly의 예외 처리(`try_table`/`throw` 등)는 언어 자체의 핵심 기능이라, 브라우저가 아닌 JS 호스트(WJI 포함)도 `Module`/`Instance`/`Memory`/`Table`/`Global`과 마찬가지로 `Tag`/`Exception`을 노출할 수 있어야 하는데, 이 자리만 그 호스트-무관성 원칙에서 벗어나 있습니다.
 - **WJI 쪽 처리**: `SpecPatch` #37로 우회 — 두 인터페이스 모두 `Exposed=*`로 정규화. 이 정규화는 `docs/hardcodes.md` #13(`[=exposed=]`를 상수로 취급)의 전제이기도 합니다 — 이 정규화가 없으면 `Tag`/`Exception`의 멤버에 대해서만 `exposed()`가 진짜로 `false`를 반환해야 하는 경우가 생기는데, WJI는 애초에 realm이 어떤 host global object 인터페이스를 구현하는지 전혀 모델링하지 않으므로 그 자리에서만 다른 취급을 할 방법이 없습니다.
+
+## 13. `AddressValueToU64`/`U64ToAddressValue`만 `|addrtype|`을 `[=i32=]`/`[=i64=]` 링크 대신 raw quoted string `"i32"`/`"i64"`와 비교
+
+- **File**: `spectec/document/js-api/index.bs`, `AddressValueToU64`(line 1486, 1491)와 `U64ToAddressValue`(line 1504-1505)
+- **Current**: `1. If |addrtype| is "i32", ...` / `1. If |addrtype| is "i64", ...` (그리고 `U64ToAddressValue`의 `Else if` 변형).
+- **Expected**: `1. If |addrtype| is [=i32=], ...` / `1. If |addrtype| is [=i64=], ...` — 같은 문서에서 numtype/valtype을 비교하는 다른 모든 자리(예: line 519 `If |valtype| is [=i64=]`, line 1427 `If |type| is [=i32=]`)가 쓰는 링크 형태.
+- **Reason**: `addrtype`은 `table_type`/`mem_type`이 돌려주는 진짜 Wasm 값이고, `al_of_addrtype`이 `al_of_numtype`과 완전히 동일한 관용구(`string_of_X at |> nullary`, 즉 소문자 스펙 문자열을 대문자 Case 태그로 감싸는 것)로 만들어져서, 런타임 표현이 numtype/valtype과 구조적으로 완전히 같습니다(`CaseV("I32", [])`). 그런데 이 두 알고리즘만 quoted string literal("i32")과 직접 비교하도록 적혀 있어서, `CondParser`가 이걸 순수 ECMAScript 문자열 리터럴로 파싱해버립니다 — 컴파일된 IR에서 `(= addrtype "i32")`가 Wasm Case 값과 plain string을 비교하게 돼서 항상 `false`이고, 두 분기 다 스킵돼 맨 끝의 "Assert: This step is not reached"에 걸립니다.
+- **WJI 쪽 처리**: `SpecPatch` #37로 우회 — 4곳의 `"i32"`/`"i64"`를 각각 `[=i32=]`/`[=i64=]`로 교체.

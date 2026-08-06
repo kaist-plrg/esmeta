@@ -1023,11 +1023,11 @@
 # AddressValueToU64
   params: |v|, |addrtype|
   head: The algorithm <dfn>AddressValueToU64</dfn>(|v|, |addrtype|) converts a JavaScript value to a WebAssembly [=u64=] for use in embedding operations. It is designed to act like [=[EnforceRange]=] [=unsigned long=] for {{AddressType}} "i32", and to extend these semantics to {{AddressType}} "i64", by performing the following steps:
-  If(|addrtype| is "i32")
+  If(|addrtype| is [=i32=])
     Let(|n|, [=?=] ?([$ConvertToInt$](|v|, 32, "unsigned"), where the destination type is associated with [=[EnforceRange]=]))
     Note(This is equivalent to the [=js-unsigned-long|JS conversion rules=] for [=[EnforceRange]=] [=unsigned long=])
     Return(?([=ℝ=](|n|) as a WebAssembly [=u64=]))
-  If(|addrtype| is "i64")
+  If(|addrtype| is [=i64=])
     Let(|n|, [=?=] [$ToBigInt$](|v|))
     If(|n| < 0 or |n| > 2 ** 64 - 1)
       Throw(new {{TypeError}})
@@ -1038,9 +1038,9 @@
 # U64ToAddressValue
   params: |v|, |addrtype|
   head: The algorithm <dfn>U64ToAddressValue</dfn>(|v|, |addrtype|) converts a [=u64=] value from a WebAssembly embedding operation to the correct variant of {{AddressValue}} for an {{AddressType}}, by performing the following steps:
-  If(|addrtype| is "i32")
+  If(|addrtype| is [=i32=])
     Return(AsNumber(AsMath(|v|)))
-  ElseIf(|addrtype| is "i64")
+  ElseIf(|addrtype| is [=i64=])
     Return(AsBigInt(AsMath(|v|)))
   Assert(Unreachable)
 

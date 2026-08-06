@@ -759,6 +759,24 @@ object SpecPatch:
     1.  Return true."""
     ->
     "    1.  Return true.",
+
+    // #39 (spec inconsistency, docs/spec_inconsistencies.md #13) —
+    // AddressValueToU64/U64ToAddressValue compare |addrtype| against raw
+    // quoted strings "i32"/"i64", instead of the [=i32=]/[=i64=] link idiom
+    // every other numtype/valtype comparison in this document uses (e.g.
+    // "If |valtype| is [=i64=]" at line 519, "If |type| is [=i32=]" at line
+    // 1427) — structurally the same comparison (both addrtype and
+    // valtype/numtype reduce to the same uppercase-Case-tag runtime shape via
+    // `al_of_addrtype`/`al_of_numtype`'s identical `nullary` convention), just
+    // spelled differently here.
+    "1. If |addrtype| is \"i32\"," -> "1. If |addrtype| is [=i32=],",
+    "1. If |addrtype| is \"i64\"," -> "1. If |addrtype| is [=i64=],",
+    "1. If |addrtype| is \"i32\", return [=𝔽=](|v| interpreted as a [=mathematical value=])."
+    ->
+    "1. If |addrtype| is [=i32=], return [=𝔽=](|v| interpreted as a [=mathematical value=]).",
+    "1. Else if |addrtype| is \"i64\", return [=ℤ=](|v| interpreted as a [=mathematical value=])."
+    ->
+    "1. Else if |addrtype| is [=i64=], return [=ℤ=](|v| interpreted as a [=mathematical value=]).",
   )
 
   def apply(source: String): String =

@@ -637,12 +637,17 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Module.prototype.customsections(
   call sectionName = clo<"converted_to_an_idl_value">(sectionName, "DOMString")
   let bytes = moduleObject.Bytes
   let customSections = (list [])
-  (yet "foreach [=custom_section=](|customSection|) in |bytes|")
-  call name = clo<"utf-8_decode_without_bom_or_fail">((yet "the <code>name</code> of |customSection|"))
-  assert (! (= name (yet "failure (|moduleObject|.\\[[Module]] is [=valid=])")))
-  if (= name (yet "|sectionName| as string values")) {
-    push customSections < (yet "a new {{ArrayBuffer}} containing a copy of the bytes in |bytes| for the range matched by this [=customsec=] production")
-  } else nop
+  let _iterList1 = bytes
+  let _iterIdx2 = 0
+  while (< _iterIdx2 (sizeof _iterList1)) {
+    let customSection = _iterList1[_iterIdx2]
+    call name = clo<"utf-8_decode_without_bom_or_fail">((yet "the <code>name</code> of |customSection|"))
+    assert (! (= name (yet "failure (|moduleObject|.\\[[Module]] is [=valid=])")))
+    if (= name (yet "|sectionName| as string values")) {
+      push customSections < (yet "a new {{ArrayBuffer}} containing a copy of the bytes in |bytes| for the range matched by this [=customsec=] production")
+    } else nop
+    _iterIdx2 = (+ _iterIdx2 1)
+  }
   if (? customSections: Completion) {
     return customSections
   } else {
@@ -3328,15 +3333,20 @@ def define_the_operations(
   target: Unknown,
   realm: Unknown,
 ): Unknown = {
-  call _ = clo<"list/for_each">((case "OPERATION" op operations))
-  if (! (= op (case "EXPOSED" realm))) {
-    (yet "continue")
-  } else nop
-  call method = clo<"creating_an_operation_function">(op, definition, realm)
-  let modifiable = (yet "<emu-val>false</emu-val> if |op| is [=unforgeable=] and <emu-val>true</emu-val> otherwise")
-  let desc = (yet "the PropertyDescriptor{\\[[Value]]: |method|, \\[[Writable]]: |modifiable|, \\[[Enumerable]]: <emu-val>true</emu-val>, \\[[Configurable]]: |modifiable|}")
-  let id = (yet "|op|'s [=identifier=]")
-  call _ = clo<"<a_abstract-op>DefinePropertyOrThrow</a>(|target|,_|id|,_|desc|)">()
+  let _iterList1 = operations
+  let _iterIdx2 = 0
+  while (< _iterIdx2 (sizeof _iterList1)) {
+    let op = _iterList1[_iterIdx2]
+    if (! (= op (case "EXPOSED" realm))) {
+      (yet "continue")
+    } else nop
+    call method = clo<"creating_an_operation_function">(op, definition, realm)
+    let modifiable = (yet "<emu-val>false</emu-val> if |op| is [=unforgeable=] and <emu-val>true</emu-val> otherwise")
+    let desc = (yet "the PropertyDescriptor{\\[[Value]]: |method|, \\[[Writable]]: |modifiable|, \\[[Enumerable]]: <emu-val>true</emu-val>, \\[[Configurable]]: |modifiable|}")
+    let id = (yet "|op|'s [=identifier=]")
+    call _ = clo<"<a_abstract-op>DefinePropertyOrThrow</a>(|target|,_|id|,_|desc|)">()
+    _iterIdx2 = (+ _iterIdx2 1)
+  }
   return ~unused~
 }
 def creating_an_operation_function(

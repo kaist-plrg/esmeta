@@ -336,7 +336,7 @@
   head: The <dfn method for="Module">customSections(|moduleObject|, |sectionName|)</dfn> method, when invoked, performs the following steps:
   Let(|bytes|, |moduleObject|.[[Bytes]])
   Let(|customSections|, « »)
-  ForEach([=custom section=](|customSection|), |bytes|)
+  ForEach(|customSection|, |bytes|)
     Let(|name|, [=UTF-8 decode without BOM or fail=](?(the <code>name</code> of |customSection|)))
     Assert(|name| is not ?(failure (|moduleObject|.\[[Module]] is [=valid=])))
     If(|name| is ?(|sectionName| as string values))
@@ -1532,7 +1532,7 @@
 # define the operations
   params: |operations|, |definition|, |target|, |realm|
   head: To <dfn>define the operations</dfn> |operations| of [=interface=] or [=namespace=] |definition| on |target|, given [=realm=] |realm|, run the following steps:
-  Perform([=list/For each=]([=operation=](|op|, |operations|)))
+  ForEach(|op|, |operations|)
     If(|op| is not [=exposed=](|realm|))
       Continue
     Let(|method|, [=creating an operation function=](|op|, |definition|, |realm|))

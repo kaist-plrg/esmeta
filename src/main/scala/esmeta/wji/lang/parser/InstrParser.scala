@@ -24,7 +24,14 @@ object InstrParser:
   private val IfPrefix = """(?is)^If\b\s+(.+)$""".r
   private val ElsePrefix = """(?is)^(?:Else|Otherwise)\b\s*,?\s*(.*)$""".r
   private val ForEachPrefix =
-    """(?is)^(?:\[=\S*\|)?For each(?:=\])?\s+(.+)$""".r
+    """(?is)^(?:\[=\S*[/|])?For each(?:=\])?\s+(.+)$""".r
+
+  // a `[=Type=]` xref (or the bare word "element") tagging the loop
+  // variable's type, e.g. "[=operation=] |op|" or "element |key|" — carries
+  // no information ForEach's `elem: Expr` can hold, so it's discarded rather
+  // than fed to ExprParser (which would otherwise mistake it for a call).
+  private val ForEachElemTypeTag =
+    """(?is)^(?:\[=[^\]]+=\]|element)\s+(.+)$""".r
   private val ForPrefix =
     """(?is)^For\s+(\|[^|]+\|)\s+in\s+(.+)$""".r
   private val WhilePrefix = """(?is)^While\b\s+(.+)$""".r
@@ -205,11 +212,14 @@ object InstrParser:
       case ForEachPrefix(rest) =>
         findTopLevelAny(rest, Seq(" of ", " in ")) match
           case Some((i, sep)) =>
-            val elem = rest.substring(0, i).trim
+            val elem = rest.substring(0, i).trim match
+              case ForEachElemTypeTag(v) => v
+              case e                     => e
             val after = rest.substring(i + sep.length)
-            val collection = findTopLevel(after, ",") match
-              case Some(j) => after.substring(0, j).trim
-              case None    => after.stripSuffix(",").trim
+            val collection = (findTopLevel(after, ",") match
+              case Some(j) => after.substring(0, j)
+              case None    => after.stripSuffix(",")
+            ).trim.stripSuffix(":").trim
             ForEach(
               ExprParser.parse(elem),
               ExprParser.parse(collection),

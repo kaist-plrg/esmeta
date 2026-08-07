@@ -41,4 +41,44 @@
 
   `table-mutation.js` 디버깅 중 실제로 크래시를 만난 건 이것과 **반대 방향**인 `table_read`(`` `Nat ``만 받고 `` `Int ``는 거부 — `docs/hardcodes.md`/커밋 이력 참고)였습니다. 그 크래시를 분석하면서 "esmeta 쪽 `toAL`(`Math(n) => ALValue.NumV(ALNum.Int(n.toBigInt))`, `state/util/ALValueConversion.scala`)이 새로 계산된 수학값을 항상 `` `Int ``로 태깅하니, 반대로 `` `Int ``만 받고 `` `Nat ``은 거부하는 지점도 있을 것"이라는 가설로 코드베이스를 훑다가 `unwrap_intv`/`inv_signed`/`sat`를 발견한 것으로, **이 지점들 자체가 실제로 크래시하는 걸 실행 중에 관찰한 적은 없습니다** — `AddressValueToU64`가 계산한 값은 `inv_signed`로 흘러가지 않고 `table_read`로 흘러가므로 서로 다른 호출 경로입니다. 정적 코드 검사로 발견한, subtype 관계를 어기는 별개의 잠재적 버그로 예방적으로 고친 것입니다.
 
-  같은 파일(`xl/num.ml`)의 범용 산술/비교 연산자(`bin`/`cmp`/`un`)도 구조적으로 똑같은 문제를 갖고 있습니다 — `` `Nat 3 `` + `` `Int 5 `` 같은 타입이 섞인 연산은 그냥 `None`(실패)으로 떨어집니다. 이걸 위해 만들어진 것으로 보이는 `widen` 함수가 파일 안에 이미 있지만, 코드베이스 전체에서 실제로 호출하는 곳이 단 한 군데도 없어 사실상 죽은 코드입니다 — `bin`/`cmp`가 타입 불일치 시 `widen`을 먼저 태우도록 고치는 건 이번 수정보다 훨씬 큰 범위(embedding 경계뿐 아니라 Wasm 인터프리터의 일반 산술 전체에 영향)라 별도 작업으로 미뤘습니다.
+  같은 파일(`xl/num.ml`)의 범용 산술/비교 연산자(`bin`/`cmp`/`un`)도 구조적으로 똑같은 문제를 갖고 있었습니다 — `` `Nat 3 `` + `` `Int 5 `` 같은 타입이 섞인 연산은 그냥 `None`(실패)으로 떨어졌습니다. 처음엔 이 부분을 "embedding 경계뿐 아니라 Wasm 인터프리터의 일반 산술 전체에 영향을 미치는, 훨씬 큰 범위"라는 이유로 별도 작업으로 미뤘는데, 바로 다음(#2)에서 실제로 고쳤습니다 — 미뤘던 이유("Wasm 실행 내부는 esmeta의 `toAL`을 안 거치니 안전할 것")가 실은 틀렸다는 게 곧바로 실증되었기 때문입니다.
+
+## 2. `xl/num.ml`의 `bin`/`cmp`가 타입이 섞인 피연산자(`` `Nat ``/`` `Int ``)를 처리 못 함 — 이미 있던 `widen`이 죽은 코드였음
+
+- **File**: `spectec/spectec/src/xl/num.ml`, `bin`/`cmp`
+- **Current**:
+  ```ocaml
+  let rec bin (op : binop) num1 num2 : num option =
+    ...
+    match op, num1, num2 with
+    | `AddOp, `Nat n1, `Nat n2 -> Some (`Nat Z.(n1 + n2))
+    | `AddOp, `Int i1, `Int i2 -> Some (`Int Z.(i1 + i2))
+    ...
+    | _, _, _ -> None
+
+  let cmp (op : cmpop) num1 num2 : bool option =
+    ...
+    match op, num1, num2 with
+    | `LtOp, `Nat n1, `Nat n2 -> Some (n1 < n2)
+    | `LtOp, `Int i1, `Int i2 -> Some (i1 < i2)
+    ...
+    | _, _, _ -> None
+  ```
+- **Expected**: 타입이 다르면 `widen`(같은 파일에 이미 정의돼 있던, `sub`의 subtype 순서 — Nat < Int < Rat < Real — 대로 작은 쪽을 큰 쪽에 맞춰 승격하는 함수)으로 한 번 맞춘 뒤 재시도:
+  ```ocaml
+  let rec bin (op : binop) num1 num2 : num option =
+    ...
+    | _, _, _ when to_typ num1 <> to_typ num2 ->
+      let num1', num2' = widen num1 num2 in
+      bin op num1' num2'
+    | _, _, _ -> None
+
+  let rec cmp (op : cmpop) num1 num2 : bool option =
+    ...
+    | _, _, _ when to_typ num1 <> to_typ num2 ->
+      let num1', num2' = widen num1 num2 in
+      cmp op num1' num2'
+    | _, _, _ -> None
+  ```
+  (`widen`은 타입이 이미 같으면 그대로 반환하므로, `to_typ num1 <> to_typ num2`로 진짜 타입 불일치일 때만 타도록 guard해야 무한 재귀를 피할 수 있습니다 — 타입이 같은데 그 연산 조합 자체가 정의 안 된 경우는 이 guard에 안 걸리고 바로 `None`으로 떨어집니다.)
+- **Reason**: #1과 같은 근본 원인 — `sub`가 선언한 subtype 관계를 `bin`/`cmp`가 안 지킴 — 인데, 이번엔 esmeta 쪽 `toAL`(WJI가 값을 embedding 경계로 넘길 때 쓰는 변환 함수)이 non-negative `Math` 값을 `` `Nat ``으로 태깅하도록 고쳐보다가 직접 실증됨. `tests/wji`의 5개 테스트가 `$inv_signed_: ... comparison operation <= not defined for +0, 123`류의 에러로 깨졌습니다. 원인을 추적해보니 `signed_31`/`inv_signed_31` 등(`server.ml`의 `call_signed`/`call_inv_signed`)은 `numerics.ml`의 OCaml shortcut(`unwrap_intv`/`inv_signed`/`sat`, #1에서 고친 바로 그 함수들)을 안 거치고 있었습니다 — `call_inv_signed`가 `Interpreter.call_func "inv_signed_"`(끝에 `_`)로 찾는데 `numerics.ml`엔 `"inv_signed"`(언더스코어 없음)로 등록돼 있어 이름이 안 맞았기 때문입니다. 그래서 매번 공식 `.spectec` 정의를 일반 AL 인터프리터로 해석해왔고, 그 정의 안의 `$int$(0) <= i`(리터럴 `int` 상수)가 이제 `` `Nat ``으로 넘어온 인자 `i`와 비교되면서 `cmp`의 same-type-only 제약에 걸린 것입니다. 즉 "Wasm 실행 내부는 esmeta의 `toAL`을 거치지 않는다"는 #1의 가정이 이 경로(공식 spec 정의의 제너릭 해석)에는 안 맞았던 것으로 드러났습니다.

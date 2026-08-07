@@ -79,19 +79,6 @@ private[interpreter] class WasmMemoryBridge(interp: Interpreter):
     case ALValue.NumV(ALNum.Int(n)) => n.toInt
     case other => throw WasmHostFailure(s"expected a nat memaddr, got $other")
 
-  /** [[toAL]]'s inverse re-tagging for a single byte — plain [[toAL]] tags a
-    * freshly-converted [[Math]] value `` `Int ``, but the mechanized Wasm
-    * bytecode interpreter's byte-sequence ops (`inv_ibytes`, used by every
-    * memory load instruction) only accept `` `Nat ``-tagged bytes and throw
-    * `ArgMismatch` otherwise — confirmed empirically (`inv_ibytes: invalid
-    * byte: +0`, `` `Int ``'s own string rendering of 0) when
-    * [[pushMemoriesIntoStore]] first shipped bytes through plain [[toAL]].
-    * Applied to every byte before it goes into the `MEMS[i].BYTES` patch below.
-    */
-  private def toALByte(v: Value): ALValue = toAL(st, v) match
-    case ALValue.NumV(ALNum.Int(n)) => ALValue.NumV(ALNum.Nat(n))
-    case av                         => av
-
   /** Replace `storeVal`'s `MEMS[i].BYTES` field, for every live memory `i` in
     * the "Memory object cache", with that memory's *current* JS-side
     * `ArrayBuffer` bytes — a pure local `ALValue`-tree edit, no RPC round trip.
@@ -116,7 +103,11 @@ private[interpreter] class WasmMemoryBridge(interp: Interpreter):
               arrayBufferDataAddr(memoryObjAddr).foreach { addr =>
                 val i = memaddrIndex(memaddr)
                 val bytes =
-                  st(addr).asInstanceOf[ListObj].values.map(toALByte).toList
+                  st(addr)
+                    .asInstanceOf[ListObj]
+                    .values
+                    .map(toAL(st, _))
+                    .toList
                 result.lift(i).foreach {
                   case ALValue.StrV(miFields) =>
                     val patchedMi = ALValue.StrV(miFields.map {

@@ -12,11 +12,12 @@ import esmeta.state.*
   * argument wasn't itself built by a prior embedding call.
   */
 def toAL(st: State, v: Value): ALValue = v match
-  case Wasm(av)  => av
-  case Str(s)    => ALValue.TextV(s)
-  case Bool(b)   => ALValue.BoolV(b)
-  case Number(n) => ALValue.NumV(ALNum.Real(n))
-  case Math(n)   => ALValue.NumV(ALNum.Int(n.toBigInt))
+  case Wasm(av)                   => av
+  case Str(s)                     => ALValue.TextV(s)
+  case Bool(b)                    => ALValue.BoolV(b)
+  case Number(n)                  => ALValue.NumV(ALNum.Real(n))
+  case Math(n) if n.toBigInt >= 0 => ALValue.NumV(ALNum.Nat(n.toBigInt))
+  case Math(n)                    => ALValue.NumV(ALNum.Int(n.toBigInt))
   case addr: Addr =>
     st(addr) match
       case ListObj(vs) => ALValue.ListV(vs.map(toAL(st, _)).toList)

@@ -26,6 +26,7 @@ trait UnitWalker:
     case Expr.Pow(base, exp) => walk(base); walk(exp)
     case Expr.Neg(e)         => walk(e)
     case Expr.AsMath(e)      => walk(e)
+    case Expr.AsWasm(e, _)   => walk(e)
     case Expr.AsNumber(e)    => walk(e)
     case Expr.AsBigInt(e)    => walk(e)
     case Expr.Tuple(elems)   => elems.foreach(walk)

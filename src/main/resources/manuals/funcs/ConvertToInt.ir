@@ -1,0 +1,29 @@
+// bitLength/signedness/extendedAttribute are accepted but ignored: only the
+// one combination AddressValueToU64 needs is implemented (32, unsigned,
+// EnforceRange). See docs/hardcodes.md #13.
+def ConvertToInt(
+  V: Unknown,
+  bitLength: Unknown,
+  signedness: Unknown,
+  extendedAttribute: Unknown,
+): Normal[Number] | Abrupt[throw] = {
+  if (|| (|| (= V NaN) (= V +NUM_INF)) (= V -NUM_INF)) {
+    call %0 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
+    call %1 = clo<"ThrowCompletion">(%0)
+    return %1
+  }
+  let m = ([math] ([number] V))
+  if (< m 0) {
+    call %2 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
+    call %3 = clo<"ThrowCompletion">(%2)
+    return %3
+  }
+  let n = (floor m)
+  if (< 4294967295 n) {
+    call %4 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
+    call %5 = clo<"ThrowCompletion">(%4)
+    return %5
+  }
+  call %6 = clo<"NormalCompletion">(n)
+  return %6
+}

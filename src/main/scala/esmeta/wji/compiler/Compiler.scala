@@ -404,10 +404,15 @@ object Compiler:
     case metalang.Expr.BinOp(l, op, r) => compileBinOp(op, l, r)
     case metalang.Expr.Pow(base, exp) =>
       EBinary(BOp.Pow, compileExpr(base), compileExpr(exp))
-    case metalang.Expr.Neg(e)      => EUnary(UOp.Neg, compileExpr(e))
-    case metalang.Expr.AsMath(e)   => EConvert(COp.ToMath, compileExpr(e))
-    case metalang.Expr.AsNumber(e) => EConvert(COp.ToNumber, compileExpr(e))
-    case metalang.Expr.AsBigInt(e) => EConvert(COp.ToBigInt, compileExpr(e))
+    case metalang.Expr.Neg(e)    => EUnary(UOp.Neg, compileExpr(e))
+    case metalang.Expr.AsMath(e) => EConvert(COp.ToMath, compileExpr(e))
+    // dropped, not converted: whatever consumes this is either an
+    // ICallEmbed (which toAL-converts every argument at the call boundary
+    // regardless) or further math-value arithmetic on `e` itself — see
+    // AsWasm's own doc.
+    case metalang.Expr.AsWasm(e, _) => compileExpr(e)
+    case metalang.Expr.AsNumber(e)  => EConvert(COp.ToNumber, compileExpr(e))
+    case metalang.Expr.AsBigInt(e)  => EConvert(COp.ToBigInt, compileExpr(e))
     // ExpandAbruptPass expands every `?`/`!` in the direct-RHS position of
     // Let/Set/Return into real completion-record inspection before
     // compilation ever sees it; this only remains for a *nested* occurrence

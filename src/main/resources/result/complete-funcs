@@ -605,6 +605,7 @@ ContinueStatement[0,0].ContainsUndefinedContinueTarget
 ContinueStatement[0,0].Evaluation
 ContinueStatement[1,0].ContainsUndefinedContinueTarget
 ContinueStatement[1,0].Evaluation
+ConvertToInt
 CopyDataProperties
 CoverCallExpressionAndAsyncArrowHead[0,0].BoundNames
 CoverCallExpressionAndAsyncArrowHead[0,0].IsSimpleParameterList

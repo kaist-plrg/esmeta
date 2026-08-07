@@ -36,6 +36,7 @@ object ExprPrinter:
     case Neg(Num(v))    => s"-$v"
     case Neg(e)         => s"-(${render(e)})"
     case AsMath(e)      => s"AsMath(${render(e)})"
+    case AsWasm(e, ty)  => s"AsWasm(${render(e)}, $ty)"
     case AsNumber(e)    => s"AsNumber(${render(e)})"
     case AsBigInt(e)    => s"AsBigInt(${render(e)})"
     case Tuple(elems)   => s"(${elems.map(render).mkString(", ")})"

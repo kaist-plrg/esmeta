@@ -74,6 +74,16 @@ object Expr:
   /** `|x| interpreted as a [=mathematical value=]` — cast to math value. */
   case class AsMath(expr: Expr) extends Expr
 
+  /** `X as a WebAssembly [=u64=]` — annotates `expr` as being in Wasm's value
+    * domain rather than JS's. Compiles to `expr` unchanged (see `Compiler`'s
+    * own case): whatever consumes it is either an embedding call (`ICallEmbed`,
+    * which converts every argument via `toAL` at the call boundary regardless
+    * of this annotation) or plain arithmetic on the math value `expr` already
+    * denotes, so the annotation carries no information this pipeline needs to
+    * act on.
+    */
+  case class AsWasm(expr: Expr, ty: String) extends Expr
+
   /** `[=𝔽=](...)` call syntax — ECMA-262's "the Number value for" notation */
   case class AsNumber(expr: Expr) extends Expr
 
@@ -252,6 +262,7 @@ object Expr:
       case Pow(base, exp)             => List(base, exp)
       case Neg(e)                     => List(e)
       case AsMath(e)                  => List(e)
+      case AsWasm(e, _)               => List(e)
       case AsNumber(e)                => List(e)
       case AsBigInt(e)                => List(e)
       case Tuple(elems)               => elems

@@ -777,6 +777,51 @@ object SpecPatch:
     "1. Else if |addrtype| is \"i64\", return [=ℤ=](|v| interpreted as a [=mathematical value=])."
     ->
     "1. Else if |addrtype| is [=i64=], return [=ℤ=](|v| interpreted as a [=mathematical value=]).",
+
+    // #38 (spec bug, docs/spec_errors.md #19) — AddressValueToU64's two
+    // branches pass |v| straight into [$ConvertToInt$] (i32) and
+    // [$ToBigInt$] (i64), but |v| is not "a JavaScript value" at either call
+    // site. |v| is |index| (or |delta|/|descriptor|["initial"/"maximum"])
+    // as bound by the calling operation's method steps — per
+    // webidl/index.bs:12562-12570 ("create an operation function"), method
+    // steps always run with |values| (the result of the *overload
+    // resolution algorithm*, i.e. every argument already [=converted to an
+    // IDL value=]) as their argument values, never the raw incoming
+    // arguments. Every one of these parameters' declared IDL type is `any`
+    // (`AddressValue`, webidl/index.bs line 687), and that conversion is
+    // real (webidl/index.bs:7314-7339, "convert a JavaScript value to any"):
+    // the result is an IDL value (unrestricted double / bigint / DOMString /
+    // object / ...) depending on |v|'s ECMAScript type, not the JavaScript
+    // value itself. Both `ConvertToInt` (webidl/index.bs:7604, and every
+    // real caller — the "convert a JavaScript value to X" family, e.g. line
+    // 7523) and `ToBigInt` (ECMA-262) are defined over a genuine JavaScript
+    // value, a type webidl/index.bs's own 3.2 ("JavaScript type mapping")
+    // explicitly treats as distinct from an IDL value, with its own named
+    // conversion in each direction. Rather than patching each call site
+    // individually (which would need two different new variable names, one
+    // per branch, for what's the same fix applied to the same |v|), hoists a
+    // single explicit conversion — `Set |v| to |v|, [=converted to a
+    // JavaScript value=].` — right after the algorithm's own head sentence
+    // and before either branch, reusing |v|'s own name rather than
+    // introducing a fresh one: `Let` (used everywhere else in this file to
+    // introduce a genuinely new binding) would be the wrong verb for
+    // rebinding a name that's already bound as this algorithm's own
+    // parameter — `Set` is the ECMA-262/Bikeshed convention for that. Both
+    // branches then read |v| completely unchanged, already carrying the
+    // right value. `Set |x| to |x|, [=converted to a JavaScript value=].`
+    // parses the same way `Let`'s equivalent does — TextSplit's
+    // bracket-depth tracking (`Open`/`Close` on plain `[`/`]`) treats the
+    // whole `[=converted to a JavaScript value=]` span as depth > 0, so its
+    // own internal "to" (from "converted **to** a JavaScript value") never
+    // competes with `SetPrefix`'s outer `" to "` split.
+    """converts a JavaScript value to a WebAssembly [=u64=] for use in embedding operations. It is designed to act like [=[EnforceRange]=] [=unsigned long=] for {{AddressType}} "i32", and to extend these semantics to {{AddressType}} "i64", by performing the following steps:
+
+      #1. If |addrtype| is [=i32=],""".stripMargin('#')
+    ->
+    """converts a JavaScript value to a WebAssembly [=u64=] for use in embedding operations. It is designed to act like [=[EnforceRange]=] [=unsigned long=] for {{AddressType}} "i32", and to extend these semantics to {{AddressType}} "i64", by performing the following steps:
+
+      #1. Set |v| to |v|, [=converted to a JavaScript value=].
+      #1. If |addrtype| is [=i32=],""".stripMargin('#'),
   )
 
   def apply(source: String): String =

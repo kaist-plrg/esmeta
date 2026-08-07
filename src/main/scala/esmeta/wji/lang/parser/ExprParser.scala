@@ -37,6 +37,21 @@ object ExprParser:
   // ---- Wrappers ----
 
   private val AbruptPrefix = """(?s)^\[=([?!])=\]\s+(.+)$""".r
+  // "CALL, where the destination type is associated with [=[ATTR]=]" —
+  // webidl/index.bs's ConvertToInt (7604) reads its EnforceRange/Clamp
+  // behavior from the *ambient* extended attributes of whatever IDL type
+  // conversion it's inlined into, not from one of its own 3 formal
+  // parameters (every real caller sits inside one of the "convert a
+  // JavaScript value to X" algorithms, where that context is implicit).
+  // AddressValueToU64 calls it directly, outside that machinery, so
+  // js-api/index.bs spells the attribute out with this trailing clause.
+  // Rather than dropping it (losing the information) or teaching a whole new
+  // node just to carry it, folds it straight into the wrapped call's own arg
+  // list as one more literal string — turning the ambient context into a
+  // real, explicit argument `ConvertToInt`'s manual implementation can read
+  // (see docs/hardcodes.md #13).
+  private val AssociatedWithAttrPat =
+    """(?si)^(.+),\s*where the destination type is associated with \[=\[(\w+)\]=\]$""".r
   private val ResultOf = """(?si)^the result of (?:creating\s+)?(.+)$""".r
   private val EitherPat = """(?si)^either\s+(.+)$""".r
   // "the [=TERM=] EXPR" — TERM names EXPR's type/category (e.g. "the
@@ -225,6 +240,8 @@ object ExprParser:
     case "modulo"        => BOp.Mod
   private val AsMathPat =
     """(?si)^(.+)\s+interpreted as a \[=mathematical value=\]$""".r
+  private val AsWasmPat =
+    """(?si)^(.+)\s+as a WebAssembly \[=(\w+)=\]$""".r
   private val PowPat = """(?s)^(\d+)<sup>(.+?)</sup>$""".r
   private val NegPat = """(?s)^[-−](.+)$""".r
 
@@ -568,20 +585,24 @@ object ExprParser:
       // ---- Call syntax ----
       case JSCallFull(name, argsRaw) =>
         JSCall(name, splitComma(argsRaw).map(parse))
-      // "[=𝔽=](x)"/"[=ℤ=](x)" — ECMA-262's "the Number/BigInt value for x"
-      // notation (mainline ESMeta's own separate parser special-cases this
-      // the same way, `esmeta.lang.util.Parser`). Matched explicitly, ahead
-      // of the generic LinkFull case below, so these two never fall through
-      // to an ordinary AlgoCall against a function literally named 𝔽/ℤ
-      // (which doesn't exist).
-      case LinkFull(link, argsRaw)
-          if link.stripPrefix("[=").stripSuffix("=]").trim == "𝔽" =>
-        AsNumber(parse(argsRaw))
-      case LinkFull(link, argsRaw)
-          if link.stripPrefix("[=").stripSuffix("=]").trim == "ℤ" =>
-        AsBigInt(parse(argsRaw))
+      case AssociatedWithAttrPat(callRaw, attr) =>
+        parse(callRaw) match
+          case JSCall(name, args)   => JSCall(name, args :+ Str(attr))
+          case AlgoCall(link, args) => AlgoCall(link, args :+ Str(attr))
+          case _                    => Unknown(callRaw)
       case LinkFull(link, argsRaw) =>
-        AlgoCall(normalizeLink(link), splitComma(argsRaw).map(parse))
+        normalizeLink(link).stripPrefix("[=").stripSuffix("=]") match
+          // "[=𝔽=](x)"/"[=ℤ=](x)"/"[=ℝ=](x)" — ECMA-262's Number/BigInt/
+          // mathematical-value notation (𝔽/ℤ: math value -> Number/BigInt; ℝ:
+          // the inverse, reusing AsMath) special-cased ahead of the generic
+          // AlgoCall fallback, so these three never resolve against a function
+          // literally named 𝔽/ℤ/ℝ (mainline ESMeta's own separate parser
+          // special-cases 𝔽/ℤ the same way, `esmeta.lang.util.Parser`).
+          case "𝔽" => AsNumber(parse(argsRaw))
+          case "ℤ"  => AsBigInt(parse(argsRaw))
+          case "ℝ"  => AsMath(parse(argsRaw))
+          case _ =>
+            AlgoCall(normalizeLink(link), splitComma(argsRaw).map(parse))
       case LinkProse(link, prose) =>
         Link(normalizeLink(link), parseArgs(prose))
       case LinkOnly(link) => Link(normalizeLink(link), Nil)
@@ -602,9 +623,10 @@ object ExprParser:
           parseBOp(sep),
           parse(s.substring(i + sep.length)),
         )
-      case AsMathPat(inner)  => AsMath(parse(inner))
-      case PowPat(base, exp) => Pow(parse(base), parse(exp))
-      case NegPat(inner)     => Neg(parse(inner))
+      case AsMathPat(inner)     => AsMath(parse(inner))
+      case AsWasmPat(inner, ty) => AsWasm(parse(inner), ty)
+      case PowPat(base, exp)    => Pow(parse(base), parse(exp))
+      case NegPat(inner)        => Neg(parse(inner))
 
       // ---- Structural access ----
       case SlotAccess(baseRaw, slot) => Field(parse(baseRaw), stripBraces(slot))

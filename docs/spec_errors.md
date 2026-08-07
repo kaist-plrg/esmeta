@@ -169,3 +169,30 @@ Retracted — its premise was wrong. This entry claimed the Wasm Core Spec's `fu
 - **Current**: `[|parameters|] → [|results|]` / `X → Y` (no discriminator).
 - **Expected**: `[=comp-type/func=] |parameters| → |results|` / `[=comp-type/func=] X → Y`.
 - **Reason**: `.spectec`'s current `comptype` grammar (`1.2-syntax.types.spectec:114-117`) is `comptype ::= STRUCT list(fieldtype) | ARRAY fieldtype | FUNC resulttype -> resulttype` — three variants, each with its own leading keyword (`STRUCT`/`ARRAY`/`FUNC`) to tell them apart, since `comptype` covers all three (added by the GC proposal). Every arrow occurrence in this document predates that: `comptype` didn't exist as a category until GC introduced struct/array types alongside func types, so a functype's own arrow notation never needed a discriminator to begin with — nothing else it could have been confused with. The prose was never updated when the grammar it's implicitly quoting grew two more variants, so it now writes a *comptype* using syntax that's only valid for the specific case where every reader already knows (from context) it must be the `FUNC` variant — technically no longer valid `comptype` surface syntax on its own. Fixed at the same 7 sites #9/#17 already patch for the deftype↔comptype conversion gaps, since all 7 land on this same underlying notation; `NormalizeSpecTecCaseShapePass.RenamedTag`'s `"FUNC" -> "->"` entry keeps the *runtime* representation exactly as it already was (`al_of_comptype`'s `FuncT (rt1, rt2) -> CaseV ("->", ...)` — the runtime tag for a func-shaped comptype has always been `"->"` itself, never `"FUNC"`) — this fix is purely about the *surface syntax* being valid against its own current grammar, not a runtime-representation change. `[=comp-type/func=]` (the `for: comp-type` scoped form the real anchors block would need, mirroring how `[=heap-type/func=]`/`[=external-type/func=]` are already scoped for their own sections) is technically still a dangling link — no `for: comp-type` anchor block actually exists in this document — but left as-is rather than also adding one, since this project never runs real Bikeshed rendering and the link text alone is enough for `ExprParser`/`NormalizeSpecTecCaseShapePass` to recognize and normalize it correctly.
+
+## 19. `AddressValueToU64` passes an already-IDL-converted value into `ConvertToInt`/`ToBigInt`, both defined over a JavaScript value
+
+- **File**: `spectec/document/js-api/index.bs`, lines 1484-1497 (`AddressValueToU64`)
+- **Current**:
+  ```
+  The algorithm AddressValueToU64(|v|, |addrtype|) converts a JavaScript value to a WebAssembly u64 ..., by performing the following steps:
+
+  1. If |addrtype| is i32,
+      1. Let |n| be ?ConvertToInt(|v|, 32, "unsigned"), where the destination type is associated with [EnforceRange].
+      ...
+  1. If |addrtype| is i64,
+      1. Let |n| be ?ToBigInt(|v|).
+      ...
+  ```
+- **Expected**: insert one step right after the head sentence, before either branch:
+  ```
+  1. Set |v| to |v|, [=converted to a JavaScript value=].
+  1. If |addrtype| is [=i32=],
+      1. Let |n| be [=?=] [$ConvertToInt$](|v|, 32, "unsigned"), where the destination type is associated with [=[EnforceRange]=].
+      ...
+  1. If |addrtype| is [=i64=],
+      1. Let |n| be [=?=] [$ToBigInt$](|v|).
+      ...
+  ```
+  (both branches' own lines are otherwise unchanged — they already read `|v|`, which the hoisted step now guarantees is a genuine JavaScript value by the time either branch runs)
+- **Reason**: `AddressValueToU64(|v|, |addrtype|)` is called from `Table.prototype.get`/`.set`/`.grow`, `Memory`/`Table` constructors and `.grow`, etc. with `|index|`/`|delta|`/`|descriptor|["initial"|"maximum"]` — each one bound by the *method steps* of some WebIDL operation. Per `webidl/index.bs:12562-12570` ("create an operation function"), method steps always run with `|values|` — the result of the *overload resolution algorithm*, i.e. every argument already [=converted to an IDL value=] — never the raw incoming arguments. Each of these parameters' declared IDL type is `AddressValue`, a `typedef any` (`webidl/index.bs:687`), and converting a JavaScript value to `any` is a real, defined conversion (`webidl/index.bs:7314-7339`) that produces an IDL value (an IDL unrestricted double / bigint / DOMString / object / ... depending on the argument's ECMAScript type) — not the JavaScript value itself. Both `ConvertToInt` (`webidl/index.bs:7604`, used everywhere else in the document exclusively as an internal step of the "convert a JavaScript value to `unsigned long`/`long`/..." family, e.g. line 7523) and `ToBigInt` (ECMA-262) are defined over a genuine JavaScript value — so the i64 branch has the exact same problem as the i32 branch, not just the one this entry originally flagged. `webidl/index.bs`'s own §3.2 ("JavaScript type mapping") treats "JavaScript value" and "IDL value" as distinct types precisely so that each direction of conversion between them needs to be named and applied explicitly; `AddressValueToU64` skips the IDL-value-to-JavaScript-value direction and feeds `|v|` to both `ConvertToInt` and `ToBigInt` as-is. In practice this happens not to change either operation's observable behavior (every branch of the `any` conversion is either a no-op passthrough or a representation-preserving wrap), but the spec text itself no longer honors the type distinction it defines and relies on elsewhere.

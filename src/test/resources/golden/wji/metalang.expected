@@ -995,7 +995,7 @@
     ElseIf(|v| is an Exported Function, and [=match_valtype=](|type|, [=ref=](|null|, [=heap-type/func=])) is true)
       Let(|funcaddr|, |v|.[[FunctionAddress]])
       Let(|r|, [=ref.func=](|funcaddr|))
-    ElseIf(|v| is a Number, and |v| is [=?=] [$ToInt32$](|v|), and [=ℝ=](|v|) < 2 ** 30, and [=ℝ=](|v|) >= -(2 ** 30))
+    ElseIf(|v| is a Number, and |v| is [=?=] [$ToInt32$](|v|), and AsMath(|v|) < 2 ** 30, and AsMath(|v|) >= -(2 ** 30))
       Let(|i31|, [=?=] [$ToInt32$](|v|))
       Let(|u31|, unsigned integer such that |i31| is [=signed_31=](|u31|))
       Let(|r|, [=ref.i31=](|u31|))
@@ -1023,16 +1023,17 @@
 # AddressValueToU64
   params: |v|, |addrtype|
   head: The algorithm <dfn>AddressValueToU64</dfn>(|v|, |addrtype|) converts a JavaScript value to a WebAssembly [=u64=] for use in embedding operations. It is designed to act like [=[EnforceRange]=] [=unsigned long=] for {{AddressType}} "i32", and to extend these semantics to {{AddressType}} "i64", by performing the following steps:
+  Set(|v|, [=converted to a JavaScript value=](|v|))
   If(|addrtype| is [=i32=])
-    Let(|n|, [=?=] ?([$ConvertToInt$](|v|, 32, "unsigned"), where the destination type is associated with [=[EnforceRange]=]))
+    Let(|n|, [=?=] [$ConvertToInt$](|v|, 32, "unsigned", "EnforceRange"))
     Note(This is equivalent to the [=js-unsigned-long|JS conversion rules=] for [=[EnforceRange]=] [=unsigned long=])
-    Return(?([=ℝ=](|n|) as a WebAssembly [=u64=]))
+    Return(AsWasm(AsMath(|n|), u64))
   If(|addrtype| is [=i64=])
     Let(|n|, [=?=] [$ToBigInt$](|v|))
     If(|n| < 0 or |n| > 2 ** 64 - 1)
       Throw(new {{TypeError}})
     Note(This operation is designed to emulate [=[EnforceRange]=])
-    Return(?([=ℝ=](|n|) as a WebAssembly [=u64=]))
+    Return(AsWasm(AsMath(|n|), u64))
   Assert(Unreachable)
 
 # U64ToAddressValue

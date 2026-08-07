@@ -2224,7 +2224,7 @@ def towebassemblyvalue(
         if (&& (exists v.FunctionAddress) (= (yet "call [=match_valtype=]") true)) {
           let funcaddr = v.FunctionAddress
           let r = (case "REF.FUNC_ADDR" funcaddr)
-        } else if (&& (? v: Number) (&& (= v (yet "nested ?-abrupt: JSCall(ToInt32,List(Var(v)))")) (&& (< (yet "call [=ℝ=]") (** 2 30)) (! (< (yet "call [=ℝ=]") (- (** 2 30))))))) {
+        } else if (&& (? v: Number) (&& (= v (yet "nested ?-abrupt: JSCall(ToInt32,List(Var(v)))")) (&& (< ([math] v) (** 2 30)) (! (< ([math] v) (- (** 2 30))))))) {
           call _call9 = clo<"ToInt32">(v)
           if (? _call9: Abrupt) {
             if (? _call9: Completion) {
@@ -2295,19 +2295,21 @@ def addressvaluetou64(
   v: Unknown,
   addrtype: Unknown,
 ): Unknown = {
+  call _call1 = clo<"converted_to_a_javascript_value">(v)
+  v = _call1
   if (= addrtype (case "I32" )) {
-    let _call1 = (yet "[$ConvertToInt$](|v|, 32, \"unsigned\"), where the destination type is associated with [=[EnforceRange]=]")
-    if (? _call1: Abrupt) {
-      if (? _call1: Completion) {
-        return _call1
+    call _call2 = clo<"ConvertToInt">(v, 32, "unsigned", "EnforceRange")
+    if (? _call2: Abrupt) {
+      if (? _call2: Completion) {
+        return _call2
       } else {
-        call _ret1 = clo<"NormalCompletion">(_call1)
+        call _ret1 = clo<"NormalCompletion">(_call2)
         return _ret1
       }
     } else {
-      let n = _call1.Value
+      let n = _call2.Value
     }
-    let _v2 = (yet "[=ℝ=](|n|) as a WebAssembly [=u64=]")
+    let _v2 = ([math] n)
     if (? _v2: Completion) {
       return _v2
     } else {
@@ -2316,23 +2318,23 @@ def addressvaluetou64(
     }
   } else nop
   if (= addrtype (case "I64" )) {
-    call _call2 = clo<"ToBigInt">(v)
-    if (? _call2: Abrupt) {
-      if (? _call2: Completion) {
-        return _call2
+    call _call3 = clo<"ToBigInt">(v)
+    if (? _call3: Abrupt) {
+      if (? _call3: Completion) {
+        return _call3
       } else {
-        call _ret4 = clo<"NormalCompletion">(_call2)
+        call _ret4 = clo<"NormalCompletion">(_call3)
         return _ret4
       }
     } else {
-      let n = _call2.Value
+      let n = _call3.Value
     }
     if (|| (< n 0) (< (- (** 2 64) 1) n)) {
       call _err5 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
       call _ret6 = clo<"ThrowCompletion">(_err5)
       return _ret6
     } else nop
-    let _v7 = (yet "[=ℝ=](|n|) as a WebAssembly [=u64=]")
+    let _v7 = ([math] n)
     if (? _v7: Completion) {
       return _v7
     } else {

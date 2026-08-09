@@ -142,8 +142,8 @@ object ExpandDestructuringLetPass extends LoweringPass:
       case Instr.Let(Expr.Tuple(elems), expr, body) =>
         destructure(elems, expr, body, counter)
       case Instr.Let(Expr.Case(tag, args), expr, body)
-          if args.forall(a => a.isInstanceOf[Expr.Var] || a == Expr.List_(Nil),
-          ) =>
+          if args
+            .forall(a => a.isInstanceOf[Expr.Var] || a == Expr.List_(Nil)) =>
         destructure(args, expr, body, counter, tagCheck = Some(tag))
       case Instr.Let(lhs @ Expr.Case(_, _), _, _) =>
         throw UnsupportedSpecShape(

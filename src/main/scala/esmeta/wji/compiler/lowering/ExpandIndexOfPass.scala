@@ -33,13 +33,23 @@ import esmeta.error.UnsupportedSpecShape
   * Category: Structural desugaring — Elimination.
   */
 object ExpandIndexOfPass extends LoweringPass:
-  private var counter = 0
-  private def freshIdx(): String = { counter += 1; s"_idxOf$counter" }
+
+  /** Generates this pass's `_idxOfN` names for a single algorithm. Scoped as a
+    * value local to each [[run]] iteration rather than a mutable field on this
+    * `object` — the latter is JVM-wide singleton state, so concurrent `run`
+    * calls (e.g. multiple ScalaTest suites compiling algorithms in parallel,
+    * which sbt's default `Test / parallelExecution` allows) would race on
+    * incrementing/resetting a shared counter, producing nondeterministic naming
+    * depending on thread interleaving.
+    */
+  private class Counter:
+    private var n = 0
+    def freshIdx(): String = { n += 1; s"_idxOf$n" }
 
   def run(algos: List[Algorithm]): List[Algorithm] =
     val result = algos.map { a =>
-      counter = 0
-      a.copy(body = transform(a.body))
+      val counter = Counter()
+      a.copy(body = transform(a.body, counter))
     }
     result.foreach { a =>
       if AstQuery.existsExpr(a.body)(_.isInstanceOf[Expr.IndexOf]) then
@@ -50,25 +60,29 @@ object ExpandIndexOfPass extends LoweringPass:
     }
     result
 
-  private def transform(instrs: List[Instr]): List[Instr] =
-    instrs.flatMap(expandInstr)
+  private def transform(instrs: List[Instr], counter: Counter): List[Instr] =
+    instrs.flatMap(expandInstr(_, counter))
 
-  private def expandInstr(instr: Instr): List[Instr] = instr match
-    case Instr.Let(target @ Expr.Var(_), Expr.IndexOf(list, elem), body) =>
-      val idxVar = Expr.Var(freshIdx())
-      List(
-        Instr.Let(idxVar, Expr.Num("0")),
-        Instr.While(
-          Cond.And(
-            Cond.Compare(idxVar, Cond.CompareOp.Lt, Expr.Length(list)),
-            Cond.Eq(Expr.Index(list, idxVar), elem, negated = true),
+  private def expandInstr(instr: Instr, counter: Counter): List[Instr] =
+    instr match
+      case Instr.Let(target @ Expr.Var(_), Expr.IndexOf(list, elem), body) =>
+        val idxVar = Expr.Var(counter.freshIdx())
+        List(
+          Instr.Let(idxVar, Expr.Num("0")),
+          Instr.While(
+            Cond.And(
+              Cond.Compare(idxVar, Cond.CompareOp.Lt, Expr.Length(list)),
+              Cond.Eq(Expr.Index(list, idxVar), elem, negated = true),
+            ),
+            List(
+              Instr.Set(
+                idxVar,
+                Expr.BinOp(idxVar, Expr.BOp.Add, Expr.Num("1")),
+              ),
+            ),
           ),
-          List(
-            Instr.Set(idxVar, Expr.BinOp(idxVar, Expr.BOp.Add, Expr.Num("1"))),
-          ),
-        ),
-        Instr.Let(target, Expr.AsNumber(idxVar)),
-      ) ::: transform(body)
+          Instr.Let(target, Expr.AsNumber(idxVar)),
+        ) ::: transform(body, counter)
 
-    case _ =>
-      List(instr.mapBody(transform))
+      case _ =>
+        List(instr.mapBody(transform(_, counter)))

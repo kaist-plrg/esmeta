@@ -57,101 +57,110 @@ import esmeta.wji.lang.Instr.PerformOutcome
   */
 object CompletionWrapping:
 
-  private var counter = 0
-  private def freshErr(): String = { counter += 1; s"_err$counter" }
-  private def freshVal(): String = { counter += 1; s"_v$counter" }
-  private def freshRet(): String = { counter += 1; s"_ret$counter" }
+  /** Generates this object's `_err`/`_v`/`_ret` names for a single algorithm.
+    * Scoped as a value local to each [[expandAlgorithm]] call rather than a
+    * mutable field on this `object` — the latter is JVM-wide singleton state,
+    * so concurrent callers (e.g. multiple ScalaTest suites compiling algorithms
+    * in parallel, which sbt's default `Test / parallelExecution` allows) would
+    * race on incrementing/resetting a shared counter, producing
+    * nondeterministic naming depending on thread interleaving.
+    */
+  private class Counter:
+    private var n = 0
+    def freshErr(): String = { n += 1; s"_err$n" }
+    def freshVal(): String = { n += 1; s"_v$n" }
+    def freshRet(): String = { n += 1; s"_ret$n" }
 
-  /** Entry point for a caller's per-`Algorithm` pass over `expand`: resets
-    * `counter` first so fresh names start over at each algorithm instead of
+  /** Entry point for a caller's per-`Algorithm` pass over `expand`: creates a
+    * fresh `Counter` so fresh names start over at each algorithm instead of
     * accumulating across the whole program (`expand` itself also recurses into
-    * nested bodies, e.g. `Return(None, body)`'s `body` — those inner calls must
-    * NOT reset the counter mid-algorithm, so the reset lives here rather than
-    * inside `expand`).
+    * nested bodies, e.g. `Return(None, body)`'s `body` — those inner calls
+    * reuse the same `Counter` passed down from here, rather than each getting
+    * their own).
     */
   def expandAlgorithm(instrs: List[Instr]): List[Instr] =
-    counter = 0
-    expand(instrs)
+    expand(instrs, Counter())
 
-  def expand(instrs: List[Instr]): List[Instr] =
-    instrs.flatMap(expandInstr)
+  private def expand(instrs: List[Instr], counter: Counter): List[Instr] =
+    instrs.flatMap(expandInstr(_, counter))
 
-  private def expandInstr(instr: Instr): List[Instr] = instr match
-    // a "the following steps..." closure's substeps are a separate
-    // algorithm-to-be (see CompletionAlgorithms) — its own Returns are none
-    // of this algorithm's business to wrap. (A no-op by the time
-    // AddBuiltinBehaviourPass calls this: no FollowingSteps remain anywhere
-    // in the program past ExpandFollowingStepsPass.)
-    case i @ Instr.Let(_, Expr.FollowingSteps(_, _), _) => List(i)
-    case Instr.Throw(Expr.New(iface), _) =>
-      val err = freshErr()
-      val ret = freshRet()
-      List(
-        Instr.Perform(
-          "__NEW_ERROR_OBJ__",
-          List(Expr.Str(s"%$iface.prototype%")),
-          PerformOutcome.BindResult(err),
-        ),
-        Instr.Perform(
-          "ThrowCompletion",
-          List(Expr.Var(err)),
-          PerformOutcome.BindResult(ret),
-        ),
-        Instr.Return(Some(Expr.Var(ret))),
-      )
-    // target is already a computed value (e.g. a ToJSValue(...) call, or a
-    // bound variable holding an already-constructed exception object) --
-    // unlike the Expr.New case above, there's nothing to construct, so wrap
-    // it in ThrowCompletion directly.
-    case Instr.Throw(target, _) =>
-      val ret = freshRet()
-      List(
-        Instr.Perform(
-          "ThrowCompletion",
-          List(target),
-          PerformOutcome.BindResult(ret),
-        ),
-        Instr.Return(Some(Expr.Var(ret))),
-      )
-    case Instr.Return(Some(expr), _) =>
-      // a bare Var (the common case now that ExpandInlineAlgoCallPass/
-      // ExpandPerformReturnResultPass already ran) needs no re-binding —
-      // testing/returning it directly, rather than aliasing it under a fresh
-      // name first, avoids a pointless extra Let.
-      val (bindings, vVar) = expr match
-        case v: Expr.Var => (Nil, v)
-        case _ =>
-          val v = freshVal()
-          val vVar = Expr.Var(v)
-          (List(Instr.Let(vVar, expr)), vVar)
-      val ret = freshRet()
-      bindings ++ List(
-        Instr.IfChain(
-          branches = List(
-            (
-              Cond.IsType(vVar, "Completion"),
-              List(Instr.Return(Some(vVar))),
+  private def expandInstr(instr: Instr, counter: Counter): List[Instr] =
+    instr match
+      // a "the following steps..." closure's substeps are a separate
+      // algorithm-to-be (see CompletionAlgorithms) — its own Returns are none
+      // of this algorithm's business to wrap. (A no-op by the time
+      // AddBuiltinBehaviourPass calls this: no FollowingSteps remain anywhere
+      // in the program past ExpandFollowingStepsPass.)
+      case i @ Instr.Let(_, Expr.FollowingSteps(_, _), _) => List(i)
+      case Instr.Throw(Expr.New(iface), _) =>
+        val err = counter.freshErr()
+        val ret = counter.freshRet()
+        List(
+          Instr.Perform(
+            "__NEW_ERROR_OBJ__",
+            List(Expr.Str(s"%$iface.prototype%")),
+            PerformOutcome.BindResult(err),
+          ),
+          Instr.Perform(
+            "ThrowCompletion",
+            List(Expr.Var(err)),
+            PerformOutcome.BindResult(ret),
+          ),
+          Instr.Return(Some(Expr.Var(ret))),
+        )
+      // target is already a computed value (e.g. a ToJSValue(...) call, or a
+      // bound variable holding an already-constructed exception object) --
+      // unlike the Expr.New case above, there's nothing to construct, so wrap
+      // it in ThrowCompletion directly.
+      case Instr.Throw(target, _) =>
+        val ret = counter.freshRet()
+        List(
+          Instr.Perform(
+            "ThrowCompletion",
+            List(target),
+            PerformOutcome.BindResult(ret),
+          ),
+          Instr.Return(Some(Expr.Var(ret))),
+        )
+      case Instr.Return(Some(expr), _) =>
+        // a bare Var (the common case now that ExpandInlineAlgoCallPass/
+        // ExpandPerformReturnResultPass already ran) needs no re-binding —
+        // testing/returning it directly, rather than aliasing it under a fresh
+        // name first, avoids a pointless extra Let.
+        val (bindings, vVar) = expr match
+          case v: Expr.Var => (Nil, v)
+          case _ =>
+            val v = counter.freshVal()
+            val vVar = Expr.Var(v)
+            (List(Instr.Let(vVar, expr)), vVar)
+        val ret = counter.freshRet()
+        bindings ++ List(
+          Instr.IfChain(
+            branches = List(
+              (
+                Cond.IsType(vVar, "Completion"),
+                List(Instr.Return(Some(vVar))),
+              ),
+            ),
+            fallback = List(
+              Instr.Perform(
+                "NormalCompletion",
+                List(vVar),
+                PerformOutcome.BindResult(ret),
+              ),
+              Instr.Return(Some(Expr.Var(ret))),
             ),
           ),
-          fallback = List(
-            Instr.Perform(
-              "NormalCompletion",
-              List(vVar),
-              PerformOutcome.BindResult(ret),
-            ),
-            Instr.Return(Some(Expr.Var(ret))),
+        )
+      case Instr.Return(None, body) =>
+        val ret = counter.freshRet()
+        List(
+          Instr.Perform(
+            "NormalCompletion",
+            List(Expr.SpecTerm("unused")),
+            PerformOutcome.BindResult(ret),
           ),
-        ),
-      )
-    case Instr.Return(None, body) =>
-      val ret = freshRet()
-      List(
-        Instr.Perform(
-          "NormalCompletion",
-          List(Expr.SpecTerm("unused")),
-          PerformOutcome.BindResult(ret),
-        ),
-        Instr.Return(Some(Expr.Var(ret)), expand(body)),
-      )
-    case other =>
-      List(other.mapBody(expand))
+          Instr.Return(Some(Expr.Var(ret)), expand(body, counter)),
+        )
+      case other =>
+        List(other.mapBody(expand(_, counter)))

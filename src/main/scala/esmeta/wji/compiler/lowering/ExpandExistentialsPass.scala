@@ -113,66 +113,74 @@ object ExpandExistentialsPass extends LoweringPass:
   // "[=signed_31=]" / "[=signed_32=]" / "[=signed_64=]" — the bit width.
   private val SignedLink = """(?s)^\[=signed_(31|32|64)=\]$""".r
 
-  private var counter = 0
-  private def fresh(prefix: String): String = {
-    counter += 1; s"_$prefix$counter"
-  }
+  /** Generates this pass's `_foundN` names for a single algorithm. Scoped as a
+    * value local to each [[run]] iteration rather than a mutable field on this
+    * `object` — the latter is JVM-wide singleton state, so concurrent `run`
+    * calls (e.g. multiple ScalaTest suites compiling algorithms in parallel,
+    * which sbt's default `Test / parallelExecution` allows) would race on
+    * incrementing/resetting a shared counter, producing nondeterministic naming
+    * depending on thread interleaving.
+    */
+  private class Counter:
+    private var n = 0
+    def fresh(prefix: String): String = { n += 1; s"_$prefix$n" }
 
   def run(algos: List[Algorithm]): List[Algorithm] =
     algos.map { a =>
-      counter = 0
-      a.copy(body = transform(a.body))
+      val counter = Counter()
+      a.copy(body = transform(a.body, counter))
     }
 
-  private def transform(instrs: List[Instr]): List[Instr] =
-    instrs.flatMap(expandInstr)
+  private def transform(instrs: List[Instr], counter: Counter): List[Instr] =
+    instrs.flatMap(expandInstr(_, counter))
 
-  private def expandInstr(instr: Instr): List[Instr] = instr match
-    case Instr.Let(
-          lhs @ Expr.Var(lhsName),
-          Expr.SuchThat(desc, cond),
-          body,
-        ) =>
-      val newRhs = cond match
-        case Cond.Eq(
-              Expr.Var(valueVar),
-              Expr.AlgoCall(SignedLink(bits), List(Expr.Var(targetVar))),
-              false,
-            ) if targetVar == lhsName =>
-          // `inv_signed_N`'s declared parameter type is `int` (a
-          // mathematical integer, AL `Int`), but the value being inverted
-          // here (e.g. ToInt32's result) is a plain ECMAScript `Number`
-          // (AL `Real` once it crosses `WasmHost` — see `Interpreter.toAL`)
-          // — `AsMath` (ECMA-262's ℝ(number), `EConvert(ToMath, ...)`)
-          // bridges that, matching `inv_signed_`'s own `int`-typed second
-          // parameter (`3.1-numerics.scalar.spectec`).
-          Expr.AlgoCall(
-            s"inv_signed_$bits",
-            List(Expr.AsMath(Expr.Var(valueVar))),
-          )
-        case Cond.HasField(Expr.Index(mapExpr, Expr.Var(indexVar)), true)
-            if indexVar == lhsName =>
-          // the map is only ever grown by this same rule (fill the
-          // smallest missing address, never removed from — see
-          // index.bs's own use of `host value cache`), so its key domain
-          // is always exactly 0..size-1; the smallest missing address is
-          // therefore just its current size, with no search needed.
-          Expr.Length(mapExpr)
-        case _ => Expr.SuchThat(desc, cond)
-      List(Instr.Let(lhs, newRhs, transform(body)))
-    case Instr.Assert(cond, body) if needsHoist(cond) =>
-      val (pre, simplified) = hoist(cond)
-      pre :+ Instr.Assert(simplified, transform(body))
-    case Instr.While(cond, body) if needsHoist(cond) =>
-      val (pre, simplified) = hoist(cond)
-      pre :+ Instr.While(simplified, transform(body))
-    case Instr.IfChain(List((cond, body)), fallback) if needsHoist(cond) =>
-      val (pre, simplified) = hoist(cond)
-      pre :+ Instr.IfChain(
-        List((simplified, transform(body))),
-        transform(fallback),
-      )
-    case other => List(other.mapBody(transform))
+  private def expandInstr(instr: Instr, counter: Counter): List[Instr] =
+    instr match
+      case Instr.Let(
+            lhs @ Expr.Var(lhsName),
+            Expr.SuchThat(desc, cond),
+            body,
+          ) =>
+        val newRhs = cond match
+          case Cond.Eq(
+                Expr.Var(valueVar),
+                Expr.AlgoCall(SignedLink(bits), List(Expr.Var(targetVar))),
+                false,
+              ) if targetVar == lhsName =>
+            // `inv_signed_N`'s declared parameter type is `int` (a
+            // mathematical integer, AL `Int`), but the value being inverted
+            // here (e.g. ToInt32's result) is a plain ECMAScript `Number`
+            // (AL `Real` once it crosses `WasmHost` — see `Interpreter.toAL`)
+            // — `AsMath` (ECMA-262's ℝ(number), `EConvert(ToMath, ...)`)
+            // bridges that, matching `inv_signed_`'s own `int`-typed second
+            // parameter (`3.1-numerics.scalar.spectec`).
+            Expr.AlgoCall(
+              s"inv_signed_$bits",
+              List(Expr.AsMath(Expr.Var(valueVar))),
+            )
+          case Cond.HasField(Expr.Index(mapExpr, Expr.Var(indexVar)), true)
+              if indexVar == lhsName =>
+            // the map is only ever grown by this same rule (fill the
+            // smallest missing address, never removed from — see
+            // index.bs's own use of `host value cache`), so its key domain
+            // is always exactly 0..size-1; the smallest missing address is
+            // therefore just its current size, with no search needed.
+            Expr.Length(mapExpr)
+          case _ => Expr.SuchThat(desc, cond)
+        List(Instr.Let(lhs, newRhs, transform(body, counter)))
+      case Instr.Assert(cond, body) if needsHoist(cond) =>
+        val (pre, simplified) = hoist(cond, counter)
+        pre :+ Instr.Assert(simplified, transform(body, counter))
+      case Instr.While(cond, body) if needsHoist(cond) =>
+        val (pre, simplified) = hoist(cond, counter)
+        pre :+ Instr.While(simplified, transform(body, counter))
+      case Instr.IfChain(List((cond, body)), fallback) if needsHoist(cond) =>
+        val (pre, simplified) = hoist(cond, counter)
+        pre :+ Instr.IfChain(
+          List((simplified, transform(body, counter))),
+          transform(fallback, counter),
+        )
+      case other => List(other.mapBody(transform(_, counter)))
 
   private def needsHoist(cond: Cond): Boolean = cond match
     case Cond.Exists(binder, Cond.Eq(Expr.Index(_, Expr.Var(iv)), _, false)) =>
@@ -184,49 +192,50 @@ object ExpandExistentialsPass extends LoweringPass:
   /** Returns the instructions to run first, and a pure replacement condition
     * (no known-hoistable `Exists` left) to check afterward.
     */
-  private def hoist(cond: Cond): (List[Instr], Cond) = cond match
-    case Cond.Exists(
-          binder,
-          Cond.Eq(Expr.Index(mapExpr, Expr.Var(indexVar)), value, false),
-        ) if indexVar == binder =>
-      val found = fresh("found")
-      val pre = List(
-        Instr.Let(Expr.Var(found), Expr.Bool(false)),
-        Instr.Let(Expr.Var(binder), Expr.Num("0")),
-        Instr.While(
-          Cond.And(
-            Cond.Eq(Expr.Var(found), Expr.Bool(false)),
-            Cond.Compare(
-              Expr.Var(binder),
-              Cond.CompareOp.Lt,
-              Expr.Length(mapExpr),
-            ),
-          ),
-          List(
-            Instr.IfChain(
-              List(
-                (
-                  Cond.Eq(Expr.Index(mapExpr, Expr.Var(binder)), value),
-                  List(Instr.Set(Expr.Var(found), Expr.Bool(true))),
-                ),
-              ),
-              List(
-                Instr.Set(
-                  Expr.Var(binder),
-                  Expr.BinOp(Expr.Var(binder), Expr.BOp.Add, Expr.Num("1")),
-                ),
+  private def hoist(cond: Cond, counter: Counter): (List[Instr], Cond) =
+    cond match
+      case Cond.Exists(
+            binder,
+            Cond.Eq(Expr.Index(mapExpr, Expr.Var(indexVar)), value, false),
+          ) if indexVar == binder =>
+        val found = counter.fresh("found")
+        val pre = List(
+          Instr.Let(Expr.Var(found), Expr.Bool(false)),
+          Instr.Let(Expr.Var(binder), Expr.Num("0")),
+          Instr.While(
+            Cond.And(
+              Cond.Eq(Expr.Var(found), Expr.Bool(false)),
+              Cond.Compare(
+                Expr.Var(binder),
+                Cond.CompareOp.Lt,
+                Expr.Length(mapExpr),
               ),
             ),
+            List(
+              Instr.IfChain(
+                List(
+                  (
+                    Cond.Eq(Expr.Index(mapExpr, Expr.Var(binder)), value),
+                    List(Instr.Set(Expr.Var(found), Expr.Bool(true))),
+                  ),
+                ),
+                List(
+                  Instr.Set(
+                    Expr.Var(binder),
+                    Expr.BinOp(Expr.Var(binder), Expr.BOp.Add, Expr.Num("1")),
+                  ),
+                ),
+              ),
+            ),
           ),
-        ),
-      )
-      (pre, Cond.Eq(Expr.Var(found), Expr.Bool(true)))
-    case Cond.And(l, r) =>
-      val (lp, lc) = hoist(l)
-      val (rp, rc) = hoist(r)
-      (lp ++ rp, Cond.And(lc, rc))
-    case Cond.Or(l, r) =>
-      val (lp, lc) = hoist(l)
-      val (rp, rc) = hoist(r)
-      (lp ++ rp, Cond.Or(lc, rc))
-    case other => (Nil, other)
+        )
+        (pre, Cond.Eq(Expr.Var(found), Expr.Bool(true)))
+      case Cond.And(l, r) =>
+        val (lp, lc) = hoist(l, counter)
+        val (rp, rc) = hoist(r, counter)
+        (lp ++ rp, Cond.And(lc, rc))
+      case Cond.Or(l, r) =>
+        val (lp, lc) = hoist(l, counter)
+        val (rp, rc) = hoist(r, counter)
+        (lp ++ rp, Cond.Or(lc, rc))
+      case other => (Nil, other)

@@ -96,28 +96,38 @@ object ExpandDestructuringLetPass extends LoweringPass:
   override def requires: Set[LoweringPass] =
     Set(ExpandForEachPass, NormalizeSpecTecCaseShapePass)
 
-  private var counter = 0
-  private def freshTuple(): String = { counter += 1; s"_tuple$counter" }
+  /** Generates this pass's `_tupleN` names for a single algorithm. Scoped as a
+    * value local to each [[run]] iteration rather than a mutable field on this
+    * `object` — the latter is JVM-wide singleton state, so concurrent `run`
+    * calls (e.g. multiple ScalaTest suites compiling algorithms in parallel,
+    * which sbt's default `Test / parallelExecution` allows) would race on
+    * incrementing/resetting a shared counter, producing nondeterministic naming
+    * depending on thread interleaving.
+    */
+  private class Counter:
+    private var n = 0
+    def freshTuple(): String = { n += 1; s"_tuple$n" }
 
   def run(algos: List[Algorithm]): List[Algorithm] =
     algos.map { a =>
-      counter = 0
-      a.copy(body = transform(a.body))
+      val counter = Counter()
+      a.copy(body = transform(a.body, counter))
     }
 
-  private def transform(instrs: List[Instr]): List[Instr] =
-    instrs.flatMap(expandInstr)
+  private def transform(instrs: List[Instr], counter: Counter): List[Instr] =
+    instrs.flatMap(expandInstr(_, counter))
 
   private def destructure(
     elems: List[Expr],
     expr: Expr,
     body: List[Instr],
+    counter: Counter,
     tagCheck: Option[String] = None,
   ): List[Instr] =
     val (base, binding) = expr match
       case v: Expr.Var => (v, Nil)
       case _ =>
-        val tmp = Expr.Var(freshTuple())
+        val tmp = Expr.Var(counter.freshTuple())
         (tmp, List(Instr.Let(tmp, expr)))
     val assertTag = tagCheck.toList.map { tag =>
       Instr.Assert(Cond.Eq(Expr.CaseTag(base), Expr.Str(tag)))
@@ -125,18 +135,20 @@ object ExpandDestructuringLetPass extends LoweringPass:
     val destructures = elems.zipWithIndex.collect {
       case (v: Expr.Var, i) => Instr.Let(v, Expr.TupleProj(base, i))
     }
-    binding ++ assertTag ++ destructures ++ transform(body)
+    binding ++ assertTag ++ destructures ++ transform(body, counter)
 
-  private def expandInstr(instr: Instr): List[Instr] = instr match
-    case Instr.Let(Expr.Tuple(elems), expr, body) =>
-      destructure(elems, expr, body)
-    case Instr.Let(Expr.Case(tag, args), expr, body)
-        if args.forall(a => a.isInstanceOf[Expr.Var] || a == Expr.List_(Nil)) =>
-      destructure(args, expr, body, tagCheck = Some(tag))
-    case Instr.Let(lhs @ Expr.Case(_, _), _, _) =>
-      throw UnsupportedSpecShape(
-        "ExpandDestructuringLetPass",
-        s"Case-lhs Let with an arg that's neither a Var nor a literal empty list: $lhs",
-      )
-    case _ =>
-      List(instr.mapBody(transform))
+  private def expandInstr(instr: Instr, counter: Counter): List[Instr] =
+    instr match
+      case Instr.Let(Expr.Tuple(elems), expr, body) =>
+        destructure(elems, expr, body, counter)
+      case Instr.Let(Expr.Case(tag, args), expr, body)
+          if args.forall(a => a.isInstanceOf[Expr.Var] || a == Expr.List_(Nil),
+          ) =>
+        destructure(args, expr, body, counter, tagCheck = Some(tag))
+      case Instr.Let(lhs @ Expr.Case(_, _), _, _) =>
+        throw UnsupportedSpecShape(
+          "ExpandDestructuringLetPass",
+          s"Case-lhs Let with an arg that's neither a Var nor a literal empty list: $lhs",
+        )
+      case _ =>
+        List(instr.mapBody(transform(_, counter)))

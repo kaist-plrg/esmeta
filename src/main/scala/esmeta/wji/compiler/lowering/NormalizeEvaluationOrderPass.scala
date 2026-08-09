@@ -81,8 +81,17 @@ object NormalizeEvaluationOrderPass extends LoweringPass:
     */
   override def requires: Set[LoweringPass] = Set(ResolveLinksPass)
 
-  private var counter = 0
-  private def fresh(): String = { counter += 1; s"_call$counter" }
+  /** Generates this pass's `_callN` names for a single algorithm. Scoped as a
+    * value local to each [[run]] iteration (see below) rather than a mutable
+    * field on this `object` — the latter is JVM-wide singleton state, so
+    * concurrent `run` calls (e.g. multiple ScalaTest suites compiling
+    * algorithms in parallel, which sbt's default `Test / parallelExecution`
+    * allows) would race on incrementing/resetting a shared counter, producing
+    * nondeterministic `_callN` numbering depending on thread interleaving.
+    */
+  private class Counter:
+    private var n = 0
+    def fresh(): String = { n += 1; s"_call$n" }
 
   /** Extracts every non-trivial `AlgoCall`/`JSCall`/`Expr.Abrupt` reachable
     * from an `Expr` into `hoisted`, substituting a fresh `Var` in its place —
@@ -94,7 +103,7 @@ object NormalizeEvaluationOrderPass extends LoweringPass:
     * a call or `?`/`!`, but the `Case` itself is a constructor/pattern, never
     * itself hoisted.
     */
-  private class Extractor extends Walker:
+  private class Extractor(counter: Counter) extends Walker:
     private val buf = ListBuffer.empty[Instr.Let]
     def hoisted: List[Instr.Let] = buf.toList
 
@@ -102,7 +111,7 @@ object NormalizeEvaluationOrderPass extends LoweringPass:
       * referencing it.
       */
     def bindFresh(e: Expr): Expr.Var =
-      val tmp = fresh()
+      val tmp = counter.fresh()
       buf += Instr.Let(Expr.Var(tmp), e)
       Expr.Var(tmp)
 
@@ -158,72 +167,75 @@ object NormalizeEvaluationOrderPass extends LoweringPass:
 
   def run(algos: List[Algorithm]): List[Algorithm] =
     algos.map { a =>
-      counter = 0
-      a.copy(body = transform(a.body))
+      val counter = Counter()
+      a.copy(body = transform(a.body, counter))
     }
 
   // ── Instr traversal ──────────────────────────────────────────────────────────
 
-  private def transform(instrs: List[Instr]): List[Instr] =
-    instrs.flatMap(normalizeInstr)
+  private def transform(instrs: List[Instr], counter: Counter): List[Instr] =
+    instrs.flatMap(normalizeInstr(_, counter))
 
-  private def normalizeInstr(instr: Instr): List[Instr] = instr match
+  private def normalizeInstr(instr: Instr, counter: Counter): List[Instr] =
+    instr match
 
-    case Instr.Let(lhs, rhs, body) =>
-      val ext = Extractor()
-      val newRhs = ext.walkTop(rhs)
-      ext.hoisted ++ List(Instr.Let(lhs, newRhs, transform(body)))
+      case Instr.Let(lhs, rhs, body) =>
+        val ext = Extractor(counter)
+        val newRhs = ext.walkTop(rhs)
+        ext.hoisted ++ List(Instr.Let(lhs, newRhs, transform(body, counter)))
 
-    case Instr.Return(Some(rhs), body) =>
-      val ext = Extractor()
-      val newRhs = ext.walkTop(rhs)
-      ext.hoisted ++ List(Instr.Return(Some(newRhs), transform(body)))
+      case Instr.Return(Some(rhs), body) =>
+        val ext = Extractor(counter)
+        val newRhs = ext.walkTop(rhs)
+        ext.hoisted ++ List(
+          Instr.Return(Some(newRhs), transform(body, counter)),
+        )
 
-    // `Set`'s RHS has no `walkTop`-style exemption for a bare call (see class
-    // doc — no `Perform` outcome assigns into an existing variable), but an
-    // `Expr.Abrupt` RHS still gets the same "leave at top, just ensure
-    // `inner` is atomic" treatment as `Let`/`Return`: `lhs` is already
-    // `ExpandAbruptPass`'s binding slot, so hoisting the whole `Abrupt` into
-    // yet another fresh alias would just be redundant.
-    case Instr.Set(lhs, Expr.Abrupt(marker, inner), body) =>
-      val ext = Extractor()
-      val newRhs = Expr.Abrupt(marker, ext.ensureVar(ext.walk(inner)))
-      ext.hoisted ++ List(Instr.Set(lhs, newRhs, transform(body)))
+      // `Set`'s RHS has no `walkTop`-style exemption for a bare call (see class
+      // doc — no `Perform` outcome assigns into an existing variable), but an
+      // `Expr.Abrupt` RHS still gets the same "leave at top, just ensure
+      // `inner` is atomic" treatment as `Let`/`Return`: `lhs` is already
+      // `ExpandAbruptPass`'s binding slot, so hoisting the whole `Abrupt` into
+      // yet another fresh alias would just be redundant.
+      case Instr.Set(lhs, Expr.Abrupt(marker, inner), body) =>
+        val ext = Extractor(counter)
+        val newRhs = Expr.Abrupt(marker, ext.ensureVar(ext.walk(inner)))
+        ext.hoisted ++ List(Instr.Set(lhs, newRhs, transform(body, counter)))
 
-    case Instr.Set(lhs, rhs, body) =>
-      val (bindings, newRhs) = Extractor().extract(rhs)
-      bindings ++ List(Instr.Set(lhs, newRhs, transform(body)))
+      case Instr.Set(lhs, rhs, body) =>
+        val (bindings, newRhs) = Extractor(counter).extract(rhs)
+        bindings ++ List(Instr.Set(lhs, newRhs, transform(body, counter)))
 
-    case Instr.Append(item, coll, body) =>
-      val ext = Extractor()
-      val ie = ext.walk(item)
-      val ce = ext.walk(coll)
-      ext.hoisted ++ List(Instr.Append(ie, ce, transform(body)))
+      case Instr.Append(item, coll, body) =>
+        val ext = Extractor(counter)
+        val ie = ext.walk(item)
+        val ce = ext.walk(coll)
+        ext.hoisted ++ List(Instr.Append(ie, ce, transform(body, counter)))
 
-    case Instr.Throw(target, body) =>
-      val ext = Extractor()
-      val newTarget = ext.walk(target)
-      ext.hoisted ++ List(Instr.Throw(newTarget, transform(body)))
+      case Instr.Throw(target, body) =>
+        val ext = Extractor(counter)
+        val newTarget = ext.walk(target)
+        ext.hoisted ++ List(Instr.Throw(newTarget, transform(body, counter)))
 
-    case Instr.Perform(func, args, outcome, body) =>
-      val ext = Extractor()
-      val newArgs = args.map(ext.walk)
-      ext.hoisted ++ List(
-        Instr.Perform(func, newArgs, outcome, transform(body)),
-      )
+      case Instr.Perform(func, args, outcome, body) =>
+        val ext = Extractor(counter)
+        val newArgs = args.map(ext.walk)
+        ext.hoisted ++ List(
+          Instr.Perform(func, newArgs, outcome, transform(body, counter)),
+        )
 
-    case Instr.Assert(cond, body) =>
-      val (bindings, newCond) = extractFromCond(cond)
-      bindings ++ List(Instr.Assert(newCond, transform(body)))
+      case Instr.Assert(cond, body) =>
+        val (bindings, newCond) = extractFromCond(cond, counter)
+        bindings ++ List(Instr.Assert(newCond, transform(body, counter)))
 
-    case Instr.IfChain(branches, fallback) =>
-      buildChain(branches, fallback)
+      case Instr.IfChain(branches, fallback) =>
+        buildChain(branches, fallback, counter)
 
-    case Instr.While(cond, body) =>
-      List(Instr.While(cond, transform(body)))
+      case Instr.While(cond, body) =>
+        List(Instr.While(cond, transform(body, counter)))
 
-    case _ =>
-      List(instr.mapBody(transform))
+      case _ =>
+        List(instr.mapBody(transform(_, counter)))
 
   /** Rebuilds an `IfChain`'s branch list back-to-front, hoisting each branch's
     * own condition via [[extractFromCond]] as it goes. A branch whose condition
@@ -247,12 +259,13 @@ object NormalizeEvaluationOrderPass extends LoweringPass:
   private def buildChain(
     branches: List[(Cond, List[Instr])],
     fallback: List[Instr],
+    counter: Counter,
   ): List[Instr] = branches match
-    case Nil => transform(fallback)
+    case Nil => transform(fallback, counter)
     case (cond, body) :: rest =>
-      val (bindings, newCond) = extractFromCond(cond)
-      val newBody = transform(body)
-      val restInstrs = buildChain(rest, fallback)
+      val (bindings, newCond) = extractFromCond(cond, counter)
+      val newBody = transform(body, counter)
+      val restInstrs = buildChain(rest, fallback, counter)
       if bindings.isEmpty then
         restInstrs match
           case List(Instr.IfChain(restBranches, restFallback)) =>
@@ -265,40 +278,44 @@ object NormalizeEvaluationOrderPass extends LoweringPass:
 
   // ── Cond normalization ───────────────────────────────────────────────────────
 
-  private def extractFromCond(cond: Cond): (List[Instr.Let], Cond) = cond match
+  private def extractFromCond(
+    cond: Cond,
+    counter: Counter,
+  ): (List[Instr.Let], Cond) = cond match
 
     case Cond.Eq(l, r, neg) =>
-      val ext = Extractor()
+      val ext = Extractor(counter)
       val (le, re) = (ext.walk(l), ext.walk(r))
       (ext.hoisted, Cond.Eq(le, re, neg))
 
     case Cond.Compare(l, op, r) =>
-      val ext = Extractor()
+      val ext = Extractor(counter)
       val (le, re) = (ext.walk(l), ext.walk(r))
       (ext.hoisted, Cond.Compare(le, op, re))
 
     case Cond.IsType(e, t, neg) =>
-      val (b, ne) = Extractor().extract(e); (b, Cond.IsType(ne, t, neg))
+      val (b, ne) = Extractor(counter).extract(e); (b, Cond.IsType(ne, t, neg))
 
     case Cond.HasField(e, neg) =>
-      val (b, ne) = Extractor().extract(e); (b, Cond.HasField(ne, neg))
+      val (b, ne) = Extractor(counter).extract(e); (b, Cond.HasField(ne, neg))
 
     case Cond.Implements(e, iface, neg) =>
-      val (b, ne) = Extractor().extract(e); (b, Cond.Implements(ne, iface, neg))
+      val (b, ne) = Extractor(counter).extract(e)
+      (b, Cond.Implements(ne, iface, neg))
 
     case Cond.IsMissing(e, neg) =>
-      val (b, ne) = Extractor().extract(e); (b, Cond.IsMissing(ne, neg))
+      val (b, ne) = Extractor(counter).extract(e); (b, Cond.IsMissing(ne, neg))
 
     case Cond.IsOfForm(e, form, condOpt, neg) =>
-      val (b, ne) = Extractor().extract(e)
+      val (b, ne) = Extractor(counter).extract(e)
       (b, Cond.IsOfForm(ne, form, condOpt, neg))
 
     case Cond.And(l, r) =>
-      val (lb, lc) = extractFromCond(l)
+      val (lb, lc) = extractFromCond(l, counter)
       (lb, Cond.And(lc, r))
 
     case Cond.Or(l, r) =>
-      val (lb, lc) = extractFromCond(l)
+      val (lb, lc) = extractFromCond(l, counter)
       (lb, Cond.Or(lc, r))
 
     // `collections` is evaluated once, before ExpandMatchesExistsPass's
@@ -308,7 +325,7 @@ object NormalizeEvaluationOrderPass extends LoweringPass:
     // loop exists) would evaluate it in the wrong scope, so it's deliberately
     // left alone for ExpandMatchesExistsPass's own (loop-aware) handling.
     case Cond.Any(binder, collections, body) =>
-      val ext = Extractor()
+      val ext = Extractor(counter)
       val es = collections.map(ext.walk)
       (ext.hoisted, Cond.Any(binder, es, body))
 

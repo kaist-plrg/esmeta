@@ -58,55 +58,67 @@ object ExpandThrowsPass extends LoweringPass:
   override def requires: Set[LoweringPass] =
     Set(GroupIfChainPass, ExpandInlineAlgoCallPass)
 
-  private var counter = 0
-  private def freshComp(): String = { counter += 1; s"_throwComp$counter" }
+  /** Generates this pass's `_throwCompN` names for a single algorithm. Scoped
+    * as a value local to each [[run]] iteration rather than a mutable field on
+    * this `object` — the latter is JVM-wide singleton state, so concurrent
+    * `run` calls (e.g. multiple ScalaTest suites compiling algorithms in
+    * parallel, which sbt's default `Test / parallelExecution` allows) would
+    * race on incrementing/resetting a shared counter, producing
+    * nondeterministic naming depending on thread interleaving.
+    */
+  private class Counter:
+    private var n = 0
+    def freshComp(): String = { n += 1; s"_throwComp$n" }
 
   def run(algos: List[Algorithm]): List[Algorithm] =
     algos.map { a =>
-      counter = 0
-      a.copy(body = transform(a.body))
+      val counter = Counter()
+      a.copy(body = transform(a.body, counter))
     }
 
   private def stripPipes(s: String): String =
     s.stripPrefix("|").stripSuffix("|")
 
-  private def transform(instrs: List[Instr]): List[Instr] = instrs match
-    case Nil => Nil
-    case (call: Instr.Perform) ::
-        Instr.IfChain(List((Cond.Throws(_), catchBody)), Nil) ::
-        rest if call.body.isEmpty =>
-      val tmpName = freshComp()
-      val tmp = Expr.Var(tmpName)
-      val completionCall =
-        call.copy(outcome = PerformOutcome.BindResult(tmpName))
+  private def transform(instrs: List[Instr], counter: Counter): List[Instr] =
+    instrs match
+      case Nil => Nil
+      case (call: Instr.Perform) ::
+          Instr.IfChain(List((Cond.Throws(_), catchBody)), Nil) ::
+          rest if call.body.isEmpty =>
+        val tmpName = counter.freshComp()
+        val tmp = Expr.Var(tmpName)
+        val completionCall =
+          call.copy(outcome = PerformOutcome.BindResult(tmpName))
 
-      // the same result binding (or discard/return), just fed a different
-      // expression depending on which of the three shapes it turned out to be
-      def bind(result: Expr): List[Instr] = call.outcome match
-        case PerformOutcome.BindResult(v) =>
-          List(Instr.Let(Expr.Var(stripPipes(v)), result))
-        case PerformOutcome.Discard      => Nil
-        case PerformOutcome.ReturnResult => List(Instr.Return(Some(result)))
+        // the same result binding (or discard/return), just fed a different
+        // expression depending on which of the three shapes it turned out to be
+        def bind(result: Expr): List[Instr] = call.outcome match
+          case PerformOutcome.BindResult(v) =>
+            List(Instr.Let(Expr.Var(stripPipes(v)), result))
+          case PerformOutcome.Discard      => Nil
+          case PerformOutcome.ReturnResult => List(Instr.Return(Some(result)))
 
-      val isThrow =
-        Cond.Eq(
-          Expr.Field(tmp, "Type"),
-          Expr.SpecTerm("throw"),
-          negated = false,
+        val isThrow =
+          Cond.Eq(
+            Expr.Field(tmp, "Type"),
+            Expr.SpecTerm("throw"),
+            negated = false,
+          )
+        val catchBranch =
+          Instr.Let(Expr.Var("exception"), Expr.Field(tmp, "Value")) ::
+          transform(catchBody, counter)
+        val completionCheck = Instr.IfChain(
+          List((isThrow, catchBranch)),
+          bind(Expr.Field(tmp, "Value")), // a completion, but not a throw
         )
-      val catchBranch =
-        Instr.Let(Expr.Var("exception"), Expr.Field(tmp, "Value")) ::
-        transform(catchBody)
-      val completionCheck = Instr.IfChain(
-        List((isThrow, catchBranch)),
-        bind(Expr.Field(tmp, "Value")), // a completion, but not a throw
-      )
 
-      completionCall ::
-      Instr.IfChain(
-        List((Cond.HasField(Expr.Field(tmp, "Type")), List(completionCheck))),
-        bind(tmp), // not a completion at all — a bare value
-      ) ::
-      transform(rest)
-    case instr :: rest =>
-      instr.mapBody(transform) :: transform(rest)
+        completionCall ::
+        Instr.IfChain(
+          List(
+            (Cond.HasField(Expr.Field(tmp, "Type")), List(completionCheck)),
+          ),
+          bind(tmp), // not a completion at all — a bare value
+        ) ::
+        transform(rest, counter)
+      case instr :: rest =>
+        instr.mapBody(transform(_, counter)) :: transform(rest, counter)

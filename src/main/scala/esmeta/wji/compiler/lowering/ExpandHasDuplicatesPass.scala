@@ -46,40 +46,51 @@ object ExpandHasDuplicatesPass extends LoweringPass:
     */
   override def requires: Set[LoweringPass] = Set(GroupIfChainPass)
 
-  private var counter = 0
-  private def freshList(): String = { counter += 1; s"_dupList$counter" }
-  private def freshFound(): String = { counter += 1; s"_dupFound$counter" }
-  private def freshI(): String = { counter += 1; s"_dupI$counter" }
-  private def freshJ(): String = { counter += 1; s"_dupJ$counter" }
+  /** Generates this pass's `_dupList`/`_dupFound`/`_dupI`/`_dupJ` names for a
+    * single algorithm. Scoped as a value local to each [[run]] iteration rather
+    * than a mutable field on this `object` — the latter is JVM-wide singleton
+    * state, so concurrent `run` calls (e.g. multiple ScalaTest suites compiling
+    * algorithms in parallel, which sbt's default `Test / parallelExecution`
+    * allows) would race on incrementing/resetting a shared counter, producing
+    * nondeterministic naming depending on thread interleaving.
+    */
+  private class Counter:
+    private var n = 0
+    def freshList(): String = { n += 1; s"_dupList$n" }
+    def freshFound(): String = { n += 1; s"_dupFound$n" }
+    def freshI(): String = { n += 1; s"_dupI$n" }
+    def freshJ(): String = { n += 1; s"_dupJ$n" }
 
   def run(algos: List[Algorithm]): List[Algorithm] =
     algos.map { a =>
-      counter = 0
-      a.copy(body = transform(a.body))
+      val counter = Counter()
+      a.copy(body = transform(a.body, counter))
     }
 
-  private def transform(instrs: List[Instr]): List[Instr] =
-    instrs.flatMap(expandInstr)
+  private def transform(instrs: List[Instr], counter: Counter): List[Instr] =
+    instrs.flatMap(expandInstr(_, counter))
 
-  private def expandInstr(instr: Instr): List[Instr] = instr match
-    case i: Instr.IfChain =>
-      i.branches match
-        case (Cond.HasDuplicates(list, neg), body) :: Nil =>
-          val newBody = transform(body)
-          val newFallback = transform(i.fallback)
-          expand(
-            list,
-            neg,
-            c => Instr.IfChain(List((c, newBody)), newFallback),
-          )
-        case _ =>
-          List(
-            i.copy(
-              branches = i.branches.map((c, b) => (c, transform(b))),
-              fallback = transform(i.fallback),
-            ),
-          )
-    case _ => List(instr.mapBody(transform))
+  private def expandInstr(instr: Instr, counter: Counter): List[Instr] =
+    instr match
+      case i: Instr.IfChain =>
+        i.branches match
+          case (Cond.HasDuplicates(list, neg), body) :: Nil =>
+            val newBody = transform(body, counter)
+            val newFallback = transform(i.fallback, counter)
+            expand(
+              list,
+              neg,
+              c => Instr.IfChain(List((c, newBody)), newFallback),
+              counter,
+            )
+          case _ =>
+            List(
+              i.copy(
+                branches = i.branches.map((c, b) => (c, transform(b, counter))),
+                fallback = transform(i.fallback, counter),
+              ),
+            )
+      case _ => List(instr.mapBody(transform(_, counter)))
 
   /** Builds the pairwise-comparison loop for `list`, then applies `rebuild` (an
     * `IfChain` template with a hole for the found-flag check) to produce the
@@ -89,11 +100,12 @@ object ExpandHasDuplicatesPass extends LoweringPass:
     list: Expr,
     negated: Boolean,
     rebuild: Cond => Instr.IfChain,
+    counter: Counter,
   ): List[Instr] =
-    val listVar = Expr.Var(freshList())
-    val foundVar = Expr.Var(freshFound())
-    val iVar = Expr.Var(freshI())
-    val jVar = Expr.Var(freshJ())
+    val listVar = Expr.Var(counter.freshList())
+    val foundVar = Expr.Var(counter.freshFound())
+    val iVar = Expr.Var(counter.freshI())
+    val jVar = Expr.Var(counter.freshJ())
 
     List(
       Instr.Let(listVar, list),

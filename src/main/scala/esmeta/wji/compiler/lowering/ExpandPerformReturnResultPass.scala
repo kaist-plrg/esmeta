@@ -34,25 +34,35 @@ object ExpandPerformReturnResultPass extends LoweringPass:
     */
   override def requires: Set[LoweringPass] = Set(ExpandInlineAlgoCallPass)
 
-  private var counter = 0
-  private def freshRet(): String = { counter += 1; s"_result$counter" }
+  /** Generates this pass's `_resultN` names for a single algorithm. Scoped as a
+    * value local to each [[run]] iteration rather than a mutable field on this
+    * `object` — the latter is JVM-wide singleton state, so concurrent `run`
+    * calls (e.g. multiple ScalaTest suites compiling algorithms in parallel,
+    * which sbt's default `Test / parallelExecution` allows) would race on
+    * incrementing/resetting a shared counter, producing nondeterministic naming
+    * depending on thread interleaving.
+    */
+  private class Counter:
+    private var n = 0
+    def freshRet(): String = { n += 1; s"_result$n" }
 
   def run(algos: List[Algorithm]): List[Algorithm] =
     algos.map { a =>
-      counter = 0
-      a.copy(body = transform(a.body))
+      val counter = Counter()
+      a.copy(body = transform(a.body, counter))
     }
 
-  private def transform(instrs: List[Instr]): List[Instr] =
-    instrs.flatMap(expandInstr)
+  private def transform(instrs: List[Instr], counter: Counter): List[Instr] =
+    instrs.flatMap(expandInstr(_, counter))
 
-  private def expandInstr(instr: Instr): List[Instr] = instr match
-    case Instr.Perform(func, args, PerformOutcome.ReturnResult, body) =>
-      val tmp = freshRet()
-      transform(body) ++
-      List(
-        Instr.Perform(func, args, PerformOutcome.BindResult(tmp)),
-        Instr.Return(Some(Expr.Var(tmp))),
-      )
-    case _ =>
-      List(instr.mapBody(transform))
+  private def expandInstr(instr: Instr, counter: Counter): List[Instr] =
+    instr match
+      case Instr.Perform(func, args, PerformOutcome.ReturnResult, body) =>
+        val tmp = counter.freshRet()
+        transform(body, counter) ++
+        List(
+          Instr.Perform(func, args, PerformOutcome.BindResult(tmp)),
+          Instr.Return(Some(Expr.Var(tmp))),
+        )
+      case _ =>
+        List(instr.mapBody(transform(_, counter)))

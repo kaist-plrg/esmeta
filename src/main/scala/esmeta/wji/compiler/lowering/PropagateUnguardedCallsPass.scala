@@ -66,16 +66,26 @@ object PropagateUnguardedCallsPass extends LoweringPass:
       .flatten
       .toSet
     algos.map { a =>
-      counter = 0
-      a.copy(body = transform(a.body, completionAlgos))
+      val counter = Counter()
+      a.copy(body = transform(a.body, completionAlgos, counter))
     }
 
-  private var counter = 0
-  private def fresh(): String = { counter += 1; s"_guard$counter" }
+  /** Generates this pass's `_guardN` names for a single algorithm. Scoped as a
+    * value local to each [[run]] iteration rather than a mutable field on this
+    * `object` — the latter is JVM-wide singleton state, so concurrent `run`
+    * calls (e.g. multiple ScalaTest suites compiling algorithms in parallel,
+    * which sbt's default `Test / parallelExecution` allows) would race on
+    * incrementing/resetting a shared counter, producing nondeterministic naming
+    * depending on thread interleaving.
+    */
+  private class Counter:
+    private var n = 0
+    def fresh(): String = { n += 1; s"_guard$n" }
 
   private def transform(
     instrs: List[Instr],
     completionAlgos: Set[String],
+    counter: Counter,
   ): List[Instr] = instrs match
     case Nil => Nil
 
@@ -95,8 +105,8 @@ object PropagateUnguardedCallsPass extends LoweringPass:
       val x = stripPipes(rawX)
       val xVar = Expr.Var(x)
       p.copy(body = Nil) :: (guard(Instr.Set(xVar, _, Nil), xVar) ++
-      transform(pbody, completionAlgos) ++
-      transform(rest, completionAlgos))
+      transform(pbody, completionAlgos, counter) ++
+      transform(rest, completionAlgos, counter))
 
     // "Let X be F(args)." — f itself is still a bare AlgoCall/JSCall here
     // (ExpandInlineAlgoCallPass, which converts this to Perform, runs after
@@ -120,15 +130,16 @@ object PropagateUnguardedCallsPass extends LoweringPass:
         if isUnguardedCompletionCall(rhs, completionAlgos) &&
         !isBoundForAbrupt(x, body ++ rest) &&
         !CompletionAlgorithms.isAbsorbed(Some(x), body ++ rest) =>
-      val tmpVar = Expr.Var(fresh())
+      val tmpVar = Expr.Var(counter.fresh())
       Instr.Let(tmpVar, rhs, Nil) :: (guard(Instr.Let(lhs, _, Nil), tmpVar) ++
-      transform(body, completionAlgos) ++
-      transform(rest, completionAlgos))
+      transform(body, completionAlgos, counter) ++
+      transform(rest, completionAlgos, counter))
 
     case i :: rest =>
-      i.mapBody(transform(_, completionAlgos)) :: transform(
+      i.mapBody(transform(_, completionAlgos, counter)) :: transform(
         rest,
         completionAlgos,
+        counter,
       )
 
   private def isUnguardedCompletionCall(

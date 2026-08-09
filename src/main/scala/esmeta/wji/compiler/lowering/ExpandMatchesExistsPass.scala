@@ -77,10 +77,17 @@ object ExpandMatchesExistsPass extends LoweringPass:
       NormalizeEvaluationOrderPass,
     )
 
-  private var counter = 0
-  private def fresh(prefix: String): String = {
-    counter += 1; s"_$prefix$counter"
-  }
+  /** Generates this pass's `_mN`/`_foundN`/`_iN` names for a single algorithm.
+    * Scoped as a value local to each [[run]] iteration rather than a mutable
+    * field on this `object` — the latter is JVM-wide singleton state, so
+    * concurrent `run` calls (e.g. multiple ScalaTest suites compiling
+    * algorithms in parallel, which sbt's default `Test / parallelExecution`
+    * allows) would race on incrementing/resetting a shared counter, producing
+    * nondeterministic naming depending on thread interleaving.
+    */
+  private class Counter:
+    private var n = 0
+    def fresh(prefix: String): String = { n += 1; s"_$prefix$n" }
 
   /** `Cond.Matches`'s `matchType` string (e.g. `"valtype"`), mapped to the
     * `WasmHost` embedding function that actually implements it — always
@@ -100,28 +107,29 @@ object ExpandMatchesExistsPass extends LoweringPass:
 
   def run(algos: List[Algorithm]): List[Algorithm] =
     algos.map { a =>
-      counter = 0
-      a.copy(body = transform(a.body))
+      val counter = Counter()
+      a.copy(body = transform(a.body, counter))
     }
 
-  private def transform(instrs: List[Instr]): List[Instr] =
-    instrs.flatMap(expandInstr)
+  private def transform(instrs: List[Instr], counter: Counter): List[Instr] =
+    instrs.flatMap(expandInstr(_, counter))
 
-  private def expandInstr(instr: Instr): List[Instr] = instr match
-    case Instr.Assert(cond, body) if needsHoist(cond) =>
-      val (pre, simplified) = hoist(cond)
-      pre :+ Instr.Assert(simplified, transform(body))
-    case Instr.While(cond, body) if needsHoist(cond) =>
-      val (pre, simplified) = hoist(cond)
-      pre :+ Instr.While(simplified, transform(body))
-    case Instr.IfChain(List((cond, body)), fallback) if needsHoist(cond) =>
-      val (pre, simplified) = hoist(cond)
-      pre :+ Instr.IfChain(
-        List((simplified, transform(body))),
-        transform(fallback),
-      )
-    case other =>
-      List(other.mapBody(transform))
+  private def expandInstr(instr: Instr, counter: Counter): List[Instr] =
+    instr match
+      case Instr.Assert(cond, body) if needsHoist(cond) =>
+        val (pre, simplified) = hoist(cond, counter)
+        pre :+ Instr.Assert(simplified, transform(body, counter))
+      case Instr.While(cond, body) if needsHoist(cond) =>
+        val (pre, simplified) = hoist(cond, counter)
+        pre :+ Instr.While(simplified, transform(body, counter))
+      case Instr.IfChain(List((cond, body)), fallback) if needsHoist(cond) =>
+        val (pre, simplified) = hoist(cond, counter)
+        pre :+ Instr.IfChain(
+          List((simplified, transform(body, counter))),
+          transform(fallback, counter),
+        )
+      case other =>
+        List(other.mapBody(transform(_, counter)))
 
   private def needsHoist(cond: Cond): Boolean = cond match
     case Cond.Matches(_, matchType, _, _) =>
@@ -136,57 +144,61 @@ object ExpandMatchesExistsPass extends LoweringPass:
     * with no real embedding function (see `matchEmbeddingName`'s doc) passes
     * through unchanged rather than being hoisted.
     */
-  private def hoist(cond: Cond): (List[Instr], Cond) = cond match
-    case Cond.Matches(lhs, matchType, rhs, neg)
-        if matchEmbeddingName(matchType).isDefined =>
-      val tmp = fresh("m")
-      val call = Instr.Perform(
-        matchEmbeddingName(matchType).get,
-        List(lhs, rhs),
-        PerformOutcome.BindResult(tmp),
-      )
-      (List(call), Cond.Eq(Expr.Var(tmp), Expr.Bool(true), neg))
-    case Cond.Any(binder, collections, body) =>
-      val (bodyPre, bodyCond) = hoist(body)
-      val found = fresh("found")
-      val init = Instr.Let(Expr.Var(found), Expr.Bool(false))
-      val loops = collections.map { coll =>
-        val idx = fresh("i")
-        List(
-          Instr.Let(Expr.Var(idx), Expr.Num("0")),
-          Instr.While(
-            Cond.And(
-              Cond.Eq(Expr.Var(found), Expr.Bool(false)),
-              Cond.Compare(
-                Expr.Var(idx),
-                Cond.CompareOp.Lt,
-                Expr.Length(coll),
-              ),
-            ),
-            List(
-              Instr.Let(Expr.Var(binder), Expr.Index(coll, Expr.Var(idx))),
-            ) ++ bodyPre ++ List(
-              Instr.IfChain(
-                List(
-                  (bodyCond, List(Instr.Set(Expr.Var(found), Expr.Bool(true)))),
-                ),
-                Nil,
-              ),
-              Instr.Set(
-                Expr.Var(idx),
-                Expr.BinOp(Expr.Var(idx), Expr.BOp.Add, Expr.Num("1")),
-              ),
-            ),
-          ),
+  private def hoist(cond: Cond, counter: Counter): (List[Instr], Cond) =
+    cond match
+      case Cond.Matches(lhs, matchType, rhs, neg)
+          if matchEmbeddingName(matchType).isDefined =>
+        val tmp = counter.fresh("m")
+        val call = Instr.Perform(
+          matchEmbeddingName(matchType).get,
+          List(lhs, rhs),
+          PerformOutcome.BindResult(tmp),
         )
-      }.flatten
-      (init :: loops, Cond.Eq(Expr.Var(found), Expr.Bool(true)))
-    case Cond.And(l, r) =>
-      val (lp, lc) = hoist(l)
-      val (rp, rc) = hoist(r)
-      (lp ++ rp, Cond.And(lc, rc))
-    case Cond.Or(l, r) =>
-      val (lp, lc) = hoist(l)
-      val (rp, rc) = hoist(r)
-      (lp ++ rp, Cond.Or(lc, rc))
-    case other => (Nil, other)
+        (List(call), Cond.Eq(Expr.Var(tmp), Expr.Bool(true), neg))
+      case Cond.Any(binder, collections, body) =>
+        val (bodyPre, bodyCond) = hoist(body, counter)
+        val found = counter.fresh("found")
+        val init = Instr.Let(Expr.Var(found), Expr.Bool(false))
+        val loops = collections.map { coll =>
+          val idx = counter.fresh("i")
+          List(
+            Instr.Let(Expr.Var(idx), Expr.Num("0")),
+            Instr.While(
+              Cond.And(
+                Cond.Eq(Expr.Var(found), Expr.Bool(false)),
+                Cond.Compare(
+                  Expr.Var(idx),
+                  Cond.CompareOp.Lt,
+                  Expr.Length(coll),
+                ),
+              ),
+              List(
+                Instr.Let(Expr.Var(binder), Expr.Index(coll, Expr.Var(idx))),
+              ) ++ bodyPre ++ List(
+                Instr.IfChain(
+                  List(
+                    (
+                      bodyCond,
+                      List(Instr.Set(Expr.Var(found), Expr.Bool(true))),
+                    ),
+                  ),
+                  Nil,
+                ),
+                Instr.Set(
+                  Expr.Var(idx),
+                  Expr.BinOp(Expr.Var(idx), Expr.BOp.Add, Expr.Num("1")),
+                ),
+              ),
+            ),
+          )
+        }.flatten
+        (init :: loops, Cond.Eq(Expr.Var(found), Expr.Bool(true)))
+      case Cond.And(l, r) =>
+        val (lp, lc) = hoist(l, counter)
+        val (rp, rc) = hoist(r, counter)
+        (lp ++ rp, Cond.And(lc, rc))
+      case Cond.Or(l, r) =>
+        val (lp, lc) = hoist(l, counter)
+        val (rp, rc) = hoist(r, counter)
+        (lp ++ rp, Cond.Or(lc, rc))
+      case other => (Nil, other)

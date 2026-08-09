@@ -33,14 +33,24 @@ import esmeta.error.UnsupportedSpecShape
   * Category: Structural desugaring — Elimination.
   */
 object ExpandNewByteSequencePass extends LoweringPass:
-  private var counter = 0
-  private def freshIdx(): String = { counter += 1; s"_byteIdx$counter" }
-  private def freshVar(): String = { counter += 1; s"_byteSeq$counter" }
+
+  /** Generates this pass's `_byteIdxN`/`_byteSeqN` names for a single
+    * algorithm. Scoped as a value local to each [[run]] iteration rather than a
+    * mutable field on this `object` — the latter is JVM-wide singleton state,
+    * so concurrent `run` calls (e.g. multiple ScalaTest suites compiling
+    * algorithms in parallel, which sbt's default `Test / parallelExecution`
+    * allows) would race on incrementing/resetting a shared counter, producing
+    * nondeterministic naming depending on thread interleaving.
+    */
+  private class Counter:
+    private var n = 0
+    def freshIdx(): String = { n += 1; s"_byteIdx$n" }
+    def freshVar(): String = { n += 1; s"_byteSeq$n" }
 
   def run(algos: List[Algorithm]): List[Algorithm] =
     val result = algos.map { a =>
-      counter = 0
-      a.copy(body = transform(a.body))
+      val counter = Counter()
+      a.copy(body = transform(a.body, counter))
     }
     result.foreach { a =>
       if AstQuery.existsExpr(a.body)(_.isInstanceOf[Expr.NewByteSequence]) then
@@ -52,30 +62,37 @@ object ExpandNewByteSequencePass extends LoweringPass:
     }
     result
 
-  private def transform(instrs: List[Instr]): List[Instr] =
-    instrs.flatMap(expandInstr)
+  private def transform(instrs: List[Instr], counter: Counter): List[Instr] =
+    instrs.flatMap(expandInstr(_, counter))
 
-  private def expandInstr(instr: Instr): List[Instr] = instr match
-    case Instr.Let(target @ Expr.Var(_), Expr.NewByteSequence(length), body) =>
-      buildFill(target, length, transform(body))
+  private def expandInstr(instr: Instr, counter: Counter): List[Instr] =
+    instr match
+      case Instr.Let(
+            target @ Expr.Var(_),
+            Expr.NewByteSequence(length),
+            body,
+          ) =>
+        buildFill(target, length, transform(body, counter), counter)
 
-    case Instr.Return(Some(Expr.NewByteSequence(length)), body) =>
-      val tmp = Expr.Var(freshVar())
-      transform(body) ::: buildFill(
-        tmp,
-        length,
-        List(Instr.Return(Some(tmp))),
-      )
+      case Instr.Return(Some(Expr.NewByteSequence(length)), body) =>
+        val tmp = Expr.Var(counter.freshVar())
+        transform(body, counter) ::: buildFill(
+          tmp,
+          length,
+          List(Instr.Return(Some(tmp))),
+          counter,
+        )
 
-    case _ =>
-      List(instr.mapBody(transform))
+      case _ =>
+        List(instr.mapBody(transform(_, counter)))
 
   private def buildFill(
     target: Expr,
     length: Expr,
     rest: List[Instr],
+    counter: Counter,
   ): List[Instr] =
-    val idxVar = Expr.Var(freshIdx())
+    val idxVar = Expr.Var(counter.freshIdx())
     List(
       Instr.Let(target, Expr.List_(Nil)),
       Instr.Let(idxVar, Expr.Num("0")),

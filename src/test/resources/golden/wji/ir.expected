@@ -1,4 +1,4 @@
-125 func(s)
+126 func(s)
 def compile_a_webassembly_module(
   bytes: Unknown,
 ): Unknown = {
@@ -3393,7 +3393,7 @@ def define_the_operations(
       let modifiable = ~true~
     }
     let desc = (yet "the PropertyDescriptor{\\[[Value]]: |method|, \\[[Writable]]: |modifiable|, \\[[Enumerable]]: <emu-val>true</emu-val>, \\[[Configurable]]: |modifiable|}")
-    let id = (yet "|op|'s [=identifier=]")
+    let id = op.id
     call _ = clo<"<a_abstract-op>DefinePropertyOrThrow</a>(|target|,_|id|,_|desc|)">()
     _iterIdx2 = (+ _iterIdx2 1)
   }
@@ -3404,49 +3404,10 @@ def creating_an_operation_function(
   target: Unknown,
   realm: Unknown,
 ): Unknown = {
-  let id = (yet "|op|'s [=identifier=]")
-  let steps = (yet "the following series of steps, given function argument values |args|:")
-  (yet "Try running the following steps:")
-  let idlObject = null
-  if (&& (? target: Unknown["interface"]) (! (? op: Unknown["static operation"]))) {
-    if (|| (! (= (yet "it") null)) (! (= (yet "it") undefined))) {
-      let jsValue = (yet "the <emu-val>this</emu-val> value")
-    } else {
-      let jsValue = (yet "|realm|'s [=realm/global object=]")
-    }
-    (yet "(This will subsequently cause a {{TypeError}} in a few steps, if the global object does not implement |target|.) <!-- https://www.w3.org/Bugs/Public/show_bug.cgi?id=18547#c9 -->")
-    if (? jsValue: Unknown["platform object"]) {
-      call _ = clo<"perform_a_security_check">(jsValue, id, "method")
-    } else nop
-    if (yet "|jsValue| does not [=implement=] the interface |target|") {
-      call _ = clo<"javascript/throw">()
-    } else nop
-    idlObject = (yet "the IDL [=interface type=] value that represents a reference to |jsValue|")
-  } else nop
-  let n = (sizeof args)
-  call _call1 = clo<"regular_operations">((tup (yet "if |op| is a regular operation) or for [=static operations=] (if |op| is a static operation")), (case "IDENTIFIER" id target n))
+  let id = op.id
+  let steps = clo<"creating_an_operation_function_closure1", [id, op, target]>
+  call _call1 = clo<"regular_operations">((tup (yet "if |op| is a regular operation) or for [=static operations=] (if |op| is a static operation")), (case "IDENTIFIER" id target 0))
   call S = clo<"compute_the_effective_overload_set">(_call1)
-  let _ = (yet "unsupported Let lhs: Unknown(&lt;|operation|, |values|&gt;)")
-  let R = null
-  if (= operation (yet "declared with a [{{Default}}] [=extended attribute=]")) {
-    assert (yet "|operation| [=has default method steps=]")
-    R = (yet "running the [=default method steps=] for |operation|, with |idlObject| as [=this=] and |values| as the argument values")
-  } else {
-    R = (yet "running the [=method steps=] of |operation|, with |idlObject| as [=this=] and |values| as the argument values")
-  }
-  call _result1 = clo<"converted_to_a_javascript_value">(R)
-  return _result1
-  (yet "Issue(whatwg/webidl#674): |R| is assumed to be an IDL value of the type |op| is declared to return")
-  (yet "And then, if <a lt=\"an exception was thrown\">an exception |E| was thrown</a>:")
-  if (? (yet "|op| has a [=return type=] that"): Unknown["promise type"]) {
-    let _call2 = (yet "<a abstract-op>Call</a>({{%Promise.reject%}}, {{%Promise%}}, «|E|»)")
-    assert (= _call2.Type ~normal~)
-    return _call2.Value
-  } else {
-    (yet "end these steps and allow the exception to propagate")
-  }
-  call _call3 = clo<"regular_operations">((tup (yet "if |op| is a regular operation) or for [=static operations=] (if |op| is a static operation")), (case "IDENTIFIER" id target 0))
-  call S = clo<"compute_the_effective_overload_set">(_call3)
   let length = (sizeof (yet "the shortest argument list in the entries in |S|"))
   let F = (yet "<a abstract-op>CreateBuiltinFunction</a>(|steps|, |length|, |id|, « », |realm|)")
   return F
@@ -3694,4 +3655,50 @@ def react_closure2(
     call _ret1 = clo<"NormalCompletion">(_result1)
     return _ret1
   }
+}
+def creating_an_operation_function_closure1(
+  args: Unknown,
+): Unknown = {
+  (yet "Try running the following steps:")
+  let idlObject = null
+  if (&& (? target: Unknown["interface"]) (! (? op: Unknown["static operation"]))) {
+    if (|| (! (= (yet "it") null)) (! (= (yet "it") undefined))) {
+      let jsValue = (yet "the <emu-val>this</emu-val> value")
+    } else {
+      let jsValue = (yet "|realm|'s [=realm/global object=]")
+    }
+    (yet "(This will subsequently cause a {{TypeError}} in a few steps, if the global object does not implement |target|.) <!-- https://www.w3.org/Bugs/Public/show_bug.cgi?id=18547#c9 -->")
+    if (? jsValue: Unknown["platform object"]) {
+      call _ = clo<"perform_a_security_check">(jsValue, id, "method")
+    } else nop
+    if (yet "|jsValue| does not [=implement=] the interface |target|") {
+      call _ = clo<"javascript/throw">()
+    } else nop
+    idlObject = (yet "the IDL [=interface type=] value that represents a reference to |jsValue|")
+  } else nop
+  let n = (sizeof args)
+  call _call1 = clo<"regular_operations">((tup (yet "if |op| is a regular operation) or for [=static operations=] (if |op| is a static operation")), (case "IDENTIFIER" id target n))
+  call S = clo<"compute_the_effective_overload_set">(_call1)
+  let _tuple1 = (yet "passing |S| and |args| to the [=overload resolution algorithm=]")
+  let operation = _tuple1[0]
+  let values = _tuple1[1]
+  let R = null
+  if (= operation (yet "declared with a [{{Default}}] [=extended attribute=]")) {
+    assert (yet "|operation| [=has default method steps=]")
+    R = (yet "running the [=default method steps=] for |operation|, with |idlObject| as [=this=] and |values| as the argument values")
+  } else {
+    R = (yet "running the [=method steps=] of |operation|, with |idlObject| as [=this=] and |values| as the argument values")
+  }
+  call _result1 = clo<"converted_to_a_javascript_value">(R)
+  return _result1
+  (yet "Issue(whatwg/webidl#674): |R| is assumed to be an IDL value of the type |op| is declared to return")
+  (yet "And then, if <a lt=\"an exception was thrown\">an exception |E| was thrown</a>:")
+  if (? (yet "|op| has a [=return type=] that"): Unknown["promise type"]) {
+    let _call2 = (yet "<a abstract-op>Call</a>({{%Promise.reject%}}, {{%Promise%}}, «|E|»)")
+    assert (= _call2.Type ~normal~)
+    return _call2.Value
+  } else {
+    (yet "end these steps and allow the exception to propagate")
+  }
+  return ~unused~
 }

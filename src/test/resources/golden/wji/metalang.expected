@@ -1544,14 +1544,14 @@
     Let(|method|, [=creating an operation function=](|op|, |definition|, |realm|))
     Let(|modifiable|, false if |op| is [=unforgeable=] else true)
     Let(|desc|, ?(the PropertyDescriptor{\[[Value]]: |method|, \[[Writable]]: |modifiable|, \[[Enumerable]]: <emu-val>true</emu-val>, \[[Configurable]]: |modifiable|}))
-    Let(|id|, ?(|op|'s [=identifier=]))
+    Let(|id|, |op|.[[id]])
     Perform(<a abstract-op>DefinePropertyOrThrow</a>(|target|, |id|, |desc|))
 
 # creating an operation function
   params: |op|, |target|, |realm|
   head: To <dfn id="dfn-create-operation-function" lt="creating an operation function">create an operation function</dfn>, given an [=operation=] |op|, a [=namespace=] or [=interface=] |target|, and a [=realm=] |realm|:
-  Let(|id|, ?(|op|'s [=identifier=]))
-  Let(|steps|, ?(the following series of steps, given function argument values |args|:))
+  Let(|id|, |op|.[[id]])
+  Let(|steps|, followingSteps(args, ...))
     ?(Try running the following steps:)
       Let(|idlObject|, null)
       If(|target| is an interface, and |op| is not a static operation)
@@ -1564,7 +1564,7 @@
         Set(|idlObject|, ?(the IDL [=interface type=] value that represents a reference to |jsValue|))
       Let(|n|, length(|args|))
       PerformAndLet([=Compute the effective overload set=]([=regular operations=]((?(if |op| is a regular operation) or for [=static operations=] (if |op| is a static operation)), [=identifier=](|id|, |target|, |n|))), |S|)
-      Let(?(&lt;|operation|, |values|&gt;), ?(passing |S| and |args| to the [=overload resolution algorithm=]))
+      Let((|operation|, |values|), ?(passing |S| and |args| to the [=overload resolution algorithm=]))
       Let(|R|, null)
       If(|operation| is ?(declared with a [{{Default}}] [=extended attribute=]))
         Assert(?(|operation| [=has default method steps=]))

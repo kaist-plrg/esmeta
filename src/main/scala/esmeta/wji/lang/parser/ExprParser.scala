@@ -105,9 +105,13 @@ object ExprParser:
   // only — no real text needs more than one variadic param. Wording echoes
   // `call an Exported Function`'s own declared param ("a list of JavaScript
   // arguments |argValues|", index.bs:1279). Tried first since it's the more
-  // specific of the two "given ...:" phrasings. See SpecPatch #22.
+  // specific of the two "given ...:" phrasings. See SpecPatch #22. Also
+  // matches `creating an operation function`'s real-prose equivalent "the
+  // following series of steps, given function argument values |args|:"
+  // (index.bs:12541) — |args| there is likewise read wholesale as a list,
+  // not destructured positionally.
   private val VariadicStepsClosurePrefix =
-    """(?is)^the following steps,?\s+given\s+the\s+list\s+of\s+arguments\s+\|([^|]+)\|\s*:?\s*$""".r
+    """(?is)^the following (?:series of )?steps,?\s+given\s+(?:the\s+list\s+of\s+arguments|function\s+argument\s+values)\s+\|([^|]+)\|\s*:?\s*$""".r
   // "the following steps given argument(s) |V|[, |W|, ...]:"
   private val StepsClosurePrefix =
     """(?is)^the following steps,?\s+given\s+(?:arguments?\s+)?(\|[^|]+\|(?:\s*(?:,|and)\s*\|[^|]+\|)*)\s*:?\s*$""".r
@@ -186,6 +190,13 @@ object ExprParser:
   private val MapLiteral = """(?s)^«\[\s*(.*?)\s*\]»$""".r
   private val ListLiteral = """(?s)^«\s*(.*?)\s*»$""".r
   private val TuplePat = """(?s)^\((.+)\)$""".r
+  // "&lt;|operation|, |values|&gt;" — spec's angle-bracket tuple notation for
+  // a multi-value algorithm result (e.g. "create an operation function",
+  // webidl/index.bs:12562). The extractor works on raw .bs source (see
+  // AlgorithmExtractor), so `<`/`>` reach here as literal HTML entities, not
+  // decoded characters — unlike `<var ignore>`/`<sup>`/etc. above, which are
+  // genuine markup tags kept verbatim in the extracted text.
+  private val AngleTuplePat = """(?s)^&lt;\s*(.+?)\s*&gt;$""".r
 
   // ---- Call syntax: explicit invocation of a named algorithm/AO ----
 
@@ -295,6 +306,15 @@ object ExprParser:
   // [[fieldFromLink]]).
   private val MemberOfDefinition =
     """(?si)^the \[=list=\] of \[=([^\[]+)=\] that are \[=members=\] of (.+)$""".r
+  // "|op|'s [=identifier=]" — webidl/index.bs's dfn for an operation's/
+  // attribute's name; `esmeta.wji.Initialize.seedHostDefined`'s
+  // `operationRecord`/`attributeRecord` both store this under the literal
+  // field name `id` (matching `esmeta.wji.lang`'s own `WjiOperation`/
+  // `WjiAttribute.id`), not `identifier` — so, like AssociatedRealm below,
+  // this needs its own mapping rather than falling through to the generic
+  // `fieldFromLink` (which would read the dfn text as-is). Must precede
+  // PossessiveAssociation below for the same reason AssociatedRealm does.
+  private val PossessiveIdentifier = """(?si)^(.+)'s \[=identifier=\]$""".r
   private val AssociatedRealm = """(?si)^(.+)'s \[=associated Realm=\]$""".r
   // "|func|'s [=associated Realm=]" — narrower than PossessiveAssociation
   // (which keeps "the surrounding agent's associated store/cache" style
@@ -616,7 +636,8 @@ object ExprParser:
         Map_(entries)
       case ListLiteral(inner) =>
         List_(splitComma(inner).map(parse))
-      case TuplePat(inner) => Tuple(splitComma(inner).map(parse))
+      case TuplePat(inner)      => Tuple(splitComma(inner).map(parse))
+      case AngleTuplePat(inner) => Tuple(splitComma(inner).map(parse))
 
       // ---- Call syntax ----
       case JSCallFull(name, argsRaw) =>
@@ -669,14 +690,15 @@ object ExprParser:
       case BareSlotName(slot)        => Str(stripBraces(slot))
       case PossessiveSlot(baseRaw, slot) =>
         Field(parse(baseRaw), stripBraces(slot))
-      case DotFieldLink(baseRaw, link) => fieldFromLink(baseRaw, link)
-      case DotField(baseRaw, field)    => Field(parse(baseRaw), field)
-      case LengthOf(inner)             => Length(parse(inner))
-      case ElementCount(inner)         => Length(parse(inner))
-      case PossessiveSize(inner)       => Length(parse(inner))
-      case ElementAt(idx, arr)         => Index(parse(arr), parse(idx))
-      case IndexOfPat(list, elem)      => IndexOf(parse(list), parse(elem))
-      case AssociatedRealm(baseRaw)    => Field(parse(baseRaw), "Realm")
+      case DotFieldLink(baseRaw, link)   => fieldFromLink(baseRaw, link)
+      case DotField(baseRaw, field)      => Field(parse(baseRaw), field)
+      case LengthOf(inner)               => Length(parse(inner))
+      case ElementCount(inner)           => Length(parse(inner))
+      case PossessiveSize(inner)         => Length(parse(inner))
+      case ElementAt(idx, arr)           => Index(parse(arr), parse(idx))
+      case IndexOfPat(list, elem)        => IndexOf(parse(list), parse(elem))
+      case PossessiveIdentifier(baseRaw) => Field(parse(baseRaw), "id")
+      case AssociatedRealm(baseRaw)      => Field(parse(baseRaw), "Realm")
       case MemberOfDefinition(kind, baseRaw) =>
         val memberKind = kind match
           case "regular attributes" => MemberKind.RegularAttribute

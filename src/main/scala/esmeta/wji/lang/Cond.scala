@@ -65,6 +65,16 @@ object Cond:
   case class IsType(expr: Expr, typeName: String, negated: Boolean = false)
     extends Cond
 
+  /** SUBJECT is [not] [=exposed=] in REALM — WebIDL's `[Exposed]`
+    * extended-attribute check (`webidl/index.bs`, `<dfn id="dfn-exposed">`):
+    * whether `subject` (an interface/callback interface/namespace/member) is
+    * exposed in `realm`. `esmeta.wji.compiler.lowering.ExpandExposedPass`
+    * eliminates every occurrence before `Compiler` ever sees one — see its own
+    * doc for why a genuine call, not an inline check, is needed here.
+    */
+  case class Exposed(subject: Expr, realm: Expr, negated: Boolean = false)
+    extends Cond
+
   case class And(left: Cond, right: Cond) extends Cond
   case class Or(left: Cond, right: Cond) extends Cond
 

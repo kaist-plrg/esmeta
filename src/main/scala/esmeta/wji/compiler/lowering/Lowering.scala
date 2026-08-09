@@ -83,6 +83,7 @@ object Lowering:
     ExpandIsOfFormPass,
     ExpandAbbreviatedCondPass,
     ExpandExportedObjectIsTypePass,
+    ExpandExposedPass,
     ExpandFollowingStepsPass,
     MarkCompletionAlgorithmsPass,
     NormalizeEvaluationOrderPass, // normalization point

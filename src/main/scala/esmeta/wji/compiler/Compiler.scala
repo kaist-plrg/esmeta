@@ -550,6 +550,7 @@ object Compiler:
     // algorithm in the corpus today.
     case Cond.HasDuplicates(e, neg) => impossible("contains duplicates")
     case Cond.Any(binder, _, _)     => impossible(s"any $binder")
+    case Cond.Exposed(_, _, _)      => impossible("exposed")
     case Cond.Throws(kind) =>
       impossible(s"throws${kind.fold("")(k => s" $k")}")
 

@@ -91,6 +91,18 @@ object CondParser:
   // form ...".
   private val ContainedIn = """(?si)^contained in (.+)$""".r
 
+  // "[=exposed=] in REALM" — the RHS of "SUBJECT is [not] [=exposed=] in
+  // REALM" (webidl/index.bs:12276,12325,12523, and the interface-construction
+  // "Assert: |interface| is [=exposed=] in |realm|" — every site in this
+  // corpus writes the link with no display-text alias), handled by parseRhs
+  // alongside "missing"/"given"/"of the form ...."/"contained in ...".
+  // Dedicated rather than falling through to the generic `Eq` handling below
+  // (which would otherwise compare `subject` against a `Link`/`AlgoCall`
+  // value, a category error — "is exposed" is a predicate, not an equality)
+  // so `Cond.Exposed` gets a real node instead of relying on the accidental
+  // shape that generic fallback happens to produce.
+  private val ExposedIn = """(?si)^\[=exposed=\]\s+in\s+(.+)$""".r
+
   private val UnreachableStep = """(?si)^this step is not reached$""".r
   // "If this [operation] throws an exception, ..." (untyped) or
   // "If this [operation] throws a {{TypeError}}, ..." (typed): group 1 is the
@@ -262,6 +274,8 @@ object CondParser:
             ExprParser.parse(listRaw),
             negated,
           )
+        case ExposedIn(realmRaw) =>
+          Exposed(ExprParser.parse(lhsRaw), ExprParser.parse(realmRaw), negated)
         case ArticleLink(noun) =>
           IsType(ExprParser.parse(lhsRaw), noun, negated)
         case _ =>

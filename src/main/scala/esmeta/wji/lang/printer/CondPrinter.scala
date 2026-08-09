@@ -45,6 +45,10 @@ object CondPrinter:
       val article = if "aeiouAEIOU".contains(t.head) then "an" else "a"
       val verb = if neg then "is not" else "is"
       s"${ExprPrinter.render(expr)} $verb $article $t"
+    case Exposed(subject, realm, false) =>
+      s"${ExprPrinter.render(subject)} is [=exposed=] in ${ExprPrinter.render(realm)}"
+    case Exposed(subject, realm, true) =>
+      s"${ExprPrinter.render(subject)} is not [=exposed=] in ${ExprPrinter.render(realm)}"
     case And(left, right)  => s"${render(left)}, and ${render(right)}"
     case Or(left, right)   => s"${render(left)} or ${render(right)}"
     case Abbreviated(expr) => ExprPrinter.render(expr)

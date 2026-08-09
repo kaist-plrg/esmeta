@@ -82,10 +82,23 @@ class DefinitionExtractorSpec extends AnyFunSuite:
   }
 
   test("parses an extended attribute value containing parens/commas") {
-    val tag = interfaces.find(_.name == "Tag").get
+    // A synthetic fixture rather than a real corpus interface: every
+    // `Exposed=(...)`-shaped interface in js-api/index.bs (`Tag`/`Exception`)
+    // is normalized to `Exposed=*` by `SpecPatch` #37 (`Tag`/`Exception`
+    // should be exposed everywhere `WebAssembly` itself is, like every other
+    // interface in this namespace — see `docs/spec_inconsistencies.md` #12),
+    // so no real interface with a parens/commas-list value survives
+    // extraction to exercise this parsing rule against.
+    val defs = DefinitionExtractor.extract(
+      """<pre class="idl">
+        |[Exposed=(Window,Worker,Worklet)]
+        |interface Foo {
+        |};
+        |</pre>""".stripMargin,
+    )
+    val foo = defs.find(_.name == "Foo").get
     assert(
-      tag.extAttr == List(
-        ExtendedAttribute("LegacyNamespace", Some("WebAssembly")),
+      foo.extAttr == List(
         ExtendedAttribute("Exposed", Some("(Window,Worker,Worklet)")),
       ),
     )

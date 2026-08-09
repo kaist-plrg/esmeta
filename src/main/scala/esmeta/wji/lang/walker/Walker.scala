@@ -63,9 +63,11 @@ trait Walker:
     case Cond.Contains(elem, list, neg) =>
       Cond.Contains(walk(elem), walk(list), neg)
     case Cond.IsType(e, t, neg) => Cond.IsType(walk(e), t, neg)
-    case Cond.And(l, r)         => Cond.And(walk(l), walk(r))
-    case Cond.Or(l, r)          => Cond.Or(walk(l), walk(r))
-    case Cond.Abbreviated(e)    => Cond.Abbreviated(walk(e))
+    case Cond.Exposed(subject, realm, neg) =>
+      Cond.Exposed(walk(subject), walk(realm), neg)
+    case Cond.And(l, r)      => Cond.And(walk(l), walk(r))
+    case Cond.Or(l, r)       => Cond.Or(walk(l), walk(r))
+    case Cond.Abbreviated(e) => Cond.Abbreviated(walk(e))
     case Cond.Any(binder, collections, body) =>
       Cond.Any(binder, collections.map(walk), walk(body))
     case Cond.Exists(binder, body) => Cond.Exists(binder, walk(body))

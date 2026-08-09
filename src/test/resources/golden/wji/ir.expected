@@ -1,4 +1,4 @@
-124 func(s)
+125 func(s)
 def compile_a_webassembly_module(
   bytes: Unknown,
 ): Unknown = {
@@ -3293,6 +3293,12 @@ def get_a_copy_of_the_buffer_source(
   }
   return bytes
 }
+def exposed(
+  construct: Unknown,
+  realm: Unknown,
+): Unknown = {
+  return true
+}
 def define_the_regular_operations(
   definition: Unknown,
   target: Unknown,
@@ -3337,7 +3343,8 @@ def define_the_operations(
   let _iterIdx2 = 0
   while (< _iterIdx2 (sizeof _iterList1)) {
     let op = _iterList1[_iterIdx2]
-    if (! (= op (case "EXPOSED" realm))) {
+    call _call1 = clo<"exposed">(op, realm)
+    if (! (= _call1 true)) {
       (yet "continue")
     } else nop
     call method = clo<"creating_an_operation_function">(op, definition, realm)

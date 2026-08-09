@@ -1,4 +1,4 @@
-114 algorithm(s)
+115 algorithm(s)
 # compile a WebAssembly module
   params: |bytes|
   head: To <dfn>compile a WebAssembly module</dfn> from source bytes |bytes|, perform the following steps:
@@ -1522,6 +1522,11 @@
     Set(|bytes|[|i| - |offset|], [$GetValueFromBuffer$](|jsArrayBuffer|, |i|, uint8, true, unordered))
   Return(|bytes|)
 
+# exposed
+  params: |construct|, |realm|
+  head: An [=interface=], [=callback interface=], [=namespace=], or [=member=] |construct| is <dfn id="dfn-exposed" export>exposed</dfn> in a given [=realm=] |realm| if the following steps return true:
+  Return(true)
+
 # define the regular operations
   params: |definition|, |target|, |realm|
   head: To <dfn>define the regular operations</dfn> of [=interface=] or [=namespace=] |definition| on |target|, given [=realm=] |realm|, run the following steps:
@@ -1533,7 +1538,7 @@
   params: |operations|, |definition|, |target|, |realm|
   head: To <dfn>define the operations</dfn> |operations| of [=interface=] or [=namespace=] |definition| on |target|, given [=realm=] |realm|, run the following steps:
   ForEach(|op|, |operations|)
-    If(|op| is not [=exposed=](|realm|))
+    If(|op| is not [=exposed=] in |realm|)
       Continue
     Let(|method|, [=creating an operation function=](|op|, |definition|, |realm|))
     Let(|modifiable|, ?(<emu-val>false</emu-val> if |op| is [=unforgeable=] and <emu-val>true</emu-val> otherwise))

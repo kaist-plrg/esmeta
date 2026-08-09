@@ -3319,7 +3319,7 @@ def define_the_regular_operations(
   while (< _removeIdx2 _removeTmpLen) {
     pop _removeTmp > _removeElem
     assert (? _removeElem: Unknown["operation"])
-    if (&& (exists _removeElem.extendedAttributes.LegacyUnforgeable) (= _removeElem.extendedAttributes.LegacyUnforgeable true)) {
+    if (|| (! (exists _removeElem.extendedAttributes.LegacyUnforgeable)) (! (= _removeElem.extendedAttributes.LegacyUnforgeable true))) {
       push operations < _removeElem
     } else nop
     _removeIdx2 = (+ _removeIdx2 1)

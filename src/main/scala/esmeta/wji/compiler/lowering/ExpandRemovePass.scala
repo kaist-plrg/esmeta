@@ -113,12 +113,13 @@ object ExpandRemovePass extends LoweringPass:
             Instr.IfChain(
               List(
                 (
-                  Cond.And(
+                  Cond.Or(
                     Cond.HasField(
                       Expr.Field(
                         Expr.Field(elem, "extendedAttributes"),
                         "LegacyUnforgeable",
                       ),
+                      true,
                     ),
                     Cond.Eq(
                       Expr.Field(
@@ -126,6 +127,7 @@ object ExpandRemovePass extends LoweringPass:
                         "LegacyUnforgeable",
                       ),
                       Expr.Bool(true),
+                      true,
                     ),
                   ),
                   List(Instr.Append(elem, list)),

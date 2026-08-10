@@ -43,6 +43,36 @@
 
   같은 파일(`xl/num.ml`)의 범용 산술/비교 연산자(`bin`/`cmp`/`un`)도 구조적으로 똑같은 문제를 갖고 있었습니다 — `` `Nat 3 `` + `` `Int 5 `` 같은 타입이 섞인 연산은 그냥 `None`(실패)으로 떨어졌습니다. 처음엔 이 부분을 "embedding 경계뿐 아니라 Wasm 인터프리터의 일반 산술 전체에 영향을 미치는, 훨씬 큰 범위"라는 이유로 별도 작업으로 미뤘는데, 바로 다음(#2)에서 실제로 고쳤습니다 — 미뤘던 이유("Wasm 실행 내부는 esmeta의 `toAL`을 안 거치니 안전할 것")가 실은 틀렸다는 게 곧바로 실증되었기 때문입니다.
 
+## 3. `WasmContext.is_value`의 `REF.`-prefix 체크가 아직 안 풀린 ref 생성 명령어를 이미 값인 것처럼 오판
+
+- **File**: `spectec/spectec/src/backend-interpreter/ds.ml`, `WasmContext.is_value`
+- **Current**:
+  ```ocaml
+  let is_value = function
+    | CaseV ("CONST", _) -> true
+    | CaseV ("VCONST", _) -> true
+    | CaseV (ref, _)
+      when String.starts_with ~prefix:"REF." ref -> true
+    | _ -> false
+  ```
+- **Expected**:
+  ```ocaml
+  let is_value = function
+    | CaseV ("CONST", _)
+    | CaseV ("VCONST", _)
+    | CaseV ("REF.NULL_ADDR", _)
+    | CaseV ("REF.I31_NUM", _)
+    | CaseV ("REF.STRUCT_ADDR", _)
+    | CaseV ("REF.ARRAY_ADDR", _)
+    | CaseV ("REF.FUNC_ADDR", _)
+    | CaseV ("REF.EXN_ADDR", _)
+    | CaseV ("REF.HOST_ADDR", _)
+    | CaseV ("REF.EXTERN", _) -> true
+    | _ -> false
+  ```
+- **Reason**: `construct.ml`의 `al_of_ref`/`al_to_ref`를 보면 ref 관련 `CaseV` 태그는 **명령어(아직 안 풀린 구문)**와 **값(resolve된 런타임 레퍼런스)**이 항상 짝을 이룹니다 — `REF.FUNC`(`ref.func $idx` 명령어, 모듈 상대 함수 인덱스)/`REF.FUNC_ADDR`(resolve된 funcaddr), `REF.STRUCT`/`REF.STRUCT_ADDR`, `REF.ARRAY`/`REF.ARRAY_ADDR`, `REF.I31`/`REF.I31_NUM`, `REF.EXN`/`REF.EXN_ADDR`, `REF.HOST`/`REF.HOST_ADDR`(6쌍 전부 `NormalizeSpecTecCaseShapePass.scala`의 `RenamedTag` 매핑과 정확히 일치). `is_value`의 `String.starts_with ~prefix:"REF."` 체크는 이 둘을 전혀 구분 못 하고 — 명령어 태그도 값 태그도 똑같이 `"REF."`로 시작하니까요 — 아직 reduce가 안 된 `ref.func $idx` 같은 명령어를 이미 값인 것처럼 판단해 `step_wasm`이 `create_context`(실제 reduction 실행)를 안 태우고 그냥 값 스택에 그대로 push해버립니다. 결과적으로 `4.3-execution.instructions.spectec`의 진짜 reduction rule(`z; (REF.FUNC x) ~> (REF.FUNC_ADDR $moduleinst(z).FUNCS[x])`)이 아예 실행되지 않아, active element segment로 채운 테이블 슬롯이 resolve 안 된 `REF.FUNC`(인덱스) 상태로 store에 그대로 남습니다.
+  `table-mutation.js`의 `table.get(0)()`가 `typeof`의 최종 `assert (? val: Record[Object])`에서 크래시하는 걸로 발견 — `table_read`가 실제로 리턴한 값을 찍어보니 `CaseV(REF.FUNC, [NumV(Nat(1))])`였고(진짜 `REF.FUNC_ADDR`이 아님), wasm 자신의 `call_indirect`(embedding 레이어를 안 거침)로 접근해도 SpecTec 자신의 `Assert (case(val') == REF.FUNC_ADDR)`가 실패하는 걸로 재확인. `git bisect`(로컬 `official` 브랜치 — 실제 업스트림 `WebAssembly/spec`의 `main` — 기준, spectec 자신의 `--interpreter` 모드로 최소 `.wast` 재현 스크립트를 오라클 삼아 자동 실행)로 정확한 도입 커밋을 특정: `3f199fb74f25b0e3da20a0aad5559a91061b873b`("Give call_ref-host a real thrown-exception outcome")이 `step_wasm`의 `CaseV ("CONST", _) | CaseV ("VCONST", _)`(그리고 버전<=2의 `REF.NULL` 특수 케이스)만 값으로 인정하던 좁은 매칭을, 런타임에 계산된 `$callhostfunc`의 결과 instr*도 커버하려고 `WasmContext.is_value` 기반의 범용 체크로 넓히면서 이 prefix 체크의 부정확함이 처음으로 실제 실행 경로에 노출된 것으로 보임(그 전엔 `il2al/translate.ml`의 컴파일 타임 `is_wasm_value`/`is_wasm_instr` 분리가 항상 먼저 걸러줘서 `step_wasm`의 이 런타임 fallback 자체가 CONST/VCONST 말고는 실행될 일이 없었음).
+
 ## 2. `xl/num.ml`의 `bin`/`cmp`가 타입이 섞인 피연산자(`` `Nat ``/`` `Int ``)를 처리 못 함 — 이미 있던 `widen`이 죽은 코드였음
 
 - **File**: `spectec/spectec/src/xl/num.ml`, `bin`/`cmp`

@@ -987,7 +987,14 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Memory.prototype.grow(
 def memory.grow(
 ): Unknown = {
   call _call1 = clo<"i32.const">((- 1))
-  if (&& (! (= (yet "the top of the stack") _call1)) (! (= (yet "the top of the stack") (yet "call [=i64.const=]")))) {
+  let _cond3 = false
+  if (! (= (yet "the top of the stack") _call1)) {
+    call _call2 = clo<"i64.const">((- 1))
+    if (! (= (yet "the top of the stack") _call2)) {
+      _cond3 = true
+    } else nop
+  } else nop
+  if (= _cond3 true) {
     let frame = ~current frame~
     assert (yet "due to validation, |frame|.[=frame/module=].[=moduleinst/memaddrs=][|x|] exists")
     let memaddr = frame["frame/module"]["moduleinst/memaddrs"][x]
@@ -2221,75 +2228,103 @@ def towebassemblyvalue(
         let ref = _call8.Value
         let r = (case "REF.EXTERN" ref)
       } else {
-        if (&& (exists v.FunctionAddress) (= (yet "call [=match_valtype=]") true)) {
+        let _cond10 = false
+        if (exists v.FunctionAddress) {
+          call-embed _call9 = <match_valtype>(type, (case "REF" null (case "FUNC" )))
+          if (= _call9 true) {
+            _cond10 = true
+          } else nop
+        } else nop
+        if (= _cond10 true) {
           let funcaddr = v.FunctionAddress
           let r = (case "REF.FUNC_ADDR" funcaddr)
-        } else if (&& (? v: Number) (&& (= v (yet "nested ?-abrupt: JSCall(ToInt32,List(Var(v)))")) (&& (< ([math] v) (** 2 30)) (! (< ([math] v) (- (** 2 30))))))) {
-          call _call9 = clo<"ToInt32">(v)
-          if (? _call9: Abrupt) {
-            if (? _call9: Completion) {
-              return _call9
-            } else {
-              call _ret13 = clo<"NormalCompletion">(_call9)
-              return _ret13
-            }
-          } else {
-            let i31 = _call9.Value
-          }
-          call-embed u31 = <inv_signed_31>(([math] i31))
-          let r = (case "REF.I31_NUM" u31)
-        } else if (exists v.ObjectAddress) {
-          let objectaddr = v.ObjectAddress
-          let objectkind = v.ObjectKind
-          if (= objectkind "array") {
-            let r = (case "REF.ARRAY_ADDR" objectaddr)
-          } else if (= objectkind "struct") {
-            let r = (case "REF.STRUCT_ADDR" objectaddr)
-          } else nop
         } else {
-          let map = @AGENT_RECORD["host value cache"]
-          let _found1 = false
-          let hostaddr = 0
-          while (&& (= _found1 false) (< hostaddr (sizeof map))) {
-            if (= map[hostaddr] v) {
-              _found1 = true
+          let _cond13 = false
+          if (? v: Number) {
+            call _call11 = clo<"ToInt32">(v)
+            if (? _call11: Abrupt) {
+              if (? _call11: Completion) {
+                return _call11
+              } else {
+                call _ret13 = clo<"NormalCompletion">(_call11)
+                return _ret13
+              }
             } else {
-              hostaddr = (+ hostaddr 1)
+              let _call12 = _call11.Value
+            }
+            if (&& (= v _call12) (&& (< ([math] v) (** 2 30)) (! (< ([math] v) (- (** 2 30)))))) {
+              _cond13 = true
+            } else nop
+          } else nop
+          if (= _cond13 true) {
+            call _call14 = clo<"ToInt32">(v)
+            if (? _call14: Abrupt) {
+              if (? _call14: Completion) {
+                return _call14
+              } else {
+                call _ret14 = clo<"NormalCompletion">(_call14)
+                return _ret14
+              }
+            } else {
+              let i31 = _call14.Value
+            }
+            call-embed u31 = <inv_signed_31>(([math] i31))
+            let r = (case "REF.I31_NUM" u31)
+          } else {
+            if (exists v.ObjectAddress) {
+              let objectaddr = v.ObjectAddress
+              let objectkind = v.ObjectKind
+              if (= objectkind "array") {
+                let r = (case "REF.ARRAY_ADDR" objectaddr)
+              } else if (= objectkind "struct") {
+                let r = (case "REF.STRUCT_ADDR" objectaddr)
+              } else nop
+            } else {
+              let map = @AGENT_RECORD["host value cache"]
+              let _found1 = false
+              let hostaddr = 0
+              while (&& (= _found1 false) (< hostaddr (sizeof map))) {
+                if (= map[hostaddr] v) {
+                  _found1 = true
+                } else {
+                  hostaddr = (+ hostaddr 1)
+                }
+              }
+              if (= _found1 true) {
+                let _v15 = (case "REF.HOST_ADDR" hostaddr)
+                if (? _v15: Completion) {
+                  return _v15
+                } else {
+                  call _ret16 = clo<"NormalCompletion">(_v15)
+                  return _ret16
+                }
+              } else nop
+              let hostaddr = (sizeof map)
+              map[hostaddr] = v
+              let r = (case "REF.HOST_ADDR" hostaddr)
             }
           }
-          if (= _found1 true) {
-            let _v14 = (case "REF.HOST_ADDR" hostaddr)
-            if (? _v14: Completion) {
-              return _v14
-            } else {
-              call _ret15 = clo<"NormalCompletion">(_v14)
-              return _ret15
-            }
-          } else nop
-          let hostaddr = (sizeof map)
-          map[hostaddr] = v
-          let r = (case "REF.HOST_ADDR" hostaddr)
         }
       }
     }
     let store = @AGENT_RECORD["associated store"]
     call-embed actualtype = <ref_type>(store, r)
-    call-embed _call10 = <match_valtype>(actualtype, type)
-    if (= _call10 false) {
-      call _err16 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-      call _ret17 = clo<"ThrowCompletion">(_err16)
-      return _ret17
+    call-embed _call15 = <match_valtype>(actualtype, type)
+    if (= _call15 false) {
+      call _err17 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
+      call _ret18 = clo<"ThrowCompletion">(_err17)
+      return _ret18
     } else nop
     if (? r: Completion) {
       return r
     } else {
-      call _ret18 = clo<"NormalCompletion">(r)
-      return _ret18
+      call _ret19 = clo<"NormalCompletion">(r)
+      return _ret19
     }
   } else nop
   assert false
-  call _ret19 = clo<"NormalCompletion">(~unused~)
-  return _ret19
+  call _ret20 = clo<"NormalCompletion">(~unused~)
+  return _ret20
 }
 def addressvaluetou64(
   v: Unknown,

@@ -53,8 +53,16 @@ import scala.collection.mutable.ListBuffer
   * the way `BindResult`/`ReturnResult` do for `Let`/`Return`, so `Set(x, call)`
   * always becomes `Let(_callN, call); Set(x, Var(_callN))`).
   *
-  * For [[Cond.And]] / [[Cond.Or]], only the left (unconditionally-evaluated)
-  * side is normalized to preserve short-circuit semantics.
+  * For [[Cond.And]] / [[Cond.Or]], the left (unconditionally-evaluated) side is
+  * flat-hoisted like anywhere else, to preserve short-circuit semantics. A call
+  * needed by the right side can't be flat-hoisted the same way (it must run
+  * only once the left side's value is known) — `extractFromCond` instead lowers
+  * the whole `And`/`Or` into a `Let`+guard-`IfChain` preamble that computes a
+  * fresh boolean flag (same "declare false, conditionally set true" shape
+  * `ExpandMatchesExistsPass` already produces for `Cond.Any`'s `_found` flag),
+  * replacing the original condition with a plain equality check on that flag —
+  * so the caller's own `thenBody`/`elseBody` still appear exactly once each,
+  * never duplicated by the nesting.
   *
   * [[Instr.While]] conditions are never extracted (they are re-evaluated each
   * iteration; extraction would change semantics).
@@ -92,6 +100,13 @@ object NormalizeEvaluationOrderPass extends LoweringPass:
   private class Counter:
     private var n = 0
     def fresh(): String = { n += 1; s"_call$n" }
+
+    /** Names for the boolean flag `extractFromCond`'s `Cond.And`/`Cond.Or`
+      * cases synthesize — sharing `n` with [[fresh]] (distinct prefix is enough
+      * to avoid collisions) rather than a separate counter, since both only
+      * ever need to be unique, never contiguous.
+      */
+    def freshCond(): String = { n += 1; s"_cond$n" }
 
   /** Extracts every non-trivial `AlgoCall`/`JSCall`/`Expr.Abrupt` reachable
     * from an `Expr` into `hoisted`, substituting a fresh `Var` in its place —
@@ -281,7 +296,7 @@ object NormalizeEvaluationOrderPass extends LoweringPass:
   private def extractFromCond(
     cond: Cond,
     counter: Counter,
-  ): (List[Instr.Let], Cond) = cond match
+  ): (List[Instr], Cond) = cond match
 
     case Cond.Eq(l, r, neg) =>
       val ext = Extractor(counter)
@@ -310,13 +325,46 @@ object NormalizeEvaluationOrderPass extends LoweringPass:
       val (b, ne) = Extractor(counter).extract(e)
       (b, Cond.IsOfForm(ne, form, condOpt, neg))
 
+    // The right operand is only evaluable once the left's value is known, so
+    // any call it needs can't be flat-hoisted next to the left's own hoisted
+    // `Let`s the way `Eq`/`Compare`/etc.'s two sides are above — hence the
+    // recursive `extractFromCond(r, ...)` here (unlike a plain `walk`), and
+    // the `Let`/guard-`IfChain` preamble once it comes back non-empty: a
+    // fresh flag starts false, gets set true only along the path that
+    // matches `And`/`Or`'s own short-circuit rule, and stands in for the
+    // whole condition afterward — so the branch this condition guards still
+    // ends up as a single flat `Eq` check, never duplicated.
     case Cond.And(l, r) =>
       val (lb, lc) = extractFromCond(l, counter)
-      (lb, Cond.And(lc, r))
+      val (rb, rc) = extractFromCond(r, counter)
+      if rb.isEmpty then (lb, Cond.And(lc, rc))
+      else
+        val flag = Expr.Var(counter.freshCond())
+        val setIfRight =
+          Instr.IfChain(List((rc, List(Instr.Set(flag, Expr.Bool(true))))), Nil)
+        val guard =
+          Instr.IfChain(List((lc, rb ++ List(setIfRight))), Nil)
+        (
+          lb ++ List(Instr.Let(flag, Expr.Bool(false)), guard),
+          Cond.Eq(flag, Expr.Bool(true)),
+        )
 
     case Cond.Or(l, r) =>
       val (lb, lc) = extractFromCond(l, counter)
-      (lb, Cond.Or(lc, r))
+      val (rb, rc) = extractFromCond(r, counter)
+      if rb.isEmpty then (lb, Cond.Or(lc, rc))
+      else
+        val flag = Expr.Var(counter.freshCond())
+        val setIfRight =
+          Instr.IfChain(List((rc, List(Instr.Set(flag, Expr.Bool(true))))), Nil)
+        val guard = Instr.IfChain(
+          List((lc, List(Instr.Set(flag, Expr.Bool(true))))),
+          rb ++ List(setIfRight),
+        )
+        (
+          lb ++ List(Instr.Let(flag, Expr.Bool(false)), guard),
+          Cond.Eq(flag, Expr.Bool(true)),
+        )
 
     // `collections` is evaluated once, before ExpandMatchesExistsPass's
     // generated loop even starts, so hoisting a call out of it here is safe

@@ -20,8 +20,7 @@ object EvalTag extends Tag("esmeta.wji.EvalTag")
   * so keeping it in sync would be pure churn; re-reproduce with `sbt run
   * wji-eval tests/wji/<name>.js -silent` when picking one back up.
   */
-private val knownFailing: Set[String] =
-  Set("table-mutation.js", "reentrant-table-sync.js")
+private val knownFailing: Set[String] = Set()
 
 /** Runs every `.js` test case under `tests/wji` end to end through the merged
   * WJI IR program (see [[WjiTest]]). Each test case is standalone and

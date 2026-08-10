@@ -229,8 +229,6 @@ object Initialize:
       )
     }
 
-    println(st.heap)
-
   /** starts a live SpecTec process, seeds `st`'s AGENT_RECORD's "associated
     * store" field in place, and returns the host + connection for the
     * interpreter run (the caller owns the connection and must close it).

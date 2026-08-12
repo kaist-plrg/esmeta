@@ -112,3 +112,46 @@
   ```
   (`widen`은 타입이 이미 같으면 그대로 반환하므로, `to_typ num1 <> to_typ num2`로 진짜 타입 불일치일 때만 타도록 guard해야 무한 재귀를 피할 수 있습니다 — 타입이 같은데 그 연산 조합 자체가 정의 안 된 경우는 이 guard에 안 걸리고 바로 `None`으로 떨어집니다.)
 - **Reason**: #1과 같은 근본 원인 — `sub`가 선언한 subtype 관계를 `bin`/`cmp`가 안 지킴 — 인데, 이번엔 esmeta 쪽 `toAL`(WJI가 값을 embedding 경계로 넘길 때 쓰는 변환 함수)이 non-negative `Math` 값을 `` `Nat ``으로 태깅하도록 고쳐보다가 직접 실증됨. `tests/wji`의 5개 테스트가 `$inv_signed_: ... comparison operation <= not defined for +0, 123`류의 에러로 깨졌습니다. 원인을 추적해보니 `signed_31`/`inv_signed_31` 등(`server.ml`의 `call_signed`/`call_inv_signed`)은 `numerics.ml`의 OCaml shortcut(`unwrap_intv`/`inv_signed`/`sat`, #1에서 고친 바로 그 함수들)을 안 거치고 있었습니다 — `call_inv_signed`가 `Interpreter.call_func "inv_signed_"`(끝에 `_`)로 찾는데 `numerics.ml`엔 `"inv_signed"`(언더스코어 없음)로 등록돼 있어 이름이 안 맞았기 때문입니다. 그래서 매번 공식 `.spectec` 정의를 일반 AL 인터프리터로 해석해왔고, 그 정의 안의 `$int$(0) <= i`(리터럴 `int` 상수)가 이제 `` `Nat ``으로 넘어온 인자 `i`와 비교되면서 `cmp`의 same-type-only 제약에 걸린 것입니다. 즉 "Wasm 실행 내부는 esmeta의 `toAL`을 거치지 않는다"는 #1의 가정이 이 경로(공식 spec 정의의 제너릭 해석)에는 안 맞았던 것으로 드러났습니다.
+
+## 4. `mem_grow`가 `Ds.Store`를 안 거쳐서 growth가 `mem_read_bytes`엔 안 보임 + `growmem`의 partial-match 실패를 `Exception.Fail`로 놓침
+
+- **File**: `spectec/spectec/src/backend-interpreter/embedding.ml`, `mem_grow`
+- **Current**:
+  ```ocaml
+  let mem_grow (store : value) (memaddr : value) (n : value) : value =
+    match memaddr with
+    | NumV (`Nat i) ->
+      let mems = strv_access "MEMS" store in
+      let mi = listv_nth mems (Z.to_int i) in
+      (match Interpreter.call_func "growmem" [ mi; n ] with
+       | Some mi' ->
+         (match mems with
+          | ListV arr_ref -> Array.set !arr_ref (Z.to_int i) mi'; store
+          | _ -> failwith "mem_grow: unexpected MEMS shape")
+       | None -> embedding_error)
+    | _ -> failwith "mem_grow: expected nat memaddr"
+  ```
+- **Expected**:
+  ```ocaml
+  let mem_grow (store : value) (memaddr : value) (n : value) : value =
+    Ds.Store.set store; (* install the caller's store as the global store *)
+    match memaddr with
+    | NumV (`Nat i) ->
+      let mems = strv_access "MEMS" (Ds.Store.get ()) in
+      let mi = listv_nth mems (Z.to_int i) in
+      let result =
+        try Interpreter.call_func "growmem" [ mi; n ]
+        with Exception.Fail -> None
+      in
+      (match result with
+       | Some mi' ->
+         (match mems with
+          | ListV arr_ref -> Array.set !arr_ref (Z.to_int i) mi'; Ds.Store.get ()
+          | _ -> failwith "mem_grow: unexpected MEMS shape")
+       | None -> embedding_error)
+    | _ -> failwith "mem_grow: expected nat memaddr"
+  ```
+- **Reason**: 이 파일엔 "호출자가 넘긴 `store` 값을 전역 `Ds.Store`에 설치하고(`Ds.Store.set`), 작업한 뒤, `Ds.Store.get()`으로 최종 상태를 다시 읽는다"는 일관된 관례가 있습니다(`func_alloc`/`table_alloc`/`func_invoke`/`module_instantiate`/`tag_alloc`/`exn_alloc` 전부). `mem_grow`만 이 관례를 안 따르고, 인자로 받은 `store` 값의 `MEMS` 배열을 in-place로 고쳐서 그 값 자체를 그대로 리턴했습니다 — RPC 응답 자체(ESMeta가 자기 `@AGENT_RECORD["associated store"]`로 계속 추적하는 값)로는 정확했지만, `mem_read_bytes`(`memaddr`만 받는 "implicit-store" 함수 — 항상 전역 `Ds.Store`를 읽음)가 읽는 별도의 전역 상태는 전혀 안 건드려서, 실제로 얼마나 grow했든 상관없이 `Memory` 객체의 buffer가 항상 할당 시점 크기로 얼어붙어 있었습니다.
+
+  두 번째로, `growmem`은 `hint(partial)` 함수(4.0-execution.configurations.spectec)인데, il2al의 `Partial` 정의 코드젠(`il2al/translate.ml`, `append_fail_block`)이 "매칭되는 equation 없음"을 `FailI` 명령어로 표현하고, 인터프리터는 이걸 `Exception.Fail`이라는 **진짜 예외**로 던집니다 — `Interpreter.call_func`가 조용히 `None`을 리턴하는 게 아닙니다. `mem_grow`의 `| None -> embedding_error` 처리(그리고 완전히 동일한 패턴인 `table_grow`/`growtable`도)는 이 경우를 놓쳐서, 선언된 max를 초과해 growing하는(스펙상 legit한 실패 → `RangeError`로 이어져야 하는) 시나리오에서 서버 프로세스 자체가 `ProtocolError`로 죽었습니다.
+- **발견 경위**: `tests/wji/memory-grow.js`(새로 작성한 WJI 테스트) 디버깅 중 발견 — `Memory.prototype.grow`가 크래시 없이 실행은 되는데 `memory.buffer.byteLength`가 growth 후에도 그대로였음. `Ds.Store.set`/`get()` bracketing 문제로 첫 번째 원인을 고친 뒤, 정상적으로 max 초과 growth를 테스트하는 부분에서 두 번째 문제(`Exception.Fail`)가 새로 드러남.

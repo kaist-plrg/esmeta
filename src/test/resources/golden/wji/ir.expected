@@ -953,7 +953,9 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Memory.prototype.grow(
   call delta = clo<"converted_to_an_idl_value">(delta, "AddressValue")
   let memaddr = this.Memory
   let store = @AGENT_RECORD["associated store"]
-  let addrtype = (yet "the [=address type=] in [=mem_type=](|store|, |memaddr|)")
+  call-embed _tuple1 = <mem_type>(store, memaddr)
+  let addrtype = _tuple1[0]
+  let limits page = _tuple1[1]
   call _call1 = clo<"addressvaluetou64">(delta, addrtype)
   if (? _call1: Abrupt) {
     if (? _call1: Completion) {
@@ -1328,7 +1330,10 @@ def <BUILTIN>:INTRINSICS.get:WebAssembly.Table.prototype.length(
 ): Unknown = {
   let tableaddr = this.Table
   let store = @AGENT_RECORD["associated store"]
-  let addrtype = (yet "the [=address type=] in [=table_type=](|store|, |tableaddr|)")
+  call-embed _tuple1 = <table_type>(store, tableaddr)
+  let addrtype = _tuple1[0]
+  let limits = _tuple1[1]
+  let elementtype = _tuple1[2]
   call-embed length64 = <table_size>(store, tableaddr)
   call _result1 = clo<"u64toaddressvalue">(length64, addrtype)
   if (? _result1: Completion) {

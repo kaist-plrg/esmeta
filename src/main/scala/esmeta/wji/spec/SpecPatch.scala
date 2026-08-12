@@ -822,6 +822,31 @@ object SpecPatch:
 
       #1. Set |v| to |v|, [=converted to a JavaScript value=].
       #1. If |addrtype| is [=i32=],""".stripMargin('#'),
+
+    // #40 (spec inconsistency, docs/spec_inconsistencies.md #14) — both spots
+    // project a single field out of mem_type/table_type's returned record via
+    // "the X in Y(...)", instead of the tuple-destructuring `Let (...) be
+    // Y(...)` idiom this same document already uses for table_type at three
+    // other call sites (table.get/set/length getter, line 1061/1090/1103).
+    // Rewritten to that same destructuring form. table_type's runtime shape
+    // (`al_of_tabletype`, construct.ml) is `CaseV("", [addrtype; limits;
+    // reftype])` — three real positional fields, matching those three sibling
+    // sites' three-element tuple exactly. mem_type's is `CaseV("PAGE",
+    // [addrtype; limits])` (`al_of_memorytype`) — only *two* positional
+    // fields; `PAGE` there is the record's own tag, not a third field (mirrors
+    // memtype's formal grammar, `addrtype limits PAGE`, where `PAGE` is a
+    // fixed marker, not a bound component) — hence a two-element tuple, with
+    // `page` folded into the ignored second slot's own name (lowercased, to
+    // read as an ordinary var name rather than shouting the grammar symbol)
+    // so it's still visible in the patched text (`limits page` — both
+    // leftover grammar symbols after `addrtype`), even though it binds a
+    // single ignored variable, not two.
+    "1. Let |addrtype| be the [=address type=] in [=mem_type=](|store|, |memaddr|)."
+    ->
+    "1. Let (|addrtype|, <var ignore>limits page</var>) be [=mem_type=](|store|, |memaddr|).",
+    "1. Let |addrtype| be the [=address type=] in [=table_type=](|store|, |tableaddr|)."
+    ->
+    "1. Let (|addrtype|, <var ignore>limits</var>, <var ignore>elementtype</var>) be [=table_type=](|store|, |tableaddr|).",
   )
 
   def apply(source: String): String =

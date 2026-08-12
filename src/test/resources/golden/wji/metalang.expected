@@ -484,7 +484,7 @@
   head: The <dfn method for="Memory">grow(|delta|)</dfn> method, when invoked, performs the following steps:
   Let(|memaddr|, **this**.[[Memory]])
   Let(|store|, [=surrounding agent=].[[associated store]])
-  Let(|addrtype|, ?(the [=address type=] in [=mem_type=](|store|, |memaddr|)))
+  Let((|addrtype|, |limits page|), [=mem_type=](|store|, |memaddr|))
   Let(|delta64|, [=?=] [=AddressValueToU64=](|delta|, |addrtype|))
   Let(|ret|, [=grow the memory buffer=](|memaddr|, |delta64|))
   Return([=U64ToAddressValue=](|ret|, |addrtype|))
@@ -629,7 +629,7 @@
   head: The getter of the <dfn attribute for="Table">length</dfn> attribute of {{Table}}, when invoked, performs the following steps:
   Let(|tableaddr|, **this**.[[Table]])
   Let(|store|, [=surrounding agent=].[[associated store]])
-  Let(|addrtype|, ?(the [=address type=] in [=table_type=](|store|, |tableaddr|)))
+  Let((|addrtype|, |limits|, |elementtype|), [=table_type=](|store|, |tableaddr|))
   Let(|length64|, [=table_size=](|store|, |tableaddr|))
   Return([=U64ToAddressValue=](|length64|, |addrtype|))
 

@@ -3406,8 +3406,13 @@ def creating_an_operation_function(
 ): Unknown = {
   let id = op.id
   let steps = clo<"creating_an_operation_function_closure1", [id, op, target]>
-  call _call1 = clo<"regular_operations">((tup (yet "if |op| is a regular operation) or for [=static operations=] (if |op| is a static operation")), (case "IDENTIFIER" id target 0))
-  call S = clo<"compute_the_effective_overload_set">(_call1)
+  if (= op (yet "a regular operation")) {
+    call S = clo<"compute_the_effective_overload_set">(~regular operations~, (case "IDENTIFIER" id target 0))
+  } else if (= op (yet "a static operation")) {
+    call S = clo<"compute_the_effective_overload_set">(~static operations~, (case "IDENTIFIER" id target 0))
+  } else {
+    assert false
+  }
   let length = (sizeof (yet "the shortest argument list in the entries in |S|"))
   let F = (yet "<a abstract-op>CreateBuiltinFunction</a>(|steps|, |length|, |id|, « », |realm|)")
   return F
@@ -3677,8 +3682,13 @@ def creating_an_operation_function_closure1(
     idlObject = (yet "the IDL [=interface type=] value that represents a reference to |jsValue|")
   } else nop
   let n = (sizeof args)
-  call _call1 = clo<"regular_operations">((tup (yet "if |op| is a regular operation) or for [=static operations=] (if |op| is a static operation")), (case "IDENTIFIER" id target n))
-  call S = clo<"compute_the_effective_overload_set">(_call1)
+  if (= op (yet "a regular operation")) {
+    call S = clo<"compute_the_effective_overload_set">(~regular operations~, (case "IDENTIFIER" id target n))
+  } else if (= op (yet "a static operation")) {
+    call S = clo<"compute_the_effective_overload_set">(~static operations~, (case "IDENTIFIER" id target n))
+  } else {
+    assert false
+  }
   let _tuple1 = (yet "passing |S| and |args| to the [=overload resolution algorithm=]")
   let operation = _tuple1[0]
   let values = _tuple1[1]
@@ -3694,9 +3704,9 @@ def creating_an_operation_function_closure1(
   (yet "Issue(whatwg/webidl#674): |R| is assumed to be an IDL value of the type |op| is declared to return")
   (yet "And then, if <a lt=\"an exception was thrown\">an exception |E| was thrown</a>:")
   if (? (yet "|op| has a [=return type=] that"): Unknown["promise type"]) {
-    let _call2 = (yet "<a abstract-op>Call</a>({{%Promise.reject%}}, {{%Promise%}}, «|E|»)")
-    assert (= _call2.Type ~normal~)
-    return _call2.Value
+    let _call1 = (yet "<a abstract-op>Call</a>({{%Promise.reject%}}, {{%Promise%}}, «|E|»)")
+    assert (= _call1.Type ~normal~)
+    return _call1.Value
   } else {
     (yet "end these steps and allow the exception to propagate")
   }

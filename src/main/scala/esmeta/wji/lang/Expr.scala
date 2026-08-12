@@ -117,23 +117,55 @@ object Expr:
     */
   case class SuchThat(desc: String, cond: Cond) extends Expr
 
-  /** `EXPR if COND[,] (and|or) EXPR otherwise` — WebIDL's conditional
-    * expression idiom (webidl_yet_categorized.md category I-G), e.g. "Let
-    * |modifiable| be <emu-val>false</emu-val> if |op| is [=unforgeable=] and
-    * <emu-val>true</emu-val> otherwise." `thenExpr` is the `EXPR` before "if";
-    * `elseExpr` is the `EXPR` after the "and"/"or" connector and before
-    * "otherwise" — the spec prose itself never says "then"/"else", only
-    * "if"/"otherwise", but the two field names still read clearly for what each
-    * position means. Every real occurrence seen so far is a `Let` RHS, but
-    * `ExprParser.parse` recognizes this as an ordinary expression shape
-    * wherever it appears, the same as `SuchThat` above. Not compiled via
-    * `compileExpr` — there's no IR-level conditional *expression*, only a
-    * conditional *instruction* — so `esmeta.wji.compiler.lowering.
-    * ExpandConditionalPass` desugars a `Let` bound to this shape into a real
-    * `Instr.IfChain` (binding the `Let`'s LHS in both branches) before
-    * `Compiler` ever sees it.
+  /** WebIDL's conditional-value idiom, covering two surface forms
+    * (webidl_yet_categorized.md category I-G):
+    *
+    *   - `EXPR if COND[,] (and|or) EXPR otherwise` — a single guarded branch
+    *     with an explicit fallback, e.g. "Let |modifiable| be
+    *     <emu-val>false</emu-val> if |op| is [=unforgeable=] and
+    *     <emu-val>true</emu-val> otherwise." Parses to `branches = [(cond,
+    *     thenExpr)]`, `otherwise = Some(elseExpr)`.
+    *   - `EXPR1 (if COND1) or EXPR2 (if COND2) [or ...]` — every branch carries
+    *     its own explicit `(if COND)` guard and there's no "otherwise" at all
+    *     (webidl/index.bs:12558-12559, "[=Compute the effective overload set=]
+    *     for [=regular operations=] (if |op| is a regular operation) or for
+    *     [=static operations=] (if |op| is a static operation)"). Parses to
+    *     `branches = [(cond1, expr1), (cond2, expr2), ...]`, `otherwise =
+    *     None`. The two guards here aren't an exhaustive dichotomy *by
+    *     themselves* — WebIDL operations also include a third kind, special
+    *     operations (webidl/index.bs:1853-1865), so nothing about "is a regular
+    *     operation"/"is a static operation" alone rules out |op| being neither.
+    *     Reachability of a fallback instead depends on an invariant established
+    *     by the calling context: every caller of "create an operation function"
+    *     (`define the operations`, webidl/index.bs:12518-12530) already
+    *     filtered its `|operations|` list down to just [=regular operations=]
+    *     or just [=static operations=] before this ever runs, so |op| is one of
+    *     the two by construction at every real call site — not because the two
+    *     conditions are jointly exhaustive on their own. `otherwise = None` is
+    *     this project's assumption that the fallback is therefore unreachable
+    *     *here*, not a guarantee intrinsic to the expression itself; a future
+    *     occurrence of this idiom elsewhere would need its own reachability
+    *     check against its own callers before assuming the same. Kept in the
+    *     *same* node as the first form (rather than a separate one) since both
+    *     are the same underlying idea — evaluate whichever guarded branch holds
+    *     — differing only in whether the prose happens to spell out a trailing
+    *     fallback value; unifying them means a lowering pass that handles one
+    *     automatically handles the other, and `otherwise = None` already says
+    *     everything `branches`'s own shape needs to say about the second form's
+    *     missing fallback.
+    *
+    * Every real occurrence seen so far is either a `Let` RHS or an argument of
+    * a `Perform`, but `ExprParser.parse`/`parseArgs` recognizes this as an
+    * ordinary expression shape wherever it appears, the same as `SuchThat`
+    * above. Not compiled via `compileExpr` — there's no IR-level conditional
+    * *expression*, only a conditional *instruction* — so
+    * `esmeta.wji.compiler.lowering.ExpandConditionalPass` desugars a `Let`
+    * bound to (or a `Perform` argument holding) this shape into a real
+    * `Instr.IfChain` — one branch per `(cond, expr)` pair, in order, plus a
+    * fallback branch from `otherwise` if present, or an `Assert:
+    * [=Unreachable=]` invariant check if not — before `Compiler` ever sees it.
     */
-  case class Conditional(cond: Cond, thenExpr: Expr, elseExpr: Expr)
+  case class Conditional(branches: List[(Cond, Expr)], otherwise: Option[Expr])
     extends Expr
 
   /** "a new [=byte sequence=] of [=byte sequence/length=] equal to LENGTH" — a
@@ -293,9 +325,10 @@ object Expr:
       case TupleProj(base, _)         => List(base)
       case CaseTag(base)              => List(base)
       case Opt(inner)                 => inner.toList
-      case Conditional(_, t, e)       => List(t, e)
-      case GetMember(e, _)            => List(e)
-      case _                          => Nil
+      case Conditional(branches, otherwise) =>
+        branches.map(_._2) ++ otherwise.toList
+      case GetMember(e, _) => List(e)
+      case _               => Nil
 
     /** Whether `pred` holds for this `Expr` or any `Expr` nested inside it, at
       * any depth.

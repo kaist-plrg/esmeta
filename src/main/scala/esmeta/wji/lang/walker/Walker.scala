@@ -44,8 +44,11 @@ trait Walker:
     case Expr.CaseTag(base)        => Expr.CaseTag(walk(base))
     case Expr.Opt(inner)           => Expr.Opt(inner.map(walk))
     case Expr.SuchThat(desc, cond) => Expr.SuchThat(desc, walk(cond))
-    case Expr.Conditional(cond, t, e) =>
-      Expr.Conditional(walk(cond), walk(t), walk(e))
+    case Expr.Conditional(branches, otherwise) =>
+      Expr.Conditional(
+        branches.map((cond, e) => (walk(cond), walk(e))),
+        otherwise.map(walk),
+      )
     // leaves with no nested Expr: Var, This, GivenValue, Num, Bool, Str,
     // Byte, SpecTerm, New, UnknownNew, Described, Unknown, Closure,
     // FollowingSteps.

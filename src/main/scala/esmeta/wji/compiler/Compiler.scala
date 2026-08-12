@@ -478,10 +478,10 @@ object Compiler:
     // candidate to `impossible` and recompiling the whole corpus (`sbt
     // testOnly esmeta.wji.SnapshotSpec`), one at a time, to see which ones
     // actually fire.
-    case metalang.Expr.Conditional(cond, thenExpr, elseExpr) =>
+    case metalang.Expr.Conditional(branches, otherwise) =>
       impossible(
-        s"unlowered conditional expression: ${ExprPrinter.render(thenExpr)} if " +
-        s"${CondPrinter.render(cond)} else ${ExprPrinter.render(elseExpr)}",
+        s"unlowered conditional expression: ${ExprPrinter
+          .render(metalang.Expr.Conditional(branches, otherwise))}",
       )
     case metalang.Expr.Link(link, _) => impossible(s"unresolved link: $link")
     case metalang.Expr.JSCall(name, args) =>

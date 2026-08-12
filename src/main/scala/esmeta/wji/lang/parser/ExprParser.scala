@@ -457,6 +457,67 @@ object ExprParser:
         }
       }
     }
+
+  // "EXPR1 (if COND1) or EXPR2 (if COND2) [or ...]" — the *other* half of
+  // `Expr.Conditional` (see its own doc): every branch carries its own
+  // explicit "(if COND)" guard and there's no trailing "otherwise" at all
+  // (webidl/index.bs:12558-12559). `orConditionalBranch` reads one "EXPR (if
+  // COND)" segment, using `findTopLevel` (not a greedy `(...)`-matching
+  // regex) to locate the "(if " that opens the guard and the "if"-body's own
+  // matching close-paren — greedy paren-matching is exactly what mis-parsed
+  // this idiom in the first place (see git history: it let a single `(...)`
+  // pattern span clean across *two* separate guards, from the first "(" to
+  // the *last* ")" in the sentence, swallowing the "or"-connector and second
+  // branch into unparsed garbage). An optional leading "for " is stripped
+  // per branch (as in the real occurrence's "for [=regular operations=]
+  // ...", "for [=static operations=] ...") since it's pure connective
+  // prose, not part of the guarded value.
+  //
+  // `orConditionalChain` repeats `orConditionalBranch` across every
+  // top-level " or "-joined segment, requiring *at least two* — a single
+  // "(if COND)" isn't this idiom (and must fall through to whatever else
+  // would otherwise parse it, e.g. a plain parenthesised clause), only a
+  // repeated *chain* of them is. Every real occurrence has exactly two
+  // branches, but nothing here hardcodes that.
+  //
+  // Unlike every other pattern in this file, this one is invoked from
+  // `parseArgs` rather than tried as an ordinary `parse` case:
+  // `parseArgs`'s word-by-word tokenizer always tries the *longest*
+  // remaining suffix first, and `LinkProse` (an unconditional "[=link=]
+  // <anything>" match) would already have swallowed the entire rest of the
+  // sentence — including whatever the *outer* call's later arguments are —
+  // before a `parse`-level case for this shape ever got a chance to be
+  // tried on just its own, shorter span. So `parseArgs` calls this directly,
+  // as a bounded prefix match tried before its own generic per-token loop,
+  // letting it consume exactly this shape and then keep tokenizing whatever
+  // follows.
+  private def orConditionalBranch(text: String): Option[(Cond, Expr, Int)] =
+    val stripped = if text.startsWith("for ") then text.drop(4) else text
+    val skipped = text.length - stripped.length
+    findTopLevel(stripped, "(if ").flatMap { openIdx =>
+      val exprRaw = stripped.substring(0, openIdx)
+      val afterOpen = stripped.substring(openIdx + 4)
+      findTopLevel(afterOpen, ")").map { closeIdx =>
+        val condRaw = afterOpen.substring(0, closeIdx)
+        val consumed = skipped + openIdx + 4 + closeIdx + 1
+        (CondParser.parse(condRaw.trim), parse(exprRaw.trim), consumed)
+      }
+    }
+
+  private def orConditionalChain(text: String): Option[(Expr, Int)] =
+    orConditionalBranch(text).flatMap { (cond1, expr1, len1) =>
+      def more(pos: Int, acc: List[(Cond, Expr)]): (List[(Cond, Expr)], Int) =
+        if text.substring(pos).startsWith(" or ") then
+          orConditionalBranch(text.substring(pos + 4)) match
+            case Some((cond, expr, len)) =>
+              more(pos + 4 + len, acc :+ (cond -> expr))
+            case None => (acc, pos)
+        else (acc, pos)
+      val (restBranches, endPos) = more(len1, Nil)
+      if restBranches.isEmpty then None
+      else Some((Conditional((cond1 -> expr1) :: restBranches, None), endPos))
+    }
+
   // "a [=algo|display text=] (of)? |arg|" — a single-argument algorithm
   // invocation phrased as a noun (e.g. "a [=get a copy of the buffer
   // source|copy of the bytes held by the buffer=] |bytes|"), as opposed to
@@ -722,7 +783,10 @@ object ExprParser:
         SuchThat(desc.trim, CondParser.parse(cond.trim))
       case _ if conditionalParts(s).isDefined =>
         val (thenRaw, condRaw, elseRaw) = conditionalParts(s).get
-        Conditional(CondParser.parse(condRaw), parse(thenRaw), parse(elseRaw))
+        Conditional(
+          List(CondParser.parse(condRaw) -> parse(thenRaw)),
+          Some(parse(elseRaw)),
+        )
       case LinkIndefVar(link, arg) =>
         Link(normalizeLink(link), List(parse(arg)))
 
@@ -750,6 +814,10 @@ object ExprParser:
     * Start positions are restricted to word boundaries (position 0 and every
     * position right after a space). End positions shrink one character at a
     * time so trailing punctuation is trimmed naturally without pre-processing.
+    *
+    * At each start position, `orConditionalChain` is tried first, as a bounded
+    * prefix match — see its own doc for why this can't just be an ordinary
+    * `parse` case tried by the generic shrinking loop below.
     */
   private[wji] def parseArgs(prose: String): List[Expr] =
     val s = prose.trim
@@ -759,17 +827,24 @@ object ExprParser:
     var si = 0
     while si < starts.length do
       val from = starts(si)
-      var to = n
-      var found = false
-      while to > from && !found do
-        parse(s.substring(from, to)) match
-          case Unknown(_) => to -= 1
-          case expr =>
-            result += expr
-            si = starts.indexWhere(_ >= to)
-            if si < 0 then si = starts.length
-            found = true
-      if !found then si += 1
+      orConditionalChain(s.substring(from)) match
+        case Some((expr, consumed)) =>
+          result += expr
+          val to = from + consumed
+          si = starts.indexWhere(_ >= to)
+          if si < 0 then si = starts.length
+        case None =>
+          var to = n
+          var found = false
+          while to > from && !found do
+            parse(s.substring(from, to)) match
+              case Unknown(_) => to -= 1
+              case expr =>
+                result += expr
+                si = starts.indexWhere(_ >= to)
+                if si < 0 then si = starts.length
+                found = true
+          if !found then si += 1
     result.toList
 
   // A single positional component of an untagged multi-var form: either a

@@ -456,7 +456,7 @@
   Assert(|map|[|memaddr|] [=map/exists=])
   Let(|memory|, |map|[|memaddr|])
   Let(|buffer|, |memory|.[[BufferObject]])
-  If([=IsFixedLengthArrayBuffer=](|buffer|) is true)
+  If([$IsFixedLengthArrayBuffer$](|buffer|) is true)
     Perform(DetachArrayBuffer(|buffer|, "WebAssembly.Memory"))
     Let(|buffer|, [=create a fixed length memory buffer=](|memaddr|))
     Set(|memory|.[[BufferObject]], |buffer|)
@@ -502,7 +502,7 @@
   kind: method for Memory
   head: The <dfn method for="Memory">toFixedLengthBuffer()</dfn> method, when invoked, performs the following steps:
   Let(|buffer|, **this**.[[BufferObject]])
-  If([=IsFixedLengthArrayBuffer=](|buffer|) is true)
+  If([$IsFixedLengthArrayBuffer$](|buffer|) is true)
     Return(|buffer|)
   Let(|memaddr|, **this**.[[Memory]])
   Let(|fixedBuffer|, [=create a fixed length memory buffer=](|memaddr|))
@@ -520,7 +520,7 @@
   If(?(|memtype| does not have a max))
     Throw(new {{TypeError}})
   Let(|buffer|, **this**.[[BufferObject]])
-  If([=IsFixedLengthArrayBuffer=](|buffer|) is false)
+  If([$IsFixedLengthArrayBuffer$](|buffer|) is false)
     Return(|buffer|)
   Assert(?(|memtype| has a max))
   Let(|maxsize|, ?(the max value in |memtype|) * 65536)

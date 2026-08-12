@@ -907,7 +907,7 @@ def refresh_the_memory_buffer(
   assert (exists map[memaddr])
   let memory = map[memaddr]
   let buffer = memory.BufferObject
-  call _call1 = clo<"isfixedlengtharraybuffer">(buffer)
+  call _call1 = clo<"IsFixedLengthArrayBuffer">(buffer)
   if (= _call1 true) {
     call _ = clo<"DetachArrayBuffer">(buffer, "WebAssembly.Memory")
     call buffer = clo<"create_a_fixed_length_memory_buffer">(memaddr)
@@ -1010,7 +1010,7 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Memory.prototype.tofixedlengthbuffer(
   NewTarget: Unknown,
 ): Unknown = {
   let buffer = this.BufferObject
-  call _call1 = clo<"isfixedlengtharraybuffer">(buffer)
+  call _call1 = clo<"IsFixedLengthArrayBuffer">(buffer)
   if (= _call1 true) {
     if (? buffer: Completion) {
       return buffer
@@ -1044,7 +1044,7 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Memory.prototype.toresizablebuffer(
     return _ret2
   } else nop
   let buffer = this.BufferObject
-  call _call1 = clo<"isfixedlengtharraybuffer">(buffer)
+  call _call1 = clo<"IsFixedLengthArrayBuffer">(buffer)
   if (= _call1 false) {
     if (? buffer: Completion) {
       return buffer

@@ -393,14 +393,50 @@ object ExprParser:
   // may not itself contain a `[=link=]`/`|var|`/qualifier word like "exists"
   // or "smallest" — kept as raw text since the phrasing varies too much to
   // structure further; `cond` (everything after), by contrast, is parsed via
-  // `CondParser.parse` right here (the only place `ExprParser` calls into
-  // `CondParser` — a deliberate mutual reference, mirroring `CondParser`'s own
-  // existing calls back into `ExprParser` for every condition's sub-`Expr`s,
-  // and `CondPrinter`/`ExprPrinter`'s identical mutual shape). The whole
-  // `SuchThat` node is still not directly evaluable (see `Expr.SuchThat`);
-  // matched explicitly for the same reason as RelativeClauseDesc above.
+  // `CondParser.parse` right here (one of two places `ExprParser` calls into
+  // `CondParser`, alongside `Conditional` below — a deliberate mutual
+  // reference, mirroring `CondParser`'s own existing calls back into
+  // `ExprParser` for every condition's sub-`Expr`s, and `CondPrinter`/
+  // `ExprPrinter`'s identical mutual shape). The whole `SuchThat` node is
+  // still not directly evaluable (see `Expr.SuchThat`); matched explicitly
+  // for the same reason as RelativeClauseDesc above.
   private val SuchThatDesc =
     """(?si)^(?:the|an?)\s+(.+?)\s+such\s+that\s+(.+)$""".r
+
+  // "EXPR if COND[,] (and|or) EXPR otherwise" — WebIDL's conditional
+  // expression idiom (webidl_yet_categorized.md category I-G), e.g.
+  // "<emu-val>false</emu-val> if |op| is [=unforgeable=] and
+  // <emu-val>true</emu-val> otherwise" (the value of a `Let`, once
+  // `InstrParser` has already split off "Let |modifiable| be "). `cond` may
+  // itself contain its own top-level "and"/"or" (e.g. "it is not
+  // <emu-val>null</emu-val> or <emu-val>undefined</emu-val>"), so the second
+  // `EXPR` is split off at the *last* top-level "and"/"or" before the
+  // trailing "otherwise", not the first — `cond`'s own connectives always
+  // sit earlier in the text than the one actually separating it from the
+  // second `EXPR`. Deliberately requires the text to end in a bare
+  // "otherwise" with nothing after it, so "..., or the following steps
+  // otherwise:" (introducing a closure with its own nested sub-steps) is
+  // left unmatched and falls through to whatever later case (if any)
+  // recognizes its own pieces.
+  private val TrailingOtherwise = """(?i)\s+otherwise$""".r
+  private val CondValueSeps = Seq(" and ", " or ")
+
+  private def conditionalParts(s: String): Option[(String, String, String)] =
+    findTopLevel(s, " if ").flatMap { ifIdx =>
+      val thenRaw = s.substring(0, ifIdx)
+      val afterIf = s.substring(ifIdx + 4)
+      TrailingOtherwise.findFirstMatchIn(afterIf).flatMap { m =>
+        val beforeOtherwise = afterIf.substring(0, m.start)
+        findLastTopLevelAny(beforeOtherwise, CondValueSeps).map {
+          case (sepIdx, sep) =>
+            (
+              thenRaw.trim.stripSuffix(",").trim,
+              beforeOtherwise.substring(0, sepIdx).trim.stripSuffix(",").trim,
+              beforeOtherwise.substring(sepIdx + sep.length).trim,
+            )
+        }
+      }
+    }
   // "a [=algo|display text=] (of)? |arg|" — a single-argument algorithm
   // invocation phrased as a noun (e.g. "a [=get a copy of the buffer
   // source|copy of the bytes held by the buffer=] |bytes|"), as opposed to
@@ -662,6 +698,9 @@ object ExprParser:
       case OfTypeGeneric(typeArg) => SpecTerm(typeArg)
       case SuchThatDesc(desc, cond) =>
         SuchThat(desc.trim, CondParser.parse(cond.trim))
+      case _ if conditionalParts(s).isDefined =>
+        val (thenRaw, condRaw, elseRaw) = conditionalParts(s).get
+        Conditional(CondParser.parse(condRaw), parse(thenRaw), parse(elseRaw))
       case LinkIndefVar(link, arg) =>
         Link(normalizeLink(link), List(parse(arg)))
 

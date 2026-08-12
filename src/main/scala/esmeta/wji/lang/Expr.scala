@@ -117,6 +117,25 @@ object Expr:
     */
   case class SuchThat(desc: String, cond: Cond) extends Expr
 
+  /** `EXPR if COND[,] (and|or) EXPR otherwise` — WebIDL's conditional
+    * expression idiom (webidl_yet_categorized.md category I-G), e.g. "Let
+    * |modifiable| be <emu-val>false</emu-val> if |op| is [=unforgeable=] and
+    * <emu-val>true</emu-val> otherwise." `thenExpr` is the `EXPR` before "if";
+    * `elseExpr` is the `EXPR` after the "and"/"or" connector and before
+    * "otherwise" — the spec prose itself never says "then"/"else", only
+    * "if"/"otherwise", but the two field names still read clearly for what each
+    * position means. Every real occurrence seen so far is a `Let` RHS, but
+    * `ExprParser.parse` recognizes this as an ordinary expression shape
+    * wherever it appears, the same as `SuchThat` above. Not compiled via
+    * `compileExpr` — there's no IR-level conditional *expression*, only a
+    * conditional *instruction* — so `esmeta.wji.compiler.lowering.
+    * ExpandConditionalPass` desugars a `Let` bound to this shape into a real
+    * `Instr.IfChain` (binding the `Let`'s LHS in both branches) before
+    * `Compiler` ever sees it.
+    */
+  case class Conditional(cond: Cond, thenExpr: Expr, elseExpr: Expr)
+    extends Expr
+
   /** "a new [=byte sequence=] of [=byte sequence/length=] equal to LENGTH" — a
     * freshly allocated byte sequence of the given length (each byte 0, per the
     * Infra Standard's "byte sequence" definition). Not yet evaluable; kept as a
@@ -274,6 +293,7 @@ object Expr:
       case TupleProj(base, _)         => List(base)
       case CaseTag(base)              => List(base)
       case Opt(inner)                 => inner.toList
+      case Conditional(_, t, e)       => List(t, e)
       case _                          => Nil
 
     /** Whether `pred` holds for this `Expr` or any `Expr` nested inside it, at

@@ -71,6 +71,7 @@ object Lowering:
     // eliminations
     ExpandHasDuplicatesPass,
     ExpandRemovePass,
+    ExpandConditionalPass,
     ExpandGetMemberPass,
     ExpandForEachPass,
     ExpandForPass,

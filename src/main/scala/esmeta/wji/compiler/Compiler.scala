@@ -470,13 +470,19 @@ object Compiler:
     // Every shape below is guaranteed gone by the time `Compiler` runs —
     // each eliminated unconditionally by its own named pass (`ResolveLinksPass`,
     // `ExpandNewByteSequencePass`, `ExpandDataBlockOfPass`,
-    // `ExpandNewArrayBufferPass`, `ExpandIndexOfPass`, `ExpandFollowingStepsPass`)
-    // or, for `JSCall`/nested `ClosureCall`, simply never produced by any spec
-    // text seen so far. Grouped here, all crashing via `impossible`, rather than
-    // interleaved with the genuine `EYet` "not yet implemented" cases above —
-    // confirmed empirically by converting every candidate to `impossible` and
-    // recompiling the whole corpus (`sbt testOnly esmeta.wji.SnapshotSpec`),
-    // one at a time, to see which ones actually fire.
+    // `ExpandNewArrayBufferPass`, `ExpandIndexOfPass`, `ExpandFollowingStepsPass`,
+    // `ExpandConditionalPass`) or, for `JSCall`/nested `ClosureCall`, simply
+    // never produced by any spec text seen so far. Grouped here, all crashing
+    // via `impossible`, rather than interleaved with the genuine `EYet` "not
+    // yet implemented" cases above — confirmed empirically by converting every
+    // candidate to `impossible` and recompiling the whole corpus (`sbt
+    // testOnly esmeta.wji.SnapshotSpec`), one at a time, to see which ones
+    // actually fire.
+    case metalang.Expr.Conditional(cond, thenExpr, elseExpr) =>
+      impossible(
+        s"unlowered conditional expression: ${ExprPrinter.render(thenExpr)} if " +
+        s"${CondPrinter.render(cond)} else ${ExprPrinter.render(elseExpr)}",
+      )
     case metalang.Expr.Link(link, _) => impossible(s"unresolved link: $link")
     case metalang.Expr.JSCall(name, args) =>
       impossible(s"$$${name}(${args.mkString})")

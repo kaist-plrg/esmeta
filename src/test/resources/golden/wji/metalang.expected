@@ -1542,7 +1542,7 @@
     If(|op| is not [=exposed=] in |realm|)
       Continue
     Let(|method|, [=creating an operation function=](|op|, |definition|, |realm|))
-    Let(|modifiable|, ?(<emu-val>false</emu-val> if |op| is [=unforgeable=] and <emu-val>true</emu-val> otherwise))
+    Let(|modifiable|, false if |op| is [=unforgeable=] else true)
     Let(|desc|, ?(the PropertyDescriptor{\[[Value]]: |method|, \[[Writable]]: |modifiable|, \[[Enumerable]]: <emu-val>true</emu-val>, \[[Configurable]]: |modifiable|}))
     Let(|id|, ?(|op|'s [=identifier=]))
     Perform(<a abstract-op>DefinePropertyOrThrow</a>(|target|, |id|, |desc|))
@@ -1555,7 +1555,7 @@
     ?(Try running the following steps:)
       Let(|idlObject|, null)
       If(|target| is an interface, and |op| is not a static operation)
-        Let(|jsValue|, ?(the <emu-val>this</emu-val> value, if it is not <emu-val>null</emu-val> or <emu-val>undefined</emu-val>, or |realm|'s [=realm/global object=] otherwise))
+        Let(|jsValue|, ?(the <emu-val>this</emu-val> value) if ?(it) is not null or undefined else ?(|realm|'s [=realm/global object=]))
         ?((This will subsequently cause a {{TypeError}} in a few steps, if the global object does not implement |target|.) <!-- https://www.w3.org/Bugs/Public/show_bug.cgi?id=18547#c9 -->)
         If(|jsValue| is a platform object)
           Perform([=perform a security check=](|jsValue|, |id|, "method"))

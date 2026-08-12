@@ -3387,7 +3387,11 @@ def define_the_operations(
       (yet "continue")
     } else nop
     call method = clo<"creating_an_operation_function">(op, definition, realm)
-    let modifiable = (yet "<emu-val>false</emu-val> if |op| is [=unforgeable=] and <emu-val>true</emu-val> otherwise")
+    if (= op ~unforgeable~) {
+      let modifiable = ~false~
+    } else {
+      let modifiable = ~true~
+    }
     let desc = (yet "the PropertyDescriptor{\\[[Value]]: |method|, \\[[Writable]]: |modifiable|, \\[[Enumerable]]: <emu-val>true</emu-val>, \\[[Configurable]]: |modifiable|}")
     let id = (yet "|op|'s [=identifier=]")
     call _ = clo<"<a_abstract-op>DefinePropertyOrThrow</a>(|target|,_|id|,_|desc|)">()
@@ -3405,7 +3409,11 @@ def creating_an_operation_function(
   (yet "Try running the following steps:")
   let idlObject = null
   if (&& (? target: Unknown["interface"]) (! (? op: Unknown["static operation"]))) {
-    let jsValue = (yet "the <emu-val>this</emu-val> value, if it is not <emu-val>null</emu-val> or <emu-val>undefined</emu-val>, or |realm|'s [=realm/global object=] otherwise")
+    if (|| (! (= (yet "it") null)) (! (= (yet "it") undefined))) {
+      let jsValue = (yet "the <emu-val>this</emu-val> value")
+    } else {
+      let jsValue = (yet "|realm|'s [=realm/global object=]")
+    }
     (yet "(This will subsequently cause a {{TypeError}} in a few steps, if the global object does not implement |target|.) <!-- https://www.w3.org/Bugs/Public/show_bug.cgi?id=18547#c9 -->")
     if (? jsValue: Unknown["platform object"]) {
       call _ = clo<"perform_a_security_check">(jsValue, id, "method")

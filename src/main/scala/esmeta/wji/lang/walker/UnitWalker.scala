@@ -36,10 +36,11 @@ trait UnitWalker:
     case Expr.IndexOf(list, elem)  => walk(list); walk(elem)
     case Expr.ClosureCall(closure, args) =>
       walk(closure); args.foreach(walk)
-    case Expr.TupleProj(base, _) => walk(base)
-    case Expr.CaseTag(base)      => walk(base)
-    case Expr.Opt(inner)         => inner.foreach(walk)
-    case Expr.SuchThat(_, cond)  => walk(cond)
+    case Expr.TupleProj(base, _)      => walk(base)
+    case Expr.CaseTag(base)           => walk(base)
+    case Expr.Opt(inner)              => inner.foreach(walk)
+    case Expr.SuchThat(_, cond)       => walk(cond)
+    case Expr.Conditional(cond, t, e) => walk(cond); walk(t); walk(e)
     // leaves with no nested Expr: Var, This, GivenValue, Num, Bool, Str,
     // Byte, SpecTerm, New, UnknownNew, Described, Unknown, Closure,
     // FollowingSteps.

@@ -47,6 +47,8 @@ object ExprPrinter:
       s"«[ ${entries.map((k, v) => s"${render(k)} → ${render(v)}").mkString(", ")} ]»"
     case Described(link, desc) => s"$link which $desc"
     case SuchThat(desc, cond)  => s"$desc such that ${CondPrinter.render(cond)}"
+    case Conditional(cond, t, e) =>
+      s"${render(t)} if ${CondPrinter.render(cond)} else ${render(e)}"
     case NewByteSequence(length) => s"ByteSequence(${render(length)})"
     case DataBlockOf(memaddr)    => s"dataBlockOf(${render(memaddr)})"
     case Range(low, high)        => s"Range(${render(low)}, ${render(high)})"

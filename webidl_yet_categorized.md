@@ -66,7 +66,7 @@
 - `#9-2` - [=iteration/continue=]
 - `#11-16` - [=iteration/break=]
 
-### I-G. 조건부 `let` 값 패턴 (`X if COND, otherwise Y`)
+### I-G. 조건부 `let` 값 패턴 (`X if COND, Y otherwise`)
 
 - `#3-1` - Let |steps| be |I|'s [=overridden constructor steps=] if they exist, or the following steps otherwise:
 - `#5-5` - Let |configurable| be <emu-val>false</emu-val> if |attr| is [=unforgeable=] and <emu-val>true</emu-val> otherwise.

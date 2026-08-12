@@ -294,6 +294,7 @@ object Expr:
       case CaseTag(base)              => List(base)
       case Opt(inner)                 => inner.toList
       case Conditional(_, t, e)       => List(t, e)
+      case GetMember(e, _)            => List(e)
       case _                          => Nil
 
     /** Whether `pred` holds for this `Expr` or any `Expr` nested inside it, at

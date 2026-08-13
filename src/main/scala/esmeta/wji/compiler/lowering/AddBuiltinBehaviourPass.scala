@@ -90,8 +90,23 @@ object AddBuiltinBehaviourPass extends LoweringPass:
     * `argumentsList` into the closure's own declared parameter names — mirrors
     * mainline `Compiler.getBuiltinPrefix`'s two param kinds:
     *
-    *   - a `Normal` param (the common case) is unpacked positionally,
-    *     defaulting to `undefined` past the end of the list.
+    *   - a `Normal` param (the common case) is unpacked positionally. When
+    *     fewer arguments were actually supplied than this param's position,
+    *     [[WjiParam.optional]] (`AlgorithmExtractor.extractParams`'s "using
+    *     optional X |Y|" prose detection, the only source of `optional` for a
+    *     `Plain` algorithm — see `esmeta.wji.extractor.Extractor.
+    *     enrichParamTypes`'s own doc) decides what happens: a genuinely
+    *     optional param is left unbound rather than defaulted to `undefined`,
+    *     so `Cond.IsMissing`'s `"|X| is missing"` check
+    *     (`Compiler.compileExpr`'s `EExists`) correctly reports absence — real
+    *     optional-parameter spec text always branches on exactly that check
+    *     before ever reading the value, so nothing downstream needs to observe
+    *     an "absent" param as a bound `undefined`. A *required* param reaching
+    *     this branch means an arity mismatch slipped through unnoticed — a
+    *     genuine bug somewhere, not a case worth padding over with a silent
+    *     `undefined` — so it asserts unreachable instead (mirrors a real
+    *     "Assert: This step is not reached." in spec text,
+    *     [[Cond.Unreachable]]).
     *   - a `variadic` param ([[WjiParam.variadic]] — see
     *     `esmeta.wji.lang.Expr.FollowingSteps`'s "given the list of arguments
     *     V" phrasing) binds the *entire* `argumentsList` directly, mirroring
@@ -117,6 +132,8 @@ object AddBuiltinBehaviourPass extends LoweringPass:
           )
       case (p, i) =>
         val name = stripPipes(p.name)
+        val omitted =
+          if p.optional then Nil else List(Instr.Assert(Cond.Unreachable))
         Instr.IfChain(
           List(
             Cond.Compare(
@@ -130,7 +147,7 @@ object AddBuiltinBehaviourPass extends LoweringPass:
               ),
             ),
           ),
-          List(Instr.Let(Expr.Var(name), Expr.SpecTerm("undefined"))),
+          omitted,
         )
     }
 

@@ -119,15 +119,15 @@ object AddInterfaceMemberBuiltinBehaviourPass extends LoweringPass:
     s.stripPrefix("|").stripSuffix("|")
 
   /** the `params.zipWithIndex` prefix instructions that unpack `ArgumentsList`
-    * positionally into the algorithm's own originally-declared parameter names,
-    * defaulting to `undefined` past the end of the list — mirrors
-    * [[AddBuiltinBehaviourPass.unpackArgumentsList]] (see that method's own
-    * doc); duplicated rather than shared since the two conventions use
-    * differently-cased names for the list itself.
+    * positionally into the algorithm's own originally-declared parameter names
+    * — mirrors [[AddBuiltinBehaviourPass.unpackArgumentsList]] (see that
+    * method's own doc); duplicated rather than shared since the two conventions
+    * use differently-cased names for the list itself.
     *
     * Each param whose [[WjiParam.idlType]] is known (see
     * `esmeta.wji.extractor.Extractor.enrichParamTypes`) gets one more step
-    * right after its own unpacking, running the raw JS argument through
+    * right after its own unpacking (nested inside the "argument actually
+    * supplied" branch — see below), running the raw JS argument through
     * `converted_to_an_idl_value` — mirroring how WebIDL's own "overload
     * resolution algorithm" converts every ES argument to its declared IDL type
     * before the operation body ever runs. That function itself is still mostly
@@ -135,34 +135,52 @@ object AddInterfaceMemberBuiltinBehaviourPass extends LoweringPass:
     * does a real conversion today — but routing every typed param through it
     * uniformly, rather than special-casing `"unsigned long"` here, means a
     * later type just needs a new case added there, not a change to this pass.
+    *
+    * When fewer arguments were actually supplied than this param's position,
+    * [[WjiParam.optional]] decides what happens: for a genuinely optional
+    * WebIDL parameter (`enrichParamTypes` OR's in the WebIDL declaration's own
+    * `optional` keyword), the param is simply left unbound — not defaulted to
+    * `undefined` — so `Cond.IsMissing`'s `"|X| is missing"` check
+    * (`Compiler.compileExpr`'s `EExists`) correctly reports absence; spec text
+    * for a real optional parameter always branches on exactly that check before
+    * ever reading the value (WebIDL's own authoring convention — there is no
+    * sensible unconditional default otherwise), so nothing downstream ever
+    * needs to observe an "absent" param as a bound `undefined`. A *required*
+    * param reaching this branch instead means WebIDL's own overload resolution
+    * (which validates argument count before the operation's steps ever run) let
+    * an arity mismatch through unnoticed — a genuine bug somewhere, not a case
+    * worth padding over with a silent `undefined`, so it asserts unreachable
+    * instead (mirrors a real "Assert: This step is not reached." in spec text,
+    * [[Cond.Unreachable]]).
     */
   private def unpackArgumentsList(params: List[WjiParam]): List[Instr] =
-    params.zipWithIndex.flatMap {
+    params.zipWithIndex.map {
       case (p, i) =>
         val name = stripPipes(p.name)
-        val unpack = Instr.IfChain(
-          List(
-            Cond.Compare(
-              Expr.Num(i.toString),
-              Cond.CompareOp.Lt,
-              Expr.Length(Expr.Var("ArgumentsList")),
-            ) -> List(
-              Instr.Let(
-                Expr.Var(name),
-                Expr.Index(Expr.Var("ArgumentsList"), Expr.Num(i.toString)),
-              ),
-            ),
-          ),
-          List(Instr.Let(Expr.Var(name), Expr.SpecTerm("undefined"))),
-        )
-        val convert = p.idlType.map { ty =>
+        val convert = p.idlType.toList.map { ty =>
           Instr.Perform(
             "converted_to_an_idl_value",
             List(Expr.Var(name), Expr.Str(ty)),
             Instr.PerformOutcome.BindResult(name),
           )
         }
-        unpack :: convert.toList
+        val supplied =
+          Instr.Let(
+            Expr.Var(name),
+            Expr.Index(Expr.Var("ArgumentsList"), Expr.Num(i.toString)),
+          ) :: convert
+        val omitted =
+          if p.optional then Nil else List(Instr.Assert(Cond.Unreachable))
+        Instr.IfChain(
+          List(
+            Cond.Compare(
+              Expr.Num(i.toString),
+              Cond.CompareOp.Lt,
+              Expr.Length(Expr.Var("ArgumentsList")),
+            ) -> supplied,
+          ),
+          omitted,
+        )
     }
 
   /** `**the given value**`'s binding, for a `Setter` only — WebIDL passes it as

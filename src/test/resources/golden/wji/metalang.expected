@@ -345,7 +345,7 @@
 
 # Module
   kind: constructor for Module
-  params: |bytes|, |options|
+  params: |bytes|, |options|?
   head: The <dfn constructor for="Module">Module(|bytes|, |options|)</dfn> constructor, when invoked, performs the following steps:
   Let(|stableBytes|, [=get a copy of the buffer source=](|bytes|))
   PerformAndLet([=Compile a WebAssembly module=](|stableBytes|), |module|)
@@ -369,7 +369,7 @@
 
 # Instance
   kind: constructor for Instance
-  params: |moduleObject|, |importObject|
+  params: |moduleObject|, |importObject|?
   head: The <dfn constructor for="Instance">Instance(|moduleObject|, |importObject|)</dfn> constructor, when invoked, runs the following steps:
   Let(|builtinSetNames|, |moduleObject|.[[BuiltinSets]])
   Let(|importedStringModule|, |moduleObject|.[[ImportedStringModule]])
@@ -572,7 +572,7 @@
 
 # Table
   kind: constructor for Table
-  params: |descriptor|, |value|
+  params: |descriptor|, |value|?
   head: The <dfn constructor for="Table">Table(|descriptor|, |value|)</dfn> constructor, when invoked, performs the following steps:
   Let(|elementtype|, [=ToValueType=](|descriptor|["element"]))
   If(|elementtype| is not a reftype)
@@ -604,7 +604,7 @@
 # grow
   id: dom-Table-grow
   kind: method for Table
-  params: |delta|, |value|
+  params: |delta|, |value|?
   head: The <dfn method for="Table">grow(|delta|, |value|)</dfn> method, when invoked, performs the following steps:
   Let(|tableaddr|, **this**.[[Table]])
   Let(|store|, [=surrounding agent=].[[associated store]])
@@ -650,7 +650,7 @@
 
 # set
   kind: method for Table
-  params: |index|, |value|
+  params: |index|, |value|?
   head: The <dfn method for="Table">set(|index|, |value|)</dfn> method, when invoked, performs the following steps:
   Let(|tableaddr|, **this**.[[Table]])
   Let(|store|, [=surrounding agent=].[[associated store]])
@@ -715,7 +715,7 @@
 
 # Global
   kind: constructor for Global
-  params: |descriptor|, |v|
+  params: |descriptor|, |v|?
   head: The <dfn constructor for="Global">Global(|descriptor|, |v|)</dfn> constructor, when invoked, performs the following steps:
   Let(|mutable|, |descriptor|["mutable"])
   Let(|valuetype|, [=ToValueType=](|descriptor|["value"]))
@@ -1171,7 +1171,7 @@
 
 # Exception
   kind: constructor for Exception
-  params: |exceptionTag|, |payload|, |options|
+  params: |exceptionTag|, |payload|, |options|?
   head: The <dfn constructor for=Exception lt="Exception(exceptionTag, payload, options)">new Exception(|exceptionTag|, |payload|, |options|)</dfn> constructor steps are:
   Let(|JSTagAddr|, [=get the JavaScript exception tag=])
   If(|exceptionTag|.[[Address]] is |JSTagAddr|)

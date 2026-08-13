@@ -8,6 +8,7 @@ import esmeta.wji.lang.{
   DefinitionKind,
   MemberKind,
   Operation,
+  Param,
 }
 import esmeta.wji.spec.{Spec, SpecFile, SpecPatch}
 
@@ -63,8 +64,15 @@ object Extractor:
     * looked up by `AlgorithmKind.Method`/`Constructor`'s own `interface` name,
     * then the `Operation` member matching `algo.name`/its `Constructor` kind)
     * and, if found and its positional param count agrees, stamps each
-    * `WjiParam.idlType` with that operation's declared WebIDL type text — see
-    * [[esmeta.wji.lang.WjiParam.idlType]]'s own doc for what consumes this. A
+    * `WjiParam.idlType`/`WjiParam.optional` with that operation's declared
+    * WebIDL type text/`optional` keyword — see [[esmeta.wji.lang.WjiParam]]'s
+    * own doc for what consumes these. `optional` here is WebIDL's own
+    * declaration (e.g. `optional any value`), a different source from
+    * `AlgorithmExtractor.extractParams`'s "using optional X |Y|" prose
+    * detection (which a `Method`/`Constructor` dfn's own head, e.g.
+    * `grow(|delta|, |value|)`, never spells out — only the separate `<pre
+    * class=idl>` block does) — `p.optional` is OR'd with the WebIDL flag rather
+    * than overwritten, so either source marking a param optional is enough. A
     * `Getter`/`Setter`/`Plain` algorithm is left untouched: getters take no
     * arguments, and a setter's implicit "the given value" isn't a positional
     * `WjiParam` at all (see
@@ -78,13 +86,13 @@ object Extractor:
     def operationParams(
       iface: String,
       matches: Operation => Boolean,
-    ): Option[List[String]] =
+    ): Option[List[Param]] =
       definitions
         .find(d => d.kind == DefinitionKind.Interface && d.name == iface)
         .flatMap(_.members.collectFirst {
-          case op: Operation if matches(op) => op.params.map(_.ty)
+          case op: Operation if matches(op) => op.params
         })
-    val webidlParamTypes: Option[List[String]] = algo.kind match
+    val webidlParams: Option[List[Param]] = algo.kind match
       case AlgorithmKind.Method(iface) =>
         operationParams(
           iface,
@@ -96,10 +104,10 @@ object Extractor:
       case AlgorithmKind.Constructor(iface) =>
         operationParams(iface, _.kind == MemberKind.Constructor)
       case _ => None
-    webidlParamTypes match
-      case Some(tys) if tys.length == algo.params.length =>
-        algo.copy(params = algo.params.zip(tys).map {
-          case (p, ty) =>
-            p.copy(idlType = Some(ty))
+    webidlParams match
+      case Some(ps) if ps.length == algo.params.length =>
+        algo.copy(params = algo.params.zip(ps).map {
+          case (p, wp) =>
+            p.copy(idlType = Some(wp.ty), optional = p.optional || wp.optional)
         })
       case _ => algo

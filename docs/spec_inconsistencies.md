@@ -182,15 +182,7 @@
 - **Reason**: "지금 계산한 값을 funcaddr 같은 키로 나중에 다른 알고리즘이 다시 찾아쓴다"는 요구사항 자체는 이 문서에 이미 8번 반복되는 패턴(`Exported Function cache`/`Memory object cache`/`host value cache`/... 전부 `surrounding agent`가 소유한 map)인데, 이 한 자리만 그 관용구를 안 쓰고 "Let |X| be N. This value X is known as Y |key|." 라는 즉석 dfn 도입 형태로 써서, 이 문서 자체가 이미 세운 패턴과 어긋납니다.
 - **WJI 쪽 처리**: `SpecPatch` #13으로 우회 — `read the imports`는 `[=surrounding agent=]`의 새 `[=Function Import List=]`(캐시들과 달리 JS 객체가 아니라 순서 정보만 필요하므로 map이 아니라 plain list)에 `funcaddr`을 append하고, `name of the WebAssembly function`은 옆 module-defined 분기가 이미 쓰던 "the index of X where Y is found" 패턴을 그대로 재사용해 조회합니다. 덧붙여 host/module-defined 분기를 가르던 조건(`If |funcinst| is of the form {type functype, hostcode |hostfunc|}`)도 지금은 존재하지 않는 funcinst shape을 매칭하고 있길래, `|funcinst|.code`가 `[=hostfunc=]`/`[=func=]` 중 어느 태그인지로 판별하도록 같이 고쳤습니다 (배경은 `docs/spec_errors.md` #7의 retraction 참고).
 
-## 12. `Tag`/`Exception`만 `WebAssembly` 네임스페이스의 다른 인터페이스와 다르게 `Exposed=(Window,Worker,Worklet)`로 제한됨
-
-- **File**: `spectec/document/js-api/index.bs`, lines 1519 (`Tag`)와 1678 (`Exception`)
-- **Current**: `[LegacyNamespace=WebAssembly, Exposed=(Window,Worker,Worklet)]`
-- **Expected**: `[LegacyNamespace=WebAssembly, Exposed=*]` — 같은 `WebAssembly` 네임스페이스에 속한 다른 모든 인터페이스, 그리고 네임스페이스 자기 자신이 이미 쓰는 형태(`WebAssembly` 자신 line 369, `Module` line 701, `Instance` line 777, `Memory` line 809, `Table` line 1003, `Global` line 1139 — 전부 `Exposed=*`).
-- **Reason**: `WebAssembly`는 브라우저 전용이 아니라 아무 JS 호스트에서나 동작하도록 의도적으로 `Exposed=*`를 일관되게 써왔는데(네임스페이스 자신을 포함해 예외 없이 7곳 중 5곳), 나중에 exception-handling 제안으로 추가된 `Tag`/`Exception` 이 둘만 `(Window,Worker,Worklet)`으로 좁혀져 있습니다. 이 두 인터페이스 주변에는 왜 다른 제약을 두는지 설명하는 주석/근거가 전혀 없고, 흔한 브라우저 DOM API 템플릿에서 그대로 복사해온 관용구로 보입니다 — WebAssembly의 예외 처리(`try_table`/`throw` 등)는 언어 자체의 핵심 기능이라, 브라우저가 아닌 JS 호스트(WJI 포함)도 `Module`/`Instance`/`Memory`/`Table`/`Global`과 마찬가지로 `Tag`/`Exception`을 노출할 수 있어야 하는데, 이 자리만 그 호스트-무관성 원칙에서 벗어나 있습니다.
-- **WJI 쪽 처리**: `SpecPatch` #37로 우회 — 두 인터페이스 모두 `Exposed=*`로 정규화. 이 정규화는 `docs/hardcodes.md` #13(`[=exposed=]`를 상수로 취급)의 전제이기도 합니다 — 이 정규화가 없으면 `Tag`/`Exception`의 멤버에 대해서만 `exposed()`가 진짜로 `false`를 반환해야 하는 경우가 생기는데, WJI는 애초에 realm이 어떤 host global object 인터페이스를 구현하는지 전혀 모델링하지 않으므로 그 자리에서만 다른 취급을 할 방법이 없습니다.
-
-## 13. `AddressValueToU64`/`U64ToAddressValue`만 `|addrtype|`을 `[=i32=]`/`[=i64=]` 링크 대신 raw quoted string `"i32"`/`"i64"`와 비교
+## 12. `AddressValueToU64`/`U64ToAddressValue`만 `|addrtype|`을 `[=i32=]`/`[=i64=]` 링크 대신 raw quoted string `"i32"`/`"i64"`와 비교
 
 - **File**: `spectec/document/js-api/index.bs`, `AddressValueToU64`(line 1486, 1491)와 `U64ToAddressValue`(line 1504-1505)
 - **Current**: `1. If |addrtype| is "i32", ...` / `1. If |addrtype| is "i64", ...` (그리고 `U64ToAddressValue`의 `Else if` 변형).
@@ -198,7 +190,7 @@
 - **Reason**: `addrtype`은 `table_type`/`mem_type`이 돌려주는 진짜 Wasm 값이고, `al_of_addrtype`이 `al_of_numtype`과 완전히 동일한 관용구(`string_of_X at |> nullary`, 즉 소문자 스펙 문자열을 대문자 Case 태그로 감싸는 것)로 만들어져서, 런타임 표현이 numtype/valtype과 구조적으로 완전히 같습니다(`CaseV("I32", [])`). 그런데 이 두 알고리즘만 quoted string literal("i32")과 직접 비교하도록 적혀 있어서, `CondParser`가 이걸 순수 ECMAScript 문자열 리터럴로 파싱해버립니다 — 컴파일된 IR에서 `(= addrtype "i32")`가 Wasm Case 값과 plain string을 비교하게 돼서 항상 `false`이고, 두 분기 다 스킵돼 맨 끝의 "Assert: This step is not reached"에 걸립니다.
 - **WJI 쪽 처리**: `SpecPatch` #37로 우회 — 4곳의 `"i32"`/`"i64"`를 각각 `[=i32=]`/`[=i64=]`로 교체.
 
-## 14. `Memory.grow`/`Table.length`만 `mem_type`/`table_type`의 반환값에서 필드 하나를 "the X in Y(...)" 축약형으로 project — 다른 자리는 전부 튜플 destructuring
+## 13. `Memory.grow`/`Table.length`만 `mem_type`/`table_type`의 반환값에서 필드 하나를 "the X in Y(...)" 축약형으로 project — 다른 자리는 전부 튜플 destructuring
 
 - **File**: `spectec/document/js-api/index.bs`, `Memory.prototype.grow`(line 917)와 `Table.length` getter(line 1081)
 - **Current**: `1. Let |addrtype| be the [=address type=] in [=mem_type=](|store|, |memaddr|).` / `... in [=table_type=](|store|, |tableaddr|).`
@@ -206,7 +198,7 @@
 - **Reason**: `table_type`의 런타임 표현(`al_of_tabletype`, `construct.ml`)은 `CaseV("", [addrtype; limits; reftype])`로, 이미 세 자리에서 튜플 destructuring으로 정확히 소비되고 있는 값과 완전히 같은 값입니다. 이 한 곳(`Table.length`)만 그 관용구 대신 필드 하나만 꺼내는 별도 표현을 씁니다. `mem_type`도 같은 패턴이지만, 런타임 표현(`al_of_memorytype`)이 `CaseV("PAGE", [addrtype; limits])`라 실제 위치 필드는 2개뿐입니다 — formal grammar(`memtype = addrtype limits PAGE`)의 `PAGE`는 세 번째 필드가 아니라 이 레코드 자체의 태그이기 때문입니다(`table_type`의 태그가 빈 문자열인 것과 대비). 이 문서 안에 `mem_type`을 튜플로 destructure하는 선례는 없지만, 구조적으로 `table_type`과 동일한 문제이자 동일한 해법이 통하므로 함께 묶어 기록합니다.
 - **WJI 쪽 처리**: `SpecPatch` #40으로 우회 — 두 자리 모두 튜플 destructuring `Let (...)  be ...`로 재작성. `mem_type`은 2-tuple(`(|addrtype|, <var ignore>limits page</var>)`), `table_type`은 기존 세 자리와 동일한 3-tuple. `TupleProj`(`ExpandDestructuringLetPass`)는 태그를 보지 않고 순수 위치 기반으로 project하므로(`State.apply`의 `case Wasm(ALValue.CaseV(_, vs)) => apply(vs, field)`), `mem_type`의 태그가 `table_type`과 다르다는 사실은 정확성에 영향이 없습니다.
 
-## 15. `IsFixedLengthArrayBuffer`만 외부 AO를 부르는데 `[=...=]`(값 링크) 문법을 씀 — 다른 자리는 전부 `[$...$]`(AO 호출)
+## 14. `IsFixedLengthArrayBuffer`만 외부 AO를 부르는데 `[=...=]`(값 링크) 문법을 씀 — 다른 자리는 전부 `[$...$]`(AO 호출)
 
 - **File**: `spectec/document/js-api/index.bs`, `refresh the Memory buffer`(line 891), `toFixedLengthBuffer`(line 936), `toResizableBuffer`(line 952)
 - **Current**: `1. If [=IsFixedLengthArrayBuffer=](|buffer|) is true, ...`
@@ -214,7 +206,7 @@
 - **Reason**: `IsFixedLengthArrayBuffer`는 이 문서 안에 정의된 dfn이 아니라, anchor 테이블(`text: IsFixedLengthArrayBuffer; url: sec-isfixedarraybuffer`, index.bs:260)을 통해 ResizableArrayBuffer 제안의 진짜 외부 AO를 가리키는 cross-reference입니다. Bikeshed 문법상 `[=...=]`(값/dfn 링크)와 `[$...$]`(다른 스펙의 abstract-op 호출)는 서로 다른 용도인데, 이 문서는 외부 AO를 부를 땐 항상 `[$...$]`를 쓰고 `[=...=]`는 로컬 dfn/값 링크 전용으로 일관되게 구분해왔습니다. 이 세 곳만 그 구분에서 벗어나 `[=...=]`를 씁니다. `Compiler.nameFromLink`는 `[=...=]` 링크를 전부 이 문서에 로컬로 정의된(그래서 WJI가 소문자로 등록한) 알고리즘으로 가정해 무조건 소문자화하는데, `IsFixedLengthArrayBuffer`는 mainline `cfg.fnameMap`에 원래 대소문자(`IsFixedLengthArrayBuffer`)로 등록돼 있어서 `isfixedlengtharraybuffer`로는 조회가 안 되고 `UnknownFunc`로 죽습니다.
 - **WJI 쪽 처리**: `SpecPatch` #41로 우회 — 세 자리 모두 `[=IsFixedLengthArrayBuffer=](|buffer|)`를 `[$IsFixedLengthArrayBuffer$](|buffer|)`로 교체(인자가 동일해 패치 하나로 세 곳 다 커버). `[$...$]` 경로는 이미 `ResolveLinksPass.resolveFuncName`이 원래 대소문자를 보존하므로 별도 코드 변경 불필요.
 
-## 16. `create an operation function`의 두 곳에서만 `regular operation`/`static operation`이 링크 안 된 채로 쓰임
+## 15. `create an operation function`의 두 곳에서만 `regular operation`/`static operation`이 링크 안 된 채로 쓰임
 
 - **File**: `webidl/index.bs`, lines 12558-9, 12581-2 (`create an operation function`)
 - **Current**: `"...(if |op| is a regular operation) or for [=static operations=] (if |op| is a static operation)..."` (두 자리, 줄바꿈 위치만 다름 — 12558-9는 `|n|`-인자 호출, 12581-2는 `0`-인자 호출).

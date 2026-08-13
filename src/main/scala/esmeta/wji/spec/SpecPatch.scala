@@ -725,7 +725,7 @@ object SpecPatch:
     ->
     "[=tag_alloc=](|store|, [=fold=]([=comp-type/func=] « [=externref=] » → « »)).",
 
-    // #37 (spec inconsistency, docs/spec_inconsistencies.md #12) — `Tag`/
+    // #37 (spec bug, docs/spec_errors.md #20) — `Tag`/
     // `Exception` are the only two `WebAssembly`-namespace interfaces in this
     // file exposed to just `(Window,Worker,Worklet)`; every other one
     // (`WebAssembly` itself, `Module`, `Instance`, `Memory`, `Table`,
@@ -744,7 +744,7 @@ object SpecPatch:
     // which WJI models (no host realm kind, no `[[GlobalObject]]`-implements-
     // interface relationship at all). Hardcodes the body to the constant it
     // always evaluates to for every construct in this corpus anyway (see
-    // `SpecPatch` #37/`docs/spec_inconsistencies.md` #12): `true`. Kept as a
+    // `SpecPatch` #37/`docs/spec_errors.md` #20): `true`. Kept as a
     // real, separately-callable algorithm (`Cond.Exposed`/
     // `ExpandExposedPass` compile every "is [not] exposed" check to a real
     // call to it) rather than inlined at each call site, so a later, more
@@ -760,7 +760,7 @@ object SpecPatch:
     ->
     "    1.  Return true.",
 
-    // #39 (spec inconsistency, docs/spec_inconsistencies.md #13) —
+    // #39 (spec inconsistency, docs/spec_inconsistencies.md #12) —
     // AddressValueToU64/U64ToAddressValue compare |addrtype| against raw
     // quoted strings "i32"/"i64", instead of the [=i32=]/[=i64=] link idiom
     // every other numtype/valtype comparison in this document uses (e.g.
@@ -823,7 +823,7 @@ object SpecPatch:
       #1. Set |v| to |v|, [=converted to a JavaScript value=].
       #1. If |addrtype| is [=i32=],""".stripMargin('#'),
 
-    // #40 (spec inconsistency, docs/spec_inconsistencies.md #14) — both spots
+    // #40 (spec inconsistency, docs/spec_inconsistencies.md #13) — both spots
     // project a single field out of mem_type/table_type's returned record via
     // "the X in Y(...)", instead of the tuple-destructuring `Let (...) be
     // Y(...)` idiom this same document already uses for table_type at three
@@ -848,7 +848,7 @@ object SpecPatch:
     ->
     "1. Let (|addrtype|, <var ignore>limits</var>, <var ignore>elementtype</var>) be [=table_type=](|store|, |tableaddr|).",
 
-    // #41 (spec inconsistency, docs/spec_inconsistencies.md #15) —
+    // #41 (spec inconsistency, docs/spec_inconsistencies.md #14) —
     // IsFixedLengthArrayBuffer is called with Bikeshed's `[=...=]` value-link
     // syntax, but it's not a dfn local to this document at all — it's a
     // genuine external ECMA-262 (ResizableArrayBuffer proposal) abstract
@@ -863,7 +863,7 @@ object SpecPatch:
     ->
     "[$IsFixedLengthArrayBuffer$](|buffer|)",
 
-    // #42 (spec inconsistency, docs/spec_inconsistencies.md #16) — "if |op|
+    // #42 (spec inconsistency, docs/spec_inconsistencies.md #15) — "if |op|
     // is a regular operation"/"... a static operation" (2 call sites, both
     // inside "create an operation function") write "regular operation"/
     // "static operation" as plain prose instead of linking them. Just 14

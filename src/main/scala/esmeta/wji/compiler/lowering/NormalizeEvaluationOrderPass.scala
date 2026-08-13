@@ -141,7 +141,7 @@ object NormalizeEvaluationOrderPass extends LoweringPass:
       case other       => bindFresh(other)
 
     override def walk(expr: Expr): Expr = expr match
-      case Expr.AlgoCall(link, args) if args.nonEmpty =>
+      case Expr.AlgoCall(link, args) =>
         // hoist any call nested in this call's own args first (e.g.
         // `F(G(...))`) — otherwise G survives, unextracted, as a
         // nonempty-arg AlgoCall inside the Let this produces, which

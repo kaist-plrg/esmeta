@@ -184,7 +184,7 @@ object Initialize:
           "id" -> Str(op.id),
           "params" -> st.allocList(op.params.map(paramRecord)),
           "returnType" -> Str(op.ret),
-          "kind" -> Str(op.kind.toString),
+          "kind" -> Enum(op.kind.toString),
           "extendedAttributes" -> st.allocList(op.extAttr.map(extAttrRecord)),
           "methodSteps" -> st.cfg.fnameMap
             .get(op.id)

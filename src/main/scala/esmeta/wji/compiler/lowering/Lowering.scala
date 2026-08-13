@@ -49,7 +49,10 @@ import esmeta.error.{PipelineOrderError, UnsupportedSpecShape}
   *     Function"/"is an Exported GC Object" collapse to a `Cond.HasSlot` check
   *     specifically because WJI represents these WebIDL exotic-object kinds as
   *     ordinary records carrying the internal slot their own spec definition
-  *     already names, not because of anything about SpecTec.
+  *     already names, or that "is a regular/static operation" collapses to a
+  *     `Cond.Eq` against an `operation` record's own `kind` field because WJI
+  *     seeds that field directly from `esmeta.wji.lang.MemberKind` — not
+  *     because of anything about SpecTec.
   *
   * The category grouping is documentation only, not machine-checked: unlike
   * ordering (see [[LoweringPass.requires]]/[[LoweringPass.mustPrecede]] and
@@ -83,7 +86,7 @@ object Lowering:
     ExpandNewArrayBufferPass,
     ExpandIsOfFormPass,
     ExpandAbbreviatedCondPass,
-    ExpandExportedObjectIsTypePass,
+    ExpandWjiIsTypePass,
     ExpandExposedPass,
     ExpandFollowingStepsPass,
     MarkCompletionAlgorithmsPass,

@@ -1563,7 +1563,7 @@
           Perform([=JavaScript/throw=])
         Set(|idlObject|, ?(the IDL [=interface type=] value that represents a reference to |jsValue|))
       Let(|n|, length(|args|))
-      PerformAndLet([=Compute the effective overload set=]([=regular operations=] if |op| is ?(a regular operation) else [=static operations=] if |op| is ?(a static operation), [=identifier=](|id|, |target|, |n|)), |S|)
+      PerformAndLet([=Compute the effective overload set=]([=regular operations=] if |op| is a regular operation else [=static operations=] if |op| is a static operation, [=identifier=](|id|, |target|, |n|)), |S|)
       Let((|operation|, |values|), ?(passing |S| and |args| to the [=overload resolution algorithm=]))
       Let(|R|, null)
       If(|operation| is ?(declared with a [{{Default}}] [=extended attribute=]))
@@ -1578,7 +1578,7 @@
       Return([=!=] ?(<a abstract-op>Call</a>({{%Promise.reject%}}, {{%Promise%}}, «|E|»)))
     Else
       ?(end these steps and allow the exception to propagate)
-  PerformAndLet([=Compute the effective overload set=]([=regular operations=] if |op| is ?(a regular operation) else [=static operations=] if |op| is ?(a static operation), [=identifier=](|id|, |target|, 0)), |S|)
+  PerformAndLet([=Compute the effective overload set=]([=regular operations=] if |op| is a regular operation else [=static operations=] if |op| is a static operation, [=identifier=](|id|, |target|, 0)), |S|)
   Let(|length|, length(?(the shortest argument list in the entries in |S|)))
   Let(|F|, ?(<a abstract-op>CreateBuiltinFunction</a>(|steps|, |length|, |id|, « », |realm|)))
   Return(|F|)

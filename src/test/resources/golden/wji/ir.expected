@@ -3411,9 +3411,9 @@ def creating_an_operation_function(
 ): Unknown = {
   let id = op.id
   let steps = clo<"creating_an_operation_function_closure1", [id, op, target]>
-  if (= op (yet "a regular operation")) {
+  if (= op.kind ~RegularOperation~) {
     call S = clo<"compute_the_effective_overload_set">(~regular operations~, (case "IDENTIFIER" id target 0))
-  } else if (= op (yet "a static operation")) {
+  } else if (= op.kind ~StaticOperation~) {
     call S = clo<"compute_the_effective_overload_set">(~static operations~, (case "IDENTIFIER" id target 0))
   } else {
     assert false
@@ -3671,7 +3671,7 @@ def creating_an_operation_function_closure1(
 ): Unknown = {
   (yet "Try running the following steps:")
   let idlObject = null
-  if (&& (? target: Unknown["interface"]) (! (? op: Unknown["static operation"]))) {
+  if (&& (? target: Unknown["interface"]) (! (= op.kind ~StaticOperation~))) {
     if (|| (! (= (yet "it") null)) (! (= (yet "it") undefined))) {
       let jsValue = (yet "the <emu-val>this</emu-val> value")
     } else {
@@ -3687,9 +3687,9 @@ def creating_an_operation_function_closure1(
     idlObject = (yet "the IDL [=interface type=] value that represents a reference to |jsValue|")
   } else nop
   let n = (sizeof args)
-  if (= op (yet "a regular operation")) {
+  if (= op.kind ~RegularOperation~) {
     call S = clo<"compute_the_effective_overload_set">(~regular operations~, (case "IDENTIFIER" id target n))
-  } else if (= op (yet "a static operation")) {
+  } else if (= op.kind ~StaticOperation~) {
     call S = clo<"compute_the_effective_overload_set">(~static operations~, (case "IDENTIFIER" id target n))
   } else {
     assert false

@@ -1,6 +1,7 @@
 package esmeta.wji.compiler.lowering
 
 import esmeta.wji.lang.{Algorithm, AlgorithmKind, Cond, Expr, Instr, WjiParam}
+import esmeta.error.UnsupportedSpecShape
 
 /** Reshapes every Getter/Setter/Constructor/Method-kind [[Algorithm]] — all 4
   * kinds WebIDL calls an interface "member", per `webidl/index.bs`'s own
@@ -118,6 +119,60 @@ object AddInterfaceMemberBuiltinBehaviourPass extends LoweringPass:
   private def stripPipes(s: String): String =
     s.stripPrefix("|").stripSuffix("|")
 
+  /** the instructions that run in `unpackArgumentsList`'s `IfChain` when fewer
+    * arguments were actually supplied than a param's own position — mirrors
+    * [[AddBuiltinBehaviourPass.omittedBranch]] (duplicated for the same reason
+    * `unpackArgumentsList` itself is).
+    *
+    *   - A *required* param (`!p.optional`) reaching here means WebIDL's own
+    *     overload resolution (which validates argument count before the
+    *     operation's steps ever run) let an arity mismatch through unnoticed —
+    *     a genuine bug somewhere, not a case worth padding over with a silent
+    *     `undefined`, so it asserts unreachable (mirrors a real "Assert: This
+    *     step is not reached." in spec text, [[Cond.Unreachable]]).
+    *   - An optional param with no [[WjiParam.default]] is left genuinely
+    *     unbound (not defaulted to `undefined`), so `Cond.IsMissing`'s `"|X| is
+    *     missing"` check (`Compiler.compileExpr`'s `EExists`) correctly reports
+    *     absence — real optional-parameter spec text always branches on exactly
+    *     that check before ever reading the value (WebIDL's own authoring
+    *     convention — there is no sensible unconditional default otherwise), so
+    *     nothing downstream needs to observe an "absent" param as a bound
+    *     `undefined`.
+    *   - An optional param *with* a [[WjiParam.default]] is never genuinely
+    *     "missing" per WebIDL's own argument-list processing — omitting it is
+    *     equivalent to passing the default value literally, and spec text using
+    *     one (e.g. `Module`'s constructor reading `|options|["builtins"]`
+    *     unconditionally) never checks `IsMissing` for it at all, so leaving it
+    *     unbound would crash instead. Only `"{}"` (an empty dictionary — the
+    *     only default this corpus's WebIDL actually declares) is handled, via
+    *     the same `[$OrdinaryObjectCreate$](null)` idiom spec text itself
+    *     already uses for a fresh, no-own-properties object (e.g. `create an
+    *     exports object`'s `|exportsObject|`) — plain property reads on it (all
+    *     a defaulted-dictionary param's own spec text ever does) behave
+    *     identically whether its prototype is `null` or `%Object.prototype%`,
+    *     so there's no need to build a "real" `{}` literal's prototype chain
+    *     just for this. Any other default text fails loudly via
+    *     `UnsupportedSpecShape` instead of being guessed at.
+    */
+  private def omittedBranch(p: WjiParam, name: String): List[Instr] =
+    if !p.optional then List(Instr.Assert(Cond.Unreachable))
+    else
+      p.default match
+        case None => Nil
+        case Some("{}") =>
+          List(
+            Instr.Perform(
+              "OrdinaryObjectCreate",
+              List(Expr.SpecTerm("null")),
+              Instr.PerformOutcome.BindResult(name),
+            ),
+          )
+        case Some(other) =>
+          throw UnsupportedSpecShape(
+            "AddInterfaceMemberBuiltinBehaviourPass",
+            s"parameter ${p.name} has unsupported default value: $other",
+          )
+
   /** the `params.zipWithIndex` prefix instructions that unpack `ArgumentsList`
     * positionally into the algorithm's own originally-declared parameter names
     * — mirrors [[AddBuiltinBehaviourPass.unpackArgumentsList]] (see that
@@ -137,21 +192,8 @@ object AddInterfaceMemberBuiltinBehaviourPass extends LoweringPass:
     * later type just needs a new case added there, not a change to this pass.
     *
     * When fewer arguments were actually supplied than this param's position,
-    * [[WjiParam.optional]] decides what happens: for a genuinely optional
-    * WebIDL parameter (`enrichParamTypes` OR's in the WebIDL declaration's own
-    * `optional` keyword), the param is simply left unbound — not defaulted to
-    * `undefined` — so `Cond.IsMissing`'s `"|X| is missing"` check
-    * (`Compiler.compileExpr`'s `EExists`) correctly reports absence; spec text
-    * for a real optional parameter always branches on exactly that check before
-    * ever reading the value (WebIDL's own authoring convention — there is no
-    * sensible unconditional default otherwise), so nothing downstream ever
-    * needs to observe an "absent" param as a bound `undefined`. A *required*
-    * param reaching this branch instead means WebIDL's own overload resolution
-    * (which validates argument count before the operation's steps ever run) let
-    * an arity mismatch through unnoticed — a genuine bug somewhere, not a case
-    * worth padding over with a silent `undefined`, so it asserts unreachable
-    * instead (mirrors a real "Assert: This step is not reached." in spec text,
-    * [[Cond.Unreachable]]).
+    * [[WjiParam.optional]]/[[WjiParam.default]] decide what happens — see
+    * [[omittedBranch]].
     */
   private def unpackArgumentsList(params: List[WjiParam]): List[Instr] =
     params.zipWithIndex.map {
@@ -169,8 +211,6 @@ object AddInterfaceMemberBuiltinBehaviourPass extends LoweringPass:
             Expr.Var(name),
             Expr.Index(Expr.Var("ArgumentsList"), Expr.Num(i.toString)),
           ) :: convert
-        val omitted =
-          if p.optional then Nil else List(Instr.Assert(Cond.Unreachable))
         Instr.IfChain(
           List(
             Cond.Compare(
@@ -179,7 +219,7 @@ object AddInterfaceMemberBuiltinBehaviourPass extends LoweringPass:
               Expr.Length(Expr.Var("ArgumentsList")),
             ) -> supplied,
           ),
-          omitted,
+          omittedBranch(p, name),
         )
     }
 

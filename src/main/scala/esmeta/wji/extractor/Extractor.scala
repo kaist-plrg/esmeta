@@ -64,12 +64,13 @@ object Extractor:
     * looked up by `AlgorithmKind.Method`/`Constructor`'s own `interface` name,
     * then the `Operation` member matching `algo.name`/its `Constructor` kind)
     * and, if found and its positional param count agrees, stamps each
-    * `WjiParam.idlType`/`WjiParam.optional` with that operation's declared
-    * WebIDL type text/`optional` keyword — see [[esmeta.wji.lang.WjiParam]]'s
-    * own doc for what consumes these. `optional` here is WebIDL's own
-    * declaration (e.g. `optional any value`), a different source from
-    * `AlgorithmExtractor.extractParams`'s "using optional X |Y|" prose
-    * detection (which a `Method`/`Constructor` dfn's own head, e.g.
+    * `WjiParam.idlType`/`WjiParam.optional`/`WjiParam.default` with that
+    * operation's declared WebIDL type text/`optional` keyword/default-value
+    * text — see [[esmeta.wji.lang.WjiParam]]'s own doc for what consumes these.
+    * `optional`/`default` here are WebIDL's own declaration (e.g. `optional any
+    * value`, `optional WebAssemblyCompileOptions options = {}`), a different
+    * source from `AlgorithmExtractor.extractParams`'s "using optional X |Y|"
+    * prose detection (which a `Method`/`Constructor` dfn's own head, e.g.
     * `grow(|delta|, |value|)`, never spells out — only the separate `<pre
     * class=idl>` block does) — `p.optional` is OR'd with the WebIDL flag rather
     * than overwritten, so either source marking a param optional is enough. A
@@ -108,6 +109,10 @@ object Extractor:
       case Some(ps) if ps.length == algo.params.length =>
         algo.copy(params = algo.params.zip(ps).map {
           case (p, wp) =>
-            p.copy(idlType = Some(wp.ty), optional = p.optional || wp.optional)
+            p.copy(
+              idlType = Some(wp.ty),
+              optional = p.optional || wp.optional,
+              default = Option.when(wp.default.nonEmpty)(wp.default),
+            )
         })
       case _ => algo

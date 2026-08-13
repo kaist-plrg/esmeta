@@ -86,27 +86,43 @@ object AddBuiltinBehaviourPass extends LoweringPass:
   private def stripPipes(s: String): String =
     s.stripPrefix("|").stripSuffix("|")
 
+  /** the instructions that run in `unpackArgumentsList`'s `IfChain` when fewer
+    * arguments were actually supplied than a param's own position — mirrors
+    * [[AddInterfaceMemberBuiltinBehaviourPass.omittedBranch]] (duplicated for
+    * the same reason `unpackArgumentsList` itself is). In practice a `Plain`
+    * algorithm's [[WjiParam.default]] is always `None` — the only source of
+    * `optional`/`default` here is `AlgorithmExtractor.extractParams`'s "using
+    * optional X |Y|" prose detection, which has no default-value syntax of its
+    * own (unlike `esmeta.wji.extractor.Extractor.enrichParamTypes`'s WebIDL
+    * source, which only stamps a `Method`/`Constructor`-kind algorithm) — but
+    * the logic is identical either way, so it's not special-cased away.
+    */
+  private def omittedBranch(p: WjiParam, name: String): List[Instr] =
+    if !p.optional then List(Instr.Assert(Cond.Unreachable))
+    else
+      p.default match
+        case None => Nil
+        case Some("{}") =>
+          List(
+            Instr.Perform(
+              "OrdinaryObjectCreate",
+              List(Expr.SpecTerm("null")),
+              Instr.PerformOutcome.BindResult(name),
+            ),
+          )
+        case Some(other) =>
+          throw UnsupportedSpecShape(
+            "AddBuiltinBehaviourPass",
+            s"parameter ${p.name} has unsupported default value: $other",
+          )
+
   /** the `params.zipWithIndex` prefix instructions that unpack a builtin's
     * `argumentsList` into the closure's own declared parameter names — mirrors
     * mainline `Compiler.getBuiltinPrefix`'s two param kinds:
     *
-    *   - a `Normal` param (the common case) is unpacked positionally. When
-    *     fewer arguments were actually supplied than this param's position,
-    *     [[WjiParam.optional]] (`AlgorithmExtractor.extractParams`'s "using
-    *     optional X |Y|" prose detection, the only source of `optional` for a
-    *     `Plain` algorithm — see `esmeta.wji.extractor.Extractor.
-    *     enrichParamTypes`'s own doc) decides what happens: a genuinely
-    *     optional param is left unbound rather than defaulted to `undefined`,
-    *     so `Cond.IsMissing`'s `"|X| is missing"` check
-    *     (`Compiler.compileExpr`'s `EExists`) correctly reports absence — real
-    *     optional-parameter spec text always branches on exactly that check
-    *     before ever reading the value, so nothing downstream needs to observe
-    *     an "absent" param as a bound `undefined`. A *required* param reaching
-    *     this branch means an arity mismatch slipped through unnoticed — a
-    *     genuine bug somewhere, not a case worth padding over with a silent
-    *     `undefined` — so it asserts unreachable instead (mirrors a real
-    *     "Assert: This step is not reached." in spec text,
-    *     [[Cond.Unreachable]]).
+    *   - a `Normal` param (the common case) is unpacked positionally — see
+    *     [[omittedBranch]] for what happens when fewer arguments were actually
+    *     supplied than its own position.
     *   - a `variadic` param ([[WjiParam.variadic]] — see
     *     `esmeta.wji.lang.Expr.FollowingSteps`'s "given the list of arguments
     *     V" phrasing) binds the *entire* `argumentsList` directly, mirroring
@@ -132,8 +148,6 @@ object AddBuiltinBehaviourPass extends LoweringPass:
           )
       case (p, i) =>
         val name = stripPipes(p.name)
-        val omitted =
-          if p.optional then Nil else List(Instr.Assert(Cond.Unreachable))
         Instr.IfChain(
           List(
             Cond.Compare(
@@ -147,7 +161,7 @@ object AddBuiltinBehaviourPass extends LoweringPass:
               ),
             ),
           ),
-          omitted,
+          omittedBranch(p, name),
         )
     }
 

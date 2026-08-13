@@ -67,12 +67,26 @@ enum AlgorithmKind:
   *   `esmeta.wji.compiler.lowering.AddInterfaceMemberBuiltinBehaviourPass` to
   *   route each argument through `converted_to_an_idl_value` (see
   *   `docs/hardcodes.md` #2) during `ArgumentsList` unpacking.
+  * @param default
+  *   this parameter's WebIDL default-value text (e.g. `"{}"`), if `optional`
+  *   and the WebIDL declaration gives it one (`optional X foo = {}`) — same
+  *   source/`None` conditions as `idlType`. A defaulted parameter is never
+  *   genuinely "missing" per WebIDL's own argument-list processing: omitting it
+  *   at the call site is equivalent to passing the default value literally, so
+  *   `esmeta.wji.compiler.lowering.
+  *   AddInterfaceMemberBuiltinBehaviourPass.unpackArgumentsList` binds it to
+  *   that value when omitted, rather than leaving it unbound the way a
+  *   genuinely-optional-with-no-default parameter is (see that method's own
+  *   doc) — a spec algorithm using a defaulted parameter (e.g. `Module`'s
+  *   constructor reading `|options|["builtins"]` unconditionally) never checks
+  *   `Cond.IsMissing` for it at all, so leaving it unbound would crash instead.
   */
 case class WjiParam(
   name: String,
   optional: Boolean = false,
   variadic: Boolean = false,
   idlType: Option[String] = None,
+  default: Option[String] = None,
 )
 
 /** An algorithm extracted from a `<div algorithm>` block.

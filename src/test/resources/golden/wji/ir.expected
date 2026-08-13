@@ -669,7 +669,9 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Module(
   if (< 1 (sizeof ArgumentsList)) {
     let options = ArgumentsList[1]
     call options = clo<"converted_to_an_idl_value">(options, "WebAssemblyCompileOptions")
-  } else nop
+  } else {
+    call options = clo<"OrdinaryObjectCreate">(null)
+  }
   call stableBytes = clo<"get_a_copy_of_the_buffer_source">(bytes)
   call module = clo<"compile_a_webassembly_module">(stableBytes)
   if (= module (case "ERROR" )) {
@@ -2614,7 +2616,9 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Exception(
   if (< 2 (sizeof ArgumentsList)) {
     let options = ArgumentsList[2]
     call options = clo<"converted_to_an_idl_value">(options, "ExceptionOptions")
-  } else nop
+  } else {
+    call options = clo<"OrdinaryObjectCreate">(null)
+  }
   call JSTagAddr = clo<"get_the_javascript_exception_tag">()
   if (= exceptionTag.Address JSTagAddr) {
     call _err1 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")

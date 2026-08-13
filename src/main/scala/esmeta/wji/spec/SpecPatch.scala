@@ -778,7 +778,7 @@ object SpecPatch:
     ->
     "1. Else if |addrtype| is [=i64=], return [=ℤ=](|v| interpreted as a [=mathematical value=]).",
 
-    // #38 (spec bug, docs/spec_errors.md #19) — AddressValueToU64's two
+    // #43 (spec bug, docs/spec_errors.md #19) — AddressValueToU64's two
     // branches pass |v| straight into [$ConvertToInt$] (i32) and
     // [$ToBigInt$] (i64), but |v| is not "a JavaScript value" at either call
     // site. |v| is |index| (or |delta|/|descriptor|["initial"/"maximum"])

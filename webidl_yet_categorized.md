@@ -32,28 +32,6 @@
 - `#9-4` - the PropertyDescriptor{\[[Value]]: |method|, \[[Writable]]: |modifiable|, \[[Enumerable]]: <emu-val>true</emu-val>, \[[Configurable]]: |modifiable|}
 - `#20-3` - the PropertyDescriptor{\[[Writable]]: <emu-val>false</emu-val>, \[[Enumerable]]: <emu-val>true</emu-val>, \[[Configurable]]: <emu-val>false</emu-val> \[[Value]]: |value|}
 
-### I-D. `[=dfn-link=] |var|` 설명 주석이 case 태그/알고리즘 호출로 오인됨
-- `#3-5` - [=identifier=] |id| on [=interface=] |I| and with argument count |n|
-          => (case "IDENTIFIER" id (case "INTERFACE" I n))
-- `#3-12` - [=interface=] |I| in |realm|
-           => (case "INTERFACE" I realm)
-- `#3-14`, `#3-15`, `#3-16` - [=interface=] |I| on |F| given |realm|
-                            => (case "INTERFACE" I F realm)
-- `#5-1` - [=attribute=] |attr| of |attributes|
-          => (case "ATTRIBUTE" attr attributes)
-- `#5-2`, `#9-2`, `#20-2` - [=exposed=] in |realm|
-          => (case "EXPOSED" realm)
-- `#9-1` - [=operation=] |op| of |operations|
-          => (case "OPERATION" op operations)
-- `#10-10` - [=identifier=] |id| on |target| and with argument count |n|
-            => (case "IDENTIFIER" id target n)
-- `#10-16` - [=identifier=] |id| on |target| and with argument count |0|
-            => (case "IDENTIFIER" id target 0)
-- `#11-15` - [=optional argument|optional=] (i.e., it is not marked as "optional" and is not a final, variadic argument)
-            => call _call1 = clo<"optional_argument">((yet "i.e."), (yet "it is not marked as \"optional\" and is not a final"), (yet "variadic argument"))
-- `#20-1` - [=constant=] |const| that is a [=member=] of |definition|
-            => (case "CONSTANT" const (case "MEMBER" definition))
-
 ### I-E. `let`의 tuple destructuring
 
 - `#3-6` - Let &lt;|constructor|, |values|&gt; be the result of passing |S| and |args| to the [=overload resolution algorithm=].
@@ -302,6 +280,30 @@ attribute="))` 같은 케이스들이 속하는 곳입니다. 전부 "interface/
 
 ### IV-A. Range expression 관련
 - #11-18 - [=list/For each=] |j| in [=the range=] 0 to |i| − 1, inclusive: ...
+
+### IV-B. 알고리즘 호출이 case로 인식되는 경우
+- `#5-2`, `#9-2`, `#20-2` - [=exposed=] in |realm|
+          => (case "EXPOSED" realm)
+
+### IV-C. `[=dfn-link=] |var|` 설명 주석이 case 태그/알고리즘 호출로 오인됨
+- `#3-5` - [=identifier=] |id| on [=interface=] |I| and with argument count |n|
+          => (case "IDENTIFIER" id (case "INTERFACE" I n))
+- `#3-12` - [=interface=] |I| in |realm|
+           => (case "INTERFACE" I realm)
+- `#3-14`, `#3-15`, `#3-16` - [=interface=] |I| on |F| given |realm|
+                            => (case "INTERFACE" I F realm)
+- `#5-1` - [=attribute=] |attr| of |attributes|
+          => (case "ATTRIBUTE" attr attributes)
+- `#9-1` - [=operation=] |op| of |operations|
+          => (case "OPERATION" op operations)
+- `#10-10` - [=identifier=] |id| on |target| and with argument count |n|
+            => (case "IDENTIFIER" id target n)
+- `#10-16` - [=identifier=] |id| on |target| and with argument count |0|
+            => (case "IDENTIFIER" id target 0)
+- `#11-15` - [=optional argument|optional=] (i.e., it is not marked as "optional" and is not a final, variadic argument)
+            => call _call1 = clo<"optional_argument">((yet "i.e."), (yet "it is not marked as \"optional\" and is not a final"), (yet "variadic argument"))
+- `#20-1` - [=constant=] |const| that is a [=member=] of |definition|
+            => (case "CONSTANT" const (case "MEMBER" definition))
 
 ---
 

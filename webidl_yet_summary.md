@@ -63,7 +63,7 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
    IR - let prototype = (yet "the [=interface prototype object=] for |interface| in |realm|")
            - prototype = (yet "the [=interface prototype object=] for |interface| in |targetRealm|")
 
-2. 카테고리 - I-D + I-O
+2. 카테고리 - I-O + IV-C
    원문 - [=list/iterate|For every=] [=interface=] |ancestor interface| in |interfaces|: ...
            - [=list|For each=] element |key| of |keys|: ...
    IR - call _ = clo<"list/iterate">((case "INTERFACE" ancestor interface interfaces))
@@ -173,7 +173,7 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
    원문 - Let |id| be the identifier of interface |I|.
    IR - let id = (yet "the identifier of interface |I|")
 
-5. 카테고리 - I-D
+5. 카테고리 - IV-C
    원문 - [=Compute the effective overload set=] for constructors with [=identifier=] |id| on [=interface=] |I| and with argument count |n|, and let |S| be the result.
    IR - call S = clo<"compute_the_effective_overload_set">((case "IDENTIFIER" id (case "INTERFACE" I n)))
 
@@ -201,7 +201,7 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
     원문 - Let |F| be <a abstract-op>CreateBuiltinFunction</a>(|steps|, |length|, |id|, « \[[Unforgeables]] », |realm|, |constructorProto|).
     IR - let F = (yet "<a abstract-op>CreateBuiltinFunction</a>(|steps|, |length|, |id|, « \[[Unforgeables]] », |realm|, |constructorProto|)")
 
-12. 카테고리 - I-D
+12. 카테고리 - IV-C
     원문 - Let |proto| be the result of [=create an interface prototype object|creating an interface prototype object=] of [=interface=] |I| in |realm|.
     IR - call proto = clo<"create_an_interface_prototype_object">((case "INTERFACE" I realm))
 
@@ -209,15 +209,15 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
     원문 - Perform [=!=] <a abstract-op>DefinePropertyOrThrow</a>(|F|, "<code>prototype</code>", PropertyDescriptor{\[[Value]]: |proto|, \[[Writable]]: <emu-val>false</emu-val>, \[[Enumerable]]: <emu-val>false</emu-val>, \[[Configurable]]: <emu-val>false</emu-val>}).
     IR - call _ = clo<"<a_abstract-op>DefinePropertyOrThrow</a>(|F|,_"<code>prototype</code>",_PropertyDescriptor{\[[Value]]:_|proto|,_\[[Writable]]:_<emu-val>false</emu-val>,_\[[Enumerable]]:_<emu-val>false</emu-val>,_\[[Configurable]]:_<emu-val>false</emu-val>})">()
 
-14. 카테고리 - I-D
+14. 카테고리 - IV-C
     원문 - [=Define the constants=] of [=interface=] |I| on |F| given |realm|.
     IR - call _ = clo<"define_the_constants">((case "INTERFACE" I F realm))
 
-15. 카테고리 - I-D
+15. 카테고리 - IV-C
     원문 - [=Define the static attributes=] of [=interface=] |I| on |F| given |realm|.
     IR - call _ = clo<"define_the_static_attributes">((case "INTERFACE" I F realm))
 
-16. 카테고리 - I-D
+16. 카테고리 - IV-C
     원문 - [=Define the static operations=] of [=interface=] |I| on |F| given |realm|.
     IR - call _ = clo<"define_the_static_operations">((case "INTERFACE" I F realm))
 ```
@@ -249,11 +249,11 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
   `DefinePropertyOrThrow`로 `target`에 매단다.
 
 ```
-1. 카테고리 - I-D + I-O
+1. 카테고리 - I-O + IV-C
    원문 - [=list/For each=] [=attribute=] |attr| of |attributes|: ...
    IR - call _ = clo<"list/for_each">((case "ATTRIBUTE" attr attributes))
 
-2. 카테고리 - I-D + III-A
+2. 카테고리 - III-A + IV-B
    원문 - If |attr| is not [=exposed=] in |realm|, then ...
    IR - if (! (= attr (case "EXPOSED" realm))) { ... }
 
@@ -502,11 +502,11 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
   버전입니다.
 
 ```
-1. 카테고리 - I-D + I-O
+1. 카테고리 - I-O + IV-C
    원문 - [=list/For each=] [=operation=] |op| of |operations|: ...
    IR - call _ = clo<"list/for_each">((case "OPERATION" op operations))
 
-2. 카테고리 - I-F + I-D + III-A
+2. 카테고리 - I-F + III-A + IV-B
    원문 - If |op| is not [=exposed=] in |realm|, then [=iteration/continue=].
    IR - if (! (= op (case "EXPOSED" realm))) { (yet "continue") }
 
@@ -575,7 +575,7 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
    원문 - Set |idlObject| to the IDL [=interface type=] value that represents a reference to |jsValue|.
    IR - idlObject = (yet "the IDL [=interface type=] value that represents a reference to |jsValue|")
 
-10. 카테고리 - I-D + X-B
+10. 카테고리 - VII-B + IV-C
     원문 - [=Compute the effective overload set=] for [=regular operations=] (if |op| is a regular operation) or for [=static operations=] (if |op| is a static operation) with [=identifier=] |id| on |target| and with argument count |n|, and let |S| be the result.
     IR - call _call1 = clo<"regular_operations">((yet "tuple(Unknown(if |op| is a regular operation) or for [=static operations=] (if |op| is a static operation))"), (case "IDENTIFIER" id target n))
          call S = clo<"compute_the_effective_overload_set">(_call1)
@@ -602,7 +602,7 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
     원문 - Otherwise, end these steps and allow the exception to propagate.
     IR - (yet "end these steps and allow the exception to propagate")
 
-16. 카테고리 - I-D + X-B
+16. 카테고리 - IV-C + VII-B
     원문 - [=Compute the effective overload set=]  for [=regular operations=] (if |op| is a regular operation) or for [=static operations=] (if |op| is a static operation) with [=identifier=] |id| on |target| and with argument count 0, and let |S| be the result.
     IR - call _call2 = clo<"regular_operations">((yet "tuple(Unknown(if |op| is a regular operation) or for [=static operations=] (if |op| is a static operation))"), (case "IDENTIFIER" id target 0))
          call S = clo<"compute_the_effective_overload_set">(_call2)
@@ -702,7 +702,7 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
     원문 - [=iteration/While=] |i| ≥ 0: ...
     IR - call _ = clo<"iteration/while">(i, 0)
 
-15. 카테고리 - I-D + II-K
+15. 카테고리 - II-K + IV-C
     원문 - If |arguments|[|i|] is not [=optional argument|optional=] (i.e., it is not marked as "optional" and is not a final, variadic argument), ...
     IR - call _call1 = clo<"optional_argument">((yet "i.e."), (yet "it is not marked as \"optional\" and is not a final"), (yet "variadic argument"))
          if (! (= arguments[i] _call1)) { ... }
@@ -775,11 +775,11 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
 
 ## #20 `define_the_constants`
 
-1. 카테고리 - I-D + I-O
+1. 카테고리 - I-O + IV-C
    원문 - [=list/For each=] [=constant=] |const| that is a [=member=] of |definition|:
    IR - call _ = clo<"list/for_each">((case "CONSTANT" const (case "MEMBER" definition)))
 
-2. 카테고리 - I-D + III-A
+2. 카테고리 - III-A + IV-B
    원문 - If |attr| is not [=exposed=] in |realm|, then ...
    IR - if (! (= attr (case "EXPOSED" realm))) { ... }
 

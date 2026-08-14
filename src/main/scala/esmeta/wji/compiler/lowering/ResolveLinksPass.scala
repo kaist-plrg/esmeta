@@ -1,5 +1,6 @@
 package esmeta.wji.compiler.lowering
 
+import esmeta.error.UnsupportedSpecShape
 import esmeta.wji.lang.{Algorithm, AlgorithmKind, Cond, Expr, Instr}
 import esmeta.wji.lang.walker.Walker
 
@@ -39,6 +40,21 @@ import esmeta.wji.lang.walker.Walker
   *     [[NormalizeSpecTecCaseShapePass]], the very next pass, for that.
   *   - a zero-arg `Link` that doesn't match a known algorithm becomes a
   *     `SpecTerm` — a bare reference to something else.
+  *   - a `Link` whose (case-insensitively-compared) name is in `spreadTags` — a
+  *     small, hardcoded set of dfn names known to be annotation-only prose
+  *     labels, never a callable algorithm and never a real SpecTec case tag
+  *     (currently `identifier`, `interface`) — is never wrapped at all: its own
+  *     args are spliced straight into whichever call's argument list it sits in
+  *     (see `LinkResolver.resolveArgs`). `ExprParser.parseArgs` has no way to
+  *     know a tag like `identifier` isn't callable, so it parses whatever
+  *     unrelated clauses happen to follow it in the same sentence as if they
+  *     were its call arguments, e.g. `identifier(id, interface(I, n))` from
+  *     "with [=identifier=] |id| on [=interface=] |I| and with argument count
+  *     |n|" (webidl/index.bs:12581-12583 and three more sites). A `spreadTags`
+  *     link found anywhere *not* inside an argument list — i.e. with no list to
+  *     spread into — throws [[esmeta.error.UnsupportedSpecShape]] rather than
+  *     silently falling through to the heuristic above, which would just
+  *     reproduce the same mis-wrapped-`Case` bug.
   *
   * A [[Cond.IsOfForm]]'s `form` field is the one exception to the first rule
   * above: it's always a pattern to destructure against (`ExpandIsOfFormPass`
@@ -77,6 +93,14 @@ object ResolveLinksPass extends LoweringPass:
     */
   private def stripLink(link: String): String =
     link.stripPrefix("[=").stripSuffix("=]").trim
+
+  /** See this object's own doc — dfn names confirmed to be annotation-only
+    * prose labels (checked against `webidl/index.bs`: neither is a `<div
+    * algorithm>` name, and neither collides with a genuine SpecTec case tag,
+    * that vocabulary being Wasm Core Spec-specific, e.g. `i32.const` — disjoint
+    * from WebIDL's own English glossary terms).
+    */
+  private val spreadTags: Set[String] = Set("identifier", "interface")
 
   /** The part of a (already-`stripLink`ed) link text after its last `/`, or the
     * whole thing if it has none — see the class doc's Case heuristic.
@@ -122,8 +146,21 @@ object ResolveLinksPass extends LoweringPass:
     extends Walker:
 
     override def walk(expr: Expr): Expr = expr match
+      // Every real `spreadTags` occurrence is consumed by `resolveArgs`
+      // below, as an element of some enclosing call's argument list, before
+      // it ever reaches general `walk`. Reaching here means one showed up
+      // somewhere with no argument list to spread into (e.g. as a bare
+      // `Let` RHS) — either a genuinely new spec idiom this pass doesn't
+      // cover yet, or a bug — so this fails loudly (see this object's own
+      // doc) instead of silently falling through to `buildCaseOrCall` below,
+      // which would just reproduce the original mis-wrapped-`Case` bug.
+      case Expr.Link(link, _) if spreadTags(stripLink(link).toLowerCase) =>
+        throw UnsupportedSpecShape(
+          "ResolveLinksPass",
+          s"spread-only link [=${stripLink(link)}=] found outside a call's argument list: $expr",
+        )
       case Expr.Link(link, args) =>
-        val resolvedArgs = args.map(walk)
+        val resolvedArgs = resolveArgs(args)
         if known.contains(stripLink(link).toLowerCase) then
           Expr.AlgoCall(link, resolvedArgs)
         else buildCaseOrCall(link, resolvedArgs)
@@ -133,13 +170,34 @@ object ResolveLinksPass extends LoweringPass:
 
     override def walk(instr: Instr): Instr = instr match
       case i: Instr.Perform =>
-        super.walk(i.copy(func = resolveFuncName(plainKnown, i.func)))
+        Instr.Perform(
+          resolveFuncName(plainKnown, i.func),
+          resolveArgs(i.args),
+          i.outcome,
+          i.body.map(walk),
+        )
       case other => super.walk(other)
 
     override def walk(cond: Cond): Cond = cond match
       case Cond.IsOfForm(e, form, condOpt, neg) =>
         Cond.IsOfForm(walk(e), resolveForm(form), condOpt.map(walk), neg)
       case other => super.walk(other)
+
+    /** A call's argument list, with any element that's itself a
+      * `spreadTags`-named `Link` "spread" into the arguments *it* captured
+      * rather than walked into a nested `Case`/`AlgoCall`/`SpecTerm` — see
+      * `spreadTags`'s own doc. Recurses so a chain of spread-only tags (e.g.
+      * `identifier(id, interface(I, n))`, `ExprParser.parseArgs`'s nesting for
+      * "with [=identifier=] |id| on [=interface=] |I| and with argument count
+      * |n|") fully flattens in one pass.
+      */
+    private def resolveArgs(args: List[Expr]): List[Expr] =
+      args.flatMap {
+        case Expr.Link(link, innerArgs)
+            if spreadTags(stripLink(link).toLowerCase) =>
+          resolveArgs(innerArgs)
+        case other => List(walk(other))
+      }
 
     /** Resolves a [[Cond.IsOfForm]]'s `form` field specifically — the same
       * [[buildCaseOrCall]] heuristic `walk(Expr)`'s `Expr.Link` case uses,
@@ -157,5 +215,10 @@ object ResolveLinksPass extends LoweringPass:
       * `ExpandIsOfFormPass` no longer recognizes it, falling back to `EYet`.
       */
     private def resolveForm(form: Expr): Expr = form match
-      case Expr.Link(link, args) => buildCaseOrCall(link, args.map(walk))
+      case Expr.Link(link, _) if spreadTags(stripLink(link).toLowerCase) =>
+        throw UnsupportedSpecShape(
+          "ResolveLinksPass",
+          s"spread-only link [=${stripLink(link)}=] found as a Cond.IsOfForm form, which is never a call's argument list: $form",
+        )
+      case Expr.Link(link, args) => buildCaseOrCall(link, resolveArgs(args))
       case other                 => walk(other)

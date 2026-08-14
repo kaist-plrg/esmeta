@@ -3412,9 +3412,9 @@ def creating_an_operation_function(
   let id = op.id
   let steps = clo<"creating_an_operation_function_closure1", [id, op, target]>
   if (= op.kind ~RegularOperation~) {
-    call S = clo<"compute_the_effective_overload_set">(~regular operations~, (case "IDENTIFIER" id target 0))
+    call S = clo<"compute_the_effective_overload_set">(~regular operations~, id, target, 0)
   } else if (= op.kind ~StaticOperation~) {
-    call S = clo<"compute_the_effective_overload_set">(~static operations~, (case "IDENTIFIER" id target 0))
+    call S = clo<"compute_the_effective_overload_set">(~static operations~, id, target, 0)
   } else {
     assert false
   }
@@ -3688,9 +3688,9 @@ def creating_an_operation_function_closure1(
   } else nop
   let n = (sizeof args)
   if (= op.kind ~RegularOperation~) {
-    call S = clo<"compute_the_effective_overload_set">(~regular operations~, (case "IDENTIFIER" id target n))
+    call S = clo<"compute_the_effective_overload_set">(~regular operations~, id, target, n)
   } else if (= op.kind ~StaticOperation~) {
-    call S = clo<"compute_the_effective_overload_set">(~static operations~, (case "IDENTIFIER" id target n))
+    call S = clo<"compute_the_effective_overload_set">(~static operations~, id, target, n)
   } else {
     assert false
   }

@@ -88,15 +88,16 @@ import esmeta.error.UnsupportedSpecShape
   *   - '''Completion-record wrapping''': every exit path must return a real
   *     Completion Record, same as [[AddBuiltinBehaviourPass]]'s own reason
   *     (mainline's Call machinery always expects one back, regardless of
-  *     whether the algorithm itself can abruptly complete — see that pass's
-  *     doc). Unlike that pass, this one *can* just reuse
-  *     [[WrapCompletionReturnsPass]]'s work when it already ran — a member that
-  *     transitively calls something abrupt (`Table.length`, `Global.value`) is
-  *     already `returnsCompletion = true` and has already been wrapped by it;
-  *     only one with no abrupt-completion signal of its own (e.g.
-  *     `Instance.exports`, just `return **this**.\[[Exports]]`) still needs
-  *     [[CompletionWrapping.expandAlgorithm]] called directly here, or it
-  *     wouldn't be wrapped by anything at all.
+  *     whether the algorithm itself can abruptly complete).
+  *     [[CompletionAlgorithms.compute]] seeds `returnsCompletion = true`
+  *     unconditionally for every interface member — WebIDL's own overload
+  *     resolution can always throw a `TypeError` for a `Constructor`'s arity
+  *     mismatch (see [[omittedBranch]]), and every Getter/Setter/Method shares
+  *     the same unconditional calling-convention requirement — so
+  *     [[InsertFallthroughReturnPass]]/[[WrapCompletionReturnsPass]] (which run
+  *     after this pass — see `Lowering.pipeline`) handle every exit path
+  *     uniformly, the same as for any ordinary algorithm; this pass itself just
+  *     leaves `Return`/`Throw` raw.
   *
   * `esmeta.wji.compiler.Compiler.compileAlgo` handles the remaining, genuinely
   * compiler-level half — registering the result under the exact case-preserved
@@ -110,22 +111,6 @@ import esmeta.error.UnsupportedSpecShape
   * Category: Structural desugaring — Injection.
   */
 object AddInterfaceMemberBuiltinBehaviourPass extends LoweringPass:
-
-  /** Requires:
-    *   - [[ExpandFollowingStepsPass]]/[[ExpandInlineAlgoCallPass]]: same reason
-    *     [[AddBuiltinBehaviourPass]] needs them before calling the same
-    *     [[CompletionWrapping.expandAlgorithm]] utility — its own `Return`
-    *     handling assumes a call already sitting in `Instr.Perform` form, not a
-    *     raw inline `Expr.AlgoCall`.
-    *   - [[WrapCompletionReturnsPass]]: needs its wrapping already applied to a
-    *     `returnsCompletion = true` member's body, so this pass can tell that
-    *     case apart from one it still has to wrap itself (see class doc).
-    */
-  override def requires: Set[LoweringPass] = Set(
-    ExpandFollowingStepsPass,
-    ExpandInlineAlgoCallPass,
-    WrapCompletionReturnsPass,
-  )
 
   private val BuiltinParams =
     List(
@@ -149,11 +134,11 @@ object AddInterfaceMemberBuiltinBehaviourPass extends LoweringPass:
     *     corpus (a single entry per identifier, [=list/append|expanded=] only
     *     by trailing optional/defaulted params), too few arguments always means
     *     no effective-overload-set entry matches, so the algorithm throws a
-    *     `TypeError` — mirrored here directly (via
-    *     [[CompletionWrapping.expandAlgorithm]], since a raw [[Instr.Throw]]
-    *     left un-expanded compiles to a `Compiler.compileInstr` stub) rather
-    *     than asserted unreachable, since real user code does reach this (see
-    *     `tests/wji/constructors.js`'s `new WebAssembly.Module()`).
+    *     `TypeError` — mirrored here directly as a raw [[Instr.Throw]] (left
+    *     for `CompletionAlgorithms`/`WrapCompletionReturnsPass` to wrap later —
+    *     see class doc) rather than asserted unreachable, since real user code
+    *     does reach this (see `tests/wji/constructors.js`'s `new
+    *     WebAssembly.Module()`).
     *   - An optional param with no [[WjiParam.default]] is left genuinely
     *     unbound (not defaulted to `undefined`), so `Cond.IsMissing`'s `"|X| is
     *     missing"` check (`Compiler.compileExpr`'s `EExists`) correctly reports
@@ -179,10 +164,7 @@ object AddInterfaceMemberBuiltinBehaviourPass extends LoweringPass:
     *     `UnsupportedSpecShape` instead of being guessed at.
     */
   private def omittedBranch(p: WjiParam, name: String): List[Instr] =
-    if !p.optional then
-      CompletionWrapping.expandAlgorithm(
-        List(Instr.Throw(Expr.New("TypeError"))),
-      )
+    if !p.optional then List(Instr.Throw(Expr.New("TypeError")))
     else
       p.default match
         case None => Nil
@@ -277,41 +259,26 @@ object AddInterfaceMemberBuiltinBehaviourPass extends LoweringPass:
 
   /** The matching epilogue: every js-api constructor algorithm ends by mutating
     * `**this**`'s fields with no explicit `Return`, relying on WebIDL's outer
-    * wrapper to return the object it created — mechanized here as an explicit
-    * `Return **this**.` instead, wrapped directly in `NormalCompletion` rather
-    * than routed through [[CompletionWrapping.expandAlgorithm]]'s generic
-    * `Cond.IsType(_, "Completion")` runtime check: unlike an arbitrary returned
-    * expression, `**this**` here is statically known to never itself be a
-    * Completion Record — [[createThisBinding]] just built it fresh via
-    * `Expr.New(iface)`, and no js-api constructor algorithm ever reassigns
-    * `**this**` itself (only its fields, via `Set **this**.[[X]] to ...`), so
-    * the check would always take the same branch.
+    * wrapper to return the object it created — mechanized here as an explicit,
+    * still-raw `Return **this**.` instead. Left unwrapped:
+    * `CompletionAlgorithms` seeds every `Constructor` as `returnsCompletion =
+    * true` unconditionally (see class doc), so `WrapCompletionReturnsPass`
+    * wraps this along with the rest of the body, uniformly.
     */
   private def returnThisBinding(kind: AlgorithmKind): List[Instr] = kind match
-    case AlgorithmKind.Constructor(_) =>
-      List(
-        Instr.Perform(
-          "NormalCompletion",
-          List(Expr.This),
-          Instr.PerformOutcome.BindResult("_ret"),
-        ),
-        Instr.Return(Some(Expr.Var("_ret"))),
-      )
-    case _ => Nil
+    case AlgorithmKind.Constructor(_) => List(Instr.Return(Some(Expr.This)))
+    case _                            => Nil
 
   def run(algos: List[Algorithm]): List[Algorithm] =
     algos.map { a =>
       a.kind match
         case AlgorithmKind.Getter(_) | AlgorithmKind.Setter(_) |
             AlgorithmKind.Constructor(_) | AlgorithmKind.Method(_) =>
-          val wrappedBody =
-            if a.returnsCompletion then a.body
-            else CompletionWrapping.expandAlgorithm(a.body)
           a.copy(
             params = BuiltinParams,
             body = unpackArgumentsList(a.params) ++
               givenValueBinding(a.kind) ++ createThisBinding(a.kind) ++
-              wrappedBody ++ returnThisBinding(a.kind),
+              a.body ++ returnThisBinding(a.kind),
           )
         case AlgorithmKind.Plain => a
     }

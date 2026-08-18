@@ -1,6 +1,6 @@
 package esmeta.wji.compiler.lowering
 
-import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr}
+import esmeta.wji.lang.{Algorithm, AlgorithmKind, Cond, Expr, Instr}
 import esmeta.wji.lang.Instr.PerformOutcome
 
 /** Computes which WJI algorithms must return an ECMA-262 Completion Record,
@@ -236,8 +236,45 @@ object CompletionAlgorithms:
         ) ||
         hasUnguardedCallInto(rest, s)
 
+  /** Whether `kind` is one of the four WebIDL interface-member kinds
+    * (`AddInterfaceMemberBuiltinBehaviourPass`'s own target) — every one of
+    * them, not just `Constructor`, is invoked through the same generic
+    * `BuiltinCallOrConstruct`/`Call` mainline machinery that unconditionally
+    * expects a Completion Record back (see [[compute]]'s own doc).
+    */
+  private def isInterfaceMember(kind: AlgorithmKind): Boolean = kind match
+    case AlgorithmKind.Getter(_) | AlgorithmKind.Setter(_) |
+        AlgorithmKind.Constructor(_) | AlgorithmKind.Method(_) =>
+      true
+    case AlgorithmKind.Plain => false
+
   /** The fixed point itself: lowercased names of every algorithm that must
     * return a Completion Record.
+    *
+    * Seeded with two calling-convention-driven cases besides `hasOwnAbrupt`,
+    * same idea as the `Expr.New` signal above (a real abrupt path the body's
+    * own text doesn't show yet, ahead of that gap closing):
+    *   - a WebIDL interface member (Getter/Setter/Constructor/Method, per
+    *     [[isInterfaceMember]]): every one is invoked through the same
+    *     `BuiltinCallOrConstruct`/`Call` convention `AddInterfaceMemberBuiltin
+    *     BehaviourPass`'s own class doc requires unconditional wrapping for,
+    *     regardless of whether the member itself has a real abrupt path (e.g.
+    *     `Instance.exports`, `Memory.buffer`'s plain field reads) — a
+    *     `Constructor` on top of that always has WebIDL's own overload
+    *     resolution algorithm, which can throw a `TypeError` for an arity
+    *     mismatch before the constructor steps ever run (`webidl/index.bs`'s
+    *     `argcount`/effective-overload-set steps — see
+    *     `AddInterfaceMemberBuiltinBehaviourPass.omittedBranch`, which
+    *     mechanizes exactly that).
+    *   - `isBuiltinBehaviour`: `CreateBuiltinFunction`'s own `behaviour`
+    *     contract requires a Completion Record back unconditionally (mainline's
+    *     `Call`/`BuiltinCallOrConstruct` machinery always expects one), not
+    *     conditional on whether the closure itself has a real abrupt path — see
+    *     `AddBuiltinBehaviourPass`'s own doc for the same reasoning.
+    *
+    * Both flags are already stamped by the time this runs
+    * (`MarkBuiltinBehaviourPass` and the algorithm's own `kind`), so no
+    * separate traversal is needed.
     */
   def compute(algos: List[Algorithm]): Set[String] =
     def nameOf(a: Algorithm): Option[String] =
@@ -245,7 +282,15 @@ object CompletionAlgorithms:
 
     var s: Set[String] =
       algos
-        .flatMap(a => Option.when(hasOwnAbrupt(a.body))(nameOf(a)).flatten)
+        .flatMap(a =>
+          Option
+            .when(
+              hasOwnAbrupt(
+                a.body,
+              ) || isInterfaceMember(a.kind) || a.isBuiltinBehaviour,
+            )(nameOf(a))
+            .flatten,
+        )
         .toSet
 
     var changed = true

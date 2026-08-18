@@ -4,54 +4,33 @@ import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr, WjiParam}
 import esmeta.error.UnsupportedSpecShape
 
 /** Adapts every `Algorithm` [[MarkBuiltinBehaviourPass]] flagged
-  * `isBuiltinBehaviour = true` into a valid builtin function body. Two
-  * independent fix-ups `manuals/rule.json`'s hand-patched
-  * `BuiltinCallOrConstruct` rule requires, neither of which
-  * `ExpandFollowingStepsPass` itself is responsible for — that pass only hoists
-  * a closure/`Algorithm` pair, with no notion of what convention the closure is
-  * ultimately invoked under:
+  * `isBuiltinBehaviour = true` into a valid builtin function body: unpacks
+  * `argumentsList` into the closure's own declared parameter names, the fix-up
+  * `manuals/rule.json`'s hand-patched `BuiltinCallOrConstruct` rule requires
+  * (`BuiltinCallOrConstruct` always invokes a builtin as
+  * `func.__CODE__(thisArgument, argumentsList, newTarget)` — a fixed 3-argument
+  * calling convention — regardless of what parameters the underlying closure
+  * itself declares). Mirrors mainline `esmeta.compiler.Compiler`'s
+  * `fixClosurePrefixAOs`/`getBuiltinPrefix`, which solves the exact same gap
+  * for ECMA-262's own Abstract Closures (e.g. `NewPromiseCapability`'s
+  * resolve/reject functions) by giving them the builtin signature plus a prefix
+  * that unpacks `argumentsList` positionally into the real parameter names.
+  * `ExpandFollowingStepsPass` itself isn't responsible for this — that pass
+  * only hoists a closure/`Algorithm` pair, with no notion of what convention
+  * the closure is ultimately invoked under.
   *
-  *   - '''Builtin arg unpacking''': `BuiltinCallOrConstruct` always invokes a
-  *     builtin as `func.__CODE__(thisArgument, argumentsList, newTarget)` — a
-  *     fixed 3-argument calling convention — regardless of what parameters the
-  *     underlying closure itself declares. Mirrors mainline
-  *     `esmeta.compiler.Compiler`'s `fixClosurePrefixAOs`/`getBuiltinPrefix`,
-  *     which solves the exact same gap for ECMA-262's own Abstract Closures
-  *     (e.g. `NewPromiseCapability`'s resolve/reject functions) by giving them
-  *     the builtin signature plus a prefix that unpacks `argumentsList`
-  *     positionally into the real parameter names.
-  *   - '''Completion-record wrapping''': `manuals/rule.json`'s Call rule (`Let
-  *     result be the Completion Record that is the result of evaluating...
-  *     F.__CODE__(...)`) reads `.[[Type]]`/`.[[Value]]` off whatever
-  *     `F.__CODE__` returns unconditionally, mirroring mainline's own
-  *     `esmeta.compiler.Compiler.compile`'s `Builtin => needRetComp = true` —
-  *     *not* gated on whether the closure itself can abruptly complete, unlike
-  *     [[WrapCompletionReturnsPass]]'s own `returnsCompletion` test for
-  *     ordinary algorithms. Reuses [[CompletionWrapping.expandAlgorithm]]
-  *     directly — see that object's own doc for why it's a shared plain
-  *     function rather than living inside `WrapCompletionReturnsPass`.
+  * Doesn't wrap completion records itself — `manuals/rule.json`'s Call rule
+  * reads `.[[Type]]`/`.[[Value]]` off whatever `F.__CODE__` returns
+  * unconditionally, so every `isBuiltinBehaviour` closure needs one on every
+  * exit path, but that's `CompletionAlgorithms.compute`'s job (seeded
+  * unconditionally for `isBuiltinBehaviour`, same idea as its `Constructor`
+  * case), together with `InsertFallthroughReturnPass`/
+  * `WrapCompletionReturnsPass`'s ordinary treatment. This pass runs before
+  * those (see `Lowering.pipeline`), so a hoisted closure's body reaches them
+  * looking like an ordinary algorithm body.
   *
   * Doesn't itself detect which `Algorithm` needs this — see
-  * [[MarkBuiltinBehaviourPass]] for that (kept as a separate pass so its
-  * classification is computed once and shared between this pass's own `run` and
-  * its [[preconditions]], rather than each independently re-deriving the same
-  * information).
-  *
-  * [[preconditions]] checks the one assumption `run` relies on: every flagged
-  * closure's body already ends in an explicit top-level `Return`/`Throw`.
-  * `CreateBuiltinFunction`'s own `behaviour` parameter is defined as an
-  * Abstract Closure that "must return either a normal completion containing an
-  * ECMAScript language value or a throw completion", so a real spec text
-  * satisfying that contract can never actually fall off the end.
-  * [[CompletionWrapping.expandAlgorithm]] only rewrites *existing*
-  * `Return`/`Throw` nodes (same as [[WrapCompletionReturnsPass]]); unlike that
-  * pass, this one has no [[InsertFallthroughReturnPass]] upstream of it to
-  * guarantee one exists first (that pass runs before
-  * [[ExpandFollowingStepsPass]] hoists these closures out at all — see its own
-  * doc), so the assumption is checked directly rather than patched around,
-  * failing loudly via `UnsupportedSpecShape` (see `Lowering.run`) instead of
-  * silently falling through to `Compiler.compileAlgo`'s raw, un-wrapped
-  * `~unused~` fallback if it's ever wrong.
+  * [[MarkBuiltinBehaviourPass]] for that.
   *
   * Category: Structural desugaring — Injection.
   */
@@ -62,20 +41,6 @@ object AddBuiltinBehaviourPass extends LoweringPass:
     *     stamped onto every `Algorithm` to know which ones to target.
     */
   override def requires: Set[LoweringPass] = Set(MarkBuiltinBehaviourPass)
-
-  /** Delegates to `Instr.alwaysExits` (same helper
-    * `InsertFallthroughReturnPass` and `Compiler.compileAlgo` use), which
-    * recognizes an `IfChain` as exhaustive only when it has a real `else` and
-    * every branch, including the fallback, itself always exits — same caveat as
-    * there: doesn't look inside loop bodies (`ForEach`/`For`/`While`).
-    */
-  override def preconditions: List[Condition] = List(
-    Condition(
-      "every isBuiltinBehaviour closure ends in an explicit top-level " +
-      "Return/Throw (CreateBuiltinFunction's behaviour contract)",
-      _.forall(a => !a.isBuiltinBehaviour || Instr.alwaysExits(a.body)),
-    ),
-  )
 
   /** formal parameter names `BuiltinCallOrConstruct`'s hand-patched IR always
     * calls `func.__CODE__` with, regardless of what parameters the underlying
@@ -170,8 +135,7 @@ object AddBuiltinBehaviourPass extends LoweringPass:
       if a.isBuiltinBehaviour then
         a.copy(
           params = BuiltinParams.map(p => WjiParam(s"|$p|")),
-          body = unpackArgumentsList(a.params) ++ CompletionWrapping
-            .expandAlgorithm(a.body),
+          body = unpackArgumentsList(a.params) ++ a.body,
         )
       else a
     }

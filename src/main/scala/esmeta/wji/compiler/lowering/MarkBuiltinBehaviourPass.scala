@@ -27,13 +27,31 @@ object MarkBuiltinBehaviourPass extends LoweringPass:
 
   /** Requires:
     *   - [[ExpandFollowingStepsPass]]: needs its `Closure`s already hoisted to
-    *     scan for.
-    *   - [[ExpandInlineAlgoCallPass]]: needs a `CreateBuiltinFunction` call
-    *     already in `Perform` form (not a raw `Expr.AlgoCall`) to recognize it
-    *     among a closure's sibling steps.
+    *     scan for. [[createBuiltinFunctionArgs]] recognizes a
+    *     `CreateBuiltinFunction` call in either its raw `Expr.AlgoCall`/
+    *     `Expr.JSCall` shape or [[ExpandInlineAlgoCallPass]]'s already-expanded
+    *     `Instr.Perform` shape, so that pass isn't a prerequisite here.
     */
   override def requires: Set[LoweringPass] =
-    Set(ExpandFollowingStepsPass, ExpandInlineAlgoCallPass)
+    Set(ExpandFollowingStepsPass)
+
+  /** the arguments of a `CreateBuiltinFunction` call an instruction makes, in
+    * whichever shape it's currently in — `Instr.Perform` if
+    * [[ExpandInlineAlgoCallPass]] already ran, or still a raw `Instr.Let(_,
+    * Expr.AlgoCall(...) | Expr.JSCall(...), _)` if it hasn't (the spec text's
+    * own `[$CreateBuiltinFunction$](...)` reference into mainline ECMA-262
+    * parses to `Expr.JSCall`, matching
+    * [[ExpandInlineAlgoCallPass.extractCall]]'s own two cases) — so this
+    * detection doesn't actually need that pass to have run first.
+    */
+  private def createBuiltinFunctionArgs(instr: Instr): Option[List[Expr]] =
+    instr match
+      case Instr.Perform("CreateBuiltinFunction", args, _, _) => Some(args)
+      case Instr.Let(_, Expr.AlgoCall("CreateBuiltinFunction", args), _) =>
+        Some(args)
+      case Instr.Let(_, Expr.JSCall("CreateBuiltinFunction", args), _) =>
+        Some(args)
+      case _ => None
 
   /** whether the closure bound to `varName` is passed as
     * `CreateBuiltinFunction`'s `behaviour` argument among its sibling steps
@@ -44,11 +62,11 @@ object MarkBuiltinBehaviourPass extends LoweringPass:
     * algorithm.
     */
   private def isBuiltinBehaviour(varName: String, rest: List[Instr]): Boolean =
-    rest.exists {
-      case Instr.Perform("CreateBuiltinFunction", args, _, _) =>
-        args.headOption.contains(Expr.Var(varName))
-      case _ => false
-    }
+    rest.exists(i =>
+      createBuiltinFunctionArgs(i).exists(
+        _.headOption.contains(Expr.Var(varName)),
+      ),
+    )
 
   /** Collects every hoisted closure's name that's used as a builtin behaviour,
     * recursing through nested branches/loops the same way

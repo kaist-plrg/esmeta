@@ -71,6 +71,11 @@ object Lowering:
     ResolveLinksPass,
     GroupIfChainPass,
     NormalizeSpecTecCaseShapePass,
+    ExpandFollowingStepsPass,
+    // injections
+    MarkBuiltinBehaviourPass,
+    AddBuiltinBehaviourPass,
+    AddInterfaceMemberBuiltinBehaviourPass,
     // eliminations
     ExpandHasDuplicatesPass,
     ExpandRemovePass,
@@ -89,7 +94,6 @@ object Lowering:
     ExpandAbbreviatedCondPass,
     ExpandWjiIsTypePass,
     ExpandExposedPass,
-    ExpandFollowingStepsPass,
     MarkCompletionAlgorithmsPass,
     NormalizeEvaluationOrderPass, // normalization point
     PropagateUnguardedCallsPass,
@@ -102,10 +106,6 @@ object Lowering:
     WrapCompletionReturnsPass,
     ExpandMatchesExistsPass,
     ExpandQueueATaskPass,
-    // injections
-    MarkBuiltinBehaviourPass,
-    AddBuiltinBehaviourPass,
-    AddInterfaceMemberBuiltinBehaviourPass,
     // cleanup
     NormalizeAlgoNamePass,
   )

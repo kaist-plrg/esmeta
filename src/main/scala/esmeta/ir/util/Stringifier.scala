@@ -122,6 +122,9 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case ICallEmbed(lhs, fname, args) =>
         given Rule[List[Expr]] = iterableRule("(", ", ", ")")
         app >> "call-embed " >> lhs >> " = <" >> fname >> ">" >> args
+      case ICallConvert(lhs, fname, args) =>
+        given Rule[List[Expr]] = iterableRule("(", ", ", ")")
+        app >> "call-convert " >> lhs >> " = <" >> fname >> ">" >> args
   }
 
   // expressions

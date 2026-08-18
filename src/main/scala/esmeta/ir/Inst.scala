@@ -52,5 +52,15 @@ case class ISdoCall(lhs: Local, base: Expr, op: String, args: List[Expr])
 case class ICallEmbed(lhs: Local, fname: String, args: List[Expr])
   extends CallInst
 
+/** call a WebIDL value-conversion operation (`converted_to_an_idl_value`,
+  * `converted_to_a_javascript_value`) as native Scala rather than interpreted
+  * `.ir` text, and bind the result — see
+  * `esmeta.wji.interpreter.WebIdlConversion`. Mirrors [[ICallEmbed]]'s own
+  * rationale: `fname` names a fixed, small catalog directly rather than through
+  * a closure value.
+  */
+case class ICallConvert(lhs: Local, fname: String, args: List[Expr])
+  extends CallInst
+
 // special instructions
 case class ISeq(insts: List[Inst]) extends Inst

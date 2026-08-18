@@ -628,6 +628,10 @@ trait TypeGuardDecl { self: TyChecker =>
             notSupported(
               s"TODO: ICallEmbed ($fname) not yet supported by the type analyzer",
             )
+          case ICallConvert(_, fname, _) =>
+            notSupported(
+              s"TODO: ICallConvert ($fname) not yet supported by the type analyzer",
+            )
         direct || involvesFunc(child, fname)
       case Join(children) => children.exists(involvesFunc(_, fname))
       case Meet(children) => children.exists(involvesFunc(_, fname))
@@ -954,6 +958,10 @@ trait TypeGuardDecl { self: TyChecker =>
       case ICallEmbed(_, fname, _) =>
         notSupported(
           s"TODO: ICallEmbed ($fname) not yet supported by the type analyzer",
+        )
+      case ICallConvert(_, fname, _) =>
+        notSupported(
+          s"TODO: ICallConvert ($fname) not yet supported by the type analyzer",
         )
   }
 }

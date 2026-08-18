@@ -547,7 +547,7 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Module.prototype.exports(
 ): Unknown = {
   if (< 0 (sizeof ArgumentsList)) {
     let moduleObject = ArgumentsList[0]
-    call moduleObject = clo<"converted_to_an_idl_value">(moduleObject, "Module")
+    call-convert moduleObject = <converted_to_an_idl_value>(moduleObject, "Module")
   } else {
     call _err1 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
     call _ret2 = clo<"ThrowCompletion">(_err1)
@@ -583,7 +583,7 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Module.prototype.imports(
 ): Unknown = {
   if (< 0 (sizeof ArgumentsList)) {
     let moduleObject = ArgumentsList[0]
-    call moduleObject = clo<"converted_to_an_idl_value">(moduleObject, "Module")
+    call-convert moduleObject = <converted_to_an_idl_value>(moduleObject, "Module")
   } else {
     call _err1 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
     call _ret2 = clo<"ThrowCompletion">(_err1)
@@ -629,7 +629,7 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Module.prototype.customsections(
 ): Unknown = {
   if (< 0 (sizeof ArgumentsList)) {
     let moduleObject = ArgumentsList[0]
-    call moduleObject = clo<"converted_to_an_idl_value">(moduleObject, "Module")
+    call-convert moduleObject = <converted_to_an_idl_value>(moduleObject, "Module")
   } else {
     call _err1 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
     call _ret2 = clo<"ThrowCompletion">(_err1)
@@ -637,7 +637,7 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Module.prototype.customsections(
   }
   if (< 1 (sizeof ArgumentsList)) {
     let sectionName = ArgumentsList[1]
-    call sectionName = clo<"converted_to_an_idl_value">(sectionName, "DOMString")
+    call-convert sectionName = <converted_to_an_idl_value>(sectionName, "DOMString")
   } else {
     call _err3 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
     call _ret4 = clo<"ThrowCompletion">(_err3)
@@ -670,7 +670,7 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Module(
 ): Unknown = {
   if (< 0 (sizeof ArgumentsList)) {
     let bytes = ArgumentsList[0]
-    call bytes = clo<"converted_to_an_idl_value">(bytes, "AllowSharedBufferSource")
+    call-convert bytes = <converted_to_an_idl_value>(bytes, "AllowSharedBufferSource")
   } else {
     call _err1 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
     call _ret2 = clo<"ThrowCompletion">(_err1)
@@ -678,7 +678,7 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Module(
   }
   if (< 1 (sizeof ArgumentsList)) {
     let options = ArgumentsList[1]
-    call options = clo<"converted_to_an_idl_value">(options, "WebAssemblyCompileOptions")
+    call-convert options = <converted_to_an_idl_value>(options, "WebAssemblyCompileOptions")
   } else {
     call options = clo<"OrdinaryObjectCreate">(null)
   }
@@ -741,7 +741,7 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Instance(
 ): Unknown = {
   if (< 0 (sizeof ArgumentsList)) {
     let moduleObject = ArgumentsList[0]
-    call moduleObject = clo<"converted_to_an_idl_value">(moduleObject, "Module")
+    call-convert moduleObject = <converted_to_an_idl_value>(moduleObject, "Module")
   } else {
     call _err1 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
     call _ret2 = clo<"ThrowCompletion">(_err1)
@@ -749,7 +749,7 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Instance(
   }
   if (< 1 (sizeof ArgumentsList)) {
     let importObject = ArgumentsList[1]
-    call importObject = clo<"converted_to_an_idl_value">(importObject, "object")
+    call-convert importObject = <converted_to_an_idl_value>(importObject, "object")
   } else {
     let importObject = undefined
   }
@@ -901,7 +901,7 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Memory(
 ): Unknown = {
   if (< 0 (sizeof ArgumentsList)) {
     let descriptor = ArgumentsList[0]
-    call descriptor = clo<"converted_to_an_idl_value">(descriptor, "MemoryDescriptor")
+    call-convert descriptor = <converted_to_an_idl_value>(descriptor, "MemoryDescriptor")
   } else {
     call _err1 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
     call _ret2 = clo<"ThrowCompletion">(_err1)
@@ -1027,7 +1027,7 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Memory.prototype.grow(
 ): Unknown = {
   if (< 0 (sizeof ArgumentsList)) {
     let delta = ArgumentsList[0]
-    call delta = clo<"converted_to_an_idl_value">(delta, "AddressValue")
+    call-convert delta = <converted_to_an_idl_value>(delta, "AddressValue")
   } else {
     call _err1 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
     call _ret2 = clo<"ThrowCompletion">(_err1)
@@ -1252,7 +1252,7 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Table(
 ): Unknown = {
   if (< 0 (sizeof ArgumentsList)) {
     let descriptor = ArgumentsList[0]
-    call descriptor = clo<"converted_to_an_idl_value">(descriptor, "TableDescriptor")
+    call-convert descriptor = <converted_to_an_idl_value>(descriptor, "TableDescriptor")
   } else {
     call _err1 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
     call _ret2 = clo<"ThrowCompletion">(_err1)
@@ -1260,7 +1260,7 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Table(
   }
   if (< 1 (sizeof ArgumentsList)) {
     let value = ArgumentsList[1]
-    call value = clo<"converted_to_an_idl_value">(value, "any")
+    call-convert value = <converted_to_an_idl_value>(value, "any")
   } else {
     let value = undefined
   }
@@ -1366,7 +1366,7 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Table.prototype.grow(
 ): Unknown = {
   if (< 0 (sizeof ArgumentsList)) {
     let delta = ArgumentsList[0]
-    call delta = clo<"converted_to_an_idl_value">(delta, "AddressValue")
+    call-convert delta = <converted_to_an_idl_value>(delta, "AddressValue")
   } else {
     call _err1 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
     call _ret2 = clo<"ThrowCompletion">(_err1)
@@ -1374,7 +1374,7 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Table.prototype.grow(
   }
   if (< 1 (sizeof ArgumentsList)) {
     let value = ArgumentsList[1]
-    call value = clo<"converted_to_an_idl_value">(value, "any")
+    call-convert value = <converted_to_an_idl_value>(value, "any")
   } else {
     let value = undefined
   }
@@ -1458,7 +1458,7 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Table.prototype.get(
 ): Unknown = {
   if (< 0 (sizeof ArgumentsList)) {
     let index = ArgumentsList[0]
-    call index = clo<"converted_to_an_idl_value">(index, "AddressValue")
+    call-convert index = <converted_to_an_idl_value>(index, "AddressValue")
   } else {
     call _err1 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
     call _ret2 = clo<"ThrowCompletion">(_err1)
@@ -1508,7 +1508,7 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Table.prototype.set(
 ): Unknown = {
   if (< 0 (sizeof ArgumentsList)) {
     let index = ArgumentsList[0]
-    call index = clo<"converted_to_an_idl_value">(index, "AddressValue")
+    call-convert index = <converted_to_an_idl_value>(index, "AddressValue")
   } else {
     call _err1 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
     call _ret2 = clo<"ThrowCompletion">(_err1)
@@ -1516,7 +1516,7 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Table.prototype.set(
   }
   if (< 1 (sizeof ArgumentsList)) {
     let value = ArgumentsList[1]
-    call value = clo<"converted_to_an_idl_value">(value, "any")
+    call-convert value = <converted_to_an_idl_value>(value, "any")
   } else {
     let value = undefined
   }
@@ -1666,7 +1666,7 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Global(
 ): Unknown = {
   if (< 0 (sizeof ArgumentsList)) {
     let descriptor = ArgumentsList[0]
-    call descriptor = clo<"converted_to_an_idl_value">(descriptor, "GlobalDescriptor")
+    call-convert descriptor = <converted_to_an_idl_value>(descriptor, "GlobalDescriptor")
   } else {
     call _err1 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
     call _ret2 = clo<"ThrowCompletion">(_err1)
@@ -1674,7 +1674,7 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Global(
   }
   if (< 1 (sizeof ArgumentsList)) {
     let v = ArgumentsList[1]
-    call v = clo<"converted_to_an_idl_value">(v, "any")
+    call-convert v = <converted_to_an_idl_value>(v, "any")
   } else {
     let v = undefined
   }
@@ -2471,7 +2471,7 @@ def addressvaluetou64(
   v: Unknown,
   addrtype: Unknown,
 ): Unknown = {
-  call _call1 = clo<"converted_to_a_javascript_value">(v)
+  call-convert _call1 = <converted_to_a_javascript_value>(v)
   v = _call1
   if (= addrtype (case "I32" )) {
     call _call2 = clo<"ConvertToInt">(v, 32, "unsigned", "EnforceRange")
@@ -2589,7 +2589,7 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Tag(
 ): Unknown = {
   if (< 0 (sizeof ArgumentsList)) {
     let type = ArgumentsList[0]
-    call type = clo<"converted_to_an_idl_value">(type, "TagType")
+    call-convert type = <converted_to_an_idl_value>(type, "TagType")
   } else {
     call _err1 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
     call _ret2 = clo<"ThrowCompletion">(_err1)
@@ -2773,7 +2773,7 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Exception(
 ): Unknown = {
   if (< 0 (sizeof ArgumentsList)) {
     let exceptionTag = ArgumentsList[0]
-    call exceptionTag = clo<"converted_to_an_idl_value">(exceptionTag, "Tag")
+    call-convert exceptionTag = <converted_to_an_idl_value>(exceptionTag, "Tag")
   } else {
     call _err1 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
     call _ret2 = clo<"ThrowCompletion">(_err1)
@@ -2781,7 +2781,7 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Exception(
   }
   if (< 1 (sizeof ArgumentsList)) {
     let payload = ArgumentsList[1]
-    call payload = clo<"converted_to_an_idl_value">(payload, "sequence<any>")
+    call-convert payload = <converted_to_an_idl_value>(payload, "sequence<any>")
   } else {
     call _err3 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
     call _ret4 = clo<"ThrowCompletion">(_err3)
@@ -2789,7 +2789,7 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Exception(
   }
   if (< 2 (sizeof ArgumentsList)) {
     let options = ArgumentsList[2]
-    call options = clo<"converted_to_an_idl_value">(options, "ExceptionOptions")
+    call-convert options = <converted_to_an_idl_value>(options, "ExceptionOptions")
   } else {
     call options = clo<"OrdinaryObjectCreate">(null)
   }
@@ -2870,7 +2870,7 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Exception.prototype.getarg(
 ): Unknown = {
   if (< 0 (sizeof ArgumentsList)) {
     let exceptionTag = ArgumentsList[0]
-    call exceptionTag = clo<"converted_to_an_idl_value">(exceptionTag, "Tag")
+    call-convert exceptionTag = <converted_to_an_idl_value>(exceptionTag, "Tag")
   } else {
     call _err1 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
     call _ret2 = clo<"ThrowCompletion">(_err1)
@@ -2878,7 +2878,7 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Exception.prototype.getarg(
   }
   if (< 1 (sizeof ArgumentsList)) {
     let index = ArgumentsList[1]
-    call index = clo<"converted_to_an_idl_value">(index, "unsigned long")
+    call-convert index = <converted_to_an_idl_value>(index, "unsigned long")
   } else {
     call _err3 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
     call _ret4 = clo<"ThrowCompletion">(_err3)
@@ -2924,7 +2924,7 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Exception.prototype.is(
 ): Unknown = {
   if (< 0 (sizeof ArgumentsList)) {
     let exceptionTag = ArgumentsList[0]
-    call exceptionTag = clo<"converted_to_an_idl_value">(exceptionTag, "Tag")
+    call-convert exceptionTag = <converted_to_an_idl_value>(exceptionTag, "Tag")
   } else {
     call _err1 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
     call _ret2 = clo<"ThrowCompletion">(_err1)
@@ -3444,7 +3444,7 @@ def resolve(
   if (= x undefined) {
     let x = undefined
   } else nop
-  call value = clo<"converted_to_a_javascript_value">(x)
+  call-convert value = <converted_to_a_javascript_value>(x)
   call _ = clo<"Call">(p.Resolve, undefined, (list [value]))
   if (= T undefined) {
     (yet "the |x| argument is optional, allowing a simpler \"[=resolve=] p\" usage")
@@ -3483,7 +3483,7 @@ def react(
 def get_a_copy_of_the_buffer_source(
   bufferSource: Unknown,
 ): Unknown = {
-  call jsBufferSource = clo<"converted_to_a_javascript_value">(bufferSource)
+  call-convert jsBufferSource = <converted_to_a_javascript_value>(bufferSource)
   let jsArrayBuffer = jsBufferSource
   let offset = 0
   let length = 0
@@ -3812,13 +3812,13 @@ def react_closure1(
   } else {
     assert false
   }
-  call value = clo<"converted_to_an_idl_value">(V, T)
+  call-convert value = <converted_to_an_idl_value>(V, T)
   if (&& (! (= onFullfilledStepsArg undefined)) (! (= T undefined))) {
     call result = onFullfilledStepsArg(value)
   } else {
     let result = value
   }
-  call _result1 = clo<"converted_to_a_javascript_value">(result)
+  call-convert _result1 = <converted_to_a_javascript_value>(result)
   if (? _result1: Completion) {
     return _result1
   } else {
@@ -3836,13 +3836,13 @@ def react_closure2(
   } else {
     assert false
   }
-  call reason = clo<"converted_to_an_idl_value">(R, ~any~)
+  call-convert reason = <converted_to_an_idl_value>(R, ~any~)
   if (! (= onRejectedStepsArg undefined)) {
     call result = onRejectedStepsArg(reason)
   } else {
     call result = clo<"a_promise_rejected_with">(reason)
   }
-  call _result1 = clo<"converted_to_a_javascript_value">(result)
+  call-convert _result1 = <converted_to_a_javascript_value>(result)
   if (? _result1: Completion) {
     return _result1
   } else {
@@ -3907,7 +3907,7 @@ def creating_an_operation_function_closure1(
   } else {
     R = (yet "running the [=method steps=] of |operation|, with |idlObject| as [=this=] and |values| as the argument values")
   }
-  call _result1 = clo<"converted_to_a_javascript_value">(R)
+  call-convert _result1 = <converted_to_a_javascript_value>(R)
   if (? _result1: Completion) {
     return _result1
   } else {

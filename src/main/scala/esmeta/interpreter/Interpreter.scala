@@ -16,6 +16,7 @@ import esmeta.util.Loc
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
 import esmeta.wji.bridge.host.{HostFunction, WasmError, WasmHost}
+import esmeta.wji.interpreter.WebIdlConversion
 import java.io.PrintWriter
 import java.math.MathContext.DECIMAL128
 import java.util.concurrent.TimeoutException
@@ -200,6 +201,9 @@ class Interpreter(
     case ICallEmbed(lhs, fname, argEs) =>
       val args = argEs.map(eval)
       setCallResult(lhs, callEmbedding(fname, args, call))
+    case ICallConvert(lhs, fname, argEs) =>
+      val args = argEs.map(eval)
+      setCallResult(lhs, WebIdlConversion.call(st, fname, args))
   }
 
   /** the JS `ArrayBuffer` <-> wasm store memory-sync helpers — see

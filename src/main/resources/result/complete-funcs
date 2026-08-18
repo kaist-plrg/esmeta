@@ -2650,6 +2650,4 @@ __NEW_ERROR_OBJ__
 __NEW_OBJ__
 __REMOVE_ELEM__
 compute_the_effective_overload_set
-converted_to_a_javascript_value
-converted_to_an_idl_value
 exposed

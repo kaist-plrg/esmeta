@@ -29,6 +29,17 @@ object Compiler:
     */
   private val EUnused = EEnum("unused")
 
+  /** WebIDL value-conversion operations dispatched natively via
+    * [[ICallConvert]] rather than compiled to an ordinary [[ICall]] against a
+    * hand-written `.ir` stub under `manuals/funcs` — see
+    * `esmeta.wji.interpreter.WebIdlConversion`. Mirrors [[WasmHost.names]]'s
+    * own role for [[ICallEmbed]]: a fixed, small catalog checked by name at the
+    * one call-emission site (`mkCall`, in `compileInstr`'s `Instr.Perform` case
+    * below).
+    */
+  private val webIdlConversionNames: Set[String] =
+    Set("converted_to_an_idl_value", "converted_to_a_javascript_value")
+
   /** *(hardcoding)* A quick stand-in for the base ordinary-object shape
     * (`Prototype`/`Extensible`/`__MAP__`/every standard internal method,
     * mirroring `manuals/funcs/__NEW_OBJ__.ir`) every `Expr.New(iface)`
@@ -271,9 +282,13 @@ object Compiler:
       val bodyInsts = compileSeq(body)
       // a Wasm Embedding function (e.g. `module_imports`) isn't a WJI/ES
       // function in `cfg.fnameMap` — it's dispatched to the live WasmHost via
-      // a dedicated IR node instead of an ordinary closure call.
+      // a dedicated IR node instead of an ordinary closure call. A WebIDL
+      // value-conversion function is the same idea, dispatched natively
+      // instead — see `webIdlConversionNames`.
       def mkCall(lhs: Name): Inst =
         if WasmHost.names.contains(name) then ICallEmbed(lhs, name, callArgs)
+        else if webIdlConversionNames.contains(name) then
+          ICallConvert(lhs, name, callArgs)
         else ICall(lhs, EClo(name, Nil), callArgs)
       outcome match
         case PerformOutcome.Discard =>

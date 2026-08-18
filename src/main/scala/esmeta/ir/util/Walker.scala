@@ -66,6 +66,8 @@ trait Walker extends BasicWalker {
       ISdoCall(walk(l), walk(b), walk(n), walkList(as, walk))
     case ICallEmbed(l, f, as) =>
       ICallEmbed(walk(l), walk(f), walkList(as, walk))
+    case ICallConvert(l, f, as) =>
+      ICallConvert(walk(l), walk(f), walkList(as, walk))
   ).setLangOpt(inst.langOpt)
 
   // expressions

@@ -101,6 +101,10 @@ class DotPrinter(
             throw new NotImplementedError(
               s"TODO: ICallEmbed ($fname) not yet supported by DotPrinter",
             )
+          case ICallConvert(_, fname, _) =>
+            throw new NotImplementedError(
+              s"TODO: ICallConvert ($fname) not yet supported by DotPrinter",
+            )
         drawNode(id, "cds", nodeColor, bgColor, Some(simpleString))
         nextOpt match
           case Some(next) =>

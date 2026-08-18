@@ -252,6 +252,10 @@ trait AbsTransferDecl { analyzer: TyChecker =>
           notSupported(
             s"TODO: ICallEmbed ($fname) not yet supported by the type analyzer",
           )
+        case ICallConvert(_, fname, _) =>
+          notSupported(
+            s"TODO: ICallConvert ($fname) not yet supported by the type analyzer",
+          )
       }
     }
 

@@ -57,6 +57,7 @@ trait UnitWalker extends BasicUnitWalker {
     case ICall(l, f, as)        => walk(l); walk(f); walkList(as, walk)
     case ISdoCall(l, b, n, as)  => walk(l); walk(b); walk(n); walkList(as, walk)
     case ICallEmbed(l, f, as)   => walk(l); walk(f); walkList(as, walk)
+    case ICallConvert(l, f, as) => walk(l); walk(f); walkList(as, walk)
   }
 
   // expressions

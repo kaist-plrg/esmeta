@@ -142,12 +142,18 @@ object AddInterfaceMemberBuiltinBehaviourPass extends LoweringPass:
     * [[AddBuiltinBehaviourPass.omittedBranch]] (duplicated for the same reason
     * `unpackArgumentsList` itself is).
     *
-    *   - A *required* param (`!p.optional`) reaching here means WebIDL's own
-    *     overload resolution (which validates argument count before the
-    *     operation's steps ever run) let an arity mismatch through unnoticed —
-    *     a genuine bug somewhere, not a case worth padding over with a silent
-    *     `undefined`, so it asserts unreachable (mirrors a real "Assert: This
-    *     step is not reached." in spec text, [[Cond.Unreachable]]).
+    *   - A *required* param (`!p.optional`) reaching here is exactly the case
+    *     WebIDL's own overload resolution algorithm (`webidl/index.bs`
+    *     `argcount`/effective-overload-set steps) is defined to catch before
+    *     the operation's steps ever run: with no real overloading in this
+    *     corpus (a single entry per identifier, [=list/append|expanded=] only
+    *     by trailing optional/defaulted params), too few arguments always means
+    *     no effective-overload-set entry matches, so the algorithm throws a
+    *     `TypeError` — mirrored here directly (via
+    *     [[CompletionWrapping.expandAlgorithm]], since a raw [[Instr.Throw]]
+    *     left un-expanded compiles to a `Compiler.compileInstr` stub) rather
+    *     than asserted unreachable, since real user code does reach this (see
+    *     `tests/wji/constructors.js`'s `new WebAssembly.Module()`).
     *   - An optional param with no [[WjiParam.default]] is left genuinely
     *     unbound (not defaulted to `undefined`), so `Cond.IsMissing`'s `"|X| is
     *     missing"` check (`Compiler.compileExpr`'s `EExists`) correctly reports
@@ -173,7 +179,10 @@ object AddInterfaceMemberBuiltinBehaviourPass extends LoweringPass:
     *     `UnsupportedSpecShape` instead of being guessed at.
     */
   private def omittedBranch(p: WjiParam, name: String): List[Instr] =
-    if !p.optional then List(Instr.Assert(Cond.Unreachable))
+    if !p.optional then
+      CompletionWrapping.expandAlgorithm(
+        List(Instr.Throw(Expr.New("TypeError"))),
+      )
     else
       p.default match
         case None => Nil

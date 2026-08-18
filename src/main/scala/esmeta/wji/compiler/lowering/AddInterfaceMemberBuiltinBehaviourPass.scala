@@ -139,18 +139,22 @@ object AddInterfaceMemberBuiltinBehaviourPass extends LoweringPass:
     *     see class doc) rather than asserted unreachable, since real user code
     *     does reach this (see `tests/wji/constructors.js`'s `new
     *     WebAssembly.Module()`).
-    *   - An optional param with no [[WjiParam.default]] is left genuinely
-    *     unbound (not defaulted to `undefined`), so `Cond.IsMissing`'s `"|X| is
-    *     missing"` check (`Compiler.compileExpr`'s `EExists`) correctly reports
-    *     absence — real optional-parameter spec text always branches on exactly
-    *     that check before ever reading the value (WebIDL's own authoring
-    *     convention — there is no sensible unconditional default otherwise), so
-    *     nothing downstream needs to observe an "absent" param as a bound
-    *     `undefined`.
-    *   - An optional param *with* a [[WjiParam.default]] is never genuinely
-    *     "missing" per WebIDL's own argument-list processing — omitting it is
-    *     equivalent to passing the default value literally, and spec text using
-    *     one (e.g. `Module`'s constructor reading `|options|["builtins"]`
+    *   - An optional param with no [[WjiParam.default]] is bound to `undefined`
+    *     — not left unbound. Per WebIDL's overload resolution algorithm, an
+    *     omitted argument and one explicitly passed as `undefined` both convert
+    *     to the same "missing" sentinel before an operation's own steps ever
+    *     run, and that sentinel is never itself a real ECMAScript value once
+    *     inside those steps — the only value real spec text ever observes for
+    *     it is `undefined` (see `docs/spec_inconsistencies.md` #16).
+    *     `Cond.IsMissing`'s `"|X| is missing"` check compiles to exactly that
+    *     comparison (`Compiler.compileCond`), so real optional-parameter spec
+    *     text branching on it (`Table`'s `|value|`, `Global`'s `|v|`) still
+    *     works; spec text that skips the check and reads the param directly
+    *     (e.g. `Instance`'s `|importObject|`, passed straight into `read the
+    *     imports`) now gets a real bound value instead of crashing. "missing"
+    *     per WebIDL's own argument-list processing — omitting it is equivalent
+    *     to passing the default value literally, and spec text using one (e.g.
+    *     `Module`'s constructor reading `|options|["builtins"]`
     *     unconditionally) never checks `IsMissing` for it at all, so leaving it
     *     unbound would crash instead. Only `"{}"` (an empty dictionary — the
     *     only default this corpus's WebIDL actually declares) is handled, via
@@ -167,7 +171,8 @@ object AddInterfaceMemberBuiltinBehaviourPass extends LoweringPass:
     if !p.optional then List(Instr.Throw(Expr.New("TypeError")))
     else
       p.default match
-        case None => Nil
+        case None =>
+          List(Instr.Let(Expr.Var(name), Expr.SpecTerm("undefined")))
         case Some("{}") =>
           List(
             Instr.Perform(

@@ -528,10 +528,21 @@ object Compiler:
     case Cond.IsType(e, t, false) => ETypeCheck(compileExpr(e), irTypeOf(t))
     case Cond.IsType(e, t, true) =>
       EUnary(UOp.Not, ETypeCheck(compileExpr(e), irTypeOf(t)))
-    case Cond.Abbreviated(e)      => compileExpr(e)
-    case Cond.Unreachable         => EBool(false)
-    case Cond.IsMissing(e, false) => EUnary(UOp.Not, EExists(compileRef(e)))
-    case Cond.IsMissing(e, true)  => EExists(compileRef(e))
+    case Cond.Abbreviated(e) => compileExpr(e)
+    case Cond.Unreachable    => EBool(false)
+    // "|X| is missing" tests the value against `undefined`, not whether `X`
+    // is bound — WebIDL's overload resolution algorithm converts both an
+    // omitted argument and one explicitly passed as `undefined` into the
+    // same "missing" sentinel before an operation's own steps ever run
+    // (webidl/index.bs), so `X` is always a real binding by the time this
+    // runs (see `AddInterfaceMemberBuiltinBehaviourPass.omittedBranch`/
+    // `AddBuiltinBehaviourPass.omittedBranch`, which bind an omitted
+    // optional-with-no-default parameter to `undefined` rather than leaving
+    // it unbound).
+    case Cond.IsMissing(e, false) =>
+      EBinary(BOp.Eq, compileExpr(e), EUndef())
+    case Cond.IsMissing(e, true) =>
+      EUnary(UOp.Not, EBinary(BOp.Eq, compileExpr(e), EUndef()))
     case Cond.HasSlot(e, slot, false) =>
       EExists(Field(compileRef(e), EStr(slot)))
     case Cond.HasSlot(e, slot, true) =>

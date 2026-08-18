@@ -151,7 +151,7 @@ def read_the_imports(
   importedStringModule: Unknown,
 ): Unknown = {
   call-embed _call1 = <module_imports>(module)
-  if (&& (! (= (sizeof _call1) 0)) (! (exists importObject))) {
+  if (&& (! (= (sizeof _call1) 0)) (= importObject undefined)) {
     call _err1 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
     call _ret2 = clo<"ThrowCompletion">(_err1)
     return _ret2
@@ -750,7 +750,9 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Instance(
   if (< 1 (sizeof ArgumentsList)) {
     let importObject = ArgumentsList[1]
     call importObject = clo<"converted_to_an_idl_value">(importObject, "object")
-  } else nop
+  } else {
+    let importObject = undefined
+  }
   this = (record [Instance] {
     "GetPrototypeOf" : clo<"Record[OrdinaryObject].GetPrototypeOf">,
     "SetPrototypeOf" : clo<"Record[OrdinaryObject].SetPrototypeOf">,
@@ -1259,7 +1261,9 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Table(
   if (< 1 (sizeof ArgumentsList)) {
     let value = ArgumentsList[1]
     call value = clo<"converted_to_an_idl_value">(value, "any")
-  } else nop
+  } else {
+    let value = undefined
+  }
   this = (record [Table] {
     "GetPrototypeOf" : clo<"Record[OrdinaryObject].GetPrototypeOf">,
     "SetPrototypeOf" : clo<"Record[OrdinaryObject].SetPrototypeOf">,
@@ -1320,7 +1324,7 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Table(
     call _ret8 = clo<"ThrowCompletion">(_err7)
     return _ret8
   } else nop
-  if (! (exists value)) {
+  if (= value undefined) {
     call ref = clo<"defaultvalue">(elementtype)
     assert (! (= ref (case "ERROR" )))
   } else {
@@ -1371,7 +1375,9 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Table.prototype.grow(
   if (< 1 (sizeof ArgumentsList)) {
     let value = ArgumentsList[1]
     call value = clo<"converted_to_an_idl_value">(value, "any")
-  } else nop
+  } else {
+    let value = undefined
+  }
   let tableaddr = this.Table
   let store = @AGENT_RECORD["associated store"]
   call-embed initialSize = <table_size>(store, tableaddr)
@@ -1390,7 +1396,7 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Table.prototype.grow(
   } else {
     let delta64 = _call1.Value
   }
-  if (! (exists value)) {
+  if (= value undefined) {
     call ref = clo<"defaultvalue">(elementtype)
     if (= ref (case "ERROR" )) {
       call _err4 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
@@ -1511,7 +1517,9 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Table.prototype.set(
   if (< 1 (sizeof ArgumentsList)) {
     let value = ArgumentsList[1]
     call value = clo<"converted_to_an_idl_value">(value, "any")
-  } else nop
+  } else {
+    let value = undefined
+  }
   let tableaddr = this.Table
   let store = @AGENT_RECORD["associated store"]
   call-embed _tuple1 = <table_type>(store, tableaddr)
@@ -1535,7 +1543,7 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Table.prototype.set(
   } else {
     let index64 = _call1.Value
   }
-  if (! (exists value)) {
+  if (= value undefined) {
     call ref = clo<"defaultvalue">(elementtype)
     if (= ref (case "ERROR" )) {
       call _err6 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
@@ -1667,7 +1675,9 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Global(
   if (< 1 (sizeof ArgumentsList)) {
     let v = ArgumentsList[1]
     call v = clo<"converted_to_an_idl_value">(v, "any")
-  } else nop
+  } else {
+    let v = undefined
+  }
   this = (record [Global] {
     "GetPrototypeOf" : clo<"Record[OrdinaryObject].GetPrototypeOf">,
     "SetPrototypeOf" : clo<"Record[OrdinaryObject].SetPrototypeOf">,
@@ -1694,7 +1704,7 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Global(
     call _ret4 = clo<"ThrowCompletion">(_err3)
     return _ret4
   } else nop
-  if (! (exists v)) {
+  if (= v undefined) {
     call value = clo<"defaultvalue">(valuetype)
     assert (! (= value (case "ERROR" )))
   } else {
@@ -3431,7 +3441,7 @@ def resolve(
   p: Unknown,
   x: Unknown,
 ): Unknown = {
-  if (! (exists x)) {
+  if (= x undefined) {
     let x = undefined
   } else nop
   call value = clo<"converted_to_a_javascript_value">(x)

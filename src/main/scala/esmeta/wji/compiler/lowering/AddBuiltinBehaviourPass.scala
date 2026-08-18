@@ -54,19 +54,22 @@ object AddBuiltinBehaviourPass extends LoweringPass:
   /** the instructions that run in `unpackArgumentsList`'s `IfChain` when fewer
     * arguments were actually supplied than a param's own position — mirrors
     * [[AddInterfaceMemberBuiltinBehaviourPass.omittedBranch]] (duplicated for
-    * the same reason `unpackArgumentsList` itself is). In practice a `Plain`
-    * algorithm's [[WjiParam.default]] is always `None` — the only source of
-    * `optional`/`default` here is `AlgorithmExtractor.extractParams`'s "using
-    * optional X |Y|" prose detection, which has no default-value syntax of its
-    * own (unlike `esmeta.wji.extractor.Extractor.enrichParamTypes`'s WebIDL
-    * source, which only stamps a `Method`/`Constructor`-kind algorithm) — but
-    * the logic is identical either way, so it's not special-cased away.
+    * the same reason `unpackArgumentsList` itself is; see that method's own doc
+    * for why an optional param with no default binds to `undefined` rather than
+    * staying unbound). In practice a `Plain` algorithm's [[WjiParam.default]]
+    * is always `None` — the only source of `optional`/`default` here is
+    * `AlgorithmExtractor.extractParams`'s "using optional X |Y|" prose
+    * detection, which has no default-value syntax of its own (unlike
+    * `esmeta.wji.extractor.Extractor.enrichParamTypes`'s WebIDL source, which
+    * only stamps a `Method`/`Constructor`-kind algorithm) — but the logic is
+    * identical either way, so it's not special-cased away.
     */
   private def omittedBranch(p: WjiParam, name: String): List[Instr] =
     if !p.optional then List(Instr.Assert(Cond.Unreachable))
     else
       p.default match
-        case None => Nil
+        case None =>
+          List(Instr.Let(Expr.Var(name), Expr.SpecTerm("undefined")))
         case Some("{}") =>
           List(
             Instr.Perform(

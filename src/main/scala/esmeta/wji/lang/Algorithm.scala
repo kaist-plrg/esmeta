@@ -75,11 +75,12 @@ enum AlgorithmKind:
   *   at the call site is equivalent to passing the default value literally, so
   *   `esmeta.wji.compiler.lowering.
   *   AddInterfaceMemberBuiltinBehaviourPass.unpackArgumentsList` binds it to
-  *   that value when omitted, rather than leaving it unbound the way a
+  *   that value when omitted, rather than to `undefined` the way a
   *   genuinely-optional-with-no-default parameter is (see that method's own
   *   doc) — a spec algorithm using a defaulted parameter (e.g. `Module`'s
   *   constructor reading `|options|["builtins"]` unconditionally) never checks
-  *   `Cond.IsMissing` for it at all, so leaving it unbound would crash instead.
+  *   `Cond.IsMissing` for it at all, so binding `undefined` instead of the real
+  *   default would silently misbehave rather than crash.
   */
 case class WjiParam(
   name: String,

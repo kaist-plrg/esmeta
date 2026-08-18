@@ -32,38 +32,12 @@
 - `#9-4` - the PropertyDescriptor{\[[Value]]: |method|, \[[Writable]]: |modifiable|, \[[Enumerable]]: <emu-val>true</emu-val>, \[[Configurable]]: |modifiable|}
 - `#20-3` - the PropertyDescriptor{\[[Writable]]: <emu-val>false</emu-val>, \[[Enumerable]]: <emu-val>true</emu-val>, \[[Configurable]]: <emu-val>false</emu-val> \[[Value]]: |value|}
 
-### I-E. `let`의 tuple destructuring
-
-- `#3-6` - Let &lt;|constructor|, |values|&gt; be the result of passing |S| and |args| to the [=overload resolution algorithm=].
-- `#10-11` - Let &lt;|operation|, |values|&gt; be the result of passing |S| and |args| to the [=overload resolution algorithm=].
-
 ### I-F. 제어 흐름 관련
 
 - `#6-2`, `#10-3` — Try running the following steps: ... And then, if <a lt="an exception was thrown">an exception |E| was thrown</a>:
 - `#6-14`, `#10-15` — end these steps and allow the exception to propagate
 - `#9-2` - [=iteration/continue=]
 - `#11-16` - [=iteration/break=]
-
-### I-G. 조건부 `let` 값 패턴 (`X if COND, Y otherwise`)
-
-- `#3-1` - Let |steps| be |I|'s [=overridden constructor steps=] if they exist, or the following steps otherwise:
-- `#5-5` - Let |configurable| be <emu-val>false</emu-val> if |attr| is [=unforgeable=] and <emu-val>true</emu-val> otherwise.
-- `#6-4` - Let |jsValue| be the <emu-val>this</emu-val> value, if it is not <emu-val>null</emu-val> or <emu-val>undefined</emu-val>, or |realm|'s [=realm/global object=] otherwise.
-/ `#7-8` — Let |jsValue| be the <emu-val>this</emu-val> value, if it is not <emu-val>null</emu-val> or <emu-val>undefined</emu-val>, or |realm|'s [=realm/global object=] otherwise.
-
-### I-H. steps-block 도입 패턴
-
-- `#6-1`, `#7-3`, `#10-2` - the following series of steps
-
-### I-I. ECMA-262 abstract-op 호출 마크업 인식
-
-- `#3-13`, `#5-8`, `#7-15` - <a abstract-op>DefinePropertyOrThrow</a>(...)
-- `#6-9`, `#7-13`, `#10-8` - a <l spec=ecmascript>{{TypeError}}</l>
-- `#3-11`, `#6-16`, `#7-26`, `#10-18` - <a abstract-op>CreateBuiltinFunction</a>(...)
-- `#9-6` - <a abstract-op>DefinePropertyOrThrow</a>(...)
-- `#10-14`, `#10-20` - <a abstract-op>Call</a>(...)
-- `#11-5` - <a abstract-op>max</a>(...)
-- `#20-5` - <a abstract-op>DefinePropertyOrThrow</a>(...)
 
 ### I-J. 문자열 연결(concat) 표현식: IR에 string concat expression 추가.
 
@@ -94,6 +68,16 @@
 - #6-11, #7-21, #10-9
     - Set |idlObject| to the IDL [=interface type=] value that represents a reference to |jsValue|.
     -> idlObject = jsValue
+
+### I-P. `<emu-val>this</emu-val>` 값 / `X's [=realm/global object=]` 필드 미인식
+**공통 원인**: 예전 category I-G(`X if COND, Y otherwise`)에 묶여있던 두 branch 값 —
+conditional 구조 자체는 이제 파싱되지만, 각 branch의 값이 따로 막혀 있음.
+- `<emu-val>this</emu-val>` 값: `ThisOnly`가 인식하는 `**this**`(굵게-별표) 형태가 아니라
+  `<emu-val>...</emu-val>` 마크업으로 감싸진 형태라 인식 못 함.
+- `|realm|'s [=realm/global object=]`: `AssociatedRealm`(`X's [=associated Realm=]`)과 같은
+  possessive-link 꼴이지만 다른 필드 이름이라 별도 매핑 필요.
+
+- `#6-4`, `#7-8`, `#10-5` - Let |jsValue| be the <emu-val>this</emu-val> value, if it is not <emu-val>null</emu-val> or <emu-val>undefined</emu-val>, or |realm|'s [=realm/global object=] otherwise.
 
 ### I-O. instruction 파싱 관련
 - `#12-2` - Initialize |argcount| to be min(|maxarg|, |n|).
@@ -186,20 +170,6 @@ attribute="))` 같은 케이스들이 속하는 곳입니다. 전부 "interface/
 - `#15-1` - |definition| does not have an an [=asynchronously iterable declaration=] (of either sort)
     - assume true
 
-### II-E. identifier 필드
-
-- `#3-4` - the identifier of interface |I|
-- `#6-6` - |attr|'s [=identifier=]
-- `#6-15` - |attribute|'s [=identifier=]
-- `#7-6` - |attribute|'s [=identifier=]
-- `#9-5`, `#10-1` - |op|'s [=identifier=]
-- `#20-4` - |const|'s [=identifier=]
-
-### II-F. member-list projection
-
-- `#4-1` - the [=list=] of [=regular attributes=] that are [=members=] of |definition|
-- `#8-1` - the [=list=] of [=regular operations=] that are [=members=] of |definition|
-
 ### II-G. IDL 타입 태그 조회
 
 - `#5-9` - |attr|'s type is an [=observable array type=] with type argument |T|
@@ -268,6 +238,7 @@ attribute="))` 같은 케이스들이 속하는 곳입니다. 전부 "interface/
 - `#6-12` - the result of running the [=getter steps=] of |attribute| with |idlObject| as [=this=]
 - `#7-24` - Perform the [=setter steps=] of |attribute|, with |idlObject| as [=this=] and |idlValue| as [=the given value=].
 - `#10-13` - the result of running the [=method steps=] of |operation|, with |idlObject| as [=this=] and |values| as the argument values
+- `#3-6`, `#10-11` - the result of passing |S| and |args| to the [=overload resolution algorithm=]
 
 ### III-C. Passing the given value
 
@@ -304,6 +275,15 @@ attribute="))` 같은 케이스들이 속하는 곳입니다. 전부 "interface/
             => call _call1 = clo<"optional_argument">((yet "i.e."), (yet "it is not marked as \"optional\" and is not a final"), (yet "variadic argument"))
 - `#20-1` - [=constant=] |const| that is a [=member=] of |definition|
             => (case "CONSTANT" const (case "MEMBER" definition))
+
+### IV-D. extended attribute 존재 여부 predicate가 bare equality로 오인됨
+`X is [=unforgeable=]`처럼 "X가 [ExtendedAttribute] 확장 속성을 갖는지" 묻는 predicate가
+`IsTypePos`/`IsTypeNeg`(`[=is a/an NOUN=]` 꼴)에 안 걸리고 일반 "X is Y" fallback으로 빠져서,
+`unforgeable`이 bare `SpecTerm`으로 파싱되고 `(= attr ~unforgeable~)`라는, 레코드 값과 enum
+태그를 직접 비교하는 (항상 false인) 조건으로 컴파일됨 — yet이 아니라서 눈에 안 띄는 조용한
+오컴파일.
+- `#5-5` - Let |configurable| be <emu-val>false</emu-val> if |attr| is [=unforgeable=] and <emu-val>true</emu-val> otherwise.
+           => (&& (exists attr.extendedAttributes.unforgeable) (= attr.extendedAttributes.unforgeable true))
 
 ---
 
@@ -355,7 +335,8 @@ operation) or for [=static operations=] (if |op| is a static operation)"처럼 �
 - `#12-12` - Let |callable| be the [=operation=] or [=extended attribute=] of the single entry in |S|. 
 
 ### VII-C 그 외
-- `#2-1` - if they exist
+- `#3-1` - if they exist
     - assume false
+- `#6-4`, `#7-8`, `#10-5` - it is not <emu-val>null</emu-val> or <emu-val>undefined</emu-val>
 - `#6-14` - end these steps and allow the exception to propagate
 - `#11-4` - Let |maxarg| be the maximum number of arguments the operations, legacy factory functions, or callback functions in |F| are declared to take. For [=variadic=] operations and legacy factory functions, the argument on which the ellipsis appears counts as a single argument.

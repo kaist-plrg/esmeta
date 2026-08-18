@@ -157,9 +157,13 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
 먼저 `steps`로 묶이는, **생성자가 호출될 때마다 실행되는** 부분:
 
 ```
-1. 카테고리 - I-G + VII-C
+1. 카테고리 - VII-C
    원문 - Let |steps| be |I|'s [=overridden constructor steps=] if they exist, or the following steps otherwise:
-   IR - let steps = (yet "|I|'s [=overridden constructor steps=] if they exist, or the following steps otherwise:")
+   IR - if (yet "they exist") {
+          let steps = (yet "|I|'s [=overridden constructor steps=]")
+        } else {
+          let steps = clo<"create_an_interface_object_closure1", [I, realm]>
+        }
 
 2. 카테고리 - II-A
    원문 - If |I| was not declared with a [=constructor operation=], ...
@@ -169,17 +173,15 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
    원문 - Let |args| be the passed arguments.
    IR - let args = (yet "the passed arguments")
 
-4. 카테고리 - II-E
-   원문 - Let |id| be the identifier of interface |I|.
-   IR - let id = (yet "the identifier of interface |I|")
-
 5. 카테고리 - IV-C
    원문 - [=Compute the effective overload set=] for constructors with [=identifier=] |id| on [=interface=] |I| and with argument count |n|, and let |S| be the result.
    IR - call S = clo<"compute_the_effective_overload_set">((case "IDENTIFIER" id (case "INTERFACE" I n)))
 
-6. 카테고리 - I-E
+6. 카테고리 - III-B
    원문 - Let &lt;|constructor|, |values|&gt; be the result of passing |S| and |args| to the [=overload resolution algorithm=].
-   IR - let _ = (yet "unsupported Let lhs: Unknown(<|constructor|, |values|>)")
+   IR - let _tuple1 = (yet "passing |S| and |args| to the [=overload resolution algorithm=]")
+        let constructor = _tuple1[0]
+        let values = _tuple1[1]
 
 7. 카테고리 - II-B + III-B
    원문 - Perform the [=constructor steps=] of |constructor| with |object| as [=this=] and |values| as the argument values.
@@ -197,17 +199,13 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
     원문 - Set |length| to the length of the shortest argument list of the entries in |S|.
     IR - length = (sizeof (yet "the shortest argument list of the entries in |S|"))
 
-11. 카테고리 - I-I
-    원문 - Let |F| be <a abstract-op>CreateBuiltinFunction</a>(|steps|, |length|, |id|, « \[[Unforgeables]] », |realm|, |constructorProto|).
-    IR - let F = (yet "<a abstract-op>CreateBuiltinFunction</a>(|steps|, |length|, |id|, « \[[Unforgeables]] », |realm|, |constructorProto|)")
-
 12. 카테고리 - IV-C
     원문 - Let |proto| be the result of [=create an interface prototype object|creating an interface prototype object=] of [=interface=] |I| in |realm|.
     IR - call proto = clo<"create_an_interface_prototype_object">((case "INTERFACE" I realm))
 
-13. 카테고리 - I-C + I-I
+13. 카테고리 - I-C
     원문 - Perform [=!=] <a abstract-op>DefinePropertyOrThrow</a>(|F|, "<code>prototype</code>", PropertyDescriptor{\[[Value]]: |proto|, \[[Writable]]: <emu-val>false</emu-val>, \[[Enumerable]]: <emu-val>false</emu-val>, \[[Configurable]]: <emu-val>false</emu-val>}).
-    IR - call _ = clo<"<a_abstract-op>DefinePropertyOrThrow</a>(|F|,_"<code>prototype</code>",_PropertyDescriptor{\[[Value]]:_|proto|,_\[[Writable]]:_<emu-val>false</emu-val>,_\[[Enumerable]]:_<emu-val>false</emu-val>,_\[[Configurable]]:_<emu-val>false</emu-val>})">()
+    IR - call _ = clo<"DefinePropertyOrThrow">(F, "<code>prototype</code>", (yet "PropertyDescriptor{\[[Value]]: |proto|, \[[Writable]]: <emu-val>false</emu-val>, \[[Enumerable]]: <emu-val>false</emu-val>, \[[Configurable]]: <emu-val>false</emu-val>}"))
 
 14. 카테고리 - IV-C
     원문 - [=Define the constants=] of [=interface=] |I| on |F| given |realm|.
@@ -231,10 +229,6 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
   `define_the_attributes`에 넘깁니다.
 
 ```
-1. 카테고리 - II-F
-   원문 - Let |attributes| be the [=list=] of [=regular attributes=] that are [=members=] of |definition|.
-   IR - let attributes = (yet "the [=list=] of [=regular attributes=] that are [=members=] of |definition|")
-
 2. 카테고리 - I-O + II-A + V
    원문 - [=list/Remove=] from |attributes| all the [=attributes=] that are [=unforgeable=].
    IR - call _ = clo<"list/remove">(attributes, ~attributes~, ~unforgeable~)
@@ -265,22 +259,23 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
    원문 - Let |setter| be the result of creating an [=attribute setter=] given |attr|, |definition|, and |realm|.
    IR - let setter = (yet "an [=attribute setter=] given |attr|, |definition|, and |realm|")
 
-5. 카테고리 - I-G
+5. 카테고리 - IV-D
    원문 - Let |configurable| be <emu-val>false</emu-val> if |attr| is [=unforgeable=] and <emu-val>true</emu-val> otherwise.
-   IR - let configurable = (yet "<emu-val>false</emu-val> if |attr| is [=unforgeable=] and <emu-val>true</emu-val> otherwise")
+   IR (현재) - if (= attr ~unforgeable~) {
+                 let configurable = ~false~
+               } else {
+                 let configurable = ~true~
+               }
+   IR (목표) - if (&& (exists attr.extendedAttributes.unforgeable) (= attr.extendedAttributes.unforgeable true)) {
+                 let configurable = false
+               } else {
+                 let configurable = true
+               }
 
 6. 카테고리 - I-C
    원문 - Let |desc| be the PropertyDescriptor{\[[Get]]: |getter|, \[[Set]]: |setter|, \[[Enumerable]]: <emu-val>true</emu-val>, \[[Configurable]]: |configurable|}.
    IR - let desc = (yet "the PropertyDescriptor{\[[Get]]: |getter|, \[[Set]]: |setter|, \[[Enumerable]]: <emu-val>true</emu-val>, \[[Configurable]]: |configurable|}")
    설명    - record 리터럴 문법을 파서가 못 읽습니다.
-
-7. 카테고리 - II-E
-   원문 - Let |id| be |attr|'s [=identifier=].
-   IR - let id = (yet "|attr|'s [=identifier=]")
-
-8. 카테고리 - I-I
-   원문 - Perform [=!=] <a abstract-op>DefinePropertyOrThrow</a>(|target|, |id|, |desc|).
-   IR - call _ = clo<"<a_abstract-op>DefinePropertyOrThrow</a>(|target|,_|id|,_|desc|)">()
 
 9. 카테고리 - II-G
    원문 - If |attr|'s type is an [=observable array type=] with type argument |T|, then: ...
@@ -298,10 +293,6 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
   전달되어 실제 getter 함수의 바디가 됩니다.
 
 ```
-1. 카테고리 - I-H
-   원문 - Let |steps| be the following series of steps:
-   IR - let steps = (yet "the following series of steps:")
-
 2. 카테고리 - I-F
    원문 - Try running the following steps: ... And then, if <a lt="an exception was thrown">an exception |E| was thrown</a>:
    IR - (yet "Try running the following steps:")
@@ -312,9 +303,13 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
    원문 - If |target| is an [=interface=], and |attribute| is a [=regular attribute=]: ...
    IR - if (&& (= target (yet "an [=interface=]")) (= attribute (yet "a [=regular attribute=]"))) { ... }
 
-4. 카테고리 - I-G
+4. 카테고리 - I-P + VII-C
    원문 - Let |jsValue| be the <emu-val>this</emu-val> value, if it is not <emu-val>null</emu-val> or <emu-val>undefined</emu-val>, or |realm|'s [=realm/global object=] otherwise.
-   IR - let jsValue = (yet "the <emu-val>this</emu-val> value, if it is not <emu-val>null</emu-val> or <emu-val>undefined</emu-val>, or |realm|'s [=realm/global object=] otherwise")
+   IR - if (|| (! (= (yet "it") null)) (! (= (yet "it") undefined))) {
+          let jsValue = (yet "the <emu-val>this</emu-val> value")
+        } else {
+          let jsValue = (yet "|realm|'s [=realm/global object=]")
+        }
 
 5. 카테고리 - VI
    원문 - (This will subsequently cause a {{TypeError}} in a few steps, if the global object does not implement |target| and [{{LegacyLenientThis}}] is not specified.) <!-- https://www.w3.org/Bugs/Public/show_bug.cgi?id=18547#c9 -->
@@ -332,9 +327,9 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
    원문 - If |attribute| was specified with the [{{LegacyLenientThis}}] [=extended attribute=], then return <emu-val>undefined</emu-val>.
    IR - if (yet "|attribute| was specified with the [{{LegacyLenientThis}}] [=extended attribute=]") { return undefined }
 
-9. 카테고리 - I-I + I-O
+9. 카테고리 - I-O
    원문 - Otherwise, [=JavaScript/throw=] a <l spec=ecmascript>{{TypeError}}</l>.
-   IR - call _ = clo<"javascript/throw">()
+   IR - call _ = clo<"javascript/throw">((record [TypeError] {...}))
 
 10. 카테고리 - II-G
     원문 - If |attribute|'s type is an [=observable array type=], ...
@@ -356,13 +351,9 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
     원문 - Otherwise, end these steps and allow the exception to propagate.
     IR - (yet "end these steps and allow the exception to propagate")
 
-15. 카테고리 - I-J + II-E
+15. 카테고리 - I-J
     원문 - Let |name| be the string "<code>get </code>" prepended to |attribute|'s [=identifier=].
     IR - let name = @@yet: unresolved ref: Unknown(string "<code>get </code>" prepended to |attribute|).identifier
-
-16. 카테고리 - I-I
-    원문 - Let |F| be <a abstract-op>CreateBuiltinFunction</a>(|steps|, 0, |name|, « », |realm|)."
-    IR - let F = (yet "<a abstract-op>CreateBuiltinFunction</a>(|steps|, 0, |name|, « », |realm|)")
 ```
 
 ---
@@ -383,10 +374,6 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
    원문 - If |attribute| is [=read only=] and does not have a [{{LegacyLenientSetter}}], [{{PutForwards}}] or [{{Replaceable}}] [=extended attribute=], return undefined; there is no [=attribute setter=] function.
    IR - if (&& (= attribute ~read only~) (yet "does not have a [{{LegacyLenientSetter}}]")) { ... }
 
-3. 카테고리 - I-H
-   원문 - Let |steps| be the following series of steps:
-   IR - let steps = (yet "the following series of steps:")
-
 4. 카테고리 - VII-A
    원문 - If any arguments were passed, then ...
    IR - `if (yet "any arguments were passed") { ... }`
@@ -396,18 +383,17 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
    원문 - set |V| to the value of the first argument passed.
    IR - V = (yet "the value of the first argument passed")
 
-6. 카테고리 - II-E
-   원문 - "Let |id| be |attribute|'s [=identifier=]."
-   IR - `let id = (yet "|attribute|'s [=identifier=]")`
-   설명    : `attribute.id` 필드 접근으로 바뀌면 됩니다.
-
 7. 카테고리 - II-H
    원문 - If |attribute| is a [=regular attribute=]: ...
    IR - if (= attribute (yet "a [=regular attribute=]")) { ... }
 
-8. 카테고리 - I-G
+8. 카테고리 - I-P + VII-C
    원문 - Let |jsValue| be the <emu-val>this</emu-val> value, if it is not <emu-val>null</emu-val> or <emu-val>undefined</emu-val>, or |realm|'s [=realm/global object=] otherwise.
-   IR - let jsValue = (yet "the <emu-val>this</emu-val> value, if it is not <emu-val>null</emu-val> or <emu-val>undefined</emu-val>, or |realm|'s [=realm/global object=] otherwise")
+   IR - if (|| (! (= (yet "it") null)) (! (= (yet "it") undefined))) {
+          let jsValue = (yet "the <emu-val>this</emu-val> value")
+        } else {
+          let jsValue = (yet "|realm|'s [=realm/global object=]")
+        }
 
 9. 카테고리 - VI
    원문 - (This will subsequently cause a {{TypeError}} in a few steps, if the global object does not implement |target| and [{{LegacyLenientThis}}] is not specified.) <!-- https://www.w3.org/Bugs/Public/show_bug.cgi?id=18547#c9 -->
@@ -417,25 +403,25 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
     원문 - If |jsValue| [=is a platform object=], then ...
     IR - if (? jsValue: Unknown["platform object"]) { ... }
 
-11. 카테고리 - I-G + II-I
+11. 카테고리 - II-H
     원문 - Let |validThis| be true if |jsValue| [=implements=] |target|, or false otherwise.
-    IR - let validThis = (yet "true if |jsValue| [=implements=] |target|, or false otherwise")
+    IR - if (yet "|jsValue| [=implements=] |target|") {
+           let validThis = true
+         } else {
+           let validThis = false
+         }
 
 12. 카테고리 - II-A
     원문 - If |validThis| is false and |attribute| was not specified with the [{{LegacyLenientThis}}] [=extended attribute=], then ...
     IR - if (&& (= validThis false) (yet "|attribute| was not specified with the [{{LegacyLenientThis}}] [=extended attribute=]")) {  }
 
-13. 카테고리 - I-I + I-O
+13. 카테고리 - I-O
     원문 - [=JavaScript/throw=] a <l spec=ecmascript>{{TypeError}}</l>.
-    IR - call _ = clo<"javascript/throw">()
+    IR - call _ = clo<"javascript/throw">((record [TypeError] {...}))
 
 14. 카테고리 - II-A
     원문 - If |attribute| is declared with the [{{Replaceable}}] extended attribute, then: ...
     IR - if (= attribute (yet "declared with the [{{Replaceable}}] extended attribute")) { ... }
-
-15. 카테고리 - I-I
-    원문 - Perform [=?=] <a abstract-op>CreateDataPropertyOrThrow</a>(|jsValue|, |id|, |V|).
-    IR - call _ = clo<"<a_abstract-op>CreateDataPropertyOrThrow</a>(|jsValue|,_|id|,_|V|)">()
 
 16. 카테고리 - II-A
     원문 - If |attribute| is declared with a [{{LegacyLenientSetter}}] extended attribute, then ...
@@ -467,10 +453,6 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
     원문 - Let |name| be the string "<code>set </code>" prepended to |id|.
     IR - let name = (yet "the string \"<code>set </code>\" prepended to |id|")
 
-26. 카테고리 - I-I
-    원문 - Let |F| be <a abstract-op>CreateBuiltinFunction</a>(|steps|, 1, |name|, « », |realm|).
-    IR - let F = (yet "<a abstract-op>CreateBuiltinFunction</a>(|steps|, 1, |name|, « », |realm|)")
-
 ```
 
 ---
@@ -483,10 +465,6 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
   버전입니다.
 
 ```
-1. 카테고리 - II-F
-   원문 - Let |operations| be the [=list=] of [=regular operations=] that are [=members=] of |definition|.
-   IR - let operations = (yet "the [=list=] of [=regular operations=] that are [=members=] of |definition|")
-
 2. 카테고리 - V + I-O
    원문 - [=list/Remove=] from |operations| all the [=operations=] that are [=unforgeable=].
    IR - call _ = clo<"list/remove">(operations, ~operations~, ~unforgeable~)
@@ -510,21 +488,23 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
    원문 - If |op| is not [=exposed=] in |realm|, then [=iteration/continue=].
    IR - if (! (= op (case "EXPOSED" realm))) { (yet "continue") }
 
-3. 카테고리 - I-G
+3. 카테고리 - IV-D
    원문 - Let |modifiable| be <emu-val>false</emu-val> if |op| is [=unforgeable=] and <emu-val>true</emu-val> otherwise.
-   IR - let modifiable = (yet "<emu-val>false</emu-val> if |op| is [=unforgeable=] and <emu-val>true</emu-val> otherwise")
+   IR (현재) - if (= op ~unforgeable~) {
+                 let modifiable = ~false~
+               } else {
+                 let modifiable = ~true~
+               }
+   IR (목표) - if (&& (exists op.extendedAttributes.unforgeable) (= op.extendedAttributes.unforgeable true)) {
+                 let modifiable = false
+               } else {
+                 let modifiable = true
+               }
 
 4. 카테고리 - I-C
    원문 - Let |desc| be the PropertyDescriptor{\[[Value]]: |method|, \[[Writable]]: |modifiable|, \[[Enumerable]]: <emu-val>true</emu-val>, \[[Configurable]]: |modifiable|}.
    IR - let desc = (yet "the PropertyDescriptor{\[[Value]]: |method|, \[[Writable]]: |modifiable|, \[[Enumerable]]: <emu-val>true</emu-val>, \[[Configurable]]: |modifiable|}")
 
-5. 카테고리 - II-E
-   원문 - Let |id| be |op|'s [=identifier=].
-   IR - let id = (yet "|op|'s [=identifier=]")
-
-6. 카테고리 - I-I
-   원문 - Perform [=!=] <a abstract-op>DefinePropertyOrThrow</a>(|target|, |id|, |desc|)."
-   IR - `call _ = clo<"<a_abstract-op>DefinePropertyOrThrow</a>(|target|,_|id|,_|desc|)">()`
 ```
 
 ---
@@ -537,14 +517,6 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
   전달됩니다.
 
 ```
-1. 카테고리 - II-E
-   원문 - Let |id| be |op|'s [=identifier=].
-   IR - let id = (yet "|op|'s [=identifier=]")
-
-2. 카테고리 - I-H
-   원문 - Let |steps| be the following series of steps, given function argument values |args|: ...
-   IR - let steps = (yet "the following series of steps, given function argument values |args|:")
-
 3. 카테고리 - I-F
    원문 - Try running the following steps: ... And then, if <a lt=\"an exception was thrown\">an exception |E| was thrown</a>:")
    IR - (yet "Try running the following steps:")
@@ -555,9 +527,13 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
    원문 - If |target| is an [=interface=], and |op| is not a [=static operation=]: ...
    IR - if (&& (= target (yet "an [=interface=]")) (! (= op (yet "a [=static operation=]")))) { ... }
 
-5. 카테고리 - I-G
+5. 카테고리 - I-P + VII-C
    원문 - Let |jsValue| be the <emu-val>this</emu-val> value, if it is not <emu-val>null</emu-val> or <emu-val>undefined</emu-val>, or |realm|'s [=realm/global object=] otherwise.
-   IR - let jsValue = (yet "the <emu-val>this</emu-val> value, if it is not <emu-val>null</emu-val> or <emu-val>undefined</emu-val>, or |realm|'s [=realm/global object=] otherwise")
+   IR - if (|| (! (= (yet "it") null)) (! (= (yet "it") undefined))) {
+          let jsValue = (yet "the <emu-val>this</emu-val> value")
+        } else {
+          let jsValue = (yet "|realm|'s [=realm/global object=]")
+        }
 
 6. 카테고리 - VI
    원문 - (This will subsequently cause a {{TypeError}} in a few steps, if the global object does not implement |target|.) <!--https://www.w3.org/Bugs/Public/show_bug.cgi?id=18547#c9 -->
@@ -567,9 +543,9 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
    원문 - If |jsValue| [=is a platform object=], then ...
    IR - if (? jsValue: Unknown["platform object"])
 
-8. 카테고리 - I-I + I-O + II-H
+8. 카테고리 - I-O + II-H
    원문 - If |jsValue| does not [=implement=] the interface |target|, [=JavaScript/throw=] a <l spec=ecmascript>{{TypeError}}</l>.
-   IR - if (yet "|jsValue| does not [=implement=] the interface |target|") { call _ = clo<"javascript/throw">() }
+   IR - if (yet "|jsValue| does not [=implement=] the interface |target|") { call _ = clo<"javascript/throw">((record [TypeError] {...})) }
 
 9. 카테고리 - I-N
    원문 - Set |idlObject| to the IDL [=interface type=] value that represents a reference to |jsValue|.
@@ -580,9 +556,11 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
     IR - call _call1 = clo<"regular_operations">((yet "tuple(Unknown(if |op| is a regular operation) or for [=static operations=] (if |op| is a static operation))"), (case "IDENTIFIER" id target n))
          call S = clo<"compute_the_effective_overload_set">(_call1)
 
-11. 카테고리 - I-E
+11. 카테고리 - III-B
     원문 - Let &lt;|operation|, |values|&gt; be the result of passing |S| and |args| to the [=overload resolution algorithm=].
-    IR - let _ = (yet "unsupported Let lhs: Unknown(<|operation|, |values|>)")
+    IR - let _tuple1 = (yet "passing |S| and |args| to the [=overload resolution algorithm=]")
+         let operation = _tuple1[0]
+         let values = _tuple1[1]
 
 12. 카테고리 - II-A
     원문 - If |operation| is declared with a [{{Default}}] [=extended attribute=], then: ...
@@ -592,11 +570,9 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
     원문 - Otherwise, set |R| to the result of running the [=method steps=] of |operation|, with |idlObject| as [=this=] and |values| as the argument values."
     IR - R = (yet "running the [=method steps=] of |operation|, with |idlObject| as [=this=] and |values| as the argument values")
 
-14. 카테고리 - II-G + I-I
+14. 카테고리 - II-G
     원문 - If |op| has a [=return type=] that is a [=promise type=], then return [=!=] <a abstract-op>Call</a>({{%Promise.reject%}}, {{%Promise%}}, «|E|»).
-    IR - `if (= (yet "|op| has a [=return type=] that") (yet "a [=promise
-              type=]")) { let _comp1 = (yet "<a abstract-op>Call</a>({{%Promise.reject%}},
-              {{%Promise%}}, «|E|»)") ... }`
+    IR - if (? (yet "|op| has a [=return type=] that"): Unknown["promise type"]) { call _call1 = clo<"Call">(~%Promise.reject%~, ~%Promise%~, (list [E])) ... }
 
 15. 카테고리 - I-F + VII
     원문 - Otherwise, end these steps and allow the exception to propagate.
@@ -611,17 +587,9 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
     원문 - Let |length| be the length of the shortest argument list in the entries in |S|.
     IR - let length = (sizeof (yet "the shortest argument list in the entries in |S|"))
 
-18. 카테고리 - I-I
-    원문 - Let |F| be <a abstract-op>CreateBuiltinFunction</a>(|steps|, |length|, |id|, « », |realm|).
-    IR - let F = (yet "<a abstract-op>CreateBuiltinFunction</a>(|steps|, |length|, |id|, « », |realm|)")
-
 19. 카테고리 - II-K
     원문 - If |op| has a [=return type=] that is a [=promise type=]
     IR - if (= (yet "|op| has a [=return type=] that") (yet "a [=promise type=]"))
-
-20. 카테고리 - I-I
-    원문 - "return [=!=] <a abstract-op>Call</a>({{%Promise.reject%}}, {{%Promise%}}, «|E|»)."
-    IR - `let _comp1 = (yet "<a abstract-op>Call</a>({{%Promise.reject%}}, {{%Promise%}}, «|E|»)")`
 ```
 
 ---
@@ -660,6 +628,12 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
 5. 카테고리 - I-I
    원문 - Let |max| be <a abstract-op>max</a>(|maxarg|, |N|).
    IR - let max = (yet "<a abstract-op>max</a>(|maxarg|, |N|)")
+   설명    - (2026-08-18) 파싱 단계(metalang, `Compiler.compile` 이전)에서는 이제
+             `Let(|max|, [$max$](|maxarg|, |N|))`로 정상 인식되는 것을 직접 확인함. 다만 이
+             알고리즘 전체가 (자신과 무관한, 별도로 알려진 Range-lowering 버그 때문에) 지금
+             `Compiler.compile`을 못 통과해서 실제 최종 IR은 확인하지 못했고, 어차피
+             `compute_the_effective_overload_set.ir`로 하드코딩되어 있어 이 컴파일 경로 자체를
+             안 탐 — 위 "IR" 필드는 옛 값 그대로 둠. 하드코딩을 걷어내기 전까지는 보류.
 
 6. 카테고리 - IV
    원문 - [=set/For each=] operation or extended attribute |X| in |F|: ...
@@ -786,11 +760,3 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
 3. 카테고리 - I-C
    원문 - Let |desc| be the PropertyDescriptor{\[[Writable]]: <emu-val>false</emu-val>, \[[Enumerable]]: <emu-val>true</emu-val>, \[[Configurable]]: <emu-val>false</emu-val> \[[Value]]: |value|}.
    IR - let desc = (yet "the PropertyDescriptor{\\[[Writable]]: <emu-val>false</emu-val>, \\[[Enumerable]]: <emu-val>true</emu-val>, \\[[Configurable]]: <emu-val>false</emu-val>, \\[[Value]]: |value|}")
-
-4. 카테고리 - II-E
-   원문 - Let |id| be |const|'s [=identifier=].
-   IR - let id = (yet "|const|'s [=identifier=]")
-
-5. 카테고리 - I-I
-   원문 - Perform [=!=] <a abstract-op>DefinePropertyOrThrow</a>(|target|, |id|, |desc|).
-   IR - call _ = clo<"<a_abstract-op>DefinePropertyOrThrow</a>(|target|,_|id|,_|desc|)">()

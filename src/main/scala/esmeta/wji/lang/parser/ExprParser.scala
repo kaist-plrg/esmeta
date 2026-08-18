@@ -119,6 +119,17 @@ object ExprParser:
   // step's closure clause; no params (mirrors a Job Abstract Closure).
   private val QueueTaskClosureSuffix =
     """(?is)^(?:if\s+provided,\s*)?to\s+perform\s+the\s+following\s+steps:?\s*$""".r
+  // "the following steps:" / "the following series of steps:" — the same
+  // closure-introduction idiom as StepsClosurePrefix/VariadicStepsClosurePrefix
+  // above, but with no "given ..." parameter clause at all (e.g. attribute
+  // getter/setter's own steps closure, webidl_yet_categorized.md category
+  // I-H — neither reads a bound closure param, both read **this**/the
+  // implicit setter value directly instead). Zero-arg, like
+  // QueueTaskClosureSuffix just above, but this file's own "the following
+  // steps"/"the following series of steps" wording rather than "to perform
+  // the following steps".
+  private val BareStepsClosure =
+    """(?is)^the following (?:series of )?steps:?\s*$""".r
   // "a [=term=] which performs the following steps when called with
   // argument(s) |V|[, ...]:" — must precede RelativeClauseDesc, which would
   // otherwise swallow it into an unevaluable Described.
@@ -338,6 +349,19 @@ object ExprParser:
   // `fieldFromLink` (which would read the dfn text as-is). Must precede
   // PossessiveAssociation below for the same reason AssociatedRealm does.
   private val PossessiveIdentifier = """(?si)^(.+)'s \[=identifier=\]$""".r
+  // "the identifier of interface |I|" — "create an interface object"'s own
+  // phrasing of the same `id` field PossessiveIdentifier above maps ("X's
+  // [=identifier=]") — webidl_yet_categorized.md category II-E's `#3-4`.
+  // "the identifier of ..." itself shows up elsewhere in webidl/index.bs too,
+  // but only ever in prose/notes, not algorithm step text this parser ever
+  // sees — "interface" is the only type-tag word actually observed here
+  // (webidl_yet_summary.md), but kept general (any bare word, not hardcoded
+  // to "interface") the same way MemberOfDefinition/PossessiveIdentifier
+  // don't hardcode a specific kind either — the tag is discarded regardless
+  // of what it says, same as PossessiveIdentifier ignores its own base's
+  // type.
+  private val IdentifierOfType =
+    """(?si)^the identifier of \w+ (\|[^|]+\|)$""".r
   private val AssociatedRealm = """(?si)^(.+)'s \[=associated Realm=\]$""".r
   // "|func|'s [=associated Realm=]" — narrower than PossessiveAssociation
   // (which keeps "the surrounding agent's associated store/cache" style
@@ -461,7 +485,7 @@ object ExprParser:
   // otherwise:" (introducing a closure with its own nested sub-steps) is
   // left unmatched and falls through to whatever later case (if any)
   // recognizes its own pieces.
-  private val TrailingOtherwise = """(?i)\s+otherwise$""".r
+  private val TrailingOtherwise = """(?i)\s+otherwise:?$""".r
   private val CondValueSeps = Seq(" and ", " or ")
 
   private def conditionalParts(s: String): Option[(String, String, String)] =
@@ -657,6 +681,7 @@ object ExprParser:
           PipeVarInline.findAllMatchIn(paramsRaw).map(_.group(1)).toList,
         )
       case QueueTaskClosureSuffix() => FollowingSteps(Nil)
+      case BareStepsClosure()       => FollowingSteps(Nil)
       case WhichPerformsStepsClosureWithState(stateVar, argsVar) =>
         FollowingSteps(List(stateVar, argsVar))
       case WhichPerformsStepsClosure(paramsRaw) =>
@@ -784,6 +809,7 @@ object ExprParser:
       case ElementAt(idx, arr)           => Index(parse(arr), parse(idx))
       case IndexOfPat(list, elem)        => IndexOf(parse(list), parse(elem))
       case PossessiveIdentifier(baseRaw) => Field(parse(baseRaw), "id")
+      case IdentifierOfType(varRaw)      => Field(parse(varRaw), "id")
       case AssociatedRealm(baseRaw)      => Field(parse(baseRaw), "Realm")
       case MemberOfDefinition(kind, baseRaw) =>
         val memberKind = kind match

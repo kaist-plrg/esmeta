@@ -72,7 +72,25 @@ object ExpandConditionalPass extends LoweringPass:
 
   private def expandInstr(instr: Instr): List[Instr] = instr match
     case Instr.Let(lhs, conditional: Expr.Conditional, body) =>
-      ifChainFor(conditional, Instr.Let(lhs, _)) :: transform(body)
+      // Normally `body` is the Let's own unconditional trailing code (every
+      // branch here is a plain value with nothing nested under it) and is
+      // reattached as siblings after the whole IfChain. But when a branch's
+      // own value is a FollowingSteps placeholder ("X if COND, or the
+      // following steps otherwise:", category I-G/#3-1), `body` is actually
+      // *that* branch's substeps, not unrelated trailing code — find that one
+      // slot (never more than one per real Conditional) and attach `body`
+      // there instead of stripping it out; ExpandFollowingStepsPass, which
+      // runs later, then hoists it like any other Let-RHS FollowingSteps.
+      val Expr.Conditional(branches, otherwise) = conditional
+      val hasFollowingSteps =
+        (branches.map(_._2) ++ otherwise).exists(
+          _.isInstanceOf[Expr.FollowingSteps],
+        )
+      def rebuild(e: Expr): Instr = e match
+        case fs: Expr.FollowingSteps => Instr.Let(lhs, fs, body)
+        case other                   => Instr.Let(lhs, other)
+      val ifChain = ifChainFor(conditional, rebuild)
+      if hasFollowingSteps then List(ifChain) else ifChain :: transform(body)
     case Instr.Perform(func, args, outcome, body)
         if args.exists(_.isInstanceOf[Expr.Conditional]) =>
       val idx = args.indexWhere(_.isInstanceOf[Expr.Conditional])

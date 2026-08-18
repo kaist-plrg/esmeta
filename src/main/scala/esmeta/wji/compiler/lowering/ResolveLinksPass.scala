@@ -48,9 +48,9 @@ import esmeta.wji.lang.walker.Walker
   *     (see `LinkResolver.resolveArgs`). `ExprParser.parseArgs` has no way to
   *     know a tag like `identifier` isn't callable, so it parses whatever
   *     unrelated clauses happen to follow it in the same sentence as if they
-  *     were its call arguments, e.g. `identifier(id, interface(I, n))` from
+  *     were its call arguments, e.g. `identifier(id, interface(I, 0))` from
   *     "with [=identifier=] |id| on [=interface=] |I| and with argument count
-  *     |n|" (webidl/index.bs:12581-12583 and three more sites). A `spreadTags`
+  *     0" (webidl/index.bs:12581-12583 and three more sites). A `spreadTags`
   *     link found anywhere *not* inside an argument list — i.e. with no list to
   *     spread into — throws [[esmeta.error.UnsupportedSpecShape]] rather than
   *     silently falling through to the heuristic above, which would just

@@ -277,12 +277,26 @@ object AddInterfaceMemberBuiltinBehaviourPass extends LoweringPass:
 
   /** The matching epilogue: every js-api constructor algorithm ends by mutating
     * `**this**`'s fields with no explicit `Return`, relying on WebIDL's outer
-    * wrapper to return the object it created — mechanized here as an explicit,
-    * completion-wrapped `Return **this**.` instead.
+    * wrapper to return the object it created — mechanized here as an explicit
+    * `Return **this**.` instead, wrapped directly in `NormalCompletion` rather
+    * than routed through [[CompletionWrapping.expandAlgorithm]]'s generic
+    * `Cond.IsType(_, "Completion")` runtime check: unlike an arbitrary returned
+    * expression, `**this**` here is statically known to never itself be a
+    * Completion Record — [[createThisBinding]] just built it fresh via
+    * `Expr.New(iface)`, and no js-api constructor algorithm ever reassigns
+    * `**this**` itself (only its fields, via `Set **this**.[[X]] to ...`), so
+    * the check would always take the same branch.
     */
   private def returnThisBinding(kind: AlgorithmKind): List[Instr] = kind match
     case AlgorithmKind.Constructor(_) =>
-      CompletionWrapping.expandAlgorithm(List(Instr.Return(Some(Expr.This))))
+      List(
+        Instr.Perform(
+          "NormalCompletion",
+          List(Expr.This),
+          Instr.PerformOutcome.BindResult("_ret"),
+        ),
+        Instr.Return(Some(Expr.Var("_ret"))),
+      )
     case _ => Nil
 
   def run(algos: List[Algorithm]): List[Algorithm] =

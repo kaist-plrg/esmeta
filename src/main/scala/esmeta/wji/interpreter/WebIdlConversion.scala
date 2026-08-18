@@ -13,9 +13,9 @@ import esmeta.state.*
   * `manuals/funcs/converted_to_an_idl_value.ir` /
   * `converted_to_a_javascript_value.ir` stubs. Same scope as before the port
   * (see `docs/hardcodes.md` #1/#2): only `"unsigned long"` and the three
-  * WebAssembly descriptor dictionaries genuinely convert; every other IDL
-  * type is still identity passthrough, and dictionary reads are own-property
-  * only (no prototype chain, no getters, no required-member validation).
+  * WebAssembly descriptor dictionaries genuinely convert; every other IDL type
+  * is still identity passthrough, and dictionary reads are own-property only
+  * (no prototype chain, no getters, no required-member validation).
   */
 object WebIdlConversion:
 
@@ -44,7 +44,8 @@ object WebIdlConversion:
     * never throws — for a `T` that isn't the literal string it expects.
     */
   def toIdlValue(st: State, argument: Value, ty: Value): Value = ty match
-    case Str("unsigned long") | Enum("unsigned long") => toUnsignedLong(argument)
+    case Str("unsigned long") | Enum("unsigned long") =>
+      toUnsignedLong(argument)
     case Str("MemoryDescriptor") | Enum("MemoryDescriptor") =>
       readDictionary(st, argument, memoryDescriptorMembers)
     case Str("TableDescriptor") | Enum("TableDescriptor") =>
@@ -90,9 +91,9 @@ object WebIdlConversion:
   // ── converted to a JavaScript value ────────────────────────────────────────
 
   /** mirrors the `.ir` version's `if (? argument: Map) { ... } return argument`
-    * — only a `MapObj` (this project's own internal dictionary
-    * representation) gets built into a real ordinary object; everything else,
-    * including an already-real ECMAScript value, passes through unchanged.
+    * — only a `MapObj` (this project's own internal dictionary representation)
+    * gets built into a real ordinary object; everything else, including an
+    * already-real ECMAScript value, passes through unchanged.
     */
   def toJsValue(st: State, argument: Value): Value = argument match
     case addr: Addr =>
@@ -117,17 +118,16 @@ object WebIdlConversion:
         case _ => argument
     case _ => argument
 
-  /** the internal-method closure every one of `__NEW_OBJ__.ir`'s fields
-    * names, resolved the same way `Interpreter`'s own `EClo` evaluation does
+  /** the internal-method closure every one of `__NEW_OBJ__.ir`'s fields names,
+    * resolved the same way `Interpreter`'s own `EClo` evaluation does
     * (`cfg.getFunc(name)`, no captured variables).
     */
   private def ordinaryMethod(cfg: CFG, name: String): Value =
     Clo(cfg.getFunc(s"Record[OrdinaryObject].$name"), Map.empty)
 
   /** mirrors `__NEW_OBJ__.ir` + `converted_to_a_javascript_value.ir`'s own
-    * `obj.Prototype = intrinsics["%Object.prototype%"]` /
-    * `obj.Extensible = true` follow-up — a fresh ordinary object with no own
-    * properties yet.
+    * `obj.Prototype = intrinsics["%Object.prototype%"]` / `obj.Extensible =
+    * true` follow-up — a fresh ordinary object with no own properties yet.
     */
   private def newOrdinaryObject(st: State)(using CFG): Addr =
     val cfg = st.cfg

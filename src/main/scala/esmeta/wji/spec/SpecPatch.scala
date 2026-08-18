@@ -907,6 +907,31 @@ object SpecPatch:
     "otherwise, let |addrtype| be \"i32\"."
     ->
     "otherwise, let |addrtype| be [=i32=].",
+
+    // #45 (hardcoding, docs/hardcodes.md #15) — `Memory`'s constructor
+    // writes "[=memory type=] |addrtype| { **min** |initial|, **max**
+    // |maximum| }" (index.bs:876), Bikeshed's "construct a formal-grammar
+    // record value with named fields" notation for a Wasm `memtype` — not a
+    // function call. `ExprParser` has no rule for this idiom at all yet
+    // (`parseArgs` just tokenizes on whitespace, with no awareness of `{`/
+    // `}`/`,`, and `**min**`/`**max**` happen to match `BoldConst`), so it
+    // mis-parses the whole thing as a 5-positional-argument call to a
+    // nonexistent "memory type" (normalized to `memory_type`) function,
+    // crashing with `UnknownFunc` at runtime. `Table`'s constructor
+    // (index.bs:1043) has the structurally identical shape but happens to
+    // read "**the** [=table type=] ... { ... }" — that leading "the" matches
+    // `TypeAnnotatedPrefix` instead, which drops the `[=table type=]` link
+    // and parses the remainder as one opaque `Unknown` — inert, not a crash.
+    // Prepending "the " to `Memory`'s text routes it through the exact same
+    // already-existing (if equally unmechanized) `TypeAnnotatedPrefix` path,
+    // trading a misleading "function doesn't exist" crash for this
+    // codebase's standard "not yet mechanized" signal (`Expr.Unknown` →
+    // `EYet`) — not a real fix (the constructed `memtype` value still isn't
+    // usable), just a less misleading failure mode until named-field
+    // formal-grammar construction gets properly parsed.
+    "be [=memory type=] |addrtype|"
+    ->
+    "be the [=memory type=] |addrtype|",
   )
 
   def apply(source: String): String =

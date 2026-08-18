@@ -955,7 +955,7 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Memory(
   } else {
     let maximum = ~empty~
   }
-  call memtype = clo<"memory_type">(addrtype, ~**min**~, initial, ~**max**~, maximum)
+  let memtype = (yet "|addrtype| { **min** |initial|, **max** |maximum| }")
   if (! (= memtype ~valid memtype~)) {
     call _err5 = clo<"__NEW_ERROR_OBJ__">("%RangeError.prototype%")
     call _ret6 = clo<"ThrowCompletion">(_err5)

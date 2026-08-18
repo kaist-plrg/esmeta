@@ -151,7 +151,7 @@ def read_the_imports(
   importedStringModule: Unknown,
 ): Unknown = {
   call-embed _call1 = <module_imports>(module)
-  if (&& (! (= (sizeof _call1) 0)) (= importObject undefined)) {
+  if (&& (! (= (sizeof _call1) 0)) (! (exists importObject))) {
     call _err1 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
     call _ret2 = clo<"ThrowCompletion">(_err1)
     return _ret2

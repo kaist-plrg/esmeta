@@ -877,6 +877,23 @@ object SpecPatch:
     """if |op| is a
       #        [=regular operation=]) or for [=static operations=] (if |op| is a [=static operation=])"""
       .stripMargin('#'),
+
+    // #43 (spec inconsistency, docs/spec_inconsistencies.md #16) — `read the
+    // imports`'s own missing-argument check writes "|importObject| is
+    // undefined" instead of "is missing", the idiom every other
+    // optional-with-no-default parameter check in this document uses (e.g.
+    // `Table`'s constructor/`Table.grow`/`Table.set`'s "|value| is missing",
+    // line 1045/1063/1107). Per WebIDL's own overload resolution algorithm
+    // (webidl/index.bs: "If optionality is 'optional' and V is undefined
+    // ... append ... the special value 'missing'"), a plain `optional object
+    // importObject` with no default never actually holds the ES value
+    // `undefined` inside an operation's own steps — omitting it (or
+    // explicitly passing `undefined`) both convert to the distinct "missing"
+    // sentinel before the steps ever run, so "is undefined" checks for a
+    // value that, per this same document's own machinery, can't occur here.
+    "|importObject| is undefined"
+    ->
+    "|importObject| is missing",
   )
 
   def apply(source: String): String =

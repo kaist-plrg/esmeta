@@ -213,3 +213,11 @@
 - **Expected**: `"...(if |op| is a [=regular operation=]) or for [=static operations=] (if |op| is a [=static operation=])..."`
 - **Reason**: 같은 알고리즘 안, 겨우 14줄 위(line 12544)에서 이미 동일한 술어를 링크된 형태로 씁니다 — `"|target| is an [=interface=], and |op| is not a [=static operation=]"`. `regular operation`/`static operation`은 이 파일에서 export된 진짜 dfn이고(`dfn-regular-operation` line 1883, `dfn-static-operation` line 3002), 이 파일 전체에서 15곳 넘게(lines 1067, 1229, 1899, 1911, 2321, 2324, 2344, 2383, 3071-2, 9787, 9793, 10725, 10742, 12592, 12611) 링크된 형태로 쓰이는데, 이 두 자리만 예외적으로 plain text입니다 — `[= =]` 마크업에 의존하는 기계화된 추출이 이 두 자리에서만 깨집니다.
 - **WJI 쪽 처리**: `SpecPatch` #42로 우회 — 두 자리 모두 링크. 링크되면 `CondParser.ArticleLink`가 `"|op| is a [=regular operation=]"`을 `Cond.IsType(op, "regular operation")`로 파싱하고, `ExpandWjiIsTypePass`가 `esmeta.wji.Initialize`가 이미 `operation` 레코드에 심어둔 `kind` 필드(`Enum("RegularOperation"|"StaticOperation")`)와 비교하는 `Cond.Eq`로 낮춥니다.
+
+## 16. `read the imports`의 인자 누락 체크만 "is missing" 대신 "is undefined"를 씀
+
+- **File**: `spectec/document/js-api/index.bs`, line 485 (`read the imports`)
+- **Current**: `1. If |module|.[=imports=] [=list/is empty|is not empty=], and |importObject| is undefined, throw a {{TypeError}} exception.`
+- **Expected**: `... and |importObject| is missing, throw a {{TypeError}} exception.` — 이 문서에서 default 없는 optional 파라미터가 생략됐는지 체크하는 다른 모든 자리(`Table` 생성자의 `|value|` line 1045, `Table.grow`의 `|value|` line 1063, `Table.set`의 `|value|` line 1107)가 쓰는 관용구.
+- **Reason**: `importObject`는 `Instance` 생성자에서 `optional object importObject`(default 없음)로 선언되는데, `webidl/index.bs`의 overload resolution algorithm 자체가 "optionality가 'optional'이고 V가 undefined면 ... default가 없는 한 특별한 값 'missing'을 append한다"고 정의합니다 — 즉 생략되든 명시적으로 `undefined`를 넘기든 둘 다, 실제 알고리즘 스텝이 실행되기 전에 이미 별개의 sentinel 값 "missing"으로 변환됩니다. `|importObject|`가 알고리즘 본문 안에서 실제로 ES 값 `undefined`를 들고 있는 경우는 없으므로, `is undefined` 체크는 이 문서 자신의 argument-processing 규칙상 절대 참이 될 수 없는 조건을 체크하는 셈입니다.
+- **WJI 쪽 처리**: `SpecPatch` #43으로 우회 — `"|importObject| is undefined"`를 `"|importObject| is missing"`으로 교체. `CondParser`가 "X is missing"을 `Cond.IsMissing`으로 파싱해 `Table.value` 등과 동일한 관용구로 컴파일되게 합니다.

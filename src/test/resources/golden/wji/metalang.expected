@@ -102,7 +102,7 @@
   id: read-the-imports
   params: |module|, |importObject|, |builtinSetNames|, |importedStringModule|
   head: To <dfn>read the imports</dfn> from a WebAssembly module |module| from imports object |importObject|, enabled builtins |builtinSetNames|, and |importedStringModule|, perform the following steps:
-  If(length([=module_imports=](|module|)) is not 0, and |importObject| is undefined)
+  If(length([=module_imports=](|module|)) is not 0, and |importObject| is missing)
     Throw(new {{TypeError}})
   Let(|builtinOrStringImports|, «[ ]»)
   ForEach(|builtinSetName|, |builtinSetNames|)

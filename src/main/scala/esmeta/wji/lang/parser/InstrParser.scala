@@ -68,6 +68,21 @@ object InstrParser:
   // matches wrong, just that this shape needs its own case).
   private val LeadingJSCall = """(?s)^\[\$([^$]+)\$\]\((.*)\)$""".r
 
+  // a `Perform` step whose target uses Bikeshed's *other* abstract-op call
+  // spelling, e.g. `Perform [=!=] <a abstract-op>DefinePropertyOrThrow</a>(...)`
+  // — mirrors ExprParser's AbstractOpCallFull, same reasoning: an established
+  // second convention (~120 occurrences vs `[$...$]`'s ~183 in
+  // webidl/index.bs), not a one-off to special-case away. Without this,
+  // `<a abstract-op>Name</a>(...)` matches neither LeadingJSCall nor
+  // LeadingAlgoLink and falls through to the `case _` below, which — unlike
+  // ExprParser's `parse`, which fails loudly to `Unknown`/`EYet` — treats the
+  // *entire* remaining string as an opaque zero-arg function name instead of
+  // failing, silently compiling to a bogus `clo<"<a_abstract-op>Name</a>(...)">`
+  // call rather than a real `EYet`. Must be tried before LeadingAlgoLink for
+  // the same reason LeadingJSCall is.
+  private val LeadingAbstractOpCall =
+    """(?s)^<a abstract-op>([^<]+)</a>\((.*)\)$""".r
+
   // `[=!=]`/`[=?=]` ("this call must not complete abruptly" / "propagate an
   // abrupt completion") prefixing a `Perform` step's call, e.g. `Perform
   // [=!=] [$SetIntegrityLevel$](...)`. Mirrors ExprParser's AbruptPrefix —
@@ -94,6 +109,8 @@ object InstrParser:
   private def parseCall(expr: String): (String, List[Expr]) = expr.trim match
     case AbruptCallPrefix(rest) => parseCall(rest)
     case LeadingJSCall(name, argsRaw) =>
+      (name, splitComma(argsRaw).map(ExprParser.parse))
+    case LeadingAbstractOpCall(name, argsRaw) =>
       (name, splitComma(argsRaw).map(ExprParser.parse))
     case LeadingAlgoLink(func, rest) =>
       (ExprParser.normalizeLink(func), ExprParser.parseArgs(rest))

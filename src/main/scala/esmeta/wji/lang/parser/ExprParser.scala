@@ -161,8 +161,16 @@ object ExprParser:
   // constructed instance of interface X" as NewExpr's "a [=/new=] {{X}}"
   // form above, so it reuses the same New(iface) node rather than adding a
   // new one.
+  // The `{{X}}` itself is sometimes further wrapped in Bikeshed's
+  // `<l spec=ecmascript>...</l>` cross-spec-link tag (e.g. "throw a <l
+  // spec=ecmascript>{{TypeError}}</l>.", webidl_yet_categorized.md category
+  // I-I). Checked every `<l spec=ecmascript>` site in webidl/index.bs: the
+  // other ~75 occurrences sit in plain descriptive prose outside any
+  // algorithm's step list, so AlgorithmExtractor never pulls them in and they
+  // never reach this parser — only this one "throw a {{X}}" idiom does, so
+  // the wrapper is tolerated right here rather than via a general tag-strip.
   private val NewExceptionExpr =
-    """(?si)^an?\s+\{\{([^}]+)\}\}(?:\s+exception)?$""".r
+    """(?si)^an?\s+(?:<l spec=\w+>)?\{\{([^}]+)\}\}(?:</l>)?(?:\s+exception)?$""".r
   private val EmptyList = """(?si)^a\s+new,?\s+empty\s+(?:\[=list=\]|list)$""".r
   // "a new [=byte sequence=] of [=byte sequence/length=] equal to LENGTH" — a
   // freshly allocated all-zero byte sequence of the given length.
@@ -201,6 +209,21 @@ object ExprParser:
   // ---- Call syntax: explicit invocation of a named algorithm/AO ----
 
   private val JSCallFull = """(?s)^\[\$([^\$]+)\$\]\((.*)\)$""".r
+  // "<a abstract-op>Name</a>(args...)" — Bikeshed's *other* spelling for an
+  // explicit abstract-op call, used alongside (not instead of) `[$Name$](...)`
+  // — webidl/index.bs mixes both freely throughout, `<a abstract-op>` ~120
+  // times against `[$...$]`'s ~183, so this isn't a deviant one-off, it's a
+  // second established convention this parser needs to know natively (see
+  // webidl_yet_categorized.md category I-I). Same unambiguous "(...)" call
+  // shape as JSCallFull, so it parses identically straight to JSCall — no new
+  // Expr node needed, and AssociatedWithAttrPat's existing JSCall/AlgoCall
+  // match arm picks it up for free. Nested calls (e.g. "<a
+  // abstract-op>Completion</a>(<a abstract-op>Call</a>(...))",
+  // webidl/index.bs:14653) compose automatically: splitComma/TextSplit
+  // already track paren depth, so the captured arg string round-trips back
+  // through `parse` and hits this same case again.
+  private val AbstractOpCallFull =
+    """(?s)^<a abstract-op>([^<]+)</a>\((.*)\)$""".r
   // unlike LinkProse/LinkOnly below, the explicit `(...)` here is
   // unambiguous call syntax (mirrors JSCallFull) — no term/value
   // reference is ever written this way — so this can go straight to
@@ -702,6 +725,8 @@ object ExprParser:
 
       // ---- Call syntax ----
       case JSCallFull(name, argsRaw) =>
+        JSCall(name, splitComma(argsRaw).map(parse))
+      case AbstractOpCallFull(name, argsRaw) =>
         JSCall(name, splitComma(argsRaw).map(parse))
       case AssociatedWithAttrPat(callRaw, attr) =>
         parse(callRaw) match

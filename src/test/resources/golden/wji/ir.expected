@@ -3393,7 +3393,7 @@ def define_the_operations(
     }
     let desc = (yet "the PropertyDescriptor{\\[[Value]]: |method|, \\[[Writable]]: |modifiable|, \\[[Enumerable]]: <emu-val>true</emu-val>, \\[[Configurable]]: |modifiable|}")
     let id = op.id
-    call _ = clo<"<a_abstract-op>DefinePropertyOrThrow</a>(|target|,_|id|,_|desc|)">()
+    call _ = clo<"DefinePropertyOrThrow">(target, id, desc)
     _iterIdx2 = (+ _iterIdx2 1)
   }
   return ~unused~
@@ -3404,7 +3404,7 @@ def creating_an_operation_function(
   realm: Unknown,
 ): Unknown = {
   let id = op.id
-  let steps = clo<"creating_an_operation_function_closure1", [id, op, target]>
+  let steps = clo<"creating_an_operation_function_closure1", [E, id, op, target]>
   if (= op.kind ~RegularOperation~) {
     call S = clo<"compute_the_effective_overload_set">(~regular operations~, id, target, 0)
   } else if (= op.kind ~StaticOperation~) {
@@ -3413,7 +3413,7 @@ def creating_an_operation_function(
     assert false
   }
   let length = (sizeof (yet "the shortest argument list in the entries in |S|"))
-  let F = (yet "<a abstract-op>CreateBuiltinFunction</a>(|steps|, |length|, |id|, « », |realm|)")
+  call F = clo<"CreateBuiltinFunction">(steps, length, id, (list []), realm)
   return F
 }
 def asynchronously_compile_a_webassembly_module_closure1(
@@ -3661,8 +3661,11 @@ def react_closure2(
   }
 }
 def creating_an_operation_function_closure1(
-  args: Unknown,
+  thisArgument: Unknown,
+  argumentsList: Unknown,
+  newTarget: Unknown,
 ): Unknown = {
+  let args = argumentsList
   (yet "Try running the following steps:")
   let idlObject = null
   if (&& (? target: Unknown["interface"]) (! (= op.kind ~StaticOperation~))) {
@@ -3676,7 +3679,23 @@ def creating_an_operation_function_closure1(
       call _ = clo<"perform_a_security_check">(jsValue, id, "method")
     } else nop
     if (yet "|jsValue| does not [=implement=] the interface |target|") {
-      call _ = clo<"javascript/throw">()
+      call _ = clo<"javascript/throw">((record [TypeError] {
+        "GetPrototypeOf" : clo<"Record[OrdinaryObject].GetPrototypeOf">,
+        "SetPrototypeOf" : clo<"Record[OrdinaryObject].SetPrototypeOf">,
+        "IsExtensible" : clo<"Record[OrdinaryObject].IsExtensible">,
+        "PreventExtensions" : clo<"Record[OrdinaryObject].PreventExtensions">,
+        "GetOwnProperty" : clo<"Record[OrdinaryObject].GetOwnProperty">,
+        "DefineOwnProperty" : clo<"Record[OrdinaryObject].DefineOwnProperty">,
+        "HasProperty" : clo<"Record[OrdinaryObject].HasProperty">,
+        "Get" : clo<"Record[OrdinaryObject].Get">,
+        "Set" : clo<"Record[OrdinaryObject].Set">,
+        "Delete" : clo<"Record[OrdinaryObject].Delete">,
+        "OwnPropertyKeys" : clo<"Record[OrdinaryObject].OwnPropertyKeys">,
+        "Prototype" : null,
+        "Extensible" : true,
+        "PrivateElements" : (list []),
+        "__MAP__" : (map[Unknown, Unknown]),
+      }))
     } else nop
     idlObject = (yet "the IDL [=interface type=] value that represents a reference to |jsValue|")
   } else nop
@@ -3699,15 +3718,52 @@ def creating_an_operation_function_closure1(
     R = (yet "running the [=method steps=] of |operation|, with |idlObject| as [=this=] and |values| as the argument values")
   }
   call _result1 = clo<"converted_to_a_javascript_value">(R)
-  return _result1
+  if (? _result1: Completion) {
+    if (? _result1: Completion) {
+      return _result1
+    } else {
+      call _ret1 = clo<"NormalCompletion">(_result1)
+      return _ret1
+    }
+  } else {
+    call _ret1 = clo<"NormalCompletion">(_result1)
+    if (? _ret1: Completion) {
+      return _ret1
+    } else {
+      call _ret2 = clo<"NormalCompletion">(_ret1)
+      return _ret2
+    }
+  }
   (yet "Issue(whatwg/webidl#674): |R| is assumed to be an IDL value of the type |op| is declared to return")
   (yet "And then, if <a lt=\"an exception was thrown\">an exception |E| was thrown</a>:")
   if (? (yet "|op| has a [=return type=] that"): Unknown["promise type"]) {
-    let _call1 = (yet "<a abstract-op>Call</a>({{%Promise.reject%}}, {{%Promise%}}, «|E|»)")
+    call _call1 = clo<"Call">(~%Promise.reject%~, ~%Promise%~, (list [E]))
     assert (= _call1.Type ~normal~)
-    return _call1.Value
+    let _v2 = _call1.Value
+    if (? _v2: Completion) {
+      if (? _v2: Completion) {
+        return _v2
+      } else {
+        call _ret3 = clo<"NormalCompletion">(_v2)
+        return _ret3
+      }
+    } else {
+      call _ret3 = clo<"NormalCompletion">(_v2)
+      if (? _ret3: Completion) {
+        return _ret3
+      } else {
+        call _ret4 = clo<"NormalCompletion">(_ret3)
+        return _ret4
+      }
+    }
   } else {
     (yet "end these steps and allow the exception to propagate")
   }
-  return ~unused~
+  call _ret4 = clo<"NormalCompletion">(~unused~)
+  if (? _ret4: Completion) {
+    return _ret4
+  } else {
+    call _ret5 = clo<"NormalCompletion">(_ret4)
+    return _ret5
+  }
 }

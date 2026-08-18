@@ -1540,7 +1540,7 @@
     Let(|modifiable|, false if |op| is [=unforgeable=] else true)
     Let(|desc|, ?(the PropertyDescriptor{\[[Value]]: |method|, \[[Writable]]: |modifiable|, \[[Enumerable]]: <emu-val>true</emu-val>, \[[Configurable]]: |modifiable|}))
     Let(|id|, |op|.[[id]])
-    Perform(<a abstract-op>DefinePropertyOrThrow</a>(|target|, |id|, |desc|))
+    Perform(DefinePropertyOrThrow(|target|, |id|, |desc|))
 
 # creating an operation function
   params: |op|, |target|, |realm|
@@ -1555,7 +1555,7 @@
         If(|jsValue| is a platform object)
           Perform([=perform a security check=](|jsValue|, |id|, "method"))
         If(?(|jsValue| does not [=implement=] the interface |target|))
-          Perform([=JavaScript/throw=])
+          Perform([=JavaScript/throw=](new {{TypeError}}))
         Set(|idlObject|, ?(the IDL [=interface type=] value that represents a reference to |jsValue|))
       Let(|n|, length(|args|))
       PerformAndLet([=Compute the effective overload set=]([=regular operations=] if |op| is a regular operation else [=static operations=] if |op| is a static operation, [=identifier=](|id|, |target|, |n|)), |S|)
@@ -1570,11 +1570,11 @@
       ?(Issue(whatwg/webidl#674): |R| is assumed to be an IDL value of the type |op| is declared to return)
       ?(And then, if <a lt="an exception was thrown">an exception |E| was thrown</a>:)
     If(?(|op| has a [=return type=] that) is a promise type)
-      Return([=!=] ?(<a abstract-op>Call</a>({{%Promise.reject%}}, {{%Promise%}}, «|E|»)))
+      Return([=!=] [$Call$](%Promise.reject%, %Promise%, « |E| »))
     Else
       ?(end these steps and allow the exception to propagate)
   PerformAndLet([=Compute the effective overload set=]([=regular operations=] if |op| is a regular operation else [=static operations=] if |op| is a static operation, [=identifier=](|id|, |target|, 0)), |S|)
   Let(|length|, length(?(the shortest argument list in the entries in |S|)))
-  Let(|F|, ?(<a abstract-op>CreateBuiltinFunction</a>(|steps|, |length|, |id|, « », |realm|)))
+  Let(|F|, [$CreateBuiltinFunction$](|steps|, |length|, |id|, « », |realm|))
   Return(|F|)
 

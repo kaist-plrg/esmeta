@@ -1,0 +1,6 @@
+def exposed(
+  construct: Unknown,
+  realm: Unknown,
+): Unknown = {
+  return true
+}

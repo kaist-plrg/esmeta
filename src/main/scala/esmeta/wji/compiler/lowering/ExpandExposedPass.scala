@@ -5,9 +5,9 @@ import esmeta.wji.lang.walker.Walker
 
 /** Converts `Cond.Exposed(subject, realm, negated)` — "SUBJECT is [not]
   * [=exposed=] in REALM" — into a real call to `exposed` (`webidl/index.bs`'s
-  * `<dfn id="dfn-exposed">`, extracted via `SpecFile.webidlFilter` with its
-  * body hardcoded to `Return true.` by `SpecPatch` #38 — see
-  * `docs/hardcodes.md` #13), compared against the literal `true`:
+  * `<dfn id="dfn-exposed">`, hardcoded to `Return true.` by `exposed` IR
+  * function — see `docs/hardcodes.md` #13), compared against the literal
+  * `true`:
   * {{{
   *   Exposed(op, realm, negated = true)
   * }}}

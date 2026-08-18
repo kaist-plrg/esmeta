@@ -738,28 +738,6 @@ object SpecPatch:
     ->
     "[LegacyNamespace=WebAssembly, Exposed=*]\ninterface Exception {",
 
-    // #38 (hardcoding, docs/hardcodes.md #13) — `exposed` (`dfn-exposed`)
-    // checks `construct`'s exposure set against `realm`'s `[[GlobalObject]]`
-    // and its `[SecureContext]`/`[CrossOriginIsolated]` reflection — none of
-    // which WJI models (no host realm kind, no `[[GlobalObject]]`-implements-
-    // interface relationship at all). Hardcodes the body to the constant it
-    // always evaluates to for every construct in this corpus anyway (see
-    // `SpecPatch` #37/`docs/spec_errors.md` #20): `true`. Kept as a
-    // real, separately-callable algorithm (`Cond.Exposed`/
-    // `ExpandExposedPass` compile every "is [not] exposed" check to a real
-    // call to it) rather than inlined at each call site, so a later, more
-    // general mechanization only has to replace this one body.
-    """    1.  If |construct|'s [=exposure set=] is not <code>*</code>, and |realm|.\[[GlobalObject]] does
-        not implement an [=interface=] that is in |construct|'s [=exposure set=], then return false.
-    1.  If |realm|'s [=realm/settings object=] is not a [=secure context=], and |construct| is
-        [=conditionally exposed=] on [{{SecureContext}}], then return false.
-    1.  If |realm|'s [=realm/settings object=]'s
-        [=environment settings object/cross-origin isolated capability=] is false, and |construct|
-        is [=conditionally exposed=] on [{{CrossOriginIsolated}}], then return false.
-    1.  Return true."""
-    ->
-    "    1.  Return true.",
-
     // #39 (spec inconsistency, docs/spec_inconsistencies.md #12) —
     // AddressValueToU64/U64ToAddressValue compare |addrtype| against raw
     // quoted strings "i32"/"i64", instead of the [=i32=]/[=i64=] link idiom

@@ -1,4 +1,4 @@
-115 algorithm(s)
+114 algorithm(s)
 # compile a WebAssembly module
   params: |bytes|
   head: To <dfn>compile a WebAssembly module</dfn> from source bytes |bytes|, perform the following steps:
@@ -1522,11 +1522,6 @@
   For(|i|, Range(|offset|, |offset| + |length| - 1))
     Set(|bytes|[|i| - |offset|], [$GetValueFromBuffer$](|jsArrayBuffer|, |i|, uint8, true, unordered))
   Return(|bytes|)
-
-# exposed
-  params: |construct|, |realm|
-  head: An [=interface=], [=callback interface=], [=namespace=], or [=member=] |construct| is <dfn id="dfn-exposed" export>exposed</dfn> in a given [=realm=] |realm| if the following steps return true:
-  Return(true)
 
 # define the regular operations
   params: |definition|, |target|, |realm|

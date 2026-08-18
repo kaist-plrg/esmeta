@@ -1,4 +1,4 @@
-126 func(s)
+125 func(s)
 def compile_a_webassembly_module(
   bytes: Unknown,
 ): Unknown = {
@@ -3336,12 +3336,6 @@ def get_a_copy_of_the_buffer_source(
     i = (+ i 1)
   }
   return bytes
-}
-def exposed(
-  construct: Unknown,
-  realm: Unknown,
-): Unknown = {
-  return true
 }
 def define_the_regular_operations(
   definition: Unknown,

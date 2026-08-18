@@ -24,7 +24,6 @@ object SpecFile:
     "define the regular operations",
     "define the operations",
     "creating an operation function",
-    "exposed",
   )
 
   /** finds `relPath` in the nearest ancestor of the current directory */

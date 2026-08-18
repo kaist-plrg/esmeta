@@ -927,7 +927,7 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Memory(
   if (exists descriptor.address) {
     let addrtype = descriptor.address
   } else {
-    let addrtype = "i32"
+    let addrtype = (case "I32" )
   }
   call _call1 = clo<"addressvaluetou64">(descriptor.initial, addrtype)
   if (? _call1: Abrupt) {
@@ -1290,7 +1290,7 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Table(
   if (exists descriptor.address) {
     let addrtype = descriptor.address
   } else {
-    let addrtype = "i32"
+    let addrtype = (case "I32" )
   }
   call _call1 = clo<"addressvaluetou64">(descriptor.initial, addrtype)
   if (? _call1: Abrupt) {

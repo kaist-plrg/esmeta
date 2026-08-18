@@ -433,7 +433,7 @@
   If(|descriptor|["address"] [=map/exists=])
     Let(|addrtype|, |descriptor|["address"])
   Else
-    Let(|addrtype|, "i32")
+    Let(|addrtype|, [=i32=])
   Let(|initial|, [=?=] [=AddressValueToU64=](|descriptor|["initial"], |addrtype|))
   If(|descriptor|["maximum"] [=map/exists=])
     Let(|maximum|, [=?=] [=AddressValueToU64=](|descriptor|["maximum"], |addrtype|))
@@ -580,7 +580,7 @@
   If(|descriptor|["address"] [=map/exists=])
     Let(|addrtype|, |descriptor|["address"])
   Else
-    Let(|addrtype|, "i32")
+    Let(|addrtype|, [=i32=])
   Let(|initial|, [=?=] [=AddressValueToU64=](|descriptor|["initial"], |addrtype|))
   If(|descriptor|["maximum"] [=map/exists=])
     Let(|maximum|, [=?=] [=AddressValueToU64=](|descriptor|["maximum"], |addrtype|))

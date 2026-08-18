@@ -182,13 +182,13 @@
 - **Reason**: "지금 계산한 값을 funcaddr 같은 키로 나중에 다른 알고리즘이 다시 찾아쓴다"는 요구사항 자체는 이 문서에 이미 8번 반복되는 패턴(`Exported Function cache`/`Memory object cache`/`host value cache`/... 전부 `surrounding agent`가 소유한 map)인데, 이 한 자리만 그 관용구를 안 쓰고 "Let |X| be N. This value X is known as Y |key|." 라는 즉석 dfn 도입 형태로 써서, 이 문서 자체가 이미 세운 패턴과 어긋납니다.
 - **WJI 쪽 처리**: `SpecPatch` #13으로 우회 — `read the imports`는 `[=surrounding agent=]`의 새 `[=Function Import List=]`(캐시들과 달리 JS 객체가 아니라 순서 정보만 필요하므로 map이 아니라 plain list)에 `funcaddr`을 append하고, `name of the WebAssembly function`은 옆 module-defined 분기가 이미 쓰던 "the index of X where Y is found" 패턴을 그대로 재사용해 조회합니다. 덧붙여 host/module-defined 분기를 가르던 조건(`If |funcinst| is of the form {type functype, hostcode |hostfunc|}`)도 지금은 존재하지 않는 funcinst shape을 매칭하고 있길래, `|funcinst|.code`가 `[=hostfunc=]`/`[=func=]` 중 어느 태그인지로 판별하도록 같이 고쳤습니다 (배경은 `docs/spec_errors.md` #7의 retraction 참고).
 
-## 12. `AddressValueToU64`/`U64ToAddressValue`만 `|addrtype|`을 `[=i32=]`/`[=i64=]` 링크 대신 raw quoted string `"i32"`/`"i64"`와 비교
+## 12. `|addrtype|`을 `[=i32=]`/`[=i64=]` 링크 대신 raw quoted string `"i32"`/`"i64"`와 비교/대입하는 자리들
 
-- **File**: `spectec/document/js-api/index.bs`, `AddressValueToU64`(line 1486, 1491)와 `U64ToAddressValue`(line 1504-1505)
-- **Current**: `1. If |addrtype| is "i32", ...` / `1. If |addrtype| is "i64", ...` (그리고 `U64ToAddressValue`의 `Else if` 변형).
-- **Expected**: `1. If |addrtype| is [=i32=], ...` / `1. If |addrtype| is [=i64=], ...` — 같은 문서에서 numtype/valtype을 비교하는 다른 모든 자리(예: line 519 `If |valtype| is [=i64=]`, line 1427 `If |type| is [=i32=]`)가 쓰는 링크 형태.
-- **Reason**: `addrtype`은 `table_type`/`mem_type`이 돌려주는 진짜 Wasm 값이고, `al_of_addrtype`이 `al_of_numtype`과 완전히 동일한 관용구(`string_of_X at |> nullary`, 즉 소문자 스펙 문자열을 대문자 Case 태그로 감싸는 것)로 만들어져서, 런타임 표현이 numtype/valtype과 구조적으로 완전히 같습니다(`CaseV("I32", [])`). 그런데 이 두 알고리즘만 quoted string literal("i32")과 직접 비교하도록 적혀 있어서, `CondParser`가 이걸 순수 ECMAScript 문자열 리터럴로 파싱해버립니다 — 컴파일된 IR에서 `(= addrtype "i32")`가 Wasm Case 값과 plain string을 비교하게 돼서 항상 `false`이고, 두 분기 다 스킵돼 맨 끝의 "Assert: This step is not reached"에 걸립니다.
-- **WJI 쪽 처리**: `SpecPatch` #37로 우회 — 4곳의 `"i32"`/`"i64"`를 각각 `[=i32=]`/`[=i64=]`로 교체.
+- **File**: `spectec/document/js-api/index.bs` — `AddressValueToU64`(line 1486, 1491), `U64ToAddressValue`(line 1504-1505), `Memory`/`Table` 생성자의 `|addrtype|` 기본값 대입(line 873, 1040).
+- **Current**: `1. If |addrtype| is "i32", ...` / `1. If |addrtype| is "i64", ...`(그리고 `U64ToAddressValue`의 `Else if` 변형) — 그리고 `1. If |descriptor|["address"] [=map/exists=], let |addrtype| be |descriptor|["address"]; otherwise, let |addrtype| be "i32".`
+- **Expected**: `1. If |addrtype| is [=i32=], ...` / `1. If |addrtype| is [=i64=], ...`, `... otherwise, let |addrtype| be [=i32=].` — 같은 문서에서 numtype/valtype을 비교하는 다른 모든 자리(예: line 519 `If |valtype| is [=i64=]`, line 1427 `If |type| is [=i32=]`)가 쓰는 링크 형태.
+- **Reason**: `addrtype`은 `table_type`/`mem_type`이 돌려주는 진짜 Wasm 값이고, `al_of_addrtype`이 `al_of_numtype`과 완전히 동일한 관용구(`string_of_X at |> nullary`, 즉 소문자 스펙 문자열을 대문자 Case 태그로 감싸는 것)로 만들어져서, 런타임 표현이 numtype/valtype과 구조적으로 완전히 같습니다(`CaseV("I32", [])`). 그런데 이 네 자리만 quoted string literal("i32")을 직접 비교/대입하도록 적혀 있어서, `CondParser`/`ExprParser`가 이걸 순수 ECMAScript 문자열 리터럴로 파싱해버립니다 — `AddressValueToU64`/`U64ToAddressValue` 안에서는 컴파일된 IR에서 `(= addrtype "i32")`가 Wasm Case 값과 plain string을 비교하게 돼서 항상 `false`이고 두 분기 다 스킵돼 맨 끝의 "Assert: This step is not reached"에 걸리며, `Memory`/`Table` 생성자 쪽에서는 `addrtype`이 plain string `"i32"`로 대입돼버려서 그 값을 넘겨받는 `AddressValueToU64`(패치 후 Case 태그와 비교) 쪽에서 어느 분기에도 안 걸리는 같은 증상이 재현됩니다.
+- **WJI 쪽 처리**: `AddressValueToU64`/`U64ToAddressValue` 안쪽은 `SpecPatch` #39로 우회(4곳의 `"i32"`/`"i64"`를 각각 `[=i32=]`/`[=i64=]`로 교체). `Memory`/`Table` 생성자의 기본값 대입 2곳은 나중에 발견돼 `SpecPatch` #44로 추가 우회(`"i32"` → `[=i32=]`).
 
 ## 13. `Memory.grow`/`Table.length`만 `mem_type`/`table_type`의 반환값에서 필드 하나를 "the X in Y(...)" 축약형으로 project — 다른 자리는 전부 튜플 destructuring
 

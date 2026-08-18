@@ -894,6 +894,19 @@ object SpecPatch:
     "|importObject| is undefined"
     ->
     "|importObject| is missing",
+
+    // #44 (spec inconsistency, docs/spec_inconsistencies.md #12) — `Memory`/
+    // `Table`'s constructors default a missing |descriptor|["address"] to
+    // the raw quoted string "i32" instead of the [=i32=] link idiom
+    // AddressValueToU64/U64ToAddressValue (patched by #39 above) already
+    // expect their own |addrtype| argument to carry — same underlying
+    // inconsistency, just at the two call sites that produce |addrtype|
+    // rather than the two that consume it. Both `Memory`(line 873) and
+    // `Table`(line 1040) write byte-identical text, so one replacement
+    // covers both.
+    "otherwise, let |addrtype| be \"i32\"."
+    ->
+    "otherwise, let |addrtype| be [=i32=].",
   )
 
   def apply(source: String): String =

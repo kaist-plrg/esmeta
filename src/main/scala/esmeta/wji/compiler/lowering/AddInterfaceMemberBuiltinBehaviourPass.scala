@@ -56,11 +56,29 @@ import esmeta.error.UnsupportedSpecShape
   * the capitalized `ArgumentsList`/`NewTarget`/`this` names this convention
   * uses — see [[BuiltinParams]] — instead of that pass's lowercase
   * `argumentsList`/`newTarget`/`thisArgument`, a different convention for
-  * hoisted closures rather than top-level interface members). `**this**` itself
-  * needs no such unpacking: it now compiles directly to the same local the
-  * `|this|` parameter declares (see `esmeta.wji.compiler.Compiler`'s
-  * `Expr.This` case), so simply declaring `|this|` as a parameter is already
-  * enough to bind it — no `Set **this** to |this|.` prefix needed.
+  * hoisted closures rather than top-level interface members). For a
+  * Getter/Setter/Method, `**this**` needs no such unpacking: it's already a
+  * real receiver at call time (`[[Call]]` always supplies one), and compiles
+  * directly to the same local the `|this|` parameter declares (see
+  * `esmeta.wji.compiler.Compiler`'s `Expr.This` case), so simply declaring
+  * `|this|` as a parameter is already enough to bind it — no `Set **this** to
+  * |this|.` prefix needed. A `Constructor` is different: it's invoked via
+  * `[[Construct]]`, which per ECMA-262
+  * (`sec-built-in-function-objects-construct-argumentslist-newtarget`) never
+  * supplies a `this` at all (`BuiltinCallOrConstruct` gets `~uninitialized~`) —
+  * allocating the object and binding it as `this` is WebIDL's own "create an
+  * interface object" preamble (`webidl/index.bs`, step "internally create a new
+  * object implementing the interface" before "Perform the constructor steps ...
+  * with object as this"), a step outside the constructor-steps text itself,
+  * which is why no js-api constructor algorithm ever writes it and every one
+  * instead ends by mutating `this`'s fields with no explicit `Return`.
+  * [[createThisBinding]]/[[returnThisBinding]] mechanize exactly that
+  * preamble/epilogue, reusing the same `Expr.New(iface)` → `ERecord(iface,
+  * ordinaryObjectFields(iface))` construction
+  * `esmeta.wji.compiler.Compiler.compileExpr` already uses for the "Let |x| be
+  * a new Y." shape inside algorithm bodies (see `docs/hardcodes.md` #7) — it
+  * already has real prototype wiring for every interface a WJI test constructs
+  * directly (`Module`, `Instance`, `Memory`, `Table`, `Global`).
   *   - '''WebIDL's implicit setter argument''': a `Setter`-kind algorithm's
   *     `**the given value**` (`Expr.GivenValue`) is WebIDL's other implicit
   *     member-only binding, alongside `**this**` — unpacked from
@@ -238,6 +256,26 @@ object AddInterfaceMemberBuiltinBehaviourPass extends LoweringPass:
       )
     case _ => Nil
 
+  /** WebIDL's "internally create a new object implementing the interface"
+    * preamble — see this pass's own class doc for why a `Constructor` (unlike
+    * Getter/Setter/Method) needs this instead of relying on an already-bound
+    * `**this**`.
+    */
+  private def createThisBinding(kind: AlgorithmKind): List[Instr] = kind match
+    case AlgorithmKind.Constructor(iface) =>
+      List(Instr.Set(Expr.This, Expr.New(iface)))
+    case _ => Nil
+
+  /** The matching epilogue: every js-api constructor algorithm ends by mutating
+    * `**this**`'s fields with no explicit `Return`, relying on WebIDL's outer
+    * wrapper to return the object it created — mechanized here as an explicit,
+    * completion-wrapped `Return **this**.` instead.
+    */
+  private def returnThisBinding(kind: AlgorithmKind): List[Instr] = kind match
+    case AlgorithmKind.Constructor(_) =>
+      CompletionWrapping.expandAlgorithm(List(Instr.Return(Some(Expr.This))))
+    case _ => Nil
+
   def run(algos: List[Algorithm]): List[Algorithm] =
     algos.map { a =>
       a.kind match
@@ -249,7 +287,8 @@ object AddInterfaceMemberBuiltinBehaviourPass extends LoweringPass:
           a.copy(
             params = BuiltinParams,
             body = unpackArgumentsList(a.params) ++
-              givenValueBinding(a.kind) ++ wrappedBody,
+              givenValueBinding(a.kind) ++ createThisBinding(a.kind) ++
+              wrappedBody ++ returnThisBinding(a.kind),
           )
         case AlgorithmKind.Plain => a
     }

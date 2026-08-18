@@ -672,6 +672,23 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Module(
   } else {
     call options = clo<"OrdinaryObjectCreate">(null)
   }
+  this = (record [Module] {
+    "GetPrototypeOf" : clo<"Record[OrdinaryObject].GetPrototypeOf">,
+    "SetPrototypeOf" : clo<"Record[OrdinaryObject].SetPrototypeOf">,
+    "IsExtensible" : clo<"Record[OrdinaryObject].IsExtensible">,
+    "PreventExtensions" : clo<"Record[OrdinaryObject].PreventExtensions">,
+    "GetOwnProperty" : clo<"Record[OrdinaryObject].GetOwnProperty">,
+    "DefineOwnProperty" : clo<"Record[OrdinaryObject].DefineOwnProperty">,
+    "HasProperty" : clo<"Record[OrdinaryObject].HasProperty">,
+    "Get" : clo<"Record[OrdinaryObject].Get">,
+    "Set" : clo<"Record[OrdinaryObject].Set">,
+    "Delete" : clo<"Record[OrdinaryObject].Delete">,
+    "OwnPropertyKeys" : clo<"Record[OrdinaryObject].OwnPropertyKeys">,
+    "Prototype" : @EXECUTION_STACK[0].Realm.Intrinsics["%WebAssembly.Module.prototype%"],
+    "Extensible" : true,
+    "PrivateElements" : (list []),
+    "__MAP__" : (map[Unknown, Unknown]),
+  })
   call stableBytes = clo<"get_a_copy_of_the_buffer_source">(bytes)
   call module = clo<"compile_a_webassembly_module">(stableBytes)
   if (= module (case "ERROR" )) {
@@ -701,6 +718,13 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Module(
   this.ImportedStringModule = importedStringModule
   call _ret5 = clo<"NormalCompletion">(~unused~)
   return _ret5
+  let _v1 = this
+  if (? _v1: Completion) {
+    return _v1
+  } else {
+    call _ret2 = clo<"NormalCompletion">(_v1)
+    return _ret2
+  }
 }
 def <BUILTIN>:INTRINSICS.WebAssembly.Instance(
   this: Unknown,
@@ -717,6 +741,23 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Instance(
     let importObject = ArgumentsList[1]
     call importObject = clo<"converted_to_an_idl_value">(importObject, "object")
   } else nop
+  this = (record [Instance] {
+    "GetPrototypeOf" : clo<"Record[OrdinaryObject].GetPrototypeOf">,
+    "SetPrototypeOf" : clo<"Record[OrdinaryObject].SetPrototypeOf">,
+    "IsExtensible" : clo<"Record[OrdinaryObject].IsExtensible">,
+    "PreventExtensions" : clo<"Record[OrdinaryObject].PreventExtensions">,
+    "GetOwnProperty" : clo<"Record[OrdinaryObject].GetOwnProperty">,
+    "DefineOwnProperty" : clo<"Record[OrdinaryObject].DefineOwnProperty">,
+    "HasProperty" : clo<"Record[OrdinaryObject].HasProperty">,
+    "Get" : clo<"Record[OrdinaryObject].Get">,
+    "Set" : clo<"Record[OrdinaryObject].Set">,
+    "Delete" : clo<"Record[OrdinaryObject].Delete">,
+    "OwnPropertyKeys" : clo<"Record[OrdinaryObject].OwnPropertyKeys">,
+    "Prototype" : @EXECUTION_STACK[0].Realm.Intrinsics["%WebAssembly.Instance.prototype%"],
+    "Extensible" : true,
+    "PrivateElements" : (list []),
+    "__MAP__" : (map[Unknown, Unknown]),
+  })
   let builtinSetNames = moduleObject.BuiltinSets
   let importedStringModule = moduleObject.ImportedStringModule
   let module = moduleObject.Module
@@ -745,6 +786,13 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Instance(
   call _ = clo<"initialize_an_instance_object">(this, module, instance)
   call _ret3 = clo<"NormalCompletion">(~unused~)
   return _ret3
+  let _v1 = this
+  if (? _v1: Completion) {
+    return _v1
+  } else {
+    call _ret2 = clo<"NormalCompletion">(_v1)
+    return _ret2
+  }
 }
 def <BUILTIN>:INTRINSICS.get:WebAssembly.Instance.prototype.exports(
   this: Unknown,
@@ -847,6 +895,23 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Memory(
   } else {
     assert false
   }
+  this = (record [Memory] {
+    "GetPrototypeOf" : clo<"Record[OrdinaryObject].GetPrototypeOf">,
+    "SetPrototypeOf" : clo<"Record[OrdinaryObject].SetPrototypeOf">,
+    "IsExtensible" : clo<"Record[OrdinaryObject].IsExtensible">,
+    "PreventExtensions" : clo<"Record[OrdinaryObject].PreventExtensions">,
+    "GetOwnProperty" : clo<"Record[OrdinaryObject].GetOwnProperty">,
+    "DefineOwnProperty" : clo<"Record[OrdinaryObject].DefineOwnProperty">,
+    "HasProperty" : clo<"Record[OrdinaryObject].HasProperty">,
+    "Get" : clo<"Record[OrdinaryObject].Get">,
+    "Set" : clo<"Record[OrdinaryObject].Set">,
+    "Delete" : clo<"Record[OrdinaryObject].Delete">,
+    "OwnPropertyKeys" : clo<"Record[OrdinaryObject].OwnPropertyKeys">,
+    "Prototype" : @EXECUTION_STACK[0].Realm.Intrinsics["%WebAssembly.Memory.prototype%"],
+    "Extensible" : true,
+    "PrivateElements" : (list []),
+    "__MAP__" : (map[Unknown, Unknown]),
+  })
   if (exists descriptor.address) {
     let addrtype = descriptor.address
   } else {
@@ -897,6 +962,13 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Memory(
   call _ = clo<"initialize_a_memory_object">(this, memaddr)
   call _ret7 = clo<"NormalCompletion">(~unused~)
   return _ret7
+  let _v1 = this
+  if (? _v1: Completion) {
+    return _v1
+  } else {
+    call _ret2 = clo<"NormalCompletion">(_v1)
+    return _ret2
+  }
 }
 def refresh_the_memory_buffer(
   memaddr: Unknown,
@@ -1176,6 +1248,23 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Table(
     let value = ArgumentsList[1]
     call value = clo<"converted_to_an_idl_value">(value, "any")
   } else nop
+  this = (record [Table] {
+    "GetPrototypeOf" : clo<"Record[OrdinaryObject].GetPrototypeOf">,
+    "SetPrototypeOf" : clo<"Record[OrdinaryObject].SetPrototypeOf">,
+    "IsExtensible" : clo<"Record[OrdinaryObject].IsExtensible">,
+    "PreventExtensions" : clo<"Record[OrdinaryObject].PreventExtensions">,
+    "GetOwnProperty" : clo<"Record[OrdinaryObject].GetOwnProperty">,
+    "DefineOwnProperty" : clo<"Record[OrdinaryObject].DefineOwnProperty">,
+    "HasProperty" : clo<"Record[OrdinaryObject].HasProperty">,
+    "Get" : clo<"Record[OrdinaryObject].Get">,
+    "Set" : clo<"Record[OrdinaryObject].Set">,
+    "Delete" : clo<"Record[OrdinaryObject].Delete">,
+    "OwnPropertyKeys" : clo<"Record[OrdinaryObject].OwnPropertyKeys">,
+    "Prototype" : @EXECUTION_STACK[0].Realm.Intrinsics["%WebAssembly.Table.prototype%"],
+    "Extensible" : true,
+    "PrivateElements" : (list []),
+    "__MAP__" : (map[Unknown, Unknown]),
+  })
   call elementtype = clo<"tovaluetype">(descriptor.element)
   if (! (? elementtype: Unknown["reftype"])) {
     call _err1 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
@@ -1248,6 +1337,13 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Table(
   call _ = clo<"initialize_a_table_object">(this, tableaddr)
   call _ret10 = clo<"NormalCompletion">(~unused~)
   return _ret10
+  let _v1 = this
+  if (? _v1: Completion) {
+    return _v1
+  } else {
+    call _ret2 = clo<"NormalCompletion">(_v1)
+    return _ret2
+  }
 }
 def <BUILTIN>:INTRINSICS.WebAssembly.Table.prototype.grow(
   this: Unknown,
@@ -1554,6 +1650,23 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Global(
     let v = ArgumentsList[1]
     call v = clo<"converted_to_an_idl_value">(v, "any")
   } else nop
+  this = (record [Global] {
+    "GetPrototypeOf" : clo<"Record[OrdinaryObject].GetPrototypeOf">,
+    "SetPrototypeOf" : clo<"Record[OrdinaryObject].SetPrototypeOf">,
+    "IsExtensible" : clo<"Record[OrdinaryObject].IsExtensible">,
+    "PreventExtensions" : clo<"Record[OrdinaryObject].PreventExtensions">,
+    "GetOwnProperty" : clo<"Record[OrdinaryObject].GetOwnProperty">,
+    "DefineOwnProperty" : clo<"Record[OrdinaryObject].DefineOwnProperty">,
+    "HasProperty" : clo<"Record[OrdinaryObject].HasProperty">,
+    "Get" : clo<"Record[OrdinaryObject].Get">,
+    "Set" : clo<"Record[OrdinaryObject].Set">,
+    "Delete" : clo<"Record[OrdinaryObject].Delete">,
+    "OwnPropertyKeys" : clo<"Record[OrdinaryObject].OwnPropertyKeys">,
+    "Prototype" : @EXECUTION_STACK[0].Realm.Intrinsics["%WebAssembly.Global.prototype%"],
+    "Extensible" : true,
+    "PrivateElements" : (list []),
+    "__MAP__" : (map[Unknown, Unknown]),
+  })
   let mutable = descriptor.mutable
   call valuetype = clo<"tovaluetype">(descriptor.value)
   call-embed _m1 = <match_valtype>(valuetype, (case "V128" ))
@@ -1593,6 +1706,13 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Global(
   call _ = clo<"initialize_a_global_object">(this, globaladdr)
   call _ret4 = clo<"NormalCompletion">(~unused~)
   return _ret4
+  let _v1 = this
+  if (? _v1: Completion) {
+    return _v1
+  } else {
+    call _ret2 = clo<"NormalCompletion">(_v1)
+    return _ret2
+  }
 }
 def getglobalvalue(
   global: Unknown,
@@ -2447,6 +2567,23 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Tag(
   } else {
     assert false
   }
+  this = (record [Tag] {
+    "GetPrototypeOf" : clo<"Record[OrdinaryObject].GetPrototypeOf">,
+    "SetPrototypeOf" : clo<"Record[OrdinaryObject].SetPrototypeOf">,
+    "IsExtensible" : clo<"Record[OrdinaryObject].IsExtensible">,
+    "PreventExtensions" : clo<"Record[OrdinaryObject].PreventExtensions">,
+    "GetOwnProperty" : clo<"Record[OrdinaryObject].GetOwnProperty">,
+    "DefineOwnProperty" : clo<"Record[OrdinaryObject].DefineOwnProperty">,
+    "HasProperty" : clo<"Record[OrdinaryObject].HasProperty">,
+    "Get" : clo<"Record[OrdinaryObject].Get">,
+    "Set" : clo<"Record[OrdinaryObject].Set">,
+    "Delete" : clo<"Record[OrdinaryObject].Delete">,
+    "OwnPropertyKeys" : clo<"Record[OrdinaryObject].OwnPropertyKeys">,
+    "Prototype" : @EXECUTION_STACK[0].Realm.Intrinsics["%WebAssembly.Tag.prototype%"],
+    "Extensible" : true,
+    "PrivateElements" : (list []),
+    "__MAP__" : (map[Unknown, Unknown]),
+  })
   let parameters = type.parameters
   let wasmParameters = (list [])
   let _iterList1 = parameters
@@ -2466,6 +2603,13 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Tag(
   call _ = clo<"initialize_a_tag_object">(this, tagAddress)
   call _ret1 = clo<"NormalCompletion">(~unused~)
   return _ret1
+  let _v1 = this
+  if (? _v1: Completion) {
+    return _v1
+  } else {
+    call _ret2 = clo<"NormalCompletion">(_v1)
+    return _ret2
+  }
 }
 def \[[getprototypeof]]_internal_method_of_an_exported_gc_object(
 ): Unknown = {
@@ -2619,6 +2763,23 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Exception(
   } else {
     call options = clo<"OrdinaryObjectCreate">(null)
   }
+  this = (record [Exception] {
+    "GetPrototypeOf" : clo<"Record[OrdinaryObject].GetPrototypeOf">,
+    "SetPrototypeOf" : clo<"Record[OrdinaryObject].SetPrototypeOf">,
+    "IsExtensible" : clo<"Record[OrdinaryObject].IsExtensible">,
+    "PreventExtensions" : clo<"Record[OrdinaryObject].PreventExtensions">,
+    "GetOwnProperty" : clo<"Record[OrdinaryObject].GetOwnProperty">,
+    "DefineOwnProperty" : clo<"Record[OrdinaryObject].DefineOwnProperty">,
+    "HasProperty" : clo<"Record[OrdinaryObject].HasProperty">,
+    "Get" : clo<"Record[OrdinaryObject].Get">,
+    "Set" : clo<"Record[OrdinaryObject].Set">,
+    "Delete" : clo<"Record[OrdinaryObject].Delete">,
+    "OwnPropertyKeys" : clo<"Record[OrdinaryObject].OwnPropertyKeys">,
+    "Prototype" : @EXECUTION_STACK[0].Realm.Intrinsics["%WebAssembly.Exception.prototype%"],
+    "Extensible" : true,
+    "PrivateElements" : (list []),
+    "__MAP__" : (map[Unknown, Unknown]),
+  })
   call JSTagAddr = clo<"get_the_javascript_exception_tag">()
   if (= exceptionTag.Address JSTagAddr) {
     call _err1 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
@@ -2666,6 +2827,13 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Exception(
   } else nop
   call _ret8 = clo<"NormalCompletion">(~unused~)
   return _ret8
+  let _v1 = this
+  if (? _v1: Completion) {
+    return _v1
+  } else {
+    call _ret2 = clo<"NormalCompletion">(_v1)
+    return _ret2
+  }
 }
 def <BUILTIN>:INTRINSICS.WebAssembly.Exception.prototype.getarg(
   this: Unknown,

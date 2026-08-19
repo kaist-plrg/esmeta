@@ -1574,7 +1574,7 @@
     Else
       ?(end these steps and allow the exception to propagate)
   PerformAndLet([=Compute the effective overload set=]([=regular operations=] if |op| is a regular operation else [=static operations=] if |op| is a static operation, [=identifier=](|id|, |target|, 0)), |S|)
-  Let(|length|, length(?(the shortest argument list in the entries in |S|)))
+  Let(|length|, length(shortestArgumentList(|S|)))
   Let(|F|, [$CreateBuiltinFunction$](|steps|, |length|, |id|, « », |realm|))
   Return(|F|)
 

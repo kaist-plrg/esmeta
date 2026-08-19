@@ -205,6 +205,19 @@ object Expr:
     */
   case class IndexOf(list: Expr, elem: Expr) extends Expr
 
+  /** "the shortest argument list ... of/in the entries in LIST" — the
+    * `typeList` field of whichever entry in LIST (an effective-overload-set-
+    * shaped list of `(callable, typeList, optionalityList)` records, e.g.
+    * |S| from webidl/index.bs's `compute the effective overload set`,
+    * `manuals/funcs/compute_the_effective_overload_set.ir`) has the
+    * fewest-element `typeList` (webidl/index.bs:12584, `creating an operation
+    * function`). Not directly evaluable; expanded by
+    * `ExpandShortestArgumentListPass`, which only handles it wrapped in
+    * `Length` in direct `Let` RHS position — the only shape seen in practice —
+    * see that pass's own doc.
+    */
+  case class ShortestArgumentList(list: Expr) extends Expr
+
   /** An unnamed, not-yet-hoisted closure literal — "the following steps ...:"
     * itself, wherever it appears as an argument/value, taking `params` as
     * formal parameters (no `|` delimiters). If vardadicLast is true, the last
@@ -321,6 +334,7 @@ object Expr:
       case DataBlockOf(memaddr)       => List(memaddr)
       case Range(low, high)           => List(low, high)
       case IndexOf(list, elem)        => List(list, elem)
+      case ShortestArgumentList(list) => List(list)
       case ClosureCall(closure, args) => closure :: args
       case TupleProj(base, _)         => List(base)
       case CaseTag(base)              => List(base)

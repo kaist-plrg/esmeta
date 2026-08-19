@@ -329,6 +329,13 @@ object ExprParser:
   // Expr.IndexOf / ExpandIndexOfPass.
   private val IndexOfPat =
     """(?si)^the index of (.+) where (.+) is found$""".r
+  // "the shortest argument list ... of/in the entries in/of BASE" — the
+  // argument/type-list projection of whichever effective-overload-set entry
+  // in BASE has the fewest elements (webidl/index.bs:12584; "type list"
+  // variant at webidl/index.bs:11529, unextracted but tolerated for free).
+  // See Expr.ShortestArgumentList / ExpandShortestArgumentListPass.
+  private val ShortestArgumentListOfEntries =
+    """(?si)^the shortest (?:argument|type) list (?:of|in) the entries (?:in|of) (.+)$""".r
   // "the [=list=] of [=regular operations=] that are [=members=] of |X|" —
   // webidl/index.bs's `define the regular operations`/`define the
   // operations` member-list projection. `esmeta.wji.Initialize` builds each
@@ -801,13 +808,15 @@ object ExprParser:
       case BareSlotName(slot)        => Str(stripBraces(slot))
       case PossessiveSlot(baseRaw, slot) =>
         Field(parse(baseRaw), stripBraces(slot))
-      case DotFieldLink(baseRaw, link)   => fieldFromLink(baseRaw, link)
-      case DotField(baseRaw, field)      => Field(parse(baseRaw), field)
-      case LengthOf(inner)               => Length(parse(inner))
-      case ElementCount(inner)           => Length(parse(inner))
-      case PossessiveSize(inner)         => Length(parse(inner))
-      case ElementAt(idx, arr)           => Index(parse(arr), parse(idx))
-      case IndexOfPat(list, elem)        => IndexOf(parse(list), parse(elem))
+      case DotFieldLink(baseRaw, link) => fieldFromLink(baseRaw, link)
+      case DotField(baseRaw, field)    => Field(parse(baseRaw), field)
+      case LengthOf(inner)             => Length(parse(inner))
+      case ElementCount(inner)         => Length(parse(inner))
+      case PossessiveSize(inner)       => Length(parse(inner))
+      case ElementAt(idx, arr)         => Index(parse(arr), parse(idx))
+      case IndexOfPat(list, elem)      => IndexOf(parse(list), parse(elem))
+      case ShortestArgumentListOfEntries(baseRaw) =>
+        ShortestArgumentList(parse(baseRaw))
       case PossessiveIdentifier(baseRaw) => Field(parse(baseRaw), "id")
       case IdentifierOfType(varRaw)      => Field(parse(varRaw), "id")
       case AssociatedRealm(baseRaw)      => Field(parse(baseRaw), "Realm")

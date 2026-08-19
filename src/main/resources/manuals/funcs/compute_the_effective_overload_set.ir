@@ -26,7 +26,11 @@ def compute_the_effective_overload_set(
       push optionalityValues < "required"
     %2 = (+ %2 1)
   }
-  %3 = (list [X, types, optionalityValues])
+  %3 = (record [Unknown] {
+    "callable" : X,
+    "typeList" : types,
+    "optionalityList" : optionalityValues,
+  })
   push S < %3
   i = (- n 1)
   while (&& (! (< i 0)) (= arguments[i].optional true)) {
@@ -38,7 +42,11 @@ def compute_the_effective_overload_set(
       push o < optionalityValues[j]
       j = (+ j 1)
     }
-    %4 = (list [X, t, o])
+    %4 = (record [Unknown] {
+     "callable" : X,
+     "typeList" : t,
+     "optionalityList" : o,
+    })
     push S < %4
     i = (- i 1)
   }

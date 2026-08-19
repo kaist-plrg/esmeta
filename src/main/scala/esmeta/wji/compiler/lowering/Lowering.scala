@@ -80,6 +80,7 @@ object Lowering:
     ExpandForPass,
     ExpandNewByteSequencePass,
     ExpandIndexOfPass,
+    ExpandShortestArgumentListPass,
     ExpandDestructuringLetPass,
     ExpandExistentialsPass,
     ExpandDataBlockOfPass,

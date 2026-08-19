@@ -3402,7 +3402,15 @@ def creating_an_operation_function(
   } else {
     assert false
   }
-  let length = (sizeof (yet "the shortest argument list in the entries in |S|"))
+  let _shortLen1 = (sizeof S[0].typeList)
+  let _shortI2 = 1
+  while (< _shortI2 (sizeof S)) {
+    if (< (sizeof S[_shortI2].typeList) _shortLen1) {
+      _shortLen1 = (sizeof S[_shortI2].typeList)
+    } else nop
+    _shortI2 = (+ _shortI2 1)
+  }
+  let length = _shortLen1
   call F = clo<"CreateBuiltinFunction">(steps, length, id, (list []), realm)
   return F
 }

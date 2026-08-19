@@ -38,6 +38,8 @@ trait Walker:
     case Expr.DataBlockOf(memaddr)    => Expr.DataBlockOf(walk(memaddr))
     case Expr.Range(low, high)        => Expr.Range(walk(low), walk(high))
     case Expr.IndexOf(list, elem)     => Expr.IndexOf(walk(list), walk(elem))
+    case Expr.ShortestArgumentList(list) =>
+      Expr.ShortestArgumentList(walk(list))
     case Expr.ClosureCall(closure, args) =>
       Expr.ClosureCall(walk(closure), args.map(walk))
     case Expr.TupleProj(base, idx) => Expr.TupleProj(walk(base), idx)
@@ -49,6 +51,7 @@ trait Walker:
         branches.map((cond, e) => (walk(cond), walk(e))),
         otherwise.map(walk),
       )
+    case Expr.GetMember(def_, mem) => Expr.GetMember(def_, mem)
     // leaves with no nested Expr: Var, This, GivenValue, Num, Bool, Str,
     // Byte, SpecTerm, New, UnknownNew, Described, Unknown, Closure,
     // FollowingSteps.

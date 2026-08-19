@@ -510,6 +510,8 @@ object Compiler:
       impossible(
         s"getting $member of $definition is found",
       )
+    case metalang.Expr.ShortestArgumentList(list) =>
+      impossible(s"shortest argument list of the entries in ${list}")
 
   // ── Condition ────────────────────────────────────────────────────────────────
 

@@ -132,6 +132,22 @@ class ExprParserSpec extends AnyFunSuite:
     )
   }
 
+  test("shortest argument list of the entries in a list") {
+    assert(
+      ExprParser.parse("the shortest argument list in the entries in |S|") ==
+      ShortestArgumentList(Var("S")),
+    )
+    assert(
+      ExprParser.parse(
+        "the length of the shortest argument list in the entries in |S|",
+      ) == Length(ShortestArgumentList(Var("S"))),
+    )
+    assert(
+      ExprParser.parse("the shortest type list of the entries of |S|") ==
+      ShortestArgumentList(Var("S")),
+    )
+  }
+
   test("associated realm / possessive association") {
     assert(
       ExprParser.parse("|func|'s [=associated Realm=]") == Field(

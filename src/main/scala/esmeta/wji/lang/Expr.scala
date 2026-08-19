@@ -302,6 +302,28 @@ object Expr:
 
   case class Enum(s: String) extends Expr
 
+  /** A bare juxtaposed sequence of exprs with no tag/keyword/separator of its
+    * own — the surface syntax for SpecTec's untagged-`CaseE` construction (Wasm
+    * Core's `memtype ::= addrtype limits`/`tabletype ::= addrtype limits
+    * reftype`-style rules: N ≥ 2 fields written one after another, nothing
+    * between them). Produced two ways:
+    *   - a `{ **label** val, **label** val, ... }` block (`ExprParser`'s
+    *     curly-brace rule) — the label text itself carries no information
+    *     `parse` needs (SpecTec's own field order is what determines meaning,
+    *     not the prose label), so only the ordered `val`s survive.
+    *   - `parse`'s own last-resort fallback: when nothing else matches but the
+    *     *whole* input greedily decomposes into a run of otherwise-valid
+    *     `Expr`s with nothing left over, wrapping them in `Seq_` preserves that
+    *     partial structure instead of collapsing straight to [[Unknown]].
+    *     Deliberately carries no tag — unlike [[Case]], which already has one.
+    *     Assigning the real SpecTec tag (e.g. `memtype`'s `"PAGE"`) — turning
+    *     this into a proper `Case` — is left to a later lowering pass (mirrors
+    *     `NormalizeSpecTecCaseShapePass`'s existing job for every other
+    *     spec-link-text-to-real-tag translation); nothing here or in `Compiler`
+    *     assigns one.
+    */
+  case class Seq_(exprs: List[Expr]) extends Expr
+
   case class GetMember(definition: Expr, member: MemberKind) extends Expr
 
   extension (expr: Expr)
@@ -342,6 +364,7 @@ object Expr:
       case Conditional(branches, otherwise) =>
         branches.map(_._2) ++ otherwise.toList
       case GetMember(e, _) => List(e)
+      case Seq_(exprs)     => exprs
       case _               => Nil
 
     /** Whether `pred` holds for this `Expr` or any `Expr` nested inside it, at

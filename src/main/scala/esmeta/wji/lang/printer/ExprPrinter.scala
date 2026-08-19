@@ -72,6 +72,7 @@ object ExprPrinter:
     case CaseTag(base)        => s"case-tag(${render(base)})"
     case Opt(inner)           => s"opt(${inner.map(render).getOrElse("none")})"
     case Enum(s)              => s"enum($s)"
+    case Seq_(exprs)          => exprs.map(render).mkString(" ")
     case GetMember(definition, member) =>
       s"GetMember($definition, $member)"
 

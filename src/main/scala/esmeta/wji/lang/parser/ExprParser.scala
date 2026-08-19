@@ -217,6 +217,28 @@ object ExprParser:
   // genuine markup tags kept verbatim in the extracted text.
   private val AngleTuplePat = """(?s)^&lt;\s*(.+?)\s*&gt;$""".r
 
+  // "{ **min** |initial|, **max** |maximum| }" / "{ <b>[=limits|min=]</b>
+  // |initial|, <b>[=limits|max=]</b> |maximum| }" — Bikeshed's "construct a
+  // formal-grammar record from named fields" notation (e.g. Memory's/Table's
+  // constructors building a `memtype`/`tabletype`, index.bs:876/1043). The
+  // label (bold text, or a bold-wrapped `[=...=]` link) carries no
+  // information `parse` needs — SpecTec's own fixed field order is what
+  // determines meaning, not the prose label — so `parseBracedFields` keeps
+  // only the ordered values, wrapped in the tag-less [[Expr.Seq_]] (real
+  // SpecTec tag assignment is left to a later lowering pass — see that
+  // node's own doc).
+  private val BracedFields = """(?s)^\{\s*(.+)\s*\}$""".r
+  private val BracedFieldLabel =
+    """(?s)^(?:\*\*[^*]+\*\*|<b>.*?</b>)\s+(.+)$""".r
+
+  private def parseBracedFields(inner: String): Option[Expr] =
+    val values = splitComma(inner).map { seg =>
+      seg.trim match
+        case BracedFieldLabel(value) => Some(parse(value))
+        case _                       => None
+    }
+    if values.forall(_.isDefined) then Some(Seq_(values.flatten)) else None
+
   // ---- Call syntax: explicit invocation of a named algorithm/AO ----
 
   private val JSCallFull = """(?s)^\[\$([^\$]+)\$\]\((.*)\)$""".r
@@ -667,7 +689,25 @@ object ExprParser:
       normalizeLink(link).stripPrefix("[=").stripSuffix("=]"),
     )
 
-  def parse(raw: String): Expr =
+  def parse(raw: String): Expr = parseWith(raw, allowSeqFallback = true)
+
+  /** Same as `parse`, but its own top-level match never falls through to
+    * [[parseAsSeq]] — used by [[parseAsSeq]]'s own shrink loop so that a
+    * substring it can't match doesn't spawn another full `parseAsSeq` search
+    * nested inside the one already running (which would otherwise compound into
+    * a combinatorial blowup instead of the intended linear "shrink until
+    * something matches"). Every case body below still recurses via `parse`, not
+    * this — the distinction has to be "did *this* call's match reach its own
+    * tail case", not "is the resulting `Expr` an `Unknown`": a case like
+    * `Backticked` legitimately returns whatever its own nested `parse(inner)`
+    * call decides, which may itself already be a correctly- resolved `Unknown`
+    * for a *smaller* string — that must not be mistaken for *this* call's own
+    * match having failed and re-triggered on the wrong (larger) string.
+    */
+  private def parseCore(s: String): Expr =
+    parseWith(s, allowSeqFallback = false)
+
+  private def parseWith(raw: String, allowSeqFallback: Boolean): Expr =
     val s = raw.trim
     s match
       // ---- Wrappers ----
@@ -864,10 +904,69 @@ object ExprParser:
       case EmuConst(v)                    => SpecTerm(v)
       case EmuVal(v)                      => SpecTerm(v)
       case BracedTerm(inner)              => SpecTerm(inner)
-      case CrossSpecRef(text)             => SpecTerm(text)
-      case RealmSettingsObject()          => SpecTerm("realm/settings object")
+      case BracedFields(inner) => parseBracedFields(inner).getOrElse(Unknown(s))
+      case CrossSpecRef(text)  => SpecTerm(text)
+      case RealmSettingsObject() => SpecTerm("realm/settings object")
 
-      case _ => Unknown(s)
+      case _ =>
+        if allowSeqFallback then parseAsSeq(s).getOrElse(Unknown(s))
+        else Unknown(s)
+
+  /** Last-resort fallback for `parse`'s final case: every more specific case
+    * above has already failed, so try to decompose the *whole* string into a
+    * run of individually parseable `Expr`s with nothing left over (a
+    * longest-match-first tokenizing loop like [[parseArgs]] uses below, except
+    * both ends of each candidate span are anchored to word/clause boundaries —
+    * a space on either side, or a string edge — rather than shrinking one
+    * character at a time, since a partial-word span could never usefully match
+    * anyway) and wrap the result in [[Expr.Seq_]] instead of falling all the
+    * way to [[Unknown]]. Returns `None` (never a partial `Seq_`) if any part of
+    * the string can't be matched, or if fewer than two `Expr`s result (a lone
+    * match here would just be `parse` itself finding what an earlier, more
+    * specific case should have — not genuine juxtaposed-field structure worth
+    * preserving) — a partial or spurious guess would be worse than the honest
+    * "not yet mechanized" signal this is a fallback *from*, not a
+    * general-purpose alternate parse path (see `parseUntaggedForm`'s own doc
+    * for a confirmed instance of exactly this kind of over-eager fallback
+    * silently swallowing a genuine multi-arg call when it was tried as a
+    * general `parse` case before).
+    */
+  private def parseAsSeq(s: String): Option[Expr] =
+    val n = s.length
+    if n == 0 then None
+    else
+      val starts = (0 until n).filter(i => i == 0 || s(i - 1) == ' ').toArray
+      // A candidate end must line up with the *next* token's start (not
+      // "right before the following space") — `parseCore` trims its input,
+      // so a span that includes the separating space still matches, and only
+      // landing exactly on a `starts` position keeps `consumedTo` in sync
+      // with the next `from` below.
+      val ends = (starts :+ n).distinct
+      val result = collection.mutable.ListBuffer[Expr]()
+      var si = 0
+      var consumedTo = 0
+      var stuck = false
+      while si < starts.length && !stuck do
+        val from = starts(si)
+        if from != consumedTo then stuck = true
+        else
+          val candidates = ends.filter(_ > from)
+          var idx = candidates.length - 1
+          var found = false
+          while idx >= 0 && !found do
+            val to = candidates(idx)
+            parseCore(s.substring(from, to)) match
+              case Unknown(_) => idx -= 1
+              case expr =>
+                result += expr
+                consumedTo = to
+                si = starts.indexWhere(_ >= to)
+                if si < 0 then si = starts.length
+                found = true
+          if !found then stuck = true
+      if !stuck && consumedTo == n && result.size >= 2 then
+        Some(Seq_(result.toList))
+      else None
 
   /** Extracts argument [[Expr]]s from a prose string.
     *
@@ -897,7 +996,7 @@ object ExprParser:
           var to = n
           var found = false
           while to > from && !found do
-            parse(s.substring(from, to)) match
+            parseCore(s.substring(from, to)) match
               case Unknown(_) => to -= 1
               case expr =>
                 result += expr

@@ -439,7 +439,7 @@
     Let(|maximum|, [=?=] [=AddressValueToU64=](|descriptor|["maximum"], |addrtype|))
   Else
     Let(|maximum|, empty)
-  Let(|memtype|, ?(|addrtype| { **min** |initial|, **max** |maximum| }))
+  Let(|memtype|, |addrtype| |initial| |maximum|)
   If(|memtype| is not [=valid memtype=])
     Throw(new {{RangeError}})
   Let(|store|, [=surrounding agent=].[[associated store]])
@@ -586,7 +586,7 @@
     Let(|maximum|, [=?=] [=AddressValueToU64=](|descriptor|["maximum"], |addrtype|))
   Else
     Let(|maximum|, empty)
-  Let(|type|, ?(|addrtype| { <b>[=limits|min=]</b> |initial|, <b>[=limits|max=]</b> |maximum| } |elementtype|))
+  Let(|type|, |addrtype| |initial| |maximum| |elementtype|)
   If(|type| is not [=valid tabletype=])
     Throw(new {{RangeError}})
   If(|value| is missing)

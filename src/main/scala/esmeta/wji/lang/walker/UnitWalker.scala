@@ -44,6 +44,7 @@ trait UnitWalker:
     case Expr.Conditional(branches, otherwise) =>
       branches.foreach((cond, e) => { walk(cond); walk(e) })
       otherwise.foreach(walk)
+    case Expr.Seq_(exprs) => exprs.foreach(walk)
     // leaves with no nested Expr: Var, This, GivenValue, Num, Bool, Str,
     // Byte, SpecTerm, New, UnknownNew, Described, Unknown, Closure,
     // FollowingSteps.

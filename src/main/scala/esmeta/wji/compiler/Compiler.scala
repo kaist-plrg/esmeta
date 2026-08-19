@@ -470,6 +470,16 @@ object Compiler:
         s"$desc such that ${CondPrinter.render(cond)}",
       ) // TODO: existential/definite-description search
     case metalang.Expr.Unknown(raw) => EYet(raw)
+    // TODO: assign the real SpecTec tag and become a genuine ECase — a
+    // `NormalizeSpecTecCaseShapePass`-style rewrite that knows, from context
+    // (e.g. which link this `Seq_` was constructed under), what tag a
+    // particular untagged-surface-syntax construct actually has at runtime
+    // (see `Expr.Seq_`'s own doc). Until that exists, this is just as
+    // "not yet mechanized" as a plain `Unknown` — rendering the recovered
+    // structure rather than losing it is strictly more informative for
+    // debugging, not a claim that it's usable.
+    case metalang.Expr.Seq_(exprs) =>
+      EYet(exprs.map(ExprPrinter.render).mkString(" "))
     case metalang.Expr.Closure(name, captured) =>
       EClo(name, captured.map(Name(_)))
     // a `Wasm(TupV(...))`/`Wasm(CaseV(...))`'s positional field, read exactly

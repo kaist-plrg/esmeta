@@ -1731,7 +1731,6 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Global(
   call-embed _tuple1 = <global_alloc>(store, globaltype, value)
   let store = _tuple1[0]
   let globaladdr = _tuple1[1]
-  (yet "<!-- TODO(littledan): Report allocation failure https://github.com/WebAssembly/spec/issues/584 -->")
   @AGENT_RECORD["associated store"] = store
   call _ = clo<"initialize_a_global_object">(this, globaladdr)
   let _v6 = this
@@ -3866,7 +3865,7 @@ def creating_an_operation_function_closure1(
     } else {
       let jsValue = (yet "|realm|'s [=realm/global object=]")
     }
-    (yet "(This will subsequently cause a {{TypeError}} in a few steps, if the global object does not implement |target|.) <!-- https://www.w3.org/Bugs/Public/show_bug.cgi?id=18547#c9 -->")
+    (yet "(This will subsequently cause a {{TypeError}} in a few steps, if the global object does not implement |target|.)")
     if (? jsValue: Unknown["platform object"]) {
       call _ = clo<"perform_a_security_check">(jsValue, id, "method")
     } else nop

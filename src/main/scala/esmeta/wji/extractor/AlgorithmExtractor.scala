@@ -44,6 +44,15 @@ object AlgorithmExtractor:
     */
   private val StepMarker = """^(\s*)(?:\d+\.|\*)\s+(.*)$""".r
 
+  /** an HTML comment (`<!-- ... -->`) — an editorial note never meant to render
+    * as spec content (e.g. index.bs:1202's `<!-- TODO(littledan): Report
+    * allocation failure ... -->`, sitting mid-sentence right after a `Global`
+    * constructor step) — stripped from each line in [[parseBody]] before it's
+    * matched against [[StepMarker]] or appended to a step's text, so one never
+    * ends up embedded as if it were real algorithm-step content.
+    */
+  private val HtmlComment = """(?s)<!--.*?-->""".r
+
   /** matches the first `<dfn ...>...</dfn>` in a string */
   private val Dfn = """(?is)<dfn\b[^>]*>(.*?)</dfn>""".r
 
@@ -173,7 +182,8 @@ object AlgorithmExtractor:
     // nested sub-steps or continuation lines
     val stack = ListBuffer[(Int, Builder)]()
 
-    for line <- body.linesIterator do
+    for rawLine <- body.linesIterator do
+      val line = HtmlComment.replaceAllIn(rawLine, "")
       line match
         case _ if line.isBlank =>
         case StepMarker(indent, rest) =>

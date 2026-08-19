@@ -732,7 +732,6 @@
     Let(|globaltype|, [=const=](|valuetype|))
   Let(|store|, [=surrounding agent=].[[associated store]])
   Let((|store|, |globaladdr|), [=global_alloc=](|store|, |globaltype|, |value|))
-  ?(<!-- TODO(littledan): Report allocation failure https://github.com/WebAssembly/spec/issues/584 -->)
   Set([=surrounding agent=].[[associated store]], |store|)
   Perform([=initialize a global object=](**this**, |globaladdr|))
 
@@ -1551,7 +1550,7 @@
       Let(|idlObject|, null)
       If(|target| is an interface, and |op| is not a static operation)
         Let(|jsValue|, ?(the <emu-val>this</emu-val> value) if ?(it) is not null or undefined else ?(|realm|'s [=realm/global object=]))
-        ?((This will subsequently cause a {{TypeError}} in a few steps, if the global object does not implement |target|.) <!-- https://www.w3.org/Bugs/Public/show_bug.cgi?id=18547#c9 -->)
+        ?((This will subsequently cause a {{TypeError}} in a few steps, if the global object does not implement |target|.))
         If(|jsValue| is a platform object)
           Perform([=perform a security check=](|jsValue|, |id|, "method"))
         If(?(|jsValue| does not [=implement=] the interface |target|))

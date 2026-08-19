@@ -33,46 +33,51 @@ function assertThrowsTypeError(fn, msg) {
   throw new Error(msg + ": did not throw");
 }
 
-// Module
-const module = new WebAssembly.Module(bytes.buffer);
-assertInstanceOf(module, WebAssembly.Module, "Module constructor");
-assertThrowsTypeError(() => new WebAssembly.Module(), "Module() with no bytes");
+try {
+  // Module
+  const module = new WebAssembly.Module(bytes.buffer);
+  assertInstanceOf(module, WebAssembly.Module, "Module constructor");
+  assertThrowsTypeError(() => new WebAssembly.Module(), "Module() with no bytes");
 
-// Instance -- importObject omitted (module has no imports, so this must
-// still work; exercises Instance's own optional-argument path).
-const instance = new WebAssembly.Instance(module);
-assertInstanceOf(instance, WebAssembly.Instance, "Instance constructor");
-assertEq(instance.exports.getAnswer(), 42, "Instance.exports usable");
-assertThrowsTypeError(() => new WebAssembly.Instance(), "Instance() with no module");
+  // Instance -- importObject omitted (module has no imports, so this must
+  // still work; exercises Instance's own optional-argument path).
+  const instance = new WebAssembly.Instance(module);
+  assertInstanceOf(instance, WebAssembly.Instance, "Instance constructor");
+  assertEq(instance.exports.getAnswer(), 42, "Instance.exports usable");
+  assertThrowsTypeError(() => new WebAssembly.Instance(), "Instance() with no module");
 
-// Memory
-const memory = new WebAssembly.Memory({ initial: 1 });
-assertInstanceOf(memory, WebAssembly.Memory, "Memory constructor");
-assertEq(memory.buffer.byteLength, PAGE, "Memory initial size");
-assertThrowsTypeError(() => new WebAssembly.Memory(), "Memory() with no descriptor");
+  // Memory
+  const memory = new WebAssembly.Memory({ initial: 1 });
+  assertInstanceOf(memory, WebAssembly.Memory, "Memory constructor");
+  assertEq(memory.buffer.byteLength, PAGE, "Memory initial size");
+  assertThrowsTypeError(() => new WebAssembly.Memory(), "Memory() with no descriptor");
 
-// Table -- once with an explicit fill value, once with it omitted (default
-// null for a funcref table).
-const table1 = new WebAssembly.Table(
-  { element: "anyfunc", initial: 2 },
-  instance.exports.getAnswer,
-);
-assertInstanceOf(table1, WebAssembly.Table, "Table constructor");
-assertEq(table1.length, 2, "Table initial length");
-assertEq(table1.get(0)(), 42, "Table explicit fill value applied");
+  // Table -- once with an explicit fill value, once with it omitted (default
+  // null for a funcref table).
+  const table1 = new WebAssembly.Table(
+    { element: "anyfunc", initial: 2 },
+    instance.exports.getAnswer,
+  );
+  assertInstanceOf(table1, WebAssembly.Table, "Table constructor");
+  assertEq(table1.length, 2, "Table initial length");
+  assertEq(table1.get(0)(), 42, "Table explicit fill value applied");
 
-const table2 = new WebAssembly.Table({ element: "anyfunc", initial: 1 });
-assertEq(table2.get(0), null, "Table default fill value is null");
-assertThrowsTypeError(() => new WebAssembly.Table(), "Table() with no descriptor");
+  const table2 = new WebAssembly.Table({ element: "anyfunc", initial: 1 });
+  assertEq(table2.get(0), null, "Table default fill value is null");
+  assertThrowsTypeError(() => new WebAssembly.Table(), "Table() with no descriptor");
 
-// Global -- once with an explicit value, once with it omitted (default 0 for
-// i32).
-const global1 = new WebAssembly.Global({ value: "i32", mutable: true }, 42);
-assertInstanceOf(global1, WebAssembly.Global, "Global constructor");
-assertEq(global1.value, 42, "Global explicit value applied");
+  // Global -- once with an explicit value, once with it omitted (default 0
+  // for i32).
+  const global1 = new WebAssembly.Global({ value: "i32", mutable: true }, 42);
+  assertInstanceOf(global1, WebAssembly.Global, "Global constructor");
+  assertEq(global1.value, 42, "Global explicit value applied");
 
-const global2 = new WebAssembly.Global({ value: "i32", mutable: false });
-assertEq(global2.value, 0, "Global default value is 0");
-assertThrowsTypeError(() => new WebAssembly.Global(), "Global() with no descriptor");
+  const global2 = new WebAssembly.Global({ value: "i32", mutable: false });
+  assertEq(global2.value, 0, "Global default value is 0");
+  assertThrowsTypeError(() => new WebAssembly.Global(), "Global() with no descriptor");
 
-globalThis.__wjiOk = true;
+  globalThis.__wjiOk = true;
+} catch (e) {
+  print("constructors.js failed: " + e + (e && e.message ? " / " + e.message : ""));
+  throw e;
+}

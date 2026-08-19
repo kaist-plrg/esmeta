@@ -1283,7 +1283,7 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Table(
     "__MAP__" : (map[Unknown, Unknown]),
   })
   call elementtype = clo<"tovaluetype">(descriptor.element)
-  if (! (? elementtype: Unknown["reftype"])) {
+  if (! (= (case-tag elementtype) "REF")) {
     call _err3 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
     call _ret4 = clo<"ThrowCompletion">(_err3)
     return _ret4

@@ -22,6 +22,14 @@ object CondParser:
   // only knows genuine ECMAScript types) decide what a WJI-specific NOUN like
   // "Exported Function" actually compiles to.
   private val ArticleLink = """(?si)^an?\s+\[=([^\]]+)=\]$""".r
+  // "EXPR is [not] [=valid TYPE|valid=]" — Wasm Core's own validation dfns
+  // (index.bs:877/1044's Memory/Table constructors), always written with a
+  // `|valid` display-text alias since the dfn text itself ("valid memtype")
+  // would otherwise render redundantly as "is valid valid". TYPE feeds
+  // straight into `WasmHost`'s `valid_TYPE` embedding function names (see
+  // that trait's own doc + `docs/hardcodes.md`) — no separate lookup table,
+  // since both existing names already match this exact shape.
+  private val ValidTypeLink = """(?si)^\[=valid\s+(\w+)(?:\|.*)?=\]$""".r
   private val MatchesNeg =
     """(?s)^(.+?)\s+does not\s+(\[=matches/[^\]]*\])\s+(.+)$""".r
   private val MatchesPos = """(?s)^(.+?)\s+(\[=matches/[^\]]*\])\s+(.+)$""".r
@@ -278,6 +286,12 @@ object CondParser:
           Exposed(ExprParser.parse(lhsRaw), ExprParser.parse(realmRaw), negated)
         case ArticleLink(noun) =>
           IsType(ExprParser.parse(lhsRaw), noun, negated)
+        case ValidTypeLink(typeName) =>
+          Eq(
+            AlgoCall(s"valid_$typeName", List(ExprParser.parse(lhsRaw))),
+            Bool(true),
+            negated,
+          )
         case _ =>
           Eq(
             ExprParser.parse(lhsRaw),

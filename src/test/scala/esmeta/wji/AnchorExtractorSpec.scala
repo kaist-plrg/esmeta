@@ -47,6 +47,14 @@ class AnchorExtractorSpec extends AnyFunSuite:
     * (`docs/hardcodes.md`) — `embedding.rst`'s own `mem_read`/`mem_write` are
     * byte-at-a-time and (per `unusedAnchors` above) unused by js-api itself, so
     * there was never a dfn to anchor a bulk variant against either.
+    * `valid_memtype`/`valid_tabletype` are a fourth: js-api's Memory/Table
+    * constructors check "|X| is [=valid memtype|valid=]"/"valid tabletype",
+    * dfns Wasm Core's own *validation* spec declares (not js-api, so no js-api
+    * anchor for them either), and — unlike `module_validate`'s `$Module_ok` —
+    * never IL2AL-translated/bound by this build (only execution semantics are),
+    * so `CondParser` routes them to these two bridge-invented names, backed by
+    * hand-implemented relations (`Relation.memtype_ok`/`tabletype_ok`, see
+    * `docs/hardcodes.md`).
     */
   private val bridgeOnlyNames: Set[String] =
     Set(
@@ -60,6 +68,8 @@ class AnchorExtractorSpec extends AnyFunSuite:
       "inv_signed_64",
       "mem_read_bytes",
       "mem_write_bytes",
+      "valid_memtype",
+      "valid_tabletype",
     )
 
   test(

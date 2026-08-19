@@ -71,6 +71,17 @@ object WasmHost:
     "module_decode" -> List("bytes"),
     // module_validate(module) : error?
     "module_validate" -> List("module"),
+    // valid_memtype(memtype) : bool / valid_tabletype(tabletype) : bool —
+    // not part of the Wasm Core Spec's own Embedding API; a
+    // wjmeta-bridge-specific convenience wrapping the $Memtype_ok/
+    // $Tabletype_ok relations (see spectec-server's
+    // Embedding.valid_memtype/valid_tabletype — hand-implemented there,
+    // since only execution semantics are IL2AL-translated/bound, not the
+    // full validation relation set), needed because js-api's Memory/Table
+    // constructors check "|X| is valid memtype/tabletype" directly on a
+    // standalone value with no enclosing module.
+    "valid_memtype" -> List("memtype"),
+    "valid_tabletype" -> List("tabletype"),
     // module_instantiate(store, module, externaddr*) : (store, moduleinst | exception | error)
     "module_instantiate" -> List("store", "module", "externvals"),
     // module_imports(module) : (name, name, externtype)*

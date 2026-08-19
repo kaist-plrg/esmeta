@@ -956,7 +956,8 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Memory(
     let maximum = ~empty~
   }
   let memtype = (case "PAGE" addrtype (case "[" initial (opt maximum)))
-  if (! (= memtype ~valid memtype~)) {
+  call-embed _call3 = <valid_memtype>(memtype)
+  if (! (= _call3 true)) {
     call _err5 = clo<"__NEW_ERROR_OBJ__">("%RangeError.prototype%")
     call _ret6 = clo<"ThrowCompletion">(_err5)
     return _ret6
@@ -1319,7 +1320,8 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Table(
     let maximum = ~empty~
   }
   let type = (case "" addrtype (case "[" initial (opt maximum)) elementtype)
-  if (! (= type ~valid tabletype~)) {
+  call-embed _call3 = <valid_tabletype>(type)
+  if (! (= _call3 true)) {
     call _err7 = clo<"__NEW_ERROR_OBJ__">("%RangeError.prototype%")
     call _ret8 = clo<"ThrowCompletion">(_err7)
     return _ret8
@@ -1328,16 +1330,16 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Table(
     call ref = clo<"defaultvalue">(elementtype)
     assert (! (= ref (case "ERROR" )))
   } else {
-    call _call3 = clo<"towebassemblyvalue">(value, elementtype)
-    if (? _call3: Abrupt) {
-      if (? _call3: Completion) {
-        return _call3
+    call _call4 = clo<"towebassemblyvalue">(value, elementtype)
+    if (? _call4: Abrupt) {
+      if (? _call4: Completion) {
+        return _call4
       } else {
-        call _ret9 = clo<"NormalCompletion">(_call3)
+        call _ret9 = clo<"NormalCompletion">(_call4)
         return _ret9
       }
     } else {
-      let ref = _call3.Value
+      let ref = _call4.Value
     }
   }
   let store = @AGENT_RECORD["associated store"]

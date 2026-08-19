@@ -607,6 +607,8 @@ object Compiler:
     case Cond.Exposed(_, _, _)      => impossible("exposed")
     case Cond.Throws(kind) =>
       impossible(s"throws${kind.fold("")(k => s" $k")}")
+    case Cond.AllocationFails =>
+      impossible("allocation fails not expanded by ExpandAllocationFailsPass")
 
   // ── Ref ──────────────────────────────────────────────────────────────────────
 

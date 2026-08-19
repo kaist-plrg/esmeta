@@ -112,6 +112,11 @@ object CondParser:
   private val ExposedIn = """(?si)^\[=exposed=\]\s+in\s+(.+)$""".r
 
   private val UnreachableStep = """(?si)^this step is not reached$""".r
+  // "If allocation fails, ..." — js-api's mem_alloc/table_alloc call sites
+  // (index.bs:879/1051), a bare no-subject condition; see Cond.AllocationFails'
+  // own doc for why this can't be resolved to a real `[=error=]` comparison
+  // here (no access to the preceding step's bound variable at this level).
+  private val AllocationFailsStep = """(?si)^allocation fails$""".r
   // "If this [operation] throws an exception, ..." (untyped) or
   // "If this [operation] throws a {{TypeError}}, ..." (typed): group 1 is the
   // exception type name when the typed form matched, else null.
@@ -236,6 +241,7 @@ object CondParser:
   private def parseAtomic(s: String): Cond = s match
     case UnreachableStep()     => Unreachable
     case ThrowsException(kind) => Throws(Option(kind))
+    case AllocationFailsStep() => AllocationFails
     case MapExistsPos(baseRaw) => HasField(ExprParser.parse(baseRaw))
     case MapExistsNeg(baseRaw) =>
       HasField(ExprParser.parse(baseRaw), negated = true)

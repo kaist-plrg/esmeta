@@ -121,4 +121,16 @@ object Cond:
     */
   case class Throws(kind: Option[String] = None) extends Cond
 
+  /** `If allocation fails, ...` — js-api's `mem_alloc`/`table_alloc` call sites
+    * (index.bs:879/1051) check this with no variable named at all, unlike every
+    * other embedding call the corpus checks against `[=error=]` (e.g.
+    * `module_instantiate`'s "If |result| is [=error=], ..."). The implicit
+    * subject — the immediately preceding step's own call result — can only be
+    * recovered with that step's context, so `CondParser` parses this into its
+    * own node rather than guessing; resolving it against the preceding `Let`'s
+    * destructured variable is
+    * `esmeta.wji.compiler.lowering.ExpandAllocationFailsPass`'s job.
+    */
+  case object AllocationFails extends Cond
+
   case class Unknown(text: String) extends Cond

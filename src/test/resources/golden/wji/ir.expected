@@ -966,7 +966,7 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Memory(
   call-embed _tuple1 = <mem_alloc>(store, memtype)
   let store = _tuple1[0]
   let memaddr = _tuple1[1]
-  if (yet "allocation fails") {
+  if (= memaddr (case "ERROR" )) {
     call _err7 = clo<"__NEW_ERROR_OBJ__">("%RangeError.prototype%")
     call _ret8 = clo<"ThrowCompletion">(_err7)
     return _ret8
@@ -1346,7 +1346,7 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Table(
   call-embed _tuple1 = <table_alloc>(store, type, ref)
   let store = _tuple1[0]
   let tableaddr = _tuple1[1]
-  if (yet "allocation fails") {
+  if (= tableaddr (case "ERROR" )) {
     call _err10 = clo<"__NEW_ERROR_OBJ__">("%RangeError.prototype%")
     call _ret11 = clo<"ThrowCompletion">(_err10)
     return _ret11

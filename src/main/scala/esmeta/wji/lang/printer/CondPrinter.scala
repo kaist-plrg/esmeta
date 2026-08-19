@@ -60,6 +60,7 @@ object CondPrinter:
     case Cond.Unreachable        => "Unreachable"
     case Cond.Throws(None)       => "Throws"
     case Cond.Throws(Some(kind)) => s"Throws($kind)"
+    case Cond.AllocationFails    => "AllocationFails"
     case Cond.Unknown(text)      => s"?($text)"
 
   private def renderOp(op: CompareOp): String = op match

@@ -19,10 +19,10 @@ class ExprParserSpec extends AnyFunSuite:
     assert(ExprParser.parse("either |x|") == Var("x"))
   }
 
-  test("type-annotated prefix drops the annotating term") {
+  test("type-annotated prefix keeps the annotating term") {
     assert(
       ExprParser.parse("the [=external value=] [=func=] |x|") ==
-      Link("[=func=]", List(Var("x"))),
+      TypeAnnotated("external value", Link("[=func=]", List(Var("x")))),
     )
   }
 

@@ -66,6 +66,7 @@ import esmeta.error.{PipelineOrderError, UnsupportedSpecShape}
 object Lowering:
   val pipeline: List[LoweringPass] = List(
     // prepare
+    ResolveTypeAnnotationPass,
     ElideHtmlHostHooksPass,
     DropNotesPass,
     ResolveLinksPass,

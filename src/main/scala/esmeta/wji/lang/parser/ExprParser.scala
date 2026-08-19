@@ -57,18 +57,21 @@ object ExprParser:
   // "the [=TERM=] EXPR" — TERM names EXPR's type/category (e.g. "the
   // external value [=external value/func=] |funcaddr|" ~ "the (external
   // value) func funcaddr", mirroring how "the number 5"/"the list «1, 2»"
-  // name a value's type before the value itself). Safe to drop TERM and
-  // parse only EXPR: EXPR's own dfn/tag already carries that information on
-  // its own (see Link/Case), so nothing is lost. General over TERM — not
-  // specific to any one dfn. EXPR is either another `[=...=]` link (the
-  // common case above) or a `|var|` reference chain with more after it (e.g.
-  // "the [=memory address=] |frame|.[=frame/module=]...[|x|]") — the `.+`
-  // after the closing `|` requires at least one more character, so a *bare*
-  // "the [=TERM=] |var|" (nothing trailing) still falls through to
-  // LinkIndefVar below, where TERM is the call and |var| is its argument
-  // rather than droppable annotation.
+  // name a value's type before the value itself). Whether TERM is safe to
+  // drop (EXPR's own dfn/tag already carries the same information — see
+  // Link/Case) or is actually needed (EXPR ends up untagged, e.g. Seq_) isn't
+  // decidable here — this parser sees one phrase at a time with no broader
+  // SpecTec-grammar knowledge — so both TERM and EXPR are kept, uniformly, in
+  // Expr.TypeAnnotated; see that node's own doc for who resolves it and when.
+  // General over TERM — not specific to any one dfn. EXPR is either another
+  // `[=...=]` link (the common case above) or a `|var|` reference chain with
+  // more after it (e.g. "the [=memory address=]
+  // |frame|.[=frame/module=]...[|x|]") — the `.+` after the closing `|`
+  // requires at least one more character, so a *bare* "the [=TERM=] |var|"
+  // (nothing trailing) still falls through to LinkIndefVar below, where TERM
+  // is the call and |var| is its argument rather than an annotation.
   private val TypeAnnotatedPrefix =
-    """(?si)^the\s+\[=[^\]]+=\]\s+(\[=.+|\|[^|]+\|.+)$""".r
+    """(?si)^the\s+\[=([^\]]+)=\]\s+(\[=.+|\|[^|]+\|.+)$""".r
   // "the {{TERM}} value" — the `{{...}}` (Bikeshed/WebIDL autolink) form of
   // the TERM annotation above, e.g. "the {{undefined}} value" (bare — the
   // value *is* the named term, so it parses straight to a SpecTerm) or "the
@@ -711,14 +714,14 @@ object ExprParser:
     val s = raw.trim
     s match
       // ---- Wrappers ----
-      case AbruptPrefix(check, rest)   => Abrupt(check, parse(rest))
-      case ResultOf(rest)              => parse(rest)
-      case EitherPat(rest)             => parse(rest)
-      case TypeAnnotatedPrefix(rest)   => parse(rest)
-      case BracedTermValuePrefix(rest) => parse(rest)
-      case BracedTermValueOnly(term)   => SpecTerm(term)
-      case BacktickedQuotedStr(v)      => SpecTerm(v)
-      case Backticked(inner)           => parse(inner)
+      case AbruptPrefix(check, rest)       => Abrupt(check, parse(rest))
+      case ResultOf(rest)                  => parse(rest)
+      case EitherPat(rest)                 => parse(rest)
+      case TypeAnnotatedPrefix(term, rest) => TypeAnnotated(term, parse(rest))
+      case BracedTermValuePrefix(rest)     => parse(rest)
+      case BracedTermValueOnly(term)       => SpecTerm(term)
+      case BacktickedQuotedStr(v)          => SpecTerm(v)
+      case Backticked(inner)               => parse(inner)
 
       // ---- Closures ----
       case VariadicStepsClosurePrefix(v) =>

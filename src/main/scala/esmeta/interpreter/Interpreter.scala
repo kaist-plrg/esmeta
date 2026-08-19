@@ -512,7 +512,21 @@ class Interpreter(
     case ECase(tag, args) =>
       Wasm(ALValue.CaseV(tag, args.map(a => toAL(st, eval(a)))))
     case EOpt(exprOpt) =>
-      Wasm(ALValue.OptV(exprOpt.map(e => toAL(st, eval(e)))))
+      // `empty` (Infra-spec's own "no value here") collapses to `OptV(None)`
+      // wherever it flows into an Opt-typed position, rather than crossing
+      // `toAL` as a value in its own right — `toAL` has no `empty` case at
+      // all, so without this an `EOpt(Some(...))` whose inner expr currently
+      // holds `empty` (e.g. Wasm `limits`' optional `max`, unbounded) would
+      // otherwise throw `NoWasmValue` instead of producing a real `OptV(None)`.
+      Wasm(
+        ALValue.OptV(
+          exprOpt.flatMap(e =>
+            eval(e) match
+              case Enum("empty") => None
+              case v             => Some(toAL(st, v)),
+          ),
+        ),
+      )
     case ETup(elems) =>
       Wasm(ALValue.TupV(elems.map(e => toAL(st, eval(e)))))
     case EImplements(expr, iface) =>

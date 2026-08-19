@@ -955,7 +955,7 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Memory(
   } else {
     let maximum = ~empty~
   }
-  let memtype = (yet "|addrtype| |initial| |maximum|")
+  let memtype = (case "PAGE" addrtype (case "[" initial (opt maximum)))
   if (! (= memtype ~valid memtype~)) {
     call _err5 = clo<"__NEW_ERROR_OBJ__">("%RangeError.prototype%")
     call _ret6 = clo<"ThrowCompletion">(_err5)
@@ -1318,7 +1318,7 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Table(
   } else {
     let maximum = ~empty~
   }
-  let type = (yet "|addrtype| |initial| |maximum| |elementtype|")
+  let type = (case "" addrtype (case "[" initial (opt maximum)) elementtype)
   if (! (= type ~valid tabletype~)) {
     call _err7 = clo<"__NEW_ERROR_OBJ__">("%RangeError.prototype%")
     call _ret8 = clo<"ThrowCompletion">(_err7)

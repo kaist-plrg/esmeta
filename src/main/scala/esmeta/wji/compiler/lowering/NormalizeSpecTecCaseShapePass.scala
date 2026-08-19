@@ -5,16 +5,43 @@ import esmeta.wji.lang.walker.Walker
 
 /** Finalizes every `Expr.Case`'s `tag` into SpecTec's real runtime
   * `ALValue.CaseV` tag, reshapes the handful whose runtime nesting is deeper
-  * than spec prose writes it, and converts every `Expr.SpecTerm` that's
-  * actually a Wasm-boundary nullary/shorthand case in disguise (`error`, a
-  * `valtype` literal like `i32`, a `reftype` shorthand like `funcref`) into the
-  * real `Expr.Case`/`Expr.Opt` it denotes — wherever any of these show up (a
+  * than spec prose writes it, converts every `Expr.SpecTerm` that's actually a
+  * Wasm-boundary nullary/shorthand case in disguise (`error`, a `valtype`
+  * literal like `i32`, a `reftype` shorthand like `funcref`) into the real
+  * `Expr.Case`/`Expr.Opt` it denotes, and promotes every surviving
+  * `Expr.TypeAnnotated(term, Seq_(...))` (see that node's own doc —
+  * [[ResolveTypeAnnotationPass]] already dropped every one whose EXPR was
+  * self-describing, so what's left here always wraps an untagged `Seq_`) into a
+  * real tagged `Expr.Case` the same way — wherever any of these show up (a
   * value under construction, or a `Cond.IsOfForm`'s `form` pattern). Runs
   * immediately after [[ResolveLinksPass]], so every downstream pass
   * (`ExpandIsOfFormPass`, `ExpandDestructuringLetPass`, `Compiler`) can treat
   * `Expr.Case` as the sole representation of a Wasm-boundary constructor value
-  * — a `SpecTerm` reaching them is *never* secretly one of these, only a
-  * genuine spec-term reference (`null`, `current Realm`, ...).
+  * — a `SpecTerm`/`TypeAnnotated` reaching them is *never* secretly one of
+  * these, only a genuine spec-term reference (`null`, `current Realm`, ...).
+  *
+  * `TypeAnnotated` promotion (TERM -> tag, `construct.ml`'s
+  * `al_of_memorytype`/`al_of_tabletype`/`al_of_limits`): `"memory type"` ->
+  * `CaseV("PAGE", [addrtype, limits])`, `"table type"` -> `CaseV("", [addrtype,
+  * limits, reftype])` — a genuinely untagged case, confirming this session's
+  * very first read of it. Both build the shared nested `{min, max}` block the
+  * same way, `CaseV("[", [min, max])`; every `{...}`-block
+  * `ExprParser.parseBracedFields` produces shows up as a `Seq_` nested directly
+  * inside another `Seq_` (there's no other producer of that shape in this
+  * codebase today), so any such nesting found while promoting a `TypeAnnotated`
+  * is assumed to be exactly this `limits` pair — structural, not term-specific,
+  * unlike the TERM -> tag table itself. Only the two terms this session's
+  * `Memory`/`Table` constructor work actually needs; extend `typeAnnotationTag`
+  * as more come up (see `docs/hardcodes.md`).
+  *
+  * `limits`' `max` field is SpecTec's `OptV` (`empty` when unbounded), so it's
+  * always wrapped in `Expr.Opt(Some(...))` rather than passed as a bare
+  * positional arg like `min` — unlike every other `Opt` this pass builds
+  * (always a static `Some`/`None` choice from the prose shape itself), `max`'s
+  * wrapped expr is a runtime-valued variable that may or may not currently hold
+  * `empty`; `Interpreter.eval`'s own `EOpt` case is what actually collapses
+  * that to a real `OptV(None)` at evaluation time (see its doc), not anything
+  * here.
   *
   * Tag translation: a `for`-scoped dfn's linking text is always
   * `family/variant` (e.g. `external value/func`, `external-type/global`; see
@@ -91,8 +118,24 @@ object NormalizeSpecTecCaseShapePass extends LoweringPass:
     *     `Expr.Case`/`Expr.AlgoCall`/`Expr.SpecTerm` — nothing here resolves a
     *     raw `Link` itself, just reshapes an already-built `Case` or
     *     `SpecTerm`.
+    *   - [[ResolveTypeAnnotationPass]]: needs its "drop or keep" decision on
+    *     every `Expr.TypeAnnotated` already made — only ever sees one this pass
+    *     chose to keep (wrapping a `Seq_`), never one still wrapping a
+    *     self-describing EXPR.
     */
-  override def requires: Set[LoweringPass] = Set(ResolveLinksPass)
+  override def requires: Set[LoweringPass] =
+    Set(ResolveLinksPass, ResolveTypeAnnotationPass)
+
+  /** TERM -> real SpecTec tag for a promoted `Expr.TypeAnnotated`. Falls back
+    * to TERM itself (via `getOrElse` at the call site) for anything not listed
+    * — safe since neither promotion the fallback would misfire on
+    * (memtype/tabletype) has any other current producer; a wrong tag would just
+    * be as "not yet mechanized" downstream as `Seq_` already was.
+    */
+  private val typeAnnotationTag: Map[String, String] = Map(
+    "memory type" -> "PAGE",
+    "table type" -> "",
+  )
 
   /** Translates a `Case.tag` out of spec-link-text form into SpecTec's real
     * runtime `ALValue.CaseV` tag. Idempotent on an already-final tag (stripped,
@@ -162,6 +205,11 @@ object NormalizeSpecTecCaseShapePass extends LoweringPass:
     */
   private object reshaper extends Walker:
     override def walk(expr: Expr): Expr = expr match
+      case Expr.TypeAnnotated(term, Expr.Seq_(args)) =>
+        Expr.Case(
+          typeAnnotationTag.getOrElse(term, term),
+          args.map(promoteLimits),
+        )
       case Expr.SpecTerm(RenamedTag(tag)) => Expr.Case(tag, Nil)
       case Expr.SpecTerm(ShorthandReftype(heaptype)) =>
         Expr.Case(
@@ -211,6 +259,19 @@ object NormalizeSpecTecCaseShapePass extends LoweringPass:
 
           case _ => Expr.Case(finalTag, reshapedArgs)
       case other => super.walk(other)
+
+    /** A `TypeAnnotated`'s outer `Seq_`'s own element: a nested `Seq_` of
+      * exactly two parts is a `{min, max}` block, promoted to `limits`' runtime
+      * shape; anything else just recurses normally.
+      */
+    private def promoteLimits(e: Expr): Expr = e match
+      case Expr.Seq_(List(min, max)) =>
+        // `max`'s SpecTec-side type is `OptV` (`empty` when unbounded) —
+        // `Expr.Opt(Some(...))`'s own runtime evaluation (`Interpreter.eval`'s
+        // `EOpt` case) collapses to `None` when the wrapped expr evaluates to
+        // `empty`, so wrapping unconditionally here is correct either way.
+        Expr.Case("[", List(walk(min), Expr.Opt(Some(walk(max)))))
+      case other => walk(other)
 
   def run(algos: List[Algorithm]): List[Algorithm] =
     algos.map(a => a.copy(body = a.body.map(reshaper.walk)))

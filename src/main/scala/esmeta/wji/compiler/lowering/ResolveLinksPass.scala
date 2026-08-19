@@ -67,6 +67,13 @@ import esmeta.wji.lang.walker.Walker
   * Category: Housekeeping.
   */
 object ResolveLinksPass extends LoweringPass:
+
+  /** Requires:
+    *   - [[ResolveTypeAnnotationPass]]: needs a raw `Expr.Link` at the top
+    *     level, not one still wrapped in `Expr.TypeAnnotated`.
+    */
+  override def requires: Set[LoweringPass] = Set(ResolveTypeAnnotationPass)
+
   def run(algos: List[Algorithm]): List[Algorithm] =
     // lower-cased: Bikeshed link matching is case-insensitive (e.g. a
     // sentence-initial "Read the imports" links to a dfn written "read the

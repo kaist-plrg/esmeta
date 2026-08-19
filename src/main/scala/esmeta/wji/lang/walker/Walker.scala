@@ -51,8 +51,9 @@ trait Walker:
         branches.map((cond, e) => (walk(cond), walk(e))),
         otherwise.map(walk),
       )
-    case Expr.GetMember(def_, mem) => Expr.GetMember(def_, mem)
-    case Expr.Seq_(exprs)          => Expr.Seq_(exprs.map(walk))
+    case Expr.GetMember(def_, mem)   => Expr.GetMember(def_, mem)
+    case Expr.Seq_(exprs)            => Expr.Seq_(exprs.map(walk))
+    case Expr.TypeAnnotated(term, e) => Expr.TypeAnnotated(term, walk(e))
     // leaves with no nested Expr: Var, This, GivenValue, Num, Bool, Str,
     // Byte, SpecTerm, New, UnknownNew, Described, Unknown, Closure,
     // FollowingSteps.

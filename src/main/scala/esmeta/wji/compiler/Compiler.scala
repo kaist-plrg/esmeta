@@ -480,6 +480,11 @@ object Compiler:
     // debugging, not a claim that it's usable.
     case metalang.Expr.Seq_(exprs) =>
       EYet(exprs.map(ExprPrinter.render).mkString(" "))
+    // Should already be gone by now (`ResolveTypeAnnotationPass` +
+    // `NormalizeSpecTecCaseShapePass` resolve every one, early in the
+    // pipeline) — kept as a transparent fallback, not a real case, in case a
+    // future producer of this node ends up running after both.
+    case metalang.Expr.TypeAnnotated(_, e) => compileExpr(e)
     case metalang.Expr.Closure(name, captured) =>
       EClo(name, captured.map(Name(_)))
     // a `Wasm(TupV(...))`/`Wasm(CaseV(...))`'s positional field, read exactly

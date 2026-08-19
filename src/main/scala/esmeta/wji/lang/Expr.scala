@@ -317,12 +317,35 @@ object Expr:
     *     partial structure instead of collapsing straight to [[Unknown]].
     *     Deliberately carries no tag — unlike [[Case]], which already has one.
     *     Assigning the real SpecTec tag (e.g. `memtype`'s `"PAGE"`) — turning
-    *     this into a proper `Case` — is left to a later lowering pass (mirrors
-    *     `NormalizeSpecTecCaseShapePass`'s existing job for every other
-    *     spec-link-text-to-real-tag translation); nothing here or in `Compiler`
-    *     assigns one.
+    *     this into a proper `Case` — is `esmeta.wji.compiler.lowering.
+    *     NormalizeSpecTecCaseShapePass`'s job, alongside every other
+    *     spec-link-text-to-real-tag translation it already does; only reachable
+    *     there via a surviving [[TypeAnnotated]] (see that node's own doc) —
+    *     nothing here or in `Compiler` assigns one directly.
     */
   case class Seq_(exprs: List[Expr]) extends Expr
+
+  /** A Bikeshed `"the [=TERM=] EXPR"` (or `"the {{TERM}} value EXPR"`) prefix —
+    * TERM names EXPR's type/formal-grammar constructor — parsed with TERM kept,
+    * not discarded: whether TERM is redundant (EXPR already carries its own
+    * tag, e.g. a `Link`/`Case`) or is the *only* place a tag as for an untagged
+    * [[Seq_]] is ever written down (see that case's own doc — this is exactly
+    * where `memtype`'s `"PAGE"` would come from) can't be decided by
+    * `ExprParser` alone, since it only sees one phrase at a time with no
+    * broader SpecTec-grammar knowledge. `ExprParser` therefore always wraps,
+    * uniformly, with no such per-case judgment call at parse time; resolving it
+    * happens in two steps, across two passes:
+    *   - `esmeta.wji.compiler.lowering.ResolveTypeAnnotationPass` drops TERM
+    *     when EXPR is self-describing, run first in the pipeline so every other
+    *     pass keeps seeing EXPR's own top-level shape directly, same as before
+    *     this node existed.
+    *   - `esmeta.wji.compiler.lowering.NormalizeSpecTecCaseShapePass` assigns
+    *     TERM as the real tag for what survives (always a [[Seq_]], per the
+    *     first step above — see that node's own deferred-tagging note),
+    *     alongside every other spec-link-text-to-real-tag translation it
+    *     already does.
+    */
+  case class TypeAnnotated(term: String, expr: Expr) extends Expr
 
   case class GetMember(definition: Expr, member: MemberKind) extends Expr
 
@@ -363,9 +386,10 @@ object Expr:
       case Opt(inner)                 => inner.toList
       case Conditional(branches, otherwise) =>
         branches.map(_._2) ++ otherwise.toList
-      case GetMember(e, _) => List(e)
-      case Seq_(exprs)     => exprs
-      case _               => Nil
+      case GetMember(e, _)     => List(e)
+      case Seq_(exprs)         => exprs
+      case TypeAnnotated(_, e) => List(e)
+      case _                   => Nil
 
     /** Whether `pred` holds for this `Expr` or any `Expr` nested inside it, at
       * any depth.

@@ -195,10 +195,6 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
    원문 - If |I| was declared with a [=constructor operation=], then: ...
    IR - if (yet "|I| was declared with a [=constructor operation=]") { ... }
 
-10. 카테고리 - VII-B
-    원문 - Set |length| to the length of the shortest argument list of the entries in |S|.
-    IR - length = (sizeof (yet "the shortest argument list of the entries in |S|"))
-
 12. 카테고리 - IV-C
     원문 - Let |proto| be the result of [=create an interface prototype object|creating an interface prototype object=] of [=interface=] |I| in |realm|.
     IR - call proto = clo<"create_an_interface_prototype_object">((case "INTERFACE" I realm))
@@ -582,10 +578,6 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
     원문 - [=Compute the effective overload set=]  for [=regular operations=] (if |op| is a regular operation) or for [=static operations=] (if |op| is a static operation) with [=identifier=] |id| on |target| and with argument count 0, and let |S| be the result.
     IR - call _call2 = clo<"regular_operations">((yet "tuple(Unknown(if |op| is a regular operation) or for [=static operations=] (if |op| is a static operation))"), (case "IDENTIFIER" id target 0))
          call S = clo<"compute_the_effective_overload_set">(_call2)
-
-17. 카테고리 - VII-B
-    원문 - Let |length| be the length of the shortest argument list in the entries in |S|.
-    IR - let length = (sizeof (yet "the shortest argument list in the entries in |S|"))
 
 19. 카테고리 - II-K
     원문 - If |op| has a [=return type=] that is a [=promise type=]

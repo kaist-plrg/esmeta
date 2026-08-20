@@ -21,9 +21,23 @@ object SpecFile:
     "reject",
     "a new promise",
     "get a copy of the buffer source",
+    "internally create a new object implementing the interface",
+    "create an interface prototype object",
+    "create an interface object",
+    "define the regular attributes",
+    "define the attributes",
+    "attribute getter",
+    "attribute setter",
     "define the regular operations",
     "define the operations",
     "creating an operation function",
+    "define the iteration methods",
+    "define the asynchronous iteration methods",
+    "define the unforgeable regular operations",
+    "define the unforgeable regular attributes",
+    "define the static attributes",
+    "define the static operations",
+    "define the constants",
   )
 
   /** finds `relPath` in the nearest ancestor of the current directory */

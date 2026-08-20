@@ -35,9 +35,11 @@ import esmeta.error.UnsupportedSpecShape
   * chosen runtime representation for that tuple, the same kind of fact
   * [[ExpandWjiIsTypePass]] already documents itself as relying on.
   *
-  * Only handles `Length(ShortestArgumentList(list))` in direct `Let` RHS
-  * position — the only shape observed in practice (webidl/index.bs:12584,
-  * `creating an operation function`). If `ShortestArgumentList` ever turns up
+  * Only handles `Length(ShortestArgumentList(list))` in direct `Let` or `Set`
+  * RHS position — the only shapes observed in practice (webidl/index.bs:12584,
+  * `creating an operation function`, and webidl/index.bs:12459, `create an
+  * interface object`, where `|length|` is first `Let`-bound to `0` and then
+  * conditionally reassigned via `Set`). If `ShortestArgumentList` ever turns up
   * nested elsewhere, `run` throws `UnsupportedSpecShape` rather than silently
   * leaving it for `Compiler`'s much later, less specific `impossible` fallback.
   *
@@ -70,7 +72,7 @@ object ExpandShortestArgumentListPass extends LoweringPass:
       then
         throw UnsupportedSpecShape(
           "ExpandShortestArgumentListPass",
-          s"ShortestArgumentList outside Length(...) in direct Let RHS position, in ${a.name
+          s"ShortestArgumentList outside Length(...) in direct Let/Set RHS position, in ${a.name
             .orElse(a.id)}",
         )
     }
@@ -89,32 +91,47 @@ object ExpandShortestArgumentListPass extends LoweringPass:
             Expr.Length(Expr.ShortestArgumentList(list)),
             body,
           ) =>
-        val lenVar = Expr.Var(counter.freshLen())
-        val idxVar = Expr.Var(counter.freshIdx())
-        List(
-          Instr.Let(lenVar, typeListLenAt(list, Expr.Num("0"))),
-          Instr.Let(idxVar, Expr.Num("1")),
-          Instr.While(
-            Cond.Compare(idxVar, Cond.CompareOp.Lt, Expr.Length(list)),
-            List(
-              Instr.IfChain(
-                List(
-                  (
-                    Cond.Compare(
-                      typeListLenAt(list, idxVar),
-                      Cond.CompareOp.Lt,
-                      lenVar,
-                    ),
-                    List(Instr.Set(lenVar, typeListLenAt(list, idxVar))),
-                  ),
-                ),
-                Nil,
-              ),
-              Instr.Set(idxVar, Expr.BinOp(idxVar, Expr.BOp.Add, Expr.Num("1"))),
-            ),
-          ),
-          Instr.Let(target, lenVar),
-        ) ::: transform(body, counter)
+        val (loop, lenVar) = shortestArgumentListLoop(list, counter)
+        loop ::: List(Instr.Let(target, lenVar)) ::: transform(body, counter)
+
+      case Instr.Set(
+            target @ Expr.Var(_),
+            Expr.Length(Expr.ShortestArgumentList(list)),
+            body,
+          ) =>
+        val (loop, lenVar) = shortestArgumentListLoop(list, counter)
+        loop ::: List(Instr.Set(target, lenVar)) ::: transform(body, counter)
 
       case _ =>
         List(instr.mapBody(transform(_, counter)))
+
+  private def shortestArgumentListLoop(
+    list: Expr,
+    counter: Counter,
+  ): (List[Instr], Expr.Var) =
+    val lenVar = Expr.Var(counter.freshLen())
+    val idxVar = Expr.Var(counter.freshIdx())
+    val loop = List(
+      Instr.Let(lenVar, typeListLenAt(list, Expr.Num("0"))),
+      Instr.Let(idxVar, Expr.Num("1")),
+      Instr.While(
+        Cond.Compare(idxVar, Cond.CompareOp.Lt, Expr.Length(list)),
+        List(
+          Instr.IfChain(
+            List(
+              (
+                Cond.Compare(
+                  typeListLenAt(list, idxVar),
+                  Cond.CompareOp.Lt,
+                  lenVar,
+                ),
+                List(Instr.Set(lenVar, typeListLenAt(list, idxVar))),
+              ),
+            ),
+            Nil,
+          ),
+          Instr.Set(idxVar, Expr.BinOp(idxVar, Expr.BOp.Add, Expr.Num("1"))),
+        ),
+      ),
+    )
+    (loop, lenVar)

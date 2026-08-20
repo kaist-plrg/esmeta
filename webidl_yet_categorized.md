@@ -320,7 +320,6 @@ operation) or for [=static operations=] (if |op| is a static operation)"처럼 �
 또한 `compute the effective overload set`의 kind에 따라 다른 행동을 보이는 부분이 줄글 형태의 switch 문으로 작성되어 있습니다.
 또한 overload set/item 관련된 동작이 줄글로 작성되어 있고, 모델링이 필요합니다.
 
-- `#3-10`, `#10-17` - the shortest argument list of the entries in |S|
 - `#11-1`: compute the effective overload set의 인자 설명
 - `#11-3`: compute the effective overload set의 kind에 따라 다른 값 할당
 - `#12-1` - the length of the longest type list of the entries in |S|

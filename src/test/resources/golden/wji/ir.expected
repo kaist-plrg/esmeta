@@ -3589,7 +3589,7 @@ def create_an_interface_prototype_object(
   realm: Unknown,
 ): Unknown = {
   let proto = null
-  if (&& (= interface (yet "declared with the [{{Global}}] [=extended attribute=]")) (yet "|interface| [=support named properties|supports named properties=]")) {
+  if (&& (= interface (yet "declared with the [{{Global}}] [=extended attribute=]")) (= interface (yet "|interface| support named properties"))) {
     call _call1 = clo<"create_a_named_properties_object">(interface, realm)
     proto = _call1
   } else if (= interface (yet "declared to inherit from another interface")) {
@@ -3651,7 +3651,7 @@ def define_the_constants(
   if (! (= _call1 true)) {
     (yet "continue")
   } else nop
-  call value = clo<"converted_to_a_javascript_value">(const)
+  call-convert value = <converted_to_a_javascript_value>(const)
   let desc = (yet "the PropertyDescriptor{\\[[Writable]]: <emu-val>false</emu-val>, \\[[Enumerable]]: <emu-val>true</emu-val>, \\[[Configurable]]: <emu-val>false</emu-val>, \\[[Value]]: |value|}")
   let id = const.id
   call _ = clo<"DefinePropertyOrThrow">(target, id, desc)
@@ -4374,7 +4374,7 @@ def create_an_interface_object_closure1(
     let object = _guard1.Value
   }
   (yet "Perform the [=constructor steps=] of |constructor| with |object| as [=this=] and |values| as the argument values")
-  call O = clo<"converted_to_a_javascript_value">(object)
+  call-convert O = <converted_to_a_javascript_value>(object)
   assert (= O (yet "an object that [=implements=] |I|"))
   assert (= O.Realm realm)
   if (? O: Completion) {
@@ -4397,7 +4397,7 @@ def attribute_getter_closure1(
     } else {
       let jsValue = (yet "|realm|'s [=realm/global object=]")
     }
-    (yet "(This will subsequently cause a {{TypeError}} in a few steps, if the global object does not implement |target| and [{{LegacyLenientThis}}] is not specified.) <!-- https://www.w3.org/Bugs/Public/show_bug.cgi?id=18547#c9 -->")
+    (yet "(This will subsequently cause a {{TypeError}} in a few steps, if the global object does not implement |target| and [{{LegacyLenientThis}}] is not specified.)")
     if (? jsValue: Unknown["platform object"]) {
       call _ = clo<"perform_a_security_check">(@@yet: unresolved ref: Unknown(, passing |jsValue|, |attribute|).id, "getter")
     } else nop
@@ -4405,20 +4405,10 @@ def attribute_getter_closure1(
       if (yet "|attribute| was specified with the [{{LegacyLenientThis}}] [=extended attribute=]") {
         let _v1 = undefined
         if (? _v1: Completion) {
-          if (? _v1: Completion) {
-            return _v1
-          } else {
-            call _ret1 = clo<"NormalCompletion">(_v1)
-            return _ret1
-          }
+          return _v1
         } else {
           call _ret2 = clo<"NormalCompletion">(_v1)
-          if (? _ret2: Completion) {
-            return _ret2
-          } else {
-            call _ret2 = clo<"NormalCompletion">(_ret2)
-            return _ret2
-          }
+          return _ret2
         }
       } else {
         call _ = clo<"javascript/throw">((record [TypeError] {
@@ -4443,41 +4433,21 @@ def attribute_getter_closure1(
     if (? (yet "|attribute|'s type"): Unknown["observable array type"]) {
       let _v3 = (yet "|jsValue|'s [=backing observable array exotic object=] for |attribute|")
       if (? _v3: Completion) {
-        if (? _v3: Completion) {
-          return _v3
-        } else {
-          call _ret3 = clo<"NormalCompletion">(_v3)
-          return _ret3
-        }
+        return _v3
       } else {
         call _ret4 = clo<"NormalCompletion">(_v3)
-        if (? _ret4: Completion) {
-          return _ret4
-        } else {
-          call _ret4 = clo<"NormalCompletion">(_ret4)
-          return _ret4
-        }
+        return _ret4
       }
     } else nop
     idlObject = (yet "the IDL [=interface type=] value that represents a reference to |jsValue|")
   } else nop
   let R = (yet "running the [=getter steps=] of |attribute| with |idlObject| as [=this=]")
-  call _result1 = clo<"converted_to_a_javascript_value">(R, attribute)
+  call-convert _result1 = <converted_to_a_javascript_value>(R, attribute)
   if (? _result1: Completion) {
-    if (? _result1: Completion) {
-      return _result1
-    } else {
-      call _ret5 = clo<"NormalCompletion">(_result1)
-      return _ret5
-    }
+    return _result1
   } else {
     call _ret5 = clo<"NormalCompletion">(_result1)
-    if (? _ret5: Completion) {
-      return _ret5
-    } else {
-      call _ret6 = clo<"NormalCompletion">(_ret5)
-      return _ret6
-    }
+    return _ret5
   }
   (yet "And then, if <a lt=\"an exception was thrown\">an exception |E| was thrown</a>:")
   if (? (yet "|attribute|'s type"): Unknown["promise type"]) {
@@ -4485,31 +4455,16 @@ def attribute_getter_closure1(
     assert (= _call1.Type ~normal~)
     let _v6 = _call1.Value
     if (? _v6: Completion) {
-      if (? _v6: Completion) {
-        return _v6
-      } else {
-        call _ret7 = clo<"NormalCompletion">(_v6)
-        return _ret7
-      }
+      return _v6
     } else {
       call _ret7 = clo<"NormalCompletion">(_v6)
-      if (? _ret7: Completion) {
-        return _ret7
-      } else {
-        call _ret8 = clo<"NormalCompletion">(_ret7)
-        return _ret8
-      }
+      return _ret7
     }
   } else {
     (yet "end these steps and allow the exception to propagate")
   }
   call _ret8 = clo<"NormalCompletion">(~unused~)
-  if (? _ret8: Completion) {
-    return _ret8
-  } else {
-    call _ret9 = clo<"NormalCompletion">(_ret8)
-    return _ret9
-  }
+  return _ret8
 }
 def attribute_setter_closure1(
   thisArgument: Unknown,
@@ -4528,7 +4483,7 @@ def attribute_setter_closure1(
     } else {
       let jsValue = (yet "|realm|'s [=realm/global object=]")
     }
-    (yet "(This will subsequently cause a {{TypeError}} in a few steps, if the global object does not implement |target| and [{{LegacyLenientThis}}] is not specified.) <!-- https://www.w3.org/Bugs/Public/show_bug.cgi?id=18547#c9 -->")
+    (yet "(This will subsequently cause a {{TypeError}} in a few steps, if the global object does not implement |target| and [{{LegacyLenientThis}}] is not specified.)")
     if (? jsValue: Unknown["platform object"]) {
       call _ = clo<"perform_a_security_check">(jsValue, id, "setter")
     } else nop
@@ -4560,78 +4515,38 @@ def attribute_setter_closure1(
       call _ = clo<"CreateDataPropertyOrThrow">(jsValue, id, V)
       let _v1 = undefined
       if (? _v1: Completion) {
-        if (? _v1: Completion) {
-          return _v1
-        } else {
-          call _ret1 = clo<"NormalCompletion">(_v1)
-          return _ret1
-        }
+        return _v1
       } else {
         call _ret2 = clo<"NormalCompletion">(_v1)
-        if (? _ret2: Completion) {
-          return _ret2
-        } else {
-          call _ret2 = clo<"NormalCompletion">(_ret2)
-          return _ret2
-        }
+        return _ret2
       }
     } else nop
     if (= validThis false) {
       let _v3 = undefined
       if (? _v3: Completion) {
-        if (? _v3: Completion) {
-          return _v3
-        } else {
-          call _ret3 = clo<"NormalCompletion">(_v3)
-          return _ret3
-        }
+        return _v3
       } else {
         call _ret4 = clo<"NormalCompletion">(_v3)
-        if (? _ret4: Completion) {
-          return _ret4
-        } else {
-          call _ret4 = clo<"NormalCompletion">(_ret4)
-          return _ret4
-        }
+        return _ret4
       }
     } else nop
     if (= attribute (yet "declared with a [{{LegacyLenientSetter}}] extended attribute")) {
       let _v5 = undefined
       if (? _v5: Completion) {
-        if (? _v5: Completion) {
-          return _v5
-        } else {
-          call _ret5 = clo<"NormalCompletion">(_v5)
-          return _ret5
-        }
+        return _v5
       } else {
         call _ret6 = clo<"NormalCompletion">(_v5)
-        if (? _ret6: Completion) {
-          return _ret6
-        } else {
-          call _ret6 = clo<"NormalCompletion">(_ret6)
-          return _ret6
-        }
+        return _ret6
       }
     } else nop
     if (= attribute (yet "declared with a [{{PutForwards}}] extended attribute")) {
       call _call1 = clo<"Get">(jsValue, id)
       if (? _call1: Abrupt) {
         if (? _call1: Completion) {
-          if (? _call1: Completion) {
-            return _call1
-          } else {
-            call _ret7 = clo<"NormalCompletion">(_call1)
-            return _ret7
-          }
+          return _call1
         } else {
           call _ret7 = clo<"NormalCompletion">(_call1)
-          if (? _ret7: Completion) {
-            return _ret7
-          } else {
-            call _ret8 = clo<"NormalCompletion">(_ret7)
-            return _ret8
-          }
+          return _ret7
         }
       } else {
         let Q = _call1.Value
@@ -4659,25 +4574,15 @@ def attribute_setter_closure1(
       call _ = clo<"Set">(Q, forwardId, V, ~false~)
       let _v8 = undefined
       if (? _v8: Completion) {
-        if (? _v8: Completion) {
-          return _v8
-        } else {
-          call _ret9 = clo<"NormalCompletion">(_v8)
-          return _ret9
-        }
+        return _v8
       } else {
         call _ret9 = clo<"NormalCompletion">(_v8)
-        if (? _ret9: Completion) {
-          return _ret9
-        } else {
-          call _ret10 = clo<"NormalCompletion">(_ret9)
-          return _ret10
-        }
+        return _ret9
       }
     } else nop
     idlObject = (yet "the IDL [=interface type=] value that represents a reference to |jsValue|")
     if (= (yet "|attribute|'s type") (yet "an [=observable array type=] with type argument |T|")) {
-      call newValues = clo<"converted_to_an_idl_value">(V)
+      call-convert newValues = <converted_to_an_idl_value>(V)
       let oa = (yet "|idlObject|'s |attribute|'s [=backing observable array exotic object=]")
       call _ = clo<"observable_array_exotic_object/set_the_length">(@@yet: unresolved ref: Unknown(of |oa|).ProxyHandler, 0)
       let i = 0
@@ -4687,20 +4592,10 @@ def attribute_setter_closure1(
       }
       let _v10 = undefined
       if (? _v10: Completion) {
-        if (? _v10: Completion) {
-          return _v10
-        } else {
-          call _ret11 = clo<"NormalCompletion">(_v10)
-          return _ret11
-        }
+        return _v10
       } else {
         call _ret11 = clo<"NormalCompletion">(_v10)
-        if (? _ret11: Completion) {
-          return _ret11
-        } else {
-          call _ret12 = clo<"NormalCompletion">(_ret11)
-          return _ret12
-        }
+        return _ret11
       }
     } else nop
   } else nop
@@ -4708,20 +4603,10 @@ def attribute_setter_closure1(
   call _call2 = clo<"ToString">(V)
   if (? _call2: Abrupt) {
     if (? _call2: Completion) {
-      if (? _call2: Completion) {
-        return _call2
-      } else {
-        call _ret13 = clo<"NormalCompletion">(_call2)
-        return _ret13
-      }
+      return _call2
     } else {
       call _ret12 = clo<"NormalCompletion">(_call2)
-      if (? _ret12: Completion) {
-        return _ret12
-      } else {
-        call _ret14 = clo<"NormalCompletion">(_ret12)
-        return _ret14
-      }
+      return _ret12
     }
   } else {
     let S = _call2.Value
@@ -4729,20 +4614,10 @@ def attribute_setter_closure1(
   if (! (= S (yet "one of the [=enumeration's values=]"))) {
     let _v13 = undefined
     if (? _v13: Completion) {
-      if (? _v13: Completion) {
-        return _v13
-      } else {
-        call _ret15 = clo<"NormalCompletion">(_v13)
-        return _ret15
-      }
+      return _v13
     } else {
       call _ret14 = clo<"NormalCompletion">(_v13)
-      if (? _ret14: Completion) {
-        return _ret14
-      } else {
-        call _ret16 = clo<"NormalCompletion">(_ret14)
-        return _ret16
-      }
+      return _ret14
     }
   } else {
     (yet "|idlValue| is the enumeration value equal to |S|")
@@ -4752,20 +4627,10 @@ def attribute_setter_closure1(
   (yet "Perform the [=setter steps=] of |attribute|, with |idlObject| as [=this=] and |idlValue| as [=the given value=]")
   let _v15 = undefined
   if (? _v15: Completion) {
-    if (? _v15: Completion) {
-      return _v15
-    } else {
-      call _ret17 = clo<"NormalCompletion">(_v15)
-      return _ret17
-    }
+    return _v15
   } else {
     call _ret16 = clo<"NormalCompletion">(_v15)
-    if (? _ret16: Completion) {
-      return _ret16
-    } else {
-      call _ret18 = clo<"NormalCompletion">(_ret16)
-      return _ret18
-    }
+    return _ret16
   }
 }
 def creating_an_operation_function_closure1(
@@ -4858,20 +4723,10 @@ def define_the_iteration_methods_closure1(
   call _call1 = clo<"ToObject">((yet "<emu-val>this</emu-val> value"))
   if (? _call1: Abrupt) {
     if (? _call1: Completion) {
-      if (? _call1: Completion) {
-        return _call1
-      } else {
-        call _ret1 = clo<"NormalCompletion">(_call1)
-        return _ret1
-      }
+      return _call1
     } else {
       call _ret1 = clo<"NormalCompletion">(_call1)
-      if (? _ret1: Completion) {
-        return _ret1
-      } else {
-        call _ret2 = clo<"NormalCompletion">(_ret1)
-        return _ret2
-      }
+      return _ret1
     }
   } else {
     let jsValue = _call1.Value
@@ -4900,20 +4755,10 @@ def define_the_iteration_methods_closure1(
   } else nop
   let _v2 = (yet "a newly created [=default iterator object=] for |definition|, with |jsValue| as its [=default iterator object/target=], \"<code>key+value</code>\" as its [=default iterator object/kind=], and [=default iterator object/index=] set to 0")
   if (? _v2: Completion) {
-    if (? _v2: Completion) {
-      return _v2
-    } else {
-      call _ret3 = clo<"NormalCompletion">(_v2)
-      return _ret3
-    }
+    return _v2
   } else {
     call _ret3 = clo<"NormalCompletion">(_v2)
-    if (? _ret3: Completion) {
-      return _ret3
-    } else {
-      call _ret4 = clo<"NormalCompletion">(_ret3)
-      return _ret4
-    }
+    return _ret3
   }
 }
 def define_the_iteration_methods_closure2(
@@ -4924,20 +4769,10 @@ def define_the_iteration_methods_closure2(
   call _call1 = clo<"ToObject">((yet "<emu-val>this</emu-val> value"))
   if (? _call1: Abrupt) {
     if (? _call1: Completion) {
-      if (? _call1: Completion) {
-        return _call1
-      } else {
-        call _ret1 = clo<"NormalCompletion">(_call1)
-        return _ret1
-      }
+      return _call1
     } else {
       call _ret1 = clo<"NormalCompletion">(_call1)
-      if (? _ret1: Completion) {
-        return _ret1
-      } else {
-        call _ret2 = clo<"NormalCompletion">(_ret1)
-        return _ret2
-      }
+      return _ret1
     }
   } else {
     let jsValue = _call1.Value
@@ -4966,20 +4801,10 @@ def define_the_iteration_methods_closure2(
   } else nop
   let _v2 = (yet "a newly created [=default iterator object=] for |definition|, with |jsValue| as its [=default iterator object/target=], \"<code>key</code>\" as its [=default iterator object/kind=], and [=default iterator object/index=] set to 0")
   if (? _v2: Completion) {
-    if (? _v2: Completion) {
-      return _v2
-    } else {
-      call _ret3 = clo<"NormalCompletion">(_v2)
-      return _ret3
-    }
+    return _v2
   } else {
     call _ret3 = clo<"NormalCompletion">(_v2)
-    if (? _ret3: Completion) {
-      return _ret3
-    } else {
-      call _ret4 = clo<"NormalCompletion">(_ret3)
-      return _ret4
-    }
+    return _ret3
   }
 }
 def define_the_iteration_methods_closure3(
@@ -4990,20 +4815,10 @@ def define_the_iteration_methods_closure3(
   call _call1 = clo<"ToObject">((yet "<emu-val>this</emu-val> value"))
   if (? _call1: Abrupt) {
     if (? _call1: Completion) {
-      if (? _call1: Completion) {
-        return _call1
-      } else {
-        call _ret1 = clo<"NormalCompletion">(_call1)
-        return _ret1
-      }
+      return _call1
     } else {
       call _ret1 = clo<"NormalCompletion">(_call1)
-      if (? _ret1: Completion) {
-        return _ret1
-      } else {
-        call _ret2 = clo<"NormalCompletion">(_ret1)
-        return _ret2
-      }
+      return _ret1
     }
   } else {
     let jsValue = _call1.Value
@@ -5032,20 +4847,10 @@ def define_the_iteration_methods_closure3(
   } else nop
   let _v2 = (yet "a newly created [=default iterator object=] for |definition|, with |jsValue| as its [=default iterator object/target=], \"<code>value</code>\" as its [=default iterator object/kind=], and [=default iterator object/index=] set to 0")
   if (? _v2: Completion) {
-    if (? _v2: Completion) {
-      return _v2
-    } else {
-      call _ret3 = clo<"NormalCompletion">(_v2)
-      return _ret3
-    }
+    return _v2
   } else {
     call _ret3 = clo<"NormalCompletion">(_v2)
-    if (? _ret3: Completion) {
-      return _ret3
-    } else {
-      call _ret4 = clo<"NormalCompletion">(_ret3)
-      return _ret4
-    }
+    return _ret3
   }
 }
 def define_the_asynchronous_iteration_methods_closure1(
@@ -5057,20 +4862,10 @@ def define_the_asynchronous_iteration_methods_closure1(
   call _call1 = clo<"ToObject">((yet "<emu-val>this</emu-val> value"))
   if (? _call1: Abrupt) {
     if (? _call1: Completion) {
-      if (? _call1: Completion) {
-        return _call1
-      } else {
-        call _ret1 = clo<"NormalCompletion">(_call1)
-        return _ret1
-      }
+      return _call1
     } else {
       call _ret1 = clo<"NormalCompletion">(_call1)
-      if (? _ret1: Completion) {
-        return _ret1
-      } else {
-        call _ret2 = clo<"NormalCompletion">(_ret1)
-        return _ret2
-      }
+      return _ret1
     }
   } else {
     let jsValue = _call1.Value
@@ -5102,20 +4897,10 @@ def define_the_asynchronous_iteration_methods_closure1(
   let iterator = (yet "a newly created [=default asynchronous iterator object=] for |definition| with |idlObject| as its [=default asynchronous iterator object/target=], \"<code>key+value</code>\" as its [=default asynchronous iterator object/kind=], and [=default asynchronous iterator object/is finished=] set to false")
   call _ = clo<"Run_the_[=asynchronous_iterator_initialization_steps=]_for_|definition|_with_|idlObject|,_|iterator|,_and_|idlArgs|,_if_any_such_steps_exist">()
   if (? iterator: Completion) {
-    if (? iterator: Completion) {
-      return iterator
-    } else {
-      call _ret3 = clo<"NormalCompletion">(iterator)
-      return _ret3
-    }
+    return iterator
   } else {
     call _ret2 = clo<"NormalCompletion">(iterator)
-    if (? _ret2: Completion) {
-      return _ret2
-    } else {
-      call _ret4 = clo<"NormalCompletion">(_ret2)
-      return _ret4
-    }
+    return _ret2
   }
 }
 def define_the_asynchronous_iteration_methods_closure2(
@@ -5127,20 +4912,10 @@ def define_the_asynchronous_iteration_methods_closure2(
   call _call1 = clo<"ToObject">((yet "<emu-val>this</emu-val> value"))
   if (? _call1: Abrupt) {
     if (? _call1: Completion) {
-      if (? _call1: Completion) {
-        return _call1
-      } else {
-        call _ret1 = clo<"NormalCompletion">(_call1)
-        return _ret1
-      }
+      return _call1
     } else {
       call _ret1 = clo<"NormalCompletion">(_call1)
-      if (? _ret1: Completion) {
-        return _ret1
-      } else {
-        call _ret2 = clo<"NormalCompletion">(_ret1)
-        return _ret2
-      }
+      return _ret1
     }
   } else {
     let jsValue = _call1.Value
@@ -5172,20 +4947,10 @@ def define_the_asynchronous_iteration_methods_closure2(
   let iterator = (yet "a newly created [=default asynchronous iterator object=] for |definition| with |idlObject| as its [=default asynchronous iterator object/target=], \"<code>key</code>\" as its [=default asynchronous iterator object/kind=], and [=default asynchronous iterator object/is finished=] set to false")
   call _ = clo<"Run_the_[=asynchronous_iterator_initialization_steps=]_for_|definition|_with_|idlObject|,_|iterator|,_and_|idlArgs|,_if_any_such_steps_exist">()
   if (? iterator: Completion) {
-    if (? iterator: Completion) {
-      return iterator
-    } else {
-      call _ret3 = clo<"NormalCompletion">(iterator)
-      return _ret3
-    }
+    return iterator
   } else {
     call _ret2 = clo<"NormalCompletion">(iterator)
-    if (? _ret2: Completion) {
-      return _ret2
-    } else {
-      call _ret4 = clo<"NormalCompletion">(_ret2)
-      return _ret4
-    }
+    return _ret2
   }
 }
 def define_the_asynchronous_iteration_methods_closure3(
@@ -5197,20 +4962,10 @@ def define_the_asynchronous_iteration_methods_closure3(
   call _call1 = clo<"ToObject">((yet "<emu-val>this</emu-val> value"))
   if (? _call1: Abrupt) {
     if (? _call1: Completion) {
-      if (? _call1: Completion) {
-        return _call1
-      } else {
-        call _ret1 = clo<"NormalCompletion">(_call1)
-        return _ret1
-      }
+      return _call1
     } else {
       call _ret1 = clo<"NormalCompletion">(_call1)
-      if (? _ret1: Completion) {
-        return _ret1
-      } else {
-        call _ret2 = clo<"NormalCompletion">(_ret1)
-        return _ret2
-      }
+      return _ret1
     }
   } else {
     let jsValue = _call1.Value
@@ -5242,19 +4997,9 @@ def define_the_asynchronous_iteration_methods_closure3(
   let iterator = (yet "a newly created [=default asynchronous iterator object=] for |definition| with |idlObject| as its [=default asynchronous iterator object/target=], \"<code>value</code>\" as its [=default asynchronous iterator object/kind=], and [=default asynchronous iterator object/is finished=] set to false")
   call _ = clo<"Run_the_[=asynchronous_iterator_initialization_steps=]_for_|definition|_with_|idlObject|,_|iterator|,_and_|idlArgs|,_if_any_such_steps_exist">()
   if (? iterator: Completion) {
-    if (? iterator: Completion) {
-      return iterator
-    } else {
-      call _ret3 = clo<"NormalCompletion">(iterator)
-      return _ret3
-    }
+    return iterator
   } else {
     call _ret2 = clo<"NormalCompletion">(iterator)
-    if (? _ret2: Completion) {
-      return _ret2
-    } else {
-      call _ret4 = clo<"NormalCompletion">(_ret2)
-      return _ret4
-    }
+    return _ret2
   }
 }

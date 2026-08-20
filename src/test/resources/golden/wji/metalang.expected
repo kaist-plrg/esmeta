@@ -1565,7 +1565,7 @@
   params: |interface|, |realm|
   head: The [=interface prototype object=] for a given [=interface=] |interface| and [=realm=] |realm| is <dfn lt="create an interface prototype object">created</dfn> as follows:
   Let(|proto|, null)
-  If(|interface| is ?(declared with the [{{Global}}] [=extended attribute=]), and ?(|interface| [=support named properties|supports named properties=]))
+  If(|interface| is ?(declared with the [{{Global}}] [=extended attribute=]), and |interface| [=support named properties=])
     Set(|proto|, [=create a named properties object=](|interface|, |realm|))
   ElseIf(|interface| is ?(declared to inherit from another interface))
     Set(|proto|, ?(the [=interface prototype object=] in |realm| of that [=inherited interface=]))
@@ -1656,7 +1656,7 @@
       Let(|idlObject|, null)
       If(|target| is an interface, and |attribute| is a regular attribute)
         Let(|jsValue|, ?(the <emu-val>this</emu-val> value) if ?(it) is not null or undefined else ?(|realm|'s [=realm/global object=]))
-        ?((This will subsequently cause a {{TypeError}} in a few steps, if the global object does not implement |target| and [{{LegacyLenientThis}}] is not specified.) <!-- https://www.w3.org/Bugs/Public/show_bug.cgi?id=18547#c9 -->)
+        ?((This will subsequently cause a {{TypeError}} in a few steps, if the global object does not implement |target| and [{{LegacyLenientThis}}] is not specified.))
         If(|jsValue| is a platform object)
           Perform([=perform a security check=](?(, passing |jsValue|, |attribute|).[[id]], "getter"))
         If(?(|jsValue| does not [=implement=] |target|))
@@ -1695,7 +1695,7 @@
     Let(|idlObject|, null)
     If(|attribute| is a regular attribute)
       Let(|jsValue|, ?(the <emu-val>this</emu-val> value) if ?(it) is not null or undefined else ?(|realm|'s [=realm/global object=]))
-      ?((This will subsequently cause a {{TypeError}} in a few steps, if the global object does not implement |target| and [{{LegacyLenientThis}}] is not specified.) <!-- https://www.w3.org/Bugs/Public/show_bug.cgi?id=18547#c9 -->)
+      ?((This will subsequently cause a {{TypeError}} in a few steps, if the global object does not implement |target| and [{{LegacyLenientThis}}] is not specified.))
       If(|jsValue| is a platform object)
         Perform([=perform a security check=](|jsValue|, |id|, "setter"))
       Let(|validThis|, true if ?(|jsValue| [=implements=] |target|) else false)

@@ -21,15 +21,33 @@
     tests.push({ name, status, message: message || null });
   }
 
+  // mirrors testharness.js's format_value: same switch structure (string /
+  // boolean+undefined / number incl. -0 / bigint / null, then a shared
+  // `typeof val + ' "' + String(val) + '"'` fallback for object/function/
+  // symbol/etc). Skips the seen-object cycle tracking, Node-specific cases,
+  // and 1000-char truncation -- nothing in this corpus needs them.
   function format_value(val) {
-    if (typeof val === "string") return '"' + val + '"';
-    if (typeof val === "function")
-      return 'function "' + (val.name || "anonymous") + '"';
-    if (typeof val === "bigint") return val + "n";
-    try {
-      return String(val);
-    } catch (e) {
-      return "<" + typeof val + ">";
+    if (Array.isArray(val)) return "[" + val.map(format_value).join(", ") + "]";
+    switch (typeof val) {
+      case "string":
+        return '"' + val + '"';
+      case "boolean":
+      case "undefined":
+        return String(val);
+      case "number":
+        if (val === 0 && 1 / val === -Infinity) return "-0";
+        return String(val);
+      case "bigint":
+        return String(val) + "n";
+      case "object":
+        if (val === null) return "null";
+      /* falls through */
+      default:
+        try {
+          return typeof val + ' "' + String(val) + '"';
+        } catch (e) {
+          return "[stringifying " + typeof val + " threw " + String(e) + "]";
+        }
     }
   }
   globalThis.format_value = format_value;
@@ -176,37 +194,65 @@
     fn();
   };
 
-  globalThis.test = function (fn, name) {
-    try {
-      fn();
-      record(name, 0, null);
-    } catch (e) {
-      record(name, 1, e instanceof AssertionError ? e.message : String((e && e.message) || e));
-    }
-  };
+  // mirrors testharness.js's Test-name-omitted fallback ("Untitled",
+  // "Untitled 1", ...), but without its regex-based fallback of deriving a
+  // name from a simple `() => expr` function's own source text -- every
+  // unnamed test/promise_test in this corpus is multi-line, which real
+  // testharness.js's own derivation regex rejects anyway (it requires no
+  // line breaks in the source), so this fallback alone already matches it.
+  let untitledCounter = 0;
+  function nextDefaultTestName() {
+    const suffix = untitledCounter > 0 ? " " + untitledCounter : "";
+    untitledCounter++;
+    return "Untitled" + suffix;
+  }
 
-  // only constructor/toStringTag.any.js's `t.add_cleanup(...)` needs this --
+  // only add_cleanup and unreached_func are used anywhere in this corpus --
   // real testharness.js's Test object has far more (step, done, timeout, ...)
-  // that nothing in the corpus actually calls.
+  // that nothing here calls.
   function makeTestHandle() {
     const cleanups = [];
-    return { add_cleanup: (fn) => cleanups.push(fn), cleanups };
+    return {
+      add_cleanup: (fn) => cleanups.push(fn),
+      unreached_func: (description) => () => {
+        assert(false, "unreached_func", description, "Reached unreachable code");
+      },
+      cleanups,
+    };
   }
+
+  globalThis.test = function (fn, name) {
+    const testName = name || nextDefaultTestName();
+    const t = makeTestHandle();
+    try {
+      fn(t);
+      record(testName, 0, null);
+    } catch (e) {
+      record(testName, 1, e instanceof AssertionError ? e.message : String((e && e.message) || e));
+    } finally {
+      for (const cleanup of t.cleanups) {
+        try {
+          cleanup();
+        } catch (e) {}
+      }
+    }
+  };
 
   // promise_test entries run strictly sequentially (each awaited before the
   // next starts), matching testharness.js -- some tests (e.g.
   // instance/constructor-caching.any.js) depend on that ordering.
   globalThis.promise_test = function (fn, name) {
+    const testName = name || nextDefaultTestName();
     queue = queue.then(() => {
       const t = makeTestHandle();
       return Promise.resolve()
         .then(() => fn(t))
         .then(
-          () => record(name, 0, null),
-          (e) => record(name, 1, e instanceof AssertionError ? e.message : String((e && e.message) || e)),
+          () => record(testName, 0, null),
+          (e) => record(testName, 1, e instanceof AssertionError ? e.message : String((e && e.message) || e)),
         )
         .then(() => Promise.all(t.cleanups.map((c) => c())))
-        .catch((e) => record(name, 1, "cleanup failed: " + String((e && e.message) || e)));
+        .catch((e) => record(testName, 1, "cleanup failed: " + String((e && e.message) || e)));
     });
   };
 

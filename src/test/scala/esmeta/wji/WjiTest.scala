@@ -16,10 +16,10 @@ import org.scalatest.Assertions.*
 import scala.util.{Success, Try}
 
 /** Support for running `.js` test cases under `tests/wji/manual` end to end —
-  * mirrors `esmeta.es.ESTest`'s role, but merges the WJI IR program into the shared
-  * mainline CFG and threads a fresh [[WasmHost]]/SpecTec connection through the
-  * [[EsInterpreter]] per test case, replicating [[esmeta.phase.WjiEval]]'s
-  * pipeline exactly.
+  * mirrors `esmeta.es.ESTest`'s role, but merges the WJI IR program into the
+  * shared mainline CFG and threads a fresh [[WasmHost]]/SpecTec connection
+  * through the [[EsInterpreter]] per test case, replicating
+  * [[esmeta.phase.WjiEval]]'s pipeline exactly.
   */
 object WjiTest:
 
@@ -48,12 +48,12 @@ object WjiTest:
     * `assert` can't safely express it. Every test case must set this global
     * itself, as its very last action (synchronously or from inside a
     * `.then()`/callback), once every check it performs has passed — see
-    * `tests/wji/manual/README.md`. Plain `throw` alone isn't enough for assertions
-    * inside a `.then()` callback: per the `NewPromiseReactionJob` spec
-    * algorithm, a `.then()` handler's throw gets absorbed into rejecting that
-    * call's own (usually unobserved) derived promise, so it never becomes an
-    * abrupt completion of `RunJobs` and thus never shows up in `GLOBAL_RESULT`
-    * (verified empirically — a bare `Promise.resolve().then(()
+    * `tests/wji/manual/README.md`. Plain `throw` alone isn't enough for
+    * assertions inside a `.then()` callback: per the `NewPromiseReactionJob`
+    * spec algorithm, a `.then()` handler's throw gets absorbed into rejecting
+    * that call's own (usually unobserved) derived promise, so it never becomes
+    * an abrupt completion of `RunJobs` and thus never shows up in
+    * `GLOBAL_RESULT` (verified empirically — a bare `Promise.resolve().then(()
     * => { throw ... })` still leaves `@RESULT -> undefined`). `throw` is still
     * the right tool for synchronous checks (and reads naturally to a human or a
     * real JS engine); this flag is the only reliable way to additionally

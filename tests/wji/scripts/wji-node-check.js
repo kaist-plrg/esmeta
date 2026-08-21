@@ -13,7 +13,7 @@
 // exercising a real WJI gap, not a bad test.
 //
 // Not wired into any sbt task -- run by hand when authoring/reviewing a
-// fixture: `node scripts/wji-node-check.js tests/wji/manual/<name>.js`
+// fixture: `node tests/wji/scripts/wji-node-check.js tests/wji/manual/<name>.js`
 // ------------------------------------------------------------------------------
 global.print = (...args) => console.log("  [print]", ...args);
 
@@ -21,7 +21,7 @@ const path = require("path");
 const file = process.argv[2];
 
 if (!file) {
-  console.error("Usage: node scripts/wji-node-check.js <fixture.js>");
+  console.error("Usage: node tests/wji/scripts/wji-node-check.js <fixture.js>");
   process.exit(2);
 }
 

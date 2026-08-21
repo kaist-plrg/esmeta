@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // ------------------------------------------------------------------------------
-// Usage: node scripts/wji-harness-check.js <spectec/test/js-api/foo.any.js>
+// Usage: node tests/wji/scripts/wji-harness-check.js <spectec/test/js-api/foo.any.js>
 //
 // Validates tests/wji/js-api/testharness-lite.js (our from-scratch,
 // regex-free reimplementation of the small slice of
@@ -18,8 +18,8 @@
 // wji-eval <concatenated file> -silent`).
 //
 // Not wired into any sbt task -- run by hand when adding/changing
-// testharness-lite.js, or via scripts/wji-harness-check (loops over the
-// whole js-api corpus).
+// testharness-lite.js, or via wji-harness-check (same directory; loops over
+// the whole js-api corpus).
 // ------------------------------------------------------------------------------
 "use strict";
 
@@ -28,13 +28,13 @@ const os = require("os");
 const path = require("path");
 const { spawnSync } = require("child_process");
 
-const repoRoot = path.resolve(__dirname, "..");
+const repoRoot = path.resolve(__dirname, "../../..");
 const jsApiRoot = path.join(repoRoot, "spectec/test/js-api");
 const wjiJsApiDir = path.join(repoRoot, "tests/wji/js-api");
 
 const testFile = process.argv[2];
 if (!testFile) {
-  console.error("Usage: node scripts/wji-harness-check.js <path/to/foo.any.js>");
+  console.error("Usage: node tests/wji/scripts/wji-harness-check.js <path/to/foo.any.js>");
   process.exit(2);
 }
 const testFilePath = path.resolve(testFile);

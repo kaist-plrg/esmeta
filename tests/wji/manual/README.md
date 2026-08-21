@@ -45,7 +45,7 @@ standalone 테스트입니다. 규칙은 하나: **모든 체크(동기든 비�
 있다면:
 
 ```
-scripts/wat2js tests/wji/manual/<name>.wat
+tests/wji/scripts/wat2js tests/wji/manual/<name>.wat
 ```
 
 가 `new Uint8Array([...])` 스니펫을 stdout에 출력합니다 — 그걸 `.js` 테스트 케이스에
@@ -73,8 +73,8 @@ sbt --client wjiEvalTest
 유용합니다:
 
 ```
-scripts/wji-node-check                           # tests/wji/manual/*.js 전부
-scripts/wji-node-check tests/wji/manual/foo.js    # 특정 테스트 케이스만
+tests/wji/scripts/wji-node-check                           # tests/wji/manual/*.js 전부
+tests/wji/scripts/wji-node-check tests/wji/manual/foo.js    # 특정 테스트 케이스만
 ```
 
 Node의 `WebAssembly` 구현으로 테스트 케이스마다 별도 프로세스에서 돌리고,

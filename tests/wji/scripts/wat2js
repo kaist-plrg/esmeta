@@ -1,6 +1,6 @@
 #!/bin/bash
 # ------------------------------------------------------------------------------
-# Usage: scripts/wat2js path/to/foo.wat
+# Usage: tests/wji/scripts/wat2js path/to/foo.wat
 #
 # Converts a WAT (WebAssembly Text) source file into a `new Uint8Array([...])`
 # JS snippet printed to stdout, ready to paste into a tests/wji/manual/*.js
@@ -15,7 +15,7 @@
 set -euo pipefail
 
 if [ $# -ne 1 ]; then
-  echo "Usage: scripts/wat2js path/to/foo.wat" >&2
+  echo "Usage: tests/wji/scripts/wat2js path/to/foo.wat" >&2
   exit 1
 fi
 

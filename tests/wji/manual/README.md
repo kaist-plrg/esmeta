@@ -1,4 +1,4 @@
-# `tests/wji/` 테스트 케이스
+# `tests/wji/manual/` 테스트 케이스
 
 WJI 상호작용 테스트 케이스들이 사는 디렉터리입니다. `tests/es/`(순수 ECMAScript
 테스트 케이스들)와 같은 컨벤션을 미러링하되, `WebAssembly.*` 관련 테스트 케이스를 위해
@@ -45,7 +45,7 @@ standalone 테스트입니다. 규칙은 하나: **모든 체크(동기든 비�
 있다면:
 
 ```
-scripts/wat2js tests/wji/<name>.wat
+scripts/wat2js tests/wji/manual/<name>.wat
 ```
 
 가 `new Uint8Array([...])` 스니펫을 stdout에 출력합니다 — 그걸 `.js` 테스트 케이스에
@@ -73,8 +73,8 @@ sbt --client wjiEvalTest
 유용합니다:
 
 ```
-scripts/wji-node-check                    # tests/wji/*.js 전부
-scripts/wji-node-check tests/wji/foo.js    # 특정 테스트 케이스만
+scripts/wji-node-check                           # tests/wji/manual/*.js 전부
+scripts/wji-node-check tests/wji/manual/foo.js    # 특정 테스트 케이스만
 ```
 
 Node의 `WebAssembly` 구현으로 테스트 케이스마다 별도 프로세스에서 돌리고,
@@ -91,5 +91,5 @@ compile`/`test`와는 무관한 별도 검증 도구입니다.
 `knownFailing` set에 파일명을 추가하세요 — 실행 대신 `cancel(...)`로
 처리돼서 `wjiEvalTest`는 계속 초록불을 유지합니다. 구체적인 이유/원인은
 여기 코드에 적어두지 않습니다 — fix가 하나씩 들어갈 때마다 계속 바뀌므로,
-필요하면 `sbt run wji-eval tests/wji/<name>.js -silent`로 다시 재현해서
+필요하면 `sbt run wji-eval tests/wji/manual/<name>.js -silent`로 다시 재현해서
 확인하세요. gap이 실제로 해결되면 `knownFailing`에서 그 항목을 지우세요.

@@ -58,6 +58,7 @@ val PACKAGE_NAME = "esmeta"
 val IR_TEST_DIR = s"$TEST_DIR/ir"
 val ES_TEST_DIR = s"$TEST_DIR/es"
 val WJI_TEST_DIR = s"$TEST_DIR/wji"
+val WJI_MANUAL_TEST_DIR = s"$WJI_TEST_DIR/manual"
 
 /** error stack trace display mode */
 var ERROR_MODE = false

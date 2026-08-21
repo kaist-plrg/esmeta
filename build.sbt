@@ -136,7 +136,7 @@ lazy val test262EvalTest =
 
 // wji
 lazy val wjiEvalTest = taskKey[Unit](
-  "Launch eval tests for tests/wji/*.js fixtures (opt-in, not part of basicTest)",
+  "Launch eval tests for tests/wji/manual/*.js fixtures (opt-in, not part of basicTest)",
 )
 
 // Java options for assembly

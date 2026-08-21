@@ -137,7 +137,7 @@ object AddInterfaceMemberBuiltinBehaviourPass extends LoweringPass:
     *     `TypeError` — mirrored here directly as a raw [[Instr.Throw]] (left
     *     for `CompletionAlgorithms`/`WrapCompletionReturnsPass` to wrap later —
     *     see class doc) rather than asserted unreachable, since real user code
-    *     does reach this (see `tests/wji/constructors.js`'s `new
+    *     does reach this (see `tests/wji/manual/constructors.js`'s `new
     *     WebAssembly.Module()`).
     *   - An optional param with no [[WjiParam.default]] is bound to `undefined`
     *     — not left unbound. Per WebIDL's overload resolution algorithm, an

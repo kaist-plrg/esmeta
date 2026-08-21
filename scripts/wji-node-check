@@ -2,9 +2,9 @@
 # ------------------------------------------------------------------------------
 # Usage: scripts/wji-node-check [file.js ...]
 #
-# Cross-checks tests/wji/*.js fixtures against a real engine (Node's
+# Cross-checks tests/wji/manual/*.js fixtures against a real engine (Node's
 # WebAssembly implementation), one fresh `node` subprocess per fixture for
-# isolation. With no arguments, checks every tests/wji/*.js fixture.
+# isolation. With no arguments, checks every tests/wji/manual/*.js fixture.
 #
 # This validates the fixture itself (wasm bytes + JS driver + assertions +
 # the __wjiOk convention), independent of ESMeta/WJI's own mechanization
@@ -25,7 +25,7 @@ fi
 if [ $# -gt 0 ]; then
   files=("$@")
 else
-  files=("$repo_root"/tests/wji/*.js)
+  files=("$repo_root"/tests/wji/manual/*.js)
 fi
 
 fail=0

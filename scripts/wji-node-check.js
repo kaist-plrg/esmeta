@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 // ------------------------------------------------------------------------------
-// Runs a single tests/wji/*.js fixture under real Node (V8's WebAssembly
-// implementation) and reports whether it behaved the way the project's
-// __wjiOk convention expects (see tests/wji/README.md): no uncaught
-// synchronous throw, no unhandled promise rejection, and
+// Runs a single tests/wji/manual/*.js fixture under real Node (V8's
+// WebAssembly implementation) and reports whether it behaved the way the
+// project's __wjiOk convention expects (see tests/wji/manual/README.md): no
+// uncaught synchronous throw, no unhandled promise rejection, and
 // globalThis.__wjiOk ends up true.
 //
 // This checks the fixture itself against a real, standards-compliant engine
@@ -13,7 +13,7 @@
 // exercising a real WJI gap, not a bad test.
 //
 // Not wired into any sbt task -- run by hand when authoring/reviewing a
-// fixture: `node scripts/wji-node-check.js tests/wji/<name>.js`
+// fixture: `node scripts/wji-node-check.js tests/wji/manual/<name>.js`
 // ------------------------------------------------------------------------------
 global.print = (...args) => console.log("  [print]", ...args);
 

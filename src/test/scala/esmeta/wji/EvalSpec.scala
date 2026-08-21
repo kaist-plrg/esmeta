@@ -1,9 +1,10 @@
 package esmeta.wji
 
-import esmeta.WJI_MANUAL_TEST_DIR
+import esmeta.{WJI_JS_API_TEST_DIR, WJI_MANUAL_TEST_DIR}
 import esmeta.es.ESTest.checkExit
 import esmeta.util.SystemUtils.*
 import esmeta.wji.bridge.rpc.JsonRpcConnection
+import java.nio.file.Paths
 import org.scalatest.{BeforeAndAfterAll, Tag}
 import org.scalatest.funsuite.AnyFunSuite
 
@@ -18,17 +19,66 @@ object EvalTag extends Tag("esmeta.wji.EvalTag")
   * green while the gap is worked on — remove a test case's name here once it's
   * fixed. No per-test-case reason kept here — it shifts with every partial fix,
   * so keeping it in sync would be pure churn; re-reproduce with `sbt run
-  * wji-eval tests/wji/manual/<name>.js -silent` when picking one back up.
+  * wji-eval <path printed as the test name below> -silent` when picking one
+  * back up. Keyed by `"<root label>/<path relative to that root>"` (e.g.
+  * `"manual/demo.js"`, `"js-api/memory/toString.any.js"`) rather than bare
+  * filename — js-api's generated fixtures mirror spectec/test/js-api's own
+  * directory structure, which reuses the same filename (e.g. `toString.any.js`)
+  * across multiple categories.
   */
 private val knownFailing: Set[String] =
-  Set()
+  Set(
+    // js-api/generated: mostly a single root cause (`[NotSupported]
+    // feature/DataView` -- wasm-module-builder.js, which nearly every one of
+    // these depends on to assemble wasm module bytes, uses DataView, which
+    // ESMeta's ECMA-262 mechanization doesn't implement at all) plus a
+    // handful of missing branding checks (`not a proper reference base:
+    // undefined`) and a couple of other gaps -- see personal/TODO.md #14.
+    "js-api/constructor/compile.any.js",
+    "js-api/constructor/instantiate-bad-imports.any.js",
+    "js-api/constructor/instantiate.any.js",
+    "js-api/constructor/multi-value.any.js",
+    "js-api/constructor/validate.any.js",
+    "js-api/global/constructor.any.js",
+    "js-api/global/toString.any.js",
+    "js-api/global/value-get-set.any.js",
+    "js-api/global/valueOf.any.js",
+    "js-api/instance/constructor-bad-imports.any.js",
+    "js-api/instance/constructor-caching.any.js",
+    "js-api/instance/constructor.any.js",
+    "js-api/instance/exports.any.js",
+    "js-api/instance/toString.any.js",
+    "js-api/interface.any.js",
+    "js-api/limits.any.js",
+    "js-api/memory/buffer.any.js",
+    "js-api/memory/constructor-memory64.any.js",
+    "js-api/memory/constructor.any.js",
+    "js-api/memory/grow-memory64.any.js",
+    "js-api/memory/grow.any.js",
+    "js-api/module/constructor.any.js",
+    "js-api/module/customSections.any.js",
+    "js-api/module/exports.any.js",
+    "js-api/module/imports.any.js",
+    "js-api/module/toString.any.js",
+    "js-api/prototypes.any.js",
+    "js-api/table/constructor-memory64.any.js",
+    "js-api/table/constructor.any.js",
+    "js-api/table/get-set.any.js",
+    "js-api/table/grow-memory64.any.js",
+    "js-api/table/grow.any.js",
+    "js-api/table/length.any.js",
+  )
 
-/** Runs every `.js` test case under `tests/wji/manual` end to end through the
-  * merged WJI IR program (see [[WjiTest]]). Each test case is standalone and
-  * self-checking: it must set `globalThis.__wjiOk = true` itself once every
-  * check it performs (sync `throw`, async or otherwise) has passed — see
-  * `tests/wji/manual/README.md` and [[WjiTest]] for why a bare `throw` alone
-  * isn't enough for checks made inside a `.then()` callback.
+/** Runs every `.js` test case under `tests/wji/manual` and
+  * `tests/wji/js-api/generated` end to end through the merged WJI IR program
+  * (see [[WjiTest]]). Each test case is standalone and self-checking: it must
+  * set `globalThis.__wjiOk = true` itself once every check it performs (sync
+  * `throw`, async or otherwise) has passed — see `tests/wji/manual/README.md`
+  * and [[WjiTest]] for why a bare `throw` alone isn't enough for checks made
+  * inside a `.then()` callback. `tests/wji/js-api/generated`'s fixtures set it
+  * via `report-shim.js`, aggregating every WPT-style subtest in the file into
+  * one boolean (pass iff every subtest passed) — see
+  * `tests/wji/js-api/README.md`.
   *
   * Not part of the default `sbt test`/`basicTest` tier — this suite spawns a
   * real external SpecTec process (shared across its test cases, see
@@ -55,8 +105,16 @@ class EvalSpec extends AnyFunSuite with BeforeAndAfterAll:
   override def beforeAll(): Unit = connection = Initialize.startProcess()
   override def afterAll(): Unit = connection.close()
 
-  for file <- walkTree(WJI_MANUAL_TEST_DIR) if jsFilter(file.getName) do
-    val name = file.getName
+  private val roots: List[(String, String)] = List(
+    "manual" -> WJI_MANUAL_TEST_DIR,
+    "js-api" -> WJI_JS_API_TEST_DIR,
+  )
+
+  for
+    (label, dir) <- roots
+    file <- walkTree(dir) if jsFilter(file.getName)
+  do
+    val name = s"$label/${Paths.get(dir).relativize(file.toPath)}"
     test(name, EvalTag) {
       if knownFailing(name) then cancel("known WJI mechanization gap")
       else

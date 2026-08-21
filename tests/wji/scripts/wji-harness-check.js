@@ -27,9 +27,8 @@ const fs = require("fs");
 const os = require("os");
 const path = require("path");
 const { spawnSync } = require("child_process");
+const { repoRoot, readResolvedDeps } = require("./js-api-meta");
 
-const repoRoot = path.resolve(__dirname, "../../..");
-const jsApiRoot = path.join(repoRoot, "spectec/test/js-api");
 const wjiJsApiDir = path.join(repoRoot, "tests/wji/js-api");
 
 const testFile = process.argv[2];
@@ -38,47 +37,19 @@ if (!testFile) {
   process.exit(2);
 }
 const testFilePath = path.resolve(testFile);
-const content = fs.readFileSync(testFilePath, "utf8");
 
-function parseMeta(src) {
-  const scripts = [];
-  let globalScope = "";
-  const bodyLines = [];
-  for (const line of src.split("\n")) {
-    const m = line.match(/^\/\/ META: (\S+)=(.*)$/);
-    if (m) {
-      const [, key, value] = m;
-      if (key === "global") globalScope = value;
-      else if (key === "script") scripts.push(value);
-      continue;
-    }
-    bodyLines.push(line);
-  }
-  return { globalScope, scripts, body: bodyLines.join("\n") };
-}
-
-function resolveScript(ref, testFilePath) {
-  if (ref.startsWith("/wasm/jsapi/")) {
-    return path.join(jsApiRoot, ref.slice("/wasm/jsapi/".length));
-  }
-  return path.join(path.dirname(testFilePath), ref);
-}
-
-const meta = parseMeta(content);
-if (!meta.globalScope.split(",").includes("jsshell")) {
-  console.log(`SKIP (no jsshell scope) ${path.relative(repoRoot, testFilePath)}`);
-  process.exit(0);
-}
-
-let depsSrc;
+let resolved;
 try {
-  depsSrc = meta.scripts
-    .map((ref) => fs.readFileSync(resolveScript(ref, testFilePath), "utf8"))
-    .join("\n");
+  resolved = readResolvedDeps(testFilePath);
 } catch (e) {
   console.log(`SKIP (missing META script: ${e.message}) ${path.relative(repoRoot, testFilePath)}`);
   process.exit(0);
 }
+if (!resolved) {
+  console.log(`SKIP (no jsshell scope) ${path.relative(repoRoot, testFilePath)}`);
+  process.exit(0);
+}
+const { meta, depsSrc } = resolved;
 
 const selfShim = fs.readFileSync(path.join(wjiJsApiDir, "shell-shim.js"), "utf8");
 const ourHarness = fs.readFileSync(path.join(wjiJsApiDir, "testharness-lite.js"), "utf8");

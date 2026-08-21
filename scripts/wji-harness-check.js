@@ -2,22 +2,24 @@
 // ------------------------------------------------------------------------------
 // Usage: node scripts/wji-harness-check.js <spectec/test/js-api/foo.any.js>
 //
-// Validates tests/wji/js-api/harness.js (our from-scratch, regex-free
-// reimplementation of the small slice of spectec/test/harness/testharness.js
-// the js-api corpus actually uses) against the real testharness.js -- NOT
-// against WJI. Both variants get the exact same resolved META scripts and
-// test body; only the harness implementation differs. If our harness is
-// correct, every subtest should PASS/FAIL identically under both.
+// Validates tests/wji/js-api/testharness-lite.js (our from-scratch,
+// regex-free reimplementation of the small slice of
+// spectec/test/harness/testharness.js the js-api corpus actually uses)
+// against the real testharness.js -- NOT against WJI. Both variants get the
+// exact same resolved META scripts and test body; only the harness
+// implementation differs. If our harness is correct, every subtest should
+// PASS/FAIL identically under both.
 //
 // This can't run under WJI itself: real testharness.js hits ESMeta's
-// unmechanized-RegExp gap immediately (see tests/wji/js-api/harness.js's own
-// doc comment) -- that's the whole reason harness.js exists. So this only
-// tells you "does our harness agree with the real one", under Node for both
-// sides; whether WJI itself passes a given test is a separate question
-// (`sbt run wji-eval <concatenated file> -silent`).
+// unmechanized-RegExp gap immediately (see testharness-lite.js's own doc
+// comment) -- that's the whole reason it exists. So this only tells you
+// "does our harness agree with the real one", under Node for both sides;
+// whether WJI itself passes a given test is a separate question (`sbt run
+// wji-eval <concatenated file> -silent`).
 //
-// Not wired into any sbt task -- run by hand when adding/changing harness.js,
-// or via scripts/wji-harness-check (loops over the whole js-api corpus).
+// Not wired into any sbt task -- run by hand when adding/changing
+// testharness-lite.js, or via scripts/wji-harness-check (loops over the
+// whole js-api corpus).
 // ------------------------------------------------------------------------------
 "use strict";
 
@@ -79,7 +81,7 @@ try {
 }
 
 const selfShim = fs.readFileSync(path.join(wjiJsApiDir, "shell-shim.js"), "utf8");
-const ourHarness = fs.readFileSync(path.join(wjiJsApiDir, "harness.js"), "utf8");
+const ourHarness = fs.readFileSync(path.join(wjiJsApiDir, "testharness-lite.js"), "utf8");
 const realHarness = fs.readFileSync(
   path.join(repoRoot, "spectec/test/harness/testharness.js"),
   "utf8",

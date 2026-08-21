@@ -2,9 +2,9 @@
 # ------------------------------------------------------------------------------
 # Usage: scripts/wji-harness-check [file.any.js ...]
 #
-# Validates tests/wji/js-api/harness.js against the real testharness.js, one
-# fresh `node` subprocess per fixture for isolation. With no arguments, checks
-# every spectec/test/js-api/**/*.any.js file.
+# Validates tests/wji/js-api/testharness-lite.js against the real
+# testharness.js, one fresh `node` subprocess per fixture for isolation. With
+# no arguments, checks every spectec/test/js-api/**/*.any.js file.
 #
 # See scripts/wji-harness-check.js for what this actually compares (our
 # harness vs. the real one, both under Node -- not a WJI check).

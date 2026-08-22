@@ -120,8 +120,10 @@ object CondParser:
   // "If this [operation] throws an exception, ..." (untyped) or
   // "If this [operation] throws a {{TypeError}}, ..." (typed): group 1 is the
   // exception type name when the typed form matched, else null.
+  private val ThrowsError =
+    """(?si)^this(?: operation)? throws (?:an? \{\{([^}]+)\}\})$""".r
   private val ThrowsException =
-    """(?si)^this(?: operation)? throws (?:an exception|an? \{\{([^}]+)\}\})$""".r
+    """(?si)^this(?: operation)? throws an exception$""".r
 
   // Or has lower precedence than And, so we split by Or first
   private val IsOfFormRhs = """(?si)^of the form (.+)$""".r
@@ -240,7 +242,8 @@ object CondParser:
 
   private def parseAtomic(s: String): Cond = s match
     case UnreachableStep()     => Unreachable
-    case ThrowsException(kind) => Throws(Option(kind))
+    case ThrowsError(kind)     => Throws(Some(kind))
+    case ThrowsException()     => Throws(None, Option("|exception|"))
     case AllocationFailsStep() => AllocationFails
     case MapExistsPos(baseRaw) => HasField(ExprParser.parse(baseRaw))
     case MapExistsNeg(baseRaw) =>

@@ -129,6 +129,30 @@ object Instr:
     */
   case class Unknown(text: String, body: List[Instr] = Nil) extends Instr
 
+  /** `Try running the following steps: ...` — `call` is the try-body, parsed
+    * the same way every other "verb + the following steps:" idiom is: as an
+    * immediately-invoked closure call over a `FollowingSteps` placeholder
+    * (`Expr.ClosureCall(Expr.FollowingSteps(Nil, false), Nil)`), with `body`
+    * holding the step's own nested list — the raw try-body instructions,
+    * exactly as [[esmeta.wji.extractor.AlgorithmExtractor]] naturally attaches
+    * any step's nested list. `esmeta.wji.compiler.lowering.
+    * ExpandFollowingStepsPass` hoists the `FollowingSteps` (and, with it,
+    * `body`) into a fresh top-level `Algorithm`, the same way it already does
+    * for [[Let]], turning `call` into `Expr.ClosureCall(Expr. Closure(name,
+    * captured), Nil)` and `body` into `Nil`. Must be immediately followed by a
+    * sibling [[Catch]] to mean anything — see
+    * `esmeta.wji.compiler.lowering.ExpandThrowsPass`, which expands the pair
+    * into a real completion-record check.
+    */
+  case class Try(call: Expr, body: List[Instr] = Nil) extends Instr
+
+  /** `And then, if <a lt="an exception was thrown">an exception |E| was
+    * thrown</a>: ...` — WebIDL's catch clause; only meaningful as the sibling
+    * immediately following a [[Try]]. `exceptionVar` is raw, with pipes (e.g.
+    * `"|E|"`).
+    */
+  case class Catch(exceptionVar: String, body: List[Instr]) extends Instr
+
   /** Produced by [[esmeta.wji.compiler.lowering.GroupIfChainPass]]: a fully
     * grouped if/else-if/else tree. Replaces flat `If`/`ElseIf`/`Else` siblings.
     * `branches` is non-empty; `fallback` is the else-body (may be empty if
@@ -196,6 +220,8 @@ object Instr:
       case i: PerformClosure => i.copy(body = f(i.body))
       case i: Note           => i.copy(body = f(i.body))
       case i: Unknown        => i.copy(body = f(i.body))
+      case i: Try            => i.copy(body = f(i.body))
+      case i: Catch          => i.copy(body = f(i.body))
       case i: IfChain =>
         i.copy(
           branches = i.branches.map((c, b) => (c, f(b))),

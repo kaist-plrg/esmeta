@@ -53,11 +53,11 @@ object FreeVarAnalysis:
     override def walk(cond: Cond): Unit = cond match
       // freeVars's only caller (ExpandFollowingStepsPass) now runs before
       // ExpandThrowsPass desugars this away, so a Throws catch branch's
-      // implicit "exception" binding is still in this pre-desugared form at
-      // analysis time — without this case it'd wrongly look like a free
-      // reference and get captured.
-      case Cond.Throws(_) => bound += "exception"
-      case other          => super.walk(other)
+      // bound variable is still in this pre-desugared form at analysis
+      // time — without this case it'd wrongly look like a free reference
+      // and get captured.
+      case Cond.Throws(_, bindTo) => bound ++= bindTo.map(stripPipes)
+      case other                  => super.walk(other)
 
     override def walk(expr: Expr): Unit = expr match
       case Expr.Var(name)            => referenced += name
@@ -89,6 +89,9 @@ object FreeVarAnalysis:
         bindResultOf(i.outcome).foreach(bound += _)
         walk(i.closure)
         i.args.foreach(walk)
+        i.body.foreach(walk)
+      case i: Instr.Catch =>
+        bound += stripPipes(i.exceptionVar)
         i.body.foreach(walk)
       case other => super.walk(other)
 

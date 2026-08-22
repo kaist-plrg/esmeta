@@ -153,6 +153,16 @@ object ExprParser:
   // is parsed as a general Expr (not just a bare |var|) since nothing about
   // the phrasing restricts it to a variable reference.
   private val PerformingClosureCall = """(?si)^performing\s+(.+)$""".r
+  // "running CLOSURE[,] given ARG[, ARG...]" / "running CLOSURE" — WebIDL's
+  // own verb for invoking a closure value or a freshly *defined* one
+  // immediately (contrast PerformingClosureCall's "performing ...", used
+  // elsewhere for the same idea) — e.g. "Try running the following steps:
+  // ..." invokes a closure defined right there via one of the "the
+  // following steps ...:" forms above (CLOSURE is parsed as a general Expr,
+  // same as PerformingClosureCall, so this falls straight out of that).
+  // Unlike PerformingClosureCall, also matches with no "given ..." clause at
+  // all — that's the shape this idiom actually uses (no closure params).
+  private val RunningClosureCall = """(?si)^running\s+(.+)$""".r
   private val PipeVarInline = """\|([^|]+)\|""".r
   // "running the [=X steps=] for/of |BASE|[,] with |ARG1| as [=this=] and
   // |ARG2| as the argument values" — WebIDL's "the result of running the
@@ -165,6 +175,20 @@ object ExprParser:
   // result of running the [=getter steps=] ... with ... as [=this=]".
   private val RunningStepsCallNoArgs =
     """(?si)^running the \[=([\w\s]+?) steps=\]\s+(?:for|of)\s+(\|[^|]+\|),?\s+with\s+(\|[^|]+\|)\s+as\s+\[=this=\]$""".r
+
+  /** Shared by [[PerformingClosureCall]]/[[RunningClosureCall]]: `rest` is
+    * everything after the verb — a closure (value or freshly-defined), with an
+    * optional trailing `" given ARG[, ARG...]"` argument list.
+    */
+  private def closureCall(rest: String): Expr =
+    splitTopLevel(rest, " given ") match
+      case Some((closureRaw, argsRaw)) =>
+        ClosureCall(
+          parse(closureRaw.stripSuffix(",")),
+          splitComma(argsRaw.trim.replaceFirst("""(?i)^arguments?\s+""", ""))
+            .map(parse),
+        )
+      case None => ClosureCall(parse(rest), Nil)
 
   // ---- Construction: builds a new composite value ----
 
@@ -764,12 +788,7 @@ object ExprParser:
         )
       case PerformingClosureCall(rest)
           if findTopLevel(rest, " given ").isDefined =>
-        val (closureRaw, argsRaw) = splitTopLevel(rest, " given ").get
-        ClosureCall(
-          parse(closureRaw.stripSuffix(",")),
-          splitComma(argsRaw.trim.replaceFirst("""(?i)^arguments?\s+""", ""))
-            .map(parse),
-        )
+        closureCall(rest)
       case RunningStepsCallWithArgs(
             stepsRaw,
             baseRaw,
@@ -785,6 +804,9 @@ object ExprParser:
           Field(parse(baseRaw), stepsFieldName(stepsRaw)),
           List(parse(thisArgRaw)),
         )
+      case RunningClosureCall(rest)
+          if parse(rest).isInstanceOf[FollowingSteps] =>
+        ClosureCall(parse(rest), Nil)
 
       // ---- Construction ----
       case RangePrefix(rest) if findTopLevel(rest, " to ").isDefined =>

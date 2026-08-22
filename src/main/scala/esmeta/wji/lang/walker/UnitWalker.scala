@@ -99,6 +99,8 @@ trait UnitWalker:
       walk(i.closure); i.args.foreach(walk); i.body.foreach(walk)
     case i: Instr.Note    => i.body.foreach(walk)
     case i: Instr.Unknown => i.body.foreach(walk)
+    case i: Instr.Try     => walk(i.call); i.body.foreach(walk)
+    case i: Instr.Catch   => i.body.foreach(walk)
     case i: Instr.IfChain =>
       i.branches.foreach((c, b) => { walk(c); b.foreach(walk) })
       i.fallback.foreach(walk)

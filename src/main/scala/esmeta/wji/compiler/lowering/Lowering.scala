@@ -78,6 +78,7 @@ object Lowering:
     AddBuiltinBehaviourPass,
     AddInterfaceMemberBuiltinBehaviourPass,
     // eliminations
+    ExpandTryPass,
     ExpandHasDuplicatesPass,
     ExpandRemovePass,
     ExpandConditionalPass,

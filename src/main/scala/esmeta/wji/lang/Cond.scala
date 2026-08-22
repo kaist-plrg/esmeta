@@ -112,14 +112,19 @@ object Cond:
   case object Unreachable extends Cond
 
   /** `If this [operation] throws an exception, ...` / `If this [operation]
-    * throws a {{TypeError}}, ...` — checks whether the immediately preceding
-    * step completed abruptly via throw, optionally narrowed to a specific
-    * exception type (`kind`, e.g. `"TypeError"`; `None` for the untyped "an
-    * exception" phrasing). The thrown value is referenced in the body as
-    * `|exception|` (see `ExprParser`'s `"the exception"` alias); the
-    * accompanying `catch it` phrase carries no separate meaning of its own.
+    * throws a {{TypeError}}, ...` / WebIDL's "Try running the following steps:
+    * ... And then, if an exception |E| was thrown: ..." — checks whether the
+    * immediately preceding step completed abruptly via throw, optionally
+    * narrowed to a specific exception type (`kind`, e.g. `"TypeError"`; `None`
+    * for an untyped "an exception"). `bindTo` (raw, with pipes) names the
+    * variable the thrown value is bound to for the rest of the body — always
+    * `Some("|exception|")` for the "catch it" idiom (see `CondParser`, and
+    * `ExprParser`'s `"the exception"` alias, which stays consistent with this
+    * by construction), and the spec's own chosen name for the `Try`/`Catch`
+    * idiom (see `esmeta.wji.lang.Instr.Catch`).
     */
-  case class Throws(kind: Option[String] = None) extends Cond
+  case class Throws(kind: Option[String] = None, bindTo: Option[String] = None)
+    extends Cond
 
   /** `If allocation fails, ...` — js-api's `mem_alloc`/`table_alloc` call sites
     * (index.bs:879/1051) check this with no variable named at all, unlike every

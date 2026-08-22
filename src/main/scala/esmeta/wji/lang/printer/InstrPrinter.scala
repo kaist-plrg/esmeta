@@ -89,6 +89,8 @@ object InstrPrinter:
       s"PerformClosureAndLet(${renderClosureCall(closure, args)}, $v)"
     case Note(text, _)          => s"Note($text)"
     case Instr.Unknown(text, _) => s"?($text)"
+    case Try(call, _)           => s"Try(${ExprPrinter.render(call)})"
+    case Catch(exceptionVar, _) => s"Catch($exceptionVar)"
     case IfChain(branches, fallback) =>
       val conds = branches.map((c, _) => CondPrinter.render(c)).mkString(", ")
       if fallback.isEmpty then s"IfChain($conds)"

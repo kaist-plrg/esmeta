@@ -1,4 +1,4 @@
-148 func(s)
+150 func(s)
 def compile_a_webassembly_module(
   bytes: Unknown,
 ): Unknown = {
@@ -267,7 +267,6 @@ def read_the_imports(
         call _throwComp1 = clo<"towebassemblyvalue">(v, valtype)
         if (exists _throwComp1.Type) {
           if (= _throwComp1.Type ~throw~) {
-            let exception = _throwComp1.Value
             call _err16 = clo<"__NEW_ERROR_OBJ__">("%LinkError.prototype%")
             call _ret17 = clo<"ThrowCompletion">(_err16)
             return _ret17
@@ -3754,7 +3753,7 @@ def attribute_getter(
   target: Unknown,
   realm: Unknown,
 ): Unknown = {
-  let steps = clo<"attribute_getter_closure1", [E, attribute, target]>
+  let steps = clo<"attribute_getter_closure1", [attribute, target]>
   let name = @@yet: unresolved ref: Unknown(the string "<code>get </code>" prepended to |attribute|).id
   call F = clo<"CreateBuiltinFunction">(steps, 0, name, (list []), realm)
   return F
@@ -3869,7 +3868,7 @@ def creating_an_operation_function(
   realm: Unknown,
 ): Unknown = {
   let id = op.id
-  let steps = clo<"creating_an_operation_function_closure1", [E, id, op, target]>
+  let steps = clo<"creating_an_operation_function_closure1", [id, op, target]>
   if (= op.kind ~RegularOperation~) {
     call S = clo<"compute_the_effective_overload_set">(~regular operations~, id, target, 0)
   } else if (= op.kind ~StaticOperation~) {
@@ -4384,12 +4383,8 @@ def create_an_interface_object_closure1(
     return _ret2
   }
 }
-def attribute_getter_closure1(
-  thisArgument: Unknown,
-  argumentsList: Unknown,
-  newTarget: Unknown,
+def attribute_getter_closure2(
 ): Unknown = {
-  (yet "Try running the following steps:")
   let idlObject = null
   if (&& (? target: Unknown["interface"]) (? attribute: Unknown["regular attribute"])) {
     if (|| (! (= (yet "it") null)) (! (= (yet "it") undefined))) {
@@ -4449,22 +4444,48 @@ def attribute_getter_closure1(
     call _ret5 = clo<"NormalCompletion">(_result1)
     return _ret5
   }
-  (yet "And then, if <a lt=\"an exception was thrown\">an exception |E| was thrown</a>:")
-  if (? (yet "|attribute|'s type"): Unknown["promise type"]) {
-    call _call1 = clo<"Call">(~%Promise.reject%~, ~%Promise%~, (list [E]))
-    assert (= _call1.Type ~normal~)
-    let _v6 = _call1.Value
-    if (? _v6: Completion) {
-      return _v6
+}
+def attribute_getter_closure1(
+  thisArgument: Unknown,
+  argumentsList: Unknown,
+  newTarget: Unknown,
+): Unknown = {
+  call _throwComp1 = clo<"attribute_getter_closure2", [attribute, target]>()
+  if (exists _throwComp1.Type) {
+    if (= _throwComp1.Type ~throw~) {
+      let E = _throwComp1.Value
+      if (? (yet "|attribute|'s type"): Unknown["promise type"]) {
+        call _call1 = clo<"Call">(~%Promise.reject%~, ~%Promise%~, (list [E]))
+        assert (= _call1.Type ~normal~)
+        let _v1 = _call1.Value
+        if (? _v1: Completion) {
+          return _v1
+        } else {
+          call _ret2 = clo<"NormalCompletion">(_v1)
+          return _ret2
+        }
+      } else {
+        (yet "end these steps and allow the exception to propagate")
+      }
     } else {
-      call _ret7 = clo<"NormalCompletion">(_v6)
-      return _ret7
+      let _v3 = _throwComp1.Value
+      if (? _v3: Completion) {
+        return _v3
+      } else {
+        call _ret4 = clo<"NormalCompletion">(_v3)
+        return _ret4
+      }
     }
   } else {
-    (yet "end these steps and allow the exception to propagate")
+    if (? _throwComp1: Completion) {
+      return _throwComp1
+    } else {
+      call _ret5 = clo<"NormalCompletion">(_throwComp1)
+      return _ret5
+    }
   }
-  call _ret8 = clo<"NormalCompletion">(~unused~)
-  return _ret8
+  call _ret6 = clo<"NormalCompletion">(~unused~)
+  return _ret6
 }
 def attribute_setter_closure1(
   thisArgument: Unknown,
@@ -4633,13 +4654,8 @@ def attribute_setter_closure1(
     return _ret16
   }
 }
-def creating_an_operation_function_closure1(
-  thisArgument: Unknown,
-  argumentsList: Unknown,
-  newTarget: Unknown,
+def creating_an_operation_function_closure2(
 ): Unknown = {
-  let args = argumentsList
-  (yet "Try running the following steps:")
   let idlObject = null
   if (&& (? target: Unknown["interface"]) (! (= op.kind ~StaticOperation~))) {
     if (|| (! (= (yet "it") null)) (! (= (yet "it") undefined))) {
@@ -4698,22 +4714,49 @@ def creating_an_operation_function_closure1(
     return _ret1
   }
   (yet "Issue(whatwg/webidl#674): |R| is assumed to be an IDL value of the type |op| is declared to return")
-  (yet "And then, if <a lt=\"an exception was thrown\">an exception |E| was thrown</a>:")
-  if (? (yet "|op| has a [=return type=] that"): Unknown["promise type"]) {
-    call _call1 = clo<"Call">(~%Promise.reject%~, ~%Promise%~, (list [E]))
-    assert (= _call1.Type ~normal~)
-    let _v2 = _call1.Value
-    if (? _v2: Completion) {
-      return _v2
+}
+def creating_an_operation_function_closure1(
+  thisArgument: Unknown,
+  argumentsList: Unknown,
+  newTarget: Unknown,
+): Unknown = {
+  let args = argumentsList
+  call _throwComp1 = clo<"creating_an_operation_function_closure2", [args, id, op, target]>()
+  if (exists _throwComp1.Type) {
+    if (= _throwComp1.Type ~throw~) {
+      let E = _throwComp1.Value
+      if (? (yet "|op| has a [=return type=] that"): Unknown["promise type"]) {
+        call _call1 = clo<"Call">(~%Promise.reject%~, ~%Promise%~, (list [E]))
+        assert (= _call1.Type ~normal~)
+        let _v1 = _call1.Value
+        if (? _v1: Completion) {
+          return _v1
+        } else {
+          call _ret2 = clo<"NormalCompletion">(_v1)
+          return _ret2
+        }
+      } else {
+        (yet "end these steps and allow the exception to propagate")
+      }
     } else {
-      call _ret3 = clo<"NormalCompletion">(_v2)
-      return _ret3
+      let _v3 = _throwComp1.Value
+      if (? _v3: Completion) {
+        return _v3
+      } else {
+        call _ret4 = clo<"NormalCompletion">(_v3)
+        return _ret4
+      }
     }
   } else {
-    (yet "end these steps and allow the exception to propagate")
+    if (? _throwComp1: Completion) {
+      return _throwComp1
+    } else {
+      call _ret5 = clo<"NormalCompletion">(_throwComp1)
+      return _ret5
+    }
   }
-  call _ret4 = clo<"NormalCompletion">(~unused~)
-  return _ret4
+  call _ret6 = clo<"NormalCompletion">(~unused~)
+  return _ret6
 }
 def define_the_iteration_methods_closure1(
   thisArgument: Unknown,

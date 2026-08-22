@@ -263,7 +263,10 @@ class CompletionPropagationSpec extends AnyFunSuite:
         Expr.Var("result"),
         Expr.AlgoCall("[=explode=]", List(Expr.Var("flag"))),
       ),
-      Instr.If(Cond.Throws(None), List(Instr.Return(Some(Expr.Str("caught"))))),
+      Instr.If(
+        Cond.Throws(None, Some("|exception|")),
+        List(Instr.Return(Some(Expr.Str("caught")))),
+      ),
       Instr.Return(Some(Expr.Var("result"))),
     ),
   )

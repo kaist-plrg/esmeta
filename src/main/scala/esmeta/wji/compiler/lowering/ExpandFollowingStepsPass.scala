@@ -319,6 +319,11 @@ object ExpandFollowingStepsPass extends LoweringPass:
             val c = go(ps, vl)
             i.copy(args = i.args.map(substitute(_, c)), body = Nil)
           }
+        case i: Instr.Try =>
+          findOne(List(i.call), label).map { (ps, vl) =>
+            val c = go(ps, vl)
+            i.copy(call = substitute(i.call, c), body = Nil)
+          }
         case i: Instr.PerformClosure =>
           findOne(i.closure :: i.args, label).map { (ps, vl) =>
             val c = go(ps, vl)

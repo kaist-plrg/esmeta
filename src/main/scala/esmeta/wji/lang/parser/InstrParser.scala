@@ -40,6 +40,24 @@ object InstrParser:
   private val IterationContinuePrefix = """(?is)^\[=iteration/continue=\]$""".r
   private val RunInParallelPrefix =
     """(?is)^Run the following steps\b.*\bin parallel\b.*$""".r
+  // "Try running the following steps:" — parsed like every other
+  // "verb + the following steps:" idiom (see Expr.FollowingSteps), just
+  // wrapped as an immediately-invoked closure call rather than a value bound
+  // by a Let/Perform. Must be immediately followed by a sibling Instr.Catch
+  // to mean anything — see AlgorithmExtractor.parseBody (which builds that
+  // sibling from the paragraph following this step) and
+  // esmeta.wji.compiler.lowering.ExpandThrowsPass (which expands the pair).
+  // "Try running the following steps:" — `rest` ("running the following
+  // steps:") is handed straight to ExprParser.parse rather than
+  // re-hardcoding what that means here: ExprParser's RunningClosureCall
+  // already recognizes "running ..." as invoking a closure (value or
+  // freshly-defined, via one of its own "the following steps ...:" forms),
+  // producing a real Expr.ClosureCall(FollowingSteps(Nil, false), Nil) on
+  // its own. Must be immediately followed by a sibling Instr.Catch to mean
+  // anything — see AlgorithmExtractor.parseBody (which builds that sibling
+  // from the paragraph following this step) and
+  // esmeta.wji.compiler.lowering.ExpandThrowsPass (which expands the pair).
+  private val TryPrefix = """(?is)^Try (.+)$""".r
   private val PerformPrefix = """(?is)^(?:Perform\s+)?(\[[=$].+|Run\b.+)$""".r
   private val PerformAndReturnSuffix =
     """(?is)^(.*?),?\s+and\s+return\s+the\s+result$""".r
@@ -279,7 +297,9 @@ object InstrParser:
           case None => Unknown(text, trailingBody)
       case _ if IterationContinuePrefix.matches(text) => Continue(trailingBody)
       case _ if RunInParallelPrefix.matches(text) => RunInParallel(trailingBody)
-      case PerformPrefix(expr)                    =>
+      case TryPrefix(rest) =>
+        Try(ExprParser.parse(rest), trailingBody)
+      case PerformPrefix(expr) =>
         // each suffix only changes the outcome/trailing body, not how the
         // call itself is parsed — so determine those first, then call
         // parseCall exactly once instead of once per suffix case.

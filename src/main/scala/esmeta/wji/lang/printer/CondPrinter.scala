@@ -57,11 +57,12 @@ object CondPrinter:
       s"any $binder in $colls ${render(body)}"
     case Exists(binder, body) =>
       s"a value $binder exists such that ${render(body)}"
-    case Cond.Unreachable        => "Unreachable"
-    case Cond.Throws(None)       => "Throws"
-    case Cond.Throws(Some(kind)) => s"Throws($kind)"
-    case Cond.AllocationFails    => "AllocationFails"
-    case Cond.Unknown(text)      => s"?($text)"
+    case Cond.Unreachable => "Unreachable"
+    case Cond.Throws(kind, bindTo) =>
+      val args = kind.toList ++ bindTo.toList
+      if args.isEmpty then "Throws" else s"Throws(${args.mkString(", ")})"
+    case Cond.AllocationFails => "AllocationFails"
+    case Cond.Unknown(text)   => s"?($text)"
 
   private def renderOp(op: CompareOp): String = op match
     case CompareOp.Lt => "<"

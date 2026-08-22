@@ -44,6 +44,19 @@ object AlgorithmExtractor:
     */
   private val StepMarker = """^(\s*)(?:\d+\.|\*)\s+(.*)$""".r
 
+  /** matches WebIDL's "Try running the following steps: ..." catch-clause
+    * paragraph — "And then, if <a lt="an exception was thrown">an exception
+    * |E| was thrown</a>:" — capturing its indentation and the (raw, with pipes)
+    * exception variable. Unlike every other continuation line, this paragraph
+    * doesn't extend the preceding step's own text: it introduces a *second*
+    * nested list attached to the same step as "Try running the following
+    * steps:", at the *same* indentation as that step itself (Bikeshed's way of
+    * writing "this list belongs to the step above", not a new nested level) —
+    * see [[parseBody]].
+    */
+  private val AndThenExceptionThrown =
+    """(?is)^(\s*)And then,?\s+if\s+<a\b[^>]*>an exception (\|[A-Za-z][A-Za-z0-9]*\|) was thrown</a>:\s*$""".r
+
   /** an HTML comment (`<!-- ... -->`) — an editorial note never meant to render
     * as spec content (e.g. index.bs:1202's `<!-- TODO(littledan): Report
     * allocation failure ... -->`, sitting mid-sentence right after a `Global`
@@ -171,28 +184,64 @@ object AlgorithmExtractor:
     * reconstructing the nesting of sub-steps from indentation
     */
   private def parseBody(body: String): (String, List[Instr]) =
-    final class Builder(var text: String):
+    // `catchExceptionVar` is set only for a synthetic builder standing in
+    // for an `AndThenExceptionThrown` catch clause (see below) — such a
+    // builder never goes through `InstrParser`'s text-based classification
+    // (it has no textual form of its own to parse), producing an
+    // `Instr.Catch` directly instead.
+    final class Builder(
+      var text: String,
+      val catchExceptionVar: Option[String] = None,
+    ):
       val subSteps = ListBuffer[Builder]()
       def toInstrs: List[Instr] =
-        InstrParser.parseStepText(text, subSteps.flatMap(_.toInstrs).toList)
+        catchExceptionVar match
+          case Some(v) =>
+            List(Instr.Catch(v, subSteps.flatMap(_.toInstrs).toList))
+          case None =>
+            InstrParser.parseStepText(text, subSteps.flatMap(_.toInstrs).toList)
 
     val headLines = ListBuffer[String]()
     val roots = ListBuffer[Builder]()
-    // stack of (indentation, step) for steps that may still receive
-    // nested sub-steps or continuation lines
-    val stack = ListBuffer[(Int, Builder)]()
+    // stack of (indentation, step, the sibling list `step` itself lives in)
+    // for steps that may still receive nested sub-steps or continuation
+    // lines — the sibling list is needed only to insert a synthetic Catch
+    // builder as a Try step's next sibling (see AndThenExceptionThrown
+    // below), but is tracked for every frame for uniformity.
+    val stack = ListBuffer[(Int, Builder, ListBuffer[Builder])]()
 
     for rawLine <- body.linesIterator do
       val line = HtmlComment.replaceAllIn(rawLine, "")
       line match
-        case _ if line.isBlank =>
+        case _ if line.isBlank                            =>
+        case AndThenExceptionThrown(indent, exceptionVar) =>
+          // close out anything nested deeper than the step this catch
+          // clause attaches to (e.g. Try's own last nested step), but keep
+          // that step's *sibling list* on hand to insert the new Catch
+          // builder into.
+          while stack.nonEmpty && stack.last._1 > indent.length do
+            stack.remove(stack.length - 1)
+          if stack.nonEmpty && stack.last._1 == indent.length then
+            val (_, _, siblingList) = stack.remove(stack.length - 1)
+            val catchBuilder = new Builder("", Some(exceptionVar))
+            siblingList += catchBuilder
+            // stored one indent shallower than its own paragraph's indent,
+            // so same-indent-or-deeper catch-list items keep attaching to it
+            // as children (via the unchanged `>=` pop rule below) instead of
+            // becoming its siblings — exactly the way a normal
+            // one-level-deeper nested list would.
+            stack += ((indent.length - 1, catchBuilder, siblingList))
+        // else: no matching enclosing step at this indent — malformed or
+        // unexpected shape; silently ignored, consistent with this
+        // extractor's general leniency elsewhere.
         case StepMarker(indent, rest) =>
           val step = new Builder(rest.trim)
           while stack.nonEmpty && stack.last._1 >= indent.length do
             stack.remove(stack.length - 1)
-          if stack.isEmpty then roots += step
-          else stack.last._2.subSteps += step
-          stack += (indent.length -> step)
+          val siblingList =
+            if stack.isEmpty then roots else stack.last._2.subSteps
+          siblingList += step
+          stack += ((indent.length, step, siblingList))
         case other =>
           val text = other.trim
           if stack.isEmpty then headLines += text

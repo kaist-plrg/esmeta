@@ -179,7 +179,10 @@ class CondParserSpec extends AnyFunSuite:
 
   test("throws, untyped and typed") {
     assert(
-      CondParser.parse("this operation throws an exception") == Throws(None),
+      CondParser.parse("this operation throws an exception") == Throws(
+        None,
+        Some("|exception|"),
+      ),
     )
     assert(
       CondParser.parse("this throws a {{TypeError}}") ==

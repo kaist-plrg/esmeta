@@ -144,8 +144,8 @@ object CompletionAlgorithms:
   def isAbsorbed(x: Option[String], rest: List[Instr]): Boolean =
     x.exists(v => mentionsTypeField(v, rest)) ||
     (rest match
-      case Instr.IfChain(List((Cond.Throws(_), _)), Nil) :: _ => true
-      case _                                                  => false
+      case Instr.IfChain(List((Cond.Throws(_, _), _)), Nil) :: _ => true
+      case _                                                     => false
     )
 
   /** Whether `x.[[Type]]`/`x.Type` is read anywhere in `instrs`, recursively —

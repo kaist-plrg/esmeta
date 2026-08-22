@@ -371,6 +371,23 @@ object Compiler:
       // recursively — see UnreachableAfterLowering's doc.
       impossible(s"bare If/ElseIf/Else not grouped by GroupIfChainPass: $i")
 
+    case i: Instr.Try =>
+      // ExpandTryPass unconditionally rewrites every Try+Catch pair before
+      // compilation ever sees one — see UnreachableAfterLowering's doc. Also
+      // reached for a Try with trailing steps after its Catch in the same
+      // body (ExpandTryPass's rest.isEmpty guard), a shape no real spec text
+      // uses today.
+      impossible(
+        s"Try not eliminated by ExpandTryPass (missing matching Catch, or trailing steps after it?): $i",
+      )
+
+    case i: Instr.Catch =>
+      // Never reached except as a bug: ExpandTryPass consumes every Catch
+      // together with its preceding Try — see the Instr.Try case above.
+      impossible(
+        s"orphan Catch not eliminated by ExpandTryPass (missing preceding Try?): $i",
+      )
+
   // ── Expression ───────────────────────────────────────────────────────────────
 
   private def compileExpr(expr: metalang.Expr): ir.Expr = expr match
@@ -605,7 +622,7 @@ object Compiler:
     case Cond.HasDuplicates(e, neg) => impossible("contains duplicates")
     case Cond.Any(binder, _, _)     => impossible(s"any $binder")
     case Cond.Exposed(_, _, _)      => impossible("exposed")
-    case Cond.Throws(kind) =>
+    case Cond.Throws(kind, _) =>
       impossible(s"throws${kind.fold("")(k => s" $k")}")
     case Cond.AllocationFails =>
       impossible("allocation fails not expanded by ExpandAllocationFailsPass")

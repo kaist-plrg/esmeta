@@ -123,6 +123,8 @@ trait Walker:
       )
     case i: Instr.Note    => Instr.Note(i.text, i.body.map(walk))
     case i: Instr.Unknown => Instr.Unknown(i.text, i.body.map(walk))
+    case i: Instr.Try     => Instr.Try(walk(i.call), i.body.map(walk))
+    case i: Instr.Catch   => Instr.Catch(i.exceptionVar, i.body.map(walk))
     case i: Instr.IfChain =>
       Instr.IfChain(
         i.branches.map((c, b) => (walk(c), b.map(walk))),

@@ -5,7 +5,14 @@ import esmeta.wji.lang.Instr.PerformOutcome
 
 /** Expands a call immediately followed by an `If this throws an exception,
   * catch it, ...` check (`Cond.Throws`, see [[CondParser]]) into an explicit
-  * completion-record inspection.
+  * completion-record inspection. Fires on either a named-link call
+  * (`Instr.Perform`) or a closure-value call (`Instr.PerformClosure`) — the
+  * latter needed once `Cond.Throws.bindTo` (below) lets *any*
+  * completion-checked call reuse this machinery, not just named-link
+  * `Perform`s; in particular, [[ExpandTryPass]] normalizes WebIDL's "Try
+  * running the following steps: ... And then, if an exception |E| was thrown:
+  * ..." idiom into exactly this `PerformClosure` shape before this pass ever
+  * runs, so no idiom-specific knowledge needs adding here.
   *
   * Every WJI `Throw` step is planned to compile to a real completion record
   * (mirroring `esmeta.compiler`'s own `ThrowCompletion`/`.Type`/`.Value`
@@ -21,7 +28,7 @@ import esmeta.wji.lang.Instr.PerformOutcome
   *
   * {{{
   *   Perform(f, args, BindResult(x))
-  *   IfChain([(Throws(_), catchBody)], fallback = Nil)
+  *   IfChain([(Throws(_, Some(bindTo)), catchBody)], fallback = Nil)
   * }}}
   * becomes:
   * {{{
@@ -30,18 +37,20 @@ import esmeta.wji.lang.Instr.PerformOutcome
   *     [(_throwCompN has field "Type",
   *       [IfChain(
   *           [(Eq(_throwCompN.[[Type]], SpecTerm(throw), false),
-  *             Let(|exception|, _throwCompN.[[Value]]) :: catchBody)],
+  *             Let(bindTo, _throwCompN.[[Value]]) :: catchBody)],
   *           fallback = [Let(x, _throwCompN.[[Value]])],   // completion, not a throw
   *         )])],
   *     fallback = [Let(x, _throwCompN)],                   // not a completion at all
   *   )
   * }}}
+  * (`Instr.PerformClosure` in place of `Instr.Perform` follows the identical
+  * shape, just swapping which field carries the callee.)
   *
   * The exception `kind` (e.g. `{{TypeError}}` in
   * `Cond.Throws(Some("TypeError"))`) is ignored for now — every `Throws` is
   * treated the same regardless of the specific type named.
   *
-  * Only fires when that `Perform` has no `body` of its own — true for every
+  * Only fires when the preceding call has no `body` of its own — true for every
   * occurrence seen in the spec so far; otherwise the pattern is left alone for
   * a future pass.
   *
@@ -79,46 +88,75 @@ object ExpandThrowsPass extends LoweringPass:
   private def stripPipes(s: String): String =
     s.stripPrefix("|").stripSuffix("|")
 
+  /** `reconstruct` rebuilds the matched call with only its `outcome` changed
+    * (`call.copy(outcome = _)`) — shared by the `Instr.Perform`/
+    * `Instr.PerformClosure` arms below, which are otherwise identical.
+    */
+  private def expand(
+    reconstruct: PerformOutcome => Instr,
+    outcome: PerformOutcome,
+    bindTo: Option[String],
+    catchBody: List[Instr],
+    rest: List[Instr],
+    counter: Counter,
+  ): List[Instr] =
+    val tmpName = counter.freshComp()
+    val tmp = Expr.Var(tmpName)
+    val completionCall = reconstruct(PerformOutcome.BindResult(tmpName))
+
+    // the same result binding (or discard/return), just fed a different
+    // expression depending on which of the three shapes it turned out to be
+    def bind(result: Expr): List[Instr] = outcome match
+      case PerformOutcome.BindResult(v) =>
+        List(Instr.Let(Expr.Var(stripPipes(v)), result))
+      case PerformOutcome.Discard      => Nil
+      case PerformOutcome.ReturnResult => List(Instr.Return(Some(result)))
+
+    val isThrow =
+      Cond.Eq(Expr.Field(tmp, "Type"), Expr.SpecTerm("throw"), negated = false)
+    val catchBranch =
+      bindTo match
+        case Some(name) =>
+          Instr.Let(Expr.Var(stripPipes(name)), Expr.Field(tmp, "Value")) ::
+          transform(catchBody, counter)
+        case None =>
+          transform(catchBody, counter)
+    val completionCheck = Instr.IfChain(
+      List((isThrow, catchBranch)),
+      bind(Expr.Field(tmp, "Value")), // a completion, but not a throw
+    )
+
+    completionCall ::
+    Instr.IfChain(
+      List((Cond.HasField(Expr.Field(tmp, "Type")), List(completionCheck))),
+      bind(tmp), // not a completion at all — a bare value
+    ) ::
+    transform(rest, counter)
+
   private def transform(instrs: List[Instr], counter: Counter): List[Instr] =
     instrs match
       case Nil => Nil
       case (call: Instr.Perform) ::
-          Instr.IfChain(List((Cond.Throws(_), catchBody)), Nil) ::
+          Instr.IfChain(List((Cond.Throws(_, bindTo), catchBody)), Nil) ::
           rest if call.body.isEmpty =>
-        val tmpName = counter.freshComp()
-        val tmp = Expr.Var(tmpName)
-        val completionCall =
-          call.copy(outcome = PerformOutcome.BindResult(tmpName))
-
-        // the same result binding (or discard/return), just fed a different
-        // expression depending on which of the three shapes it turned out to be
-        def bind(result: Expr): List[Instr] = call.outcome match
-          case PerformOutcome.BindResult(v) =>
-            List(Instr.Let(Expr.Var(stripPipes(v)), result))
-          case PerformOutcome.Discard      => Nil
-          case PerformOutcome.ReturnResult => List(Instr.Return(Some(result)))
-
-        val isThrow =
-          Cond.Eq(
-            Expr.Field(tmp, "Type"),
-            Expr.SpecTerm("throw"),
-            negated = false,
-          )
-        val catchBranch =
-          Instr.Let(Expr.Var("exception"), Expr.Field(tmp, "Value")) ::
-          transform(catchBody, counter)
-        val completionCheck = Instr.IfChain(
-          List((isThrow, catchBranch)),
-          bind(Expr.Field(tmp, "Value")), // a completion, but not a throw
+        expand(
+          o => call.copy(outcome = o),
+          call.outcome,
+          bindTo,
+          catchBody,
+          rest,
+          counter,
         )
-
-        completionCall ::
-        Instr.IfChain(
-          List(
-            (Cond.HasField(Expr.Field(tmp, "Type")), List(completionCheck)),
-          ),
-          bind(tmp), // not a completion at all — a bare value
-        ) ::
-        transform(rest, counter)
+      case (call: Instr.PerformClosure) ::
+          Instr.IfChain(List((Cond.Throws(_, bindTo), catchBody)), Nil) ::
+          rest if call.body.isEmpty =>
+        expand(
+          o => call.copy(outcome = o),
+          call.outcome,
+          bindTo,
+          catchBody,
+          rest,
+          counter,
+        )
       case instr :: rest =>
         instr.mapBody(transform(_, counter)) :: transform(rest, counter)

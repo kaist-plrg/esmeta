@@ -154,6 +154,17 @@ object ExprParser:
   // the phrasing restricts it to a variable reference.
   private val PerformingClosureCall = """(?si)^performing\s+(.+)$""".r
   private val PipeVarInline = """\|([^|]+)\|""".r
+  // "running the [=X steps=] for/of |BASE|[,] with |ARG1| as [=this=] and
+  // |ARG2| as the argument values" — WebIDL's "the result of running the
+  // [=default method steps=]/[=method steps=] ..." idiom for invoking an
+  // operation's own steps closure (the leading "the result of " is already
+  // stripped by ResultOf by the time this is tried).
+  private val RunningStepsCallWithArgs =
+    """(?si)^running the \[=([\w\s]+?) steps=\]\s+(?:for|of)\s+(\|[^|]+\|),?\s+with\s+(\|[^|]+\|)\s+as\s+\[=this=\]\s+and\s+(\|[^|]+\|)\s+as\s+the\s+argument\s+values$""".r
+  // same idiom, no "and ... as the argument values" clause — WebIDL's "the
+  // result of running the [=getter steps=] ... with ... as [=this=]".
+  private val RunningStepsCallNoArgs =
+    """(?si)^running the \[=([\w\s]+?) steps=\]\s+(?:for|of)\s+(\|[^|]+\|),?\s+with\s+(\|[^|]+\|)\s+as\s+\[=this=\]$""".r
 
   // ---- Construction: builds a new composite value ----
 
@@ -673,6 +684,19 @@ object ExprParser:
   def normalizeLink(link: String): String =
     link.replaceAll("""\|[^=\]]*(?==\])""", "")
 
+  /** camelCases a captured "X steps" dfn name into the record field storing
+    * that closure, e.g. "default method" -> "defaultMethodSteps", "method" ->
+    * "methodSteps", "getter" -> "getterSteps" — see
+    * [[RunningStepsCallWithArgs]]/ [[RunningStepsCallNoArgs]].
+    */
+  private def stepsFieldName(raw: String): String =
+    raw.trim.split("\\s+").toList match
+      case head :: tail =>
+        (head.toLowerCase :: tail.map(w =>
+          w.take(1).toUpperCase + w.drop(1).toLowerCase,
+        )).mkString + "Steps"
+      case Nil => "steps"
+
   /** Strips a Bikeshed `{{...}}` IDL-reference wrapper, e.g. a `[[...]]`
     * internal slot named after an intrinsic is conventionally written
     * `[[{{%Promise%}}]]` rather than `[[%Promise%]]`.
@@ -745,6 +769,21 @@ object ExprParser:
           parse(closureRaw.stripSuffix(",")),
           splitComma(argsRaw.trim.replaceFirst("""(?i)^arguments?\s+""", ""))
             .map(parse),
+        )
+      case RunningStepsCallWithArgs(
+            stepsRaw,
+            baseRaw,
+            thisArgRaw,
+            argsVarRaw,
+          ) =>
+        ClosureCall(
+          Field(parse(baseRaw), stepsFieldName(stepsRaw)),
+          List(parse(thisArgRaw), parse(argsVarRaw)),
+        )
+      case RunningStepsCallNoArgs(stepsRaw, baseRaw, thisArgRaw) =>
+        ClosureCall(
+          Field(parse(baseRaw), stepsFieldName(stepsRaw)),
+          List(parse(thisArgRaw)),
         )
 
       // ---- Construction ----

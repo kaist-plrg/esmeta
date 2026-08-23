@@ -49,7 +49,7 @@ case class Attribute(
   id: String,
   ty: String,
   readonly: Boolean,
-  kind: MemberKind = MemberKind.RegularOperation,
+  kind: MemberKind = MemberKind.RegularAttribute,
   extAttr: List[ExtendedAttribute] = Nil,
 ) extends Member
 case class Constant() extends Member // TODO

@@ -15,6 +15,7 @@ import esmeta.wji.lang.Instr.PerformOutcome
   * Handles:
   * {{{
   *   Let(Var(x), ClosureCall(closure, args), body)   → PerformClosure(closure, args, BindResult(x), body)
+  *   Set(Var(x), ClosureCall(closure, args), body)   → PerformClosure(closure, args, BindResult(x), body)
   *   Return(Some(ClosureCall(closure, args)), body)  → PerformClosure(closure, args, ReturnResult, body)
   * }}}
   *
@@ -48,6 +49,16 @@ object ExpandClosureCallPass extends LoweringPass:
   private def expandInstr(instr: Instr): List[Instr] = instr match
 
     case Instr.Let(Expr.Var(x), Expr.ClosureCall(closure, args), body) =>
+      List(
+        Instr.PerformClosure(
+          closure,
+          args,
+          PerformOutcome.BindResult(x),
+          transform(body),
+        ),
+      )
+
+    case Instr.Set(Expr.Var(x), Expr.ClosureCall(closure, args), body) =>
       List(
         Instr.PerformClosure(
           closure,

@@ -4441,7 +4441,7 @@ def attribute_getter_closure1(
     } else nop
     idlObject = (yet "the IDL [=interface type=] value that represents a reference to |jsValue|")
   } else nop
-  let R = (yet "running the [=getter steps=] of |attribute| with |idlObject| as [=this=]")
+  call R = attribute.getterSteps(idlObject)
   call-convert _result1 = <converted_to_a_javascript_value>(R, attribute)
   if (? _result1: Completion) {
     return _result1
@@ -4686,9 +4686,9 @@ def creating_an_operation_function_closure1(
   let R = null
   if (= operation (yet "declared with a [{{Default}}] [=extended attribute=]")) {
     assert (yet "|operation| [=has default method steps=]")
-    R = (yet "running the [=default method steps=] for |operation|, with |idlObject| as [=this=] and |values| as the argument values")
+    call R = operation.defaultMethodSteps(idlObject, values)
   } else {
-    R = (yet "running the [=method steps=] of |operation|, with |idlObject| as [=this=] and |values| as the argument values")
+    call R = operation.methodSteps(idlObject, values)
   }
   call-convert _result1 = <converted_to_a_javascript_value>(R)
   if (? _result1: Completion) {

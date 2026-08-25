@@ -59,6 +59,7 @@ object ExpandWjiIsTypePass extends LoweringPass:
   private val memberKindOf: Map[String, String] = Map(
     "regular operation" -> "RegularOperation",
     "static operation" -> "StaticOperation",
+    "interface" -> "Interface",
   )
 
   private object rewriter extends Walker:

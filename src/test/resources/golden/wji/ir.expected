@@ -4416,7 +4416,7 @@ def create_an_interface_object_closure1(
 def attribute_getter_closure2(
 ): Unknown = {
   let idlObject = null
-  if (&& (? target: Unknown["interface"]) (? attribute: Unknown["regular attribute"])) {
+  if (&& (= target.kind ~Interface~) (? attribute: Unknown["regular attribute"])) {
     if (|| (! (= (yet "it") null)) (! (= (yet "it") undefined))) {
       let jsValue = (yet "the <emu-val>this</emu-val> value")
     } else {
@@ -4687,7 +4687,7 @@ def attribute_setter_closure1(
 def creating_an_operation_function_closure2(
 ): Unknown = {
   let idlObject = null
-  if (&& (? target: Unknown["interface"]) (! (= op.kind ~StaticOperation~))) {
+  if (&& (= target.kind ~Interface~) (! (= op.kind ~StaticOperation~))) {
     if (|| (! (= (yet "it") null)) (! (= (yet "it") undefined))) {
       let jsValue = (yet "the <emu-val>this</emu-val> value")
     } else {

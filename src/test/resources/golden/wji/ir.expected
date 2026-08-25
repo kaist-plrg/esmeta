@@ -3574,9 +3574,9 @@ def create_an_interface_object(
   }
   call _ = clo<"DefinePropertyOrThrow">(F, "<code>prototype</code>", (record [PropertyDescriptor] {
     "Value" : proto,
-    "Writable" : ~false~,
-    "Enumerable" : ~false~,
-    "Configurable" : ~false~,
+    "Writable" : false,
+    "Enumerable" : false,
+    "Configurable" : false,
   }))
   call _ = clo<"define_the_constants">(I, F, realm)
   call _ = clo<"define_the_static_attributes">(I, F, realm)
@@ -3622,12 +3622,12 @@ def create_an_interface_prototype_object(
     call unscopableObject = clo<"OrdinaryObjectCreate">(null)
     (yet "foreach MEMBER(|member|) in ?(|interface| that is declared with the [{{Unscopable}}] [=extended attribute=])")
     let id = member.id
-    call _ = clo<"CreateDataPropertyOrThrow">(unscopableObject, id, ~true~)
+    call _ = clo<"CreateDataPropertyOrThrow">(unscopableObject, id, true)
     let desc = (record [PropertyDescriptor] {
       "Value" : unscopableObject,
-      "Writable" : ~false~,
-      "Enumerable" : ~false~,
-      "Configurable" : ~true~,
+      "Writable" : false,
+      "Enumerable" : false,
+      "Configurable" : true,
     })
     call _ = clo<"DefinePropertyOrThrow">(interfaceProtoObj, @SYMBOL.unscopables, desc)
   } else nop
@@ -3641,9 +3641,9 @@ def create_an_interface_prototype_object(
   if (yet "the [{{LegacyNoInterfaceObject}}] [=extended attribute=] was not specified on |interface|") {
     let constructor = (yet "the [=interface object=] of |interface| in |realm|")
     let desc = (record [PropertyDescriptor] {
-      "Writable" : ~true~,
-      "Enumerable" : ~false~,
-      "Configurable" : ~true~,
+      "Writable" : true,
+      "Enumerable" : false,
+      "Configurable" : true,
       "Value" : constructor,
     })
     call _ = clo<"DefinePropertyOrThrow">(interfaceProtoObj, "<code>constructor</code>", desc)
@@ -3667,9 +3667,9 @@ def define_the_constants(
   } else nop
   call-convert value = <converted_to_a_javascript_value>(const)
   let desc = (record [PropertyDescriptor] {
-    "Writable" : ~false~,
-    "Enumerable" : ~true~,
-    "Configurable" : ~false~,
+    "Writable" : false,
+    "Enumerable" : true,
+    "Configurable" : false,
     "Value" : value,
   })
   let id = const.id
@@ -3752,14 +3752,14 @@ def define_the_attributes(
     let getter = (yet "an [=attribute getter=] given |attr|, |definition|, and |realm|")
     let setter = (yet "an [=attribute setter=] given |attr|, |definition|, and |realm|")
     if (= attr ~unforgeable~) {
-      let configurable = ~false~
+      let configurable = false
     } else {
-      let configurable = ~true~
+      let configurable = true
     }
     let desc = (record [PropertyDescriptor] {
       "Get" : getter,
       "Set" : setter,
-      "Enumerable" : ~true~,
+      "Enumerable" : true,
       "Configurable" : configurable,
     })
     let id = attr.id
@@ -3876,14 +3876,14 @@ def define_the_operations(
     } else nop
     call method = clo<"creating_an_operation_function">(op, definition, realm)
     if (= op ~unforgeable~) {
-      let modifiable = ~false~
+      let modifiable = false
     } else {
-      let modifiable = ~true~
+      let modifiable = true
     }
     let desc = (record [PropertyDescriptor] {
       "Value" : method,
       "Writable" : modifiable,
-      "Enumerable" : ~true~,
+      "Enumerable" : true,
       "Configurable" : modifiable,
     })
     let id = op.id
@@ -4622,7 +4622,7 @@ def attribute_setter_closure1(
         }))
       } else nop
       let forwardId = (yet "the identifier argument of the [{{PutForwards}}] extended attribute")
-      call _ = clo<"Set">(Q, forwardId, V, ~false~)
+      call _ = clo<"Set">(Q, forwardId, V, false)
       let _v8 = undefined
       if (? _v8: Completion) {
         return _v8

@@ -402,6 +402,8 @@ object Compiler:
     case metalang.Expr.Byte(v)               => ENumber(v.toDouble)
     case metalang.Expr.Bool(b)               => EBool(b)
     case metalang.Expr.Str(s)                => EStr(s)
+    case metalang.Expr.SpecTerm("true")      => EBool(true)
+    case metalang.Expr.SpecTerm("false")     => EBool(false)
     case metalang.Expr.SpecTerm("null")      => ENull()
     case metalang.Expr.SpecTerm("undefined") => EUndef()
     // "the current Realm Record" (ECMA-262 9.4 Execution Contexts): the Realm

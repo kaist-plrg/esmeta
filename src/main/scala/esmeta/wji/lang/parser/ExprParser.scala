@@ -277,6 +277,28 @@ object ExprParser:
     }
     if values.forall(_.isDefined) then Some(Seq_(values.flatten)) else None
 
+  // "[the] TNAME{\[[Field1]]: E1, \[[Field2]]: E2, ...}" — Bikeshed's
+  // record/struct literal notation for a value of a named record type with
+  // explicit field values (e.g. "the PropertyDescriptor{\[[Writable]]:
+  // <emu-val>true</emu-val>, \[[Value]]: |constructor|}",
+  // webidl_yet_categorized.md category I-C). Unlike BracedFields just above
+  // (an unnamed, purely positional `{ ... }`), each field here is named (the
+  // `\[[...]]` slot it initializes) and the whole literal carries its own
+  // type name immediately before `{`, so it parses to [[Expr.RecordLit]]
+  // rather than [[Expr.Seq_]].
+  private val RecordLitPrefix =
+    """(?si)^(?:the\s+)?([A-Za-z][A-Za-z0-9]*)\{(.+)\}$""".r
+  private val RecordFieldPat =
+    """(?s)^\\?\[\[([^\]]+)\]\]\s*:\s*(.+)$""".r
+
+  private def parseRecordFields(inner: String): Option[List[(String, Expr)]] =
+    val fields = splitComma(inner).map { seg =>
+      seg.trim match
+        case RecordFieldPat(name, valueRaw) => Some(name -> parse(valueRaw))
+        case _                              => None
+    }
+    if fields.forall(_.isDefined) then Some(fields.flatten) else None
+
   // ---- Call syntax: explicit invocation of a named algorithm/AO ----
 
   private val JSCallFull = """(?s)^\[\$([^\$]+)\$\]\((.*)\)$""".r
@@ -858,6 +880,10 @@ object ExprParser:
         List_(splitComma(inner).map(parse))
       case TuplePat(inner)      => Tuple(splitComma(inner).map(parse))
       case AngleTuplePat(inner) => Tuple(splitComma(inner).map(parse))
+      case RecordLitPrefix(tname, inner) =>
+        parseRecordFields(inner) match
+          case Some(fields) => RecordLit(tname, fields)
+          case None         => Unknown(s)
 
       // ---- Call syntax ----
       case JSCallFull(name, argsRaw) =>

@@ -1555,7 +1555,7 @@
     Set(|length|, length(shortestArgumentList(|S|)))
   Let(|F|, [$CreateBuiltinFunction$](|steps|, |length|, |id|, « "Unforgeables" », |realm|, |constructorProto|))
   Let(|proto|, [=create an interface prototype object=]([=interface=](|I|, |realm|)))
-  Perform(DefinePropertyOrThrow(|F|, "<code>prototype</code>", ?(PropertyDescriptor{\[[Value]]: |proto|, \[[Writable]]: <emu-val>false</emu-val>, \[[Enumerable]]: <emu-val>false</emu-val>, \[[Configurable]]: <emu-val>false</emu-val>})))
+  Perform(DefinePropertyOrThrow(|F|, "<code>prototype</code>", PropertyDescriptor{[[Value]]: |proto|, [[Writable]]: false, [[Enumerable]]: false, [[Configurable]]: false}))
   Perform([=Define the constants=]([=interface=](|I|, |F|, |realm|)))
   Perform([=Define the static attributes=]([=interface=](|I|, |F|, |realm|)))
   Perform([=Define the static operations=]([=interface=](|I|, |F|, |realm|)))
@@ -1588,7 +1588,7 @@
     ForEach([=member=](|member|), ?(|interface| that is declared with the [{{Unscopable}}] [=extended attribute=]))
       Let(|id|, |member|.[[id]])
       Perform(CreateDataPropertyOrThrow(|unscopableObject|, |id|, true))
-    Let(|desc|, ?(the PropertyDescriptor{\[[Value]]: |unscopableObject|, \[[Writable]]: <emu-val>false</emu-val>, \[[Enumerable]]: <emu-val>false</emu-val>, \[[Configurable]]: <emu-val>true</emu-val>}))
+    Let(|desc|, PropertyDescriptor{[[Value]]: |unscopableObject|, [[Writable]]: false, [[Enumerable]]: false, [[Configurable]]: true})
     Perform(DefinePropertyOrThrow(|interfaceProtoObj|, %Symbol.unscopables%, |desc|))
   If(|interface| is not ?(declared with the [{{Global}}] [=extended attribute=]))
     Perform([=Define the regular attributes=](|interface|, |interfaceProtoObj|, |realm|))
@@ -1598,7 +1598,7 @@
   Perform([=Define the constants=](|interface|, |interfaceProtoObj|, |realm|))
   If(?(the [{{LegacyNoInterfaceObject}}] [=extended attribute=] was not specified on |interface|))
     Let(|constructor|, ?(the [=interface object=] of |interface| in |realm|))
-    Let(|desc|, ?(the PropertyDescriptor{\[[Writable]]: <emu-val>true</emu-val>, \[[Enumerable]]: <emu-val>false</emu-val>, \[[Configurable]]: <emu-val>true</emu-val>, \[[Value]]: |constructor|}))
+    Let(|desc|, PropertyDescriptor{[[Writable]]: true, [[Enumerable]]: false, [[Configurable]]: true, [[Value]]: |constructor|})
     Perform(DefinePropertyOrThrow(|interfaceProtoObj|, "<code>constructor</code>", |desc|))
   Return(|interfaceProtoObj|)
 
@@ -1609,7 +1609,7 @@
     If(|const| is not [=exposed=] in |realm|)
       Continue
     Let(|value|, [=converted to a JavaScript value=](|const|))
-    Let(|desc|, ?(the PropertyDescriptor{\[[Writable]]: <emu-val>false</emu-val>, \[[Enumerable]]: <emu-val>true</emu-val>, \[[Configurable]]: <emu-val>false</emu-val>, \[[Value]]: |value|}))
+    Let(|desc|, PropertyDescriptor{[[Writable]]: false, [[Enumerable]]: true, [[Configurable]]: false, [[Value]]: |value|})
     Let(|id|, |const|.[[id]])
     Perform(DefinePropertyOrThrow(|target|, |id|, |desc|))
 
@@ -1642,7 +1642,7 @@
     Let(|setter|, ?(an [=attribute setter=] given |attr|, |definition|, and |realm|))
     Note(the algorithm to create an [=attribute setter=] returns <emu-val>undefined</emu-val> if |attr| is [=read only=])
     Let(|configurable|, false if |attr| is [=unforgeable=] else true)
-    Let(|desc|, ?(the PropertyDescriptor{\[[Get]]: |getter|, \[[Set]]: |setter|, \[[Enumerable]]: <emu-val>true</emu-val>, \[[Configurable]]: |configurable|}))
+    Let(|desc|, PropertyDescriptor{[[Get]]: |getter|, [[Set]]: |setter|, [[Enumerable]]: true, [[Configurable]]: |configurable|})
     Let(|id|, |attr|.[[id]])
     Perform(DefinePropertyOrThrow(|target|, |id|, |desc|))
     If(?(|attr|'s type) is ?(an [=observable array type=] with type argument |T|))
@@ -1766,7 +1766,7 @@
       Continue
     Let(|method|, [=creating an operation function=](|op|, |definition|, |realm|))
     Let(|modifiable|, false if |op| is [=unforgeable=] else true)
-    Let(|desc|, ?(the PropertyDescriptor{\[[Value]]: |method|, \[[Writable]]: |modifiable|, \[[Enumerable]]: <emu-val>true</emu-val>, \[[Configurable]]: |modifiable|}))
+    Let(|desc|, PropertyDescriptor{[[Value]]: |method|, [[Writable]]: |modifiable|, [[Enumerable]]: true, [[Configurable]]: |modifiable|})
     Let(|id|, |op|.[[id]])
     Perform(DefinePropertyOrThrow(|target|, |id|, |desc|))
 

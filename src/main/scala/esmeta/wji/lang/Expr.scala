@@ -37,6 +37,18 @@ object Expr:
   case class New(iface: String) extends Expr
   case class UnknownNew(raw: String) extends Expr
 
+  /** "TNAME{\[[Field1]]: E1, \[[Field2]]: E2, ...}" — Bikeshed's record/struct
+    * literal notation for constructing a value of a named record type with
+    * explicit field values (e.g. `PropertyDescriptor{[[Writable]]:
+    * <emu-val>true</emu-val>, [[Value]]: |constructor|}`,
+    * webidl_yet_categorized.md category I-C). Each field carries a real name
+    * (the `\[[...]]` internal-slot it initializes), so `fields` keeps `(name,
+    * value)` pairs rather than a bare positional list. Compiles directly to
+    * `ir.ERecord(tname, fields)` (mirrors [[New]]'s own `ERecord` — see
+    * `Compiler`).
+    */
+  case class RecordLit(tname: String, fields: List[(String, Expr)]) extends Expr
+
   /** "a new {{ArrayBuffer}} with the internal slots [[X]], [[Y]], ..." —
     * js-api's own bespoke ArrayBuffer construction (`create a fixed length
     * memory buffer`/`create a resizable memory buffer`), kept distinct from
@@ -386,10 +398,11 @@ object Expr:
       case Opt(inner)                 => inner.toList
       case Conditional(branches, otherwise) =>
         branches.map(_._2) ++ otherwise.toList
-      case GetMember(e, _)     => List(e)
-      case Seq_(exprs)         => exprs
-      case TypeAnnotated(_, e) => List(e)
-      case _                   => Nil
+      case GetMember(e, _)      => List(e)
+      case Seq_(exprs)          => exprs
+      case TypeAnnotated(_, e)  => List(e)
+      case RecordLit(_, fields) => fields.map(_._2)
+      case _                    => Nil
 
     /** Whether `pred` holds for this `Expr` or any `Expr` nested inside it, at
       * any depth.

@@ -74,6 +74,10 @@ object ExprPrinter:
     case Enum(s)              => s"enum($s)"
     case Seq_(exprs)          => exprs.map(render).mkString(" ")
     case TypeAnnotated(_, e)  => render(e)
+    case RecordLit(tname, fields) =>
+      val fieldsStr =
+        fields.map((name, e) => s"[[$name]]: ${render(e)}").mkString(", ")
+      s"$tname{$fieldsStr}"
     case GetMember(definition, member) =>
       s"GetMember($definition, $member)"
 

@@ -139,10 +139,6 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
 9. 카테고리 - III-A
    원문 - Let |constructor| be the [=interface object=] of |interface| in |realm|.
    IR - let constructor = (yet "the [=interface object=] of |interface| in |realm|")
-
-10. 카테고리 - I-C
-    원문 - Let |desc| be the PropertyDescriptor{\[[Writable]]: <emu-val>true</emu-val>, \[[Enumerable]]: <emu-val>false</emu-val>, \[[Configurable]]: <emu-val>true</emu-val>, \[[Value]]: |constructor|}.
-    IR - let desc = (yet "the PropertyDescriptor{\[[Writable]]: <emu-val>true</emu-val>, \[[Enumerable]]: <emu-val>false</emu-val>, \[[Configurable]]: <emu-val>true</emu-val>, \[[Value]]: |constructor|}")
 ```
 
 ---
@@ -198,10 +194,6 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
 12. 카테고리 - IV-C
     원문 - Let |proto| be the result of [=create an interface prototype object|creating an interface prototype object=] of [=interface=] |I| in |realm|.
     IR - call proto = clo<"create_an_interface_prototype_object">((case "INTERFACE" I realm))
-
-13. 카테고리 - I-C
-    원문 - Perform [=!=] <a abstract-op>DefinePropertyOrThrow</a>(|F|, "<code>prototype</code>", PropertyDescriptor{\[[Value]]: |proto|, \[[Writable]]: <emu-val>false</emu-val>, \[[Enumerable]]: <emu-val>false</emu-val>, \[[Configurable]]: <emu-val>false</emu-val>}).
-    IR - call _ = clo<"DefinePropertyOrThrow">(F, "<code>prototype</code>", (yet "PropertyDescriptor{\[[Value]]: |proto|, \[[Writable]]: <emu-val>false</emu-val>, \[[Enumerable]]: <emu-val>false</emu-val>, \[[Configurable]]: <emu-val>false</emu-val>}"))
 
 14. 카테고리 - IV-C
     원문 - [=Define the constants=] of [=interface=] |I| on |F| given |realm|.
@@ -268,11 +260,6 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
                  let configurable = true
                }
 
-6. 카테고리 - I-C
-   원문 - Let |desc| be the PropertyDescriptor{\[[Get]]: |getter|, \[[Set]]: |setter|, \[[Enumerable]]: <emu-val>true</emu-val>, \[[Configurable]]: |configurable|}.
-   IR - let desc = (yet "the PropertyDescriptor{\[[Get]]: |getter|, \[[Set]]: |setter|, \[[Enumerable]]: <emu-val>true</emu-val>, \[[Configurable]]: |configurable|}")
-   설명    - record 리터럴 문법을 파서가 못 읽습니다.
-
 9. 카테고리 - II-G
    원문 - If |attr|'s type is an [=observable array type=] with type argument |T|, then: ...
    IR - if (= (yet "|attr|'s type") (yet "an [=observable array type=] with type argument |T|")) { ... }
@@ -289,11 +276,6 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
   전달되어 실제 getter 함수의 바디가 됩니다.
 
 ```
-2. 카테고리 - I-F
-   원문 - Try running the following steps: ... And then, if <a lt="an exception was thrown">an exception |E| was thrown</a>:
-   IR - (yet "Try running the following steps:")
-        ...
-        (yet "And then, if <a lt=\"an exception was thrown\">an exception |E| was thrown</a>:")
 
 3. 카테고리 - II-H
    원문 - If |target| is an [=interface=], and |attribute| is a [=regular attribute=]: ...
@@ -497,10 +479,6 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
                  let modifiable = true
                }
 
-4. 카테고리 - I-C
-   원문 - Let |desc| be the PropertyDescriptor{\[[Value]]: |method|, \[[Writable]]: |modifiable|, \[[Enumerable]]: <emu-val>true</emu-val>, \[[Configurable]]: |modifiable|}.
-   IR - let desc = (yet "the PropertyDescriptor{\[[Value]]: |method|, \[[Writable]]: |modifiable|, \[[Enumerable]]: <emu-val>true</emu-val>, \[[Configurable]]: |modifiable|}")
-
 ```
 
 ---
@@ -513,11 +491,6 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
   전달됩니다.
 
 ```
-3. 카테고리 - I-F
-   원문 - Try running the following steps: ... And then, if <a lt=\"an exception was thrown\">an exception |E| was thrown</a>:")
-   IR - (yet "Try running the following steps:")
-        ...
-        (yet "And then, if <a lt=\"an exception was thrown\">an exception |E| was thrown</a>:")
 
 4. 카테고리 - II-H
    원문 - If |target| is an [=interface=], and |op| is not a [=static operation=]: ...
@@ -748,7 +721,3 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
 2. 카테고리 - III-A + IV-B
    원문 - If |attr| is not [=exposed=] in |realm|, then ...
    IR - if (! (= attr (case "EXPOSED" realm))) { ... }
-
-3. 카테고리 - I-C
-   원문 - Let |desc| be the PropertyDescriptor{\[[Writable]]: <emu-val>false</emu-val>, \[[Enumerable]]: <emu-val>true</emu-val>, \[[Configurable]]: <emu-val>false</emu-val> \[[Value]]: |value|}.
-   IR - let desc = (yet "the PropertyDescriptor{\\[[Writable]]: <emu-val>false</emu-val>, \\[[Enumerable]]: <emu-val>true</emu-val>, \\[[Configurable]]: <emu-val>false</emu-val>, \\[[Value]]: |value|}")

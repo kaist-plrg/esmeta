@@ -3572,7 +3572,12 @@ def create_an_interface_object(
   } else {
     let proto = _guard1.Value
   }
-  call _ = clo<"DefinePropertyOrThrow">(F, "<code>prototype</code>", (yet "PropertyDescriptor{\\[[Value]]: |proto|, \\[[Writable]]: <emu-val>false</emu-val>, \\[[Enumerable]]: <emu-val>false</emu-val>, \\[[Configurable]]: <emu-val>false</emu-val>}"))
+  call _ = clo<"DefinePropertyOrThrow">(F, "<code>prototype</code>", (record [PropertyDescriptor] {
+    "Value" : proto,
+    "Writable" : ~false~,
+    "Enumerable" : ~false~,
+    "Configurable" : ~false~,
+  }))
   call _ = clo<"define_the_constants">(I, F, realm)
   call _ = clo<"define_the_static_attributes">(I, F, realm)
   call _ = clo<"define_the_static_operations">(I, F, realm)
@@ -3618,7 +3623,12 @@ def create_an_interface_prototype_object(
     (yet "foreach MEMBER(|member|) in ?(|interface| that is declared with the [{{Unscopable}}] [=extended attribute=])")
     let id = member.id
     call _ = clo<"CreateDataPropertyOrThrow">(unscopableObject, id, ~true~)
-    let desc = (yet "the PropertyDescriptor{\\[[Value]]: |unscopableObject|, \\[[Writable]]: <emu-val>false</emu-val>, \\[[Enumerable]]: <emu-val>false</emu-val>, \\[[Configurable]]: <emu-val>true</emu-val>}")
+    let desc = (record [PropertyDescriptor] {
+      "Value" : unscopableObject,
+      "Writable" : ~false~,
+      "Enumerable" : ~false~,
+      "Configurable" : ~true~,
+    })
     call _ = clo<"DefinePropertyOrThrow">(interfaceProtoObj, @SYMBOL.unscopables, desc)
   } else nop
   if (! (= interface (yet "declared with the [{{Global}}] [=extended attribute=]"))) {
@@ -3630,7 +3640,12 @@ def create_an_interface_prototype_object(
   call _ = clo<"define_the_constants">(interface, interfaceProtoObj, realm)
   if (yet "the [{{LegacyNoInterfaceObject}}] [=extended attribute=] was not specified on |interface|") {
     let constructor = (yet "the [=interface object=] of |interface| in |realm|")
-    let desc = (yet "the PropertyDescriptor{\\[[Writable]]: <emu-val>true</emu-val>, \\[[Enumerable]]: <emu-val>false</emu-val>, \\[[Configurable]]: <emu-val>true</emu-val>, \\[[Value]]: |constructor|}")
+    let desc = (record [PropertyDescriptor] {
+      "Writable" : ~true~,
+      "Enumerable" : ~false~,
+      "Configurable" : ~true~,
+      "Value" : constructor,
+    })
     call _ = clo<"DefinePropertyOrThrow">(interfaceProtoObj, "<code>constructor</code>", desc)
   } else nop
   if (? interfaceProtoObj: Completion) {
@@ -3651,7 +3666,12 @@ def define_the_constants(
     (yet "continue")
   } else nop
   call-convert value = <converted_to_a_javascript_value>(const)
-  let desc = (yet "the PropertyDescriptor{\\[[Writable]]: <emu-val>false</emu-val>, \\[[Enumerable]]: <emu-val>true</emu-val>, \\[[Configurable]]: <emu-val>false</emu-val>, \\[[Value]]: |value|}")
+  let desc = (record [PropertyDescriptor] {
+    "Writable" : ~false~,
+    "Enumerable" : ~true~,
+    "Configurable" : ~false~,
+    "Value" : value,
+  })
   let id = const.id
   call _ = clo<"DefinePropertyOrThrow">(target, id, desc)
   return ~unused~
@@ -3736,7 +3756,12 @@ def define_the_attributes(
     } else {
       let configurable = ~true~
     }
-    let desc = (yet "the PropertyDescriptor{\\[[Get]]: |getter|, \\[[Set]]: |setter|, \\[[Enumerable]]: <emu-val>true</emu-val>, \\[[Configurable]]: |configurable|}")
+    let desc = (record [PropertyDescriptor] {
+      "Get" : getter,
+      "Set" : setter,
+      "Enumerable" : ~true~,
+      "Configurable" : configurable,
+    })
     let id = attr.id
     call _ = clo<"DefinePropertyOrThrow">(target, id, desc)
     if (= (yet "|attr|'s type") (yet "an [=observable array type=] with type argument |T|")) {
@@ -3855,7 +3880,12 @@ def define_the_operations(
     } else {
       let modifiable = ~true~
     }
-    let desc = (yet "the PropertyDescriptor{\\[[Value]]: |method|, \\[[Writable]]: |modifiable|, \\[[Enumerable]]: <emu-val>true</emu-val>, \\[[Configurable]]: |modifiable|}")
+    let desc = (record [PropertyDescriptor] {
+      "Value" : method,
+      "Writable" : modifiable,
+      "Enumerable" : ~true~,
+      "Configurable" : modifiable,
+    })
     let id = op.id
     call _ = clo<"DefinePropertyOrThrow">(target, id, desc)
     _iterIdx2 = (+ _iterIdx2 1)

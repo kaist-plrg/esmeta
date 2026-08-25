@@ -24,17 +24,8 @@
 **대응**: closures로 인식.
 - `#1-7`   -- Set |instance|.\[[SetPrototypeOf]] as defined in [[#platform-object-setprototypeof]].
 
-### I-C. record/struct 리터럴 (`PropertyDescriptor{...}`)
-
-- `#2-10` - the PropertyDescriptor{\[[Writable]]: <emu-val>true</emu-val>, \[[Enumerable]]: <emu-val>false</emu-val>, \[[Configurable]]: <emu-val>true</emu-val>, \[[Value]]: |constructor|}
-- `#3-13` - PropertyDescriptor{\[[Value]]: |proto|, \[[Writable]]: <emu-val>false</emu-val>, \[[Enumerable]]: <emu-val>false</emu-val>, \[[Configurable]]: <emu-val>false</emu-val>} 
-- `#5-6` - the PropertyDescriptor{\[[Get]]: |getter|, \[[Set]]: |setter|, \[[Enumerable]]: <emu-val>true</emu-val>, \[[Configurable]]: |configurable|}
-- `#9-4` - the PropertyDescriptor{\[[Value]]: |method|, \[[Writable]]: |modifiable|, \[[Enumerable]]: <emu-val>true</emu-val>, \[[Configurable]]: |modifiable|}
-- `#20-3` - the PropertyDescriptor{\[[Writable]]: <emu-val>false</emu-val>, \[[Enumerable]]: <emu-val>true</emu-val>, \[[Configurable]]: <emu-val>false</emu-val> \[[Value]]: |value|}
-
 ### I-F. 제어 흐름 관련
 
-- `#6-2`, `#10-3` — Try running the following steps: ... And then, if <a lt="an exception was thrown">an exception |E| was thrown</a>:
 - `#6-14`, `#10-15` — end these steps and allow the exception to propagate
 - `#9-2` - [=iteration/continue=]
 - `#11-16` - [=iteration/break=]

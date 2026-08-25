@@ -242,6 +242,31 @@ class ExprParserSpec extends AnyFunSuite:
     )
   }
 
+  test("record/struct literal ('the PropertyDescriptor{...}')") {
+    assert(
+      ExprParser.parse(
+        "the PropertyDescriptor{[[Writable]]: <emu-val>true</emu-val>, [[Value]]: |constructor|}",
+      ) ==
+      RecordLit(
+        "PropertyDescriptor",
+        List(
+          "Writable" -> SpecTerm("true"),
+          "Value" -> Var("constructor"),
+        ),
+      ),
+    )
+    // bare (no "the " prefix), e.g. nested inside a call's argument list
+    assert(
+      ExprParser.parse("PropertyDescriptor{[[Value]]: |proto|}") ==
+      RecordLit("PropertyDescriptor", List("Value" -> Var("proto"))),
+    )
+    // backslash-escaped brackets, as extracted straight from .bs source
+    assert(
+      ExprParser.parse("PropertyDescriptor{\\[[Value]]: |proto|}") ==
+      RecordLit("PropertyDescriptor", List("Value" -> Var("proto"))),
+    )
+  }
+
   test("negation, applied to both a variable and a number literal") {
     assert(ExprParser.parse("-|x|") == Neg(Var("x")))
     assert(ExprParser.parse("-5") == Neg(Num("5")))

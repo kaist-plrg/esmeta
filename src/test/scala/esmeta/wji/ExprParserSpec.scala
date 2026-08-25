@@ -82,6 +82,18 @@ class ExprParserSpec extends AnyFunSuite:
     assert(ExprParser.parse("the [=algo=]") == Link("[=algo=]", Nil))
   }
 
+  test("'the result of passing ARGS to the [=link=]' is a direct AlgoCall") {
+    assert(
+      ExprParser.parse(
+        "the result of passing |S| and |args| to the [=overload resolution algorithm=]",
+      ) ==
+      AlgoCall(
+        "[=overload resolution algorithm=]",
+        List(Var("S"), Var("args")),
+      ),
+    )
+  }
+
   test("bare var / var-ignore / this") {
     assert(ExprParser.parse("|x|") == Var("x"))
     assert(ExprParser.parse("<var ignore>foo</var>") == Var("foo"))

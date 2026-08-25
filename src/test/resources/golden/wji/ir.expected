@@ -4388,7 +4388,7 @@ def create_an_interface_object_closure1(
   let n = (sizeof args)
   let id = I.id
   call S = clo<"compute_the_effective_overload_set">(id, I, n)
-  let _tuple1 = (yet "passing |S| and |args| to the [=overload resolution algorithm=]")
+  call _tuple1 = clo<"overload_resolution_algorithm">(S, args)
   let constructor = _tuple1[0]
   let values = _tuple1[1]
   call _guard1 = clo<"internally_create_a_new_object_implementing_the_interface">(I, realm, ~NewTarget~)
@@ -4726,7 +4726,7 @@ def creating_an_operation_function_closure2(
   } else {
     assert false
   }
-  let _tuple1 = (yet "passing |S| and |args| to the [=overload resolution algorithm=]")
+  call _tuple1 = clo<"overload_resolution_algorithm">(S, args)
   let operation = _tuple1[0]
   let values = _tuple1[1]
   let R = null

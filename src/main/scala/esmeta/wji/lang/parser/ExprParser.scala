@@ -322,6 +322,21 @@ object ExprParser:
   // reference is ever written this way — so this can go straight to
   // AlgoCall without waiting for ResolveLinksPass.
   private val LinkFull = """(?s)^(\[=[^\]]+\])\s*\((.*)\)$""".r
+  // "passing ARG1[, ARG2, ...] to the [=LINK=]" — WebIDL's own idiom for
+  // invoking an algorithm with an unnamed positional argument list, the
+  // link named *last* rather than first (contrast LinkProse/LinkFull, and
+  // RunningStepsCallWithArgs's named "with X as this and Y as the argument
+  // values" idiom) — e.g. "the result of passing |S| and |args| to the
+  // [=overload resolution algorithm=]" (the leading "the result of " is
+  // already stripped by ResultOf by the time this is tried;
+  // webidl_yet_categorized.md category III-B). Same unambiguous shape as
+  // LinkFull, so this goes straight to AlgoCall without waiting for
+  // ResolveLinksPass. ARGS is loose prose, not a clean comma list (just
+  // "|S| and |args|" here), so it's split with parseArgs — the same
+  // shrink-based extractor LinkProse itself uses for its own trailing
+  // prose — rather than a bespoke comma/"and" splitter.
+  private val PassingToCall =
+    """(?si)^passing\s+(.+?)\s+to\s+the\s+(\[=[^\]]+=\])$""".r
   private val LinkProse = """(?s)^(\[=[^\]]+\])\s+(.+)$""".r
   private val LinkOnly = """(?s)^(?:the\s+)?(\[=[^\]]+\])$""".r
   // "VALUE, [=link=]" — spec's passive-voice idiom for a unary conversion
@@ -895,6 +910,8 @@ object ExprParser:
           case JSCall(name, args)   => JSCall(name, args :+ Str(attr))
           case AlgoCall(link, args) => AlgoCall(link, args :+ Str(attr))
           case _                    => Unknown(callRaw)
+      case PassingToCall(argsRaw, link) =>
+        AlgoCall(normalizeLink(link), parseArgs(argsRaw))
       case LinkFull(link, argsRaw) =>
         normalizeLink(link).stripPrefix("[=").stripSuffix("=]") match
           // "[=𝔽=](x)"/"[=ℤ=](x)"/"[=ℝ=](x)" — ECMA-262's Number/BigInt/

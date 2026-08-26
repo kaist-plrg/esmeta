@@ -32,7 +32,7 @@ _esmeta_completions() {
   wjicompileOpt="-wji-compile:log"
   wjiinterpOpt="-wji-interp:entry"
   wjibridgedemoOpt=""
-  wjievalOpt="-wji-eval:filter -wji-eval:log"
+  wjievalOpt="-wji-eval:filter -wji-eval:log -wji-eval:timeout"
   # completion for commands
   case "${COMP_CWORD}" in
     1)

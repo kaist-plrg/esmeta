@@ -50,7 +50,13 @@ case object WjiEval extends Phase[CFG, State] {
     val st = mergedCfg.init.fromFile(filename)
     val (host, connection) = wji.Initialize(st, spec)
     val sep = "─" * 64
-    try EsInterpreter(st, log = config.log, wasmHost = Some(host))
+    try
+      EsInterpreter(
+        st,
+        log = config.log,
+        timeLimit = config.timeout,
+        wasmHost = Some(host),
+      )
     catch
       case e: (ESMetaError | NotImplementedError) =>
         println(sep)
@@ -60,6 +66,11 @@ case object WjiEval extends Phase[CFG, State] {
       case e: scala.MatchError =>
         println(sep)
         println(s"[MatchError — unhandled IR node] ${e.getMessage}")
+        AlgoCallStack.printCallStack(st)
+        throw e
+      case e: java.util.concurrent.TimeoutException =>
+        println(sep)
+        println(s"[Timeout] exceeded ${config.timeout.getOrElse("?")}s")
         AlgoCallStack.printCallStack(st)
         throw e
     finally connection.close()
@@ -76,9 +87,18 @@ case object WjiEval extends Phase[CFG, State] {
       BoolOption(_.log = _),
       "turn on logging mode.",
     ),
+    (
+      "timeout",
+      NumOption((c, k) => c.timeout = Some(k)),
+      "set the time limit in seconds (default: no limit) -- checked "
+      + "periodically by the interpreter itself, so a slow test times out "
+      + "cleanly (SpecTec connection closed via `finally`) instead of "
+      + "hanging the process.",
+    ),
   )
   case class Config(
     var filter: String = "",
     var log: Boolean = false,
+    var timeout: Option[Int] = None,
   )
 }

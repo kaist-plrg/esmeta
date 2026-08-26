@@ -29,16 +29,18 @@ object EvalTag extends Tag("esmeta.wji.EvalTag")
 private val knownFailing: Set[String] =
   Set(
     // js-api/generated: `tests/wji/js-api/dataview-polyfill.js` works around
-    // ESMeta not mechanizing DataView, so these now fail on the *next* gap
-    // each hits, dominated by one root cause (`[NotSupported]
-    // metalanguage/_source_ is an Object that has a [[TypedArrayName]]
-    // internal slot` -- the BufferSource-checking step in
-    // WebAssembly.compile/instantiate's algorithm didn't compile to IR)
-    // plus WebIDL dictionary conversion gaps (`invalid object field:
-    // "parameters"/"mutable"/"element"` -- Tag/Global/TableDescriptor aren't
-    // in WebIdlConversion's hardcoded dictionary list, see
-    // docs/hardcodes.md #1/#2), missing branding checks (`not a proper
-    // reference base: undefined`), and a couple of other gaps -- see
+    // ESMeta not mechanizing DataView, and the mainline CondParser fix for
+    // "X is TYPE that has a [[SLOT]] internal slot" (docs/esmeta_errors.md
+    // #3) unblocked TypedArray.prototype.set -- so these now fail on the
+    // *next* gap each hits: WebIDL dictionary conversion gaps (`invalid
+    // object field: "parameters"/"mutable"/"element"` --
+    // Tag/Global/TableDescriptor aren't in WebIdlConversion's hardcoded
+    // dictionary list, see docs/hardcodes.md #1/#2), missing branding checks
+    // (`not a proper reference base: undefined`), the still-unmechanized
+    // SharedArrayBuffer/Math.floor-phrasing/etc., and `limits.any.js` (a
+    // spec-mandated stress test building up to 10M wasm constructs -- marked
+    // `// META: timeout=long` even for real engines, so it's just too slow
+    // for WJI's interpreter rather than blocked by a real gap) -- see
     // personal/TODO.md #14.
     "js-api/constructor/compile.any.js",
     "js-api/constructor/instantiate-bad-imports.any.js",
@@ -64,7 +66,6 @@ private val knownFailing: Set[String] =
     "js-api/instance/constructor-caching.any.js",
     "js-api/instance/constructor.any.js",
     "js-api/instance/exports.any.js",
-    "js-api/instance/toString.any.js",
     "js-api/interface.any.js",
     "js-api/js-string/basic.any.js",
     "js-api/js-string/constants.any.js",
@@ -79,7 +80,6 @@ private val knownFailing: Set[String] =
     "js-api/module/customSections.any.js",
     "js-api/module/exports.any.js",
     "js-api/module/imports.any.js",
-    "js-api/module/toString.any.js",
     "js-api/prototypes.any.js",
     "js-api/table/constructor-memory64.any.js",
     "js-api/table/constructor.any.js",
@@ -145,6 +145,19 @@ class EvalSpec extends AnyFunSuite with BeforeAndAfterAll:
   override def beforeAll(): Unit = connection = Initialize.startProcess()
   override def afterAll(): Unit = connection.close()
 
+  /** bounds a single test case's wall-clock time (checked periodically by
+    * `esmeta.interpreter.Interpreter` itself, see `timeLimit` there) --
+    * comfortably above every legitimately-slow test observed so far (worst case
+    * ~35s, wasm-module-builder-heavy files under a warm/shared connection), but
+    * well short of a file like js-api's `limits.any.js` (spec-mandated stress
+    * test building up to 10M wasm constructs -- marked `// META: timeout=long`
+    * even for real engines) that would otherwise run for the rest of the
+    * suite's lifetime. Throws `TimeoutException` (unrelated to SpecTec, so
+    * `connection.isPoisoned` correctly stays false and no respawn is needed)
+    * rather than needing an external process kill.
+    */
+  private val perTestTimeoutSec = 60
+
   private val roots: List[(String, String)] = List(
     "manual" -> WJI_MANUAL_TEST_DIR,
     "js-api" -> WJI_JS_API_TEST_DIR,
@@ -161,7 +174,13 @@ class EvalSpec extends AnyFunSuite with BeforeAndAfterAll:
       if knownFailing(name) then cancel("known WJI mechanization gap")
       else
         try
-          checkExit(WjiTest.evalFile(file.toString, connection))
+          checkExit(
+            WjiTest.evalFile(
+              file.toString,
+              connection,
+              Some(perTestTimeoutSec),
+            ),
+          )
           if verbose then println(f"[$elapsed%.1fs] $name")
         catch
           case e: Throwable =>

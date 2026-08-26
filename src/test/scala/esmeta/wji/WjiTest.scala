@@ -75,8 +75,11 @@ object WjiTest:
     * `ESTest.CheckAfter` directly, since `esmeta.es` must not depend on
     * `esmeta.wji` (the dependency only ever goes the other way).
     */
-  private class RunToCompletion(st: State, wasmHost: Option[WasmHost])
-    extends EsInterpreter(st, wasmHost = wasmHost):
+  private class RunToCompletion(
+    st: State,
+    wasmHost: Option[WasmHost],
+    timeLimit: Option[Int],
+  ) extends EsInterpreter(st, wasmHost = wasmHost, timeLimit = timeLimit):
     override lazy val result: State =
       while (step) {}
       st
@@ -96,10 +99,11 @@ object WjiTest:
   def evalFile(
     jsPath: String,
     connection: JsonRpcConnection,
+    timeLimit: Option[Int] = None,
   ): State =
     val st = mergedCfg.init.fromFile(jsPath)
     val host = Initialize(st, spec, connection)
-    val result = new RunToCompletion(st, Some(host)).result
+    val result = new RunToCompletion(st, Some(host), timeLimit).result
     assert(
       wjiOk(result) == Success(Bool(true)),
       s"test case never set globalThis.__wjiOk = true: $jsPath (got ${wjiOk(result)})",

@@ -967,6 +967,7 @@ trait Parsers extends IndentParsers {
     productionCond |||
     hasBindingCond |||
     hasFieldCond |||
+    typeCheckWithFieldCond |||
     typeCheckCond |||
     exprCond
 
@@ -979,6 +980,34 @@ trait Parsers extends IndentParsers {
   lazy val typeCheckCond: PL[TypeCheckCondition] =
     expr ~ isEither(singleLangType) ^^ {
       case e ~ (n ~ t) => TypeCheckCondition(e, n, t)
+    }
+
+  // "REF is TYPE that has a [[FIELD]] ..." -- a type check and a
+  // field-inclusion check about the same subject folded into one sentence
+  // via a relative clause (e.g. ecma262's "_source_ is an Object that has a
+  // [[TypedArrayName]] internal slot", %TypedArray%.prototype.set).
+  // typeCheckCond alone only consumes "is TYPE" and leaves "that has ..."
+  // unconsumed, so this never matched anything before and silently fell
+  // back to a `yet` condition -- see docs/esmeta_errors.md #3.
+  lazy val typeCheckWithFieldCond: PL[CompoundCondition] =
+    lazy val field =
+      indefArticle ~> expr ^^ { List(_) } | repsep(expr, sep("and"))
+
+    import HasFieldConditionForm.*
+    lazy val form =
+      "field" ^^^ Field |
+      "internal method" ^^^ InternalMethod |
+      "internal slot" ^^^ InternalSlot
+
+    lazy val fieldType = opt("whose value is" ~ indefArticle ~> langType)
+    ref ~ isEither(singleLangType) ~ ("that" ~> hasNeg) ~ field ~
+    (form <~ opt("s")) ~ fieldType ^^ {
+      case r ~ (n ~ t) ~ hn ~ f ~ m ~ ft =>
+        CompoundCondition(
+          TypeCheckCondition(getRefExpr(r), n, t),
+          CompoundConditionOperator.And,
+          HasFieldCondition(r, hn, f, m, ft),
+        )
     }
 
   // field inclusion conditions

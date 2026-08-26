@@ -8,6 +8,8 @@ web-platform-tests 스위트, `testharness.js` 기반)를 WJI로 돌리기 위�
 shell-shim.js         필수 -- testharness.js/testharness-lite.js가 가정하는
                        브라우저/워커 전역(`self`)을 채워줌.
 testharness-lite.js    필수 -- 진짜 testharness.js 대신 쓰는 경량 재구현.
+dataview-polyfill.js   wasm-module-builder.js를 쓰는 파일에만 삽입 -- WJI가
+                       기계화 안 한 DataView를 대신함 (아래 참고).
 report-shim.js         필수 -- subtest별 PASS/FAIL을 print로 출력하고,
                        전부 통과했을 때만 globalThis.__wjiOk = true 세팅
                        (tests/wji/manual/*.js의 컨벤션과 동일).
@@ -34,6 +36,31 @@ generated/             `tests/wji/scripts/wji-generate-js-api-tests.js`가
 정규식만 없애기"가 아니라, 실제로 쓰이는 부분만 알고리즘 단위로 그대로
 옮겨 새로 짜는 쪽을 택했습니다 — `testharness-lite.js`가 그 결과물입니다
 (자세한 이식 범위/의도적으로 뺀 부분은 그 파일 자신의 doc comment 참고).
+
+## `dataview-polyfill.js` -- WJI가 기계화 안 한 `DataView` 우회
+
+`wasm-module-builder.js`(대부분의 js-api 테스트가 wasm 모듈 바이트를 조립하는 데
+씀)는 모듈 로드 시점에 무조건 `let data_view = new DataView(byte_view.buffer);`를
+실행합니다. WJI(정확히는 mainline ESMeta의 ECMA-262 기계화)는 `DataView`를
+아예 구현 안 했는데(`src/main/scala/esmeta/es/builtin/package.scala`의
+`yets` 목록), 이 한 줄이 무조건 실행되다 보니 `wasmF32Const`/`wasmF64Const`를
+실제로 호출하는지와 무관하게 이 파일을 로드하는 모든 테스트가 로드 단계에서부터
+죽었습니다 — 52개 중 32개가 여기 걸림.
+
+실제로 corpus 전체에서 `wasmF32Const`/`wasmF64Const`를 호출하는 곳은 딱 3개
+파일뿐이었고(`module/exports.any.js`, `gc/casts.tentative.any.js`,
+`constructor/multi-value.any.js`), 그마저도 `setFloat32`/`setFloat64`
+두 메소드만 씁니다. `dataview-polyfill.js`는 그 두 메소드만 구현한 최소
+`DataView` 폴리필입니다 — 실제 버퍼를 공유하는 `Uint8Array` 위에 얹어서, IEEE754
+비트 인코딩을 순수 JS 산술로 계산해 씁니다(잘 알려진 `ieee754` npm
+패키지의 `write()` 포트, MIT/feross). 진짜 `DataView`와 유한값/`Infinity`/`-0`/
+서브노멀 범위 + 랜덤 20만 개에서 바이트 단위로 동일함을 검증했습니다 — 유일한
+예외는 NaN payload(원시 메모리에서 읽은 임의 NaN 비트패턴은 재현 못 하고
+canonical quiet NaN만 냄)인데, corpus 어디서도 NaN을 이 두 메소드에 넘기지
+않아서 무관합니다. `wasm-module-builder.js`를 쓰는 파일에만(생성 스크립트가
+META script 목록을 보고 판단) 그 파일 로드 **직전**에 삽입되어 `DataView`
+전역 바인딩을 교체하므로, `wasm-module-builder.js` 자신의 코드는 손대지
+않습니다.
 
 ## `generated/`는 어떻게 만들어지나
 
@@ -74,6 +101,18 @@ subtest가 왜 깨졌는지는 `sbt run wji-eval tests/wji/js-api/generated/<pat
 ```
 sbt --client wjiEvalTest
 ```
+
+여러 파일을 한 번에 훑어야 할 때(예: `knownFailing`을 다시 채점)는 파일마다
+새 `sbt run`을 띄우는 것보다, `EvalSpec`이 이미 SpecTec 프로세스 하나를
+재사용하는 걸 그대로 쓰는 게 훨씬 빠릅니다 — 다만 `wjiEvalTest`는 고정된
+alias라 추가 인자를 못 받으므로 `testOnly`를 직접 불러야 합니다:
+
+```
+sbt "testOnly esmeta.wji.EvalSpec -- -Dverbose=true"
+```
+
+`-Dverbose=true`를 주면 취소되지 않은 테스트마다 소요 시간과(실패 시)
+예외 클래스+메시지를 즉시 print합니다 — 기본값(`wjiEvalTest`)은 조용합니다.
 
 파일 단위 테스트 이름은 `"js-api/<spectec 기준 상대경로>"`(예:
 `"js-api/memory/toString.any.js"`)입니다. 아직 WJI가 못 다루는 gap에

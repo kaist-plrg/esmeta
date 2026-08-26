@@ -5,7 +5,7 @@ import esmeta.es.ESTest.checkExit
 import esmeta.util.SystemUtils.*
 import esmeta.wji.bridge.rpc.JsonRpcConnection
 import java.nio.file.Paths
-import org.scalatest.{BeforeAndAfterAll, Tag}
+import org.scalatest.{Args, BeforeAndAfterAll, Status, Tag}
 import org.scalatest.funsuite.AnyFunSuite
 
 /** tags every test in [[EvalSpec]] so `basicTest` can exclude them with `-l
@@ -28,15 +28,18 @@ object EvalTag extends Tag("esmeta.wji.EvalTag")
   */
 private val knownFailing: Set[String] =
   Set(
-    // js-api/generated: mostly a single root cause (`[NotSupported]
-    // feature/DataView` -- wasm-module-builder.js, which nearly every one of
-    // these depends on to assemble wasm module bytes, uses DataView, which
-    // ESMeta's ECMA-262 mechanization doesn't implement at all) plus a
-    // handful of missing branding checks (`not a proper reference base:
-    // undefined`), a WebIDL dictionary conversion gap (`invalid object
-    // field: "parameters"` -- TagType/TagDescriptor isn't in
-    // WebIdlConversion's hardcoded dictionary list, see docs/hardcodes.md
-    // #1/#2), and a couple of other gaps -- see personal/TODO.md #14.
+    // js-api/generated: `tests/wji/js-api/dataview-polyfill.js` works around
+    // ESMeta not mechanizing DataView, so these now fail on the *next* gap
+    // each hits, dominated by one root cause (`[NotSupported]
+    // metalanguage/_source_ is an Object that has a [[TypedArrayName]]
+    // internal slot` -- the BufferSource-checking step in
+    // WebAssembly.compile/instantiate's algorithm didn't compile to IR)
+    // plus WebIDL dictionary conversion gaps (`invalid object field:
+    // "parameters"/"mutable"/"element"` -- Tag/Global/TableDescriptor aren't
+    // in WebIdlConversion's hardcoded dictionary list, see
+    // docs/hardcodes.md #1/#2), missing branding checks (`not a proper
+    // reference base: undefined`), and a couple of other gaps -- see
+    // personal/TODO.md #14.
     "js-api/constructor/compile.any.js",
     "js-api/constructor/instantiate-bad-imports.any.js",
     "js-api/constructor/instantiate.any.js",
@@ -105,19 +108,37 @@ private val knownFailing: Set[String] =
   * {{{
   *   sbt --client wjiEvalTest
   * }}}
+  *
+  * Per-test timing + failure cause are opt-in (silent by default, so a normal
+  * green run doesn't drown in a wall of prints) — `wjiEvalTest` itself is a
+  * fixed alias with no room for extra args, so this needs `testOnly` directly,
+  * same as [[SnapshotSpec]]'s `-Dupdate=true`:
+  * {{{
+  *   sbt "testOnly esmeta.wji.EvalSpec -- -Dverbose=true"
+  * }}}
   */
 class EvalSpec extends AnyFunSuite with BeforeAndAfterAll:
+
+  private var verbose = false
+  override def run(testName: Option[String], args: Args): Status =
+    verbose = args.configMap.getWithDefault("verbose", "false") == "true"
+    super.run(testName, args)
 
   /** the one SpecTec process/connection shared across every test case in this
     * suite (see `Initialize.startProcess`'s doc for why: process spawn + spec
     * parse is ~10s, dwarfing a test's own ~1-2s). Reassigned, not just closed,
-    * on a per-test exception: an exception escaping mid-RPC-turn (e.g. a
-    * `HostFunction` bug thrown while SpecTec is blocked waiting on a
-    * `host_func_invoke` reply — see `JsonRpcConnection`'s `serve`) leaves no
-    * response line written for that inbound request, wedging the connection for
-    * every line written to it afterward. Respawning bounds a bad test's blast
-    * radius to itself (plus one extra ~10s process spawn for the next test),
-    * matching the isolation a fresh process per test gave for free.
+    * on a per-test exception, but only when `connection.isPoisoned` — i.e. only
+    * when the exception actually escaped mid-RPC-turn (a `HostFunction` bug
+    * thrown while SpecTec was blocked waiting on a `host_func_invoke` reply,
+    * see [[JsonRpcConnection.isPoisoned]]/`serve`), which leaves no response
+    * line written for that inbound request and wedges the connection for every
+    * line written to it afterward. Most test failures (a plain interpreter
+    * error, or a subtest assertion that just didn't hold) never touch `serve`
+    * at all, so the connection is still perfectly healthy and reusable — paying
+    * the ~10s respawn for those would be pure waste. Bounding a genuinely
+    * wedged test's blast radius to itself (plus one extra ~10s process spawn
+    * for the next test) still matches the isolation a fresh process per test
+    * gave for free.
     */
   private var connection: JsonRpcConnection = _
 
@@ -135,12 +156,22 @@ class EvalSpec extends AnyFunSuite with BeforeAndAfterAll:
   do
     val name = s"$label/${Paths.get(dir).relativize(file.toPath)}"
     test(name, EvalTag) {
+      val start = System.nanoTime()
+      def elapsed = (System.nanoTime() - start) / 1e9
       if knownFailing(name) then cancel("known WJI mechanization gap")
       else
-        try checkExit(WjiTest.evalFile(file.toString, connection))
+        try
+          checkExit(WjiTest.evalFile(file.toString, connection))
+          if verbose then println(f"[$elapsed%.1fs] $name")
         catch
           case e: Throwable =>
-            connection.close()
-            connection = Initialize.startProcess()
+            val poisoned = connection.isPoisoned
+            if poisoned then
+              connection.close()
+              connection = Initialize.startProcess()
+            if verbose then
+              println(
+                f"[$elapsed%.1fs] $name FAILED (poisoned=$poisoned) -- ${e.getClass.getSimpleName}: ${e.getMessage}",
+              )
             throw e
     }

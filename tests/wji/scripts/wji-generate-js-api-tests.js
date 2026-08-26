@@ -43,6 +43,7 @@ const testFiles = listAnyJsFiles(jsApiRoot);
 const shellShim = fs.readFileSync(path.join(wjiJsApiDir, "shell-shim.js"), "utf8");
 const testharnessLite = fs.readFileSync(path.join(wjiJsApiDir, "testharness-lite.js"), "utf8");
 const reportShim = fs.readFileSync(path.join(wjiJsApiDir, "report-shim.js"), "utf8");
+const dataViewPolyfill = fs.readFileSync(path.join(wjiJsApiDir, "dataview-polyfill.js"), "utf8");
 
 fs.rmSync(generatedDir, { recursive: true, force: true });
 
@@ -55,7 +56,15 @@ for (const testFilePath of testFiles) {
     continue;
   }
   const { meta, depsSrc } = resolved;
-  const src = [shellShim, testharnessLite, depsSrc, meta.body, reportShim].join("\n");
+  const usesWasmModuleBuilder = meta.scripts.some((ref) => ref.endsWith("/wasm-module-builder.js"));
+  const src = [
+    shellShim,
+    testharnessLite,
+    ...(usesWasmModuleBuilder ? [dataViewPolyfill] : []),
+    depsSrc,
+    meta.body,
+    reportShim,
+  ].join("\n");
 
   const outPath = path.join(generatedDir, relPath);
   fs.mkdirSync(path.dirname(outPath), { recursive: true });

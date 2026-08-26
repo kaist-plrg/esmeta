@@ -31,6 +31,19 @@ trait JsonRpcConnection:
     */
   def onRequest(handler: (String, Json) => Either[RpcError, Json]): Unit
 
+  /** true once an inbound request's handling has thrown before a response line
+    * could be written for it -- the peer is left blocked waiting for that
+    * response forever, so the connection is unusable for anything afterward
+    * (see [[StdioJsonRpcConnection.serve]]). A caller that reuses one
+    * connection across many independent calls (e.g. `esmeta.wji.EvalSpec`)
+    * should only pay to respawn the process when this is true: an exception
+    * that never went through [[onRequest]]'s handler (e.g. a plain interpreter
+    * error unrelated to any pending `host_func_invoke`) leaves the peer in no
+    * different a state than a normal [[request]] return, so the connection is
+    * still perfectly reusable.
+    */
+  def isPoisoned: Boolean
+
   def close(): Unit
 
 /** [[JsonRpcConnection]] over a [[esmeta.wji.bridge.process.SpecTecProcess]]'s
@@ -60,16 +73,29 @@ private final class StdioJsonRpcConnection(
   private var requestHandler: (String, Json) => Either[RpcError, Json] =
     (_, _) => Left(RpcError(-32601, "no handler registered", None))
 
+  private var poisoned = false
+  def isPoisoned: Boolean = poisoned
+
   /** Dispatch one inbound request to [[requestHandler]] and write its response.
+    * If [[requestHandler]] throws, the peer never gets that response and is
+    * left blocked forever -- mark [[poisoned]] before rethrowing so a caller
+    * like `EvalSpec` knows this connection can no longer be reused, then
+    * propagate the original exception unchanged.
     */
   private def serve(json: Json): Unit =
     val obj = json.hcursor
     val method = obj.get[String]("method").getOrElse("")
     val params = obj.get[Json]("params").getOrElse(Json.obj())
     val id = obj.get[Long]("id").getOrElse(0L)
-    val response = requestHandler(method, params) match
-      case Right(result) => Response("2.0", Some(result), None, id)
-      case Left(err)     => Response("2.0", None, Some(err), id)
+    val response =
+      try
+        requestHandler(method, params) match
+          case Right(result) => Response("2.0", Some(result), None, id)
+          case Left(err)     => Response("2.0", None, Some(err), id)
+      catch
+        case e: Throwable =>
+          poisoned = true
+          throw e
     out.println(response.asJson.noSpaces)
 
   /** Read lines until the response to `id` arrives, serving any inbound

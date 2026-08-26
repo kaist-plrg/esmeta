@@ -37,10 +37,10 @@ generated/             `tests/wji/scripts/wji-generate-js-api-tests.js`가
 
 ## `generated/`는 어떻게 만들어지나
 
-`tests/wji/scripts/wji-generate-js-api-tests.js`가 `spectec/test/js-api`의
-선택된 파일들을 순회하며, 각 파일의 `// META: script=` 의존성을 읽어
-`shell-shim.js` + `testharness-lite.js` + 그 의존 스크립트들 + 테스트 본문 +
-`report-shim.js`를 하나로 이어붙인 self-contained `.any.js` 파일을
+`tests/wji/scripts/wji-generate-js-api-tests.js`가 `spectec/test/js-api` 밑
+모든 `*.any.js` 파일을 재귀로 순회하며, 각 파일의 `// META: script=` 의존성을
+읽어 `shell-shim.js` + `testharness-lite.js` + 그 의존 스크립트들 + 테스트
+본문 + `report-shim.js`를 하나로 이어붙인 self-contained `.any.js` 파일을
 `generated/`에 씁니다(spectec 쪽 디렉터리 구조 그대로 미러링 — `toString.any.js`
 처럼 카테고리마다 이름이 겹치는 파일이 있어서 필요).
 
@@ -53,11 +53,13 @@ js-api corpus가 바뀌었으면 손으로 다시 돌리세요:
 node tests/wji/scripts/wji-generate-js-api-tests.js
 ```
 
-**스코프**: `constructor/`, `instance/`, `memory/`, `table/`, `global/`,
-`module/`, 그리고 `interface.any.js`/`limits.any.js`/`prototypes.any.js`만
-포함합니다. `gc/`/`exception/`/`tag/`/`js-string/`은 WJI가 아직 전혀
-기계화 안 한 최신 wasm proposal(GC 타입, 예외 처리 등)을 건드려서 뺐습니다
-— WJI 쪽 표면이 넓어지면 스크립트의 `categories`/`looseFiles`를 확장.
+**스코프**: 제외 없이 `spectec/test/js-api` 전체(`gc/`/`exception/`/`tag/`/
+`js-string/` 포함, 52개 전부). 이전엔 이 넷을 "최신 wasm proposal이라 WJI가
+전혀 기계화 안 했을 것"이라는 카테고리 이름만 보고 뺐었는데, 실제로는
+`tests/wji/manual/wasm-throw-propagation.js`가 이미 `WebAssembly.Tag`/
+`Exception`을 end-to-end로 통과시키고 있어서 근거가 틀렸던 걸로 드러났습니다
+— 검증 없이 배제하지 말고 전부 생성해서 `knownFailing`으로 개별 gap을
+드러내는 쪽으로 정정.
 
 ## 실행과 판정
 

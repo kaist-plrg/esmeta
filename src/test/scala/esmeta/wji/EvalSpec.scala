@@ -33,12 +33,26 @@ private val knownFailing: Set[String] =
     // these depends on to assemble wasm module bytes, uses DataView, which
     // ESMeta's ECMA-262 mechanization doesn't implement at all) plus a
     // handful of missing branding checks (`not a proper reference base:
-    // undefined`) and a couple of other gaps -- see personal/TODO.md #14.
+    // undefined`), a WebIDL dictionary conversion gap (`invalid object
+    // field: "parameters"` -- TagType/TagDescriptor isn't in
+    // WebIdlConversion's hardcoded dictionary list, see docs/hardcodes.md
+    // #1/#2), and a couple of other gaps -- see personal/TODO.md #14.
     "js-api/constructor/compile.any.js",
     "js-api/constructor/instantiate-bad-imports.any.js",
     "js-api/constructor/instantiate.any.js",
     "js-api/constructor/multi-value.any.js",
     "js-api/constructor/validate.any.js",
+    "js-api/exception/basic.tentative.any.js",
+    "js-api/exception/constructor.tentative.any.js",
+    "js-api/exception/getArg.tentative.any.js",
+    "js-api/exception/identity.tentative.any.js",
+    "js-api/exception/is.tentative.any.js",
+    "js-api/exception/jsTag.tentative.any.js",
+    "js-api/exception/toString.tentative.any.js",
+    "js-api/gc/casts.tentative.any.js",
+    "js-api/gc/default-value.tentative.any.js",
+    "js-api/gc/exported-object.tentative.any.js",
+    "js-api/gc/i31.tentative.any.js",
     "js-api/global/constructor.any.js",
     "js-api/global/toString.any.js",
     "js-api/global/value-get-set.any.js",
@@ -49,6 +63,9 @@ private val knownFailing: Set[String] =
     "js-api/instance/exports.any.js",
     "js-api/instance/toString.any.js",
     "js-api/interface.any.js",
+    "js-api/js-string/basic.any.js",
+    "js-api/js-string/constants.any.js",
+    "js-api/js-string/imports.any.js",
     "js-api/limits.any.js",
     "js-api/memory/buffer.any.js",
     "js-api/memory/constructor-memory64.any.js",
@@ -67,6 +84,8 @@ private val knownFailing: Set[String] =
     "js-api/table/grow-memory64.any.js",
     "js-api/table/grow.any.js",
     "js-api/table/length.any.js",
+    "js-api/tag/constructor.tentative.any.js",
+    "js-api/tag/toString.tentative.any.js",
   )
 
 /** Runs every `.js` test case under `tests/wji/manual` and

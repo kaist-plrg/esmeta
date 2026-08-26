@@ -29,17 +29,22 @@ object EvalTag extends Tag("esmeta.wji.EvalTag")
 private val knownFailing: Set[String] =
   Set(
     // js-api/generated: `tests/wji/js-api/dataview-polyfill.js` works around
-    // ESMeta not mechanizing DataView, and the mainline CondParser fix for
-    // "X is TYPE that has a [[SLOT]] internal slot" (docs/esmeta_errors.md
-    // #3) unblocked TypedArray.prototype.set -- so these now fail on the
-    // *next* gap each hits: WebIDL dictionary conversion gaps (`invalid
-    // object field: "parameters"/"mutable"/"element"` --
-    // Tag/Global/TableDescriptor aren't in WebIdlConversion's hardcoded
-    // dictionary list, see docs/hardcodes.md #1/#2), missing branding checks
-    // (`not a proper reference base: undefined`), the still-unmechanized
-    // SharedArrayBuffer/Math.floor-phrasing/etc., and `limits.any.js` (a
-    // spec-mandated stress test building up to 10M wasm constructs -- marked
-    // `// META: timeout=long` even for real engines, so it's just too slow
+    // ESMeta not mechanizing DataView, the mainline CondParser fix for "X is
+    // TYPE that has a [[SLOT]] internal slot" (docs/esmeta_errors.md #3)
+    // unblocked TypedArray.prototype.set, and WebIdlConversion learned
+    // TagType + GlobalDescriptor.mutable's IDL default (docs/hardcodes.md
+    // #1/#2) -- so these now fail on the *next* gap each hits: a required
+    // WebIDL member missing (still no way to throw a real `TypeError` for
+    // it, e.g. TableDescriptor.element), a dictionary member that itself
+    // needs recursive IDL conversion (`invalid size of: Record[Object]` --
+    // TagType.parameters is a `sequence<ValueType>`, copied as a raw JS Array
+    // rather than converted), an accessor property descriptor read via
+    // `.Value` instead of invoking its getter (dictionary reads assume data
+    // properties only), missing branding checks (`not a proper reference
+    // base: undefined`), the still-unmechanized SharedArrayBuffer/Math.floor-
+    // phrasing/etc., and `limits.any.js` (a spec-mandated stress test
+    // building up to 10M wasm constructs -- marked `// META: timeout=long`
+    // even for real engines, so it's just too slow
     // for WJI's interpreter rather than blocked by a real gap) -- see
     // personal/TODO.md #14.
     "js-api/constructor/compile.any.js",
@@ -59,7 +64,6 @@ private val knownFailing: Set[String] =
     "js-api/gc/exported-object.tentative.any.js",
     "js-api/gc/i31.tentative.any.js",
     "js-api/global/constructor.any.js",
-    "js-api/global/toString.any.js",
     "js-api/global/value-get-set.any.js",
     "js-api/global/valueOf.any.js",
     "js-api/instance/constructor-bad-imports.any.js",

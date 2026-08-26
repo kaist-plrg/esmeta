@@ -12,10 +12,12 @@ import esmeta.state.*
   * operations, ported 1:1 from the former
   * `manuals/funcs/converted_to_an_idl_value.ir` /
   * `converted_to_a_javascript_value.ir` stubs. Same scope as before the port
-  * (see `docs/hardcodes.md` #1/#2): only `"unsigned long"` and the three
-  * WebAssembly descriptor dictionaries genuinely convert; every other IDL type
-  * is still identity passthrough, and dictionary reads are own-property only
-  * (no prototype chain, no getters, no required-member validation).
+  * (see `docs/hardcodes.md` #1/#2), extended with `TagType`: only `"unsigned
+  * long"` and four WebAssembly dictionaries (`MemoryDescriptor`,
+  * `TableDescriptor`, `GlobalDescriptor`, `TagType`) genuinely convert; every
+  * other IDL type is still identity passthrough, and dictionary reads are
+  * own-property only (no prototype chain, no getters, no required-member
+  * validation -- see `readDictionary`).
   */
 object WebIdlConversion:
 
@@ -29,10 +31,21 @@ object WebIdlConversion:
 
   // ── converted to an IDL value ──────────────────────────────────────────────
 
-  private val memoryDescriptorMembers = List("initial", "maximum", "address")
-  private val tableDescriptorMembers =
-    List("element", "initial", "maximum", "address")
-  private val globalDescriptorMembers = List("value", "mutable")
+  private val memoryDescriptorMembers =
+    List("initial" -> None, "maximum" -> None, "address" -> None)
+  private val tableDescriptorMembers = List(
+    "element" -> None,
+    "initial" -> None,
+    "maximum" -> None,
+    "address" -> None,
+  )
+  // `boolean mutable = false;` -- the only member across these four
+  // dictionaries with an actual IDL default (the js-api spec's other
+  // non-required members have none, so an absent one is correctly left out
+  // of the result entirely -- see `readDictionary`).
+  private val globalDescriptorMembers =
+    List("value" -> None, "mutable" -> Some(Bool(false)))
+  private val tagTypeMembers = List("parameters" -> None)
 
   /** `ty` names the declared IDL type — almost always a literal `Str` (from
     * `AddInterfaceMemberBuiltinBehaviourPass.unpackArgumentsList`'s
@@ -52,6 +65,8 @@ object WebIdlConversion:
       readDictionary(st, argument, tableDescriptorMembers)
     case Str("GlobalDescriptor") | Enum("GlobalDescriptor") =>
       readDictionary(st, argument, globalDescriptorMembers)
+    case Str("TagType") | Enum("TagType") =>
+      readDictionary(st, argument, tagTypeMembers)
     case _ => argument
 
   private val TWO_32: BigDecimal = BigDecimal(4294967296L)
@@ -70,22 +85,31 @@ object WebIdlConversion:
     Math(n.decimal %% TWO_32)
 
   /** reads `members` straight off `argument`'s own `__MAP__` (own data
-    * properties only), skipping any member not present, into a fresh internal
-    * `MapObj` — mirrors the `.ir` version's `argument.__MAP__[key].Value`/
-    * `exists` reads exactly.
+    * properties only) into a fresh internal `MapObj` — mirrors the `.ir`
+    * version's `argument.__MAP__[key].Value`/`exists` reads exactly, plus IDL
+    * default values (`member -> Some(default)`): when a member is absent, a
+    * `None` default (matches every js-api non-required member without an
+    * explicit IDL default, e.g. `MemoryDescriptor.maximum`) leaves it out of
+    * the result entirely, same as before; a `Some(default)` (so far only
+    * `GlobalDescriptor.mutable = false`) fills it in instead. A *required*
+    * member (e.g. `TableDescriptor.element`) still just goes missing when
+    * absent rather than throwing a real `TypeError` -- WebIDL dictionary
+    * conversion is supposed to reject that case, but nothing here can raise a
+    * catchable ECMAScript exception yet (see `personal/TODO.md` #14).
     */
   private def readDictionary(
     st: State,
     argument: Value,
-    members: List[String],
+    members: List[(String, Option[Value])],
   ): Value =
     val mapField = st(argument, Str("__MAP__"))
     val dictAddr = st.allocMap(Nil)
-    for member <- members do
+    for (member, default) <- members do
       val key = Str(member)
       if st.exists(mapField, key) then
         val pd = st(mapField, key)
         st.update(dictAddr, key, st(pd, Str("Value")))
+      else default.foreach(st.update(dictAddr, key, _))
     dictAddr
 
   // ── converted to a JavaScript value ────────────────────────────────────────

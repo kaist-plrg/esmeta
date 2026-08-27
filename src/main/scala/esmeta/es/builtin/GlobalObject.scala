@@ -34,7 +34,8 @@ case class GlobalObject(cfg: CFG) {
       Str("WebAssembly") -> DataDesc(intrAddr("WebAssembly"), T, F, T),
     )
     val wellKnowns = for {
-      row <- spec.tables(WELL_KNOWN_INTRINSICS).rows
+      row <- spec.tables(WELL_KNOWN_INTRINSICS).rows ++
+      spec.tables(WELL_KNOWN_INTRINSICS_ADDITIONAL).rows
       List(intrCell, globCell) = row.take(2).map(_.trim) if globCell != ""
       intrKey = intrCell.replace("%", "")
       globKey = globCell.replace("`", "")

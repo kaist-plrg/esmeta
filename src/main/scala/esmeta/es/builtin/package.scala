@@ -78,6 +78,11 @@ val yetFuncs: Set[String] = Set(
 // https://tc39.es/ecma262/#table-well-known-intrinsic-objects
 val WELL_KNOWN_INTRINSICS = "table-well-known-intrinsic-objects"
 
+// https://tc39.es/ecma262/#table-additional-well-known-intrinsic-objects
+// the spec states this table's entries "are added to" WELL_KNOWN_INTRINSICS.
+val WELL_KNOWN_INTRINSICS_ADDITIONAL =
+  "table-additional-well-known-intrinsic-objects"
+
 // https://tc39.es/ecma262/#sec-well-known-symbols
 val WELL_KNOWN_SYMBOLS = "table-well-known-symbols"
 

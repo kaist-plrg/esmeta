@@ -36,17 +36,21 @@ private val knownFailing: Set[String] =
     // conversion (docs/hardcodes.md #1/#2), an omitted optional dictionary
     // argument now actually gets converted (AddInterfaceMemberBuiltinBehaviourPass.
     // omittedBranch), and Instr.ForEachPaired handles "X and Y of A and B,
-    // paired linearly" -- so these now fail on the *next* gap each hits: a
-    // required WebIDL member missing (still no way to throw a real
-    // `TypeError` for it, e.g. TableDescriptor.element), an accessor
-    // property descriptor read via `.Value` instead of invoking its getter
-    // (dictionary reads assume data properties only), missing branding
-    // checks (`not a proper reference base: undefined`), the
-    // still-unmechanized SharedArrayBuffer/Math.floor-phrasing/IEEE754-
-    // rounding-phrasing/etc., and `limits.any.js` (a spec-mandated stress
-    // test building up to 10M wasm constructs -- marked `// META:
-    // timeout=long` even for real engines, so it's just too slow for WJI's
-    // interpreter rather than
+    // paired linearly", and a manual rule (`manuals/rule.json`, mainline
+    // `esmeta.compiler.Compiler`) now maps Math.floor's own defining prose
+    // ("the greatest (closest to +∞) integral Number value that is not
+    // greater than X") to the existing `floor` unary op, since it's a
+    // singleton phrasing (ecma262 never states it any other way) rather than
+    // a recurring idiom worth a real grammar rule -- so these now fail on
+    // the *next* gap each hits: a required WebIDL member missing (still no
+    // way to throw a real `TypeError` for it, e.g. TableDescriptor.element),
+    // an accessor property descriptor read via `.Value` instead of invoking
+    // its getter (dictionary reads assume data properties only), missing
+    // branding checks (`not a proper reference base: undefined`), the
+    // still-unmechanized SharedArrayBuffer/IEEE754-rounding-phrasing/etc.,
+    // and `limits.any.js` (a spec-mandated stress test building up to 10M
+    // wasm constructs -- marked `// META: timeout=long` even for real
+    // engines, so it's just too slow for WJI's interpreter rather than
     // blocked by a real gap).
     "js-api/constructor/compile.any.js",
     "js-api/constructor/instantiate-bad-imports.any.js",
@@ -59,6 +63,13 @@ private val knownFailing: Set[String] =
     "js-api/exception/identity.tentative.any.js",
     "js-api/exception/is.tentative.any.js",
     "js-api/exception/jsTag.tentative.any.js",
+    // unlike every other entry here, this one passes outright in isolation
+    // (`sbt run wji-eval tests/wji/js-api/generated/gc/casts.tentative.any.js
+    // -silent`) -- it only fails as part of this suite, reproducibly, with
+    // `__wjiOk` never getting set at all (same "crash absorbed inside an
+    // async chain" symptom as the js-string/gc entries below). Looks like
+    // some state leaks across tests sharing one SpecTec connection/process
+    // (untriaged) rather than a real mechanization gap.
     "js-api/gc/casts.tentative.any.js",
     "js-api/gc/default-value.tentative.any.js",
     "js-api/gc/exported-object.tentative.any.js",

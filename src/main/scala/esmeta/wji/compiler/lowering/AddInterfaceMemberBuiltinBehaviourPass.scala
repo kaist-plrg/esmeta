@@ -43,8 +43,7 @@ import esmeta.error.UnsupportedSpecShape
   * |promise|.` ends up returning the capability record instead of an actual
   * `Promise` unless something explicitly unwraps `.Promise` first, which the
   * hand-written `manuals/funcs/INTRINSICS. WebAssembly.instantiate.ir` glue
-  * does and nothing generic does yet. See `docs/hardcodes.md` #7 and
-  * `personal/TODO.md`.
+  * does and nothing generic does yet. See `docs/hardcodes.md` #7.
   *
   *   - '''parameter unpacking''': `BuiltinCallOrConstruct` always invokes a
   *     builtin as `func.__CODE__(this, argumentsList, newTarget)` — a fixed

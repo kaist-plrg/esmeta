@@ -31,21 +31,37 @@ object WebIdlConversion:
 
   // ── converted to an IDL value ──────────────────────────────────────────────
 
+  /** one dictionary member: its name, IDL default (`None` for a `required`
+    * member or one with no declared default -- either way, absent just means
+    * absent in the result, see `readDictionary`), and whether its own IDL type
+    * is `sequence<T>` (so the raw value, if present, needs converting from a JS
+    * array-like into a real internal `List` before it's usable by anything past
+    * this point -- see `toSequence`).
+    */
+  private case class Member(
+    name: String,
+    default: Option[Value] = None,
+    isSequence: Boolean = false,
+  )
+
   private val memoryDescriptorMembers =
-    List("initial" -> None, "maximum" -> None, "address" -> None)
+    List(Member("initial"), Member("maximum"), Member("address"))
   private val tableDescriptorMembers = List(
-    "element" -> None,
-    "initial" -> None,
-    "maximum" -> None,
-    "address" -> None,
+    Member("element"),
+    Member("initial"),
+    Member("maximum"),
+    Member("address"),
   )
   // `boolean mutable = false;` -- the only member across these four
   // dictionaries with an actual IDL default (the js-api spec's other
   // non-required members have none, so an absent one is correctly left out
   // of the result entirely -- see `readDictionary`).
   private val globalDescriptorMembers =
-    List("value" -> None, "mutable" -> Some(Bool(false)))
-  private val tagTypeMembers = List("parameters" -> None)
+    List(Member("value"), Member("mutable", default = Some(Bool(false))))
+  // `required sequence<ValueType> parameters;` -- element-wise ValueType
+  // conversion is skipped (still identity passthrough, same as every other
+  // enum-shaped IDL type here); only the outer JS-array-to-List step is done.
+  private val tagTypeMembers = List(Member("parameters", isSequence = true))
 
   /** `ty` names the declared IDL type — almost always a literal `Str` (from
     * `AddInterfaceMemberBuiltinBehaviourPass.unpackArgumentsList`'s
@@ -67,7 +83,14 @@ object WebIdlConversion:
       readDictionary(st, argument, globalDescriptorMembers)
     case Str("TagType") | Enum("TagType") =>
       readDictionary(st, argument, tagTypeMembers)
-    case _ => argument
+    // a bare `sequence<T>` parameter (as opposed to one nested inside a
+    // dictionary, see `Member.isSequence`) -- so far only
+    // `Exception`'s constructor's `sequence<any> payload`. Matched by prefix
+    // rather than the exact element type, same "identity passthrough for the
+    // element type" simplification as everywhere else in this object.
+    case Str(t) if t.startsWith("sequence<")  => toSequence(st, argument)
+    case Enum(t) if t.startsWith("sequence<") => toSequence(st, argument)
+    case _                                    => argument
 
   private val TWO_32: BigDecimal = BigDecimal(4294967296L)
 
@@ -87,30 +110,48 @@ object WebIdlConversion:
   /** reads `members` straight off `argument`'s own `__MAP__` (own data
     * properties only) into a fresh internal `MapObj` — mirrors the `.ir`
     * version's `argument.__MAP__[key].Value`/`exists` reads exactly, plus IDL
-    * default values (`member -> Some(default)`): when a member is absent, a
-    * `None` default (matches every js-api non-required member without an
-    * explicit IDL default, e.g. `MemoryDescriptor.maximum`) leaves it out of
-    * the result entirely, same as before; a `Some(default)` (so far only
-    * `GlobalDescriptor.mutable = false`) fills it in instead. A *required*
-    * member (e.g. `TableDescriptor.element`) still just goes missing when
-    * absent rather than throwing a real `TypeError` -- WebIDL dictionary
-    * conversion is supposed to reject that case, but nothing here can raise a
-    * catchable ECMAScript exception yet (see `personal/TODO.md` #14).
+    * default values (`Member.default`): when a member is absent, `None`
+    * (matches every js-api non-required member without an explicit IDL default,
+    * e.g. `MemoryDescriptor.maximum`) leaves it out of the result entirely,
+    * same as before; `Some(default)` (so far only `GlobalDescriptor.mutable =
+    * false`) fills it in instead. A *required* member (e.g.
+    * `TableDescriptor.element`) still just goes missing when absent rather than
+    * throwing a real `TypeError` -- WebIDL dictionary conversion is supposed to
+    * reject that case, but nothing here can raise a catchable ECMAScript
+    * exception yet.
     */
   private def readDictionary(
     st: State,
     argument: Value,
-    members: List[(String, Option[Value])],
+    members: List[Member],
   ): Value =
     val mapField = st(argument, Str("__MAP__"))
     val dictAddr = st.allocMap(Nil)
-    for (member, default) <- members do
-      val key = Str(member)
+    for member <- members do
+      val key = Str(member.name)
       if st.exists(mapField, key) then
         val pd = st(mapField, key)
-        st.update(dictAddr, key, st(pd, Str("Value")))
-      else default.foreach(st.update(dictAddr, key, _))
+        val raw = st(pd, Str("Value"))
+        val value = if member.isSequence then toSequence(st, raw) else raw
+        st.update(dictAddr, key, value)
+      else member.default.foreach(st.update(dictAddr, key, _))
     dictAddr
+
+  /** converts a JS array-like `value` (own `"length"` + own indexed properties,
+    * e.g. a real `Array` literal) into a genuine internal `List` — mirrors
+    * `CreateListFromArrayLike`'s own simple read loop (length, then each index
+    * in turn), rather than the full WebIDL "sequence" conversion (which
+    * iterates via `Symbol.iterator`): every actual call site so far passes a
+    * literal array, so the two agree, and this avoids driving the iterator
+    * protocol from native code just for that.
+    */
+  private def toSequence(st: State, value: Value): Value =
+    val mapField = st(value, Str("__MAP__"))
+    val length = toMathValue(st(st(mapField, Str("length")), Str("Value")))
+    val elements = (0 until length.decimal.toInt).toList.map { i =>
+      st(st(mapField, Str(i.toString)), Str("Value"))
+    }
+    st.allocList(elements)
 
   // ── converted to a JavaScript value ────────────────────────────────────────
 

@@ -32,21 +32,21 @@ private val knownFailing: Set[String] =
     // ESMeta not mechanizing DataView, the mainline CondParser fix for "X is
     // TYPE that has a [[SLOT]] internal slot" (docs/esmeta_errors.md #3)
     // unblocked TypedArray.prototype.set, and WebIdlConversion learned
-    // TagType + GlobalDescriptor.mutable's IDL default (docs/hardcodes.md
-    // #1/#2) -- so these now fail on the *next* gap each hits: a required
-    // WebIDL member missing (still no way to throw a real `TypeError` for
-    // it, e.g. TableDescriptor.element), a dictionary member that itself
-    // needs recursive IDL conversion (`invalid size of: Record[Object]` --
-    // TagType.parameters is a `sequence<ValueType>`, copied as a raw JS Array
-    // rather than converted), an accessor property descriptor read via
-    // `.Value` instead of invoking its getter (dictionary reads assume data
-    // properties only), missing branding checks (`not a proper reference
-    // base: undefined`), the still-unmechanized SharedArrayBuffer/Math.floor-
-    // phrasing/etc., and `limits.any.js` (a spec-mandated stress test
-    // building up to 10M wasm constructs -- marked `// META: timeout=long`
-    // even for real engines, so it's just too slow
-    // for WJI's interpreter rather than blocked by a real gap) -- see
-    // personal/TODO.md #14.
+    // TagType + GlobalDescriptor.mutable's IDL default + sequence<T>
+    // conversion (docs/hardcodes.md #1/#2) -- so these now fail on the *next*
+    // gap each hits: a required WebIDL member missing (still no way to throw
+    // a real `TypeError` for it, e.g. TableDescriptor.element), an accessor
+    // property descriptor read via `.Value` instead of invoking its getter
+    // (dictionary reads assume data properties only), WJI's own `ForEach`
+    // instruction not supporting "X and Y of A and B, paired linearly"
+    // (parallel iteration over two lists in lockstep -- js-api's Exception
+    // constructor algorithm), missing branding checks (`not a proper
+    // reference base: undefined`), the still-unmechanized
+    // SharedArrayBuffer/Math.floor-phrasing/IEEE754-rounding-phrasing/etc.,
+    // and `limits.any.js` (a spec-mandated stress test building up to 10M
+    // wasm constructs -- marked `// META: timeout=long` even for real
+    // engines, so it's just too slow for WJI's interpreter rather than
+    // blocked by a real gap).
     "js-api/constructor/compile.any.js",
     "js-api/constructor/instantiate-bad-imports.any.js",
     "js-api/constructor/instantiate.any.js",
@@ -92,7 +92,6 @@ private val knownFailing: Set[String] =
     "js-api/table/grow.any.js",
     "js-api/table/length.any.js",
     "js-api/tag/constructor.tentative.any.js",
-    "js-api/tag/toString.tentative.any.js",
   )
 
 /** Runs every `.js` test case under `tests/wji/manual` and

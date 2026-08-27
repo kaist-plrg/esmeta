@@ -64,6 +64,9 @@ object InstrPrinter:
     case Throw(target, _) => s"Throw(${ExprPrinter.render(target)})"
     case ForEach(elem, coll, _) =>
       s"ForEach(${ExprPrinter.render(elem)}, ${ExprPrinter.render(coll)})"
+    case ForEachPaired(elem1, elem2, coll1, coll2, _) =>
+      s"ForEachPaired(${ExprPrinter.render(elem1)}, ${ExprPrinter.render(elem2)}, " +
+      s"${ExprPrinter.render(coll1)}, ${ExprPrinter.render(coll2)})"
     case Instr.For(elem, coll, _) =>
       s"For(${ExprPrinter.render(elem)}, ${ExprPrinter.render(coll)})"
     case While(cond, _)   => s"While(${CondPrinter.render(cond)})"

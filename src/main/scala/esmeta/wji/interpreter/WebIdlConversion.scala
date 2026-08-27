@@ -62,6 +62,10 @@ object WebIdlConversion:
   // conversion is skipped (still identity passthrough, same as every other
   // enum-shaped IDL type here); only the outer JS-array-to-List step is done.
   private val tagTypeMembers = List(Member("parameters", isSequence = true))
+  // `boolean traceStack = false;` -- `Exception`'s constructor's third
+  // parameter (`optional ExceptionOptions options = {}`).
+  private val exceptionOptionsMembers =
+    List(Member("traceStack", default = Some(Bool(false))))
 
   /** `ty` names the declared IDL type — almost always a literal `Str` (from
     * `AddInterfaceMemberBuiltinBehaviourPass.unpackArgumentsList`'s
@@ -83,6 +87,8 @@ object WebIdlConversion:
       readDictionary(st, argument, globalDescriptorMembers)
     case Str("TagType") | Enum("TagType") =>
       readDictionary(st, argument, tagTypeMembers)
+    case Str("ExceptionOptions") | Enum("ExceptionOptions") =>
+      readDictionary(st, argument, exceptionOptionsMembers)
     // a bare `sequence<T>` parameter (as opposed to one nested inside a
     // dictionary, see `Member.isSequence`) -- so far only
     // `Exception`'s constructor's `sequence<any> payload`. Matched by prefix

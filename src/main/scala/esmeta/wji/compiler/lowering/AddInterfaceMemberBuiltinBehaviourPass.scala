@@ -159,12 +159,15 @@ object AddInterfaceMemberBuiltinBehaviourPass extends LoweringPass:
     *     only default this corpus's WebIDL actually declares) is handled, via
     *     the same `[$OrdinaryObjectCreate$](null)` idiom spec text itself
     *     already uses for a fresh, no-own-properties object (e.g. `create an
-    *     exports object`'s `|exportsObject|`) — plain property reads on it (all
-    *     a defaulted-dictionary param's own spec text ever does) behave
-    *     identically whether its prototype is `null` or `%Object.prototype%`,
-    *     so there's no need to build a "real" `{}` literal's prototype chain
-    *     just for this. Any other default text fails loudly via
-    *     `UnsupportedSpecShape` instead of being guessed at.
+    *     exports object`'s `|exportsObject|`) — then, same as the "argument
+    *     actually supplied" branch just above, run through
+    *     `converted_to_an_idl_value` if `p.idlType` is known, so a dictionary
+    *     member with its own IDL default (e.g. `ExceptionOptions.traceStack =
+    *     false`) actually gets filled in instead of just being a plain
+    *     no-own-properties object — omitting an optional dictionary argument
+    *     and passing `{}` explicitly must produce the same result, and the
+    *     "supplied" branch already always converts. Any other default text
+    *     fails loudly via `UnsupportedSpecShape` instead of being guessed at.
     */
   private def omittedBranch(p: WjiParam, name: String): List[Instr] =
     if !p.optional then List(Instr.Throw(Expr.New("TypeError")))
@@ -173,13 +176,17 @@ object AddInterfaceMemberBuiltinBehaviourPass extends LoweringPass:
         case None =>
           List(Instr.Let(Expr.Var(name), Expr.SpecTerm("undefined")))
         case Some("{}") =>
-          List(
+          Instr.Perform(
+            "OrdinaryObjectCreate",
+            List(Expr.SpecTerm("null")),
+            Instr.PerformOutcome.BindResult(name),
+          ) :: p.idlType.toList.map { ty =>
             Instr.Perform(
-              "OrdinaryObjectCreate",
-              List(Expr.SpecTerm("null")),
+              "converted_to_an_idl_value",
+              List(Expr.Var(name), Expr.Str(ty)),
               Instr.PerformOutcome.BindResult(name),
-            ),
-          )
+            )
+          }
         case Some(other) =>
           throw UnsupportedSpecShape(
             "AddInterfaceMemberBuiltinBehaviourPass",

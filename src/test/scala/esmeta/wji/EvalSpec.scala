@@ -31,21 +31,22 @@ private val knownFailing: Set[String] =
     // js-api/generated: `tests/wji/js-api/dataview-polyfill.js` works around
     // ESMeta not mechanizing DataView, the mainline CondParser fix for "X is
     // TYPE that has a [[SLOT]] internal slot" (docs/esmeta_errors.md #3)
-    // unblocked TypedArray.prototype.set, and WebIdlConversion learned
-    // TagType + GlobalDescriptor.mutable's IDL default + sequence<T>
-    // conversion (docs/hardcodes.md #1/#2) -- so these now fail on the *next*
-    // gap each hits: a required WebIDL member missing (still no way to throw
-    // a real `TypeError` for it, e.g. TableDescriptor.element), an accessor
+    // unblocked TypedArray.prototype.set, WebIdlConversion learned TagType +
+    // ExceptionOptions + GlobalDescriptor.mutable's IDL default + sequence<T>
+    // conversion (docs/hardcodes.md #1/#2), an omitted optional dictionary
+    // argument now actually gets converted (AddInterfaceMemberBuiltinBehaviourPass.
+    // omittedBranch), and Instr.ForEachPaired handles "X and Y of A and B,
+    // paired linearly" -- so these now fail on the *next* gap each hits: a
+    // required WebIDL member missing (still no way to throw a real
+    // `TypeError` for it, e.g. TableDescriptor.element), an accessor
     // property descriptor read via `.Value` instead of invoking its getter
-    // (dictionary reads assume data properties only), WJI's own `ForEach`
-    // instruction not supporting "X and Y of A and B, paired linearly"
-    // (parallel iteration over two lists in lockstep -- js-api's Exception
-    // constructor algorithm), missing branding checks (`not a proper
-    // reference base: undefined`), the still-unmechanized
-    // SharedArrayBuffer/Math.floor-phrasing/IEEE754-rounding-phrasing/etc.,
-    // and `limits.any.js` (a spec-mandated stress test building up to 10M
-    // wasm constructs -- marked `// META: timeout=long` even for real
-    // engines, so it's just too slow for WJI's interpreter rather than
+    // (dictionary reads assume data properties only), missing branding
+    // checks (`not a proper reference base: undefined`), the
+    // still-unmechanized SharedArrayBuffer/Math.floor-phrasing/IEEE754-
+    // rounding-phrasing/etc., and `limits.any.js` (a spec-mandated stress
+    // test building up to 10M wasm constructs -- marked `// META:
+    // timeout=long` even for real engines, so it's just too slow for WJI's
+    // interpreter rather than
     // blocked by a real gap).
     "js-api/constructor/compile.any.js",
     "js-api/constructor/instantiate-bad-imports.any.js",
@@ -58,7 +59,6 @@ private val knownFailing: Set[String] =
     "js-api/exception/identity.tentative.any.js",
     "js-api/exception/is.tentative.any.js",
     "js-api/exception/jsTag.tentative.any.js",
-    "js-api/exception/toString.tentative.any.js",
     "js-api/gc/casts.tentative.any.js",
     "js-api/gc/default-value.tentative.any.js",
     "js-api/gc/exported-object.tentative.any.js",

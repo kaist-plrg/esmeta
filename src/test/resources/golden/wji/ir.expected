@@ -680,6 +680,7 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Module(
     call-convert options = <converted_to_an_idl_value>(options, "WebAssemblyCompileOptions")
   } else {
     call options = clo<"OrdinaryObjectCreate">(null)
+    call-convert options = <converted_to_an_idl_value>(options, "WebAssemblyCompileOptions")
   }
   this = (record [Module] {
     "GetPrototypeOf" : clo<"Record[OrdinaryObject].GetPrototypeOf">,
@@ -2140,19 +2141,26 @@ def run_a_host_function(
       call _ret15 = clo<"ThrowCompletion">(_err14)
       return _ret15
     } else nop
-    (yet "foreach ?(|value| and |resultType|) in ?(|values| and |results|)")
-    call _call9 = clo<"towebassemblyvalue">(value, resultType)
-    if (? _call9: Abrupt) {
-      if (? _call9: Completion) {
-        return _call9
+    let _iterList3 = values
+    let _iterList4 = results
+    let _iterIdx5 = 0
+    while (< _iterIdx5 (sizeof _iterList3)) {
+      let value = _iterList3[_iterIdx5]
+      let resultType = _iterList4[_iterIdx5]
+      call _call9 = clo<"towebassemblyvalue">(value, resultType)
+      if (? _call9: Abrupt) {
+        if (? _call9: Completion) {
+          return _call9
+        } else {
+          call _ret16 = clo<"NormalCompletion">(_call9)
+          return _ret16
+        }
       } else {
-        call _ret16 = clo<"NormalCompletion">(_call9)
-        return _ret16
+        let _call10 = _call9.Value
       }
-    } else {
-      let _call10 = _call9.Value
+      push wasmValues < _call10
+      _iterIdx5 = (+ _iterIdx5 1)
     }
-    push wasmValues < _call10
     if (? wasmValues: Completion) {
       return wasmValues
     } else {
@@ -2792,6 +2800,7 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Exception(
     call-convert options = <converted_to_an_idl_value>(options, "ExceptionOptions")
   } else {
     call options = clo<"OrdinaryObjectCreate">(null)
+    call-convert options = <converted_to_an_idl_value>(options, "ExceptionOptions")
   }
   this = (record [Exception] {
     "GetPrototypeOf" : clo<"Record[OrdinaryObject].GetPrototypeOf">,
@@ -2827,26 +2836,33 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Exception(
     return _ret8
   } else nop
   let wasmPayload = (list [])
-  (yet "foreach ?(|value| and |resultType|) in ?(|payload| and |types|)")
-  call-embed _m1 = <match_valtype>(resultType, (case "V128" ))
-  call-embed _m2 = <match_valtype>(resultType, (case "REF" (opt (case "NULL" )) (case "EXN" )))
-  if (|| (= _m1 true) (= _m2 true)) {
-    call _err9 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-    call _ret10 = clo<"ThrowCompletion">(_err9)
-    return _ret10
-  } else nop
-  call _call2 = clo<"towebassemblyvalue">(value, resultType)
-  if (? _call2: Abrupt) {
-    if (? _call2: Completion) {
-      return _call2
+  let _iterList1 = payload
+  let _iterList2 = types
+  let _iterIdx3 = 0
+  while (< _iterIdx3 (sizeof _iterList1)) {
+    let value = _iterList1[_iterIdx3]
+    let resultType = _iterList2[_iterIdx3]
+    call-embed _m1 = <match_valtype>(resultType, (case "V128" ))
+    call-embed _m2 = <match_valtype>(resultType, (case "REF" (opt (case "NULL" )) (case "EXN" )))
+    if (|| (= _m1 true) (= _m2 true)) {
+      call _err9 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
+      call _ret10 = clo<"ThrowCompletion">(_err9)
+      return _ret10
+    } else nop
+    call _call2 = clo<"towebassemblyvalue">(value, resultType)
+    if (? _call2: Abrupt) {
+      if (? _call2: Completion) {
+        return _call2
+      } else {
+        call _ret11 = clo<"NormalCompletion">(_call2)
+        return _ret11
+      }
     } else {
-      call _ret11 = clo<"NormalCompletion">(_call2)
-      return _ret11
+      let _call3 = _call2.Value
     }
-  } else {
-    let _call3 = _call2.Value
+    push wasmPayload < _call3
+    _iterIdx3 = (+ _iterIdx3 1)
   }
-  push wasmPayload < _call3
   call-embed _tuple2 = <exn_alloc>(store, exceptionTag.Address, wasmPayload)
   let store = _tuple2[0]
   let exceptionAddr = _tuple2[1]

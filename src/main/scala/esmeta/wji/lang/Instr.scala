@@ -57,6 +57,25 @@ object Instr:
   case class ForEach(elem: Expr, collection: Expr, body: List[Instr])
     extends Instr
 
+  /** `For each ELEM1 and ELEM2 of/in COLLECTION1 and COLLECTION2, paired
+    * linearly, ...` -- WHATWG Infra's "paired linearly" idiom for iterating two
+    * lists in lockstep (zip), e.g. js-api's `Exception` constructor ("For each
+    * |value| and |resultType| of |payload| and |types|, paired linearly, ...").
+    * Kept as its own case rather than generalizing [[ForEach]] to N-way: the
+    * single-collection form is overwhelmingly the common one, and this idiom is
+    * rare (2 occurrences in the whole js-api spec) -- see
+    * `esmeta.wji.compiler.lowering.ExpandForEachPass`, the only place with any
+    * real interest in it (fully eliminated during lowering, so nothing past
+    * that point needs to know this case exists).
+    */
+  case class ForEachPaired(
+    elem1: Expr,
+    elem2: Expr,
+    collection1: Expr,
+    collection2: Expr,
+    body: List[Instr],
+  ) extends Instr
+
   /** `For ELEM in COLLECTION, ...` — distinct from [[ForEach]] since the spec
     * phrases it without "each" (e.g. "For |i| in [=the range=] |offset| to
     * |offset| + |length| &minus; 1, inclusive, ..."). `collection` is commonly
@@ -178,8 +197,9 @@ object Instr:
     * doc). Recognizes an `IfChain` as exhaustive only when it has a non-empty
     * `fallback` (a real `else`) and every branch, including the fallback,
     * itself always exits. Does not look inside loop bodies
-    * (`ForEach`/`For`/`While`) or `RunInParallel` — none of those guarantee
-    * they run at all, or that the current algorithm exits when they do.
+    * (`ForEach`/`ForEachPaired`/`For`/`While`) or `RunInParallel` — none of
+    * those guarantee they run at all, or that the current algorithm exits when
+    * they do.
     */
   def alwaysExits(body: List[Instr]): Boolean =
     body.exists {
@@ -209,6 +229,7 @@ object Instr:
       case i: Assert         => i.copy(body = f(i.body))
       case i: Throw          => i.copy(body = f(i.body))
       case i: ForEach        => i.copy(body = f(i.body))
+      case i: ForEachPaired  => i.copy(body = f(i.body))
       case i: For            => i.copy(body = f(i.body))
       case i: While          => i.copy(body = f(i.body))
       case i: RunInParallel  => i.copy(body = f(i.body))

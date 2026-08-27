@@ -871,7 +871,7 @@
     Let(|wasmValues|, « »)
     If(length(|values|) is not |resultsSize|)
       Throw(new {{TypeError}})
-    ForEach(?(|value| and |resultType|), ?(|values| and |results|))
+    ForEachPaired(|value|, |resultType|, |values|, |results|)
       Append([=?=] [=ToWebAssemblyValue=](|value|, |resultType|), |wasmValues|)
     Return(|wasmValues|)
 
@@ -1180,7 +1180,7 @@
   If(length(|types|) is not length(|payload|))
     Throw(new {{TypeError}})
   Let(|wasmPayload|, « »)
-  ForEach(?(|value| and |resultType|), ?(|payload| and |types|))
+  ForEachPaired(|value|, |resultType|, |payload|, |types|)
     If(|resultType| [=matches/valtype=] [=v128=] or [=exnref=])
       Throw(new {{TypeError}})
     Append([=?=] [=ToWebAssemblyValue=](|value|, |resultType|), |wasmPayload|)

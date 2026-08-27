@@ -267,6 +267,18 @@ object Compiler:
         ),
       ) :: compileSeq(body)
 
+    // unlike ForEach, real "paired linearly" spec text always binds two plain
+    // pipe-variables (that's what the idiom itself means — pairing up two
+    // per-iteration values, not destructuring or map-iterating either one),
+    // so ExpandForEachPass's isBindable guard is never actually false for a
+    // real occurrence — confirmed against every "paired linearly" spot in
+    // the corpus. An EYet here would silently mask that guard ever being
+    // wrong; impossible() instead fails loudly and immediately, right at the
+    // actual bug, if ExpandForEachPass is ever skipped or that assumption
+    // stops holding.
+    case i: Instr.ForEachPaired =>
+      impossible(s"ForEachPaired not eliminated by ExpandForEachPass: $i")
+
     case Instr.For(elem, collection, body) =>
       // TODO: proper counting loop — needs a real IWhile over the collection
       IExpr(

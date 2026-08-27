@@ -251,15 +251,40 @@ object InstrParser:
               case ForEachElemTypeTag(v) => v
               case e                     => e
             val after = rest.substring(i + sep.length)
-            val collection = (findTopLevel(after, ",") match
-              case Some(j) => after.substring(0, j)
-              case None    => after.stripSuffix(",")
-            ).trim.stripSuffix(":").trim
-            ForEach(
-              ExprParser.parse(elem),
-              ExprParser.parse(collection),
-              trailingBody,
-            )
+            val (collection, tail) = findTopLevel(after, ",") match
+              case Some(j) => (after.substring(0, j), after.substring(j + 1))
+              case None    => (after.stripSuffix(","), "")
+            // "For each ELEM1 and ELEM2 of/in COLLECTION1 and COLLECTION2,
+            // paired linearly, ..." -- WHATWG Infra's zip-two-lists idiom
+            // (e.g. js-api's Exception constructor). Only ever seen with
+            // exactly two variables/collections, so a single top-level
+            // " and " split on each side is enough -- see Instr.ForEachPaired.
+            if tail.trim
+                .stripSuffix(",")
+                .trim
+                .equalsIgnoreCase(
+                  "paired linearly",
+                )
+            then
+              (
+                splitTopLevel(elem, " and "),
+                splitTopLevel(collection, " and "),
+              ) match
+                case (Some((e1, e2)), Some((c1, c2))) =>
+                  ForEachPaired(
+                    ExprParser.parse(e1.trim),
+                    ExprParser.parse(e2.trim),
+                    ExprParser.parse(c1.trim),
+                    ExprParser.parse(c2.trim),
+                    trailingBody,
+                  )
+                case _ => Unknown(text, trailingBody)
+            else
+              ForEach(
+                ExprParser.parse(elem),
+                ExprParser.parse(collection.trim.stripSuffix(":").trim),
+                trailingBody,
+              )
           case None => Unknown(text, trailingBody)
       case ForPrefix(elemStr, rest) =>
         val (collection, bodyText) = splitForCollection(rest)

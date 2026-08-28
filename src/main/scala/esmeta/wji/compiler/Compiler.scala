@@ -617,10 +617,27 @@ object Compiler:
       EBinary(BOp.Eq, compileExpr(e), EUndef())
     case Cond.IsMissing(e, true) =>
       EUnary(UOp.Not, EBinary(BOp.Eq, compileExpr(e), EUndef()))
-    case Cond.HasSlot(e, slot, false) =>
-      EExists(Field(compileRef(e), EStr(slot)))
-    case Cond.HasSlot(e, slot, true) =>
-      EUnary(UOp.Not, EExists(Field(compileRef(e), EStr(slot))))
+    case Cond.HasSlot(e, slot, neg) =>
+      // "X has a [[SLOT]] internal slot" is spec shorthand for "X is an
+      // Object and (that Object) has [[SLOT]]" -- only Objects have internal
+      // slots at all, so for anything else the answer is simply false (never
+      // an error), even though nothing spells that qualifier out explicitly.
+      // Real spec text leans on this: e.g. `ToWebAssemblyValue`'s "Else if
+      // |v| is an Exported Function" (a `[[FunctionAddress]] internal slot`
+      // check) is one arm of a chain that never separately confirms |v| is
+      // an Object first -- a plain Number reaching that arm is completely
+      // ordinary. Skipping this guard doesn't just misclassify such values --
+      // `EExists` itself throws outright for a non-Object base
+      // (`esmeta.state.State.exists`'s `case _ => raise("illegal field
+      // existence check: ...")`).
+      val ref = compileRef(e)
+      val positive =
+        EBinary(
+          BOp.And,
+          ETypeCheck(ERef(ref), irTypeOf("Object")),
+          EExists(Field(ref, EStr(slot))),
+        )
+      if neg then EUnary(UOp.Not, positive) else positive
     case Cond.Contains(elem, list, false) =>
       EContains(compileExpr(list), compileExpr(elem))
     case Cond.Contains(elem, list, true) =>

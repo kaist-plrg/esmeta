@@ -234,7 +234,7 @@ def read_the_imports(
         call _ret9 = clo<"ThrowCompletion">(_err8)
         return _ret9
       } else nop
-      if (&& (exists v.FunctionAddress) (exists @@yet: unresolved ref: Unknown(therefore).FunctionAddress)) {
+      if (&& (&& (? v: Record[Object]) (exists v.FunctionAddress)) (&& (? @@yet: unresolved ref: Unknown(therefore): Record[Object]) (exists @@yet: unresolved ref: Unknown(therefore).FunctionAddress))) {
         let funcaddr = v.FunctionAddress
       } else {
         call funcaddr = clo<"Create_a_host_function">(v, functype)
@@ -2378,7 +2378,7 @@ def towebassemblyvalue(
         let r = (case "REF.EXTERN" ref)
       } else {
         let _cond10 = false
-        if (exists v.FunctionAddress) {
+        if (&& (? v: Record[Object]) (exists v.FunctionAddress)) {
           call-embed _call9 = <match_valtype>(type, (case "REF" null (case "FUNC" )))
           if (= _call9 true) {
             _cond10 = true
@@ -2420,7 +2420,7 @@ def towebassemblyvalue(
             call-embed u31 = <inv_signed_31>(([math] i31))
             let r = (case "REF.I31_NUM" u31)
           } else {
-            if (exists v.ObjectAddress) {
+            if (&& (? v: Record[Object]) (exists v.ObjectAddress)) {
               let objectaddr = v.ObjectAddress
               let objectkind = v.ObjectKind
               if (= objectkind "array") {
@@ -3503,7 +3503,7 @@ def get_a_copy_of_the_buffer_source(
   let jsArrayBuffer = jsBufferSource
   let offset = 0
   let length = 0
-  if (exists jsBufferSource.ViewedArrayBuffer) {
+  if (&& (? jsBufferSource: Record[Object]) (exists jsBufferSource.ViewedArrayBuffer)) {
     jsArrayBuffer = jsBufferSource.ViewedArrayBuffer
     offset = jsBufferSource.ByteOffset
     length = jsBufferSource.ByteLength

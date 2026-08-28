@@ -592,7 +592,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
           case EmptyString => app >> "the empty String"
           case EmptyUnicode =>
             app >> "the empty sequence of Unicode code points"
-          case Code => app >> "<code>\"" >> str >> "\"</code>"
+          case Code           => app >> "<code>\"" >> str >> "\"</code>"
+          case AsciiWordChars => app >> "the ASCII word characters"
         }
       case FieldLiteral(name) => app >> "[[" >> name >> "]]"
       case SymbolLiteral(sym) => app >> "%Symbol." >> sym >> "%"

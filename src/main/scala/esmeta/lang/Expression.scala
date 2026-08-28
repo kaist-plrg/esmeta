@@ -315,8 +315,9 @@ case class StringLiteral(s: String, form: StringLiteralForm) extends Literal
 // EmptyString: "the empty String"
 // EmptyUnicode: "the empty sequence of Unicode code points"
 // Code: <code>{{ string value }}</code>
+// AsciiWordChars: "the ASCII word characters"
 enum StringLiteralForm:
-  case SyntaxLiteral, EmptyString, EmptyUnicode, Code
+  case SyntaxLiteral, EmptyString, EmptyUnicode, Code, AsciiWordChars
 
 // field literals
 case class FieldLiteral(name: String) extends Literal

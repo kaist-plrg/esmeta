@@ -51,3 +51,34 @@
   "The entries in [additional table] are added to [main table]"이라고
   명시하므로, 위 1번으로 Annex B 알고리즘 자체를 mechanize하기로 한
   이상 이 병합은 그 결정을 실행하는 데 필요한 자연스러운 후속 조치.
+
+## 3. `"the ASCII word characters"` dfn 고정 문구가 리터럴로 파싱되지 않았음
+
+- **File**: `src/main/scala/esmeta/lang/{Expression,util/Parser,util/Stringifier,util/CaseCollector}.scala`
+- **Before**: `StringLiteralForm`에 `SyntaxLiteral`/`EmptyString`/
+  `EmptyUnicode`/`Code`만 있고, ecma262/spec.html:1310의
+  `<dfn id="ASCII-word-characters">the ASCII word characters</dfn>`
+  (Basic Latin 블록의 모든 글자/숫자 + `_`로 정의된 63자 고정 문자열)를
+  가리키는 형태가 없었다. `literal` 파서가 이 문구를 못 삼켜서, 이 문구를
+  쓰는 3곳(`Encode`의 `_alwaysUnescaped_`, Annex B `escape`의
+  `_unescapedSet_`, Annex B `WordCharacters`의 `_basicWordChars_`)이 전부
+  해당 스텝에서 `[NotSupported] metalanguage/...`로 막혀 있었다.
+- **After**: `StringLiteralForm.AsciiWordChars` 케이스를 추가하고,
+  `"the empty String"` 처리 바로 옆에 `"the ASCII word characters" ^^!
+  StringLiteral("ABC...xyz0123456789_", AsciiWordChars)`를 추가 —
+  "the empty String" 등 기존 dfn 고정 문구 리터럴들과 완전히 같은 패턴.
+  `Stringifier`/`CaseCollector`의 대응 `match`에도 케이스 추가(둘 다
+  `AsciiWordChars`가 없으면 exhaustivity 경고/에러가 나므로 필수).
+  컴파일러(`Compiler.scala:839`, `case StringLiteral(s, _) => EStr(s)`)는
+  `form`을 안 보고 `s`만 쓰므로 추가 작업 불필요.
+- **왜 "esmeta_changes"에 적었는가**: 엄밀히는 `docs/esmeta_errors.md`의
+  CondParser 항목(#3)과 같은 성격의 "단순 누락된 문법 규칙" 쪽에 더
+  가깝다. 다만 이 gap이 실질적으로 의미를 가지려면 1/2번으로 Annex B
+  자체를 mechanize하기로 한 결정이 먼저 있어야 했으므로(순수 mainline
+  본체(emu-clause)만 보면 `Encode`/`escape` 경로가 애초에 도달 불가능한
+  코드였음), 같은 Annex B 작업 묶음으로 여기 함께 기록.
+- **검증**: `sbt test`(525개) 전체 통과. `spec-summary`의 algorithm
+  steps complete가 21684 → 21686으로 반영(해당 phrase를 쓰는 3곳 중
+  `Encode`/`escape`의 해당 스텝만 완전해짐 — `WordCharacters`의 사용처는
+  "the CharSet containing every character in X"라는 또 다른 별개
+  wrapping 표현에 걸려 있어서 여전히 미완성으로 남음).

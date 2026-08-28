@@ -269,10 +269,11 @@ class CaseCollector extends UnitWalker {
       case StringLiteral(str, form) =>
         import StringLiteralForm.*
         form match {
-          case SyntaxLiteral => "*\"{{ str }}\"*"
-          case EmptyString   => "the empty String"
-          case EmptyUnicode  => "the empty sequence of Unicode code points"
-          case Code          => "<code>{{ str }}</code>"
+          case SyntaxLiteral  => "*\"{{ str }}\"*"
+          case EmptyString    => "the empty String"
+          case EmptyUnicode   => "the empty sequence of Unicode code points"
+          case Code           => "<code>{{ str }}</code>"
+          case AsciiWordChars => "the ASCII word characters"
         }
       case FieldLiteral(name) =>
         s"[[{{ str }}]]"

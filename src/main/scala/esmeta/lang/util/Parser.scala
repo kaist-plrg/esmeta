@@ -598,6 +598,10 @@ trait Parsers extends IndentParsers {
       "",
       StringLiteralForm.EmptyString,
     ) | // enum
+    "the ASCII word characters" ^^! StringLiteral(
+      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_",
+      StringLiteralForm.AsciiWordChars,
+    ) |
     strLiteral <~ opt("\\([^)]*\\)".r) |
     fieldLiteral |
     errObjLiteral |

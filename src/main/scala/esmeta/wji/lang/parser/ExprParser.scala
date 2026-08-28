@@ -71,7 +71,7 @@ object ExprParser:
   // (nothing trailing) still falls through to LinkIndefVar below, where TERM
   // is the call and |var| is its argument rather than an annotation.
   private val TypeAnnotatedPrefix =
-    """(?si)^the\s+\[=([^\]]+)=\]\s+(\[=.+|\|[^|]+\|.+)$""".r
+    """(?si)^the\s+\[=((?:(?!=\]).)+?)=\]\s+(\[=.+|\|[^|]+\|.+)$""".r
   // "the {{TERM}} value" — the `{{...}}` (Bikeshed/WebIDL autolink) form of
   // the TERM annotation above, e.g. "the {{undefined}} value" (bare — the
   // value *is* the named term, so it parses straight to a SpecTerm) or "the
@@ -137,7 +137,7 @@ object ExprParser:
   // argument(s) |V|[, ...]:" — must precede RelativeClauseDesc, which would
   // otherwise swallow it into an unevaluable Described.
   private val WhichPerformsStepsClosure =
-    """(?si)^an?\s+\[=[^\]]+=\]\s+which\s+performs\s+the\s+following\s+steps\s+when\s+called\s+with\s+(?:arguments?\s+)?(\|[^|]+\|(?:\s*(?:,|and)\s*\|[^|]+\|)*)\s*:?\s*$""".r
+    """(?si)^an?\s+\[=(?:(?!=\]).)+?=\]\s+which\s+performs\s+the\s+following\s+steps\s+when\s+called\s+with\s+(?:arguments?\s+)?(\|[^|]+\|(?:\s*(?:,|and)\s*\|[^|]+\|)*)\s*:?\s*$""".r
   // "a [=term=] which performs the following steps when called with state
   // |S| and arguments |V|:" — SpecPatch-authored (`create a host function`,
   // #28), a leading named `state` parameter ahead of the usual variadic
@@ -145,7 +145,7 @@ object ExprParser:
   // specific — that pattern's leading `(?:arguments?\s+)?` only tolerates
   // the literal word "argument(s)" before the first `|var|`, not "state").
   private val WhichPerformsStepsClosureWithState =
-    """(?si)^an?\s+\[=[^\]]+=\]\s+which\s+performs\s+the\s+following\s+steps\s+when\s+called\s+with\s+state\s+\|([^|]+)\|\s+and\s+arguments\s+\|([^|]+)\|\s*:?\s*$""".r
+    """(?si)^an?\s+\[=(?:(?!=\]).)+?=\]\s+which\s+performs\s+the\s+following\s+steps\s+when\s+called\s+with\s+state\s+\|([^|]+)\|\s+and\s+arguments\s+\|([^|]+)\|\s*:?\s*$""".r
   // "performing CLOSURE[,] given ARG[, ARG...]" — invoking a closure *value*
   // (contrast with the four "the following steps ...:" forms above, which
   // *define* one), e.g. "the result of performing |onFullfilledStepsArg|
@@ -321,7 +321,7 @@ object ExprParser:
   // unambiguous call syntax (mirrors JSCallFull) — no term/value
   // reference is ever written this way — so this can go straight to
   // AlgoCall without waiting for ResolveLinksPass.
-  private val LinkFull = """(?s)^(\[=[^\]]+\])\s*\((.*)\)$""".r
+  private val LinkFull = """(?s)^(\[=(?:(?!=\]).)+?=\])\s*\((.*)\)$""".r
   // "passing ARG1[, ARG2, ...] to the [=LINK=]" — WebIDL's own idiom for
   // invoking an algorithm with an unnamed positional argument list, the
   // link named *last* rather than first (contrast LinkProse/LinkFull, and
@@ -336,9 +336,9 @@ object ExprParser:
   // shrink-based extractor LinkProse itself uses for its own trailing
   // prose — rather than a bespoke comma/"and" splitter.
   private val PassingToCall =
-    """(?si)^passing\s+(.+?)\s+to\s+the\s+(\[=[^\]]+=\])$""".r
-  private val LinkProse = """(?s)^(\[=[^\]]+\])\s+(.+)$""".r
-  private val LinkOnly = """(?s)^(?:the\s+)?(\[=[^\]]+\])$""".r
+    """(?si)^passing\s+(.+?)\s+to\s+the\s+(\[=(?:(?!=\]).)+?=\])$""".r
+  private val LinkProse = """(?s)^(\[=(?:(?!=\]).)+?=\])\s+(.+)$""".r
+  private val LinkOnly = """(?s)^(?:the\s+)?(\[=(?:(?!=\]).)+?=\])$""".r
   // "VALUE, [=link=]" — spec's passive-voice idiom for a unary conversion
   // applied to the value stated just before it (e.g. "|result|,
   // [=converted to a JavaScript value=]", "|map|'s [=map/size=], [=converted
@@ -348,7 +348,7 @@ object ExprParser:
   // Link (resolved to AlgoCall/Case by ResolveLinksPass), not Field. Its
   // trailing separator (",") is disjoint from every other call/field-access
   // pattern's own trailing separator, so it can go anywhere in this list.
-  private val TrailingLinkCall = """(?s)^(.+),\s*(\[=[^\]]+\])$""".r
+  private val TrailingLinkCall = """(?s)^(.+),\s*(\[=(?:(?!=\]).)+?=\])$""".r
 
   // ---- Bare references ----
 
@@ -403,7 +403,7 @@ object ExprParser:
   // with a dot, where the `[=...=]` is a documentation link on the field
   // name rather than a call (contrast with `LinkFull`/`LinkProse`,
   // which require the string to *start* with `[=`).
-  private val DotFieldLink = """(?s)^(.+)\.(\[=[^\]]+\])$""".r
+  private val DotFieldLink = """(?s)^(.+)\.(\[=(?:(?!=\]).)+?=\])$""".r
   // "BASE.field" — a plain, undecorated record-field access, the Wasm Core
   // Spec's own formal notation (e.g. `store.funcs`, mirroring `S.FUNCS`)
   // written directly in prose rather than through a Bikeshed dfn-link
@@ -481,7 +481,7 @@ object ExprParser:
   // — "the X's [=associated Realm=]" would otherwise also match its more
   // general "'s [=link=]" shape.
   private val PossessiveAssociation =
-    """(?si)^the (.+)'s (?:associated )?(\[=[^\]]+\])$""".r
+    """(?si)^the (.+)'s (?:associated )?(\[=(?:(?!=\]).)+?=\])$""".r
   // "[=comp-type/func=] |parameters| → |results|" — SpecTec's comptype arrow
   // notation for a functype (`al_of_comptype`'s `FuncT (rt1, rt2) -> CaseV
   // ("->", [rt1; rt2])`), corrected to include the `FUNC` discriminator
@@ -540,7 +540,7 @@ object ExprParser:
   // for LinkIndefVar below. DataBlockIdentifiedWith above must be tried
   // first — it's the one "which ..." phrasing that needs its own node.
   private val RelativeClauseDesc =
-    """(?si)^an?\s+(\[=[^\]]+\])\s+which\s+(.+)$""".r
+    """(?si)^an?\s+(\[=(?:(?!=\]).)+?=\])\s+which\s+(.+)$""".r
   // "of type <code>...&lt;X&gt;...</code>" — Bikeshed's convention for
   // instantiating a generic operation's declared type parameter at a call
   // site (mirrors AlgorithmExtractor's generic-bracket `<var ignore>`/`|T|`
@@ -679,7 +679,7 @@ object ExprParser:
   // ever removed. Placed after the more specific "a [=/new=] ..." / "a new,
   // empty ..." construction patterns so it only catches the general case.
   private val LinkIndefVar =
-    """(?si)^(?:the|an?)\s+(\[=[^\]]+\])\s+(?:of\s+)?(\|[^|]+\|)$""".r
+    """(?si)^(?:the|an?)\s+(\[=(?:(?!=\]).)+?=\])\s+(?:of\s+)?(\|[^|]+\|)$""".r
 
   // ---- Scalars & glossary terms ----
 

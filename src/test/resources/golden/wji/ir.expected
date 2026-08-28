@@ -2706,17 +2706,17 @@ def a_new_exported_gc_object(
   call object = clo<"MakeBasicObject">((list ["ObjectAddress", "ObjectKind"]))
   object.ObjectAddress = objectaddr
   object.ObjectKind = objectkind
-  object.GetPrototypeOf = (yet "[=[[GetPrototypeOf]] internal method of an Exported GC Object=]")
-  object.SetPrototypeOf = (yet "[=[[SetPrototypeOf]] internal method of an Exported GC Object=]")
-  object.IsExtensible = (yet "[=[[IsExtensible]] internal method of an Exported GC Object=]")
-  object.PreventExtensions = (yet "[=[[PreventExtensions]] internal method of an Exported GC Object=]")
-  object.GetOwnProperty = (yet "[=[[GetOwnProperty]] internal method of an Exported GC Object=]")
-  object.DefineOwnProperty = (yet "[=[[DefineOwnProperty]] internal method of an Exported GC Object=]")
-  object.HasProperty = (yet "[=[[HasProperty]] internal method of an Exported GC Object=]")
-  object.Get = (yet "[=[[Get]] internal method of an Exported GC Object=]")
-  object.Set = (yet "[=[[Set]] internal method of an Exported GC Object=]")
-  object.Delete = (yet "[=[[Delete]] internal method of an Exported GC Object=]")
-  object.OwnPropertyKeys = (yet "[=[[OwnPropertyKeys]] internal method of an Exported GC Object=]")
+  object.GetPrototypeOf = ~[[GetPrototypeOf]] internal method of an Exported GC Object~
+  object.SetPrototypeOf = ~[[SetPrototypeOf]] internal method of an Exported GC Object~
+  object.IsExtensible = ~[[IsExtensible]] internal method of an Exported GC Object~
+  object.PreventExtensions = ~[[PreventExtensions]] internal method of an Exported GC Object~
+  object.GetOwnProperty = ~[[GetOwnProperty]] internal method of an Exported GC Object~
+  object.DefineOwnProperty = ~[[DefineOwnProperty]] internal method of an Exported GC Object~
+  object.HasProperty = ~[[HasProperty]] internal method of an Exported GC Object~
+  object.Get = ~[[Get]] internal method of an Exported GC Object~
+  object.Set = ~[[Set]] internal method of an Exported GC Object~
+  object.Delete = ~[[Delete]] internal method of an Exported GC Object~
+  object.OwnPropertyKeys = ~[[OwnPropertyKeys]] internal method of an Exported GC Object~
   map[objectaddr] = object
   return object
 }

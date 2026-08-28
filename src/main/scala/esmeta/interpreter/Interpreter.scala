@@ -554,7 +554,22 @@ class Interpreter(
         case v                       => throw InvalidSizeOf(v),
       )
     case EClo(fname, captured) =>
-      val func = cfg.getFunc(fname)
+      // WJI compiles a call's callee name straight from its spec-link text,
+      // case and all -- Bikeshed itself resolves `[=link=]`/`[$link$]`s
+      // case-insensitively, so a call site's casing need not match the
+      // callee's own (e.g. `MakeBasicObject` called as `[=MakeBasicObject=]`,
+      // matching mainline `cfg.fnameMap`'s exact-case entry directly; a WJI-
+      // authored algorithm like "Read the imports" called mid-sentence as
+      // `[=read the imports=]`, needing the fallback below since
+      // `esmeta.wji.compiler.Compiler` always registers its own algorithms
+      // lowercased). Retried instead of pre-normalized at the call site
+      // because nothing there can tell the two apart -- both are the exact
+      // same `[=link=]` syntax, and only `cfg.fnameMap` (assembled later, by
+      // merging WJI's compiled functions with mainline's) knows which of the
+      // two spellings actually resolves.
+      val func =
+        try cfg.getFunc(fname)
+        catch case _: UnknownFunc => cfg.getFunc(fname.toLowerCase)
       Clo(func, captured.map(x => x -> st(x)).toMap)
     case ECont(fname) =>
       val func = cfg.getFunc(fname)

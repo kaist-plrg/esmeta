@@ -826,20 +826,14 @@ object SpecPatch:
     ->
     "1. Let (|addrtype|, <var ignore>limits</var>, <var ignore>elementtype</var>) be [=table_type=](|store|, |tableaddr|).",
 
-    // #41 (spec inconsistency, docs/spec_inconsistencies.md #14) —
-    // IsFixedLengthArrayBuffer is called with Bikeshed's `[=...=]` value-link
-    // syntax, but it's not a dfn local to this document at all — it's a
-    // genuine external ECMA-262 (ResizableArrayBuffer proposal) abstract
-    // operation, reached only via an anchor-table cross-reference (`text:
-    // IsFixedLengthArrayBuffer; url: sec-isfixedarraybuffer`, index.bs:260).
-    // Every other external-AO call in this document (`Get`, `HasProperty`,
-    // `IsCallable`, `OrdinaryObjectCreate`, ...) uses Bikeshed's other call
-    // syntax, `[$...$]`, instead — this is the one spot that doesn't.
-    // Rewritten to match; all three call sites share the identical
-    // "(|buffer|)" argument list, so one replacement covers all of them.
-    "[=IsFixedLengthArrayBuffer=](|buffer|)"
-    ->
-    "[$IsFixedLengthArrayBuffer$](|buffer|)",
+    // #41 retracted (docs/spec_inconsistencies.md #14) — used to rewrite
+    // IsFixedLengthArrayBuffer's `[=...=]` calls to `[$...$]`, working around
+    // Compiler.nameFromLink lower-casing every `[=...=]` link on the (wrong)
+    // assumption that bracket punctuation alone tells local WJI algorithms
+    // apart from external mainline AOs. No longer needed: nameFromLink leaves
+    // case alone entirely now, and `Interpreter.EClo` retries a failed lookup
+    // lowercased, so this resolves correctly regardless of which link syntax
+    // the spec text happens to use.
 
     // #42 (spec inconsistency, docs/spec_inconsistencies.md #15) — "if |op|
     // is a regular operation"/"... a static operation" (2 call sites, both

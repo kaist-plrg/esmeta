@@ -193,11 +193,15 @@ object Compiler:
           Func(
             main = false,
             kind = FuncKind.AbsOp,
-            // lower-cased to match `nameFromLink`: Bikeshed link matching is
-            // case-insensitive (e.g. a sentence-initial "Read the imports"
-            // links to a dfn written "read the imports"), but Scala map
-            // lookups (`cfg.fnameMap`) aren't, so both the registered name
-            // and every reference to it are normalized to the same case.
+            // lower-cased: Bikeshed link matching is case-insensitive (e.g. a
+            // sentence-initial "Read the imports" links to a dfn written
+            // "read the imports"), but Scala map lookups (`cfg.fnameMap`)
+            // aren't. A call site's own casing is left as-is at compile time
+            // (`nameFromLink`) rather than also lower-cased here, since a
+            // `[=link=]` might instead name a real mainline ECMA-262 AO
+            // (registered under its own exact case) -- `Interpreter.EClo`
+            // retries lowercase only if the exact-case lookup fails, which
+            // finds this registration for a genuine WJI-authored call.
             name = name.toLowerCase,
             params = params,
             retTy = UnknownType,
@@ -297,10 +301,17 @@ object Compiler:
       // a dedicated IR node instead of an ordinary closure call. A WebIDL
       // value-conversion function is the same idea, dispatched natively
       // instead — see `webIdlConversionNames`.
+      // `WasmHost.names`/`webIdlConversionNames` are always-lowercase-
+      // underscored, but `name` itself is left exactly as captured (see
+      // `nameFromLink`) -- matched case-insensitively here so a call site
+      // written with different casing (e.g. a sentence-initial "Converted to
+      // a JavaScript value") still finds them, the same way `Interpreter.EClo`
+      // falls back to lowercase for an ordinary WJI-algorithm call.
+      val lname = name.toLowerCase
       def mkCall(lhs: Name): Inst =
-        if WasmHost.names.contains(name) then ICallEmbed(lhs, name, callArgs)
-        else if webIdlConversionNames.contains(name) then
-          ICallConvert(lhs, name, callArgs)
+        if WasmHost.names.contains(lname) then ICallEmbed(lhs, lname, callArgs)
+        else if webIdlConversionNames.contains(lname) then
+          ICallConvert(lhs, lname, callArgs)
         else ICall(lhs, EClo(name, Nil), callArgs)
       outcome match
         case PerformOutcome.Discard =>
@@ -690,13 +701,17 @@ object Compiler:
       else BigDecimal(raw)
     EMath(if neg then -bd else bd)
 
+  /** the callee name straight from its spec-link text, case and all --
+    * `[=link=]` (a WJI-authored algorithm) and `[$link$]`/bare (an ECMA-262 AO,
+    * as `JSCall` already extracts it) are compiled identically here, since
+    * nothing at this point can tell which one a given `[=link=]` actually is
+    * (both spellings are valid Bikeshed cross-reference syntax, and this
+    * document doesn't use them by any consistent rule of its own -- see
+    * `Interpreter.EClo`'s case-insensitive retry, which resolves the ambiguity
+    * later against the real, merged `cfg.fnameMap`).
+    */
   private def nameFromLink(link: String): String =
-    val name = link.stripPrefix("[=").stripSuffix("=]").trim
-    // only `[=...=]` WJI links are case-insensitive by Bikeshed convention;
-    // a bare name (as JSCall's `[$...$]` extracts it, with no brackets here)
-    // is an exact ECMA-262 AO name and must keep its case to match
-    // `cfg.fnameMap`.
-    if link.startsWith("[=") then name.toLowerCase else name
+    link.stripPrefix("[=").stripSuffix("=]").trim
 
   private def stripPipes(s: String): String =
     s.stripPrefix("|").stripSuffix("|")

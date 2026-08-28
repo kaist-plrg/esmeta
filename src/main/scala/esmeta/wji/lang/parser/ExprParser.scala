@@ -766,15 +766,29 @@ object ExprParser:
     s.stripPrefix("{{").stripSuffix("}}")
 
   /** `Field(parse(baseRaw), name)`, where `name` is `link`'s dfn text with its
-    * `[=`/`=]` markers stripped — shared by [[DotFieldLink]] (`base.[=name=]`)
-    * and [[PossessiveAssociation]] (`base's [=name=]`), the two field-access
-    * spellings that carry the field name as a dfn link rather than a plain
-    * identifier (contrast [[DotField]]'s `base.field`).
+    * `[=`/`=]` markers stripped and lowercased — shared by [[DotFieldLink]]
+    * (`base.[=name=]`) and [[PossessiveAssociation]] (`base's [=name=]`), the
+    * two field-access spellings that carry the field name as a dfn link rather
+    * than a plain identifier (contrast [[DotField]]'s `base.field`).
+    *
+    * Lowercased because Bikeshed itself resolves `[=link=]`s against their
+    * `<dfn>` case-insensitively, so a use site's casing need not match its own
+    * definition's — e.g. index.bs:349 defines `<dfn>Exported GC Object
+    * cache</dfn>` but index.bs:1650 links it as `[=exported GC object cache=]`,
+    * a mismatch invisible in the rendered spec. Taking the link text as-is here
+    * would make that (real, if inconsequential) authoring slip a functional
+    * bug: `Initialize.scala`'s `AgentRecord` fields would need to be stored
+    * under every use site's own idiosyncratic casing to ever be found again,
+    * rather than one canonical spelling. Lowercasing both here and at every
+    * field-defining site (`Initialize.scala`, `WjiInterp.scala`,
+    * `WasmMemoryBridge.scala`) sidesteps the whole class of mismatch the same
+    * way Bikeshed's own resolution does, rather than chasing down each future
+    * one-off typo as it's discovered.
     */
   private def fieldFromLink(baseRaw: String, link: String): Expr =
     Field(
       parse(baseRaw),
-      normalizeLink(link).stripPrefix("[=").stripSuffix("=]"),
+      normalizeLink(link).stripPrefix("[=").stripSuffix("=]").toLowerCase,
     )
 
   def parse(raw: String): Expr = parseWith(raw, allowSeqFallback = true)

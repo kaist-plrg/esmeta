@@ -78,43 +78,43 @@ object Initialize:
 
     st.heap.update(
       NamedAddr(AGENT_RECORD),
-      Str("Exported Function cache"),
+      Str("exported function cache"),
       st.heap.allocMap(Nil),
     )
 
     st.heap.update(
       NamedAddr(AGENT_RECORD),
-      Str("Memory object cache"),
+      Str("memory object cache"),
       st.heap.allocMap(Nil),
     )
 
     st.heap.update(
       NamedAddr(AGENT_RECORD),
-      Str("Table object cache"),
+      Str("table object cache"),
       st.heap.allocMap(Nil),
     )
 
     st.heap.update(
       NamedAddr(AGENT_RECORD),
-      Str("Exported GC object cache"),
+      Str("exported gc object cache"),
       st.heap.allocMap(Nil),
     )
 
     st.heap.update(
       NamedAddr(AGENT_RECORD),
-      Str("Global object cache"),
+      Str("global object cache"),
       st.heap.allocMap(Nil),
     )
 
     st.heap.update(
       NamedAddr(AGENT_RECORD),
-      Str("Tag object cache"),
+      Str("tag object cache"),
       st.heap.allocMap(Nil),
     )
 
     st.heap.update(
       NamedAddr(AGENT_RECORD),
-      Str("Exception object cache"),
+      Str("exception object cache"),
       st.heap.allocMap(Nil),
     )
 
@@ -126,7 +126,7 @@ object Initialize:
 
     st.heap.update(
       NamedAddr(AGENT_RECORD),
-      Str("Function Import List"),
+      Str("function import list"),
       st.heap.allocList(Nil),
     )
 

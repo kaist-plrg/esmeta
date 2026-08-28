@@ -42,7 +42,7 @@ private[interpreter] class WasmMemoryBridge(interp: Interpreter):
     * far via `initialize_a_memory_object`.
     */
   private def memoryObjectCacheEntries(): Iterable[(Value, Value)] =
-    val cacheAddr = st(agentRecordAddr, Str("Memory object cache")).asAddr
+    val cacheAddr = st(agentRecordAddr, Str("memory object cache")).asAddr
     st(cacheAddr) match
       case MapObj(map) => map
       case other =>

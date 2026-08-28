@@ -239,7 +239,7 @@ def read_the_imports(
       } else {
         call funcaddr = clo<"create_a_host_function">(v, functype)
       }
-      push @AGENT_RECORD["Function Import List"] < funcaddr
+      push @AGENT_RECORD["function import list"] < funcaddr
       let externfunc = (case "FUNC" funcaddr)
       push imports < externfunc
     } else nop
@@ -848,7 +848,7 @@ def initialize_a_memory_object(
   memory: Unknown,
   memaddr: Unknown,
 ): Unknown = {
-  let map = @AGENT_RECORD["Memory object cache"]
+  let map = @AGENT_RECORD["memory object cache"]
   assert (! (exists map[memaddr]))
   call buffer = clo<"create_a_fixed_length_memory_buffer">(memaddr)
   memory.Memory = memaddr
@@ -859,7 +859,7 @@ def initialize_a_memory_object(
 def create_a_memory_object(
   memaddr: Unknown,
 ): Unknown = {
-  let map = @AGENT_RECORD["Memory object cache"]
+  let map = @AGENT_RECORD["memory object cache"]
   if (exists map[memaddr]) {
     let _v1 = map[memaddr]
     if (? _v1: Completion) {
@@ -984,7 +984,7 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Memory(
 def refresh_the_memory_buffer(
   memaddr: Unknown,
 ): Unknown = {
-  let map = @AGENT_RECORD["Memory object cache"]
+  let map = @AGENT_RECORD["memory object cache"]
   assert (exists map[memaddr])
   let memory = map[memaddr]
   let buffer = memory.BufferObject
@@ -1153,7 +1153,7 @@ def abstract_operation_[=hostresizearraybuffer=](
   newLength: Unknown,
 ): Unknown = {
   if (= buffer.ArrayBufferDetachKey "WebAssembly.Memory") {
-    let map = @AGENT_RECORD["Memory object cache"]
+    let map = @AGENT_RECORD["memory object cache"]
     assert (= buffer (yet "the \\[[BufferObject]] of exactly one value in |map|"))
     (yet "foreach ?(|memaddr| &rarr; |mem|) in |map|")
     call _call1 = clo<"samevalue">(mem.BufferObject, buffer)
@@ -1202,7 +1202,7 @@ def initialize_a_table_object(
   table: Unknown,
   tableaddr: Unknown,
 ): Unknown = {
-  let map = @AGENT_RECORD["Table object cache"]
+  let map = @AGENT_RECORD["table object cache"]
   assert (! (exists map[tableaddr]))
   table.Table = tableaddr
   map[tableaddr] = table
@@ -1211,7 +1211,7 @@ def initialize_a_table_object(
 def create_a_table_object(
   tableaddr: Unknown,
 ): Unknown = {
-  let map = @AGENT_RECORD["Table object cache"]
+  let map = @AGENT_RECORD["table object cache"]
   if (exists map[tableaddr]) {
     let _v1 = map[tableaddr]
     if (? _v1: Completion) {
@@ -1579,7 +1579,7 @@ def initialize_a_global_object(
   global: Unknown,
   globaladdr: Unknown,
 ): Unknown = {
-  let map = @AGENT_RECORD["Global object cache"]
+  let map = @AGENT_RECORD["global object cache"]
   assert (! (exists map[globaladdr]))
   global.Global = globaladdr
   map[globaladdr] = global
@@ -1588,7 +1588,7 @@ def initialize_a_global_object(
 def create_a_global_object(
   globaladdr: Unknown,
 ): Unknown = {
-  let map = @AGENT_RECORD["Global object cache"]
+  let map = @AGENT_RECORD["global object cache"]
   if (exists map[globaladdr]) {
     let _v1 = map[globaladdr]
     if (? _v1: Completion) {
@@ -1845,7 +1845,7 @@ def name_of_the_webassembly_function(
   let funcinst = store.funcs[funcaddr]
   if (= (case-tag funcinst.code) "HOSTFUNC") {
     let hostfunc = funcinst.code[0]
-    let funcaddrs = @AGENT_RECORD["Function Import List"]
+    let funcaddrs = @AGENT_RECORD["function import list"]
   } else {
     let funcaddrs = funcinst.module.funcs
   }
@@ -1862,7 +1862,7 @@ def name_of_the_webassembly_function(
 def a_new_exported_function(
   funcaddr: Unknown,
 ): Unknown = {
-  let map = @AGENT_RECORD["Exported Function cache"]
+  let map = @AGENT_RECORD["exported function cache"]
   if (exists map[funcaddr]) {
     return map[funcaddr]
   } else nop
@@ -2546,7 +2546,7 @@ def initialize_a_tag_object(
   tag: Unknown,
   tagAddress: Unknown,
 ): Unknown = {
-  let map = @AGENT_RECORD["Tag object cache"]
+  let map = @AGENT_RECORD["tag object cache"]
   assert (! (exists map[tagAddress]))
   tag.Address = tagAddress
   map[tagAddress] = tag
@@ -2555,7 +2555,7 @@ def initialize_a_tag_object(
 def create_a_tag_object(
   tagAddress: Unknown,
 ): Unknown = {
-  let map = @AGENT_RECORD["Tag object cache"]
+  let map = @AGENT_RECORD["tag object cache"]
   if (exists map[tagAddress]) {
     let _v1 = map[tagAddress]
     if (? _v1: Completion) {
@@ -2699,7 +2699,7 @@ def a_new_exported_gc_object(
   objectkind: Unknown,
 ): Unknown = {
   assert (|| (= objectkind "array") (= objectkind "struct"))
-  let map = @AGENT_RECORD["exported GC object cache"]
+  let map = @AGENT_RECORD["exported gc object cache"]
   if (exists map[objectaddr]) {
     return map[objectaddr]
   } else nop
@@ -2724,7 +2724,7 @@ def initialize_an_exception_object(
   exn: Unknown,
   exnAddress: Unknown,
 ): Unknown = {
-  let map = @AGENT_RECORD["Exception object cache"]
+  let map = @AGENT_RECORD["exception object cache"]
   assert (! (exists map[exnAddress]))
   exn.Address = exnAddress
   map[exnAddress] = exn
@@ -2739,7 +2739,7 @@ def initialize_an_exception_object(
 def create_an_exception_object(
   exnAddress: Unknown,
 ): Unknown = {
-  let map = @AGENT_RECORD["Exception object cache"]
+  let map = @AGENT_RECORD["exception object cache"]
   if (exists map[exnAddress]) {
     let _v1 = map[exnAddress]
     if (? _v1: Completion) {
@@ -2978,8 +2978,8 @@ def <BUILTIN>:INTRINSICS.get:WebAssembly.Exception.prototype.stack(
 }
 def get_the_javascript_exception_tag(
 ): Unknown = {
-  if (exists @AGENT_RECORD["JavaScript exception tag"]) {
-    return @AGENT_RECORD["JavaScript exception tag"]
+  if (exists @AGENT_RECORD["javascript exception tag"]) {
+    return @AGENT_RECORD["javascript exception tag"]
   } else nop
   let store = @AGENT_RECORD["associated store"]
   call-embed _call1 = <fold>((case "->" (list [(case "REF" (opt (case "NULL" )) (case "EXTERN" ))]) (list [])))
@@ -2987,7 +2987,7 @@ def get_the_javascript_exception_tag(
   let store = _tuple1[0]
   let tagAddress = _tuple1[1]
   @AGENT_RECORD["associated store"] = store
-  @AGENT_RECORD["JavaScript exception tag"] = tagAddress
+  @AGENT_RECORD["javascript exception tag"] = tagAddress
   return tagAddress
 }
 def create the webassembly namespace object(

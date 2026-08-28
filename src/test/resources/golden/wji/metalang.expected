@@ -133,7 +133,7 @@
         Let(|funcaddr|, |v|.[[FunctionAddress]])
       Else
         PerformAndLet([=Create a host function=](|v|, |functype|), |funcaddr|)
-      Append(|funcaddr|, [=surrounding agent=].[[Function Import List]])
+      Append(|funcaddr|, [=surrounding agent=].[[function import list]])
       Let(|externfunc|, [=external value/func=](|funcaddr|))
       Append(|externfunc|, |imports|)
     If(|externtype| is of the form [=external-type/global=](|mut|, |valtype|))
@@ -409,7 +409,7 @@
 # initialize a memory object
   params: |memory|, |memaddr|
   head: To <dfn>initialize a memory object</dfn> |memory| from a [=memory address=] |memaddr|, perform the following steps:
-  Let(|map|, [=surrounding agent=].[[Memory object cache]])
+  Let(|map|, [=surrounding agent=].[[memory object cache]])
   Assert(|map|[|memaddr|] [=map/doesn't exist=])
   Let(|buffer|, [=create a fixed length memory buffer=](|memaddr|))
   Set(|memory|.[[Memory]], |memaddr|)
@@ -419,7 +419,7 @@
 # create a memory object
   params: |memaddr|
   head: To <dfn>create a memory object</dfn> from a [=memory address=] |memaddr|, perform the following steps:
-  Let(|map|, [=surrounding agent=].[[Memory object cache]])
+  Let(|map|, [=surrounding agent=].[[memory object cache]])
   If(|map|[|memaddr|] [=map/exists=])
     Return(|map|[|memaddr|])
   Let(|memory|, new {{Memory}})
@@ -452,7 +452,7 @@
 # refresh the Memory buffer
   params: |memaddr|
   head: To <dfn>refresh the Memory buffer</dfn> of |memaddr|, perform the following steps:
-  Let(|map|, [=surrounding agent=].[[Memory object cache]])
+  Let(|map|, [=surrounding agent=].[[memory object cache]])
   Assert(|map|[|memaddr|] [=map/exists=])
   Let(|memory|, |map|[|memaddr|])
   Let(|buffer|, |memory|.[[BufferObject]])
@@ -533,7 +533,7 @@
   params: |buffer|, |newLength|
   head: The <dfn id=HostResizeArrayBuffer export>abstract operation [=HostResizeArrayBuffer=]</dfn> takes arguments |buffer| (an {{ArrayBuffer}}) and |newLength|. It performs the following steps when called.
   If(|buffer|.[[ArrayBufferDetachKey]] is "WebAssembly.Memory")
-    Let(|map|, [=surrounding agent=].[[Memory object cache]])
+    Let(|map|, [=surrounding agent=].[[memory object cache]])
     Assert(|buffer| is ?(the \[[BufferObject]] of exactly one value in |map|))
     ForEach(?(|memaddr| &rarr; |mem|), |map|)
       If([=SameValue=](|mem|.[[BufferObject]], |buffer|) is true)
@@ -555,7 +555,7 @@
 # initialize a table object
   params: |table|, |tableaddr|
   head: To <dfn>initialize a table object</dfn> |table| from a [=table address=] |tableaddr|, perform the following steps:
-  Let(|map|, [=surrounding agent=].[[Table object cache]])
+  Let(|map|, [=surrounding agent=].[[table object cache]])
   Assert(|map|[|tableaddr|] [=map/doesn't exist=])
   Set(|table|.[[Table]], |tableaddr|)
   Set(|map|[|tableaddr|], |table|)
@@ -563,7 +563,7 @@
 # create a table object
   params: |tableaddr|
   head: To <dfn>create a table object</dfn> from a [=table address=] |tableaddr|, perform the following steps:
-  Let(|map|, [=surrounding agent=].[[Table object cache]])
+  Let(|map|, [=surrounding agent=].[[table object cache]])
   If(|map|[|tableaddr|] [=map/exists=])
     Return(|map|[|tableaddr|])
   Let(|table|, new {{Table}})
@@ -672,7 +672,7 @@
 # initialize a global object
   params: |global|, |globaladdr|
   head: To <dfn>initialize a global object</dfn> |global| from a [=global address=] |globaladdr|, perform the following steps:
-  Let(|map|, [=surrounding agent=].[[Global object cache]])
+  Let(|map|, [=surrounding agent=].[[global object cache]])
   Assert(|map|[|globaladdr|] [=map/doesn't exist=])
   Set(|global|.[[Global]], |globaladdr|)
   Set(|map|[|globaladdr|], |global|)
@@ -680,7 +680,7 @@
 # create a global object
   params: |globaladdr|
   head: To <dfn>create a global object</dfn> from a [=global address=] |globaladdr|, perform the following steps:
-  Let(|map|, [=surrounding agent=].[[Global object cache]])
+  Let(|map|, [=surrounding agent=].[[global object cache]])
   If(|map|[|globaladdr|] [=map/exists=])
     Return(|map|[|globaladdr|])
   Let(|global|, new {{Global}})
@@ -780,7 +780,7 @@
   Let(|store|, [=surrounding agent=].[[associated store]])
   Let(|funcinst|, |store|.[[funcs]][|funcaddr|])
   If(|funcinst|.[[code]] is of the form [=hostfunc=](|hostfunc|))
-    Let(|funcaddrs|, [=surrounding agent=].[[Function Import List]])
+    Let(|funcaddrs|, [=surrounding agent=].[[function import list]])
   Else
     Let(|funcaddrs|, |funcinst|.[[module]].[[funcs]])
   Assert(|funcaddr| is contained in |funcaddrs|)
@@ -790,7 +790,7 @@
 # a new Exported Function
   params: |funcaddr|
   head: To create <dfn>a new Exported Function</dfn> from a WebAssembly [=function address=] |funcaddr|, perform the following steps:
-  Let(|map|, [=surrounding agent=].[[Exported Function cache]])
+  Let(|map|, [=surrounding agent=].[[exported function cache]])
   If(|map|[|funcaddr|] [=map/exists=])
     Return(|map|[|funcaddr|])
   Let(|steps|, followingSteps(argValues, ...))
@@ -1047,7 +1047,7 @@
 # initialize a Tag object
   params: |tag|, |tagAddress|
   head: To <dfn>initialize a Tag object</dfn> |tag| from a [=tag address=] |tagAddress|, perform the following steps:
-  Let(|map|, [=surrounding agent=].[[Tag object cache]])
+  Let(|map|, [=surrounding agent=].[[tag object cache]])
   Assert(|map|[|tagAddress|] [=map/doesn't exist=])
   Set(|tag|.[[Address]], |tagAddress|)
   Set(|map|[|tagAddress|], |tag|)
@@ -1055,7 +1055,7 @@
 # create a Tag object
   params: |tagAddress|
   head: To <dfn>create a Tag object</dfn> from a [=tag address=] |tagAddress|, perform the following steps:
-  Let(|map|, [=surrounding agent=].[[Tag object cache]])
+  Let(|map|, [=surrounding agent=].[[tag object cache]])
   If(|map|[|tagAddress|] [=map/exists=])
     Return(|map|[|tagAddress|])
   Let(|tag|, new {{Tag}})
@@ -1124,7 +1124,7 @@
   params: |objectaddr|, |objectkind|
   head: To create <dfn>a new Exported GC Object</dfn> from a WebAssembly [=object address=] |objectaddr| and a string |objectkind|, perform the following steps:
   Assert(|objectkind| is "array" or "struct")
-  Let(|map|, [=surrounding agent=].[[exported GC object cache]])
+  Let(|map|, [=surrounding agent=].[[exported gc object cache]])
   If(|map|[|objectaddr|] [=map/exists=])
     Return(|map|[|objectaddr|])
   Let(|object|, [=MakeBasicObject=](« "ObjectAddress", "ObjectKind" »))
@@ -1147,7 +1147,7 @@
 # initialize an Exception object
   params: |exn|, |exnAddress|
   head: To <dfn>initialize an Exception object</dfn> |exn| from an [=Exception address=] |exnAddress|, perform the following steps:
-  Let(|map|, [=surrounding agent=].[[Exception object cache]])
+  Let(|map|, [=surrounding agent=].[[exception object cache]])
   Assert(|map|[|exnAddress|] [=map/doesn't exist=])
   Set(|exn|.[[Address]], |exnAddress|)
   Set(|map|[|exnAddress|], |exn|)
@@ -1161,7 +1161,7 @@
 # create an Exception object
   params: |exnAddress|
   head: To <dfn>create an Exception object</dfn> from a [=exception address=] |exnAddress|, perform the following steps:
-  Let(|map|, [=surrounding agent=].[[Exception object cache]])
+  Let(|map|, [=surrounding agent=].[[exception object cache]])
   If(|map|[|exnAddress|] [=map/exists=])
     Return(|map|[|exnAddress|])
   Let(|exn|, new {{Exception}})
@@ -1222,12 +1222,12 @@
 
 # get the JavaScript exception tag
   head: To <dfn>get the JavaScript exception tag</dfn>, perform the following steps:
-  If([=surrounding agent=].[[JavaScript exception tag]] [=map/exists=])
-    Return([=surrounding agent=].[[JavaScript exception tag]])
+  If([=surrounding agent=].[[javascript exception tag]] [=map/exists=])
+    Return([=surrounding agent=].[[javascript exception tag]])
   Let(|store|, [=surrounding agent=].[[associated store]])
   Let((|store|, |tagAddress|), [=tag_alloc=](|store|, [=fold=]([=comp-type/func=](« [=externref=] », « »))))
   Set([=surrounding agent=].[[associated store]], |store|)
-  Set([=surrounding agent=].[[JavaScript exception tag]], |tagAddress|)
+  Set([=surrounding agent=].[[javascript exception tag]], |tagAddress|)
   Return(|tagAddress|)
 
 # create the WebAssembly namespace object

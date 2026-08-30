@@ -78,6 +78,56 @@ class CondParserSpec extends AnyFunSuite:
     )
   }
 
+  test("declared with extended attribute, positive and negative") {
+    // extendedAttributes is a *list* of {id, value} records (WebIDL allows
+    // repeated same-named entries, e.g. [LegacyFactoryFunction=A,
+    // LegacyFactoryFunction=B]), so this is a search (Cond.Any), not a
+    // nested-field-path presence check.
+    assert(
+      CondParser.parse(
+        "|interface| is declared with the [{{Global}}] [=extended attribute=]",
+      ) ==
+      Any(
+        "ea",
+        List(Field(Var("interface"), "extendedAttributes")),
+        Eq(Field(Var("ea"), "id"), Str("Global")),
+      ),
+    )
+    assert(
+      CondParser.parse(
+        "|operation| is not declared with a [{{Default}}] [=extended attribute=]",
+      ) ==
+      Any(
+        "ea",
+        List(Field(Var("operation"), "extendedAttributes")),
+        Eq(Field(Var("ea"), "id"), Str("Default")),
+        negated = true,
+      ),
+    )
+  }
+
+  test("in the set of inherited interfaces of an interface that ...") {
+    assert(
+      CondParser.parse(
+        "|interface| is in the set of [=inherited interfaces=] of an interface that is declared with the [{{Global}}] [=extended attribute=]",
+      ) ==
+      Exists(
+        "descendant",
+        And(
+          Contains(
+            Var("interface"),
+            Link("[=inherited interfaces=]", List(Var("descendant"))),
+          ),
+          Any(
+            "ea",
+            List(Field(Var("descendant"), "extendedAttributes")),
+            Eq(Field(Var("ea"), "id"), Str("Global")),
+          ),
+        ),
+      ),
+    )
+  }
+
   test("has duplicates, positive and negative phrasings") {
     assert(
       CondParser.parse("|list| contains any duplicates") ==
@@ -122,6 +172,22 @@ class CondParserSpec extends AnyFunSuite:
     assert(
       CondParser.parse("|a| is |b| and |c| is |d|") ==
       And(Eq(Var("a"), Var("b")), Eq(Var("c"), Var("d"))),
+    )
+  }
+
+  test("or strips a trailing comma before the connective, like and does") {
+    assert(
+      CondParser.parse(
+        "|interface| is declared with the [{{Global}}] [=extended attribute=], or |interface| is |b|",
+      ) ==
+      Or(
+        Any(
+          "ea",
+          List(Field(Var("interface"), "extendedAttributes")),
+          Eq(Field(Var("ea"), "id"), Str("Global")),
+        ),
+        Eq(Var("interface"), Var("b")),
+      ),
     )
   }
 

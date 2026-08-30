@@ -128,10 +128,6 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
    원문 - If |interface| has any [=member=] declared with the [{{Unscopable}}] [=extended attribute=], then: ...
    IR - if (yet "|interface| has any [=member=] declared with the [{{Unscopable}}] [=extended attribute=]") { ... }
 
-7. 카테고리: II-A
-   원문 - If |interface| is not declared with the [{{Global}}] [=extended attribute=], then: ...
-   IR - if (! (= interface (yet "declared with the [{{Global}}] [=extended attribute=]"))) { ... }
-
 8. 카테고리 - II-A
    원문 - If the [{{LegacyNoInterfaceObject}}] [=extended attribute=] was not specified on |interface|, then: ...
    IR - if (yet "the [{{LegacyNoInterfaceObject}}] [=extended attribute=] was not specified on |interface|") { ... }
@@ -397,18 +393,6 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
     원문 - [=JavaScript/throw=] a <l spec=ecmascript>{{TypeError}}</l>.
     IR - call _ = clo<"javascript/throw">((record [TypeError] {...}))
 
-14. 카테고리 - II-A
-    원문 - If |attribute| is declared with the [{{Replaceable}}] extended attribute, then: ...
-    IR - if (= attribute (yet "declared with the [{{Replaceable}}] extended attribute")) { ... }
-
-16. 카테고리 - II-A
-    원문 - If |attribute| is declared with a [{{LegacyLenientSetter}}] extended attribute, then ...
-    IR - if (= attribute (yet "declared with a [{{LegacyLenientSetter}}] extended attribute")) { ... }
-
-17. 카테고리 - II-A
-    원문 - If |attribute| is declared with a [{{PutForwards}}] extended attribute, then: ...
-    IR - if (= attribute (yet "declared with a [{{PutForwards}}] extended attribute")) { ... }
-
 21. 카테고리 - I-N
     원문 - Set |idlObject| to the IDL [=interface type=] value that represents a reference to |jsValue|.
     IR - idlObject = (yet "the IDL [=interface type=] value that represents a reference to |jsValue|")
@@ -530,10 +514,6 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
     IR - let _tuple1 = (yet "passing |S| and |args| to the [=overload resolution algorithm=]")
          let operation = _tuple1[0]
          let values = _tuple1[1]
-
-12. 카테고리 - II-A
-    원문 - If |operation| is declared with a [{{Default}}] [=extended attribute=], then: ...
-    IR - if (= operation (yet "declared with a [{{Default}}] [=extended attribute=]")) { ... }
 
 13. 카테고리 - III-B
     원문 - Otherwise, set |R| to the result of running the [=method steps=] of |operation|, with |idlObject| as [=this=] and |values| as the argument values."

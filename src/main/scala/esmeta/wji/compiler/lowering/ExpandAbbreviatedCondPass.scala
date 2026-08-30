@@ -65,8 +65,8 @@ object ExpandAbbreviatedCondPass extends LoweringPass:
     // outer template (an Any's `collections` list already carries "in A or
     // B" directly, so there's no outer Or wrapping this Any to inherit a
     // template from).
-    case Cond.Any(binder, collections, body) =>
-      Cond.Any(binder, collections, expandCond(body))
+    case Cond.Any(binder, collections, body, neg) =>
+      Cond.Any(binder, collections, expandCond(body), neg)
     case Cond.Exists(binder, body) =>
       Cond.Exists(binder, expandCond(body))
     case other => other

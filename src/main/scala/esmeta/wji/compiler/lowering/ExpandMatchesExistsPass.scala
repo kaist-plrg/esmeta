@@ -154,7 +154,7 @@ object ExpandMatchesExistsPass extends LoweringPass:
           PerformOutcome.BindResult(tmp),
         )
         (List(call), Cond.Eq(Expr.Var(tmp), Expr.Bool(true), neg))
-      case Cond.Any(binder, collections, body) =>
+      case Cond.Any(binder, collections, body, neg) =>
         val (bodyPre, bodyCond) = hoist(body, counter)
         val found = counter.fresh("found")
         val init = Instr.Let(Expr.Var(found), Expr.Bool(false))
@@ -191,7 +191,7 @@ object ExpandMatchesExistsPass extends LoweringPass:
             ),
           )
         }.flatten
-        (init :: loops, Cond.Eq(Expr.Var(found), Expr.Bool(true)))
+        (init :: loops, Cond.Eq(Expr.Var(found), Expr.Bool(true), neg))
       case Cond.And(l, r) =>
         val (lp, lc) = hoist(l, counter)
         val (rp, rc) = hoist(r, counter)

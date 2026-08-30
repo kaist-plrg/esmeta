@@ -372,10 +372,10 @@ object NormalizeEvaluationOrderPass extends LoweringPass:
     // loop-bound `binder`; extracting from `body` at this stage (before that
     // loop exists) would evaluate it in the wrong scope, so it's deliberately
     // left alone for ExpandMatchesExistsPass's own (loop-aware) handling.
-    case Cond.Any(binder, collections, body) =>
+    case Cond.Any(binder, collections, body, neg) =>
       val ext = Extractor(counter)
       val es = collections.map(ext.walk)
-      (ext.hoisted, Cond.Any(binder, es, body))
+      (ext.hoisted, Cond.Any(binder, es, body, neg))
 
     // `Cond.Exists` has no `collections` of its own to hoist from at all
     // (unlike `Any`) — its whole `body` runs conditionally, once per

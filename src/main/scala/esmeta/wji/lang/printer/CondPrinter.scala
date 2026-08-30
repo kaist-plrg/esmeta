@@ -52,9 +52,10 @@ object CondPrinter:
     case And(left, right)  => s"${render(left)}, and ${render(right)}"
     case Or(left, right)   => s"${render(left)} or ${render(right)}"
     case Abbreviated(expr) => ExprPrinter.render(expr)
-    case Any(binder, collections, body) =>
+    case Any(binder, collections, body, neg) =>
       val colls = collections.map(ExprPrinter.render).mkString(" or ")
-      s"any $binder in $colls ${render(body)}"
+      val quant = if neg then "no" else "any"
+      s"$quant $binder in $colls ${render(body)}"
     case Exists(binder, body) =>
       s"a value $binder exists such that ${render(body)}"
     case Cond.Unreachable => "Unreachable"

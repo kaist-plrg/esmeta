@@ -91,10 +91,21 @@ object Cond:
     * entry is searched, in order — mirrors mainline ESMeta's
     * `ContainsCondition`/`SuchThat` ("list contains an element such that ..."),
     * generalized to more than one list so the parser doesn't need to fold "in A
-    * or B" into this node's `Or`-of-two-`Any` shape itself.
+    * or B" into this node's `Or`-of-two-`Any` shape itself. `negated` negates
+    * the *overall* existential ("no element satisfies `body`"), not `body`
+    * itself — same convention as every other boolean-check `Cond` here (`Eq`,
+    * `HasField`, ...) — e.g. `CondParser`'s "X is not declared with the
+    * [{{ATTR}}] [=extended attribute=]" (a search over `X.extendedAttributes` —
+    * a list, since WebIDL allows repeated same-named extended attributes, e.g.
+    * `[LegacyFactoryFunction=A, LegacyFactoryFunction=B]` — for an entry whose
+    * `id` is `ATTR`, negated).
     */
-  case class Any(binder: String, collections: List[Expr], body: Cond)
-    extends Cond
+  case class Any(
+    binder: String,
+    collections: List[Expr],
+    body: Cond,
+    negated: Boolean = false,
+  ) extends Cond
 
   /** `a/an NOUN |binder| exists such that BODY` — "a [=host address=]
     * |hostaddr| exists such that |map|[|hostaddr|] is the same as |v|"

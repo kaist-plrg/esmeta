@@ -79,8 +79,8 @@ trait Walker:
     case Cond.And(l, r)      => Cond.And(walk(l), walk(r))
     case Cond.Or(l, r)       => Cond.Or(walk(l), walk(r))
     case Cond.Abbreviated(e) => Cond.Abbreviated(walk(e))
-    case Cond.Any(binder, collections, body) =>
-      Cond.Any(binder, collections.map(walk), walk(body))
+    case Cond.Any(binder, collections, body, neg) =>
+      Cond.Any(binder, collections.map(walk), walk(body), neg)
     case Cond.Exists(binder, body) => Cond.Exists(binder, walk(body))
     // leaves: Unreachable, Throws, Unknown.
     case other => other

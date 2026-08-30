@@ -107,8 +107,19 @@ attribute="))` 같은 케이스들이 속하는 곳입니다. 전부 "interface/
 
 ### II-A. Extended attribute / member
 
-- `#1-5`, `#2-1`, `#2-5`, `#2-7` - |interface| is declared with the [{{Global}}] [=extended attribute=]
-    - assume false
+**[2026-08-30]** "X is [not] declared with a/the [{{ATTR}}] extended attribute" 꼴은
+`CondParser`가 이제 `Cond.Any`로 파싱 — `Initialize.scala`의 `extendedAttributes`
+(`{id, value}` **리스트**, map 아님: WebIDL이 `[LegacyFactoryFunction=A,
+LegacyFactoryFunction=B]`처럼 동일 이름 중복을 허용하므로) 를 `id`로 검색하는 진짜 존재
+검사가 됩니다. 아래 5건(`#2-7` 포함)은 실제 while-loop로 컴파일되는 것까지 확인해
+지웠습니다. 단, `ExpandMatchesExistsPass`가 `Cond.Any`를 `Assert`/`While`/단일 분기
+`IfChain`에서만 hoist하므로 2-way 이상 `If`/`Otherwise if`/`Else` 체인 안에 있는
+occurrence는 (`#1-5`/`#2-1`/`#2-5`의 "declared with the [{{Global}}]" 처럼) 여전히
+`EYet`으로 남습니다 — 파싱 gap이 아니라 별개의 lowering gap이라 항목은 남겨둡니다.
+
+- `#1-5`, `#2-1`, `#2-5` - |interface| is declared with the [{{Global}}] [=extended attribute=]
+    - assume false (파싱은 해소; 셋 다 2-way 이상 `If`/`Otherwise if` 체인 안이라 위
+      lowering gap으로 여전히 yet)
 - `#2-6` - |interface| has any [=member=] declared with the [{{Unscopable}}] [=extended attribute=]`[Unscopable]
     - assume false
 - `#2-8` - the [{{LegacyNoInterfaceObject}}] [=extended attribute=] was not specified on |interface|
@@ -124,20 +135,20 @@ attribute="))` 같은 케이스들이 속하는 곳입니다. 전부 "interface/
 - `#7-2` - |attribute| is [=read only=] and does not have a [{{LegacyLenientSetter}}], [{{PutForwards}}] or [{{Replaceable}}] [=extended attribute=]
 - `#7-12` - |attribute| was not specified with the [{{LegacyLenientThis}}] [=extended attribute=]
     - assume true
-- `#7-14` - |attribute| is declared with the [{{Replaceable}}] extended attribute
-    - assume false
-- `#7-16` - |attribute| is declared with a [{{LegacyLenientSetter}}] extended attribute
-    - assume false
-- `#7-17` - |attribute| is declared with a [{{PutForwards}}] extended attribute
-    - assume false
-- `#10-12` - |operation| is declared with a [{{Default}}] [=extended attribute=]
-    - assume false
 
 ### II-B. Steps
 - `#3-7` - the [=constructor steps=] of |constructor|
 - `#6-12` - the [=getter steps=] of |attribute|
 
 ### II-C. 상속 구조
+
+**[2026-08-30]** 이 카테고리는 전부 WebIDL interface 상속(`interface A : B`) 자체가
+파이프라인에 전혀 모델링되어 있지 않다는 같은 근본 원인을 공유합니다 — extractor가
+`: B` 부분을 안 뽑고, `Initialize.scala`엔 상속 필드가 없고, "전체 interface 목록"을
+훑을 registry도 없습니다. `#2-5`는 이제 `Cond.Exists`/`Cond.Contains`로 구조적으로는
+파싱되지만 (`declared with the [{{Global}}]` 절 자체는 II-A와 같은 이유로 해소), 이
+근본 원인 때문에 여전히 `EYet`입니다. `#2-2`/`#3-8`은 이 근본 원인이 직접 막고 있어
+손대지 않았습니다.
 
 - `#2-2` - |interface| is declared to inherit from another interface 
     - assume false

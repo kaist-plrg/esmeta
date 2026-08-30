@@ -3593,7 +3593,7 @@ def create_an_interface_prototype_object(
   realm: Unknown,
 ): Unknown = {
   let proto = null
-  if (&& (= interface (yet "declared with the [{{Global}}] [=extended attribute=]")) (= interface (yet "|interface| support named properties"))) {
+  if (&& (yet "any ea in |interface|.[[extendedAttributes]] |ea|.[[id]] is \"Global\"") (yet "|interface| support named properties")) {
     call _call1 = clo<"create_a_named_properties_object">(interface, realm)
     proto = _call1
   } else if (= interface (yet "declared to inherit from another interface")) {
@@ -3608,7 +3608,7 @@ def create_an_interface_prototype_object(
   if (= (yet "|realm|'s [=is global prototype chain mutable=]") true) {
     call _call2 = clo<"OrdinaryObjectCreate">(proto)
     interfaceProtoObj = _call2
-  } else if (|| (= interface (yet "declared with the [{{Global}}] [=extended attribute=],")) (= interface (yet "in the set of [=inherited interfaces=] of an interface that is declared with the [{{Global}}] [=extended attribute=]"))) {
+  } else if (|| (yet "any ea in |interface|.[[extendedAttributes]] |ea|.[[id]] is \"Global\"") (yet "a value descendant exists such that |interface| is contained in [=inherited_interfaces=](|descendant|), and any ea in |descendant|.[[extendedAttributes]] |ea|.[[id]] is \"Global\"")) {
     call _call3 = clo<"MakeBasicObject">((list ["Prototype", "Extensible"]))
     interfaceProtoObj = _call3
     interfaceProtoObj.Prototype = proto
@@ -3631,7 +3631,16 @@ def create_an_interface_prototype_object(
     })
     call _ = clo<"DefinePropertyOrThrow">(interfaceProtoObj, @SYMBOL.unscopables, desc)
   } else nop
-  if (! (= interface (yet "declared with the [{{Global}}] [=extended attribute=]"))) {
+  let _found1 = false
+  let _i2 = 0
+  while (&& (= _found1 false) (< _i2 (sizeof interface.extendedAttributes))) {
+    let ea = interface.extendedAttributes[_i2]
+    if (= ea.id "Global") {
+      _found1 = true
+    } else nop
+    _i2 = (+ _i2 1)
+  }
+  if (! (= _found1 true)) {
     call _ = clo<"define_the_regular_attributes">(interface, interfaceProtoObj, realm)
     call _ = clo<"define_the_regular_operations">(interface, interfaceProtoObj, realm)
     call _ = clo<"define_the_iteration_methods">(interface, interfaceProtoObj, realm)
@@ -4088,7 +4097,7 @@ def internally_create_a_new_object_implementing_the_interface(
     call _ = clo<"DefinePropertyOrThrow">(instance, key, descriptor)
     _iterIdx2 = (+ _iterIdx2 1)
   }
-  if (= interface (yet "declared with the [{{Global}}] [=extended attribute=]")) {
+  if (yet "any ea in |interface|.[[extendedAttributes]] |ea|.[[id]] is \"Global\"") {
     call _ = clo<"define_the_regular_operations">(interface, instance, realm)
     call _ = clo<"define_the_regular_attributes">(interface, instance, realm)
     call _ = clo<"define_the_iteration_methods">(interface, instance, realm)
@@ -4562,7 +4571,16 @@ def attribute_setter_closure1(
         "__MAP__" : (map[Unknown, Unknown]),
       }))
     } else nop
-    if (= attribute (yet "declared with the [{{Replaceable}}] extended attribute")) {
+    let _found1 = false
+    let _i2 = 0
+    while (&& (= _found1 false) (< _i2 (sizeof attribute.extendedAttributes))) {
+      let ea = attribute.extendedAttributes[_i2]
+      if (= ea.id "Replaceable") {
+        _found1 = true
+      } else nop
+      _i2 = (+ _i2 1)
+    }
+    if (= _found1 true) {
       call _ = clo<"CreateDataPropertyOrThrow">(jsValue, id, V)
       let _v1 = undefined
       if (? _v1: Completion) {
@@ -4581,7 +4599,16 @@ def attribute_setter_closure1(
         return _ret4
       }
     } else nop
-    if (= attribute (yet "declared with a [{{LegacyLenientSetter}}] extended attribute")) {
+    let _found3 = false
+    let _i4 = 0
+    while (&& (= _found3 false) (< _i4 (sizeof attribute.extendedAttributes))) {
+      let ea = attribute.extendedAttributes[_i4]
+      if (= ea.id "LegacyLenientSetter") {
+        _found3 = true
+      } else nop
+      _i4 = (+ _i4 1)
+    }
+    if (= _found3 true) {
       let _v5 = undefined
       if (? _v5: Completion) {
         return _v5
@@ -4590,7 +4617,16 @@ def attribute_setter_closure1(
         return _ret6
       }
     } else nop
-    if (= attribute (yet "declared with a [{{PutForwards}}] extended attribute")) {
+    let _found5 = false
+    let _i6 = 0
+    while (&& (= _found5 false) (< _i6 (sizeof attribute.extendedAttributes))) {
+      let ea = attribute.extendedAttributes[_i6]
+      if (= ea.id "PutForwards") {
+        _found5 = true
+      } else nop
+      _i6 = (+ _i6 1)
+    }
+    if (= _found5 true) {
       call _call1 = clo<"Get">(jsValue, id)
       if (? _call1: Abrupt) {
         if (? _call1: Completion) {
@@ -4730,7 +4766,16 @@ def creating_an_operation_function_closure2(
   let operation = _tuple1[0]
   let values = _tuple1[1]
   let R = null
-  if (= operation (yet "declared with a [{{Default}}] [=extended attribute=]")) {
+  let _found1 = false
+  let _i2 = 0
+  while (&& (= _found1 false) (< _i2 (sizeof operation.extendedAttributes))) {
+    let ea = operation.extendedAttributes[_i2]
+    if (= ea.id "Default") {
+      _found1 = true
+    } else nop
+    _i2 = (+ _i2 1)
+  }
+  if (= _found1 true) {
     assert (yet "|operation| [=has default method steps=]")
     call R = operation.defaultMethodSteps(idlObject, values)
   } else {

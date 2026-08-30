@@ -73,6 +73,66 @@ object CondParser:
     """(?si)^(.+?)\s+has\s+an?\s+\\?\[\[([^\]]+)\]\]\s+(?:\[=/?internal slot=\]|internal slot)$""".r
   private val HasSlotNeg =
     """(?si)^(.+?)\s+does not have\s+an?\s+\\?\[\[([^\]]+)\]\]\s+(?:\[=/?internal slot=\]|internal slot)$""".r
+  // "X is [not] declared with a/the [{{Y}}] [=extended attribute=]" —
+  // webidl_yet_categorized.md category II-A (e.g. "|interface| is declared
+  // with the [{{Global}}] [=extended attribute=]", "|operation| is declared
+  // with a [{{Default}}] [=extended attribute=]"). `Initialize.scala` seeds
+  // every interface/operation/attribute record's `extendedAttributes` field
+  // as a *list* of `{id, value}` records (mirroring the declared IDL shape
+  // 1:1 — extended attributes are literally written as a comma-separated
+  // list in `[...]` syntax, and WebIDL allows repeated same-named entries,
+  // e.g. `[LegacyFactoryFunction=A, LegacyFactoryFunction=B]`, index.bs:10806
+  // — so a name-keyed map would silently lose duplicates), not a map keyed by
+  // attribute name. So this compiles to `Cond.Any` — a real search over that
+  // list for an entry whose `id` is the attribute name — rather than a
+  // `HasField` nested-field-path shape (which would silently always evaluate
+  // to `false`/`true`: a list checked for a string-keyed field just falls to
+  // `Obj.exists`'s default `case _ => false`, no crash, just permanently
+  // wrong). Of the 20 corpus occurrences of this idiom, 16 say "the" and 4
+  // say "a" (no semantic difference — just which reads more naturally per
+  // attribute), and 17 link "extended attribute" via `[=extended
+  // attribute=]` while 3 leave it plain text (the same already-precedented
+  // Bikeshed-linking inconsistency `HasSlotPos`/`Neg` tolerate for "internal
+  // slot" above) — both are spec-prose inconsistency, not distinct shapes, so
+  // one pattern tolerates all four combinations rather than forking into
+  // separate cases. The subject is restricted to a bare `|var|` (every real
+  // atomic occurrence is one — |interface|/|attribute|/|operation|), unlike
+  // HasSlotPos/Neg's open `(.+?)`: this idiom also shows up nested inside a
+  // relative clause ("|interface| is in the set of [=inherited interfaces=]
+  // of an interface that is declared with the [{{Global}}] [=extended
+  // attribute=]", webidl_yet_categorized.md category II-C) where "declared
+  // with" grammatically describes the existentially-quantified *ancestor*
+  // interface ("an interface that ..."), not whatever text happens to
+  // precede it. An open `(.+?)` would swallow that whole relative clause as
+  // if it were this subject, producing a nonsensical `Field` base; requiring
+  // a bare pipe-var subject can only match the genuine atomic shape and
+  // leaves the II-C composite sentence to fall through to `Unknown`, same as
+  // before this pattern existed.
+  private val DeclaredWithAttrPos =
+    """(?si)^(\|[^|]+\|)\s+is\s+declared with\s+(?:the|an?)\s+\[\{\{([^}]+)\}\}\]\s+(?:\[=extended attribute=\]|extended attribute)$""".r
+  private val DeclaredWithAttrNeg =
+    """(?si)^(\|[^|]+\|)\s+is not\s+declared with\s+(?:the|an?)\s+\[\{\{([^}]+)\}\}\]\s+(?:\[=extended attribute=\]|extended attribute)$""".r
+  // "X is in the set of [=inherited interfaces=] of an interface that
+  // CLAUSE" — webidl_yet_categorized.md category II-C (index.bs:12064-12066).
+  // [=inherited interfaces=] of I is the set of interfaces I inherits from
+  // (index.bs:695), so "X is in the set of inherited interfaces of Y" means X
+  // is an ancestor of Y — the bound "an interface that CLAUSE" is the
+  // *descendant* (it inherits from X), not the ancestor. Synthesize a
+  // `|descendant|` binder, re-parse CLAUSE with it prepended (reuses
+  // DeclaredWithAttrPos/Neg above), and reuse Contains for "in the set of X"
+  // (same idiom as "is contained in X"). `[=inherited interfaces=]` itself is
+  // a plain-prose dfn, not a `<div algorithm>`, so it never resolves to a
+  // real callable — `ResolveLinksPass` still buckets it as `AlgoCall` (its
+  // "prose referring to an algorithm" heuristic), but the surrounding `Exists`
+  // isn't one of `ExpandExistentialsPass`'s hoistable shapes, so this bottoms
+  // out at `Compiler`'s own `Cond.Exists` fallback (`EYet`) — a legible,
+  // structured placeholder, not a real computation. Making it real needs
+  // WebIDL interface inheritance modeled at all (extracting `interface A : B`,
+  // a per-interface `inheritedInterfaces` field, and a queryable interface
+  // registry for the descendant search) — none of which this pipeline has
+  // today; see webidl_yet_categorized.md's II-C note.
+  private val InInheritedInterfacesOfDeclared =
+    """(?si)^(\|[^|]+\|)\s+is\s+in the set of\s+\[=inherited interfaces=\]\s+of an interface that\s+(.+)$""".r
   // "X contains any duplicates" / "X contains no duplicates" / "X does not
   // contain any duplicates" — see index.bs:1863.
   private val ContainsDuplicatesNeg =
@@ -214,10 +274,14 @@ object CondParser:
         // Or has lower precedence than And, so we try it first
         findTopLevel(searchIn, " or ") match
           case Some(i) =>
-            Or(
-              parse(s.substring(0, i)),
-              parseOrAbbreviated(s.substring(i + 4).trim),
-            )
+            // strip a trailing comma before "or" (e.g. "A, or B") the same
+            // way the "and" branch below already does for "A, and B" — a
+            // comma-before-connective is just list punctuation, not part of
+            // the left condition's own text (see index.bs:12064's "|interface|
+            // is declared with the [{{Global}}] [=extended attribute=], or
+            // |interface| is in the set of ...").
+            val left = s.substring(0, i).trim.stripSuffix(",").trim
+            Or(parse(left), parseOrAbbreviated(s.substring(i + 4).trim))
           case None =>
             findTopLevel(searchIn, " and ") match
               case Some(i) =>
@@ -239,6 +303,22 @@ object CondParser:
 
   private def matchType(link: String): String =
     MatchesType.findFirstMatchIn(link).map(_.group(1)).getOrElse(link)
+
+  /** "X is [not] declared with the [{{ATTR}}] extended attribute" — a search
+    * over `X.extendedAttributes` (a list, see `DeclaredWithAttrPos`'s own doc)
+    * for an entry whose `id` is `attrName`.
+    */
+  private def declaredWithAttr(
+    exprRaw: String,
+    attrName: String,
+    negated: Boolean = false,
+  ): Cond =
+    Any(
+      "ea",
+      List(Field(ExprParser.parse(exprRaw), "extendedAttributes")),
+      Eq(Field(Var("ea"), "id"), Str(attrName)),
+      negated,
+    )
 
   private def parseAtomic(s: String): Cond = s match
     case UnreachableStep()     => Unreachable
@@ -266,6 +346,22 @@ object CondParser:
       HasDuplicates(ExprParser.parse(exprRaw), negated = true)
     case ContainsDuplicatesPos(exprRaw) =>
       HasDuplicates(ExprParser.parse(exprRaw))
+    case DeclaredWithAttrPos(exprRaw, attrName) =>
+      declaredWithAttr(exprRaw, attrName)
+    case DeclaredWithAttrNeg(exprRaw, attrName) =>
+      declaredWithAttr(exprRaw, attrName, negated = true)
+    case InInheritedInterfacesOfDeclared(exprRaw, clauseRaw) =>
+      val binder = "descendant"
+      Exists(
+        binder,
+        And(
+          Contains(
+            ExprParser.parse(exprRaw),
+            ExprParser.parse(s"[=inherited interfaces=] of |$binder|"),
+          ),
+          parse(s"|$binder| ${clauseRaw.trim}"),
+        ),
+      )
     case _ => parseEqOrCompare(s)
 
   private def parseEqOrCompare(s: String): Cond =

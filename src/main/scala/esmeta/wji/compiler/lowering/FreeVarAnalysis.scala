@@ -56,8 +56,9 @@ object FreeVarAnalysis:
       // bound variable is still in this pre-desugared form at analysis
       // time — without this case it'd wrongly look like a free reference
       // and get captured.
-      case Cond.Throws(_, bindTo) => bound ++= bindTo.map(stripPipes)
-      case other                  => super.walk(other)
+      case Cond.Throws(_, bindTo)    => bound ++= bindTo.map(stripPipes)
+      case Cond.Any(binder, _, _, _) => bound += binder
+      case other                     => super.walk(other)
 
     override def walk(expr: Expr): Unit = expr match
       case Expr.Var(name)            => referenced += name

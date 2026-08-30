@@ -116,7 +116,6 @@ object AddInterfaceMemberBuiltinBehaviourPass extends LoweringPass:
     List(
       WjiParam("|this|"),
       WjiParam("|ArgumentsList|"),
-      WjiParam("|NewTarget|"),
     )
 
   private def stripPipes(s: String): String =
@@ -279,8 +278,11 @@ object AddInterfaceMemberBuiltinBehaviourPass extends LoweringPass:
       a.kind match
         case AlgorithmKind.Getter(_) | AlgorithmKind.Setter(_) |
             AlgorithmKind.Constructor(_) | AlgorithmKind.Method(_) =>
+          val params = a.kind match
+            case AlgorithmKind.Getter(_) => BuiltinParams :+ WjiParam("|NewTarget|")
+            case _ => BuiltinParams
           a.copy(
-            params = BuiltinParams,
+            params = params,
             body = unpackArgumentsList(a.params) ++
               givenValueBinding(a.kind) ++ createThisBinding(a.kind) ++
               a.body ++ returnThisBinding(a.kind),

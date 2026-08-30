@@ -983,4 +983,41 @@ print = BuiltinFunctionObject [
 }
 
 
+WebAssembly.Module = BuiltinFunctionObject [
+  Extensible: true;
+  Construct: clo<Record[BuiltinFunctionObject].Construct>;
+] {
+  length: [FFT] 1.0f;
+  name: [FFT] "Module";
+  prototype: [FFF] #INTRINSICS.WebAssembly.Module.prototype;
+  exports: [TFT] #INTRINSICS.WebAssembly.Module.prototype.exports;
+  imports: [TFT] #INTRINSICS.WebAssembly.Module.prototype.imports;
+  customSections: [TFT] #INTRINSICS.WebAssembly.Module.prototype.customsections;
+}
 
+WebAssembly.Module.prototype = OrdinaryObject [
+  Extensible: true;
+  Prototype: #INTRINSICS.Object.prototype;
+] {
+  %Symbol.toStringTag%: [FFT] "WebAssembly.Module";
+}
+
+WebAssembly.Instance = BuiltinFunctionObject [
+  Extensible: true;
+  Construct: clo<Record[BuiltinFunctionObject].Construct>;
+] {
+  length: [FFT] 1.0f;
+  name: [FFT] "Instance";
+  prototype: [FFF] #INTRINSICS.WebAssembly.Instance.prototype;
+}
+
+WebAssembly.Instance.prototype = OrdinaryObject [
+  Extensible: true;
+  Prototype: #INTRINSICS.Object.prototype;
+] {
+  %Symbol.toStringTag%: [FFT] "WebAssembly.Instance";
+  exports: [TT] {
+    Get: #INTRINSICS.get:WebAssembly.Instance.prototype.exports;
+    Set: undefined;
+  };
+}

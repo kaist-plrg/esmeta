@@ -51,12 +51,6 @@ object Extractor:
       .map(_.name)
       .toSet
     val algorithms = (jsApiAlgorithms ++ webidlAlgorithms)
-      .map { a =>
-        a.kind match
-          case AlgorithmKind.Method(forName) if !interfaceNames(forName) =>
-            a.copy(kind = AlgorithmKind.Plain)
-          case _ => a
-      }
       .map(enrichParamTypes(_, definitions))
     Spec(algorithms, definitions, anchors)
 

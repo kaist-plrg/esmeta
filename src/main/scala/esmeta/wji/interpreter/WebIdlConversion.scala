@@ -119,28 +119,35 @@ object WebIdlConversion:
     * gets built into a real ordinary object; everything else, including an
     * already-real ECMAScript value, passes through unchanged.
     */
-  def toJsValue(st: State, argument: Value): Value = argument match
-    case addr: Addr =>
-      st(addr) match
-        case MapObj(entries) =>
-          given CFG = st.cfg
-          val objAddr = newOrdinaryObject(st)
-          val objMap = st(objAddr, Str("__MAP__"))
-          for (key, rawValue) <- entries do
-            val value = toJsValue(st, rawValue)
-            val pdAddr = st.allocRecord(
-              "PropertyDescriptor",
-              List(
-                "Value" -> value,
-                "Writable" -> Bool(true),
-                "Enumerable" -> Bool(true),
-                "Configurable" -> Bool(true),
-              ),
-            )
-            st.update(objMap, key, pdAddr)
-          objAddr
-        case _ => argument
-    case _ => argument
+  def toJsValue(st: State, argument: Value): Value =
+    argument match
+      case addr: Addr =>
+        st(addr) match
+          case promise @ RecordObj("CompletionRecord", _) =>
+            promise(Str("Value")) match
+              case addr: Addr => st(addr) match
+                case promise @ RecordObj("PromiseCapabilityRecord", _) => promise(Str("Promise"))
+                case _ => ???
+              case _ => ???
+          case MapObj(entries) =>
+            given CFG = st.cfg
+            val objAddr = newOrdinaryObject(st)
+            val objMap = st(objAddr, Str("__MAP__"))
+            for (key, rawValue) <- entries do
+              val value = toJsValue(st, rawValue)
+              val pdAddr = st.allocRecord(
+                "PropertyDescriptor",
+                List(
+                  "Value" -> value,
+                  "Writable" -> Bool(true),
+                  "Enumerable" -> Bool(true),
+                  "Configurable" -> Bool(true),
+                ),
+              )
+              st.update(objMap, key, pdAddr)
+            objAddr
+          case _ => argument
+      case _ => argument
 
   /** the internal-method closure every one of `__NEW_OBJ__.ir`'s fields names,
     * resolved the same way `Interpreter`'s own `EClo` evaluation does

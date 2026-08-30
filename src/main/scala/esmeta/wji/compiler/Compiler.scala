@@ -178,17 +178,29 @@ object Compiler:
         )
       algo.kind match
         case AlgorithmKind.Getter(iface) =>
-          builtinFunc(s"INTRINSICS.get:WebAssembly.$iface.prototype.$name")
+          builtinFunc(s"INTRINSICS.get:WebAssembly.$iface.prototype.${name}")
         case AlgorithmKind.Setter(iface) =>
-          builtinFunc(s"INTRINSICS.set:WebAssembly.$iface.prototype.$name")
+          builtinFunc(s"INTRINSICS.set:WebAssembly.$iface.prototype.${name}")
         case AlgorithmKind.Constructor(iface) =>
           builtinFunc(s"INTRINSICS.WebAssembly.$iface")
-        // `iface` here is guaranteed a real WebIDL interface, never a
-        // namespace (`WebAssembly` itself) — `esmeta.wji.extractor.Extractor`
-        // already downgrades any `Method` whose `for` isn't in the extracted
-        // interfaces list to `Plain`, so this case never sees it.
+        // `iface` may be a real WebIDL interface or a namespace (e.g.
+        // `WebAssembly` itself) — `esmeta.wji.extractor.Extractor` no longer
+        // downgrades namespace-`for` `Method`s to `Plain`, so both reach here.
+        // The `INTRINSICS.` prefix isn't optional: mainline
+        // `esmeta.es.Initialize.addPropBuiltinFuncs`/`intrClo` scans every
+        // `FuncKind.Builtin` func in the merged CFG and looks its code up by
+        // `"INTRINSICS." + <path>` unconditionally (`Initialize.scala:217`),
+        // so a compiled builtin registered under any other name makes that
+        // scan crash with a bare `NoSuchElementException` instead of just
+        // ignoring it — even though the resulting static registration is
+        // itself inert for WJI (the live `WebAssembly` global object is built
+        // dynamically by `create_a_namespace_object`, per `manuals/rule.json`'s
+        // "Create any host-defined global object properties" patch).
         case AlgorithmKind.Method(iface) =>
-          builtinFunc(s"INTRINSICS.WebAssembly.$iface.prototype.$name")
+          if iface == "WebAssembly" then
+            builtinFunc(s"INTRINSICS.$iface.prototype.$name")
+          else
+            builtinFunc(s"INTRINSICS.WebAssembly.$iface.prototype.$name")
         case AlgorithmKind.Plain =>
           Func(
             main = false,

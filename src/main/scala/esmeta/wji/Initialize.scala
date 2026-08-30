@@ -177,7 +177,21 @@ object Initialize:
         ),
       )
 
-    def operationRecord(op: WjiOperation): Addr =
+    def operationRecord(defId: String, op: WjiOperation): Addr =
+      // `id` here is the WebIDL identifier itself (e.g. "validate") — this is
+      // what "define the operations" installs as the actual JS property name
+      // (`Let id be op's identifier` / `DefinePropertyOrThrow(target, id,
+      // desc)`), so it must stay unqualified. `defId` only disambiguates the
+      // *lookup key* into `cfg.fnameMap` below, since `op.id` alone isn't
+      // guaranteed unique across different interfaces/namespaces (e.g. two
+      // definitions both declaring a "toString" operation), and must match
+      // exactly what `Compiler.scala`'s `AlgorithmKind.Method` case registers
+      // the compiled closure under (`INTRINSICS.$iface.$name`).
+      val fname =
+        if defId == "WebAssembly" then
+          s"INTRINSICS.$defId.prototype.${op.id}"
+        else
+          s"INTRINSICS.WebAssembly.$defId.prototype.${op.id}"
       st.allocRecord(
         "operation",
         List(
@@ -187,7 +201,7 @@ object Initialize:
           "kind" -> Enum(op.kind.toString),
           "extendedAttributes" -> st.allocList(op.extAttr.map(extAttrRecord)),
           "methodSteps" -> st.cfg.fnameMap
-            .get(op.id)
+            .get(fname)
             .fold[Value](Undef)(f => Clo(f, Map())),
         ),
       )
@@ -207,7 +221,7 @@ object Initialize:
 
     def definitionRecord(d: Definition): Addr =
       val members = d.members.map {
-        case op: WjiOperation   => operationRecord(op)
+        case op: WjiOperation   => operationRecord(d.name, op)
         case attr: WjiAttribute => attributeRecord(attr)
         case _                  => ???
       }

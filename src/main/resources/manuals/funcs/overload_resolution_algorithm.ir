@@ -1,0 +1,21 @@
+def overload_resolution_algorithm(
+  S: Unknown,
+  args: Unknown,
+): Unknown = {
+  %0 = S[0]
+  callable = %0.callable
+  typeList = %0.typeList
+  optionalityList = %0.optionalityList
+  i = 0
+  values = (list [])
+  while (< i (sizeof typeList)) {
+    if (exists args[i]) {
+      call-convert idlArg = <converted_to_an_idl_value>(args[i], typeList[i])
+      push values < idlArg
+    } else {
+      push values < (record)
+    }
+    i = (+ i 1)
+  }
+  return (list [callable, values])
+}

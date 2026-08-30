@@ -1,0 +1,8 @@
+def create_a_namespace_object(
+  namespace: Unknown,
+  realm: Unknown,
+): Unknown = {
+  call namespaceObject = clo<"OrdinaryObjectCreate">(realm.Intrinsics["%Object.prototype%"])
+  call _ = clo<"define_the_regular_operations">(namespace, namespaceObject, realm)
+  return namespaceObject
+}

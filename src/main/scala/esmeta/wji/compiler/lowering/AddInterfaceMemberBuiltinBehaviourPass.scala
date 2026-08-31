@@ -268,6 +268,41 @@ object AddInterfaceMemberBuiltinBehaviourPass extends LoweringPass:
       List(Instr.Set(Expr.This, Expr.New(iface)))
     case _ => Nil
 
+  /** `webidl/index.bs`'s "attribute getter"/"attribute setter"/"creating an
+    * operation function" each open with "If |jsValue| does not implement
+    * |target|, ... throw a TypeError" (`|jsValue|` being **this**, `|target|`
+    * this member's own interface) before ever running the attribute's/
+    * operation's own steps — a check every js-api Getter/Setter/Method text
+    * itself always omits (it's WebIDL's job, not theirs), so nothing here
+    * mechanized it until now. `Cond.Implements(Expr.This, iface, negated =
+    * true)` — the same primitive `docs/hardcodes.md` #11 already built for
+    * "read the imports"/"create a host function" — compiles to `EImplements`, a
+    * flat record-tag comparison bypassing `esmeta.ty.TyModel` entirely. A
+    * `Cond.IsType`/`RecordT`-based nominal check was tried here first and
+    * reverted: `TyModel.diffOf` crashes (`parentOf(l).get` on a type only known
+    * via WJI's *dynamic* subtype registry) whenever **this** turns out to be
+    * some other, unrelated Object — and even fixing that crash,
+    * `RecordTy.contains`'s subtyping is structural, not nominal, so it could
+    * still wrongly let one interface's instance brand-check as another (see
+    * #11's own write-up of the identical trap for `Tag`/`Exception`).
+    */
+  private def brandingCheck(kind: AlgorithmKind): List[Instr] =
+    val iface = kind match
+      case AlgorithmKind.Getter(i) => Some(i)
+      case AlgorithmKind.Setter(i) => Some(i)
+      case AlgorithmKind.Method(i) => Some(i)
+      case _                       => None
+    iface.toList.map { i =>
+      Instr.IfChain(
+        List(
+          Cond.Implements(Expr.This, i, negated = true) -> List(
+            Instr.Throw(Expr.New("TypeError")),
+          ),
+        ),
+        Nil,
+      )
+    }
+
   /** The matching epilogue: every js-api constructor algorithm ends by mutating
     * `**this**`'s fields with no explicit `Return`, relying on WebIDL's outer
     * wrapper to return the object it created — mechanized here as an explicit,
@@ -287,7 +322,7 @@ object AddInterfaceMemberBuiltinBehaviourPass extends LoweringPass:
             AlgorithmKind.Constructor(_) | AlgorithmKind.Method(_) =>
           a.copy(
             params = BuiltinParams,
-            body = unpackArgumentsList(a.params) ++
+            body = brandingCheck(a.kind) ++ unpackArgumentsList(a.params) ++
               givenValueBinding(a.kind) ++ createThisBinding(a.kind) ++
               a.body ++ returnThisBinding(a.kind),
           )

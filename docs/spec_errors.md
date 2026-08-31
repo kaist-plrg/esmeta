@@ -223,3 +223,32 @@ Retracted — its premise was wrong. This entry claimed the Wasm Core Spec's `fu
   (line 12584)
 - **Expected**: all three with "argument list" replaced by "type list", matching the already-correct sibling step computing the same projection in the other direction: `1.  Let |maxarg| be the length of the longest type list of the entries in |S|.` (line 11529, "Overload resolution algorithm").
 - **Reason**: an "effective overload set" entry (an element of `|S|`) is formally defined, once, as the tuple `([=effective overload set tuple/callable=], [=type list=], [=optionality list=])` (line 3157), with `A <dfn>type list</dfn> is a [=list=] of IDL types` (line 3164). Nothing in this document ever defines an "argument list" as a field of that tuple, or as a term at all in this context — these three sites are the only places in the whole document that call this projection an "argument list"; every other reference to it, including the `|maxarg|` step at line 11529 computing the same projection's *longest* value for the same purpose, correctly calls it a "type list". This isn't just inconsistent phrasing to fix for uniformity — "argument list" actively names the wrong concept: "compute the effective overload set" (lines 3179-3256) itself distinguishes the two clearly. It first binds |arguments| to "the [=list=] of arguments |X| is declared to take" (line 3220) — that's the genuine argument list, the operation's own declared parameters — and then, separately, builds |types| ("a [=type list=]", line 3222) by appending "the type of |argument|" for each |argument| in |arguments| (line 3225), before storing |types| (not |arguments|) as the tuple's second element (line 3229). So the value each of the three sites above is minimizing is the length of |types| — the type list — never |arguments| itself; calling it an "argument list" invites confusion with the very value the algorithm just took care to derive it from and name differently. (Line 12028's algorithm, `create a legacy factory function`, isn't currently in `SpecFile.webidlFilter`, so it isn't extracted/compiled by this project today — included here anyway since it's the same defect, worth reporting alongside the other two.)
+
+## 22. `ToWebAssemblyValue`'s host-value-cache hit skips the type check every other branch goes through
+
+- **File**: `spectec/document/js-api/index.bs`, `ToWebAssemblyValue`, lines 1467-1477 (the "ref null heaptype" case's final `Else` branch and its shared tail)
+- **Current**:
+  ```
+  1. Else,
+      1. Let |map| be the [=surrounding agent=]'s associated [=host value cache=].
+      1. If a [=host address=] |hostaddr| exists such that |map|[|hostaddr|] is the same as |v|,
+          1. Return [=ref.host=] |hostaddr|.
+      1. Let [=host address=] |hostaddr| be the smallest address such that |map|[|hostaddr|] [=map/exists=] is false.
+      1. [=map/Set=] |map|[|hostaddr|] to |v|.
+      1. Let |r| be [=ref.host=] |hostaddr|.
+  1. Let |store| be the [=surrounding agent=]'s [=associated store=].
+  1. Let |actualtype| be [=ref_type=](|store|, |r|).
+  1. If [=match_valtype=](|actualtype|, |type|) is false,
+      1. Throw a {{TypeError}}.
+  1. Return |r|.
+  ```
+- **Expected**: the cache-hit branch should bind `|r|` and fall through to the same `ref_type`/`match_valtype` check every other branch (`ref.null`, `ref.extern`, `ref.func`, `ref.i31`, `ref.struct`/`ref.array`, and the cache-*miss* half of this very `Else`) already goes through, not return early:
+  ```
+  1. If a [=host address=] |hostaddr| exists such that |map|[|hostaddr|] is the same as |v|,
+      1. Let |r| be [=ref.host=] |hostaddr|.
+  1. Else,
+      1. Let |hostaddr| be the smallest address such that |map|[|hostaddr|] [=map/exists=] is false.
+      1. [=map/Set=] |map|[|hostaddr|] to |v|.
+      1. Let |r| be [=ref.host=] |hostaddr|.
+  ```
+- **Reason**: every other way of producing an `r` in this algorithm — including the cache-*miss* half of this exact `Else` branch, three steps below the buggy one — falls through to the shared `ref_type`(`store`, `r`)/`match_valtype`(`actualtype`, `type`) check before ever returning, which is what makes converting a value to, say, `eqref` reject an object that isn't actually eq-castable. The cache-hit branch is the one exception: it `Return`s `ref.host hostaddr` immediately, so a value's *first* successful conversion (under whatever type it was converted to *then*) gets remembered in the cache, and every later conversion of that same value — even to a completely different, narrower type — short-circuits straight past the type check and returns the same cached ref.host, regardless of whether it's actually valid for the new target type. Concretely: converting a BigInt to `anyref` succeeds (nothing else matches it, so it falls to this `Else` and is cached as a fresh `ref.host`; `anyref` accepts anything, so `match_valtype` passes). Converting that *same* BigInt to `eqref` immediately afterward should throw a `TypeError` (a host reference doesn't satisfy `eq`) — and does, if it's the first time. But run the `anyref` conversion first, and the second (`eqref`) conversion finds the cached entry, hits the early `Return`, and never reaches `match_valtype` at all — the invalid `ref.host` value sails through into `func_invoke` (or wherever it's headed) unchecked. There, the Wasm Core Spec's own runtime type check on the actual call boundary (not this algorithm) is what finally catches the mismatch — but by raising `Exception.Fail` internally, in a way `spectec`'s `backend-server`/`backend-interpreter` doesn't cleanly surface as a JS-observable error (an uncaught internal exception rather than the intended `TypeError`). Fixed via `SpecPatch` #46: reword the cache-hit branch's `Return` to `Let |r| be ...`, and wrap the cache-miss branch's three steps in an `Else,` (matching this same algorithm's own "If ... Else if ... Else," idiom a few steps up) so exactly one of the two branches runs and both join the shared tail.

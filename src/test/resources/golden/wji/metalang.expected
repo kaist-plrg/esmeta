@@ -1008,10 +1008,11 @@
     Else
       Let(|map|, [=surrounding agent=].[[host value cache]])
       If(a value hostaddr exists such that |map|[|hostaddr|] is |v|)
-        Return([=ref.host=](|hostaddr|))
-      Let(|hostaddr|, smallest address such that |map|[|hostaddr|] [=map/doesn't exist=])
-      Set(|map|[|hostaddr|], |v|)
-      Let(|r|, [=ref.host=](|hostaddr|))
+        Let(|r|, [=ref.host=](|hostaddr|))
+      Else
+        Let(|hostaddr|, smallest address such that |map|[|hostaddr|] [=map/doesn't exist=])
+        Set(|map|[|hostaddr|], |v|)
+        Let(|r|, [=ref.host=](|hostaddr|))
     Let(|store|, [=surrounding agent=].[[associated store]])
     Let(|actualtype|, [=ref_type=](|store|, |r|))
     If([=match_valtype=](|actualtype|, |type|) is false)

@@ -926,6 +926,39 @@ object SpecPatch:
     "be [=memory type=] |addrtype|"
     ->
     "be the [=memory type=] |addrtype|",
+
+    // #46 (spec bug, docs/spec_errors.md #22) — ToWebAssemblyValue's [=host
+    // value cache=] hit branch (index.bs:1470) returns immediately, skipping
+    // the ref_type/match_valtype check every other branch of the same "ref
+    // null heaptype" case funnels through before returning -- so a value
+    // already cached under a *broader* type (e.g. passed as anyref) sails
+    // through unchecked the next time it's converted for a *narrower* one
+    // (e.g. eqref), producing a ref.host value invalid for that type.
+    // Rewording just the "Return" to "Let |r| be ..." isn't enough on its
+    // own -- the three steps right after it (allocate a fresh hostaddr, cache
+    // v under it, bind r) are unconditional top-level steps, so without also
+    // gating them behind an "Else," they'd still run unconditionally even on
+    // a cache hit, clobbering both the map entry and the just-computed |r|.
+    // Wraps them in an "Else," (matching this same algorithm's own "If ...
+    // Else if ... Else," idiom a few steps up) so exactly one of the two
+    // three-step groups runs, and both join the trailing ref_type/
+    // match_valtype/Return |r|. that follows.
+    // Matches the text as it stands *after* #31 above already ran (patches
+    // apply in list order) -- #31 already dropped this same algorithm's
+    // "[=host address=] " annotation from the very `Let |hostaddr| be the
+    // smallest address ...` step this patch also touches.
+    """1. If a [=host address=] |hostaddr| exists such that |map|[|hostaddr|] is the same as |v|,
+      #            1. Return [=ref.host=] |hostaddr|.
+      #        1. Let |hostaddr| be the smallest address such that |map|[|hostaddr|] [=map/exists=] is false.
+      #        1. [=map/Set=] |map|[|hostaddr|] to |v|.
+      #        1. Let |r| be [=ref.host=] |hostaddr|.""".stripMargin('#')
+    ->
+    """1. If a [=host address=] |hostaddr| exists such that |map|[|hostaddr|] is the same as |v|,
+      #            1. Let |r| be [=ref.host=] |hostaddr|.
+      #        1. Else,
+      #            1. Let |hostaddr| be the smallest address such that |map|[|hostaddr|] [=map/exists=] is false.
+      #            1. [=map/Set=] |map|[|hostaddr|] to |v|.
+      #            1. Let |r| be [=ref.host=] |hostaddr|.""".stripMargin('#'),
   )
 
   def apply(source: String): String =

@@ -2440,17 +2440,12 @@ def towebassemblyvalue(
                 }
               }
               if (= _found1 true) {
-                let _v15 = (case "REF.HOST_ADDR" hostaddr)
-                if (? _v15: Completion) {
-                  return _v15
-                } else {
-                  call _ret16 = clo<"NormalCompletion">(_v15)
-                  return _ret16
-                }
-              } else nop
-              let hostaddr = (sizeof map)
-              map[hostaddr] = v
-              let r = (case "REF.HOST_ADDR" hostaddr)
+                let r = (case "REF.HOST_ADDR" hostaddr)
+              } else {
+                let hostaddr = (sizeof map)
+                map[hostaddr] = v
+                let r = (case "REF.HOST_ADDR" hostaddr)
+              }
             }
           }
         }
@@ -2460,20 +2455,20 @@ def towebassemblyvalue(
     call-embed actualtype = <ref_type>(store, r)
     call-embed _call15 = <match_valtype>(actualtype, type)
     if (= _call15 false) {
-      call _err17 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-      call _ret18 = clo<"ThrowCompletion">(_err17)
-      return _ret18
+      call _err15 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
+      call _ret16 = clo<"ThrowCompletion">(_err15)
+      return _ret16
     } else nop
     if (? r: Completion) {
       return r
     } else {
-      call _ret19 = clo<"NormalCompletion">(r)
-      return _ret19
+      call _ret17 = clo<"NormalCompletion">(r)
+      return _ret17
     }
   } else nop
   assert false
-  call _ret20 = clo<"NormalCompletion">(~unused~)
-  return _ret20
+  call _ret18 = clo<"NormalCompletion">(~unused~)
+  return _ret18
 }
 def addressvaluetou64(
   v: Unknown,

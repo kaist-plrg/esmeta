@@ -63,13 +63,6 @@ private val knownFailing: Set[String] =
     "js-api/exception/identity.tentative.any.js",
     "js-api/exception/is.tentative.any.js",
     "js-api/exception/jsTag.tentative.any.js",
-    // unlike every other entry here, this one passes outright in isolation
-    // (`sbt run wji-eval tests/wji/js-api/generated/gc/casts.tentative.any.js
-    // -silent`) -- it only fails as part of this suite, reproducibly, with
-    // `__wjiOk` never getting set at all (same "crash absorbed inside an
-    // async chain" symptom as the js-string/gc entries below). Looks like
-    // some state leaks across tests sharing one SpecTec connection/process
-    // (untriaged) rather than a real mechanization gap.
     "js-api/gc/casts.tentative.any.js",
     "js-api/gc/default-value.tentative.any.js",
     "js-api/gc/exported-object.tentative.any.js",

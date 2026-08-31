@@ -125,18 +125,26 @@ object WebIdlConversion:
     * throwing a real `TypeError` -- WebIDL dictionary conversion is supposed to
     * reject that case, but nothing here can raise a catchable ECMAScript
     * exception yet.
+    *
+    * `argument` being `undefined`/`null` is a real, common case (an omitted or
+    * explicitly-`undefined` dictionary argument -- WebIDL treats either the
+    * same as an empty ordinary object `{}`), not an error: `mapField` is `None`
+    * for those, so every member below reads as absent rather than `st(argument,
+    * "__MAP__")` throwing `InvalidRefBase` on a non-object base.
     */
   private def readDictionary(
     st: State,
     argument: Value,
     members: List[Member],
   ): Value =
-    val mapField = st(argument, Str("__MAP__"))
+    val mapField = argument match
+      case Undef | Null => None
+      case _            => Some(st(argument, Str("__MAP__")))
     val dictAddr = st.allocMap(Nil)
     for member <- members do
       val key = Str(member.name)
-      if st.exists(mapField, key) then
-        val pd = st(mapField, key)
+      if mapField.exists(mf => st.exists(mf, key)) then
+        val pd = st(mapField.get, key)
         val raw = st(pd, Str("Value"))
         val value = if member.isSequence then toSequence(st, raw) else raw
         st.update(dictAddr, key, value)

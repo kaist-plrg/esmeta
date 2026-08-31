@@ -122,9 +122,11 @@ object WebIdlConversion:
     * same as before; `Some(default)` (so far only `GlobalDescriptor.mutable =
     * false`) fills it in instead. A *required* member (e.g.
     * `TableDescriptor.element`) still just goes missing when absent rather than
-    * throwing a real `TypeError` -- WebIDL dictionary conversion is supposed to
-    * reject that case, but nothing here can raise a catchable ECMAScript
-    * exception yet.
+    * throwing a real `TypeError` here -- WebIDL dictionary conversion is
+    * supposed to reject that case, but nothing here can raise a catchable
+    * ECMAScript exception, so `AddInterfaceMemberBuiltinBehaviourPass.
+    * requiredMemberChecks` throws it instead, at compile time, before this
+    * function ever runs.
     *
     * `argument` being `undefined`/`null` is a real, common case (an omitted or
     * explicitly-`undefined` dictionary argument -- WebIDL treats either the

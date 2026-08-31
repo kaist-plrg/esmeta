@@ -217,3 +217,11 @@ Retracted — its premise was wrong. This entry claimed the document consistentl
 - **Expected**: `... and |importObject| is missing, throw a {{TypeError}} exception.` — 이 문서에서 default 없는 optional 파라미터가 생략됐는지 체크하는 다른 모든 자리(`Table` 생성자의 `|value|` line 1045, `Table.grow`의 `|value|` line 1063, `Table.set`의 `|value|` line 1107)가 쓰는 관용구.
 - **Reason**: `importObject`는 `Instance` 생성자에서 `optional object importObject`(default 없음)로 선언되는데, `webidl/index.bs`의 overload resolution algorithm 자체가 "optionality가 'optional'이고 V가 undefined면 ... default가 없는 한 특별한 값 'missing'을 append한다"고 정의합니다 — 즉 생략되든 명시적으로 `undefined`를 넘기든 둘 다, 실제 알고리즘 스텝이 실행되기 전에 이미 별개의 sentinel 값 "missing"으로 변환됩니다. `|importObject|`가 알고리즘 본문 안에서 실제로 ES 값 `undefined`를 들고 있는 경우는 없으므로, `is undefined` 체크는 이 문서 자신의 argument-processing 규칙상 절대 참이 될 수 없는 조건을 체크하는 셈입니다.
 - **WJI 쪽 처리**: `SpecPatch` #43으로 우회 — `"|importObject| is undefined"`를 `"|importObject| is missing"`으로 교체. `CondParser`가 "X is missing"을 `Cond.IsMissing`으로 파싱해 `Table.value` 등과 동일한 관용구로 컴파일되게 합니다.
+
+## 17. `Memory`/`Table` 생성자의 `address` 멤버만 `ToValueType` 변환 없이 raw로 읽음
+
+- **File**: `spectec/document/js-api/index.bs`, lines 873, 1040 (`Memory`/`Table` 생성자)
+- **Current**: `1. If |descriptor|["address"] [=map/exists=], let |addrtype| be |descriptor|["address"]; otherwise, let |addrtype| be [=i32=].`
+- **Expected**: `... let |addrtype| be [=ToValueType=](|descriptor|["address"]); otherwise, ...`
+- **Reason**: 같은 생성자 안에서 `element`(`Table`, line 1037)/`value`(`Global`, line 1192) 같은 다른 `enum`-타입 dictionary 멤버는 전부 `[=ToValueType=](|descriptor|["..."])`을 거쳐서 실제 case-tag 값으로 변환되는데, `address`(`enum AddressType { "i32", "i64" }`)만 예외적으로 raw JS 문자열 그대로 읽습니다. `ToValueType`의 첫 두 분기가 이미 "i32"/"i64"를 `[=i32=]`/`[=i64=]`로 매핑하므로(`AddressType`의 두 값과 정확히 겹침), `address`도 같은 함수를 거치면 되는데 이 두 자리만 빠져있습니다. `#12`(이 문서)와 관련은 있지만 별개 문제입니다 — `#12`는 `AddressValueToU64`/`U64ToAddressValue`가 `|addrtype|`을 비교할 때 raw quoted string과 비교하던 문제(`SpecPatch` #39/#44로 링크 형태로 통일)였고, 이 항목은 애초에 `|addrtype|`에 담기는 *값 자체*가 변환 안 된 raw 문자열이라는 더 상류의 문제입니다 — `#12`/`#39`/`#44`만으로는 비교 대상 쪽(`[=i32=]`)만 case-tag가 되고 `|addrtype|` 쪽은 여전히 raw string이라 비교가 항상 실패했습니다.
+- **WJI 쪽 처리**: `SpecPatch` #48로 우회 — `let |addrtype| be |descriptor|["address"]`를 `let |addrtype| be [=ToValueType=](|descriptor|["address"])`로 교체(두 생성자 모두 텍스트가 동일해서 패치 하나로 둘 다 적용됨).

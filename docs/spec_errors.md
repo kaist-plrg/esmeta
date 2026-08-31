@@ -252,3 +252,25 @@ Retracted — its premise was wrong. This entry claimed the Wasm Core Spec's `fu
       1. Let |r| be [=ref.host=] |hostaddr|.
   ```
 - **Reason**: every other way of producing an `r` in this algorithm — including the cache-*miss* half of this exact `Else` branch, three steps below the buggy one — falls through to the shared `ref_type`(`store`, `r`)/`match_valtype`(`actualtype`, `type`) check before ever returning, which is what makes converting a value to, say, `eqref` reject an object that isn't actually eq-castable. The cache-hit branch is the one exception: it `Return`s `ref.host hostaddr` immediately, so a value's *first* successful conversion (under whatever type it was converted to *then*) gets remembered in the cache, and every later conversion of that same value — even to a completely different, narrower type — short-circuits straight past the type check and returns the same cached ref.host, regardless of whether it's actually valid for the new target type. Concretely: converting a BigInt to `anyref` succeeds (nothing else matches it, so it falls to this `Else` and is cached as a fresh `ref.host`; `anyref` accepts anything, so `match_valtype` passes). Converting that *same* BigInt to `eqref` immediately afterward should throw a `TypeError` (a host reference doesn't satisfy `eq`) — and does, if it's the first time. But run the `anyref` conversion first, and the second (`eqref`) conversion finds the cached entry, hits the early `Return`, and never reaches `match_valtype` at all — the invalid `ref.host` value sails through into `func_invoke` (or wherever it's headed) unchecked. There, the Wasm Core Spec's own runtime type check on the actual call boundary (not this algorithm) is what finally catches the mismatch — but by raising `Exception.Fail` internally, in a way `spectec`'s `backend-server`/`backend-interpreter` doesn't cleanly surface as a JS-observable error (an uncaught internal exception rather than the intended `TypeError`). Fixed via `SpecPatch` #46: reword the cache-hit branch's `Return` to `Let |r| be ...`, and wrap the cache-miss branch's three steps in an `Else,` (matching this same algorithm's own "If ... Else if ... Else," idiom a few steps up) so exactly one of the two branches runs and both join the shared tail.
+
+## 23. `AddressValueToU64`'s range check compares a BigInt against mathematical-value literals with no conversion
+
+- **File**: `spectec/document/js-api/index.bs`, `AddressValueToU64`, line 1493 (the `"i64"` branch)
+- **Current**:
+  ```
+  1. If |addrtype| is "i64",
+      1. Let |n| be [=?=] [$ToBigInt$](|v|).
+      1. If |n| < 0 or |n| > 2^64 − 1, [=throw=] a {{TypeError}}.
+
+          Note: This operation is designed to emulate [=[EnforceRange]=].
+      1. Return [=ℝ=](|n|) as a WebAssembly [=u64=].
+  ```
+- **Expected**:
+  ```
+  1. If |n| < 0 or |n| > 2^64 − 1, [=throw=] a {{TypeError}}.
+  ```
+  becomes
+  ```
+  1. If [=ℝ=](|n|) < 0 or [=ℝ=](|n|) > 2^64 − 1, [=throw=] a {{TypeError}}.
+  ```
+- **Reason**: `|n|` is bound one step above as `[=?=] [$ToBigInt$](|v|)` — a BigInt — but this line compares it directly against the mathematical-value literals `0`/`2^64 − 1` with no conversion notation. ECMA-262 treats BigInt and mathematical values as distinct domains that only cross via an explicit conversion (𝔽/ℤ/ℝ) — this same algorithm's very next step already does exactly that (`Return [=ℝ=](|n|) as a WebAssembly [=u64=].`), so the range check one line above it should use the same `[=ℝ=](|n|)` conversion rather than comparing the raw BigInt. Fixed via `SpecPatch` #47.

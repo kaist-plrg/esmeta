@@ -954,7 +954,7 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Memory(
     "__MAP__" : (map[Unknown, Unknown]),
   })
   if (exists descriptor.address) {
-    let addrtype = descriptor.address
+    call addrtype = clo<"ToValueType">(descriptor.address)
   } else {
     let addrtype = (case "I32" )
   }
@@ -1354,7 +1354,7 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Table(
     return _ret10
   } else nop
   if (exists descriptor.address) {
-    let addrtype = descriptor.address
+    call addrtype = clo<"ToValueType">(descriptor.address)
   } else {
     let addrtype = (case "I32" )
   }
@@ -2617,7 +2617,7 @@ def addressvaluetou64(
     } else {
       let n = _call3.Value
     }
-    if (|| (< n 0) (< (- (** 2 64) 1) n)) {
+    if (|| (< ([math] n) 0) (< (- (** 2 64) 1) ([math] n))) {
       call _err5 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
       call _ret6 = clo<"ThrowCompletion">(_err5)
       return _ret6

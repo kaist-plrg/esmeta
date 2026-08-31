@@ -959,6 +959,36 @@ object SpecPatch:
       #            1. Let |hostaddr| be the smallest address such that |map|[|hostaddr|] [=map/exists=] is false.
       #            1. [=map/Set=] |map|[|hostaddr|] to |v|.
       #            1. Let |r| be [=ref.host=] |hostaddr|.""".stripMargin('#'),
+
+    // #47 (spec bug, docs/spec_errors.md #23) — AddressValueToU64's "i64"
+    // branch compares |n| (bound two steps up as [=?=] [$ToBigInt$](|v|), so
+    // a BigInt) directly against the plain mathematical-value literals `0`/
+    // `2^64 - 1`, instead of first converting it with [=ℝ=] the way every
+    // other BigInt-to-mathematical-value use in this document does (e.g. this
+    // same step's very next line, "Return [=ℝ=](|n|) as a WebAssembly
+    // [=u64=]."). ECMA-262 keeps BigInt and mathematical values as distinct
+    // domains that only cross via an explicit conversion notation (𝔽/ℤ/ℝ) —
+    // comparing a raw BigInt against a mathematical-value literal isn't
+    // itself a defined operation, so this line needs the same [=ℝ=](|n|)
+    // conversion the surrounding steps already use, not a special-cased
+    // BigInt/mathematical-value comparison rule.
+    "If |n| &lt; 0 or |n| &gt; 2<sup>64</sup> &minus; 1, [=throw=] a {{TypeError}}."
+    ->
+    "If [=ℝ=](|n|) &lt; 0 or [=ℝ=](|n|) &gt; 2<sup>64</sup> &minus; 1, [=throw=] a {{TypeError}}.",
+
+    // #48 (spec inconsistency, docs/spec_inconsistencies.md #17) — the
+    // `Memory`/`Table` constructors' `AddressType address;` member is read
+    // straight off the JS value (`let |addrtype| be |descriptor|["address"]`),
+    // unlike this same document's other `enum`-typed dictionary members —
+    // `element`/`value`, read two lines above in these very constructors, both
+    // go through [=ToValueType=](|descriptor|["element"/"value"]) instead.
+    // `ToValueType`'s own first two branches already map "i32"/"i64" to
+    // [=i32=]/[=i64=], the exact case-tag shape `AddressValueToU64`'s `If
+    // |addrtype| is [=i32=]` (SpecPatch #39) compares against — so an
+    // unconverted |addrtype| never matches either branch there.
+    "let |addrtype| be |descriptor|[\"address\"]"
+    ->
+    "let |addrtype| be [=ToValueType=](|descriptor|[\"address\"])",
   )
 
   def apply(source: String): String =

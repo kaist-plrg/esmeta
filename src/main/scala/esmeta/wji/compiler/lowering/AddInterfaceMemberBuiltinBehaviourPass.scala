@@ -169,6 +169,80 @@ object AddInterfaceMemberBuiltinBehaviourPass extends LoweringPass:
     *     "supplied" branch already always converts. Any other default text
     *     fails loudly via `UnsupportedSpecShape` instead of being guessed at.
     */
+  /** required (non-defaulted) members of the WebIDL dictionaries
+    * `converted_to_an_idl_value` (`esmeta.wji.interpreter.WebIdlConversion`)
+    * already knows how to convert — duplicated here rather than shared (same
+    * call as [[unpackArgumentsList]]'s own doc makes for its sibling in
+    * `AddBuiltinBehaviourPass`) since that function's member/default tables are
+    * native-Scala runtime data private to the `wji.interpreter` package, while
+    * this needs the *required* subset at compile time, to emit an IR-level
+    * check (see [[requiredMemberChecks]]) — `converted_to_an_idl_value` itself
+    * has no way to raise a catchable ECMAScript `TypeError` for a missing
+    * required member (`docs/hardcodes.md` #2), so the check has to happen here
+    * instead, before that call ever runs.
+    */
+  private val requiredDictionaryMembers: Map[String, List[String]] = Map(
+    "MemoryDescriptor" -> List("initial"),
+    "TableDescriptor" -> List("element", "initial"),
+    "GlobalDescriptor" -> List("value"),
+    "TagType" -> List("parameters"),
+  )
+
+  /** one `Cond.HasField(..., negated = true) -> Throw(New("TypeError"))` guard
+    * per required member of `ty`, run before `converted_to_an_idl_value` so a
+    * missing required member throws a real, catchable `TypeError` instead of
+    * silently converting to a dictionary that's missing the field, which
+    * crashes later the first time something reads it.
+    *
+    * `name` is still the *raw* ECMAScript argument here — own JS properties
+    * live under its `__MAP__` sub-map, each entry itself a
+    * `PropertyDescriptor`, so a member check has to route through
+    * `Expr.Field(_, "__MAP__")` explicitly: a plain `Expr.Index(Expr.Var(name),
+    * Expr.Str(member))` would compile to a bare `Field` ref straight on
+    * `name`'s own Record (`esmeta.wji.compiler.Compiler.compileRef`'s `Index`
+    * case), which only sees that Record's literal fields
+    * (`"Prototype"`/`"__MAP__"`/...) — never the JS-level property `member`
+    * actually names, so `exists` there is always `false`. A non-`Object` value
+    * (`undefined`/`null`, but also any primitive — a `false`/number/string/
+    * `Symbol()` argument is just as valid a WPT "invalid descriptor" case as
+    * `undefined`, see `spectec/test/js-api/memory/constructor.any.js`'s
+    * "Invalid descriptor argument") gets an explicit `Cond.IsType(_, "Object",
+    * negated = true)` check first rather than falling into the same `__MAP__`
+    * read, since dereferencing `.__MAP__` straight on one crashes with
+    * `InvalidRefBase` instead of ever reaching `exists` — mirrors WebIDL's own
+    * dictionary conversion, whose first step is exactly "if Type(V) is not
+    * Undefined, Null, or Object, throw a TypeError".
+    */
+  private def requiredMemberChecks(ty: String, name: String): List[Instr] =
+    requiredDictionaryMembers.get(ty) match
+      case None => Nil
+      case Some(members) =>
+        List(
+          Instr.IfChain(
+            List(
+              Cond.IsType(
+                Expr.Var(name),
+                "Object",
+                negated = true,
+              ) -> List(Instr.Throw(Expr.New("TypeError"))),
+            ),
+            members.map { member =>
+              Instr.IfChain(
+                List(
+                  Cond.HasField(
+                    Expr.Index(
+                      Expr.Field(Expr.Var(name), "__MAP__"),
+                      Expr.Str(member),
+                    ),
+                    negated = true,
+                  ) -> List(Instr.Throw(Expr.New("TypeError"))),
+                ),
+                Nil,
+              )
+            },
+          ),
+        )
+
   private def omittedBranch(p: WjiParam, name: String): List[Instr] =
     if !p.optional then List(Instr.Throw(Expr.New("TypeError")))
     else
@@ -219,6 +293,7 @@ object AddInterfaceMemberBuiltinBehaviourPass extends LoweringPass:
     params.zipWithIndex.map {
       case (p, i) =>
         val name = stripPipes(p.name)
+        val checks = p.idlType.toList.flatMap(requiredMemberChecks(_, name))
         val convert = p.idlType.toList.map { ty =>
           Instr.Perform(
             "converted_to_an_idl_value",
@@ -230,7 +305,7 @@ object AddInterfaceMemberBuiltinBehaviourPass extends LoweringPass:
           Instr.Let(
             Expr.Var(name),
             Expr.Index(Expr.Var("ArgumentsList"), Expr.Num(i.toString)),
-          ) :: convert
+          ) :: (checks ++ convert)
         Instr.IfChain(
           List(
             Cond.Compare(

@@ -5,14 +5,26 @@ import esmeta.state.util.*
 
 // Garbage Collector
 object GC {
-  def apply(st: State, rootValues: Set[Value] = Set()): Unit = {
+
+  /** `extraFrames`: outer `(context, callStack)` pairs
+    * [[Interpreter. invokeCallable]] has temporarily suspended (see
+    * `Interpreter.suspendedFrames`'s own doc) — `st` alone doesn't reach them
+    * while `st.context`/`st.callStack` hold a reentrant call's own callee
+    * instead, so they're walked as extra roots here too.
+    */
+  def apply(
+    st: State,
+    extraFrames: List[(Context, List[CallContext])] = Nil,
+  ): Unit = {
     var addrSet: Set[Addr] = Set()
     val walker = new UnitWalker {
       override def walk(addr: Addr): Unit = addrSet += addr
       override def walk(heap: Heap): Unit = {}
     }
     walker.walk(st)
-    rootValues.map(walker.walk)
+    for (context, callStack) <- extraFrames do
+      walker.walk(context)
+      callStack.foreach(walker.walk)
 
     val heap = st.heap
     val map = heap.map

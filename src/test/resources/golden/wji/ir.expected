@@ -631,7 +631,7 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Module.prototype.imports(
     return _ret5
   }
 }
-def <BUILTIN>:INTRINSICS.WebAssembly.Module.prototype.customsections(
+def <BUILTIN>:INTRINSICS.WebAssembly.Module.prototype.customSections(
   this: Unknown,
   ArgumentsList: Unknown,
   NewTarget: Unknown,
@@ -1121,7 +1121,7 @@ def memory.grow(
   } else nop
   return ~unused~
 }
-def <BUILTIN>:INTRINSICS.WebAssembly.Memory.prototype.tofixedlengthbuffer(
+def <BUILTIN>:INTRINSICS.WebAssembly.Memory.prototype.toFixedLengthBuffer(
   this: Unknown,
   ArgumentsList: Unknown,
   NewTarget: Unknown,
@@ -1152,7 +1152,7 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Memory.prototype.tofixedlengthbuffer(
     return _ret4
   }
 }
-def <BUILTIN>:INTRINSICS.WebAssembly.Memory.prototype.toresizablebuffer(
+def <BUILTIN>:INTRINSICS.WebAssembly.Memory.prototype.toResizableBuffer(
   this: Unknown,
   ArgumentsList: Unknown,
   NewTarget: Unknown,
@@ -1929,7 +1929,7 @@ def <BUILTIN>:INTRINSICS.set:WebAssembly.Global.prototype.value(
   call _ret10 = clo<"NormalCompletion">(~unused~)
   return _ret10
 }
-def <BUILTIN>:INTRINSICS.WebAssembly.Global.prototype.valueof(
+def <BUILTIN>:INTRINSICS.WebAssembly.Global.prototype.valueOf(
   this: Unknown,
   ArgumentsList: Unknown,
   NewTarget: Unknown,
@@ -2992,7 +2992,7 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Exception(
     return _ret13
   }
 }
-def <BUILTIN>:INTRINSICS.WebAssembly.Exception.prototype.getarg(
+def <BUILTIN>:INTRINSICS.WebAssembly.Exception.prototype.getArg(
   this: Unknown,
   ArgumentsList: Unknown,
   NewTarget: Unknown,

@@ -464,22 +464,28 @@ class Interpreter(
         case (Math(n), ToNumber)         => Number(n.toDouble)
         case (Math(n), ToBigInt)         => BigInt(n.toBigInt)
         case (Math(n), ToMath)           => Math(n)
+        case (Math(n), ToStr(radixOpt, upper)) =>
+          val radix = radixOpt.fold(10)(e => eval(e).asInt)
+          val s = toStringHelper(n.toDouble, radix)
+          Str(if (upper) s.toUpperCase else s)
         // string
         case (Str(s), ToNumber) => ESValueParser.str2number(s)
         case (Str(s), ToBigInt) => ESValueParser.str2bigint(s)
         case (Str(s), _: ToStr) => Str(s)
         // numbers
         case (Number(d), ToMath) => Math(d)
-        case (Number(d), ToStr(radixOpt)) =>
+        case (Number(d), ToStr(radixOpt, upper)) =>
           val radix = radixOpt.fold(10)(e => eval(e).asInt)
-          Str(toStringHelper(d, radix))
+          val s = toStringHelper(d, radix)
+          Str(if (upper) s.toUpperCase else s)
         case (Number(d), ToNumber) => Number(d)
         case (Number(n), ToBigInt) => BigInt(BigDecimal.exact(n).toBigInt)
         // big integer
         case (BigInt(n), ToMath) => Math(n)
-        case (BigInt(n), ToStr(radixOpt)) =>
+        case (BigInt(n), ToStr(radixOpt, upper)) =>
           val radix = radixOpt.fold(10)(e => eval(e).asInt)
-          Str(n.toString(radix))
+          val s = n.toString(radix)
+          Str(if (upper) s.toUpperCase else s)
         case (BigInt(n), ToBigInt) => BigInt(n)
         // wasm-embedding numeric value
         case (Wasm(ALValue.NumV(ALNum.Nat(n))), ToMath) => Math(n)

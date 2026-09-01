@@ -236,6 +236,8 @@ class CaseCollector extends UnitWalker {
           case ToCodeUnit     => "code unit whose numeric"
           case ToCodePoint    => "code point whose numeric"
         s"$a $opStr value $pre {{expr}}"
+      case NumberToStringExpression(expr, radix, upper) =>
+        s"the String representation of {{ expr }}, formatted as a number"
       case ExponentiationExpression(base, power) =>
         s"{{ expr }} <sup>{{ expr }}</sup>"
       case BinaryExpression(left, op, right) =>

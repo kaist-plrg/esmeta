@@ -482,6 +482,13 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case ConversionExpression(op, expr, Text(a, pre)) =>
         given Rule[ConversionExpressionOperator] = convExprOpRule(text = true)
         app >> a >> " " >> op >> " value " >> pre >> " " >> expr
+      case NumberToStringExpression(expr, radix, upper) =>
+        val caseWord = radix match
+          case 16 => if (upper) "uppercase " else "lowercase "
+          case _  => ""
+        val radixWord = if (radix == 16) "hexadecimal" else "decimal"
+        app >> "the String representation of " >> expr
+        app >> ", formatted as a " >> caseWord >> radixWord >> " number"
       case ExponentiationExpression(base, power) =>
         app >> base >> "<sup>" >> power >> "</sup>"
       case BinaryExpression(left, op, right) =>

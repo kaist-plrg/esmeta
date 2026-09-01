@@ -693,6 +693,7 @@ Elision[0,0].IteratorDestructuringAssignmentEvaluation
 Elision[1,0].ArrayAccumulation
 Elision[1,0].IteratorDestructuringAssignmentEvaluation
 EmptyStatement[0,0].Evaluation
+Encode
 EnqueueResolveInAgentJob
 EnqueueResolveInAgentJob:clo0
 EnumerableOwnProperties
@@ -1584,6 +1585,7 @@ INTRINSICS.decodeURI
 INTRINSICS.decodeURIComponent
 INTRINSICS.encodeURI
 INTRINSICS.encodeURIComponent
+INTRINSICS.escape
 INTRINSICS.eval
 INTRINSICS.get:ArrayBuffer.prototype.byteLength
 INTRINSICS.get:ArrayBuffer.prototype.detached
@@ -2547,6 +2549,7 @@ ToUint16
 ToUint32
 ToUint8
 ToWebIDLArrayBuffer
+ToZeroPaddedDecimalString
 TriggerPromiseReactions
 TrimString
 TryStatement[0,0].ContainsDuplicateLabels
@@ -2610,6 +2613,7 @@ UnaryExpression[7,0].IsFunctionDefinition
 UnaryExpression[8,0].AssignmentTargetType
 UnaryExpression[8,0].HasCallInTailPosition
 UnaryExpression[8,0].IsFunctionDefinition
+UnicodeEscape
 UnicodeEscapeSequence[0,0].IdentifierCodePoint
 UnicodeEscapeSequence[1,0].IdentifierCodePoint
 UnicodePropertyValueExpression[0,0].MayContainStrings
@@ -2680,5 +2684,6 @@ __IS_ARRAY_INDEX__
 __NEW_ERROR_OBJ__
 __NEW_OBJ__
 __REMOVE_ELEM__
+__UTF8_ENCODE__
 compute_the_effective_overload_set
 exposed

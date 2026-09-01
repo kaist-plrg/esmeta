@@ -136,3 +136,60 @@
   완전해짐(같은 phrase를 공유). `tycheck-ignore.json`에
   `RegExpUnicodeEscapeSequence[0,0].CharacterValue` 한 항목 추가(새로
   도달 가능해진 기존 타입 느슨함, 이번 변경이 만든 버그 아님).
+
+## 5. "UTF-8 변환 적용"과 "16진수/10진수로 포맷된 문자열 표현" 둘 다 파싱 규칙이 없었음
+
+- **File**: `manuals/funcs/__UTF8_ENCODE__.ir`(신규, 스펙에 없는 이름의
+  헬퍼), `manuals/rule.json`("inst" 맵), `lang/Expression.scala`
+  (`NumberToStringExpression`), `lang/util/{Parser,Stringifier,
+  CaseCollector,Walker,UnitWalker,JsonProtocol}.scala`,
+  `compiler/Compiler.scala`, `ir/Op.scala`(`COp.ToStr`에 `upper: Boolean`
+  필드 추가) + `ir/util/{Parser,Stringifier,Walker,UnitWalker}.scala`,
+  `interpreter/Interpreter.scala`, `analyzer/tychecker/{AbsTransfer,
+  AbsValue}.scala`(`COp.ToStr` 필드 추가로 인한 패턴 매치 arity 수정).
+- **Before**:
+  - `Encode`(`encodeURIComponent`/`encodeURI`가 씀)의 `"Let _Octets_ be the
+    List of octets resulting by applying the UTF-8 transformation to
+    _cp_.[[CodePoint]]."` 스텝 — 문장 전체가 파싱 실패(`YetStep`)라
+    `codePointAt()`류와 달리 `rule.json`의 "expr"가 아니라 "inst" 맵이
+    필요한 케이스.
+  - `"the String representation of X, formatted as a[n] [lowercase/
+    uppercase] decimal/hexadecimal number"` — `ecma262/spec.html`에 5곳
+    (`Encode`의 octet→hex 3곳, `UnicodeEscape`의 lowercase hex 1곳 — 4번
+    항목에서 "여전히 미완성으로 남음"이라고 적어뒀던 바로 그 자리, 그 외
+    decimal 1곳)에서 반복되는데 파싱 규칙 자체가 없었음. `COp.ToStr`
+    (`esmeta.ir.Op`)는 이미 진수 변환을 하지만 대소문자 개념이 없었고,
+    `String.prototype.toUpperCase` 자체도 mainline에 `yet` 스텁이라 기댈
+    기존 빌딩 블록이 없었음.
+- **After**:
+  - `__UTF8_ENCODE__`(code point → UTF-8 octet List, 표준 1~4바이트
+    인코딩을 IR 산술/비트 연산으로 직접 구현)를 새로 만들고,
+    `rule.json`의 "inst" 맵에 위 스텝 전체 텍스트를 이 헬퍼 호출로
+    매핑 — `WJI`의 `__NEW_ERROR_OBJ__`처럼 스펙에 없는 이름의 헬퍼를
+    새로 만들어 쓰는 것과 같은 선례.
+  - `"String representation of X, formatted as ..."`는 5곳 반복이라
+    `NumberToStringExpression`(`radix: Int`, `upper: Boolean`)이라는
+    진짜 `Expression` AST 노드를 새로 추가 — `ConversionExpression`
+    옆에 나란히, `CalcExpression`을 상속. `COp.ToStr`에도 `upper: Boolean`
+    필드를 추가(default `false`라 기존 두 manual `.ir`
+    `Number::toString.ir`/`BigInt::toString.ir`의 `[str]`/`[str radix]`
+    호출은 그대로 유효)하고, `Interpreter`의 `Number`/`BigInt`/`Math` 세
+    타입 각각의 `ToStr` case에서 `upper`면 `.toUpperCase` — `Math` 타입은
+    기존에 `ToStr` 자체가 없어서(옥텟 값이 `Math`로 흘러들어옴) 이 김에
+    같이 추가.
+- **왜 "esmeta_changes"로 분류했는가**: 4번 항목과 같은 맥락 — UTF-8
+  인코딩과 16진수 포맷팅은 ECMA-262 자기 자신의 `Encode`/`Decode`,
+  `UnicodeEscape`, `Quote` 같은 여러 알고리즘이 공통으로 쓰는 관용구인데
+  mainline이 이걸 문법 규칙으로도, 값 타입으로도 모델링 안 하기로 한 건
+  "이 정도 문자열 포맷팅은 필요할 때마다 네이티브로 우회한다"는 기존
+  전략(1~4번과 동일 맥락)의 연장으로 보임.
+- **검증**: `sbt test`(528개, CFG fingerprint 골든 재생성, 연속 2회 안정
+  확인) 전체 통과, `wjiEvalTest`(30 succeeded) 회귀 없음.
+  `encodeURIComponent("😀")` === `"%F0%9F%98%80"`,
+  `encodeURIComponent("hello world!")` === `"hello%20world!"`,
+  `encodeURIComponent("é")` === `"%C3%A9"` 전부 실제 JS와 동일한 결과
+  직접 확인. `complete-funcs`에 `Encode` 외에도 `INTRINSICS.escape`(1/2번
+  항목에서 필요하다고 적어뒀던 Annex B 함수), `UnicodeEscape`(4번에서
+  미완성으로 남겨뒀던 것), `ToZeroPaddedDecimalString`까지 부수적으로
+  완전해짐 — `spec-summary`의 algorithm steps complete가 21695 → 21700,
+  algorithms complete가 2541 → 2544로 반영.

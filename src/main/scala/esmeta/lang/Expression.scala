@@ -216,6 +216,15 @@ enum ConversionExpressionForm:
   // `the`: article, `that corresponds to`: pre
   case Text(article: String, pre: String)
 
+// "the String representation of {{ expr }}, formatted as a[n] [lowercase/
+// uppercase] decimal/hexadecimal number" (radix 10/16, upper only meaningful
+// for radix 16) -- e.g. ecma262 sec-encode's octet-to-%XX hex formatting.
+case class NumberToStringExpression(
+  expr: Expression,
+  radix: Int,
+  upper: Boolean,
+) extends CalcExpression
+
 // -----------------------------------------------------------------------------
 // clamp expressions
 // -----------------------------------------------------------------------------

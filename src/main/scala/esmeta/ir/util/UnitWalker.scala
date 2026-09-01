@@ -167,8 +167,8 @@ trait UnitWalker extends BasicUnitWalker {
 
   // conversion operators
   def walk(cop: COp): Unit = cop match {
-    case COp.ToStr(radix) => walkOpt(radix, walk)
-    case op               =>
+    case COp.ToStr(radix, _) => walkOpt(radix, walk)
+    case op                  =>
   }
 
   // references

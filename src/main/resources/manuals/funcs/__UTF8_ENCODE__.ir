@@ -1,0 +1,23 @@
+def __UTF8_ENCODE__(
+  cp: CodePoint,
+): List = {
+  let n = ([math] cp)
+  if (< n 128) {
+    return (list [n])
+  } else if (< n 2048) {
+    let b0 = (+ 192 (>> n 6))
+    let b1 = (+ 128 (& n 63))
+    return (list [b0, b1])
+  } else if (< n 65536) {
+    let b0 = (+ 224 (>> n 12))
+    let b1 = (+ 128 (& (>> n 6) 63))
+    let b2 = (+ 128 (& n 63))
+    return (list [b0, b1, b2])
+  } else {
+    let b0 = (+ 240 (>> n 18))
+    let b1 = (+ 128 (& (>> n 12) 63))
+    let b2 = (+ 128 (& (>> n 6) 63))
+    let b3 = (+ 128 (& n 63))
+    return (list [b0, b1, b2, b3])
+  }
+}

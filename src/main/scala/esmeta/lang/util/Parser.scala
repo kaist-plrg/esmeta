@@ -494,6 +494,7 @@ trait Parsers extends IndentParsers {
     } |
     returnIfAbruptExpr |
     convExpr |
+    numToStrExpr |
     mathFuncExpr |
     "(" ~> calcExpr <~ ")" |
     refExpr |
@@ -550,6 +551,18 @@ trait Parsers extends IndentParsers {
         case a ~ op ~ pre ~ e => ConversionExpression(op, e, Text(a.trim, pre))
       }
     opFormat | textFormat
+
+  // "the String representation of X, formatted as a[n] [lowercase/
+  // uppercase] decimal/hexadecimal number"
+  lazy val numToStrExpr: PL[NumberToStringExpression] =
+    ("the String representation of" ~> expr <~ ",") ~
+    ("formatted as" ~> indefArticle ~> opt(
+      "lowercase" ^^^ false | "uppercase" ^^^ true,
+    )) ~
+    (("decimal" ^^^ 10 | "hexadecimal" ^^^ 16) <~ "number") ^^ {
+      case e ~ upperOpt ~ radix =>
+        NumberToStringExpression(e, radix, upperOpt.getOrElse(false))
+    }
 
   // emu-xref expressions
   // TODO cleanup spec.html

@@ -552,10 +552,18 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Module.prototype.exports(
   if (< 0 (sizeof ArgumentsList)) {
     let moduleObject = ArgumentsList[0]
     call-convert moduleObject = <converted_to_an_idl_value>(moduleObject, "Module")
+    if (? moduleObject: Abrupt) {
+      if (? moduleObject: Completion) {
+        return moduleObject
+      } else {
+        call _ret3 = clo<"NormalCompletion">(moduleObject)
+        return _ret3
+      }
+    } else nop
   } else {
-    call _err3 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-    call _ret4 = clo<"ThrowCompletion">(_err3)
-    return _ret4
+    call _err4 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
+    call _ret5 = clo<"ThrowCompletion">(_err4)
+    return _ret5
   }
   let module = moduleObject.Module
   let exports = (list [])
@@ -576,8 +584,8 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Module.prototype.exports(
   if (? exports: Completion) {
     return exports
   } else {
-    call _ret5 = clo<"NormalCompletion">(exports)
-    return _ret5
+    call _ret6 = clo<"NormalCompletion">(exports)
+    return _ret6
   }
 }
 def <BUILTIN>:INTRINSICS.WebAssembly.Module.prototype.imports(
@@ -593,10 +601,18 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Module.prototype.imports(
   if (< 0 (sizeof ArgumentsList)) {
     let moduleObject = ArgumentsList[0]
     call-convert moduleObject = <converted_to_an_idl_value>(moduleObject, "Module")
+    if (? moduleObject: Abrupt) {
+      if (? moduleObject: Completion) {
+        return moduleObject
+      } else {
+        call _ret3 = clo<"NormalCompletion">(moduleObject)
+        return _ret3
+      }
+    } else nop
   } else {
-    call _err3 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-    call _ret4 = clo<"ThrowCompletion">(_err3)
-    return _ret4
+    call _err4 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
+    call _ret5 = clo<"ThrowCompletion">(_err4)
+    return _ret5
   }
   let module = moduleObject.Module
   let builtinSetNames = moduleObject.BuiltinSets
@@ -627,8 +643,8 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Module.prototype.imports(
   if (? imports: Completion) {
     return imports
   } else {
-    call _ret5 = clo<"NormalCompletion">(imports)
-    return _ret5
+    call _ret6 = clo<"NormalCompletion">(imports)
+    return _ret6
   }
 }
 def <BUILTIN>:INTRINSICS.WebAssembly.Module.prototype.customSections(
@@ -644,18 +660,34 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Module.prototype.customSections(
   if (< 0 (sizeof ArgumentsList)) {
     let moduleObject = ArgumentsList[0]
     call-convert moduleObject = <converted_to_an_idl_value>(moduleObject, "Module")
+    if (? moduleObject: Abrupt) {
+      if (? moduleObject: Completion) {
+        return moduleObject
+      } else {
+        call _ret3 = clo<"NormalCompletion">(moduleObject)
+        return _ret3
+      }
+    } else nop
   } else {
-    call _err3 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-    call _ret4 = clo<"ThrowCompletion">(_err3)
-    return _ret4
+    call _err4 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
+    call _ret5 = clo<"ThrowCompletion">(_err4)
+    return _ret5
   }
   if (< 1 (sizeof ArgumentsList)) {
     let sectionName = ArgumentsList[1]
     call-convert sectionName = <converted_to_an_idl_value>(sectionName, "DOMString")
+    if (? sectionName: Abrupt) {
+      if (? sectionName: Completion) {
+        return sectionName
+      } else {
+        call _ret6 = clo<"NormalCompletion">(sectionName)
+        return _ret6
+      }
+    } else nop
   } else {
-    call _err5 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-    call _ret6 = clo<"ThrowCompletion">(_err5)
-    return _ret6
+    call _err7 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
+    call _ret8 = clo<"ThrowCompletion">(_err7)
+    return _ret8
   }
   let bytes = moduleObject.Bytes
   let customSections = (list [])
@@ -673,8 +705,8 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Module.prototype.customSections(
   if (? customSections: Completion) {
     return customSections
   } else {
-    call _ret7 = clo<"NormalCompletion">(customSections)
-    return _ret7
+    call _ret9 = clo<"NormalCompletion">(customSections)
+    return _ret9
   }
 }
 def <BUILTIN>:INTRINSICS.WebAssembly.Module(
@@ -685,17 +717,41 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Module(
   if (< 0 (sizeof ArgumentsList)) {
     let bytes = ArgumentsList[0]
     call-convert bytes = <converted_to_an_idl_value>(bytes, "AllowSharedBufferSource")
+    if (? bytes: Abrupt) {
+      if (? bytes: Completion) {
+        return bytes
+      } else {
+        call _ret1 = clo<"NormalCompletion">(bytes)
+        return _ret1
+      }
+    } else nop
   } else {
-    call _err1 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-    call _ret2 = clo<"ThrowCompletion">(_err1)
-    return _ret2
+    call _err2 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
+    call _ret3 = clo<"ThrowCompletion">(_err2)
+    return _ret3
   }
   if (< 1 (sizeof ArgumentsList)) {
     let options = ArgumentsList[1]
     call-convert options = <converted_to_an_idl_value>(options, "WebAssemblyCompileOptions")
+    if (? options: Abrupt) {
+      if (? options: Completion) {
+        return options
+      } else {
+        call _ret4 = clo<"NormalCompletion">(options)
+        return _ret4
+      }
+    } else nop
   } else {
     call options = clo<"OrdinaryObjectCreate">(null)
     call-convert options = <converted_to_an_idl_value>(options, "WebAssemblyCompileOptions")
+    if (? options: Abrupt) {
+      if (? options: Completion) {
+        return options
+      } else {
+        call _ret5 = clo<"NormalCompletion">(options)
+        return _ret5
+      }
+    } else nop
   }
   this = (record [Module] {
     "GetPrototypeOf" : clo<"Record[OrdinaryObject].GetPrototypeOf">,
@@ -717,9 +773,9 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Module(
   call stableBytes = clo<"get_a_copy_of_the_buffer_source">(bytes)
   call module = clo<"Compile_a_WebAssembly_module">(stableBytes)
   if (= module (case "ERROR" )) {
-    call _err3 = clo<"__NEW_ERROR_OBJ__">("%CompileError.prototype%")
-    call _ret4 = clo<"ThrowCompletion">(_err3)
-    return _ret4
+    call _err6 = clo<"__NEW_ERROR_OBJ__">("%CompileError.prototype%")
+    call _ret7 = clo<"ThrowCompletion">(_err6)
+    return _ret7
   } else nop
   if (exists options.builtins) {
     let builtinSetNames = options.builtin
@@ -733,20 +789,20 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Module(
   }
   call _call1 = clo<"validate_builtins_and_imported_string_for_a_WebAssembly_module">(module, builtinSetNames, importedStringModule)
   if (= _call1 false) {
-    call _err5 = clo<"__NEW_ERROR_OBJ__">("%CompileError.prototype%")
-    call _ret6 = clo<"ThrowCompletion">(_err5)
-    return _ret6
+    call _err8 = clo<"__NEW_ERROR_OBJ__">("%CompileError.prototype%")
+    call _ret9 = clo<"ThrowCompletion">(_err8)
+    return _ret9
   } else nop
   this.Module = module
   this.Bytes = stableBytes
   this.BuiltinSets = builtinSetNames
   this.ImportedStringModule = importedStringModule
-  let _v7 = this
-  if (? _v7: Completion) {
-    return _v7
+  let _v10 = this
+  if (? _v10: Completion) {
+    return _v10
   } else {
-    call _ret8 = clo<"NormalCompletion">(_v7)
-    return _ret8
+    call _ret11 = clo<"NormalCompletion">(_v10)
+    return _ret11
   }
 }
 def <BUILTIN>:INTRINSICS.WebAssembly.Instance(
@@ -757,14 +813,30 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Instance(
   if (< 0 (sizeof ArgumentsList)) {
     let moduleObject = ArgumentsList[0]
     call-convert moduleObject = <converted_to_an_idl_value>(moduleObject, "Module")
+    if (? moduleObject: Abrupt) {
+      if (? moduleObject: Completion) {
+        return moduleObject
+      } else {
+        call _ret1 = clo<"NormalCompletion">(moduleObject)
+        return _ret1
+      }
+    } else nop
   } else {
-    call _err1 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-    call _ret2 = clo<"ThrowCompletion">(_err1)
-    return _ret2
+    call _err2 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
+    call _ret3 = clo<"ThrowCompletion">(_err2)
+    return _ret3
   }
   if (< 1 (sizeof ArgumentsList)) {
     let importObject = ArgumentsList[1]
     call-convert importObject = <converted_to_an_idl_value>(importObject, "object")
+    if (? importObject: Abrupt) {
+      if (? importObject: Completion) {
+        return importObject
+      } else {
+        call _ret4 = clo<"NormalCompletion">(importObject)
+        return _ret4
+      }
+    } else nop
   } else {
     let importObject = undefined
   }
@@ -793,8 +865,8 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Instance(
     if (? imports: Completion) {
       return imports
     } else {
-      call _ret3 = clo<"NormalCompletion">(imports)
-      return _ret3
+      call _ret5 = clo<"NormalCompletion">(imports)
+      return _ret5
     }
   } else {
     imports = imports.Value
@@ -804,19 +876,19 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Instance(
     if (? instance: Completion) {
       return instance
     } else {
-      call _ret4 = clo<"NormalCompletion">(instance)
-      return _ret4
+      call _ret6 = clo<"NormalCompletion">(instance)
+      return _ret6
     }
   } else {
     instance = instance.Value
   }
   call _ = clo<"initialize_an_instance_object">(this, module, instance)
-  let _v5 = this
-  if (? _v5: Completion) {
-    return _v5
+  let _v7 = this
+  if (? _v7: Completion) {
+    return _v7
   } else {
-    call _ret6 = clo<"NormalCompletion">(_v5)
-    return _ret6
+    call _ret8 = clo<"NormalCompletion">(_v7)
+    return _ret8
   }
 }
 def <BUILTIN>:INTRINSICS.get:WebAssembly.Instance.prototype.exports(
@@ -925,16 +997,20 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Memory(
       call _err1 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
       call _ret2 = clo<"ThrowCompletion">(_err1)
       return _ret2
-    } else if (! (exists descriptor.__MAP__.initial)) {
-      call _err3 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-      call _ret4 = clo<"ThrowCompletion">(_err3)
-      return _ret4
     } else nop
     call-convert descriptor = <converted_to_an_idl_value>(descriptor, "MemoryDescriptor")
+    if (? descriptor: Abrupt) {
+      if (? descriptor: Completion) {
+        return descriptor
+      } else {
+        call _ret3 = clo<"NormalCompletion">(descriptor)
+        return _ret3
+      }
+    } else nop
   } else {
-    call _err5 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-    call _ret6 = clo<"ThrowCompletion">(_err5)
-    return _ret6
+    call _err4 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
+    call _ret5 = clo<"ThrowCompletion">(_err4)
+    return _ret5
   }
   this = (record [Memory] {
     "GetPrototypeOf" : clo<"Record[OrdinaryObject].GetPrototypeOf">,
@@ -963,8 +1039,8 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Memory(
     if (? _call1: Completion) {
       return _call1
     } else {
-      call _ret7 = clo<"NormalCompletion">(_call1)
-      return _ret7
+      call _ret6 = clo<"NormalCompletion">(_call1)
+      return _ret6
     }
   } else {
     let initial = _call1.Value
@@ -975,8 +1051,8 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Memory(
       if (? _call2: Completion) {
         return _call2
       } else {
-        call _ret8 = clo<"NormalCompletion">(_call2)
-        return _ret8
+        call _ret7 = clo<"NormalCompletion">(_call2)
+        return _ret7
       }
     } else {
       let maximum = _call2.Value
@@ -987,27 +1063,27 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Memory(
   let memtype = (case "PAGE" addrtype (case "[" initial (opt maximum)))
   call-embed _call3 = <valid_memtype>(memtype)
   if (! (= _call3 true)) {
-    call _err9 = clo<"__NEW_ERROR_OBJ__">("%RangeError.prototype%")
-    call _ret10 = clo<"ThrowCompletion">(_err9)
-    return _ret10
+    call _err8 = clo<"__NEW_ERROR_OBJ__">("%RangeError.prototype%")
+    call _ret9 = clo<"ThrowCompletion">(_err8)
+    return _ret9
   } else nop
   let store = @AGENT_RECORD["associated store"]
   call-embed _tuple1 = <mem_alloc>(store, memtype)
   let store = _tuple1[0]
   let memaddr = _tuple1[1]
   if (= memaddr (case "ERROR" )) {
-    call _err11 = clo<"__NEW_ERROR_OBJ__">("%RangeError.prototype%")
-    call _ret12 = clo<"ThrowCompletion">(_err11)
-    return _ret12
+    call _err10 = clo<"__NEW_ERROR_OBJ__">("%RangeError.prototype%")
+    call _ret11 = clo<"ThrowCompletion">(_err10)
+    return _ret11
   } else nop
   @AGENT_RECORD["associated store"] = store
   call _ = clo<"initialize_a_memory_object">(this, memaddr)
-  let _v13 = this
-  if (? _v13: Completion) {
-    return _v13
+  let _v12 = this
+  if (? _v12: Completion) {
+    return _v12
   } else {
-    call _ret14 = clo<"NormalCompletion">(_v13)
-    return _ret14
+    call _ret13 = clo<"NormalCompletion">(_v12)
+    return _ret13
   }
 }
 def refresh_the_memory_buffer(
@@ -1063,10 +1139,18 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Memory.prototype.grow(
   if (< 0 (sizeof ArgumentsList)) {
     let delta = ArgumentsList[0]
     call-convert delta = <converted_to_an_idl_value>(delta, "AddressValue")
+    if (? delta: Abrupt) {
+      if (? delta: Completion) {
+        return delta
+      } else {
+        call _ret3 = clo<"NormalCompletion">(delta)
+        return _ret3
+      }
+    } else nop
   } else {
-    call _err3 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-    call _ret4 = clo<"ThrowCompletion">(_err3)
-    return _ret4
+    call _err4 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
+    call _ret5 = clo<"ThrowCompletion">(_err4)
+    return _ret5
   }
   let memaddr = this.Memory
   let store = @AGENT_RECORD["associated store"]
@@ -1078,8 +1162,8 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Memory.prototype.grow(
     if (? _call1: Completion) {
       return _call1
     } else {
-      call _ret5 = clo<"NormalCompletion">(_call1)
-      return _ret5
+      call _ret6 = clo<"NormalCompletion">(_call1)
+      return _ret6
     }
   } else {
     let delta64 = _call1.Value
@@ -1089,8 +1173,8 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Memory.prototype.grow(
     if (? _guard1: Completion) {
       return _guard1
     } else {
-      call _ret6 = clo<"NormalCompletion">(_guard1)
-      return _ret6
+      call _ret7 = clo<"NormalCompletion">(_guard1)
+      return _ret7
     }
   } else {
     let ret = _guard1.Value
@@ -1099,8 +1183,8 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Memory.prototype.grow(
   if (? _result1: Completion) {
     return _result1
   } else {
-    call _ret7 = clo<"NormalCompletion">(_result1)
-    return _ret7
+    call _ret8 = clo<"NormalCompletion">(_result1)
+    return _ret8
   }
 }
 def memory.grow(
@@ -1306,27 +1390,32 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Table(
       call _err1 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
       call _ret2 = clo<"ThrowCompletion">(_err1)
       return _ret2
-    } else {
-      if (! (exists descriptor.__MAP__.element)) {
-        call _err3 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-        call _ret4 = clo<"ThrowCompletion">(_err3)
-        return _ret4
-      } else nop
-      if (! (exists descriptor.__MAP__.initial)) {
-        call _err5 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-        call _ret6 = clo<"ThrowCompletion">(_err5)
-        return _ret6
-      } else nop
-    }
+    } else nop
     call-convert descriptor = <converted_to_an_idl_value>(descriptor, "TableDescriptor")
+    if (? descriptor: Abrupt) {
+      if (? descriptor: Completion) {
+        return descriptor
+      } else {
+        call _ret3 = clo<"NormalCompletion">(descriptor)
+        return _ret3
+      }
+    } else nop
   } else {
-    call _err7 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-    call _ret8 = clo<"ThrowCompletion">(_err7)
-    return _ret8
+    call _err4 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
+    call _ret5 = clo<"ThrowCompletion">(_err4)
+    return _ret5
   }
   if (< 1 (sizeof ArgumentsList)) {
     let value = ArgumentsList[1]
     call-convert value = <converted_to_an_idl_value>(value, "any")
+    if (? value: Abrupt) {
+      if (? value: Completion) {
+        return value
+      } else {
+        call _ret6 = clo<"NormalCompletion">(value)
+        return _ret6
+      }
+    } else nop
   } else {
     let value = undefined
   }
@@ -1349,9 +1438,9 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Table(
   })
   call elementtype = clo<"ToValueType">(descriptor.element)
   if (! (= (case-tag elementtype) "REF")) {
-    call _err9 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-    call _ret10 = clo<"ThrowCompletion">(_err9)
-    return _ret10
+    call _err7 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
+    call _ret8 = clo<"ThrowCompletion">(_err7)
+    return _ret8
   } else nop
   if (exists descriptor.address) {
     call addrtype = clo<"ToValueType">(descriptor.address)
@@ -1363,8 +1452,8 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Table(
     if (? _call1: Completion) {
       return _call1
     } else {
-      call _ret11 = clo<"NormalCompletion">(_call1)
-      return _ret11
+      call _ret9 = clo<"NormalCompletion">(_call1)
+      return _ret9
     }
   } else {
     let initial = _call1.Value
@@ -1375,8 +1464,8 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Table(
       if (? _call2: Completion) {
         return _call2
       } else {
-        call _ret12 = clo<"NormalCompletion">(_call2)
-        return _ret12
+        call _ret10 = clo<"NormalCompletion">(_call2)
+        return _ret10
       }
     } else {
       let maximum = _call2.Value
@@ -1387,9 +1476,9 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Table(
   let type = (case "" addrtype (case "[" initial (opt maximum)) elementtype)
   call-embed _call3 = <valid_tabletype>(type)
   if (! (= _call3 true)) {
-    call _err13 = clo<"__NEW_ERROR_OBJ__">("%RangeError.prototype%")
-    call _ret14 = clo<"ThrowCompletion">(_err13)
-    return _ret14
+    call _err11 = clo<"__NEW_ERROR_OBJ__">("%RangeError.prototype%")
+    call _ret12 = clo<"ThrowCompletion">(_err11)
+    return _ret12
   } else nop
   if (= value undefined) {
     call ref = clo<"DefaultValue">(elementtype)
@@ -1400,8 +1489,8 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Table(
       if (? _call4: Completion) {
         return _call4
       } else {
-        call _ret15 = clo<"NormalCompletion">(_call4)
-        return _ret15
+        call _ret13 = clo<"NormalCompletion">(_call4)
+        return _ret13
       }
     } else {
       let ref = _call4.Value
@@ -1412,18 +1501,18 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Table(
   let store = _tuple1[0]
   let tableaddr = _tuple1[1]
   if (= tableaddr (case "ERROR" )) {
-    call _err16 = clo<"__NEW_ERROR_OBJ__">("%RangeError.prototype%")
-    call _ret17 = clo<"ThrowCompletion">(_err16)
-    return _ret17
+    call _err14 = clo<"__NEW_ERROR_OBJ__">("%RangeError.prototype%")
+    call _ret15 = clo<"ThrowCompletion">(_err14)
+    return _ret15
   } else nop
   @AGENT_RECORD["associated store"] = store
   call _ = clo<"initialize_a_table_object">(this, tableaddr)
-  let _v18 = this
-  if (? _v18: Completion) {
-    return _v18
+  let _v16 = this
+  if (? _v16: Completion) {
+    return _v16
   } else {
-    call _ret19 = clo<"NormalCompletion">(_v18)
-    return _ret19
+    call _ret17 = clo<"NormalCompletion">(_v16)
+    return _ret17
   }
 }
 def <BUILTIN>:INTRINSICS.WebAssembly.Table.prototype.grow(
@@ -1439,14 +1528,30 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Table.prototype.grow(
   if (< 0 (sizeof ArgumentsList)) {
     let delta = ArgumentsList[0]
     call-convert delta = <converted_to_an_idl_value>(delta, "AddressValue")
+    if (? delta: Abrupt) {
+      if (? delta: Completion) {
+        return delta
+      } else {
+        call _ret3 = clo<"NormalCompletion">(delta)
+        return _ret3
+      }
+    } else nop
   } else {
-    call _err3 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-    call _ret4 = clo<"ThrowCompletion">(_err3)
-    return _ret4
+    call _err4 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
+    call _ret5 = clo<"ThrowCompletion">(_err4)
+    return _ret5
   }
   if (< 1 (sizeof ArgumentsList)) {
     let value = ArgumentsList[1]
     call-convert value = <converted_to_an_idl_value>(value, "any")
+    if (? value: Abrupt) {
+      if (? value: Completion) {
+        return value
+      } else {
+        call _ret6 = clo<"NormalCompletion">(value)
+        return _ret6
+      }
+    } else nop
   } else {
     let value = undefined
   }
@@ -1462,8 +1567,8 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Table.prototype.grow(
     if (? _call1: Completion) {
       return _call1
     } else {
-      call _ret5 = clo<"NormalCompletion">(_call1)
-      return _ret5
+      call _ret7 = clo<"NormalCompletion">(_call1)
+      return _ret7
     }
   } else {
     let delta64 = _call1.Value
@@ -1471,9 +1576,9 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Table.prototype.grow(
   if (= value undefined) {
     call ref = clo<"DefaultValue">(elementtype)
     if (= ref (case "ERROR" )) {
-      call _err6 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-      call _ret7 = clo<"ThrowCompletion">(_err6)
-      return _ret7
+      call _err8 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
+      call _ret9 = clo<"ThrowCompletion">(_err8)
+      return _ret9
     } else nop
   } else {
     call _call2 = clo<"ToWebAssemblyValue">(value, elementtype)
@@ -1481,8 +1586,8 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Table.prototype.grow(
       if (? _call2: Completion) {
         return _call2
       } else {
-        call _ret8 = clo<"NormalCompletion">(_call2)
-        return _ret8
+        call _ret10 = clo<"NormalCompletion">(_call2)
+        return _ret10
       }
     } else {
       let ref = _call2.Value
@@ -1490,17 +1595,17 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Table.prototype.grow(
   }
   call-embed result = <table_grow>(store, tableaddr, delta64, ref)
   if (= result (case "ERROR" )) {
-    call _err9 = clo<"__NEW_ERROR_OBJ__">("%RangeError.prototype%")
-    call _ret10 = clo<"ThrowCompletion">(_err9)
-    return _ret10
+    call _err11 = clo<"__NEW_ERROR_OBJ__">("%RangeError.prototype%")
+    call _ret12 = clo<"ThrowCompletion">(_err11)
+    return _ret12
   } else nop
   @AGENT_RECORD["associated store"] = result
   call _result1 = clo<"U64ToAddressValue">(initialSize, addrtype)
   if (? _result1: Completion) {
     return _result1
   } else {
-    call _ret11 = clo<"NormalCompletion">(_result1)
-    return _ret11
+    call _ret13 = clo<"NormalCompletion">(_result1)
+    return _ret13
   }
 }
 def <BUILTIN>:INTRINSICS.get:WebAssembly.Table.prototype.length(
@@ -1541,10 +1646,18 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Table.prototype.get(
   if (< 0 (sizeof ArgumentsList)) {
     let index = ArgumentsList[0]
     call-convert index = <converted_to_an_idl_value>(index, "AddressValue")
+    if (? index: Abrupt) {
+      if (? index: Completion) {
+        return index
+      } else {
+        call _ret3 = clo<"NormalCompletion">(index)
+        return _ret3
+      }
+    } else nop
   } else {
-    call _err3 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-    call _ret4 = clo<"ThrowCompletion">(_err3)
-    return _ret4
+    call _err4 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
+    call _ret5 = clo<"ThrowCompletion">(_err4)
+    return _ret5
   }
   let tableaddr = this.Table
   let store = @AGENT_RECORD["associated store"]
@@ -1554,33 +1667,33 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Table.prototype.get(
   let elementtype = _tuple1[2]
   call-embed _m1 = <match_valtype>(elementtype, (case "REF" (opt (case "NULL" )) (case "EXN" )))
   if (= _m1 true) {
-    call _err5 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-    call _ret6 = clo<"ThrowCompletion">(_err5)
-    return _ret6
+    call _err6 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
+    call _ret7 = clo<"ThrowCompletion">(_err6)
+    return _ret7
   } else nop
   call _call1 = clo<"AddressValueToU64">(index, addrtype)
   if (? _call1: Abrupt) {
     if (? _call1: Completion) {
       return _call1
     } else {
-      call _ret7 = clo<"NormalCompletion">(_call1)
-      return _ret7
+      call _ret8 = clo<"NormalCompletion">(_call1)
+      return _ret8
     }
   } else {
     let index64 = _call1.Value
   }
   call-embed result = <table_read>(store, tableaddr, index64)
   if (= result (case "ERROR" )) {
-    call _err8 = clo<"__NEW_ERROR_OBJ__">("%RangeError.prototype%")
-    call _ret9 = clo<"ThrowCompletion">(_err8)
-    return _ret9
+    call _err9 = clo<"__NEW_ERROR_OBJ__">("%RangeError.prototype%")
+    call _ret10 = clo<"ThrowCompletion">(_err9)
+    return _ret10
   } else nop
   call _result1 = clo<"ToJSValue">(result)
   if (? _result1: Completion) {
     return _result1
   } else {
-    call _ret10 = clo<"NormalCompletion">(_result1)
-    return _ret10
+    call _ret11 = clo<"NormalCompletion">(_result1)
+    return _ret11
   }
 }
 def <BUILTIN>:INTRINSICS.WebAssembly.Table.prototype.set(
@@ -1596,14 +1709,30 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Table.prototype.set(
   if (< 0 (sizeof ArgumentsList)) {
     let index = ArgumentsList[0]
     call-convert index = <converted_to_an_idl_value>(index, "AddressValue")
+    if (? index: Abrupt) {
+      if (? index: Completion) {
+        return index
+      } else {
+        call _ret3 = clo<"NormalCompletion">(index)
+        return _ret3
+      }
+    } else nop
   } else {
-    call _err3 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-    call _ret4 = clo<"ThrowCompletion">(_err3)
-    return _ret4
+    call _err4 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
+    call _ret5 = clo<"ThrowCompletion">(_err4)
+    return _ret5
   }
   if (< 1 (sizeof ArgumentsList)) {
     let value = ArgumentsList[1]
     call-convert value = <converted_to_an_idl_value>(value, "any")
+    if (? value: Abrupt) {
+      if (? value: Completion) {
+        return value
+      } else {
+        call _ret6 = clo<"NormalCompletion">(value)
+        return _ret6
+      }
+    } else nop
   } else {
     let value = undefined
   }
@@ -1615,17 +1744,17 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Table.prototype.set(
   let elementtype = _tuple1[2]
   call-embed _m1 = <match_valtype>(elementtype, (case "REF" (opt (case "NULL" )) (case "EXN" )))
   if (= _m1 true) {
-    call _err5 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-    call _ret6 = clo<"ThrowCompletion">(_err5)
-    return _ret6
+    call _err7 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
+    call _ret8 = clo<"ThrowCompletion">(_err7)
+    return _ret8
   } else nop
   call _call1 = clo<"AddressValueToU64">(index, addrtype)
   if (? _call1: Abrupt) {
     if (? _call1: Completion) {
       return _call1
     } else {
-      call _ret7 = clo<"NormalCompletion">(_call1)
-      return _ret7
+      call _ret9 = clo<"NormalCompletion">(_call1)
+      return _ret9
     }
   } else {
     let index64 = _call1.Value
@@ -1633,9 +1762,9 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Table.prototype.set(
   if (= value undefined) {
     call ref = clo<"DefaultValue">(elementtype)
     if (= ref (case "ERROR" )) {
-      call _err8 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-      call _ret9 = clo<"ThrowCompletion">(_err8)
-      return _ret9
+      call _err10 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
+      call _ret11 = clo<"ThrowCompletion">(_err10)
+      return _ret11
     } else nop
   } else {
     call _call2 = clo<"ToWebAssemblyValue">(value, elementtype)
@@ -1643,8 +1772,8 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Table.prototype.set(
       if (? _call2: Completion) {
         return _call2
       } else {
-        call _ret10 = clo<"NormalCompletion">(_call2)
-        return _ret10
+        call _ret12 = clo<"NormalCompletion">(_call2)
+        return _ret12
       }
     } else {
       let ref = _call2.Value
@@ -1652,13 +1781,13 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Table.prototype.set(
   }
   call-embed store = <table_write>(store, tableaddr, index64, ref)
   if (= store (case "ERROR" )) {
-    call _err11 = clo<"__NEW_ERROR_OBJ__">("%RangeError.prototype%")
-    call _ret12 = clo<"ThrowCompletion">(_err11)
-    return _ret12
+    call _err13 = clo<"__NEW_ERROR_OBJ__">("%RangeError.prototype%")
+    call _ret14 = clo<"ThrowCompletion">(_err13)
+    return _ret14
   } else nop
   @AGENT_RECORD["associated store"] = store
-  call _ret13 = clo<"NormalCompletion">(~unused~)
-  return _ret13
+  call _ret15 = clo<"NormalCompletion">(~unused~)
+  return _ret15
 }
 def initialize_a_global_object(
   global: Unknown,
@@ -1757,20 +1886,32 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Global(
       call _err1 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
       call _ret2 = clo<"ThrowCompletion">(_err1)
       return _ret2
-    } else if (! (exists descriptor.__MAP__.value)) {
-      call _err3 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-      call _ret4 = clo<"ThrowCompletion">(_err3)
-      return _ret4
     } else nop
     call-convert descriptor = <converted_to_an_idl_value>(descriptor, "GlobalDescriptor")
+    if (? descriptor: Abrupt) {
+      if (? descriptor: Completion) {
+        return descriptor
+      } else {
+        call _ret3 = clo<"NormalCompletion">(descriptor)
+        return _ret3
+      }
+    } else nop
   } else {
-    call _err5 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-    call _ret6 = clo<"ThrowCompletion">(_err5)
-    return _ret6
+    call _err4 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
+    call _ret5 = clo<"ThrowCompletion">(_err4)
+    return _ret5
   }
   if (< 1 (sizeof ArgumentsList)) {
     let v = ArgumentsList[1]
     call-convert v = <converted_to_an_idl_value>(v, "any")
+    if (? v: Abrupt) {
+      if (? v: Completion) {
+        return v
+      } else {
+        call _ret6 = clo<"NormalCompletion">(v)
+        return _ret6
+      }
+    } else nop
   } else {
     let v = undefined
   }
@@ -2705,16 +2846,20 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Tag(
       call _err1 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
       call _ret2 = clo<"ThrowCompletion">(_err1)
       return _ret2
-    } else if (! (exists type.__MAP__.parameters)) {
-      call _err3 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-      call _ret4 = clo<"ThrowCompletion">(_err3)
-      return _ret4
     } else nop
     call-convert type = <converted_to_an_idl_value>(type, "TagType")
+    if (? type: Abrupt) {
+      if (? type: Completion) {
+        return type
+      } else {
+        call _ret3 = clo<"NormalCompletion">(type)
+        return _ret3
+      }
+    } else nop
   } else {
-    call _err5 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-    call _ret6 = clo<"ThrowCompletion">(_err5)
-    return _ret6
+    call _err4 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
+    call _ret5 = clo<"ThrowCompletion">(_err4)
+    return _ret5
   }
   this = (record [Tag] {
     "GetPrototypeOf" : clo<"Record[OrdinaryObject].GetPrototypeOf">,
@@ -2750,12 +2895,12 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Tag(
   let tagAddress = _tuple1[1]
   @AGENT_RECORD["associated store"] = store
   call _ = clo<"initialize_a_Tag_object">(this, tagAddress)
-  let _v7 = this
-  if (? _v7: Completion) {
-    return _v7
+  let _v6 = this
+  if (? _v6: Completion) {
+    return _v6
   } else {
-    call _ret8 = clo<"NormalCompletion">(_v7)
-    return _ret8
+    call _ret7 = clo<"NormalCompletion">(_v6)
+    return _ret7
   }
 }
 def \[[getprototypeof]]_internal_method_of_an_exported_gc_object(
@@ -2895,25 +3040,57 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Exception(
   if (< 0 (sizeof ArgumentsList)) {
     let exceptionTag = ArgumentsList[0]
     call-convert exceptionTag = <converted_to_an_idl_value>(exceptionTag, "Tag")
+    if (? exceptionTag: Abrupt) {
+      if (? exceptionTag: Completion) {
+        return exceptionTag
+      } else {
+        call _ret1 = clo<"NormalCompletion">(exceptionTag)
+        return _ret1
+      }
+    } else nop
   } else {
-    call _err1 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-    call _ret2 = clo<"ThrowCompletion">(_err1)
-    return _ret2
+    call _err2 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
+    call _ret3 = clo<"ThrowCompletion">(_err2)
+    return _ret3
   }
   if (< 1 (sizeof ArgumentsList)) {
     let payload = ArgumentsList[1]
     call-convert payload = <converted_to_an_idl_value>(payload, "sequence<any>")
+    if (? payload: Abrupt) {
+      if (? payload: Completion) {
+        return payload
+      } else {
+        call _ret4 = clo<"NormalCompletion">(payload)
+        return _ret4
+      }
+    } else nop
   } else {
-    call _err3 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-    call _ret4 = clo<"ThrowCompletion">(_err3)
-    return _ret4
+    call _err5 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
+    call _ret6 = clo<"ThrowCompletion">(_err5)
+    return _ret6
   }
   if (< 2 (sizeof ArgumentsList)) {
     let options = ArgumentsList[2]
     call-convert options = <converted_to_an_idl_value>(options, "ExceptionOptions")
+    if (? options: Abrupt) {
+      if (? options: Completion) {
+        return options
+      } else {
+        call _ret7 = clo<"NormalCompletion">(options)
+        return _ret7
+      }
+    } else nop
   } else {
     call options = clo<"OrdinaryObjectCreate">(null)
     call-convert options = <converted_to_an_idl_value>(options, "ExceptionOptions")
+    if (? options: Abrupt) {
+      if (? options: Completion) {
+        return options
+      } else {
+        call _ret8 = clo<"NormalCompletion">(options)
+        return _ret8
+      }
+    } else nop
   }
   this = (record [Exception] {
     "GetPrototypeOf" : clo<"Record[OrdinaryObject].GetPrototypeOf">,
@@ -2934,9 +3111,9 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Exception(
   })
   call JSTagAddr = clo<"get_the_JavaScript_exception_tag">()
   if (= exceptionTag.Address JSTagAddr) {
-    call _err5 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-    call _ret6 = clo<"ThrowCompletion">(_err5)
-    return _ret6
+    call _err9 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
+    call _ret10 = clo<"ThrowCompletion">(_err9)
+    return _ret10
   } else nop
   let store = @AGENT_RECORD["associated store"]
   call-embed _call1 = <tag_type>(store, exceptionTag.Address)
@@ -2944,9 +3121,9 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Exception(
   assert (= (case-tag _tuple1) "->")
   let types = _tuple1[0]
   if (! (= (sizeof types) (sizeof payload))) {
-    call _err7 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-    call _ret8 = clo<"ThrowCompletion">(_err7)
-    return _ret8
+    call _err11 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
+    call _ret12 = clo<"ThrowCompletion">(_err11)
+    return _ret12
   } else nop
   let wasmPayload = (list [])
   let _iterList1 = payload
@@ -2958,17 +3135,17 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Exception(
     call-embed _m1 = <match_valtype>(resultType, (case "V128" ))
     call-embed _m2 = <match_valtype>(resultType, (case "REF" (opt (case "NULL" )) (case "EXN" )))
     if (|| (= _m1 true) (= _m2 true)) {
-      call _err9 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-      call _ret10 = clo<"ThrowCompletion">(_err9)
-      return _ret10
+      call _err13 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
+      call _ret14 = clo<"ThrowCompletion">(_err13)
+      return _ret14
     } else nop
     call _call2 = clo<"ToWebAssemblyValue">(value, resultType)
     if (? _call2: Abrupt) {
       if (? _call2: Completion) {
         return _call2
       } else {
-        call _ret11 = clo<"NormalCompletion">(_call2)
-        return _ret11
+        call _ret15 = clo<"NormalCompletion">(_call2)
+        return _ret15
       }
     } else {
       let _call3 = _call2.Value
@@ -2984,12 +3161,12 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Exception(
   if (= options.traceStack true) {
     this.Stack = (yet "a {{DOMString}} representation of the current call stack or undefined")
   } else nop
-  let _v12 = this
-  if (? _v12: Completion) {
-    return _v12
+  let _v16 = this
+  if (? _v16: Completion) {
+    return _v16
   } else {
-    call _ret13 = clo<"NormalCompletion">(_v12)
-    return _ret13
+    call _ret17 = clo<"NormalCompletion">(_v16)
+    return _ret17
   }
 }
 def <BUILTIN>:INTRINSICS.WebAssembly.Exception.prototype.getArg(
@@ -3005,32 +3182,48 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Exception.prototype.getArg(
   if (< 0 (sizeof ArgumentsList)) {
     let exceptionTag = ArgumentsList[0]
     call-convert exceptionTag = <converted_to_an_idl_value>(exceptionTag, "Tag")
+    if (? exceptionTag: Abrupt) {
+      if (? exceptionTag: Completion) {
+        return exceptionTag
+      } else {
+        call _ret3 = clo<"NormalCompletion">(exceptionTag)
+        return _ret3
+      }
+    } else nop
   } else {
-    call _err3 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-    call _ret4 = clo<"ThrowCompletion">(_err3)
-    return _ret4
+    call _err4 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
+    call _ret5 = clo<"ThrowCompletion">(_err4)
+    return _ret5
   }
   if (< 1 (sizeof ArgumentsList)) {
     let index = ArgumentsList[1]
     call-convert index = <converted_to_an_idl_value>(index, "unsigned long")
+    if (? index: Abrupt) {
+      if (? index: Completion) {
+        return index
+      } else {
+        call _ret6 = clo<"NormalCompletion">(index)
+        return _ret6
+      }
+    } else nop
   } else {
-    call _err5 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-    call _ret6 = clo<"ThrowCompletion">(_err5)
-    return _ret6
-  }
-  let store = @AGENT_RECORD["associated store"]
-  if (! (= this.Type exceptionTag.Address)) {
     call _err7 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
     call _ret8 = clo<"ThrowCompletion">(_err7)
     return _ret8
+  }
+  let store = @AGENT_RECORD["associated store"]
+  if (! (= this.Type exceptionTag.Address)) {
+    call _err9 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
+    call _ret10 = clo<"ThrowCompletion">(_err9)
+    return _ret10
   } else nop
   call-embed tagaddr = <exn_tag>(store, this.Address)
   call-embed payload = <exn_read>(store, this.Address)
   assert (= tagaddr this.Type)
   if (! (< index (sizeof payload))) {
-    call _err9 = clo<"__NEW_ERROR_OBJ__">("%RangeError.prototype%")
-    call _ret10 = clo<"ThrowCompletion">(_err9)
-    return _ret10
+    call _err11 = clo<"__NEW_ERROR_OBJ__">("%RangeError.prototype%")
+    call _ret12 = clo<"ThrowCompletion">(_err11)
+    return _ret12
   } else nop
   call-embed _call1 = <tag_type>(store, tagaddr)
   call-embed _tuple1 = <expand>(_call1)
@@ -3039,16 +3232,16 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Exception.prototype.getArg(
   call-embed _m1 = <match_valtype>(types[index], (case "V128" ))
   call-embed _m2 = <match_valtype>(types[index], (case "REF" (opt (case "NULL" )) (case "EXN" )))
   if (|| (= _m1 true) (= _m2 true)) {
-    call _err11 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-    call _ret12 = clo<"ThrowCompletion">(_err11)
-    return _ret12
+    call _err13 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
+    call _ret14 = clo<"ThrowCompletion">(_err13)
+    return _ret14
   } else nop
   call _result1 = clo<"ToJSValue">(payload[index])
   if (? _result1: Completion) {
     return _result1
   } else {
-    call _ret13 = clo<"NormalCompletion">(_result1)
-    return _ret13
+    call _ret15 = clo<"NormalCompletion">(_result1)
+    return _ret15
   }
 }
 def <BUILTIN>:INTRINSICS.WebAssembly.Exception.prototype.is(
@@ -3064,26 +3257,34 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Exception.prototype.is(
   if (< 0 (sizeof ArgumentsList)) {
     let exceptionTag = ArgumentsList[0]
     call-convert exceptionTag = <converted_to_an_idl_value>(exceptionTag, "Tag")
+    if (? exceptionTag: Abrupt) {
+      if (? exceptionTag: Completion) {
+        return exceptionTag
+      } else {
+        call _ret3 = clo<"NormalCompletion">(exceptionTag)
+        return _ret3
+      }
+    } else nop
   } else {
-    call _err3 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-    call _ret4 = clo<"ThrowCompletion">(_err3)
-    return _ret4
+    call _err4 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
+    call _ret5 = clo<"ThrowCompletion">(_err4)
+    return _ret5
   }
   if (! (= this.Type exceptionTag.Address)) {
-    let _v5 = false
-    if (? _v5: Completion) {
-      return _v5
+    let _v6 = false
+    if (? _v6: Completion) {
+      return _v6
     } else {
-      call _ret6 = clo<"NormalCompletion">(_v5)
-      return _ret6
+      call _ret7 = clo<"NormalCompletion">(_v6)
+      return _ret7
     }
   } else nop
-  let _v7 = true
-  if (? _v7: Completion) {
-    return _v7
+  let _v8 = true
+  if (? _v8: Completion) {
+    return _v8
   } else {
-    call _ret8 = clo<"NormalCompletion">(_v7)
-    return _ret8
+    call _ret9 = clo<"NormalCompletion">(_v8)
+    return _ret9
   }
 }
 def <BUILTIN>:INTRINSICS.get:WebAssembly.Exception.prototype.stack(

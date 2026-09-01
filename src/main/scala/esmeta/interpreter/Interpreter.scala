@@ -43,6 +43,19 @@ class Interpreter(
   /** iteration cycle */
   lazy val ITER_CYCLE: Int = 100_000
 
+  /** the outer `(context, callStack)` [[invokeCallable]] has suspended and set
+    * aside (in its own local variables) while its nested `while (step) {}` runs
+    * — pushed/popped around that nested run (see `invokeCallable` itself).
+    * While suspended, the outer frame is reachable only through this list, not
+    * through `st` (`invokeCallable` replaces `st.context`/ `st.callStack` with
+    * the callee's own for the duration) — periodic GC (`step`, below) needs it
+    * passed in explicitly, or it would sweep anything the outer frame alone
+    * kept alive as unreachable garbage, mid-call. A `List` (not just one pair)
+    * since `invokeCallable` can nest (a reentrant call's own callee can itself
+    * trigger another reentrant call).
+    */
+  private var suspendedFrames: List[(Context, List[CallContext])] = Nil
+
   /** final state */
   lazy val result: State =
     while (step) {}
@@ -74,7 +87,7 @@ class Interpreter(
         for (limit <- timeLimit)
           val duration = System.currentTimeMillis - startTime
           if (duration / 1000 > limit) throw TimeoutException("interp")
-        if (!detail) GC(st)
+        if (!detail) GC(st, suspendedFrames)
       }
 
       // cursor
@@ -203,7 +216,7 @@ class Interpreter(
       setCallResult(lhs, callEmbedding(fname, args, call))
     case ICallConvert(lhs, fname, argEs) =>
       val args = argEs.map(eval)
-      setCallResult(lhs, WebIdlConversion.call(st, fname, args))
+      setCallResult(lhs, WebIdlConversion.call(this, call, fname, args))
   }
 
   /** the JS `ArrayBuffer` <-> wasm store memory-sync helpers — see
@@ -344,11 +357,21 @@ class Interpreter(
     * the *outer* frame that happened to be suspended here, never where inside
     * the reentrant call things actually went wrong.
     *
-    * `private[interpreter]` (rather than `private`) so [[WasmMemoryBridge]] can
+    * Pushes `(savedContext, savedCallStack)` onto `suspendedFrames` for the
+    * duration of the nested run, so periodic GC (`step`) keeps whatever the
+    * suspended outer frame alone was keeping alive reachable — see
+    * `suspendedFrames`'s own doc for why `st` alone isn't enough once
+    * `st.context`/`st.callStack` get replaced below. Popped in the same
+    * `finally` that restores them.
+    *
+    * `private[esmeta]` (rather than `private`) so [[WasmMemoryBridge]] can
     * reuse this as its own sole reentrant-call primitive (via `invokeNamedWji`)
-    * instead of duplicating the `st.context`/`st.callStack` save-restore dance.
+    * instead of duplicating the `st.context`/`st.callStack` save-restore dance,
+    * and so `esmeta.wji.interpreter.WebIdlConversion` can genuinely invoke
+    * `Get`/`NormalCompletion` (a real, possibly-getter-triggering property
+    * read, see its own doc) rather than reading `__MAP__` fields directly.
     */
-  private[interpreter] def invokeCallable(
+  private[esmeta] def invokeCallable(
     callee: Callable,
     args: List[Value],
     call: Call,
@@ -359,6 +382,7 @@ class Interpreter(
       callee.captured
     st.context = createContext(call, callee.func, locals)
     st.callStack = Nil
+    suspendedFrames ::= (savedContext, savedCallStack)
     try
       while (step) {}
       st.globals.getOrElse(GLOBAL_RESULT, Undef)
@@ -371,6 +395,7 @@ class Interpreter(
     finally
       st.context = savedContext
       st.callStack = savedCallStack
+      suspendedFrames = suspendedFrames.tail
 
   /** transition for expressions */
   def eval(expr: Expr): Value = expr match {

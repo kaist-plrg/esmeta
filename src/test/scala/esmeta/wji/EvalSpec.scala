@@ -85,7 +85,6 @@ private val knownFailing: Set[String] =
     "js-api/table/constructor.any.js",
     "js-api/table/get-set.any.js",
     "js-api/table/grow-memory64.any.js",
-    "js-api/table/grow.any.js",
     "js-api/table/length.any.js",
     "js-api/tag/constructor.tentative.any.js",
   )

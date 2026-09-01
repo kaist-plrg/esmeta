@@ -712,6 +712,7 @@ class Compiler(
           case ToBigInt       => EConvert(COp.ToBigInt, compile(fb, expr))
           case ToMath         => EConvert(COp.ToMath, compile(fb, expr))
           case ToCodeUnit     => EConvert(COp.ToCodeUnit, compile(fb, expr))
+          case ToCodePoint    => EConvert(COp.ToCodePoint, compile(fb, expr))
       case ExponentiationExpression(base, power) =>
         EBinary(BOp.Pow, compile(fb, base), compile(fb, power))
       case BinaryExpression(left, op, right) =>
@@ -969,6 +970,17 @@ class Compiler(
             or(hasFields(fb, x, dataFields), hasFields(fb, x, accessorFields))
           case Nonterminal =>
             EInstanceOf(x, EGrammarSymbol("", Nil))
+          // a code unit whose numeric value is in the inclusive interval
+          // 0xD800-0xDBFF (leading surrogate) / 0xDC00-0xDFFF (trailing
+          // surrogate) -- ecma262/spec.html's own dfns for these terms
+          // (`leading-surrogate`/`trailing-surrogate`), mirroring
+          // InclusiveIntervalCondition's own range-check shape.
+          case LeadingSurrogate =>
+            val m = EConvert(COp.ToMath, x)
+            not(or(lessThan(m, EMath(0xd800)), lessThan(EMath(0xdbff), m)))
+          case TrailingSurrogate =>
+            val m = EConvert(COp.ToMath, x)
+            not(or(lessThan(m, EMath(0xdc00)), lessThan(EMath(0xdfff), m)))
         }
         if (neg) not(cond) else cond
       case IsAreCondition(left, neg, right) =>

@@ -234,6 +234,7 @@ class CaseCollector extends UnitWalker {
           case ToMath         => "Math"
           case ToApproxNumber => "implementation-approximated Number"
           case ToCodeUnit     => "code unit whose numeric"
+          case ToCodePoint    => "code point whose numeric"
         s"$a $opStr value $pre {{expr}}"
       case ExponentiationExpression(base, power) =>
         s"{{ expr }} <sup>{{ expr }}</sup>"

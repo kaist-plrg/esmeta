@@ -209,7 +209,7 @@ case class ConversionExpression(
   form: ConversionExpressionForm,
 ) extends CalcExpression
 enum ConversionExpressionOperator extends LangElem:
-  case ToApproxNumber, ToNumber, ToBigInt, ToMath, ToCodeUnit
+  case ToApproxNumber, ToNumber, ToBigInt, ToMath, ToCodeUnit, ToCodePoint
 enum ConversionExpressionForm:
   case SyntaxLiteral
   // e.g. the {{ op }} value that corresponds to {{ expr }}"

@@ -1,0 +1,7 @@
+def UTF16SurrogatePairToCodePoint(
+  lead: CodeUnit,
+  trail: CodeUnit,
+): CodePoint = {
+  let cp = ([codePoint] (+ (+ (* (- ([math] lead) 55296) 1024) (- ([math] trail) 56320)) 65536))
+  return cp
+}

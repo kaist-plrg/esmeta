@@ -542,7 +542,8 @@ trait Parsers extends IndentParsers {
         "Number" ^^^ ToNumber |
         "BigInt" ^^^ ToBigInt |
         "numeric" ^^^ ToMath |
-        "code unit whose numeric" ^^^ ToCodeUnit
+        "code unit whose numeric" ^^^ ToCodeUnit |
+        "code point whose numeric" ^^^ ToCodePoint
       ) ~ ("value" ~> (
         "of" | "for" | "representing" | "that corresponds to" | "is"
       )) ~ expr ^^ {
@@ -1066,7 +1067,9 @@ trait Parsers extends IndentParsers {
       "a data property" ^^^ DataProperty |
       "an accessor property" ^^^ AccessorProperty |
       "a fully populated Property Descriptor" ^^^ FullyPopulated |
-      "an instance of a nonterminal" ^^^ Nonterminal
+      "an instance of a nonterminal" ^^^ Nonterminal |
+      "a leading surrogate" ^^^ LeadingSurrogate |
+      "a trailing surrogate" ^^^ TrailingSurrogate
 
     lazy val neg: Parser[Boolean] =
       isNeg | ("contains" | "has") ~> ("any" ^^^ false | "no" ^^^ true)

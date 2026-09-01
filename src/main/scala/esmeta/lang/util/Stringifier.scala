@@ -515,6 +515,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
         case ToBigInt       => if (text) "BigInt" else "ℤ"
         case ToMath         => if (text) "numeric" else "ℝ"
         case ToCodeUnit     => "code unit whose numeric"
+        case ToCodePoint    => "code point whose numeric"
       })
 
   // operators for binary expressions
@@ -783,25 +784,27 @@ class Stringifier(detail: Boolean, location: Boolean) {
   given predCondOpRule: Rule[PredicateConditionOperator] = (app, op) =>
     import PredicateConditionOperator.*
     app >> (op match {
-      case Finite           => "finite"
-      case Abrupt           => "an abrupt completion"
-      case Throw            => "a throw completion"
-      case Return           => "a return completion"
-      case Break            => "a break completion"
-      case Continue         => "a continue completion"
-      case NeverAbrupt      => "never an abrupt completion"
-      case Normal           => "a normal completion"
-      case Duplicated       => "duplicate entries"
-      case Present          => "present"
-      case Empty            => "empty"
-      case StrictMode       => "strict mode code"
-      case ArrayIndex       => "an array index"
-      case FalseToken       => "the token `false`"
-      case TrueToken        => "the token `true`"
-      case DataProperty     => "a data property"
-      case AccessorProperty => "an accessor property"
-      case FullyPopulated   => "a fully populated Property Descriptor"
-      case Nonterminal      => "an instance of a nonterminal"
+      case Finite            => "finite"
+      case Abrupt            => "an abrupt completion"
+      case Throw             => "a throw completion"
+      case Return            => "a return completion"
+      case Break             => "a break completion"
+      case Continue          => "a continue completion"
+      case NeverAbrupt       => "never an abrupt completion"
+      case Normal            => "a normal completion"
+      case Duplicated        => "duplicate entries"
+      case Present           => "present"
+      case Empty             => "empty"
+      case StrictMode        => "strict mode code"
+      case ArrayIndex        => "an array index"
+      case FalseToken        => "the token `false`"
+      case TrueToken         => "the token `true`"
+      case DataProperty      => "a data property"
+      case AccessorProperty  => "an accessor property"
+      case FullyPopulated    => "a fully populated Property Descriptor"
+      case Nonterminal       => "an instance of a nonterminal"
+      case LeadingSurrogate  => "a leading surrogate"
+      case TrailingSurrogate => "a trailing surrogate"
     })
 
   // operators for binary conditions

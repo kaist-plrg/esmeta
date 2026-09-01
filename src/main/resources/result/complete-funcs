@@ -577,6 +577,7 @@ CoalesceExpression[0,0].AssignmentTargetType
 CoalesceExpression[0,0].Evaluation
 CoalesceExpression[0,0].HasCallInTailPosition
 CoalesceExpression[0,0].IsFunctionDefinition
+CodePointAt
 CompareArrayElements
 CompareTypedArrayElements
 CompletePropertyDescriptor
@@ -2267,6 +2268,8 @@ RegExpCreate
 RegExpExec
 RegExpHasFlag
 RegExpIdentifierName[0,0].RegExpIdentifierCodePoints
+RegExpIdentifierPart[1,0].RegExpIdentifierCodePoint
+RegExpIdentifierStart[1,0].RegExpIdentifierCodePoint
 RegExpUnicodeEscapeSequence[0,0].CharacterValue
 RegExpUnicodeEscapeSequence[4,0].CharacterValue
 RegExpUnicodeEscapeSequence[5,0].CharacterValue
@@ -2575,6 +2578,7 @@ TypedArrayElementType
 TypedArrayGetElement
 TypedArrayLength
 TypedArraySetElement
+UTF16SurrogatePairToCodePoint
 UnaryExpression[1,0].AssignmentTargetType
 UnaryExpression[1,0].Evaluation
 UnaryExpression[1,0].HasCallInTailPosition
@@ -2606,6 +2610,8 @@ UnaryExpression[7,0].IsFunctionDefinition
 UnaryExpression[8,0].AssignmentTargetType
 UnaryExpression[8,0].HasCallInTailPosition
 UnaryExpression[8,0].IsFunctionDefinition
+UnicodeEscapeSequence[0,0].IdentifierCodePoint
+UnicodeEscapeSequence[1,0].IdentifierCodePoint
 UnicodePropertyValueExpression[0,0].MayContainStrings
 UpdateEmpty
 UpdateExpression[1,0].AssignmentTargetType

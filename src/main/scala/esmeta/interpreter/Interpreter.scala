@@ -10,7 +10,7 @@ import esmeta.ir.{Func => IRFunc, *}
 import esmeta.parser.{ESParser, ESValueParser}
 import esmeta.state.*
 import esmeta.state.util.{fromALNum, toAL}
-import esmeta.spec.{Param => _, *}
+import esmeta.spec.{Param => _, CodePoint => _, *}
 import esmeta.ty.*
 import esmeta.util.Loc
 import esmeta.util.BaseUtils.*
@@ -453,6 +453,10 @@ class Interpreter(
         // code unit
         case (CodeUnit(c), ToMath) => Math(c.toInt)
         case (Math(n), ToCodeUnit) => CodeUnit(n.toChar)
+        // code point
+        case (CodePoint(c), ToMath)   => Math(c)
+        case (CodePoint(c), ToNumber) => Number(c.toDouble)
+        case (Math(n), ToCodePoint)   => CodePoint(n.toInt)
         // extended mathematical value
         case (Infinity(true), ToNumber)  => NUMBER_POS_INF
         case (Infinity(false), ToNumber) => NUMBER_NEG_INF

@@ -19,6 +19,7 @@ sealed trait ValueTy extends Ty with Lattice[ValueTy] {
   def ast: AstTy
   def grammarSymbol: BSet[GrammarSymbol]
   def codeUnit: Boolean
+  def codePoint: Boolean
   def enumv: BSet[String]
   def math: MathTy
   def infinity: InfinityTy
@@ -46,6 +47,7 @@ sealed trait ValueTy extends Ty with Lattice[ValueTy] {
         this.ast.isBottom &&
         this.grammarSymbol.isBottom &&
         this.codeUnit.isBottom &&
+        this.codePoint.isBottom &&
         this.enumv.isBottom &&
         this.math.isBottom &&
         this.infinity.isBottom &&
@@ -70,6 +72,7 @@ sealed trait ValueTy extends Ty with Lattice[ValueTy] {
       this.ast <= that.ast &&
       this.grammarSymbol <= that.grammarSymbol &&
       this.codeUnit <= that.codeUnit &&
+      this.codePoint <= that.codePoint &&
       this.enumv <= that.enumv &&
       this.math <= that.math &&
       this.infinity <= that.infinity &&
@@ -97,6 +100,7 @@ sealed trait ValueTy extends Ty with Lattice[ValueTy] {
         this.ast || that.ast,
         this.grammarSymbol || that.grammarSymbol,
         this.codeUnit || that.codeUnit,
+        this.codePoint || that.codePoint,
         this.enumv || that.enumv,
         this.math || that.math,
         this.infinity || that.infinity,
@@ -125,6 +129,7 @@ sealed trait ValueTy extends Ty with Lattice[ValueTy] {
         this.ast && that.ast,
         this.grammarSymbol && that.grammarSymbol,
         this.codeUnit && that.codeUnit,
+        this.codePoint && that.codePoint,
         this.enumv && that.enumv,
         this.math && that.math,
         this.infinity && that.infinity,
@@ -152,6 +157,7 @@ sealed trait ValueTy extends Ty with Lattice[ValueTy] {
         this.ast -- that.ast,
         this.grammarSymbol -- that.grammarSymbol,
         this.codeUnit -- that.codeUnit,
+        this.codePoint -- that.codePoint,
         this.enumv -- that.enumv,
         this.math -- that.math,
         this.infinity -- that.infinity,
@@ -180,6 +186,7 @@ sealed trait ValueTy extends Ty with Lattice[ValueTy] {
     case Infinity(p)                     => infinity contains p
     case Enum(name)                      => enumv contains name
     case CodeUnit(c)                     => codeUnit
+    case CodePoint(c)                    => codePoint
     case n: Number                       => number contains n
     case BigInt(n)                       => bigInt
     case Str(s)                          => str contains s
@@ -201,6 +208,7 @@ sealed trait ValueTy extends Ty with Lattice[ValueTy] {
     ast: AstTy = ast,
     grammarSymbol: BSet[GrammarSymbol] = grammarSymbol,
     codeUnit: Boolean = codeUnit,
+    codePoint: Boolean = codePoint,
     enumv: BSet[String] = enumv,
     math: MathTy = math,
     infinity: InfinityTy = infinity,
@@ -219,6 +227,7 @@ sealed trait ValueTy extends Ty with Lattice[ValueTy] {
     ast,
     grammarSymbol,
     codeUnit,
+    codePoint,
     enumv,
     math,
     infinity,
@@ -243,6 +252,7 @@ sealed trait ValueTy extends Ty with Lattice[ValueTy] {
     ast.isTop &&
     grammarSymbol.isTop &&
     codeUnit.isTop &&
+    codePoint.isTop &&
     enumv.isTop &&
     math.isTop &&
     infinity.isTop &&
@@ -265,6 +275,7 @@ sealed trait ValueTy extends Ty with Lattice[ValueTy] {
     (if (this.ast.isBottom) Zero else Many) ||
     grammarSymbol.getSingle ||
     (if (this.codeUnit.isBottom) Zero else Many) ||
+    (if (this.codePoint.isBottom) Zero else Many) ||
     (enumv.getSingle.map(Enum(_): Value)) ||
     math.getSingle ||
     (infinity.getSingle.map(Infinity(_): Value)) ||
@@ -288,6 +299,7 @@ sealed trait ValueTy extends Ty with Lattice[ValueTy] {
         cont = Inf,
         grammarSymbol = Inf,
         codeUnit = true,
+        codePoint = true,
         enumv = Inf,
         math = MathTy.Top,
         number = NumberTy.Top,
@@ -337,6 +349,7 @@ sealed trait ValueTy extends Ty with Lattice[ValueTy] {
           ast,
           grammarSymbol,
           codeUnit,
+          codePoint,
           enumv,
           math,
           infinity,
@@ -358,6 +371,7 @@ sealed trait ValueTy extends Ty with Lattice[ValueTy] {
         case Inf    => tys :+= ValueElemTy(grammarSymbol = Inf)
         case Fin(s) => tys ++= s.map(g => ValueElemTy(grammarSymbol = Fin(g)))
       if (codeUnit) tys :+= ValueElemTy(codeUnit = true)
+      if (codePoint) tys :+= ValueElemTy(codePoint = true)
       enumv match
         case Inf    => tys :+= ValueElemTy(enumv = Inf)
         case Fin(s) => tys ++= s.map(e => ValueElemTy(enumv = Fin(e)))
@@ -382,6 +396,7 @@ case object ValueTopTy extends ValueTy {
   def ast: AstTy = AstTy.Top
   def grammarSymbol: BSet[GrammarSymbol] = Inf
   def codeUnit: Boolean = true
+  def codePoint: Boolean = true
   def enumv: BSet[String] = Inf
   def math: MathTy = MathTy.Top
   def infinity: InfinityTy = InfinityTy.Top
@@ -402,6 +417,7 @@ case class ValueElemTy(
   ast: AstTy = AstTy.Bot,
   grammarSymbol: BSet[GrammarSymbol] = Fin(),
   codeUnit: Boolean = false,
+  codePoint: Boolean = false,
   enumv: BSet[String] = Fin(),
   math: MathTy = MathTy.Bot,
   infinity: InfinityTy = InfinityTy.Bot,
@@ -422,6 +438,7 @@ object ValueTy extends Parser.From(Parser.valueTy) {
     ast: AstTy = AstTy.Bot,
     grammarSymbol: BSet[GrammarSymbol] = Fin(),
     codeUnit: Boolean = false,
+    codePoint: Boolean = false,
     enumv: BSet[String] = Fin(),
     math: MathTy = MathTy.Bot,
     infinity: InfinityTy = InfinityTy.Bot,
@@ -440,6 +457,7 @@ object ValueTy extends Parser.From(Parser.valueTy) {
     ast,
     grammarSymbol,
     codeUnit,
+    codePoint,
     enumv,
     math,
     infinity,

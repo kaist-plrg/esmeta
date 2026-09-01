@@ -135,6 +135,7 @@ class Stringifier(
           "GrammarSymbol",
         )
         .add("CodeUnit", !ty.codeUnit.isBottom)
+        .add("CodePoint", !ty.codePoint.isBottom)
         .add(ty.enumv.map(s => s"~$s~"), !ty.enumv.isBottom, "Enum")
         .add(ty.math, !ty.math.isBottom)
         .add(ty.infinity, !ty.infinity.isBottom)

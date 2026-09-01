@@ -199,6 +199,7 @@ case class State(
     case Infinity(pos)       => InfinityT(pos)
     case Enum(name)          => EnumT(name)
     case _: CodeUnit         => CodeUnitT
+    case _: CodePoint        => CodePointT
     case _: Number           => NumberT
     case _: BigInt           => BigIntT
     case _: Str              => StrT

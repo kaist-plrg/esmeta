@@ -82,3 +82,57 @@
   `Encode`/`escape`의 해당 스텝만 완전해짐 — `WordCharacters`의 사용처는
   "the CharSet containing every character in X"라는 또 다른 별개
   wrapping 표현에 걸려 있어서 여전히 미완성으로 남음).
+
+## 4. "code point"가 값 타입으로 아예 모델링돼 있지 않았음
+
+- **File**: `state/Value.scala`(`CodePoint` 케이스 클래스), `lang/{Expression,util/Parser,util/Stringifier,util/CaseCollector}.scala`(`ConversionExpressionOperator.ToCodePoint` + `PredicateConditionOperator.{LeadingSurrogate,TrailingSurrogate}`), `ir/Op.scala` + `ir/util/{Parser,Stringifier}.scala`(`COp.ToCodePoint`), `compiler/Compiler.scala`, `interpreter/Interpreter.scala`, `state/util/{Stringifier,UnitWalker}.scala`, `state/State.scala`, `ty/{ValueTy,package}.scala` + `ty/util/{Walker,UnitWalker,Stringifier,Parser}.scala`(타입 lattice에 `codePoint: Boolean` 필드 — `codeUnit`과 동일한 자리마다 총 18곳).
+- **Before**: `CodeUnit(c: Char)`는 있는데 그 형제 개념인 code point는
+  `esmeta.state.Value`에도, `esmeta.ty.ValueTy`의 타입 lattice에도 아예
+  없었음. `"the code point whose numeric value is X"`(`ecma262/
+  spec.html`에 5곳: `CodePointAt`, `Hex4Digits`/`CodePoint`
+  static semantics, `RegExpUnicodeEscapeSequence`, 그리고 line 38070)와
+  `"is a leading/trailing surrogate"`(`CodePointAt`에 3곳,
+  `UTF16SurrogatePairToCodePoint`의 Assert 1곳)가 전부 `[NotSupported]
+  metalanguage/...`로 막혀 있었음 — `String.prototype.codePointAt`처럼
+  UTF-16 surrogate pair를 다루는 경로 전체가 도달 불가능했음.
+- **After**: `CodeUnit`을 그대로 미러링해서 `CodePoint(cp: Int)`(surrogate
+  pair 디코딩 결과가 0x10FFFF까지 가서 `Char`가 아니라 `Int`)를 추가하고,
+  `ConversionExpressionOperator.ToCodePoint`(`"code point whose numeric
+  value is X"` → `EConvert(COp.ToCodePoint, ...)`)와
+  `PredicateConditionOperator.{LeadingSurrogate,TrailingSurrogate}`(범위
+  체크 `Interpreter`가 아니라 `Compiler`가 `0xD800-0xDBFF`/
+  `0xDC00-0xDFFF` inclusive-interval 비교로 직접 컴파일)를 추가. 이 둘로
+  `CodePointAt`의 대부분 스텝이 풀렸지만, 나머지 두 gap은 이 패턴을
+  일반화하는 대신 기존 하드코딩 메커니즘으로 우회:
+  - `"_first_ is neither a leading surrogate nor a trailing surrogate"` —
+    `PredicateCondition`이 단일 `op` 하나만 갖는 구조라 "neither/nor"(복수
+    predicate 결합)를 표현 못 함. `TypeCheckCondition`처럼 `List[Op]`로
+    구조를 바꾸는 대신, `manuals/rule.json`의 "expr" 맵에 한 줄
+    추가(`"_base_ is finite and is neither +0 nor -0"`과 완전히 같은
+    선례) — `PredicateCondition`/`Walker`/`Stringifier`/`CaseCollector`/
+    테스트 등 6개 파일을 건드리는 구조 변경 없이 해결.
+  - `UTF16SurrogatePairToCodePoint`의 `"(_lead_ - 0xD800) × 0x400 + ..."`
+    — 코드유닛을 "the numeric value of" 같은 명시적 변환 없이 바로
+    산술식에 씀(ECMA-262 관행). `Interpreter.eval(bop, ...)`에
+    `(CodeUnit, Math)` 조합을 일반적으로 추가하는 대신, 이 조합을 쓰는
+    알고리즘이 스펙 전체에 이거 하나뿐이라(code-unit 타입 파라미터를
+    가진 알고리즘 3개 중 나머지 둘은 산술을 안 하거나 이미 명시
+    변환함) `manuals/funcs/UTF16SurrogatePairToCodePoint.ir`로 알고리즘
+    전체를 손으로 대체 — `StringToCodePoints.ir`와 같은 선례.
+- **왜 "esmeta_changes"로 분류했는가**: "code point"는 ECMA-262가 String을
+  UTF-16으로, 그 String을 다시 Unicode code point 시퀀스로 해석할 때 쓰는
+  자기 자신의 핵심 개념(`sec-ecmascript-language-types-string-type`)인데,
+  mainline이 이걸 별도 값 타입으로 모델링 안 하기로 한 건 버그라기보다
+  "code point 단위 문자열 처리가 필요한 빌트인은 `trimString`처럼 그때그때
+  네이티브 Scala로 우회한다"는 기존 전략(1/2/3번과 같은 맥락)의 연장으로
+  보임 — 다만 `codePointAt()`처럼 스펙 알고리즘을 그대로 실행해야 하는
+  경로는 지금까지 아무도 손 안 댄 채 남아있었음.
+- **검증**: `sbt test`(528개, CFG fingerprint 골든 재생성 필요) 전체 통과,
+  `wjiEvalTest`(30 succeeded) 회귀 없음, `"😀".codePointAt(0) === 128512`
+  직접 확인. `spec-summary`의 algorithm steps complete가 21686 → 21695로
+  반영, `complete-funcs`에 `CodePointAt`/`UTF16SurrogatePairToCodePoint`
+  외에 `RegExpIdentifierPart`/`RegExpIdentifierStart`/
+  `UnicodeEscapeSequence`의 `IdentifierCodePoint` 관련 SDO 4개도 부수적으로
+  완전해짐(같은 phrase를 공유). `tycheck-ignore.json`에
+  `RegExpUnicodeEscapeSequence[0,0].CharacterValue` 한 항목 추가(새로
+  도달 가능해진 기존 타입 느슨함, 이번 변경이 만든 버그 아님).

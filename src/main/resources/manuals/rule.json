@@ -16,6 +16,7 @@
     "_Receiver_ does not currently have a property _P_": "(! (exists Receiver.__MAP__[P]))",
     "_base_ is finite and is neither *+0*<sub>𝔽</sub> nor *-0*<sub>𝔽</sub>": "(! (|| (= base 0.0f) (= base -0.0f)))",
     "_calleeContext_ is now the running execution context": "(= calleeContext @EXECUTION_STACK[0])",
+    "_first_ is neither a leading surrogate nor a trailing surrogate": "(&& (|| (< ([math] first) 55296) (< 56319 ([math] first))) (|| (< ([math] first) 56320) (< 57343 ([math] first))))",
     "_envRec_ must have an uninitialized binding for _N_": "(= envRec.__MAP__[N].__INITIALIZED__ false)",
     "_exponent_ is finite and is neither *+0*<sub>𝔽</sub> nor *-0*<sub>𝔽</sub>": "(! (|| (= exponent 0.0f) (= exponent -0.0f)))",
     "_genContext_ is the execution context of a generator": "(? genContext: Record[GeneratorExecutionContext])",

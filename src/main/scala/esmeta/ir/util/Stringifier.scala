@@ -355,7 +355,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> "[str"
         radix.map(app >> " " >> _)
         app >> "]"
-      case ToCodeUnit => app >> "[codeUnit]"
+      case ToCodeUnit  => app >> "[codeUnit]"
+      case ToCodePoint => app >> "[codePoint]"
     }
 
   // references

@@ -128,6 +128,11 @@ case class Enum(name: String) extends Value
 /** code units */
 case class CodeUnit(c: Char) extends Value
 
+/** code points -- unlike a code unit, may exceed 0xFFFF (a surrogate pair
+  * decodes to one up to 0x10FFFF), so this wraps an `Int`, not a `Char`.
+  */
+case class CodePoint(cp: Int) extends Value
+
 /** Numeric AL values, mirroring `xl/num.ml`'s `num` variant
   * (`spectec/spectec/src/xl/num.ml`). See `state/util/ALValueJson.scala` for
   * the JSON wire encoding.

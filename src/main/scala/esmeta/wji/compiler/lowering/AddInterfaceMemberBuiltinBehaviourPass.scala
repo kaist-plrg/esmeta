@@ -314,6 +314,33 @@ object AddInterfaceMemberBuiltinBehaviourPass extends LoweringPass:
       )
     case _ => Nil
 
+  /** every ECMAScript class constructor throws a `TypeError` when invoked via
+    * plain `[[Call]]` instead of `[[Construct]]` (`sec-ecmascript-function-
+    * objects-call-thisargument-argumentslist`'s own "If
+    * F.[[IsClassConstructor]] is true, throw a TypeError" — a
+    * `Constructor`-kind interface member is exactly this shape, per WebIDL's
+    * own "internally create a new object implementing the interface" preamble
+    * requiring a real `[[Construct]]`). Mainline's `BuiltinCallOrConstruct`
+    * already threads the real `NewTarget` on `[[Construct]]` and `undefined` on
+    * a plain `[[Call]]` (ECMA-262's own mechanized behavior, no WJI involvement
+    * needed) — `BuiltinParams` already binds `|NewTarget|` for every one of
+    * this pass's algorithms, just unchecked until now. `Cond.IsMissing`
+    * compiles to exactly `NewTarget == undefined` (`Compiler.compileCond`), so
+    * this is a one-guard check, same shape as [[brandingCheck]] just below.
+    */
+  private def newTargetCheck(kind: AlgorithmKind): List[Instr] = kind match
+    case AlgorithmKind.Constructor(_) =>
+      List(
+        Instr.IfChain(
+          List(
+            Cond.IsMissing(Expr.Var("NewTarget")) ->
+            List(Instr.Throw(Expr.New("TypeError"))),
+          ),
+          Nil,
+        ),
+      )
+    case _ => Nil
+
   /** WebIDL's "internally create a new object implementing the interface"
     * preamble — see this pass's own class doc for why a `Constructor` (unlike
     * Getter/Setter/Method) needs this instead of relying on an already-bound
@@ -378,7 +405,8 @@ object AddInterfaceMemberBuiltinBehaviourPass extends LoweringPass:
             AlgorithmKind.Constructor(_) | AlgorithmKind.Method(_) =>
           a.copy(
             params = BuiltinParams,
-            body = brandingCheck(a.kind) ++ unpackArgumentsList(a.params) ++
+            body = newTargetCheck(a.kind) ++ brandingCheck(a.kind) ++
+              unpackArgumentsList(a.params) ++
               givenValueBinding(a.kind) ++ createThisBinding(a.kind) ++
               a.body ++ returnThisBinding(a.kind),
           )

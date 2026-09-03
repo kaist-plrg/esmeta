@@ -2172,5 +2172,7 @@ add_completion_callback((tests, harness_status) => {
   for (const t of tests) {
     print((t.status === 0 ? "PASS" : "FAIL") + " " + t.name + (t.message ? " - " + t.message : ""));
   }
+  const passed = tests.filter((t) => t.status === 0).length;
+  print("SUMMARY " + passed + "/" + tests.length);
   globalThis.__wjiOk = tests.length > 0 && tests.every((t) => t.status === 0);
 });

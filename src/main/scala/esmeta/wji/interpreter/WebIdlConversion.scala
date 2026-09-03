@@ -39,8 +39,10 @@ object WebIdlConversion:
     * the two apart with `Cond.IsType(_, "AbruptCompletion")`, which is false
     * for every ordinary converted value (a `MapObj` address, `Number`, `Str`,
     * ... -- none of them a `CompletionRecord`).
-    * `converted_to_a_javascript_value` can't throw (no `Get` involved) and was
-    * never affected.
+    * `converted_to_a_javascript_value` can't throw either (unlike `Get`,
+    * `CreateArrayFromList` -- the one reentrant call `toJsValue` itself makes,
+    * see its own doc -- is always `!`-marked in real spec text, never abrupt)
+    * and was never affected by the completion-wrapping question above.
     */
   def call(
     interp: Interpreter,
@@ -55,7 +57,7 @@ object WebIdlConversion:
           case Right(value) => value
           case Left(abrupt) => abrupt
       case ("converted_to_a_javascript_value", List(argument)) =>
-        toJsValue(st, argument)
+        toJsValue(interp, callSite, argument)
       case _ => throw UnknownConversion(fname)
 
   /** invokes the real ECMA-262 `Get(O, P)` abstract operation, reentrantly (see
@@ -361,31 +363,50 @@ object WebIdlConversion:
 
   /** mirrors the `.ir` version's `if (? argument: Map) { ... } return argument`
     * — only a `MapObj` (this project's own internal dictionary representation)
-    * gets built into a real ordinary object; everything else, including an
-    * already-real ECMAScript value, passes through unchanged.
+    * gets built into a real ordinary object, and a `ListObj` (a `sequence<T>`
+    * return value, e.g. `Module.exports`'s `sequence<ModuleExportDescriptor>`)
+    * into a real `Array` -- everything else, including an already-real
+    * ECMAScript value, passes through unchanged. Each element/entry-value is
+    * itself recursively converted first (a `sequence<Dictionary>`'s elements
+    * are still raw `MapObj`s at this point), then `CreateArrayFromList` (a real
+    * mechanized closure, `? CreateArrayFromList(elements)` per its own spec,
+    * never abrupt) builds the actual `Array` -- reentrant like `Get`/
+    * `ToString`/etc. elsewhere in this object (`Interpreter.invokeCallable`),
+    * since it needs `ArrayCreate`/`CreateDataPropertyOrThrow` machinery this
+    * object has no reason to reimplement natively.
     */
-  def toJsValue(st: State, argument: Value): Value = argument match
-    case addr: Addr =>
-      st(addr) match
-        case MapObj(entries) =>
-          given CFG = st.cfg
-          val objAddr = newOrdinaryObject(st)
-          val objMap = st(objAddr, Str("__MAP__"))
-          for (key, rawValue) <- entries do
-            val value = toJsValue(st, rawValue)
-            val pdAddr = st.allocRecord(
-              "PropertyDescriptor",
-              List(
-                "Value" -> value,
-                "Writable" -> Bool(true),
-                "Enumerable" -> Bool(true),
-                "Configurable" -> Bool(true),
-              ),
+  def toJsValue(interp: Interpreter, callSite: Call, argument: Value): Value =
+    val st = interp.st
+    argument match
+      case addr: Addr =>
+        st(addr) match
+          case MapObj(entries) =>
+            given CFG = st.cfg
+            val objAddr = newOrdinaryObject(st)
+            val objMap = st(objAddr, Str("__MAP__"))
+            for (key, rawValue) <- entries do
+              val value = toJsValue(interp, callSite, rawValue)
+              val pdAddr = st.allocRecord(
+                "PropertyDescriptor",
+                List(
+                  "Value" -> value,
+                  "Writable" -> Bool(true),
+                  "Enumerable" -> Bool(true),
+                  "Configurable" -> Bool(true),
+                ),
+              )
+              st.update(objMap, key, pdAddr)
+            objAddr
+          case ListObj(values) =>
+            val converted = values.toList.map(toJsValue(interp, callSite, _))
+            val listAddr = st.allocList(converted)
+            interp.invokeCallable(
+              Clo(st.cfg.getFunc("CreateArrayFromList"), Map.empty),
+              List(listAddr),
+              callSite,
             )
-            st.update(objMap, key, pdAddr)
-          objAddr
-        case _ => argument
-    case _ => argument
+          case _ => argument
+      case _ => argument
 
   /** the internal-method closure every one of `__NEW_OBJ__.ir`'s fields names,
     * resolved the same way `Interpreter`'s own `EClo` evaluation does

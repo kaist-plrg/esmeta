@@ -394,6 +394,61 @@ object AddInterfaceMemberBuiltinBehaviourPass extends LoweringPass:
       )
     }
 
+  /** Wraps every `Return`'s value -- recursively, including ones nested inside
+    * an `IfChain`/`ForEach`/etc. (`Instr.mapBody` already knows how to
+    * structurally recurse into each of those, `IfChain`'s own `branches`/
+    * `fallback` included) -- in `converted_to_a_javascript_value`. WebIDL's own
+    * calling convention implicitly converts an operation's return value to a
+    * real JavaScript value the same way it converts each argument to its
+    * declared IDL type (`unpackArgumentsList`'s own `converted_to_an_idl_value`
+    * injection) -- spec prose never spells this out either (just "Return
+    * |exports|."), so nothing mechanized it before: `Module.exports`'s
+    * `sequence<ModuleExportDescriptor>` return value was a raw internal
+    * `ListObj` of raw internal `MapObj`s, never actually turned into a real
+    * `Array` of real objects (`WebIdlConversion.toJsValue` didn't know how to
+    * convert a `ListObj` at all until now either -- see its own doc).
+    *
+    * Only for `Getter`/`Method` -- WebIDL declares a real return *type* for
+    * both, unlike `Setter` (no return value at all) or `Constructor` (whose own
+    * implicit `Return **this**`, see [[returnThisBinding]], is already a real
+    * object, never worth this). Safe to apply unconditionally to every one of
+    * them regardless of what they actually return: `toJsValue` is already
+    * identity passthrough for anything that isn't a `MapObj`/ `ListObj`, so
+    * wrapping a Return that never needed it is a no-op.
+    */
+  private def wrapReturnValues(
+    kind: AlgorithmKind,
+    body: List[Instr],
+  ): List[Instr] =
+    val needsWrap = kind match
+      case AlgorithmKind.Getter(_)    => true
+      case AlgorithmKind.Method(_, _) => true
+      case _                          => false
+    if !needsWrap then body
+    else
+      var freshCounter = 0
+      def freshName(): String =
+        freshCounter += 1
+        s"_returnValue$freshCounter"
+      def transform(instrs: List[Instr]): List[Instr] = instrs.flatMap {
+        case Instr.Return(Some(expr), nested) =>
+          val (bindings, name) = expr match
+            case Expr.Var(v) => (Nil, v)
+            case _ =>
+              val v = freshName()
+              (List(Instr.Let(Expr.Var(v), expr)), v)
+          bindings ++ List(
+            Instr.Perform(
+              "converted_to_a_javascript_value",
+              List(Expr.Var(name)),
+              Instr.PerformOutcome.BindResult(name),
+            ),
+            Instr.Return(Some(Expr.Var(name)), transform(nested)),
+          )
+        case other => List(other.mapBody(transform))
+      }
+      transform(body)
+
   /** The matching epilogue: every js-api constructor algorithm ends by mutating
     * `**this**`'s fields with no explicit `Return`, relying on WebIDL's outer
     * wrapper to return the object it created — mechanized here as an explicit,
@@ -416,7 +471,7 @@ object AddInterfaceMemberBuiltinBehaviourPass extends LoweringPass:
             body = newTargetCheck(a.kind) ++ brandingCheck(a.kind) ++
               unpackArgumentsList(a.params) ++
               givenValueBinding(a.kind) ++ createThisBinding(a.kind) ++
-              a.body ++ returnThisBinding(a.kind),
+              wrapReturnValues(a.kind, a.body) ++ returnThisBinding(a.kind),
           )
         case AlgorithmKind.Plain => a
     }

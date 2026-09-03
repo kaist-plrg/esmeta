@@ -576,6 +576,7 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Module.prototype.exports(
     push exports < obj
     _iterIdx2 = (+ _iterIdx2 1)
   }
+  call-convert exports = <converted_to_a_javascript_value>(exports)
   if (? exports: Completion) {
     return exports
   } else {
@@ -630,6 +631,7 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Module.prototype.imports(
     push imports < obj
     _iterIdx2 = (+ _iterIdx2 1)
   }
+  call-convert imports = <converted_to_a_javascript_value>(imports)
   if (? imports: Completion) {
     return imports
   } else {
@@ -687,6 +689,7 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Module.prototype.customSections(
     } else nop
     _iterIdx2 = (+ _iterIdx2 1)
   }
+  call-convert customSections = <converted_to_a_javascript_value>(customSections)
   if (? customSections: Completion) {
     return customSections
   } else {
@@ -896,12 +899,13 @@ def <BUILTIN>:INTRINSICS.get:WebAssembly.Instance.prototype.exports(
     call _ret2 = clo<"ThrowCompletion">(_err1)
     return _ret2
   } else nop
-  let _v3 = this.Exports
-  if (? _v3: Completion) {
-    return _v3
+  let _returnValue1 = this.Exports
+  call-convert _returnValue1 = <converted_to_a_javascript_value>(_returnValue1)
+  if (? _returnValue1: Completion) {
+    return _returnValue1
   } else {
-    call _ret4 = clo<"NormalCompletion">(_v3)
-    return _ret4
+    call _ret3 = clo<"NormalCompletion">(_returnValue1)
+    return _ret3
   }
 }
 def create_a_fixed_length_memory_buffer(
@@ -1179,11 +1183,12 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Memory.prototype.grow(
   } else {
     let ret = _guard1.Value
   }
-  call _result1 = clo<"U64ToAddressValue">(ret, addrtype)
-  if (? _result1: Completion) {
-    return _result1
+  call _returnValue1 = clo<"U64ToAddressValue">(ret, addrtype)
+  call-convert _returnValue1 = <converted_to_a_javascript_value>(_returnValue1)
+  if (? _returnValue1: Completion) {
+    return _returnValue1
   } else {
-    call _ret8 = clo<"NormalCompletion">(_result1)
+    call _ret8 = clo<"NormalCompletion">(_returnValue1)
     return _ret8
   }
 }
@@ -1218,6 +1223,7 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Memory.prototype.toFixedLengthBuffer(
   let buffer = this.BufferObject
   call _call1 = clo<"IsFixedLengthArrayBuffer">(buffer)
   if (= _call1 true) {
+    call-convert buffer = <converted_to_a_javascript_value>(buffer)
     if (? buffer: Completion) {
       return buffer
     } else {
@@ -1229,6 +1235,7 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Memory.prototype.toFixedLengthBuffer(
   call fixedBuffer = clo<"create_a_fixed_length_memory_buffer">(memaddr)
   call _ = clo<"DetachArrayBuffer">(buffer, "WebAssembly.Memory")
   this.BufferObject = fixedBuffer
+  call-convert fixedBuffer = <converted_to_a_javascript_value>(fixedBuffer)
   if (? fixedBuffer: Completion) {
     return fixedBuffer
   } else {
@@ -1257,6 +1264,7 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Memory.prototype.toResizableBuffer(
   let buffer = this.BufferObject
   call _call1 = clo<"IsFixedLengthArrayBuffer">(buffer)
   if (= _call1 false) {
+    call-convert buffer = <converted_to_a_javascript_value>(buffer)
     if (? buffer: Completion) {
       return buffer
     } else {
@@ -1269,6 +1277,7 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Memory.prototype.toResizableBuffer(
   call resizableBuffer = clo<"create_a_resizable_memory_buffer">(memaddr, maxsize)
   call _ = clo<"DetachArrayBuffer">(buffer, "WebAssembly.Memory")
   this.BufferObject = resizableBuffer
+  call-convert resizableBuffer = <converted_to_a_javascript_value>(resizableBuffer)
   if (? resizableBuffer: Completion) {
     return resizableBuffer
   } else {
@@ -1323,12 +1332,13 @@ def <BUILTIN>:INTRINSICS.get:WebAssembly.Memory.prototype.buffer(
     call _ret2 = clo<"ThrowCompletion">(_err1)
     return _ret2
   } else nop
-  let _v3 = this.BufferObject
-  if (? _v3: Completion) {
-    return _v3
+  let _returnValue1 = this.BufferObject
+  call-convert _returnValue1 = <converted_to_a_javascript_value>(_returnValue1)
+  if (? _returnValue1: Completion) {
+    return _returnValue1
   } else {
-    call _ret4 = clo<"NormalCompletion">(_v3)
-    return _ret4
+    call _ret3 = clo<"NormalCompletion">(_returnValue1)
+    return _ret3
   }
 }
 def initialize_a_table_object(
@@ -1605,11 +1615,12 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Table.prototype.grow(
     return _ret12
   } else nop
   @AGENT_RECORD["associated store"] = result
-  call _result1 = clo<"U64ToAddressValue">(initialSize, addrtype)
-  if (? _result1: Completion) {
-    return _result1
+  call _returnValue1 = clo<"U64ToAddressValue">(initialSize, addrtype)
+  call-convert _returnValue1 = <converted_to_a_javascript_value>(_returnValue1)
+  if (? _returnValue1: Completion) {
+    return _returnValue1
   } else {
-    call _ret13 = clo<"NormalCompletion">(_result1)
+    call _ret13 = clo<"NormalCompletion">(_returnValue1)
     return _ret13
   }
 }
@@ -1630,11 +1641,12 @@ def <BUILTIN>:INTRINSICS.get:WebAssembly.Table.prototype.length(
   let limits = _tuple1[1]
   let elementtype = _tuple1[2]
   call-embed length64 = <table_size>(store, tableaddr)
-  call _result1 = clo<"U64ToAddressValue">(length64, addrtype)
-  if (? _result1: Completion) {
-    return _result1
+  call _returnValue1 = clo<"U64ToAddressValue">(length64, addrtype)
+  call-convert _returnValue1 = <converted_to_a_javascript_value>(_returnValue1)
+  if (? _returnValue1: Completion) {
+    return _returnValue1
   } else {
-    call _ret3 = clo<"NormalCompletion">(_result1)
+    call _ret3 = clo<"NormalCompletion">(_returnValue1)
     return _ret3
   }
 }
@@ -1693,11 +1705,12 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Table.prototype.get(
     call _ret10 = clo<"ThrowCompletion">(_err9)
     return _ret10
   } else nop
-  call _result1 = clo<"ToJSValue">(result)
-  if (? _result1: Completion) {
-    return _result1
+  call _returnValue1 = clo<"ToJSValue">(result)
+  call-convert _returnValue1 = <converted_to_a_javascript_value>(_returnValue1)
+  if (? _returnValue1: Completion) {
+    return _returnValue1
   } else {
-    call _ret11 = clo<"NormalCompletion">(_result1)
+    call _ret11 = clo<"NormalCompletion">(_returnValue1)
     return _ret11
   }
 }
@@ -2022,12 +2035,23 @@ def <BUILTIN>:INTRINSICS.get:WebAssembly.Global.prototype.value(
     call _ret2 = clo<"ThrowCompletion">(_err1)
     return _ret2
   } else nop
-  call _result1 = clo<"GetGlobalValue">(this)
-  if (? _result1: Completion) {
-    return _result1
+  call _guard1 = clo<"GetGlobalValue">(this)
+  if (? _guard1: Abrupt) {
+    if (? _guard1: Completion) {
+      return _guard1
+    } else {
+      call _ret3 = clo<"NormalCompletion">(_guard1)
+      return _ret3
+    }
   } else {
-    call _ret3 = clo<"NormalCompletion">(_result1)
-    return _ret3
+    let _returnValue1 = _guard1.Value
+  }
+  call-convert _returnValue1 = <converted_to_a_javascript_value>(_returnValue1)
+  if (? _returnValue1: Completion) {
+    return _returnValue1
+  } else {
+    call _ret4 = clo<"NormalCompletion">(_returnValue1)
+    return _ret4
   }
 }
 def <BUILTIN>:INTRINSICS.set:WebAssembly.Global.prototype.value(
@@ -2090,12 +2114,23 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Global.prototype.valueOf(
     call _ret2 = clo<"ThrowCompletion">(_err1)
     return _ret2
   } else nop
-  call _result1 = clo<"GetGlobalValue">(this)
-  if (? _result1: Completion) {
-    return _result1
+  call _guard1 = clo<"GetGlobalValue">(this)
+  if (? _guard1: Abrupt) {
+    if (? _guard1: Completion) {
+      return _guard1
+    } else {
+      call _ret3 = clo<"NormalCompletion">(_guard1)
+      return _ret3
+    }
   } else {
-    call _ret3 = clo<"NormalCompletion">(_result1)
-    return _ret3
+    let _returnValue1 = _guard1.Value
+  }
+  call-convert _returnValue1 = <converted_to_a_javascript_value>(_returnValue1)
+  if (? _returnValue1: Completion) {
+    return _returnValue1
+  } else {
+    call _ret4 = clo<"NormalCompletion">(_returnValue1)
+    return _ret4
   }
 }
 def name_of_the_webassembly_function(
@@ -3256,11 +3291,12 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Exception.prototype.getArg(
     call _ret14 = clo<"ThrowCompletion">(_err13)
     return _ret14
   } else nop
-  call _result1 = clo<"ToJSValue">(payload[index])
-  if (? _result1: Completion) {
-    return _result1
+  call _returnValue1 = clo<"ToJSValue">(payload[index])
+  call-convert _returnValue1 = <converted_to_a_javascript_value>(_returnValue1)
+  if (? _returnValue1: Completion) {
+    return _returnValue1
   } else {
-    call _ret15 = clo<"NormalCompletion">(_result1)
+    call _ret15 = clo<"NormalCompletion">(_returnValue1)
     return _ret15
   }
 }
@@ -3291,20 +3327,22 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Exception.prototype.is(
     return _ret5
   }
   if (! (= this.Type exceptionTag.Address)) {
-    let _v6 = false
-    if (? _v6: Completion) {
-      return _v6
+    let _returnValue1 = false
+    call-convert _returnValue1 = <converted_to_a_javascript_value>(_returnValue1)
+    if (? _returnValue1: Completion) {
+      return _returnValue1
     } else {
-      call _ret7 = clo<"NormalCompletion">(_v6)
-      return _ret7
+      call _ret6 = clo<"NormalCompletion">(_returnValue1)
+      return _ret6
     }
   } else nop
-  let _v8 = true
-  if (? _v8: Completion) {
-    return _v8
+  let _returnValue2 = true
+  call-convert _returnValue2 = <converted_to_a_javascript_value>(_returnValue2)
+  if (? _returnValue2: Completion) {
+    return _returnValue2
   } else {
-    call _ret9 = clo<"NormalCompletion">(_v8)
-    return _ret9
+    call _ret7 = clo<"NormalCompletion">(_returnValue2)
+    return _ret7
   }
 }
 def <BUILTIN>:INTRINSICS.get:WebAssembly.Exception.prototype.stack(
@@ -3317,12 +3355,13 @@ def <BUILTIN>:INTRINSICS.get:WebAssembly.Exception.prototype.stack(
     call _ret2 = clo<"ThrowCompletion">(_err1)
     return _ret2
   } else nop
-  let _v3 = this.Stack
-  if (? _v3: Completion) {
-    return _v3
+  let _returnValue1 = this.Stack
+  call-convert _returnValue1 = <converted_to_a_javascript_value>(_returnValue1)
+  if (? _returnValue1: Completion) {
+    return _returnValue1
   } else {
-    call _ret4 = clo<"NormalCompletion">(_v3)
-    return _ret4
+    call _ret3 = clo<"NormalCompletion">(_returnValue1)
+    return _ret3
   }
 }
 def get_the_javascript_exception_tag(

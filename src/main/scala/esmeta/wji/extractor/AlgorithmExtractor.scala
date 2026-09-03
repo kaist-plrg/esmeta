@@ -337,7 +337,7 @@ object AlgorithmExtractor:
             .orElse(Option(m.group(4)))
             .getOrElse("")
         m.group(1).toLowerCase match
-          case "method"      => AlgorithmKind.Method(iface)
+          case "method"      => AlgorithmKind.Method(iface, static = false)
           case "attribute"   => AlgorithmKind.Getter(iface)
           case "constructor" => AlgorithmKind.Constructor(iface)
           case _             => AlgorithmKind.Plain

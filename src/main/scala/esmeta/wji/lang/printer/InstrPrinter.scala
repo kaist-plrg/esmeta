@@ -18,8 +18,9 @@ object InstrPrinter:
     algo.id.foreach(id => sb.append(s"  id: $id\n"))
     algo.kind match
       case AlgorithmKind.Plain => // no kind line for a free-standing operation
-      case AlgorithmKind.Method(iface) =>
-        sb.append(s"  kind: method for $iface\n")
+      case AlgorithmKind.Method(iface, static) =>
+        val prefix = if static then "static " else ""
+        sb.append(s"  kind: ${prefix}method for $iface\n")
       case AlgorithmKind.Getter(iface) =>
         sb.append(s"  kind: getter for $iface\n")
       case AlgorithmKind.Setter(iface) =>

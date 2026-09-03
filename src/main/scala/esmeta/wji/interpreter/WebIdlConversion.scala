@@ -95,6 +95,19 @@ object WebIdlConversion:
   private def isAbrupt(st: State, v: Value): Boolean =
     AbruptT.contains(v, st.heap)
 
+  /** mirrors `Interpreter.eval`'s `EImplements` case exactly (flat
+    * `RecordObj.tname` comparison, bypassing `esmeta.ty.TyModel` -- see
+    * `docs/hardcodes.md` #11) -- native here since it's a pure local check, no
+    * reentrant call needed.
+    */
+  private def implementsInterface(st: State, v: Value, iface: String): Boolean =
+    v match
+      case addr: Addr =>
+        st(addr) match
+          case r: RecordObj => r.tname == iface
+          case _            => false
+      case _ => false
+
   /** builds a genuine `ThrowCompletion(TypeError)`, the same two-step idiom
     * `manuals/funcs/ConvertToInt.ir` and `CompletionWrapping`'s compiled output
     * both use (`__NEW_ERROR_OBJ__` then `ThrowCompletion`) — reused here so a
@@ -206,6 +219,18 @@ object WebIdlConversion:
       readDictionary(interp, callSite, argument, tagTypeMembers)
     case Str("ExceptionOptions") | Enum("ExceptionOptions") =>
       readDictionary(interp, callSite, argument, exceptionOptionsMembers)
+    // an interface-typed argument (so far only `Module.{exports,imports,
+    // customSections}`'s `moduleObject` -- the only *static* WebIDL operations
+    // in this corpus, see `AlgorithmKind.Method.static`'s own doc): real
+    // WebIDL interface-type conversion requires the value to actually
+    // implement the named interface, throwing `TypeError` otherwise --
+    // `implementsInterface` is the same flat record-tag check
+    // `Cond.Implements`/`EImplements` already does at the IR level
+    // (`docs/hardcodes.md` #11), just run natively here since there's no
+    // reentrant call needed for it (no getter/JS execution involved).
+    case Str("Module") | Enum("Module") =>
+      if implementsInterface(interp.st, argument, "Module") then Right(argument)
+      else Left(typeError(interp, callSite))
     // a bare `sequence<T>` parameter (as opposed to one nested inside a
     // dictionary, see `Member.isSequence`) -- so far only
     // `Exception`'s constructor's `sequence<any> payload`. Matched by prefix

@@ -187,7 +187,7 @@ object Compiler:
         // namespace (`WebAssembly` itself) — `esmeta.wji.extractor.Extractor`
         // already downgrades any `Method` whose `for` isn't in the extracted
         // interfaces list to `Plain`, so this case never sees it.
-        case AlgorithmKind.Method(iface) =>
+        case AlgorithmKind.Method(iface, _) =>
           builtinFunc(s"INTRINSICS.WebAssembly.$iface.prototype.$name")
         case AlgorithmKind.Plain =>
           Func(

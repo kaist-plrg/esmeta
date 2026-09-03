@@ -368,13 +368,21 @@ object AddInterfaceMemberBuiltinBehaviourPass extends LoweringPass:
     * `RecordTy.contains`'s subtyping is structural, not nominal, so it could
     * still wrongly let one interface's instance brand-check as another (see
     * #11's own write-up of the identical trap for `Tag`/`Exception`).
+    *
+    * Skipped entirely for a *static* `Method` (`AlgorithmKind.Method.static`,
+    * e.g. `WebAssembly.Module.exports(moduleObject)`): its real receiver is its
+    * own first argument, never `**this**` (a normal call site's `**this**`
+    * there is just the `Module` constructor function object itself, not a
+    * `Module` instance -- checking it would reject every legitimate call).
+    * `WebIdlConversion.toIdlValue`'s `"Module"` case does the equivalent check
+    * on that argument instead, as part of its own IDL conversion.
     */
   private def brandingCheck(kind: AlgorithmKind): List[Instr] =
     val iface = kind match
-      case AlgorithmKind.Getter(i) => Some(i)
-      case AlgorithmKind.Setter(i) => Some(i)
-      case AlgorithmKind.Method(i) => Some(i)
-      case _                       => None
+      case AlgorithmKind.Getter(i)         => Some(i)
+      case AlgorithmKind.Setter(i)         => Some(i)
+      case AlgorithmKind.Method(i, static) => Option.unless(static)(i)
+      case _                               => None
     iface.toList.map { i =>
       Instr.IfChain(
         List(
@@ -402,7 +410,7 @@ object AddInterfaceMemberBuiltinBehaviourPass extends LoweringPass:
     algos.map { a =>
       a.kind match
         case AlgorithmKind.Getter(_) | AlgorithmKind.Setter(_) |
-            AlgorithmKind.Constructor(_) | AlgorithmKind.Method(_) =>
+            AlgorithmKind.Constructor(_) | AlgorithmKind.Method(_, _) =>
           a.copy(
             params = BuiltinParams,
             body = newTargetCheck(a.kind) ++ brandingCheck(a.kind) ++

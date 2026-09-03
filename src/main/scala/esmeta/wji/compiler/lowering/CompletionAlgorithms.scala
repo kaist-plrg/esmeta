@@ -244,7 +244,7 @@ object CompletionAlgorithms:
     */
   private def isInterfaceMember(kind: AlgorithmKind): Boolean = kind match
     case AlgorithmKind.Getter(_) | AlgorithmKind.Setter(_) |
-        AlgorithmKind.Constructor(_) | AlgorithmKind.Method(_) =>
+        AlgorithmKind.Constructor(_) | AlgorithmKind.Method(_, _) =>
       true
     case AlgorithmKind.Plain => false
 

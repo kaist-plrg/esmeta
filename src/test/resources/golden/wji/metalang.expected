@@ -301,7 +301,7 @@
   ?("tag" if |type| is of the form [=external-type/tag=] <var ignore>tag</var>)
 
 # exports
-  kind: method for Module
+  kind: static method for Module
   params: |moduleObject|
   head: The <dfn method for="Module">exports(|moduleObject|)</dfn> method, when invoked, performs the following steps:
   Let(|module|, |moduleObject|.[[Module]])
@@ -313,7 +313,7 @@
   Return(|exports|)
 
 # imports
-  kind: method for Module
+  kind: static method for Module
   params: |moduleObject|
   head: The <dfn method for="Module">imports(|moduleObject|)</dfn> method, when invoked, performs the following steps:
   Let(|module|, |moduleObject|.[[Module]])
@@ -331,7 +331,7 @@
   Return(|imports|)
 
 # customSections
-  kind: method for Module
+  kind: static method for Module
   params: |moduleObject|, |sectionName|
   head: The <dfn method for="Module">customSections(|moduleObject|, |sectionName|)</dfn> method, when invoked, performs the following steps:
   Let(|bytes|, |moduleObject|.[[Bytes]])

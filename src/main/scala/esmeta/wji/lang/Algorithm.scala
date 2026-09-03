@@ -18,8 +18,25 @@ enum AlgorithmKind:
     */
   case Plain
 
-  /** "The <dfn method for="X">name(...)</dfn> method, when invoked, ..." */
-  case Method(interface: String)
+  /** "The <dfn method for="X">name(...)</dfn> method, when invoked, ..." --
+    * `static` is WebIDL's own `static` keyword on the matching `<pre
+    * class=idl>` operation declaration (e.g. `static sequence<...>
+    * exports(Module module);`), which never appears in this dfn's own prose
+    * (nothing here to parse it from directly) — always constructed `false`
+    * (`AlgorithmExtractor` has no way to know otherwise) and stamped afterward
+    * by `esmeta.wji.extractor.Extractor.enrichParamTypes`, which already
+    * cross-references the same WebIDL interface definition for unrelated
+    * reasons (param types) and finds the real `MemberKind` there. Distinct from
+    * every other kind here: a static operation's receiver is its own first
+    * argument (e.g. `moduleObject`), never `**this**` (for a real call site
+    * like `WebAssembly.Module.exports(module)`, `**this**` is just the `Module`
+    * constructor function object, not a `Module` instance) — see
+    * `AddInterfaceMemberBuiltinBehaviourPass.brandingCheck`, which skips its
+    * usual `**this**`-implements-interface guard for a static one, and
+    * `WebIdlConversion.toIdlValue`'s `"Module"` case, which does the equivalent
+    * check on the operand argument instead.
+    */
+  case Method(interface: String, static: Boolean)
 
   /** "The getter of the <dfn attribute for="X">name</dfn> attribute of {{X}},
     * ..."

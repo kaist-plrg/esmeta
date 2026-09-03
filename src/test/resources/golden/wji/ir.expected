@@ -544,11 +544,6 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Module.prototype.exports(
   ArgumentsList: Unknown,
   NewTarget: Unknown,
 ): Unknown = {
-  if (! (implements this "Module")) {
-    call _err1 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-    call _ret2 = clo<"ThrowCompletion">(_err1)
-    return _ret2
-  } else nop
   if (< 0 (sizeof ArgumentsList)) {
     let moduleObject = ArgumentsList[0]
     call-convert moduleObject = <converted_to_an_idl_value>(moduleObject, "Module")
@@ -556,14 +551,14 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Module.prototype.exports(
       if (? moduleObject: Completion) {
         return moduleObject
       } else {
-        call _ret3 = clo<"NormalCompletion">(moduleObject)
-        return _ret3
+        call _ret1 = clo<"NormalCompletion">(moduleObject)
+        return _ret1
       }
     } else nop
   } else {
-    call _err4 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-    call _ret5 = clo<"ThrowCompletion">(_err4)
-    return _ret5
+    call _err2 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
+    call _ret3 = clo<"ThrowCompletion">(_err2)
+    return _ret3
   }
   let module = moduleObject.Module
   let exports = (list [])
@@ -584,8 +579,8 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Module.prototype.exports(
   if (? exports: Completion) {
     return exports
   } else {
-    call _ret6 = clo<"NormalCompletion">(exports)
-    return _ret6
+    call _ret4 = clo<"NormalCompletion">(exports)
+    return _ret4
   }
 }
 def <BUILTIN>:INTRINSICS.WebAssembly.Module.prototype.imports(
@@ -593,11 +588,6 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Module.prototype.imports(
   ArgumentsList: Unknown,
   NewTarget: Unknown,
 ): Unknown = {
-  if (! (implements this "Module")) {
-    call _err1 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-    call _ret2 = clo<"ThrowCompletion">(_err1)
-    return _ret2
-  } else nop
   if (< 0 (sizeof ArgumentsList)) {
     let moduleObject = ArgumentsList[0]
     call-convert moduleObject = <converted_to_an_idl_value>(moduleObject, "Module")
@@ -605,14 +595,14 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Module.prototype.imports(
       if (? moduleObject: Completion) {
         return moduleObject
       } else {
-        call _ret3 = clo<"NormalCompletion">(moduleObject)
-        return _ret3
+        call _ret1 = clo<"NormalCompletion">(moduleObject)
+        return _ret1
       }
     } else nop
   } else {
-    call _err4 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-    call _ret5 = clo<"ThrowCompletion">(_err4)
-    return _ret5
+    call _err2 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
+    call _ret3 = clo<"ThrowCompletion">(_err2)
+    return _ret3
   }
   let module = moduleObject.Module
   let builtinSetNames = moduleObject.BuiltinSets
@@ -643,8 +633,8 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Module.prototype.imports(
   if (? imports: Completion) {
     return imports
   } else {
-    call _ret6 = clo<"NormalCompletion">(imports)
-    return _ret6
+    call _ret4 = clo<"NormalCompletion">(imports)
+    return _ret4
   }
 }
 def <BUILTIN>:INTRINSICS.WebAssembly.Module.prototype.customSections(
@@ -652,11 +642,6 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Module.prototype.customSections(
   ArgumentsList: Unknown,
   NewTarget: Unknown,
 ): Unknown = {
-  if (! (implements this "Module")) {
-    call _err1 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-    call _ret2 = clo<"ThrowCompletion">(_err1)
-    return _ret2
-  } else nop
   if (< 0 (sizeof ArgumentsList)) {
     let moduleObject = ArgumentsList[0]
     call-convert moduleObject = <converted_to_an_idl_value>(moduleObject, "Module")
@@ -664,14 +649,14 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Module.prototype.customSections(
       if (? moduleObject: Completion) {
         return moduleObject
       } else {
-        call _ret3 = clo<"NormalCompletion">(moduleObject)
-        return _ret3
+        call _ret1 = clo<"NormalCompletion">(moduleObject)
+        return _ret1
       }
     } else nop
   } else {
-    call _err4 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-    call _ret5 = clo<"ThrowCompletion">(_err4)
-    return _ret5
+    call _err2 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
+    call _ret3 = clo<"ThrowCompletion">(_err2)
+    return _ret3
   }
   if (< 1 (sizeof ArgumentsList)) {
     let sectionName = ArgumentsList[1]
@@ -680,14 +665,14 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Module.prototype.customSections(
       if (? sectionName: Completion) {
         return sectionName
       } else {
-        call _ret6 = clo<"NormalCompletion">(sectionName)
-        return _ret6
+        call _ret4 = clo<"NormalCompletion">(sectionName)
+        return _ret4
       }
     } else nop
   } else {
-    call _err7 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-    call _ret8 = clo<"ThrowCompletion">(_err7)
-    return _ret8
+    call _err5 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
+    call _ret6 = clo<"ThrowCompletion">(_err5)
+    return _ret6
   }
   let bytes = moduleObject.Bytes
   let customSections = (list [])
@@ -705,8 +690,8 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Module.prototype.customSections(
   if (? customSections: Completion) {
     return customSections
   } else {
-    call _ret9 = clo<"NormalCompletion">(customSections)
-    return _ret9
+    call _ret7 = clo<"NormalCompletion">(customSections)
+    return _ret7
   }
 }
 def <BUILTIN>:INTRINSICS.WebAssembly.Module(

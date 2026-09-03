@@ -1,6 +1,6 @@
 package esmeta.wji
 
-import esmeta.{WJI_JS_API_TEST_DIR, WJI_MANUAL_TEST_DIR}
+import esmeta.{BASE_DIR, WJI_JS_API_TEST_DIR, WJI_MANUAL_TEST_DIR}
 import esmeta.es.ESTest.checkExit
 import esmeta.util.SystemUtils.*
 import esmeta.wji.bridge.rpc.JsonRpcConnection
@@ -18,13 +18,15 @@ object EvalTag extends Tag("esmeta.wji.EvalTag")
   * the test case itself. Cancelled rather than run, so `wjiEvalTest` stays
   * green while the gap is worked on — remove a test case's name here once it's
   * fixed. No per-test-case reason kept here — it shifts with every partial fix,
-  * so keeping it in sync would be pure churn; re-reproduce with `sbt run
-  * wji-eval <path printed as the test name below> -silent` when picking one
-  * back up. Keyed by `"<root label>/<path relative to that root>"` (e.g.
-  * `"manual/demo.js"`, `"js-api/memory/toString.any.js"`) rather than bare
-  * filename — js-api's generated fixtures mirror spectec/test/js-api's own
-  * directory structure, which reuses the same filename (e.g. `toString.any.js`)
-  * across multiple categories.
+  * so keeping it in sync would be pure churn; re-reproduce by pasting a name
+  * below verbatim into `sbt run wji-eval <name> -silent` (from the repo root)
+  * when picking one back up — each name below already *is* the real,
+  * repo-root-relative path to the file (`BASE_DIR.relativize`, see the `for`
+  * loop below), not some other, unrelated shorthand that would need translating
+  * by hand first. Keyed by full path rather than bare filename — js-api's
+  * generated fixtures mirror spectec/test/js-api's own directory structure,
+  * which reuses the same filename (e.g. `toString.any.js`) across multiple
+  * categories.
   */
 private val knownFailing: Set[String] =
   Set(
@@ -52,38 +54,38 @@ private val knownFailing: Set[String] =
     // wasm constructs -- marked `// META: timeout=long` even for real
     // engines, so it's just too slow for WJI's interpreter rather than
     // blocked by a real gap).
-    "js-api/constructor/compile.any.js",
-    "js-api/constructor/instantiate-bad-imports.any.js",
-    "js-api/constructor/instantiate.any.js",
-    "js-api/constructor/multi-value.any.js",
-    "js-api/constructor/validate.any.js",
-    "js-api/exception/constructor.tentative.any.js",
-    "js-api/exception/getArg.tentative.any.js",
-    "js-api/exception/is.tentative.any.js",
-    "js-api/exception/jsTag.tentative.any.js",
-    "js-api/gc/casts.tentative.any.js",
-    "js-api/gc/exported-object.tentative.any.js",
-    "js-api/global/constructor.any.js",
-    "js-api/global/value-get-set.any.js",
-    "js-api/instance/constructor-bad-imports.any.js",
-    "js-api/instance/constructor-caching.any.js",
-    "js-api/instance/constructor.any.js",
-    "js-api/interface.any.js",
-    "js-api/js-string/basic.any.js",
-    "js-api/js-string/constants.any.js",
-    "js-api/js-string/imports.any.js",
-    "js-api/limits.any.js",
-    "js-api/memory/constructor.any.js",
-    "js-api/memory/grow.any.js",
-    "js-api/module/constructor.any.js",
-    "js-api/module/customSections.any.js",
-    "js-api/module/exports.any.js",
-    "js-api/module/imports.any.js",
-    "js-api/prototypes.any.js",
-    "js-api/table/constructor.any.js",
-    "js-api/table/get-set.any.js",
-    "js-api/table/grow-memory64.any.js",
-    "js-api/tag/constructor.tentative.any.js",
+    "tests/wji/js-api/generated/constructor/compile.any.js",
+    "tests/wji/js-api/generated/constructor/instantiate-bad-imports.any.js",
+    "tests/wji/js-api/generated/constructor/instantiate.any.js",
+    "tests/wji/js-api/generated/constructor/multi-value.any.js",
+    "tests/wji/js-api/generated/constructor/validate.any.js",
+    "tests/wji/js-api/generated/exception/constructor.tentative.any.js",
+    "tests/wji/js-api/generated/exception/getArg.tentative.any.js",
+    "tests/wji/js-api/generated/exception/is.tentative.any.js",
+    "tests/wji/js-api/generated/exception/jsTag.tentative.any.js",
+    "tests/wji/js-api/generated/gc/casts.tentative.any.js",
+    "tests/wji/js-api/generated/gc/exported-object.tentative.any.js",
+    "tests/wji/js-api/generated/global/constructor.any.js",
+    "tests/wji/js-api/generated/global/value-get-set.any.js",
+    "tests/wji/js-api/generated/instance/constructor-bad-imports.any.js",
+    "tests/wji/js-api/generated/instance/constructor-caching.any.js",
+    "tests/wji/js-api/generated/instance/constructor.any.js",
+    "tests/wji/js-api/generated/interface.any.js",
+    "tests/wji/js-api/generated/js-string/basic.any.js",
+    "tests/wji/js-api/generated/js-string/constants.any.js",
+    "tests/wji/js-api/generated/js-string/imports.any.js",
+    "tests/wji/js-api/generated/limits.any.js",
+    "tests/wji/js-api/generated/memory/constructor.any.js",
+    "tests/wji/js-api/generated/memory/grow.any.js",
+    "tests/wji/js-api/generated/module/constructor.any.js",
+    "tests/wji/js-api/generated/module/customSections.any.js",
+    "tests/wji/js-api/generated/module/exports.any.js",
+    "tests/wji/js-api/generated/module/imports.any.js",
+    "tests/wji/js-api/generated/prototypes.any.js",
+    "tests/wji/js-api/generated/table/constructor.any.js",
+    "tests/wji/js-api/generated/table/get-set.any.js",
+    "tests/wji/js-api/generated/table/grow-memory64.any.js",
+    "tests/wji/js-api/generated/tag/constructor.tentative.any.js",
   )
 
 /** Runs every `.js` test case under `tests/wji/manual` and
@@ -153,16 +155,16 @@ class EvalSpec extends AnyFunSuite with BeforeAndAfterAll:
     */
   private val perTestTimeoutSec = 60
 
-  private val roots: List[(String, String)] = List(
-    "manual" -> WJI_MANUAL_TEST_DIR,
-    "js-api" -> WJI_JS_API_TEST_DIR,
-  )
+  private val roots: List[String] =
+    List(WJI_MANUAL_TEST_DIR, WJI_JS_API_TEST_DIR)
 
   for
-    (label, dir) <- roots
+    dir <- roots
     file <- walkTree(dir) if jsFilter(file.getName)
   do
-    val name = s"$label/${Paths.get(dir).relativize(file.toPath)}"
+    // repo-root-relative, so it doubles as a real path -- `dir` itself is
+    // already `$BASE_DIR/tests/wji/...`, no separate per-root label needed.
+    val name = Paths.get(BASE_DIR).relativize(file.toPath).toString
     test(name, EvalTag) {
       val start = System.nanoTime()
       def elapsed = (System.nanoTime() - start) / 1e9

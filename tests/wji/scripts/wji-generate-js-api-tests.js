@@ -42,6 +42,7 @@ const testFiles = listAnyJsFiles(jsApiRoot);
 
 const shellShim = fs.readFileSync(path.join(wjiJsApiDir, "shell-shim.js"), "utf8");
 const testharnessLite = fs.readFileSync(path.join(wjiJsApiDir, "testharness-lite.js"), "utf8");
+const skipKnownGaps = fs.readFileSync(path.join(wjiJsApiDir, "skip-known-gaps.js"), "utf8");
 const reportShim = fs.readFileSync(path.join(wjiJsApiDir, "report-shim.js"), "utf8");
 const dataViewPolyfill = fs.readFileSync(path.join(wjiJsApiDir, "dataview-polyfill.js"), "utf8");
 
@@ -60,6 +61,7 @@ for (const testFilePath of testFiles) {
   const src = [
     shellShim,
     testharnessLite,
+    skipKnownGaps,
     ...(usesWasmModuleBuilder ? [dataViewPolyfill] : []),
     depsSrc,
     meta.body,

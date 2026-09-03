@@ -68,13 +68,11 @@ private val knownFailing: Set[String] =
     "js-api/instance/constructor-bad-imports.any.js",
     "js-api/instance/constructor-caching.any.js",
     "js-api/instance/constructor.any.js",
-    "js-api/instance/exports.any.js",
     "js-api/interface.any.js",
     "js-api/js-string/basic.any.js",
     "js-api/js-string/constants.any.js",
     "js-api/js-string/imports.any.js",
     "js-api/limits.any.js",
-    "js-api/memory/buffer.any.js",
     "js-api/memory/constructor.any.js",
     "js-api/memory/grow.any.js",
     "js-api/module/constructor.any.js",
@@ -85,7 +83,6 @@ private val knownFailing: Set[String] =
     "js-api/table/constructor.any.js",
     "js-api/table/get-set.any.js",
     "js-api/table/grow-memory64.any.js",
-    "js-api/table/length.any.js",
     "js-api/tag/constructor.tentative.any.js",
   )
 

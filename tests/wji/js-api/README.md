@@ -8,11 +8,18 @@ web-platform-tests 스위트, `testharness.js` 기반)를 WJI로 돌리기 위�
 shell-shim.js         필수 -- testharness.js/testharness-lite.js가 가정하는
                        브라우저/워커 전역(`self`)을 채워줌.
 testharness-lite.js    필수 -- 진짜 testharness.js 대신 쓰는 경량 재구현.
+skip-known-gaps.js     필수 -- 이름이 알려진(WJI/wasm 문제가 아니라 ESMeta
+                       mainline 자체의 한계인) 서브테스트를 `test()` 자체를
+                       가로채서 아예 실행 안 시킴(다시 돌려도 절대 못 고치는
+                       assertion에 인터프리터 시간을 쓰지 않기 위함).
 dataview-polyfill.js   wasm-module-builder.js를 쓰는 파일에만 삽입 -- WJI가
                        기계화 안 한 DataView를 대신함 (아래 참고).
-report-shim.js         필수 -- subtest별 PASS/FAIL을 print로 출력하고,
+report-shim.js         필수 -- subtest별 PASS/FAIL을 print로 출력하고
+                       `SUMMARY N/M` 한 줄(통과/전체)을 마지막에 찍은 뒤,
                        전부 통과했을 때만 globalThis.__wjiOk = true 세팅
-                       (tests/wji/manual/*.js의 컨벤션과 동일).
+                       (tests/wji/manual/*.js의 컨벤션과 동일). `skip-known-gaps.js`가
+                       걸러낸 서브테스트는 애초에 `tests` 목록에 안 잡히므로
+                       `SUMMARY`/`__wjiOk` 계산에서 자연히 제외됨.
 generated/             `tests/wji/scripts/wji-generate-js-api-tests.js`가
                        spectec/test/js-api에서 만들어낸 self-contained
                        테스트 케이스들. 손으로 고치지 말 것 -- 다시 생성됨.

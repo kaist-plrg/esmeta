@@ -532,11 +532,26 @@ def instantiate_object(
 def string_value_of_the_extern_type(
   type: Unknown,
 ): Unknown = {
-  (yet "\"function\" if |type| is of the form [=external-type/func=] <var ignore>functype</var>")
-  (yet "\"table\" if |type| is of the form [=external-type/table=] <var ignore>tabletype</var>")
-  (yet "\"memory\" if |type| is of the form [=external-type/mem=] <var ignore>memtype</var>")
-  (yet "\"global\" if |type| is of the form [=external-type/global=] <var ignore>globaltype</var>")
-  (yet "\"tag\" if |type| is of the form [=external-type/tag=] <var ignore>tag</var>")
+  if (= (case-tag type) "FUNC") {
+    let functype = type[0]
+    return "function"
+  } else nop
+  if (= (case-tag type) "TABLE") {
+    let tabletype = type[0]
+    return "table"
+  } else nop
+  if (= (case-tag type) "MEM") {
+    let memtype = type[0]
+    return "memory"
+  } else nop
+  if (&& (= (case-tag type) "GLOBAL") (= (case-tag type[0]) "")) {
+    let globaltype = type[0][0]
+    return "global"
+  } else nop
+  if (= (case-tag type) "TAG") {
+    let tag = type[0]
+    return "tag"
+  } else nop
   return ~unused~
 }
 def <BUILTIN>:INTRINSICS.WebAssembly.Module.prototype.exports(

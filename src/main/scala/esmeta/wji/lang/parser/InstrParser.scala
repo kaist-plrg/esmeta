@@ -19,6 +19,17 @@ object InstrParser:
   private val NotePrefix = """(?is)^Note:\s*(.*)$""".r
   private val ReturnPrefix = """(?is)^Return\b\.?\s*(.*)$""".r
   private val ThrowPrefix = """(?is)^(?:\[=[Tt]hrow=\]|Throw\b)\s+(.+)$""".r
+
+  // a "definition by case enumeration" bullet, e.g. `js-api/index.bs`'s
+  // "string value of the extern type" ("The <dfn>...</dfn> |type| is * "X" if
+  // COND * "Y" if COND2 ..."), rather than the usual imperative numbered-step
+  // list every other algorithm here uses -- each bullet is really an implicit
+  // "If COND, return "X"." with nothing else spelling that out. Singleton
+  // idiom in this corpus (only these 5 bullets), but self-contained and cheap
+  // enough to handle as a real step shape rather than a per-bullet
+  // `manuals/rule.json` hack: `CondParser`/`ExprParser` already parse the
+  // condition clause itself (`Cond.IsOfForm`) untouched.
+  private val LiteralIfPrefix = """(?is)^"([^"]*)"\s+if\s+(.+)$""".r
   private val ElseIfPrefix =
     """(?is)^(?:Else\s+if\b|Otherwise,\s*if\b)\s+(.+)$""".r
   private val IfPrefix = """(?is)^If\b\s+(.+)$""".r
@@ -243,6 +254,11 @@ object InstrParser:
       case IfPrefix(rest) =>
         val (cond, tail) = splitCondAndRest(rest)
         If(CondParser.parse(cond), deriveBody(tail, trailingBody))
+      case LiteralIfPrefix(lit, cond) =>
+        If(
+          CondParser.parse(cond),
+          List(Return(Some(Expr.Str(lit)), trailingBody)),
+        )
       case ElsePrefix(rest) => Else(deriveBody(rest.trim, trailingBody))
       case ForEachPrefix(rest) =>
         findTopLevelAny(rest, Seq(" of ", " in ")) match

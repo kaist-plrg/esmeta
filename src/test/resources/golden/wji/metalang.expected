@@ -294,11 +294,16 @@
 # string value of the extern type
   params: |type|
   head: The <dfn>string value of the extern type</dfn> |type| is
-  ?("function" if |type| is of the form [=external-type/func=] <var ignore>functype</var>)
-  ?("table" if |type| is of the form [=external-type/table=] <var ignore>tabletype</var>)
-  ?("memory" if |type| is of the form [=external-type/mem=] <var ignore>memtype</var>)
-  ?("global" if |type| is of the form [=external-type/global=] <var ignore>globaltype</var>)
-  ?("tag" if |type| is of the form [=external-type/tag=] <var ignore>tag</var>)
+  If(|type| is of the form [=external-type/func=](|functype|))
+    Return("function")
+  If(|type| is of the form [=external-type/table=](|tabletype|))
+    Return("table")
+  If(|type| is of the form [=external-type/mem=](|memtype|))
+    Return("memory")
+  If(|type| is of the form [=external-type/global=](|globaltype|))
+    Return("global")
+  If(|type| is of the form [=external-type/tag=](|tag|))
+    Return("tag")
 
 # exports
   kind: static method for Module

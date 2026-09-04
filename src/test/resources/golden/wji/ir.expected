@@ -277,7 +277,7 @@ def read_the_imports(
           let value = _throwComp1
         }
         let store = @AGENT_RECORD["associated store"]
-        call-embed _tuple2 = <global_alloc>(store, (case "CONST" valtype), value)
+        call-embed _tuple2 = <global_alloc>(store, (case "" (opt) valtype), value)
         let store = _tuple2[0]
         let globaladdr = _tuple2[1]
         @AGENT_RECORD["associated store"] = store
@@ -1996,9 +1996,9 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Global(
     }
   }
   if (= mutable true) {
-    let globaltype = (case "VAR" valuetype)
+    let globaltype = (case "" (opt (case "MUT" )) valuetype)
   } else {
-    let globaltype = (case "CONST" valuetype)
+    let globaltype = (case "" (opt) valuetype)
   }
   let store = @AGENT_RECORD["associated store"]
   call-embed _tuple1 = <global_alloc>(store, globaltype, value)
@@ -2093,7 +2093,7 @@ def <BUILTIN>:INTRINSICS.set:WebAssembly.Global.prototype.value(
     call _ret4 = clo<"ThrowCompletion">(_err3)
     return _ret4
   } else nop
-  if (= mut ~const~) {
+  if (= mut (opt)) {
     call _err5 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
     call _ret6 = clo<"ThrowCompletion">(_err5)
     return _ret6

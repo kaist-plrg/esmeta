@@ -2968,51 +2968,51 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Tag(
     return _ret9
   }
 }
-def \[[getprototypeof]]_internal_method_of_an_exported_gc_object(
+def [[getprototypeof]]_internal_method_of_an_exported_gc_object(
 ): Unknown = {
   return null
 }
-def \[[setprototypeof]]_internal_method_of_an_exported_gc_object(
+def [[setprototypeof]]_internal_method_of_an_exported_gc_object(
 ): Unknown = {
   return false
 }
-def \[[isextensible]]_internal_method_of_an_exported_gc_object(
+def [[isextensible]]_internal_method_of_an_exported_gc_object(
 ): Unknown = {
   return false
 }
-def \[[preventextensions]]_internal_method_of_an_exported_gc_object(
+def [[preventextensions]]_internal_method_of_an_exported_gc_object(
 ): Unknown = {
   return false
 }
-def \[[getownproperty]]_internal_method_of_an_exported_gc_object(
+def [[getownproperty]]_internal_method_of_an_exported_gc_object(
 ): Unknown = {
   return undefined
 }
-def \[[defineownproperty]]_internal_method_of_an_exported_gc_object(
+def [[defineownproperty]]_internal_method_of_an_exported_gc_object(
 ): Unknown = {
   return false
 }
-def \[[hasproperty]]_internal_method_of_an_exported_gc_object(
+def [[hasproperty]]_internal_method_of_an_exported_gc_object(
 ): Unknown = {
   return false
 }
-def \[[get]]_internal_method_of_an_exported_gc_object(
+def [[get]]_internal_method_of_an_exported_gc_object(
 ): Unknown = {
   return undefined
 }
-def \[[set]]_internal_method_of_an_exported_gc_object(
+def [[set]]_internal_method_of_an_exported_gc_object(
 ): Unknown = {
   call _err1 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
   call _ret2 = clo<"ThrowCompletion">(_err1)
   return _ret2
 }
-def \[[delete]]_internal_method_of_an_exported_gc_object(
+def [[delete]]_internal_method_of_an_exported_gc_object(
 ): Unknown = {
   call _err1 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
   call _ret2 = clo<"ThrowCompletion">(_err1)
   return _ret2
 }
-def \[[ownpropertykeys]]_internal_method_of_an_exported_gc_object(
+def [[ownpropertykeys]]_internal_method_of_an_exported_gc_object(
 ): Unknown = {
   let keys = (list [])
   return keys
@@ -3029,17 +3029,38 @@ def a_new_exported_gc_object(
   call object = clo<"MakeBasicObject">((list ["ObjectAddress", "ObjectKind"]))
   object.ObjectAddress = objectaddr
   object.ObjectKind = objectkind
-  object.GetPrototypeOf = ~[[GetPrototypeOf]] internal method of an Exported GC Object~
-  object.SetPrototypeOf = ~[[SetPrototypeOf]] internal method of an Exported GC Object~
-  object.IsExtensible = ~[[IsExtensible]] internal method of an Exported GC Object~
-  object.PreventExtensions = ~[[PreventExtensions]] internal method of an Exported GC Object~
-  object.GetOwnProperty = ~[[GetOwnProperty]] internal method of an Exported GC Object~
-  object.DefineOwnProperty = ~[[DefineOwnProperty]] internal method of an Exported GC Object~
-  object.HasProperty = ~[[HasProperty]] internal method of an Exported GC Object~
-  object.Get = ~[[Get]] internal method of an Exported GC Object~
-  object.Set = ~[[Set]] internal method of an Exported GC Object~
-  object.Delete = ~[[Delete]] internal method of an Exported GC Object~
-  object.OwnPropertyKeys = ~[[OwnPropertyKeys]] internal method of an Exported GC Object~
+  call _call1 = clo<"[[GetPrototypeOf]]_internal_method_of_an_Exported_GC_Object">()
+  object.GetPrototypeOf = _call1
+  call _call2 = clo<"[[SetPrototypeOf]]_internal_method_of_an_Exported_GC_Object">()
+  object.SetPrototypeOf = _call2
+  call _call3 = clo<"[[IsExtensible]]_internal_method_of_an_Exported_GC_Object">()
+  object.IsExtensible = _call3
+  call _call4 = clo<"[[PreventExtensions]]_internal_method_of_an_Exported_GC_Object">()
+  object.PreventExtensions = _call4
+  call _call5 = clo<"[[GetOwnProperty]]_internal_method_of_an_Exported_GC_Object">()
+  object.GetOwnProperty = _call5
+  call _call6 = clo<"[[DefineOwnProperty]]_internal_method_of_an_Exported_GC_Object">()
+  object.DefineOwnProperty = _call6
+  call _call7 = clo<"[[HasProperty]]_internal_method_of_an_Exported_GC_Object">()
+  object.HasProperty = _call7
+  call _call8 = clo<"[[Get]]_internal_method_of_an_Exported_GC_Object">()
+  object.Get = _call8
+  call _guard1 = clo<"[[Set]]_internal_method_of_an_Exported_GC_Object">()
+  if (? _guard1: Abrupt) {
+    return _guard1
+  } else {
+    let _call9 = _guard1.Value
+  }
+  object.Set = _call9
+  call _guard2 = clo<"[[Delete]]_internal_method_of_an_Exported_GC_Object">()
+  if (? _guard2: Abrupt) {
+    return _guard2
+  } else {
+    let _call10 = _guard2.Value
+  }
+  object.Delete = _call10
+  call _call11 = clo<"[[OwnPropertyKeys]]_internal_method_of_an_Exported_GC_Object">()
+  object.OwnPropertyKeys = _call11
   map[objectaddr] = object
   return object
 }

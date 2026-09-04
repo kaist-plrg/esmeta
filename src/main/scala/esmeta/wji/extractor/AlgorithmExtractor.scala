@@ -287,7 +287,10 @@ object AlgorithmExtractor:
             case TrailingParamsPlain(name) => name.trim
             case name                      => name
         case None =>
-          m.group(1).trim match
+          // Bikeshed escapes a leading `[[` with `\` so it isn't parsed as
+          // markup (e.g. `<dfn>\[[Get]] internal method of ...</dfn>`) --
+          // strip it, since a `[=...=]` link to this name is never escaped.
+          m.group(1).trim.stripPrefix("\\") match
             case TrailingParams(name) => name.trim
             case name                 => name
     }

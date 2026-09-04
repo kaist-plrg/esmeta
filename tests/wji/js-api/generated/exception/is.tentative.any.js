@@ -361,7 +361,7 @@ test(() => {
   const invalidValues = [undefined, null, true, "", Symbol(), 1, {}];
   const tag = new WebAssembly.Tag({ parameters: [] });
   const exn = new WebAssembly.Exception(tag, []);
-  for (argument of invalidValues) {
+  for (let argument of invalidValues) {
     assert_throws_js(TypeError, () => exn.is(argument));
   }
 }, "Invalid exception argument");

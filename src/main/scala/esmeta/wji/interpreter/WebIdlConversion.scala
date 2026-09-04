@@ -220,7 +220,7 @@ object WebIdlConversion:
     ty: Value,
   ): Either[Value, Value] = ty match
     case Str("unsigned long") | Enum("unsigned long") =>
-      Right(toUnsignedLong(argument))
+      toUnsignedLong(interp, callSite, argument)
     case Str("MemoryDescriptor") | Enum("MemoryDescriptor") =>
       readDictionary(interp, callSite, argument, memoryDescriptorMembers)
     case Str("TableDescriptor") | Enum("TableDescriptor") =>
@@ -256,20 +256,36 @@ object WebIdlConversion:
       Right(toSequence(interp.st, argument))
     case _ => Right(argument)
 
-  private val TWO_32: BigDecimal = BigDecimal(4294967296L)
-
   private def toMathValue(v: Value): Math = v match
     case n: Math   => n
     case Number(d) => Math(d)
     case Str(s)    => Math(ESValueParser.str2number(s).double)
     case v         => throw NoMathValue(v)
 
-  private def toUnsignedLong(argument: Value): Value =
-    val m = toMathValue(argument)
-    val n =
-      if m < Math.zero then Math.zero - Interpreter.floor(Interpreter.abs(m))
-      else Interpreter.floor(m)
-    Math(n.decimal %% TWO_32)
+  /** `[EnforceRange] unsigned long` conversion -- so far only `Exception.
+    * prototype.getArg`'s `index` param (`index.bs:1681`), the sole "unsigned
+    * long" occurrence in this corpus as an actual WebIDL param type, and always
+    * `[EnforceRange]` there -- so, unlike a scalar enum member's `? ToString`,
+    * this reuses `manuals/funcs/ConvertToInt.ir` (the same `? ToNumber` +
+    * NaN/±Infinity/range `TypeError` logic `AddressValueToU64` already calls,
+    * `docs/hardcodes.md` #14) rather than reimplementing it here a second time.
+    * `bitLength`/`signedness`/`extendedAttribute` are accepted but ignored by
+    * that function (it only ever implements the one combination both call sites
+    * need: 32-bit, unsigned, EnforceRange), so their exact values here don't
+    * matter beyond documenting intent.
+    */
+  private def toUnsignedLong(
+    interp: Interpreter,
+    callSite: Call,
+    argument: Value,
+  ): Either[Value, Value] =
+    val result = interp.invokeCallable(
+      Clo(interp.st.cfg.getFunc("ConvertToInt"), Map.empty),
+      List(argument, Math(32), Str("unsigned"), Str("EnforceRange")),
+      callSite,
+    )
+    if isAbrupt(interp.st, result) then Left(result)
+    else Right(interp.st(result, Str("Value")))
 
   /** reads `members` off `argument` via a real `Get(argument, key)` for each —
     * prototype chain and accessor properties (getters) both work, mirroring

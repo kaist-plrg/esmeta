@@ -78,6 +78,16 @@ META script 목록을 보고 판단) 그 파일 로드 **직전**에 삽입되�
 `generated/`에 씁니다(spectec 쪽 디렉터리 구조 그대로 미러링 — `toString.any.js`
 처럼 카테고리마다 이름이 겹치는 파일이 있어서 필요).
 
+생성기 안의 `testPatches`(`(from, to)` 목록, 모든 파일에 무조건 적용)가, 테스트
+본문에 있는 알려진 코퍼스 버그(예: `for (argument of ...)`처럼 `let`/`const`
+없이 루프 변수를 쓰는 바람에 strict mode에서 `ReferenceError`가 나던
+`exception/{getArg,is}.tentative.any.js`)를 조립 직전에 텍스트 치환으로
+고쳐줍니다 — `src/main/scala/esmeta/wji/spec/SpecPatch.scala`가
+`spectec/document/js-api/index.bs`에 적용하는 것과 같은 발상(서브모듈 원본은
+안 건드리고 추출/생성 시점에 패치)과 같은 모양(파일별로 안 나누고 flat한
+목록 — `from` 쪽이 코퍼스 전체에서 그 문제 있는 자리에만 나온다는 게 이미
+확인됐으므로 굳이 스코핑할 필요가 없음)을 테스트 코퍼스 쪽에 적용한 것.
+
 `scripts/wat2js`와 같은 철학입니다: 저작/동기화 시점 편의 스크립트일 뿐 빌드
 의존성이 아니고, `generated/`가 지금 `spectec/test/js-api`와 실제로
 일치하는지 자동으로 확인하는 장치는 없습니다. `spectec` 서브모듈을 bump해서

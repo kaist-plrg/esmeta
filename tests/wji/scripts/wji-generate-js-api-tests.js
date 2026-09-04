@@ -46,6 +46,26 @@ const skipKnownGaps = fs.readFileSync(path.join(wjiJsApiDir, "skip-known-gaps.js
 const reportShim = fs.readFileSync(path.join(wjiJsApiDir, "report-shim.js"), "utf8");
 const dataViewPolyfill = fs.readFileSync(path.join(wjiJsApiDir, "dataview-polyfill.js"), "utf8");
 
+// Known bugs in the vendored spectec/test/js-api corpus itself, applied to a
+// file's own body text before assembly -- the test-source analogue of
+// SpecPatch.scala's patches on spectec/document/js-api/index.bs (same
+// rationale and same shape: applied unconditionally as a literal string
+// replacement, relying on each `from` being distinctive enough in the corpus
+// as a whole -- not scoped per file, since a from/to pair that's safe to
+// `.replace()` globally needs no scoping, and one that isn't shouldn't be
+// trusted with scoping alone either).
+const testPatches = [
+  // `for (argument of invalidValues) { ... }` (no `let`/`const`) assigns to
+  // an undeclared bare identifier every iteration -- incidental to what the
+  // test actually checks (that getArg/is throw for invalid argument types),
+  // not something about sloppy vs strict mode, so this is a real corpus bug
+  // worth fixing at the source rather than a known-gap to skip: sloppy mode
+  // silently creates an implicit global for it, but ESMeta mainline hardcodes
+  // strict mode, which throws `ReferenceError` instead. Occurs verbatim in
+  // exactly two files (exception/{getArg,is}.tentative.any.js).
+  ["for (argument of invalidValues) {", "for (let argument of invalidValues) {"],
+];
+
 fs.rmSync(generatedDir, { recursive: true, force: true });
 
 let count = 0;
@@ -58,13 +78,15 @@ for (const testFilePath of testFiles) {
   }
   const { meta, depsSrc } = resolved;
   const usesWasmModuleBuilder = meta.scripts.some((ref) => ref.endsWith("/wasm-module-builder.js"));
+  let body = meta.body;
+  for (const [from, to] of testPatches) body = body.replaceAll(from, to);
   const src = [
     shellShim,
     testharnessLite,
     skipKnownGaps,
     ...(usesWasmModuleBuilder ? [dataViewPolyfill] : []),
     depsSrc,
-    meta.body,
+    body,
     reportShim,
   ].join("\n");
 

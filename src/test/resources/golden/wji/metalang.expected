@@ -1,4 +1,4 @@
-129 algorithm(s)
+130 algorithm(s)
 # compile a WebAssembly module
   params: |bytes|
   head: To <dfn>compile a WebAssembly module</dfn> from source bytes |bytes|, perform the following steps:
@@ -290,6 +290,13 @@
   params: |moduleObject|, |importObject|
   head: The <dfn method for="WebAssembly">instantiate_object(|moduleObject|, |importObject|)</dfn> method, when invoked, performs the following steps:
   PerformAndReturn([=asynchronously instantiate a WebAssembly module=](|moduleObject|, |importObject|))
+
+# JSTag
+  kind: getter for WebAssembly
+  head: The getter of the <dfn attribute for="WebAssembly">JSTag</dfn> attribute of the {{WebAssembly}} Namespace, when invoked, performs the following steps:
+  Let(|JSTagAddr|, [=get the JavaScript exception tag=])
+  Let(|JSTagObject|, [=create a Tag object=](|JSTagAddr|))
+  Return(|JSTagObject|)
 
 # string value of the extern type
   params: |type|

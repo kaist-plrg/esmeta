@@ -1072,6 +1072,22 @@ object SpecPatch:
     "Set |interface| to the [=interface=] that |I| [=interface/inherits=] from, if any, and"
     ->
     "Set |interface| to the [=interface=] that |interface| [=interface/inherits=] from, if any, and",
+
+    // #52 (spec inconsistency, docs/spec_inconsistencies.md #20) — the JSTag
+    // getter's prose is written exactly like every other algorithm in this
+    // document (a <dfn>, "when invoked, performs the following steps:", a
+    // numbered step list) but is missing the <div algorithm> wrapper every
+    // other one has -- AlgorithmExtractor.extract only ever looks for that
+    // wrapper, so this getter is entirely invisible to it. Two separate
+    // insertions (open before the dfn sentence, close after the last step)
+    // rather than one big from/to spanning the whole block, per this file's
+    // own "shortest text fragment" convention.
+    "The getter of the <dfn attribute for=\"WebAssembly\">JSTag</dfn>"
+    ->
+    "<div algorithm>\nThe getter of the <dfn attribute for=\"WebAssembly\">JSTag</dfn>",
+    "1. Return |JSTagObject|."
+    ->
+    "1. Return |JSTagObject|.\n</div>",
   )
 
   def apply(source: String): String =

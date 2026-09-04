@@ -1,4 +1,4 @@
-151 func(s)
+152 func(s)
 def compile_a_webassembly_module(
   bytes: Unknown,
 ): Unknown = {
@@ -528,6 +528,36 @@ def instantiate_object(
 ): Unknown = {
   call _result1 = clo<"asynchronously_instantiate_a_WebAssembly_module">(moduleObject, importObject)
   return _result1
+}
+def <BUILTIN>:INTRINSICS.get:WebAssembly.WebAssembly.prototype.JSTag(
+  this: Unknown,
+  ArgumentsList: Unknown,
+  NewTarget: Unknown,
+): Unknown = {
+  if (! (implements this "WebAssembly")) {
+    call _err1 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
+    call _ret2 = clo<"ThrowCompletion">(_err1)
+    return _ret2
+  } else nop
+  call JSTagAddr = clo<"get_the_JavaScript_exception_tag">()
+  call _guard1 = clo<"create_a_Tag_object">(JSTagAddr)
+  if (? _guard1: Abrupt) {
+    if (? _guard1: Completion) {
+      return _guard1
+    } else {
+      call _ret3 = clo<"NormalCompletion">(_guard1)
+      return _ret3
+    }
+  } else {
+    let JSTagObject = _guard1.Value
+  }
+  call-convert JSTagObject = <converted_to_a_javascript_value>(JSTagObject)
+  if (? JSTagObject: Completion) {
+    return JSTagObject
+  } else {
+    call _ret4 = clo<"NormalCompletion">(JSTagObject)
+    return _ret4
+  }
 }
 def string_value_of_the_extern_type(
   type: Unknown,

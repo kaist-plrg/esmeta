@@ -84,7 +84,6 @@ private val knownFailing: Set[String] =
     "tests/wji/js-api/generated/table/constructor.any.js",
     "tests/wji/js-api/generated/table/get-set.any.js",
     "tests/wji/js-api/generated/table/grow-memory64.any.js",
-    "tests/wji/js-api/generated/tag/constructor.tentative.any.js",
   )
 
 /** Runs every `.js` test case under `tests/wji/manual` and

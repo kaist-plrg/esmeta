@@ -185,10 +185,20 @@ object WebIdlConversion:
     Member("mutable", default = Some(Bool(false))),
   )
   // `required sequence<ValueType> parameters;` -- element-wise ValueType
-  // conversion is skipped (still identity passthrough, same as every other
-  // enum-shaped IDL type here); only the outer JS-array-to-List step is done.
+  // enum validation (see `Member.enumValues`'s doc), same as a scalar
+  // enum-typed member -- an invalid element (e.g. `"i16"`,
+  // `spectec/test/js-api/tag/constructor.tentative.any.js`'s "Invalid type
+  // parameter") must throw `TypeError` here rather than flow unvalidated into
+  // `ToValueType`, which just asserts unreachable and crashes natively.
   private val tagTypeMembers =
-    List(Member("parameters", required = true, isSequence = true))
+    List(
+      Member(
+        "parameters",
+        required = true,
+        isSequence = true,
+        enumValues = Some(valueTypeValues),
+      ),
+    )
   // `boolean traceStack = false;` -- `Exception`'s constructor's third
   // parameter (`optional ExceptionOptions options = {}`), no required members.
   private val exceptionOptionsMembers =
@@ -327,6 +337,15 @@ object WebIdlConversion:
           else
             st(result, Str("Value")) match
               case Undef => absent()
+              case raw if member.isSequence && member.enumValues.isDefined =>
+                readEnumSequence(
+                  interp,
+                  callSite,
+                  raw,
+                  member.enumValues.get,
+                ) match
+                  case Left(a)     => abrupt = Some(a)
+                  case Right(list) => pairs += key -> list
               case raw if member.enumValues.isDefined =>
                 val strResult = toStringValue(interp, callSite, raw)
                 if isAbrupt(st, strResult) then abrupt = Some(strResult)
@@ -358,6 +377,39 @@ object WebIdlConversion:
       st(st(mapField, Str(i.toString)), Str("Value"))
     }
     st.allocList(elements)
+
+  /** same array-like reading as [[toSequence]], but for a `sequence<T>` whose
+    * element type `T` is itself a WebIDL enum (so far only `TagType.
+    * parameters`'s `sequence<ValueType>`) -- each raw element goes through the
+    * same `? ToString` + membership check as a scalar enum member (see
+    * `Member.enumValues`'s doc), short-circuiting on the first abrupt result or
+    * invalid value.
+    */
+  private def readEnumSequence(
+    interp: Interpreter,
+    callSite: Call,
+    value: Value,
+    allowed: Set[String],
+  ): Either[Value, Value] =
+    val st = interp.st
+    val mapField = st(value, Str("__MAP__"))
+    val length = toMathValue(st(st(mapField, Str("length")), Str("Value")))
+    val raws = (0 until length.decimal.toInt).toList.map { i =>
+      st(st(mapField, Str(i.toString)), Str("Value"))
+    }
+    val converted = scala.collection.mutable.ListBuffer.empty[Value]
+    var abrupt: Option[Value] = None
+    val it = raws.iterator
+    while abrupt.isEmpty && it.hasNext do
+      val strResult = toStringValue(interp, callSite, it.next())
+      if isAbrupt(st, strResult) then abrupt = Some(strResult)
+      else
+        st(strResult, Str("Value")) match
+          case s @ Str(v) if allowed(v) => converted += s
+          case _ => abrupt = Some(typeError(interp, callSite))
+    abrupt match
+      case Some(a) => Left(a)
+      case None    => Right(st.allocList(converted.toList))
 
   // ── converted to a JavaScript value ────────────────────────────────────────
 

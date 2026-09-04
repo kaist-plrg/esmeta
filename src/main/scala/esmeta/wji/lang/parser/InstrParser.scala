@@ -228,16 +228,26 @@ object InstrParser:
             )
           case None => Unknown(text, trailingBody)
       case SetPrefix(rest) =>
-        splitTopLevel(rest, " to ").orElse(
-          splitTopLevel(rest, " as specified in "),
-        ) match
-          case Some((lhs, expr)) =>
+        // "as specified in [=ALGO=]" binds a *reference* to ALGO, not its
+        // call result -- see Expr.AlgoRef's own doc -- so this produces that
+        // node directly, bypassing ExprParser's ordinary call-shape parsing
+        // entirely (there's never anything but a bare `[=...=]` link here).
+        splitTopLevel(rest, " as specified in ") match
+          case Some((lhs, algoLink)) =>
             Set(
               ExprParser.parse(lhs),
-              ExprParser.parse(expr),
+              Expr.AlgoRef(algoLink.trim),
               trailingBody,
             )
-          case None => Unknown(text, trailingBody)
+          case None =>
+            splitTopLevel(rest, " to ") match
+              case Some((lhs, expr)) =>
+                Set(
+                  ExprParser.parse(lhs),
+                  ExprParser.parse(expr),
+                  trailingBody,
+                )
+              case None => Unknown(text, trailingBody)
       case AssertPrefix(cond) =>
         Assert(CondParser.parse(cond), trailingBody)
       case NotePrefix(note) => Note(note.trim, trailingBody)

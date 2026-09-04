@@ -486,6 +486,11 @@ object Compiler:
     // this only remains for a position that pass doesn't cover (e.g. a Set
     // RHS). TODO: inline call-as-expr, the way that pass does for Let/Return.
     case metalang.Expr.AlgoCall(link, _) => EYet(s"call $link")
+    // "Set X.[[SLOT]] as specified in [=ALGO=]" -- see Expr.AlgoRef's own
+    // doc: a *reference* to ALGO as a first-class value, not a call, mirroring
+    // ordinaryObjectFields's own bare EClo(name, Nil) entries for the default
+    // internal methods every other object gets.
+    case metalang.Expr.AlgoRef(link) => EClo(nameFromLink(link), Nil)
     // a SpecTec Wasm Core Spec constructor/variant application (e.g. "the
     // [=external value=] [=external value/func=] |funcaddr|") used as a
     // value — builds a real `Wasm(CaseV(tag, ...))` to send back to SpecTec.

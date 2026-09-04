@@ -20,6 +20,7 @@ object ExprPrinter:
     case Link(link, args)     => s"$link(${args.map(render).mkString(", ")})"
     case AlgoCall(link, Nil)  => link
     case AlgoCall(link, args) => s"$link(${args.map(render).mkString(", ")})"
+    case AlgoRef(link)        => s"ref($link)"
     case Case(tag, Nil)       => tag
     case Case(tag, args)      => s"$tag(${args.map(render).mkString(", ")})"
     case JSCall(name, Nil)    => s"[$$${name}$$]()"

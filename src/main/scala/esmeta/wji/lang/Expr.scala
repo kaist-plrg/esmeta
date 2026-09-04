@@ -29,6 +29,22 @@ object Expr:
     */
   case class Link(link: String, args: List[Expr]) extends Expr
   case class AlgoCall(link: String, args: List[Expr]) extends Expr
+
+  /** "Set X.\[[SLOT]] as specified in [=ALGO=]" (e.g. "Exported GC Object"'s
+    * nine internal-method slots, index.bs:1568-1666) -- unlike every other
+    * `[=ALGO=]` reference in this corpus, this one names ALGO as a *value* (a
+    * first-class reference to be invoked later, with its own real arguments,
+    * whenever the slot itself is invoked), never as a call to make right now.
+    * `InstrParser`'s "as specified in" branch produces this directly instead of
+    * routing through the ordinary `ExprParser`/ `AlgoCall` path, specifically
+    * so `NormalizeEvaluationOrderPass`/ `ExpandInlineAlgoCallPass` (which only
+    * ever look for `AlgoCall`/ `JSCall`) leave it alone as an atomic value, the
+    * same way they already leave a bare `Var` alone -- `Compiler` compiles it
+    * straight to `EClo`, mirroring `ordinaryObjectFields`'s own bare
+    * `EClo(name, Nil)` entries for the *default* internal methods every other
+    * object gets.
+    */
+  case class AlgoRef(link: String) extends Expr
   case class JSCall(name: String, args: List[Expr]) extends Expr
   case class Case(tag: String, args: List[Expr]) extends Expr
   case class SpecTerm(name: String) extends Expr

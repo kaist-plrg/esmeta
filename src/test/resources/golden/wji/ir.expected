@@ -234,7 +234,7 @@ def read_the_imports(
         call _ret9 = clo<"ThrowCompletion">(_err8)
         return _ret9
       } else nop
-      if (&& (&& (? v: Record[Object]) (exists v.FunctionAddress)) (&& (? @@yet: unresolved ref: Unknown(therefore): Record[Object]) (exists @@yet: unresolved ref: Unknown(therefore).FunctionAddress))) {
+      if (&& (? v: Record[Object]) (exists v.FunctionAddress)) {
         let funcaddr = v.FunctionAddress
       } else {
         call funcaddr = clo<"Create_a_host_function">(v, functype)

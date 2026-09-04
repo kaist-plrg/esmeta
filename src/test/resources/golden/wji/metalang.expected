@@ -129,7 +129,7 @@
     If(|externtype| is of the form [=external-type/func=](|functype|))
       If([$IsCallable$](|v|) is false)
         Throw(new {{LinkError}})
-      If(|v| has a [[FunctionAddress]] internal slot, and ?(therefore) is an Exported Function)
+      If(|v| has a [[FunctionAddress]] internal slot)
         Let(|funcaddr|, |v|.[[FunctionAddress]])
       Else
         PerformAndLet([=Create a host function=](|v|, |functype|), |funcaddr|)

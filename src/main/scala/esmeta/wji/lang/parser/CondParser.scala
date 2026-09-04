@@ -287,6 +287,20 @@ object CondParser:
             Or(parse(left), parseOrAbbreviated(s.substring(i + 4).trim))
           case None =>
             findTopLevel(searchIn, " and ") match
+              // "X ..., and therefore is a Y" (index.bs:508's only
+              // occurrence) -- "and therefore" isn't a genuine second
+              // condition, it's a rhetorical restatement of a consequence
+              // already implied by the clause it follows ("|v| has a
+              // [[FunctionAddress]] internal slot, and therefore is an
+              // [=Exported Function=]" -- being an Exported Function *is*
+              // having that slot, per `ExpandExportedObjectIsTypePass`'s own
+              // "Exported Function" -> `HasSlot(_, "FunctionAddress")"
+              // lowering, so parsing it out separately would just `&&` the
+              // same check against itself). Dropping the clause entirely
+              // keeps the same meaning as the left clause alone, without
+              // needing to reconstruct "therefore"'s elided subject.
+              case Some(i) if s.substring(i + 5).trim.startsWith("therefore") =>
+                parse(s.substring(0, i).trim.stripSuffix(",").trim)
               case Some(i) =>
                 val left = s.substring(0, i).trim.stripSuffix(",").trim
                 val right = s.substring(i + 5).trim

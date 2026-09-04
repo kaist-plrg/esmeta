@@ -189,10 +189,18 @@ object AddInterfaceMemberBuiltinBehaviourPass extends LoweringPass:
     * number/string/`Symbol()` argument — just as valid a WPT "invalid
     * descriptor" case as `undefined`, see
     * `spectec/test/js-api/memory/constructor.any.js`'s "Invalid descriptor
-    * argument").
+    * argument"). Also covers a bare `sequence<T>` param (so far only
+    * `Exception`'s constructor's `payload`) — sequence conversion actually
+    * requires an Object even more strictly (no `Undefined`/`Null` collapsing),
+    * but the same "throw unless Object" check is a safe (if slightly
+    * stricter-than-spec on paper) stand-in: `WebIdlConversion. toSequence`
+    * reads `argument`'s own `"__MAP__"` field directly, which crashes on a
+    * non-`Addr` value (e.g. `123n`,
+    * `spectec/test/js-api/exception/constructor.tentative.any.js`'s "Invalid
+    * exception argument") instead of throwing `TypeError`.
     */
   private def nonObjectCheck(ty: String, name: String): List[Instr] =
-    if !knownDictionaryTypes(ty) then Nil
+    if !(knownDictionaryTypes(ty) || ty.startsWith("sequence<")) then Nil
     else
       List(
         Instr.IfChain(

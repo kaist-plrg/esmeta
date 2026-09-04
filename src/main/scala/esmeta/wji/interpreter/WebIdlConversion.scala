@@ -231,9 +231,8 @@ object WebIdlConversion:
       readDictionary(interp, callSite, argument, tagTypeMembers)
     case Str("ExceptionOptions") | Enum("ExceptionOptions") =>
       readDictionary(interp, callSite, argument, exceptionOptionsMembers)
-    // an interface-typed argument (so far only `Module.{exports,imports,
-    // customSections}`'s `moduleObject` -- the only *static* WebIDL operations
-    // in this corpus, see `AlgorithmKind.Method.static`'s own doc): real
+    // an interface-typed argument (`Module.{exports,imports,customSections}`'s
+    // `moduleObject`, and `Exception`'s constructor's `exceptionTag`): real
     // WebIDL interface-type conversion requires the value to actually
     // implement the named interface, throwing `TypeError` otherwise --
     // `implementsInterface` is the same flat record-tag check
@@ -242,6 +241,9 @@ object WebIdlConversion:
     // reentrant call needed for it (no getter/JS execution involved).
     case Str("Module") | Enum("Module") =>
       if implementsInterface(interp.st, argument, "Module") then Right(argument)
+      else Left(typeError(interp, callSite))
+    case Str("Tag") | Enum("Tag") =>
+      if implementsInterface(interp.st, argument, "Tag") then Right(argument)
       else Left(typeError(interp, callSite))
     // a bare `sequence<T>` parameter (as opposed to one nested inside a
     // dictionary, see `Member.isSequence`) -- so far only

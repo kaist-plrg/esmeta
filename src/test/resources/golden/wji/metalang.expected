@@ -1713,7 +1713,7 @@
         Let(|Q|, [=?=] [$Get$](|jsValue|, |id|))
         If(|Q| is not an Object)
           Perform([=JavaScript/throw=](new {{TypeError}}))
-        Let(|forwardId|, ?(the identifier argument of the [{{PutForwards}}] extended attribute))
+        Let(|forwardId|, ?(the identifier argument of the [{{PutForwards}}] [=extended attribute=]))
         Perform(Set(|Q|, |forwardId|, |V|, false))
         Return(undefined)
       Set(|idlObject|, ?(the IDL [=interface type=] value that represents a reference to |jsValue|))

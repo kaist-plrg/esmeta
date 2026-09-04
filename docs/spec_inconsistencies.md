@@ -225,3 +225,30 @@ Retracted — its premise was wrong. This entry claimed the document consistentl
 - **Expected**: `... let |addrtype| be [=ToValueType=](|descriptor|["address"]); otherwise, ...`
 - **Reason**: 같은 생성자 안에서 `element`(`Table`, line 1037)/`value`(`Global`, line 1192) 같은 다른 `enum`-타입 dictionary 멤버는 전부 `[=ToValueType=](|descriptor|["..."])`을 거쳐서 실제 case-tag 값으로 변환되는데, `address`(`enum AddressType { "i32", "i64" }`)만 예외적으로 raw JS 문자열 그대로 읽습니다. `ToValueType`의 첫 두 분기가 이미 "i32"/"i64"를 `[=i32=]`/`[=i64=]`로 매핑하므로(`AddressType`의 두 값과 정확히 겹침), `address`도 같은 함수를 거치면 되는데 이 두 자리만 빠져있습니다. `#12`(이 문서)와 관련은 있지만 별개 문제입니다 — `#12`는 `AddressValueToU64`/`U64ToAddressValue`가 `|addrtype|`을 비교할 때 raw quoted string과 비교하던 문제(`SpecPatch` #39/#44로 링크 형태로 통일)였고, 이 항목은 애초에 `|addrtype|`에 담기는 *값 자체*가 변환 안 된 raw 문자열이라는 더 상류의 문제입니다 — `#12`/`#39`/`#44`만으로는 비교 대상 쪽(`[=i32=]`)만 case-tag가 되고 `|addrtype|` 쪽은 여전히 raw string이라 비교가 항상 실패했습니다.
 - **WJI 쪽 처리**: `SpecPatch` #48로 우회 — `let |addrtype| be |descriptor|["address"]`를 `let |addrtype| be [=ToValueType=](|descriptor|["address"])`로 교체(두 생성자 모두 텍스트가 동일해서 패치 하나로 둘 다 적용됨).
+
+## 18. `internal slot`이 링크된 `[=/internal slot=]` 형태와 plain text 형태로 섞여 쓰임
+
+- **File**: `webidl/index.bs` 전체, 특히 line 7173, 7176 (일반 서술), 9343, 9430, 9441 (`byte length`/`detached`/`transferable`), 13796 (`is a platform object`), 13940 (`primary interface`) — 전부 plain text `internal slot`. 대조적으로 line 9014-9245, 9320, 11585-11641, 12878-13112, 13947, 14853 등 22곳은 `[=/internal slot=]`으로 링크돼있고, possessive 관용구("the value of X's [[slot]] internal slot")도 line 9035, 11611에서 `[=/internal slot=]`으로 링크된 형태로 쓰입니다.
+- **Current**: 예) `webidl/index.bs:9343` — `1.  If |jsBufferSource| has a \[[ViewedArrayBuffer]] internal slot, then return` (plain). `webidl/index.bs:9320` — `1.  If |jsBufferSource| has a \[[ViewedArrayBuffer]] [=/internal slot=], then:` (링크). 두 표현 모두 동일 문서, 동일 관용구("X has a [[Y]] internal slot")에 대해 쓰입니다.
+- **Expected**: 두 문서는 서로 독립적인 저자 관례를 갖는 별개 스펙이라, 문서 간 통일이 아니라 **각 문서 내부의** 일관성이 기준입니다.
+  - `webidl/index.bs`: `internal slot`은 이 문서 자신의 link-defaults 블록(line 65-67, `url: sec-object-internal-methods-and-internal-slots` 아래 `text: internal slot`으로 등록)이 진짜 dfn으로 등록해둔 용어이고, 22곳(가능 자리 대부분)이 이미 `[=/internal slot=]`로 링크돼있으므로 — 이 문서의 기준은 **링크된 형태**입니다. line 7173/7176/9343/9430/9441/13796/13940의 plain text 7곳이 이 문서 자신의 관례에서 벗어난 예외입니다.
+  - `spectec/document/js-api/index.bs`: line 508, 509, 1015, 1241, 1454, 1461, 1462, 1574, 1575 등 모든 자리가 예외 없이 plain text만 쓰므로 — 이 문서의 기준은 **unlinked 형태**이고, 지금 그대로가 이미 일관적입니다(고칠 자리 없음).
+- **Reason**: `webidl/index.bs` 한 문서 안에서만도 같은 "X has a [[Y]] internal slot" 관용구가 22곳은 링크, 7곳은 plain text로 갈립니다 — 같은 문서, 같은 관용구 안에서 벗어난 자리라 이 문서 스스로가 세운 패턴과 어긋납니다. `js-api/index.bs`는 반대로 100% plain text로 그 자체로 일관적이므로, 여기 있는 문제는 `webidl/index.bs` 내부의 22 vs 7 split뿐입니다.
+- **WJI 쪽 처리**: 텍스트 패치 없이 파서가 두 형태를 모두 받아들이도록 만들어져 있습니다 — `CondParser.HasSlotPos`/`HasSlotNeg`(line 72-75)가 `(?:\[=/?internal slot=\]|internal slot)$`로 두 형태를 다 매치합니다. 실제로 `SpecFile.webidlFilter`가 추출하는 22개 알고리즘 범위 안에서는 unlinked 자리가 하나도 없어서(7173/7176/9343/9430/9441/13796/13940 전부 `byte length`/`detached`/`transferable`/`is a platform object`/`primary interface` — webidlFilter 밖) 이 관용성이 지금 당장 실제로 발동하는 자리는 없습니다.
+
+  다만 이 blanket tolerance(두 형태를 가리지 않고 똑같이 받아주는 처리)는 다소 과하다고 볼 여지가 있습니다 — 형태 차이를 흡수해서 스펙 자체의 불일치를 감추는 셈이고, 실제로 자매 규칙인 `ExprParser.PossessiveSlot`(line 400-401, "the value of X's [[slot]] internal slot"에서 슬롯의 *값*을 읽는 쪽)은 이 tolerance를 안 물려받아서 plain text만 인식하고 링크 형태(`[=/internal slot=]`)가 오면 매치 실패로 `Unknown`에 빠집니다. `webidl/index.bs`는 이 possessive 관용구를 이미 링크된 형태로만 씁니다(line 9035, 11611 — 둘 다 `ready promise`/`overload resolution algorithm` 안이라 지금은 webidlFilter 밖이라 안 걸리지만, 잠재적 지뢰). 두 파서 규칙이 같은 표기 변동에 대해 서로 다르게 반응한다는 사실 자체가, HasSlotPos/Neg의 관용이 진짜 정합성을 보장하는 게 아니라 우연히 지금까지 안 터진 것뿐임을 보여줍니다. `SpecPatch`로 우회하지는 않기로 함(당장 깨지는 자리가 없음, 그리고 위 7곳은 전부 webidlFilter 밖이라 SpecPatch를 붙여도 실질적 효과가 없음) — 스펙 저자에게 보고할 항목으로 여기 기록만 남깁니다.
+
+## 19. `attribute setter`의 `extended attribute` 체크 3곳만 링크 안 된 채로 쓰임
+
+- **File**: `webidl/index.bs`, lines 12418, 12422, 12424, 12428-9 (`attribute setter`, line 12390의 `<div algorithm>` 안)
+- **Current**:
+  ```
+  1.  If |attribute| is declared with the [{{Replaceable}}] extended attribute, then:
+  1.  If |attribute| is declared with a [{{LegacyLenientSetter}}] extended attribute, then
+  1.  If |attribute| is declared with a [{{PutForwards}}] extended attribute, then:
+  1.  Let |forwardId| be the identifier argument of the [{{PutForwards}}] extended
+      attribute.
+  ```
+- **Expected**: `extended attribute` → `[=extended attribute=]`로 링크. 예) `1.  If |attribute| is declared with the [{{Replaceable}}] [=extended attribute=], then:`
+- **Reason**: 바로 같은 알고리즘, 불과 몇 줄 위(line 12397, 12417)에서 `[{{LegacyLenientSetter}}], [{{PutForwards}}] or [{{Replaceable}}] [=extended attribute=]`와 `[{{LegacyLenientThis}}] [=extended attribute=]`가 이미 링크된 형태로 쓰입니다 — 정확히 같은 `<div algorithm>` 안에서, 정확히 같은 "X is declared with the [{{Y}}] extended attribute" 관용구가 자리마다 링크 여부만 다릅니다. `attribute setter`는 `SpecFile.webidlFilter`가 실제로 추출/컴파일하는 22개 알고리즘 중 하나입니다. `extended attribute`는 이 파일에서 export된 진짜 dfn이고(line 6830), 같은 "is declared with ... extended attribute" 관용구가 파일 전체 20곳 중 17곳은 링크, 3곳(전부 이 알고리즘 안)만 plain text입니다.
+- **WJI 쪽 처리**: `SpecPatch` #49로 4곳(위 3개 조건 + `forwardId` 바인딩의 서술적 언급 1개) 모두 링크. `#18`과 다르게, 이 자리는 `SpecFile.webidlFilter`가 실제로 추출하는 `attribute setter` 알고리즘 안이라 텍스트 패치가 실질적 효과가 있습니다. 짝을 맞춰 `CondParser.DeclaredWithAttrPos`/`DeclaredWithAttrNeg`(line 111-114)도 plain text 허용을 없애고 `\[=extended attribute=\]$`(링크된 형태)만 매치하도록 좁혔습니다 — `#18`의 `HasSlotPos`/`Neg`와 달리, 앞으로 이 자리에 다시 unlinked "extended attribute"가 들어오면 조용히 파싱되는 대신 `Unknown`/`EYet`으로 떨어지도록 의도적으로 관대함을 줄였습니다.

@@ -989,6 +989,35 @@ object SpecPatch:
     "let |addrtype| be |descriptor|[\"address\"]"
     ->
     "let |addrtype| be [=ToValueType=](|descriptor|[\"address\"])",
+
+    // #49 (spec inconsistency, docs/spec_inconsistencies.md #19) —
+    // `attribute setter`'s (webidl/index.bs) own "X is declared with the
+    // [{{Y}}] extended attribute" checks for {{Replaceable}},
+    // {{LegacyLenientSetter}}, and {{PutForwards}} write "extended attribute"
+    // as plain prose, unlike the identical idiom just a few lines above in
+    // this very algorithm for {{LegacyLenientThis}} (and the surrounding
+    // enumerated-attribute clause covering these same three names,
+    // "[{{LegacyLenientSetter}}], [{{PutForwards}}] or [{{Replaceable}}]
+    // [=extended attribute=]"), which both link it. `extended attribute` is
+    // an export'ed dfn (line 6830); of the 20 "is declared with ... extended
+    // attribute" occurrences across this corpus, these 3 are the only
+    // unlinked ones. Also normalizes the one non-conditional mention right
+    // after ("the identifier argument of the [{{PutForwards}}] extended
+    // attribute"), for the same reason, even though it isn't matched by
+    // `CondParser` at all (an `ExprParser` context, not a condition) — purely
+    // for the algorithm's own internal consistency.
+    "If |attribute| is declared with the [{{Replaceable}}] extended attribute, then:"
+    ->
+    "If |attribute| is declared with the [{{Replaceable}}] [=extended attribute=], then:",
+    "If |attribute| is declared with a [{{LegacyLenientSetter}}] extended attribute, then"
+    ->
+    "If |attribute| is declared with a [{{LegacyLenientSetter}}] [=extended attribute=], then",
+    "If |attribute| is declared with a [{{PutForwards}}] extended attribute, then:"
+    ->
+    "If |attribute| is declared with a [{{PutForwards}}] [=extended attribute=], then:",
+    "the identifier argument of the [{{PutForwards}}] extended\n                    attribute."
+    ->
+    "the identifier argument of the [{{PutForwards}}] [=extended\n                    attribute=].",
   )
 
   def apply(source: String): String =

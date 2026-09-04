@@ -4801,7 +4801,7 @@ def attribute_setter_closure1(
           "__MAP__" : (map[Unknown, Unknown]),
         }))
       } else nop
-      let forwardId = (yet "the identifier argument of the [{{PutForwards}}] extended attribute")
+      let forwardId = (yet "the identifier argument of the [{{PutForwards}}] [=extended attribute=]")
       call _ = clo<"Set">(Q, forwardId, V, false)
       let _v8 = undefined
       if (? _v8: Completion) {

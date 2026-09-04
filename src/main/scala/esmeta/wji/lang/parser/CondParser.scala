@@ -90,12 +90,15 @@ object CondParser:
   // `Obj.exists`'s default `case _ => false`, no crash, just permanently
   // wrong). Of the 20 corpus occurrences of this idiom, 16 say "the" and 4
   // say "a" (no semantic difference — just which reads more naturally per
-  // attribute), and 17 link "extended attribute" via `[=extended
-  // attribute=]` while 3 leave it plain text (the same already-precedented
-  // Bikeshed-linking inconsistency `HasSlotPos`/`Neg` tolerate for "internal
-  // slot" above) — both are spec-prose inconsistency, not distinct shapes, so
-  // one pattern tolerates all four combinations rather than forking into
-  // separate cases. The subject is restricted to a bare `|var|` (every real
+  // attribute); all 20 link "extended attribute" via `[=extended
+  // attribute=]` — 3 in webidl/index.bs's `attribute setter` used to leave it
+  // plain text (docs/spec_inconsistencies.md #19), normalized to the linked
+  // form by `SpecPatch` #49 rather than tolerated here, unlike `HasSlotPos`/
+  // `Neg`'s still-generous handling of the sibling "internal slot" markup gap
+  // above (docs/spec_inconsistencies.md #18) — deliberately stricter, so a
+  // spec edit that reintroduces an unlinked "extended attribute" here falls
+  // through to `Unknown`/`EYet` instead of silently parsing anyway. The
+  // subject is restricted to a bare `|var|` (every real
   // atomic occurrence is one — |interface|/|attribute|/|operation|), unlike
   // HasSlotPos/Neg's open `(.+?)`: this idiom also shows up nested inside a
   // relative clause ("|interface| is in the set of [=inherited interfaces=]
@@ -109,9 +112,9 @@ object CondParser:
   // leaves the II-C composite sentence to fall through to `Unknown`, same as
   // before this pattern existed.
   private val DeclaredWithAttrPos =
-    """(?si)^(\|[^|]+\|)\s+is\s+declared with\s+(?:the|an?)\s+\[\{\{([^}]+)\}\}\]\s+(?:\[=extended attribute=\]|extended attribute)$""".r
+    """(?si)^(\|[^|]+\|)\s+is\s+declared with\s+(?:the|an?)\s+\[\{\{([^}]+)\}\}\]\s+\[=extended attribute=\]$""".r
   private val DeclaredWithAttrNeg =
-    """(?si)^(\|[^|]+\|)\s+is not\s+declared with\s+(?:the|an?)\s+\[\{\{([^}]+)\}\}\]\s+(?:\[=extended attribute=\]|extended attribute)$""".r
+    """(?si)^(\|[^|]+\|)\s+is not\s+declared with\s+(?:the|an?)\s+\[\{\{([^}]+)\}\}\]\s+\[=extended attribute=\]$""".r
   // "X is in the set of [=inherited interfaces=] of an interface that
   // CLAUSE" — webidl_yet_categorized.md category II-C (index.bs:12064-12066).
   // [=inherited interfaces=] of I is the set of interfaces I inherits from

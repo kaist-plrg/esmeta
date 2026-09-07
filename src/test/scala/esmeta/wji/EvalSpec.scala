@@ -61,7 +61,6 @@ private val knownFailing: Set[String] =
     "tests/wji/js-api/generated/constructor/validate.any.js",
     "tests/wji/js-api/generated/exception/jsTag.tentative.any.js",
     "tests/wji/js-api/generated/gc/casts.tentative.any.js",
-    "tests/wji/js-api/generated/gc/exported-object.tentative.any.js",
     "tests/wji/js-api/generated/global/constructor.any.js",
     "tests/wji/js-api/generated/global/value-get-set.any.js",
     "tests/wji/js-api/generated/instance/constructor-bad-imports.any.js",

@@ -1149,8 +1149,8 @@
   head: To create <dfn>a new Exported GC Object</dfn> from a WebAssembly [=object address=] |objectaddr| and a string |objectkind|, perform the following steps:
   Assert(|objectkind| is "array" or "struct")
   Let(|map|, [=surrounding agent=].[[exported gc object cache]])
-  If(|map|[|objectaddr|] [=map/exists=])
-    Return(|map|[|objectaddr|])
+  If(|map|[(|objectkind|, |objectaddr|)] [=map/exists=])
+    Return(|map|[(|objectkind|, |objectaddr|)])
   Let(|object|, [=MakeBasicObject=](« "ObjectAddress", "ObjectKind" »))
   Set(|object|.[[ObjectAddress]], |objectaddr|)
   Set(|object|.[[ObjectKind]], |objectkind|)
@@ -1165,7 +1165,7 @@
   Set(|object|.[[Set]], ref([=[[Set]] internal method of an Exported GC Object=]))
   Set(|object|.[[Delete]], ref([=[[Delete]] internal method of an Exported GC Object=]))
   Set(|object|.[[OwnPropertyKeys]], ref([=[[OwnPropertyKeys]] internal method of an Exported GC Object=]))
-  Set(|map|[|objectaddr|], |object|)
+  Set(|map|[(|objectkind|, |objectaddr|)], |object|)
   Return(|object|)
 
 # initialize an Exception object

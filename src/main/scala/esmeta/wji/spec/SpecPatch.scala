@@ -1088,6 +1088,21 @@ object SpecPatch:
     "1. Return |JSTagObject|."
     ->
     "1. Return |JSTagObject|.\n</div>",
+
+    // #53 (spec bug, docs/spec_errors.md #26) — "a new Exported GC Object"
+    // (index.bs:1646-1669) caches purely by |objectaddr|, but Wasm Core's
+    // structaddr/arrayaddr are separate address spaces (4.0-execution.
+    // configurations.spectec:15-16 -- each just `= addr`, independently
+    // allocated from 0 in its own store component), so the first struct and
+    // the first array legitimately share objectaddr 0 -- the cache then
+    // treats them as the same object (`struct === array`,
+    // gc/exported-object.tentative.any.js's "GC objects as map/weak map
+    // keys"). Every one of the 3 |map|[|objectaddr|] occurrences in this one
+    // algorithm needs the same fix, so one from/to pair (not scoped to a
+    // single line) covers the whole thing.
+    "|map|[|objectaddr|]"
+    ->
+    "|map|[(|objectkind|, |objectaddr|)]",
   )
 
   def apply(source: String): String =

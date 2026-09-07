@@ -1089,46 +1089,57 @@
   Perform([=initialize a Tag object=](**this**, |tagAddress|))
 
 # [[GetPrototypeOf]] internal method of an Exported GC Object
+  params: |O|
   head: The <dfn>\[[GetPrototypeOf]] internal method of an Exported GC Object</dfn> <var ignore>O</var> takes no arguments and returns null. It performs the following steps when called:
   Return(null)
 
 # [[SetPrototypeOf]] internal method of an Exported GC Object
+  params: |O|, |V|
   head: The <dfn>\[[SetPrototypeOf]] internal method of an Exported GC Object</dfn> <var ignore>O</var> takes argument <var ignore>V</var> (an Object or null) and returns a boolean. It performs the following steps when called:
   Return(false)
 
 # [[IsExtensible]] internal method of an Exported GC Object
+  params: |O|
   head: The <dfn>\[[IsExtensible]] internal method of an Exported GC Object</dfn> <var ignore>O</var> takes no arguments and returns a boolean. It performs the following steps when called:
   Return(false)
 
 # [[PreventExtensions]] internal method of an Exported GC Object
+  params: |O|
   head: The <dfn>\[[PreventExtensions]] internal method of an Exported GC Object</dfn> <var ignore>O</var> takes no arguments and returns a boolean. It performs the following steps when called:
   Return(false)
 
 # [[GetOwnProperty]] internal method of an Exported GC Object
+  params: |O|, |P|
   head: The <dfn>\[[GetOwnProperty]] internal method of an Exported GC Object</dfn> <var ignore>O</var> takes argument <var ignore>P</var> (a property key) and returns undefined. It performs the following steps when called:
   Return(undefined)
 
 # [[DefineOwnProperty]] internal method of an Exported GC Object
+  params: |O|, |P|, |Desc|
   head: The <dfn>\[[DefineOwnProperty]] internal method of an Exported GC Object</dfn> <var ignore>O</var> takes arguments <var ignore>P</var> (a property key) and <var ignore>Desc</var> (a property descriptor) and returns a boolean. It performs the following steps when called:
   Return(false)
 
 # [[HasProperty]] internal method of an Exported GC Object
+  params: |O|, |P|
   head: The <dfn>\[[HasProperty]] internal method of an Exported GC Object</dfn> <var ignore>O</var> takes argument <var ignore>P</var> (a property key) and returns a boolean. It performs the following steps when called:
   Return(false)
 
 # [[Get]] internal method of an Exported GC Object
+  params: |O|, |P|, |Receiver|
   head: The <dfn>\[[Get]] internal method of an Exported GC Object</dfn> <var ignore>O</var> takes arguments <var ignore>P</var> (a property key) and <var ignore>Receiver</var> (an ECMAScript language value) and returns undefined. It performs the following steps when called:
   Return(undefined)
 
 # [[Set]] internal method of an Exported GC Object
+  params: |O|, |P|, |V|, |Receiver|
   head: The <dfn>\[[Set]] internal method of an Exported GC Object</dfn> <var ignore>O</var> takes arguments <var ignore>P</var> (a property key), <var ignore>V</var> (an ECMAScript language value), and <var ignore>Receiver</var> (an ECMAScript language value) and throws an exception. It performs the following steps when called:
   Throw(new {{TypeError}})
 
 # [[Delete]] internal method of an Exported GC Object
+  params: |O|, |P|
   head: The <dfn>\[[Delete]] internal method of an Exported GC Object</dfn> <var ignore>O</var> takes argument <var ignore>P</var> (a property key) and throws an exception. It performs the following steps when called:
   Throw(new {{TypeError}})
 
 # [[OwnPropertyKeys]] internal method of an Exported GC Object
+  params: |O|
   head: The <dfn>\[[OwnPropertyKeys]] internal method of an Exported GC Object</dfn> <var ignore>O</var> takes no arguments and returns a list. It performs the following steps when called:
   Let(|keys|, « »)
   Return(|keys|)

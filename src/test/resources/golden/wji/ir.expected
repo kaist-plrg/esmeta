@@ -2999,53 +2999,128 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Tag(
   }
 }
 def [[getprototypeof]]_internal_method_of_an_exported_gc_object(
+  O: Unknown,
 ): Unknown = {
-  return null
+  let _v1 = null
+  if (? _v1: Completion) {
+    return _v1
+  } else {
+    call _ret2 = clo<"NormalCompletion">(_v1)
+    return _ret2
+  }
 }
 def [[setprototypeof]]_internal_method_of_an_exported_gc_object(
+  O: Unknown,
+  V: Unknown,
 ): Unknown = {
-  return false
+  let _v1 = false
+  if (? _v1: Completion) {
+    return _v1
+  } else {
+    call _ret2 = clo<"NormalCompletion">(_v1)
+    return _ret2
+  }
 }
 def [[isextensible]]_internal_method_of_an_exported_gc_object(
+  O: Unknown,
 ): Unknown = {
-  return false
+  let _v1 = false
+  if (? _v1: Completion) {
+    return _v1
+  } else {
+    call _ret2 = clo<"NormalCompletion">(_v1)
+    return _ret2
+  }
 }
 def [[preventextensions]]_internal_method_of_an_exported_gc_object(
+  O: Unknown,
 ): Unknown = {
-  return false
+  let _v1 = false
+  if (? _v1: Completion) {
+    return _v1
+  } else {
+    call _ret2 = clo<"NormalCompletion">(_v1)
+    return _ret2
+  }
 }
 def [[getownproperty]]_internal_method_of_an_exported_gc_object(
+  O: Unknown,
+  P: Unknown,
 ): Unknown = {
-  return undefined
+  let _v1 = undefined
+  if (? _v1: Completion) {
+    return _v1
+  } else {
+    call _ret2 = clo<"NormalCompletion">(_v1)
+    return _ret2
+  }
 }
 def [[defineownproperty]]_internal_method_of_an_exported_gc_object(
+  O: Unknown,
+  P: Unknown,
+  Desc: Unknown,
 ): Unknown = {
-  return false
+  let _v1 = false
+  if (? _v1: Completion) {
+    return _v1
+  } else {
+    call _ret2 = clo<"NormalCompletion">(_v1)
+    return _ret2
+  }
 }
 def [[hasproperty]]_internal_method_of_an_exported_gc_object(
+  O: Unknown,
+  P: Unknown,
 ): Unknown = {
-  return false
+  let _v1 = false
+  if (? _v1: Completion) {
+    return _v1
+  } else {
+    call _ret2 = clo<"NormalCompletion">(_v1)
+    return _ret2
+  }
 }
 def [[get]]_internal_method_of_an_exported_gc_object(
+  O: Unknown,
+  P: Unknown,
+  Receiver: Unknown,
 ): Unknown = {
-  return undefined
+  let _v1 = undefined
+  if (? _v1: Completion) {
+    return _v1
+  } else {
+    call _ret2 = clo<"NormalCompletion">(_v1)
+    return _ret2
+  }
 }
 def [[set]]_internal_method_of_an_exported_gc_object(
+  O: Unknown,
+  P: Unknown,
+  V: Unknown,
+  Receiver: Unknown,
 ): Unknown = {
   call _err1 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
   call _ret2 = clo<"ThrowCompletion">(_err1)
   return _ret2
 }
 def [[delete]]_internal_method_of_an_exported_gc_object(
+  O: Unknown,
+  P: Unknown,
 ): Unknown = {
   call _err1 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
   call _ret2 = clo<"ThrowCompletion">(_err1)
   return _ret2
 }
 def [[ownpropertykeys]]_internal_method_of_an_exported_gc_object(
+  O: Unknown,
 ): Unknown = {
   let keys = (list [])
-  return keys
+  if (? keys: Completion) {
+    return keys
+  } else {
+    call _ret1 = clo<"NormalCompletion">(keys)
+    return _ret1
+  }
 }
 def a_new_exported_gc_object(
   objectaddr: Unknown,

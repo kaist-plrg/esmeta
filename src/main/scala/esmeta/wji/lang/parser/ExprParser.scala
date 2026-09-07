@@ -198,8 +198,19 @@ object ExprParser:
   // the caller to strip along with the rest of the sentence. Must precede
   // LinkProse below, which would otherwise misparse this as a call.
   private val RangePrefix = """(?is)^\[=[^=]*range[^=]*=\]\s+(.+)$""".r
+  // "a [=/new=] {{X}} in the [=REALM=]" — webidl/index.bs's "new" op (line
+  // 13818, `create a new object implementing the interface`) declares a
+  // *required* |realm| parameter alongside |interface|, but every js-api
+  // call site originally omitted it outright (docs/spec_errors.md #22) —
+  // SpecPatch-corrected to append this realm clause, mirroring both the
+  // `a new promise ... in the [=current Realm=]` fix (SpecPatch #4/#12) and
+  // webidl/index.bs's own established idiom for the same op ("a [=new=]
+  // {{DOMException}} created in the [=current realm=]", index.bs:14896).
+  // The realm clause is captured as a raw `[=...=]` link (not hardcoded to
+  // `current Realm`) and parsed generically via `parse`, the same way
+  // `parseArgs` resolves a bare trailing `[=link=]` elsewhere in this file.
   private val NewExpr =
-    """(?si)^a\s+\[=/new=\]\s+\{\{([^}]+)\}\}(?:\s+object)?$""".r
+    """(?si)^a\s+\[=/new=\]\s+\{\{([^}]+)\}\}(?:\s+object)?\s+in\s+the\s+(\[=[^\]]+=\])$""".r
   // "a {{X}} exception" / "a {{X}}" — Bikeshed's common idiom for
   // constructing a new exception object of WebIDL/spec type X (e.g. "throw
   // a {{TypeError}} exception", "reject |promise| with a {{CompileError}}
@@ -863,7 +874,9 @@ object ExprParser:
       case RangePrefix(rest) if findTopLevel(rest, " to ").isDefined =>
         val i = findTopLevel(rest, " to ").get
         Range(parse(rest.substring(0, i)), parse(rest.substring(i + 4)))
-      case NewExpr(iface)             => New(iface)
+      case NewExpr(iface, realmRaw) =>
+        // TODO: Link("new", List(Field(Var("HOST_DEFINED"), iface), parse(realmRaw)))
+        New(iface)
       case NewExceptionExpr(iface)    => New(iface)
       case EmptyList()                => List_(Nil)
       case NewByteSeqOfLength(lenRaw) => NewByteSequence(parse(lenRaw))

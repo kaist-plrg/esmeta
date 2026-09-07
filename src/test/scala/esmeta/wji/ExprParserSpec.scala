@@ -182,8 +182,16 @@ class ExprParserSpec extends AnyFunSuite:
   }
 
   test("new-object expressions") {
-    assert(ExprParser.parse("a [=/new=] {{Promise}}") == New("Promise"))
-    assert(ExprParser.parse("a [=/new=] {{Promise}} object") == New("Promise"))
+    assert(
+      ExprParser.parse(
+        "a [=/new=] {{Promise}} in the [=current realm=]",
+      ) == New("Promise"),
+    )
+    assert(
+      ExprParser.parse(
+        "a [=/new=] {{Promise}} object in the [=current realm=]",
+      ) == New("Promise"),
+    )
     assert(ExprParser.parse("a {{TypeError}} exception") == New("TypeError"))
   }
 

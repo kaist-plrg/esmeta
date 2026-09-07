@@ -1018,6 +1018,47 @@ object SpecPatch:
     "the identifier argument of the [{{PutForwards}}] extended\n                    attribute."
     ->
     "the identifier argument of the [{{PutForwards}}] [=extended\n                    attribute=].",
+
+    // #50 (spec bug, docs/spec_errors.md #24) — `a [=/new=] {{X}}` (webidl's
+    // "new" op — `create a new object implementing the interface`, line
+    // 13818) declares a *required* `|realm|` parameter alongside
+    // `|interface|`, but every one of the seven call sites in
+    // js-api/index.bs omits it outright, leaving nothing for `ExprParser`'s
+    // `NewExpr` to bind `|realm|` to (the same shape of defect as #4/#12's
+    // `a new promise`/`react` fix — see that pair's own comments above).
+    // Each site is corrected to supply `[=current Realm=]`, matching both
+    // webidl/index.bs's own established idiom for this exact op elsewhere in
+    // that file ("a [=new=] {{DOMException}} created in the [=current
+    // realm=]", webidl/index.bs:14896) and this file's own sibling algorithm
+    // `a new Exported Function` (line 1259-1276), which already binds `Let
+    // |realm| be the current Realm.` at the same call depth five of these
+    // seven sites share (reached via `asynchronously instantiate a
+    // WebAssembly module` → `create an exports object`, itself run
+    // `[=in parallel=]`/`[=Queue a task=]`). Each interface name ({{Module}},
+    // {{Instance}}, {{Memory}}, {{Table}}, {{Global}}, {{Tag}}, {{Exception}})
+    // occurs in exactly one `a [=/new=] {{X}}` call site in this file, so the
+    // bare phrase is a unique, unambiguous anchor for each replacement below.
+    "a [=/new=] {{Module}}."
+    ->
+    "a [=/new=] {{Module}} in the [=current Realm=].",
+    "a [=/new=] {{Instance}}."
+    ->
+    "a [=/new=] {{Instance}} in the [=current Realm=].",
+    "a [=/new=] {{Memory}}."
+    ->
+    "a [=/new=] {{Memory}} in the [=current Realm=].",
+    "a [=/new=] {{Table}}."
+    ->
+    "a [=/new=] {{Table}} in the [=current Realm=].",
+    "a [=/new=] {{Global}}."
+    ->
+    "a [=/new=] {{Global}} in the [=current Realm=].",
+    "a [=/new=] {{Tag}}."
+    ->
+    "a [=/new=] {{Tag}} in the [=current Realm=].",
+    "a [=/new=] {{Exception}}."
+    ->
+    "a [=/new=] {{Exception}} in the [=current Realm=].",
   )
 
   def apply(source: String): String =

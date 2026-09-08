@@ -65,7 +65,7 @@ object Compiler:
     * Documented in `docs/hardcodes.md` (#7) — when this gets properly
     * implemented, delete that entry too.
     */
-  private val namesWithPrototypeIntrinsic: Map[String, String] = Map(
+  private[compiler] val namesWithPrototypeIntrinsic: Map[String, String] = Map(
     "Instance" -> "%WebAssembly.Instance.prototype%",
     "Global" -> "%WebAssembly.Global.prototype%",
     "Memory" -> "%WebAssembly.Memory.prototype%",

@@ -1,6 +1,7 @@
 package esmeta.wji.compiler.lowering
 
 import esmeta.wji.lang.{Algorithm, AlgorithmKind, Cond, Expr, Instr, WjiParam}
+import esmeta.wji.compiler.Compiler
 import esmeta.error.UnsupportedSpecShape
 
 /** Reshapes every Getter/Setter/Constructor/Method-kind [[Algorithm]] — all 4
@@ -72,12 +73,28 @@ import esmeta.error.UnsupportedSpecShape
   * which is why no js-api constructor algorithm ever writes it and every one
   * instead ends by mutating `this`'s fields with no explicit `Return`.
   * [[createThisBinding]]/[[returnThisBinding]] mechanize exactly that
-  * preamble/epilogue, reusing the same `Expr.New(iface)` → `ERecord(iface,
-  * ordinaryObjectFields(iface))` construction
+  * preamble/epilogue. The object itself still reuses the same `Expr.New(iface)`
+  * → `ERecord(iface, ordinaryObjectFields(iface))` construction
   * `esmeta.wji.compiler.Compiler.compileExpr` already uses for the "Let |x| be
-  * a new Y." shape inside algorithm bodies (see `docs/hardcodes.md` #7) — it
-  * already has real prototype wiring for every interface a WJI test constructs
-  * directly (`Module`, `Instance`, `Memory`, `Table`, `Global`).
+  * a new Y." shape inside algorithm bodies (see `docs/hardcodes.md` #7), but
+  * its `[[Prototype]]` gets overwritten right after — WebIDL's real preamble is
+  * `? OrdinaryCreateFromConstructor(NewTarget, "%<iface>.prototype%")`
+  * (`webidl/index.bs`), whose whole point is reading `NewTarget`'s own
+  * `"prototype"` property first (falling back to the default intrinsic only
+  * when that isn't an Object) — exactly what makes `class Sub extends
+  * WebAssembly.Module {}; new Sub(...) instanceof Sub` true.
+  * `ordinaryObjectFields`'s `Prototype` field is always the fixed default
+  * intrinsic (correct for the unrelated re-entrant callers of bare
+  * `Expr.New(iface)`, e.g. "create a memory object" from an address — never
+  * invoked through `[[Construct]]`, so there's no real `NewTarget` to consult
+  * there), so `createThisBinding` doesn't touch that shared helper; it just
+  * replaces the field again with the real ECMA-262 AO
+  * `GetPrototypeFromConstructor(NewTarget, intrinsicDefaultProto)`
+  * (`ecma262/spec.html`'s `sec-getprototypefromconstructor` — the exact
+  * sub-step `OrdinaryCreateFromConstructor` itself delegates to) mainline
+  * already compiles, called here by its literal AO name the same way
+  * hand-written `manuals/funcs` `.ir` glue already reuses mainline AOs (e.g.
+  * `ConvertToInt.ir`'s `clo<"ToNumber">`).
   *   - '''WebIDL's implicit setter argument''': a `Setter`-kind algorithm's
   *     `**the given value**` (`Expr.GivenValue`) is WebIDL's other implicit
   *     member-only binding, alongside `**this**` — unpacked from
@@ -356,7 +373,28 @@ object AddInterfaceMemberBuiltinBehaviourPass extends LoweringPass:
     */
   private def createThisBinding(kind: AlgorithmKind): List[Instr] = kind match
     case AlgorithmKind.Constructor(iface) =>
-      List(Instr.Set(Expr.This, Expr.New(iface)))
+      val default = Instr.Set(Expr.This, Expr.New(iface))
+      Compiler.namesWithPrototypeIntrinsic.get(iface) match
+        case None => List(default)
+        case Some(intrinsicKey) =>
+          List(
+            default,
+            // "Let x be ? GetPrototypeFromConstructor(NewTarget, intrinsicKey)."
+            // shape -- left for NormalizeEvaluationOrderPass/ExpandAbruptPass
+            // (both run after this pass) to hoist/expand the same way real
+            // parsed prose would.
+            Instr.Let(
+              Expr.Var("_proto"),
+              Expr.Abrupt(
+                "?",
+                Expr.AlgoCall(
+                  "GetPrototypeFromConstructor",
+                  List(Expr.Var("NewTarget"), Expr.Str(intrinsicKey)),
+                ),
+              ),
+            ),
+            Instr.Set(Expr.Field(Expr.This, "Prototype"), Expr.Var("_proto")),
+          )
     case _ => Nil
 
   /** `webidl/index.bs`'s "attribute getter"/"attribute setter"/"creating an

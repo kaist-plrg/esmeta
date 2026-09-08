@@ -1059,6 +1059,19 @@ object SpecPatch:
     "a [=/new=] {{Exception}}."
     ->
     "a [=/new=] {{Exception}} in the [=current Realm=].",
+
+    // #51 (spec bug, docs/spec_errors.md #25) — `inclusive inherited
+    // interfaces` (webidl/index.bs:715) advances its walk-up-the-chain loop
+    // from the fixed input |I| instead of the loop variable |interface|:
+    // "Set |interface| to the [=interface=] that |I| [=interface/inherits=]
+    // from, ...". Since |I| never changes, this step always re-derives the
+    // same value (|I|'s own immediate parent) on every iteration instead of
+    // climbing one level further up each time, so |interface| never reaches
+    // null and the loop never terminates for any interface that inherits
+    // from anything at all. Patched to advance from |interface| itself.
+    "Set |interface| to the [=interface=] that |I| [=interface/inherits=] from, if any, and"
+    ->
+    "Set |interface| to the [=interface=] that |interface| [=interface/inherits=] from, if any, and",
   )
 
   def apply(source: String): String =

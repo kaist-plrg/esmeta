@@ -1,4 +1,4 @@
-128 algorithm(s)
+129 algorithm(s)
 # compile a WebAssembly module
   params: |bytes|
   head: To <dfn>compile a WebAssembly module</dfn> from source bytes |bytes|, perform the following steps:
@@ -1454,6 +1454,16 @@
   If([=!=] [=IsLessThan=](|first|, |second|, true) is true)
     Return(-1)
   Return(1)
+
+# inclusive inherited interfaces
+  params: |I|
+  head: The [=list=] of <dfn for=interface>inclusive inherited interfaces</dfn> of an [=interface=] |I| is defined as follows:
+  Let(|result|, « »)
+  Let(|interface|, |I|)
+  While(|interface| is not null)
+    Append(|interface|, |result|)
+    Set(|interface|, ?(the [=interface=] that |interface| [=interface/inherits=] from) if ?(any) else null)
+  Return(|result|)
 
 # a new promise
   params: |T|, |realm|

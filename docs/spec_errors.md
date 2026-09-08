@@ -281,3 +281,23 @@ Retracted — its premise was wrong. This entry claimed the Wasm Core Spec's `fu
 - **Current**: e.g. `1. Let |memory| be a [=/new=] {{Memory}}.`
 - **Expected**: `1. Let |memory| be a [=/new=] {{Memory}} in the [=current Realm=].`
 - **Reason**: `webidl/index.bs`'s `new` op (line 13818: `To <dfn export lt=new>create a new object implementing the interface</dfn> |interface|, with a [=realm=] |realm|, perform the following steps:`) declares a *required* `|realm|` parameter alongside `|interface|`. Every one of the seven `a [=/new=] {{X}}` call sites in `js-api/index.bs` supplies only the interface, leaving `|realm|` unbound — the same shape of defect already reported as #3 for `a new promise`/`react`. `webidl/index.bs` itself uses an established idiom for supplying the missing argument at other call sites of this exact op (`a [=new=] {{DOMException}} created in the [=current realm=]`, line 14896), and `js-api/index.bs`'s own sibling algorithm `a new Exported Function` (line 1259-1276) already binds `Let |realm| be the current Realm.` at the same call depth used by five of these seven sites (inside the `asynchronously instantiate a WebAssembly module` → `create an exports object` chain, itself run via `[=in parallel=]`/`[=Queue a task=]`) — confirming `current Realm` is this file's own established choice for object creation at this depth, not something invented for this report.
+
+## 25. Step 3.2 of "inclusive inherited interfaces" advances from `|I|` instead of the loop variable `|interface|`, so the loop never terminates for any non-empty inheritance chain
+
+- **File**: `webidl/index.bs`, line 715 (`inclusive inherited interfaces` of an interface `|I|`); same text upstream at https://webidl.spec.whatwg.org/#interface-inclusive-inherited-interfaces.
+- **Current**:
+  ```
+  1.  Let |result| be « ».
+  1.  Let |interface| be |I|.
+  1.  While |interface| is not null:
+      1.  [=list/Append=] |interface| to |result|.
+      1.  Set |interface| to the [=interface=] that |I| [=interface/inherits=] from, if any, and
+          null otherwise.
+  1.  Return |result|.
+  ```
+- **Expected**: step 3.2 should advance from the loop variable, not the fixed input:
+  ```
+  1.  Set |interface| to the [=interface=] that |interface| [=interface/inherits=] from, if any, and
+      null otherwise.
+  ```
+- **Reason**: `|I|` is bound once (step 2, `Let |interface| be |I|`) and never reassigned, so "the interface that `|I|` inherits from" is a constant — `|I|`'s own immediate parent — for every iteration of the loop. Trace it for `|I|` inheriting from `|P|`, with `|P|` itself having no parent: iteration 1 appends `|I|`, then sets `|interface|` to `|P|` (correct so far, since `|I|`'s parent is `|P|`); iteration 2 appends `|P|`, then sets `|interface|` to "the interface that `|I|` inherits from" again — still `|P|`, not `|P|`'s parent (there is none) — so `|interface|` never becomes null and the loop appends `|P|` forever. This isn't limited to inheritance chains of depth ≥ 2: it infinite-loops for *any* interface that inherits from anything at all, since step 3.2 can only ever produce `|I|`'s own direct parent (or, for the base case, keep re-deriving the same non-null value) instead of walking one level further up the chain each time. Replacing `|I|` with `|interface|` in step 3.2 is the fix — it makes each iteration derive the *next* interface up from wherever the walk currently is, which is what "inherited interfaces" (a term this very algorithm is defining) requires.

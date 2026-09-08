@@ -1,4 +1,4 @@
-150 func(s)
+151 func(s)
 def compile_a_webassembly_module(
   bytes: Unknown,
 ): Unknown = {
@@ -3567,6 +3567,21 @@ def js-string-compare(
     return (- 1)
   } else nop
   return 1
+}
+def inclusive_inherited_interfaces(
+  I: Unknown,
+): Unknown = {
+  let result = (list [])
+  let interface = I
+  while (! (= interface null)) {
+    push result < interface
+    if (yet "any") {
+      interface = (yet "the [=interface=] that |interface| [=interface/inherits=] from")
+    } else {
+      interface = null
+    }
+  }
+  return result
 }
 def a_new_promise(
   T: Unknown,

@@ -67,11 +67,9 @@ private val knownFailing: Set[String] =
     "tests/wji/js-api/generated/js-string/constants.any.js",
     "tests/wji/js-api/generated/js-string/imports.any.js",
     "tests/wji/js-api/generated/limits.any.js",
-    "tests/wji/js-api/generated/memory/constructor.any.js",
     "tests/wji/js-api/generated/memory/grow.any.js",
     "tests/wji/js-api/generated/module/constructor.any.js",
     "tests/wji/js-api/generated/module/customSections.any.js",
-    "tests/wji/js-api/generated/table/constructor.any.js",
     "tests/wji/js-api/generated/table/get-set.any.js",
     "tests/wji/js-api/generated/table/grow-memory64.any.js",
   )

@@ -4,17 +4,17 @@ import esmeta.wji.lang.{Algorithm, AlgorithmKind, Cond, Expr, Instr, WjiParam}
 import esmeta.wji.compiler.Compiler
 import esmeta.error.UnsupportedSpecShape
 
-/** Reshapes every Getter/Setter/Constructor/Method/NamespaceMethod-kind
-  * [[Algorithm]] — the 4 kinds WebIDL calls an interface "member" (per
-  * `webidl/index.bs`'s own "Members" section: "The constructor steps, getter
-  * steps, setter steps, and method steps ... have access to a this value"),
-  * plus a namespace's own operations, which share the same calling convention
-  * without sharing a receiver — into the `<BUILTIN>:` calling convention
-  * mainline's own `Call`/`BuiltinCallOrConstruct` machinery expects, the same
-  * two fix-ups [[AddBuiltinBehaviourPass]] applies to a hoisted
-  * `CreateBuiltinFunction` closure, for the same reason (a calling-convention
-  * requirement, not conditional on whether the algorithm itself can abruptly
-  * complete):
+/** Reshapes every Getter/Setter/Constructor/Method/NamespaceMethod/
+  * NamespaceGetter-kind [[Algorithm]] — the 4 kinds WebIDL calls an interface
+  * "member" (per `webidl/index.bs`'s own "Members" section: "The constructor
+  * steps, getter steps, setter steps, and method steps ... have access to a
+  * this value"), plus a namespace's own operations/attributes, which share the
+  * same calling convention without sharing a receiver — into the `<BUILTIN>:`
+  * calling convention mainline's own `Call`/`BuiltinCallOrConstruct` machinery
+  * expects, the same two fix-ups [[AddBuiltinBehaviourPass]] applies to a
+  * hoisted `CreateBuiltinFunction` closure, for the same reason (a
+  * calling-convention requirement, not conditional on whether the algorithm
+  * itself can abruptly complete):
   *
   * `Method` here is only ever a *real interface* member (`Table.get`,
   * `Global.valueOf`, ...); a namespace member (`WebAssembly.instantiate`/
@@ -38,6 +38,16 @@ import esmeta.error.UnsupportedSpecShape
   * (no `.prototype` segment: `WebAssembly.instantiate`, never
   * `WebAssembly.prototype.instantiate`) — see `Compiler.compileAlgo`'s own
   * `NamespaceMethod` case.
+  *
+  * `AlgorithmKind.NamespaceGetter` is `NamespaceMethod`'s exact counterpart for
+  * a namespace attribute's getter (e.g. `WebAssembly.JSTag`) — restamped from
+  * `Getter(for)` the same way, skips the same receiver-related steps for the
+  * same reason, and registers under `INTRINSICS.get:<namespace>.<name>` (no
+  * `.prototype` segment, and no `WebAssembly.` prefix baked into the name the
+  * way the ordinary `Getter` case's `INTRINSICS.get:WebAssembly.<iface>.
+  * prototype.<name>` template has — that literal prefix is exactly why `JSTag`
+  * used to compile under the doubled, wrong `INTRINSICS.get:
+  * WebAssembly.WebAssembly.prototype.JSTag` before this kind existed).
   *
   * Before this kind existed, every `WebAssembly.instantiate`/`compile`/
   * `validate` fell to `Plain` (an ordinary free function, attached to nothing)
@@ -487,6 +497,7 @@ object AddInterfaceMemberBuiltinBehaviourPass extends LoweringPass:
       case AlgorithmKind.Getter(_)          => true
       case AlgorithmKind.Method(_, _)       => true
       case AlgorithmKind.NamespaceMethod(_) => true
+      case AlgorithmKind.NamespaceGetter(_) => true
       case _                                => false
     if !needsWrap then body
     else
@@ -554,7 +565,9 @@ object AddInterfaceMemberBuiltinBehaviourPass extends LoweringPass:
       a.kind match
         case AlgorithmKind.Getter(_) | AlgorithmKind.Setter(_) |
             AlgorithmKind.Constructor(_) | AlgorithmKind.Method(_, _) |
-            AlgorithmKind.NamespaceMethod(_) =>
+            AlgorithmKind.NamespaceMethod(_) | AlgorithmKind.NamespaceGetter(
+              _,
+            ) =>
           a.copy(
             params = BuiltinParams,
             body = newTargetCheck(a.kind) ++ brandingCheck(a.kind) ++

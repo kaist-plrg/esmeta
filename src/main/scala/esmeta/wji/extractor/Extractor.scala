@@ -40,11 +40,11 @@ object Extractor:
     // object" installs an interface's members on a *separate* interface
     // prototype object — two different algorithms building and populating
     // two different objects, not one mechanism with two names. A namespace
-    // method is restamped `AlgorithmKind.NamespaceMethod` here (own doc has
-    // the full rationale); anything neither a known interface nor a known
-    // namespace (shouldn't occur in this corpus, but no dfn text guarantees
-    // it can't) falls back to `Plain`, same as before this distinction
-    // existed.
+    // method/getter is restamped `AlgorithmKind.NamespaceMethod`/
+    // `NamespaceGetter` here (each kind's own doc has the full rationale);
+    // a `Method` that's neither a known interface nor a known namespace
+    // (shouldn't occur in this corpus, but no dfn text guarantees it can't)
+    // falls back to `Plain`, same as before this distinction existed.
     val interfaceNames = definitions
       .filter(_.kind == DefinitionKind.Interface)
       .map(_.name)
@@ -60,6 +60,8 @@ object Extractor:
             a.copy(kind = AlgorithmKind.NamespaceMethod(forName))
           case AlgorithmKind.Method(forName, _) if !interfaceNames(forName) =>
             a.copy(kind = AlgorithmKind.Plain)
+          case AlgorithmKind.Getter(forName) if namespaceNames(forName) =>
+            a.copy(kind = AlgorithmKind.NamespaceGetter(forName))
           case _ => a
       }
       .map(enrichParamTypes(_, definitions))

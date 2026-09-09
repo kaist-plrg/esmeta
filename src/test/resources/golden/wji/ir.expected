@@ -732,24 +732,19 @@ def <BUILTIN>:INTRINSICS.WebAssembly.instantiate_object(
     return _ret5
   }
 }
-def <BUILTIN>:INTRINSICS.get:WebAssembly.WebAssembly.prototype.JSTag(
+def <BUILTIN>:INTRINSICS.get:WebAssembly.JSTag(
   this: Unknown,
   ArgumentsList: Unknown,
   NewTarget: Unknown,
 ): Unknown = {
-  if (! (implements this "WebAssembly")) {
-    call _err1 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-    call _ret2 = clo<"ThrowCompletion">(_err1)
-    return _ret2
-  } else nop
   call JSTagAddr = clo<"get_the_JavaScript_exception_tag">()
   call _guard1 = clo<"create_a_Tag_object">(JSTagAddr)
   if (? _guard1: Abrupt) {
     if (? _guard1: Completion) {
       return _guard1
     } else {
-      call _ret3 = clo<"NormalCompletion">(_guard1)
-      return _ret3
+      call _ret1 = clo<"NormalCompletion">(_guard1)
+      return _ret1
     }
   } else {
     let JSTagObject = _guard1.Value
@@ -758,8 +753,8 @@ def <BUILTIN>:INTRINSICS.get:WebAssembly.WebAssembly.prototype.JSTag(
   if (? JSTagObject: Completion) {
     return JSTagObject
   } else {
-    call _ret4 = clo<"NormalCompletion">(JSTagObject)
-    return _ret4
+    call _ret2 = clo<"NormalCompletion">(JSTagObject)
+    return _ret2
   }
 }
 def string_value_of_the_extern_type(

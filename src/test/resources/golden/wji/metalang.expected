@@ -296,7 +296,7 @@
   PerformAndReturn([=asynchronously instantiate a WebAssembly module=](|moduleObject|, |importObject|))
 
 # JSTag
-  kind: getter for WebAssembly
+  kind: getter for namespace WebAssembly
   head: The getter of the <dfn attribute for="WebAssembly">JSTag</dfn> attribute of the {{WebAssembly}} Namespace, when invoked, performs the following steps:
   Let(|JSTagAddr|, [=get the JavaScript exception tag=])
   Let(|JSTagObject|, [=create a Tag object=](|JSTagAddr|))

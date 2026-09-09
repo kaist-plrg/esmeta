@@ -236,20 +236,21 @@ object CompletionAlgorithms:
         ) ||
         hasUnguardedCallInto(rest, s)
 
-  /** Whether `kind` is one of the five kinds
-    * `AddInterfaceMemberBuiltinBehaviour Pass` reshapes — WebIDL's four
-    * interface-member kinds plus a namespace's own operations
-    * (`NamespaceMethod`), which share the same calling convention without
-    * sharing a receiver. Every one of them, not just `Constructor`, is invoked
-    * through the same generic `BuiltinCallOrConstruct`/`Call` mainline
-    * machinery that unconditionally expects a Completion Record back (see
-    * [[compute]]'s own doc).
+  /** Whether `kind` is one of the six kinds `AddInterfaceMemberBuiltinBehaviour
+    * Pass` reshapes — WebIDL's four interface-member kinds plus a namespace's
+    * own operations/attributes (`NamespaceMethod`/`NamespaceGetter`), which
+    * share the same calling convention without sharing a receiver. Every one of
+    * them, not just `Constructor`, is invoked through the same generic
+    * `BuiltinCallOrConstruct`/`Call` mainline machinery that unconditionally
+    * expects a Completion Record back (see [[compute]]'s own doc).
     */
   private def usesBuiltinCallConvention(kind: AlgorithmKind): Boolean =
     kind match
       case AlgorithmKind.Getter(_) | AlgorithmKind.Setter(_) |
           AlgorithmKind.Constructor(_) | AlgorithmKind.Method(_, _) |
-          AlgorithmKind.NamespaceMethod(_) =>
+          AlgorithmKind.NamespaceMethod(_) | AlgorithmKind.NamespaceGetter(
+            _,
+          ) =>
         true
       case AlgorithmKind.Plain => false
 

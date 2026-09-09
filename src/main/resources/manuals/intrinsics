@@ -1000,6 +1000,10 @@ WebAssembly = OrdinaryObject [
   validate: [TTT] #INTRINSICS.WebAssembly.validate;
   compile: [TTT] #INTRINSICS.WebAssembly.compile;
   instantiate: [TTT] #INTRINSICS.WebAssembly.instantiate;
+  JSTag: [TT] {
+    Get: #INTRINSICS.get:WebAssembly.JSTag;
+    Set: undefined;
+  };
 }
 
 // namespace operations, unlike interface members, have no receiver to read a

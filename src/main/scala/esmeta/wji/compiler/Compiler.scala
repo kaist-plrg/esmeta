@@ -177,6 +177,10 @@ object Compiler:
           body = body,
         )
       algo.kind match
+        // `iface` here is guaranteed a real WebIDL interface, never a
+        // namespace — `esmeta.wji.extractor.Extractor` already restamps any
+        // `Getter` whose `for` names a namespace to `NamespaceGetter` (below)
+        // instead, so this case never sees one.
         case AlgorithmKind.Getter(iface) =>
           builtinFunc(s"INTRINSICS.get:WebAssembly.$iface.prototype.$name")
         case AlgorithmKind.Setter(iface) =>
@@ -194,6 +198,10 @@ object Compiler:
         // doc).
         case AlgorithmKind.NamespaceMethod(namespace) =>
           builtinFunc(s"INTRINSICS.$namespace.$name")
+        // Same shape as `NamespaceMethod` above, just with the `get:` prefix
+        // `Getter`'s own case uses.
+        case AlgorithmKind.NamespaceGetter(namespace) =>
+          builtinFunc(s"INTRINSICS.get:$namespace.$name")
         case AlgorithmKind.Plain =>
           Func(
             main = false,

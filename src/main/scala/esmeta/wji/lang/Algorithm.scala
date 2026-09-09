@@ -77,6 +77,25 @@ enum AlgorithmKind:
     */
   case NamespaceMethod(namespace: String)
 
+  /** "The getter of the <dfn attribute for="X">name</dfn> attribute of the
+    * {{X}} Namespace, ..." where `X` names a WebIDL `namespace` -- the
+    * [[Getter]] counterpart of [[NamespaceMethod]], for exactly the same
+    * structural reason (see that kind's own doc): a namespace attribute's
+    * getter attaches straight to the namespace object itself, no separate
+    * interface prototype object, no `.prototype` segment in its compiled name
+    * (`WebAssembly.JSTag`'s getter compiles under `INTRINSICS.get:WebAssembly.
+    * JSTag`, never `INTRINSICS.get:WebAssembly.WebAssembly.prototype.JSTag`),
+    * and no `**this**`-implements-interface branding (a namespace isn't an
+    * interface an object could implement). Same restamping story too: always
+    * extracted as a plain [[Getter]] first (dfn prose alone can't tell a
+    * namespace attribute from an interface one), restamped here by
+    * `esmeta.wji.extractor.Extractor.apply` once `Definition`s are in hand.
+    * Every namespace attribute observed in this corpus so far (`JSTag`) is
+    * `readonly`, so there's no `NamespaceSetter` counterpart yet -- add one the
+    * same way if a writable namespace attribute ever shows up.
+    */
+  case NamespaceGetter(namespace: String)
+
 /** A formal parameter of an [[Algorithm]], as declared in its `head` prose.
   *
   * @param name

@@ -361,7 +361,7 @@ def read_the_imports(
           call _ret11 = clo<"ThrowCompletion">(_err10)
           return _ret11
         } else nop
-        if (yet "|valtype| is one of [=i32=]") {
+        if (&& (|| (|| (= valtype (case "I32" )) (= valtype (case "F32" ))) (= valtype (case "F64" ))) (! (? v: Number))) {
           call _err12 = clo<"__NEW_ERROR_OBJ__">("%LinkError.prototype%")
           call _ret13 = clo<"ThrowCompletion">(_err12)
           return _ret13

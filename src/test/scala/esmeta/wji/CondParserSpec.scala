@@ -164,6 +164,48 @@ class CondParserSpec extends AnyFunSuite:
     )
   }
 
+  test("is one of, positive and negative, with a following 'and'") {
+    assert(
+      CondParser.parse("|valtype| is one of [=i32=], [=f32=] or [=f64=]") ==
+      Or(
+        Or(
+          Eq(Var("valtype"), Link("[=i32=]", Nil)),
+          Eq(Var("valtype"), Link("[=f32=]", Nil)),
+        ),
+        Eq(Var("valtype"), Link("[=f64=]", Nil)),
+      ),
+    )
+    assert(
+      CondParser.parse(
+        "|valtype| is not one of [=i32=], [=f32=] or [=f64=]",
+      ) ==
+      And(
+        And(
+          Eq(Var("valtype"), Link("[=i32=]", Nil), negated = true),
+          Eq(Var("valtype"), Link("[=f32=]", Nil), negated = true),
+        ),
+        Eq(Var("valtype"), Link("[=f64=]", Nil), negated = true),
+      ),
+    )
+    // index.bs:521 itself — the list's own "or" must not be mistaken for the
+    // sentence's real top-level connective before " and |v| ...".
+    assert(
+      CondParser.parse(
+        "|valtype| is one of [=i32=], [=f32=] or [=f64=] and |v| [=is not a Number=]",
+      ) ==
+      And(
+        Or(
+          Or(
+            Eq(Var("valtype"), Link("[=i32=]", Nil)),
+            Eq(Var("valtype"), Link("[=f32=]", Nil)),
+          ),
+          Eq(Var("valtype"), Link("[=f64=]", Nil)),
+        ),
+        IsType(Var("v"), "Number", negated = true),
+      ),
+    )
+  }
+
   test("or / and composition") {
     assert(
       CondParser.parse("|a| is |b| or |c| is |d|") ==

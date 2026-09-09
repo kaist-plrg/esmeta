@@ -144,7 +144,7 @@
       Else
         If(|valtype| is [=i64=], and |v| is not a BigInt)
           Throw(new {{LinkError}})
-        If(?(|valtype| is one of [=i32=]))
+        If(|valtype| is [=i32=] or |valtype| is [=f32=] or |valtype| is [=f64=], and |v| is not a Number)
           Throw(new {{LinkError}})
         If(|valtype| is [=v128=])
           Throw(new {{LinkError}})

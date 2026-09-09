@@ -859,7 +859,8 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Module.prototype.imports(
     let moduleName = _tuple1[0]
     let name = _tuple1[1]
     let type = _tuple1[2]
-    if (&& (yet "[=find a builtin=] for (|moduleName|, |name|, |type|)") (! (= builtinSetNames null))) {
+    call _call1 = clo<"find_a_builtin">((tup moduleName name type), builtinSetNames)
+    if (! (= _call1 null)) {
       (yet "continue")
     } else nop
     if (&& (! (= importedStringModule null)) (= moduleName importedStringModule)) {

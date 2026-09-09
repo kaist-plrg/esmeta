@@ -337,7 +337,7 @@
   Let(|importedStringModule|, |moduleObject|.[[ImportedStringModule]])
   Let(|imports|, « »)
   ForEach((|moduleName|, |name|, |type|), [=module_imports=](|module|))
-    If(?([=find a builtin=] for (|moduleName|, |name|, |type|)), and |builtinSetNames| is not null)
+    If([=find a builtin=]((|moduleName|, |name|, |type|), |builtinSetNames|) is not null)
       Continue
     If(|importedStringModule| is not null, and |moduleName| is |importedStringModule|)
       Continue

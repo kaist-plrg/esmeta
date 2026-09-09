@@ -142,20 +142,26 @@ object CondParser:
     """(?si)^(.+?)\s+(?:contains no duplicates|does not contain any duplicates)$""".r
   private val ContainsDuplicatesPos =
     """(?si)^(.+?)\s+contains any duplicates$""".r
-  // "[=algo|display=] for ARG1 [with ARG2[, ...] [and ARGN]] IS/RETURNS BOOL"
-  // — a spec call phrased with "for"/"with"/"and" as its own English
-  // argument-list connectors (mirrors the "from X, enabled Y, and Z" phrasing
-  // an algorithm's own <dfn> head uses for its parameter list), immediately
-  // compared against a boolean result. Matched as a whole *before* the
-  // generic and/or top-level split in `parse` below, since that split can't
-  // tell this "and" apart from a real boolean and — splitting first severs
-  // the last argument from its call (see index.bs:411,423,455,765, all
-  // "... for |module| with |builtinSetNames| and |importedStringModule|
-  // returns/is false"). Restricted to a pure `|var|`-only argument list (no
-  // free text) so it can't accidentally swallow a genuine "COND1 and COND2"
-  // where COND1 itself happens to read "... for X is Y".
+  // "[=algo|display=] for ARG1 [with ARG2[, ...] [and ARGN]] IS/RETURNS
+  // BOOL/null" — a spec call phrased with "for"/"with"/"and" as its own
+  // English argument-list connectors (mirrors the "from X, enabled Y, and Z"
+  // phrasing an algorithm's own <dfn> head uses for its parameter list),
+  // immediately compared against a boolean or null result. Matched as a whole
+  // *before* the generic and/or top-level split in `parse` below, since that
+  // split can't tell this "and" apart from a real boolean and — splitting
+  // first severs the last argument from its call (see
+  // index.bs:411,423,455,737,765, all "... for |module| with |builtinSetNames|
+  // and |importedStringModule| returns/is false", plus index.bs:737's
+  // "[=find a builtin=] for (|moduleName|, |name|, |type|) and
+  // |builtinSetNames| is not null"). Each argument token is either a bare
+  // `|var|` or a parenthesized untagged tuple `(|a|, |b|, ...)` (the only
+  // other multi-arg shape this idiom's call sites actually use, per
+  // `ExprParser.TuplePat`) — not free text — so this can't accidentally
+  // swallow a genuine "COND1 and COND2" where COND1 itself happens to read
+  // "... for X is Y".
+  private val ArgToken = """(?:\([^()]*\)|\|[^|]+\|)"""
   private val LinkCallArgsEndsBool =
-    """(?si)^(\[=[^\]]+\])\s+((?:for|with)\s+\|[^|]+\|(?:\s*(?:,\s*|and\s+|with\s+)\|[^|]+\|)*)\s+(is not|is|returns)\s+(true|false)$""".r
+    s"""(?si)^(\\[=[^\\]]+\\])\\s+((?:for|with)\\s+$ArgToken(?:\\s*(?:,\\s*|and\\s+|with\\s+)$ArgToken)*)\\s+(is not|is|returns)\\s+(true|false|null)$$""".r
 
   // "contained in LIST" — the RHS of "ELEM is [not] contained in LIST"
   // (index.bs:1254), handled by parseRhs alongside "missing"/"given"/"of the
@@ -250,9 +256,12 @@ object CondParser:
     val s = raw.trim.stripSuffix(".")
     s match
       case LinkCallArgsEndsBool(link, argsPhrase, isKind, boolStr) =>
+        val rhs =
+          if boolStr.equalsIgnoreCase("null") then SpecTerm("null")
+          else Bool(boolStr.equalsIgnoreCase("true"))
         Eq(
           ExprParser.parse(s"$link $argsPhrase"),
-          Bool(boolStr.equalsIgnoreCase("true")),
+          rhs,
           negated = isKind.trim.equalsIgnoreCase("is not"),
         )
       case AnyIn(binder, collsRaw, predTail) =>

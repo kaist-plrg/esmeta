@@ -59,10 +59,17 @@ object CondParser:
   // determines polarity, not a separate positive/negative pattern pair.
   private val ListIsEmpty =
     """(?si)^(.+)\s+\[=list/is empty(?:\|([^\]]+))?=\]$""".r
+  // "EXPR [=implements=] {{Iface}}" / "EXPR does not [=implement=] {{Iface}}"
+  // — RHS is either a literal `{{Iface}}` (the corpus's only real shape
+  // today) or a `|variable|` (webidl/index.bs's own general form, e.g. "|O|
+  // is an object that [=implements=] |I|"). Captured generally and handed
+  // straight to `ExprParser.parse`, which already resolves each shape on its
+  // own (`{{X}}` -> `SpecTerm(X)` via `BracedTerm`, `|X|` -> `Var(X)` via
+  // `VarOnly`) — no special-casing needed here.
   private val ImplementsPos =
-    """(?si)^(.*?)\s+\[=implements=\]\s+\{\{([^}]+)\}\}$""".r
+    """(?si)^(.*?)\s+\[=implements=\]\s+(\{\{[^}]+\}\}|\|[^|]+\|)$""".r
   private val ImplementsNeg =
-    """(?si)^(.*?)\s+does not \[=implement=\]\s+\{\{([^}]+)\}\}$""".r
+    """(?si)^(.*?)\s+does not \[=implement=\]\s+(\{\{[^}]+\}\}|\|[^|]+\|)$""".r
   // "EXPR has a [[SLOT]] internal slot" / "EXPR does not have a [[SLOT]]
   // internal slot" — checks whether an object has (been initialized with) a
   // particular internal slot, as opposed to ExprParser's PossessiveSlot
@@ -334,10 +341,14 @@ object CondParser:
     case ListIsEmpty(baseRaw, alias) =>
       val negated = Option(alias).exists(_.toLowerCase.contains("not"))
       Eq(Length(ExprParser.parse(baseRaw)), Num("0"), negated)
-    case ImplementsPos(exprRaw, face) =>
-      Implements(ExprParser.parse(exprRaw), face)
-    case ImplementsNeg(exprRaw, face) =>
-      Implements(ExprParser.parse(exprRaw), face, negated = true)
+    case ImplementsPos(exprRaw, faceRaw) =>
+      Implements(ExprParser.parse(exprRaw), ExprParser.parse(faceRaw))
+    case ImplementsNeg(exprRaw, faceRaw) =>
+      Implements(
+        ExprParser.parse(exprRaw),
+        ExprParser.parse(faceRaw),
+        negated = true,
+      )
     case HasSlotPos(exprRaw, slot) =>
       HasSlot(ExprParser.parse(exprRaw), slot)
     case HasSlotNeg(exprRaw, slot) =>

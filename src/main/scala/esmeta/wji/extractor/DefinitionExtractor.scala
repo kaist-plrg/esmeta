@@ -31,14 +31,17 @@ object DefinitionExtractor:
   private val IdlPreOpen = """<pre\s+class=['"]idl['"]>""".r
   private val IdlPreClose = "</pre>"
 
-  /** matches the start of an `interface Name {` or `namespace Name {`
-    * declaration; the body end is found separately by [[findBodyEnd]] (a member
-    * can itself contain a nested `{}`, e.g. `optional WebAssemblyCompileOptions
-    * options = {}`, so a regex spanning the whole body can't safely find the
-    * matching close brace)
+  /** matches the start of an `interface Name {`, `interface Name : Base {`, or
+    * `namespace Name {` declaration; the body end is found separately by
+    * [[findBodyEnd]] (a member can itself contain a nested `{}`, e.g. `optional
+    * WebAssemblyCompileOptions options = {}`, so a regex spanning the whole
+    * body can't safely find the matching close brace). Group 3 (`Base`) is
+    * `null` when absent — no interface in the current corpus declares one, but
+    * the capture is real WebIDL syntax (webidl/index.bs:634), not
+    * corpus-specific.
     */
   private val DefOpen =
-    """\b(interface|namespace)\s+([A-Za-z][A-Za-z0-9]*)\s*\{""".r
+    """\b(interface|namespace)\s+([A-Za-z][A-Za-z0-9]*)\s*(?::\s*([A-Za-z][A-Za-z0-9]*)\s*)?\{""".r
 
   def extract(source: String): List[Definition] =
     idlBlocks(source).flatMap(extractFromBlock)
@@ -62,6 +65,7 @@ object DefinitionExtractor:
       .flatMap { m =>
         val keyword = m.group(1)
         val name = m.group(2)
+        val inherit = Option(m.group(3))
         for bodyEnd <- findBodyEnd(block, m.end) yield
           val body = block.substring(m.end, bodyEnd)
           val members = splitMemberTexts(body).map(parseMember)
@@ -69,7 +73,7 @@ object DefinitionExtractor:
           val kind =
             if keyword == "namespace" then DefinitionKind.Namespace
             else DefinitionKind.Interface
-          Definition(name, members, kind, extAttr)
+          Definition(name, members, kind, extAttr, inherit)
       }
 
   /** finds the index of the `}` matching the `{` whose body starts at

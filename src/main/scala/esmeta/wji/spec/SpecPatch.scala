@@ -932,6 +932,64 @@ object SpecPatch:
     "be [=memory type=] |addrtype|"
     ->
     "be the [=memory type=] |addrtype|",
+
+    // #46 (spec bug, docs/spec_errors.md #22) — `a [=/new=] {{X}}` (webidl's
+    // "new" op — `create a new object implementing the interface`, line
+    // 13818) declares a *required* `|realm|` parameter alongside
+    // `|interface|`, but every one of the seven call sites in
+    // js-api/index.bs omits it outright, leaving nothing for `ExprParser`'s
+    // `NewExpr` to bind `|realm|` to (the same shape of defect as #4/#12's
+    // `a new promise`/`react` fix — see that pair's own comments above).
+    // Each site is corrected to supply `[=current Realm=]`, matching both
+    // webidl/index.bs's own established idiom for this exact op elsewhere in
+    // that file ("a [=new=] {{DOMException}} created in the [=current
+    // realm=]", webidl/index.bs:14896) and this file's own sibling algorithm
+    // `a new Exported Function` (line 1259-1276), which already binds `Let
+    // |realm| be the current Realm.` at the same call depth five of these
+    // seven sites share (reached via `asynchronously instantiate a
+    // WebAssembly module` → `create an exports object`, itself run
+    // `[=in parallel=]`/`[=Queue a task=]`). Each interface name ({{Module}},
+    // {{Instance}}, {{Memory}}, {{Table}}, {{Global}}, {{Tag}}, {{Exception}})
+    // occurs in exactly one `a [=/new=] {{X}}` call site in this file, so the
+    // bare phrase is a unique, unambiguous anchor for each replacement below.
+    "a [=/new=] {{Module}}."
+    ->
+    "a [=/new=] {{Module}} in the [=current Realm=].",
+    "a [=/new=] {{Instance}}."
+    ->
+    "a [=/new=] {{Instance}} in the [=current Realm=].",
+    "a [=/new=] {{Memory}}."
+    ->
+    "a [=/new=] {{Memory}} in the [=current Realm=].",
+    "a [=/new=] {{Table}}."
+    ->
+    "a [=/new=] {{Table}} in the [=current Realm=].",
+    "a [=/new=] {{Global}}."
+    ->
+    "a [=/new=] {{Global}} in the [=current Realm=].",
+    "a [=/new=] {{Tag}}."
+    ->
+    "a [=/new=] {{Tag}} in the [=current Realm=].",
+    "a [=/new=] {{Exception}}."
+    ->
+    "a [=/new=] {{Exception}} in the [=current Realm=].",
+
+    // #47 (spec bug, docs/spec_errors.md #23) — "inclusive inherited
+    // interfaces"'s own loop (webidl/index.bs:707-718) re-derives "the
+    // interface that |I| inherits from" every iteration — |I| being the
+    // algorithm's fixed input parameter, never the loop's own walking
+    // variable |interface| (initialized to |I|, meant to climb one level of
+    // the inheritance chain per iteration). As written this can't walk past
+    // the first ancestor and never terminates for any interface with a real
+    // multi-level chain (confirmed empirically once this algorithm was
+    // actually mechanized for the first time — see docs/spec_errors.md #23).
+    // Harmless for the current corpus (no interface here declares `: Base`,
+    // so the loop always runs exactly one iteration regardless), but
+    // corrected anyway since this algorithm exists specifically to handle
+    // the case where inheritance *is* declared.
+    "Set |interface| to the [=interface=] that |I| [=interface/inherits=] from, if any, and"
+    ->
+    "Set |interface| to the [=interface=] that |interface| [=interface/inherits=] from, if any, and",
   )
 
   def apply(source: String): String =

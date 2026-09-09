@@ -56,14 +56,20 @@ class CondParserSpec extends AnyFunSuite:
     )
   }
 
-  test("implements, positive and negative") {
+  test("implements, positive and negative, literal and variable interface") {
     assert(
       CondParser.parse("|x| [=implements=] {{Iterable}}") ==
-      Implements(Var("x"), "Iterable"),
+      Implements(Var("x"), SpecTerm("Iterable")),
     )
     assert(
       CondParser.parse("|x| does not [=implement=] {{Iterable}}") ==
-      Implements(Var("x"), "Iterable", negated = true),
+      Implements(Var("x"), SpecTerm("Iterable"), negated = true),
+    )
+    // webidl/index.bs's own general form, e.g. "|O| is an object that
+    // [=implements=] |I|" — the interface named by a variable, not a literal.
+    assert(
+      CondParser.parse("|O| [=implements=] |I|") ==
+      Implements(Var("O"), Var("I")),
     )
   }
 

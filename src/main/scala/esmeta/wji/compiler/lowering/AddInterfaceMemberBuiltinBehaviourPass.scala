@@ -279,7 +279,8 @@ object AddInterfaceMemberBuiltinBehaviourPass extends LoweringPass:
         case AlgorithmKind.Getter(_) | AlgorithmKind.Setter(_) |
             AlgorithmKind.Constructor(_) | AlgorithmKind.Method(_) =>
           val params = a.kind match
-            case AlgorithmKind.Getter(_) => BuiltinParams :+ WjiParam("|NewTarget|")
+            case AlgorithmKind.Getter(_) =>
+              BuiltinParams :+ WjiParam("|NewTarget|")
             case _ => BuiltinParams
           a.copy(
             params = params,

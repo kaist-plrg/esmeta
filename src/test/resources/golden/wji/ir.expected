@@ -1,4 +1,4 @@
-150 func(s)
+152 func(s)
 def compile_a_webassembly_module(
   bytes: Unknown,
 ): Unknown = {
@@ -105,23 +105,17 @@ def construct_a_webassembly_module_object(
   builtinSetNames: Unknown,
   importedStringModule: Unknown,
 ): Unknown = {
-  let moduleObject = (record [Module] {
-    "GetPrototypeOf" : clo<"Record[OrdinaryObject].GetPrototypeOf">,
-    "SetPrototypeOf" : clo<"Record[OrdinaryObject].SetPrototypeOf">,
-    "IsExtensible" : clo<"Record[OrdinaryObject].IsExtensible">,
-    "PreventExtensions" : clo<"Record[OrdinaryObject].PreventExtensions">,
-    "GetOwnProperty" : clo<"Record[OrdinaryObject].GetOwnProperty">,
-    "DefineOwnProperty" : clo<"Record[OrdinaryObject].DefineOwnProperty">,
-    "HasProperty" : clo<"Record[OrdinaryObject].HasProperty">,
-    "Get" : clo<"Record[OrdinaryObject].Get">,
-    "Set" : clo<"Record[OrdinaryObject].Set">,
-    "Delete" : clo<"Record[OrdinaryObject].Delete">,
-    "OwnPropertyKeys" : clo<"Record[OrdinaryObject].OwnPropertyKeys">,
-    "Prototype" : @EXECUTION_STACK[0].Realm.Intrinsics["%WebAssembly.Module.prototype%"],
-    "Extensible" : true,
-    "PrivateElements" : (list []),
-    "__MAP__" : (map[Unknown, Unknown]),
-  })
+  call _guard1 = clo<"new">(@HOST_DEFINED.Module, @EXECUTION_STACK[0].Realm)
+  if (? _guard1: Abrupt) {
+    if (? _guard1: Completion) {
+      return _guard1
+    } else {
+      call _ret1 = clo<"NormalCompletion">(_guard1)
+      return _ret1
+    }
+  } else {
+    let moduleObject = _guard1.Value
+  }
   moduleObject.Module = module
   moduleObject.Bytes = bytes
   moduleObject.BuiltinSets = builtinSetNames
@@ -129,8 +123,8 @@ def construct_a_webassembly_module_object(
   if (? moduleObject: Completion) {
     return moduleObject
   } else {
-    call _ret1 = clo<"NormalCompletion">(moduleObject)
-    return _ret1
+    call _ret2 = clo<"NormalCompletion">(moduleObject)
+    return _ret2
   }
 }
 def asynchronously_compile_a_webassembly_module(
@@ -138,7 +132,7 @@ def asynchronously_compile_a_webassembly_module(
   options: Unknown,
   taskSource?: Unknown,
 ): Unknown = {
-  call promise = clo<"a_new_promise">(~Module~, @EXECUTION_STACK[0].Realm)
+  call promise = clo<"a_new_promise">(@HOST_DEFINED.Module, @EXECUTION_STACK[0].Realm)
   call module = clo<"compile_a_webassembly_module">(bytes)
   call _ = clo<"HostEnqueuePromiseJob">(clo<"asynchronously_compile_a_webassembly_module_closure1", [bytes, module, options, promise]>, @EXECUTION_STACK[0].Realm)
   return promise
@@ -297,7 +291,14 @@ def read_the_imports(
     if (&& (= (case-tag externtype) "GLOBAL") (= (case-tag externtype[0]) "")) {
       let mut = externtype[0][0]
       let valtype = externtype[0][1]
-      if (implements v "Global") {
+      let _cond7 = false
+      if (&& (? v: Record[Object]) (exists v.PrimaryInterface)) {
+        call _call6 = clo<"inclusive_inherited_interfaces">(v.PrimaryInterface)
+        if (contains _call6 @HOST_DEFINED.Global) {
+          _cond7 = true
+        } else nop
+      } else nop
+      if (= _cond7 true) {
         let globaladdr = v.Global
       } else {
         if (&& (= valtype (case "I64" )) (! (? v: BigInt))) {
@@ -338,7 +339,16 @@ def read_the_imports(
     } else nop
     if (= (case-tag externtype) "MEM") {
       let memtype = externtype[0]
-      if (! (implements v "Memory")) {
+      let _cond9 = false
+      if (|| (! (? v: Record[Object])) (! (exists v.PrimaryInterface))) {
+        _cond9 = true
+      } else {
+        call _call8 = clo<"inclusive_inherited_interfaces">(v.PrimaryInterface)
+        if (! (contains _call8 @HOST_DEFINED.Memory)) {
+          _cond9 = true
+        } else nop
+      }
+      if (= _cond9 true) {
         call _err18 = clo<"__NEW_ERROR_OBJ__">("%LinkError.prototype%")
         call _ret19 = clo<"ThrowCompletion">(_err18)
         return _ret19
@@ -348,7 +358,16 @@ def read_the_imports(
     } else nop
     if (= (case-tag externtype) "TABLE") {
       let tabletype = externtype[0]
-      if (! (implements v "Table")) {
+      let _cond11 = false
+      if (|| (! (? v: Record[Object])) (! (exists v.PrimaryInterface))) {
+        _cond11 = true
+      } else {
+        call _call10 = clo<"inclusive_inherited_interfaces">(v.PrimaryInterface)
+        if (! (contains _call10 @HOST_DEFINED.Table)) {
+          _cond11 = true
+        } else nop
+      }
+      if (= _cond11 true) {
         call _err20 = clo<"__NEW_ERROR_OBJ__">("%LinkError.prototype%")
         call _ret21 = clo<"ThrowCompletion">(_err20)
         return _ret21
@@ -359,7 +378,16 @@ def read_the_imports(
     } else nop
     if (= (case-tag externtype) "TAG") {
       let functype = externtype[0]
-      if (! (implements v "Tag")) {
+      let _cond13 = false
+      if (|| (! (? v: Record[Object])) (! (exists v.PrimaryInterface))) {
+        _cond13 = true
+      } else {
+        call _call12 = clo<"inclusive_inherited_interfaces">(v.PrimaryInterface)
+        if (! (contains _call12 @HOST_DEFINED.Tag)) {
+          _cond13 = true
+        } else nop
+      }
+      if (= _cond13 true) {
         call _err22 = clo<"__NEW_ERROR_OBJ__">("%LinkError.prototype%")
         call _ret23 = clo<"ThrowCompletion">(_err22)
         return _ret23
@@ -534,7 +562,7 @@ def asynchronously_instantiate_a_webassembly_module(
   moduleObject: Unknown,
   importObject: Unknown,
 ): Unknown = {
-  call promise = clo<"a_new_promise">(~Instance~, @EXECUTION_STACK[0].Realm)
+  call promise = clo<"a_new_promise">(@HOST_DEFINED.Instance, @EXECUTION_STACK[0].Realm)
   let module = moduleObject.Module
   let builtinSetNames = moduleObject.BuiltinSets
   let importedStringModule = moduleObject.ImportedStringModule
@@ -542,7 +570,7 @@ def asynchronously_instantiate_a_webassembly_module(
   if (exists _throwComp1.Type) {
     if (= _throwComp1.Type ~throw~) {
       let exception = _throwComp1.Value
-      call _ = clo<"reject">(~Instance~, promise, exception)
+      call _ = clo<"reject">(@HOST_DEFINED.Instance, promise, exception)
       return promise
     } else {
       let imports = _throwComp1.Value
@@ -958,29 +986,23 @@ def create_a_memory_object(
       return _ret2
     }
   } else nop
-  let memory = (record [Memory] {
-    "GetPrototypeOf" : clo<"Record[OrdinaryObject].GetPrototypeOf">,
-    "SetPrototypeOf" : clo<"Record[OrdinaryObject].SetPrototypeOf">,
-    "IsExtensible" : clo<"Record[OrdinaryObject].IsExtensible">,
-    "PreventExtensions" : clo<"Record[OrdinaryObject].PreventExtensions">,
-    "GetOwnProperty" : clo<"Record[OrdinaryObject].GetOwnProperty">,
-    "DefineOwnProperty" : clo<"Record[OrdinaryObject].DefineOwnProperty">,
-    "HasProperty" : clo<"Record[OrdinaryObject].HasProperty">,
-    "Get" : clo<"Record[OrdinaryObject].Get">,
-    "Set" : clo<"Record[OrdinaryObject].Set">,
-    "Delete" : clo<"Record[OrdinaryObject].Delete">,
-    "OwnPropertyKeys" : clo<"Record[OrdinaryObject].OwnPropertyKeys">,
-    "Prototype" : @EXECUTION_STACK[0].Realm.Intrinsics["%WebAssembly.Memory.prototype%"],
-    "Extensible" : true,
-    "PrivateElements" : (list []),
-    "__MAP__" : (map[Unknown, Unknown]),
-  })
+  call _guard1 = clo<"new">(@HOST_DEFINED.Memory, @EXECUTION_STACK[0].Realm)
+  if (? _guard1: Abrupt) {
+    if (? _guard1: Completion) {
+      return _guard1
+    } else {
+      call _ret3 = clo<"NormalCompletion">(_guard1)
+      return _ret3
+    }
+  } else {
+    let memory = _guard1.Value
+  }
   call _ = clo<"initialize_a_memory_object">(memory, memaddr)
   if (? memory: Completion) {
     return memory
   } else {
-    call _ret3 = clo<"NormalCompletion">(memory)
-    return _ret3
+    call _ret4 = clo<"NormalCompletion">(memory)
+    return _ret4
   }
 }
 def <BUILTIN>:INTRINSICS.WebAssembly.Memory(
@@ -1306,29 +1328,23 @@ def create_a_table_object(
       return _ret2
     }
   } else nop
-  let table = (record [Table] {
-    "GetPrototypeOf" : clo<"Record[OrdinaryObject].GetPrototypeOf">,
-    "SetPrototypeOf" : clo<"Record[OrdinaryObject].SetPrototypeOf">,
-    "IsExtensible" : clo<"Record[OrdinaryObject].IsExtensible">,
-    "PreventExtensions" : clo<"Record[OrdinaryObject].PreventExtensions">,
-    "GetOwnProperty" : clo<"Record[OrdinaryObject].GetOwnProperty">,
-    "DefineOwnProperty" : clo<"Record[OrdinaryObject].DefineOwnProperty">,
-    "HasProperty" : clo<"Record[OrdinaryObject].HasProperty">,
-    "Get" : clo<"Record[OrdinaryObject].Get">,
-    "Set" : clo<"Record[OrdinaryObject].Set">,
-    "Delete" : clo<"Record[OrdinaryObject].Delete">,
-    "OwnPropertyKeys" : clo<"Record[OrdinaryObject].OwnPropertyKeys">,
-    "Prototype" : @EXECUTION_STACK[0].Realm.Intrinsics["%WebAssembly.Table.prototype%"],
-    "Extensible" : true,
-    "PrivateElements" : (list []),
-    "__MAP__" : (map[Unknown, Unknown]),
-  })
+  call _guard1 = clo<"new">(@HOST_DEFINED.Table, @EXECUTION_STACK[0].Realm)
+  if (? _guard1: Abrupt) {
+    if (? _guard1: Completion) {
+      return _guard1
+    } else {
+      call _ret3 = clo<"NormalCompletion">(_guard1)
+      return _ret3
+    }
+  } else {
+    let table = _guard1.Value
+  }
   call _ = clo<"initialize_a_table_object">(table, tableaddr)
   if (? table: Completion) {
     return table
   } else {
-    call _ret3 = clo<"NormalCompletion">(table)
-    return _ret3
+    call _ret4 = clo<"NormalCompletion">(table)
+    return _ret4
   }
 }
 def <BUILTIN>:INTRINSICS.WebAssembly.Table(
@@ -1679,29 +1695,23 @@ def create_a_global_object(
       return _ret2
     }
   } else nop
-  let global = (record [Global] {
-    "GetPrototypeOf" : clo<"Record[OrdinaryObject].GetPrototypeOf">,
-    "SetPrototypeOf" : clo<"Record[OrdinaryObject].SetPrototypeOf">,
-    "IsExtensible" : clo<"Record[OrdinaryObject].IsExtensible">,
-    "PreventExtensions" : clo<"Record[OrdinaryObject].PreventExtensions">,
-    "GetOwnProperty" : clo<"Record[OrdinaryObject].GetOwnProperty">,
-    "DefineOwnProperty" : clo<"Record[OrdinaryObject].DefineOwnProperty">,
-    "HasProperty" : clo<"Record[OrdinaryObject].HasProperty">,
-    "Get" : clo<"Record[OrdinaryObject].Get">,
-    "Set" : clo<"Record[OrdinaryObject].Set">,
-    "Delete" : clo<"Record[OrdinaryObject].Delete">,
-    "OwnPropertyKeys" : clo<"Record[OrdinaryObject].OwnPropertyKeys">,
-    "Prototype" : @EXECUTION_STACK[0].Realm.Intrinsics["%WebAssembly.Global.prototype%"],
-    "Extensible" : true,
-    "PrivateElements" : (list []),
-    "__MAP__" : (map[Unknown, Unknown]),
-  })
+  call _guard1 = clo<"new">(@HOST_DEFINED.Global, @EXECUTION_STACK[0].Realm)
+  if (? _guard1: Abrupt) {
+    if (? _guard1: Completion) {
+      return _guard1
+    } else {
+      call _ret3 = clo<"NormalCompletion">(_guard1)
+      return _ret3
+    }
+  } else {
+    let global = _guard1.Value
+  }
   call _ = clo<"initialize_a_global_object">(global, globaladdr)
   if (? global: Completion) {
     return global
   } else {
-    call _ret3 = clo<"NormalCompletion">(global)
-    return _ret3
+    call _ret4 = clo<"NormalCompletion">(global)
+    return _ret4
   }
 }
 def tovaluetype(
@@ -2636,29 +2646,23 @@ def create_a_tag_object(
       return _ret2
     }
   } else nop
-  let tag = (record [Tag] {
-    "GetPrototypeOf" : clo<"Record[OrdinaryObject].GetPrototypeOf">,
-    "SetPrototypeOf" : clo<"Record[OrdinaryObject].SetPrototypeOf">,
-    "IsExtensible" : clo<"Record[OrdinaryObject].IsExtensible">,
-    "PreventExtensions" : clo<"Record[OrdinaryObject].PreventExtensions">,
-    "GetOwnProperty" : clo<"Record[OrdinaryObject].GetOwnProperty">,
-    "DefineOwnProperty" : clo<"Record[OrdinaryObject].DefineOwnProperty">,
-    "HasProperty" : clo<"Record[OrdinaryObject].HasProperty">,
-    "Get" : clo<"Record[OrdinaryObject].Get">,
-    "Set" : clo<"Record[OrdinaryObject].Set">,
-    "Delete" : clo<"Record[OrdinaryObject].Delete">,
-    "OwnPropertyKeys" : clo<"Record[OrdinaryObject].OwnPropertyKeys">,
-    "Prototype" : @EXECUTION_STACK[0].Realm.Intrinsics["%WebAssembly.Tag.prototype%"],
-    "Extensible" : true,
-    "PrivateElements" : (list []),
-    "__MAP__" : (map[Unknown, Unknown]),
-  })
+  call _guard1 = clo<"new">(@HOST_DEFINED.Tag, @EXECUTION_STACK[0].Realm)
+  if (? _guard1: Abrupt) {
+    if (? _guard1: Completion) {
+      return _guard1
+    } else {
+      call _ret3 = clo<"NormalCompletion">(_guard1)
+      return _ret3
+    }
+  } else {
+    let tag = _guard1.Value
+  }
   call _ = clo<"initialize_a_tag_object">(tag, tagAddress)
   if (? tag: Completion) {
     return tag
   } else {
-    call _ret3 = clo<"NormalCompletion">(tag)
-    return _ret3
+    call _ret4 = clo<"NormalCompletion">(tag)
+    return _ret4
   }
 }
 def <BUILTIN>:INTRINSICS.WebAssembly.Tag(
@@ -2819,29 +2823,23 @@ def create_an_exception_object(
       return _ret2
     }
   } else nop
-  let exn = (record [Exception] {
-    "GetPrototypeOf" : clo<"Record[OrdinaryObject].GetPrototypeOf">,
-    "SetPrototypeOf" : clo<"Record[OrdinaryObject].SetPrototypeOf">,
-    "IsExtensible" : clo<"Record[OrdinaryObject].IsExtensible">,
-    "PreventExtensions" : clo<"Record[OrdinaryObject].PreventExtensions">,
-    "GetOwnProperty" : clo<"Record[OrdinaryObject].GetOwnProperty">,
-    "DefineOwnProperty" : clo<"Record[OrdinaryObject].DefineOwnProperty">,
-    "HasProperty" : clo<"Record[OrdinaryObject].HasProperty">,
-    "Get" : clo<"Record[OrdinaryObject].Get">,
-    "Set" : clo<"Record[OrdinaryObject].Set">,
-    "Delete" : clo<"Record[OrdinaryObject].Delete">,
-    "OwnPropertyKeys" : clo<"Record[OrdinaryObject].OwnPropertyKeys">,
-    "Prototype" : @EXECUTION_STACK[0].Realm.Intrinsics["%WebAssembly.Exception.prototype%"],
-    "Extensible" : true,
-    "PrivateElements" : (list []),
-    "__MAP__" : (map[Unknown, Unknown]),
-  })
+  call _guard1 = clo<"new">(@HOST_DEFINED.Exception, @EXECUTION_STACK[0].Realm)
+  if (? _guard1: Abrupt) {
+    if (? _guard1: Completion) {
+      return _guard1
+    } else {
+      call _ret3 = clo<"NormalCompletion">(_guard1)
+      return _ret3
+    }
+  } else {
+    let exn = _guard1.Value
+  }
   call _ = clo<"initialize_an_exception_object">(exn, exnAddress)
   if (? exn: Completion) {
     return exn
   } else {
-    call _ret3 = clo<"NormalCompletion">(exn)
-    return _ret3
+    call _ret4 = clo<"NormalCompletion">(exn)
+    return _ret4
   }
 }
 def <BUILTIN>:INTRINSICS.WebAssembly.Exception(
@@ -3499,6 +3497,17 @@ def js-string-compare(
   } else nop
   return 1
 }
+def inclusive_inherited_interfaces(
+  I: Unknown,
+): Unknown = {
+  let result = (list [])
+  let interface = I
+  while (! (= interface null)) {
+    push result < interface
+    interface = interface.inherit
+  }
+  return result
+}
 def a_new_promise(
   T: Unknown,
   realm: Unknown,
@@ -3880,7 +3889,7 @@ def attribute_setter(
     (yet "[{{PutForwards}}] or [{{Replaceable}}] [=extended attribute=], return <emu-val>undefined</emu-val>; there is no [=attribute setter=] function")
   } else nop
   assert (! (? (yet "|attribute|'s type"): Unknown["promise type"]))
-  let steps = clo<"attribute_setter_closure1", [attribute]>
+  let steps = clo<"attribute_setter_closure1", [attribute, target]>
   let name = (yet "the string \"<code>set </code>\" prepended to |id|")
   call F = clo<"CreateBuiltinFunction">(steps, 1, name, (list []), realm)
   return F
@@ -4017,16 +4026,16 @@ def define_the_iteration_methods(
     } else nop
   } else if (yet "|definition| has a [=pair iterator=]") {
     (yet "Define the {{%Symbol.iterator%}} and <code class=\"idl\">entries</code> methods:")
-    let steps = clo<"define_the_iteration_methods_closure1">
+    let steps = clo<"define_the_iteration_methods_closure1", [definition]>
     call F = clo<"CreateBuiltinFunction">(steps, 0, "<code>entries</code>", (list []), realm)
     call _ = clo<"DefineMethodProperty">(target, @SYMBOL.iterator, F, false)
     call _ = clo<"CreateDataPropertyOrThrow">(target, "<code>entries</code>", F)
     (yet "Define the <code class=\"idl\">keys</code> method:")
-    let steps = clo<"define_the_iteration_methods_closure2">
+    let steps = clo<"define_the_iteration_methods_closure2", [definition]>
     call F = clo<"CreateBuiltinFunction">(steps, 0, "<code>keys</code>", (list []), realm)
     call _ = clo<"CreateDataPropertyOrThrow">(target, "<code>keys</code>", F)
     (yet "Define the <code class=\"idl\">values</code> method:")
-    let steps = clo<"define_the_iteration_methods_closure3">
+    let steps = clo<"define_the_iteration_methods_closure3", [definition]>
     call F = clo<"CreateBuiltinFunction">(steps, 0, "<code>values</code>", (list []), realm)
     call _ = clo<"CreateDataPropertyOrThrow">(target, "<code>values</code>", F)
     (yet "Define the <code class=\"idl\">forEach</code> method:")
@@ -4045,7 +4054,16 @@ def define_the_iteration_methods(
     if (? jsValue: Unknown["platform object"]) {
       call _ = clo<"perform_a_security_check">(jsValue, "<code>forEach</code>", "<code>method</code>")
     } else nop
-    if (yet "|jsValue| does not [=implement=] |definition|") {
+    let _cond3 = false
+    if (|| (! (? jsValue: Record[Object])) (! (exists jsValue.PrimaryInterface))) {
+      _cond3 = true
+    } else {
+      call _call2 = clo<"inclusive_inherited_interfaces">(jsValue.PrimaryInterface)
+      if (! (contains _call2 definition)) {
+        _cond3 = true
+      } else nop
+    }
+    if (= _cond3 true) {
       call _ = clo<"javascript/throw">((record [TypeError] {
         "GetPrototypeOf" : clo<"Record[OrdinaryObject].GetPrototypeOf">,
         "SetPrototypeOf" : clo<"Record[OrdinaryObject].SetPrototypeOf">,
@@ -4091,24 +4109,36 @@ def define_the_asynchronous_iteration_methods(
   } else nop
   assert (|| (yet "|definition| does not have an [=indexed property getter=]") (yet "an [=iterable declaration=]"))
   if (yet "|definition| has a [=pair asynchronously iterable declaration=]") {
-    let steps = clo<"define_the_asynchronous_iteration_methods_closure1">
+    let steps = clo<"define_the_asynchronous_iteration_methods_closure1", [definition]>
     call F = clo<"CreateBuiltinFunction">(steps, 0, "<code>entries</code>", (list []), realm)
     call _ = clo<"DefineMethodProperty">(target, @SYMBOL.asyncIterator, F, false)
     call _ = clo<"CreateDataPropertyOrThrow">(target, "<code>entries</code>", F)
   } else nop
   if (yet "|definition| has a [=pair asynchronously iterable declaration=]") {
-    let steps = clo<"define_the_asynchronous_iteration_methods_closure2">
+    let steps = clo<"define_the_asynchronous_iteration_methods_closure2", [definition]>
     call F = clo<"CreateBuiltinFunction">(steps, 0, (yet "\"<code>keys</code>, « », |realm|"))
     call _ = clo<"CreateDataPropertyOrThrow">(target, "<code>keys</code>", F)
   } else nop
   (yet "Define the <code class=\"idl\">values</code>, and possibly {{%Symbol.asyncIterator%}}, methods:")
-  let steps = clo<"define_the_asynchronous_iteration_methods_closure3">
+  let steps = clo<"define_the_asynchronous_iteration_methods_closure3", [definition]>
   call F = clo<"CreateBuiltinFunction">(steps, 0, "<code>values</code>", (list []), realm)
   call _ = clo<"CreateDataPropertyOrThrow">(target, "<code>values</code>", F)
   if (yet "|definition| has a [=value asynchronously iterable declaration=]") {
     call _ = clo<"DefineMethodProperty">(target, @SYMBOL.asyncIterator, F, false)
   } else nop
   return ~unused~
+}
+def new(
+  interface: Unknown,
+  realm: Unknown,
+): Unknown = {
+  call _result1 = clo<"internally_create_a_new_object_implementing_the_interface">(interface, realm, undefined)
+  if (? _result1: Completion) {
+    return _result1
+  } else {
+    call _ret1 = clo<"NormalCompletion">(_result1)
+    return _ret1
+  }
 }
 def internally_create_a_new_object_implementing_the_interface(
   interface: Unknown,
@@ -4197,7 +4227,7 @@ def internally_create_a_new_object_implementing_the_interface(
 def asynchronously_compile_a_webassembly_module_closure1(
 ): Unknown = {
   if (= module (case "ERROR" )) {
-    call _ = clo<"reject">(~Module~, promise, (record [CompileError] {
+    call _ = clo<"reject">(@HOST_DEFINED.Module, promise, (record [CompileError] {
       "GetPrototypeOf" : clo<"Record[OrdinaryObject].GetPrototypeOf">,
       "SetPrototypeOf" : clo<"Record[OrdinaryObject].SetPrototypeOf">,
       "IsExtensible" : clo<"Record[OrdinaryObject].IsExtensible">,
@@ -4229,7 +4259,7 @@ def asynchronously_compile_a_webassembly_module_closure1(
   }
   call _call1 = clo<"validate_builtins_and_imported_string_for_a_webassembly_module">(module, builtinSetNames, importedStringModule)
   if (= _call1 false) {
-    call _ = clo<"reject">(~Module~, promise, (record [CompileError] {
+    call _ = clo<"reject">(@HOST_DEFINED.Module, promise, (record [CompileError] {
       "GetPrototypeOf" : clo<"Record[OrdinaryObject].GetPrototypeOf">,
       "SetPrototypeOf" : clo<"Record[OrdinaryObject].SetPrototypeOf">,
       "IsExtensible" : clo<"Record[OrdinaryObject].IsExtensible">,
@@ -4258,7 +4288,7 @@ def asynchronously_compile_a_webassembly_module_closure1(
     } else {
       moduleObject = moduleObject.Value
     }
-    call _ = clo<"resolve">(~Module~, promise, moduleObject)
+    call _ = clo<"resolve">(@HOST_DEFINED.Module, promise, moduleObject)
   }
   call _ret3 = clo<"NormalCompletion">(~unused~)
   return _ret3
@@ -4269,7 +4299,7 @@ def asynchronously_instantiate_a_webassembly_module_closure1(
   if (exists _throwComp1.Type) {
     if (= _throwComp1.Type ~throw~) {
       let exception = _throwComp1.Value
-      call _ = clo<"reject">(~Instance~, promise, exception)
+      call _ = clo<"reject">(@HOST_DEFINED.Instance, promise, exception)
       (yet "terminate these substeps")
     } else {
       let instance = _throwComp1.Value
@@ -4277,34 +4307,28 @@ def asynchronously_instantiate_a_webassembly_module_closure1(
   } else {
     let instance = _throwComp1
   }
-  let instanceObject = (record [Instance] {
-    "GetPrototypeOf" : clo<"Record[OrdinaryObject].GetPrototypeOf">,
-    "SetPrototypeOf" : clo<"Record[OrdinaryObject].SetPrototypeOf">,
-    "IsExtensible" : clo<"Record[OrdinaryObject].IsExtensible">,
-    "PreventExtensions" : clo<"Record[OrdinaryObject].PreventExtensions">,
-    "GetOwnProperty" : clo<"Record[OrdinaryObject].GetOwnProperty">,
-    "DefineOwnProperty" : clo<"Record[OrdinaryObject].DefineOwnProperty">,
-    "HasProperty" : clo<"Record[OrdinaryObject].HasProperty">,
-    "Get" : clo<"Record[OrdinaryObject].Get">,
-    "Set" : clo<"Record[OrdinaryObject].Set">,
-    "Delete" : clo<"Record[OrdinaryObject].Delete">,
-    "OwnPropertyKeys" : clo<"Record[OrdinaryObject].OwnPropertyKeys">,
-    "Prototype" : @EXECUTION_STACK[0].Realm.Intrinsics["%WebAssembly.Instance.prototype%"],
-    "Extensible" : true,
-    "PrivateElements" : (list []),
-    "__MAP__" : (map[Unknown, Unknown]),
-  })
+  call _guard1 = clo<"new">(@HOST_DEFINED.Instance, @EXECUTION_STACK[0].Realm)
+  if (? _guard1: Abrupt) {
+    if (? _guard1: Completion) {
+      return _guard1
+    } else {
+      call _ret1 = clo<"NormalCompletion">(_guard1)
+      return _ret1
+    }
+  } else {
+    let instanceObject = _guard1.Value
+  }
   call _throwComp2 = clo<"initialize_an_instance_object">(instanceObject, module, instance)
   if (exists _throwComp2.Type) {
     if (= _throwComp2.Type ~throw~) {
       let exception = _throwComp2.Value
-      call _ = clo<"reject">(~Instance~, promise, exception)
+      call _ = clo<"reject">(@HOST_DEFINED.Instance, promise, exception)
       (yet "terminate these substeps")
     } else nop
   } else nop
-  call _ = clo<"resolve">(~Instance~, promise, instanceObject)
-  call _ret1 = clo<"NormalCompletion">(~unused~)
-  return _ret1
+  call _ = clo<"resolve">(@HOST_DEFINED.Instance, promise, instanceObject)
+  call _ret2 = clo<"NormalCompletion">(~unused~)
+  return _ret2
 }
 def instantiate_a_promise_of_a_module_closure2(
   instance: Unknown,
@@ -4363,13 +4387,20 @@ def create_a_host_function_closure1(
   let store = @AGENT_RECORD["associated store"]
   if (= result.Type ~throw~) {
     let v = result.Value
-    if (implements v "Exception") {
+    let _cond2 = false
+    if (&& (? v: Record[Object]) (exists v.PrimaryInterface)) {
+      call _call1 = clo<"inclusive_inherited_interfaces">(v.PrimaryInterface)
+      if (contains _call1 @HOST_DEFINED.Exception) {
+        _cond2 = true
+      } else nop
+    } else nop
+    if (= _cond2 true) {
       let address = v.Address
     } else {
       call type = clo<"get_the_javascript_exception_tag">()
-      call _call1 = clo<"towebassemblyvalue">(v, (case "REF" (opt (case "NULL" )) (case "EXTERN" )))
-      assert (= _call1.Type ~normal~)
-      let payload = _call1.Value
+      call _call3 = clo<"towebassemblyvalue">(v, (case "REF" (opt (case "NULL" )) (case "EXTERN" )))
+      assert (= _call3.Type ~normal~)
+      let payload = _call3.Value
       call-embed _tuple1 = <exn_alloc>(store, type, (list [payload]))
       let store = _tuple1[0]
       let address = _tuple1[1]
@@ -4488,7 +4519,14 @@ def create_an_interface_object_closure1(
   }
   (yet "Perform the [=constructor steps=] of |constructor| with |object| as [=this=] and |values| as the argument values")
   call-convert O = <converted_to_a_javascript_value>(object)
-  assert (= O (yet "an object that [=implements=] |I|"))
+  let _cond2 = false
+  if (&& (? (yet "|O| is an object that"): Record[Object]) (exists @@yet: unresolved ref: Unknown(|O| is an object that).PrimaryInterface)) {
+    call _call1 = clo<"inclusive_inherited_interfaces">(@@yet: unresolved ref: Unknown(|O| is an object that).PrimaryInterface)
+    if (contains _call1 I) {
+      _cond2 = true
+    } else nop
+  } else nop
+  assert (= _cond2 true)
   assert (= O.Realm realm)
   if (? O: Completion) {
     return O
@@ -4510,7 +4548,16 @@ def attribute_getter_closure2(
     if (? jsValue: Unknown["platform object"]) {
       call _ = clo<"perform_a_security_check">(@@yet: unresolved ref: Unknown(, passing |jsValue|, |attribute|).id, "getter")
     } else nop
-    if (yet "|jsValue| does not [=implement=] |target|") {
+    let _cond2 = false
+    if (|| (! (? jsValue: Record[Object])) (! (exists jsValue.PrimaryInterface))) {
+      _cond2 = true
+    } else {
+      call _call1 = clo<"inclusive_inherited_interfaces">(jsValue.PrimaryInterface)
+      if (! (contains _call1 target)) {
+        _cond2 = true
+      } else nop
+    }
+    if (= _cond2 true) {
       if (yet "|attribute| was specified with the [{{LegacyLenientThis}}] [=extended attribute=]") {
         let _v1 = undefined
         if (? _v1: Completion) {
@@ -4622,7 +4669,14 @@ def attribute_setter_closure1(
     if (? jsValue: Unknown["platform object"]) {
       call _ = clo<"perform_a_security_check">(jsValue, id, "setter")
     } else nop
-    if (yet "|jsValue| [=implements=] |target|") {
+    let _cond2 = false
+    if (&& (? jsValue: Record[Object]) (exists jsValue.PrimaryInterface)) {
+      call _call1 = clo<"inclusive_inherited_interfaces">(jsValue.PrimaryInterface)
+      if (contains _call1 target) {
+        _cond2 = true
+      } else nop
+    } else nop
+    if (= _cond2 true) {
       let validThis = true
     } else {
       let validThis = false
@@ -4702,16 +4756,16 @@ def attribute_setter_closure1(
       _i6 = (+ _i6 1)
     }
     if (= _found5 true) {
-      call _call1 = clo<"Get">(jsValue, id)
-      if (? _call1: Abrupt) {
-        if (? _call1: Completion) {
-          return _call1
+      call _call3 = clo<"Get">(jsValue, id)
+      if (? _call3: Abrupt) {
+        if (? _call3: Completion) {
+          return _call3
         } else {
-          call _ret7 = clo<"NormalCompletion">(_call1)
+          call _ret7 = clo<"NormalCompletion">(_call3)
           return _ret7
         }
       } else {
-        let Q = _call1.Value
+        let Q = _call3.Value
       }
       if (! (? Q: Record[Object])) {
         call _ = clo<"javascript/throw">((record [TypeError] {
@@ -4762,16 +4816,16 @@ def attribute_setter_closure1(
     } else nop
   } else nop
   let idlValue = (yet "determined as follows: <dl class=\"switch\"> <dt>|attribute|'s type is an [=enumeration=]</dt> <dd>")
-  call _call2 = clo<"ToString">(V)
-  if (? _call2: Abrupt) {
-    if (? _call2: Completion) {
-      return _call2
+  call _call4 = clo<"ToString">(V)
+  if (? _call4: Abrupt) {
+    if (? _call4: Completion) {
+      return _call4
     } else {
-      call _ret12 = clo<"NormalCompletion">(_call2)
+      call _ret12 = clo<"NormalCompletion">(_call4)
       return _ret12
     }
   } else {
-    let S = _call2.Value
+    let S = _call4.Value
   }
   if (! (= S (yet "one of the [=enumeration's values=]"))) {
     let _v13 = undefined
@@ -4927,7 +4981,16 @@ def define_the_iteration_methods_closure1(
   if (? jsValue: Unknown["platform object"]) {
     call _ = clo<"perform_a_security_check">(@@yet: unresolved ref: Unknown(, passing |jsValue|, "<code>%Symbol).iterator, "<code>method</code>")
   } else nop
-  if (yet "|jsValue| does not [=implement=] |definition|") {
+  let _cond3 = false
+  if (|| (! (? jsValue: Record[Object])) (! (exists jsValue.PrimaryInterface))) {
+    _cond3 = true
+  } else {
+    call _call2 = clo<"inclusive_inherited_interfaces">(jsValue.PrimaryInterface)
+    if (! (contains _call2 definition)) {
+      _cond3 = true
+    } else nop
+  }
+  if (= _cond3 true) {
     call _ = clo<"javascript/throw">((record [TypeError] {
       "GetPrototypeOf" : clo<"Record[OrdinaryObject].GetPrototypeOf">,
       "SetPrototypeOf" : clo<"Record[OrdinaryObject].SetPrototypeOf">,
@@ -4973,7 +5036,16 @@ def define_the_iteration_methods_closure2(
   if (? jsValue: Unknown["platform object"]) {
     call _ = clo<"perform_a_security_check">(jsValue, "<code>keys</code>", "<code>method</code>")
   } else nop
-  if (yet "|jsValue| does not [=implement=] |definition|") {
+  let _cond3 = false
+  if (|| (! (? jsValue: Record[Object])) (! (exists jsValue.PrimaryInterface))) {
+    _cond3 = true
+  } else {
+    call _call2 = clo<"inclusive_inherited_interfaces">(jsValue.PrimaryInterface)
+    if (! (contains _call2 definition)) {
+      _cond3 = true
+    } else nop
+  }
+  if (= _cond3 true) {
     call _ = clo<"javascript/throw">((record [TypeError] {
       "GetPrototypeOf" : clo<"Record[OrdinaryObject].GetPrototypeOf">,
       "SetPrototypeOf" : clo<"Record[OrdinaryObject].SetPrototypeOf">,
@@ -5019,7 +5091,16 @@ def define_the_iteration_methods_closure3(
   if (? jsValue: Unknown["platform object"]) {
     call _ = clo<"perform_a_security_check">(jsValue, "<code>values</code>", "<code>method</code>")
   } else nop
-  if (yet "|jsValue| does not [=implement=] |definition|") {
+  let _cond3 = false
+  if (|| (! (? jsValue: Record[Object])) (! (exists jsValue.PrimaryInterface))) {
+    _cond3 = true
+  } else {
+    call _call2 = clo<"inclusive_inherited_interfaces">(jsValue.PrimaryInterface)
+    if (! (contains _call2 definition)) {
+      _cond3 = true
+    } else nop
+  }
+  if (= _cond3 true) {
     call _ = clo<"javascript/throw">((record [TypeError] {
       "GetPrototypeOf" : clo<"Record[OrdinaryObject].GetPrototypeOf">,
       "SetPrototypeOf" : clo<"Record[OrdinaryObject].SetPrototypeOf">,
@@ -5066,7 +5147,16 @@ def define_the_asynchronous_iteration_methods_closure1(
   if (? jsValue: Unknown["platform object"]) {
     call _ = clo<"perform_a_security_check">(@@yet: unresolved ref: Unknown(, passing |jsValue|, "<code>%Symbol).asyncIterator, "<code>method</code>")
   } else nop
-  if (yet "|jsValue| does not [=implement=] |definition|") {
+  let _cond3 = false
+  if (|| (! (? jsValue: Record[Object])) (! (exists jsValue.PrimaryInterface))) {
+    _cond3 = true
+  } else {
+    call _call2 = clo<"inclusive_inherited_interfaces">(jsValue.PrimaryInterface)
+    if (! (contains _call2 definition)) {
+      _cond3 = true
+    } else nop
+  }
+  if (= _cond3 true) {
     call _ = clo<"javascript/throw">((record [TypeError] {
       "GetPrototypeOf" : clo<"Record[OrdinaryObject].GetPrototypeOf">,
       "SetPrototypeOf" : clo<"Record[OrdinaryObject].SetPrototypeOf">,
@@ -5116,7 +5206,16 @@ def define_the_asynchronous_iteration_methods_closure2(
   if (? jsValue: Unknown["platform object"]) {
     call _ = clo<"perform_a_security_check">(jsValue, "<code>keys</code>", "<code>method</code>")
   } else nop
-  if (yet "|jsValue| does not [=implement=] |definition|") {
+  let _cond3 = false
+  if (|| (! (? jsValue: Record[Object])) (! (exists jsValue.PrimaryInterface))) {
+    _cond3 = true
+  } else {
+    call _call2 = clo<"inclusive_inherited_interfaces">(jsValue.PrimaryInterface)
+    if (! (contains _call2 definition)) {
+      _cond3 = true
+    } else nop
+  }
+  if (= _cond3 true) {
     call _ = clo<"javascript/throw">((record [TypeError] {
       "GetPrototypeOf" : clo<"Record[OrdinaryObject].GetPrototypeOf">,
       "SetPrototypeOf" : clo<"Record[OrdinaryObject].SetPrototypeOf">,
@@ -5166,7 +5265,16 @@ def define_the_asynchronous_iteration_methods_closure3(
   if (? jsValue: Unknown["platform object"]) {
     call _ = clo<"perform_a_security_check">(jsValue, "<code>values</code>", "<code>method</code>")
   } else nop
-  if (yet "|jsValue| does not [=implement=] |definition|") {
+  let _cond3 = false
+  if (|| (! (? jsValue: Record[Object])) (! (exists jsValue.PrimaryInterface))) {
+    _cond3 = true
+  } else {
+    call _call2 = clo<"inclusive_inherited_interfaces">(jsValue.PrimaryInterface)
+    if (! (contains _call2 definition)) {
+      _cond3 = true
+    } else nop
+  }
+  if (= _cond3 true) {
     call _ = clo<"javascript/throw">((record [TypeError] {
       "GetPrototypeOf" : clo<"Record[OrdinaryObject].GetPrototypeOf">,
       "SetPrototypeOf" : clo<"Record[OrdinaryObject].SetPrototypeOf">,

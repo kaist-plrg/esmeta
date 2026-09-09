@@ -64,7 +64,7 @@ trait Walker:
     case Cond.Compare(l, op, r) => Cond.Compare(walk(l), op, walk(r))
     case Cond.HasField(e, neg)  => Cond.HasField(walk(e), neg)
     case Cond.Implements(e, iface, neg) =>
-      Cond.Implements(walk(e), iface, neg)
+      Cond.Implements(walk(e), walk(iface), neg)
     case Cond.IsOfForm(e, form, condOpt, neg) =>
       Cond.IsOfForm(walk(e), walk(form), condOpt.map(walk), neg)
     case Cond.Matches(l, t, r, neg)    => Cond.Matches(walk(l), t, walk(r), neg)

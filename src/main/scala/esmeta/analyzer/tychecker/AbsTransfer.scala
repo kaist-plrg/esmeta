@@ -781,10 +781,6 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         notSupported(
           "TODO: ETup not yet supported by the type analyzer",
         )
-      case EImplements(_, _) =>
-        notSupported(
-          "TODO: EImplements not yet supported by the type analyzer",
-        )
     }
 
     // short circuit evaluation

@@ -198,8 +198,24 @@ object ExprParser:
   // the caller to strip along with the rest of the sentence. Must precede
   // LinkProse below, which would otherwise misparse this as a call.
   private val RangePrefix = """(?is)^\[=[^=]*range[^=]*=\]\s+(.+)$""".r
+  // "a [=/new=] {{X}} in the [=REALM=]" — webidl/index.bs's "new" op (line
+  // 13818, `create a new object implementing the interface`) declares a
+  // *required* |realm| parameter alongside |interface|, but every js-api
+  // call site originally omitted it outright (docs/spec_errors.md #22) —
+  // SpecPatch-corrected to append this realm clause, mirroring both the
+  // `a new promise ... in the [=current Realm=]` fix (SpecPatch #4/#12) and
+  // webidl/index.bs's own established idiom for the same op ("a [=new=]
+  // {{DOMException}} created in the [=current realm=]", index.bs:14896).
+  // The realm clause is captured as a raw `[=...=]` link (not hardcoded to
+  // `current Realm`) and parsed generically via `parse`, the same way
+  // `parseArgs` resolves a bare trailing `[=link=]` elsewhere in this file.
+  // `{{X}}` itself is captured as a plain interface-name string and wrapped
+  // in `SpecTerm` below — exactly the same node every other bare `{{X}}`
+  // parses to (`BracedTerm`); what a `SpecTerm` naming a real WJI interface
+  // *means* at runtime is decided in exactly one place, `Compiler.scala`'s
+  // `SpecTerm`-compiling switch, not here.
   private val NewExpr =
-    """(?si)^a\s+\[=/new=\]\s+\{\{([^}]+)\}\}(?:\s+object)?$""".r
+    """(?si)^a\s+\[=/new=\]\s+\{\{([^}]+)\}\}(?:\s+object)?\s+in\s+the\s+(\[=[^\]]+=\])$""".r
   // "a {{X}} exception" / "a {{X}}" — Bikeshed's common idiom for
   // constructing a new exception object of WebIDL/spec type X (e.g. "throw
   // a {{TypeError}} exception", "reject |promise| with a {{CompileError}}
@@ -466,6 +482,18 @@ object ExprParser:
   // type.
   private val IdentifierOfType =
     """(?si)^the identifier of \w+ (\|[^|]+\|)$""".r
+  // "the [=interface=] that |I| [=interface/inherits=] from, if any, and null
+  // otherwise" — webidl/index.bs's "inclusive inherited interfaces"
+  // (line 715) reads the interface |I| was declared to inherit from (e.g.
+  // `interface Foo : Bar { ... }`). `[=interface/inherits=]` is not itself a
+  // callable algorithm (webidl/index.bs:634 — it's descriptive prose about
+  // IDL declaration syntax, never a `<div algorithm>`), so this reads
+  // straight through to `Definition.inherit` (`None` for every interface in
+  // the current corpus, since none declares one) via the same `inherit`
+  // field `Initialize.seedHostDefined` mirrors onto each `HOST_DEFINED`
+  // record, rather than treating it as an AO call with nothing behind it.
+  private val InterfaceInheritsFrom =
+    """(?si)^the \[=interface=\] that (\|[^|]+\|) \[=interface/inherits=\] from, if any, and null otherwise$""".r
   private val AssociatedRealm = """(?si)^(.+)'s \[=associated Realm=\]$""".r
   // "|func|'s [=associated Realm=]" — narrower than PossessiveAssociation
   // (which keeps "the surrounding agent's associated store/cache" style
@@ -849,7 +877,8 @@ object ExprParser:
       case RangePrefix(rest) if findTopLevel(rest, " to ").isDefined =>
         val i = findTopLevel(rest, " to ").get
         Range(parse(rest.substring(0, i)), parse(rest.substring(i + 4)))
-      case NewExpr(iface)             => New(iface)
+      case NewExpr(iface, realmRaw) =>
+        Link("new", List(SpecTerm(iface), parse(realmRaw)))
       case NewExceptionExpr(iface)    => New(iface)
       case EmptyList()                => List_(Nil)
       case NewByteSeqOfLength(lenRaw) => NewByteSequence(parse(lenRaw))
@@ -966,6 +995,7 @@ object ExprParser:
         ShortestArgumentList(parse(baseRaw))
       case PossessiveIdentifier(baseRaw) => Field(parse(baseRaw), "id")
       case IdentifierOfType(varRaw)      => Field(parse(varRaw), "id")
+      case InterfaceInheritsFrom(varRaw) => Field(parse(varRaw), "inherit")
       case AssociatedRealm(baseRaw)      => Field(parse(baseRaw), "Realm")
       case MemberOfDefinition(kind, baseRaw) =>
         val memberKind = kind match

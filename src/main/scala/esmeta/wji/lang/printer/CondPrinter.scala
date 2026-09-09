@@ -16,9 +16,9 @@ object CondPrinter:
     case HasField(expr, true) =>
       s"${ExprPrinter.render(expr)} [=map/doesn't exist=]"
     case Implements(expr, face, false) =>
-      s"${ExprPrinter.render(expr)} [=implements=] {{$face}}"
+      s"${ExprPrinter.render(expr)} [=implements=] ${ExprPrinter.render(face)}"
     case Implements(expr, face, true) =>
-      s"${ExprPrinter.render(expr)} does not [=implement=] {{$face}}"
+      s"${ExprPrinter.render(expr)} does not [=implement=] ${ExprPrinter.render(face)}"
     case IsOfForm(expr, form, cond, neg) =>
       val base = s"${ExprPrinter.render(expr)} ${if neg then "is not"
       else "is"} of the form ${ExprPrinter.render(form)}"

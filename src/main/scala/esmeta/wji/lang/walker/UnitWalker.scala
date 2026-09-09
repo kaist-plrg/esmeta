@@ -52,10 +52,10 @@ trait UnitWalker:
     case _ =>
 
   def walk(cond: Cond): Unit = cond match
-    case Cond.Eq(l, r, _)         => walk(l); walk(r)
-    case Cond.Compare(l, _, r)    => walk(l); walk(r)
-    case Cond.HasField(e, _)      => walk(e)
-    case Cond.Implements(e, _, _) => walk(e)
+    case Cond.Eq(l, r, _)             => walk(l); walk(r)
+    case Cond.Compare(l, _, r)        => walk(l); walk(r)
+    case Cond.HasField(e, _)          => walk(e)
+    case Cond.Implements(e, iface, _) => walk(e); walk(iface)
     case Cond.IsOfForm(e, form, condOpt, _) =>
       walk(e); walk(form); condOpt.foreach(walk)
     case Cond.Matches(l, _, r, _)        => walk(l); walk(r)

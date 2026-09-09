@@ -59,4 +59,9 @@ case class Definition(
   members: List[Member],
   kind: DefinitionKind,
   extAttr: List[ExtendedAttribute],
+  /** The interface this one was declared to inherit from (`interface Foo : Bar
+    * { ... }`), if any — webidl/index.bs:634. `None` for every
+    * interface/namespace in the current corpus (none declares one).
+    */
+  inherit: Option[String],
 )

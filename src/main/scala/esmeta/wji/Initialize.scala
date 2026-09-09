@@ -188,10 +188,8 @@ object Initialize:
       // exactly what `Compiler.scala`'s `AlgorithmKind.Method` case registers
       // the compiled closure under (`INTRINSICS.$iface.$name`).
       val fname =
-        if defId == "WebAssembly" then
-          s"INTRINSICS.$defId.prototype.${op.id}"
-        else
-          s"INTRINSICS.WebAssembly.$defId.prototype.${op.id}"
+        if defId == "WebAssembly" then s"INTRINSICS.$defId.prototype.${op.id}"
+        else s"INTRINSICS.WebAssembly.$defId.prototype.${op.id}"
       st.allocRecord(
         "operation",
         List(
@@ -232,6 +230,7 @@ object Initialize:
           "members" -> st.allocList(members),
           "kind" -> Enum(d.kind.toString),
           "extendedAttributes" -> st.allocList(d.extAttr.map(extAttrRecord)),
+          "inherit" -> d.inherit.fold[Value](Null)(Str(_)),
         ),
       )
 

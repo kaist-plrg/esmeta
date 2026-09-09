@@ -21,8 +21,13 @@ object Cond:
     */
   case class HasField(expr: Expr, negated: Boolean = false) extends Cond
 
-  /** EXPR [=implements=] {{Iface}} / EXPR does not [=implement=] {{Iface}} */
-  case class Implements(expr: Expr, iface: String, negated: Boolean = false)
+  /** EXPR [=implements=] {{Iface}} / EXPR does not [=implement=] {{Iface}} —
+    * `iface` is either a `SpecTerm` (a literal `{{Iface}}`) or a `Var` (the
+    * general `|variable|` form webidl/index.bs itself uses, e.g. "|O| is an
+    * object that [=implements=] |I|"). See `ExpandImplementsPass`, which lowers
+    * this into the real webidl-defined check before `Compiler` ever sees it.
+    */
+  case class Implements(expr: Expr, iface: Expr, negated: Boolean = false)
     extends Cond
 
   /** EXPR is [not] of the form FORM [where COND] */

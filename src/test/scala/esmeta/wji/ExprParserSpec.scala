@@ -182,8 +182,20 @@ class ExprParserSpec extends AnyFunSuite:
   }
 
   test("new-object expressions") {
-    assert(ExprParser.parse("a [=/new=] {{Promise}}") == New("Promise"))
-    assert(ExprParser.parse("a [=/new=] {{Promise}} object") == New("Promise"))
+    // `NewExpr` requires the realm clause webidl's own `new` op needs (see
+    // docs/spec_errors.md #22) — `{{X}}` parses to a plain `SpecTerm`, the
+    // same node any other bare `{{X}}` parses to (what it *means* is decided
+    // later, by `Compiler`, not here).
+    assert(
+      ExprParser.parse("a [=/new=] {{Promise}} in the [=current Realm=]") ==
+      Link("new", List(SpecTerm("Promise"), Link("[=current Realm=]", Nil))),
+    )
+    assert(
+      ExprParser.parse(
+        "a [=/new=] {{Promise}} object in the [=current Realm=]",
+      ) ==
+      Link("new", List(SpecTerm("Promise"), Link("[=current Realm=]", Nil))),
+    )
     assert(ExprParser.parse("a {{TypeError}} exception") == New("TypeError"))
   }
 

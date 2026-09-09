@@ -125,9 +125,11 @@ object WebIdlConversion:
         st(addr) match
           case promise @ RecordObj("CompletionRecord", _) =>
             promise(Str("Value")) match
-              case addr: Addr => st(addr) match
-                case promise @ RecordObj("PromiseCapabilityRecord", _) => promise(Str("Promise"))
-                case _ => ???
+              case addr: Addr =>
+                st(addr) match
+                  case promise @ RecordObj("PromiseCapabilityRecord", _) =>
+                    promise(Str("Promise"))
+                  case _ => ???
               case _ => ???
           case MapObj(entries) =>
             given CFG = st.cfg

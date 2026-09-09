@@ -314,12 +314,19 @@ object NormalizeEvaluationOrderPass extends LoweringPass:
     case Cond.HasField(e, neg) =>
       val (b, ne) = Extractor(counter).extract(e); (b, Cond.HasField(ne, neg))
 
-    case Cond.Implements(e, iface, neg) =>
-      val (b, ne) = Extractor(counter).extract(e)
-      (b, Cond.Implements(ne, iface, neg))
-
     case Cond.IsMissing(e, neg) =>
       val (b, ne) = Extractor(counter).extract(e); (b, Cond.IsMissing(ne, neg))
+
+    // `ExpandImplementsPass` is the one real producer of a genuine `AlgoCall`
+    // (`[=inclusive inherited interfaces=]`) sitting in a `Contains`'s `list`
+    // position — without this case it falls through to the `case other`
+    // default below unhoisted, reaching `Compiler.compileExpr`'s `AlgoCall`
+    // guard directly and compiling to `EYet` instead of a real call. Mirrors
+    // `Eq`/`Compare`'s two-sided extraction exactly.
+    case Cond.Contains(elem, list, neg) =>
+      val ext = Extractor(counter)
+      val (ee, le) = (ext.walk(elem), ext.walk(list))
+      (ext.hoisted, Cond.Contains(ee, le, neg))
 
     case Cond.IsOfForm(e, form, condOpt, neg) =>
       val (b, ne) = Extractor(counter).extract(e)

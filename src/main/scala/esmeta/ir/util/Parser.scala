@@ -79,7 +79,7 @@ trait Parsers extends TyParsers {
     } | ("sdo-call" ~> local <~ "=") ~ expr ~ ("->" ~> word) ~ args ^^ {
       case lhs ~ a ~ m ~ as => ISdoCall(lhs, a, m, as)
     } | ("call-convert" ~> local <~ "=") ~ ("<" ~> word <~ ">") ~ args ^^ {
-      case lhs ~ f  ~ as => ICallConvert(lhs, f, as)
+      case lhs ~ f ~ as => ICallConvert(lhs, f, as)
     }
   }
 

@@ -1,4 +1,4 @@
-128 algorithm(s)
+130 algorithm(s)
 # compile a WebAssembly module
   params: |bytes|
   head: To <dfn>compile a WebAssembly module</dfn> from source bytes |bytes|, perform the following steps:
@@ -48,7 +48,7 @@
 # construct a WebAssembly module object
   params: |module|, |bytes|, |builtinSetNames|, |importedStringModule|
   head: To <dfn>construct a WebAssembly module object</dfn> from a module |module|, source bytes |bytes|, enabled builtins |builtinSetNames|, and |importedStringModule|, perform the following steps:
-  Let(|moduleObject|, new {{Module}})
+  Let(|moduleObject|, new(Module, [=current Realm=]))
   Set(|moduleObject|.[[Module]], |module|)
   Set(|moduleObject|.[[Bytes]], |bytes|)
   Set(|moduleObject|.[[BuiltinSets]], |builtinSetNames|)
@@ -139,7 +139,7 @@
       Let(|externfunc|, [=external value/func=](|funcaddr|))
       Append(|externfunc|, |imports|)
     If(|externtype| is of the form [=external-type/global=](|mut|, |valtype|))
-      If(|v| [=implements=] {{Global}})
+      If(|v| [=implements=] Global)
         Let(|globaladdr|, |v|.[[Global]])
       Else
         If(|valtype| is [=i64=], and |v| is not a BigInt)
@@ -158,18 +158,18 @@
       Let(|externglobal|, [=external value/global=](|globaladdr|))
       Append(|externglobal|, |imports|)
     If(|externtype| is of the form [=external-type/mem=](|memtype|))
-      If(|v| does not [=implement=] {{Memory}})
+      If(|v| does not [=implement=] Memory)
         Throw(new {{LinkError}})
       Let(|externmem|, [=external value/mem=](|v|.[[Memory]]))
       Append(|externmem|, |imports|)
     If(|externtype| is of the form [=external-type/table=](|tabletype|))
-      If(|v| does not [=implement=] {{Table}})
+      If(|v| does not [=implement=] Table)
         Throw(new {{LinkError}})
       Let(|tableaddr|, |v|.[[Table]])
       Let(|externtable|, [=external value/table=](|tableaddr|))
       Append(|externtable|, |imports|)
     If(|externtype| is of the form [=external-type/tag=](|functype|))
-      If(|v| does not [=implement=] {{Tag}})
+      If(|v| does not [=implement=] Tag)
         Throw(new {{LinkError}})
       Let(|tagaddr|, |v|.[[Address]])
       Let(|externtag|, [=external value/tag=](|tagaddr|))
@@ -255,7 +255,7 @@
         Note(catch it)
         Perform([=reject=](Instance, |promise|, |exception|))
         ?(terminate these substeps)
-      Let(|instanceObject|, new {{Instance}})
+      Let(|instanceObject|, new(Instance, [=current Realm=]))
       Perform([=initialize an instance object=](|instanceObject|, |module|, |instance|))
       If(Throws(|exception|))
         Note(catch it)
@@ -426,7 +426,7 @@
   Let(|map|, [=surrounding agent=].[[Memory object cache]])
   If(|map|[|memaddr|] [=map/exists=])
     Return(|map|[|memaddr|])
-  Let(|memory|, new {{Memory}})
+  Let(|memory|, new(Memory, [=current Realm=]))
   Perform([=initialize a memory object=](|memory|, |memaddr|))
   Return(|memory|)
 
@@ -570,7 +570,7 @@
   Let(|map|, [=surrounding agent=].[[Table object cache]])
   If(|map|[|tableaddr|] [=map/exists=])
     Return(|map|[|tableaddr|])
-  Let(|table|, new {{Table}})
+  Let(|table|, new(Table, [=current Realm=]))
   Perform([=initialize a table object=](|table|, |tableaddr|))
   Return(|table|)
 
@@ -687,7 +687,7 @@
   Let(|map|, [=surrounding agent=].[[Global object cache]])
   If(|map|[|globaladdr|] [=map/exists=])
     Return(|map|[|globaladdr|])
-  Let(|global|, new {{Global}})
+  Let(|global|, new(Global, [=current Realm=]))
   Perform([=initialize a global object=](|global|, |globaladdr|))
   Return(|global|)
 
@@ -897,7 +897,7 @@
     Let(|store|, [=surrounding agent=].[[associated store]])
     If(|result|.[[Type]] is throw)
       Let(|v|, |result|.[[Value]])
-      If(|v| [=implements=] {{Exception}})
+      If(|v| [=implements=] Exception)
         Let(|address|, |v|.[[Address]])
       Else
         Let(|type|, [=get the JavaScript exception tag=])
@@ -1062,7 +1062,7 @@
   Let(|map|, [=surrounding agent=].[[Tag object cache]])
   If(|map|[|tagAddress|] [=map/exists=])
     Return(|map|[|tagAddress|])
-  Let(|tag|, new {{Tag}})
+  Let(|tag|, new(Tag, [=current Realm=]))
   Perform([=initialize a Tag object=](|tag|, |tagAddress|))
   Return(|tag|)
 
@@ -1168,7 +1168,7 @@
   Let(|map|, [=surrounding agent=].[[Exception object cache]])
   If(|map|[|exnAddress|] [=map/exists=])
     Return(|map|[|exnAddress|])
-  Let(|exn|, new {{Exception}})
+  Let(|exn|, new(Exception, [=current Realm=]))
   Perform([=initialize an Exception object=](|exn|, |exnAddress|))
   Return(|exn|)
 
@@ -1458,6 +1458,16 @@
     Return(-1)
   Return(1)
 
+# inclusive inherited interfaces
+  params: |I|
+  head: The [=list=] of <dfn for=interface>inclusive inherited interfaces</dfn> of an [=interface=] |I| is defined as follows:
+  Let(|result|, « »)
+  Let(|interface|, |I|)
+  While(|interface| is not null)
+    Append(|interface|, |result|)
+    Set(|interface|, |interface|.[[inherit]])
+  Return(|result|)
+
 # a new promise
   params: |T|, |realm|
   head: To <dfn export lt="a new promise">create</dfn> a new <code><a interface>Promise</a>&lt;<var ignore>T</var>&gt;</code> in a [=realm=] |realm|, perform the following steps:
@@ -1542,7 +1552,7 @@
     Let(|object|, [=internally create a new object implementing the interface=](|I|, |realm|, NewTarget))
     ?(Perform the [=constructor steps=] of |constructor| with |object| as [=this=] and |values| as the argument values)
     Let(|O|, [=converted to a JavaScript value=](|object|))
-    Assert(|O| is ?(an object that [=implements=] |I|))
+    Assert(?(|O| is an object that) [=implements=] |I|)
     Assert(|O|.[[Realm]] is |realm|)
     Return(|O|)
   Let(|constructorProto|, |realm|.[[Intrinsics]].[[%Function.prototype%]])
@@ -1663,7 +1673,7 @@
         ?((This will subsequently cause a {{TypeError}} in a few steps, if the global object does not implement |target| and [{{LegacyLenientThis}}] is not specified.))
         If(|jsValue| is a platform object)
           Perform([=perform a security check=](?(, passing |jsValue|, |attribute|).[[id]], "getter"))
-        If(?(|jsValue| does not [=implement=] |target|))
+        If(|jsValue| does not [=implement=] |target|)
           If(?(|attribute| was specified with the [{{LegacyLenientThis}}] [=extended attribute=]))
             Return(undefined)
           Else
@@ -1702,7 +1712,7 @@
       ?((This will subsequently cause a {{TypeError}} in a few steps, if the global object does not implement |target| and [{{LegacyLenientThis}}] is not specified.))
       If(|jsValue| is a platform object)
         Perform([=perform a security check=](|jsValue|, |id|, "setter"))
-      Let(|validThis|, true if ?(|jsValue| [=implements=] |target|) else false)
+      Let(|validThis|, true if |jsValue| [=implements=] |target| else false)
       If(|validThis| is false, and ?(|attribute| was not specified with the [{{LegacyLenientThis}}] [=extended attribute=]))
         Perform([=JavaScript/throw=](new {{TypeError}}))
       If(any ea in |attribute|.[[extendedAttributes]] |ea|.[[id]] is "Replaceable")
@@ -1826,7 +1836,7 @@
         Let(|jsValue|, [=?=] [$ToObject$](?(<emu-val>this</emu-val> value)))
         If(|jsValue| is a platform object)
           Perform([=perform a security check=](?(, passing |jsValue|, "<code>%Symbol).[[iterator]], "<code>method</code>"))
-        If(?(|jsValue| does not [=implement=] |definition|))
+        If(|jsValue| does not [=implement=] |definition|)
           Perform([=JavaScript/throw=](new {{TypeError}}))
         Return(?(a newly created [=default iterator object=] for |definition|, with |jsValue| as its [=default iterator object/target=], "<code>key+value</code>" as its [=default iterator object/kind=], and [=default iterator object/index=] set to 0))
       Let(|F|, [$CreateBuiltinFunction$](|steps|, 0, "<code>entries</code>", « », |realm|))
@@ -1837,7 +1847,7 @@
         Let(|jsValue|, [=?=] [$ToObject$](?(<emu-val>this</emu-val> value)))
         If(|jsValue| is a platform object)
           Perform([=perform a security check=](|jsValue|, "<code>keys</code>", "<code>method</code>"))
-        If(?(|jsValue| does not [=implement=] |definition|))
+        If(|jsValue| does not [=implement=] |definition|)
           Perform([=JavaScript/throw=](new {{TypeError}}))
         Return(?(a newly created [=default iterator object=] for |definition|, with |jsValue| as its [=default iterator object/target=], "<code>key</code>" as its [=default iterator object/kind=], and [=default iterator object/index=] set to 0))
       Let(|F|, [$CreateBuiltinFunction$](|steps|, 0, "<code>keys</code>", « », |realm|))
@@ -1847,7 +1857,7 @@
         Let(|jsValue|, [=?=] [$ToObject$](?(<emu-val>this</emu-val> value)))
         If(|jsValue| is a platform object)
           Perform([=perform a security check=](|jsValue|, "<code>values</code>", "<code>method</code>"))
-        If(?(|jsValue| does not [=implement=] |definition|))
+        If(|jsValue| does not [=implement=] |definition|)
           Perform([=JavaScript/throw=](new {{TypeError}}))
         Return(?(a newly created [=default iterator object=] for |definition|, with |jsValue| as its [=default iterator object/target=], "<code>value</code>" as its [=default iterator object/kind=], and [=default iterator object/index=] set to 0))
       Let(|F|, [$CreateBuiltinFunction$](|steps|, 0, "<code>values</code>", « », |realm|))
@@ -1857,7 +1867,7 @@
         Let(|jsValue|, [=?=] [$ToObject$](?(<emu-val>this</emu-val> value)))
         If(|jsValue| is a platform object)
           Perform([=perform a security check=](|jsValue|, "<code>forEach</code>", "<code>method</code>"))
-        If(?(|jsValue| does not [=implement=] |definition|))
+        If(|jsValue| does not [=implement=] |definition|)
           Perform([=JavaScript/throw=](new {{TypeError}}))
         Let(|idlCallback|, ?(|callback|, [=converted to an IDL value|converted=] to a {{Function}}))
         Let(|idlObject|, ?(the IDL [=interface type=] value that represents a reference to |jsValue|))
@@ -1883,7 +1893,7 @@
       Let(|jsValue|, [=?=] [$ToObject$](?(<emu-val>this</emu-val> value)))
       If(|jsValue| is a platform object)
         Perform([=perform a security check=](?(, passing |jsValue|, "<code>%Symbol).[[asyncIterator]], "<code>method</code>"))
-      If(?(|jsValue| does not [=implement=] |definition|))
+      If(|jsValue| does not [=implement=] |definition|)
         Perform([=JavaScript/throw=](new {{TypeError}}))
       Let(|idlObject|, ?(the IDL [=interface type=] value that represents a reference to |jsValue|))
       Let(|idlArgs|, [=converting arguments for an asynchronous iterator method=](|args|))
@@ -1898,7 +1908,7 @@
       Let(|jsValue|, [=?=] [$ToObject$](?(<emu-val>this</emu-val> value)))
       If(|jsValue| is a platform object)
         Perform([=perform a security check=](|jsValue|, "<code>keys</code>", "<code>method</code>"))
-      If(?(|jsValue| does not [=implement=] |definition|))
+      If(|jsValue| does not [=implement=] |definition|)
         Perform([=JavaScript/throw=](new {{TypeError}}))
       Let(|idlObject|, ?(the IDL [=interface type=] value that represents a reference to |jsValue|))
       Let(|idlArgs|, [=converting arguments for an asynchronous iterator method=](|args|))
@@ -1912,7 +1922,7 @@
       Let(|jsValue|, [=?=] [$ToObject$](?(<emu-val>this</emu-val> value)))
       If(|jsValue| is a platform object)
         Perform([=perform a security check=](|jsValue|, "<code>values</code>", "<code>method</code>"))
-      If(?(|jsValue| does not [=implement=] |definition|))
+      If(|jsValue| does not [=implement=] |definition|)
         Perform([=JavaScript/throw=](new {{TypeError}}))
       Let(|idlObject|, ?(the IDL [=interface type=] value that represents a reference to |jsValue|))
       Let(|idlArgs|, [=converting arguments for an asynchronous iterator method=](|args|))
@@ -1923,6 +1933,11 @@
     Perform(CreateDataPropertyOrThrow(|target|, "<code>values</code>", |F|))
     If(?(|definition| has a [=value asynchronously iterable declaration=]))
       Perform(DefineMethodProperty(|target|, %Symbol.asyncIterator%, |F|, false))
+
+# new
+  params: |interface|, |realm|
+  head: To <dfn export lt=new>create a new object implementing the interface</dfn> |interface|, with a [=realm=] |realm|, perform the following steps:
+  Return([=internally create a new object implementing the interface=](|interface|, |realm|, undefined))
 
 # internally create a new object implementing the interface
   params: |interface|, |realm|, |newTarget|

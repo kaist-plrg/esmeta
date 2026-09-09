@@ -97,6 +97,7 @@ object Lowering:
     ExpandAbbreviatedCondPass,
     ExpandWjiIsTypePass,
     ExpandExposedPass,
+    ExpandImplementsPass,
     MarkCompletionAlgorithmsPass,
     NormalizeEvaluationOrderPass, // normalization point
     PropagateUnguardedCallsPass,

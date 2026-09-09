@@ -199,8 +199,7 @@ object Compiler:
         case AlgorithmKind.Method(iface) =>
           if iface == "WebAssembly" then
             builtinFunc(s"INTRINSICS.$iface.prototype.$name")
-          else
-            builtinFunc(s"INTRINSICS.WebAssembly.$iface.prototype.$name")
+          else builtinFunc(s"INTRINSICS.WebAssembly.$iface.prototype.$name")
         case AlgorithmKind.Plain =>
           Func(
             main = false,
@@ -403,7 +402,7 @@ object Compiler:
   // ── Expression ───────────────────────────────────────────────────────────────
 
   private def compileExpr(expr: metalang.Expr): ir.Expr = expr match
-    case metalang.Expr.Var(name) => ERef(Name(name))
+    case metalang.Expr.Var(name)           => ERef(Name(name))
     // Both only ever occur inside a constructor/getter/setter/method's own
     // steps (see AddInterfaceMemberBuiltinBehaviourPass), which always
     // declares a same-named parameter — so these compile as plain local
@@ -438,6 +437,15 @@ object Compiler:
       ERef(GLOBAL_AGENT_RECORD)
     case metalang.Expr.SpecTerm(SymbolTerm(sym)) =>
       ERef(Field(GLOBAL_SYMBOL, EStr(sym)))
+    // A `{{X}}` literal naming a real WJI interface/exception (e.g. `new`'s
+    // own argument, or a literal `Implements` RHS after `ExpandImplementsPass`
+    // — see that pass's own doc) — resolved to the same `HOST_DEFINED.<X>`
+    // runtime record every such reference already resolves to elsewhere
+    // (mirrors `Var("HOST_DEFINED")`'s own case just above). Reuses
+    // `namesWithPrototypeIntrinsic`'s key set rather than a second hardcoded
+    // name list — see that map's own doc.
+    case metalang.Expr.SpecTerm(s) if namesWithPrototypeIntrinsic.contains(s) =>
+      ERef(Field(Global("HOST_DEFINED"), EStr(s)))
     case metalang.Expr.SpecTerm(s) => EEnum(s)
     case metalang.Expr.Field(base, name) =>
       ERef(Field(compileRef(base), EStr(name)))
@@ -614,10 +622,6 @@ object Compiler:
       EContains(compileExpr(list), compileExpr(elem))
     case Cond.Contains(elem, list, true) =>
       EUnary(UOp.Not, EContains(compileExpr(list), compileExpr(elem)))
-    // *(hardcoding)* — see docs/hardcodes.md #11 and EImplements' own doc.
-    case Cond.Implements(e, iface, false) => EImplements(compileExpr(e), iface)
-    case Cond.Implements(e, iface, true) =>
-      EUnary(UOp.Not, EImplements(compileExpr(e), iface))
     case Cond.IsOfForm(e, f, _, neg) => EYet(s"is of form $f") // TODO
     case Cond.Matches(l, t, r, neg)  => EYet(s"matches $t") // TODO
     // `ExpandExistentialsPass` only eliminates the specific solvable shapes
@@ -654,6 +658,7 @@ object Compiler:
     // today.
     case Cond.HasDuplicates(e, neg) => impossible("contains duplicates")
     case Cond.Exposed(_, _, _)      => impossible("exposed")
+    case Cond.Implements(_, _, _)   => impossible("implements")
     case Cond.Throws(kind, _) =>
       impossible(s"throws${kind.fold("")(k => s" $k")}")
     case Cond.AllocationFails =>

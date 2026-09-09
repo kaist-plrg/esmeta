@@ -27,6 +27,8 @@ object InstrPrinter:
         sb.append(s"  kind: setter for $iface\n")
       case AlgorithmKind.Constructor(iface) =>
         sb.append(s"  kind: constructor for $iface\n")
+      case AlgorithmKind.NamespaceMethod(namespace) =>
+        sb.append(s"  kind: method for namespace $namespace\n")
     if algo.params.nonEmpty then
       val params =
         algo.params.map(p => p.name + (if p.optional then "?" else ""))

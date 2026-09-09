@@ -42,14 +42,61 @@ def validate_builtins_and_imported_string_for_a_webassembly_module(
   }
   return true
 }
-def validate(
-  bytes: Unknown,
-  options: Unknown,
+def <BUILTIN>:INTRINSICS.WebAssembly.validate(
+  this: Unknown,
+  ArgumentsList: Unknown,
+  NewTarget: Unknown,
 ): Unknown = {
+  if (< 0 (sizeof ArgumentsList)) {
+    let bytes = ArgumentsList[0]
+    call-convert bytes = <converted_to_an_idl_value>(bytes, "AllowSharedBufferSource")
+    if (? bytes: Abrupt) {
+      if (? bytes: Completion) {
+        return bytes
+      } else {
+        call _ret1 = clo<"NormalCompletion">(bytes)
+        return _ret1
+      }
+    } else nop
+  } else {
+    call _err2 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
+    call _ret3 = clo<"ThrowCompletion">(_err2)
+    return _ret3
+  }
+  if (< 1 (sizeof ArgumentsList)) {
+    let options = ArgumentsList[1]
+    call-convert options = <converted_to_an_idl_value>(options, "WebAssemblyCompileOptions")
+    if (? options: Abrupt) {
+      if (? options: Completion) {
+        return options
+      } else {
+        call _ret4 = clo<"NormalCompletion">(options)
+        return _ret4
+      }
+    } else nop
+  } else {
+    call options = clo<"OrdinaryObjectCreate">(null)
+    call-convert options = <converted_to_an_idl_value>(options, "WebAssemblyCompileOptions")
+    if (? options: Abrupt) {
+      if (? options: Completion) {
+        return options
+      } else {
+        call _ret5 = clo<"NormalCompletion">(options)
+        return _ret5
+      }
+    } else nop
+  }
   call stableBytes = clo<"get_a_copy_of_the_buffer_source">(bytes)
   call module = clo<"Compile_a_WebAssembly_module">(stableBytes)
   if (= module (case "ERROR" )) {
-    return false
+    let _returnValue1 = false
+    call-convert _returnValue1 = <converted_to_a_javascript_value>(_returnValue1)
+    if (? _returnValue1: Completion) {
+      return _returnValue1
+    } else {
+      call _ret6 = clo<"NormalCompletion">(_returnValue1)
+      return _ret6
+    }
   } else nop
   if (exists options.builtins) {
     let builtinSetNames = options.builtin
@@ -63,9 +110,23 @@ def validate(
   }
   call _call1 = clo<"validate_builtins_and_imported_string_for_a_WebAssembly_module">(module, builtinSetNames, importedStringModule)
   if (= _call1 false) {
-    return false
+    let _returnValue2 = false
+    call-convert _returnValue2 = <converted_to_a_javascript_value>(_returnValue2)
+    if (? _returnValue2: Completion) {
+      return _returnValue2
+    } else {
+      call _ret7 = clo<"NormalCompletion">(_returnValue2)
+      return _ret7
+    }
   } else nop
-  return true
+  let _returnValue3 = true
+  call-convert _returnValue3 = <converted_to_a_javascript_value>(_returnValue3)
+  if (? _returnValue3: Completion) {
+    return _returnValue3
+  } else {
+    call _ret8 = clo<"NormalCompletion">(_returnValue3)
+    return _ret8
+  }
 }
 def construct_a_webassembly_module_object(
   module: Unknown,
@@ -111,13 +172,59 @@ def asynchronously_compile_a_webassembly_module(
   call _ = clo<"HostEnqueuePromiseJob">(clo<"asynchronously_compile_a_webassembly_module_closure1", [bytes, module, options, promise]>, @EXECUTION_STACK[0].Realm)
   return promise
 }
-def compile(
-  bytes: Unknown,
-  options: Unknown,
+def <BUILTIN>:INTRINSICS.WebAssembly.compile(
+  this: Unknown,
+  ArgumentsList: Unknown,
+  NewTarget: Unknown,
 ): Unknown = {
+  if (< 0 (sizeof ArgumentsList)) {
+    let bytes = ArgumentsList[0]
+    call-convert bytes = <converted_to_an_idl_value>(bytes, "AllowSharedBufferSource")
+    if (? bytes: Abrupt) {
+      if (? bytes: Completion) {
+        return bytes
+      } else {
+        call _ret1 = clo<"NormalCompletion">(bytes)
+        return _ret1
+      }
+    } else nop
+  } else {
+    call _err2 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
+    call _ret3 = clo<"ThrowCompletion">(_err2)
+    return _ret3
+  }
+  if (< 1 (sizeof ArgumentsList)) {
+    let options = ArgumentsList[1]
+    call-convert options = <converted_to_an_idl_value>(options, "WebAssemblyCompileOptions")
+    if (? options: Abrupt) {
+      if (? options: Completion) {
+        return options
+      } else {
+        call _ret4 = clo<"NormalCompletion">(options)
+        return _ret4
+      }
+    } else nop
+  } else {
+    call options = clo<"OrdinaryObjectCreate">(null)
+    call-convert options = <converted_to_an_idl_value>(options, "WebAssemblyCompileOptions")
+    if (? options: Abrupt) {
+      if (? options: Completion) {
+        return options
+      } else {
+        call _ret5 = clo<"NormalCompletion">(options)
+        return _ret5
+      }
+    } else nop
+  }
   call stableBytes = clo<"get_a_copy_of_the_buffer_source">(bytes)
-  call _result1 = clo<"Asynchronously_compile_a_WebAssembly_module">(stableBytes, options)
-  return _result1
+  call _returnValue1 = clo<"Asynchronously_compile_a_WebAssembly_module">(stableBytes, options)
+  call-convert _returnValue1 = <converted_to_a_javascript_value>(_returnValue1)
+  if (? _returnValue1: Completion) {
+    return _returnValue1
+  } else {
+    call _ret6 = clo<"NormalCompletion">(_returnValue1)
+    return _ret6
+  }
 }
 def instantiate_imported_strings(
   module: Unknown,
@@ -512,22 +619,118 @@ def instantiate_a_promise_of_a_module(
   call _ = clo<"React">(~WebAssemblyInstantiatedSource~, promiseOfModule, onFullfilledSteps, onRejectedSteps, @EXECUTION_STACK[0].Realm)
   return promise
 }
-def instantiate(
-  bytes: Unknown,
-  importObject: Unknown,
-  options: Unknown,
+def <BUILTIN>:INTRINSICS.WebAssembly.instantiate(
+  this: Unknown,
+  ArgumentsList: Unknown,
+  NewTarget: Unknown,
 ): Unknown = {
+  if (< 0 (sizeof ArgumentsList)) {
+    let bytes = ArgumentsList[0]
+    call-convert bytes = <converted_to_an_idl_value>(bytes, "AllowSharedBufferSource")
+    if (? bytes: Abrupt) {
+      if (? bytes: Completion) {
+        return bytes
+      } else {
+        call _ret1 = clo<"NormalCompletion">(bytes)
+        return _ret1
+      }
+    } else nop
+  } else {
+    call _err2 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
+    call _ret3 = clo<"ThrowCompletion">(_err2)
+    return _ret3
+  }
+  if (< 1 (sizeof ArgumentsList)) {
+    let importObject = ArgumentsList[1]
+    call-convert importObject = <converted_to_an_idl_value>(importObject, "object")
+    if (? importObject: Abrupt) {
+      if (? importObject: Completion) {
+        return importObject
+      } else {
+        call _ret4 = clo<"NormalCompletion">(importObject)
+        return _ret4
+      }
+    } else nop
+  } else {
+    let importObject = undefined
+  }
+  if (< 2 (sizeof ArgumentsList)) {
+    let options = ArgumentsList[2]
+    call-convert options = <converted_to_an_idl_value>(options, "WebAssemblyCompileOptions")
+    if (? options: Abrupt) {
+      if (? options: Completion) {
+        return options
+      } else {
+        call _ret5 = clo<"NormalCompletion">(options)
+        return _ret5
+      }
+    } else nop
+  } else {
+    call options = clo<"OrdinaryObjectCreate">(null)
+    call-convert options = <converted_to_an_idl_value>(options, "WebAssemblyCompileOptions")
+    if (? options: Abrupt) {
+      if (? options: Completion) {
+        return options
+      } else {
+        call _ret6 = clo<"NormalCompletion">(options)
+        return _ret6
+      }
+    } else nop
+  }
   call stableBytes = clo<"get_a_copy_of_the_buffer_source">(bytes)
   call promiseOfModule = clo<"Asynchronously_compile_a_WebAssembly_module">(stableBytes, options)
-  call _result1 = clo<"Instantiate_a_promise_of_a_module">(promiseOfModule, importObject)
-  return _result1
+  call _returnValue1 = clo<"Instantiate_a_promise_of_a_module">(promiseOfModule, importObject)
+  call-convert _returnValue1 = <converted_to_a_javascript_value>(_returnValue1)
+  if (? _returnValue1: Completion) {
+    return _returnValue1
+  } else {
+    call _ret7 = clo<"NormalCompletion">(_returnValue1)
+    return _ret7
+  }
 }
-def instantiate_object(
-  moduleObject: Unknown,
-  importObject: Unknown,
+def <BUILTIN>:INTRINSICS.WebAssembly.instantiate_object(
+  this: Unknown,
+  ArgumentsList: Unknown,
+  NewTarget: Unknown,
 ): Unknown = {
-  call _result1 = clo<"asynchronously_instantiate_a_WebAssembly_module">(moduleObject, importObject)
-  return _result1
+  if (< 0 (sizeof ArgumentsList)) {
+    let moduleObject = ArgumentsList[0]
+    call-convert moduleObject = <converted_to_an_idl_value>(moduleObject, "Module")
+    if (? moduleObject: Abrupt) {
+      if (? moduleObject: Completion) {
+        return moduleObject
+      } else {
+        call _ret1 = clo<"NormalCompletion">(moduleObject)
+        return _ret1
+      }
+    } else nop
+  } else {
+    call _err2 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
+    call _ret3 = clo<"ThrowCompletion">(_err2)
+    return _ret3
+  }
+  if (< 1 (sizeof ArgumentsList)) {
+    let importObject = ArgumentsList[1]
+    call-convert importObject = <converted_to_an_idl_value>(importObject, "object")
+    if (? importObject: Abrupt) {
+      if (? importObject: Completion) {
+        return importObject
+      } else {
+        call _ret4 = clo<"NormalCompletion">(importObject)
+        return _ret4
+      }
+    } else nop
+  } else {
+    let importObject = undefined
+  }
+  call _returnValue1 = clo<"asynchronously_instantiate_a_WebAssembly_module">(moduleObject, importObject)
+  call-convert _returnValue1 = <converted_to_a_javascript_value>(_returnValue1)
+  if (? _returnValue1: Completion) {
+    return _returnValue1
+  } else {
+    call _ret5 = clo<"NormalCompletion">(_returnValue1)
+    return _ret5
+  }
 }
 def <BUILTIN>:INTRINSICS.get:WebAssembly.WebAssembly.prototype.JSTag(
   this: Unknown,

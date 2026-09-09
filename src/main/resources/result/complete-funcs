@@ -1578,7 +1578,6 @@ INTRINSICS.WeakRef.prototype.deref
 INTRINSICS.WeakSet
 INTRINSICS.WeakSet.prototype.add
 INTRINSICS.WeakSet.prototype.has
-INTRINSICS.WebAssembly.instantiate
 INTRINSICS.WrapForValidIteratorPrototype.next
 INTRINSICS.WrapForValidIteratorPrototype.return
 INTRINSICS.decodeURI

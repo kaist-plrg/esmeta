@@ -55,6 +55,28 @@ enum AlgorithmKind:
   /** "The <dfn constructor for="X">name(...)</dfn> constructor, ..." */
   case Constructor(interface: String)
 
+  /** "The <dfn method for="X">name(...)</dfn> method, ..." where `X` names a
+    * WebIDL `namespace` (e.g. `WebAssembly`), not an interface -- initially
+    * extracted as a plain [[Method]] (`AlgorithmExtractor` can't tell the two
+    * apart from the dfn prose alone) and stamped into this kind afterward by
+    * `esmeta.wji.extractor.Extractor.apply`, once `Definition`s are in hand to
+    * make the distinction. Structurally different from [[Method]], not just a
+    * naming variant: WebIDL's "create a namespace object" installs a
+    * namespace's own operations directly on the namespace object itself, while
+    * "create an interface object"/"create an interface prototype object"
+    * installs an interface's members on a *separate* interface prototype object
+    * -- so a namespace operation has no receiver at all (no
+    * `**this**`-implements-interface branding, no `.prototype` segment in its
+    * compiled name: `WebAssembly.compile`, never `WebAssembly.prototype.
+    * compile`) unlike every other kind here. Never `static` either -- that
+    * distinction (a namespace operation's receiver, if any, being its own first
+    * argument rather than `**this**`) is [[Method]]'s own concept for telling a
+    * WebIDL interface's `static` operations apart from its instance ones; a
+    * namespace operation is already receiver-less by construction, so there's
+    * nothing analogous to stamp.
+    */
+  case NamespaceMethod(namespace: String)
+
 /** A formal parameter of an [[Algorithm]], as declared in its `head` prose.
   *
   * @param name

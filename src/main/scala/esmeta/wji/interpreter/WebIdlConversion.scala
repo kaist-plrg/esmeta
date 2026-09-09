@@ -444,12 +444,31 @@ object WebIdlConversion:
     * `ToString`/etc. elsewhere in this object (`Interpreter.invokeCallable`),
     * since it needs `ArrayCreate`/`CreateDataPropertyOrThrow` machinery this
     * object has no reason to reimplement natively.
+    *
+    * A `RecordObj("PromiseCapabilityRecord", ...)` is a third, separate case
+    * from either of those: `webidl/index.bs`'s exported term "a new promise"
+    * (`Return [=?=] [$NewPromiseCapability$] (|constructor|).`) returns the raw
+    * mainline-compiled Completion-record-shaped `PromiseCapabilityRecord`
+    * itself, not its `.[[Promise]]` field, so every namespace operation
+    * following `Let |promise| be [=a new promise=]. ... Return |promise|.`
+    * (`WebAssembly.compile`/`instantiate`) would otherwise return that raw
+    * record — not a `MapObj` (WJI's own dictionary representation, the only
+    * thing the case above matches), so it would fall all the way through to
+    * identity passthrough unconverted, same bug either way. Unwrapped here
+    * instead of at each call site, mirroring what the one hand-written
+    * `manuals/funcs/INTRINSICS.WebAssembly.instantiate.ir` glue (now deleted)
+    * used to do with a bare `%2 = %1.Promise` — but done once, generically, so
+    * `WebAssembly.compile` (which never had that glue, since it never even
+    * existed as a real property before `AlgorithmKind.NamespaceMethod`) gets it
+    * for free too. See `docs/hardcodes.md` #7.
     */
   def toJsValue(interp: Interpreter, callSite: Call, argument: Value): Value =
     val st = interp.st
     argument match
       case addr: Addr =>
         st(addr) match
+          case RecordObj("PromiseCapabilityRecord", fields) =>
+            fields("Promise")
           case MapObj(entries) =>
             given CFG = st.cfg
             val objAddr = newOrdinaryObject(st)

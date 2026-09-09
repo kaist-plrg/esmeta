@@ -236,17 +236,22 @@ object CompletionAlgorithms:
         ) ||
         hasUnguardedCallInto(rest, s)
 
-  /** Whether `kind` is one of the four WebIDL interface-member kinds
-    * (`AddInterfaceMemberBuiltinBehaviourPass`'s own target) — every one of
-    * them, not just `Constructor`, is invoked through the same generic
-    * `BuiltinCallOrConstruct`/`Call` mainline machinery that unconditionally
-    * expects a Completion Record back (see [[compute]]'s own doc).
+  /** Whether `kind` is one of the five kinds
+    * `AddInterfaceMemberBuiltinBehaviour Pass` reshapes — WebIDL's four
+    * interface-member kinds plus a namespace's own operations
+    * (`NamespaceMethod`), which share the same calling convention without
+    * sharing a receiver. Every one of them, not just `Constructor`, is invoked
+    * through the same generic `BuiltinCallOrConstruct`/`Call` mainline
+    * machinery that unconditionally expects a Completion Record back (see
+    * [[compute]]'s own doc).
     */
-  private def isInterfaceMember(kind: AlgorithmKind): Boolean = kind match
-    case AlgorithmKind.Getter(_) | AlgorithmKind.Setter(_) |
-        AlgorithmKind.Constructor(_) | AlgorithmKind.Method(_, _) =>
-      true
-    case AlgorithmKind.Plain => false
+  private def usesBuiltinCallConvention(kind: AlgorithmKind): Boolean =
+    kind match
+      case AlgorithmKind.Getter(_) | AlgorithmKind.Setter(_) |
+          AlgorithmKind.Constructor(_) | AlgorithmKind.Method(_, _) |
+          AlgorithmKind.NamespaceMethod(_) =>
+        true
+      case AlgorithmKind.Plain => false
 
   /** A `Plain`-kind algorithm implementing one of ECMA-262's fixed fundamental
     * internal methods (e.g. `Exported GC Object`'s `[[Get]]`/`[[Set]]`/...,
@@ -255,8 +260,9 @@ object CompletionAlgorithms:
     * dispatch (`? O.[[Get]](P, Receiver)`, always `?`/`!`-marked at the real
     * call site), regardless of whether its own body has a visible abrupt path
     * (`[[GetPrototypeOf]]`'s plain `Return null` no more than `Memory.buffer`'s
-    * plain field read does) — same rationale as `isInterfaceMember` above, just
-    * for a name-recognized `Plain` algorithm instead of a `kind`-tagged one.
+    * plain field read does) — same rationale as `usesBuiltinCallConvention`
+    * above, just for a name-recognized `Plain` algorithm instead of a
+    * `kind`-tagged one.
     */
   private def isFundamentalInternalMethod(a: Algorithm): Boolean =
     a.name.exists(_.matches("""(?i)\[\[\w+\]\] internal method of .+"""))
@@ -267,8 +273,9 @@ object CompletionAlgorithms:
     * Seeded with two calling-convention-driven cases besides `hasOwnAbrupt`,
     * same idea as the `Expr.New` signal above (a real abrupt path the body's
     * own text doesn't show yet, ahead of that gap closing):
-    *   - a WebIDL interface member (Getter/Setter/Constructor/Method, per
-    *     [[isInterfaceMember]]): every one is invoked through the same
+    *   - a WebIDL interface member or namespace operation (Getter/Setter/
+    *     Constructor/Method/NamespaceMethod, per
+    *     [[usesBuiltinCallConvention]]): every one is invoked through the same
     *     `BuiltinCallOrConstruct`/`Call` convention `AddInterfaceMemberBuiltin
     *     BehaviourPass`'s own class doc requires unconditional wrapping for,
     *     regardless of whether the member itself has a real abrupt path (e.g.
@@ -300,7 +307,7 @@ object CompletionAlgorithms:
             .when(
               hasOwnAbrupt(
                 a.body,
-              ) || isInterfaceMember(a.kind) || a.isBuiltinBehaviour ||
+              ) || usesBuiltinCallConvention(a.kind) || a.isBuiltinBehaviour ||
               isFundamentalInternalMethod(a),
             )(nameOf(a))
             .flatten,

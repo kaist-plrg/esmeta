@@ -64,7 +64,6 @@ private val knownFailing: Set[String] =
     "tests/wji/js-api/generated/global/value-get-set.any.js",
     "tests/wji/js-api/generated/instance/constructor-bad-imports.any.js",
     "tests/wji/js-api/generated/instance/constructor.any.js",
-    "tests/wji/js-api/generated/interface.any.js",
     "tests/wji/js-api/generated/js-string/basic.any.js",
     "tests/wji/js-api/generated/js-string/constants.any.js",
     "tests/wji/js-api/generated/js-string/imports.any.js",

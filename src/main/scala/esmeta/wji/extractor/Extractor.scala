@@ -39,20 +39,25 @@ object Extractor:
     // while "create an interface object"/"create an interface prototype
     // object" installs an interface's members on a *separate* interface
     // prototype object — two different algorithms building and populating
-    // two different objects, not one mechanism with two names.
-    // `AddInterfaceMemberBuiltinBehaviourPass` only mechanizes the
-    // interface-prototype-object shape, so a namespace method is downgraded
-    // to `Plain` here rather than reaching it — see that pass's own doc and
-    // `docs/hardcodes.md` #7 for the concrete bug this would otherwise hit
-    // (`WebAssembly.instantiate`'s underlying `a new promise` term returning
-    // an un-unwrapped `PromiseCapabilityRecord`).
+    // two different objects, not one mechanism with two names. A namespace
+    // method is restamped `AlgorithmKind.NamespaceMethod` here (own doc has
+    // the full rationale); anything neither a known interface nor a known
+    // namespace (shouldn't occur in this corpus, but no dfn text guarantees
+    // it can't) falls back to `Plain`, same as before this distinction
+    // existed.
     val interfaceNames = definitions
       .filter(_.kind == DefinitionKind.Interface)
+      .map(_.name)
+      .toSet
+    val namespaceNames = definitions
+      .filter(_.kind == DefinitionKind.Namespace)
       .map(_.name)
       .toSet
     val algorithms = (jsApiAlgorithms ++ webidlAlgorithms)
       .map { a =>
         a.kind match
+          case AlgorithmKind.Method(forName, _) if namespaceNames(forName) =>
+            a.copy(kind = AlgorithmKind.NamespaceMethod(forName))
           case AlgorithmKind.Method(forName, _) if !interfaceNames(forName) =>
             a.copy(kind = AlgorithmKind.Plain)
           case _ => a
@@ -60,10 +65,10 @@ object Extractor:
       .map(enrichParamTypes(_, definitions))
     Spec(algorithms, definitions, anchors)
 
-  /** Finds `algo`'s matching WebIDL operation (its interface's `Definition`,
-    * looked up by `AlgorithmKind.Method`/`Constructor`'s own `interface` name,
-    * then the `Operation` member matching `algo.name`/its `Constructor` kind),
-    * and:
+  /** Finds `algo`'s matching WebIDL operation (its interface's or namespace's
+    * `Definition`, looked up by `AlgorithmKind.Method`/`NamespaceMethod`/
+    * `Constructor`'s own `interface`/`namespace` name, then the `Operation`
+    * member matching `algo.name`/its `Constructor` kind), and:
     *   - for a `Method`, stamps `AlgorithmKind.Method.static` from that
     *     operation's own `MemberKind` (`StaticOperation` vs `RegularOperation`)
     *     — the only place this can be determined at all, since the dfn prose
@@ -93,11 +98,12 @@ object Extractor:
     definitions: List[Definition],
   ): Algorithm =
     def matchingOperation(
-      iface: String,
+      owner: String,
+      ownerKind: DefinitionKind,
       matches: Operation => Boolean,
     ): Option[Operation] =
       definitions
-        .find(d => d.kind == DefinitionKind.Interface && d.name == iface)
+        .find(d => d.kind == ownerKind && d.name == owner)
         .flatMap(_.members.collectFirst {
           case op: Operation if matches(op) => op
         })
@@ -105,13 +111,24 @@ object Extractor:
       case AlgorithmKind.Method(iface, _) =>
         matchingOperation(
           iface,
+          DefinitionKind.Interface,
           op =>
             op.kind != MemberKind.Constructor && op.id == algo.name.getOrElse(
               "",
             ),
         )
+      case AlgorithmKind.NamespaceMethod(namespace) =>
+        matchingOperation(
+          namespace,
+          DefinitionKind.Namespace,
+          _.id == algo.name.getOrElse(""),
+        )
       case AlgorithmKind.Constructor(iface) =>
-        matchingOperation(iface, _.kind == MemberKind.Constructor)
+        matchingOperation(
+          iface,
+          DefinitionKind.Interface,
+          _.kind == MemberKind.Constructor,
+        )
       case _ => None
     val staticStamped = (algo.kind, webidlOp) match
       case (AlgorithmKind.Method(iface, _), Some(op)) =>

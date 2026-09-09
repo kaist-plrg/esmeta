@@ -4,47 +4,64 @@ import esmeta.wji.lang.{Algorithm, AlgorithmKind, Cond, Expr, Instr, WjiParam}
 import esmeta.wji.compiler.Compiler
 import esmeta.error.UnsupportedSpecShape
 
-/** Reshapes every Getter/Setter/Constructor/Method-kind [[Algorithm]] — all 4
-  * kinds WebIDL calls an interface "member", per `webidl/index.bs`'s own
-  * "Members" section ("The constructor steps, getter steps, setter steps, and
-  * method steps ... have access to a this value") — into the `<BUILTIN>:`
-  * calling convention mainline's own `Call`/`BuiltinCallOrConstruct` machinery
-  * expects, the same two fix-ups [[AddBuiltinBehaviourPass]] applies to a
-  * hoisted `CreateBuiltinFunction` closure, for the same reason (a
-  * calling-convention requirement, not conditional on whether the algorithm
-  * itself can abruptly complete):
+/** Reshapes every Getter/Setter/Constructor/Method/NamespaceMethod-kind
+  * [[Algorithm]] — the 4 kinds WebIDL calls an interface "member" (per
+  * `webidl/index.bs`'s own "Members" section: "The constructor steps, getter
+  * steps, setter steps, and method steps ... have access to a this value"),
+  * plus a namespace's own operations, which share the same calling convention
+  * without sharing a receiver — into the `<BUILTIN>:` calling convention
+  * mainline's own `Call`/`BuiltinCallOrConstruct` machinery expects, the same
+  * two fix-ups [[AddBuiltinBehaviourPass]] applies to a hoisted
+  * `CreateBuiltinFunction` closure, for the same reason (a calling-convention
+  * requirement, not conditional on whether the algorithm itself can abruptly
+  * complete):
   *
   * `Method` here is only ever a *real interface* member (`Table.get`,
-  * `Global.valueOf`, ...) — `esmeta.wji.extractor.Extractor` already downgrades
-  * any `Method(for)` whose `for` isn't in the extracted interfaces list to
-  * `Plain` before lowering ever runs, so a *namespace* method
-  * (`WebAssembly.instantiate`/`compile`/`validate`) never reaches this pass.
-  * This isn't just a naming-collision workaround: `webidl/index.bs` itself
-  * treats a namespace's own operations and an interface's members as products
-  * of two genuinely different algorithms. "[=create a namespace object=]"
-  * builds the namespace object directly (`OrdinaryObjectCreate` off
-  * `%Object.prototype%`) and installs its operations straight onto *that*
-  * object; "[=create an interface object=]"/"create an interface prototype
-  * object" instead builds a *separate* interface prototype object, and it's
-  * only that second object getter/setter/constructor/method properties ever
-  * attach to — which is exactly the shape `unpackArgumentsList`/[[Compiler]]'s
-  * `INTRINSICS.WebAssembly.<iface>.prototype.<name>` naming below assumes (a
-  * namespace operation has no `.prototype` segment at all: `WebAssembly.
-  * instantiate`, never `WebAssembly.prototype.instantiate`). WJI's own
-  * interface-object mechanization (`ExpandNewInterfaceObjectPass`, `Compiler`'s
-  * `Expr.New`/`namesWithPrototypeIntrinsic`) only ever implements "create an
-  * interface object" — there's no "create a namespace object" mechanization at
-  * all yet, so treating `WebAssembly`'s own operations the same way as an
-  * interface's members would have been structurally wrong even before any bug
-  * showed up. One did show up when this was tried anyway, confirming it
-  * concretely rather than just in theory: `webidl/index.bs`'s exported term "a
-  * new promise" (`Return [=?=] [$NewPromiseCapability$] (...)`) returns the raw
-  * `PromiseCapabilityRecord`, not its `.[[Promise]]` — every namespace-level
-  * algorithm following `Let |promise| be [=a new promise=]. ... Return
-  * |promise|.` ends up returning the capability record instead of an actual
-  * `Promise` unless something explicitly unwraps `.Promise` first, which the
-  * hand-written `manuals/funcs/INTRINSICS. WebAssembly.instantiate.ir` glue
-  * does and nothing generic does yet. See `docs/hardcodes.md` #7.
+  * `Global.valueOf`, ...); a namespace member (`WebAssembly.instantiate`/
+  * `compile`/`validate`) is `NamespaceMethod` instead —
+  * `esmeta.wji.extractor.Extractor` already restamps any `Method(for)` whose
+  * `for` names a WebIDL `namespace` rather than an `interface` before lowering
+  * ever runs (`AlgorithmKind.NamespaceMethod`'s own doc has the full rationale
+  * for why the two need to stay distinct kinds rather than collapsing into one:
+  * `webidl/index.bs` itself treats a namespace's own operations and an
+  * interface's members as products of two genuinely different algorithms
+  * building and populating two different objects). What that distinction means
+  * *here*: a `NamespaceMethod` skips every receiver-related step below
+  * ([[newTargetCheck]] — not a `Constructor`; [[brandingCheck]] — no
+  * `**this**`-implements-interface guard, since a namespace operation has no
+  * interface to implement; [[givenValueBinding]] — not a `Setter`;
+  * [[createThisBinding]]/[[returnThisBinding]] — not a `Constructor`, and
+  * unlike a `Getter`/`Method`/`Setter` a namespace operation's `**this**` is
+  * simply never read at all, so nothing needs binding) but still goes through
+  * [[unpackArgumentsList]] and [[wrapReturnValues]] exactly like a `Method`
+  * does — and, in `Compiler`, registers under `INTRINSICS.<namespace>.<name>`
+  * (no `.prototype` segment: `WebAssembly.instantiate`, never
+  * `WebAssembly.prototype.instantiate`) — see `Compiler.compileAlgo`'s own
+  * `NamespaceMethod` case.
+  *
+  * Before this kind existed, every `WebAssembly.instantiate`/`compile`/
+  * `validate` fell to `Plain` (an ordinary free function, attached to nothing)
+  * instead of reaching this pass at all — `compile`/`validate` were entirely
+  * absent from the runtime `WebAssembly` object as a result
+  * (`interface.any.js`'s `assert_equals(typeof propdesc, "object")` failing
+  * with `"undefined"`), and `instantiate` only existed because of a
+  * hand-written `manuals/funcs/INTRINSICS.WebAssembly.instantiate.ir` glue file
+  * working around the gap one operation at a time — itself still imperfect,
+  * since it fell back to mainline's own generic `INTRINSICS.<base>.
+  * <prop>`-name auto-attach (`esmeta.es.Initialize.addPropBuiltinFuncs`) for
+  * actually becoming a property, which hardcodes `Enumerable: false` (right for
+  * an ordinary ECMA-262 builtin method, wrong for a WebIDL namespace operation,
+  * which WebIDL's own "create a namespace object" preamble installs as `{
+  * [[Writable]]: true, [[Enumerable]]: true, [[Configurable]]: true }`) and
+  * computes `.length` from `func.head` (`None` for a hand-written glue file
+  * with no spec prose behind it, so always `0`). This pass now produces a real
+  * `<BUILTIN>:INTRINSICS.WebAssembly.<name>` function for all three uniformly,
+  * the same way it already does for every interface member —
+  * `manuals/intrinsics` still needs an explicit `[TTT]`-flagged declaration
+  * (mirroring `Module.exports`'s own entry) to get the correct descriptor
+  * instead of falling through to that generic fallback, and an explicit
+  * `length` override (same pattern as `Memory.prototype.grow`'s own), but no
+  * more hand-written call-unpacking glue. See `docs/hardcodes.md` #7.
   *
   *   - '''parameter unpacking''': `BuiltinCallOrConstruct` always invokes a
   *     builtin as `func.__CODE__(this, argumentsList, newTarget)` — a fixed
@@ -467,9 +484,10 @@ object AddInterfaceMemberBuiltinBehaviourPass extends LoweringPass:
     body: List[Instr],
   ): List[Instr] =
     val needsWrap = kind match
-      case AlgorithmKind.Getter(_)    => true
-      case AlgorithmKind.Method(_, _) => true
-      case _                          => false
+      case AlgorithmKind.Getter(_)          => true
+      case AlgorithmKind.Method(_, _)       => true
+      case AlgorithmKind.NamespaceMethod(_) => true
+      case _                                => false
     if !needsWrap then body
     else
       var freshCounter = 0
@@ -491,6 +509,30 @@ object AddInterfaceMemberBuiltinBehaviourPass extends LoweringPass:
             ),
             Instr.Return(Some(Expr.Var(name)), transform(nested)),
           )
+        // "... and return the result." parses straight to this shape at parse
+        // time (`InstrParser`'s `PerformAndReturnSuffix`), never as
+        // `Return(Some(AlgoCall(...)))` -- so the case above alone never
+        // catches a tail-call return written this way (e.g. `instantiate`'s
+        // "Instantiate |promiseOfModule| with imports |importObject| and
+        // return the result."). Same rewrite, just from a different starting
+        // shape: bind the call's result, convert it, then return the bound
+        // name explicitly.
+        case Instr.Perform(
+              func,
+              args,
+              Instr.PerformOutcome.ReturnResult,
+              nested,
+            ) =>
+          val v = freshName()
+          List(
+            Instr.Perform(func, args, Instr.PerformOutcome.BindResult(v)),
+            Instr.Perform(
+              "converted_to_a_javascript_value",
+              List(Expr.Var(v)),
+              Instr.PerformOutcome.BindResult(v),
+            ),
+            Instr.Return(Some(Expr.Var(v)), transform(nested)),
+          )
         case other => List(other.mapBody(transform))
       }
       transform(body)
@@ -511,7 +553,8 @@ object AddInterfaceMemberBuiltinBehaviourPass extends LoweringPass:
     algos.map { a =>
       a.kind match
         case AlgorithmKind.Getter(_) | AlgorithmKind.Setter(_) |
-            AlgorithmKind.Constructor(_) | AlgorithmKind.Method(_, _) =>
+            AlgorithmKind.Constructor(_) | AlgorithmKind.Method(_, _) |
+            AlgorithmKind.NamespaceMethod(_) =>
           a.copy(
             params = BuiltinParams,
             body = newTargetCheck(a.kind) ++ brandingCheck(a.kind) ++

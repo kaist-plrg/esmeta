@@ -185,10 +185,15 @@ object Compiler:
           builtinFunc(s"INTRINSICS.WebAssembly.$iface")
         // `iface` here is guaranteed a real WebIDL interface, never a
         // namespace (`WebAssembly` itself) — `esmeta.wji.extractor.Extractor`
-        // already downgrades any `Method` whose `for` isn't in the extracted
-        // interfaces list to `Plain`, so this case never sees it.
+        // already restamps any `Method` whose `for` names a namespace to
+        // `NamespaceMethod` (below) instead, so this case never sees one.
         case AlgorithmKind.Method(iface, _) =>
           builtinFunc(s"INTRINSICS.WebAssembly.$iface.prototype.$name")
+        // No `.prototype` segment — a namespace operation attaches straight to
+        // the namespace object itself (`AlgorithmKind.NamespaceMethod`'s own
+        // doc).
+        case AlgorithmKind.NamespaceMethod(namespace) =>
+          builtinFunc(s"INTRINSICS.$namespace.$name")
         case AlgorithmKind.Plain =>
           Func(
             main = false,

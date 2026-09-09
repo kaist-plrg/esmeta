@@ -17,12 +17,12 @@ import esmeta.wji.util.AlgoCallStack
   * Runs an ECMAScript file against the real WJI IR [[Program]] compiled from
   * the WebAssembly JS API spec (via [[WjiExtract]] and [[WjiCompile]]), merged
   * into the same `CFG` as the ES spec's own functions and executed by the SAME
-  * `esmeta.interpreter.Interpreter` — the hand-written intrinsic
-  * `INTRINSICS.WebAssembly.instantiate.ir` already calls
-  * `clo<"instantiate">(this, %0, importObject)`, which now resolves directly
-  * against the merged CFG's `fnameMap`, exactly like any other ES-to-ES call.
-  * No separate WJI interpreter, heap, or ES <-> WJI value-conversion bridge is
-  * needed any more.
+  * `esmeta.interpreter.Interpreter` — a real user-facing `WebAssembly.
+  * instantiate(...)` call reaches the WJI-compiled `<BUILTIN>:INTRINSICS.
+  * WebAssembly.instantiate`, which itself calls `clo<"instantiate">(...)`,
+  * resolving directly against the merged CFG's `fnameMap`, exactly like any
+  * other ES-to-ES call. No separate WJI interpreter, heap, or ES <-> WJI
+  * value-conversion bridge is needed any more.
   */
 case object WjiEval extends Phase[CFG, State] {
   val name = "wji-eval"

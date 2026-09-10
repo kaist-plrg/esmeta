@@ -3688,30 +3688,52 @@ def create_an_interface_prototype_object(
   realm: Unknown,
 ): Unknown = {
   let proto = null
-  if (&& (yet "any ea in |interface|.[[extendedAttributes]] |ea|.[[id]] is \"Global\"") (yet "|interface| support named properties")) {
+  let _found1 = false
+  let _i2 = 0
+  while (&& (= _found1 false) (< _i2 (sizeof interface.extendedAttributes))) {
+    let ea = interface.extendedAttributes[_i2]
+    if (= ea.id "Global") {
+      _found1 = true
+    } else nop
+    _i2 = (+ _i2 1)
+  }
+  if (&& (= _found1 true) (yet "|interface| support named properties")) {
     call _call1 = clo<"create_a_named_properties_object">(interface, realm)
     proto = _call1
-  } else if (= interface (yet "declared to inherit from another interface")) {
-    proto = (yet "the [=interface prototype object=] in |realm| of that [=inherited interface=]")
-  } else if (= interface (yet "the {{DOMException}} [=interface=]")) {
-    proto = realm.Intrinsics["%Error.prototype%"]
   } else {
-    proto = realm.Intrinsics["%Object.prototype%"]
+    if (= interface (yet "declared to inherit from another interface")) {
+      proto = (yet "the [=interface prototype object=] in |realm| of that [=inherited interface=]")
+    } else if (= interface (yet "the {{DOMException}} [=interface=]")) {
+      proto = realm.Intrinsics["%Error.prototype%"]
+    } else {
+      proto = realm.Intrinsics["%Object.prototype%"]
+    }
   }
   assert (? proto: Record[Object])
   let interfaceProtoObj = null
   if (= (yet "|realm|'s [=is global prototype chain mutable=]") true) {
     call _call2 = clo<"OrdinaryObjectCreate">(proto)
     interfaceProtoObj = _call2
-  } else if (|| (yet "any ea in |interface|.[[extendedAttributes]] |ea|.[[id]] is \"Global\"") (yet "a value descendant exists such that |interface| is contained in [=inherited_interfaces=](|descendant|), and any ea in |descendant|.[[extendedAttributes]] |ea|.[[id]] is \"Global\"")) {
-    call _call3 = clo<"MakeBasicObject">((list ["Prototype", "Extensible"]))
-    interfaceProtoObj = _call3
-    interfaceProtoObj.Prototype = proto
-    call _call4 = clo<"immutable_prototype_exotic_objects">(~ECMA-262 Immutable prototype exotic objects~)
-    @@yet: unresolved ref: Unknown(the internal methods of |interfaceProtoObj| which are specific) = _call4
   } else {
-    call _call5 = clo<"OrdinaryObjectCreate">(proto)
-    interfaceProtoObj = _call5
+    let _found3 = false
+    let _i4 = 0
+    while (&& (= _found3 false) (< _i4 (sizeof interface.extendedAttributes))) {
+      let ea = interface.extendedAttributes[_i4]
+      if (= ea.id "Global") {
+        _found3 = true
+      } else nop
+      _i4 = (+ _i4 1)
+    }
+    if (|| (= _found3 true) (yet "a value descendant exists such that |interface| is contained in [=inherited_interfaces=](|descendant|), and any ea in |descendant|.[[extendedAttributes]] |ea|.[[id]] is \"Global\"")) {
+      call _call3 = clo<"MakeBasicObject">((list ["Prototype", "Extensible"]))
+      interfaceProtoObj = _call3
+      interfaceProtoObj.Prototype = proto
+      call _call4 = clo<"immutable_prototype_exotic_objects">(~ECMA-262 Immutable prototype exotic objects~)
+      @@yet: unresolved ref: Unknown(the internal methods of |interfaceProtoObj| which are specific) = _call4
+    } else {
+      call _call5 = clo<"OrdinaryObjectCreate">(proto)
+      interfaceProtoObj = _call5
+    }
   }
   if (yet "|interface| has any [=member=] declared with the [{{Unscopable}}] [=extended attribute=]") {
     call unscopableObject = clo<"OrdinaryObjectCreate">(null)
@@ -3726,16 +3748,16 @@ def create_an_interface_prototype_object(
     })
     call _ = clo<"DefinePropertyOrThrow">(interfaceProtoObj, @SYMBOL.unscopables, desc)
   } else nop
-  let _found1 = false
-  let _i2 = 0
-  while (&& (= _found1 false) (< _i2 (sizeof interface.extendedAttributes))) {
-    let ea = interface.extendedAttributes[_i2]
+  let _found5 = false
+  let _i6 = 0
+  while (&& (= _found5 false) (< _i6 (sizeof interface.extendedAttributes))) {
+    let ea = interface.extendedAttributes[_i6]
     if (= ea.id "Global") {
-      _found1 = true
+      _found5 = true
     } else nop
-    _i2 = (+ _i2 1)
+    _i6 = (+ _i6 1)
   }
-  if (! (= _found1 true)) {
+  if (! (= _found5 true)) {
     call _ = clo<"define_the_regular_attributes">(interface, interfaceProtoObj, realm)
     call _ = clo<"define_the_regular_operations">(interface, interfaceProtoObj, realm)
     call _ = clo<"define_the_iteration_methods">(interface, interfaceProtoObj, realm)
@@ -4244,21 +4266,32 @@ def internally_create_a_new_object_implementing_the_interface(
     call _ = clo<"DefinePropertyOrThrow">(instance, key, descriptor)
     _iterIdx2 = (+ _iterIdx2 1)
   }
-  if (yet "any ea in |interface|.[[extendedAttributes]] |ea|.[[id]] is \"Global\"") {
+  let _found1 = false
+  let _i2 = 0
+  while (&& (= _found1 false) (< _i2 (sizeof interface.extendedAttributes))) {
+    let ea = interface.extendedAttributes[_i2]
+    if (= ea.id "Global") {
+      _found1 = true
+    } else nop
+    _i2 = (+ _i2 1)
+  }
+  if (= _found1 true) {
     call _ = clo<"define_the_regular_operations">(interface, instance, realm)
     call _ = clo<"define_the_regular_attributes">(interface, instance, realm)
     call _ = clo<"define_the_iteration_methods">(interface, instance, realm)
     call _ = clo<"define_the_asynchronous_iteration_methods">(interface, instance, realm)
     call _ = clo<"define_the_global_property_references">(instance, realm)
     (yet "Set |instance|.\\[[SetPrototypeOf]] as defined in [[#platform-object-setprototypeof]]")
-  } else if (yet "|interfaces| contains an [=interface=] which [=support indexed properties|supports indexed properties=]") {
-    (yet "Set |instance|.\\[[GetOwnProperty]] as defined in [[#legacy-platform-object-getownproperty]]")
-    (yet "Set |instance|.\\[[Set]] as defined in [[#legacy-platform-object-set]]")
-    (yet "Set |instance|.\\[[DefineOwnProperty]] as defined in [[#legacy-platform-object-defineownproperty]]")
-    (yet "Set |instance|.\\[[Delete]] as defined in [[#legacy-platform-object-delete]]")
-    (yet "Set |instance|.\\[[PreventExtensions]] as defined in [[#legacy-platform-object-preventextensions]]")
-    (yet "Set |instance|.\\[[OwnPropertyKeys]] as defined in [[#legacy-platform-object-ownpropertykeys]]")
-  } else nop
+  } else {
+    if (yet "|interfaces| contains an [=interface=] which [=support indexed properties|supports indexed properties=]") {
+      (yet "Set |instance|.\\[[GetOwnProperty]] as defined in [[#legacy-platform-object-getownproperty]]")
+      (yet "Set |instance|.\\[[Set]] as defined in [[#legacy-platform-object-set]]")
+      (yet "Set |instance|.\\[[DefineOwnProperty]] as defined in [[#legacy-platform-object-defineownproperty]]")
+      (yet "Set |instance|.\\[[Delete]] as defined in [[#legacy-platform-object-delete]]")
+      (yet "Set |instance|.\\[[PreventExtensions]] as defined in [[#legacy-platform-object-preventextensions]]")
+      (yet "Set |instance|.\\[[OwnPropertyKeys]] as defined in [[#legacy-platform-object-ownpropertykeys]]")
+    } else nop
+  }
   if (? instance: Completion) {
     return instance
   } else {

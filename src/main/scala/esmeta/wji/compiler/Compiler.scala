@@ -402,7 +402,7 @@ object Compiler:
   // ── Expression ───────────────────────────────────────────────────────────────
 
   private def compileExpr(expr: metalang.Expr): ir.Expr = expr match
-    case metalang.Expr.Var(name)           => ERef(Name(name))
+    case metalang.Expr.Var(name) => ERef(Name(name))
     // Both only ever occur inside a constructor/getter/setter/method's own
     // steps (see AddInterfaceMemberBuiltinBehaviourPass), which always
     // declares a same-named parameter — so these compile as plain local
@@ -631,23 +631,6 @@ object Compiler:
     // as any other not-yet-mechanized construct.
     case Cond.Exists(binder, body) =>
       EYet(s"a value $binder exists such that ${CondPrinter.render(body)}")
-    // `ExpandMatchesExistsPass` only hoists `Cond.Any` out of `Assert`/`While`
-    // and a single-branch `IfChain` — by that pass's own doc, a later branch
-    // of a multi-branch `If`/`ElseIf`/`ElseIf`/`Else` chain is deliberately
-    // left unhoisted ("until [a call site] does" need it) rather than nested
-    // into the earlier branches' fallback. `CondParser`'s "declared with the
-    // [{{ATTR}}] extended attribute" idiom (now a real `Cond.Any` search over
-    // `X.extendedAttributes`, see its own doc) is the first call site that
-    // does — e.g. index.bs:12051's "declared with the [{{Global}}] extended
-    // attribute, and ... supports named properties" sits in the first branch
-    // of a 4-way chain. So this is a genuine, reachable "not yet hoisted"
-    // gap, not confirmed-unreachable dead code the way the other cases below
-    // are — same fallback as `Cond.Exists`/`Cond.Matches`/`Cond.IsOfForm`
-    // just above.
-    case Cond.Any(binder, collections, body, neg) =>
-      val quant = if neg then "no" else "any"
-      val colls = collections.map(ExprPrinter.render).mkString(" or ")
-      EYet(s"$quant $binder in $colls ${CondPrinter.render(body)}")
     case Cond.Unknown(raw) => EYet(raw)
 
     // ── unreachable after lowering ──
@@ -663,6 +646,15 @@ object Compiler:
       impossible(s"throws${kind.fold("")(k => s" $k")}")
     case Cond.AllocationFails =>
       impossible("allocation fails not expanded by ExpandAllocationFailsPass")
+    // `ExpandMatchesExistsPass` now hoists every `Cond.Any` regardless of where
+    // in an `IfChain` it sits (including a later branch of a multi-way
+    // `If`/`ElseIf`/`Else` chain, e.g. index.bs:12051's "declared with the
+    // [{{Global}}] extended attribute" — the first real call site that needed
+    // it), same guarantee `ExpandHasDuplicatesPass`/`ExpandThrowsPass` give the
+    // cases just above — confirmed empirically for every algorithm in the
+    // corpus today (zero remaining `Cond.Any`-shaped `(yet "any/no ... in
+    // ...")` in `ir.expected`).
+    case Cond.Any(_, _, _, _) => impossible("any/no ... in ...")
 
   // ── Ref ──────────────────────────────────────────────────────────────────────
 

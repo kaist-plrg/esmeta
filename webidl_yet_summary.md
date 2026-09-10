@@ -74,7 +74,10 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
 
 5. 카테고리: II-A
    원문 - If |interface| is declared with the [{{Global}}] [=extended attribute=], then: ...
-   IR - if (yet "declared with the [{{Global}}] [=extended attribute=]") { ... }
+   IR (당시) - if (yet "declared with the [{{Global}}] [=extended attribute=]") { ... }
+   IR (2026-09-10 이후, `ExpandMatchesExistsPass`의 multi-branch `IfChain` hoisting으로 해소) -
+     while-loop로 `interface.extendedAttributes`를 검색해 `_found`를 채우고,
+     `if (= _found true) { ... }`로 컴파일 (`webidl_yet_categorized.md` II-A 참고)
 
 6. 카테고리: II-D
    원문 - Otherwise, if |interfaces| contains an [=interface=] which [=support indexed properties|supports indexed properties=], [=support named properties|named properties=], or both: ...
@@ -101,7 +104,10 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
 ```
 1. 카테고리 - II-A + II-D
    원문 - If |interface| is declared with the [{{Global}}] [=extended attribute=], and |interface| [=support named properties|supports named properties=], ...
-   IR - if (&& (yet "declared with the [{{Global}}] [=extended attribute=]") (yet "|interface| [=support named properties|supports named properties=]")) { ... }
+   IR (당시) - if (&& (yet "declared with the [{{Global}}] [=extended attribute=]") (yet "|interface| [=support named properties|supports named properties=]")) { ... }
+   IR (2026-09-10 이후) - `[{{Global}}]` 절은 while-loop 검색으로 해소되어
+     `if (&& (= _found true) (yet "|interface| [=support named properties|supports named properties=]"))`
+     — 남은 II-D `yet`은 그대로 (`webidl_yet_categorized.md` II-A 참고)
 
 2. 카테고리 - II-C
    원문 - Otherwise, if |interface| is declared to inherit from another interface, ...
@@ -117,7 +123,10 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
 
 5. 카테고리 - II-A + II-C
    원문 - Otherwise, if |interface| is declared with the [{{Global}}] [=extended attribute=], or |interface| is in the set of [=inherited interfaces=] of an interface that is declared with the [{{Global}}] [=extended attribute=], then: ...
-   IR - else if (|| (= interface (yet "declared with the [{{Global}}] [=extended attribute=],")) (= interface (yet "in the set of [=inherited interfaces=] of an interface that is declared with the [{{Global}}] [=extended attribute=]")))
+   IR (당시) - else if (|| (= interface (yet "declared with the [{{Global}}] [=extended attribute=],")) (= interface (yet "in the set of [=inherited interfaces=] of an interface that is declared with the [{{Global}}] [=extended attribute=]")))
+   IR (2026-09-10 이후) - 앞쪽 절만 while-loop 검색으로 해소되어
+     `else if (|| (= _found true) (yet "a value descendant exists such that ..."))`
+     — 뒤쪽 절은 여전히 `yet` (II-C 상속-모델링 gap, `webidl_yet_categorized.md` II-C 참고)
 
 6. 카테고리 - II-A
    원문 - If |interface| has any [=member=] declared with the [{{Unscopable}}] [=extended attribute=], then: ...

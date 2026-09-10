@@ -1,6 +1,7 @@
 package esmeta.wji
 
 import org.scalatest.funsuite.AnyFunSuite
+import esmeta.cfg.CFG
 import esmeta.cfgBuilder.CFGBuilder
 import esmeta.error.AssertionFail
 import esmeta.interpreter.{Interpreter => EsInterpreter}
@@ -125,6 +126,94 @@ class LoweringBehaviorSpec extends AnyFunSuite:
     ),
   )
 
+  /** An `IfChain` whose *second* branch's condition is `Cond.Any` — the real
+    * shape `CondParser.declaredWithAttr` produces for WebIDL's "X is declared
+    * with the [{{ATTR}}] extended attribute" idiom (e.g. index.bs:12051's
+    * "declared with the [{{Global}}] extended attribute", the case that
+    * motivated this test): a search over `X.extendedAttributes` for an entry
+    * whose `id` matches. Placed as a *non-first* branch — the shape
+    * `ExpandMatchesExistsPass` used to leave un-hoisted (falling through to
+    * `Compiler`'s `EYet`) before it learned to nest a later branch's hoisted
+    * search inside the earlier branches' "false" case, mirroring
+    * `testIfChain`/[[poison]] above but for `ExpandMatchesExistsPass` instead
+    * of `NormalizeEvaluationOrderPass`. Reuses [[poison]] as `collections`'s
+    * sole element (rather than a real list) to prove *whether* the search runs
+    * at all, the same way `testIfChain` does for a plain `AlgoCall`.
+    *
+    * As spec prose, this would read:
+    * {{{
+    * To <dfn>test global check ordering</dfn> given |flag|, perform the
+    * following steps:
+    *   1. If |flag| is **true**, then
+    *     1. Return "first".
+    *   2. Otherwise, if any |ea| in [=poison=](**true**), |ea|.[[id]] is
+    *       "Global", then
+    *     1. Return "second".
+    *   3. Otherwise,
+    *     1. Return "fallback".
+    * }}}
+    */
+  private val testGlobalCheckOrdering = Algorithm(
+    id = Some("test-global-check-ordering"),
+    name = Some("testGlobalCheckOrdering"),
+    params = List(WjiParam("|flag|")),
+    head = "",
+    body = List(
+      Instr.IfChain(
+        branches = List(
+          (
+            Cond.Eq(Expr.Var("flag"), Expr.Bool(true)),
+            List(Instr.Return(Some(Expr.Str("first")))),
+          ),
+          (
+            Cond.Any(
+              "ea",
+              List(Expr.AlgoCall("[=poison=]", List(Expr.Bool(true)))),
+              Cond.Eq(Expr.Field(Expr.Var("ea"), "id"), Expr.Str("Global")),
+            ),
+            List(Instr.Return(Some(Expr.Str("second")))),
+          ),
+        ),
+        fallback = List(Instr.Return(Some(Expr.Str("fallback")))),
+      ),
+    ),
+  )
+
+  /** Same second-branch-`Cond.Any` shape as [[testGlobalCheckOrdering]], but
+    * searching a real `|attrs|` list argument instead of [[poison]] — mirrors
+    * `CondParser.declaredWithAttr`'s actual `Any("ea", [Field(x,
+    * "extendedAttributes")], ...)` shape (a plain, already-bound collection,
+    * here simplified to the bound parameter itself rather than a field read off
+    * some other record — that field-read step is untouched by this fix and
+    * already covered elsewhere) — to check the *value* the hoisted search
+    * produces once it actually runs, not just whether it runs at all.
+    */
+  private val testGlobalCheckMatch = Algorithm(
+    id = Some("test-global-check-match"),
+    name = Some("testGlobalCheckMatch"),
+    params = List(WjiParam("|flag|"), WjiParam("|attrs|")),
+    head = "",
+    body = List(
+      Instr.IfChain(
+        branches = List(
+          (
+            Cond.Eq(Expr.Var("flag"), Expr.Bool(true)),
+            List(Instr.Return(Some(Expr.Str("first")))),
+          ),
+          (
+            Cond.Any(
+              "ea",
+              List(Expr.Var("attrs")),
+              Cond.Eq(Expr.Field(Expr.Var("ea"), "id"), Expr.Str("Global")),
+            ),
+            List(Instr.Return(Some(Expr.Str("second")))),
+          ),
+        ),
+        fallback = List(Instr.Return(Some(Expr.Str("fallback")))),
+      ),
+    ),
+  )
+
   /** Returns |x| unchanged — a controllable stand-in for [[poison]] where a
     * test needs the right operand of `Cond.And` to actually evaluate to
     * **false** rather than always throwing, to check which branch runs once it
@@ -204,6 +293,25 @@ class LoweringBehaviorSpec extends AnyFunSuite:
     EsInterpreter(st)
     st.globals.getOrElse(GLOBAL_RESULT, Undef)
 
+  /** Same as [[invoke]], but `buildArgs` gets a `State` (its heap already live)
+    * to allocate real objects into before the arguments are bound — needed
+    * wherever a test wants to pass a heap value (e.g. a list of records) rather
+    * than a plain `Bool`/`Str`, which [[invoke]]'s flat `args` list can't
+    * express since those objects don't exist until a `State` (and its heap)
+    * does.
+    */
+  private def invokeWith(algos: List[Algorithm], fname: String)(
+    buildArgs: (State, CFG) => List[Value],
+  ): Value =
+    val program = Compiler.compile(Lowering.run(algos))
+    val cfg = CFGBuilder(program)
+    val f = cfg.getFunc(fname)
+    val st = State(cfg, Context(f))
+    val args = buildArgs(st, cfg)
+    st.context = Context(f, MMap.from(f.params.map(_.lhs).zip(args)))
+    EsInterpreter(st)
+    st.globals.getOrElse(GLOBAL_RESULT, Undef)
+
   test(
     "IfChain hoisting: a later branch's side-effecting call must not run once an earlier branch already matched",
   ) {
@@ -264,5 +372,57 @@ class LoweringBehaviorSpec extends AnyFunSuite:
     assert(
       invoke(algos, "testandwithelse", List(Bool(false), Bool(true)))
       == Str("not matched"),
+    )
+  }
+
+  test(
+    "Cond.Any in a non-first IfChain branch: the hoisted search must not run once an earlier branch already matched",
+  ) {
+    val algos = List(poison, testGlobalCheckOrdering)
+
+    // first branch matches -> second branch's Cond.Any search (and its
+    // poison-embedded collection) must never be evaluated
+    assert(
+      invoke(algos, "testglobalcheckordering", List(Bool(true))) == Str(
+        "first",
+      ),
+    )
+
+    // first branch doesn't match -> second branch's Cond.Any IS evaluated ->
+    // poison must fire, proving it was actually hoisted into a real search
+    // rather than left as an un-hoisted EYet
+    intercept[AssertionFail] {
+      invoke(algos, "testglobalcheckordering", List(Bool(false)))
+    }
+  }
+
+  test(
+    "Cond.Any in a non-first IfChain branch: the hoisted search must return the right match result",
+  ) {
+    val algos = List(testGlobalCheckMatch)
+
+    // second branch's list contains a "Global" entry -> found -> "second"
+    assert(
+      invokeWith(algos, "testglobalcheckmatch") { (st, cfg) =>
+        given CFG = cfg
+        val other =
+          st.allocRecord("ExtendedAttribute", List("id" -> Str("Other")))
+        val global =
+          st.allocRecord("ExtendedAttribute", List("id" -> Str("Global")))
+        val attrs = st.allocList(List(other, global))
+        List(Bool(false), attrs)
+      } == Str("second"),
+    )
+
+    // second branch's list has no "Global" entry -> not found -> falls
+    // through to the IfChain's original fallback
+    assert(
+      invokeWith(algos, "testglobalcheckmatch") { (st, cfg) =>
+        given CFG = cfg
+        val other =
+          st.allocRecord("ExtendedAttribute", List("id" -> Str("Other")))
+        val attrs = st.allocList(List(other))
+        List(Bool(false), attrs)
+      } == Str("fallback"),
     )
   }

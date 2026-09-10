@@ -49,12 +49,36 @@ import esmeta.wji.bridge.host.WasmHost
   * later collection's loop runs zero iterations, without needing an explicit
   * early-exit/break instruction.
   *
-  * Only fires for `Instr.Assert`/`Instr.While`, and `Instr.IfChain`s with
-  * exactly one branch (every "if VALUE matches/any-in ..." call site reached so
-  * far is a plain `If ..., throw ...` with no `ElseIf`/`Else`) — hoisting a
-  * later branch's precondition correctly requires nesting it inside the earlier
-  * branches' "false" case, which no current call site needs; left unexpanded
-  * (so `Compiler` reports `EYet`) until one does.
+  * For `Instr.IfChain`, hoisting a later branch's precondition correctly
+  * requires nesting it inside the earlier branches' "false" case rather than
+  * flat-hoisting to the top — e.g. index.bs:12051's "declared with the
+  * [{{Global}}] extended attribute" sits in the first branch of a 4-way chain,
+  * and index.bs:12064's variant sits in a later `Otherwise if`. `buildChain`
+  * below rebuilds the branch list back-to-front (mirroring
+  * `NormalizeEvaluationOrderPass.buildChain`, which solves the identical
+  * ordering problem for hoisted calls — see its own doc): a branch needing
+  * nothing hoisted is folded back in as a flat sibling of whatever `rest`
+  * already built, so a chain needing no hoisting anywhere round-trips with its
+  * original flat shape unchanged; once a branch does need hoisting, its `pre`
+  * instructions only belong on the path reached once every earlier branch's
+  * condition is already false, so everything from there on nests one level
+  * deeper instead of staying a flat sibling.
+  *
+  * `expandInstr` only dispatches to `buildChain` when [[chainNeedsHoist]] finds
+  * a real `Matches`/`Any` somewhere in the chain (including down through a
+  * single-branch `IfChain`'s own `fallback`, the shape several earlier passes —
+  * `ExpandAbruptPass`/`ExpandThrowsPass`/etc. — routinely build for unrelated
+  * reasons) — otherwise it falls through to the generic `mapBody` case below,
+  * leaving that `IfChain` node's own flat-vs-nested shape exactly as those
+  * earlier passes built it. Without this guard, `buildChain`'s own
+  * flatten-when-possible step would still leave runtime behavior unchanged
+  * (`Compiler.compileInstr`'s `IfChain` case recurses into a nested
+  * single-branch `fallback` exactly as it would a flat multi-branch list, so
+  * the compiled `IIf` tree comes out identical either way), but would
+  * needlessly re-flatten every such incidental nesting anywhere in the corpus
+  * into a differently-shaped (if semantically equivalent) `IfChain`, showing up
+  * as unrelated `ir.expected` diff noise ("else { if ... }" reprinted as "else
+  * if ...").
   *
   * Category: Spec-dependent — SpecTec.
   */
@@ -121,14 +145,53 @@ object ExpandMatchesExistsPass extends LoweringPass:
       case Instr.While(cond, body) if needsHoist(cond) =>
         val (pre, simplified) = hoist(cond, counter)
         pre :+ Instr.While(simplified, transform(body, counter))
-      case Instr.IfChain(List((cond, body)), fallback) if needsHoist(cond) =>
-        val (pre, simplified) = hoist(cond, counter)
-        pre :+ Instr.IfChain(
-          List((simplified, transform(body, counter))),
-          transform(fallback, counter),
-        )
+      case Instr.IfChain(branches, fallback)
+          if chainNeedsHoist(branches, fallback) =>
+        buildChain(branches, fallback, counter)
       case other =>
         List(other.mapBody(transform(_, counter)))
+
+  /** Whether [[buildChain]] would actually hoist anything out of this chain —
+    * checked before calling it, so a chain needing nothing hoisted is left for
+    * the generic `mapBody` recursion instead (see class doc). Looks past a
+    * single-branch `IfChain`'s own `fallback` (the shape produced by e.g.
+    * `ExpandAbruptPass`/`ExpandThrowsPass` for their own, unrelated reasons) to
+    * see whether a hoist is needed further down the logical chain, the same
+    * shape `buildChain` itself would flatten through to reach it.
+    */
+  private def chainNeedsHoist(
+    branches: List[(Cond, List[Instr])],
+    fallback: List[Instr],
+  ): Boolean =
+    branches.exists((cond, _) => needsHoist(cond)) || (fallback match
+      case List(Instr.IfChain(nestedBranches, nestedFallback)) =>
+        chainNeedsHoist(nestedBranches, nestedFallback)
+      case _ => false
+    )
+
+  /** Rebuilds an `IfChain`'s branch list back-to-front, hoisting each branch's
+    * own condition via [[hoist]] as it goes — see this pass's class doc.
+    */
+  private def buildChain(
+    branches: List[(Cond, List[Instr])],
+    fallback: List[Instr],
+    counter: Counter,
+  ): List[Instr] = branches match
+    case Nil => transform(fallback, counter)
+    case (cond, body) :: rest =>
+      val (pre, newCond) =
+        if needsHoist(cond) then hoist(cond, counter) else (Nil, cond)
+      val newBody = transform(body, counter)
+      val restInstrs = buildChain(rest, fallback, counter)
+      if pre.isEmpty then
+        restInstrs match
+          case List(Instr.IfChain(restBranches, restFallback)) =>
+            List(
+              Instr.IfChain((newCond, newBody) :: restBranches, restFallback),
+            )
+          case other =>
+            List(Instr.IfChain(List((newCond, newBody)), other))
+      else pre ++ List(Instr.IfChain(List((newCond, newBody)), restInstrs))
 
   private def needsHoist(cond: Cond): Boolean = cond match
     case Cond.Matches(_, matchType, _, _) =>

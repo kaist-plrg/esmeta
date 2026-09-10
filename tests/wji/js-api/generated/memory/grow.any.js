@@ -294,7 +294,7 @@ var self = globalThis;
     // true, so assigning to a read-only accessor always throws `TypeError`
     // instead of sloppy mode's real silent no-op. Real per-script/per-node
     // strict-mode detection (directive prologue tracking) is unimplemented;
-    // see personal/test_fails.md. Affects `memory/buffer.any.js`,
+    // see docs/out_of_scope.md #2. Affects `memory/buffer.any.js`,
     // `table/length.any.js`, `instance/exports.any.js`.
     "Setting (sloppy mode)",
   ]);

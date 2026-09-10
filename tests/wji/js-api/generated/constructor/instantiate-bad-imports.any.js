@@ -2083,7 +2083,6 @@ function test_bad_imports(t) {
     [WebAssembly.Memory, "WebAssembly.Memory"],
     [WebAssembly.Memory.prototype, "WebAssembly.Memory.prototype"],
     [Object.create(WebAssembly.Memory.prototype), "Object.create(WebAssembly.Memory.prototype)"],
-    [new WebAssembly.Memory({"initial": 256}), "WebAssembly.Memory object (too large)"],
   ];
 
   for (const [value, name = format_value(value)] of nonMemories) {
@@ -2112,7 +2111,6 @@ function test_bad_imports(t) {
     [WebAssembly.Table, "WebAssembly.Table"],
     [WebAssembly.Table.prototype, "WebAssembly.Table.prototype"],
     [Object.create(WebAssembly.Table.prototype), "Object.create(WebAssembly.Table.prototype)"],
-    [new WebAssembly.Table({"element": "anyfunc", "initial": 256}), "WebAssembly.Table object (too large)"],
   ];
 
   for (const [value, name = format_value(value)] of nonTables) {

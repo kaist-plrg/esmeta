@@ -301,6 +301,7 @@ Retracted — its premise was wrong. This entry claimed the Wasm Core Spec's `fu
       null otherwise.
   ```
 - **Reason**: `|I|` is bound once (step 2, `Let |interface| be |I|`) and never reassigned, so "the interface that `|I|` inherits from" is a constant — `|I|`'s own immediate parent — for every iteration of the loop. Trace it for `|I|` inheriting from `|P|`, with `|P|` itself having no parent: iteration 1 appends `|I|`, then sets `|interface|` to `|P|` (correct so far, since `|I|`'s parent is `|P|`); iteration 2 appends `|P|`, then sets `|interface|` to "the interface that `|I|` inherits from" again — still `|P|`, not `|P|`'s parent (there is none) — so `|interface|` never becomes null and the loop appends `|P|` forever. This isn't limited to inheritance chains of depth ≥ 2: it infinite-loops for *any* interface that inherits from anything at all, since step 3.2 can only ever produce `|I|`'s own direct parent (or, for the base case, keep re-deriving the same non-null value) instead of walking one level further up the chain each time. Replacing `|I|` with `|interface|` in step 3.2 is the fix — it makes each iteration derive the *next* interface up from wherever the walk currently is, which is what "inherited interfaces" (a term this very algorithm is defining) requires.
+<<<<<<< HEAD
 ## 26. `"a new Exported GC Object"`'s cache keys purely by `|objectaddr|`, but struct/array addresses aren't unique together
 
 - **File**: `spectec/document/js-api/index.bs`, lines 1646-1669 (`"a new Exported GC Object"`)
@@ -320,3 +321,10 @@ Retracted — its premise was wrong. This entry claimed the Wasm Core Spec's `fu
   1. [=map/Set=] |map|[(|objectkind|, |objectaddr|)] to |object|.
   ```
 - **Reason**: this algorithm takes both a WebAssembly [=object address=] `|objectaddr|` and a string `|objectkind|` (`"array"` or `"struct"`), asserted right at the top, but the cache lookup/store only ever uses `|objectaddr|` — as if it alone were enough to identify the object. It isn't: the Wasm Core spec's own `structaddr`/`arrayaddr` (`4.0-execution.configurations.spectec:15-16`) are each just `= addr`, allocated independently from 0 in their own separate store component (structs and arrays are never in the same list) — so the *first* struct ever created and the *first* array ever created legitimately share `objectaddr` 0. With the cache keyed on `objectaddr` alone, creating the array after the struct finds the struct's entry already "exists" at that same key and returns the *struct's* wrapper object instead of creating a new one for the array — observable as `struct === array` (same JS object identity) for the results of `WebAssembly.Module`-instantiated `struct.new`/`array.new` exports, which then makes both `gc/exported-object.tentative.any.js`'s "GC objects as map keys" and "... as weak map keys" subtests fail (`map.get(struct)` returns the array's stored value, since `map.set(array, ...)` silently overwrote the same cache-collided key). Fixed via `SpecPatch` #53.
+
+## 27. Duplicated article "an an" in the asynchronous iteration methods algorithm
+
+- **File**: `webidl/index.bs`, line 12981 (`define the asynchronous iteration methods` given |target|, step 1).
+- **Current**: `1.  If |definition| does not have an an [=asynchronously iterable declaration=] (of either sort), then return.`
+- **Expected**: `1.  If |definition| does not have an [=asynchronously iterable declaration=] (of either sort), then return.`
+- **Reason**: The article "an" is duplicated back-to-back before `[=asynchronously iterable declaration=]`, a plain wording typo with no bearing on the algorithm's meaning — the check is simply "does not have an asynchronously iterable declaration."

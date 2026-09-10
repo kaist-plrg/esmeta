@@ -1103,6 +1103,15 @@ object SpecPatch:
     "|map|[|objectaddr|]"
     ->
     "|map|[(|objectkind|, |objectaddr|)]",
+
+    // #54 (spec bug, docs/spec_errors.md #27) — `define the asynchronous
+    // iteration methods` (webidl/index.bs:12981) duplicates the article
+    // "an" before "[=asynchronously iterable declaration=]": "does not
+    // have an an [=asynchronously iterable declaration=]". Plain wording
+    // typo, no semantic effect. Patched to a single "an".
+    "does not have an an [=asynchronously iterable declaration=]"
+    ->
+    "does not have an [=asynchronously iterable declaration=]",
   )
 
   def apply(source: String): String =

@@ -3625,7 +3625,18 @@ def create_an_interface_object(
   }
   let constructorProto = realm.Intrinsics["%Function.prototype%"]
   if (yet "|I| inherits from some other interface |P|") {
-    constructorProto = (yet "the [=interface object=] of |P| in |realm|")
+    call _guard1 = clo<"create_an_interface_object">(P, realm)
+    if (? _guard1: Abrupt) {
+      if (? _guard1: Completion) {
+        return _guard1
+      } else {
+        call _ret1 = clo<"NormalCompletion">(_guard1)
+        return _ret1
+      }
+    } else {
+      let _call1 = _guard1.Value
+    }
+    constructorProto = _call1
   } else nop
   call unforgeables = clo<"OrdinaryObjectCreate">(null)
   call _ = clo<"define_the_unforgeable_regular_operations">(I, unforgeables, realm)
@@ -3645,16 +3656,16 @@ def create_an_interface_object(
     length = _shortLen1
   } else nop
   call F = clo<"CreateBuiltinFunction">(steps, length, id, (list ["Unforgeables"]), realm, constructorProto)
-  call _guard1 = clo<"create_an_interface_prototype_object">(I, realm)
-  if (? _guard1: Abrupt) {
-    if (? _guard1: Completion) {
-      return _guard1
+  call _guard2 = clo<"create_an_interface_prototype_object">(I, realm)
+  if (? _guard2: Abrupt) {
+    if (? _guard2: Completion) {
+      return _guard2
     } else {
-      call _ret1 = clo<"NormalCompletion">(_guard1)
-      return _ret1
+      call _ret2 = clo<"NormalCompletion">(_guard2)
+      return _ret2
     }
   } else {
-    let proto = _guard1.Value
+    let proto = _guard2.Value
   }
   call _ = clo<"DefinePropertyOrThrow">(F, "<code>prototype</code>", (record [PropertyDescriptor] {
     "Value" : proto,
@@ -3668,8 +3679,8 @@ def create_an_interface_object(
   if (? F: Completion) {
     return F
   } else {
-    call _ret2 = clo<"NormalCompletion">(F)
-    return _ret2
+    call _ret3 = clo<"NormalCompletion">(F)
+    return _ret3
   }
 }
 def create_an_interface_prototype_object(
@@ -3732,7 +3743,17 @@ def create_an_interface_prototype_object(
   } else nop
   call _ = clo<"define_the_constants">(interface, interfaceProtoObj, realm)
   if (yet "the [{{LegacyNoInterfaceObject}}] [=extended attribute=] was not specified on |interface|") {
-    let constructor = (yet "the [=interface object=] of |interface| in |realm|")
+    call _guard1 = clo<"create_an_interface_object">(interface, realm)
+    if (? _guard1: Abrupt) {
+      if (? _guard1: Completion) {
+        return _guard1
+      } else {
+        call _ret1 = clo<"NormalCompletion">(_guard1)
+        return _ret1
+      }
+    } else {
+      let constructor = _guard1.Value
+    }
     let desc = (record [PropertyDescriptor] {
       "Writable" : true,
       "Enumerable" : false,
@@ -3744,8 +3765,8 @@ def create_an_interface_prototype_object(
   if (? interfaceProtoObj: Completion) {
     return interfaceProtoObj
   } else {
-    call _ret1 = clo<"NormalCompletion">(interfaceProtoObj)
-    return _ret1
+    call _ret2 = clo<"NormalCompletion">(interfaceProtoObj)
+    return _ret2
   }
 }
 def define_the_constants(
@@ -4148,7 +4169,17 @@ def internally_create_a_new_object_implementing_the_interface(
   call _call1 = clo<"exposed">(interface, realm)
   assert (= _call1 true)
   if (= newTarget undefined) {
-    let prototype = (yet "the [=interface prototype object=] for |interface| in |realm|")
+    call _guard1 = clo<"create_an_interface_prototype_object">(interface, realm)
+    if (? _guard1: Abrupt) {
+      if (? _guard1: Completion) {
+        return _guard1
+      } else {
+        call _ret1 = clo<"NormalCompletion">(_guard1)
+        return _ret1
+      }
+    } else {
+      let prototype = _guard1.Value
+    }
   } else {
     call _call2 = clo<"IsCallable">(newTarget)
     assert (= _call2 true)
@@ -4157,8 +4188,8 @@ def internally_create_a_new_object_implementing_the_interface(
       if (? _call3: Completion) {
         return _call3
       } else {
-        call _ret1 = clo<"NormalCompletion">(_call3)
-        return _ret1
+        call _ret2 = clo<"NormalCompletion">(_call3)
+        return _ret2
       }
     } else {
       let prototype = _call3.Value
@@ -4169,13 +4200,24 @@ def internally_create_a_new_object_implementing_the_interface(
         if (? _call4: Completion) {
           return _call4
         } else {
-          call _ret2 = clo<"NormalCompletion">(_call4)
-          return _ret2
+          call _ret3 = clo<"NormalCompletion">(_call4)
+          return _ret3
         }
       } else {
         let targetRealm = _call4.Value
       }
-      prototype = (yet "the [=interface prototype object=] for |interface| in |targetRealm|")
+      call _guard2 = clo<"create_an_interface_prototype_object">(interface, targetRealm)
+      if (? _guard2: Abrupt) {
+        if (? _guard2: Completion) {
+          return _guard2
+        } else {
+          call _ret4 = clo<"NormalCompletion">(_guard2)
+          return _ret4
+        }
+      } else {
+        let _call5 = _guard2.Value
+      }
+      prototype = _call5
     } else nop
   }
   let slots = (list ["Prototype", "Extensible", "Realm", "PrimaryInterface"])
@@ -4189,16 +4231,16 @@ def internally_create_a_new_object_implementing_the_interface(
   call interfaces = clo<"inclusive_inherited_interfaces">(interface)
   call _ = clo<"list/iterate">(ancestor interface, interfaces)
   let unforgeables = (yet "the value of the \\[[Unforgeables]] slot of the [=interface object=] of |ancestor interface| in |realm|")
-  let _call5 = (yet "|unforgeables|.\\[[OwnPropertyKeys]]()")
-  assert (= _call5.Type ~normal~)
-  let keys = _call5.Value
+  let _call6 = (yet "|unforgeables|.\\[[OwnPropertyKeys]]()")
+  assert (= _call6.Type ~normal~)
+  let keys = _call6.Value
   let _iterList1 = keys
   let _iterIdx2 = 0
   while (< _iterIdx2 (sizeof _iterList1)) {
     let key = _iterList1[_iterIdx2]
-    let _call6 = (yet "|unforgeables|.\\[[GetOwnProperty]](|key|)")
-    assert (= _call6.Type ~normal~)
-    let descriptor = _call6.Value
+    let _call7 = (yet "|unforgeables|.\\[[GetOwnProperty]](|key|)")
+    assert (= _call7.Type ~normal~)
+    let descriptor = _call7.Value
     call _ = clo<"DefinePropertyOrThrow">(instance, key, descriptor)
     _iterIdx2 = (+ _iterIdx2 1)
   }
@@ -4220,8 +4262,8 @@ def internally_create_a_new_object_implementing_the_interface(
   if (? instance: Completion) {
     return instance
   } else {
-    call _ret3 = clo<"NormalCompletion">(instance)
-    return _ret3
+    call _ret5 = clo<"NormalCompletion">(instance)
+    return _ret5
   }
 }
 def asynchronously_compile_a_webassembly_module_closure1(

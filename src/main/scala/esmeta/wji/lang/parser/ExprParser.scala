@@ -353,6 +353,20 @@ object ExprParser:
   // prose — rather than a bespoke comma/"and" splitter.
   private val PassingToCall =
     """(?si)^passing\s+(.+?)\s+to\s+the\s+(\[=[^\]]+=\])$""".r
+  // "the [=interface object=] of |I| in |realm|" / "the [=interface
+  // prototype object=] for |I| in |realm|" — a WebIDL glossary term (the
+  // cached per-realm *value*, not the algorithm that builds it) referenced
+  // with its own subject/realm pair, unlike LinkOnly's bare "the [=LINK=]"
+  // or LinkProse's no-leading-"the" "[=LINK=] REST" (webidl_yet_categorized.md
+  // category III-A). `link` here never names a real algorithm directly —
+  // `ResolveLinksPass`'s `linkAliases` bridges it to the actual constructing
+  // algorithm's name ("create an interface (prototype) object") once the
+  // full set of real algorithm names is known. Args are kept to plain
+  // `|var|`s (not general `.+`), matching every occurrence seen so far and
+  // this file's convention elsewhere (`AssociatedRealm`, `PossessiveIdentifier`,
+  // `IdentifierOfType`) of not over-generalizing past the observed shape.
+  private val LinkOfForIn =
+    """(?si)^the\s+(\[=[^\]]+=\])\s+(?:of|for)\s+(\|[^|]+\|)\s+in\s+(\|[^|]+\|)$""".r
   private val LinkProse = """(?s)^(\[=[^\]]+\])\s+(.+)$""".r
   private val LinkOnly = """(?s)^(?:the\s+)?(\[=[^\]]+\])$""".r
   // "VALUE, [=link=]" — spec's passive-voice idiom for a unary conversion
@@ -954,6 +968,8 @@ object ExprParser:
           case "ℝ"  => AsMath(parse(argsRaw))
           case _ =>
             AlgoCall(normalizeLink(link), splitComma(argsRaw).map(parse))
+      case LinkOfForIn(link, subjRaw, realmRaw) =>
+        Link(normalizeLink(link), List(parse(subjRaw), parse(realmRaw)))
       case LinkProse(link, prose) =>
         Link(normalizeLink(link), parseArgs(prose))
       case LinkOnly(link) => Link(normalizeLink(link), Nil)

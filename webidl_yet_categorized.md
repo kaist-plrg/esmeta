@@ -223,16 +223,6 @@ occurrence는 (`#1-5`/`#2-1`/`#2-5`의 "declared with the [{{Global}}]" 처럼) 
 것"이라는 관용구 인식 문제. 공통 대응: spec patch로 원문을 명시적 `call clo<...>(...)` 형태로
 재작성.
 
-### III-A. 객체를 만들거나 해당 정의를 확인하는 하위 알고리즘 참조: spec patch 로 직접 연결 (hardcode)
-- `#1-1` - Let |prototype| be the [=interface prototype object=] for |interface| in |realm|.
-           => Let |prototype| be the [=create an interface prototype object=] of |interface| in |realm|.
-- `#1-3` - the [=interface object=] of |ancestor interface| in |realm|
-- `#2-9` - the [=interface object=] of |interface| in |realm|
-- `#5-2` - |attr| is not [=exposed=] in |realm|
-          => assume false
-- `#9-2`, `#20-2` - |op| is not [=exposed=] in |realm|
-          => assume false
-
 ### III-B. 알고리즘/클로저 호출
 - `#3-7` - Perform the constructor steps of |constructor| with |object| as this and |values| as the argument values
 - `#5-3` - the result of creating an [=attribute getter=] given |attr|, |definition|, and |realm|
@@ -253,10 +243,6 @@ occurrence는 (`#1-5`/`#2-1`/`#2-5`의 "declared with the [{{Global}}]" 처럼) 
 
 ### IV-A. Range expression 관련
 - #11-18 - [=list/For each=] |j| in [=the range=] 0 to |i| − 1, inclusive: ...
-
-### IV-B. 알고리즘 호출이 case로 인식되는 경우
-- `#5-2`, `#9-2`, `#20-2` - [=exposed=] in |realm|
-          => (case "EXPOSED" realm)
 
 ### IV-C. `[=dfn-link=] |var|` 설명 주석이 case 태그/알고리즘 호출로 오인됨
 - `#3-5` - [=identifier=] |id| on [=interface=] |I| and with argument count |n|

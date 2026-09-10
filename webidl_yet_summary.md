@@ -57,11 +57,6 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
   하나를 만드는, `Expr.New(iface)`가 최종적으로 의미하는 범용 알고리즘입니다.
 
 ```
-1. 카테고리 - III-A
-   원문 - Let |prototype| be the [=interface prototype object=] for |interface| in |realm|.
-           - Set |prototype| to the [=interface prototype object=] for |interface| in |targetRealm|.
-   IR - let prototype = (yet "the [=interface prototype object=] for |interface| in |realm|")
-           - prototype = (yet "the [=interface prototype object=] for |interface| in |targetRealm|")
 
 2. 카테고리 - I-O + IV-C
    원문 - [=list/iterate|For every=] [=interface=] |ancestor interface| in |interfaces|: ...
@@ -69,7 +64,7 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
    IR - call _ = clo<"list/iterate">((case "INTERFACE" ancestor interface interfaces))
            - (yet "foreach ?(element |key|) in ?(|keys|:)")
 
-3. 카테고리 - III-A + I-A
+3. 카테고리 - I-A 
    원문 - Let |unforgeables| be the value of the \[[Unforgeables]] slot of the [=interface object=] of |ancestor interface| in |realm|.
    IR - let unforgeables = (yet "the value of the \[[Unforgeables]] slot of the [=interface object=] of |ancestor interface| in |realm|")
 
@@ -131,10 +126,6 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
 8. 카테고리 - II-A
    원문 - If the [{{LegacyNoInterfaceObject}}] [=extended attribute=] was not specified on |interface|, then: ...
    IR - if (yet "the [{{LegacyNoInterfaceObject}}] [=extended attribute=] was not specified on |interface|") { ... }
-
-9. 카테고리 - III-A
-   원문 - Let |constructor| be the [=interface object=] of |interface| in |realm|.
-   IR - let constructor = (yet "the [=interface object=] of |interface| in |realm|")
 ```
 
 ---
@@ -179,9 +170,11 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
    원문 - Perform the [=constructor steps=] of |constructor| with |object| as [=this=] and |values| as the argument values.
    IR - (yet "Perform the [=constructor steps=] of |constructor| with |object| as [=this=] and |values| as the argument values")
 
-8. 카테고리 - II-C
+8. 카테고리 - II-C 
    원문 - If |I| inherits from some other interface |P|, then set |constructorProto| to the [=interface object=] of |P| in |realm|.
-   IR - if (yet "|I| inherits from some other interface |P|") { ... }
+   IR - if (yet "|I| inherits from some other interface |P|") {
+          call constructorProto = clo<"create an interface object">(P, realm)
+        }
 
 9. 카테고리 - II-A
    원문 - If |I| was declared with a [=constructor operation=], then: ...
@@ -230,10 +223,6 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
 1. 카테고리 - I-O + IV-C
    원문 - [=list/For each=] [=attribute=] |attr| of |attributes|: ...
    IR - call _ = clo<"list/for_each">((case "ATTRIBUTE" attr attributes))
-
-2. 카테고리 - III-A + IV-B
-   원문 - If |attr| is not [=exposed=] in |realm|, then ...
-   IR - if (! (= attr (case "EXPOSED" realm))) { ... }
 
 3. 카테고리 - III-B
    원문 - Let |getter| be the result of creating an [=attribute getter=] given |attr|, |definition|, and |realm|.
@@ -445,10 +434,6 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
 1. 카테고리 - I-O + IV-C
    원문 - [=list/For each=] [=operation=] |op| of |operations|: ...
    IR - call _ = clo<"list/for_each">((case "OPERATION" op operations))
-
-2. 카테고리 - I-F + III-A + IV-B
-   원문 - If |op| is not [=exposed=] in |realm|, then [=iteration/continue=].
-   IR - if (! (= op (case "EXPOSED" realm))) { (yet "continue") }
 
 3. 카테고리 - IV-D
    원문 - Let |modifiable| be <emu-val>false</emu-val> if |op| is [=unforgeable=] and <emu-val>true</emu-val> otherwise.
@@ -694,10 +679,8 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
 
 ## #20 `define_the_constants`
 
+```
 1. 카테고리 - I-O + IV-C
    원문 - [=list/For each=] [=constant=] |const| that is a [=member=] of |definition|:
    IR - call _ = clo<"list/for_each">((case "CONSTANT" const (case "MEMBER" definition)))
-
-2. 카테고리 - III-A + IV-B
-   원문 - If |attr| is not [=exposed=] in |realm|, then ...
-   IR - if (! (= attr (case "EXPOSED" realm))) { ... }
+```

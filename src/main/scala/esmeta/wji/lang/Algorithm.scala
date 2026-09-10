@@ -189,6 +189,17 @@ case class WjiParam(
   *   `esmeta.wji.compiler.lowering.MarkBuiltinBehaviourPass`; every later pass
   *   that cares (`AddBuiltinBehaviourPass`, and its own `preconditions`) just
   *   reads this field, the same reasoning as `returnsCompletion` above.
+  * @param idlReturnType
+  *   the raw WebIDL-declared return type text (e.g. `"undefined"`,
+  *   `"AddressValue"`) for a [[AlgorithmKind.Method]]/
+  *   [[AlgorithmKind.NamespaceMethod]]/[[AlgorithmKind.Constructor]] algorithm
+  * -- stamped by `esmeta.wji.extractor.Extractor.enrichParamTypes` from the
+  * same `webidlOp` lookup that stamps each `WjiParam.idlType`, so this and a
+  * param's `idlType` share the same source and reliability caveat: `None`
+  * whenever no matching WebIDL operation was found (e.g. a `Getter`/ `Setter`,
+  * which have no declared return type of their own to look up). Currently only
+  * consumed to detect the single `"undefined"` case -- see
+  * `esmeta.wji.compiler.lowering.AddInterfaceMemberBuiltinBehaviourPass.returnEpilogue`.
   */
 case class Algorithm(
   id: Option[String],
@@ -199,4 +210,5 @@ case class Algorithm(
   kind: AlgorithmKind = AlgorithmKind.Plain,
   returnsCompletion: Boolean = false,
   isBuiltinBehaviour: Boolean = false,
+  idlReturnType: Option[String] = None,
 )

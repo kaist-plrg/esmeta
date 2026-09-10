@@ -30,14 +30,17 @@ import esmeta.error.UnsupportedSpecShape
   * ([[newTargetCheck]] — not a `Constructor`; [[brandingCheck]] — no
   * `**this**`-implements-interface guard, since a namespace operation has no
   * interface to implement; [[givenValueBinding]] — not a `Setter`;
-  * [[createThisBinding]]/[[returnThisBinding]] — not a `Constructor`, and
-  * unlike a `Getter`/`Method`/`Setter` a namespace operation's `**this**` is
-  * simply never read at all, so nothing needs binding) but still goes through
-  * [[unpackArgumentsList]] and [[wrapReturnValues]] exactly like a `Method`
-  * does — and, in `Compiler`, registers under `INTRINSICS.<namespace>.<name>`
-  * (no `.prototype` segment: `WebAssembly.instantiate`, never
-  * `WebAssembly.prototype.instantiate`) — see `Compiler.compileAlgo`'s own
-  * `NamespaceMethod` case.
+  * [[createThisBinding]]/[[returnEpilogue]]'s `Constructor` case — not a
+  * `Constructor`, and unlike a `Getter`/`Method`/`Setter` a namespace
+  * operation's `**this**` is simply never read at all, so nothing needs
+  * binding; [[returnEpilogue]]'s `"undefined"`-return case does still apply to
+  * a `NamespaceMethod`, in principle — no corpus occurrence has that declared
+  * return type today, but nothing about it depends on having a receiver) but
+  * still goes through [[unpackArgumentsList]] and [[wrapReturnValues]] exactly
+  * like a `Method` does — and, in `Compiler`, registers under
+  * `INTRINSICS.<namespace>.<name>` (no `.prototype` segment:
+  * `WebAssembly.instantiate`, never `WebAssembly.prototype.instantiate`) — see
+  * `Compiler.compileAlgo`'s own `NamespaceMethod` case.
   *
   * `AlgorithmKind.NamespaceGetter` is `NamespaceMethod`'s exact counterpart for
   * a namespace attribute's getter (e.g. `WebAssembly.JSTag`) — restamped from
@@ -99,17 +102,17 @@ import esmeta.error.UnsupportedSpecShape
   * with object as this"), a step outside the constructor-steps text itself,
   * which is why no js-api constructor algorithm ever writes it and every one
   * instead ends by mutating `this`'s fields with no explicit `Return`.
-  * [[createThisBinding]]/[[returnThisBinding]] mechanize exactly that
-  * preamble/epilogue. The object itself still reuses the same `Expr.New(iface)`
-  * → `ERecord(iface, ordinaryObjectFields(iface))` construction
-  * `esmeta.wji.compiler.Compiler.compileExpr` already uses for the "Let |x| be
-  * a new Y." shape inside algorithm bodies (see `docs/hardcodes.md` #7), but
-  * its `[[Prototype]]` gets overwritten right after — WebIDL's real preamble is
-  * `? OrdinaryCreateFromConstructor(NewTarget, "%<iface>.prototype%")`
-  * (`webidl/index.bs`), whose whole point is reading `NewTarget`'s own
-  * `"prototype"` property first (falling back to the default intrinsic only
-  * when that isn't an Object) — exactly what makes `class Sub extends
-  * WebAssembly.Module {}; new Sub(...) instanceof Sub` true.
+  * [[createThisBinding]]/[[returnEpilogue]]'s `Constructor` case mechanize
+  * exactly that preamble/epilogue. The object itself still reuses the same
+  * `Expr.New(iface)` → `ERecord(iface, ordinaryObjectFields(iface))`
+  * construction `esmeta.wji.compiler.Compiler.compileExpr` already uses for the
+  * "Let |x| be a new Y." shape inside algorithm bodies (see `docs/hardcodes.md`
+  * #7), but its `[[Prototype]]` gets overwritten right after — WebIDL's real
+  * preamble is `? OrdinaryCreateFromConstructor(NewTarget,
+  * "%<iface>.prototype%")` (`webidl/index.bs`), whose whole point is reading
+  * `NewTarget`'s own `"prototype"` property first (falling back to the default
+  * intrinsic only when that isn't an Object) — exactly what makes `class Sub
+  * extends WebAssembly.Module {}; new Sub(...) instanceof Sub` true.
   * `ordinaryObjectFields`'s `Prototype` field is always the fixed default
   * intrinsic (correct for the unrelated re-entrant callers of bare
   * `Expr.New(iface)`, e.g. "create a memory object" from an address — never
@@ -483,7 +486,7 @@ object AddInterfaceMemberBuiltinBehaviourPass extends LoweringPass:
     *
     * Only for `Getter`/`Method` -- WebIDL declares a real return *type* for
     * both, unlike `Setter` (no return value at all) or `Constructor` (whose own
-    * implicit `Return **this**`, see [[returnThisBinding]], is already a real
+    * implicit `Return **this**`, see [[returnEpilogue]], is already a real
     * object, never worth this). Safe to apply unconditionally to every one of
     * them regardless of what they actually return: `toJsValue` is already
     * identity passthrough for anything that isn't a `MapObj`/ `ListObj`, so
@@ -548,17 +551,61 @@ object AddInterfaceMemberBuiltinBehaviourPass extends LoweringPass:
       }
       transform(body)
 
-  /** The matching epilogue: every js-api constructor algorithm ends by mutating
-    * `**this**`'s fields with no explicit `Return`, relying on WebIDL's outer
-    * wrapper to return the object it created — mechanized here as an explicit,
-    * still-raw `Return **this**.` instead. Left unwrapped:
-    * `CompletionAlgorithms` seeds every `Constructor` as `returnsCompletion =
-    * true` unconditionally (see class doc), so `WrapCompletionReturnsPass`
-    * wraps this along with the rest of the body, uniformly.
+  /** The matching epilogue for an algorithm whose spec prose never ends in an
+    * explicit `Return`, appended unconditionally after `wrapReturnValues` (so,
+    * unlike an explicit `Return` in the body, neither of these two cases ever
+    * goes through `converted_to_a_javascript_value` -- see each case's own note
+    * for why that's fine here):
+    *
+    *   - `Constructor`: every js-api constructor algorithm ends by mutating
+    *     `**this**`'s fields with no explicit `Return`, relying on WebIDL's
+    *     outer wrapper to return the object it created -- mechanized here as an
+    *     explicit, still-raw `Return **this**.` instead. `**this**` is already
+    *     a real object, never worth converting.
+    *   - `Method`/`NamespaceMethod` whose own WebIDL-declared return type is
+    *     `"undefined"` (`Algorithm.idlReturnType`, stamped by
+    *     `esmeta.wji.extractor.Extractor.enrichParamTypes`) -- the WebIDL
+    *     equivalent of the same gap, for a different member kind:
+    *     `Table.prototype.set` (the corpus's one occurrence, index.bs:1008's
+    *     `undefined set(AddressValue index, optional any value);`) never writes
+    *     an explicit `Return` either, relying on its declared `undefined`
+    *     return type instead. Left unmechanized, `Table.prototype. set`'s real
+    *     JS-visible return value fell through to `WrapCompletionReturnsPass`'s
+    *     own generic fallback for a body with no terminal `Return` on some path
+    *     -- `NormalCompletion(~unused~)`, ECMA-262's own internal "no
+    *     meaningful return value" sentinel -- which then leaked out completely
+    *     unconverted (`WebIdlConversion. toJsValue` has no case for it, so it's
+    *     passed through as-is): dead code paths that never read the return
+    *     value never noticed, but `assert_equals(table.set(0, fn), undefined,
+    *     ...)` does, crashing with a bare `typeof`-internal assertion failure
+    *     (`(? val: Record[Object])`) with no clue this sentinel was ever
+    *     involved. Appending a real, explicit `Return undefined.` here --
+    *     `Expr.SpecTerm("undefined")` compiles straight to `EUndef()`
+    *     (`Compiler.compileExpr`), a genuine already-converted ECMAScript value
+    *     -- sidesteps the sentinel entirely, the same way `**this**` sidesteps
+    *     needing a WebIDL value conversion of its own: WebIDL's own calling
+    *     convention already guarantees an `undefined`-typed operation returns
+    *     real `undefined`, so this makes that guarantee explicit rather than
+    *     relying on whatever ECMA-262's own generic fallback happens to produce
+    *     for a body that merely falls off the end.
+    *
+    * Every other kind (`Getter`/`NamespaceGetter`/`Setter`, and any `Method`/
+    * `NamespaceMethod` with a real declared return type) needs no epilogue of
+    * its own here: a getter/non-void method's spec prose always ends in an
+    * explicit `Return`, and a setter's return value is never observed (the
+    * `[[Set]]` internal method that invokes it discards whatever it returns).
+    * `CompletionAlgorithms` seeds every
+    * `Constructor`/`Method`/`NamespaceMethod` as `returnsCompletion = true`
+    * unconditionally (see class doc), so `WrapCompletionReturnsPass` wraps
+    * whichever of these two cases fired along with the rest of the body,
+    * uniformly.
     */
-  private def returnThisBinding(kind: AlgorithmKind): List[Instr] = kind match
+  private def returnEpilogue(algo: Algorithm): List[Instr] = algo.kind match
     case AlgorithmKind.Constructor(_) => List(Instr.Return(Some(Expr.This)))
-    case _                            => Nil
+    case AlgorithmKind.Method(_, _) | AlgorithmKind.NamespaceMethod(_)
+        if algo.idlReturnType.contains("undefined") =>
+      List(Instr.Return(Some(Expr.SpecTerm("undefined"))))
+    case _ => Nil
 
   def run(algos: List[Algorithm]): List[Algorithm] =
     algos.map { a =>
@@ -573,7 +620,7 @@ object AddInterfaceMemberBuiltinBehaviourPass extends LoweringPass:
             body = newTargetCheck(a.kind) ++ brandingCheck(a.kind) ++
               unpackArgumentsList(a.params) ++
               givenValueBinding(a.kind) ++ createThisBinding(a.kind) ++
-              wrapReturnValues(a.kind, a.body) ++ returnThisBinding(a.kind),
+              wrapReturnValues(a.kind, a.body) ++ returnEpilogue(a),
           )
         case AlgorithmKind.Plain => a
     }

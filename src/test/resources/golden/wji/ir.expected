@@ -2096,8 +2096,13 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Table.prototype.set(
     return _ret14
   } else nop
   @AGENT_RECORD["associated store"] = store
-  call _ret15 = clo<"NormalCompletion">(~unused~)
-  return _ret15
+  let _v15 = undefined
+  if (? _v15: Completion) {
+    return _v15
+  } else {
+    call _ret16 = clo<"NormalCompletion">(_v15)
+    return _ret16
+  }
 }
 def initialize_a_global_object(
   global: Unknown,

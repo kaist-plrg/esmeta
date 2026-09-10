@@ -88,12 +88,19 @@ object Extractor:
     *     the separate `<pre class=idl>` block does) — `p.optional` is OR'd with
     *     the WebIDL flag rather than overwritten, so either source marking a
     *     param optional is enough.
+    *   - if found, stamps `Algorithm.idlReturnType` with that operation's own
+    *     declared return type text (e.g. `"undefined"`) — see that field's own
+    *     doc for what consumes it.
     *
     * A `Getter`/`Setter`/`Plain` algorithm is left untouched: getters take no
     * arguments, and a setter's implicit "the given value" isn't a positional
     * `WjiParam` at all (see
     * `esmeta.wji.compiler.lowering.AddInterfaceMemberBuiltinBehaviourPass.givenValueBinding`),
-    * so neither has anything here to stamp.
+    * so neither has anything here to stamp. Both also always have a real
+    * (non-`"undefined"`) declared type of their own regardless — a getter
+    * returns its attribute's type, and WebIDL gives setters no declared return
+    * type to speak of at all — so `idlReturnType` staying `None` for them costs
+    * nothing.
     */
   private def enrichParamTypes(
     algo: Algorithm,
@@ -139,9 +146,18 @@ object Extractor:
             .Method(iface, static = op.kind == MemberKind.StaticOperation),
         )
       case _ => algo
+    // a `Constructor`'s own `Operation` (see `DefinitionExtractor.parseMember`)
+    // always has `ret = ""` (WebIDL constructors declare no return type of
+    // their own), so `nonEmpty` here also doubles as "only a real Method/
+    // NamespaceMethod return type counts" without needing to match on `kind`
+    // again.
+    val returnTypeStamped = webidlOp match
+      case Some(op) if op.ret.nonEmpty =>
+        staticStamped.copy(idlReturnType = Some(op.ret))
+      case _ => staticStamped
     webidlOp.map(_.params) match
-      case Some(ps) if ps.length == staticStamped.params.length =>
-        staticStamped.copy(params = staticStamped.params.zip(ps).map {
+      case Some(ps) if ps.length == returnTypeStamped.params.length =>
+        returnTypeStamped.copy(params = returnTypeStamped.params.zip(ps).map {
           case (p, wp) =>
             p.copy(
               idlType = Some(wp.ty),
@@ -149,4 +165,4 @@ object Extractor:
               default = Option.when(wp.default.nonEmpty)(wp.default),
             )
         })
-      case _ => staticStamped
+      case _ => returnTypeStamped

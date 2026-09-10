@@ -130,16 +130,23 @@ class EvalSpec extends AnyFunSuite with BeforeAndAfterAll:
 
   /** bounds a single test case's wall-clock time (checked periodically by
     * `esmeta.interpreter.Interpreter` itself, see `timeLimit` there) --
-    * comfortably above every legitimately-slow test observed so far (worst case
-    * ~35s, wasm-module-builder-heavy files under a warm/shared connection), but
-    * well short of a file like js-api's `limits.any.js` (spec-mandated stress
-    * test building up to 10M wasm constructs -- marked `// META: timeout=long`
-    * even for real engines) that would otherwise run for the rest of the
-    * suite's lifetime. Throws `TimeoutException` (unrelated to SpecTec, so
+    * comfortably above every legitimately-slow test observed so far, including
+    * `memory/grow.any.js`'s own ~80-90s and js-api's `limits.any.js`'s own ~80s
+    * (both under a fresh, cold-started connection; a warm/shared one should
+    * only be faster). Throws `TimeoutException` (unrelated to SpecTec, so
     * `connection.isPoisoned` correctly stays false and no respawn is needed)
     * rather than needing an external process kill.
+    *
+    * No longer sized around the risk of `limits.any.js` (spec-mandated stress
+    * test building up to 10M wasm constructs -- the corpus's one file marked
+    * `// META: timeout=long` even for real engines) running for the rest of the
+    * suite's lifetime: its genuinely-unbounded calls are now neutered at
+    * generation time (`tests/wji/scripts/wji-generate-js-api-tests.js`'s
+    * `perFilePatches`, see `docs/out_of_scope.md` #3), leaving only the ones
+    * cheap enough to actually finish -- this constant just needs to cover that
+    * reduced, now-finite worst case, same as everything else here.
     */
-  private val perTestTimeoutSec = 60
+  private val perTestTimeoutSec = 150
 
   private val roots: List[String] =
     List(WJI_MANUAL_TEST_DIR, WJI_JS_API_TEST_DIR)

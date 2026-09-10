@@ -70,3 +70,51 @@
   주입됨. 이 스킵 덕분에 위 3개 파일은 이 gap과 무관하게 `knownFailing`에
   들어있지 않고 정상적으로 완주 중.
 
+## 3. `limits.any.js` — 스펙이 자인한 유일한 느린 테스트, 진짜로 느린 호출만 골라서 무력화
+
+- **막힌 지점**: `limits.any.js`(`spectec/test/js-api/limits.any.js`) — js-api
+  공식 코퍼스 전체에서 유일하게 `// META: timeout=long`이 붙은 파일(WPT
+  관례, "실제 엔진에서도 원래 오래 걸리니 넉넉한 타임아웃을 달라"는 뜻).
+  `testLimit`/`testDynamicLimit`/`testModuleSizeLimit` 호출이 전부 `test()`
+  콜백이 등록되기도 전에 **스크립트 최상위에서 동기적으로** 실행됨 — 그중
+  일부(`testLimit("types"/"functions"/"imports"/"exports"/"globals"/"data
+  segments"/"tables"/"element segments", ...)`)는 콜백 안에서 `for (let i =
+  0; i < count; i++) builder.addX(...)` 형태로 `count`(최대 1000만)만큼
+  실제로 JS 루프를 돌려서 `WasmModuleBuilder`를 채움 — 실제 엔진에서도
+  느리다고 스펙이 인정하는데, AST를 그대로 걷는 인터프리터(ESMeta)에는
+  사실상 영원히 안 끝나는 수준. `testModuleSizeLimit`은 한술 더 떠 1GiB짜리
+  `Uint8Array`를 직접 할당함.
+- **전부 다 그런 건 아님 — 정말 느린 호출만 선별**: 같은 파일 안의 다른
+  `testLimit` 호출들(`"function params"`/`"function returns"`, `count`
+  상한 1000; `"memories"`, 상한 1)은 루프를 돌아도 반복 횟수 자체가 작아서
+  무해하고, `"function locals"`/`"function params+locals"`는 `count`가
+  최대 5만이지만 루프를 안 돎 — `builder.addLocals({i32_count: count})`처럼
+  큰 `count`를 그냥 인자 하나로 넘길 뿐, `WasmModuleBuilder`의 `addLocals`/
+  `getNumLocals`(`spectec/test/js-api/wasm-module-builder.js`) 자신도
+  `count`만큼 반복하지 않고(local 개수를 하나의 집계값으로만 저장) O(1)로
+  끝남. `testDynamicLimit` 2건과 마지막 `test()`(Table 크기 제한)도 큰
+  숫자를 그냥 한계값 인자로 넘기기만 할 뿐 JS 루프가 없어서 무해함 — 이런
+  건 굳이 다 같이 지워버릴 이유가 없음(그럴 거면 그냥 파일 전체를
+  `knownFailing`에만 넣는 것과 다를 바 없음).
+- **왜 `skip-known-gaps.js`(문서 #2) 방식이 안 통하는가**: 그 메커니즘은
+  `test()` 콜백 "제목"으로 걸러내는 방식인데, 여기서 느린 부분은 애초에
+  어떤 `test()` 콜백 안에도 있지 않고 콜백을 등록하는 시점보다도 먼저,
+  스크립트 몸통 자체가 실행되면서 벌어짐 — 타이틀 기준 필터로는 원천적으로
+  막을 수 없음.
+- **처리**: `tests/wji/scripts/wji-generate-js-api-tests.js`의
+  `perFilePatches["limits.any.js"]`가 진짜로 느린 9개 호출(`testLimit` 7개
+  + `testModuleSizeLimit` 2개)의 **첫 줄만** `if (false) `로 접두 — 함수
+  호출 하나가 통째로 한 JS statement이므로, 몇 줄에 걸쳐 있든 첫 줄 앞에
+  `if (false)`만 붙이면 그 호출 전체가 조건부가 됨(`testPatches`와 같은
+  "짧은 `[from, to]` 문자열 치환" 철학 그대로, 여러 줄을 통째로 감쌀 필요
+  없음). 재생성해서 확인한 결과 `SUMMARY 35/56`(81초)로, 전엔 `0/0` 아니면
+  `TimeoutException`이던 게 이제 실제 서브테스트 결과를 보여줌.
+- **`knownFailing`/`EvalSpec.perTestTimeoutSec` 처리**: 35/56이라 여전히
+  `knownFailing`에 남아있어야 함(제거 대상 아님 — 남은 실패들은 이 정리와
+  무관한 별개의 진짜 WJI gap들, 미조사). 원래 `perTestTimeoutSec = 60`이라는
+  값 자체가 "무력화 전 `limits.any.js`가 영원히 안 끝나지 않도록 너무 길지
+  않게" 잡혔던 제약이었는데, 이제 이 파일도 81초 안에 끝나니 그 제약이
+  사실상 사라짐 — 덕분에 `memory/grow.any.js`(격리 실행 기준 실제 소요
+  시간 ~80-90초)가 통과할 수 있도록 `perTestTimeoutSec`을 150으로 올림(같은
+  커밋).
+

@@ -4639,7 +4639,7 @@ def define_the_asynchronous_iteration_methods(
   target: Unknown,
   realm: Unknown,
 ): Unknown = {
-  if (yet "|definition| does not have an an [=asynchronously iterable declaration=] (of either sort)") {
+  if (yet "|definition| does not have an [=asynchronously iterable declaration=] (of either sort)") {
     return ~unused~
   } else nop
   assert (|| (yet "|definition| does not have an [=indexed property getter=]") (yet "an [=iterable declaration=]"))

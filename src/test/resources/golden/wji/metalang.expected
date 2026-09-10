@@ -1905,7 +1905,7 @@
 # define the asynchronous iteration methods
   params: |definition|, |target|, |realm|
   head: To <dfn>define the asynchronous iteration methods</dfn> of [=interface=] |definition| on |target|, given [=realm=] |realm|, run the following steps:
-  If(?(|definition| does not have an an [=asynchronously iterable declaration=] (of either sort)))
+  If(?(|definition| does not have an [=asynchronously iterable declaration=] (of either sort)))
     Return()
   Assert(?(|definition| does not have an [=indexed property getter=]) or ?(an [=iterable declaration=]))
   If(?(|definition| has a [=pair asynchronously iterable declaration=]))

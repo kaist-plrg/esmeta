@@ -395,6 +395,20 @@ object ExprParser:
     """(?si)^(.+)\s+interpreted as a \[=mathematical value=\]$""".r
   private val AsWasmPat =
     """(?si)^(.+)\s+as a WebAssembly \[=(\w+)=\]$""".r
+  // "|number| rounded to the nearest representable value using IEEE
+  // 754-2019 round to nearest, ties to even mode" -- `ToWebAssemblyValue`'s
+  // f32 case (index.bs:1438), the corpus's one occurrence. Parses to plain
+  // `inner` unchanged (the qualifier is dropped, not wrapped in a node of its
+  // own): the rounding only becomes *observable* once the bound name is used
+  // to build a concrete `f32.const` wasm value (the very next step here,
+  // "Return [=f32.const=] |f32|."), so it's `state.util.wasmF32Const`'s own
+  // `d.toFloat` narrowing conversion (JLS 5.1.3, itself already IEEE-754
+  // round-to-nearest-ties-to-even) that does the one rounding that actually
+  // matters, right there at that single point -- see its own doc,
+  // `docs/hardcodes.md` #19. Binding `f32` to the still-unrounded value here
+  // is observably identical, since nothing else ever reads `f32` in between.
+  private val RoundedToNearestRepresentable =
+    """(?si)^(.+)\s+rounded to the nearest representable value using IEEE 754-2019 round to nearest, ties to even mode$""".r
   private val PowPat = """(?s)^(\d+)<sup>(.+?)</sup>$""".r
   private val NegPat = """(?s)^[-−](.+)$""".r
 
@@ -972,10 +986,11 @@ object ExprParser:
           parseBOp(sep),
           parse(s.substring(i + sep.length)),
         )
-      case AsMathPat(inner)     => AsMath(parse(inner))
-      case AsWasmPat(inner, ty) => AsWasm(parse(inner), ty)
-      case PowPat(base, exp)    => Pow(parse(base), parse(exp))
-      case NegPat(inner)        => Neg(parse(inner))
+      case AsMathPat(inner)                     => AsMath(parse(inner))
+      case AsWasmPat(inner, ty)                 => AsWasm(parse(inner), ty)
+      case RoundedToNearestRepresentable(inner) => parse(inner)
+      case PowPat(base, exp)                    => Pow(parse(base), parse(exp))
+      case NegPat(inner)                        => Neg(parse(inner))
 
       // ---- Structural access ----
       case SlotAccess(baseRaw, slot) => Field(parse(baseRaw), stripBraces(slot))

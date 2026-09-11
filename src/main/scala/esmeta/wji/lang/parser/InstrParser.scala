@@ -17,6 +17,16 @@ object InstrParser:
   private val SetPrefix = """(?is)^Set\b\s+(.+)$""".r
   private val AssertPrefix = """(?is)^Assert:\s*(.+)$""".r
   private val NotePrefix = """(?is)^Note:\s*(.*)$""".r
+  // a bare Bikeshed bibliography citation (e.g. `[[IEEE-754]]`), written
+  // trailing the sentence it footnotes with no separating punctuation other
+  // than the "`. `" `splitSentences` already splits *every* sentence
+  // boundary on -- e.g. index.bs:1438's "... ties to even mode. [[IEEE-754]]"
+  // -- so it arrives here as its own, citation-only "sentence" indistinguishable
+  // from a genuine (if terse) instruction. Purely decorative -- dropped
+  // outright (not even kept as a `Note`, unlike genuine prose asides) rather
+  // than becoming an `Unknown` that would crash on execution the instant this
+  // step actually runs.
+  private val BareCitation = """(?s)^\[\[[\w-]+\]\]$""".r
   private val ReturnPrefix = """(?is)^Return\b\.?\s*(.*)$""".r
   private val ThrowPrefix = """(?is)^(?:\[=[Tt]hrow=\]|Throw\b)\s+(.+)$""".r
 
@@ -176,7 +186,9 @@ object InstrParser:
         }
         Note("catch it") :: actions
       case trimmed =>
-        val sentences = splitSentences(trimmed).filter(_.nonEmpty)
+        val sentences = splitSentences(trimmed)
+          .filter(_.nonEmpty)
+          .filterNot(s => BareCitation.matches(s.trim))
         sentences match
           case Nil if trailingBody.isEmpty => Nil
           case Nil                         => List(Unknown("", trailingBody))

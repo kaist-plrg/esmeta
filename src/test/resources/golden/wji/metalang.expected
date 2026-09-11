@@ -990,8 +990,7 @@
       Let(|n|, implementation-defined integer such that ?([=canon=]<sub>32</sub> &leq; |n|) < 2 ** [=signif=](32))
       Let(|f32|, [=nan=](?(n)))
     Else
-      Let(|f32|, ?(|number| rounded to the nearest representable value using IEEE 754-2019 round to nearest, ties to even mode))
-      ?([[IEEE-754]])
+      Let(|f32|, |number|)
     Return([=f32.const=](|f32|))
   If(|type| is [=f64=])
     Let(|number|, [=?=] [$ToNumber$](|v|))

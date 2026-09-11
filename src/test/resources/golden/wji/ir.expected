@@ -2930,8 +2930,7 @@ def towebassemblyvalue(
       let n = (yet "implementation-defined integer such that ?([=canon=]<sub>32</sub> &leq; |n|) < 2 ** |_call4|")
       call f32 = clo<"nan">((yet "n"))
     } else {
-      let f32 = (yet "|number| rounded to the nearest representable value using IEEE 754-2019 round to nearest, ties to even mode")
-      (yet "[[IEEE-754]]")
+      let f32 = number
     }
     let _v8 = (case "CONST" (case "F32" ) f32)
     if (? _v8: Completion) {

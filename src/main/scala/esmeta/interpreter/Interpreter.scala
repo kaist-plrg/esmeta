@@ -9,7 +9,7 @@ import esmeta.es.*
 import esmeta.ir.{Func => IRFunc, *}
 import esmeta.parser.{ESParser, ESValueParser}
 import esmeta.state.*
-import esmeta.state.util.{fromALNum, toAL}
+import esmeta.state.util.{fromALNum, toAL, wasmF32Const, wasmF64Const}
 import esmeta.spec.{Param => _, CodePoint => _, *}
 import esmeta.ty.*
 import esmeta.util.Loc
@@ -552,8 +552,32 @@ class Interpreter(
         // here is still a genuine bug, so that keeps throwing.
         case Wasm(_) => Undef
         case v       => throw NoWasmCase(v)
+    // *(hardcoding, docs/hardcodes.md #19)* `f32.const`/`f64.const`'s own
+    // value needs the AL `floatN` sign/exponent/mantissa shape
+    // (`state.util.wasmF32Const`/`wasmF64Const`'s own doc has the full
+    // rationale for why this lives at this one boundary rather than at every
+    // algorithm step that produces an f32/f64 value) -- every other `Case`
+    // construction (i32.const/i64.const included) still just goes through
+    // the generic `toAL` path below unchanged.
     case ECase(tag, args) =>
-      Wasm(ALValue.CaseV(tag, args.map(a => toAL(st, eval(a)))))
+      val argVals = args.map(eval)
+      val alArgs = (tag, argVals) match
+        case (
+              "CONST",
+              List(
+                numType @ Wasm(ALValue.CaseV(numTag @ ("F32" | "F64"), Nil)),
+                value,
+              ),
+            ) =>
+          val d = value match
+            case Number(n) => n
+            case Math(n)   => n.toDouble
+            case other     => throw NoWasmValue(other)
+          val floatValue =
+            if numTag == "F32" then wasmF32Const(d) else wasmF64Const(d)
+          List(toAL(st, numType), floatValue)
+        case _ => argVals.map(toAL(st, _))
+      Wasm(ALValue.CaseV(tag, alArgs))
     case EOpt(exprOpt) =>
       // `empty` (Infra-spec's own "no value here") collapses to `OptV(None)`
       // wherever it flows into an Opt-typed position, rather than crossing

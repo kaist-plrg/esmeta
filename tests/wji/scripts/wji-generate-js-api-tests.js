@@ -202,11 +202,11 @@ const perFilePatches = {
   // `if (false) ` prefix the way `limits.any.js`'s entries do above --
   // deleting the one offending element outright is safe here since nothing
   // else in either array depends on its presence or position.
-  // `constructor/instantiate-bad-imports.any.js` doesn't reach this today
-  // (still blocked earlier by the IEEE754-rounding gap, `personal/TODO.md`
-  // #19/#32) but patched proactively anyway, since it pulls in the exact same
-  // shared script -- otherwise this OOM would just resurface the moment that
-  // earlier gap gets fixed.
+  // `constructor/instantiate-bad-imports.any.js` didn't reach this at the
+  // time this patch was written (blocked earlier by an IEEE754-rounding gap,
+  // since fixed) but was patched proactively anyway, since it pulls in the
+  // exact same shared script -- otherwise this OOM would just resurface the
+  // moment whatever's blocking it earlier gets fixed.
   "instance/constructor-bad-imports.any.js": badImportsPatches,
   "constructor/instantiate-bad-imports.any.js": badImportsPatches,
 };

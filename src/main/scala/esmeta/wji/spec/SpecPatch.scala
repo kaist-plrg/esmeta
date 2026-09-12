@@ -826,20 +826,14 @@ object SpecPatch:
     ->
     "1. Let (|addrtype|, <var ignore>limits</var>, <var ignore>elementtype</var>) be [=table_type=](|store|, |tableaddr|).",
 
-    // #41 (spec inconsistency, docs/spec_inconsistencies.md #14) —
-    // IsFixedLengthArrayBuffer is called with Bikeshed's `[=...=]` value-link
-    // syntax, but it's not a dfn local to this document at all — it's a
-    // genuine external ECMA-262 (ResizableArrayBuffer proposal) abstract
-    // operation, reached only via an anchor-table cross-reference (`text:
-    // IsFixedLengthArrayBuffer; url: sec-isfixedarraybuffer`, index.bs:260).
-    // Every other external-AO call in this document (`Get`, `HasProperty`,
-    // `IsCallable`, `OrdinaryObjectCreate`, ...) uses Bikeshed's other call
-    // syntax, `[$...$]`, instead — this is the one spot that doesn't.
-    // Rewritten to match; all three call sites share the identical
-    // "(|buffer|)" argument list, so one replacement covers all of them.
-    "[=IsFixedLengthArrayBuffer=](|buffer|)"
-    ->
-    "[$IsFixedLengthArrayBuffer$](|buffer|)",
+    // #41 retracted (docs/spec_inconsistencies.md #14) — used to rewrite
+    // IsFixedLengthArrayBuffer's `[=...=]` calls to `[$...$]`, working around
+    // Compiler.nameFromLink lower-casing every `[=...=]` link on the (wrong)
+    // assumption that bracket punctuation alone tells local WJI algorithms
+    // apart from external mainline AOs. No longer needed: nameFromLink leaves
+    // case alone entirely now, and `Interpreter.EClo` retries a failed lookup
+    // lowercased, so this resolves correctly regardless of which link syntax
+    // the spec text happens to use.
 
     // #42 (spec inconsistency, docs/spec_inconsistencies.md #15) — "if |op|
     // is a regular operation"/"... a static operation" (2 call sites, both
@@ -933,7 +927,99 @@ object SpecPatch:
     ->
     "be the [=memory type=] |addrtype|",
 
-    // #46 (spec bug, docs/spec_errors.md #22) — `a [=/new=] {{X}}` (webidl's
+    // #46 (spec bug, docs/spec_errors.md #22) — ToWebAssemblyValue's [=host
+    // value cache=] hit branch (index.bs:1470) returns immediately, skipping
+    // the ref_type/match_valtype check every other branch of the same "ref
+    // null heaptype" case funnels through before returning -- so a value
+    // already cached under a *broader* type (e.g. passed as anyref) sails
+    // through unchecked the next time it's converted for a *narrower* one
+    // (e.g. eqref), producing a ref.host value invalid for that type.
+    // Rewording just the "Return" to "Let |r| be ..." isn't enough on its
+    // own -- the three steps right after it (allocate a fresh hostaddr, cache
+    // v under it, bind r) are unconditional top-level steps, so without also
+    // gating them behind an "Else," they'd still run unconditionally even on
+    // a cache hit, clobbering both the map entry and the just-computed |r|.
+    // Wraps them in an "Else," (matching this same algorithm's own "If ...
+    // Else if ... Else," idiom a few steps up) so exactly one of the two
+    // three-step groups runs, and both join the trailing ref_type/
+    // match_valtype/Return |r|. that follows.
+    // Matches the text as it stands *after* #31 above already ran (patches
+    // apply in list order) -- #31 already dropped this same algorithm's
+    // "[=host address=] " annotation from the very `Let |hostaddr| be the
+    // smallest address ...` step this patch also touches.
+    """1. If a [=host address=] |hostaddr| exists such that |map|[|hostaddr|] is the same as |v|,
+      #            1. Return [=ref.host=] |hostaddr|.
+      #        1. Let |hostaddr| be the smallest address such that |map|[|hostaddr|] [=map/exists=] is false.
+      #        1. [=map/Set=] |map|[|hostaddr|] to |v|.
+      #        1. Let |r| be [=ref.host=] |hostaddr|.""".stripMargin('#')
+    ->
+    """1. If a [=host address=] |hostaddr| exists such that |map|[|hostaddr|] is the same as |v|,
+      #            1. Let |r| be [=ref.host=] |hostaddr|.
+      #        1. Else,
+      #            1. Let |hostaddr| be the smallest address such that |map|[|hostaddr|] [=map/exists=] is false.
+      #            1. [=map/Set=] |map|[|hostaddr|] to |v|.
+      #            1. Let |r| be [=ref.host=] |hostaddr|.""".stripMargin('#'),
+
+    // #47 (spec bug, docs/spec_errors.md #23) — AddressValueToU64's "i64"
+    // branch compares |n| (bound two steps up as [=?=] [$ToBigInt$](|v|), so
+    // a BigInt) directly against the plain mathematical-value literals `0`/
+    // `2^64 - 1`, instead of first converting it with [=ℝ=] the way every
+    // other BigInt-to-mathematical-value use in this document does (e.g. this
+    // same step's very next line, "Return [=ℝ=](|n|) as a WebAssembly
+    // [=u64=]."). ECMA-262 keeps BigInt and mathematical values as distinct
+    // domains that only cross via an explicit conversion notation (𝔽/ℤ/ℝ) —
+    // comparing a raw BigInt against a mathematical-value literal isn't
+    // itself a defined operation, so this line needs the same [=ℝ=](|n|)
+    // conversion the surrounding steps already use, not a special-cased
+    // BigInt/mathematical-value comparison rule.
+    "If |n| &lt; 0 or |n| &gt; 2<sup>64</sup> &minus; 1, [=throw=] a {{TypeError}}."
+    ->
+    "If [=ℝ=](|n|) &lt; 0 or [=ℝ=](|n|) &gt; 2<sup>64</sup> &minus; 1, [=throw=] a {{TypeError}}.",
+
+    // #48 (spec inconsistency, docs/spec_inconsistencies.md #17) — the
+    // `Memory`/`Table` constructors' `AddressType address;` member is read
+    // straight off the JS value (`let |addrtype| be |descriptor|["address"]`),
+    // unlike this same document's other `enum`-typed dictionary members —
+    // `element`/`value`, read two lines above in these very constructors, both
+    // go through [=ToValueType=](|descriptor|["element"/"value"]) instead.
+    // `ToValueType`'s own first two branches already map "i32"/"i64" to
+    // [=i32=]/[=i64=], the exact case-tag shape `AddressValueToU64`'s `If
+    // |addrtype| is [=i32=]` (SpecPatch #39) compares against — so an
+    // unconverted |addrtype| never matches either branch there.
+    "let |addrtype| be |descriptor|[\"address\"]"
+    ->
+    "let |addrtype| be [=ToValueType=](|descriptor|[\"address\"])",
+
+    // #49 (spec inconsistency, docs/spec_inconsistencies.md #19) —
+    // `attribute setter`'s (webidl/index.bs) own "X is declared with the
+    // [{{Y}}] extended attribute" checks for {{Replaceable}},
+    // {{LegacyLenientSetter}}, and {{PutForwards}} write "extended attribute"
+    // as plain prose, unlike the identical idiom just a few lines above in
+    // this very algorithm for {{LegacyLenientThis}} (and the surrounding
+    // enumerated-attribute clause covering these same three names,
+    // "[{{LegacyLenientSetter}}], [{{PutForwards}}] or [{{Replaceable}}]
+    // [=extended attribute=]"), which both link it. `extended attribute` is
+    // an export'ed dfn (line 6830); of the 20 "is declared with ... extended
+    // attribute" occurrences across this corpus, these 3 are the only
+    // unlinked ones. Also normalizes the one non-conditional mention right
+    // after ("the identifier argument of the [{{PutForwards}}] extended
+    // attribute"), for the same reason, even though it isn't matched by
+    // `CondParser` at all (an `ExprParser` context, not a condition) — purely
+    // for the algorithm's own internal consistency.
+    "If |attribute| is declared with the [{{Replaceable}}] extended attribute, then:"
+    ->
+    "If |attribute| is declared with the [{{Replaceable}}] [=extended attribute=], then:",
+    "If |attribute| is declared with a [{{LegacyLenientSetter}}] extended attribute, then"
+    ->
+    "If |attribute| is declared with a [{{LegacyLenientSetter}}] [=extended attribute=], then",
+    "If |attribute| is declared with a [{{PutForwards}}] extended attribute, then:"
+    ->
+    "If |attribute| is declared with a [{{PutForwards}}] [=extended attribute=], then:",
+    "the identifier argument of the [{{PutForwards}}] extended\n                    attribute."
+    ->
+    "the identifier argument of the [{{PutForwards}}] [=extended\n                    attribute=].",
+
+    // #50 (spec bug, docs/spec_errors.md #24) — `a [=/new=] {{X}}` (webidl's
     // "new" op — `create a new object implementing the interface`, line
     // 13818) declares a *required* `|realm|` parameter alongside
     // `|interface|`, but every one of the seven call sites in
@@ -974,22 +1060,58 @@ object SpecPatch:
     ->
     "a [=/new=] {{Exception}} in the [=current Realm=].",
 
-    // #47 (spec bug, docs/spec_errors.md #23) — "inclusive inherited
-    // interfaces"'s own loop (webidl/index.bs:707-718) re-derives "the
-    // interface that |I| inherits from" every iteration — |I| being the
-    // algorithm's fixed input parameter, never the loop's own walking
-    // variable |interface| (initialized to |I|, meant to climb one level of
-    // the inheritance chain per iteration). As written this can't walk past
-    // the first ancestor and never terminates for any interface with a real
-    // multi-level chain (confirmed empirically once this algorithm was
-    // actually mechanized for the first time — see docs/spec_errors.md #23).
-    // Harmless for the current corpus (no interface here declares `: Base`,
-    // so the loop always runs exactly one iteration regardless), but
-    // corrected anyway since this algorithm exists specifically to handle
-    // the case where inheritance *is* declared.
+    // #51 (spec bug, docs/spec_errors.md #25) — `inclusive inherited
+    // interfaces` (webidl/index.bs:715) advances its walk-up-the-chain loop
+    // from the fixed input |I| instead of the loop variable |interface|:
+    // "Set |interface| to the [=interface=] that |I| [=interface/inherits=]
+    // from, ...". Since |I| never changes, this step always re-derives the
+    // same value (|I|'s own immediate parent) on every iteration instead of
+    // climbing one level further up each time, so |interface| never reaches
+    // null and the loop never terminates for any interface that inherits
+    // from anything at all. Patched to advance from |interface| itself.
     "Set |interface| to the [=interface=] that |I| [=interface/inherits=] from, if any, and"
     ->
     "Set |interface| to the [=interface=] that |interface| [=interface/inherits=] from, if any, and",
+
+    // #52 (spec inconsistency, docs/spec_inconsistencies.md #20) — the JSTag
+    // getter's prose is written exactly like every other algorithm in this
+    // document (a <dfn>, "when invoked, performs the following steps:", a
+    // numbered step list) but is missing the <div algorithm> wrapper every
+    // other one has -- AlgorithmExtractor.extract only ever looks for that
+    // wrapper, so this getter is entirely invisible to it. Two separate
+    // insertions (open before the dfn sentence, close after the last step)
+    // rather than one big from/to spanning the whole block, per this file's
+    // own "shortest text fragment" convention.
+    "The getter of the <dfn attribute for=\"WebAssembly\">JSTag</dfn>"
+    ->
+    "<div algorithm>\nThe getter of the <dfn attribute for=\"WebAssembly\">JSTag</dfn>",
+    "1. Return |JSTagObject|."
+    ->
+    "1. Return |JSTagObject|.\n</div>",
+
+    // #53 (spec bug, docs/spec_errors.md #26) — "a new Exported GC Object"
+    // (index.bs:1646-1669) caches purely by |objectaddr|, but Wasm Core's
+    // structaddr/arrayaddr are separate address spaces (4.0-execution.
+    // configurations.spectec:15-16 -- each just `= addr`, independently
+    // allocated from 0 in its own store component), so the first struct and
+    // the first array legitimately share objectaddr 0 -- the cache then
+    // treats them as the same object (`struct === array`,
+    // gc/exported-object.tentative.any.js's "GC objects as map/weak map
+    // keys"). Every one of the 3 |map|[|objectaddr|] occurrences in this one
+    // algorithm needs the same fix, so one from/to pair (not scoped to a
+    // single line) covers the whole thing.
+    "|map|[|objectaddr|]"
+    ->
+    "|map|[(|objectkind|, |objectaddr|)]",
+
+    // #54 (spec bug, docs/spec_errors.md #27) — `define the asynchronous
+    // iteration methods` (webidl/index.bs:12981) duplicates the article
+    // "an" before "[=asynchronously iterable declaration=]": "does not
+    // have an an [=asynchronously iterable declaration=]". Plain wording
+    // typo, no semantic effect. Patched to a single "an".
+    "does not have an an [=asynchronously iterable declaration=]"
+    ->
+    "does not have an [=asynchronously iterable declaration=]",
   )
 
   def apply(source: String): String =

@@ -59,6 +59,7 @@ trait UnitWalker extends BasicUnitWalker {
     case _: Infinity      =>
     case _: Enum          =>
     case _: CodeUnit      =>
+    case _: CodePoint     =>
     // TODO: Wasm wraps an opaque ALValue (e.g. TupV) that may itself contain
     // nested Values once embedding calls are fully wired up; walk into it
     // once that's needed instead of treating it as a leaf.

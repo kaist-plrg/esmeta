@@ -983,23 +983,20 @@ print = BuiltinFunctionObject [
 }
 
 
-WebAssembly.Module = BuiltinFunctionObject [
-  Extensible: true;
-  Construct: clo<Record[BuiltinFunctionObject].Construct>;
-] {
-  length: [FFT] 1.0f;
-  name: [FFT] "Module";
-  prototype: [FFF] #INTRINSICS.WebAssembly.Module.prototype;
-  exports: [TFT] #INTRINSICS.WebAssembly.Module.prototype.exports;
-  imports: [TFT] #INTRINSICS.WebAssembly.Module.prototype.imports;
-  customSections: [TFT] #INTRINSICS.WebAssembly.Module.prototype.customsections;
-}
 
-WebAssembly.Module.prototype = OrdinaryObject [
+// -----------------------------------------------------------------------------
+// Host-Defined Functions for WebAssembly JavaScritp Interface
+// -----------------------------------------------------------------------------
+// https://github.com/WebAssembly/spec/document/js-api/index.bs
+// -----------------------------------------------------------------------------
+WebAssembly = OrdinaryObject [
   Extensible: true;
   Prototype: #INTRINSICS.Object.prototype;
 ] {
-  %Symbol.toStringTag%: [FFT] "WebAssembly.Module";
+  CompileError: [TFT] #INTRINSICS.CompileError;
+  LinkError: [TFT] #INTRINSICS.LinkError;
+  RuntimeError: [TFT] #INTRINSICS.RuntimeError;
+  %Symbol.toStringTag%: [FFT] "WebAssembly";
 }
 
 WebAssembly.Instance = BuiltinFunctionObject [
@@ -1015,9 +1012,184 @@ WebAssembly.Instance.prototype = OrdinaryObject [
   Extensible: true;
   Prototype: #INTRINSICS.Object.prototype;
 ] {
+  constructor: [TFT] #INTRINSICS.WebAssembly.Instance;
   %Symbol.toStringTag%: [FFT] "WebAssembly.Instance";
   exports: [TT] {
     Get: #INTRINSICS.get:WebAssembly.Instance.prototype.exports;
     Set: undefined;
   };
 }
+
+WebAssembly.Global = BuiltinFunctionObject [
+  Extensible: true;
+  Construct: clo<Record[BuiltinFunctionObject].Construct>;
+] {
+  length: [FFT] 1.0f;
+  name: [FFT] "Global";
+  prototype: [FFF] #INTRINSICS.WebAssembly.Global.prototype;
+}
+
+WebAssembly.Global.prototype = OrdinaryObject [
+  Extensible: true;
+  Prototype: #INTRINSICS.Object.prototype;
+] {
+  constructor: [TFT] #INTRINSICS.WebAssembly.Global;
+  %Symbol.toStringTag%: [FFT] "WebAssembly.Global";
+  value: [TT] {
+    Get: #INTRINSICS.get:WebAssembly.Global.prototype.value;
+    Set: #INTRINSICS.set:WebAssembly.Global.prototype.value;
+  };
+  valueOf: [TTT] #INTRINSICS.WebAssembly.Global.prototype.valueOf;
+}
+
+// `.length` hardcoded -- see the comment on `WebAssembly.Memory.prototype.
+// grow` above. Every setter (not just this one) always has length 1 per
+// ECMA-262 convention (a single value argument) -- see e.g. `Object.
+// prototype.__proto__`'s setter.
+set:WebAssembly.Global.prototype.value = BuiltinFunctionObject { length: [FFT] 1.0f; }
+
+WebAssembly.Memory = BuiltinFunctionObject [
+  Extensible: true;
+  Construct: clo<Record[BuiltinFunctionObject].Construct>;
+] {
+  length: [FFT] 1.0f;
+  name: [FFT] "Memory";
+  prototype: [FFF] #INTRINSICS.WebAssembly.Memory.prototype;
+}
+
+WebAssembly.Memory.prototype = OrdinaryObject [
+  Extensible: true;
+  Prototype: #INTRINSICS.Object.prototype;
+] {
+  constructor: [TFT] #INTRINSICS.WebAssembly.Memory;
+  %Symbol.toStringTag%: [FFT] "WebAssembly.Memory";
+  buffer: [TT] {
+    Get: #INTRINSICS.get:WebAssembly.Memory.prototype.buffer;
+    Set: undefined;
+  };
+  grow: [TTT] #INTRINSICS.WebAssembly.Memory.prototype.grow;
+}
+
+// `.length` isn't derivable generically for a WJI-compiled interface member
+// (its own IR `params` are always the fixed `(this, ArgumentsList,
+// NewTarget)` builtin calling convention, not the original WebIDL-declared
+// arity, and there's no `esmeta.spec.Algorithm` to read it from either --
+// see docs/esmeta_changes.md #6) -- hardcoded here per member, same as every
+// mainline builtin's own `length: [FFT] N.0f;` declaration (e.g.
+// `Object.assign` above). `grow(delta)` -- 1 required param.
+WebAssembly.Memory.prototype.grow = BuiltinFunctionObject { length: [FFT] 1.0f; }
+
+WebAssembly.Table = BuiltinFunctionObject [
+  Extensible: true;
+  Construct: clo<Record[BuiltinFunctionObject].Construct>;
+] {
+  length: [FFT] 1.0f;
+  name: [FFT] "Table";
+  prototype: [FFF] #INTRINSICS.WebAssembly.Table.prototype;
+}
+
+WebAssembly.Table.prototype = OrdinaryObject [
+  Extensible: true;
+  Prototype: #INTRINSICS.Object.prototype;
+] {
+  constructor: [TFT] #INTRINSICS.WebAssembly.Table;
+  %Symbol.toStringTag%: [FFT] "WebAssembly.Table";
+  length: [TT] {
+    Get: #INTRINSICS.get:WebAssembly.Table.prototype.length;
+    Set: undefined;
+  };
+  grow: [TTT] #INTRINSICS.WebAssembly.Table.prototype.grow;
+  get: [TTT] #INTRINSICS.WebAssembly.Table.prototype.get;
+  set: [TTT] #INTRINSICS.WebAssembly.Table.prototype.set;
+}
+
+// `.length` hardcoded per member -- see the comment on
+// `WebAssembly.Memory.prototype.grow` above. `grow(delta, optional value)`/
+// `get(index)`/`set(index, optional value)` -- 1 required param each.
+WebAssembly.Table.prototype.grow = BuiltinFunctionObject { length: [FFT] 1.0f; }
+WebAssembly.Table.prototype.get = BuiltinFunctionObject { length: [FFT] 1.0f; }
+WebAssembly.Table.prototype.set = BuiltinFunctionObject { length: [FFT] 1.0f; }
+
+// `exports`/`imports`/`customSections` are `static` WebIDL operations (own
+// properties of the constructor itself, e.g. `WebAssembly.Module.exports(m)`
+// -- never `m.exports()`), not interface members -- `AlgorithmKind.Method`
+// doesn't track WebIDL's `static` keyword, so nothing distinguishes this case
+// from a real interface member automatically. Wired here directly on the
+// constructor object rather than `.prototype` even though the compiled
+// function names still say `.prototype.` (just `compileAlgo`'s registration
+// key, not where it's actually attached) -- each function's own body already
+// reads its subject from `ArgumentsList[0]`, never `**this**`, so this is
+// correct regardless of what object it's called on.
+WebAssembly.Module = BuiltinFunctionObject [
+  Extensible: true;
+  Construct: clo<Record[BuiltinFunctionObject].Construct>;
+] {
+  length: [FFT] 1.0f;
+  name: [FFT] "Module";
+  prototype: [FFF] #INTRINSICS.WebAssembly.Module.prototype;
+  exports: [TTT] #INTRINSICS.WebAssembly.Module.prototype.exports;
+  imports: [TTT] #INTRINSICS.WebAssembly.Module.prototype.imports;
+  customSections: [TTT] #INTRINSICS.WebAssembly.Module.prototype.customSections;
+}
+
+// `.length` hardcoded per member -- see the comment on
+// `WebAssembly.Memory.prototype.grow` above. `exports(moduleObject)`/
+// `imports(moduleObject)` -- 1 required param; `customSections(moduleObject,
+// sectionName)` -- 2.
+WebAssembly.Module.prototype.exports = BuiltinFunctionObject { length: [FFT] 1.0f; }
+WebAssembly.Module.prototype.imports = BuiltinFunctionObject { length: [FFT] 1.0f; }
+WebAssembly.Module.prototype.customSections = BuiltinFunctionObject { length: [FFT] 2.0f; }
+
+WebAssembly.Module.prototype = OrdinaryObject [
+  Extensible: true;
+  Prototype: #INTRINSICS.Object.prototype;
+] {
+  constructor: [TFT] #INTRINSICS.WebAssembly.Module;
+  %Symbol.toStringTag%: [FFT] "WebAssembly.Module";
+}
+
+WebAssembly.Tag = BuiltinFunctionObject [
+  Extensible: true;
+  Construct: clo<Record[BuiltinFunctionObject].Construct>;
+] {
+  length: [FFT] 1.0f;
+  name: [FFT] "Tag";
+  prototype: [FFF] #INTRINSICS.WebAssembly.Tag.prototype;
+}
+
+WebAssembly.Tag.prototype = OrdinaryObject [
+  Extensible: true;
+  Prototype: #INTRINSICS.Object.prototype;
+] {
+  constructor: [TFT] #INTRINSICS.WebAssembly.Tag;
+  %Symbol.toStringTag%: [FFT] "WebAssembly.Tag";
+}
+
+WebAssembly.Exception = BuiltinFunctionObject [
+  Extensible: true;
+  Construct: clo<Record[BuiltinFunctionObject].Construct>;
+] {
+  length: [FFT] 2.0f;
+  name: [FFT] "Exception";
+  prototype: [FFF] #INTRINSICS.WebAssembly.Exception.prototype;
+}
+
+WebAssembly.Exception.prototype = OrdinaryObject [
+  Extensible: true;
+  Prototype: #INTRINSICS.Object.prototype;
+] {
+  constructor: [TFT] #INTRINSICS.WebAssembly.Exception;
+  %Symbol.toStringTag%: [FFT] "WebAssembly.Exception";
+  stack: [TT] {
+    Get: #INTRINSICS.get:WebAssembly.Exception.prototype.stack;
+    Set: undefined;
+  };
+  getArg: [TTT] #INTRINSICS.WebAssembly.Exception.prototype.getArg;
+  is: [TTT] #INTRINSICS.WebAssembly.Exception.prototype.is;
+}
+
+// `.length` hardcoded per member -- see the comment on
+// `WebAssembly.Memory.prototype.grow` above. `getArg(exceptionTag, index)`
+// -- 2 required params; `is(exceptionTag)` -- 1.
+WebAssembly.Exception.prototype.getArg = BuiltinFunctionObject { length: [FFT] 2.0f; }
+WebAssembly.Exception.prototype.is = BuiltinFunctionObject { length: [FFT] 1.0f; }

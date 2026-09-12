@@ -10,7 +10,7 @@ import esmeta.ir.{Func => IRFunc, *}
 import esmeta.parser.{ESParser, ESValueParser}
 import esmeta.state.*
 import esmeta.state.util.{fromALNum, toAL}
-import esmeta.spec.{Param => _, *}
+import esmeta.spec.{Param => _, CodePoint => _, *}
 import esmeta.ty.*
 import esmeta.util.Loc
 import esmeta.util.BaseUtils.*
@@ -43,6 +43,19 @@ class Interpreter(
   /** iteration cycle */
   lazy val ITER_CYCLE: Int = 100_000
 
+  /** the outer `(context, callStack)` [[invokeCallable]] has suspended and set
+    * aside (in its own local variables) while its nested `while (step) {}` runs
+    * — pushed/popped around that nested run (see `invokeCallable` itself).
+    * While suspended, the outer frame is reachable only through this list, not
+    * through `st` (`invokeCallable` replaces `st.context`/ `st.callStack` with
+    * the callee's own for the duration) — periodic GC (`step`, below) needs it
+    * passed in explicitly, or it would sweep anything the outer frame alone
+    * kept alive as unreachable garbage, mid-call. A `List` (not just one pair)
+    * since `invokeCallable` can nest (a reentrant call's own callee can itself
+    * trigger another reentrant call).
+    */
+  private var suspendedFrames: List[(Context, List[CallContext])] = Nil
+
   /** final state */
   lazy val result: State =
     while (step) {}
@@ -74,7 +87,7 @@ class Interpreter(
         for (limit <- timeLimit)
           val duration = System.currentTimeMillis - startTime
           if (duration / 1000 > limit) throw TimeoutException("interp")
-        if (!detail) GC(st)
+        if (!detail) GC(st, suspendedFrames)
       }
 
       // cursor
@@ -203,7 +216,7 @@ class Interpreter(
       setCallResult(lhs, callEmbedding(fname, args, call))
     case ICallConvert(lhs, fname, argEs) =>
       val args = argEs.map(eval)
-      setCallResult(lhs, WebIdlConversion.call(st, fname, args))
+      setCallResult(lhs, WebIdlConversion.call(this, call, fname, args))
   }
 
   /** the JS `ArrayBuffer` <-> wasm store memory-sync helpers — see
@@ -344,11 +357,21 @@ class Interpreter(
     * the *outer* frame that happened to be suspended here, never where inside
     * the reentrant call things actually went wrong.
     *
-    * `private[interpreter]` (rather than `private`) so [[WasmMemoryBridge]] can
+    * Pushes `(savedContext, savedCallStack)` onto `suspendedFrames` for the
+    * duration of the nested run, so periodic GC (`step`) keeps whatever the
+    * suspended outer frame alone was keeping alive reachable — see
+    * `suspendedFrames`'s own doc for why `st` alone isn't enough once
+    * `st.context`/`st.callStack` get replaced below. Popped in the same
+    * `finally` that restores them.
+    *
+    * `private[esmeta]` (rather than `private`) so [[WasmMemoryBridge]] can
     * reuse this as its own sole reentrant-call primitive (via `invokeNamedWji`)
-    * instead of duplicating the `st.context`/`st.callStack` save-restore dance.
+    * instead of duplicating the `st.context`/`st.callStack` save-restore dance,
+    * and so `esmeta.wji.interpreter.WebIdlConversion` can genuinely invoke
+    * `Get`/`NormalCompletion` (a real, possibly-getter-triggering property
+    * read, see its own doc) rather than reading `__MAP__` fields directly.
     */
-  private[interpreter] def invokeCallable(
+  private[esmeta] def invokeCallable(
     callee: Callable,
     args: List[Value],
     call: Call,
@@ -359,6 +382,7 @@ class Interpreter(
       callee.captured
     st.context = createContext(call, callee.func, locals)
     st.callStack = Nil
+    suspendedFrames ::= (savedContext, savedCallStack)
     try
       while (step) {}
       st.globals.getOrElse(GLOBAL_RESULT, Undef)
@@ -371,6 +395,7 @@ class Interpreter(
     finally
       st.context = savedContext
       st.callStack = savedCallStack
+      suspendedFrames = suspendedFrames.tail
 
   /** transition for expressions */
   def eval(expr: Expr): Value = expr match {
@@ -410,9 +435,17 @@ class Interpreter(
     case EYet(msg) =>
       throw NotSupported(Metalanguage)(msg)
     case EContains(list, elem) =>
-      val l = eval(list).asList(st)
+      val l = eval(list)
       val e = eval(elem)
-      Bool(l.values.contains(e))
+      // the spec also uses "contains" for a String's own code units (e.g.
+      // `Encode`'s `_unescapedSet_ contains _C_`), not just Lists
+      val b = l match
+        case Str(s) =>
+          e match
+            case CodeUnit(c) => s.contains(c)
+            case _           => throw NoCodeUnit(e)
+        case _ => l.asList(st).values.contains(e)
+      Bool(b)
     case ESubstring(expr, from, to) =>
       val s = eval(expr).asStr
       val f = eval(from).asInt
@@ -445,6 +478,10 @@ class Interpreter(
         // code unit
         case (CodeUnit(c), ToMath) => Math(c.toInt)
         case (Math(n), ToCodeUnit) => CodeUnit(n.toChar)
+        // code point
+        case (CodePoint(c), ToMath)   => Math(c)
+        case (CodePoint(c), ToNumber) => Number(c.toDouble)
+        case (Math(n), ToCodePoint)   => CodePoint(n.toInt)
         // extended mathematical value
         case (Infinity(true), ToNumber)  => NUMBER_POS_INF
         case (Infinity(false), ToNumber) => NUMBER_NEG_INF
@@ -452,22 +489,28 @@ class Interpreter(
         case (Math(n), ToNumber)         => Number(n.toDouble)
         case (Math(n), ToBigInt)         => BigInt(n.toBigInt)
         case (Math(n), ToMath)           => Math(n)
+        case (Math(n), ToStr(radixOpt, upper)) =>
+          val radix = radixOpt.fold(10)(e => eval(e).asInt)
+          val s = toStringHelper(n.toDouble, radix)
+          Str(if (upper) s.toUpperCase else s)
         // string
         case (Str(s), ToNumber) => ESValueParser.str2number(s)
         case (Str(s), ToBigInt) => ESValueParser.str2bigint(s)
         case (Str(s), _: ToStr) => Str(s)
         // numbers
         case (Number(d), ToMath) => Math(d)
-        case (Number(d), ToStr(radixOpt)) =>
+        case (Number(d), ToStr(radixOpt, upper)) =>
           val radix = radixOpt.fold(10)(e => eval(e).asInt)
-          Str(toStringHelper(d, radix))
+          val s = toStringHelper(d, radix)
+          Str(if (upper) s.toUpperCase else s)
         case (Number(d), ToNumber) => Number(d)
         case (Number(n), ToBigInt) => BigInt(BigDecimal.exact(n).toBigInt)
         // big integer
         case (BigInt(n), ToMath) => Math(n)
-        case (BigInt(n), ToStr(radixOpt)) =>
+        case (BigInt(n), ToStr(radixOpt, upper)) =>
           val radix = radixOpt.fold(10)(e => eval(e).asInt)
-          Str(n.toString(radix))
+          val s = n.toString(radix)
+          Str(if (upper) s.toUpperCase else s)
         case (BigInt(n), ToBigInt) => BigInt(n)
         // wasm-embedding numeric value
         case (Wasm(ALValue.NumV(ALNum.Nat(n))), ToMath) => Math(n)
@@ -538,7 +581,22 @@ class Interpreter(
         case v                       => throw InvalidSizeOf(v),
       )
     case EClo(fname, captured) =>
-      val func = cfg.getFunc(fname)
+      // WJI compiles a call's callee name straight from its spec-link text,
+      // case and all -- Bikeshed itself resolves `[=link=]`/`[$link$]`s
+      // case-insensitively, so a call site's casing need not match the
+      // callee's own (e.g. `MakeBasicObject` called as `[=MakeBasicObject=]`,
+      // matching mainline `cfg.fnameMap`'s exact-case entry directly; a WJI-
+      // authored algorithm like "Read the imports" called mid-sentence as
+      // `[=read the imports=]`, needing the fallback below since
+      // `esmeta.wji.compiler.Compiler` always registers its own algorithms
+      // lowercased). Retried instead of pre-normalized at the call site
+      // because nothing there can tell the two apart -- both are the exact
+      // same `[=link=]` syntax, and only `cfg.fnameMap` (assembled later, by
+      // merging WJI's compiled functions with mainline's) knows which of the
+      // two spellings actually resolves.
+      val func =
+        try cfg.getFunc(fname)
+        catch case _: UnknownFunc => cfg.getFunc(fname.toLowerCase)
       Clo(func, captured.map(x => x -> st(x)).toMap)
     case ECont(fname) =>
       val func = cfg.getFunc(fname)

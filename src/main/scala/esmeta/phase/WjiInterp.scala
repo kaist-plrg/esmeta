@@ -142,7 +142,7 @@ case object WjiInterp extends Phase[CFG, Value] {
     // map so `a new Exported Function` (index.bs:1259-1275) can look it up.
     st.heap.update(
       NamedAddr(AGENT_RECORD),
-      Str("Exported Function cache"),
+      Str("exported function cache"),
       st.heap.allocMap(Nil),
     )
 

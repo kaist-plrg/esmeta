@@ -119,6 +119,8 @@ trait Parsers extends BasicParsers {
     } | "GrammarSymbol" ^^^ ValueTy(grammarSymbol = Inf) |
     // code unit
     "CodeUnit" ^^^ ValueTy(codeUnit = true) |
+    // code point
+    "CodePoint" ^^^ ValueTy(codePoint = true) |
     // enum
     "Enum" ~> opt("[" ~> rep1sep(enumv, ",") <~ "]") ^^ {
       case s => ValueTy(enumv = s.fold(Inf)(es => Fin(es.toSet)))

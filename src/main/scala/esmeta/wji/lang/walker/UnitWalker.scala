@@ -85,6 +85,9 @@ trait UnitWalker:
     case i: Instr.Throw  => walk(i.target); i.body.foreach(walk)
     case i: Instr.ForEach =>
       walk(i.elem); walk(i.collection); i.body.foreach(walk)
+    case i: Instr.ForEachPaired =>
+      walk(i.elem1); walk(i.elem2); walk(i.collection1); walk(i.collection2)
+      i.body.foreach(walk)
     case i: Instr.For =>
       walk(i.elem); walk(i.collection); i.body.foreach(walk)
     case i: Instr.While         => walk(i.cond); i.body.foreach(walk)

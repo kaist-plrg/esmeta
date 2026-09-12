@@ -494,6 +494,7 @@ trait Parsers extends IndentParsers {
     } |
     returnIfAbruptExpr |
     convExpr |
+    numToStrExpr |
     mathFuncExpr |
     "(" ~> calcExpr <~ ")" |
     refExpr |
@@ -542,13 +543,26 @@ trait Parsers extends IndentParsers {
         "Number" ^^^ ToNumber |
         "BigInt" ^^^ ToBigInt |
         "numeric" ^^^ ToMath |
-        "code unit whose numeric" ^^^ ToCodeUnit
+        "code unit whose numeric" ^^^ ToCodeUnit |
+        "code point whose numeric" ^^^ ToCodePoint
       ) ~ ("value" ~> (
         "of" | "for" | "representing" | "that corresponds to" | "is"
       )) ~ expr ^^ {
         case a ~ op ~ pre ~ e => ConversionExpression(op, e, Text(a.trim, pre))
       }
     opFormat | textFormat
+
+  // "the String representation of X, formatted as a[n] [lowercase/
+  // uppercase] decimal/hexadecimal number"
+  lazy val numToStrExpr: PL[NumberToStringExpression] =
+    ("the String representation of" ~> expr <~ ",") ~
+    ("formatted as" ~> indefArticle ~> opt(
+      "lowercase" ^^^ false | "uppercase" ^^^ true,
+    )) ~
+    (("decimal" ^^^ 10 | "hexadecimal" ^^^ 16) <~ "number") ^^ {
+      case e ~ upperOpt ~ radix =>
+        NumberToStringExpression(e, radix, upperOpt.getOrElse(false))
+    }
 
   // emu-xref expressions
   // TODO cleanup spec.html
@@ -598,6 +612,10 @@ trait Parsers extends IndentParsers {
       "",
       StringLiteralForm.EmptyString,
     ) | // enum
+    "the ASCII word characters" ^^! StringLiteral(
+      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_",
+      StringLiteralForm.AsciiWordChars,
+    ) |
     strLiteral <~ opt("\\([^)]*\\)".r) |
     fieldLiteral |
     errObjLiteral |
@@ -1062,7 +1080,9 @@ trait Parsers extends IndentParsers {
       "a data property" ^^^ DataProperty |
       "an accessor property" ^^^ AccessorProperty |
       "a fully populated Property Descriptor" ^^^ FullyPopulated |
-      "an instance of a nonterminal" ^^^ Nonterminal
+      "an instance of a nonterminal" ^^^ Nonterminal |
+      "a leading surrogate" ^^^ LeadingSurrogate |
+      "a trailing surrogate" ^^^ TrailingSurrogate
 
     lazy val neg: Parser[Boolean] =
       isNeg | ("contains" | "has") ~> ("any" ^^^ false | "no" ^^^ true)

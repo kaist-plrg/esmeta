@@ -287,7 +287,10 @@ object AlgorithmExtractor:
             case TrailingParamsPlain(name) => name.trim
             case name                      => name
         case None =>
-          m.group(1).trim match
+          // Bikeshed escapes a leading `[[` with `\` so it isn't parsed as
+          // markup (e.g. `<dfn>\[[Get]] internal method of ...</dfn>`) --
+          // strip it, since a `[=...=]` link to this name is never escaped.
+          m.group(1).trim.stripPrefix("\\") match
             case TrailingParams(name) => name.trim
             case name                 => name
     }
@@ -297,6 +300,33 @@ object AlgorithmExtractor:
     * source=] |taskSource|").
     */
   private val OptionalWord = """(?i)\boptional\b""".r
+
+  /** matches an ECMA-262 fundamental internal method's own signature prose,
+    * e.g. `Exported GC Object`'s nine internal methods (index.bs:1568-1666):
+    * `<dfn>[[Get]] internal method of ...</dfn> <var ignore>O</var> takes
+    * arguments <var ignore>P</var> (a property key) and <var ignore>Receiver
+    * </var> (an ECMAScript language value) and returns undefined.` -- unlike
+    * every other param-declaring shape [[extractParams]] already knows, the
+    * receiver (`O`) and the "takes ARGS" list use *bare* `<var ignore>` (no
+    * `&lt;...&gt;` wrapper [[GenericVarIgnore]] requires), and are written as
+    * free prose rather than a dfn-trailing `(...)` list, so they need their own
+    * pattern entirely. Group 1 is the receiver's own var name; group 2 is
+    * everything between "takes" and the sentence's real end -- matched
+    * non-greedily up to the first literal " and returns"/" and throws" (never
+    * itself a param name, so this is always the true end regardless of how many
+    * "and"s separate individual params inside the list, e.g. `[[Set]]`'s
+    * "arguments P (...), V (...), and Receiver (...) and throws").
+    */
+  private val InternalMethodSignature =
+    """(?is)</dfn>\s*<var\s+ignore>(\w+)</var>\s+takes\s+(.*?)\s+and\s+(?:returns|throws)""".r
+
+  /** a single bare `<var ignore>NAME</var>` token (contrast
+    * [[GenericVarIgnore]], which requires the `&lt;...&gt;` wrapper) -- used to
+    * pull every param name out of [[InternalMethodSignature]]'s captured
+    * "takes" clause, in order; "takes no arguments" naturally yields zero
+    * matches here, no separate case needed for it.
+    */
+  private val BareVarIgnore = """<var\s+ignore>(\w+)</var>""".r
 
   /** distinct formal parameters in `head`, in order of first appearance — both
     * ordinary `|variable|` references and generic-bracket type parameters (see
@@ -324,7 +354,17 @@ object AlgorithmExtractor:
         OptionalWord.findFirstIn(head.substring(prevEnd, m.start)).isDefined
       if !seen.contains(name) then seen(name) = optional
       prevEnd = m.end
-    seen.map { case (name, optional) => WjiParam(name, optional) }.toList
+    val found = seen.map {
+      case (name, optional) => WjiParam(name, optional)
+    }.toList
+    if found.nonEmpty then found
+    else
+      InternalMethodSignature.findFirstMatchIn(head) match
+        case Some(m) =>
+          val receiver = m.group(1)
+          val args = BareVarIgnore.findAllMatchIn(m.group(2)).map(_.group(1))
+          (Iterator(receiver) ++ args).map(name => WjiParam(s"|$name|")).toList
+        case None => Nil
 
   /** what `head` declares this algorithm to implement — see [[AlgorithmKind]].
     */
@@ -337,7 +377,7 @@ object AlgorithmExtractor:
             .orElse(Option(m.group(4)))
             .getOrElse("")
         m.group(1).toLowerCase match
-          case "method"      => AlgorithmKind.Method(iface)
+          case "method"      => AlgorithmKind.Method(iface, static = false)
           case "attribute"   => AlgorithmKind.Getter(iface)
           case "constructor" => AlgorithmKind.Constructor(iface)
           case _             => AlgorithmKind.Plain

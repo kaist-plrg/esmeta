@@ -251,6 +251,8 @@ trait Walker extends BasicWalker {
       MathFuncExpression(walk(op), walkList(args, walk))
     case ConversionExpression(op, expr, form) =>
       ConversionExpression(walk(op), walk(expr), form)
+    case NumberToStringExpression(expr, radix, upper) =>
+      NumberToStringExpression(walk(expr), radix, upper)
     case ExponentiationExpression(base, power) =>
       ExponentiationExpression(walk(base), walk(power))
     case BinaryExpression(left, op, right) =>

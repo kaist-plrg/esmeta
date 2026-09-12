@@ -19,6 +19,17 @@ object InstrParser:
   private val NotePrefix = """(?is)^Note:\s*(.*)$""".r
   private val ReturnPrefix = """(?is)^Return\b\.?\s*(.*)$""".r
   private val ThrowPrefix = """(?is)^(?:\[=[Tt]hrow=\]|Throw\b)\s+(.+)$""".r
+
+  // a "definition by case enumeration" bullet, e.g. `js-api/index.bs`'s
+  // "string value of the extern type" ("The <dfn>...</dfn> |type| is * "X" if
+  // COND * "Y" if COND2 ..."), rather than the usual imperative numbered-step
+  // list every other algorithm here uses -- each bullet is really an implicit
+  // "If COND, return "X"." with nothing else spelling that out. Singleton
+  // idiom in this corpus (only these 5 bullets), but self-contained and cheap
+  // enough to handle as a real step shape rather than a per-bullet
+  // `manuals/rule.json` hack: `CondParser`/`ExprParser` already parse the
+  // condition clause itself (`Cond.IsOfForm`) untouched.
+  private val LiteralIfPrefix = """(?is)^"([^"]*)"\s+if\s+(.+)$""".r
   private val ElseIfPrefix =
     """(?is)^(?:Else\s+if\b|Otherwise,\s*if\b)\s+(.+)$""".r
   private val IfPrefix = """(?is)^If\b\s+(.+)$""".r
@@ -217,16 +228,26 @@ object InstrParser:
             )
           case None => Unknown(text, trailingBody)
       case SetPrefix(rest) =>
-        splitTopLevel(rest, " to ").orElse(
-          splitTopLevel(rest, " as specified in "),
-        ) match
-          case Some((lhs, expr)) =>
+        // "as specified in [=ALGO=]" binds a *reference* to ALGO, not its
+        // call result -- see Expr.AlgoRef's own doc -- so this produces that
+        // node directly, bypassing ExprParser's ordinary call-shape parsing
+        // entirely (there's never anything but a bare `[=...=]` link here).
+        splitTopLevel(rest, " as specified in ") match
+          case Some((lhs, algoLink)) =>
             Set(
               ExprParser.parse(lhs),
-              ExprParser.parse(expr),
+              Expr.AlgoRef(algoLink.trim),
               trailingBody,
             )
-          case None => Unknown(text, trailingBody)
+          case None =>
+            splitTopLevel(rest, " to ") match
+              case Some((lhs, expr)) =>
+                Set(
+                  ExprParser.parse(lhs),
+                  ExprParser.parse(expr),
+                  trailingBody,
+                )
+              case None => Unknown(text, trailingBody)
       case AssertPrefix(cond) =>
         Assert(CondParser.parse(cond), trailingBody)
       case NotePrefix(note) => Note(note.trim, trailingBody)
@@ -243,6 +264,11 @@ object InstrParser:
       case IfPrefix(rest) =>
         val (cond, tail) = splitCondAndRest(rest)
         If(CondParser.parse(cond), deriveBody(tail, trailingBody))
+      case LiteralIfPrefix(lit, cond) =>
+        If(
+          CondParser.parse(cond),
+          List(Return(Some(Expr.Str(lit)), trailingBody)),
+        )
       case ElsePrefix(rest) => Else(deriveBody(rest.trim, trailingBody))
       case ForEachPrefix(rest) =>
         findTopLevelAny(rest, Seq(" of ", " in ")) match
@@ -251,15 +277,40 @@ object InstrParser:
               case ForEachElemTypeTag(v) => v
               case e                     => e
             val after = rest.substring(i + sep.length)
-            val collection = (findTopLevel(after, ",") match
-              case Some(j) => after.substring(0, j)
-              case None    => after.stripSuffix(",")
-            ).trim.stripSuffix(":").trim
-            ForEach(
-              ExprParser.parse(elem),
-              ExprParser.parse(collection),
-              trailingBody,
-            )
+            val (collection, tail) = findTopLevel(after, ",") match
+              case Some(j) => (after.substring(0, j), after.substring(j + 1))
+              case None    => (after.stripSuffix(","), "")
+            // "For each ELEM1 and ELEM2 of/in COLLECTION1 and COLLECTION2,
+            // paired linearly, ..." -- WHATWG Infra's zip-two-lists idiom
+            // (e.g. js-api's Exception constructor). Only ever seen with
+            // exactly two variables/collections, so a single top-level
+            // " and " split on each side is enough -- see Instr.ForEachPaired.
+            if tail.trim
+                .stripSuffix(",")
+                .trim
+                .equalsIgnoreCase(
+                  "paired linearly",
+                )
+            then
+              (
+                splitTopLevel(elem, " and "),
+                splitTopLevel(collection, " and "),
+              ) match
+                case (Some((e1, e2)), Some((c1, c2))) =>
+                  ForEachPaired(
+                    ExprParser.parse(e1.trim),
+                    ExprParser.parse(e2.trim),
+                    ExprParser.parse(c1.trim),
+                    ExprParser.parse(c2.trim),
+                    trailingBody,
+                  )
+                case _ => Unknown(text, trailingBody)
+            else
+              ForEach(
+                ExprParser.parse(elem),
+                ExprParser.parse(collection.trim.stripSuffix(":").trim),
+                trailingBody,
+              )
           case None => Unknown(text, trailingBody)
       case ForPrefix(elemStr, rest) =>
         val (collection, bodyText) = splitForCollection(rest)

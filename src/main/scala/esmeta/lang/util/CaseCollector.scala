@@ -234,7 +234,10 @@ class CaseCollector extends UnitWalker {
           case ToMath         => "Math"
           case ToApproxNumber => "implementation-approximated Number"
           case ToCodeUnit     => "code unit whose numeric"
+          case ToCodePoint    => "code point whose numeric"
         s"$a $opStr value $pre {{expr}}"
+      case NumberToStringExpression(expr, radix, upper) =>
+        s"the String representation of {{ expr }}, formatted as a number"
       case ExponentiationExpression(base, power) =>
         s"{{ expr }} <sup>{{ expr }}</sup>"
       case BinaryExpression(left, op, right) =>
@@ -269,10 +272,11 @@ class CaseCollector extends UnitWalker {
       case StringLiteral(str, form) =>
         import StringLiteralForm.*
         form match {
-          case SyntaxLiteral => "*\"{{ str }}\"*"
-          case EmptyString   => "the empty String"
-          case EmptyUnicode  => "the empty sequence of Unicode code points"
-          case Code          => "<code>{{ str }}</code>"
+          case SyntaxLiteral  => "*\"{{ str }}\"*"
+          case EmptyString    => "the empty String"
+          case EmptyUnicode   => "the empty sequence of Unicode code points"
+          case Code           => "<code>{{ str }}</code>"
+          case AsciiWordChars => "the ASCII word characters"
         }
       case FieldLiteral(name) =>
         s"[[{{ str }}]]"

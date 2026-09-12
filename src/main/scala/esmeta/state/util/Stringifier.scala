@@ -102,6 +102,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case i: Infinity       => infinityRule(app, i)
       case e: Enum           => enumRule(app, e)
       case cu: CodeUnit      => cuRule(app, cu)
+      case cp: CodePoint     => cpRule(app, cp)
       case Wasm(v)           => app >> "wasm<" >> v.toString >> ">"
       case sv: SimpleValue   => svRule(app, sv)
 
@@ -147,6 +148,9 @@ class Stringifier(detail: Boolean, location: Boolean) {
 
   // code unit
   given cuRule: Rule[CodeUnit] = (app, cu) => app >> cu.c.toInt >> "cu"
+
+  // code point
+  given cpRule: Rule[CodePoint] = (app, cp) => app >> cp.cp >> "cp"
 
   // simple values
   given svRule: Rule[SimpleValue] = (app, sv) =>

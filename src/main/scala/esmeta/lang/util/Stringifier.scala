@@ -482,6 +482,13 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case ConversionExpression(op, expr, Text(a, pre)) =>
         given Rule[ConversionExpressionOperator] = convExprOpRule(text = true)
         app >> a >> " " >> op >> " value " >> pre >> " " >> expr
+      case NumberToStringExpression(expr, radix, upper) =>
+        val caseWord = radix match
+          case 16 => if (upper) "uppercase " else "lowercase "
+          case _  => ""
+        val radixWord = if (radix == 16) "hexadecimal" else "decimal"
+        app >> "the String representation of " >> expr
+        app >> ", formatted as a " >> caseWord >> radixWord >> " number"
       case ExponentiationExpression(base, power) =>
         app >> base >> "<sup>" >> power >> "</sup>"
       case BinaryExpression(left, op, right) =>
@@ -515,6 +522,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
         case ToBigInt       => if (text) "BigInt" else "ℤ"
         case ToMath         => if (text) "numeric" else "ℝ"
         case ToCodeUnit     => "code unit whose numeric"
+        case ToCodePoint    => "code point whose numeric"
       })
 
   // operators for binary expressions
@@ -592,7 +600,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
           case EmptyString => app >> "the empty String"
           case EmptyUnicode =>
             app >> "the empty sequence of Unicode code points"
-          case Code => app >> "<code>\"" >> str >> "\"</code>"
+          case Code           => app >> "<code>\"" >> str >> "\"</code>"
+          case AsciiWordChars => app >> "the ASCII word characters"
         }
       case FieldLiteral(name) => app >> "[[" >> name >> "]]"
       case SymbolLiteral(sym) => app >> "%Symbol." >> sym >> "%"
@@ -782,25 +791,27 @@ class Stringifier(detail: Boolean, location: Boolean) {
   given predCondOpRule: Rule[PredicateConditionOperator] = (app, op) =>
     import PredicateConditionOperator.*
     app >> (op match {
-      case Finite           => "finite"
-      case Abrupt           => "an abrupt completion"
-      case Throw            => "a throw completion"
-      case Return           => "a return completion"
-      case Break            => "a break completion"
-      case Continue         => "a continue completion"
-      case NeverAbrupt      => "never an abrupt completion"
-      case Normal           => "a normal completion"
-      case Duplicated       => "duplicate entries"
-      case Present          => "present"
-      case Empty            => "empty"
-      case StrictMode       => "strict mode code"
-      case ArrayIndex       => "an array index"
-      case FalseToken       => "the token `false`"
-      case TrueToken        => "the token `true`"
-      case DataProperty     => "a data property"
-      case AccessorProperty => "an accessor property"
-      case FullyPopulated   => "a fully populated Property Descriptor"
-      case Nonterminal      => "an instance of a nonterminal"
+      case Finite            => "finite"
+      case Abrupt            => "an abrupt completion"
+      case Throw             => "a throw completion"
+      case Return            => "a return completion"
+      case Break             => "a break completion"
+      case Continue          => "a continue completion"
+      case NeverAbrupt       => "never an abrupt completion"
+      case Normal            => "a normal completion"
+      case Duplicated        => "duplicate entries"
+      case Present           => "present"
+      case Empty             => "empty"
+      case StrictMode        => "strict mode code"
+      case ArrayIndex        => "an array index"
+      case FalseToken        => "the token `false`"
+      case TrueToken         => "the token `true`"
+      case DataProperty      => "a data property"
+      case AccessorProperty  => "an accessor property"
+      case FullyPopulated    => "a fully populated Property Descriptor"
+      case Nonterminal       => "an instance of a nonterminal"
+      case LeadingSurrogate  => "a leading surrogate"
+      case TrailingSurrogate => "a trailing surrogate"
     })
 
   // operators for binary conditions

@@ -190,7 +190,7 @@ trait AbsValueDecl { self: TyChecker =>
             case NumberSetTy(set) => MathSetTy(set.map(n => Math(n.double)))
           val fromBigInt = if (ty.bigInt) MathTy.Int else MathTy.Bot
           ValueTy(math = ty.math || fromNumber || fromBigInt)
-        case COp.ToStr(_)
+        case COp.ToStr(_, _)
             if (!ty.str.isBottom || !ty.number.isBottom || ty.bigInt) =>
           StrT
         case _ => ValueTy(),

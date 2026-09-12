@@ -205,6 +205,8 @@ trait UnitWalker extends BasicUnitWalker {
       walk(op); walkList(args, walk)
     case ConversionExpression(op, expr, form) =>
       walk(op); walk(expr)
+    case NumberToStringExpression(expr, radix, upper) =>
+      walk(expr)
     case ExponentiationExpression(base, power) =>
       walk(base); walk(power)
     case BinaryExpression(left, op, right) =>

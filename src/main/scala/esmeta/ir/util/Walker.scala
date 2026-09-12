@@ -176,8 +176,8 @@ trait Walker extends BasicWalker {
 
   // conversion operators
   def walk(cop: COp): COp = cop match
-    case COp.ToStr(radix) => COp.ToStr(walkOpt(radix, walk))
-    case op               => op
+    case COp.ToStr(radix, upper) => COp.ToStr(walkOpt(radix, walk), upper)
+    case op                      => op
 
   // references
   def walk(ref: Ref): Ref = (ref match

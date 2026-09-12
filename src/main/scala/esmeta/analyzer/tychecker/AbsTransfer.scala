@@ -659,9 +659,9 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         for {
           v <- transfer(expr)
           r <- cop match
-            case ToStr(Some(radix)) => transfer(radix)
-            case ToStr(None)        => pure(AbsValue(MathT(10)))
-            case _                  => pure(AbsValue.Bot)
+            case ToStr(Some(radix), _) => transfer(radix)
+            case ToStr(None, _)        => pure(AbsValue(MathT(10)))
+            case _                     => pure(AbsValue.Bot)
           given AbsState <- get
         } yield v.convertTo(cop, r)
       case EExists(ref) =>

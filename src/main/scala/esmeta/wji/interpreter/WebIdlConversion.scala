@@ -1,11 +1,12 @@
 package esmeta.wji.interpreter
 
-import esmeta.cfg.CFG
+import esmeta.cfg.{CFG, Call}
 import esmeta.error.{NoMathValue, UnknownConversion}
 import esmeta.interpreter.{%%, Interpreter}
 import esmeta.ir.GLOBAL_EXECUTION_STACK
 import esmeta.parser.ESValueParser
 import esmeta.state.*
+import esmeta.ty.AbruptT
 
 /** Native Scala dispatch target for [[esmeta.ir.Inst.ICallConvert]] — WebIDL's
   * "converted to an IDL value" / "converted to a JavaScript value" abstract
@@ -15,37 +16,193 @@ import esmeta.state.*
   * (see `docs/hardcodes.md` #1/#2), extended with `TagType`: only `"unsigned
   * long"` and four WebAssembly dictionaries (`MemoryDescriptor`,
   * `TableDescriptor`, `GlobalDescriptor`, `TagType`) genuinely convert; every
-  * other IDL type is still identity passthrough, and dictionary reads are
-  * own-property only (no prototype chain, no getters, no required-member
-  * validation -- see `readDictionary`).
+  * other IDL type is still identity passthrough. Dictionary member reads go
+  * through a real `Get` (prototype chain, getters, and any exception a getter
+  * throws all work), and a required member found absent throws a real
+  * `TypeError` right there — see `readDictionary` and
+  * `Interpreter.invokeCallable`.
   */
 object WebIdlConversion:
 
-  def call(st: State, fname: String, args: List[Value]): Value =
+  /** `converted_to_an_idl_value` returns the plain converted `Value` on
+    * success, same as before (`webidl/index.bs`'s real `react` algorithm --
+    * `Promise.prototype.then`-style reaction handling -- has its own genuine,
+    * unmarked (no `[=?=]`) "Let value be the result of ... converting ..." call
+    * site, extracted as ordinary spec text rather than synthesized by
+    * `AddInterfaceMemberBuiltinBehaviourPass`; wrapping every result in
+    * `NormalCompletion` unconditionally, tried first, broke exactly that call
+    * site -- nothing there expected or unwrapped a completion). Only the
+    * *abrupt* case -- a required member found absent, an invalid enum value, or
+    * a getter/`toString` that itself threw -- returns a genuine
+    * `ThrowCompletion` Record instead of the plain value; a caller that cares
+    * (`AddInterfaceMemberBuiltinBehaviourPass.convertedIdlValueBinding`) tells
+    * the two apart with `Cond.IsType(_, "AbruptCompletion")`, which is false
+    * for every ordinary converted value (a `MapObj` address, `Number`, `Str`,
+    * ... -- none of them a `CompletionRecord`).
+    * `converted_to_a_javascript_value` can't throw either (unlike `Get`,
+    * `CreateArrayFromList` -- the one reentrant call `toJsValue` itself makes,
+    * see its own doc -- is always `!`-marked in real spec text, never abrupt)
+    * and was never affected by the completion-wrapping question above.
+    */
+  def call(
+    interp: Interpreter,
+    callSite: Call,
+    fname: String,
+    args: List[Value],
+  ): Value =
+    val st = interp.st
     (fname, args) match
       case ("converted_to_an_idl_value", List(argument, ty)) =>
-        toIdlValue(st, argument, ty)
+        toIdlValue(interp, callSite, argument, ty) match
+          case Right(value) => value
+          case Left(abrupt) => abrupt
       case ("converted_to_a_javascript_value", List(argument)) =>
-        toJsValue(st, argument)
+        toJsValue(interp, callSite, argument)
       case _ => throw UnknownConversion(fname)
+
+  /** invokes the real ECMA-262 `Get(O, P)` abstract operation, reentrantly (see
+    * [[Interpreter.invokeCallable]]) — so a dictionary member backed by an
+    * accessor property actually runs its getter, prototype-chain lookups work,
+    * and a getter that itself throws produces a real abrupt Completion Record
+    * rather than a native crash reading a nonexistent `"Value"` field.
+    */
+  private def getProperty(
+    interp: Interpreter,
+    callSite: Call,
+    obj: Value,
+    key: Value,
+  ): Value =
+    interp.invokeCallable(
+      Clo(interp.st.cfg.getFunc("Get"), Map.empty),
+      List(obj, key),
+      callSite,
+    )
+
+  /** invokes the real ECMA-262 `ToString(V)` abstract operation, reentrantly —
+    * same rationale as [[getProperty]]: a `DOMString`/enum-typed member's raw
+    * value might be an object with its own `toString`/`valueOf` (which could
+    * itself throw), not already a plain string.
+    */
+  private def toStringValue(
+    interp: Interpreter,
+    callSite: Call,
+    v: Value,
+  ): Value =
+    interp.invokeCallable(
+      Clo(interp.st.cfg.getFunc("ToString"), Map.empty),
+      List(v),
+      callSite,
+    )
+
+  private def isAbrupt(st: State, v: Value): Boolean =
+    AbruptT.contains(v, st.heap)
+
+  /** mirrors `Interpreter.eval`'s `EImplements` case exactly (flat
+    * `RecordObj.tname` comparison, bypassing `esmeta.ty.TyModel` -- see
+    * `docs/hardcodes.md` #11) -- native here since it's a pure local check, no
+    * reentrant call needed.
+    */
+  private def implementsInterface(st: State, v: Value, iface: String): Boolean =
+    v match
+      case addr: Addr =>
+        st(addr) match
+          case r: RecordObj => r.tname == iface
+          case _            => false
+      case _ => false
+
+  /** builds a genuine `ThrowCompletion(TypeError)`, the same two-step idiom
+    * `manuals/funcs/ConvertToInt.ir` and `CompletionWrapping`'s compiled output
+    * both use (`__NEW_ERROR_OBJ__` then `ThrowCompletion`) — reused here so a
+    * required dictionary member that's absent throws for real, from the same
+    * place that already knows "absent" (own-property missing, or present but
+    * `Get` returned `undefined`) — see `readDictionary`.
+    */
+  private def typeError(interp: Interpreter, callSite: Call): Value =
+    val errObj = interp.invokeCallable(
+      Clo(interp.st.cfg.getFunc("__NEW_ERROR_OBJ__"), Map.empty),
+      List(Str("%TypeError.prototype%")),
+      callSite,
+    )
+    interp.invokeCallable(
+      Clo(interp.st.cfg.getFunc("ThrowCompletion"), Map.empty),
+      List(errObj),
+      callSite,
+    )
 
   // ── converted to an IDL value ──────────────────────────────────────────────
 
-  private val memoryDescriptorMembers =
-    List("initial" -> None, "maximum" -> None, "address" -> None)
+  /** one dictionary member: its name, whether WebIDL declares it `required`
+    * (absent -- including present-but-`undefined`, per WebIDL's own
+    * undefined-collapsing -- throws a real `TypeError` rather than silently
+    * omitting it, see `readDictionary`), IDL default (`None` for a `required`
+    * member or a non-required one with no declared default -- either way,
+    * absent-and-not-required just means left out of the result), whether its
+    * own IDL type is `sequence<T>` (so the raw value, if present, needs
+    * converting from a JS array-like into a real internal `List` before it's
+    * usable by anything past this point -- see `toSequence`), and, if it's a
+    * WebIDL enum (a WebAssembly `ValueType`/`TableKind`/`AddressType` name like
+    * `"i32"`/`"anyfunc"`, e.g. `TableDescriptor.element`), its own set of
+    * allowed values. WebIDL enum conversion is `? ToString(V)` (so a non-string
+    * argument's own `toString`/`valueOf` still runs, invoked for its
+    * side-effects even -- see `readDictionary`) followed by checking the result
+    * against exactly this set, throwing a `TypeError` for anything else
+    * (`spectec/test/js-api/memory/constructor.any.js`'s `{ "address": "none"
+    * }`, expecting `TypeError`) -- skipping the check would let an invalid
+    * value flow into `ToValueType`/similar downstream algorithms, which just
+    * compare against their own literal strings and assert unreachable
+    * otherwise, crashing natively instead.
+    */
+  private case class Member(
+    name: String,
+    required: Boolean = false,
+    default: Option[Value] = None,
+    isSequence: Boolean = false,
+    enumValues: Option[Set[String]] = None,
+  )
+
+  private val addressTypeValues = Set("i32", "i64")
+  private val tableKindValues = Set("externref", "anyfunc")
+  private val valueTypeValues =
+    Set("i32", "i64", "f32", "f64", "v128", "externref", "anyfunc")
+
+  private val memoryDescriptorMembers = List(
+    Member("initial", required = true),
+    Member("maximum"),
+    Member("address", enumValues = Some(addressTypeValues)),
+  )
   private val tableDescriptorMembers = List(
-    "element" -> None,
-    "initial" -> None,
-    "maximum" -> None,
-    "address" -> None,
+    Member("element", required = true, enumValues = Some(tableKindValues)),
+    Member("initial", required = true),
+    Member("maximum"),
+    Member("address", enumValues = Some(addressTypeValues)),
   )
   // `boolean mutable = false;` -- the only member across these four
   // dictionaries with an actual IDL default (the js-api spec's other
   // non-required members have none, so an absent one is correctly left out
   // of the result entirely -- see `readDictionary`).
-  private val globalDescriptorMembers =
-    List("value" -> None, "mutable" -> Some(Bool(false)))
-  private val tagTypeMembers = List("parameters" -> None)
+  private val globalDescriptorMembers = List(
+    Member("value", required = true, enumValues = Some(valueTypeValues)),
+    Member("mutable", default = Some(Bool(false))),
+  )
+  // `required sequence<ValueType> parameters;` -- element-wise ValueType
+  // enum validation (see `Member.enumValues`'s doc), same as a scalar
+  // enum-typed member -- an invalid element (e.g. `"i16"`,
+  // `spectec/test/js-api/tag/constructor.tentative.any.js`'s "Invalid type
+  // parameter") must throw `TypeError` here rather than flow unvalidated into
+  // `ToValueType`, which just asserts unreachable and crashes natively.
+  private val tagTypeMembers =
+    List(
+      Member(
+        "parameters",
+        required = true,
+        isSequence = true,
+        enumValues = Some(valueTypeValues),
+      ),
+    )
+  // `boolean traceStack = false;` -- `Exception`'s constructor's third
+  // parameter (`optional ExceptionOptions options = {}`), no required members.
+  private val exceptionOptionsMembers =
+    List(Member("traceStack", default = Some(Bool(false))))
 
   /** `ty` names the declared IDL type — almost always a literal `Str` (from
     * `AddInterfaceMemberBuiltinBehaviourPass.unpackArgumentsList`'s
@@ -56,20 +213,48 @@ object WebIdlConversion:
     * `.ir` version's own tolerance: `if (= T "...")` just evaluates false —
     * never throws — for a `T` that isn't the literal string it expects.
     */
-  def toIdlValue(st: State, argument: Value, ty: Value): Value = ty match
+  def toIdlValue(
+    interp: Interpreter,
+    callSite: Call,
+    argument: Value,
+    ty: Value,
+  ): Either[Value, Value] = ty match
     case Str("unsigned long") | Enum("unsigned long") =>
-      toUnsignedLong(argument)
+      toUnsignedLong(interp, callSite, argument)
     case Str("MemoryDescriptor") | Enum("MemoryDescriptor") =>
-      readDictionary(st, argument, memoryDescriptorMembers)
+      readDictionary(interp, callSite, argument, memoryDescriptorMembers)
     case Str("TableDescriptor") | Enum("TableDescriptor") =>
-      readDictionary(st, argument, tableDescriptorMembers)
+      readDictionary(interp, callSite, argument, tableDescriptorMembers)
     case Str("GlobalDescriptor") | Enum("GlobalDescriptor") =>
-      readDictionary(st, argument, globalDescriptorMembers)
+      readDictionary(interp, callSite, argument, globalDescriptorMembers)
     case Str("TagType") | Enum("TagType") =>
-      readDictionary(st, argument, tagTypeMembers)
-    case _ => argument
-
-  private val TWO_32: BigDecimal = BigDecimal(4294967296L)
+      readDictionary(interp, callSite, argument, tagTypeMembers)
+    case Str("ExceptionOptions") | Enum("ExceptionOptions") =>
+      readDictionary(interp, callSite, argument, exceptionOptionsMembers)
+    // an interface-typed argument (`Module.{exports,imports,customSections}`'s
+    // `moduleObject`, and `Exception`'s constructor's `exceptionTag`): real
+    // WebIDL interface-type conversion requires the value to actually
+    // implement the named interface, throwing `TypeError` otherwise --
+    // `implementsInterface` is the same flat record-tag check
+    // `Cond.Implements`/`EImplements` already does at the IR level
+    // (`docs/hardcodes.md` #11), just run natively here since there's no
+    // reentrant call needed for it (no getter/JS execution involved).
+    case Str("Module") | Enum("Module") =>
+      if implementsInterface(interp.st, argument, "Module") then Right(argument)
+      else Left(typeError(interp, callSite))
+    case Str("Tag") | Enum("Tag") =>
+      if implementsInterface(interp.st, argument, "Tag") then Right(argument)
+      else Left(typeError(interp, callSite))
+    // a bare `sequence<T>` parameter (as opposed to one nested inside a
+    // dictionary, see `Member.isSequence`) -- so far only
+    // `Exception`'s constructor's `sequence<any> payload`. Matched by prefix
+    // rather than the exact element type, same "identity passthrough for the
+    // element type" simplification as everywhere else in this object.
+    case Str(t) if t.startsWith("sequence<") =>
+      Right(toSequence(interp.st, argument))
+    case Enum(t) if t.startsWith("sequence<") =>
+      Right(toSequence(interp.st, argument))
+    case _ => Right(argument)
 
   private def toMathValue(v: Value): Math = v match
     case n: Math   => n
@@ -77,49 +262,191 @@ object WebIdlConversion:
     case Str(s)    => Math(ESValueParser.str2number(s).double)
     case v         => throw NoMathValue(v)
 
-  private def toUnsignedLong(argument: Value): Value =
-    val m = toMathValue(argument)
-    val n =
-      if m < Math.zero then Math.zero - Interpreter.floor(Interpreter.abs(m))
-      else Interpreter.floor(m)
-    Math(n.decimal %% TWO_32)
+  /** `[EnforceRange] unsigned long` conversion -- so far only `Exception.
+    * prototype.getArg`'s `index` param (`index.bs:1681`), the sole "unsigned
+    * long" occurrence in this corpus as an actual WebIDL param type, and always
+    * `[EnforceRange]` there -- so, unlike a scalar enum member's `? ToString`,
+    * this reuses `manuals/funcs/ConvertToInt.ir` (the same `? ToNumber` +
+    * NaN/±Infinity/range `TypeError` logic `AddressValueToU64` already calls,
+    * `docs/hardcodes.md` #14) rather than reimplementing it here a second time.
+    * `bitLength`/`signedness`/`extendedAttribute` are accepted but ignored by
+    * that function (it only ever implements the one combination both call sites
+    * need: 32-bit, unsigned, EnforceRange), so their exact values here don't
+    * matter beyond documenting intent.
+    */
+  private def toUnsignedLong(
+    interp: Interpreter,
+    callSite: Call,
+    argument: Value,
+  ): Either[Value, Value] =
+    val result = interp.invokeCallable(
+      Clo(interp.st.cfg.getFunc("ConvertToInt"), Map.empty),
+      List(argument, Math(32), Str("unsigned"), Str("EnforceRange")),
+      callSite,
+    )
+    if isAbrupt(interp.st, result) then Left(result)
+    else Right(interp.st(result, Str("Value")))
 
-  /** reads `members` straight off `argument`'s own `__MAP__` (own data
-    * properties only) into a fresh internal `MapObj` — mirrors the `.ir`
-    * version's `argument.__MAP__[key].Value`/`exists` reads exactly, plus IDL
-    * default values (`member -> Some(default)`): when a member is absent, a
-    * `None` default (matches every js-api non-required member without an
-    * explicit IDL default, e.g. `MemoryDescriptor.maximum`) leaves it out of
-    * the result entirely, same as before; a `Some(default)` (so far only
-    * `GlobalDescriptor.mutable = false`) fills it in instead. A *required*
-    * member (e.g. `TableDescriptor.element`) still just goes missing when
-    * absent rather than throwing a real `TypeError` -- WebIDL dictionary
-    * conversion is supposed to reject that case, but nothing here can raise a
-    * catchable ECMAScript exception yet (see `personal/TODO.md` #14).
+  /** reads `members` off `argument` via a real `Get(argument, key)` for each —
+    * prototype chain and accessor properties (getters) both work, mirroring
+    * WebIDL dictionary conversion's own "Let value be ? Get(V, key)." step.
+    * `Get` returning `undefined` (own property absent, or present but actually
+    * `undefined` -- WebIDL's own undefined-collapsing treats both the same)
+    * means the member is absent: a `required` member (e.g.
+    * `TableDescriptor.element`) throws a real `TypeError` right here — the only
+    * place that actually knows "absent" after undefined-collapsing, so a
+    * separate compile-time own-property check can't substitute for it (that
+    * used to be `AddInterfaceMemberBuiltinBehaviourPass.requiredMemberChecks`,
+    * now removed) — a non-required member instead fills in `Member.default` if
+    * it has one (so far only `GlobalDescriptor.mutable = false`) or is simply
+    * left out of the result.
+    *
+    * `argument` being `undefined`/`null` is a real, common case (an omitted or
+    * explicitly-`undefined` dictionary argument -- WebIDL treats either the
+    * same as an empty ordinary object `{}`), not an error: every member below
+    * reads as absent rather than calling `Get` on a non-object base.
+    *
+    * Stops at the first member that's abrupt -- either a required member found
+    * absent, or a getter that itself threw -- and propagates that completion as
+    * `Left` instead of reading any later member, mirroring how a real
+    * `?`-marked step sequence would never reach its later steps either.
+    *
+    * Collects `(key, value)` pairs into a plain Scala buffer and only builds
+    * the real heap `MapObj` once, at the very end, via a single `st.allocMap`,
+    * rather than allocating it up front and filling it in as we go — nothing
+    * here needs an unfinished dictionary to be independently reachable
+    * mid-loop, and building it in one shot is simpler than threading a
+    * partially-filled `Addr` through every branch below. (`Interpreter.
+    * invokeCallable`'s own `suspendedFrames` is what actually keeps a value
+    * like this alive across `getProperty`/`toStringValue`'s reentrant calls
+    * either way -- this ordering is not load-bearing for that.)
     */
   private def readDictionary(
-    st: State,
+    interp: Interpreter,
+    callSite: Call,
     argument: Value,
-    members: List[(String, Option[Value])],
-  ): Value =
-    val mapField = st(argument, Str("__MAP__"))
-    val dictAddr = st.allocMap(Nil)
-    for (member, default) <- members do
-      val key = Str(member)
-      if st.exists(mapField, key) then
-        val pd = st(mapField, key)
-        st.update(dictAddr, key, st(pd, Str("Value")))
-      else default.foreach(st.update(dictAddr, key, _))
-    dictAddr
+    members: List[Member],
+  ): Either[Value, Value] =
+    val st = interp.st
+    var abrupt: Option[Value] = None
+    val pairs = scala.collection.mutable.ListBuffer.empty[(Value, Value)]
+    // WebIDL's dictionary conversion algorithm reads members in lexicographic
+    // (alphabetical) order, not declaration order -- `memoryDescriptorMembers`
+    // etc. above list them in the more readable declaration order instead, so
+    // sort here rather than asking every list to already be alphabetized.
+    // Observable via evaluation-order side effects: `spectec/test/js-api/
+    // memory/constructor.any.js`'s "Order of evaluation for descriptor" reads
+    // "address" (declared last) before "initial"/"maximum" for exactly this
+    // reason.
+    val it = members.sortBy(_.name).iterator
+    while abrupt.isEmpty && it.hasNext do
+      val member = it.next()
+      val key = Str(member.name)
+      def absent(): Unit = member.default match
+        case Some(d) => pairs += key -> d
+        case None if member.required =>
+          abrupt = Some(typeError(interp, callSite))
+        case None => ()
+      argument match
+        case Undef | Null => absent()
+        case _ =>
+          val result = getProperty(interp, callSite, argument, key)
+          if isAbrupt(st, result) then abrupt = Some(result)
+          else
+            st(result, Str("Value")) match
+              case Undef => absent()
+              case raw if member.isSequence && member.enumValues.isDefined =>
+                readEnumSequence(
+                  interp,
+                  callSite,
+                  raw,
+                  member.enumValues.get,
+                ) match
+                  case Left(a)     => abrupt = Some(a)
+                  case Right(list) => pairs += key -> list
+              case raw if member.enumValues.isDefined =>
+                val strResult = toStringValue(interp, callSite, raw)
+                if isAbrupt(st, strResult) then abrupt = Some(strResult)
+                else
+                  st(strResult, Str("Value")) match
+                    case s @ Str(v) if member.enumValues.get(v) =>
+                      pairs += key -> s
+                    case _ => abrupt = Some(typeError(interp, callSite))
+              case raw =>
+                val value =
+                  if member.isSequence then toSequence(st, raw) else raw
+                pairs += key -> value
+    abrupt match
+      case Some(a) => Left(a)
+      case None    => Right(st.allocMap(pairs.toList))
+
+  /** converts a JS array-like `value` (own `"length"` + own indexed properties,
+    * e.g. a real `Array` literal) into a genuine internal `List` — mirrors
+    * `CreateListFromArrayLike`'s own simple read loop (length, then each index
+    * in turn), rather than the full WebIDL "sequence" conversion (which
+    * iterates via `Symbol.iterator`): every actual call site so far passes a
+    * literal array, so the two agree, and this avoids driving the iterator
+    * protocol from native code just for that.
+    */
+  private def toSequence(st: State, value: Value): Value =
+    val mapField = st(value, Str("__MAP__"))
+    val length = toMathValue(st(st(mapField, Str("length")), Str("Value")))
+    val elements = (0 until length.decimal.toInt).toList.map { i =>
+      st(st(mapField, Str(i.toString)), Str("Value"))
+    }
+    st.allocList(elements)
+
+  /** same array-like reading as [[toSequence]], but for a `sequence<T>` whose
+    * element type `T` is itself a WebIDL enum (so far only `TagType.
+    * parameters`'s `sequence<ValueType>`) -- each raw element goes through the
+    * same `? ToString` + membership check as a scalar enum member (see
+    * `Member.enumValues`'s doc), short-circuiting on the first abrupt result or
+    * invalid value.
+    */
+  private def readEnumSequence(
+    interp: Interpreter,
+    callSite: Call,
+    value: Value,
+    allowed: Set[String],
+  ): Either[Value, Value] =
+    val st = interp.st
+    val mapField = st(value, Str("__MAP__"))
+    val length = toMathValue(st(st(mapField, Str("length")), Str("Value")))
+    val raws = (0 until length.decimal.toInt).toList.map { i =>
+      st(st(mapField, Str(i.toString)), Str("Value"))
+    }
+    val converted = scala.collection.mutable.ListBuffer.empty[Value]
+    var abrupt: Option[Value] = None
+    val it = raws.iterator
+    while abrupt.isEmpty && it.hasNext do
+      val strResult = toStringValue(interp, callSite, it.next())
+      if isAbrupt(st, strResult) then abrupt = Some(strResult)
+      else
+        st(strResult, Str("Value")) match
+          case s @ Str(v) if allowed(v) => converted += s
+          case _ => abrupt = Some(typeError(interp, callSite))
+    abrupt match
+      case Some(a) => Left(a)
+      case None    => Right(st.allocList(converted.toList))
 
   // ── converted to a JavaScript value ────────────────────────────────────────
 
   /** mirrors the `.ir` version's `if (? argument: Map) { ... } return argument`
     * — only a `MapObj` (this project's own internal dictionary representation)
-    * gets built into a real ordinary object; everything else, including an
-    * already-real ECMAScript value, passes through unchanged.
+    * gets built into a real ordinary object, and a `ListObj` (a `sequence<T>`
+    * return value, e.g. `Module.exports`'s `sequence<ModuleExportDescriptor>`)
+    * into a real `Array` -- everything else, including an already-real
+    * ECMAScript value, passes through unchanged. Each element/entry-value is
+    * itself recursively converted first (a `sequence<Dictionary>`'s elements
+    * are still raw `MapObj`s at this point), then `CreateArrayFromList` (a real
+    * mechanized closure, `? CreateArrayFromList(elements)` per its own spec,
+    * never abrupt) builds the actual `Array` -- reentrant like `Get`/
+    * `ToString`/etc. elsewhere in this object (`Interpreter.invokeCallable`),
+    * since it needs `ArrayCreate`/`CreateDataPropertyOrThrow` machinery this
+    * object has no reason to reimplement natively.
     */
-  def toJsValue(st: State, argument: Value): Value =
+  def toJsValue(interp: Interpreter, callSite: Call, argument: Value): Value =
+    val st = interp.st
     argument match
       case addr: Addr =>
         st(addr) match
@@ -136,7 +463,7 @@ object WebIdlConversion:
             val objAddr = newOrdinaryObject(st)
             val objMap = st(objAddr, Str("__MAP__"))
             for (key, rawValue) <- entries do
-              val value = toJsValue(st, rawValue)
+              val value = toJsValue(interp, callSite, rawValue)
               val pdAddr = st.allocRecord(
                 "PropertyDescriptor",
                 List(
@@ -148,6 +475,14 @@ object WebIdlConversion:
               )
               st.update(objMap, key, pdAddr)
             objAddr
+          case ListObj(values) =>
+            val converted = values.toList.map(toJsValue(interp, callSite, _))
+            val listAddr = st.allocList(converted)
+            interp.invokeCallable(
+              Clo(st.cfg.getFunc("CreateArrayFromList"), Map.empty),
+              List(listAddr),
+              callSite,
+            )
           case _ => argument
       case _ => argument
 

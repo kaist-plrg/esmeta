@@ -104,6 +104,7 @@ def GrammarSymbolT(xs: GrammarSymbol*): ValueTy =
   if (xs.isEmpty) BotT
   else ValueTy(grammarSymbol = Fin(xs.toSet))
 lazy val CodeUnitT: ValueTy = ValueTy(codeUnit = true)
+lazy val CodePointT: ValueTy = ValueTy(codePoint = true)
 def EnumT: ValueTy = ValueTy(enumv = Inf)
 def EnumT(set: Set[String]): ValueTy =
   if (set.isEmpty) BotT

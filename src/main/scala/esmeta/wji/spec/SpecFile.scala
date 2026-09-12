@@ -40,6 +40,7 @@ object SpecFile:
     "define the static attributes",
     "define the static operations",
     "define the constants",
+    "inclusive inherited interfaces",
   )
 
   /** finds `relPath` in the nearest ancestor of the current directory */

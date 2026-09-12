@@ -8,11 +8,18 @@ web-platform-tests 스위트, `testharness.js` 기반)를 WJI로 돌리기 위�
 shell-shim.js         필수 -- testharness.js/testharness-lite.js가 가정하는
                        브라우저/워커 전역(`self`)을 채워줌.
 testharness-lite.js    필수 -- 진짜 testharness.js 대신 쓰는 경량 재구현.
+skip-known-gaps.js     필수 -- 이름이 알려진(WJI/wasm 문제가 아니라 ESMeta
+                       mainline 자체의 한계인) 서브테스트를 `test()` 자체를
+                       가로채서 아예 실행 안 시킴(다시 돌려도 절대 못 고치는
+                       assertion에 인터프리터 시간을 쓰지 않기 위함).
 dataview-polyfill.js   wasm-module-builder.js를 쓰는 파일에만 삽입 -- WJI가
                        기계화 안 한 DataView를 대신함 (아래 참고).
-report-shim.js         필수 -- subtest별 PASS/FAIL을 print로 출력하고,
+report-shim.js         필수 -- subtest별 PASS/FAIL을 print로 출력하고
+                       `SUMMARY N/M` 한 줄(통과/전체)을 마지막에 찍은 뒤,
                        전부 통과했을 때만 globalThis.__wjiOk = true 세팅
-                       (tests/wji/manual/*.js의 컨벤션과 동일).
+                       (tests/wji/manual/*.js의 컨벤션과 동일). `skip-known-gaps.js`가
+                       걸러낸 서브테스트는 애초에 `tests` 목록에 안 잡히므로
+                       `SUMMARY`/`__wjiOk` 계산에서 자연히 제외됨.
 generated/             `tests/wji/scripts/wji-generate-js-api-tests.js`가
                        spectec/test/js-api에서 만들어낸 self-contained
                        테스트 케이스들. 손으로 고치지 말 것 -- 다시 생성됨.
@@ -70,6 +77,16 @@ META script 목록을 보고 판단) 그 파일 로드 **직전**에 삽입되�
 본문 + `report-shim.js`를 하나로 이어붙인 self-contained `.any.js` 파일을
 `generated/`에 씁니다(spectec 쪽 디렉터리 구조 그대로 미러링 — `toString.any.js`
 처럼 카테고리마다 이름이 겹치는 파일이 있어서 필요).
+
+생성기 안의 `testPatches`(`(from, to)` 목록, 모든 파일에 무조건 적용)가, 테스트
+본문에 있는 알려진 코퍼스 버그(예: `for (argument of ...)`처럼 `let`/`const`
+없이 루프 변수를 쓰는 바람에 strict mode에서 `ReferenceError`가 나던
+`exception/{getArg,is}.tentative.any.js`)를 조립 직전에 텍스트 치환으로
+고쳐줍니다 — `src/main/scala/esmeta/wji/spec/SpecPatch.scala`가
+`spectec/document/js-api/index.bs`에 적용하는 것과 같은 발상(서브모듈 원본은
+안 건드리고 추출/생성 시점에 패치)과 같은 모양(파일별로 안 나누고 flat한
+목록 — `from` 쪽이 코퍼스 전체에서 그 문제 있는 자리에만 나온다는 게 이미
+확인됐으므로 굳이 스코핑할 필요가 없음)을 테스트 코퍼스 쪽에 적용한 것.
 
 `scripts/wat2js`와 같은 철학입니다: 저작/동기화 시점 편의 스크립트일 뿐 빌드
 의존성이 아니고, `generated/`가 지금 `spectec/test/js-api`와 실제로

@@ -44,3 +44,18 @@ ESMeta 자체(스펙이 아니라 mainline 구현) 코드에서 발견한 버그
 - **Reason**: 예: `%TypedArray%.prototype.set`의 "If `_source_` is an Object that has a [[TypedArrayName]] internal slot, then ..."(ecma262/spec.html:42183). `typeCheckCond`가 "is an Object"까지만 삼키고 남은 "that has a [[TypedArrayName]] internal slot"을 못 삼켜서 조건 전체 파싱이 실패하고, 결과적으로 `Cond.Unknown`(원문 그대로 보존) → 컴파일 시 `EYet(원문)` → 실행 시점에 `[NotSupported] metalanguage/...`로 떨어졌다. ecma262 전체에서 이 관용구는 딱 4곳뿐([[TypedArrayName]] 1곳, [[SyncIteratorRecord]] 3곳)이라 범위는 좁지만, `%TypedArray%.prototype.set`이 WJI의 `wasm-module-builder.js`(공식 js-api 테스트 corpus 대부분이 wasm 모듈 바이트 조립에 씀)가 내부적으로 쓰는 함수라 실질적 영향은 컸다(52개 js-api 테스트 중 24개가 이 gap에 막혀있었음).
 
   발견 경위: `[[SyncIteratorRecord]]` 3곳은 `src/main/resources/manuals/rule.json`에 손으로 넣어둔 "manual rule"(정규식으로 못 잡는 조건을 문자열 그대로 매칭해 대체 IR을 주입하는 우회)로 이미 우회돼 있었다 — 고치고 나니 `compilerTest`(`esmeta.compiler.ValiditySmallTest`)가 "there are unused manual rules"로 정확히 이 사실을 잡아내서, 이제 안 쓰는 그 rule.json 항목을 지웠다. `extractorValidityTest`가 자동 갱신한 `src/main/resources/result/spec-summary` 골든에 개선폭이 그대로 남는다: `algorithms complete 2503 → 2507`, `algorithm steps complete 21358 → 21362`(`equals` 지표는 2662 → 2658로 소폭 하락하는데, 이건 `CompoundCondition`으로 재구성된 조건의 pretty-print가 원문 "that" 어투를 그대로 복원하지 않아서 생기는 예상된 결과 — `TypeCheckCondition(...) and HasFieldCondition(...)`로 렌더링되므로 원문과 글자 그대로는 달라지지만 의미상 동등하고, 관련 함수는 여전히 "complete"로 잡힘).
+
+## 4. `EContains`가 List만 상정하고 String을 못 받음
+
+- **File**: `src/main/scala/esmeta/interpreter/Interpreter.scala`, `eval(Expr)`의 `EContains` 케이스
+- **Before**:
+  ```scala
+  case EContains(list, elem) =>
+    val l = eval(list).asList(st)
+    val e = eval(elem)
+    Bool(l.values.contains(e))
+  ```
+- **After**: `eval(list)`가 `Str`이면 `elem`을 `CodeUnit`으로 보고 그 문자열이 해당 code unit을 포함하는지 직접 검사하고, 그 외에는 기존처럼 `asList(st)`로 List를 기대하도록 분기.
+- **Reason**: ecma262/spec.html:1257은 "contains"를 "List 안에서 값을 찾는 용도"로 소개하지만, 실제로는 String도 "code unit들의 순서 있는 시퀀스"(String 타입 자체의 정의)라서 스펙 곳곳에서 String에도 그대로 재사용된다 — `Encode`의 `_alwaysUnescaped_`/`_unescapedSet_`("the string-concatenation of ..."로 정의되어 명백히 String), Annex B `escape`의 `_unescapedSet_`, `decodeURI`/`decodeURIComponent`가 쓰는 `Decode`의 `_preserveEscapeSet_`(파라미터 헤더에 `: a String`으로 명시), `parseInt`의 `_S_`(`TrimString`의 결과라 String) 등. `ContainsCondition`은 파싱/컴파일 단계에서 대상이 List인지 String인지 구분하지 않고 그대로 `EContains`로 컴파일되므로, 이 gap은 파서/컴파일러가 아니라 순수하게 인터프리터의 런타임 타입 처리에만 있었다.
+
+  다만 이 gap은 지금까지 한 번도 관측된 적이 없었다 — `parseInt`는 이 "contains" 스텝보다 앞선 다른 스텝들(코드 유닛 리터럴 비교 등)이 이미 미기계화 상태라 실행이 그 앞에서 먼저 멈췄고, `escape`/`Encode`는 애초에 이번 세션 전까지 `escape`/`unescape` 자체가 추출조차 안 됐다(`docs/esmeta_changes.md` #1/#2/#3 참고) — 세 겹의 이전 gap을 차례로 걷어내고 나서야 `gc/casts.tentative.any.js`(WJI js-api 테스트)를 통해 처음으로 이 코드 경로에 도달해 드러났다.

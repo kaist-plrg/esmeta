@@ -83,6 +83,7 @@ trait Walker extends BasicWalker {
         walkAst(ty.ast),
         walkGrammarSymbol(ty.grammarSymbol),
         walkCodeUnit(ty.codeUnit),
+        walkCodePoint(ty.codePoint),
         walkEnum(ty.enumv),
         walkMath(ty.math),
         walkInfinity(ty.infinity),
@@ -126,6 +127,9 @@ trait Walker extends BasicWalker {
 
   /** code unit types */
   def walkCodeUnit(codeUnit: Boolean): Boolean = walk(codeUnit)
+
+  /** code point types */
+  def walkCodePoint(codePoint: Boolean): Boolean = walk(codePoint)
 
   /** enum types */
   def walkEnum(enumv: BSet[String]): BSet[String] = walkBSet(enumv, walk)

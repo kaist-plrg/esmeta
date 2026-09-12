@@ -349,11 +349,13 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case ToNumber       => app >> "[number]"
       case ToBigInt       => app >> "[bigInt]"
       case ToMath         => app >> "[math]"
-      case ToStr(radix) =>
+      case ToStr(radix, upper) =>
         app >> "[str"
         radix.map(app >> " " >> _)
+        if (upper) app >> " upper"
         app >> "]"
-      case ToCodeUnit => app >> "[codeUnit]"
+      case ToCodeUnit  => app >> "[codeUnit]"
+      case ToCodePoint => app >> "[codePoint]"
     }
 
   // references

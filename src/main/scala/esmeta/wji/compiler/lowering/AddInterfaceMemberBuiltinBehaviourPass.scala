@@ -1,6 +1,7 @@
 package esmeta.wji.compiler.lowering
 
 import esmeta.wji.lang.{Algorithm, AlgorithmKind, Cond, Expr, Instr, WjiParam}
+import esmeta.wji.compiler.Compiler
 import esmeta.error.UnsupportedSpecShape
 
 /** Reshapes every Getter/Setter/Constructor/Method-kind [[Algorithm]] — all 4
@@ -43,8 +44,7 @@ import esmeta.error.UnsupportedSpecShape
   * |promise|.` ends up returning the capability record instead of an actual
   * `Promise` unless something explicitly unwraps `.Promise` first, which the
   * hand-written `manuals/funcs/INTRINSICS. WebAssembly.instantiate.ir` glue
-  * does and nothing generic does yet. See `docs/hardcodes.md` #7 and
-  * `personal/TODO.md`.
+  * does and nothing generic does yet. See `docs/hardcodes.md` #7.
   *
   *   - '''parameter unpacking''': `BuiltinCallOrConstruct` always invokes a
   *     builtin as `func.__CODE__(this, argumentsList, newTarget)` — a fixed
@@ -73,12 +73,28 @@ import esmeta.error.UnsupportedSpecShape
   * which is why no js-api constructor algorithm ever writes it and every one
   * instead ends by mutating `this`'s fields with no explicit `Return`.
   * [[createThisBinding]]/[[returnThisBinding]] mechanize exactly that
-  * preamble/epilogue, reusing the same `Expr.New(iface)` → `ERecord(iface,
-  * ordinaryObjectFields(iface))` construction
+  * preamble/epilogue. The object itself still reuses the same `Expr.New(iface)`
+  * → `ERecord(iface, ordinaryObjectFields(iface))` construction
   * `esmeta.wji.compiler.Compiler.compileExpr` already uses for the "Let |x| be
-  * a new Y." shape inside algorithm bodies (see `docs/hardcodes.md` #7) — it
-  * already has real prototype wiring for every interface a WJI test constructs
-  * directly (`Module`, `Instance`, `Memory`, `Table`, `Global`).
+  * a new Y." shape inside algorithm bodies (see `docs/hardcodes.md` #7), but
+  * its `[[Prototype]]` gets overwritten right after — WebIDL's real preamble is
+  * `? OrdinaryCreateFromConstructor(NewTarget, "%<iface>.prototype%")`
+  * (`webidl/index.bs`), whose whole point is reading `NewTarget`'s own
+  * `"prototype"` property first (falling back to the default intrinsic only
+  * when that isn't an Object) — exactly what makes `class Sub extends
+  * WebAssembly.Module {}; new Sub(...) instanceof Sub` true.
+  * `ordinaryObjectFields`'s `Prototype` field is always the fixed default
+  * intrinsic (correct for the unrelated re-entrant callers of bare
+  * `Expr.New(iface)`, e.g. "create a memory object" from an address — never
+  * invoked through `[[Construct]]`, so there's no real `NewTarget` to consult
+  * there), so `createThisBinding` doesn't touch that shared helper; it just
+  * replaces the field again with the real ECMA-262 AO
+  * `GetPrototypeFromConstructor(NewTarget, intrinsicDefaultProto)`
+  * (`ecma262/spec.html`'s `sec-getprototypefromconstructor` — the exact
+  * sub-step `OrdinaryCreateFromConstructor` itself delegates to) mainline
+  * already compiles, called here by its literal AO name the same way
+  * hand-written `manuals/funcs` `.ir` glue already reuses mainline AOs (e.g.
+  * `ConvertToInt.ir`'s `clo<"ToNumber">`).
   *   - '''WebIDL's implicit setter argument''': a `Setter`-kind algorithm's
   *     `**the given value**` (`Expr.GivenValue`) is WebIDL's other implicit
   *     member-only binding, alongside `**this**` — unpacked from
@@ -159,13 +175,90 @@ object AddInterfaceMemberBuiltinBehaviourPass extends LoweringPass:
     *     only default this corpus's WebIDL actually declares) is handled, via
     *     the same `[$OrdinaryObjectCreate$](null)` idiom spec text itself
     *     already uses for a fresh, no-own-properties object (e.g. `create an
-    *     exports object`'s `|exportsObject|`) — plain property reads on it (all
-    *     a defaulted-dictionary param's own spec text ever does) behave
-    *     identically whether its prototype is `null` or `%Object.prototype%`,
-    *     so there's no need to build a "real" `{}` literal's prototype chain
-    *     just for this. Any other default text fails loudly via
-    *     `UnsupportedSpecShape` instead of being guessed at.
+    *     exports object`'s `|exportsObject|`) — then, same as the "argument
+    *     actually supplied" branch just above, run through
+    *     `converted_to_an_idl_value` if `p.idlType` is known, so a dictionary
+    *     member with its own IDL default (e.g. `ExceptionOptions.traceStack =
+    *     false`) actually gets filled in instead of just being a plain
+    *     no-own-properties object — omitting an optional dictionary argument
+    *     and passing `{}` explicitly must produce the same result, and the
+    *     "supplied" branch already always converts. Any other default text
+    *     fails loudly via `UnsupportedSpecShape` instead of being guessed at.
     */
+  /** the WebIDL dictionary types this pass already knew about before
+    * required-member validation moved into `converted_to_an_idl_value` itself
+    * (`esmeta.wji.interpreter.WebIdlConversion.readDictionary`, which now
+    * genuinely throws — see its own doc) — kept here only for the *other* guard
+    * dictionary conversion needs first, [[nonObjectCheck]]. `ExceptionOptions`
+    * was never in this set either, before or after: it has no required members,
+    * and never got the non-`Object` guard (a pre-existing gap,
+    * `docs/hardcodes.md` #2, not newly introduced by this pass).
+    */
+  private val knownDictionaryTypes: Set[String] =
+    Set("MemoryDescriptor", "TableDescriptor", "GlobalDescriptor", "TagType")
+
+  /** WebIDL dictionary conversion's own first step: "if Type(V) is not
+    * Undefined, Null, or Object, throw a TypeError" — run before
+    * `converted_to_an_idl_value` for `ty`'s in [[knownDictionaryTypes]], since
+    * that function itself only ever reads `argument` as `Undefined`/`Null`/an
+    * `Object` (its `Get` calls would crash on anything else, e.g. a `false`/
+    * number/string/`Symbol()` argument — just as valid a WPT "invalid
+    * descriptor" case as `undefined`, see
+    * `spectec/test/js-api/memory/constructor.any.js`'s "Invalid descriptor
+    * argument"). Also covers a bare `sequence<T>` param (so far only
+    * `Exception`'s constructor's `payload`) — sequence conversion actually
+    * requires an Object even more strictly (no `Undefined`/`Null` collapsing),
+    * but the same "throw unless Object" check is a safe (if slightly
+    * stricter-than-spec on paper) stand-in: `WebIdlConversion. toSequence`
+    * reads `argument`'s own `"__MAP__"` field directly, which crashes on a
+    * non-`Addr` value (e.g. `123n`,
+    * `spectec/test/js-api/exception/constructor.tentative.any.js`'s "Invalid
+    * exception argument") instead of throwing `TypeError`.
+    */
+  private def nonObjectCheck(ty: String, name: String): List[Instr] =
+    if !(knownDictionaryTypes(ty) || ty.startsWith("sequence<")) then Nil
+    else
+      List(
+        Instr.IfChain(
+          List(
+            Cond.IsType(Expr.Var(name), "Object", negated = true) ->
+            List(Instr.Throw(Expr.New("TypeError"))),
+          ),
+          Nil,
+        ),
+      )
+
+  /** `Perform converted_to_an_idl_value(name, ty), let name be the result.`
+    * followed by an abrupt-completion check: `converted_to_an_idl_value`
+    * (`WebIdlConversion.call`) returns the plain converted value on success,
+    * same as ever -- but a dictionary member's getter can itself throw, or a
+    * required member can turn out absent, or an enum value can turn out
+    * invalid, and any of those now come back as a genuine `ThrowCompletion`
+    * instead (see its own doc for why the *success* case deliberately isn't
+    * also completion-wrapped: `webidl/index.bs`'s real `react` algorithm has
+    * its own unmarked call site that never unwraps one). The `AbruptCompletion`
+    * check tells the two apart; on abrupt, propagate it directly, exactly the
+    * way any other `?`-marked call's `Instr.Return` does once
+    * `CompletionWrapping` wraps this algorithm's own exit paths (this pass's
+    * `run` always runs it, see class doc) -- otherwise `name` already holds the
+    * right value, nothing further to unwrap.
+    */
+  private def convertedIdlValueBinding(name: String, ty: String): List[Instr] =
+    List(
+      Instr.Perform(
+        "converted_to_an_idl_value",
+        List(Expr.Var(name), Expr.Str(ty)),
+        Instr.PerformOutcome.BindResult(name),
+      ),
+      Instr.IfChain(
+        List(
+          Cond.IsType(Expr.Var(name), "AbruptCompletion") ->
+          List(Instr.Return(Some(Expr.Var(name)))),
+        ),
+        Nil,
+      ),
+    )
+
   private def omittedBranch(p: WjiParam, name: String): List[Instr] =
     if !p.optional then List(Instr.Throw(Expr.New("TypeError")))
     else
@@ -173,13 +266,11 @@ object AddInterfaceMemberBuiltinBehaviourPass extends LoweringPass:
         case None =>
           List(Instr.Let(Expr.Var(name), Expr.SpecTerm("undefined")))
         case Some("{}") =>
-          List(
-            Instr.Perform(
-              "OrdinaryObjectCreate",
-              List(Expr.SpecTerm("null")),
-              Instr.PerformOutcome.BindResult(name),
-            ),
-          )
+          Instr.Perform(
+            "OrdinaryObjectCreate",
+            List(Expr.SpecTerm("null")),
+            Instr.PerformOutcome.BindResult(name),
+          ) :: p.idlType.toList.flatMap(convertedIdlValueBinding(name, _))
         case Some(other) =>
           throw UnsupportedSpecShape(
             "AddInterfaceMemberBuiltinBehaviourPass",
@@ -212,18 +303,14 @@ object AddInterfaceMemberBuiltinBehaviourPass extends LoweringPass:
     params.zipWithIndex.map {
       case (p, i) =>
         val name = stripPipes(p.name)
-        val convert = p.idlType.toList.map { ty =>
-          Instr.Perform(
-            "converted_to_an_idl_value",
-            List(Expr.Var(name), Expr.Str(ty)),
-            Instr.PerformOutcome.BindResult(name),
-          )
-        }
+        val checks = p.idlType.toList.flatMap(nonObjectCheck(_, name))
+        val convert =
+          p.idlType.toList.flatMap(convertedIdlValueBinding(name, _))
         val supplied =
           Instr.Let(
             Expr.Var(name),
             Expr.Index(Expr.Var("ArgumentsList"), Expr.Num(i.toString)),
-          ) :: convert
+          ) :: (checks ++ convert)
         Instr.IfChain(
           List(
             Cond.Compare(
@@ -251,6 +338,33 @@ object AddInterfaceMemberBuiltinBehaviourPass extends LoweringPass:
       )
     case _ => Nil
 
+  /** every ECMAScript class constructor throws a `TypeError` when invoked via
+    * plain `[[Call]]` instead of `[[Construct]]` (`sec-ecmascript-function-
+    * objects-call-thisargument-argumentslist`'s own "If
+    * F.[[IsClassConstructor]] is true, throw a TypeError" — a
+    * `Constructor`-kind interface member is exactly this shape, per WebIDL's
+    * own "internally create a new object implementing the interface" preamble
+    * requiring a real `[[Construct]]`). Mainline's `BuiltinCallOrConstruct`
+    * already threads the real `NewTarget` on `[[Construct]]` and `undefined` on
+    * a plain `[[Call]]` (ECMA-262's own mechanized behavior, no WJI involvement
+    * needed) — `run()` binds `|NewTarget|` for every `Constructor` (and
+    * `Getter`) of this pass's algorithms, just unchecked until now.
+    * `Cond.IsMissing` compiles to exactly `NewTarget == undefined`
+    * (`Compiler.compileCond`), so this is a one-guard check.
+    */
+  private def newTargetCheck(kind: AlgorithmKind): List[Instr] = kind match
+    case AlgorithmKind.Constructor(_) =>
+      List(
+        Instr.IfChain(
+          List(
+            Cond.IsMissing(Expr.Var("NewTarget")) ->
+            List(Instr.Throw(Expr.New("TypeError"))),
+          ),
+          Nil,
+        ),
+      )
+    case _ => Nil
+
   /** WebIDL's "internally create a new object implementing the interface"
     * preamble — see this pass's own class doc for why a `Constructor` (unlike
     * Getter/Setter/Method) needs this instead of relying on an already-bound
@@ -258,8 +372,84 @@ object AddInterfaceMemberBuiltinBehaviourPass extends LoweringPass:
     */
   private def createThisBinding(kind: AlgorithmKind): List[Instr] = kind match
     case AlgorithmKind.Constructor(iface) =>
-      List(Instr.Set(Expr.This, Expr.New(iface)))
+      val default = Instr.Set(Expr.This, Expr.New(iface))
+      Compiler.namesWithPrototypeIntrinsic.get(iface) match
+        case None => List(default)
+        case Some(intrinsicKey) =>
+          List(
+            default,
+            // "Let x be ? GetPrototypeFromConstructor(NewTarget, intrinsicKey)."
+            // shape -- left for NormalizeEvaluationOrderPass/ExpandAbruptPass
+            // (both run after this pass) to hoist/expand the same way real
+            // parsed prose would.
+            Instr.Let(
+              Expr.Var("_proto"),
+              Expr.Abrupt(
+                "?",
+                Expr.AlgoCall(
+                  "GetPrototypeFromConstructor",
+                  List(Expr.Var("NewTarget"), Expr.Str(intrinsicKey)),
+                ),
+              ),
+            ),
+            Instr.Set(Expr.Field(Expr.This, "Prototype"), Expr.Var("_proto")),
+          )
     case _ => Nil
+
+  /** Wraps every `Return`'s value -- recursively, including ones nested inside
+    * an `IfChain`/`ForEach`/etc. (`Instr.mapBody` already knows how to
+    * structurally recurse into each of those, `IfChain`'s own `branches`/
+    * `fallback` included) -- in `converted_to_a_javascript_value`. WebIDL's own
+    * calling convention implicitly converts an operation's return value to a
+    * real JavaScript value the same way it converts each argument to its
+    * declared IDL type (`unpackArgumentsList`'s own `converted_to_an_idl_value`
+    * injection) -- spec prose never spells this out either (just "Return
+    * |exports|."), so nothing mechanized it before: `Module.exports`'s
+    * `sequence<ModuleExportDescriptor>` return value was a raw internal
+    * `ListObj` of raw internal `MapObj`s, never actually turned into a real
+    * `Array` of real objects (`WebIdlConversion.toJsValue` didn't know how to
+    * convert a `ListObj` at all until now either -- see its own doc).
+    *
+    * Only for `Getter`/`Method` -- WebIDL declares a real return *type* for
+    * both, unlike `Setter` (no return value at all) or `Constructor` (whose own
+    * implicit `Return **this**`, see [[returnThisBinding]], is already a real
+    * object, never worth this). Safe to apply unconditionally to every one of
+    * them regardless of what they actually return: `toJsValue` is already
+    * identity passthrough for anything that isn't a `MapObj`/ `ListObj`, so
+    * wrapping a Return that never needed it is a no-op.
+    */
+  private def wrapReturnValues(
+    kind: AlgorithmKind,
+    body: List[Instr],
+  ): List[Instr] =
+    val needsWrap = kind match
+      case AlgorithmKind.Getter(_)    => true
+      case AlgorithmKind.Method(_, _) => true
+      case _                          => false
+    if !needsWrap then body
+    else
+      var freshCounter = 0
+      def freshName(): String =
+        freshCounter += 1
+        s"_returnValue$freshCounter"
+      def transform(instrs: List[Instr]): List[Instr] = instrs.flatMap {
+        case Instr.Return(Some(expr), nested) =>
+          val (bindings, name) = expr match
+            case Expr.Var(v) => (Nil, v)
+            case _ =>
+              val v = freshName()
+              (List(Instr.Let(Expr.Var(v), expr)), v)
+          bindings ++ List(
+            Instr.Perform(
+              "converted_to_a_javascript_value",
+              List(Expr.Var(name)),
+              Instr.PerformOutcome.BindResult(name),
+            ),
+            Instr.Return(Some(Expr.Var(name)), transform(nested)),
+          )
+        case other => List(other.mapBody(transform))
+      }
+      transform(body)
 
   /** The matching epilogue: every js-api constructor algorithm ends by mutating
     * `**this**`'s fields with no explicit `Return`, relying on WebIDL's outer
@@ -277,16 +467,17 @@ object AddInterfaceMemberBuiltinBehaviourPass extends LoweringPass:
     algos.map { a =>
       a.kind match
         case AlgorithmKind.Getter(_) | AlgorithmKind.Setter(_) |
-            AlgorithmKind.Constructor(_) | AlgorithmKind.Method(_) =>
+            AlgorithmKind.Constructor(_) | AlgorithmKind.Method(_, _) =>
           val params = a.kind match
-            case AlgorithmKind.Getter(_) =>
+            case AlgorithmKind.Getter(_) | AlgorithmKind.Constructor(_) =>
               BuiltinParams :+ WjiParam("|NewTarget|")
             case _ => BuiltinParams
           a.copy(
             params = params,
-            body = unpackArgumentsList(a.params) ++
+            body = newTargetCheck(a.kind) ++
+              unpackArgumentsList(a.params) ++
               givenValueBinding(a.kind) ++ createThisBinding(a.kind) ++
-              a.body ++ returnThisBinding(a.kind),
+              wrapReturnValues(a.kind, a.body) ++ returnThisBinding(a.kind),
           )
         case AlgorithmKind.Plain => a
     }

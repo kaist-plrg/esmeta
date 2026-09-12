@@ -198,13 +198,9 @@
 - **Reason**: `table_type`의 런타임 표현(`al_of_tabletype`, `construct.ml`)은 `CaseV("", [addrtype; limits; reftype])`로, 이미 세 자리에서 튜플 destructuring으로 정확히 소비되고 있는 값과 완전히 같은 값입니다. 이 한 곳(`Table.length`)만 그 관용구 대신 필드 하나만 꺼내는 별도 표현을 씁니다. `mem_type`도 같은 패턴이지만, 런타임 표현(`al_of_memorytype`)이 `CaseV("PAGE", [addrtype; limits])`라 실제 위치 필드는 2개뿐입니다 — formal grammar(`memtype = addrtype limits PAGE`)의 `PAGE`는 세 번째 필드가 아니라 이 레코드 자체의 태그이기 때문입니다(`table_type`의 태그가 빈 문자열인 것과 대비). 이 문서 안에 `mem_type`을 튜플로 destructure하는 선례는 없지만, 구조적으로 `table_type`과 동일한 문제이자 동일한 해법이 통하므로 함께 묶어 기록합니다.
 - **WJI 쪽 처리**: `SpecPatch` #40으로 우회 — 두 자리 모두 튜플 destructuring `Let (...)  be ...`로 재작성. `mem_type`은 2-tuple(`(|addrtype|, <var ignore>limits page</var>)`), `table_type`은 기존 세 자리와 동일한 3-tuple. `TupleProj`(`ExpandDestructuringLetPass`)는 태그를 보지 않고 순수 위치 기반으로 project하므로(`State.apply`의 `case Wasm(ALValue.CaseV(_, vs)) => apply(vs, field)`), `mem_type`의 태그가 `table_type`과 다르다는 사실은 정확성에 영향이 없습니다.
 
-## 14. `IsFixedLengthArrayBuffer`만 외부 AO를 부르는데 `[=...=]`(값 링크) 문법을 씀 — 다른 자리는 전부 `[$...$]`(AO 호출)
+## 14. ~~`IsFixedLengthArrayBuffer`만 외부 AO를 부르는데 `[=...=]`(값 링크) 문법을 씀~~
 
-- **File**: `spectec/document/js-api/index.bs`, `refresh the Memory buffer`(line 891), `toFixedLengthBuffer`(line 936), `toResizableBuffer`(line 952)
-- **Current**: `1. If [=IsFixedLengthArrayBuffer=](|buffer|) is true, ...`
-- **Expected**: `1. If [$IsFixedLengthArrayBuffer$](|buffer|) is true, ...` — 이 문서가 진짜 ECMA-262 AO를 호출할 때 이미 일관되게 쓰는 형태(`[$Get$]`, `[$HasProperty$]`, `[$IsCallable$]`, `[$OrdinaryObjectCreate$]`, `[$CreateDataProperty$]`, `[$SetIntegrityLevel$]` 등 수십 곳).
-- **Reason**: `IsFixedLengthArrayBuffer`는 이 문서 안에 정의된 dfn이 아니라, anchor 테이블(`text: IsFixedLengthArrayBuffer; url: sec-isfixedarraybuffer`, index.bs:260)을 통해 ResizableArrayBuffer 제안의 진짜 외부 AO를 가리키는 cross-reference입니다. Bikeshed 문법상 `[=...=]`(값/dfn 링크)와 `[$...$]`(다른 스펙의 abstract-op 호출)는 서로 다른 용도인데, 이 문서는 외부 AO를 부를 땐 항상 `[$...$]`를 쓰고 `[=...=]`는 로컬 dfn/값 링크 전용으로 일관되게 구분해왔습니다. 이 세 곳만 그 구분에서 벗어나 `[=...=]`를 씁니다. `Compiler.nameFromLink`는 `[=...=]` 링크를 전부 이 문서에 로컬로 정의된(그래서 WJI가 소문자로 등록한) 알고리즘으로 가정해 무조건 소문자화하는데, `IsFixedLengthArrayBuffer`는 mainline `cfg.fnameMap`에 원래 대소문자(`IsFixedLengthArrayBuffer`)로 등록돼 있어서 `isfixedlengtharraybuffer`로는 조회가 안 되고 `UnknownFunc`로 죽습니다.
-- **WJI 쪽 처리**: `SpecPatch` #41로 우회 — 세 자리 모두 `[=IsFixedLengthArrayBuffer=](|buffer|)`를 `[$IsFixedLengthArrayBuffer$](|buffer|)`로 교체(인자가 동일해 패치 하나로 세 곳 다 커버). `[$...$]` 경로는 이미 `ResolveLinksPass.resolveFuncName`이 원래 대소문자를 보존하므로 별도 코드 변경 불필요.
+Retracted — its premise was wrong. This entry claimed the document consistently uses `[$...$]` for every external ECMA-262 AO call and reserves `[=...=]` for local dfns/values, making `IsFixedLengthArrayBuffer`'s use of `[=...=]` the one exception. It isn't: `MakeBasicObject`(line 1653), `SameValue`(971), `IsStrictlyEqual`(2141/2157), and `IsLessThan`(2159) are all genuine external AOs called via `[=...=]` too — five more counter-examples to the "always `[$...$]`" claim, found while chasing the identical `UnknownFunc` symptom for `MakeBasicObject`. Both syntaxes are just equally valid, interchangeable Bikeshed cross-reference forms; nothing here is actually inconsistent on the document's own terms. The real problem was entirely on WJI's side — `Compiler.nameFromLink` guessed "local vs. external" from bracket punctuation alone, an unreliable proxy. Fixed generally instead: `nameFromLink` no longer touches case at all, and `Interpreter.EClo` retries a failed lookup with the name lowercased, so a `[=link=]` resolves correctly whichever of the two it actually names, without needing every individual case fixed as it's found. `SpecPatch` #41 (the `[=IsFixedLengthArrayBuffer=]` → `[$IsFixedLengthArrayBuffer$]` rewrite this entry prompted) is removed as redundant, now that the general fix covers it too. Left as a numbered gap (not renumbering the rest of this file) since other entries and `SpecPatch` cite entries here by number.
 
 ## 15. `create an operation function`의 두 곳에서만 `regular operation`/`static operation`이 링크 안 된 채로 쓰임
 
@@ -221,3 +217,46 @@
 - **Expected**: `... and |importObject| is missing, throw a {{TypeError}} exception.` — 이 문서에서 default 없는 optional 파라미터가 생략됐는지 체크하는 다른 모든 자리(`Table` 생성자의 `|value|` line 1045, `Table.grow`의 `|value|` line 1063, `Table.set`의 `|value|` line 1107)가 쓰는 관용구.
 - **Reason**: `importObject`는 `Instance` 생성자에서 `optional object importObject`(default 없음)로 선언되는데, `webidl/index.bs`의 overload resolution algorithm 자체가 "optionality가 'optional'이고 V가 undefined면 ... default가 없는 한 특별한 값 'missing'을 append한다"고 정의합니다 — 즉 생략되든 명시적으로 `undefined`를 넘기든 둘 다, 실제 알고리즘 스텝이 실행되기 전에 이미 별개의 sentinel 값 "missing"으로 변환됩니다. `|importObject|`가 알고리즘 본문 안에서 실제로 ES 값 `undefined`를 들고 있는 경우는 없으므로, `is undefined` 체크는 이 문서 자신의 argument-processing 규칙상 절대 참이 될 수 없는 조건을 체크하는 셈입니다.
 - **WJI 쪽 처리**: `SpecPatch` #43으로 우회 — `"|importObject| is undefined"`를 `"|importObject| is missing"`으로 교체. `CondParser`가 "X is missing"을 `Cond.IsMissing`으로 파싱해 `Table.value` 등과 동일한 관용구로 컴파일되게 합니다.
+
+## 17. `Memory`/`Table` 생성자의 `address` 멤버만 `ToValueType` 변환 없이 raw로 읽음
+
+- **File**: `spectec/document/js-api/index.bs`, lines 873, 1040 (`Memory`/`Table` 생성자)
+- **Current**: `1. If |descriptor|["address"] [=map/exists=], let |addrtype| be |descriptor|["address"]; otherwise, let |addrtype| be [=i32=].`
+- **Expected**: `... let |addrtype| be [=ToValueType=](|descriptor|["address"]); otherwise, ...`
+- **Reason**: 같은 생성자 안에서 `element`(`Table`, line 1037)/`value`(`Global`, line 1192) 같은 다른 `enum`-타입 dictionary 멤버는 전부 `[=ToValueType=](|descriptor|["..."])`을 거쳐서 실제 case-tag 값으로 변환되는데, `address`(`enum AddressType { "i32", "i64" }`)만 예외적으로 raw JS 문자열 그대로 읽습니다. `ToValueType`의 첫 두 분기가 이미 "i32"/"i64"를 `[=i32=]`/`[=i64=]`로 매핑하므로(`AddressType`의 두 값과 정확히 겹침), `address`도 같은 함수를 거치면 되는데 이 두 자리만 빠져있습니다. `#12`(이 문서)와 관련은 있지만 별개 문제입니다 — `#12`는 `AddressValueToU64`/`U64ToAddressValue`가 `|addrtype|`을 비교할 때 raw quoted string과 비교하던 문제(`SpecPatch` #39/#44로 링크 형태로 통일)였고, 이 항목은 애초에 `|addrtype|`에 담기는 *값 자체*가 변환 안 된 raw 문자열이라는 더 상류의 문제입니다 — `#12`/`#39`/`#44`만으로는 비교 대상 쪽(`[=i32=]`)만 case-tag가 되고 `|addrtype|` 쪽은 여전히 raw string이라 비교가 항상 실패했습니다.
+- **WJI 쪽 처리**: `SpecPatch` #48로 우회 — `let |addrtype| be |descriptor|["address"]`를 `let |addrtype| be [=ToValueType=](|descriptor|["address"])`로 교체(두 생성자 모두 텍스트가 동일해서 패치 하나로 둘 다 적용됨).
+
+## 18. `internal slot`이 링크된 `[=/internal slot=]` 형태와 plain text 형태로 섞여 쓰임
+
+- **File**: `webidl/index.bs` 전체, 특히 line 7173, 7176 (일반 서술), 9343, 9430, 9441 (`byte length`/`detached`/`transferable`), 13796 (`is a platform object`), 13940 (`primary interface`) — 전부 plain text `internal slot`. 대조적으로 line 9014-9245, 9320, 11585-11641, 12878-13112, 13947, 14853 등 22곳은 `[=/internal slot=]`으로 링크돼있고, possessive 관용구("the value of X's [[slot]] internal slot")도 line 9035, 11611에서 `[=/internal slot=]`으로 링크된 형태로 쓰입니다.
+- **Current**: 예) `webidl/index.bs:9343` — `1.  If |jsBufferSource| has a \[[ViewedArrayBuffer]] internal slot, then return` (plain). `webidl/index.bs:9320` — `1.  If |jsBufferSource| has a \[[ViewedArrayBuffer]] [=/internal slot=], then:` (링크). 두 표현 모두 동일 문서, 동일 관용구("X has a [[Y]] internal slot")에 대해 쓰입니다.
+- **Expected**: 두 문서는 서로 독립적인 저자 관례를 갖는 별개 스펙이라, 문서 간 통일이 아니라 **각 문서 내부의** 일관성이 기준입니다.
+  - `webidl/index.bs`: `internal slot`은 이 문서 자신의 link-defaults 블록(line 65-67, `url: sec-object-internal-methods-and-internal-slots` 아래 `text: internal slot`으로 등록)이 진짜 dfn으로 등록해둔 용어이고, 22곳(가능 자리 대부분)이 이미 `[=/internal slot=]`로 링크돼있으므로 — 이 문서의 기준은 **링크된 형태**입니다. line 7173/7176/9343/9430/9441/13796/13940의 plain text 7곳이 이 문서 자신의 관례에서 벗어난 예외입니다.
+  - `spectec/document/js-api/index.bs`: line 508, 509, 1015, 1241, 1454, 1461, 1462, 1574, 1575 등 모든 자리가 예외 없이 plain text만 쓰므로 — 이 문서의 기준은 **unlinked 형태**이고, 지금 그대로가 이미 일관적입니다(고칠 자리 없음).
+- **Reason**: `webidl/index.bs` 한 문서 안에서만도 같은 "X has a [[Y]] internal slot" 관용구가 22곳은 링크, 7곳은 plain text로 갈립니다 — 같은 문서, 같은 관용구 안에서 벗어난 자리라 이 문서 스스로가 세운 패턴과 어긋납니다. `js-api/index.bs`는 반대로 100% plain text로 그 자체로 일관적이므로, 여기 있는 문제는 `webidl/index.bs` 내부의 22 vs 7 split뿐입니다.
+- **WJI 쪽 처리**: 텍스트 패치 없이 파서가 두 형태를 모두 받아들이도록 만들어져 있습니다 — `CondParser.HasSlotPos`/`HasSlotNeg`(line 72-75)가 `(?:\[=/?internal slot=\]|internal slot)$`로 두 형태를 다 매치합니다. 실제로 `SpecFile.webidlFilter`가 추출하는 22개 알고리즘 범위 안에서는 unlinked 자리가 하나도 없어서(7173/7176/9343/9430/9441/13796/13940 전부 `byte length`/`detached`/`transferable`/`is a platform object`/`primary interface` — webidlFilter 밖) 이 관용성이 지금 당장 실제로 발동하는 자리는 없습니다.
+
+  다만 이 blanket tolerance(두 형태를 가리지 않고 똑같이 받아주는 처리)는 다소 과하다고 볼 여지가 있습니다 — 형태 차이를 흡수해서 스펙 자체의 불일치를 감추는 셈이고, 실제로 자매 규칙인 `ExprParser.PossessiveSlot`(line 400-401, "the value of X's [[slot]] internal slot"에서 슬롯의 *값*을 읽는 쪽)은 이 tolerance를 안 물려받아서 plain text만 인식하고 링크 형태(`[=/internal slot=]`)가 오면 매치 실패로 `Unknown`에 빠집니다. `webidl/index.bs`는 이 possessive 관용구를 이미 링크된 형태로만 씁니다(line 9035, 11611 — 둘 다 `ready promise`/`overload resolution algorithm` 안이라 지금은 webidlFilter 밖이라 안 걸리지만, 잠재적 지뢰). 두 파서 규칙이 같은 표기 변동에 대해 서로 다르게 반응한다는 사실 자체가, HasSlotPos/Neg의 관용이 진짜 정합성을 보장하는 게 아니라 우연히 지금까지 안 터진 것뿐임을 보여줍니다. `SpecPatch`로 우회하지는 않기로 함(당장 깨지는 자리가 없음, 그리고 위 7곳은 전부 webidlFilter 밖이라 SpecPatch를 붙여도 실질적 효과가 없음) — 스펙 저자에게 보고할 항목으로 여기 기록만 남깁니다.
+
+## 19. `attribute setter`의 `extended attribute` 체크 3곳만 링크 안 된 채로 쓰임
+
+- **File**: `webidl/index.bs`, lines 12418, 12422, 12424, 12428-9 (`attribute setter`, line 12390의 `<div algorithm>` 안)
+- **Current**:
+  ```
+  1.  If |attribute| is declared with the [{{Replaceable}}] extended attribute, then:
+  1.  If |attribute| is declared with a [{{LegacyLenientSetter}}] extended attribute, then
+  1.  If |attribute| is declared with a [{{PutForwards}}] extended attribute, then:
+  1.  Let |forwardId| be the identifier argument of the [{{PutForwards}}] extended
+      attribute.
+  ```
+- **Expected**: `extended attribute` → `[=extended attribute=]`로 링크. 예) `1.  If |attribute| is declared with the [{{Replaceable}}] [=extended attribute=], then:`
+- **Reason**: 바로 같은 알고리즘, 불과 몇 줄 위(line 12397, 12417)에서 `[{{LegacyLenientSetter}}], [{{PutForwards}}] or [{{Replaceable}}] [=extended attribute=]`와 `[{{LegacyLenientThis}}] [=extended attribute=]`가 이미 링크된 형태로 쓰입니다 — 정확히 같은 `<div algorithm>` 안에서, 정확히 같은 "X is declared with the [{{Y}}] extended attribute" 관용구가 자리마다 링크 여부만 다릅니다. `attribute setter`는 `SpecFile.webidlFilter`가 실제로 추출/컴파일하는 22개 알고리즘 중 하나입니다. `extended attribute`는 이 파일에서 export된 진짜 dfn이고(line 6830), 같은 "is declared with ... extended attribute" 관용구가 파일 전체 20곳 중 17곳은 링크, 3곳(전부 이 알고리즘 안)만 plain text입니다.
+- **WJI 쪽 처리**: `SpecPatch` #49로 4곳(위 3개 조건 + `forwardId` 바인딩의 서술적 언급 1개) 모두 링크. `#18`과 다르게, 이 자리는 `SpecFile.webidlFilter`가 실제로 추출하는 `attribute setter` 알고리즘 안이라 텍스트 패치가 실질적 효과가 있습니다. 짝을 맞춰 `CondParser.DeclaredWithAttrPos`/`DeclaredWithAttrNeg`(line 111-114)도 plain text 허용을 없애고 `\[=extended attribute=\]$`(링크된 형태)만 매치하도록 좁혔습니다 — `#18`의 `HasSlotPos`/`Neg`와 달리, 앞으로 이 자리에 다시 unlinked "extended attribute"가 들어오면 조용히 파싱되는 대신 `Unknown`/`EYet`으로 떨어지도록 의도적으로 관대함을 줄였습니다.
+
+## 20. `JSTag` getter만 `<div algorithm>` 래퍼 없이 쓰임
+
+- **File**: `spectec/document/js-api/index.bs`, line 666-669 (`WebAssembly.JSTag`의 getter)
+- **Current**: `<dfn>`와 numbered step list를 가진, 다른 모든 알고리즘과 똑같은 모양의 프로즈("The getter of the ... attribute ..., when invoked, performs the following steps: 1. ... 3. Return ...")인데, 앞뒤에 `<div algorithm>...</div>` 래퍼가 없음 — 바로 위 `instantiate` 메소드(line 659-662)를 포함해 이 문서의 다른 모든 알고리즘은 예외 없이 이 래퍼로 감싸져 있음.
+- **Expected**: `<div algorithm>`으로 시작해서 마지막 스텝 뒤에 `</div>`로 끝나는, 같은 문서의 다른 모든 알고리즘과 동일한 구조.
+- **Reason**: 텍스트 자체(문장, `<dfn>`, 스텝 목록)는 그 자체로 완전히 멀쩡한 영어 프로즈라 독립적으로 "틀렸다"고 할 근거가 없음 — 이게 문제라고 판단할 수 있는 유일한 근거는, 이 문서가 예외 없이 모든 알고리즘을 `<div algorithm>`으로 감싸는 자기 패턴을 세워뒀는데 이 자리만 거기서 벗어났다는 것뿐. `AlgorithmExtractor.extract`가 `<div algorithm...>` 태그만 찾아서 추출 대상을 고르기 때문에, 래퍼가 없는 이 알고리즘은 `wji-extract`에서 아예 안 잡힘(`no algorithm matches 'JSTag'`) — `exception/jsTag.tentative.any.js`가 `WebAssembly.JSTag`를 읽으면 그냥 `undefined`가 나오는 근본 원인.
+- **WJI 쪽 처리**: `SpecPatch` #52로 우회 — dfn 문장 앞에 `<div algorithm>\n`, 마지막 스텝 뒤에 `\n</div>`를 각각 삽입(두 개의 짧은 삽입, 블록 전체를 감싸는 하나의 큰 치환 대신). 추출 자체는 성공하지만, 컴파일된 함수 이름이 `INTRINSICS.get:WebAssembly.WebAssembly.prototype.JSTag`(중복 + 잘못된 `.prototype.`)로 나오는 걸 보면 `JSTag`가 인터페이스가 아니라 네임스페이스 자체에 붙는 getter라는 걸 컴파일러/lowering 쪽이 아직 구분 못 함 — `interface.any.js`의 `compile`/`validate`/`instantiate` 미등록과 같은 계열의 별개 작업 필요, `personal/TODO.md` #22 참고.

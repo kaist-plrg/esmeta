@@ -138,6 +138,8 @@ object JsonProtocol extends BasicJsonProtocol {
   given Encoder[ConversionExpressionOperator] = deriveEncoderWithType
   given Decoder[ConversionExpressionForm] = deriveDecoderWithType
   given Encoder[ConversionExpressionForm] = deriveEncoderWithType
+  given Decoder[NumberToStringExpression] = deriveDecoderWithType
+  given Encoder[NumberToStringExpression] = deriveEncoderWithType
 
   // clamp expressions
   given Decoder[ClampExpression] = deriveDecoderWithType

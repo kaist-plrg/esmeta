@@ -39,36 +39,37 @@ object Extractor:
     // while "create an interface object"/"create an interface prototype
     // object" installs an interface's members on a *separate* interface
     // prototype object — two different algorithms building and populating
-    // two different objects, not one mechanism with two names.
-    // `AddInterfaceMemberBuiltinBehaviourPass` only mechanizes the
-    // interface-prototype-object shape, so a namespace method is downgraded
-    // to `Plain` here rather than reaching it — see that pass's own doc and
-    // `docs/hardcodes.md` #7 for the concrete bug this would otherwise hit
-    // (`WebAssembly.instantiate`'s underlying `a new promise` term returning
-    // an un-unwrapped `PromiseCapabilityRecord`).
-    val interfaceNames = definitions
-      .filter(_.kind == DefinitionKind.Interface)
-      .map(_.name)
-      .toSet
+    // two different objects, not one mechanism with two names. `Compiler`'s
+    // own `Method` case handles both shapes directly (namespace-prefixed vs.
+    // per-interface `INTRINSICS.` lookup), so no downgrade to `Plain` is
+    // needed here.
     val algorithms = (jsApiAlgorithms ++ webidlAlgorithms)
       .map(enrichParamTypes(_, definitions))
     Spec(algorithms, definitions, anchors)
 
   /** Finds `algo`'s matching WebIDL operation (its interface's `Definition`,
     * looked up by `AlgorithmKind.Method`/`Constructor`'s own `interface` name,
-    * then the `Operation` member matching `algo.name`/its `Constructor` kind)
-    * and, if found and its positional param count agrees, stamps each
-    * `WjiParam.idlType`/`WjiParam.optional`/`WjiParam.default` with that
-    * operation's declared WebIDL type text/`optional` keyword/default-value
-    * text — see [[esmeta.wji.lang.WjiParam]]'s own doc for what consumes these.
-    * `optional`/`default` here are WebIDL's own declaration (e.g. `optional any
-    * value`, `optional WebAssemblyCompileOptions options = {}`), a different
-    * source from `AlgorithmExtractor.extractParams`'s "using optional X |Y|"
-    * prose detection (which a `Method`/`Constructor` dfn's own head, e.g.
-    * `grow(|delta|, |value|)`, never spells out — only the separate `<pre
-    * class=idl>` block does) — `p.optional` is OR'd with the WebIDL flag rather
-    * than overwritten, so either source marking a param optional is enough. A
-    * `Getter`/`Setter`/`Plain` algorithm is left untouched: getters take no
+    * then the `Operation` member matching `algo.name`/its `Constructor` kind),
+    * and:
+    *   - for a `Method`, stamps `AlgorithmKind.Method.static` from that
+    *     operation's own `MemberKind` (`StaticOperation` vs `RegularOperation`)
+    *     — the only place this can be determined at all, since the dfn prose
+    *     `enrichParamTypes` itself is named for never spells out `static` (see
+    *     [[esmeta.wji.lang.AlgorithmKind.Method]]'s own doc).
+    *   - if found and its positional param count agrees, stamps each
+    *     `WjiParam.idlType`/`WjiParam.optional`/`WjiParam.default` with that
+    *     operation's declared WebIDL type text/`optional` keyword/default-value
+    *     text — see [[esmeta.wji.lang.WjiParam]]'s own doc for what consumes
+    *     these. `optional`/`default` here are WebIDL's own declaration (e.g.
+    *     `optional any value`, `optional WebAssemblyCompileOptions options =
+    *     {}`), a different source from `AlgorithmExtractor.extractParams`'s
+    *     "using optional X |Y|" prose detection (which a `Method`/`Constructor`
+    *     dfn's own head, e.g. `grow(|delta|, |value|)`, never spells out — only
+    *     the separate `<pre class=idl>` block does) — `p.optional` is OR'd with
+    *     the WebIDL flag rather than overwritten, so either source marking a
+    *     param optional is enough.
+    *
+    * A `Getter`/`Setter`/`Plain` algorithm is left untouched: getters take no
     * arguments, and a setter's implicit "the given value" isn't a positional
     * `WjiParam` at all (see
     * `esmeta.wji.compiler.lowering.AddInterfaceMemberBuiltinBehaviourPass.givenValueBinding`),
@@ -78,18 +79,18 @@ object Extractor:
     algo: Algorithm,
     definitions: List[Definition],
   ): Algorithm =
-    def operationParams(
+    def matchingOperation(
       iface: String,
       matches: Operation => Boolean,
-    ): Option[List[Param]] =
+    ): Option[Operation] =
       definitions
         .find(d => d.kind == DefinitionKind.Interface && d.name == iface)
         .flatMap(_.members.collectFirst {
-          case op: Operation if matches(op) => op.params
+          case op: Operation if matches(op) => op
         })
-    val webidlParams: Option[List[Param]] = algo.kind match
-      case AlgorithmKind.Method(iface) =>
-        operationParams(
+    val webidlOp: Option[Operation] = algo.kind match
+      case AlgorithmKind.Method(iface, _) =>
+        matchingOperation(
           iface,
           op =>
             op.kind != MemberKind.Constructor && op.id == algo.name.getOrElse(
@@ -97,11 +98,18 @@ object Extractor:
             ),
         )
       case AlgorithmKind.Constructor(iface) =>
-        operationParams(iface, _.kind == MemberKind.Constructor)
+        matchingOperation(iface, _.kind == MemberKind.Constructor)
       case _ => None
-    webidlParams match
-      case Some(ps) if ps.length == algo.params.length =>
-        algo.copy(params = algo.params.zip(ps).map {
+    val staticStamped = (algo.kind, webidlOp) match
+      case (AlgorithmKind.Method(iface, _), Some(op)) =>
+        algo.copy(kind =
+          AlgorithmKind
+            .Method(iface, static = op.kind == MemberKind.StaticOperation),
+        )
+      case _ => algo
+    webidlOp.map(_.params) match
+      case Some(ps) if ps.length == staticStamped.params.length =>
+        staticStamped.copy(params = staticStamped.params.zip(ps).map {
           case (p, wp) =>
             p.copy(
               idlType = Some(wp.ty),
@@ -109,4 +117,4 @@ object Extractor:
               default = Option.when(wp.default.nonEmpty)(wp.default),
             )
         })
-      case _ => algo
+      case _ => staticStamped

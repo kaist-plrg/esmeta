@@ -68,6 +68,13 @@ import esmeta.wji.lang.walker.Walker
   *     but prose only ever spells out the first (nullability) component when
   *     the ref *is* nullable — a non-nullable one leaves it implicit, so only
   *     one arg is ever parsed.
+  *   - `[=var=]`/`[=const=]` (js-api/index.bs's own `globaltype` construction,
+  *     `Global`'s constructor): `al_of_globaltype` is `CaseV("", [mut; vt])` —
+  *     an untagged pair, `mut` itself `al_of_mut`'s `OptV None`/`OptV (Some
+  *     (CaseV ("MUT", [])))` (an *optional* flag, not a two-variant tag) — but
+  *     prose writes `mut`'s own link juxtaposed with `|valuetype|`, which
+  *     `ResolveLinksPass` reads as a one-arg call to that link instead of two
+  *     untagged siblings.
   * {{{
   *   Case("[=i32.const=]", [Var(u32)])
   * }}}
@@ -98,6 +105,14 @@ import esmeta.wji.lang.walker.Walker
   * becomes
   * {{{
   *   Case("REF.HOST_ADDR", [Var(hostaddr)])
+  * }}}
+  * and
+  * {{{
+  *   Case("[=var=]", [Var(valuetype)])
+  * }}}
+  * becomes
+  * {{{
+  *   Case("", [Opt(Some(Case("MUT", []))), Var(valuetype)])
   * }}}
   *
   * Every other `Case` (an already-correctly-flat variant like
@@ -211,6 +226,11 @@ object NormalizeSpecTecCaseShapePass extends LoweringPass:
           args.map(promoteLimits),
         )
       case Expr.SpecTerm(RenamedTag(tag)) => Expr.Case(tag, Nil)
+      // `|mut| is [=const=]` (index.bs:1226) -- the zero-arg sibling of the
+      // `[=const=] |valuetype|` construction handled below: `mut` being
+      // "const" is the *absence* of the `MUT` flag (`al_of_mut`'s `OptV
+      // None`), not a value equal to some "const" tag.
+      case Expr.SpecTerm("const") => Expr.Opt(None)
       case Expr.SpecTerm(ShorthandReftype(heaptype)) =>
         Expr.Case(
           "REF",
@@ -239,6 +259,24 @@ object NormalizeSpecTecCaseShapePass extends LoweringPass:
           // [=external-type/global=] mut vt -> GLOBAL((mut, vt))
           case _ if tag == "[=external-type/global=]" =>
             Expr.Case(finalTag, List(Expr.Case("", reshapedArgs)))
+
+          // [=var=] vt -> (Opt(MUT), vt) / [=const=] vt -> (Opt(None), vt) --
+          // index.bs's `Global` constructor builds a `globaltype` by writing
+          // `mut`'s own link (same idiom as `[=i32=]` for `addrtype`)
+          // juxtaposed with a separate `|valuetype|`, which
+          // `ResolveLinksPass.buildCaseOrCall` reads as a one-arg call to that
+          // link instead of two untagged sibling components -- the same
+          // nesting mismatch as `external-type/global` above. Unlike that one,
+          // `mut` itself isn't a two-variant tag: `construct.ml`'s `al_of_mut`
+          // is `Cons -> OptV None` / `Var -> OptV (Some (CaseV ("MUT", [])))`
+          // -- "const" is *absence* of the `MUT` flag, not its own variant.
+          case _ if tag == "[=var=]" =>
+            Expr.Case(
+              "",
+              Expr.Opt(Some(Expr.Case("MUT", Nil))) :: reshapedArgs,
+            )
+          case _ if tag == "[=const=]" =>
+            Expr.Case("", Expr.Opt(None) :: reshapedArgs)
 
           // [=comp-type/func=] params results -> "->"(params, results) — a
           // functype-shaped comptype's runtime tag is `"->"` itself

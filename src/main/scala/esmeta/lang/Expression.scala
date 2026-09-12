@@ -209,12 +209,21 @@ case class ConversionExpression(
   form: ConversionExpressionForm,
 ) extends CalcExpression
 enum ConversionExpressionOperator extends LangElem:
-  case ToApproxNumber, ToNumber, ToBigInt, ToMath, ToCodeUnit
+  case ToApproxNumber, ToNumber, ToBigInt, ToMath, ToCodeUnit, ToCodePoint
 enum ConversionExpressionForm:
   case SyntaxLiteral
   // e.g. the {{ op }} value that corresponds to {{ expr }}"
   // `the`: article, `that corresponds to`: pre
   case Text(article: String, pre: String)
+
+// "the String representation of {{ expr }}, formatted as a[n] [lowercase/
+// uppercase] decimal/hexadecimal number" (radix 10/16, upper only meaningful
+// for radix 16) -- e.g. ecma262 sec-encode's octet-to-%XX hex formatting.
+case class NumberToStringExpression(
+  expr: Expression,
+  radix: Int,
+  upper: Boolean,
+) extends CalcExpression
 
 // -----------------------------------------------------------------------------
 // clamp expressions
@@ -315,8 +324,9 @@ case class StringLiteral(s: String, form: StringLiteralForm) extends Literal
 // EmptyString: "the empty String"
 // EmptyUnicode: "the empty sequence of Unicode code points"
 // Code: <code>{{ string value }}</code>
+// AsciiWordChars: "the ASCII word characters"
 enum StringLiteralForm:
-  case SyntaxLiteral, EmptyString, EmptyUnicode, Code
+  case SyntaxLiteral, EmptyString, EmptyUnicode, Code, AsciiWordChars
 
 // field literals
 case class FieldLiteral(name: String) extends Literal

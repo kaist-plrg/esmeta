@@ -577,6 +577,7 @@ CoalesceExpression[0,0].AssignmentTargetType
 CoalesceExpression[0,0].Evaluation
 CoalesceExpression[0,0].HasCallInTailPosition
 CoalesceExpression[0,0].IsFunctionDefinition
+CodePointAt
 CompareArrayElements
 CompareTypedArrayElements
 CompletePropertyDescriptor
@@ -692,6 +693,7 @@ Elision[0,0].IteratorDestructuringAssignmentEvaluation
 Elision[1,0].ArrayAccumulation
 Elision[1,0].IteratorDestructuringAssignmentEvaluation
 EmptyStatement[0,0].Evaluation
+Encode
 EnqueueResolveInAgentJob
 EnqueueResolveInAgentJob:clo0
 EnumerableOwnProperties
@@ -1291,6 +1293,7 @@ INTRINSICS.Date.prototype.setUTCMilliseconds
 INTRINSICS.Date.prototype.setUTCMinutes
 INTRINSICS.Date.prototype.setUTCMonth
 INTRINSICS.Date.prototype.setUTCSeconds
+INTRINSICS.Date.prototype.setYear
 INTRINSICS.Date.prototype.toDateString
 INTRINSICS.Date.prototype.toJSON
 INTRINSICS.Date.prototype.toString
@@ -1361,6 +1364,7 @@ INTRINSICS.Math.cos
 INTRINSICS.Math.cosh
 INTRINSICS.Math.exp
 INTRINSICS.Math.expm1
+INTRINSICS.Math.floor
 INTRINSICS.Math.imul
 INTRINSICS.Math.log
 INTRINSICS.Math.log10
@@ -1452,6 +1456,7 @@ INTRINSICS.Reflect.preventExtensions
 INTRINSICS.Reflect.set
 INTRINSICS.Reflect.setPrototypeOf
 INTRINSICS.RegExp
+INTRINSICS.RegExp.prototype.compile
 INTRINSICS.RegExp.prototype.exec
 INTRINSICS.RegExp.prototype.test
 INTRINSICS.RegExp.prototype.toString
@@ -1477,16 +1482,25 @@ INTRINSICS.SharedArrayBuffer.prototype.slice
 INTRINSICS.String
 INTRINSICS.String.fromCharCode
 INTRINSICS.String.fromCodePoint
+INTRINSICS.String.prototype.anchor
 INTRINSICS.String.prototype.at
+INTRINSICS.String.prototype.big
+INTRINSICS.String.prototype.blink
+INTRINSICS.String.prototype.bold
 INTRINSICS.String.prototype.charAt
 INTRINSICS.String.prototype.charCodeAt
 INTRINSICS.String.prototype.codePointAt
 INTRINSICS.String.prototype.concat
 INTRINSICS.String.prototype.endsWith
+INTRINSICS.String.prototype.fixed
+INTRINSICS.String.prototype.fontcolor
+INTRINSICS.String.prototype.fontsize
 INTRINSICS.String.prototype.includes
 INTRINSICS.String.prototype.indexOf
 INTRINSICS.String.prototype.isWellFormed
+INTRINSICS.String.prototype.italics
 INTRINSICS.String.prototype.lastIndexOf
+INTRINSICS.String.prototype.link
 INTRINSICS.String.prototype.localeCompare
 INTRINSICS.String.prototype.match
 INTRINSICS.String.prototype.matchAll
@@ -1496,8 +1510,13 @@ INTRINSICS.String.prototype.replace
 INTRINSICS.String.prototype.replaceAll
 INTRINSICS.String.prototype.search
 INTRINSICS.String.prototype.slice
+INTRINSICS.String.prototype.small
 INTRINSICS.String.prototype.startsWith
+INTRINSICS.String.prototype.strike
+INTRINSICS.String.prototype.sub
+INTRINSICS.String.prototype.substr
 INTRINSICS.String.prototype.substring
+INTRINSICS.String.prototype.sup
 INTRINSICS.String.prototype.toString
 INTRINSICS.String.prototype.toWellFormed
 INTRINSICS.String.prototype.trim
@@ -1566,6 +1585,7 @@ INTRINSICS.decodeURI
 INTRINSICS.decodeURIComponent
 INTRINSICS.encodeURI
 INTRINSICS.encodeURIComponent
+INTRINSICS.escape
 INTRINSICS.eval
 INTRINSICS.get:ArrayBuffer.prototype.byteLength
 INTRINSICS.get:ArrayBuffer.prototype.detached
@@ -1611,8 +1631,15 @@ INTRINSICS.print
 INTRINSICS.set:Iterator.prototype.constructor
 INTRINSICS.set:Iterator.prototype[%Symbol.toStringTag%]
 INTRINSICS.set:Object.prototype.__proto__
+INTRINSICS.unescape
+INTRINSICS.yet:ChangestoBlockDeclarationInstantiation
+INTRINSICS.yet:ChangestoToBoolean
+INTRINSICS.yet:Changestothe`typeof`Operator
+INTRINSICS.yet:InitializersinForInStatementHeads
 INTRINSICS.yet:PromiseRejectFunction
 INTRINSICS.yet:PromiseResolveFunction
+INTRINSICS.yet:StaticSemantics:CharacterValue
+INTRINSICS.yet:StaticSemantics:IsCharacterClass
 INTRINSICS.yet:`Promise.allSettled`RejectElementFunction
 INTRINSICS.yet:`Promise.allSettled`ResolveElementFunction
 INTRINSICS.yet:`Promise.all`ResolveElementFunction
@@ -2243,6 +2270,8 @@ RegExpCreate
 RegExpExec
 RegExpHasFlag
 RegExpIdentifierName[0,0].RegExpIdentifierCodePoints
+RegExpIdentifierPart[1,0].RegExpIdentifierCodePoint
+RegExpIdentifierStart[1,0].RegExpIdentifierCodePoint
 RegExpUnicodeEscapeSequence[0,0].CharacterValue
 RegExpUnicodeEscapeSequence[4,0].CharacterValue
 RegExpUnicodeEscapeSequence[5,0].CharacterValue
@@ -2520,6 +2549,7 @@ ToUint16
 ToUint32
 ToUint8
 ToWebIDLArrayBuffer
+ToZeroPaddedDecimalString
 TriggerPromiseReactions
 TrimString
 TryStatement[0,0].ContainsDuplicateLabels
@@ -2551,6 +2581,7 @@ TypedArrayElementType
 TypedArrayGetElement
 TypedArrayLength
 TypedArraySetElement
+UTF16SurrogatePairToCodePoint
 UnaryExpression[1,0].AssignmentTargetType
 UnaryExpression[1,0].Evaluation
 UnaryExpression[1,0].HasCallInTailPosition
@@ -2582,6 +2613,9 @@ UnaryExpression[7,0].IsFunctionDefinition
 UnaryExpression[8,0].AssignmentTargetType
 UnaryExpression[8,0].HasCallInTailPosition
 UnaryExpression[8,0].IsFunctionDefinition
+UnicodeEscape
+UnicodeEscapeSequence[0,0].IdentifierCodePoint
+UnicodeEscapeSequence[1,0].IdentifierCodePoint
 UnicodePropertyValueExpression[0,0].MayContainStrings
 UpdateEmpty
 UpdateExpression[1,0].AssignmentTargetType
@@ -2650,5 +2684,6 @@ __IS_ARRAY_INDEX__
 __NEW_ERROR_OBJ__
 __NEW_OBJ__
 __REMOVE_ELEM__
+__UTF8_ENCODE__
 compute_the_effective_overload_set
 exposed

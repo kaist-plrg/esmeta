@@ -1,6 +1,6 @@
 package esmeta.wji
 
-import esmeta.{WJI_JS_API_TEST_DIR, WJI_MANUAL_TEST_DIR}
+import esmeta.{BASE_DIR, WJI_JS_API_TEST_DIR, WJI_MANUAL_TEST_DIR}
 import esmeta.es.ESTest.checkExit
 import esmeta.util.SystemUtils.*
 import esmeta.wji.bridge.rpc.JsonRpcConnection
@@ -18,81 +18,65 @@ object EvalTag extends Tag("esmeta.wji.EvalTag")
   * the test case itself. Cancelled rather than run, so `wjiEvalTest` stays
   * green while the gap is worked on — remove a test case's name here once it's
   * fixed. No per-test-case reason kept here — it shifts with every partial fix,
-  * so keeping it in sync would be pure churn; re-reproduce with `sbt run
-  * wji-eval <path printed as the test name below> -silent` when picking one
-  * back up. Keyed by `"<root label>/<path relative to that root>"` (e.g.
-  * `"manual/demo.js"`, `"js-api/memory/toString.any.js"`) rather than bare
-  * filename — js-api's generated fixtures mirror spectec/test/js-api's own
-  * directory structure, which reuses the same filename (e.g. `toString.any.js`)
-  * across multiple categories.
+  * so keeping it in sync would be pure churn; re-reproduce by pasting a name
+  * below verbatim into `sbt run wji-eval <name> -silent` (from the repo root)
+  * when picking one back up — each name below already *is* the real,
+  * repo-root-relative path to the file (`BASE_DIR.relativize`, see the `for`
+  * loop below), not some other, unrelated shorthand that would need translating
+  * by hand first. Keyed by full path rather than bare filename — js-api's
+  * generated fixtures mirror spectec/test/js-api's own directory structure,
+  * which reuses the same filename (e.g. `toString.any.js`) across multiple
+  * categories.
   */
 private val knownFailing: Set[String] =
   Set(
     // js-api/generated: `tests/wji/js-api/dataview-polyfill.js` works around
     // ESMeta not mechanizing DataView, the mainline CondParser fix for "X is
     // TYPE that has a [[SLOT]] internal slot" (docs/esmeta_errors.md #3)
-    // unblocked TypedArray.prototype.set, and WebIdlConversion learned
-    // TagType + GlobalDescriptor.mutable's IDL default (docs/hardcodes.md
-    // #1/#2) -- so these now fail on the *next* gap each hits: a required
-    // WebIDL member missing (still no way to throw a real `TypeError` for
-    // it, e.g. TableDescriptor.element), a dictionary member that itself
-    // needs recursive IDL conversion (`invalid size of: Record[Object]` --
-    // TagType.parameters is a `sequence<ValueType>`, copied as a raw JS Array
-    // rather than converted), an accessor property descriptor read via
-    // `.Value` instead of invoking its getter (dictionary reads assume data
-    // properties only), missing branding checks (`not a proper reference
-    // base: undefined`), the still-unmechanized SharedArrayBuffer/Math.floor-
-    // phrasing/etc., and `limits.any.js` (a spec-mandated stress test
-    // building up to 10M wasm constructs -- marked `// META: timeout=long`
-    // even for real engines, so it's just too slow
-    // for WJI's interpreter rather than blocked by a real gap) -- see
-    // personal/TODO.md #14.
-    "js-api/constructor/compile.any.js",
-    "js-api/constructor/instantiate-bad-imports.any.js",
-    "js-api/constructor/instantiate.any.js",
-    "js-api/constructor/multi-value.any.js",
-    "js-api/constructor/validate.any.js",
-    "js-api/exception/basic.tentative.any.js",
-    "js-api/exception/constructor.tentative.any.js",
-    "js-api/exception/getArg.tentative.any.js",
-    "js-api/exception/identity.tentative.any.js",
-    "js-api/exception/is.tentative.any.js",
-    "js-api/exception/jsTag.tentative.any.js",
-    "js-api/exception/toString.tentative.any.js",
-    "js-api/gc/casts.tentative.any.js",
-    "js-api/gc/default-value.tentative.any.js",
-    "js-api/gc/exported-object.tentative.any.js",
-    "js-api/gc/i31.tentative.any.js",
-    "js-api/global/constructor.any.js",
-    "js-api/global/value-get-set.any.js",
-    "js-api/global/valueOf.any.js",
-    "js-api/instance/constructor-bad-imports.any.js",
-    "js-api/instance/constructor-caching.any.js",
-    "js-api/instance/constructor.any.js",
-    "js-api/instance/exports.any.js",
-    "js-api/interface.any.js",
-    "js-api/js-string/basic.any.js",
-    "js-api/js-string/constants.any.js",
-    "js-api/js-string/imports.any.js",
-    "js-api/limits.any.js",
-    "js-api/memory/buffer.any.js",
-    "js-api/memory/constructor-memory64.any.js",
-    "js-api/memory/constructor.any.js",
-    "js-api/memory/grow-memory64.any.js",
-    "js-api/memory/grow.any.js",
-    "js-api/module/constructor.any.js",
-    "js-api/module/customSections.any.js",
-    "js-api/module/exports.any.js",
-    "js-api/module/imports.any.js",
-    "js-api/prototypes.any.js",
-    "js-api/table/constructor-memory64.any.js",
-    "js-api/table/constructor.any.js",
-    "js-api/table/get-set.any.js",
-    "js-api/table/grow-memory64.any.js",
-    "js-api/table/grow.any.js",
-    "js-api/table/length.any.js",
-    "js-api/tag/constructor.tentative.any.js",
-    "js-api/tag/toString.tentative.any.js",
+    // unblocked TypedArray.prototype.set, WebIdlConversion learned TagType +
+    // ExceptionOptions + GlobalDescriptor.mutable's IDL default + sequence<T>
+    // conversion (docs/hardcodes.md #1/#2), an omitted optional dictionary
+    // argument now actually gets converted (AddInterfaceMemberBuiltinBehaviourPass.
+    // omittedBranch), and Instr.ForEachPaired handles "X and Y of A and B,
+    // paired linearly", and a manual rule (`manuals/rule.json`, mainline
+    // `esmeta.compiler.Compiler`) now maps Math.floor's own defining prose
+    // ("the greatest (closest to +∞) integral Number value that is not
+    // greater than X") to the existing `floor` unary op, since it's a
+    // singleton phrasing (ecma262 never states it any other way) rather than
+    // a recurring idiom worth a real grammar rule -- so these now fail on
+    // the *next* gap each hits: a required WebIDL member missing (still no
+    // way to throw a real `TypeError` for it, e.g. TableDescriptor.element),
+    // an accessor property descriptor read via `.Value` instead of invoking
+    // its getter (dictionary reads assume data properties only), missing
+    // branding checks (`not a proper reference base: undefined`), the
+    // still-unmechanized SharedArrayBuffer/IEEE754-rounding-phrasing/etc.,
+    // and `limits.any.js` (a spec-mandated stress test building up to 10M
+    // wasm constructs -- marked `// META: timeout=long` even for real
+    // engines, so it's just too slow for WJI's interpreter rather than
+    // blocked by a real gap).
+    "tests/wji/js-api/generated/constructor/compile.any.js",
+    "tests/wji/js-api/generated/constructor/instantiate-bad-imports.any.js",
+    "tests/wji/js-api/generated/constructor/instantiate.any.js",
+    "tests/wji/js-api/generated/constructor/multi-value.any.js",
+    "tests/wji/js-api/generated/constructor/validate.any.js",
+    "tests/wji/js-api/generated/exception/jsTag.tentative.any.js",
+    "tests/wji/js-api/generated/global/constructor.any.js",
+    "tests/wji/js-api/generated/global/value-get-set.any.js",
+    "tests/wji/js-api/generated/instance/constructor-bad-imports.any.js",
+    "tests/wji/js-api/generated/instance/constructor.any.js",
+    "tests/wji/js-api/generated/interface.any.js",
+    "tests/wji/js-api/generated/js-string/basic.any.js",
+    "tests/wji/js-api/generated/js-string/constants.any.js",
+    "tests/wji/js-api/generated/js-string/imports.any.js",
+    "tests/wji/js-api/generated/limits.any.js",
+    "tests/wji/js-api/generated/memory/constructor.any.js",
+    "tests/wji/js-api/generated/memory/grow.any.js",
+    "tests/wji/js-api/generated/module/constructor.any.js",
+    "tests/wji/js-api/generated/module/customSections.any.js",
+    "tests/wji/js-api/generated/module/imports.any.js",
+    "tests/wji/js-api/generated/table/constructor.any.js",
+    "tests/wji/js-api/generated/table/get-set.any.js",
+    "tests/wji/js-api/generated/table/grow-memory64.any.js",
   )
 
 /** Runs every `.js` test case under `tests/wji/manual` and
@@ -162,16 +146,16 @@ class EvalSpec extends AnyFunSuite with BeforeAndAfterAll:
     */
   private val perTestTimeoutSec = 60
 
-  private val roots: List[(String, String)] = List(
-    "manual" -> WJI_MANUAL_TEST_DIR,
-    "js-api" -> WJI_JS_API_TEST_DIR,
-  )
+  private val roots: List[String] =
+    List(WJI_MANUAL_TEST_DIR, WJI_JS_API_TEST_DIR)
 
   for
-    (label, dir) <- roots
+    dir <- roots
     file <- walkTree(dir) if jsFilter(file.getName)
   do
-    val name = s"$label/${Paths.get(dir).relativize(file.toPath)}"
+    // repo-root-relative, so it doubles as a real path -- `dir` itself is
+    // already `$BASE_DIR/tests/wji/...`, no separate per-root label needed.
+    val name = Paths.get(BASE_DIR).relativize(file.toPath).toString
     test(name, EvalTag) {
       val start = System.nanoTime()
       def elapsed = (System.nanoTime() - start) / 1e9

@@ -223,3 +223,108 @@ Retracted — its premise was wrong. This entry claimed the Wasm Core Spec's `fu
   (line 12584)
 - **Expected**: all three with "argument list" replaced by "type list", matching the already-correct sibling step computing the same projection in the other direction: `1.  Let |maxarg| be the length of the longest type list of the entries in |S|.` (line 11529, "Overload resolution algorithm").
 - **Reason**: an "effective overload set" entry (an element of `|S|`) is formally defined, once, as the tuple `([=effective overload set tuple/callable=], [=type list=], [=optionality list=])` (line 3157), with `A <dfn>type list</dfn> is a [=list=] of IDL types` (line 3164). Nothing in this document ever defines an "argument list" as a field of that tuple, or as a term at all in this context — these three sites are the only places in the whole document that call this projection an "argument list"; every other reference to it, including the `|maxarg|` step at line 11529 computing the same projection's *longest* value for the same purpose, correctly calls it a "type list". This isn't just inconsistent phrasing to fix for uniformity — "argument list" actively names the wrong concept: "compute the effective overload set" (lines 3179-3256) itself distinguishes the two clearly. It first binds |arguments| to "the [=list=] of arguments |X| is declared to take" (line 3220) — that's the genuine argument list, the operation's own declared parameters — and then, separately, builds |types| ("a [=type list=]", line 3222) by appending "the type of |argument|" for each |argument| in |arguments| (line 3225), before storing |types| (not |arguments|) as the tuple's second element (line 3229). So the value each of the three sites above is minimizing is the length of |types| — the type list — never |arguments| itself; calling it an "argument list" invites confusion with the very value the algorithm just took care to derive it from and name differently. (Line 12028's algorithm, `create a legacy factory function`, isn't currently in `SpecFile.webidlFilter`, so it isn't extracted/compiled by this project today — included here anyway since it's the same defect, worth reporting alongside the other two.)
+
+## 22. `ToWebAssemblyValue`'s host-value-cache hit skips the type check every other branch goes through
+
+- **File**: `spectec/document/js-api/index.bs`, `ToWebAssemblyValue`, lines 1467-1477 (the "ref null heaptype" case's final `Else` branch and its shared tail)
+- **Current**:
+  ```
+  1. Else,
+      1. Let |map| be the [=surrounding agent=]'s associated [=host value cache=].
+      1. If a [=host address=] |hostaddr| exists such that |map|[|hostaddr|] is the same as |v|,
+          1. Return [=ref.host=] |hostaddr|.
+      1. Let [=host address=] |hostaddr| be the smallest address such that |map|[|hostaddr|] [=map/exists=] is false.
+      1. [=map/Set=] |map|[|hostaddr|] to |v|.
+      1. Let |r| be [=ref.host=] |hostaddr|.
+  1. Let |store| be the [=surrounding agent=]'s [=associated store=].
+  1. Let |actualtype| be [=ref_type=](|store|, |r|).
+  1. If [=match_valtype=](|actualtype|, |type|) is false,
+      1. Throw a {{TypeError}}.
+  1. Return |r|.
+  ```
+- **Expected**: the cache-hit branch should bind `|r|` and fall through to the same `ref_type`/`match_valtype` check every other branch (`ref.null`, `ref.extern`, `ref.func`, `ref.i31`, `ref.struct`/`ref.array`, and the cache-*miss* half of this very `Else`) already goes through, not return early:
+  ```
+  1. If a [=host address=] |hostaddr| exists such that |map|[|hostaddr|] is the same as |v|,
+      1. Let |r| be [=ref.host=] |hostaddr|.
+  1. Else,
+      1. Let |hostaddr| be the smallest address such that |map|[|hostaddr|] [=map/exists=] is false.
+      1. [=map/Set=] |map|[|hostaddr|] to |v|.
+      1. Let |r| be [=ref.host=] |hostaddr|.
+  ```
+- **Reason**: every other way of producing an `r` in this algorithm — including the cache-*miss* half of this exact `Else` branch, three steps below the buggy one — falls through to the shared `ref_type`(`store`, `r`)/`match_valtype`(`actualtype`, `type`) check before ever returning, which is what makes converting a value to, say, `eqref` reject an object that isn't actually eq-castable. The cache-hit branch is the one exception: it `Return`s `ref.host hostaddr` immediately, so a value's *first* successful conversion (under whatever type it was converted to *then*) gets remembered in the cache, and every later conversion of that same value — even to a completely different, narrower type — short-circuits straight past the type check and returns the same cached ref.host, regardless of whether it's actually valid for the new target type. Concretely: converting a BigInt to `anyref` succeeds (nothing else matches it, so it falls to this `Else` and is cached as a fresh `ref.host`; `anyref` accepts anything, so `match_valtype` passes). Converting that *same* BigInt to `eqref` immediately afterward should throw a `TypeError` (a host reference doesn't satisfy `eq`) — and does, if it's the first time. But run the `anyref` conversion first, and the second (`eqref`) conversion finds the cached entry, hits the early `Return`, and never reaches `match_valtype` at all — the invalid `ref.host` value sails through into `func_invoke` (or wherever it's headed) unchecked. There, the Wasm Core Spec's own runtime type check on the actual call boundary (not this algorithm) is what finally catches the mismatch — but by raising `Exception.Fail` internally, in a way `spectec`'s `backend-server`/`backend-interpreter` doesn't cleanly surface as a JS-observable error (an uncaught internal exception rather than the intended `TypeError`). Fixed via `SpecPatch` #46: reword the cache-hit branch's `Return` to `Let |r| be ...`, and wrap the cache-miss branch's three steps in an `Else,` (matching this same algorithm's own "If ... Else if ... Else," idiom a few steps up) so exactly one of the two branches runs and both join the shared tail.
+
+## 23. `AddressValueToU64`'s range check compares a BigInt against mathematical-value literals with no conversion
+
+- **File**: `spectec/document/js-api/index.bs`, `AddressValueToU64`, line 1493 (the `"i64"` branch)
+- **Current**:
+  ```
+  1. If |addrtype| is "i64",
+      1. Let |n| be [=?=] [$ToBigInt$](|v|).
+      1. If |n| < 0 or |n| > 2^64 − 1, [=throw=] a {{TypeError}}.
+
+          Note: This operation is designed to emulate [=[EnforceRange]=].
+      1. Return [=ℝ=](|n|) as a WebAssembly [=u64=].
+  ```
+- **Expected**:
+  ```
+  1. If |n| < 0 or |n| > 2^64 − 1, [=throw=] a {{TypeError}}.
+  ```
+  becomes
+  ```
+  1. If [=ℝ=](|n|) < 0 or [=ℝ=](|n|) > 2^64 − 1, [=throw=] a {{TypeError}}.
+  ```
+- **Reason**: `|n|` is bound one step above as `[=?=] [$ToBigInt$](|v|)` — a BigInt — but this line compares it directly against the mathematical-value literals `0`/`2^64 − 1` with no conversion notation. ECMA-262 treats BigInt and mathematical values as distinct domains that only cross via an explicit conversion (𝔽/ℤ/ℝ) — this same algorithm's very next step already does exactly that (`Return [=ℝ=](|n|) as a WebAssembly [=u64=].`), so the range check one line above it should use the same `[=ℝ=](|n|)` conversion rather than comparing the raw BigInt. Fixed via `SpecPatch` #47.
+
+## 24. `a [=/new=] {{X}}` called without its required `realm` argument
+
+- **File**: `spectec/document/js-api/index.bs`, seven sites: lines 437 (`Module`), 627 (`Instance`), 866 (`Memory`), 1030 (`Table`), 1166 (`Global`), 1544 (`Tag`), 1713 (`Exception`).
+- **Current**: e.g. `1. Let |memory| be a [=/new=] {{Memory}}.`
+- **Expected**: `1. Let |memory| be a [=/new=] {{Memory}} in the [=current Realm=].`
+- **Reason**: `webidl/index.bs`'s `new` op (line 13818: `To <dfn export lt=new>create a new object implementing the interface</dfn> |interface|, with a [=realm=] |realm|, perform the following steps:`) declares a *required* `|realm|` parameter alongside `|interface|`. Every one of the seven `a [=/new=] {{X}}` call sites in `js-api/index.bs` supplies only the interface, leaving `|realm|` unbound — the same shape of defect already reported as #3 for `a new promise`/`react`. `webidl/index.bs` itself uses an established idiom for supplying the missing argument at other call sites of this exact op (`a [=new=] {{DOMException}} created in the [=current realm=]`, line 14896), and `js-api/index.bs`'s own sibling algorithm `a new Exported Function` (line 1259-1276) already binds `Let |realm| be the current Realm.` at the same call depth used by five of these seven sites (inside the `asynchronously instantiate a WebAssembly module` → `create an exports object` chain, itself run via `[=in parallel=]`/`[=Queue a task=]`) — confirming `current Realm` is this file's own established choice for object creation at this depth, not something invented for this report.
+
+## 25. Step 3.2 of "inclusive inherited interfaces" advances from `|I|` instead of the loop variable `|interface|`, so the loop never terminates for any non-empty inheritance chain
+
+- **File**: `webidl/index.bs`, line 715 (`inclusive inherited interfaces` of an interface `|I|`); same text upstream at https://webidl.spec.whatwg.org/#interface-inclusive-inherited-interfaces.
+- **Current**:
+  ```
+  1.  Let |result| be « ».
+  1.  Let |interface| be |I|.
+  1.  While |interface| is not null:
+      1.  [=list/Append=] |interface| to |result|.
+      1.  Set |interface| to the [=interface=] that |I| [=interface/inherits=] from, if any, and
+          null otherwise.
+  1.  Return |result|.
+  ```
+- **Expected**: step 3.2 should advance from the loop variable, not the fixed input:
+  ```
+  1.  Set |interface| to the [=interface=] that |interface| [=interface/inherits=] from, if any, and
+      null otherwise.
+  ```
+- **Reason**: `|I|` is bound once (step 2, `Let |interface| be |I|`) and never reassigned, so "the interface that `|I|` inherits from" is a constant — `|I|`'s own immediate parent — for every iteration of the loop. Trace it for `|I|` inheriting from `|P|`, with `|P|` itself having no parent: iteration 1 appends `|I|`, then sets `|interface|` to `|P|` (correct so far, since `|I|`'s parent is `|P|`); iteration 2 appends `|P|`, then sets `|interface|` to "the interface that `|I|` inherits from" again — still `|P|`, not `|P|`'s parent (there is none) — so `|interface|` never becomes null and the loop appends `|P|` forever. This isn't limited to inheritance chains of depth ≥ 2: it infinite-loops for *any* interface that inherits from anything at all, since step 3.2 can only ever produce `|I|`'s own direct parent (or, for the base case, keep re-deriving the same non-null value) instead of walking one level further up the chain each time. Replacing `|I|` with `|interface|` in step 3.2 is the fix — it makes each iteration derive the *next* interface up from wherever the walk currently is, which is what "inherited interfaces" (a term this very algorithm is defining) requires.
+<<<<<<< HEAD
+## 26. `"a new Exported GC Object"`'s cache keys purely by `|objectaddr|`, but struct/array addresses aren't unique together
+
+- **File**: `spectec/document/js-api/index.bs`, lines 1646-1669 (`"a new Exported GC Object"`)
+- **Current**:
+  ```
+  1. Let |map| be the [=surrounding agent=]'s associated [=exported GC object cache=].
+  1. If |map|[|objectaddr|] [=map/exists=],
+      1. Return |map|[|objectaddr|].
+  ...
+  1. [=map/Set=] |map|[|objectaddr|] to |object|.
+  ```
+- **Expected**: every `|map|[|objectaddr|]` becomes `|map|[(|objectkind|, |objectaddr|)]`:
+  ```
+  1. If |map|[(|objectkind|, |objectaddr|)] [=map/exists=],
+      1. Return |map|[(|objectkind|, |objectaddr|)].
+  ...
+  1. [=map/Set=] |map|[(|objectkind|, |objectaddr|)] to |object|.
+  ```
+- **Reason**: this algorithm takes both a WebAssembly [=object address=] `|objectaddr|` and a string `|objectkind|` (`"array"` or `"struct"`), asserted right at the top, but the cache lookup/store only ever uses `|objectaddr|` — as if it alone were enough to identify the object. It isn't: the Wasm Core spec's own `structaddr`/`arrayaddr` (`4.0-execution.configurations.spectec:15-16`) are each just `= addr`, allocated independently from 0 in their own separate store component (structs and arrays are never in the same list) — so the *first* struct ever created and the *first* array ever created legitimately share `objectaddr` 0. With the cache keyed on `objectaddr` alone, creating the array after the struct finds the struct's entry already "exists" at that same key and returns the *struct's* wrapper object instead of creating a new one for the array — observable as `struct === array` (same JS object identity) for the results of `WebAssembly.Module`-instantiated `struct.new`/`array.new` exports, which then makes both `gc/exported-object.tentative.any.js`'s "GC objects as map keys" and "... as weak map keys" subtests fail (`map.get(struct)` returns the array's stored value, since `map.set(array, ...)` silently overwrote the same cache-collided key). Fixed via `SpecPatch` #53.
+
+## 27. Duplicated article "an an" in the asynchronous iteration methods algorithm
+
+- **File**: `webidl/index.bs`, line 12981 (`define the asynchronous iteration methods` given |target|, step 1).
+- **Current**: `1.  If |definition| does not have an an [=asynchronously iterable declaration=] (of either sort), then return.`
+- **Expected**: `1.  If |definition| does not have an [=asynchronously iterable declaration=] (of either sort), then return.`
+- **Reason**: The article "an" is duplicated back-to-back before `[=asynchronously iterable declaration=]`, a plain wording typo with no bearing on the algorithm's meaning — the check is simply "does not have an asynchronously iterable declaration."

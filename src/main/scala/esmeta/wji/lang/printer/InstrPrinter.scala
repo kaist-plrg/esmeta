@@ -18,8 +18,9 @@ object InstrPrinter:
     algo.id.foreach(id => sb.append(s"  id: $id\n"))
     algo.kind match
       case AlgorithmKind.Plain => // no kind line for a free-standing operation
-      case AlgorithmKind.Method(iface) =>
-        sb.append(s"  kind: method for $iface\n")
+      case AlgorithmKind.Method(iface, static) =>
+        val prefix = if static then "static " else ""
+        sb.append(s"  kind: ${prefix}method for $iface\n")
       case AlgorithmKind.Getter(iface) =>
         sb.append(s"  kind: getter for $iface\n")
       case AlgorithmKind.Setter(iface) =>
@@ -64,6 +65,9 @@ object InstrPrinter:
     case Throw(target, _) => s"Throw(${ExprPrinter.render(target)})"
     case ForEach(elem, coll, _) =>
       s"ForEach(${ExprPrinter.render(elem)}, ${ExprPrinter.render(coll)})"
+    case ForEachPaired(elem1, elem2, coll1, coll2, _) =>
+      s"ForEachPaired(${ExprPrinter.render(elem1)}, ${ExprPrinter.render(elem2)}, " +
+      s"${ExprPrinter.render(coll1)}, ${ExprPrinter.render(coll2)})"
     case Instr.For(elem, coll, _) =>
       s"For(${ExprPrinter.render(elem)}, ${ExprPrinter.render(coll)})"
     case While(cond, _)   => s"While(${CondPrinter.render(cond)})"

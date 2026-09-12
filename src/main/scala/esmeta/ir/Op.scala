@@ -47,6 +47,6 @@ object MOp extends Parser.From(Parser.mop)
 
 // conversion operators
 enum COp extends Op:
-  case ToApproxNumber, ToNumber, ToBigInt, ToMath, ToCodeUnit
-  case ToStr(radix: Option[Expr])
+  case ToApproxNumber, ToNumber, ToBigInt, ToMath, ToCodeUnit, ToCodePoint
+  case ToStr(radix: Option[Expr], upper: Boolean = false)
 object COp extends Parser.From(Parser.cop)

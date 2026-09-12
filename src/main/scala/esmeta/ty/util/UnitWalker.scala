@@ -78,6 +78,7 @@ trait UnitWalker extends BasicUnitWalker {
     walkAst(ty.ast)
     walkGrammarSymbol(ty.grammarSymbol)
     walkCodeUnit(ty.codeUnit)
+    walkCodePoint(ty.codePoint)
     walkEnum(ty.enumv)
     walkMath(ty.math)
     walkInfinity(ty.infinity)
@@ -117,6 +118,9 @@ trait UnitWalker extends BasicUnitWalker {
 
   /** code unit types */
   def walkCodeUnit(codeUnit: Boolean): Unit = walk(codeUnit)
+
+  /** code point types */
+  def walkCodePoint(codePoint: Boolean): Unit = walk(codePoint)
 
   /** enum types */
   def walkEnum(enumv: BSet[String]): Unit = walkBSet(enumv, walk)

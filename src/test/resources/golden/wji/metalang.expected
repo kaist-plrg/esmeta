@@ -1,4 +1,4 @@
-130 algorithm(s)
+131 algorithm(s)
 # compile a WebAssembly module
   params: |bytes|
   head: To <dfn>compile a WebAssembly module</dfn> from source bytes |bytes|, perform the following steps:
@@ -131,11 +131,11 @@
     If(|externtype| is of the form [=external-type/func=](|functype|))
       If([$IsCallable$](|v|) is false)
         Throw(new {{LinkError}})
-      If(|v| has a [[FunctionAddress]] internal slot, and ?(therefore) is an Exported Function)
+      If(|v| has a [[FunctionAddress]] internal slot)
         Let(|funcaddr|, |v|.[[FunctionAddress]])
       Else
         PerformAndLet([=Create a host function=](|v|, |functype|), |funcaddr|)
-      Append(|funcaddr|, [=surrounding agent=].[[Function Import List]])
+      Append(|funcaddr|, [=surrounding agent=].[[function import list]])
       Let(|externfunc|, [=external value/func=](|funcaddr|))
       Append(|externfunc|, |imports|)
     If(|externtype| is of the form [=external-type/global=](|mut|, |valtype|))
@@ -295,17 +295,29 @@
   head: The <dfn method for="WebAssembly">instantiate_object(|moduleObject|, |importObject|)</dfn> method, when invoked, performs the following steps:
   PerformAndReturn([=asynchronously instantiate a WebAssembly module=](|moduleObject|, |importObject|))
 
+# JSTag
+  kind: getter for WebAssembly
+  head: The getter of the <dfn attribute for="WebAssembly">JSTag</dfn> attribute of the {{WebAssembly}} Namespace, when invoked, performs the following steps:
+  Let(|JSTagAddr|, [=get the JavaScript exception tag=])
+  Let(|JSTagObject|, [=create a Tag object=](|JSTagAddr|))
+  Return(|JSTagObject|)
+
 # string value of the extern type
   params: |type|
   head: The <dfn>string value of the extern type</dfn> |type| is
-  ?("function" if |type| is of the form [=external-type/func=] <var ignore>functype</var>)
-  ?("table" if |type| is of the form [=external-type/table=] <var ignore>tabletype</var>)
-  ?("memory" if |type| is of the form [=external-type/mem=] <var ignore>memtype</var>)
-  ?("global" if |type| is of the form [=external-type/global=] <var ignore>globaltype</var>)
-  ?("tag" if |type| is of the form [=external-type/tag=] <var ignore>tag</var>)
+  If(|type| is of the form [=external-type/func=](|functype|))
+    Return("function")
+  If(|type| is of the form [=external-type/table=](|tabletype|))
+    Return("table")
+  If(|type| is of the form [=external-type/mem=](|memtype|))
+    Return("memory")
+  If(|type| is of the form [=external-type/global=](|globaltype|))
+    Return("global")
+  If(|type| is of the form [=external-type/tag=](|tag|))
+    Return("tag")
 
 # exports
-  kind: method for Module
+  kind: static method for Module
   params: |moduleObject|
   head: The <dfn method for="Module">exports(|moduleObject|)</dfn> method, when invoked, performs the following steps:
   Let(|module|, |moduleObject|.[[Module]])
@@ -317,7 +329,7 @@
   Return(|exports|)
 
 # imports
-  kind: method for Module
+  kind: static method for Module
   params: |moduleObject|
   head: The <dfn method for="Module">imports(|moduleObject|)</dfn> method, when invoked, performs the following steps:
   Let(|module|, |moduleObject|.[[Module]])
@@ -335,7 +347,7 @@
   Return(|imports|)
 
 # customSections
-  kind: method for Module
+  kind: static method for Module
   params: |moduleObject|, |sectionName|
   head: The <dfn method for="Module">customSections(|moduleObject|, |sectionName|)</dfn> method, when invoked, performs the following steps:
   Let(|bytes|, |moduleObject|.[[Bytes]])
@@ -413,7 +425,7 @@
 # initialize a memory object
   params: |memory|, |memaddr|
   head: To <dfn>initialize a memory object</dfn> |memory| from a [=memory address=] |memaddr|, perform the following steps:
-  Let(|map|, [=surrounding agent=].[[Memory object cache]])
+  Let(|map|, [=surrounding agent=].[[memory object cache]])
   Assert(|map|[|memaddr|] [=map/doesn't exist=])
   Let(|buffer|, [=create a fixed length memory buffer=](|memaddr|))
   Set(|memory|.[[Memory]], |memaddr|)
@@ -423,7 +435,7 @@
 # create a memory object
   params: |memaddr|
   head: To <dfn>create a memory object</dfn> from a [=memory address=] |memaddr|, perform the following steps:
-  Let(|map|, [=surrounding agent=].[[Memory object cache]])
+  Let(|map|, [=surrounding agent=].[[memory object cache]])
   If(|map|[|memaddr|] [=map/exists=])
     Return(|map|[|memaddr|])
   Let(|memory|, new(Memory, [=current Realm=]))
@@ -435,7 +447,7 @@
   params: |descriptor|
   head: The <dfn constructor for="Memory">Memory(|descriptor|)</dfn> constructor, when invoked, performs the following steps:
   If(|descriptor|["address"] [=map/exists=])
-    Let(|addrtype|, |descriptor|["address"])
+    Let(|addrtype|, [=ToValueType=](|descriptor|["address"]))
   Else
     Let(|addrtype|, [=i32=])
   Let(|initial|, [=?=] [=AddressValueToU64=](|descriptor|["initial"], |addrtype|))
@@ -456,11 +468,11 @@
 # refresh the Memory buffer
   params: |memaddr|
   head: To <dfn>refresh the Memory buffer</dfn> of |memaddr|, perform the following steps:
-  Let(|map|, [=surrounding agent=].[[Memory object cache]])
+  Let(|map|, [=surrounding agent=].[[memory object cache]])
   Assert(|map|[|memaddr|] [=map/exists=])
   Let(|memory|, |map|[|memaddr|])
   Let(|buffer|, |memory|.[[BufferObject]])
-  If([$IsFixedLengthArrayBuffer$](|buffer|) is true)
+  If([=IsFixedLengthArrayBuffer=](|buffer|) is true)
     Perform(DetachArrayBuffer(|buffer|, "WebAssembly.Memory"))
     Let(|buffer|, [=create a fixed length memory buffer=](|memaddr|))
     Set(|memory|.[[BufferObject]], |buffer|)
@@ -506,7 +518,7 @@
   kind: method for Memory
   head: The <dfn method for="Memory">toFixedLengthBuffer()</dfn> method, when invoked, performs the following steps:
   Let(|buffer|, **this**.[[BufferObject]])
-  If([$IsFixedLengthArrayBuffer$](|buffer|) is true)
+  If([=IsFixedLengthArrayBuffer=](|buffer|) is true)
     Return(|buffer|)
   Let(|memaddr|, **this**.[[Memory]])
   Let(|fixedBuffer|, [=create a fixed length memory buffer=](|memaddr|))
@@ -524,7 +536,7 @@
   If(?(|memtype| does not have a max))
     Throw(new {{TypeError}})
   Let(|buffer|, **this**.[[BufferObject]])
-  If([$IsFixedLengthArrayBuffer$](|buffer|) is false)
+  If([=IsFixedLengthArrayBuffer=](|buffer|) is false)
     Return(|buffer|)
   Assert(?(|memtype| has a max))
   Let(|maxsize|, ?(the max value in |memtype|) * 65536)
@@ -537,7 +549,7 @@
   params: |buffer|, |newLength|
   head: The <dfn id=HostResizeArrayBuffer export>abstract operation [=HostResizeArrayBuffer=]</dfn> takes arguments |buffer| (an {{ArrayBuffer}}) and |newLength|. It performs the following steps when called.
   If(|buffer|.[[ArrayBufferDetachKey]] is "WebAssembly.Memory")
-    Let(|map|, [=surrounding agent=].[[Memory object cache]])
+    Let(|map|, [=surrounding agent=].[[memory object cache]])
     Assert(|buffer| is ?(the \[[BufferObject]] of exactly one value in |map|))
     ForEach(?(|memaddr| &rarr; |mem|), |map|)
       If([=SameValue=](|mem|.[[BufferObject]], |buffer|) is true)
@@ -559,7 +571,7 @@
 # initialize a table object
   params: |table|, |tableaddr|
   head: To <dfn>initialize a table object</dfn> |table| from a [=table address=] |tableaddr|, perform the following steps:
-  Let(|map|, [=surrounding agent=].[[Table object cache]])
+  Let(|map|, [=surrounding agent=].[[table object cache]])
   Assert(|map|[|tableaddr|] [=map/doesn't exist=])
   Set(|table|.[[Table]], |tableaddr|)
   Set(|map|[|tableaddr|], |table|)
@@ -567,7 +579,7 @@
 # create a table object
   params: |tableaddr|
   head: To <dfn>create a table object</dfn> from a [=table address=] |tableaddr|, perform the following steps:
-  Let(|map|, [=surrounding agent=].[[Table object cache]])
+  Let(|map|, [=surrounding agent=].[[table object cache]])
   If(|map|[|tableaddr|] [=map/exists=])
     Return(|map|[|tableaddr|])
   Let(|table|, new(Table, [=current Realm=]))
@@ -582,7 +594,7 @@
   If(|elementtype| is not a reftype)
     Throw(new {{TypeError}})
   If(|descriptor|["address"] [=map/exists=])
-    Let(|addrtype|, |descriptor|["address"])
+    Let(|addrtype|, [=ToValueType=](|descriptor|["address"]))
   Else
     Let(|addrtype|, [=i32=])
   Let(|initial|, [=?=] [=AddressValueToU64=](|descriptor|["initial"], |addrtype|))
@@ -676,7 +688,7 @@
 # initialize a global object
   params: |global|, |globaladdr|
   head: To <dfn>initialize a global object</dfn> |global| from a [=global address=] |globaladdr|, perform the following steps:
-  Let(|map|, [=surrounding agent=].[[Global object cache]])
+  Let(|map|, [=surrounding agent=].[[global object cache]])
   Assert(|map|[|globaladdr|] [=map/doesn't exist=])
   Set(|global|.[[Global]], |globaladdr|)
   Set(|map|[|globaladdr|], |global|)
@@ -684,7 +696,7 @@
 # create a global object
   params: |globaladdr|
   head: To <dfn>create a global object</dfn> from a [=global address=] |globaladdr|, perform the following steps:
-  Let(|map|, [=surrounding agent=].[[Global object cache]])
+  Let(|map|, [=surrounding agent=].[[global object cache]])
   If(|map|[|globaladdr|] [=map/exists=])
     Return(|map|[|globaladdr|])
   Let(|global|, new(Global, [=current Realm=]))
@@ -784,7 +796,7 @@
   Let(|store|, [=surrounding agent=].[[associated store]])
   Let(|funcinst|, |store|.[[funcs]][|funcaddr|])
   If(|funcinst|.[[code]] is of the form [=hostfunc=](|hostfunc|))
-    Let(|funcaddrs|, [=surrounding agent=].[[Function Import List]])
+    Let(|funcaddrs|, [=surrounding agent=].[[function import list]])
   Else
     Let(|funcaddrs|, |funcinst|.[[module]].[[funcs]])
   Assert(|funcaddr| is contained in |funcaddrs|)
@@ -794,7 +806,7 @@
 # a new Exported Function
   params: |funcaddr|
   head: To create <dfn>a new Exported Function</dfn> from a WebAssembly [=function address=] |funcaddr|, perform the following steps:
-  Let(|map|, [=surrounding agent=].[[Exported Function cache]])
+  Let(|map|, [=surrounding agent=].[[exported function cache]])
   If(|map|[|funcaddr|] [=map/exists=])
     Return(|map|[|funcaddr|])
   Let(|steps|, followingSteps(argValues, ...))
@@ -875,7 +887,7 @@
     Let(|wasmValues|, « »)
     If(length(|values|) is not |resultsSize|)
       Throw(new {{TypeError}})
-    ForEach(?(|value| and |resultType|), ?(|values| and |results|))
+    ForEachPaired(|value|, |resultType|, |values|, |results|)
       Append([=?=] [=ToWebAssemblyValue=](|value|, |resultType|), |wasmValues|)
     Return(|wasmValues|)
 
@@ -1012,10 +1024,11 @@
     Else
       Let(|map|, [=surrounding agent=].[[host value cache]])
       If(a value hostaddr exists such that |map|[|hostaddr|] is |v|)
-        Return([=ref.host=](|hostaddr|))
-      Let(|hostaddr|, smallest address such that |map|[|hostaddr|] [=map/doesn't exist=])
-      Set(|map|[|hostaddr|], |v|)
-      Let(|r|, [=ref.host=](|hostaddr|))
+        Let(|r|, [=ref.host=](|hostaddr|))
+      Else
+        Let(|hostaddr|, smallest address such that |map|[|hostaddr|] [=map/doesn't exist=])
+        Set(|map|[|hostaddr|], |v|)
+        Let(|r|, [=ref.host=](|hostaddr|))
     Let(|store|, [=surrounding agent=].[[associated store]])
     Let(|actualtype|, [=ref_type=](|store|, |r|))
     If([=match_valtype=](|actualtype|, |type|) is false)
@@ -1033,7 +1046,7 @@
     Return(AsWasm(AsMath(|n|), u64))
   If(|addrtype| is [=i64=])
     Let(|n|, [=?=] [$ToBigInt$](|v|))
-    If(|n| < 0 or |n| > 2 ** 64 - 1)
+    If(AsMath(|n|) < 0 or AsMath(|n|) > 2 ** 64 - 1)
       Throw(new {{TypeError}})
     Note(This operation is designed to emulate [=[EnforceRange]=])
     Return(AsWasm(AsMath(|n|), u64))
@@ -1051,7 +1064,7 @@
 # initialize a Tag object
   params: |tag|, |tagAddress|
   head: To <dfn>initialize a Tag object</dfn> |tag| from a [=tag address=] |tagAddress|, perform the following steps:
-  Let(|map|, [=surrounding agent=].[[Tag object cache]])
+  Let(|map|, [=surrounding agent=].[[tag object cache]])
   Assert(|map|[|tagAddress|] [=map/doesn't exist=])
   Set(|tag|.[[Address]], |tagAddress|)
   Set(|map|[|tagAddress|], |tag|)
@@ -1059,7 +1072,7 @@
 # create a Tag object
   params: |tagAddress|
   head: To <dfn>create a Tag object</dfn> from a [=tag address=] |tagAddress|, perform the following steps:
-  Let(|map|, [=surrounding agent=].[[Tag object cache]])
+  Let(|map|, [=surrounding agent=].[[tag object cache]])
   If(|map|[|tagAddress|] [=map/exists=])
     Return(|map|[|tagAddress|])
   Let(|tag|, new(Tag, [=current Realm=]))
@@ -1079,47 +1092,58 @@
   Set([=surrounding agent=].[[associated store]], |store|)
   Perform([=initialize a Tag object=](**this**, |tagAddress|))
 
-# \[[GetPrototypeOf]] internal method of an Exported GC Object
+# [[GetPrototypeOf]] internal method of an Exported GC Object
+  params: |O|
   head: The <dfn>\[[GetPrototypeOf]] internal method of an Exported GC Object</dfn> <var ignore>O</var> takes no arguments and returns null. It performs the following steps when called:
   Return(null)
 
-# \[[SetPrototypeOf]] internal method of an Exported GC Object
+# [[SetPrototypeOf]] internal method of an Exported GC Object
+  params: |O|, |V|
   head: The <dfn>\[[SetPrototypeOf]] internal method of an Exported GC Object</dfn> <var ignore>O</var> takes argument <var ignore>V</var> (an Object or null) and returns a boolean. It performs the following steps when called:
   Return(false)
 
-# \[[IsExtensible]] internal method of an Exported GC Object
+# [[IsExtensible]] internal method of an Exported GC Object
+  params: |O|
   head: The <dfn>\[[IsExtensible]] internal method of an Exported GC Object</dfn> <var ignore>O</var> takes no arguments and returns a boolean. It performs the following steps when called:
   Return(false)
 
-# \[[PreventExtensions]] internal method of an Exported GC Object
+# [[PreventExtensions]] internal method of an Exported GC Object
+  params: |O|
   head: The <dfn>\[[PreventExtensions]] internal method of an Exported GC Object</dfn> <var ignore>O</var> takes no arguments and returns a boolean. It performs the following steps when called:
   Return(false)
 
-# \[[GetOwnProperty]] internal method of an Exported GC Object
+# [[GetOwnProperty]] internal method of an Exported GC Object
+  params: |O|, |P|
   head: The <dfn>\[[GetOwnProperty]] internal method of an Exported GC Object</dfn> <var ignore>O</var> takes argument <var ignore>P</var> (a property key) and returns undefined. It performs the following steps when called:
   Return(undefined)
 
-# \[[DefineOwnProperty]] internal method of an Exported GC Object
+# [[DefineOwnProperty]] internal method of an Exported GC Object
+  params: |O|, |P|, |Desc|
   head: The <dfn>\[[DefineOwnProperty]] internal method of an Exported GC Object</dfn> <var ignore>O</var> takes arguments <var ignore>P</var> (a property key) and <var ignore>Desc</var> (a property descriptor) and returns a boolean. It performs the following steps when called:
   Return(false)
 
-# \[[HasProperty]] internal method of an Exported GC Object
+# [[HasProperty]] internal method of an Exported GC Object
+  params: |O|, |P|
   head: The <dfn>\[[HasProperty]] internal method of an Exported GC Object</dfn> <var ignore>O</var> takes argument <var ignore>P</var> (a property key) and returns a boolean. It performs the following steps when called:
   Return(false)
 
-# \[[Get]] internal method of an Exported GC Object
+# [[Get]] internal method of an Exported GC Object
+  params: |O|, |P|, |Receiver|
   head: The <dfn>\[[Get]] internal method of an Exported GC Object</dfn> <var ignore>O</var> takes arguments <var ignore>P</var> (a property key) and <var ignore>Receiver</var> (an ECMAScript language value) and returns undefined. It performs the following steps when called:
   Return(undefined)
 
-# \[[Set]] internal method of an Exported GC Object
+# [[Set]] internal method of an Exported GC Object
+  params: |O|, |P|, |V|, |Receiver|
   head: The <dfn>\[[Set]] internal method of an Exported GC Object</dfn> <var ignore>O</var> takes arguments <var ignore>P</var> (a property key), <var ignore>V</var> (an ECMAScript language value), and <var ignore>Receiver</var> (an ECMAScript language value) and throws an exception. It performs the following steps when called:
   Throw(new {{TypeError}})
 
-# \[[Delete]] internal method of an Exported GC Object
+# [[Delete]] internal method of an Exported GC Object
+  params: |O|, |P|
   head: The <dfn>\[[Delete]] internal method of an Exported GC Object</dfn> <var ignore>O</var> takes argument <var ignore>P</var> (a property key) and throws an exception. It performs the following steps when called:
   Throw(new {{TypeError}})
 
-# \[[OwnPropertyKeys]] internal method of an Exported GC Object
+# [[OwnPropertyKeys]] internal method of an Exported GC Object
+  params: |O|
   head: The <dfn>\[[OwnPropertyKeys]] internal method of an Exported GC Object</dfn> <var ignore>O</var> takes no arguments and returns a list. It performs the following steps when called:
   Let(|keys|, « »)
   Return(|keys|)
@@ -1128,30 +1152,30 @@
   params: |objectaddr|, |objectkind|
   head: To create <dfn>a new Exported GC Object</dfn> from a WebAssembly [=object address=] |objectaddr| and a string |objectkind|, perform the following steps:
   Assert(|objectkind| is "array" or "struct")
-  Let(|map|, [=surrounding agent=].[[exported GC object cache]])
-  If(|map|[|objectaddr|] [=map/exists=])
-    Return(|map|[|objectaddr|])
+  Let(|map|, [=surrounding agent=].[[exported gc object cache]])
+  If(|map|[(|objectkind|, |objectaddr|)] [=map/exists=])
+    Return(|map|[(|objectkind|, |objectaddr|)])
   Let(|object|, [=MakeBasicObject=](« "ObjectAddress", "ObjectKind" »))
   Set(|object|.[[ObjectAddress]], |objectaddr|)
   Set(|object|.[[ObjectKind]], |objectkind|)
-  Set(|object|.[[GetPrototypeOf]], ?([=[[GetPrototypeOf]] internal method of an Exported GC Object=]))
-  Set(|object|.[[SetPrototypeOf]], ?([=[[SetPrototypeOf]] internal method of an Exported GC Object=]))
-  Set(|object|.[[IsExtensible]], ?([=[[IsExtensible]] internal method of an Exported GC Object=]))
-  Set(|object|.[[PreventExtensions]], ?([=[[PreventExtensions]] internal method of an Exported GC Object=]))
-  Set(|object|.[[GetOwnProperty]], ?([=[[GetOwnProperty]] internal method of an Exported GC Object=]))
-  Set(|object|.[[DefineOwnProperty]], ?([=[[DefineOwnProperty]] internal method of an Exported GC Object=]))
-  Set(|object|.[[HasProperty]], ?([=[[HasProperty]] internal method of an Exported GC Object=]))
-  Set(|object|.[[Get]], ?([=[[Get]] internal method of an Exported GC Object=]))
-  Set(|object|.[[Set]], ?([=[[Set]] internal method of an Exported GC Object=]))
-  Set(|object|.[[Delete]], ?([=[[Delete]] internal method of an Exported GC Object=]))
-  Set(|object|.[[OwnPropertyKeys]], ?([=[[OwnPropertyKeys]] internal method of an Exported GC Object=]))
-  Set(|map|[|objectaddr|], |object|)
+  Set(|object|.[[GetPrototypeOf]], ref([=[[GetPrototypeOf]] internal method of an Exported GC Object=]))
+  Set(|object|.[[SetPrototypeOf]], ref([=[[SetPrototypeOf]] internal method of an Exported GC Object=]))
+  Set(|object|.[[IsExtensible]], ref([=[[IsExtensible]] internal method of an Exported GC Object=]))
+  Set(|object|.[[PreventExtensions]], ref([=[[PreventExtensions]] internal method of an Exported GC Object=]))
+  Set(|object|.[[GetOwnProperty]], ref([=[[GetOwnProperty]] internal method of an Exported GC Object=]))
+  Set(|object|.[[DefineOwnProperty]], ref([=[[DefineOwnProperty]] internal method of an Exported GC Object=]))
+  Set(|object|.[[HasProperty]], ref([=[[HasProperty]] internal method of an Exported GC Object=]))
+  Set(|object|.[[Get]], ref([=[[Get]] internal method of an Exported GC Object=]))
+  Set(|object|.[[Set]], ref([=[[Set]] internal method of an Exported GC Object=]))
+  Set(|object|.[[Delete]], ref([=[[Delete]] internal method of an Exported GC Object=]))
+  Set(|object|.[[OwnPropertyKeys]], ref([=[[OwnPropertyKeys]] internal method of an Exported GC Object=]))
+  Set(|map|[(|objectkind|, |objectaddr|)], |object|)
   Return(|object|)
 
 # initialize an Exception object
   params: |exn|, |exnAddress|
   head: To <dfn>initialize an Exception object</dfn> |exn| from an [=Exception address=] |exnAddress|, perform the following steps:
-  Let(|map|, [=surrounding agent=].[[Exception object cache]])
+  Let(|map|, [=surrounding agent=].[[exception object cache]])
   Assert(|map|[|exnAddress|] [=map/doesn't exist=])
   Set(|exn|.[[Address]], |exnAddress|)
   Set(|map|[|exnAddress|], |exn|)
@@ -1165,7 +1189,7 @@
 # create an Exception object
   params: |exnAddress|
   head: To <dfn>create an Exception object</dfn> from a [=exception address=] |exnAddress|, perform the following steps:
-  Let(|map|, [=surrounding agent=].[[Exception object cache]])
+  Let(|map|, [=surrounding agent=].[[exception object cache]])
   If(|map|[|exnAddress|] [=map/exists=])
     Return(|map|[|exnAddress|])
   Let(|exn|, new(Exception, [=current Realm=]))
@@ -1184,7 +1208,7 @@
   If(length(|types|) is not length(|payload|))
     Throw(new {{TypeError}})
   Let(|wasmPayload|, « »)
-  ForEach(?(|value| and |resultType|), ?(|payload| and |types|))
+  ForEachPaired(|value|, |resultType|, |payload|, |types|)
     If(|resultType| [=matches/valtype=] [=v128=] or [=exnref=])
       Throw(new {{TypeError}})
     Append([=?=] [=ToWebAssemblyValue=](|value|, |resultType|), |wasmPayload|)
@@ -1226,12 +1250,12 @@
 
 # get the JavaScript exception tag
   head: To <dfn>get the JavaScript exception tag</dfn>, perform the following steps:
-  If([=surrounding agent=].[[JavaScript exception tag]] [=map/exists=])
-    Return([=surrounding agent=].[[JavaScript exception tag]])
+  If([=surrounding agent=].[[javascript exception tag]] [=map/exists=])
+    Return([=surrounding agent=].[[javascript exception tag]])
   Let(|store|, [=surrounding agent=].[[associated store]])
   Let((|store|, |tagAddress|), [=tag_alloc=](|store|, [=fold=]([=comp-type/func=](« [=externref=] », « »))))
   Set([=surrounding agent=].[[associated store]], |store|)
-  Set([=surrounding agent=].[[JavaScript exception tag]], |tagAddress|)
+  Set([=surrounding agent=].[[javascript exception tag]], |tagAddress|)
   Return(|tagAddress|)
 
 # create the WebAssembly namespace object
@@ -1726,7 +1750,7 @@
         Let(|Q|, [=?=] [$Get$](|jsValue|, |id|))
         If(|Q| is not an Object)
           Perform([=JavaScript/throw=](new {{TypeError}}))
-        Let(|forwardId|, ?(the identifier argument of the [{{PutForwards}}] extended attribute))
+        Let(|forwardId|, ?(the identifier argument of the [{{PutForwards}}] [=extended attribute=]))
         Perform(Set(|Q|, |forwardId|, |V|, false))
         Return(undefined)
       Set(|idlObject|, ?(the IDL [=interface type=] value that represents a reference to |jsValue|))
@@ -1885,7 +1909,7 @@
 # define the asynchronous iteration methods
   params: |definition|, |target|, |realm|
   head: To <dfn>define the asynchronous iteration methods</dfn> of [=interface=] |definition| on |target|, given [=realm=] |realm|, run the following steps:
-  If(?(|definition| does not have an an [=asynchronously iterable declaration=] (of either sort)))
+  If(?(|definition| does not have an [=asynchronously iterable declaration=] (of either sort)))
     Return()
   Assert(?(|definition| does not have an [=indexed property getter=]) or ?(an [=iterable declaration=]))
   If(?(|definition| has a [=pair asynchronously iterable declaration=]))

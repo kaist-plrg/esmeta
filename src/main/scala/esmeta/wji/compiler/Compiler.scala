@@ -65,7 +65,7 @@ object Compiler:
     * Documented in `docs/hardcodes.md` (#7) — when this gets properly
     * implemented, delete that entry too.
     */
-  private val namesWithPrototypeIntrinsic: Map[String, String] = Map(
+  private[compiler] val namesWithPrototypeIntrinsic: Map[String, String] = Map(
     "Instance" -> "%WebAssembly.Instance.prototype%",
     "Global" -> "%WebAssembly.Global.prototype%",
     "Memory" -> "%WebAssembly.Memory.prototype%",
@@ -196,7 +196,7 @@ object Compiler:
         // itself inert for WJI (the live `WebAssembly` global object is built
         // dynamically by `create_a_namespace_object`, per `manuals/rule.json`'s
         // "Create any host-defined global object properties" patch).
-        case AlgorithmKind.Method(iface) =>
+        case AlgorithmKind.Method(iface, _) =>
           if iface == "WebAssembly" then
             builtinFunc(s"INTRINSICS.$iface.prototype.$name")
           else builtinFunc(s"INTRINSICS.WebAssembly.$iface.prototype.$name")
@@ -204,11 +204,15 @@ object Compiler:
           Func(
             main = false,
             kind = FuncKind.AbsOp,
-            // lower-cased to match `nameFromLink`: Bikeshed link matching is
-            // case-insensitive (e.g. a sentence-initial "Read the imports"
-            // links to a dfn written "read the imports"), but Scala map
-            // lookups (`cfg.fnameMap`) aren't, so both the registered name
-            // and every reference to it are normalized to the same case.
+            // lower-cased: Bikeshed link matching is case-insensitive (e.g. a
+            // sentence-initial "Read the imports" links to a dfn written
+            // "read the imports"), but Scala map lookups (`cfg.fnameMap`)
+            // aren't. A call site's own casing is left as-is at compile time
+            // (`nameFromLink`) rather than also lower-cased here, since a
+            // `[=link=]` might instead name a real mainline ECMA-262 AO
+            // (registered under its own exact case) -- `Interpreter.EClo`
+            // retries lowercase only if the exact-case lookup fails, which
+            // finds this registration for a genuine WJI-authored call.
             name = name.toLowerCase,
             params = params,
             retTy = UnknownType,
@@ -278,6 +282,18 @@ object Compiler:
         ),
       ) :: compileSeq(body)
 
+    // unlike ForEach, real "paired linearly" spec text always binds two plain
+    // pipe-variables (that's what the idiom itself means — pairing up two
+    // per-iteration values, not destructuring or map-iterating either one),
+    // so ExpandForEachPass's isBindable guard is never actually false for a
+    // real occurrence — confirmed against every "paired linearly" spot in
+    // the corpus. An EYet here would silently mask that guard ever being
+    // wrong; impossible() instead fails loudly and immediately, right at the
+    // actual bug, if ExpandForEachPass is ever skipped or that assumption
+    // stops holding.
+    case i: Instr.ForEachPaired =>
+      impossible(s"ForEachPaired not eliminated by ExpandForEachPass: $i")
+
     case Instr.For(elem, collection, body) =>
       // TODO: proper counting loop — needs a real IWhile over the collection
       IExpr(
@@ -296,10 +312,17 @@ object Compiler:
       // a dedicated IR node instead of an ordinary closure call. A WebIDL
       // value-conversion function is the same idea, dispatched natively
       // instead — see `webIdlConversionNames`.
+      // `WasmHost.names`/`webIdlConversionNames` are always-lowercase-
+      // underscored, but `name` itself is left exactly as captured (see
+      // `nameFromLink`) -- matched case-insensitively here so a call site
+      // written with different casing (e.g. a sentence-initial "Converted to
+      // a JavaScript value") still finds them, the same way `Interpreter.EClo`
+      // falls back to lowercase for an ordinary WJI-algorithm call.
+      val lname = name.toLowerCase
       def mkCall(lhs: Name): Inst =
-        if WasmHost.names.contains(name) then ICallEmbed(lhs, name, callArgs)
-        else if webIdlConversionNames.contains(name) then
-          ICallConvert(lhs, name, callArgs)
+        if WasmHost.names.contains(lname) then ICallEmbed(lhs, lname, callArgs)
+        else if webIdlConversionNames.contains(lname) then
+          ICallConvert(lhs, lname, callArgs)
         else ICall(lhs, EClo(name, Nil), callArgs)
       outcome match
         case PerformOutcome.Discard =>
@@ -483,6 +506,11 @@ object Compiler:
     // this only remains for a position that pass doesn't cover (e.g. a Set
     // RHS). TODO: inline call-as-expr, the way that pass does for Let/Return.
     case metalang.Expr.AlgoCall(link, _) => EYet(s"call $link")
+    // "Set X.[[SLOT]] as specified in [=ALGO=]" -- see Expr.AlgoRef's own
+    // doc: a *reference* to ALGO as a first-class value, not a call, mirroring
+    // ordinaryObjectFields's own bare EClo(name, Nil) entries for the default
+    // internal methods every other object gets.
+    case metalang.Expr.AlgoRef(link) => EClo(nameFromLink(link), Nil)
     // a SpecTec Wasm Core Spec constructor/variant application (e.g. "the
     // [=external value=] [=external value/func=] |funcaddr|") used as a
     // value — builds a real `Wasm(CaseV(tag, ...))` to send back to SpecTec.
@@ -614,10 +642,27 @@ object Compiler:
       EBinary(BOp.Eq, compileExpr(e), EUndef())
     case Cond.IsMissing(e, true) =>
       EUnary(UOp.Not, EBinary(BOp.Eq, compileExpr(e), EUndef()))
-    case Cond.HasSlot(e, slot, false) =>
-      EExists(Field(compileRef(e), EStr(slot)))
-    case Cond.HasSlot(e, slot, true) =>
-      EUnary(UOp.Not, EExists(Field(compileRef(e), EStr(slot))))
+    case Cond.HasSlot(e, slot, neg) =>
+      // "X has a [[SLOT]] internal slot" is spec shorthand for "X is an
+      // Object and (that Object) has [[SLOT]]" -- only Objects have internal
+      // slots at all, so for anything else the answer is simply false (never
+      // an error), even though nothing spells that qualifier out explicitly.
+      // Real spec text leans on this: e.g. `ToWebAssemblyValue`'s "Else if
+      // |v| is an Exported Function" (a `[[FunctionAddress]] internal slot`
+      // check) is one arm of a chain that never separately confirms |v| is
+      // an Object first -- a plain Number reaching that arm is completely
+      // ordinary. Skipping this guard doesn't just misclassify such values --
+      // `EExists` itself throws outright for a non-Object base
+      // (`esmeta.state.State.exists`'s `case _ => raise("illegal field
+      // existence check: ...")`).
+      val ref = compileRef(e)
+      val positive =
+        EBinary(
+          BOp.And,
+          ETypeCheck(ERef(ref), irTypeOf("Object")),
+          EExists(Field(ref, EStr(slot))),
+        )
+      if neg then EUnary(UOp.Not, positive) else positive
     case Cond.Contains(elem, list, false) =>
       EContains(compileExpr(list), compileExpr(elem))
     case Cond.Contains(elem, list, true) =>
@@ -687,13 +732,17 @@ object Compiler:
       else BigDecimal(raw)
     EMath(if neg then -bd else bd)
 
+  /** the callee name straight from its spec-link text, case and all --
+    * `[=link=]` (a WJI-authored algorithm) and `[$link$]`/bare (an ECMA-262 AO,
+    * as `JSCall` already extracts it) are compiled identically here, since
+    * nothing at this point can tell which one a given `[=link=]` actually is
+    * (both spellings are valid Bikeshed cross-reference syntax, and this
+    * document doesn't use them by any consistent rule of its own -- see
+    * `Interpreter.EClo`'s case-insensitive retry, which resolves the ambiguity
+    * later against the real, merged `cfg.fnameMap`).
+    */
   private def nameFromLink(link: String): String =
-    val name = link.stripPrefix("[=").stripSuffix("=]").trim
-    // only `[=...=]` WJI links are case-insensitive by Bikeshed convention;
-    // a bare name (as JSCall's `[$...$]` extracts it, with no brackets here)
-    // is an exact ECMA-262 AO name and must keep its case to match
-    // `cfg.fnameMap`.
-    if link.startsWith("[=") then name.toLowerCase else name
+    link.stripPrefix("[=").stripSuffix("=]").trim
 
   private def stripPipes(s: String): String =
     s.stripPrefix("|").stripSuffix("|")

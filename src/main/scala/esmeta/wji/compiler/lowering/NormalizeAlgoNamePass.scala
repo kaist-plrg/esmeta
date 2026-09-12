@@ -3,26 +3,29 @@ package esmeta.wji.compiler.lowering
 import esmeta.wji.lang.{Algorithm, AlgorithmKind, Expr, Instr}
 import esmeta.wji.lang.walker.Walker
 
-/** Normalizes each `Plain`/`Method`-kind algorithm's `name` —
-  * space-to-underscore *and* lower-cased, so it's both a valid function
-  * identifier and matches how `esmeta.wji.compiler.Compiler.compileAlgo`
-  * registers `Func` names — and does the same inside every [[Expr.Closure]]
-  * reference to a (possibly synthetic, lowering-pass-generated) algorithm name,
-  * so a closure reference always matches its target's registered name exactly
-  * (`cfg.fnameMap` lookups are case-sensitive even though the Bikeshed prose
-  * these names ultimately derive from is not).
+/** Normalizes each `Plain`-kind algorithm's `name` — space-to-underscore *and*
+  * lower-cased, so it's both a valid function identifier and matches how
+  * `esmeta.wji.compiler.Compiler.compileAlgo` registers `Func` names — and does
+  * the same inside every [[Expr.Closure]] reference to a (possibly synthetic,
+  * lowering-pass-generated) algorithm name, so a closure reference always
+  * matches its target's registered name exactly (`cfg.fnameMap` lookups are
+  * case-sensitive even though the Bikeshed prose these names ultimately derive
+  * from is not).
   *
-  * A Getter/Setter/Constructor-kind algorithm's `name` is left exactly as
-  * extracted instead — `Compiler.compileAlgo` registers those case-preserved
-  * (see `AddInterfaceMemberBuiltinBehaviourPass`), matching the real,
-  * case-sensitive JS property names `manuals/intrinsics` expects (e.g.
-  * `Global.value`'s setter) — every one of those kinds is only ever reached via
-  * real property/call access, never via a `[=link=]`-style reference
+  * A Getter/Setter/Constructor/Method-kind algorithm's `name` is left exactly
+  * as extracted instead — `Compiler.compileAlgo` registers all four
+  * case-preserved (see `AddInterfaceMemberBuiltinBehaviourPass`), matching the
+  * real, case-sensitive JS property names `manuals/intrinsics` expects (e.g.
+  * `Global.value`'s setter, `Module.customSections`'s real casing rather than
+  * `customsections`) — every one of those kinds is only ever reached via real
+  * property/call access, never via a `[=link=]`-style reference
   * `nameFromLink`'s Bikeshed case-insensitivity exists for in the first place.
-  * `Method` is still normalized/lowercased like `Plain` for now — it's
-  * deliberately excluded from that case-preserved builtin treatment (TODO, see
-  * `AddInterfaceMemberBuiltinBehaviourPass`'s doc), so it's still only ever
-  * reached via `[=link=]`-style references today.
+  * `Method` used to be excluded from this and normalized like `Plain` instead
+  * (a former TODO) — its own `js-api`/`Interpreter.EClo`'s
+  * exact-then-lowercase-retry lookup convention means any genuine
+  * `[=link=]`-style reference to a Method algorithm still resolves correctly
+  * either way, so there was no reason left to single it out from the other
+  * three case-preserved kinds.
   *
   * [[Expr.AlgoCall]]'s `link` and [[Instr.Perform]]'s `func` are deliberately
   * left on space-only normalization here (not lower-cased): unlike
@@ -54,7 +57,7 @@ object NormalizeAlgoNamePass extends LoweringPass:
   def run(algos: List[Algorithm]): List[Algorithm] =
     algos.map { a =>
       val name = a.kind match
-        case AlgorithmKind.Plain | AlgorithmKind.Method(_) =>
+        case AlgorithmKind.Plain =>
           a.name.map(normalize)
         case _ => a.name
       a.copy(name = name, body = a.body.map(normalizer.walk))
@@ -64,14 +67,16 @@ object NormalizeAlgoNamePass extends LoweringPass:
   private def normalize(s: String): String = underscore(s).toLowerCase
 
   /** Only overrides the node types it actually renames ([[Expr.AlgoCall]]'s
-    * `link`, [[Expr.Closure]]'s `name`, `Instr.Perform`'s `func`) —
-    * [[Expr.Case]] is deliberately left alone: its `tag` is never a function
-    * name (see class doc).
+    * `link`, [[Expr.AlgoRef]]'s `link`, [[Expr.Closure]]'s `name`,
+    * `Instr.Perform`'s `func`) — [[Expr.Case]] is deliberately left alone: its
+    * `tag` is never a function name (see class doc).
     */
   private object normalizer extends Walker:
     override def walk(expr: Expr): Expr = expr match
       case Expr.AlgoCall(link, args) =>
         Expr.AlgoCall(underscore(link), args.map(walk))
+      case Expr.AlgoRef(link) =>
+        Expr.AlgoRef(underscore(link))
       case Expr.Closure(name, captured) =>
         Expr.Closure(normalize(name), captured)
       case other => super.walk(other)

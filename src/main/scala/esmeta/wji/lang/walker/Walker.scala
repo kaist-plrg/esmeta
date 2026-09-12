@@ -96,6 +96,14 @@ trait Walker:
     case i: Instr.Throw  => Instr.Throw(walk(i.target), i.body.map(walk))
     case i: Instr.ForEach =>
       Instr.ForEach(walk(i.elem), walk(i.collection), i.body.map(walk))
+    case i: Instr.ForEachPaired =>
+      Instr.ForEachPaired(
+        walk(i.elem1),
+        walk(i.elem2),
+        walk(i.collection1),
+        walk(i.collection2),
+        i.body.map(walk),
+      )
     case i: Instr.For =>
       Instr.For(walk(i.elem), walk(i.collection), i.body.map(walk))
     case i: Instr.While         => Instr.While(walk(i.cond), i.body.map(walk))

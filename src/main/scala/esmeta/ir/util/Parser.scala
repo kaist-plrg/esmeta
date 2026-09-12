@@ -317,8 +317,11 @@ trait Parsers extends TyParsers {
     "[number]" ^^^ ToNumber |
     "[bigInt]" ^^^ ToBigInt |
     "[math]" ^^^ ToMath |
-    "[str" ~> opt(expr) <~ "]" ^^ { ToStr(_) } |
-    "[codeUnit]" ^^^ ToCodeUnit
+    "[str" ~> opt(expr) ~ opt("upper") <~ "]" ^^ {
+      case r ~ u => ToStr(r, u.isDefined)
+    } |
+    "[codeUnit]" ^^^ ToCodeUnit |
+    "[codePoint]" ^^^ ToCodePoint
   }.named("ir.COp")
 
   // references

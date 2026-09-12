@@ -244,9 +244,22 @@ object CompletionAlgorithms:
     */
   private def isInterfaceMember(kind: AlgorithmKind): Boolean = kind match
     case AlgorithmKind.Getter(_) | AlgorithmKind.Setter(_) |
-        AlgorithmKind.Constructor(_) | AlgorithmKind.Method(_) =>
+        AlgorithmKind.Constructor(_) | AlgorithmKind.Method(_, _) =>
       true
     case AlgorithmKind.Plain => false
+
+  /** A `Plain`-kind algorithm implementing one of ECMA-262's fixed fundamental
+    * internal methods (e.g. `Exported GC Object`'s `[[Get]]`/`[[Set]]`/...,
+    * `AlgorithmExtractor.InternalMethodSignature`'s own doc) — like an
+    * interface member, always invoked through mainline's generic exotic-object
+    * dispatch (`? O.[[Get]](P, Receiver)`, always `?`/`!`-marked at the real
+    * call site), regardless of whether its own body has a visible abrupt path
+    * (`[[GetPrototypeOf]]`'s plain `Return null` no more than `Memory.buffer`'s
+    * plain field read does) — same rationale as `isInterfaceMember` above, just
+    * for a name-recognized `Plain` algorithm instead of a `kind`-tagged one.
+    */
+  private def isFundamentalInternalMethod(a: Algorithm): Boolean =
+    a.name.exists(_.matches("""(?i)\[\[\w+\]\] internal method of .+"""))
 
   /** The fixed point itself: lowercased names of every algorithm that must
     * return a Completion Record.
@@ -287,7 +300,8 @@ object CompletionAlgorithms:
             .when(
               hasOwnAbrupt(
                 a.body,
-              ) || isInterfaceMember(a.kind) || a.isBuiltinBehaviour,
+              ) || isInterfaceMember(a.kind) || a.isBuiltinBehaviour ||
+              isFundamentalInternalMethod(a),
             )(nameOf(a))
             .flatten,
         )

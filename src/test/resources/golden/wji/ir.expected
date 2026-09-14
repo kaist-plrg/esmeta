@@ -4167,8 +4167,9 @@ def create_an_interface_object(
     let steps = clo<"create_an_interface_object_closure1", [I, realm]>
   }
   let constructorProto = realm.Intrinsics["%Function.prototype%"]
-  if (yet "|I| inherits from some other interface |P|") {
-    call _guard1 = clo<"create_an_interface_object">(P, realm)
+  let P = I.inherit
+  if (! (= P null)) {
+    call _guard1 = clo<"create_an_interface_object">(P, P.id, realm)
     if (? _guard1: Abrupt) {
       if (? _guard1: Completion) {
         return _guard1
@@ -4244,8 +4245,19 @@ def create_an_interface_prototype_object(
     call _call1 = clo<"create_a_named_properties_object">(interface, realm)
     proto = _call1
   } else {
-    if (= interface (yet "declared to inherit from another interface")) {
-      proto = (yet "the [=interface prototype object=] in |realm| of that [=inherited interface=]")
+    if (! (= interface.inherit null)) {
+      call _guard1 = clo<"create_an_interface_prototype_object">(interface.inherit, realm)
+      if (? _guard1: Abrupt) {
+        if (? _guard1: Completion) {
+          return _guard1
+        } else {
+          call _ret1 = clo<"NormalCompletion">(_guard1)
+          return _ret1
+        }
+      } else {
+        let _call2 = _guard1.Value
+      }
+      proto = _call2
     } else if (= interface (yet "the {{DOMException}} [=interface=]")) {
       proto = realm.Intrinsics["%Error.prototype%"]
     } else {
@@ -4255,8 +4267,8 @@ def create_an_interface_prototype_object(
   assert (? proto: Record[Object])
   let interfaceProtoObj = null
   if (= (yet "|realm|'s [=is global prototype chain mutable=]") true) {
-    call _call2 = clo<"OrdinaryObjectCreate">(proto)
-    interfaceProtoObj = _call2
+    call _call3 = clo<"OrdinaryObjectCreate">(proto)
+    interfaceProtoObj = _call3
   } else {
     let _found3 = false
     let _i4 = 0
@@ -4267,15 +4279,34 @@ def create_an_interface_prototype_object(
       } else nop
       _i4 = (+ _i4 1)
     }
-    if (|| (= _found3 true) (yet "a value descendant exists such that |interface| is contained in [=inherited_interfaces=](|descendant|), and any ea in |descendant|.[[extendedAttributes]] |ea|.[[id]] is \"Global\"")) {
-      call _call3 = clo<"MakeBasicObject">((list ["Prototype", "Extensible"]))
-      interfaceProtoObj = _call3
+    let _found8 = false
+    let _i9 = 0
+    while (&& (= _found8 false) (< _i9 (sizeof @HOST_DEFINED.interfaces))) {
+      let descendant = @HOST_DEFINED.interfaces[_i9]
+      call _call5 = clo<"inclusive_inherited_interfaces">(descendant.inherit)
+      let _found6 = false
+      let _i7 = 0
+      while (&& (= _found6 false) (< _i7 (sizeof descendant.extendedAttributes))) {
+        let ea = descendant.extendedAttributes[_i7]
+        if (= ea.id "Global") {
+          _found6 = true
+        } else nop
+        _i7 = (+ _i7 1)
+      }
+      if (&& (contains _call5 interface) (= _found6 true)) {
+        _found8 = true
+      } else nop
+      _i9 = (+ _i9 1)
+    }
+    if (|| (= _found3 true) (= _found8 true)) {
+      call _call4 = clo<"MakeBasicObject">((list ["Prototype", "Extensible"]))
+      interfaceProtoObj = _call4
       interfaceProtoObj.Prototype = proto
-      call _call4 = clo<"immutable_prototype_exotic_objects">(~ECMA-262 Immutable prototype exotic objects~)
-      @@yet: unresolved ref: Unknown(the internal methods of |interfaceProtoObj| which are specific) = _call4
+      call _call5 = clo<"immutable_prototype_exotic_objects">(~ECMA-262 Immutable prototype exotic objects~)
+      @@yet: unresolved ref: Unknown(the internal methods of |interfaceProtoObj| which are specific) = _call5
     } else {
-      call _call5 = clo<"OrdinaryObjectCreate">(proto)
-      interfaceProtoObj = _call5
+      call _call6 = clo<"OrdinaryObjectCreate">(proto)
+      interfaceProtoObj = _call6
     }
   }
   if (yet "|interface| has any [=member=] declared with the [{{Unscopable}}] [=extended attribute=]") {
@@ -4291,16 +4322,16 @@ def create_an_interface_prototype_object(
     })
     call _ = clo<"DefinePropertyOrThrow">(interfaceProtoObj, @SYMBOL.unscopables, desc)
   } else nop
-  let _found5 = false
-  let _i6 = 0
-  while (&& (= _found5 false) (< _i6 (sizeof interface.extendedAttributes))) {
-    let ea = interface.extendedAttributes[_i6]
+  let _found10 = false
+  let _i11 = 0
+  while (&& (= _found10 false) (< _i11 (sizeof interface.extendedAttributes))) {
+    let ea = interface.extendedAttributes[_i11]
     if (= ea.id "Global") {
-      _found5 = true
+      _found10 = true
     } else nop
-    _i6 = (+ _i6 1)
+    _i11 = (+ _i11 1)
   }
-  if (! (= _found5 true)) {
+  if (! (= _found10 true)) {
     call _ = clo<"Define_the_regular_attributes">(interface, interfaceProtoObj, realm)
     call _ = clo<"Define_the_regular_operations">(interface, interfaceProtoObj, realm)
     call _ = clo<"Define_the_iteration_methods">(interface, interfaceProtoObj, realm)
@@ -4308,16 +4339,16 @@ def create_an_interface_prototype_object(
   } else nop
   call _ = clo<"Define_the_constants">(interface, interfaceProtoObj, realm)
   if (yet "the [{{LegacyNoInterfaceObject}}] [=extended attribute=] was not specified on |interface|") {
-    call _guard1 = clo<"create_an_interface_object">(interface, realm)
-    if (? _guard1: Abrupt) {
-      if (? _guard1: Completion) {
-        return _guard1
+    call _guard2 = clo<"create_an_interface_object">(interface, interface.id, realm)
+    if (? _guard2: Abrupt) {
+      if (? _guard2: Completion) {
+        return _guard2
       } else {
-        call _ret1 = clo<"NormalCompletion">(_guard1)
-        return _ret1
+        call _ret2 = clo<"NormalCompletion">(_guard2)
+        return _ret2
       }
     } else {
-      let constructor = _guard1.Value
+      let constructor = _guard2.Value
     }
     let desc = (record [PropertyDescriptor] {
       "Writable" : true,
@@ -4330,8 +4361,8 @@ def create_an_interface_prototype_object(
   if (? interfaceProtoObj: Completion) {
     return interfaceProtoObj
   } else {
-    call _ret2 = clo<"NormalCompletion">(interfaceProtoObj)
-    return _ret2
+    call _ret3 = clo<"NormalCompletion">(interfaceProtoObj)
+    return _ret3
   }
 }
 def define_the_constants(

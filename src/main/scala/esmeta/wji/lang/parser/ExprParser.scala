@@ -367,6 +367,41 @@ object ExprParser:
   // `IdentifierOfType`) of not over-generalizing past the observed shape.
   private val LinkOfForIn =
     """(?si)^the\s+(\[=[^\]]+=\])\s+(?:of|for)\s+(\|[^|]+\|)\s+in\s+(\|[^|]+\|)$""".r
+  // "the [=interface prototype object=] of that [=inherited interface=] in
+  // |realm|" — webidl/index.bs:12055-12056, after `SpecPatch` reorders the
+  // original "... in |realm| of that [=inherited interface=]" (word order
+  // deviates from every other reference to this same term in this document,
+  // e.g. index.bs:12030's "of [=interface=] |I| in |realm|" — see
+  // docs/spec_inconsistencies.md) into `LinkOfForIn`'s own canonical "of X in
+  // realm" order. Unlike `LinkOfForIn`'s own subject (always a bare `|var|`),
+  // this one is the anaphoric noun phrase "that [=inherited interface=]" —
+  // refers back to whichever interface the enclosing `#2-2` condition
+  // ("|interface| is declared to inherit from another interface",
+  // `CondParser.DeclaredToInheritPos`) already established, which in the one
+  // real corpus occurrence of this exact phrasing is always
+  // `create_an_interface_prototype_object`'s own `interface` parameter (the
+  // same anaphor `InterfaceInheritsFrom`'s own `.inherit` field mapping below
+  // resolves for a named `|var|`) — hardcoded here, matching this file's
+  // convention for narrow, single-occurrence idioms (`ValidTypeLink`,
+  // `ExistsSuchThat`) rather than threading condition-parsed context into
+  // this call. Produces a plain `Link`, exactly `LinkOfForIn`'s own output
+  // shape, so `ResolveLinksPass`'s existing `linkAliases` resolves it
+  // identically to that occurrence — no `ResolveLinksPass` change needed.
+  private val LinkOfInheritedInterfaceIn =
+    """(?si)^the\s+(\[=[^\]]+=\])\s+of that \[=inherited interface=\]\s+in\s+(\|[^|]+\|)$""".r
+  // "the [=interface object=] of |P| with identifier |P|'s [=identifier=] in
+  // |realm|" — after `SpecPatch` spells out `create an interface object`'s
+  // (webidl/index.bs:11933-11936) required `id` parameter, elided by every
+  // real call site (docs/spec_errors.md). Produces a 3-arg `Link` — unlike
+  // `LinkOfForIn`'s 2 — so `ResolveLinksPass.linkAliases`'s existing
+  // `"interface object" -> "create an interface object"` entry (already
+  // resolving the *un-elided* 2-arg form the same way today) forwards all 3
+  // resolved args straight into the `AlgoCall`, no `ResolveLinksPass` change
+  // needed. The backreference `\2` requires both mentions of the subject to
+  // name the same variable, matching exactly what the patched text always
+  // says.
+  private val LinkOfWithIdentifierIn =
+    """(?si)^the\s+(\[=[^\]]+=\])\s+of\s+(\|[^|]+\|)\s+with identifier \2's \[=identifier=\]\s+in\s+(\|[^|]+\|)$""".r
   private val LinkProse = """(?s)^(\[=(?:(?!=\]).)+?=\])\s+(.+)$""".r
   private val LinkOnly = """(?s)^(?:the\s+)?(\[=(?:(?!=\]).)+?=\])$""".r
   // "VALUE, [=link=]" — spec's passive-voice idiom for a unary conversion
@@ -984,6 +1019,14 @@ object ExprParser:
             AlgoCall(normalizeLink(link), splitComma(argsRaw).map(parse))
       case LinkOfForIn(link, subjRaw, realmRaw) =>
         Link(normalizeLink(link), List(parse(subjRaw), parse(realmRaw)))
+      case LinkOfInheritedInterfaceIn(link, realmRaw) =>
+        Link(
+          normalizeLink(link),
+          List(Field(Var("interface"), "inherit"), parse(realmRaw)),
+        )
+      case LinkOfWithIdentifierIn(link, varRaw, realmRaw) =>
+        val v = parse(varRaw)
+        Link(normalizeLink(link), List(v, Field(v, "id"), parse(realmRaw)))
       case LinkProse(link, prose) =>
         Link(normalizeLink(link), parseArgs(prose))
       case LinkOnly(link) => Link(normalizeLink(link), Nil)

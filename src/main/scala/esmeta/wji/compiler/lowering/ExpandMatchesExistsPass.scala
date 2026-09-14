@@ -49,6 +49,25 @@ import esmeta.wji.bridge.host.WasmHost
   * later collection's loop runs zero iterations, without needing an explicit
   * early-exit/break instruction.
   *
+  * [2026-09-14] `hoist` also recognizes a `Cond.Contains` whose `list` is a
+  * bare `Expr.AlgoCall` — e.g. webidl_yet_categorized.md category II-C's
+  * `#2-5`, `CondParser.InInheritedInterfacesOfDeclared`'s `Any("descendant",
+  * [all interfaces], And(Contains(interface,
+  * AlgoCall("[=inclusive inherited interfaces=]", [descendant.inherit])),
+  * ...))`, where the call must re-run once per `descendant` — since this
+  * reaches `hoist` via `Cond.Any`'s own recursive `hoist(body, counter)` call,
+  * this needs no new dispatch of its own, just one more case:
+  * {{{
+  *   Contains(interface, AlgoCall("[=inclusive inherited interfaces=]", args))
+  * }}}
+  * becomes
+  * {{{
+  *   Perform("[=inclusive inherited interfaces=]", args, BindResult(_call1))
+  *   Contains(interface, _call1)
+  * }}}
+  * — the `Perform` lands in `bodyPre`, i.e. inside the enclosing loop, once
+  * per iteration, exactly like the `Cond.Matches` case above's own `Perform`.
+  *
   * For `Instr.IfChain`, hoisting a later branch's precondition correctly
   * requires nesting it inside the earlier branches' "false" case rather than
   * flat-hoisting to the top — e.g. index.bs:12051's "declared with the
@@ -217,6 +236,24 @@ object ExpandMatchesExistsPass extends LoweringPass:
           PerformOutcome.BindResult(tmp),
         )
         (List(call), Cond.Eq(Expr.Var(tmp), Expr.Bool(true), neg))
+      // A `Contains` whose list is a bare call — e.g. `#2-5`'s
+      // `Contains(interface, AlgoCall("[=inclusive inherited interfaces=]",
+      // ...))` (webidl_yet_categorized.md category II-C), reached via a
+      // `Cond.Any` search over "all interfaces" — needs the same real-call
+      // treatment `Cond.Matches` above already gets: `Compiler.compileExpr`
+      // has no case for a bare `Expr.AlgoCall` (only
+      // `ExpandInlineAlgoCallPass` turns one into a real `Perform`, and only
+      // for a `Let`/`Return` RHS, never inside a `Cond`).
+      // `NormalizeEvaluationOrderPass` deliberately doesn't reach this itself
+      // (its own doc: a call inside `Cond.Any`'s `body` must stay scoped
+      // inside the loop this pass builds, not hoisted above it where it'd run
+      // once total instead of once per iteration) — this is exactly that
+      // loop-aware hoist, reached the same way as `Cond.Matches` above (via
+      // `Cond.Any`'s own recursive `hoist(body, counter)` call below).
+      case Cond.Contains(elem, Expr.AlgoCall(link, args), neg) =>
+        val tmp = counter.fresh("call")
+        val call = Instr.Perform(link, args, PerformOutcome.BindResult(tmp))
+        (List(call), Cond.Contains(elem, Expr.Var(tmp), neg))
       case Cond.Any(binder, collections, body, neg) =>
         val (bodyPre, bodyCond) = hoist(body, counter)
         val found = counter.fresh("found")

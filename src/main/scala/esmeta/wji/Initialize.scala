@@ -217,6 +217,19 @@ object Initialize:
         ),
       )
 
+    // Memoized by name so each interface/namespace is allocated exactly once —
+    // required so the same `Addr` is reachable both via `HOST_DEFINED.<Name>`
+    // and via the "interfaces" registry below (address-identity is what
+    // `Cond.Contains`/`Cond.Eq` compare against), and so `"inherit"` can point
+    // straight at the parent's own record rather than a bare name string
+    // (matching what `ExprParser.InterfaceInheritsFrom`'s `.inherit` field
+    // read, and `inclusive_inherited_interfaces`'s own `interface =
+    // interface.inherit` walk, already expect).
+    val definitionRecordCache = scala.collection.mutable.Map.empty[String, Addr]
+
+    def definitionRecordByName(name: String): Addr =
+      definitionRecordCache.getOrElseUpdate(name, definitionRecord(spec.definitionMap(name)))
+
     def definitionRecord(d: Definition): Addr =
       val members = d.members.map {
         case op: WjiOperation   => operationRecord(d.name, op)
@@ -230,17 +243,25 @@ object Initialize:
           "members" -> st.allocList(members),
           "kind" -> Enum(d.kind.toString),
           "extendedAttributes" -> st.allocList(d.extAttr.map(extAttrRecord)),
-          "inherit" -> d.inherit.fold[Value](Null)(Str(_)),
+          "inherit" -> d.inherit.fold[Value](Null)(definitionRecordByName),
         ),
       )
 
-    spec.definitions.foreach { definition =>
-      st.heap.update(
-        NamedAddr(HOST_DEFINED),
-        Str(definition.name),
-        definitionRecord(definition),
-      )
+    val definitionAddrs = spec.definitions.map(d => definitionRecordByName(d.name))
+    spec.definitions.zip(definitionAddrs).foreach { case (definition, addr) =>
+      st.heap.update(NamedAddr(HOST_DEFINED), Str(definition.name), addr)
     }
+    // The registry category II-C's descendant search (`CondParser`'s
+    // `InInheritedInterfacesOfDeclared`) needs: a queryable, enumerable list of
+    // every interface/namespace in the spec, compiled via
+    // `Compiler`'s `SpecTerm("all interfaces")` case into a real search
+    // collection for `Cond.Any` — `HOST_DEFINED.<Name>` alone only supports a
+    // compile-time-known name, not "every interface".
+    st.heap.update(
+      NamedAddr(HOST_DEFINED),
+      Str("interfaces"),
+      st.allocList(definitionAddrs),
+    )
 
   /** starts a live SpecTec process, seeds `st`'s AGENT_RECORD's "associated
     * store" field in place, and returns the host + connection for the

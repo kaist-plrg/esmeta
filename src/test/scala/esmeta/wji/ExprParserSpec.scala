@@ -94,6 +94,30 @@ class ExprParserSpec extends AnyFunSuite:
     )
   }
 
+  test("'the [=interface prototype object=] of that [=inherited interface=] in |realm|'") {
+    assert(
+      ExprParser.parse(
+        "the [=interface prototype object=] of that [=inherited interface=] in |realm|",
+      ) ==
+      Link(
+        "[=interface prototype object=]",
+        List(Field(Var("interface"), "inherit"), Var("realm")),
+      ),
+    )
+  }
+
+  test("'the [=interface object=] of |X| with identifier |X|'s [=identifier=] in |realm|'") {
+    assert(
+      ExprParser.parse(
+        "the [=interface object=] of |P| with identifier |P|'s [=identifier=] in |realm|",
+      ) ==
+      Link(
+        "[=interface object=]",
+        List(Var("P"), Field(Var("P"), "id"), Var("realm")),
+      ),
+    )
+  }
+
   test("bare var / var-ignore / this") {
     assert(ExprParser.parse("|x|") == Var("x"))
     assert(ExprParser.parse("<var ignore>foo</var>") == Var("foo"))

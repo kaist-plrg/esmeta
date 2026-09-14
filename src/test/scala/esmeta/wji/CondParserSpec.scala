@@ -117,12 +117,16 @@ class CondParserSpec extends AnyFunSuite:
       CondParser.parse(
         "|interface| is in the set of [=inherited interfaces=] of an interface that is declared with the [{{Global}}] [=extended attribute=]",
       ) ==
-      Exists(
+      Any(
         "descendant",
+        List(SpecTerm("all interfaces")),
         And(
           Contains(
             Var("interface"),
-            Link("[=inherited interfaces=]", List(Var("descendant"))),
+            AlgoCall(
+              "[=inclusive inherited interfaces=]",
+              List(Field(Var("descendant"), "inherit")),
+            ),
           ),
           Any(
             "ea",
@@ -131,6 +135,26 @@ class CondParserSpec extends AnyFunSuite:
           ),
         ),
       ),
+    )
+  }
+
+  test("declared to inherit from another interface, positive and negative") {
+    assert(
+      CondParser.parse("|interface| is declared to inherit from another interface") ==
+      Eq(Field(Var("interface"), "inherit"), SpecTerm("null"), negated = true),
+    )
+    assert(
+      CondParser.parse(
+        "|interface| is not declared to inherit from another interface",
+      ) ==
+      Eq(Field(Var("interface"), "inherit"), SpecTerm("null")),
+    )
+  }
+
+  test("inherits from some other interface |P|") {
+    assert(
+      CondParser.parse("|I| inherits from some other interface |P|") ==
+      Exists("P", Eq(Field(Var("I"), "inherit"), Var("P"))),
     )
   }
 

@@ -122,6 +122,30 @@ object CondParser:
     """(?si)^(\|[^|]+\|)\s+is\s+declared with\s+(?:the|an?)\s+\[\{\{([^}]+)\}\}\]\s+\[=extended attribute=\]$""".r
   private val DeclaredWithAttrNeg =
     """(?si)^(\|[^|]+\|)\s+is not\s+declared with\s+(?:the|an?)\s+\[\{\{([^}]+)\}\}\]\s+\[=extended attribute=\]$""".r
+  // "X is [not] declared to inherit from another interface" —
+  // webidl_yet_categorized.md category II-C's `#2-2` (`webidl/index.bs:12055`).
+  // `Initialize.scala` seeds every interface/namespace record's `"inherit"`
+  // field as either the parent interface's own record (an `Addr`) or `Null`
+  // when it doesn't inherit — always *present* as a key either way, so
+  // `HasField`/`EExists` (which checks key presence, not value) would always
+  // be `true` here regardless of whether there's a real parent; `Eq(...,
+  // SpecTerm("null"))` is the correct test (`Compiler.compileExpr` already
+  // lowers `SpecTerm("null")` to `ENull()`).
+  private val DeclaredToInheritPos =
+    """(?si)^(\|[^|]+\|)\s+is\s+declared to inherit from another interface$""".r
+  private val DeclaredToInheritNeg =
+    """(?si)^(\|[^|]+\|)\s+is not\s+declared to inherit from another interface$""".r
+  // "X inherits from some other interface |P|" — webidl_yet_categorized.md
+  // category II-C's `#3-8` (`webidl/index.bs:11962`). Unlike
+  // DeclaredToInheritPos above, `P` is a named binder the *body* this
+  // condition guards goes on to reference directly (e.g. "then set
+  // |constructorProto| to the [=interface object=] of |P| in |realm|") — so
+  // this reuses `Cond.Exists`'s "value-producing existential" shape (`P`
+  // equals `X.inherit`) rather than a plain boolean, so a later lowering pass
+  // (`ExpandExistentialsPass`) can turn it into both a real null-check *and* a
+  // real `Let` binding `P` before the guarded body runs.
+  private val InheritsFromOtherInterface =
+    """(?si)^(\|[^|]+\|)\s+inherits from some other interface\s+\|(\w+)\|$""".r
   // "X is in the set of [=inherited interfaces=] of an interface that
   // CLAUSE" — webidl_yet_categorized.md category II-C (index.bs:12064-12066).
   // [=inherited interfaces=] of I is the set of interfaces I inherits from
@@ -130,17 +154,22 @@ object CondParser:
   // *descendant* (it inherits from X), not the ancestor. Synthesize a
   // `|descendant|` binder, re-parse CLAUSE with it prepended (reuses
   // DeclaredWithAttrPos/Neg above), and reuse Contains for "in the set of X"
-  // (same idiom as "is contained in X"). `[=inherited interfaces=]` itself is
-  // a plain-prose dfn, not a `<div algorithm>`, so it never resolves to a
-  // real callable — `ResolveLinksPass` still buckets it as `AlgoCall` (its
-  // "prose referring to an algorithm" heuristic), but the surrounding `Exists`
-  // isn't one of `ExpandExistentialsPass`'s hoistable shapes, so this bottoms
-  // out at `Compiler`'s own `Cond.Exists` fallback (`EYet`) — a legible,
-  // structured placeholder, not a real computation. Making it real needs
-  // WebIDL interface inheritance modeled at all (extracting `interface A : B`,
-  // a per-interface `inheritedInterfaces` field, and a queryable interface
-  // registry for the descendant search) — none of which this pipeline has
-  // today; see webidl_yet_categorized.md's II-C note.
+  // (same idiom as "is contained in X").
+  //
+  // [2026-09-14] Made real: `descendant` now ranges over `Initialize.scala`'s
+  // `HOST_DEFINED.interfaces` registry (`Compiler`'s
+  // `SpecTerm("all interfaces")` case) via `Cond.Any` instead of the
+  // unhoistable `Cond.Exists` this used to produce, and the membership check
+  // reuses `inclusive_inherited_interfaces` (already extracted/compiled,
+  // index.bs:707-718 — `[=inherited interfaces=]` itself is still just prose,
+  // never a real callable) called on `descendant.inherit` rather than
+  // `descendant` itself: `inclusive_inherited_interfaces(descendant)` is
+  // `[descendant, descendant.inherit, ...]`, so calling it one field over
+  // gives exactly `[descendant.inherit, descendant.inherit.inherit, ...]` —
+  // the true *exclusive* inherited-interfaces set index.bs:695-700 defines,
+  // with no separate "exclude self" step needed. That algorithm's own loop
+  // never assumes its argument is non-null (`while interface != null`), so a
+  // `descendant` with no parent at all correctly short-circuits to `«»`.
   private val InInheritedInterfacesOfDeclared =
     """(?si)^(\|[^|]+\|)\s+is\s+in the set of\s+\[=inherited interfaces=\]\s+of an interface that\s+(.+)$""".r
   // "X contains any duplicates" / "X contains no duplicates" / "X does not
@@ -378,14 +407,24 @@ object CondParser:
       declaredWithAttr(exprRaw, attrName)
     case DeclaredWithAttrNeg(exprRaw, attrName) =>
       declaredWithAttr(exprRaw, attrName, negated = true)
+    case DeclaredToInheritPos(exprRaw) =>
+      Eq(Field(ExprParser.parse(exprRaw), "inherit"), SpecTerm("null"), negated = true)
+    case DeclaredToInheritNeg(exprRaw) =>
+      Eq(Field(ExprParser.parse(exprRaw), "inherit"), SpecTerm("null"))
+    case InheritsFromOtherInterface(exprRaw, binder) =>
+      Exists(binder, Eq(Field(ExprParser.parse(exprRaw), "inherit"), Var(binder)))
     case InInheritedInterfacesOfDeclared(exprRaw, clauseRaw) =>
       val binder = "descendant"
-      Exists(
+      Any(
         binder,
+        List(SpecTerm("all interfaces")),
         And(
           Contains(
             ExprParser.parse(exprRaw),
-            ExprParser.parse(s"[=inherited interfaces=] of |$binder|"),
+            AlgoCall(
+              "[=inclusive inherited interfaces=]",
+              List(Field(Var(binder), "inherit")),
+            ),
           ),
           parse(s"|$binder| ${clauseRaw.trim}"),
         ),

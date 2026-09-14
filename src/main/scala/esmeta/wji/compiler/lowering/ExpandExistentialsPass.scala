@@ -84,16 +84,40 @@ import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr}
   * exactly the kind of structural pattern recognition this pass already does
   * for `Expr.SuchThat`, not a mechanical materialization.
   *
-  * All three only fire for the one narrow shape actually seen in the corpus
+  *   - The "does X inherit from another interface, named |P|" shape (e.g. "If
+  * |I| inherits from some other interface |P|, then set |constructorProto| to
+  * the [=interface object=] of |P| in |realm|.", webidl/index.bs:11962,
+  * webidl_yet_categorized.md category II-C's `#3-8`) needs no search at all —
+  * `P` is directly a field read (`I.inherit`), not a keyed lookup, so the
+  * `Cond.Exists` this becomes (`CondParser.InheritsFromOtherInterface`) just
+  * states "there's a value `P` equal to `I.inherit`" (a tautology on its own —
+  * some value always equals `I.inherit`, even `null`) with `P` still unbound
+  * for the body that goes on to reference it:
+  * {{{
+  *       If(Exists("P", Eq(Field(Var("I"), "inherit"), Var("P"))))
+  *         ...body referencing P...
+  * }}}
+  * becomes
+  * {{{
+  *       Let(P, Field(I, "inherit"))
+  *       If(Eq(Var(P), SpecTerm("null"), negated = true))
+  *         ...body referencing P...
+  * }}}
+  *
+  * All four only fire for the one narrow shape actually seen in the corpus
   * today — the `SuchThat` cases require the clause's own bound variable (the
   * `Let` it's the RHS of) be exactly the variable the condition constrains; the
-  * `Exists` case requires `body` be exactly an equality test against a
-  * `map[binder]` read. Every other shape — implementation-defined choices
-  * constrained to a range (the NaN-payload `SuchThat` cases, index.bs:1434/
-  * 1442) and any other kind of `Exists` — is left untouched: `Compiler` reports
-  * it as `EYet`.
+  * "host address" `Exists` case requires `body` be exactly an equality test
+  * against a `map[binder]` read, and the "inherits from" `Exists` case requires
+  * it be exactly an equality test against a `.inherit` field read. Every other
+  * shape — implementation-defined choices constrained to a range (the
+  * NaN-payload `SuchThat` cases, index.bs:1434/1442) and any other kind of
+  * `Exists` — is left untouched: `Compiler` reports it as `EYet`.
   *
-  * Category: Spec-dependent — SpecTec.
+  * Category: Spec-dependent — SpecTec, except the "inherits from" `Exists`
+  * case above, which is Spec-dependent — WJI (relies on `Initialize.scala`'s
+  * own choice to seed a `"inherit"` record field, not on anything SpecTec's
+  * runtime does).
   */
 object ExpandExistentialsPass extends LoweringPass:
 
@@ -185,6 +209,13 @@ object ExpandExistentialsPass extends LoweringPass:
   private def needsHoist(cond: Cond): Boolean = cond match
     case Cond.Exists(binder, Cond.Eq(Expr.Index(_, Expr.Var(iv)), _, false)) =>
       iv == binder
+    // "X inherits from some other interface |P|" (`CondParser.
+    // InheritsFromOtherInterface`, webidl_yet_categorized.md category
+    // II-C's `#3-8`) — `P` is directly a record field read (`X.inherit`), not
+    // a keyed search, so unlike the map-index shape above this needs no loop
+    // at all; see `hoist`'s own case for the rewrite.
+    case Cond.Exists(binder, Cond.Eq(Expr.Field(_, "inherit"), Expr.Var(v), false)) =>
+      v == binder
     case Cond.And(l, r) => needsHoist(l) || needsHoist(r)
     case Cond.Or(l, r)  => needsHoist(l) || needsHoist(r)
     case _              => false
@@ -230,6 +261,14 @@ object ExpandExistentialsPass extends LoweringPass:
           ),
         )
         (pre, Cond.Eq(Expr.Var(found), Expr.Bool(true)))
+      case Cond.Exists(
+            binder,
+            Cond.Eq(Expr.Field(base, "inherit"), Expr.Var(v), false),
+          ) if v == binder =>
+        (
+          List(Instr.Let(Expr.Var(binder), Expr.Field(base, "inherit"))),
+          Cond.Eq(Expr.Var(binder), Expr.SpecTerm("null"), negated = true),
+        )
       case Cond.And(l, r) =>
         val (lp, lc) = hoist(l, counter)
         val (rp, rc) = hoist(r, counter)

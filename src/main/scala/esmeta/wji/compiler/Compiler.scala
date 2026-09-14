@@ -458,6 +458,13 @@ object Compiler:
     // such field uniformly.
     case metalang.Expr.SpecTerm("surrounding agent") =>
       ERef(GLOBAL_AGENT_RECORD)
+    // Internal marker (never produced by parsing real spec prose, like
+    // "surrounding agent" above) `CondParser`'s `InInheritedInterfacesOfDeclared`
+    // uses as `Cond.Any`'s search collection — every interface/namespace in
+    // the spec, seeded onto `HOST_DEFINED.interfaces` by
+    // `Initialize.seedHostDefined` (category II-C's registry).
+    case metalang.Expr.SpecTerm("all interfaces") =>
+      ERef(Field(Global("HOST_DEFINED"), EStr("interfaces")))
     case metalang.Expr.SpecTerm(SymbolTerm(sym)) =>
       ERef(Field(GLOBAL_SYMBOL, EStr(sym)))
     // A `{{X}}` literal naming a real WJI interface/exception (e.g. `new`'s
@@ -712,6 +719,12 @@ object Compiler:
     case metalang.Expr.SpecTerm("surrounding agent") => GLOBAL_AGENT_RECORD
     case metalang.Expr.SpecTerm("current Realm") =>
       Field(GLOBAL_CONTEXT, EStr("Realm"))
+    // See the matching `compileExpr` case's own doc — needed here too since
+    // `ExpandMatchesExistsPass`'s hoisted loop uses this collection as an
+    // `Expr.Length`/`Expr.Index` base, both of which call `compileRef` on
+    // their base.
+    case metalang.Expr.SpecTerm("all interfaces") =>
+      Field(Global("HOST_DEFINED"), EStr("interfaces"))
     case metalang.Expr.Field(base, name) => Field(compileRef(base), EStr(name))
     case metalang.Expr.Index(base, key) =>
       Field(compileRef(base), compileExpr(key))

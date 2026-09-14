@@ -49,4 +49,13 @@ object MOp extends Parser.From(Parser.mop)
 enum COp extends Op:
   case ToApproxNumber, ToNumber, ToBigInt, ToMath, ToCodeUnit, ToCodePoint
   case ToStr(radix: Option[Expr], upper: Boolean = false)
+  // reinterprets a wasm f32/f64 `CaseV("POS"/"NEG", [...])` payload
+  // (opaque everywhere else in ESMeta) as a mathematical value -- the width
+  // (32 vs 64) has to be baked into the operator itself, since by the time
+  // this conversion runs there's no longer any sibling tag to read it from
+  // (see esmeta.wji.lang.Expr.WasmFloatPayload's own doc for where the width
+  // still is, and esmeta.state.util.wasmF32Const/wasmF64Const for the
+  // opposite-direction construction this undoes). WJI-only; not produced by
+  // mainline ECMA-262 compilation.
+  case ToMathF32, ToMathF64
 object COp extends Parser.From(Parser.cop)

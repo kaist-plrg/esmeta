@@ -90,3 +90,78 @@ private def wasmFloatConst(layout: FloatLayout, bits: Long): ALValue =
     else if m == 0 then ALValue.CaseV("INF", Nil)
     else ALValue.CaseV("NAN", List(ALValue.NumV(ALNum.Nat(m))))
   ALValue.CaseV(if isNeg then "NEG" else "POS", List(mag))
+
+/** [[wasmF32Const]]/[[wasmF64Const]]'s inverse — recovers the mathematical
+  * value a `[=f32.const=]`/`[=f64.const=] |f32|`/`|f64|` form match's own
+  * payload denotes, for `ToJSValue`'s `[=𝔽=](|f32|/|f64| interpreted as a
+  * [=mathematical value=])` step (`esmeta.wji.compiler.Compiler`'s
+  * `AsMath(WasmFloatPayload(width, e))` case, `docs/hardcodes.md` #19's
+  * counterpart entry covers the wasm-to-JS direction).
+  *
+  * Reconstructs the raw sign/exponent/mantissa bit pattern first (mirroring
+  * OCaml `construct.ml`'s own `al_to_floatN`/`al_to_fmagN` — the reverse of
+  * `wasmFloatConst` above, field for field) and reinterprets *that* as a native
+  * `Float`/`Double` via `intBitsToFloat`/`longBitsToDouble`, rather than
+  * computing `(1 + m·2⁻ᴹ)·2^exp`/`m·2⁻ᴹ·2^exp_min` by hand — letting the JDK's
+  * own IEEE-754 bit layout do the reassembly avoids re-deriving (and risking a
+  * mismatched) rounding/precision behavior for the mathematical formula
+  * version.
+  *
+  * Per `ToJSValue`'s own step order (index.bs:1386-1393), `+∞`/`-∞`/`NaN` are
+  * each handled by a dedicated condition *before* this conversion ever runs —
+  * so a finite `NORM`/`SUBNORM` payload is the only shape genuinely expected
+  * here. `INF`/`NAN` are still reconstructed correctly (both `al_to_fmagN`
+  * cases carried through), but `Math` (backed by `BigDecimal`) has no
+  * representation for a non-finite value at all — surfaced as a clear
+  * [[WasmHostFailure]] rather than an opaque `BigDecimal` construction crash.
+  */
+def wasmF32ToMath(v: ALValue): Math =
+  toFiniteMath(
+    v,
+    java.lang.Float
+      .intBitsToFloat(wasmFloatBits(floatLayout32, v).toInt)
+      .toDouble,
+  )
+def wasmF64ToMath(v: ALValue): Math =
+  toFiniteMath(
+    v,
+    java.lang.Double.longBitsToDouble(wasmFloatBits(floatLayout64, v).toLong),
+  )
+
+private def toFiniteMath(v: ALValue, d: Double): Math =
+  if d.isNaN || d.isInfinite then
+    throw WasmHostFailure(
+      s"wasmFloatToMath: $v is not finite (got $d) -- ToJSValue's own " +
+      "+∞/-∞/NaN guards should have caught this before reaching " +
+      "'interpreted as a mathematical value' at all",
+    )
+  Math(d)
+
+private def wasmFloatBits(layout: FloatLayout, v: ALValue): scala.math.BigInt =
+  import scala.math.BigInt
+  def asNat(av: ALValue): BigInt = av match
+    case ALValue.NumV(ALNum.Nat(n)) => n
+    case other =>
+      throw WasmHostFailure(s"wasmFloatBits: expected a Nat, got $other")
+  def asInt(av: ALValue): BigInt = av match
+    case ALValue.NumV(ALNum.Nat(n)) => n
+    case ALValue.NumV(ALNum.Int(n)) => n
+    case other =>
+      throw WasmHostFailure(s"wasmFloatBits: expected an Int, got $other")
+  val maskSign = BigInt(1) << (layout.width - 1)
+  val maskMant = (BigInt(1) << layout.mantissa) - 1
+  val maskExp = (maskSign - 1) - maskMant
+  val bias = (BigInt(1) << (layout.exponent - 1)) - 1
+  def magBits(mag: ALValue): BigInt = mag match
+    case ALValue.CaseV("NORM", List(m, n)) =>
+      ((asInt(n) + bias) << layout.mantissa) + asNat(m)
+    case ALValue.CaseV("SUBNORM", List(m)) => asNat(m)
+    case ALValue.CaseV("INF", Nil)         => maskExp
+    case ALValue.CaseV("NAN", List(m))     => maskExp + asNat(m)
+    case other =>
+      throw WasmHostFailure(s"wasmFloatBits: invalid floatN magnitude $other")
+  v match
+    case ALValue.CaseV("POS", List(mag)) => magBits(mag)
+    case ALValue.CaseV("NEG", List(mag)) => maskSign + magBits(mag)
+    case other =>
+      throw WasmHostFailure(s"wasmFloatBits: invalid floatN value $other")

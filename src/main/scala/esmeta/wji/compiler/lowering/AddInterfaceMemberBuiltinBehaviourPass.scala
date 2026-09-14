@@ -357,14 +357,38 @@ object AddInterfaceMemberBuiltinBehaviourPass extends LoweringPass:
   /** `**the given value**`'s binding, for a `Setter` only — WebIDL passes it as
     * the setter's sole argument, so it's `ArgumentsList[0]`, same shape as
     * [[unpackArgumentsList]] but for a name that was never a declared `|param|`
-    * in the first place.
+    * in the first place — including that same "fewer arguments actually
+    * supplied than declared" guard (`global/value-get-set.any.js`'s "Calling
+    * setter without argument" calls the underlying builtin function object
+    * directly with zero arguments, `setter.call(global)` — an accessor
+    * function's own `[[Call]]` never enforces arity the way `[[Construct]]`/
+    * ordinary property assignment implicitly does, so `ArgumentsList` can
+    * really be empty here). Ordinary ECMAScript missing-parameter semantics
+    * (bind to `undefined`) apply directly with no `IdlType`/default-value
+    * detour of its own — "the given value" is never a declared WebIDL parameter
+    * (so has neither `optional`/`default`, unlike [[unpackArgumentsList]]'s
+    * params), and the spec text itself only ever converts it once, inline in
+    * the setter's own body (`? ToWebAssemblyValue( **the given value**,
+    * |valuetype|)`) — so this always just binds the raw value (or `undefined`),
+    * never `omittedBranch`'s dictionary-default path.
     */
   private def givenValueBinding(kind: AlgorithmKind): List[Instr] = kind match
     case AlgorithmKind.Setter(_) =>
       List(
-        Instr.Let(
-          Expr.Var("givenValue"),
-          Expr.Index(Expr.Var("ArgumentsList"), Expr.Num("0")),
+        Instr.IfChain(
+          List(
+            Cond.Compare(
+              Expr.Num("0"),
+              Cond.CompareOp.Lt,
+              Expr.Length(Expr.Var("ArgumentsList")),
+            ) -> List(
+              Instr.Let(
+                Expr.Var("givenValue"),
+                Expr.Index(Expr.Var("ArgumentsList"), Expr.Num("0")),
+              ),
+            ),
+          ),
+          List(Instr.Let(Expr.Var("givenValue"), Expr.SpecTerm("undefined"))),
         ),
       )
     case _ => Nil
@@ -572,36 +596,49 @@ object AddInterfaceMemberBuiltinBehaviourPass extends LoweringPass:
     *     return type instead. Left unmechanized, `Table.prototype. set`'s real
     *     JS-visible return value fell through to `WrapCompletionReturnsPass`'s
     *     own generic fallback for a body with no terminal `Return` on some path
-    *     -- `NormalCompletion(~unused~)`, ECMA-262's own internal "no
-    *     meaningful return value" sentinel -- which then leaked out completely
-    *     unconverted (`WebIdlConversion. toJsValue` has no case for it, so it's
-    *     passed through as-is): dead code paths that never read the return
-    *     value never noticed, but `assert_equals(table.set(0, fn), undefined,
-    *     ...)` does, crashing with a bare `typeof`-internal assertion failure
-    *     (`(? val: Record[Object])`) with no clue this sentinel was ever
-    *     involved. Appending a real, explicit `Return undefined.` here --
-    *     `Expr.SpecTerm("undefined")` compiles straight to `EUndef()`
-    *     (`Compiler.compileExpr`), a genuine already-converted ECMAScript value
-    *     -- sidesteps the sentinel entirely, the same way `**this**` sidesteps
-    *     needing a WebIDL value conversion of its own: WebIDL's own calling
-    *     convention already guarantees an `undefined`-typed operation returns
-    *     real `undefined`, so this makes that guarantee explicit rather than
-    *     relying on whatever ECMA-262's own generic fallback happens to produce
-    *     for a body that merely falls off the end.
+    * -- `NormalCompletion(~unused~)`, ECMA-262's own internal "no meaningful
+    * return value" sentinel -- which then leaked out completely unconverted
+    * (`WebIdlConversion. toJsValue` has no case for it, so it's passed through
+    * as-is): dead code paths that never read the return value never noticed,
+    * but `assert_equals(table.set(0, fn), undefined, ...)` does, crashing with
+    * a bare `typeof`-internal assertion failure (`(? val: Record[Object])`)
+    * with no clue this sentinel was ever involved. Appending a real, explicit
+    * `Return undefined.` here -- `Expr.SpecTerm("undefined")` compiles straight
+    * to `EUndef()` (`Compiler.compileExpr`), a genuine already-converted
+    * ECMAScript value
+    * -- sidesteps the sentinel entirely, the same way `**this**` sidesteps
+    * needing a WebIDL value conversion of its own: WebIDL's own calling
+    * convention already guarantees an `undefined`-typed operation returns real
+    * `undefined`, so this makes that guarantee explicit rather than relying on
+    * whatever ECMA-262's own generic fallback happens to produce for a body
+    * that merely falls off the end.
+    *   - `Setter`: WebIDL's setter algorithms are written the same void-return
+    *     way as `Table.prototype.set` above (no declared return type at all to
+    *     read from `idlReturnType` -- setters have none -- but no explicit
+    *     `Return` in the prose either), on the assumption that a setter's
+    *     return value is never observed: ordinary property-assignment (`x.value
+    * = v`) evaluates to the *assignment expression*'s own RHS, never to
+    * whatever `[[Set]]` invoking the setter actually returns, so that
+    * assumption holds for everyday code. It's wrong for code that calls the
+    * underlying builtin function object directly instead --
+    * `global/value-get-set.any.js`'s `assert_equals(setter.call(global,
+    * undefined), undefined)` is exactly this — which hits the identical
+    * `~unused~`-leak failure mode `Table.prototype.set` did, for the identical
+    * reason. Same fix, unconditionally (a setter has no `idlReturnType` to gate
+    * on either way).
     *
-    * Every other kind (`Getter`/`NamespaceGetter`/`Setter`, and any `Method`/
+    * Every other kind (`Getter`/`NamespaceGetter`, and any `Method`/
     * `NamespaceMethod` with a real declared return type) needs no epilogue of
     * its own here: a getter/non-void method's spec prose always ends in an
-    * explicit `Return`, and a setter's return value is never observed (the
-    * `[[Set]]` internal method that invokes it discards whatever it returns).
-    * `CompletionAlgorithms` seeds every
+    * explicit `Return`. `CompletionAlgorithms` seeds every
     * `Constructor`/`Method`/`NamespaceMethod` as `returnsCompletion = true`
     * unconditionally (see class doc), so `WrapCompletionReturnsPass` wraps
-    * whichever of these two cases fired along with the rest of the body,
-    * uniformly.
+    * whichever of these cases fired along with the rest of the body, uniformly.
     */
   private def returnEpilogue(algo: Algorithm): List[Instr] = algo.kind match
     case AlgorithmKind.Constructor(_) => List(Instr.Return(Some(Expr.This)))
+    case AlgorithmKind.Setter(_) =>
+      List(Instr.Return(Some(Expr.SpecTerm("undefined"))))
     case AlgorithmKind.Method(_, _) | AlgorithmKind.NamespaceMethod(_)
         if algo.idlReturnType.contains("undefined") =>
       List(Instr.Return(Some(Expr.SpecTerm("undefined"))))

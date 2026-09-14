@@ -78,6 +78,17 @@ object ExpandIsOfFormPass extends LoweringPass:
     * check/bind results entirely; a bare `Cond.IsOfForm` whose `form` contains
     * one is left for `expandBranch`'s catch-all to report as `EYet` instead of
     * silently mismatching.
+    *
+    * One extra special case: matching against a `"CONST"` pattern with an
+    * `F32`/`F64` numtype sibling arg (`[=f32.const=] |f32|`/`[=f64.const=]
+    * |f64|`, `NormalizeSpecTecCaseShapePass`'s `ShorthandConst` shape) wraps
+    * the payload `Var`'s binding in `Expr.WasmFloatPayload(32|64, ...)` instead
+    * of a bare `TupleProj` — this is the one place downstream code can still
+    * tell an f32 payload apart from an f64 one (both are otherwise opaque wasm
+    * values by this point), so it's also the one place that fact can still be
+    * attached to the bound variable for `Compiler`'s
+    * `AsMath(WasmFloatPayload(width, e))` case to later read back — see that
+    * node's own doc. `i32.const`/`i64.const` (no such sibling) are unaffected.
     */
   private def buildFormMatch(
     e: Expr,
@@ -86,11 +97,20 @@ object ExpandIsOfFormPass extends LoweringPass:
   ): (Cond, List[Instr]) =
     val Expr.Case(tag, args) = pattern: @unchecked
     val tagCheck = Cond.Eq(Expr.CaseTag(e), Expr.Str(tag), neg)
+    val floatWidth: Option[Int] =
+      if tag == "CONST" then
+        args.collectFirst {
+          case Expr.Case("F32", Nil) => 32
+          case Expr.Case("F64", Nil) => 64
+        }
+      else None
     val (nestedChecks, binds) = args.zipWithIndex.foldRight(
       (List.empty[Cond], List.empty[Instr]),
     ) {
       case ((v: Expr.Var, i), (checks, binds)) =>
-        (checks, Instr.Let(v, Expr.TupleProj(e, i)) :: binds)
+        val proj = Expr.TupleProj(e, i)
+        val value = floatWidth.fold(proj)(Expr.WasmFloatPayload(_, proj))
+        (checks, Instr.Let(v, value) :: binds)
       case ((c: Expr.Case, i), (checks, binds)) =>
         val (subCheck, subBinds) = buildFormMatch(Expr.TupleProj(e, i), c, neg)
         (subCheck :: checks, subBinds ++ binds)

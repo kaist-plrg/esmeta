@@ -9,7 +9,14 @@ import esmeta.es.*
 import esmeta.ir.{Func => IRFunc, *}
 import esmeta.parser.{ESParser, ESValueParser}
 import esmeta.state.*
-import esmeta.state.util.{fromALNum, toAL, wasmF32Const, wasmF64Const}
+import esmeta.state.util.{
+  fromALNum,
+  toAL,
+  wasmF32Const,
+  wasmF64Const,
+  wasmF32ToMath,
+  wasmF64ToMath,
+}
 import esmeta.spec.{Param => _, CodePoint => _, *}
 import esmeta.ty.*
 import esmeta.util.Loc
@@ -515,6 +522,10 @@ class Interpreter(
         // wasm-embedding numeric value
         case (Wasm(ALValue.NumV(ALNum.Nat(n))), ToMath) => Math(n)
         case (Wasm(ALValue.NumV(ALNum.Int(n))), ToMath) => Math(n)
+        // wasm-embedding f32/f64 (see `esmeta.wji.lang.Expr.WasmFloatPayload`'s
+        // and `state.util.wasmF32ToMath`/`wasmF64ToMath`'s own docs)
+        case (v @ Wasm(_), ToMathF32) => wasmF32ToMath(v.v)
+        case (v @ Wasm(_), ToMathF64) => wasmF64ToMath(v.v)
         // invalid cases
         case (v, cop) => throw InvalidConversion(cop, expr, v)
       }

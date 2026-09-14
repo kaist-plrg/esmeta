@@ -476,15 +476,30 @@ object Compiler:
     case metalang.Expr.BinOp(l, op, r) => compileBinOp(op, l, r)
     case metalang.Expr.Pow(base, exp) =>
       EBinary(BOp.Pow, compileExpr(base), compileExpr(exp))
-    case metalang.Expr.Neg(e)    => EUnary(UOp.Neg, compileExpr(e))
+    case metalang.Expr.Neg(e) => EUnary(UOp.Neg, compileExpr(e))
+    // "|f32|/|f64| interpreted as a [=mathematical value=]" -- the one
+    // context `WasmFloatPayload` isn't transparent for (see that node's own
+    // doc): needs the width threaded through from the `IsOfForm` destructure
+    // that produced it, since nothing downstream of this point can recover
+    // whether a bare wasm float payload was 32 or 64 bits wide. Matched
+    // *before* the generic `AsMath(e)` case below, which this would otherwise
+    // fall to (compiling the still-wrapped `e` to a plain, width-blind
+    // `EConvert(ToMath, ...)`).
+    case metalang.Expr.AsMath(metalang.Expr.WasmFloatPayload(width, e)) =>
+      EConvert(
+        if width == 32 then COp.ToMathF32 else COp.ToMathF64,
+        compileExpr(e),
+      )
     case metalang.Expr.AsMath(e) => EConvert(COp.ToMath, compileExpr(e))
     // dropped, not converted: whatever consumes this is either an
     // ICallEmbed (which toAL-converts every argument at the call boundary
     // regardless) or further math-value arithmetic on `e` itself — see
     // AsWasm's own doc.
     case metalang.Expr.AsWasm(e, _) => compileExpr(e)
-    case metalang.Expr.AsNumber(e)  => EConvert(COp.ToNumber, compileExpr(e))
-    case metalang.Expr.AsBigInt(e)  => EConvert(COp.ToBigInt, compileExpr(e))
+    // transparent everywhere else -- see WasmFloatPayload's own doc.
+    case metalang.Expr.WasmFloatPayload(_, e) => compileExpr(e)
+    case metalang.Expr.AsNumber(e) => EConvert(COp.ToNumber, compileExpr(e))
+    case metalang.Expr.AsBigInt(e) => EConvert(COp.ToBigInt, compileExpr(e))
     // ExpandAbruptPass expands every `?`/`!` in the direct-RHS position of
     // Let/Set/Return into real completion-record inspection before
     // compilation ever sees it; this only remains for a *nested* occurrence

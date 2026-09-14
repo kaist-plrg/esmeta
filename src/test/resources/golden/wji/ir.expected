@@ -2373,7 +2373,11 @@ def <BUILTIN>:INTRINSICS.set:WebAssembly.Global.prototype.value(
     call _ret2 = clo<"ThrowCompletion">(_err1)
     return _ret2
   } else nop
-  let givenValue = ArgumentsList[0]
+  if (< 0 (sizeof ArgumentsList)) {
+    let givenValue = ArgumentsList[0]
+  } else {
+    let givenValue = undefined
+  }
   let store = @AGENT_RECORD["associated store"]
   let globaladdr = this.Global
   call-embed _tuple1 = <global_type>(store, globaladdr)
@@ -2410,8 +2414,13 @@ def <BUILTIN>:INTRINSICS.set:WebAssembly.Global.prototype.value(
     return _ret9
   } else nop
   @AGENT_RECORD["associated store"] = store
-  call _ret10 = clo<"NormalCompletion">(~unused~)
-  return _ret10
+  let _v10 = undefined
+  if (? _v10: Completion) {
+    return _v10
+  } else {
+    call _ret11 = clo<"NormalCompletion">(_v10)
+    return _ret11
+  }
 }
 def <BUILTIN>:INTRINSICS.WebAssembly.Global.prototype.valueOf(
   this: Unknown,
@@ -2810,7 +2819,7 @@ def tojsvalue(
     if (= f32 ~nan~) {
       return ~**NaN**~
     } else nop
-    return ([number] ([math] f32))
+    return ([number] ([math-f32] f32))
   } else nop
   if (&& (= (case-tag w) "CONST") (= (case-tag w[0]) "F64")) {
     let f64 = w[1]
@@ -2820,7 +2829,7 @@ def tojsvalue(
     if (= f64 ~nan~) {
       return ~**NaN**~
     } else nop
-    return ([number] ([math] f64))
+    return ([number] ([math-f64] f64))
   } else nop
   if (= (case-tag w) "REF.NULL_ADDR") {
     return null

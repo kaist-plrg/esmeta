@@ -112,6 +112,32 @@ object Expr:
     */
   case class AsWasm(expr: Expr, ty: String) extends Expr
 
+  /** Tags `inner` (an f32.const/f64.const's own payload, freshly destructured
+    * by `esmeta.wji.compiler.lowering.ExpandIsOfFormPass.buildFormMatch` from a
+    * `[=f32.const=] |f32|`/`[=f64.const=] |f64|` form match) with its bit width
+    * — 32 or 64, never anything else. Purely a carrier: every context that
+    * isn't specifically looking for it (comparisons against `+∞`/`nan`,
+    * anywhere else `f32`/`f64` gets read) sees straight through it, since
+    * `esmeta.wji.compiler.Compiler.compileExpr` compiles a bare
+    * `WasmFloatPayload(_, e)` to just `compileExpr(e)` — the wire-format wasm
+    * `CaseV("POS"/"NEG", [CaseV("NORM"/"SUBNORM"/"INF"/"NAN", ...)])` payload
+    * this wraps is completely opaque to compiled WJI/ECMA-262 code either way
+    * (arithmetic/`Eq`/etc. never touch its internal shape), so unwrapping to
+    * bare `e` for every case except one is safe. The one exception: `Compiler`
+    * *does* pattern-match the nested shape `AsMath(WasmFloatPayload(width, e))`
+    * specially, compiling straight to `EConvert(ToMathF32/F64, e)` instead of
+    * the generic `AsMath` case's `EConvert(ToMath, e)` — see that pattern's own
+    * doc for why the width has to be threaded in from exactly here (the one
+    * point that still has it, from the sibling `[=f32=]`/ `[=f64=]` tag matched
+    * alongside `e` in the very same `IsOfForm`) rather than recovered later, at
+    * the point `[=𝔽=](... interpreted as a mathematical value)` actually runs
+    * — by then, all that's left is the bare wasm value itself, with no way to
+    * tell a POS/NORM float payload apart at 32 bits from one at 64
+    * (`esmeta.state.util.wasmF32Const`'s own doc has this same asymmetry from
+    * the opposite, ESMeta-to-wasm direction).
+    */
+  case class WasmFloatPayload(width: Int, inner: Expr) extends Expr
+
   /** `[=𝔽=](...)` call syntax — ECMA-262's "the Number value for" notation */
   case class AsNumber(expr: Expr) extends Expr
 
@@ -400,6 +426,7 @@ object Expr:
       case Neg(e)                     => List(e)
       case AsMath(e)                  => List(e)
       case AsWasm(e, _)               => List(e)
+      case WasmFloatPayload(_, e)     => List(e)
       case AsNumber(e)                => List(e)
       case AsBigInt(e)                => List(e)
       case Tuple(elems)               => elems

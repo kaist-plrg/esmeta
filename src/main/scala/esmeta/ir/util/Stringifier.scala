@@ -351,6 +351,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case ToNumber       => app >> "[number]"
       case ToBigInt       => app >> "[bigInt]"
       case ToMath         => app >> "[math]"
+      case ToMathF32      => app >> "[math-f32]"
+      case ToMathF64      => app >> "[math-f64]"
       case ToStr(radix, upper) =>
         app >> "[str"
         radix.map(app >> " " >> _)

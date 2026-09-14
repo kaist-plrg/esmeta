@@ -85,7 +85,7 @@ object ExpandWjiIsTypePass extends LoweringPass:
   // (e.g. `DOMException`, WebIDL-only and never extracted as a js-api
   // `Definition`) simply passes through untouched.
   private val knownInterfaceNames: Set[String] =
-    Set("Module", "Instance", "Memory", "Table", "Global", "Tag", "Exception")
+    Set("Module", "Instance", "Memory", "Table", "Global", "Tag", "Exception", "DOMException")
 
   private object rewriter extends Walker:
     override def walk(cond: Cond): Cond = cond match

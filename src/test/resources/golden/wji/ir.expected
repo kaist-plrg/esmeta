@@ -4381,7 +4381,7 @@ def create_an_interface_object(
   }
   let constructorProto = realm.Intrinsics["%Function.prototype%"]
   if (yet "|I| inherits from some other interface |P|") {
-    constructorProto = (yet "the [=interface object=] of |P| in |realm|")
+    constructorProto = (yet "the [=interface object=] of |P| with identifier |P|'s [=identifier=] in |realm|")
   } else nop
   call unforgeables = clo<"OrdinaryObjectCreate">(null)
   call _ = clo<"Define_the_unforgeable_regular_operations">(I, unforgeables, realm)
@@ -4437,7 +4437,7 @@ def create_an_interface_prototype_object(
     call _call1 = clo<"create_a_named_properties_object">(interface, realm)
     proto = _call1
   } else if (= interface (yet "declared to inherit from another interface")) {
-    proto = (yet "the [=interface prototype object=] in |realm| of that [=inherited interface=]")
+    proto = (yet "the [=interface prototype object=] of that [=inherited interface=] in |realm|")
   } else if (= interface (yet "the {{DOMException}} [=interface=]")) {
     proto = realm.Intrinsics["%Error.prototype%"]
   } else {
@@ -4488,7 +4488,7 @@ def create_an_interface_prototype_object(
   } else nop
   call _ = clo<"Define_the_constants">(interface, interfaceProtoObj, realm)
   if (yet "the [{{LegacyNoInterfaceObject}}] [=extended attribute=] was not specified on |interface|") {
-    let constructor = (yet "the [=interface object=] of |interface| in |realm|")
+    let constructor = (yet "the [=interface object=] of |interface| with identifier |interface|'s [=identifier=] in |realm|")
     let desc = (record [PropertyDescriptor] {
       "Writable" : true,
       "Enumerable" : false,

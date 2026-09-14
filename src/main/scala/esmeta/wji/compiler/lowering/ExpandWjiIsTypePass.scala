@@ -44,12 +44,12 @@ import esmeta.wji.lang.walker.Walker
   * production.
   *   - A specific named interface (`CondParser.IsTheBracedInterfaceLink`'s "X
   *     is the {{IFACE}} [=interface=]", e.g. webidl/index.bs:12057's
-  *     "|interface| is the {{DOMException}} [=interface=]") becomes a
-  *     `Cond.Eq` against the record's own `id` field: `esmeta.wji.Initialize`'s
+  *     "|interface| is the {{DOMException}} [=interface=]") becomes a `Cond.Eq`
+  *     against the record's own `id` field: `esmeta.wji.Initialize`'s
   *     `definitionRecord` seeds every extracted interface/namespace record with
-  *     `"id" -> Str(d.name)`, so once `IFACE` is known to be one of the js-api's
-  *     own extracted interfaces (`knownInterfaceNames` below), "is the IFACE
-  *     interface" is a direct string-equality check against that tag. An
+  *     `"id" -> Str(d.name)`, so once `IFACE` is known to be one of the
+  *     js-api's own extracted interfaces (`knownInterfaceNames` below), "is the
+  *     IFACE interface" is a direct string-equality check against that tag. An
   *     `IFACE` this pipeline never extracts as an interface (`DOMException`
   *     itself is WebIDL-only and never becomes a js-api `Definition`) passes
   *     through untouched, same as every other unrecognized `IsType` name.

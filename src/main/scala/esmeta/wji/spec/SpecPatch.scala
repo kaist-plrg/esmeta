@@ -1139,7 +1139,6 @@ object SpecPatch:
     "the [=interface object=] of |P| in |realm|."
     ->
     "the [=interface object=] of |P| with identifier |P|'s [=identifier=] in |realm|.",
-
     "the [=interface object=] of |interface| in |realm|."
     ->
     "the [=interface object=] of |interface| with identifier |interface|'s [=identifier=] in |realm|.",

@@ -185,10 +185,13 @@ object Initialize:
       // *lookup key* into `cfg.fnameMap` below, since `op.id` alone isn't
       // guaranteed unique across different interfaces/namespaces (e.g. two
       // definitions both declaring a "toString" operation), and must match
-      // exactly what `Compiler.scala`'s `AlgorithmKind.Method` case registers
-      // the compiled closure under (`INTRINSICS.$iface.$name`).
+      // exactly what `Compiler.scala` registers the compiled closure under:
+      // `AlgorithmKind.NamespaceMethod`'s `INTRINSICS.$namespace.$name` (no
+      // `.prototype` segment) for the `WebAssembly` namespace itself, or
+      // `AlgorithmKind.Method`'s `INTRINSICS.WebAssembly.$iface.prototype.
+      // $name` for an ordinary interface member.
       val fname =
-        if defId == "WebAssembly" then s"INTRINSICS.$defId.prototype.${op.id}"
+        if defId == "WebAssembly" then s"INTRINSICS.$defId.${op.id}"
         else s"INTRINSICS.WebAssembly.$defId.prototype.${op.id}"
       st.allocRecord(
         "operation",

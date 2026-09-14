@@ -4438,7 +4438,7 @@ def create_an_interface_prototype_object(
     proto = _call1
   } else if (= interface (yet "declared to inherit from another interface")) {
     proto = (yet "the [=interface prototype object=] of that [=inherited interface=] in |realm|")
-  } else if (= interface (yet "the {{DOMException}} [=interface=]")) {
+  } else if (? interface: Unknown["DOMException"]) {
     proto = realm.Intrinsics["%Error.prototype%"]
   } else {
     proto = realm.Intrinsics["%Object.prototype%"]

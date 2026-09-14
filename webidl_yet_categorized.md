@@ -200,8 +200,6 @@ occurrence는 (`#1-5`/`#2-1`/`#2-5`의 "declared with the [{{Global}}]" 처럼) 
 ### II-J. 기타 identity/realm 필드
 **공통 원인**: 위 카테고리들에 딱 들어맞지 않는, 각각 한 번씩만 등장하는 필드/식별 술어.
 
-- `#2-3` - |interface| is the {{DOMException}} [=interface=]
-    - assume false
 - `#2-4` - |realm|'s [=is global prototype chain mutable=] is true
     - assume false
     - "All realms have an is global prototype chain mutable boolean, which can be set when the realm is created. ... **By default it is set to false.**" (`webidl/index.bs:10226-10229`)

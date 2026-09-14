@@ -1606,7 +1606,7 @@
     Set(|proto|, [=create a named properties object=](|interface|, |realm|))
   ElseIf(|interface| is ?(declared to inherit from another interface))
     Set(|proto|, ?(the [=interface prototype object=] of that [=inherited interface=] in |realm|))
-  ElseIf(|interface| is ?(the {{DOMException}} [=interface=]))
+  ElseIf(|interface| is a DOMException)
     Set(|proto|, |realm|.[[Intrinsics]].[[%Error.prototype%]])
   Else
     Set(|proto|, |realm|.[[Intrinsics]].[[%Object.prototype%]])

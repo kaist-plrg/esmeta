@@ -22,6 +22,19 @@ object CondParser:
   // only knows genuine ECMAScript types) decide what a WJI-specific NOUN like
   // "Exported Function" actually compiles to.
   private val ArticleLink = """(?si)^an?\s+\[=([^\]]+)=\]$""".r
+  // "EXPR is the {{X}} [=interface=]" — identity against one *specific* named
+  // interface (webidl/index.bs:12057's "Otherwise, if |interface| is the
+  // {{DOMException}} [=interface=], then set |proto| to ..."), unlike
+  // ArticleLink's "EXPR is a(n) [=interface=]" (kind-membership: is this *some*
+  // interface at all — see `ExpandWjiIsTypePass`'s `memberKindOf("interface")`).
+  // X is taken from the `{{...}}` IDL-name link, not the `[=interface=]` dfn
+  // link itself (which only names the noun being checked, always the literal
+  // text "interface" at every real call site), so it parses to the same
+  // `IsType` node as ArticleLink but keyed by the specific interface name
+  // instead of the generic noun — `ExpandWjiIsTypePass` is what later decides
+  // whether that name is one it can resolve to a real identity check.
+  private val IsTheBracedInterfaceLink =
+    """(?si)^the\s+\{\{([^}]+)\}\}\s+\[=interface=\]$""".r
   // "EXPR is [not] [=valid TYPE|valid=]" — Wasm Core's own validation dfns
   // (index.bs:877/1044's Memory/Table constructors), always written with a
   // `|valid` display-text alias since the dfn text itself ("valid memtype")
@@ -486,6 +499,8 @@ object CondParser:
           Exposed(ExprParser.parse(lhsRaw), ExprParser.parse(realmRaw), negated)
         case ArticleLink(noun) =>
           IsType(ExprParser.parse(lhsRaw), noun, negated)
+        case IsTheBracedInterfaceLink(name) =>
+          IsType(ExprParser.parse(lhsRaw), name, negated)
         case ValidTypeLink(typeName) =>
           Eq(
             AlgoCall(s"valid_$typeName", List(ExprParser.parse(lhsRaw))),

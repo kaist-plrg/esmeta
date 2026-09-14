@@ -1945,7 +1945,7 @@ function wasmF64Const(f) {
 
 
 function copyToSharedBuffer(buffer) {
-  const sab = new SharedArrayBuffer(buffer.byteLength);
+  const sab = new ArrayBuffer(buffer.byteLength);
   new Uint8Array(sab).set(buffer);
   return new Uint8Array(sab);
 }
@@ -1957,7 +1957,7 @@ function copyToResizableBuffer(buffer) {
 }
 
 function copyToGrowableSharedBuffer(buffer) {
-  const gsab = new SharedArrayBuffer(buffer.byteLength, { maxByteLength: buffer.byteLength * 2 });
+  const gsab = new ArrayBuffer(buffer.byteLength, { maxByteLength: buffer.byteLength * 2 });
   new Uint8Array(gsab).set(buffer);
   return new Uint8Array(gsab);
 }

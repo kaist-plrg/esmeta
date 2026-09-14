@@ -107,7 +107,28 @@ const badImportsPatches = [
   ],
 ];
 
+// `constructor/compile.any.js`, `constructor/instantiate.any.js`,
+// `constructor/validate.any.js`, `module/constructor.any.js`
+// (docs/out_of_scope.md #5) -- mainline ESMeta doesn't construct
+// `%SharedArrayBuffer%` at all (it's a `YetObj` placeholder in
+// `esmeta.es.builtin.package.yets`), so `new SharedArrayBuffer(...)` in each
+// file's `setup()` throws `NotSupported` before any `test()` callback runs,
+// killing every subtest in the file. Each of the 4 subtests that actually
+// consume the shared buffer only check that `compile`/`instantiate`/
+// `validate`/`new Module` accept a SharedArrayBuffer-backed view like any
+// other `BufferSource` -- shared-ness itself (detach, growable in-place
+// mutation, cross-agent) is never observed -- and each file already runs the
+// same check against a resizable `ArrayBuffer` right next to it, so
+// substituting `ArrayBuffer` here preserves each subtest's actual intent.
+const sharedArrayBufferPatches = [
+  ["new SharedArrayBuffer(", "new ArrayBuffer("],
+];
+
 const perFilePatches = {
+  "constructor/compile.any.js": sharedArrayBufferPatches,
+  "constructor/instantiate.any.js": sharedArrayBufferPatches,
+  "constructor/validate.any.js": sharedArrayBufferPatches,
+  "module/constructor.any.js": sharedArrayBufferPatches,
   // `limits.any.js` (docs/out_of_scope.md #3) -- the corpus's one
   // `// META: timeout=long` file. Every one of these calls runs
   // synchronously at top-level script execution, before any `test()`

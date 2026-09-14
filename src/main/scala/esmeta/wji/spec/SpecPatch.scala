@@ -1112,6 +1112,31 @@ object SpecPatch:
     "does not have an an [=asynchronously iterable declaration=]"
     ->
     "does not have an [=asynchronously iterable declaration=]",
+
+    // #55 (spec bug, docs/spec_errors.md #28) — `get a copy of the bytes
+    // held by the buffer source` (webidl/index.bs:9312-9327) reads a view's
+    // `[[ByteLength]]` slot directly, but for a *length-tracking* view (one
+    // created with no explicit length over a resizable/growable buffer,
+    // ECMA-262's TypedArray constructor) that slot is permanently set to the
+    // sentinel `~auto~`, not a number -- the real current length has to be
+    // recomputed on demand via `MakeTypedArrayWithBufferWitnessRecord` +
+    // `TypedArrayByteLength` (ecma262/spec.html:14967-15020), the same way
+    // e.g. `%TypedArray%.prototype.length`'s own getter already does.
+    // Reading the raw slot instead means this algorithm tries to compare
+    // `~auto~` against a number (or use it as one) the moment it's ever
+    // handed a length-tracking view -- exactly the shape of buffer this
+    // corpus's own "Resizable ArrayBuffer-backed view"/"Growable
+    // SharedArrayBuffer-backed view" subtests construct and pass in. Both
+    // ops are ordinary mainline ECMA-262 abstract operations already
+    // extracted and working (confirmed via the TypedArray length getter),
+    // so this patch only needs to route this one step through them --
+    // `{{unordered}}`, not a bare `Unordered`/`~unordered~`, to match the
+    // WebIDL enum-reference syntax #7 above already normalizes this same
+    // file's sibling `[$GetValueFromBuffer$]` call to.
+    "        1.  Set |length| to |jsBufferSource|.\\[[ByteLength]]."
+    ->
+    ("        1.  Let |taRecord| be [$MakeTypedArrayWithBufferWitnessRecord$](|jsBufferSource|, {{unordered}}).\n" +
+    "        1.  Set |length| to [$TypedArrayByteLength$](|taRecord|)."),
   )
 
   def apply(source: String): String =

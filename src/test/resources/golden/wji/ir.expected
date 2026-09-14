@@ -4330,13 +4330,15 @@ def get_a_copy_of_the_buffer_source(
   if (&& (? jsBufferSource: Record[Object]) (exists jsBufferSource.ViewedArrayBuffer)) {
     jsArrayBuffer = jsBufferSource.ViewedArrayBuffer
     offset = jsBufferSource.ByteOffset
-    length = jsBufferSource.ByteLength
+    call taRecord = clo<"MakeTypedArrayWithBufferWitnessRecord">(jsBufferSource, ~unordered~)
+    call _call1 = clo<"TypedArrayByteLength">(taRecord)
+    length = _call1
   } else {
     assert (|| (&& (? jsBufferSource: Record[Object]) (exists jsBufferSource.ArrayBufferData)) (yet "{{SharedArrayBuffer}} object"))
     length = jsBufferSource.ArrayBufferByteLength
   }
-  call _call1 = clo<"IsDetachedBuffer">(jsArrayBuffer)
-  if (= _call1 true) {
+  call _call2 = clo<"IsDetachedBuffer">(jsArrayBuffer)
+  if (= _call2 true) {
     return (yet "the empty [=byte sequence=]")
   } else nop
   let bytes = (list [])
@@ -4347,8 +4349,8 @@ def get_a_copy_of_the_buffer_source(
   }
   let i = offset
   while (! (< (- (+ offset length) 1) i)) {
-    call _call2 = clo<"GetValueFromBuffer">(jsArrayBuffer, i, ~uint8~, true, ~unordered~)
-    bytes[(- i offset)] = _call2
+    call _call3 = clo<"GetValueFromBuffer">(jsArrayBuffer, i, ~uint8~, true, ~unordered~)
+    bytes[(- i offset)] = _call3
     i = (+ i 1)
   }
   return bytes

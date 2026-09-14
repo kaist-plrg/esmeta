@@ -328,3 +328,23 @@ Retracted — its premise was wrong. This entry claimed the Wasm Core Spec's `fu
 - **Current**: `1.  If |definition| does not have an an [=asynchronously iterable declaration=] (of either sort), then return.`
 - **Expected**: `1.  If |definition| does not have an [=asynchronously iterable declaration=] (of either sort), then return.`
 - **Reason**: The article "an" is duplicated back-to-back before `[=asynchronously iterable declaration=]`, a plain wording typo with no bearing on the algorithm's meaning — the check is simply "does not have an asynchronously iterable declaration."
+
+## 28. `get a copy of the bytes held by the buffer source` reads a length-tracking view's `[[ByteLength]]` directly, but that slot is permanently `~auto~` for such views
+
+- **File**: `webidl/index.bs`, lines 9320-9323 (`get a copy of the bytes held by the buffer source`, the `[[ViewedArrayBuffer]]` branch).
+- **Current**:
+  ```
+  1.  If |jsBufferSource| has a [[ViewedArrayBuffer]] internal slot, then:
+      1.  Set |jsArrayBuffer| to |jsBufferSource|.[[ViewedArrayBuffer]].
+      1.  Set |offset| to |jsBufferSource|.[[ByteOffset]].
+      1.  Set |length| to |jsBufferSource|.[[ByteLength]].
+  ```
+- **Expected**:
+  ```
+  1.  If |jsBufferSource| has a [[ViewedArrayBuffer]] internal slot, then:
+      1.  Set |jsArrayBuffer| to |jsBufferSource|.[[ViewedArrayBuffer]].
+      1.  Set |offset| to |jsBufferSource|.[[ByteOffset]].
+      1.  Let |taRecord| be MakeTypedArrayWithBufferWitnessRecord(|jsBufferSource|, {{unordered}}).
+      1.  Set |length| to TypedArrayByteLength(|taRecord|).
+  ```
+- **Reason**: a TypedArray view created with no explicit length over a resizable/growable `ArrayBuffer` is *length-tracking* — ECMA-262's `TypedArrayCreate`/allocation steps set that view's `[[ByteLength]]` (and `[[ArrayLength]]`) internal slot to the literal sentinel `~auto~` once, permanently, rather than a number (`ecma262/spec.html:42804-42805`). Reading `[[ByteLength]]` directly, as this algorithm does, therefore hands back the symbol `~auto~` instead of a byte count for exactly this (fully spec-legal, and exercised by this very corpus's own "Resizable ArrayBuffer-backed view"/"Growable SharedArrayBuffer-backed view" subtests) shape of argument. ECMA-262 itself never reads `[[ByteLength]]` this way for a value it might use as a number — every other place that needs a view's *current* byte length (e.g. `%TypedArray%.prototype.length`'s own getter) first builds a `MakeTypedArrayWithBufferWitnessRecord` (which snapshots the buffer's current byte length, since the buffer may have been resized since the view was created) and then calls `TypedArrayByteLength`/`TypedArrayLength` on that record, which only fall back to computing from the snapshot when the slot reads `~auto~` (`ecma262/spec.html:14967-15020`). Fixed via `SpecPatch` #55.

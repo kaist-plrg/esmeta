@@ -1548,7 +1548,8 @@
   If(|jsBufferSource| has a [[ViewedArrayBuffer]] internal slot)
     Set(|jsArrayBuffer|, |jsBufferSource|.[[ViewedArrayBuffer]])
     Set(|offset|, |jsBufferSource|.[[ByteOffset]])
-    Set(|length|, |jsBufferSource|.[[ByteLength]])
+    Let(|taRecord|, [$MakeTypedArrayWithBufferWitnessRecord$](|jsBufferSource|, unordered))
+    Set(|length|, [$TypedArrayByteLength$](|taRecord|))
   Else
     Assert(|jsBufferSource| is an ArrayBuffer or ?({{SharedArrayBuffer}} object))
     Set(|length|, |jsBufferSource|.[[ArrayBufferByteLength]])

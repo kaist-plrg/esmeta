@@ -42,6 +42,17 @@ import esmeta.wji.lang.walker.Walker
   * reftype" is exactly "the runtime value's own tag reads `REF`", read directly
   * off it rather than needing to know SpecTec's actual `reftype` grammar
   * production.
+  *   - A specific named interface (`CondParser.IsTheBracedInterfaceLink`'s "X
+  *     is the {{IFACE}} [=interface=]", e.g. webidl/index.bs:12057's
+  *     "|interface| is the {{DOMException}} [=interface=]") becomes a `Cond.Eq`
+  *     against the record's own `id` field: `esmeta.wji.Initialize`'s
+  *     `definitionRecord` seeds every extracted interface/namespace record with
+  *     `"id" -> Str(d.name)`, so once `IFACE` is known to be one of the
+  *     js-api's own extracted interfaces (`knownInterfaceNames` below), "is the
+  *     IFACE interface" is a direct string-equality check against that tag. An
+  *     `IFACE` this pipeline never extracts as an interface (`DOMException`
+  *     itself is WebIDL-only and never becomes a js-api `Definition`) passes
+  *     through untouched, same as every other unrecognized `IsType` name.
   *
   * Every other `IsType` name passes through untouched — this pass only ever
   * narrows the set of names `Compiler`/`TyModel` are expected to resolve, never
@@ -62,12 +73,28 @@ object ExpandWjiIsTypePass extends LoweringPass:
     "interface" -> "Interface",
   )
 
+  // The js-api spec's own top-level interfaces (spectec/spectec/document/
+  // js-api/index.bs's `interface ...` definitions) — mirrors the interface
+  // subset of `esmeta.wji.compiler.Compiler.namesWithPrototypeIntrinsic` (which
+  // also carries the three non-interface error-type keys, irrelevant here) and
+  // `esmeta.wji.extractor.Extractor`'s own `interfaceNames`, which isn't
+  // reachable from this pass (`Lowering.run` only threads `List[Algorithm]`
+  // through, not `Spec.definitions`). Kept as its own hardcoded set, same as
+  // `slotOf`/`memberKindOf` above, rather than plumbing `Spec` through the
+  // whole `LoweringPass` signature for one pass's sake; a name absent here
+  // (e.g. `DOMException`, WebIDL-only and never extracted as a js-api
+  // `Definition`) simply passes through untouched.
+  private val knownInterfaceNames: Set[String] =
+    Set("Module", "Instance", "Memory", "Table", "Global", "Tag", "Exception")
+
   private object rewriter extends Walker:
     override def walk(cond: Cond): Cond = cond match
       case Cond.IsType(e, name, neg) if slotOf.contains(name) =>
         Cond.HasSlot(walk(e), slotOf(name), neg)
       case Cond.IsType(e, name, neg) if memberKindOf.contains(name) =>
         Cond.Eq(Expr.Field(walk(e), "kind"), Expr.Enum(memberKindOf(name)), neg)
+      case Cond.IsType(e, name, neg) if knownInterfaceNames.contains(name) =>
+        Cond.Eq(Expr.Field(walk(e), "id"), Expr.Str(name), neg)
       case Cond.IsType(e, "reftype", neg) =>
         Cond.Eq(Expr.CaseTag(walk(e)), Expr.Str("REF"), neg)
       case other => super.walk(other)

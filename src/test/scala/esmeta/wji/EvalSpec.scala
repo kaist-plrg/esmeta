@@ -59,22 +59,15 @@ private val knownFailing: Set[String] =
     "tests/wji/js-api/generated/constructor/instantiate.any.js",
     "tests/wji/js-api/generated/constructor/multi-value.any.js",
     "tests/wji/js-api/generated/constructor/validate.any.js",
-    "tests/wji/js-api/generated/exception/jsTag.tentative.any.js",
-    "tests/wji/js-api/generated/global/constructor.any.js",
     "tests/wji/js-api/generated/global/value-get-set.any.js",
     "tests/wji/js-api/generated/instance/constructor-bad-imports.any.js",
-    "tests/wji/js-api/generated/instance/constructor.any.js",
-    "tests/wji/js-api/generated/interface.any.js",
     "tests/wji/js-api/generated/js-string/basic.any.js",
     "tests/wji/js-api/generated/js-string/constants.any.js",
     "tests/wji/js-api/generated/js-string/imports.any.js",
     "tests/wji/js-api/generated/limits.any.js",
-    "tests/wji/js-api/generated/memory/constructor.any.js",
     "tests/wji/js-api/generated/memory/grow.any.js",
     "tests/wji/js-api/generated/module/constructor.any.js",
     "tests/wji/js-api/generated/module/customSections.any.js",
-    "tests/wji/js-api/generated/module/imports.any.js",
-    "tests/wji/js-api/generated/table/constructor.any.js",
     "tests/wji/js-api/generated/table/get-set.any.js",
     "tests/wji/js-api/generated/table/grow-memory64.any.js",
   )
@@ -135,16 +128,23 @@ class EvalSpec extends AnyFunSuite with BeforeAndAfterAll:
 
   /** bounds a single test case's wall-clock time (checked periodically by
     * `esmeta.interpreter.Interpreter` itself, see `timeLimit` there) --
-    * comfortably above every legitimately-slow test observed so far (worst case
-    * ~35s, wasm-module-builder-heavy files under a warm/shared connection), but
-    * well short of a file like js-api's `limits.any.js` (spec-mandated stress
-    * test building up to 10M wasm constructs -- marked `// META: timeout=long`
-    * even for real engines) that would otherwise run for the rest of the
-    * suite's lifetime. Throws `TimeoutException` (unrelated to SpecTec, so
+    * comfortably above every legitimately-slow test observed so far, including
+    * `memory/grow.any.js`'s own ~80-90s and js-api's `limits.any.js`'s own ~80s
+    * (both under a fresh, cold-started connection; a warm/shared one should
+    * only be faster). Throws `TimeoutException` (unrelated to SpecTec, so
     * `connection.isPoisoned` correctly stays false and no respawn is needed)
     * rather than needing an external process kill.
+    *
+    * No longer sized around the risk of `limits.any.js` (spec-mandated stress
+    * test building up to 10M wasm constructs -- the corpus's one file marked
+    * `// META: timeout=long` even for real engines) running for the rest of the
+    * suite's lifetime: its genuinely-unbounded calls are now neutered at
+    * generation time (`tests/wji/scripts/wji-generate-js-api-tests.js`'s
+    * `perFilePatches`, see `docs/out_of_scope.md` #3), leaving only the ones
+    * cheap enough to actually finish -- this constant just needs to cover that
+    * reduced, now-finite worst case, same as everything else here.
     */
-  private val perTestTimeoutSec = 60
+  private val perTestTimeoutSec = 150
 
   private val roots: List[String] =
     List(WJI_MANUAL_TEST_DIR, WJI_JS_API_TEST_DIR)

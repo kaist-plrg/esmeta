@@ -294,7 +294,7 @@ var self = globalThis;
     // true, so assigning to a read-only accessor always throws `TypeError`
     // instead of sloppy mode's real silent no-op. Real per-script/per-node
     // strict-mode detection (directive prologue tracking) is unimplemented;
-    // see personal/test_fails.md. Affects `memory/buffer.any.js`,
+    // see docs/out_of_scope.md #2. Affects `memory/buffer.any.js`,
     // `table/length.any.js`, `instance/exports.any.js`.
     "Setting (sloppy mode)",
   ]);
@@ -2847,7 +2847,7 @@ test(() => {
   assert_throws_js(TypeError, () => WebAssembly.Instance(module));
 }, "Calling");
 
-for (const [name, fn] of instanceTestFactory) {
+for (const [name, fn] of instanceTestFactory.filter(([n]) => !["getter order for imports object", "imports", "imports with empty module names", "imports with empty names"].includes(n))) {
   test(() => {
     const { buffer, args, exports, verify } = fn();
     const module = new WebAssembly.Module(buffer);

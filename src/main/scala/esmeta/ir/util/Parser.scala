@@ -317,6 +317,8 @@ trait Parsers extends TyParsers {
     "[number]" ^^^ ToNumber |
     "[bigInt]" ^^^ ToBigInt |
     "[math]" ^^^ ToMath |
+    "[math-f32]" ^^^ ToMathF32 |
+    "[math-f64]" ^^^ ToMathF64 |
     "[str" ~> opt(expr) ~ opt("upper") <~ "]" ^^ {
       case r ~ u => ToStr(r, u.isDefined)
     } |

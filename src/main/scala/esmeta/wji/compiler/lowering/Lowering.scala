@@ -94,6 +94,7 @@ object Lowering:
     ExpandDataBlockOfPass,
     ExpandNewArrayBufferPass,
     ExpandIsOfFormPass,
+    PropagateWasmFloatPayloadPass,
     ExpandAbbreviatedCondPass,
     ExpandWjiIsTypePass,
     ExpandExposedPass,

@@ -1112,6 +1112,36 @@ object SpecPatch:
     "does not have an an [=asynchronously iterable declaration=]"
     ->
     "does not have an [=asynchronously iterable declaration=]",
+
+    // #55 (spec bug, docs/spec_errors.md #28) — `create an interface
+    // prototype object`'s own `#2-2` recursive-call step
+    // (webidl/index.bs:12055-12056) has its "of X"/"in |realm|" clauses
+    // transposed relative to every other "the interface (prototype) object
+    // of X in realm" reference in this document (lines 11963/12030/12094, all
+    // "of X in realm"): "... in |realm|\n        of that [=inherited
+    // interface=]." Reordered to match; `ExprParser.LinkOfInheritedInterfaceIn`
+    // parses the result the same way `LinkOfForIn` already parses those other
+    // sites.
+    "[=interface prototype object=] in |realm|\n        of that [=inherited interface=]."
+    ->
+    "[=interface prototype object=] of that [=inherited interface=] in |realm|.",
+
+    // #56 (spec bug, docs/spec_errors.md #29) — both call sites of `create an
+    // interface object` ("the [=interface object=] of X in |realm|",
+    // webidl/index.bs:11963,12094) elide its declared third parameter `|id|`
+    // (webidl/index.bs:11933-11936: "The interface object for a given
+    // interface |I| with identifier |id| and in realm |realm| ..."). Every
+    // real invocation supplies the same interface's own identifier
+    // (webidl/index.bs:12029's own `Let |F| be CreateBuiltinFunction(|steps|,
+    // |length|, |id|, ..., |constructorProto|)`), so it's spelled out
+    // explicitly here rather than left for `ResolveLinksPass` to guess at;
+    // `ExprParser.LinkOfWithIdentifierIn` parses the 3-arg result.
+    "the [=interface object=] of |P| in |realm|."
+    ->
+    "the [=interface object=] of |P| with identifier |P|'s [=identifier=] in |realm|.",
+    "the [=interface object=] of |interface| in |realm|."
+    ->
+    "the [=interface object=] of |interface| with identifier |interface|'s [=identifier=] in |realm|.",
   )
 
   def apply(source: String): String =

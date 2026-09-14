@@ -17,6 +17,16 @@ object InstrParser:
   private val SetPrefix = """(?is)^Set\b\s+(.+)$""".r
   private val AssertPrefix = """(?is)^Assert:\s*(.+)$""".r
   private val NotePrefix = """(?is)^Note:\s*(.*)$""".r
+  // a bare Bikeshed bibliography citation (e.g. `[[IEEE-754]]`), written
+  // trailing the sentence it footnotes with no separating punctuation other
+  // than the "`. `" `splitSentences` already splits *every* sentence
+  // boundary on -- e.g. index.bs:1438's "... ties to even mode. [[IEEE-754]]"
+  // -- so it arrives here as its own, citation-only "sentence" indistinguishable
+  // from a genuine (if terse) instruction. Purely decorative -- dropped
+  // outright (not even kept as a `Note`, unlike genuine prose asides) rather
+  // than becoming an `Unknown` that would crash on execution the instant this
+  // step actually runs.
+  private val BareCitation = """(?s)^\[\[[\w-]+\]\]$""".r
   private val ReturnPrefix = """(?is)^Return\b\.?\s*(.*)$""".r
   private val ThrowPrefix = """(?is)^(?:\[=[Tt]hrow=\]|Throw\b)\s+(.+)$""".r
 
@@ -176,7 +186,9 @@ object InstrParser:
         }
         Note("catch it") :: actions
       case trimmed =>
-        val sentences = splitSentences(trimmed).filter(_.nonEmpty)
+        val sentences = splitSentences(trimmed)
+          .filter(_.nonEmpty)
+          .filterNot(s => BareCitation.matches(s.trim))
         sentences match
           case Nil if trailingBody.isEmpty => Nil
           case Nil                         => List(Unknown("", trailingBody))
@@ -371,18 +383,29 @@ object InstrParser:
     * (possibly empty) remainder, at the first top-level `,` or `:`. A `,` that
     * is immediately followed by `"and "`/`"or "` is treated as part of a
     * multi-clause condition (e.g. `"If A, and B, do C."`) rather than the
-    * cond/action separator. A leading `"then "` on the remainder (as in `"If X,
-    * then Y."`) is stripped.
+    * cond/action separator, and a `,` that falls inside an "X is [not] one of
+    * A, B or C" enumeration (index.bs:521's "|valtype| is one of [=i32=],
+    * [=f32=] or [=f64=] and |v| ...", see [[TextSplit.isOneOfSpans]]) is
+    * skipped for the same reason — it's the list's own internal separator, not
+    * a cond/action boundary; without this, "[=i32=]," alone was mistaken for
+    * the whole condition and everything after it (the `f32`/`f64` disjuncts,
+    * and the trailing "and |v| ..." clause) silently became unparsed leftover
+    * text. A leading `"then "` on the remainder (as in `"If X, then Y."`) is
+    * stripped.
     */
   private def splitCondAndRest(text: String): (String, String) =
+    val protectedSpans = isOneOfSpans(text)
+    def inProtectedSpan(pos: Int): Boolean =
+      protectedSpans.exists { case (start, end) => start <= pos && pos < end }
     def find(from: Int): Option[(Int, String)] =
       findTopLevelAny(text.substring(from), Seq(",", ":")).flatMap {
         case (i, sep) =>
           val pos = from + i
           val after = text.substring(pos + sep.length).trim.toLowerCase
-          if sep == "," && (after.startsWith("and ") || after.startsWith(
+          if inProtectedSpan(pos) ||
+            (sep == "," && (after.startsWith("and ") || after.startsWith(
               "or ",
-            ))
+            )))
           then find(pos + sep.length)
           else Some((pos, sep))
       }

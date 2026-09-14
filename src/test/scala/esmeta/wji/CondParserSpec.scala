@@ -20,6 +20,18 @@ class CondParserSpec extends AnyFunSuite:
     )
   }
 
+  test("is-the-braced-interface-link, positive and negative") {
+    assert(
+      CondParser.parse("|interface| is the {{DOMException}} [=interface=]") ==
+      IsType(Var("interface"), "DOMException"),
+    )
+    assert(
+      CondParser.parse(
+        "|interface| is not the {{DOMException}} [=interface=]",
+      ) == IsType(Var("interface"), "DOMException", negated = true),
+    )
+  }
+
   test("matches, positive and negative") {
     // real spec occurrences always write the dfn link with a "|matches"
     // display-text alias (e.g. "[=matches/valtype|matches=]") — see
@@ -190,6 +202,48 @@ class CondParserSpec extends AnyFunSuite:
         "t",
         List(Var("xs")),
         Matches(Var("t"), "valtype", Var("v")),
+      ),
+    )
+  }
+
+  test("is one of, positive and negative, with a following 'and'") {
+    assert(
+      CondParser.parse("|valtype| is one of [=i32=], [=f32=] or [=f64=]") ==
+      Or(
+        Or(
+          Eq(Var("valtype"), Link("[=i32=]", Nil)),
+          Eq(Var("valtype"), Link("[=f32=]", Nil)),
+        ),
+        Eq(Var("valtype"), Link("[=f64=]", Nil)),
+      ),
+    )
+    assert(
+      CondParser.parse(
+        "|valtype| is not one of [=i32=], [=f32=] or [=f64=]",
+      ) ==
+      And(
+        And(
+          Eq(Var("valtype"), Link("[=i32=]", Nil), negated = true),
+          Eq(Var("valtype"), Link("[=f32=]", Nil), negated = true),
+        ),
+        Eq(Var("valtype"), Link("[=f64=]", Nil), negated = true),
+      ),
+    )
+    // index.bs:521 itself — the list's own "or" must not be mistaken for the
+    // sentence's real top-level connective before " and |v| ...".
+    assert(
+      CondParser.parse(
+        "|valtype| is one of [=i32=], [=f32=] or [=f64=] and |v| [=is not a Number=]",
+      ) ==
+      And(
+        Or(
+          Or(
+            Eq(Var("valtype"), Link("[=i32=]", Nil)),
+            Eq(Var("valtype"), Link("[=f32=]", Nil)),
+          ),
+          Eq(Var("valtype"), Link("[=f64=]", Nil)),
+        ),
+        IsType(Var("v"), "Number", negated = true),
       ),
     )
   }

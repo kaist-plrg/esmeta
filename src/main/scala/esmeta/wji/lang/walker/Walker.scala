@@ -31,6 +31,7 @@ trait Walker:
     case Expr.Neg(e)                  => Expr.Neg(walk(e))
     case Expr.AsMath(e)               => Expr.AsMath(walk(e))
     case Expr.AsWasm(e, ty)           => Expr.AsWasm(walk(e), ty)
+    case Expr.WasmFloatPayload(w, e)  => Expr.WasmFloatPayload(w, walk(e))
     case Expr.AsNumber(e)             => Expr.AsNumber(walk(e))
     case Expr.AsBigInt(e)             => Expr.AsBigInt(walk(e))
     case Expr.Tuple(elems)            => Expr.Tuple(elems.map(walk))

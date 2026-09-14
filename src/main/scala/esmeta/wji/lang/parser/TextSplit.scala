@@ -85,3 +85,31 @@ private[wji] object TextSplit:
   def splitComma(raw: String): List[String] =
     if raw.trim.isEmpty then Nil
     else splitTopLevelAll(raw, ",").map(_.trim).filter(_.nonEmpty)
+
+  /** a single `[=dfn link=]` token, and an English list of them ("A, B or C",
+    * "A, B, or C", or a bare "A or B") — shared between
+    * [[esmeta.wji.lang.parser.CondParser]]'s `IsOneOfPos`/`IsOneOfNeg` (which
+    * builds the actual `Cond` from a full "X is [not] one of ..." match) and
+    * [[isOneOfSpans]] below (which only needs the list's own character range,
+    * to keep some *other* top-level split from cutting through it).
+    */
+  val EnumItem = """\[=[^\]]+=\]"""
+  val EnumList =
+    s"""$EnumItem(?:\\s*,\\s*$EnumItem)*(?:\\s*,?\\s*or\\s+$EnumItem)?"""
+  private val IsOneOfSpan =
+    s"""(?si)is (?:not )?one of\\s+($EnumList)""".r
+
+  /** the `[start, end)` character ranges of every "is [not] one of A, B or C"
+    * enumeration in `text` (index.bs:521's "|valtype| is one of [=i32=],
+    * [=f32=] or [=f64=]" being the corpus's one occurrence so far). A list like
+    * this can itself contain a ", "/" or " that reads exactly like the
+    * separator a caller is scanning `text` for at a higher level (e.g.
+    * `InstrParser.splitCondAndRest`'s cond/rest-splitting comma, or
+    * `CondParser.parse`'s own top-level `" or "`/`" and "` search) — such a
+    * caller should skip any candidate position that falls inside one of these
+    * ranges, the same way it already skips a comma immediately followed by "and
+    * "/"or " (a *different* list shape, joined at every separator rather than
+    * only before the last item).
+    */
+  def isOneOfSpans(text: String): List[(Int, Int)] =
+    IsOneOfSpan.findAllMatchIn(text).map(m => (m.start(1), m.end(1))).toList

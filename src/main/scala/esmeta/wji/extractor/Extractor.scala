@@ -39,18 +39,38 @@ object Extractor:
     // while "create an interface object"/"create an interface prototype
     // object" installs an interface's members on a *separate* interface
     // prototype object — two different algorithms building and populating
-    // two different objects, not one mechanism with two names. `Compiler`'s
-    // own `Method` case handles both shapes directly (namespace-prefixed vs.
-    // per-interface `INTRINSICS.` lookup), so no downgrade to `Plain` is
-    // needed here.
+    // two different objects, not one mechanism with two names. A namespace
+    // method/getter is restamped `AlgorithmKind.NamespaceMethod`/
+    // `NamespaceGetter` here (each kind's own doc has the full rationale);
+    // a `Method` that's neither a known interface nor a known namespace
+    // (shouldn't occur in this corpus, but no dfn text guarantees it can't)
+    // falls back to `Plain`, same as before this distinction existed.
+    val interfaceNames = definitions
+      .filter(_.kind == DefinitionKind.Interface)
+      .map(_.name)
+      .toSet
+    val namespaceNames = definitions
+      .filter(_.kind == DefinitionKind.Namespace)
+      .map(_.name)
+      .toSet
     val algorithms = (jsApiAlgorithms ++ webidlAlgorithms)
+      .map { a =>
+        a.kind match
+          case AlgorithmKind.Method(forName, _) if namespaceNames(forName) =>
+            a.copy(kind = AlgorithmKind.NamespaceMethod(forName))
+          case AlgorithmKind.Method(forName, _) if !interfaceNames(forName) =>
+            a.copy(kind = AlgorithmKind.Plain)
+          case AlgorithmKind.Getter(forName) if namespaceNames(forName) =>
+            a.copy(kind = AlgorithmKind.NamespaceGetter(forName))
+          case _ => a
+      }
       .map(enrichParamTypes(_, definitions))
     Spec(algorithms, definitions, anchors)
 
-  /** Finds `algo`'s matching WebIDL operation (its interface's `Definition`,
-    * looked up by `AlgorithmKind.Method`/`Constructor`'s own `interface` name,
-    * then the `Operation` member matching `algo.name`/its `Constructor` kind),
-    * and:
+  /** Finds `algo`'s matching WebIDL operation (its interface's or namespace's
+    * `Definition`, looked up by `AlgorithmKind.Method`/`NamespaceMethod`/
+    * `Constructor`'s own `interface`/`namespace` name, then the `Operation`
+    * member matching `algo.name`/its `Constructor` kind), and:
     *   - for a `Method`, stamps `AlgorithmKind.Method.static` from that
     *     operation's own `MemberKind` (`StaticOperation` vs `RegularOperation`)
     *     — the only place this can be determined at all, since the dfn prose
@@ -68,23 +88,31 @@ object Extractor:
     *     the separate `<pre class=idl>` block does) — `p.optional` is OR'd with
     *     the WebIDL flag rather than overwritten, so either source marking a
     *     param optional is enough.
+    *   - if found, stamps `Algorithm.idlReturnType` with that operation's own
+    *     declared return type text (e.g. `"undefined"`) — see that field's own
+    *     doc for what consumes it.
     *
     * A `Getter`/`Setter`/`Plain` algorithm is left untouched: getters take no
     * arguments, and a setter's implicit "the given value" isn't a positional
     * `WjiParam` at all (see
     * `esmeta.wji.compiler.lowering.AddInterfaceMemberBuiltinBehaviourPass.givenValueBinding`),
-    * so neither has anything here to stamp.
+    * so neither has anything here to stamp. Both also always have a real
+    * (non-`"undefined"`) declared type of their own regardless — a getter
+    * returns its attribute's type, and WebIDL gives setters no declared return
+    * type to speak of at all — so `idlReturnType` staying `None` for them costs
+    * nothing.
     */
   private def enrichParamTypes(
     algo: Algorithm,
     definitions: List[Definition],
   ): Algorithm =
     def matchingOperation(
-      iface: String,
+      owner: String,
+      ownerKind: DefinitionKind,
       matches: Operation => Boolean,
     ): Option[Operation] =
       definitions
-        .find(d => d.kind == DefinitionKind.Interface && d.name == iface)
+        .find(d => d.kind == ownerKind && d.name == owner)
         .flatMap(_.members.collectFirst {
           case op: Operation if matches(op) => op
         })
@@ -92,13 +120,24 @@ object Extractor:
       case AlgorithmKind.Method(iface, _) =>
         matchingOperation(
           iface,
+          DefinitionKind.Interface,
           op =>
             op.kind != MemberKind.Constructor && op.id == algo.name.getOrElse(
               "",
             ),
         )
+      case AlgorithmKind.NamespaceMethod(namespace) =>
+        matchingOperation(
+          namespace,
+          DefinitionKind.Namespace,
+          _.id == algo.name.getOrElse(""),
+        )
       case AlgorithmKind.Constructor(iface) =>
-        matchingOperation(iface, _.kind == MemberKind.Constructor)
+        matchingOperation(
+          iface,
+          DefinitionKind.Interface,
+          _.kind == MemberKind.Constructor,
+        )
       case _ => None
     val staticStamped = (algo.kind, webidlOp) match
       case (AlgorithmKind.Method(iface, _), Some(op)) =>
@@ -107,9 +146,18 @@ object Extractor:
             .Method(iface, static = op.kind == MemberKind.StaticOperation),
         )
       case _ => algo
+    // a `Constructor`'s own `Operation` (see `DefinitionExtractor.parseMember`)
+    // always has `ret = ""` (WebIDL constructors declare no return type of
+    // their own), so `nonEmpty` here also doubles as "only a real Method/
+    // NamespaceMethod return type counts" without needing to match on `kind`
+    // again.
+    val returnTypeStamped = webidlOp match
+      case Some(op) if op.ret.nonEmpty =>
+        staticStamped.copy(idlReturnType = Some(op.ret))
+      case _ => staticStamped
     webidlOp.map(_.params) match
-      case Some(ps) if ps.length == staticStamped.params.length =>
-        staticStamped.copy(params = staticStamped.params.zip(ps).map {
+      case Some(ps) if ps.length == returnTypeStamped.params.length =>
+        returnTypeStamped.copy(params = returnTypeStamped.params.zip(ps).map {
           case (p, wp) =>
             p.copy(
               idlType = Some(wp.ty),
@@ -117,4 +165,4 @@ object Extractor:
               default = Option.when(wp.default.nonEmpty)(wp.default),
             )
         })
-      case _ => staticStamped
+      case _ => returnTypeStamped

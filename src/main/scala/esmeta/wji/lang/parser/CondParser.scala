@@ -22,6 +22,19 @@ object CondParser:
   // only knows genuine ECMAScript types) decide what a WJI-specific NOUN like
   // "Exported Function" actually compiles to.
   private val ArticleLink = """(?si)^an?\s+\[=([^\]]+)=\]$""".r
+  // "EXPR is the {{X}} [=interface=]" — identity against one *specific* named
+  // interface (webidl/index.bs:12057's "Otherwise, if |interface| is the
+  // {{DOMException}} [=interface=], then set |proto| to ..."), unlike
+  // ArticleLink's "EXPR is a(n) [=interface=]" (kind-membership: is this *some*
+  // interface at all — see `ExpandWjiIsTypePass`'s `memberKindOf("interface")`).
+  // X is taken from the `{{...}}` IDL-name link, not the `[=interface=]` dfn
+  // link itself (which only names the noun being checked, always the literal
+  // text "interface" at every real call site), so it parses to the same
+  // `IsType` node as ArticleLink but keyed by the specific interface name
+  // instead of the generic noun — `ExpandWjiIsTypePass` is what later decides
+  // whether that name is one it can resolve to a real identity check.
+  private val IsTheBracedInterfaceLink =
+    """(?si)^the\s+\{\{([^}]+)\}\}\s+\[=interface=\]$""".r
   // "EXPR is [not] [=valid TYPE|valid=]" — Wasm Core's own validation dfns
   // (index.bs:877/1044's Memory/Table constructors), always written with a
   // `|valid` display-text alias since the dfn text itself ("valid memtype")
@@ -178,20 +191,50 @@ object CondParser:
     """(?si)^(.+?)\s+(?:contains no duplicates|does not contain any duplicates)$""".r
   private val ContainsDuplicatesPos =
     """(?si)^(.+?)\s+contains any duplicates$""".r
-  // "[=algo|display=] for ARG1 [with ARG2[, ...] [and ARGN]] IS/RETURNS BOOL"
-  // — a spec call phrased with "for"/"with"/"and" as its own English
-  // argument-list connectors (mirrors the "from X, enabled Y, and Z" phrasing
-  // an algorithm's own <dfn> head uses for its parameter list), immediately
-  // compared against a boolean result. Matched as a whole *before* the
-  // generic and/or top-level split in `parse` below, since that split can't
-  // tell this "and" apart from a real boolean and — splitting first severs
-  // the last argument from its call (see index.bs:411,423,455,765, all
-  // "... for |module| with |builtinSetNames| and |importedStringModule|
-  // returns/is false"). Restricted to a pure `|var|`-only argument list (no
-  // free text) so it can't accidentally swallow a genuine "COND1 and COND2"
-  // where COND1 itself happens to read "... for X is Y".
+  // "[=algo|display=] for ARG1 [with ARG2[, ...] [and ARGN]] IS/RETURNS
+  // BOOL/null" — a spec call phrased with "for"/"with"/"and" as its own
+  // English argument-list connectors (mirrors the "from X, enabled Y, and Z"
+  // phrasing an algorithm's own <dfn> head uses for its parameter list),
+  // immediately compared against a boolean or null result. Matched as a whole
+  // *before* the generic and/or top-level split in `parse` below, since that
+  // split can't tell this "and" apart from a real boolean and — splitting
+  // first severs the last argument from its call (see
+  // index.bs:411,423,455,737,765, all "... for |module| with |builtinSetNames|
+  // and |importedStringModule| returns/is false", plus index.bs:737's
+  // "[=find a builtin=] for (|moduleName|, |name|, |type|) and
+  // |builtinSetNames| is not null"). Each argument token is either a bare
+  // `|var|` or a parenthesized untagged tuple `(|a|, |b|, ...)` (the only
+  // other multi-arg shape this idiom's call sites actually use, per
+  // `ExprParser.TuplePat`) — not free text — so this can't accidentally
+  // swallow a genuine "COND1 and COND2" where COND1 itself happens to read
+  // "... for X is Y".
+  private val ArgToken = """(?:\([^()]*\)|\|[^|]+\|)"""
   private val LinkCallArgsEndsBool =
-    """(?si)^(\[=[^\]]+\])\s+((?:for|with)\s+\|[^|]+\|(?:\s*(?:,\s*|and\s+|with\s+)\|[^|]+\|)*)\s+(is not|is|returns)\s+(true|false)$""".r
+    s"""(?si)^(\\[=[^\\]]+\\])\\s+((?:for|with)\\s+$ArgToken(?:\\s*(?:,\\s*|and\\s+|with\\s+)$ArgToken)*)\\s+(is not|is|returns)\\s+(true|false|null)$$""".r
+
+  // "EXPR is [not] one of A, B[, ...] or C" — an explicit disjunction of dfn-
+  // linked terms (index.bs:521's "|valtype| is one of [=i32=], [=f32=] or
+  // [=f64=]"), as opposed to WebIDL's structurally similar "|S| is not one of
+  // |E|'s [=enumeration values=]" (webidl/index.bs:8068/12451, a *list
+  // membership* check against a single collection expression, not an
+  // enumerated disjunction of terms) — that shape hasn't been hit by any test
+  // case yet; if it is, it needs a different Cond (a `Contains`-style check
+  // over the enumeration's values), not this list-of-Eq expansion. Each item
+  // is restricted to a `[=dfn link=]` (every real occurrence is one) so the
+  // list's own internal " or "/", " separators can be matched precisely,
+  // rather than swallowing a real top-level " or "/" and " that happens to
+  // follow the list (same hazard, and same "match the whole shape before the
+  // generic top-level split" fix, as `LinkCallArgsEndsBool` above — index.bs:
+  // 521 itself is "|valtype| is one of [=i32=], [=f32=] or [=f64=] and |v|
+  // [=is not a Number=]", where the list's own "or" would otherwise be
+  // mistaken by `parse`'s top-level `findTopLevel(_, " or ")` for the
+  // sentence's real, outer connective). An optional trailing `" and "`/
+  // `" or "` + rest is captured and recursively parsed so this composes
+  // correctly with whatever follows.
+  private val IsOneOfNeg =
+    s"""(?si)^(.+?)\\s+is not one of\\s+($EnumList)(?:\\s+(and|or)\\s+(.+))?$$""".r
+  private val IsOneOfPos =
+    s"""(?si)^(.+?)\\s+is one of\\s+($EnumList)(?:\\s+(and|or)\\s+(.+))?$$""".r
 
   // "contained in LIST" — the RHS of "ELEM is [not] contained in LIST"
   // (index.bs:1254), handled by parseRhs alongside "missing"/"given"/"of the
@@ -286,10 +329,23 @@ object CondParser:
     val s = raw.trim.stripSuffix(".")
     s match
       case LinkCallArgsEndsBool(link, argsPhrase, isKind, boolStr) =>
+        val rhs =
+          if boolStr.equalsIgnoreCase("null") then SpecTerm("null")
+          else Bool(boolStr.equalsIgnoreCase("true"))
         Eq(
           ExprParser.parse(s"$link $argsPhrase"),
-          Bool(boolStr.equalsIgnoreCase("true")),
+          rhs,
           negated = isKind.trim.equalsIgnoreCase("is not"),
+        )
+      case IsOneOfNeg(lhsRaw, listRaw, connector, restRaw) =>
+        composeConnector(buildIsOneOf(lhsRaw, listRaw, negated = true))(
+          connector,
+          restRaw,
+        )
+      case IsOneOfPos(lhsRaw, listRaw, connector, restRaw) =>
+        composeConnector(buildIsOneOf(lhsRaw, listRaw, negated = false))(
+          connector,
+          restRaw,
         )
       case AnyIn(binder, collsRaw, predTail) =>
         val collections = collsRaw.split("""\s+or\s+""").toList.map { c =>
@@ -356,6 +412,41 @@ object CondParser:
 
   private def matchType(link: String): String =
     MatchesType.findFirstMatchIn(link).map(_.group(1)).getOrElse(link)
+
+  /** "X is [not] one of A, B[, ...] or C" — desugars to a chain of per-item
+    * `Eq`s: positive is an `Or` ("X equals one of them"), negative is an `And`
+    * of negated `Eq`s (De Morgan's — "X equals none of them"), since [[Cond]]
+    * has no standalone negation node.
+    */
+  private def buildIsOneOf(
+    lhsRaw: String,
+    listRaw: String,
+    negated: Boolean,
+  ): Cond =
+    val lhs = ExprParser.parse(lhsRaw)
+    val items = listRaw
+      .split(",")
+      .toList
+      .flatMap(_.split("""\s+or\s+"""))
+      .map(_.trim)
+      .filter(_.nonEmpty)
+      .map(item => Eq(lhs, ExprParser.parse(item), negated))
+    items.reduceLeft(if negated then And.apply else Or.apply)
+
+  /** Recombines `base` with whatever `" and "`/`" or "` + rest followed it in
+    * the original text (both [[IsOneOfNeg]]/[[IsOneOfPos]] capture this as an
+    * optional trailing group, `connector`/`restRaw` null when absent) — reuses
+    * `parseOrAbbreviated` for `restRaw` so it composes with the same fallback
+    * every other top-level and/or split gets.
+    */
+  private def composeConnector(base: Cond)(
+    connector: String,
+    restRaw: String,
+  ): Cond =
+    Option(connector) match
+      case Some("and") => And(base, parseOrAbbreviated(restRaw))
+      case Some("or")  => Or(base, parseOrAbbreviated(restRaw))
+      case _           => base
 
   /** "X is [not] declared with the [{{ATTR}}] extended attribute" — a search
     * over `X.extendedAttributes` (a list, see `DeclaredWithAttrPos`'s own doc)
@@ -458,6 +549,8 @@ object CondParser:
           Exposed(ExprParser.parse(lhsRaw), ExprParser.parse(realmRaw), negated)
         case ArticleLink(noun) =>
           IsType(ExprParser.parse(lhsRaw), noun, negated)
+        case IsTheBracedInterfaceLink(name) =>
+          IsType(ExprParser.parse(lhsRaw), name, negated)
         case ValidTypeLink(typeName) =>
           Eq(
             AlgoCall(s"valid_$typeName", List(ExprParser.parse(lhsRaw))),

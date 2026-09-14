@@ -997,7 +997,22 @@ WebAssembly = OrdinaryObject [
   LinkError: [TFT] #INTRINSICS.LinkError;
   RuntimeError: [TFT] #INTRINSICS.RuntimeError;
   %Symbol.toStringTag%: [FFT] "WebAssembly";
+  validate: [TTT] #INTRINSICS.WebAssembly.validate;
+  compile: [TTT] #INTRINSICS.WebAssembly.compile;
+  instantiate: [TTT] #INTRINSICS.WebAssembly.instantiate;
+  JSTag: [TT] {
+    Get: #INTRINSICS.get:WebAssembly.JSTag;
+    Set: undefined;
+  };
 }
+
+// namespace operations, unlike interface members, have no receiver to read a
+// declared arity off of at compile time (`AlgorithmKind.NamespaceMethod`'s own
+// doc) -- `.length` hardcoded per WebIDL's own declared arity, same pattern as
+// `WebAssembly.Memory.prototype.grow` above.
+WebAssembly.validate = BuiltinFunctionObject { length: [FFT] 1.0f; }
+WebAssembly.compile = BuiltinFunctionObject { length: [FFT] 1.0f; }
+WebAssembly.instantiate = BuiltinFunctionObject { length: [FFT] 1.0f; }
 
 WebAssembly.Instance = BuiltinFunctionObject [
   Extensible: true;

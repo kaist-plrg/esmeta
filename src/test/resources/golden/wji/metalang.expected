@@ -26,8 +26,8 @@
   Return(true)
 
 # validate
-  kind: method for WebAssembly
-  params: |bytes|, |options|
+  kind: method for namespace WebAssembly
+  params: |bytes|, |options|?
   head: The <dfn method for="WebAssembly">validate(|bytes|, |options|)</dfn> method, when invoked, performs the following steps:
   Let(|stableBytes|, [=get a copy of the buffer source=](|bytes|))
   PerformAndLet([=Compile a WebAssembly module=](|stableBytes|), |module|)
@@ -81,8 +81,8 @@
   Return(|promise|)
 
 # compile
-  kind: method for WebAssembly
-  params: |bytes|, |options|
+  kind: method for namespace WebAssembly
+  params: |bytes|, |options|?
   head: The <dfn method for="WebAssembly">compile(|bytes|, |options|)</dfn> method, when invoked, performs the following steps:
   Let(|stableBytes|, [=get a copy of the buffer source=](|bytes|))
   PerformAndReturn([=Asynchronously compile a WebAssembly module=](|stableBytes|, |options|))
@@ -144,7 +144,7 @@
       Else
         If(|valtype| is [=i64=], and |v| is not a BigInt)
           Throw(new {{LinkError}})
-        If(?(|valtype| is one of [=i32=]))
+        If(|valtype| is [=i32=] or |valtype| is [=f32=] or |valtype| is [=f64=], and |v| is not a Number)
           Throw(new {{LinkError}})
         If(|valtype| is [=v128=])
           Throw(new {{LinkError}})
@@ -282,21 +282,21 @@
   Return(|promise|)
 
 # instantiate
-  kind: method for WebAssembly
-  params: |bytes|, |importObject|, |options|
+  kind: method for namespace WebAssembly
+  params: |bytes|, |importObject|?, |options|?
   head: The <dfn method for="WebAssembly">instantiate(|bytes|, |importObject|, |options|)</dfn> method, when invoked, performs the following steps:
   Let(|stableBytes|, [=get a copy of the buffer source=](|bytes|))
   PerformAndLet([=Asynchronously compile a WebAssembly module=](|stableBytes|, |options|), |promiseOfModule|)
   PerformAndReturn([=Instantiate a promise of a module=](|promiseOfModule|, |importObject|))
 
 # instantiate_object
-  kind: method for WebAssembly
-  params: |moduleObject|, |importObject|
+  kind: method for namespace WebAssembly
+  params: |moduleObject|, |importObject|?
   head: The <dfn method for="WebAssembly">instantiate_object(|moduleObject|, |importObject|)</dfn> method, when invoked, performs the following steps:
   PerformAndReturn([=asynchronously instantiate a WebAssembly module=](|moduleObject|, |importObject|))
 
 # JSTag
-  kind: getter for WebAssembly
+  kind: getter for namespace WebAssembly
   head: The getter of the <dfn attribute for="WebAssembly">JSTag</dfn> attribute of the {{WebAssembly}} Namespace, when invoked, performs the following steps:
   Let(|JSTagAddr|, [=get the JavaScript exception tag=])
   Let(|JSTagObject|, [=create a Tag object=](|JSTagAddr|))
@@ -337,7 +337,7 @@
   Let(|importedStringModule|, |moduleObject|.[[ImportedStringModule]])
   Let(|imports|, « »)
   ForEach((|moduleName|, |name|, |type|), [=module_imports=](|module|))
-    If(?([=find a builtin=] for (|moduleName|, |name|, |type|)), and |builtinSetNames| is not null)
+    If([=find a builtin=]((|moduleName|, |name|, |type|), |builtinSetNames|) is not null)
       Continue
     If(|importedStringModule| is not null, and |moduleName| is |importedStringModule|)
       Continue
@@ -990,8 +990,7 @@
       Let(|n|, implementation-defined integer such that ?([=canon=]<sub>32</sub> &leq; |n|) < 2 ** [=signif=](32))
       Let(|f32|, [=nan=](?(n)))
     Else
-      Let(|f32|, ?(|number| rounded to the nearest representable value using IEEE 754-2019 round to nearest, ties to even mode))
-      ?([[IEEE-754]])
+      Let(|f32|, |number|)
     Return([=f32.const=](|f32|))
   If(|type| is [=f64=])
     Let(|number|, [=?=] [$ToNumber$](|v|))
@@ -1607,7 +1606,7 @@
     Set(|proto|, [=create a named properties object=](|interface|, |realm|))
   ElseIf(|interface|.[[inherit]] is not null)
     Set(|proto|, [=interface prototype object=](|interface|.[[inherit]], |realm|))
-  ElseIf(|interface| is ?(the {{DOMException}} [=interface=]))
+  ElseIf(|interface| is a DOMException)
     Set(|proto|, |realm|.[[Intrinsics]].[[%Error.prototype%]])
   Else
     Set(|proto|, |realm|.[[Intrinsics]].[[%Object.prototype%]])

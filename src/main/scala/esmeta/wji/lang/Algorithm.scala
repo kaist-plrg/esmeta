@@ -55,6 +55,47 @@ enum AlgorithmKind:
   /** "The <dfn constructor for="X">name(...)</dfn> constructor, ..." */
   case Constructor(interface: String)
 
+  /** "The <dfn method for="X">name(...)</dfn> method, ..." where `X` names a
+    * WebIDL `namespace` (e.g. `WebAssembly`), not an interface -- initially
+    * extracted as a plain [[Method]] (`AlgorithmExtractor` can't tell the two
+    * apart from the dfn prose alone) and stamped into this kind afterward by
+    * `esmeta.wji.extractor.Extractor.apply`, once `Definition`s are in hand to
+    * make the distinction. Structurally different from [[Method]], not just a
+    * naming variant: WebIDL's "create a namespace object" installs a
+    * namespace's own operations directly on the namespace object itself, while
+    * "create an interface object"/"create an interface prototype object"
+    * installs an interface's members on a *separate* interface prototype object
+    * -- so a namespace operation has no receiver at all (no
+    * `**this**`-implements-interface branding, no `.prototype` segment in its
+    * compiled name: `WebAssembly.compile`, never `WebAssembly.prototype.
+    * compile`) unlike every other kind here. Never `static` either -- that
+    * distinction (a namespace operation's receiver, if any, being its own first
+    * argument rather than `**this**`) is [[Method]]'s own concept for telling a
+    * WebIDL interface's `static` operations apart from its instance ones; a
+    * namespace operation is already receiver-less by construction, so there's
+    * nothing analogous to stamp.
+    */
+  case NamespaceMethod(namespace: String)
+
+  /** "The getter of the <dfn attribute for="X">name</dfn> attribute of the
+    * {{X}} Namespace, ..." where `X` names a WebIDL `namespace` -- the
+    * [[Getter]] counterpart of [[NamespaceMethod]], for exactly the same
+    * structural reason (see that kind's own doc): a namespace attribute's
+    * getter attaches straight to the namespace object itself, no separate
+    * interface prototype object, no `.prototype` segment in its compiled name
+    * (`WebAssembly.JSTag`'s getter compiles under `INTRINSICS.get:WebAssembly.
+    * JSTag`, never `INTRINSICS.get:WebAssembly.WebAssembly.prototype.JSTag`),
+    * and no `**this**`-implements-interface branding (a namespace isn't an
+    * interface an object could implement). Same restamping story too: always
+    * extracted as a plain [[Getter]] first (dfn prose alone can't tell a
+    * namespace attribute from an interface one), restamped here by
+    * `esmeta.wji.extractor.Extractor.apply` once `Definition`s are in hand.
+    * Every namespace attribute observed in this corpus so far (`JSTag`) is
+    * `readonly`, so there's no `NamespaceSetter` counterpart yet -- add one the
+    * same way if a writable namespace attribute ever shows up.
+    */
+  case NamespaceGetter(namespace: String)
+
 /** A formal parameter of an [[Algorithm]], as declared in its `head` prose.
   *
   * @param name
@@ -148,6 +189,17 @@ case class WjiParam(
   *   `esmeta.wji.compiler.lowering.MarkBuiltinBehaviourPass`; every later pass
   *   that cares (`AddBuiltinBehaviourPass`, and its own `preconditions`) just
   *   reads this field, the same reasoning as `returnsCompletion` above.
+  * @param idlReturnType
+  *   the raw WebIDL-declared return type text (e.g. `"undefined"`,
+  *   `"AddressValue"`) for a [[AlgorithmKind.Method]]/
+  *   [[AlgorithmKind.NamespaceMethod]]/[[AlgorithmKind.Constructor]] algorithm
+  * -- stamped by `esmeta.wji.extractor.Extractor.enrichParamTypes` from the
+  * same `webidlOp` lookup that stamps each `WjiParam.idlType`, so this and a
+  * param's `idlType` share the same source and reliability caveat: `None`
+  * whenever no matching WebIDL operation was found (e.g. a `Getter`/ `Setter`,
+  * which have no declared return type of their own to look up). Currently only
+  * consumed to detect the single `"undefined"` case -- see
+  * `esmeta.wji.compiler.lowering.AddInterfaceMemberBuiltinBehaviourPass.returnEpilogue`.
   */
 case class Algorithm(
   id: Option[String],
@@ -158,4 +210,5 @@ case class Algorithm(
   kind: AlgorithmKind = AlgorithmKind.Plain,
   returnsCompletion: Boolean = false,
   isBuiltinBehaviour: Boolean = false,
+  idlReturnType: Option[String] = None,
 )

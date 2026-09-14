@@ -94,6 +94,35 @@ object WebIdlConversion:
       callSite,
     )
 
+  /** invokes the real ECMA-262 `ToNumber(V)`/`ToBigInt(V)` abstract operations,
+    * reentrantly — same rationale as [[toStringValue]]. Idempotent on an
+    * already-`Number`/`BigInt` input (mainline's own implementation returns
+    * immediately without ever reaching `ToPrimitive`/`valueOf`), which is
+    * exactly what makes [[readDictionary]]'s `AddressValue` case below safe to
+    * call ahead of `AddressValueToU64`'s own later, real one — see that case's
+    * own doc.
+    */
+  private def toNumberValue(
+    interp: Interpreter,
+    callSite: Call,
+    v: Value,
+  ): Value =
+    interp.invokeCallable(
+      Clo(interp.st.cfg.getFunc("ToNumber"), Map.empty),
+      List(v),
+      callSite,
+    )
+  private def toBigIntValue(
+    interp: Interpreter,
+    callSite: Call,
+    v: Value,
+  ): Value =
+    interp.invokeCallable(
+      Clo(interp.st.cfg.getFunc("ToBigInt"), Map.empty),
+      List(v),
+      callSite,
+    )
+
   private def isAbrupt(st: State, v: Value): Boolean =
     AbruptT.contains(v, st.heap)
 
@@ -158,6 +187,7 @@ object WebIdlConversion:
     default: Option[Value] = None,
     isSequence: Boolean = false,
     enumValues: Option[Set[String]] = None,
+    isAddressValue: Boolean = false,
   )
 
   private val addressTypeValues = Set("i32", "i64")
@@ -165,24 +195,44 @@ object WebIdlConversion:
   private val valueTypeValues =
     Set("i32", "i64", "f32", "f64", "v128", "externref", "anyfunc")
 
+  // Listed in each dictionary's *own constructor algorithm's* first-reference
+  // order, not IDL declaration order or alphabetical order -- see
+  // `readDictionary`'s own doc for why (`address` before `initial`/`maximum`,
+  // matching `Memory`'s "If |descriptor|["address"] ... Let |initial| be ...
+  // AddressValueToU64(|descriptor|["initial"], ...)").
   private val memoryDescriptorMembers = List(
-    Member("initial", required = true),
-    Member("maximum"),
     Member("address", enumValues = Some(addressTypeValues)),
+    Member("initial", required = true, isAddressValue = true),
+    Member("maximum", isAddressValue = true),
   )
+  // `Table`'s constructor reads `element` before `address` (index.bs:1037-1040
+  // -- "Let |elementtype| be ... ToValueType(|descriptor|["element"]). ...
+  // If |descriptor|["address"] ..."), unlike `Memory`/`Global` where the
+  // algorithm's own order happens to already be alphabetical -- confirmed
+  // against real Node (`node --experimental-wasm-*` not even needed, plain
+  // `WebAssembly.Table` already gives this order) and
+  // `spectec/test/js-api/table/constructor.any.js`'s own "Order of evaluation
+  // for descriptor" expects exactly `[element, ..., address, ..., initial,
+  // ..., maximum, ...]`. Whichever member came first in IDL declaration order
+  // (`dictionary TableDescriptor { required TableKind element; required
+  // AddressValue initial; AddressValue maximum; AddressType address; }`)
+  // isn't it either -- `address` is declared *last* there, but read *second*
+  // by the algorithm.
   private val tableDescriptorMembers = List(
     Member("element", required = true, enumValues = Some(tableKindValues)),
-    Member("initial", required = true),
-    Member("maximum"),
     Member("address", enumValues = Some(addressTypeValues)),
+    Member("initial", required = true, isAddressValue = true),
+    Member("maximum", isAddressValue = true),
   )
   // `boolean mutable = false;` -- the only member across these four
   // dictionaries with an actual IDL default (the js-api spec's other
   // non-required members have none, so an absent one is correctly left out
-  // of the result entirely -- see `readDictionary`).
+  // of the result entirely -- see `readDictionary`). Listed `mutable` before
+  // `value` -- `Global`'s own constructor (index.bs:1191-1192) reads
+  // `|descriptor|["mutable"]` a full step before `|descriptor|["value"]`.
   private val globalDescriptorMembers = List(
-    Member("value", required = true, enumValues = Some(valueTypeValues)),
     Member("mutable", default = Some(Bool(false))),
+    Member("value", required = true, enumValues = Some(valueTypeValues)),
   )
   // `required sequence<ValueType> parameters;` -- element-wise ValueType
   // enum validation (see `Member.enumValues`'s doc), same as a scalar
@@ -330,15 +380,26 @@ object WebIdlConversion:
     val st = interp.st
     var abrupt: Option[Value] = None
     val pairs = scala.collection.mutable.ListBuffer.empty[(Value, Value)]
-    // WebIDL's dictionary conversion algorithm reads members in lexicographic
-    // (alphabetical) order, not declaration order -- `memoryDescriptorMembers`
-    // etc. above list them in the more readable declaration order instead, so
-    // sort here rather than asking every list to already be alphabetized.
-    // Observable via evaluation-order side effects: `spectec/test/js-api/
-    // memory/constructor.any.js`'s "Order of evaluation for descriptor" reads
-    // "address" (declared last) before "initial"/"maximum" for exactly this
-    // reason.
-    val it = members.sortBy(_.name).iterator
+    // Textbook WebIDL "convert ECMAScript value to dictionary" reads members
+    // in lexicographic (alphabetical) order -- tried first here, and it even
+    // fit `Memory`/`Global`'s own observable order (`spectec/test/js-api/
+    // memory/constructor.any.js`'s "Order of evaluation for descriptor"
+    // reads "address"/"mutable" before their alphabetically-later siblings).
+    // But `Table`'s own version of that same test reads `element` — declared
+    // *after* `initial`/`maximum`/`address` in the IDL, and not even
+    // alphabetically first among the four — *before* any of them: confirmed
+    // empirically against real Node, and it's exactly index.bs:1037's own
+    // first constructor step ("Let |elementtype| be ...
+    // ToValueType(|descriptor|["element"])"). So it isn't dictionary-member
+    // order at all; each `descriptor["key"]` is resolved lazily, in the
+    // constructor algorithm's *own* prose reference order for that
+    // particular dictionary -- alphabetical for `Memory`/`Global` only
+    // because their algorithms happen to read members in that order too.
+    // `memoryDescriptorMembers`/`tableDescriptorMembers`/
+    // `globalDescriptorMembers` above are each listed in exactly that
+    // per-algorithm order already, so plain list order is what to use here,
+    // not a generic re-sort.
+    val it = members.iterator
     while abrupt.isEmpty && it.hasNext do
       val member = it.next()
       val key = Str(member.name)
@@ -372,6 +433,41 @@ object WebIdlConversion:
                     case s @ Str(v) if member.enumValues.get(v) =>
                       pairs += key -> s
                     case _ => abrupt = Some(typeError(interp, callSite))
+              // `AddressValue` (`initial`/`maximum`) is declared `any` --
+              // real WebIDL "any" conversion is pure identity, no side effect
+              // -- but `spectec/test/js-api/{memory,table}/constructor.any.js`'s
+              // "Order of evaluation for descriptor" empirically shows real
+              // engines resolving each member's `valueOf`/`toBigInt` inline,
+              // right where that member itself is read (in `members`' own
+              // algorithm-reference order, see that list's own doc), not
+              // deferred until whatever later step happens to consume it --
+              // confirmed directly against Node before writing this. `pairs`
+              // (built so far, in that same single pass) already has
+              // `address` converted by this point in both `Memory`/`Table` --
+              // `memoryDescriptorMembers`/`tableDescriptorMembers` both list
+              // it before `initial`/`maximum` for exactly this reason --
+              // default to "i32" per the constructor's own "otherwise let
+              // addrtype be 'i32'" when it's genuinely absent.
+              // `ToNumber`/`ToBigInt` (not the full `AddressValueToU64` --
+              // that's still called for real, later, by the algorithm body
+              // itself) are enough to reproduce the observed side effect: both
+              // are idempotent identity on an already-Number/BigInt input (no
+              // `ToPrimitive`/`valueOf` reached a second time), so storing the
+              // coerced primitive here just makes the *first* call the one
+              // that actually runs `valueOf` -- `AddressValueToU64`'s own
+              // later `? ToNumber`/`? ToBigInt` still does its real
+              // EnforceRange/range-check work on that primitive, unaffected.
+              case raw if member.isAddressValue =>
+                val addrtype = pairs
+                  .collectFirst {
+                    case (Str("address"), Str(v)) => v
+                  }
+                  .getOrElse("i32")
+                val coerced =
+                  if addrtype == "i64" then toBigIntValue(interp, callSite, raw)
+                  else toNumberValue(interp, callSite, raw)
+                if isAbrupt(st, coerced) then abrupt = Some(coerced)
+                else pairs += key -> st(coerced, Str("Value"))
               case raw =>
                 val value =
                   if member.isSequence then toSequence(st, raw) else raw
@@ -444,20 +540,31 @@ object WebIdlConversion:
     * `ToString`/etc. elsewhere in this object (`Interpreter.invokeCallable`),
     * since it needs `ArrayCreate`/`CreateDataPropertyOrThrow` machinery this
     * object has no reason to reimplement natively.
+    *
+    * A `RecordObj("PromiseCapabilityRecord", ...)` is a third, separate case
+    * from either of those: `webidl/index.bs`'s exported term "a new promise"
+    * (`Return [=?=] [$NewPromiseCapability$] (|constructor|).`) returns the raw
+    * mainline-compiled Completion-record-shaped `PromiseCapabilityRecord`
+    * itself, not its `.[[Promise]]` field, so every namespace operation
+    * following `Let |promise| be [=a new promise=]. ... Return |promise|.`
+    * (`WebAssembly.compile`/`instantiate`) would otherwise return that raw
+    * record — not a `MapObj` (WJI's own dictionary representation, the only
+    * thing the case above matches), so it would fall all the way through to
+    * identity passthrough unconverted, same bug either way. Unwrapped here
+    * instead of at each call site, mirroring what the one hand-written
+    * `manuals/funcs/INTRINSICS.WebAssembly.instantiate.ir` glue (now deleted)
+    * used to do with a bare `%2 = %1.Promise` — but done once, generically, so
+    * `WebAssembly.compile` (which never had that glue, since it never even
+    * existed as a real property before `AlgorithmKind.NamespaceMethod`) gets it
+    * for free too. See `docs/hardcodes.md` #7.
     */
   def toJsValue(interp: Interpreter, callSite: Call, argument: Value): Value =
     val st = interp.st
     argument match
       case addr: Addr =>
         st(addr) match
-          case promise @ RecordObj("CompletionRecord", _) =>
-            promise(Str("Value")) match
-              case addr: Addr =>
-                st(addr) match
-                  case promise @ RecordObj("PromiseCapabilityRecord", _) =>
-                    promise(Str("Promise"))
-                  case _ => ???
-              case _ => ???
+          case RecordObj("PromiseCapabilityRecord", fields) =>
+            fields("Promise")
           case MapObj(entries) =>
             given CFG = st.cfg
             val objAddr = newOrdinaryObject(st)

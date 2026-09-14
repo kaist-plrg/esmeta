@@ -1550,7 +1550,7 @@
     Set(|offset|, |jsBufferSource|.[[ByteOffset]])
     Set(|length|, |jsBufferSource|.[[ByteLength]])
   Else
-    Assert(|jsBufferSource| is new {{ArrayBuffer}} or ?({{SharedArrayBuffer}} object))
+    Assert(|jsBufferSource| is an ArrayBuffer or ?({{SharedArrayBuffer}} object))
     Set(|length|, |jsBufferSource|.[[ArrayBufferByteLength]])
   If([$IsDetachedBuffer$](|jsArrayBuffer|) is true)
     Return(?(the empty [=byte sequence=]))

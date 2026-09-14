@@ -23,7 +23,12 @@ import esmeta.wji.lang.walker.Walker
   *     \[[FunctionAddress]] internal slot") and an "Exported GC Object"
   *     (index.bs:1574: "contains an \[[ObjectAddress]] internal slot") are each
   *     defined purely by the one internal slot they carry, so "is a/an X" and
-  *     "has [[SLOT]]" are the exact same claim there.
+  *     "has [[SLOT]]" are the exact same claim there. `ArrayBuffer` joins this
+  *     family for the same reason (`[[ArrayBufferData]]`,
+  *     webidl/index.bs:9325's "|jsBufferSource| is an {{ArrayBuffer}} or
+  *     {{SharedArrayBuffer}} object") -- reached via
+  *     `CondParser.ArticleInterfaceLink`, the `{{...}}` counterpart of
+  *     `ArticleLink` above, rather than a bikeshed `[=NOUN=]` link.
   *   - WebIDL member-declaration kinds (`regular operation`, `static
   *     operation`) become a `Cond.Eq` against the operation record's own `kind`
   *     field: `esmeta.wji.Initialize`'s `operationRecord` seeds every
@@ -54,6 +59,7 @@ object ExpandWjiIsTypePass extends LoweringPass:
   private val slotOf: Map[String, String] = Map(
     "Exported Function" -> "FunctionAddress",
     "Exported GC Object" -> "ObjectAddress",
+    "ArrayBuffer" -> "ArrayBufferData",
   )
 
   private val memberKindOf: Map[String, String] = Map(

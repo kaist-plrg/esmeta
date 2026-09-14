@@ -4332,23 +4332,7 @@ def get_a_copy_of_the_buffer_source(
     offset = jsBufferSource.ByteOffset
     length = jsBufferSource.ByteLength
   } else {
-    assert (|| (= jsBufferSource (record [ArrayBuffer] {
-      "GetPrototypeOf" : clo<"Record[OrdinaryObject].GetPrototypeOf">,
-      "SetPrototypeOf" : clo<"Record[OrdinaryObject].SetPrototypeOf">,
-      "IsExtensible" : clo<"Record[OrdinaryObject].IsExtensible">,
-      "PreventExtensions" : clo<"Record[OrdinaryObject].PreventExtensions">,
-      "GetOwnProperty" : clo<"Record[OrdinaryObject].GetOwnProperty">,
-      "DefineOwnProperty" : clo<"Record[OrdinaryObject].DefineOwnProperty">,
-      "HasProperty" : clo<"Record[OrdinaryObject].HasProperty">,
-      "Get" : clo<"Record[OrdinaryObject].Get">,
-      "Set" : clo<"Record[OrdinaryObject].Set">,
-      "Delete" : clo<"Record[OrdinaryObject].Delete">,
-      "OwnPropertyKeys" : clo<"Record[OrdinaryObject].OwnPropertyKeys">,
-      "Prototype" : null,
-      "Extensible" : true,
-      "PrivateElements" : (list []),
-      "__MAP__" : (map[Unknown, Unknown]),
-    })) (yet "{{SharedArrayBuffer}} object"))
+    assert (|| (&& (? jsBufferSource: Record[Object]) (exists jsBufferSource.ArrayBufferData)) (yet "{{SharedArrayBuffer}} object"))
     length = jsBufferSource.ArrayBufferByteLength
   }
   call _call1 = clo<"IsDetachedBuffer">(jsArrayBuffer)

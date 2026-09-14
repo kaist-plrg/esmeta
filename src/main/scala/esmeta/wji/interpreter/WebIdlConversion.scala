@@ -139,6 +139,19 @@ object WebIdlConversion:
           case _            => false
       case _ => false
 
+  /** `AllowSharedBufferSource`'s own union-membership test -- see that case in
+    * `toIdlValue` for why this checks slot presence rather than `tname`.
+    */
+  private def isBufferSource(st: State, v: Value): Boolean = v match
+    case addr: Addr =>
+      st(addr) match
+        case r: RecordObj =>
+          r.map.contains("ArrayBufferData") || r.map.contains(
+            "ViewedArrayBuffer",
+          )
+        case _ => false
+    case _ => false
+
   /** builds a genuine `ThrowCompletion(TypeError)`, the same two-step idiom
     * `manuals/funcs/ConvertToInt.ir` and `CompletionWrapping`'s compiled output
     * both use (`__NEW_ERROR_OBJ__` then `ThrowCompletion`) — reused here so a
@@ -294,6 +307,26 @@ object WebIdlConversion:
       else Left(typeError(interp, callSite))
     case Str("Tag") | Enum("Tag") =>
       if implementsInterface(interp.st, argument, "Tag") then Right(argument)
+      else Left(typeError(interp, callSite))
+    // `typedef (ArrayBuffer or SharedArrayBuffer or [AllowShared]
+    // ArrayBufferView) AllowSharedBufferSource` (webidl/index.bs:15087) --
+    // unlike `Module`/`Tag` above, a union of *built-in* ES types, which
+    // mainline constructs as plain `"Object"`-tagged records (no per-type
+    // tname `implementsInterface` could key off) -- so this checks the same
+    // internal slot `get_a_copy_of_the_buffer_source`
+    // (webidl/index.bs:9312-9327) itself keys off: `[[ArrayBufferData]]` for
+    // an ArrayBuffer/SharedArrayBuffer, `[[ViewedArrayBuffer]]` for any typed
+    // array/DataView view. Without this, an invalid argument (a plain
+    // `Number`, `{}`, the `ArrayBuffer` constructor itself, ...) sailed
+    // straight through as identity passthrough into that algorithm's own
+    // internal `Assert`, which -- being `A || (yet "{{SharedArrayBuffer}}
+    // object")` -- can never actually fail (`IAssert` catches *any*
+    // `Throwable` from evaluating an assert expression as "not yet compiled,
+    // skip", so the `yet` branch silently no-ops the whole assert instead of
+    // surfacing the rejection) and so never threw the `TypeError` real
+    // engines do here.
+    case Str("AllowSharedBufferSource") | Enum("AllowSharedBufferSource") =>
+      if isBufferSource(interp.st, argument) then Right(argument)
       else Left(typeError(interp, callSite))
     // a bare `sequence<T>` parameter (as opposed to one nested inside a
     // dictionary, see `Member.isSequence`) -- so far only

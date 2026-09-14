@@ -107,6 +107,26 @@ const badImportsPatches = [
   ],
 ];
 
+// `instance/constructor.any.js` and `constructor/instantiate.any.js`
+// (docs/out_of_scope.md #4) -- 4 of `instanceTestFactory`'s entries build a
+// `new WebAssembly.Memory({ initial: 64, maximum: 128 })` (4MB, each byte
+// individually JSON-encoded over the SpecTec RPC bridge -- see
+// docs/out_of_scope.md #4 for why that blows well past this repo's `-Xmx3g`)
+// inside their own factory function, only actually called when
+// `test()`/`promise_test()` invokes that specific subtest's callback -- so
+// filtering them out of the array each file's own driving loop consumes is
+// enough; nothing upstream of that loop ever calls their factory function at
+// all. Both files pull in the exact same shared
+// `spectec/test/js-api/instanceTestFactory.js` META script and drive it with
+// the identical `for (const [name, fn] of instanceTestFactory) {` loop
+// header, so the same `[from, to]` pair patches both verbatim.
+const instanceTestFactoryOomPatches = [
+  [
+    "for (const [name, fn] of instanceTestFactory) {",
+    'for (const [name, fn] of instanceTestFactory.filter(([n]) => !["getter order for imports object", "imports", "imports with empty module names", "imports with empty names"].includes(n))) {',
+  ],
+];
+
 // `constructor/compile.any.js`, `constructor/instantiate.any.js`,
 // `constructor/validate.any.js`, `module/constructor.any.js`
 // (docs/out_of_scope.md #5) -- mainline ESMeta doesn't construct
@@ -126,7 +146,11 @@ const sharedArrayBufferPatches = [
 
 const perFilePatches = {
   "constructor/compile.any.js": sharedArrayBufferPatches,
-  "constructor/instantiate.any.js": sharedArrayBufferPatches,
+  // also needs `instanceTestFactoryOomPatches` (docs/out_of_scope.md #4) --
+  // see that const's own doc above.
+  "constructor/instantiate.any.js": sharedArrayBufferPatches.concat(
+    instanceTestFactoryOomPatches,
+  ),
   "constructor/validate.any.js": sharedArrayBufferPatches,
   "module/constructor.any.js": sharedArrayBufferPatches,
   // `limits.any.js` (docs/out_of_scope.md #3) -- the corpus's one
@@ -193,21 +217,11 @@ const perFilePatches = {
     ],
   ],
 
-  // `instance/constructor.any.js` (docs/out_of_scope.md #4) -- 4 of
-  // `instanceTestFactory`'s entries build a `new WebAssembly.Memory({
-  // initial: 64, maximum: 128 })` (4MB, each byte individually JSON-encoded
-  // over the SpecTec RPC bridge -- see docs/out_of_scope.md #4 for why that
-  // blows well past this repo's `-Xmx3g`) inside their own factory function,
-  // only actually called when `test()` invokes that specific subtest's
-  // callback -- so filtering them out of the array `test()`'s own driving
-  // loop consumes is enough; nothing upstream of that loop ever calls their
-  // factory function at all.
-  "instance/constructor.any.js": [
-    [
-      "for (const [name, fn] of instanceTestFactory) {",
-      'for (const [name, fn] of instanceTestFactory.filter(([n]) => !["getter order for imports object", "imports", "imports with empty module names", "imports with empty names"].includes(n))) {',
-    ],
-  ],
+  // `instanceTestFactoryOomPatches` (docs/out_of_scope.md #4, see that
+  // const's own doc above) -- `constructor/instantiate.any.js` also needs it,
+  // merged into its `sharedArrayBufferPatches` entry above instead of listed
+  // here (one file, one key).
+  "instance/constructor.any.js": instanceTestFactoryOomPatches,
 
   // `instance/constructor-bad-imports.any.js` and
   // `constructor/instantiate-bad-imports.any.js` (docs/out_of_scope.md #4) --

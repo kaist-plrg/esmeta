@@ -92,7 +92,10 @@ object Math {
   val one: Math = Math(1)
   inline def apply(n: Int): Math = Math(BigDecimal(n, UNLIMITED))
   inline def apply(n: Long): Math = Math(BigDecimal(n, UNLIMITED))
-  inline def apply(n: Double): Math = Math(BigDecimal(n, UNLIMITED))
+  // `BigDecimal(n, UNLIMITED)` rounds `n` through `Double.toString` first,
+  // losing precision `𝔽(ℝ(x) op ℝ(y))`-shaped ops rely on -- see
+  // docs/esmeta_errors.md #5.
+  inline def apply(n: Double): Math = Math(BigDecimal.exact(n))
   inline def apply(n: scala.math.BigInt): Math = Math(BigDecimal(n, UNLIMITED))
   inline def apply(s: String): Math = Math(BigDecimal(s, UNLIMITED))
   inline def from(s: String, b: Int): Math = apply(scala.math.BigInt(s, b))

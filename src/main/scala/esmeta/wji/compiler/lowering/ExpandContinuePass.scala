@@ -21,18 +21,17 @@ import esmeta.wji.lang.{Algorithm, Instr}
   * }}}
   * i.e. `rest` (everything that would otherwise run after this iteration's
   * guard) moves into the `IfChain`'s own (until now empty) fallback branch —
-  * skipping it exactly when the guard fires, the same effect a real
-  * `continue` would have, with `Continue` itself simply dropped (an empty
-  * branch body compiles to a no-op `ISeq(Nil)`, see `Compiler.
-  * compileInstrs`).
+  * skipping it exactly when the guard fires, the same effect a real `continue`
+  * would have, with `Continue` itself simply dropped (an empty branch body
+  * compiles to a no-op `ISeq(Nil)`, see `Compiler. compileInstrs`).
   *
-  * Deliberately narrow: only fires on a single-branch, fallback-less
-  * `IfChain` whose one branch body is exactly `[Continue(Nil)]` — the sole
-  * shape this corpus produces. A `Continue` reached any other way (nested
-  * deeper, alongside other statements in its own branch, or under an
-  * `ElseIf`/existing `Else`) is left untouched, still compiling to
-  * `Compiler`'s `EYet("continue")` placeholder, rather than guessing at a
-  * transform for a shape never actually observed.
+  * Deliberately narrow: only fires on a single-branch, fallback-less `IfChain`
+  * whose one branch body is exactly `[Continue(Nil)]` — the sole shape this
+  * corpus produces. A `Continue` reached any other way (nested deeper,
+  * alongside other statements in its own branch, or under an `ElseIf`/existing
+  * `Else`) is left untouched, still compiling to `Compiler`'s
+  * `EYet("continue")` placeholder, rather than guessing at a transform for a
+  * shape never actually observed.
   *
   * Category: Structural desugaring — Elimination.
   */

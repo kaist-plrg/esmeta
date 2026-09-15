@@ -55,6 +55,7 @@ case class State(
     case Wasm(ALValue.TupV(vs))     => apply(vs, field)
     case Wasm(ALValue.CaseV(_, vs)) => apply(vs, field)
     case Wasm(ALValue.StrV(fields)) => applyFields(fields, field)
+    case Tup(vs)                    => applyTup(vs, field)
     case v                          => throw InvalidRefBase(v)
 
   /** string field getter */
@@ -84,6 +85,22 @@ case class State(
     idx.flatMap(vs.lift) match
       case Some(v) => Wasm(v)
       case None    => throw InvalidRefBase(base)
+
+  /** [[Tup]] positional field getter — the plain-`Value` counterpart of
+    * [[apply(vs:List[ALValue],field:Value)]] just above, same index-shape
+    * handling (a native `Math` or an unwrapped-`Wasm` index), for a tuple that
+    * was built directly as a plain grouping (`esmeta.ir.ETup`, see [[Tup]]'s
+    * own doc) rather than crossing back from the WasmHost boundary.
+    */
+  def applyTup(vs: Vector[Value], field: Value): Value =
+    val idx: Option[Int] = field match
+      case Math(k) if k.isValidInt                          => Some(k.toInt)
+      case Wasm(ALValue.NumV(ALNum.Nat(k))) if k.isValidInt => Some(k.toInt)
+      case Wasm(ALValue.NumV(ALNum.Int(k))) if k.isValidInt => Some(k.toInt)
+      case _                                                => None
+    idx.flatMap(vs.lift) match
+      case Some(v) => v
+      case None    => throw InvalidRefBase(Tup(vs))
 
   /** Wasm-embedding record field getter. Case-insensitive: the Wasm Core Spec's
     * own runtime representation names every record field in all-caps (`FUNCS`,
@@ -209,6 +226,7 @@ case class State(
     // opaque Wasm-embedding-owned values have no ES-side type; the type
     // analyzer never runs over WJI-derived functions today
     case _: Wasm => ValueTy.Top
+    case _: Tup  => ValueTy.Top
 
   /** get type of addresses in current state */
   def typeOf(obj: Obj): ValueTy = typeOf(obj, detail = true)

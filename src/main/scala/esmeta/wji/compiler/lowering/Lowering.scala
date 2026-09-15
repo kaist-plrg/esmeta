@@ -70,7 +70,6 @@ object Lowering:
     // name normalization, ...) treats them exactly like real extracted ones.
     AddJsStringBuiltinsPass,
     AddBuiltinFunctionHostfuncPass,
-    FixFindABuiltinReturnPass,
     // prepare
     ResolveTypeAnnotationPass,
     ElideHtmlHostHooksPass,

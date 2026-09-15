@@ -218,6 +218,24 @@ object Wasm:
     case ALValue.BoolV(b) => Bool(b)
     case other            => new Wasm(other)
 
+/** a fixed-arity, heterogeneous grouping of plain [[Value]]s — mirrors
+  * [[ALValue.TupV]]'s *shape* (and is what `esmeta.ir.ETup` — one of the
+  * `SpecTecExpr` nodes mirroring [[ALValue]]'s own cases — now evaluates to),
+  * but deliberately stays in the plain `Value` domain rather than eagerly
+  * `toAL`-converting its elements the way `ETup` used to: like every other
+  * plain `Value` (`Str`/`Bool`/`Number`/...), a `Tup` only needs to become an
+  * [[ALValue]] at the point it actually crosses the `esmeta.wji.bridge.host.
+  * WasmHost` boundary (`esmeta.state.util.ALValueConversion.toAL`'s own `Tup`
+  * case) — not at construction time, which used to force *every* element to be
+  * `ALValue`-representable even when the tuple was a purely WJI-internal
+  * grouping (e.g. `find_a_builtin`'s "(|builtinSetName|,
+  * |builtin|)") that never crosses that boundary at all and may contain a
+  * closure. `State.apply`'s positional field getter has a `Tup` case alongside
+  * its existing `Wasm(ALValue.TupV(...))` one for the same `base[i]` access
+  * either shape already supports.
+  */
+case class Tup(values: Vector[Value]) extends Value
+
 /** simple values
   *
   * Simple values are ECMAScript values except objects and symbols. ECMAScript

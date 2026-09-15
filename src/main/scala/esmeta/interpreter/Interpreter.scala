@@ -332,18 +332,16 @@ class Interpreter(
         List(Wasm(state), Wasm(ALValue.ListV(vals))),
         call,
       ) match
-        case Wasm(ALValue.TupV(List(newStateAL, returnAL))) =>
-          val returnVals = returnAL match
+        case Tup(Vector(newState, returnVal)) =>
+          val returnVals = toAL(st, returnVal) match
             case ALValue.ListV(rs) => rs
             case av                => List(av)
-          // patch fresh ArrayBuffer bytes into newStateAL *before* handing
-          // it back -- not a separate mem_write_bytes RPC afterward, which
+          // patch fresh ArrayBuffer bytes into newState *before* handing it
+          // back -- not a separate mem_write_bytes RPC afterward, which
           // would race against SpecTec's own `Ds.Store.set` of this same
           // returned state (see `personal` plan notes on the ordering
           // hazard this sidesteps).
-          val patchedState = wasmMemoryBridge.pushMemoriesIntoStore(
-            Wasm(newStateAL),
-          )
+          val patchedState = wasmMemoryBridge.pushMemoriesIntoStore(newState)
           Right((toAL(st, patchedState), returnVals))
         case other =>
           Left(
@@ -606,7 +604,7 @@ class Interpreter(
         ),
       )
     case ETup(elems) =>
-      Wasm(ALValue.TupV(elems.map(e => toAL(st, eval(e)))))
+      Tup(elems.map(eval).toVector)
     case EImplements(expr, iface) =>
       Bool(eval(expr) match
         case addr: Addr =>

@@ -267,3 +267,58 @@
   — 그 파일은 이후 또 다른 별개 gap들에 부딪혀 여전히 `knownFailing`
   이었다가, 남은 gap들도 모두 풀리면서 최종적으로 40/40 완전 통과함
   (`docs/out_of_scope.md` #6, `personal/DONE.md` 참고).
+
+## 7. `ir.ETup`이 원소 전부를 무조건 `ALValue`로 변환하도록 스코프가 좁혀져 있었음
+
+- **File**: `src/main/scala/esmeta/state/Value.scala`(신규 `Tup` 값),
+  `src/main/scala/esmeta/interpreter/Interpreter.scala`(`ETup`의 `eval`,
+  `toHostFunc`), `src/main/scala/esmeta/state/util/ALValueConversion.scala`
+  (`toAL`), `src/main/scala/esmeta/state/State.scala`(`applyTup`),
+  `src/main/scala/esmeta/state/util/{Stringifier,UnitWalker}.scala`,
+  `src/main/scala/esmeta/ty/ValueTy.scala`(exhaust성 케이스).
+- **Before**: `esmeta.ir.Expr`의 `SpecTecExpr` 계열(`ECase`/`EOpt`/`ETup`)은
+  각각 `ALValue.CaseV`/`OptV`/`TupV`와 1:1 대응하도록 설계돼 있고, `ETup`의
+  `eval`은 `Wasm(ALValue.TupV(elems.map(e => toAL(st, eval(e)))))` — **구성되는
+  즉시** 원소 전부를 `ALValue`로 변환. `func_alloc` 결과 `(store, funcaddr)`처럼
+  진짜 SpecTec 경계를 넘나드는 값을 짓는 용도로는 맞는 설계였지만, WJI의
+  `Compiler.compileExpr`는 스펙 산문의 "(A, B)" ad-hoc pairing을 **전부**(wasm과
+  무관한 것까지) 이 `Expr.Tuple → ETup` 경로로 컴파일하고 있었음 — 지금까지는
+  그 "(A, B)"가 등장하는 자리가 우연히 다 wasm 값들이라 안 걸렸을 뿐.
+  `js-string` 빌트인 테이블에 클로저(`steps`)를 담아야 하면서 처음으로 깨짐
+  (`find_a_builtin`의 순수 WJI 내부용 `(|builtinSetName|, |builtin|)`가
+  클로저를 실어나르게 됨) — `NoWasmValue: cannot pass clo<...> across the
+  WasmHost boundary`로 크래시.
+- **After**: `esmeta.state.Value`에 `Tup(values: Vector[Value])`를 새로
+  추가 — `Str`/`Bool`/`Number`처럼 순수 WJI/ESMeta 쪽 값으로 남고,
+  `ALValue`로의 변환은 **실제로 WasmHost 경계를 넘는 시점**(`toAL`)에만
+  일어나도록 늦춤. `ETup`의 `eval`은 이제 `Tup(elems.map(eval).toVector)`만
+  만들고, `toAL`엔 `case Tup(vs) => ALValue.TupV(vs.map(toAL(st, _)).toList)`
+  케이스 추가(변환이 실제로 필요한 지점에서만 재귀적으로 시도). `State.apply`엔
+  `Wasm(ALValue.TupV(vs)) => apply(vs, field)`와 나란히 `Tup(vs) =>
+  applyTup(vs, field)`를 추가해서 `base[i]` 인덱싱이 두 표현 모두에서
+  동일하게 동작. `toHostFunc`(hostfunc 클로저의 반환값을 해석하는 자리)도
+  `case Wasm(ALValue.TupV(List(newStateAL, returnAL)))` 대신 `case
+  Tup(Vector(newState, returnVal))`로 바꾸고, 그 안에서 `toAL`을 그 자리에서
+  호출하도록 조정.
+- **왜 "esmeta_changes"로 분류했는가**: `ETup`이 원소를 즉시 `ALValue`로
+  변환하는 것 자체는 버그가 아니라 "SpecTec 경계를 넘나드는 값을 짓는
+  용도"라는 좁은 의도로 처음부터 설계된 동작(`SpecTecExpr` 그룹 전체가
+  `ALValue`의 각 case를 그대로 미러링하도록 만들어져 있음, 코드 주석으로
+  확인) — WJI가 그 범위를 넘어 "그냥 WJI 내부용 ad-hoc 그룹핑"까지 같은
+  노드로 우겨넣어 쓴 것이 원인. `ALValue` 변환 시점을 "구성 시" → "실제 경계를
+  넘을 때"로 늦춰서, 원래 mainline이 이미 다른 모든 `Value`(`Str`/`Bool`/
+  `Number`/...)에 적용하고 있던 것과 같은 원칙("WasmHost 경계를 실제로 넘을
+  때만 `toAL`")을 `Tup`에도 동일하게 적용한 것 — mainline 자신의 기존
+  설계 원칙을 일반화한 확장이라 WJI 전용 하드코딩(`docs/hardcodes.md`)이
+  아니라 이쪽으로 분류.
+- **부수 효과 (WJI 쪽 정리)**: `find_a_builtin`의 `Return (|builtinSetName|,
+  |builtin|)`이 클로저를 실어나르기 위해 임시로 만들었던
+  `FixFindABuiltinReturnPass`(`Expr.Tuple`을 `Expr.List_`로 바꿔치기하던 패치)가
+  이 수정으로 완전히 불필요해져서 삭제 — `find_a_builtin`도, `js-string`
+  빌트인 테이블도 이제 스펙 산문 그대로 `Expr.Tuple`(→ `(tup ...)`)로 컴파일됨.
+- **검증**: `sbt test` 529/529(`Stringifier`/`UnitWalker`/`ValueTy`의
+  exhaustivity 경고까지 전부 해소). `js-string/basic.any.js`를 리팩터링
+  전/후로 각각 `-wji-eval:log`로 돌려서 `match_externtype` 호출까지 정확히
+  같은 지점(같은 StepCnt)에 도달하는 것 확인 — 동작 회귀 없음(이 파일 자체는
+  `match_externtype` 불일치라는 별개 미해결 gap 때문에 여전히 `knownFailing`,
+  `personal/TODO.md` #54 참고).

@@ -197,6 +197,7 @@ sealed trait ValueTy extends Ty with Lattice[ValueTy] {
     // values yet (the type analyzer never runs over WJI-derived functions
     // today); treat as contained by nothing until one is added.
     case _: Wasm => false
+    case _: Tup  => false
 
   /** copy value type */
   def copied(

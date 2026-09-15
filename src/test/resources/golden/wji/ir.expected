@@ -3833,7 +3833,7 @@ def get_the_builtins_for_a_builtin_set(
   call-embed _jsStringFuncType9 = <fold>((case "->" (list [(case "REF" (opt (case "NULL" )) (case "EXTERN" )), (case "I32" ), (case "I32" )]) (list [(case "REF" (opt) (case "EXTERN" ))])))
   call-embed _jsStringFuncType10 = <fold>((case "->" (list [(case "REF" (opt (case "NULL" )) (case "EXTERN" )), (case "REF" (opt (case "NULL" )) (case "EXTERN" ))]) (list [(case "I32" )])))
   call-embed _jsStringFuncType11 = <fold>((case "->" (list [(case "REF" (opt (case "NULL" )) (case "EXTERN" )), (case "REF" (opt (case "NULL" )) (case "EXTERN" ))]) (list [(case "I32" )])))
-  return (list [(list ["cast", _jsStringFuncType1, clo<"js-string-cast-steps">]), (list ["test", _jsStringFuncType2, clo<"js-string-test-steps">]), (list ["fromCharCode", _jsStringFuncType3, clo<"js-string-fromcharcode-steps">]), (list ["fromCodePoint", _jsStringFuncType4, clo<"js-string-fromcodepoint-steps">]), (list ["charCodeAt", _jsStringFuncType5, clo<"js-string-charcodeat-steps">]), (list ["codePointAt", _jsStringFuncType6, clo<"js-string-codepointat-steps">]), (list ["length", _jsStringFuncType7, clo<"js-string-length-steps">]), (list ["concat", _jsStringFuncType8, clo<"js-string-concat-steps">]), (list ["substring", _jsStringFuncType9, clo<"js-string-substring-steps">]), (list ["equals", _jsStringFuncType10, clo<"js-string-equals-steps">]), (list ["compare", _jsStringFuncType11, clo<"js-string-compare-steps">])])
+  return (list [(tup "cast" _jsStringFuncType1 clo<"js-string-cast-steps">), (tup "test" _jsStringFuncType2 clo<"js-string-test-steps">), (tup "fromCharCode" _jsStringFuncType3 clo<"js-string-fromcharcode-steps">), (tup "fromCodePoint" _jsStringFuncType4 clo<"js-string-fromcodepoint-steps">), (tup "charCodeAt" _jsStringFuncType5 clo<"js-string-charcodeat-steps">), (tup "codePointAt" _jsStringFuncType6 clo<"js-string-codepointat-steps">), (tup "length" _jsStringFuncType7 clo<"js-string-length-steps">), (tup "concat" _jsStringFuncType8 clo<"js-string-concat-steps">), (tup "substring" _jsStringFuncType9 clo<"js-string-substring-steps">), (tup "equals" _jsStringFuncType10 clo<"js-string-equals-steps">), (tup "compare" _jsStringFuncType11 clo<"js-string-compare-steps">)])
 }
 def find_a_builtin(
   import: Unknown,
@@ -3857,7 +3857,7 @@ def find_a_builtin(
           let builtin = _iterList3[_iterIdx4]
           let builtinName = builtin[0]
           if (= importName builtinName) {
-            return (list [builtinSetName, builtin])
+            return (tup builtinSetName builtin)
           } else nop
           _iterIdx4 = (+ _iterIdx4 1)
         }

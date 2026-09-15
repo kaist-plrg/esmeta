@@ -4,10 +4,10 @@ import esmeta.wji.lang.{Algorithm, Expr, Instr, WjiParam}
 import esmeta.wji.lang.parser.ExprParser
 
 /** Hand-fills `get_the_builtins_for_a_builtin_set`'s body (js-api/index.bs:
-  * 1836: "Return a list of (|name|, |funcType|, |steps|) for the set with
-  * name |builtinSetName| defined within this section.") — a self-reference
-  * to "this section"'s own thirteen `js-string-*` `<div algorithm>` blocks
-  * (already extracted and compiled as ordinary standalone functions, e.g.
+  * 1836: "Return a list of (|name|, |funcType|, |steps|) for the set with name
+  * |builtinSetName| defined within this section.") — a self-reference to "this
+  * section"'s own thirteen `js-string-*` `<div algorithm>` blocks (already
+  * extracted and compiled as ordinary standalone functions, e.g.
   * `js-string-cast`) that no formal algorithm/function call describes, so
   * nothing short of a hardcoded table can fill it in — the same judgment call
   * `find_a_builtin`'s "does not refer to a builtin set" gap already made
@@ -17,32 +17,32 @@ import esmeta.wji.lang.parser.ExprParser
   * (externref/i32/(ref extern)) — `fromCharCodeArray`/`intoCharCodeArray`
   * additionally need a shared Wasm GC array type (`(rec (type (array (mut
   * i16)))).0`), a kind of deftype construction not yet attempted anywhere in
-  * WJI, and are deliberately left out for now (still `Unknown`/absent from
-  * the table, so any test path reaching them fails loudly rather than
-  * silently misbehaving).
+  * WJI, and are deliberately left out for now (still `Unknown`/absent from the
+  * table, so any test path reaching them fails loudly rather than silently
+  * misbehaving).
   *
   * For each of the 11, this synthesizes:
   *   - a `funcType` value, built the same way `get_the_javascript_exception_
   *     tag`'s already-working `tag_alloc` call builds one: a raw `Case("[=
-  *     comp-type/func=]", [params, results])` (SpecTec's comptype-arrow
-  *     shape, `ResolveLinksPass`/`NormalizeSpecTecCaseShapePass`'s normal
-  *     job to turn into a real `("->", ...)` value) passed through the
-  *     `fold` embedding (`WasmHost.names`), matching `SpecPatch`'s own
+  *     comp-type/func=]", [params, results])` (SpecTec's comptype-arrow shape,
+  *     `ResolveLinksPass`/`NormalizeSpecTecCaseShapePass`'s normal job to turn
+  *     into a real `("->", ...)` value) passed through the `fold` embedding
+  *     (`WasmHost.names`), matching `SpecPatch`'s own
   *     `[=fold=]([=comp-type/func=] ...)` correction for that exact call
-  *     (`docs/spec_inconsistencies.md`'s `tag_alloc` fix) — `func_alloc`
-  *     needs the same registered/folded deftype `tag_alloc` does, just never
-  *     spelled out anywhere in prose for js-string's builtins (there's no
+  *     (`docs/spec_inconsistencies.md`'s `tag_alloc` fix) — `func_alloc` needs
+  *     the same registered/folded deftype `tag_alloc` does, just never spelled
+  *     out anywhere in prose for js-string's builtins (there's no
   *     `[=tag_alloc=]`-style call site to patch; the funcType is only ever
   *     mentioned as backtick-quoted SpecTec source text above each builtin's
   *     own `<div algorithm>`, never fed through any algorithm step at all).
   *     `ExprParser.parse` on each param/result's exact link text (`"[=
   *     externref=]"`/`"[=i32=]"`/`"[=ref=] [=heap-type/extern=]"`) reuses the
-  *     identical spec vocabulary already proven to resolve correctly
-  *     elsewhere in this corpus (`ToValueType`'s `[=i32=]` return,
-  *     `SpecPatch`'s own `[=ref=] [=heap-type/extern=]` correction) rather
-  *     than hand-encoding the resolved `Case`/`Opt` shapes directly.
-  *   - a `steps` value: not the raw `js-string-X` algorithm itself (each has
-  *     a different arity — 1 to 3 positional params — while `create_a_
+  *     identical spec vocabulary already proven to resolve correctly elsewhere
+  *     in this corpus (`ToValueType`'s `[=i32=]` return, `SpecPatch`'s own
+  *     `[=ref=] [=heap-type/extern=]` correction) rather than hand-encoding the
+  *     resolved `Case`/`Opt` shapes directly.
+  *   - a `steps` value: not the raw `js-string-X` algorithm itself (each has a
+  *     different arity — 1 to 3 positional params — while `create_a_
   *     builtin_function`'s `hostfunc` needs to invoke whatever `steps` it's
   *     given uniformly, as a single wasm `arguments` list, see
   *     `AddBuiltinFunctionHostfuncPass`), but a small synthetic wrapper
@@ -53,8 +53,8 @@ import esmeta.wji.lang.parser.ExprParser
   *     call" purpose).
   *
   * Runs first in the pipeline (no `requires`) precisely so every pass that
-  * would ordinarily process this material when it comes from real spec
-  * prose — `ResolveLinksPass`, `NormalizeSpecTecCaseShapePass`,
+  * would ordinarily process this material when it comes from real spec prose —
+  * `ResolveLinksPass`, `NormalizeSpecTecCaseShapePass`,
   * `ExpandPerformReturnResultPass`, `NormalizeAlgoNamePass`, ... — also sees
   * these hand-built algorithms and treats them exactly the same way.
   *
@@ -66,9 +66,9 @@ object AddJsStringBuiltinsPass extends LoweringPass:
 
   /** One `js-string-*` builtin: its `<div algorithm="js-string-NAME">`'s own
     * compiled name (already all-lowercase, see that div's own algorithm; not
-    * necessarily identical to `name`'s casing), the display `name` used as
-    * the builtin-set table's own key (matches `<h4 id="js-string-NAME">`'s
-    * exact casing), and its `funcType`'s param/result link texts.
+    * necessarily identical to `name`'s casing), the display `name` used as the
+    * builtin-set table's own key (matches `<h4 id="js-string-NAME">`'s exact
+    * casing), and its `funcType`'s param/result link texts.
     */
   private case class Builtin(
     algoName: String,
@@ -180,20 +180,25 @@ object AddJsStringBuiltinsPass extends LoweringPass:
     val funcTypeVars = builtins.indices.map(i => s"_jsStringFuncType${i + 1}")
     val foldInstrs = builtins.zip(funcTypeVars).map(foldFuncType)
     val tableEntries = builtins.zip(funcTypeVars).map { (b, v) =>
-      // a plain heap `List_`, not `Expr.Tuple` -- `Compiler.compileExpr`
-      // compiles `Tuple` straight to `ir.ETup`, whose own `eval` (mainline
-      // `Interpreter.scala`) unconditionally `toAL`-converts every element
-      // (it's the Wasm-*value* tuple representation, e.g. a `func_alloc`
-      // result's `(store, funcaddr)`) -- `steps` (a closure) can't cross that
-      // boundary and was never meant to (`func_alloc`'s own Scala-side
-      // `toHostFunc` accepts a closure value directly, no ALValue needed).
-      Expr.List_(
-        List(Expr.Str(b.name), Expr.Var(v), Expr.AlgoRef(s"${b.algoName}-steps")),
+      // matches the spec's own "(|name|, |funcType|, |steps|)" notation
+      // directly -- `Expr.Tuple` compiles to `ir.ETup`/`Value.Tup`, which
+      // (since mainline's `Interpreter`/`ALValueConversion` learned to only
+      // `toAL`-convert a `Tup`'s elements lazily, at the point one actually
+      // crosses the WasmHost boundary, rather than eagerly at construction)
+      // now safely carries `steps` (a closure) same as any other element.
+      Expr.Tuple(
+        List(
+          Expr.Str(b.name),
+          Expr.Var(v),
+          Expr.AlgoRef(s"${b.algoName}-steps"),
+        ),
       )
     }
     val patched = algos.map { a =>
       if a.name.contains(TargetAlgoName) then
-        a.copy(body = foldInstrs :+ Instr.Return(Some(Expr.List_(tableEntries))))
+        a.copy(body =
+          foldInstrs :+ Instr.Return(Some(Expr.List_(tableEntries))),
+        )
       else a
     }
     patched ::: builtins.map(stepsAlgo)

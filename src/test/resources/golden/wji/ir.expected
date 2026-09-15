@@ -1,4 +1,4 @@
-152 func(s)
+164 func(s)
 def compile_a_webassembly_module(
   bytes: Unknown,
 ): Unknown = {
@@ -241,14 +241,13 @@ def instantiate_imported_strings(
     let moduleName = _tuple1[0]
     let componentName = _tuple1[1]
     let externtype = _tuple1[2]
-    if (! (= moduleName importedStringModule)) {
-      (yet "continue")
-    } else nop
-    let stringConstant = componentName
-    call _call1 = clo<"CreateDataProperty">(exportsObject, stringConstant, stringConstant)
-    assert (= _call1.Type ~normal~)
-    let status = _call1.Value
-    assert (= status true)
+    if (! (= moduleName importedStringModule)) {} else {
+      let stringConstant = componentName
+      call _call1 = clo<"CreateDataProperty">(exportsObject, stringConstant, stringConstant)
+      assert (= _call1.Type ~normal~)
+      let status = _call1.Value
+      assert (= status true)
+    }
     _iterIdx2 = (+ _iterIdx2 1)
   }
   return exportsObject
@@ -270,13 +269,12 @@ def read_the_imports(
   let _iterIdx2 = 0
   while (< _iterIdx2 (sizeof _iterList1)) {
     let builtinSetName = _iterList1[_iterIdx2]
-    let builtinSetQualifiedName = (yet "|builtinSetName| prefixed with \"wasm:\"")
+    let builtinSetQualifiedName = (concat "wasm:" builtinSetName)
     assert (yet "|builtinOrStringImports| does not contain |builtinSetQualifiedName|")
-    if (yet "|builtinSetName| does not refer to a builtin set") {
-      (yet "continue")
-    } else nop
-    call exportsObject = clo<"instantiate_a_builtin_set">(builtinSetName)
-    builtinOrStringImports[builtinSetQualifiedName] = exportsObject
+    if (! (= builtinSetName "js-string")) {} else {
+      call exportsObject = clo<"instantiate_a_builtin_set">(builtinSetName)
+      builtinOrStringImports[builtinSetQualifiedName] = exportsObject
+    }
     _iterIdx2 = (+ _iterIdx2 1)
   }
   if (! (= importedStringModule null)) {
@@ -871,19 +869,17 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Module.prototype.imports(
     let name = _tuple1[1]
     let type = _tuple1[2]
     call _call1 = clo<"find_a_builtin">((tup moduleName name type), builtinSetNames)
-    if (! (= _call1 null)) {
-      (yet "continue")
-    } else nop
-    if (&& (! (= importedStringModule null)) (= moduleName importedStringModule)) {
-      (yet "continue")
-    } else nop
-    call kind = clo<"string_value_of_the_extern_type">(type)
-    let obj = (map [Unknown, Unknown] {
-      "module" -> moduleName,
-      "name" -> name,
-      "kind" -> kind,
-    })
-    push imports < obj
+    if (! (= _call1 null)) {} else {
+      if (&& (! (= importedStringModule null)) (= moduleName importedStringModule)) {} else {
+        call kind = clo<"string_value_of_the_extern_type">(type)
+        let obj = (map [Unknown, Unknown] {
+          "module" -> moduleName,
+          "name" -> name,
+          "kind" -> kind,
+        })
+        push imports < obj
+      }
+    }
     _iterIdx2 = (+ _iterIdx2 1)
   }
   call-convert imports = <converted_to_a_javascript_value>(imports)
@@ -3826,7 +3822,18 @@ def create the webassembly namespace object(
 def get_the_builtins_for_a_builtin_set(
   builtinSetName: Unknown,
 ): Unknown = {
-  return (yet "a list of (|name|, |funcType|, |steps|) for the set with name |builtinSetName| defined within this section")
+  call-embed _jsStringFuncType1 = <fold>((case "->" (list [(case "REF" (opt (case "NULL" )) (case "EXTERN" ))]) (list [(case "REF" (opt) (case "EXTERN" ))])))
+  call-embed _jsStringFuncType2 = <fold>((case "->" (list [(case "REF" (opt (case "NULL" )) (case "EXTERN" ))]) (list [(case "I32" )])))
+  call-embed _jsStringFuncType3 = <fold>((case "->" (list [(case "I32" )]) (list [(case "REF" (opt) (case "EXTERN" ))])))
+  call-embed _jsStringFuncType4 = <fold>((case "->" (list [(case "I32" )]) (list [(case "REF" (opt (case "NULL" )) (case "EXTERN" ))])))
+  call-embed _jsStringFuncType5 = <fold>((case "->" (list [(case "REF" (opt (case "NULL" )) (case "EXTERN" )), (case "I32" )]) (list [(case "I32" )])))
+  call-embed _jsStringFuncType6 = <fold>((case "->" (list [(case "REF" (opt (case "NULL" )) (case "EXTERN" )), (case "I32" )]) (list [(case "I32" )])))
+  call-embed _jsStringFuncType7 = <fold>((case "->" (list [(case "REF" (opt (case "NULL" )) (case "EXTERN" ))]) (list [(case "I32" )])))
+  call-embed _jsStringFuncType8 = <fold>((case "->" (list [(case "REF" (opt (case "NULL" )) (case "EXTERN" )), (case "REF" (opt (case "NULL" )) (case "EXTERN" ))]) (list [(case "REF" (opt) (case "EXTERN" ))])))
+  call-embed _jsStringFuncType9 = <fold>((case "->" (list [(case "REF" (opt (case "NULL" )) (case "EXTERN" )), (case "I32" ), (case "I32" )]) (list [(case "REF" (opt) (case "EXTERN" ))])))
+  call-embed _jsStringFuncType10 = <fold>((case "->" (list [(case "REF" (opt (case "NULL" )) (case "EXTERN" )), (case "REF" (opt (case "NULL" )) (case "EXTERN" ))]) (list [(case "I32" )])))
+  call-embed _jsStringFuncType11 = <fold>((case "->" (list [(case "REF" (opt (case "NULL" )) (case "EXTERN" )), (case "REF" (opt (case "NULL" )) (case "EXTERN" ))]) (list [(case "I32" )])))
+  return (list [(list ["cast", _jsStringFuncType1, clo<"js-string-cast-steps">]), (list ["test", _jsStringFuncType2, clo<"js-string-test-steps">]), (list ["fromCharCode", _jsStringFuncType3, clo<"js-string-fromcharcode-steps">]), (list ["fromCodePoint", _jsStringFuncType4, clo<"js-string-fromcodepoint-steps">]), (list ["charCodeAt", _jsStringFuncType5, clo<"js-string-charcodeat-steps">]), (list ["codePointAt", _jsStringFuncType6, clo<"js-string-codepointat-steps">]), (list ["length", _jsStringFuncType7, clo<"js-string-length-steps">]), (list ["concat", _jsStringFuncType8, clo<"js-string-concat-steps">]), (list ["substring", _jsStringFuncType9, clo<"js-string-substring-steps">]), (list ["equals", _jsStringFuncType10, clo<"js-string-equals-steps">]), (list ["compare", _jsStringFuncType11, clo<"js-string-compare-steps">])])
 }
 def find_a_builtin(
   import: Unknown,
@@ -3840,23 +3847,22 @@ def find_a_builtin(
   let _iterIdx2 = 0
   while (< _iterIdx2 (sizeof _iterList1)) {
     let builtinSetName = _iterList1[_iterIdx2]
-    if (yet "|builtinSetName| does not refer to a builtin set") {
-      (yet "continue")
-    } else nop
-    let builtinSetQualifiedName = (yet "|builtinSetName| prefixed with \"wasm:\"")
-    if (= importModuleName builtinSetQualifiedName) {
-      call builtins = clo<"get_the_builtins_for_a_builtin_set">(builtinSetName)
-      let _iterList3 = builtins
-      let _iterIdx4 = 0
-      while (< _iterIdx4 (sizeof _iterList3)) {
-        let builtin = _iterList3[_iterIdx4]
-        let builtinName = builtin[0]
-        if (= importName builtinName) {
-          return (tup builtinSetName builtin)
-        } else nop
-        _iterIdx4 = (+ _iterIdx4 1)
-      }
-    } else nop
+    if (! (= builtinSetName "js-string")) {} else {
+      let builtinSetQualifiedName = (concat "wasm:" builtinSetName)
+      if (= importModuleName builtinSetQualifiedName) {
+        call builtins = clo<"get_the_builtins_for_a_builtin_set">(builtinSetName)
+        let _iterList3 = builtins
+        let _iterIdx4 = 0
+        while (< _iterIdx4 (sizeof _iterList3)) {
+          let builtin = _iterList3[_iterIdx4]
+          let builtinName = builtin[0]
+          if (= importName builtinName) {
+            return (list [builtinSetName, builtin])
+          } else nop
+          _iterIdx4 = (+ _iterIdx4 1)
+        }
+      } else nop
+    }
     _iterIdx2 = (+ _iterIdx2 1)
   }
   return null
@@ -3886,7 +3892,7 @@ def create_a_builtin_function(
   funcType: Unknown,
   steps: Unknown,
 ): Unknown = {
-  let hostfunc = (yet "[=host function=] which executes |steps| when called")
+  let hostfunc = clo<"create_a_builtin_function_hostfunc", [steps]>
   let store = @AGENT_RECORD["associated store"]
   call-embed _tuple1 = <func_alloc>(store, funcType, hostfunc)
   let store = _tuple1[0]
@@ -3929,7 +3935,7 @@ def validate_an_import_for_builtins(
   } else nop
   let importExternType = import[2]
   let builtinFuncType = maybeBuiltin[1][1]
-  let builtinExternType = (yet "func |builtinFuncType|")
+  let builtinExternType = (case "FUNC" builtinFuncType)
   call-embed _result1 = <match_externtype>(builtinExternType, importExternType)
   return _result1
 }
@@ -3937,7 +3943,7 @@ def unwrapstring(
   v: Unknown,
 ): Unknown = {
   if (! (? v: String)) {
-    call _ret1 = clo<"ThrowCompletion">((yet "a {{RuntimeError}} exception as if a [=trap=] was executed"))
+    call _ret1 = clo<"ThrowCompletion">((case "TRAP" ))
     return _ret1
   } else nop
   if (? v: Completion) {
@@ -3990,12 +3996,12 @@ def js-string-fromcharcodearray(
   end: Unknown,
 ): Unknown = {
   if (= array null) {
-    call _ret1 = clo<"ThrowCompletion">((yet "a {{RuntimeError}} exception as if a [=trap=] was executed"))
+    call _ret1 = clo<"ThrowCompletion">((case "TRAP" ))
     return _ret1
   } else nop
   let length = (sizeof array)
   if (|| (< end start) (< length end)) {
-    call _ret2 = clo<"ThrowCompletion">((yet "a {{RuntimeError}} exception as if a [=trap=] was executed"))
+    call _ret2 = clo<"ThrowCompletion">((case "TRAP" ))
     return _ret2
   } else nop
   let result = ""
@@ -4019,7 +4025,7 @@ def js-string-intocharcodearray(
   start: Unknown,
 ): Unknown = {
   if (= array null) {
-    call _ret1 = clo<"ThrowCompletion">((yet "a {{RuntimeError}} exception as if a [=trap=] was executed"))
+    call _ret1 = clo<"ThrowCompletion">((case "TRAP" ))
     return _ret1
   } else nop
   call _call1 = clo<"unwrapstring">(string)
@@ -4036,7 +4042,7 @@ def js-string-intocharcodearray(
   let stringLength = (sizeof string)
   let arrayLength = (sizeof array)
   if (< arrayLength (+ start stringLength)) {
-    call _ret3 = clo<"ThrowCompletion">((yet "a {{RuntimeError}} exception as if a [=trap=] was executed"))
+    call _ret3 = clo<"ThrowCompletion">((case "TRAP" ))
     return _ret3
   } else nop
   let i = 0
@@ -4073,7 +4079,7 @@ def js-string-fromcodepoint(
   v: Unknown,
 ): Unknown = {
   if (< 1114111 v) {
-    call _ret1 = clo<"ThrowCompletion">((yet "a {{RuntimeError}} exception as if a [=trap=] was executed"))
+    call _ret1 = clo<"ThrowCompletion">((case "TRAP" ))
     return _ret1
   } else nop
   call _call1 = clo<"ToJSValue">(v)
@@ -4104,7 +4110,7 @@ def js-string-charcodeat(
   }
   let length = (sizeof string)
   if (! (< index length)) {
-    call _ret2 = clo<"ThrowCompletion">((yet "a {{RuntimeError}} exception as if a [=trap=] was executed"))
+    call _ret2 = clo<"ThrowCompletion">((case "TRAP" ))
     return _ret2
   } else nop
   call _result1 = clo<"charcodeat">(string, index)
@@ -4132,7 +4138,7 @@ def js-string-codepointat(
   }
   let length = (sizeof string)
   if (! (< index length)) {
-    call _ret2 = clo<"ThrowCompletion">((yet "a {{RuntimeError}} exception as if a [=trap=] was executed"))
+    call _ret2 = clo<"ThrowCompletion">((case "TRAP" ))
     return _ret2
   } else nop
   call _call2 = clo<"ToJSValue">(index)
@@ -4203,11 +4209,11 @@ def js-string-equals(
   second: Unknown,
 ): Unknown = {
   if (&& (! (= first null)) (! (? first: String))) {
-    call _ret1 = clo<"ThrowCompletion">((yet "a {{RuntimeError}} exception as if a [=trap=] was executed"))
+    call _ret1 = clo<"ThrowCompletion">((case "TRAP" ))
     return _ret1
   } else nop
   if (&& (! (= second null)) (! (? second: String))) {
-    call _ret2 = clo<"ThrowCompletion">((yet "a {{RuntimeError}} exception as if a [=trap=] was executed"))
+    call _ret2 = clo<"ThrowCompletion">((case "TRAP" ))
     return _ret2
   } else nop
   call _call1 = clo<"IsStrictlyEqual">(first, second)
@@ -4508,18 +4514,17 @@ def define_the_constants(
 ): Unknown = {
   (yet "foreach ?(|const| that is a [=member=]) in |definition|")
   call _call1 = clo<"exposed">(const, realm)
-  if (! (= _call1 true)) {
-    (yet "continue")
-  } else nop
-  call-convert value = <converted_to_a_javascript_value>(const)
-  let desc = (record [PropertyDescriptor] {
-    "Writable" : false,
-    "Enumerable" : true,
-    "Configurable" : false,
-    "Value" : value,
-  })
-  let id = const.id
-  call _ = clo<"DefinePropertyOrThrow">(target, id, desc)
+  if (! (= _call1 true)) {} else {
+    call-convert value = <converted_to_a_javascript_value>(const)
+    let desc = (record [PropertyDescriptor] {
+      "Writable" : false,
+      "Enumerable" : true,
+      "Configurable" : false,
+      "Value" : value,
+    })
+    let id = const.id
+    call _ = clo<"DefinePropertyOrThrow">(target, id, desc)
+  }
   return ~unused~
 }
 def define_the_regular_attributes(
@@ -4592,29 +4597,28 @@ def define_the_attributes(
   while (< _iterIdx2 (sizeof _iterList1)) {
     let attr = _iterList1[_iterIdx2]
     call _call1 = clo<"exposed">(attr, realm)
-    if (! (= _call1 true)) {
-      (yet "continue")
-    } else nop
-    let getter = (yet "an [=attribute getter=] given |attr|, |definition|, and |realm|")
-    let setter = (yet "an [=attribute setter=] given |attr|, |definition|, and |realm|")
-    if (= attr ~unforgeable~) {
-      let configurable = false
-    } else {
-      let configurable = true
+    if (! (= _call1 true)) {} else {
+      let getter = (yet "an [=attribute getter=] given |attr|, |definition|, and |realm|")
+      let setter = (yet "an [=attribute setter=] given |attr|, |definition|, and |realm|")
+      if (= attr ~unforgeable~) {
+        let configurable = false
+      } else {
+        let configurable = true
+      }
+      let desc = (record [PropertyDescriptor] {
+        "Get" : getter,
+        "Set" : setter,
+        "Enumerable" : true,
+        "Configurable" : configurable,
+      })
+      let id = attr.id
+      call _ = clo<"DefinePropertyOrThrow">(target, id, desc)
+      if (= (yet "|attr|'s type") (yet "an [=observable array type=] with type argument |T|")) {
+        call _call2 = clo<"set_an_indexed_value">(attr, ~delete an indexed value~)
+        call _call3 = clo<"creating_an_observable_array_exotic_object">(realm, T, attr, _call2)
+        @@yet: unresolved ref: Unknown(|target|'s [=backing observable array exotic object=] for |attr|) = _call3
+      } else nop
     }
-    let desc = (record [PropertyDescriptor] {
-      "Get" : getter,
-      "Set" : setter,
-      "Enumerable" : true,
-      "Configurable" : configurable,
-    })
-    let id = attr.id
-    call _ = clo<"DefinePropertyOrThrow">(target, id, desc)
-    if (= (yet "|attr|'s type") (yet "an [=observable array type=] with type argument |T|")) {
-      call _call2 = clo<"set_an_indexed_value">(attr, ~delete an indexed value~)
-      call _call3 = clo<"creating_an_observable_array_exotic_object">(realm, T, attr, _call2)
-      @@yet: unresolved ref: Unknown(|target|'s [=backing observable array exotic object=] for |attr|) = _call3
-    } else nop
     _iterIdx2 = (+ _iterIdx2 1)
   }
   return ~unused~
@@ -4717,23 +4721,22 @@ def define_the_operations(
   while (< _iterIdx2 (sizeof _iterList1)) {
     let op = _iterList1[_iterIdx2]
     call _call1 = clo<"exposed">(op, realm)
-    if (! (= _call1 true)) {
-      (yet "continue")
-    } else nop
-    call method = clo<"creating_an_operation_function">(op, definition, realm)
-    if (= op ~unforgeable~) {
-      let modifiable = false
-    } else {
-      let modifiable = true
+    if (! (= _call1 true)) {} else {
+      call method = clo<"creating_an_operation_function">(op, definition, realm)
+      if (= op ~unforgeable~) {
+        let modifiable = false
+      } else {
+        let modifiable = true
+      }
+      let desc = (record [PropertyDescriptor] {
+        "Value" : method,
+        "Writable" : modifiable,
+        "Enumerable" : true,
+        "Configurable" : modifiable,
+      })
+      let id = op.id
+      call _ = clo<"DefinePropertyOrThrow">(target, id, desc)
     }
-    let desc = (record [PropertyDescriptor] {
-      "Value" : method,
-      "Writable" : modifiable,
-      "Enumerable" : true,
-      "Configurable" : modifiable,
-    })
-    let id = op.id
-    call _ = clo<"DefinePropertyOrThrow">(target, id, desc)
     _iterIdx2 = (+ _iterIdx2 1)
   }
   return ~unused~
@@ -4954,6 +4957,105 @@ def internally_create_a_new_object_implementing_the_interface(
   } else {
     call _ret3 = clo<"NormalCompletion">(instance)
     return _ret3
+  }
+}
+def js-string-cast-steps(
+  arguments: Unknown,
+): Unknown = {
+  call _result1 = clo<"js-string-cast">(arguments[0])
+  return _result1
+}
+def js-string-test-steps(
+  arguments: Unknown,
+): Unknown = {
+  call _result1 = clo<"js-string-test">(arguments[0])
+  return _result1
+}
+def js-string-fromcharcode-steps(
+  arguments: Unknown,
+): Unknown = {
+  call _result1 = clo<"js-string-fromcharcode">(arguments[0])
+  return _result1
+}
+def js-string-fromcodepoint-steps(
+  arguments: Unknown,
+): Unknown = {
+  call _result1 = clo<"js-string-fromcodepoint">(arguments[0])
+  if (? _result1: Completion) {
+    return _result1
+  } else {
+    call _ret1 = clo<"NormalCompletion">(_result1)
+    return _ret1
+  }
+}
+def js-string-charcodeat-steps(
+  arguments: Unknown,
+): Unknown = {
+  call _result1 = clo<"js-string-charcodeat">(arguments[0], arguments[1])
+  if (? _result1: Completion) {
+    return _result1
+  } else {
+    call _ret1 = clo<"NormalCompletion">(_result1)
+    return _ret1
+  }
+}
+def js-string-codepointat-steps(
+  arguments: Unknown,
+): Unknown = {
+  call _result1 = clo<"js-string-codepointat">(arguments[0], arguments[1])
+  if (? _result1: Completion) {
+    return _result1
+  } else {
+    call _ret1 = clo<"NormalCompletion">(_result1)
+    return _ret1
+  }
+}
+def js-string-length-steps(
+  arguments: Unknown,
+): Unknown = {
+  call _result1 = clo<"js-string-length">(arguments[0])
+  return _result1
+}
+def js-string-concat-steps(
+  arguments: Unknown,
+): Unknown = {
+  call _result1 = clo<"js-string-concat">(arguments[0], arguments[1])
+  return _result1
+}
+def js-string-substring-steps(
+  arguments: Unknown,
+): Unknown = {
+  call _result1 = clo<"js-string-substring">(arguments[0], arguments[1], arguments[2])
+  return _result1
+}
+def js-string-equals-steps(
+  arguments: Unknown,
+): Unknown = {
+  call _result1 = clo<"js-string-equals">(arguments[0], arguments[1])
+  if (? _result1: Completion) {
+    return _result1
+  } else {
+    call _ret1 = clo<"NormalCompletion">(_result1)
+    return _ret1
+  }
+}
+def js-string-compare-steps(
+  arguments: Unknown,
+): Unknown = {
+  call _result1 = clo<"js-string-compare">(arguments[0], arguments[1])
+  return _result1
+}
+def create_a_builtin_function_hostfunc(
+  state: Unknown,
+  arguments: Unknown,
+): Unknown = {
+  @AGENT_RECORD["associated store"] = state
+  call result = steps(arguments)
+  let store = @AGENT_RECORD["associated store"]
+  if (? result: Abrupt) {
+    return (tup store (list [(case "TRAP" )]))
+  } else {
+    return (tup store result)
   }
 }
 def asynchronously_compile_a_webassembly_module_closure1(

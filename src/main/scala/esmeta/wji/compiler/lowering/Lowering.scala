@@ -65,12 +65,19 @@ import esmeta.error.{PipelineOrderError, UnsupportedSpecShape}
   */
 object Lowering:
   val pipeline: List[LoweringPass] = List(
+    // injects synthetic algorithms/link text early enough that every
+    // ordinary pass below (link resolution, comptype-shape normalization,
+    // name normalization, ...) treats them exactly like real extracted ones.
+    AddJsStringBuiltinsPass,
+    AddBuiltinFunctionHostfuncPass,
+    FixFindABuiltinReturnPass,
     // prepare
     ResolveTypeAnnotationPass,
     ElideHtmlHostHooksPass,
     DropNotesPass,
     ResolveLinksPass,
     GroupIfChainPass,
+    ExpandContinuePass,
     NormalizeSpecTecCaseShapePass,
     ExpandFollowingStepsPass,
     // injections

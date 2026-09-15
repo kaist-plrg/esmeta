@@ -31,6 +31,7 @@ object ExprPrinter:
     case UnknownNew(raw)  => s"?($raw)"
     case NewArrayBuffer   => "new {{ArrayBuffer}}(with slots)"
     case Length(e)        => s"length(${render(e)})"
+    case Concat(parts)    => s"concat(${parts.map(render).mkString(", ")})"
     case BinOp(lhs, op, rhs) =>
       s"${render(lhs)} ${renderBOp(op)} ${render(rhs)}"
     case Pow(base, exp)             => s"${render(base)} ** ${render(exp)}"

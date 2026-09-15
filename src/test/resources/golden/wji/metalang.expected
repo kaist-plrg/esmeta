@@ -110,9 +110,9 @@
     Throw(new {{TypeError}})
   Let(|builtinOrStringImports|, «[ ]»)
   ForEach(|builtinSetName|, |builtinSetNames|)
-    Let(|builtinSetQualifiedName|, ?(|builtinSetName| prefixed with "wasm:"))
+    Let(|builtinSetQualifiedName|, concat("wasm:", |builtinSetName|))
     Assert(?(|builtinOrStringImports| does not contain |builtinSetQualifiedName|))
-    If(?(|builtinSetName| does not refer to a builtin set))
+    If(|builtinSetName| is not "js-string")
       Continue
     Let(|exportsObject|, [=instantiate a builtin set=](|builtinSetName|))
     Set(|builtinOrStringImports|[|builtinSetQualifiedName|], |exportsObject|)
@@ -1279,9 +1279,9 @@
   Let(|importModuleName|, |import|[0])
   Let(|importName|, |import|[1])
   ForEach(|builtinSetName|, |builtinSetNames|)
-    If(?(|builtinSetName| does not refer to a builtin set))
+    If(|builtinSetName| is not "js-string")
       Continue
-    Let(|builtinSetQualifiedName|, ?(|builtinSetName| prefixed with "wasm:"))
+    Let(|builtinSetQualifiedName|, concat("wasm:", |builtinSetName|))
     If(|importModuleName| is |builtinSetQualifiedName|)
       Let(|builtins|, [=get the builtins for a builtin set=](|builtinSetName|))
       ForEach(|builtin|, |builtins|)
@@ -1328,14 +1328,14 @@
     Return(true)
   Let(|importExternType|, |import|[2])
   Let(|builtinFuncType|, |maybeBuiltin|[1][1])
-  Let(|builtinExternType|, ?(func |builtinFuncType|))
+  Let(|builtinExternType|, FUNC(|builtinFuncType|))
   Return([=match_externtype=](|builtinExternType|, |importExternType|))
 
 # UnwrapString
   params: |v|
   head: The <dfn abstract-op lt="UnwrapString">UnwrapString(|v|)</dfn> abstract operation, when invoked, performs the following steps:
   If(|v| is not a String)
-    Throw(?(a {{RuntimeError}} exception as if a [=trap=] was executed))
+    Throw(TRAP)
   Return(|v|)
 
 # FromCharCode
@@ -1369,10 +1369,10 @@
   params: |array|, |start|, |end|
   head: When this builtin is invoked with parameters |array|, |start|, and |end|, the following steps must be run:
   If(|array| is null)
-    Throw(?(a {{RuntimeError}} exception as if a [=trap=] was executed))
+    Throw(TRAP)
   Let(|length|, length(|array|))
   If(|start| > |end| or |end| > |length|)
-    Throw(?(a {{RuntimeError}} exception as if a [=trap=] was executed))
+    Throw(TRAP)
   Let(|result|, "")
   Let(|i|, |start|)
   While(|i| < |end|)
@@ -1387,12 +1387,12 @@
   params: |string|, |array|, |start|
   head: When this builtin is invoked with parameters |string|, |array|, and |start|, the following steps must be run:
   If(|array| is null)
-    Throw(?(a {{RuntimeError}} exception as if a [=trap=] was executed))
+    Throw(TRAP)
   Let(|string|, [=?=] [$UnwrapString$](|string|))
   Let(|stringLength|, length(|string|))
   Let(|arrayLength|, length(|array|))
   If(|start| + |stringLength| > |arrayLength|)
-    Throw(?(a {{RuntimeError}} exception as if a [=trap=] was executed))
+    Throw(TRAP)
   Let(|i|, 0)
   While(|i| < |stringLength|)
     Let(|charCode|, [$CharCodeAt$](|string|, |i|))
@@ -1411,7 +1411,7 @@
   params: |v|
   head: When this builtin is invoked with parameter |v|, the following steps must be run:
   If(|v| > 0x10ffff)
-    Throw(?(a {{RuntimeError}} exception as if a [=trap=] was executed))
+    Throw(TRAP)
   Return([=!=] [$Call$]([=String.fromCodePoint=], undefined, « [=ToJSValue=](|v|) »))
 
 # js-string-charCodeAt
@@ -1421,7 +1421,7 @@
   Let(|string|, [=?=] [$UnwrapString$](|string|))
   Let(|length|, length(|string|))
   If(|index| >= |length|)
-    Throw(?(a {{RuntimeError}} exception as if a [=trap=] was executed))
+    Throw(TRAP)
   Return([$CharCodeAt$](|string|, |index|))
 
 # js-string-codePointAt
@@ -1431,7 +1431,7 @@
   Let(|string|, [=?=] [$UnwrapString$](|string|))
   Let(|length|, length(|string|))
   If(|index| >= |length|)
-    Throw(?(a {{RuntimeError}} exception as if a [=trap=] was executed))
+    Throw(TRAP)
   Return([=!=] [$Call$]([=String.prototype.codePointAt=], |string|, « [=ToJSValue=](|index|) »))
 
 # js-string-length
@@ -1464,9 +1464,9 @@
   params: |first|, |second|
   head: When this builtin is invoked with parameters |first| and |second|, the following steps must be run:
   If(|first| is not null, and |first| is not a String)
-    Throw(?(a {{RuntimeError}} exception as if a [=trap=] was executed))
+    Throw(TRAP)
   If(|second| is not null, and |second| is not a String)
-    Throw(?(a {{RuntimeError}} exception as if a [=trap=] was executed))
+    Throw(TRAP)
   If([=!=] [=IsStrictlyEqual=](|first|, |second|) is true)
     Return(1)
   Return(0)

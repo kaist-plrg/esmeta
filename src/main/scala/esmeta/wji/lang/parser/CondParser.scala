@@ -72,6 +72,18 @@ object CondParser:
   // determines polarity, not a separate positive/negative pattern pair.
   private val ListIsEmpty =
     """(?si)^(.+)\s+\[=list/is empty(?:\|([^\]]+))?=\]$""".r
+  // "|builtinSetName| does not refer to a builtin set" (index.bs:1848, the
+  // only occurrence) — "a builtin set" implicitly means "one of the builtin
+  // sets defined in this section", the same self-reference
+  // `get_the_builtins_for_a_builtin_set`'s own prose makes (`docs/
+  // hardcodes.md`'s builtin-set entry) and which forces a hand-written table
+  // there too, so hardcoding the known names here (currently just
+  // "js-string") rather than trying to parse this generically is the same
+  // judgment call, not a separate one. Extend `KnownBuiltinSetNames` if a
+  // future wasm proposal defines a second builtin set.
+  private val RefersToBuiltinSetNeg =
+    """(?si)^(.+?)\s+does not refer to a builtin set$""".r
+  private val KnownBuiltinSetNames = List("js-string")
   private val ImplementsPos =
     """(?si)^(.*?)\s+\[=implements=\]\s+\{\{([^}]+)\}\}$""".r
   private val ImplementsNeg =
@@ -463,6 +475,11 @@ object CondParser:
     case ListIsEmpty(baseRaw, alias) =>
       val negated = Option(alias).exists(_.toLowerCase.contains("not"))
       Eq(Length(ExprParser.parse(baseRaw)), Num("0"), negated)
+    case RefersToBuiltinSetNeg(lhsRaw) =>
+      val lhs = ExprParser.parse(lhsRaw)
+      KnownBuiltinSetNames
+        .map(name => Eq(lhs, Str(name), negated = true))
+        .reduceLeft(And.apply)
     case ImplementsPos(exprRaw, face) =>
       Implements(ExprParser.parse(exprRaw), face)
     case ImplementsNeg(exprRaw, face) =>

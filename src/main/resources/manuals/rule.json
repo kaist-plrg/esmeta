@@ -92,7 +92,7 @@
     "Return the Element Size value specified in <emu-xref href=\"#table-the-typedarray-constructors\"></emu-xref> for _O_.[[TypedArrayName]].": "return @TYPED_ARRAY[O.TypedArrayName].ElementSize",
     "Return the Element Type value specified in <emu-xref href=\"#table-the-typedarray-constructors\"></emu-xref> for _O_.[[TypedArrayName]].": "return @TYPED_ARRAY[O.TypedArrayName].ElementType",
     "Return the Number value for the integer represented by the 32-bit two's complement bit string _result_.": "return ([number] result)",
-    "Return the String value that is made from _n_ copies of _S_ appended together.": "{ let result = \"\" let idx = 0 while (< idx n) { result = (concat result S) idx = (+ idx 1) } return result }",
+    "Return the String value that is made from _n_ copies of _S_ appended together.": "{ let result = \"\" let base = S let count = n while (< 0 count) { if (= (% count 2) 1) { result = (concat result base) } base = (concat base base) count = (floor (/ count 2)) } return result }",
     "Return the bitwise complement of _oldValue_. The mathematical value of the result is exactly representable as a 32-bit two's complement bit string.": "return (~ oldValue)",
     "Return the greatest (closest to +∞) integral Number value that is not greater than _n_.": "return ([number] (floor ([math] n)))",
     "Return the result of left shifting _lNum_ by _shiftCount_ bits. The mathematical value of the result is exactly representable as a 32-bit two's complement bit string.": "{ let result = (& (- (<< 1 32) 1) (<< ([math] lNum) shiftCount)) if (< (- (<< 1 31) 1) result) result = (- result (<< 1 32)) return ([number] result) }",

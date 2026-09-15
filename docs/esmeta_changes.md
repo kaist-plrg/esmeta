@@ -223,7 +223,7 @@
   "inst" 맵에 스펙 문장 원문을 키로, 손으로 짠 IR을 값으로 추가:
   ```
   "Return the String value that is made from _n_ copies of _S_ appended together.":
-    "{ let result = \"\" let idx = 0 while (< idx n) { result = (concat result S) idx = (+ idx 1) } return result }"
+    "{ let result = \"\" let base = S let count = n while (< 0 count) { if (= (% count 2) 1) { result = (concat result base) } base = (concat base base) count = (floor (/ count 2)) } return result }"
   "Let _truncatedStringFiller_ be the String value consisting of repeated concatenations of _fillString_ truncated to length _fillLen_.":
     "{ let truncatedStringFiller = \"\" while (< (sizeof truncatedStringFiller) fillLen) { truncatedStringFiller = (concat truncatedStringFiller fillString) } truncatedStringFiller = (substring truncatedStringFiller 0 fillLen) }"
   ```
@@ -234,6 +234,16 @@
   `substring`도 이미 있는 IR 연산이라(`to`가 실제 길이를 넘으면 자동으로
   clamp — `Interpreter.scala`의 `ESubstring`) 둘 다 새 IR primitive 없이
   기존 것만으로 조립됨.
+  `String.prototype.repeat`의 IR은 처음엔 `result`를 한 글자씩(정확히는
+  `S` 한 조각씩) 이어붙이는 단순 루프였는데, JVM/Scala `String`의
+  불변성 때문에 매 반복마다 누적된 전체 문자열을 다시 복사해 O(n²)
+  총 문자 복사가 됨 — `js-string/constants.any.js` 자신의 `'0'.
+  repeat(100000)` 상수를 실제로 태워보니(무한루프 여부를 먼저 점검해
+  달라는 요청으로 코드 리뷰 중 발견) 수 분 넘게 안 끝남. 위 스니펫은
+  그 대신 `base`를 매 반복 두 배로 불리고 `count`의 이진수 자리마다
+  조건부로 `result`에 붙이는 지수적 doubling(반복 횟수 O(log n), 총
+  문자 복사량 O(n))으로 재작성한 최종본 — `n=100000` 기준 무한대에서
+  3초로 단축 확인.
 - **왜 "esmeta_changes"로 분류했는가**: `rule.json`은 WJI가 새로 만든
   메커니즘이 아니라 **mainline ESMeta 자신이 이미 갖고 있던** "특정 스펙
   문장 하나가 아직 자동 파싱이 안 될 때, 그 문장 원문을 손으로 IR에
@@ -248,9 +258,12 @@
   `''.repeat(5)`/`'x'.repeat(0)` === `""`, `'5'.padStart(3,'0')` ===
   `"005"`, `'abc'.padEnd(7,'xy')` === `"abcxyxy"`,
   `encodeURIComponent("'")` === `"'"` 전부 `sbt run eval`로 직접 확인.
-  `sbt test`는 두 수정 각각 `cfg.ValiditySmallTest`의 CFG fingerprint
-  골든(`src/main/resources/result/cfg-fingerprint`)이 새 함수 추가로
-  legitimate하게 바뀌어서 갱신 — 전체 529개 그린. `js-string/
+  doubling 재작성 후엔 `n=100000`(`'0'.repeat(100000)`)도 3초 만에
+  정확한 결과를 냄을 별도로 재확인. `sbt test`는 세 수정(naive
+  `repeat`/`StringPad`/doubling 재작성) 각각 `cfg.ValiditySmallTest`의
+  CFG fingerprint 골든(`src/main/resources/result/cfg-fingerprint`)이
+  legitimate하게 바뀌어서 매번 갱신 — 전체 529개 그린. `js-string/
   constants.any.js`(WJI)를 다시 돌려서 두 gap 다 완전히 사라진 것 확인
-  (그 파일 자체는 이후 또 다른 별개 gap들에 부딪혀 여전히
-  `knownFailing` — `personal/TODO.md` 참고).
+  — 그 파일은 이후 또 다른 별개 gap들에 부딪혀 여전히 `knownFailing`
+  이었다가, 남은 gap들도 모두 풀리면서 최종적으로 40/40 완전 통과함
+  (`docs/out_of_scope.md` #6, `personal/DONE.md` 참고).

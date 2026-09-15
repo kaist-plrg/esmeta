@@ -99,12 +99,12 @@ def <BUILTIN>:INTRINSICS.WebAssembly.validate(
     }
   } else nop
   if (exists options.builtins) {
-    let builtinSetNames = options.builtin
+    let builtinSetNames = options.builtins
   } else {
     let builtinSetNames = (list [])
   }
   if (exists options.importedStringConstants) {
-    let importedStringModule = options.builtin
+    let importedStringModule = options.importedStringConstants
   } else {
     let importedStringModule = null
   }
@@ -1027,12 +1027,12 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Module(
     return _ret10
   } else nop
   if (exists options.builtins) {
-    let builtinSetNames = options.builtin
+    let builtinSetNames = options.builtins
   } else {
     let builtinSetNames = (list [])
   }
   if (exists options.importedStringConstants) {
-    let importedStringModule = options.builtin
+    let importedStringModule = options.importedStringConstants
   } else {
     let importedStringModule = null
   }
@@ -4969,12 +4969,12 @@ def asynchronously_compile_a_webassembly_module_closure1(
     return _ret1
   } else nop
   if (exists options.builtins) {
-    let builtinSetNames = options.builtin
+    let builtinSetNames = options.builtins
   } else {
     let builtinSetNames = (list [])
   }
   if (exists options.importedStringConstants) {
-    let importedStringModule = options.builtin
+    let importedStringModule = options.importedStringConstants
   } else {
     let importedStringModule = null
   }

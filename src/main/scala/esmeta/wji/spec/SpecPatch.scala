@@ -449,10 +449,10 @@ object SpecPatch:
     // respectively.
     """1. Let |builtinSetNames| be |options|["builtins"]."""
     ->
-    """1. If |options|["builtins"] [=map/exists=], let |builtinSetNames| be |options|["builtin"]; otherwise, let |builtinSetNames| be « ».""",
+    """1. If |options|["builtins"] [=map/exists=], let |builtinSetNames| be |options|["builtins"]; otherwise, let |builtinSetNames| be « ».""",
     """1. Let |importedStringModule| be |options|["importedStringConstants"]."""
     ->
-    """1. If |options|["importedStringConstants"] [=map/exists=], let |importedStringModule| be |options|["builtin"]; otherwise, let |importedStringModule| be null.""",
+    """1. If |options|["importedStringConstants"] [=map/exists=], let |importedStringModule| be |options|["importedStringConstants"]; otherwise, let |importedStringModule| be null.""",
 
     // #18 (spec inconsistency, docs/spec_inconsistencies.md #9) — refers back
     // to |x| with the pronoun "it" instead of repeating the pipe-var, which

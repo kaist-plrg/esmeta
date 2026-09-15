@@ -34,11 +34,11 @@
   If(|module| is [=error=])
     Return(false)
   If(|options|["builtins"] [=map/exists=])
-    Let(|builtinSetNames|, |options|["builtin"])
+    Let(|builtinSetNames|, |options|["builtins"])
   Else
     Let(|builtinSetNames|, « »)
   If(|options|["importedStringConstants"] [=map/exists=])
-    Let(|importedStringModule|, |options|["builtin"])
+    Let(|importedStringModule|, |options|["importedStringConstants"])
   Else
     Let(|importedStringModule|, null)
   If([=validate builtins and imported string for a WebAssembly module=](|module|, |builtinSetNames|, |importedStringModule|) is false)
@@ -66,11 +66,11 @@
         Perform([=reject=](Module, |promise|, new {{CompileError}}))
           Return()
       If(|options|["builtins"] [=map/exists=])
-        Let(|builtinSetNames|, |options|["builtin"])
+        Let(|builtinSetNames|, |options|["builtins"])
       Else
         Let(|builtinSetNames|, « »)
       If(|options|["importedStringConstants"] [=map/exists=])
-        Let(|importedStringModule|, |options|["builtin"])
+        Let(|importedStringModule|, |options|["importedStringConstants"])
       Else
         Let(|importedStringModule|, null)
       If([=validate builtins and imported string for a WebAssembly module=](|module|, |builtinSetNames|, |importedStringModule|) is false)
@@ -368,11 +368,11 @@
   If(|module| is [=error=])
     Throw(new {{CompileError}})
   If(|options|["builtins"] [=map/exists=])
-    Let(|builtinSetNames|, |options|["builtin"])
+    Let(|builtinSetNames|, |options|["builtins"])
   Else
     Let(|builtinSetNames|, « »)
   If(|options|["importedStringConstants"] [=map/exists=])
-    Let(|importedStringModule|, |options|["builtin"])
+    Let(|importedStringModule|, |options|["importedStringConstants"])
   Else
     Let(|importedStringModule|, null)
   If([=validate builtins and imported string for a WebAssembly module=](|module|, |builtinSetNames|, |importedStringModule|) is false)

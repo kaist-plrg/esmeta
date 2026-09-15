@@ -265,6 +265,21 @@ const perFilePatches = {
   // moment whatever's blocking it earlier gets fixed.
   "instance/constructor-bad-imports.any.js": badImportsPatches,
   "constructor/instantiate-bad-imports.any.js": badImportsPatches,
+
+  // `js-string/constants.any.js` (docs/out_of_scope.md #6) -- the `constants`
+  // array includes a 100,000-char string, used as a wasm import name in the
+  // `goodGlobalTypes` loop below. What that subtest actually checks (that a
+  // long/multi-byte string round-trips correctly as an import name) doesn't
+  // depend on the exact length -- but ESMeta's tree-walking interpreter's
+  // per-character overhead (prototype-chain walks, SDO calls, property
+  // definitions) turns 100,000 characters into tens of millions of
+  // interpreter steps and several minutes of wall time, confirmed via
+  // `-wji-eval:log` step-count tracing (no algorithmic O(n^2) bug found --
+  // `Obj.push`'s `Vector` is amortized O(1)). Shrunk to 100 chars, which
+  // still exercises the same code path in seconds.
+  "js-string/constants.any.js": [
+    ["'0'.repeat(100000)", "'0'.repeat(100)"],
+  ],
 };
 
 fs.rmSync(generatedDir, { recursive: true, force: true });

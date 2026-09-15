@@ -128,6 +128,47 @@
 - **결과**: 세 파일 다 OOM 없이 다른 지점까지 진행 확인 — `instance/constructor.any.js`는 `InvalidConversion: invalid conversion to [math]: f64, wasm<CaseV(POS,...NORM...)>`(wasm→JS f64 변환 미기계화, `global/value-get-set.any.js`의 f32-subnormal 케이스와 같은 큰 gap의 f64판), `instance/constructor-bad-imports.any.js`는 `WasmHost error: ProtocolError(...Fail)`(SpecTec 백엔드 자체 에러, 미조사), `constructor/instantiate-bad-imports.any.js`는 원래대로 IEEE754 라운딩 gap. 셋 다 `knownFailing`에 그대로 남음 — 이 정리로 뭔가 통과하게 된 파일은 없고, 순수하게 "스윕이 안전해지고 각 파일이 더 진행할 수 있게 됨"이 목적.
 - **2026-09-14 추가**: `docs/hardcodes.md` #20(`AllowSharedBufferSource` 검증)으로 `constructor/instantiate.any.js`가 더 진행하면서 똑같은 원인(`instanceTestFactory`의 같은 4개 항목)으로 새로 OOM에 부딪힘 — 이 파일은 그동안 이 항목 대상에 없었을 뿐, `instance/constructor.any.js`와 완전히 같은 코드 경로였음. `instanceTestFactoryOomPatches`를 `instance/constructor.any.js`와 공유하도록 리팩터링해서 이 파일에도 적용(`wji-generate-js-api-tests.js`). 적용 후 OOM 없이 145초 만에 `~auto~`(`docs/hardcodes.md` #20의 "결과" 참고, `personal/TODO.md` #44) gap까지 진행 확인 — `instance/constructor.any.js`(25/25) 회귀 없음.
 
+## 6. `js-string/constants.any.js`의 100,000자 문자열 상수를 100자로 축소 — 진짜 gap이 다 풀린 뒤 마지막으로 남은 건 순수 성능 문제였음
+
+- **막힌 지점**: `constants` 배열(`goodGlobalTypes` 루프가 각 원소를 wasm
+  import 이름으로 써서 `instantiateImportedGlobal`을 호출)의 한 항목이
+  `'0'.repeat(100000)`. `String.prototype.repeat`/`StringPad`(이 문서와
+  무관한 별개의 mainline 파싱 gap 4개, `docs/esmeta_changes.md` #6)가
+  전부 풀리고 나서도 이 파일만은 여전히 끝나지 않았음.
+- **원인 조사**: 사용자가 "무한루프 가능성을 먼저 점검해달라"고 요청해서
+  코드 리뷰부터 했고, 그 과정에서 `manuals/rule.json`의 `String.prototype.
+  repeat` 구현 자체가 O(n²)였던 게 먼저 발견됨(JVM/Scala `String`
+  불변성 때문에 매 반복 전체 문자열을 재복사 — `docs/esmeta_changes.md`
+  #6에 상세 기록) — 지수적 doubling으로 재작성해서 `n=100000` 기준
+  무한대에서 3초로 단축. 그런데도 `'0'.repeat(100000)`을 실제 wasm
+  import 이름으로 쓰는 지점은 여전히 몇 분 넘게 안 끝나서, `-wji-eval:log`
+  스텝-로그 추적으로 더 파봄: `__FLAT_LIST__`/`__APPEND_LIST__`(리스트
+  이어붙이기 AUX 함수)가 의심됐지만 `Obj.scala`의 `push` 구현이
+  `Vector`의 `+:=`/`:+=`(상각 O(1))라 여기엔 알고리즘 버그가 없음을
+  직접 확인. 격리 재현(문자 하나짜리 `instantiateImportedGlobal` 단독
+  호출)은 33초, 100,000자 버전은 5분 가까이 걸리면서도 StepCnt가 시종
+  등속(초당 ~200-220K)으로 계속 증가 — 프로토타입 체인 순회
+  (`OrdinaryGet`→`GetPrototypeOf`)/SDO 호출/`CreateDataPropertyOrThrow`
+  체인 등 문자 하나당 수백 스텝이 드는 spec-level 처리가 10만 번
+  곱해지는, 순수 **ESMeta 트리-워킹 인터프리터의 스텝당 오버헤드 ×
+  N** 문제로 확정 — `limits.any.js`(이 문서 #3)와 같은 종류의 한계.
+- **왜 그냥 줄여도 되는지**: 이 subtest가 실제로 검증하는 건 "임의
+  길이/멀티바이트 문자열이 wasm import 이름으로 정확히 왕복되는가"지,
+  길이 자체(100,000)는 아님 — 짧은 문자열로도 같은 코드 경로를 그대로
+  탄다. `limits.any.js`처럼 "스펙 자신이 실제 엔진에서도 느리다고
+  인정하는 스트레스 테스트"가 아니라, 그냥 테스트 작성자가 고른 임의의
+  큰 상수일 뿐이라 값 자체를 줄이는 게 안전함.
+- **처리**: `tests/wji/scripts/wji-generate-js-api-tests.js`의
+  `perFilePatches["js-string/constants.any.js"]`에 `["'0'.repeat(100000)",
+  "'0'.repeat(100)"]` 한 줄 추가 — `limits.any.js`/`SharedArrayBuffer`류와
+  같은 "짧은 `[from, to]` 문자열 치환" 패턴.
+- **결과**: 재생성 후 `SUMMARY 40/40`(콜드스타트 포함 47초)로 완전 통과 —
+  `EvalSpec.scala`의 `knownFailing`에서 제거, `wjiEvalTest`로 회귀 없음
+  재확인(54 succeeded / 12 canceled / 0 failed). `docs/esmeta_changes.md`
+  #6(rule.json 두 gap)과 `docs/spec_inconsistencies.md` #21(`` `global
+  const (ref extern)` `` 패치) 등 이 파일이 그동안 거쳐온 모든 mainline
+  gap이 이걸로 전부 마무리됨 — `personal/DONE.md` 참고.
+
 ## 5. `SharedArrayBuffer` 생성 자체를 일반 `ArrayBuffer`로 대체 — mainline이 `%SharedArrayBuffer%`를 통째로 `YetObj`로만 가짐
 
 - **막힌 지점**: `esmeta.es.builtin.package.yets`가 `SharedArrayBuffer`를 `Date`/`RegExp`/`DataView`/`Atomics`/`JSON`과 나란히 통째로 `YetObj` 플레이스홀더로 등록(개별 스텝이 아니라 intrinsic 전체 단위) — `esmeta.ty.ValueTy.contains`가 `YetObj`를 만나면 바로 `NotSupported`를 던져서, `new SharedArrayBuffer(...)`를 실제로 호출해보기도 전에 그냥 `globalThis.SharedArrayBuffer`를 읽는 것만으로 죽는다. `AllocateSharedArrayBuffer` → `CreateSharedByteDataBlock`(ecma262 §25.2)이 "Agent Record"/"Candidate Execution"/"Agent Events Record"(`WriteSharedMemory` 이벤트) 같은 ECMAScript 메모리 모델/멀티 에이전트 개념을 직접 다뤄서, mainline이 아직 기계화 못 한 영역이라 통째로 스킵된 것으로 보임.

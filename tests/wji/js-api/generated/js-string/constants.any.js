@@ -1983,7 +1983,7 @@ const constants = [
   '',
   '\0',
   '0',
-  '0'.repeat(100000),
+  '0'.repeat(100),
   '\uD83D\uDE00',
 ];
 const namespaces = [

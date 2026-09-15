@@ -177,6 +177,24 @@ object WebIdlConversion:
         case _ => false
     case _ => false
 
+  /** WebIDL's plain `object` type: `Type(V) is Object` (ECMA-262 Type(V), the
+    * seven-way language-type tag) -- true iff `v` is a genuine ECMAScript
+    * object. A real object is always heap-allocated as a `RecordObj` in this
+    * state model (the same shape `implementsInterface`/ `isBufferSource` above
+    * key off); `ListObj`/`MapObj` are Infra-spec-only internal structures never
+    * exposed as a JS value directly, so a `v` pointing at one of those would be
+    * a WJI-internal bug reaching here, not a real "is it an object" case to
+    * accept. Symbol values are ALSO `RecordObj`s in this state model (`SymbolT
+    * = RecordT("Symbol")`, `ty/package.scala`), but `Type(Symbol())` is
+    * `Symbol`, not `Object` -- so `tname == "Symbol"` must be excluded here.
+    */
+  private def isObjectValue(st: State, v: Value): Boolean = v match
+    case addr: Addr =>
+      st(addr) match
+        case r: RecordObj => r.tname != "Symbol"
+        case _            => false
+    case _ => false
+
   /** builds a genuine `ThrowCompletion(TypeError)`, the same two-step idiom
     * `manuals/funcs/ConvertToInt.ir` and `CompletionWrapping`'s compiled output
     * both use (`__NEW_ERROR_OBJ__` then `ThrowCompletion`) — reused here so a
@@ -386,6 +404,33 @@ object WebIdlConversion:
     case Str("AllowSharedBufferSource") | Enum("AllowSharedBufferSource") =>
       if isBufferSource(interp.st, argument) then Right(argument)
       else Left(typeError(interp, callSite))
+    // plain WebIDL `object` -- every occurrence in this corpus is `optional
+    // object importObject` with no default (index.bs:375/378, 779). Without
+    // this case, a non-object `importObject` (a number, a string, ...)
+    // sailed through as identity passthrough; `read the imports` only ever
+    // checks `importObject === undefined`, and an empty-imports module never
+    // even reaches a `Get` on it, so the bogus argument was silently
+    // accepted instead of throwing the `TypeError` real WebIDL "convert
+    // ECMAScript value to object" conversion requires (`1. If Type(V) is not
+    // Object, throw a TypeError.`). `Undef` is special-cased to pass through
+    // rather than throw: unlike a truly-omitted argument (which never
+    // reaches `toIdlValue` at all -- `AddInterfaceMemberBuiltinBehaviourPass.
+    // omittedBranch` binds `undefined` directly for an optional parameter
+    // with no default), an argument *explicitly* supplied as `undefined`
+    // still goes through the "supplied" path and does reach here -- and the
+    // spec text itself (`read the imports`, index.bs:485: "If ... and
+    // |importObject| is undefined, throw a TypeError exception" -- only when
+    // the module actually has imports) treats that as a legitimate, later-
+    // checked value, not something rejected at this conversion step.
+    // Confirmed against `instance/constructor.any.js`'s own "Empty module
+    // with undefined imports argument" subtest, which explicitly passes
+    // `undefined` and expects success.
+    case Str("object") | Enum("object") =>
+      argument match
+        case Undef => Right(argument)
+        case _ =>
+          if isObjectValue(interp.st, argument) then Right(argument)
+          else Left(typeError(interp, callSite))
     // a bare `sequence<T>` parameter (as opposed to one nested inside a
     // dictionary, see `Member.isSequence`) -- so far only
     // `Exception`'s constructor's `sequence<any> payload`. Matched by prefix

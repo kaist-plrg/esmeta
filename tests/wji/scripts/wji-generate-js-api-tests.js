@@ -236,6 +236,37 @@ const perFilePatches = {
       "testModuleSizeLimit(kJSEmbeddingMaxModuleSize + 1, false);",
       "if (false) testModuleSizeLimit(kJSEmbeddingMaxModuleSize + 1, false);",
     ],
+    // vendor corpus typo: WPT standard is snake_case `assert_equals`, not
+    // camelCase -- no other spectec/test/js-api file defines or uses
+    // `assertEquals`. `same_value` is symmetric, so the swapped
+    // expected/actual argument order this call site uses doesn't affect
+    // pass/fail, only the (unused, since only SUMMARY N/M is checked here)
+    // failure message text.
+    ["assertEquals(", "assert_equals("],
+    // same OOM root cause as instanceTestFactoryOomPatches above
+    // (docs/out_of_scope.md #4) but for WebAssembly.Table instead of
+    // Memory -- `host.ml`'s `create_tableinst`/`grow_table` represent a
+    // table's element list the same per-element way `create_meminst` does
+    // for linear memory, so a real ~10M-entry Table (`kJSEmbeddingMaxTableSize
+    // + 1`) blows the JVM heap in the JSON-RPC decode, confirmed by isolating
+    // each call in a scratch script: `new WebAssembly.Table({initial:
+    // kJSEmbeddingMaxTableSize + 1, ...})`, `.grow(kJSEmbeddingMaxTableSize)`
+    // on an existing table, and instantiating a module whose own table type
+    // declares `initial: kJSEmbeddingMaxTableSize + 1` all independently OOM
+    // in isolation. `testDynamicLimit("maximum table size", ...)` right below
+    // this is safe and left alone -- its module's table type only declares
+    // `initial: 1` (a small real allocation), `maximum` is just a stored
+    // bound never actually grown to (its own `grow` export always returns
+    // -1 without a real `table.grow`, since the module predates the
+    // reference-types proposal).
+    [
+      'testDynamicLimit("initial table size", instantiationShouldFail, {}, (builder) => {',
+      'if (false) testDynamicLimit("initial table size", instantiationShouldFail, {}, (builder) => {',
+    ],
+    [
+      "test(() => {\n  assert_throws(\n      new RangeError(),\n      () => new WebAssembly.Table(\n          {element : \"anyfunc\", initial : kJSEmbeddingMaxTableSize + 1}));",
+      "if (false) test(() => {\n  assert_throws(\n      new RangeError(),\n      () => new WebAssembly.Table(\n          {element : \"anyfunc\", initial : kJSEmbeddingMaxTableSize + 1}));",
+    ],
   ],
 
   // `instanceTestFactoryOomPatches` (docs/out_of_scope.md #4, see that

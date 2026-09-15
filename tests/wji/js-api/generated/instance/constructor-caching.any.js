@@ -172,6 +172,14 @@ var self = globalThis;
     assert_throws_js_impl(constructor, func, description, "assert_throws_js");
   };
 
+  // legacy WPT signature, superseded by assert_throws_js/assert_throws_exactly
+  // upstream but still used verbatim by spectec/test/js-api/limits.any.js --
+  // takes an already-constructed error instance rather than a constructor,
+  // so just forward its constructor to assert_throws_js_impl.
+  globalThis.assert_throws = function (errorInstance, func, description) {
+    assert_throws_js_impl(errorInstance.constructor, func, description, "assert_throws");
+  };
+
   globalThis.assert_throws_exactly = function (exception, func, description) {
     try {
       func.call(undefined);
@@ -193,6 +201,12 @@ var self = globalThis;
         assert_throws_js_impl(constructor, () => { throw e; }, description, "promise_rejects_js");
       },
     );
+  };
+
+  // legacy WPT signature (test, errorInstance, promise), same relationship
+  // to promise_rejects_js as assert_throws above has to assert_throws_js.
+  globalThis.promise_rejects = function (test, errorInstance, promise, description) {
+    return globalThis.promise_rejects_js(test, errorInstance.constructor, promise, description);
   };
 
   globalThis.setup = function (fn) {

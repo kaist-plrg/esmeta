@@ -131,6 +131,23 @@ object WebIdlConversion:
       callSite,
     )
 
+  /** invokes the real ECMA-262 `ToBoolean(V)` abstract operation, reentrantly
+    * -- same rationale as [[toStringValue]]. Unlike `ToString`/`ToNumber`/
+    * `ToBigInt`, `ToBoolean` is a total function over every value type (never
+    * reaches `ToPrimitive`/`valueOf`, never throws), so its result is never a
+    * completion record -- no `isAbrupt` check needed at the call site.
+    */
+  private def toBooleanValue(
+    interp: Interpreter,
+    callSite: Call,
+    v: Value,
+  ): Value =
+    interp.invokeCallable(
+      Clo(interp.st.cfg.getFunc("ToBoolean"), Map.empty),
+      List(v),
+      callSite,
+    )
+
   private def isAbrupt(st: State, v: Value): Boolean =
     AbruptT.contains(v, st.heap)
 
@@ -209,6 +226,7 @@ object WebIdlConversion:
     isSequence: Boolean = false,
     enumValues: Option[Set[String]] = None,
     isAddressValue: Boolean = false,
+    isBoolean: Boolean = false,
   )
 
   private val addressTypeValues = Set("i32", "i64")
@@ -252,7 +270,7 @@ object WebIdlConversion:
   // `value` -- `Global`'s own constructor (index.bs:1191-1192) reads
   // `|descriptor|["mutable"]` a full step before `|descriptor|["value"]`.
   private val globalDescriptorMembers = List(
-    Member("mutable", default = Some(Bool(false))),
+    Member("mutable", default = Some(Bool(false)), isBoolean = true),
     Member("value", required = true, enumValues = Some(valueTypeValues)),
   )
   // `required sequence<ValueType> parameters;` -- element-wise ValueType
@@ -273,7 +291,7 @@ object WebIdlConversion:
   // `boolean traceStack = false;` -- `Exception`'s constructor's third
   // parameter (`optional ExceptionOptions options = {}`), no required members.
   private val exceptionOptionsMembers =
-    List(Member("traceStack", default = Some(Bool(false))))
+    List(Member("traceStack", default = Some(Bool(false)), isBoolean = true))
 
   // `dictionary WebAssemblyCompileOptions { USVString? importedStringConstants;
   // sequence<USVString> builtins; };` (index.bs:364-367) -- `Module`'s
@@ -541,6 +559,14 @@ object WebIdlConversion:
                   else toNumberValue(interp, callSite, raw)
                 if isAbrupt(st, coerced) then abrupt = Some(coerced)
                 else pairs += key -> st(coerced, Str("Value"))
+              // `boolean` (`GlobalDescriptor.mutable`/`ExceptionOptions.
+              // traceStack`) -- real WebIDL boolean conversion is `ToBoolean`,
+              // not identity, so a truthy-but-not-literal-`true` value (e.g.
+              // `mutable: 1`/`mutable: "x"`) must still convert to `true`
+              // rather than being compared against a `true` literal later and
+              // silently losing.
+              case raw if member.isBoolean =>
+                pairs += key -> toBooleanValue(interp, callSite, raw)
               case raw =>
                 val value =
                   if member.isSequence then toSequence(st, raw) else raw

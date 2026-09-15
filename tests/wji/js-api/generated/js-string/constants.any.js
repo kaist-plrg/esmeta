@@ -1967,7 +1967,7 @@ const badGlobalTypes = [
   [kWasmExternRef, true],
   [wasmRefType(kWasmExternRef), true],
 ];
-for ([type, mutable] of badGlobalTypes) {
+for (let [type, mutable] of badGlobalTypes) {
   test(() => {
     assert_throws_js(WebAssembly.CompileError,
       () => instantiateImportedGlobal("'", "constant", type, mutable, "'"),
@@ -1994,7 +1994,7 @@ const namespaces = [
 
 for (let namespace of namespaces) {
   for (let constant of constants) {
-    for ([type, mutable] of goodGlobalTypes) {
+    for (let [type, mutable] of goodGlobalTypes) {
       test(() => {
         let result = instantiateImportedGlobal(namespace, constant, type, mutable, namespace);
         assert_equals(result.value, constant);

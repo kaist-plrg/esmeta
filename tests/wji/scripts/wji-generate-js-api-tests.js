@@ -64,6 +64,27 @@ const testPatches = [
   // strict mode, which throws `ReferenceError` instead. Occurs verbatim in
   // exactly two files (exception/{getArg,is}.tentative.any.js).
   ["for (argument of invalidValues) {", "for (let argument of invalidValues) {"],
+
+  // Same bug, same fix, js-string/constants.any.js's own two occurrences --
+  // `for ([type, mutable] of badGlobalTypes) {`/`for ([type, mutable] of
+  // goodGlobalTypes) {` destructure into bare (undeclared) `type`/`mutable`
+  // each iteration. The very first one throws a `ReferenceError` immediately
+  // (strict mode, same as above) -- and since it's a bare top-level statement
+  // rather than something inside a `test()`/`promise_test()` callback, this
+  // isn't just one failed subtest: it's an uncaught abrupt completion from
+  // the whole top-level script, so not even `add_completion_callback` at the
+  // bottom (report-shim.js) ever gets registered -- no SUMMARY line, no
+  // crash either (RunJobs just collects it into an `errors` list nothing
+  // inspects, esmeta's own design choice for uncaught top-level exceptions,
+  // out of scope for this fix).
+  [
+    "for ([type, mutable] of badGlobalTypes) {",
+    "for (let [type, mutable] of badGlobalTypes) {",
+  ],
+  [
+    "for ([type, mutable] of goodGlobalTypes) {",
+    "for (let [type, mutable] of goodGlobalTypes) {",
+  ],
 ];
 
 // Per-file patches that neuter just the individual pieces too expensive to

@@ -1137,6 +1137,40 @@ object SpecPatch:
     ->
     ("        1.  Let |taRecord| be [$MakeTypedArrayWithBufferWitnessRecord$](|jsBufferSource|, {{unordered}}).\n" +
     "        1.  Set |length| to [$TypedArrayByteLength$](|taRecord|)."),
+
+    // #56 (spec inconsistency, docs/spec_inconsistencies.md #21) —
+    // `validate builtins and imported string for a WebAssembly module`
+    // (spectec/document/js-api/index.bs:408) constructs the externtype it
+    // compares against as one bare backtick-quoted formal-grammar literal,
+    // `` `global const (ref extern)` ``, unlike every other externtype
+    // construction/destructuring in this corpus (and the sibling `globaltype`
+    // construction right next door in `Global`'s own constructor,
+    // index.bs:1200: "let |globaltype| be [=const=] |valuetype|"), which all
+    // build a value out of linked terms (`[=const=]`/`[=var=]`,
+    // `[=external-type/global=]`, `[=ref=]` -- e.g. `ToWebAssemblyValue`,
+    // index.bs:1451's already-working `[=ref=] [=heap-type/extern=]`) rather
+    // than one opaque literal. Rebuilt from those same three proven-working
+    // calls -- but as three separate `Let`s, each binding a plain variable,
+    // not two nested calls: `[=external-type/global=] |mut| |reftype|` needs
+    // `|mut|`/`|reftype|` as bare already-bound vars for
+    // `NormalizeSpecTecCaseShapePass`'s own `[=external-type/global=]`
+    // special case (its own doc's worked example --
+    // `Case("[=external-type/global=]", [Var(mut), Var(valuetype)])` ->
+    // `Case("GLOBAL", [Case("", [Var(mut), Var(valuetype)])])`) to fire on;
+    // writing `[=external-type/global=] [=const=] |reftype|` inline instead
+    // (a nested call, matching the two-line shape this patch first tried)
+    // parses `[=const=] |reftype|` greedily as a single one-arg call before
+    // `external-type/global` ever sees it, so its own 2-flat-arg special case
+    // never matches and it falls through to a generic one-arg path instead,
+    // adding an extra, wrong layer of nesting SpecTec's own `al_to_globaltype`
+    // then rejects (confirmed against the real `spectec` binary: `Backend_
+    // interpreter.Construct.WrongConversion("globaltype: invalid
+    // construction ...")`).
+    "        1. Let |stringExternType| be `global const (ref extern)`."
+    ->
+    ("        1. Let |reftype| be [=ref=] [=heap-type/extern=].\n" +
+    "        1. Let |mut| be [=const=].\n" +
+    "        1. Let |stringExternType| be [=external-type/global=] |mut| |reftype|."),
   )
 
   def apply(source: String): String =

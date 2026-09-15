@@ -27,7 +27,9 @@ def validate_builtins_and_imported_string_for_a_webassembly_module(
     let import = _iterList1[_iterIdx2]
     if (&& (! (= importedStringModule null)) (= import[0] importedStringModule)) {
       let importExternType = import[2]
-      let stringExternType = (yet "global const (ref extern)")
+      let reftype = (case "REF" (opt) (case "EXTERN" ))
+      let mut = (opt)
+      let stringExternType = (case "GLOBAL" (case "" mut reftype))
       call-embed _call2 = <match_externtype>(stringExternType, importExternType)
       if (= _call2 false) {
         return false

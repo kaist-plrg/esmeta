@@ -340,7 +340,10 @@ object CondParser:
             // is declared with the [{{Global}}] [=extended attribute=], or
             // |interface| is in the set of ...").
             val left = s.substring(0, i).trim.stripSuffix(",").trim
-            Or(parse(left), parseOrAbbreviated(s.substring(i + 4).trim))
+            Or(
+              parse(left),
+              parseOrAbbreviated(stripLeadingIf(s.substring(i + 4).trim)),
+            )
           case None =>
             findTopLevel(searchIn, " and ") match
               // "X ..., and therefore is a Y" (index.bs:508's only
@@ -359,9 +362,27 @@ object CondParser:
                 parse(s.substring(0, i).trim.stripSuffix(",").trim)
               case Some(i) =>
                 val left = s.substring(0, i).trim.stripSuffix(",").trim
-                val right = s.substring(i + 5).trim
+                val right = stripLeadingIf(s.substring(i + 5).trim)
                 And(parse(left), parseOrAbbreviated(right))
               case None => parseAtomic(s)
+
+  /** "X or if Y" / "X and if Y" (e.g. index.bs:500's "|o| [=is not an Object=]
+    * or if [$HasProperty$](|o|, |componentName|) is false") — a redundant "if"
+    * reintroduced on the second disjunct/conjunct of a compound condition. The
+    * leading "If " that normally opens a whole condition is already stripped by
+    * whatever instruction-level construct calls into `CondParser.parse` in the
+    * first place (never part of the text `parse` itself ever sees) — but here
+    * it reappears mid-condition for readability, so it has to be stripped a
+    * second time, right where the "or"/"and" split above hands the right-hand
+    * side off to a recursive `parse` call, or every one of that call's patterns
+    * fails on the stray leading "if" and falls all the way to `Unknown`/`EYet`.
+    * Unlike "and therefore" just above (which discards its whole clause), "or
+    * if"/"and if" keep the clause and mean exactly what plain "or"/ "and" would
+    * — this only strips the token, so it's a separate small helper rather than
+    * another arm of that same special case.
+    */
+  private def stripLeadingIf(s: String): String =
+    if s.startsWith("if ") then s.drop(3) else s
 
   /** Tries full condition parse; if it falls back to [[Unknown]], attempts to
     * salvage the text as an [[Abbreviated]] when [[ExprParser]] recognises it.

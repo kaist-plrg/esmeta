@@ -293,30 +293,39 @@ def read_the_imports(
     let externtype = _tuple1[2]
     if (exists builtinOrStringImports[moduleName]) {
       let o = builtinOrStringImports[moduleName]
-      if (|| (! (? o: Record[Object])) (= (yet "if [$HasProperty$](|o|, |componentName|)") false)) {
-        call _call2 = clo<"Get">(importObject, moduleName)
-        if (? _call2: Abrupt) {
-          if (? _call2: Completion) {
-            return _call2
+      let _cond3 = false
+      if (! (? o: Record[Object])) {
+        _cond3 = true
+      } else {
+        call _call2 = clo<"HasProperty">(o, componentName)
+        if (= _call2 false) {
+          _cond3 = true
+        } else nop
+      }
+      if (= _cond3 true) {
+        call _call4 = clo<"Get">(importObject, moduleName)
+        if (? _call4: Abrupt) {
+          if (? _call4: Completion) {
+            return _call4
           } else {
-            call _ret3 = clo<"NormalCompletion">(_call2)
+            call _ret3 = clo<"NormalCompletion">(_call4)
             return _ret3
           }
         } else {
-          o = _call2.Value
+          o = _call4.Value
         }
       } else nop
     } else {
-      call _call3 = clo<"Get">(importObject, moduleName)
-      if (? _call3: Abrupt) {
-        if (? _call3: Completion) {
-          return _call3
+      call _call5 = clo<"Get">(importObject, moduleName)
+      if (? _call5: Abrupt) {
+        if (? _call5: Completion) {
+          return _call5
         } else {
-          call _ret4 = clo<"NormalCompletion">(_call3)
+          call _ret4 = clo<"NormalCompletion">(_call5)
           return _ret4
         }
       } else {
-        let o = _call3.Value
+        let o = _call5.Value
       }
     }
     if (! (? o: Record[Object])) {
@@ -324,21 +333,21 @@ def read_the_imports(
       call _ret6 = clo<"ThrowCompletion">(_err5)
       return _ret6
     } else nop
-    call _call4 = clo<"Get">(o, componentName)
-    if (? _call4: Abrupt) {
-      if (? _call4: Completion) {
-        return _call4
+    call _call6 = clo<"Get">(o, componentName)
+    if (? _call6: Abrupt) {
+      if (? _call6: Completion) {
+        return _call6
       } else {
-        call _ret7 = clo<"NormalCompletion">(_call4)
+        call _ret7 = clo<"NormalCompletion">(_call6)
         return _ret7
       }
     } else {
-      let v = _call4.Value
+      let v = _call6.Value
     }
     if (= (case-tag externtype) "FUNC") {
       let functype = externtype[0]
-      call _call5 = clo<"IsCallable">(v)
-      if (= _call5 false) {
+      call _call7 = clo<"IsCallable">(v)
+      if (= _call7 false) {
         call _err8 = clo<"__NEW_ERROR_OBJ__">("%LinkError.prototype%")
         call _ret9 = clo<"ThrowCompletion">(_err8)
         return _ret9

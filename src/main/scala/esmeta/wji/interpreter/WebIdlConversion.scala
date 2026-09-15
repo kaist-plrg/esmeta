@@ -13,14 +13,22 @@ import esmeta.ty.AbruptT
   * operations, ported 1:1 from the former
   * `manuals/funcs/converted_to_an_idl_value.ir` /
   * `converted_to_a_javascript_value.ir` stubs. Same scope as before the port
-  * (see `docs/hardcodes.md` #1/#2), extended with `TagType`: only `"unsigned
-  * long"` and four WebAssembly dictionaries (`MemoryDescriptor`,
-  * `TableDescriptor`, `GlobalDescriptor`, `TagType`) genuinely convert; every
-  * other IDL type is still identity passthrough. Dictionary member reads go
-  * through a real `Get` (prototype chain, getters, and any exception a getter
-  * throws all work), and a required member found absent throws a real
-  * `TypeError` right there — see `readDictionary` and
-  * `Interpreter.invokeCallable`.
+  * (see `docs/hardcodes.md` #1/#2), since extended to cover: `"unsigned long"`;
+  * the WebAssembly dictionaries `MemoryDescriptor`/`TableDescriptor`/
+  * `GlobalDescriptor`/`TagType`/`ExceptionOptions`/`WebAssemblyCompileOptions`
+  * (via `readDictionary`); the interface types `Module`/`Tag` (via
+  * `implementsInterface`); a bare `sequence<T>` parameter (via `toSequence`);
+  * and the union type `AllowSharedBufferSource` (via `isBufferSource`). Every
+  * other IDL type not listed above is still identity passthrough — leaving
+  * `options`/whatever the raw ECMAScript value as-is means `exists`/`Get` on
+  * one of its members only behaves correctly for internal slots (a
+  * `RecordObj`'s own top-level fields), not real object properties (which live
+  * in the nested `"__MAP__"` field's own `MapObj`) — see
+  * `webAssemblyCompileOptionsMembers`'s own doc for a case where exactly this
+  * bit a not-yet-converted dictionary. Dictionary member reads go through a
+  * real `Get` (prototype chain, getters, and any exception a getter throws all
+  * work), and a required member found absent throws a real `TypeError` right
+  * there — see `readDictionary` and `Interpreter.invokeCallable`.
   */
 object WebIdlConversion:
 
@@ -267,6 +275,31 @@ object WebIdlConversion:
   private val exceptionOptionsMembers =
     List(Member("traceStack", default = Some(Bool(false))))
 
+  // `dictionary WebAssemblyCompileOptions { USVString? importedStringConstants;
+  // sequence<USVString> builtins; };` (index.bs:364-367) -- `Module`'s
+  // constructor and the `compile`/`instantiate`/`validate` namespace
+  // operations' shared last parameter. Neither member has an IDL default, so
+  // both are correctly left out of the converted dictionary entirely when
+  // absent (`Member.default = None`, `required = false`) -- `SpecPatch` #17's
+  // own `[=map/exists=]` guard on each is what depends on that (`docs/
+  // spec_errors.md` #12). Listed in the constructor algorithm's own
+  // first-reference order (`builtins` before `importedStringConstants`,
+  // index.bs:100-105), not IDL declaration order (which is reversed).
+  //
+  // Previously left as identity passthrough like every other unlisted IDL
+  // type, which left `options` as the raw JS object -- `exists options.
+  // builtins` (`esmeta.state.Obj.exists`) only ever checks a `RecordObj`'s own
+  // top-level field map, never a real object's actual own properties (those
+  // live in the nested `"__MAP__"` field's own `MapObj`), so the check was
+  // always false regardless of what was actually passed. Routing this through
+  // `readDictionary` (which builds a real `MapObj` via `st.allocMap`, keyed
+  // directly by member name) makes `exists options.builtins` correct the same
+  // way it already is for `MemoryDescriptor`/etc.
+  private val webAssemblyCompileOptionsMembers = List(
+    Member("builtins", isSequence = true),
+    Member("importedStringConstants"),
+  )
+
   /** `ty` names the declared IDL type — almost always a literal `Str` (from
     * `AddInterfaceMemberBuiltinBehaviourPass.unpackArgumentsList`'s
     * `WjiParam.idlType`-driven call), but a direct spec-text "converted to an
@@ -294,6 +327,13 @@ object WebIdlConversion:
       readDictionary(interp, callSite, argument, tagTypeMembers)
     case Str("ExceptionOptions") | Enum("ExceptionOptions") =>
       readDictionary(interp, callSite, argument, exceptionOptionsMembers)
+    case Str("WebAssemblyCompileOptions") | Enum("WebAssemblyCompileOptions") =>
+      readDictionary(
+        interp,
+        callSite,
+        argument,
+        webAssemblyCompileOptionsMembers,
+      )
     // an interface-typed argument (`Module.{exports,imports,customSections}`'s
     // `moduleObject`, and `Exception`'s constructor's `exceptionTag`): real
     // WebIDL interface-type conversion requires the value to actually

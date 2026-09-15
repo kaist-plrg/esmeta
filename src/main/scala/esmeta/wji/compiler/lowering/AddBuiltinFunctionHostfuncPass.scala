@@ -34,6 +34,27 @@ import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr, WjiParam}
   * for anything that isn't `Case("TRAP", Nil)`) if a future builtin set's
   * `steps` can throw something else.
   *
+  * Also registers every `funcaddr` `create_a_builtin_function` mints into
+  * `@AGENT_RECORD["function import list"]` — a second, unrelated gap this
+  * algorithm has, found only once `match_externtype` (`docs/hardcodes.md`
+  * #21/`personal/TODO.md` #54, a spec-inconsistent `fromCodePoint` funcType
+  * nullability — since fixed) stopped blocking `new WebAssembly.Instance(...)`
+  * from actually running `instantiate_a_builtin_set`. `name_of_the_
+  * WebAssembly_function` (index.bs:1245, called when `.exports.foo` first
+  * creates an Exported Function for a builtin) checks whether `funcinst.code`
+  * is a `HOSTFUNC` and, if so, looks its `funcaddr` up by linear search in this
+  * exact list — a WJI-hardcoded stand-in for "index of the host function"
+  * (index.bs:507's own scoped-to-`read_the_imports` definition,
+  * `docs/hardcodes.md`'s existing mechanization elsewhere). `read_the_imports`
+  * already pushes onto it for every `create_a_host_function`-made `funcaddr`
+  * (its own `push @AGENT_RECORD["function import list"] < funcaddr` right after
+  * that call) — but `create_a_builtin_function` mints its own `funcaddr` via a
+  * completely different call path (`instantiate_a_builtin_set`, which runs
+  * *before* `read_the_imports`'s own per-import loop even starts) that never
+  * touched this list at all, so every js-string builtin's `funcaddr` was
+  * invisible to it — `assertion failure: (contains funcaddrs funcaddr)` the
+  * moment JS code first reads `instance.exports.cast` (etc.).
+  *
   * Runs alongside [[AddJsStringBuiltinsPass]] (see its own doc — same "very
   * early in the pipeline" placement, same reasoning), but as a separate pass
   * since it targets a different algorithm and neither needs anything the other
@@ -48,6 +69,8 @@ object AddBuiltinFunctionHostfuncPass extends LoweringPass:
 
   private val agentStore =
     Expr.Field(Expr.SpecTerm("surrounding agent"), "associated store")
+  private val agentFunctionImportList =
+    Expr.Field(Expr.SpecTerm("surrounding agent"), "function import list")
 
   private def hostfuncAlgo: Algorithm =
     Algorithm(
@@ -100,10 +123,24 @@ object AddBuiltinFunctionHostfuncPass extends LoweringPass:
       case i => i.mapBody(patchHostfuncLet)
     }
 
+  /** inserts `push @AGENT_RECORD["function import list"] < funcaddr` right
+    * before every `Return funcaddr` in `create_a_builtin_function`'s body — see
+    * this object's own doc for why.
+    */
+  private def registerFuncaddr(instrs: List[Instr]): List[Instr] =
+    instrs.flatMap {
+      case r @ Instr.Return(Some(Expr.Var("funcaddr")), body) =>
+        List(
+          Instr.Append(Expr.Var("funcaddr"), agentFunctionImportList),
+          r.copy(body = registerFuncaddr(body)),
+        )
+      case i => List(i.mapBody(registerFuncaddr))
+    }
+
   def run(algos: List[Algorithm]): List[Algorithm] =
     val patched = algos.map { a =>
       if a.name.contains(TargetAlgoName) then
-        a.copy(body = patchHostfuncLet(a.body))
+        a.copy(body = registerFuncaddr(patchHostfuncLet(a.body)))
       else a
     }
     patched :+ hostfuncAlgo

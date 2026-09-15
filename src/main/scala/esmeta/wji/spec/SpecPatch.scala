@@ -1171,6 +1171,27 @@ object SpecPatch:
     ("        1. Let |reftype| be [=ref=] [=heap-type/extern=].\n" +
     "        1. Let |mut| be [=const=].\n" +
     "        1. Let |stringExternType| be [=external-type/global=] |mut| |reftype|."),
+
+    // #57 (spec bug, docs/spec_errors.md #29) — `read the imports`
+    // (index.bs:500) is missing `[=?=]` before `[$HasProperty$](|o|,
+    // |componentName|)` — every other `[$HasProperty$]`/`[$Get$]` call in
+    // this same algorithm (a few lines above/below this one) correctly marks
+    // itself `[=?=]`, and `[[HasProperty]]` genuinely can throw (a Proxy
+    // trap can run arbitrary code), so this omission isn't a deliberate
+    // "provably can't throw here" elision the way a few other bare abstract-
+    // op calls elsewhere in this corpus are. Without `[=?=]`, `ExprParser`
+    // never wraps this call in `Expr.Abrupt("?", ...)`, so `NormalizeEvaluat
+    // ionOrderPass`/`ExpandAbruptPass` never unwrap its `.Value` — the
+    // compiled `if (= _call2 false)` then compares the *whole Completion
+    // Record* against `false`, which is never `true` regardless of the real
+    // boolean, so this branch's "fall back to the plain `importObject`"
+    // path can never fire. Confirmed directly: `HasProperty`'s own return
+    // value at this call site is a heap `Addr` (a Completion Record), not a
+    // bare `Bool`, via a temporary debug print in `Interpreter.eval`'s
+    // `ICall`/`IReturn` cases.
+    "1. If |o| [=is not an Object=] or if [$HasProperty$](|o|, |componentName|) is false,"
+    ->
+    "1. If |o| [=is not an Object=] or if [=?=] [$HasProperty$](|o|, |componentName|) is false,",
   )
 
   def apply(source: String): String =

@@ -123,7 +123,7 @@
   ForEach((|moduleName|, |componentName|, |externtype|), [=module_imports=](|module|))
     If(|builtinOrStringImports|[|moduleName|] [=map/exists=])
       Let(|o|, |builtinOrStringImports|[|moduleName|])
-      If(|o| is not an Object or [$HasProperty$](|o|, |componentName|) is false)
+      If(|o| is not an Object or [=?=] [$HasProperty$](|o|, |componentName|) is false)
         Set(|o|, [=?=] [$Get$](|importObject|, |moduleName|))
     Else
       Let(|o|, [=?=] [$Get$](|importObject|, |moduleName|))

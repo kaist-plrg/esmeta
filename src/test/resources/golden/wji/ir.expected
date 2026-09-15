@@ -291,64 +291,74 @@ def read_the_imports(
     let externtype = _tuple1[2]
     if (exists builtinOrStringImports[moduleName]) {
       let o = builtinOrStringImports[moduleName]
-      let _cond3 = false
+      let _cond4 = false
       if (! (? o: Record[Object])) {
-        _cond3 = true
+        _cond4 = true
       } else {
         call _call2 = clo<"HasProperty">(o, componentName)
-        if (= _call2 false) {
-          _cond3 = true
-        } else nop
-      }
-      if (= _cond3 true) {
-        call _call4 = clo<"Get">(importObject, moduleName)
-        if (? _call4: Abrupt) {
-          if (? _call4: Completion) {
-            return _call4
+        if (? _call2: Abrupt) {
+          if (? _call2: Completion) {
+            return _call2
           } else {
-            call _ret3 = clo<"NormalCompletion">(_call4)
+            call _ret3 = clo<"NormalCompletion">(_call2)
             return _ret3
           }
         } else {
-          o = _call4.Value
+          let _call3 = _call2.Value
+        }
+        if (= _call3 false) {
+          _cond4 = true
+        } else nop
+      }
+      if (= _cond4 true) {
+        call _call5 = clo<"Get">(importObject, moduleName)
+        if (? _call5: Abrupt) {
+          if (? _call5: Completion) {
+            return _call5
+          } else {
+            call _ret4 = clo<"NormalCompletion">(_call5)
+            return _ret4
+          }
+        } else {
+          o = _call5.Value
         }
       } else nop
     } else {
-      call _call5 = clo<"Get">(importObject, moduleName)
-      if (? _call5: Abrupt) {
-        if (? _call5: Completion) {
-          return _call5
+      call _call6 = clo<"Get">(importObject, moduleName)
+      if (? _call6: Abrupt) {
+        if (? _call6: Completion) {
+          return _call6
         } else {
-          call _ret4 = clo<"NormalCompletion">(_call5)
-          return _ret4
+          call _ret5 = clo<"NormalCompletion">(_call6)
+          return _ret5
         }
       } else {
-        let o = _call5.Value
+        let o = _call6.Value
       }
     }
     if (! (? o: Record[Object])) {
-      call _err5 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-      call _ret6 = clo<"ThrowCompletion">(_err5)
-      return _ret6
+      call _err6 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
+      call _ret7 = clo<"ThrowCompletion">(_err6)
+      return _ret7
     } else nop
-    call _call6 = clo<"Get">(o, componentName)
-    if (? _call6: Abrupt) {
-      if (? _call6: Completion) {
-        return _call6
+    call _call7 = clo<"Get">(o, componentName)
+    if (? _call7: Abrupt) {
+      if (? _call7: Completion) {
+        return _call7
       } else {
-        call _ret7 = clo<"NormalCompletion">(_call6)
-        return _ret7
+        call _ret8 = clo<"NormalCompletion">(_call7)
+        return _ret8
       }
     } else {
-      let v = _call6.Value
+      let v = _call7.Value
     }
     if (= (case-tag externtype) "FUNC") {
       let functype = externtype[0]
-      call _call7 = clo<"IsCallable">(v)
-      if (= _call7 false) {
-        call _err8 = clo<"__NEW_ERROR_OBJ__">("%LinkError.prototype%")
-        call _ret9 = clo<"ThrowCompletion">(_err8)
-        return _ret9
+      call _call8 = clo<"IsCallable">(v)
+      if (= _call8 false) {
+        call _err9 = clo<"__NEW_ERROR_OBJ__">("%LinkError.prototype%")
+        call _ret10 = clo<"ThrowCompletion">(_err9)
+        return _ret10
       } else nop
       if (&& (? v: Record[Object]) (exists v.FunctionAddress)) {
         let funcaddr = v.FunctionAddress
@@ -366,26 +376,26 @@ def read_the_imports(
         let globaladdr = v.Global
       } else {
         if (&& (= valtype (case "I64" )) (! (? v: BigInt))) {
-          call _err10 = clo<"__NEW_ERROR_OBJ__">("%LinkError.prototype%")
-          call _ret11 = clo<"ThrowCompletion">(_err10)
-          return _ret11
+          call _err11 = clo<"__NEW_ERROR_OBJ__">("%LinkError.prototype%")
+          call _ret12 = clo<"ThrowCompletion">(_err11)
+          return _ret12
         } else nop
         if (&& (|| (|| (= valtype (case "I32" )) (= valtype (case "F32" ))) (= valtype (case "F64" ))) (! (? v: Number))) {
-          call _err12 = clo<"__NEW_ERROR_OBJ__">("%LinkError.prototype%")
-          call _ret13 = clo<"ThrowCompletion">(_err12)
-          return _ret13
+          call _err13 = clo<"__NEW_ERROR_OBJ__">("%LinkError.prototype%")
+          call _ret14 = clo<"ThrowCompletion">(_err13)
+          return _ret14
         } else nop
         if (= valtype (case "V128" )) {
-          call _err14 = clo<"__NEW_ERROR_OBJ__">("%LinkError.prototype%")
-          call _ret15 = clo<"ThrowCompletion">(_err14)
-          return _ret15
+          call _err15 = clo<"__NEW_ERROR_OBJ__">("%LinkError.prototype%")
+          call _ret16 = clo<"ThrowCompletion">(_err15)
+          return _ret16
         } else nop
         call _throwComp1 = clo<"ToWebAssemblyValue">(v, valtype)
         if (exists _throwComp1.Type) {
           if (= _throwComp1.Type ~throw~) {
-            call _err16 = clo<"__NEW_ERROR_OBJ__">("%LinkError.prototype%")
-            call _ret17 = clo<"ThrowCompletion">(_err16)
-            return _ret17
+            call _err17 = clo<"__NEW_ERROR_OBJ__">("%LinkError.prototype%")
+            call _ret18 = clo<"ThrowCompletion">(_err17)
+            return _ret18
           } else {
             let value = _throwComp1.Value
           }
@@ -404,9 +414,9 @@ def read_the_imports(
     if (= (case-tag externtype) "MEM") {
       let memtype = externtype[0]
       if (! (implements v "Memory")) {
-        call _err18 = clo<"__NEW_ERROR_OBJ__">("%LinkError.prototype%")
-        call _ret19 = clo<"ThrowCompletion">(_err18)
-        return _ret19
+        call _err19 = clo<"__NEW_ERROR_OBJ__">("%LinkError.prototype%")
+        call _ret20 = clo<"ThrowCompletion">(_err19)
+        return _ret20
       } else nop
       let externmem = (case "MEM" v.Memory)
       push imports < externmem
@@ -414,9 +424,9 @@ def read_the_imports(
     if (= (case-tag externtype) "TABLE") {
       let tabletype = externtype[0]
       if (! (implements v "Table")) {
-        call _err20 = clo<"__NEW_ERROR_OBJ__">("%LinkError.prototype%")
-        call _ret21 = clo<"ThrowCompletion">(_err20)
-        return _ret21
+        call _err21 = clo<"__NEW_ERROR_OBJ__">("%LinkError.prototype%")
+        call _ret22 = clo<"ThrowCompletion">(_err21)
+        return _ret22
       } else nop
       let tableaddr = v.Table
       let externtable = (case "TABLE" tableaddr)
@@ -425,9 +435,9 @@ def read_the_imports(
     if (= (case-tag externtype) "TAG") {
       let functype = externtype[0]
       if (! (implements v "Tag")) {
-        call _err22 = clo<"__NEW_ERROR_OBJ__">("%LinkError.prototype%")
-        call _ret23 = clo<"ThrowCompletion">(_err22)
-        return _ret23
+        call _err23 = clo<"__NEW_ERROR_OBJ__">("%LinkError.prototype%")
+        call _ret24 = clo<"ThrowCompletion">(_err23)
+        return _ret24
       } else nop
       let tagaddr = v.Address
       let externtag = (case "TAG" tagaddr)
@@ -438,8 +448,8 @@ def read_the_imports(
   if (? imports: Completion) {
     return imports
   } else {
-    call _ret24 = clo<"NormalCompletion">(imports)
-    return _ret24
+    call _ret25 = clo<"NormalCompletion">(imports)
+    return _ret25
   }
 }
 def create_an_exports_object(
@@ -3825,7 +3835,7 @@ def get_the_builtins_for_a_builtin_set(
   call-embed _jsStringFuncType1 = <fold>((case "->" (list [(case "REF" (opt (case "NULL" )) (case "EXTERN" ))]) (list [(case "REF" (opt) (case "EXTERN" ))])))
   call-embed _jsStringFuncType2 = <fold>((case "->" (list [(case "REF" (opt (case "NULL" )) (case "EXTERN" ))]) (list [(case "I32" )])))
   call-embed _jsStringFuncType3 = <fold>((case "->" (list [(case "I32" )]) (list [(case "REF" (opt) (case "EXTERN" ))])))
-  call-embed _jsStringFuncType4 = <fold>((case "->" (list [(case "I32" )]) (list [(case "REF" (opt (case "NULL" )) (case "EXTERN" ))])))
+  call-embed _jsStringFuncType4 = <fold>((case "->" (list [(case "I32" )]) (list [(case "REF" (opt) (case "EXTERN" ))])))
   call-embed _jsStringFuncType5 = <fold>((case "->" (list [(case "REF" (opt (case "NULL" )) (case "EXTERN" )), (case "I32" )]) (list [(case "I32" )])))
   call-embed _jsStringFuncType6 = <fold>((case "->" (list [(case "REF" (opt (case "NULL" )) (case "EXTERN" )), (case "I32" )]) (list [(case "I32" )])))
   call-embed _jsStringFuncType7 = <fold>((case "->" (list [(case "REF" (opt (case "NULL" )) (case "EXTERN" ))]) (list [(case "I32" )])))
@@ -3898,6 +3908,7 @@ def create_a_builtin_function(
   let store = _tuple1[0]
   let funcaddr = _tuple1[1]
   @AGENT_RECORD["associated store"] = store
+  push @AGENT_RECORD["function import list"] < funcaddr
   return funcaddr
 }
 def instantiate_a_builtin_set(

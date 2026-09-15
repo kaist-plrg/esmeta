@@ -90,11 +90,19 @@ object AddJsStringBuiltinsPass extends LoweringPass:
       List(I32),
       List(RefExtern),
     ),
+    // index.bs:2040 literally says "(result externref)" (nullable) here --
+    // every other string-returning builtin in this section (cast/
+    // fromCharCode/concat/substring/...) says non-null "(result (ref
+    // extern))" instead, and the independently-authored test corpus
+    // (spectec/test/js-api/js-string/basic.any.js's own `results:
+    // [wasmRefType(kWasmExternRef)]`, non-null) agrees with the *other*
+    // builtins' pattern, not with this one's literal text -- treated as a
+    // spec typo (`docs/spec_inconsistencies.md`), not transcribed verbatim.
     Builtin(
       "js-string-fromcodepoint",
       "fromCodePoint",
       List(I32),
-      List(Externref),
+      List(RefExtern),
     ),
     Builtin(
       "js-string-charcodeat",

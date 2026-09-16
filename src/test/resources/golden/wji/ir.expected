@@ -5142,7 +5142,8 @@ def asynchronously_instantiate_a_webassembly_module_closure1(
     if (= _throwComp1.Type ~throw~) {
       let exception = _throwComp1.Value
       call _ = clo<"reject">(~Instance~, promise, exception)
-      (yet "terminate these substeps")
+      call _ret1 = clo<"NormalCompletion">(~unused~)
+      return _ret1
     } else {
       let instance = _throwComp1.Value
     }
@@ -5171,12 +5172,13 @@ def asynchronously_instantiate_a_webassembly_module_closure1(
     if (= _throwComp2.Type ~throw~) {
       let exception = _throwComp2.Value
       call _ = clo<"reject">(~Instance~, promise, exception)
-      (yet "terminate these substeps")
+      call _ret2 = clo<"NormalCompletion">(~unused~)
+      return _ret2
     } else nop
   } else nop
   call _ = clo<"Resolve">(~Instance~, promise, instanceObject)
-  call _ret1 = clo<"NormalCompletion">(~unused~)
-  return _ret1
+  call _ret3 = clo<"NormalCompletion">(~unused~)
+  return _ret3
 }
 def instantiate_a_promise_of_a_module_closure2(
   instance: Unknown,

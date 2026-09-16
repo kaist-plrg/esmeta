@@ -28,6 +28,14 @@ object InstrParser:
   // step actually runs.
   private val BareCitation = """(?s)^\[\[[\w-]+\]\]$""".r
   private val ReturnPrefix = """(?is)^Return\b\.?\s*(.*)$""".r
+  // "terminate these substeps" (js-api's own "queue a task" bodies, e.g.
+  // "instantiate the core of a WebAssembly module"'s catch-and-bail clause)
+  // / "abort these steps" (webidl's own closure idiom, e.g. "wait for all"'s
+  // rejection handler) -- both mean "stop executing the rest of the current
+  // step list/closure body right here, with no value to produce", exactly
+  // what a bare `Return` (no expr) already expresses.
+  private val EarlyExitPrefix =
+    """(?is)^(?:terminate|abort)\s+(?:this|these)\s+(?:substeps|steps)$""".r
   private val ThrowPrefix = """(?is)^(?:\[=[Tt]hrow=\]|Throw\b)\s+(.+)$""".r
 
   // a "definition by case enumeration" bullet, e.g. `js-api/index.bs`'s
@@ -262,7 +270,8 @@ object InstrParser:
               case None => Unknown(text, trailingBody)
       case AssertPrefix(cond) =>
         Assert(CondParser.parse(cond), trailingBody)
-      case NotePrefix(note) => Note(note.trim, trailingBody)
+      case NotePrefix(note)  => Note(note.trim, trailingBody)
+      case EarlyExitPrefix() => Return(None, trailingBody)
       case ReturnPrefix(expr) =>
         Return(
           Option.when(expr.nonEmpty)(ExprParser.parse(expr)),

@@ -587,22 +587,19 @@ def instantiate_the_core_of_a_webassembly_module(
 ): Unknown = {
   let store = @AGENT_RECORD["associated store"]
   call-embed result = <module_instantiate>(store, module, imports)
-  if (= result (case "ERROR" )) {
-    (yet "A {{LinkError}} exception for most cases which occur during linking")
-    if (yet "the error came when running the start function") {
-      call _ret1 = clo<"ThrowCompletion">((yet "a {{RuntimeError}} for most errors which occur from WebAssembly, or the error object propagated from inner ECMAScript code"))
-      return _ret1
-    } else nop
-    (yet "Another error type if appropriate, for example an out-of-memory exception, as documented in <a href=\"#errors\">the WebAssembly error mapping</a>")
-  } else nop
   let store = result[0]
   let instance = result[1]
+  if (= instance (case "ERROR" )) {
+    call _err1 = clo<"__NEW_ERROR_OBJ__">("%LinkError.prototype%")
+    call _ret2 = clo<"ThrowCompletion">(_err1)
+    return _ret2
+  } else nop
   @AGENT_RECORD["associated store"] = store
   if (? instance: Completion) {
     return instance
   } else {
-    call _ret2 = clo<"NormalCompletion">(instance)
-    return _ret2
+    call _ret3 = clo<"NormalCompletion">(instance)
+    return _ret3
   }
 }
 def asynchronously_instantiate_a_webassembly_module(

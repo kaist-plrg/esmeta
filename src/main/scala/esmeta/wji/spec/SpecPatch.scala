@@ -1192,6 +1192,66 @@ object SpecPatch:
     "1. If |o| [=is not an Object=] or if [$HasProperty$](|o|, |componentName|) is false,"
     ->
     "1. If |o| [=is not an Object=] or if [=?=] [$HasProperty$](|o|, |componentName|) is false,",
+
+    // #58 (spec bug, docs/spec_errors.md #31) — `instantiate the core of a
+    // WebAssembly module` (index.bs:602) checks `If |result| is [=error=]`
+    // before destructuring `|result|` into `(|store|, |instance|)` — but
+    // `module_instantiate`'s own declared return type (embedding.rst) is
+    // *always* a `(store, moduleinst | error)` pair, so `|result|` itself
+    // (the whole tuple) can never literally equal the bare `error` value;
+    // only its second component can. Confirmed via `wji-extract`: the
+    // condition compiles to a literal `Eq(result, error)`, which is
+    // vacuously false forever, so the branch throwing `{{LinkError}}` (etc.)
+    // is dead code and a genuine link failure (e.g. a mismatched global's
+    // `Externaddr_ok` correctly returning false, confirmed via a temporary
+    // debug print in `spectec`'s `Relation.externaddr_ok`/`Embedding.
+    // module_instantiate`) falls straight through to the destructuring
+    // step, binding `|instance|` to the `error` sentinel value itself and
+    // returning it as if it were a real instance — no exception at all.
+    // Swaps the destructuring step ahead of the check and tests `|instance|`
+    // (the actual second tuple component) instead of `|result|` — same
+    // steps, same bulleted exception-type list, just reordered and pointed
+    // at the right variable.
+    """    1. If |result| is [=error=], throw an appropriate exception type:
+        * A {{LinkError}} exception for most cases which occur during linking.
+        * If the error came when running the start function, throw a {{RuntimeError}} for most errors which occur from WebAssembly, or the error object propagated from inner ECMAScript code.
+        * Another error type if appropriate, for example an out-of-memory exception, as documented in <a href="#errors">the WebAssembly error mapping</a>.
+    1. Let (|store|, |instance|) be |result|."""
+    ->
+    """    1. Let (|store|, |instance|) be |result|.
+    1. If |instance| is [=error=], throw an appropriate exception type:
+        * A {{LinkError}} exception for most cases which occur during linking.
+        * If the error came when running the start function, throw a {{RuntimeError}} for most errors which occur from WebAssembly, or the error object propagated from inner ECMAScript code.
+        * Another error type if appropriate, for example an out-of-memory exception, as documented in <a href="#errors">the WebAssembly error mapping</a>.""",
+
+    // #59 (hardcoding, docs/hardcodes.md #22) — collapses the 3-way bulleted
+    // exception-type list right after #58's fix into a flat "throw
+    // LinkError" — not a spec bug/inconsistency fix, since the bulleted
+    // list is itself a perfectly valid (if unusual) description of real
+    // WebAssembly embedder behavior; this is a genuine simplification this
+    // project can't yet do better than. `spectec`'s own `Embedding.
+    // module_instantiate` collapses all three of `$instantiate`'s possible
+    // failure modes (a precondition check like `Externaddr_ok` failing
+    // *before* any instruction runs; a genuine Wasm trap *during* start-
+    // function execution; the start function itself doing a real Wasm
+    // `throw`) into one undifferentiated `ERROR` sentinel — its own comment
+    // admits "distinguishing them ... is unaddressed; no fixture exercises
+    // a throwing start function yet". `func_invoke` already has the
+    // machinery for exactly this distinction (`Exception.Trap` -> generic
+    // `error`, `Exception.Throw v` -> a separate `EXCEPTION exnaddr`
+    // sentinel carrying the real payload) that `module_instantiate` could
+    // eventually reuse (`personal/TODO.md`) — but every currently in-scope
+    // fixture that reaches this code path is a "bad imports" test, i.e.
+    // purely `Exception.Fail` (a precondition failure = linking failure),
+    // so "always LinkError" is not just pragmatic but describes 100% of
+    // what's actually reachable today; revisit once a fixture with a
+    // trapping/throwing start function shows up.
+    """    1. If |instance| is [=error=], throw an appropriate exception type:
+        * A {{LinkError}} exception for most cases which occur during linking.
+        * If the error came when running the start function, throw a {{RuntimeError}} for most errors which occur from WebAssembly, or the error object propagated from inner ECMAScript code.
+        * Another error type if appropriate, for example an out-of-memory exception, as documented in <a href="#errors">the WebAssembly error mapping</a>."""
+    ->
+    "    1. If |instance| is [=error=], throw a {{LinkError}} exception.",
   )
 
   def apply(source: String): String =

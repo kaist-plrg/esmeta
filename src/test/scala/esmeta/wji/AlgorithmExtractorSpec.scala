@@ -50,9 +50,23 @@ class AlgorithmExtractorSpec extends AnyFunSuite:
   test(
     "reconstructs nested instrs (including bullet sub-lists) from indentation",
   ) {
-    val algo = algorithms
-      .find(_.name.contains("instantiate the core of a WebAssembly module"))
-      .get
+    // inlined rather than pulled from live index.bs: this used to be
+    // `instantiate the core of a WebAssembly module`'s own "throw an
+    // appropriate exception type" step, before `SpecPatch` #59 flattened it
+    // into a single `Throw` (docs/hardcodes.md #22) -- the shape this test
+    // actually cares about (a numbered step with a nested bullet sub-list)
+    // no longer appears verbatim anywhere in the live spec, so it's kept
+    // here as a standalone fixture instead of chasing whatever text happens
+    // to still have one.
+    val source = """<div algorithm>
+  To <dfn>example algorithm</dfn> from a value |result|, perform the following steps:
+    1. If |result| is [=error=], throw an appropriate exception type:
+        * A {{LinkError}} exception for most cases which occur during linking.
+        * If the error came when running the start function, throw a {{RuntimeError}} for most errors which occur from WebAssembly, or the error object propagated from inner ECMAScript code.
+        * Another error type if appropriate, for example an out-of-memory exception, as documented in <a href="#errors">the WebAssembly error mapping</a>.
+    1. Return |result|.
+</div>"""
+    val algo = AlgorithmExtractor.extract(source).head
     val ifInstr = algo.body.find {
       case If(Cond.Eq(Expr.Var("result"), _, _), _) => true
       case _                                        => false

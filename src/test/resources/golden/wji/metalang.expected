@@ -229,12 +229,9 @@
   head: To <dfn>instantiate the core of a WebAssembly module</dfn> from a module |module| and imports |imports|, perform the following steps:
   Let(|store|, [=surrounding agent=].[[associated store]])
   Let(|result|, [=module_instantiate=](|store|, |module|, |imports|))
-  If(|result| is [=error=])
-    ?(A {{LinkError}} exception for most cases which occur during linking)
-    If(?(the error came when running the start function))
-      Throw(?(a {{RuntimeError}} for most errors which occur from WebAssembly, or the error object propagated from inner ECMAScript code))
-    ?(Another error type if appropriate, for example an out-of-memory exception, as documented in <a href="#errors">the WebAssembly error mapping</a>)
   Let((|store|, |instance|), |result|)
+  If(|instance| is [=error=])
+    Throw(new {{LinkError}})
   Set([=surrounding agent=].[[associated store]], |store|)
   Return(|instance|)
 

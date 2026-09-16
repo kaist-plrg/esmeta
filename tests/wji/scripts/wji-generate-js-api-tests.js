@@ -258,12 +258,12 @@ const perFilePatches = {
       "testModuleSizeLimit(kJSEmbeddingMaxModuleSize + 1, false);",
       "if (false) testModuleSizeLimit(kJSEmbeddingMaxModuleSize + 1, false);",
     ],
-    // vendor corpus typo: WPT standard is snake_case `assert_equals`, not
-    // camelCase -- no other spectec/test/js-api file defines or uses
-    // `assertEquals`. `same_value` is symmetric, so the swapped
-    // expected/actual argument order this call site uses doesn't affect
-    // pass/fail, only the (unused, since only SUMMARY N/M is checked here)
-    // failure message text.
+    // vendor corpus typo (docs/spectec_errors.md #4): WPT standard is
+    // snake_case `assert_equals`, not camelCase -- no other spectec/test/
+    // js-api file defines or uses `assertEquals`. `same_value` is
+    // symmetric, so the swapped expected/actual argument order this call
+    // site uses doesn't affect pass/fail, only the (unused, since only
+    // SUMMARY N/M is checked here) failure message text.
     ["assertEquals(", "assert_equals("],
     // same OOM root cause as instanceTestFactoryOomPatches above
     // (docs/out_of_scope.md #4) but for WebAssembly.Table instead of

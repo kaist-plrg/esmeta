@@ -1,6 +1,8 @@
 # SpecTec Errors
 
-`spectec` 서브모듈(스펙 텍스트가 아니라 `spectec/spectec/src/*`의 backend-interpreter/AL 등 OCaml 구현) 코드에서 발견한 버그 목록입니다. 스펙 텍스트 자체의 결함은 `docs/spec_errors.md`를 참고하세요.
+`spectec` 서브모듈에서 발견한, **mainline spectec 자체에 이미 있던**(이 프로젝트가 새로 추가한 게 아닌) 에러 목록입니다 — 스펙 텍스트 자체의 결함(`docs/spec_errors.md` 소관)은 제외하고, 그 나머지 전부: `spectec/spectec/src/*`(`xl/`, `il2al/`, `backend-interpreter/ds.ml`/`numerics.ml` 등 core AL 인터프리터/컴파일러)의 OCaml 구현 버그든, `spectec/test/js-api/` 등 벤더링된 테스트 코퍼스 자체의 버그(오타, 잘못된 헬퍼 함수 등)든 여기 기록합니다.
+
+**범위 밖(중요)**: `spectec/spectec/src/backend-interpreter/embedding.ml`/`relation.ml`/`server.ml` — 이 세 파일은 `official`(업스트림 `WebAssembly/spec`) 브랜치엔 아예 존재하지 않는, 이 프로젝트가 JS-API embedding 브릿지용으로 직접 새로 작성한 코드입니다. 여기서 발견되는 버그는 mainline spectec의 결함이 아니라 **우리 자신의 구현 실수**라서 이 문서 대상이 아닙니다(문서화해봐야 남 탓할 게 없는, 그냥 우리 커밋 이력/`personal/DONE.md`로 충분한 내용). 한때 `mem_grow`/`table_grow`/`module_instantiate`(전부 `embedding.ml`)의 버그를 여기 잘못 기록했다가 삭제한 적이 있으니(`9fdab2c9`), 헷갈리면 "이 파일이 `official` 브랜치에도 있는가"부터 확인할 것.
 
 ## 1. `` `Int ``만 받고 `` `Nat ``은 거부하는 지점들이 `xl/num.ml`이 선언한 subtype 관계를 어김
 
@@ -112,3 +114,11 @@
   ```
   (`widen`은 타입이 이미 같으면 그대로 반환하므로, `to_typ num1 <> to_typ num2`로 진짜 타입 불일치일 때만 타도록 guard해야 무한 재귀를 피할 수 있습니다 — 타입이 같은데 그 연산 조합 자체가 정의 안 된 경우는 이 guard에 안 걸리고 바로 `None`으로 떨어집니다.)
 - **Reason**: #1과 같은 근본 원인 — `sub`가 선언한 subtype 관계를 `bin`/`cmp`가 안 지킴 — 인데, 이번엔 esmeta 쪽 `toAL`(WJI가 값을 embedding 경계로 넘길 때 쓰는 변환 함수)이 non-negative `Math` 값을 `` `Nat ``으로 태깅하도록 고쳐보다가 직접 실증됨. `tests/wji`의 5개 테스트가 `$inv_signed_: ... comparison operation <= not defined for +0, 123`류의 에러로 깨졌습니다. 원인을 추적해보니 `signed_31`/`inv_signed_31` 등(`server.ml`의 `call_signed`/`call_inv_signed`)은 `numerics.ml`의 OCaml shortcut(`unwrap_intv`/`inv_signed`/`sat`, #1에서 고친 바로 그 함수들)을 안 거치고 있었습니다 — `call_inv_signed`가 `Interpreter.call_func "inv_signed_"`(끝에 `_`)로 찾는데 `numerics.ml`엔 `"inv_signed"`(언더스코어 없음)로 등록돼 있어 이름이 안 맞았기 때문입니다. 그래서 매번 공식 `.spectec` 정의를 일반 AL 인터프리터로 해석해왔고, 그 정의 안의 `$int$(0) <= i`(리터럴 `int` 상수)가 이제 `` `Nat ``으로 넘어온 인자 `i`와 비교되면서 `cmp`의 same-type-only 제약에 걸린 것입니다. 즉 "Wasm 실행 내부는 esmeta의 `toAL`을 거치지 않는다"는 #1의 가정이 이 경로(공식 spec 정의의 제너릭 해석)에는 안 맞았던 것으로 드러났습니다.
+
+## 4. `test/js-api/limits.any.js`가 정의된 적 없는 `assertEquals`(camelCase)를 호출 — WPT 표준은 `assert_equals`(snake_case)
+
+- **File**: `spectec/test/js-api/limits.any.js`(2곳), `spectec/test/js-api/wasm-module-builder.js`(1곳).
+- **Current**: `assertEquals(-1, instance.exports.grow());` / `assertEquals(1, val.length, 'string inputs must have length 1');`
+- **Expected**: `assert_equals(-1, instance.exports.grow());` 등 — WPT `testharness.js`의 표준 함수 이름.
+- **Reason**: `assertEquals`는 `spectec/test/js-api/` 코퍼스 전체(그리고 이 파일이 끌어오는 유일한 `META: script`인 `wasm-module-builder.js`)를 통틀어 정의된 적이 단 한 번도 없음 — 순수하게 존재하지 않는 전역 식별자를 호출하는 것이라, wasm 엔진의 구현 수준과 무관하게 `ReferenceError`가 나야 정상. 직접 `tests/wji/scripts/wji-node-check`로 실제 Node(V8)에 이 오타를 되살려 돌려봐서 확인: `assertEquals is not defined`로 정확히 같은 방식으로 깨짐 — WJI만의 문제가 아니라 진짜 벤더 코퍼스 자체의 오타. `spectec` 서브모듈 자신의 git 히스토리에 이 파일의 다른 오타(`mininum` → `minimum`)를 고친 커밋(`b55286262`, 2019)이 있는 걸 보면 메인테이너들이 이 파일의 오타를 실제로 고쳐온 이력은 있는데, `assertEquals`는 이 저장소가 vendoring한 최신 커밋(`fb983ce31`, 2025-04-10)까지도 안 고쳐진 채 남아있음 — 아마도 파일 전체(`// META: timeout=long`이 붙은, 기본 CI에서 잘 안 돌리는 무거운 스트레스 테스트)의 200줄 넘는 분량 중 딱 2개 서브테스트만 조용히 깨지는 자리라 눈에 안 띈 것으로 추정.
+- **처리**: `tests/wji/scripts/wji-generate-js-api-tests.js`의 `perFilePatches["limits.any.js"]`에 `["assertEquals(", "assert_equals("]` 텍스트 치환 추가(함수 이름만 바꿈, 인자 순서는 그대로 — `same_value`가 대칭이라 pass/fail 판정엔 영향 없고 실패 메시지 텍스트만 원래 의도와 달라짐, 어차피 SUMMARY N/M만 확인하므로 무해). `personal/DONE.md` #58 참고.

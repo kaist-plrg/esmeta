@@ -2071,7 +2071,7 @@ if (false) testLimit("function size", 2, kJSEmbeddingMaxFunctionSize, (builder, 
   builder.addFunction(undefined, type).addBody(array);
 });
 
-testLimit("function locals", 1, kJSEmbeddingMaxFunctionLocals,
+if (false) testLimit("function locals", 1, kJSEmbeddingMaxFunctionLocals,
           (builder, count) => {
             const type = builder.addType(kSig_v_v);
             builder.addFunction(undefined, type)
@@ -2079,7 +2079,7 @@ testLimit("function locals", 1, kJSEmbeddingMaxFunctionLocals,
                 .addBody([]);
           });
 
-testLimit("function params", 1, kJSEmbeddingMaxFunctionParams,
+if (false) testLimit("function params", 1, kJSEmbeddingMaxFunctionParams,
           (builder, count) => {
             const array = new Array(count);
             for (let i = 0; i < count; i++) {
@@ -2088,7 +2088,7 @@ testLimit("function params", 1, kJSEmbeddingMaxFunctionParams,
             const type = builder.addType({params : array, results : []});
           });
 
-testLimit("function params+locals", 1, kJSEmbeddingMaxFunctionLocals - 2,
+if (false) testLimit("function params+locals", 1, kJSEmbeddingMaxFunctionLocals - 2,
           (builder, count) => {
             const type = builder.addType(kSig_i_ii);
             builder.addFunction(undefined, type)
@@ -2096,7 +2096,7 @@ testLimit("function params+locals", 1, kJSEmbeddingMaxFunctionLocals - 2,
                 .addBody([ kExprUnreachable ]);
           });
 
-testLimit("function returns", 0, kJSEmbeddingMaxFunctionReturns,
+if (false) testLimit("function returns", 0, kJSEmbeddingMaxFunctionReturns,
           (builder, count) => {
             const array = new Array(count);
             for (let i = 0; i < count; i++) {

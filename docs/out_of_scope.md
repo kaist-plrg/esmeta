@@ -129,6 +129,39 @@
 - **2026-09-14 추가**: `docs/hardcodes.md` #20(`AllowSharedBufferSource` 검증)으로 `constructor/instantiate.any.js`가 더 진행하면서 똑같은 원인(`instanceTestFactory`의 같은 4개 항목)으로 새로 OOM에 부딪힘 — 이 파일은 그동안 이 항목 대상에 없었을 뿐, `instance/constructor.any.js`와 완전히 같은 코드 경로였음. `instanceTestFactoryOomPatches`를 `instance/constructor.any.js`와 공유하도록 리팩터링해서 이 파일에도 적용(`wji-generate-js-api-tests.js`). 적용 후 OOM 없이 145초 만에 `~auto~`(`docs/hardcodes.md` #20의 "결과" 참고, `personal/TODO.md` #44) gap까지 진행 확인 — `instance/constructor.any.js`(25/25) 회귀 없음.
 - **2026-09-16 추가 — 같은 근본 원인의 `WebAssembly.Table` 변종, `limits.any.js`에서 새로 발견**: `personal/TODO.md` #62(legacy `assert_throws`/`promise_rejects` 시그니처 이식) 적용 직후 `limits.any.js`가 상시 떠있는 sbt 서버(`-Xmx3g`)를 반복적으로 `OutOfMemoryError`로 죽임 — 이전엔 이 파일의 관련 subtest들이 harness 함수 자체가 없어서 매번 `ReferenceError`로 조용히(캐치돼서) fail했을 뿐, 실제로 큰 `Table`을 만드는 코드까지 도달한 적이 없었음. `host.ml`의 `create_tableinst`/table 관련 RPC도 `create_meminst`와 똑같이 원소 하나당 JSON 값 하나로 표현해서, 스펙이 정의한 `kJSEmbeddingMaxTableSize`(1000만) 근처 크기의 진짜 `Table`을 만들면 이 문서 #4의 Memory 케이스와 동일하게 힙이 터짐 — 세 지점(`new WebAssembly.Table({initial: kJSEmbeddingMaxTableSize + 1, ...})`, 기존 테이블의 `.grow(kJSEmbeddingMaxTableSize)`, 그런 초기 크기를 선언한 모듈의 실제 `instantiate`)을 스크래치 스크립트로 각각 격리해서 셋 다 독립적으로 OOM 재현 확인. `testDynamicLimit("maximum table size", ...)`는 실제 할당이 `initial: 1`뿐이라(`maximum`은 저장만 되고 실제로 그 크기까지 자라는 호출이 없음) 안전함을 직접 실행해 확인 — 이 하나는 그대로 둠. `wji-generate-js-api-tests.js`의 `perFilePatches["limits.any.js"]`에 `testDynamicLimit("initial table size", ...)` 호출 전체와 "Grow WebAssembly.Table object beyond the embedder-defined limit" `test()` 전체에 `if (false) ` 접두 추가. 적용 후 `limits.any.js` OOM 없이 `SUMMARY 35/50` 안정적으로 도달 확인(`personal/DONE.md` 참고).
 
+## 7. JS-API "Implementation-defined Limits" 섹션 — 선언형 제약이라 ESMeta/SpecTec의 알고리즘 실행 모델과 안 맞음, 스코프 제외
+
+- **배경**: `spectec/document/js-api/index.bs:2208`("Implementation-defined
+  Limits") — locals 5만/params·returns 각 1000 등 약 20개 숫자 상한을 나열한
+  순수 산문 `<ul>` 목록(`personal/TODO.md` #63에 상세 조사 기록). `compile a
+  WebAssembly module`(index.bs:395)은 `module_decode`/`module_validate` 두
+  단계만 밟을 뿐 이 섹션을 가리키는 `[=...=]` 링크가 스펙 전체에 단 하나도
+  없음 — 다른 모든 정의처럼 "이 알고리즘이 이 정의를 호출한다"는 명시적
+  연결이 전혀 없는, 완전히 붕 떠 있는 산문. `module_validate`가 위임하는
+  core wasm의 `Module_ok`(`Reference_interpreter.Valid.check_module`)에도
+  이런 숫자 제약은 없음 — JS-API가 core wasm 위에 순수하게 얹은 정책층이라
+  core wasm 검증기가 대신 걸러줄 수도 없음.
+- **왜 스코프 제외로 결정했는지**: ESMeta/SpecTec 둘 다 "알고리즘을 실행한다"는
+  모델에 특화된 프레임워크이지, 이런 식으로 알고리즘 그래프 밖에 선언형으로
+  떠 있는 제약을 처리하는 데 특화된 도구가 아님(사용자 판단). `Memtype_ok`/
+  `Tabletype_ok`(`docs`에 별도 기록 없음, `relation.ml` 참고 — IL2AL 번역
+  대상이 아니라 손으로 구현한 core wasm 릴레이션)처럼 스펙 자신이 정의한
+  릴레이션을 손으로 옮기는 선례와 달리, 이 섹션은 애초에 알고리즘/릴레이션
+  형태조차 아니라서 "어느 지점에 끼워넣을지"부터 설계가 필요한 완전히 다른
+  성격의 작업 — 가치 대비 비용이 안 맞는다고 판단.
+- **처리**: `limits.any.js`가 이 섹션만 검증하는 4개 `testLimit` 호출
+  (`"function locals"`/`"function params"`/`"function params+locals"`/
+  `"function returns"`)을 `wji-generate-js-api-tests.js`의
+  `perFilePatches`에서 `if (false) ` 접두로 제외(이 문서 #3/#4와 같은
+  "첫 줄만 조건부로" 패턴) — 호출 하나당 9개 subtest(Validate/Compile/Async
+  compile × minimum/limit/over limit)이므로 4개 호출 = 36개 subtest 제외.
+  재생성 후 `limits.any.js`가 `SUMMARY 11/14`(OOM/타임아웃 없이 34초)로
+  안정적으로 도달, 남은 3개 fail은 전부 `personal/TODO.md` #64(memories
+  경계값 오판정, 별개의 미해결 gap)뿐임을 확인.
+- **참고**: 이 문서 #3이 예전에 이 4개 호출을 "성능상 무해해서 그대로 둠"이라고
+  적어뒀는데, 그건 여전히 사실(느리지 않음) — 이번 제외는 성능과 무관하게
+  별개의 이유(선언형 제약 자체를 스코프 밖으로 결정)로 이뤄진 것.
+
 ## 6. `js-string/constants.any.js`의 100,000자 문자열 상수를 100자로 축소 — 진짜 gap이 다 풀린 뒤 마지막으로 남은 건 순수 성능 문제였음
 
 - **막힌 지점**: `constants` 배열(`goodGlobalTypes` 루프가 각 원소를 wasm

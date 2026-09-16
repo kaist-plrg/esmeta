@@ -180,17 +180,20 @@ const perFilePatches = {
   // callback even gets registered -- a title-based skip like
   // `skip-known-gaps.js` can't help (the expensive work isn't inside any
   // `test()` callback to filter out). Only the ones that actually build
-  // something proportional to a huge count are neutered here; the small ones
-  // (`function params`/`function returns`, capped at 1000; `memories`,
-  // capped at 1; `function locals`/`function params+locals`, which pass
-  // their huge count as a single `addLocals({i32_count: count})` argument --
-  // `WasmModuleBuilder`'s own `getNumLocals`/`addLocals`
-  // (spectec/test/js-api/wasm-module-builder.js) never loops over `count`
-  // itself, so this is O(1) regardless of its magnitude) and the two
-  // `testDynamicLimit` calls plus the final bare `test()` (which only pass a
-  // huge *number* as a size bound for the engine's own validation to reject,
-  // never loop over it in JS) are left alone, so this file still surfaces
-  // real `SUMMARY N/M` signal instead of a blanket `0/0`.
+  // something proportional to a huge count are neutered here for that
+  // reason; `memories` (capped at 1) is harmless perf-wise and left alone
+  // (it exercises a real, still-open WJI gap, `personal/TODO.md` #64).
+  // `function locals`/`function params`/`function params+locals`/`function
+  // returns` are ALSO disabled below, but for an unrelated reason (see
+  // docs/out_of_scope.md #7, not a perf/OOM issue) -- they only exist to
+  // exercise the JS-API "Implementation-defined Limits" section, decided
+  // out of scope entirely. The two `testDynamicLimit` calls and the final
+  // bare `test()` (Table size limits) only pass a huge *number* as a size
+  // bound for the engine's own validation/RPC bridge to reject, never loop
+  // over it in JS -- one `testDynamicLimit` and the final `test()` are
+  // disabled below for the unrelated `Table` OOM reason (docs/out_of_scope.md
+  // #4), the other `testDynamicLimit` ("maximum table size") is harmless and
+  // left alone (confirmed by isolated execution, `personal/DONE.md` #58).
   "limits.any.js": [
     [
       'testLimit("types", 1, kJSEmbeddingMaxTypes, (builder, count) => {',
@@ -223,6 +226,25 @@ const perFilePatches = {
     [
       "testLimit(\"element segments\", 1, kJSEmbeddingMaxElementSegments,",
       "if (false) testLimit(\"element segments\", 1, kJSEmbeddingMaxElementSegments,",
+    ],
+    // out of scope (docs/out_of_scope.md #7) -- these four only exercise the
+    // JS-API "Implementation-defined Limits" section, a purely declarative
+    // constraint list no algorithm ever references.
+    [
+      'testLimit("function locals", 1, kJSEmbeddingMaxFunctionLocals,',
+      'if (false) testLimit("function locals", 1, kJSEmbeddingMaxFunctionLocals,',
+    ],
+    [
+      'testLimit("function params", 1, kJSEmbeddingMaxFunctionParams,',
+      'if (false) testLimit("function params", 1, kJSEmbeddingMaxFunctionParams,',
+    ],
+    [
+      'testLimit("function params+locals", 1, kJSEmbeddingMaxFunctionLocals - 2,',
+      'if (false) testLimit("function params+locals", 1, kJSEmbeddingMaxFunctionLocals - 2,',
+    ],
+    [
+      'testLimit("function returns", 0, kJSEmbeddingMaxFunctionReturns,',
+      'if (false) testLimit("function returns", 0, kJSEmbeddingMaxFunctionReturns,',
     ],
     [
       'testLimit("tables", 0, kJSEmbeddingMaxTables, (builder, count) => {',

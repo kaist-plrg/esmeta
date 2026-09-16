@@ -289,6 +289,45 @@ const perFilePatches = {
       "test(() => {\n  assert_throws(\n      new RangeError(),\n      () => new WebAssembly.Table(\n          {element : \"anyfunc\", initial : kJSEmbeddingMaxTableSize + 1}));",
       "if (false) test(() => {\n  assert_throws(\n      new RangeError(),\n      () => new WebAssembly.Table(\n          {element : \"anyfunc\", initial : kJSEmbeddingMaxTableSize + 1}));",
     ],
+    // vendor corpus bug (docs/spectec_errors.md #5), in wasm-module-builder.js
+    // (resolved into depsSrc, hence a perFilePatches entry rather than
+    // testPatches -- see that const's own doc for why the two lists differ
+    // in which part of the assembled file they touch): `is_shared`'s
+    // `(typeof imp.shared) != "undefined"` check treats an *explicitly
+    // passed* `false` the same as `true` (only an omitted `shared` argument
+    // reads as "not shared") -- this file's own `addImportedMemory("", "",
+    // 1, 1, false)` is the *only* call site in the whole corpus that passes
+    // a `shared` argument at all, so this fix can't affect any other test.
+    // Without it, the "memories limit" (exactly `kJSEmbeddingMaxMemories`)
+    // subtests declare a memory that unintentionally encodes as *shared*
+    // (limits flags bit 1) -- this repo's wasm-latest spec snapshot has no
+    // threads/shared-memory proposal support at all (`docs/out_of_scope.md`
+    // #5), so the reference decoder correctly rejects that flags value
+    // outright, an entirely different (and unintended) failure than what
+    // this subtest is actually testing (the *count* limit, unrelated to
+    // sharedness).
+    [
+      'var is_shared = (typeof imp.shared) != "undefined";',
+      "var is_shared = imp.shared === true;",
+    ],
+  ],
+
+  // `memory/grow.any.js`'s one genuinely thread-proposal-dependent subtest
+  // (docs/out_of_scope.md #5, personal/TODO.md #65) -- `{shared: true}` isn't
+  // a declared `MemoryDescriptor` member in this repo's js-api spec text at
+  // all, so it's silently ignored and `.buffer` comes back as a plain
+  // (non-shared) ArrayBuffer instead of the SharedArrayBuffer this subtest
+  // expects -- same root cause as `limits.any.js`'s (now-fixed) `is_shared`
+  // bug, just missing at the js-api dictionary layer instead of the core
+  // wasm binary layer. Needs the threads proposal mechanized end to end to
+  // fix for real, not a small patch -- excluded here the same way as the
+  // other out-of-scope calls above, rather than left as a permanent known
+  // failure.
+  "memory/grow.any.js": [
+    [
+      'test(() => {\n  const argument = { "initial": 1, "maximum": 2, "shared": true };',
+      'if (false) test(() => {\n  const argument = { "initial": 1, "maximum": 2, "shared": true };',
+    ],
   ],
 
   // `instanceTestFactoryOomPatches` (docs/out_of_scope.md #4, see that

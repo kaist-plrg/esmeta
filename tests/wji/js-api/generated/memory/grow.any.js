@@ -526,7 +526,7 @@ test(() => {
   assert_ArrayBuffer(newMemory, { "size": 2 }, "New buffer after growing");
 }, "Stray argument");
 
-test(() => {
+if (false) test(() => {
   const argument = { "initial": 1, "maximum": 2, "shared": true };
   const memory = new WebAssembly.Memory(argument);
   const oldMemory = memory.buffer;

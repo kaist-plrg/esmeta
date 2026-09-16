@@ -122,3 +122,20 @@
 - **Expected**: `assert_equals(-1, instance.exports.grow());` 등 — WPT `testharness.js`의 표준 함수 이름.
 - **Reason**: `assertEquals`는 `spectec/test/js-api/` 코퍼스 전체(그리고 이 파일이 끌어오는 유일한 `META: script`인 `wasm-module-builder.js`)를 통틀어 정의된 적이 단 한 번도 없음 — 순수하게 존재하지 않는 전역 식별자를 호출하는 것이라, wasm 엔진의 구현 수준과 무관하게 `ReferenceError`가 나야 정상. 직접 `tests/wji/scripts/wji-node-check`로 실제 Node(V8)에 이 오타를 되살려 돌려봐서 확인: `assertEquals is not defined`로 정확히 같은 방식으로 깨짐 — WJI만의 문제가 아니라 진짜 벤더 코퍼스 자체의 오타. `spectec` 서브모듈 자신의 git 히스토리에 이 파일의 다른 오타(`mininum` → `minimum`)를 고친 커밋(`b55286262`, 2019)이 있는 걸 보면 메인테이너들이 이 파일의 오타를 실제로 고쳐온 이력은 있는데, `assertEquals`는 이 저장소가 vendoring한 최신 커밋(`fb983ce31`, 2025-04-10)까지도 안 고쳐진 채 남아있음 — 아마도 파일 전체(`// META: timeout=long`이 붙은, 기본 CI에서 잘 안 돌리는 무거운 스트레스 테스트)의 200줄 넘는 분량 중 딱 2개 서브테스트만 조용히 깨지는 자리라 눈에 안 띈 것으로 추정.
 - **처리**: `tests/wji/scripts/wji-generate-js-api-tests.js`의 `perFilePatches["limits.any.js"]`에 `["assertEquals(", "assert_equals("]` 텍스트 치환 추가(함수 이름만 바꿈, 인자 순서는 그대로 — `same_value`가 대칭이라 pass/fail 판정엔 영향 없고 실패 메시지 텍스트만 원래 의도와 달라짐, 어차피 SUMMARY N/M만 확인하므로 무해). `personal/DONE.md` #58 참고.
+
+## 5. `wasm-module-builder.js`의 `is_shared` 계산이 명시적으로 넘긴 `false`를 `true`로 오판
+
+- **File**: `spectec/test/js-api/wasm-module-builder.js`, memory import 섹션 인코딩(`var is_shared = (typeof imp.shared) != "undefined";`).
+- **Current**: `var is_shared = (typeof imp.shared) != "undefined";`
+- **Expected**: `var is_shared = imp.shared === true;`
+- **Reason**: `addImportedMemory(module, name, initial, maximum, shared)`의 `shared` 인자에 **명시적으로 `false`**를 넘겨도(`typeof false === "boolean"`, `"undefined"`가 아님) `is_shared`가 `true`로 계산됨 — "인자가 생략됐는지"와 "인자 값이 truthy인지"를 혼동한 전형적인 `typeof` 오용. `spectec/test/js-api/` 코퍼스 전체에서 `shared` 인자를 넘기는 호출은 `limits.any.js`의 `addImportedMemory("", "", 1, 1, false)` 단 한 곳뿐이라(그 외는 전부 인자 자체를 생략) 이 버그의 실질적 영향 범위도 그 한 곳으로 국한됨.
+- **증상**: `limits.any.js`의 "memories" `testLimit`이 의도한 것(단순히 "non-shared memory import 1개"로 개수 제한만 테스트)과 달리 실제로는 shared memory import를 인코딩함 — 이 저장소의 wasm core 스펙 스냅샷은 threads/shared-memory 프로포절이 없어서(`docs/out_of_scope.md` #5) 레퍼런스 디코더가 `require (flags land 0xfa = 0) ... "malformed limits flags"`로 이 인코딩 자체를 거부, "Validate/Compile/Async compile memories limit"(정확히 경계값 1개) 3개가 (원래 테스트 의도와 무관한 이유로) `CompileError`.
+- **처리**: `tests/wji/scripts/wji-generate-js-api-tests.js`의 `perFilePatches["limits.any.js"]`에 텍스트 치환 추가. 다른 어떤 호출부도 `shared` 인자를 안 넘겨서 영향 없음을 확인. `personal/TODO.md` #64/`DONE.md` 참고 — 이 fix로 해당 3개 subtest가 실제로 통과하게 됨(threads 프로포절 없이도, 애초에 이 테스트가 shared memory를 테스트할 의도가 아니었으므로).
+
+## 6. `test/js-api/limits.any.js`의 `kJSEmbeddingMaxMemories` 상수가 스펙 개정 이후 갱신 안 됨(`1` vs 실제 `100`)
+
+- **File**: `spectec/test/js-api/limits.any.js:20`.
+- **Current**: `const kJSEmbeddingMaxMemories = 1;`
+- **Expected**: `const kJSEmbeddingMaxMemories = 100;` — `spectec/document/js-api/index.bs:2232`("The maximum number of memories, including defined and imported memories, is 100.")과 일치해야 함.
+- **Reason**: `git log -S`로 확인한 히스토리 — 이 상수는 2018-12-12 도입 당시(`8f1e01db5`) 스펙 텍스트 자체도 "is 1"이던 시절(multi-memory 프로포절 반영 전, 모듈당 메모리 1개가 진짜 core wasm 하드 리밋이던 시절)에 맞춰 `1`로 설정됐고, 그 이후 스펙 텍스트의 숫자가 `100`으로 올라갔는데도(multi-memory 프로포절 반영) 이 테스트 파일의 상수는 한 번도 안 바뀌었음. 그 결과 "memories over limit" subtest가 실제로는 memory import 2개(진짜 한도 100에 한참 못 미침)로 "invalid해야 한다"고 잘못 기대함 — real Node(V8)가 이 subtest를 실패시키는 것도 "V8이 개수 제한을 안 지켜서"가 아니라 **V8은 진짜 현재 한도(100)를 정확히 지키고 있고, 2개는 100 밑이라 당연히 valid로 판정**하기 때문.
+- **처리**: 문서화만 함, 코드 수정 없음 — 이 상수를 고쳐도(1→100) WJI가 통과하는 데는 도움 안 됨. WJI는 이 "Implementation-defined Limits" 섹션 전체(memories 포함)를 애초에 mechanize 안 하기로 결정했기 때문(`personal/TODO.md` #63, `docs/out_of_scope.md` #7) — 상수를 몇으로 바꾸든 WJI는 개수 자체를 안 세므로 "over limit" subtest는 여전히 실패함. `personal/TODO.md`/`test_fails.md` 참고.

@@ -1586,7 +1586,7 @@ class WasmModuleBuilder {
             section.emit_u8(imp.mutable);
           } else if (imp.kind == kExternalMemory) {
             var has_max = (typeof imp.maximum) != "undefined";
-            var is_shared = (typeof imp.shared) != "undefined";
+            var is_shared = imp.shared === true;
             if (is_shared) {
               section.emit_u8(has_max ? 3 : 2); // flags
             } else {

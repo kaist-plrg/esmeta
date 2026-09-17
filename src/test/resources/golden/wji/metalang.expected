@@ -280,10 +280,10 @@
   Perform([=React=](WebAssemblyInstantiatedSource, |promiseOfModule|, |onFullfilledSteps|, |onRejectedSteps|, [=current Realm=]))
   Return(|promise|)
 
-# instantiate
+# instantiate_bytes
   kind: method for namespace WebAssembly
   params: |bytes|, |importObject|?, |options|?
-  head: The <dfn method for="WebAssembly">instantiate(|bytes|, |importObject|, |options|)</dfn> method, when invoked, performs the following steps:
+  head: The <dfn method for="WebAssembly">instantiate_bytes(|bytes|, |importObject|, |options|)</dfn> method, when invoked, performs the following steps:
   Let(|stableBytes|, [=get a copy of the buffer source=](|bytes|))
   PerformAndLet([=Asynchronously compile a WebAssembly module=](|stableBytes|, |options|), |promiseOfModule|)
   PerformAndReturn([=Instantiate a promise of a module=](|promiseOfModule|, |importObject|))

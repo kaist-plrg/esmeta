@@ -1,4 +1,4 @@
-164 func(s)
+165 func(s)
 def compile_a_webassembly_module(
   bytes: Unknown,
 ): Unknown = {
@@ -651,7 +651,7 @@ def instantiate_a_promise_of_a_module(
   call _ = clo<"React">(~WebAssemblyInstantiatedSource~, promiseOfModule, onFullfilledSteps, onRejectedSteps, @EXECUTION_STACK[0].Realm)
   return promise
 }
-def <BUILTIN>:INTRINSICS.WebAssembly.instantiate(
+def <BUILTIN>:INTRINSICS.WebAssembly.instantiate_bytes(
   this: Unknown,
   ArgumentsList: Unknown,
   NewTarget: Unknown,
@@ -6116,5 +6116,28 @@ def define_the_asynchronous_iteration_methods_closure3(
   } else {
     call _ret2 = clo<"NormalCompletion">(iterator)
     return _ret2
+  }
+}
+def <BUILTIN>:INTRINSICS.WebAssembly.instantiate(
+  this: Unknown,
+  ArgumentsList: Unknown,
+  NewTarget: Unknown,
+): Unknown = {
+  if (&& (< 0 (sizeof ArgumentsList)) (implements ArgumentsList[0] "Module")) {
+    call _result1 = clo<"INTRINSICS.WebAssembly.instantiate_object">(this, ArgumentsList, NewTarget)
+    if (? _result1: Completion) {
+      return _result1
+    } else {
+      call _ret1 = clo<"NormalCompletion">(_result1)
+      return _ret1
+    }
+  } else {
+    call _result2 = clo<"INTRINSICS.WebAssembly.instantiate_bytes">(this, ArgumentsList, NewTarget)
+    if (? _result2: Completion) {
+      return _result2
+    } else {
+      call _ret2 = clo<"NormalCompletion">(_result2)
+      return _ret2
+    }
   }
 }

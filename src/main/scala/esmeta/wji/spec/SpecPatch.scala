@@ -81,16 +81,26 @@ object SpecPatch:
 
     // #3 (hardcoding) — esmeta doesn't support overloaded methods, but
     // {{WebAssembly}}'s `instantiate` is overloaded (module-first and
-    // buffer-source-first variants). Renames the module-first one to avoid
-    // the collision — a naming distinction the spec itself doesn't make,
-    // invented purely to route around this project's lack of overload
-    // support.
+    // buffer-source-first variants). Renames *both* to avoid the collision —
+    // a naming distinction the spec itself doesn't make, invented purely to
+    // route around this project's lack of overload support. Freeing up the
+    // literal `instantiate` name this way (rather than just the module-first
+    // one, as before) lets `AddInstantiateOverloadDispatchPass` claim it for a
+    // synthetic third algorithm that dispatches to whichever of these two by
+    // checking its first argument's runtime type (`personal/TODO.md` #58,
+    // `docs/hardcodes.md` #23).
     "The <dfn method for=\"WebAssembly\">instantiate(|moduleObject|, |importObject|)</dfn> method, when invoked, performs the following steps:"
     ->
     "The <dfn method for=\"WebAssembly\">instantiate_object(|moduleObject|, |importObject|)</dfn> method, when invoked, performs the following steps:",
     "Promise&lt;Instance> instantiate("
     ->
     "Promise&lt;Instance> instantiate_object(",
+    "The <dfn method for=\"WebAssembly\">instantiate(|bytes|, |importObject|, |options|)</dfn> method, when invoked, performs the following steps:"
+    ->
+    "The <dfn method for=\"WebAssembly\">instantiate_bytes(|bytes|, |importObject|, |options|)</dfn> method, when invoked, performs the following steps:",
+    "Promise&lt;WebAssemblyInstantiatedSource> instantiate("
+    ->
+    "Promise&lt;WebAssemblyInstantiatedSource> instantiate_bytes(",
 
     // #4 (spec bug, docs/spec_errors.md #3; and suggestion) — two distinct
     // fixes bundled into the same replacements below, since both land on the

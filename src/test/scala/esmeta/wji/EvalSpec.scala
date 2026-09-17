@@ -54,8 +54,6 @@ private val knownFailing: Set[String] =
     // wasm constructs -- marked `// META: timeout=long` even for real
     // engines, so it's just too slow for WJI's interpreter rather than
     // blocked by a real gap).
-    "tests/wji/js-api/generated/constructor/instantiate-bad-imports.any.js",
-    "tests/wji/js-api/generated/constructor/instantiate.any.js",
     "tests/wji/js-api/generated/js-string/basic.any.js",
     "tests/wji/js-api/generated/limits.any.js",
     "tests/wji/js-api/generated/module/customSections.any.js",
@@ -122,9 +120,14 @@ class EvalSpec extends AnyFunSuite with BeforeAndAfterAll:
     * comfortably above every legitimately-slow test observed so far, including
     * `memory/grow.any.js`'s own ~80-90s and js-api's `limits.any.js`'s own ~80s
     * (both under a fresh, cold-started connection; a warm/shared one should
-    * only be faster). Throws `TimeoutException` (unrelated to SpecTec, so
-    * `connection.isPoisoned` correctly stays false and no respawn is needed)
-    * rather than needing an external process kill.
+    * only be faster), and now also `constructor/instantiate.any.js`/
+    * `constructor/instantiate-bad-imports.any.js`'s own ~275-290s -- the
+    * corpus's two largest files (55/208 subtests), which only run to completion
+    * at all once `TODO.md` #58's `WebAssembly.instantiate` overload-dispatch
+    * fix let them stop crashing early (`personal/DONE.md` #63). Throws
+    * `TimeoutException` (unrelated to SpecTec, so `connection.isPoisoned`
+    * correctly stays false and no respawn is needed) rather than needing an
+    * external process kill.
     *
     * No longer sized around the risk of `limits.any.js` (spec-mandated stress
     * test building up to 10M wasm constructs -- the corpus's one file marked
@@ -135,7 +138,7 @@ class EvalSpec extends AnyFunSuite with BeforeAndAfterAll:
     * cheap enough to actually finish -- this constant just needs to cover that
     * reduced, now-finite worst case, same as everything else here.
     */
-  private val perTestTimeoutSec = 150
+  private val perTestTimeoutSec = 450
 
   private val roots: List[String] =
     List(WJI_MANUAL_TEST_DIR, WJI_JS_API_TEST_DIR)

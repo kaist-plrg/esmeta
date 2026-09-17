@@ -28,7 +28,7 @@ class DefinitionExtractorSpec extends AnyFunSuite:
     val operations = wasm.members.collect { case o: Operation => o }
     assert(
       operations.map(_.id) ==
-      List("validate", "compile", "instantiate", "instantiate_object"),
+      List("validate", "compile", "instantiate_bytes", "instantiate_object"),
     )
     assert(
       wasm.members.contains(Attribute("JSTag", "Tag", readonly = true)),

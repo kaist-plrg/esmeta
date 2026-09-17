@@ -83,6 +83,7 @@ object Lowering:
     MarkBuiltinBehaviourPass,
     AddBuiltinBehaviourPass,
     AddInterfaceMemberBuiltinBehaviourPass,
+    AddInstantiateOverloadDispatchPass,
     // eliminations
     ExpandTryPass,
     ExpandHasDuplicatesPass,

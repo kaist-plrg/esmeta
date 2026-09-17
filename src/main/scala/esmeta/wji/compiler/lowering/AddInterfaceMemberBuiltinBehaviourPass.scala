@@ -274,7 +274,60 @@ object AddInterfaceMemberBuiltinBehaviourPass extends LoweringPass:
     * `run` always runs it, see class doc) -- otherwise `name` already holds the
     * right value, nothing further to unwrap.
     */
-  private def convertedIdlValueBinding(name: String, ty: String): List[Instr] =
+  /** `webidl/index.bs`'s "create an operation function" wraps overload
+    * resolution/argument conversion in a try/catch, converting any exception
+    * into `Promise.reject(E)` when the operation's own declared return type is
+    * a promise type (`TODO.md` #57) — reusing the already-working "a new
+    * promise"/[=reject=]" idiom `compile`/`instantiate`'s own delegate
+    * algorithms already use for the same purpose (`docs/hardcodes.md` #7),
+    * rather than the raw `Call({{%Promise.reject%}}, {{%Promise%}}, «|E|»)`
+    * abstract-op form itself: no compiler support exists for a bare
+    * `%Intrinsic%`-style [[Expr.SpecTerm]] reference (unlike `%Symbol.*%`), so
+    * building the spec's own literal form would need new, unplanned `Compiler`
+    * work for something no corpus algorithm has ever actually used.
+    */
+  private def promiseRejectReturn(
+    typeName: String,
+    errorExpr: Expr,
+  ): List[Instr] =
+    List(
+      // "[=a new promise=]" actually returns a PromiseCapabilityRecord, not a
+      // real Promise object directly (its own extracted body:
+      // `? NewPromiseCapability(realm.Intrinsics.%Promise%)`) -- `[=reject=]`
+      // operates on that capability record directly (its own body calls
+      // `p.[[Reject]]`), but the value handed back to actual JS code must be
+      // the real object underneath, same unwrap
+      // `WebIdlConversion.toJsValue`'s `PromiseCapabilityRecord` case already
+      // does for every OTHER Promise-returning operation's own `Return
+      // |promise|.` -- that generic unwrap only fires for a `Return` inside
+      // the algorithm's own declared body (`wrapReturnValues` never revisits
+      // this pass's own injected instructions), so it's done explicitly here.
+      Instr.Let(
+        Expr.Var("_promiseCapability"),
+        Expr.AlgoCall(
+          "[=a new promise=]",
+          List(Expr.SpecTerm(typeName), Expr.SpecTerm("current Realm")),
+        ),
+      ),
+      Instr.Perform(
+        "[=reject=]",
+        List(Expr.SpecTerm(typeName), Expr.Var("_promiseCapability"), errorExpr),
+      ),
+      Instr.Return(
+        Some(Expr.Field(Expr.Var("_promiseCapability"), "Promise")),
+      ),
+    )
+
+  private def convertedIdlValueBinding(
+    name: String,
+    ty: String,
+    rejectType: Option[String],
+  ): List[Instr] =
+    val onAbrupt = rejectType match
+      case Some(typeName) =>
+        promiseRejectReturn(typeName, Expr.Field(Expr.Var(name), "Value"))
+      case None =>
+        List(Instr.Return(Some(Expr.Var(name))))
     List(
       Instr.Perform(
         "converted_to_an_idl_value",
@@ -282,16 +335,33 @@ object AddInterfaceMemberBuiltinBehaviourPass extends LoweringPass:
         Instr.PerformOutcome.BindResult(name),
       ),
       Instr.IfChain(
-        List(
-          Cond.IsType(Expr.Var(name), "AbruptCompletion") ->
-          List(Instr.Return(Some(Expr.Var(name)))),
-        ),
+        List(Cond.IsType(Expr.Var(name), "AbruptCompletion") -> onAbrupt),
         Nil,
       ),
     )
 
-  private def omittedBranch(p: WjiParam, name: String): List[Instr] =
-    if !p.optional then List(Instr.Throw(Expr.New("TypeError")))
+  private def omittedBranch(
+    p: WjiParam,
+    name: String,
+    rejectType: Option[String],
+  ): List[Instr] =
+    if !p.optional then
+      rejectType match
+        case Some(typeName) =>
+          // mirrors `CompletionWrapping`'s own `Instr.Throw(Expr.New(iface),
+          // _)` case: a bare `Expr.New(iface)` compiles to a raw ERecord with
+          // no real prototype wiring (fine for a WebIDL interface object,
+          // whose [[Prototype]] `createThisBinding` overwrites right after —
+          // but wrong for an exception object, which never goes through
+          // that). `__NEW_ERROR_OBJ__` builds a properly-prototyped one, the
+          // same helper `WebIdlConversion.typeError` itself calls for the
+          // exact same reason.
+          Instr.Perform(
+            "__NEW_ERROR_OBJ__",
+            List(Expr.Str("%TypeError.prototype%")),
+            Instr.PerformOutcome.BindResult("_typeErr"),
+          ) :: promiseRejectReturn(typeName, Expr.Var("_typeErr"))
+        case None => List(Instr.Throw(Expr.New("TypeError")))
     else
       p.default match
         case None =>
@@ -301,7 +371,9 @@ object AddInterfaceMemberBuiltinBehaviourPass extends LoweringPass:
             "OrdinaryObjectCreate",
             List(Expr.SpecTerm("null")),
             Instr.PerformOutcome.BindResult(name),
-          ) :: p.idlType.toList.flatMap(convertedIdlValueBinding(name, _))
+          ) :: p.idlType.toList.flatMap(
+            convertedIdlValueBinding(name, _, rejectType),
+          )
         case Some(other) =>
           throw UnsupportedSpecShape(
             "AddInterfaceMemberBuiltinBehaviourPass",
@@ -330,13 +402,18 @@ object AddInterfaceMemberBuiltinBehaviourPass extends LoweringPass:
     * [[WjiParam.optional]]/[[WjiParam.default]] decide what happens — see
     * [[omittedBranch]].
     */
-  private def unpackArgumentsList(params: List[WjiParam]): List[Instr] =
+  private def unpackArgumentsList(
+    params: List[WjiParam],
+    rejectType: Option[String],
+  ): List[Instr] =
     params.zipWithIndex.map {
       case (p, i) =>
         val name = stripPipes(p.name)
         val checks = p.idlType.toList.flatMap(nonObjectCheck(_, name))
         val convert =
-          p.idlType.toList.flatMap(convertedIdlValueBinding(name, _))
+          p.idlType.toList.flatMap(
+            convertedIdlValueBinding(name, _, rejectType),
+          )
         val supplied =
           Instr.Let(
             Expr.Var(name),
@@ -350,7 +427,7 @@ object AddInterfaceMemberBuiltinBehaviourPass extends LoweringPass:
               Expr.Length(Expr.Var("ArgumentsList")),
             ) -> supplied,
           ),
-          omittedBranch(p, name),
+          omittedBranch(p, name, rejectType),
         )
     }
 
@@ -644,6 +721,8 @@ object AddInterfaceMemberBuiltinBehaviourPass extends LoweringPass:
       List(Instr.Return(Some(Expr.SpecTerm("undefined"))))
     case _ => Nil
 
+  private val PromiseReturnType = """^Promise<(.+)>$""".r
+
   def run(algos: List[Algorithm]): List[Algorithm] =
     algos.map { a =>
       a.kind match
@@ -652,10 +731,13 @@ object AddInterfaceMemberBuiltinBehaviourPass extends LoweringPass:
             AlgorithmKind.NamespaceMethod(_) | AlgorithmKind.NamespaceGetter(
               _,
             ) =>
+          val rejectType = a.idlReturnType.collect {
+            case PromiseReturnType(inner) => inner
+          }
           a.copy(
             params = BuiltinParams,
             body = newTargetCheck(a.kind) ++ brandingCheck(a.kind) ++
-              unpackArgumentsList(a.params) ++
+              unpackArgumentsList(a.params, rejectType) ++
               givenValueBinding(a.kind) ++ createThisBinding(a.kind) ++
               wrapReturnValues(a.kind, a.body) ++ returnEpilogue(a),
           )

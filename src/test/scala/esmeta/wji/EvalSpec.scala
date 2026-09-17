@@ -54,7 +54,6 @@ private val knownFailing: Set[String] =
     // wasm constructs -- marked `// META: timeout=long` even for real
     // engines, so it's just too slow for WJI's interpreter rather than
     // blocked by a real gap).
-    "tests/wji/js-api/generated/constructor/compile.any.js",
     "tests/wji/js-api/generated/constructor/instantiate-bad-imports.any.js",
     "tests/wji/js-api/generated/constructor/instantiate.any.js",
     "tests/wji/js-api/generated/js-string/basic.any.js",

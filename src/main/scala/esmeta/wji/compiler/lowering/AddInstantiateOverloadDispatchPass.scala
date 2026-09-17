@@ -26,22 +26,22 @@ import esmeta.wji.lang.{Algorithm, AlgorithmKind, Cond, Expr, Instr, WjiParam}
   * Runs right after [[AddInterfaceMemberBuiltinBehaviourPass]], once both real
   * overloads already have the final `(this, ArgumentsList, NewTarget)`
   * `<BUILTIN>:` calling convention and their final, non-colliding
-  * `INTRINSICS.WebAssembly.instantiate_bytes`/`instantiate_object` names —
-  * this pass's own synthetic `Algorithm` is hand-built directly in that same
+  * `INTRINSICS.WebAssembly.instantiate_bytes`/`instantiate_object` names — this
+  * pass's own synthetic `Algorithm` is hand-built directly in that same
   * already-final shape (mirrors [[AddJsStringBuiltinsPass]]'s own "append a
   * synthesized `Algorithm`" pattern), so it needs no reshaping of its own and
   * is never itself seen by `AddInterfaceMemberBuiltinBehaviourPass`.
   * `Instr.Perform`'s `func` field isn't restricted to `[=link=]`/`[$jscall$]`
-  * syntax — a bare string that already equals a real registered `Func` name
-  * (as both of these now are) resolves directly (`Compiler.nameFromLink` is a
-  * no-op on an already-bare string; `Interpreter.EClo` looks it up in
-  * `cfg.fnameMap` by that exact string) — so forwarding is a plain
-  * cross-function call, no closure/capture machinery needed.
+  * syntax — a bare string that already equals a real registered `Func` name (as
+  * both of these now are) resolves directly (`Compiler.nameFromLink` is a no-op
+  * on an already-bare string; `Interpreter.EClo` looks it up in `cfg.fnameMap`
+  * by that exact string) — so forwarding is a plain cross-function call, no
+  * closure/capture machinery needed.
   *
   * `0 < |ArgumentsList|` is checked before ever reading `ArgumentsList[0]` —
-  * unlike [[Cond.Implements]] itself (safely `false` for any non-`Addr`
-  * value), out-of-range indexing on `ArgumentsList` throws `InvalidObjField`
-  * rather than gracefully reading as `undefined` (mirrors every other
+  * unlike [[Cond.Implements]] itself (safely `false` for any non-`Addr` value),
+  * out-of-range indexing on `ArgumentsList` throws `InvalidObjField` rather
+  * than gracefully reading as `undefined` (mirrors every other
   * `ArgumentsList[i]` read in [[AddInterfaceMemberBuiltinBehaviourPass]], e.g.
   * its own `givenValueBinding`). A zero-argument call falls to
   * `instantiate_bytes` — an arbitrary choice, harmless since both overloads'
@@ -49,10 +49,9 @@ import esmeta.wji.lang.{Algorithm, AlgorithmKind, Cond, Expr, Instr, WjiParam}
   * `TypeError` promise either way (`TODO.md` #57).
   *
   * `manuals/intrinsics`'s `instantiate: [TTT] #INTRINSICS.WebAssembly.
-  * instantiate;` descriptor and its `length: 1` override are both keyed by
-  * this final intrinsic name, not by which `Algorithm` produced it, so this
-  * pass's synthetic dispatcher inherits both automatically — nothing to change
-  * there.
+  * instantiate;` descriptor and its `length: 1` override are both keyed by this
+  * final intrinsic name, not by which `Algorithm` produced it, so this pass's
+  * synthetic dispatcher inherits both automatically — nothing to change there.
   *
   * Requires:
   *   - [[AddInterfaceMemberBuiltinBehaviourPass]]: needs both real overloads

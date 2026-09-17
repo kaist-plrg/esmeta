@@ -61,6 +61,19 @@ private val knownFailing: Set[String] =
     "tests/wji/js-api/generated/table/grow-memory64.any.js",
   )
 
+/** test cases that are correct but too slow to run on every `wjiEvalTest` —
+  * unlike [[knownFailing]] (a real gap), these just take ~275-290s each (the
+  * corpus's two largest files, 55/208 subtests) once actually run to completion
+  * rather than crashing early (`TODO.md` #58's `WebAssembly. instantiate`
+  * overload-dispatch fix, `personal/DONE.md` #63). Cancelled by default, same
+  * as [[knownFailing]], unless `-Dslow=true` is passed — see [[EvalSpec.slow]].
+  */
+private val slowFiles: Set[String] =
+  Set(
+    "tests/wji/js-api/generated/constructor/instantiate.any.js",
+    "tests/wji/js-api/generated/constructor/instantiate-bad-imports.any.js",
+  )
+
 /** Runs every `.js` test case under `tests/wji/manual` and
   * `tests/wji/js-api/generated` end to end through the merged WJI IR program
   * (see [[WjiTest]]). Each test case is standalone and self-checking: it must
@@ -80,18 +93,21 @@ private val knownFailing: Set[String] =
   * }}}
   *
   * Per-test timing + failure cause are opt-in (silent by default, so a normal
-  * green run doesn't drown in a wall of prints) — `wjiEvalTest` itself is a
-  * fixed alias with no room for extra args, so this needs `testOnly` directly,
-  * same as [[SnapshotSpec]]'s `-Dupdate=true`:
+  * green run doesn't drown in a wall of prints), same as running [[slowFiles]]
+  * at all — `wjiEvalTest` itself is a fixed alias with no room for extra args,
+  * so either needs `testOnly` directly, same as [[SnapshotSpec]]'s
+  * `-Dupdate=true`:
   * {{{
-  *   sbt "testOnly esmeta.wji.EvalSpec -- -Dverbose=true"
+  *   sbt "testOnly esmeta.wji.EvalSpec -- -Dverbose=true -Dslow=true"
   * }}}
   */
 class EvalSpec extends AnyFunSuite with BeforeAndAfterAll:
 
   private var verbose = false
+  private var slow = false
   override def run(testName: Option[String], args: Args): Status =
     verbose = args.configMap.getWithDefault("verbose", "false") == "true"
+    slow = args.configMap.getWithDefault("slow", "false") == "true"
     super.run(testName, args)
 
   /** the one SpecTec process/connection shared across every test case in this
@@ -120,14 +136,13 @@ class EvalSpec extends AnyFunSuite with BeforeAndAfterAll:
     * comfortably above every legitimately-slow test observed so far, including
     * `memory/grow.any.js`'s own ~80-90s and js-api's `limits.any.js`'s own ~80s
     * (both under a fresh, cold-started connection; a warm/shared one should
-    * only be faster), and now also `constructor/instantiate.any.js`/
-    * `constructor/instantiate-bad-imports.any.js`'s own ~275-290s -- the
-    * corpus's two largest files (55/208 subtests), which only run to completion
-    * at all once `TODO.md` #58's `WebAssembly.instantiate` overload-dispatch
-    * fix let them stop crashing early (`personal/DONE.md` #63). Throws
-    * `TimeoutException` (unrelated to SpecTec, so `connection.isPoisoned`
-    * correctly stays false and no respawn is needed) rather than needing an
-    * external process kill.
+    * only be faster). Throws `TimeoutException` (unrelated to SpecTec, so
+    * `connection.isPoisoned` correctly stays false and no respawn is needed)
+    * rather than needing an external process kill.
+    *
+    * Not sized around [[slowFiles]] (each ~275-290s) -- those are cancelled by
+    * default rather than actually run, so they don't need to fit here; a
+    * `-Dslow=true` run passes its own longer [[slowFileTimeoutSec]] instead.
     *
     * No longer sized around the risk of `limits.any.js` (spec-mandated stress
     * test building up to 10M wasm constructs -- the corpus's one file marked
@@ -138,7 +153,13 @@ class EvalSpec extends AnyFunSuite with BeforeAndAfterAll:
     * cheap enough to actually finish -- this constant just needs to cover that
     * reduced, now-finite worst case, same as everything else here.
     */
-  private val perTestTimeoutSec = 450
+  private val perTestTimeoutSec = 150
+
+  /** [[perTestTimeoutSec]]'s own counterpart for a [[slowFiles]] entry, used
+    * only on a `-Dslow=true` run -- comfortably above the ~275-290s each
+    * actually took standalone (`sbt run wji-eval ... -silent`).
+    */
+  private val slowFileTimeoutSec = 400
 
   private val roots: List[String] =
     List(WJI_MANUAL_TEST_DIR, WJI_JS_API_TEST_DIR)
@@ -154,14 +175,14 @@ class EvalSpec extends AnyFunSuite with BeforeAndAfterAll:
       val start = System.nanoTime()
       def elapsed = (System.nanoTime() - start) / 1e9
       if knownFailing(name) then cancel("known WJI mechanization gap")
+      else if slowFiles(name) && !slow then
+        cancel("slow test, opt-in via -Dslow=true")
       else
+        val timeoutSec =
+          if slowFiles(name) then slowFileTimeoutSec else perTestTimeoutSec
         try
           checkExit(
-            WjiTest.evalFile(
-              file.toString,
-              connection,
-              Some(perTestTimeoutSec),
-            ),
+            WjiTest.evalFile(file.toString, connection, Some(timeoutSec)),
           )
           if verbose then println(f"[$elapsed%.1fs] $name")
         catch

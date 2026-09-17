@@ -1375,7 +1375,7 @@
   While(|i| < |end|)
     Let(|charCode|, |array|[|i|])
     Let(|charCodeString|, [$FromCharCode$](|charCode|))
-    Let(|result|, ?(the concatenation of |result| and |charCodeString|))
+    Let(|result|, concat(|result|, |charCodeString|))
     Set(|i|, |i| + 1)
   Return(|result|)
 
@@ -1393,7 +1393,7 @@
   Let(|i|, 0)
   While(|i| < |stringLength|)
     Let(|charCode|, [$CharCodeAt$](|string|, |i|))
-    Set(?(the element at index |start|) + ?(|i| in |array|), [=ToWebAssemblyValue=](|charCode|, [=i32=]))
+    Set(|array|[|start| + |i|], [=ToWebAssemblyValue=](|charCode|, [=i32=]))
     Set(|i|, |i| + 1)
   Return(|stringLength|)
 

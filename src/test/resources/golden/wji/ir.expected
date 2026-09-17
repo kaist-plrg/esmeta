@@ -1,4 +1,4 @@
-165 func(s)
+167 func(s)
 def compile_a_webassembly_module(
   bytes: Unknown,
 ): Unknown = {
@@ -3877,6 +3877,7 @@ def create the webassembly namespace object(
 def get_the_builtins_for_a_builtin_set(
   builtinSetName: Unknown,
 ): Unknown = {
+  call-embed _jsStringArrayType = <fold>((case "ARRAY" (case "" (opt (case "MUT" )) (case "I16" ))))
   call-embed _jsStringFuncType1 = <fold>((case "->" (list [(case "REF" (opt (case "NULL" )) (case "EXTERN" ))]) (list [(case "REF" (opt) (case "EXTERN" ))])))
   call-embed _jsStringFuncType2 = <fold>((case "->" (list [(case "REF" (opt (case "NULL" )) (case "EXTERN" ))]) (list [(case "I32" )])))
   call-embed _jsStringFuncType3 = <fold>((case "->" (list [(case "I32" )]) (list [(case "REF" (opt) (case "EXTERN" ))])))
@@ -3888,7 +3889,9 @@ def get_the_builtins_for_a_builtin_set(
   call-embed _jsStringFuncType9 = <fold>((case "->" (list [(case "REF" (opt (case "NULL" )) (case "EXTERN" )), (case "I32" ), (case "I32" )]) (list [(case "REF" (opt) (case "EXTERN" ))])))
   call-embed _jsStringFuncType10 = <fold>((case "->" (list [(case "REF" (opt (case "NULL" )) (case "EXTERN" )), (case "REF" (opt (case "NULL" )) (case "EXTERN" ))]) (list [(case "I32" )])))
   call-embed _jsStringFuncType11 = <fold>((case "->" (list [(case "REF" (opt (case "NULL" )) (case "EXTERN" )), (case "REF" (opt (case "NULL" )) (case "EXTERN" ))]) (list [(case "I32" )])))
-  return (list [(tup "cast" _jsStringFuncType1 clo<"js-string-cast-steps">), (tup "test" _jsStringFuncType2 clo<"js-string-test-steps">), (tup "fromCharCode" _jsStringFuncType3 clo<"js-string-fromcharcode-steps">), (tup "fromCodePoint" _jsStringFuncType4 clo<"js-string-fromcodepoint-steps">), (tup "charCodeAt" _jsStringFuncType5 clo<"js-string-charcodeat-steps">), (tup "codePointAt" _jsStringFuncType6 clo<"js-string-codepointat-steps">), (tup "length" _jsStringFuncType7 clo<"js-string-length-steps">), (tup "concat" _jsStringFuncType8 clo<"js-string-concat-steps">), (tup "substring" _jsStringFuncType9 clo<"js-string-substring-steps">), (tup "equals" _jsStringFuncType10 clo<"js-string-equals-steps">), (tup "compare" _jsStringFuncType11 clo<"js-string-compare-steps">)])
+  call-embed _jsStringFuncType12 = <fold>((case "->" (list [(case "REF" (opt (case "NULL" )) _jsStringArrayType), (case "I32" ), (case "I32" )]) (list [(case "REF" (opt) (case "EXTERN" ))])))
+  call-embed _jsStringFuncType13 = <fold>((case "->" (list [(case "REF" (opt (case "NULL" )) (case "EXTERN" )), (case "REF" (opt (case "NULL" )) _jsStringArrayType), (case "I32" )]) (list [(case "I32" )])))
+  return (list [(tup "cast" _jsStringFuncType1 clo<"js-string-cast-steps">), (tup "test" _jsStringFuncType2 clo<"js-string-test-steps">), (tup "fromCharCode" _jsStringFuncType3 clo<"js-string-fromcharcode-steps">), (tup "fromCodePoint" _jsStringFuncType4 clo<"js-string-fromcodepoint-steps">), (tup "charCodeAt" _jsStringFuncType5 clo<"js-string-charcodeat-steps">), (tup "codePointAt" _jsStringFuncType6 clo<"js-string-codepointat-steps">), (tup "length" _jsStringFuncType7 clo<"js-string-length-steps">), (tup "concat" _jsStringFuncType8 clo<"js-string-concat-steps">), (tup "substring" _jsStringFuncType9 clo<"js-string-substring-steps">), (tup "equals" _jsStringFuncType10 clo<"js-string-equals-steps">), (tup "compare" _jsStringFuncType11 clo<"js-string-compare-steps">), (tup "fromCharCodeArray" _jsStringFuncType12 clo<"js-string-fromcharcodearray-steps">), (tup "intoCharCodeArray" _jsStringFuncType13 clo<"js-string-intocharcodearray-steps">)])
 }
 def find_a_builtin(
   import: Unknown,
@@ -4065,7 +4068,7 @@ def js-string-fromcharcodearray(
   while (< i end) {
     let charCode = array[i]
     call charCodeString = clo<"fromcharcode">(charCode)
-    let result = (yet "the concatenation of |result| and |charCodeString|")
+    let result = (concat result charCodeString)
     i = (+ i 1)
   }
   if (? result: Completion) {
@@ -4115,7 +4118,7 @@ def js-string-intocharcodearray(
     } else {
       let _call2 = _guard1.Value
     }
-    @@yet: unresolved ref: BinOp(Unknown(the element at index |start|),Add,Unknown(|i| in |array|)) = _call2
+    array[(+ start i)] = _call2
     i = (+ i 1)
   }
   if (? stringLength: Completion) {
@@ -5100,6 +5103,28 @@ def js-string-compare-steps(
 ): Unknown = {
   call _result1 = clo<"js-string-compare">(arguments[0], arguments[1])
   return _result1
+}
+def js-string-fromcharcodearray-steps(
+  arguments: Unknown,
+): Unknown = {
+  call _result1 = clo<"js-string-fromcharcodearray">(arguments[0], arguments[1], arguments[2])
+  if (? _result1: Completion) {
+    return _result1
+  } else {
+    call _ret1 = clo<"NormalCompletion">(_result1)
+    return _ret1
+  }
+}
+def js-string-intocharcodearray-steps(
+  arguments: Unknown,
+): Unknown = {
+  call _result1 = clo<"js-string-intocharcodearray">(arguments[0], arguments[1], arguments[2])
+  if (? _result1: Completion) {
+    return _result1
+  } else {
+    call _ret1 = clo<"NormalCompletion">(_result1)
+    return _ret1
+  }
 }
 def create_a_builtin_function_hostfunc(
   state: Unknown,

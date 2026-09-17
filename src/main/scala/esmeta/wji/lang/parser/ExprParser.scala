@@ -445,11 +445,25 @@ object ExprParser:
   // "X prefixed with LITERAL" (index.bs:488/1849, both "|builtinSetName|
   // prefixed with "wasm:"") — string concatenation, `LITERAL` first.
   private val PrefixedWith = """(?si)^(.+?)\s+prefixed with\s+(.+)$""".r
+  // "the concatenation of X and Y" (index.bs:1994, js-string's
+  // fromCharCodeArray) — string concatenation, same Expr.Concat node
+  // PrefixedWith already builds, just a different phrasing/arg order.
+  private val ConcatenationOf =
+    """(?si)^the concatenation of (.+?) and (.+)$""".r
   // must precede PossessiveAssociation below — "the X's [=list/size=]"
   // would otherwise also match its more general "'s [=link=]" shape.
   private val PossessiveSize = """(?si)^(.+)'s \[=list/size=\]$""".r
   private val ElementAt =
     """(?si)^the value of the element stored at index (.+) in (.+)$""".r
+  // js-string's intoCharCodeArray writes the same "index X in Y" shape as a
+  // `Set` target ("Set the element at index |start| + |i| in |array| to
+  // ...") without ElementAt's "the value of ... stored" framing -- same
+  // Index(arr, idx) node either way (`Instr.Set`'s LHS is parsed by this same
+  // `ExprParser.parse`, see `InstrParser.SetPrefix`), just needs its own
+  // pattern so it's tried before the generic BinOp fallback would otherwise
+  // wrongly split "|start| + |i|" out of the whole reference.
+  private val ElementAtRef =
+    """(?si)^the element at index (.+) in (.+)$""".r
   // "the index of LIST where ELEM is found" (index.bs:1255) — see
   // Expr.IndexOf / ExpandIndexOfPass.
   private val IndexOfPat =
@@ -1008,6 +1022,14 @@ object ExprParser:
       case VarOnly(name)    => Var(name)
       case VarIgnore(name)  => Var(name.trim)
 
+      // tried before "---- Arithmetic & casts ----" below, unlike every other
+      // structural-access pattern (e.g. ElementAt further down) -- its own
+      // index sub-expression can itself be a "+"-expression ("Set the
+      // element at index |start| + |i| in |array| to ...", js-string's
+      // intoCharCodeArray), so the generic top-level-BinOp fallback must not
+      // get a chance to split the whole reference apart first.
+      case ElementAtRef(idx, arr) => Index(parse(arr), parse(idx))
+
       // ---- Arithmetic & casts ----
       case _ if findLastTopLevelAny(s, BinOpSeps).isDefined =>
         val (i, sep) = findLastTopLevelAny(s, BinOpSeps).get
@@ -1034,6 +1056,8 @@ object ExprParser:
       case PossessiveSize(inner)       => Length(parse(inner))
       case PrefixedWith(baseRaw, prefixRaw) =>
         Concat(List(parse(prefixRaw), parse(baseRaw)))
+      case ConcatenationOf(firstRaw, secondRaw) =>
+        Concat(List(parse(firstRaw), parse(secondRaw)))
       case ElementAt(idx, arr)    => Index(parse(arr), parse(idx))
       case IndexOfPat(list, elem) => IndexOf(parse(list), parse(elem))
       case ShortestArgumentListOfEntries(baseRaw) =>

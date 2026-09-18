@@ -69,19 +69,16 @@ object AddJsStringBuiltinsPass extends LoweringPass:
     * compiled name (already all-lowercase, see that div's own algorithm; not
     * necessarily identical to `name`'s casing), the display `name` used as the
     * builtin-set table's own key (matches `<h4 id="js-string-NAME">`'s exact
-    * casing), its `funcType`'s param/result types -- already-resolved `Expr`s
-    * rather than raw link text, since `fromCharCodeArray`/`intoCharCodeArray`'s
-    * array-referencing param ([[refNullArrayType]]) isn't spec-linked text
-    * `ExprParser.parse` could read at all (see its own doc) -- and
-    * [[resultIsPassthrough]], see [[stepsAlgo]]'s own doc for why this can't be
-    * derived from `results` alone.
+    * casing), and its `funcType`'s param/result types -- already-resolved
+    * `Expr`s rather than raw link text, since `fromCharCodeArray`/
+    * `intoCharCodeArray`'s array-referencing param ([[refNullArrayType]]) isn't
+    * spec-linked text `ExprParser.parse` could read at all (see its own doc).
     */
   private case class Builtin(
     algoName: String,
     name: String,
     params: List[Expr],
     results: List[Expr],
-    resultIsPassthrough: Boolean = false,
   )
 
   private val Externref = ExprParser.parse("[=externref=]")
@@ -108,21 +105,14 @@ object AddJsStringBuiltinsPass extends LoweringPass:
     )
 
   private val builtins = List(
-    // "Return [=?=] [$UnwrapString$](|v|)" -- passes its own already-tagged
-    // wasm argument straight through untouched (`docs/spec_errors.md` #32's
-    // own investigation confirmed this via `UnwrapString`'s spec text: it
-    // only checks "is |v| a String" and returns |v| itself, never producing a
-    // new value) -- resultIsPassthrough distinguishes this from the other 4
-    // RefExtern-returning builtins below, which all construct a genuinely new
-    // JS string ([$Call$](%String.fromCharCode%, ...) etc.) that's never been
-    // given a wasm-value tag at all.
-    Builtin(
-      "js-string-cast",
-      "cast",
-      List(Externref),
-      List(RefExtern),
-      resultIsPassthrough = true,
-    ),
+    // "Return [=?=] [$UnwrapString$](|v|)" -- returns its own argument
+    // unchanged, but that argument is no longer wasm-tagged by the time this
+    // algorithm sees it: `create_a_builtin_function_hostfunc`
+    // (`AddBuiltinFunctionHostfuncPass`) now converts every argument via
+    // `ToJSValue` uniformly before `steps` ever runs, so `cast`'s result needs
+    // the same `ToWebAssemblyValue` treatment as any other genuinely-new
+    // string, same as the other RefExtern-returning builtins below.
+    Builtin("js-string-cast", "cast", List(Externref), List(RefExtern)),
     Builtin("js-string-test", "test", List(Externref), List(I32)),
     Builtin(
       "js-string-fromcharcode",
@@ -203,20 +193,16 @@ object AddJsStringBuiltinsPass extends LoweringPass:
     * js-string-NAME(arguments[0], ..., arguments[n-1]) }` — uniform 1-arg
     * signature regardless of the real builtin's own arity, so `create_a_
     * builtin_function`'s hostfunc can invoke any `steps` value the same way.
+    * `arguments` here is already `create_a_builtin_function_hostfunc`'s own
+    * `jsArguments` (`AddBuiltinFunctionHostfuncPass`'s uniform per-argument
+    * `ToJSValue` conversion) — every `js-string-NAME` positional parameter this
+    * wrapper destructures into is a genuine JS value, never a raw wasm one.
     *
     * Also converts `js-string-NAME`'s own raw result into the `instr*` shape a
     * genuine WebAssembly value must have before crossing back into wasm
     * execution (`docs/spec_errors.md` #32 — `create a builtin function`'s own
     * hostfunc definition never says this needs to happen at all, unlike `create
     * a host function`'s `run a host function`, so this pass has to fill it in):
-    *   - [[Builtin.resultIsPassthrough]] (`cast` only): `result` is already a
-    *     real, tagged wasm value (the untouched incoming argument, per
-    *     `UnwrapString`'s own spec text — see `docs/spec_errors.md` #32) —
-    *     `ToWebAssemblyValue` would be actively wrong here (its `is a Number`/
-    *     `is an Exported Function`/`is an Exported GC Object` checks all miss
-    *     an already-tagged internal value, falling through to allocating it a
-    *     *new*, spurious host-cache entry) — so this case just list-wraps
-    *     `result` as-is.
     *   - `results.head` is `I32` (the 7 numeric builtins, e.g. `js-string-
     *     test`'s "Return 0."): `result` here is a wasm-spec `Math` value (an
     *     arbitrary-precision mathematical integer — every js-string algorithm
@@ -235,11 +221,11 @@ object AddJsStringBuiltinsPass extends LoweringPass:
     * same shape `ToWebAssemblyValue`'s own `i32`-branch builds internally, just
     * without the JS-coercion steps that don't apply to an already-wasm-domain
     * value.
-    *   - Otherwise (the remaining 4 `RefExtern`-returning builtins, e.g.
+    *   - Otherwise (the remaining 5 `RefExtern`-returning builtins, e.g.
     *     `js-string-fromCharCode`'s "Return FromCharCode(v)."): `result` is a
-    *     genuinely new, never-tagged JS string -- `ToWebAssemblyValue` is the
+    *     genuinely new or unwrapped JS string -- `ToWebAssemblyValue` is the
     *     only existing mechanism that allocates it a real host address (`[=host
-    *     value cache=]`), so it's the right call here. The last two cases can
+    *     value cache=]`), so it's the right call here. Both cases can
     *     themselves abruptly complete (an abrupt
     *     `js-string-NAME`/`ToWebAssemblyValue` result skips straight to
     *     `Return`ing it, same as `convertedIdlValueBinding`'s own
@@ -258,9 +244,7 @@ object AddJsStringBuiltinsPass extends LoweringPass:
     // (`Case("I32", Nil)` never matches here, only after the later passes
     // this pass's own class doc says *do* eventually see this same node).
     val onNormalResult: List[Instr] =
-      if b.resultIsPassthrough then
-        List(Instr.Return(Some(listWrap(Expr.Var("result")))))
-      else if b.results.head == I32 then
+      if b.results.head == I32 then
         List(
           Instr.Return(
             Some(listWrap(Expr.Case("CONST", List(I32, Expr.Var("result"))))),

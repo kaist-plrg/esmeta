@@ -72,17 +72,59 @@ object AddBuiltinFunctionHostfuncPass extends LoweringPass:
   private val agentFunctionImportList =
     Expr.Field(Expr.SpecTerm("surrounding agent"), "function import list")
 
+  /** `steps`, unlike `run a host function`'s callee, is never a genuine JS
+    * function — it's always one of `AddJsStringBuiltinsPass`'s own `js-string-
+    * X-steps` wrappers, called via `Instr.PerformClosure` rather than a plain
+    * `Call`. But per `docs/spec_errors.md` #32, the real spec text never says
+    * what domain `steps`'s own arguments/result should be in either, and the
+    * most consistent answer — mirroring `run a host function`'s own "For each
+    * arg of arguments, Append [=ToJSValue=](arg) to jsArguments" step
+    * (index.bs:1326-1327) exactly, uniformly over every argument regardless of
+    * its declared wasm type — is to hand `steps` genuine JS values throughout,
+    * not raw wasm ones. This is why the js-string builtins' own bodies (e.g.
+    * `FromCharCode`'s "Assert: v is of type i32") don't call `ToJSValue`
+    * themselves: they already receive an already-converted JS value.
+    */
+  private def buildJsArguments: List[Instr] =
+    List(
+      Instr.Let(Expr.Var("jsArguments"), Expr.List_(Nil)),
+      Instr.Let(Expr.Var("_i"), Expr.Num("0")),
+      Instr.While(
+        Cond.Compare(
+          Expr.Var("_i"),
+          Cond.CompareOp.Lt,
+          Expr.Length(Expr.Var("arguments")),
+        ),
+        List(
+          Instr.Let(
+            Expr.Var("arg"),
+            Expr.Index(Expr.Var("arguments"), Expr.Var("_i")),
+          ),
+          Instr.Perform(
+            "ToJSValue",
+            List(Expr.Var("arg")),
+            Instr.PerformOutcome.BindResult("jsArg"),
+          ),
+          Instr.Append(Expr.Var("jsArg"), Expr.Var("jsArguments")),
+          Instr.Set(
+            Expr.Var("_i"),
+            Expr.BinOp(Expr.Var("_i"), Expr.BOp.Add, Expr.Num("1")),
+          ),
+        ),
+      ),
+    )
+
   private def hostfuncAlgo: Algorithm =
     Algorithm(
       id = Some(HostfuncAlgoId),
       name = None,
       params = List(WjiParam("|state|"), WjiParam("|arguments|")),
       head = "<synthesized by AddBuiltinFunctionHostfuncPass>",
-      body = List(
+      body = buildJsArguments ++ List(
         Instr.Set(agentStore, Expr.Var("state")),
         Instr.PerformClosure(
           Expr.Var("steps"),
-          List(Expr.Var("arguments")),
+          List(Expr.Var("jsArguments")),
           Instr.PerformOutcome.BindResult("result"),
         ),
         Instr.Let(Expr.Var("store"), agentStore),

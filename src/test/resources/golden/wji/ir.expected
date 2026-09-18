@@ -4015,21 +4015,17 @@ def unwrapstring(
 def fromcharcode(
   v: Unknown,
 ): Unknown = {
-  assert (= v (yet "of type [=i32=]"))
-  call _call1 = clo<"ToJSValue">(v)
-  call _call2 = clo<"Call">(@EXECUTION_STACK[0].Realm.Intrinsics["%String.fromCharCode%"], undefined, (list [_call1]))
-  assert (= _call2.Type ~normal~)
-  return _call2.Value
+  call _call1 = clo<"Call">(@EXECUTION_STACK[0].Realm.Intrinsics["%String.fromCharCode%"], undefined, (list [v]))
+  assert (= _call1.Type ~normal~)
+  return _call1.Value
 }
 def charcodeat(
   string: Unknown,
   index: Unknown,
 ): Unknown = {
-  assert (= index (yet "of type [=i32=]"))
-  call _call1 = clo<"ToJSValue">(index)
-  call _call2 = clo<"Call">(@EXECUTION_STACK[0].Realm.Intrinsics["%String.prototype.charCodeAt%"], string, (list [_call1]))
-  assert (= _call2.Type ~normal~)
-  return _call2.Value
+  call _call1 = clo<"Call">(@EXECUTION_STACK[0].Realm.Intrinsics["%String.prototype.charCodeAt%"], string, (list [index]))
+  assert (= _call1.Type ~normal~)
+  return _call1.Value
 }
 def js-string-cast(
   v: Unknown,
@@ -4058,13 +4054,7 @@ def js-string-fromcharcodearray(
     call _ret1 = clo<"ThrowCompletion">((case "TRAP" ))
     return _ret1
   } else nop
-  assert (= (case-tag start) "CONST")
-  assert (= (case-tag start[0]) "I32")
-  let start = start[1]
   let start = ([math] start)
-  assert (= (case-tag end) "CONST")
-  assert (= (case-tag end[0]) "I32")
-  let end = end[1]
   let end = ([math] end)
   let length = (sizeof array)
   if (|| (< end start) (< length end)) {
@@ -4108,9 +4098,6 @@ def js-string-intocharcodearray(
   }
   let stringLength = (sizeof string)
   let arrayLength = (sizeof array)
-  assert (= (case-tag start) "CONST")
-  assert (= (case-tag start[0]) "I32")
-  let start = start[1]
   let start = ([math] start)
   if (< arrayLength (+ start stringLength)) {
     call _ret3 = clo<"ThrowCompletion">((case "TRAP" ))
@@ -4149,18 +4136,14 @@ def js-string-fromcharcode(
 def js-string-fromcodepoint(
   v: Unknown,
 ): Unknown = {
-  assert (= (case-tag v) "CONST")
-  assert (= (case-tag v[0]) "I32")
-  let i32 = v[1]
-  let i32 = ([math] i32)
-  if (< 1114111 i32) {
+  let vNum = ([math] v)
+  if (< 1114111 vNum) {
     call _ret1 = clo<"ThrowCompletion">((case "TRAP" ))
     return _ret1
   } else nop
-  call _call1 = clo<"ToJSValue">(v)
-  call _call2 = clo<"Call">(@EXECUTION_STACK[0].Realm.Intrinsics["%String.fromCodePoint%"], undefined, (list [_call1]))
-  assert (= _call2.Type ~normal~)
-  let _v2 = _call2.Value
+  call _call1 = clo<"Call">(@EXECUTION_STACK[0].Realm.Intrinsics["%String.fromCodePoint%"], undefined, (list [v]))
+  assert (= _call1.Type ~normal~)
+  let _v2 = _call1.Value
   if (? _v2: Completion) {
     return _v2
   } else {
@@ -4184,7 +4167,8 @@ def js-string-charcodeat(
     let string = _call1.Value
   }
   let length = (sizeof string)
-  if (! (< index length)) {
+  let indexNum = ([math] index)
+  if (! (< indexNum length)) {
     call _ret2 = clo<"ThrowCompletion">((case "TRAP" ))
     return _ret2
   } else nop
@@ -4212,14 +4196,14 @@ def js-string-codepointat(
     let string = _call1.Value
   }
   let length = (sizeof string)
-  if (! (< index length)) {
+  let indexNum = ([math] index)
+  if (! (< indexNum length)) {
     call _ret2 = clo<"ThrowCompletion">((case "TRAP" ))
     return _ret2
   } else nop
-  call _call2 = clo<"ToJSValue">(index)
-  call _call3 = clo<"Call">(@EXECUTION_STACK[0].Realm.Intrinsics["%String.prototype.codePointAt%"], string, (list [_call2]))
-  assert (= _call3.Type ~normal~)
-  let _v3 = _call3.Value
+  call _call2 = clo<"Call">(@EXECUTION_STACK[0].Realm.Intrinsics["%String.prototype.codePointAt%"], string, (list [index]))
+  assert (= _call2.Type ~normal~)
+  let _v3 = _call2.Value
   if (? _v3: Completion) {
     return _v3
   } else {
@@ -4270,14 +4254,14 @@ def js-string-substring(
     let string = _call1.Value
   }
   let length = (sizeof string)
-  if (|| (< end start) (< length start)) {
+  let startNum = ([math] start)
+  let endNum = ([math] end)
+  if (|| (< endNum startNum) (< length startNum)) {
     return ""
   } else nop
-  call _call2 = clo<"ToJSValue">(start)
-  call _call3 = clo<"ToJSValue">(end)
-  call _call4 = clo<"Call">(@EXECUTION_STACK[0].Realm.Intrinsics["%String.prototype.substring%"], string, (list [_call2, _call3]))
-  assert (= _call4.Type ~normal~)
-  return _call4.Value
+  call _call2 = clo<"Call">(@EXECUTION_STACK[0].Realm.Intrinsics["%String.prototype.substring%"], string, (list [start, end]))
+  assert (= _call2.Type ~normal~)
+  return _call2.Value
 }
 def js-string-equals(
   first: Unknown,
@@ -5041,7 +5025,12 @@ def js-string-cast-steps(
   if (&& (? result: Completion) (! (= result.Type ~normal~))) {
     return result
   } else {
-    return (list [result])
+    call result = clo<"towebassemblyvalue">(result, (case "REF" (opt) (case "EXTERN" )))
+    if (&& (? result: Completion) (! (= result.Type ~normal~))) {
+      return result
+    } else {
+      return (list [result.Value])
+    }
   }
 }
 def js-string-test-steps(
@@ -5193,8 +5182,16 @@ def create_a_builtin_function_hostfunc(
   state: Unknown,
   arguments: Unknown,
 ): Unknown = {
+  let jsArguments = (list [])
+  let _i = 0
+  while (< _i (sizeof arguments)) {
+    let arg = arguments[_i]
+    call jsArg = clo<"tojsvalue">(arg)
+    push jsArguments < jsArg
+    _i = (+ _i 1)
+  }
   @AGENT_RECORD["associated store"] = state
-  call result = steps(arguments)
+  call result = steps(jsArguments)
   let store = @AGENT_RECORD["associated store"]
   if (&& (? result: Completion) (! (= result.Type ~normal~))) {
     return (tup store (list [(case "TRAP" )]))

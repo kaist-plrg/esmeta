@@ -1338,14 +1338,12 @@
 # FromCharCode
   params: |v|
   head: The <dfn abstract-op lt="FromCharCode">FromCharCode(|v|)</dfn> abstract operation, when invoked, performs the following steps:
-  Assert(|v| is ?(of type [=i32=]))
-  Return([=!=] [$Call$]([=String.fromCharCode=], undefined, « [=ToJSValue=](|v|) »))
+  Return([=!=] [$Call$]([=String.fromCharCode=], undefined, « |v| »))
 
 # CharCodeAt
   params: |string|, |index|
   head: The <dfn abstract-op lt="CharCodeAt">CharCodeAt(|string|, |index|)</dfn> abstract operation, when invoked, performs the following steps:
-  Assert(|index| is ?(of type [=i32=]))
-  Return([=!=] [$Call$]([=String.prototype.charCodeAt=], |string|, « [=ToJSValue=](|index|) »))
+  Return([=!=] [$Call$]([=String.prototype.charCodeAt=], |string|, « |index| »))
 
 # js-string-cast
   id: js-string-cast
@@ -1367,9 +1365,7 @@
   head: When this builtin is invoked with parameters |array|, |start|, and |end|, the following steps must be run:
   If(|array| is null)
     Throw(TRAP)
-  Let([=i32.const=](|start|), |start|)
   Let(|start|, AsMath(|start|))
-  Let([=i32.const=](|end|), |end|)
   Let(|end|, AsMath(|end|))
   Let(|length|, length(|array|))
   If(|start| > |end| or |end| > |length|)
@@ -1392,7 +1388,6 @@
   Let(|string|, [=?=] [$UnwrapString$](|string|))
   Let(|stringLength|, length(|string|))
   Let(|arrayLength|, length(|array|))
-  Let([=i32.const=](|start|), |start|)
   Let(|start|, AsMath(|start|))
   If(|start| + |stringLength| > |arrayLength|)
     Throw(TRAP)
@@ -1413,11 +1408,10 @@
   id: js-string-fromCodePoint
   params: |v|
   head: When this builtin is invoked with parameter |v|, the following steps must be run:
-  Let([=i32.const=](|i32|), |v|)
-  Let(|i32|, AsMath(|i32|))
-  If(|i32| > 0x10ffff)
+  Let(|vNum|, AsMath(|v|))
+  If(|vNum| > 0x10ffff)
     Throw(TRAP)
-  Return([=!=] [$Call$]([=String.fromCodePoint=], undefined, « [=ToJSValue=](|v|) »))
+  Return([=!=] [$Call$]([=String.fromCodePoint=], undefined, « |v| »))
 
 # js-string-charCodeAt
   id: js-string-charCodeAt
@@ -1425,7 +1419,8 @@
   head: When this builtin is invoked with parameters |string| and |index|, the following steps must be run:
   Let(|string|, [=?=] [$UnwrapString$](|string|))
   Let(|length|, length(|string|))
-  If(|index| >= |length|)
+  Let(|indexNum|, AsMath(|index|))
+  If(|indexNum| >= |length|)
     Throw(TRAP)
   Return([$CharCodeAt$](|string|, |index|))
 
@@ -1435,9 +1430,10 @@
   head: When this builtin is invoked with parameters |string| and |index|, the following steps must be run:
   Let(|string|, [=?=] [$UnwrapString$](|string|))
   Let(|length|, length(|string|))
-  If(|index| >= |length|)
+  Let(|indexNum|, AsMath(|index|))
+  If(|indexNum| >= |length|)
     Throw(TRAP)
-  Return([=!=] [$Call$]([=String.prototype.codePointAt=], |string|, « [=ToJSValue=](|index|) »))
+  Return([=!=] [$Call$]([=String.prototype.codePointAt=], |string|, « |index| »))
 
 # js-string-length
   id: js-string-length
@@ -1460,9 +1456,11 @@
   head: When this builtin is invoked with parameters |string|, |start|, and |end|, the following steps must be run:
   Let(|string|, [=?=] [$UnwrapString$](|string|))
   Let(|length|, length(|string|))
-  If(|start| > |end| or |start| > |length|)
+  Let(|startNum|, AsMath(|start|))
+  Let(|endNum|, AsMath(|end|))
+  If(|startNum| > |endNum| or |startNum| > |length|)
     Return("")
-  Return([=!=] [$Call$]([=String.prototype.substring=], |string|, « [=ToJSValue=](|start|), [=ToJSValue=](|end|) »))
+  Return([=!=] [$Call$]([=String.prototype.substring=], |string|, « |start|, |end| »))
 
 # js-string-equals
   id: js-string-equals

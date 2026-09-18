@@ -2582,6 +2582,7 @@ TypedArrayElementType
 TypedArrayGetElement
 TypedArrayLength
 TypedArraySetElement
+UTF16EncodeCodePoint
 UTF16SurrogatePairToCodePoint
 UnaryExpression[1,0].AssignmentTargetType
 UnaryExpression[1,0].Evaluation

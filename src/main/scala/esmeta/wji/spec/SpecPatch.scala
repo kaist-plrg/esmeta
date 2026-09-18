@@ -1263,46 +1263,104 @@ object SpecPatch:
     ->
     "    1. If |instance| is [=error=], throw a {{LinkError}} exception.",
 
-    // #60 (spec bug, docs/spec_errors.md #33) — `fromCharCodeArray` uses its
-    // i32-typed |start|/|end| parameters directly in arithmetic without first
-    // converting them out of wasm-value form; unlike `docs/spec_errors.md`
-    // #33's other two sites, neither is needed in wasm-tagged form again
-    // afterward, so both are rebound to their math value in place. No
-    // `[=signed_32=]` involved (contrast `ToJSValue`'s own use of it) — that
-    // AO exists to produce the JS-*visible* signed reading of an i32, an
-    // unrelated concern here; `[=i32.const=]` destructuring alone already
-    // yields the raw unsigned payload, and "interpreted as a [=mathematical
-    // value=]" just moves that same value into ESMeta's own Math domain with
-    // no sign reinterpretation (`Interpreter.scala`'s
-    // `(Wasm(NumV(Nat(n))), ToMath) => Math(n)`).
+    // #60 (spec bug, docs/spec_errors.md #33) — `FromCharCode`'s own
+    // `ToJSValue(v)` call is now redundant: `create_a_builtin_function_
+    // hostfunc` (`AddBuiltinFunctionHostfuncPass`) converts every js-string
+    // builtin's arguments via `ToJSValue` uniformly before `steps` ever runs
+    // (mirroring `run a host function`'s identical per-argument loop), so
+    // `|v|` already *is* the JS value by the time this abstract operation's
+    // own body sees it — calling `ToJSValue` on it a second time would fail
+    // (its own form-match requires a raw Wasm value, not an already-converted
+    // JS one).
+    """1. Assert: |v| is of type [=i32=].
+1. Return [=!=] [$Call$]([=String.fromCharCode=], undefined, « [=ToJSValue=](|v|) »)."""
+    ->
+    "1. Return [=!=] [$Call$]([=String.fromCharCode=], undefined, « |v| »).",
+
+    // #61 (spec bug, docs/spec_errors.md #33) — `CharCodeAt`'s own
+    // `ToJSValue(index)` call, same redundancy as #60.
+    """1. Assert: |index| is of type [=i32=].
+1. Return [=!=] [$Call$]([=String.prototype.charCodeAt=], |string|, « [=ToJSValue=](|index|) »)."""
+    ->
+    "1. Return [=!=] [$Call$]([=String.prototype.charCodeAt=], |string|, « |index| »).",
+
+    // #62 (spec bug, docs/spec_errors.md #33) — `charCodeAt`'s own
+    // `|index| >= |length|` bounds check uses the (now-JS-domain) |index|
+    // directly in a comparison against |length| (a mathematical value, from
+    // "the string/length of |string|") — a domain mismatch `Interpreter.eval`
+    // has no case for (`(Lt/Ge, Number, Math)` isn't one of its `Number`/
+    // `Math` binary-op cases). Bridged into Math via a fresh name — `|index|`
+    // itself is kept in its original JS-Number form for the `[$CharCodeAt$]`
+    // call right after, which (per #61) now needs exactly that form.
+    """1. If |index| >= |length|,
+    1. Throw a {{RuntimeError}} exception as if a [=trap=] was executed.
+1. Return [$CharCodeAt$](|string|, |index|)."""
+    ->
+    """1. Let |indexNum| be |index| interpreted as a [=mathematical value=].
+1. If |indexNum| >= |length|,
+    1. Throw a {{RuntimeError}} exception as if a [=trap=] was executed.
+1. Return [$CharCodeAt$](|string|, |index|).""",
+
+    // #63 (spec bug, docs/spec_errors.md #33) — `codePointAt`'s own bounds
+    // check, the same domain-mismatch as #62, plus its own trailing
+    // `ToJSValue(index)` redundancy (#60/#61's same reasoning — |index| is
+    // already the JS value `[$Call$]` needs directly).
+    """1. If |index| >= |length|,
+    1. Throw a {{RuntimeError}} exception as if a [=trap=] was executed.
+1. Return [=!=] [$Call$]([=String.prototype.codePointAt=], |string|, « [=ToJSValue=](|index|) »)."""
+    ->
+    """1. Let |indexNum| be |index| interpreted as a [=mathematical value=].
+1. If |indexNum| >= |length|,
+    1. Throw a {{RuntimeError}} exception as if a [=trap=] was executed.
+1. Return [=!=] [$Call$]([=String.prototype.codePointAt=], |string|, « |index| »).""",
+
+    // #64 (spec bug, docs/spec_errors.md #33) — `substring`'s own bounds
+    // check, same domain-mismatch as #62/#63, plus its own trailing
+    // `ToJSValue(start)`/`ToJSValue(end)` redundancy. Both bridged via fresh
+    // names — |start|/|end| are kept in their original JS-Number form for the
+    // `[$Call$]` right after.
+    """1. If |start| > |end| or |start| > |length|,
+    1. Return the empty string.
+1. Return [=!=] [$Call$]([=String.prototype.substring=], |string|, « [=ToJSValue=](|start|), [=ToJSValue=](|end|) »)."""
+    ->
+    """1. Let |startNum| be |start| interpreted as a [=mathematical value=].
+1. Let |endNum| be |end| interpreted as a [=mathematical value=].
+1. If |startNum| > |endNum| or |startNum| > |length|,
+    1. Return the empty string.
+1. Return [=!=] [$Call$]([=String.prototype.substring=], |string|, « |start|, |end| »).""",
+
+    // #65 (spec bug, docs/spec_errors.md #33) — `fromCodePoint`'s own bounds
+    // check, same domain-mismatch, plus its own trailing `ToJSValue(v)`
+    // redundancy. |v| itself is kept in its original JS-Number form for the
+    // `[$Call$]` right after.
+    """1. If |v| &gt; 0x10ffff,
+    1. Throw a {{RuntimeError}} exception as if a [=trap=] was executed.
+1. Return [=!=] [$Call$]([=String.fromCodePoint=], undefined, « [=ToJSValue=](|v|) »)."""
+    ->
+    """1. Let |vNum| be |v| interpreted as a [=mathematical value=].
+1. If |vNum| &gt; 0x10ffff,
+    1. Throw a {{RuntimeError}} exception as if a [=trap=] was executed.
+1. Return [=!=] [$Call$]([=String.fromCodePoint=], undefined, « |v| »).""",
+
+    // #66 (spec bug, docs/spec_errors.md #33) — `fromCharCodeArray`'s own
+    // |start|/|end| bounds check and loop, same domain-mismatch as the above
+    // — both rebound to their math value in place (never needed in their
+    // original JS-Number form again in this algorithm).
     """1. Let |length| be the number of elements in |array|.
 1. If |start| > |end| or |end| > |length|,"""
     ->
-    """1. Let [=i32.const=] |start| be |start|.
-1. Let |start| be |start| interpreted as a [=mathematical value=].
-1. Let [=i32.const=] |end| be |end|.
+    """1. Let |start| be |start| interpreted as a [=mathematical value=].
 1. Let |end| be |end| interpreted as a [=mathematical value=].
 1. Let |length| be the number of elements in |array|.
 1. If |start| > |end| or |end| > |length|,""",
 
-    // #61 (spec bug, docs/spec_errors.md #33) — `intoCharCodeArray`'s
-    // i32-typed |start| parameter, same gap: rebound to its math value in
-    // place (also never needed in wasm-tagged form again in this algorithm).
+    // #67 (spec bug, docs/spec_errors.md #33) — `intoCharCodeArray`'s own
+    // |start| bounds check and index arithmetic, same domain-mismatch,
+    // rebound in place (also never needed in its original form again).
     "1. If |start| + |stringLength| > |arrayLength|,"
     ->
-    """1. Let [=i32.const=] |start| be |start|.
-1. Let |start| be |start| interpreted as a [=mathematical value=].
+    """1. Let |start| be |start| interpreted as a [=mathematical value=].
 1. If |start| + |stringLength| > |arrayLength|,""",
-
-    // #62 (spec bug, docs/spec_errors.md #33) — `fromCodePoint`'s i32-typed
-    // |v| parameter, same gap, but |v| is still needed in its original
-    // wasm-tagged form for the `ToJSValue` call right after — bound to a
-    // fresh name instead of rebinding |v| itself.
-    "1. If |v| &gt; 0x10ffff,"
-    ->
-    """1. Let [=i32.const=] |i32| be |v|.
-1. Let |i32| be |i32| interpreted as a [=mathematical value=].
-1. If |i32| &gt; 0x10ffff,""",
   )
 
   def apply(source: String): String =

@@ -916,7 +916,9 @@ trait Parsers extends IndentParsers {
 
   // string expressions
   lazy val stringExpr: PL[StringExpression] =
-    "the String value" ~> expr ^^ { StringExpression(_) }
+    "the String value" ~> opt("consisting of") ~> expr ^^ {
+      StringExpression(_)
+    }
 
   // rarely used expressions
   lazy val specialExpr: PL[Expression] =

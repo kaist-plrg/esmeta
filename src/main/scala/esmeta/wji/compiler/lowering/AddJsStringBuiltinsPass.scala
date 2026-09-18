@@ -1,6 +1,6 @@
 package esmeta.wji.compiler.lowering
 
-import esmeta.wji.lang.{Algorithm, Expr, Instr, WjiParam}
+import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr, WjiParam}
 import esmeta.wji.lang.parser.ExprParser
 
 /** Hand-fills `get_the_builtins_for_a_builtin_set`'s body (js-api/index.bs:
@@ -69,16 +69,19 @@ object AddJsStringBuiltinsPass extends LoweringPass:
     * compiled name (already all-lowercase, see that div's own algorithm; not
     * necessarily identical to `name`'s casing), the display `name` used as the
     * builtin-set table's own key (matches `<h4 id="js-string-NAME">`'s exact
-    * casing), and its `funcType`'s param/result types -- already-resolved
-    * `Expr`s rather than raw link text, since `fromCharCodeArray`/
-    * `intoCharCodeArray`'s array-referencing param ([[refNullArrayType]]) isn't
-    * spec-linked text `ExprParser.parse` could read at all (see its own doc).
+    * casing), its `funcType`'s param/result types -- already-resolved `Expr`s
+    * rather than raw link text, since `fromCharCodeArray`/`intoCharCodeArray`'s
+    * array-referencing param ([[refNullArrayType]]) isn't spec-linked text
+    * `ExprParser.parse` could read at all (see its own doc) -- and
+    * [[resultIsPassthrough]], see [[stepsAlgo]]'s own doc for why this can't be
+    * derived from `results` alone.
     */
   private case class Builtin(
     algoName: String,
     name: String,
     params: List[Expr],
     results: List[Expr],
+    resultIsPassthrough: Boolean = false,
   )
 
   private val Externref = ExprParser.parse("[=externref=]")
@@ -105,7 +108,21 @@ object AddJsStringBuiltinsPass extends LoweringPass:
     )
 
   private val builtins = List(
-    Builtin("js-string-cast", "cast", List(Externref), List(RefExtern)),
+    // "Return [=?=] [$UnwrapString$](|v|)" -- passes its own already-tagged
+    // wasm argument straight through untouched (`docs/spec_errors.md` #32's
+    // own investigation confirmed this via `UnwrapString`'s spec text: it
+    // only checks "is |v| a String" and returns |v| itself, never producing a
+    // new value) -- resultIsPassthrough distinguishes this from the other 4
+    // RefExtern-returning builtins below, which all construct a genuinely new
+    // JS string ([$Call$](%String.fromCharCode%, ...) etc.) that's never been
+    // given a wasm-value tag at all.
+    Builtin(
+      "js-string-cast",
+      "cast",
+      List(Externref),
+      List(RefExtern),
+      resultIsPassthrough = true,
+    ),
     Builtin("js-string-test", "test", List(Externref), List(I32)),
     Builtin(
       "js-string-fromcharcode",
@@ -186,12 +203,84 @@ object AddJsStringBuiltinsPass extends LoweringPass:
     * js-string-NAME(arguments[0], ..., arguments[n-1]) }` — uniform 1-arg
     * signature regardless of the real builtin's own arity, so `create_a_
     * builtin_function`'s hostfunc can invoke any `steps` value the same way.
+    *
+    * Also converts `js-string-NAME`'s own raw result into the `instr*` shape a
+    * genuine WebAssembly value must have before crossing back into wasm
+    * execution (`docs/spec_errors.md` #32 — `create a builtin function`'s own
+    * hostfunc definition never says this needs to happen at all, unlike `create
+    * a host function`'s `run a host function`, so this pass has to fill it in):
+    *   - [[Builtin.resultIsPassthrough]] (`cast` only): `result` is already a
+    *     real, tagged wasm value (the untouched incoming argument, per
+    *     `UnwrapString`'s own spec text — see `docs/spec_errors.md` #32) —
+    *     `ToWebAssemblyValue` would be actively wrong here (its `is a Number`/
+    *     `is an Exported Function`/`is an Exported GC Object` checks all miss
+    *     an already-tagged internal value, falling through to allocating it a
+    *     *new*, spurious host-cache entry) — so this case just list-wraps
+    *     `result` as-is.
+    *   - `results.head` is `I32` (the 7 numeric builtins, e.g. `js-string-
+    *     test`'s "Return 0."): `result` here is a wasm-spec `Math` value (an
+    *     arbitrary-precision mathematical integer — every js-string algorithm
+    *     body's own arithmetic produces this, the same type e.g. `sizeof`
+    *     does), not mainline's ECMAScript `Number` type — confirmed the hard
+    *     way: routing it through `ToWebAssemblyValue` first (reusing that one
+    *     real conversion mechanism, on the theory that `ToInt32`'s JS coercion
+    *     would be a harmless identity transform for an already-clean integer)
+    *     crashes instead, `ToNumber`'s own dispatch asserting `argument` must
+    *     be `Record[Object]` once every real-Number/Symbol/BigInt/undefined/
+    *     null/boolean/String case it checks first has already failed to match
+    * -- `Math` and `Number` are genuinely different runtime types here, so
+    * `ToWebAssemblyValue`'s JS-value coercion machinery was never the right
+    * tool for this case to begin with, harmless-seeming identity transform or
+    * not. Wrapped directly as `Case("CONST", [I32, result])` instead -- the
+    * same shape `ToWebAssemblyValue`'s own `i32`-branch builds internally, just
+    * without the JS-coercion steps that don't apply to an already-wasm-domain
+    * value.
+    *   - Otherwise (the remaining 4 `RefExtern`-returning builtins, e.g.
+    *     `js-string-fromCharCode`'s "Return FromCharCode(v)."): `result` is a
+    *     genuinely new, never-tagged JS string -- `ToWebAssemblyValue` is the
+    *     only existing mechanism that allocates it a real host address (`[=host
+    *     value cache=]`), so it's the right call here. The last two cases can
+    *     themselves abruptly complete (an abrupt
+    *     `js-string-NAME`/`ToWebAssemblyValue` result skips straight to
+    *     `Return`ing it, same as `convertedIdlValueBinding`'s own
+    *     `AbruptCompletion` check elsewhere).
     */
   private def stepsAlgo(b: Builtin): Algorithm =
     val argumentsVar = Expr.Var("arguments")
     val positional = b.params.indices.map { i =>
       Expr.Index(argumentsVar, Expr.Num(i.toString))
     }.toList
+    val listWrap = (e: Expr) => Expr.List_(List(e))
+    // `b.results.head` is still raw, unresolved link text at this point
+    // (`ExprParser.parse` alone doesn't run `ResolveLinksPass`) -- compared
+    // by value against the same `I32` constant every numeric entry in
+    // `builtins` is built from, rather than destructured as a `Case`
+    // (`Case("I32", Nil)` never matches here, only after the later passes
+    // this pass's own class doc says *do* eventually see this same node).
+    val onNormalResult: List[Instr] =
+      if b.resultIsPassthrough then
+        List(Instr.Return(Some(listWrap(Expr.Var("result")))))
+      else if b.results.head == I32 then
+        List(
+          Instr.Return(
+            Some(listWrap(Expr.Case("CONST", List(I32, Expr.Var("result"))))),
+          ),
+        )
+      else
+        List(
+          Instr.Perform(
+            "ToWebAssemblyValue",
+            List(Expr.Var("result"), b.results.head),
+            Instr.PerformOutcome.BindResult("result"),
+          ),
+          Instr.IfChain(
+            List(
+              Cond.IsType(Expr.Var("result"), "AbruptCompletion") ->
+              List(Instr.Return(Some(Expr.Var("result")))),
+            ),
+            List(Instr.Return(Some(listWrap(Expr.Var("result"))))),
+          ),
+        )
     Algorithm(
       id = Some(s"${b.algoName}-steps"),
       name = None,
@@ -201,7 +290,14 @@ object AddJsStringBuiltinsPass extends LoweringPass:
         Instr.Perform(
           b.algoName,
           positional,
-          Instr.PerformOutcome.ReturnResult,
+          Instr.PerformOutcome.BindResult("result"),
+        ),
+        Instr.IfChain(
+          List(
+            Cond.IsType(Expr.Var("result"), "AbruptCompletion") ->
+            List(Instr.Return(Some(Expr.Var("result")))),
+          ),
+          onNormalResult,
         ),
       ),
     )

@@ -5021,109 +5021,156 @@ def internally_create_a_new_object_implementing_the_interface(
 def js-string-cast-steps(
   arguments: Unknown,
 ): Unknown = {
-  call _result1 = clo<"js-string-cast">(arguments[0])
-  return _result1
+  call result = clo<"js-string-cast">(arguments[0])
+  if (? result: Abrupt) {
+    return result
+  } else {
+    return (list [result])
+  }
 }
 def js-string-test-steps(
   arguments: Unknown,
 ): Unknown = {
-  call _result1 = clo<"js-string-test">(arguments[0])
-  return _result1
+  call result = clo<"js-string-test">(arguments[0])
+  if (? result: Abrupt) {
+    return result
+  } else {
+    return (list [(case "CONST" (case "I32" ) result)])
+  }
 }
 def js-string-fromcharcode-steps(
   arguments: Unknown,
 ): Unknown = {
-  call _result1 = clo<"js-string-fromcharcode">(arguments[0])
-  return _result1
+  call result = clo<"js-string-fromcharcode">(arguments[0])
+  if (? result: Abrupt) {
+    return result
+  } else {
+    call result = clo<"towebassemblyvalue">(result, (case "REF" (opt) (case "EXTERN" )))
+    if (? result: Abrupt) {
+      return result
+    } else {
+      return (list [result])
+    }
+  }
 }
 def js-string-fromcodepoint-steps(
   arguments: Unknown,
 ): Unknown = {
-  call _result1 = clo<"js-string-fromcodepoint">(arguments[0])
-  if (? _result1: Completion) {
-    return _result1
+  call result = clo<"js-string-fromcodepoint">(arguments[0])
+  if (? result: Abrupt) {
+    return result
   } else {
-    call _ret1 = clo<"NormalCompletion">(_result1)
-    return _ret1
+    call result = clo<"towebassemblyvalue">(result, (case "REF" (opt) (case "EXTERN" )))
+    if (? result: Abrupt) {
+      return result
+    } else {
+      return (list [result])
+    }
   }
 }
 def js-string-charcodeat-steps(
   arguments: Unknown,
 ): Unknown = {
-  call _result1 = clo<"js-string-charcodeat">(arguments[0], arguments[1])
-  if (? _result1: Completion) {
-    return _result1
+  call result = clo<"js-string-charcodeat">(arguments[0], arguments[1])
+  if (? result: Abrupt) {
+    return result
   } else {
-    call _ret1 = clo<"NormalCompletion">(_result1)
-    return _ret1
+    return (list [(case "CONST" (case "I32" ) result)])
   }
 }
 def js-string-codepointat-steps(
   arguments: Unknown,
 ): Unknown = {
-  call _result1 = clo<"js-string-codepointat">(arguments[0], arguments[1])
-  if (? _result1: Completion) {
-    return _result1
+  call result = clo<"js-string-codepointat">(arguments[0], arguments[1])
+  if (? result: Abrupt) {
+    return result
   } else {
-    call _ret1 = clo<"NormalCompletion">(_result1)
-    return _ret1
+    return (list [(case "CONST" (case "I32" ) result)])
   }
 }
 def js-string-length-steps(
   arguments: Unknown,
 ): Unknown = {
-  call _result1 = clo<"js-string-length">(arguments[0])
-  return _result1
+  call result = clo<"js-string-length">(arguments[0])
+  if (? result: Abrupt) {
+    return result
+  } else {
+    return (list [(case "CONST" (case "I32" ) result)])
+  }
 }
 def js-string-concat-steps(
   arguments: Unknown,
 ): Unknown = {
-  call _result1 = clo<"js-string-concat">(arguments[0], arguments[1])
-  return _result1
+  call result = clo<"js-string-concat">(arguments[0], arguments[1])
+  if (? result: Abrupt) {
+    return result
+  } else {
+    call result = clo<"towebassemblyvalue">(result, (case "REF" (opt) (case "EXTERN" )))
+    if (? result: Abrupt) {
+      return result
+    } else {
+      return (list [result])
+    }
+  }
 }
 def js-string-substring-steps(
   arguments: Unknown,
 ): Unknown = {
-  call _result1 = clo<"js-string-substring">(arguments[0], arguments[1], arguments[2])
-  return _result1
+  call result = clo<"js-string-substring">(arguments[0], arguments[1], arguments[2])
+  if (? result: Abrupt) {
+    return result
+  } else {
+    call result = clo<"towebassemblyvalue">(result, (case "REF" (opt) (case "EXTERN" )))
+    if (? result: Abrupt) {
+      return result
+    } else {
+      return (list [result])
+    }
+  }
 }
 def js-string-equals-steps(
   arguments: Unknown,
 ): Unknown = {
-  call _result1 = clo<"js-string-equals">(arguments[0], arguments[1])
-  if (? _result1: Completion) {
-    return _result1
+  call result = clo<"js-string-equals">(arguments[0], arguments[1])
+  if (? result: Abrupt) {
+    return result
   } else {
-    call _ret1 = clo<"NormalCompletion">(_result1)
-    return _ret1
+    return (list [(case "CONST" (case "I32" ) result)])
   }
 }
 def js-string-compare-steps(
   arguments: Unknown,
 ): Unknown = {
-  call _result1 = clo<"js-string-compare">(arguments[0], arguments[1])
-  return _result1
+  call result = clo<"js-string-compare">(arguments[0], arguments[1])
+  if (? result: Abrupt) {
+    return result
+  } else {
+    return (list [(case "CONST" (case "I32" ) result)])
+  }
 }
 def js-string-fromcharcodearray-steps(
   arguments: Unknown,
 ): Unknown = {
-  call _result1 = clo<"js-string-fromcharcodearray">(arguments[0], arguments[1], arguments[2])
-  if (? _result1: Completion) {
-    return _result1
+  call result = clo<"js-string-fromcharcodearray">(arguments[0], arguments[1], arguments[2])
+  if (? result: Abrupt) {
+    return result
   } else {
-    call _ret1 = clo<"NormalCompletion">(_result1)
-    return _ret1
+    call result = clo<"towebassemblyvalue">(result, (case "REF" (opt) (case "EXTERN" )))
+    if (? result: Abrupt) {
+      return result
+    } else {
+      return (list [result])
+    }
   }
 }
 def js-string-intocharcodearray-steps(
   arguments: Unknown,
 ): Unknown = {
-  call _result1 = clo<"js-string-intocharcodearray">(arguments[0], arguments[1], arguments[2])
-  if (? _result1: Completion) {
-    return _result1
+  call result = clo<"js-string-intocharcodearray">(arguments[0], arguments[1], arguments[2])
+  if (? result: Abrupt) {
+    return result
   } else {
-    call _ret1 = clo<"NormalCompletion">(_result1)
-    return _ret1
+    return (list [(case "CONST" (case "I32" ) result)])
   }
 }
 def create_a_builtin_function_hostfunc(

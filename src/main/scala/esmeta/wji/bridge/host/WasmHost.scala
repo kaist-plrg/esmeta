@@ -119,6 +119,11 @@ object WasmHost:
     "table_write" -> List("store", "tableaddr", "i", "ref"),
     // table_size(store, tableaddr) : u64
     "table_size" -> List("store", "tableaddr"),
+    // array_write(store, arrayaddr, i: u64, fieldval) : store | error -- not
+    // part of embedding.rst (predates the GC proposal's arrays/structs, see
+    // `embedding.ml`'s own doc on `array_write`); the GC-array counterpart
+    // to `table_write` above.
+    "array_write" -> List("store", "arrayaddr", "i", "fieldval"),
     // table_grow(store, tableaddr, n: u64, ref) : store | error
     "table_grow" -> List("store", "tableaddr", "n", "ref"),
     // mem_alloc(store, memtype) : (store, memaddr)

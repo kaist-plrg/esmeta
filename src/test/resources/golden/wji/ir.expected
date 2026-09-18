@@ -4054,6 +4054,15 @@ def js-string-fromcharcodearray(
     call _ret1 = clo<"ThrowCompletion">((case "TRAP" ))
     return _ret1
   } else nop
+  let store = @AGENT_RECORD["associated store"]
+  let arrayaddr = array[0]
+  let _rawFields = store.ARRAYS[arrayaddr].FIELDS
+  let array = (list [])
+  let _j = 0
+  while (< _j (sizeof _rawFields)) {
+    push array < ([number] ([math] _rawFields[_j][1]))
+    _j = (+ _j 1)
+  }
   let start = ([math] start)
   let end = ([math] end)
   let length = (sizeof array)
@@ -4085,6 +4094,9 @@ def js-string-intocharcodearray(
     call _ret1 = clo<"ThrowCompletion">((case "TRAP" ))
     return _ret1
   } else nop
+  let store = @AGENT_RECORD["associated store"]
+  let arrayaddr = array[0]
+  let array = store.ARRAYS[arrayaddr].FIELDS
   call _call1 = clo<"unwrapstring">(string)
   if (&& (? _call1: Completion) (! (= _call1.Type ~normal~))) {
     if (? _call1: Completion) {
@@ -4105,7 +4117,7 @@ def js-string-intocharcodearray(
   } else nop
   let i = 0
   while (< i stringLength) {
-    call charCode = clo<"charcodeat">(string, i)
+    call charCode = clo<"charcodeat">(string, ([number] i))
     call _guard1 = clo<"ToWebAssemblyValue">(charCode, (case "I32" ))
     if (&& (? _guard1: Completion) (! (= _guard1.Type ~normal~))) {
       if (? _guard1: Completion) {
@@ -4117,7 +4129,8 @@ def js-string-intocharcodearray(
     } else {
       let _call2 = _guard1.Value
     }
-    array[(+ start i)] = _call2
+    call-embed store = <array_write>(store, arrayaddr, (+ start i), (case "PACK" (case "I16" ) _call2[1]))
+    @AGENT_RECORD["associated store"] = store
     i = (+ i 1)
   }
   if (? stringLength: Completion) {

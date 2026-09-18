@@ -54,7 +54,6 @@ private val knownFailing: Set[String] =
     // wasm constructs -- marked `// META: timeout=long` even for real
     // engines, so it's just too slow for WJI's interpreter rather than
     // blocked by a real gap).
-    "tests/wji/js-api/generated/js-string/basic.any.js",
     "tests/wji/js-api/generated/limits.any.js",
     "tests/wji/js-api/generated/module/customSections.any.js",
     "tests/wji/js-api/generated/table/get-set.any.js",
@@ -62,16 +61,20 @@ private val knownFailing: Set[String] =
   )
 
 /** test cases that are correct but too slow to run on every `wjiEvalTest` —
-  * unlike [[knownFailing]] (a real gap), these just take ~275-290s each (the
-  * corpus's two largest files, 55/208 subtests) once actually run to completion
-  * rather than crashing early (`TODO.md` #58's `WebAssembly. instantiate`
-  * overload-dispatch fix, `personal/DONE.md` #63). Cancelled by default, same
-  * as [[knownFailing]], unless `-Dslow=true` is passed — see [[EvalSpec.slow]].
+  * unlike [[knownFailing]] (a real gap), these just take a while (275-290s for
+  * the corpus's two largest files, 55/208 subtests, `TODO.md` #58's
+  * `WebAssembly.instantiate` overload-dispatch fix, `personal/DONE.md` #63;
+  * ~330s for `js-string/basic.any.js`, `TODO.md` #56's own resolution — every
+  * one of its 6 `test()` blocks exercises all 13 builtins against a large
+  * combinatorial input set) once actually run to completion rather than
+  * crashing early. Cancelled by default, same as [[knownFailing]], unless
+  * `-Dslow=true` is passed — see [[EvalSpec.slow]].
   */
 private val slowFiles: Set[String] =
   Set(
     "tests/wji/js-api/generated/constructor/instantiate.any.js",
     "tests/wji/js-api/generated/constructor/instantiate-bad-imports.any.js",
+    "tests/wji/js-api/generated/js-string/basic.any.js",
   )
 
 /** Runs every `.js` test case under `tests/wji/manual` and
@@ -159,7 +162,7 @@ class EvalSpec extends AnyFunSuite with BeforeAndAfterAll:
     * only on a `-Dslow=true` run -- comfortably above the ~275-290s each
     * actually took standalone (`sbt run wji-eval ... -silent`).
     */
-  private val slowFileTimeoutSec = 400
+  private val slowFileTimeoutSec = 500
 
   private val roots: List[String] =
     List(WJI_MANUAL_TEST_DIR, WJI_JS_API_TEST_DIR)

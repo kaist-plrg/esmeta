@@ -1372,6 +1372,20 @@ object SpecPatch:
     "[=!=] [=IsStrictlyEqual=]"
     ->
     "[=IsStrictlyEqual=]",
+
+    // #69 (spec bug, docs/spec_errors.md #33) — `intoCharCodeArray` calls
+    // `[$CharCodeAt$]` with its own internal loop counter |i| — a plain
+    // mathematical value (never an incoming wasm/JS-boundary argument at
+    // all), but `CharCodeAt` (per #60's fix) now expects an already-JS
+    // Number, same domain-mismatch as #60-67. Bridged via `𝔽(...)`
+    // (ECMA-262's Math-value-to-Number notation, `AsNumber` ->
+    // `EConvert(ToNumber, ...)` -> `(Math(n), ToNumber) => Number(n.toDouble)`)
+    // rather than "interpreted as a [=mathematical value=]" (the inverse
+    // direction) since |i| is already Math-domain and needs to go the other
+    // way, into Number domain, to match what `CharCodeAt` now expects.
+    "1. Let |charCode| be [$CharCodeAt$](|string|, |i|)."
+    ->
+    "1. Let |charCode| be [$CharCodeAt$](|string|, [=𝔽=](|i|)).",
   )
 
   def apply(source: String): String =

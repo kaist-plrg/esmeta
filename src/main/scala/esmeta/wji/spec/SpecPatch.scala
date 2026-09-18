@@ -1361,6 +1361,17 @@ object SpecPatch:
     ->
     """1. Let |start| be |start| interpreted as a [=mathematical value=].
 1. If |start| + |stringLength| > |arrayLength|,""",
+
+    // #68 (spec bug, docs/spec_errors.md #34) — `equals`/`compare` mark a
+    // call to the never-abrupt `IsStrictlyEqual` (`: a Boolean`, ecma262/
+    // spec.html:6256-6261) with `[=!=]`, which only makes sense on a callee
+    // that can return a completion. The substring below doesn't occur
+    // anywhere else in this corpus (in particular, `compare`'s very next
+    // line's `[=!=] [=IsLessThan=]` is untouched — `IsLessThan` genuinely can
+    // throw), so one replacement fixes both `equals` and `compare` at once.
+    "[=!=] [=IsStrictlyEqual=]"
+    ->
+    "[=IsStrictlyEqual=]",
   )
 
   def apply(source: String): String =

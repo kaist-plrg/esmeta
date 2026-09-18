@@ -243,11 +243,25 @@ object AddJsStringBuiltinsPass extends LoweringPass:
     // `builtins` is built from, rather than destructured as a `Case`
     // (`Case("I32", Nil)` never matches here, only after the later passes
     // this pass's own class doc says *do* eventually see this same node).
+    // A numeric `result` may or may not itself be wrapped in a Completion
+    // Record at this point, independent of the abrupt check just above:
+    // `CompletionWrapping` only wraps an algorithm's *every* exit (success
+    // path included) when it has at least one throw-capable exit of its own
+    // (e.g. `equals`/`length`, via `unwrapstring`) -- an algorithm with none
+    // at all (e.g. `test`, whose only steps are a plain `? v: String` check)
+    // returns its bare value directly. Both shapes reach here, so this
+    // branches once more before wrapping.
+    def i32Result(e: Expr): Instr =
+      Instr.Return(Some(listWrap(Expr.Case("CONST", List(I32, e)))))
     val onNormalResult: List[Instr] =
       if b.results.head == I32 then
         List(
-          Instr.Return(
-            Some(listWrap(Expr.Case("CONST", List(I32, Expr.Var("result"))))),
+          Instr.IfChain(
+            List(
+              Cond.IsType(Expr.Var("result"), "Completion") ->
+              List(i32Result(Expr.Field(Expr.Var("result"), "Value"))),
+            ),
+            List(i32Result(Expr.Var("result"))),
           ),
         )
       else

@@ -4276,9 +4276,7 @@ def js-string-equals(
     return _ret2
   } else nop
   call _call1 = clo<"IsStrictlyEqual">(first, second)
-  assert (= _call1.Type ~normal~)
-  let _call2 = _call1.Value
-  if (= _call2 true) {
+  if (= _call1 true) {
     let _v3 = 1
     if (? _v3: Completion) {
       return _v3
@@ -4312,15 +4310,13 @@ def js-string-compare(
     let second = _call2.Value
   }
   call _call3 = clo<"IsStrictlyEqual">(first, second)
-  assert (= _call3.Type ~normal~)
-  let _call4 = _call3.Value
-  if (= _call4 true) {
+  if (= _call3 true) {
     return 0
   } else nop
-  call _call5 = clo<"IsLessThan">(first, second, true)
-  assert (= _call5.Type ~normal~)
-  let _call6 = _call5.Value
-  if (= _call6 true) {
+  call _call4 = clo<"IsLessThan">(first, second, true)
+  assert (= _call4.Type ~normal~)
+  let _call5 = _call4.Value
+  if (= _call5 true) {
     return (- 1)
   } else nop
   return 1
@@ -5039,6 +5035,8 @@ def js-string-test-steps(
   call result = clo<"js-string-test">(arguments[0])
   if (&& (? result: Completion) (! (= result.Type ~normal~))) {
     return result
+  } else if (? result: Completion) {
+    return (list [(case "CONST" (case "I32" ) result.Value)])
   } else {
     return (list [(case "CONST" (case "I32" ) result)])
   }
@@ -5079,6 +5077,8 @@ def js-string-charcodeat-steps(
   call result = clo<"js-string-charcodeat">(arguments[0], arguments[1])
   if (&& (? result: Completion) (! (= result.Type ~normal~))) {
     return result
+  } else if (? result: Completion) {
+    return (list [(case "CONST" (case "I32" ) result.Value)])
   } else {
     return (list [(case "CONST" (case "I32" ) result)])
   }
@@ -5089,6 +5089,8 @@ def js-string-codepointat-steps(
   call result = clo<"js-string-codepointat">(arguments[0], arguments[1])
   if (&& (? result: Completion) (! (= result.Type ~normal~))) {
     return result
+  } else if (? result: Completion) {
+    return (list [(case "CONST" (case "I32" ) result.Value)])
   } else {
     return (list [(case "CONST" (case "I32" ) result)])
   }
@@ -5099,6 +5101,8 @@ def js-string-length-steps(
   call result = clo<"js-string-length">(arguments[0])
   if (&& (? result: Completion) (! (= result.Type ~normal~))) {
     return result
+  } else if (? result: Completion) {
+    return (list [(case "CONST" (case "I32" ) result.Value)])
   } else {
     return (list [(case "CONST" (case "I32" ) result)])
   }
@@ -5139,6 +5143,8 @@ def js-string-equals-steps(
   call result = clo<"js-string-equals">(arguments[0], arguments[1])
   if (&& (? result: Completion) (! (= result.Type ~normal~))) {
     return result
+  } else if (? result: Completion) {
+    return (list [(case "CONST" (case "I32" ) result.Value)])
   } else {
     return (list [(case "CONST" (case "I32" ) result)])
   }
@@ -5149,6 +5155,8 @@ def js-string-compare-steps(
   call result = clo<"js-string-compare">(arguments[0], arguments[1])
   if (&& (? result: Completion) (! (= result.Type ~normal~))) {
     return result
+  } else if (? result: Completion) {
+    return (list [(case "CONST" (case "I32" ) result.Value)])
   } else {
     return (list [(case "CONST" (case "I32" ) result)])
   }
@@ -5174,6 +5182,8 @@ def js-string-intocharcodearray-steps(
   call result = clo<"js-string-intocharcodearray">(arguments[0], arguments[1], arguments[2])
   if (&& (? result: Completion) (! (= result.Type ~normal~))) {
     return result
+  } else if (? result: Completion) {
+    return (list [(case "CONST" (case "I32" ) result.Value)])
   } else {
     return (list [(case "CONST" (case "I32" ) result)])
   }
@@ -5186,8 +5196,12 @@ def create_a_builtin_function_hostfunc(
   let _i = 0
   while (< _i (sizeof arguments)) {
     let arg = arguments[_i]
-    call jsArg = clo<"tojsvalue">(arg)
-    push jsArguments < jsArg
+    if (= (case-tag arg) "REF.ARRAY_ADDR") {
+      push jsArguments < arg
+    } else {
+      call jsArg = clo<"tojsvalue">(arg)
+      push jsArguments < jsArg
+    }
     _i = (+ _i 1)
   }
   @AGENT_RECORD["associated store"] = state

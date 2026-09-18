@@ -1470,7 +1470,7 @@
     Throw(TRAP)
   If(|second| is not null, and |second| is not a String)
     Throw(TRAP)
-  If([=!=] [=IsStrictlyEqual=](|first|, |second|) is true)
+  If([=IsStrictlyEqual=](|first|, |second|) is true)
     Return(1)
   Return(0)
 
@@ -1480,7 +1480,7 @@
   head: When this builtin is invoked with parameters |first| and |second|, the following steps must be run:
   Let(|first|, [=?=] [$UnwrapString$](|first|))
   Let(|second|, [=?=] [$UnwrapString$](|second|))
-  If([=!=] [=IsStrictlyEqual=](|first|, |second|) is true)
+  If([=IsStrictlyEqual=](|first|, |second|) is true)
     Return(0)
   If([=!=] [=IsLessThan=](|first|, |second|, true) is true)
     Return(-1)

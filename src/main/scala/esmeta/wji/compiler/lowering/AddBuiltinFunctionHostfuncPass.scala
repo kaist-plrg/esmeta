@@ -84,6 +84,19 @@ object AddBuiltinFunctionHostfuncPass extends LoweringPass:
     * not raw wasm ones. This is why the js-string builtins' own bodies (e.g.
     * `FromCharCode`'s "Assert: v is of type i32") don't call `ToJSValue`
     * themselves: they already receive an already-converted JS value.
+    *
+    * One exception: `fromCharCodeArray`/`intoCharCodeArray`'s Wasm GC array
+    * parameter. `ToJSValue`'s own "ref.array" case converts it into a new
+    * "Exported GC Object" — a genuine JS-facing wrapper with no way back to the
+    * raw array for the direct `sizeof`/indexed element access those two
+    * algorithms' own bodies do (`the number of elements in |array|`, `the
+    * element at index |i| in |array|`). Skipped by checking the argument's own
+    * runtime tag (`REF.ARRAY_ADDR`) rather than its declared wasm type, since
+    * this pass has no funcType info to consult — a null array argument (which
+    * both algorithms explicitly check for) is a *different* tag
+    * (`REF.NULL_ADDR`) and still converts normally, so `= array null` continues
+    * to work the same way `docs/spec_errors.md` #32's `equals` fix relies on
+    * for externref.
     */
   private def buildJsArguments: List[Instr] =
     List(
@@ -100,12 +113,23 @@ object AddBuiltinFunctionHostfuncPass extends LoweringPass:
             Expr.Var("arg"),
             Expr.Index(Expr.Var("arguments"), Expr.Var("_i")),
           ),
-          Instr.Perform(
-            "ToJSValue",
-            List(Expr.Var("arg")),
-            Instr.PerformOutcome.BindResult("jsArg"),
+          Instr.IfChain(
+            List(
+              Cond.Eq(
+                Expr.CaseTag(Expr.Var("arg")),
+                Expr.Str("REF.ARRAY_ADDR"),
+              ) ->
+              List(Instr.Append(Expr.Var("arg"), Expr.Var("jsArguments"))),
+            ),
+            List(
+              Instr.Perform(
+                "ToJSValue",
+                List(Expr.Var("arg")),
+                Instr.PerformOutcome.BindResult("jsArg"),
+              ),
+              Instr.Append(Expr.Var("jsArg"), Expr.Var("jsArguments")),
+            ),
           ),
-          Instr.Append(Expr.Var("jsArg"), Expr.Var("jsArguments")),
           Instr.Set(
             Expr.Var("_i"),
             Expr.BinOp(Expr.Var("_i"), Expr.BOp.Add, Expr.Num("1")),

@@ -278,7 +278,11 @@ object AddJsStringBuiltinsPass extends LoweringPass:
               Cond.IsType(Expr.Var("result"), "AbruptCompletion") ->
               List(Instr.Return(Some(Expr.Var("result")))),
             ),
-            List(Instr.Return(Some(listWrap(Expr.Var("result"))))),
+            List(
+              Instr.Return(
+                Some(listWrap(Expr.Field(Expr.Var("result"), "Value"))),
+              ),
+            ),
           ),
         )
     Algorithm(

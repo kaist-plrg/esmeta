@@ -4058,6 +4058,14 @@ def js-string-fromcharcodearray(
     call _ret1 = clo<"ThrowCompletion">((case "TRAP" ))
     return _ret1
   } else nop
+  assert (= (case-tag start) "CONST")
+  assert (= (case-tag start[0]) "I32")
+  let start = start[1]
+  let start = ([math] start)
+  assert (= (case-tag end) "CONST")
+  assert (= (case-tag end[0]) "I32")
+  let end = end[1]
+  let end = ([math] end)
   let length = (sizeof array)
   if (|| (< end start) (< length end)) {
     call _ret2 = clo<"ThrowCompletion">((case "TRAP" ))
@@ -4100,6 +4108,10 @@ def js-string-intocharcodearray(
   }
   let stringLength = (sizeof string)
   let arrayLength = (sizeof array)
+  assert (= (case-tag start) "CONST")
+  assert (= (case-tag start[0]) "I32")
+  let start = start[1]
+  let start = ([math] start)
   if (< arrayLength (+ start stringLength)) {
     call _ret3 = clo<"ThrowCompletion">((case "TRAP" ))
     return _ret3
@@ -4137,7 +4149,11 @@ def js-string-fromcharcode(
 def js-string-fromcodepoint(
   v: Unknown,
 ): Unknown = {
-  if (< 1114111 v) {
+  assert (= (case-tag v) "CONST")
+  assert (= (case-tag v[0]) "I32")
+  let i32 = v[1]
+  let i32 = ([math] i32)
+  if (< 1114111 i32) {
     call _ret1 = clo<"ThrowCompletion">((case "TRAP" ))
     return _ret1
   } else nop
@@ -5049,7 +5065,7 @@ def js-string-fromcharcode-steps(
     if (&& (? result: Completion) (! (= result.Type ~normal~))) {
       return result
     } else {
-      return (list [result])
+      return (list [result.Value])
     }
   }
 }
@@ -5064,7 +5080,7 @@ def js-string-fromcodepoint-steps(
     if (&& (? result: Completion) (! (= result.Type ~normal~))) {
       return result
     } else {
-      return (list [result])
+      return (list [result.Value])
     }
   }
 }
@@ -5109,7 +5125,7 @@ def js-string-concat-steps(
     if (&& (? result: Completion) (! (= result.Type ~normal~))) {
       return result
     } else {
-      return (list [result])
+      return (list [result.Value])
     }
   }
 }
@@ -5124,7 +5140,7 @@ def js-string-substring-steps(
     if (&& (? result: Completion) (! (= result.Type ~normal~))) {
       return result
     } else {
-      return (list [result])
+      return (list [result.Value])
     }
   }
 }
@@ -5159,7 +5175,7 @@ def js-string-fromcharcodearray-steps(
     if (&& (? result: Completion) (! (= result.Type ~normal~))) {
       return result
     } else {
-      return (list [result])
+      return (list [result.Value])
     }
   }
 }

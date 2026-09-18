@@ -1262,6 +1262,47 @@ object SpecPatch:
         * Another error type if appropriate, for example an out-of-memory exception, as documented in <a href="#errors">the WebAssembly error mapping</a>."""
     ->
     "    1. If |instance| is [=error=], throw a {{LinkError}} exception.",
+
+    // #60 (spec bug, docs/spec_errors.md #33) — `fromCharCodeArray` uses its
+    // i32-typed |start|/|end| parameters directly in arithmetic without first
+    // converting them out of wasm-value form; unlike `docs/spec_errors.md`
+    // #33's other two sites, neither is needed in wasm-tagged form again
+    // afterward, so both are rebound to their math value in place. No
+    // `[=signed_32=]` involved (contrast `ToJSValue`'s own use of it) — that
+    // AO exists to produce the JS-*visible* signed reading of an i32, an
+    // unrelated concern here; `[=i32.const=]` destructuring alone already
+    // yields the raw unsigned payload, and "interpreted as a [=mathematical
+    // value=]" just moves that same value into ESMeta's own Math domain with
+    // no sign reinterpretation (`Interpreter.scala`'s
+    // `(Wasm(NumV(Nat(n))), ToMath) => Math(n)`).
+    """1. Let |length| be the number of elements in |array|.
+1. If |start| > |end| or |end| > |length|,"""
+    ->
+    """1. Let [=i32.const=] |start| be |start|.
+1. Let |start| be |start| interpreted as a [=mathematical value=].
+1. Let [=i32.const=] |end| be |end|.
+1. Let |end| be |end| interpreted as a [=mathematical value=].
+1. Let |length| be the number of elements in |array|.
+1. If |start| > |end| or |end| > |length|,""",
+
+    // #61 (spec bug, docs/spec_errors.md #33) — `intoCharCodeArray`'s
+    // i32-typed |start| parameter, same gap: rebound to its math value in
+    // place (also never needed in wasm-tagged form again in this algorithm).
+    "1. If |start| + |stringLength| > |arrayLength|,"
+    ->
+    """1. Let [=i32.const=] |start| be |start|.
+1. Let |start| be |start| interpreted as a [=mathematical value=].
+1. If |start| + |stringLength| > |arrayLength|,""",
+
+    // #62 (spec bug, docs/spec_errors.md #33) — `fromCodePoint`'s i32-typed
+    // |v| parameter, same gap, but |v| is still needed in its original
+    // wasm-tagged form for the `ToJSValue` call right after — bound to a
+    // fresh name instead of rebinding |v| itself.
+    "1. If |v| &gt; 0x10ffff,"
+    ->
+    """1. Let [=i32.const=] |i32| be |v|.
+1. Let |i32| be |i32| interpreted as a [=mathematical value=].
+1. If |i32| &gt; 0x10ffff,""",
   )
 
   def apply(source: String): String =

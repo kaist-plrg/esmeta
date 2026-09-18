@@ -4017,7 +4017,7 @@ def fromcharcode(
 ): Unknown = {
   assert (= v (yet "of type [=i32=]"))
   call _call1 = clo<"ToJSValue">(v)
-  call _call2 = clo<"Call">(~String.fromCharCode~, undefined, (list [_call1]))
+  call _call2 = clo<"Call">(@EXECUTION_STACK[0].Realm.Intrinsics["%String.fromCharCode%"], undefined, (list [_call1]))
   assert (= _call2.Type ~normal~)
   return _call2.Value
 }
@@ -4027,7 +4027,7 @@ def charcodeat(
 ): Unknown = {
   assert (= index (yet "of type [=i32=]"))
   call _call1 = clo<"ToJSValue">(index)
-  call _call2 = clo<"Call">(~String.prototype.charCodeAt~, string, (list [_call1]))
+  call _call2 = clo<"Call">(@EXECUTION_STACK[0].Realm.Intrinsics["%String.prototype.charCodeAt%"], string, (list [_call1]))
   assert (= _call2.Type ~normal~)
   return _call2.Value
 }
@@ -4142,7 +4142,7 @@ def js-string-fromcodepoint(
     return _ret1
   } else nop
   call _call1 = clo<"ToJSValue">(v)
-  call _call2 = clo<"Call">(~String.fromCodePoint~, undefined, (list [_call1]))
+  call _call2 = clo<"Call">(@EXECUTION_STACK[0].Realm.Intrinsics["%String.fromCodePoint%"], undefined, (list [_call1]))
   assert (= _call2.Type ~normal~)
   let _v2 = _call2.Value
   if (? _v2: Completion) {
@@ -4201,7 +4201,7 @@ def js-string-codepointat(
     return _ret2
   } else nop
   call _call2 = clo<"ToJSValue">(index)
-  call _call3 = clo<"Call">(~String.prototype.codePointAt~, string, (list [_call2]))
+  call _call3 = clo<"Call">(@EXECUTION_STACK[0].Realm.Intrinsics["%String.prototype.codePointAt%"], string, (list [_call2]))
   assert (= _call3.Type ~normal~)
   let _v3 = _call3.Value
   if (? _v3: Completion) {
@@ -4238,7 +4238,7 @@ def js-string-concat(
   } else {
     let second = _call2.Value
   }
-  call _call3 = clo<"Call">(~String.prototype.concat~, first, (list [second]))
+  call _call3 = clo<"Call">(@EXECUTION_STACK[0].Realm.Intrinsics["%String.prototype.concat%"], first, (list [second]))
   assert (= _call3.Type ~normal~)
   return _call3.Value
 }
@@ -4259,7 +4259,7 @@ def js-string-substring(
   } else nop
   call _call2 = clo<"ToJSValue">(start)
   call _call3 = clo<"ToJSValue">(end)
-  call _call4 = clo<"Call">(~String.prototype.substring~, string, (list [_call2, _call3]))
+  call _call4 = clo<"Call">(@EXECUTION_STACK[0].Realm.Intrinsics["%String.prototype.substring%"], string, (list [_call2, _call3]))
   assert (= _call4.Type ~normal~)
   return _call4.Value
 }

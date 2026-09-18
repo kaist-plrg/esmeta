@@ -137,12 +137,35 @@ object ResolveLinksPass extends LoweringPass:
     * exact same Case/AlgoCall split otherwise). Kept as one function so the two
     * can't silently diverge on this.
     */
+  /** A dotted PascalCase-rooted path (`String.fromCharCode`,
+    * `String.prototype.charCodeAt`) — the linking text of a cross-spec-ref into
+    * ecma262's own intrinsic function table (e.g. the js-string builtins'
+    * `[=!=] [$Call$]([=String.fromCharCode=], ...)` steps), as opposed to a
+    * WHATWG-glossary prose term (`current Realm`, `surrounding agent`) or a
+    * SpecTec notation term (`i32.const`). No capturing group needed — this only
+    * ever tests membership, never extracts.
+    */
+  private val IntrinsicRef = """^[A-Z][A-Za-z0-9]*(?:\.[A-Za-z0-9]+)+$""".r
+
   private def buildCaseOrCall(link: String, resolvedArgs: List[Expr]): Expr =
     if resolvedArgs.nonEmpty && !lastSegment(stripLink(link)).contains(" ") then
       // heuristic split between AlgoCall/Case — see class doc above
       Expr.Case(link, resolvedArgs)
     else if resolvedArgs.nonEmpty then Expr.AlgoCall(link, resolvedArgs)
-    else Expr.SpecTerm(stripLink(link))
+    else
+      val stripped = stripLink(link)
+      stripped match
+        // Built directly as `Realm.Intrinsics["%...%"]` field accesses,
+        // reusing `Compiler`'s existing generic `SpecTerm("current Realm")` /
+        // `Field` compilation (see `namesWithPrototypeIntrinsic`'s own
+        // `%...%`-keyed lookups there) — no dedicated `Compiler` case needed
+        // for this shape at all.
+        case IntrinsicRef() =>
+          Expr.Field(
+            Expr.Field(Expr.SpecTerm("current Realm"), "Intrinsics"),
+            s"%$stripped%",
+          )
+        case _ => Expr.SpecTerm(stripped)
 
   /** Walks a single algorithm body once, resolving every [[Expr.Link]] against
     * `known`/`plainKnown` — see class doc. Only overrides the node types it

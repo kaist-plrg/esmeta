@@ -1957,6 +1957,10 @@ function wasmF64Const(f) {
   ];
 }
 
+function nulls(n) {
+  return new Array(n).fill(null);
+}
+
 function assert_equal_to_array(table, expected, message, address = "i32") {
   function addr(i) {
     return address === "i64" ? BigInt(i) : i;

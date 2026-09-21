@@ -372,6 +372,23 @@ const perFilePatches = {
   "js-string/constants.any.js": [
     ["'0'.repeat(100000)", "'0'.repeat(100)"],
   ],
+
+  // vendor corpus bug (docs/spectec_errors.md #7): `grow-memory64.any.js`
+  // calls `nulls(n)` (an all-null array of length n) but never defines it and
+  // doesn't import anything that does -- `nulls` only exists in the sibling
+  // `table/grow.any.js`, which the memory64-address subtests here were split
+  // out of (upstream `2929f4497`, "Split memory64 JS API tests into separate
+  // files") without carrying the helper along. Fails the exact same way in
+  // real engines (a genuine `ReferenceError`, not a WJI gap). Prefixed onto
+  // the shared `assertions.js` dependency rather than edited in place --
+  // `perFilePatches` is keyed by relPath, so `table/get-set.any.js` and
+  // assertions.js's other consumers are unaffected.
+  "table/grow-memory64.any.js": [
+    [
+      'function assert_equal_to_array(table, expected, message, address = "i32") {',
+      'function nulls(n) {\n  return new Array(n).fill(null);\n}\n\nfunction assert_equal_to_array(table, expected, message, address = "i32") {',
+    ],
+  ],
 };
 
 fs.rmSync(generatedDir, { recursive: true, force: true });

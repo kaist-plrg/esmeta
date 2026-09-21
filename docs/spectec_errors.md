@@ -139,3 +139,11 @@
 - **Expected**: `const kJSEmbeddingMaxMemories = 100;` — `spectec/document/js-api/index.bs:2232`("The maximum number of memories, including defined and imported memories, is 100.")과 일치해야 함.
 - **Reason**: `git log -S`로 확인한 히스토리 — 이 상수는 2018-12-12 도입 당시(`8f1e01db5`) 스펙 텍스트 자체도 "is 1"이던 시절(multi-memory 프로포절 반영 전, 모듈당 메모리 1개가 진짜 core wasm 하드 리밋이던 시절)에 맞춰 `1`로 설정됐고, 그 이후 스펙 텍스트의 숫자가 `100`으로 올라갔는데도(multi-memory 프로포절 반영) 이 테스트 파일의 상수는 한 번도 안 바뀌었음. 그 결과 "memories over limit" subtest가 실제로는 memory import 2개(진짜 한도 100에 한참 못 미침)로 "invalid해야 한다"고 잘못 기대함 — real Node(V8)가 이 subtest를 실패시키는 것도 "V8이 개수 제한을 안 지켜서"가 아니라 **V8은 진짜 현재 한도(100)를 정확히 지키고 있고, 2개는 100 밑이라 당연히 valid로 판정**하기 때문.
 - **처리**: 문서화만 함, 코드 수정 없음 — 이 상수를 고쳐도(1→100) WJI가 통과하는 데는 도움 안 됨. WJI는 이 "Implementation-defined Limits" 섹션 전체(memories 포함)를 애초에 mechanize 안 하기로 결정했기 때문(`personal/TODO.md` #63, `docs/out_of_scope.md` #7) — 상수를 몇으로 바꾸든 WJI는 개수 자체를 안 세므로 "over limit" subtest는 여전히 실패함. `personal/TODO.md`/`test_fails.md` 참고.
+
+## 7. `test/js-api/table/grow-memory64.any.js`가 정의된 적 없는 `nulls` 헬퍼를 호출
+
+- **File**: `spectec/test/js-api/table/grow-memory64.any.js` (3곳: "Basic i64"/"Reached maximum (i64)"/"Exceeded maximum (i64)" 서브테스트).
+- **Current**: `assert_equal_to_array(table, nulls(5), "before", "i64");` 등 — `nulls`는 이 파일에도, 이 파일이 끌어오는 `// META: script=assertions.js`에도 정의돼 있지 않음.
+- **Expected**: 길이 n짜리 all-null 배열을 만드는 `nulls(n) { return new Array(n).fill(null); }`가 어딘가 정의/import돼 있어야 함.
+- **Reason**: `spectec` 서브모듈 git 히스토리(`2929f4497`, "Split memory64 JS API tests into separate files", PR #2026)를 보면 이 3개 테스트는 원래 `table/grow.any.js`(지금도 `nulls`를 자체 정의) 안에 있었는데, memory64 주소 관련 서브테스트만 이 새 파일로 잘라 옮기면서 `nulls` 헬퍼는 안 옮기고 import도 안 함 — 순수 리팩터링 누락. `tests/wji/scripts/wji-node-check`로 실제 Node(V8)에 원본(패치 전) 생성 파일을 그대로 돌려서 확인: 똑같이 `nulls is not defined`로 3개 다 깨지고 `SUMMARY 3/6` — WJI만의 문제가 아니라 진짜 벤더 코퍼스 자체의 버그.
+- **처리**: `tests/wji/scripts/wji-generate-js-api-tests.js`의 `perFilePatches["table/grow-memory64.any.js"]`에 `nulls` 정의를 공유 `assertions.js` 의존성 텍스트 앞에 주입하는 패치 추가 — `perFilePatches`가 relPath로 키를 잡으므로 `assertions.js`의 다른 소비 파일(`table/get-set.any.js` 등)엔 영향 없음. 재생성 후 `SUMMARY 6/6`으로 완전 통과 — `EvalSpec.scala`의 `knownFailing`에서 제거.

@@ -25,17 +25,31 @@ object WjiTest:
 
   lazy val spec = Extractor()
 
+  /** the WJI IR program compiled from the WebAssembly JS API spec, on its own
+    * (not yet merged into the mainline CFG — see [[mergedCfg]] for that) —
+    * split out as its own `lazy val` so [[wjiFuncNames]] can name exactly the
+    * functions WJI itself compiled, without re-running `Compiler.compile`.
+    */
+  lazy val wjiProgram: Program =
+    // must happen before the interpreter runs (see esmeta.wji.spec.Spec's doc)
+    spec.registerDefinitionTypes()
+    Compiler.compile(Lowering.run(spec.algorithms))
+
   /** the WJI IR program merged into the SAME mainline CFG every
     * `esmeta.es`/`esmeta.ir` test already shares (`ESMetaTest.cfg`) — built
     * once (JVM-wide `lazy val`) and reused across every test case, rather than
     * re-extracting/re-compiling the spec per test.
     */
   lazy val mergedCfg: CFG =
-    // must happen before the interpreter runs (see esmeta.wji.spec.Spec's doc)
-    spec.registerDefinitionTypes()
-    val wjiProgram = Compiler.compile(Lowering.run(spec.algorithms))
     val mainline = ESMetaTest.cfg.program
     CFGBuilder(Program(mainline.funcs ++ wjiProgram.funcs, mainline.spec))
+
+  /** names of every function WJI itself compiled (as opposed to a mainline
+    * ECMA-262 one) — lets a caller (e.g. `WjiCoverage`) restrict a
+    * `mergedCfg`-wide measurement down to just the WebAssembly JS API surface
+    * WJI mechanizes, since `mergedCfg` itself makes no such distinction.
+    */
+  lazy val wjiFuncNames: Set[String] = wjiProgram.funcs.map(_.name).toSet
 
   /** reads `globalThis.__wjiOk` straight out of `st`, rather than through an
     * IR-level `assert`: `IAssert`'s evaluation is wrapped in `optional(...)`

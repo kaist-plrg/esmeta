@@ -60,11 +60,29 @@ object WjiTest:
     * observe an async one here.
     */
   private def wjiOk(st: State): Try[Value] =
+    globalProp(st, "__wjiOk")
+
+  /** reads `globalThis.__wjiFailingSubtests` (a `"|||"`-joined string of failed
+    * subtest names, always set by `report-shim.js` alongside `__wjiOk` -- empty
+    * when every subtest passed) -- lets a caller assert *which* subtests are
+    * expected to still fail in a js-api fixture that's run for real rather than
+    * skipped outright, so a change in exactly what fails (a regression, or the
+    * known gap finally getting fixed) surfaces as a loud test failure instead
+    * of silently staying green either way. See `EvalSpec`'s
+    * `expectedFailingSubtests`.
+    */
+  def failingSubtests(st: State): Try[String] =
+    globalProp(st, "__wjiFailingSubtests").map {
+      case Str(s) => s
+      case v => throw new Exception(s"__wjiFailingSubtests wasn't a Str: $v")
+    }
+
+  private def globalProp(st: State, name: String): Try[Value] =
     for
       realm <- st.get(Global("REALM"))
       globalObj <- st.get(realm, Str("GlobalObject"))
       map <- st.get(globalObj, Str("__MAP__"))
-      prop <- st.get(map, Str("__wjiOk"))
+      prop <- st.get(map, Str(name))
       value <- st.get(prop, Str("Value"))
     yield value
 
@@ -101,11 +119,24 @@ object WjiTest:
     connection: JsonRpcConnection,
     timeLimit: Option[Int] = None,
   ): State =
-    val st = mergedCfg.init.fromFile(jsPath)
-    val host = Initialize(st, spec, connection)
-    val result = new RunToCompletion(st, Some(host), timeLimit).result
+    val result = runFile(jsPath, connection, timeLimit)
     assert(
       wjiOk(result) == Success(Bool(true)),
       s"test case never set globalThis.__wjiOk = true: $jsPath (got ${wjiOk(result)})",
     )
     result
+
+  /** [[evalFile]] minus its "every subtest passed" assertion -- for a js-api
+    * fixture `EvalSpec.expectedFailingSubtests` runs for real specifically
+    * *because* it's known to still fail a specific subtest (an engine
+    * deviation, say), so the caller needs the raw result to check
+    * [[failingSubtests]] against its own expectation instead.
+    */
+  def runFile(
+    jsPath: String,
+    connection: JsonRpcConnection,
+    timeLimit: Option[Int] = None,
+  ): State =
+    val st = mergedCfg.init.fromFile(jsPath)
+    val host = Initialize(st, spec, connection)
+    new RunToCompletion(st, Some(host), timeLimit).result

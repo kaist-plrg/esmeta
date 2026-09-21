@@ -7,6 +7,7 @@ import esmeta.wji.bridge.rpc.JsonRpcConnection
 import java.nio.file.Paths
 import org.scalatest.{Args, BeforeAndAfterAll, Status, Tag}
 import org.scalatest.funsuite.AnyFunSuite
+import scala.util.Success
 
 /** tags every test in [[EvalSpec]] so `basicTest` can exclude them with `-l
   * esmeta.wji.EvalTag` while `wjiEvalTest` still runs them directly by class
@@ -14,60 +15,63 @@ import org.scalatest.funsuite.AnyFunSuite
   */
 object EvalTag extends Tag("esmeta.wji.EvalTag")
 
-/** test cases that are known to hit an unmechanized gap rather than a bug in
-  * the test case itself. Cancelled rather than run, so `wjiEvalTest` stays
-  * green while the gap is worked on — remove a test case's name here once it's
-  * fixed. No per-test-case reason kept here — it shifts with every partial fix,
-  * so keeping it in sync would be pure churn; re-reproduce by pasting a name
-  * below verbatim into `sbt run wji-eval <name> -silent` (from the repo root)
-  * when picking one back up — each name below already *is* the real,
-  * repo-root-relative path to the file (`BASE_DIR.relativize`, see the `for`
-  * loop below), not some other, unrelated shorthand that would need translating
-  * by hand first. Keyed by full path rather than bare filename — js-api's
-  * generated fixtures mirror spectec/test/js-api's own directory structure,
-  * which reuses the same filename (e.g. `toString.any.js`) across multiple
-  * categories.
+/** test cases decided out of scope entirely (see each entry's own comment) —
+  * skipped without even running the WJI interpreter, unlike
+  * [[expectedFailingSubtests]] below (whose files *do* run for real). Names are
+  * cancelled rather than run, so `wjiEvalTest` stays green while these stay
+  * excluded — remove a name here only if the underlying scope decision is ever
+  * revisited. Re-reproduce by pasting a name below verbatim into `sbt run
+  * wji-eval <name> -silent` (from the repo root) if picking one back up — each
+  * name below already *is* the real, repo-root-relative path to the file
+  * (`BASE_DIR.relativize`, see the `for` loop below), not some other, unrelated
+  * shorthand that would need translating by hand first. Keyed by full path
+  * rather than bare filename — js-api's generated fixtures mirror
+  * spectec/test/js-api's own directory structure, which reuses the same
+  * filename (e.g. `toString.any.js`) across multiple categories.
   */
-private val knownFailing: Set[String] =
+private val skippedEntirely: Set[String] =
   Set(
-    // js-api/generated: `tests/wji/js-api/dataview-polyfill.js` works around
-    // ESMeta not mechanizing DataView, the mainline CondParser fix for "X is
-    // TYPE that has a [[SLOT]] internal slot" (docs/esmeta_errors.md #3)
-    // unblocked TypedArray.prototype.set, WebIdlConversion learned TagType +
-    // ExceptionOptions + GlobalDescriptor.mutable's IDL default + sequence<T>
-    // conversion (docs/hardcodes.md #1/#2), an omitted optional dictionary
-    // argument now actually gets converted (AddInterfaceMemberBuiltinBehaviourPass.
-    // omittedBranch), and Instr.ForEachPaired handles "X and Y of A and B,
-    // paired linearly", and a manual rule (`manuals/rule.json`, mainline
-    // `esmeta.compiler.Compiler`) now maps Math.floor's own defining prose
-    // ("the greatest (closest to +∞) integral Number value that is not
-    // greater than X") to the existing `floor` unary op, since it's a
-    // singleton phrasing (ecma262 never states it any other way) rather than
-    // a recurring idiom worth a real grammar rule -- so these now fail on
-    // the *next* gap each hits: a required WebIDL member missing (still no
-    // way to throw a real `TypeError` for it, e.g. TableDescriptor.element),
-    // an accessor property descriptor read via `.Value` instead of invoking
-    // its getter (dictionary reads assume data properties only), missing
-    // branding checks (`not a proper reference base: undefined`), the
-    // still-unmechanized SharedArrayBuffer/IEEE754-rounding-phrasing/etc.,
-    // and `limits.any.js` (a spec-mandated stress test building up to 10M
-    // wasm constructs -- marked `// META: timeout=long` even for real
-    // engines, so it's just too slow for WJI's interpreter rather than
-    // blocked by a real gap).
+    // Implementation-defined Limits section (locals/params/etc. count caps)
+    // is a purely declarative constraint list no algorithm ever references —
+    // decided out of scope entirely, doesn't fit ESMeta/SpecTec's
+    // algorithm-execution model (docs/out_of_scope.md #7, #8).
     "tests/wji/js-api/generated/limits.any.js",
+    // Module.prototype.customSections needs a real wasm binary-format parser
+    // (section id + LEB128 varint length) — a new component WJI doesn't have,
+    // not a small lowering-pass fix (docs/out_of_scope.md #1).
     "tests/wji/js-api/generated/module/customSections.any.js",
-    "tests/wji/js-api/generated/table/get-set.any.js",
+  )
+
+/** test cases that DO run for real (unlike [[skippedEntirely]] above), but are
+  * known to always fail one or more specific subtests for a settled, standing
+  * reason rather than an in-progress WJI gap — mapped to exactly the
+  * `"|||"`-joined subtest-name string [[WjiTest.failingSubtests]] is expected
+  * to return. Checked with a real assertion instead of being skipped outright,
+  * so a change in exactly what fails (a regression elsewhere in the file, or
+  * the known deviation finally getting patched to match real engines) surfaces
+  * as a loud, actionable test failure rather than silently staying green (or
+  * silently staying cancelled) either way.
+  */
+private val expectedFailingSubtests: Map[String, String] =
+  Map(
+    // "Setting non-function": table.set(0, undefined)/.grow(1, undefined)
+    // expect a real ToWebAssemblyValue conversion (TypeError), but WJI
+    // faithfully compiles the spec's "value is missing" check, which treats
+    // an explicit undefined the same as omission — real engines deviate from
+    // the spec text here, so this is intentionally left spec-faithful rather
+    // than patched to match them (docs/engine_deviations.md #1).
+    "tests/wji/js-api/generated/table/get-set.any.js" -> "Setting non-function",
   )
 
 /** test cases that are correct but too slow to run on every `wjiEvalTest` —
-  * unlike [[knownFailing]] (a real gap), these just take a while (275-290s for
-  * the corpus's two largest files, 55/208 subtests, `TODO.md` #58's
-  * `WebAssembly.instantiate` overload-dispatch fix, `personal/DONE.md` #63;
-  * ~330s for `js-string/basic.any.js`, `TODO.md` #56's own resolution — every
-  * one of its 6 `test()` blocks exercises all 13 builtins against a large
-  * combinatorial input set) once actually run to completion rather than
-  * crashing early. Cancelled by default, same as [[knownFailing]], unless
-  * `-Dslow=true` is passed — see [[EvalSpec.slow]].
+  * unlike [[skippedEntirely]] (a settled scope exclusion), these just take a
+  * while (275-290s for the corpus's two largest files, 55/208 subtests,
+  * `TODO.md` #58's `WebAssembly.instantiate` overload-dispatch fix,
+  * `personal/DONE.md` #63; ~330s for `js-string/basic.any.js`, `TODO.md` #56's
+  * own resolution — every one of its 6 `test()` blocks exercises all 13
+  * builtins against a large combinatorial input set) once actually run to
+  * completion rather than crashing early. Cancelled by default, same as
+  * [[skippedEntirely]], unless `-Dslow=true` is passed — see [[EvalSpec.slow]].
   */
 private val slowFiles: Set[String] =
   Set(
@@ -176,16 +180,29 @@ class EvalSpec extends AnyFunSuite with BeforeAndAfterAll:
     test(name, EvalTag) {
       val start = System.nanoTime()
       def elapsed = (System.nanoTime() - start) / 1e9
-      if knownFailing(name) then cancel("known WJI mechanization gap")
+      if skippedEntirely(name) then cancel("decided out of scope")
       else if slowFiles(name) && !slow then
         cancel("slow test, opt-in via -Dslow=true")
       else
         val timeoutSec =
           if slowFiles(name) then slowFileTimeoutSec else perTestTimeoutSec
         try
-          checkExit(
-            WjiTest.evalFile(file.toString, connection, Some(timeoutSec)),
-          )
+          expectedFailingSubtests.get(name) match
+            case Some(expected) =>
+              val result =
+                WjiTest.runFile(file.toString, connection, Some(timeoutSec))
+              checkExit(result)
+              val actual = WjiTest.failingSubtests(result)
+              assert(
+                actual == Success(expected),
+                s"expected exactly {$expected} to fail in $name, but got " +
+                s"${actual} -- either a new regression or the known " +
+                s"deviation was fixed; update expectedFailingSubtests either way",
+              )
+            case None =>
+              checkExit(
+                WjiTest.evalFile(file.toString, connection, Some(timeoutSec)),
+              )
           if verbose then println(f"[$elapsed%.1fs] $name")
         catch
           case e: Throwable =>

@@ -252,14 +252,31 @@ object InstrParser:
               trailingBody,
             )
           case None =>
-            splitTopLevel(rest, " to ") match
-              case Some((lhs, expr)) =>
+            // "as defined in [[#anchor]]" (e.g. "Set |instance|.[[SetPrototypeOf]]
+            // as defined in [[#platform-object-setprototypeof]]",
+            // webidl/index.bs:13861) -- a raw section-anchor reference, not a
+            // `[=term=]` dfn-link, so unlike the AlgoRef branch above this
+            // doesn't resolve it to a callable: that's category I-B
+            // (webidl_yet_categorized.md), not attempted here. This split only
+            // exists so the LHS's bracket notation reaches ExprParser.parse
+            // (category I-A) instead of the whole statement falling to
+            // Unknown below.
+            splitTopLevel(rest, " as defined in ") match
+              case Some((lhs, anchorRef)) =>
                 Set(
                   ExprParser.parse(lhs),
-                  ExprParser.parse(expr),
+                  Expr.Unknown(anchorRef.trim),
                   trailingBody,
                 )
-              case None => Unknown(text, trailingBody)
+              case None =>
+                splitTopLevel(rest, " to ") match
+                  case Some((lhs, expr)) =>
+                    Set(
+                      ExprParser.parse(lhs),
+                      ExprParser.parse(expr),
+                      trailingBody,
+                    )
+                  case None => Unknown(text, trailingBody)
       case AssertPrefix(cond) =>
         Assert(CondParser.parse(cond), trailingBody)
       case NotePrefix(note) => Note(note.trim, trailingBody)

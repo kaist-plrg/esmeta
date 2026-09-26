@@ -4373,7 +4373,7 @@ def create_an_interface_prototype_object(
         let _call2 = _guard1.Value
       }
       proto = _call2
-    } else if (? interface: Unknown["DOMException"]) {
+    } else if (= interface.id "DOMException") {
       proto = realm.Intrinsics["%Error.prototype%"]
     } else {
       proto = realm.Intrinsics["%Object.prototype%"]
@@ -4941,17 +4941,28 @@ def internally_create_a_new_object_implementing_the_interface(
   instance.Prototype = prototype
   call interfaces = clo<"inclusive_inherited_interfaces">(interface)
   call _ = clo<"list/iterate">(ancestor interface, interfaces)
-  let unforgeables = (yet "the value of the \\[[Unforgeables]] slot of the [=interface object=] of |ancestor interface| in |realm|")
-  let _call6 = (yet "|unforgeables|.\\[[OwnPropertyKeys]]()")
-  assert (= _call6.Type ~normal~)
-  let keys = _call6.Value
+  call _guard3 = clo<"create_an_interface_object">(ancestor interface, realm)
+  if (? _guard3: Abrupt) {
+    if (? _guard3: Completion) {
+      return _guard3
+    } else {
+      call _ret5 = clo<"NormalCompletion">(_guard3)
+      return _ret5
+    }
+  } else {
+    let _call6 = _guard3.Value
+  }
+  let unforgeables = _call6.Unforgeables
+  call _call7 = unforgeables.OwnPropertyKeys()
+  assert (= _call7.Type ~normal~)
+  let keys = _call7.Value
   let _iterList1 = keys
   let _iterIdx2 = 0
   while (< _iterIdx2 (sizeof _iterList1)) {
     let key = _iterList1[_iterIdx2]
-    let _call7 = (yet "|unforgeables|.\\[[GetOwnProperty]](|key|)")
-    assert (= _call7.Type ~normal~)
-    let descriptor = _call7.Value
+    call _call8 = unforgeables.GetOwnProperty(key)
+    assert (= _call8.Type ~normal~)
+    let descriptor = _call8.Value
     call _ = clo<"DefinePropertyOrThrow">(instance, key, descriptor)
     _iterIdx2 = (+ _iterIdx2 1)
   }
@@ -4970,22 +4981,22 @@ def internally_create_a_new_object_implementing_the_interface(
     call _ = clo<"Define_the_iteration_methods">(interface, instance, realm)
     call _ = clo<"Define_the_asynchronous_iteration_methods">(interface, instance, realm)
     call _ = clo<"Define_the_global_property_references">(instance, realm)
-    (yet "Set |instance|.\\[[SetPrototypeOf]] as defined in [[#platform-object-setprototypeof]]")
+    instance.SetPrototypeOf = (yet "[[#platform-object-setprototypeof]]")
   } else {
     if (yet "|interfaces| contains an [=interface=] which [=support indexed properties|supports indexed properties=]") {
-      (yet "Set |instance|.\\[[GetOwnProperty]] as defined in [[#legacy-platform-object-getownproperty]]")
-      (yet "Set |instance|.\\[[Set]] as defined in [[#legacy-platform-object-set]]")
-      (yet "Set |instance|.\\[[DefineOwnProperty]] as defined in [[#legacy-platform-object-defineownproperty]]")
-      (yet "Set |instance|.\\[[Delete]] as defined in [[#legacy-platform-object-delete]]")
-      (yet "Set |instance|.\\[[PreventExtensions]] as defined in [[#legacy-platform-object-preventextensions]]")
-      (yet "Set |instance|.\\[[OwnPropertyKeys]] as defined in [[#legacy-platform-object-ownpropertykeys]]")
+      instance.GetOwnProperty = (yet "[[#legacy-platform-object-getownproperty]]")
+      instance.Set = (yet "[[#legacy-platform-object-set]]")
+      instance.DefineOwnProperty = (yet "[[#legacy-platform-object-defineownproperty]]")
+      instance.Delete = (yet "[[#legacy-platform-object-delete]]")
+      instance.PreventExtensions = (yet "[[#legacy-platform-object-preventextensions]]")
+      instance.OwnPropertyKeys = (yet "[[#legacy-platform-object-ownpropertykeys]]")
     } else nop
   }
   if (? instance: Completion) {
     return instance
   } else {
-    call _ret5 = clo<"NormalCompletion">(instance)
-    return _ret5
+    call _ret6 = clo<"NormalCompletion">(instance)
+    return _ret6
   }
 }
 def asynchronously_compile_a_webassembly_module_closure1(

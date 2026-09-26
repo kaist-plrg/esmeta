@@ -374,6 +374,24 @@ class ExprParserSpec extends AnyFunSuite:
     )
   }
 
+  test("internal slot invoked as a method: BASE.[[Slot]](ARGS)") {
+    assert(
+      ExprParser.parse("|unforgeables|.[[GetOwnProperty]](|key|)") ==
+      ClosureCall(
+        Field(Var("unforgeables"), "GetOwnProperty"),
+        List(Var("key")),
+      ),
+    )
+  }
+
+  test("'the value of the [[Slot]] slot of BASE' reads a slot") {
+    assert(
+      ExprParser.parse(
+        "the value of the [[Unforgeables]] slot of |ancestorInterface|",
+      ) == Field(Var("ancestorInterface"), "Unforgeables"),
+    )
+  }
+
   // ---- order-sensitive cases: two patterns whose surface syntax genuinely
   // overlaps, where one must be tried before the other. Each assertion here
   // only holds if `parse`'s case order in ExprParser.scala stays as-is. ----

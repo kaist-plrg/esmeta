@@ -20,6 +20,23 @@ class InstrParserSpec extends AnyFunSuite:
     assert(parse("Set |x| to |y|.") == List(Set(Var("x"), Var("y"))))
   }
 
+  test("set ... as specified in [=ALGO=] binds an AlgoRef") {
+    assert(
+      parse("Set |x|.[[Foo]] as specified in [=some algorithm=].") ==
+      List(Set(Field(Var("x"), "Foo"), AlgoRef("[=some algorithm=]"))),
+    )
+  }
+
+  test(
+    "set ... as defined in [[#anchor]] parses the bracket-notation LHS, " +
+    "leaves the anchor reference as Unknown",
+  ) {
+    assert(
+      parse("Set |x|.[[Foo]] as defined in [[#some-anchor]].") ==
+      List(Set(Field(Var("x"), "Foo"), Expr.Unknown("[[#some-anchor]]"))),
+    )
+  }
+
   test("assert / note") {
     assert(
       parse("Assert: |x| is |y|.") == List(Assert(Eq(Var("x"), Var("y")))),

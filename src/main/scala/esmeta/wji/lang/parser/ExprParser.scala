@@ -470,6 +470,16 @@ object ExprParser:
   // value ----
 
   private val SlotAccess = """(?s)^(.+)\.\\?\[\[([^\]]+)\]\]$""".r
+  // "BASE.[[Slot]](ARGS)" — an internal slot/method invoked immediately, e.g.
+  // "|unforgeables|.[[GetOwnProperty]](|key|)" (webidl/index.bs:13853,
+  // webidl_yet_categorized.md category I-A). Not just a SlotAccess (which
+  // anchors at the closing `]]`) with leftover trailing text — WJI already
+  // models "invoke the closure stored in field X of BASE" as
+  // `ClosureCall(Field(base, name), args)` for the analogous
+  // RunningStepsCallWithArgs/RunningStepsCallNoArgs idiom below, so this
+  // reuses that exact shape rather than inventing a new node.
+  private val SlotMethodCall =
+    """(?s)^(.+)\.\\?\[\[([^\]]+)\]\]\((.*)\)$""".r
   // a bare "\[[SlotName]]" with no base — the slot's *name*, used as a value
   // rather than read off a specific object (e.g. CreateBuiltinFunction's
   // `additionalInternalSlotsList` argument, « \[[FunctionAddress]] »).
@@ -478,6 +488,13 @@ object ExprParser:
   private val BareSlotName = """(?s)^\\?\[\[([^\]]+)\]\]$""".r
   private val PossessiveSlot =
     """(?si)^the value of (.+)'s \\?\[\[([^\]]+)\]\] internal slot$""".r
+  // "the value of the [[Slot]] slot of BASE" — same PossessiveSlot concept,
+  // slot-name-first word order (webidl/index.bs:13849-13850,
+  // webidl_yet_categorized.md category I-A), kept beside PossessiveSlot the
+  // same way LengthOf/ElementCount/PossessiveSize below group sibling
+  // phrasings of one concept together.
+  private val TheSlotOf =
+    """(?si)^the value of the \\?\[\[([^\]]+)\]\] slot of (.+)$""".r
   // e.g. "|module|.[=imports=]" — a WebAssembly-spec record field written
   // with a dot, where the `[=...=]` is a documentation link on the field
   // name rather than a call (contrast with `LinkFull`/`LinkProse`,
@@ -1091,10 +1108,16 @@ object ExprParser:
       case NegPat(inner)                        => Neg(parse(inner))
 
       // ---- Structural access ----
+      case SlotMethodCall(baseRaw, slot, argsRaw) =>
+        ClosureCall(
+          Field(parse(baseRaw), stripBraces(slot)),
+          splitComma(argsRaw).map(parse),
+        )
       case SlotAccess(baseRaw, slot) => Field(parse(baseRaw), stripBraces(slot))
       case BareSlotName(slot)        => Str(stripBraces(slot))
       case PossessiveSlot(baseRaw, slot) =>
         Field(parse(baseRaw), stripBraces(slot))
+      case TheSlotOf(slot, baseRaw) => Field(parse(baseRaw), stripBraces(slot))
       case DotFieldLink(baseRaw, link) => fieldFromLink(baseRaw, link)
       case DotField(baseRaw, field)    => Field(parse(baseRaw), field)
       case LengthOf(inner)             => Length(parse(inner))

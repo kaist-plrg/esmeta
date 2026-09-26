@@ -1,7 +1,7 @@
 package esmeta.wji
 
 import esmeta.cfg.CFG
-import esmeta.es.builtin.{AGENT_RECORD, HOST_DEFINED}
+import esmeta.es.builtin.{AGENT_RECORD, HOST_DEFINED, realmAddr}
 import esmeta.ir.Global
 import esmeta.state.*
 import esmeta.wji.bridge.SpecTecWasmHost
@@ -27,6 +27,24 @@ import esmeta.wji.lang.ExtendedAttribute
   * via ordinary field access — see Compiler's `SpecTerm("surrounding agent")`
   * case, which maps `the surrounding agent` to the same
   * [[esmeta.es.builtin.AGENT_RECORD]] global this writes into.
+  *
+  * Also seeds the WebIDL-only `"is global prototype chain mutable"` field
+  * (webidl_yet_categorized.md category II-J) onto the Realm Record itself, at
+  * the fixed [[esmeta.es.builtin.realmAddr]]: "All realms have an is global
+  * prototype chain mutable boolean, which can be set when the realm is created.
+  * ... By default it is set to false." (webidl/index.bs:10226-10229).
+  * ECMA-262's own `CreateRealm` never declares this field — it's a WebIDL
+  * extension the ECMA-262 Realm Record schema knows nothing about — and every
+  * `State` this pipeline builds ever has exactly one Realm Record, always
+  * reused at `realmAddr` (`CreateRealm` is patched, `manuals/rule.json`, to
+  * always return `@REALM` rather than allocate a fresh record), so there is
+  * exactly one instance of this field to seed, not one per realm. Always seeded
+  * `false`: the only spec mechanism that ever sets it `true` is `ShadowRealm`
+  * creation (`SetupShadowRealm`), which `esmeta.es.builtin`'s `yets` map lists
+  * as unsupported, so this pipeline never has a `true` value to produce.
+  * `ExprParser`'s `IsGlobalPrototypeChainMutable` rule reads this field back
+  * via ordinary field access, the same way `AssociatedRealm`/
+  * `PossessiveAssociation` already do for other realm/record fields.
   */
 object Initialize:
 
@@ -65,6 +83,12 @@ object Initialize:
     connection: JsonRpcConnection,
   ): SpecTecWasmHost =
     val host = SpecTecWasmHost(connection)
+
+    st.heap.update(
+      realmAddr,
+      Str("is global prototype chain mutable"),
+      Bool(false),
+    )
 
     host.call("store_init", Nil) match
       case Right(store) =>
@@ -231,7 +255,10 @@ object Initialize:
     val definitionRecordCache = scala.collection.mutable.Map.empty[String, Addr]
 
     def definitionRecordByName(name: String): Addr =
-      definitionRecordCache.getOrElseUpdate(name, definitionRecord(spec.definitionMap(name)))
+      definitionRecordCache.getOrElseUpdate(
+        name,
+        definitionRecord(spec.definitionMap(name)),
+      )
 
     def definitionRecord(d: Definition): Addr =
       val members = d.members.map {
@@ -250,9 +277,11 @@ object Initialize:
         ),
       )
 
-    val definitionAddrs = spec.definitions.map(d => definitionRecordByName(d.name))
-    spec.definitions.zip(definitionAddrs).foreach { case (definition, addr) =>
-      st.heap.update(NamedAddr(HOST_DEFINED), Str(definition.name), addr)
+    val definitionAddrs =
+      spec.definitions.map(d => definitionRecordByName(d.name))
+    spec.definitions.zip(definitionAddrs).foreach {
+      case (definition, addr) =>
+        st.heap.update(NamedAddr(HOST_DEFINED), Str(definition.name), addr)
     }
     // The registry category II-C's descendant search (`CondParser`'s
     // `InInheritedInterfacesOfDeclared`) needs: a queryable, enumerable list of

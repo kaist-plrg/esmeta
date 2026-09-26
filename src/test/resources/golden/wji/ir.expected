@@ -4381,7 +4381,7 @@ def create_an_interface_prototype_object(
   }
   assert (? proto: Record[Object])
   let interfaceProtoObj = null
-  if (= (yet "|realm|'s [=is global prototype chain mutable=]") true) {
+  if (= realm["is global prototype chain mutable"] true) {
     call _call3 = clo<"OrdinaryObjectCreate">(proto)
     interfaceProtoObj = _call3
   } else {

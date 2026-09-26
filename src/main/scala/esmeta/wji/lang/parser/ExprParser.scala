@@ -557,6 +557,29 @@ object ExprParser:
   // record, rather than treating it as an AO call with nothing behind it.
   private val InterfaceInheritsFrom =
     """(?si)^the \[=interface=\] that (\|[^|]+\|) \[=interface/inherits=\] from, if any, and null otherwise$""".r
+  // "|realm|'s [=is global prototype chain mutable=]" (webidl_yet_categorized.md
+  // category II-J) — a real Realm field (webidl/index.bs:10226-10229), seeded
+  // once by `esmeta.wji.Initialize` onto the sole Realm Record at
+  // `esmeta.es.builtin.realmAddr` (see that seed's own doc for why exactly one
+  // instance of this field ever needs seeding, and why it's always `false`).
+  // Reads exactly like `AssociatedRealm` below — `Field(parse(baseRaw), name)`
+  // — rather than compiling to a literal, so a future `ShadowRealm`
+  // implementation (the only spec mechanism that ever sets this field `true`)
+  // would only need to change what `Initialize` seeds, not this parser rule.
+  // `baseRaw` is discarded structurally (parsed like any other receiver, not
+  // specially inspected) since every realm reference in this single-realm
+  // pipeline resolves to the same `realmAddr` regardless of spelling — this
+  // also transparently covers the chained `|O|'s [=associated realm=]'s
+  // [=is global prototype chain mutable=]` form at webidl/index.bs:12242/13970
+  // (not yet extracted by this project): `AssociatedRealm`'s own
+  // `Field(_, "Realm")` read lands on `realmAddr` too, so chaining this rule's
+  // `Field` on top of it still reads the one seeded field correctly. Must
+  // precede AssociatedRealm below: its stricter suffix match (ending
+  // `[=is global prototype chain mutable=]`, not `[=associated Realm=]`) still
+  // overlaps the same "X's [=Y=]" shape space, and Scala's `match` tries cases
+  // in source order.
+  private val IsGlobalPrototypeChainMutable =
+    """(?si)^(.+)'s \[=is global prototype chain mutable=\]$""".r
   private val AssociatedRealm = """(?si)^(.+)'s \[=associated Realm=\]$""".r
   // "|func|'s [=associated Realm=]" — narrower than PossessiveAssociation
   // (which keeps "the surrounding agent's associated store/cache" style
@@ -1084,7 +1107,9 @@ object ExprParser:
       case PossessiveIdentifier(baseRaw) => Field(parse(baseRaw), "id")
       case IdentifierOfType(varRaw)      => Field(parse(varRaw), "id")
       case InterfaceInheritsFrom(varRaw) => Field(parse(varRaw), "inherit")
-      case AssociatedRealm(baseRaw)      => Field(parse(baseRaw), "Realm")
+      case IsGlobalPrototypeChainMutable(baseRaw) =>
+        Field(parse(baseRaw), "is global prototype chain mutable")
+      case AssociatedRealm(baseRaw) => Field(parse(baseRaw), "Realm")
       case MemberOfDefinition(kind, baseRaw) =>
         val memberKind = kind match
           case "regular attributes" => MemberKind.RegularAttribute

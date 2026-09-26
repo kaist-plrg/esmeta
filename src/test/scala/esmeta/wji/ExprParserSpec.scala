@@ -94,7 +94,9 @@ class ExprParserSpec extends AnyFunSuite:
     )
   }
 
-  test("'the [=interface prototype object=] of that [=inherited interface=] in |realm|'") {
+  test(
+    "'the [=interface prototype object=] of that [=inherited interface=] in |realm|'",
+  ) {
     assert(
       ExprParser.parse(
         "the [=interface prototype object=] of that [=inherited interface=] in |realm|",
@@ -106,7 +108,9 @@ class ExprParserSpec extends AnyFunSuite:
     )
   }
 
-  test("'the [=interface object=] of |X| with identifier |X|'s [=identifier=] in |realm|'") {
+  test(
+    "'the [=interface object=] of |X| with identifier |X|'s [=identifier=] in |realm|'",
+  ) {
     assert(
       ExprParser.parse(
         "the [=interface object=] of |P| with identifier |P|'s [=identifier=] in |realm|",
@@ -194,6 +198,10 @@ class ExprParserSpec extends AnyFunSuite:
     assert(
       ExprParser.parse("the |map|'s [=map/entries=]") ==
       Field(Var("map"), "map/entries"),
+    )
+    assert(
+      ExprParser.parse("|realm|'s [=is global prototype chain mutable=]") ==
+      Field(Var("realm"), "is global prototype chain mutable"),
     )
   }
 

@@ -113,10 +113,6 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
    원문 - Otherwise, if |interface| is declared to inherit from another interface, ...
    IR - else if (= interface (yet "declared to inherit from another interface")) { ... }
 
-4. 카테고리 - II-J
-   원문 - If |realm|'s [=is global prototype chain mutable=] is true, then: ...
-   IR - if (= (yet "|realm|'s [=is global prototype chain mutable=]") true) { ... }
-
 5. 카테고리 - II-A + II-C
    원문 - Otherwise, if |interface| is declared with the [{{Global}}] [=extended attribute=], or |interface| is in the set of [=inherited interfaces=] of an interface that is declared with the [{{Global}}] [=extended attribute=], then: ...
    IR (당시) - else if (|| (= interface (yet "declared with the [{{Global}}] [=extended attribute=],")) (= interface (yet "in the set of [=inherited interfaces=] of an interface that is declared with the [{{Global}}] [=extended attribute=]")))

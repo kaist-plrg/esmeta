@@ -32,12 +32,25 @@ enum MemberKind:
   case RegularOperation
   case RegularAttribute
   case Constructor
+  case Constant
+  // Special operations
+  case IndexedGetter
+  case IndexedSetter
+  case IndexedDeleter
+  case NamedGetter
+  case NamedSetter
+  case NamedDeleter
+  // Iterable
+  case Iterable
+  case AsyncIterable
 
 enum DefinitionKind:
   case Namespace
   case Interface
 
-sealed trait Member
+sealed trait Member {
+  val kind: MemberKind
+}
 case class Operation(
   id: String,
   params: List[Param],
@@ -52,7 +65,35 @@ case class Attribute(
   kind: MemberKind = MemberKind.RegularAttribute,
   extAttr: List[ExtendedAttribute] = Nil,
 ) extends Member
-case class Constant() extends Member // TODO
+// TODO
+case class Constant(
+  kind: MemberKind = MemberKind.Constant
+) extends Member // TODO
+case class Getter(
+  id: Option[String],
+  params: List[Param],
+  ret: String,
+  kind: MemberKind = MemberKind.IndexedGetter,
+  extAttr: List[ExtendedAttribute] = Nil,
+) extends Member
+case class Setter(
+  id: Option[String],
+  params: List[Param],
+  ret: String,
+  kind: MemberKind = MemberKind.IndexedSetter,
+  extAttr: List[ExtendedAttribute] = Nil,
+) extends Member
+case class Deleter(
+  id: Option[String],
+  params: List[Param],
+  ret: String,
+  kind: MemberKind = MemberKind.IndexedDeleter,
+  extAttr: List[ExtendedAttribute] = Nil,
+) extends Member
+// TODO
+case class Iterable(
+  kind: MemberKind = MemberKind.Iterable,
+)
 
 case class Definition(
   name: String,

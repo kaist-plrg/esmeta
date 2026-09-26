@@ -4302,7 +4302,16 @@ def create_an_interface_object(
   call _ = clo<"Define_the_unforgeable_regular_attributes">(I, unforgeables, realm)
   F.Unforgeables = unforgeables
   let length = 0
-  if (yet "|I| was declared with a [=constructor operation=]") {
+  let _found1 = false
+  let _i2 = 0
+  while (&& (= _found1 false) (< _i2 (sizeof I.members))) {
+    let m = I.members[_i2]
+    if (= m.kind ~Constructor~) {
+      _found1 = true
+    } else nop
+    _i2 = (+ _i2 1)
+  }
+  if (= _found1 true) {
     call S = clo<"Compute_the_effective_overload_set">(id, I, 0)
     let _shortLen1 = (sizeof S[0].typeList)
     let _shortI2 = 1
@@ -4424,11 +4433,46 @@ def create_an_interface_prototype_object(
       interfaceProtoObj = _call6
     }
   }
-  if (yet "|interface| has any [=member=] declared with the [{{Unscopable}}] [=extended attribute=]") {
+  let _found12 = false
+  let _i13 = 0
+  while (&& (= _found12 false) (< _i13 (sizeof interface.members))) {
+    let member = interface.members[_i13]
+    let _found10 = false
+    let _i11 = 0
+    while (&& (= _found10 false) (< _i11 (sizeof member.extendedAttributes))) {
+      let ea = member.extendedAttributes[_i11]
+      if (= ea.id "Unscopable") {
+        _found10 = true
+      } else nop
+      _i11 = (+ _i11 1)
+    }
+    if (= _found10 true) {
+      _found12 = true
+    } else nop
+    _i13 = (+ _i13 1)
+  }
+  if (= _found12 true) {
     call unscopableObject = clo<"OrdinaryObjectCreate">(null)
-    (yet "foreach MEMBER(|member|) in ?(|interface| that is declared with the [{{Unscopable}}] [=extended attribute=])")
-    let id = member.id
-    call _ = clo<"CreateDataPropertyOrThrow">(unscopableObject, id, true)
+    let _iterList1 = interface.members
+    let _iterIdx2 = 0
+    while (< _iterIdx2 (sizeof _iterList1)) {
+      let member = _iterList1[_iterIdx2]
+      let _found14 = false
+      let _i15 = 0
+      while (&& (= _found14 false) (< _i15 (sizeof member.extendedAttributes))) {
+        let ea = member.extendedAttributes[_i15]
+        if (= ea.id "Unscopable") {
+          _found14 = true
+        } else nop
+        _i15 = (+ _i15 1)
+      }
+      if (! (= _found14 true)) {
+        (yet "continue")
+      } else nop
+      let id = member.id
+      call _ = clo<"CreateDataPropertyOrThrow">(unscopableObject, id, true)
+      _iterIdx2 = (+ _iterIdx2 1)
+    }
     let desc = (record [PropertyDescriptor] {
       "Value" : unscopableObject,
       "Writable" : false,
@@ -4437,23 +4481,32 @@ def create_an_interface_prototype_object(
     })
     call _ = clo<"DefinePropertyOrThrow">(interfaceProtoObj, @SYMBOL.unscopables, desc)
   } else nop
-  let _found10 = false
-  let _i11 = 0
-  while (&& (= _found10 false) (< _i11 (sizeof interface.extendedAttributes))) {
-    let ea = interface.extendedAttributes[_i11]
+  let _found16 = false
+  let _i17 = 0
+  while (&& (= _found16 false) (< _i17 (sizeof interface.extendedAttributes))) {
+    let ea = interface.extendedAttributes[_i17]
     if (= ea.id "Global") {
-      _found10 = true
+      _found16 = true
     } else nop
-    _i11 = (+ _i11 1)
+    _i17 = (+ _i17 1)
   }
-  if (! (= _found10 true)) {
+  if (! (= _found16 true)) {
     call _ = clo<"Define_the_regular_attributes">(interface, interfaceProtoObj, realm)
     call _ = clo<"Define_the_regular_operations">(interface, interfaceProtoObj, realm)
     call _ = clo<"Define_the_iteration_methods">(interface, interfaceProtoObj, realm)
     call _ = clo<"Define_the_asynchronous_iteration_methods">(interface, interfaceProtoObj, realm)
   } else nop
   call _ = clo<"Define_the_constants">(interface, interfaceProtoObj, realm)
-  if (yet "the [{{LegacyNoInterfaceObject}}] [=extended attribute=] was not specified on |interface|") {
+  let _found18 = false
+  let _i19 = 0
+  while (&& (= _found18 false) (< _i19 (sizeof interface.extendedAttributes))) {
+    let ea = interface.extendedAttributes[_i19]
+    if (= ea.id "LegacyNoInterfaceObject") {
+      _found18 = true
+    } else nop
+    _i19 = (+ _i19 1)
+  }
+  if (! (= _found18 true)) {
     call _guard2 = clo<"create_an_interface_object">(interface, interface.id, realm)
     if (? _guard2: Abrupt) {
       if (? _guard2: Completion) {
@@ -4614,11 +4667,38 @@ def attribute_setter(
   realm: Unknown,
 ): Unknown = {
   if (? target: Unknown["namespace"]) {
-    assert (= attribute ~read only~)
+    assert (= attribute.readonly true)
     return undefined
   } else nop
-  if (&& (= attribute ~read only~) (yet "does not have a [{{LegacyLenientSetter}}]")) {
-    (yet "[{{PutForwards}}] or [{{Replaceable}}] [=extended attribute=], return <emu-val>undefined</emu-val>; there is no [=attribute setter=] function")
+  let _found1 = false
+  let _i2 = 0
+  while (&& (= _found1 false) (< _i2 (sizeof attribute.extendedAttributes))) {
+    let ea = attribute.extendedAttributes[_i2]
+    if (= ea.id "LegacyLenientSetter") {
+      _found1 = true
+    } else nop
+    _i2 = (+ _i2 1)
+  }
+  let _found3 = false
+  let _i4 = 0
+  while (&& (= _found3 false) (< _i4 (sizeof attribute.extendedAttributes))) {
+    let ea = attribute.extendedAttributes[_i4]
+    if (= ea.id "PutForwards") {
+      _found3 = true
+    } else nop
+    _i4 = (+ _i4 1)
+  }
+  let _found5 = false
+  let _i6 = 0
+  while (&& (= _found5 false) (< _i6 (sizeof attribute.extendedAttributes))) {
+    let ea = attribute.extendedAttributes[_i6]
+    if (= ea.id "Replaceable") {
+      _found5 = true
+    } else nop
+    _i6 = (+ _i6 1)
+  }
+  if (&& (= attribute.readonly true) (&& (&& (! (= _found1 true)) (! (= _found3 true))) (! (= _found5 true)))) {
+    return (yet "<emu-val>undefined</emu-val>; there is no [=attribute setter=] function")
   } else nop
   assert (! (? (yet "|attribute|'s type"): Unknown["promise type"]))
   let steps = clo<"attribute_setter_closure1", [attribute, target]>
@@ -5236,7 +5316,16 @@ def react_closure2(
 }
 def create_an_interface_object_closure1(
 ): Unknown = {
-  if (yet "|I| was not declared with a [=constructor operation=]") {
+  let _found1 = false
+  let _i2 = 0
+  while (&& (= _found1 false) (< _i2 (sizeof I.members))) {
+    let m = I.members[_i2]
+    if (= m.kind ~Constructor~) {
+      _found1 = true
+    } else nop
+    _i2 = (+ _i2 1)
+  }
+  if (! (= _found1 true)) {
     call _ = clo<"JavaScript/throw">((record [TypeError] {
       "GetPrototypeOf" : clo<"Record[OrdinaryObject].GetPrototypeOf">,
       "SetPrototypeOf" : clo<"Record[OrdinaryObject].SetPrototypeOf">,
@@ -5333,7 +5422,16 @@ def attribute_getter_closure2(
       } else nop
     }
     if (= _cond2 true) {
-      if (yet "|attribute| was specified with the [{{LegacyLenientThis}}] [=extended attribute=]") {
+      let _found1 = false
+      let _i2 = 0
+      while (&& (= _found1 false) (< _i2 (sizeof attribute.extendedAttributes))) {
+        let ea = attribute.extendedAttributes[_i2]
+        if (= ea.id "LegacyLenientThis") {
+          _found1 = true
+        } else nop
+        _i2 = (+ _i2 1)
+      }
+      if (= _found1 true) {
         let _v1 = undefined
         if (? _v1: Completion) {
           return _v1
@@ -5456,7 +5554,16 @@ def attribute_setter_closure1(
     } else {
       let validThis = false
     }
-    if (&& (= validThis false) (yet "|attribute| was not specified with the [{{LegacyLenientThis}}] [=extended attribute=]")) {
+    let _found1 = false
+    let _i2 = 0
+    while (&& (= _found1 false) (< _i2 (sizeof attribute.extendedAttributes))) {
+      let ea = attribute.extendedAttributes[_i2]
+      if (= ea.id "LegacyLenientThis") {
+        _found1 = true
+      } else nop
+      _i2 = (+ _i2 1)
+    }
+    if (&& (= validThis false) (! (= _found1 true))) {
       call _ = clo<"JavaScript/throw">((record [TypeError] {
         "GetPrototypeOf" : clo<"Record[OrdinaryObject].GetPrototypeOf">,
         "SetPrototypeOf" : clo<"Record[OrdinaryObject].SetPrototypeOf">,
@@ -5475,16 +5582,16 @@ def attribute_setter_closure1(
         "__MAP__" : (map[Unknown, Unknown]),
       }))
     } else nop
-    let _found1 = false
-    let _i2 = 0
-    while (&& (= _found1 false) (< _i2 (sizeof attribute.extendedAttributes))) {
-      let ea = attribute.extendedAttributes[_i2]
+    let _found3 = false
+    let _i4 = 0
+    while (&& (= _found3 false) (< _i4 (sizeof attribute.extendedAttributes))) {
+      let ea = attribute.extendedAttributes[_i4]
       if (= ea.id "Replaceable") {
-        _found1 = true
+        _found3 = true
       } else nop
-      _i2 = (+ _i2 1)
+      _i4 = (+ _i4 1)
     }
-    if (= _found1 true) {
+    if (= _found3 true) {
       call _ = clo<"CreateDataPropertyOrThrow">(jsValue, id, V)
       let _v1 = undefined
       if (? _v1: Completion) {
@@ -5503,16 +5610,16 @@ def attribute_setter_closure1(
         return _ret4
       }
     } else nop
-    let _found3 = false
-    let _i4 = 0
-    while (&& (= _found3 false) (< _i4 (sizeof attribute.extendedAttributes))) {
-      let ea = attribute.extendedAttributes[_i4]
+    let _found5 = false
+    let _i6 = 0
+    while (&& (= _found5 false) (< _i6 (sizeof attribute.extendedAttributes))) {
+      let ea = attribute.extendedAttributes[_i6]
       if (= ea.id "LegacyLenientSetter") {
-        _found3 = true
+        _found5 = true
       } else nop
-      _i4 = (+ _i4 1)
+      _i6 = (+ _i6 1)
     }
-    if (= _found3 true) {
+    if (= _found5 true) {
       let _v5 = undefined
       if (? _v5: Completion) {
         return _v5
@@ -5521,16 +5628,16 @@ def attribute_setter_closure1(
         return _ret6
       }
     } else nop
-    let _found5 = false
-    let _i6 = 0
-    while (&& (= _found5 false) (< _i6 (sizeof attribute.extendedAttributes))) {
-      let ea = attribute.extendedAttributes[_i6]
+    let _found7 = false
+    let _i8 = 0
+    while (&& (= _found7 false) (< _i8 (sizeof attribute.extendedAttributes))) {
+      let ea = attribute.extendedAttributes[_i8]
       if (= ea.id "PutForwards") {
-        _found5 = true
+        _found7 = true
       } else nop
-      _i6 = (+ _i6 1)
+      _i8 = (+ _i8 1)
     }
-    if (= _found5 true) {
+    if (= _found7 true) {
       call _call3 = clo<"Get">(jsValue, id)
       if (? _call3: Abrupt) {
         if (? _call3: Completion) {

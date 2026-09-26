@@ -135,6 +135,66 @@ object CondParser:
     """(?si)^(\|[^|]+\|)\s+is\s+declared with\s+(?:the|an?)\s+\[\{\{([^}]+)\}\}\]\s+\[=extended attribute=\]$""".r
   private val DeclaredWithAttrNeg =
     """(?si)^(\|[^|]+\|)\s+is not\s+declared with\s+(?:the|an?)\s+\[\{\{([^}]+)\}\}\]\s+\[=extended attribute=\]$""".r
+  // "X was [not] specified with the [{{Y}}] extended attribute" — a verb
+  // synonym of DeclaredWithAttrPos/Neg above, seen only for {{LegacyLenientThis}}
+  // (webidl_yet_categorized.md category II-A's `#6-8`/`#7-12`,
+  // webidl/index.bs:12365/12416 — every other extended-attribute check in the
+  // corpus uses "is [not] declared with"). Same subject/shape restrictions as
+  // DeclaredWithAttrPos/Neg, for the same reasons; routes to the same
+  // `declaredWithAttr` helper.
+  private val SpecifiedWithAttrPos =
+    """(?si)^(\|[^|]+\|)\s+was\s+specified with\s+(?:the|an?)\s+\[\{\{([^}]+)\}\}\]\s+\[=extended attribute=\]$""".r
+  private val SpecifiedWithAttrNeg =
+    """(?si)^(\|[^|]+\|)\s+was not\s+specified with\s+(?:the|an?)\s+\[\{\{([^}]+)\}\}\]\s+\[=extended attribute=\]$""".r
+  // "the [{{Y}}] extended attribute was not specified on X" — DeclaredWithAttrNeg
+  // with subject and attribute-name swapped (webidl_yet_categorized.md category
+  // II-A's `#2-8`, webidl/index.bs:12093). Only this negative, reversed-order
+  // phrasing appears in the corpus (no positive counterpart), so only that one
+  // pattern is added, per this file's usual practice of matching just the
+  // shapes actually seen rather than a hypothetical full set.
+  private val AttrSpecifiedOnNeg =
+    """(?si)^the\s+\[\{\{([^}]+)\}\}\]\s+\[=extended attribute=\]\s+was not specified on\s+(\|[^|]+\|)$""".r
+  // "X has any [=member=] declared with the [{{Y}}] extended attribute" —
+  // webidl_yet_categorized.md category II-A's `#2-6` (webidl/index.bs:12074).
+  // An existential over `X.members` rather than a direct check on `X` itself —
+  // `Any`'s own body reuses `declaredWithAttr` with a synthesized `|member|`
+  // binder, the same "prepend a fresh binder as the elided subject" trick
+  // `InInheritedInterfacesOfDeclared` below and `AnyIn` above already use. Only
+  // the positive phrasing appears in the corpus.
+  private val HasAnyMemberDeclaredWithAttr =
+    """(?si)^(\|[^|]+\|)\s+has any\s+\[=member=\]\s+declared with\s+(?:the|an?)\s+\[\{\{([^}]+)\}\}\]\s+\[=extended attribute=\]$""".r
+  // "X was [not] declared with a [=constructor operation=]" —
+  // webidl_yet_categorized.md category II-A's `#3-2`/`#3-9`
+  // (webidl/index.bs:11941/11974). Not an extended-attribute check at all —
+  // `[=constructor operation=]` is a dfn link, not a `{{braced}}` IDL name —
+  // the real question is whether any of `X.members` is a constructor
+  // (`Definition.scala`'s `MemberKind.Constructor`; `Initialize.scala` seeds
+  // every member record's `kind` field with exactly `MemberKind#toString`, per
+  // `ExpandGetMemberPass`'s own doc). Same `Any`-over-`members` shape as
+  // `HasAnyMemberDeclaredWithAttr` above, just searching by `kind` instead of
+  // `extendedAttributes`.
+  private val DeclaredWithConstructorOpPos =
+    """(?si)^(\|[^|]+\|)\s+was\s+declared with\s+a\s+\[=constructor operation=\]$""".r
+  private val DeclaredWithConstructorOpNeg =
+    """(?si)^(\|[^|]+\|)\s+was not\s+declared with\s+a\s+\[=constructor operation=\]$""".r
+  // "X is [=read only=] and does not have a [{{A}}], [{{B}}] or [{{C}}]
+  // extended attribute" — webidl_yet_categorized.md category II-A's `#7-2`
+  // (webidl/index.bs:12396). Matched as one whole compound shape *before* the
+  // generic top-level " or "/" and " split in `parse` below, for the same
+  // reason as `IsOneOfPos`/`Neg`/`LinkCallArgsEndsBool` above: the attribute
+  // list's own internal " or " (between {{PutForwards}} and {{Replaceable}})
+  // would otherwise be mistaken by that generic search for the sentence's
+  // real, outer connective, cutting the sentence apart in the wrong place
+  // (confirmed empirically — without this, `InstrParser.splitCondAndRest`'s own
+  // top-level comma scan also mis-splits this same sentence's cond/action
+  // boundary, fixed separately via `TextSplit.bracedListSpans`). The lazy
+  // `(.+?)` subject group stops at the first " is [=read only=] and does not
+  // have " — every real occurrence's subject is a bare `|attribute|`, but kept
+  // general like `IsOneOfPos`/`Neg`'s `lhsRaw` rather than restricted to a
+  // pipe-var, since nothing here requires that restriction.
+  private val ReadOnlyAndLacksAnyOfAttrList =
+    s"""(?si)^(.+?)\\s+is\\s+\\[=read only=\\]\\s+and\\s+does not have\\s+(?:a|an)\\s+($BracedItemList)\\s+\\[=extended attribute=\\]$$""".r
+  private val BracedAttrName = """\[\{\{([^}]+)\}\}\]""".r
   // "X is [not] declared to inherit from another interface" —
   // webidl_yet_categorized.md category II-C's `#2-2` (`webidl/index.bs:12055`).
   // `Initialize.scala` seeds every interface/namespace record's `"inherit"`
@@ -354,6 +414,13 @@ object CondParser:
         Any(binder, collections, parse(s"|$binder| $predTail"))
       case ExistsSuchThat(binder, body) =>
         Exists(binder, parse(body))
+      case ReadOnlyAndLacksAnyOfAttrList(exprRaw, listRaw) =>
+        val readOnly = Eq(Field(ExprParser.parse(exprRaw), "readonly"), Bool(true))
+        val attrNames = BracedAttrName.findAllMatchIn(listRaw).map(_.group(1)).toList
+        val lacksAll = attrNames
+          .map(name => declaredWithAttr(exprRaw, name, negated = true))
+          .reduceLeft(And.apply)
+        And(readOnly, lacksAll)
       case _ =>
         // A top-level " where " (e.g. "X is of the form Y where Z1 or Z2",
         // index.bs:1212) scopes everything after it to a nested
@@ -464,6 +531,22 @@ object CondParser:
       negated,
     )
 
+  /** "X was [not] declared with a [=constructor operation=]" — a search over
+    * `X.members` (see `DeclaredWithConstructorOpPos`'s own doc) for one whose
+    * `kind` is the `Constructor` enum (`Initialize.scala` seeds `kind` as
+    * `Enum(MemberKind#toString)`, so a `Str` comparison would never match).
+    */
+  private def declaredWithConstructorOp(
+    exprRaw: String,
+    negated: Boolean = false,
+  ): Cond =
+    Any(
+      "m",
+      List(Field(ExprParser.parse(exprRaw), "members")),
+      Eq(Field(Var("m"), "kind"), Enum(MemberKind.Constructor.toString)),
+      negated,
+    )
+
   private def parseAtomic(s: String): Cond = s match
     case UnreachableStep()     => Unreachable
     case ThrowsError(kind)     => Throws(Some(kind))
@@ -498,6 +581,22 @@ object CondParser:
       declaredWithAttr(exprRaw, attrName)
     case DeclaredWithAttrNeg(exprRaw, attrName) =>
       declaredWithAttr(exprRaw, attrName, negated = true)
+    case SpecifiedWithAttrPos(exprRaw, attrName) =>
+      declaredWithAttr(exprRaw, attrName)
+    case SpecifiedWithAttrNeg(exprRaw, attrName) =>
+      declaredWithAttr(exprRaw, attrName, negated = true)
+    case AttrSpecifiedOnNeg(attrName, exprRaw) =>
+      declaredWithAttr(exprRaw, attrName, negated = true)
+    case HasAnyMemberDeclaredWithAttr(exprRaw, attrName) =>
+      Any(
+        "member",
+        List(Field(ExprParser.parse(exprRaw), "members")),
+        declaredWithAttr("|member|", attrName),
+      )
+    case DeclaredWithConstructorOpPos(exprRaw) =>
+      declaredWithConstructorOp(exprRaw)
+    case DeclaredWithConstructorOpNeg(exprRaw) =>
+      declaredWithConstructorOp(exprRaw, negated = true)
     case DeclaredToInheritPos(exprRaw) =>
       Eq(Field(ExprParser.parse(exprRaw), "inherit"), SpecTerm("null"), negated = true)
     case DeclaredToInheritNeg(exprRaw) =>
@@ -547,6 +646,15 @@ object CondParser:
           )
         case ExposedIn(realmRaw) =>
           Exposed(ExprParser.parse(lhsRaw), ExprParser.parse(realmRaw), negated)
+        // "X is [not] [=read only=]" — webidl_yet_categorized.md category
+        // II-A's `#7-2` (webidl/index.bs:12394/12396) reads this off
+        // `Attribute`'s own `readonly: Boolean` field (`Definition.scala`)
+        // rather than falling through to the generic `Eq` case below, which
+        // would otherwise compare `lhsRaw` against the bare term "read only"
+        // — an accidental non-crashing parse (`(= attribute ~read only~)`),
+        // never a real field read.
+        case "[=read only=]" =>
+          Eq(Field(ExprParser.parse(lhsRaw), "readonly"), Bool(true), negated)
         case ArticleLink(noun) =>
           IsType(ExprParser.parse(lhsRaw), noun, negated)
         case IsTheBracedInterfaceLink(name) =>

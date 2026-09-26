@@ -47,12 +47,39 @@ object InstrParser:
   private val ForEachPrefix =
     """(?is)^(?:\[=\S*[/|])?For each(?:=\])?\s+(.+)$""".r
 
-  // a `[=Type=]` xref (or the bare word "element") tagging the loop
-  // variable's type, e.g. "[=operation=] |op|" or "element |key|" — carries
-  // no information ForEach's `elem: Expr` can hold, so it's discarded rather
-  // than fed to ExprParser (which would otherwise mistake it for a call).
+  // one or more `[=Type=]` xrefs (or the bare word "element") tagging the loop
+  // variable's type, e.g. "[=operation=] |op|" or "element |key|", or two
+  // stacked tags (webidl_yet_categorized.md category II-A's `#2-6`,
+  // webidl/index.bs:12078's "[=exposed=] [=member=] |member|") — carries no
+  // information ForEach's `elem: Expr` can hold, so it's discarded rather than
+  // fed to ExprParser (which would otherwise mistake it for a call, or — with
+  // one stacked tag left unstripped — for a nested call it can't resolve at
+  // all, leaving `elem` unbindable and the whole `ForEach` un-lowerable).
   private val ForEachElemTypeTag =
-    """(?is)^(?:\[=[^\]]+=\]|element)\s+(.+)$""".r
+    """(?is)^(?:(?:\[=[^\]]+=\]|element)\s+)+(.+)$""".r
+  // the trailing bound variable of a `ForEach` binder phrase, however many
+  // `[=Type=]` tags precede it (e.g. "[=exposed=] [=member=] |member|" —
+  // `ForEachElemTypeTag` above only strips *one* leading tag, so a two-tag
+  // phrase like this one still has a tag left on it after that; this instead
+  // grabs the `|var|` itself directly, regardless of how many tags precede it).
+  private val ForEachElemVar = """\|(\w+)\|\s*$""".r
+  // "|MEMBER| of |interface| that CLAUSE" — webidl_yet_categorized.md category
+  // II-A's `#2-6` (webidl/index.bs:12078's "For each [=exposed=] [=member=]
+  // |member| of |interface| that is declared with the [{{Unscopable}}]
+  // [=extended attribute=]:"). The collection here isn't a plain list
+  // expression — it's `|interface|`'s members, filtered by a relative clause —
+  // which `ExprParser` has no way to resolve (its `SuchThatDesc` idiom needs a
+  // literal "such that" and produces a single-value existential, not a
+  // filtered collection). Rather than inventing a new `Expr`/lowering-pass
+  // just for this one occurrence, this reuses the exact "skip non-matching
+  // element" idiom already proven out for `define_the_attributes`'s "For each
+  // |attr| of |attributes|: If |attr| is not [=exposed=] in |realm|, then
+  // Continue." (metalang.expected's own precedent) — rewrite the ForEach to
+  // iterate over the *unfiltered* `interface.members`, with a guard
+  // `If(<negated filter>) { Continue }` prepended to skip members the clause
+  // doesn't match.
+  private val ForEachFilteredMembersOf =
+    """(?si)^(\|[^|]+\|)\s+that\s+(.+)$""".r
   private val ForPrefix =
     """(?is)^For\s+(\|[^|]+\|)\s+in\s+(.+)$""".r
   private val WhilePrefix = """(?is)^While\b\s+(.+)$""".r
@@ -302,7 +329,8 @@ object InstrParser:
       case ForEachPrefix(rest) =>
         findTopLevelAny(rest, Seq(" of ", " in ")) match
           case Some((i, sep)) =>
-            val elem = rest.substring(0, i).trim match
+            val elemRaw = rest.substring(0, i).trim
+            val elem = elemRaw match
               case ForEachElemTypeTag(v) => v
               case e                     => e
             val after = rest.substring(i + sep.length)
@@ -335,11 +363,32 @@ object InstrParser:
                   )
                 case _ => Unknown(text, trailingBody)
             else
-              ForEach(
-                ExprParser.parse(elem),
-                ExprParser.parse(collection.trim.stripSuffix(":").trim),
-                trailingBody,
-              )
+              val collectionText = collection.trim.stripSuffix(":").trim
+              (
+                collectionText,
+                ForEachElemVar.findFirstMatchIn(elemRaw),
+              ) match
+                case (
+                      ForEachFilteredMembersOf(baseRaw, clauseRaw),
+                      Some(elemVarMatch),
+                    ) if elemRaw.toLowerCase.contains("member") =>
+                  val elemVar = elemVarMatch.group(1)
+                  val positiveCond =
+                    CondParser.parse(s"|$elemVar| ${clauseRaw.trim}")
+                  val skipCond = positiveCond match
+                    case a: Cond.Any => a.copy(negated = !a.negated)
+                    case other       => other
+                  ForEach(
+                    ExprParser.parse(elem),
+                    Expr.Field(ExprParser.parse(baseRaw), "members"),
+                    If(skipCond, List(Continue())) :: trailingBody,
+                  )
+                case _ =>
+                  ForEach(
+                    ExprParser.parse(elem),
+                    ExprParser.parse(collectionText),
+                    trailingBody,
+                  )
           case None => Unknown(text, trailingBody)
       case ForPrefix(elemStr, rest) =>
         val (collection, bodyText) = splitForCollection(rest)
@@ -411,7 +460,7 @@ object InstrParser:
     * stripped.
     */
   private def splitCondAndRest(text: String): (String, String) =
-    val protectedSpans = isOneOfSpans(text)
+    val protectedSpans = isOneOfSpans(text) ++ bracedListSpans(text)
     def inProtectedSpan(pos: Int): Boolean =
       protectedSpans.exists { case (start, end) => start <= pos && pos < end }
     def find(from: Int): Option[(Int, String)] =

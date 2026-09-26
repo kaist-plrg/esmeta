@@ -113,3 +113,33 @@ private[wji] object TextSplit:
     */
   def isOneOfSpans(text: String): List[(Int, Int)] =
     IsOneOfSpan.findAllMatchIn(text).map(m => (m.start(1), m.end(1))).toList
+
+  // a single `[{{IDL name}}]` token (WebIDL's own bracket-around-braces
+  // convention for linking an extended attribute name, e.g.
+  // `DeclaredWithAttrPos`'s `[{{Global}}]`), and an English list of 2+ of them
+  // joined the same way `EnumList` joins `[=dfn=]` links ("A, B or C") —
+  // webidl_yet_categorized.md category II-A's `#7-2` (webidl/index.bs:12396's
+  // "does not have a [{{LegacyLenientSetter}}], [{{PutForwards}}] or
+  // [{{Replaceable}}] [=extended attribute=]"). Unlike `EnumList`, the trailing
+  // "or ITEM" is required, not optional: a *lone* bracketed attribute name has
+  // no internal separator for a caller to mis-split on in the first place, so
+  // there is nothing to protect there — only a genuine 2+-item list needs a
+  // span at all.
+  // package-private (not `private`): `CondParser.ReadOnlyAndLacksAnyOfAttrList`
+  // reuses this exact fragment for its own whole-sentence match, rather than
+  // keeping a second, driftable copy of the same "braced IDL-name list"
+  // grammar.
+  private[parser] val BracedItem = """\[\{\{[^}]+\}\}\]"""
+  private[parser] val BracedItemList =
+    s"""$BracedItem(?:\\s*,\\s*$BracedItem)*\\s*,?\\s*or\\s+$BracedItem"""
+  private val BracedListSpan = s"""(?si)$BracedItemList""".r
+
+  /** the `[start, end)` character ranges of every "`[{{A}}], [{{B}}] or
+    * [{{C}}]`"-shaped extended-attribute-name list in `text` — the sibling of
+    * [[isOneOfSpans]] for this idiom's own internal ", "/" or " (see that
+    * method's doc for why a caller scanning `text` for a *different*,
+    * outer-level ", "/" or "/" and " needs to skip any candidate position
+    * that falls inside one of these ranges).
+    */
+  def bracedListSpans(text: String): List[(Int, Int)] =
+    BracedListSpan.findAllMatchIn(text).map(m => (m.start, m.end)).toList

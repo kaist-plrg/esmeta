@@ -1563,7 +1563,7 @@
   params: |I|, |id|, |realm|
   head: The [=interface object=] for a given [=interface=] |I| with [=identifier=] |id| and in [=realm=] |realm| is <dfn lt="create an interface object">created</dfn> as follows:
   Let(|steps|, ?(|I|'s [=overridden constructor steps=]) if ?(they exist) else followingSteps())
-    If(?(|I| was not declared with a [=constructor operation=]))
+    If(no m in |I|.[[members]] |m|.[[kind]] is enum(Constructor))
       Perform([=JavaScript/throw=](new {{TypeError}}))
     If(NewTarget is undefined)
       Perform([=JavaScript/throw=](new {{TypeError}}))
@@ -1587,7 +1587,7 @@
   Set(|F|.[[Unforgeables]], |unforgeables|)
   Note(this object is never exposed to user code It exists only to ensure all instances of an interface with an unforgeable member use the same JavaScript function objects for [=attribute getters=], [=attribute setters=] and [=creating an operation function|operation functions=])
   Let(|length|, 0)
-  If(?(|I| was declared with a [=constructor operation=]))
+  If(any m in |I|.[[members]] |m|.[[kind]] is enum(Constructor))
     PerformAndLet([=Compute the effective overload set=]([=identifier=](|id|, [=interface=](|I|, 0))), |S|)
     Set(|length|, length(shortestArgumentList(|S|)))
   Let(|F|, [$CreateBuiltinFunction$](|steps|, |length|, |id|, « "Unforgeables" », |realm|, |constructorProto|))
@@ -1620,9 +1620,11 @@
     Set(?(the internal methods of |interfaceProtoObj| which are specific), [=immutable prototype exotic objects=]([=ECMA-262 Immutable prototype exotic objects=]))
   Else
     Set(|interfaceProtoObj|, [$OrdinaryObjectCreate$](|proto|))
-  If(?(|interface| has any [=member=] declared with the [{{Unscopable}}] [=extended attribute=]))
+  If(any member in |interface|.[[members]] any ea in |member|.[[extendedAttributes]] |ea|.[[id]] is "Unscopable")
     Let(|unscopableObject|, [$OrdinaryObjectCreate$](null))
-    ForEach([=member=](|member|), ?(|interface| that is declared with the [{{Unscopable}}] [=extended attribute=]))
+    ForEach(|member|, |interface|.[[members]])
+      If(no ea in |member|.[[extendedAttributes]] |ea|.[[id]] is "Unscopable")
+        Continue
       Let(|id|, |member|.[[id]])
       Perform(CreateDataPropertyOrThrow(|unscopableObject|, |id|, true))
     Let(|desc|, PropertyDescriptor{[[Value]]: |unscopableObject|, [[Writable]]: false, [[Enumerable]]: false, [[Configurable]]: true})
@@ -1633,7 +1635,7 @@
     Perform([=Define the iteration methods=](|interface|, |interfaceProtoObj|, |realm|))
     Perform([=Define the asynchronous iteration methods=](|interface|, |interfaceProtoObj|, |realm|))
   Perform([=Define the constants=](|interface|, |interfaceProtoObj|, |realm|))
-  If(?(the [{{LegacyNoInterfaceObject}}] [=extended attribute=] was not specified on |interface|))
+  If(no ea in |interface|.[[extendedAttributes]] |ea|.[[id]] is "LegacyNoInterfaceObject")
     Let(|constructor|, [=interface object=](|interface|, |interface|.[[id]], |realm|))
     Let(|desc|, PropertyDescriptor{[[Writable]]: true, [[Enumerable]]: false, [[Configurable]]: true, [[Value]]: |constructor|})
     Perform(DefinePropertyOrThrow(|interfaceProtoObj|, "<code>constructor</code>", |desc|))
@@ -1697,7 +1699,7 @@
         If(|jsValue| is a platform object)
           Perform([=perform a security check=](?(, passing |jsValue|, |attribute|).[[id]], "getter"))
         If(|jsValue| does not [=implement=] |target|)
-          If(?(|attribute| was specified with the [{{LegacyLenientThis}}] [=extended attribute=]))
+          If(any ea in |attribute|.[[extendedAttributes]] |ea|.[[id]] is "LegacyLenientThis")
             Return(undefined)
           Else
             Perform([=JavaScript/throw=](new {{TypeError}}))
@@ -1719,10 +1721,10 @@
   params: |attribute|, |target|, |realm|
   head: The <dfn id="dfn-attribute-setter" export>attribute setter</dfn> is created as follows, given an [=attribute=] |attribute|, a [=namespace=] or [=interface=] |target|, and a [=realm=] |realm|:
   If(|target| is a namespace)
-    Assert(|attribute| is [=read only=])
+    Assert(|attribute|.[[readonly]] is true)
     Return(undefined)
-  If(|attribute| is [=read only=], and ?(does not have a [{{LegacyLenientSetter}}]))
-    ?([{{PutForwards}}] or [{{Replaceable}}] [=extended attribute=], return <emu-val>undefined</emu-val>; there is no [=attribute setter=] function)
+  If(|attribute|.[[readonly]] is true, and no ea in |attribute|.[[extendedAttributes]] |ea|.[[id]] is "LegacyLenientSetter", and no ea in |attribute|.[[extendedAttributes]] |ea|.[[id]] is "PutForwards", and no ea in |attribute|.[[extendedAttributes]] |ea|.[[id]] is "Replaceable")
+    Return(?(<emu-val>undefined</emu-val>; there is no [=attribute setter=] function))
   Assert(?(|attribute|'s type) is not a promise type)
   Let(|steps|, followingSteps())
     Let(|V|, undefined)
@@ -1736,7 +1738,7 @@
       If(|jsValue| is a platform object)
         Perform([=perform a security check=](|jsValue|, |id|, "setter"))
       Let(|validThis|, true if |jsValue| [=implements=] |target| else false)
-      If(|validThis| is false, and ?(|attribute| was not specified with the [{{LegacyLenientThis}}] [=extended attribute=]))
+      If(|validThis| is false, and no ea in |attribute|.[[extendedAttributes]] |ea|.[[id]] is "LegacyLenientThis")
         Perform([=JavaScript/throw=](new {{TypeError}}))
       If(any ea in |attribute|.[[extendedAttributes]] |ea|.[[id]] is "Replaceable")
         Perform(CreateDataPropertyOrThrow(|jsValue|, |id|, |V|))

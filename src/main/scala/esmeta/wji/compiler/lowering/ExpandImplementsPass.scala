@@ -25,14 +25,14 @@ import esmeta.wji.lang.walker.Walker
   * {{{
   *   Or(
   *     Or(IsType(value, "Object", negated = true),
-  *        HasSlot(value, "PrimaryInterface", negated = true)),
+  *         HasSlot(value, "PrimaryInterface", negated = true)),
   *     Contains(iface, AlgoCall(...), negated = true),
   *   )
   * }}}
   * `And`/`Or` compile to short-circuiting `EBinary(BOp.And/Or, ...)`
   * (`Interpreter.shortCircuit`), which is why this shape is safe: the
-  * `[[PrimaryInterface]]` read is never reached unless the slot's existence
-  * has already been confirmed.
+  * `[[PrimaryInterface]]` read is never reached unless the slot's existence has
+  * already been confirmed.
   *
   * `iface` itself is threaded through unchanged — a literal `{{X}}` parses to
   * `Expr.SpecTerm(X)` (`CondParser`), and *that* is resolved to the
@@ -43,12 +43,12 @@ import esmeta.wji.lang.walker.Walker
   * And/Or/Contains` rewrite.
   *
   * Mirrors `ExpandExposedPass`'s own shape and reasoning exactly — a bespoke
-  * `Cond` node rewritten directly into an `AlgoCall` wrapped in ordinary
-  * `Cond` nodes, since `Compiler.compileCond` is a pure `Cond => ir.Expr`
-  * mapping with no way to emit instructions of its own: the `AlgoCall` this
-  * pass builds still needs [[NormalizeEvaluationOrderPass]] to hoist it out
-  * into a preceding `Let` (via the same general `Cond.Contains`-inside-a-
-  * `Cond` handling every other call-bearing `Cond` already goes through), and
+  * `Cond` node rewritten directly into an `AlgoCall` wrapped in ordinary `Cond`
+  * nodes, since `Compiler.compileCond` is a pure `Cond => ir.Expr` mapping with
+  * no way to emit instructions of its own: the `AlgoCall` this pass builds
+  * still needs [[NormalizeEvaluationOrderPass]] to hoist it out into a
+  * preceding `Let` (via the same general `Cond.Contains`-inside-a- `Cond`
+  * handling every other call-bearing `Cond` already goes through), and
   * [[ExpandInlineAlgoCallPass]] to turn that into a real `Perform`.
   *
   * Category: Spec-dependent — WJI.
@@ -57,8 +57,8 @@ object ExpandImplementsPass extends LoweringPass:
 
   /** Must precede:
     *   - [[NormalizeEvaluationOrderPass]]: needs the `AlgoCall` this pass
-    *     builds already in place — that pass is what actually hoists it out
-    *     of the `Contains` into a `Let`.
+    *     builds already in place — that pass is what actually hoists it out of
+    *     the `Contains` into a `Let`.
     */
   override def mustPrecede: Set[LoweringPass] = Set(
     NormalizeEvaluationOrderPass,

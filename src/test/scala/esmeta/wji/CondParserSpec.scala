@@ -152,7 +152,9 @@ class CondParserSpec extends AnyFunSuite:
 
   test("declared to inherit from another interface, positive and negative") {
     assert(
-      CondParser.parse("|interface| is declared to inherit from another interface") ==
+      CondParser.parse(
+        "|interface| is declared to inherit from another interface",
+      ) ==
       Eq(Field(Var("interface"), "inherit"), SpecTerm("null"), negated = true),
     )
     assert(

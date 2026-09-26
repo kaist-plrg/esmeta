@@ -605,11 +605,12 @@ object AddInterfaceMemberBuiltinBehaviourPass extends LoweringPass:
       a.kind match
         case AlgorithmKind.Getter(_) | AlgorithmKind.Setter(_) |
             AlgorithmKind.Constructor(_) | AlgorithmKind.Method(_, _) |
-            AlgorithmKind.NamespaceMethod(_) | AlgorithmKind.NamespaceGetter(_) =>
+            AlgorithmKind.NamespaceMethod(_) |
+            AlgorithmKind.NamespaceGetter(_) =>
           val params = a.kind match
             case AlgorithmKind.Getter(_) | AlgorithmKind.Constructor(_) |
-              AlgorithmKind.NamespaceGetter(_) =>
-                BuiltinParams :+ WjiParam("|NewTarget|")
+                AlgorithmKind.NamespaceGetter(_) =>
+              BuiltinParams :+ WjiParam("|NewTarget|")
             case _ => BuiltinParams
           a.copy(
             params = params,

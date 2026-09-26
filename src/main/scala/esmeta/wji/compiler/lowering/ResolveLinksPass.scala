@@ -23,8 +23,8 @@ import esmeta.wji.lang.walker.Walker
   *     "interface object"/"interface prototype object",
   *     webidl_yet_categorized.md category III-A) — becomes an `AlgoCall`
   *     against the aliased algorithm name, never its own literal (nonexistent)
-  *     name. Checked before the `known` lookup below, since the link's own
-  *     text is never itself in `known`.
+  *     name. Checked before the `known` lookup below, since the link's own text
+  *     is never itself in `known`.
   *   - a `Link` whose name matches a known algorithm becomes an `AlgoCall`,
   *     regardless of args.
   *   - a `Link` used with args that doesn't match a known algorithm is either a
@@ -117,15 +117,15 @@ object ResolveLinksPass extends LoweringPass:
     */
   private val spreadTags: Set[String] = Set("identifier", "interface")
 
-  /** Bridges a WebIDL glossary term that names a cached *value* (never a
-    * `<div algorithm>` of its own, so it can never appear in `known`) to the
-    * real algorithm that constructs it — e.g. "the [=interface object=] of
+  /** Bridges a WebIDL glossary term that names a cached *value* (never a `<div
+    * algorithm>` of its own, so it can never appear in `known`) to the real
+    * algorithm that constructs it — e.g. "the [=interface object=] of
     * |I| in |realm|" (`ExprParser.LinkOfForIn`) means "the result of running
-    * `create an interface object`" (webidl_yet_categorized.md category
-    * III-A), even though the spec prose never spells that call out
-    * explicitly. Checked before the `known` lookup below, so a `Link`
-    * matching a key here always resolves against the aliased algorithm name,
-    * never its own (nonexistent) literal name.
+    * `create an interface object`" (webidl_yet_categorized.md category III-A),
+    * even though the spec prose never spells that call out explicitly. Checked
+    * before the `known` lookup below, so a `Link` matching a key here always
+    * resolves against the aliased algorithm name, never its own (nonexistent)
+    * literal name.
     */
   private val linkAliases: Map[String, String] = Map(
     "interface object" -> "create an interface object",

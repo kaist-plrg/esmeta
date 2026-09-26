@@ -415,8 +415,10 @@ object CondParser:
       case ExistsSuchThat(binder, body) =>
         Exists(binder, parse(body))
       case ReadOnlyAndLacksAnyOfAttrList(exprRaw, listRaw) =>
-        val readOnly = Eq(Field(ExprParser.parse(exprRaw), "readonly"), Bool(true))
-        val attrNames = BracedAttrName.findAllMatchIn(listRaw).map(_.group(1)).toList
+        val readOnly =
+          Eq(Field(ExprParser.parse(exprRaw), "readonly"), Bool(true))
+        val attrNames =
+          BracedAttrName.findAllMatchIn(listRaw).map(_.group(1)).toList
         val lacksAll = attrNames
           .map(name => declaredWithAttr(exprRaw, name, negated = true))
           .reduceLeft(And.apply)
@@ -598,11 +600,18 @@ object CondParser:
     case DeclaredWithConstructorOpNeg(exprRaw) =>
       declaredWithConstructorOp(exprRaw, negated = true)
     case DeclaredToInheritPos(exprRaw) =>
-      Eq(Field(ExprParser.parse(exprRaw), "inherit"), SpecTerm("null"), negated = true)
+      Eq(
+        Field(ExprParser.parse(exprRaw), "inherit"),
+        SpecTerm("null"),
+        negated = true,
+      )
     case DeclaredToInheritNeg(exprRaw) =>
       Eq(Field(ExprParser.parse(exprRaw), "inherit"), SpecTerm("null"))
     case InheritsFromOtherInterface(exprRaw, binder) =>
-      Exists(binder, Eq(Field(ExprParser.parse(exprRaw), "inherit"), Var(binder)))
+      Exists(
+        binder,
+        Eq(Field(ExprParser.parse(exprRaw), "inherit"), Var(binder)),
+      )
     case InInheritedInterfacesOfDeclared(exprRaw, clauseRaw) =>
       val binder = "descendant"
       Any(

@@ -114,10 +114,10 @@ import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr}
   * NaN-payload `SuchThat` cases, index.bs:1434/1442) and any other kind of
   * `Exists` — is left untouched: `Compiler` reports it as `EYet`.
   *
-  * Category: Spec-dependent — SpecTec, except the "inherits from" `Exists`
-  * case above, which is Spec-dependent — WJI (relies on `Initialize.scala`'s
-  * own choice to seed a `"inherit"` record field, not on anything SpecTec's
-  * runtime does).
+  * Category: Spec-dependent — SpecTec, except the "inherits from" `Exists` case
+  * above, which is Spec-dependent — WJI (relies on `Initialize.scala`'s own
+  * choice to seed a `"inherit"` record field, not on anything SpecTec's runtime
+  * does).
   */
 object ExpandExistentialsPass extends LoweringPass:
 
@@ -214,7 +214,10 @@ object ExpandExistentialsPass extends LoweringPass:
     // II-C's `#3-8`) — `P` is directly a record field read (`X.inherit`), not
     // a keyed search, so unlike the map-index shape above this needs no loop
     // at all; see `hoist`'s own case for the rewrite.
-    case Cond.Exists(binder, Cond.Eq(Expr.Field(_, "inherit"), Expr.Var(v), false)) =>
+    case Cond.Exists(
+          binder,
+          Cond.Eq(Expr.Field(_, "inherit"), Expr.Var(v), false),
+        ) =>
       v == binder
     case Cond.And(l, r) => needsHoist(l) || needsHoist(r)
     case Cond.Or(l, r)  => needsHoist(l) || needsHoist(r)

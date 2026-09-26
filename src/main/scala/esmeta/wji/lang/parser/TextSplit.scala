@@ -138,8 +138,8 @@ private[wji] object TextSplit:
     * [{{C}}]`"-shaped extended-attribute-name list in `text` — the sibling of
     * [[isOneOfSpans]] for this idiom's own internal ", "/" or " (see that
     * method's doc for why a caller scanning `text` for a *different*,
-    * outer-level ", "/" or "/" and " needs to skip any candidate position
-    * that falls inside one of these ranges).
+    * outer-level ", "/" or "/" and " needs to skip any candidate position that
+    * falls inside one of these ranges).
     */
   def bracedListSpans(text: String): List[(Int, Int)] =
     BracedListSpan.findAllMatchIn(text).map(m => (m.start, m.end)).toList

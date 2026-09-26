@@ -52,11 +52,11 @@ import esmeta.wji.bridge.host.WasmHost
   * [2026-09-14] `hoist` also recognizes a `Cond.Contains` whose `list` is a
   * bare `Expr.AlgoCall` — e.g. webidl_yet_categorized.md category II-C's
   * `#2-5`, `CondParser.InInheritedInterfacesOfDeclared`'s `Any("descendant",
-  * [all interfaces], And(Contains(interface,
-  * AlgoCall("[=inclusive inherited interfaces=]", [descendant.inherit])),
-  * ...))`, where the call must re-run once per `descendant` — since this
-  * reaches `hoist` via `Cond.Any`'s own recursive `hoist(body, counter)` call,
-  * this needs no new dispatch of its own, just one more case:
+  * [all interfaces], And(Contains(interface, AlgoCall("[=inclusive inherited
+  * interfaces=]", [descendant.inherit])), ...))`, where the call must re-run
+  * once per `descendant` — since this reaches `hoist` via `Cond.Any`'s own
+  * recursive `hoist(body, counter)` call, this needs no new dispatch of its
+  * own, just one more case:
   * {{{
   *   Contains(interface, AlgoCall("[=inclusive inherited interfaces=]", args))
   * }}}
@@ -65,8 +65,8 @@ import esmeta.wji.bridge.host.WasmHost
   *   Perform("[=inclusive inherited interfaces=]", args, BindResult(_call1))
   *   Contains(interface, _call1)
   * }}}
-  * — the `Perform` lands in `bodyPre`, i.e. inside the enclosing loop, once
-  * per iteration, exactly like the `Cond.Matches` case above's own `Perform`.
+  * — the `Perform` lands in `bodyPre`, i.e. inside the enclosing loop, once per
+  * iteration, exactly like the `Cond.Matches` case above's own `Perform`.
   *
   * For `Instr.IfChain`, hoisting a later branch's precondition correctly
   * requires nesting it inside the earlier branches' "false" case rather than

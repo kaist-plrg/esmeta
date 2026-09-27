@@ -82,14 +82,6 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
 6. 카테고리: II-D
    원문 - Otherwise, if |interfaces| contains an [=interface=] which [=support indexed properties|supports indexed properties=], [=support named properties|named properties=], or both: ...
    IR - else if (yet "|interfaces| contains an [=interface=] which [=support indexed properties|supports indexed properties=]")
-
-7. 카테고리: I-A + I-B
-   원문 - Set |instance|.\[[SetPrototypeOf]] as defined in [[#platform-object-setprototypeof]].
-        - Set |instance|.\[[GetOwnProperty]] as defined in [[#legacy-platform-object-getownproperty]].
-           ...
-   IR - (yet "Set |instance|.\[[SetPrototypeOf]] as defined in [[#platform-object-setprototypeof]]")
-      - (yet "Set |instance|.\[[GetOwnProperty]] as defined in [[#legacy-platform-object-getownproperty]]")
-           ...
 ```
 
 ---

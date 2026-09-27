@@ -64,6 +64,16 @@ import esmeta.wji.lang.walker.Walker
   *     silently falling through to the heuristic above, which would just
   *     reproduce the same mis-wrapped-`Case` bug.
   *
+  * A `Link` written as a raw Bikeshed section anchor (`[[#anchor]]`, from "Set
+  * X as defined in [[#anchor]]", webidl_yet_categorized.md category I-B) is
+  * resolved separately from all of the above: it becomes an [[Expr.AlgoRef]] —
+  * a reference to, not a call of, the `<div algorithm>` that section defines —
+  * via `anchorAlgorithms`, since an anchor never appears in the algorithm's own
+  * name (none of these has a `<dfn>`; each is extracted under its `<div
+  * algorithm="...">` id, which `SpecFile.webidlFilter` lists). An anchor
+  * missing from that table throws [[esmeta.error.UnsupportedSpecShape]] rather
+  * than falling through to a `SpecTerm`.
+  *
   * A [[Cond.IsOfForm]]'s `form` field is the one exception to the first rule
   * above: it's always a pattern to destructure against (`ExpandIsOfFormPass`
   * only ever handles a `form` that's already `Expr.Case`), never a genuine
@@ -132,6 +142,32 @@ object ResolveLinksPass extends LoweringPass:
     "interface prototype object" -> "create an interface prototype object",
   )
 
+  /** Maps a raw section anchor (`[[#anchor]]`, see this object's own doc) to
+    * the id of the `<div algorithm="...">` directly following that anchor's
+    * `<h4 id="...">` in webidl/index.bs (13962-14150) — the name
+    * `Compiler.compileAlgo` gives that algorithm, since none has a `<dfn>` of
+    * its own. Each must also be listed in `SpecFile.webidlFilter`.
+    */
+  private val anchorAlgorithms: Map[String, String] = Map(
+    "platform-object-setprototypeof" ->
+    "to invoke the internal [[SetPrototypeOf]] method of a platform object that implements an interface with [Global] extended attribute",
+    "legacy-platform-object-getownproperty" ->
+    "to invoke the [[GetOwnProperty]] internal method of legacy platform objects",
+    "legacy-platform-object-set" ->
+    "to invoke the [[Set]] internal method of legacy platform objects",
+    "legacy-platform-object-defineownproperty" ->
+    "to invoke the [[DefineOwnProperty]] internal method of legacy platform objects",
+    "legacy-platform-object-delete" ->
+    "to invoke the [[Delete]] internal method of legacy platform objects",
+    "legacy-platform-object-preventextensions" ->
+    "to invoke the internal [[PreventExtensions]] method of legacy platform objects",
+    "legacy-platform-object-ownpropertykeys" ->
+    "to invoke the internal [[OwnPropertyKeys]] method of legacy platform objects",
+  )
+
+  /** matches a raw section-anchor link text, capturing the anchor itself */
+  private val AnchorLink = """^\[\[#([\w-]+)\]\]$""".r
+
   /** The part of a (already-`stripLink`ed) link text after its last `/`, or the
     * whole thing if it has none — see the class doc's Case heuristic.
     */
@@ -189,6 +225,14 @@ object ResolveLinksPass extends LoweringPass:
           "ResolveLinksPass",
           s"spread-only link [=${stripLink(link)}=] found outside a call's argument list: $expr",
         )
+      case Expr.Link(AnchorLink(anchor), Nil) =>
+        anchorAlgorithms.get(anchor) match
+          case Some(algoId) => Expr.AlgoRef(s"[=$algoId=]")
+          case None =>
+            throw UnsupportedSpecShape(
+              "ResolveLinksPass",
+              s"section anchor [[#$anchor]] names no known algorithm: $expr",
+            )
       case Expr.Link(link, args) =>
         val resolvedArgs = resolveArgs(args)
         linkAliases.get(stripLink(link).toLowerCase) match

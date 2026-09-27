@@ -3,8 +3,9 @@ package esmeta.wji.compiler.lowering
 import esmeta.wji.lang.{Algorithm, AlgorithmKind, Expr, Instr}
 import esmeta.wji.lang.walker.Walker
 
-/** Normalizes each `Plain`-kind algorithm's `name` — space-to-underscore *and*
-  * lower-cased, so it's both a valid function identifier and matches how
+/** Normalizes each `Plain`-kind algorithm's `name` (or its `id`, when it has no
+  * `name`) — space-to-underscore *and* lower-cased, so it's both a valid
+  * function identifier and matches how
   * `esmeta.wji.compiler.Compiler.compileAlgo` registers `Func` names — and does
   * the same inside every [[Expr.Closure]] reference to a (possibly synthetic,
   * lowering-pass-generated) algorithm name, so a closure reference always
@@ -57,8 +58,11 @@ object NormalizeAlgoNamePass extends LoweringPass:
   def run(algos: List[Algorithm]): List[Algorithm] =
     algos.map { a =>
       val name = a.kind match
+        // one with no `<dfn>` (e.g. webidl's "to invoke the [[Set]] internal
+        // method of legacy platform objects") is registered under its `id`
+        // instead (`Compiler.compileAlgo`), so that must be normalized too.
         case AlgorithmKind.Plain =>
-          a.name.map(normalize)
+          a.name.orElse(a.id).map(normalize)
         case _ => a.name
       a.copy(name = name, body = a.body.map(normalizer.walk))
     }

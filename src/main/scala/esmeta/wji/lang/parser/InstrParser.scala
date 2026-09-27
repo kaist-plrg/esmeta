@@ -282,17 +282,14 @@ object InstrParser:
             // "as defined in [[#anchor]]" (e.g. "Set |instance|.[[SetPrototypeOf]]
             // as defined in [[#platform-object-setprototypeof]]",
             // webidl/index.bs:13861) -- a raw section-anchor reference, not a
-            // `[=term=]` dfn-link, so unlike the AlgoRef branch above this
-            // doesn't resolve it to a callable: that's category I-B
-            // (webidl_yet_categorized.md), not attempted here. This split only
-            // exists so the LHS's bracket notation reaches ExprParser.parse
-            // (category I-A) instead of the whole statement falling to
-            // Unknown below.
+            // `[=term=]` dfn-link. ExprParser keeps it as a neutral `Link`;
+            // ResolveLinksPass maps it to an AlgoRef against the algorithm
+            // that section defines (webidl_yet_categorized.md category I-B).
             splitTopLevel(rest, " as defined in ") match
               case Some((lhs, anchorRef)) =>
                 Set(
                   ExprParser.parse(lhs),
-                  Expr.Unknown(anchorRef.trim),
+                  ExprParser.parse(anchorRef.trim),
                   trailingBody,
                 )
               case None =>

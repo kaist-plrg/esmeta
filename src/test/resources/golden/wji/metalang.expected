@@ -1,4 +1,4 @@
-131 algorithm(s)
+138 algorithm(s)
 # compile a WebAssembly module
   params: |bytes|
   head: To <dfn>compile a WebAssembly module</dfn> from source bytes |bytes|, perform the following steps:
@@ -1996,13 +1996,113 @@
     Perform([=Define the iteration methods=](|interface|, |instance|, |realm|))
     Perform([=Define the asynchronous iteration methods=](|interface|, |instance|, |realm|))
     Perform([=Define the global property references=](|instance|, |realm|))
-    Set(|instance|.[[SetPrototypeOf]], ?([[#platform-object-setprototypeof]]))
+    Set(|instance|.[[SetPrototypeOf]], [[#platform-object-setprototypeof]])
   ElseIf(any iface in |interfaces| any m in |iface|.[[members]] |m|.[[kind]] is enum(IndexedGetter) or |m|.[[kind]] is enum(NamedGetter))
-    Set(|instance|.[[GetOwnProperty]], ?([[#legacy-platform-object-getownproperty]]))
-    Set(|instance|.[[Set]], ?([[#legacy-platform-object-set]]))
-    Set(|instance|.[[DefineOwnProperty]], ?([[#legacy-platform-object-defineownproperty]]))
-    Set(|instance|.[[Delete]], ?([[#legacy-platform-object-delete]]))
-    Set(|instance|.[[PreventExtensions]], ?([[#legacy-platform-object-preventextensions]]))
-    Set(|instance|.[[OwnPropertyKeys]], ?([[#legacy-platform-object-ownpropertykeys]]))
+    Set(|instance|.[[GetOwnProperty]], [[#legacy-platform-object-getownproperty]])
+    Set(|instance|.[[Set]], [[#legacy-platform-object-set]])
+    Set(|instance|.[[DefineOwnProperty]], [[#legacy-platform-object-defineownproperty]])
+    Set(|instance|.[[Delete]], [[#legacy-platform-object-delete]])
+    Set(|instance|.[[PreventExtensions]], [[#legacy-platform-object-preventextensions]])
+    Set(|instance|.[[OwnPropertyKeys]], [[#legacy-platform-object-ownpropertykeys]])
   Return(|instance|)
+
+# to invoke the internal [[SetPrototypeOf]] method of a platform object that implements an interface with [Global] extended attribute
+  id: to invoke the internal [[SetPrototypeOf]] method of a platform object that implements an interface with [Global] extended attribute
+  params: |O|, |V|
+  head: When the \[[SetPrototypeOf]] internal method of a [=platform object=] |O| that implements an [=interface=] with the [{{Global}}] [=extended attribute=] is called with JavaScript language value |V|, the following step is taken:
+  If(|O|.[[Realm]].[[is global prototype chain mutable]] is true)
+    Return([=?=] [$OrdinarySetPrototypeOf$](|O|, |V|))
+  Return([=?=] [$SetImmutablePrototype$](|O|, |V|))
+
+# to invoke the [[GetOwnProperty]] internal method of legacy platform objects
+  id: to invoke the [[GetOwnProperty]] internal method of legacy platform objects
+  params: |O|, |P|
+  head: The \[[GetOwnProperty]] internal method of every [=legacy platform object=] |O| must behave as follows when called with property name |P|:
+  Return([=?=] [$LegacyPlatformObjectGetOwnProperty$](|O|, |P|, false))
+
+# to invoke the [[Set]] internal method of legacy platform objects
+  id: to invoke the [[Set]] internal method of legacy platform objects
+  params: |O|, |P|, |V|, |Receiver|
+  head: The \[[Set]] internal method of every [=legacy platform object=] |O| must behave as follows when called with property name |P|, value |V|, and JavaScript language value |Receiver|:
+  If(?(|O|), and ?(|Receiver| are the same object))
+    If(?(|O| [=implements=] an interface with an [=indexed property setter=]), and |P| is an array index)
+      Perform([=Invoke the indexed property setter=](|O|, |P|, |V|))
+      Return(true)
+    If(?(|O| [=implements=] an interface with a [=named property setter=]), and |P| is a String)
+      Perform([=Invoke the named property setter=](|O|, |P|, |V|))
+      Return(true)
+  Let(|ownDesc|, [=?=] [$LegacyPlatformObjectGetOwnProperty$](|O|, |P|, true))
+  Perform(OrdinarySetWithOwnDescriptor(|O|, |P|, |V|, |Receiver|, |ownDesc|))
+
+# to invoke the [[DefineOwnProperty]] internal method of legacy platform objects
+  id: to invoke the [[DefineOwnProperty]] internal method of legacy platform objects
+  params: |O|, |P|, |Desc|
+  head: When the \[[DefineOwnProperty]] internal method of a [=legacy platform object=] |O| is called with property key |P| and [=Property Descriptor=] |Desc|, the following steps must be taken:
+  If(any m in |O|.[[members]] |m|.[[kind]] is enum(IndexedGetter), and |P| is an array index)
+    If(?(calling <a abstract-op>IsDataDescriptor</a>(|Desc|)) is false)
+      Return(false)
+    If(?(|O| does not implement an interface with an [=indexed property setter=]))
+      Return(false)
+    Perform([=Invoke the indexed property setter=](?(on |O| with |P| and |Desc|).[[Value]]))
+    Return(true)
+  If(any m in |O|.[[members]] |m|.[[kind]] is enum(NamedGetter))
+    Let(|creating|, true if |P| is not a supported property name else false)
+    If(?(|O| [=implements=] an interface with the [{{LegacyOverrideBuiltIns}}] [=extended attribute=]) or ?(|O| does not have an own property named |P|))
+      If(|creating| is false, and ?(|O| does not implement an interface with a [=named property setter=]))
+        Return(false)
+      If(?(|O| [=implements=] an interface with a [=named property setter=]))
+        If(?(calling <a abstract-op>IsDataDescriptor</a>(|Desc|)) is false)
+          Return(false)
+        Perform([=Invoke the named property setter=](?(on |O| with |P| and |Desc|).[[Value]]))
+        Return(true)
+  Return([=!=] [$OrdinaryDefineOwnProperty$](|O|, |P|, |Desc|))
+
+# to invoke the [[Delete]] internal method of legacy platform objects
+  id: to invoke the [[Delete]] internal method of legacy platform objects
+  params: |O|, |P|
+  head: The \[[Delete]] internal method of every [=legacy platform object=] |O| must behave as follows when called with property name |P|.
+  If(any m in |O|.[[members]] |m|.[[kind]] is enum(IndexedGetter), and |P| is an array index)
+    Let(|index|, ?(calling [=!=] <a abstract-op>ToUint32</a>(|P|)))
+    If(|index| is not a supported property indices|supported property index)
+      Return(true)
+    Return(false)
+  If(any m in |O|.[[members]] |m|.[[kind]] is enum(NamedGetter))
+    If(?(|O| does not implement an interface with a [=named property deleter=]))
+      Return(false)
+    Let(|operation|, ?(the operation used to declare the named property deleter))
+    If(?(|operation| was defined without an [=identifier=]))
+      ?(Perform the steps listed in the interface description to [=delete an existing named property=] with |P| as the name)
+      If(?(the steps indicated that the deletion failed))
+        Return(false)
+    Else
+      Perform([=method steps=](|operation|, |O|, [=this=](« |P| »)))
+      If(?(|operation| was declared with a [=return type=] of {{boolean}}), and ?(the steps returned <emu-val>false</emu-val>))
+        Return(false)
+    Return(true)
+  If(?(|O| has an own property with name |P|))
+    If(?(the property) is not ?(configurable))
+      Return(false)
+    Else
+      ?(remove the property from |O|)
+  Return(true)
+
+# to invoke the internal [[PreventExtensions]] method of legacy platform objects
+  id: to invoke the internal [[PreventExtensions]] method of legacy platform objects
+  head: When the \[[PreventExtensions]] internal method of a [=legacy platform object=] is called, the following steps are taken:
+  Return(false)
+  Note(this keeps [=legacy platform objects=] extensible by making \[[PreventExtensions]] fail for them)
+
+# to invoke the internal [[OwnPropertyKeys]] method of legacy platform objects
+  id: to invoke the internal [[OwnPropertyKeys]] method of legacy platform objects
+  params: |O|
+  head: When the \[[OwnPropertyKeys]] internal method of a [=legacy platform object=] |O| is called, the following steps are taken:
+  Let(|keys|, ?(a new empty [=list=] of JavaScript String and Symbol values))
+  If(any m in |O|.[[members]] |m|.[[kind]] is enum(IndexedGetter))
+    ForEach(|index|, ?(|O|'s [=supported property indices=]))
+  If(any m in |O|.[[members]] |m|.[[kind]] is enum(NamedGetter))
+    ForEach(|P|, ?(|O|'s [=supported property names=] that is visible according to the [=named property visibility algorithm=]))
+  ForEach(|P|, ?(|O|'s own property keys that is a String))
+  ForEach(|P|, ?(|O|'s own property keys that is a Symbol))
+  Assert(?(|keys| has no duplicate items))
+  Return(|keys|)
 

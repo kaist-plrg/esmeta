@@ -486,6 +486,12 @@ object ExprParser:
   // Mirrors mainline `esmeta.compiler.Compiler`'s own `InternalSlots` XRef
   // handling, which likewise compiles a bare slot name to `EStr`.
   private val BareSlotName = """(?s)^\\?\[\[([^\]]+)\]\]$""".r
+  // a raw Bikeshed section-anchor reference, e.g. "[[#platform-object-setprototypeof]]"
+  // (webidl/index.bs:13861, webidl_yet_categorized.md category I-B) — kept
+  // as a neutral `Link` for ResolveLinksPass to map to the `<div algorithm>`
+  // that section defines. Must precede BareSlotName, whose `[[...]]` shape it
+  // would otherwise match as a slot name.
+  private val AnchorLink = """(?s)^(\[\[#[\w-]+\]\])$""".r
   private val PossessiveSlot =
     """(?si)^the value of (.+)'s \\?\[\[([^\]]+)\]\] internal slot$""".r
   // "the value of the [[Slot]] slot of BASE" — same PossessiveSlot concept,
@@ -1114,6 +1120,7 @@ object ExprParser:
           splitComma(argsRaw).map(parse),
         )
       case SlotAccess(baseRaw, slot) => Field(parse(baseRaw), stripBraces(slot))
+      case AnchorLink(anchor)        => Link(anchor, Nil)
       case BareSlotName(slot)        => Str(stripBraces(slot))
       case PossessiveSlot(baseRaw, slot) =>
         Field(parse(baseRaw), stripBraces(slot))

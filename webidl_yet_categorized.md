@@ -19,11 +19,6 @@
 - `#1-4` - Let |descriptor| be [=!=] |unforgeables|.\[[GetOwnProperty]](|key|).
 - `#1-7` - Set |instance|.\[[…]] as defined in [[…]]
 
-### I-B. Closure expression
-**공통 원인**: `as defined in [[#platform-object-setprototypeof]]` 로 이어지는 문장을 파싱하지 못함.
-**대응**: closures로 인식.
-- `#1-7`   -- Set |instance|.\[[SetPrototypeOf]] as defined in [[#platform-object-setprototypeof]].
-
 ### I-F. 제어 흐름 관련
 
 - `#6-14`, `#10-15` — end these steps and allow the exception to propagate

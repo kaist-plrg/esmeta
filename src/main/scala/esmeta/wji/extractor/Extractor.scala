@@ -26,7 +26,7 @@ object Extractor:
     val jsApiAlgorithms = AlgorithmExtractor.extract(jsApiSource)
     val webidlAlgorithms = AlgorithmExtractor
       .extractFromFile(SpecFile.webidlIndex)
-      .filter(a => a.name.exists(SpecFile.webidlFilter.contains))
+      .filter(a => a.name.orElse(a.id).exists(SpecFile.webidlFilter.contains))
     val definitions = DefinitionExtractor.extract(jsApiSource)
     val anchors = AnchorExtractor.extract(jsApiSource)
     // `AlgorithmExtractor` produces `AlgorithmKind.Method(for)` for any "The

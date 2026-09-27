@@ -27,13 +27,10 @@ class InstrParserSpec extends AnyFunSuite:
     )
   }
 
-  test(
-    "set ... as defined in [[#anchor]] parses the bracket-notation LHS, " +
-    "leaves the anchor reference as Unknown",
-  ) {
+  test("set ... as defined in [[#anchor]] binds the anchor as a Link") {
     assert(
       parse("Set |x|.[[Foo]] as defined in [[#some-anchor]].") ==
-      List(Set(Field(Var("x"), "Foo"), Expr.Unknown("[[#some-anchor]]"))),
+      List(Set(Field(Var("x"), "Foo"), Link("[[#some-anchor]]", Nil))),
     )
   }
 

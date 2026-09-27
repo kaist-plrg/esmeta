@@ -384,6 +384,14 @@ class ExprParserSpec extends AnyFunSuite:
     )
   }
 
+  test("a section anchor [[#anchor]] is a Link, not a bare slot name") {
+    assert(
+      ExprParser.parse("[[#platform-object-setprototypeof]]") ==
+      Link("[[#platform-object-setprototypeof]]", Nil),
+    )
+    assert(ExprParser.parse("[[Foo]]") == Str("Foo"))
+  }
+
   test("'the value of the [[Slot]] slot of BASE' reads a slot") {
     assert(
       ExprParser.parse(

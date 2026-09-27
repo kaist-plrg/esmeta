@@ -14,7 +14,11 @@ object SpecFile:
   /** path to the Web IDL specification source */
   lazy val webidlIndex: Path = locate("webidl/index.bs")
 
-  /** algorithms extracted from [[webidlIndex]] must have one of these names */
+  /** algorithms extracted from [[webidlIndex]] must have one of these names —
+    * or, for one with no `<dfn>` of its own (e.g. the platform-object internal
+    * methods below, referenced only via "as defined in [[#anchor]]"), one of
+    * these `<div algorithm="...">` ids
+    */
   val webidlFilter: Set[String] = Set(
     "resolve",
     "react",
@@ -41,6 +45,13 @@ object SpecFile:
     "define the static operations",
     "define the constants",
     "inclusive inherited interfaces",
+    "to invoke the internal [[SetPrototypeOf]] method of a platform object that implements an interface with [Global] extended attribute",
+    "to invoke the [[GetOwnProperty]] internal method of legacy platform objects",
+    "to invoke the [[Set]] internal method of legacy platform objects",
+    "to invoke the [[DefineOwnProperty]] internal method of legacy platform objects",
+    "to invoke the [[Delete]] internal method of legacy platform objects",
+    "to invoke the internal [[PreventExtensions]] method of legacy platform objects",
+    "to invoke the internal [[OwnPropertyKeys]] method of legacy platform objects",
   )
 
   /** finds `relPath` in the nearest ancestor of the current directory */

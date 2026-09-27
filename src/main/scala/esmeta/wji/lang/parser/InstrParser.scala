@@ -460,7 +460,9 @@ object InstrParser:
     * stripped.
     */
   private def splitCondAndRest(text: String): (String, String) =
-    val protectedSpans = isOneOfSpans(text) ++ bracedListSpans(text)
+    val protectedSpans =
+      isOneOfSpans(text) ++ bracedListSpans(text) ++
+      supportsPropsListSpans(text)
     def inProtectedSpan(pos: Int): Boolean =
       protectedSpans.exists { case (start, end) => start <= pos && pos < end }
     def find(from: Int): Option[(Int, String)] =

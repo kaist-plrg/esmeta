@@ -159,21 +159,6 @@ II-C의 상속-모델링 gap에 막혀 `EYet`으로 남아 있어 이 카테고�
 - `#3-8` - |I| inherits from some other interface |P|
     - assume false
 
-### II-D. 인터페이스 capability 술어
-**공통 원인**: interface가 특정 WebIDL 메커니즘(named/indexed properties)을 지원하는지.
-**대응**: interface record에 지원 여부를 나타내는 필드 (혹은 해당 mechanism이 정의됐는지 파생 계산).
-
-- `#1-6` - |interfaces| contains an [=interface=] which [=support indexed properties|supports indexed properties=], [=support named properties|named properties=], or both"|interfaces| contains an [=interface=] which supports [=indexed properties=]
-    - assume false
-- `#2-1` - |interface| [=support named properties|supports named properties=]
-    - assume false
-- `#14-1` - |definition| has an [=indexed property getter=]
-    - assume false
-- `#14-2` - |definition| has a [=pair iterator=]
-    - assume false
-- `#15-1` - |definition| does not have an an [=asynchronously iterable declaration=] (of either sort)
-    - assume true
-
 ### II-G. IDL 타입 태그 조회
 
 - `#5-9` - |attr|'s type is an [=observable array type=] with type argument |T|

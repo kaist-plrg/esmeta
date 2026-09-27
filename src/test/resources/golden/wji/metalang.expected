@@ -1602,7 +1602,7 @@
   params: |interface|, |realm|
   head: The [=interface prototype object=] for a given [=interface=] |interface| and [=realm=] |realm| is <dfn lt="create an interface prototype object">created</dfn> as follows:
   Let(|proto|, null)
-  If(any ea in |interface|.[[extendedAttributes]] |ea|.[[id]] is "Global", and |interface| [=support named properties=])
+  If(any ea in |interface|.[[extendedAttributes]] |ea|.[[id]] is "Global", and any m in |interface|.[[members]] |m|.[[kind]] is enum(NamedGetter))
     Set(|proto|, [=create a named properties object=](|interface|, |realm|))
   ElseIf(|interface|.[[inherit]] is not null)
     Set(|proto|, [=interface prototype object=](|interface|.[[inherit]], |realm|))
@@ -1848,14 +1848,14 @@
 # define the iteration methods
   params: |definition|, |target|, |realm|
   head: To <dfn oldids="es-iterable-entries,es-iterable-keys,es-iterable-values">define the iteration methods</dfn> of [=interface=] |definition| on |target|, given [=realm=] |realm|, run the following steps:
-  If(?(|definition| has an [=indexed property getter=]))
+  If(any m in |definition|.[[members]] |m|.[[kind]] is enum(IndexedGetter))
     Perform(DefineMethodProperty(|target|, %Symbol.iterator%, %Array.prototype.values%, false))
     If(?(|definition| has a [=value iterator=]))
       Perform(CreateDataPropertyOrThrow(|target|, "<code>entries</code>", %Array.prototype.entries%))
       Perform(CreateDataPropertyOrThrow(|target|, "<code>keys</code>", %Array.prototype.keys%))
       Perform(CreateDataPropertyOrThrow(|target|, "<code>values</code>", %Array.prototype.values%))
       Perform(CreateDataPropertyOrThrow(|target|, "<code>forEach</code>", %Array.prototype.forEach%))
-  ElseIf(?(|definition| has a [=pair iterator=]))
+  ElseIf(any m in |definition|.[[members]] |m|.[[kind]] is enum(Iterable), and ?(|m|'s type is pair))
     ?(Define the {{%Symbol.iterator%}} and <code class="idl">entries</code> methods:)
       Let(|steps|, followingSteps())
         Let(|jsValue|, [=?=] [$ToObject$](?(<emu-val>this</emu-val> value)))
@@ -1910,7 +1910,7 @@
 # define the asynchronous iteration methods
   params: |definition|, |target|, |realm|
   head: To <dfn>define the asynchronous iteration methods</dfn> of [=interface=] |definition| on |target|, given [=realm=] |realm|, run the following steps:
-  If(?(|definition| does not have an [=asynchronously iterable declaration=] (of either sort)))
+  If(no m in |definition|.[[members]] |m|.[[kind]] is enum(AsyncIterable))
     Return()
   Assert(?(|definition| does not have an [=indexed property getter=]) or ?(an [=iterable declaration=]))
   If(?(|definition| has a [=pair asynchronously iterable declaration=]))
@@ -1997,7 +1997,7 @@
     Perform([=Define the asynchronous iteration methods=](|interface|, |instance|, |realm|))
     Perform([=Define the global property references=](|instance|, |realm|))
     Set(|instance|.[[SetPrototypeOf]], ?([[#platform-object-setprototypeof]]))
-  ElseIf(?(|interfaces| contains an [=interface=] which [=support indexed properties|supports indexed properties=]))
+  ElseIf(any iface in |interfaces| any m in |iface|.[[members]] |m|.[[kind]] is enum(IndexedGetter) or |m|.[[kind]] is enum(NamedGetter))
     Set(|instance|.[[GetOwnProperty]], ?([[#legacy-platform-object-getownproperty]]))
     Set(|instance|.[[Set]], ?([[#legacy-platform-object-set]]))
     Set(|instance|.[[DefineOwnProperty]], ?([[#legacy-platform-object-defineownproperty]]))

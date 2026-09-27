@@ -195,6 +195,45 @@ object CondParser:
   private val ReadOnlyAndLacksAnyOfAttrList =
     s"""(?si)^(.+?)\\s+is\\s+\\[=read only=\\]\\s+and\\s+does not have\\s+(?:a|an)\\s+($BracedItemList)\\s+\\[=extended attribute=\\]$$""".r
   private val BracedAttrName = """\[\{\{([^}]+)\}\}\]""".r
+  // Interface capability predicates — webidl_yet_categorized.md category
+  // II-D. Each is a search over `X.members` by `kind`, the same shape as
+  // `DeclaredWithConstructorOpPos`/`Neg` above (see `hasMemberOfKind`):
+  //   - "X [=support indexed properties|supports indexed properties=]" /
+  //     "X has an [=indexed property getter=]" -> `IndexedGetter` (an
+  //     interface supports indexed properties iff it defines an indexed
+  //     property getter, webidl/index.bs:2757-2758)
+  //   - "X [=support named properties|supports named properties=]" ->
+  //     `NamedGetter` (likewise, index.bs:2930-2933)
+  //   - "X has a [=pair iterator=]" -> `Iterable` *and* the member is a
+  //     pair (`iterable<K, V>`), not a value iterator (`iterable<V>`,
+  //     index.bs:3950-3955). `Iterable` alone doesn't tell the two apart and
+  //     the member record has no type-argument field yet, so the pair check
+  //     stays a `Cond.Unknown` (`yet`) inside the search's body.
+  //   - "X does not have an [=asynchronously iterable declaration=] (of
+  //     either sort)" -> not `AsyncIterable` (value and pair variants share
+  //     one kind, so "of either sort" is just the plain membership test)
+  // The link text may or may not carry a `|display text|` alias, so it's
+  // optional in each pattern.
+  private val SupportsIndexedProps =
+    """(?si)^(\|[^|]+\|)\s+\[=support indexed properties(?:\|[^\]]*)?=\]$""".r
+  private val SupportsNamedProps =
+    """(?si)^(\|[^|]+\|)\s+\[=support named properties(?:\|[^\]]*)?=\]$""".r
+  private val HasIndexedGetterPos =
+    """(?si)^(\|[^|]+\|)\s+has an\s+\[=indexed property getter=\]$""".r
+  private val HasPairIteratorPos =
+    """(?si)^(\|[^|]+\|)\s+has a\s+\[=pair iterator=\]$""".r
+  private val HasAsyncIterableNeg =
+    """(?si)^(\|[^|]+\|)\s+does not have an\s+\[=asynchronously iterable declaration=\](?:\s+\(of either\s+sort\))?$""".r
+  // "X contains an [=interface=] which [=support indexed properties|supports
+  // indexed properties=], [=support named properties|named properties=], or
+  // both" — `#1-6` (index.bs:13862-13864). An existential over the list `X`
+  // whose body is itself a member-kind search, `IndexedGetter` or
+  // `NamedGetter` ("or both" adds nothing to an inclusive or). Matched as one
+  // whole shape before `parse`'s generic top-level " or " split, which would
+  // otherwise cut at the list's own ", or" (`InstrParser.splitCondAndRest`
+  // likewise protects it via `TextSplit.supportsPropsListSpans`).
+  private val ContainsIfaceSupportingIndexedOrNamed =
+    s"""(?si)^(\\|[^|]+\\|)\\s+contains an\\s+\\[=interface=\\]\\s+which\\s+($SupportsPropsList)$$""".r
   // "X is [not] declared to inherit from another interface" —
   // webidl_yet_categorized.md category II-C's `#2-2` (`webidl/index.bs:12055`).
   // `Initialize.scala` seeds every interface/namespace record's `"inherit"`
@@ -414,6 +453,15 @@ object CondParser:
         Any(binder, collections, parse(s"|$binder| $predTail"))
       case ExistsSuchThat(binder, body) =>
         Exists(binder, parse(body))
+      case ContainsIfaceSupportingIndexedOrNamed(exprRaw, _) =>
+        Any(
+          "iface",
+          List(ExprParser.parse(exprRaw)),
+          hasMemberOfKind(
+            "|iface|",
+            List(MemberKind.IndexedGetter, MemberKind.NamedGetter),
+          ),
+        )
       case ReadOnlyAndLacksAnyOfAttrList(exprRaw, listRaw) =>
         val readOnly =
           Eq(Field(ExprParser.parse(exprRaw), "readonly"), Bool(true))
@@ -535,17 +583,28 @@ object CondParser:
 
   /** "X was [not] declared with a [=constructor operation=]" — a search over
     * `X.members` (see `DeclaredWithConstructorOpPos`'s own doc) for one whose
-    * `kind` is the `Constructor` enum (`Initialize.scala` seeds `kind` as
-    * `Enum(MemberKind#toString)`, so a `Str` comparison would never match).
+    * `kind` is the `Constructor` enum.
     */
   private def declaredWithConstructorOp(
     exprRaw: String,
+    negated: Boolean = false,
+  ): Cond = hasMemberOfKind(exprRaw, List(MemberKind.Constructor), negated)
+
+  /** a search over `X.members` for one whose `kind` is any of `kinds`
+    * (`Initialize.scala` seeds `kind` as `Enum(MemberKind#toString)`, so a
+    * `Str` comparison would never match).
+    */
+  private def hasMemberOfKind(
+    exprRaw: String,
+    kinds: List[MemberKind],
     negated: Boolean = false,
   ): Cond =
     Any(
       "m",
       List(Field(ExprParser.parse(exprRaw), "members")),
-      Eq(Field(Var("m"), "kind"), Enum(MemberKind.Constructor.toString)),
+      kinds
+        .map(k => Eq(Field(Var("m"), "kind"), Enum(k.toString)))
+        .reduceLeft(Or.apply),
       negated,
     )
 
@@ -599,6 +658,23 @@ object CondParser:
       declaredWithConstructorOp(exprRaw)
     case DeclaredWithConstructorOpNeg(exprRaw) =>
       declaredWithConstructorOp(exprRaw, negated = true)
+    case SupportsIndexedProps(exprRaw) =>
+      hasMemberOfKind(exprRaw, List(MemberKind.IndexedGetter))
+    case HasIndexedGetterPos(exprRaw) =>
+      hasMemberOfKind(exprRaw, List(MemberKind.IndexedGetter))
+    case SupportsNamedProps(exprRaw) =>
+      hasMemberOfKind(exprRaw, List(MemberKind.NamedGetter))
+    case HasPairIteratorPos(exprRaw) =>
+      Any(
+        "m",
+        List(Field(ExprParser.parse(exprRaw), "members")),
+        And(
+          Eq(Field(Var("m"), "kind"), Enum(MemberKind.Iterable.toString)),
+          Cond.Unknown("|m|'s type is pair"),
+        ),
+      )
+    case HasAsyncIterableNeg(exprRaw) =>
+      hasMemberOfKind(exprRaw, List(MemberKind.AsyncIterable), negated = true)
     case DeclaredToInheritPos(exprRaw) =>
       Eq(
         Field(ExprParser.parse(exprRaw), "inherit"),

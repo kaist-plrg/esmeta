@@ -4365,7 +4365,16 @@ def create_an_interface_prototype_object(
     } else nop
     _i2 = (+ _i2 1)
   }
-  if (&& (= _found1 true) (yet "|interface| support named properties")) {
+  let _found3 = false
+  let _i4 = 0
+  while (&& (= _found3 false) (< _i4 (sizeof interface.members))) {
+    let m = interface.members[_i4]
+    if (= m.kind ~NamedGetter~) {
+      _found3 = true
+    } else nop
+    _i4 = (+ _i4 1)
+  }
+  if (&& (= _found1 true) (= _found3 true)) {
     call _call1 = clo<"create_a_named_properties_object">(interface, realm)
     proto = _call1
   } else {
@@ -4394,35 +4403,35 @@ def create_an_interface_prototype_object(
     call _call3 = clo<"OrdinaryObjectCreate">(proto)
     interfaceProtoObj = _call3
   } else {
-    let _found3 = false
-    let _i4 = 0
-    while (&& (= _found3 false) (< _i4 (sizeof interface.extendedAttributes))) {
-      let ea = interface.extendedAttributes[_i4]
+    let _found5 = false
+    let _i6 = 0
+    while (&& (= _found5 false) (< _i6 (sizeof interface.extendedAttributes))) {
+      let ea = interface.extendedAttributes[_i6]
       if (= ea.id "Global") {
-        _found3 = true
+        _found5 = true
       } else nop
-      _i4 = (+ _i4 1)
+      _i6 = (+ _i6 1)
     }
-    let _found8 = false
-    let _i9 = 0
-    while (&& (= _found8 false) (< _i9 (sizeof @HOST_DEFINED.interfaces))) {
-      let descendant = @HOST_DEFINED.interfaces[_i9]
-      call _call5 = clo<"inclusive_inherited_interfaces">(descendant.inherit)
-      let _found6 = false
-      let _i7 = 0
-      while (&& (= _found6 false) (< _i7 (sizeof descendant.extendedAttributes))) {
-        let ea = descendant.extendedAttributes[_i7]
+    let _found10 = false
+    let _i11 = 0
+    while (&& (= _found10 false) (< _i11 (sizeof @HOST_DEFINED.interfaces))) {
+      let descendant = @HOST_DEFINED.interfaces[_i11]
+      call _call7 = clo<"inclusive_inherited_interfaces">(descendant.inherit)
+      let _found8 = false
+      let _i9 = 0
+      while (&& (= _found8 false) (< _i9 (sizeof descendant.extendedAttributes))) {
+        let ea = descendant.extendedAttributes[_i9]
         if (= ea.id "Global") {
-          _found6 = true
+          _found8 = true
         } else nop
-        _i7 = (+ _i7 1)
+        _i9 = (+ _i9 1)
       }
-      if (&& (contains _call5 interface) (= _found6 true)) {
-        _found8 = true
+      if (&& (contains _call7 interface) (= _found8 true)) {
+        _found10 = true
       } else nop
-      _i9 = (+ _i9 1)
+      _i11 = (+ _i11 1)
     }
-    if (|| (= _found3 true) (= _found8 true)) {
+    if (|| (= _found5 true) (= _found10 true)) {
       call _call4 = clo<"MakeBasicObject">((list ["Prototype", "Extensible"]))
       interfaceProtoObj = _call4
       interfaceProtoObj.Prototype = proto
@@ -4433,40 +4442,40 @@ def create_an_interface_prototype_object(
       interfaceProtoObj = _call6
     }
   }
-  let _found12 = false
-  let _i13 = 0
-  while (&& (= _found12 false) (< _i13 (sizeof interface.members))) {
-    let member = interface.members[_i13]
-    let _found10 = false
-    let _i11 = 0
-    while (&& (= _found10 false) (< _i11 (sizeof member.extendedAttributes))) {
-      let ea = member.extendedAttributes[_i11]
+  let _found14 = false
+  let _i15 = 0
+  while (&& (= _found14 false) (< _i15 (sizeof interface.members))) {
+    let member = interface.members[_i15]
+    let _found12 = false
+    let _i13 = 0
+    while (&& (= _found12 false) (< _i13 (sizeof member.extendedAttributes))) {
+      let ea = member.extendedAttributes[_i13]
       if (= ea.id "Unscopable") {
-        _found10 = true
+        _found12 = true
       } else nop
-      _i11 = (+ _i11 1)
+      _i13 = (+ _i13 1)
     }
-    if (= _found10 true) {
-      _found12 = true
+    if (= _found12 true) {
+      _found14 = true
     } else nop
-    _i13 = (+ _i13 1)
+    _i15 = (+ _i15 1)
   }
-  if (= _found12 true) {
+  if (= _found14 true) {
     call unscopableObject = clo<"OrdinaryObjectCreate">(null)
     let _iterList1 = interface.members
     let _iterIdx2 = 0
     while (< _iterIdx2 (sizeof _iterList1)) {
       let member = _iterList1[_iterIdx2]
-      let _found14 = false
-      let _i15 = 0
-      while (&& (= _found14 false) (< _i15 (sizeof member.extendedAttributes))) {
-        let ea = member.extendedAttributes[_i15]
+      let _found16 = false
+      let _i17 = 0
+      while (&& (= _found16 false) (< _i17 (sizeof member.extendedAttributes))) {
+        let ea = member.extendedAttributes[_i17]
         if (= ea.id "Unscopable") {
-          _found14 = true
+          _found16 = true
         } else nop
-        _i15 = (+ _i15 1)
+        _i17 = (+ _i17 1)
       }
-      if (! (= _found14 true)) {
+      if (! (= _found16 true)) {
         (yet "continue")
       } else nop
       let id = member.id
@@ -4481,32 +4490,32 @@ def create_an_interface_prototype_object(
     })
     call _ = clo<"DefinePropertyOrThrow">(interfaceProtoObj, @SYMBOL.unscopables, desc)
   } else nop
-  let _found16 = false
-  let _i17 = 0
-  while (&& (= _found16 false) (< _i17 (sizeof interface.extendedAttributes))) {
-    let ea = interface.extendedAttributes[_i17]
+  let _found18 = false
+  let _i19 = 0
+  while (&& (= _found18 false) (< _i19 (sizeof interface.extendedAttributes))) {
+    let ea = interface.extendedAttributes[_i19]
     if (= ea.id "Global") {
-      _found16 = true
+      _found18 = true
     } else nop
-    _i17 = (+ _i17 1)
+    _i19 = (+ _i19 1)
   }
-  if (! (= _found16 true)) {
+  if (! (= _found18 true)) {
     call _ = clo<"Define_the_regular_attributes">(interface, interfaceProtoObj, realm)
     call _ = clo<"Define_the_regular_operations">(interface, interfaceProtoObj, realm)
     call _ = clo<"Define_the_iteration_methods">(interface, interfaceProtoObj, realm)
     call _ = clo<"Define_the_asynchronous_iteration_methods">(interface, interfaceProtoObj, realm)
   } else nop
   call _ = clo<"Define_the_constants">(interface, interfaceProtoObj, realm)
-  let _found18 = false
-  let _i19 = 0
-  while (&& (= _found18 false) (< _i19 (sizeof interface.extendedAttributes))) {
-    let ea = interface.extendedAttributes[_i19]
+  let _found20 = false
+  let _i21 = 0
+  while (&& (= _found20 false) (< _i21 (sizeof interface.extendedAttributes))) {
+    let ea = interface.extendedAttributes[_i21]
     if (= ea.id "LegacyNoInterfaceObject") {
-      _found18 = true
+      _found20 = true
     } else nop
-    _i19 = (+ _i19 1)
+    _i21 = (+ _i21 1)
   }
-  if (! (= _found18 true)) {
+  if (! (= _found20 true)) {
     call _guard2 = clo<"create_an_interface_object">(interface, interface.id, realm)
     if (? _guard2: Abrupt) {
       if (? _guard2: Completion) {
@@ -4828,7 +4837,16 @@ def define_the_iteration_methods(
   target: Unknown,
   realm: Unknown,
 ): Unknown = {
-  if (yet "|definition| has an [=indexed property getter=]") {
+  let _found1 = false
+  let _i2 = 0
+  while (&& (= _found1 false) (< _i2 (sizeof definition.members))) {
+    let m = definition.members[_i2]
+    if (= m.kind ~IndexedGetter~) {
+      _found1 = true
+    } else nop
+    _i2 = (+ _i2 1)
+  }
+  if (= _found1 true) {
     call _ = clo<"DefineMethodProperty">(target, @SYMBOL.iterator, ~%Array.prototype.values%~, false)
     if (yet "|definition| has a [=value iterator=]") {
       call _ = clo<"CreateDataPropertyOrThrow">(target, "<code>entries</code>", ~%Array.prototype.entries%~)
@@ -4836,78 +4854,89 @@ def define_the_iteration_methods(
       call _ = clo<"CreateDataPropertyOrThrow">(target, "<code>values</code>", ~%Array.prototype.values%~)
       call _ = clo<"CreateDataPropertyOrThrow">(target, "<code>forEach</code>", ~%Array.prototype.forEach%~)
     } else nop
-  } else if (yet "|definition| has a [=pair iterator=]") {
-    (yet "Define the {{%Symbol.iterator%}} and <code class=\"idl\">entries</code> methods:")
-    let steps = clo<"define_the_iteration_methods_closure1", [definition]>
-    call F = clo<"CreateBuiltinFunction">(steps, 0, "<code>entries</code>", (list []), realm)
-    call _ = clo<"DefineMethodProperty">(target, @SYMBOL.iterator, F, false)
-    call _ = clo<"CreateDataPropertyOrThrow">(target, "<code>entries</code>", F)
-    (yet "Define the <code class=\"idl\">keys</code> method:")
-    let steps = clo<"define_the_iteration_methods_closure2", [definition]>
-    call F = clo<"CreateBuiltinFunction">(steps, 0, "<code>keys</code>", (list []), realm)
-    call _ = clo<"CreateDataPropertyOrThrow">(target, "<code>keys</code>", F)
-    (yet "Define the <code class=\"idl\">values</code> method:")
-    let steps = clo<"define_the_iteration_methods_closure3", [definition]>
-    call F = clo<"CreateBuiltinFunction">(steps, 0, "<code>values</code>", (list []), realm)
-    call _ = clo<"CreateDataPropertyOrThrow">(target, "<code>values</code>", F)
-    (yet "Define the <code class=\"idl\">forEach</code> method:")
-    let steps = (yet "the following series of steps, given function argument values |callback| and |thisArg|:")
-    call _call1 = clo<"ToObject">((yet "<emu-val>this</emu-val> value"))
-    if (? _call1: Abrupt) {
-      if (? _call1: Completion) {
-        return _call1
-      } else {
-        call _ret1 = clo<"NormalCompletion">(_call1)
-        return _ret1
-      }
-    } else {
-      let jsValue = _call1.Value
-    }
-    if (? jsValue: Unknown["platform object"]) {
-      call _ = clo<"perform_a_security_check">(jsValue, "<code>forEach</code>", "<code>method</code>")
-    } else nop
-    let _cond3 = false
-    if (|| (! (? jsValue: Record[Object])) (! (&& (? jsValue: Record[Object]) (exists jsValue.PrimaryInterface)))) {
-      _cond3 = true
-    } else {
-      call _call2 = clo<"inclusive_inherited_interfaces">(jsValue.PrimaryInterface)
-      if (! (contains _call2 definition)) {
-        _cond3 = true
+  } else {
+    let _found3 = false
+    let _i4 = 0
+    while (&& (= _found3 false) (< _i4 (sizeof definition.members))) {
+      let m = definition.members[_i4]
+      if (&& (= m.kind ~Iterable~) (yet "|m|'s type is pair")) {
+        _found3 = true
       } else nop
+      _i4 = (+ _i4 1)
     }
-    if (= _cond3 true) {
-      call _ = clo<"JavaScript/throw">((record [TypeError] {
-        "GetPrototypeOf" : clo<"Record[OrdinaryObject].GetPrototypeOf">,
-        "SetPrototypeOf" : clo<"Record[OrdinaryObject].SetPrototypeOf">,
-        "IsExtensible" : clo<"Record[OrdinaryObject].IsExtensible">,
-        "PreventExtensions" : clo<"Record[OrdinaryObject].PreventExtensions">,
-        "GetOwnProperty" : clo<"Record[OrdinaryObject].GetOwnProperty">,
-        "DefineOwnProperty" : clo<"Record[OrdinaryObject].DefineOwnProperty">,
-        "HasProperty" : clo<"Record[OrdinaryObject].HasProperty">,
-        "Get" : clo<"Record[OrdinaryObject].Get">,
-        "Set" : clo<"Record[OrdinaryObject].Set">,
-        "Delete" : clo<"Record[OrdinaryObject].Delete">,
-        "OwnPropertyKeys" : clo<"Record[OrdinaryObject].OwnPropertyKeys">,
-        "Prototype" : null,
-        "Extensible" : true,
-        "PrivateElements" : (list []),
-        "__MAP__" : (map[Unknown, Unknown]),
-      }))
+    if (= _found3 true) {
+      (yet "Define the {{%Symbol.iterator%}} and <code class=\"idl\">entries</code> methods:")
+      let steps = clo<"define_the_iteration_methods_closure1", [definition]>
+      call F = clo<"CreateBuiltinFunction">(steps, 0, "<code>entries</code>", (list []), realm)
+      call _ = clo<"DefineMethodProperty">(target, @SYMBOL.iterator, F, false)
+      call _ = clo<"CreateDataPropertyOrThrow">(target, "<code>entries</code>", F)
+      (yet "Define the <code class=\"idl\">keys</code> method:")
+      let steps = clo<"define_the_iteration_methods_closure2", [definition]>
+      call F = clo<"CreateBuiltinFunction">(steps, 0, "<code>keys</code>", (list []), realm)
+      call _ = clo<"CreateDataPropertyOrThrow">(target, "<code>keys</code>", F)
+      (yet "Define the <code class=\"idl\">values</code> method:")
+      let steps = clo<"define_the_iteration_methods_closure3", [definition]>
+      call F = clo<"CreateBuiltinFunction">(steps, 0, "<code>values</code>", (list []), realm)
+      call _ = clo<"CreateDataPropertyOrThrow">(target, "<code>values</code>", F)
+      (yet "Define the <code class=\"idl\">forEach</code> method:")
+      let steps = (yet "the following series of steps, given function argument values |callback| and |thisArg|:")
+      call _call1 = clo<"ToObject">((yet "<emu-val>this</emu-val> value"))
+      if (? _call1: Abrupt) {
+        if (? _call1: Completion) {
+          return _call1
+        } else {
+          call _ret1 = clo<"NormalCompletion">(_call1)
+          return _ret1
+        }
+      } else {
+        let jsValue = _call1.Value
+      }
+      if (? jsValue: Unknown["platform object"]) {
+        call _ = clo<"perform_a_security_check">(jsValue, "<code>forEach</code>", "<code>method</code>")
+      } else nop
+      let _cond3 = false
+      if (|| (! (? jsValue: Record[Object])) (! (&& (? jsValue: Record[Object]) (exists jsValue.PrimaryInterface)))) {
+        _cond3 = true
+      } else {
+        call _call2 = clo<"inclusive_inherited_interfaces">(jsValue.PrimaryInterface)
+        if (! (contains _call2 definition)) {
+          _cond3 = true
+        } else nop
+      }
+      if (= _cond3 true) {
+        call _ = clo<"JavaScript/throw">((record [TypeError] {
+          "GetPrototypeOf" : clo<"Record[OrdinaryObject].GetPrototypeOf">,
+          "SetPrototypeOf" : clo<"Record[OrdinaryObject].SetPrototypeOf">,
+          "IsExtensible" : clo<"Record[OrdinaryObject].IsExtensible">,
+          "PreventExtensions" : clo<"Record[OrdinaryObject].PreventExtensions">,
+          "GetOwnProperty" : clo<"Record[OrdinaryObject].GetOwnProperty">,
+          "DefineOwnProperty" : clo<"Record[OrdinaryObject].DefineOwnProperty">,
+          "HasProperty" : clo<"Record[OrdinaryObject].HasProperty">,
+          "Get" : clo<"Record[OrdinaryObject].Get">,
+          "Set" : clo<"Record[OrdinaryObject].Set">,
+          "Delete" : clo<"Record[OrdinaryObject].Delete">,
+          "OwnPropertyKeys" : clo<"Record[OrdinaryObject].OwnPropertyKeys">,
+          "Prototype" : null,
+          "Extensible" : true,
+          "PrivateElements" : (list []),
+          "__MAP__" : (map[Unknown, Unknown]),
+        }))
+      } else nop
+      let idlCallback = (yet "|callback|, [=converted to an IDL value|converted=] to a {{Function}}")
+      let idlObject = (yet "the IDL [=interface type=] value that represents a reference to |jsValue|")
+      let pairs = (yet "|idlObject|'s list of [=value pairs to iterate over=]")
+      let i = 0
+      while (< i (sizeof pairs)) {
+        let pair = pairs[i]
+        call _ = clo<"Invoke">(idlCallback, (list [(yet "|pair|'s [=value pair/value=]"), (yet "|pair|'s [=value pair/key=]"), idlObject]), thisArg, ~callback this value~)
+        pairs = (yet "|idlObject|'s current list of [=value pairs to iterate over=]")
+        (yet "(It might have changed.)")
+        i = (+ i 1)
+      }
+      call F = clo<"CreateBuiltinFunction">(steps, 1, "<code>forEach</code>", (list []), realm)
+      call _ = clo<"CreateDataPropertyOrThrow">(target, "<code>forEach</code>", F)
     } else nop
-    let idlCallback = (yet "|callback|, [=converted to an IDL value|converted=] to a {{Function}}")
-    let idlObject = (yet "the IDL [=interface type=] value that represents a reference to |jsValue|")
-    let pairs = (yet "|idlObject|'s list of [=value pairs to iterate over=]")
-    let i = 0
-    while (< i (sizeof pairs)) {
-      let pair = pairs[i]
-      call _ = clo<"Invoke">(idlCallback, (list [(yet "|pair|'s [=value pair/value=]"), (yet "|pair|'s [=value pair/key=]"), idlObject]), thisArg, ~callback this value~)
-      pairs = (yet "|idlObject|'s current list of [=value pairs to iterate over=]")
-      (yet "(It might have changed.)")
-      i = (+ i 1)
-    }
-    call F = clo<"CreateBuiltinFunction">(steps, 1, "<code>forEach</code>", (list []), realm)
-    call _ = clo<"CreateDataPropertyOrThrow">(target, "<code>forEach</code>", F)
-  } else nop
+  }
   call _ret2 = clo<"NormalCompletion">(~unused~)
   return _ret2
 }
@@ -4916,7 +4945,16 @@ def define_the_asynchronous_iteration_methods(
   target: Unknown,
   realm: Unknown,
 ): Unknown = {
-  if (yet "|definition| does not have an [=asynchronously iterable declaration=] (of either sort)") {
+  let _found1 = false
+  let _i2 = 0
+  while (&& (= _found1 false) (< _i2 (sizeof definition.members))) {
+    let m = definition.members[_i2]
+    if (= m.kind ~AsyncIterable~) {
+      _found1 = true
+    } else nop
+    _i2 = (+ _i2 1)
+  }
+  if (! (= _found1 true)) {
     return ~unused~
   } else nop
   assert (|| (yet "|definition| does not have an [=indexed property getter=]") (yet "an [=iterable declaration=]"))
@@ -5063,7 +5101,25 @@ def internally_create_a_new_object_implementing_the_interface(
     call _ = clo<"Define_the_global_property_references">(instance, realm)
     instance.SetPrototypeOf = (yet "[[#platform-object-setprototypeof]]")
   } else {
-    if (yet "|interfaces| contains an [=interface=] which [=support indexed properties|supports indexed properties=]") {
+    let _found5 = false
+    let _i6 = 0
+    while (&& (= _found5 false) (< _i6 (sizeof interfaces))) {
+      let iface = interfaces[_i6]
+      let _found3 = false
+      let _i4 = 0
+      while (&& (= _found3 false) (< _i4 (sizeof iface.members))) {
+        let m = iface.members[_i4]
+        if (|| (= m.kind ~IndexedGetter~) (= m.kind ~NamedGetter~)) {
+          _found3 = true
+        } else nop
+        _i4 = (+ _i4 1)
+      }
+      if (= _found3 true) {
+        _found5 = true
+      } else nop
+      _i6 = (+ _i6 1)
+    }
+    if (= _found5 true) {
       instance.GetOwnProperty = (yet "[[#legacy-platform-object-getownproperty]]")
       instance.Set = (yet "[[#legacy-platform-object-set]]")
       instance.DefineOwnProperty = (yet "[[#legacy-platform-object-defineownproperty]]")

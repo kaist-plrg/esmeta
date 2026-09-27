@@ -36,7 +36,6 @@ enum MemberKind:
   // Special operations
   case IndexedGetter
   case IndexedSetter
-  case IndexedDeleter
   case NamedGetter
   case NamedSetter
   case NamedDeleter
@@ -67,7 +66,7 @@ case class Attribute(
 ) extends Member
 // TODO
 case class Constant(
-  kind: MemberKind = MemberKind.Constant
+  kind: MemberKind = MemberKind.Constant,
 ) extends Member // TODO
 case class Getter(
   id: Option[String],
@@ -87,13 +86,13 @@ case class Deleter(
   id: Option[String],
   params: List[Param],
   ret: String,
-  kind: MemberKind = MemberKind.IndexedDeleter,
+  kind: MemberKind = MemberKind.NamedDeleter,
   extAttr: List[ExtendedAttribute] = Nil,
 ) extends Member
 // TODO
 case class Iterable(
   kind: MemberKind = MemberKind.Iterable,
-)
+) extends Member
 
 case class Definition(
   name: String,

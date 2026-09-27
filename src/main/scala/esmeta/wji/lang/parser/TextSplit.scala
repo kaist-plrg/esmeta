@@ -143,3 +143,20 @@ private[wji] object TextSplit:
     */
   def bracedListSpans(text: String): List[(Int, Int)] =
     BracedListSpan.findAllMatchIn(text).map(m => (m.start, m.end)).toList
+
+  // "[=support indexed properties|supports indexed properties=], [=support
+  // named properties|named properties=], or both" — webidl_yet_categorized.md
+  // category II-D's `#1-6` (webidl/index.bs:13863-13864). Its ", " before the
+  // second link reads like `InstrParser.splitCondAndRest`'s cond/rest comma,
+  // and its ", or both" like `CondParser.parse`'s top-level " or ".
+  // package-private: `CondParser.ContainsIfaceSupportingIndexedOrNamed`
+  // matches the whole sentence with this same fragment.
+  private[parser] val SupportsPropsList =
+    """\[=support indexed properties(?:\|[^\]]*)?=\],\s*\[=support named properties(?:\|[^\]]*)?=\],?\s*or both"""
+  private val SupportsPropsListSpan = s"""(?si)$SupportsPropsList""".r
+
+  /** the `[start, end)` character ranges of every [[SupportsPropsList]] in
+    * `text` — see [[isOneOfSpans]]'s doc for why a caller needs these.
+    */
+  def supportsPropsListSpans(text: String): List[(Int, Int)] =
+    SupportsPropsListSpan.findAllMatchIn(text).map(m => (m.start, m.end)).toList

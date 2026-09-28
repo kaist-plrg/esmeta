@@ -637,7 +637,7 @@ object Compiler:
           .map(ExprPrinter.render)
           .mkString(", ")}",
       )
-    case metalang.Expr.GetMember(definition, member) =>
+    case metalang.Expr.GetMember(definition, member, _) =>
       impossible(
         s"getting $member of $definition is found",
       )

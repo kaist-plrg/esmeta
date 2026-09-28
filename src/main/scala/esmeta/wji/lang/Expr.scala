@@ -401,7 +401,16 @@ object Expr:
     */
   case class TypeAnnotated(term: String, expr: Expr) extends Expr
 
-  case class GetMember(definition: Expr, member: MemberKind) extends Expr
+  /** "the [=list=] of [[=unforgeable=]] [=KIND=] that are [=members=] of X" —
+    * `unforgeable` restricts the members to those declared with
+    * `[LegacyUnforgeable]` (see
+    * `esmeta.wji.compiler.lowering.ExpandGetMemberPass`).
+    */
+  case class GetMember(
+    definition: Expr,
+    member: MemberKind,
+    unforgeable: Boolean = false,
+  ) extends Expr
 
   extension (expr: Expr)
     /** Every `Expr` directly nested one level inside this one — used for
@@ -441,7 +450,7 @@ object Expr:
       case Opt(inner)                 => inner.toList
       case Conditional(branches, otherwise) =>
         branches.map(_._2) ++ otherwise.toList
-      case GetMember(e, _)      => List(e)
+      case GetMember(e, _, _)   => List(e)
       case Seq_(exprs)          => exprs
       case TypeAnnotated(_, e)  => List(e)
       case RecordLit(_, fields) => fields.map(_._2)

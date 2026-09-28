@@ -544,8 +544,10 @@ object ExprParser:
   // needed for WJI's namespace-only reachable scope. Lowercase, matching the
   // interface/namespace-member field naming convention (see
   // [[fieldFromLink]]).
+  // optionally qualified by "[=unforgeable=]" (webidl/index.bs:12316, 12514,
+  // `define the unforgeable regular attributes/operations`).
   private val MemberOfDefinition =
-    """(?si)^the \[=list=\] of \[=([^\[]+)=\] that are \[=members=\] of (.+)$""".r
+    """(?si)^the \[=list=\] of (\[=unforgeable=\] )?\[=([^\[]+)=\] that are \[=members=\] of (.+)$""".r
   // "|op|'s [=identifier=]" — webidl/index.bs's dfn for an operation's/
   // attribute's name; `esmeta.wji.Initialize.seedHostDefined`'s
   // `operationRecord`/`attributeRecord` both store this under the literal
@@ -1140,14 +1142,14 @@ object ExprParser:
       case IsGlobalPrototypeChainMutable(baseRaw) =>
         Field(parse(baseRaw), "is global prototype chain mutable")
       case AssociatedRealm(baseRaw) => Field(parse(baseRaw), "Realm")
-      case MemberOfDefinition(kind, baseRaw) =>
+      case MemberOfDefinition(unforgeable, kind, baseRaw) =>
         val memberKind = kind match
           case "regular attributes" => MemberKind.RegularAttribute
           case "static attributes"  => MemberKind.StaticAttribute
           case "regular operations" => MemberKind.RegularOperation
           case "static operations"  => MemberKind.StaticOperation
           case _                    => ???
-        GetMember(parse(baseRaw), memberKind)
+        GetMember(parse(baseRaw), memberKind, unforgeable != null)
       case PossessiveAssociation(baseRaw, link) => fieldFromLink(baseRaw, link)
       case IndexByStr(baseRaw, key)    => Index(parse(baseRaw), Str(key))
       case IndexByVar(baseRaw, varRaw) => Index(parse(baseRaw), parse(varRaw))

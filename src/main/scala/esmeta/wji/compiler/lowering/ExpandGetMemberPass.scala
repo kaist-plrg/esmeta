@@ -9,7 +9,7 @@ import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr}
   * explicit filter loop over `definition`'s `members` field:
   *
   * {{{
-  *   Let(lhs, GetMember(definition, kind), body)
+  *   Let(lhs, GetMember(definition, kind, unforgeable), body)
   * }}}
   * becomes
   * {{{
@@ -27,6 +27,12 @@ import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr}
   * each [=constant=] |const| that is a [=const=] of |definition|", see
   * `InstrParser.ForEachConstantOf`) first binds the list the same way, to
   * `_getMemberList`, then iterates over that variable instead.
+  *
+  * With `unforgeable` set ("the [=list=] of [=unforgeable=] [=regular
+  * attributes=] ...", index.bs:12316/12514), the `If` condition additionally
+  * requires the member to be declared with `[LegacyUnforgeable]`
+  * (index.bs:11334-11337) — a search over its `extendedAttributes` list, as in
+  * `CondParser.declaredWithAttr`.
   *
   * `kind` compiles to a literal `Str` compared against each runtime member
   * record's own `kind` field — see `esmeta.wji.Initialize.seedHostDefined`,
@@ -55,10 +61,26 @@ object ExpandGetMemberPass extends LoweringPass:
     instrs.flatMap(expandInstr)
 
   private def expandInstr(instr: Instr): List[Instr] = instr match
-    case Instr.Let(lhs, Expr.GetMember(definition, kind), body) =>
+    case Instr.Let(lhs, Expr.GetMember(definition, kind, unforgeable), body) =>
       val idx = Expr.Var("_getMemberIdx")
       val members = Expr.Field(definition, "members")
       val elem = Expr.Index(members, idx)
+      val isKind =
+        Cond.Eq(Expr.Field(elem, "kind"), Expr.Enum(kind.toString))
+      val cond =
+        if (!unforgeable) isKind
+        else
+          Cond.And(
+            isKind,
+            Cond.Any(
+              "ea",
+              List(Expr.Field(elem, "extendedAttributes")),
+              Cond.Eq(
+                Expr.Field(Expr.Var("ea"), "id"),
+                Expr.Str("LegacyUnforgeable"),
+              ),
+            ),
+          )
       List(
         Instr.Let(lhs, Expr.List_(Nil)),
         Instr.Let(idx, Expr.Num("0")),
@@ -67,10 +89,7 @@ object ExpandGetMemberPass extends LoweringPass:
           List(
             Instr.IfChain(
               List(
-                (
-                  Cond.Eq(Expr.Field(elem, "kind"), Expr.Enum(kind.toString)),
-                  List(Instr.Append(elem, lhs)),
-                ),
+                (cond, List(Instr.Append(elem, lhs))),
               ),
               Nil,
             ),

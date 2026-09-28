@@ -65,25 +65,6 @@ conditional 구조 자체는 이제 파싱되지만, 각 branch의 값이 따로
 
 - `#6-4`, `#7-8`, `#10-5` - Let |jsValue| be the <emu-val>this</emu-val> value, if it is not <emu-val>null</emu-val> or <emu-val>undefined</emu-val>, or |realm|'s [=realm/global object=] otherwise.
 
-### I-O. instruction 파싱 관련
-- `#12-2` - Initialize |argcount| to be min(|maxarg|, |n|).
-- `#12-3` - Remove from |S| all entries whose type list is not of length |argcount|.
-- `#12-5` - Initialize |d| to −1.
-          - Initialize |method| to <emu-val>undefined</emu-val>
-          - Initialize |values| to be an empty list, where each entry will be either an IDL value or the special value "missing".
-          - Initialize |i| to 0."
-- `#12-9` - append to |values| that default value
-          - append to |values| the special value “missing”
-          - append to |values| the result of [=converted to an IDL value|converting=] |V| to IDL type |type|
-
-- `#11-6` - [=set/For each=] operation or extended attribute |X| in |F|: ...
-- `#11-9` - [=list/For each=] |argument| in |arguments|: ...
-- `#11-11` - [=set/Append=] the [=tuple=] (|X|, |types|, |optionalityValues|) to |S|.
-- `#11-14` - [=iteration/While=] |i| ≥ 0: ...
-- `#11-16` - [=iteration/break=]
-- `#11-18` - [=list/For each=] |j| in [=the range=] 0 to |i| − 1, inclusive: ...
-- `#11-19` - [=set/Append=] the [=tuple=] (|X|, |t|, |o|) to |S|.
-
 ---
 
 ## II. Record/IR 모델 gap (interface/attribute/member record 설계와 직결)

@@ -80,8 +80,9 @@ object ExprPrinter:
       val fieldsStr =
         fields.map((name, e) => s"[[$name]]: ${render(e)}").mkString(", ")
       s"$tname{$fieldsStr}"
-    case GetMember(definition, member) =>
-      s"GetMember($definition, $member)"
+    case GetMember(definition, member, unforgeable) =>
+      val flag = if (unforgeable) ", unforgeable" else ""
+      s"GetMember($definition, $member$flag)"
 
   private def renderBOp(op: BOp): String = op match
     case BOp.Add => "+"

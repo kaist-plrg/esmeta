@@ -4649,7 +4649,23 @@ def define_the_unforgeable_regular_attributes(
   target: Unknown,
   realm: Unknown,
 ): Unknown = {
-  let attributes = (yet "the [=list=] of [=unforgeable=] [=regular attributes=] that are [=members=] of |definition|")
+  let attributes = (list [])
+  let _getMemberIdx = 0
+  while (< _getMemberIdx (sizeof definition.members)) {
+    let _found1 = false
+    let _i2 = 0
+    while (&& (= _found1 false) (< _i2 (sizeof definition.members[_getMemberIdx].extendedAttributes))) {
+      let ea = definition.members[_getMemberIdx].extendedAttributes[_i2]
+      if (= ea.id "LegacyUnforgeable") {
+        _found1 = true
+      } else nop
+      _i2 = (+ _i2 1)
+    }
+    if (&& (= definition.members[_getMemberIdx].kind ~RegularAttribute~) (= _found1 true)) {
+      push attributes < definition.members[_getMemberIdx]
+    } else nop
+    _getMemberIdx = (+ _getMemberIdx 1)
+  }
   call _ = clo<"Define_the_attributes">(attributes, definition, target, realm)
   return ~unused~
 }
@@ -4810,7 +4826,23 @@ def define_the_unforgeable_regular_operations(
   target: Unknown,
   realm: Unknown,
 ): Unknown = {
-  let operations = (yet "the [=list=] of [=unforgeable=] [=regular operations=] that are [=members=] of |definition|")
+  let operations = (list [])
+  let _getMemberIdx = 0
+  while (< _getMemberIdx (sizeof definition.members)) {
+    let _found1 = false
+    let _i2 = 0
+    while (&& (= _found1 false) (< _i2 (sizeof definition.members[_getMemberIdx].extendedAttributes))) {
+      let ea = definition.members[_getMemberIdx].extendedAttributes[_i2]
+      if (= ea.id "LegacyUnforgeable") {
+        _found1 = true
+      } else nop
+      _i2 = (+ _i2 1)
+    }
+    if (&& (= definition.members[_getMemberIdx].kind ~RegularOperation~) (= _found1 true)) {
+      push operations < definition.members[_getMemberIdx]
+    } else nop
+    _getMemberIdx = (+ _getMemberIdx 1)
+  }
   call _ = clo<"Define_the_operations">(operations, definition, target, realm)
   return ~unused~
 }

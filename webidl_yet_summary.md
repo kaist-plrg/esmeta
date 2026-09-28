@@ -58,12 +58,6 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
 
 ```
 
-2. 카테고리 - I-O + IV-C
-   원문 - [=list/iterate|For every=] [=interface=] |ancestor interface| in |interfaces|: ...
-           - [=list|For each=] element |key| of |keys|: ...
-   IR - call _ = clo<"list/iterate">((case "INTERFACE" ancestor interface interfaces))
-           - (yet "foreach ?(element |key|) in ?(|keys|:)")
-
 3. 카테고리 - I-A 
    원문 - Let |unforgeables| be the value of the \[[Unforgeables]] slot of the [=interface object=] of |ancestor interface| in |realm|.
    IR - let unforgeables = (yet "the value of the \[[Unforgeables]] slot of the [=interface object=] of |ancestor interface| in |realm|")
@@ -190,12 +184,6 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
 - **하는 일**: `definition`의 regular attribute 중 unforgeable이 아닌 것만 걸러서
   `define_the_attributes`에 넘깁니다.
 
-```
-2. 카테고리 - I-O + II-A + V
-   원문 - [=list/Remove=] from |attributes| all the [=attributes=] that are [=unforgeable=].
-   IR - call _ = clo<"list/remove">(attributes, ~attributes~, ~unforgeable~)
-```
-
 ---
 
 ## #5 `define_the_attributes`
@@ -205,10 +193,6 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
   `DefinePropertyOrThrow`로 `target`에 매단다.
 
 ```
-1. 카테고리 - I-O + IV-C
-   원문 - [=list/For each=] [=attribute=] |attr| of |attributes|: ...
-   IR - call _ = clo<"list/for_each">((case "ATTRIBUTE" attr attributes))
-
 3. 카테고리 - III-B
    원문 - Let |getter| be the result of creating an [=attribute getter=] given |attr|, |definition|, and |realm|.
    IR - let getter = (yet "an [=attribute getter=] given |attr|, |definition|, and |realm|")
@@ -274,10 +258,6 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
 8. 카테고리 - II-A
    원문 - If |attribute| was specified with the [{{LegacyLenientThis}}] [=extended attribute=], then return <emu-val>undefined</emu-val>.
    IR - if (yet "|attribute| was specified with the [{{LegacyLenientThis}}] [=extended attribute=]") { return undefined }
-
-9. 카테고리 - I-O
-   원문 - Otherwise, [=JavaScript/throw=] a <l spec=ecmascript>{{TypeError}}</l>.
-   IR - call _ = clo<"javascript/throw">((record [TypeError] {...}))
 
 10. 카테고리 - II-G
     원문 - If |attribute|'s type is an [=observable array type=], ...
@@ -363,10 +343,6 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
     원문 - If |validThis| is false and |attribute| was not specified with the [{{LegacyLenientThis}}] [=extended attribute=], then ...
     IR - if (&& (= validThis false) (yet "|attribute| was not specified with the [{{LegacyLenientThis}}] [=extended attribute=]")) {  }
 
-13. 카테고리 - I-O
-    원문 - [=JavaScript/throw=] a <l spec=ecmascript>{{TypeError}}</l>.
-    IR - call _ = clo<"javascript/throw">((record [TypeError] {...}))
-
 21. 카테고리 - I-N
     원문 - Set |idlObject| to the IDL [=interface type=] value that represents a reference to |jsValue|.
     IR - idlObject = (yet "the IDL [=interface type=] value that represents a reference to |jsValue|")
@@ -400,12 +376,6 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
   `define_the_operations`에 넘깁니다. `define_the_regular_attributes`(#4)의 operation
   버전입니다.
 
-```
-2. 카테고리 - V + I-O
-   원문 - [=list/Remove=] from |operations| all the [=operations=] that are [=unforgeable=].
-   IR - call _ = clo<"list/remove">(operations, ~operations~, ~unforgeable~)
-```
-
 ---
 
 ## #9 `define_the_operations`
@@ -416,9 +386,6 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
   버전입니다.
 
 ```
-1. 카테고리 - I-O + IV-C
-   원문 - [=list/For each=] [=operation=] |op| of |operations|: ...
-   IR - call _ = clo<"list/for_each">((case "OPERATION" op operations))
 
 3. 카테고리 - IV-D
    원문 - Let |modifiable| be <emu-val>false</emu-val> if |op| is [=unforgeable=] and <emu-val>true</emu-val> otherwise.
@@ -665,7 +632,4 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
 ## #20 `define_the_constants`
 
 ```
-1. 카테고리 - I-O + IV-C
-   원문 - [=list/For each=] [=constant=] |const| that is a [=member=] of |definition|:
-   IR - call _ = clo<"list/for_each">((case "CONSTANT" const (case "MEMBER" definition)))
 ```

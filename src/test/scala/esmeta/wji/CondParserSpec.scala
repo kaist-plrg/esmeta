@@ -364,3 +364,14 @@ class CondParserSpec extends AnyFunSuite:
       CondParser.parse("|a| is equal to |b|") == Eq(Var("a"), Var("b")),
     )
   }
+
+  test("has overridden constructor steps") {
+    assert(
+      CondParser.parse("|I| has [=overridden constructor steps=]") ==
+      Any(
+        "m",
+        List(Field(Var("I"), "members")),
+        Eq(Field(Var("m"), "kind"), Enum("OverriddenConstructor")),
+      ),
+    )
+  }

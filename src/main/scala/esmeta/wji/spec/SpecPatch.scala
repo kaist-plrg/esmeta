@@ -1142,6 +1142,17 @@ object SpecPatch:
     "the [=interface object=] of |interface| in |realm|."
     ->
     "the [=interface object=] of |interface| with identifier |interface|'s [=identifier=] in |realm|.",
+
+    // #57 (hardcoding) — `create an interface object`'s first step
+    // (webidl/index.bs:11939) reads "Let |steps| be |I|'s [=overridden
+    // constructor steps=] if they exist, or the following steps otherwise:".
+    // "they" refers back to `|I|'s [=overridden constructor steps=]`, a
+    // pronoun `CondParser` has no way to resolve, so the subject is spelled
+    // out; `CondParser.HasOverriddenCtorSteps` turns the result into a search
+    // over `|I|.members` for an `OverriddenConstructor` member.
+    "Let |steps| be |I|'s [=overridden constructor steps=] if they exist, or"
+    ->
+    "Let |steps| be |I|'s [=overridden constructor steps=] if |I| has [=overridden constructor steps=], or",
   )
 
   def apply(source: String): String =

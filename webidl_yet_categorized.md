@@ -295,8 +295,6 @@ operation) or for [=static operations=] (if |op| is a static operation)"처럼 �
 - `#12-12` - Let |callable| be the [=operation=] or [=extended attribute=] of the single entry in |S|. 
 
 ### VII-C 그 외
-- `#3-1` - if they exist
-    - assume false
 - `#6-4`, `#7-8`, `#10-5` - it is not <emu-val>null</emu-val> or <emu-val>undefined</emu-val>
 - `#6-14` - end these steps and allow the exception to propagate
 - `#11-4` - Let |maxarg| be the maximum number of arguments the operations, legacy factory functions, or callback functions in |F| are declared to take. For [=variadic=] operations and legacy factory functions, the argument on which the ellipsis appears counts as a single argument.

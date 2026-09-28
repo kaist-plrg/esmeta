@@ -224,6 +224,11 @@ object CondParser:
     """(?si)^(\|[^|]+\|)\s+has a\s+\[=pair iterator=\]$""".r
   private val HasAsyncIterableNeg =
     """(?si)^(\|[^|]+\|)\s+does not have an\s+\[=asynchronously iterable declaration=\](?:\s+\(of either\s+sort\))?$""".r
+  // "X has [=overridden constructor steps=]" — SpecPatch #57's rewrite of
+  // `create an interface object`'s "if they exist" (webidl/index.bs:11939).
+  // A search over `X.members` for an `OverriddenConstructor` member.
+  private val HasOverriddenCtorSteps =
+    """(?si)^(\|[^|]+\|)\s+has\s+\[=overridden constructor steps=\]$""".r
   // "X contains an [=interface=] which [=support indexed properties|supports
   // indexed properties=], [=support named properties|named properties=], or
   // both" — `#1-6` (index.bs:13862-13864). An existential over the list `X`
@@ -675,6 +680,8 @@ object CondParser:
       )
     case HasAsyncIterableNeg(exprRaw) =>
       hasMemberOfKind(exprRaw, List(MemberKind.AsyncIterable), negated = true)
+    case HasOverriddenCtorSteps(exprRaw) =>
+      hasMemberOfKind(exprRaw, List(MemberKind.OverriddenConstructor))
     case DeclaredToInheritPos(exprRaw) =>
       Eq(
         Field(ExprParser.parse(exprRaw), "inherit"),

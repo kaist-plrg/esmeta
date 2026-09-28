@@ -133,14 +133,6 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
 먼저 `steps`로 묶이는, **생성자가 호출될 때마다 실행되는** 부분:
 
 ```
-1. 카테고리 - VII-C
-   원문 - Let |steps| be |I|'s [=overridden constructor steps=] if they exist, or the following steps otherwise:
-   IR - if (yet "they exist") {
-          let steps = (yet "|I|'s [=overridden constructor steps=]")
-        } else {
-          let steps = clo<"create_an_interface_object_closure1", [I, realm]>
-        }
-
 2. 카테고리 - II-A
    원문 - If |I| was not declared with a [=constructor operation=], ...
    IR - if (yet "|I| was not declared with a [=constructor operation=]") { ... }

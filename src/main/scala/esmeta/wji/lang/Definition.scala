@@ -33,6 +33,8 @@ enum MemberKind:
   case RegularAttribute
   case Constructor
   case Constant
+  // OverridenConstructor
+  case OverriddenConstructor
   // Special operations
   case IndexedGetter
   case IndexedSetter

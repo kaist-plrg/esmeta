@@ -4276,7 +4276,16 @@ def create_an_interface_object(
   id: Unknown,
   realm: Unknown,
 ): Unknown = {
-  if (yet "they exist") {
+  let _found1 = false
+  let _i2 = 0
+  while (&& (= _found1 false) (< _i2 (sizeof I.members))) {
+    let m = I.members[_i2]
+    if (= m.kind ~OverriddenConstructor~) {
+      _found1 = true
+    } else nop
+    _i2 = (+ _i2 1)
+  }
+  if (= _found1 true) {
     let steps = (yet "|I|'s [=overridden constructor steps=]")
   } else {
     let steps = clo<"create_an_interface_object_closure1", [I, realm]>
@@ -4302,16 +4311,16 @@ def create_an_interface_object(
   call _ = clo<"Define_the_unforgeable_regular_attributes">(I, unforgeables, realm)
   F.Unforgeables = unforgeables
   let length = 0
-  let _found1 = false
-  let _i2 = 0
-  while (&& (= _found1 false) (< _i2 (sizeof I.members))) {
-    let m = I.members[_i2]
+  let _found3 = false
+  let _i4 = 0
+  while (&& (= _found3 false) (< _i4 (sizeof I.members))) {
+    let m = I.members[_i4]
     if (= m.kind ~Constructor~) {
-      _found1 = true
+      _found3 = true
     } else nop
-    _i2 = (+ _i2 1)
+    _i4 = (+ _i4 1)
   }
-  if (= _found1 true) {
+  if (= _found3 true) {
     call S = clo<"Compute_the_effective_overload_set">(id, I, 0)
     let _shortLen1 = (sizeof S[0].typeList)
     let _shortI2 = 1

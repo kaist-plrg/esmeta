@@ -76,12 +76,6 @@ conditional 구조 자체는 이제 파싱되지만, 각 branch의 값이 따로
           - append to |values| the special value “missing”
           - append to |values| the result of [=converted to an IDL value|converting=] |V| to IDL type |type|
 
-- `#1-2` - [=list/iterate|For every=] [=interface=] |ancestor interface| in |interfaces|: ...
-         - [=list|For each=] element |key| of |keys|: ...
-- `#4-2` - [=list/Remove=] from |attributes| all the [=attributes=] that are [=unforgeable=].
-- `#5-1` - [=list/For each=] [=attribute=] |attr| of |attributes|: ...
-- `#6-9`, `#7-13`, `#10-8` - [=JavaScript/throw=] a <l spec=ecmascript>{{TypeError}}</l>.
-- `#9-1` - [=list/For each=] [=operation=] |op| of |operations|: ...
 - `#11-6` - [=set/For each=] operation or extended attribute |X| in |F|: ...
 - `#11-9` - [=list/For each=] |argument| in |arguments|: ...
 - `#11-11` - [=set/Append=] the [=tuple=] (|X|, |types|, |optionalityValues|) to |S|.
@@ -89,7 +83,6 @@ conditional 구조 자체는 이제 파싱되지만, 각 branch의 값이 따로
 - `#11-16` - [=iteration/break=]
 - `#11-18` - [=list/For each=] |j| in [=the range=] 0 to |i| − 1, inclusive: ...
 - `#11-19` - [=set/Append=] the [=tuple=] (|X|, |t|, |o|) to |S|.
-- `#20-1` - [=list/For each=] [=constant=] |const| that is a [=member=] of |definition|
 
 ---
 
@@ -125,8 +118,6 @@ II-C의 상속-모델링 gap에 막혀 `EYet`으로 남아 있어 이 카테고�
     - assume false
 - `#3-9` - |I| was declared with a [=constructor operation=]
     - assume false
-- `#4-2` - [=list/Remove=] from |attributes| all the [=attributes=] that are [=unforgeable=].
-    - assume no unforgeable attributes
 - `#6-8` - |attribute| was specified with the [{{LegacyLenientThis}}] [=extended attribute=]
     - assume false
 - `#7-2` - |attribute| is [=read only=] and does not have a [{{LegacyLenientSetter}}], [{{PutForwards}}] or [{{Replaceable}}] [=extended attribute=]

@@ -53,12 +53,14 @@ import esmeta.wji.lang.Expr.*
   * `elemKind` (e.g. "operations") becomes a real per-element `Cond.IsType`
   * assertion (singularized by stripping a trailing "s" — a simple heuristic,
   * good enough for every WJI-reachable use of this idiom so far); `property`
-  * (e.g. "unforgeable") becomes a boolean field read, capitalized to match
-  * WJI's own record-field naming convention. Both are genuinely evaluated
-  * against whatever record the list's elements actually are at runtime — see
-  * `esmeta.wji.Initialize`, which is what populates that field (always `false`
-  * for every `Operation` it constructs, since WebAssembly's own operations
-  * never declare `[Unforgeable]`).
+  * (only "unforgeable" so far) becomes a search over the element's
+  * `extendedAttributes` list for an entry whose `id` is `LegacyUnforgeable` (an
+  * unforgeable attribute/operation is exactly one declared with
+  * [{{LegacyUnforgeable}}]) — the same `Cond.Any` shape `CondParser` builds for
+  * "is declared with the [{{X}}] extended attribute", since
+  * `esmeta.wji.Initialize` seeds `extendedAttributes` as a list of `{id,
+  * value}` records, not a map. Both are genuinely evaluated against whatever
+  * record the list's elements actually are at runtime.
   *
   * Category: Structural desugaring — Elimination.
   */
@@ -113,22 +115,14 @@ object ExpandRemovePass extends LoweringPass:
             Instr.IfChain(
               List(
                 (
-                  Cond.Or(
-                    Cond.HasField(
-                      Expr.Field(
-                        Expr.Field(elem, "extendedAttributes"),
-                        "LegacyUnforgeable",
-                      ),
-                      true,
-                    ),
+                  Cond.Any(
+                    "ea",
+                    List(Expr.Field(elem, "extendedAttributes")),
                     Cond.Eq(
-                      Expr.Field(
-                        Expr.Field(elem, "extendedAttributes"),
-                        "LegacyUnforgeable",
-                      ),
-                      Expr.Bool(true),
-                      true,
+                      Expr.Field(Expr.Var("ea"), "id"),
+                      Expr.Str("LegacyUnforgeable"),
                     ),
+                    negated = true,
                   ),
                   List(Instr.Append(elem, list)),
                 ),

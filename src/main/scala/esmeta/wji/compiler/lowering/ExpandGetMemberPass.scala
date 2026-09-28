@@ -23,6 +23,11 @@ import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr}
   *   ...body...
   * }}}
   *
+  * A `ForEach` directly over a `GetMember` (e.g. `define the constants`' "For
+  * each [=constant=] |const| that is a [=const=] of |definition|", see
+  * `InstrParser.ForEachConstantOf`) first binds the list the same way, to
+  * `_getMemberList`, then iterates over that variable instead.
+  *
   * `kind` compiles to a literal `Str` compared against each runtime member
   * record's own `kind` field — see `esmeta.wji.Initialize.seedHostDefined`,
   * which populates every `operation`/`attribute` record's `kind` field with
@@ -73,4 +78,8 @@ object ExpandGetMemberPass extends LoweringPass:
           ),
         ),
       ) ::: transform(body)
+    case Instr.ForEach(elem, getMember: Expr.GetMember, body) =>
+      val list = Expr.Var("_getMemberList")
+      expandInstr(Instr.Let(list, getMember)) :+
+      Instr.ForEach(elem, list, transform(body))
     case _ => List(instr.mapBody(transform))

@@ -28,7 +28,10 @@ object InstrParser:
   // step actually runs.
   private val BareCitation = """(?s)^\[\[[\w-]+\]\]$""".r
   private val ReturnPrefix = """(?is)^Return\b\.?\s*(.*)$""".r
-  private val ThrowPrefix = """(?is)^(?:\[=[Tt]hrow=\]|Throw\b)\s+(.+)$""".r
+  // also a namespaced link, e.g. webidl's "[=JavaScript/throw=] a
+  // {{TypeError}}." (webidl_yet_categorized.md category I-O's `#6-9`)
+  private val ThrowPrefix =
+    """(?is)^(?:\[=(?:[^=\]]*/)?[Tt]hrow=\]|Throw\b)\s+(.+)$""".r
 
   // a "definition by case enumeration" bullet, e.g. `js-api/index.bs`'s
   // "string value of the extern type" ("The <dfn>...</dfn> |type| is * "X" if
@@ -45,7 +48,17 @@ object InstrParser:
   private val IfPrefix = """(?is)^If\b\s+(.+)$""".r
   private val ElsePrefix = """(?is)^(?:Else|Otherwise)\b\s*,?\s*(.*)$""".r
   private val ForEachPrefix =
-    """(?is)^(?:\[=\S*[/|])?For each(?:=\])?\s+(.+)$""".r
+    """(?is)^(?:\[=\S*[/|])?For (?:each|every)(?:=\])?\s+(.+)$""".r
+
+  // "[=constant=] |const| that is a [=const=] of |definition|" — the
+  // `SpecPatch` #57 rewrite of webidl_yet_categorized.md category I-O's
+  // `#20-1` (webidl/index.bs:12275, "define the constants"). Iterates over
+  // `|definition|`'s members of kind `Constant`, i.e. the same `GetMember`
+  // that `ExprParser.MemberOfDefinition` builds for attributes/operations
+  // (lowered by `ExpandGetMemberPass`). Checked before the generic " of "
+  // split, which would otherwise cut at "a [=const=] of".
+  private val ForEachConstantOf =
+    """(?si)^\[=constant=\]\s+(\|[^|]+\|)\s+that is a \[=const=\] of (\|[^|]+\|)\s*:?$""".r
 
   // one or more `[=Type=]` xrefs (or the bare word "element") tagging the loop
   // variable's type, e.g. "[=operation=] |op|" or "element |key|", or two
@@ -323,6 +336,12 @@ object InstrParser:
           List(Return(Some(Expr.Str(lit)), trailingBody)),
         )
       case ElsePrefix(rest) => Else(deriveBody(rest.trim, trailingBody))
+      case ForEachPrefix(ForEachConstantOf(elemRaw, defRaw)) =>
+        ForEach(
+          ExprParser.parse(elemRaw),
+          Expr.GetMember(ExprParser.parse(defRaw), MemberKind.Constant),
+          trailingBody,
+        )
       case ForEachPrefix(rest) =>
         findTopLevelAny(rest, Seq(" of ", " in ")) match
           case Some((i, sep)) =>

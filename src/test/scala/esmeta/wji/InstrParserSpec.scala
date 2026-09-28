@@ -57,6 +57,13 @@ class InstrParserSpec extends AnyFunSuite:
     )
   }
 
+  test("throw via a namespaced [=X/throw=] link") {
+    assert(
+      parse("[=JavaScript/throw=] a {{TypeError}}.") ==
+      List(Throw(New("TypeError"))),
+    )
+  }
+
   test("if, unambiguous (no else branch nearby)") {
     assert(
       parse("If |x| is |y|, return |x|.") ==
@@ -71,6 +78,25 @@ class InstrParserSpec extends AnyFunSuite:
     assert(
       parse("For each |x| of |list|.", List(Return(Some(Var("x"))))) ==
       List(ForEach(Var("x"), Var("list"), List(Return(Some(Var("x")))))),
+    )
+  }
+
+  test("for every, via a [=list/iterate|For every=] link") {
+    assert(
+      parse(
+        "[=list/iterate|For every=] [=interface=] |x| in |list|:",
+        List(Return(Some(Var("x")))),
+      ) ==
+      List(ForEach(Var("x"), Var("list"), List(Return(Some(Var("x")))))),
+    )
+  }
+
+  test("for each constant of a definition iterates its Constant members") {
+    assert(
+      parse(
+        "[=list/For each=] [=constant=] |c| that is a [=const=] of |d|:",
+      ) ==
+      List(ForEach(Var("c"), GetMember(Var("d"), MemberKind.Constant), Nil)),
     )
   }
 

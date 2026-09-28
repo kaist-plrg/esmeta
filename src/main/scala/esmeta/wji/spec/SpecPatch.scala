@@ -1153,6 +1153,17 @@ object SpecPatch:
     "Let |steps| be |I|'s [=overridden constructor steps=] if they exist, or"
     ->
     "Let |steps| be |I|'s [=overridden constructor steps=] if |I| has [=overridden constructor steps=], or",
+
+    // #58 (hardcoding) — `define the constants`' loop header
+    // (webidl/index.bs:12275) iterates over "[=constant=] |const| that is a
+    // [=member=] of |definition|", a filtered-members phrase with no
+    // counterpart to the "the [=list=] of [=X=] that are [=members=] of"
+    // idiom `ExprParser.MemberOfDefinition` already maps to `GetMember`.
+    // Rewritten to a fixed shape `InstrParser.ForEachConstantOf` recognizes
+    // and turns into `ForEach(|const|, GetMember(|definition|, Constant))`.
+    "[=constant=] |const| that is a [=member=] of |definition|"
+    ->
+    "[=constant=] |const| that is a [=const=] of |definition|",
   )
 
   def apply(source: String): String =

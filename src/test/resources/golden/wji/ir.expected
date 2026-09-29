@@ -4452,7 +4452,7 @@ def create_an_interface_object(
   }
   let constructorProto = realm.Intrinsics["%Function.prototype%"]
   if (yet "|I| inherits from some other interface |P|") {
-    constructorProto = (yet "the [=interface object=] of |P| with identifier |P|'s [=identifier=] in |realm|")
+    constructorProto = (yet "the [=interface object=] of |P| in |realm|")
   } else nop
   let length = 0
   if (yet "|I| was declared with a [=constructor operation=]") {
@@ -4559,7 +4559,7 @@ def create_an_interface_prototype_object(
   } else nop
   call _ = clo<"Define_the_constants">(interface, interfaceProtoObj, realm)
   if (yet "the [{{LegacyNoInterfaceObject}}] [=extended attribute=] was not specified on |interface|") {
-    let constructor = (yet "the [=interface object=] of |interface| with identifier |interface|'s [=identifier=] in |realm|")
+    let constructor = (yet "the [=interface object=] of |interface| in |realm|")
     let desc = (record [PropertyDescriptor] {
       "Writable" : true,
       "Enumerable" : false,

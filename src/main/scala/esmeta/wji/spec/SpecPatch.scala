@@ -1386,6 +1386,102 @@ object SpecPatch:
     "1. Let |charCode| be [$CharCodeAt$](|string|, |i|)."
     ->
     "1. Let |charCode| be [$CharCodeAt$](|string|, [=𝔽=](|i|)).",
+
+    // #70 (spec bug, docs/spec_errors.md #37) — `create an interface
+    // prototype object`'s own `#2-2` recursive-call step
+    // (webidl/index.bs:12055-12056) has its "of X"/"in |realm|" clauses
+    // transposed relative to every other "the interface (prototype) object
+    // of X in realm" reference in this document (lines 11963/12030/12094, all
+    // "of X in realm"): "... in |realm|\n        of that [=inherited
+    // interface=]." Reordered to match; `ExprParser.LinkOfInheritedInterfaceIn`
+    // parses the result the same way `LinkOfForIn` already parses those other
+    // sites.
+    "[=interface prototype object=] in |realm|\n        of that [=inherited interface=]."
+    ->
+    "[=interface prototype object=] of that [=inherited interface=] in |realm|.",
+
+    // #71 (spec bug, docs/spec_errors.md #38) — both call sites of `create an
+    // interface object` ("the [=interface object=] of X in |realm|",
+    // webidl/index.bs:11963,12094) elide its declared third parameter `|id|`
+    // (webidl/index.bs:11933-11936: "The interface object for a given
+    // interface |I| with identifier |id| and in realm |realm| ..."). Every
+    // real invocation supplies the same interface's own identifier
+    // (webidl/index.bs:12029's own `Let |F| be CreateBuiltinFunction(|steps|,
+    // |length|, |id|, ..., |constructorProto|)`), so it's spelled out
+    // explicitly here rather than left for `ResolveLinksPass` to guess at;
+    // `ExprParser.LinkOfWithIdentifierIn` parses the 3-arg result.
+    "the [=interface object=] of |P| in |realm|."
+    ->
+    "the [=interface object=] of |P| with identifier |P|'s [=identifier=] in |realm|.",
+    "the [=interface object=] of |interface| in |realm|."
+    ->
+    "the [=interface object=] of |interface| with identifier |interface|'s [=identifier=] in |realm|.",
+
+    // #72 (hardcoding) — `create an interface object`'s first step
+    // (webidl/index.bs:11939) reads "Let |steps| be |I|'s [=overridden
+    // constructor steps=] if they exist, or the following steps otherwise:".
+    // "they" refers back to `|I|'s [=overridden constructor steps=]`, a
+    // pronoun `CondParser` has no way to resolve, so the subject is spelled
+    // out; `CondParser.HasOverriddenCtorSteps` turns the result into a search
+    // over `|I|.members` for an `OverriddenConstructor` member.
+    "Let |steps| be |I|'s [=overridden constructor steps=] if they exist, or"
+    ->
+    "Let |steps| be |I|'s [=overridden constructor steps=] if |I| has [=overridden constructor steps=], or",
+
+    // #73 (hardcoding) — `define the constants`' loop header
+    // (webidl/index.bs:12275) iterates over "[=constant=] |const| that is a
+    // [=member=] of |definition|", a filtered-members phrase with no
+    // counterpart to the "the [=list=] of [=X=] that are [=members=] of"
+    // idiom `ExprParser.MemberOfDefinition` already maps to `GetMember`.
+    // Rewritten to a fixed shape `InstrParser.ForEachConstantOf` recognizes
+    // and turns into `ForEach(|const|, GetMember(|definition|, Constant))`.
+    "[=constant=] |const| that is a [=member=] of |definition|"
+    ->
+    "[=constant=] |const| that is a [=const=] of |definition|",
+
+    // #74 (spec bug, docs/spec_errors.md #39) — `create an interface object`
+    // (webidl/index.bs:11964-11980) sets "|F|.\[[Unforgeables]]" three steps
+    // before "Let |F| be CreateBuiltinFunction(...)" ever binds |F|. The
+    // unforgeables block (with its Note) is moved to right after |F|'s
+    // definition; nothing between the two reads |unforgeables| or |F|, so the
+    // reorder has no other effect.
+    """    1.  Let |unforgeables| be [$OrdinaryObjectCreate$](<emu-val>null</emu-val>).
+      #    1.  [=Define the unforgeable regular operations=] of |I| on |unforgeables|, given |realm|.
+      #    1.  [=Define the unforgeable regular attributes=] of |I| on |unforgeables|, given |realm|.
+      #    1.  Set |F|.\[[Unforgeables]] to |unforgeables|.
+      #
+      #        Note: this object is never exposed to user code. It exists only to ensure all instances
+      #        of an interface with an unforgeable member use the same JavaScript function objects for
+      #        [=attribute getters=], [=attribute setters=] and [=creating an operation
+      #        function|operation functions=].
+      #    1.  Let |length| be 0.
+      #    1.  If |I| was declared with a [=constructor operation=], then
+      #        1.  [=Compute the effective overload set=] for constructors with [=identifier=] |id| on
+      #            [=interface=] |I| and with argument count 0, and let |S| be the result.
+      #        1.  Set |length| to the length of the
+      #            shortest argument list of the entries in |S|.
+      #    1.  Let |F| be <a abstract-op>CreateBuiltinFunction</a>(|steps|, |length|, |id|, « \[[Unforgeables]] »,
+      #        |realm|, |constructorProto|).
+      #""".stripMargin('#')
+    ->
+    """    1.  Let |length| be 0.
+      #    1.  If |I| was declared with a [=constructor operation=], then
+      #        1.  [=Compute the effective overload set=] for constructors with [=identifier=] |id| on
+      #            [=interface=] |I| and with argument count 0, and let |S| be the result.
+      #        1.  Set |length| to the length of the
+      #            shortest argument list of the entries in |S|.
+      #    1.  Let |F| be <a abstract-op>CreateBuiltinFunction</a>(|steps|, |length|, |id|, « \[[Unforgeables]] »,
+      #        |realm|, |constructorProto|).
+      #    1.  Let |unforgeables| be [$OrdinaryObjectCreate$](<emu-val>null</emu-val>).
+      #    1.  [=Define the unforgeable regular operations=] of |I| on |unforgeables|, given |realm|.
+      #    1.  [=Define the unforgeable regular attributes=] of |I| on |unforgeables|, given |realm|.
+      #    1.  Set |F|.\[[Unforgeables]] to |unforgeables|.
+      #
+      #        Note: this object is never exposed to user code. It exists only to ensure all instances
+      #        of an interface with an unforgeable member use the same JavaScript function objects for
+      #        [=attribute getters=], [=attribute setters=] and [=creating an operation
+      #        function|operation functions=].
+      #""".stripMargin('#'),
   )
 
   def apply(source: String): String =

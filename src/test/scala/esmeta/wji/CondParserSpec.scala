@@ -20,6 +20,18 @@ class CondParserSpec extends AnyFunSuite:
     )
   }
 
+  test("is-the-braced-interface-link, positive and negative") {
+    assert(
+      CondParser.parse("|interface| is the {{DOMException}} [=interface=]") ==
+      IsType(Var("interface"), "DOMException"),
+    )
+    assert(
+      CondParser.parse(
+        "|interface| is not the {{DOMException}} [=interface=]",
+      ) == IsType(Var("interface"), "DOMException", negated = true),
+    )
+  }
+
   test("matches, positive and negative") {
     // real spec occurrences always write the dfn link with a "|matches"
     // display-text alias (e.g. "[=matches/valtype|matches=]") — see

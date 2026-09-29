@@ -301,7 +301,7 @@ Retracted — its premise was wrong. This entry claimed the Wasm Core Spec's `fu
       null otherwise.
   ```
 - **Reason**: `|I|` is bound once (step 2, `Let |interface| be |I|`) and never reassigned, so "the interface that `|I|` inherits from" is a constant — `|I|`'s own immediate parent — for every iteration of the loop. Trace it for `|I|` inheriting from `|P|`, with `|P|` itself having no parent: iteration 1 appends `|I|`, then sets `|interface|` to `|P|` (correct so far, since `|I|`'s parent is `|P|`); iteration 2 appends `|P|`, then sets `|interface|` to "the interface that `|I|` inherits from" again — still `|P|`, not `|P|`'s parent (there is none) — so `|interface|` never becomes null and the loop appends `|P|` forever. This isn't limited to inheritance chains of depth ≥ 2: it infinite-loops for *any* interface that inherits from anything at all, since step 3.2 can only ever produce `|I|`'s own direct parent (or, for the base case, keep re-deriving the same non-null value) instead of walking one level further up the chain each time. Replacing `|I|` with `|interface|` in step 3.2 is the fix — it makes each iteration derive the *next* interface up from wherever the walk currently is, which is what "inherited interfaces" (a term this very algorithm is defining) requires.
-<<<<<<< HEAD
+
 ## 26. `"a new Exported GC Object"`'s cache keys purely by `|objectaddr|`, but struct/array addresses aren't unique together
 
 - **File**: `spectec/document/js-api/index.bs`, lines 1646-1669 (`"a new Exported GC Object"`)
@@ -422,3 +422,55 @@ Retracted — its premise was wrong. This entry claimed the Wasm Core Spec's `fu
 - **Expected**: an `array_read`/`array_write`/`array_len` triple (or a `struct` equivalent), mirroring the existing table/global/memory ones, so `fromCharCodeArray`/`intoCharCodeArray` (`js-api/index.bs`'s "the number of elements in |array|"/"the value of the element stored at index X in |array|"/"Set the element at index X in |array| to Y") have a real, formally-defined mechanism to read/write a store-addressed GC array through, the same way `Table.prototype.get`/`set` do via `[=table_read=]`/`[=table_write=]`.
 - **Reason**: the embedding appendix predates the GC proposal (arrays/structs) entirely, so it was never updated to cover them — not an oversight specific to js-string-builtins, but a genuine, checkable gap in the Wasm Core Spec's own appendix (every *other* store-addressed collection this corpus touches has a defined embedding relation; arrays are the only exception). `fromCharCodeArray`/`intoCharCodeArray`'s own *reads* happen to still work without this (WJI's `store` value is fully marshalled on the Scala side, so a plain `store.ARRAYS[a].FIELDS` field/index read already works generically — see `FixJsStringArrayParamPass`), but *writes* have no such fallback: `esmeta.state.Value.asAddr`/`asList` require a genuine heap `Addr` to write through, and WJI's compiler has no way to construct a *replacement* Wasm struct value (`ALValue.StrV`) of its own either (`Expr.Case`/`ECase` only builds the positional `ALValue.CaseV` shape) — so there's no way to functionally rebuild an updated `store` on the WJI side even in principle.
 - Fixed by adding `array_write` directly to `embedding.ml`/`server.ml` (`[spectec]`-prefixed commit) and `WasmHost.paramNames`, mirroring `table_write`'s own implementation field-for-field (`ARRAYS`/`FIELDS` in place of `TABLES`/`REFS`) — see that function's own doc comment. Only the write direction; reads still go through the plain `store.ARRAYS[...]` field access above, no RPC round trip needed. `array_read`/`array_len` are deliberately not added — nothing in this corpus needs them yet.
+
+## 37. `create an interface prototype object`'s own recursive-call step has its `in |realm|`/`of X` clauses swapped
+
+- **File**: `webidl/index.bs`, lines 12055-12056 (`create an interface prototype object`'s `#2-2` branch, webidl_yet_categorized.md category II-C).
+- **Current**:
+  ```
+          then set |proto| to the [=interface prototype object=] in |realm|
+          of that [=inherited interface=].
+  ```
+- **Expected**: `then set |proto| to the [=interface prototype object=] of that [=inherited interface=] in |realm|.`
+- **Reason**: Every other reference to this same "the interface (prototype) object of X in realm" construction in this document — line 11963's `of |P| in |realm|`, line 12030's `of [=interface=] |I| in |realm|`, line 12094's `of |interface| in |realm|` — names the subject before the realm. Only this one site has the two clauses transposed (realm first, subject clause second, with a line-wrap in between). Like #27, this doesn't change what the step means — its realm and subject are unambiguous either way — but unlike #27's duplicated word, this one is a clause-order transposition, not a repeated token; grouped here as the same *kind* of harmless typing slip, not the same mechanical shape of mistake.
+- Fixed via `SpecPatch` #70.
+
+## 38. Both call sites of `create an interface object` elide its required `id` argument
+
+- **File**: `webidl/index.bs`, lines 11963 (inside `create an interface object`'s own `#2-2`-sibling step) and 12094 (inside `create an interface prototype object`'s `LegacyNoInterfaceObject` branch).
+- **Current**: `then set |constructorProto| to the [=interface object=] of |P| in |realm|.` (line 11963), and `Let |constructor| be the [=interface object=] of |interface| in |realm|.` (line 12094).
+- **Expected**: `the [=interface object=] of |P| with identifier |P|'s [=identifier=] in |realm|.` (and the `|interface|` analog at line 12094).
+- **Reason**: `create an interface object` is declared (line 11933-11936) as taking three parameters — "The interface object for a given interface |I| with identifier |id| and in realm |realm| is created as follows" — but both noun-phrase references to it ("the interface object of X in realm") name only the interface and the realm, never the identifier, even though nothing in either surrounding algorithm otherwise establishes what `id` should be. Every real invocation of this algorithm supplies the same interface's own identifier (see the algorithm's own body, line 12029: `Let |F| be CreateBuiltinFunction(|steps|, |length|, |id|, ..., |constructorProto|)`, where `|id|` is `|I|`'s own identifier bound at the top of the same algorithm), so the elided argument is unambiguous — just never written down at either call site.
+- Fixed via `SpecPatch` #71.
+
+## 39. `create an interface object` sets `|F|.[[Unforgeables]]` before `|F|` is defined
+
+- **File**: `webidl/index.bs`, lines 11964-11980 (`create an interface object`).
+- **Current**:
+  ```
+  1.  Let |unforgeables| be [$OrdinaryObjectCreate$](<emu-val>null</emu-val>).
+  1.  [=Define the unforgeable regular operations=] of |I| on |unforgeables|, given |realm|.
+  1.  [=Define the unforgeable regular attributes=] of |I| on |unforgeables|, given |realm|.
+  1.  Set |F|.\[[Unforgeables]] to |unforgeables|.
+      Note: ...
+  1.  Let |length| be 0.
+  1.  If |I| was declared with a [=constructor operation=], then
+      ...
+  1.  Let |F| be CreateBuiltinFunction(|steps|, |length|, |id|, « \[[Unforgeables]] »,
+      |realm|, |constructorProto|).
+  ```
+- **Expected**: the four `|unforgeables|` steps (and their Note) come after `|F|` is defined:
+  ```
+  1.  Let |length| be 0.
+  1.  If |I| was declared with a [=constructor operation=], then
+      ...
+  1.  Let |F| be CreateBuiltinFunction(|steps|, |length|, |id|, « \[[Unforgeables]] »,
+      |realm|, |constructorProto|).
+  1.  Let |unforgeables| be [$OrdinaryObjectCreate$](<emu-val>null</emu-val>).
+  1.  [=Define the unforgeable regular operations=] of |I| on |unforgeables|, given |realm|.
+  1.  [=Define the unforgeable regular attributes=] of |I| on |unforgeables|, given |realm|.
+  1.  Set |F|.\[[Unforgeables]] to |unforgeables|.
+      Note: ...
+  ```
+- **Reason**: `|F|` is first bound by `Let |F| be CreateBuiltinFunction(...)`, three steps after `Set |F|.\[[Unforgeables]] to |unforgeables|` writes to it, so the `Set` step refers to an unbound variable. `CreateBuiltinFunction` is what gives `|F|` its `[[Unforgeables]]` internal slot (via the `« \[[Unforgeables]] »` slot list), so the slot can only be set after that call. None of the steps in between (`|length|` and the overload-set computation) reads `|unforgeables|` or `|F|`, so moving the unforgeables block to after `|F|`'s definition changes nothing else.
+- Fixed via `SpecPatch` #74.

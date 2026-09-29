@@ -1400,24 +1400,7 @@ object SpecPatch:
     ->
     "[=interface prototype object=] of that [=inherited interface=] in |realm|.",
 
-    // #71 (spec bug, docs/spec_errors.md #38) — both call sites of `create an
-    // interface object` ("the [=interface object=] of X in |realm|",
-    // webidl/index.bs:11963,12094) elide its declared third parameter `|id|`
-    // (webidl/index.bs:11933-11936: "The interface object for a given
-    // interface |I| with identifier |id| and in realm |realm| ..."). Every
-    // real invocation supplies the same interface's own identifier
-    // (webidl/index.bs:12029's own `Let |F| be CreateBuiltinFunction(|steps|,
-    // |length|, |id|, ..., |constructorProto|)`), so it's spelled out
-    // explicitly here rather than left for `ResolveLinksPass` to guess at;
-    // `ExprParser.LinkOfWithIdentifierIn` parses the 3-arg result.
-    "the [=interface object=] of |P| in |realm|."
-    ->
-    "the [=interface object=] of |P| with identifier |P|'s [=identifier=] in |realm|.",
-    "the [=interface object=] of |interface| in |realm|."
-    ->
-    "the [=interface object=] of |interface| with identifier |interface|'s [=identifier=] in |realm|.",
-
-    // #72 (hardcoding) — `create an interface object`'s first step
+    // #71 (hardcoding) — `create an interface object`'s first step
     // (webidl/index.bs:11939) reads "Let |steps| be |I|'s [=overridden
     // constructor steps=] if they exist, or the following steps otherwise:".
     // "they" refers back to `|I|'s [=overridden constructor steps=]`, a
@@ -1428,7 +1411,7 @@ object SpecPatch:
     ->
     "Let |steps| be |I|'s [=overridden constructor steps=] if |I| has [=overridden constructor steps=], or",
 
-    // #73 (hardcoding) — `define the constants`' loop header
+    // #72 (hardcoding) — `define the constants`' loop header
     // (webidl/index.bs:12275) iterates over "[=constant=] |const| that is a
     // [=member=] of |definition|", a filtered-members phrase with no
     // counterpart to the "the [=list=] of [=X=] that are [=members=] of"
@@ -1439,7 +1422,7 @@ object SpecPatch:
     ->
     "[=constant=] |const| that is a [=const=] of |definition|",
 
-    // #74 (spec bug, docs/spec_errors.md #39) — `create an interface object`
+    // #73 (spec bug, docs/spec_errors.md #38) — `create an interface object`
     // (webidl/index.bs:11964-11980) sets "|F|.\[[Unforgeables]]" three steps
     // before "Let |F| be CreateBuiltinFunction(...)" ever binds |F|. The
     // unforgeables block (with its Note) is moved to right after |F|'s

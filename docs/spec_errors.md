@@ -435,15 +435,7 @@ Retracted — its premise was wrong. This entry claimed the Wasm Core Spec's `fu
 - **Reason**: Every other reference to this same "the interface (prototype) object of X in realm" construction in this document — line 11963's `of |P| in |realm|`, line 12030's `of [=interface=] |I| in |realm|`, line 12094's `of |interface| in |realm|` — names the subject before the realm. Only this one site has the two clauses transposed (realm first, subject clause second, with a line-wrap in between). Like #27, this doesn't change what the step means — its realm and subject are unambiguous either way — but unlike #27's duplicated word, this one is a clause-order transposition, not a repeated token; grouped here as the same *kind* of harmless typing slip, not the same mechanical shape of mistake.
 - Fixed via `SpecPatch` #70.
 
-## 38. Both call sites of `create an interface object` elide its required `id` argument
-
-- **File**: `webidl/index.bs`, lines 11963 (inside `create an interface object`'s own `#2-2`-sibling step) and 12094 (inside `create an interface prototype object`'s `LegacyNoInterfaceObject` branch).
-- **Current**: `then set |constructorProto| to the [=interface object=] of |P| in |realm|.` (line 11963), and `Let |constructor| be the [=interface object=] of |interface| in |realm|.` (line 12094).
-- **Expected**: `the [=interface object=] of |P| with identifier |P|'s [=identifier=] in |realm|.` (and the `|interface|` analog at line 12094).
-- **Reason**: `create an interface object` is declared (line 11933-11936) as taking three parameters — "The interface object for a given interface |I| with identifier |id| and in realm |realm| is created as follows" — but both noun-phrase references to it ("the interface object of X in realm") name only the interface and the realm, never the identifier, even though nothing in either surrounding algorithm otherwise establishes what `id` should be. Every real invocation of this algorithm supplies the same interface's own identifier (see the algorithm's own body, line 12029: `Let |F| be CreateBuiltinFunction(|steps|, |length|, |id|, ..., |constructorProto|)`, where `|id|` is `|I|`'s own identifier bound at the top of the same algorithm), so the elided argument is unambiguous — just never written down at either call site.
-- Fixed via `SpecPatch` #71.
-
-## 39. `create an interface object` sets `|F|.[[Unforgeables]]` before `|F|` is defined
+## 38. `create an interface object` sets `|F|.[[Unforgeables]]` before `|F|` is defined
 
 - **File**: `webidl/index.bs`, lines 11964-11980 (`create an interface object`).
 - **Current**:

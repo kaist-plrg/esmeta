@@ -301,7 +301,7 @@ Retracted — its premise was wrong. This entry claimed the Wasm Core Spec's `fu
       null otherwise.
   ```
 - **Reason**: `|I|` is bound once (step 2, `Let |interface| be |I|`) and never reassigned, so "the interface that `|I|` inherits from" is a constant — `|I|`'s own immediate parent — for every iteration of the loop. Trace it for `|I|` inheriting from `|P|`, with `|P|` itself having no parent: iteration 1 appends `|I|`, then sets `|interface|` to `|P|` (correct so far, since `|I|`'s parent is `|P|`); iteration 2 appends `|P|`, then sets `|interface|` to "the interface that `|I|` inherits from" again — still `|P|`, not `|P|`'s parent (there is none) — so `|interface|` never becomes null and the loop appends `|P|` forever. This isn't limited to inheritance chains of depth ≥ 2: it infinite-loops for *any* interface that inherits from anything at all, since step 3.2 can only ever produce `|I|`'s own direct parent (or, for the base case, keep re-deriving the same non-null value) instead of walking one level further up the chain each time. Replacing `|I|` with `|interface|` in step 3.2 is the fix — it makes each iteration derive the *next* interface up from wherever the walk currently is, which is what "inherited interfaces" (a term this very algorithm is defining) requires.
-<<<<<<< HEAD
+
 ## 26. `"a new Exported GC Object"`'s cache keys purely by `|objectaddr|`, but struct/array addresses aren't unique together
 
 - **File**: `spectec/document/js-api/index.bs`, lines 1646-1669 (`"a new Exported GC Object"`)
@@ -348,3 +348,35 @@ Retracted — its premise was wrong. This entry claimed the Wasm Core Spec's `fu
 - **Expected**: `the [=interface object=] of |P| with identifier |P|'s [=identifier=] in |realm|.` (and the `|interface|` analog at line 12094).
 - **Reason**: `create an interface object` is declared (line 11933-11936) as taking three parameters — "The interface object for a given interface |I| with identifier |id| and in realm |realm| is created as follows" — but both noun-phrase references to it ("the interface object of X in realm") name only the interface and the realm, never the identifier, even though nothing in either surrounding algorithm otherwise establishes what `id` should be. Every real invocation of this algorithm supplies the same interface's own identifier (see the algorithm's own body, line 12029: `Let |F| be CreateBuiltinFunction(|steps|, |length|, |id|, ..., |constructorProto|)`, where `|id|` is `|I|`'s own identifier bound at the top of the same algorithm), so the elided argument is unambiguous — just never written down at either call site.
 - Fixed via `SpecPatch` #56.
+
+## 30. `create an interface object` sets `|F|.[[Unforgeables]]` before `|F|` is defined
+
+- **File**: `webidl/index.bs`, lines 11964-11980 (`create an interface object`).
+- **Current**:
+  ```
+  1.  Let |unforgeables| be [$OrdinaryObjectCreate$](<emu-val>null</emu-val>).
+  1.  [=Define the unforgeable regular operations=] of |I| on |unforgeables|, given |realm|.
+  1.  [=Define the unforgeable regular attributes=] of |I| on |unforgeables|, given |realm|.
+  1.  Set |F|.\[[Unforgeables]] to |unforgeables|.
+      Note: ...
+  1.  Let |length| be 0.
+  1.  If |I| was declared with a [=constructor operation=], then
+      ...
+  1.  Let |F| be CreateBuiltinFunction(|steps|, |length|, |id|, « \[[Unforgeables]] »,
+      |realm|, |constructorProto|).
+  ```
+- **Expected**: the four `|unforgeables|` steps (and their Note) come after `|F|` is defined:
+  ```
+  1.  Let |length| be 0.
+  1.  If |I| was declared with a [=constructor operation=], then
+      ...
+  1.  Let |F| be CreateBuiltinFunction(|steps|, |length|, |id|, « \[[Unforgeables]] »,
+      |realm|, |constructorProto|).
+  1.  Let |unforgeables| be [$OrdinaryObjectCreate$](<emu-val>null</emu-val>).
+  1.  [=Define the unforgeable regular operations=] of |I| on |unforgeables|, given |realm|.
+  1.  [=Define the unforgeable regular attributes=] of |I| on |unforgeables|, given |realm|.
+  1.  Set |F|.\[[Unforgeables]] to |unforgeables|.
+      Note: ...
+  ```
+- **Reason**: `|F|` is first bound by `Let |F| be CreateBuiltinFunction(...)`, three steps after `Set |F|.\[[Unforgeables]] to |unforgeables|` writes to it, so the `Set` step refers to an unbound variable. `CreateBuiltinFunction` is what gives `|F|` its `[[Unforgeables]]` internal slot (via the `« \[[Unforgeables]] »` slot list), so the slot can only be set after that call. None of the steps in between (`|length|` and the overload-set computation) reads `|unforgeables|` or `|F|`, so moving the unforgeables block to after `|F|`'s definition changes nothing else.
+- Fixed via `SpecPatch` #59.

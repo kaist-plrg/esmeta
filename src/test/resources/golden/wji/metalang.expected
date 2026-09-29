@@ -1562,7 +1562,7 @@
 # create an interface object
   params: |I|, |id|, |realm|
   head: The [=interface object=] for a given [=interface=] |I| with [=identifier=] |id| and in [=realm=] |realm| is <dfn lt="create an interface object">created</dfn> as follows:
-  Let(|steps|, ?(|I|'s [=overridden constructor steps=]) if ?(they exist) else followingSteps())
+  Let(|steps|, ?(|I|'s [=overridden constructor steps=]) if ?(|I| has [=overridden constructor steps=]) else followingSteps())
     If(?(|I| was not declared with a [=constructor operation=]))
       Perform([=JavaScript/throw=](new {{TypeError}}))
     If(NewTarget is undefined)
@@ -1581,16 +1581,16 @@
   Let(|constructorProto|, |realm|.[[Intrinsics]].[[%Function.prototype%]])
   If(?(|I| inherits from some other interface |P|))
     Set(|constructorProto|, ?(the [=interface object=] of |P| with identifier |P|'s [=identifier=] in |realm|))
-  Let(|unforgeables|, [$OrdinaryObjectCreate$](null))
-  Perform([=Define the unforgeable regular operations=](|I|, |unforgeables|, |realm|))
-  Perform([=Define the unforgeable regular attributes=](|I|, |unforgeables|, |realm|))
-  Set(|F|.[[Unforgeables]], |unforgeables|)
-  Note(this object is never exposed to user code It exists only to ensure all instances of an interface with an unforgeable member use the same JavaScript function objects for [=attribute getters=], [=attribute setters=] and [=creating an operation function|operation functions=])
   Let(|length|, 0)
   If(?(|I| was declared with a [=constructor operation=]))
     PerformAndLet([=Compute the effective overload set=]([=identifier=](|id|, [=interface=](|I|, 0))), |S|)
     Set(|length|, length(shortestArgumentList(|S|)))
   Let(|F|, [$CreateBuiltinFunction$](|steps|, |length|, |id|, « "Unforgeables" », |realm|, |constructorProto|))
+  Let(|unforgeables|, [$OrdinaryObjectCreate$](null))
+  Perform([=Define the unforgeable regular operations=](|I|, |unforgeables|, |realm|))
+  Perform([=Define the unforgeable regular attributes=](|I|, |unforgeables|, |realm|))
+  Set(|F|.[[Unforgeables]], |unforgeables|)
+  Note(this object is never exposed to user code It exists only to ensure all instances of an interface with an unforgeable member use the same JavaScript function objects for [=attribute getters=], [=attribute setters=] and [=creating an operation function|operation functions=])
   Let(|proto|, [=create an interface prototype object=]([=interface=](|I|, |realm|)))
   Perform(DefinePropertyOrThrow(|F|, "<code>prototype</code>", PropertyDescriptor{[[Value]]: |proto|, [[Writable]]: false, [[Enumerable]]: false, [[Configurable]]: false}))
   Perform([=Define the constants=]([=interface=](|I|, |F|, |realm|)))
@@ -1642,7 +1642,7 @@
 # define the constants
   params: |definition|, |target|, |realm|
   head: To <dfn>define the constants</dfn> of [=interface=], [=callback interface=], or [=namespace=] |definition| on |target|, given [=realm=] |realm|, run the following steps:
-  ForEach(?(|const| that is a [=member=]), |definition|)
+  ForEach(?(|const| that is a [=const=]), |definition|)
     If(|const| is not [=exposed=] in |realm|)
       Continue
     Let(|value|, [=converted to a JavaScript value=](|const|))

@@ -1164,6 +1164,50 @@ object SpecPatch:
     "[=constant=] |const| that is a [=member=] of |definition|"
     ->
     "[=constant=] |const| that is a [=const=] of |definition|",
+
+    // #59 (spec bug, docs/spec_errors.md #30) — `create an interface object`
+    // (webidl/index.bs:11964-11980) sets "|F|.\[[Unforgeables]]" three steps
+    // before "Let |F| be CreateBuiltinFunction(...)" ever binds |F|. The
+    // unforgeables block (with its Note) is moved to right after |F|'s
+    // definition; nothing between the two reads |unforgeables| or |F|, so the
+    // reorder has no other effect.
+    """    1.  Let |unforgeables| be [$OrdinaryObjectCreate$](<emu-val>null</emu-val>).
+      #    1.  [=Define the unforgeable regular operations=] of |I| on |unforgeables|, given |realm|.
+      #    1.  [=Define the unforgeable regular attributes=] of |I| on |unforgeables|, given |realm|.
+      #    1.  Set |F|.\[[Unforgeables]] to |unforgeables|.
+      #
+      #        Note: this object is never exposed to user code. It exists only to ensure all instances
+      #        of an interface with an unforgeable member use the same JavaScript function objects for
+      #        [=attribute getters=], [=attribute setters=] and [=creating an operation
+      #        function|operation functions=].
+      #    1.  Let |length| be 0.
+      #    1.  If |I| was declared with a [=constructor operation=], then
+      #        1.  [=Compute the effective overload set=] for constructors with [=identifier=] |id| on
+      #            [=interface=] |I| and with argument count 0, and let |S| be the result.
+      #        1.  Set |length| to the length of the
+      #            shortest argument list of the entries in |S|.
+      #    1.  Let |F| be <a abstract-op>CreateBuiltinFunction</a>(|steps|, |length|, |id|, « \[[Unforgeables]] »,
+      #        |realm|, |constructorProto|).
+      #""".stripMargin('#')
+    ->
+    """    1.  Let |length| be 0.
+      #    1.  If |I| was declared with a [=constructor operation=], then
+      #        1.  [=Compute the effective overload set=] for constructors with [=identifier=] |id| on
+      #            [=interface=] |I| and with argument count 0, and let |S| be the result.
+      #        1.  Set |length| to the length of the
+      #            shortest argument list of the entries in |S|.
+      #    1.  Let |F| be <a abstract-op>CreateBuiltinFunction</a>(|steps|, |length|, |id|, « \[[Unforgeables]] »,
+      #        |realm|, |constructorProto|).
+      #    1.  Let |unforgeables| be [$OrdinaryObjectCreate$](<emu-val>null</emu-val>).
+      #    1.  [=Define the unforgeable regular operations=] of |I| on |unforgeables|, given |realm|.
+      #    1.  [=Define the unforgeable regular attributes=] of |I| on |unforgeables|, given |realm|.
+      #    1.  Set |F|.\[[Unforgeables]] to |unforgeables|.
+      #
+      #        Note: this object is never exposed to user code. It exists only to ensure all instances
+      #        of an interface with an unforgeable member use the same JavaScript function objects for
+      #        [=attribute getters=], [=attribute setters=] and [=creating an operation
+      #        function|operation functions=].
+      #""".stripMargin('#'),
   )
 
   def apply(source: String): String =

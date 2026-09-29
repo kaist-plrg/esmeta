@@ -4306,10 +4306,6 @@ def create_an_interface_object(
     }
     constructorProto = _call1
   } else nop
-  call unforgeables = clo<"OrdinaryObjectCreate">(null)
-  call _ = clo<"Define_the_unforgeable_regular_operations">(I, unforgeables, realm)
-  call _ = clo<"Define_the_unforgeable_regular_attributes">(I, unforgeables, realm)
-  F.Unforgeables = unforgeables
   let length = 0
   let _found3 = false
   let _i4 = 0
@@ -4333,6 +4329,10 @@ def create_an_interface_object(
     length = _shortLen1
   } else nop
   call F = clo<"CreateBuiltinFunction">(steps, length, id, (list ["Unforgeables"]), realm, constructorProto)
+  call unforgeables = clo<"OrdinaryObjectCreate">(null)
+  call _ = clo<"Define_the_unforgeable_regular_operations">(I, unforgeables, realm)
+  call _ = clo<"Define_the_unforgeable_regular_attributes">(I, unforgeables, realm)
+  F.Unforgeables = unforgeables
   call _guard2 = clo<"create_an_interface_prototype_object">(I, realm)
   if (? _guard2: Abrupt) {
     if (? _guard2: Completion) {

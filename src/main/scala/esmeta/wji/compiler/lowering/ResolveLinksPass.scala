@@ -18,13 +18,11 @@ import esmeta.wji.lang.walker.Walker
   * real algorithm names is known, and is the only place that decides:
   *
   *   - a `Link` whose (case-insensitively-compared) name is a key in
-  *     `linkAliases` — a small, hardcoded map of WebIDL glossary terms that
-  *     name a cached *value* rather than the algorithm that builds it (e.g.
-  *     "interface object"/"interface prototype object",
-  *     webidl_yet_categorized.md category III-A) — becomes an `AlgoCall`
-  *     against the aliased algorithm name, never its own literal (nonexistent)
-  *     name. Checked before the `known` lookup below, since the link's own text
-  *     is never itself in `known`.
+  *     `cachedObjects` — WebIDL glossary terms that name a per-realm cached
+  *     *value* ("interface object"/"interface prototype object",
+  *     webidl_yet_categorized.md category III-A) — becomes an index into its
+  *     `realm.HOST_DEFINED` cache table. Checked before the `known` lookup
+  *     below, since the link's own text is never itself in `known`.
   *   - a `Link` whose name matches a known algorithm becomes an `AlgoCall`,
   *     regardless of args.
   *   - a `Link` used with args that doesn't match a known algorithm is either a
@@ -127,19 +125,19 @@ object ResolveLinksPass extends LoweringPass:
     */
   private val spreadTags: Set[String] = Set("identifier", "interface")
 
-  /** Bridges a WebIDL glossary term that names a cached *value* (never a `<div
-    * algorithm>` of its own, so it can never appear in `known`) to the real
-    * algorithm that constructs it — e.g. "the [=interface object=] of
-    * |I| in |realm|" (`ExprParser.LinkOfForIn`) means "the result of running
-    * `create an interface object`" (webidl_yet_categorized.md category III-A),
-    * even though the spec prose never spells that call out explicitly. Checked
-    * before the `known` lookup below, so a `Link` matching a key here always
-    * resolves against the aliased algorithm name, never its own (nonexistent)
-    * literal name.
+  /** Maps a WebIDL glossary term that names a per-realm cached *value* (never
+    * a `<div algorithm>` of its own) to the `realm.HOST_DEFINED` table caching
+    * it — e.g. "the [=interface prototype object=] for |I| in |realm|"
+    * (`ExprParser.LinkOfForIn`) is `realm.HOST_DEFINED
+    * .interfacePrototypeObjects[I.id]`, not a fresh `create an interface
+    * prototype object` call (which would give every instance its own
+    * prototype). The tables are written by `SpecPatch` #59's explicit cache
+    * steps (docs/underspecified-behaviors.md #2) and set up by
+    * `InitializeInterfaceObjects`.
     */
-  private val linkAliases: Map[String, String] = Map(
-    "interface object" -> "create an interface object",
-    "interface prototype object" -> "create an interface prototype object",
+  private val cachedObjects: Map[String, String] = Map(
+    "interface object" -> "interfaceObjects",
+    "interface prototype object" -> "interfacePrototypeObjects",
   )
 
   /** Maps a raw section anchor (`[[#anchor]]`, see this object's own doc) to
@@ -233,14 +231,28 @@ object ResolveLinksPass extends LoweringPass:
               "ResolveLinksPass",
               s"section anchor [[#$anchor]] names no known algorithm: $expr",
             )
+      // "the [=interface (prototype) object=] of |I| in |realm|" — a lookup
+      // into its `cachedObjects` table, readable and (as a `Set` lhs)
+      // writable. Takes both the 2-arg form (`ExprParser.LinkOfForIn`) and
+      // the 3-arg form (`ExprParser.LinkOfWithIdentifierIn`, which already
+      // carries `I.id` explicitly).
+      case Expr.Link(link, args)
+          if cachedObjects.contains(stripLink(link).toLowerCase) =>
+        val table = cachedObjects(stripLink(link).toLowerCase)
+        val (id, realm) = resolveArgs(args) match
+          case List(iface, realm) => (Expr.Field(iface, "id"), realm)
+          case List(_, id, realm) => (id, realm)
+          case _ =>
+            throw UnsupportedSpecShape(
+              "ResolveLinksPass",
+              s"$link with unexpected arguments: $expr",
+            )
+        Expr.Index(Expr.Field(Expr.Field(realm, "HOST_DEFINED"), table), id)
       case Expr.Link(link, args) =>
         val resolvedArgs = resolveArgs(args)
-        linkAliases.get(stripLink(link).toLowerCase) match
-          case Some(aliasName) => Expr.AlgoCall(s"[=$aliasName=]", resolvedArgs)
-          case None =>
-            if known.contains(stripLink(link).toLowerCase) then
-              Expr.AlgoCall(link, resolvedArgs)
-            else buildCaseOrCall(link, resolvedArgs)
+        if known.contains(stripLink(link).toLowerCase) then
+          Expr.AlgoCall(link, resolvedArgs)
+        else buildCaseOrCall(link, resolvedArgs)
       case Expr.JSCall(name, args) =>
         Expr.JSCall(resolveFuncName(plainKnown, name), args.map(walk))
       case other => super.walk(other)

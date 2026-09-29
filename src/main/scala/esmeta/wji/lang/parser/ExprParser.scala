@@ -359,9 +359,8 @@ object ExprParser:
   // with its own subject/realm pair, unlike LinkOnly's bare "the [=LINK=]"
   // or LinkProse's no-leading-"the" "[=LINK=] REST" (webidl_yet_categorized.md
   // category III-A). `link` here never names a real algorithm directly —
-  // `ResolveLinksPass`'s `linkAliases` bridges it to the actual constructing
-  // algorithm's name ("create an interface (prototype) object") once the
-  // full set of real algorithm names is known. Args are kept to plain
+  // `ResolveLinksPass`'s `cachedObjects` resolves it to a lookup into the
+  // per-realm cache of interface (prototype) objects. Args are kept to plain
   // `|var|`s (not general `.+`), matching every occurrence seen so far and
   // this file's convention elsewhere (`AssociatedRealm`, `PossessiveIdentifier`,
   // `IdentifierOfType`) of not over-generalizing past the observed shape.
@@ -385,7 +384,7 @@ object ExprParser:
   // convention for narrow, single-occurrence idioms (`ValidTypeLink`,
   // `ExistsSuchThat`) rather than threading condition-parsed context into
   // this call. Produces a plain `Link`, exactly `LinkOfForIn`'s own output
-  // shape, so `ResolveLinksPass`'s existing `linkAliases` resolves it
+  // shape, so `ResolveLinksPass`'s existing `cachedObjects` resolves it
   // identically to that occurrence — no `ResolveLinksPass` change needed.
   private val LinkOfInheritedInterfaceIn =
     """(?si)^the\s+(\[=[^\]]+=\])\s+of that \[=inherited interface=\]\s+in\s+(\|[^|]+\|)$""".r
@@ -393,11 +392,8 @@ object ExprParser:
   // |realm|" — after `SpecPatch` spells out `create an interface object`'s
   // (webidl/index.bs:11933-11936) required `id` parameter, elided by every
   // real call site (docs/spec_errors.md). Produces a 3-arg `Link` — unlike
-  // `LinkOfForIn`'s 2 — so `ResolveLinksPass.linkAliases`'s existing
-  // `"interface object" -> "create an interface object"` entry (already
-  // resolving the *un-elided* 2-arg form the same way today) forwards all 3
-  // resolved args straight into the `AlgoCall`, no `ResolveLinksPass` change
-  // needed. The backreference `\2` requires both mentions of the subject to
+  // `LinkOfForIn`'s 2 — `ResolveLinksPass.cachedObjects` takes the explicit
+  // `id` as the cache key. The backreference `\2` requires both mentions of the subject to
   // name the same variable, matching exactly what the patched text always
   // says.
   private val LinkOfWithIdentifierIn =
@@ -694,6 +690,15 @@ object ExprParser:
   // gap, same spirit as other narrowly-scoped rules in this file.
   private val OfTypeGeneric =
     """(?si)^of\s+type\s+<code>.*?&lt;\s*(?:<a\b[^>]*>)?([A-Za-z][A-Za-z0-9]*)(?:</a>)?\s*(?:&gt;|>)\s*</code>$""".r
+  // "for constructors" — `compute the effective overload set`'s kind
+  // argument at `create an interface object`'s two call sites
+  // (webidl/index.bs:11948,11975: "[=Compute the effective overload set=]
+  // for constructors with [=identifier=] |id| on ..."). Unlike the
+  // `[=regular operations=]`/`[=static operations=]` kinds (already links,
+  // so they parse to a `SpecTerm` on their own), this one is plain unlinked
+  // prose and would otherwise be dropped by `parseArgs` as unparseable
+  // words, so it's mapped to the `Constructor` enum explicitly.
+  private val ForConstructors = """(?i)^for\s+constructors$""".r
   // "(a|an|the) <desc> such that <cond>" — any definite/indefinite/superlative
   // description satisfying a predicate, not a call. Covers all the variants
   // seen in the spec: "a [=host address=] |hostaddr| exists such that ...",
@@ -832,6 +837,13 @@ object ExprParser:
   // tried before the plain QuotedStr below (which would otherwise keep the
   // braces/interface-name literally, producing a key nothing ever looks up).
   private val QuotedBracedMemberLink = """(?s)^"\{\{[^/"}]+/([^"}]+)\}\}"$""".r
+  // `"<code>str</code>"` — Bikeshed's markup for a literal string's content
+  // (e.g. `DefinePropertyOrThrow(|F|, "<code>prototype</code>", ...)`,
+  // webidl/index.bs:11983). Only `str` is real string content, so this must
+  // be tried before the plain QuotedStr below, which would keep the tags and
+  // define a property nothing ever looks up. Inner whitespace is kept as-is
+  // (`"<code>get </code>"` is the `"get "` name prefix).
+  private val QuotedCodeStr = """(?s)^"<code>([^"<]*)</code>"$""".r
   private val QuotedStr = """^"([^"]*)"$""".r
   private val EmptyString = """(?i)^the empty string$""".r
   // the value bound by a preceding `Cond.Throws` check ("If this throws an
@@ -1161,6 +1173,7 @@ object ExprParser:
       case RelativeClauseDesc(link, desc) =>
         Described(normalizeLink(link), desc.trim)
       case OfTypeGeneric(typeArg) => SpecTerm(typeArg)
+      case ForConstructors()      => SpecTerm("Constructor")
       case SuchThatDesc(desc, cond) =>
         SuchThat(desc.trim, CondParser.parse(cond.trim))
       case _ if conditionalParts(s).isDefined =>
@@ -1176,6 +1189,7 @@ object ExprParser:
       case NumberPat()                    => Num(s)
       case HexPat()                       => Num(s)
       case QuotedBracedMemberLink(member) => Str(member)
+      case QuotedCodeStr(v)               => Str(v)
       case QuotedStr(v)                   => Str(v)
       case EmptyString()                  => Str("")
       case TheException()                 => Var("exception")

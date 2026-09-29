@@ -8,7 +8,8 @@ def compute_the_effective_overload_set(
   %0 = I.members
   %1 = 0
   while (< %1 (sizeof %0)) {
-    if (= %0[%1].id A) 
+    if (|| (&& (= kind ~Constructor~) (= %0[%1].id "constructor")) (= %0[%1].id A))
+      (= %0[%1].id A)
       X = %0[%1]
     %1 = (+ %1 1)
   }

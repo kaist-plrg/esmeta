@@ -28,6 +28,7 @@ trait Walker:
     case Expr.Length(e)               => Expr.Length(walk(e))
     case Expr.BinOp(l, op, r)         => Expr.BinOp(walk(l), op, walk(r))
     case Expr.Pow(base, exp)          => Expr.Pow(walk(base), walk(exp))
+    case Expr.Concat(parts)           => Expr.Concat(parts.map(walk))
     case Expr.Neg(e)                  => Expr.Neg(walk(e))
     case Expr.AsMath(e)               => Expr.AsMath(walk(e))
     case Expr.AsWasm(e, ty)           => Expr.AsWasm(walk(e), ty)

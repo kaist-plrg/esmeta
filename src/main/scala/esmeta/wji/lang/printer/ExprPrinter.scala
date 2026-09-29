@@ -36,6 +36,7 @@ object ExprPrinter:
     case Pow(base, exp)             => s"${render(base)} ** ${render(exp)}"
     case Neg(Num(v))                => s"-$v"
     case Neg(e)                     => s"-(${render(e)})"
+    case Concat(parts)              => s"concat(${parts.map(render).mkString(", ")})"
     case AsMath(e)                  => s"AsMath(${render(e)})"
     case AsWasm(e, ty)              => s"AsWasm(${render(e)}, $ty)"
     case WasmFloatPayload(width, e) => s"WasmFloatPayload($width, ${render(e)})"

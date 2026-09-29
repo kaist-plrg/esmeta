@@ -90,6 +90,11 @@ object Expr:
   enum BOp:
     case Add, Sub, Mul, Div, Mod
 
+  /** String concatenation of `parts`, in order. Never produced by parsing;
+    * reserved for lowering passes that need to build a string at runtime.
+    */
+  case class Concat(parts: List[Expr]) extends Expr
+
   /** `lhs op rhs` — arithmetic binary operation. */
   case class BinOp(lhs: Expr, op: BOp, rhs: Expr) extends Expr
 

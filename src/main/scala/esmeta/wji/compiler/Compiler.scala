@@ -501,6 +501,8 @@ object Compiler:
     case metalang.Expr.Pow(base, exp) =>
       EBinary(BOp.Pow, compileExpr(base), compileExpr(exp))
     case metalang.Expr.Neg(e) => EUnary(UOp.Neg, compileExpr(e))
+    case metalang.Expr.Concat(parts) =>
+      EVariadic(VOp.Concat, parts.map(compileExpr))
     // "|f32|/|f64| interpreted as a [=mathematical value=]" -- the one
     // context `WasmFloatPayload` isn't transparent for (see that node's own
     // doc): needs the width threaded through from the `IsOfForm` destructure

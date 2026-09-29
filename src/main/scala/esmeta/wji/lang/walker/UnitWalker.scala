@@ -23,6 +23,7 @@ trait UnitWalker:
     case Expr.Map_(entries)  => entries.foreach((k, v) => { walk(k); walk(v) })
     case Expr.Length(e)      => walk(e)
     case Expr.BinOp(l, _, r) => walk(l); walk(r)
+    case Expr.Concat(parts)  => parts.foreach(walk)
     case Expr.Pow(base, exp) => walk(base); walk(exp)
     case Expr.Neg(e)         => walk(e)
     case Expr.AsMath(e)      => walk(e)

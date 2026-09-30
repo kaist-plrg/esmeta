@@ -1218,21 +1218,31 @@ object SpecPatch:
     // module_instantiate`) falls straight through to the destructuring
     // step, binding `|instance|` to the `error` sentinel value itself and
     // returning it as if it were a real instance — no exception at all.
-    // Swaps the destructuring step ahead of the check and tests `|instance|`
-    // (the actual second tuple component) instead of `|result|` — same
-    // steps, same bulleted exception-type list, just reordered and pointed
-    // at the right variable.
-    """    1. If |result| is [=error=], throw an appropriate exception type:
+    // Merges the destructuring into the initial call, the same way the
+    // sibling algorithm `call an Exported Function` already destructures
+    // `func_invoke`'s result directly (`Let (|store|, |ret|) be the result
+    // of [=func_invoke=](...)`). Nothing else in this algorithm needs the
+    // whole pair, so `|result|` names the second component directly, and
+    // the check below (already written `If |result| is [=error=]`) is
+    // correct as-is.
+    """    1. Let |result| be [=module_instantiate=](|store|, |module|, |imports|).
+    1. If |result| is [=error=], throw an appropriate exception type:
         * A {{LinkError}} exception for most cases which occur during linking.
         * If the error came when running the start function, throw a {{RuntimeError}} for most errors which occur from WebAssembly, or the error object propagated from inner ECMAScript code.
         * Another error type if appropriate, for example an out-of-memory exception, as documented in <a href="#errors">the WebAssembly error mapping</a>.
     1. Let (|store|, |instance|) be |result|."""
     ->
-    """    1. Let (|store|, |instance|) be |result|.
-    1. If |instance| is [=error=], throw an appropriate exception type:
+    """    1. Let (|store|, |result|) be [=module_instantiate=](|store|, |module|, |imports|).
+    1. If |result| is [=error=], throw an appropriate exception type:
         * A {{LinkError}} exception for most cases which occur during linking.
         * If the error came when running the start function, throw a {{RuntimeError}} for most errors which occur from WebAssembly, or the error object propagated from inner ECMAScript code.
         * Another error type if appropriate, for example an out-of-memory exception, as documented in <a href="#errors">the WebAssembly error mapping</a>.""",
+
+    // #58 continued — the algorithm's final step returns the same value,
+    // named to match.
+    "    1. Return |instance|."
+    ->
+    "    1. Return |result|.",
 
     // #59 (hardcoding, docs/hardcodes.md #22) — collapses the 3-way bulleted
     // exception-type list right after #58's fix into a flat "throw
@@ -1256,12 +1266,12 @@ object SpecPatch:
     // so "always LinkError" is not just pragmatic but describes 100% of
     // what's actually reachable today; revisit once a fixture with a
     // trapping/throwing start function shows up.
-    """    1. If |instance| is [=error=], throw an appropriate exception type:
+    """    1. If |result| is [=error=], throw an appropriate exception type:
         * A {{LinkError}} exception for most cases which occur during linking.
         * If the error came when running the start function, throw a {{RuntimeError}} for most errors which occur from WebAssembly, or the error object propagated from inner ECMAScript code.
         * Another error type if appropriate, for example an out-of-memory exception, as documented in <a href="#errors">the WebAssembly error mapping</a>."""
     ->
-    "    1. If |instance| is [=error=], throw a {{LinkError}} exception.",
+    "    1. If |result| is [=error=], throw a {{LinkError}} exception.",
 
     // #60 (spec bug, docs/spec_errors.md #33) — `FromCharCode`'s own
     // `ToJSValue(v)` call is now redundant: `create_a_builtin_function_

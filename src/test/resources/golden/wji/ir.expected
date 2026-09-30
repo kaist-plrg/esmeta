@@ -602,19 +602,19 @@ def instantiate_the_core_of_a_webassembly_module(
   imports: Unknown,
 ): Unknown = {
   let store = @AGENT_RECORD["associated store"]
-  call-embed result = <module_instantiate>(store, module, imports)
-  let store = result[0]
-  let instance = result[1]
-  if (= instance (case "ERROR" )) {
+  call-embed _tuple1 = <module_instantiate>(store, module, imports)
+  let store = _tuple1[0]
+  let result = _tuple1[1]
+  if (= result (case "ERROR" )) {
     call _err1 = clo<"__NEW_ERROR_OBJ__">("%LinkError.prototype%")
     call _ret2 = clo<"ThrowCompletion">(_err1)
     return _ret2
   } else nop
   @AGENT_RECORD["associated store"] = store
-  if (? instance: Completion) {
-    return instance
+  if (? result: Completion) {
+    return result
   } else {
-    call _ret3 = clo<"NormalCompletion">(instance)
+    call _ret3 = clo<"NormalCompletion">(result)
     return _ret3
   }
 }

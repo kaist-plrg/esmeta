@@ -374,12 +374,12 @@ Retracted — its premise was wrong. This entry claimed the Wasm Core Spec's `fu
   ```
 - **Expected**:
   ```
-  1. Let |result| be [=module_instantiate=](|store|, |module|, |imports|).
-  1. Let (|store|, |instance|) be |result|.
-  1. If |instance| is [=error=], throw an appropriate exception type: ...
+  1. Let (|store|, |result|) be [=module_instantiate=](|store|, |module|, |imports|).
+  1. If |result| is [=error=], throw an appropriate exception type: ...
   ```
+  (destructures the call's result directly, the same way the sibling algorithm `call an Exported Function` already does for `func_invoke` — `Let (|store|, |ret|) be the result of [=func_invoke=](...)`. Nothing in this algorithm ever needs the pair as a whole, so `|result|` is free to name the second component. The algorithm's final step becomes `1. Return |result|.` to match.)
 - **Reason**: `module_instantiate`'s own declared return type (`appendix/embedding.rst`) is `(store, moduleinst | error)` — always a 2-tuple, never the bare `error` value on its own. Checking `|result| is [=error=]` therefore compares a value that's *always a pair* against a value it can *never* structurally equal, so the condition is vacuously false regardless of whether instantiation actually failed. Confirmed via `wji-extract`: the condition compiles to a literal `Eq(Var(result), Link([=error=]), false)`, permanently false, so the branch that would throw `{{LinkError}}` (etc.) is dead code — a genuine link failure (e.g. an imported `Global`'s mutability not matching the module's declared import type, `Match.match_globaltype`'s exact-equality requirement on mutability) falls straight through to `Let (|store|, |instance|) be |result|`, binding `|instance|` to the `error` sentinel value itself, and `new WebAssembly.Instance(...)`/`WebAssembly.instantiate(...)` return that as if it were a genuine instance — no exception at all. Verified the underlying Wasm-level check itself is correct and unaffected: a temporary debug print in `spectec`'s `Relation.externaddr_ok` (the OCaml-side `Externaddr_ok` implementation `$instantiate`'s own premises call) showed it correctly returning `false` for every one of the corpus's deliberately-mismatched global imports — the bug is entirely in this js-api-level result-shape check, not in the Wasm Core spec's own validation.
-- Fixed via `SpecPatch` #58 (reorders the destructuring step ahead of the check and tests `|instance|` instead of `|result|` — the bulleted exception-type-selection list itself is left as unmechanized prose for now, tracked separately in `personal/TODO.md` #60).
+- Fixed via `SpecPatch` #58 (merges the destructuring into the initial call and renames the final `Return` to match — the bulleted exception-type-selection list itself is left as unmechanized prose for now, tracked separately in `personal/TODO.md` #60).
 
 ## 32. `create a builtin function`'s hostfunc definition never specifies converting `steps`' arguments or result across the wasm/JS-value boundary
 

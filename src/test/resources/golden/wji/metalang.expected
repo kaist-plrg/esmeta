@@ -228,12 +228,11 @@
   params: |module|, |imports|
   head: To <dfn>instantiate the core of a WebAssembly module</dfn> from a module |module| and imports |imports|, perform the following steps:
   Let(|store|, [=surrounding agent=].[[associated store]])
-  Let(|result|, [=module_instantiate=](|store|, |module|, |imports|))
-  Let((|store|, |instance|), |result|)
-  If(|instance| is [=error=])
+  Let((|store|, |result|), [=module_instantiate=](|store|, |module|, |imports|))
+  If(|result| is [=error=])
     Throw(new {{LinkError}})
   Set([=surrounding agent=].[[associated store]], |store|)
-  Return(|instance|)
+  Return(|result|)
 
 # asynchronously instantiate a WebAssembly module
   params: |moduleObject|, |importObject|

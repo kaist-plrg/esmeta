@@ -408,8 +408,8 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
     IR - (yet "Perform the [=setter steps=] of |attribute|, with |idlObject| as [=this=] and |idlValue| as [=the given value=]")
 
 25. 카테고리 - I-J
-    원문 - Let |name| be the string "<code>set </code>" prepended to |id|.
-    IR - let name = (yet "the string \"<code>set </code>\" prepended to |id|")
+    원문 - Let |name| be the string "<code>set </code>" prepended to |attribute|'s [=identifier=].
+    IR - let name = @@yet: unresolved ref: Unknown(string "<code>set </code>" prepended to |attribute|).identifier
 
 ```
 

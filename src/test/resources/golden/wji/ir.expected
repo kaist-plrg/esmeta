@@ -4468,6 +4468,7 @@ def create_an_interface_object(
     length = _shortLen1
   } else nop
   call F = clo<"CreateBuiltinFunction">(steps, length, id, (list ["Unforgeables"]), realm, constructorProto)
+  @@yet: unresolved ref: Unknown(the [=interface object=] of |I| with identifier |I|'s [=identifier=] in |realm|) = F
   call unforgeables = clo<"OrdinaryObjectCreate">(null)
   call _ = clo<"Define_the_unforgeable_regular_operations">(I, unforgeables, realm)
   call _ = clo<"Define_the_unforgeable_regular_attributes">(I, unforgeables, realm)
@@ -4529,6 +4530,7 @@ def create_an_interface_prototype_object(
     call _call5 = clo<"OrdinaryObjectCreate">(proto)
     interfaceProtoObj = _call5
   }
+  @@yet: unresolved ref: Unknown(the [=interface prototype object=] of |interface| in |realm|) = interfaceProtoObj
   if (yet "|interface| has any [=member=] declared with the [{{Unscopable}}] [=extended attribute=]") {
     call unscopableObject = clo<"OrdinaryObjectCreate">(null)
     (yet "foreach MEMBER(|member|) in ?(|interface| that is declared with the [{{Unscopable}}] [=extended attribute=])")
@@ -4715,7 +4717,7 @@ def attribute_setter(
   } else nop
   assert (! (? (yet "|attribute|'s type"): Unknown["promise type"]))
   let steps = clo<"attribute_setter_closure1", [attribute]>
-  let name = (yet "the string \"<code>set </code>\" prepended to |id|")
+  let name = @@yet: unresolved ref: Unknown(the string "<code>set </code>" prepended to |attribute|).id
   call F = clo<"CreateBuiltinFunction">(steps, 1, name, (list []), realm)
   return F
 }

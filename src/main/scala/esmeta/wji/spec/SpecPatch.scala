@@ -1465,6 +1465,35 @@ object SpecPatch:
       #        [=attribute getters=], [=attribute setters=] and [=creating an operation
       #        function|operation functions=].
       #""".stripMargin('#'),
+
+    // #74 (suggestion, docs/underspecified-behaviors.md #2) — the spec
+    // treats "the [=interface object=] / [=interface prototype object=] of
+    // |I| in |realm|" as per-realm singletons, but never says where they're
+    // cached, so `create an interface object` (webidl/index.bs:11981) ->
+    // `create an interface prototype object` -> "the [=interface object=] of
+    // |interface| in |realm|" (webidl/index.bs:12094) reads back the very
+    // object still under construction. Adds explicit cache writes, right
+    // after each object is allocated (before the prototype is created, for
+    // the interface object), so every such reference is a plain lookup
+    // (`ResolveLinksPass`) into `realm.HOST_DEFINED.interfaceObjects` /
+    // `interfacePrototypeObjects` (`InitializeInterfaceObjects`).
+    "        |realm|, |constructorProto|).\n"
+    ->
+    "        |realm|, |constructorProto|).\n    1.  Set the [=interface object=] of |I| with identifier |I|'s [=identifier=] in |realm| to |F|.\n",
+    "    1.  Otherwise, set |interfaceProtoObj| to [$OrdinaryObjectCreate$](|proto|).\n"
+    ->
+    "    1.  Otherwise, set |interfaceProtoObj| to [$OrdinaryObjectCreate$](|proto|).\n    1.  Set the [=interface prototype object=] of |interface| in |realm| to |interfaceProtoObj|.\n",
+
+    // #75 (spec bug, docs/spec_errors.md #38) — `attribute setter`
+    // (webidl/index.bs:12466) builds the function's name from |id|, but |id|
+    // is only bound by "Let |id| be |attribute|'s [=identifier=]."
+    // (webidl/index.bs:12403), a step *inside* the |steps| closure — never
+    // in the enclosing algorithm that reads it. Spelled out as
+    // "|attribute|'s [=identifier=]", the same form `attribute getter`'s own
+    // counterpart step (webidl/index.bs:12382) already uses.
+    "Let |name| be the string \"<code>set </code>\" prepended to |id|."
+    ->
+    "Let |name| be the string \"<code>set </code>\" prepended to |attribute|'s [=identifier=].",
   )
 
   def apply(source: String): String =

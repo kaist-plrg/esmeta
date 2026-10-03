@@ -454,3 +454,24 @@ Retracted — its premise was wrong. This entry claimed the Wasm Core Spec's `fu
   ```
 - **Reason**: `|F|` is first bound by `Let |F| be CreateBuiltinFunction(...)`, three steps after `Set |F|.\[[Unforgeables]] to |unforgeables|` writes to it, so the `Set` step refers to an unbound variable. `CreateBuiltinFunction` is what gives `|F|` its `[[Unforgeables]]` internal slot (via the `« \[[Unforgeables]] »` slot list), so the slot can only be set after that call. None of the steps in between (`|length|` and the overload-set computation) reads `|unforgeables|` or `|F|`, so moving the unforgeables block to after `|F|`'s definition changes nothing else.
 - Fixed via `SpecPatch` #74.
+
+## 38. `attribute setter` builds the function's name from `|id|`, which is only defined inside the `|steps|` closure
+
+- **File**: `webidl/index.bs`, line 12466 (`attribute setter`); same text upstream at https://webidl.spec.whatwg.org/#dfn-attribute-setter.
+- **Current**:
+  ```
+  1.  Let |steps| be the following series of steps:
+      1.  Let |V| be <emu-val>undefined</emu-val>.
+      1.  If any arguments were passed, then set |V| to the value of the first argument passed.
+      1.  Let |id| be |attribute|'s [=identifier=].
+      ...
+      1.  Return <emu-val>undefined</emu-val>
+  1.  Let |name| be the string "<code>set </code>" prepended to |id|.
+  1.  Let |F| be <a abstract-op>CreateBuiltinFunction</a>(|steps|, 1, |name|, « », |realm|).
+  ```
+- **Expected**:
+  ```
+  1.  Let |name| be the string "<code>set </code>" prepended to |attribute|'s [=identifier=].
+  ```
+- **Reason**: `|id|` is bound exactly once in this algorithm, by `Let |id| be |attribute|'s [=identifier=].` (line 12403) — the third step *inside* the `|steps|` closure, which only runs later, each time the resulting setter function is called. The `Let |name| be ...` step (line 12466) belongs to the enclosing algorithm, which runs once when the setter is created and never executes the closure's body itself, so `|id|` is unbound at the point it's read: a use without a definition, the same class of defect as #37's `|F|`. The closure's own three uses of `|id|` (the security check at line 12414, `CreateDataPropertyOrThrow` at line 12419, `Get` at line 12425) are fine — they sit in the same scope as the binding. `attribute getter` (line 12382), the sibling algorithm with the identical shape, writes the corresponding step as `Let |name| be the string "<code>get </code>" prepended to |attribute|'s [=identifier=].` — it never introduces an `|id|` at all, reading `|attribute|` (a parameter of the enclosing algorithm, so in scope both inside and outside the closure) directly. Using the same form here is the minimal fix; the alternative of hoisting `Let |id| be ...` out of `|steps|` to before it would work too, but changes more text and diverges from the getter.
+- Fixed via `SpecPatch` #75.

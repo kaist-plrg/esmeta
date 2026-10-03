@@ -1592,6 +1592,7 @@
     PerformAndLet([=Compute the effective overload set=]([=identifier=](|id|, [=interface=](|I|, 0))), |S|)
     Set(|length|, length(shortestArgumentList(|S|)))
   Let(|F|, [$CreateBuiltinFunction$](|steps|, |length|, |id|, « "Unforgeables" », |realm|, |constructorProto|))
+  Set(?(the [=interface object=] of |I| with identifier |I|'s [=identifier=] in |realm|), |F|)
   Let(|unforgeables|, [$OrdinaryObjectCreate$](null))
   Perform([=Define the unforgeable regular operations=](|I|, |unforgeables|, |realm|))
   Perform([=Define the unforgeable regular attributes=](|I|, |unforgeables|, |realm|))
@@ -1626,6 +1627,7 @@
     Set(?(the internal methods of |interfaceProtoObj| which are specific), [=immutable prototype exotic objects=]([=ECMA-262 Immutable prototype exotic objects=]))
   Else
     Set(|interfaceProtoObj|, [$OrdinaryObjectCreate$](|proto|))
+  Set(?(the [=interface prototype object=] of |interface| in |realm|), |interfaceProtoObj|)
   If(?(|interface| has any [=member=] declared with the [{{Unscopable}}] [=extended attribute=]))
     Let(|unscopableObject|, [$OrdinaryObjectCreate$](null))
     ForEach([=member=](|member|), ?(|interface| that is declared with the [{{Unscopable}}] [=extended attribute=]))
@@ -1778,7 +1780,7 @@
       ?(</dd> </dl>)
     ?(Perform the [=setter steps=] of |attribute|, with |idlObject| as [=this=] and |idlValue| as [=the given value=])
     Return(undefined)
-  Let(|name|, ?(the string "<code>set </code>" prepended to |id|))
+  Let(|name|, ?(the string "<code>set </code>" prepended to |attribute|).[[id]])
   Let(|F|, [$CreateBuiltinFunction$](|steps|, 1, |name|, « », |realm|))
   Return(|F|)
 

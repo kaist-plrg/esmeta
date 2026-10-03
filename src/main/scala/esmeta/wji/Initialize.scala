@@ -201,6 +201,17 @@ object Initialize:
         ),
       )
 
+    // An IDL type as a runtime value: a record named after its kind for the
+    // kinds a mechanized WebIDL algorithm actually asks about ("X's type is a
+    // [=promise type=]"/"an [=observable array type=]" — see
+    // `Compiler.typeOf`), the type's own text otherwise.
+    def typeValue(ty: String): Value =
+      val kind =
+        if ty.startsWith("Promise<") then Some("Promise")
+        else if ty.startsWith("ObservableArray<") then Some("ObservableArray")
+        else None
+      kind.fold[Value](Str(ty))(st.allocRecord(_, List("id" -> Str(ty))))
+
     def operationRecord(defId: String, op: WjiOperation): Addr =
       // `id` here is the WebIDL identifier itself (e.g. "validate") — this is
       // what "define the operations" installs as the actual JS property name
@@ -222,7 +233,7 @@ object Initialize:
         List(
           "id" -> Str(op.id),
           "params" -> st.allocList(op.params.map(paramRecord)),
-          "returnType" -> Str(op.ret),
+          "returnType" -> typeValue(op.ret),
           "kind" -> Enum(op.kind.toString),
           "extendedAttributes" -> st.allocList(op.extAttr.map(extAttrRecord)),
           "methodSteps" -> st.cfg.fnameMap
@@ -236,7 +247,7 @@ object Initialize:
         "attribute",
         List(
           "id" -> Str(attr.id),
-          "ty" -> Str(attr.ty),
+          "ty" -> typeValue(attr.ty),
           "readonly" -> Bool(attr.readonly),
           "kind" -> Enum(attr.kind.toString),
           "extendedAttributes" ->

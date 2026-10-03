@@ -123,17 +123,8 @@ II-C의 상속-모델링 gap에 막혀 `EYet`으로 남아 있어 이 카테고�
 
 ### II-G. IDL 타입 태그 조회
 
-- `#5-9` - |attr|'s type is an [=observable array type=] with type argument |T|
-    - assume false
-- `#6-10` - |attribute|'s type is an [=observable array type=]
-    - assume false
-- `#6-13` - |attribute|'s type is a [=promise type=]
-    - assume false
-- `#7-22` - |attribute|'s type is an [=observable array type=] with type argument |T|
-    - assume false
 - `#7-23` - |attribute|'s type is an [=enumeration=]
     - assume false
-- `#10-14` - "|op| has a [=return type=] that is a [=promise type=]"
 
 ### II-H. record-kind 술어
 
@@ -147,7 +138,6 @@ II-C의 상속-모델링 gap에 막혀 `EYet`으로 남아 있어 이 카테고�
 - `#10-8` - |jsValue| does not [=implement=] the interface |target|
 
 ### II-K. operation의 모델링 관련
-- `#10-14`, `#10-19` - If |op| has a [=return type=] that is a [=promise type=]
 - `#11-7` - the [=list=] of arguments |X| is declared to take.
 - `#11-10` - [=list/Append=] the type of |argument| to |types|.
            - [=list/Append=] "variadic" to |optionalityValues| if |argument| is a final, variadic argument, "optional" if |argument| is [=optional argument|optional=], and "required" otherwise.

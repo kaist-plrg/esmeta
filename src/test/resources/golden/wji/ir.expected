@@ -4735,7 +4735,7 @@ def define_the_attributes(
       })
       let id = attr.id
       call _ = clo<"DefinePropertyOrThrow">(target, id, desc)
-      if (= (yet "|attr|'s type") (yet "an [=observable array type=] with type argument |T|")) {
+      if (? attr.ty: Record[ObservableArray]) {
         call _call2 = clo<"set_an_indexed_value">(attr, ~delete an indexed value~)
         call _call3 = clo<"creating_an_observable_array_exotic_object">(realm, T, attr, _call2)
         @@yet: unresolved ref: Unknown(|target|'s [=backing observable array exotic object=] for |attr|) = _call3
@@ -4794,7 +4794,7 @@ def attribute_setter(
   if (&& (= attribute.readonly true) (&& (&& (! (= _found1 true)) (! (= _found3 true))) (! (= _found5 true)))) {
     return (yet "<emu-val>undefined</emu-val>; there is no [=attribute setter=] function")
   } else nop
-  assert (! (? (yet "|attribute|'s type"): Unknown["promise type"]))
+  assert (! (? attribute.ty: Record[Promise]))
   let steps = clo<"attribute_setter_closure1", [attribute, target]>
   let name = (concat "set " id)
   call F = clo<"CreateBuiltinFunction">(steps, 1, name, (list []), realm)
@@ -5966,7 +5966,7 @@ def attribute_getter_closure2(
         return _ret4
       }
     } else nop
-    if (? (yet "|attribute|'s type"): Unknown["observable array type"]) {
+    if (? attribute.ty: Record[ObservableArray]) {
       let _v5 = (yet "|jsValue|'s [=backing observable array exotic object=] for |attribute|")
       if (? _v5: Completion) {
         return _v5
@@ -5995,7 +5995,7 @@ def attribute_getter_closure1(
   if (exists _throwComp1.Type) {
     if (= _throwComp1.Type ~throw~) {
       let E = _throwComp1.Value
-      if (? (yet "|attribute|'s type"): Unknown["promise type"]) {
+      if (? attribute.ty: Record[Promise]) {
         call _call1 = clo<"Call">(~%Promise.reject%~, ~%Promise%~, (list [E]))
         assert (= _call1.Type ~normal~)
         let _v1 = _call1.Value
@@ -6158,7 +6158,7 @@ def attribute_setter_closure1(
       }
     } else nop
     idlObject = (yet "the IDL [=interface type=] value that represents a reference to |jsValue|")
-    if (= (yet "|attribute|'s type") (yet "an [=observable array type=] with type argument |T|")) {
+    if (? attribute.ty: Record[ObservableArray]) {
       call-convert newValues = <converted_to_an_idl_value>(V)
       let oa = (yet "|idlObject|'s |attribute|'s [=backing observable array exotic object=]")
       call _ = clo<"observable_array_exotic_object/Set_the_length">(@@yet: unresolved ref: Unknown(of |oa|).ProxyHandler, 0)
@@ -6276,7 +6276,7 @@ def creating_an_operation_function_closure1(
   if (exists _throwComp1.Type) {
     if (= _throwComp1.Type ~throw~) {
       let E = _throwComp1.Value
-      if (? (yet "|op| has a [=return type=] that"): Unknown["promise type"]) {
+      if (? op.returnType: Record[Promise]) {
         call _call1 = clo<"Call">(~%Promise.reject%~, ~%Promise%~, (list [E]))
         assert (= _call1.Type ~normal~)
         let _v1 = _call1.Value

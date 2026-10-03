@@ -32,6 +32,28 @@ class CondParserSpec extends AnyFunSuite:
     )
   }
 
+  test("IDL type kind checks") {
+    val ty = Field(Var("attribute"), "ty")
+    assert(
+      CondParser.parse("|attribute|'s type is a [=promise type=]") ==
+      IsType(ty, "promise type"),
+    )
+    assert(
+      CondParser.parse("|attribute|'s type is not a [=promise type=]") ==
+      IsType(ty, "promise type", negated = true),
+    )
+    assert(
+      CondParser.parse(
+        "|attribute|'s type is an [=observable array type=] with type argument |T|",
+      ) == IsType(ty, "observable array type"),
+    )
+    assert(
+      CondParser.parse(
+        "|op| has a [=return type=] that is a [=promise type=]",
+      ) == IsType(Field(Var("op"), "returnType"), "promise type"),
+    )
+  }
+
   test("matches, positive and negative") {
     // real spec occurrences always write the dfn link with a "|matches"
     // display-text alias (e.g. "[=matches/valtype|matches=]") — see

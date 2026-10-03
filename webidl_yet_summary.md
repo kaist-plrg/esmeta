@@ -199,10 +199,6 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
                } else {
                  let configurable = true
                }
-
-9. 카테고리 - II-G
-   원문 - If |attr|'s type is an [=observable array type=] with type argument |T|, then: ...
-   IR - if (= (yet "|attr|'s type") (yet "an [=observable array type=] with type argument |T|")) { ... }
 ```
 
 ---
@@ -245,10 +241,6 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
    원문 - If |attribute| was specified with the [{{LegacyLenientThis}}] [=extended attribute=], then return <emu-val>undefined</emu-val>.
    IR - if (yet "|attribute| was specified with the [{{LegacyLenientThis}}] [=extended attribute=]") { return undefined }
 
-10. 카테고리 - II-G
-    원문 - If |attribute|'s type is an [=observable array type=], ...
-    IR - if (= (yet "|attribute|'s type") (yet "an [=observable array type=]")) { ... }
-
 11. 카테고리 - I-N
     원문 - Set |idlObject| to the IDL [=interface type=] value that represents a reference to |jsValue|.
     IR - idlObject = (yet "the IDL [=interface type=] value that represents a reference to |jsValue|")
@@ -256,10 +248,6 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
 12. 카테고리 - II-B
     원문 - Let |R| be the result of running the [=getter steps=] of |attribute| with |idlObject| as [=this=].
     IR - call R = attribute.getterSteps(idlObject)
-
-13. 카테고리 - II-G
-    원문 - If |attribute|'s type is a [=promise type=], ...
-    IR - if (= (yet "|attribute|'s type") (yet "a [=promise type=]")) { ... }
 
 14. 카테고리 - I-F + VII
     원문 - Otherwise, end these steps and allow the exception to propagate.
@@ -328,10 +316,6 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
 21. 카테고리 - I-N
     원문 - Set |idlObject| to the IDL [=interface type=] value that represents a reference to |jsValue|.
     IR - idlObject = (yet "the IDL [=interface type=] value that represents a reference to |jsValue|")
-
-22. 카테고리 - II-G
-    원문 - If |attribute|'s type is an [=observable array type=] with type argument |T|: ...
-    IR - if (= (yet "|attribute|'s type") (yet "an [=observable array type=] with type argument |T|")) { ... }
 
 23. 카테고리 - I-M + II-G
     원문 - Let |idlValue| be determined as follows: <dl class="switch"> <dt>|attribute|'s type is an [=enumeration=]</dt> <dd>...</dd> <dt>Otherwise</dt> <dd>...</dd> </dl>
@@ -424,10 +408,6 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
     IR - call _call1 = clo<"regular_operations">((yet "tuple(Unknown(if |op| is a regular operation) or for [=static operations=] (if |op| is a static operation))"), (case "IDENTIFIER" id target n))
          call S = clo<"compute_the_effective_overload_set">(_call1)
 
-14. 카테고리 - II-G
-    원문 - If |op| has a [=return type=] that is a [=promise type=], then return [=!=] <a abstract-op>Call</a>({{%Promise.reject%}}, {{%Promise%}}, «|E|»).
-    IR - if (? (yet "|op| has a [=return type=] that"): Unknown["promise type"]) { call _call1 = clo<"Call">(~%Promise.reject%~, ~%Promise%~, (list [E])) ... }
-
 15. 카테고리 - I-F + VII
     원문 - Otherwise, end these steps and allow the exception to propagate.
     IR - (yet "end these steps and allow the exception to propagate")
@@ -436,10 +416,6 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
     원문 - [=Compute the effective overload set=]  for [=regular operations=] (if |op| is a regular operation) or for [=static operations=] (if |op| is a static operation) with [=identifier=] |id| on |target| and with argument count 0, and let |S| be the result.
     IR - call _call2 = clo<"regular_operations">((yet "tuple(Unknown(if |op| is a regular operation) or for [=static operations=] (if |op| is a static operation))"), (case "IDENTIFIER" id target 0))
          call S = clo<"compute_the_effective_overload_set">(_call2)
-
-19. 카테고리 - II-K
-    원문 - If |op| has a [=return type=] that is a [=promise type=]
-    IR - if (= (yet "|op| has a [=return type=] that") (yet "a [=promise type=]"))
 ```
 
 ---

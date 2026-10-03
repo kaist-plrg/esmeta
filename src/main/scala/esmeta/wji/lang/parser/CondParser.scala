@@ -22,6 +22,22 @@ object CondParser:
   // only knows genuine ECMAScript types) decide what a WJI-specific NOUN like
   // "Exported Function" actually compiles to.
   private val ArticleLink = """(?si)^an?\s+\[=([^\]]+)=\]$""".r
+  // "EXPR is an [=observable array type=] with type argument |T|"
+  // (webidl/index.bs:12339, 12434; webidl_yet_categorized.md category II-G) —
+  // the same kind-membership claim as ArticleLink above, plus a binder for the
+  // type's argument. The binder is dropped: no attribute in the corpus has an
+  // observable array type, so the branch it would feed is never taken and
+  // |T| stays unbound there.
+  private val ArticleLinkWithTypeArg =
+    """(?si)^an?\s+\[=([^\]]+)=\]\s+with type argument \|[^|]+\|$""".r
+  // "|op| has a [=return type=] that is a [=promise type=]"
+  // (webidl/index.bs's `creating an operation function`; category II-G's
+  // `#10-14`) — "X's return type is a NOUN" in relative-clause form, so the
+  // generic " is " split would leave "|op| has a [=return type=] that" as an
+  // unparseable lhs. Reads the operation record's own `returnType` field
+  // (`Initialize.seedHostDefined`'s `operationRecord`).
+  private val HasReturnTypeThatIs =
+    """(?si)^(\|[^|]+\|)\s+has a\s+\[=return type=\]\s+that is an?\s+\[=([^\]]+)=\]$""".r
   // "EXPR is a/an {{Interface}}( object)?" — same claim as ArticleLink above,
   // just linked via WebIDL's `{{...}}` interface-reference syntax instead of
   // a bikeshed `[=...=]` dfn link (e.g. "|jsBufferSource| is an {{ArrayBuffer}}
@@ -720,6 +736,8 @@ object CondParser:
       hasMemberOfKind(exprRaw, List(MemberKind.IndexedGetter))
     case SupportsNamedProps(exprRaw) =>
       hasMemberOfKind(exprRaw, List(MemberKind.NamedGetter))
+    case HasReturnTypeThatIs(exprRaw, noun) =>
+      IsType(Field(ExprParser.parse(exprRaw), "returnType"), noun)
     case HasPairIteratorPos(exprRaw) =>
       Any(
         "m",
@@ -799,6 +817,8 @@ object CondParser:
         case "[=read only=]" =>
           Eq(Field(ExprParser.parse(lhsRaw), "readonly"), Bool(true), negated)
         case ArticleLink(noun) =>
+          IsType(ExprParser.parse(lhsRaw), noun, negated)
+        case ArticleLinkWithTypeArg(noun) =>
           IsType(ExprParser.parse(lhsRaw), noun, negated)
         case ArticleInterfaceLink(iface) =>
           IsType(ExprParser.parse(lhsRaw), iface, negated)

@@ -613,6 +613,14 @@ object ExprParser:
   // `fieldFromLink` (which would read the dfn text as-is). Must precede
   // PossessiveAssociation below for the same reason AssociatedRealm does.
   private val PossessiveIdentifier = """(?si)^(.+)'s \[=identifier=\]$""".r
+  // "|attribute|'s type" — the IDL type an attribute was declared with
+  // (webidl/index.bs:12339, 12368, 12379, 12399, 12434;
+  // webidl_yet_categorized.md category II-G). Plain prose, not a dfn link, so
+  // nothing else here would pick it up; `Initialize.seedHostDefined`'s
+  // `attributeRecord` stores it under `ty` (matching `WjiAttribute.ty`).
+  // Restricted to a bare variable base: "... to an IDL value of |attribute|'s
+  // type" (index.bs:12459) ends the same way but isn't this field read.
+  private val PossessiveType = """(?si)^(\|[^|]+\|)'s type$""".r
   // "the string "<code>get </code>" prepended to |attribute|'s
   // [=identifier=]" — the name `attribute getter`/`attribute setter`
   // (webidl/index.bs:12382, 12466) give the function they create
@@ -1250,6 +1258,7 @@ object ExprParser:
       case StringPrependedTo(prefixRaw, restRaw) =>
         Concat(List(parse(prefixRaw), parse(restRaw)))
       case PossessiveIdentifier(baseRaw) => Field(parse(baseRaw), "id")
+      case PossessiveType(varRaw)        => Field(parse(varRaw), "ty")
       case IdentifierOfType(varRaw)      => Field(parse(varRaw), "id")
       case InterfaceInheritsFrom(varRaw) => Field(parse(varRaw), "inherit")
       case IsGlobalPrototypeChainMutable(baseRaw) =>

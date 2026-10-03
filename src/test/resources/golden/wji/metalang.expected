@@ -1692,7 +1692,7 @@
     Let(|desc|, PropertyDescriptor{[[Get]]: |getter|, [[Set]]: |setter|, [[Enumerable]]: true, [[Configurable]]: |configurable|})
     Let(|id|, |attr|.[[id]])
     Perform(DefinePropertyOrThrow(|target|, |id|, |desc|))
-    If(?(|attr|'s type) is ?(an [=observable array type=] with type argument |T|))
+    If(|attr|.[[ty]] is an observable array type)
       Set(?(|target|'s [=backing observable array exotic object=] for |attr|), [=creating an observable array exotic object=](|realm|, |T|, |attr|, [=set an indexed value=](|attr|, [=delete an indexed value=])))
 
 # attribute getter
@@ -1711,13 +1711,13 @@
             Return(undefined)
           Else
             Throw(new {{TypeError}})
-        If(?(|attribute|'s type) is an observable array type)
+        If(|attribute|.[[ty]] is an observable array type)
           Return(?(|jsValue|'s [=backing observable array exotic object=] for |attribute|))
         Set(|idlObject|, ?(the IDL [=interface type=] value that represents a reference to |jsValue|))
       Let(|R|, |attribute|.[[getterSteps]](|idlObject|))
       Return([=converted to a JavaScript value=](|R|, |attribute|))
     Catch(|E|)
-      If(?(|attribute|'s type) is a promise type)
+      If(|attribute|.[[ty]] is a promise type)
         Return([=!=] [$Call$](%Promise.reject%, %Promise%, « |E| »))
       Else
         ?(end these steps and allow the exception to propagate)
@@ -1733,7 +1733,7 @@
     Return(undefined)
   If(|attribute|.[[readonly]] is true, and no ea in |attribute|.[[extendedAttributes]] |ea|.[[id]] is "LegacyLenientSetter", and no ea in |attribute|.[[extendedAttributes]] |ea|.[[id]] is "PutForwards", and no ea in |attribute|.[[extendedAttributes]] |ea|.[[id]] is "Replaceable")
     Return(?(<emu-val>undefined</emu-val>; there is no [=attribute setter=] function))
-  Assert(?(|attribute|'s type) is not a promise type)
+  Assert(|attribute|.[[ty]] is not a promise type)
   Let(|steps|, followingSteps())
     Let(|V|, undefined)
     If(?(any arguments were passed))
@@ -1763,7 +1763,7 @@
         Perform(Set(|Q|, |forwardId|, |V|, false))
         Return(undefined)
       Set(|idlObject|, ?(the IDL [=interface type=] value that represents a reference to |jsValue|))
-      If(?(|attribute|'s type) is ?(an [=observable array type=] with type argument |T|))
+      If(|attribute|.[[ty]] is an observable array type)
         Let(|newValues|, [=converted to an IDL value=](|V|))
         Let(|oa|, ?(|idlObject|'s |attribute|'s [=backing observable array exotic object=]))
         Perform([=observable array exotic object/Set the length=](?(of |oa|).[[ProxyHandler]], 0))
@@ -1844,7 +1844,7 @@
       Return([=converted to a JavaScript value=](|R|))
       ?(Issue(whatwg/webidl#674): |R| is assumed to be an IDL value of the type |op| is declared to return)
     Catch(|E|)
-      If(?(|op| has a [=return type=] that) is a promise type)
+      If(|op|.[[returnType]] is a promise type)
         Return([=!=] [$Call$](%Promise.reject%, %Promise%, « |E| »))
       Else
         ?(end these steps and allow the exception to propagate)

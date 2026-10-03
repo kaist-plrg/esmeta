@@ -844,6 +844,15 @@ object Compiler:
     * at all -- see `compileCond`'s own dedicated `Cond.IsType(_,
     * "AbruptCompletion", _)` case for why it can't just reuse `ty.AbruptT` the
     * way this map's other entries reuse their own `ty` singleton.
+    *
+    * `promise type`/`observable array type` are WebIDL type kinds
+    * (webidl_yet_categorized.md category II-G), checked against the IDL type
+    * value `esmeta.wji.Initialize.seedHostDefined` stores in an attribute's
+    * `ty`/an operation's `returnType`: a record named after its kind for these
+    * two, a plain string for every other type — so the check is simply false
+    * for the latter. `Promise` is also `manuals/types`' own ECMA-262 promise
+    * object type; the two never meet, since an IDL type value never flows into
+    * a JS-value position.
     */
   private val typeOf: Map[String, ValueTy] = Map(
     "Object" -> ObjectT,
@@ -851,6 +860,8 @@ object Compiler:
     "Number" -> NumberT,
     "String" -> StrT,
     "Completion" -> CompT,
+    "promise type" -> RecordT("Promise"),
+    "observable array type" -> RecordT("ObservableArray"),
   )
 
   private def irTypeOf(name: String): ir.Type =

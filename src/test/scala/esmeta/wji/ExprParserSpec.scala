@@ -32,6 +32,12 @@ class ExprParserSpec extends AnyFunSuite:
     )
   }
 
+  test("'X's type' reads the ty field") {
+    assert(
+      ExprParser.parse("|attribute|'s type") == Field(Var("attribute"), "ty"),
+    )
+  }
+
   test("type-annotated prefix keeps the annotating term") {
     assert(
       ExprParser.parse("the [=external value=] [=func=] |x|") ==

@@ -77,6 +77,7 @@ object ExpandWjiIsTypePass extends LoweringPass:
     "regular operation" -> "RegularOperation",
     "static operation" -> "StaticOperation",
     "interface" -> "Interface",
+    "namespace" -> "Namespace",
   )
 
   // The js-api spec's own top-level interfaces (spectec/spectec/document/

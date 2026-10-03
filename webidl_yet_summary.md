@@ -139,15 +139,9 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
    원문 - [=Compute the effective overload set=] for constructors with [=identifier=] |id| on [=interface=] |I| and with argument count |n|, and let |S| be the result.
    IR - call S = clo<"compute_the_effective_overload_set">((case "IDENTIFIER" id (case "INTERFACE" I n)))
 
-6. 카테고리 - III-B
-   원문 - Let &lt;|constructor|, |values|&gt; be the result of passing |S| and |args| to the [=overload resolution algorithm=].
-   IR - let _tuple1 = (yet "passing |S| and |args| to the [=overload resolution algorithm=]")
-        let constructor = _tuple1[0]
-        let values = _tuple1[1]
-
-7. 카테고리 - II-B + III-B
+7. 카테고리 - II-B
    원문 - Perform the [=constructor steps=] of |constructor| with |object| as [=this=] and |values| as the argument values.
-   IR - (yet "Perform the [=constructor steps=] of |constructor| with |object| as [=this=] and |values| as the argument values")
+   IR - call _ = constructor.constructorSteps(object, values)
 
 8. 카테고리 - II-C 
    원문 - If |I| inherits from some other interface |P|, then set |constructorProto| to the [=interface object=] of |P| in |realm|.
@@ -193,14 +187,6 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
   `DefinePropertyOrThrow`로 `target`에 매단다.
 
 ```
-3. 카테고리 - III-B
-   원문 - Let |getter| be the result of creating an [=attribute getter=] given |attr|, |definition|, and |realm|.
-   IR - let getter = (yet "an [=attribute getter=] given |attr|, |definition|, and |realm|")
-
-4. 카테고리: III-B
-   원문 - Let |setter| be the result of creating an [=attribute setter=] given |attr|, |definition|, and |realm|.
-   IR - let setter = (yet "an [=attribute setter=] given |attr|, |definition|, and |realm|")
-
 5. 카테고리 - IV-D
    원문 - Let |configurable| be <emu-val>false</emu-val> if |attr| is [=unforgeable=] and <emu-val>true</emu-val> otherwise.
    IR (현재) - if (= attr ~unforgeable~) {
@@ -267,9 +253,9 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
     원문 - Set |idlObject| to the IDL [=interface type=] value that represents a reference to |jsValue|.
     IR - idlObject = (yet "the IDL [=interface type=] value that represents a reference to |jsValue|")
 
-12. 카테고리 - II-B + III-B
+12. 카테고리 - II-B
     원문 - Let |R| be the result of running the [=getter steps=] of |attribute| with |idlObject| as [=this=].
-    IR - let R = (yet "running the [=getter steps=] of |attribute| with |idlObject| as [=this=]")
+    IR - call R = attribute.getterSteps(idlObject)
 
 13. 카테고리 - II-G
     원문 - If |attribute|'s type is a [=promise type=], ...
@@ -359,7 +345,7 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
 
 24. 카테고리 - III-C
     원문 - Perform the [=setter steps=] of |attribute|, with |idlObject| as [=this=] and |idlValue| as [=the given value=].
-    IR - (yet "Perform the [=setter steps=] of |attribute|, with |idlObject| as [=this=] and |idlValue| as [=the given value=]")
+    IR - call _ = attribute.setterSteps(idlObject, idlValue)
 
 25. 카테고리 - I-J
     원문 - Let |name| be the string "<code>set </code>" prepended to |id|.
@@ -445,16 +431,6 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
     원문 - [=Compute the effective overload set=] for [=regular operations=] (if |op| is a regular operation) or for [=static operations=] (if |op| is a static operation) with [=identifier=] |id| on |target| and with argument count |n|, and let |S| be the result.
     IR - call _call1 = clo<"regular_operations">((yet "tuple(Unknown(if |op| is a regular operation) or for [=static operations=] (if |op| is a static operation))"), (case "IDENTIFIER" id target n))
          call S = clo<"compute_the_effective_overload_set">(_call1)
-
-11. 카테고리 - III-B
-    원문 - Let &lt;|operation|, |values|&gt; be the result of passing |S| and |args| to the [=overload resolution algorithm=].
-    IR - let _tuple1 = (yet "passing |S| and |args| to the [=overload resolution algorithm=]")
-         let operation = _tuple1[0]
-         let values = _tuple1[1]
-
-13. 카테고리 - III-B
-    원문 - Otherwise, set |R| to the result of running the [=method steps=] of |operation|, with |idlObject| as [=this=] and |values| as the argument values."
-    IR - R = (yet "running the [=method steps=] of |operation|, with |idlObject| as [=this=] and |values| as the argument values")
 
 14. 카테고리 - II-G
     원문 - If |op| has a [=return type=] that is a [=promise type=], then return [=!=] <a abstract-op>Call</a>({{%Promise.reject%}}, {{%Promise%}}, «|E|»).

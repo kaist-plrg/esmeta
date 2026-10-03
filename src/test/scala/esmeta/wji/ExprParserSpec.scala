@@ -94,6 +94,39 @@ class ExprParserSpec extends AnyFunSuite:
     )
   }
 
+  test("'the result of creating a [=link=] given ARGS' is a direct AlgoCall") {
+    assert(
+      ExprParser.parse(
+        "the result of creating an [=attribute getter=] given |attr|, |definition|, and |realm|",
+      ) ==
+      AlgoCall(
+        "[=attribute getter=]",
+        List(Var("attr"), Var("definition"), Var("realm")),
+      ),
+    )
+  }
+
+  test("'the result of running the [=X steps=] of ...' calls the steps field") {
+    assert(
+      ExprParser.parse(
+        "the result of running the [=getter steps=] of |attribute| with |idlObject| as [=this=]",
+      ) ==
+      ClosureCall(
+        Field(Var("attribute"), "getterSteps"),
+        List(Var("idlObject")),
+      ),
+    )
+    assert(
+      ExprParser.parse(
+        "the result of running the [=method steps=] of |operation|, with |idlObject| as [=this=] and |values| as the argument values",
+      ) ==
+      ClosureCall(
+        Field(Var("operation"), "methodSteps"),
+        List(Var("idlObject"), Var("values")),
+      ),
+    )
+  }
+
   test(
     "'the [=interface prototype object=] of that [=inherited interface=] in |realm|'",
   ) {

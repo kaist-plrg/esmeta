@@ -20,6 +20,29 @@ class InstrParserSpec extends AnyFunSuite:
     assert(parse("Set |x| to |y|.") == List(Set(Var("x"), Var("y"))))
   }
 
+  test("perform the [=X steps=] of ... calls the steps field") {
+    assert(
+      parse(
+        "Perform the [=constructor steps=] of |constructor| with |object| as [=this=] and |values| as the argument values.",
+      ) == List(
+        PerformClosure(
+          Field(Var("constructor"), "constructorSteps"),
+          List(Var("object"), Var("values")),
+        ),
+      ),
+    )
+    assert(
+      parse(
+        "Perform the [=setter steps=] of |attribute|, with |idlObject| as [=this=] and |idlValue| as [=the given value=].",
+      ) == List(
+        PerformClosure(
+          Field(Var("attribute"), "setterSteps"),
+          List(Var("idlObject"), Var("idlValue")),
+        ),
+      ),
+    )
+  }
+
   test("set ... as specified in [=ALGO=] binds an AlgoRef") {
     assert(
       parse("Set |x|.[[Foo]] as specified in [=some algorithm=].") ==

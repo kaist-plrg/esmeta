@@ -127,6 +127,15 @@ object InstrParser:
   // from the paragraph following this step) and
   // esmeta.wji.compiler.lowering.ExpandThrowsPass (which expands the pair).
   private val TryPrefix = """(?is)^Try (.+)$""".r
+  // "Perform the [=X steps=] of |BASE|[,] with |A| as [=this=] and |B| as the
+  // argument values/[=the given value=]" — the statement form of WebIDL's
+  // steps-closure call idiom (webidl/index.bs's `create an interface object`
+  // / `attribute setter`, category III-B). `rest` is handed straight to
+  // ExprParser.parseStepsCall, the same recognizer its own "the result of
+  // running the [=X steps=] ..." expression form uses. Must be tried before
+  // PerformPrefix — which wouldn't match anyway (`rest` starts with "the",
+  // not a `[=link=]`), but this is the more specific shape.
+  private val PerformStepsPrefix = """(?is)^Perform\s+(the\s+\[=.+)$""".r
   private val PerformPrefix = """(?is)^(?:Perform\s+)?(\[[=$].+|Run\b.+)$""".r
   private val PerformAndReturnSuffix =
     """(?is)^(.*?),?\s+and\s+return\s+the\s+result$""".r
@@ -453,6 +462,10 @@ object InstrParser:
       case _ if RunInParallelPrefix.matches(text) => RunInParallel(trailingBody)
       case TryPrefix(rest) =>
         Try(ExprParser.parse(rest), trailingBody)
+      case PerformStepsPrefix(rest)
+          if ExprParser.parseStepsCall(rest).isDefined =>
+        val call = ExprParser.parseStepsCall(rest).get
+        PerformClosure(call.closure, call.args, Discard, trailingBody)
       case PerformPrefix(expr) =>
         // each suffix only changes the outcome/trailing body, not how the
         // call itself is parsed — so determine those first, then call

@@ -4720,8 +4720,8 @@ def define_the_attributes(
     let attr = _iterList1[_iterIdx2]
     call _call1 = clo<"exposed">(attr, realm)
     if (! (= _call1 true)) {} else {
-      let getter = (yet "an [=attribute getter=] given |attr|, |definition|, and |realm|")
-      let setter = (yet "an [=attribute setter=] given |attr|, |definition|, and |realm|")
+      call getter = clo<"attribute_getter">(attr, definition, realm)
+      call setter = clo<"attribute_setter">(attr, definition, realm)
       if (= attr ~unforgeable~) {
         let configurable = false
       } else {
@@ -5902,7 +5902,7 @@ def create_an_interface_object_closure1(
   } else {
     let object = _guard1.Value
   }
-  (yet "Perform the [=constructor steps=] of |constructor| with |object| as [=this=] and |values| as the argument values")
+  call _ = constructor.constructorSteps(object, values)
   call-convert O = <converted_to_a_javascript_value>(object)
   let _cond2 = false
   if (&& (? (yet "|O| is an object that"): Record[Object]) (&& (? @@yet: unresolved ref: Unknown(|O| is an object that): Record[Object]) (exists @@yet: unresolved ref: Unknown(|O| is an object that).PrimaryInterface))) {
@@ -6201,7 +6201,7 @@ def attribute_setter_closure1(
   }
   (yet "</dd> <dt>Otherwise</dt> <dd> |idlValue| is the result of [=converted to an IDL value|converting=] |V| to an IDL value of |attribute|'s type")
   (yet "</dd> </dl>")
-  (yet "Perform the [=setter steps=] of |attribute|, with |idlObject| as [=this=] and |idlValue| as [=the given value=]")
+  call _ = attribute.setterSteps(idlObject, idlValue)
   let _v19 = undefined
   if (? _v19: Completion) {
     return _v19
@@ -6570,7 +6570,6 @@ def define_the_asynchronous_iteration_methods_closure3(
 def <BUILTIN>:INTRINSICS.WebAssembly.instantiate(
   this: Unknown,
   ArgumentsList: Unknown,
-  NewTarget: Unknown,
 ): Unknown = {
   let _cond3 = false
   if (< 0 (sizeof ArgumentsList)) {
@@ -6586,7 +6585,7 @@ def <BUILTIN>:INTRINSICS.WebAssembly.instantiate(
     } else nop
   } else nop
   if (= _cond3 true) {
-    call _result1 = clo<"INTRINSICS.WebAssembly.instantiate_object">(this, ArgumentsList, NewTarget)
+    call _result1 = clo<"INTRINSICS.WebAssembly.instantiate_object">(this, ArgumentsList)
     if (? _result1: Completion) {
       return _result1
     } else {
@@ -6594,7 +6593,7 @@ def <BUILTIN>:INTRINSICS.WebAssembly.instantiate(
       return _ret1
     }
   } else {
-    call _result2 = clo<"INTRINSICS.WebAssembly.instantiate_bytes">(this, ArgumentsList, NewTarget)
+    call _result2 = clo<"INTRINSICS.WebAssembly.instantiate_bytes">(this, ArgumentsList)
     if (? _result2: Completion) {
       return _result2
     } else {

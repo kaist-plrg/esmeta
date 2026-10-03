@@ -164,17 +164,48 @@ object ExprParser:
   // all — that's the shape this idiom actually uses (no closure params).
   private val RunningClosureCall = """(?si)^running\s+(.+)$""".r
   private val PipeVarInline = """\|([^|]+)\|""".r
-  // "running the [=X steps=] for/of |BASE|[,] with |ARG1| as [=this=] and
-  // |ARG2| as the argument values" — WebIDL's "the result of running the
-  // [=default method steps=]/[=method steps=] ..." idiom for invoking an
-  // operation's own steps closure (the leading "the result of " is already
-  // stripped by ResultOf by the time this is tried).
-  private val RunningStepsCallWithArgs =
-    """(?si)^running the \[=([\w\s]+?) steps=\]\s+(?:for|of)\s+(\|[^|]+\|),?\s+with\s+(\|[^|]+\|)\s+as\s+\[=this=\]\s+and\s+(\|[^|]+\|)\s+as\s+the\s+argument\s+values$""".r
+  // "the [=X steps=] for/of |BASE|[,] with |ARG1| as [=this=] and |ARG2| as
+  // the argument values" — WebIDL's idiom for invoking an interface member's
+  // own steps closure, either as a value ("the result of running the
+  // [=default method steps=]/[=method steps=] ...", see RunningStepsCall
+  // below) or as a statement ("Perform the [=constructor steps=] of ...",
+  // see InstrParser's PerformStepsPrefix) — the verb is stripped by the
+  // caller, so both share [[parseStepsCall]]. A setter's lone argument is
+  // spelled "|ARG2| as [=the given value=]" instead ("Perform the [=setter
+  // steps=] of |attribute|, with |idlObject| as [=this=] and |idlValue| as
+  // [=the given value=]") — same positional shape, so it's passed the same
+  // way (webidl_yet_categorized.md category III-B).
+  private val StepsCallWithArgs =
+    """(?si)^the \[=([\w\s]+?) steps=\]\s+(?:for|of)\s+(\|[^|]+\|),?\s+with\s+(\|[^|]+\|)\s+as\s+\[=this=\]\s+and\s+(\|[^|]+\|)\s+as\s+(?:the\s+argument\s+values|\[=the given value=\])$""".r
   // same idiom, no "and ... as the argument values" clause — WebIDL's "the
   // result of running the [=getter steps=] ... with ... as [=this=]".
-  private val RunningStepsCallNoArgs =
-    """(?si)^running the \[=([\w\s]+?) steps=\]\s+(?:for|of)\s+(\|[^|]+\|),?\s+with\s+(\|[^|]+\|)\s+as\s+\[=this=\]$""".r
+  private val StepsCallNoArgs =
+    """(?si)^the \[=([\w\s]+?) steps=\]\s+(?:for|of)\s+(\|[^|]+\|),?\s+with\s+(\|[^|]+\|)\s+as\s+\[=this=\]$""".r
+  // "running STEPS-CALL" — the leading "the result of " is already stripped
+  // by ResultOf by the time this is tried.
+  private val RunningStepsCall = """(?si)^running\s+(the \[=.+)$""".r
+
+  /** `rest` is everything after the verb ("running"/"Perform") of a
+    * [[StepsCallWithArgs]]/[[StepsCallNoArgs]] steps-closure call; `None` if it
+    * isn't one.
+    */
+  private[wji] def parseStepsCall(rest: String): Option[ClosureCall] =
+    rest.trim match
+      case StepsCallWithArgs(stepsRaw, baseRaw, thisArgRaw, argsVarRaw) =>
+        Some(
+          ClosureCall(
+            Field(parse(baseRaw), stepsFieldName(stepsRaw)),
+            List(parse(thisArgRaw), parse(argsVarRaw)),
+          ),
+        )
+      case StepsCallNoArgs(stepsRaw, baseRaw, thisArgRaw) =>
+        Some(
+          ClosureCall(
+            Field(parse(baseRaw), stepsFieldName(stepsRaw)),
+            List(parse(thisArgRaw)),
+          ),
+        )
+      case _ => None
 
   /** Shared by [[PerformingClosureCall]]/[[RunningClosureCall]]: `rest` is
     * everything after the verb — a closure (value or freshly-defined), with an
@@ -341,7 +372,7 @@ object ExprParser:
   // "passing ARG1[, ARG2, ...] to the [=LINK=]" — WebIDL's own idiom for
   // invoking an algorithm with an unnamed positional argument list, the
   // link named *last* rather than first (contrast LinkProse/LinkFull, and
-  // RunningStepsCallWithArgs's named "with X as this and Y as the argument
+  // StepsCallWithArgs's named "with X as this and Y as the argument
   // values" idiom) — e.g. "the result of passing |S| and |args| to the
   // [=overload resolution algorithm=]" (the leading "the result of " is
   // already stripped by ResultOf by the time this is tried;
@@ -353,6 +384,18 @@ object ExprParser:
   // prose — rather than a bespoke comma/"and" splitter.
   private val PassingToCall =
     """(?si)^passing\s+(.+?)\s+to\s+the\s+(\[=(?:(?!=\]).)+?=\])$""".r
+  // "the result of creating a/an [=LINK=] given ARG1[, ARG2, ...]" — WebIDL's
+  // idiom for invoking an algorithm whose own dfn is the *thing it creates*
+  // ("The <dfn>attribute getter</dfn> is created as follows, given ..."),
+  // not a verb phrase — e.g. "the result of creating an [=attribute getter=]
+  // given |attr|, |definition|, and |realm|" (webidl_yet_categorized.md
+  // category III-B). Must precede ResultOf, which would otherwise strip
+  // "the result of creating " and leave a bare "an [=LINK=] given ..." noun
+  // phrase indistinguishable from a term reference. Same unambiguous shape
+  // as PassingToCall, and same parseArgs split for its loose "A, B, and C"
+  // prose.
+  private val CreatingLinkGivenCall =
+    """(?si)^the result of creating\s+an?\s+(\[=(?:(?!=\]).)+?=\])\s+given\s+(.+)$""".r
   // "the [=interface object=] of |I| in |realm|" / "the [=interface
   // prototype object=] for |I| in |realm|" — a WebIDL glossary term (the
   // cached per-realm *value*, not the algorithm that builds it) referenced
@@ -472,7 +515,7 @@ object ExprParser:
   // anchors at the closing `]]`) with leftover trailing text — WJI already
   // models "invoke the closure stored in field X of BASE" as
   // `ClosureCall(Field(base, name), args)` for the analogous
-  // RunningStepsCallWithArgs/RunningStepsCallNoArgs idiom below, so this
+  // StepsCallWithArgs/StepsCallNoArgs idiom below, so this
   // reuses that exact shape rather than inventing a new node.
   private val SlotMethodCall =
     """(?s)^(.+)\.\\?\[\[([^\]]+)\]\]\((.*)\)$""".r
@@ -942,7 +985,7 @@ object ExprParser:
   /** camelCases a captured "X steps" dfn name into the record field storing
     * that closure, e.g. "default method" -> "defaultMethodSteps", "method" ->
     * "methodSteps", "getter" -> "getterSteps" — see
-    * [[RunningStepsCallWithArgs]]/ [[RunningStepsCallNoArgs]].
+    * [[StepsCallWithArgs]]/[[StepsCallNoArgs]].
     */
   private def stepsFieldName(raw: String): String =
     raw.trim.split("\\s+").toList match
@@ -1007,7 +1050,9 @@ object ExprParser:
     val s = raw.trim
     s match
       // ---- Wrappers ----
-      case AbruptPrefix(check, rest)       => Abrupt(check, parse(rest))
+      case AbruptPrefix(check, rest) => Abrupt(check, parse(rest))
+      case CreatingLinkGivenCall(link, argsRaw) =>
+        AlgoCall(normalizeLink(link), parseArgs(argsRaw))
       case ResultOf(rest)                  => parse(rest)
       case EitherPat(rest)                 => parse(rest)
       case TypeAnnotatedPrefix(term, rest) => TypeAnnotated(term, parse(rest))
@@ -1034,21 +1079,8 @@ object ExprParser:
       case PerformingClosureCall(rest)
           if findTopLevel(rest, " given ").isDefined =>
         closureCall(rest)
-      case RunningStepsCallWithArgs(
-            stepsRaw,
-            baseRaw,
-            thisArgRaw,
-            argsVarRaw,
-          ) =>
-        ClosureCall(
-          Field(parse(baseRaw), stepsFieldName(stepsRaw)),
-          List(parse(thisArgRaw), parse(argsVarRaw)),
-        )
-      case RunningStepsCallNoArgs(stepsRaw, baseRaw, thisArgRaw) =>
-        ClosureCall(
-          Field(parse(baseRaw), stepsFieldName(stepsRaw)),
-          List(parse(thisArgRaw)),
-        )
+      case RunningStepsCall(rest) if parseStepsCall(rest).isDefined =>
+        parseStepsCall(rest).get
       case RunningClosureCall(rest)
           if parse(rest).isInstanceOf[FollowingSteps] =>
         ClosureCall(parse(rest), Nil)

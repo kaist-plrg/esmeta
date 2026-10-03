@@ -130,8 +130,9 @@ object Instr:
   /** a closure-*value* call used as a statement (contrast with [[Perform]],
     * whose `func` is a static `[=link=]` name); produced by
     * `esmeta.wji.compiler.lowering.ExpandClosureCallPass` from an
-    * [[Expr.ClosureCall]] found in `Let`/`Return` RHS position. `outcome`
-    * mirrors [[Perform]]'s.
+    * [[Expr.ClosureCall]] found in `Let`/`Return` RHS position, or directly by
+    * `InstrParser` for "Perform the [=X steps=] of ...". `outcome` mirrors
+    * [[Perform]]'s.
     */
   case class PerformClosure(
     closure: Expr,

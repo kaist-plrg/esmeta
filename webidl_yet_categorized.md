@@ -168,15 +168,6 @@ II-C의 상속-모델링 gap에 막혀 `EYet`으로 남아 있어 이 카테고�
 것"이라는 관용구 인식 문제. 공통 대응: spec patch로 원문을 명시적 `call clo<...>(...)` 형태로
 재작성.
 
-### III-B. 알고리즘/클로저 호출
-- `#3-7` - Perform the constructor steps of |constructor| with |object| as this and |values| as the argument values
-- `#5-3` - the result of creating an [=attribute getter=] given |attr|, |definition|, and |realm|
-- `#5-4` - the result of creating an [=attribute setter=] given |attr|, |definition|, and |realm|
-- `#6-12` - the result of running the [=getter steps=] of |attribute| with |idlObject| as [=this=]
-- `#7-24` - Perform the [=setter steps=] of |attribute|, with |idlObject| as [=this=] and |idlValue| as [=the given value=].
-- `#10-13` - the result of running the [=method steps=] of |operation|, with |idlObject| as [=this=] and |values| as the argument values
-- `#3-6`, `#10-11` - the result of passing |S| and |args| to the [=overload resolution algorithm=]
-
 ### III-C. Passing the given value
 
 - #7-24 - Perform the [=setter steps=] of |attribute|, with |idlObject| as [=this=] and |idlValue| as [=the given value=].

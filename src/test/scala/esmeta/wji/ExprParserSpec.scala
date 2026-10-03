@@ -19,6 +19,19 @@ class ExprParserSpec extends AnyFunSuite:
     assert(ExprParser.parse("either |x|") == Var("x"))
   }
 
+  test("'the string \"X\" prepended to Y' is a string concatenation") {
+    assert(
+      ExprParser.parse(
+        "the string \"<code>get </code>\" prepended to |attribute|'s [=identifier=]",
+      ) == Concat(List(Str("get "), Field(Var("attribute"), "id"))),
+    )
+    assert(
+      ExprParser.parse(
+        "the string \"<code>set </code>\" prepended to |attribute|'s [=identifier=]",
+      ) == Concat(List(Str("set "), Field(Var("attribute"), "id"))),
+    )
+  }
+
   test("type-annotated prefix keeps the annotating term") {
     assert(
       ExprParser.parse("the [=external value=] [=func=] |x|") ==

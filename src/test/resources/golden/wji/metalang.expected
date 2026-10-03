@@ -1721,7 +1721,7 @@
         Return([=!=] [$Call$](%Promise.reject%, %Promise%, « |E| »))
       Else
         ?(end these steps and allow the exception to propagate)
-  Let(|name|, ?(the string "<code>get </code>" prepended to |attribute|).[[id]])
+  Let(|name|, concat("get ", |attribute|.[[id]]))
   Let(|F|, [$CreateBuiltinFunction$](|steps|, 0, |name|, « », |realm|))
   Return(|F|)
 
@@ -1782,7 +1782,7 @@
       ?(</dd> </dl>)
     PerformClosure(|attribute|.[[setterSteps]](|idlObject|, |idlValue|))
     Return(undefined)
-  Let(|name|, ?(the string "<code>set </code>" prepended to |id|))
+  Let(|name|, concat("set ", |id|))
   Let(|F|, [$CreateBuiltinFunction$](|steps|, 1, |name|, « », |realm|))
   Return(|F|)
 

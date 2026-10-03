@@ -25,11 +25,6 @@
 - `#9-2` - [=iteration/continue=]
 - `#11-16` - [=iteration/break=]
 
-### I-J. 문자열 연결(concat) 표현식: IR에 string concat expression 추가.
-
-- `#6-15` — `let name = "get " prepended to |attribute|.identifier`
-- `#7-25` — `let name = "set " prepended to |id|`
-
 ### I-K. set, list, tuple 관련
 - `#11-2` - Let |S| be an [=ordered set=].
 - `#11-8` - Let |types| be a [=type list=].

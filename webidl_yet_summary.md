@@ -264,10 +264,6 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
 14. 카테고리 - I-F + VII
     원문 - Otherwise, end these steps and allow the exception to propagate.
     IR - (yet "end these steps and allow the exception to propagate")
-
-15. 카테고리 - I-J
-    원문 - Let |name| be the string "<code>get </code>" prepended to |attribute|'s [=identifier=].
-    IR - let name = @@yet: unresolved ref: Unknown(string "<code>get </code>" prepended to |attribute|).identifier
 ```
 
 ---
@@ -346,10 +342,6 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
 24. 카테고리 - III-C
     원문 - Perform the [=setter steps=] of |attribute|, with |idlObject| as [=this=] and |idlValue| as [=the given value=].
     IR - call _ = attribute.setterSteps(idlObject, idlValue)
-
-25. 카테고리 - I-J
-    원문 - Let |name| be the string "<code>set </code>" prepended to |id|.
-    IR - let name = (yet "the string \"<code>set </code>\" prepended to |id|")
 
 ```
 

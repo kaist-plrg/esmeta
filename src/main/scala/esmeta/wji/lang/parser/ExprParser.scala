@@ -613,6 +613,17 @@ object ExprParser:
   // `fieldFromLink` (which would read the dfn text as-is). Must precede
   // PossessiveAssociation below for the same reason AssociatedRealm does.
   private val PossessiveIdentifier = """(?si)^(.+)'s \[=identifier=\]$""".r
+  // "the string "<code>get </code>" prepended to |attribute|'s
+  // [=identifier=]" — the name `attribute getter`/`attribute setter`
+  // (webidl/index.bs:12382, 12466) give the function they create
+  // (webidl_yet_categorized.md category I-J). The quoted prefix is a string
+  // literal like any other (`QuotedCodeStr`/`QuotedStr`); the rest is whatever
+  // string-valued expression it's prepended to. Must precede
+  // PossessiveIdentifier above, whose greedy base would otherwise swallow the
+  // whole "the string ... prepended to |attribute|" as the thing whose
+  // identifier is read.
+  private val StringPrependedTo =
+    """(?si)^(?:the string\s+)?("[^"]*")\s+prepended to\s+(.+)$""".r
   // "the identifier of interface |I|" — "create an interface object"'s own
   // phrasing of the same `id` field PossessiveIdentifier above maps ("X's
   // [=identifier=]") — webidl_yet_categorized.md category II-E's `#3-4`.
@@ -1236,6 +1247,8 @@ object ExprParser:
       case IndexOfPat(list, elem) => IndexOf(parse(list), parse(elem))
       case ShortestArgumentListOfEntries(baseRaw) =>
         ShortestArgumentList(parse(baseRaw))
+      case StringPrependedTo(prefixRaw, restRaw) =>
+        Concat(List(parse(prefixRaw), parse(restRaw)))
       case PossessiveIdentifier(baseRaw) => Field(parse(baseRaw), "id")
       case IdentifierOfType(varRaw)      => Field(parse(varRaw), "id")
       case InterfaceInheritsFrom(varRaw) => Field(parse(varRaw), "inherit")

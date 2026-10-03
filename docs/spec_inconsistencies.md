@@ -268,3 +268,15 @@ Retracted — its premise was wrong. This entry claimed the document consistentl
 - **Expected**: 이 문서(그리고 웹IDL 문서)가 externtype/valtype류를 만들 때 항상 쓰는, 링크된 term을 조립하는 방식. 예컨대 바로 근처 `Global`의 생성자(line 1200)는 `1. If |mutable| is true, let |globaltype| be [=var=] |valuetype|; otherwise, let |globaltype| be [=const=] |valuetype|.`처럼 `[=const=]`/`[=var=]` term으로 만들고, `ToWebAssemblyValue`(line 1451)는 `[=ref=] [=heap-type/extern=]`로 reftype을 만듦. `stringExternType`도 이 두 관용구를 그대로 이어붙여서 만들 수 있음(아래 "WJI 쪽 처리" 참고).
 - **Reason**: 텍스트 자체는 독립적으로 봐도 무슨 뜻인지 명확하지만(Wasm 텍스트 포맷을 아는 사람이라면), 이 문서 자신이 세워둔 "formal grammar 값은 링크된 term으로 조립한다"는 패턴에서 이 한 자리만 벗어남 — `externtype`/`globaltype`/`reftype`을 만드는 다른 모든 자리(`[=const=]`/`[=var=]`/`[=ref=]`/`[=external-type/global=]`)가 예외 없이 링크된 term 조합인데, 정확히 같은 개념(글로벌 상수 externref 타입)을 만드는 이 한 스텝만 단일 백틱 리터럴로 축약함. `AlgorithmExtractor`/`ExprParser`는 이 리터럴을 통째로 `Unknown`(→ `EYet`)으로 처리해서, `js-string/constants.any.js`가 `WebAssemblyCompileOptions.importedStringConstants`를 실제로 쓰는 첫 순간(`docs/hardcodes.md` #2로 이 옵션이 identity passthrough에서 벗어나면서 처음 도달) 바로 여기서 막힘.
 - **WJI 쪽 처리**: `SpecPatch` #56 — `[=const=]`/`[=ref=]`/`[=external-type/global=]` 셋 다 이미 다른 자리에서 검증된 채로 작동 중인 term들이라 새 파싱 지원 없이 그대로 재조립. 단, `[=external-type/global=] [=const=] |reftype|`처럼 두 번째 term을 안쪽에 중첩해서 쓰면 `NormalizeSpecTecCaseShapePass`의 `external-type/global` 전용 처리(정확히 2개의 **평평한**(nested 아닌) 인자를 받는 걸 전제함, 그 pass 자신의 doc에 있는 예시 `Case("[=external-type/global=]", [Var(mut), Var(valuetype)])` → `Case("GLOBAL", [Case("", [Var(mut), Var(valuetype)])])` 참고)가 안 걸리고 더 일반적인 처리로 빠져서 중첩이 한 겹 더 생겨버림(실제 `spectec` 바이너리에서 `globaltype: invalid construction` 에러로 확인) — 그래서 `|mut|`/`|reftype|`을 각각 별도 `Let`으로 먼저 바인딩해서 둘 다 이미 값이 채워진 **평평한 변수**로 넘기는 3줄짜리 형태로 씀. `js-string/constants.any.js`의 `badGlobalTypes` 루프 10개 subtest 전부 통과 확인, 그 뒤의 `String.prototype.repeat` 미기계화(mainline, 별개)까지 다시 진행.
+
+## 22. `create an interface prototype object`의 재귀 호출 스텝만 `in |realm|`/`of X` 절 순서가 뒤바뀜
+
+- **File**: `webidl/index.bs`, line 12055-12056 (`create an interface prototype object`의 `#2-2` 분기, webidl_yet_categorized.md category II-C).
+- **Current**:
+  ```
+          then set |proto| to the [=interface prototype object=] in |realm|
+          of that [=inherited interface=].
+  ```
+- **Expected**: `then set |proto| to the [=interface prototype object=] of that [=inherited interface=] in |realm|.`
+- **Reason**: 이 문서에서 같은 "the interface (prototype) object of X in realm" 구성을 쓰는 다른 모든 자리 — line 11963의 `of |P| in |realm|`, line 12030의 `of [=interface=] |I| in |realm|`, line 12094의 `of |interface| in |realm|` — 는 전부 주어(subject)를 realm보다 먼저 씁니다. 이 한 자리만 두 절이 뒤바뀌어 있습니다(realm이 먼저, 주어 절이 그 뒤, 사이에 줄바꿈). 문장 자체는 독립적으로 봐도 틀린 게 아닙니다 — 절 순서가 어느 쪽이든 realm과 주어가 모호하지 않아서 스텝의 의미는 그대로입니다. 문제라고 판단할 수 있는 유일한 근거는 같은 문서가 구조적으로 동일한 다른 자리에서 세워둔 "of X in |realm|" 순서에서 이 자리만 벗어났다는 것뿐이라, spec error가 아니라 inconsistency로 분류합니다 (원래 `docs/spec_errors.md` #37이었다가 옮겨옴).
+- **WJI 쪽 처리**: `SpecPatch` #70으로 다른 자리와 같은 순서로 재배열. 그 결과는 `ExprParser.LinkOfInheritedInterfaceIn`이, 다른 자리들을 `LinkOfForIn`이 파싱하는 것과 같은 방식으로 파싱합니다.

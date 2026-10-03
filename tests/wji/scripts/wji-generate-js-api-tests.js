@@ -64,6 +64,27 @@ const testPatches = [
   // strict mode, which throws `ReferenceError` instead. Occurs verbatim in
   // exactly two files (exception/{getArg,is}.tentative.any.js).
   ["for (argument of invalidValues) {", "for (let argument of invalidValues) {"],
+
+  // Same bug, same fix, js-string/constants.any.js's own two occurrences --
+  // `for ([type, mutable] of badGlobalTypes) {`/`for ([type, mutable] of
+  // goodGlobalTypes) {` destructure into bare (undeclared) `type`/`mutable`
+  // each iteration. The very first one throws a `ReferenceError` immediately
+  // (strict mode, same as above) -- and since it's a bare top-level statement
+  // rather than something inside a `test()`/`promise_test()` callback, this
+  // isn't just one failed subtest: it's an uncaught abrupt completion from
+  // the whole top-level script, so not even `add_completion_callback` at the
+  // bottom (report-shim.js) ever gets registered -- no SUMMARY line, no
+  // crash either (RunJobs just collects it into an `errors` list nothing
+  // inspects, esmeta's own design choice for uncaught top-level exceptions,
+  // out of scope for this fix).
+  [
+    "for ([type, mutable] of badGlobalTypes) {",
+    "for (let [type, mutable] of badGlobalTypes) {",
+  ],
+  [
+    "for ([type, mutable] of goodGlobalTypes) {",
+    "for (let [type, mutable] of goodGlobalTypes) {",
+  ],
 ];
 
 // Per-file patches that neuter just the individual pieces too expensive to
@@ -107,24 +128,72 @@ const badImportsPatches = [
   ],
 ];
 
+// `instance/constructor.any.js` and `constructor/instantiate.any.js`
+// (docs/out_of_scope.md #4) -- 4 of `instanceTestFactory`'s entries build a
+// `new WebAssembly.Memory({ initial: 64, maximum: 128 })` (4MB, each byte
+// individually JSON-encoded over the SpecTec RPC bridge -- see
+// docs/out_of_scope.md #4 for why that blows well past this repo's `-Xmx3g`)
+// inside their own factory function, only actually called when
+// `test()`/`promise_test()` invokes that specific subtest's callback -- so
+// filtering them out of the array each file's own driving loop consumes is
+// enough; nothing upstream of that loop ever calls their factory function at
+// all. Both files pull in the exact same shared
+// `spectec/test/js-api/instanceTestFactory.js` META script and drive it with
+// the identical `for (const [name, fn] of instanceTestFactory) {` loop
+// header, so the same `[from, to]` pair patches both verbatim.
+const instanceTestFactoryOomPatches = [
+  [
+    "for (const [name, fn] of instanceTestFactory) {",
+    'for (const [name, fn] of instanceTestFactory.filter(([n]) => !["getter order for imports object", "imports", "imports with empty module names", "imports with empty names"].includes(n))) {',
+  ],
+];
+
+// `constructor/compile.any.js`, `constructor/instantiate.any.js`,
+// `constructor/validate.any.js`, `module/constructor.any.js`
+// (docs/out_of_scope.md #5) -- mainline ESMeta doesn't construct
+// `%SharedArrayBuffer%` at all (it's a `YetObj` placeholder in
+// `esmeta.es.builtin.package.yets`), so `new SharedArrayBuffer(...)` in each
+// file's `setup()` throws `NotSupported` before any `test()` callback runs,
+// killing every subtest in the file. Each of the 4 subtests that actually
+// consume the shared buffer only check that `compile`/`instantiate`/
+// `validate`/`new Module` accept a SharedArrayBuffer-backed view like any
+// other `BufferSource` -- shared-ness itself (detach, growable in-place
+// mutation, cross-agent) is never observed -- and each file already runs the
+// same check against a resizable `ArrayBuffer` right next to it, so
+// substituting `ArrayBuffer` here preserves each subtest's actual intent.
+const sharedArrayBufferPatches = [
+  ["new SharedArrayBuffer(", "new ArrayBuffer("],
+];
+
 const perFilePatches = {
+  "constructor/compile.any.js": sharedArrayBufferPatches,
+  // also needs `instanceTestFactoryOomPatches` (docs/out_of_scope.md #4) --
+  // see that const's own doc above.
+  "constructor/instantiate.any.js": sharedArrayBufferPatches.concat(
+    instanceTestFactoryOomPatches,
+  ),
+  "constructor/validate.any.js": sharedArrayBufferPatches,
+  "module/constructor.any.js": sharedArrayBufferPatches,
   // `limits.any.js` (docs/out_of_scope.md #3) -- the corpus's one
   // `// META: timeout=long` file. Every one of these calls runs
   // synchronously at top-level script execution, before any `test()`
   // callback even gets registered -- a title-based skip like
   // `skip-known-gaps.js` can't help (the expensive work isn't inside any
   // `test()` callback to filter out). Only the ones that actually build
-  // something proportional to a huge count are neutered here; the small ones
-  // (`function params`/`function returns`, capped at 1000; `memories`,
-  // capped at 1; `function locals`/`function params+locals`, which pass
-  // their huge count as a single `addLocals({i32_count: count})` argument --
-  // `WasmModuleBuilder`'s own `getNumLocals`/`addLocals`
-  // (spectec/test/js-api/wasm-module-builder.js) never loops over `count`
-  // itself, so this is O(1) regardless of its magnitude) and the two
-  // `testDynamicLimit` calls plus the final bare `test()` (which only pass a
-  // huge *number* as a size bound for the engine's own validation to reject,
-  // never loop over it in JS) are left alone, so this file still surfaces
-  // real `SUMMARY N/M` signal instead of a blanket `0/0`.
+  // something proportional to a huge count are neutered here for that
+  // reason; `memories` (capped at 1) is harmless perf-wise and left alone
+  // (it exercises a real, still-open WJI gap, `personal/TODO.md` #64).
+  // `function locals`/`function params`/`function params+locals`/`function
+  // returns` are ALSO disabled below, but for an unrelated reason (see
+  // docs/out_of_scope.md #7, not a perf/OOM issue) -- they only exist to
+  // exercise the JS-API "Implementation-defined Limits" section, decided
+  // out of scope entirely. The two `testDynamicLimit` calls and the final
+  // bare `test()` (Table size limits) only pass a huge *number* as a size
+  // bound for the engine's own validation/RPC bridge to reject, never loop
+  // over it in JS -- one `testDynamicLimit` and the final `test()` are
+  // disabled below for the unrelated `Table` OOM reason (docs/out_of_scope.md
+  // #4), the other `testDynamicLimit` ("maximum table size") is harmless and
+  // left alone (confirmed by isolated execution, `personal/DONE.md` #58).
   "limits.any.js": [
     [
       'testLimit("types", 1, kJSEmbeddingMaxTypes, (builder, count) => {',
@@ -158,6 +227,25 @@ const perFilePatches = {
       "testLimit(\"element segments\", 1, kJSEmbeddingMaxElementSegments,",
       "if (false) testLimit(\"element segments\", 1, kJSEmbeddingMaxElementSegments,",
     ],
+    // out of scope (docs/out_of_scope.md #7) -- these four only exercise the
+    // JS-API "Implementation-defined Limits" section, a purely declarative
+    // constraint list no algorithm ever references.
+    [
+      'testLimit("function locals", 1, kJSEmbeddingMaxFunctionLocals,',
+      'if (false) testLimit("function locals", 1, kJSEmbeddingMaxFunctionLocals,',
+    ],
+    [
+      'testLimit("function params", 1, kJSEmbeddingMaxFunctionParams,',
+      'if (false) testLimit("function params", 1, kJSEmbeddingMaxFunctionParams,',
+    ],
+    [
+      'testLimit("function params+locals", 1, kJSEmbeddingMaxFunctionLocals - 2,',
+      'if (false) testLimit("function params+locals", 1, kJSEmbeddingMaxFunctionLocals - 2,',
+    ],
+    [
+      'testLimit("function returns", 0, kJSEmbeddingMaxFunctionReturns,',
+      'if (false) testLimit("function returns", 0, kJSEmbeddingMaxFunctionReturns,',
+    ],
     [
       'testLimit("tables", 0, kJSEmbeddingMaxTables, (builder, count) => {',
       'if (false) testLimit("tables", 0, kJSEmbeddingMaxTables, (builder, count) => {',
@@ -170,23 +258,83 @@ const perFilePatches = {
       "testModuleSizeLimit(kJSEmbeddingMaxModuleSize + 1, false);",
       "if (false) testModuleSizeLimit(kJSEmbeddingMaxModuleSize + 1, false);",
     ],
-  ],
-
-  // `instance/constructor.any.js` (docs/out_of_scope.md #4) -- 4 of
-  // `instanceTestFactory`'s entries build a `new WebAssembly.Memory({
-  // initial: 64, maximum: 128 })` (4MB, each byte individually JSON-encoded
-  // over the SpecTec RPC bridge -- see docs/out_of_scope.md #4 for why that
-  // blows well past this repo's `-Xmx3g`) inside their own factory function,
-  // only actually called when `test()` invokes that specific subtest's
-  // callback -- so filtering them out of the array `test()`'s own driving
-  // loop consumes is enough; nothing upstream of that loop ever calls their
-  // factory function at all.
-  "instance/constructor.any.js": [
+    // vendor corpus typo (docs/spectec_errors.md #4): WPT standard is
+    // snake_case `assert_equals`, not camelCase -- no other spectec/test/
+    // js-api file defines or uses `assertEquals`. `same_value` is
+    // symmetric, so the swapped expected/actual argument order this call
+    // site uses doesn't affect pass/fail, only the (unused, since only
+    // SUMMARY N/M is checked here) failure message text.
+    ["assertEquals(", "assert_equals("],
+    // same OOM root cause as instanceTestFactoryOomPatches above
+    // (docs/out_of_scope.md #4) but for WebAssembly.Table instead of
+    // Memory -- `host.ml`'s `create_tableinst`/`grow_table` represent a
+    // table's element list the same per-element way `create_meminst` does
+    // for linear memory, so a real ~10M-entry Table (`kJSEmbeddingMaxTableSize
+    // + 1`) blows the JVM heap in the JSON-RPC decode, confirmed by isolating
+    // each call in a scratch script: `new WebAssembly.Table({initial:
+    // kJSEmbeddingMaxTableSize + 1, ...})`, `.grow(kJSEmbeddingMaxTableSize)`
+    // on an existing table, and instantiating a module whose own table type
+    // declares `initial: kJSEmbeddingMaxTableSize + 1` all independently OOM
+    // in isolation. `testDynamicLimit("maximum table size", ...)` right below
+    // this is safe and left alone -- its module's table type only declares
+    // `initial: 1` (a small real allocation), `maximum` is just a stored
+    // bound never actually grown to (its own `grow` export always returns
+    // -1 without a real `table.grow`, since the module predates the
+    // reference-types proposal).
     [
-      "for (const [name, fn] of instanceTestFactory) {",
-      'for (const [name, fn] of instanceTestFactory.filter(([n]) => !["getter order for imports object", "imports", "imports with empty module names", "imports with empty names"].includes(n))) {',
+      'testDynamicLimit("initial table size", instantiationShouldFail, {}, (builder) => {',
+      'if (false) testDynamicLimit("initial table size", instantiationShouldFail, {}, (builder) => {',
+    ],
+    [
+      "test(() => {\n  assert_throws(\n      new RangeError(),\n      () => new WebAssembly.Table(\n          {element : \"anyfunc\", initial : kJSEmbeddingMaxTableSize + 1}));",
+      "if (false) test(() => {\n  assert_throws(\n      new RangeError(),\n      () => new WebAssembly.Table(\n          {element : \"anyfunc\", initial : kJSEmbeddingMaxTableSize + 1}));",
+    ],
+    // vendor corpus bug (docs/spectec_errors.md #5), in wasm-module-builder.js
+    // (resolved into depsSrc, hence a perFilePatches entry rather than
+    // testPatches -- see that const's own doc for why the two lists differ
+    // in which part of the assembled file they touch): `is_shared`'s
+    // `(typeof imp.shared) != "undefined"` check treats an *explicitly
+    // passed* `false` the same as `true` (only an omitted `shared` argument
+    // reads as "not shared") -- this file's own `addImportedMemory("", "",
+    // 1, 1, false)` is the *only* call site in the whole corpus that passes
+    // a `shared` argument at all, so this fix can't affect any other test.
+    // Without it, the "memories limit" (exactly `kJSEmbeddingMaxMemories`)
+    // subtests declare a memory that unintentionally encodes as *shared*
+    // (limits flags bit 1) -- this repo's wasm-latest spec snapshot has no
+    // threads/shared-memory proposal support at all (`docs/out_of_scope.md`
+    // #5), so the reference decoder correctly rejects that flags value
+    // outright, an entirely different (and unintended) failure than what
+    // this subtest is actually testing (the *count* limit, unrelated to
+    // sharedness).
+    [
+      'var is_shared = (typeof imp.shared) != "undefined";',
+      "var is_shared = imp.shared === true;",
     ],
   ],
+
+  // `memory/grow.any.js`'s one genuinely thread-proposal-dependent subtest
+  // (docs/out_of_scope.md #5, personal/TODO.md #65) -- `{shared: true}` isn't
+  // a declared `MemoryDescriptor` member in this repo's js-api spec text at
+  // all, so it's silently ignored and `.buffer` comes back as a plain
+  // (non-shared) ArrayBuffer instead of the SharedArrayBuffer this subtest
+  // expects -- same root cause as `limits.any.js`'s (now-fixed) `is_shared`
+  // bug, just missing at the js-api dictionary layer instead of the core
+  // wasm binary layer. Needs the threads proposal mechanized end to end to
+  // fix for real, not a small patch -- excluded here the same way as the
+  // other out-of-scope calls above, rather than left as a permanent known
+  // failure.
+  "memory/grow.any.js": [
+    [
+      'test(() => {\n  const argument = { "initial": 1, "maximum": 2, "shared": true };',
+      'if (false) test(() => {\n  const argument = { "initial": 1, "maximum": 2, "shared": true };',
+    ],
+  ],
+
+  // `instanceTestFactoryOomPatches` (docs/out_of_scope.md #4, see that
+  // const's own doc above) -- `constructor/instantiate.any.js` also needs it,
+  // merged into its `sharedArrayBufferPatches` entry above instead of listed
+  // here (one file, one key).
+  "instance/constructor.any.js": instanceTestFactoryOomPatches,
 
   // `instance/constructor-bad-imports.any.js` and
   // `constructor/instantiate-bad-imports.any.js` (docs/out_of_scope.md #4) --
@@ -209,6 +357,38 @@ const perFilePatches = {
   // moment whatever's blocking it earlier gets fixed.
   "instance/constructor-bad-imports.any.js": badImportsPatches,
   "constructor/instantiate-bad-imports.any.js": badImportsPatches,
+
+  // `js-string/constants.any.js` (docs/out_of_scope.md #6) -- the `constants`
+  // array includes a 100,000-char string, used as a wasm import name in the
+  // `goodGlobalTypes` loop below. What that subtest actually checks (that a
+  // long/multi-byte string round-trips correctly as an import name) doesn't
+  // depend on the exact length -- but ESMeta's tree-walking interpreter's
+  // per-character overhead (prototype-chain walks, SDO calls, property
+  // definitions) turns 100,000 characters into tens of millions of
+  // interpreter steps and several minutes of wall time, confirmed via
+  // `-wji-eval:log` step-count tracing (no algorithmic O(n^2) bug found --
+  // `Obj.push`'s `Vector` is amortized O(1)). Shrunk to 100 chars, which
+  // still exercises the same code path in seconds.
+  "js-string/constants.any.js": [
+    ["'0'.repeat(100000)", "'0'.repeat(100)"],
+  ],
+
+  // vendor corpus bug (docs/spectec_errors.md #7): `grow-memory64.any.js`
+  // calls `nulls(n)` (an all-null array of length n) but never defines it and
+  // doesn't import anything that does -- `nulls` only exists in the sibling
+  // `table/grow.any.js`, which the memory64-address subtests here were split
+  // out of (upstream `2929f4497`, "Split memory64 JS API tests into separate
+  // files") without carrying the helper along. Fails the exact same way in
+  // real engines (a genuine `ReferenceError`, not a WJI gap). Prefixed onto
+  // the shared `assertions.js` dependency rather than edited in place --
+  // `perFilePatches` is keyed by relPath, so `table/get-set.any.js` and
+  // assertions.js's other consumers are unaffected.
+  "table/grow-memory64.any.js": [
+    [
+      'function assert_equal_to_array(table, expected, message, address = "i32") {',
+      'function nulls(n) {\n  return new Array(n).fill(null);\n}\n\nfunction assert_equal_to_array(table, expected, message, address = "i32") {',
+    ],
+  ],
 };
 
 fs.rmSync(generatedDir, { recursive: true, force: true });

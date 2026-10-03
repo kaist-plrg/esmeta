@@ -329,7 +329,101 @@ Retracted — its premise was wrong. This entry claimed the Wasm Core Spec's `fu
 - **Expected**: `1.  If |definition| does not have an [=asynchronously iterable declaration=] (of either sort), then return.`
 - **Reason**: The article "an" is duplicated back-to-back before `[=asynchronously iterable declaration=]`, a plain wording typo with no bearing on the algorithm's meaning — the check is simply "does not have an asynchronously iterable declaration."
 
-## 28. `create an interface prototype object`'s own recursive-call step has its `in |realm|`/`of X` clauses swapped
+## 28. `get a copy of the bytes held by the buffer source` reads a length-tracking view's `[[ByteLength]]` directly, but that slot is permanently `~auto~` for such views
+
+- **File**: `webidl/index.bs`, lines 9320-9323 (`get a copy of the bytes held by the buffer source`, the `[[ViewedArrayBuffer]]` branch).
+- **Current**:
+  ```
+  1.  If |jsBufferSource| has a [[ViewedArrayBuffer]] internal slot, then:
+      1.  Set |jsArrayBuffer| to |jsBufferSource|.[[ViewedArrayBuffer]].
+      1.  Set |offset| to |jsBufferSource|.[[ByteOffset]].
+      1.  Set |length| to |jsBufferSource|.[[ByteLength]].
+  ```
+- **Expected**:
+  ```
+  1.  If |jsBufferSource| has a [[ViewedArrayBuffer]] internal slot, then:
+      1.  Set |jsArrayBuffer| to |jsBufferSource|.[[ViewedArrayBuffer]].
+      1.  Set |offset| to |jsBufferSource|.[[ByteOffset]].
+      1.  Let |taRecord| be MakeTypedArrayWithBufferWitnessRecord(|jsBufferSource|, {{unordered}}).
+      1.  Set |length| to TypedArrayByteLength(|taRecord|).
+  ```
+- **Reason**: a TypedArray view created with no explicit length over a resizable/growable `ArrayBuffer` is *length-tracking* — ECMA-262's `TypedArrayCreate`/allocation steps set that view's `[[ByteLength]]` (and `[[ArrayLength]]`) internal slot to the literal sentinel `~auto~` once, permanently, rather than a number (`ecma262/spec.html:42804-42805`). Reading `[[ByteLength]]` directly, as this algorithm does, therefore hands back the symbol `~auto~` instead of a byte count for exactly this (fully spec-legal, and exercised by this very corpus's own "Resizable ArrayBuffer-backed view"/"Growable SharedArrayBuffer-backed view" subtests) shape of argument. ECMA-262 itself never reads `[[ByteLength]]` this way for a value it might use as a number — every other place that needs a view's *current* byte length (e.g. `%TypedArray%.prototype.length`'s own getter) first builds a `MakeTypedArrayWithBufferWitnessRecord` (which snapshots the buffer's current byte length, since the buffer may have been resized since the view was created) and then calls `TypedArrayByteLength`/`TypedArrayLength` on that record, which only fall back to computing from the snapshot when the slot reads `~auto~` (`ecma262/spec.html:14967-15020`). Fixed via `SpecPatch` #55.
+
+## 29. `read the imports` is missing `[=?=]` before one `[$HasProperty$]` call, so its result never unwraps and the fallback branch it guards can never fire
+
+- **File**: `spectec/document/js-api/index.bs`, line 500 (`read the imports`).
+- **Current**: `1. If |o| [=is not an Object=] or if [$HasProperty$](|o|, |componentName|) is false,`
+- **Expected**: `1. If |o| [=is not an Object=] or if [=?=] [$HasProperty$](|o|, |componentName|) is false,`
+- **Reason**: every other `[$HasProperty$]`/`[$Get$]` call in this exact same algorithm (a few lines above and below this one, e.g. `"Set |o| to [=?=] [$Get$](|importObject|, |moduleName|)."`) is correctly marked `[=?=]`, and `[[HasProperty]]` genuinely can throw (a Proxy's `has` trap can run arbitrary code) — this one omission isn't a deliberate "provably can't throw here" elision the way a few other bare abstract-op calls elsewhere in this corpus are, it's simply missing. Without `[=?=]`, `ExprParser` parses the call as a plain `AlgoCall` rather than `Expr.Abrupt("?", AlgoCall(...))`, so `NormalizeEvaluationOrderPass`/`ExpandAbruptPass` never generate the usual unwrap-or-propagate check for it — the hoisted call's result (a genuine Completion Record, confirmed directly: a temporary debug print in `Interpreter.eval`'s `ICall`/`IReturn` cases showed a heap `Addr`, not a bare `Bool`, coming back from `HasProperty`) then gets compared against the literal `false` value as-is, which is never `true` regardless of the real underlying boolean — so the "fall back to reading from the plain `importObject`" branch this condition is supposed to guard could never fire, for *any* import, builtin-provided or not. Found while getting `js-string/basic.any.js`'s `new WebAssembly.Instance(...)` to actually exercise the js-string builtin table end to end (`docs/hardcodes.md` #21) — `fromCharCodeArray`/`intoCharCodeArray` (deliberately left unmechanized, needing a Wasm GC array type) are the two imports that are supposed to hit this exact fallback (missing from the builtin-provided `exportsObject`, so `HasProperty` on it correctly returns false and the code should fall back to the empty `importObject`, correctly producing a `TypeError` for a genuinely-unsatisfied import) — instead the interpreter kept treating every import as if it were present on `builtinOrStringImports[moduleName]`, regardless of whether it actually was. Fixed via `SpecPatch` #57.
+
+## 30. `js-string-fromCodePoint`'s declared `funcType` claims a nullable result, but its own algorithm body never produces one
+
+- **File**: `spectec/document/js-api/index.bs`, line 2040 (the `fromCodePoint` builtin's `funcType` declaration).
+- **Current**: `` `(rec (type (func (param i32) (result externref)))).0` `` — a nullable `externref` result.
+- **Expected**: `` `(rec (type (func (param i32) (result (ref extern))))).0` `` — non-null `(ref extern)`, matching every sibling "returns a new string" builtin in this same section (`cast`/`fromCharCodeArray`/`fromCharCode`/`concat`/`substring`).
+- **Reason**: this isn't just a stylistic divergence from the sibling builtins (contrast `docs/spec_inconsistencies.md`'s entries, reserved for text that's still individually correct, just expressed differently from an established pattern) — `fromCodePoint`'s own algorithm body is self-contradicting with its declared type: "If |v| > 0x10ffff, throw a {{RuntimeError}} exception as if a trap was executed. Return the result of Call(%String.fromCodePoint%, ...)." Every exit path either throws or returns `String.fromCodePoint`'s own result, which is never null — there is no path through this specific algorithm that could produce `null`, so a funcType admitting a null result doesn't describe what this function actually does; it's wrong on the same terms as the algorithm it's the declared type of, not merely inconsistent with its neighbors (the sibling-pattern comparison and the independently-authored test corpus, `spectec/test/js-api/js-string/basic.any.js`'s own `results: [wasmRefType(kWasmExternRef)]`, both non-null, were simply how this was *found*, not why it's wrong). Found the same way as `docs/spec_errors.md` #29 — `AddJsStringBuiltinsPass`'s js-string builtin table (`docs/hardcodes.md` #21) transcribed this funcType verbatim, and a temporary debug print comparing `match_externtype`'s two arguments showed `fromCodePoint` was the only one of 11 builtins whose deftype didn't match the real Wasm module's own declared import type byte-for-byte. Fixed directly in `AddJsStringBuiltinsPass`'s hand-transcribed table (not a `SpecPatch`, since this text was never run through the ordinary extraction pipeline to begin with).
+
+## 31. `instantiate the core of a WebAssembly module` checks `|result|` for `[=error=]` before destructuring it into `(|store|, |instance|)`, but `|result|` is always a pair
+
+- **File**: `spectec/document/js-api/index.bs`, line 602 (`instantiate the core of a WebAssembly module`).
+- **Current**:
+  ```
+  1. Let |result| be [=module_instantiate=](|store|, |module|, |imports|).
+  1. If |result| is [=error=], throw an appropriate exception type: ...
+  1. Let (|store|, |instance|) be |result|.
+  ```
+- **Expected**:
+  ```
+  1. Let |result| be [=module_instantiate=](|store|, |module|, |imports|).
+  1. Let (|store|, |instance|) be |result|.
+  1. If |instance| is [=error=], throw an appropriate exception type: ...
+  ```
+- **Reason**: `module_instantiate`'s own declared return type (`appendix/embedding.rst`) is `(store, moduleinst | error)` — always a 2-tuple, never the bare `error` value on its own. Checking `|result| is [=error=]` therefore compares a value that's *always a pair* against a value it can *never* structurally equal, so the condition is vacuously false regardless of whether instantiation actually failed. Confirmed via `wji-extract`: the condition compiles to a literal `Eq(Var(result), Link([=error=]), false)`, permanently false, so the branch that would throw `{{LinkError}}` (etc.) is dead code — a genuine link failure (e.g. an imported `Global`'s mutability not matching the module's declared import type, `Match.match_globaltype`'s exact-equality requirement on mutability) falls straight through to `Let (|store|, |instance|) be |result|`, binding `|instance|` to the `error` sentinel value itself, and `new WebAssembly.Instance(...)`/`WebAssembly.instantiate(...)` return that as if it were a genuine instance — no exception at all. Verified the underlying Wasm-level check itself is correct and unaffected: a temporary debug print in `spectec`'s `Relation.externaddr_ok` (the OCaml-side `Externaddr_ok` implementation `$instantiate`'s own premises call) showed it correctly returning `false` for every one of the corpus's deliberately-mismatched global imports — the bug is entirely in this js-api-level result-shape check, not in the Wasm Core spec's own validation.
+- Fixed via `SpecPatch` #58 (reorders the destructuring step ahead of the check and tests `|instance|` instead of `|result|` — the bulleted exception-type-selection list itself is left as unmechanized prose for now, tracked separately in `personal/TODO.md` #60).
+
+## 32. `create a builtin function`'s hostfunc definition never specifies converting `steps`' arguments or result across the wasm/JS-value boundary
+
+- **File**: `spectec/document/js-api/index.bs`, line 1872 (`create a builtin function`).
+- **Current**: `1. Let |hostfunc| be a [=host function=] which executes |steps| when called.` — and nothing else.
+- **Expected**: two explicit conversion steps, mirroring `run a host function`'s own treatment (index.bs:1326-1327/1329-1331) exactly:
+  - on the way in, convert every incoming wasm argument via `[=ToJSValue=]` before `|steps|` ever runs (`run a host function`'s `For each arg of arguments, Append [=ToJSValue=](arg) to jsArguments.`);
+  - on the way out, convert `|steps|`'s own result into a properly-tagged WebAssembly value per the builtin's declared result type (`run a host function`'s `Otherwise, if |resultsSize| is 1, return « [=ToWebAssemblyValue=](|ret|, |results|[0]) ».`) — minus the JS-value-coercion front half of `ToWebAssemblyValue` itself where the result is already wasm-domain (`docs/hardcodes.md`'s own per-result-type note).
+- **Reason**: unlike `create a host function` (index.bs:1344), whose hostfunc explicitly delegates to `run a host function` (index.bs:1321-1340) — which carefully converts arguments to JS values going in and the callee's return value back to a properly-tagged WebAssembly value going out — `create a builtin function`'s hostfunc definition says nothing at all about either direction. Every js-string builtin's own algorithm body is written assuming ordinary ECMA-262 JS values for its parameters (e.g. `equals`'s `|first| is not a String`/`|first| is null` — meaningless checks on a raw wasm value) and produces a bare JS-or-Math-domain result needing wrapping before crossing back into wasm execution (e.g. `js-string-test`'s "Return 0." — not yet in the tagged "value *is* an administrative instruction" form real WebAssembly execution requires). Taking this prose completely literally — a hostfunc that "executes `|steps|` when called" and does nothing else — produces genuine implementation defects on both ends, not merely an awkward read. Confirmed directly, twice: the output-side gap crashed `spectec`'s reference interpreter with `cannot step a wasm instr: 0` the moment a numeric-result js-string builtin was actually invoked through a real wasm caller (the raw algorithm result handed back completely unwrapped); the input-side gap let `equals(null, null)` spuriously throw a `RuntimeError` (`first`/`second` still wasm-tagged when `= first null`/`? first: String` ran against them, never matching either).
+- No `SpecPatch` for this one — `create_a_builtin_function`'s hostfunc is already entirely hand-synthesized by `AddBuiltinFunctionHostfuncPass` rather than parsed from this prose at all (`docs/hardcodes.md` #21), so there's no extractable spec text to patch; both directions' fixes live entirely in that pass instead.
+
+## 33. Six js-string builtins use their declared i32 parameters directly in arithmetic without first converting them out of wasm-value form
+
+- **File**: `spectec/document/js-api/index.bs`, lines 1986 (`fromCharCodeArray`), 2014 (`intoCharCodeArray`), 2046 (`fromCodePoint`), 2062 (`charCodeAt`), 2078 (`codePointAt`), 2121 (`substring`).
+- **Current**: e.g. `fromCodePoint`: `1. If |v| &gt; 0x10ffff, throw a {{RuntimeError}} exception as if a [=trap=] was executed.` — |v| used directly in a numeric comparison; similarly `charCodeAt`/`codePointAt`'s `|index| >= |length|` and `substring`'s `|start| > |end| or |start| > |length|`.
+- **Expected**: bridge the value into ESMeta's own mathematical-value domain first (`|x| interpreted as a [=mathematical value=]`) before comparing it against a literal or a `string/length`-derived value.
+- **Reason**: `FromCharCode`/`CharCodeAt` (the abstract operations, index.bs:1931-1943) are careful to write `Assert: |v| is of type [=i32=].` before immediately handing `|v|` to `ToJSValue`, treating it as a genuine WebAssembly value throughout their whole body. These six *builtins*, by contrast, use their own i32-typed parameters directly in plain arithmetic with no equivalent conversion anywhere. Once `create_a_builtin_function_hostfunc` converts every builtin argument via `ToJSValue` uniformly before `steps` runs (see #32's fix, `AddBuiltinFunctionHostfuncPass`), each of these six parameters arrives as a genuine ECMA-262 Number — but `string/length`/`array`-length-derived values and numeric literals in this corpus remain ESMeta's own arbitrary-precision Math domain, and `Interpreter.eval`'s binary operators have no cross-domain case (`(Lt, Number, Math)` isn't one of its `Number`/`Math` cases) — so comparing the two directly throws.
+- Fixed via `SpecPatch` #60-67: `FromCharCode`/`CharCodeAt` (the abstract ops) drop their own now-redundant `ToJSValue` call (the value arrives already converted); the six builtins each bridge the affected parameter via `Let |x| be |x| interpreted as a [=mathematical value=].` ahead of the comparison — rebinding the same name in place where the value is never needed in its original JS-Number form again (`fromCharCodeArray`/`intoCharCodeArray`), or binding a fresh name where it's still passed on afterward (`fromCodePoint`/`charCodeAt`/`codePointAt`/`substring`, whose own trailing `ToJSValue(...)` calls are dropped the same way as #32's abstract-op fix, for the same reason).
+
+## 34. `equals`/`compare` mark a call to the never-abrupt `IsStrictlyEqual` with `[=!=]`
+
+- **File**: `spectec/document/js-api/index.bs`, lines 2141 (`equals`) and 2157 (`compare`).
+- **Current**: `1. If [=!=] [=IsStrictlyEqual=](|first|, |second|) is true,`
+- **Expected**: `1. If [=IsStrictlyEqual=](|first|, |second|) is true,` — no `[=!=]`.
+- **Reason**: `IsStrictlyEqual` is declared `: a Boolean` (`ecma262/spec.html:6256-6261`) — it never returns a completion at all, so there is nothing for `[=!=]` ("must not be abrupt, unwrap the completion") to unwrap. `ExprParser` doesn't know this (it has no access to a callee's declared return type), so it dutifully parses `[=!=]` as `Expr.Abrupt("!", AlgoCall(...))` regardless, and the compiler generates the usual `assert (= _call.Type ~normal~); let _v = _call.Value` unwrap sequence for it. At runtime `IsStrictlyEqual` returns a bare `Bool`, not a `Record[CompletionRecord]` — reading `.Type` off it throws `not a proper reference base: true` the first time `equals`/`compare` is genuinely invoked. Contrast the very next line in `compare`, `[=!=] [=IsLessThan=](|first|, |second|, true)` — `IsLessThan` really is declared `either a normal completion containing either a Boolean or *undefined*, or a throw completion` (`ecma262/spec.html:6162-6166`), so that `[=!=]` is correct and must stay.
+- Fixed via `SpecPatch` #68 (drops `[=!=]` from both occurrences — the substring `[=!=] [=IsStrictlyEqual=]` doesn't appear anywhere else in this corpus, so a single replacement covers both without touching `IsLessThan`'s own, correct `[=!=]`).
+
+## 35. `intoCharCodeArray` passes its own internal loop counter to `[$CharCodeAt$]`, which (per #32/#33's fix) now expects an already-JS-domain value
+
+- **File**: `spectec/document/js-api/index.bs`, line 2018 (`intoCharCodeArray`).
+- **Current**: `1. Let |charCode| be [$CharCodeAt$](|string|, |i|).`
+- **Expected**: `1. Let |charCode| be [$CharCodeAt$](|string|, [=𝔽=](|i|)).`
+- **Reason**: the same domain-mismatch class as #33, but from a different kind of value — `|i|` here is never an incoming hostfunc argument at all (it's a plain mathematical value the algorithm's own `Let |i| be 0.`/`Set |i| to |i| + 1.` loop creates internally), yet `CharCodeAt` now uniformly expects a genuine JS Number for its `index` parameter (per #32's `AddBuiltinFunctionHostfuncPass` fix and #33's own dropping of `CharCodeAt`'s redundant internal `ToJSValue`). Kept as a separate entry from #33 rather than folded into it, since #33 is specifically about a builtin's own *declared* i32 parameters — `|i|` isn't one.
+- Fixed via `SpecPatch` #69 (bridges `|i|` into Number domain via `[=𝔽=](...)` — the same `AsNumber`/`(Math(n), ToNumber) => Number(n.toDouble)` conversion #33's own fixes go the *other* direction with, `Number`→`Math`, since `|i|` needs to go `Math`→`Number` here instead).
+
+## 36. The Wasm Core Spec's own embedding appendix never defines a GC array counterpart to `table_read`/`table_write`/`table_size`
+
+- **File**: `spectec/document/core/appendix/embedding.rst`.
+- **Current**: defines `table_read`/`table_write`/`table_size` (and the equivalent triples for globals/memories) — nothing for GC arrays or structs at all.
+- **Expected**: an `array_read`/`array_write`/`array_len` triple (or a `struct` equivalent), mirroring the existing table/global/memory ones, so `fromCharCodeArray`/`intoCharCodeArray` (`js-api/index.bs`'s "the number of elements in |array|"/"the value of the element stored at index X in |array|"/"Set the element at index X in |array| to Y") have a real, formally-defined mechanism to read/write a store-addressed GC array through, the same way `Table.prototype.get`/`set` do via `[=table_read=]`/`[=table_write=]`.
+- **Reason**: the embedding appendix predates the GC proposal (arrays/structs) entirely, so it was never updated to cover them — not an oversight specific to js-string-builtins, but a genuine, checkable gap in the Wasm Core Spec's own appendix (every *other* store-addressed collection this corpus touches has a defined embedding relation; arrays are the only exception). `fromCharCodeArray`/`intoCharCodeArray`'s own *reads* happen to still work without this (WJI's `store` value is fully marshalled on the Scala side, so a plain `store.ARRAYS[a].FIELDS` field/index read already works generically — see `FixJsStringArrayParamPass`), but *writes* have no such fallback: `esmeta.state.Value.asAddr`/`asList` require a genuine heap `Addr` to write through, and WJI's compiler has no way to construct a *replacement* Wasm struct value (`ALValue.StrV`) of its own either (`Expr.Case`/`ECase` only builds the positional `ALValue.CaseV` shape) — so there's no way to functionally rebuild an updated `store` on the WJI side even in principle.
+- Fixed by adding `array_write` directly to `embedding.ml`/`server.ml` (`[spectec]`-prefixed commit) and `WasmHost.paramNames`, mirroring `table_write`'s own implementation field-for-field (`ARRAYS`/`FIELDS` in place of `TABLES`/`REFS`) — see that function's own doc comment. Only the write direction; reads still go through the plain `store.ARRAYS[...]` field access above, no RPC round trip needed. `array_read`/`array_len` are deliberately not added — nothing in this corpus needs them yet.
+
+## 37. `create an interface prototype object`'s own recursive-call step has its `in |realm|`/`of X` clauses swapped
 
 - **File**: `webidl/index.bs`, lines 12055-12056 (`create an interface prototype object`'s `#2-2` branch, webidl_yet_categorized.md category II-C).
 - **Current**:
@@ -339,17 +433,9 @@ Retracted — its premise was wrong. This entry claimed the Wasm Core Spec's `fu
   ```
 - **Expected**: `then set |proto| to the [=interface prototype object=] of that [=inherited interface=] in |realm|.`
 - **Reason**: Every other reference to this same "the interface (prototype) object of X in realm" construction in this document — line 11963's `of |P| in |realm|`, line 12030's `of [=interface=] |I| in |realm|`, line 12094's `of |interface| in |realm|` — names the subject before the realm. Only this one site has the two clauses transposed (realm first, subject clause second, with a line-wrap in between). Like #27, this doesn't change what the step means — its realm and subject are unambiguous either way — but unlike #27's duplicated word, this one is a clause-order transposition, not a repeated token; grouped here as the same *kind* of harmless typing slip, not the same mechanical shape of mistake.
-- Fixed via `SpecPatch` #55.
+- Fixed via `SpecPatch` #70.
 
-## 29. Both call sites of `create an interface object` elide its required `id` argument
-
-- **File**: `webidl/index.bs`, lines 11963 (inside `create an interface object`'s own `#2-2`-sibling step) and 12094 (inside `create an interface prototype object`'s `LegacyNoInterfaceObject` branch).
-- **Current**: `then set |constructorProto| to the [=interface object=] of |P| in |realm|.` (line 11963), and `Let |constructor| be the [=interface object=] of |interface| in |realm|.` (line 12094).
-- **Expected**: `the [=interface object=] of |P| with identifier |P|'s [=identifier=] in |realm|.` (and the `|interface|` analog at line 12094).
-- **Reason**: `create an interface object` is declared (line 11933-11936) as taking three parameters — "The interface object for a given interface |I| with identifier |id| and in realm |realm| is created as follows" — but both noun-phrase references to it ("the interface object of X in realm") name only the interface and the realm, never the identifier, even though nothing in either surrounding algorithm otherwise establishes what `id` should be. Every real invocation of this algorithm supplies the same interface's own identifier (see the algorithm's own body, line 12029: `Let |F| be CreateBuiltinFunction(|steps|, |length|, |id|, ..., |constructorProto|)`, where `|id|` is `|I|`'s own identifier bound at the top of the same algorithm), so the elided argument is unambiguous — just never written down at either call site.
-- Fixed via `SpecPatch` #56.
-
-## 30. `create an interface object` sets `|F|.[[Unforgeables]]` before `|F|` is defined
+## 38. `create an interface object` sets `|F|.[[Unforgeables]]` before `|F|` is defined
 
 - **File**: `webidl/index.bs`, lines 11964-11980 (`create an interface object`).
 - **Current**:
@@ -379,4 +465,4 @@ Retracted — its premise was wrong. This entry claimed the Wasm Core Spec's `fu
       Note: ...
   ```
 - **Reason**: `|F|` is first bound by `Let |F| be CreateBuiltinFunction(...)`, three steps after `Set |F|.\[[Unforgeables]] to |unforgeables|` writes to it, so the `Set` step refers to an unbound variable. `CreateBuiltinFunction` is what gives `|F|` its `[[Unforgeables]]` internal slot (via the `« \[[Unforgeables]] »` slot list), so the slot can only be set after that call. None of the steps in between (`|length|` and the overload-set computation) reads `|unforgeables|` or `|F|`, so moving the unforgeables block to after `|F|`'s definition changes nothing else.
-- Fixed via `SpecPatch` #59.
+- Fixed via `SpecPatch` #73.

@@ -81,16 +81,26 @@ object SpecPatch:
 
     // #3 (hardcoding) — esmeta doesn't support overloaded methods, but
     // {{WebAssembly}}'s `instantiate` is overloaded (module-first and
-    // buffer-source-first variants). Renames the module-first one to avoid
-    // the collision — a naming distinction the spec itself doesn't make,
-    // invented purely to route around this project's lack of overload
-    // support.
+    // buffer-source-first variants). Renames *both* to avoid the collision —
+    // a naming distinction the spec itself doesn't make, invented purely to
+    // route around this project's lack of overload support. Freeing up the
+    // literal `instantiate` name this way (rather than just the module-first
+    // one, as before) lets `AddInstantiateOverloadDispatchPass` claim it for a
+    // synthetic third algorithm that dispatches to whichever of these two by
+    // checking its first argument's runtime type (`personal/TODO.md` #58,
+    // `docs/hardcodes.md` #23).
     "The <dfn method for=\"WebAssembly\">instantiate(|moduleObject|, |importObject|)</dfn> method, when invoked, performs the following steps:"
     ->
     "The <dfn method for=\"WebAssembly\">instantiate_object(|moduleObject|, |importObject|)</dfn> method, when invoked, performs the following steps:",
     "Promise&lt;Instance> instantiate("
     ->
     "Promise&lt;Instance> instantiate_object(",
+    "The <dfn method for=\"WebAssembly\">instantiate(|bytes|, |importObject|, |options|)</dfn> method, when invoked, performs the following steps:"
+    ->
+    "The <dfn method for=\"WebAssembly\">instantiate_bytes(|bytes|, |importObject|, |options|)</dfn> method, when invoked, performs the following steps:",
+    "Promise&lt;WebAssemblyInstantiatedSource> instantiate("
+    ->
+    "Promise&lt;WebAssemblyInstantiatedSource> instantiate_bytes(",
 
     // #4 (spec bug, docs/spec_errors.md #3; and suggestion) — two distinct
     // fixes bundled into the same replacements below, since both land on the
@@ -449,10 +459,10 @@ object SpecPatch:
     // respectively.
     """1. Let |builtinSetNames| be |options|["builtins"]."""
     ->
-    """1. If |options|["builtins"] [=map/exists=], let |builtinSetNames| be |options|["builtin"]; otherwise, let |builtinSetNames| be « ».""",
+    """1. If |options|["builtins"] [=map/exists=], let |builtinSetNames| be |options|["builtins"]; otherwise, let |builtinSetNames| be « ».""",
     """1. Let |importedStringModule| be |options|["importedStringConstants"]."""
     ->
-    """1. If |options|["importedStringConstants"] [=map/exists=], let |importedStringModule| be |options|["builtin"]; otherwise, let |importedStringModule| be null.""",
+    """1. If |options|["importedStringConstants"] [=map/exists=], let |importedStringModule| be |options|["importedStringConstants"]; otherwise, let |importedStringModule| be null.""",
 
     // #18 (spec inconsistency, docs/spec_inconsistencies.md #9) — refers back
     // to |x| with the pronoun "it" instead of repeating the pipe-var, which
@@ -1113,7 +1123,271 @@ object SpecPatch:
     ->
     "does not have an [=asynchronously iterable declaration=]",
 
-    // #55 (spec bug, docs/spec_errors.md #28) — `create an interface
+    // #55 (spec bug, docs/spec_errors.md #28) — `get a copy of the bytes
+    // held by the buffer source` (webidl/index.bs:9312-9327) reads a view's
+    // `[[ByteLength]]` slot directly, but for a *length-tracking* view (one
+    // created with no explicit length over a resizable/growable buffer,
+    // ECMA-262's TypedArray constructor) that slot is permanently set to the
+    // sentinel `~auto~`, not a number -- the real current length has to be
+    // recomputed on demand via `MakeTypedArrayWithBufferWitnessRecord` +
+    // `TypedArrayByteLength` (ecma262/spec.html:14967-15020), the same way
+    // e.g. `%TypedArray%.prototype.length`'s own getter already does.
+    // Reading the raw slot instead means this algorithm tries to compare
+    // `~auto~` against a number (or use it as one) the moment it's ever
+    // handed a length-tracking view -- exactly the shape of buffer this
+    // corpus's own "Resizable ArrayBuffer-backed view"/"Growable
+    // SharedArrayBuffer-backed view" subtests construct and pass in. Both
+    // ops are ordinary mainline ECMA-262 abstract operations already
+    // extracted and working (confirmed via the TypedArray length getter),
+    // so this patch only needs to route this one step through them --
+    // `{{unordered}}`, not a bare `Unordered`/`~unordered~`, to match the
+    // WebIDL enum-reference syntax #7 above already normalizes this same
+    // file's sibling `[$GetValueFromBuffer$]` call to.
+    "        1.  Set |length| to |jsBufferSource|.\\[[ByteLength]]."
+    ->
+    ("        1.  Let |taRecord| be [$MakeTypedArrayWithBufferWitnessRecord$](|jsBufferSource|, {{unordered}}).\n" +
+    "        1.  Set |length| to [$TypedArrayByteLength$](|taRecord|)."),
+
+    // #56 (spec inconsistency, docs/spec_inconsistencies.md #21) —
+    // `validate builtins and imported string for a WebAssembly module`
+    // (spectec/document/js-api/index.bs:408) constructs the externtype it
+    // compares against as one bare backtick-quoted formal-grammar literal,
+    // `` `global const (ref extern)` ``, unlike every other externtype
+    // construction/destructuring in this corpus (and the sibling `globaltype`
+    // construction right next door in `Global`'s own constructor,
+    // index.bs:1200: "let |globaltype| be [=const=] |valuetype|"), which all
+    // build a value out of linked terms (`[=const=]`/`[=var=]`,
+    // `[=external-type/global=]`, `[=ref=]` -- e.g. `ToWebAssemblyValue`,
+    // index.bs:1451's already-working `[=ref=] [=heap-type/extern=]`) rather
+    // than one opaque literal. Rebuilt from those same three proven-working
+    // calls -- but as three separate `Let`s, each binding a plain variable,
+    // not two nested calls: `[=external-type/global=] |mut| |reftype|` needs
+    // `|mut|`/`|reftype|` as bare already-bound vars for
+    // `NormalizeSpecTecCaseShapePass`'s own `[=external-type/global=]`
+    // special case (its own doc's worked example --
+    // `Case("[=external-type/global=]", [Var(mut), Var(valuetype)])` ->
+    // `Case("GLOBAL", [Case("", [Var(mut), Var(valuetype)])])`) to fire on;
+    // writing `[=external-type/global=] [=const=] |reftype|` inline instead
+    // (a nested call, matching the two-line shape this patch first tried)
+    // parses `[=const=] |reftype|` greedily as a single one-arg call before
+    // `external-type/global` ever sees it, so its own 2-flat-arg special case
+    // never matches and it falls through to a generic one-arg path instead,
+    // adding an extra, wrong layer of nesting SpecTec's own `al_to_globaltype`
+    // then rejects (confirmed against the real `spectec` binary: `Backend_
+    // interpreter.Construct.WrongConversion("globaltype: invalid
+    // construction ...")`).
+    "        1. Let |stringExternType| be `global const (ref extern)`."
+    ->
+    ("        1. Let |reftype| be [=ref=] [=heap-type/extern=].\n" +
+    "        1. Let |mut| be [=const=].\n" +
+    "        1. Let |stringExternType| be [=external-type/global=] |mut| |reftype|."),
+
+    // #57 (spec bug, docs/spec_errors.md #29) — `read the imports`
+    // (index.bs:500) is missing `[=?=]` before `[$HasProperty$](|o|,
+    // |componentName|)` — every other `[$HasProperty$]`/`[$Get$]` call in
+    // this same algorithm (a few lines above/below this one) correctly marks
+    // itself `[=?=]`, and `[[HasProperty]]` genuinely can throw (a Proxy
+    // trap can run arbitrary code), so this omission isn't a deliberate
+    // "provably can't throw here" elision the way a few other bare abstract-
+    // op calls elsewhere in this corpus are. Without `[=?=]`, `ExprParser`
+    // never wraps this call in `Expr.Abrupt("?", ...)`, so `NormalizeEvaluat
+    // ionOrderPass`/`ExpandAbruptPass` never unwrap its `.Value` — the
+    // compiled `if (= _call2 false)` then compares the *whole Completion
+    // Record* against `false`, which is never `true` regardless of the real
+    // boolean, so this branch's "fall back to the plain `importObject`"
+    // path can never fire. Confirmed directly: `HasProperty`'s own return
+    // value at this call site is a heap `Addr` (a Completion Record), not a
+    // bare `Bool`, via a temporary debug print in `Interpreter.eval`'s
+    // `ICall`/`IReturn` cases.
+    "1. If |o| [=is not an Object=] or if [$HasProperty$](|o|, |componentName|) is false,"
+    ->
+    "1. If |o| [=is not an Object=] or if [=?=] [$HasProperty$](|o|, |componentName|) is false,",
+
+    // #58 (spec bug, docs/spec_errors.md #31) — `instantiate the core of a
+    // WebAssembly module` (index.bs:602) checks `If |result| is [=error=]`
+    // before destructuring `|result|` into `(|store|, |instance|)` — but
+    // `module_instantiate`'s own declared return type (embedding.rst) is
+    // *always* a `(store, moduleinst | error)` pair, so `|result|` itself
+    // (the whole tuple) can never literally equal the bare `error` value;
+    // only its second component can. Confirmed via `wji-extract`: the
+    // condition compiles to a literal `Eq(result, error)`, which is
+    // vacuously false forever, so the branch throwing `{{LinkError}}` (etc.)
+    // is dead code and a genuine link failure (e.g. a mismatched global's
+    // `Externaddr_ok` correctly returning false, confirmed via a temporary
+    // debug print in `spectec`'s `Relation.externaddr_ok`/`Embedding.
+    // module_instantiate`) falls straight through to the destructuring
+    // step, binding `|instance|` to the `error` sentinel value itself and
+    // returning it as if it were a real instance — no exception at all.
+    // Swaps the destructuring step ahead of the check and tests `|instance|`
+    // (the actual second tuple component) instead of `|result|` — same
+    // steps, same bulleted exception-type list, just reordered and pointed
+    // at the right variable.
+    """    1. If |result| is [=error=], throw an appropriate exception type:
+        * A {{LinkError}} exception for most cases which occur during linking.
+        * If the error came when running the start function, throw a {{RuntimeError}} for most errors which occur from WebAssembly, or the error object propagated from inner ECMAScript code.
+        * Another error type if appropriate, for example an out-of-memory exception, as documented in <a href="#errors">the WebAssembly error mapping</a>.
+    1. Let (|store|, |instance|) be |result|."""
+    ->
+    """    1. Let (|store|, |instance|) be |result|.
+    1. If |instance| is [=error=], throw an appropriate exception type:
+        * A {{LinkError}} exception for most cases which occur during linking.
+        * If the error came when running the start function, throw a {{RuntimeError}} for most errors which occur from WebAssembly, or the error object propagated from inner ECMAScript code.
+        * Another error type if appropriate, for example an out-of-memory exception, as documented in <a href="#errors">the WebAssembly error mapping</a>.""",
+
+    // #59 (hardcoding, docs/hardcodes.md #22) — collapses the 3-way bulleted
+    // exception-type list right after #58's fix into a flat "throw
+    // LinkError" — not a spec bug/inconsistency fix, since the bulleted
+    // list is itself a perfectly valid (if unusual) description of real
+    // WebAssembly embedder behavior; this is a genuine simplification this
+    // project can't yet do better than. `spectec`'s own `Embedding.
+    // module_instantiate` collapses all three of `$instantiate`'s possible
+    // failure modes (a precondition check like `Externaddr_ok` failing
+    // *before* any instruction runs; a genuine Wasm trap *during* start-
+    // function execution; the start function itself doing a real Wasm
+    // `throw`) into one undifferentiated `ERROR` sentinel — its own comment
+    // admits "distinguishing them ... is unaddressed; no fixture exercises
+    // a throwing start function yet". `func_invoke` already has the
+    // machinery for exactly this distinction (`Exception.Trap` -> generic
+    // `error`, `Exception.Throw v` -> a separate `EXCEPTION exnaddr`
+    // sentinel carrying the real payload) that `module_instantiate` could
+    // eventually reuse (`personal/TODO.md`) — but every currently in-scope
+    // fixture that reaches this code path is a "bad imports" test, i.e.
+    // purely `Exception.Fail` (a precondition failure = linking failure),
+    // so "always LinkError" is not just pragmatic but describes 100% of
+    // what's actually reachable today; revisit once a fixture with a
+    // trapping/throwing start function shows up.
+    """    1. If |instance| is [=error=], throw an appropriate exception type:
+        * A {{LinkError}} exception for most cases which occur during linking.
+        * If the error came when running the start function, throw a {{RuntimeError}} for most errors which occur from WebAssembly, or the error object propagated from inner ECMAScript code.
+        * Another error type if appropriate, for example an out-of-memory exception, as documented in <a href="#errors">the WebAssembly error mapping</a>."""
+    ->
+    "    1. If |instance| is [=error=], throw a {{LinkError}} exception.",
+
+    // #60 (spec bug, docs/spec_errors.md #33) — `FromCharCode`'s own
+    // `ToJSValue(v)` call is now redundant: `create_a_builtin_function_
+    // hostfunc` (`AddBuiltinFunctionHostfuncPass`) converts every js-string
+    // builtin's arguments via `ToJSValue` uniformly before `steps` ever runs
+    // (mirroring `run a host function`'s identical per-argument loop), so
+    // `|v|` already *is* the JS value by the time this abstract operation's
+    // own body sees it — calling `ToJSValue` on it a second time would fail
+    // (its own form-match requires a raw Wasm value, not an already-converted
+    // JS one).
+    """1. Assert: |v| is of type [=i32=].
+1. Return [=!=] [$Call$]([=String.fromCharCode=], undefined, « [=ToJSValue=](|v|) »)."""
+    ->
+    "1. Return [=!=] [$Call$]([=String.fromCharCode=], undefined, « |v| »).",
+
+    // #61 (spec bug, docs/spec_errors.md #33) — `CharCodeAt`'s own
+    // `ToJSValue(index)` call, same redundancy as #60.
+    """1. Assert: |index| is of type [=i32=].
+1. Return [=!=] [$Call$]([=String.prototype.charCodeAt=], |string|, « [=ToJSValue=](|index|) »)."""
+    ->
+    "1. Return [=!=] [$Call$]([=String.prototype.charCodeAt=], |string|, « |index| »).",
+
+    // #62 (spec bug, docs/spec_errors.md #33) — `charCodeAt`'s own
+    // `|index| >= |length|` bounds check uses the (now-JS-domain) |index|
+    // directly in a comparison against |length| (a mathematical value, from
+    // "the string/length of |string|") — a domain mismatch `Interpreter.eval`
+    // has no case for (`(Lt/Ge, Number, Math)` isn't one of its `Number`/
+    // `Math` binary-op cases). Bridged into Math via a fresh name — `|index|`
+    // itself is kept in its original JS-Number form for the `[$CharCodeAt$]`
+    // call right after, which (per #61) now needs exactly that form.
+    """1. If |index| >= |length|,
+    1. Throw a {{RuntimeError}} exception as if a [=trap=] was executed.
+1. Return [$CharCodeAt$](|string|, |index|)."""
+    ->
+    """1. Let |indexNum| be |index| interpreted as a [=mathematical value=].
+1. If |indexNum| >= |length|,
+    1. Throw a {{RuntimeError}} exception as if a [=trap=] was executed.
+1. Return [$CharCodeAt$](|string|, |index|).""",
+
+    // #63 (spec bug, docs/spec_errors.md #33) — `codePointAt`'s own bounds
+    // check, the same domain-mismatch as #62, plus its own trailing
+    // `ToJSValue(index)` redundancy (#60/#61's same reasoning — |index| is
+    // already the JS value `[$Call$]` needs directly).
+    """1. If |index| >= |length|,
+    1. Throw a {{RuntimeError}} exception as if a [=trap=] was executed.
+1. Return [=!=] [$Call$]([=String.prototype.codePointAt=], |string|, « [=ToJSValue=](|index|) »)."""
+    ->
+    """1. Let |indexNum| be |index| interpreted as a [=mathematical value=].
+1. If |indexNum| >= |length|,
+    1. Throw a {{RuntimeError}} exception as if a [=trap=] was executed.
+1. Return [=!=] [$Call$]([=String.prototype.codePointAt=], |string|, « |index| »).""",
+
+    // #64 (spec bug, docs/spec_errors.md #33) — `substring`'s own bounds
+    // check, same domain-mismatch as #62/#63, plus its own trailing
+    // `ToJSValue(start)`/`ToJSValue(end)` redundancy. Both bridged via fresh
+    // names — |start|/|end| are kept in their original JS-Number form for the
+    // `[$Call$]` right after.
+    """1. If |start| > |end| or |start| > |length|,
+    1. Return the empty string.
+1. Return [=!=] [$Call$]([=String.prototype.substring=], |string|, « [=ToJSValue=](|start|), [=ToJSValue=](|end|) »)."""
+    ->
+    """1. Let |startNum| be |start| interpreted as a [=mathematical value=].
+1. Let |endNum| be |end| interpreted as a [=mathematical value=].
+1. If |startNum| > |endNum| or |startNum| > |length|,
+    1. Return the empty string.
+1. Return [=!=] [$Call$]([=String.prototype.substring=], |string|, « |start|, |end| »).""",
+
+    // #65 (spec bug, docs/spec_errors.md #33) — `fromCodePoint`'s own bounds
+    // check, same domain-mismatch, plus its own trailing `ToJSValue(v)`
+    // redundancy. |v| itself is kept in its original JS-Number form for the
+    // `[$Call$]` right after.
+    """1. If |v| &gt; 0x10ffff,
+    1. Throw a {{RuntimeError}} exception as if a [=trap=] was executed.
+1. Return [=!=] [$Call$]([=String.fromCodePoint=], undefined, « [=ToJSValue=](|v|) »)."""
+    ->
+    """1. Let |vNum| be |v| interpreted as a [=mathematical value=].
+1. If |vNum| &gt; 0x10ffff,
+    1. Throw a {{RuntimeError}} exception as if a [=trap=] was executed.
+1. Return [=!=] [$Call$]([=String.fromCodePoint=], undefined, « |v| »).""",
+
+    // #66 (spec bug, docs/spec_errors.md #33) — `fromCharCodeArray`'s own
+    // |start|/|end| bounds check and loop, same domain-mismatch as the above
+    // — both rebound to their math value in place (never needed in their
+    // original JS-Number form again in this algorithm).
+    """1. Let |length| be the number of elements in |array|.
+1. If |start| > |end| or |end| > |length|,"""
+    ->
+    """1. Let |start| be |start| interpreted as a [=mathematical value=].
+1. Let |end| be |end| interpreted as a [=mathematical value=].
+1. Let |length| be the number of elements in |array|.
+1. If |start| > |end| or |end| > |length|,""",
+
+    // #67 (spec bug, docs/spec_errors.md #33) — `intoCharCodeArray`'s own
+    // |start| bounds check and index arithmetic, same domain-mismatch,
+    // rebound in place (also never needed in its original form again).
+    "1. If |start| + |stringLength| > |arrayLength|,"
+    ->
+    """1. Let |start| be |start| interpreted as a [=mathematical value=].
+1. If |start| + |stringLength| > |arrayLength|,""",
+
+    // #68 (spec bug, docs/spec_errors.md #34) — `equals`/`compare` mark a
+    // call to the never-abrupt `IsStrictlyEqual` (`: a Boolean`, ecma262/
+    // spec.html:6256-6261) with `[=!=]`, which only makes sense on a callee
+    // that can return a completion. The substring below doesn't occur
+    // anywhere else in this corpus (in particular, `compare`'s very next
+    // line's `[=!=] [=IsLessThan=]` is untouched — `IsLessThan` genuinely can
+    // throw), so one replacement fixes both `equals` and `compare` at once.
+    "[=!=] [=IsStrictlyEqual=]"
+    ->
+    "[=IsStrictlyEqual=]",
+
+    // #69 (spec bug, docs/spec_errors.md #33) — `intoCharCodeArray` calls
+    // `[$CharCodeAt$]` with its own internal loop counter |i| — a plain
+    // mathematical value (never an incoming wasm/JS-boundary argument at
+    // all), but `CharCodeAt` (per #60's fix) now expects an already-JS
+    // Number, same domain-mismatch as #60-67. Bridged via `𝔽(...)`
+    // (ECMA-262's Math-value-to-Number notation, `AsNumber` ->
+    // `EConvert(ToNumber, ...)` -> `(Math(n), ToNumber) => Number(n.toDouble)`)
+    // rather than "interpreted as a [=mathematical value=]" (the inverse
+    // direction) since |i| is already Math-domain and needs to go the other
+    // way, into Number domain, to match what `CharCodeAt` now expects.
+    "1. Let |charCode| be [$CharCodeAt$](|string|, |i|)."
+    ->
+    "1. Let |charCode| be [$CharCodeAt$](|string|, [=𝔽=](|i|)).",
+
+    // #70 (spec bug, docs/spec_errors.md #37) — `create an interface
     // prototype object`'s own `#2-2` recursive-call step
     // (webidl/index.bs:12055-12056) has its "of X"/"in |realm|" clauses
     // transposed relative to every other "the interface (prototype) object
@@ -1126,24 +1400,7 @@ object SpecPatch:
     ->
     "[=interface prototype object=] of that [=inherited interface=] in |realm|.",
 
-    // #56 (spec bug, docs/spec_errors.md #29) — both call sites of `create an
-    // interface object` ("the [=interface object=] of X in |realm|",
-    // webidl/index.bs:11963,12094) elide its declared third parameter `|id|`
-    // (webidl/index.bs:11933-11936: "The interface object for a given
-    // interface |I| with identifier |id| and in realm |realm| ..."). Every
-    // real invocation supplies the same interface's own identifier
-    // (webidl/index.bs:12029's own `Let |F| be CreateBuiltinFunction(|steps|,
-    // |length|, |id|, ..., |constructorProto|)`), so it's spelled out
-    // explicitly here rather than left for `ResolveLinksPass` to guess at;
-    // `ExprParser.LinkOfWithIdentifierIn` parses the 3-arg result.
-    "the [=interface object=] of |P| in |realm|."
-    ->
-    "the [=interface object=] of |P| with identifier |P|'s [=identifier=] in |realm|.",
-    "the [=interface object=] of |interface| in |realm|."
-    ->
-    "the [=interface object=] of |interface| with identifier |interface|'s [=identifier=] in |realm|.",
-
-    // #57 (hardcoding) — `create an interface object`'s first step
+    // #71 (hardcoding) — `create an interface object`'s first step
     // (webidl/index.bs:11939) reads "Let |steps| be |I|'s [=overridden
     // constructor steps=] if they exist, or the following steps otherwise:".
     // "they" refers back to `|I|'s [=overridden constructor steps=]`, a
@@ -1154,7 +1411,7 @@ object SpecPatch:
     ->
     "Let |steps| be |I|'s [=overridden constructor steps=] if |I| has [=overridden constructor steps=], or",
 
-    // #58 (hardcoding) — `define the constants`' loop header
+    // #72 (hardcoding) — `define the constants`' loop header
     // (webidl/index.bs:12275) iterates over "[=constant=] |const| that is a
     // [=member=] of |definition|", a filtered-members phrase with no
     // counterpart to the "the [=list=] of [=X=] that are [=members=] of"
@@ -1165,7 +1422,7 @@ object SpecPatch:
     ->
     "[=constant=] |const| that is a [=const=] of |definition|",
 
-    // #59 (spec bug, docs/spec_errors.md #30) — `create an interface object`
+    // #73 (spec bug, docs/spec_errors.md #38) — `create an interface object`
     // (webidl/index.bs:11964-11980) sets "|F|.\[[Unforgeables]]" three steps
     // before "Let |F| be CreateBuiltinFunction(...)" ever binds |F|. The
     // unforgeables block (with its Note) is moved to right after |F|'s
@@ -1209,7 +1466,7 @@ object SpecPatch:
       #        function|operation functions=].
       #""".stripMargin('#'),
 
-    // #60 (suggestion, docs/underspecified-behaviors.md #2) — the spec
+    // #74 (suggestion, docs/underspecified-behaviors.md #2) — the spec
     // treats "the [=interface object=] / [=interface prototype object=] of
     // |I| in |realm|" as per-realm singletons, but never says where they're
     // cached, so `create an interface object` (webidl/index.bs:11981) ->

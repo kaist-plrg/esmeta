@@ -54,7 +54,10 @@ class AnchorExtractorSpec extends AnyFunSuite:
     * never IL2AL-translated/bound by this build (only execution semantics are),
     * so `CondParser` routes them to these two bridge-invented names, backed by
     * hand-implemented relations (`Relation.memtype_ok`/`tabletype_ok`, see
-    * `docs/hardcodes.md`).
+    * `docs/hardcodes.md`). `array_write` is a fifth: the GC-array counterpart
+    * to `table_write`/`global_write`/`mem_write`, which `embedding.rst` never
+    * defines at all (it predates the GC proposal's arrays/structs) — see
+    * `embedding.ml`'s own doc on `array_write` and `docs/spec_errors.md`.
     */
   private val bridgeOnlyNames: Set[String] =
     Set(
@@ -70,6 +73,7 @@ class AnchorExtractorSpec extends AnyFunSuite:
       "mem_write_bytes",
       "valid_memtype",
       "valid_tabletype",
+      "array_write",
     )
 
   test(

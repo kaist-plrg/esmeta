@@ -172,6 +172,14 @@ var self = globalThis;
     assert_throws_js_impl(constructor, func, description, "assert_throws_js");
   };
 
+  // legacy WPT signature, superseded by assert_throws_js/assert_throws_exactly
+  // upstream but still used verbatim by spectec/test/js-api/limits.any.js --
+  // takes an already-constructed error instance rather than a constructor,
+  // so just forward its constructor to assert_throws_js_impl.
+  globalThis.assert_throws = function (errorInstance, func, description) {
+    assert_throws_js_impl(errorInstance.constructor, func, description, "assert_throws");
+  };
+
   globalThis.assert_throws_exactly = function (exception, func, description) {
     try {
       func.call(undefined);
@@ -193,6 +201,12 @@ var self = globalThis;
         assert_throws_js_impl(constructor, () => { throw e; }, description, "promise_rejects_js");
       },
     );
+  };
+
+  // legacy WPT signature (test, errorInstance, promise), same relationship
+  // to promise_rejects_js as assert_throws above has to assert_throws_js.
+  globalThis.promise_rejects = function (test, errorInstance, promise, description) {
+    return globalThis.promise_rejects_js(test, errorInstance.constructor, promise, description);
   };
 
   globalThis.setup = function (fn) {
@@ -1989,11 +2003,16 @@ test(() => {
 // sets globalThis.__wjiOk to whether every subtest passed -- reusing the same
 // convention tests/wji/manual/*.js fixtures use (see EvalSpec/WjiTest), so a
 // whole js-api file is judged as one WJI eval test: pass iff every subtest
-// in it passed. Load this LAST -- after shell-shim.js, testharness-lite.js,
-// any META scripts, and the test file's own content. testharness-lite.js's
-// add_completion_callback captures the *current* promise_test queue when
-// called, so registering it before every promise_test() call has run would
-// miss the later ones.
+// in it passed. Also sets globalThis.__wjiFailingSubtests to a "|||"-joined
+// list of failed subtest names (empty string when every subtest passed) --
+// EvalSpec.expectedFailingSubtests reads this to pin down *which* subtests a
+// fixture that's run for real (rather than skipped outright) is known to
+// still fail, so a change in exactly what fails becomes a loud test failure
+// instead of silently staying green either way. Load this LAST -- after
+// shell-shim.js, testharness-lite.js, any META scripts, and the test file's
+// own content. testharness-lite.js's add_completion_callback captures the
+// *current* promise_test queue when called, so registering it before every
+// promise_test() call has run would miss the later ones.
 add_completion_callback((tests, harness_status) => {
   for (const t of tests) {
     print((t.status === 0 ? "PASS" : "FAIL") + " " + t.name + (t.message ? " - " + t.message : ""));
@@ -2001,4 +2020,5 @@ add_completion_callback((tests, harness_status) => {
   const passed = tests.filter((t) => t.status === 0).length;
   print("SUMMARY " + passed + "/" + tests.length);
   globalThis.__wjiOk = tests.length > 0 && tests.every((t) => t.status === 0);
+  globalThis.__wjiFailingSubtests = tests.filter((t) => t.status !== 0).map((t) => t.name).join("|||");
 });

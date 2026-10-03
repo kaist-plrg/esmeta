@@ -156,7 +156,9 @@ class StringifyTinyTest extends StateTest {
       astArgs -> "|Identifier|[TF]<1>",
       lex -> "|Identifier|(x)",
       grammarSymbol -> "|Identifier|[TF]",
-      Math(3.2) -> "3.2",
+      Math("3.2") -> "3.2",
+      // pins Math(Double)'s exact-binary-value contract, docs/esmeta_errors.md #5
+      Math(0.1) -> "0.1000000000000000055511151231257827021181583404541015625",
       Number(3.2) -> "3.2f",
       BigInt(324) -> "324n",
       Str("abc") -> "\"abc\"",

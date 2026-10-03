@@ -17,7 +17,9 @@
   ForEach(|import|, [=module_imports=](|module|))
     If(|importedStringModule| is not null, and |import|[0] is |importedStringModule|)
       Let(|importExternType|, |import|[2])
-      Let(|stringExternType|, ?(global const (ref extern)))
+      Let(|reftype|, [=ref=]([=heap-type/extern=]))
+      Let(|mut|, [=const=])
+      Let(|stringExternType|, [=external-type/global=](|mut|, |reftype|))
       If([=match_externtype=](|stringExternType|, |importExternType|) is false)
         Return(false)
     Else
@@ -34,11 +36,11 @@
   If(|module| is [=error=])
     Return(false)
   If(|options|["builtins"] [=map/exists=])
-    Let(|builtinSetNames|, |options|["builtin"])
+    Let(|builtinSetNames|, |options|["builtins"])
   Else
     Let(|builtinSetNames|, « »)
   If(|options|["importedStringConstants"] [=map/exists=])
-    Let(|importedStringModule|, |options|["builtin"])
+    Let(|importedStringModule|, |options|["importedStringConstants"])
   Else
     Let(|importedStringModule|, null)
   If([=validate builtins and imported string for a WebAssembly module=](|module|, |builtinSetNames|, |importedStringModule|) is false)
@@ -66,11 +68,11 @@
         Perform([=reject=](Module, |promise|, new {{CompileError}}))
           Return()
       If(|options|["builtins"] [=map/exists=])
-        Let(|builtinSetNames|, |options|["builtin"])
+        Let(|builtinSetNames|, |options|["builtins"])
       Else
         Let(|builtinSetNames|, « »)
       If(|options|["importedStringConstants"] [=map/exists=])
-        Let(|importedStringModule|, |options|["builtin"])
+        Let(|importedStringModule|, |options|["importedStringConstants"])
       Else
         Let(|importedStringModule|, null)
       If([=validate builtins and imported string for a WebAssembly module=](|module|, |builtinSetNames|, |importedStringModule|) is false)
@@ -108,9 +110,9 @@
     Throw(new {{TypeError}})
   Let(|builtinOrStringImports|, «[ ]»)
   ForEach(|builtinSetName|, |builtinSetNames|)
-    Let(|builtinSetQualifiedName|, ?(|builtinSetName| prefixed with "wasm:"))
+    Let(|builtinSetQualifiedName|, concat("wasm:", |builtinSetName|))
     Assert(?(|builtinOrStringImports| does not contain |builtinSetQualifiedName|))
-    If(?(|builtinSetName| does not refer to a builtin set))
+    If(|builtinSetName| is not "js-string")
       Continue
     Let(|exportsObject|, [=instantiate a builtin set=](|builtinSetName|))
     Set(|builtinOrStringImports|[|builtinSetQualifiedName|], |exportsObject|)
@@ -121,7 +123,7 @@
   ForEach((|moduleName|, |componentName|, |externtype|), [=module_imports=](|module|))
     If(|builtinOrStringImports|[|moduleName|] [=map/exists=])
       Let(|o|, |builtinOrStringImports|[|moduleName|])
-      If(|o| is not an Object or ?(if [$HasProperty$](|o|, |componentName|)) is false)
+      If(|o| is not an Object or [=?=] [$HasProperty$](|o|, |componentName|) is false)
         Set(|o|, [=?=] [$Get$](|importObject|, |moduleName|))
     Else
       Let(|o|, [=?=] [$Get$](|importObject|, |moduleName|))
@@ -227,12 +229,9 @@
   head: To <dfn>instantiate the core of a WebAssembly module</dfn> from a module |module| and imports |imports|, perform the following steps:
   Let(|store|, [=surrounding agent=].[[associated store]])
   Let(|result|, [=module_instantiate=](|store|, |module|, |imports|))
-  If(|result| is [=error=])
-    ?(A {{LinkError}} exception for most cases which occur during linking)
-    If(?(the error came when running the start function))
-      Throw(?(a {{RuntimeError}} for most errors which occur from WebAssembly, or the error object propagated from inner ECMAScript code))
-    ?(Another error type if appropriate, for example an out-of-memory exception, as documented in <a href="#errors">the WebAssembly error mapping</a>)
   Let((|store|, |instance|), |result|)
+  If(|instance| is [=error=])
+    Throw(new {{LinkError}})
   Set([=surrounding agent=].[[associated store]], |store|)
   Return(|instance|)
 
@@ -254,13 +253,13 @@
       If(Throws(|exception|))
         Note(catch it)
         Perform([=reject=](Instance, |promise|, |exception|))
-        ?(terminate these substeps)
+        Return()
       Let(|instanceObject|, new(Instance, [=current Realm=]))
       Perform([=initialize an instance object=](|instanceObject|, |module|, |instance|))
       If(Throws(|exception|))
         Note(catch it)
         Perform([=reject=](Instance, |promise|, |exception|))
-        ?(terminate these substeps)
+        Return()
       Perform([=Resolve=](Instance, |promise|, |instanceObject|))
   Return(|promise|)
 
@@ -281,10 +280,10 @@
   Perform([=React=](WebAssemblyInstantiatedSource, |promiseOfModule|, |onFullfilledSteps|, |onRejectedSteps|, [=current Realm=]))
   Return(|promise|)
 
-# instantiate
+# instantiate_bytes
   kind: method for namespace WebAssembly
   params: |bytes|, |importObject|?, |options|?
-  head: The <dfn method for="WebAssembly">instantiate(|bytes|, |importObject|, |options|)</dfn> method, when invoked, performs the following steps:
+  head: The <dfn method for="WebAssembly">instantiate_bytes(|bytes|, |importObject|, |options|)</dfn> method, when invoked, performs the following steps:
   Let(|stableBytes|, [=get a copy of the buffer source=](|bytes|))
   PerformAndLet([=Asynchronously compile a WebAssembly module=](|stableBytes|, |options|), |promiseOfModule|)
   PerformAndReturn([=Instantiate a promise of a module=](|promiseOfModule|, |importObject|))
@@ -368,11 +367,11 @@
   If(|module| is [=error=])
     Throw(new {{CompileError}})
   If(|options|["builtins"] [=map/exists=])
-    Let(|builtinSetNames|, |options|["builtin"])
+    Let(|builtinSetNames|, |options|["builtins"])
   Else
     Let(|builtinSetNames|, « »)
   If(|options|["importedStringConstants"] [=map/exists=])
-    Let(|importedStringModule|, |options|["builtin"])
+    Let(|importedStringModule|, |options|["importedStringConstants"])
   Else
     Let(|importedStringModule|, null)
   If([=validate builtins and imported string for a WebAssembly module=](|module|, |builtinSetNames|, |importedStringModule|) is false)
@@ -1277,9 +1276,9 @@
   Let(|importModuleName|, |import|[0])
   Let(|importName|, |import|[1])
   ForEach(|builtinSetName|, |builtinSetNames|)
-    If(?(|builtinSetName| does not refer to a builtin set))
+    If(|builtinSetName| is not "js-string")
       Continue
-    Let(|builtinSetQualifiedName|, ?(|builtinSetName| prefixed with "wasm:"))
+    Let(|builtinSetQualifiedName|, concat("wasm:", |builtinSetName|))
     If(|importModuleName| is |builtinSetQualifiedName|)
       Let(|builtins|, [=get the builtins for a builtin set=](|builtinSetName|))
       ForEach(|builtin|, |builtins|)
@@ -1326,27 +1325,25 @@
     Return(true)
   Let(|importExternType|, |import|[2])
   Let(|builtinFuncType|, |maybeBuiltin|[1][1])
-  Let(|builtinExternType|, ?(func |builtinFuncType|))
+  Let(|builtinExternType|, FUNC(|builtinFuncType|))
   Return([=match_externtype=](|builtinExternType|, |importExternType|))
 
 # UnwrapString
   params: |v|
   head: The <dfn abstract-op lt="UnwrapString">UnwrapString(|v|)</dfn> abstract operation, when invoked, performs the following steps:
   If(|v| is not a String)
-    Throw(?(a {{RuntimeError}} exception as if a [=trap=] was executed))
+    Throw(TRAP)
   Return(|v|)
 
 # FromCharCode
   params: |v|
   head: The <dfn abstract-op lt="FromCharCode">FromCharCode(|v|)</dfn> abstract operation, when invoked, performs the following steps:
-  Assert(|v| is ?(of type [=i32=]))
-  Return([=!=] [$Call$]([=String.fromCharCode=], undefined, « [=ToJSValue=](|v|) »))
+  Return([=!=] [$Call$]([=String.fromCharCode=], undefined, « |v| »))
 
 # CharCodeAt
   params: |string|, |index|
   head: The <dfn abstract-op lt="CharCodeAt">CharCodeAt(|string|, |index|)</dfn> abstract operation, when invoked, performs the following steps:
-  Assert(|index| is ?(of type [=i32=]))
-  Return([=!=] [$Call$]([=String.prototype.charCodeAt=], |string|, « [=ToJSValue=](|index|) »))
+  Return([=!=] [$Call$]([=String.prototype.charCodeAt=], |string|, « |index| »))
 
 # js-string-cast
   id: js-string-cast
@@ -1367,16 +1364,18 @@
   params: |array|, |start|, |end|
   head: When this builtin is invoked with parameters |array|, |start|, and |end|, the following steps must be run:
   If(|array| is null)
-    Throw(?(a {{RuntimeError}} exception as if a [=trap=] was executed))
+    Throw(TRAP)
+  Let(|start|, AsMath(|start|))
+  Let(|end|, AsMath(|end|))
   Let(|length|, length(|array|))
   If(|start| > |end| or |end| > |length|)
-    Throw(?(a {{RuntimeError}} exception as if a [=trap=] was executed))
+    Throw(TRAP)
   Let(|result|, "")
   Let(|i|, |start|)
   While(|i| < |end|)
     Let(|charCode|, |array|[|i|])
     Let(|charCodeString|, [$FromCharCode$](|charCode|))
-    Let(|result|, ?(the concatenation of |result| and |charCodeString|))
+    Let(|result|, concat(|result|, |charCodeString|))
     Set(|i|, |i| + 1)
   Return(|result|)
 
@@ -1385,16 +1384,17 @@
   params: |string|, |array|, |start|
   head: When this builtin is invoked with parameters |string|, |array|, and |start|, the following steps must be run:
   If(|array| is null)
-    Throw(?(a {{RuntimeError}} exception as if a [=trap=] was executed))
+    Throw(TRAP)
   Let(|string|, [=?=] [$UnwrapString$](|string|))
   Let(|stringLength|, length(|string|))
   Let(|arrayLength|, length(|array|))
+  Let(|start|, AsMath(|start|))
   If(|start| + |stringLength| > |arrayLength|)
-    Throw(?(a {{RuntimeError}} exception as if a [=trap=] was executed))
+    Throw(TRAP)
   Let(|i|, 0)
   While(|i| < |stringLength|)
-    Let(|charCode|, [$CharCodeAt$](|string|, |i|))
-    Set(?(the element at index |start|) + ?(|i| in |array|), [=ToWebAssemblyValue=](|charCode|, [=i32=]))
+    Let(|charCode|, [$CharCodeAt$](|string|, AsNumber(|i|)))
+    Set(|array|[|start| + |i|], [=ToWebAssemblyValue=](|charCode|, [=i32=]))
     Set(|i|, |i| + 1)
   Return(|stringLength|)
 
@@ -1408,9 +1408,10 @@
   id: js-string-fromCodePoint
   params: |v|
   head: When this builtin is invoked with parameter |v|, the following steps must be run:
-  If(|v| > 0x10ffff)
-    Throw(?(a {{RuntimeError}} exception as if a [=trap=] was executed))
-  Return([=!=] [$Call$]([=String.fromCodePoint=], undefined, « [=ToJSValue=](|v|) »))
+  Let(|vNum|, AsMath(|v|))
+  If(|vNum| > 0x10ffff)
+    Throw(TRAP)
+  Return([=!=] [$Call$]([=String.fromCodePoint=], undefined, « |v| »))
 
 # js-string-charCodeAt
   id: js-string-charCodeAt
@@ -1418,8 +1419,9 @@
   head: When this builtin is invoked with parameters |string| and |index|, the following steps must be run:
   Let(|string|, [=?=] [$UnwrapString$](|string|))
   Let(|length|, length(|string|))
-  If(|index| >= |length|)
-    Throw(?(a {{RuntimeError}} exception as if a [=trap=] was executed))
+  Let(|indexNum|, AsMath(|index|))
+  If(|indexNum| >= |length|)
+    Throw(TRAP)
   Return([$CharCodeAt$](|string|, |index|))
 
 # js-string-codePointAt
@@ -1428,9 +1430,10 @@
   head: When this builtin is invoked with parameters |string| and |index|, the following steps must be run:
   Let(|string|, [=?=] [$UnwrapString$](|string|))
   Let(|length|, length(|string|))
-  If(|index| >= |length|)
-    Throw(?(a {{RuntimeError}} exception as if a [=trap=] was executed))
-  Return([=!=] [$Call$]([=String.prototype.codePointAt=], |string|, « [=ToJSValue=](|index|) »))
+  Let(|indexNum|, AsMath(|index|))
+  If(|indexNum| >= |length|)
+    Throw(TRAP)
+  Return([=!=] [$Call$]([=String.prototype.codePointAt=], |string|, « |index| »))
 
 # js-string-length
   id: js-string-length
@@ -1453,19 +1456,21 @@
   head: When this builtin is invoked with parameters |string|, |start|, and |end|, the following steps must be run:
   Let(|string|, [=?=] [$UnwrapString$](|string|))
   Let(|length|, length(|string|))
-  If(|start| > |end| or |start| > |length|)
+  Let(|startNum|, AsMath(|start|))
+  Let(|endNum|, AsMath(|end|))
+  If(|startNum| > |endNum| or |startNum| > |length|)
     Return("")
-  Return([=!=] [$Call$]([=String.prototype.substring=], |string|, « [=ToJSValue=](|start|), [=ToJSValue=](|end|) »))
+  Return([=!=] [$Call$]([=String.prototype.substring=], |string|, « |start|, |end| »))
 
 # js-string-equals
   id: js-string-equals
   params: |first|, |second|
   head: When this builtin is invoked with parameters |first| and |second|, the following steps must be run:
   If(|first| is not null, and |first| is not a String)
-    Throw(?(a {{RuntimeError}} exception as if a [=trap=] was executed))
+    Throw(TRAP)
   If(|second| is not null, and |second| is not a String)
-    Throw(?(a {{RuntimeError}} exception as if a [=trap=] was executed))
-  If([=!=] [=IsStrictlyEqual=](|first|, |second|) is true)
+    Throw(TRAP)
+  If([=IsStrictlyEqual=](|first|, |second|) is true)
     Return(1)
   Return(0)
 
@@ -1475,7 +1480,7 @@
   head: When this builtin is invoked with parameters |first| and |second|, the following steps must be run:
   Let(|first|, [=?=] [$UnwrapString$](|first|))
   Let(|second|, [=?=] [$UnwrapString$](|second|))
-  If([=!=] [=IsStrictlyEqual=](|first|, |second|) is true)
+  If([=IsStrictlyEqual=](|first|, |second|) is true)
     Return(0)
   If([=!=] [=IsLessThan=](|first|, |second|, true) is true)
     Return(-1)
@@ -1548,9 +1553,10 @@
   If(|jsBufferSource| has a [[ViewedArrayBuffer]] internal slot)
     Set(|jsArrayBuffer|, |jsBufferSource|.[[ViewedArrayBuffer]])
     Set(|offset|, |jsBufferSource|.[[ByteOffset]])
-    Set(|length|, |jsBufferSource|.[[ByteLength]])
+    Let(|taRecord|, [$MakeTypedArrayWithBufferWitnessRecord$](|jsBufferSource|, unordered))
+    Set(|length|, [$TypedArrayByteLength$](|taRecord|))
   Else
-    Assert(|jsBufferSource| is new {{ArrayBuffer}} or ?({{SharedArrayBuffer}} object))
+    Assert(|jsBufferSource| is an ArrayBuffer or ?({{SharedArrayBuffer}} object))
     Set(|length|, |jsBufferSource|.[[ArrayBufferByteLength]])
   If([$IsDetachedBuffer$](|jsArrayBuffer|) is true)
     Return(?(the empty [=byte sequence=]))
@@ -1580,7 +1586,7 @@
     Return(|O|)
   Let(|constructorProto|, |realm|.[[Intrinsics]].[[%Function.prototype%]])
   If(a value P exists such that |I|.[[inherit]] is |P|)
-    Set(|constructorProto|, [=interface object=](|P|, |P|.[[id]], |realm|))
+    Set(|constructorProto|, [=interface object=](|P|, |realm|))
   Let(|length|, 0)
   If(any m in |I|.[[members]] |m|.[[kind]] is enum(Constructor))
     PerformAndLet([=Compute the effective overload set=](Constructor, [=identifier=](|id|, [=interface=](|I|, 0))), |S|)
@@ -1638,7 +1644,7 @@
     Perform([=Define the asynchronous iteration methods=](|interface|, |interfaceProtoObj|, |realm|))
   Perform([=Define the constants=](|interface|, |interfaceProtoObj|, |realm|))
   If(no ea in |interface|.[[extendedAttributes]] |ea|.[[id]] is "LegacyNoInterfaceObject")
-    Let(|constructor|, [=interface object=](|interface|, |interface|.[[id]], |realm|))
+    Let(|constructor|, [=interface object=](|interface|, |realm|))
     Let(|desc|, PropertyDescriptor{[[Writable]]: true, [[Enumerable]]: false, [[Configurable]]: true, [[Value]]: |constructor|})
     Perform(DefinePropertyOrThrow(|interfaceProtoObj|, "constructor", |desc|))
   Return(|interfaceProtoObj|)

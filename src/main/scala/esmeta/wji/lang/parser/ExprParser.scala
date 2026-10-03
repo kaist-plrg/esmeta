@@ -515,11 +515,28 @@ object ExprParser:
   private val LengthOf =
     """(?si)^the (?:\[=(?:string/length|list/size)=\]|length) of (.+)$""".r
   private val ElementCount = """(?si)^the number of elements in (.+)$""".r
+  // "X prefixed with LITERAL" (index.bs:488/1849, both "|builtinSetName|
+  // prefixed with "wasm:"") — string concatenation, `LITERAL` first.
+  private val PrefixedWith = """(?si)^(.+?)\s+prefixed with\s+(.+)$""".r
+  // "the concatenation of X and Y" (index.bs:1994, js-string's
+  // fromCharCodeArray) — string concatenation, same Expr.Concat node
+  // PrefixedWith already builds, just a different phrasing/arg order.
+  private val ConcatenationOf =
+    """(?si)^the concatenation of (.+?) and (.+)$""".r
   // must precede PossessiveAssociation below — "the X's [=list/size=]"
   // would otherwise also match its more general "'s [=link=]" shape.
   private val PossessiveSize = """(?si)^(.+)'s \[=list/size=\]$""".r
   private val ElementAt =
     """(?si)^the value of the element stored at index (.+) in (.+)$""".r
+  // js-string's intoCharCodeArray writes the same "index X in Y" shape as a
+  // `Set` target ("Set the element at index |start| + |i| in |array| to
+  // ...") without ElementAt's "the value of ... stored" framing -- same
+  // Index(arr, idx) node either way (`Instr.Set`'s LHS is parsed by this same
+  // `ExprParser.parse`, see `InstrParser.SetPrefix`), just needs its own
+  // pattern so it's tried before the generic BinOp fallback would otherwise
+  // wrongly split "|start| + |i|" out of the whole reference.
+  private val ElementAtRef =
+    """(?si)^the element at index (.+) in (.+)$""".r
   // "the index of LIST where ELEM is found" (index.bs:1255) — see
   // Expr.IndexOf / ExpandIndexOfPass.
   private val IndexOfPat =
@@ -638,6 +655,17 @@ object ExprParser:
   // `Var`) and as an ordinary expression building a fresh functype value
   // (`tag_alloc`'s argument, via `fold`).
   private val CompTypeArrowPrefix = "[=comp-type/func=] "
+  // "`func |builtinFuncType|`" (index.bs:1905, the only occurrence — its
+  // sibling backtick externtype literal, "`global const (ref extern)`" at
+  // index.bs:408, needed real multi-token restructuring via `SpecPatch`
+  // instead, see `docs/spec_inconsistencies.md` #21) — SpecTec's externtype
+  // discriminator wrapping a deftype (`externtype ::= FUNC deftype | TABLE
+  // ... | MEM ... | GLOBAL ... | TAG ...`), same "FUNC"/"GLOBAL"/... tag
+  // convention `stringExternType`'s already-working `Case("GLOBAL", [Case(
+  // "", [mut, reftype])])` construction uses. Matched against the already
+  // backtick-stripped inner text (`Backticked`'s own `parse(inner)`
+  // recursion), not the raw backtick-wrapped form.
+  private val FuncExternType = """(?si)^func\s+(.+)$""".r
   private val IndexByStr = """(?s)^(.+)\["([^"]+)"\]$""".r
   private val IndexByVar = """(?s)^(.+)\[(\|[^|]+\|)\]$""".r
   private val IndexByNum = """(?s)^(.+)\[(-?\d+)\]$""".r
@@ -851,6 +879,21 @@ object ExprParser:
   // carries no separate binding, so this is the only place that name needs
   // to resolve to a variable.
   private val TheException = """(?i)^the exception$""".r
+  // "a {{RuntimeError}} exception as if a [=trap=] was executed" (js-string
+  // builtins, 10 occurrences, index.bs:1924 onward, always `{{RuntimeError}}`)
+  // — the exception *type* name is irrelevant: this is spec-author shorthand
+  // for "make this call behave exactly like a genuine Core Wasm trap" (see
+  // `$callhostfunc`'s own doc, `4.3-execution.instructions.spectec`: the host
+  // function's `instr*` result is "the host function's own return
+  // value/thrown exception/trap, verbatim, uninterpreted"), not a real
+  // JS-catchable `Exception` object crossing the Wasm boundary the way
+  // `create_a_host_function`'s own throw path does. Compiles to the same
+  // `Case("TRAP", Nil)` a genuine Core Wasm `TRAP` instruction would —
+  // `create_a_builtin_function`'s hostfunc wrapper checks for exactly this
+  // shape on the abrupt path to decide whether to build a real Wasm trap
+  // instead of a `(ref.exn) throw_ref` pair.
+  private val TrapException =
+    """(?si)^an?\s+\{\{[^}]+\}\}\s+exception as if an?\s+\[=trap=\]\s+was executed$""".r
   private val BoolTrue = """(?i)^true$""".r
   private val BoolFalse = """(?i)^false$""".r
   private val BoldConst = """(?s)^\*\*([^*]+)\*\*$""".r
@@ -1044,6 +1087,7 @@ object ExprParser:
       // with `«`), but kept for the same reason any top-level split in this
       // file uses `TextSplit`: correctness shouldn't depend on what the
       // *content* of either side happens to look like.
+      case FuncExternType(inner) => Case("FUNC", List(parse(inner)))
       case _ if s.startsWith(CompTypeArrowPrefix) =>
         val rest = s.substring(CompTypeArrowPrefix.length)
         splitTopLevel(rest, " → ") match
@@ -1113,6 +1157,14 @@ object ExprParser:
       case VarOnly(name)    => Var(name)
       case VarIgnore(name)  => Var(name.trim)
 
+      // tried before "---- Arithmetic & casts ----" below, unlike every other
+      // structural-access pattern (e.g. ElementAt further down) -- its own
+      // index sub-expression can itself be a "+"-expression ("Set the
+      // element at index |start| + |i| in |array| to ...", js-string's
+      // intoCharCodeArray), so the generic top-level-BinOp fallback must not
+      // get a chance to split the whole reference apart first.
+      case ElementAtRef(idx, arr) => Index(parse(arr), parse(idx))
+
       // ---- Arithmetic & casts ----
       case _ if findLastTopLevelAny(s, BinOpSeps).isDefined =>
         val (i, sep) = findLastTopLevelAny(s, BinOpSeps).get
@@ -1144,8 +1196,12 @@ object ExprParser:
       case LengthOf(inner)             => Length(parse(inner))
       case ElementCount(inner)         => Length(parse(inner))
       case PossessiveSize(inner)       => Length(parse(inner))
-      case ElementAt(idx, arr)         => Index(parse(arr), parse(idx))
-      case IndexOfPat(list, elem)      => IndexOf(parse(list), parse(elem))
+      case PrefixedWith(baseRaw, prefixRaw) =>
+        Concat(List(parse(prefixRaw), parse(baseRaw)))
+      case ConcatenationOf(firstRaw, secondRaw) =>
+        Concat(List(parse(firstRaw), parse(secondRaw)))
+      case ElementAt(idx, arr)    => Index(parse(arr), parse(idx))
+      case IndexOfPat(list, elem) => IndexOf(parse(list), parse(elem))
       case ShortestArgumentListOfEntries(baseRaw) =>
         ShortestArgumentList(parse(baseRaw))
       case PossessiveIdentifier(baseRaw) => Field(parse(baseRaw), "id")
@@ -1193,6 +1249,7 @@ object ExprParser:
       case QuotedStr(v)                   => Str(v)
       case EmptyString()                  => Str("")
       case TheException()                 => Var("exception")
+      case TrapException()                => Case("TRAP", Nil)
       case BoolTrue()                     => Bool(true)
       case BoolFalse()                    => Bool(false)
       case BoldConst(_)                   => SpecTerm(s)

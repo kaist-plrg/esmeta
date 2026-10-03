@@ -38,14 +38,22 @@ import esmeta.error.UnsupportedSpecShape
   * garbage (e.g. `_DEF`'s own inner `rectype`/index in place of a
   * params/results list) that only surfaces as a confusing failure several
   * instructions later, rather than right here where the actual mismatch is.
-  * Fires when every arg is either a bare `Expr.Var` or a literal empty
+  * Recurses into any nested `Expr.Case` arg the same way `ExpandIsOfFormPass`'s
+  * `buildFormMatch` does for a branch condition (e.g. "Let [=i32.const=] |i32|
+  * be |v|." — after `NormalizeSpecTecCaseShapePass` reshapes it to
+  * `Case("CONST", [Case("I32", []), Var(i32)])` — asserts `CONST` then recurses
+  * to assert `I32` one level down, with nothing to bind there): `Instr.Assert`
+  * where that pass uses a `Cond` to fold into a branch, and unconditional (no
+  * negation to fold across, unlike a branch condition that could be a `neg`ated
+  * `If`). Fires when every arg is either a bare `Expr.Var`, a nested
+  * `Expr.Case` (itself recursively checked), or a literal empty
   * `Expr.List_(Nil)` (a `« »` side, e.g. "Let [=comp-type/func=] |types| → « »
   * be ..." — a functype with no results) — the latter isn't bound to anything
-  * (see `destructure`'s `collect` below, which only emits a projection for the
-  * `Var` elements, silently skipping any `List_(Nil)` position while still
-  * using its correct index for the elements after it); strictly, `« »` means
-  * more than "don't bind this side", it also asserts the runtime list at that
-  * position really is empty, which isn't checked here — left for whenever that
+  * (see `buildCaseDestructure`, which only emits a projection for the `Var`
+  * elements, silently skipping any `List_(Nil)` position while still using its
+  * correct index for the elements after it); strictly, `« »` means more than
+  * "don't bind this side", it also asserts the runtime list at that position
+  * really is empty, which isn't checked here — left for whenever that
   * distinction actually matters. Mirrors `ExpandIsOfFormPass`'s same guard on
   * the condition side — a `Case`-lhs `Let` with any other kind of arg throws
   * `UnsupportedSpecShape` instead of silently reaching `Compiler`'s much later,
@@ -117,38 +125,85 @@ object ExpandDestructuringLetPass extends LoweringPass:
   private def transform(instrs: List[Instr], counter: Counter): List[Instr] =
     instrs.flatMap(expandInstr(_, counter))
 
-  private def destructure(
-    elems: List[Expr],
-    expr: Expr,
-    body: List[Instr],
-    counter: Counter,
-    tagCheck: Option[String] = None,
-  ): List[Instr] =
-    val (base, binding) = expr match
+  /** `expr` as a plain `Expr.Var` base, introducing a fresh temp binding for it
+    * first if it isn't already one — see this object's own doc on why an
+    * effectful RHS is evaluated once and shared rather than re-evaluated per
+    * projected field.
+    */
+  private def bindBase(expr: Expr, counter: Counter): (Expr.Var, List[Instr]) =
+    expr match
       case v: Expr.Var => (v, Nil)
       case _ =>
         val tmp = Expr.Var(counter.freshTuple())
         (tmp, List(Instr.Let(tmp, expr)))
-    val assertTag = tagCheck.toList.map { tag =>
-      Instr.Assert(Cond.Eq(Expr.CaseTag(base), Expr.Str(tag)))
-    }
+
+  private def destructureTuple(
+    elems: List[Expr],
+    expr: Expr,
+    body: List[Instr],
+    counter: Counter,
+  ): List[Instr] =
+    val (base, binding) = bindBase(expr, counter)
     val destructures = elems.zipWithIndex.collect {
       case (v: Expr.Var, i) => Instr.Let(v, Expr.TupleProj(base, i))
     }
-    binding ++ assertTag ++ destructures ++ transform(body, counter)
+    binding ++ destructures ++ transform(body, counter)
+
+  /** Recursively builds the assert(s) and `Let`-binding(s) that destructure
+    * `base` against `pattern` — the unconditional-context counterpart of
+    * `ExpandIsOfFormPass.buildFormMatch`'s own recursion over a nested `Case`
+    * pattern: an `Instr.Assert` in place of a `Cond` to fold into a branch, and
+    * no negation to fold across (a `Let` destructure isn't itself a branch).
+    */
+  private def buildCaseDestructure(
+    base: Expr,
+    pattern: Expr.Case,
+  ): (List[Instr], List[Instr]) =
+    val Expr.Case(tag, args) = pattern: @unchecked
+    val tagAssert = Instr.Assert(Cond.Eq(Expr.CaseTag(base), Expr.Str(tag)))
+    val (nestedAsserts, binds) = args.zipWithIndex.foldRight(
+      (List.empty[Instr], List.empty[Instr]),
+    ) {
+      case ((v: Expr.Var, i), (asserts, binds)) =>
+        (asserts, Instr.Let(v, Expr.TupleProj(base, i)) :: binds)
+      case ((c: Expr.Case, i), (asserts, binds)) =>
+        val (subAsserts, subBinds) =
+          buildCaseDestructure(Expr.TupleProj(base, i), c)
+        (subAsserts ++ asserts, subBinds ++ binds)
+      case (_, acc) => acc
+    }
+    (tagAssert :: nestedAsserts, binds)
+
+  private def destructureCase(
+    pattern: Expr.Case,
+    expr: Expr,
+    body: List[Instr],
+    counter: Counter,
+  ): List[Instr] =
+    val (base, binding) = bindBase(expr, counter)
+    val (asserts, binds) = buildCaseDestructure(base, pattern)
+    binding ++ asserts ++ binds ++ transform(body, counter)
+
+  /** Whether `Case`-lhs `Let` destructuring recognizes `e` as a valid arg — see
+    * this object's own doc on the guard's exact shape.
+    */
+  private def isDestructurableCaseArg(e: Expr): Boolean = e match
+    case _: Expr.Var     => true
+    case c: Expr.Case    => c.args.forall(isDestructurableCaseArg)
+    case Expr.List_(Nil) => true
+    case _               => false
 
   private def expandInstr(instr: Instr, counter: Counter): List[Instr] =
     instr match
       case Instr.Let(Expr.Tuple(elems), expr, body) =>
-        destructure(elems, expr, body, counter)
-      case Instr.Let(Expr.Case(tag, args), expr, body)
-          if args
-            .forall(a => a.isInstanceOf[Expr.Var] || a == Expr.List_(Nil)) =>
-        destructure(args, expr, body, counter, tagCheck = Some(tag))
+        destructureTuple(elems, expr, body, counter)
+      case Instr.Let(lhs @ Expr.Case(_, args), expr, body)
+          if args.forall(isDestructurableCaseArg) =>
+        destructureCase(lhs, expr, body, counter)
       case Instr.Let(lhs @ Expr.Case(_, _), _, _) =>
         throw UnsupportedSpecShape(
           "ExpandDestructuringLetPass",
-          s"Case-lhs Let with an arg that's neither a Var nor a literal empty list: $lhs",
+          s"Case-lhs Let with an arg that's neither a Var, a nested Case, nor a literal empty list: $lhs",
         )
       case _ =>
         List(instr.mapBody(transform(_, counter)))

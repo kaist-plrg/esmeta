@@ -65,18 +65,28 @@ import esmeta.error.{PipelineOrderError, UnsupportedSpecShape}
   */
 object Lowering:
   val pipeline: List[LoweringPass] = List(
+    // js-string builtin support, part 1/2 (see FixJsStringArrayParamPass at
+    // the very end of this list for part 2 — it needs to run after hoisting,
+    // these two don't). Injects synthetic algorithms/link text early enough
+    // that every ordinary pass below (link resolution, comptype-shape
+    // normalization, name normalization, ...) treats them exactly like real
+    // extracted ones.
+    AddJsStringBuiltinsPass,
+    AddBuiltinFunctionHostfuncPass,
     // prepare
     ResolveTypeAnnotationPass,
     ElideHtmlHostHooksPass,
     DropNotesPass,
     ResolveLinksPass,
     GroupIfChainPass,
+    ExpandContinuePass,
     NormalizeSpecTecCaseShapePass,
     ExpandFollowingStepsPass,
     // injections
     MarkBuiltinBehaviourPass,
     AddBuiltinBehaviourPass,
     AddInterfaceMemberBuiltinBehaviourPass,
+    AddInstantiateOverloadDispatchPass,
     // eliminations
     ExpandTryPass,
     ExpandHasDuplicatesPass,
@@ -113,6 +123,11 @@ object Lowering:
     ExpandQueueATaskPass,
     // cleanup
     NormalizeAlgoNamePass,
+    // js-string builtin support, part 2/2 (see AddJsStringBuiltinsPass/
+    // AddBuiltinFunctionHostfuncPass near the top of this list for part 1) —
+    // dead last specifically because it needs its target algorithms' bodies
+    // already fully hoisted (see this pass's own doc).
+    FixJsStringArrayParamPass,
   )
 
   /** Checks every pass's declared `requires`/`mustPrecede` (see

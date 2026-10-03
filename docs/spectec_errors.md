@@ -1,6 +1,8 @@
 # SpecTec Errors
 
-`spectec` 서브모듈(스펙 텍스트가 아니라 `spectec/spectec/src/*`의 backend-interpreter/AL 등 OCaml 구현) 코드에서 발견한 버그 목록입니다. 스펙 텍스트 자체의 결함은 `docs/spec_errors.md`를 참고하세요.
+`spectec` 서브모듈에서 발견한, **mainline spectec 자체에 이미 있던**(이 프로젝트가 새로 추가한 게 아닌) 에러 목록입니다 — 스펙 텍스트 자체의 결함(`docs/spec_errors.md` 소관)은 제외하고, 그 나머지 전부: `spectec/spectec/src/*`(`xl/`, `il2al/`, `backend-interpreter/ds.ml`/`numerics.ml` 등 core AL 인터프리터/컴파일러)의 OCaml 구현 버그든, `spectec/test/js-api/` 등 벤더링된 테스트 코퍼스 자체의 버그(오타, 잘못된 헬퍼 함수 등)든 여기 기록합니다.
+
+**범위 밖(중요)**: `spectec/spectec/src/backend-interpreter/embedding.ml`/`relation.ml`/`server.ml` — 이 세 파일은 `official`(업스트림 `WebAssembly/spec`) 브랜치엔 아예 존재하지 않는, 이 프로젝트가 JS-API embedding 브릿지용으로 직접 새로 작성한 코드입니다. 여기서 발견되는 버그는 mainline spectec의 결함이 아니라 **우리 자신의 구현 실수**라서 이 문서 대상이 아닙니다(문서화해봐야 남 탓할 게 없는, 그냥 우리 커밋 이력/`personal/DONE.md`로 충분한 내용). 한때 `mem_grow`/`table_grow`/`module_instantiate`(전부 `embedding.ml`)의 버그를 여기 잘못 기록했다가 삭제한 적이 있으니(`9fdab2c9`), 헷갈리면 "이 파일이 `official` 브랜치에도 있는가"부터 확인할 것.
 
 ## 1. `` `Int ``만 받고 `` `Nat ``은 거부하는 지점들이 `xl/num.ml`이 선언한 subtype 관계를 어김
 
@@ -112,3 +114,36 @@
   ```
   (`widen`은 타입이 이미 같으면 그대로 반환하므로, `to_typ num1 <> to_typ num2`로 진짜 타입 불일치일 때만 타도록 guard해야 무한 재귀를 피할 수 있습니다 — 타입이 같은데 그 연산 조합 자체가 정의 안 된 경우는 이 guard에 안 걸리고 바로 `None`으로 떨어집니다.)
 - **Reason**: #1과 같은 근본 원인 — `sub`가 선언한 subtype 관계를 `bin`/`cmp`가 안 지킴 — 인데, 이번엔 esmeta 쪽 `toAL`(WJI가 값을 embedding 경계로 넘길 때 쓰는 변환 함수)이 non-negative `Math` 값을 `` `Nat ``으로 태깅하도록 고쳐보다가 직접 실증됨. `tests/wji`의 5개 테스트가 `$inv_signed_: ... comparison operation <= not defined for +0, 123`류의 에러로 깨졌습니다. 원인을 추적해보니 `signed_31`/`inv_signed_31` 등(`server.ml`의 `call_signed`/`call_inv_signed`)은 `numerics.ml`의 OCaml shortcut(`unwrap_intv`/`inv_signed`/`sat`, #1에서 고친 바로 그 함수들)을 안 거치고 있었습니다 — `call_inv_signed`가 `Interpreter.call_func "inv_signed_"`(끝에 `_`)로 찾는데 `numerics.ml`엔 `"inv_signed"`(언더스코어 없음)로 등록돼 있어 이름이 안 맞았기 때문입니다. 그래서 매번 공식 `.spectec` 정의를 일반 AL 인터프리터로 해석해왔고, 그 정의 안의 `$int$(0) <= i`(리터럴 `int` 상수)가 이제 `` `Nat ``으로 넘어온 인자 `i`와 비교되면서 `cmp`의 same-type-only 제약에 걸린 것입니다. 즉 "Wasm 실행 내부는 esmeta의 `toAL`을 거치지 않는다"는 #1의 가정이 이 경로(공식 spec 정의의 제너릭 해석)에는 안 맞았던 것으로 드러났습니다.
+
+## 4. `test/js-api/limits.any.js`가 정의된 적 없는 `assertEquals`(camelCase)를 호출 — WPT 표준은 `assert_equals`(snake_case)
+
+- **File**: `spectec/test/js-api/limits.any.js`(2곳), `spectec/test/js-api/wasm-module-builder.js`(1곳).
+- **Current**: `assertEquals(-1, instance.exports.grow());` / `assertEquals(1, val.length, 'string inputs must have length 1');`
+- **Expected**: `assert_equals(-1, instance.exports.grow());` 등 — WPT `testharness.js`의 표준 함수 이름.
+- **Reason**: `assertEquals`는 `spectec/test/js-api/` 코퍼스 전체(그리고 이 파일이 끌어오는 유일한 `META: script`인 `wasm-module-builder.js`)를 통틀어 정의된 적이 단 한 번도 없음 — 순수하게 존재하지 않는 전역 식별자를 호출하는 것이라, wasm 엔진의 구현 수준과 무관하게 `ReferenceError`가 나야 정상. 직접 `tests/wji/scripts/wji-node-check`로 실제 Node(V8)에 이 오타를 되살려 돌려봐서 확인: `assertEquals is not defined`로 정확히 같은 방식으로 깨짐 — WJI만의 문제가 아니라 진짜 벤더 코퍼스 자체의 오타. `spectec` 서브모듈 자신의 git 히스토리에 이 파일의 다른 오타(`mininum` → `minimum`)를 고친 커밋(`b55286262`, 2019)이 있는 걸 보면 메인테이너들이 이 파일의 오타를 실제로 고쳐온 이력은 있는데, `assertEquals`는 이 저장소가 vendoring한 최신 커밋(`fb983ce31`, 2025-04-10)까지도 안 고쳐진 채 남아있음 — 아마도 파일 전체(`// META: timeout=long`이 붙은, 기본 CI에서 잘 안 돌리는 무거운 스트레스 테스트)의 200줄 넘는 분량 중 딱 2개 서브테스트만 조용히 깨지는 자리라 눈에 안 띈 것으로 추정.
+- **처리**: `tests/wji/scripts/wji-generate-js-api-tests.js`의 `perFilePatches["limits.any.js"]`에 `["assertEquals(", "assert_equals("]` 텍스트 치환 추가(함수 이름만 바꿈, 인자 순서는 그대로 — `same_value`가 대칭이라 pass/fail 판정엔 영향 없고 실패 메시지 텍스트만 원래 의도와 달라짐, 어차피 SUMMARY N/M만 확인하므로 무해). `personal/DONE.md` #58 참고.
+
+## 5. `wasm-module-builder.js`의 `is_shared` 계산이 명시적으로 넘긴 `false`를 `true`로 오판
+
+- **File**: `spectec/test/js-api/wasm-module-builder.js`, memory import 섹션 인코딩(`var is_shared = (typeof imp.shared) != "undefined";`).
+- **Current**: `var is_shared = (typeof imp.shared) != "undefined";`
+- **Expected**: `var is_shared = imp.shared === true;`
+- **Reason**: `addImportedMemory(module, name, initial, maximum, shared)`의 `shared` 인자에 **명시적으로 `false`**를 넘겨도(`typeof false === "boolean"`, `"undefined"`가 아님) `is_shared`가 `true`로 계산됨 — "인자가 생략됐는지"와 "인자 값이 truthy인지"를 혼동한 전형적인 `typeof` 오용. `spectec/test/js-api/` 코퍼스 전체에서 `shared` 인자를 넘기는 호출은 `limits.any.js`의 `addImportedMemory("", "", 1, 1, false)` 단 한 곳뿐이라(그 외는 전부 인자 자체를 생략) 이 버그의 실질적 영향 범위도 그 한 곳으로 국한됨.
+- **증상**: `limits.any.js`의 "memories" `testLimit`이 의도한 것(단순히 "non-shared memory import 1개"로 개수 제한만 테스트)과 달리 실제로는 shared memory import를 인코딩함 — 이 저장소의 wasm core 스펙 스냅샷은 threads/shared-memory 프로포절이 없어서(`docs/out_of_scope.md` #5) 레퍼런스 디코더가 `require (flags land 0xfa = 0) ... "malformed limits flags"`로 이 인코딩 자체를 거부, "Validate/Compile/Async compile memories limit"(정확히 경계값 1개) 3개가 (원래 테스트 의도와 무관한 이유로) `CompileError`.
+- **처리**: `tests/wji/scripts/wji-generate-js-api-tests.js`의 `perFilePatches["limits.any.js"]`에 텍스트 치환 추가. 다른 어떤 호출부도 `shared` 인자를 안 넘겨서 영향 없음을 확인. `personal/TODO.md` #64/`DONE.md` 참고 — 이 fix로 해당 3개 subtest가 실제로 통과하게 됨(threads 프로포절 없이도, 애초에 이 테스트가 shared memory를 테스트할 의도가 아니었으므로).
+
+## 6. `test/js-api/limits.any.js`의 `kJSEmbeddingMaxMemories` 상수가 스펙 개정 이후 갱신 안 됨(`1` vs 실제 `100`)
+
+- **File**: `spectec/test/js-api/limits.any.js:20`.
+- **Current**: `const kJSEmbeddingMaxMemories = 1;`
+- **Expected**: `const kJSEmbeddingMaxMemories = 100;` — `spectec/document/js-api/index.bs:2232`("The maximum number of memories, including defined and imported memories, is 100.")과 일치해야 함.
+- **Reason**: `git log -S`로 확인한 히스토리 — 이 상수는 2018-12-12 도입 당시(`8f1e01db5`) 스펙 텍스트 자체도 "is 1"이던 시절(multi-memory 프로포절 반영 전, 모듈당 메모리 1개가 진짜 core wasm 하드 리밋이던 시절)에 맞춰 `1`로 설정됐고, 그 이후 스펙 텍스트의 숫자가 `100`으로 올라갔는데도(multi-memory 프로포절 반영) 이 테스트 파일의 상수는 한 번도 안 바뀌었음. 그 결과 "memories over limit" subtest가 실제로는 memory import 2개(진짜 한도 100에 한참 못 미침)로 "invalid해야 한다"고 잘못 기대함 — real Node(V8)가 이 subtest를 실패시키는 것도 "V8이 개수 제한을 안 지켜서"가 아니라 **V8은 진짜 현재 한도(100)를 정확히 지키고 있고, 2개는 100 밑이라 당연히 valid로 판정**하기 때문.
+- **처리**: 문서화만 함, 코드 수정 없음 — 이 상수를 고쳐도(1→100) WJI가 통과하는 데는 도움 안 됨. WJI는 이 "Implementation-defined Limits" 섹션 전체(memories 포함)를 애초에 mechanize 안 하기로 결정했기 때문(`personal/TODO.md` #63, `docs/out_of_scope.md` #7) — 상수를 몇으로 바꾸든 WJI는 개수 자체를 안 세므로 "over limit" subtest는 여전히 실패함. `personal/TODO.md`/`test_fails.md` 참고.
+
+## 7. `test/js-api/table/grow-memory64.any.js`가 정의된 적 없는 `nulls` 헬퍼를 호출
+
+- **File**: `spectec/test/js-api/table/grow-memory64.any.js` (3곳: "Basic i64"/"Reached maximum (i64)"/"Exceeded maximum (i64)" 서브테스트).
+- **Current**: `assert_equal_to_array(table, nulls(5), "before", "i64");` 등 — `nulls`는 이 파일에도, 이 파일이 끌어오는 `// META: script=assertions.js`에도 정의돼 있지 않음.
+- **Expected**: 길이 n짜리 all-null 배열을 만드는 `nulls(n) { return new Array(n).fill(null); }`가 어딘가 정의/import돼 있어야 함.
+- **Reason**: `spectec` 서브모듈 git 히스토리(`2929f4497`, "Split memory64 JS API tests into separate files", PR #2026)를 보면 이 3개 테스트는 원래 `table/grow.any.js`(지금도 `nulls`를 자체 정의) 안에 있었는데, memory64 주소 관련 서브테스트만 이 새 파일로 잘라 옮기면서 `nulls` 헬퍼는 안 옮기고 import도 안 함 — 순수 리팩터링 누락. `tests/wji/scripts/wji-node-check`로 실제 Node(V8)에 원본(패치 전) 생성 파일을 그대로 돌려서 확인: 똑같이 `nulls is not defined`로 3개 다 깨지고 `SUMMARY 3/6` — WJI만의 문제가 아니라 진짜 벤더 코퍼스 자체의 버그.
+- **처리**: `tests/wji/scripts/wji-generate-js-api-tests.js`의 `perFilePatches["table/grow-memory64.any.js"]`에 `nulls` 정의를 공유 `assertions.js` 의존성 텍스트 앞에 주입하는 패치 추가 — `perFilePatches`가 relPath로 키를 잡으므로 `assertions.js`의 다른 소비 파일(`table/get-set.any.js` 등)엔 영향 없음. 재생성 후 `SUMMARY 6/6`으로 완전 통과 — `EvalSpec.scala`의 `knownFailing`에서 제거.

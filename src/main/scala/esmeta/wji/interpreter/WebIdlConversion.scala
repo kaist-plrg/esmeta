@@ -13,14 +13,22 @@ import esmeta.ty.AbruptT
   * operations, ported 1:1 from the former
   * `manuals/funcs/converted_to_an_idl_value.ir` /
   * `converted_to_a_javascript_value.ir` stubs. Same scope as before the port
-  * (see `docs/hardcodes.md` #1/#2), extended with `TagType`: only `"unsigned
-  * long"` and four WebAssembly dictionaries (`MemoryDescriptor`,
-  * `TableDescriptor`, `GlobalDescriptor`, `TagType`) genuinely convert; every
-  * other IDL type is still identity passthrough. Dictionary member reads go
-  * through a real `Get` (prototype chain, getters, and any exception a getter
-  * throws all work), and a required member found absent throws a real
-  * `TypeError` right there — see `readDictionary` and
-  * `Interpreter.invokeCallable`.
+  * (see `docs/hardcodes.md` #1/#2), since extended to cover: `"unsigned long"`;
+  * the WebAssembly dictionaries `MemoryDescriptor`/`TableDescriptor`/
+  * `GlobalDescriptor`/`TagType`/`ExceptionOptions`/`WebAssemblyCompileOptions`
+  * (via `readDictionary`); the interface types `Module`/`Tag` (via
+  * `implementsInterface`); a bare `sequence<T>` parameter (via `toSequence`);
+  * and the union type `AllowSharedBufferSource` (via `isBufferSource`). Every
+  * other IDL type not listed above is still identity passthrough — leaving
+  * `options`/whatever the raw ECMAScript value as-is means `exists`/`Get` on
+  * one of its members only behaves correctly for internal slots (a
+  * `RecordObj`'s own top-level fields), not real object properties (which live
+  * in the nested `"__MAP__"` field's own `MapObj`) — see
+  * `webAssemblyCompileOptionsMembers`'s own doc for a case where exactly this
+  * bit a not-yet-converted dictionary. Dictionary member reads go through a
+  * real `Get` (prototype chain, getters, and any exception a getter throws all
+  * work), and a required member found absent throws a real `TypeError` right
+  * there — see `readDictionary` and `Interpreter.invokeCallable`.
   */
 object WebIdlConversion:
 
@@ -123,6 +131,23 @@ object WebIdlConversion:
       callSite,
     )
 
+  /** invokes the real ECMA-262 `ToBoolean(V)` abstract operation, reentrantly
+    * -- same rationale as [[toStringValue]]. Unlike `ToString`/`ToNumber`/
+    * `ToBigInt`, `ToBoolean` is a total function over every value type (never
+    * reaches `ToPrimitive`/`valueOf`, never throws), so its result is never a
+    * completion record -- no `isAbrupt` check needed at the call site.
+    */
+  private def toBooleanValue(
+    interp: Interpreter,
+    callSite: Call,
+    v: Value,
+  ): Value =
+    interp.invokeCallable(
+      Clo(interp.st.cfg.getFunc("ToBoolean"), Map.empty),
+      List(v),
+      callSite,
+    )
+
   private def isAbrupt(st: State, v: Value): Boolean =
     AbruptT.contains(v, st.heap)
 
@@ -138,6 +163,37 @@ object WebIdlConversion:
           case r: RecordObj => r.tname == iface
           case _            => false
       case _ => false
+
+  /** `AllowSharedBufferSource`'s own union-membership test -- see that case in
+    * `toIdlValue` for why this checks slot presence rather than `tname`.
+    */
+  private def isBufferSource(st: State, v: Value): Boolean = v match
+    case addr: Addr =>
+      st(addr) match
+        case r: RecordObj =>
+          r.map.contains("ArrayBufferData") || r.map.contains(
+            "ViewedArrayBuffer",
+          )
+        case _ => false
+    case _ => false
+
+  /** WebIDL's plain `object` type: `Type(V) is Object` (ECMA-262 Type(V), the
+    * seven-way language-type tag) -- true iff `v` is a genuine ECMAScript
+    * object. A real object is always heap-allocated as a `RecordObj` in this
+    * state model (the same shape `implementsInterface`/ `isBufferSource` above
+    * key off); `ListObj`/`MapObj` are Infra-spec-only internal structures never
+    * exposed as a JS value directly, so a `v` pointing at one of those would be
+    * a WJI-internal bug reaching here, not a real "is it an object" case to
+    * accept. Symbol values are ALSO `RecordObj`s in this state model (`SymbolT
+    * = RecordT("Symbol")`, `ty/package.scala`), but `Type(Symbol())` is
+    * `Symbol`, not `Object` -- so `tname == "Symbol"` must be excluded here.
+    */
+  private def isObjectValue(st: State, v: Value): Boolean = v match
+    case addr: Addr =>
+      st(addr) match
+        case r: RecordObj => r.tname != "Symbol"
+        case _            => false
+    case _ => false
 
   /** builds a genuine `ThrowCompletion(TypeError)`, the same two-step idiom
     * `manuals/funcs/ConvertToInt.ir` and `CompletionWrapping`'s compiled output
@@ -188,6 +244,7 @@ object WebIdlConversion:
     isSequence: Boolean = false,
     enumValues: Option[Set[String]] = None,
     isAddressValue: Boolean = false,
+    isBoolean: Boolean = false,
   )
 
   private val addressTypeValues = Set("i32", "i64")
@@ -231,7 +288,7 @@ object WebIdlConversion:
   // `value` -- `Global`'s own constructor (index.bs:1191-1192) reads
   // `|descriptor|["mutable"]` a full step before `|descriptor|["value"]`.
   private val globalDescriptorMembers = List(
-    Member("mutable", default = Some(Bool(false))),
+    Member("mutable", default = Some(Bool(false)), isBoolean = true),
     Member("value", required = true, enumValues = Some(valueTypeValues)),
   )
   // `required sequence<ValueType> parameters;` -- element-wise ValueType
@@ -252,7 +309,32 @@ object WebIdlConversion:
   // `boolean traceStack = false;` -- `Exception`'s constructor's third
   // parameter (`optional ExceptionOptions options = {}`), no required members.
   private val exceptionOptionsMembers =
-    List(Member("traceStack", default = Some(Bool(false))))
+    List(Member("traceStack", default = Some(Bool(false)), isBoolean = true))
+
+  // `dictionary WebAssemblyCompileOptions { USVString? importedStringConstants;
+  // sequence<USVString> builtins; };` (index.bs:364-367) -- `Module`'s
+  // constructor and the `compile`/`instantiate`/`validate` namespace
+  // operations' shared last parameter. Neither member has an IDL default, so
+  // both are correctly left out of the converted dictionary entirely when
+  // absent (`Member.default = None`, `required = false`) -- `SpecPatch` #17's
+  // own `[=map/exists=]` guard on each is what depends on that (`docs/
+  // spec_errors.md` #12). Listed in the constructor algorithm's own
+  // first-reference order (`builtins` before `importedStringConstants`,
+  // index.bs:100-105), not IDL declaration order (which is reversed).
+  //
+  // Previously left as identity passthrough like every other unlisted IDL
+  // type, which left `options` as the raw JS object -- `exists options.
+  // builtins` (`esmeta.state.Obj.exists`) only ever checks a `RecordObj`'s own
+  // top-level field map, never a real object's actual own properties (those
+  // live in the nested `"__MAP__"` field's own `MapObj`), so the check was
+  // always false regardless of what was actually passed. Routing this through
+  // `readDictionary` (which builds a real `MapObj` via `st.allocMap`, keyed
+  // directly by member name) makes `exists options.builtins` correct the same
+  // way it already is for `MemoryDescriptor`/etc.
+  private val webAssemblyCompileOptionsMembers = List(
+    Member("builtins", isSequence = true),
+    Member("importedStringConstants"),
+  )
 
   /** `ty` names the declared IDL type — almost always a literal `Str` (from
     * `AddInterfaceMemberBuiltinBehaviourPass.unpackArgumentsList`'s
@@ -281,6 +363,13 @@ object WebIdlConversion:
       readDictionary(interp, callSite, argument, tagTypeMembers)
     case Str("ExceptionOptions") | Enum("ExceptionOptions") =>
       readDictionary(interp, callSite, argument, exceptionOptionsMembers)
+    case Str("WebAssemblyCompileOptions") | Enum("WebAssemblyCompileOptions") =>
+      readDictionary(
+        interp,
+        callSite,
+        argument,
+        webAssemblyCompileOptionsMembers,
+      )
     // an interface-typed argument (`Module.{exports,imports,customSections}`'s
     // `moduleObject`, and `Exception`'s constructor's `exceptionTag`): real
     // WebIDL interface-type conversion requires the value to actually
@@ -295,6 +384,53 @@ object WebIdlConversion:
     case Str("Tag") | Enum("Tag") =>
       if implementsInterface(interp.st, argument, "Tag") then Right(argument)
       else Left(typeError(interp, callSite))
+    // `typedef (ArrayBuffer or SharedArrayBuffer or [AllowShared]
+    // ArrayBufferView) AllowSharedBufferSource` (webidl/index.bs:15087) --
+    // unlike `Module`/`Tag` above, a union of *built-in* ES types, which
+    // mainline constructs as plain `"Object"`-tagged records (no per-type
+    // tname `implementsInterface` could key off) -- so this checks the same
+    // internal slot `get_a_copy_of_the_buffer_source`
+    // (webidl/index.bs:9312-9327) itself keys off: `[[ArrayBufferData]]` for
+    // an ArrayBuffer/SharedArrayBuffer, `[[ViewedArrayBuffer]]` for any typed
+    // array/DataView view. Without this, an invalid argument (a plain
+    // `Number`, `{}`, the `ArrayBuffer` constructor itself, ...) sailed
+    // straight through as identity passthrough into that algorithm's own
+    // internal `Assert`, which -- being `A || (yet "{{SharedArrayBuffer}}
+    // object")` -- can never actually fail (`IAssert` catches *any*
+    // `Throwable` from evaluating an assert expression as "not yet compiled,
+    // skip", so the `yet` branch silently no-ops the whole assert instead of
+    // surfacing the rejection) and so never threw the `TypeError` real
+    // engines do here.
+    case Str("AllowSharedBufferSource") | Enum("AllowSharedBufferSource") =>
+      if isBufferSource(interp.st, argument) then Right(argument)
+      else Left(typeError(interp, callSite))
+    // plain WebIDL `object` -- every occurrence in this corpus is `optional
+    // object importObject` with no default (index.bs:375/378, 779). Without
+    // this case, a non-object `importObject` (a number, a string, ...)
+    // sailed through as identity passthrough; `read the imports` only ever
+    // checks `importObject === undefined`, and an empty-imports module never
+    // even reaches a `Get` on it, so the bogus argument was silently
+    // accepted instead of throwing the `TypeError` real WebIDL "convert
+    // ECMAScript value to object" conversion requires (`1. If Type(V) is not
+    // Object, throw a TypeError.`). `Undef` is special-cased to pass through
+    // rather than throw: unlike a truly-omitted argument (which never
+    // reaches `toIdlValue` at all -- `AddInterfaceMemberBuiltinBehaviourPass.
+    // omittedBranch` binds `undefined` directly for an optional parameter
+    // with no default), an argument *explicitly* supplied as `undefined`
+    // still goes through the "supplied" path and does reach here -- and the
+    // spec text itself (`read the imports`, index.bs:485: "If ... and
+    // |importObject| is undefined, throw a TypeError exception" -- only when
+    // the module actually has imports) treats that as a legitimate, later-
+    // checked value, not something rejected at this conversion step.
+    // Confirmed against `instance/constructor.any.js`'s own "Empty module
+    // with undefined imports argument" subtest, which explicitly passes
+    // `undefined` and expects success.
+    case Str("object") | Enum("object") =>
+      argument match
+        case Undef => Right(argument)
+        case _ =>
+          if isObjectValue(interp.st, argument) then Right(argument)
+          else Left(typeError(interp, callSite))
     // a bare `sequence<T>` parameter (as opposed to one nested inside a
     // dictionary, see `Member.isSequence`) -- so far only
     // `Exception`'s constructor's `sequence<any> payload`. Matched by prefix
@@ -468,6 +604,14 @@ object WebIdlConversion:
                   else toNumberValue(interp, callSite, raw)
                 if isAbrupt(st, coerced) then abrupt = Some(coerced)
                 else pairs += key -> st(coerced, Str("Value"))
+              // `boolean` (`GlobalDescriptor.mutable`/`ExceptionOptions.
+              // traceStack`) -- real WebIDL boolean conversion is `ToBoolean`,
+              // not identity, so a truthy-but-not-literal-`true` value (e.g.
+              // `mutable: 1`/`mutable: "x"`) must still convert to `true`
+              // rather than being compared against a `true` literal later and
+              // silently losing.
+              case raw if member.isBoolean =>
+                pairs += key -> toBooleanValue(interp, callSite, raw)
               case raw =>
                 val value =
                   if member.isSequence then toSequence(st, raw) else raw

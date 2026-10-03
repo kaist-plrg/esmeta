@@ -494,15 +494,15 @@ object Compiler:
     case metalang.Expr.New(iface) => ERecord(iface, ordinaryObjectFields(iface))
     case metalang.Expr.RecordLit(tname, fields) =>
       ERecord(tname, fields.map((name, e) => name -> compileExpr(e)))
-    case metalang.Expr.Enum(s)         => EEnum(s)
-    case metalang.Expr.List_(elems)    => EList(elems.map(compileExpr))
-    case metalang.Expr.Length(e)       => ESizeOf(compileExpr(e))
+    case metalang.Expr.Enum(s)      => EEnum(s)
+    case metalang.Expr.List_(elems) => EList(elems.map(compileExpr))
+    case metalang.Expr.Length(e)    => ESizeOf(compileExpr(e))
+    case metalang.Expr.Concat(parts) =>
+      EVariadic(VOp.Concat, parts.map(compileExpr))
     case metalang.Expr.BinOp(l, op, r) => compileBinOp(op, l, r)
     case metalang.Expr.Pow(base, exp) =>
       EBinary(BOp.Pow, compileExpr(base), compileExpr(exp))
     case metalang.Expr.Neg(e) => EUnary(UOp.Neg, compileExpr(e))
-    case metalang.Expr.Concat(parts) =>
-      EVariadic(VOp.Concat, parts.map(compileExpr))
     // "|f32|/|f64| interpreted as a [=mathematical value=]" -- the one
     // context `WasmFloatPayload` isn't transparent for (see that node's own
     // doc): needs the width threaded through from the `IsOfForm` destructure
@@ -656,8 +656,58 @@ object Compiler:
       compileCompare(op, compileExpr(l), compileExpr(r))
     case Cond.And(l, r) => EBinary(BOp.And, compileCond(l), compileCond(r))
     case Cond.Or(l, r)  => EBinary(BOp.Or, compileCond(l), compileCond(r))
-    case Cond.HasField(e, false)  => EExists(compileRef(e))
-    case Cond.HasField(e, true)   => EUnary(UOp.Not, EExists(compileRef(e)))
+    case Cond.HasField(e, false) => EExists(compileRef(e))
+    case Cond.HasField(e, true)  => EUnary(UOp.Not, EExists(compileRef(e)))
+    // `AbruptCompletion`'s own field-level containment check
+    // (`AbruptCompletion.Value: ESValue | Enum[~empty~]`, `manuals/types`)
+    // spuriously fails whenever a completion's `.Value` happens to be a
+    // `Wasm` value -- e.g. `ExprParser.TrapException`'s `Case("TRAP", Nil)`,
+    // which the "as if a trap was executed" idiom stuffs into a
+    // `ThrowCompletion`'s `Value` (`docs/spec_errors.md` #32) -- since
+    // `esmeta.ty.ValueTy` has no representation for `Wasm` values at all
+    // (its own `case _: Wasm => false`), so `RecordTy.contains`'s structural
+    // per-field check always rejects it, even though `.Type` is genuinely
+    // non-`~normal~`. `CompletionRecord`/`NormalCompletion`'s own `Value`
+    // field is left unconstrained in `manuals/types`, so a plain `Cond.
+    // IsType(_, "Completion")` check never hits this gap -- only the more
+    // specific `AbruptCompletion` one does. Checked directly against `.Type`
+    // instead (mirrors `ExpandThrowsPass`'s own `Cond.Eq(Field(_, "Type"),
+    // SpecTerm("throw"))` idiom, already proven correct there), sidestepping
+    // the broken `.Value` containment check entirely rather than teaching
+    // `ValueTy` to model `Wasm` values just for this.
+    //
+    // Guarded with `Cond.IsType(e, "Completion")` first, not `"Object"`
+    // (tried first, and wrong: `RecordTy`'s `Object` component doesn't
+    // include `CompletionRecord` at all -- a completion is a spec-internal
+    // device, never a real ECMAScript `Type(x) is Object` value -- so that
+    // guard rejected every *genuine* completion too, silently turning every
+    // real abrupt completion into "not abrupt" instead of just fixing the
+    // `Wasm`-tainted ones). `Completion`'s own `Value` field is left
+    // unconstrained in `manuals/types` (unlike `AbruptCompletion`'s), so this
+    // guard itself can't hit the same gap, and once it holds, `.Type` is
+    // structurally guaranteed present -- no separate `HasField` needed.
+    // `EExists` (`HasField`'s own compiled form) is a *partial* function
+    // regardless (`State.exists(base, field)`, `state/State.scala`: only
+    // `Addr`/`AstValue` bases are handled, anything else -- a raw number,
+    // string, `Wasm` value, ... -- makes it `raise("illegal field existence
+    // check: ...")` outright) -- e.g. `convertedIdlValueBinding`'s own
+    // callers check this right after `converted_to_an_idl_value`, whose
+    // *success* path leaves `name` holding the plain converted value (a
+    // `Uint8Array` for `AllowSharedBufferSource`, a bare number for
+    // `"unsigned long"`, ...), never a completion record at all -- so the
+    // guard has to be total over every value shape, which only `ETypeCheck`
+    // (unlike `EExists`) actually is. `Cond.And`'s own compiled
+    // `EBinary(BOp.And, ...)` short-circuits (`Interpreter.shortCircuit`), so
+    // `.Type` is never read once the guard already failed.
+    case Cond.IsType(e, "AbruptCompletion", negated) =>
+      val typeField = metalang.Expr.Field(e, "Type")
+      val isAbrupt = compileCond(
+        Cond.And(
+          Cond.IsType(e, "Completion"),
+          Cond.Eq(typeField, metalang.Expr.SpecTerm("normal"), negated = true),
+        ),
+      )
+      if negated then EUnary(UOp.Not, isAbrupt) else isAbrupt
     case Cond.IsType(e, t, false) => ETypeCheck(compileExpr(e), irTypeOf(t))
     case Cond.IsType(e, t, true) =>
       EUnary(UOp.Not, ETypeCheck(compileExpr(e), irTypeOf(t)))
@@ -790,16 +840,16 @@ object Compiler:
   /** `Cond.IsType`'s type-name strings, mapped to the matching `esmeta.ty`
     * singletons mainline itself uses for the same ECMA-262 `Type(x)` categories
     * (`esmeta.compiler.Compiler`'s `TypeCheckCondition` case).
-    * `AbruptCompletion` isn't itself a `Type(x)` category — it's
-    * `ExpandAbruptPass`'s check for whether a value is an abrupt completion —
-    * but mainline already models that too, as `ty.AbruptT`.
+    * `AbruptCompletion` isn't itself a `Type(x)` category and isn't listed here
+    * at all -- see `compileCond`'s own dedicated `Cond.IsType(_,
+    * "AbruptCompletion", _)` case for why it can't just reuse `ty.AbruptT` the
+    * way this map's other entries reuse their own `ty` singleton.
     */
   private val typeOf: Map[String, ValueTy] = Map(
     "Object" -> ObjectT,
     "BigInt" -> BigIntT,
     "Number" -> NumberT,
     "String" -> StrT,
-    "AbruptCompletion" -> AbruptT,
     "Completion" -> CompT,
   )
 

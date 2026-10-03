@@ -18,6 +18,7 @@ def toAL(st: State, v: Value): ALValue = v match
   case Number(n)                  => ALValue.NumV(ALNum.Real(n))
   case Math(n) if n.toBigInt >= 0 => ALValue.NumV(ALNum.Nat(n.toBigInt))
   case Math(n)                    => ALValue.NumV(ALNum.Int(n.toBigInt))
+  case Tup(vs)                    => ALValue.TupV(vs.map(toAL(st, _)).toList)
   case addr: Addr =>
     st(addr) match
       case ListObj(vs) => ALValue.ListV(vs.map(toAL(st, _)).toList)

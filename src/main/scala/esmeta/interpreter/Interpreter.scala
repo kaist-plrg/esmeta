@@ -332,19 +332,28 @@ class Interpreter(
         List(Wasm(state), Wasm(ALValue.ListV(vals))),
         call,
       ) match
-        case Wasm(ALValue.TupV(List(newStateAL, returnAL))) =>
-          val returnVals = returnAL match
+        case Tup(Vector(newState, returnVal)) =>
+          val returnVals = toAL(st, returnVal) match
             case ALValue.ListV(rs) => rs
             case av                => List(av)
-          // patch fresh ArrayBuffer bytes into newStateAL *before* handing
-          // it back -- not a separate mem_write_bytes RPC afterward, which
-          // would race against SpecTec's own `Ds.Store.set` of this same
-          // returned state (see `personal` plan notes on the ordering
-          // hazard this sidesteps).
-          val patchedState = wasmMemoryBridge.pushMemoriesIntoStore(
-            Wasm(newStateAL),
-          )
-          Right((toAL(st, patchedState), returnVals))
+          returnVals match
+            // a builtin's own "as if a trap was executed" (docs/spec_errors.md
+            // #32, ExprParser.TrapException) -- no instr* shape exists for a
+            // bare Core Wasm trap (unlike a real ref.exn throw, it carries no
+            // payload of its own), so this is a WasmError rather than an
+            // ordinary result — see WasmError.Trap's own doc and spectec's
+            // matching host_func_invoke handling for the other half of this.
+            case List(trapVal @ ALValue.CaseV("TRAP", Nil)) =>
+              Left(WasmError.Trap(trapVal))
+            case _ =>
+              // patch fresh ArrayBuffer bytes into newState *before* handing
+              // it back -- not a separate mem_write_bytes RPC afterward,
+              // which would race against SpecTec's own `Ds.Store.set` of this
+              // same returned state (see `personal` plan notes on the
+              // ordering hazard this sidesteps).
+              val patchedState =
+                wasmMemoryBridge.pushMemoriesIntoStore(newState)
+              Right((toAL(st, patchedState), returnVals))
         case other =>
           Left(
             WasmError.ProtocolError(
@@ -606,7 +615,7 @@ class Interpreter(
         ),
       )
     case ETup(elems) =>
-      Wasm(ALValue.TupV(elems.map(e => toAL(st, eval(e)))))
+      Tup(elems.map(eval).toVector)
     case ESizeOf(expr) =>
       Math(eval(expr) match
         case Str(s)                  => s.length

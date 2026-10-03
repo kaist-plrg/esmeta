@@ -22,6 +22,7 @@ val INJECT_LOG_DIR = s"$LOG_DIR/inject"
 val EVAL_LOG_DIR = s"$LOG_DIR/eval"
 val FUZZ_LOG_DIR = s"$LOG_DIR/fuzz"
 val TEST262TEST_LOG_DIR = s"$LOG_DIR/test262"
+val WJI_COVERAGE_LOG_DIR = s"$LOG_DIR/wji-coverage"
 val DUMP_DEBUGGER_LOG_DIR = s"$LOG_DIR/dump/debugger"
 val DUMP_VISUALIZER_LOG_DIR = s"$LOG_DIR/dump/visualizer"
 

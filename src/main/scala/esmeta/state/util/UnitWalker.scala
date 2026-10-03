@@ -64,6 +64,7 @@ trait UnitWalker extends BasicUnitWalker {
     // nested Values once embedding calls are fully wired up; walk into it
     // once that's needed instead of treating it as a leaf.
     case _: Wasm         =>
+    case Tup(values)     => walkIterable(values, walk)
     case sv: SimpleValue => walk(sv)
 
   // address

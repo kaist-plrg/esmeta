@@ -87,13 +87,15 @@ object Expr:
   /** The length/size of a string, list, or map (entry count). */
   case class Length(expr: Expr) extends Expr
 
-  enum BOp:
-    case Add, Sub, Mul, Div, Mod
-
-  /** String concatenation of `parts`, in order. Never produced by parsing;
-    * reserved for lowering passes that need to build a string at runtime.
+  /** String concatenation of two or more parts, e.g. "X prefixed with LITERAL".
+    * Compiles to mainline's `EVariadic(VOp.Concat, ...)` — the same op
+    * `StringConcatExpression` and `manuals/rule.json`'s hand-written
+    * `String.prototype.repeat`/`StringPad` IR both already use.
     */
   case class Concat(parts: List[Expr]) extends Expr
+
+  enum BOp:
+    case Add, Sub, Mul, Div, Mod
 
   /** `lhs op rhs` — arithmetic binary operation. */
   case class BinOp(lhs: Expr, op: BOp, rhs: Expr) extends Expr

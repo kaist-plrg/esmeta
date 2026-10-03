@@ -104,7 +104,10 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case cu: CodeUnit      => cuRule(app, cu)
       case cp: CodePoint     => cpRule(app, cp)
       case Wasm(v)           => app >> "wasm<" >> v.toString >> ">"
-      case sv: SimpleValue   => svRule(app, sv)
+      case Tup(values) =>
+        given Rule[List[Value]] = iterableRule("[", ", ", "]")
+        app >> "tup" >> values.toList
+      case sv: SimpleValue => svRule(app, sv)
 
   // addresses
   given addrRule: Rule[Addr] = (app, addr) =>

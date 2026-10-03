@@ -22,6 +22,19 @@ object CondParser:
   // only knows genuine ECMAScript types) decide what a WJI-specific NOUN like
   // "Exported Function" actually compiles to.
   private val ArticleLink = """(?si)^an?\s+\[=([^\]]+)=\]$""".r
+  // "EXPR is a/an {{Interface}}( object)?" — same claim as ArticleLink above,
+  // just linked via WebIDL's `{{...}}` interface-reference syntax instead of
+  // a bikeshed `[=...=]` dfn link (e.g. "|jsBufferSource| is an {{ArrayBuffer}}
+  // ... object", webidl/index.bs:9325) — parses to the same `IsType` node, so
+  // `ExpandWjiIsTypePass`'s `slotOf` decides what it actually compiles to.
+  // Without this, `{{Interface}}` alone falls through to
+  // `ExprParser.NewExceptionExpr` ("a {{X}} exception"'s bare form), which
+  // means "construct a fresh instance of X", not "check membership in X" —
+  // so `parseRhs`'s generic `Eq` fallback would silently compile a type
+  // *check* into an equality-against-a-freshly-constructed-value, which is
+  // never true for a real value flowing in from elsewhere.
+  private val ArticleInterfaceLink =
+    """(?si)^an?\s+\{\{([^}]+)\}\}(?:\s+object)?$""".r
   // "EXPR is the {{X}} [=interface=]" — identity against one *specific* named
   // interface (webidl/index.bs:12057's "Otherwise, if |interface| is the
   // {{DOMException}} [=interface=], then set |proto| to ..."), unlike
@@ -72,6 +85,18 @@ object CondParser:
   // determines polarity, not a separate positive/negative pattern pair.
   private val ListIsEmpty =
     """(?si)^(.+)\s+\[=list/is empty(?:\|([^\]]+))?=\]$""".r
+  // "|builtinSetName| does not refer to a builtin set" (index.bs:1848, the
+  // only occurrence) — "a builtin set" implicitly means "one of the builtin
+  // sets defined in this section", the same self-reference
+  // `get_the_builtins_for_a_builtin_set`'s own prose makes (`docs/
+  // hardcodes.md`'s builtin-set entry) and which forces a hand-written table
+  // there too, so hardcoding the known names here (currently just
+  // "js-string") rather than trying to parse this generically is the same
+  // judgment call, not a separate one. Extend `KnownBuiltinSetNames` if a
+  // future wasm proposal defines a second builtin set.
+  private val RefersToBuiltinSetNeg =
+    """(?si)^(.+?)\s+does not refer to a builtin set$""".r
+  private val KnownBuiltinSetNames = List("js-string")
   // "EXPR [=implements=] {{Iface}}" / "EXPR does not [=implement=] {{Iface}}"
   // — RHS is either a literal `{{Iface}}` (the corpus's only real shape
   // today) or a `|variable|` (webidl/index.bs's own general form, e.g. "|O|
@@ -498,7 +523,10 @@ object CondParser:
             // is declared with the [{{Global}}] [=extended attribute=], or
             // |interface| is in the set of ...").
             val left = s.substring(0, i).trim.stripSuffix(",").trim
-            Or(parse(left), parseOrAbbreviated(s.substring(i + 4).trim))
+            Or(
+              parse(left),
+              parseOrAbbreviated(stripLeadingIf(s.substring(i + 4).trim)),
+            )
           case None =>
             findTopLevel(searchIn, " and ") match
               // "X ..., and therefore is a Y" (index.bs:508's only
@@ -517,9 +545,27 @@ object CondParser:
                 parse(s.substring(0, i).trim.stripSuffix(",").trim)
               case Some(i) =>
                 val left = s.substring(0, i).trim.stripSuffix(",").trim
-                val right = s.substring(i + 5).trim
+                val right = stripLeadingIf(s.substring(i + 5).trim)
                 And(parse(left), parseOrAbbreviated(right))
               case None => parseAtomic(s)
+
+  /** "X or if Y" / "X and if Y" (e.g. index.bs:500's "|o| [=is not an Object=]
+    * or if [$HasProperty$](|o|, |componentName|) is false") — a redundant "if"
+    * reintroduced on the second disjunct/conjunct of a compound condition. The
+    * leading "If " that normally opens a whole condition is already stripped by
+    * whatever instruction-level construct calls into `CondParser.parse` in the
+    * first place (never part of the text `parse` itself ever sees) — but here
+    * it reappears mid-condition for readability, so it has to be stripped a
+    * second time, right where the "or"/"and" split above hands the right-hand
+    * side off to a recursive `parse` call, or every one of that call's patterns
+    * fails on the stray leading "if" and falls all the way to `Unknown`/`EYet`.
+    * Unlike "and therefore" just above (which discards its whole clause), "or
+    * if"/"and if" keep the clause and mean exactly what plain "or"/ "and" would
+    * — this only strips the token, so it's a separate small helper rather than
+    * another arm of that same special case.
+    */
+  private def stripLeadingIf(s: String): String =
+    if s.startsWith("if ") then s.drop(3) else s
 
   /** Tries full condition parse; if it falls back to [[Unknown]], attempts to
     * salvage the text as an [[Abbreviated]] when [[ExprParser]] recognises it.
@@ -627,6 +673,11 @@ object CondParser:
     case ListIsEmpty(baseRaw, alias) =>
       val negated = Option(alias).exists(_.toLowerCase.contains("not"))
       Eq(Length(ExprParser.parse(baseRaw)), Num("0"), negated)
+    case RefersToBuiltinSetNeg(lhsRaw) =>
+      val lhs = ExprParser.parse(lhsRaw)
+      KnownBuiltinSetNames
+        .map(name => Eq(lhs, Str(name), negated = true))
+        .reduceLeft(And.apply)
     case ImplementsPos(exprRaw, faceRaw) =>
       Implements(ExprParser.parse(exprRaw), ExprParser.parse(faceRaw))
     case ImplementsNeg(exprRaw, faceRaw) =>
@@ -749,6 +800,8 @@ object CondParser:
           Eq(Field(ExprParser.parse(lhsRaw), "readonly"), Bool(true), negated)
         case ArticleLink(noun) =>
           IsType(ExprParser.parse(lhsRaw), noun, negated)
+        case ArticleInterfaceLink(iface) =>
+          IsType(ExprParser.parse(lhsRaw), iface, negated)
         case IsTheBracedInterfaceLink(name) =>
           IsType(ExprParser.parse(lhsRaw), name, negated)
         case ValidTypeLink(typeName) =>

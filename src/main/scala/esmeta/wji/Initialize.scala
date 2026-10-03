@@ -9,7 +9,7 @@ import esmeta.wji.bridge.process.SpecTecProcess
 import esmeta.wji.bridge.rpc.JsonRpcConnection
 import esmeta.wji.extractor.Extractor
 import esmeta.wji.spec.Spec
-import esmeta.wji.lang.{Definition, DefinitionKind}
+import esmeta.wji.lang.{Definition, DefinitionKind, Member}
 import esmeta.wji.lang.{Operation => WjiOperation}
 import esmeta.wji.lang.{Attribute => WjiAttribute}
 import esmeta.wji.lang.{Param => WjiParam}
@@ -260,8 +260,34 @@ object Initialize:
         definitionRecord(spec.definitionMap(name)),
       )
 
+    // `SpecPatch` #3 renames `WebAssembly.instantiate`'s two overloads to
+    // `instantiate_bytes`/`instantiate_object`, and
+    // `AddInstantiateOverloadDispatchPass` synthesizes the real
+    // `INTRINSICS.WebAssembly.instantiate` dispatcher with no IDL member of
+    // its own — so "define the operations" would install the two renamed
+    // names and never `instantiate` itself. Folds the two into one
+    // `instantiate` member (`operationRecord` then finds the dispatcher by
+    // that id). Every param is typed `any`: `overload_resolution_algorithm`
+    // must pass the arguments through untouched, since which overload's
+    // types apply is only known inside the dispatcher, and each real
+    // overload converts its own arguments anyway (docs/hardcodes.md #23).
+    def foldInstantiateOverloads(d: Definition): List[Member] =
+      val overloads = Set("instantiate_bytes", "instantiate_object")
+      val (renamed, rest) = d.members.partition {
+        case op: WjiOperation => overloads(op.id)
+        case _                => false
+      }
+      val folded = renamed.collectFirst {
+        case op: WjiOperation if op.id == "instantiate_bytes" =>
+          op.copy(
+            id = "instantiate",
+            params = op.params.map(_.copy(ty = "any", extAttribute = Nil)),
+          )
+      }
+      rest ++ folded
+
     def definitionRecord(d: Definition): Addr =
-      val members = d.members.map {
+      val members = foldInstantiateOverloads(d).map {
         case op: WjiOperation   => operationRecord(d.name, op)
         case attr: WjiAttribute => attributeRecord(attr)
         case _                  => ???

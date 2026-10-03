@@ -1732,7 +1732,7 @@
     Assert(|attribute|.[[readonly]] is true)
     Return(undefined)
   If(|attribute|.[[readonly]] is true, and no ea in |attribute|.[[extendedAttributes]] |ea|.[[id]] is "LegacyLenientSetter", and no ea in |attribute|.[[extendedAttributes]] |ea|.[[id]] is "PutForwards", and no ea in |attribute|.[[extendedAttributes]] |ea|.[[id]] is "Replaceable")
-    Return(?(<emu-val>undefined</emu-val>; there is no [=attribute setter=] function))
+    Return(undefined)
   Assert(|attribute|.[[ty]] is not a promise type)
   Let(|steps|, followingSteps())
     Let(|V|, undefined)

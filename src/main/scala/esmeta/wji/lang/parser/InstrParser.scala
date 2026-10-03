@@ -335,7 +335,14 @@ object InstrParser:
         Assert(CondParser.parse(cond), trailingBody)
       case NotePrefix(note)  => Note(note.trim, trailingBody)
       case EarlyExitPrefix() => Return(None, trailingBody)
-      case ReturnPrefix(expr) =>
+      case ReturnPrefix(rest) =>
+        // "return VALUE; REMARK" — nothing runs after a return, so whatever
+        // follows a top-level "; " is the spec author's aside on why VALUE is
+        // returned, not part of it (e.g. `attribute setter`'s "return
+        // <emu-val>undefined</emu-val>; there is no [=attribute setter=]
+        // function", webidl/index.bs:12397). An "; otherwise, ..." clause never
+        // gets here: `splitElseClause` has already split it off.
+        val expr = splitTopLevel(rest, "; ").fold(rest)(_._1)
         Return(
           Option.when(expr.nonEmpty)(ExprParser.parse(expr)),
           trailingBody,

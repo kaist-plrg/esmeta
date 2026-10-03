@@ -4792,7 +4792,7 @@ def attribute_setter(
     _i6 = (+ _i6 1)
   }
   if (&& (= attribute.readonly true) (&& (&& (! (= _found1 true)) (! (= _found3 true))) (! (= _found5 true)))) {
-    return (yet "<emu-val>undefined</emu-val>; there is no [=attribute setter=] function")
+    return undefined
   } else nop
   assert (! (? attribute.ty: Record[Promise]))
   let steps = clo<"attribute_setter_closure1", [attribute, target]>

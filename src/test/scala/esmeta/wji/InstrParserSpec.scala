@@ -67,6 +67,12 @@ class InstrParserSpec extends AnyFunSuite:
   test("return, with and without a value") {
     assert(parse("Return |x|.") == List(Return(Some(Var("x")))))
     assert(parse("Return.") == List(Return(None)))
+    // a trailing "; REMARK" explains the returned value, it isn't part of it
+    assert(
+      parse(
+        "Return <emu-val>undefined</emu-val>; there is no [=attribute setter=] function.",
+      ) == List(Return(Some(SpecTerm("undefined")))),
+    )
   }
 
   test("throw") {

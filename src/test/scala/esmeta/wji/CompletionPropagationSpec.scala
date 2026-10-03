@@ -21,6 +21,8 @@ import esmeta.state.{
 import esmeta.wji.compiler.Compiler
 import esmeta.wji.compiler.lowering.Lowering
 import esmeta.wji.lang.*
+import esmeta.wji.lang.parser.InstrParser
+import esmeta.wji.spec.SpecPatch
 import scala.collection.mutable.{Map => MMap}
 
 /** Scenario tests for how the lowering pipeline handles abrupt-completion
@@ -311,6 +313,63 @@ class CompletionPropagationSpec extends AnyFunSuite:
     ),
   )
 
+  // ---- Scenario 5: WebIDL's "Try running the following steps" / "And then, if an exception |E| was thrown" ----
+
+  /** WebIDL's try/catch idiom (`Instr.Try`/`Instr.Catch`, lowered by
+    * `ExpandTryPass` into the same `Cond.Throws` shape scenario 3 exercises),
+    * shaped after its only two real occurrences (`attribute getter` / `create
+    * an operation function`): the try-body's own `Return` must become this
+    * algorithm's return, and the catch clause either handles |E| itself or
+    * lets it propagate (parsed as `Instr.Throw`, which makes this algorithm
+    * itself `completionAlgos`-classified -- every outcome below comes back as
+    * a Completion Record). The `Try` step and the catch clause's last step are
+    * run through the real `InstrParser` (and, for the latter, `SpecPatch` #75,
+    * which spells out the |E| the spec's own text leaves implicit) rather than
+    * hand-built, so the spec's actual phrasing is what's under test.
+    *
+    * As spec prose:
+    * {{{
+    * To <dfn>try explode</dfn> given |flag| and |handle|, perform the
+    * following steps:
+    *   1. Try running the following steps:
+    *     1. Let |result| be ? [=explode=](|flag|).
+    *     2. Return |result|.
+    *   And then, if an exception |E| was thrown:
+    *   1. If |handle| is true, then return "handled".
+    *   2. Otherwise, end these steps and allow the exception to propagate.
+    * }}}
+    */
+  private val tryExplode = Algorithm(
+    id = Some("tryExplode"),
+    name = Some("tryExplode"),
+    params = List(WjiParam("|flag|"), WjiParam("|handle|")),
+    head = "",
+    body = InstrParser.parseStepText(
+      "Try running the following steps:",
+      List(
+        Instr.Let(
+          Expr.Var("result"),
+          Expr.Abrupt(
+            "?",
+            Expr.AlgoCall("[=explode=]", List(Expr.Var("flag"))),
+          ),
+        ),
+        Instr.Return(Some(Expr.Var("result"))),
+      ),
+    ) :+ Instr.Catch(
+      "|E|",
+      Instr.If(
+        Cond.Eq(Expr.Var("handle"), Expr.Bool(true)),
+        List(Instr.Return(Some(Expr.Str("handled")))),
+      ) :: InstrParser.parseStepText(
+        SpecPatch(
+          "Otherwise, end these steps and allow the exception to propagate.",
+        ),
+        Nil,
+      ),
+    ),
+  )
+
   /** All scenario algorithms declared above, merged into the SAME shared
     * mainline CFG every `esmeta.es`/`esmeta.ir` test already uses
     * (`ESMetaTest.cfg`) — mirrors `WjiTest.mergedCfg` exactly, substituting
@@ -334,6 +393,7 @@ class CompletionPropagationSpec extends AnyFunSuite:
       explodeWithCatch,
       harmless,
       callHarmlessUnguarded,
+      tryExplode,
     )
     val wjiProgram = Compiler.compile(Lowering.run(allAlgos))
     val mainline = ESMetaTest.cfg.program
@@ -422,4 +482,25 @@ class CompletionPropagationSpec extends AnyFunSuite:
 
     val (st2f, v2f) = invokeRaw("callexplodeunguarded", List(Bool(false)))
     assert(completionFields(st2f, v2f) == ("normal", Str("reached-end")))
+  }
+
+  test("try/catch: the try-body's own return becomes the algorithm's return") {
+    val (st1, v1) = invokeRaw("tryexplode", List(Bool(false), Bool(false)))
+    assert(completionFields(st1, v1) == ("normal", Bool(true)))
+    val (st2, v2) = invokeRaw("tryexplode", List(Bool(false), Bool(true)))
+    assert(completionFields(st2, v2) == ("normal", Bool(true)))
+  }
+
+  test("try/catch: the catch clause runs on a throw and can handle it") {
+    val (st, v) = invokeRaw("tryexplode", List(Bool(true), Bool(true)))
+    assert(completionFields(st, v) == ("normal", Str("handled")))
+  }
+
+  test(
+    "try/catch: \"end these steps and allow the exception to propagate\" rethrows |E|",
+  ) {
+    // must come back as a throw completion carrying |E|, not as |E| itself --
+    // a plain "boom" is indistinguishable from the try-body returning "boom"
+    val (st, v) = invokeRaw("tryexplode", List(Bool(true), Bool(false)))
+    assert(completionFields(st, v) == ("throw", Str("boom")))
   }

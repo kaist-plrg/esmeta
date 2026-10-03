@@ -1720,7 +1720,7 @@
       If(|attribute|.[[ty]] is a promise type)
         Return([=!=] [$Call$](%Promise.reject%, %Promise%, « |E| »))
       Else
-        ?(end these steps and allow the exception to propagate)
+        Throw(|E|)
   Let(|name|, concat("get ", |attribute|.[[id]]))
   Let(|F|, [$CreateBuiltinFunction$](|steps|, 0, |name|, « », |realm|))
   Return(|F|)
@@ -1847,7 +1847,7 @@
       If(|op|.[[returnType]] is a promise type)
         Return([=!=] [$Call$](%Promise.reject%, %Promise%, « |E| »))
       Else
-        ?(end these steps and allow the exception to propagate)
+        Throw(|E|)
   PerformAndLet([=Compute the effective overload set=]([=regular operations=] if |op| is a regular operation else [=static operations=] if |op| is a static operation, [=identifier=](|id|, |target|, 0)), |S|)
   Let(|length|, length(shortestArgumentList(|S|)))
   Let(|F|, [$CreateBuiltinFunction$](|steps|, |length|, |id|, « », |realm|))

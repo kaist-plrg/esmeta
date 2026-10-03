@@ -36,6 +36,12 @@ object InstrParser:
   // what a bare `Return` (no expr) already expresses.
   private val EarlyExitPrefix =
     """(?is)^(?:terminate|abort)\s+(?:this|these)\s+(?:substeps|steps)$""".r
+  // "end these steps and allow the exception |E| to propagate" (webidl's
+  // "if an exception |E| was thrown" clause, `attribute getter` / `create an
+  // operation function`) -- the `|E|` is not in the spec's own text, it's
+  // spelled out by `SpecPatch` #75. Parsed as `Throw(|E|)`.
+  private val PropagateException =
+    """(?is)^end\s+these\s+steps\s+and\s+allow\s+the\s+exception\s+(\|[^|]+\|)\s+to\s+propagate$""".r
   // also a namespaced link, e.g. webidl's "[=JavaScript/throw=] a
   // {{TypeError}}." (webidl_yet_categorized.md category I-O's `#6-9`)
   private val ThrowPrefix =
@@ -335,6 +341,8 @@ object InstrParser:
         Assert(CondParser.parse(cond), trailingBody)
       case NotePrefix(note)  => Note(note.trim, trailingBody)
       case EarlyExitPrefix() => Return(None, trailingBody)
+      case PropagateException(exc) =>
+        Throw(ExprParser.parse(exc), trailingBody)
       case ReturnPrefix(rest) =>
         // "return VALUE; REMARK" — nothing runs after a return, so whatever
         // follows a top-level "; " is the spec author's aside on why VALUE is

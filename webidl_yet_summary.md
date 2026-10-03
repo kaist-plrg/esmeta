@@ -248,10 +248,6 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
 12. 카테고리 - II-B
     원문 - Let |R| be the result of running the [=getter steps=] of |attribute| with |idlObject| as [=this=].
     IR - call R = attribute.getterSteps(idlObject)
-
-14. 카테고리 - I-F + VII
-    원문 - Otherwise, end these steps and allow the exception to propagate.
-    IR - (yet "end these steps and allow the exception to propagate")
 ```
 
 ---
@@ -403,10 +399,6 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
     원문 - [=Compute the effective overload set=] for [=regular operations=] (if |op| is a regular operation) or for [=static operations=] (if |op| is a static operation) with [=identifier=] |id| on |target| and with argument count |n|, and let |S| be the result.
     IR - call _call1 = clo<"regular_operations">((yet "tuple(Unknown(if |op| is a regular operation) or for [=static operations=] (if |op| is a static operation))"), (case "IDENTIFIER" id target n))
          call S = clo<"compute_the_effective_overload_set">(_call1)
-
-15. 카테고리 - I-F + VII
-    원문 - Otherwise, end these steps and allow the exception to propagate.
-    IR - (yet "end these steps and allow the exception to propagate")
 
 16. 카테고리 - IV-C + VII-B
     원문 - [=Compute the effective overload set=]  for [=regular operations=] (if |op| is a regular operation) or for [=static operations=] (if |op| is a static operation) with [=identifier=] |id| on |target| and with argument count 0, and let |S| be the result.

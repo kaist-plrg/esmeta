@@ -6006,27 +6006,26 @@ def attribute_getter_closure1(
           return _ret2
         }
       } else {
-        (yet "end these steps and allow the exception to propagate")
+        call _ret3 = clo<"ThrowCompletion">(E)
+        return _ret3
       }
     } else {
-      let _v3 = _throwComp1.Value
-      if (? _v3: Completion) {
-        return _v3
+      let _v4 = _throwComp1.Value
+      if (? _v4: Completion) {
+        return _v4
       } else {
-        call _ret4 = clo<"NormalCompletion">(_v3)
-        return _ret4
+        call _ret5 = clo<"NormalCompletion">(_v4)
+        return _ret5
       }
     }
   } else {
     if (? _throwComp1: Completion) {
       return _throwComp1
     } else {
-      call _ret5 = clo<"NormalCompletion">(_throwComp1)
-      return _ret5
+      call _ret6 = clo<"NormalCompletion">(_throwComp1)
+      return _ret6
     }
   }
-  call _ret6 = clo<"NormalCompletion">(~unused~)
-  return _ret6
 }
 def attribute_setter_closure1(
   thisArgument: Unknown,
@@ -6287,27 +6286,26 @@ def creating_an_operation_function_closure1(
           return _ret2
         }
       } else {
-        (yet "end these steps and allow the exception to propagate")
+        call _ret3 = clo<"ThrowCompletion">(E)
+        return _ret3
       }
     } else {
-      let _v3 = _throwComp1.Value
-      if (? _v3: Completion) {
-        return _v3
+      let _v4 = _throwComp1.Value
+      if (? _v4: Completion) {
+        return _v4
       } else {
-        call _ret4 = clo<"NormalCompletion">(_v3)
-        return _ret4
+        call _ret5 = clo<"NormalCompletion">(_v4)
+        return _ret5
       }
     }
   } else {
     if (? _throwComp1: Completion) {
       return _throwComp1
     } else {
-      call _ret5 = clo<"NormalCompletion">(_throwComp1)
-      return _ret5
+      call _ret6 = clo<"NormalCompletion">(_throwComp1)
+      return _ret6
     }
   }
-  call _ret6 = clo<"NormalCompletion">(~unused~)
-  return _ret6
 }
 def define_the_iteration_methods_closure1(
   thisArgument: Unknown,

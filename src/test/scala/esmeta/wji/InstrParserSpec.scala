@@ -75,6 +75,13 @@ class InstrParserSpec extends AnyFunSuite:
     )
   }
 
+  test("end these steps and allow the exception to propagate") {
+    assert(
+      parse("End these steps and allow the exception |E| to propagate.") ==
+      List(Throw(Var("E"))),
+    )
+  }
+
   test("throw") {
     assert(
       parse("Throw a {{TypeError}} exception.") ==

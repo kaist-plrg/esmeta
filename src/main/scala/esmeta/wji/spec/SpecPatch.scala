@@ -1494,6 +1494,16 @@ object SpecPatch:
     "Let |name| be the string \"<code>set </code>\" prepended to |id|."
     ->
     "Let |name| be the string \"<code>set </code>\" prepended to |attribute|'s [=identifier=].",
+    // #76 (hardcoding) — `attribute getter` (webidl/index.bs:12381) and
+    // `create an operation function` (webidl/index.bs:12580) both end their
+    // "if an exception |E| was thrown" clause with "Otherwise, end these
+    // steps and allow the exception to propagate.". "the exception" refers
+    // back to the |E| bound by the clause header, a reference nothing in
+    // `InstrParser` can resolve, so the variable is spelled out;
+    // `InstrParser.PropagateException` turns the result into `Throw(|E|)`.
+    "end these steps and allow the exception to propagate"
+    ->
+    "end these steps and allow the exception |E| to propagate",
   )
 
   def apply(source: String): String =

@@ -1782,7 +1782,7 @@
       ?(</dd> </dl>)
     PerformClosure(|attribute|.[[setterSteps]](|idlObject|, |idlValue|))
     Return(undefined)
-  Let(|name|, concat("set ", |id|))
+  Let(|name|, concat("set ", |attribute|.[[id]]))
   Let(|F|, [$CreateBuiltinFunction$](|steps|, 1, |name|, « », |realm|))
   Return(|F|)
 

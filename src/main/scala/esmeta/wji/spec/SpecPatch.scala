@@ -1387,8 +1387,8 @@ object SpecPatch:
     ->
     "1. Let |charCode| be [$CharCodeAt$](|string|, [=𝔽=](|i|)).",
 
-    // #70 (spec bug, docs/spec_errors.md #37) — `create an interface
-    // prototype object`'s own `#2-2` recursive-call step
+    // #70 (spec inconsistency, docs/spec_inconsistencies.md #22) — `create an
+    // interface prototype object`'s own `#2-2` recursive-call step
     // (webidl/index.bs:12055-12056) has its "of X"/"in |realm|" clauses
     // transposed relative to every other "the interface (prototype) object
     // of X in realm" reference in this document (lines 11963/12030/12094, all
@@ -1422,7 +1422,7 @@ object SpecPatch:
     ->
     "[=constant=] |const| that is a [=const=] of |definition|",
 
-    // #73 (spec bug, docs/spec_errors.md #38) — `create an interface object`
+    // #73 (spec bug, docs/spec_errors.md #37) — `create an interface object`
     // (webidl/index.bs:11964-11980) sets "|F|.\[[Unforgeables]]" three steps
     // before "Let |F| be CreateBuiltinFunction(...)" ever binds |F|. The
     // unforgeables block (with its Note) is moved to right after |F|'s
@@ -1483,6 +1483,17 @@ object SpecPatch:
     "    1.  Otherwise, set |interfaceProtoObj| to [$OrdinaryObjectCreate$](|proto|).\n"
     ->
     "    1.  Otherwise, set |interfaceProtoObj| to [$OrdinaryObjectCreate$](|proto|).\n    1.  Set the [=interface prototype object=] of |interface| in |realm| to |interfaceProtoObj|.\n",
+
+    // #75 (spec bug, docs/spec_errors.md #38) — `attribute setter`
+    // (webidl/index.bs:12466) builds the function's name from |id|, but |id|
+    // is only bound by "Let |id| be |attribute|'s [=identifier=]."
+    // (webidl/index.bs:12403), a step *inside* the |steps| closure — never
+    // in the enclosing algorithm that reads it. Spelled out as
+    // "|attribute|'s [=identifier=]", the same form `attribute getter`'s own
+    // counterpart step (webidl/index.bs:12382) already uses.
+    "Let |name| be the string \"<code>set </code>\" prepended to |id|."
+    ->
+    "Let |name| be the string \"<code>set </code>\" prepended to |attribute|'s [=identifier=].",
   )
 
   def apply(source: String): String =

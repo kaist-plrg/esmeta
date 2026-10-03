@@ -4796,7 +4796,7 @@ def attribute_setter(
   } else nop
   assert (! (? attribute.ty: Record[Promise]))
   let steps = clo<"attribute_setter_closure1", [attribute, target]>
-  let name = (concat "set " id)
+  let name = (concat "set " attribute.id)
   call F = clo<"CreateBuiltinFunction">(steps, 1, name, (list []), realm)
   return F
 }

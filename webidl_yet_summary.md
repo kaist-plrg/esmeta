@@ -323,10 +323,6 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
          (yet "</dd> <dt>Otherwise</dt> <dd> |idlValue| is the result of [=converted to an IDL value|converting=] |V| to an IDL value of |attribute|'s type")
          (yet "</dd> </dl>")
 
-24. 카테고리 - III-C
-    원문 - Perform the [=setter steps=] of |attribute|, with |idlObject| as [=this=] and |idlValue| as [=the given value=].
-    IR - call _ = attribute.setterSteps(idlObject, idlValue)
-
 ```
 
 ---

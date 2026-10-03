@@ -423,19 +423,7 @@ Retracted — its premise was wrong. This entry claimed the Wasm Core Spec's `fu
 - **Reason**: the embedding appendix predates the GC proposal (arrays/structs) entirely, so it was never updated to cover them — not an oversight specific to js-string-builtins, but a genuine, checkable gap in the Wasm Core Spec's own appendix (every *other* store-addressed collection this corpus touches has a defined embedding relation; arrays are the only exception). `fromCharCodeArray`/`intoCharCodeArray`'s own *reads* happen to still work without this (WJI's `store` value is fully marshalled on the Scala side, so a plain `store.ARRAYS[a].FIELDS` field/index read already works generically — see `FixJsStringArrayParamPass`), but *writes* have no such fallback: `esmeta.state.Value.asAddr`/`asList` require a genuine heap `Addr` to write through, and WJI's compiler has no way to construct a *replacement* Wasm struct value (`ALValue.StrV`) of its own either (`Expr.Case`/`ECase` only builds the positional `ALValue.CaseV` shape) — so there's no way to functionally rebuild an updated `store` on the WJI side even in principle.
 - Fixed by adding `array_write` directly to `embedding.ml`/`server.ml` (`[spectec]`-prefixed commit) and `WasmHost.paramNames`, mirroring `table_write`'s own implementation field-for-field (`ARRAYS`/`FIELDS` in place of `TABLES`/`REFS`) — see that function's own doc comment. Only the write direction; reads still go through the plain `store.ARRAYS[...]` field access above, no RPC round trip needed. `array_read`/`array_len` are deliberately not added — nothing in this corpus needs them yet.
 
-## 37. `create an interface prototype object`'s own recursive-call step has its `in |realm|`/`of X` clauses swapped
-
-- **File**: `webidl/index.bs`, lines 12055-12056 (`create an interface prototype object`'s `#2-2` branch, webidl_yet_categorized.md category II-C).
-- **Current**:
-  ```
-          then set |proto| to the [=interface prototype object=] in |realm|
-          of that [=inherited interface=].
-  ```
-- **Expected**: `then set |proto| to the [=interface prototype object=] of that [=inherited interface=] in |realm|.`
-- **Reason**: Every other reference to this same "the interface (prototype) object of X in realm" construction in this document — line 11963's `of |P| in |realm|`, line 12030's `of [=interface=] |I| in |realm|`, line 12094's `of |interface| in |realm|` — names the subject before the realm. Only this one site has the two clauses transposed (realm first, subject clause second, with a line-wrap in between). Like #27, this doesn't change what the step means — its realm and subject are unambiguous either way — but unlike #27's duplicated word, this one is a clause-order transposition, not a repeated token; grouped here as the same *kind* of harmless typing slip, not the same mechanical shape of mistake.
-- Fixed via `SpecPatch` #70.
-
-## 38. `create an interface object` sets `|F|.[[Unforgeables]]` before `|F|` is defined
+## 37. `create an interface object` sets `|F|.[[Unforgeables]]` before `|F|` is defined
 
 - **File**: `webidl/index.bs`, lines 11964-11980 (`create an interface object`).
 - **Current**:
@@ -466,3 +454,23 @@ Retracted — its premise was wrong. This entry claimed the Wasm Core Spec's `fu
   ```
 - **Reason**: `|F|` is first bound by `Let |F| be CreateBuiltinFunction(...)`, three steps after `Set |F|.\[[Unforgeables]] to |unforgeables|` writes to it, so the `Set` step refers to an unbound variable. `CreateBuiltinFunction` is what gives `|F|` its `[[Unforgeables]]` internal slot (via the `« \[[Unforgeables]] »` slot list), so the slot can only be set after that call. None of the steps in between (`|length|` and the overload-set computation) reads `|unforgeables|` or `|F|`, so moving the unforgeables block to after `|F|`'s definition changes nothing else.
 - Fixed via `SpecPatch` #73.
+
+## 38. `attribute setter` builds the function's name from `|id|`, which is only defined inside the `|steps|` closure
+
+- **File**: `webidl/index.bs`, line 12466 (`attribute setter`); same text upstream at https://webidl.spec.whatwg.org/#dfn-attribute-setter.
+- **Current**:
+  ```
+  1.  Let |steps| be the following series of steps:
+      1.  Let |V| be <emu-val>undefined</emu-val>.
+      1.  If any arguments were passed, then set |V| to the value of the first argument passed.
+      1.  Let |id| be |attribute|'s [=identifier=].
+      ...
+      1.  Return <emu-val>undefined</emu-val>
+  1.  Let |name| be the string "<code>set </code>" prepended to |id|.
+  1.  Let |F| be <a abstract-op>CreateBuiltinFunction</a>(|steps|, 1, |name|, « », |realm|).
+  ```
+- **Expected**:
+  ```
+  1.  Let |name| be the string "<code>set </code>" prepended to |attribute|'s [=identifier=].
+  ```
+- **Reason**: `|id|` is bound exactly once in this algorithm, by `Let |id| be |attribute|'s [=identifier=].` (line 12403) — the third step *inside* the `|steps|` closure, which only runs later, each time the resulting setter function is called. The `Let |name| be ...` step (line 12466) belongs to the enclosing algorithm, which runs once when the setter is created and never executes the closure's body itself, so `|id|` is unbound at the point it's read: a use without a definition, the same class of defect as #37's `|F|`. The closure's own three uses of `|id|` (the security check at line 12414, `CreateDataPropertyOrThrow` at line 12419, `Get` at line 12425) are fine — they sit in the same scope as the binding. `attribute getter` (line 12382), the sibling algorithm with the identical shape, writes the corresponding step as `Let |name| be the string "<code>get </code>" prepended to |attribute|'s [=identifier=].` — it never introduces an `|id|` at all, reading `|attribute|` (a parameter of the enclosing algorithm, so in scope both inside and outside the closure) directly. Using the same form here is the minimal fix; the alternative of hoisting `Let |id| be ...` out of `|steps|` to before it would work too, but changes more text and diverges from the getter.

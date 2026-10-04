@@ -10,6 +10,16 @@ object Expr:
   case object This extends Expr // only used in interface member
   case object GivenValue extends Expr // only used in setter
 
+  /** "it" — a pronoun referring back to the value stated just before it, e.g.
+    * the guard of "the <emu-val>this</emu-val> value, if it is not
+    * <emu-val>null</emu-val> or <emu-val>undefined</emu-val>, or ...
+    * otherwise" (webidl/index.bs:12355). Has no meaning of its own:
+    * `esmeta.wji.compiler.lowering.ExpandConditionalPass` substitutes each
+    * [[Conditional]] branch's own value for every `Pronoun` in that branch's
+    * guard before `Compiler` ever sees one.
+    */
+  case object Pronoun extends Expr
+
   /** A single byte value (0-255), e.g. the zero-fill element produced when
     * expanding [[NewByteSequence]]. Kept distinct from [[Num]] (a
     * mathematical-value literal) since it compiles to a `Number` value rather

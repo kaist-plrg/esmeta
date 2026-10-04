@@ -4750,7 +4750,7 @@ def attribute_getter(
   target: Unknown,
   realm: Unknown,
 ): Unknown = {
-  let steps = clo<"attribute_getter_closure1", [attribute, target]>
+  let steps = clo<"attribute_getter_closure1", [attribute, realm, target]>
   let name = (concat "get " attribute.id)
   call F = clo<"CreateBuiltinFunction">(steps, 0, name, (list []), realm)
   return F
@@ -4795,7 +4795,7 @@ def attribute_setter(
     return undefined
   } else nop
   assert (! (? attribute.ty: Record[Promise]))
-  let steps = clo<"attribute_setter_closure1", [attribute, target]>
+  let steps = clo<"attribute_setter_closure1", [attribute, realm, target]>
   let name = (concat "set " attribute.id)
   call F = clo<"CreateBuiltinFunction">(steps, 1, name, (list []), realm)
   return F
@@ -4921,7 +4921,7 @@ def creating_an_operation_function(
   realm: Unknown,
 ): Unknown = {
   let id = op.id
-  let steps = clo<"creating_an_operation_function_closure1", [id, op, target]>
+  let steps = clo<"creating_an_operation_function_closure1", [id, op, realm, target]>
   if (= op.kind ~RegularOperation~) {
     call S = clo<"Compute_the_effective_overload_set">(~regular operations~, id, target, 0)
   } else if (= op.kind ~StaticOperation~) {
@@ -5924,10 +5924,10 @@ def attribute_getter_closure2(
 ): Unknown = {
   let idlObject = null
   if (&& (= target.kind ~Interface~) (? attribute: Unknown["regular attribute"])) {
-    if (|| (! (= (yet "it") null)) (! (= (yet "it") undefined))) {
-      let jsValue = (yet "the <emu-val>this</emu-val> value")
+    if (&& (! (= this null)) (! (= this undefined))) {
+      let jsValue = this
     } else {
-      let jsValue = (yet "|realm|'s [=realm/global object=]")
+      let jsValue = realm.GlobalObject
     }
     (yet "(This will subsequently cause a {{TypeError}} in a few steps, if the global object does not implement |target| and [{{LegacyLenientThis}}] is not specified.)")
     if (? jsValue: Unknown["platform object"]) {
@@ -5991,7 +5991,7 @@ def attribute_getter_closure1(
   argumentsList: Unknown,
   newTarget: Unknown,
 ): Unknown = {
-  call _throwComp1 = clo<"attribute_getter_closure2", [attribute, target]>()
+  call _throwComp1 = clo<"attribute_getter_closure2", [attribute, realm, target]>()
   if (exists _throwComp1.Type) {
     if (= _throwComp1.Type ~throw~) {
       let E = _throwComp1.Value
@@ -6039,10 +6039,10 @@ def attribute_setter_closure1(
   let id = attribute.id
   let idlObject = null
   if (? attribute: Unknown["regular attribute"]) {
-    if (|| (! (= (yet "it") null)) (! (= (yet "it") undefined))) {
-      let jsValue = (yet "the <emu-val>this</emu-val> value")
+    if (&& (! (= this null)) (! (= this undefined))) {
+      let jsValue = this
     } else {
-      let jsValue = (yet "|realm|'s [=realm/global object=]")
+      let jsValue = realm.GlobalObject
     }
     (yet "(This will subsequently cause a {{TypeError}} in a few steps, if the global object does not implement |target| and [{{LegacyLenientThis}}] is not specified.)")
     if (? jsValue: Unknown["platform object"]) {
@@ -6213,10 +6213,10 @@ def creating_an_operation_function_closure2(
 ): Unknown = {
   let idlObject = null
   if (&& (= target.kind ~Interface~) (! (= op.kind ~StaticOperation~))) {
-    if (|| (! (= (yet "it") null)) (! (= (yet "it") undefined))) {
-      let jsValue = (yet "the <emu-val>this</emu-val> value")
+    if (&& (! (= this null)) (! (= this undefined))) {
+      let jsValue = this
     } else {
-      let jsValue = (yet "|realm|'s [=realm/global object=]")
+      let jsValue = realm.GlobalObject
     }
     (yet "(This will subsequently cause a {{TypeError}} in a few steps, if the global object does not implement |target|.)")
     if (? jsValue: Unknown["platform object"]) {
@@ -6271,7 +6271,7 @@ def creating_an_operation_function_closure1(
   newTarget: Unknown,
 ): Unknown = {
   let args = argumentsList
-  call _throwComp1 = clo<"creating_an_operation_function_closure2", [args, id, op, target]>()
+  call _throwComp1 = clo<"creating_an_operation_function_closure2", [args, id, op, realm, target]>()
   if (exists _throwComp1.Type) {
     if (= _throwComp1.Type ~throw~) {
       let E = _throwComp1.Value

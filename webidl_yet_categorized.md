@@ -49,16 +49,6 @@
     - Set |idlObject| to the IDL [=interface type=] value that represents a reference to |jsValue|.
     -> idlObject = jsValue
 
-### I-P. `<emu-val>this</emu-val>` 값 / `X's [=realm/global object=]` 필드 미인식
-**공통 원인**: 예전 category I-G(`X if COND, Y otherwise`)에 묶여있던 두 branch 값 —
-conditional 구조 자체는 이제 파싱되지만, 각 branch의 값이 따로 막혀 있음.
-- `<emu-val>this</emu-val>` 값: `ThisOnly`가 인식하는 `**this**`(굵게-별표) 형태가 아니라
-  `<emu-val>...</emu-val>` 마크업으로 감싸진 형태라 인식 못 함.
-- `|realm|'s [=realm/global object=]`: `AssociatedRealm`(`X's [=associated Realm=]`)과 같은
-  possessive-link 꼴이지만 다른 필드 이름이라 별도 매핑 필요.
-
-- `#6-4`, `#7-8`, `#10-5` - Let |jsValue| be the <emu-val>this</emu-val> value, if it is not <emu-val>null</emu-val> or <emu-val>undefined</emu-val>, or |realm|'s [=realm/global object=] otherwise.
-
 ---
 
 ## II. Record/IR 모델 gap (interface/attribute/member record 설계와 직결)
@@ -242,5 +232,4 @@ operation) or for [=static operations=] (if |op| is a static operation)"처럼 �
 - `#12-12` - Let |callable| be the [=operation=] or [=extended attribute=] of the single entry in |S|. 
 
 ### VII-C 그 외
-- `#6-4`, `#7-8`, `#10-5` - it is not <emu-val>null</emu-val> or <emu-val>undefined</emu-val>
 - `#11-4` - Let |maxarg| be the maximum number of arguments the operations, legacy factory functions, or callback functions in |F| are declared to take. For [=variadic=] operations and legacy factory functions, the argument on which the ellipsis appears counts as a single argument.

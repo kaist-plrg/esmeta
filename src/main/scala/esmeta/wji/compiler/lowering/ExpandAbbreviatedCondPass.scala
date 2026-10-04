@@ -55,7 +55,7 @@ object ExpandAbbreviatedCondPass extends LoweringPass:
     case Cond.Or(left, right) =>
       val expandedLeft = expandCond(left)
       val tmpl = leftmostTemplate(expandedLeft)
-      Cond.Or(expandedLeft, applyTemplate(right, tmpl))
+      joinOr(expandedLeft, right, applyTemplate(right, tmpl))
     case Cond.And(left, right) =>
       val expandedLeft = expandCond(left)
       val tmpl = leftmostTemplate(expandedLeft)
@@ -70,6 +70,20 @@ object ExpandAbbreviatedCondPass extends LoweringPass:
     case Cond.Exists(binder, body) =>
       Cond.Exists(binder, expandCond(body))
     case other => other
+
+  /** Rejoins an expanded `Or`. "X is not A or B" means "X is neither A nor B"
+    * (De Morgan's — the "or" sits under the negation), so a negated left
+    * condition whose right side was a bare [[Cond.Abbreviated]] joins with
+    * `And`, the same way `CondParser.buildIsOneOf` treats "is not one of".
+    */
+  private def joinOr(left: Cond, origRight: Cond, right: Cond): Cond =
+    val negated = left match
+      case Cond.Eq(_, _, neg)         => neg
+      case Cond.Matches(_, _, _, neg) => neg
+      case _                          => false
+    if negated && origRight.isInstanceOf[Cond.Abbreviated] then
+      Cond.And(left, right)
+    else Cond.Or(left, right)
 
   /** Extract a fill-in template `Expr => Cond` from the leftmost concrete
     * condition (skipping Or/And wrappers on the way down the left spine).
@@ -92,7 +106,7 @@ object ExpandAbbreviatedCondPass extends LoweringPass:
       case Cond.Or(left, right) =>
         val expandedLeft = applyTemplate(left, tmpl)
         val innerTmpl = leftmostTemplate(expandedLeft).orElse(tmpl)
-        Cond.Or(expandedLeft, applyTemplate(right, innerTmpl))
+        joinOr(expandedLeft, right, applyTemplate(right, innerTmpl))
       case Cond.And(left, right) =>
         val expandedLeft = applyTemplate(left, tmpl)
         val innerTmpl = leftmostTemplate(expandedLeft).orElse(tmpl)

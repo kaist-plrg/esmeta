@@ -457,6 +457,12 @@ object ExprParser:
   // ---- Bare references ----
 
   private val ThisOnly = """(?s)^\*\*this\*\*$""".r
+  // "the <emu-val>this</emu-val> value" — the JS-level receiver, as WebIDL's
+  // own binding algorithms spell it (webidl/index.bs:12355, 12406, 12545) —
+  // must precede the generic EmuVal below.
+  private val ThisValue = """(?si)^the\s+<emu-val>this</emu-val>\s+value$""".r
+  // "it" — see Expr.Pronoun.
+  private val PronounOnly = """(?i)^it$""".r
   // WebIDL's implicit setter argument (see Expr.GivenValue) — must precede
   // the generic BoldConst below, which would otherwise swallow it into a
   // meaningless SpecTerm.
@@ -680,6 +686,10 @@ object ExprParser:
   // in source order.
   private val IsGlobalPrototypeChainMutable =
     """(?si)^(.+)'s \[=is global prototype chain mutable=\]$""".r
+  // "|realm|'s [=realm/global object=]" — a Realm Record's real ECMA-262
+  // [[GlobalObject]] field, read straight through like AssociatedRealm below.
+  private val RealmGlobalObject =
+    """(?si)^(.+)'s\s+\[=realm/global object=\]$""".r
   private val AssociatedRealm = """(?si)^(.+)'s \[=associated Realm=\]$""".r
   // "|func|'s [=associated Realm=]" — narrower than PossessiveAssociation
   // (which keeps "the surrounding agent's associated store/cache" style
@@ -1204,6 +1214,8 @@ object ExprParser:
 
       // ---- Bare references ----
       case ThisOnly()       => This
+      case ThisValue()      => This
+      case PronounOnly()    => Pronoun
       case GivenValueOnly() => GivenValue
       case VarOnly(name)    => Var(name)
       case VarIgnore(name)  => Var(name.trim)
@@ -1263,7 +1275,8 @@ object ExprParser:
       case InterfaceInheritsFrom(varRaw) => Field(parse(varRaw), "inherit")
       case IsGlobalPrototypeChainMutable(baseRaw) =>
         Field(parse(baseRaw), "is global prototype chain mutable")
-      case AssociatedRealm(baseRaw) => Field(parse(baseRaw), "Realm")
+      case RealmGlobalObject(baseRaw) => Field(parse(baseRaw), "GlobalObject")
+      case AssociatedRealm(baseRaw)   => Field(parse(baseRaw), "Realm")
       case MemberOfDefinition(unforgeable, kind, baseRaw) =>
         val memberKind = kind match
           case "regular attributes" => MemberKind.RegularAttribute

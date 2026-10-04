@@ -47,7 +47,7 @@ trait UnitWalker:
       otherwise.foreach(walk)
     case Expr.Seq_(exprs)         => exprs.foreach(walk)
     case Expr.TypeAnnotated(_, e) => walk(e)
-    // leaves with no nested Expr: Var, This, GivenValue, Num, Bool, Str,
+    // leaves with no nested Expr: Var, This, GivenValue, Pronoun, Num, Bool, Str,
     // Byte, SpecTerm, New, UnknownNew, Described, Unknown, Closure,
     // FollowingSteps.
     case _ =>

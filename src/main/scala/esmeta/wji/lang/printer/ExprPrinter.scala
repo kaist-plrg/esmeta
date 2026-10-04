@@ -9,6 +9,7 @@ object ExprPrinter:
     case Var(name)            => s"|$name|"
     case This                 => "**this**"
     case GivenValue           => "**the given value**"
+    case Pronoun              => "it"
     case Num(value)           => value
     case Byte(v)              => s"0x$v"
     case Bool(v)              => v.toString

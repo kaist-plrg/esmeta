@@ -1,6 +1,7 @@
 package esmeta.wji.compiler.lowering
 
 import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr}
+import esmeta.wji.lang.walker.Walker
 
 /** Expands `Expr.Conditional` — WebIDL's conditional-value idiom parsed by
   * `ExprParser` (webidl_yet_categorized.md category I-G; see
@@ -55,6 +56,17 @@ object ExpandConditionalPass extends LoweringPass:
   private def transform(instrs: List[Instr]): List[Instr] =
     instrs.flatMap(expandInstr)
 
+  /** Replaces every `Expr.Pronoun` ("it") in a branch's guard `cond` with that
+    * branch's own value `expr` — "X, if it is not null, or Y otherwise"
+    * (webidl/index.bs:12355) guards on X itself.
+    */
+  private def substPronoun(cond: Cond, expr: Expr): Cond =
+    val walker = new Walker:
+      override def walk(e: Expr): Expr = e match
+        case Expr.Pronoun => expr
+        case _            => super.walk(e)
+    walker.walk(cond)
+
   /** `Instr.IfChain`'s branches/fallback for a `Conditional`, given how to
     * rebuild the surrounding instruction from one substituted-in `Expr`.
     */
@@ -64,7 +76,7 @@ object ExpandConditionalPass extends LoweringPass:
   ): Instr.IfChain =
     val Expr.Conditional(branches, otherwise) = conditional
     val ifChainBranches =
-      branches.map((cond, e) => (cond, List(rebuild(e))))
+      branches.map((cond, e) => (substPronoun(cond, e), List(rebuild(e))))
     val fallback = otherwise match
       case Some(e) => List(rebuild(e))
       case None    => List(Instr.Assert(Cond.Unreachable))

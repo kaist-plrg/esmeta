@@ -217,14 +217,6 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
    원문 - If |target| is an [=interface=], and |attribute| is a [=regular attribute=]: ...
    IR - if (&& (= target (yet "an [=interface=]")) (= attribute (yet "a [=regular attribute=]"))) { ... }
 
-4. 카테고리 - I-P + VII-C
-   원문 - Let |jsValue| be the <emu-val>this</emu-val> value, if it is not <emu-val>null</emu-val> or <emu-val>undefined</emu-val>, or |realm|'s [=realm/global object=] otherwise.
-   IR - if (|| (! (= (yet "it") null)) (! (= (yet "it") undefined))) {
-          let jsValue = (yet "the <emu-val>this</emu-val> value")
-        } else {
-          let jsValue = (yet "|realm|'s [=realm/global object=]")
-        }
-
 5. 카테고리 - VI
    원문 - (This will subsequently cause a {{TypeError}} in a few steps, if the global object does not implement |target| and [{{LegacyLenientThis}}] is not specified.) <!-- https://www.w3.org/Bugs/Public/show_bug.cgi?id=18547#c9 -->
    IR - (yet "(This will subsequently cause a {{TypeError}} in a few steps, ...) <!-- https://www.w3.org/Bugs/... -->")
@@ -280,14 +272,6 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
 7. 카테고리 - II-H
    원문 - If |attribute| is a [=regular attribute=]: ...
    IR - if (= attribute (yet "a [=regular attribute=]")) { ... }
-
-8. 카테고리 - I-P + VII-C
-   원문 - Let |jsValue| be the <emu-val>this</emu-val> value, if it is not <emu-val>null</emu-val> or <emu-val>undefined</emu-val>, or |realm|'s [=realm/global object=] otherwise.
-   IR - if (|| (! (= (yet "it") null)) (! (= (yet "it") undefined))) {
-          let jsValue = (yet "the <emu-val>this</emu-val> value")
-        } else {
-          let jsValue = (yet "|realm|'s [=realm/global object=]")
-        }
 
 9. 카테고리 - VI
    원문 - (This will subsequently cause a {{TypeError}} in a few steps, if the global object does not implement |target| and [{{LegacyLenientThis}}] is not specified.) <!-- https://www.w3.org/Bugs/Public/show_bug.cgi?id=18547#c9 -->
@@ -370,14 +354,6 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
 4. 카테고리 - II-H
    원문 - If |target| is an [=interface=], and |op| is not a [=static operation=]: ...
    IR - if (&& (= target (yet "an [=interface=]")) (! (= op (yet "a [=static operation=]")))) { ... }
-
-5. 카테고리 - I-P + VII-C
-   원문 - Let |jsValue| be the <emu-val>this</emu-val> value, if it is not <emu-val>null</emu-val> or <emu-val>undefined</emu-val>, or |realm|'s [=realm/global object=] otherwise.
-   IR - if (|| (! (= (yet "it") null)) (! (= (yet "it") undefined))) {
-          let jsValue = (yet "the <emu-val>this</emu-val> value")
-        } else {
-          let jsValue = (yet "|realm|'s [=realm/global object=]")
-        }
 
 6. 카테고리 - VI
    원문 - (This will subsequently cause a {{TypeError}} in a few steps, if the global object does not implement |target|.) <!--https://www.w3.org/Bugs/Public/show_bug.cgi?id=18547#c9 -->

@@ -32,6 +32,23 @@ class ExprParserSpec extends AnyFunSuite:
     )
   }
 
+  test("'it' is a pronoun, substituted later by ExpandConditionalPass") {
+    assert(ExprParser.parse("it") == Pronoun)
+    assert(
+      ExprParser.parse(
+        "the <emu-val>this</emu-val> value, if it is not <emu-val>null</emu-val> or <emu-val>undefined</emu-val>, or |realm|'s [=realm/global object=] otherwise",
+      ) == Conditional(
+        List(
+          Cond.Or(
+            Cond.Eq(Pronoun, SpecTerm("null"), negated = true),
+            Cond.Abbreviated(SpecTerm("undefined")),
+          ) -> This,
+        ),
+        Some(Field(Var("realm"), "GlobalObject")),
+      ),
+    )
+  }
+
   test("'X's type' reads the ty field") {
     assert(
       ExprParser.parse("|attribute|'s type") == Field(Var("attribute"), "ty"),

@@ -616,6 +616,7 @@ object Compiler:
         s"unlowered conditional expression: ${ExprPrinter
           .render(metalang.Expr.Conditional(branches, otherwise))}",
       )
+    case metalang.Expr.Pronoun       => impossible("unresolved pronoun: it")
     case metalang.Expr.Link(link, _) => impossible(s"unresolved link: $link")
     case metalang.Expr.JSCall(name, args) =>
       impossible(s"$$${name}(${args.mkString})")

@@ -1,21 +1,92 @@
+// WebIDL "overload resolution algorithm" (webidl/index.bs), hardcoded for the
+// WJI corpus under the assumption that no operation is overloaded: every
+// entry of S shares one callable and differs only in how many trailing
+// optional arguments it keeps (see compute_the_effective_overload_set.ir), so
+// at most one entry survives step 4 and the distinguishing-argument steps
+// (6, 7, 8, 11, 12, 14) never apply. `WebAssembly.instantiate`, the only real
+// overload, is folded into a single all-`any` operation before it gets here
+// (docs/hardcodes.md #23).
+//
+// The special value "missing" is `undefined` -- what `Cond.IsMissing`
+// compares against -- and the only default value this corpus declares, `{}`,
+// is `undefined` converted to the argument's type (an empty dictionary).
+//
+// Returns a Completion Record: listed in
+// `CompletionAlgorithms.manualCompletionAlgos`, so every compiled call site
+// gets the same abrupt-completion guard a `?`-marked call would.
 def overload_resolution_algorithm(
   S: Unknown,
   args: Unknown,
 ): Unknown = {
-  %0 = S[0]
-  callable = %0.callable
-  typeList = %0.typeList
-  optionalityList = %0.optionalityList
-  i = 0
+  // 1. Let maxarg be the length of the longest type list of the entries in S.
+  maxarg = 0
+  k = 0
+  while (< k (sizeof S)) {
+    if (< maxarg (sizeof S[k].typeList)) maxarg = (sizeof S[k].typeList)
+    k = (+ k 1)
+  }
+  // 2. Let n be the size of args.
+  n = (sizeof args)
+  // 3. Initialize argcount to be min(maxarg, n).
+  argcount = n
+  if (< maxarg n) argcount = maxarg
+  // 4. Remove from S all entries whose type list is not of length argcount.
+  found = false
+  k = 0
+  while (< k (sizeof S)) {
+    if (= (sizeof S[k].typeList) argcount) {
+      entry = S[k]
+      found = true
+    }
+    k = (+ k 1)
+  }
+  // 5. If S is empty, then throw a TypeError.
+  if (= found false) {
+    call _err2 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
+    call _ret3 = clo<"ThrowCompletion">(_err2)
+    return _ret3
+  }
+
+  // 13. Let callable be the operation or extended attribute of the single
+  //     entry in S.
+  callable = entry.callable
+  typeList = entry.typeList
+  optionalityList = entry.optionalityList
+  params = callable.params
+  // 9. Initialize values to be an empty list.
   values = (list [])
-  while (< i (sizeof typeList)) {
-    if (exists args[i]) {
-      call-convert idlArg = <converted_to_an_idl_value>(args[i], typeList[i])
-      push values < idlArg
+  // 10. Let i be 0.
+  i = 0
+  // 15. While i < argcount:
+  while (< i argcount) {
+    V = args[i]
+    if (&& (= optionalityList[i] "optional") (= V undefined)) {
+      if (= params[i].default "{}") {
+        // default dict
+        call-convert idlArg = <converted_to_an_idl_value>(undefined, typeList[i])
+        push values < idlArg
+      } else {
+        push values < undefined
+      }
     } else {
-      push values < (record)
+      call-convert idlArg = <converted_to_an_idl_value>(V, typeList[i])
+      if (&& (? idlArg: Completion) (! (= idlArg.Type ~normal~))) return idlArg
+      push values < idlArg
     }
     i = (+ i 1)
   }
-  return (list [callable, values])
+  // 16. While i is less than the number of arguments callable is declared to
+  //     take:
+  while (< i (sizeof params)) {
+    if (= params[i].default "{}") {
+      call-convert idlArg = <converted_to_an_idl_value>(undefined, params[i].ty)
+      push values < idlArg
+    } else {
+      push values < undefined
+    }
+    i = (+ i 1)
+  }
+  // 17. Return the pair <callable, values>.
+  call %0 = clo<"NormalCompletion">((list [callable, values]))
+  return %0
 }

@@ -64,7 +64,7 @@ object PropagateUnguardedCallsPass extends LoweringPass:
         case a if a.returnsCompletion => a.name.orElse(a.id).map(_.toLowerCase)
       }
       .flatten
-      .toSet
+      .toSet ++ CompletionAlgorithms.manualCompletionAlgos
     algos.map { a =>
       val counter = Counter()
       a.copy(body = transform(a.body, completionAlgos, counter))

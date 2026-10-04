@@ -61,6 +61,14 @@ object CompletionAlgorithms:
   def normalize(name: String): String =
     name.stripPrefix("[=").stripSuffix("=]").trim.toLowerCase
 
+  /** Hand-written `manuals/funcs` stubs that return a Completion Record, by
+    * [[normalize]]d call-target name. They have no `Algorithm` of their own to
+    * analyze or stamp `returnsCompletion` on, so [[compute]] seeds its fixed
+    * point with them and [[PropagateUnguardedCallsPass]] guards unmarked calls
+    * into them the same way as into any other completion-returning algorithm.
+    */
+  val manualCompletionAlgos: Set[String] = Set("overload resolution algorithm")
+
   /** One call embedded in a single instruction: its target, its `?`/`!` marker
     * if any, and the variable (if any) bound to its result.
     */
@@ -313,7 +321,7 @@ object CompletionAlgorithms:
             )(nameOf(a))
             .flatten,
         )
-        .toSet
+        .toSet ++ manualCompletionAlgos
 
     var changed = true
     while changed do

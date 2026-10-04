@@ -5929,7 +5929,7 @@ def attribute_getter_closure2(
       let jsValue = realm.GlobalObject
     }
     if (&& (? jsValue: Record[Object]) (exists jsValue.PrimaryInterface)) {
-      call _ = clo<"perform_a_security_check">(@@yet: unresolved ref: Unknown(, passing |jsValue|, |attribute|).id, "getter")
+      call _ = clo<"perform_a_security_check">(jsValue, attribute.id, "getter")
     } else nop
     let _cond2 = false
     if (|| (! (? jsValue: Record[Object])) (! (&& (? jsValue: Record[Object]) (exists jsValue.PrimaryInterface)))) {
@@ -6329,7 +6329,7 @@ def define_the_iteration_methods_closure1(
     let jsValue = _call1.Value
   }
   if (&& (? jsValue: Record[Object]) (exists jsValue.PrimaryInterface)) {
-    call _ = clo<"perform_a_security_check">(@@yet: unresolved ref: Unknown(, passing |jsValue|, "<code>%Symbol).iterator, "method")
+    call _ = clo<"perform_a_security_check">(jsValue, "%Symbol.iterator%", "method")
   } else nop
   let _cond3 = false
   if (|| (! (? jsValue: Record[Object])) (! (&& (? jsValue: Record[Object]) (exists jsValue.PrimaryInterface)))) {
@@ -6453,7 +6453,7 @@ def define_the_asynchronous_iteration_methods_closure1(
     let jsValue = _call1.Value
   }
   if (&& (? jsValue: Record[Object]) (exists jsValue.PrimaryInterface)) {
-    call _ = clo<"perform_a_security_check">(@@yet: unresolved ref: Unknown(, passing |jsValue|, "<code>%Symbol).asyncIterator, "method")
+    call _ = clo<"perform_a_security_check">(jsValue, "%Symbol.asyncIterator%", "method")
   } else nop
   let _cond3 = false
   if (|| (! (? jsValue: Record[Object])) (! (&& (? jsValue: Record[Object]) (exists jsValue.PrimaryInterface)))) {

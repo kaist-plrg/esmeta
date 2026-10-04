@@ -183,6 +183,21 @@ class InstrParserSpec extends AnyFunSuite:
     )
   }
 
+  test("'[=link=], passing ARGS' is a perform") {
+    assert(
+      parse(
+        """[=perform a security check=], passing |jsValue|, |attribute|'s [=identifier=], and "getter".""",
+      ) ==
+      List(
+        Perform(
+          "[=perform a security check=]",
+          List(Var("jsValue"), Field(Var("attribute"), "id"), Str("getter")),
+          Discard,
+        ),
+      ),
+    )
+  }
+
   test("perform ... and return the result") {
     assert(
       parse("Perform [$Foo$](|x|), and return the result.") ==

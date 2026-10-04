@@ -233,6 +233,8 @@ object InstrParser:
       (name, splitComma(argsRaw).map(ExprParser.parse))
     case LeadingAbstractOpCall(name, argsRaw) =>
       (name, splitComma(argsRaw).map(ExprParser.parse))
+    case _ if ExprParser.parseLinkPassingCall(expr).isDefined =>
+      ExprParser.parseLinkPassingCall(expr).get
     case LeadingAlgoLink(func, rest) =>
       (ExprParser.normalizeLink(func), ExprParser.parseArgs(rest))
     case _ => (expr, Nil)

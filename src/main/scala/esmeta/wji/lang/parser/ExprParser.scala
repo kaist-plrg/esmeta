@@ -384,6 +384,29 @@ object ExprParser:
   // prose — rather than a bespoke comma/"and" splitter.
   private val PassingToCall =
     """(?si)^passing\s+(.+?)\s+to\s+the\s+(\[=(?:(?!=\]).)+?=\])$""".r
+  // "[=LINK=], passing ARG1, ARG2, and ARG3" — the same positional idiom as
+  // PassingToCall with the link named *first* (e.g. "[=perform a security
+  // check=], passing |jsValue|, |attribute|'s [=identifier=], and "getter"").
+  // Must precede LinkProse, whose parseArgs would otherwise let a greedy
+  // suffix-anchored pattern (PossessiveIdentifier's "X's [=identifier=]")
+  // swallow ", passing |jsValue|, |attribute|" as its own base. ARGS here is
+  // a clean "A, B, and C" list, so it's split on top-level commas instead.
+  private val LinkPassingCall =
+    """(?si)^(\[=(?:(?!=\]).)+?=\]),?\s+passing\s+(.+)$""".r
+  private val LeadingAnd = """(?si)^and\s+""".r
+  private def parsePassingArgs(argsRaw: String): List[Expr] =
+    splitComma(argsRaw).map(a => parse(LeadingAnd.replaceFirstIn(a, "")))
+
+  /** [[LinkPassingCall]] as a (link, args) pair — shared with `InstrParser`'s
+    * `Perform` call parsing, which splits a leading `[=link=]` from its
+    * arguments itself rather than going through [[parse]].
+    */
+  private[wji] def parseLinkPassingCall(
+    raw: String,
+  ): Option[(String, List[Expr])] = raw.trim match
+    case LinkPassingCall(link, argsRaw) =>
+      Some((normalizeLink(link), parsePassingArgs(argsRaw)))
+    case _ => None
   // "the result of creating a/an [=LINK=] given ARG1[, ARG2, ...]" — WebIDL's
   // idiom for invoking an algorithm whose own dfn is the *thing it creates*
   // ("The <dfn>attribute getter</dfn> is created as follows, given ..."),
@@ -1192,6 +1215,8 @@ object ExprParser:
           case _                    => Unknown(callRaw)
       case PassingToCall(argsRaw, link) =>
         AlgoCall(normalizeLink(link), parseArgs(argsRaw))
+      case LinkPassingCall(link, argsRaw) =>
+        AlgoCall(normalizeLink(link), parsePassingArgs(argsRaw))
       case LinkFull(link, argsRaw) =>
         normalizeLink(link).stripPrefix("[=").stripSuffix("=]") match
           // "[=𝔽=](x)"/"[=ℤ=](x)"/"[=ℝ=](x)" — ECMA-262's Number/BigInt/

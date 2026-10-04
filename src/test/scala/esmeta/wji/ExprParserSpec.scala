@@ -130,6 +130,19 @@ class ExprParserSpec extends AnyFunSuite:
     )
   }
 
+  test("'[=link=], passing ARGS' is a direct AlgoCall") {
+    assert(
+      ExprParser.parse(
+        """[=perform a security check=],
+          |passing |jsValue|, |attribute|'s [=identifier=], and "getter"""".stripMargin,
+      ) ==
+      AlgoCall(
+        "[=perform a security check=]",
+        List(Var("jsValue"), Field(Var("attribute"), "id"), Str("getter")),
+      ),
+    )
+  }
+
   test("'the result of creating a [=link=] given ARGS' is a direct AlgoCall") {
     assert(
       ExprParser.parse(

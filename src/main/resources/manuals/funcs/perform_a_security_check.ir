@@ -1,0 +1,7 @@
+def perform_a_security_check(
+  platformObject: Unknown,
+  identifier: Unknown,
+  type: Unknown,
+): Enum[~unused~] = {
+  return ~unused~
+}

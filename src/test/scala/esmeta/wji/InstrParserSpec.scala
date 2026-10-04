@@ -18,6 +18,12 @@ class InstrParserSpec extends AnyFunSuite:
   test("let / set") {
     assert(parse("Let |x| be |y|.") == List(Let(Var("x"), Var("y"))))
     assert(parse("Set |x| to |y|.") == List(Set(Var("x"), Var("y"))))
+    // a trailing "(REMARK.)" sentence is an aside, not an instruction
+    assert(
+      parse(
+        "Let |x| be |y|. (This will subsequently cause a {{TypeError}} in a few steps, if the global object does not implement |target|.)",
+      ) == List(Let(Var("x"), Var("y"))),
+    )
   }
 
   test("perform the [=X steps=] of ... calls the steps field") {

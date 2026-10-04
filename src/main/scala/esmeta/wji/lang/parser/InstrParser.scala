@@ -27,6 +27,25 @@ object InstrParser:
   // than becoming an `Unknown` that would crash on execution the instant this
   // step actually runs.
   private val BareCitation = """(?s)^\[\[[\w-]+\]\]$""".r
+
+  /** whether `sentence` is, as a whole, one parenthesized remark -- the spec
+    * author's aside trailing the sentence it comments on, e.g. `attribute
+    * getter`'s "Let |jsValue| be ... otherwise. (This will subsequently cause
+    * a {{TypeError}} in a few steps, if the global object does not implement
+    * |target|.)" (webidl/index.bs:12358). Editorial like [[BareCitation]], so
+    * dropped the same way.
+    */
+  private def isParenRemark(sentence: String): Boolean =
+    val s = sentence.trim
+    s.startsWith("(") && s.endsWith(")") && {
+      // the opening paren must be closed by the very last one, so that
+      // "(a) foo (b)" doesn't count
+      var depth = 0
+      s.init.forall { c =>
+        if c == '(' then depth += 1 else if c == ')' then depth -= 1
+        depth > 0
+      }
+    }
   private val ReturnPrefix = """(?is)^Return\b\.?\s*(.*)$""".r
   // "terminate these substeps" (js-api's own "queue a task" bodies, e.g.
   // "instantiate the core of a WebAssembly module"'s catch-and-bail clause)
@@ -252,6 +271,7 @@ object InstrParser:
         val sentences = splitSentences(trimmed)
           .filter(_.nonEmpty)
           .filterNot(s => BareCitation.matches(s.trim))
+          .filterNot(isParenRemark)
         sentences match
           case Nil if trailingBody.isEmpty => Nil
           case Nil                         => List(Unknown("", trailingBody))

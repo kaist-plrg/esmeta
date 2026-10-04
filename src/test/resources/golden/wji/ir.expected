@@ -5025,7 +5025,6 @@ def define_the_iteration_methods(
         let pair = pairs[i]
         call _ = clo<"Invoke">(idlCallback, (list [(yet "|pair|'s [=value pair/value=]"), (yet "|pair|'s [=value pair/key=]"), idlObject]), thisArg, ~callback this value~)
         pairs = (yet "|idlObject|'s current list of [=value pairs to iterate over=]")
-        (yet "(It might have changed.)")
         i = (+ i 1)
       }
       call F = clo<"CreateBuiltinFunction">(steps, 1, "forEach", (list []), realm)
@@ -5929,7 +5928,6 @@ def attribute_getter_closure2(
     } else {
       let jsValue = realm.GlobalObject
     }
-    (yet "(This will subsequently cause a {{TypeError}} in a few steps, if the global object does not implement |target| and [{{LegacyLenientThis}}] is not specified.)")
     if (? jsValue: Unknown["platform object"]) {
       call _ = clo<"perform_a_security_check">(@@yet: unresolved ref: Unknown(, passing |jsValue|, |attribute|).id, "getter")
     } else nop
@@ -6044,7 +6042,6 @@ def attribute_setter_closure1(
     } else {
       let jsValue = realm.GlobalObject
     }
-    (yet "(This will subsequently cause a {{TypeError}} in a few steps, if the global object does not implement |target| and [{{LegacyLenientThis}}] is not specified.)")
     if (? jsValue: Unknown["platform object"]) {
       call _ = clo<"perform_a_security_check">(jsValue, id, "setter")
     } else nop
@@ -6218,7 +6215,6 @@ def creating_an_operation_function_closure2(
     } else {
       let jsValue = realm.GlobalObject
     }
-    (yet "(This will subsequently cause a {{TypeError}} in a few steps, if the global object does not implement |target|.)")
     if (? jsValue: Unknown["platform object"]) {
       call _ = clo<"perform_a_security_check">(jsValue, id, "method")
     } else nop

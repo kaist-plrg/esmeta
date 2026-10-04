@@ -44,11 +44,6 @@
     - assume no enumuration attribute
 - `#11-3`
 
-### I-N. reference to IDL interface type value
-- #6-11, #7-21, #10-9
-    - Set |idlObject| to the IDL [=interface type=] value that represents a reference to |jsValue|.
-    -> idlObject = jsValue
-
 ---
 
 ## II. Record/IR 모델 gap (interface/attribute/member record 설계와 직결)

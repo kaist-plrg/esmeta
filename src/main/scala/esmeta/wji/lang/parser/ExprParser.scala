@@ -663,6 +663,15 @@ object ExprParser:
   // record, rather than treating it as an AO call with nothing behind it.
   private val InterfaceInheritsFrom =
     """(?si)^the \[=interface=\] that (\|[^|]+\|) \[=interface/inherits=\] from, if any, and null otherwise$""".r
+  // "the IDL [=interface type=] value that represents a reference to
+  // |jsValue|" (webidl_yet_categorized.md category I-N's `#6-11`, `#7-21`,
+  // `#10-9`) — an IDL interface type value *is* a reference to the platform
+  // object (webidl/index.bs:7961-7962 converts it back to "the same object
+  // that the IDL interface type value represents"), and this project has no
+  // separate IDL-value representation for it, so it reads straight through
+  // to the referenced value itself.
+  private val InterfaceTypeValueOf =
+    """(?si)^the IDL \[=interface type=\] value that represents a reference\s+to (\|[^|]+\|)$""".r
   // "|realm|'s [=is global prototype chain mutable=]" (webidl_yet_categorized.md
   // category II-J) — a real Realm field (webidl/index.bs:10226-10229), seeded
   // once by `esmeta.wji.Initialize` onto the sole Realm Record at
@@ -1273,6 +1282,7 @@ object ExprParser:
       case PossessiveType(varRaw)        => Field(parse(varRaw), "ty")
       case IdentifierOfType(varRaw)      => Field(parse(varRaw), "id")
       case InterfaceInheritsFrom(varRaw) => Field(parse(varRaw), "inherit")
+      case InterfaceTypeValueOf(varRaw)  => parse(varRaw)
       case IsGlobalPrototypeChainMutable(baseRaw) =>
         Field(parse(baseRaw), "is global prototype chain mutable")
       case RealmGlobalObject(baseRaw) => Field(parse(baseRaw), "GlobalObject")

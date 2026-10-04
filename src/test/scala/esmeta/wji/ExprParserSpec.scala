@@ -257,6 +257,14 @@ class ExprParserSpec extends AnyFunSuite:
     )
   }
 
+  test("IDL interface type value reads through to the referenced value") {
+    assert(
+      ExprParser.parse(
+        "the IDL [=interface type=] value that represents a reference to |jsValue|",
+      ) == Var("jsValue"),
+    )
+  }
+
   test("associated realm / possessive association") {
     assert(
       ExprParser.parse("|func|'s [=associated Realm=]") == Field(

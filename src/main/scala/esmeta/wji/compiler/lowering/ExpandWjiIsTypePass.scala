@@ -28,11 +28,18 @@ import esmeta.wji.lang.walker.Walker
   *     webidl/index.bs:9325's "|jsBufferSource| is an {{ArrayBuffer}} or
   *     {{SharedArrayBuffer}} object") -- reached via
   *     `CondParser.ArticleInterfaceLink`, the `{{...}}` counterpart of
-  *     `ArticleLink` above, rather than a bikeshed `[=NOUN=]` link.
+  *     `ArticleLink` above, rather than a bikeshed `[=NOUN=]` link. So does
+  *     `platform object` (`[[PrimaryInterface]]`; "|jsValue| [=is a platform
+  *     object=]" in webidl/index.bs's `attribute getter`/`attribute
+  *     setter`/`creating an operation function`, webidl_yet_categorized.md
+  *     category II-H) -- the same slot [[ExpandImplementsPass]] reads for
+  *     "[=implements=]", whose own definition starts from "is a platform
+  *     object".
   *   - WebIDL member-declaration kinds (`regular operation`, `static
-  *     operation`) become a `Cond.Eq` against the operation record's own `kind`
-  *     field: `esmeta.wji.Initialize`'s `operationRecord` seeds every
-  *     `operation` record with `"kind" -> Enum(op.kind.toString)`
+  *     operation`, `regular attribute`) become a `Cond.Eq` against the member
+  *     record's own `kind` field: `esmeta.wji.Initialize`'s
+  *     `operationRecord`/`attributeRecord` seed every `operation`/`attribute`
+  *     record with `"kind" -> Enum(_.kind.toString)`
   *     (`esmeta.wji.lang.MemberKind`'s case name, e.g. `RegularOperation`), so
   *     "|op| is a [=regular operation=]" is a direct field-equality check
   *     against a tag that's already there — no new record shape needed.
@@ -71,11 +78,13 @@ object ExpandWjiIsTypePass extends LoweringPass:
     "Exported Function" -> "FunctionAddress",
     "Exported GC Object" -> "ObjectAddress",
     "ArrayBuffer" -> "ArrayBufferData",
+    "platform object" -> "PrimaryInterface",
   )
 
   private val memberKindOf: Map[String, String] = Map(
     "regular operation" -> "RegularOperation",
     "static operation" -> "StaticOperation",
+    "regular attribute" -> "RegularAttribute",
     "interface" -> "Interface",
     "namespace" -> "Namespace",
   )

@@ -119,11 +119,14 @@ object CondParser:
   // is an object that [=implements=] |I|"). Captured generally and handed
   // straight to `ExprParser.parse`, which already resolves each shape on its
   // own (`{{X}}` -> `SpecTerm(X)` via `BracedTerm`, `|X|` -> `Var(X)` via
-  // `VarOnly`) — no special-casing needed here.
+  // `VarOnly`) — no special-casing needed here. The RHS may carry a redundant
+  // "the interface " lead-in ("|jsValue| does not [=implement=] the interface
+  // |target|", webidl/index.bs's `creating an operation function`;
+  // webidl_yet_categorized.md category II-H's `#10-8`), which is dropped.
   private val ImplementsPos =
-    """(?si)^(.*?)\s+\[=implements=\]\s+(\{\{[^}]+\}\}|\|[^|]+\|)$""".r
+    """(?si)^(.*?)\s+\[=implements=\]\s+(?:the interface\s+)?(\{\{[^}]+\}\}|\|[^|]+\|)$""".r
   private val ImplementsNeg =
-    """(?si)^(.*?)\s+does not \[=implement=\]\s+(\{\{[^}]+\}\}|\|[^|]+\|)$""".r
+    """(?si)^(.*?)\s+does not \[=implement=\]\s+(?:the interface\s+)?(\{\{[^}]+\}\}|\|[^|]+\|)$""".r
   // "EXPR has a [[SLOT]] internal slot" / "EXPR does not have a [[SLOT]]
   // internal slot" — checks whether an object has (been initialized with) a
   // particular internal slot, as opposed to ExprParser's PossessiveSlot

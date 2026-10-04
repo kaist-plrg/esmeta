@@ -213,21 +213,9 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
 
 ```
 
-3. 카테고리 - II-H
-   원문 - If |target| is an [=interface=], and |attribute| is a [=regular attribute=]: ...
-   IR - if (&& (= target (yet "an [=interface=]")) (= attribute (yet "a [=regular attribute=]"))) { ... }
-
 5. 카테고리 - VI
    원문 - (This will subsequently cause a {{TypeError}} in a few steps, if the global object does not implement |target| and [{{LegacyLenientThis}}] is not specified.) <!-- https://www.w3.org/Bugs/Public/show_bug.cgi?id=18547#c9 -->
    IR - (yet "(This will subsequently cause a {{TypeError}} in a few steps, ...) <!-- https://www.w3.org/Bugs/... -->")
-
-6. 카테고리 - II-H
-   원문 - If |jsValue| [=is a platform object=], then ...
-   IR - if (jsValue: Unknown[platform object]) { ... }
-
-7. 카테고리 - II-H
-   원문 - If |jsValue| does not [=implement=] |target|, then: ...
-   IR - if (yet "|jsValue| does not [=implement=] |target|") { ... }
 
 8. 카테고리 - II-A
    원문 - If |attribute| was specified with the [{{LegacyLenientThis}}] [=extended attribute=], then return <emu-val>undefined</emu-val>.
@@ -252,10 +240,6 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
   값을 IDL 값으로 변환해서 `setter steps`를 실행합니다.
 
 ```
-1. 카테고리 - II-H
-   원문 - If |target| is a [=namespace=]: ...
-   IR - if (= target (yet "a [=namespace=]")) { ... }
-
 2. 카테고리 - II-A
    원문 - If |attribute| is [=read only=] and does not have a [{{LegacyLenientSetter}}], [{{PutForwards}}] or [{{Replaceable}}] [=extended attribute=], return undefined; there is no [=attribute setter=] function.
    IR - if (&& (= attribute ~read only~) (yet "does not have a [{{LegacyLenientSetter}}]")) { ... }
@@ -269,25 +253,9 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
    원문 - set |V| to the value of the first argument passed.
    IR - V = (yet "the value of the first argument passed")
 
-7. 카테고리 - II-H
-   원문 - If |attribute| is a [=regular attribute=]: ...
-   IR - if (= attribute (yet "a [=regular attribute=]")) { ... }
-
 9. 카테고리 - VI
    원문 - (This will subsequently cause a {{TypeError}} in a few steps, if the global object does not implement |target| and [{{LegacyLenientThis}}] is not specified.) <!-- https://www.w3.org/Bugs/Public/show_bug.cgi?id=18547#c9 -->
    IR - (yet "(This will subsequently cause a {{TypeError}} in a few steps, ...) <!-- https://www.w3.org/Bugs/... -->")
-
-10. 카테고리 - II-H
-    원문 - If |jsValue| [=is a platform object=], then ...
-    IR - if (? jsValue: Unknown["platform object"]) { ... }
-
-11. 카테고리 - II-H
-    원문 - Let |validThis| be true if |jsValue| [=implements=] |target|, or false otherwise.
-    IR - if (yet "|jsValue| [=implements=] |target|") {
-           let validThis = true
-         } else {
-           let validThis = false
-         }
 
 12. 카테고리 - II-A
     원문 - If |validThis| is false and |attribute| was not specified with the [{{LegacyLenientThis}}] [=extended attribute=], then ...
@@ -351,21 +319,9 @@ other interface P" 일 때의 브랜치는 정리하지 않았습니다.
 
 ```
 
-4. 카테고리 - II-H
-   원문 - If |target| is an [=interface=], and |op| is not a [=static operation=]: ...
-   IR - if (&& (= target (yet "an [=interface=]")) (! (= op (yet "a [=static operation=]")))) { ... }
-
 6. 카테고리 - VI
    원문 - (This will subsequently cause a {{TypeError}} in a few steps, if the global object does not implement |target|.) <!--https://www.w3.org/Bugs/Public/show_bug.cgi?id=18547#c9 -->
    IR - (yet "(This will subsequently cause a {{TypeError}} in a few steps, ...) <!-- https://www.w3.org/Bugs/... -->")
-
-7. 카테고리 - II-H
-   원문 - If |jsValue| [=is a platform object=], then ...
-   IR - if (? jsValue: Unknown["platform object"])
-
-8. 카테고리 - I-O + II-H
-   원문 - If |jsValue| does not [=implement=] the interface |target|, [=JavaScript/throw=] a <l spec=ecmascript>{{TypeError}}</l>.
-   IR - if (yet "|jsValue| does not [=implement=] the interface |target|") { call _ = clo<"javascript/throw">((record [TypeError] {...})) }
 
 9. 카테고리 - I-N
    원문 - Set |idlObject| to the IDL [=interface type=] value that represents a reference to |jsValue|.

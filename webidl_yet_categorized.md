@@ -110,17 +110,6 @@ II-C의 상속-모델링 gap에 막혀 `EYet`으로 남아 있어 이 카테고�
 - `#7-23` - |attribute|'s type is an [=enumeration=]
     - assume false
 
-### II-H. record-kind 술어
-
-- `#6-3` - |target| is an [=interface=], and |attribute| is a [=regular attribute=]
-- `#6-6`, `#7-10`, `#10-7` - |jsValue| [=is a platform object=]
-- `#6-7` - |jsValue| does not [=implement=] |target|
-- `#7-1` - |target| is a [=namespace=]
-- `#7-7` - |attribute| is a [=regular attribute=]
-- `#7-11` - |jsValue| [=implements=] |target|
-- `#10-4` - |target| is an [=interface=], and |op| is not a [=static operation=]
-- `#10-8` - |jsValue| does not [=implement=] the interface |target|
-
 ### II-K. operation의 모델링 관련
 - `#11-7` - the [=list=] of arguments |X| is declared to take.
 - `#11-10` - [=list/Append=] the type of |argument| to |types|.

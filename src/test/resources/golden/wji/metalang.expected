@@ -1826,7 +1826,7 @@
         Let(|jsValue|, **this** if it is not null or undefined else |realm|.[[GlobalObject]])
         If(|jsValue| is a platform object)
           Perform([=perform a security check=](|jsValue|, |id|, "method"))
-        If(?(|jsValue| does not [=implement=] the interface |target|))
+        If(|jsValue| does not [=implement=] |target|)
           Throw(new {{TypeError}})
         Set(|idlObject|, |jsValue|)
       Let(|n|, length(|args|))

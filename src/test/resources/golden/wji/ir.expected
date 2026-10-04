@@ -5000,7 +5000,7 @@ def define_the_iteration_methods(
       } else {
         let jsValue = _call1.Value
       }
-      if (? jsValue: Unknown["platform object"]) {
+      if (&& (? jsValue: Record[Object]) (exists jsValue.PrimaryInterface)) {
         call _ = clo<"perform_a_security_check">(jsValue, "forEach", "method")
       } else nop
       let _cond3 = false
@@ -5922,13 +5922,13 @@ def create_an_interface_object_closure1(
 def attribute_getter_closure2(
 ): Unknown = {
   let idlObject = null
-  if (&& (= target.kind ~Interface~) (? attribute: Unknown["regular attribute"])) {
+  if (&& (= target.kind ~Interface~) (= attribute.kind ~RegularAttribute~)) {
     if (&& (! (= this null)) (! (= this undefined))) {
       let jsValue = this
     } else {
       let jsValue = realm.GlobalObject
     }
-    if (? jsValue: Unknown["platform object"]) {
+    if (&& (? jsValue: Record[Object]) (exists jsValue.PrimaryInterface)) {
       call _ = clo<"perform_a_security_check">(@@yet: unresolved ref: Unknown(, passing |jsValue|, |attribute|).id, "getter")
     } else nop
     let _cond2 = false
@@ -6036,13 +6036,13 @@ def attribute_setter_closure1(
   } else nop
   let id = attribute.id
   let idlObject = null
-  if (? attribute: Unknown["regular attribute"]) {
+  if (= attribute.kind ~RegularAttribute~) {
     if (&& (! (= this null)) (! (= this undefined))) {
       let jsValue = this
     } else {
       let jsValue = realm.GlobalObject
     }
-    if (? jsValue: Unknown["platform object"]) {
+    if (&& (? jsValue: Record[Object]) (exists jsValue.PrimaryInterface)) {
       call _ = clo<"perform_a_security_check">(jsValue, id, "setter")
     } else nop
     let _cond2 = false
@@ -6215,10 +6215,19 @@ def creating_an_operation_function_closure2(
     } else {
       let jsValue = realm.GlobalObject
     }
-    if (? jsValue: Unknown["platform object"]) {
+    if (&& (? jsValue: Record[Object]) (exists jsValue.PrimaryInterface)) {
       call _ = clo<"perform_a_security_check">(jsValue, id, "method")
     } else nop
-    if (yet "|jsValue| does not [=implement=] the interface |target|") {
+    let _cond2 = false
+    if (|| (! (? jsValue: Record[Object])) (! (&& (? jsValue: Record[Object]) (exists jsValue.PrimaryInterface)))) {
+      _cond2 = true
+    } else {
+      call _call1 = clo<"inclusive_inherited_interfaces">(jsValue.PrimaryInterface)
+      if (! (contains _call1 target)) {
+        _cond2 = true
+      } else nop
+    }
+    if (= _cond2 true) {
       call _err1 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
       call _ret2 = clo<"ThrowCompletion">(_err1)
       return _ret2
@@ -6319,7 +6328,7 @@ def define_the_iteration_methods_closure1(
   } else {
     let jsValue = _call1.Value
   }
-  if (? jsValue: Unknown["platform object"]) {
+  if (&& (? jsValue: Record[Object]) (exists jsValue.PrimaryInterface)) {
     call _ = clo<"perform_a_security_check">(@@yet: unresolved ref: Unknown(, passing |jsValue|, "<code>%Symbol).iterator, "method")
   } else nop
   let _cond3 = false
@@ -6360,7 +6369,7 @@ def define_the_iteration_methods_closure2(
   } else {
     let jsValue = _call1.Value
   }
-  if (? jsValue: Unknown["platform object"]) {
+  if (&& (? jsValue: Record[Object]) (exists jsValue.PrimaryInterface)) {
     call _ = clo<"perform_a_security_check">(jsValue, "keys", "method")
   } else nop
   let _cond3 = false
@@ -6401,7 +6410,7 @@ def define_the_iteration_methods_closure3(
   } else {
     let jsValue = _call1.Value
   }
-  if (? jsValue: Unknown["platform object"]) {
+  if (&& (? jsValue: Record[Object]) (exists jsValue.PrimaryInterface)) {
     call _ = clo<"perform_a_security_check">(jsValue, "values", "method")
   } else nop
   let _cond3 = false
@@ -6443,7 +6452,7 @@ def define_the_asynchronous_iteration_methods_closure1(
   } else {
     let jsValue = _call1.Value
   }
-  if (? jsValue: Unknown["platform object"]) {
+  if (&& (? jsValue: Record[Object]) (exists jsValue.PrimaryInterface)) {
     call _ = clo<"perform_a_security_check">(@@yet: unresolved ref: Unknown(, passing |jsValue|, "<code>%Symbol).asyncIterator, "method")
   } else nop
   let _cond3 = false
@@ -6488,7 +6497,7 @@ def define_the_asynchronous_iteration_methods_closure2(
   } else {
     let jsValue = _call1.Value
   }
-  if (? jsValue: Unknown["platform object"]) {
+  if (&& (? jsValue: Record[Object]) (exists jsValue.PrimaryInterface)) {
     call _ = clo<"perform_a_security_check">(jsValue, "keys", "method")
   } else nop
   let _cond3 = false
@@ -6533,7 +6542,7 @@ def define_the_asynchronous_iteration_methods_closure3(
   } else {
     let jsValue = _call1.Value
   }
-  if (? jsValue: Unknown["platform object"]) {
+  if (&& (? jsValue: Record[Object]) (exists jsValue.PrimaryInterface)) {
     call _ = clo<"perform_a_security_check">(jsValue, "values", "method")
   } else nop
   let _cond3 = false

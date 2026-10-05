@@ -1581,7 +1581,7 @@
     Let(|object|, [=internally create a new object implementing the interface=](|I|, |realm|, NewTarget))
     PerformClosure(|constructor|.[[constructorSteps]](|object|, |values|))
     Let(|O|, [=converted to a JavaScript value=](|object|))
-    Assert(?(|O| is an object that) [=implements=] |I|)
+    Assert(|O| [=implements=] |I|)
     Assert(|O|.[[Realm]] is |realm|)
     Return(|O|)
   Let(|constructorProto|, |realm|.[[Intrinsics]].[[%Function.prototype%]])

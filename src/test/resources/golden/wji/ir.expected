@@ -5652,8 +5652,8 @@ def create_an_interface_object_closure1(
   call _ = constructor.constructorSteps(object, values)
   call-convert O = <converted_to_a_javascript_value>(object)
   let _cond2 = false
-  if (&& (? (yet "|O| is an object that"): Record[Object]) (&& (? @@yet: unresolved ref: Unknown(|O| is an object that): Record[Object]) (exists @@yet: unresolved ref: Unknown(|O| is an object that).PrimaryInterface))) {
-    call _call1 = clo<"inclusive_inherited_interfaces">(@@yet: unresolved ref: Unknown(|O| is an object that).PrimaryInterface)
+  if (&& (? O: Record[Object]) (&& (? O: Record[Object]) (exists O.PrimaryInterface))) {
+    call _call1 = clo<"inclusive_inherited_interfaces">(O.PrimaryInterface)
     if (contains _call1 I) {
       _cond2 = true
     } else nop

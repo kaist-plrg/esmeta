@@ -105,6 +105,10 @@ class CondParserSpec extends AnyFunSuite:
       CondParser.parse("|O| [=implements=] |I|") ==
       Implements(Var("O"), Var("I")),
     )
+    assert(
+      CondParser.parse("|O| is an object that [=implements=] |I|") ==
+      Implements(Var("O"), Var("I")),
+    )
     // `creating an operation function`'s "the interface |target|" lead-in.
     assert(
       CondParser.parse("|jsValue| does not [=implement=] the interface |target|")

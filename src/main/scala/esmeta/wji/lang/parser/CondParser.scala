@@ -122,9 +122,13 @@ object CondParser:
   // `VarOnly`) — no special-casing needed here. The RHS may carry a redundant
   // "the interface " lead-in ("|jsValue| does not [=implement=] the interface
   // |target|", webidl/index.bs's `creating an operation function`;
-  // webidl_yet_categorized.md category II-H's `#10-8`), which is dropped.
+  // webidl_yet_categorized.md category II-H's `#10-8`), which is dropped. So
+  // is the LHS's "is an object that" lead-out ("|O| is an object that
+  // [=implements=] |I|", webidl/index.bs's `create an interface object`):
+  // [=implements=] already requires a platform object, which
+  // `ExpandImplementsPass` checks itself.
   private val ImplementsPos =
-    """(?si)^(.*?)\s+\[=implements=\]\s+(?:the interface\s+)?(\{\{[^}]+\}\}|\|[^|]+\|)$""".r
+    """(?si)^(.*?)(?:\s+is an object that)?\s+\[=implements=\]\s+(?:the interface\s+)?(\{\{[^}]+\}\}|\|[^|]+\|)$""".r
   private val ImplementsNeg =
     """(?si)^(.*?)\s+does not \[=implement=\]\s+(?:the interface\s+)?(\{\{[^}]+\}\}|\|[^|]+\|)$""".r
   // "EXPR has a [[SLOT]] internal slot" / "EXPR does not have a [[SLOT]]

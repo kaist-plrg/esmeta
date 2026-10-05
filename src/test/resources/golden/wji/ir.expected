@@ -5887,10 +5887,7 @@ def create_an_interface_object_closure1(
   let n = (sizeof args)
   let id = I.id
   call S = clo<"Compute_the_effective_overload_set">(~Constructor~, id, I, n)
-  call _tuple1 = clo<"overload_resolution_algorithm">(S, args)
-  let constructor = _tuple1[0]
-  let values = _tuple1[1]
-  call _guard1 = clo<"internally_create_a_new_object_implementing_the_interface">(I, realm, ~NewTarget~)
+  call _guard1 = clo<"overload_resolution_algorithm">(S, args)
   if (&& (? _guard1: Completion) (! (= _guard1.Type ~normal~))) {
     if (? _guard1: Completion) {
       return _guard1
@@ -5899,7 +5896,20 @@ def create_an_interface_object_closure1(
       return _ret5
     }
   } else {
-    let object = _guard1.Value
+    let _tuple1 = _guard1.Value
+  }
+  let constructor = _tuple1[0]
+  let values = _tuple1[1]
+  call _guard2 = clo<"internally_create_a_new_object_implementing_the_interface">(I, realm, ~NewTarget~)
+  if (&& (? _guard2: Completion) (! (= _guard2.Type ~normal~))) {
+    if (? _guard2: Completion) {
+      return _guard2
+    } else {
+      call _ret6 = clo<"NormalCompletion">(_guard2)
+      return _ret6
+    }
+  } else {
+    let object = _guard2.Value
   }
   call _ = constructor.constructorSteps(object, values)
   call-convert O = <converted_to_a_javascript_value>(object)
@@ -5915,8 +5925,8 @@ def create_an_interface_object_closure1(
   if (? O: Completion) {
     return O
   } else {
-    call _ret6 = clo<"NormalCompletion">(O)
-    return _ret6
+    call _ret7 = clo<"NormalCompletion">(O)
+    return _ret7
   }
 }
 def attribute_getter_closure2(
@@ -6242,7 +6252,17 @@ def creating_an_operation_function_closure2(
   } else {
     assert false
   }
-  call _tuple1 = clo<"overload_resolution_algorithm">(S, args)
+  call _guard1 = clo<"overload_resolution_algorithm">(S, args)
+  if (&& (? _guard1: Completion) (! (= _guard1.Type ~normal~))) {
+    if (? _guard1: Completion) {
+      return _guard1
+    } else {
+      call _ret3 = clo<"NormalCompletion">(_guard1)
+      return _ret3
+    }
+  } else {
+    let _tuple1 = _guard1.Value
+  }
   let operation = _tuple1[0]
   let values = _tuple1[1]
   let R = null
@@ -6265,8 +6285,8 @@ def creating_an_operation_function_closure2(
   if (? _result1: Completion) {
     return _result1
   } else {
-    call _ret3 = clo<"NormalCompletion">(_result1)
-    return _ret3
+    call _ret4 = clo<"NormalCompletion">(_result1)
+    return _ret4
   }
   (yet "Issue(whatwg/webidl#674): |R| is assumed to be an IDL value of the type |op| is declared to return")
 }

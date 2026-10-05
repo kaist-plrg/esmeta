@@ -9,7 +9,7 @@ import esmeta.wji.bridge.process.SpecTecProcess
 import esmeta.wji.bridge.rpc.JsonRpcConnection
 import esmeta.wji.extractor.Extractor
 import esmeta.wji.spec.Spec
-import esmeta.wji.lang.{Definition, DefinitionKind, Member}
+import esmeta.wji.lang.{Definition, DefinitionKind, Member, MemberKind}
 import esmeta.wji.lang.{Operation => WjiOperation}
 import esmeta.wji.lang.{Attribute => WjiAttribute}
 import esmeta.wji.lang.{Param => WjiParam}
@@ -169,13 +169,15 @@ object Initialize:
     * so a mechanized WebIDL algorithm reads exactly the data the real spec text
     * describes — no pre-filtered/pre-computed field (e.g. "the regular
     * operations") is baked in here; that's the mechanized algorithms' own job
-    * once they read `kind`/`extendedAttributes` themselves. The one field with
-    * no `esmeta.wji.lang` counterpart at all is `operation`'s `methodSteps`:
-    * the actual compiled closure implementing that operation's algorithm body
-    * (looked up by `id` in the already-merged `cfg.fnameMap`), since nothing
-    * about the *syntactic* `Definition` extraction knows how its members ended
-    * up compiled. Requires `st.cfg` to be the merged CFG (WJI funcs included) —
-    * this must run after that merge, not before.
+    * once they read `kind`/`extendedAttributes` themselves. The only fields
+    * with no `esmeta.wji.lang` counterpart at all are `operation`'s
+    * `methodSteps`/`constructorSteps` and `attribute`'s
+    * `getterSteps`/`setterSteps`: the actual compiled closure implementing that
+    * member's algorithm body (looked up by `id` in the already-merged
+    * `cfg.fnameMap`), since nothing about the *syntactic* `Definition`
+    * extraction knows how its members ended up compiled. Requires `st.cfg` to
+    * be the merged CFG (WJI funcs included) — this must run after that merge,
+    * not before.
     */
   private def seedHostDefined(st: State, spec: Spec): Unit =
     given CFG = st.cfg
@@ -242,7 +244,40 @@ object Initialize:
         ),
       )
 
-    def attributeRecord(attr: WjiAttribute): Addr =
+    // A `constructor(...)` member is extracted as an `Operation` too
+    // (`MemberKind.Constructor`, `id = "constructor"`), but it's a separate
+    // WebIDL construct: no identifier of its own to install as a property,
+    // no return type, and constructor steps rather than method steps — the
+    // closure `Compiler.scala` registers under `AlgorithmKind.Constructor`'s
+    // `INTRINSICS.WebAssembly.$iface`.
+    def constructorRecord(defId: String, op: WjiOperation): Addr =
+      st.allocRecord(
+        "constructor",
+        List(
+          "id" -> Str(op.id),
+          "params" -> st.allocList(op.params.map(paramRecord)),
+          "kind" -> Enum(op.kind.toString),
+          "extendedAttributes" -> st.allocList(op.extAttr.map(extAttrRecord)),
+          "constructorSteps" -> st.cfg.fnameMap
+            .get(s"INTRINSICS.WebAssembly.$defId")
+            .fold[Value](Undef)(f => Clo(f, Map())),
+        ),
+      )
+
+    def attributeRecord(defId: String, attr: WjiAttribute): Addr =
+      // Same lookup-key scheme as `operationRecord` above, with the `get:`/
+      // `set:` prefix `Compiler.scala` registers an accessor's closure under:
+      // `AlgorithmKind.NamespaceGetter`'s `INTRINSICS.get:$namespace.$name`
+      // for the `WebAssembly` namespace itself, or `AlgorithmKind.Getter`/
+      // `Setter`'s `INTRINSICS.get:`/`set:WebAssembly.$iface.prototype.$name`
+      // for an ordinary interface member. A `readonly` attribute has no
+      // setter algorithm at all, so its `setterSteps` lookup just misses.
+      def steps(accessor: String): Value =
+        val fname =
+          if defId == "WebAssembly" then
+            s"INTRINSICS.$accessor:$defId.${attr.id}"
+          else s"INTRINSICS.$accessor:WebAssembly.$defId.prototype.${attr.id}"
+        st.cfg.fnameMap.get(fname).fold[Value](Undef)(f => Clo(f, Map()))
       st.allocRecord(
         "attribute",
         List(
@@ -252,6 +287,8 @@ object Initialize:
           "kind" -> Enum(attr.kind.toString),
           "extendedAttributes" ->
           st.allocList(attr.extAttr.map(extAttrRecord)),
+          "getterSteps" -> steps("get"),
+          "setterSteps" -> steps("set"),
         ),
       )
 
@@ -299,8 +336,10 @@ object Initialize:
 
     def definitionRecord(d: Definition): Addr =
       val members = foldInstantiateOverloads(d).map {
+        case op: WjiOperation if op.kind == MemberKind.Constructor =>
+          constructorRecord(d.name, op)
         case op: WjiOperation   => operationRecord(d.name, op)
-        case attr: WjiAttribute => attributeRecord(attr)
+        case attr: WjiAttribute => attributeRecord(d.name, attr)
         case _                  => ???
       }
       st.allocRecord(

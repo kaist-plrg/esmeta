@@ -12,7 +12,7 @@ def compute_the_effective_overload_set(
       X = %0[%1]
     %1 = (+ %1 1)
   }
-  assert (? X: Record[operation])
+  assert (|| (? X: Record[operation]) (? X: Record[constructor]))
   arguments = X.params
   n = (sizeof arguments)
   %2 = 0

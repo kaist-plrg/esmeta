@@ -1,6 +1,7 @@
 package esmeta.wji.compiler.lowering
 
 import esmeta.wji.lang.{Algorithm, Expr, Instr}
+import esmeta.wji.lang.walker.Walker
 
 /** Stamps `isBuiltinBehaviour = true` onto every `Expr.FollowingSteps` used as
   * `CreateBuiltinFunction`'s `behaviour` argument, so
@@ -11,8 +12,9 @@ import esmeta.wji.lang.{Algorithm, Expr, Instr}
   * [[WrapCompletionReturnsPass]] — see that pass's own doc for the general
   * shape of this mark-then-consume split.
   *
-  * Detects a `Let(Var(x), FollowingSteps(...), substeps)` whose sibling steps
-  * (`rest`) contain a `CreateBuiltinFunction(Var(x), ...)` call.
+  * Detects a `Let(Var(x), expr, substeps)` whose sibling steps (`rest`) contain
+  * a `CreateBuiltinFunction(Var(x), ...)` call, and marks the `FollowingSteps`
+  * `expr` is or contains (see [[mark]]).
   *
   * Runs *before* [[ExpandFollowingStepsPass]], on the not-yet-hoisted
   * placeholder rather than on the hoisted `Closure`/`Algorithm` pair: a builtin
@@ -63,6 +65,19 @@ object MarkBuiltinBehaviourPass extends LoweringPass:
       ),
     )
 
+  /** Marks the `FollowingSteps` reachable from `expr`, at any nesting depth —
+    * not just `expr` itself, since the closure may be only one alternative of
+    * the bound value (e.g. `create an interface object`'s "Let steps be I's
+    * overridden constructor steps if they exist, or the following steps
+    * otherwise", a `FollowingSteps` inside an `Expr.Conditional`).
+    */
+  private def mark(expr: Expr): Expr =
+    val marker = new Walker:
+      override def walk(expr: Expr): Expr = expr match
+        case fs: Expr.FollowingSteps => fs.copy(isBuiltinBehaviour = true)
+        case other                   => super.walk(other)
+    marker.walk(expr)
+
   /** Marks every builtin-behaviour `FollowingSteps` in `instrs`, recursing into
     * every nested body — including a `FollowingSteps`-owning `Let`'s own
     * `body`, the closure's substeps, which may themselves define further
@@ -71,12 +86,9 @@ object MarkBuiltinBehaviourPass extends LoweringPass:
   private def transform(instrs: List[Instr]): List[Instr] =
     instrs match
       case Nil => Nil
-      case (i @ Instr.Let(Expr.Var(x), fs: Expr.FollowingSteps, body)) :: rest
+      case (i @ Instr.Let(Expr.Var(x), expr, body)) :: rest
           if isBuiltinBehaviour(x, rest) =>
-        i.copy(
-          expr = fs.copy(isBuiltinBehaviour = true),
-          body = transform(body),
-        ) :: transform(rest)
+        i.copy(expr = mark(expr), body = transform(body)) :: transform(rest)
       case instr :: rest =>
         instr.mapBody(transform) :: transform(rest)
 

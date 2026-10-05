@@ -1,6 +1,7 @@
 package esmeta.wji.compiler.lowering
 
 import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr, WjiParam}
+import esmeta.wji.lang.walker.{UnitWalker, Walker}
 import esmeta.error.UnsupportedSpecShape
 
 /** Adapts every `Expr.FollowingSteps` [[MarkBuiltinBehaviourPass]] flagged
@@ -166,24 +167,53 @@ object AddBuiltinBehaviourPass extends LoweringPass:
         )
     }
 
+  /** the builtin-behaviour `FollowingSteps` reachable from `expr`, at any
+    * nesting depth (see [[MarkBuiltinBehaviourPass]]'s own `mark` for why it
+    * isn't necessarily `expr` itself).
+    */
+  private def builtinBehavioursIn(expr: Expr): List[Expr.FollowingSteps] =
+    val found = collection.mutable.ListBuffer.empty[Expr.FollowingSteps]
+    val finder = new UnitWalker:
+      override def walk(expr: Expr): Unit = expr match
+        case fs: Expr.FollowingSteps => if fs.isBuiltinBehaviour then found += fs
+        case other                   => super.walk(other)
+    finder.walk(expr)
+    found.toList
+
+  /** Replaces the builtin-behaviour `FollowingSteps` reachable from `expr` with
+    * one declaring [[BuiltinParams]] instead.
+    */
+  private def withBuiltinParams(expr: Expr): Expr =
+    val rewriter = new Walker:
+      override def walk(expr: Expr): Expr = expr match
+        case Expr.FollowingSteps(_, _, true) =>
+          Expr.FollowingSteps(BuiltinParams, isBuiltinBehaviour = true)
+        case other => super.walk(other)
+    rewriter.walk(expr)
+
   /** Rewrites every builtin-behaviour `FollowingSteps` in `instrs`, recursing
     * into every nested body — including the closure's own substeps, which may
     * themselves define further builtin behaviours.
     */
   private def transform(instrs: List[Instr]): List[Instr] =
     instrs.map {
-      case i @ Instr.Let(_, Expr.FollowingSteps(params, variadicLast, true), _) =>
-        val wjiParams = params.zipWithIndex.map {
-          case (p, idx) =>
-            WjiParam(
-              s"|$p|",
-              variadic = variadicLast && idx == params.size - 1,
+      case i: Instr.Let =>
+        // more than one is left for ExpandFollowingStepsPass to reject: `body`
+        // can only be the substeps of one of them.
+        builtinBehavioursIn(i.expr) match
+          case List(Expr.FollowingSteps(params, variadicLast, _)) =>
+            val wjiParams = params.zipWithIndex.map {
+              case (p, idx) =>
+                WjiParam(
+                  s"|$p|",
+                  variadic = variadicLast && idx == params.size - 1,
+                )
+            }
+            i.copy(
+              expr = withBuiltinParams(i.expr),
+              body = unpackArgumentsList(wjiParams) ++ transform(i.body),
             )
-        }
-        i.copy(
-          expr = Expr.FollowingSteps(BuiltinParams, isBuiltinBehaviour = true),
-          body = unpackArgumentsList(wjiParams) ++ transform(i.body),
-        )
+          case _ => i.mapBody(transform)
       case instr => instr.mapBody(transform)
     }
 

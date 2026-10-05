@@ -1,7 +1,6 @@
 package esmeta.wji.compiler.lowering
 
 import esmeta.wji.lang.{Algorithm, AlgorithmKind, Cond, Expr, Instr, WjiParam}
-import esmeta.wji.compiler.Compiler
 import esmeta.error.UnsupportedSpecShape
 
 /** Reshapes every Getter/Setter/Constructor/Method/NamespaceMethod/
@@ -26,19 +25,14 @@ import esmeta.error.UnsupportedSpecShape
   * `webidl/index.bs` itself treats a namespace's own operations and an
   * interface's members as products of two genuinely different algorithms
   * building and populating two different objects). What that distinction means
-  * *here*: a `NamespaceMethod` skips every receiver-related step below
-  * ([[newTargetCheck]] — not a `Constructor`; [[brandingCheck]] — no
-  * `**this**`-implements-interface guard, since a namespace operation has no
-  * interface to implement; [[givenValueBinding]] — not a `Setter`;
-  * [[createThisBinding]]/[[returnEpilogue]]'s `Constructor` case — not a
-  * `Constructor`, and unlike a `Getter`/`Method`/`Setter` a namespace
-  * operation's `**this**` is simply never read at all, so nothing needs
-  * binding; [[returnEpilogue]]'s `"undefined"`-return case does still apply to
-  * a `NamespaceMethod`, in principle — no corpus occurrence has that declared
-  * return type today, but nothing about it depends on having a receiver) but
-  * still goes through [[unpackArgumentsList]] and [[wrapReturnValues]] exactly
-  * like a `Method` does — and, in `Compiler`, registers under
-  * `INTRINSICS.<namespace>.<name>` (no `.prototype` segment:
+  * *here*: a `NamespaceMethod` skips [[returnEpilogue]]'s `Constructor` case
+  * (unlike a `Getter`/`Method`/`Setter` a namespace operation's `**this**` is
+  * simply never read at all; [[returnEpilogue]]'s `"undefined"`-return case
+  * does still apply to a `NamespaceMethod`, in principle — no corpus occurrence
+  * has that declared return type today, but nothing about it depends on having
+  * a receiver) but still goes through [[unpackArgumentsList]] and
+  * [[wrapReturnValues]] exactly like a `Method` does — and, in `Compiler`,
+  * registers under `INTRINSICS.<namespace>.<name>` (no `.prototype` segment:
   * `WebAssembly.instantiate`, never `WebAssembly.prototype.instantiate`) — see
   * `Compiler.compileAlgo`'s own `NamespaceMethod` case.
   *
@@ -76,61 +70,37 @@ import esmeta.error.UnsupportedSpecShape
   * `length` override (same pattern as `Memory.prototype.grow`'s own), but no
   * more hand-written call-unpacking glue. See `docs/hardcodes.md` #7.
   *
-  *   - '''parameter unpacking''': `BuiltinCallOrConstruct` always invokes a
-  *     builtin as `func.__CODE__(this, argumentsList, newTarget)` — a fixed
-  *     3-argument shape — regardless of what parameters the algorithm itself
-  *     declares (e.g. `Table.get(|index|)`, `Instance(|moduleObject|,
-  * |importObject|)`). Every originally-declared `|param|` is unpacked from
-  * `ArgumentsList` positionally, mirroring
-  * [[AddBuiltinBehaviourPass.unpackArgumentsList]] (same shape, just reading
-  * the capitalized `ArgumentsList`/`NewTarget`/`this` names this convention
-  * uses — see [[BuiltinParams]] — instead of that pass's lowercase
-  * `argumentsList`/`newTarget`/`thisArgument`, a different convention for
-  * hoisted closures rather than top-level interface members). For a
-  * Getter/Setter/Method, `**this**` needs no such unpacking: it's already a
-  * real receiver at call time (`[[Call]]` always supplies one), and compiles
-  * directly to the same local the `|this|` parameter declares (see
-  * `esmeta.wji.compiler.Compiler`'s `Expr.This` case), so simply declaring
-  * `|this|` as a parameter is already enough to bind it — no `Set **this** to
-  * |this|.` prefix needed. A `Constructor` is different: it's invoked via
-  * `[[Construct]]`, which per ECMA-262
-  * (`sec-built-in-function-objects-construct-argumentslist-newtarget`) never
-  * supplies a `this` at all (`BuiltinCallOrConstruct` gets `~uninitialized~`) —
-  * allocating the object and binding it as `this` is WebIDL's own "create an
-  * interface object" preamble (`webidl/index.bs`, step "internally create a new
-  * object implementing the interface" before "Perform the constructor steps ...
-  * with object as this"), a step outside the constructor-steps text itself,
-  * which is why no js-api constructor algorithm ever writes it and every one
-  * instead ends by mutating `this`'s fields with no explicit `Return`.
-  * [[createThisBinding]]/[[returnEpilogue]]'s `Constructor` case mechanize
-  * exactly that preamble/epilogue. The object itself still reuses the same
-  * `Expr.New(iface)` → `ERecord(iface, ordinaryObjectFields(iface))`
-  * construction `esmeta.wji.compiler.Compiler.compileExpr` already uses for the
-  * "Let |x| be a new Y." shape inside algorithm bodies (see `docs/hardcodes.md`
-  * #7), but its `[[Prototype]]` gets overwritten right after — WebIDL's real
-  * preamble is `? OrdinaryCreateFromConstructor(NewTarget,
-  * "%<iface>.prototype%")` (`webidl/index.bs`), whose whole point is reading
-  * `NewTarget`'s own `"prototype"` property first (falling back to the default
-  * intrinsic only when that isn't an Object) — exactly what makes `class Sub
-  * extends WebAssembly.Module {}; new Sub(...) instanceof Sub` true.
-  * `ordinaryObjectFields`'s `Prototype` field is always the fixed default
-  * intrinsic (correct for the unrelated re-entrant callers of bare
-  * `Expr.New(iface)`, e.g. "create a memory object" from an address — never
-  * invoked through `[[Construct]]`, so there's no real `NewTarget` to consult
-  * there), so `createThisBinding` doesn't touch that shared helper; it just
-  * replaces the field again with the real ECMA-262 AO
-  * `GetPrototypeFromConstructor(NewTarget, intrinsicDefaultProto)`
-  * (`ecma262/spec.html`'s `sec-getprototypefromconstructor` — the exact
-  * sub-step `OrdinaryCreateFromConstructor` itself delegates to) mainline
-  * already compiles, called here by its literal AO name the same way
-  * hand-written `manuals/funcs` `.ir` glue already reuses mainline AOs (e.g.
-  * `ConvertToInt.ir`'s `clo<"ToNumber">`).
-  *   - '''WebIDL's implicit setter argument''': a `Setter`-kind algorithm's
-  *     `**the given value**` (`Expr.GivenValue`) is WebIDL's other implicit
-  *     member-only binding, alongside `**this**` — unpacked from
-  *     `ArgumentsList[0]` the same way, since (unlike every declared `|param|`)
-  *     it was never a real Bikeshed `|pipe|` variable `extractParams` could
-  *     have already found.
+  *   - '''parameters''': each kind takes exactly what WebIDL's own caller of
+  *     its steps closure passes (`Initialize.seedHostDefined`'s
+  *     `getterSteps`/`setterSteps`/`constructorSteps`/`methodSteps` fields),
+  *     regardless of what parameters the algorithm itself declares (e.g.
+  *     `Table.get(|index|)`, `Instance(|moduleObject|, |importObject|)`) — see
+  *     [[builtinParams]]:
+  *     - `Getter`/`NamespaceGetter`: `(this)` — "the [=getter steps=] of
+  * |attribute| with |idlObject| as [=this=]".
+  *   - `Setter`: `(this, givenValue)` — "... with |idlObject| as [=this=] and
+  *     |idlValue| as [=the given value=]". `**the given value**`
+  *     (`Expr.GivenValue`) compiles directly to the `givenValue` local that
+  *     parameter declares (`esmeta.wji.compiler.Compiler`'s `Expr.GivenValue`
+  *     case), so no binding prefix is needed.
+  *   - `Constructor`/`Method`/`NamespaceMethod`: `(this, ArgumentsList)` — "...
+  *     with |object| as [=this=] and |values| as the argument values". Every
+  *     originally-declared `|param|` is unpacked from `ArgumentsList`
+  *     positionally, mirroring [[AddBuiltinBehaviourPass.unpackArgumentsList]]
+  *     (same shape, just reading the capitalized `ArgumentsList`/`this` names
+  *     this convention uses instead of that pass's lowercase `argumentsList`/
+  *     `thisArgument`, a different convention for hoisted closures rather than
+  *     top-level interface members).
+  *
+  * `**this**` compiles directly to the same local the `|this|` parameter
+  * declares (see `esmeta.wji.compiler.Compiler`'s `Expr.This` case), so simply
+  * declaring `|this|` as a parameter is already enough to bind it. That holds
+  * for a `Constructor` too: the `NewTarget` check and allocating the object are
+  * WebIDL's own "create an interface object" steps (`webidl/index.bs`,
+  * "internally create a new object implementing the interface" before "Perform
+  * the constructor steps ... with object as this"), outside the
+  * constructor-steps text itself, so the constructor steps just receive the
+  * already-created object as `this` and never see `NewTarget` at all.
   *   - '''Completion-record wrapping''': every exit path must return a real
   *     Completion Record, same as [[AddBuiltinBehaviourPass]]'s own reason
   *     (mainline's Call machinery always expects one back, regardless of
@@ -158,11 +128,16 @@ import esmeta.error.UnsupportedSpecShape
   */
 object AddInterfaceMemberBuiltinBehaviourPass extends LoweringPass:
 
-  private val BuiltinParams =
-    List(
-      WjiParam("|this|"),
-      WjiParam("|ArgumentsList|"),
-    )
+  /** the parameters each kind's steps closure is called with — see class doc's
+    * "parameters" item.
+    */
+  private def builtinParams(kind: AlgorithmKind): List[WjiParam] = kind match
+    case AlgorithmKind.Getter(_) | AlgorithmKind.NamespaceGetter(_) =>
+      List(WjiParam("|this|"))
+    case AlgorithmKind.Setter(_) =>
+      List(WjiParam("|this|"), WjiParam("|givenValue|"))
+    case _ =>
+      List(WjiParam("|this|"), WjiParam("|ArgumentsList|"))
 
   private def stripPipes(s: String): String =
     s.stripPrefix("|").stripSuffix("|")
@@ -349,10 +324,8 @@ object AddInterfaceMemberBuiltinBehaviourPass extends LoweringPass:
         case Some(typeName) =>
           // mirrors `CompletionWrapping`'s own `Instr.Throw(Expr.New(iface),
           // _)` case: a bare `Expr.New(iface)` compiles to a raw ERecord with
-          // no real prototype wiring (fine for a WebIDL interface object,
-          // whose [[Prototype]] `createThisBinding` overwrites right after —
-          // but wrong for an exception object, which never goes through
-          // that). `__NEW_ERROR_OBJ__` builds a properly-prototyped one, the
+          // no real prototype wiring — wrong for an exception object.
+          // `__NEW_ERROR_OBJ__` builds a properly-prototyped one, the
           // same helper `WebIdlConversion.typeError` itself calls for the
           // exact same reason.
           Instr.Perform(
@@ -429,103 +402,6 @@ object AddInterfaceMemberBuiltinBehaviourPass extends LoweringPass:
           omittedBranch(p, name, rejectType),
         )
     }
-
-  /** `**the given value**`'s binding, for a `Setter` only — WebIDL passes it as
-    * the setter's sole argument, so it's `ArgumentsList[0]`, same shape as
-    * [[unpackArgumentsList]] but for a name that was never a declared `|param|`
-    * in the first place — including that same "fewer arguments actually
-    * supplied than declared" guard (`global/value-get-set.any.js`'s "Calling
-    * setter without argument" calls the underlying builtin function object
-    * directly with zero arguments, `setter.call(global)` — an accessor
-    * function's own `[[Call]]` never enforces arity the way `[[Construct]]`/
-    * ordinary property assignment implicitly does, so `ArgumentsList` can
-    * really be empty here). Ordinary ECMAScript missing-parameter semantics
-    * (bind to `undefined`) apply directly with no `IdlType`/default-value
-    * detour of its own — "the given value" is never a declared WebIDL parameter
-    * (so has neither `optional`/`default`, unlike [[unpackArgumentsList]]'s
-    * params), and the spec text itself only ever converts it once, inline in
-    * the setter's own body (`? ToWebAssemblyValue( **the given value**,
-    * |valuetype|)`) — so this always just binds the raw value (or `undefined`),
-    * never `omittedBranch`'s dictionary-default path.
-    */
-  private def givenValueBinding(kind: AlgorithmKind): List[Instr] = kind match
-    case AlgorithmKind.Setter(_) =>
-      List(
-        Instr.IfChain(
-          List(
-            Cond.Compare(
-              Expr.Num("0"),
-              Cond.CompareOp.Lt,
-              Expr.Length(Expr.Var("ArgumentsList")),
-            ) -> List(
-              Instr.Let(
-                Expr.Var("givenValue"),
-                Expr.Index(Expr.Var("ArgumentsList"), Expr.Num("0")),
-              ),
-            ),
-          ),
-          List(Instr.Let(Expr.Var("givenValue"), Expr.SpecTerm("undefined"))),
-        ),
-      )
-    case _ => Nil
-
-  /** every ECMAScript class constructor throws a `TypeError` when invoked via
-    * plain `[[Call]]` instead of `[[Construct]]` (`sec-ecmascript-function-
-    * objects-call-thisargument-argumentslist`'s own "If
-    * F.[[IsClassConstructor]] is true, throw a TypeError" — a
-    * `Constructor`-kind interface member is exactly this shape, per WebIDL's
-    * own "internally create a new object implementing the interface" preamble
-    * requiring a real `[[Construct]]`). Mainline's `BuiltinCallOrConstruct`
-    * already threads the real `NewTarget` on `[[Construct]]` and `undefined` on
-    * a plain `[[Call]]` (ECMA-262's own mechanized behavior, no WJI involvement
-    * needed) — `run()` binds `|NewTarget|` for every `Constructor` (and
-    * `Getter`) of this pass's algorithms, just unchecked until now.
-    * `Cond.IsMissing` compiles to exactly `NewTarget == undefined`
-    * (`Compiler.compileCond`), so this is a one-guard check.
-    */
-  private def newTargetCheck(kind: AlgorithmKind): List[Instr] = kind match
-    case AlgorithmKind.Constructor(_) =>
-      List(
-        Instr.IfChain(
-          List(
-            Cond.IsMissing(Expr.Var("NewTarget")) ->
-            List(Instr.Throw(Expr.New("TypeError"))),
-          ),
-          Nil,
-        ),
-      )
-    case _ => Nil
-
-  /** WebIDL's "internally create a new object implementing the interface"
-    * preamble — see this pass's own class doc for why a `Constructor` (unlike
-    * Getter/Setter/Method) needs this instead of relying on an already-bound
-    * `**this**`.
-    */
-  private def createThisBinding(kind: AlgorithmKind): List[Instr] = kind match
-    case AlgorithmKind.Constructor(iface) =>
-      val default = Instr.Set(Expr.This, Expr.New(iface))
-      Compiler.namesWithPrototypeIntrinsic.get(iface) match
-        case None => List(default)
-        case Some(intrinsicKey) =>
-          List(
-            default,
-            // "Let x be ? GetPrototypeFromConstructor(NewTarget, intrinsicKey)."
-            // shape -- left for NormalizeEvaluationOrderPass/ExpandAbruptPass
-            // (both run after this pass) to hoist/expand the same way real
-            // parsed prose would.
-            Instr.Let(
-              Expr.Var("_proto"),
-              Expr.Abrupt(
-                "?",
-                Expr.AlgoCall(
-                  "GetPrototypeFromConstructor",
-                  List(Expr.Var("NewTarget"), Expr.Str(intrinsicKey)),
-                ),
-              ),
-            ),
-            Instr.Set(Expr.Field(Expr.This, "Prototype"), Expr.Var("_proto")),
-          )
-    case _ => Nil
 
   /** Wraps every `Return`'s value -- recursively, including ones nested inside
     * an `IfChain`/`ForEach`/etc. (`Instr.mapBody` already knows how to
@@ -686,19 +562,12 @@ object AddInterfaceMemberBuiltinBehaviourPass extends LoweringPass:
             AlgorithmKind.Constructor(_) | AlgorithmKind.Method(_, _) |
             AlgorithmKind.NamespaceMethod(_) |
             AlgorithmKind.NamespaceGetter(_) =>
-          val params = a.kind match
-            case AlgorithmKind.Getter(_) | AlgorithmKind.Constructor(_) |
-                AlgorithmKind.NamespaceGetter(_) =>
-              BuiltinParams :+ WjiParam("|NewTarget|")
-            case _ => BuiltinParams
           val rejectType = a.idlReturnType.collect {
             case PromiseReturnType(inner) => inner
           }
           a.copy(
-            params = params,
-            body = newTargetCheck(a.kind) ++
-              unpackArgumentsList(a.params, rejectType) ++
-              givenValueBinding(a.kind) ++ createThisBinding(a.kind) ++
+            params = builtinParams(a.kind),
+            body = unpackArgumentsList(a.params, rejectType) ++
               wrapReturnValues(a.kind, a.body) ++ returnEpilogue(a),
           )
         case AlgorithmKind.Plain => a

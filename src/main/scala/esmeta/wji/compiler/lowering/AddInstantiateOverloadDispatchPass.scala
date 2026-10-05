@@ -24,8 +24,8 @@ import esmeta.wji.lang.{Algorithm, AlgorithmKind, Cond, Expr, Instr, WjiParam}
   * fix included).
   *
   * Runs right after [[AddInterfaceMemberBuiltinBehaviourPass]], once both real
-  * overloads already have the final `(this, ArgumentsList)`
-  * `<BUILTIN>:` calling convention and their final, non-colliding
+  * overloads already have the final `(this, ArgumentsList)` `<BUILTIN>:`
+  * calling convention and their final, non-colliding
   * `INTRINSICS.WebAssembly.instantiate_bytes`/`instantiate_object` names — this
   * pass's own synthetic `Algorithm` is hand-built directly in that same
   * already-final shape (mirrors [[AddJsStringBuiltinsPass]]'s own "append a
@@ -43,7 +43,7 @@ import esmeta.wji.lang.{Algorithm, AlgorithmKind, Cond, Expr, Instr, WjiParam}
   * out-of-range indexing on `ArgumentsList` throws `InvalidObjField` rather
   * than gracefully reading as `undefined` (mirrors every other
   * `ArgumentsList[i]` read in [[AddInterfaceMemberBuiltinBehaviourPass]], e.g.
-  * its own `givenValueBinding`). A zero-argument call falls to
+  * its own `unpackArgumentsList`). A zero-argument call falls to
   * `instantiate_bytes` — an arbitrary choice, harmless since both overloads'
   * first parameter is required, so either one correctly rejects with a
   * `TypeError` promise either way (`TODO.md` #57).
@@ -55,9 +55,9 @@ import esmeta.wji.lang.{Algorithm, AlgorithmKind, Cond, Expr, Instr, WjiParam}
   *
   * Requires:
   *   - [[AddInterfaceMemberBuiltinBehaviourPass]]: needs both real overloads
-  *     already reshaped into the `(this, ArgumentsList)` calling
-  *     convention, under their final, non-colliding `INTRINSICS.WebAssembly.*`
-  *     names, before this pass's forwarding calls can reference them.
+  *     already reshaped into the `(this, ArgumentsList)` calling convention,
+  *     under their final, non-colliding `INTRINSICS.WebAssembly.*` names,
+  *     before this pass's forwarding calls can reference them.
   *
   * Category: Structural desugaring — Injection.
   */

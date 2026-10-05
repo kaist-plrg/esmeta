@@ -95,7 +95,7 @@ object Extractor:
     * A `Getter`/`Setter`/`Plain` algorithm is left untouched: getters take no
     * arguments, and a setter's implicit "the given value" isn't a positional
     * `WjiParam` at all (see
-    * `esmeta.wji.compiler.lowering.AddInterfaceMemberBuiltinBehaviourPass.givenValueBinding`),
+    * `esmeta.wji.compiler.lowering.AddInterfaceMemberBuiltinBehaviourPass.builtinParams`),
     * so neither has anything here to stamp. Both also always have a real
     * (non-`"undefined"`) declared type of their own regardless — a getter
     * returns its attribute's type, and WebIDL gives setters no declared return

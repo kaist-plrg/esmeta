@@ -4097,7 +4097,7 @@ def create_an_interface_object(
   if (= _found1 true) {
     let steps = (yet "|I|'s [=overridden constructor steps=]")
   } else {
-    let steps = clo<"create_an_interface_object_closure1", [I, realm]>
+    let steps = clo<"create_an_interface_object_closure1", [I, argumentsList, realm]>
   }
   let constructorProto = realm.Intrinsics["%Function.prototype%"]
   let P = I.inherit
@@ -5621,7 +5621,7 @@ def create_an_interface_object_closure1(
     call _ret4 = clo<"ThrowCompletion">(_err3)
     return _ret4
   } else nop
-  let args = (yet "the passed arguments")
+  let args = argumentsList
   let n = (sizeof args)
   let id = I.id
   call S = clo<"Compute_the_effective_overload_set">(~Constructor~, id, I, n)

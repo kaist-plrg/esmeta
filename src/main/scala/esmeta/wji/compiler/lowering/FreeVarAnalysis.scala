@@ -66,6 +66,9 @@ object FreeVarAnalysis:
       // `Compiler`'s `Expr.This` case), so a closure that reads it without
       // declaring `this` itself has to capture it like any other variable.
       case Expr.This => referenced += "this"
+      // likewise for the `argumentsList` local `Expr.ArgumentsList` compiles
+      // to.
+      case Expr.ArgumentsList => referenced += "argumentsList"
       case Expr.Closure(_, captured) => referenced ++= captured
       case other                     => super.walk(other)
 

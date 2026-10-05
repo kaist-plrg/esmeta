@@ -484,6 +484,8 @@ object ExprParser:
   // own binding algorithms spell it (webidl/index.bs:12355, 12406, 12545) —
   // must precede the generic EmuVal below.
   private val ThisValue = """(?si)^the\s+<emu-val>this</emu-val>\s+value$""".r
+  // "the passed arguments" — see Expr.ArgumentsList.
+  private val PassedArguments = """(?si)^the\s+passed\s+arguments$""".r
   // "it" — see Expr.Pronoun.
   private val PronounOnly = """(?i)^it$""".r
   // WebIDL's implicit setter argument (see Expr.GivenValue) — must precede
@@ -1248,11 +1250,12 @@ object ExprParser:
 
       // ---- Bare references ----
       case ThisOnly()       => This
-      case ThisValue()      => This
-      case PronounOnly()    => Pronoun
-      case GivenValueOnly() => GivenValue
-      case VarOnly(name)    => Var(name)
-      case VarIgnore(name)  => Var(name.trim)
+      case ThisValue()       => This
+      case PassedArguments() => ArgumentsList
+      case PronounOnly()     => Pronoun
+      case GivenValueOnly()  => GivenValue
+      case VarOnly(name)     => Var(name)
+      case VarIgnore(name)   => Var(name.trim)
 
       // tried before "---- Arithmetic & casts ----" below, unlike every other
       // structural-access pattern (e.g. ElementAt further down) -- its own

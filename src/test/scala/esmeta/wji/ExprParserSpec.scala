@@ -210,6 +210,10 @@ class ExprParserSpec extends AnyFunSuite:
     assert(ExprParser.parse("**this**") == This)
   }
 
+  test("'the passed arguments' is the builtin's whole argument list") {
+    assert(ExprParser.parse("the passed arguments") == ArgumentsList)
+  }
+
   test("field/slot access: dotted slot, bare slot name, possessive slot") {
     assert(
       ExprParser.parse("|x|.[[Foo]]") == Field(Var("x"), "Foo"),

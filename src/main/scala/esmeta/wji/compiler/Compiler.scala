@@ -442,6 +442,9 @@ object Compiler:
     // references, exactly like any other Var, not a global.
     case metalang.Expr.This                  => ERef(Name("this"))
     case metalang.Expr.GivenValue            => ERef(Name("givenValue"))
+    // Likewise a plain local reference: the `argumentsList` parameter
+    // AddBuiltinBehaviourPass gives every builtin-behaviour closure.
+    case metalang.Expr.ArgumentsList         => ERef(Name("argumentsList"))
     case metalang.Expr.Num(s)                => compileNum(s)
     case metalang.Expr.Byte(v)               => ENumber(v.toDouble)
     case metalang.Expr.Bool(b)               => EBool(b)
@@ -794,6 +797,7 @@ object Compiler:
     case metalang.Expr.Var(name)                     => Name(name)
     case metalang.Expr.This                          => Name("this")
     case metalang.Expr.GivenValue                    => Name("givenValue")
+    case metalang.Expr.ArgumentsList                 => Name("argumentsList")
     case metalang.Expr.SpecTerm("surrounding agent") => GLOBAL_AGENT_RECORD
     case metalang.Expr.SpecTerm("current Realm") =>
       Field(GLOBAL_CONTEXT, EStr("Realm"))

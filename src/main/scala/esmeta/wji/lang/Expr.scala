@@ -10,6 +10,12 @@ object Expr:
   case object This extends Expr // only used in interface member
   case object GivenValue extends Expr // only used in setter
 
+  /** "the passed arguments" — the whole list of arguments a builtin function
+    * was called with, as WebIDL's own binding algorithms spell it
+    * (webidl/index.bs:11945, 12011).
+    */
+  case object ArgumentsList extends Expr
+
   /** "it" — a pronoun referring back to the value stated just before it, e.g.
     * the guard of "the <emu-val>this</emu-val> value, if it is not
     * <emu-val>null</emu-val> or <emu-val>undefined</emu-val>, or ...

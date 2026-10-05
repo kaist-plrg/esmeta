@@ -1573,7 +1573,7 @@
       Throw(new {{TypeError}})
     If(NewTarget is undefined)
       Throw(new {{TypeError}})
-    Let(|args|, ?(the passed arguments))
+    Let(|args|, the passed arguments)
     Let(|n|, length(|args|))
     Let(|id|, |I|.[[id]])
     PerformAndLet([=Compute the effective overload set=](Constructor, [=identifier=](|id|, [=interface=](|I|, |n|))), |S|)

@@ -36,13 +36,18 @@ import esmeta.error.UnsupportedSpecShape
   * than an opaque global sequence number.
   *
   * Purely a hoisting/naming transform: the resulting `Algorithm` keeps exactly
-  * the parameters the spec text itself declared (e.g. just `V`), and its body
-  * is otherwise untouched. It has no notion of what calling convention the
-  * closure is ultimately invoked under — a closure passed to
-  * `CreateBuiltinFunction` additionally needs the fixed 3-argument builtin
-  * signature and completion-record-wrapped returns, but that adaptation is a
-  * separate concern handled afterward by [[AddBuiltinBehaviourPass]] (see its
-  * own doc for why it isn't done here instead).
+  * the parameters its `FollowingSteps` declares, and its body is otherwise
+  * untouched. It has no notion of what calling convention the closure is
+  * ultimately invoked under — a closure passed to `CreateBuiltinFunction`
+  * additionally needs the fixed 3-argument builtin signature, but that
+  * adaptation is a separate concern already applied to the `FollowingSteps`
+  * itself by [[AddBuiltinBehaviourPass]] *before* this pass runs, so that
+  * `captured` is computed against the closure's final parameter list: a
+  * builtin behaviour's own `this` parameter is then excluded from `captured`
+  * exactly like any other declared parameter, while any other closure reading
+  * `Expr.This` captures it from its enclosing algorithm. All this pass does
+  * for that convention is carry `FollowingSteps.isBuiltinBehaviour` over onto
+  * the hoisted `Algorithm`.
   *
   * Assumes at most one `Expr.FollowingSteps` per instruction (throws if
   * [[findOne]] finds more), and makes no assumption about exactly where within
@@ -121,13 +126,13 @@ object ExpandFollowingStepsPass extends LoweringPass:
     rewritten ++ extra.toList
 
   private def hoist(
-    params: List[String],
-    variadicLast: Boolean,
+    fs: Expr.FollowingSteps,
     body: List[Instr],
     label: String,
     freshName: () => String,
     extra: collection.mutable.ListBuffer[Algorithm],
   ): Expr.Closure =
+    val Expr.FollowingSteps(params, variadicLast, isBuiltinBehaviour) = fs
     val name = freshName()
     // `body` may itself contain further-nested FollowingSteps (e.g. a
     // `react`-inside-`react` call site) — lower those first, since `extra`
@@ -139,7 +144,14 @@ object ExpandFollowingStepsPass extends LoweringPass:
       case (p, i) =>
         WjiParam(s"|$p|", variadic = variadicLast && i == params.size - 1)
     }
-    extra += Algorithm(None, Some(name), wjiParams, "", lowered)
+    extra += Algorithm(
+      None,
+      Some(name),
+      wjiParams,
+      "",
+      lowered,
+      isBuiltinBehaviour = isBuiltinBehaviour,
+    )
     Expr.Closure(name, captured)
 
   /** Finds the lone `Expr.FollowingSteps` reachable from `exprs`, at any
@@ -151,13 +163,12 @@ object ExpandFollowingStepsPass extends LoweringPass:
   private def findOne(
     exprs: List[Expr],
     label: String,
-  ): Option[(List[String], Boolean)] =
-    val found = collection.mutable.ListBuffer.empty[(List[String], Boolean)]
+  ): Option[Expr.FollowingSteps] =
+    val found = collection.mutable.ListBuffer.empty[Expr.FollowingSteps]
     val finder = new UnitWalker:
       override def walk(expr: Expr): Unit = expr match
-        case Expr.FollowingSteps(params, variadicLast) =>
-          found += ((params, variadicLast))
-        case other => super.walk(other)
+        case fs: Expr.FollowingSteps => found += fs
+        case other                   => super.walk(other)
     exprs.foreach(finder.walk)
     found.toList match
       case Nil        => None
@@ -172,13 +183,12 @@ object ExpandFollowingStepsPass extends LoweringPass:
   private def findOneInCond(
     cond: Cond,
     label: String,
-  ): Option[(List[String], Boolean)] =
-    val found = collection.mutable.ListBuffer.empty[(List[String], Boolean)]
+  ): Option[Expr.FollowingSteps] =
+    val found = collection.mutable.ListBuffer.empty[Expr.FollowingSteps]
     val finder = new UnitWalker:
       override def walk(expr: Expr): Unit = expr match
-        case Expr.FollowingSteps(params, variadicLast) =>
-          found += ((params, variadicLast))
-        case other => super.walk(other)
+        case fs: Expr.FollowingSteps => found += fs
+        case other                   => super.walk(other)
     finder.walk(cond)
     found.toList match
       case Nil        => None
@@ -267,37 +277,37 @@ object ExpandFollowingStepsPass extends LoweringPass:
   ): Option[Instr] =
     if instr.body.isEmpty then None
     else
-      def go(ps: List[String], vl: Boolean) =
-        hoist(ps, vl, instr.body, label, freshName, extra)
+      def go(fs: Expr.FollowingSteps) =
+        hoist(fs, instr.body, label, freshName, extra)
       instr match
         case i: Instr.Let =>
-          findOne(List(i.expr), label).map { (ps, vl) =>
-            val c = go(ps, vl)
+          findOne(List(i.expr), label).map { fs =>
+            val c = go(fs)
             i.copy(expr = substitute(i.expr, c), body = Nil)
           }
         case i: Instr.Set =>
-          findOne(List(i.expr), label).map { (ps, vl) =>
-            val c = go(ps, vl)
+          findOne(List(i.expr), label).map { fs =>
+            val c = go(fs)
             i.copy(expr = substitute(i.expr, c), body = Nil)
           }
         case i: Instr.Return =>
-          findOne(i.expr.toList, label).map { (ps, vl) =>
-            val c = go(ps, vl)
+          findOne(i.expr.toList, label).map { fs =>
+            val c = go(fs)
             i.copy(expr = i.expr.map(substitute(_, c)), body = Nil)
           }
         case i: Instr.Throw =>
-          findOne(List(i.target), label).map { (ps, vl) =>
-            val c = go(ps, vl)
+          findOne(List(i.target), label).map { fs =>
+            val c = go(fs)
             i.copy(target = substitute(i.target, c), body = Nil)
           }
         case i: Instr.Assert =>
-          findOneInCond(i.cond, label).map { (ps, vl) =>
-            val c = go(ps, vl)
+          findOneInCond(i.cond, label).map { fs =>
+            val c = go(fs)
             i.copy(cond = substituteCond(i.cond, c), body = Nil)
           }
         case i: Instr.Append =>
-          findOne(List(i.item, i.collection), label).map { (ps, vl) =>
-            val c = go(ps, vl)
+          findOne(List(i.item, i.collection), label).map { fs =>
+            val c = go(fs)
             i.copy(
               item = substitute(i.item, c),
               collection = substitute(i.collection, c),
@@ -305,28 +315,28 @@ object ExpandFollowingStepsPass extends LoweringPass:
             )
           }
         case i: Instr.Remove =>
-          findOne(List(i.list), label).map { (ps, vl) =>
-            val c = go(ps, vl)
+          findOne(List(i.list), label).map { fs =>
+            val c = go(fs)
             i.copy(list = substitute(i.list, c), body = Nil)
           }
         case i: Instr.Pop =>
-          findOne(List(i.list), label).map { (ps, vl) =>
-            val c = go(ps, vl)
+          findOne(List(i.list), label).map { fs =>
+            val c = go(fs)
             i.copy(list = substitute(i.list, c), body = Nil)
           }
         case i: Instr.Perform =>
-          findOne(i.args, label).map { (ps, vl) =>
-            val c = go(ps, vl)
+          findOne(i.args, label).map { fs =>
+            val c = go(fs)
             i.copy(args = i.args.map(substitute(_, c)), body = Nil)
           }
         case i: Instr.Try =>
-          findOne(List(i.call), label).map { (ps, vl) =>
-            val c = go(ps, vl)
+          findOne(List(i.call), label).map { fs =>
+            val c = go(fs)
             i.copy(call = substitute(i.call, c), body = Nil)
           }
         case i: Instr.PerformClosure =>
-          findOne(i.closure :: i.args, label).map { (ps, vl) =>
-            val c = go(ps, vl)
+          findOne(i.closure :: i.args, label).map { fs =>
+            val c = go(fs)
             i.copy(
               closure = substitute(i.closure, c),
               args = i.args.map(substitute(_, c)),

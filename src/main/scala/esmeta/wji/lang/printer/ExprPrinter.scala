@@ -67,7 +67,7 @@ object ExprPrinter:
     case Expr.Unknown(raw) => s"?($raw)"
     case Closure(name, captured) =>
       s"closure $name captures(${captured.mkString(", ")})"
-    case FollowingSteps(params, variadicLast) =>
+    case FollowingSteps(params, variadicLast, _) =>
       val rendered = if variadicLast then params :+ "..." else params
       s"followingSteps(${rendered.mkString(", ")})"
     case ClosureCall(closure, args) =>

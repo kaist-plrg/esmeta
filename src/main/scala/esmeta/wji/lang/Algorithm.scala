@@ -111,10 +111,11 @@ enum AlgorithmKind:
   *   `esmeta.wji.compiler.lowering.ExpandFollowingStepsPass` when hoisting a
   *   `"the following steps given the list of arguments |V|:"` closure (see
   *   `Expr.FollowingSteps`), never by [[AlgorithmExtractor.extractParams]].
-  *   Consumed and discarded by
-  *   `esmeta.wji.compiler.lowering.AddBuiltinBehaviourPass` before
-  *   `esmeta.wji.compiler.Compiler.compileAlgo` ever sees it —
-  *   `esmeta.ir.Param` has no equivalent field.
+  *   For a builtin behaviour,
+  *   `esmeta.wji.compiler.lowering.AddBuiltinBehaviourPass` consumes it even
+  *   before hoisting (replacing the closure's parameters with the builtin
+  *   signature), so `esmeta.wji.compiler.Compiler.compileAlgo` never sees it
+  *   there — `esmeta.ir.Param` has no equivalent field.
   * @param idlType
   *   this parameter's declared WebIDL type text (e.g. `"unsigned long"`,
   *   `"any"`), if this is a real interface member parameter and
@@ -184,11 +185,11 @@ case class WjiParam(
   * @param isBuiltinBehaviour
   *   whether this is a closure
   *   `esmeta.wji.compiler.lowering.ExpandFollowingStepsPass` hoisted for
-  *   `CreateBuiltinFunction`'s `behaviour` argument — computed once, right
-  *   after hoisting, by
-  *   `esmeta.wji.compiler.lowering.MarkBuiltinBehaviourPass`; every later pass
-  *   that cares (`AddBuiltinBehaviourPass`, and its own `preconditions`) just
-  *   reads this field, the same reasoning as `returnsCompletion` above.
+  *   `CreateBuiltinFunction`'s `behaviour` argument — copied by that pass from
+  *   the same-named field `esmeta.wji.compiler.lowering.MarkBuiltinBehaviourPass`
+  *   stamps onto the closure's `Expr.FollowingSteps` before hoisting; every
+  *   later pass that cares (`CompletionAlgorithms`) just reads this field, the
+  *   same reasoning as `returnsCompletion` above.
   * @param idlReturnType
   *   the raw WebIDL-declared return type text (e.g. `"undefined"`,
   *   `"AddressValue"`) for a [[AlgorithmKind.Method]]/

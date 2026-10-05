@@ -81,10 +81,12 @@ object Lowering:
     GroupIfChainPass,
     ExpandContinuePass,
     NormalizeSpecTecCaseShapePass,
-    ExpandFollowingStepsPass,
-    // injections
+    // injections — the first two rewrite a builtin behaviour's still-unhoisted
+    // `FollowingSteps`, so hoisting already sees its final parameter list
+    // (`this` included) when computing the closure's captured variables.
     MarkBuiltinBehaviourPass,
     AddBuiltinBehaviourPass,
+    ExpandFollowingStepsPass,
     AddInterfaceMemberBuiltinBehaviourPass,
     AddInstantiateOverloadDispatchPass,
     // eliminations

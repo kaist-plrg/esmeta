@@ -61,7 +61,11 @@ object FreeVarAnalysis:
       case other                     => super.walk(other)
 
     override def walk(expr: Expr): Unit = expr match
-      case Expr.Var(name)            => referenced += name
+      case Expr.Var(name) => referenced += name
+      // compiles to the same local a `|this|` parameter declares (see
+      // `Compiler`'s `Expr.This` case), so a closure that reads it without
+      // declaring `this` itself has to capture it like any other variable.
+      case Expr.This => referenced += "this"
       case Expr.Closure(_, captured) => referenced ++= captured
       case other                     => super.walk(other)
 

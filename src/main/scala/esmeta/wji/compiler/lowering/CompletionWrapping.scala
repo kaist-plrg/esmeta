@@ -89,9 +89,9 @@ object CompletionWrapping:
       // a "the following steps..." closure's substeps are a separate
       // algorithm-to-be (see CompletionAlgorithms) — its own Returns are none
       // of this algorithm's business to wrap. (A no-op by the time
-      // AddBuiltinBehaviourPass calls this: no FollowingSteps remain anywhere
-      // in the program past ExpandFollowingStepsPass.)
-      case i @ Instr.Let(_, Expr.FollowingSteps(_, _), _) => List(i)
+      // WrapCompletionReturnsPass calls this: no FollowingSteps remain
+      // anywhere in the program past ExpandFollowingStepsPass.)
+      case i @ Instr.Let(_, Expr.FollowingSteps(_, _, _), _) => List(i)
       case Instr.Throw(Expr.New(iface), _) =>
         val err = counter.freshErr()
         val ret = counter.freshRet()

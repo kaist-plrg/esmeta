@@ -293,9 +293,17 @@ object Expr:
     * itself, wherever it appears as an argument/value, taking `params` as
     * formal parameters (no `|` delimiters). If vardadicLast is true, the last
     * parameter of params consumes all of remaining args and stores as the list.
+    * `isBuiltinBehaviour` is whether this closure is `CreateBuiltinFunction`'s
+    * `behaviour` argument — never set by `ExprParser`, only stamped afterward
+    * by `esmeta.wji.compiler.lowering.MarkBuiltinBehaviourPass`, and carried
+    * over onto the hoisted [[Algorithm]]'s own same-named field by
+    * `esmeta.wji.compiler.lowering.ExpandFollowingStepsPass`.
     */
-  case class FollowingSteps(params: List[String], variadicLast: Boolean = false)
-    extends Expr
+  case class FollowingSteps(
+    params: List[String],
+    variadicLast: Boolean = false,
+    isBuiltinBehaviour: Boolean = false,
+  ) extends Expr
 
   /** "performing CLOSURE given ARG[, ARG...][ and ARG]" — invoking a closure
     * *value* (as opposed to [[Instr.Perform]], which invokes a *named*

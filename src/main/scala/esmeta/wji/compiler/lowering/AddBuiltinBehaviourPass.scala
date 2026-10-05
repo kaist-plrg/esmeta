@@ -3,7 +3,7 @@ package esmeta.wji.compiler.lowering
 import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr, WjiParam}
 import esmeta.error.UnsupportedSpecShape
 
-/** Adapts every `Algorithm` [[MarkBuiltinBehaviourPass]] flagged
+/** Adapts every `Expr.FollowingSteps` [[MarkBuiltinBehaviourPass]] flagged
   * `isBuiltinBehaviour = true` into a valid builtin function body: unpacks
   * `argumentsList` into the closure's own declared parameter names, the fix-up
   * `manuals/rule.json`'s hand-patched `BuiltinCallOrConstruct` rule requires
@@ -19,6 +19,29 @@ import esmeta.error.UnsupportedSpecShape
   * only hoists a closure/`Algorithm` pair, with no notion of what convention
   * the closure is ultimately invoked under.
   *
+  * {{{
+  *   Let(lhs, FollowingSteps(List("V"), isBuiltinBehaviour = true), substeps)
+  * }}}
+  * becomes:
+  * {{{
+  *   Let(
+  *     lhs,
+  *     FollowingSteps(
+  *       List("this", "argumentsList", "newTarget"),
+  *       isBuiltinBehaviour = true,
+  *     ),
+  *     <unpack argumentsList into V> ++ substeps,
+  *   )
+  * }}}
+  *
+  * Rewrites the not-yet-hoisted placeholder rather than the hoisted
+  * `Algorithm`, so that `ExpandFollowingStepsPass` computes the closure's
+  * captured variables against this final parameter list: the closure's own
+  * `this` (what `Expr.This` compiles to — see [[BuiltinParams]]) is then
+  * excluded from them like any other declared parameter, instead of being
+  * wrongly captured from an enclosing algorithm that has no `this` of its own
+  * to offer.
+  *
   * Doesn't wrap completion records itself — `manuals/rule.json`'s Call rule
   * reads `.[[Type]]`/`.[[Value]]` off whatever `F.__CODE__` returns
   * unconditionally, so every `isBuiltinBehaviour` closure needs one on every
@@ -29,7 +52,7 @@ import esmeta.error.UnsupportedSpecShape
   * those (see `Lowering.pipeline`), so a hoisted closure's body reaches them
   * looking like an ordinary algorithm body.
   *
-  * Doesn't itself detect which `Algorithm` needs this — see
+  * Doesn't itself detect which `FollowingSteps` needs this — see
   * [[MarkBuiltinBehaviourPass]] for that.
   *
   * Category: Structural desugaring — Injection.
@@ -38,15 +61,25 @@ object AddBuiltinBehaviourPass extends LoweringPass:
 
   /** Requires:
     *   - [[MarkBuiltinBehaviourPass]]: needs `isBuiltinBehaviour` already
-    *     stamped onto every `Algorithm` to know which ones to target.
+    *     stamped onto every `FollowingSteps` to know which ones to target.
     */
   override def requires: Set[LoweringPass] = Set(MarkBuiltinBehaviourPass)
 
+  /** Must precede:
+    *   - [[ExpandFollowingStepsPass]]: see class doc — the hoisted closure's
+    *     captured variables depend on its final parameter list.
+    */
+  override def mustPrecede: Set[LoweringPass] = Set(ExpandFollowingStepsPass)
+
   /** formal parameter names `BuiltinCallOrConstruct`'s hand-patched IR always
     * calls `func.__CODE__` with, regardless of what parameters the underlying
-    * `behaviour` closure itself declares.
+    * `behaviour` closure itself declares. The first is named `this` — not
+    * `thisArgument`, as that rule's own prose calls it — because that's the
+    * local `Expr.This` compiles to (see `esmeta.wji.compiler.Compiler`), the
+    * same reason [[AddInterfaceMemberBuiltinBehaviourPass]] declares a `|this|`
+    * parameter.
     */
-  private val BuiltinParams = List("thisArgument", "argumentsList", "newTarget")
+  private val BuiltinParams = List("this", "argumentsList", "newTarget")
 
   private def stripPipes(s: String): String =
     s.stripPrefix("|").stripSuffix("|")
@@ -133,12 +166,26 @@ object AddBuiltinBehaviourPass extends LoweringPass:
         )
     }
 
-  def run(algos: List[Algorithm]): List[Algorithm] =
-    algos.map { a =>
-      if a.isBuiltinBehaviour then
-        a.copy(
-          params = BuiltinParams.map(p => WjiParam(s"|$p|")),
-          body = unpackArgumentsList(a.params) ++ a.body,
+  /** Rewrites every builtin-behaviour `FollowingSteps` in `instrs`, recursing
+    * into every nested body — including the closure's own substeps, which may
+    * themselves define further builtin behaviours.
+    */
+  private def transform(instrs: List[Instr]): List[Instr] =
+    instrs.map {
+      case i @ Instr.Let(_, Expr.FollowingSteps(params, variadicLast, true), _) =>
+        val wjiParams = params.zipWithIndex.map {
+          case (p, idx) =>
+            WjiParam(
+              s"|$p|",
+              variadic = variadicLast && idx == params.size - 1,
+            )
+        }
+        i.copy(
+          expr = Expr.FollowingSteps(BuiltinParams, isBuiltinBehaviour = true),
+          body = unpackArgumentsList(wjiParams) ++ transform(i.body),
         )
-      else a
+      case instr => instr.mapBody(transform)
     }
+
+  def run(algos: List[Algorithm]): List[Algorithm] =
+    algos.map(a => a.copy(body = transform(a.body)))

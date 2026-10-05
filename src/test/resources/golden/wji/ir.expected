@@ -5765,7 +5765,7 @@ def instantiate_a_promise_of_a_module_closure4(
   return ~unused~
 }
 def a_new_exported_function_closure1(
-  thisArgument: Unknown,
+  this: Unknown,
   argumentsList: Unknown,
   newTarget: Unknown,
 ): Unknown = {
@@ -5815,7 +5815,7 @@ def create_a_host_function_closure1(
   }
 }
 def react_closure1(
-  thisArgument: Unknown,
+  this: Unknown,
   argumentsList: Unknown,
   newTarget: Unknown,
 ): Unknown = {
@@ -5839,7 +5839,7 @@ def react_closure1(
   }
 }
 def react_closure2(
-  thisArgument: Unknown,
+  this: Unknown,
   argumentsList: Unknown,
   newTarget: Unknown,
 ): Unknown = {
@@ -5995,11 +5995,11 @@ def attribute_getter_closure2(
   }
 }
 def attribute_getter_closure1(
-  thisArgument: Unknown,
+  this: Unknown,
   argumentsList: Unknown,
   newTarget: Unknown,
 ): Unknown = {
-  call _throwComp1 = clo<"attribute_getter_closure2", [attribute, realm, target]>()
+  call _throwComp1 = clo<"attribute_getter_closure2", [attribute, realm, target, this]>()
   if (exists _throwComp1.Type) {
     if (= _throwComp1.Type ~throw~) {
       let E = _throwComp1.Value
@@ -6036,7 +6036,7 @@ def attribute_getter_closure1(
   }
 }
 def attribute_setter_closure1(
-  thisArgument: Unknown,
+  this: Unknown,
   argumentsList: Unknown,
   newTarget: Unknown,
 ): Unknown = {
@@ -6291,12 +6291,12 @@ def creating_an_operation_function_closure2(
   (yet "Issue(whatwg/webidl#674): |R| is assumed to be an IDL value of the type |op| is declared to return")
 }
 def creating_an_operation_function_closure1(
-  thisArgument: Unknown,
+  this: Unknown,
   argumentsList: Unknown,
   newTarget: Unknown,
 ): Unknown = {
   let args = argumentsList
-  call _throwComp1 = clo<"creating_an_operation_function_closure2", [args, id, op, realm, target]>()
+  call _throwComp1 = clo<"creating_an_operation_function_closure2", [args, id, op, realm, target, this]>()
   if (exists _throwComp1.Type) {
     if (= _throwComp1.Type ~throw~) {
       let E = _throwComp1.Value
@@ -6333,7 +6333,7 @@ def creating_an_operation_function_closure1(
   }
 }
 def define_the_iteration_methods_closure1(
-  thisArgument: Unknown,
+  this: Unknown,
   argumentsList: Unknown,
   newTarget: Unknown,
 ): Unknown = {
@@ -6374,7 +6374,7 @@ def define_the_iteration_methods_closure1(
   }
 }
 def define_the_iteration_methods_closure2(
-  thisArgument: Unknown,
+  this: Unknown,
   argumentsList: Unknown,
   newTarget: Unknown,
 ): Unknown = {
@@ -6415,7 +6415,7 @@ def define_the_iteration_methods_closure2(
   }
 }
 def define_the_iteration_methods_closure3(
-  thisArgument: Unknown,
+  this: Unknown,
   argumentsList: Unknown,
   newTarget: Unknown,
 ): Unknown = {
@@ -6456,7 +6456,7 @@ def define_the_iteration_methods_closure3(
   }
 }
 def define_the_asynchronous_iteration_methods_closure1(
-  thisArgument: Unknown,
+  this: Unknown,
   argumentsList: Unknown,
   newTarget: Unknown,
 ): Unknown = {
@@ -6501,7 +6501,7 @@ def define_the_asynchronous_iteration_methods_closure1(
   }
 }
 def define_the_asynchronous_iteration_methods_closure2(
-  thisArgument: Unknown,
+  this: Unknown,
   argumentsList: Unknown,
   newTarget: Unknown,
 ): Unknown = {
@@ -6546,7 +6546,7 @@ def define_the_asynchronous_iteration_methods_closure2(
   }
 }
 def define_the_asynchronous_iteration_methods_closure3(
-  thisArgument: Unknown,
+  this: Unknown,
   argumentsList: Unknown,
   newTarget: Unknown,
 ): Unknown = {

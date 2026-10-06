@@ -5619,7 +5619,7 @@ def create_an_interface_object_closure1(
     call _ret2 = clo<"ThrowCompletion">(_err1)
     return _ret2
   } else nop
-  if (= ~NewTarget~ undefined) {
+  if (= newTarget undefined) {
     call _err3 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
     call _ret4 = clo<"ThrowCompletion">(_err3)
     return _ret4
@@ -5641,7 +5641,7 @@ def create_an_interface_object_closure1(
   }
   let constructor = _tuple1[0]
   let values = _tuple1[1]
-  call _guard2 = clo<"internally_create_a_new_object_implementing_the_interface">(I, realm, ~NewTarget~)
+  call _guard2 = clo<"internally_create_a_new_object_implementing_the_interface">(I, realm, newTarget)
   if (&& (? _guard2: Completion) (! (= _guard2.Type ~normal~))) {
     if (? _guard2: Completion) {
       return _guard2

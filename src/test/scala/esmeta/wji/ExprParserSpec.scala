@@ -214,6 +214,10 @@ class ExprParserSpec extends AnyFunSuite:
     assert(ExprParser.parse("the passed arguments") == ArgumentsList)
   }
 
+  test("'{{NewTarget}}' is the builtin's NewTarget") {
+    assert(ExprParser.parse("{{NewTarget}}") == NewTarget)
+  }
+
   test("field/slot access: dotted slot, bare slot name, possessive slot") {
     assert(
       ExprParser.parse("|x|.[[Foo]]") == Field(Var("x"), "Foo"),

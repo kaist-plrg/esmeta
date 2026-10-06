@@ -16,6 +16,12 @@ object Expr:
     */
   case object ArgumentsList extends Expr
 
+  /** "{{NewTarget}}" — the NewTarget a builtin function was constructed with
+    * (`undefined` when it was called instead), as WebIDL's own binding
+    * algorithms spell it (webidl/index.bs:11943, 11954, 12009, 12019).
+    */
+  case object NewTarget extends Expr
+
   /** "it" — a pronoun referring back to the value stated just before it, e.g.
     * the guard of "the <emu-val>this</emu-val> value, if it is not
     * <emu-val>null</emu-val> or <emu-val>undefined</emu-val>, or ...

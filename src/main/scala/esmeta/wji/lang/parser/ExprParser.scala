@@ -486,6 +486,9 @@ object ExprParser:
   private val ThisValue = """(?si)^the\s+<emu-val>this</emu-val>\s+value$""".r
   // "the passed arguments" — see Expr.ArgumentsList.
   private val PassedArguments = """(?si)^the\s+passed\s+arguments$""".r
+  // "{{NewTarget}}" — see Expr.NewTarget — must precede the generic
+  // BracedTerm below, which would otherwise turn it into a SpecTerm.
+  private val NewTargetOnly = """(?s)^\{\{NewTarget\}\}$""".r
   // "it" — see Expr.Pronoun.
   private val PronounOnly = """(?i)^it$""".r
   // WebIDL's implicit setter argument (see Expr.GivenValue) — must precede
@@ -1252,6 +1255,7 @@ object ExprParser:
       case ThisOnly()       => This
       case ThisValue()       => This
       case PassedArguments() => ArgumentsList
+      case NewTargetOnly()   => NewTarget
       case PronounOnly()     => Pronoun
       case GivenValueOnly()  => GivenValue
       case VarOnly(name)     => Var(name)

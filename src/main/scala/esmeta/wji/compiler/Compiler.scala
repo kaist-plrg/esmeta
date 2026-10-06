@@ -445,6 +445,8 @@ object Compiler:
     // Likewise a plain local reference: the `argumentsList` parameter
     // AddBuiltinBehaviourPass gives every builtin-behaviour closure.
     case metalang.Expr.ArgumentsList         => ERef(Name("argumentsList"))
+    // Likewise for the `newTarget` parameter.
+    case metalang.Expr.NewTarget             => ERef(Name("newTarget"))
     case metalang.Expr.Num(s)                => compileNum(s)
     case metalang.Expr.Byte(v)               => ENumber(v.toDouble)
     case metalang.Expr.Bool(b)               => EBool(b)
@@ -802,6 +804,7 @@ object Compiler:
     case metalang.Expr.This                          => Name("this")
     case metalang.Expr.GivenValue                    => Name("givenValue")
     case metalang.Expr.ArgumentsList                 => Name("argumentsList")
+    case metalang.Expr.NewTarget                     => Name("newTarget")
     case metalang.Expr.SpecTerm("surrounding agent") => GLOBAL_AGENT_RECORD
     case metalang.Expr.SpecTerm("current Realm") =>
       Field(GLOBAL_CONTEXT, EStr("Realm"))

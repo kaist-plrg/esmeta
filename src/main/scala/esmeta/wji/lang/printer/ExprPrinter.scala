@@ -10,6 +10,7 @@ object ExprPrinter:
     case This                 => "**this**"
     case GivenValue           => "**the given value**"
     case ArgumentsList        => "the passed arguments"
+    case NewTarget            => "{{NewTarget}}"
     case Pronoun              => "it"
     case Num(value)           => value
     case Byte(v)              => s"0x$v"

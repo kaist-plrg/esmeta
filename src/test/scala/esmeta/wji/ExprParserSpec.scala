@@ -471,10 +471,7 @@ class ExprParserSpec extends AnyFunSuite:
   test("internal slot invoked as a method: BASE.[[Slot]](ARGS)") {
     assert(
       ExprParser.parse("|unforgeables|.[[GetOwnProperty]](|key|)") ==
-      ClosureCall(
-        Field(Var("unforgeables"), "GetOwnProperty"),
-        List(Var("key")),
-      ),
+      MethodCall(Var("unforgeables"), "GetOwnProperty", List(Var("key"))),
     )
   }
 

@@ -324,6 +324,17 @@ object Expr:
     */
   case class ClosureCall(closure: Expr, args: List[Expr]) extends Expr
 
+  /** "BASE.[[NAME]](ARG, ...)" — invoking an internal method of an object,
+    * e.g. `|unforgeables|.[[GetOwnProperty]](|key|)`. Mirrors mainline's
+    * `esmeta.lang.InvokeMethodExpression`: the method receives `base` itself as
+    * an implicit first argument (every `[[...]]` internal method declares its
+    * receiver `O` first), unlike a [[ClosureCall]] on a closure-valued field
+    * (`|operation|`'s method steps), which has no receiver. Eliminated by
+    * `esmeta.wji.compiler.lowering.ExpandMethodCallPass`, which makes that
+    * receiver argument explicit.
+    */
+  case class MethodCall(base: Expr, name: String, args: List[Expr]) extends Expr
+
   /** Spec prose that didn't match any recognised expression pattern. */
   case class Unknown(raw: String) extends Expr
 
@@ -476,6 +487,7 @@ object Expr:
       case IndexOf(list, elem)        => List(list, elem)
       case ShortestArgumentList(list) => List(list)
       case ClosureCall(closure, args) => closure :: args
+      case MethodCall(base, _, args)  => base :: args
       case TupleProj(base, _)         => List(base)
       case CaseTag(base)              => List(base)
       case Opt(inner)                 => inner.toList

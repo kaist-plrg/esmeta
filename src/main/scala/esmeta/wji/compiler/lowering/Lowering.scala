@@ -90,6 +90,7 @@ object Lowering:
     AddInterfaceMemberBuiltinBehaviourPass,
     AddInstantiateOverloadDispatchPass,
     // eliminations
+    ExpandMethodCallPass,
     ExpandTryPass,
     ExpandHasDuplicatesPass,
     ExpandRemovePass,

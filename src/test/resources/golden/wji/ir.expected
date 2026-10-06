@@ -4874,14 +4874,14 @@ def internally_create_a_new_object_implementing_the_interface(
   while (< _iterIdx2 (sizeof _iterList1)) {
     let ancestor interface = _iterList1[_iterIdx2]
     let unforgeables = realm.HOST_DEFINED.interfaceObjects[ancestor interface.id].Unforgeables
-    call _call5 = unforgeables.OwnPropertyKeys()
+    call _call5 = unforgeables.OwnPropertyKeys(unforgeables)
     assert (= _call5.Type ~normal~)
     let keys = _call5.Value
     let _iterList3 = keys
     let _iterIdx4 = 0
     while (< _iterIdx4 (sizeof _iterList3)) {
       let key = _iterList3[_iterIdx4]
-      call _call6 = unforgeables.GetOwnProperty(key)
+      call _call6 = unforgeables.GetOwnProperty(unforgeables, key)
       assert (= _call6.Type ~normal~)
       let descriptor = _call6.Value
       call _ = clo<"DefinePropertyOrThrow">(instance, key, descriptor)

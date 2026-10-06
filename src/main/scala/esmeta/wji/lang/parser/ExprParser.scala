@@ -543,11 +543,11 @@ object ExprParser:
   // "BASE.[[Slot]](ARGS)" — an internal slot/method invoked immediately, e.g.
   // "|unforgeables|.[[GetOwnProperty]](|key|)" (webidl/index.bs:13853,
   // webidl_yet_categorized.md category I-A). Not just a SlotAccess (which
-  // anchors at the closing `]]`) with leftover trailing text — WJI already
-  // models "invoke the closure stored in field X of BASE" as
-  // `ClosureCall(Field(base, name), args)` for the analogous
-  // StepsCallWithArgs/StepsCallNoArgs idiom below, so this
-  // reuses that exact shape rather than inventing a new node.
+  // anchors at the closing `]]`) with leftover trailing text — and not the
+  // `ClosureCall(Field(base, name), args)` the StepsCallWithArgs/
+  // StepsCallNoArgs idiom below produces either: this syntax is an internal
+  // *method* call, which passes BASE itself as the receiver, so it gets its
+  // own `MethodCall` node (see its doc).
   private val SlotMethodCall =
     """(?s)^(.+)\.\\?\[\[([^\]]+)\]\]\((.*)\)$""".r
   // a bare "\[[SlotName]]" with no base — the slot's *name*, used as a value
@@ -1281,8 +1281,9 @@ object ExprParser:
 
       // ---- Structural access ----
       case SlotMethodCall(baseRaw, slot, argsRaw) =>
-        ClosureCall(
-          Field(parse(baseRaw), stripBraces(slot)),
+        MethodCall(
+          parse(baseRaw),
+          stripBraces(slot),
           splitComma(argsRaw).map(parse),
         )
       case SlotAccess(baseRaw, slot) => Field(parse(baseRaw), stripBraces(slot))

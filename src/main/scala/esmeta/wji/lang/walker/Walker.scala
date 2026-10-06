@@ -44,6 +44,8 @@ trait Walker:
       Expr.ShortestArgumentList(walk(list))
     case Expr.ClosureCall(closure, args) =>
       Expr.ClosureCall(walk(closure), args.map(walk))
+    case Expr.MethodCall(base, name, args) =>
+      Expr.MethodCall(walk(base), name, args.map(walk))
     case Expr.TupleProj(base, idx) => Expr.TupleProj(walk(base), idx)
     case Expr.CaseTag(base)        => Expr.CaseTag(walk(base))
     case Expr.Opt(inner)           => Expr.Opt(inner.map(walk))

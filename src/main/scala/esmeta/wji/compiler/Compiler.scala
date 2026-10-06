@@ -643,6 +643,10 @@ object Compiler:
           .map(ExprPrinter.render)
           .mkString(", ")}",
       )
+    case m: metalang.Expr.MethodCall =>
+      impossible(
+        s"MethodCall not eliminated by ExpandMethodCallPass: ${ExprPrinter.render(m)}",
+      )
     case metalang.Expr.GetMember(definition, member, _) =>
       impossible(
         s"getting $member of $definition is found",

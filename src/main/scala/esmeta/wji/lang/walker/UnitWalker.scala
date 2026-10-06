@@ -38,6 +38,8 @@ trait UnitWalker:
     case Expr.ShortestArgumentList(list) => walk(list)
     case Expr.ClosureCall(closure, args) =>
       walk(closure); args.foreach(walk)
+    case Expr.MethodCall(base, _, args) =>
+      walk(base); args.foreach(walk)
     case Expr.TupleProj(base, _) => walk(base)
     case Expr.CaseTag(base)      => walk(base)
     case Expr.Opt(inner)         => inner.foreach(walk)

@@ -1,6 +1,11 @@
 package esmeta.wji
 
-import esmeta.{BASE_DIR, WJI_JS_API_TEST_DIR, WJI_MANUAL_TEST_DIR}
+import esmeta.{
+  BASE_DIR,
+  WJI_COMPLEMENTARY_TEST_DIR,
+  WJI_JS_API_TEST_DIR,
+  WJI_MANUAL_TEST_DIR,
+}
 import esmeta.es.ESTest.checkExit
 import esmeta.util.SystemUtils.*
 import esmeta.wji.bridge.rpc.JsonRpcConnection
@@ -168,7 +173,7 @@ class EvalSpec extends AnyFunSuite with BeforeAndAfterAll:
   private val slowFileTimeoutSec = 500
 
   private val roots: List[String] =
-    List(WJI_MANUAL_TEST_DIR, WJI_JS_API_TEST_DIR)
+    List(WJI_MANUAL_TEST_DIR, WJI_JS_API_TEST_DIR, WJI_COMPLEMENTARY_TEST_DIR)
 
   for
     dir <- roots

@@ -1,7 +1,6 @@
 package esmeta.wji.compiler.lowering
 
 import esmeta.wji.lang.{Algorithm, AlgorithmKind, Cond, Expr, Instr, WjiParam}
-import esmeta.error.UnsupportedSpecShape
 
 /** Reshapes every Getter/Setter/Constructor/Method/NamespaceMethod/
   * NamespaceGetter-kind [[Algorithm]] — the 4 kinds WebIDL calls an interface
@@ -30,9 +29,8 @@ import esmeta.error.UnsupportedSpecShape
   * simply never read at all; [[returnEpilogue]]'s `"undefined"`-return case
   * does still apply to a `NamespaceMethod`, in principle — no corpus occurrence
   * has that declared return type today, but nothing about it depends on having
-  * a receiver) but still goes through [[unpackArgumentsList]] and
-  * [[wrapReturnValues]] exactly like a `Method` does — and, in `Compiler`,
-  * registers under `INTRINSICS.<namespace>.<name>` (no `.prototype` segment:
+  * a receiver) but still goes through [[unpackArgumentsList]] exactly like a
+  * `Method` does — and, in `Compiler`, registers under `INTRINSICS.<namespace>.<name>` (no `.prototype` segment:
   * `WebAssembly.instantiate`, never `WebAssembly.prototype.instantiate`) — see
   * `Compiler.compileAlgo`'s own `NamespaceMethod` case.
   *
@@ -106,10 +104,8 @@ import esmeta.error.UnsupportedSpecShape
   *     (mainline's Call machinery always expects one back, regardless of
   *     whether the algorithm itself can abruptly complete).
   *     [[CompletionAlgorithms.compute]] seeds `returnsCompletion = true`
-  *     unconditionally for every interface member — WebIDL's own overload
-  *     resolution can always throw a `TypeError` for a `Constructor`'s arity
-  *     mismatch (see [[omittedBranch]]), and every Getter/Setter/Method shares
-  *     the same unconditional calling-convention requirement — so
+  *     unconditionally for every interface member — every kind shares the same
+  *     unconditional calling-convention requirement — so
   *     [[InsertFallthroughReturnPass]]/[[WrapCompletionReturnsPass]] (which run
   *     after this pass — see `Lowering.pipeline`) handle every exit path
   *     uniformly, the same as for any ordinary algorithm; this pass itself just
@@ -142,54 +138,6 @@ object AddInterfaceMemberBuiltinBehaviourPass extends LoweringPass:
   private def stripPipes(s: String): String =
     s.stripPrefix("|").stripSuffix("|")
 
-  /** the instructions that run in `unpackArgumentsList`'s `IfChain` when fewer
-    * arguments were actually supplied than a param's own position — mirrors
-    * [[AddBuiltinBehaviourPass.omittedBranch]] (duplicated for the same reason
-    * `unpackArgumentsList` itself is).
-    *
-    *   - A *required* param (`!p.optional`) reaching here is exactly the case
-    *     WebIDL's own overload resolution algorithm (`webidl/index.bs`
-    *     `argcount`/effective-overload-set steps) is defined to catch before
-    *     the operation's steps ever run: with no real overloading in this
-    *     corpus (a single entry per identifier, [=list/append|expanded=] only
-    *     by trailing optional/defaulted params), too few arguments always means
-    *     no effective-overload-set entry matches, so the algorithm throws a
-    *     `TypeError` — mirrored here directly as a raw [[Instr.Throw]] (left
-    *     for `CompletionAlgorithms`/`WrapCompletionReturnsPass` to wrap later —
-    *     see class doc) rather than asserted unreachable, since real user code
-    *     does reach this (see `tests/wji/manual/constructors.js`'s `new
-    *     WebAssembly.Module()`).
-    *   - An optional param with no [[WjiParam.default]] is bound to `undefined`
-    *     — not left unbound. Per WebIDL's overload resolution algorithm, an
-    *     omitted argument and one explicitly passed as `undefined` both convert
-    *     to the same "missing" sentinel before an operation's own steps ever
-    *     run, and that sentinel is never itself a real ECMAScript value once
-    *     inside those steps — the only value real spec text ever observes for
-    *     it is `undefined` (see `docs/spec_inconsistencies.md` #16).
-    *     `Cond.IsMissing`'s `"|X| is missing"` check compiles to exactly that
-    *     comparison (`Compiler.compileCond`), so real optional-parameter spec
-    *     text branching on it (`Table`'s `|value|`, `Global`'s `|v|`) still
-    *     works; spec text that skips the check and reads the param directly
-    *     (e.g. `Instance`'s `|importObject|`, passed straight into `read the
-    *     imports`) now gets a real bound value instead of crashing. "missing"
-    *     per WebIDL's own argument-list processing — omitting it is equivalent
-    *     to passing the default value literally, and spec text using one (e.g.
-    *     `Module`'s constructor reading `|options|["builtins"]`
-    *     unconditionally) never checks `IsMissing` for it at all, so leaving it
-    *     unbound would crash instead. Only `"{}"` (an empty dictionary — the
-    *     only default this corpus's WebIDL actually declares) is handled, via
-    *     the same `[$OrdinaryObjectCreate$](null)` idiom spec text itself
-    *     already uses for a fresh, no-own-properties object (e.g. `create an
-    *     exports object`'s `|exportsObject|`) — then, same as the "argument
-    *     actually supplied" branch just above, run through
-    *     `converted_to_an_idl_value` if `p.idlType` is known, so a dictionary
-    *     member with its own IDL default (e.g. `ExceptionOptions.traceStack =
-    *     false`) actually gets filled in instead of just being a plain
-    *     no-own-properties object — omitting an optional dictionary argument
-    *     and passing `{}` explicitly must produce the same result, and the
-    *     "supplied" branch already always converts. Any other default text
-    *     fails loudly via `UnsupportedSpecShape` instead of being guessed at.
-    */
   /** the WebIDL dictionary types this pass already knew about before
     * required-member validation moved into `converted_to_an_idl_value` itself
     * (`esmeta.wji.interpreter.WebIdlConversion.readDictionary`, which now
@@ -233,262 +181,34 @@ object AddInterfaceMemberBuiltinBehaviourPass extends LoweringPass:
         ),
       )
 
-  /** `Perform converted_to_an_idl_value(name, ty), let name be the result.`
-    * followed by an abrupt-completion check: `converted_to_an_idl_value`
-    * (`WebIdlConversion.call`) returns the plain converted value on success,
-    * same as ever -- but a dictionary member's getter can itself throw, or a
-    * required member can turn out absent, or an enum value can turn out
-    * invalid, and any of those now come back as a genuine `ThrowCompletion`
-    * instead (see its own doc for why the *success* case deliberately isn't
-    * also completion-wrapped: `webidl/index.bs`'s real `react` algorithm has
-    * its own unmarked call site that never unwraps one). The `AbruptCompletion`
-    * check tells the two apart; on abrupt, propagate it directly, exactly the
-    * way any other `?`-marked call's `Instr.Return` does once
-    * `CompletionWrapping` wraps this algorithm's own exit paths (this pass's
-    * `run` always runs it, see class doc) -- otherwise `name` already holds the
-    * right value, nothing further to unwrap.
-    */
-  /** `webidl/index.bs`'s "create an operation function" wraps overload
-    * resolution/argument conversion in a try/catch, converting any exception
-    * into `Promise.reject(E)` when the operation's own declared return type is
-    * a promise type (`TODO.md` #57) — reusing the already-working "a new
-    * promise"/[=reject=]" idiom `compile`/`instantiate`'s own delegate
-    * algorithms already use for the same purpose (`docs/hardcodes.md` #7),
-    * rather than the raw `Call({{%Promise.reject%}}, {{%Promise%}}, «|E|»)`
-    * abstract-op form itself: no compiler support exists for a bare
-    * `%Intrinsic%`-style [[Expr.SpecTerm]] reference (unlike `%Symbol.*%`), so
-    * building the spec's own literal form would need new, unplanned `Compiler`
-    * work for something no corpus algorithm has ever actually used.
-    */
-  private def promiseRejectReturn(
-    typeName: String,
-    errorExpr: Expr,
-  ): List[Instr] =
-    List(
-      // "[=a new promise=]" actually returns a PromiseCapabilityRecord, not a
-      // real Promise object directly (its own extracted body:
-      // `? NewPromiseCapability(realm.Intrinsics.%Promise%)`) -- `[=reject=]`
-      // operates on that capability record directly (its own body calls
-      // `p.[[Reject]]`), but the value handed back to actual JS code must be
-      // the real object underneath, same unwrap
-      // `WebIdlConversion.toJsValue`'s `PromiseCapabilityRecord` case already
-      // does for every OTHER Promise-returning operation's own `Return
-      // |promise|.` -- that generic unwrap only fires for a `Return` inside
-      // the algorithm's own declared body (`wrapReturnValues` never revisits
-      // this pass's own injected instructions), so it's done explicitly here.
-      Instr.Let(
-        Expr.Var("_promiseCapability"),
-        Expr.AlgoCall(
-          "[=a new promise=]",
-          List(Expr.SpecTerm(typeName), Expr.SpecTerm("current Realm")),
-        ),
-      ),
-      Instr.Perform(
-        "[=reject=]",
-        List(Expr.SpecTerm(typeName), Expr.Var("_promiseCapability"), errorExpr),
-      ),
-      Instr.Return(
-        Some(Expr.Field(Expr.Var("_promiseCapability"), "Promise")),
-      ),
-    )
-
-  private def convertedIdlValueBinding(
-    name: String,
-    ty: String,
-    rejectType: Option[String],
-  ): List[Instr] =
-    val onAbrupt = rejectType match
-      case Some(typeName) =>
-        promiseRejectReturn(typeName, Expr.Field(Expr.Var(name), "Value"))
-      case None =>
-        List(Instr.Return(Some(Expr.Var(name))))
-    List(
-      Instr.Perform(
-        "converted_to_an_idl_value",
-        List(Expr.Var(name), Expr.Str(ty)),
-        Instr.PerformOutcome.BindResult(name),
-      ),
-      Instr.IfChain(
-        List(Cond.IsType(Expr.Var(name), "AbruptCompletion") -> onAbrupt),
-        Nil,
-      ),
-    )
-
-  private def omittedBranch(
-    p: WjiParam,
-    name: String,
-    rejectType: Option[String],
-  ): List[Instr] =
-    if !p.optional then
-      rejectType match
-        case Some(typeName) =>
-          // mirrors `CompletionWrapping`'s own `Instr.Throw(Expr.New(iface),
-          // _)` case: a bare `Expr.New(iface)` compiles to a raw ERecord with
-          // no real prototype wiring — wrong for an exception object.
-          // `__NEW_ERROR_OBJ__` builds a properly-prototyped one, the
-          // same helper `WebIdlConversion.typeError` itself calls for the
-          // exact same reason.
-          Instr.Perform(
-            "__NEW_ERROR_OBJ__",
-            List(Expr.Str("%TypeError.prototype%")),
-            Instr.PerformOutcome.BindResult("_typeErr"),
-          ) :: promiseRejectReturn(typeName, Expr.Var("_typeErr"))
-        case None => List(Instr.Throw(Expr.New("TypeError")))
-    else
-      p.default match
-        case None =>
-          List(Instr.Let(Expr.Var(name), Expr.SpecTerm("undefined")))
-        case Some("{}") =>
-          Instr.Perform(
-            "OrdinaryObjectCreate",
-            List(Expr.SpecTerm("null")),
-            Instr.PerformOutcome.BindResult(name),
-          ) :: p.idlType.toList.flatMap(
-            convertedIdlValueBinding(name, _, rejectType),
-          )
-        case Some(other) =>
-          throw UnsupportedSpecShape(
-            "AddInterfaceMemberBuiltinBehaviourPass",
-            s"parameter ${p.name} has unsupported default value: $other",
-          )
-
   /** the `params.zipWithIndex` prefix instructions that unpack `ArgumentsList`
     * positionally into the algorithm's own originally-declared parameter names
     * — mirrors [[AddBuiltinBehaviourPass.unpackArgumentsList]] (see that
     * method's own doc); duplicated rather than shared since the two conventions
     * use differently-cased names for the list itself.
     *
-    * Each param whose [[WjiParam.idlType]] is known (see
-    * `esmeta.wji.extractor.Extractor.enrichParamTypes`) gets one more step
-    * right after its own unpacking (nested inside the "argument actually
-    * supplied" branch — see below), running the raw JS argument through
-    * `converted_to_an_idl_value` — mirroring how WebIDL's own "overload
-    * resolution algorithm" converts every ES argument to its declared IDL type
-    * before the operation body ever runs. That function itself is still mostly
-    * an identity stub (see `docs/hardcodes.md` #2) — only `"unsigned long"`
-    * does a real conversion today — but routing every typed param through it
-    * uniformly, rather than special-casing `"unsigned long"` here, means a
-    * later type just needs a new case added there, not a change to this pass.
-    *
-    * When fewer arguments were actually supplied than this param's position,
-    * [[WjiParam.optional]]/[[WjiParam.default]] decide what happens — see
-    * [[omittedBranch]].
+    * `ArgumentsList` is the `values` list WebIDL's own caller of the steps
+    * closure got back from its "overload resolution algorithm"
+    * (`manuals/funcs/overload_resolution_algorithm.ir`): one entry per declared
+    * param, each already converted to its declared IDL type, with a missing
+    * optional argument already replaced by `undefined` or its default — so
+    * nothing but the binding itself (and [[nonObjectCheck]]) is left to do
+    * here. Converting the return value back to a JavaScript value, and
+    * rejecting instead of throwing for a promise-typed operation, are that
+    * same caller's own steps too.
     */
-  private def unpackArgumentsList(
-    params: List[WjiParam],
-    rejectType: Option[String],
-  ): List[Instr] =
-    params.zipWithIndex.map {
+  private def unpackArgumentsList(params: List[WjiParam]): List[Instr] =
+    params.zipWithIndex.flatMap {
       case (p, i) =>
         val name = stripPipes(p.name)
-        val checks = p.idlType.toList.flatMap(nonObjectCheck(_, name))
-        val convert =
-          p.idlType.toList.flatMap(
-            convertedIdlValueBinding(name, _, rejectType),
-          )
-        val supplied =
-          Instr.Let(
-            Expr.Var(name),
-            Expr.Index(Expr.Var("ArgumentsList"), Expr.Num(i.toString)),
-          ) :: (checks ++ convert)
-        Instr.IfChain(
-          List(
-            Cond.Compare(
-              Expr.Num(i.toString),
-              Cond.CompareOp.Lt,
-              Expr.Length(Expr.Var("ArgumentsList")),
-            ) -> supplied,
-          ),
-          omittedBranch(p, name, rejectType),
-        )
+        Instr.Let(
+          Expr.Var(name),
+          Expr.Index(Expr.Var("ArgumentsList"), Expr.Num(i.toString)),
+        ) :: p.idlType.toList.flatMap(nonObjectCheck(_, name))
     }
 
-  /** Wraps every `Return`'s value -- recursively, including ones nested inside
-    * an `IfChain`/`ForEach`/etc. (`Instr.mapBody` already knows how to
-    * structurally recurse into each of those, `IfChain`'s own `branches`/
-    * `fallback` included) -- in `converted_to_a_javascript_value`. WebIDL's own
-    * calling convention implicitly converts an operation's return value to a
-    * real JavaScript value the same way it converts each argument to its
-    * declared IDL type (`unpackArgumentsList`'s own `converted_to_an_idl_value`
-    * injection) -- spec prose never spells this out either (just "Return
-    * |exports|."), so nothing mechanized it before: `Module.exports`'s
-    * `sequence<ModuleExportDescriptor>` return value was a raw internal
-    * `ListObj` of raw internal `MapObj`s, never actually turned into a real
-    * `Array` of real objects (`WebIdlConversion.toJsValue` didn't know how to
-    * convert a `ListObj` at all until now either -- see its own doc).
-    *
-    * Only for `Getter`/`Method` -- WebIDL declares a real return *type* for
-    * both, unlike `Setter` (no return value at all) or `Constructor` (whose own
-    * implicit `Return **this**`, see [[returnEpilogue]], is already a real
-    * object, never worth this). Safe to apply unconditionally to every one of
-    * them regardless of what they actually return: `toJsValue` is already
-    * identity passthrough for anything that isn't a `MapObj`/ `ListObj`, so
-    * wrapping a Return that never needed it is a no-op.
-    */
-  private def wrapReturnValues(
-    kind: AlgorithmKind,
-    body: List[Instr],
-  ): List[Instr] =
-    val needsWrap = kind match
-      case AlgorithmKind.Getter(_)          => true
-      case AlgorithmKind.Method(_, _)       => true
-      case AlgorithmKind.NamespaceMethod(_) => true
-      case AlgorithmKind.NamespaceGetter(_) => true
-      case _                                => false
-    if !needsWrap then body
-    else
-      var freshCounter = 0
-      def freshName(): String =
-        freshCounter += 1
-        s"_returnValue$freshCounter"
-      def transform(instrs: List[Instr]): List[Instr] = instrs.flatMap {
-        case Instr.Return(Some(expr), nested) =>
-          val (bindings, name) = expr match
-            case Expr.Var(v) => (Nil, v)
-            case _ =>
-              val v = freshName()
-              (List(Instr.Let(Expr.Var(v), expr)), v)
-          bindings ++ List(
-            Instr.Perform(
-              "converted_to_a_javascript_value",
-              List(Expr.Var(name)),
-              Instr.PerformOutcome.BindResult(name),
-            ),
-            Instr.Return(Some(Expr.Var(name)), transform(nested)),
-          )
-        // "... and return the result." parses straight to this shape at parse
-        // time (`InstrParser`'s `PerformAndReturnSuffix`), never as
-        // `Return(Some(AlgoCall(...)))` -- so the case above alone never
-        // catches a tail-call return written this way (e.g. `instantiate`'s
-        // "Instantiate |promiseOfModule| with imports |importObject| and
-        // return the result."). Same rewrite, just from a different starting
-        // shape: bind the call's result, convert it, then return the bound
-        // name explicitly.
-        case Instr.Perform(
-              func,
-              args,
-              Instr.PerformOutcome.ReturnResult,
-              nested,
-            ) =>
-          val v = freshName()
-          List(
-            Instr.Perform(func, args, Instr.PerformOutcome.BindResult(v)),
-            Instr.Perform(
-              "converted_to_a_javascript_value",
-              List(Expr.Var(v)),
-              Instr.PerformOutcome.BindResult(v),
-            ),
-            Instr.Return(Some(Expr.Var(v)), transform(nested)),
-          )
-        case other => List(other.mapBody(transform))
-      }
-      transform(body)
-
   /** The matching epilogue for an algorithm whose spec prose never ends in an
-    * explicit `Return`, appended unconditionally after `wrapReturnValues` (so,
-    * unlike an explicit `Return` in the body, neither of these two cases ever
-    * goes through `converted_to_a_javascript_value` -- see each case's own note
-    * for why that's fine here):
+    * explicit `Return`, appended unconditionally after the body:
     *
     *   - `Constructor`: every js-api constructor algorithm ends by mutating
     *     `**this**`'s fields with no explicit `Return`, relying on WebIDL's
@@ -553,8 +273,6 @@ object AddInterfaceMemberBuiltinBehaviourPass extends LoweringPass:
       List(Instr.Return(Some(Expr.SpecTerm("undefined"))))
     case _ => Nil
 
-  private val PromiseReturnType = """^Promise<(.+)>$""".r
-
   def run(algos: List[Algorithm]): List[Algorithm] =
     algos.map { a =>
       a.kind match
@@ -562,13 +280,9 @@ object AddInterfaceMemberBuiltinBehaviourPass extends LoweringPass:
             AlgorithmKind.Constructor(_) | AlgorithmKind.Method(_, _) |
             AlgorithmKind.NamespaceMethod(_) |
             AlgorithmKind.NamespaceGetter(_) =>
-          val rejectType = a.idlReturnType.collect {
-            case PromiseReturnType(inner) => inner
-          }
           a.copy(
             params = builtinParams(a.kind),
-            body = unpackArgumentsList(a.params, rejectType) ++
-              wrapReturnValues(a.kind, a.body) ++ returnEpilogue(a),
+            body = unpackArgumentsList(a.params) ++ a.body ++ returnEpilogue(a),
           )
         case AlgorithmKind.Plain => a
     }

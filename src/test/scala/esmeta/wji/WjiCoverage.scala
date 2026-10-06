@@ -29,9 +29,9 @@ import scala.collection.mutable
   * [[main]]), also dumps one annotated IR file per function under
   * `logs/wji-coverage/annotated-ir/` (see [[dumpAnnotatedIR]]) -- the same `id:
   * content -> nextId` line shape `esmeta.cfg.util.Stringifier` prints, with a
-  * `[x]`/`[ ]` marker on each node and on each side of each branch, so coverage
-  * can be read right next to the real compiled IR instead of only as a
-  * name-and-percentage table.
+  * `[N]` hit-count marker (not just touched/untouched) on each node and on each
+  * side of each branch, so coverage can be read right next to the real compiled
+  * IR instead of only as a name-and-percentage table.
   *
   * Not a `Suite` (this measures, it doesn't assert pass/fail) -- run directly:
   * {{{
@@ -64,13 +64,13 @@ object WjiCoverage:
     wasmHost: Option[WasmHost],
     timeLimit: Option[Int],
   ) extends EsInterpreter(st, wasmHost = wasmHost, timeLimit = timeLimit):
-    val touchedNodes: mutable.Set[Node] = mutable.Set()
-    val touchedConds: mutable.Set[Cond] = mutable.Set()
+    val nodeHits: mutable.Map[Node, Int] = mutable.Map().withDefaultValue(0)
+    val condHits: mutable.Map[Cond, Int] = mutable.Map().withDefaultValue(0)
     override def eval(node: Node): Unit =
-      touchedNodes += node
+      nodeHits(node) += 1
       super.eval(node)
     override def moveBranch(branch: Branch, cond: Boolean): Unit =
-      touchedConds += Cond(branch.id, cond)
+      condHits(Cond(branch.id, cond)) += 1
       super.moveBranch(branch, cond)
 
   /** a taken outcome of one `Branch` node -- keyed by the branch's own node id
@@ -131,8 +131,8 @@ object WjiCoverage:
   def main(args: Array[String]): Unit =
     val cfg = WjiTest.mergedCfg
     var connection = Initialize.startProcess()
-    val touchedNodes: mutable.Set[Node] = mutable.Set()
-    val touchedConds: mutable.Set[Cond] = mutable.Set()
+    val nodeHits: mutable.Map[Node, Int] = mutable.Map().withDefaultValue(0)
+    val condHits: mutable.Map[Cond, Int] = mutable.Map().withDefaultValue(0)
 
     val files = walkTree(WJI_JS_API_TEST_DIR).filter(f => jsFilter(f.getName))
     for (file, i) <- files.zipWithIndex do
@@ -142,9 +142,11 @@ object WjiCoverage:
         val host = Initialize(st, WjiTest.spec, connection)
         val interp = new CoverageInterp(st, Some(host), Some(perFileTimeoutSec))
         interp.result
-        touchedNodes ++= interp.touchedNodes
-        touchedConds ++= interp.touchedConds
-        println(s"done (${interp.touchedNodes.size} nodes touched)")
+        // summed across files, not just unioned -- a node/branch touched by
+        // several files should show the total hit count, not just one file's
+        for (node, hits) <- interp.nodeHits do nodeHits(node) += hits
+        for (cond, hits) <- interp.condHits do condHits(cond) += hits
+        println(s"done (${interp.nodeHits.size} nodes touched)")
       catch
         case e: Throwable =>
           val poisoned = connection.isPoisoned
@@ -162,9 +164,9 @@ object WjiCoverage:
         val branchIds = f.nodes.collect { case b: Branch => b.id }
         FuncCoverage(
           name = f.name,
-          nodesTouched = f.nodes.count(touchedNodes),
+          nodesTouched = f.nodes.count(nodeHits.contains),
           nodesTotal = f.nodes.size,
-          branchesTouched = touchedConds.count(c => branchIds(c.branchId)),
+          branchesTouched = condHits.keys.count(c => branchIds(c.branchId)),
           branchesTotal = branchIds.size * 2,
         )
       }
@@ -215,45 +217,46 @@ object WjiCoverage:
     )
     dumpAnnotatedIR(
       cfg.funcs.filter(f => perFunc.exists(_.name == f.name)),
-      touchedNodes,
-      touchedConds,
+      nodeHits,
+      condHits,
     )
 
   /** dumps one file per (non-webidl) WJI function, mirroring
     * `esmeta.cfg.util.Stringifier`'s own `Node`/`Branch` line format (`id:
     * content -> nextId`, `id: if/while cond then thenId else elseId`) but with
-    * a `[x]`/`[ ]` coverage marker prefixed to each node, and to each of a
-    * `Branch` node's two outcomes separately -- lets a reader see, at a glance,
-    * exactly which basic blocks and which side of which conditional the
-    * official corpus never reaches, next to the real compiled IR rather than a
-    * name-only list. CFG-`Node` granularity, same caveat as the rest of this
-    * tool -- see the class doc.
+    * a `[N]` hit-count marker prefixed to each node (`[0]` for never touched),
+    * and to each of a `Branch` node's two outcomes separately -- lets a reader
+    * see, at a glance, not just whether but *how often* the official corpus
+    * reaches each basic block and each side of each conditional, next to the
+    * real compiled IR rather than a name-only list. CFG-`Node` granularity,
+    * same caveat as the rest of this tool -- see the class doc.
     */
   private def dumpAnnotatedIR(
     funcs: List[Func],
-    touchedNodes: collection.Set[Node],
-    touchedConds: collection.Set[Cond],
+    nodeHits: collection.Map[Node, Int],
+    condHits: collection.Map[Cond, Int],
   ): Unit =
     val dir = s"$WJI_COVERAGE_LOG_DIR/annotated-ir"
     mkdir(dir, remove = true)
-    def mark(b: Boolean): String = if b then "[x]" else "[ ]"
+    def mark(n: Int): String = s"[$n]"
     def nodeLine(node: Node): String = node match
       case Block(id, insts, next) =>
         val body = insts.map(_.toString.trim).mkString("; ")
         val arrow = next.fold("")(n => s" -> ${n.id}")
-        s"$id: ${mark(touchedNodes(node))} $body$arrow"
+        s"$id: ${mark(nodeHits.getOrElse(node, 0))} $body$arrow"
       case Call(id, callInst, next) =>
         val arrow = next.fold("")(n => s" -> ${n.id}")
-        s"$id: ${mark(touchedNodes(node))} ${callInst.toString.trim}$arrow"
+        s"$id: ${mark(nodeHits.getOrElse(node, 0))} ${callInst.toString.trim}$arrow"
       case Branch(id, kind, cond, _, thenNode, elseNode) =>
         val kw = if kind == BranchKind.While then "while" else "if"
         val thenStr = thenNode.fold("<none>") { n =>
-          s"${n.id}${mark(touchedConds(Cond(id, true)))}"
+          s"${n.id}${mark(condHits.getOrElse(Cond(id, true), 0))}"
         }
         val elseStr = elseNode.fold("<none>") { n =>
-          s"${n.id}${mark(touchedConds(Cond(id, false)))}"
+          s"${n.id}${mark(condHits.getOrElse(Cond(id, false), 0))}"
         }
-        s"$id: ${mark(touchedNodes(node))} $kw ${cond.toString.trim} then $thenStr else $elseStr"
+        val self = mark(nodeHits.getOrElse(node, 0))
+        s"$id: $self $kw ${cond.toString.trim} then $thenStr else $elseStr"
     for func <- funcs do
       val lines = func.nodes.toList.sortBy(_.id).map(nodeLine)
       dumpFile(

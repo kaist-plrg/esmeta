@@ -2235,11 +2235,8 @@ def tovaluetype(
   if (= s "anyfunc") {
     return (case "REF" (opt (case "NULL" )) (case "FUNC" ))
   } else nop
-  if (= s "externref") {
-    return (case "REF" (opt (case "NULL" )) (case "EXTERN" ))
-  } else nop
-  assert false
-  return ~unused~
+  assert (= s "externref")
+  return (case "REF" (opt (case "NULL" )) (case "EXTERN" ))
 }
 def defaultvalue(
   valuetype: Unknown,
@@ -3038,111 +3035,107 @@ def towebassemblyvalue(
       return _ret12
     }
   } else nop
-  if (= (case-tag type) "REF") {
-    let null = type[0]
-    let heaptype = type[1]
-    if (= v null) {
-      let r = (case "REF.NULL_ADDR" )
+  assert (= (case-tag type) "REF")
+  let null = type[0]
+  let heaptype = type[1]
+  if (= v null) {
+    let r = (case "REF.NULL_ADDR" )
+  } else {
+    call-embed _call7 = <match_valtype>(type, (case "REF" null (case "EXTERN" )))
+    if (= _call7 true) {
+      call _call8 = clo<"ToWebAssemblyValue">(v, (case "REF" (opt) (case "ANY" )))
+      assert (= _call8.Type ~normal~)
+      let ref = _call8.Value
+      let r = (case "REF.EXTERN" ref)
     } else {
-      call-embed _call7 = <match_valtype>(type, (case "REF" null (case "EXTERN" )))
-      if (= _call7 true) {
-        call _call8 = clo<"ToWebAssemblyValue">(v, (case "REF" (opt) (case "ANY" )))
-        assert (= _call8.Type ~normal~)
-        let ref = _call8.Value
-        let r = (case "REF.EXTERN" ref)
+      let _cond10 = false
+      if (&& (? v: Record[Object]) (exists v.FunctionAddress)) {
+        call-embed _call9 = <match_valtype>(type, (case "REF" null (case "FUNC" )))
+        if (= _call9 true) {
+          _cond10 = true
+        } else nop
+      } else nop
+      if (= _cond10 true) {
+        let funcaddr = v.FunctionAddress
+        let r = (case "REF.FUNC_ADDR" funcaddr)
       } else {
-        let _cond10 = false
-        if (&& (? v: Record[Object]) (exists v.FunctionAddress)) {
-          call-embed _call9 = <match_valtype>(type, (case "REF" null (case "FUNC" )))
-          if (= _call9 true) {
-            _cond10 = true
+        let _cond13 = false
+        if (? v: Number) {
+          call _call11 = clo<"ToInt32">(v)
+          if (&& (? _call11: Completion) (! (= _call11.Type ~normal~))) {
+            if (? _call11: Completion) {
+              return _call11
+            } else {
+              call _ret13 = clo<"NormalCompletion">(_call11)
+              return _ret13
+            }
+          } else {
+            let _call12 = _call11.Value
+          }
+          if (&& (= v _call12) (&& (< ([math] v) (** 2 30)) (! (< ([math] v) (- (** 2 30)))))) {
+            _cond13 = true
           } else nop
         } else nop
-        if (= _cond10 true) {
-          let funcaddr = v.FunctionAddress
-          let r = (case "REF.FUNC_ADDR" funcaddr)
-        } else {
-          let _cond13 = false
-          if (? v: Number) {
-            call _call11 = clo<"ToInt32">(v)
-            if (&& (? _call11: Completion) (! (= _call11.Type ~normal~))) {
-              if (? _call11: Completion) {
-                return _call11
-              } else {
-                call _ret13 = clo<"NormalCompletion">(_call11)
-                return _ret13
-              }
+        if (= _cond13 true) {
+          call _call14 = clo<"ToInt32">(v)
+          if (&& (? _call14: Completion) (! (= _call14.Type ~normal~))) {
+            if (? _call14: Completion) {
+              return _call14
             } else {
-              let _call12 = _call11.Value
+              call _ret14 = clo<"NormalCompletion">(_call14)
+              return _ret14
             }
-            if (&& (= v _call12) (&& (< ([math] v) (** 2 30)) (! (< ([math] v) (- (** 2 30)))))) {
-              _cond13 = true
-            } else nop
-          } else nop
-          if (= _cond13 true) {
-            call _call14 = clo<"ToInt32">(v)
-            if (&& (? _call14: Completion) (! (= _call14.Type ~normal~))) {
-              if (? _call14: Completion) {
-                return _call14
-              } else {
-                call _ret14 = clo<"NormalCompletion">(_call14)
-                return _ret14
-              }
-            } else {
-              let i31 = _call14.Value
-            }
-            call-embed u31 = <inv_signed_31>(([math] i31))
-            let r = (case "REF.I31_NUM" u31)
           } else {
-            if (&& (? v: Record[Object]) (exists v.ObjectAddress)) {
-              let objectaddr = v.ObjectAddress
-              let objectkind = v.ObjectKind
-              if (= objectkind "array") {
-                let r = (case "REF.ARRAY_ADDR" objectaddr)
-              } else if (= objectkind "struct") {
-                let r = (case "REF.STRUCT_ADDR" objectaddr)
-              } else nop
-            } else {
-              let map = @AGENT_RECORD["host value cache"]
-              let _found1 = false
-              let hostaddr = 0
-              while (&& (= _found1 false) (< hostaddr (sizeof map))) {
-                if (= map[hostaddr] v) {
-                  _found1 = true
-                } else {
-                  hostaddr = (+ hostaddr 1)
-                }
-              }
-              if (= _found1 true) {
-                let r = (case "REF.HOST_ADDR" hostaddr)
+            let i31 = _call14.Value
+          }
+          call-embed u31 = <inv_signed_31>(([math] i31))
+          let r = (case "REF.I31_NUM" u31)
+        } else {
+          if (&& (? v: Record[Object]) (exists v.ObjectAddress)) {
+            let objectaddr = v.ObjectAddress
+            let objectkind = v.ObjectKind
+            if (= objectkind "array") {
+              let r = (case "REF.ARRAY_ADDR" objectaddr)
+            } else if (= objectkind "struct") {
+              let r = (case "REF.STRUCT_ADDR" objectaddr)
+            } else nop
+          } else {
+            let map = @AGENT_RECORD["host value cache"]
+            let _found1 = false
+            let hostaddr = 0
+            while (&& (= _found1 false) (< hostaddr (sizeof map))) {
+              if (= map[hostaddr] v) {
+                _found1 = true
               } else {
-                let hostaddr = (sizeof map)
-                map[hostaddr] = v
-                let r = (case "REF.HOST_ADDR" hostaddr)
+                hostaddr = (+ hostaddr 1)
               }
+            }
+            if (= _found1 true) {
+              let r = (case "REF.HOST_ADDR" hostaddr)
+            } else {
+              let hostaddr = (sizeof map)
+              map[hostaddr] = v
+              let r = (case "REF.HOST_ADDR" hostaddr)
             }
           }
         }
       }
     }
-    let store = @AGENT_RECORD["associated store"]
-    call-embed actualtype = <ref_type>(store, r)
-    call-embed _call15 = <match_valtype>(actualtype, type)
-    if (= _call15 false) {
-      call _err15 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-      call _ret16 = clo<"ThrowCompletion">(_err15)
-      return _ret16
-    } else nop
-    if (? r: Completion) {
-      return r
-    } else {
-      call _ret17 = clo<"NormalCompletion">(r)
-      return _ret17
-    }
+  }
+  let store = @AGENT_RECORD["associated store"]
+  call-embed actualtype = <ref_type>(store, r)
+  call-embed _call15 = <match_valtype>(actualtype, type)
+  if (= _call15 false) {
+    call _err15 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
+    call _ret16 = clo<"ThrowCompletion">(_err15)
+    return _ret16
   } else nop
-  assert false
-  call _ret18 = clo<"NormalCompletion">(~unused~)
-  return _ret18
+  if (? r: Completion) {
+    return r
+  } else {
+    call _ret17 = clo<"NormalCompletion">(r)
+    return _ret17
+  }
 }
 def addressvaluetou64(
   v: Unknown,
@@ -3170,34 +3163,30 @@ def addressvaluetou64(
       return _ret3
     }
   } else nop
-  if (= addrtype (case "I64" )) {
-    call _call3 = clo<"ToBigInt">(v)
-    if (&& (? _call3: Completion) (! (= _call3.Type ~normal~))) {
-      if (? _call3: Completion) {
-        return _call3
-      } else {
-        call _ret4 = clo<"NormalCompletion">(_call3)
-        return _ret4
-      }
+  assert (= addrtype (case "I64" ))
+  call _call3 = clo<"ToBigInt">(v)
+  if (&& (? _call3: Completion) (! (= _call3.Type ~normal~))) {
+    if (? _call3: Completion) {
+      return _call3
     } else {
-      let n = _call3.Value
+      call _ret4 = clo<"NormalCompletion">(_call3)
+      return _ret4
     }
-    if (|| (< ([math] n) 0) (< (- (** 2 64) 1) ([math] n))) {
-      call _err5 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-      call _ret6 = clo<"ThrowCompletion">(_err5)
-      return _ret6
-    } else nop
-    let _v7 = ([math] n)
-    if (? _v7: Completion) {
-      return _v7
-    } else {
-      call _ret8 = clo<"NormalCompletion">(_v7)
-      return _ret8
-    }
+  } else {
+    let n = _call3.Value
+  }
+  if (|| (< ([math] n) 0) (< (- (** 2 64) 1) ([math] n))) {
+    call _err5 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
+    call _ret6 = clo<"ThrowCompletion">(_err5)
+    return _ret6
   } else nop
-  assert false
-  call _ret9 = clo<"NormalCompletion">(~unused~)
-  return _ret9
+  let _v7 = ([math] n)
+  if (? _v7: Completion) {
+    return _v7
+  } else {
+    call _ret8 = clo<"NormalCompletion">(_v7)
+    return _ret8
+  }
 }
 def u64toaddressvalue(
   v: Unknown,
@@ -3205,11 +3194,10 @@ def u64toaddressvalue(
 ): Unknown = {
   if (= addrtype (case "I32" )) {
     return ([number] ([math] v))
-  } else if (= addrtype (case "I64" )) {
+  } else {
+    assert (= addrtype (case "I64" ))
     return ([bigInt] ([math] v))
-  } else nop
-  assert false
-  return ~unused~
+  }
 }
 def initialize_a_tag_object(
   tag: Unknown,

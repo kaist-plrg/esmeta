@@ -1083,6 +1083,8 @@ WebAssembly.Memory.prototype = OrdinaryObject [
     Set: undefined;
   };
   grow: [TTT] #INTRINSICS.WebAssembly.Memory.prototype.grow;
+  toFixedLengthBuffer: [TTT] #INTRINSICS.WebAssembly.Memory.prototype.toFixedLengthBuffer;
+  toResizableBuffer: [TTT] #INTRINSICS.WebAssembly.Memory.prototype.toResizableBuffer;
 }
 
 // `.length` isn't derivable generically for a WJI-compiled interface member
@@ -1093,6 +1095,12 @@ WebAssembly.Memory.prototype = OrdinaryObject [
 // mainline builtin's own `length: [FFT] N.0f;` declaration (e.g.
 // `Object.assign` above). `grow(delta)` -- 1 required param.
 WebAssembly.Memory.prototype.grow = BuiltinFunctionObject { length: [FFT] 1.0f; }
+
+// same pattern as `grow` above -- both `toFixedLengthBuffer()`/
+// `toResizableBuffer()` are declared with no arguments at all
+// (`spectec/document/js-api/index.bs:813-814`).
+WebAssembly.Memory.prototype.toFixedLengthBuffer = BuiltinFunctionObject { length: [FFT] 0.0f; }
+WebAssembly.Memory.prototype.toResizableBuffer = BuiltinFunctionObject { length: [FFT] 0.0f; }
 
 WebAssembly.Table = BuiltinFunctionObject [
   Extensible: true;

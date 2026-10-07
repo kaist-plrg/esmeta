@@ -424,6 +424,18 @@ object ExprParser:
   private val BareSlotName = """(?s)^\\?\[\[([^\]]+)\]\]$""".r
   private val PossessiveSlot =
     """(?si)^the value of (.+)'s \\?\[\[([^\]]+)\]\] internal slot$""".r
+  // "the max value in |memtype|" (index.bs:954, `toResizableBuffer`'s only
+  // occurrence, always reached right after a `CondParser.HasMaxPos`/
+  // `HasMaxNeg`-compiled check already established the max is present) —
+  // reads `memtype`'s `limits.max` (`CondParser.maxFieldOf`'s own doc has the
+  // shared positional-shape knowledge) and unwraps its `Opt` payload via the
+  // same `.Value` convention a Completion Record's payload is read through
+  // (`esmeta.state.State.apply`'s `ALValue.OptV(Some(v))` case). Wrapped in
+  // `AsMath` -- unlike `PossessiveSlot`'s raw `Field`, this value is used
+  // arithmetically two steps later (`|maxsize| be the max value in |memtype|
+  // * 65536`), and a raw wasm `NumV` can't cross `*` with a plain Math
+  // literal (`InvalidBinaryOp`, confirmed by running it without this).
+  private val MaxValueIn = """(?si)^the max value in (.+)$""".r
   // e.g. "|module|.[=imports=]" — a WebAssembly-spec record field written
   // with a dot, where the `[=...=]` is a documentation link on the field
   // name rather than a call (contrast with `LinkFull`/`LinkProse`,
@@ -1049,6 +1061,8 @@ object ExprParser:
       case BareSlotName(slot)        => Str(stripBraces(slot))
       case PossessiveSlot(baseRaw, slot) =>
         Field(parse(baseRaw), stripBraces(slot))
+      case MaxValueIn(baseRaw) =>
+        AsMath(Field(TupleProj(TupleProj(parse(baseRaw), 1), 1), "Value"))
       case DotFieldLink(baseRaw, link) => fieldFromLink(baseRaw, link)
       case DotField(baseRaw, field)    => Field(parse(baseRaw), field)
       case LengthOf(inner)             => Length(parse(inner))

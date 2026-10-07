@@ -1598,7 +1598,7 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Memory.prototype.toResizableBuffer(
   let memaddr = this.Memory
   let store = @AGENT_RECORD["associated store"]
   call-embed memtype = <mem_type>(store, memaddr)
-  if (yet "|memtype| does not have a max") {
+  if (= memtype[1][1] (opt)) {
     call _err3 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
     call _ret4 = clo<"ThrowCompletion">(_err3)
     return _ret4
@@ -1614,8 +1614,8 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Memory.prototype.toResizableBuffer(
       return _ret5
     }
   } else nop
-  assert (yet "|memtype| has a max")
-  let maxsize = (* (yet "the max value in |memtype|") 65536)
+  assert (! (= memtype[1][1] (opt)))
+  let maxsize = (* ([math] memtype[1][1].Value) 65536)
   call resizableBuffer = clo<"create_a_resizable_memory_buffer">(memaddr, maxsize)
   call _ = clo<"DetachArrayBuffer">(buffer, "WebAssembly.Memory")
   this.BufferObject = resizableBuffer

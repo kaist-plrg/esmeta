@@ -55,8 +55,12 @@ case class State(
     case Wasm(ALValue.TupV(vs))     => apply(vs, field)
     case Wasm(ALValue.CaseV(_, vs)) => apply(vs, field)
     case Wasm(ALValue.StrV(fields)) => applyFields(fields, field)
-    case Tup(vs)                    => applyTup(vs, field)
-    case v                          => throw InvalidRefBase(v)
+    // unwraps a present Wasm Opt's payload via `.Value`, the same convention
+    // a Completion Record's own payload is already read through -- e.g. a
+    // Wasm `limits`' optional `max` (`CaseV("[", [min, max])`, `max: Opt`).
+    case Wasm(ALValue.OptV(Some(v))) if field == Str("Value") => Wasm(v)
+    case Tup(vs) => applyTup(vs, field)
+    case v       => throw InvalidRefBase(v)
 
   /** string field getter */
   def apply(str: String, field: Value): Value = field match

@@ -51,13 +51,22 @@ assertEq(resizable.byteLength, PAGE, "resizable buffer starts at the memory's cu
 assertEq(resizable.maxByteLength, 3 * PAGE, "maxByteLength must be declared maximum * page size");
 assertEq(mem.buffer, resizable, "the Memory's own .buffer must now be the resizable one");
 
-// HostResizeArrayBuffer's WebAssembly-specific redefinition: growing the
-// resizable buffer by 1 page must actually grow the underlying linear memory
-// (not just the JS-visible byteLength) -- observed through this *same*
-// object growing in place, unlike a plain Memory.prototype.grow()/the raw
-// memory.grow instruction, which both detach-and-replace .buffer instead.
+// HostResizeArrayBuffer's WebAssembly-specific redefinition is *supposed* to
+// grow the underlying linear memory itself when a resizable buffer backed by
+// a Memory is resize()'d (index.bs:963-981), not just the JS-visible
+// ArrayBuffer -- observed through this *same* object growing in place,
+// unlike a plain Memory.prototype.grow()/the raw memory.grow instruction,
+// which both detach-and-replace .buffer instead. This only checks the
+// in-place-identity/byteLength part of that, which mainline's own default
+// HostResizeArrayBuffer fallback (CreateByteDataBlock + swap the fields of
+// the *same* object) already satisfies on its own, with no real connection
+// to wasm's actual memory -- it is NOT proof that the real linear memory grew
+// (`personal/TODO.md` #68: the WJI-compiled redefinition that would actually
+// do that is never invoked at all, a confirmed real bug, not a coverage gap
+// -- left unverified here on purpose rather than asserting something that's
+// currently false).
 resizable.resize(2 * PAGE);
 assertEq(resizable.byteLength, 2 * PAGE, "resize() grows byteLength in place");
-assertEq(mem.buffer.byteLength, 2 * PAGE, "the underlying memory actually grew, not just this view");
+assertEq(mem.buffer.byteLength, 2 * PAGE, "mem.buffer (the same object) reflects the new byteLength too");
 
 globalThis.__wjiOk = true;

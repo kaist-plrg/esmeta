@@ -142,12 +142,8 @@ def construct_a_webassembly_module_object(
   moduleObject.Bytes = bytes
   moduleObject.BuiltinSets = builtinSetNames
   moduleObject.ImportedStringModule = importedStringModule
-  if (? moduleObject: Completion) {
-    return moduleObject
-  } else {
-    call _ret1 = clo<"NormalCompletion">(moduleObject)
-    return _ret1
-  }
+  call _ret1 = clo<"NormalCompletion">(moduleObject)
+  return _ret1
 }
 def asynchronously_compile_a_webassembly_module(
   bytes: Unknown,
@@ -426,12 +422,8 @@ def read_the_imports(
     } else nop
     _iterIdx4 = (+ _iterIdx4 1)
   }
-  if (? imports: Completion) {
-    return imports
-  } else {
-    call _ret21 = clo<"NormalCompletion">(imports)
-    return _ret21
-  }
+  call _ret21 = clo<"NormalCompletion">(imports)
+  return _ret21
 }
 def create_an_exports_object(
   module: Unknown,
@@ -1178,12 +1170,8 @@ def create_a_memory_object(
     "__MAP__" : (map[Unknown, Unknown]),
   })
   call _ = clo<"initialize_a_memory_object">(memory, memaddr)
-  if (? memory: Completion) {
-    return memory
-  } else {
-    call _ret3 = clo<"NormalCompletion">(memory)
-    return _ret3
-  }
+  call _ret3 = clo<"NormalCompletion">(memory)
+  return _ret3
 }
 def <BUILTIN>:INTRINSICS.WebAssembly.Memory(
   this: Unknown,
@@ -1559,12 +1547,8 @@ def create_a_table_object(
     "__MAP__" : (map[Unknown, Unknown]),
   })
   call _ = clo<"initialize_a_table_object">(table, tableaddr)
-  if (? table: Completion) {
-    return table
-  } else {
-    call _ret3 = clo<"NormalCompletion">(table)
-    return _ret3
-  }
+  call _ret3 = clo<"NormalCompletion">(table)
+  return _ret3
 }
 def <BUILTIN>:INTRINSICS.WebAssembly.Table(
   this: Unknown,
@@ -1957,12 +1941,8 @@ def create_a_global_object(
     "__MAP__" : (map[Unknown, Unknown]),
   })
   call _ = clo<"initialize_a_global_object">(global, globaladdr)
-  if (? global: Completion) {
-    return global
-  } else {
-    call _ret3 = clo<"NormalCompletion">(global)
-    return _ret3
-  }
+  call _ret3 = clo<"NormalCompletion">(global)
+  return _ret3
 }
 def tovaluetype(
   s: Unknown,
@@ -2488,12 +2468,8 @@ def run_a_host_function(
       push wasmValues < _call10
       _iterIdx5 = (+ _iterIdx5 1)
     }
-    if (? wasmValues: Completion) {
-      return wasmValues
-    } else {
-      call _ret9 = clo<"NormalCompletion">(wasmValues)
-      return _ret9
-    }
+    call _ret9 = clo<"NormalCompletion">(wasmValues)
+    return _ret9
   }
 }
 def create_a_host_function(
@@ -2602,13 +2578,8 @@ def towebassemblyvalue(
       let i64 = _call1.Value
     }
     call-embed u64 = <inv_signed_64>(([math] i64))
-    let _v1 = (case "CONST" (case "I64" ) u64)
-    if (? _v1: Completion) {
-      return _v1
-    } else {
-      call _ret2 = clo<"NormalCompletion">(_v1)
-      return _ret2
-    }
+    call _ret1 = clo<"NormalCompletion">((case "CONST" (case "I64" ) u64))
+    return _ret1
   } else nop
   if (= type (case "I32" )) {
     call _call2 = clo<"ToInt32">(v)
@@ -2618,13 +2589,8 @@ def towebassemblyvalue(
       let i32 = _call2.Value
     }
     call-embed u32 = <inv_signed_32>(([math] i32))
-    let _v3 = (case "CONST" (case "I32" ) u32)
-    if (? _v3: Completion) {
-      return _v3
-    } else {
-      call _ret4 = clo<"NormalCompletion">(_v3)
-      return _ret4
-    }
+    call _ret2 = clo<"NormalCompletion">((case "CONST" (case "I32" ) u32))
+    return _ret2
   } else nop
   if (= type (case "F32" )) {
     call _call3 = clo<"ToNumber">(v)
@@ -2640,13 +2606,8 @@ def towebassemblyvalue(
     } else {
       let f32 = number
     }
-    let _v5 = (case "CONST" (case "F32" ) f32)
-    if (? _v5: Completion) {
-      return _v5
-    } else {
-      call _ret6 = clo<"NormalCompletion">(_v5)
-      return _ret6
-    }
+    call _ret3 = clo<"NormalCompletion">((case "CONST" (case "F32" ) f32))
+    return _ret3
   } else nop
   if (= type (case "F64" )) {
     call _call5 = clo<"ToNumber">(v)
@@ -2662,13 +2623,8 @@ def towebassemblyvalue(
     } else {
       let f64 = number
     }
-    let _v7 = (case "CONST" (case "F64" ) f64)
-    if (? _v7: Completion) {
-      return _v7
-    } else {
-      call _ret8 = clo<"NormalCompletion">(_v7)
-      return _ret8
-    }
+    call _ret4 = clo<"NormalCompletion">((case "CONST" (case "F64" ) f64))
+    return _ret4
   } else nop
   assert (= (case-tag type) "REF")
   let null = type[0]
@@ -2751,15 +2707,15 @@ def towebassemblyvalue(
   call-embed actualtype = <ref_type>(store, r)
   call-embed _call15 = <match_valtype>(actualtype, type)
   if (= _call15 false) {
-    call _err9 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-    call _ret10 = clo<"ThrowCompletion">(_err9)
-    return _ret10
+    call _err5 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
+    call _ret6 = clo<"ThrowCompletion">(_err5)
+    return _ret6
   } else nop
   if (? r: Completion) {
     return r
   } else {
-    call _ret11 = clo<"NormalCompletion">(r)
-    return _ret11
+    call _ret7 = clo<"NormalCompletion">(r)
+    return _ret7
   }
 }
 def addressvaluetou64(
@@ -2775,13 +2731,8 @@ def addressvaluetou64(
     } else {
       let n = _call2.Value
     }
-    let _v1 = ([math] n)
-    if (? _v1: Completion) {
-      return _v1
-    } else {
-      call _ret2 = clo<"NormalCompletion">(_v1)
-      return _ret2
-    }
+    call _ret1 = clo<"NormalCompletion">(([math] n))
+    return _ret1
   } else nop
   assert (= addrtype (case "I64" ))
   call _call3 = clo<"ToBigInt">(v)
@@ -2791,17 +2742,12 @@ def addressvaluetou64(
     let n = _call3.Value
   }
   if (|| (< ([math] n) 0) (< (- (** 2 64) 1) ([math] n))) {
-    call _err3 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-    call _ret4 = clo<"ThrowCompletion">(_err3)
-    return _ret4
+    call _err2 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
+    call _ret3 = clo<"ThrowCompletion">(_err2)
+    return _ret3
   } else nop
-  let _v5 = ([math] n)
-  if (? _v5: Completion) {
-    return _v5
-  } else {
-    call _ret6 = clo<"NormalCompletion">(_v5)
-    return _ret6
-  }
+  call _ret4 = clo<"NormalCompletion">(([math] n))
+  return _ret4
 }
 def u64toaddressvalue(
   v: Unknown,
@@ -2855,12 +2801,8 @@ def create_a_tag_object(
     "__MAP__" : (map[Unknown, Unknown]),
   })
   call _ = clo<"initialize_a_Tag_object">(tag, tagAddress)
-  if (? tag: Completion) {
-    return tag
-  } else {
-    call _ret3 = clo<"NormalCompletion">(tag)
-    return _ret3
-  }
+  call _ret3 = clo<"NormalCompletion">(tag)
+  return _ret3
 }
 def <BUILTIN>:INTRINSICS.WebAssembly.Tag(
   this: Unknown,
@@ -3014,12 +2956,8 @@ def [[ownpropertykeys]]_internal_method_of_an_exported_gc_object(
   O: Unknown,
 ): Unknown = {
   let keys = (list [])
-  if (? keys: Completion) {
-    return keys
-  } else {
-    call _ret1 = clo<"NormalCompletion">(keys)
-    return _ret1
-  }
+  call _ret1 = clo<"NormalCompletion">(keys)
+  return _ret1
 }
 def a_new_exported_gc_object(
   objectaddr: Unknown,
@@ -3094,12 +3032,8 @@ def create_an_exception_object(
     "__MAP__" : (map[Unknown, Unknown]),
   })
   call _ = clo<"initialize_an_Exception_object">(exn, exnAddress)
-  if (? exn: Completion) {
-    return exn
-  } else {
-    call _ret3 = clo<"NormalCompletion">(exn)
-    return _ret3
-  }
+  call _ret3 = clo<"NormalCompletion">(exn)
+  return _ret3
 }
 def <BUILTIN>:INTRINSICS.WebAssembly.Exception(
   this: Unknown,

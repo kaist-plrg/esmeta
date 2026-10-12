@@ -9,7 +9,19 @@ import esmeta.wji.lang.Instr.PerformOutcome
   * `NormalCompletion` unless the value being returned is already itself a
   * completion (checked at runtime via `HasField`, mirroring mainline
   * `esmeta.compiler.Compiler`'s own `isCompletion(x)` guard on `ReturnStep`) —
-  * so a caller can always assume the result has a `.Type` field.
+  * so a caller can always assume the result has a `.Type` field. That runtime
+  * check is skipped — emitting an unconditional wrap, or (see
+  * [[provenCompletion]]) no wrap at all — whenever it would otherwise compile
+  * to permanently dead code: either `expr`'s own shape already fixes its
+  * compiled type to something other than a Completion Record
+  * ([[neverCompletion]]), or an enclosing branch's own condition already proved
+  * `expr` to be one (most commonly [[ExpandAbruptPass]]'s own `?`-propagation
+  * branch, whose condition and body — `Cond.IsType(inner, "AbruptCompletion")`
+  * guarding exactly `Return(inner)` — otherwise has this pass immediately
+  * re-ask the very question its enclosing `if` was just built to answer). Both
+  * were found via `esmeta.wji.WjiCoverage`'s per-branch hit counts against the
+  * official corpus always landing 0 on the redundant check's dead side — see
+  * `personal/coverage-gaps.md`.
   *
   * {{{
   *   If(cond, [Throw(New("TypeError"))])
@@ -81,10 +93,71 @@ object CompletionWrapping:
   def expandAlgorithm(instrs: List[Instr]): List[Instr] =
     expand(instrs, Counter())
 
-  private def expand(instrs: List[Instr], counter: Counter): List[Instr] =
-    instrs.flatMap(expandInstr(_, counter))
+  /** `expr`'s own constructor already fixes its compiled runtime type to
+    * something other than a Completion Record, regardless of what any nested
+    * sub-expression evaluates to -- so a `Cond.IsType(_, "Completion")` check
+    * on it can never be true. Deliberately narrow (a fixed list of
+    * constructors, not a general "does this ever produce a completion"
+    * analysis) and conservative: every one of these compiles straight to a
+    * definite ECMAScript/Math/List value (see `Compiler`'s own cases for
+    * `Bool`/`Num`/`Str`/`Byte`/`AsMath`/`List_`, and `SpecTerm("true"|
+    * "false"|"null"|"undefined")`'s direct `EBool`/`ENull`/`EUndef`
+    * compilation) -- no case here depends on proving anything about a bound
+    * variable's *history* (e.g. "was this `Var` initialized from a literal
+    * earlier and never reassigned since", which would need a backward scan over
+    * preceding instructions and, more importantly, proof that no intervening
+    * call mutated it into something completion-shaped -- left untouched for
+    * now, see `personal/TODO.md`).
+    */
+  private def neverCompletion(expr: Expr): Boolean = expr match
+    case _: Expr.Bool | _: Expr.Num | _: Expr.Str | _: Expr.Byte => true
+    case Expr.SpecTerm("true" | "false" | "null" | "undefined")  => true
+    case _: Expr.AsMath                                          => true
+    case _: Expr.List_                                           => true
+    case _                                                       => false
 
-  private def expandInstr(instr: Instr, counter: Counter): List[Instr] =
+  /** `cond`, as an `IfChain` branch's own condition, already proves `e`
+    * [[IsType is a Completion/AbruptCompletion]] for every instruction inside
+    * that branch's body -- most notably [[ExpandAbruptPass]]'s own
+    * `?`-expansion, whose branch is *exactly* `(Cond.IsType(inner,
+    * "AbruptCompletion"), [Return(inner)])`. Recognized here (rather than only
+    * at the `Return` site) so [[expand]] can thread the fact down to that
+    * `Return` as it recurses into the branch.
+    */
+  private def provenCompletion(cond: Cond): Set[Expr] = cond match
+    case Cond.IsType(e, "AbruptCompletion" | "Completion", false) => Set(e)
+    case _                                                        => Set.empty
+
+  private def expand(
+    instrs: List[Instr],
+    counter: Counter,
+    known: Set[Expr] = Set.empty,
+  ): List[Instr] =
+    // a left-to-right fold, not a plain `flatMap` with a single shared
+    // `known` -- a `Let`/`Set` reassigning one of `known`'s vars partway
+    // through `instrs` must stop that var counting as proven-completion for
+    // every instruction *after* it (even though no actual pass currently
+    // reassigns a var `provenCompletion` tracked -- ExpandAbruptPass's own
+    // branch body is always the single instruction `[Return(inner)]` -- this
+    // keeps that invariant enforced structurally rather than merely assumed).
+    instrs
+      .foldLeft((List.empty[Instr], known)) {
+        case ((acc, k), instr) =>
+          (acc ++ expandInstr(instr, counter, k), invalidate(k, instr))
+      }
+      ._1
+
+  private def invalidate(known: Set[Expr], instr: Instr): Set[Expr] =
+    instr match
+      case Instr.Let(lhs, _, _) => known - lhs
+      case Instr.Set(lhs, _, _) => known - lhs
+      case _                    => known
+
+  private def expandInstr(
+    instr: Instr,
+    counter: Counter,
+    known: Set[Expr],
+  ): List[Instr] =
     instr match
       // a "the following steps..." closure's substeps are a separate
       // algorithm-to-be (see CompletionAlgorithms) — its own Returns are none
@@ -118,6 +191,32 @@ object CompletionWrapping:
           Instr.Perform(
             "ThrowCompletion",
             List(target),
+            PerformOutcome.BindResult(ret),
+          ),
+          Instr.Return(Some(Expr.Var(ret))),
+        )
+      // `expr` is already proven to be a Completion by an enclosing branch's
+      // own condition (see `provenCompletion`) -- returning it needs no
+      // further check or wrap, it already *is* the exact Completion Record to
+      // propagate.
+      case Instr.Return(Some(expr), _) if known.contains(expr) =>
+        List(Instr.Return(Some(expr)))
+      // expr's own shape already guarantees it can never be a Completion
+      // Record -- e.g. a literal `false`/`undefined`, or `|x| interpreted as a
+      // mathematical value` always yields a Math value regardless of `x` --
+      // so the usual "is this already a completion" runtime check would be
+      // permanently dead code (confirmed by esmeta.wji.WjiCoverage against the
+      // official corpus: every occurrence of this shape had its `then` branch
+      // at 0 hits, e.g. the nine `[[...]] internal method of an exported GC
+      // object` algorithms, personal/coverage-gaps.md). Skipping the check
+      // entirely avoids generating it in the first place, rather than
+      // emitting then eliminating it with a separate pass.
+      case Instr.Return(Some(expr), _) if neverCompletion(expr) =>
+        val ret = counter.freshRet()
+        List(
+          Instr.Perform(
+            "NormalCompletion",
+            List(expr),
             PerformOutcome.BindResult(ret),
           ),
           Instr.Return(Some(Expr.Var(ret))),
@@ -160,7 +259,20 @@ object CompletionWrapping:
             List(Expr.SpecTerm("unused")),
             PerformOutcome.BindResult(ret),
           ),
-          Instr.Return(Some(Expr.Var(ret)), expand(body, counter)),
+          Instr.Return(Some(Expr.Var(ret)), expand(body, counter, known)),
+        )
+      // Not handled via the generic `mapBody` catch-all below (unlike every
+      // other `Instr`) -- `mapBody` applies one function uniformly to every
+      // branch, with no way to give each branch its own, condition-derived
+      // `known` set.
+      case i: Instr.IfChain =>
+        List(
+          i.copy(
+            branches = i.branches.map((c, b) =>
+              (c, expand(b, counter, known ++ provenCompletion(c))),
+            ),
+            fallback = expand(i.fallback, counter, known),
+          ),
         )
       case other =>
-        List(other.mapBody(expand(_, counter)))
+        List(other.mapBody(expand(_, counter, known)))

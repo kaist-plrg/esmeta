@@ -1,6 +1,11 @@
 package esmeta.wji
 
-import esmeta.{WJI_COVERAGE_LOG_DIR, WJI_JS_API_TEST_DIR}
+import esmeta.{
+  WJI_COMPLEMENTARY_TEST_DIR,
+  WJI_COVERAGE_LOG_DIR,
+  WJI_JS_API_TEST_DIR,
+  WJI_MANUAL_TEST_DIR,
+}
 import esmeta.cfg.{Block, Branch, BranchKind, Call, Func, Node}
 import esmeta.interpreter.{Interpreter => EsInterpreter}
 import esmeta.state.State
@@ -37,6 +42,17 @@ import scala.collection.mutable
   * {{{
   *   sbt "Test/runMain esmeta.wji.WjiCoverage"
   * }}}
+  *
+  * With no arguments, scans only `tests/wji/js-api/generated` (the official
+  * corpus) and writes to `$WJI_COVERAGE_LOG_DIR`, as described throughout this
+  * doc. Passing `--full` dumps that same official-corpus-only report first (so
+  * it's never silently replaced by a combined one -- the two measure different
+  * things, see the "a function at 0% here isn't necessarily an actual gap"
+  * paragraph below), then *continues* the same run by also executing
+  * `tests/wji/manual` and `tests/wji/complementary` on top of the
+  * already-accumulated hit counts and dumps that combined total to
+  * `$WJI_COVERAGE_LOG_DIR-full` -- the official corpus is only ever executed
+  * once per invocation either way; `--full` doesn't re-run it.
   *
   * Every file under `tests/wji/js-api/generated` is attempted, including ones
   * `EvalSpec` itself skips or cancels (`skippedEntirely`/`slowFiles`) -- a
@@ -141,97 +157,121 @@ object WjiCoverage:
   private given Encoder[CoverageReport] = deriveEncoder
 
   def main(args: Array[String]): Unit =
+    val full = args.contains("--full")
+
     val cfg = WjiTest.mergedCfg
     var connection = Initialize.startProcess()
+    // accumulated across every call to `runFiles` below -- `--full`'s second
+    // (manual/complementary) batch adds onto the official batch's hits rather
+    // than starting over, so the official corpus is only ever executed once
+    // even though two reports get dumped.
     val nodeHits: mutable.Map[Node, Int] = mutable.Map().withDefaultValue(0)
     val condHits: mutable.Map[Cond, Int] = mutable.Map().withDefaultValue(0)
 
-    val files = walkTree(WJI_JS_API_TEST_DIR).filter(f => jsFilter(f.getName))
-    for (file, i) <- files.zipWithIndex do
-      print(s"[${i + 1}/${files.size}] ${file.getName} ... ")
-      try
-        val st = cfg.init.fromFile(file.toString)
-        val host = Initialize(st, WjiTest.spec, connection)
-        val interp = new CoverageInterp(st, Some(host), Some(perFileTimeoutSec))
-        interp.result
-        // summed across files, not just unioned -- a node/branch touched by
-        // several files should show the total hit count, not just one file's
-        for (node, hits) <- interp.nodeHits do nodeHits(node) += hits
-        for (cond, hits) <- interp.condHits do condHits(cond) += hits
-        println(s"done (${interp.nodeHits.size} nodes touched)")
-      catch
-        case e: Throwable =>
-          val poisoned = connection.isPoisoned
-          if poisoned then
-            connection.close()
-            connection = Initialize.startProcess()
-          println(
-            s"FAILED (poisoned=$poisoned) -- ${e.getClass.getSimpleName}: ${e.getMessage}",
+    def runFiles(dirs: List[String]): Unit =
+      val files = dirs.flatMap(walkTree).filter(f => jsFilter(f.getName))
+      for (file, i) <- files.zipWithIndex do
+        print(s"[${i + 1}/${files.size}] ${file.getName} ... ")
+        try
+          val st = cfg.init.fromFile(file.toString)
+          val host = Initialize(st, WjiTest.spec, connection)
+          val interp =
+            new CoverageInterp(st, Some(host), Some(perFileTimeoutSec))
+          interp.result
+          // summed across files, not just unioned -- a node/branch touched by
+          // several files should show the total hit count, not just one file's
+          for (node, hits) <- interp.nodeHits do nodeHits(node) += hits
+          for (cond, hits) <- interp.condHits do condHits(cond) += hits
+          println(s"done (${interp.nodeHits.size} nodes touched)")
+        catch
+          case e: Throwable =>
+            val poisoned = connection.isPoisoned
+            if poisoned then
+              connection.close()
+              connection = Initialize.startProcess()
+            println(
+              s"FAILED (poisoned=$poisoned) -- ${e.getClass.getSimpleName}: ${e.getMessage}",
+            )
+
+    /** computes a [[CoverageReport]] from whatever `nodeHits`/`condHits` have
+      * accumulated so far and dumps it to `outDir` -- called once after the
+      * official batch and, under `--full`, a second time after the
+      * manual/complementary batch has added onto the same running totals.
+      */
+    def report(outDir: String): Unit =
+      val perFunc = cfg.funcs
+        .filter(f => WjiTest.wjiFuncNames(f.name) && !isWebIdlDerived(f.name))
+        .map { f =>
+          val branchIds = f.nodes.collect { case b: Branch => b.id }
+          FuncCoverage(
+            name = f.name,
+            nodesTouched = f.nodes.count(nodeHits.contains),
+            nodesTotal = f.nodes.size,
+            branchesTouched = condHits.keys.count(c => branchIds(c.branchId)),
+            branchesTotal = branchIds.size * 2,
           )
-    connection.close()
-
-    val perFunc = cfg.funcs
-      .filter(f => WjiTest.wjiFuncNames(f.name) && !isWebIdlDerived(f.name))
-      .map { f =>
-        val branchIds = f.nodes.collect { case b: Branch => b.id }
-        FuncCoverage(
-          name = f.name,
-          nodesTouched = f.nodes.count(nodeHits.contains),
-          nodesTotal = f.nodes.size,
-          branchesTouched = condHits.keys.count(c => branchIds(c.branchId)),
-          branchesTotal = branchIds.size * 2,
+        }
+        .sortBy(f =>
+          (
+            f.nodesTotal match {
+              case 0 => 1.0
+              case t => f.nodesTouched.toDouble / t
+            },
+            f.name,
+          ),
         )
-      }
-      .sortBy(f =>
-        (
-          f.nodesTotal match {
-            case 0 => 1.0
-            case t => f.nodesTouched.toDouble / t
-          },
-          f.name,
-        ),
+
+      val rep = CoverageReport(
+        totalFuncs = perFunc.size,
+        touchedFuncs = perFunc.count(_.nodesTouched > 0),
+        totalNodes = perFunc.map(_.nodesTotal).sum,
+        touchedNodes = perFunc.map(_.nodesTouched).sum,
+        totalBranches = perFunc.map(_.branchesTotal).sum,
+        touchedBranches = perFunc.map(_.branchesTouched).sum,
+        perFunc = perFunc,
       )
 
-    val report = CoverageReport(
-      totalFuncs = perFunc.size,
-      touchedFuncs = perFunc.count(_.nodesTouched > 0),
-      totalNodes = perFunc.map(_.nodesTotal).sum,
-      touchedNodes = perFunc.map(_.nodesTouched).sum,
-      totalBranches = perFunc.map(_.branchesTotal).sum,
-      touchedBranches = perFunc.map(_.branchesTouched).sum,
-      perFunc = perFunc,
-    )
-
-    println()
-    println(
-      s"=== WJI coverage (${report.touchedFuncs}/${report.totalFuncs} funcs, " +
-      s"${report.touchedNodes}/${report.totalNodes} nodes, " +
-      s"${report.touchedBranches}/${report.totalBranches} branches) ===",
-    )
-    for f <- perFunc do
-      val pct =
-        if f.nodesTotal == 0 then 0.0 else f.nodesTouched * 100.0 / f.nodesTotal
+      println()
       println(
-        f"$pct%6.1f%%  ${f.nodesTouched}%4d/${f.nodesTotal}%-4d nodes  " +
-        f"${f.branchesTouched}%3d/${f.branchesTotal}%-3d branches  ${f.name}",
+        s"=== WJI coverage in `$outDir` (${rep.touchedFuncs}/${rep.totalFuncs} funcs, " +
+        s"${rep.touchedNodes}/${rep.totalNodes} nodes, " +
+        s"${rep.touchedBranches}/${rep.totalBranches} branches) ===",
+      )
+      for f <- perFunc do
+        val pct =
+          if f.nodesTotal == 0 then 0.0
+          else f.nodesTouched * 100.0 / f.nodesTotal
+        println(
+          f"$pct%6.1f%%  ${f.nodesTouched}%4d/${f.nodesTotal}%-4d nodes  " +
+          f"${f.branchesTouched}%3d/${f.branchesTotal}%-3d branches  ${f.name}",
+        )
+
+      mkdir(outDir)
+      dumpJson(
+        "WJI coverage report",
+        rep,
+        s"$outDir/coverage.json",
+      )
+      dumpFile(
+        "zero-coverage WJI functions",
+        perFunc.filter(_.nodesTouched == 0).map(_.name).mkString("\n"),
+        s"$outDir/zero-coverage-funcs",
+      )
+      dumpAnnotatedIR(
+        outDir,
+        cfg.funcs.filter(f => perFunc.exists(_.name == f.name)),
+        nodeHits,
+        condHits,
       )
 
-    mkdir(WJI_COVERAGE_LOG_DIR)
-    dumpJson(
-      "WJI coverage report",
-      report,
-      s"$WJI_COVERAGE_LOG_DIR/coverage.json",
-    )
-    dumpFile(
-      "zero-coverage WJI functions",
-      perFunc.filter(_.nodesTouched == 0).map(_.name).mkString("\n"),
-      s"$WJI_COVERAGE_LOG_DIR/zero-coverage-funcs",
-    )
-    dumpAnnotatedIR(
-      cfg.funcs.filter(f => perFunc.exists(_.name == f.name)),
-      nodeHits,
-      condHits,
-    )
+    runFiles(List(WJI_JS_API_TEST_DIR))
+    report(WJI_COVERAGE_LOG_DIR)
+
+    if full then
+      runFiles(List(WJI_MANUAL_TEST_DIR, WJI_COMPLEMENTARY_TEST_DIR))
+      report(s"$WJI_COVERAGE_LOG_DIR-full")
+
+    connection.close()
 
   /** dumps one file per (non-webidl) WJI function, mirroring
     * `esmeta.cfg.util.Stringifier`'s own `Node`/`Branch` line format (`id:
@@ -244,11 +284,12 @@ object WjiCoverage:
     * same caveat as the rest of this tool -- see the class doc.
     */
   private def dumpAnnotatedIR(
+    outDir: String,
     funcs: List[Func],
     nodeHits: collection.Map[Node, Int],
     condHits: collection.Map[Cond, Int],
   ): Unit =
-    val dir = s"$WJI_COVERAGE_LOG_DIR/annotated-ir"
+    val dir = s"$outDir/annotated-ir"
     mkdir(dir, remove = true)
     def mark(n: Int): String = s"[$n]"
     def nodeLine(node: Node): String = node match

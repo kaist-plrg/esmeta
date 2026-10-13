@@ -785,31 +785,29 @@ object SpecPatch:
     // 7523) and `ToBigInt` (ECMA-262) are defined over a genuine JavaScript
     // value, a type webidl/index.bs's own 3.2 ("JavaScript type mapping")
     // explicitly treats as distinct from an IDL value, with its own named
-    // conversion in each direction. Rather than patching each call site
-    // individually (which would need two different new variable names, one
-    // per branch, for what's the same fix applied to the same |v|), hoists a
-    // single explicit conversion — `Set |v| to |v|, [=converted to a
-    // JavaScript value=].` — right after the algorithm's own head sentence
-    // and before either branch, reusing |v|'s own name rather than
-    // introducing a fresh one: `Let` (used everywhere else in this file to
-    // introduce a genuinely new binding) would be the wrong verb for
-    // rebinding a name that's already bound as this algorithm's own
-    // parameter — `Set` is the ECMA-262/Bikeshed convention for that. Both
-    // branches then read |v| completely unchanged, already carrying the
-    // right value. `Set |x| to |x|, [=converted to a JavaScript value=].`
-    // parses the same way `Let`'s equivalent does — TextSplit's
-    // bracket-depth tracking (`Open`/`Close` on plain `[`/`]`) treats the
-    // whole `[=converted to a JavaScript value=]` span as depth > 0, so its
-    // own internal "to" (from "converted **to** a JavaScript value") never
-    // competes with `SetPrefix`'s outer `" to "` split.
-    """converts a JavaScript value to a WebAssembly [=u64=] for use in embedding operations. It is designed to act like [=[EnforceRange]=] [=unsigned long=] for {{AddressType}} "i32", and to extend these semantics to {{AddressType}} "i64", by performing the following steps:
+    // conversion in each direction. Hoists a single explicit conversion —
+    // `Let |jsValue| be |v|, [=converted to a JavaScript value=].` — right
+    // after the algorithm's own head sentence (also corrected there, "a
+    // JavaScript value" -> "an IDL value" -- |v| itself never was one) and
+    // before either branch, with a note explaining why the conversion is
+    // needed at all (per upstream review, PR #2275). Both branches then read
+    // |jsValue| in place of |v| (the i32 branch's `ConvertToInt` call here;
+    // the i64 branch's `ToBigInt` call as part of #47 below, which already
+    // needs to touch that branch's surrounding lines anyway).
+    """The algorithm <dfn>AddressValueToU64</dfn>(|v|, |addrtype|) converts a JavaScript value to a WebAssembly [=u64=] for use in embedding operations. It is designed to act like [=[EnforceRange]=] [=unsigned long=] for {{AddressType}} "i32", and to extend these semantics to {{AddressType}} "i64", by performing the following steps:
 
-      #1. If |addrtype| is [=i32=],""".stripMargin('#')
+      #1. If |addrtype| is [=i32=],
+      #    1. Let |n| be [=?=] [$ConvertToInt$](|v|, 32, "unsigned"), where the destination type is associated with [=[EnforceRange]=]."""
+      .stripMargin('#')
     ->
-    """converts a JavaScript value to a WebAssembly [=u64=] for use in embedding operations. It is designed to act like [=[EnforceRange]=] [=unsigned long=] for {{AddressType}} "i32", and to extend these semantics to {{AddressType}} "i64", by performing the following steps:
+    """The algorithm <dfn>AddressValueToU64</dfn>(|v|, |addrtype|) converts an IDL value to a WebAssembly [=u64=] for use in embedding operations. It is designed to act like [=[EnforceRange]=] [=unsigned long=] for {{AddressType}} "i32", and to extend these semantics to {{AddressType}} "i64", by performing the following steps:
 
-      #1. Set |v| to |v|, [=converted to a JavaScript value=].
-      #1. If |addrtype| is [=i32=],""".stripMargin('#'),
+      #1. Let |jsValue| be |v|, [=converted to a JavaScript value=].
+      #
+      #    Note: The IDL `any` type is a discriminated union, not a transparent wrapper around a JavaScript value.
+      #1. If |addrtype| is [=i32=],
+      #    1. Let |n| be [=?=] [$ConvertToInt$](|jsValue|, 32, "unsigned"), where the destination type is associated with [=[EnforceRange]=]."""
+      .stripMargin('#'),
 
     // #40 (spec inconsistency, docs/spec_inconsistencies.md #13) — both spots
     // project a single field out of mem_type/table_type's returned record via
@@ -956,10 +954,28 @@ object SpecPatch:
     // comparing a raw BigInt against a mathematical-value literal isn't
     // itself a defined operation, so this line needs the same [=ℝ=](|n|)
     // conversion the surrounding steps already use, not a special-cased
-    // BigInt/mathematical-value comparison rule.
-    "If |n| &lt; 0 or |n| &gt; 2<sup>64</sup> &minus; 1, [=throw=] a {{TypeError}}."
+    // BigInt/mathematical-value comparison rule. Per upstream review (PR
+    // #2275), binds that conversion once (`Let |r| be [=ℝ=](|n|).`) instead
+    // of recomputing it here and again in the trailing `Return`, which both
+    // now read |r|; folds in #43's |v| -> |jsValue| rename for this branch's
+    // own `ToBigInt` call too, since disambiguating this edit from the i32
+    // branch's otherwise-identical "Return [=ℝ=](|n|) as a WebAssembly
+    // [=u64=]." line already needs the surrounding "If |addrtype| is
+    // [=i64=]," context as an anchor.
+    """1. If |addrtype| is [=i64=],
+      #    1. Let |n| be [=?=] [$ToBigInt$](|v|).
+      #    1. If |n| &lt; 0 or |n| &gt; 2<sup>64</sup> &minus; 1, [=throw=] a {{TypeError}}.
+      #
+      #        Note: This operation is designed to emulate [=[EnforceRange]=].
+      #    1. Return [=ℝ=](|n|) as a WebAssembly [=u64=].""".stripMargin('#')
     ->
-    "If [=ℝ=](|n|) &lt; 0 or [=ℝ=](|n|) &gt; 2<sup>64</sup> &minus; 1, [=throw=] a {{TypeError}}.",
+    """1. If |addrtype| is [=i64=],
+      #    1. Let |n| be [=?=] [$ToBigInt$](|jsValue|).
+      #    1. Let |r| be [=ℝ=](|n|).
+      #    1. If |r| &lt; 0 or |r| &gt; 2<sup>64</sup> &minus; 1, [=throw=] a {{TypeError}}.
+      #
+      #        Note: This operation is designed to emulate [=[EnforceRange]=].
+      #    1. Return |r| as a WebAssembly [=u64=].""".stripMargin('#'),
 
     // #48 (spec inconsistency, docs/spec_inconsistencies.md #17) — the
     // `Memory`/`Table` constructors' `AddressType address;` member is read

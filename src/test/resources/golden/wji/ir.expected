@@ -2722,32 +2722,37 @@ def addressvaluetou64(
   v: Unknown,
   addrtype: Unknown,
 ): Unknown = {
-  call-convert _call1 = <converted_to_a_javascript_value>(v)
-  v = _call1
+  call-convert jsValue = <converted_to_a_javascript_value>(v)
   if (= addrtype (case "I32" )) {
-    call _call2 = clo<"ConvertToInt">(v, 32, "unsigned", "EnforceRange")
-    if (&& (? _call2: Completion) (! (= _call2.Type ~normal~))) {
-      return _call2
+    call _call1 = clo<"ConvertToInt">(jsValue, 32, "unsigned", "EnforceRange")
+    if (&& (? _call1: Completion) (! (= _call1.Type ~normal~))) {
+      return _call1
     } else {
-      let n = _call2.Value
+      let n = _call1.Value
     }
     call _ret1 = clo<"NormalCompletion">(([math] n))
     return _ret1
   } else nop
   assert (= addrtype (case "I64" ))
-  call _call3 = clo<"ToBigInt">(v)
-  if (&& (? _call3: Completion) (! (= _call3.Type ~normal~))) {
-    return _call3
+  call _call2 = clo<"ToBigInt">(jsValue)
+  if (&& (? _call2: Completion) (! (= _call2.Type ~normal~))) {
+    return _call2
   } else {
-    let n = _call3.Value
+    let n = _call2.Value
   }
-  if (|| (< ([math] n) 0) (< (- (** 2 64) 1) ([math] n))) {
+  let r = ([math] n)
+  if (|| (< r 0) (< (- (** 2 64) 1) r)) {
     call _err2 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
     call _ret3 = clo<"ThrowCompletion">(_err2)
     return _ret3
   } else nop
-  call _ret4 = clo<"NormalCompletion">(([math] n))
-  return _ret4
+  let _v4 = r
+  if (? _v4: Completion) {
+    return _v4
+  } else {
+    call _ret5 = clo<"NormalCompletion">(_v4)
+    return _ret5
+  }
 }
 def u64toaddressvalue(
   v: Unknown,

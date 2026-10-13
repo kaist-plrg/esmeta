@@ -1033,18 +1033,20 @@
 
 # AddressValueToU64
   params: |v|, |addrtype|
-  head: The algorithm <dfn>AddressValueToU64</dfn>(|v|, |addrtype|) converts a JavaScript value to a WebAssembly [=u64=] for use in embedding operations. It is designed to act like [=[EnforceRange]=] [=unsigned long=] for {{AddressType}} "i32", and to extend these semantics to {{AddressType}} "i64", by performing the following steps:
-  Set(|v|, [=converted to a JavaScript value=](|v|))
+  head: The algorithm <dfn>AddressValueToU64</dfn>(|v|, |addrtype|) converts an IDL value to a WebAssembly [=u64=] for use in embedding operations. It is designed to act like [=[EnforceRange]=] [=unsigned long=] for {{AddressType}} "i32", and to extend these semantics to {{AddressType}} "i64", by performing the following steps:
+  Let(|jsValue|, [=converted to a JavaScript value=](|v|))
+  Note(The IDL `any` type is a discriminated union, not a transparent wrapper around a JavaScript value)
   If(|addrtype| is [=i32=])
-    Let(|n|, [=?=] [$ConvertToInt$](|v|, 32, "unsigned", "EnforceRange"))
+    Let(|n|, [=?=] [$ConvertToInt$](|jsValue|, 32, "unsigned", "EnforceRange"))
     Note(This is equivalent to the [=js-unsigned-long|JS conversion rules=] for [=[EnforceRange]=] [=unsigned long=])
     Return(AsWasm(AsMath(|n|), u64))
   If(|addrtype| is [=i64=])
-    Let(|n|, [=?=] [$ToBigInt$](|v|))
-    If(AsMath(|n|) < 0 or AsMath(|n|) > 2 ** 64 - 1)
+    Let(|n|, [=?=] [$ToBigInt$](|jsValue|))
+    Let(|r|, AsMath(|n|))
+    If(|r| < 0 or |r| > 2 ** 64 - 1)
       Throw(new {{TypeError}})
     Note(This operation is designed to emulate [=[EnforceRange]=])
-    Return(AsWasm(AsMath(|n|), u64))
+    Return(AsWasm(|r|, u64))
   Assert(Unreachable)
 
 # U64ToAddressValue

@@ -184,18 +184,24 @@ Retracted — its premise was wrong. This entry claimed the Wasm Core Spec's `fu
       1. Let |n| be ?ToBigInt(|v|).
       ...
   ```
-- **Expected**: insert one step right after the head sentence, before either branch:
+- **Expected**: insert one step right after the head sentence (also correcting it, "a JavaScript value" → "an IDL value" — `|v|` itself never was one), before either branch:
   ```
-  1. Set |v| to |v|, [=converted to a JavaScript value=].
+  The algorithm AddressValueToU64(|v|, |addrtype|) converts an IDL value to a WebAssembly u64 ..., by performing the following steps:
+
+  1. Let |jsValue| be |v|, [=converted to a JavaScript value=].
+
+      Note: The IDL `any` type is a discriminated union, not a transparent wrapper around a JavaScript value.
   1. If |addrtype| is [=i32=],
-      1. Let |n| be [=?=] [$ConvertToInt$](|v|, 32, "unsigned"), where the destination type is associated with [=[EnforceRange]=].
+      1. Let |n| be [=?=] [$ConvertToInt$](|jsValue|, 32, "unsigned"), where the destination type is associated with [=[EnforceRange]=].
       ...
   1. If |addrtype| is [=i64=],
-      1. Let |n| be [=?=] [$ToBigInt$](|v|).
+      1. Let |n| be [=?=] [$ToBigInt$](|jsValue|).
       ...
   ```
-  (both branches' own lines are otherwise unchanged — they already read `|v|`, which the hoisted step now guarantees is a genuine JavaScript value by the time either branch runs)
+  (both branches' bodies are otherwise unchanged, aside from reading `|jsValue|` where they used to read `|v|`)
 - **Reason**: `AddressValueToU64(|v|, |addrtype|)` is called from `Table.prototype.get`/`.set`/`.grow`, `Memory`/`Table` constructors and `.grow`, etc. with `|index|`/`|delta|`/`|descriptor|["initial"|"maximum"]` — each one bound by the *method steps* of some WebIDL operation. Per `webidl/index.bs:12562-12570` ("create an operation function"), method steps always run with `|values|` — the result of the *overload resolution algorithm*, i.e. every argument already [=converted to an IDL value=] — never the raw incoming arguments. Each of these parameters' declared IDL type is `AddressValue`, a `typedef any` (`webidl/index.bs:687`), and converting a JavaScript value to `any` is a real, defined conversion (`webidl/index.bs:7314-7339`) that produces an IDL value (an IDL unrestricted double / bigint / DOMString / object / ... depending on the argument's ECMAScript type) — not the JavaScript value itself. Both `ConvertToInt` (`webidl/index.bs:7604`, used everywhere else in the document exclusively as an internal step of the "convert a JavaScript value to `unsigned long`/`long`/..." family, e.g. line 7523) and `ToBigInt` (ECMA-262) are defined over a genuine JavaScript value — so the i64 branch has the exact same problem as the i32 branch, not just the one this entry originally flagged. `webidl/index.bs`'s own §3.2 ("JavaScript type mapping") treats "JavaScript value" and "IDL value" as distinct types precisely so that each direction of conversion between them needs to be named and applied explicitly; `AddressValueToU64` skips the IDL-value-to-JavaScript-value direction and feeds `|v|` to both `ConvertToInt` and `ToBigInt` as-is. In practice this happens not to change either operation's observable behavior (every branch of the `any` conversion is either a no-op passthrough or a representation-preserving wrap), but the spec text itself no longer honors the type distinction it defines and relies on elsewhere.
+
+  Per upstream review (PR #2275, Ms2ger): the hoisted step binds a genuinely new variable, `|jsValue|`, rather than rebinding `|v|` in place (an earlier draft's approach, since dropped) — clearer about which name holds which of the two distinct values at any point, and sidesteps any question of `Let` vs. `Set` for a parameter rebind. A note was also added explaining *why* this conversion is needed at all (the IDL `any` type isn't a transparent wrapper, so a value bound from an `any`-typed parameter isn't automatically a JavaScript value). Fixed via `SpecPatch` #43 (and #47, for the `|jsValue|` rename inside the i64 branch, bundled there since that patch already needs to touch those lines for spec_errors #23's own fix).
 
 ## 20. `Tag`/`Exception`'s `Exposed=(Window,Worker,Worklet)` makes the unconditional `Assert: |interface| is [=exposed=] in |realm|` in "internally create a new object implementing the interface" fail for any non-browser host
 
@@ -267,13 +273,16 @@ Retracted — its premise was wrong. This entry claimed the Wasm Core Spec's `fu
   ```
 - **Expected**:
   ```
-  1. If |n| < 0 or |n| > 2^64 − 1, [=throw=] a {{TypeError}}.
+  1. Let |n| be [=?=] [$ToBigInt$](|jsValue|).
+  1. Let |r| be [=ℝ=](|n|).
+  1. If |r| < 0 or |r| > 2^64 − 1, [=throw=] a {{TypeError}}.
+
+      Note: This operation is designed to emulate [=[EnforceRange]=].
+  1. Return |r| as a WebAssembly [=u64=].
   ```
-  becomes
-  ```
-  1. If [=ℝ=](|n|) < 0 or [=ℝ=](|n|) > 2^64 − 1, [=throw=] a {{TypeError}}.
-  ```
-- **Reason**: `|n|` is bound one step above as `[=?=] [$ToBigInt$](|v|)` — a BigInt — but this line compares it directly against the mathematical-value literals `0`/`2^64 − 1` with no conversion notation. ECMA-262 treats BigInt and mathematical values as distinct domains that only cross via an explicit conversion (𝔽/ℤ/ℝ) — this same algorithm's very next step already does exactly that (`Return [=ℝ=](|n|) as a WebAssembly [=u64=].`), so the range check one line above it should use the same `[=ℝ=](|n|)` conversion rather than comparing the raw BigInt. Fixed via `SpecPatch` #47.
+- **Reason**: `|n|` is bound one step above as `[=?=] [$ToBigInt$](|v|)` — a BigInt — but this line compares it directly against the mathematical-value literals `0`/`2^64 − 1` with no conversion notation. ECMA-262 treats BigInt and mathematical values as distinct domains that only cross via an explicit conversion (𝔽/ℤ/ℝ) — this same algorithm's very next step already does exactly that (`Return [=ℝ=](|n|) as a WebAssembly [=u64=].`), so the range check one line above it should use the same `[=ℝ=](|n|)` conversion rather than comparing the raw BigInt.
+
+  Per upstream review (PR #2275, Ms2ger): converting to a mathematical value three times over (comparison ×2, return ×1) for the same `|n|` is redundant — bound once instead, as `|r|`, and both the comparison and the `Return` read it back. (`|v|` → `|jsValue|` here is spec_errors #19's own rename, folded into this same line since both land in the same algorithm.) Fixed via `SpecPatch` #47 (and #43, for the rename).
 
 ## 24. `a [=/new=] {{X}}` called without its required `realm` argument
 

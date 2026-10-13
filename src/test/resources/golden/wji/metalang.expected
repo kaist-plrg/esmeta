@@ -17,9 +17,7 @@
   ForEach(|import|, [=module_imports=](|module|))
     If(|importedStringModule| is not null, and |import|[0] is |importedStringModule|)
       Let(|importExternType|, |import|[2])
-      Let(|reftype|, [=ref=]([=heap-type/extern=]))
-      Let(|mut|, empty)
-      Let(|stringExternType|, [=external-type/global=](|mut|, |reftype|))
+      Let(|stringExternType|, [=external-type/global=]([=ref=]([=heap-type/extern=])))
       If([=match_externtype=](|stringExternType|, |importExternType|) is false)
         Return(false)
     Else

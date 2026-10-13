@@ -1129,34 +1129,25 @@ object SpecPatch:
     // compares against as one bare backtick-quoted formal-grammar literal,
     // `` `global const (ref extern)` ``, unlike every other externtype
     // construction/destructuring in this corpus, which all build a value out
-    // of linked terms (`[=mut=]`, `[=external-type/global=]`, `[=ref=]` --
-    // e.g. `ToWebAssemblyValue`, index.bs:1451's already-working `[=ref=]
+    // of linked terms (`[=external-type/global=]`, `[=ref=]` -- e.g.
+    // `ToWebAssemblyValue`, index.bs:1451's already-working `[=ref=]
     // [=heap-type/extern=]`) rather than one opaque literal. Rebuilt from
-    // those same proven-working calls -- but as three separate `Let`s, each
-    // binding a plain variable, not two nested calls:
-    // `[=external-type/global=] |mut| |reftype|` needs `|mut|`/`|reftype|` as
-    // bare already-bound vars for `NormalizeSpecTecCaseShapePass`'s own
-    // `[=external-type/global=]` special case (its own doc's worked example
-    // -- `Case("[=external-type/global=]", [Var(mut), Var(valuetype)])` ->
-    // `Case("GLOBAL", [Case("", [Var(mut), Var(valuetype)])])`) to fire on;
-    // writing `[=external-type/global=] [=mut=] |reftype|` inline instead (a
-    // nested call, matching the two-line shape this patch first tried)
-    // parses `[=mut=] |reftype|` greedily as a single one-arg call before
-    // `external-type/global` ever sees it, so its own 2-flat-arg special case
-    // never matches and it falls through to a generic one-arg path instead,
-    // adding an extra, wrong layer of nesting SpecTec's own `al_to_globaltype`
-    // then rejects (confirmed against the real `spectec` binary: `Backend_
-    // interpreter.Construct.WrongConversion("globaltype: invalid
-    // construction ...")`). `|mut|` itself is bound to the bare word "empty"
-    // (matching `docs/spec_errors.md` #39's own fix for the sibling
-    // `globaltype` construction in `Global`'s constructor, and the embedding
-    // appendix's own "If mut is empty" phrasing) rather than `[=const=]`,
-    // which no longer appears anywhere in this document once #39 is applied.
+    // those same proven-working calls, dropping any mutability marker
+    // entirely -- this global is always immutable, and (post
+    // `docs/spec_errors.md` #39) the absent case needs no token at all, the
+    // same convention `Global`'s own bare-|valuetype| immutable branch uses.
+    // `[=external-type/global=] [=ref=] [=heap-type/extern=]` reads as *one*
+    // positional arg to `external-type/global` -- `ResolveLinksPass` parses
+    // `[=ref=] [=heap-type/extern=]` greedily as its own one-arg call first,
+    // before `external-type/global` ever sees more than that single combined
+    // result -- so `NormalizeSpecTecCaseShapePass`'s own `[=external-type/
+    // global=]` case special-cases exactly this 1-arg shape, wrapping it with
+    // the same `wrapGlobaltype` helper `Global`'s constructor already uses,
+    // rather than needing the 2-flat-arg shape its other (mutable) call sites
+    // provide.
     "        1. Let |stringExternType| be `global const (ref extern)`."
     ->
-    ("        1. Let |reftype| be [=ref=] [=heap-type/extern=].\n" +
-    "        1. Let |mut| be empty.\n" +
-    "        1. Let |stringExternType| be [=external-type/global=] |mut| |reftype|."),
+    "        1. Let |stringExternType| be [=external-type/global=] [=ref=] [=heap-type/extern=].",
 
     // #57 (spec bug, docs/spec_errors.md #29) — `read the imports`
     // (index.bs:500) is missing `[=?=]` before `[$HasProperty$](|o|,

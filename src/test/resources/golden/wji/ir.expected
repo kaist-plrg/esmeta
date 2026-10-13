@@ -27,9 +27,7 @@ def validate_builtins_and_imported_string_for_a_webassembly_module(
     let import = _iterList1[_iterIdx2]
     if (&& (! (= importedStringModule null)) (= import[0] importedStringModule)) {
       let importExternType = import[2]
-      let reftype = (case "REF" (opt) (case "EXTERN" ))
-      let mut = (opt)
-      let stringExternType = (case "GLOBAL" (case "" mut reftype))
+      let stringExternType = (case "GLOBAL" (case "" (opt) (case "REF" (opt) (case "EXTERN" ))))
       call-embed _call2 = <match_externtype>(stringExternType, importExternType)
       if (= _call2 false) {
         return false
@@ -763,8 +761,8 @@ def string_value_of_the_extern_type(
     let memtype = type[0]
     return "memory"
   } else nop
-  if (&& (= (case-tag type) "GLOBAL") (= (case-tag type[0]) "")) {
-    let globaltype = type[0][0]
+  if (= (case-tag type) "GLOBAL") {
+    let globaltype = type[0]
     return "global"
   } else nop
   if (= (case-tag type) "TAG") {

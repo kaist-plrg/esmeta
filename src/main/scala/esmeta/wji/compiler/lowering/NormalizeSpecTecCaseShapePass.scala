@@ -266,8 +266,29 @@ object NormalizeSpecTecCaseShapePass extends LoweringPass:
             Expr.Case(finalTag, Expr.Opt(None) :: reshapedArgs)
 
           // [=external-type/global=] mut vt -> GLOBAL((mut, vt))
-          case _ if tag == "[=external-type/global=]" =>
+          case _
+              if tag == "[=external-type/global=]" && reshapedArgs.size == 2 =>
             Expr.Case(finalTag, List(Expr.Case("", reshapedArgs)))
+
+          // [=external-type/global=] vt -> GLOBAL((Opt(None), vt)) -- the
+          // immutable-only case (`stringExternType`, `docs/spec_inconsistencies.md`
+          // #21): only a single positional arg reaches here (the greedy
+          // one-arg-call parse swallows `[=ref=] [=heap-type/extern=]` as one
+          // unit before `external-type/global` ever sees it), so `mut` is
+          // never written at all -- same "absent optional needs no token"
+          // convention as `Global`'s own bare-|valuetype| immutable branch
+          // above, reusing the exact same `wrapGlobaltype` helper to supply
+          // the implicit `Opt(None)`. Guarded to exclude a bare `Var` arg
+          // specifically: this same tag/arity also appears as a `form`
+          // pattern (`Cond.IsOfForm`, "is of the form [=external-type/global=]
+          // <var ignore>globaltype</var>", index.bs:719) where a single `Var`
+          // means "bind the whole inner value, whatever shape it is" --
+          // wrapping that would corrupt the destructure instead of fixing a
+          // construction.
+          case _
+              if tag == "[=external-type/global=]" && reshapedArgs.size == 1
+              && !reshapedArgs.head.isInstanceOf[Expr.Var] =>
+            Expr.Case(finalTag, List(wrapGlobaltype(reshapedArgs.head)))
 
           // [=mut=] vt -> (Opt(MUT), vt) -- index.bs's `Global` constructor
           // (post-`SpecPatch` #76/`docs/spec_errors.md` #39) builds a

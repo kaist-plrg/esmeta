@@ -774,6 +774,13 @@ object ExprParser:
   private val BoolFalse = """(?i)^false$""".r
   private val BoldConst = """(?s)^\*\*([^*]+)\*\*$""".r
   private val SpecTermPat = """(?i)^(?:undefined|null|empty|absent)$""".r
+  // `memtype`'s own grammar (`addrtype limits PAGE`) ends in a literal
+  // keyword, unlike `SpecTermPat`'s generic Infra/ECMA-262 sentinels above —
+  // kept as its own pattern rather than folded into that one so the two
+  // stay conceptually separate. Parsed into a plain `SpecTerm` here (purely
+  // structural, no SpecTec-runtime knowledge); it's `NormalizeSpecTecCaseShapePass`
+  // that actually knows this token carries no data and drops it.
+  private val PageKeyword = """(?i)^page$""".r
   // captures just the inner text (e.g. "throw"/"normal") — the enum value a
   // real completion record's [[Type]] actually holds, not the markup itself.
   private val EmuConst = """(?s)^<emu-const>([^<]*)</emu-const>$""".r
@@ -1111,6 +1118,7 @@ object ExprParser:
       case BoolFalse()                    => Bool(false)
       case BoldConst(_)                   => SpecTerm(s)
       case SpecTermPat()                  => SpecTerm(s)
+      case PageKeyword()                  => SpecTerm("page")
       case EmuConst(v)                    => SpecTerm(v)
       case EmuVal(v)                      => SpecTerm(v)
       case BracedTerm(inner)              => SpecTerm(inner)

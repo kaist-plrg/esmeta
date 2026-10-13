@@ -1535,9 +1535,26 @@ object SpecPatch:
     // problem the now-removed `SpecPatch` #45 used to paper over for the old
     // `{min, max}` text); added here directly rather than reintroducing that
     // patch.
+    //
+    // (spec bug, docs/spec_errors.md #41) A third, also-unrelated issue on
+    // this same line: `memtype`'s actual current grammar
+    // (`1.2-syntax.types.spectec:132`) is `addrtype limits PAGE` -- a
+    // literal trailing "page" keyword, confirmed on the live page as plain
+    // unlinked text (distinct from the separately-anchored "page size"
+    // constant this document already links elsewhere) -- which this
+    // document's own text never had at all, not even before this session's
+    // `{min,max}`->range rewrite. Appended here since it lands on the same
+    // line. Needed a small mechanization extension to keep parsing/executing
+    // -- the bare word "page" wasn't parseable on its own, so the whole
+    // juxtaposed value fell to `Unknown`/`EYet`: `ExprParser.PageKeyword`
+    // now parses it into a plain `Expr.SpecTerm("page")` (purely
+    // structural), and `NormalizeSpecTecCaseShapePass` drops that trailing
+    // term when promoting `TypeAnnotated("memory type", ...)`, since the
+    // real runtime tag `"PAGE"` is already derived from the TERM itself
+    // (`typeAnnotationTag`), not from this word (`docs/hardcodes.md` #12).
     "1. Let |memtype| be [=memory type=] |addrtype| { **min** |initial|, **max** |maximum| }."
     ->
-    "1. Let |memtype| be the [=memory type=] |addrtype| [|initial| .. |maximum|].",
+    "1. Let |memtype| be the [=memory type=] |addrtype| [|initial| .. |maximum|] page.",
     "1. Let |type| be the [=table type=] |addrtype| { <b>[=limits|min=]</b> |initial|, <b>[=limits|max=]</b> |maximum| } |elementtype|."
     ->
     "1. Let |type| be the [=table type=] |addrtype| [|initial| .. |maximum|] |elementtype|.",

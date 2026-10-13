@@ -223,9 +223,25 @@ object NormalizeSpecTecCaseShapePass extends LoweringPass:
   private object reshaper extends Walker:
     override def walk(expr: Expr): Expr = expr match
       case Expr.TypeAnnotated(term, Expr.Seq_(args)) =>
+        // `memtype`'s own grammar (`addrtype limits PAGE`) ends in a fixed
+        // "page" keyword that disambiguates nothing (unlike comptype's
+        // FUNC/STRUCT/ARRAY, memtype has no competing variant to tell
+        // apart) and carries no data of its own -- the "memory type" TERM
+        // above already conveys the same information (`typeAnnotationTag`
+        // maps it straight to the real runtime tag `"PAGE"`), so it's
+        // dropped here rather than kept as a third positional arg, which
+        // `al_of_memorytype`'s real 2-arg shape (`CaseV("PAGE", [addrtype;
+        // limits])`) has no room for. `ExprParser.PageKeyword` is what
+        // parses the literal word into this `SpecTerm("page")` in the
+        // first place -- purely structural there, with no SpecTec
+        // knowledge of its own.
+        val realArgs =
+          if term == "memory type" then
+            args.filterNot(_ == Expr.SpecTerm("page"))
+          else args
         Expr.Case(
           typeAnnotationTag.getOrElse(term, term),
-          args.map(promoteLimits),
+          realArgs.map(promoteLimits),
         )
       case Expr.SpecTerm(RenamedTag(tag)) => Expr.Case(tag, Nil)
       // The bare word "empty" (Infra-spec's own "no value here") always

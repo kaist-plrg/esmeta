@@ -475,3 +475,31 @@ Retracted — its premise was wrong. This entry claimed the Wasm Core Spec's `fu
   ```
 - **Reason**: `|id|` is bound exactly once in this algorithm, by `Let |id| be |attribute|'s [=identifier=].` (line 12403) — the third step *inside* the `|steps|` closure, which only runs later, each time the resulting setter function is called. The `Let |name| be ...` step (line 12466) belongs to the enclosing algorithm, which runs once when the setter is created and never executes the closure's body itself, so `|id|` is unbound at the point it's read: a use without a definition, the same class of defect as #37's `|F|`. The closure's own three uses of `|id|` (the security check at line 12414, `CreateDataPropertyOrThrow` at line 12419, `Get` at line 12425) are fine — they sit in the same scope as the binding. `attribute getter` (line 12382), the sibling algorithm with the identical shape, writes the corresponding step as `Let |name| be the string "<code>get </code>" prepended to |attribute|'s [=identifier=].` — it never introduces an `|id|` at all, reading `|attribute|` (a parameter of the enclosing algorithm, so in scope both inside and outside the closure) directly. Using the same form here is the minimal fix; the alternative of hoisting `Let |id| be ...` out of `|steps|` to before it would work too, but changes more text and diverges from the getter.
 - Fixed via `SpecPatch` #75.
+
+## 39. `const`/`var` used for global mutability, but the Core Spec represents it as an optional `mut` marker, not two named variants
+
+- **File**: `spectec/document/js-api/index.bs`, lines 531, 1204, 1232 (`read the imports`'s global-import branch, the `Global` constructor, and the `Global` value setter), plus the anchors block registering the terms (`urlPrefix: .../syntax/types.html; text: var; text: const`).
+- **Current**:
+  ```
+  1. Let (|store|, |globaladdr|) be [=global_alloc=](|store|, [=const=] |valtype|, |value|).
+  ...
+  1. If |mutable| is true, let |globaltype| be [=var=] |valuetype|; otherwise, let |globaltype| be [=const=] |valuetype|.
+  ...
+  1. If |mut| is [=const=], throw a {{TypeError}}.
+  ```
+  All three construct or compare a `globaltype`'s mutability field via two named terms, `[=const=]`/`[=var=]`.
+- **Expected**: a new `mut` term (anchors block: `text: mut`, replacing the `var`/`const` entries, same `#syntax-mut` URL — the production itself, unlike either named variant, is real) for the present case, and nothing at all — not even a placeholder word — for the absent one, matching the grammar's own optionality (`mut?`) and this document's existing idiom for other absent-optional fields (e.g. `limits`' `maximum`):
+  ```
+  1. Let (|store|, |globaladdr|) be [=global_alloc=](|store|, |valtype|, |value|).
+  ...
+  1. If |mutable| is true, let |globaltype| be [=mut=] |valuetype|; otherwise, let |globaltype| be |valuetype|.
+  ...
+  1. If |mut| is empty, throw a {{TypeError}}.
+  ```
+- **Reason**: the Core Spec's actual current grammar (`specification/wasm-latest/1.2-syntax.types.spectec:131`) is `globaltype ::= mut? valtype` — `mut` is an *optional* marker, not a two-variant enum. Neither "const" nor "var" appears anywhere in the published grammar (`https://webassembly.github.io/spec/core/syntax/types.html`, confirmed directly) or in the embedding appendix (`document/core/appendix/embedding.rst:731-733`), which instead phrases the immutable case as "If mut is empty, then return ERROR" — exactly the wording the `Expected` text above reuses for the `Global` value setter's own check. The runtime encoding WJI/SpecTec already uses for this field (`construct.ml`'s `al_to_mut`/`al_of_mut`) is `OptV None` (immutable) / `OptV (Some _)` (mutable) — an option, matching the grammar, not a `CaseV` with two named tags. js-api's own `const`/`var` terms, registered against `#syntax-mut` in its anchors block, point at a URL fragment that no longer defines any such terms.
+
+  This is distinct from (and likely supersedes, once both land) spec_inconsistency #21, which treated `stringExternType`'s `[=const=]` as a one-off formatting inconsistency (an opaque backtick literal vs. assembled linked terms). The real problem runs deeper: `[=const=]` isn't a term this document can validly assemble with at all, anywhere, not just in that one spot — the fix for #21 (not yet merged) in fact introduces a *fourth* occurrence of this same stale idiom, which will need revisiting once this entry's own fix lands.
+
+  Fixed via `SpecPatch` #76, and validated end to end: `global/constructor.any.js` (62/62) and `global/value-get-set.any.js` (69/69) both still pass under the new text, same as they did under the old buggy one (confirming this was never actually a mechanization gap — WJI already executed the buggy text correctly via a hand-written special case that assumed `const`/`var`). `NormalizeSpecTecCaseShapePass` has been updated to match the new text instead (`docs/hardcodes.md` #12): `[=mut=] |valuetype|` reshapes to the real `(Opt(Some(MUT)), vt)` pair the same way `[=var=] |valuetype|` used to, and the now-bare absent-case construction (`global_alloc`'s inline argument, and `Global`'s own `Let |globaltype| be |valuetype|`) is homogenized to the same pair shape by a small new `wrapGlobaltype` helper, keyed narrowly enough (by argument name/bound-variable-name, not just shape) to not also catch the *other* `global_alloc` call site or `GetGlobalValue`'s own read-back — both of which already carry a correctly-shaped `globaltype` value that must NOT be wrapped again.
+
+  Still recommend filing an upstream Issue before a PR, despite the fix now being fully worked out and validated here: `[=mut=]` would be a brand new term this document has never used before, and the live Core Spec page doesn't itself link to any anchor for the bare marker (it only appears as inline math notation, `\mathsf{mut}^?`) — so whether `text: mut` pointing at `#syntax-mut` (the production's own anchor, not a new sub-term) is the phrasing upstream maintainers actually want is worth settling before a PR, the same way Category D's new `[=expand=]`/`[=fold=]` terms are.

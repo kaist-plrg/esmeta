@@ -1153,33 +1153,34 @@ object SpecPatch:
     // (spectec/document/js-api/index.bs:408) constructs the externtype it
     // compares against as one bare backtick-quoted formal-grammar literal,
     // `` `global const (ref extern)` ``, unlike every other externtype
-    // construction/destructuring in this corpus (and the sibling `globaltype`
-    // construction right next door in `Global`'s own constructor,
-    // index.bs:1200: "let |globaltype| be [=const=] |valuetype|"), which all
-    // build a value out of linked terms (`[=const=]`/`[=var=]`,
-    // `[=external-type/global=]`, `[=ref=]` -- e.g. `ToWebAssemblyValue`,
-    // index.bs:1451's already-working `[=ref=] [=heap-type/extern=]`) rather
-    // than one opaque literal. Rebuilt from those same three proven-working
-    // calls -- but as three separate `Let`s, each binding a plain variable,
-    // not two nested calls: `[=external-type/global=] |mut| |reftype|` needs
-    // `|mut|`/`|reftype|` as bare already-bound vars for
-    // `NormalizeSpecTecCaseShapePass`'s own `[=external-type/global=]`
-    // special case (its own doc's worked example --
-    // `Case("[=external-type/global=]", [Var(mut), Var(valuetype)])` ->
+    // construction/destructuring in this corpus, which all build a value out
+    // of linked terms (`[=mut=]`, `[=external-type/global=]`, `[=ref=]` --
+    // e.g. `ToWebAssemblyValue`, index.bs:1451's already-working `[=ref=]
+    // [=heap-type/extern=]`) rather than one opaque literal. Rebuilt from
+    // those same proven-working calls -- but as three separate `Let`s, each
+    // binding a plain variable, not two nested calls:
+    // `[=external-type/global=] |mut| |reftype|` needs `|mut|`/`|reftype|` as
+    // bare already-bound vars for `NormalizeSpecTecCaseShapePass`'s own
+    // `[=external-type/global=]` special case (its own doc's worked example
+    // -- `Case("[=external-type/global=]", [Var(mut), Var(valuetype)])` ->
     // `Case("GLOBAL", [Case("", [Var(mut), Var(valuetype)])])`) to fire on;
-    // writing `[=external-type/global=] [=const=] |reftype|` inline instead
-    // (a nested call, matching the two-line shape this patch first tried)
-    // parses `[=const=] |reftype|` greedily as a single one-arg call before
+    // writing `[=external-type/global=] [=mut=] |reftype|` inline instead (a
+    // nested call, matching the two-line shape this patch first tried)
+    // parses `[=mut=] |reftype|` greedily as a single one-arg call before
     // `external-type/global` ever sees it, so its own 2-flat-arg special case
     // never matches and it falls through to a generic one-arg path instead,
     // adding an extra, wrong layer of nesting SpecTec's own `al_to_globaltype`
     // then rejects (confirmed against the real `spectec` binary: `Backend_
     // interpreter.Construct.WrongConversion("globaltype: invalid
-    // construction ...")`).
+    // construction ...")`). `|mut|` itself is bound to the bare word "empty"
+    // (matching `docs/spec_errors.md` #39's own fix for the sibling
+    // `globaltype` construction in `Global`'s constructor, and the embedding
+    // appendix's own "If mut is empty" phrasing) rather than `[=const=]`,
+    // which no longer appears anywhere in this document once #39 is applied.
     "        1. Let |stringExternType| be `global const (ref extern)`."
     ->
     ("        1. Let |reftype| be [=ref=] [=heap-type/extern=].\n" +
-    "        1. Let |mut| be [=const=].\n" +
+    "        1. Let |mut| be empty.\n" +
     "        1. Let |stringExternType| be [=external-type/global=] |mut| |reftype|."),
 
     // #57 (spec bug, docs/spec_errors.md #29) — `read the imports`
@@ -1504,6 +1505,32 @@ object SpecPatch:
     "Let |name| be the string \"<code>set </code>\" prepended to |id|."
     ->
     "Let |name| be the string \"<code>set </code>\" prepended to |attribute|'s [=identifier=].",
+
+    // #76 (spec bug, docs/spec_errors.md #39) — js-api constructs/destructures
+    // a globaltype's mutability via two named terms, [=var=]/[=const=], but
+    // the Wasm Core Spec's actual current grammar (`globaltype ::= mut?
+    // valtype`) has no such terms at all -- `mut` is an *optional* marker,
+    // not a two-variant tag, and this document's own anchors registration
+    // for "var"/"const" points at a URL fragment that defines neither.
+    // Rewritten to match: [=var=] |valuetype| -> [=mut=] |valuetype| (a new
+    // term for the literal presence marker, same one-arg-link idiom as
+    // before); every [=const=] |X| (the absent-marker construction case) ->
+    // bare |X| (nothing written, matching `mut?`'s own optionality --
+    // `globaltype`'s runtime shape is still the same 2-element pair,
+    // `NormalizeSpecTecCaseShapePass` just needs to know a bare valtype-typed
+    // expr reaching a globaltype-typed position means an empty mut); and
+    // `|mut| is [=const=]` (a presence check, not a construction) ->
+    // `|mut| is empty`, matching the embedding appendix's own "If mut is
+    // empty" phrasing for this exact check.
+    "1. Let (|store|, |globaladdr|) be [=global_alloc=](|store|, [=const=] |valtype|, |value|)."
+    ->
+    "1. Let (|store|, |globaladdr|) be [=global_alloc=](|store|, |valtype|, |value|).",
+    "1. If |mutable| is true, let |globaltype| be [=var=] |valuetype|; otherwise, let |globaltype| be [=const=] |valuetype|."
+    ->
+    "1. If |mutable| is true, let |globaltype| be [=mut=] |valuetype|; otherwise, let |globaltype| be |valuetype|.",
+    "1. If |mut| is [=const=], throw a {{TypeError}}."
+    ->
+    "1. If |mut| is empty, throw a {{TypeError}}.",
   )
 
   def apply(source: String): String =

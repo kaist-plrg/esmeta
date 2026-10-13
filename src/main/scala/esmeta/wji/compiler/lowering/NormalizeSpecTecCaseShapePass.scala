@@ -1,6 +1,6 @@
 package esmeta.wji.compiler.lowering
 
-import esmeta.wji.lang.{Algorithm, Expr}
+import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr}
 import esmeta.wji.lang.walker.Walker
 
 /** Finalizes every `Expr.Case`'s `tag` into SpecTec's real runtime
@@ -68,13 +68,16 @@ import esmeta.wji.lang.walker.Walker
   *     but prose only ever spells out the first (nullability) component when
   *     the ref *is* nullable — a non-nullable one leaves it implicit, so only
   *     one arg is ever parsed.
-  *   - `[=var=]`/`[=const=]` (js-api/index.bs's own `globaltype` construction,
-  *     `Global`'s constructor): `al_of_globaltype` is `CaseV("", [mut; vt])` —
-  *     an untagged pair, `mut` itself `al_of_mut`'s `OptV None`/`OptV (Some
-  *     (CaseV ("MUT", [])))` (an *optional* flag, not a two-variant tag) — but
-  *     prose writes `mut`'s own link juxtaposed with `|valuetype|`, which
-  *     `ResolveLinksPass` reads as a one-arg call to that link instead of two
-  *     untagged siblings.
+  *   - `[=mut=]` (js-api/index.bs's own `globaltype` construction, post
+  *     `SpecPatch` #76/`docs/spec_errors.md` #39 — upstream still writes the
+  *     now-nonexistent `[=var=]`/`[=const=]`): `al_of_globaltype` is `CaseV("",
+  *     [mut; vt])` — an untagged pair, `mut` itself `al_of_mut`'s `OptV
+  *     None`/`OptV (Some (CaseV ("MUT", [])))` (an *optional* flag, not a
+  *     two-variant tag) — but prose writes `mut`'s own link juxtaposed with
+  *     `|valuetype|`, which `ResolveLinksPass` reads as a one-arg call to that
+  *     link instead of two untagged siblings. The immutable case writes a bare
+  *     `|valuetype|` instead (no symmetric tag — `mut`'s absence needs none),
+  *     homogenized to the same pair shape by `wrapGlobaltype`.
   * {{{
   *   Case("[=i32.const=]", [Var(u32)])
   * }}}
@@ -108,7 +111,7 @@ import esmeta.wji.lang.walker.Walker
   * }}}
   * and
   * {{{
-  *   Case("[=var=]", [Var(valuetype)])
+  *   Case("[=mut=]", [Var(valuetype)])
   * }}}
   * becomes
   * {{{
@@ -226,11 +229,6 @@ object NormalizeSpecTecCaseShapePass extends LoweringPass:
           args.map(promoteLimits),
         )
       case Expr.SpecTerm(RenamedTag(tag)) => Expr.Case(tag, Nil)
-      // `|mut| is [=const=]` (index.bs:1226) -- the zero-arg sibling of the
-      // `[=const=] |valuetype|` construction handled below: `mut` being
-      // "const" is the *absence* of the `MUT` flag (`al_of_mut`'s `OptV
-      // None`), not a value equal to some "const" tag.
-      case Expr.SpecTerm("const") => Expr.Opt(None)
       case Expr.SpecTerm(ShorthandReftype(heaptype)) =>
         Expr.Case(
           "REF",
@@ -260,23 +258,24 @@ object NormalizeSpecTecCaseShapePass extends LoweringPass:
           case _ if tag == "[=external-type/global=]" =>
             Expr.Case(finalTag, List(Expr.Case("", reshapedArgs)))
 
-          // [=var=] vt -> (Opt(MUT), vt) / [=const=] vt -> (Opt(None), vt) --
-          // index.bs's `Global` constructor builds a `globaltype` by writing
-          // `mut`'s own link (same idiom as `[=i32=]` for `addrtype`)
-          // juxtaposed with a separate `|valuetype|`, which
+          // [=mut=] vt -> (Opt(MUT), vt) -- index.bs's `Global` constructor
+          // (post-`SpecPatch` #76/`docs/spec_errors.md` #39) builds a
+          // `globaltype` by writing `mut`'s own link (same idiom as `[=i32=]`
+          // for `addrtype`) juxtaposed with a separate `|valuetype|`, which
           // `ResolveLinksPass.buildCaseOrCall` reads as a one-arg call to that
           // link instead of two untagged sibling components -- the same
-          // nesting mismatch as `external-type/global` above. Unlike that one,
-          // `mut` itself isn't a two-variant tag: `construct.ml`'s `al_of_mut`
-          // is `Cons -> OptV None` / `Var -> OptV (Some (CaseV ("MUT", [])))`
-          // -- "const" is *absence* of the `MUT` flag, not its own variant.
-          case _ if tag == "[=var=]" =>
+          // nesting mismatch as `external-type/global` above. The immutable
+          // case needs no symmetric tag here at all (`construct.ml`'s
+          // `al_of_mut` is `Cons -> OptV None` / `Var -> OptV (Some (CaseV
+          // ("MUT", [])))` -- immutable is the plain *absence* of this flag,
+          // not its own variant) -- it's written as a bare, unwrapped
+          // |valuetype| instead, homogenized to the same `(Opt(_), vt)` pair
+          // shape by `wrapGlobaltype` below (see its own doc for where).
+          case _ if tag == "[=mut=]" =>
             Expr.Case(
               "",
               Expr.Opt(Some(Expr.Case("MUT", Nil))) :: reshapedArgs,
             )
-          case _ if tag == "[=const=]" =>
-            Expr.Case("", Expr.Opt(None) :: reshapedArgs)
 
           // [=comp-type/func=] params results -> "->"(params, results) — a
           // functype-shaped comptype's runtime tag is `"->"` itself
@@ -296,7 +295,101 @@ object NormalizeSpecTecCaseShapePass extends LoweringPass:
             Expr.Case("->", reshapedArgs)
 
           case _ => Expr.Case(finalTag, reshapedArgs)
+
+      // `read the imports`' global-import branch (post-`SpecPatch`
+      // #76/`docs/spec_errors.md` #39) passes a bare, unwrapped |valtype| as
+      // `global_alloc`'s globaltype argument for the always-immutable case —
+      // see `wrapGlobaltype`'s own doc for why a bare valtype needs wrapping
+      // here at all. Matched on the argument being literally `|valtype|` by
+      // name, not `global_alloc` calls generically: `Global`'s own
+      // constructor also calls `global_alloc`, forwarding its own
+      // already-correctly-paired `|globaltype|` variable as the same
+      // positional argument — wrapping unconditionally there would nest an
+      // already-proper pair one level too deep.
+      case Expr.AlgoCall(tag, args)
+          if tag == "[=global_alloc=]" && args.size == 3 && args(
+            1,
+          ) == Expr.Var("valtype") =>
+        val walkedArgs = args.map(walk)
+        Expr.AlgoCall(
+          tag,
+          List(walkedArgs(0), wrapGlobaltype(walkedArgs(1)), walkedArgs(2)),
+        )
+
       case other => super.walk(other)
+
+    // `Global`'s constructor (post-`SpecPatch` #76/`docs/spec_errors.md` #39)
+    // writes "If |mutable| is true, let |globaltype| be [=mut=] |valuetype|;
+    // otherwise, let |globaltype| be |valuetype|." -- this compiles to an
+    // `Instr.If`/`Instr.Else` with *two separate* `Let(Var("globaltype"), _)`
+    // nodes (one per branch), not a single ternary `Expr.Conditional`, so the
+    // asymmetry has to be fixed up at the `Instr.Let` level instead: the
+    // mutable branch's RHS is already the proper `(Opt(Some(MUT)), vt)` pair
+    // by the time this runs (reshaped above), but the immutable branch's is a
+    // bare, unwrapped |valuetype| -- faithful to the real grammar
+    // (`globaltype ::= mut? valtype`, where an absent `mut` is simply never
+    // written), but `globaltype`'s own runtime shape is *always* the same
+    // 2-element pair regardless, so it needs wrapping to match its sibling.
+    // Matched on the RHS being literally `Var("valtype")`, not just the
+    // bound variable's name: `GetGlobalValue` *also* binds a variable named
+    // `globaltype` (`Let |globaltype| be [=global_type=](...)`, reading an
+    // already-correctly-shaped pair straight back from the embedding RPC) --
+    // wrapping that one too would nest an already-proper pair one level too
+    // deep, the same mistake `wrapGlobaltype`'s own `global_alloc` call site
+    // above had to guard against.
+    override def walk(instr: Instr): Instr = instr match
+      case i: Instr.Let
+          if i.lhs == Expr.Var("globaltype") && i.expr == Expr.Var(
+            "valuetype",
+          ) =>
+        Instr.Let(i.lhs, wrapGlobaltype(walk(i.expr)), i.body.map(walk))
+      // `SpecPatch` #56's own rewrite of `stringExternType`
+      // (`docs/spec_inconsistencies.md` #21, unrelated to `docs/spec_errors.md`
+      // #39 above beyond sharing this same `mut`-is-optional representation)
+      // writes a standalone "Let |mut| be empty." -- `mut` being empty is the
+      // *absence* of the `MUT` flag, not a value equal to some tag, same as
+      // the `Cond.Eq` case below. Scoped to this exact `Instr.Let` shape, not
+      // a generic `SpecTerm("empty") => Opt(None)` rewrite, for the same
+      // reason as that `Cond.Eq` case: `limits`' own `max` field uses "empty"
+      // too, reaching `promoteLimits` as the *raw* expr it wraps in
+      // `Opt(Some(...))` itself -- rewriting it here first would double-wrap
+      // it to `Opt(Some(Opt(None)))` instead. (`limits.max` is never bound via
+      // a bare `Let(Var("mut"), _)` the way this is, so the two don't collide.)
+      case i: Instr.Let
+          if i.lhs == Expr.Var("mut") && i.expr == Expr.SpecTerm("empty") =>
+        Instr.Let(i.lhs, Expr.Opt(None), i.body.map(walk))
+      case other => super.walk(other)
+
+    // `Global`'s value setter (post-`SpecPatch` #76/`docs/spec_errors.md`
+    // #39) writes "If |mut| is empty, throw...": `mut` being empty is the
+    // *absence* of the `MUT` flag (`al_of_mut`'s `OptV None`), not a value
+    // equal to some tag, so the bare `empty` on the RHS needs the same
+    // `Opt(None)` treatment `[=mut=]`'s own construction gets above. Scoped
+    // to exactly this `Eq` shape, not a generic `SpecTerm("empty") =>
+    // Opt(None)` rewrite at the `Expr` level: `limits`' own `max` field uses
+    // "empty" too (e.g. `Memory`/`Table`'s "otherwise, let |maximum| be
+    // empty"), but reaches `promoteLimits` as the *raw*, still-bare expr it
+    // wraps in `Opt(Some(...))` itself -- rewriting it to `Opt(None)` here
+    // first (before `promoteLimits` ever sees it) would double-wrap it to
+    // `Opt(Some(Opt(None)))` instead.
+    override def walk(cond: Cond): Cond = cond match
+      case Cond.Eq(l, Expr.SpecTerm("empty"), neg)
+          if walk(l) == Expr.Var("mut") =>
+        Cond.Eq(walk(l), Expr.Opt(None), neg)
+      case other => super.walk(other)
+
+    /** `globaltype`'s runtime shape (`construct.ml`'s `al_of_globaltype`) is
+      * always the untagged pair `CaseV("", [mut; vt])`, `mut` itself always an
+      * `OptV` (see the `[=mut=]` case above) -- no other Wasm-boundary value
+      * construction produces that exact (untagged, `Opt` first element) shape,
+      * so it's an unambiguous signature to test for.
+      */
+    private def isGlobaltypePair(e: Expr): Boolean = e match
+      case Expr.Case("", List(Expr.Opt(_), _)) => true
+      case _                                   => false
+
+    private def wrapGlobaltype(e: Expr): Expr =
+      if isGlobaltypePair(e) then e else Expr.Case("", List(Expr.Opt(None), e))
 
     /** A `TypeAnnotated`'s outer `Seq_`'s own element: a nested `Seq_` of
       * exactly two parts is a `{min, max}` block, promoted to `limits`' runtime

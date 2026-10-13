@@ -1239,14 +1239,15 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Memory(
     if (&& (? _call3: Completion) (! (= _call3.Type ~normal~))) {
       return _call3
     } else {
-      let maximum = _call3.Value
+      let _call4 = _call3.Value
     }
+    let maximum = (opt _call4)
   } else {
-    let maximum = ~empty~
+    let maximum = (opt)
   }
-  let memtype = (case "PAGE" addrtype (case "[" initial (opt maximum)))
-  call-embed _call4 = <valid_memtype>(memtype)
-  if (! (= _call4 true)) {
+  let memtype = (case "PAGE" addrtype (case "[" initial maximum))
+  call-embed _call5 = <valid_memtype>(memtype)
+  if (! (= _call5 true)) {
     call _err7 = clo<"__NEW_ERROR_OBJ__">("%RangeError.prototype%")
     call _ret8 = clo<"ThrowCompletion">(_err7)
     return _ret8
@@ -1631,14 +1632,15 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Table(
     if (&& (? _call3: Completion) (! (= _call3.Type ~normal~))) {
       return _call3
     } else {
-      let maximum = _call3.Value
+      let _call4 = _call3.Value
     }
+    let maximum = (opt _call4)
   } else {
-    let maximum = ~empty~
+    let maximum = (opt)
   }
-  let type = (case "" addrtype (case "[" initial (opt maximum)) elementtype)
-  call-embed _call4 = <valid_tabletype>(type)
-  if (! (= _call4 true)) {
+  let type = (case "" addrtype (case "[" initial maximum) elementtype)
+  call-embed _call5 = <valid_tabletype>(type)
+  if (! (= _call5 true)) {
     call _err9 = clo<"__NEW_ERROR_OBJ__">("%RangeError.prototype%")
     call _ret10 = clo<"ThrowCompletion">(_err9)
     return _ret10
@@ -1647,11 +1649,11 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Table(
     call ref = clo<"DefaultValue">(elementtype)
     assert (! (= ref (case "ERROR" )))
   } else {
-    call _call5 = clo<"ToWebAssemblyValue">(value, elementtype)
-    if (&& (? _call5: Completion) (! (= _call5.Type ~normal~))) {
-      return _call5
+    call _call6 = clo<"ToWebAssemblyValue">(value, elementtype)
+    if (&& (? _call6: Completion) (! (= _call6.Type ~normal~))) {
+      return _call6
     } else {
-      let ref = _call5.Value
+      let ref = _call6.Value
     }
   }
   let store = @AGENT_RECORD["associated store"]

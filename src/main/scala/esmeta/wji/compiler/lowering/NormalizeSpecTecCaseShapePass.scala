@@ -1,6 +1,6 @@
 package esmeta.wji.compiler.lowering
 
-import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr}
+import esmeta.wji.lang.{Algorithm, Expr, Instr}
 import esmeta.wji.lang.walker.Walker
 
 /** Finalizes every `Expr.Case`'s `tag` into SpecTec's real runtime
@@ -34,14 +34,13 @@ import esmeta.wji.lang.walker.Walker
   * constructor work actually needs; extend `typeAnnotationTag` as more come up
   * (see `docs/hardcodes.md`).
   *
-  * `limits`' `max` field is SpecTec's `OptV` (`empty` when unbounded), so it's
-  * always wrapped in `Expr.Opt(Some(...))` rather than passed as a bare
-  * positional arg like `min` — unlike every other `Opt` this pass builds
-  * (always a static `Some`/`None` choice from the prose shape itself), `max`'s
-  * wrapped expr is a runtime-valued variable that may or may not currently hold
-  * `empty`; `Interpreter.eval`'s own `EOpt` case is what actually collapses
-  * that to a real `OptV(None)` at evaluation time (see its doc), not anything
-  * here.
+  * `limits`' `max` field is SpecTec's `OptV` (`empty` when unbounded) — unlike
+  * `min`, it's never passed here as a bare positional arg. Its `Opt`-wrapping
+  * happens at its own binding site instead (`Instr.Let(Var("maximum"), _)`, see
+  * that case's own doc), the same place and the same way `mut`'s is
+  * (`docs/spec_errors.md` #39/#40) — by the time either reaches *use*, both are
+  * already a proper, static `Opt(Some(...))`/`Opt(None)`, so this pass never
+  * needs a runtime "is this empty?" check at the use site at all.
   *
   * Tag translation: a `for`-scoped dfn's linking text is always
   * `family/variant` (e.g. `external value/func`, `external-type/global`; see
@@ -229,6 +228,18 @@ object NormalizeSpecTecCaseShapePass extends LoweringPass:
           args.map(promoteLimits),
         )
       case Expr.SpecTerm(RenamedTag(tag)) => Expr.Case(tag, Nil)
+      // The bare word "empty" (Infra-spec's own "no value here") always
+      // denotes an absent `Opt` -- `al_to_mut`'s `OptV None` (`mut` being
+      // "empty", `docs/spec_errors.md` #39) and `al_to_limits`'s `max` field
+      // (`limits` being unbounded, `docs/spec_errors.md` #40) are both this
+      // same optionality, just on different fields. The *present* side of
+      // each (`[=mut=] |valuetype|` above; `|maximum|`'s own binding below)
+      // is wrapped in `Opt(Some(...))` at its own construction site, so by
+      // the time either field is actually used (compared against `empty`, or
+      // assembled into a `globaltype`/`limits` pair), it's already a proper
+      // `Opt` either way -- nothing downstream needs to know "empty" was
+      // ever a bare word at all.
+      case Expr.SpecTerm("empty") => Expr.Opt(None)
       case Expr.SpecTerm(ShorthandReftype(heaptype)) =>
         Expr.Case(
           "REF",
@@ -343,39 +354,20 @@ object NormalizeSpecTecCaseShapePass extends LoweringPass:
             "valuetype",
           ) =>
         Instr.Let(i.lhs, wrapGlobaltype(walk(i.expr)), i.body.map(walk))
-      // `SpecPatch` #56's own rewrite of `stringExternType`
-      // (`docs/spec_inconsistencies.md` #21, unrelated to `docs/spec_errors.md`
-      // #39 above beyond sharing this same `mut`-is-optional representation)
-      // writes a standalone "Let |mut| be empty." -- `mut` being empty is the
-      // *absence* of the `MUT` flag, not a value equal to some tag, same as
-      // the `Cond.Eq` case below. Scoped to this exact `Instr.Let` shape, not
-      // a generic `SpecTerm("empty") => Opt(None)` rewrite, for the same
-      // reason as that `Cond.Eq` case: `limits`' own `max` field uses "empty"
-      // too, reaching `promoteLimits` as the *raw* expr it wraps in
-      // `Opt(Some(...))` itself -- rewriting it here first would double-wrap
-      // it to `Opt(Some(Opt(None)))` instead. (`limits.max` is never bound via
-      // a bare `Let(Var("mut"), _)` the way this is, so the two don't collide.)
+      // `Memory`/`Table`'s constructors (`docs/spec_errors.md` #40) write
+      // "If |descriptor|[\"maximum\"] exists, let |maximum| be
+      // [=?=][=AddressValueToU64=](...); otherwise, let |maximum| be empty."
+      // -- the `empty` branch already becomes `Opt(None)` via the generic
+      // rule above, so only the *present* branch needs wrapping here, to
+      // `Opt(Some(...))`, so that by the time `|maximum|` is actually used
+      // (assembled into a `limits` pair, `promoteLimits` below) it's already
+      // a proper `Opt` either way -- no runtime "is this empty?" check
+      // needed at the use site at all.
       case i: Instr.Let
-          if i.lhs == Expr.Var("mut") && i.expr == Expr.SpecTerm("empty") =>
-        Instr.Let(i.lhs, Expr.Opt(None), i.body.map(walk))
-      case other => super.walk(other)
-
-    // `Global`'s value setter (post-`SpecPatch` #76/`docs/spec_errors.md`
-    // #39) writes "If |mut| is empty, throw...": `mut` being empty is the
-    // *absence* of the `MUT` flag (`al_of_mut`'s `OptV None`), not a value
-    // equal to some tag, so the bare `empty` on the RHS needs the same
-    // `Opt(None)` treatment `[=mut=]`'s own construction gets above. Scoped
-    // to exactly this `Eq` shape, not a generic `SpecTerm("empty") =>
-    // Opt(None)` rewrite at the `Expr` level: `limits`' own `max` field uses
-    // "empty" too (e.g. `Memory`/`Table`'s "otherwise, let |maximum| be
-    // empty"), but reaches `promoteLimits` as the *raw*, still-bare expr it
-    // wraps in `Opt(Some(...))` itself -- rewriting it to `Opt(None)` here
-    // first (before `promoteLimits` ever sees it) would double-wrap it to
-    // `Opt(Some(Opt(None)))` instead.
-    override def walk(cond: Cond): Cond = cond match
-      case Cond.Eq(l, Expr.SpecTerm("empty"), neg)
-          if walk(l) == Expr.Var("mut") =>
-        Cond.Eq(walk(l), Expr.Opt(None), neg)
+          if i.lhs == Expr.Var("maximum") && i.expr != Expr.SpecTerm(
+            "empty",
+          ) =>
+        Instr.Let(i.lhs, Expr.Opt(Some(walk(i.expr))), i.body.map(walk))
       case other => super.walk(other)
 
     /** `globaltype`'s runtime shape (`construct.ml`'s `al_of_globaltype`) is
@@ -392,16 +384,15 @@ object NormalizeSpecTecCaseShapePass extends LoweringPass:
       if isGlobaltypePair(e) then e else Expr.Case("", List(Expr.Opt(None), e))
 
     /** A `TypeAnnotated`'s outer `Seq_`'s own element: a nested `Seq_` of
-      * exactly two parts is a `{min, max}` block, promoted to `limits`' runtime
-      * shape; anything else just recurses normally.
+      * exactly two parts is a `[min .. max]` range, promoted to `limits`'
+      * runtime shape; anything else just recurses normally. `max` needs no
+      * `Opt`-wrapping here — it's already a proper `Opt` by the time it reaches
+      * here, from its own binding site (the `Instr.Let` case above, or the
+      * generic `empty` rule).
       */
     private def promoteLimits(e: Expr): Expr = e match
       case Expr.Seq_(List(min, max)) =>
-        // `max`'s SpecTec-side type is `OptV` (`empty` when unbounded) —
-        // `Expr.Opt(Some(...))`'s own runtime evaluation (`Interpreter.eval`'s
-        // `EOpt` case) collapses to `None` when the wrapped expr evaluates to
-        // `empty`, so wrapping unconditionally here is correct either way.
-        Expr.Case("[", List(walk(min), Expr.Opt(Some(walk(max)))))
+        Expr.Case("[", List(walk(min), walk(max)))
       case other => walk(other)
 
   def run(algos: List[Algorithm]): List[Algorithm] =

@@ -24,15 +24,15 @@ import esmeta.wji.lang.walker.Walker
   * `al_of_memorytype`/`al_of_tabletype`/`al_of_limits`): `"memory type"` ->
   * `CaseV("PAGE", [addrtype, limits])`, `"table type"` -> `CaseV("", [addrtype,
   * limits, reftype])` — a genuinely untagged case, confirming this session's
-  * very first read of it. Both build the shared nested `{min, max}` block the
-  * same way, `CaseV("[", [min, max])`; every `{...}`-block
-  * `ExprParser.parseBracedFields` produces shows up as a `Seq_` nested directly
-  * inside another `Seq_` (there's no other producer of that shape in this
-  * codebase today), so any such nesting found while promoting a `TypeAnnotated`
-  * is assumed to be exactly this `limits` pair — structural, not term-specific,
-  * unlike the TERM -> tag table itself. Only the two terms this session's
-  * `Memory`/`Table` constructor work actually needs; extend `typeAnnotationTag`
-  * as more come up (see `docs/hardcodes.md`).
+  * very first read of it. Both build the shared nested `limits` range the same
+  * way, `CaseV("[", [min, max])`; every `[X .. Y]`-range `ExprParser`'s
+  * `BracketRange` produces shows up as a `Seq_` nested directly inside another
+  * `Seq_` (there's no other producer of that shape in this codebase today), so
+  * any such nesting found while promoting a `TypeAnnotated` is assumed to be
+  * exactly this `limits` pair — structural, not term-specific, unlike the TERM
+  * -> tag table itself. Only the two terms this session's `Memory`/`Table`
+  * constructor work actually needs; extend `typeAnnotationTag` as more come up
+  * (see `docs/hardcodes.md`).
   *
   * `limits`' `max` field is SpecTec's `OptV` (`empty` when unbounded), so it's
   * always wrapped in `Expr.Opt(Some(...))` rather than passed as a bare

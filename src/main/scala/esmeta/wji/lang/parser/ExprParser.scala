@@ -266,34 +266,24 @@ object ExprParser:
   // genuine markup tags kept verbatim in the extracted text.
   private val AngleTuplePat = """(?s)^&lt;\s*(.+?)\s*&gt;$""".r
 
-  // "{ **min** |initial|, **max** |maximum| }" / "{ <b>[=limits|min=]</b>
-  // |initial|, <b>[=limits|max=]</b> |maximum| }" — Bikeshed's "construct a
-  // formal-grammar record from named fields" notation (e.g. Memory's/Table's
-  // constructors building a `memtype`/`tabletype`, index.bs:876/1043). The
-  // label (bold text, or a bold-wrapped `[=...=]` link) carries no
-  // information `parse` needs — SpecTec's own fixed field order is what
-  // determines meaning, not the prose label — so `parseBracedFields` keeps
-  // only the ordered values, wrapped in the tag-less [[Expr.Seq_]] (real
-  // SpecTec tag assignment is left to a later lowering pass — see that
-  // node's own doc).
-  private val BracedFields = """(?s)^\{\s*(.+)\s*\}$""".r
-  private val BracedFieldLabel =
-    """(?s)^(?:\*\*[^*]+\*\*|<b>.*?</b>)\s+(.+)$""".r
-
-  private def parseBracedFields(inner: String): Option[Expr] =
-    val values = splitComma(inner).map { seg =>
-      seg.trim match
-        case BracedFieldLabel(value) => Some(parse(value))
-        case _                       => None
-    }
-    if values.forall(_.isDefined) then Some(Seq_(values.flatten)) else None
+  // "[|initial| .. |maximum|]" — the Core Spec's own `limits` grammar
+  // (`[u64 .. u64?]`, a range, not a two-field record — see
+  // `docs/spec_errors.md` #40) written out as a literal value (e.g. Memory's/
+  // Table's constructors building a `memtype`/`tabletype`, index.bs:876/1043,
+  // post `SpecPatch` #77 — upstream still writes a now-stale `{min X, max Y}`
+  // named-field record there). Produces the tag-less [[Expr.Seq_]] (real
+  // SpecTec tag assignment is left to a later lowering pass — see that node's
+  // own doc); downstream (`ResolveTypeAnnotationPass`,
+  // `NormalizeSpecTecCaseShapePass`'s `promoteLimits`) only ever cares about
+  // that shape, never this notation's own two field names, so nothing past
+  // this parses differently for having dropped them.
+  private val BracketRange = """(?s)^\[\s*(.+?)\s*\.\.\s*(.+?)\s*\]$""".r
 
   // "[the] TNAME{\[[Field1]]: E1, \[[Field2]]: E2, ...}" — Bikeshed's
   // record/struct literal notation for a value of a named record type with
   // explicit field values (e.g. "the PropertyDescriptor{\[[Writable]]:
   // <emu-val>true</emu-val>, \[[Value]]: |constructor|}",
-  // webidl_yet_categorized.md category I-C). Unlike BracedFields just above
-  // (an unnamed, purely positional `{ ... }`), each field here is named (the
+  // webidl_yet_categorized.md category I-C). Each field here is named (the
   // `\[[...]]` slot it initializes) and the whole literal carries its own
   // type name immediately before `{`, so it parses to [[Expr.RecordLit]]
   // rather than [[Expr.Seq_]].
@@ -1124,9 +1114,9 @@ object ExprParser:
       case EmuConst(v)                    => SpecTerm(v)
       case EmuVal(v)                      => SpecTerm(v)
       case BracedTerm(inner)              => SpecTerm(inner)
-      case BracedFields(inner) => parseBracedFields(inner).getOrElse(Unknown(s))
-      case CrossSpecRef(text)  => SpecTerm(text)
-      case RealmSettingsObject() => SpecTerm("realm/settings object")
+      case BracketRange(low, high)        => Seq_(List(parse(low), parse(high)))
+      case CrossSpecRef(text)             => SpecTerm(text)
+      case RealmSettingsObject()          => SpecTerm("realm/settings object")
 
       case _ =>
         if allowSeqFallback then parseAsSeq(s).getOrElse(Unknown(s))

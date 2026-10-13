@@ -912,31 +912,6 @@ object SpecPatch:
     ->
     "otherwise, let |addrtype| be [=i32=].",
 
-    // #45 (hardcoding, docs/hardcodes.md #15) — `Memory`'s constructor
-    // writes "[=memory type=] |addrtype| { **min** |initial|, **max**
-    // |maximum| }" (index.bs:876), Bikeshed's "construct a formal-grammar
-    // record value with named fields" notation for a Wasm `memtype` — not a
-    // function call. `ExprParser` has no rule for this idiom at all yet
-    // (`parseArgs` just tokenizes on whitespace, with no awareness of `{`/
-    // `}`/`,`, and `**min**`/`**max**` happen to match `BoldConst`), so it
-    // mis-parses the whole thing as a 5-positional-argument call to a
-    // nonexistent "memory type" (normalized to `memory_type`) function,
-    // crashing with `UnknownFunc` at runtime. `Table`'s constructor
-    // (index.bs:1043) has the structurally identical shape but happens to
-    // read "**the** [=table type=] ... { ... }" — that leading "the" matches
-    // `TypeAnnotatedPrefix` instead, which drops the `[=table type=]` link
-    // and parses the remainder as one opaque `Unknown` — inert, not a crash.
-    // Prepending "the " to `Memory`'s text routes it through the exact same
-    // already-existing (if equally unmechanized) `TypeAnnotatedPrefix` path,
-    // trading a misleading "function doesn't exist" crash for this
-    // codebase's standard "not yet mechanized" signal (`Expr.Unknown` →
-    // `EYet`) — not a real fix (the constructed `memtype` value still isn't
-    // usable), just a less misleading failure mode until named-field
-    // formal-grammar construction gets properly parsed.
-    "be [=memory type=] |addrtype|"
-    ->
-    "be the [=memory type=] |addrtype|",
-
     // #46 (spec bug, docs/spec_errors.md #22) — ToWebAssemblyValue's [=host
     // value cache=] hit branch (index.bs:1470) returns immediately, skipping
     // the ref_type/match_valtype check every other branch of the same "ref
@@ -1531,6 +1506,34 @@ object SpecPatch:
     "1. If |mut| is [=const=], throw a {{TypeError}}."
     ->
     "1. If |mut| is empty, throw a {{TypeError}}.",
+
+    // #77 (spec bug, docs/spec_errors.md #40) — `Memory`/`Table`'s
+    // constructors each build a `limits` value as a braced record literal
+    // with named `min`/`max` fields -- but the Core Spec's actual current
+    // grammar (`limits ::= [u64 .. u64?]`) is a range, not a two-field
+    // record, and has no "min"/"max" field names to link to at all (the
+    // `Table` constructor's own `[=limits|min=]`/`[=limits|max=]` point at
+    // anchors that don't exist). Rewritten to the grammar's own bracket-
+    // ellipsis notation directly, dropping the field names entirely --
+    // `ExprParser`'s new `BracketRange` parses this to the exact same
+    // tag-less `Seq_` the old `{min X, max Y}` notation did, so nothing
+    // downstream needs to change.
+    //
+    // (spec inconsistency, docs/spec_inconsistencies.md #23) Also folds in
+    // the fix for a second, unrelated issue that happens to sit on the same
+    // line: `Memory`'s own text (unlike `Table`'s) never had a leading "the"
+    // before `[=memory type=]` -- without it, `ResolveLinksPass` reads the
+    // whole thing as a generic 2-arg call to a nonexistent "memory_type"
+    // function instead of routing through `TypeAnnotatedPrefix` (the same
+    // problem the now-removed `SpecPatch` #45 used to paper over for the old
+    // `{min, max}` text); added here directly rather than reintroducing that
+    // patch.
+    "1. Let |memtype| be [=memory type=] |addrtype| { **min** |initial|, **max** |maximum| }."
+    ->
+    "1. Let |memtype| be the [=memory type=] |addrtype| [|initial| .. |maximum|].",
+    "1. Let |type| be the [=table type=] |addrtype| { <b>[=limits|min=]</b> |initial|, <b>[=limits|max=]</b> |maximum| } |elementtype|."
+    ->
+    "1. Let |type| be the [=table type=] |addrtype| [|initial| .. |maximum|] |elementtype|.",
   )
 
   def apply(source: String): String =

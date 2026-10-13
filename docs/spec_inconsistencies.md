@@ -280,3 +280,15 @@ Retracted — its premise was wrong. This entry claimed the document consistentl
 - **Expected**: `then set |proto| to the [=interface prototype object=] of that [=inherited interface=] in |realm|.`
 - **Reason**: 이 문서에서 같은 "the interface (prototype) object of X in realm" 구성을 쓰는 다른 모든 자리 — line 11963의 `of |P| in |realm|`, line 12030의 `of [=interface=] |I| in |realm|`, line 12094의 `of |interface| in |realm|` — 는 전부 주어(subject)를 realm보다 먼저 씁니다. 이 한 자리만 두 절이 뒤바뀌어 있습니다(realm이 먼저, 주어 절이 그 뒤, 사이에 줄바꿈). 문장 자체는 독립적으로 봐도 틀린 게 아닙니다 — 절 순서가 어느 쪽이든 realm과 주어가 모호하지 않아서 스텝의 의미는 그대로입니다. 문제라고 판단할 수 있는 유일한 근거는 같은 문서가 구조적으로 동일한 다른 자리에서 세워둔 "of X in |realm|" 순서에서 이 자리만 벗어났다는 것뿐이라, spec error가 아니라 inconsistency로 분류합니다 (원래 `docs/spec_errors.md` #37이었다가 옮겨옴).
 - **WJI 쪽 처리**: `SpecPatch` #70으로 다른 자리와 같은 순서로 재배열. 그 결과는 `ExprParser.LinkOfInheritedInterfaceIn`이, 다른 자리들을 `LinkOfForIn`이 파싱하는 것과 같은 방식으로 파싱합니다.
+
+## 23. `Memory` 생성자만 `memtype`을 구성하며 "the"를 안 씀 — `Table` 생성자의 구조적으로 동일한 `tabletype` 구성은 씀
+
+- **File**: `spectec/document/js-api/index.bs`, line 876(`Memory` 생성자)과 1043(`Table` 생성자).
+- **Current**:
+  ```
+  1. Let |memtype| be [=memory type=] |addrtype| { **min** |initial|, **max** |maximum| }.
+  1. Let |type| be the [=table type=] |addrtype| { <b>[=limits|min=]</b> |initial|, <b>[=limits|max=]</b> |maximum| } |elementtype|.
+  ```
+- **Expected**: `1. Let |memtype| be the [=memory type=] |addrtype| { ... }.` — `Table` 쪽과 같은 관사.
+- **Reason**: 둘 다 "formal-grammar 값을 이름 붙은 필드로 구성"하는 동일한 패턴인데(`docs/spec_errors.md` #40 참고 — 이 필드 자체도 실제로는 `limits ::= [min .. max?]` range라 또 다른 문제가 있음, 이 항목과는 별개), `Table` 쪽만 "the"로 시작하고 `Memory` 쪽은 바로 링크로 시작합니다. 문장 자체는 "the" 유무와 무관하게 독립적으로 읽어도 의미가 똑같아 spec error가 아니라 inconsistency로 분류합니다.
+- **WJI 쪽 처리**: `SpecPatch` #77 — #40의 `{min,max}` → `[min .. max]` 교체와 같은 패치가 `Memory` 쪽 텍스트에 "the "도 같이 끼워 넣습니다. (예전엔 `SpecPatch` #45가 이 "the" 하나만 따로 고쳤었는데, #77로 통합되며 제거됨 — `docs/hardcodes.md` #15 참고.) "the"가 없으면 `ResolveLinksPass`가 `[=memory type=] |addrtype| ...` 전체를 존재하지 않는 "memory_type" 함수로의 호출로 잘못 읽어서(`TypeAnnotatedPrefix` 경로를 안 탐), 런타임에 `unknown function: memory_type`으로 죽습니다.

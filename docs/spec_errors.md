@@ -503,3 +503,24 @@ Retracted — its premise was wrong. This entry claimed the Wasm Core Spec's `fu
   Fixed via `SpecPatch` #76, and validated end to end: `global/constructor.any.js` (62/62) and `global/value-get-set.any.js` (69/69) both still pass under the new text, same as they did under the old buggy one (confirming this was never actually a mechanization gap — WJI already executed the buggy text correctly via a hand-written special case that assumed `const`/`var`). `NormalizeSpecTecCaseShapePass` has been updated to match the new text instead (`docs/hardcodes.md` #12): `[=mut=] |valuetype|` reshapes to the real `(Opt(Some(MUT)), vt)` pair the same way `[=var=] |valuetype|` used to, and the now-bare absent-case construction (`global_alloc`'s inline argument, and `Global`'s own `Let |globaltype| be |valuetype|`) is homogenized to the same pair shape by a small new `wrapGlobaltype` helper, keyed narrowly enough (by argument name/bound-variable-name, not just shape) to not also catch the *other* `global_alloc` call site or `GetGlobalValue`'s own read-back — both of which already carry a correctly-shaped `globaltype` value that must NOT be wrapped again.
 
   Still recommend filing an upstream Issue before a PR, despite the fix now being fully worked out and validated here: `[=mut=]` would be a brand new term this document has never used before, and the live Core Spec page doesn't itself link to any anchor for the bare marker (it only appears as inline math notation, `\mathsf{mut}^?`) — so whether `text: mut` pointing at `#syntax-mut` (the production's own anchor, not a new sub-term) is the phrasing upstream maintainers actually want is worth settling before a PR, the same way Category D's new `[=expand=]`/`[=fold=]` terms are.
+
+## 40. `{min X, max Y}` named-field construction used for `limits`, but the Core Spec represents it as a `[min .. max?]` range, not a record
+
+- **File**: `spectec/document/js-api/index.bs`, lines 876 (`memory type` construction, `Memory`'s constructor) and 1043 (`table type` construction, `Table`'s constructor).
+- **Current**:
+  ```
+  1. Let |memtype| be [=memory type=] |addrtype| { min |initial|, max |maximum| }.
+  ...
+  1. Let |type| be the [=table type=] |addrtype| { [=limits|min=] |initial|, [=limits|max=] |maximum| } |elementtype|.
+  ```
+  Both construct `limits` as a braced record literal with named `min`/`max` fields — the second site even links the field names themselves, to `[=limits|min=]`/`[=limits|max=]`.
+- **Expected**:
+  ```
+  1. Let |memtype| be the [=memory type=] |addrtype| [|initial| .. |maximum|].
+  ...
+  1. Let |type| be the [=table type=] |addrtype| [|initial| .. |maximum|] |elementtype|.
+  ```
+  The grammar's own bracket-ellipsis notation, written out directly with no field names at all. (`Memory`'s line also picks up a leading "the" it was missing — see spec_inconsistency #23, an unrelated asymmetry bundled into the same fix since it sits on the same line.)
+- **Reason**: the Core Spec's actual current grammar (`specification/wasm-latest/1.2-syntax.types.spectec:128`) is `limits ::= [u64 .. u64?]` — a *range*, written with bracket-ellipsis notation, not a two-field record. Confirmed directly against the live page (`https://webassembly.github.io/spec/core/syntax/types.html`): the rendered grammar shows only `[ u64 .. u64? ]`, the prose describes it as "the size range of resizeable storage" without ever naming a "min" or "max" field, and there is no `<dfn>`/`<a>` tag anywhere in that section whose link text is "min" or "max" — so `[=limits|min=]`/`[=limits|max=]` (index.bs:1043) point at anchors that don't exist, the same class of problem as #39's `const`/`var`. The runtime encoding WJI/SpecTec already uses for this field (`construct.ml`'s `al_to_limits`/`al_of_limits`) is `CaseV("[", [min; max])` — an untagged pair tagged with the range notation's own opening bracket, `max` itself an `OptV` — matching the range grammar exactly, not a named record.
+
+  Fixed via `SpecPatch` #77, and validated end to end: `memory/constructor.any.js` (29/29) and `table/constructor.any.js` (41/41) both still pass under the new text. Confirmed this was never a mechanization gap either — WJI already executed the old `{min, max}` text correctly via `NormalizeSpecTecCaseShapePass`'s `promoteLimits` (`docs/hardcodes.md` #15, now retired), which recognized the braced shape structurally regardless of what the two fields happened to be named — so, unlike #39, this one wasn't even blocked on anything; it was purely a latent text/anchor inconsistency nobody had reported yet. `ExprParser` gained a new `BracketRange` rule to parse the grammar's own notation directly, producing the exact same tag-less pair `BracedFields`/`parseBracedFields` (now removed) used to, so nothing past the parser needed to change.

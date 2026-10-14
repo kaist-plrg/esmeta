@@ -1558,6 +1558,26 @@ object SpecPatch:
     "1. Let |type| be the [=table type=] |addrtype| { <b>[=limits|min=]</b> |initial|, <b>[=limits|max=]</b> |maximum| } |elementtype|."
     ->
     "1. Let |type| be the [=table type=] |addrtype| [|initial| .. |maximum|] |elementtype|.",
+
+    // #78 (spec bug, docs/spec_errors.md #42) — `create an interface object`
+    // (webidl/index.bs:11979-11984) never gives |F| a \[[Construct]] internal
+    // method: CreateBuiltinFunction doesn't install one, and no later step
+    // does either, so `new` on any interface object fails IsConstructor.
+    // Every interface object is a constructor (whatwg/webidl#698; |steps|
+    // itself throws when |I| has no constructor operation), so the step
+    // that defines "prototype" becomes MakeConstructor(|F|, false, |proto|)
+    // (tc39/ecma262#2209): it sets \[[Construct]] for a built-in function
+    // object and then defines "prototype" with the very same descriptor.
+    // A known upstream issue, still open: whatwg/webidl#698.
+    """prototype object=] of [=interface=] |I| in |realm|.
+      #    1.  Perform [=!=] <a abstract-op>DefinePropertyOrThrow</a>(|F|, "<code>prototype</code>",
+      #        PropertyDescriptor{\[[Value]]: |proto|, \[[Writable]]: <emu-val>false</emu-val>, \[[Enumerable]]: <emu-val>false</emu-val>, \[[Configurable]]: <emu-val>false</emu-val>}).
+      #""".stripMargin('#')
+    ->
+    """prototype object=] of [=interface=] |I| in |realm|.
+      #    1.  Perform [$MakeConstructor$](|F|, <emu-val>false</emu-val>, |proto|).
+      #""".stripMargin('#'),
+
   )
 
   def apply(source: String): String =

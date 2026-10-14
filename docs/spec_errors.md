@@ -563,3 +563,40 @@ Retracted — its premise was wrong. This entry claimed the Wasm Core Spec's `fu
 - **Reason**: the Core Spec's actual current grammar (`specification/wasm-latest/1.2-syntax.types.spectec:132`) is `memtype ::= addrtype limits PAGE` — a literal trailing `page` keyword, confirmed on the live page as plain unlinked text (distinct from the separately-anchored "page size" constant this document already links elsewhere, `exec/runtime.html#page-size`). This document's own text never had it, not even before #40's own `{min,max}`→range rewrite.
 
   Fixed via `SpecPatch` #77 (bundled into the same line's own patch, since it sits on the same text #40 already touches). Unlike most entries in this file, this one *did* need a small mechanization extension to keep executing correctly — not because the runtime tag itself changed (`NormalizeSpecTecCaseShapePass`'s `typeAnnotationTag` already derives the real `"PAGE"` tag from the `"memory type"` TERM alone, same as before), but because the bare word `page` wasn't parseable at all: `ExprParser`'s generic sequence fallback (`parseAsSeq`) requires every space-separated token in a juxtaposed value to parse individually, and `page` matched nothing, so the whole line fell to `Unknown`/`EYet`. `ExprParser.PageKeyword` is a new, narrowly-scoped rule parsing the bare word into a plain `Expr.SpecTerm("page")` — purely structural, no SpecTec-runtime knowledge of its own — and `NormalizeSpecTecCaseShapePass` is what actually knows this token carries no data: when promoting `TypeAnnotated("memory type", Seq_(args))`, it drops a trailing `SpecTerm("page")` from `args` before building the real 2-arg `CaseV("PAGE", [addrtype; limits])` (`docs/hardcodes.md` #12). Validated end to end: `ir.expected` (the full compiled `Program`, the same artifact `wji-eval` executes) came back byte-identical to before this entire entry's fix, confirming the compiled output — and therefore runtime behavior — is unchanged; `memory/constructor.any.js` (29/29) still passes.
+
+## 42. `create an interface object` never gives the interface object a `[[Construct]]` internal method
+
+- **File**: `webidl/index.bs`, lines 11979-11984 (`create an interface object`); same text upstream at https://webidl.spec.whatwg.org/#create-an-interface-object.
+- **Current**:
+  ```
+  1.  Let |F| be <a abstract-op>CreateBuiltinFunction</a>(|steps|, |length|, |id|, « \[[Unforgeables]] »,
+      |realm|, |constructorProto|).
+  1.  Let |proto| be the result of [=create an interface prototype object|creating an interface
+      prototype object=] of [=interface=] |I| in |realm|.
+  1.  Perform [=!=] <a abstract-op>DefinePropertyOrThrow</a>(|F|, "<code>prototype</code>",
+      PropertyDescriptor{\[[Value]]: |proto|, \[[Writable]]: <emu-val>false</emu-val>, \[[Enumerable]]: <emu-val>false</emu-val>, \[[Configurable]]: <emu-val>false</emu-val>}).
+  ```
+- **Expected**:
+  ```
+  1.  Let |F| be <a abstract-op>CreateBuiltinFunction</a>(|steps|, |length|, |id|, « \[[Unforgeables]] »,
+      |realm|, |constructorProto|).
+  1.  Let |proto| be the result of [=create an interface prototype object|creating an interface
+      prototype object=] of [=interface=] |I| in |realm|.
+  1.  Perform [$MakeConstructor$](|F|, <emu-val>false</emu-val>, |proto|).
+  ```
+  and, in the section's prose (line 11899 onward), state the two facts separately:
+  ```
+  The [=interface object=] for a given [=interface=] is a [=built-in function object=] and a [=constructor=].
+
+  If the [=interface=] is declared with a [=constructor operation=],
+  then calling the [=interface object=] as a [=constructor=]
+  creates an object that [=implements=] that interface.
+  Calling that interface as a function will throw an exception.
+  ```
+- **Reason**: ECMA-262 gives a built-in function object a `[[Construct]]` internal method only "if it is described as a 'constructor', or some algorithm in this specification explicitly sets its [[Construct]] internal method"; `CreateBuiltinFunction` itself never installs one. ECMA-262 uses the first route for its fixed, named intrinsics and the second for every constructor an algorithm creates at runtime (`MakeConstructor`, `BoundFunctionCreate`, `ProxyCreate`). An interface object is created at runtime by this algorithm, but no step here — nor in any algorithm it calls — sets `[[Construct]]`, and no existing step can be refined to mean it (`CreateBuiltinFunction` has no such parameter). So `IsConstructor(|F|)` is false and `new` on any interface object throws a `TypeError` in `EvaluateNew` before `|steps|` ever runs, contradicting the section's own prose ("the interface object can be called as a constructor", line 11904). The step should be unconditional: per whatwg/webidl#698 (and the WPT test added for it, web-platform-tests/wpt#28089) every interface object is a constructor, including one whose interface has no constructor operation — `|steps|` itself begins by throwing a `TypeError` in that case. `MakeConstructor(|F|, false, |proto|)` (its built-in function object branch, tc39/ecma262#2209) sets `[[Construct]]` and then defines `"prototype"` with exactly the descriptor the replaced `DefinePropertyOrThrow` step used, so nothing else changes. `legacy factory functions` (line 12029-12032) has the same gap; it is left alone here since the JS-API declares none.
+- **Known issue** (to cite in an upstream PR):
+  - https://github.com/whatwg/webidl/issues/698 — "Define that interface objects are constructors"; still open. The issue this entry is an instance of: Web IDL never normatively says interface objects are constructors. Also referenced from the spec text itself (`Issue(whatwg/webidl#698)`, line 2475).
+  - https://github.com/web-platform-tests/wpt/pull/28089 — "Test IsConstructor for all interfaces"; merged, as part of whatwg/webidl#698. The basis for setting `[[Construct]]` unconditionally.
+  - https://github.com/tc39/ecma262/issues/2209 — how Web IDL should mark a `CreateBuiltinFunction` result as a constructor. The basis for using `MakeConstructor`, whose signature accepts a built-in function object.
+- Fixed via `SpecPatch` #78.
+

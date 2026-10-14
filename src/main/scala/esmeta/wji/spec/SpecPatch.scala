@@ -1577,7 +1577,6 @@ object SpecPatch:
     """prototype object=] of [=interface=] |I| in |realm|.
       #    1.  Perform [$MakeConstructor$](|F|, <emu-val>false</emu-val>, |proto|).
       #""".stripMargin('#'),
-
   )
 
   def apply(source: String): String =

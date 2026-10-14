@@ -69,10 +69,12 @@ Retracted — its premise was wrong. This entry claimed the Wasm Core Spec's `fu
 
 ## 9. `Let [|parameters|] → [|results|] be |functype|.` destructures a `deftype` as if it were already its own comptype
 
-- **File**: `spectec/document/js-api/index.bs`, lines 1269, 1283, 1323 (`a new Exported Function`, `call an Exported Function`, `run a host function`), and the same problem again at lines 1730, 1759 (`getArg`, `is`) via `[=tag_type=]` instead of `func_type`.
-- **Current**: `1. Let [|parameters|] → [|results|] be |functype|.` (and the `[|paramTypes|] → [<var ignore>resultTypes</var>]` variant at line 1269); `1. Let [|types|] → [] be [=tag_type=](|store|, ...).` at 1730/1759.
-- **Expected**: `1. Let [=comp-type/func=] |parameters| → |results| be [=expand=](|functype|).`; `1. Let [=comp-type/func=] |types| → « » be [=expand=]([=tag_type=](|store|, ...)).` (the `[=comp-type/func=]` prefix and dropped `[...]` decoration are #18's fix, applied here too since both land on the same text).
-- **Reason**: `|functype|` here is a `deftype` — either `func_type`'s own return value, or (for `run a host function`) the payload of an imported function's externtype, itself resolved to a `deftype` by `module_imports` (see `spectec/spectec/src/backend-interpreter/embedding.ml`'s `module_imports`, which resolves it via the `$Module_ok` relation). Per the Wasm Core Spec's Embedding API (`embedding.rst`'s `func_type` post-condition: "the returned defined type ... expands to a function type"), a `deftype` is only a `params -> results` comptype *after* the `$Expand` relation (`2.1-validation.types.spectec`) is applied to it — the caller's responsibility, not something `func_type` (or any embedding function returning a `deftype`) does automatically. `tag_type` has the exact same post-condition shape (`embedding.rst`: "Return `S.TAGS[a].TYPE`", the returned `tagtype` is a `deftype` too), so `getArg`/`is` destructuring its result the same unexpanded way is the identical bug at two more call sites — not caught by this entry's own `SpecPatch` fix (#14) since that one matches the literal text `"be |functype|."`, which `"be [=tag_type=](...)."` doesn't contain. Every occurrence skips the expand step and destructures the deftype directly, silently projecting into the wrong fields (e.g. a recursive-type wrapper's own inner fields, instead of the function's actual parameter/result lists) whenever the value isn't already flat. Made explicit via a new `expand` convenience `wjmeta-bridge`/`spectec-server` exposes, wrapping the same `$Expand` relation (`spectec/spectec/src/backend-interpreter/embedding.ml`'s `expand`, backed by `Relation.expand`, already implemented in `relation.ml`).
+- **File**: `spectec/document/js-api/index.bs` — `a new Exported Function`, `call an Exported Function`, `run a host function` (destructuring `func_type`'s own return value, or, for `run a host function`, its own `|functype|` parameter), and the same problem again, via `[=tag_type=]` instead of `func_type`, in the `Exception` constructor and `getArg`.
+- **Current**: `1. Let [|parameters|] → [|results|] be |functype|.` (and the `[|paramTypes|] → [<var ignore>resultTypes</var>]` variant in `a new Exported Function`); `1. Let [|types|] → [] be [=tag_type=](|store|, ...).` in the `Exception` constructor/`getArg`.
+- **Expected**: `1. Let [=comp-type/func=] |parameters| → |results| be the [=expansion=] of |functype|.`; `1. Let [=comp-type/func=] |types| → « » be the [=expansion=] of [=tag_type=](|store|, ...).` (the `[=comp-type/func=]` prefix and dropped `[...]` decoration are #18's fix, applied here too since both land on the same text).
+- **Reason**: `|functype|` here is a `deftype` — either `func_type`'s own return value, or (for `run a host function`) the payload of an imported function's externtype, itself resolved to a `deftype` by `module_imports` (see `spectec/spectec/src/backend-interpreter/embedding.ml`'s `module_imports`, which resolves it via the `$Module_ok` relation). Per the Wasm Core Spec's Embedding API (`embedding.rst`'s `func_type` post-condition: "the returned defined type ... expands to a function type"), a `deftype` is only a `params -> results` comptype *after* the `$Expand` relation (`2.1-validation.types.spectec`) is applied to it — the caller's responsibility, not something `func_type` (or any embedding function returning a `deftype`) does automatically. `tag_type` has the exact same post-condition shape (`embedding.rst`: "Return `S.TAGS[a].TYPE`", the returned `tagtype` is a `deftype` too), so `getArg`/`is` destructuring its result the same unexpanded way is the identical bug at two more call sites — not caught by this entry's own `SpecPatch` fix (#14) since that one matches the literal text `"be |functype|."`, which `"be [=tag_type=](...)."` doesn't contain. Every occurrence skips the expand step and destructures the deftype directly, silently projecting into the wrong fields (e.g. a recursive-type wrapper's own inner fields, instead of the function's actual parameter/result lists) whenever the value isn't already flat.
+
+  Fixed by reusing the Core Spec's own established terminology directly, rather than inventing a new `[=expand=]` AlgoCall: the `Expand` relation's own prose hint (`2.1-validation.types.spectec:74`, `hint(prose "The expansion of %1 is %2")`) already phrases this exact relationship as "the expansion of `deftype` is `comptype`", and that phrase ("expansion", `valid/conventions.html#aux-expand-deftype`) is a real, independently dfn'd term on the live page. The `FUNC` discriminator itself (`[=comp-type/func=]`, #18's own fix) is a *constructed-value* tag, not a type annotation gloss like `[=memory type=]`/`[=table type=]` — so `Let [=comp-type/func=] |parameters| → |results| be the [=expansion=] of |functype|.` destructures the same way `Let (|addrtype|, |limits|) be [=mem_type=](...).` already does elsewhere in this document (spec_inconsistencies #13), with the pattern itself tagged by a real `[=TERM=]` link (see #18) rather than the type-annotation idiom `the [=memory type=] |addrtype| [...]` (spec_errors #40) uses — `memtype` has only one shape so a gloss suffices, but `comptype` is a genuine 3-variant sum type, so the pattern needs the same kind of tag any other `[=TERM=]`-constructed case value in this document carries (e.g. `[=ref.i31=] |u31|`), not a description of its type.
 
 ## 10. `|moduleinst|.funcaddrs` names a field the runtime `moduleinst` record doesn't have
 
@@ -158,17 +160,36 @@ Retracted — its premise was wrong. This entry claimed the Wasm Core Spec's `fu
 
 ## 17. `tag_alloc(|store|, X → Y)` passes a bare comptype where the Embedding API expects a `deftype`
 
-- **File**: `spectec/document/js-api/index.bs`, lines 1559 (`Tag(type)` constructor), 1798 (`get the JavaScript exception tag`).
+- **File**: `spectec/document/js-api/index.bs`, the `Tag(type)` constructor and `get the JavaScript exception tag`.
 - **Current**: `1. Let (|store|, |tagAddress|) be [=tag_alloc=](|store|, |wasmParameters| → « »).` and `1. Let (|store|, |tagAddress|) be [=tag_alloc=](|store|, « [=externref=] » → « »).`
-- **Expected**: `1. Let (|store|, |tagAddress|) be [=tag_alloc=](|store|, [=fold=]([=comp-type/func=] |wasmParameters| → « »)).` and `1. Let (|store|, |tagAddress|) be [=tag_alloc=](|store|, [=fold=]([=comp-type/func=] « [=externref=] » → « »)).` (the `[=comp-type/func=]` prefix is #18's fix, applied here too since both land on the same text).
-- **Reason**: the mirror-image mistake of #9, in the opposite direction. `X → Y` (SpecTec's comptype-arrow notation, `al_of_comptype`'s `FuncT (rt1, rt2) -> CaseV ("->", ...)`) builds a bare `comptype`, but `tag_alloc(store, tagtype) : (store, tagaddr)` (`embedding.rst`) declares its second parameter `tagtype`, and `tagtype = typeuse` (`1.2-syntax.types.spectec:130`) is only ever a resolved `deftype` at this level, never a bare comptype — the same "caller must convert first, the embedding function doesn't do it for you" contract as #9's `func_type`/`tag_type`, just on the construction side instead of the destructuring side. Neither call site ever builds a real `deftype` first. Made explicit via a new `fold` convenience (the construction-direction mirror of `expand`, `spectec/spectec/src/backend-interpreter/embedding.ml`) wrapping the bare comptype into a fresh, standalone (non-recursive, final, no supertypes) `deftype` — `_DEF (REC [SUB (some FINAL) [] comptype]) 0`, hand-built rather than routed through the mechanized `$rolldt`/`$rollrt` (`1.2-syntax.types.spectec:458-469`) since their only real work (substituting a rec group's internal self-references into absolute indices) is a no-op for a lone, non-self-referential type — every type either call site here ever builds.
+- **Expected**: insert a step right before each, binding a genuinely fresh `deftype`, then pass that instead:
+  ```
+  1. Let |tagtype| be the [=defined type=] such that [=comp-type/func=] |wasmParameters| → « » is the [=expansion=] of |tagtype|.
+  1. Let (|store|, |tagAddress|) be [=tag_alloc=](|store|, |tagtype|).
+  ```
+  and
+  ```
+  1. Let |tagtype| be the [=defined type=] such that [=comp-type/func=] « [=externref=] » → « » is the [=expansion=] of |tagtype|.
+  1. Let (|store|, |tagAddress|) be [=tag_alloc=](|store|, |tagtype|).
+  ```
+  (the `[=comp-type/func=]` prefix is #18's fix, applied here too since both land on the same text)
+- **Reason**: the mirror-image mistake of #9, in the opposite direction. `X → Y` (SpecTec's comptype-arrow notation, `al_of_comptype`'s `FuncT (rt1, rt2) -> CaseV ("->", ...)`) builds a bare `comptype`, but `tag_alloc(store, tagtype) : (store, tagaddr)` (`embedding.rst`) declares its second parameter `tagtype`, and `tagtype = typeuse` (`1.2-syntax.types.spectec:130`) is only ever a resolved `deftype` at this level, never a bare comptype — the same "caller must convert first, the embedding function doesn't do it for you" contract as #9's `func_type`/`tag_type`, just on the construction side instead of the destructuring side. Neither call site ever builds a real `deftype` first.
+
+  Fixed with the same existing idiom used elsewhere in this document for an inverse/existential definition (`ToWebAssemblyValue`'s "Let |u32| be the unsigned integer such that |i32| is [=signed_32=](|u32|)."), rather than inventing a new `[=fold=]` AlgoCall: `|tagtype|` is bound as "the [=defined type=] such that [its expansion] is [the comptype we just built]" — the exact converse of #9's destructuring direction, using the very same two real terms (`defined type`, `expansion`) that fix already introduces. No invented term, and no particular construction recipe for `|tagtype|` is implied by the spec text itself (deliberately — the embedding/WJI side is free to build it however it likes, e.g. the standalone non-recursive `deftype` `SpecPatch` would have hand-built under the old `[=fold=]` plan, since all that's actually asserted here is the existence of *some* `deftype` with the right expansion, which is all `tag_alloc`'s own precondition needs).
 
 ## 18. Comptype arrow notation (`[X] → [Y]` / `X → Y`) omits the `FUNC` discriminator its own current grammar requires
 
-- **File**: `spectec/document/js-api/index.bs`, the same 7 sites as #9 (1269, 1283, 1323) and #17 (1559, 1730, 1759, 1798) — every occurrence of the comptype-arrow notation in this document.
+- **File**: `spectec/document/js-api/index.bs`, the same 7 sites as #9 and #17 — every occurrence of the comptype-arrow notation in this document.
 - **Current**: `[|parameters|] → [|results|]` / `X → Y` (no discriminator).
 - **Expected**: `[=comp-type/func=] |parameters| → |results|` / `[=comp-type/func=] X → Y`.
-- **Reason**: `.spectec`'s current `comptype` grammar (`1.2-syntax.types.spectec:114-117`) is `comptype ::= STRUCT list(fieldtype) | ARRAY fieldtype | FUNC resulttype -> resulttype` — three variants, each with its own leading keyword (`STRUCT`/`ARRAY`/`FUNC`) to tell them apart, since `comptype` covers all three (added by the GC proposal). Every arrow occurrence in this document predates that: `comptype` didn't exist as a category until GC introduced struct/array types alongside func types, so a functype's own arrow notation never needed a discriminator to begin with — nothing else it could have been confused with. The prose was never updated when the grammar it's implicitly quoting grew two more variants, so it now writes a *comptype* using syntax that's only valid for the specific case where every reader already knows (from context) it must be the `FUNC` variant — technically no longer valid `comptype` surface syntax on its own. Fixed at the same 7 sites #9/#17 already patch for the deftype↔comptype conversion gaps, since all 7 land on this same underlying notation; `NormalizeSpecTecCaseShapePass.RenamedTag`'s `"FUNC" -> "->"` entry keeps the *runtime* representation exactly as it already was (`al_of_comptype`'s `FuncT (rt1, rt2) -> CaseV ("->", ...)` — the runtime tag for a func-shaped comptype has always been `"->"` itself, never `"FUNC"`) — this fix is purely about the *surface syntax* being valid against its own current grammar, not a runtime-representation change. `[=comp-type/func=]` (the `for: comp-type` scoped form the real anchors block would need, mirroring how `[=heap-type/func=]`/`[=external-type/func=]` are already scoped for their own sections) is technically still a dangling link — no `for: comp-type` anchor block actually exists in this document — but left as-is rather than also adding one, since this project never runs real Bikeshed rendering and the link text alone is enough for `ExprParser`/`NormalizeSpecTecCaseShapePass` to recognize and normalize it correctly.
+- **Reason**: `.spectec`'s current `comptype` grammar (`1.2-syntax.types.spectec:114-117`) is `comptype ::= STRUCT list(fieldtype) | ARRAY fieldtype | FUNC resulttype -> resulttype` — three variants, each with its own leading keyword (`STRUCT`/`ARRAY`/`FUNC`) to tell them apart, since `comptype` covers all three (added by the GC proposal). Every arrow occurrence in this document predates that: `comptype` didn't exist as a category until GC introduced struct/array types alongside func types, so a functype's own arrow notation never needed a discriminator to begin with — nothing else it could have been confused with. The prose was never updated when the grammar it's implicitly quoting grew two more variants, so it now writes a *comptype* using syntax that's only valid for the specific case where every reader already knows (from context) it must be the `FUNC` variant — technically no longer valid `comptype` surface syntax on its own. Fixed at the same 7 sites #9/#17 already patch for the deftype↔comptype conversion gaps, since all 7 land on this same underlying notation; `NormalizeSpecTecCaseShapePass.RenamedTag`'s `"FUNC" -> "->"` entry keeps the *runtime* representation exactly as it already was (`al_of_comptype`'s `FuncT (rt1, rt2) -> CaseV ("->", ...)` — the runtime tag for a func-shaped comptype has always been `"->"` itself, never `"FUNC"`) — this fix is purely about the *surface syntax* being valid against its own current grammar, not a runtime-representation change.
+
+  Two drafts of this fix were tried and rejected before landing on `[=comp-type/func=]`:
+
+  - A made-up `[=comp-type/func=]` link with no matching anchors-block entry at all — confirmed directly against the live Core Spec page, `comptype`'s three variants (unlike `externtype`/`heaptype`) share one single combined anchor (`#syntax-comptype`) with no per-variant sub-anchor, so this would've been exactly the same class of bug as spec_errors #39's `[=const=]`/`[=var=]`: a link to an anchor that doesn't exist.
+  - Reusing "function type" (`syntax/types.html#syntax-functype`, the Core Spec's own distinct informal name for comptype's `FUNC` variant, co-anchored at the same section) via the `the [=TERM=] EXPR` type-annotation idiom this document already uses for `memtype`/`tabletype` (`the [=memory type=] |addrtype| [...]`, spec_errors #40) — rejected because that idiom is for a *type annotation gloss* on an untagged value (`memtype` has only one shape, so naming its type is purely descriptive), whereas `comptype` is a genuine sum type and the text needs an actual *discriminator tag* on the constructed/destructured value itself, the same role `[=ref.i31=]`/`[=i32.const=]`/etc. already play for their own sum types elsewhere in this document — conflating the two would describe the value's type without actually disambiguating which `comptype` variant it is.
+
+  Landed on reusing the anchors block's own existing pattern for exactly this situation — `for: external-type; text: func` (and `table`/`mem`/`global`) under one shared `url: syntax/types.html#external-types`, used to disambiguate identical link text across different sort families by a document-local `for:` scope, with no requirement that the target URL itself have a separate per-variant anchor. `[=comp-type/func=]` ⇒ `url: syntax/types.html#syntax-comptype; for: comp-type` + `text: func` follows this exact precedent: a real, existing URL (the shared `comptype` production), scoped under a label this document chooses for disambiguation, not a claim that upstream defines a `comp-type/func` sub-anchor. (A first attempt used bare `[=func=]` with no `for:` scope at all, reusing nothing — real bikeshed run caught this immediately: "func" already resolves ambiguously across three *other* existing `for:`-scoped dfns in this same anchors block — `for: external value`/`for: external-type`/`for: heap-type` — so Bikeshed "arbitrarily chose" one of those instead. A fresh `for: comp-type` scope resolves the ambiguity the same way the other three already do for each other.) Validated bikeshed-clean end to end: adding `defined type`/`expansion`/`comp-type/func` to the anchors block (all three pointing at real, confirmed-live URLs) produces zero new lint warnings over the pristine baseline.
 
 ## 19. `AddressValueToU64` passes an already-IDL-converted value into `ConvertToInt`/`ToBigInt`, both defined over a JavaScript value
 
@@ -184,18 +205,24 @@ Retracted — its premise was wrong. This entry claimed the Wasm Core Spec's `fu
       1. Let |n| be ?ToBigInt(|v|).
       ...
   ```
-- **Expected**: insert one step right after the head sentence, before either branch:
+- **Expected**: insert one step right after the head sentence (also correcting it, "a JavaScript value" → "an IDL value" — `|v|` itself never was one), before either branch:
   ```
-  1. Set |v| to |v|, [=converted to a JavaScript value=].
+  The algorithm AddressValueToU64(|v|, |addrtype|) converts an IDL value to a WebAssembly u64 ..., by performing the following steps:
+
+  1. Let |jsValue| be |v|, [=converted to a JavaScript value=].
+
+      Note: The IDL `any` type is a discriminated union, not a transparent wrapper around a JavaScript value.
   1. If |addrtype| is [=i32=],
-      1. Let |n| be [=?=] [$ConvertToInt$](|v|, 32, "unsigned"), where the destination type is associated with [=[EnforceRange]=].
+      1. Let |n| be [=?=] [$ConvertToInt$](|jsValue|, 32, "unsigned"), where the destination type is associated with [=[EnforceRange]=].
       ...
   1. If |addrtype| is [=i64=],
-      1. Let |n| be [=?=] [$ToBigInt$](|v|).
+      1. Let |n| be [=?=] [$ToBigInt$](|jsValue|).
       ...
   ```
-  (both branches' own lines are otherwise unchanged — they already read `|v|`, which the hoisted step now guarantees is a genuine JavaScript value by the time either branch runs)
+  (both branches' bodies are otherwise unchanged, aside from reading `|jsValue|` where they used to read `|v|`)
 - **Reason**: `AddressValueToU64(|v|, |addrtype|)` is called from `Table.prototype.get`/`.set`/`.grow`, `Memory`/`Table` constructors and `.grow`, etc. with `|index|`/`|delta|`/`|descriptor|["initial"|"maximum"]` — each one bound by the *method steps* of some WebIDL operation. Per `webidl/index.bs:12562-12570` ("create an operation function"), method steps always run with `|values|` — the result of the *overload resolution algorithm*, i.e. every argument already [=converted to an IDL value=] — never the raw incoming arguments. Each of these parameters' declared IDL type is `AddressValue`, a `typedef any` (`webidl/index.bs:687`), and converting a JavaScript value to `any` is a real, defined conversion (`webidl/index.bs:7314-7339`) that produces an IDL value (an IDL unrestricted double / bigint / DOMString / object / ... depending on the argument's ECMAScript type) — not the JavaScript value itself. Both `ConvertToInt` (`webidl/index.bs:7604`, used everywhere else in the document exclusively as an internal step of the "convert a JavaScript value to `unsigned long`/`long`/..." family, e.g. line 7523) and `ToBigInt` (ECMA-262) are defined over a genuine JavaScript value — so the i64 branch has the exact same problem as the i32 branch, not just the one this entry originally flagged. `webidl/index.bs`'s own §3.2 ("JavaScript type mapping") treats "JavaScript value" and "IDL value" as distinct types precisely so that each direction of conversion between them needs to be named and applied explicitly; `AddressValueToU64` skips the IDL-value-to-JavaScript-value direction and feeds `|v|` to both `ConvertToInt` and `ToBigInt` as-is. In practice this happens not to change either operation's observable behavior (every branch of the `any` conversion is either a no-op passthrough or a representation-preserving wrap), but the spec text itself no longer honors the type distinction it defines and relies on elsewhere.
+
+  Per upstream review (PR #2275, Ms2ger): the hoisted step binds a genuinely new variable, `|jsValue|`, rather than rebinding `|v|` in place (an earlier draft's approach, since dropped) — clearer about which name holds which of the two distinct values at any point, and sidesteps any question of `Let` vs. `Set` for a parameter rebind. A note was also added explaining *why* this conversion is needed at all (the IDL `any` type isn't a transparent wrapper, so a value bound from an `any`-typed parameter isn't automatically a JavaScript value). Fixed via `SpecPatch` #43 (and #47, for the `|jsValue|` rename inside the i64 branch, bundled there since that patch already needs to touch those lines for spec_errors #23's own fix).
 
 ## 20. `Tag`/`Exception`'s `Exposed=(Window,Worker,Worklet)` makes the unconditional `Assert: |interface| is [=exposed=] in |realm|` in "internally create a new object implementing the interface" fail for any non-browser host
 
@@ -267,13 +294,16 @@ Retracted — its premise was wrong. This entry claimed the Wasm Core Spec's `fu
   ```
 - **Expected**:
   ```
-  1. If |n| < 0 or |n| > 2^64 − 1, [=throw=] a {{TypeError}}.
+  1. Let |n| be [=?=] [$ToBigInt$](|jsValue|).
+  1. Let |r| be [=ℝ=](|n|).
+  1. If |r| < 0 or |r| > 2^64 − 1, [=throw=] a {{TypeError}}.
+
+      Note: This operation is designed to emulate [=[EnforceRange]=].
+  1. Return |r| as a WebAssembly [=u64=].
   ```
-  becomes
-  ```
-  1. If [=ℝ=](|n|) < 0 or [=ℝ=](|n|) > 2^64 − 1, [=throw=] a {{TypeError}}.
-  ```
-- **Reason**: `|n|` is bound one step above as `[=?=] [$ToBigInt$](|v|)` — a BigInt — but this line compares it directly against the mathematical-value literals `0`/`2^64 − 1` with no conversion notation. ECMA-262 treats BigInt and mathematical values as distinct domains that only cross via an explicit conversion (𝔽/ℤ/ℝ) — this same algorithm's very next step already does exactly that (`Return [=ℝ=](|n|) as a WebAssembly [=u64=].`), so the range check one line above it should use the same `[=ℝ=](|n|)` conversion rather than comparing the raw BigInt. Fixed via `SpecPatch` #47.
+- **Reason**: `|n|` is bound one step above as `[=?=] [$ToBigInt$](|v|)` — a BigInt — but this line compares it directly against the mathematical-value literals `0`/`2^64 − 1` with no conversion notation. ECMA-262 treats BigInt and mathematical values as distinct domains that only cross via an explicit conversion (𝔽/ℤ/ℝ) — this same algorithm's very next step already does exactly that (`Return [=ℝ=](|n|) as a WebAssembly [=u64=].`), so the range check one line above it should use the same `[=ℝ=](|n|)` conversion rather than comparing the raw BigInt.
+
+  Per upstream review (PR #2275, Ms2ger): converting to a mathematical value three times over (comparison ×2, return ×1) for the same `|n|` is redundant — bound once instead, as `|r|`, and both the comparison and the `Return` read it back. (`|v|` → `|jsValue|` here is spec_errors #19's own rename, folded into this same line since both land in the same algorithm.) Fixed via `SpecPatch` #47 (and #43, for the rename).
 
 ## 24. `a [=/new=] {{X}}` called without its required `realm` argument
 
@@ -374,12 +404,12 @@ Retracted — its premise was wrong. This entry claimed the Wasm Core Spec's `fu
   ```
 - **Expected**:
   ```
-  1. Let |result| be [=module_instantiate=](|store|, |module|, |imports|).
-  1. Let (|store|, |instance|) be |result|.
-  1. If |instance| is [=error=], throw an appropriate exception type: ...
+  1. Let (|store|, |result|) be [=module_instantiate=](|store|, |module|, |imports|).
+  1. If |result| is [=error=], throw an appropriate exception type: ...
   ```
+  (destructures the call's result directly, the same way the sibling algorithm `call an Exported Function` already does for `func_invoke` — `Let (|store|, |ret|) be the result of [=func_invoke=](...)`. Nothing in this algorithm ever needs the pair as a whole, so `|result|` is free to name the second component. The algorithm's final step becomes `1. Return |result|.` to match.)
 - **Reason**: `module_instantiate`'s own declared return type (`appendix/embedding.rst`) is `(store, moduleinst | error)` — always a 2-tuple, never the bare `error` value on its own. Checking `|result| is [=error=]` therefore compares a value that's *always a pair* against a value it can *never* structurally equal, so the condition is vacuously false regardless of whether instantiation actually failed. Confirmed via `wji-extract`: the condition compiles to a literal `Eq(Var(result), Link([=error=]), false)`, permanently false, so the branch that would throw `{{LinkError}}` (etc.) is dead code — a genuine link failure (e.g. an imported `Global`'s mutability not matching the module's declared import type, `Match.match_globaltype`'s exact-equality requirement on mutability) falls straight through to `Let (|store|, |instance|) be |result|`, binding `|instance|` to the `error` sentinel value itself, and `new WebAssembly.Instance(...)`/`WebAssembly.instantiate(...)` return that as if it were a genuine instance — no exception at all. Verified the underlying Wasm-level check itself is correct and unaffected: a temporary debug print in `spectec`'s `Relation.externaddr_ok` (the OCaml-side `Externaddr_ok` implementation `$instantiate`'s own premises call) showed it correctly returning `false` for every one of the corpus's deliberately-mismatched global imports — the bug is entirely in this js-api-level result-shape check, not in the Wasm Core spec's own validation.
-- Fixed via `SpecPatch` #58 (reorders the destructuring step ahead of the check and tests `|instance|` instead of `|result|` — the bulleted exception-type-selection list itself is left as unmechanized prose for now, tracked separately in `personal/TODO.md` #60).
+- Fixed via `SpecPatch` #58 (merges the destructuring into the initial call and renames the final `Return` to match — the bulleted exception-type-selection list itself is left as unmechanized prose for now, tracked separately in `personal/TODO.md` #60).
 
 ## 32. `create a builtin function`'s hostfunc definition never specifies converting `steps`' arguments or result across the wasm/JS-value boundary
 
@@ -474,3 +504,99 @@ Retracted — its premise was wrong. This entry claimed the Wasm Core Spec's `fu
   1.  Let |name| be the string "<code>set </code>" prepended to |attribute|'s [=identifier=].
   ```
 - **Reason**: `|id|` is bound exactly once in this algorithm, by `Let |id| be |attribute|'s [=identifier=].` (line 12403) — the third step *inside* the `|steps|` closure, which only runs later, each time the resulting setter function is called. The `Let |name| be ...` step (line 12466) belongs to the enclosing algorithm, which runs once when the setter is created and never executes the closure's body itself, so `|id|` is unbound at the point it's read: a use without a definition, the same class of defect as #37's `|F|`. The closure's own three uses of `|id|` (the security check at line 12414, `CreateDataPropertyOrThrow` at line 12419, `Get` at line 12425) are fine — they sit in the same scope as the binding. `attribute getter` (line 12382), the sibling algorithm with the identical shape, writes the corresponding step as `Let |name| be the string "<code>get </code>" prepended to |attribute|'s [=identifier=].` — it never introduces an `|id|` at all, reading `|attribute|` (a parameter of the enclosing algorithm, so in scope both inside and outside the closure) directly. Using the same form here is the minimal fix; the alternative of hoisting `Let |id| be ...` out of `|steps|` to before it would work too, but changes more text and diverges from the getter.
+- Fixed via `SpecPatch` #75.
+
+## 39. `const`/`var` used for global mutability, but the Core Spec represents it as an optional `mut` marker, not two named variants
+
+- **File**: `spectec/document/js-api/index.bs`, lines 531, 1204, 1232 (`read the imports`'s global-import branch, the `Global` constructor, and the `Global` value setter), plus the anchors block registering the terms (`urlPrefix: .../syntax/types.html; text: var; text: const`).
+- **Current**:
+  ```
+  1. Let (|store|, |globaladdr|) be [=global_alloc=](|store|, [=const=] |valtype|, |value|).
+  ...
+  1. If |mutable| is true, let |globaltype| be [=var=] |valuetype|; otherwise, let |globaltype| be [=const=] |valuetype|.
+  ...
+  1. If |mut| is [=const=], throw a {{TypeError}}.
+  ```
+  All three construct or compare a `globaltype`'s mutability field via two named terms, `[=const=]`/`[=var=]`.
+- **Expected**: a new `mut` term (anchors block: `text: mut`, replacing the `var`/`const` entries, same `#syntax-mut` URL — the production itself, unlike either named variant, is real) for the present case, and nothing at all — not even a placeholder word — for the absent one, matching the grammar's own optionality (`mut?`) and this document's existing idiom for other absent-optional fields (e.g. `limits`' `maximum`):
+  ```
+  1. Let (|store|, |globaladdr|) be [=global_alloc=](|store|, |valtype|, |value|).
+  ...
+  1. If |mutable| is true, let |globaltype| be [=mut=] |valuetype|; otherwise, let |globaltype| be |valuetype|.
+  ...
+  1. If |mut| is empty, throw a {{TypeError}}.
+  ```
+- **Reason**: the Core Spec's actual current grammar (`specification/wasm-latest/1.2-syntax.types.spectec:131`) is `globaltype ::= mut? valtype` — `mut` is an *optional* marker, not a two-variant enum. Neither "const" nor "var" appears anywhere in the published grammar (`https://webassembly.github.io/spec/core/syntax/types.html`, confirmed directly) or in the embedding appendix (`document/core/appendix/embedding.rst:731-733`), which instead phrases the immutable case as "If mut is empty, then return ERROR" — exactly the wording the `Expected` text above reuses for the `Global` value setter's own check. The runtime encoding WJI/SpecTec already uses for this field (`construct.ml`'s `al_to_mut`/`al_of_mut`) is `OptV None` (immutable) / `OptV (Some _)` (mutable) — an option, matching the grammar, not a `CaseV` with two named tags. js-api's own `const`/`var` terms, registered against `#syntax-mut` in its anchors block, point at a URL fragment that no longer defines any such terms.
+
+  This is distinct from (and supersedes) spec_inconsistency #21, which treated `stringExternType`'s `[=const=]` as a one-off formatting inconsistency (an opaque backtick literal vs. assembled linked terms). The real problem runs deeper: `[=const=]` isn't a term this document can validly assemble with at all, anywhere, not just in that one spot — both entries landed together in the same PR (#2278, merged), with #21's own fix revised to drop the mutability marker entirely rather than introduce a fourth occurrence of this stale idiom.
+
+  Fixed via `SpecPatch` #76, and validated end to end: `global/constructor.any.js` (62/62) and `global/value-get-set.any.js` (69/69) both still pass under the new text, same as they did under the old buggy one (confirming this was never actually a mechanization gap — WJI already executed the buggy text correctly via a hand-written special case that assumed `const`/`var`). `NormalizeSpecTecCaseShapePass` has been updated to match the new text instead (`docs/hardcodes.md` #12): `[=mut=] |valuetype|` reshapes to the real `(Opt(Some(MUT)), vt)` pair the same way `[=var=] |valuetype|` used to, and the now-bare absent-case construction (`global_alloc`'s inline argument, and `Global`'s own `Let |globaltype| be |valuetype|`) is homogenized to the same pair shape by a small new `wrapGlobaltype` helper, keyed narrowly enough (by argument name/bound-variable-name, not just shape) to not also catch the *other* `global_alloc` call site or `GetGlobalValue`'s own read-back — both of which already carry a correctly-shaped `globaltype` value that must NOT be wrapped again.
+
+  Still recommend filing an upstream Issue before a PR, despite the fix now being fully worked out and validated here: `[=mut=]` would be a brand new term this document has never used before, and the live Core Spec page doesn't itself link to any anchor for the bare marker (it only appears as inline math notation, `\mathsf{mut}^?`) — so whether `text: mut` pointing at `#syntax-mut` (the production's own anchor, not a new sub-term) is the phrasing upstream maintainers actually want is worth settling before a PR, the same way Category D's new `[=expand=]`/`[=fold=]` terms are.
+
+## 40. `{min X, max Y}` named-field construction used for `limits`, but the Core Spec represents it as a `[min .. max?]` range, not a record
+
+- **File**: `spectec/document/js-api/index.bs`, lines 876 (`memory type` construction, `Memory`'s constructor) and 1043 (`table type` construction, `Table`'s constructor).
+- **Current**:
+  ```
+  1. Let |memtype| be [=memory type=] |addrtype| { min |initial|, max |maximum| }.
+  ...
+  1. Let |type| be the [=table type=] |addrtype| { [=limits|min=] |initial|, [=limits|max=] |maximum| } |elementtype|.
+  ```
+  Both construct `limits` as a braced record literal with named `min`/`max` fields — the second site even links the field names themselves, to `[=limits|min=]`/`[=limits|max=]`.
+- **Expected**:
+  ```
+  1. Let |memtype| be the [=memory type=] |addrtype| [|initial| .. |maximum|].
+  ...
+  1. Let |type| be the [=table type=] |addrtype| [|initial| .. |maximum|] |elementtype|.
+  ```
+  The grammar's own bracket-ellipsis notation, written out directly with no field names at all. (`Memory`'s line also picks up a leading "the" it was missing — see spec_inconsistency #23, an unrelated asymmetry bundled into the same fix since it sits on the same line.)
+- **Reason**: the Core Spec's actual current grammar (`specification/wasm-latest/1.2-syntax.types.spectec:128`) is `limits ::= [u64 .. u64?]` — a *range*, written with bracket-ellipsis notation, not a two-field record. Confirmed directly against the live page (`https://webassembly.github.io/spec/core/syntax/types.html`): the rendered grammar shows only `[ u64 .. u64? ]`, the prose describes it as "the size range of resizeable storage" without ever naming a "min" or "max" field, and there is no `<dfn>`/`<a>` tag anywhere in that section whose link text is "min" or "max" — so `[=limits|min=]`/`[=limits|max=]` (index.bs:1043) point at anchors that don't exist, the same class of problem as #39's `const`/`var`. The runtime encoding WJI/SpecTec already uses for this field (`construct.ml`'s `al_to_limits`/`al_of_limits`) is `CaseV("[", [min; max])` — an untagged pair tagged with the range notation's own opening bracket, `max` itself an `OptV` — matching the range grammar exactly, not a named record.
+
+  Fixed via `SpecPatch` #77, and validated end to end: `memory/constructor.any.js` (29/29) and `table/constructor.any.js` (41/41) both still pass under the new text. Confirmed this was never a mechanization gap either — WJI already executed the old `{min, max}` text correctly via `NormalizeSpecTecCaseShapePass`'s `promoteLimits` (`docs/hardcodes.md` #15, now retired), which recognized the braced shape structurally regardless of what the two fields happened to be named — so, unlike #39, this one wasn't even blocked on anything; it was purely a latent text/anchor inconsistency nobody had reported yet. `ExprParser` gained a new `BracketRange` rule to parse the grammar's own notation directly, producing the exact same tag-less pair `BracedFields`/`parseBracedFields` (now removed) used to, so nothing past the parser needed to change.
+
+## 41. `Memory`'s constructor is missing `memtype`'s own trailing `page` keyword
+
+- **File**: `spectec/document/js-api/index.bs`, `Memory`'s constructor (same line as #40).
+- **Current**: `1. Let |memtype| be the [=memory type=] |addrtype| [|initial| .. |maximum|].`
+- **Expected**: `1. Let |memtype| be the [=memory type=] |addrtype| [|initial| .. |maximum|] page.`
+- **Reason**: the Core Spec's actual current grammar (`specification/wasm-latest/1.2-syntax.types.spectec:132`) is `memtype ::= addrtype limits PAGE` — a literal trailing `page` keyword, confirmed on the live page as plain unlinked text (distinct from the separately-anchored "page size" constant this document already links elsewhere, `exec/runtime.html#page-size`). This document's own text never had it, not even before #40's own `{min,max}`→range rewrite.
+
+  Fixed via `SpecPatch` #77 (bundled into the same line's own patch, since it sits on the same text #40 already touches). Unlike most entries in this file, this one *did* need a small mechanization extension to keep executing correctly — not because the runtime tag itself changed (`NormalizeSpecTecCaseShapePass`'s `typeAnnotationTag` already derives the real `"PAGE"` tag from the `"memory type"` TERM alone, same as before), but because the bare word `page` wasn't parseable at all: `ExprParser`'s generic sequence fallback (`parseAsSeq`) requires every space-separated token in a juxtaposed value to parse individually, and `page` matched nothing, so the whole line fell to `Unknown`/`EYet`. `ExprParser.PageKeyword` is a new, narrowly-scoped rule parsing the bare word into a plain `Expr.SpecTerm("page")` — purely structural, no SpecTec-runtime knowledge of its own — and `NormalizeSpecTecCaseShapePass` is what actually knows this token carries no data: when promoting `TypeAnnotated("memory type", Seq_(args))`, it drops a trailing `SpecTerm("page")` from `args` before building the real 2-arg `CaseV("PAGE", [addrtype; limits])` (`docs/hardcodes.md` #12). Validated end to end: `ir.expected` (the full compiled `Program`, the same artifact `wji-eval` executes) came back byte-identical to before this entire entry's fix, confirming the compiled output — and therefore runtime behavior — is unchanged; `memory/constructor.any.js` (29/29) still passes.
+
+## 42. `create an interface object` never gives the interface object a `[[Construct]]` internal method
+
+- **File**: `webidl/index.bs`, lines 11979-11984 (`create an interface object`); same text upstream at https://webidl.spec.whatwg.org/#create-an-interface-object.
+- **Current**:
+  ```
+  1.  Let |F| be <a abstract-op>CreateBuiltinFunction</a>(|steps|, |length|, |id|, « \[[Unforgeables]] »,
+      |realm|, |constructorProto|).
+  1.  Let |proto| be the result of [=create an interface prototype object|creating an interface
+      prototype object=] of [=interface=] |I| in |realm|.
+  1.  Perform [=!=] <a abstract-op>DefinePropertyOrThrow</a>(|F|, "<code>prototype</code>",
+      PropertyDescriptor{\[[Value]]: |proto|, \[[Writable]]: <emu-val>false</emu-val>, \[[Enumerable]]: <emu-val>false</emu-val>, \[[Configurable]]: <emu-val>false</emu-val>}).
+  ```
+- **Expected**:
+  ```
+  1.  Let |F| be <a abstract-op>CreateBuiltinFunction</a>(|steps|, |length|, |id|, « \[[Unforgeables]] »,
+      |realm|, |constructorProto|).
+  1.  Let |proto| be the result of [=create an interface prototype object|creating an interface
+      prototype object=] of [=interface=] |I| in |realm|.
+  1.  Perform [$MakeConstructor$](|F|, <emu-val>false</emu-val>, |proto|).
+  ```
+  and, in the section's prose (line 11899 onward), state the two facts separately:
+  ```
+  The [=interface object=] for a given [=interface=] is a [=built-in function object=] and a [=constructor=].
+
+  If the [=interface=] is declared with a [=constructor operation=],
+  then calling the [=interface object=] as a [=constructor=]
+  creates an object that [=implements=] that interface.
+  Calling that interface as a function will throw an exception.
+  ```
+- **Reason**: ECMA-262 gives a built-in function object a `[[Construct]]` internal method only "if it is described as a 'constructor', or some algorithm in this specification explicitly sets its [[Construct]] internal method"; `CreateBuiltinFunction` itself never installs one. ECMA-262 uses the first route for its fixed, named intrinsics and the second for every constructor an algorithm creates at runtime (`MakeConstructor`, `BoundFunctionCreate`, `ProxyCreate`). An interface object is created at runtime by this algorithm, but no step here — nor in any algorithm it calls — sets `[[Construct]]`, and no existing step can be refined to mean it (`CreateBuiltinFunction` has no such parameter). So `IsConstructor(|F|)` is false and `new` on any interface object throws a `TypeError` in `EvaluateNew` before `|steps|` ever runs, contradicting the section's own prose ("the interface object can be called as a constructor", line 11904). The step should be unconditional: per whatwg/webidl#698 (and the WPT test added for it, web-platform-tests/wpt#28089) every interface object is a constructor, including one whose interface has no constructor operation — `|steps|` itself begins by throwing a `TypeError` in that case. `MakeConstructor(|F|, false, |proto|)` (its built-in function object branch, tc39/ecma262#2209) sets `[[Construct]]` and then defines `"prototype"` with exactly the descriptor the replaced `DefinePropertyOrThrow` step used, so nothing else changes. `legacy factory functions` (line 12029-12032) has the same gap; it is left alone here since the JS-API declares none.
+- **Known issue** (to cite in an upstream PR):
+  - https://github.com/whatwg/webidl/issues/698 — "Define that interface objects are constructors"; still open. The issue this entry is an instance of: Web IDL never normatively says interface objects are constructors. Also referenced from the spec text itself (`Issue(whatwg/webidl#698)`, line 2475).
+  - https://github.com/web-platform-tests/wpt/pull/28089 — "Test IsConstructor for all interfaces"; merged, as part of whatwg/webidl#698. The basis for setting `[[Construct]]` unconditionally.
+  - https://github.com/tc39/ecma262/issues/2209 — how Web IDL should mark a `CreateBuiltinFunction` result as a constructor. The basis for using `MakeConstructor`, whose signature accepts a built-in function object.
+- Fixed via `SpecPatch` #78.
+

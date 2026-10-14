@@ -141,6 +141,20 @@ object CondParser:
     """(?si)^(.+?)\s+has\s+an?\s+\\?\[\[([^\]]+)\]\]\s+(?:\[=/?internal slot=\]|internal slot)$""".r
   private val HasSlotNeg =
     """(?si)^(.+?)\s+does not have\s+an?\s+\\?\[\[([^\]]+)\]\]\s+(?:\[=/?internal slot=\]|internal slot)$""".r
+  // "|memtype| has a max" / "|memtype| does not have a max" (index.bs:949/953,
+  // `toResizableBuffer`'s only two occurrences) — `memtype`/`limits`' own
+  // positional-`CaseV` shape (construct.ml's `al_of_memorytype`/`al_of_limits`,
+  // docs/hardcodes.md #15: `CaseV("PAGE", [addrtype, limits])`, `limits =
+  // CaseV("[", [min, max])` with `max` an `Opt`) makes "has a max" equivalent
+  // to "the max component isn't absent" — compiled as a plain value-equality
+  // check against a freshly built `Expr.Opt(None)`, the same mechanism
+  // already used to recognize an embedding function's `ERROR` sentinel (e.g.
+  // `Table.prototype.grow`'s `if (= result (case "ERROR"))`). See
+  // `ExprParser`'s `MaxValueIn` for the companion "the max value in X" read.
+  private val HasMaxPos =
+    """(?si)^(.+?)\s+has a max$""".r
+  private val HasMaxNeg =
+    """(?si)^(.+?)\s+does not have a max$""".r
   // "X is [not] declared with a/the [{{Y}}] [=extended attribute=]" —
   // webidl_yet_categorized.md category II-A (e.g. "|interface| is declared
   // with the [{{Global}}] [=extended attribute=]", "|operation| is declared
@@ -643,6 +657,13 @@ object CondParser:
     * over `X.extendedAttributes` (a list, see `DeclaredWithAttrPos`'s own doc)
     * for an entry whose `id` is `attrName`.
     */
+  // `memtype`'s `limits` is its 2nd positional arg (index 1), and `limits`'s
+  // `max` is in turn its own 2nd positional arg (index 1) — see `HasMaxPos`/
+  // `HasMaxNeg`'s own doc. Mirrored by `ExprParser.MaxValueIn`'s identical
+  // path for reading the max's *value* once it's known to be present.
+  private def maxFieldOf(memtype: Expr): Expr =
+    TupleProj(TupleProj(memtype, 1), 1)
+
   private def declaredWithAttr(
     exprRaw: String,
     attrName: String,
@@ -713,6 +734,10 @@ object CondParser:
       HasSlot(ExprParser.parse(exprRaw), slot)
     case HasSlotNeg(exprRaw, slot) =>
       HasSlot(ExprParser.parse(exprRaw), slot, negated = true)
+    case HasMaxPos(exprRaw) =>
+      Eq(maxFieldOf(ExprParser.parse(exprRaw)), Opt(None), negated = true)
+    case HasMaxNeg(exprRaw) =>
+      Eq(maxFieldOf(ExprParser.parse(exprRaw)), Opt(None))
     case ContainsDuplicatesNeg(exprRaw) =>
       HasDuplicates(ExprParser.parse(exprRaw), negated = true)
     case ContainsDuplicatesPos(exprRaw) =>

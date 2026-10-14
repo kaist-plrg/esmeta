@@ -61,6 +61,7 @@ val ES_TEST_DIR = s"$TEST_DIR/es"
 val WJI_TEST_DIR = s"$TEST_DIR/wji"
 val WJI_MANUAL_TEST_DIR = s"$WJI_TEST_DIR/manual"
 val WJI_JS_API_TEST_DIR = s"$WJI_TEST_DIR/js-api/generated"
+val WJI_COMPLEMENTARY_TEST_DIR = s"$WJI_TEST_DIR/complementary"
 
 /** error stack trace display mode */
 var ERROR_MODE = false

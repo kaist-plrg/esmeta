@@ -3,7 +3,7 @@ package esmeta.wji.interpreter
 import esmeta.cfg.{CFG, Call}
 import esmeta.error.{NoMathValue, UnknownConversion}
 import esmeta.interpreter.{%%, Interpreter}
-import esmeta.ir.GLOBAL_EXECUTION_STACK
+import esmeta.ir.{GLOBAL_EXECUTION_STACK, Name}
 import esmeta.parser.ESValueParser
 import esmeta.state.*
 import esmeta.ty.AbruptT
@@ -150,6 +150,39 @@ object WebIdlConversion:
 
   private def isAbrupt(st: State, v: Value): Boolean =
     AbruptT.contains(v, st.heap)
+
+  /** pins values accumulated by a native Scala buffer across reentrant
+    * `invokeCallable` calls (`readDictionary`'s `pairs`/`readEnumSequence`'s
+    * `converted`) so a `GC` firing mid-loop can't sweep an already-converted
+    * member before this function gets a chance to store it anywhere `GC` itself
+    * walks (`personal/TODO.md` #67's root cause). Rather than extending
+    * `Interpreter`/`GC` with a notion of "extra roots", this binds a real
+    * heap-allocated `ListObj` into `st.context.locals` -- `GC` already walks
+    * `st.context` (`UnitWalker.walk(context)` covers `locals`), and
+    * `st.context` is exactly the object `Interpreter.invokeCallable` saves and
+    * restores intact across reentrant calls, however deep -- so this needs no
+    * mainline change at all. `sync` is called after every accumulation step to
+    * keep the pinned list's contents current; the previous value (if any) at
+    * the same key is restored in `finally`, so a nested dictionary/sequence
+    * conversion (reentrant WebIDL conversion calling back into this same
+    * function) doesn't clobber an outer pin.
+    */
+  private def withGcPin[T](
+    interp: Interpreter,
+  )(body: (Iterable[Value] => Unit) => T): T =
+    val st = interp.st
+    val pinVar = Name("__wjiGcPin")
+    val pinAddr = st.allocList(Nil)
+    val previous = st.context.locals.get(pinVar)
+    st.context.locals += pinVar -> pinAddr
+    def sync(values: Iterable[Value]): Unit = st(pinAddr) match
+      case l: ListObj => l.values = values.toVector
+      case _          => ()
+    try body(sync)
+    finally
+      previous match
+        case Some(v) => st.context.locals += pinVar -> v
+        case None    => st.context.locals -= pinVar
 
   /** mirrors `Interpreter.eval`'s `EImplements` case exactly (flat
     * `RecordObj.tname` comparison, bypassing `esmeta.ty.TyModel` -- see
@@ -536,86 +569,100 @@ object WebIdlConversion:
     // per-algorithm order already, so plain list order is what to use here,
     // not a generic re-sort.
     val it = members.iterator
-    while abrupt.isEmpty && it.hasNext do
-      val member = it.next()
-      val key = Str(member.name)
-      def absent(): Unit = member.default match
-        case Some(d) => pairs += key -> d
-        case None if member.required =>
-          abrupt = Some(typeError(interp, callSite))
-        case None => ()
-      argument match
-        case Undef | Null => absent()
-        case _ =>
-          val result = getProperty(interp, callSite, argument, key)
-          if isAbrupt(st, result) then abrupt = Some(result)
-          else
-            st(result, Str("Value")) match
-              case Undef => absent()
-              case raw if member.isSequence && member.enumValues.isDefined =>
-                readEnumSequence(
-                  interp,
-                  callSite,
-                  raw,
-                  member.enumValues.get,
-                ) match
-                  case Left(a)     => abrupt = Some(a)
-                  case Right(list) => pairs += key -> list
-              case raw if member.enumValues.isDefined =>
-                val strResult = toStringValue(interp, callSite, raw)
-                if isAbrupt(st, strResult) then abrupt = Some(strResult)
-                else
-                  st(strResult, Str("Value")) match
-                    case s @ Str(v) if member.enumValues.get(v) =>
-                      pairs += key -> s
-                    case _ => abrupt = Some(typeError(interp, callSite))
-              // `AddressValue` (`initial`/`maximum`) is declared `any` --
-              // real WebIDL "any" conversion is pure identity, no side effect
-              // -- but `spectec/test/js-api/{memory,table}/constructor.any.js`'s
-              // "Order of evaluation for descriptor" empirically shows real
-              // engines resolving each member's `valueOf`/`toBigInt` inline,
-              // right where that member itself is read (in `members`' own
-              // algorithm-reference order, see that list's own doc), not
-              // deferred until whatever later step happens to consume it --
-              // confirmed directly against Node before writing this. `pairs`
-              // (built so far, in that same single pass) already has
-              // `address` converted by this point in both `Memory`/`Table` --
-              // `memoryDescriptorMembers`/`tableDescriptorMembers` both list
-              // it before `initial`/`maximum` for exactly this reason --
-              // default to "i32" per the constructor's own "otherwise let
-              // addrtype be 'i32'" when it's genuinely absent.
-              // `ToNumber`/`ToBigInt` (not the full `AddressValueToU64` --
-              // that's still called for real, later, by the algorithm body
-              // itself) are enough to reproduce the observed side effect: both
-              // are idempotent identity on an already-Number/BigInt input (no
-              // `ToPrimitive`/`valueOf` reached a second time), so storing the
-              // coerced primitive here just makes the *first* call the one
-              // that actually runs `valueOf` -- `AddressValueToU64`'s own
-              // later `? ToNumber`/`? ToBigInt` still does its real
-              // EnforceRange/range-check work on that primitive, unaffected.
-              case raw if member.isAddressValue =>
-                val addrtype = pairs
-                  .collectFirst {
-                    case (Str("address"), Str(v)) => v
-                  }
-                  .getOrElse("i32")
-                val coerced =
-                  if addrtype == "i64" then toBigIntValue(interp, callSite, raw)
-                  else toNumberValue(interp, callSite, raw)
-                if isAbrupt(st, coerced) then abrupt = Some(coerced)
-                else pairs += key -> st(coerced, Str("Value"))
-              // `boolean` (`GlobalDescriptor.mutable`/`ExceptionOptions.
-              // traceStack`) -- real WebIDL boolean conversion is `ToBoolean`,
-              // not identity, so a truthy-but-not-literal-`true` value (e.g.
-              // `mutable: 1`/`mutable: "x"`) must still convert to `true`
-              // rather than being compared against a `true` literal later and
-              // silently losing.
-              case raw if member.isBoolean =>
-                pairs += key -> toBooleanValue(interp, callSite, raw)
-              case raw =>
-                val value =
-                  if member.isSequence then toSequence(st, raw) else raw
-                pairs += key -> value
+    // `pairs` accumulates across this loop's own repeated reentrant calls
+    // (`getProperty`/`toStringValue`/`toBigIntValue`/`toNumberValue`/
+    // `toBooleanValue`, each a real `invokeCallable`) -- a GC firing mid-loop
+    // must see everything converted *so far*, or it can collect an already-
+    // converted member's value before this function ever gets to store it
+    // somewhere `GC` itself tracks (`personal/TODO.md` #67's root cause: `pin`
+    // below keeps a real heap root current with exactly that, see
+    // `withGcPin`'s own doc).
+    withGcPin(interp) { pin =>
+      def addPair(key: Value, value: Value): Unit =
+        pairs += key -> value
+        pin(pairs.flatMap((k, v) => List(k, v)))
+      while abrupt.isEmpty && it.hasNext do
+        val member = it.next()
+        val key = Str(member.name)
+        def absent(): Unit = member.default match
+          case Some(d) => addPair(key, d)
+          case None if member.required =>
+            abrupt = Some(typeError(interp, callSite))
+          case None => ()
+        argument match
+          case Undef | Null => absent()
+          case _ =>
+            val result = getProperty(interp, callSite, argument, key)
+            if isAbrupt(st, result) then abrupt = Some(result)
+            else
+              st(result, Str("Value")) match
+                case Undef => absent()
+                case raw if member.isSequence && member.enumValues.isDefined =>
+                  readEnumSequence(
+                    interp,
+                    callSite,
+                    raw,
+                    member.enumValues.get,
+                  ) match
+                    case Left(a)     => abrupt = Some(a)
+                    case Right(list) => addPair(key, list)
+                case raw if member.enumValues.isDefined =>
+                  val strResult = toStringValue(interp, callSite, raw)
+                  if isAbrupt(st, strResult) then abrupt = Some(strResult)
+                  else
+                    st(strResult, Str("Value")) match
+                      case s @ Str(v) if member.enumValues.get(v) =>
+                        addPair(key, s)
+                      case _ => abrupt = Some(typeError(interp, callSite))
+                // `AddressValue` (`initial`/`maximum`) is declared `any` --
+                // real WebIDL "any" conversion is pure identity, no side effect
+                // -- but `spectec/test/js-api/{memory,table}/constructor.any.js`'s
+                // "Order of evaluation for descriptor" empirically shows real
+                // engines resolving each member's `valueOf`/`toBigInt` inline,
+                // right where that member itself is read (in `members`' own
+                // algorithm-reference order, see that list's own doc), not
+                // deferred until whatever later step happens to consume it --
+                // confirmed directly against Node before writing this. `pairs`
+                // (built so far, in that same single pass) already has
+                // `address` converted by this point in both `Memory`/`Table` --
+                // `memoryDescriptorMembers`/`tableDescriptorMembers` both list
+                // it before `initial`/`maximum` for exactly this reason --
+                // default to "i32" per the constructor's own "otherwise let
+                // addrtype be 'i32'" when it's genuinely absent.
+                // `ToNumber`/`ToBigInt` (not the full `AddressValueToU64` --
+                // that's still called for real, later, by the algorithm body
+                // itself) are enough to reproduce the observed side effect: both
+                // are idempotent identity on an already-Number/BigInt input (no
+                // `ToPrimitive`/`valueOf` reached a second time), so storing the
+                // coerced primitive here just makes the *first* call the one
+                // that actually runs `valueOf` -- `AddressValueToU64`'s own
+                // later `? ToNumber`/`? ToBigInt` still does its real
+                // EnforceRange/range-check work on that primitive, unaffected.
+                case raw if member.isAddressValue =>
+                  val addrtype = pairs
+                    .collectFirst {
+                      case (Str("address"), Str(v)) => v
+                    }
+                    .getOrElse("i32")
+                  val coerced =
+                    if addrtype == "i64" then
+                      toBigIntValue(interp, callSite, raw)
+                    else toNumberValue(interp, callSite, raw)
+                  if isAbrupt(st, coerced) then abrupt = Some(coerced)
+                  else addPair(key, st(coerced, Str("Value")))
+                // `boolean` (`GlobalDescriptor.mutable`/`ExceptionOptions.
+                // traceStack`) -- real WebIDL boolean conversion is `ToBoolean`,
+                // not identity, so a truthy-but-not-literal-`true` value (e.g.
+                // `mutable: 1`/`mutable: "x"`) must still convert to `true`
+                // rather than being compared against a `true` literal later and
+                // silently losing.
+                case raw if member.isBoolean =>
+                  addPair(key, toBooleanValue(interp, callSite, raw))
+                case raw =>
+                  val value =
+                    if member.isSequence then toSequence(st, raw) else raw
+                  addPair(key, value)
+    }
     abrupt match
       case Some(a) => Left(a)
       case None    => Right(st.allocMap(pairs.toList))
@@ -658,13 +705,19 @@ object WebIdlConversion:
     val converted = scala.collection.mutable.ListBuffer.empty[Value]
     var abrupt: Option[Value] = None
     val it = raws.iterator
-    while abrupt.isEmpty && it.hasNext do
-      val strResult = toStringValue(interp, callSite, it.next())
-      if isAbrupt(st, strResult) then abrupt = Some(strResult)
-      else
-        st(strResult, Str("Value")) match
-          case s @ Str(v) if allowed(v) => converted += s
-          case _ => abrupt = Some(typeError(interp, callSite))
+    // same reentrant-accumulator hazard as `readDictionary`'s `pairs` -- see
+    // `withGcPin`'s own doc (`personal/TODO.md` #67).
+    withGcPin(interp) { pin =>
+      while abrupt.isEmpty && it.hasNext do
+        val strResult = toStringValue(interp, callSite, it.next())
+        if isAbrupt(st, strResult) then abrupt = Some(strResult)
+        else
+          st(strResult, Str("Value")) match
+            case s @ Str(v) if allowed(v) =>
+              converted += s
+              pin(converted)
+            case _ => abrupt = Some(typeError(interp, callSite))
+    }
     abrupt match
       case Some(a) => Left(a)
       case None    => Right(st.allocList(converted.toList))

@@ -17,9 +17,7 @@
   ForEach(|import|, [=module_imports=](|module|))
     If(|importedStringModule| is not null, and |import|[0] is |importedStringModule|)
       Let(|importExternType|, |import|[2])
-      Let(|reftype|, [=ref=]([=heap-type/extern=]))
-      Let(|mut|, [=const=])
-      Let(|stringExternType|, [=external-type/global=](|mut|, |reftype|))
+      Let(|stringExternType|, [=external-type/global=]([=ref=]([=heap-type/extern=])))
       If([=match_externtype=](|stringExternType|, |importExternType|) is false)
         Return(false)
     Else
@@ -155,7 +153,7 @@
           Note(catch it)
           Throw(new {{LinkError}})
         Let(|store|, [=surrounding agent=].[[associated store]])
-        Let((|store|, |globaladdr|), [=global_alloc=](|store|, [=const=](|valtype|), |value|))
+        Let((|store|, |globaladdr|), [=global_alloc=](|store|, |valtype|, |value|))
         Set([=surrounding agent=].[[associated store]], |store|)
       Let(|externglobal|, [=external value/global=](|globaladdr|))
       Append(|externglobal|, |imports|)
@@ -228,12 +226,11 @@
   params: |module|, |imports|
   head: To <dfn>instantiate the core of a WebAssembly module</dfn> from a module |module| and imports |imports|, perform the following steps:
   Let(|store|, [=surrounding agent=].[[associated store]])
-  Let(|result|, [=module_instantiate=](|store|, |module|, |imports|))
-  Let((|store|, |instance|), |result|)
-  If(|instance| is [=error=])
+  Let((|store|, |result|), [=module_instantiate=](|store|, |module|, |imports|))
+  If(|result| is [=error=])
     Throw(new {{LinkError}})
   Set([=surrounding agent=].[[associated store]], |store|)
-  Return(|instance|)
+  Return(|result|)
 
 # asynchronously instantiate a WebAssembly module
   params: |moduleObject|, |importObject|
@@ -454,7 +451,7 @@
     Let(|maximum|, [=?=] [=AddressValueToU64=](|descriptor|["maximum"], |addrtype|))
   Else
     Let(|maximum|, empty)
-  Let(|memtype|, |addrtype| |initial| |maximum|)
+  Let(|memtype|, |addrtype| |initial| |maximum| page)
   If(valid_memtype(|memtype|) is not true)
     Throw(new {{RangeError}})
   Let(|store|, [=surrounding agent=].[[associated store]])
@@ -532,13 +529,13 @@
   Let(|memaddr|, **this**.[[Memory]])
   Let(|store|, [=surrounding agent=].[[associated store]])
   Let(|memtype|, [=mem_type=](|store|, |memaddr|))
-  If(?(|memtype| does not have a max))
+  If(|memtype|.1.1 is opt(none))
     Throw(new {{TypeError}})
   Let(|buffer|, **this**.[[BufferObject]])
   If([=IsFixedLengthArrayBuffer=](|buffer|) is false)
     Return(|buffer|)
-  Assert(?(|memtype| has a max))
-  Let(|maxsize|, ?(the max value in |memtype|) * 65536)
+  Assert(|memtype|.1.1 is not opt(none))
+  Let(|maxsize|, AsMath(|memtype|.1.1.[[Value]]) * 65536)
   Let(|resizableBuffer|, [=create a resizable memory buffer=](|memaddr|, |maxsize|))
   Perform(DetachArrayBuffer(|buffer|, "WebAssembly.Memory"))
   Set(**this**.[[BufferObject]], |resizableBuffer|)
@@ -742,9 +739,9 @@
   Else
     Let(|value|, [=?=] [=ToWebAssemblyValue=](|v|, |valuetype|))
   If(|mutable| is true)
-    Let(|globaltype|, [=var=](|valuetype|))
+    Let(|globaltype|, [=mut=](|valuetype|))
   Else
-    Let(|globaltype|, [=const=](|valuetype|))
+    Let(|globaltype|, |valuetype|)
   Let(|store|, [=surrounding agent=].[[associated store]])
   Let((|store|, |globaladdr|), [=global_alloc=](|store|, |globaltype|, |value|))
   Set([=surrounding agent=].[[associated store]], |store|)
@@ -776,7 +773,7 @@
   Let((|mut|, |valuetype|), [=global_type=](|store|, |globaladdr|))
   If(|valuetype| [=matches/valtype=] [=v128=] or [=exnref=])
     Throw(new {{TypeError}})
-  If(|mut| is [=const=])
+  If(|mut| is empty)
     Throw(new {{TypeError}})
   Let(|value|, [=?=] [=ToWebAssemblyValue=](**the given value**, |valuetype|))
   Let(|store|, [=global_write=](|store|, |globaladdr|, |value|))
@@ -1036,18 +1033,20 @@
 
 # AddressValueToU64
   params: |v|, |addrtype|
-  head: The algorithm <dfn>AddressValueToU64</dfn>(|v|, |addrtype|) converts a JavaScript value to a WebAssembly [=u64=] for use in embedding operations. It is designed to act like [=[EnforceRange]=] [=unsigned long=] for {{AddressType}} "i32", and to extend these semantics to {{AddressType}} "i64", by performing the following steps:
-  Set(|v|, [=converted to a JavaScript value=](|v|))
+  head: The algorithm <dfn>AddressValueToU64</dfn>(|v|, |addrtype|) converts an IDL value to a WebAssembly [=u64=] for use in embedding operations. It is designed to act like [=[EnforceRange]=] [=unsigned long=] for {{AddressType}} "i32", and to extend these semantics to {{AddressType}} "i64", by performing the following steps:
+  Let(|jsValue|, [=converted to a JavaScript value=](|v|))
+  Note(The IDL `any` type is a discriminated union, not a transparent wrapper around a JavaScript value)
   If(|addrtype| is [=i32=])
-    Let(|n|, [=?=] [$ConvertToInt$](|v|, 32, "unsigned", "EnforceRange"))
+    Let(|n|, [=?=] [$ConvertToInt$](|jsValue|, 32, "unsigned", "EnforceRange"))
     Note(This is equivalent to the [=js-unsigned-long|JS conversion rules=] for [=[EnforceRange]=] [=unsigned long=])
     Return(AsWasm(AsMath(|n|), u64))
   If(|addrtype| is [=i64=])
-    Let(|n|, [=?=] [$ToBigInt$](|v|))
-    If(AsMath(|n|) < 0 or AsMath(|n|) > 2 ** 64 - 1)
+    Let(|n|, [=?=] [$ToBigInt$](|jsValue|))
+    Let(|r|, AsMath(|n|))
+    If(|r| < 0 or |r| > 2 ** 64 - 1)
       Throw(new {{TypeError}})
     Note(This operation is designed to emulate [=[EnforceRange]=])
-    Return(AsWasm(AsMath(|n|), u64))
+    Return(AsWasm(|r|, u64))
   Assert(Unreachable)
 
 # U64ToAddressValue
@@ -1599,7 +1598,7 @@
   Set(|F|.[[Unforgeables]], |unforgeables|)
   Note(this object is never exposed to user code It exists only to ensure all instances of an interface with an unforgeable member use the same JavaScript function objects for [=attribute getters=], [=attribute setters=] and [=creating an operation function|operation functions=])
   Let(|proto|, [=create an interface prototype object=]([=interface=](|I|, |realm|)))
-  Perform(DefinePropertyOrThrow(|F|, "prototype", PropertyDescriptor{[[Value]]: |proto|, [[Writable]]: false, [[Enumerable]]: false, [[Configurable]]: false}))
+  Perform(MakeConstructor(|F|, false, |proto|))
   Perform([=Define the constants=]([=interface=](|I|, |F|, |realm|)))
   Perform([=Define the static attributes=]([=interface=](|I|, |F|, |realm|)))
   Perform([=Define the static operations=]([=interface=](|I|, |F|, |realm|)))

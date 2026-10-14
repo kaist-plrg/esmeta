@@ -1,6 +1,11 @@
 package esmeta.wji
 
-import esmeta.{WJI_COVERAGE_LOG_DIR, WJI_JS_API_TEST_DIR}
+import esmeta.{
+  WJI_COMPLEMENTARY_TEST_DIR,
+  WJI_COVERAGE_LOG_DIR,
+  WJI_JS_API_TEST_DIR,
+  WJI_MANUAL_TEST_DIR,
+}
 import esmeta.cfg.{Block, Branch, BranchKind, Call, Func, Node}
 import esmeta.interpreter.{Interpreter => EsInterpreter}
 import esmeta.state.State
@@ -29,14 +34,25 @@ import scala.collection.mutable
   * [[main]]), also dumps one annotated IR file per function under
   * `logs/wji-coverage/annotated-ir/` (see [[dumpAnnotatedIR]]) -- the same `id:
   * content -> nextId` line shape `esmeta.cfg.util.Stringifier` prints, with a
-  * `[x]`/`[ ]` marker on each node and on each side of each branch, so coverage
-  * can be read right next to the real compiled IR instead of only as a
-  * name-and-percentage table.
+  * `[N]` hit-count marker (not just touched/untouched) on each node and on each
+  * side of each branch, so coverage can be read right next to the real compiled
+  * IR instead of only as a name-and-percentage table.
   *
   * Not a `Suite` (this measures, it doesn't assert pass/fail) -- run directly:
   * {{{
   *   sbt "Test/runMain esmeta.wji.WjiCoverage"
   * }}}
+  *
+  * With no arguments, scans only `tests/wji/js-api/generated` (the official
+  * corpus) and writes to `$WJI_COVERAGE_LOG_DIR`, as described throughout this
+  * doc. Passing `--full` dumps that same official-corpus-only report first (so
+  * it's never silently replaced by a combined one -- the two measure different
+  * things, see the "a function at 0% here isn't necessarily an actual gap"
+  * paragraph below), then *continues* the same run by also executing
+  * `tests/wji/manual` and `tests/wji/complementary` on top of the
+  * already-accumulated hit counts and dumps that combined total to
+  * `$WJI_COVERAGE_LOG_DIR-full` -- the official corpus is only ever executed
+  * once per invocation either way; `--full` doesn't re-run it.
   *
   * Every file under `tests/wji/js-api/generated` is attempted, including ones
   * `EvalSpec` itself skips or cancels (`skippedEntirely`/`slowFiles`) -- a
@@ -45,6 +61,18 @@ import scala.collection.mutable
   * doesn't apply to an occasional, manually-run measurement. One shared timeout
   * for every file rather than `EvalSpec`'s slow/default split, for the same
   * reason.
+  *
+  * A function at 0% here isn't necessarily an actual gap -- it only means the
+  * *official* corpus never reaches it. Two other reasons a function can show up
+  * there, found while triaging its first real run (2026-10-07): it's already
+  * exercised by a `tests/wji/manual/` fixture instead (e.g. the wasm core
+  * `memory.grow` instruction hook, covered by
+  * `tests/wji/manual/memory-grow.js`'s `wasmGrow` export, a scope this tool
+  * deliberately excludes -- see the class doc above), or it's a lifecycle hook
+  * WJI's own bootstrap never dispatches at all and hardcodes the result of
+  * instead (e.g. "create the WebAssembly namespace object" --
+  * `docs/hardcodes.md` #10 -- no JS code can retrigger realm creation, so no
+  * `tests/wji/complementary/` fixture could ever change this one's count).
   */
 object WjiCoverage:
 
@@ -64,13 +92,13 @@ object WjiCoverage:
     wasmHost: Option[WasmHost],
     timeLimit: Option[Int],
   ) extends EsInterpreter(st, wasmHost = wasmHost, timeLimit = timeLimit):
-    val touchedNodes: mutable.Set[Node] = mutable.Set()
-    val touchedConds: mutable.Set[Cond] = mutable.Set()
+    val nodeHits: mutable.Map[Node, Int] = mutable.Map().withDefaultValue(0)
+    val condHits: mutable.Map[Cond, Int] = mutable.Map().withDefaultValue(0)
     override def eval(node: Node): Unit =
-      touchedNodes += node
+      nodeHits(node) += 1
       super.eval(node)
     override def moveBranch(branch: Branch, cond: Boolean): Unit =
-      touchedConds += Cond(branch.id, cond)
+      condHits(Cond(branch.id, cond)) += 1
       super.moveBranch(branch, cond)
 
   /** a taken outcome of one `Branch` node -- keyed by the branch's own node id
@@ -129,131 +157,159 @@ object WjiCoverage:
   private given Encoder[CoverageReport] = deriveEncoder
 
   def main(args: Array[String]): Unit =
+    val full = args.contains("--full")
+
     val cfg = WjiTest.mergedCfg
     var connection = Initialize.startProcess()
-    val touchedNodes: mutable.Set[Node] = mutable.Set()
-    val touchedConds: mutable.Set[Cond] = mutable.Set()
+    // accumulated across every call to `runFiles` below -- `--full`'s second
+    // (manual/complementary) batch adds onto the official batch's hits rather
+    // than starting over, so the official corpus is only ever executed once
+    // even though two reports get dumped.
+    val nodeHits: mutable.Map[Node, Int] = mutable.Map().withDefaultValue(0)
+    val condHits: mutable.Map[Cond, Int] = mutable.Map().withDefaultValue(0)
 
-    val files = walkTree(WJI_JS_API_TEST_DIR).filter(f => jsFilter(f.getName))
-    for (file, i) <- files.zipWithIndex do
-      print(s"[${i + 1}/${files.size}] ${file.getName} ... ")
-      try
-        val st = cfg.init.fromFile(file.toString)
-        val host = Initialize(st, WjiTest.spec, connection)
-        val interp = new CoverageInterp(st, Some(host), Some(perFileTimeoutSec))
-        interp.result
-        touchedNodes ++= interp.touchedNodes
-        touchedConds ++= interp.touchedConds
-        println(s"done (${interp.touchedNodes.size} nodes touched)")
-      catch
-        case e: Throwable =>
-          val poisoned = connection.isPoisoned
-          if poisoned then
-            connection.close()
-            connection = Initialize.startProcess()
-          println(
-            s"FAILED (poisoned=$poisoned) -- ${e.getClass.getSimpleName}: ${e.getMessage}",
+    def runFiles(dirs: List[String]): Unit =
+      val files = dirs.flatMap(walkTree).filter(f => jsFilter(f.getName))
+      for (file, i) <- files.zipWithIndex do
+        print(s"[${i + 1}/${files.size}] ${file.getName} ... ")
+        try
+          val st = cfg.init.fromFile(file.toString)
+          val host = Initialize(st, WjiTest.spec, connection)
+          val interp =
+            new CoverageInterp(st, Some(host), Some(perFileTimeoutSec))
+          interp.result
+          // summed across files, not just unioned -- a node/branch touched by
+          // several files should show the total hit count, not just one file's
+          for (node, hits) <- interp.nodeHits do nodeHits(node) += hits
+          for (cond, hits) <- interp.condHits do condHits(cond) += hits
+          println(s"done (${interp.nodeHits.size} nodes touched)")
+        catch
+          case e: Throwable =>
+            val poisoned = connection.isPoisoned
+            if poisoned then
+              connection.close()
+              connection = Initialize.startProcess()
+            println(
+              s"FAILED (poisoned=$poisoned) -- ${e.getClass.getSimpleName}: ${e.getMessage}",
+            )
+
+    /** computes a [[CoverageReport]] from whatever `nodeHits`/`condHits` have
+      * accumulated so far and dumps it to `outDir` -- called once after the
+      * official batch and, under `--full`, a second time after the
+      * manual/complementary batch has added onto the same running totals.
+      */
+    def report(outDir: String): Unit =
+      val perFunc = cfg.funcs
+        .filter(f => WjiTest.wjiFuncNames(f.name) && !isWebIdlDerived(f.name))
+        .map { f =>
+          val branchIds = f.nodes.collect { case b: Branch => b.id }
+          FuncCoverage(
+            name = f.name,
+            nodesTouched = f.nodes.count(nodeHits.contains),
+            nodesTotal = f.nodes.size,
+            branchesTouched = condHits.keys.count(c => branchIds(c.branchId)),
+            branchesTotal = branchIds.size * 2,
           )
-    connection.close()
-
-    val perFunc = cfg.funcs
-      .filter(f => WjiTest.wjiFuncNames(f.name) && !isWebIdlDerived(f.name))
-      .map { f =>
-        val branchIds = f.nodes.collect { case b: Branch => b.id }
-        FuncCoverage(
-          name = f.name,
-          nodesTouched = f.nodes.count(touchedNodes),
-          nodesTotal = f.nodes.size,
-          branchesTouched = touchedConds.count(c => branchIds(c.branchId)),
-          branchesTotal = branchIds.size * 2,
+        }
+        .sortBy(f =>
+          (
+            f.nodesTotal match {
+              case 0 => 1.0
+              case t => f.nodesTouched.toDouble / t
+            },
+            f.name,
+          ),
         )
-      }
-      .sortBy(f =>
-        (
-          f.nodesTotal match {
-            case 0 => 1.0
-            case t => f.nodesTouched.toDouble / t
-          },
-          f.name,
-        ),
+
+      val rep = CoverageReport(
+        totalFuncs = perFunc.size,
+        touchedFuncs = perFunc.count(_.nodesTouched > 0),
+        totalNodes = perFunc.map(_.nodesTotal).sum,
+        touchedNodes = perFunc.map(_.nodesTouched).sum,
+        totalBranches = perFunc.map(_.branchesTotal).sum,
+        touchedBranches = perFunc.map(_.branchesTouched).sum,
+        perFunc = perFunc,
       )
 
-    val report = CoverageReport(
-      totalFuncs = perFunc.size,
-      touchedFuncs = perFunc.count(_.nodesTouched > 0),
-      totalNodes = perFunc.map(_.nodesTotal).sum,
-      touchedNodes = perFunc.map(_.nodesTouched).sum,
-      totalBranches = perFunc.map(_.branchesTotal).sum,
-      touchedBranches = perFunc.map(_.branchesTouched).sum,
-      perFunc = perFunc,
-    )
-
-    println()
-    println(
-      s"=== WJI coverage (${report.touchedFuncs}/${report.totalFuncs} funcs, " +
-      s"${report.touchedNodes}/${report.totalNodes} nodes, " +
-      s"${report.touchedBranches}/${report.totalBranches} branches) ===",
-    )
-    for f <- perFunc do
-      val pct =
-        if f.nodesTotal == 0 then 0.0 else f.nodesTouched * 100.0 / f.nodesTotal
+      println()
       println(
-        f"$pct%6.1f%%  ${f.nodesTouched}%4d/${f.nodesTotal}%-4d nodes  " +
-        f"${f.branchesTouched}%3d/${f.branchesTotal}%-3d branches  ${f.name}",
+        s"=== WJI coverage in `$outDir` (${rep.touchedFuncs}/${rep.totalFuncs} funcs, " +
+        s"${rep.touchedNodes}/${rep.totalNodes} nodes, " +
+        s"${rep.touchedBranches}/${rep.totalBranches} branches) ===",
+      )
+      for f <- perFunc do
+        val pct =
+          if f.nodesTotal == 0 then 0.0
+          else f.nodesTouched * 100.0 / f.nodesTotal
+        println(
+          f"$pct%6.1f%%  ${f.nodesTouched}%4d/${f.nodesTotal}%-4d nodes  " +
+          f"${f.branchesTouched}%3d/${f.branchesTotal}%-3d branches  ${f.name}",
+        )
+
+      mkdir(outDir)
+      dumpJson(
+        "WJI coverage report",
+        rep,
+        s"$outDir/coverage.json",
+      )
+      dumpFile(
+        "zero-coverage WJI functions",
+        perFunc.filter(_.nodesTouched == 0).map(_.name).mkString("\n"),
+        s"$outDir/zero-coverage-funcs",
+      )
+      dumpAnnotatedIR(
+        outDir,
+        cfg.funcs.filter(f => perFunc.exists(_.name == f.name)),
+        nodeHits,
+        condHits,
       )
 
-    mkdir(WJI_COVERAGE_LOG_DIR)
-    dumpJson(
-      "WJI coverage report",
-      report,
-      s"$WJI_COVERAGE_LOG_DIR/coverage.json",
-    )
-    dumpFile(
-      "zero-coverage WJI functions",
-      perFunc.filter(_.nodesTouched == 0).map(_.name).mkString("\n"),
-      s"$WJI_COVERAGE_LOG_DIR/zero-coverage-funcs",
-    )
-    dumpAnnotatedIR(
-      cfg.funcs.filter(f => perFunc.exists(_.name == f.name)),
-      touchedNodes,
-      touchedConds,
-    )
+    runFiles(List(WJI_JS_API_TEST_DIR))
+    report(WJI_COVERAGE_LOG_DIR)
+
+    if full then
+      runFiles(List(WJI_MANUAL_TEST_DIR, WJI_COMPLEMENTARY_TEST_DIR))
+      report(s"$WJI_COVERAGE_LOG_DIR-full")
+
+    connection.close()
 
   /** dumps one file per (non-webidl) WJI function, mirroring
     * `esmeta.cfg.util.Stringifier`'s own `Node`/`Branch` line format (`id:
     * content -> nextId`, `id: if/while cond then thenId else elseId`) but with
-    * a `[x]`/`[ ]` coverage marker prefixed to each node, and to each of a
-    * `Branch` node's two outcomes separately -- lets a reader see, at a glance,
-    * exactly which basic blocks and which side of which conditional the
-    * official corpus never reaches, next to the real compiled IR rather than a
-    * name-only list. CFG-`Node` granularity, same caveat as the rest of this
-    * tool -- see the class doc.
+    * a `[N]` hit-count marker prefixed to each node (`[0]` for never touched),
+    * and to each of a `Branch` node's two outcomes separately -- lets a reader
+    * see, at a glance, not just whether but *how often* the official corpus
+    * reaches each basic block and each side of each conditional, next to the
+    * real compiled IR rather than a name-only list. CFG-`Node` granularity,
+    * same caveat as the rest of this tool -- see the class doc.
     */
   private def dumpAnnotatedIR(
+    outDir: String,
     funcs: List[Func],
-    touchedNodes: collection.Set[Node],
-    touchedConds: collection.Set[Cond],
+    nodeHits: collection.Map[Node, Int],
+    condHits: collection.Map[Cond, Int],
   ): Unit =
-    val dir = s"$WJI_COVERAGE_LOG_DIR/annotated-ir"
+    val dir = s"$outDir/annotated-ir"
     mkdir(dir, remove = true)
-    def mark(b: Boolean): String = if b then "[x]" else "[ ]"
+    def mark(n: Int): String = s"[$n]"
     def nodeLine(node: Node): String = node match
       case Block(id, insts, next) =>
         val body = insts.map(_.toString.trim).mkString("; ")
         val arrow = next.fold("")(n => s" -> ${n.id}")
-        s"$id: ${mark(touchedNodes(node))} $body$arrow"
+        s"$id: ${mark(nodeHits.getOrElse(node, 0))} $body$arrow"
       case Call(id, callInst, next) =>
         val arrow = next.fold("")(n => s" -> ${n.id}")
-        s"$id: ${mark(touchedNodes(node))} ${callInst.toString.trim}$arrow"
+        s"$id: ${mark(nodeHits.getOrElse(node, 0))} ${callInst.toString.trim}$arrow"
       case Branch(id, kind, cond, _, thenNode, elseNode) =>
         val kw = if kind == BranchKind.While then "while" else "if"
         val thenStr = thenNode.fold("<none>") { n =>
-          s"${n.id}${mark(touchedConds(Cond(id, true)))}"
+          s"${n.id}${mark(condHits.getOrElse(Cond(id, true), 0))}"
         }
         val elseStr = elseNode.fold("<none>") { n =>
-          s"${n.id}${mark(touchedConds(Cond(id, false)))}"
+          s"${n.id}${mark(condHits.getOrElse(Cond(id, false), 0))}"
         }
-        s"$id: ${mark(touchedNodes(node))} $kw ${cond.toString.trim} then $thenStr else $elseStr"
+        val self = mark(nodeHits.getOrElse(node, 0))
+        s"$id: $self $kw ${cond.toString.trim} then $thenStr else $elseStr"
     for func <- funcs do
       val lines = func.nodes.toList.sortBy(_.id).map(nodeLine)
       dumpFile(

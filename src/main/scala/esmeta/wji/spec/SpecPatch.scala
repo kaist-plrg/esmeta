@@ -785,31 +785,29 @@ object SpecPatch:
     // 7523) and `ToBigInt` (ECMA-262) are defined over a genuine JavaScript
     // value, a type webidl/index.bs's own 3.2 ("JavaScript type mapping")
     // explicitly treats as distinct from an IDL value, with its own named
-    // conversion in each direction. Rather than patching each call site
-    // individually (which would need two different new variable names, one
-    // per branch, for what's the same fix applied to the same |v|), hoists a
-    // single explicit conversion — `Set |v| to |v|, [=converted to a
-    // JavaScript value=].` — right after the algorithm's own head sentence
-    // and before either branch, reusing |v|'s own name rather than
-    // introducing a fresh one: `Let` (used everywhere else in this file to
-    // introduce a genuinely new binding) would be the wrong verb for
-    // rebinding a name that's already bound as this algorithm's own
-    // parameter — `Set` is the ECMA-262/Bikeshed convention for that. Both
-    // branches then read |v| completely unchanged, already carrying the
-    // right value. `Set |x| to |x|, [=converted to a JavaScript value=].`
-    // parses the same way `Let`'s equivalent does — TextSplit's
-    // bracket-depth tracking (`Open`/`Close` on plain `[`/`]`) treats the
-    // whole `[=converted to a JavaScript value=]` span as depth > 0, so its
-    // own internal "to" (from "converted **to** a JavaScript value") never
-    // competes with `SetPrefix`'s outer `" to "` split.
-    """converts a JavaScript value to a WebAssembly [=u64=] for use in embedding operations. It is designed to act like [=[EnforceRange]=] [=unsigned long=] for {{AddressType}} "i32", and to extend these semantics to {{AddressType}} "i64", by performing the following steps:
+    // conversion in each direction. Hoists a single explicit conversion —
+    // `Let |jsValue| be |v|, [=converted to a JavaScript value=].` — right
+    // after the algorithm's own head sentence (also corrected there, "a
+    // JavaScript value" -> "an IDL value" -- |v| itself never was one) and
+    // before either branch, with a note explaining why the conversion is
+    // needed at all (per upstream review, PR #2275). Both branches then read
+    // |jsValue| in place of |v| (the i32 branch's `ConvertToInt` call here;
+    // the i64 branch's `ToBigInt` call as part of #47 below, which already
+    // needs to touch that branch's surrounding lines anyway).
+    """The algorithm <dfn>AddressValueToU64</dfn>(|v|, |addrtype|) converts a JavaScript value to a WebAssembly [=u64=] for use in embedding operations. It is designed to act like [=[EnforceRange]=] [=unsigned long=] for {{AddressType}} "i32", and to extend these semantics to {{AddressType}} "i64", by performing the following steps:
 
-      #1. If |addrtype| is [=i32=],""".stripMargin('#')
+      #1. If |addrtype| is [=i32=],
+      #    1. Let |n| be [=?=] [$ConvertToInt$](|v|, 32, "unsigned"), where the destination type is associated with [=[EnforceRange]=]."""
+      .stripMargin('#')
     ->
-    """converts a JavaScript value to a WebAssembly [=u64=] for use in embedding operations. It is designed to act like [=[EnforceRange]=] [=unsigned long=] for {{AddressType}} "i32", and to extend these semantics to {{AddressType}} "i64", by performing the following steps:
+    """The algorithm <dfn>AddressValueToU64</dfn>(|v|, |addrtype|) converts an IDL value to a WebAssembly [=u64=] for use in embedding operations. It is designed to act like [=[EnforceRange]=] [=unsigned long=] for {{AddressType}} "i32", and to extend these semantics to {{AddressType}} "i64", by performing the following steps:
 
-      #1. Set |v| to |v|, [=converted to a JavaScript value=].
-      #1. If |addrtype| is [=i32=],""".stripMargin('#'),
+      #1. Let |jsValue| be |v|, [=converted to a JavaScript value=].
+      #
+      #    Note: The IDL `any` type is a discriminated union, not a transparent wrapper around a JavaScript value.
+      #1. If |addrtype| is [=i32=],
+      #    1. Let |n| be [=?=] [$ConvertToInt$](|jsValue|, 32, "unsigned"), where the destination type is associated with [=[EnforceRange]=]."""
+      .stripMargin('#'),
 
     // #40 (spec inconsistency, docs/spec_inconsistencies.md #13) — both spots
     // project a single field out of mem_type/table_type's returned record via
@@ -912,31 +910,6 @@ object SpecPatch:
     ->
     "otherwise, let |addrtype| be [=i32=].",
 
-    // #45 (hardcoding, docs/hardcodes.md #15) — `Memory`'s constructor
-    // writes "[=memory type=] |addrtype| { **min** |initial|, **max**
-    // |maximum| }" (index.bs:876), Bikeshed's "construct a formal-grammar
-    // record value with named fields" notation for a Wasm `memtype` — not a
-    // function call. `ExprParser` has no rule for this idiom at all yet
-    // (`parseArgs` just tokenizes on whitespace, with no awareness of `{`/
-    // `}`/`,`, and `**min**`/`**max**` happen to match `BoldConst`), so it
-    // mis-parses the whole thing as a 5-positional-argument call to a
-    // nonexistent "memory type" (normalized to `memory_type`) function,
-    // crashing with `UnknownFunc` at runtime. `Table`'s constructor
-    // (index.bs:1043) has the structurally identical shape but happens to
-    // read "**the** [=table type=] ... { ... }" — that leading "the" matches
-    // `TypeAnnotatedPrefix` instead, which drops the `[=table type=]` link
-    // and parses the remainder as one opaque `Unknown` — inert, not a crash.
-    // Prepending "the " to `Memory`'s text routes it through the exact same
-    // already-existing (if equally unmechanized) `TypeAnnotatedPrefix` path,
-    // trading a misleading "function doesn't exist" crash for this
-    // codebase's standard "not yet mechanized" signal (`Expr.Unknown` →
-    // `EYet`) — not a real fix (the constructed `memtype` value still isn't
-    // usable), just a less misleading failure mode until named-field
-    // formal-grammar construction gets properly parsed.
-    "be [=memory type=] |addrtype|"
-    ->
-    "be the [=memory type=] |addrtype|",
-
     // #46 (spec bug, docs/spec_errors.md #22) — ToWebAssemblyValue's [=host
     // value cache=] hit branch (index.bs:1470) returns immediately, skipping
     // the ref_type/match_valtype check every other branch of the same "ref
@@ -981,10 +954,28 @@ object SpecPatch:
     // comparing a raw BigInt against a mathematical-value literal isn't
     // itself a defined operation, so this line needs the same [=ℝ=](|n|)
     // conversion the surrounding steps already use, not a special-cased
-    // BigInt/mathematical-value comparison rule.
-    "If |n| &lt; 0 or |n| &gt; 2<sup>64</sup> &minus; 1, [=throw=] a {{TypeError}}."
+    // BigInt/mathematical-value comparison rule. Per upstream review (PR
+    // #2275), binds that conversion once (`Let |r| be [=ℝ=](|n|).`) instead
+    // of recomputing it here and again in the trailing `Return`, which both
+    // now read |r|; folds in #43's |v| -> |jsValue| rename for this branch's
+    // own `ToBigInt` call too, since disambiguating this edit from the i32
+    // branch's otherwise-identical "Return [=ℝ=](|n|) as a WebAssembly
+    // [=u64=]." line already needs the surrounding "If |addrtype| is
+    // [=i64=]," context as an anchor.
+    """1. If |addrtype| is [=i64=],
+      #    1. Let |n| be [=?=] [$ToBigInt$](|v|).
+      #    1. If |n| &lt; 0 or |n| &gt; 2<sup>64</sup> &minus; 1, [=throw=] a {{TypeError}}.
+      #
+      #        Note: This operation is designed to emulate [=[EnforceRange]=].
+      #    1. Return [=ℝ=](|n|) as a WebAssembly [=u64=].""".stripMargin('#')
     ->
-    "If [=ℝ=](|n|) &lt; 0 or [=ℝ=](|n|) &gt; 2<sup>64</sup> &minus; 1, [=throw=] a {{TypeError}}.",
+    """1. If |addrtype| is [=i64=],
+      #    1. Let |n| be [=?=] [$ToBigInt$](|jsValue|).
+      #    1. Let |r| be [=ℝ=](|n|).
+      #    1. If |r| &lt; 0 or |r| &gt; 2<sup>64</sup> &minus; 1, [=throw=] a {{TypeError}}.
+      #
+      #        Note: This operation is designed to emulate [=[EnforceRange]=].
+      #    1. Return |r| as a WebAssembly [=u64=].""".stripMargin('#'),
 
     // #48 (spec inconsistency, docs/spec_inconsistencies.md #17) — the
     // `Memory`/`Table` constructors' `AddressType address;` member is read
@@ -1153,34 +1144,26 @@ object SpecPatch:
     // (spectec/document/js-api/index.bs:408) constructs the externtype it
     // compares against as one bare backtick-quoted formal-grammar literal,
     // `` `global const (ref extern)` ``, unlike every other externtype
-    // construction/destructuring in this corpus (and the sibling `globaltype`
-    // construction right next door in `Global`'s own constructor,
-    // index.bs:1200: "let |globaltype| be [=const=] |valuetype|"), which all
-    // build a value out of linked terms (`[=const=]`/`[=var=]`,
-    // `[=external-type/global=]`, `[=ref=]` -- e.g. `ToWebAssemblyValue`,
-    // index.bs:1451's already-working `[=ref=] [=heap-type/extern=]`) rather
-    // than one opaque literal. Rebuilt from those same three proven-working
-    // calls -- but as three separate `Let`s, each binding a plain variable,
-    // not two nested calls: `[=external-type/global=] |mut| |reftype|` needs
-    // `|mut|`/`|reftype|` as bare already-bound vars for
-    // `NormalizeSpecTecCaseShapePass`'s own `[=external-type/global=]`
-    // special case (its own doc's worked example --
-    // `Case("[=external-type/global=]", [Var(mut), Var(valuetype)])` ->
-    // `Case("GLOBAL", [Case("", [Var(mut), Var(valuetype)])])`) to fire on;
-    // writing `[=external-type/global=] [=const=] |reftype|` inline instead
-    // (a nested call, matching the two-line shape this patch first tried)
-    // parses `[=const=] |reftype|` greedily as a single one-arg call before
-    // `external-type/global` ever sees it, so its own 2-flat-arg special case
-    // never matches and it falls through to a generic one-arg path instead,
-    // adding an extra, wrong layer of nesting SpecTec's own `al_to_globaltype`
-    // then rejects (confirmed against the real `spectec` binary: `Backend_
-    // interpreter.Construct.WrongConversion("globaltype: invalid
-    // construction ...")`).
+    // construction/destructuring in this corpus, which all build a value out
+    // of linked terms (`[=external-type/global=]`, `[=ref=]` -- e.g.
+    // `ToWebAssemblyValue`, index.bs:1451's already-working `[=ref=]
+    // [=heap-type/extern=]`) rather than one opaque literal. Rebuilt from
+    // those same proven-working calls, dropping any mutability marker
+    // entirely -- this global is always immutable, and (post
+    // `docs/spec_errors.md` #39) the absent case needs no token at all, the
+    // same convention `Global`'s own bare-|valuetype| immutable branch uses.
+    // `[=external-type/global=] [=ref=] [=heap-type/extern=]` reads as *one*
+    // positional arg to `external-type/global` -- `ResolveLinksPass` parses
+    // `[=ref=] [=heap-type/extern=]` greedily as its own one-arg call first,
+    // before `external-type/global` ever sees more than that single combined
+    // result -- so `NormalizeSpecTecCaseShapePass`'s own `[=external-type/
+    // global=]` case special-cases exactly this 1-arg shape, wrapping it with
+    // the same `wrapGlobaltype` helper `Global`'s constructor already uses,
+    // rather than needing the 2-flat-arg shape its other (mutable) call sites
+    // provide.
     "        1. Let |stringExternType| be `global const (ref extern)`."
     ->
-    ("        1. Let |reftype| be [=ref=] [=heap-type/extern=].\n" +
-    "        1. Let |mut| be [=const=].\n" +
-    "        1. Let |stringExternType| be [=external-type/global=] |mut| |reftype|."),
+    "        1. Let |stringExternType| be [=external-type/global=] [=ref=] [=heap-type/extern=].",
 
     // #57 (spec bug, docs/spec_errors.md #29) — `read the imports`
     // (index.bs:500) is missing `[=?=]` before `[$HasProperty$](|o|,
@@ -1218,21 +1201,31 @@ object SpecPatch:
     // module_instantiate`) falls straight through to the destructuring
     // step, binding `|instance|` to the `error` sentinel value itself and
     // returning it as if it were a real instance — no exception at all.
-    // Swaps the destructuring step ahead of the check and tests `|instance|`
-    // (the actual second tuple component) instead of `|result|` — same
-    // steps, same bulleted exception-type list, just reordered and pointed
-    // at the right variable.
-    """    1. If |result| is [=error=], throw an appropriate exception type:
+    // Merges the destructuring into the initial call, the same way the
+    // sibling algorithm `call an Exported Function` already destructures
+    // `func_invoke`'s result directly (`Let (|store|, |ret|) be the result
+    // of [=func_invoke=](...)`). Nothing else in this algorithm needs the
+    // whole pair, so `|result|` names the second component directly, and
+    // the check below (already written `If |result| is [=error=]`) is
+    // correct as-is.
+    """    1. Let |result| be [=module_instantiate=](|store|, |module|, |imports|).
+    1. If |result| is [=error=], throw an appropriate exception type:
         * A {{LinkError}} exception for most cases which occur during linking.
         * If the error came when running the start function, throw a {{RuntimeError}} for most errors which occur from WebAssembly, or the error object propagated from inner ECMAScript code.
         * Another error type if appropriate, for example an out-of-memory exception, as documented in <a href="#errors">the WebAssembly error mapping</a>.
     1. Let (|store|, |instance|) be |result|."""
     ->
-    """    1. Let (|store|, |instance|) be |result|.
-    1. If |instance| is [=error=], throw an appropriate exception type:
+    """    1. Let (|store|, |result|) be [=module_instantiate=](|store|, |module|, |imports|).
+    1. If |result| is [=error=], throw an appropriate exception type:
         * A {{LinkError}} exception for most cases which occur during linking.
         * If the error came when running the start function, throw a {{RuntimeError}} for most errors which occur from WebAssembly, or the error object propagated from inner ECMAScript code.
         * Another error type if appropriate, for example an out-of-memory exception, as documented in <a href="#errors">the WebAssembly error mapping</a>.""",
+
+    // #58 continued — the algorithm's final step returns the same value,
+    // named to match.
+    "    1. Return |instance|."
+    ->
+    "    1. Return |result|.",
 
     // #59 (hardcoding, docs/hardcodes.md #22) — collapses the 3-way bulleted
     // exception-type list right after #58's fix into a flat "throw
@@ -1256,12 +1249,12 @@ object SpecPatch:
     // so "always LinkError" is not just pragmatic but describes 100% of
     // what's actually reachable today; revisit once a fixture with a
     // trapping/throwing start function shows up.
-    """    1. If |instance| is [=error=], throw an appropriate exception type:
+    """    1. If |result| is [=error=], throw an appropriate exception type:
         * A {{LinkError}} exception for most cases which occur during linking.
         * If the error came when running the start function, throw a {{RuntimeError}} for most errors which occur from WebAssembly, or the error object propagated from inner ECMAScript code.
         * Another error type if appropriate, for example an out-of-memory exception, as documented in <a href="#errors">the WebAssembly error mapping</a>."""
     ->
-    "    1. If |instance| is [=error=], throw a {{LinkError}} exception.",
+    "    1. If |result| is [=error=], throw a {{LinkError}} exception.",
 
     // #60 (spec bug, docs/spec_errors.md #33) — `FromCharCode`'s own
     // `ToJSValue(v)` call is now redundant: `create_a_builtin_function_
@@ -1494,7 +1487,98 @@ object SpecPatch:
     "Let |name| be the string \"<code>set </code>\" prepended to |id|."
     ->
     "Let |name| be the string \"<code>set </code>\" prepended to |attribute|'s [=identifier=].",
-    // #76 (hardcoding) — `attribute getter` (webidl/index.bs:12381) and
+
+    // #76 (spec bug, docs/spec_errors.md #39) — js-api constructs/destructures
+    // a globaltype's mutability via two named terms, [=var=]/[=const=], but
+    // the Wasm Core Spec's actual current grammar (`globaltype ::= mut?
+    // valtype`) has no such terms at all -- `mut` is an *optional* marker,
+    // not a two-variant tag, and this document's own anchors registration
+    // for "var"/"const" points at a URL fragment that defines neither.
+    // Rewritten to match: [=var=] |valuetype| -> [=mut=] |valuetype| (a new
+    // term for the literal presence marker, same one-arg-link idiom as
+    // before); every [=const=] |X| (the absent-marker construction case) ->
+    // bare |X| (nothing written, matching `mut?`'s own optionality --
+    // `globaltype`'s runtime shape is still the same 2-element pair,
+    // `NormalizeSpecTecCaseShapePass` just needs to know a bare valtype-typed
+    // expr reaching a globaltype-typed position means an empty mut); and
+    // `|mut| is [=const=]` (a presence check, not a construction) ->
+    // `|mut| is empty`, matching the embedding appendix's own "If mut is
+    // empty" phrasing for this exact check.
+    "1. Let (|store|, |globaladdr|) be [=global_alloc=](|store|, [=const=] |valtype|, |value|)."
+    ->
+    "1. Let (|store|, |globaladdr|) be [=global_alloc=](|store|, |valtype|, |value|).",
+    "1. If |mutable| is true, let |globaltype| be [=var=] |valuetype|; otherwise, let |globaltype| be [=const=] |valuetype|."
+    ->
+    "1. If |mutable| is true, let |globaltype| be [=mut=] |valuetype|; otherwise, let |globaltype| be |valuetype|.",
+    "1. If |mut| is [=const=], throw a {{TypeError}}."
+    ->
+    "1. If |mut| is empty, throw a {{TypeError}}.",
+
+    // #77 (spec bug, docs/spec_errors.md #40) — `Memory`/`Table`'s
+    // constructors each build a `limits` value as a braced record literal
+    // with named `min`/`max` fields -- but the Core Spec's actual current
+    // grammar (`limits ::= [u64 .. u64?]`) is a range, not a two-field
+    // record, and has no "min"/"max" field names to link to at all (the
+    // `Table` constructor's own `[=limits|min=]`/`[=limits|max=]` point at
+    // anchors that don't exist). Rewritten to the grammar's own bracket-
+    // ellipsis notation directly, dropping the field names entirely --
+    // `ExprParser`'s new `BracketRange` parses this to the exact same
+    // tag-less `Seq_` the old `{min X, max Y}` notation did, so nothing
+    // downstream needs to change.
+    //
+    // (spec inconsistency, docs/spec_inconsistencies.md #23) Also folds in
+    // the fix for a second, unrelated issue that happens to sit on the same
+    // line: `Memory`'s own text (unlike `Table`'s) never had a leading "the"
+    // before `[=memory type=]` -- without it, `ResolveLinksPass` reads the
+    // whole thing as a generic 2-arg call to a nonexistent "memory_type"
+    // function instead of routing through `TypeAnnotatedPrefix` (the same
+    // problem the now-removed `SpecPatch` #45 used to paper over for the old
+    // `{min, max}` text); added here directly rather than reintroducing that
+    // patch.
+    //
+    // (spec bug, docs/spec_errors.md #41) A third, also-unrelated issue on
+    // this same line: `memtype`'s actual current grammar
+    // (`1.2-syntax.types.spectec:132`) is `addrtype limits PAGE` -- a
+    // literal trailing "page" keyword, confirmed on the live page as plain
+    // unlinked text (distinct from the separately-anchored "page size"
+    // constant this document already links elsewhere) -- which this
+    // document's own text never had at all, not even before this session's
+    // `{min,max}`->range rewrite. Appended here since it lands on the same
+    // line. Needed a small mechanization extension to keep parsing/executing
+    // -- the bare word "page" wasn't parseable on its own, so the whole
+    // juxtaposed value fell to `Unknown`/`EYet`: `ExprParser.PageKeyword`
+    // now parses it into a plain `Expr.SpecTerm("page")` (purely
+    // structural), and `NormalizeSpecTecCaseShapePass` drops that trailing
+    // term when promoting `TypeAnnotated("memory type", ...)`, since the
+    // real runtime tag `"PAGE"` is already derived from the TERM itself
+    // (`typeAnnotationTag`), not from this word (`docs/hardcodes.md` #12).
+    "1. Let |memtype| be [=memory type=] |addrtype| { **min** |initial|, **max** |maximum| }."
+    ->
+    "1. Let |memtype| be the [=memory type=] |addrtype| [|initial| .. |maximum|] page.",
+    "1. Let |type| be the [=table type=] |addrtype| { <b>[=limits|min=]</b> |initial|, <b>[=limits|max=]</b> |maximum| } |elementtype|."
+    ->
+    "1. Let |type| be the [=table type=] |addrtype| [|initial| .. |maximum|] |elementtype|.",
+
+    // #78 (spec bug, docs/spec_errors.md #42) — `create an interface object`
+    // (webidl/index.bs:11979-11984) never gives |F| a \[[Construct]] internal
+    // method: CreateBuiltinFunction doesn't install one, and no later step
+    // does either, so `new` on any interface object fails IsConstructor.
+    // Every interface object is a constructor (whatwg/webidl#698; |steps|
+    // itself throws when |I| has no constructor operation), so the step
+    // that defines "prototype" becomes MakeConstructor(|F|, false, |proto|)
+    // (tc39/ecma262#2209): it sets \[[Construct]] for a built-in function
+    // object and then defines "prototype" with the very same descriptor.
+    // A known upstream issue, still open: whatwg/webidl#698.
+    """prototype object=] of [=interface=] |I| in |realm|.
+      #    1.  Perform [=!=] <a abstract-op>DefinePropertyOrThrow</a>(|F|, "<code>prototype</code>",
+      #        PropertyDescriptor{\[[Value]]: |proto|, \[[Writable]]: <emu-val>false</emu-val>, \[[Enumerable]]: <emu-val>false</emu-val>, \[[Configurable]]: <emu-val>false</emu-val>}).
+      #""".stripMargin('#')
+    ->
+    """prototype object=] of [=interface=] |I| in |realm|.
+      #    1.  Perform [$MakeConstructor$](|F|, <emu-val>false</emu-val>, |proto|).
+      #""".stripMargin('#'),
+
+    // #79 (hardcoding) — `attribute getter` (webidl/index.bs:12381) and
     // `create an operation function` (webidl/index.bs:12580) both end their
     // "if an exception |E| was thrown" clause with "Otherwise, end these
     // steps and allow the exception to propagate.". "the exception" refers

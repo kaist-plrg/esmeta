@@ -1598,7 +1598,7 @@
   Set(|F|.[[Unforgeables]], |unforgeables|)
   Note(this object is never exposed to user code It exists only to ensure all instances of an interface with an unforgeable member use the same JavaScript function objects for [=attribute getters=], [=attribute setters=] and [=creating an operation function|operation functions=])
   Let(|proto|, [=create an interface prototype object=]([=interface=](|I|, |realm|)))
-  Perform(DefinePropertyOrThrow(|F|, "<code>prototype</code>", PropertyDescriptor{[[Value]]: |proto|, [[Writable]]: false, [[Enumerable]]: false, [[Configurable]]: false}))
+  Perform(MakeConstructor(|F|, false, |proto|))
   Perform([=Define the constants=]([=interface=](|I|, |F|, |realm|)))
   Perform([=Define the static attributes=]([=interface=](|I|, |F|, |realm|)))
   Perform([=Define the static operations=]([=interface=](|I|, |F|, |realm|)))

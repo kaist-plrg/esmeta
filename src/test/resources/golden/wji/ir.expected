@@ -3896,12 +3896,7 @@ def create_an_interface_object(
   } else {
     let proto = _guard1.Value
   }
-  call _ = clo<"DefinePropertyOrThrow">(F, "<code>prototype</code>", (record [PropertyDescriptor] {
-    "Value" : proto,
-    "Writable" : false,
-    "Enumerable" : false,
-    "Configurable" : false,
-  }))
+  call _ = clo<"MakeConstructor">(F, false, proto)
   call _ = clo<"Define_the_constants">(I, F, realm)
   call _ = clo<"Define_the_static_attributes">(I, F, realm)
   call _ = clo<"Define_the_static_operations">(I, F, realm)

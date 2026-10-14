@@ -37,8 +37,19 @@ object WrapCompletionReturnsPass extends LoweringPass:
   )
 
   def run(algos: List[Algorithm]): List[Algorithm] =
+    // the exact complement of MarkCompletionAlgorithmsPass's own fixed point
+    // (CompletionAlgorithms.compute): every algorithm name it did *not* mark
+    // `returnsCompletion = true` is one it proved can only ever exit with a
+    // plain, non-Completion value (see CompletionWrapping.expandAlgorithm's
+    // own doc on `pureCallees` for why that's sound to pass down here).
+    val pureCallees: Set[String] =
+      algos
+        .filterNot(_.returnsCompletion)
+        .flatMap(a => a.name.orElse(a.id))
+        .map(_.toLowerCase)
+        .toSet
     algos.map { a =>
       if a.returnsCompletion then
-        a.copy(body = CompletionWrapping.expandAlgorithm(a.body))
+        a.copy(body = CompletionWrapping.expandAlgorithm(a.body, pureCallees))
       else a
     }

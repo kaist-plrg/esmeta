@@ -37,19 +37,26 @@ object WrapCompletionReturnsPass extends LoweringPass:
   )
 
   def run(algos: List[Algorithm]): List[Algorithm] =
-    // the exact complement of MarkCompletionAlgorithmsPass's own fixed point
-    // (CompletionAlgorithms.compute): every algorithm name it did *not* mark
-    // `returnsCompletion = true` is one it proved can only ever exit with a
-    // plain, non-Completion value (see CompletionWrapping.expandAlgorithm's
-    // own doc on `pureCallees` for why that's sound to pass down here).
-    val pureCallees: Set[String] =
-      algos
-        .filterNot(_.returnsCompletion)
-        .flatMap(a => a.name.orElse(a.id))
-        .map(_.toLowerCase)
-        .toSet
+    // a partition of MarkCompletionAlgorithmsPass's own fixed point
+    // (CompletionAlgorithms.compute) by name: `pureCallees` is every algorithm
+    // it did *not* mark `returnsCompletion = true` -- proven to only ever exit
+    // with a plain, non-Completion value -- and `alwaysCompletionCallees` is
+    // every one it *did* -- proven to always exit with one (see
+    // CompletionWrapping.expandAlgorithm's own doc on both parameters for why
+    // that's sound to pass down here).
+    def namesOf(as: List[Algorithm]): Set[String] =
+      as.flatMap(a => a.name.orElse(a.id)).map(_.toLowerCase).toSet
+    val (completionAlgos, pureAlgos) = algos.partition(_.returnsCompletion)
+    val pureCallees = namesOf(pureAlgos)
+    val alwaysCompletionCallees = namesOf(completionAlgos)
     algos.map { a =>
       if a.returnsCompletion then
-        a.copy(body = CompletionWrapping.expandAlgorithm(a.body, pureCallees))
+        a.copy(body =
+          CompletionWrapping.expandAlgorithm(
+            a.body,
+            pureCallees,
+            alwaysCompletionCallees,
+          ),
+        )
       else a
     }

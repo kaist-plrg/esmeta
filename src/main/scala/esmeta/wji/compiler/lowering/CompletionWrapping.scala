@@ -94,21 +94,29 @@ object CompletionWrapping:
     * reuse the same `Counter` passed down from here, rather than each getting
     * their own).
     *
-    * `pureCallees` (normalized, lowercased names) lets this object's one
-    * caller, [[WrapCompletionReturnsPass]] — which runs well after
-    * [[MarkCompletionAlgorithmsPass]]'s fixed point, see this class's own doc —
-    * tell this pass which *other* WJI algorithms are proven to never themselves
-    * return a Completion Record (`returnsCompletion = false`, the exact
-    * complement of what that fixed point computes: no own abrupt path, and
-    * every call it makes into a completion-returning algorithm is itself
-    * guarded/absorbed — see [[CompletionAlgorithms]]'s own doc). Defaults to
-    * empty for any future caller that can't supply it.
+    * `pureCallees`/`alwaysCompletionCallees` (both normalized, lowercased
+    * names) let this object's one caller, [[WrapCompletionReturnsPass]] — which
+    * runs well after [[MarkCompletionAlgorithmsPass]]'s fixed point, see this
+    * class's own doc — tell this pass about *other* WJI algorithms whose own
+    * completion-ness is already settled one way or the other: `pureCallees`
+    * names every algorithm proven to never itself return a Completion Record
+    * (`returnsCompletion = false`), `alwaysCompletionCallees` every algorithm
+    * proven to always return one (`returnsCompletion = true`, the exact
+    * complement — see [[CompletionAlgorithms]]'s own doc for what that fixed
+    * point actually establishes either way). Both default to empty for any
+    * future caller that can't supply them.
     */
   def expandAlgorithm(
     instrs: List[Instr],
     pureCallees: Set[String] = Set.empty,
+    alwaysCompletionCallees: Set[String] = Set.empty,
   ): List[Instr] =
-    expand(instrs, Counter(), pureCallees = pureCallees)
+    expand(
+      instrs,
+      Counter(),
+      pureCallees = pureCallees,
+      alwaysCompletionCallees = alwaysCompletionCallees,
+    )
 
   /** Hardcoded WebIDL conversion routines confirmed, directly against their own
     * interpreter implementation rather than anything derivable from spec text,
@@ -135,6 +143,22 @@ object CompletionWrapping:
   private def isProvablyPure(func: String, pureCallees: Set[String]): Boolean =
     val name = CompletionAlgorithms.normalize(func)
     pureCallees.contains(name) || neverCompletionNatives.contains(name)
+
+  /** The mirror image of [[isProvablyPure]]: whether `func` is a WJI algorithm
+    * already proven to *always* return a Completion Record. No native-routine
+    * allowlist here the way [[neverCompletionNatives]] backs the pure side --
+    * `converted_to_an_idl_value` (the one native conversion that can genuinely
+    * be abrupt) returns a *plain* value on its ordinary success path, only a
+    * real `ThrowCompletion` on failure (see `WebIdlConversion.scala`'s own
+    * doc), so it's dual-shaped rather than always-wrapped and doesn't qualify
+    * either way -- "always a Completion Record no matter what" only actually
+    * holds for a WJI `Algorithm` [[WrapCompletionReturnsPass]] itself wrapped.
+    */
+  private def isProvablyCompletion(
+    func: String,
+    alwaysCompletionCallees: Set[String],
+  ): Boolean =
+    alwaysCompletionCallees.contains(CompletionAlgorithms.normalize(func))
 
   /** `expr`'s own constructor already fixes its compiled runtime type to
     * something other than a Completion Record, regardless of what any nested
@@ -208,6 +232,7 @@ object CompletionWrapping:
     known: Set[Expr] = Set.empty,
     pure: Set[Expr] = Set.empty,
     pureCallees: Set[String] = Set.empty,
+    alwaysCompletionCallees: Set[String] = Set.empty,
   ): List[Instr] =
     // a left-to-right fold, not a plain `flatMap` with a single shared
     // `known`/`pure` -- a `Let`/`Set` reassigning one of their vars partway
@@ -216,15 +241,17 @@ object CompletionWrapping:
     // pass currently reassigns a var `provenCompletion` tracked --
     // ExpandAbruptPass's own branch body is always the single instruction
     // `[Return(inner)]` -- this keeps that invariant enforced structurally
-    // rather than merely assumed). `pure` additionally *gains* a var right
-    // here, the moment a `Let` binds it to a `neverCompletion` expr (e.g.
-    // `Let(global, RecordLit("Global", _))`) or a `Perform` binds it to the
-    // result of a provably-pure callee (see [[isProvablyPure]]) -- unlike
-    // `known`, which only ever shrinks (nothing produces new completion-proofs
-    // mid-list; those only ever come from an enclosing `IfChain`'s own
-    // condition, see [[provenCompletion]]). `pureCallees` itself never
-    // changes across the fold -- just threaded through unchanged, same as it
-    // is into every recursive `expand` call in `expandInstr` below.
+    // rather than merely assumed). `pure` *gains* a var the moment a `Let`
+    // binds it to a `neverCompletion` expr (e.g. `Let(global, RecordLit
+    // ("Global", _))`) or a `Perform` binds it to the result of a
+    // provably-pure callee (see [[isProvablyPure]]); `known` *also* gains a
+    // var now, the mirror case -- a `Perform` binding the result of a callee
+    // already proven to *always* return a Completion Record (see
+    // [[isProvablyCompletion]]) -- on top of its original source (an
+    // enclosing `IfChain`'s own condition, see [[provenCompletion]]).
+    // `pureCallees`/`alwaysCompletionCallees` themselves never change across
+    // the fold -- just threaded through unchanged, same as into every
+    // recursive `expand` call in `expandInstr` below.
     instrs
       .foldLeft((List.empty[Instr], known, pure)) {
         case ((acc, k, p), instr) =>
@@ -236,9 +263,22 @@ object CompletionWrapping:
                 if isProvablyPure(func, pureCallees) =>
               clearedP + Expr.Var(v)
             case _ => clearedP
+          val clearedK = invalidate(k, instr)
+          val nextK = instr match
+            case Instr.Perform(func, _, PerformOutcome.BindResult(v), _, _)
+                if isProvablyCompletion(func, alwaysCompletionCallees) =>
+              clearedK + Expr.Var(v)
+            case _ => clearedK
           (
-            acc ++ expandInstr(instr, counter, k, p, pureCallees),
-            invalidate(k, instr),
+            acc ++ expandInstr(
+              instr,
+              counter,
+              k,
+              p,
+              pureCallees,
+              alwaysCompletionCallees,
+            ),
+            nextK,
             nextP,
           )
       }
@@ -288,6 +328,7 @@ object CompletionWrapping:
     known: Set[Expr],
     pure: Set[Expr],
     pureCallees: Set[String],
+    alwaysCompletionCallees: Set[String],
   ): List[Instr] =
     instr match
       // a "the following steps..." closure's substeps are a separate
@@ -400,7 +441,14 @@ object CompletionWrapping:
           ),
           Instr.Return(
             Some(Expr.Var(ret)),
-            expand(body, counter, known, pure, pureCallees),
+            expand(
+              body,
+              counter,
+              known,
+              pure,
+              pureCallees,
+              alwaysCompletionCallees,
+            ),
           ),
         )
       // Not handled via the generic `mapBody` catch-all below (unlike every
@@ -419,11 +467,30 @@ object CompletionWrapping:
                   known ++ provenCompletion(c),
                   pure,
                   pureCallees,
+                  alwaysCompletionCallees,
                 ),
               ),
             ),
-            fallback = expand(i.fallback, counter, known, pure, pureCallees),
+            fallback = expand(
+              i.fallback,
+              counter,
+              known,
+              pure,
+              pureCallees,
+              alwaysCompletionCallees,
+            ),
           ),
         )
       case other =>
-        List(other.mapBody(expand(_, counter, known, pure, pureCallees)))
+        List(
+          other.mapBody(
+            expand(
+              _,
+              counter,
+              known,
+              pure,
+              pureCallees,
+              alwaysCompletionCallees,
+            ),
+          ),
+        )

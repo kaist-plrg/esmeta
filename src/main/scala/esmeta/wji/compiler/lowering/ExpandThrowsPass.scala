@@ -54,6 +54,17 @@ import esmeta.wji.lang.Instr.PerformOutcome
   * occurrence seen in the spec so far; otherwise the pattern is left alone for
   * a future pass.
   *
+  * The outer `Cond.HasField` layer is skipped — `completionCall` followed
+  * directly by `completionCheck`, no wrapping `IfChain` or `bind(tmp)` fallback
+  * at all — when the call is a named-link `Instr.Perform` whose target is
+  * itself a WJI algorithm already known (via [[MarkCompletionAlgorithmsPass]]'s
+  * fixed point, see [[CompletionAlgorithms]]) to always return a Completion
+  * Record: the "not a completion at all" fallback can then never actually
+  * trigger, so emitting the check for it at all would just be permanently dead
+  * code (confirmed via `esmeta.wji.WjiCoverage` — `personal/coverage-gaps.md`).
+  * A `PerformClosure` call has no statically-known target name to look up this
+  * way, so it always keeps the full three-way check.
+  *
   * Category: Completion-record convention.
   */
 object ExpandThrowsPass extends LoweringPass:
@@ -63,9 +74,16 @@ object ExpandThrowsPass extends LoweringPass:
     *     `Instr.IfChain`, not a raw `If` sibling.
     *   - [[ExpandInlineAlgoCallPass]]: needs the preceding call already
     *     converted to `Instr.Perform`.
+    *   - [[MarkCompletionAlgorithmsPass]]: needs `returnsCompletion` already
+    *     stamped onto every `Algorithm` to know which named-link targets can
+    *     skip the outer `Cond.HasField` check (see the class doc above).
     */
   override def requires: Set[LoweringPass] =
-    Set(GroupIfChainPass, ExpandInlineAlgoCallPass)
+    Set(
+      GroupIfChainPass,
+      ExpandInlineAlgoCallPass,
+      MarkCompletionAlgorithmsPass,
+    )
 
   /** Generates this pass's `_throwCompN` names for a single algorithm. Scoped
     * as a value local to each [[run]] iteration rather than a mutable field on
@@ -80,9 +98,19 @@ object ExpandThrowsPass extends LoweringPass:
     def freshComp(): String = { n += 1; s"_throwComp$n" }
 
   def run(algos: List[Algorithm]): List[Algorithm] =
+    // names (normalized, lowercased) of every WJI algorithm already proven,
+    // via MarkCompletionAlgorithmsPass's own fixed point, to always return a
+    // Completion Record — see this class's own doc on what that buys a named
+    // call site below.
+    val alwaysCompletion: Set[String] =
+      algos
+        .filter(_.returnsCompletion)
+        .flatMap(a => a.name.orElse(a.id))
+        .map(_.toLowerCase)
+        .toSet
     algos.map { a =>
       val counter = Counter()
-      a.copy(body = transform(a.body, counter))
+      a.copy(body = transform(a.body, counter, alwaysCompletion))
     }
 
   private def stripPipes(s: String): String =
@@ -91,14 +119,19 @@ object ExpandThrowsPass extends LoweringPass:
   /** `reconstruct` rebuilds the matched call with only its `outcome` changed
     * (`call.copy(outcome = _)`) — shared by the `Instr.Perform`/
     * `Instr.PerformClosure` arms below, which are otherwise identical.
+    * `calleeName` is `Some(call.func)` for a named-link `Instr.Perform`
+    * (bracketed link-text form — see `CompletionAlgorithms.normalize`'s own
+    * doc), `None` for a `PerformClosure` (no statically-known target).
     */
   private def expand(
     reconstruct: PerformOutcome => Instr,
+    calleeName: Option[String],
     outcome: PerformOutcome,
     bindTo: Option[String],
     catchBody: List[Instr],
     rest: List[Instr],
     counter: Counter,
+    alwaysCompletion: Set[String],
   ): List[Instr] =
     val tmpName = counter.freshComp()
     val tmp = Expr.Var(tmpName)
@@ -118,22 +151,43 @@ object ExpandThrowsPass extends LoweringPass:
       bindTo match
         case Some(name) =>
           Instr.Let(Expr.Var(stripPipes(name)), Expr.Field(tmp, "Value")) ::
-          transform(catchBody, counter)
+          transform(catchBody, counter, alwaysCompletion)
         case None =>
-          transform(catchBody, counter)
+          transform(catchBody, counter, alwaysCompletion)
     val completionCheck = Instr.IfChain(
       List((isThrow, catchBranch)),
       bind(Expr.Field(tmp, "Value")), // a completion, but not a throw
     )
 
-    completionCall ::
-    Instr.IfChain(
-      List((Cond.HasField(Expr.Field(tmp, "Type")), List(completionCheck))),
-      bind(tmp), // not a completion at all — a bare value
-    ) ::
-    transform(rest, counter)
+    val knownAlwaysCompletion =
+      calleeName.exists(n =>
+        alwaysCompletion.contains(CompletionAlgorithms.normalize(n)),
+      )
 
-  private def transform(instrs: List[Instr], counter: Counter): List[Instr] =
+    val afterCall =
+      if knownAlwaysCompletion then
+        // the "not a completion at all" fallback below can never trigger —
+        // skip the outer HasField wrapper and its dead bind(tmp) branch
+        // entirely rather than emitting then relying on a later pass to
+        // eliminate it.
+        List(completionCheck)
+      else
+        List(
+          Instr.IfChain(
+            List(
+              (Cond.HasField(Expr.Field(tmp, "Type")), List(completionCheck)),
+            ),
+            bind(tmp), // not a completion at all — a bare value
+          ),
+        )
+
+    completionCall :: afterCall ++ transform(rest, counter, alwaysCompletion)
+
+  private def transform(
+    instrs: List[Instr],
+    counter: Counter,
+    alwaysCompletion: Set[String],
+  ): List[Instr] =
     instrs match
       case Nil => Nil
       case (call: Instr.Perform) ::
@@ -141,22 +195,27 @@ object ExpandThrowsPass extends LoweringPass:
           rest if call.body.isEmpty =>
         expand(
           o => call.copy(outcome = o),
+          Some(call.func),
           call.outcome,
           bindTo,
           catchBody,
           rest,
           counter,
+          alwaysCompletion,
         )
       case (call: Instr.PerformClosure) ::
           Instr.IfChain(List((Cond.Throws(_, bindTo), catchBody)), Nil) ::
           rest if call.body.isEmpty =>
         expand(
           o => call.copy(outcome = o),
+          None,
           call.outcome,
           bindTo,
           catchBody,
           rest,
           counter,
+          alwaysCompletion,
         )
       case instr :: rest =>
-        instr.mapBody(transform(_, counter)) :: transform(rest, counter)
+        instr.mapBody(transform(_, counter, alwaysCompletion)) ::
+        transform(rest, counter, alwaysCompletion)

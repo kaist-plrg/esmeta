@@ -350,16 +350,12 @@ def read_the_imports(
           return _ret12
         } else nop
         call _throwComp1 = clo<"ToWebAssemblyValue">(v, valtype)
-        if (exists _throwComp1.Type) {
-          if (= _throwComp1.Type ~throw~) {
-            call _err13 = clo<"__NEW_ERROR_OBJ__">("%LinkError.prototype%")
-            call _ret14 = clo<"ThrowCompletion">(_err13)
-            return _ret14
-          } else {
-            let value = _throwComp1.Value
-          }
+        if (= _throwComp1.Type ~throw~) {
+          call _err13 = clo<"__NEW_ERROR_OBJ__">("%LinkError.prototype%")
+          call _ret14 = clo<"ThrowCompletion">(_err13)
+          return _ret14
         } else {
-          let value = _throwComp1
+          let value = _throwComp1.Value
         }
         let store = @AGENT_RECORD["associated store"]
         call-embed _tuple2 = <global_alloc>(store, (case "" (opt) valtype), value)
@@ -543,16 +539,12 @@ def asynchronously_instantiate_a_webassembly_module(
   let builtinSetNames = moduleObject.BuiltinSets
   let importedStringModule = moduleObject.ImportedStringModule
   call _throwComp1 = clo<"Read_the_imports">(module, importObject, builtinSetNames, importedStringModule)
-  if (exists _throwComp1.Type) {
-    if (= _throwComp1.Type ~throw~) {
-      let exception = _throwComp1.Value
-      call _ = clo<"reject">(~Instance~, promise, exception)
-      return promise
-    } else {
-      let imports = _throwComp1.Value
-    }
+  if (= _throwComp1.Type ~throw~) {
+    let exception = _throwComp1.Value
+    call _ = clo<"reject">(~Instance~, promise, exception)
+    return promise
   } else {
-    let imports = _throwComp1
+    let imports = _throwComp1.Value
   }
   call _ = clo<"HostEnqueuePromiseJob">(clo<"asynchronously_instantiate_a_webassembly_module_closure1", [imports, module, promise]>, @EXECUTION_STACK[0].Realm)
   return promise
@@ -4643,17 +4635,13 @@ def asynchronously_compile_a_webassembly_module_closure1(
 def asynchronously_instantiate_a_webassembly_module_closure1(
 ): Unknown = {
   call _throwComp1 = clo<"Instantiate_the_core_of_a_WebAssembly_module">(module, imports)
-  if (exists _throwComp1.Type) {
-    if (= _throwComp1.Type ~throw~) {
-      let exception = _throwComp1.Value
-      call _ = clo<"reject">(~Instance~, promise, exception)
-      call _ret1 = clo<"NormalCompletion">(~unused~)
-      return _ret1
-    } else {
-      let instance = _throwComp1.Value
-    }
+  if (= _throwComp1.Type ~throw~) {
+    let exception = _throwComp1.Value
+    call _ = clo<"reject">(~Instance~, promise, exception)
+    call _ret1 = clo<"NormalCompletion">(~unused~)
+    return _ret1
   } else {
-    let instance = _throwComp1
+    let instance = _throwComp1.Value
   }
   let instanceObject = (record [Instance] {
     "GetPrototypeOf" : clo<"Record[OrdinaryObject].GetPrototypeOf">,
@@ -4673,13 +4661,11 @@ def asynchronously_instantiate_a_webassembly_module_closure1(
     "__MAP__" : (map[Unknown, Unknown]),
   })
   call _throwComp2 = clo<"initialize_an_instance_object">(instanceObject, module, instance)
-  if (exists _throwComp2.Type) {
-    if (= _throwComp2.Type ~throw~) {
-      let exception = _throwComp2.Value
-      call _ = clo<"reject">(~Instance~, promise, exception)
-      call _ret2 = clo<"NormalCompletion">(~unused~)
-      return _ret2
-    } else nop
+  if (= _throwComp2.Type ~throw~) {
+    let exception = _throwComp2.Value
+    call _ = clo<"reject">(~Instance~, promise, exception)
+    call _ret2 = clo<"NormalCompletion">(~unused~)
+    return _ret2
   } else nop
   call _ = clo<"Resolve">(~Instance~, promise, instanceObject)
   call _ret3 = clo<"NormalCompletion">(~unused~)

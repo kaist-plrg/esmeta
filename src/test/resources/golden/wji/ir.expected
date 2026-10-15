@@ -3493,13 +3493,8 @@ def js-string-fromcodepoint(
   } else nop
   call _call1 = clo<"Call">(@EXECUTION_STACK[0].Realm.Intrinsics["%String.fromCodePoint%"], undefined, (list [v]))
   assert (= _call1.Type ~normal~)
-  let _v2 = _call1.Value
-  if (? _v2: Completion) {
-    return _v2
-  } else {
-    call _ret3 = clo<"NormalCompletion">(_v2)
-    return _ret3
-  }
+  call _ret2 = clo<"NormalCompletion">(_call1.Value)
+  return _ret2
 }
 def js-string-charcodeat(
   string: Unknown,
@@ -3539,13 +3534,8 @@ def js-string-codepointat(
   } else nop
   call _call2 = clo<"Call">(@EXECUTION_STACK[0].Realm.Intrinsics["%String.prototype.codePointAt%"], string, (list [index]))
   assert (= _call2.Type ~normal~)
-  let _v2 = _call2.Value
-  if (? _v2: Completion) {
-    return _v2
-  } else {
-    call _ret3 = clo<"NormalCompletion">(_v2)
-    return _ret3
-  }
+  call _ret2 = clo<"NormalCompletion">(_call2.Value)
+  return _ret2
 }
 def js-string-length(
   v: Unknown,
@@ -4948,35 +4938,25 @@ def attribute_getter_closure1(
       if (? (yet "|attribute|'s type"): Unknown["promise type"]) {
         call _call1 = clo<"Call">(~%Promise.reject%~, ~%Promise%~, (list [E]))
         assert (= _call1.Type ~normal~)
-        let _v1 = _call1.Value
-        if (? _v1: Completion) {
-          return _v1
-        } else {
-          call _ret2 = clo<"NormalCompletion">(_v1)
-          return _ret2
-        }
+        call _ret1 = clo<"NormalCompletion">(_call1.Value)
+        return _ret1
       } else {
         (yet "end these steps and allow the exception to propagate")
       }
     } else {
-      let _v3 = _throwComp1.Value
-      if (? _v3: Completion) {
-        return _v3
-      } else {
-        call _ret4 = clo<"NormalCompletion">(_v3)
-        return _ret4
-      }
+      call _ret2 = clo<"NormalCompletion">(_throwComp1.Value)
+      return _ret2
     }
   } else {
     if (? _throwComp1: Completion) {
       return _throwComp1
     } else {
-      call _ret5 = clo<"NormalCompletion">(_throwComp1)
-      return _ret5
+      call _ret3 = clo<"NormalCompletion">(_throwComp1)
+      return _ret3
     }
   }
-  call _ret6 = clo<"NormalCompletion">(~unused~)
-  return _ret6
+  call _ret4 = clo<"NormalCompletion">(~unused~)
+  return _ret4
 }
 def attribute_setter_closure1(
   thisArgument: Unknown,
@@ -5238,35 +5218,25 @@ def creating_an_operation_function_closure1(
       if (? (yet "|op| has a [=return type=] that"): Unknown["promise type"]) {
         call _call1 = clo<"Call">(~%Promise.reject%~, ~%Promise%~, (list [E]))
         assert (= _call1.Type ~normal~)
-        let _v1 = _call1.Value
-        if (? _v1: Completion) {
-          return _v1
-        } else {
-          call _ret2 = clo<"NormalCompletion">(_v1)
-          return _ret2
-        }
+        call _ret1 = clo<"NormalCompletion">(_call1.Value)
+        return _ret1
       } else {
         (yet "end these steps and allow the exception to propagate")
       }
     } else {
-      let _v3 = _throwComp1.Value
-      if (? _v3: Completion) {
-        return _v3
-      } else {
-        call _ret4 = clo<"NormalCompletion">(_v3)
-        return _ret4
-      }
+      call _ret2 = clo<"NormalCompletion">(_throwComp1.Value)
+      return _ret2
     }
   } else {
     if (? _throwComp1: Completion) {
       return _throwComp1
     } else {
-      call _ret5 = clo<"NormalCompletion">(_throwComp1)
-      return _ret5
+      call _ret3 = clo<"NormalCompletion">(_throwComp1)
+      return _ret3
     }
   }
-  call _ret6 = clo<"NormalCompletion">(~unused~)
-  return _ret6
+  call _ret4 = clo<"NormalCompletion">(~unused~)
+  return _ret4
 }
 def define_the_iteration_methods_closure1(
   thisArgument: Unknown,

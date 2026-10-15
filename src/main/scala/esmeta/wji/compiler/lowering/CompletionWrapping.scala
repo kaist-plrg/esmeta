@@ -201,6 +201,22 @@ object CompletionWrapping:
     * one -- this is what actually lets `addressvaluetou64`'s `Return(Some
     * (AsWasm(AsMath(Var(n)), "u64")))` match here, not a special case of its
     * own.
+    *
+    * `Expr.Field(_, "Value")` is safe regardless of the base expression or how
+    * it was computed -- not because of anything about the base, but because
+    * Completion Records never nest in this entire system: a `NormalCompletion`/
+    * `ThrowCompletion`'s own `[[Value]]` is, by construction, always the real
+    * payload itself, never *another* Completion Record one level further in.
+    * Checked against every actual `Expr.Field(_, "Value")` site this pipeline
+    * ever compiles a WJI algorithm body to contain -- `ExpandAbruptPass`'s own
+    * `?`/`!` unwrap, `ExpandThrowsPass`'s catch-idiom unwrap,
+    * `AddInterfaceMemberBuiltinBehaviourPass`'s `converted_to_an_idl_value`
+    * abrupt-value extraction -- all three pull a Completion Record's payload,
+    * never anything else; `ExprParser`'s "the max value in X" idiom compiles
+    * the *same* field name onto a `limits` record's `maximum` `Opt` wrapper
+    * instead (a different, unrelated use of the name "Value"), but that payload
+    * is just as plainly never completion-shaped (a `u64`). No occurrence of
+    * this field name anywhere in the corpus holds a completion-shaped value.
     */
   private def neverCompletion(expr: Expr): Boolean = expr match
     case _: Expr.Bool | _: Expr.Num | _: Expr.Str | _: Expr.Byte => true
@@ -211,6 +227,7 @@ object CompletionWrapping:
     case _: Expr.New                                             => true
     case _: Expr.Case                                            => true
     case _: Expr.Tuple                                           => true
+    case Expr.Field(_, "Value")                                  => true
     case Expr.AsWasm(inner, _) => neverCompletion(inner)
     case _                     => false
 

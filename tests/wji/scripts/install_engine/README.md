@@ -59,9 +59,12 @@ build rather than a possibly-broken tip-of-tree:
 - **V8**: the commit matching Chrome's current Stable channel release (looked
   up via `https://chromiumdash.appspot.com/releases?channel=Stable` -- its
   `hashes.v8` field is exactly this commit).
-- **SpiderMonkey**: the latest `FIREFOX_*_0_RELEASE` tag on
-  `https://github.com/mozilla-firefox/firefox` (a real shipped release, not a
-  mozilla-central tip that might not even build).
+- **SpiderMonkey**: the `FIREFOX_*_0_RELEASE` tag matching the version listed
+  at `https://www.firefox.com/en-US/releases/` (checked against the live
+  releases page, not just grepped out of the tag list -- see "A pinned
+  version can go stale enough to break bootstrap itself" below for why that
+  distinction actually matters here), cross-referenced to its commit via
+  `git ls-remote --tags https://github.com/mozilla-firefox/firefox.git`.
 - **JavaScriptCore**: WebKit doesn't tag discrete "stable release" commits
   in-repo the way Firefox does, so this just tracks a recent `main` HEAD
   commit instead -- not independently verified to build cleanly, unlike the
@@ -71,6 +74,20 @@ These will drift out of date -- there's no automation keeping them current.
 Bump the commit (and its comment) in the relevant script the next time you
 need a newer one; each lookup method above is documented right in that
 script's own comment, next to the commit it pins.
+
+### A pinned version can go stale enough to break bootstrap itself
+
+Pinning *a* release tag isn't automatically enough for SpiderMonkey --
+`./mach bootstrap` downloads toolchain/SDK artifacts whose URLs expire after
+some retention window, so a release tag that's merely old enough (not
+ancient, just a few months) makes bootstrap itself fail with an HTTP 403,
+before a build is even attempted. This actually happened to this script:
+`FIREFOX_149_0_RELEASE` (~7 months old at the time) 403'd on an SDK artifact
+fetch; re-pinning to `FIREFOX_158_0_RELEASE` (~9 days old) bootstrapped and
+built cleanly. Re-checking the live releases page each time this gets
+re-pinned (rather than skimming nearby version numbers out of a tag listing)
+matters for exactly this reason -- it's easy to undercount how far the
+version has actually climbed, as happened once already while writing this.
 
 ## Changes from the original `spectec` scripts
 

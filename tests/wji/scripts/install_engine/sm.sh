@@ -16,12 +16,19 @@ cd "$(dirname "${BASH_SOURCE[0]}")"
 . ./common.sh
 script_dir="$PWD"
 
-# The FIREFOX_149_0_RELEASE tag commit (latest stable release tag as of
-# 2026-10-16, checked via `git ls-remote --tags
-# https://github.com/mozilla-firefox/firefox.git`) -- a real shipped release,
-# not a possibly-broken mozilla-central tip. Bump this the next time this
-# script needs to track a newer release.
-FIREFOX_COMMIT=c7fa3c91990bac266ee99a9e31863c202469f369 # FIREFOX_149_0_RELEASE
+# The FIREFOX_158_0_RELEASE tag commit (latest stable release as of
+# 2026-10-16 per https://www.firefox.com/en-US/releases/, cross-checked
+# against `git ls-remote --tags https://github.com/mozilla-firefox/firefox.git`
+# for the matching tag) -- must be *recent*, not just *a* release tag:
+# `mach bootstrap` fetches toolchain/SDK artifacts whose URLs expire after
+# some retention window, so an old-enough release tag (an earlier version of
+# this script pinned FIREFOX_149_0_RELEASE, ~7 months old at the time) makes
+# bootstrap itself fail with an HTTP 403 partway through, before a build is
+# even attempted. Bump this the next time this script needs to track a newer
+# release -- re-check the live releases page above rather than just grepping
+# nearby version numbers out of the tag list (easy to undercount how far the
+# version has actually climbed).
+FIREFOX_COMMIT=3c71aeacdb296402e41fb2084b13e797d1770642 # FIREFOX_158_0_RELEASE
 
 require_absent_or_force "$ENGINES_DIR/firefox" -- "$@"
 

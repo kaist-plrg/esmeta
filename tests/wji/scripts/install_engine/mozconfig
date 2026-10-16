@@ -1,0 +1,14 @@
+# Used by sm.sh via $MOZCONFIG -- see README.md in this directory.
+
+# Build only the JS shell, not the full Firefox browser.
+ac_add_options --enable-project=js
+
+# Enable optimization for speed.
+ac_add_options --enable-optimize
+
+# Disable debug checks to better match a release build of Firefox.
+ac_add_options --disable-debug
+
+# Use a dedicated objdir for this release-ish SpiderMonkey build, to avoid
+# conflicting with a default-configuration Firefox build in the same tree.
+mk_add_options MOZ_OBJDIR=@TOPSRCDIR@/obj-release-@CONFIG_GUESS@

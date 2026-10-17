@@ -1,6 +1,7 @@
 package esmeta.wji.compiler.lowering
 
 import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr}
+import esmeta.wji.lang.Instr.PerformOutcome
 import esmeta.wji.lang.walker.Walker
 import scala.collection.mutable.ListBuffer
 
@@ -232,7 +233,28 @@ object NormalizeEvaluationOrderPass extends LoweringPass:
         val newTarget = ext.walk(target)
         ext.hoisted ++ List(Instr.Throw(newTarget, transform(body, counter)))
 
-      case Instr.Perform(func, args, outcome, body) =>
+      // `Perform ? F(args)` → `Perform F(args), and let _callN be the result`
+      // followed by the outcome applied to `Abrupt(?, Var(_callN))`.
+      case Instr.Perform(func, args, outcome, body, Some(marker)) =>
+        val ext = Extractor(counter)
+        val newArgs = args.map(ext.walk)
+        val tmp = counter.fresh()
+        val abrupt = Expr.Abrupt(marker, Expr.Var(tmp))
+        val newBody = transform(body, counter)
+        val use = outcome match
+          case PerformOutcome.Discard =>
+            Instr.Let(Expr.Var(counter.fresh()), abrupt, newBody)
+          case PerformOutcome.BindResult(v) =>
+            val x = v.stripPrefix("|").stripSuffix("|")
+            Instr.Let(Expr.Var(x), abrupt, newBody)
+          case PerformOutcome.ReturnResult =>
+            Instr.Return(Some(abrupt), newBody)
+        ext.hoisted ++ List(
+          Instr.Perform(func, newArgs, PerformOutcome.BindResult(tmp)),
+          use,
+        )
+
+      case Instr.Perform(func, args, outcome, body, None) =>
         val ext = Extractor(counter)
         val newArgs = args.map(ext.walk)
         ext.hoisted ++ List(

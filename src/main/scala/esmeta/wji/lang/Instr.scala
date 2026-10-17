@@ -118,13 +118,16 @@ object Instr:
   case class Continue(body: List[Instr] = Nil) extends Instr
 
   /** a named-operation call used as a statement; `outcome` describes what
-    * happens with the result (discard, return, or bind to a variable)
+    * happens with the result (discard, return, or bind to a variable). `marker`
+    * is the call's `?`/`!`, if any — eliminated by
+    * `NormalizeEvaluationOrderPass`.
     */
   case class Perform(
     func: String,
     args: List[Expr],
     outcome: PerformOutcome = PerformOutcome.Discard,
     body: List[Instr] = Nil,
+    marker: Option[String] = None,
   ) extends Instr
 
   /** a closure-*value* call used as a statement (contrast with [[Perform]],
@@ -205,7 +208,7 @@ object Instr:
     body.exists {
       case _: Return                                            => true
       case _: Throw                                             => true
-      case Perform(_, _, PerformOutcome.ReturnResult, _)        => true
+      case Perform(_, _, PerformOutcome.ReturnResult, _, _)     => true
       case PerformClosure(_, _, PerformOutcome.ReturnResult, _) => true
       case IfChain(branches, fallback) =>
         fallback.nonEmpty &&

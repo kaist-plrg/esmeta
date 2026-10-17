@@ -637,6 +637,7 @@ object AddInterfaceMemberBuiltinBehaviourPass extends LoweringPass:
               args,
               Instr.PerformOutcome.ReturnResult,
               nested,
+              _,
             ) =>
           val v = freshName()
           List(

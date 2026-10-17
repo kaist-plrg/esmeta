@@ -142,7 +142,9 @@ class InstrParserSpec extends AnyFunSuite:
     // a bare argument instead.
     assert(
       parse("Perform [=!=] [$SetIntegrityLevel$](|obj|).") ==
-      List(Perform("SetIntegrityLevel", List(Var("obj")), Discard)),
+      List(
+        Perform("SetIntegrityLevel", List(Var("obj")), Discard, Nil, Some("!")),
+      ),
     )
   }
 

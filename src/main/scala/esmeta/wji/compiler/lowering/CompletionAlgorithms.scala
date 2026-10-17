@@ -78,10 +78,10 @@ object CompletionAlgorithms:
         Some(CallInfo(normalize(link), Some(marker), bound))
       case _ => None
     instr match
-      case Instr.Perform(func, _, PerformOutcome.BindResult(v), _) =>
-        Some(CallInfo(normalize(func), None, Some(stripPipes(v))))
-      case Instr.Perform(func, _, _, _) =>
-        Some(CallInfo(normalize(func), None, None))
+      case Instr.Perform(func, _, PerformOutcome.BindResult(v), _, marker) =>
+        Some(CallInfo(normalize(func), marker, Some(stripPipes(v))))
+      case Instr.Perform(func, _, _, _, marker) =>
+        Some(CallInfo(normalize(func), marker, None))
       case Instr.Let(Expr.Var(v), expr, _) => fromExpr(expr, Some(v))
       case Instr.Set(Expr.Var(v), expr, _) => fromExpr(expr, Some(v))
       case Instr.Return(Some(expr), _)     => fromExpr(expr, None)
@@ -168,11 +168,11 @@ object CompletionAlgorithms:
     }
 
   private def exprsOf(instr: Instr): List[Expr] = instr match
-    case Instr.Let(_, e, _)           => List(e)
-    case Instr.Set(_, e, _)           => List(e)
-    case Instr.Return(eo, _)          => eo.toList
-    case Instr.Perform(_, args, _, _) => args
-    case _                            => Nil
+    case Instr.Let(_, e, _)              => List(e)
+    case Instr.Set(_, e, _)              => List(e)
+    case Instr.Return(eo, _)             => eo.toList
+    case Instr.Perform(_, args, _, _, _) => args
+    case _                               => Nil
 
   private def condsOf(instr: Instr): List[Cond] = instr match
     case Instr.Assert(c, _) => List(c)

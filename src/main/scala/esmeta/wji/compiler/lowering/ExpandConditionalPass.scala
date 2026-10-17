@@ -111,12 +111,12 @@ object ExpandConditionalPass extends LoweringPass:
         case other                   => Instr.Set(lhs, other)
       val ifChain = ifChainFor(conditional, rebuild)
       if hasFollowingSteps then List(ifChain) else ifChain :: transform(body)
-    case Instr.Perform(func, args, outcome, body)
+    case p @ Instr.Perform(_, args, _, body, _)
         if args.exists(_.isInstanceOf[Expr.Conditional]) =>
       val idx = args.indexWhere(_.isInstanceOf[Expr.Conditional])
       val conditional = args(idx).asInstanceOf[Expr.Conditional]
       ifChainFor(
         conditional,
-        e => Instr.Perform(func, args.updated(idx, e), outcome),
+        e => p.copy(args = args.updated(idx, e), body = Nil),
       ) :: transform(body)
     case _ => List(instr.mapBody(transform))

@@ -503,7 +503,9 @@ def create_an_exports_object(
     assert (= status true)
     _iterIdx2 = (+ _iterIdx2 1)
   }
-  call _ = clo<"SetIntegrityLevel">(exportsObject, ~frozen~)
+  call _call2 = clo<"SetIntegrityLevel">(exportsObject, ~frozen~)
+  assert (= _call2.Type ~normal~)
+  let _call3 = _call2.Value
   if (? exportsObject: Completion) {
     return exportsObject
   } else {
@@ -1070,7 +1072,12 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Instance(
   } else {
     instance = instance.Value
   }
-  call _ = clo<"initialize_an_instance_object">(this, module, instance)
+  call _guard1 = clo<"initialize_an_instance_object">(this, module, instance)
+  if (&& (? _guard1: Completion) (! (= _guard1.Type ~normal~))) {
+    return _guard1
+  } else {
+    _guard1 = _guard1.Value
+  }
   let _v5 = this
   if (? _v5: Completion) {
     return _v5
@@ -1278,7 +1285,9 @@ def refresh_the_memory_buffer(
   let buffer = memory.BufferObject
   call _call1 = clo<"IsFixedLengthArrayBuffer">(buffer)
   if (= _call1 true) {
-    call _ = clo<"DetachArrayBuffer">(buffer, "WebAssembly.Memory")
+    call _call2 = clo<"DetachArrayBuffer">(buffer, "WebAssembly.Memory")
+    assert (= _call2.Type ~normal~)
+    let _call3 = _call2.Value
     call buffer = clo<"create_a_fixed_length_memory_buffer">(memaddr)
     memory.BufferObject = buffer
   } else {
@@ -1397,7 +1406,9 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Memory.prototype.toFixedLengthBuffer(
   } else nop
   let memaddr = this.Memory
   call fixedBuffer = clo<"create_a_fixed_length_memory_buffer">(memaddr)
-  call _ = clo<"DetachArrayBuffer">(buffer, "WebAssembly.Memory")
+  call _call2 = clo<"DetachArrayBuffer">(buffer, "WebAssembly.Memory")
+  assert (= _call2.Type ~normal~)
+  let _call3 = _call2.Value
   this.BufferObject = fixedBuffer
   call-convert fixedBuffer = <converted_to_a_javascript_value>(fixedBuffer)
   if (? fixedBuffer: Completion) {
@@ -1439,7 +1450,9 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Memory.prototype.toResizableBuffer(
   assert (! (= memtype[1][1] (opt)))
   let maxsize = (* ([math] memtype[1][1].Value) 65536)
   call resizableBuffer = clo<"create_a_resizable_memory_buffer">(memaddr, maxsize)
-  call _ = clo<"DetachArrayBuffer">(buffer, "WebAssembly.Memory")
+  call _call2 = clo<"DetachArrayBuffer">(buffer, "WebAssembly.Memory")
+  assert (= _call2.Type ~normal~)
+  let _call3 = _call2.Value
   this.BufferObject = resizableBuffer
   call-convert resizableBuffer = <converted_to_a_javascript_value>(resizableBuffer)
   if (? resizableBuffer: Completion) {
@@ -1467,7 +1480,12 @@ def abstract_operation_[=hostresizearraybuffer=](
         return _ret2
       } else nop
       let delta = (/ lengthDelta 65536)
-      call _ = clo<"Grow_the_memory_buffer">(memaddr, delta)
+      call _guard1 = clo<"Grow_the_memory_buffer">(memaddr, delta)
+      if (&& (? _guard1: Completion) (! (= _guard1.Type ~normal~))) {
+        return _guard1
+      } else {
+        _guard1 = _guard1.Value
+      }
     } else nop
     let _v3 = ~handled~
     if (? _v3: Completion) {
@@ -3316,7 +3334,9 @@ def create the webassembly namespace object(
   while (< _iterIdx2 (sizeof _iterList1)) {
     let error = _iterList1[_iterIdx2]
     let constructor = (yet "a new object, implementing the [=NativeError Object Structure=], with <var ignore>NativeError</var> set to |error|")
-    call _ = clo<"DefineMethodProperty">(namespaceObject, error, constructor, false)
+    call _call1 = clo<"DefineMethodProperty">(namespaceObject, error, constructor, false)
+    assert (= _call1.Type ~normal~)
+    let _call2 = _call1.Value
     _iterIdx2 = (+ _iterIdx2 1)
   }
   return ~unused~
@@ -3787,7 +3807,9 @@ def resolve(
     let x = undefined
   } else nop
   call-convert value = <converted_to_a_javascript_value>(x)
-  call _ = clo<"Call">(p.Resolve, undefined, (list [value]))
+  call _call1 = clo<"Call">(p.Resolve, undefined, (list [value]))
+  assert (= _call1.Type ~normal~)
+  let _call2 = _call1.Value
   if (= T undefined) {
     (yet "the |x| argument is optional, allowing a simpler \"[=resolve=] p\" usage")
   } else nop
@@ -3798,7 +3820,9 @@ def reject(
   p: Unknown,
   r: Unknown,
 ): Unknown = {
-  call _ = clo<"Call">(p.Reject, undefined, (list [r]))
+  call _call1 = clo<"Call">(p.Reject, undefined, (list [r]))
+  assert (= _call1.Type ~normal~)
+  let _call2 = _call1.Value
   return ~unused~
 }
 def react(
@@ -3942,14 +3966,18 @@ def create_an_interface_prototype_object(
     call unscopableObject = clo<"OrdinaryObjectCreate">(null)
     (yet "foreach MEMBER(|member|) in ?(|interface| that is declared with the [{{Unscopable}}] [=extended attribute=])")
     let id = member.id
-    call _ = clo<"CreateDataPropertyOrThrow">(unscopableObject, id, true)
+    call _call6 = clo<"CreateDataPropertyOrThrow">(unscopableObject, id, true)
+    assert (= _call6.Type ~normal~)
+    let _call7 = _call6.Value
     let desc = (record [PropertyDescriptor] {
       "Value" : unscopableObject,
       "Writable" : false,
       "Enumerable" : false,
       "Configurable" : true,
     })
-    call _ = clo<"DefinePropertyOrThrow">(interfaceProtoObj, @SYMBOL.unscopables, desc)
+    call _call8 = clo<"DefinePropertyOrThrow">(interfaceProtoObj, @SYMBOL.unscopables, desc)
+    assert (= _call8.Type ~normal~)
+    let _call9 = _call8.Value
   } else nop
   let _found1 = false
   let _i2 = 0
@@ -3963,7 +3991,12 @@ def create_an_interface_prototype_object(
   if (! (= _found1 true)) {
     call _ = clo<"Define_the_regular_attributes">(interface, interfaceProtoObj, realm)
     call _ = clo<"Define_the_regular_operations">(interface, interfaceProtoObj, realm)
-    call _ = clo<"Define_the_iteration_methods">(interface, interfaceProtoObj, realm)
+    call _guard1 = clo<"Define_the_iteration_methods">(interface, interfaceProtoObj, realm)
+    if (&& (? _guard1: Completion) (! (= _guard1.Type ~normal~))) {
+      return _guard1
+    } else {
+      _guard1 = _guard1.Value
+    }
     call _ = clo<"Define_the_asynchronous_iteration_methods">(interface, interfaceProtoObj, realm)
   } else nop
   call _ = clo<"Define_the_constants">(interface, interfaceProtoObj, realm)
@@ -3975,7 +4008,9 @@ def create_an_interface_prototype_object(
       "Configurable" : true,
       "Value" : constructor,
     })
-    call _ = clo<"DefinePropertyOrThrow">(interfaceProtoObj, "<code>constructor</code>", desc)
+    call _call10 = clo<"DefinePropertyOrThrow">(interfaceProtoObj, "<code>constructor</code>", desc)
+    assert (= _call10.Type ~normal~)
+    let _call11 = _call10.Value
   } else nop
   if (? interfaceProtoObj: Completion) {
     return interfaceProtoObj
@@ -4000,7 +4035,9 @@ def define_the_constants(
       "Value" : value,
     })
     let id = const.id
-    call _ = clo<"DefinePropertyOrThrow">(target, id, desc)
+    call _call2 = clo<"DefinePropertyOrThrow">(target, id, desc)
+    assert (= _call2.Type ~normal~)
+    let _call3 = _call2.Value
   }
   return ~unused~
 }
@@ -4089,11 +4126,13 @@ def define_the_attributes(
         "Configurable" : configurable,
       })
       let id = attr.id
-      call _ = clo<"DefinePropertyOrThrow">(target, id, desc)
+      call _call2 = clo<"DefinePropertyOrThrow">(target, id, desc)
+      assert (= _call2.Type ~normal~)
+      let _call3 = _call2.Value
       if (= (yet "|attr|'s type") (yet "an [=observable array type=] with type argument |T|")) {
-        call _call2 = clo<"set_an_indexed_value">(attr, ~delete an indexed value~)
-        call _call3 = clo<"creating_an_observable_array_exotic_object">(realm, T, attr, _call2)
-        @@yet: unresolved ref: Unknown(|target|'s [=backing observable array exotic object=] for |attr|) = _call3
+        call _call4 = clo<"set_an_indexed_value">(attr, ~delete an indexed value~)
+        call _call5 = clo<"creating_an_observable_array_exotic_object">(realm, T, attr, _call4)
+        @@yet: unresolved ref: Unknown(|target|'s [=backing observable array exotic object=] for |attr|) = _call5
       } else nop
     }
     _iterIdx2 = (+ _iterIdx2 1)
@@ -4212,7 +4251,9 @@ def define_the_operations(
         "Configurable" : modifiable,
       })
       let id = op.id
-      call _ = clo<"DefinePropertyOrThrow">(target, id, desc)
+      call _call2 = clo<"DefinePropertyOrThrow">(target, id, desc)
+      assert (= _call2.Type ~normal~)
+      let _call3 = _call2.Value
     }
     _iterIdx2 = (+ _iterIdx2 1)
   }
@@ -4252,32 +4293,46 @@ def define_the_iteration_methods(
   if (yet "|definition| has an [=indexed property getter=]") {
     call _ = clo<"DefineMethodProperty">(target, @SYMBOL.iterator, ~%Array.prototype.values%~, false)
     if (yet "|definition| has a [=value iterator=]") {
-      call _ = clo<"CreateDataPropertyOrThrow">(target, "<code>entries</code>", ~%Array.prototype.entries%~)
-      call _ = clo<"CreateDataPropertyOrThrow">(target, "<code>keys</code>", ~%Array.prototype.keys%~)
-      call _ = clo<"CreateDataPropertyOrThrow">(target, "<code>values</code>", ~%Array.prototype.values%~)
-      call _ = clo<"CreateDataPropertyOrThrow">(target, "<code>forEach</code>", ~%Array.prototype.forEach%~)
+      call _call1 = clo<"CreateDataPropertyOrThrow">(target, "<code>entries</code>", ~%Array.prototype.entries%~)
+      assert (= _call1.Type ~normal~)
+      let _call2 = _call1.Value
+      call _call3 = clo<"CreateDataPropertyOrThrow">(target, "<code>keys</code>", ~%Array.prototype.keys%~)
+      assert (= _call3.Type ~normal~)
+      let _call4 = _call3.Value
+      call _call5 = clo<"CreateDataPropertyOrThrow">(target, "<code>values</code>", ~%Array.prototype.values%~)
+      assert (= _call5.Type ~normal~)
+      let _call6 = _call5.Value
+      call _call7 = clo<"CreateDataPropertyOrThrow">(target, "<code>forEach</code>", ~%Array.prototype.forEach%~)
+      assert (= _call7.Type ~normal~)
+      let _call8 = _call7.Value
     } else nop
   } else if (yet "|definition| has a [=pair iterator=]") {
     (yet "Define the {{%Symbol.iterator%}} and <code class=\"idl\">entries</code> methods:")
     let steps = clo<"define_the_iteration_methods_closure1">
     call F = clo<"CreateBuiltinFunction">(steps, 0, "<code>entries</code>", (list []), realm)
     call _ = clo<"DefineMethodProperty">(target, @SYMBOL.iterator, F, false)
-    call _ = clo<"CreateDataPropertyOrThrow">(target, "<code>entries</code>", F)
+    call _call9 = clo<"CreateDataPropertyOrThrow">(target, "<code>entries</code>", F)
+    assert (= _call9.Type ~normal~)
+    let _call10 = _call9.Value
     (yet "Define the <code class=\"idl\">keys</code> method:")
     let steps = clo<"define_the_iteration_methods_closure2">
     call F = clo<"CreateBuiltinFunction">(steps, 0, "<code>keys</code>", (list []), realm)
-    call _ = clo<"CreateDataPropertyOrThrow">(target, "<code>keys</code>", F)
+    call _call11 = clo<"CreateDataPropertyOrThrow">(target, "<code>keys</code>", F)
+    assert (= _call11.Type ~normal~)
+    let _call12 = _call11.Value
     (yet "Define the <code class=\"idl\">values</code> method:")
     let steps = clo<"define_the_iteration_methods_closure3">
     call F = clo<"CreateBuiltinFunction">(steps, 0, "<code>values</code>", (list []), realm)
-    call _ = clo<"CreateDataPropertyOrThrow">(target, "<code>values</code>", F)
+    call _call13 = clo<"CreateDataPropertyOrThrow">(target, "<code>values</code>", F)
+    assert (= _call13.Type ~normal~)
+    let _call14 = _call13.Value
     (yet "Define the <code class=\"idl\">forEach</code> method:")
     let steps = (yet "the following series of steps, given function argument values |callback| and |thisArg|:")
-    call _call1 = clo<"ToObject">((yet "<emu-val>this</emu-val> value"))
-    if (&& (? _call1: Completion) (! (= _call1.Type ~normal~))) {
-      return _call1
+    call _call15 = clo<"ToObject">((yet "<emu-val>this</emu-val> value"))
+    if (&& (? _call15: Completion) (! (= _call15.Type ~normal~))) {
+      return _call15
     } else {
-      let jsValue = _call1.Value
+      let jsValue = _call15.Value
     }
     if (? jsValue: Unknown["platform object"]) {
       call _ = clo<"perform_a_security_check">(jsValue, "<code>forEach</code>", "<code>method</code>")
@@ -4313,7 +4368,9 @@ def define_the_iteration_methods(
       i = (+ i 1)
     }
     call F = clo<"CreateBuiltinFunction">(steps, 1, "<code>forEach</code>", (list []), realm)
-    call _ = clo<"CreateDataPropertyOrThrow">(target, "<code>forEach</code>", F)
+    call _call16 = clo<"CreateDataPropertyOrThrow">(target, "<code>forEach</code>", F)
+    assert (= _call16.Type ~normal~)
+    let _call17 = _call16.Value
   } else nop
   call _ret1 = clo<"NormalCompletion">(~unused~)
   return _ret1
@@ -4331,19 +4388,27 @@ def define_the_asynchronous_iteration_methods(
     let steps = clo<"define_the_asynchronous_iteration_methods_closure1">
     call F = clo<"CreateBuiltinFunction">(steps, 0, "<code>entries</code>", (list []), realm)
     call _ = clo<"DefineMethodProperty">(target, @SYMBOL.asyncIterator, F, false)
-    call _ = clo<"CreateDataPropertyOrThrow">(target, "<code>entries</code>", F)
+    call _call1 = clo<"CreateDataPropertyOrThrow">(target, "<code>entries</code>", F)
+    assert (= _call1.Type ~normal~)
+    let _call2 = _call1.Value
   } else nop
   if (yet "|definition| has a [=pair asynchronously iterable declaration=]") {
     let steps = clo<"define_the_asynchronous_iteration_methods_closure2">
     call F = clo<"CreateBuiltinFunction">(steps, 0, (yet "\"<code>keys</code>, « », |realm|"))
-    call _ = clo<"CreateDataPropertyOrThrow">(target, "<code>keys</code>", F)
+    call _call3 = clo<"CreateDataPropertyOrThrow">(target, "<code>keys</code>", F)
+    assert (= _call3.Type ~normal~)
+    let _call4 = _call3.Value
   } else nop
   (yet "Define the <code class=\"idl\">values</code>, and possibly {{%Symbol.asyncIterator%}}, methods:")
   let steps = clo<"define_the_asynchronous_iteration_methods_closure3">
   call F = clo<"CreateBuiltinFunction">(steps, 0, "<code>values</code>", (list []), realm)
-  call _ = clo<"CreateDataPropertyOrThrow">(target, "<code>values</code>", F)
+  call _call5 = clo<"CreateDataPropertyOrThrow">(target, "<code>values</code>", F)
+  assert (= _call5.Type ~normal~)
+  let _call6 = _call5.Value
   if (yet "|definition| has a [=value asynchronously iterable declaration=]") {
-    call _ = clo<"DefineMethodProperty">(target, @SYMBOL.asyncIterator, F, false)
+    call _call7 = clo<"DefineMethodProperty">(target, @SYMBOL.asyncIterator, F, false)
+    assert (= _call7.Type ~normal~)
+    let _call8 = _call7.Value
   } else nop
   return ~unused~
 }
@@ -4396,13 +4461,20 @@ def internally_create_a_new_object_implementing_the_interface(
     let _call6 = (yet "|unforgeables|.\\[[GetOwnProperty]](|key|)")
     assert (= _call6.Type ~normal~)
     let descriptor = _call6.Value
-    call _ = clo<"DefinePropertyOrThrow">(instance, key, descriptor)
+    call _call7 = clo<"DefinePropertyOrThrow">(instance, key, descriptor)
+    assert (= _call7.Type ~normal~)
+    let _call8 = _call7.Value
     _iterIdx2 = (+ _iterIdx2 1)
   }
   if (yet "any ea in |interface|.[[extendedAttributes]] |ea|.[[id]] is \"Global\"") {
     call _ = clo<"Define_the_regular_operations">(interface, instance, realm)
     call _ = clo<"Define_the_regular_attributes">(interface, instance, realm)
-    call _ = clo<"Define_the_iteration_methods">(interface, instance, realm)
+    call _guard1 = clo<"Define_the_iteration_methods">(interface, instance, realm)
+    if (&& (? _guard1: Completion) (! (= _guard1.Type ~normal~))) {
+      return _guard1
+    } else {
+      _guard1 = _guard1.Value
+    }
     call _ = clo<"Define_the_asynchronous_iteration_methods">(interface, instance, realm)
     call _ = clo<"Define_the_global_property_references">(instance, realm)
     (yet "Set |instance|.\\[[SetPrototypeOf]] as defined in [[#platform-object-setprototypeof]]")
@@ -5069,7 +5141,12 @@ def attribute_setter_closure1(
       _i2 = (+ _i2 1)
     }
     if (= _found1 true) {
-      call _ = clo<"CreateDataPropertyOrThrow">(jsValue, id, V)
+      call _call1 = clo<"CreateDataPropertyOrThrow">(jsValue, id, V)
+      if (&& (? _call1: Completion) (! (= _call1.Type ~normal~))) {
+        return _call1
+      } else {
+        let _call2 = _call1.Value
+      }
       call _ret1 = clo<"NormalCompletion">(undefined)
       return _ret1
     } else nop
@@ -5100,11 +5177,11 @@ def attribute_setter_closure1(
       _i6 = (+ _i6 1)
     }
     if (= _found5 true) {
-      call _call1 = clo<"Get">(jsValue, id)
-      if (&& (? _call1: Completion) (! (= _call1.Type ~normal~))) {
-        return _call1
+      call _call3 = clo<"Get">(jsValue, id)
+      if (&& (? _call3: Completion) (! (= _call3.Type ~normal~))) {
+        return _call3
       } else {
-        let Q = _call1.Value
+        let Q = _call3.Value
       }
       if (! (? Q: Record[Object])) {
         call _ = clo<"JavaScript/throw">((record [TypeError] {
@@ -5126,7 +5203,12 @@ def attribute_setter_closure1(
         }))
       } else nop
       let forwardId = (yet "the identifier argument of the [{{PutForwards}}] [=extended attribute=]")
-      call _ = clo<"Set">(Q, forwardId, V, false)
+      call _call4 = clo<"Set">(Q, forwardId, V, false)
+      if (&& (? _call4: Completion) (! (= _call4.Type ~normal~))) {
+        return _call4
+      } else {
+        let _call5 = _call4.Value
+      }
       call _ret4 = clo<"NormalCompletion">(undefined)
       return _ret4
     } else nop
@@ -5145,11 +5227,11 @@ def attribute_setter_closure1(
     } else nop
   } else nop
   let idlValue = (yet "determined as follows: <dl class=\"switch\"> <dt>|attribute|'s type is an [=enumeration=]</dt> <dd>")
-  call _call2 = clo<"ToString">(V)
-  if (&& (? _call2: Completion) (! (= _call2.Type ~normal~))) {
-    return _call2
+  call _call6 = clo<"ToString">(V)
+  if (&& (? _call6: Completion) (! (= _call6.Type ~normal~))) {
+    return _call6
   } else {
-    let S = _call2.Value
+    let S = _call6.Value
   }
   if (! (= S (yet "one of the [=enumeration's values=]"))) {
     call _ret6 = clo<"NormalCompletion">(undefined)

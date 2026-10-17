@@ -98,13 +98,26 @@ object PropagateUnguardedCallsPass extends LoweringPass:
           _,
           PerformOutcome.BindResult(rawX),
           pbody,
+          _,
         )) :: rest
         if completionAlgos.contains(CompletionAlgorithms.normalize(func)) &&
+        !isBoundForAbrupt(stripPipes(rawX), pbody ++ rest) &&
         !CompletionAlgorithms
           .isAbsorbed(Some(stripPipes(rawX)), pbody ++ rest) =>
       val x = stripPipes(rawX)
       val xVar = Expr.Var(x)
       p.copy(body = Nil) :: (guard(Instr.Set(xVar, _, Nil), xVar) ++
+      transform(pbody, completionAlgos, counter) ++
+      transform(rest, completionAlgos, counter))
+
+    // bare "Perform F(args)." — binds the discarded result to a fresh temp
+    // so it can be guarded like the case above.
+    case (p @ Instr.Perform(func, _, PerformOutcome.Discard, pbody, _)) :: rest
+        if completionAlgos.contains(CompletionAlgorithms.normalize(func)) &&
+        !CompletionAlgorithms.isAbsorbed(None, pbody ++ rest) =>
+      val tmpVar = Expr.Var(counter.fresh())
+      p.copy(outcome = PerformOutcome.BindResult(tmpVar.name), body = Nil) ::
+      (guard(Instr.Set(tmpVar, _, Nil), tmpVar) ++
       transform(pbody, completionAlgos, counter) ++
       transform(rest, completionAlgos, counter))
 

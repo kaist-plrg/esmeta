@@ -209,9 +209,8 @@ object InstrParser:
   // [=!=] [$SetIntegrityLevel$](...)`. Mirrors ExprParser's AbruptPrefix —
   // without this, `[=!=]` is indistinguishable from a real `[=algo=]` link to
   // LeadingAlgoLink below, and gets parsed as one (a call to a function named
-  // "!"). Perform has no abrupt-check field to carry the marker to, so — like
-  // Compiler's own `Abrupt("!", e)` handling — it's simply discarded here.
-  private val AbruptCallPrefix = """(?s)^\[=[?!]=\]\s+(.+)$""".r
+  // "!"). The marker is kept in Perform's `marker` field.
+  private val AbruptCallPrefix = """(?s)^\[=([?!])=\]\s+(.+)$""".r
 
   // e.g. "catch it, [=reject=] |promise| with the exception, and return
   // |promise|" — the body of an `If(Cond.Throws, ...)`. Written as one
@@ -228,7 +227,6 @@ object InstrParser:
     """(?si)^\[=list/Remove=\]\s+from\s+(\|[^|]+\|)\s+all\s+the\s+\[=([^=\]]*)=\]\s+that\s+are\s+\[=([^=\]]+)=\]$""".r
 
   private def parseCall(expr: String): (String, List[Expr]) = expr.trim match
-    case AbruptCallPrefix(rest) => parseCall(rest)
     case LeadingJSCall(name, argsRaw) =>
       (name, splitComma(argsRaw).map(ExprParser.parse))
     case LeadingAbstractOpCall(name, argsRaw) =>
@@ -516,8 +514,11 @@ object InstrParser:
           case PerformAndBareReturnSuffix(op) =>
             (op, Discard, Return(None) :: trailingBody)
           case op => (op, Discard, trailingBody)
-        val (func, args) = parseCall(op)
-        Perform(func, args, outcome, body)
+        val (marker, call) = op.trim match
+          case AbruptCallPrefix(m, rest) => (Some(m), rest)
+          case call                      => (None, call)
+        val (func, args) = parseCall(call)
+        Perform(func, args, outcome, body, marker)
       case _ => Unknown(text, trailingBody)
 
   /** splits the text following `If`/`Else if`/... into its condition and the

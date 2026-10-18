@@ -57,7 +57,7 @@ object ExpandPerformReturnResultPass extends LoweringPass:
 
   private def expandInstr(instr: Instr, counter: Counter): List[Instr] =
     instr match
-      case Instr.Perform(func, args, PerformOutcome.ReturnResult, body) =>
+      case Instr.Perform(func, args, PerformOutcome.ReturnResult, body, _) =>
         val tmp = counter.freshRet()
         transform(body, counter) ++
         List(

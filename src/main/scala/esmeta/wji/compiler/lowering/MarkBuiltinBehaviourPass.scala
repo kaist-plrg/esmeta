@@ -43,7 +43,7 @@ object MarkBuiltinBehaviourPass extends LoweringPass:
     */
   private def createBuiltinFunctionArgs(instr: Instr): Option[List[Expr]] =
     instr match
-      case Instr.Perform("CreateBuiltinFunction", args, _, _) => Some(args)
+      case Instr.Perform("CreateBuiltinFunction", args, _, _, _) => Some(args)
       case Instr.Let(_, Expr.AlgoCall("CreateBuiltinFunction", args), _) =>
         Some(args)
       case Instr.Let(_, Expr.JSCall("CreateBuiltinFunction", args), _) =>

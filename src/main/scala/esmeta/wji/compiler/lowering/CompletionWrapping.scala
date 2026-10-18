@@ -216,7 +216,7 @@ object CompletionWrapping:
     val direct: Set[Expr] = instr match
       case Instr.Let(lhs, _, _) => Set(lhs)
       case Instr.Set(lhs, _, _) => Set(lhs)
-      case Instr.Perform(_, _, PerformOutcome.BindResult(v), _) =>
+      case Instr.Perform(_, _, PerformOutcome.BindResult(v), _, _) =>
         Set(Expr.Var(v))
       case Instr.PerformClosure(_, _, PerformOutcome.BindResult(v), _) =>
         Set(Expr.Var(v))

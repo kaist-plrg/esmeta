@@ -312,8 +312,90 @@ class CompletionPropagationSpec extends AnyFunSuite:
       Instr.Return(Some(Expr.Var("result"))),
     ),
   )
+  // ---- Scenario 5: implicit propagation through a bare Perform (Discard) ----
 
-  // ---- Scenario 5: WebIDL's "Try running the following steps" / "And then, if an exception |E| was thrown" ----
+  /** Same as [[callExplodeUnguarded]], but the call is a bare `Perform` whose
+    * result is discarded.
+    *
+    * As spec prose:
+    * {{{
+    * To <dfn>perform explode unguarded</dfn> given |flag|, perform the
+    * following steps:
+    *   1. Perform [=explode=](|flag|).
+    *   2. Return "reached-end".
+    * }}}
+    */
+  private val performExplodeUnguarded = Algorithm(
+    id = Some("performExplodeUnguarded"),
+    name = Some("performExplodeUnguarded"),
+    params = List(WjiParam("|flag|")),
+    head = "",
+    body = List(
+      Instr.Perform("[=explode=]", List(Expr.Var("flag"))),
+      Instr.Return(Some(Expr.Str("reached-end"))),
+    ),
+  )
+
+  /** Same as [[runImplicitPropagation]], over [[performExplodeUnguarded]].
+    *
+    * As spec prose:
+    * {{{
+    * To <dfn>run perform propagation</dfn> given |flag|, perform the
+    * following steps:
+    *   1. Let |outcome| be [=perform explode unguarded=](|flag|).
+    *   2. If |outcome|.[[Type]] is throw, then
+    *     1. Return "threw".
+    *   3. Return |outcome|.[[Value]].
+    * }}}
+    */
+  private val runPerformPropagation = Algorithm(
+    id = Some("runPerformPropagation"),
+    name = Some("runPerformPropagation"),
+    params = List(WjiParam("|flag|")),
+    head = "",
+    body = List(
+      Instr.Let(
+        Expr.Var("outcome"),
+        Expr.AlgoCall("[=performExplodeUnguarded=]", List(Expr.Var("flag"))),
+      ),
+      Instr.If(
+        Cond
+          .Eq(Expr.Field(Expr.Var("outcome"), "Type"), Expr.SpecTerm("throw")),
+        List(Instr.Return(Some(Expr.Str("threw")))),
+      ),
+      Instr.Return(Some(Expr.Field(Expr.Var("outcome"), "Value"))),
+    ),
+  )
+
+  // ---- Scenario 6: bare Perform (Discard) absorbed by the "if this throws" idiom ----
+
+  /** Same as [[explodeWithCatch]], but the call is a bare `Perform`.
+    *
+    * As spec prose:
+    * {{{
+    * To <dfn>perform explode with catch</dfn> given |flag|, perform the
+    * following steps:
+    *   1. Perform [=explode=](|flag|).
+    *   2. If this throws an exception, catch it, and return "caught".
+    *   3. Return "reached-end".
+    * }}}
+    */
+  private val performExplodeWithCatch = Algorithm(
+    id = Some("performExplodeWithCatch"),
+    name = Some("performExplodeWithCatch"),
+    params = List(WjiParam("|flag|")),
+    head = "",
+    body = List(
+      Instr.Perform("[=explode=]", List(Expr.Var("flag"))),
+      Instr.If(
+        Cond.Throws(None, Some("|exception|")),
+        List(Instr.Return(Some(Expr.Str("caught")))),
+      ),
+      Instr.Return(Some(Expr.Str("reached-end"))),
+    ),
+  )
+
+  // ---- Scenario 7: WebIDL's "Try running the following steps" / "And then, if an exception |E| was thrown" ----
 
   /** WebIDL's try/catch idiom (`Instr.Try`/`Instr.Catch`, lowered by
     * `ExpandTryPass` into the same `Cond.Throws` shape scenario 3 exercises),
@@ -367,7 +449,7 @@ class CompletionPropagationSpec extends AnyFunSuite:
         ),
         Nil,
       ),
-    ),
+    )
   )
 
   /** All scenario algorithms declared above, merged into the SAME shared
@@ -393,6 +475,9 @@ class CompletionPropagationSpec extends AnyFunSuite:
       explodeWithCatch,
       harmless,
       callHarmlessUnguarded,
+      performExplodeUnguarded,
+      runPerformPropagation,
+      performExplodeWithCatch,
       tryExplode,
     )
     val wjiProgram = Compiler.compile(Lowering.run(allAlgos))
@@ -465,6 +550,24 @@ class CompletionPropagationSpec extends AnyFunSuite:
 
   test("no guard at all for a call into a non-completion-returning algorithm") {
     assert(invoke("callharmlessunguarded", Nil) == Bool(true))
+  }
+
+  test(
+    "implicit propagation: a bare Perform's discarded abrupt completion must propagate out, not fall through",
+  ) {
+    assert(invoke("runperformpropagation", List(Bool(true))) == Str("threw"))
+    assert(
+      invoke("runperformpropagation", List(Bool(false))) == Str("reached-end"),
+    )
+  }
+
+  test(
+    "if-this-throws-catch-it idiom after a bare Perform: no machine-inserted guard should preempt ExpandThrowsPass's own handling",
+  ) {
+    assert(invoke("performexplodewithcatch", List(Bool(true))) == Str("caught"))
+    assert(
+      invoke("performexplodewithcatch", List(Bool(false))) == Str("reached-end"),
+    )
   }
 
   test(

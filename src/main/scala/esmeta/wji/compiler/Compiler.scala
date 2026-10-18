@@ -313,7 +313,7 @@ object Compiler:
         ),
       ) :: compileSeq(body)
 
-    case Instr.Perform(func, args, outcome, body) =>
+    case Instr.Perform(func, args, outcome, body, _) =>
       val callArgs = args.map(compileExpr)
       val name = nameFromLink(func)
       val bodyInsts = compileSeq(body)

@@ -52,6 +52,9 @@ object InstrPrinter:
     if args.isEmpty then func
     else s"$func(${args.map(ExprPrinter.render).mkString(", ")})"
 
+  private def renderMarker(marker: Option[String]): String =
+    marker.fold("")(m => s"[=$m=] ")
+
   private def renderClosureCall(closure: Expr, args: List[Expr]): String =
     renderCall(ExprPrinter.render(closure), args)
 
@@ -83,12 +86,12 @@ object InstrPrinter:
     case Pop(lhs, list, _) =>
       s"Pop(${ExprPrinter.render(lhs)}, ${ExprPrinter.render(list)})"
     case Continue(_) => "Continue"
-    case Perform(func, args, Discard, _) =>
-      s"Perform(${renderCall(func, args)})"
-    case Perform(func, args, ReturnResult, _) =>
-      s"PerformAndReturn(${renderCall(func, args)})"
-    case Perform(func, args, BindResult(v), _) =>
-      s"PerformAndLet(${renderCall(func, args)}, $v)"
+    case Perform(func, args, Discard, _, marker) =>
+      s"Perform(${renderMarker(marker)}${renderCall(func, args)})"
+    case Perform(func, args, ReturnResult, _, marker) =>
+      s"PerformAndReturn(${renderMarker(marker)}${renderCall(func, args)})"
+    case Perform(func, args, BindResult(v), _, marker) =>
+      s"PerformAndLet(${renderMarker(marker)}${renderCall(func, args)}, $v)"
     case PerformClosure(closure, args, Discard, _) =>
       s"PerformClosure(${renderClosureCall(closure, args)})"
     case PerformClosure(closure, args, ReturnResult, _) =>

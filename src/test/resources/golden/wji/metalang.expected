@@ -212,7 +212,7 @@
     Let(|status|, [=!=] [$CreateDataProperty$](|exportsObject|, |name|, |value|))
     Assert(|status| is true)
     Note(the validity and uniqueness checks performed during [=WebAssembly module validation=] ensure that each property name is valid and no properties are defined twice)
-  Perform(SetIntegrityLevel(|exportsObject|, frozen))
+  Perform([=!=] SetIntegrityLevel(|exportsObject|, frozen))
   Return(|exportsObject|)
 
 # initialize an instance object
@@ -469,7 +469,7 @@
   Let(|memory|, |map|[|memaddr|])
   Let(|buffer|, |memory|.[[BufferObject]])
   If([=IsFixedLengthArrayBuffer=](|buffer|) is true)
-    Perform(DetachArrayBuffer(|buffer|, "WebAssembly.Memory"))
+    Perform([=!=] DetachArrayBuffer(|buffer|, "WebAssembly.Memory"))
     Let(|buffer|, [=create a fixed length memory buffer=](|memaddr|))
     Set(|memory|.[[BufferObject]], |buffer|)
   Else
@@ -518,7 +518,7 @@
     Return(|buffer|)
   Let(|memaddr|, **this**.[[Memory]])
   Let(|fixedBuffer|, [=create a fixed length memory buffer=](|memaddr|))
-  Perform(DetachArrayBuffer(|buffer|, "WebAssembly.Memory"))
+  Perform([=!=] DetachArrayBuffer(|buffer|, "WebAssembly.Memory"))
   Set(**this**.[[BufferObject]], |fixedBuffer|)
   Return(|fixedBuffer|)
 
@@ -537,7 +537,7 @@
   Assert(|memtype|.1.1 is not opt(none))
   Let(|maxsize|, AsMath(|memtype|.1.1.[[Value]]) * 65536)
   Let(|resizableBuffer|, [=create a resizable memory buffer=](|memaddr|, |maxsize|))
-  Perform(DetachArrayBuffer(|buffer|, "WebAssembly.Memory"))
+  Perform([=!=] DetachArrayBuffer(|buffer|, "WebAssembly.Memory"))
   Set(**this**.[[BufferObject]], |resizableBuffer|)
   Return(|resizableBuffer|)
 
@@ -1261,7 +1261,7 @@
   Let(|namespaceObject|, [=namespace object=])
   ForEach(|error|, « "CompileError", "LinkError", "RuntimeError" »)
     Let(|constructor|, ?(a new object, implementing the [=NativeError Object Structure=], with <var ignore>NativeError</var> set to |error|))
-    Perform(DefineMethodProperty(|namespaceObject|, |error|, |constructor|, false))
+    Perform([=!=] DefineMethodProperty(|namespaceObject|, |error|, |constructor|, false))
 
 # get the builtins for a builtin set
   params: |builtinSetName|
@@ -1507,14 +1507,14 @@
   If(|x| is missing)
     Let(|x|, undefined)
   Let(|value|, [=converted to a JavaScript value=](|x|))
-  Perform(Call(|p|.[[Resolve]], undefined, « |value| »))
+  Perform([=!=] Call(|p|.[[Resolve]], undefined, « |value| »))
   If(|T| is undefined)
     ?(the |x| argument is optional, allowing a simpler "[=resolve=] p" usage)
 
 # reject
   params: |T|, |p|, |r|
   head: To <dfn export>reject</dfn> a <code><a interface>Promise</a>&lt;<var ignore>T</var>&gt;</code> |p| with reason |r| (a JavaScript value), perform the following steps:
-  Perform(Call(|p|.[[Reject]], undefined, « |r| »))
+  Perform([=!=] Call(|p|.[[Reject]], undefined, « |r| »))
 
 # react
   params: |T|, |promise|, |onFullfilledStepsArg|, |onRejectedStepsArg|, |realm|
@@ -1633,9 +1633,9 @@
       If(no ea in |member|.[[extendedAttributes]] |ea|.[[id]] is "Unscopable")
         Continue
       Let(|id|, |member|.[[id]])
-      Perform(CreateDataPropertyOrThrow(|unscopableObject|, |id|, true))
+      Perform([=!=] CreateDataPropertyOrThrow(|unscopableObject|, |id|, true))
     Let(|desc|, PropertyDescriptor{[[Value]]: |unscopableObject|, [[Writable]]: false, [[Enumerable]]: false, [[Configurable]]: true})
-    Perform(DefinePropertyOrThrow(|interfaceProtoObj|, %Symbol.unscopables%, |desc|))
+    Perform([=!=] DefinePropertyOrThrow(|interfaceProtoObj|, %Symbol.unscopables%, |desc|))
   If(no ea in |interface|.[[extendedAttributes]] |ea|.[[id]] is "Global")
     Perform([=Define the regular attributes=](|interface|, |interfaceProtoObj|, |realm|))
     Perform([=Define the regular operations=](|interface|, |interfaceProtoObj|, |realm|))
@@ -1645,7 +1645,7 @@
   If(no ea in |interface|.[[extendedAttributes]] |ea|.[[id]] is "LegacyNoInterfaceObject")
     Let(|constructor|, [=interface object=](|interface|, |realm|))
     Let(|desc|, PropertyDescriptor{[[Writable]]: true, [[Enumerable]]: false, [[Configurable]]: true, [[Value]]: |constructor|})
-    Perform(DefinePropertyOrThrow(|interfaceProtoObj|, "constructor", |desc|))
+    Perform([=!=] DefinePropertyOrThrow(|interfaceProtoObj|, "constructor", |desc|))
   Return(|interfaceProtoObj|)
 
 # define the constants
@@ -1657,7 +1657,7 @@
     Let(|value|, [=converted to a JavaScript value=](|const|))
     Let(|desc|, PropertyDescriptor{[[Writable]]: false, [[Enumerable]]: true, [[Configurable]]: false, [[Value]]: |value|})
     Let(|id|, |const|.[[id]])
-    Perform(DefinePropertyOrThrow(|target|, |id|, |desc|))
+    Perform([=!=] DefinePropertyOrThrow(|target|, |id|, |desc|))
 
 # define the regular attributes
   params: |definition|, |target|, |realm|
@@ -1690,7 +1690,7 @@
     Let(|configurable|, false if |attr| is [=unforgeable=] else true)
     Let(|desc|, PropertyDescriptor{[[Get]]: |getter|, [[Set]]: |setter|, [[Enumerable]]: true, [[Configurable]]: |configurable|})
     Let(|id|, |attr|.[[id]])
-    Perform(DefinePropertyOrThrow(|target|, |id|, |desc|))
+    Perform([=!=] DefinePropertyOrThrow(|target|, |id|, |desc|))
     If(|attr|.[[ty]] is an observable array type)
       Set(?(|target|'s [=backing observable array exotic object=] for |attr|), [=creating an observable array exotic object=](|realm|, |T|, |attr|, [=set an indexed value=](|attr|, [=delete an indexed value=])))
 
@@ -1746,7 +1746,7 @@
       If(|validThis| is false, and no ea in |attribute|.[[extendedAttributes]] |ea|.[[id]] is "LegacyLenientThis")
         Throw(new {{TypeError}})
       If(any ea in |attribute|.[[extendedAttributes]] |ea|.[[id]] is "Replaceable")
-        Perform(CreateDataPropertyOrThrow(|jsValue|, |id|, |V|))
+        Perform([=?=] CreateDataPropertyOrThrow(|jsValue|, |id|, |V|))
         Return(undefined)
       If(|validThis| is false)
         Return(undefined)
@@ -1757,7 +1757,7 @@
         If(|Q| is not an Object)
           Throw(new {{TypeError}})
         Let(|forwardId|, ?(the identifier argument of the [{{PutForwards}}] [=extended attribute=]))
-        Perform(Set(|Q|, |forwardId|, |V|, false))
+        Perform([=?=] Set(|Q|, |forwardId|, |V|, false))
         Return(undefined)
       Set(|idlObject|, |jsValue|)
       If(|attribute|.[[ty]] is an observable array type)
@@ -1812,7 +1812,7 @@
     Let(|modifiable|, false if |op| is [=unforgeable=] else true)
     Let(|desc|, PropertyDescriptor{[[Value]]: |method|, [[Writable]]: |modifiable|, [[Enumerable]]: true, [[Configurable]]: |modifiable|})
     Let(|id|, |op|.[[id]])
-    Perform(DefinePropertyOrThrow(|target|, |id|, |desc|))
+    Perform([=!=] DefinePropertyOrThrow(|target|, |id|, |desc|))
 
 # creating an operation function
   params: |op|, |target|, |realm|
@@ -1855,10 +1855,10 @@
   If(any m in |definition|.[[members]] |m|.[[kind]] is enum(IndexedGetter))
     Perform(DefineMethodProperty(|target|, %Symbol.iterator%, %Array.prototype.values%, false))
     If(?(|definition| has a [=value iterator=]))
-      Perform(CreateDataPropertyOrThrow(|target|, "entries", %Array.prototype.entries%))
-      Perform(CreateDataPropertyOrThrow(|target|, "keys", %Array.prototype.keys%))
-      Perform(CreateDataPropertyOrThrow(|target|, "values", %Array.prototype.values%))
-      Perform(CreateDataPropertyOrThrow(|target|, "forEach", %Array.prototype.forEach%))
+      Perform([=!=] CreateDataPropertyOrThrow(|target|, "entries", %Array.prototype.entries%))
+      Perform([=!=] CreateDataPropertyOrThrow(|target|, "keys", %Array.prototype.keys%))
+      Perform([=!=] CreateDataPropertyOrThrow(|target|, "values", %Array.prototype.values%))
+      Perform([=!=] CreateDataPropertyOrThrow(|target|, "forEach", %Array.prototype.forEach%))
   ElseIf(any m in |definition|.[[members]] |m|.[[kind]] is enum(Iterable), and ?(|m|'s type is pair))
     ?(Define the {{%Symbol.iterator%}} and <code class="idl">entries</code> methods:)
       Let(|steps|, followingSteps())
@@ -1870,7 +1870,7 @@
         Return(?(a newly created [=default iterator object=] for |definition|, with |jsValue| as its [=default iterator object/target=], "<code>key+value</code>" as its [=default iterator object/kind=], and [=default iterator object/index=] set to 0))
       Let(|F|, [$CreateBuiltinFunction$](|steps|, 0, "entries", « », |realm|))
       Perform(DefineMethodProperty(|target|, %Symbol.iterator%, |F|, false))
-      Perform(CreateDataPropertyOrThrow(|target|, "entries", |F|))
+      Perform([=!=] CreateDataPropertyOrThrow(|target|, "entries", |F|))
     ?(Define the <code class="idl">keys</code> method:)
       Let(|steps|, followingSteps())
         Let(|jsValue|, [=?=] [$ToObject$](?(<emu-val>this</emu-val> value)))
@@ -1880,7 +1880,7 @@
           Throw(new {{TypeError}})
         Return(?(a newly created [=default iterator object=] for |definition|, with |jsValue| as its [=default iterator object/target=], "<code>key</code>" as its [=default iterator object/kind=], and [=default iterator object/index=] set to 0))
       Let(|F|, [$CreateBuiltinFunction$](|steps|, 0, "keys", « », |realm|))
-      Perform(CreateDataPropertyOrThrow(|target|, "keys", |F|))
+      Perform([=!=] CreateDataPropertyOrThrow(|target|, "keys", |F|))
     ?(Define the <code class="idl">values</code> method:)
       Let(|steps|, followingSteps())
         Let(|jsValue|, [=?=] [$ToObject$](?(<emu-val>this</emu-val> value)))
@@ -1890,7 +1890,7 @@
           Throw(new {{TypeError}})
         Return(?(a newly created [=default iterator object=] for |definition|, with |jsValue| as its [=default iterator object/target=], "<code>value</code>" as its [=default iterator object/kind=], and [=default iterator object/index=] set to 0))
       Let(|F|, [$CreateBuiltinFunction$](|steps|, 0, "values", « », |realm|))
-      Perform(CreateDataPropertyOrThrow(|target|, "values", |F|))
+      Perform([=!=] CreateDataPropertyOrThrow(|target|, "values", |F|))
     ?(Define the <code class="idl">forEach</code> method:)
       Let(|steps|, ?(the following series of steps, given function argument values |callback| and |thisArg|:))
         Let(|jsValue|, [=?=] [$ToObject$](?(<emu-val>this</emu-val> value)))
@@ -1908,7 +1908,7 @@
           Set(|pairs|, ?(|idlObject|'s current list of [=value pairs to iterate over=]))
           Set(|i|, |i| + 1)
       Let(|F|, [$CreateBuiltinFunction$](|steps|, 1, "forEach", « », |realm|))
-      Perform(CreateDataPropertyOrThrow(|target|, "forEach", |F|))
+      Perform([=!=] CreateDataPropertyOrThrow(|target|, "forEach", |F|))
 
 # define the asynchronous iteration methods
   params: |definition|, |target|, |realm|
@@ -1930,7 +1930,7 @@
       Return(|iterator|)
     Let(|F|, [$CreateBuiltinFunction$](|steps|, 0, "entries", « », |realm|))
     Perform(DefineMethodProperty(|target|, %Symbol.asyncIterator%, |F|, false))
-    Perform(CreateDataPropertyOrThrow(|target|, "entries", |F|))
+    Perform([=!=] CreateDataPropertyOrThrow(|target|, "entries", |F|))
   If(?(|definition| has a [=pair asynchronously iterable declaration=]))
     Let(|steps|, followingSteps(args, ...))
       Let(|jsValue|, [=?=] [$ToObject$](?(<emu-val>this</emu-val> value)))
@@ -1944,7 +1944,7 @@
       Perform(Run the [=asynchronous iterator initialization steps=] for |definition| with |idlObject|, |iterator|, and |idlArgs|, if any such steps exist)
       Return(|iterator|)
     Let(|F|, [$CreateBuiltinFunction$](|steps|, 0, ?("<code>keys</code>, « », |realm|)))
-    Perform(CreateDataPropertyOrThrow(|target|, "keys", |F|))
+    Perform([=!=] CreateDataPropertyOrThrow(|target|, "keys", |F|))
   ?(Define the <code class="idl">values</code>, and possibly {{%Symbol.asyncIterator%}}, methods:)
     Let(|steps|, followingSteps(args, ...))
       Let(|jsValue|, [=?=] [$ToObject$](?(<emu-val>this</emu-val> value)))
@@ -1958,9 +1958,9 @@
       Perform(Run the [=asynchronous iterator initialization steps=] for |definition| with |idlObject|, |iterator|, and |idlArgs|, if any such steps exist)
       Return(|iterator|)
     Let(|F|, [$CreateBuiltinFunction$](|steps|, 0, "values", « », |realm|))
-    Perform(CreateDataPropertyOrThrow(|target|, "values", |F|))
+    Perform([=!=] CreateDataPropertyOrThrow(|target|, "values", |F|))
     If(?(|definition| has a [=value asynchronously iterable declaration=]))
-      Perform(DefineMethodProperty(|target|, %Symbol.asyncIterator%, |F|, false))
+      Perform([=!=] DefineMethodProperty(|target|, %Symbol.asyncIterator%, |F|, false))
 
 # new
   params: |interface|, |realm|
@@ -1992,7 +1992,7 @@
     Let(|keys|, [=!=] |unforgeables|.[[OwnPropertyKeys]]())
     ForEach(|key|, |keys|)
       Let(|descriptor|, [=!=] |unforgeables|.[[GetOwnProperty]](|key|))
-      Perform(DefinePropertyOrThrow(|instance|, |key|, |descriptor|))
+      Perform([=!=] DefinePropertyOrThrow(|instance|, |key|, |descriptor|))
   If(any ea in |interface|.[[extendedAttributes]] |ea|.[[id]] is "Global")
     Perform([=Define the regular operations=](|interface|, |instance|, |realm|))
     Perform([=Define the regular attributes=](|interface|, |instance|, |realm|))
@@ -2035,7 +2035,7 @@
       Perform([=Invoke the named property setter=](|O|, |P|, |V|))
       Return(true)
   Let(|ownDesc|, [=?=] [$LegacyPlatformObjectGetOwnProperty$](|O|, |P|, true))
-  Perform(OrdinarySetWithOwnDescriptor(|O|, |P|, |V|, |Receiver|, |ownDesc|))
+  Perform([=?=] OrdinarySetWithOwnDescriptor(|O|, |P|, |V|, |Receiver|, |ownDesc|))
 
 # to invoke the [[DefineOwnProperty]] internal method of legacy platform objects
   id: to invoke the [[DefineOwnProperty]] internal method of legacy platform objects

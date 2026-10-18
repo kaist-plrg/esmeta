@@ -282,11 +282,10 @@ object ResolveLinksPass extends LoweringPass:
 
     override def walk(instr: Instr): Instr = instr match
       case i: Instr.Perform =>
-        Instr.Perform(
-          resolveFuncName(plainKnown, i.func),
-          resolveArgs(i.args),
-          i.outcome,
-          i.body.map(walk),
+        i.copy(
+          func = resolveFuncName(plainKnown, i.func),
+          args = resolveArgs(i.args),
+          body = i.body.map(walk),
         )
       case other => super.walk(other)
 

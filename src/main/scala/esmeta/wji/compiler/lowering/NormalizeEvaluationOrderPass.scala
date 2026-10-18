@@ -261,6 +261,19 @@ object NormalizeEvaluationOrderPass extends LoweringPass:
           Instr.Perform(func, newArgs, outcome, transform(body, counter)),
         )
 
+      case Instr.PerformClosure(closure, args, outcome, body) =>
+        val ext = Extractor(counter)
+        val newClosure = ext.walk(closure)
+        val newArgs = args.map(ext.walk)
+        ext.hoisted ++ List(
+          Instr.PerformClosure(
+            newClosure,
+            newArgs,
+            outcome,
+            transform(body, counter),
+          ),
+        )
+
       case Instr.Assert(cond, body) =>
         val (bindings, newCond) = extractFromCond(cond, counter)
         bindings ++ List(Instr.Assert(newCond, transform(body, counter)))

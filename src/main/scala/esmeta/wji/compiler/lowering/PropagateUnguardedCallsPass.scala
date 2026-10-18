@@ -1,6 +1,6 @@
 package esmeta.wji.compiler.lowering
 
-import esmeta.wji.lang.{Algorithm, Expr, Instr}
+import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr}
 import esmeta.wji.lang.Instr.PerformOutcome
 
 /** Mirrors the Infra Standard's "no explicit catch → automatically re-throw"
@@ -93,31 +93,30 @@ object PropagateUnguardedCallsPass extends LoweringPass:
     // — x is already bound, so the marker just wraps a reference to it (Set,
     // not Let: this reassigns the same already-existing binding, unlike the
     // Let case below's genuinely-new one).
-    case (p @ Instr.Perform(
-          func,
-          _,
+    case (p @ PerformCall(
+          callee,
           PerformOutcome.BindResult(rawX),
           pbody,
-          _,
         )) :: rest
-        if completionAlgos.contains(CompletionAlgorithms.normalize(func)) &&
+        if mayComplete(callee, completionAlgos) &&
         !isBoundForAbrupt(stripPipes(rawX), pbody ++ rest) &&
         !CompletionAlgorithms
           .isAbsorbed(Some(stripPipes(rawX)), pbody ++ rest) =>
       val x = stripPipes(rawX)
       val xVar = Expr.Var(x)
-      p.copy(body = Nil) :: (guard(Instr.Set(xVar, _, Nil), xVar) ++
+      PerformCall.rebuild(p, PerformOutcome.BindResult(rawX)) ::
+      (guard(Instr.Set(xVar, _, Nil), xVar, callee.isEmpty) ++
       transform(pbody, completionAlgos, counter) ++
       transform(rest, completionAlgos, counter))
 
     // bare "Perform F(args)." — binds the discarded result to a fresh temp
     // so it can be guarded like the case above.
-    case (p @ Instr.Perform(func, _, PerformOutcome.Discard, pbody, _)) :: rest
-        if completionAlgos.contains(CompletionAlgorithms.normalize(func)) &&
+    case (p @ PerformCall(callee, PerformOutcome.Discard, pbody)) :: rest
+        if mayComplete(callee, completionAlgos) &&
         !CompletionAlgorithms.isAbsorbed(None, pbody ++ rest) =>
       val tmpVar = Expr.Var(counter.fresh())
-      p.copy(outcome = PerformOutcome.BindResult(tmpVar.name), body = Nil) ::
-      (guard(Instr.Set(tmpVar, _, Nil), tmpVar) ++
+      PerformCall.rebuild(p, PerformOutcome.BindResult(tmpVar.name)) ::
+      (guard(Instr.Set(tmpVar, _, Nil), tmpVar, callee.isEmpty) ++
       transform(pbody, completionAlgos, counter) ++
       transform(rest, completionAlgos, counter))
 
@@ -144,7 +143,20 @@ object PropagateUnguardedCallsPass extends LoweringPass:
         !isBoundForAbrupt(x, body ++ rest) &&
         !CompletionAlgorithms.isAbsorbed(Some(x), body ++ rest) =>
       val tmpVar = Expr.Var(counter.fresh())
-      Instr.Let(tmpVar, rhs, Nil) :: (guard(Instr.Let(lhs, _, Nil), tmpVar) ++
+      Instr.Let(tmpVar, rhs, Nil) ::
+      (guard(Instr.Let(lhs, _, Nil), tmpVar, isUnknownClosureCall(rhs)) ++
+      transform(body, completionAlgos, counter) ++
+      transform(rest, completionAlgos, counter))
+
+    // "Set X to F(args)." — same as the Let case above; only a ClosureCall
+    // RHS reaches here (NormalizeEvaluationOrderPass hoists other calls).
+    case Instr.Set(lhs @ Expr.Var(x), rhs, body) :: rest
+        if isUnguardedCompletionCall(rhs, completionAlgos) &&
+        !isBoundForAbrupt(x, body ++ rest) &&
+        !CompletionAlgorithms.isAbsorbed(Some(x), body ++ rest) =>
+      val tmpVar = Expr.Var(counter.fresh())
+      Instr.Let(tmpVar, rhs, Nil) ::
+      (guard(Instr.Set(lhs, _, Nil), tmpVar, isUnknownClosureCall(rhs)) ++
       transform(body, completionAlgos, counter) ++
       transform(rest, completionAlgos, counter))
 
@@ -155,6 +167,35 @@ object PropagateUnguardedCallsPass extends LoweringPass:
         counter,
       )
 
+  /** A `Perform`/`PerformClosure` as `(callee, outcome, body)`, where `callee`
+    * is the normalized target name, or `None` for a statically unknown closure.
+    */
+  private object PerformCall:
+    def unapply(
+      i: Instr,
+    ): Option[(Option[String], PerformOutcome, List[Instr])] = i match
+      case Instr.Perform(func, _, outcome, body, _) =>
+        Some((Some(CompletionAlgorithms.normalize(func)), outcome, body))
+      case Instr.PerformClosure(closure, _, outcome, body) =>
+        Some((CompletionAlgorithms.closureCallee(closure), outcome, body))
+      case _ => None
+
+    def rebuild(i: Instr, outcome: PerformOutcome): Instr = i match
+      case p: Instr.Perform        => p.copy(outcome = outcome, body = Nil)
+      case p: Instr.PerformClosure => p.copy(outcome = outcome, body = Nil)
+      case other                   => other
+
+  /** A statically unknown callee is assumed possibly completion-returning. */
+  private def mayComplete(
+    callee: Option[String],
+    completionAlgos: Set[String],
+  ): Boolean = callee.forall(completionAlgos.contains)
+
+  private def isUnknownClosureCall(expr: Expr): Boolean = expr match
+    case Expr.ClosureCall(closure, _) =>
+      CompletionAlgorithms.closureCallee(closure).isEmpty
+    case _ => false
+
   private def isUnguardedCompletionCall(
     expr: Expr,
     completionAlgos: Set[String],
@@ -163,6 +204,8 @@ object PropagateUnguardedCallsPass extends LoweringPass:
       completionAlgos.contains(CompletionAlgorithms.normalize(link))
     case Expr.JSCall(name, _) =>
       completionAlgos.contains(CompletionAlgorithms.normalize(name))
+    case Expr.ClosureCall(closure, _) =>
+      mayComplete(CompletionAlgorithms.closureCallee(closure), completionAlgos)
     case _ => false
 
   /** Whether `x` is about to be consumed as the `inner` of an `Expr.Abrupt`
@@ -186,8 +229,25 @@ object PropagateUnguardedCallsPass extends LoweringPass:
     * _, Nil)` to introduce a genuinely new one); `inner` is the bare `Var`
     * holding the raw call result to check.
     */
-  private def guard(bindLhs: Expr => Instr, inner: Expr.Var): List[Instr] =
-    List(bindLhs(Expr.Abrupt("?", inner)))
+  private def guard(
+    bindLhs: Expr => Instr,
+    inner: Expr.Var,
+    maybePlain: Boolean = false,
+  ): List[Instr] =
+    val checked = bindLhs(Expr.Abrupt("?", inner))
+    if !maybePlain then List(checked)
+    else
+      // a statically unknown closure may return a plain value: only apply
+      // the `?` handling when the result is actually a Completion Record
+      val plain = bindLhs(inner) match
+        case Instr.Set(lhs, rhs, _) if lhs == rhs => Nil
+        case i                                    => List(i)
+      List(
+        Instr.IfChain(
+          List((Cond.IsType(inner, "Completion"), List(checked))),
+          plain,
+        ),
+      )
 
   // see CompletionAlgorithms's identically-named/documented helper
   private def stripPipes(s: String): String =

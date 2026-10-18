@@ -61,27 +61,46 @@ object CompletionAlgorithms:
   def normalize(name: String): String =
     name.stripPrefix("[=").stripSuffix("=]").trim.toLowerCase
 
-  /** One call embedded in a single instruction: its target, its `?`/`!` marker
-    * if any, and the variable (if any) bound to its result.
+  /** One call embedded in a single instruction: its target (`None` for a
+    * statically unknown closure, assumed possibly completion-returning), its
+    * `?`/`!` marker if any, and the variable (if any) bound to its result.
     */
   private case class CallInfo(
-    callee: String,
+    callee: Option[String],
     marker: Option[String],
     boundTo: Option[String],
   )
 
+  /** The statically known algorithm a closure value refers to, if any. */
+  def closureCallee(closure: Expr): Option[String] = closure match
+    case Expr.Closure(name, _) => Some(normalize(name))
+    case _                     => None
+
   private def callInfo(instr: Instr): Option[CallInfo] =
     def fromExpr(e: Expr, bound: Option[String]): Option[CallInfo] = e match
       case Expr.AlgoCall(link, _) =>
-        Some(CallInfo(normalize(link), None, bound))
+        Some(CallInfo(Some(normalize(link)), None, bound))
       case Expr.Abrupt(marker, Expr.AlgoCall(link, _)) =>
-        Some(CallInfo(normalize(link), Some(marker), bound))
+        Some(CallInfo(Some(normalize(link)), Some(marker), bound))
+      case Expr.ClosureCall(closure, _) =>
+        Some(CallInfo(closureCallee(closure), None, bound))
+      case Expr.Abrupt(marker, Expr.ClosureCall(closure, _)) =>
+        Some(CallInfo(closureCallee(closure), Some(marker), bound))
       case _ => None
     instr match
       case Instr.Perform(func, _, PerformOutcome.BindResult(v), _, marker) =>
-        Some(CallInfo(normalize(func), marker, Some(stripPipes(v))))
+        Some(CallInfo(Some(normalize(func)), marker, Some(stripPipes(v))))
       case Instr.Perform(func, _, _, _, marker) =>
-        Some(CallInfo(normalize(func), marker, None))
+        Some(CallInfo(Some(normalize(func)), marker, None))
+      case Instr.PerformClosure(
+            closure,
+            _,
+            PerformOutcome.BindResult(v),
+            _,
+          ) =>
+        Some(CallInfo(closureCallee(closure), None, Some(stripPipes(v))))
+      case Instr.PerformClosure(closure, _, _, _) =>
+        Some(CallInfo(closureCallee(closure), None, None))
       case Instr.Let(Expr.Var(v), expr, _) => fromExpr(expr, Some(v))
       case Instr.Set(Expr.Var(v), expr, _) => fromExpr(expr, Some(v))
       case Instr.Return(Some(expr), _)     => fromExpr(expr, None)
@@ -222,7 +241,7 @@ object CompletionAlgorithms:
         // treatments — only a truly unmarked call needs this pass's own
         // implicit-propagation guard.
         val here = callInfo(i).exists { c =>
-          c.marker.isEmpty && s.contains(c.callee) && !isAbsorbed(
+          c.marker.isEmpty && c.callee.forall(s.contains) && !isAbsorbed(
             c.boundTo,
             rest,
           )

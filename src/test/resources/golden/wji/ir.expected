@@ -4887,7 +4887,16 @@ def react_closure1(
   }
   call-convert value = <converted_to_an_idl_value>(V, T)
   if (&& (! (= onFullfilledStepsArg undefined)) (! (= T undefined))) {
-    call result = onFullfilledStepsArg(value)
+    call _guard1 = onFullfilledStepsArg(value)
+    if (? _guard1: Completion) {
+      if (&& (? _guard1: Completion) (! (= _guard1.Type ~normal~))) {
+        return _guard1
+      } else {
+        let result = _guard1.Value
+      }
+    } else {
+      let result = _guard1
+    }
   } else {
     let result = value
   }
@@ -4911,7 +4920,16 @@ def react_closure2(
   }
   call-convert reason = <converted_to_an_idl_value>(R, ~any~)
   if (! (= onRejectedStepsArg undefined)) {
-    call result = onRejectedStepsArg(reason)
+    call _guard1 = onRejectedStepsArg(reason)
+    if (? _guard1: Completion) {
+      if (&& (? _guard1: Completion) (! (= _guard1.Type ~normal~))) {
+        return _guard1
+      } else {
+        let result = _guard1.Value
+      }
+    } else {
+      let result = _guard1
+    }
   } else {
     call result = clo<"a_promise_rejected_with">(reason)
   }
@@ -5035,7 +5053,16 @@ def attribute_getter_closure2(
     } else nop
     idlObject = (yet "the IDL [=interface type=] value that represents a reference to |jsValue|")
   } else nop
-  call R = attribute.getterSteps(idlObject)
+  call _guard1 = attribute.getterSteps(idlObject)
+  if (? _guard1: Completion) {
+    if (&& (? _guard1: Completion) (! (= _guard1.Type ~normal~))) {
+      return _guard1
+    } else {
+      let R = _guard1.Value
+    }
+  } else {
+    let R = _guard1
+  }
   call-convert _result1 = <converted_to_a_javascript_value>(R, attribute)
   if (? _result1: Completion) {
     return _result1
@@ -5302,9 +5329,27 @@ def creating_an_operation_function_closure2(
   }
   if (= _found1 true) {
     assert (yet "|operation| [=has default method steps=]")
-    call R = operation.defaultMethodSteps(idlObject, values)
+    call _guard1 = operation.defaultMethodSteps(idlObject, values)
+    if (? _guard1: Completion) {
+      if (&& (? _guard1: Completion) (! (= _guard1.Type ~normal~))) {
+        return _guard1
+      } else {
+        R = _guard1.Value
+      }
+    } else {
+      R = _guard1
+    }
   } else {
-    call R = operation.methodSteps(idlObject, values)
+    call _guard2 = operation.methodSteps(idlObject, values)
+    if (? _guard2: Completion) {
+      if (&& (? _guard2: Completion) (! (= _guard2.Type ~normal~))) {
+        return _guard2
+      } else {
+        R = _guard2.Value
+      }
+    } else {
+      R = _guard2
+    }
   }
   call-convert _result1 = <converted_to_a_javascript_value>(R)
   if (? _result1: Completion) {

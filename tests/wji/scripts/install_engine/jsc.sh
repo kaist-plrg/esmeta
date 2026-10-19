@@ -36,7 +36,7 @@ git remote add origin https://github.com/WebKit/WebKit.git
 git fetch --depth=1 --no-tags origin "$WEBKIT_COMMIT"
 git reset --hard "$WEBKIT_COMMIT"
 
-./Tools/Scripts/build-webkit --jsc-only --release
+./Tools/Scripts/build-jsc --release
 
 jsc_bin=$(find WebKitBuild -name jsc -type f -perm -u+x | head -n 1)
 echo "JavaScriptCore (jsc) built at: ${jsc_bin:-<not found -- check the build log above>}"

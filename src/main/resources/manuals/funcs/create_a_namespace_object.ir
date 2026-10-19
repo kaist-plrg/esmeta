@@ -4,6 +4,8 @@ def create_a_namespace_object(
 ): Unknown = {
   call namespaceObject = clo<"OrdinaryObjectCreate">(realm.Intrinsics["%Object.prototype%"])
   call _ = clo<"define_the_regular_operations">(namespace, namespaceObject, realm)
+  call _ = clo<"define_the_regular_attributes">(namespace, namespaceObject, realm)
+  call _ = clo<"define_the_constants">(namespace, namespaceObject, realm)
   i = 0
   interfaces = realm.HOST_DEFINED.interfaces
   while (< i (sizeof interfaces)) {
@@ -11,6 +13,14 @@ def create_a_namespace_object(
     id = interface.id
     call interfaceObject = clo<"create_an_interface_object">(interface, id, realm)
     call _ = clo<"DefineMethodProperty">(namespaceObject, id, interfaceObject, false)
+    i = (+ i 1)
+  }
+  errors = (list ["CompileError", "LinkError", "RuntimeError"])
+  i = 0
+  while (< i (sizeof errors)) {
+    name = (concat (concat "%" errors[i]) "%")
+    nativeError = realm.Intrinsics[name]
+    call _ = clo<"DefineMethodProperty">(namespaceObject, errors[i], nativeError, false)
     i = (+ i 1)
   }
   return namespaceObject

@@ -20,9 +20,14 @@ cd "$(dirname "${BASH_SOURCE[0]}")"
 # WebKit main HEAD as of 2026-10-16 (checked via
 # `git ls-remote https://github.com/WebKit/WebKit.git HEAD`) -- WebKit doesn't
 # tag discrete "stable release" commits in-repo the way Firefox does, so this
-# just tracks a recent `main` HEAD commit instead (not independently verified
-# to build cleanly -- WebKit's own CI is the only real signal for that). Bump
-# this the next time this script needs a newer commit.
+# just tracks a recent `main` HEAD commit instead. Confirmed to build cleanly
+# (`build-jsc --release`) and run real WebAssembly correctly (instantiate +
+# call an exported function) on Xcode 27.1/macOS 27 -- needed a fresh checkout
+# after upgrading from Xcode 16.2, since its SDK path (baked into an
+# in-progress build's already-generated ninja files) stopped existing once the
+# new Xcode.app replaced the old one wholesale; `--force` sidesteps that by
+# starting from a clean checkout. Bump this the next time this script needs a
+# newer commit.
 WEBKIT_COMMIT=6de1d8257b7a575d1633e33a6565ff49730156d8
 
 require_absent_or_force "$ENGINES_DIR/WebKit" -- "$@"

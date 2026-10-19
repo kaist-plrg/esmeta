@@ -67,8 +67,11 @@ build rather than a possibly-broken tip-of-tree:
   `git ls-remote --tags https://github.com/mozilla-firefox/firefox.git`.
 - **JavaScriptCore**: WebKit doesn't tag discrete "stable release" commits
   in-repo the way Firefox does, so this just tracks a recent `main` HEAD
-  commit instead -- not independently verified to build cleanly, unlike the
-  other two.
+  commit instead. Confirmed to build cleanly and run real WebAssembly
+  correctly on Xcode 27.1/macOS 27 -- a build in progress under an older Xcode
+  needs a fresh (`--force`) checkout after an Xcode upgrade, since the new
+  `Xcode.app` replaces the old one wholesale (its SDK path, baked into
+  already-generated ninja files, stops existing).
 
 These will drift out of date -- there's no automation keeping them current.
 Bump the commit (and its comment) in the relevant script the next time you

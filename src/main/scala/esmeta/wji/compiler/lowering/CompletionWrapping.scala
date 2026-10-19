@@ -118,22 +118,31 @@ object CompletionWrapping:
       alwaysCompletionCallees = alwaysCompletionCallees,
     )
 
-  /** Hardcoded WebIDL conversion routines confirmed, directly against their own
-    * interpreter implementation rather than anything derivable from spec text,
-    * to never produce a Completion Record -- `converted_to_a_javascript_ value`
-    * specifically (see `WebIdlConversion.scala`'s own doc: "can't throw either
-    * ... and was never affected by the completion-wrapping question"). Its
-    * sibling `converted_to_an_idl_value` is deliberately *not* here: that one
-    * genuinely can be abrupt (a required dictionary member found absent, an
-    * invalid enum value, a getter that itself throws), unlike this one. These
-    * are a fixed, hand-verified allowlist rather than a computed set like
-    * `pureCallees` above, since they aren't WJI `Algorithm`s at all (no
-    * `returnsCompletion` fixed point covers them) -- the same category of
-    * knowledge `docs/hardcodes.md` tracks for runtime behaviour this pipeline
-    * can't derive from the spec on its own.
+  /** Hardcoded mainline ECMA-262 operations confirmed, directly against their
+    * own spec text/implementation rather than anything `pureCallees` can derive
+    * (they aren't WJI `Algorithm`s at all -- no `returnsCompletion` fixed point
+    * covers them, same as `docs/hardcodes.md`'s own category of knowledge this
+    * pipeline can't derive from the spec on its own), to never produce a
+    * Completion Record:
+    *
+    *   - `converted_to_a_javascript_value` (see `WebIdlConversion.scala`'s own
+    *     doc: "can't throw either ... and was never affected by the
+    *     completion-wrapping question"). Its sibling
+    *     `converted_to_an_idl_value` is deliberately *not* here: that one
+    *     genuinely can be abrupt (a required dictionary member found absent, an
+    *     invalid enum value, a getter that itself throws), unlike this one.
+    *   - `CreateArrayFromList` (`js-api`'s own `[$CreateArrayFromList$]
+    *     (|values|)` call, e.g. `call_an_exported_function`'s final `Return`)
+    * -- `ecma262/spec.html#sec-createarrayfromlist`'s own return-type
+    * annotation is plain `an Array`, never "a normal completion containing ...
+    * or a throw completion" the way an abrupt operation's signature always is,
+    * and its three-step body (`! ArrayCreate(0)` then a loop of `!
+    * CreateDataPropertyOrThrow`) backs that up -- every step inside is itself
+    * `!`-asserted non-abrupt, so there is no path to an abrupt completion to
+    * assert away in the first place.
     */
   private val neverCompletionNatives: Set[String] =
-    Set("converted_to_a_javascript_value")
+    Set("converted_to_a_javascript_value", "createarrayfromlist")
 
   /** Whether a `Perform`/`PerformClosure` call target `func` (still in its
     * original, possibly-bracketed link-text form -- see

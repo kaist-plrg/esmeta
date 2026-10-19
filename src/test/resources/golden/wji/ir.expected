@@ -2241,12 +2241,8 @@ def call_an_exported_function(
       _iterIdx4 = (+ _iterIdx4 1)
     }
     call _result2 = clo<"CreateArrayFromList">(values)
-    if (? _result2: Completion) {
-      return _result2
-    } else {
-      call _ret9 = clo<"NormalCompletion">(_result2)
-      return _ret9
-    }
+    call _ret9 = clo<"NormalCompletion">(_result2)
+    return _ret9
   }
 }
 def run_a_host_function(

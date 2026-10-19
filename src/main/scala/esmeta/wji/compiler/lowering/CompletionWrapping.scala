@@ -259,8 +259,13 @@ object CompletionWrapping:
     // ExpandAbruptPass's own branch body is always the single instruction
     // `[Return(inner)]` -- this keeps that invariant enforced structurally
     // rather than merely assumed). `pure` *gains* a var the moment a `Let`
-    // binds it to a `neverCompletion` expr (e.g. `Let(global, RecordLit
-    // ("Global", _))`) or a `Perform` binds it to the result of a
+    // *or* `Set` binds it to a `neverCompletion` expr (e.g. `Let(global,
+    // RecordLit("Global", _))`, or `Set(This, New(iface))` -- the latter is
+    // exactly how `AddInterfaceMemberBuiltinBehaviourPass.createThisBinding`
+    // seeds every WebIDL constructor's `**this**`, a reassignment of an
+    // existing param rather than a fresh `Let`, but `neverCompletion(rhs)`
+    // already proves the same thing about the *value* regardless of which
+    // instruction wrote it) or a `Perform` binds it to the result of a
     // provably-pure callee (see [[isProvablyPure]]); `known` *also* gains a
     // var now, the mirror case -- a `Perform` binding the result of a callee
     // already proven to *always* return a Completion Record (see
@@ -275,6 +280,8 @@ object CompletionWrapping:
           val clearedP = invalidate(p, instr)
           val nextP = instr match
             case Instr.Let(lhs, rhs, _) if neverCompletion(rhs) =>
+              clearedP + lhs
+            case Instr.Set(lhs, rhs, _) if neverCompletion(rhs) =>
               clearedP + lhs
             case Instr.Perform(func, _, PerformOutcome.BindResult(v), _, _)
                 if isProvablyPure(func, pureCallees) =>

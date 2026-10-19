@@ -947,13 +947,8 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Module(
   this.Bytes = stableBytes
   this.BuiltinSets = builtinSetNames
   this.ImportedStringModule = importedStringModule
-  let _v9 = this
-  if (? _v9: Completion) {
-    return _v9
-  } else {
-    call _ret10 = clo<"NormalCompletion">(_v9)
-    return _ret10
-  }
+  call _ret9 = clo<"NormalCompletion">(this)
+  return _ret9
 }
 def <BUILTIN>:INTRINSICS.WebAssembly.Instance(
   this: Unknown,
@@ -1030,13 +1025,8 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Instance(
   } else {
     _guard1 = _guard1.Value
   }
-  let _v5 = this
-  if (? _v5: Completion) {
-    return _v5
-  } else {
-    call _ret6 = clo<"NormalCompletion">(_v5)
-    return _ret6
-  }
+  call _ret5 = clo<"NormalCompletion">(this)
+  return _ret5
 }
 def <BUILTIN>:INTRINSICS.get:WebAssembly.Instance.prototype.exports(
   this: Unknown,
@@ -1216,13 +1206,8 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Memory(
   } else nop
   @AGENT_RECORD["associated store"] = store
   call _ = clo<"initialize_a_memory_object">(this, memaddr)
-  let _v11 = this
-  if (? _v11: Completion) {
-    return _v11
-  } else {
-    call _ret12 = clo<"NormalCompletion">(_v11)
-    return _ret12
-  }
+  call _ret11 = clo<"NormalCompletion">(this)
+  return _ret11
 }
 def refresh_the_memory_buffer(
   memaddr: Unknown,
@@ -1607,13 +1592,8 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Table(
   } else nop
   @AGENT_RECORD["associated store"] = store
   call _ = clo<"initialize_a_table_object">(this, tableaddr)
-  let _v13 = this
-  if (? _v13: Completion) {
-    return _v13
-  } else {
-    call _ret14 = clo<"NormalCompletion">(_v13)
-    return _ret14
-  }
+  call _ret13 = clo<"NormalCompletion">(this)
+  return _ret13
 }
 def <BUILTIN>:INTRINSICS.WebAssembly.Table.prototype.grow(
   this: Unknown,
@@ -1999,13 +1979,8 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Global(
   let globaladdr = _tuple1[1]
   @AGENT_RECORD["associated store"] = store
   call _ = clo<"initialize_a_global_object">(this, globaladdr)
-  let _v9 = this
-  if (? _v9: Completion) {
-    return _v9
-  } else {
-    call _ret10 = clo<"NormalCompletion">(_v9)
-    return _ret10
-  }
+  call _ret9 = clo<"NormalCompletion">(this)
+  return _ret9
 }
 def getglobalvalue(
   global: Unknown,
@@ -2790,13 +2765,8 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Tag(
   let tagAddress = _tuple1[1]
   @AGENT_RECORD["associated store"] = store
   call _ = clo<"initialize_a_Tag_object">(this, tagAddress)
-  let _v7 = this
-  if (? _v7: Completion) {
-    return _v7
-  } else {
-    call _ret8 = clo<"NormalCompletion">(_v7)
-    return _ret8
-  }
+  call _ret7 = clo<"NormalCompletion">(this)
+  return _ret7
 }
 def [[getprototypeof]]_internal_method_of_an_exported_gc_object(
   O: Unknown,
@@ -3075,13 +3045,8 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Exception(
   if (= options.traceStack true) {
     this.Stack = (yet "a {{DOMString}} representation of the current call stack or undefined")
   } else nop
-  let _v15 = this
-  if (? _v15: Completion) {
-    return _v15
-  } else {
-    call _ret16 = clo<"NormalCompletion">(_v15)
-    return _ret16
-  }
+  call _ret15 = clo<"NormalCompletion">(this)
+  return _ret15
 }
 def <BUILTIN>:INTRINSICS.WebAssembly.Exception.prototype.getArg(
   this: Unknown,

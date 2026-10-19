@@ -1035,6 +1035,12 @@ object ExprParser:
   // object, a `[[{{%Promise%}}]]` slot) are matched by more specific patterns
   // (NewExpr, SlotAccess) before this.
   private val BracedTerm = """(?s)^\{\{(.+)\}\}$""".r
+  // `{{%Promise.reject%}}`, `{{%Symbol.iterator%}}` — a well-known
+  // intrinsic/symbol reference. Kept as a raw `Link` (braces stripped,
+  // `%...%` kept) rather than a `SpecTerm`, so `ResolveLinksPass` can
+  // classify it against ECMA-262's well-known tables and reject unknown
+  // names. Tried before `BracedTerm`, its more general form.
+  private val BracedIntrinsic = """^\{\{(%[A-Za-z0-9.]+%)\}\}$""".r
   // "the <a spec=HTML>incumbent settings object</a>" — a cross-spec Bikeshed
   // autolink (`<a spec=X>...</a>`) referencing a concept defined in another
   // spec entirely. ECMA-262 itself deliberately never defines "settings
@@ -1378,6 +1384,7 @@ object ExprParser:
       case PageKeyword()                  => SpecTerm("page")
       case EmuConst(v)                    => SpecTerm(v)
       case EmuVal(v)                      => SpecTerm(v)
+      case BracedIntrinsic(name)          => Link(name, Nil)
       case BracedTerm(inner)              => SpecTerm(inner)
       case BracketRange(low, high)        => Seq_(List(parse(low), parse(high)))
       case CrossSpecRef(text)             => SpecTerm(text)

@@ -46,8 +46,10 @@ object Expr:
   case class Field(base: Expr, name: String) extends Expr
   case class Index(base: Expr, key: Expr) extends Expr
 
-  /** A raw `[=...=]` Bikeshed autolink. `ResolveLinksPass` resolves every
-    * `Link` into an [[AlgoCall]], [[Case]], or [[SpecTerm]].
+  /** A raw `[=...=]` Bikeshed autolink, or a `%...%` well-known
+    * intrinsic/symbol reference (`{{%Promise.reject%}}`, `{{%Symbol.iterator%}}`).
+    * `ResolveLinksPass` resolves every `Link` into an [[AlgoCall]], [[Case]],
+    * [[SpecTerm]], [[Intrinsic]], or [[Symbol]].
     */
   case class Link(link: String, args: List[Expr]) extends Expr
   case class AlgoCall(link: String, args: List[Expr]) extends Expr
@@ -70,6 +72,21 @@ object Expr:
   case class JSCall(name: String, args: List[Expr]) extends Expr
   case class Case(tag: String, args: List[Expr]) extends Expr
   case class SpecTerm(name: String) extends Expr
+
+  /** `%base.props%` — an ECMA-262 well-known intrinsic (`%Promise%`), or a
+    * property path rooted at one (`%Array.prototype.values%`, ECMA-262 §6.1.7.4).
+    * Mirrors `esmeta.lang.Intrinsic`. Produced only by `ResolveLinksPass`,
+    * which rejects a `base` that isn't a well-known intrinsic.
+    */
+  case class Intrinsic(base: String, props: List[String]) extends Expr
+
+  /** `%Symbol.name%` — an ECMA-262 well-known symbol (`%Symbol.iterator%`).
+    * Shares `%...%` notation with [[Intrinsic]] but lives in a separate table
+    * (stored under `@SYMBOL`, not the realm's intrinsics), so
+    * `ResolveLinksPass` tells the two apart by name; anything else rooted at
+    * `Symbol` (`%Symbol.prototype%`) is an ordinary [[Intrinsic]] path.
+    */
+  case class Symbol(name: String) extends Expr
 
   case class Abrupt(check: String, expr: Expr) extends Expr
   case class New(iface: String) extends Expr

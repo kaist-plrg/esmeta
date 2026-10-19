@@ -3659,18 +3659,18 @@ def define_the_iteration_methods(
     _i2 = (+ _i2 1)
   }
   if (= _found1 true) {
-    call _ = clo<"DefineMethodProperty">(target, @SYMBOL.iterator, ~%Array.prototype.values%~, false)
+    call _ = clo<"DefineMethodProperty">(target, @SYMBOL.iterator, @EXECUTION_STACK[0].Realm.Intrinsics["%Array.prototype.values%"], false)
     if (yet "|definition| has a [=value iterator=]") {
-      call _call1 = clo<"CreateDataPropertyOrThrow">(target, "entries", ~%Array.prototype.entries%~)
+      call _call1 = clo<"CreateDataPropertyOrThrow">(target, "entries", @EXECUTION_STACK[0].Realm.Intrinsics["%Array.prototype.entries%"])
       assert (= _call1.Type ~normal~)
       let _call2 = _call1.Value
-      call _call3 = clo<"CreateDataPropertyOrThrow">(target, "keys", ~%Array.prototype.keys%~)
+      call _call3 = clo<"CreateDataPropertyOrThrow">(target, "keys", @EXECUTION_STACK[0].Realm.Intrinsics["%Array.prototype.keys%"])
       assert (= _call3.Type ~normal~)
       let _call4 = _call3.Value
-      call _call5 = clo<"CreateDataPropertyOrThrow">(target, "values", ~%Array.prototype.values%~)
+      call _call5 = clo<"CreateDataPropertyOrThrow">(target, "values", @EXECUTION_STACK[0].Realm.Intrinsics["%Array.prototype.values%"])
       assert (= _call5.Type ~normal~)
       let _call6 = _call5.Value
-      call _call7 = clo<"CreateDataPropertyOrThrow">(target, "forEach", ~%Array.prototype.forEach%~)
+      call _call7 = clo<"CreateDataPropertyOrThrow">(target, "forEach", @EXECUTION_STACK[0].Realm.Intrinsics["%Array.prototype.forEach%"])
       assert (= _call7.Type ~normal~)
       let _call8 = _call7.Value
     } else nop
@@ -4743,7 +4743,7 @@ def attribute_getter_closure1(
     if (= _throwComp1.Type ~throw~) {
       let E = _throwComp1.Value
       if (? attribute.ty: Record[Promise]) {
-        call _call1 = clo<"Call">(~%Promise.reject%~, ~%Promise%~, (list [E]))
+        call _call1 = clo<"Call">(@EXECUTION_STACK[0].Realm.Intrinsics["%Promise.reject%"], @EXECUTION_STACK[0].Realm.Intrinsics["%Promise%"], (list [E]))
         assert (= _call1.Type ~normal~)
         let _v1 = _call1.Value
         if (? _v1: Completion) {
@@ -5025,7 +5025,7 @@ def creating_an_operation_function_closure1(
     if (= _throwComp1.Type ~throw~) {
       let E = _throwComp1.Value
       if (? op.returnType: Record[Promise]) {
-        call _call1 = clo<"Call">(~%Promise.reject%~, ~%Promise%~, (list [E]))
+        call _call1 = clo<"Call">(@EXECUTION_STACK[0].Realm.Intrinsics["%Promise.reject%"], @EXECUTION_STACK[0].Realm.Intrinsics["%Promise%"], (list [E]))
         assert (= _call1.Type ~normal~)
         let _v1 = _call1.Value
         if (? _v1: Completion) {
@@ -5302,7 +5302,12 @@ def <BUILTIN>:INTRINSICS.WebAssembly.instantiate(
     } else nop
   } else nop
   if (= _cond3 true) {
-    call _result1 = clo<"INTRINSICS.WebAssembly.instantiate_object">(this, ArgumentsList)
+    let moduleObject = ArgumentsList[0]
+    call-convert importObject = <converted_to_an_idl_value>(ArgumentsList[1], "object")
+    if (&& (? importObject: Completion) (! (= importObject.Type ~normal~))) {
+      return importObject
+    } else nop
+    call _result1 = clo<"INTRINSICS.WebAssembly.instantiate_object">(this, (list [moduleObject, importObject]))
     if (? _result1: Completion) {
       return _result1
     } else {
@@ -5310,7 +5315,19 @@ def <BUILTIN>:INTRINSICS.WebAssembly.instantiate(
       return _ret1
     }
   } else {
-    call _result2 = clo<"INTRINSICS.WebAssembly.instantiate_bytes">(this, ArgumentsList)
+    call-convert bytes = <converted_to_an_idl_value>(ArgumentsList[0], "AllowSharedBufferSource")
+    if (&& (? bytes: Completion) (! (= bytes.Type ~normal~))) {
+      return bytes
+    } else nop
+    call-convert importObject = <converted_to_an_idl_value>(ArgumentsList[1], "object")
+    if (&& (? importObject: Completion) (! (= importObject.Type ~normal~))) {
+      return importObject
+    } else nop
+    call-convert options = <converted_to_an_idl_value>(ArgumentsList[2], "WebAssemblyCompileOptions")
+    if (&& (? options: Completion) (! (= options.Type ~normal~))) {
+      return options
+    } else nop
+    call _result2 = clo<"INTRINSICS.WebAssembly.instantiate_bytes">(this, (list [bytes, importObject, options]))
     if (? _result2: Completion) {
       return _result2
     } else {

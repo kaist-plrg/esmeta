@@ -60,8 +60,8 @@ trait Walker:
     case Expr.Seq_(exprs)            => Expr.Seq_(exprs.map(walk))
     case Expr.TypeAnnotated(term, e) => Expr.TypeAnnotated(term, walk(e))
     // leaves with no nested Expr: Var, This, GivenValue, ArgumentsList,
-    // NewTarget, Pronoun, Num, Bool, Str, Byte, SpecTerm, New, UnknownNew,
-    // Described, Unknown, Closure, FollowingSteps.
+    // NewTarget, Pronoun, Num, Bool, Str, Byte, SpecTerm, Intrinsic, Symbol,
+    // New, UnknownNew, Described, Unknown, Closure, FollowingSteps.
     case other => other
 
   def walk(cond: Cond): Cond = cond match

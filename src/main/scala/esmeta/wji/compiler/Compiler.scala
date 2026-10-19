@@ -7,6 +7,7 @@ import esmeta.wji.lang.printer.{CondPrinter, ExprPrinter}
 import esmeta.wji.bridge.host.WasmHost
 import esmeta.ir
 import esmeta.ir.*
+import esmeta.compiler.{currentIntrinsics, toIntrinsic}
 import esmeta.ty.*
 import esmeta.error.UnreachableAfterLowering
 
@@ -111,11 +112,6 @@ object Compiler:
     "PrivateElements" -> EList(Nil),
     "__MAP__" -> EMap((UnknownType, UnknownType), Nil),
   )
-  // A well-known-symbol reference written `%Symbol.NAME%` (e.g.
-  // `%Symbol.iterator%`), reaching us as a `SpecTerm` once `ExprParser`
-  // strips the `{{...}}` autolink braces. Mirrors mainline ESMeta's
-  // `SymbolLiteral(sym) => toERef(GLOBAL_SYMBOL, EStr(sym))`.
-  private val SymbolTerm = """^%Symbol\.(.+)%$""".r
 
   /** Throws immediately for an AST shape that lowering guarantees eliminates
     * before `Compiler` ever runs — unlike `EYet`, which only fails once the IR
@@ -480,8 +476,11 @@ object Compiler:
     // `Initialize.seedHostDefined` (category II-C's registry).
     case metalang.Expr.SpecTerm("all interfaces") =>
       ERef(Field(Global("HOST_DEFINED"), EStr("interfaces")))
-    case metalang.Expr.SpecTerm(SymbolTerm(sym)) =>
-      ERef(Field(GLOBAL_SYMBOL, EStr(sym)))
+    // Mirrors mainline ESMeta's `IntrinsicExpression`/`SymbolLiteral`; both
+    // are already checked against ECMA-262's well-known tables by
+    // `ResolveLinksPass`.
+    case i: metalang.Expr.Intrinsic => ERef(compileRef(i))
+    case s: metalang.Expr.Symbol    => ERef(compileRef(s))
     // A `{{X}}` literal naming a real WJI interface/exception (e.g. `new`'s
     // own argument, or a literal `Implements` RHS after `ExpandImplementsPass`
     // — see that pass's own doc) — resolved to the same `HOST_DEFINED.<X>`
@@ -814,6 +813,9 @@ object Compiler:
     // their base.
     case metalang.Expr.SpecTerm("all interfaces") =>
       Field(Global("HOST_DEFINED"), EStr("interfaces"))
+    case metalang.Expr.Intrinsic(base, props) =>
+      toIntrinsic(currentIntrinsics, esmeta.lang.Intrinsic(base, props))
+    case metalang.Expr.Symbol(name)      => Field(GLOBAL_SYMBOL, EStr(name))
     case metalang.Expr.Field(base, name) => Field(compileRef(base), EStr(name))
     case metalang.Expr.Index(base, key) =>
       Field(compileRef(base), compileExpr(key))

@@ -50,8 +50,8 @@ trait UnitWalker:
     case Expr.Seq_(exprs)         => exprs.foreach(walk)
     case Expr.TypeAnnotated(_, e) => walk(e)
     // leaves with no nested Expr: Var, This, GivenValue, ArgumentsList,
-    // NewTarget, Pronoun, Num, Bool, Str, Byte, SpecTerm, New, UnknownNew,
-    // Described, Unknown, Closure, FollowingSteps.
+    // NewTarget, Pronoun, Num, Bool, Str, Byte, SpecTerm, Intrinsic, Symbol,
+    // New, UnknownNew, Described, Unknown, Closure, FollowingSteps.
     case _ =>
 
   def walk(cond: Cond): Unit = cond match

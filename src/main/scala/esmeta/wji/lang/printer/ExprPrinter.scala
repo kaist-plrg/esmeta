@@ -17,6 +17,8 @@ object ExprPrinter:
     case Bool(v)              => v.toString
     case Str(v)               => s""""$v""""
     case SpecTerm(name)       => name
+    case Intrinsic(base, props) => (base :: props).mkString("%", ".", "%")
+    case Symbol(name)         => s"%Symbol.$name%"
     case Field(base, name)    => s"${render(base)}.[[${name}]]"
     case Index(base, key)     => s"${render(base)}[${render(key)}]"
     case Link(link, Nil)      => link

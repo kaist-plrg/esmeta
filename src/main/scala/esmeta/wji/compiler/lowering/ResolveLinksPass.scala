@@ -72,6 +72,21 @@ import esmeta.wji.lang.walker.Walker
   * missing from that table throws [[esmeta.error.UnsupportedSpecShape]] rather
   * than falling through to a `SpecTerm`.
   *
+  * A `Link` naming an ECMA-262 well-known intrinsic or symbol is classified by
+  * [[lookupIntrinsic]]: a `Symbol.NAME` whose `NAME` is in `wellKnownSymbols`
+  * becomes an [[Expr.Symbol]]; anything else whose base is in
+  * `wellKnownIntrinsics` becomes an [[Expr.Intrinsic]] (its remaining segments
+  * are a property path, ECMA-262 §6.1.7.4). The two spellings differ in what
+  * happens when the base is in neither table:
+  *   - `%X%` (`ExprParser.BracedIntrinsic`, from `{{%X%}}`) is unambiguously
+  *     an intrinsic/symbol reference, so it throws
+  *     [[esmeta.error.UnsupportedSpecShape]] — a misspelled or nonexistent
+  *     intrinsic is a static error here rather than a failed lookup at run
+  *     time.
+  *   - a zero-arg dotted PascalCase dfn link (`[=String.fromCharCode=]`, see
+  *     `IntrinsicRef`) only *looks* like one, so it falls back to a
+  *     `SpecTerm` like any other unknown zero-arg link.
+  *
   * A [[Cond.IsOfForm]]'s `form` field is the one exception to the first rule
   * above: it's always a pattern to destructure against (`ExpandIsOfFormPass`
   * only ever handles a `form` that's already `Expr.Case`), never a genuine
@@ -166,6 +181,68 @@ object ResolveLinksPass extends LoweringPass:
   /** matches a raw section-anchor link text, capturing the anchor itself */
   private val AnchorLink = """^\[\[#([\w-]+)\]\]$""".r
 
+  /** matches a `%...%` intrinsic/symbol link text, capturing the inner name */
+  private val IntrinsicLink = """^%([A-Za-z0-9.]+)%$""".r
+
+  // TODO: read these from ECMA-262's own `table-well-known-intrinsic-objects`
+  // and `table-well-known-symbols` (`esmeta.spec.Spec`) instead of
+  // hardcoding them, once WJI compilation has access to the ECMA-262 spec.
+
+  /** The names (without `%`) in ECMA-262's Table "Well-Known Intrinsic
+    * Objects" (ecma262/spec.html, `table-well-known-intrinsic-objects`).
+    */
+  private val wellKnownIntrinsics: Set[String] = Set(
+    "AggregateError", "Array", "ArrayBuffer", "ArrayIteratorPrototype",
+    "AsyncFromSyncIteratorPrototype", "AsyncFunction",
+    "AsyncGeneratorFunction", "AsyncGeneratorPrototype",
+    "AsyncIteratorPrototype", "Atomics", "BigInt", "BigInt64Array",
+    "BigUint64Array", "Boolean", "DataView", "Date", "decodeURI",
+    "decodeURIComponent", "encodeURI", "encodeURIComponent", "Error", "eval",
+    "EvalError", "FinalizationRegistry", "Float16Array", "Float32Array",
+    "Float64Array", "ForInIteratorPrototype", "Function", "GeneratorFunction",
+    "GeneratorPrototype", "Int8Array", "Int16Array", "Int32Array", "isFinite",
+    "isNaN", "Iterator", "IteratorHelperPrototype", "JSON", "Map",
+    "MapIteratorPrototype", "Math", "Number", "Object", "parseFloat",
+    "parseInt", "Promise", "Proxy", "RangeError", "ReferenceError", "Reflect",
+    "RegExp", "RegExpStringIteratorPrototype", "Set", "SetIteratorPrototype",
+    "SharedArrayBuffer", "String", "StringIteratorPrototype", "Symbol",
+    "SyntaxError", "ThrowTypeError", "TypedArray", "TypeError", "Uint8Array",
+    "Uint8ClampedArray", "Uint16Array", "Uint32Array", "URIError", "WeakMap",
+    "WeakRef", "WeakSet", "WrapForValidIteratorPrototype",
+  )
+
+  /** The `NAME`s of `%Symbol.NAME%` in ECMA-262's Table "Well-known Symbols"
+    * (ecma262/spec.html, `table-well-known-symbols`).
+    */
+  private val wellKnownSymbols: Set[String] = Set(
+    "asyncIterator", "hasInstance", "isConcatSpreadable", "iterator", "match",
+    "matchAll", "replace", "search", "species", "split", "toPrimitive",
+    "toStringTag", "unscopables",
+  )
+
+  /** Classifies a `%`-stripped intrinsic/symbol name (`Promise.reject`,
+    * `Symbol.iterator`) against the well-known tables, or `None` if its base
+    * is in neither — see this object's own doc.
+    */
+  private def lookupIntrinsic(name: String): Option[Expr] =
+    name.split('.').toList match
+      case "Symbol" :: sym :: Nil if wellKnownSymbols.contains(sym) =>
+        Some(Expr.Symbol(sym))
+      case base :: props if wellKnownIntrinsics.contains(base) =>
+        Some(Expr.Intrinsic(base, props))
+      case _ => None
+
+  /** A `%X%` link — unambiguously an intrinsic/symbol reference, so a name in
+    * neither table is a spec error.
+    */
+  private def resolveIntrinsic(name: String): Expr =
+    lookupIntrinsic(name).getOrElse(
+      throw UnsupportedSpecShape(
+        "ResolveLinksPass",
+        s"%$name% names no ECMA-262 well-known intrinsic or symbol",
+      ),
+    )
+
   /** The part of a (already-`stripLink`ed) link text after its last `/`, or the
     * whole thing if it has none — see the class doc's Case heuristic.
     */
@@ -212,16 +289,10 @@ object ResolveLinksPass extends LoweringPass:
     else
       val stripped = stripLink(link)
       stripped match
-        // Built directly as `Realm.Intrinsics["%...%"]` field accesses,
-        // reusing `Compiler`'s existing generic `SpecTerm("current Realm")` /
-        // `Field` compilation (see `namesWithPrototypeIntrinsic`'s own
-        // `%...%`-keyed lookups there) — no dedicated `Compiler` case needed
-        // for this shape at all.
+        // Only a guess from the link's shape, so a name outside the tables
+        // isn't an error — it's just some other dfn.
         case IntrinsicRef() =>
-          Expr.Field(
-            Expr.Field(Expr.SpecTerm("current Realm"), "Intrinsics"),
-            s"%$stripped%",
-          )
+          lookupIntrinsic(stripped).getOrElse(Expr.SpecTerm(stripped))
         case _ => Expr.SpecTerm(stripped)
 
   /** Walks a single algorithm body once, resolving every [[Expr.Link]] against
@@ -254,6 +325,7 @@ object ResolveLinksPass extends LoweringPass:
               "ResolveLinksPass",
               s"section anchor [[#$anchor]] names no known algorithm: $expr",
             )
+      case Expr.Link(IntrinsicLink(name), Nil) => resolveIntrinsic(name)
       // "the [=interface (prototype) object=] of |I| in |realm|" — a lookup
       // into its `cachedObjects` table, readable and (as a `Set` lhs)
       // writable. Takes both the 2-arg form (`ExprParser.LinkOfForIn`) and

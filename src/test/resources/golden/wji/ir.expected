@@ -3313,12 +3313,8 @@ def unwrapstring(
     call _ret1 = clo<"ThrowCompletion">((case "TRAP" ))
     return _ret1
   } else nop
-  if (? v: Completion) {
-    return v
-  } else {
-    call _ret2 = clo<"NormalCompletion">(v)
-    return _ret2
-  }
+  call _ret2 = clo<"NormalCompletion">(v)
+  return _ret2
 }
 def fromcharcode(
   v: Unknown,

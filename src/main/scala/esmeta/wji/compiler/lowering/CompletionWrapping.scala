@@ -252,6 +252,66 @@ object CompletionWrapping:
     case Cond.IsType(e, "AbruptCompletion" | "Completion", false) => Set(e)
     case _                                                        => Set.empty
 
+  /** Type names from `Cond.IsType` known, via `esmeta.ty`'s own type lattice,
+    * to be disjoint from `Completion` -- a value proven to have one of these
+    * types can therefore never itself be a Completion Record. Limited to the
+    * subset of `esmeta.wji.compiler.Compiler.typeOf`'s own type-name table
+    * whose `esmeta.ty` singleton sets a single, independent `ValueTy` field and
+    * leaves every other field (including `record`, the one field `CompT` itself
+    * sets) at `Bot` -- `ValueTy.isBottom`'s own field-by-field definition makes
+    * their meet with `CompT` `Bot` componentwise, hence disjoint. Deliberately
+    * excludes `"Object"`: `ObjectT = RecordT("Object")` is, like `CompT`,
+    * itself `record`-based, and this pipeline hasn't independently confirmed
+    * the two `RecordTy`s don't overlap the way it has for these three.
+    */
+  private val disjointFromCompletionTypes: Set[String] =
+    Set("String", "Number", "BigInt")
+
+  /** What a single `IfChain` branch condition `cond` proves once control has
+    * passed *all the way by* that `IfChain` -- used in [[expand]]'s own
+    * sibling-instruction fold, not inside the branch itself (contrast
+    * [[provenCompletion]]), since the spec idiom this targets ("If |v| [=is not
+    * a String=], Throw ...." followed by a *separate* numbered step "Return
+    * |v|.") parses as two flat sibling `Instr`s -- an `IfChain` whose one
+    * branch is `(Cond.IsType(v, "String", negated = true), [Throw(...)])` with
+    * an empty `fallback`, then a `Return(Some(Var(v)))` right after it -- not
+    * one `IfChain` whose `fallback` already contains the `Return` (see
+    * [[terminatesControlFlow]]'s own doc for why that distinction is what makes
+    * this a fold-level fact rather than a branch-recursion one). `cond` being
+    * `Cond.IsType(e, tname, negated = true)` for a `tname`
+    * [[disjointFromCompletionTypes]] covers means: having passed this `IfChain`
+    * at all, `cond` must have tested false, so `e` really *is* that type after
+    * all -- e.g. `unwrapstring`'s own branch: reaching its `Return(v)` means
+    * `v` already passed the "is not a String" check, so it really is a String,
+    * hence never a Completion, proving the later `(? v: Completion)` dead the
+    * same way [[neverCompletion]] would for a literal of fixed shape.
+    */
+  private def provenNeverCompletionPastBranch(cond: Cond): Set[Expr] =
+    cond match
+      case Cond.IsType(e, tname, true)
+          if disjointFromCompletionTypes.contains(tname) =>
+        Set(e)
+      case _ => Set.empty
+
+  /** Whether every control-flow path through `body` ends in a `Throw`/ `Return`
+    * -- conservatively checked by just `body`'s own last instruction, not a
+    * full reachability analysis (a `body` whose last instruction is itself an
+    * `IfChain` isn't recursed into, so this can under- but never
+    * over-approximate "always terminates"). Used by [[expand]]'s fold to decide
+    * whether an `IfChain` instruction's *own* branch conditions are safe to
+    * treat as "proven false" for whatever sibling instruction comes right after
+    * it in the same flat list -- sound only when *every* branch is guaranteed
+    * to never fall through to that next sibling itself (if a branch could fall
+    * through, reaching the next sibling wouldn't prove that branch's own
+    * condition was false, since it might have been true and simply continued
+    * on).
+    */
+  private def terminatesControlFlow(body: List[Instr]): Boolean =
+    body.lastOption.exists {
+      case _: Instr.Throw | _: Instr.Return => true
+      case _                                => false
+    }
+
   private def expand(
     instrs: List[Instr],
     counter: Counter,
@@ -274,8 +334,13 @@ object CompletionWrapping:
     // seeds every WebIDL constructor's `**this**`, a reassignment of an
     // existing param rather than a fresh `Let`, but `neverCompletion(rhs)`
     // already proves the same thing about the *value* regardless of which
-    // instruction wrote it) or a `Perform` binds it to the result of a
-    // provably-pure callee (see [[isProvablyPure]]); `known` *also* gains a
+    // instruction wrote it), a `Perform` binds it to the result of a
+    // provably-pure callee (see [[isProvablyPure]]), or an `IfChain` whose
+    // every branch is proven to terminate control flow (see
+    // [[terminatesControlFlow]]) is itself the instruction just folded over --
+    // reaching whatever comes right after it proves each of its own branch
+    // conditions false (see [[provenNeverCompletionPastBranch]]); `known`
+    // *also* gains a
     // var now, the mirror case -- a `Perform` binding the result of a callee
     // already proven to *always* return a Completion Record (see
     // [[isProvablyCompletion]]) -- on top of its original source (an
@@ -295,6 +360,11 @@ object CompletionWrapping:
             case Instr.Perform(func, _, PerformOutcome.BindResult(v), _, _)
                 if isProvablyPure(func, pureCallees) =>
               clearedP + Expr.Var(v)
+            case i: Instr.IfChain
+                if i.branches.forall((_, b) => terminatesControlFlow(b)) =>
+              clearedP ++ i.branches.flatMap((c, _) =>
+                provenNeverCompletionPastBranch(c),
+              )
             case _ => clearedP
           val clearedK = invalidate(k, instr)
           val nextK = instr match

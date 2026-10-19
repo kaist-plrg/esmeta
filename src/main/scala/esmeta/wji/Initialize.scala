@@ -317,8 +317,9 @@ object Initialize:
     // `instantiate` member (`operationRecord` then finds the dispatcher by
     // that id). Every param is typed `any`: `overload_resolution_algorithm`
     // must pass the arguments through untouched, since which overload's
-    // types apply is only known inside the dispatcher, and each real
-    // overload converts its own arguments anyway (docs/hardcodes.md #23).
+    // types apply is only known inside the dispatcher, which converts them
+    // itself (`AddInstantiateOverloadDispatchPass.convert`, docs/hardcodes.md
+    // #23).
     def foldInstantiateOverloads(d: Definition): List[Member] =
       val overloads = Set("instantiate_bytes", "instantiate_object")
       val (renamed, rest) = d.members.partition {

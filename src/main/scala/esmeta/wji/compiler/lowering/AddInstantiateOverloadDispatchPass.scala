@@ -14,14 +14,14 @@ import esmeta.wji.lang.{Algorithm, AlgorithmKind, Cond, Expr, Instr, WjiParam}
   * This pass reclaims that name for one hand-built, `WebAssembly.instantiate`
   * -specific dispatcher `Algorithm` — deliberately not a general WebIDL
   * overload-resolution mechanism (`docs/hardcodes.md` #23): it just checks
-  * whether `ArgumentsList[0]` [[Cond.Implements]] `Module` and forwards
-  * (unconditionally, no re-validation of its own) to whichever real overload
-  * matches — the same distinguishing check real WebIDL overload resolution
-  * would make for this `(Module or BufferSource)`-shaped ambiguity, since
-  * `Module` is a real interface type and every non-`Module` argument is
-  * `instantiate_bytes`'s problem to reject correctly (already handled by its
-  * own `AllowSharedBufferSource` conversion, `TODO.md` #57's reject-not-throw
-  * fix included).
+  * whether `ArgumentsList[0]` [[Cond.Implements]] `Module`, converts the
+  * arguments to whichever real overload matches's declared IDL types (see
+  * [[convert]]), and forwards to it — the same distinguishing check real
+  * WebIDL overload resolution would make for this `(Module or
+  * BufferSource)`-shaped ambiguity, since `Module` is a real interface type
+  * and every non-`Module` argument is rejected by the buffer overload's own
+  * `AllowSharedBufferSource` conversion (`TODO.md` #57's reject-not-throw fix
+  * included).
   *
   * Runs right after [[AddInterfaceMemberBuiltinBehaviourPass]], once both real
   * overloads already have the final `(this, ArgumentsList)` `<BUILTIN>:`
@@ -72,13 +72,72 @@ object AddInstantiateOverloadDispatchPass extends LoweringPass:
       WjiParam("|ArgumentsList|"),
     )
 
-  private def forward(fname: String): List[Instr] =
+  /** *(hardcoding)* the WebIDL argument conversion overload resolution would
+    * normally do. `esmeta.wji.Initialize.foldInstantiateOverloads` declares
+    * every folded `instantiate` param as `any`, so
+    * `overload_resolution_algorithm` hands `ArgumentsList` over unconverted
+    * (padded to 3 entries, an omitted one as `undefined` -- even `options`,
+    * whose `{}` default converted to `any` is still `undefined`). Each real
+    * overload's own body only binds `ArgumentsList[i]` (see
+    * `AddInterfaceMemberBuiltinBehaviourPass.unpackArgumentsList`), so the
+    * conversion to each param's declared type (`spectec/document/js-api/
+    * index.bs:369-381`) happens here, once the overload is known. Converting
+    * `undefined` to `WebAssemblyCompileOptions` yields the empty dictionary
+    * `{}` would, and to `object` stays `undefined` (see
+    * `WebIdlConversion.toIdlValue`), so missing and explicit `undefined`
+    * arguments need no separate branch. A failed conversion's
+    * `ThrowCompletion` is returned as-is, which WebIDL's own caller turns
+    * into a rejected promise.
+    */
+  private def convert(name: String, idx: Int, ty: String): List[Instr] =
+    List(
+      Instr.Perform(
+        "converted_to_an_idl_value",
+        List(
+          Expr.Index(Expr.Var("ArgumentsList"), Expr.Num(idx.toString)),
+          Expr.Str(ty),
+        ),
+        Instr.PerformOutcome.BindResult(name),
+      ),
+      Instr.IfChain(
+        List(
+          Cond.IsType(Expr.Var(name), "AbruptCompletion") ->
+          List(Instr.Return(Some(Expr.Var(name)))),
+        ),
+        Nil,
+      ),
+    )
+
+  private def forward(fname: String, args: List[String]): List[Instr] =
     List(
       Instr.Perform(
         fname,
-        List(Expr.This, Expr.Var("ArgumentsList")),
+        List(Expr.This, Expr.List_(args.map(Expr.Var(_)))),
         Instr.PerformOutcome.ReturnResult,
       ),
+    )
+
+  // `instantiate(Module moduleObject, optional object importObject)` --
+  // `moduleObject` already passed the dispatching `Implements` check.
+  private val moduleBranch: List[Instr] =
+    Instr.Let(
+      Expr.Var("moduleObject"),
+      Expr.Index(Expr.Var("ArgumentsList"), Expr.Num("0")),
+    ) :: convert("importObject", 1, "object") :::
+    forward(
+      "INTRINSICS.WebAssembly.instantiate_object",
+      List("moduleObject", "importObject"),
+    )
+
+  // `instantiate(AllowSharedBufferSource bytes, optional object importObject,
+  // optional WebAssemblyCompileOptions options = {})`
+  private val bytesBranch: List[Instr] =
+    convert("bytes", 0, "AllowSharedBufferSource") :::
+    convert("importObject", 1, "object") :::
+    convert("options", 2, "WebAssemblyCompileOptions") :::
+    forward(
+      "INTRINSICS.WebAssembly.instantiate_bytes",
+      List("bytes", "importObject", "options"),
     )
 
   private val dispatcher: Algorithm =
@@ -101,9 +160,9 @@ object AddInstantiateOverloadDispatchPass extends LoweringPass:
                 Expr.Index(Expr.Var("ArgumentsList"), Expr.Num("0")),
                 Expr.SpecTerm("Module"),
               ),
-            ) -> forward("INTRINSICS.WebAssembly.instantiate_object"),
+            ) -> moduleBranch,
           ),
-          forward("INTRINSICS.WebAssembly.instantiate_bytes"),
+          bytesBranch,
         ),
       ),
       kind = AlgorithmKind.NamespaceMethod("WebAssembly"),

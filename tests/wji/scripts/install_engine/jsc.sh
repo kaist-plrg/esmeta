@@ -43,5 +43,5 @@ git reset --hard "$WEBKIT_COMMIT"
 
 ./Tools/Scripts/build-jsc --release
 
-jsc_bin=$(find WebKitBuild -name jsc -type f -perm -u+x | head -n 1)
+jsc_bin=$(locate_jsc)
 echo "JavaScriptCore (jsc) built at: ${jsc_bin:-<not found -- check the build log above>}"

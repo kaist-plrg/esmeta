@@ -84,6 +84,32 @@ Node의 `WebAssembly` 구현으로 테스트 케이스마다 별도 프로세스
 실패/cancel돼야 정상입니다. Node가 PATH에 있어야 하고, `sbt
 compile`/`test`와는 무관한 별도 검증 도구입니다.
 
+## 실제 엔진 3종으로 교차검증하기 (differential testing)
+
+`wji-node-check`가 "테스트 케이스가 Node(V8) 기준으로 올바른가"를 확인하는 도구라면,
+`diff-engines`는 목적이 다릅니다 — **같은 테스트 파일을 V8/SpiderMonkey/JavaScriptCore
+세 엔진에 똑같이 돌려서, 서로 다른 결과가 나오면(DIVERGE) 그게 실제 엔진 버그일 수
+있다**는 걸 잡아내는 도구입니다. `tests/wji/scripts/install_engine/*.sh`로 세 엔진을
+미리 빌드해둬야 합니다:
+
+```
+tests/wji/scripts/diff-engines                              # manual/+complementary/ 전부
+tests/wji/scripts/diff-engines tests/wji/manual/foo.js       # 특정 테스트 케이스만
+tests/wji/scripts/diff-engines --verbose                     # DIVERGE난 파일의 전체 출력도 같이 덤프
+```
+
+테스트 파일을 수정하거나 다른 코드와 합치지 않고 원본 그대로 각 엔진 바이너리에 넘겨
+실행합니다. PASS/FAIL 판정은 `__wjiOk`를 직접 읽는 게 아니라 "정상 종료 + stdout/stderr에
+`uncaught:`(모든 테스트 케이스의 `.catch(e => print("uncaught: " + e))` 컨벤션) 없음"으로
+판단합니다 — 비동기 테스트도 엔진 프로세스 자신이 종료 전에 알아서 전부 드레인해주므로
+타이밍을 맞추는 별도 코드가 필요 없습니다. `$ENGINES_DIR`에서 못 찾은 엔진은 조용히
+스킵됩니다(하드 실패 아님).
+
+**일부 DIVERGE는 진짜 버그가 아닐 수 있습니다** — 한쪽 엔진이 아직 해당 기능(특히
+js-string-builtins의 `builtins`/`importedStringConstants` 옵션처럼 비교적 최근/계속
+진화 중인 제안)을 완전히 구현 안 했을 수 있습니다. `--verbose`로 각 엔진의 실제 출력을
+보고 먼저 triage한 뒤, 진짜 버그로 보이면 `docs/engine_bugs.md`에 기록하세요.
+
 ## 아직 기계화가 안 된 부분에 막힌 테스트 케이스
 
 새 테스트 케이스가 진짜 버그가 아니라 WJI가 아직 못 다루는 스펙 구문/동작에 막히는

@@ -95,6 +95,7 @@ compile`/`test`와는 무관한 별도 검증 도구입니다.
 ```
 tests/wji/scripts/diff-engines                              # manual/+complementary/ 전부
 tests/wji/scripts/diff-engines tests/wji/manual/foo.js       # 특정 테스트 케이스만
+tests/wji/scripts/diff-engines tests/wji/js-api/generated    # 디렉터리를 주면 재귀적으로 전부
 tests/wji/scripts/diff-engines --verbose                     # DIVERGE난 파일의 전체 출력도 같이 덤프
 ```
 
@@ -106,9 +107,11 @@ tests/wji/scripts/diff-engines --verbose                     # DIVERGE난 파일
 타이밍을 맞추는 별도 코드가 필요 없습니다. `$ENGINES_DIR`에서 못 찾은 엔진은 조용히
 스킵됩니다(하드 실패 아님).
 
-기본 대상(인자 없을 때)은 `manual/`+`complementary/`지만, 파일을 직접 지정하면 공식
-`tests/wji/js-api/generated/*.any.js`(이미 self-contained라 그대로 돌아감)도 똑같이
-교차검증할 수 있습니다: `tests/wji/scripts/diff-engines tests/wji/js-api/generated/*.any.js`.
+기본 대상(인자 없을 때)은 `manual/`+`complementary/`지만, 디렉터리를 인자로 주면 그 안의
+`*.js`를 재귀적으로 전부 모아서 돕니다 — 공식 `tests/wji/js-api/generated/`(이미
+self-contained라 그대로 돌아감, spectec 쪽 디렉터리 구조를 그대로 미러링해서
+`module/`/`table/`/`gc/`/... 서브디렉터리에 나뉘어 있음)도 위 예시처럼 디렉터리
+하나만 주면 전부 교차검증됩니다.
 
 **일부 DIVERGE는 진짜 버그가 아닐 수 있습니다** — 한쪽 엔진이 아직 해당 기능(특히
 js-string-builtins의 `builtins`/`importedStringConstants` 옵션처럼 비교적 최근/계속

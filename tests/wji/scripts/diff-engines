@@ -1,12 +1,15 @@
 #!/bin/bash
 # ------------------------------------------------------------------------------
-# Usage: tests/wji/scripts/diff-engines [--verbose] [file.js ...]
+# Usage: tests/wji/scripts/diff-engines [--verbose] [file.js|dir ...]
 #
 # Cross-checks tests/wji/manual/*.js + tests/wji/complementary/*.js fixtures
 # against THREE real engines -- V8 (d8), SpiderMonkey (js), JavaScriptCore
 # (jsc) -- built via tests/wji/scripts/install_engine/*.sh, one fresh
-# subprocess per (fixture, engine) pair. With no file arguments, checks every
-# fixture under both directories.
+# subprocess per (fixture, engine) pair. With no arguments, checks every
+# fixture under both directories. A directory argument (e.g.
+# tests/wji/js-api/generated, which mirrors spectec's own nested layout) is
+# recursed into for every *.js file under it -- no need to `find` it
+# yourself first.
 #
 # Unlike wji-node-check (which validates a fixture against ONE engine, to tell
 # a WJI gap apart from a bad test case), this is about catching real ENGINE
@@ -30,17 +33,32 @@ repo_root="$(cd "$script_dir/../../.." && pwd)"
 . "$script_dir/install_engine/common.sh"
 
 verbose=0
-files=()
+args=()
 for arg in "$@"; do
   if [ "$arg" = "--verbose" ]; then
     verbose=1
   else
+    args+=("$arg")
+  fi
+done
+if [ ${#args[@]} -eq 0 ]; then
+  args=("$repo_root/tests/wji/manual" "$repo_root/tests/wji/complementary")
+fi
+
+# Expand any directory argument into every *.js file under it (recursively --
+# tests/wji/js-api/generated/ mirrors spectec's own nested-by-category
+# layout, so a plain glob would silently miss everything but its top level).
+# A plain file argument passes through unchanged.
+files=()
+for arg in "${args[@]}"; do
+  if [ -d "$arg" ]; then
+    while IFS= read -r f; do
+      files+=("$f")
+    done < <(find "$arg" -name "*.js" -type f | sort)
+  else
     files+=("$arg")
   fi
 done
-if [ ${#files[@]} -eq 0 ]; then
-  files=("$repo_root"/tests/wji/manual/*.js "$repo_root"/tests/wji/complementary/*.js)
-fi
 
 # Ordered (name, path) pairs for whichever engines are actually built --
 # order here is also the order each fixture's result line prints them in.
@@ -149,13 +167,28 @@ color_of() {
   esac
 }
 
+# usage: display_name <fixture-path> -- a bare basename is ambiguous once
+# tests/wji/js-api/generated/ is in the mix (it mirrors spectec's own
+# directory layout, so e.g. "constructor.any.js" alone names four different
+# files -- module/, instance/, exception/, tag/). Strip the common
+# tests/wji/ prefix instead of basename-ing, so every row stays unambiguous
+# while not dragging the whole absolute path into the table.
+display_name() {
+  local f="$1"
+  case "$f" in
+    "$repo_root"/tests/wji/*) echo "${f#"$repo_root"/tests/wji/}" ;;
+    tests/wji/*) echo "${f#tests/wji/}" ;;
+    *) echo "$f" ;;
+  esac
+}
+
 # Column widths, computed up front so every row lines up -- the fixture-name
-# column fits the longest basename actually being run, each engine's own
+# column fits the longest display name actually being run, each engine's own
 # column fits its name or the longest possible verdict ("TIMEOUT"), whichever
 # is wider.
 name_width=8
 for fixture in "${files[@]}"; do
-  f="$(basename "$fixture")"
+  f="$(display_name "$fixture")"
   [ ${#f} -gt "$name_width" ] && name_width=${#f}
 done
 verdict_width=7 # len("TIMEOUT")
@@ -201,7 +234,7 @@ for fixture in "${files[@]}"; do
 
   if [ "$diverge" = 1 ]; then
     diverged=$((diverged + 1))
-    diverge_files+=("$(basename "$fixture")")
+    diverge_files+=("$(display_name "$fixture")")
     mark="${c_bold_red}✗${c_reset}"
   elif [ "$all_pass" = 1 ]; then
     mark="${c_green}✓${c_reset}"
@@ -209,7 +242,7 @@ for fixture in "${files[@]}"; do
     mark="${c_yellow}!${c_reset}"
   fi
 
-  printf "%s %-*s" "$mark" "$name_width" "$(basename "$fixture")"
+  printf "%s %-*s" "$mark" "$name_width" "$(display_name "$fixture")"
   for i in "${!engine_names[@]}"; do
     v="${verdicts[$i]}"
     col="$(color_of "$v")"

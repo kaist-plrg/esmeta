@@ -178,3 +178,88 @@ WJI가 뭘 어떻게 할지 결정할 필요는 없다(WJI는 스펙대로 기�
 - **확인한 엔진 버전**: 위 1번과 동일.
 - **상태**: 후보 — 로컬 재현만 확인(공식 wpt subtest 자체가 바로 이 사실을 테스트함,
   `assert_equals: expected 1 but got 2`), 업스트림 제보 안 함.
+
+## 9. SpiderMonkey: `Exception` 생성자의 `.length`가 2가 아니라 1
+
+- **발견 경로**: `tests/wji/scripts/diff-engines`를 `tests/wji/js-api/generated/`
+  전체(52개, 서브디렉터리 포함)에 돌려본 경우 —
+  `js-api/generated/exception/constructor.tentative.any.js`에서 V8/JSC PASS,
+  SpiderMonkey만 FAIL ("length" 서브테스트).
+- **배경**: WebIDL 선언(`webidl/index.bs`, `interface Exception { constructor(Tag
+  exceptionTag, sequence<any> payload, optional ExceptionOptions options = {});
+  ... }`)에서 앞의 두 인자(`exceptionTag`/`payload`)가 required, 세 번째(`options`)만
+  `optional`이므로 `.length`는 **2**여야 함 — 8번 항목(`Table.set`)과 정반대 방향의
+  같은 종류의 버그(이번엔 과다가 아니라 **과소** 계산).
+- **실제 동작(SpiderMonkey)**: `WebAssembly.Exception.length === 1`. V8/JSC는 둘 다
+  정확히 `2`.
+- **확인한 엔진 버전**: 위 1번과 동일.
+- **상태**: 후보 — 로컬 재현만 확인(`assert_equals: expected 2 but got 1`), 업스트림
+  제보 안 함.
+
+## 10. JSC: `Exception.prototype.getArg`의 범위 밖 index가 TypeError 대신 RangeError
+
+- **발견 경로**: 위와 같은 전체 실행 — `js-api/generated/exception/getArg.tentative.any.js`
+  에서 V8/SpiderMonkey PASS, JSC만 FAIL ("Getting out-of-range argument" 서브테스트).
+- **배경**: WebIDL 선언(`webidl/index.bs`, `any getArg(Tag exceptionTag, [EnforceRange]
+  unsigned long index);`)의 `index`에 `[EnforceRange]`가 붙어있음 — WebIDL 스펙 자체가
+  `[EnforceRange]` 정수 변환이 범위를 벗어나면 **TypeError**를 던지도록 명시(다른 어떤
+  예외 타입도 아님).
+- **실제 동작(JSC)**: 범위 밖 index(테스트는 매우 큰 수를 줌)에 대해 `RangeError: Expect
+  an integer argument in the range: [0, 2^32 - 1]`을 던짐 — 메시지 내용 자체는 맞는
+  설명이지만 **예외 타입이 스펙과 다름**(`[EnforceRange]`는 항상 TypeError). V8/SpiderMonkey
+  둘 다 TypeError.
+- **확인한 엔진 버전**: 위 1번과 동일.
+- **상태**: 후보 — 로컬 재현만 확인, 업스트림 제보 안 함.
+
+## 11. SpiderMonkey: `WebAssembly.Global`의 value setter를 인자 없이 호출하면 실제로는 안 던져야 하는데 던짐
+
+- **발견 경로**: 위와 같은 전체 실행 — `js-api/generated/global/value-get-set.any.js`
+  에서 V8/JSC PASS, SpiderMonkey만 FAIL ("Calling setter without argument" 서브테스트).
+- **실제 동작(SpiderMonkey)**: setter를 인자 0개로 호출(`setter.call(global)`류)하면
+  `TypeError: At least 1 argument required, but only 0 passed`를 던짐 — V8/JSC는 둘 다
+  안 던지고 정상 처리(인자가 없으면 `undefined`가 암묵적으로 주어진 것처럼 동작해야
+  함 — WebIDL의 접근자 프로퍼티 호출 관례).
+- **확인한 엔진 버전**: 위 1번과 동일.
+- **상태**: 후보 — 로컬 재현만 확인, 업스트림 제보 안 함.
+
+## 12. SpiderMonkey: U+FFFD(유니코드 대체 문자)가 포함된 커스텀 섹션 이름 매칭이 스펙과 다름
+
+- **발견 경로**: 위와 같은 전체 실행 — `js-api/generated/module/customSections.any.js`
+  에서 V8/JSC PASS, SpiderMonkey만 FAIL ("Custom sections with U+FFFD" 서브테스트,
+  `assert_equals: expected 0 but got 1`).
+- **의미**: 잘못된 UTF-8 바이트 시퀀스를 포함한 커스텀 섹션 이름을 디코딩/매칭하는
+  과정에서 SpiderMonkey가 V8/JSC와 다른 결과를 냄(정확한 바이트 재현/스펙 조항은
+  아직 안 따라감 — 바로 이어서 할 작업으로 남겨둠).
+- **확인한 엔진 버전**: 위 1번과 동일.
+- **상태**: 후보, 확신도 낮음(세부 바이트/스펙 조항 미확인) — 업스트림 제보 안 함.
+
+## 13. JSC: `TableDescriptor`의 멤버 읽기 순서가 스펙과 다름
+
+- **발견 경로**: 위와 같은 전체 실행 — `js-api/generated/table/constructor.any.js`
+  에서 V8/SpiderMonkey PASS, JSC만 FAIL ("Order of evaluation for descriptor"
+  서브테스트, `assert_array_equals: property 0 expected "element" but got
+  "address"`).
+- **의미**: WebIDL dictionary 변환은 멤버를 선언 순서대로 `Get`해야 하는데(각 멤버
+  읽기 자체가 getter를 통해 관찰 가능한 side effect를 가질 수 있어 순서가 명세돼
+  있음), JSC가 `TableDescriptor`의 `address`를 `element`보다 먼저 읽음 — V8/SpiderMonkey는
+  둘 다 `element`를 먼저 읽어 스펙과 일치.
+- **확인한 엔진 버전**: 위 1번과 동일.
+- **상태**: 후보 — 로컬 재현만 확인, 업스트림 제보 안 함.
+
+## 14. JSC: nontrivial rec group 안에 있는 타입으로 선언된 js-string-builtins import가 validate를 통과해버림
+
+- **발견 경로**: 위와 같은 전체 실행 — `js-api/generated/js-string/basic.any.js`에서
+  V8/SpiderMonkey PASS, JSC만 FAIL ("Incorrect types" 서브테스트).
+- **배경**(`spectec/test/js-api/js-string/basic.any.js`의 "Incorrect types" 서브테스트
+  직접 확인): `wasm:js-string` import를 "nontrivial rec group"(재귀 타입 그룹) 안에 있는
+  함수 타입으로 선언하면, js-string-builtins 제안 자체가 요구하는 "trivial(비재귀) 타입만
+  허용" 규칙 때문에 `WebAssembly.validate`는 `false`를, `new WebAssembly.Module(...)`는
+  `CompileError`를 내야 함.
+- **실제 동작(JSC)**: `WebAssembly.validate(...)`가 `true`를 반환 — 이 특정 "rec group
+  안의 타입"이라는 무효 조건을 검증 안 함.
+- **의미**: 3번 항목(builtin 미지원 멤버 폴백)과 마찬가지로 js-string-builtins가
+  비교적 최근/계속 진화 중인 제안이라, JSC의 구현이 이 특정 타입-검증 규칙을 아직
+  안 따라잡았을 가능성 있음 — 버그라기보단 미완성에 가까울 수 있어 확신도를 낮춰서
+  기록.
+- **확인한 엔진 버전**: 위 1번과 동일.
+- **상태**: 후보, 확신도 낮음 — 업스트림 제보 안 함.

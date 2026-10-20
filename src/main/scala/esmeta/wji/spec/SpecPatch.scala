@@ -1588,6 +1588,43 @@ object SpecPatch:
     "end these steps and allow the exception to propagate"
     ->
     "end these steps and allow the exception |E| to propagate",
+
+    // #80 (hardcoding) — `attribute setter` (webidl/index.bs:12445-12461)
+    // defines |idlValue| with a `<dl class="switch">` (one `<dt>` condition +
+    // `<dd>` body per case) rather than numbered steps. `AlgorithmExtractor`
+    // only splits numbered lists, so the whole `<dl>` collapsed into the
+    // `Let`'s own text and its bodies into stray `?(...)` steps. Rewritten as
+    // the equivalent If/Otherwise steps: |idlValue| is pre-bound so it is in
+    // scope at the later "Perform the [=setter steps=]" regardless of branch,
+    // each "|idlValue| is X" becomes "set |idlValue| to X", and the
+    // enumeration membership check names the collection it reads
+    // (|attribute|'s type's values) instead of "the [=enumeration's values=]".
+    """1.  Let |idlValue| be determined as follows:
+      #
+      #            <dl class="switch">
+      #                <dt>|attribute|'s type is an [=enumeration=]</dt>
+      #                <dd>
+      #                    1.  Let |S| be [=?=] <a abstract-op>ToString</a>(|V|).
+      #                    1.  If |S| is not one of the [=enumeration's values=], then
+      #                        return <emu-val>undefined</emu-val>.
+      #                    1.  Otherwise, |idlValue| is the enumeration value equal to |S|.
+      #                </dd>
+      #
+      #                <dt>Otherwise</dt>
+      #                <dd>
+      #                    |idlValue| is the result of [=converted to an IDL value|converting=] |V| to an
+      #                    IDL value of |attribute|'s type.
+      #                </dd>
+      #            </dl>""".stripMargin('#')
+    ->
+    """1.  Let |idlValue| be null.
+      #        1.  If |attribute|'s type is an [=enumeration=]:
+      #            1.  Let |S| be [=?=] <a abstract-op>ToString</a>(|V|).
+      #            1.  If |S| is not one of |attribute|'s type's [=enumeration values=], then
+      #                return <emu-val>undefined</emu-val>.
+      #            1.  Set |idlValue| to |S|.
+      #        1.  Otherwise, set |idlValue| to the result of [=converted to an IDL value|converting=]
+      #            |V| to an IDL value of |attribute|'s type.""".stripMargin('#'),
   )
 
   def apply(source: String): String =

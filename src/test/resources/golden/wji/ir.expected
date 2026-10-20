@@ -4876,21 +4876,23 @@ def attribute_setter_closure1(
       return _ret9
     } else nop
   } else nop
-  let idlValue = (yet "determined as follows: <dl class=\"switch\"> <dt>|attribute|'s type is an [=enumeration=]</dt> <dd>")
-  call _call8 = clo<"ToString">(V)
-  if (&& (? _call8: Completion) (! (= _call8.Type ~normal~))) {
-    return _call8
+  let idlValue = null
+  if (? attribute.ty: Unknown["enumeration"]) {
+    call _call8 = clo<"ToString">(V)
+    if (&& (? _call8: Completion) (! (= _call8.Type ~normal~))) {
+      return _call8
+    } else {
+      let S = _call8.Value
+    }
+    if (! (= S (yet "one of |attribute|'s type's [=enumeration values=]"))) {
+      call _ret10 = clo<"NormalCompletion">(undefined)
+      return _ret10
+    } else nop
+    idlValue = S
   } else {
-    let S = _call8.Value
+    call-convert _call9 = <converted_to_an_idl_value>(V, attribute.ty)
+    idlValue = _call9
   }
-  if (! (= S (yet "one of the [=enumeration's values=]"))) {
-    call _ret10 = clo<"NormalCompletion">(undefined)
-    return _ret10
-  } else {
-    (yet "|idlValue| is the enumeration value equal to |S|")
-  }
-  (yet "</dd> <dt>Otherwise</dt> <dd> |idlValue| is the result of [=converted to an IDL value|converting=] |V| to an IDL value of |attribute|'s type")
-  (yet "</dd> </dl>")
   call _guard1 = attribute.setterSteps(idlObject, idlValue)
   if (? _guard1: Completion) {
     if (&& (? _guard1: Completion) (! (= _guard1.Type ~normal~))) {

@@ -3,8 +3,10 @@
 `docs/engine_deviations.md`와는 성격이 다른 목록이다 — 그쪽은 "스펙은 멀쩡한데 실제 엔진이
 스펙과 다르게 동작해서, WJI가 의도적으로 스펙 문구를 벗어나 실제 엔진에 맞추기로 한 선택"을
 기록하는 곳이고, 여기는 `tests/wji/scripts/diff-engines`(V8/SpiderMonkey/JavaScriptCore
-세 엔진에 같은 `tests/wji/manual/`+`tests/wji/complementary/` 테스트를 돌려 교차검증하는
-도구)로 발견한, **세 엔진 중 하나(또는 둘)만 다른 둘과 다르게 동작하는 경우**를 기록한다.
+세 엔진에 같은 테스트를 돌려 교차검증하는 도구 — 기본 대상은
+`tests/wji/manual/`+`tests/wji/complementary/`지만 파일 인자로 `tests/wji/js-api/generated/`
+(공식 wpt 코퍼스)도 돌려볼 수 있음)로 발견한, **세 엔진 중 하나(또는 둘)만 다른 둘과 다르게
+동작하는 경우**를 기록한다.
 WJI가 뭘 어떻게 할지 결정할 필요는 없다(WJI는 스펙대로 기계화하면 그만) — 이건 순수하게
 "실제 엔진 버그일 가능성이 있다, 업스트림에 제보할 가치가 있어 보인다"는 관찰 기록.
 
@@ -161,3 +163,18 @@ WJI가 뭘 어떻게 할지 결정할 필요는 없다(WJI는 스펙대로 기�
 - **확인한 엔진 버전**: 위 1번과 동일.
 - **상태**: 이미 알려진 gap(V8 쪽)의 재확인 + SpiderMonkey 쪽 추가 관찰 — 업스트림
   제보 안 함.
+
+## 8. SpiderMonkey: `Table.prototype.set`의 `.length`가 1이 아니라 2
+
+- **발견 경로**: `tests/wji/scripts/diff-engines tests/wji/js-api/generated/interface.any.js`
+  (공식 wpt 코퍼스를 파일 인자로 직접 돌려본 경우) — V8/JSC PASS, SpiderMonkey만 FAIL
+  (`interface.any.js`의 "WebAssembly.Table.set: length" 서브테스트).
+- **배경**: WebIDL 선언(`webidl/index.bs`, `interface Table { ... undefined
+  set(AddressValue index, optional any value); ... }`)에서 `value`가
+  `optional`이므로, WebIDL의 표준 `.length` 계산 규칙상 `Table.prototype.set.length`는
+  **1**이어야 함(뒤에 required 인자가 없는 한, optional 인자는 `.length`에 안 잡힘).
+- **실제 동작(SpiderMonkey)**: `WebAssembly.Table.prototype.set.length === 2` —
+  `value`를 required처럼 `.length`에 포함시킴. V8/JSC는 둘 다 정확히 `1`.
+- **확인한 엔진 버전**: 위 1번과 동일.
+- **상태**: 후보 — 로컬 재현만 확인(공식 wpt subtest 자체가 바로 이 사실을 테스트함,
+  `assert_equals: expected 1 but got 2`), 업스트림 제보 안 함.

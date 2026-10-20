@@ -108,11 +108,18 @@ run_with_timeout() {
 # appended after it, and nothing here needs to know in what order an engine's
 # shell drains pending async work relative to that, since each engine's own
 # process naturally doesn't exit until it does.
+#
+# `tests/wji/js-api/generated/*.any.js` (the official corpus) uses the same
+# __wjiOk convention but a different on-failure print shape: report-shim.js
+# prints one `FAIL <subtest name> - <message>` line per failed subtest
+# instead of `uncaught: ...` -- checked for too, since a file in that corpus
+# can fail a subtest and still exit 0 with no "uncaught:" text anywhere
+# (report-shim.js's own completion callback runs to the end either way).
 verdict_of() {
   local status="$1" outfile="$2"
   if [ "$status" = "137" ] || [ "$status" = "130" ]; then
     echo "TIMEOUT"
-  elif [ "$status" = "0" ] && ! grep -q "uncaught:" "$outfile"; then
+  elif [ "$status" = "0" ] && ! grep -qE "uncaught:|^FAIL " "$outfile"; then
     echo "PASS"
   else
     echo "FAIL"

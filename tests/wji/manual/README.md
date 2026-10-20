@@ -100,10 +100,15 @@ tests/wji/scripts/diff-engines --verbose                     # DIVERGE난 파일
 
 테스트 파일을 수정하거나 다른 코드와 합치지 않고 원본 그대로 각 엔진 바이너리에 넘겨
 실행합니다. PASS/FAIL 판정은 `__wjiOk`를 직접 읽는 게 아니라 "정상 종료 + stdout/stderr에
-`uncaught:`(모든 테스트 케이스의 `.catch(e => print("uncaught: " + e))` 컨벤션) 없음"으로
+`uncaught:`(모든 테스트 케이스의 `.catch(e => print("uncaught: " + e))` 컨벤션) 또는
+`FAIL `로 시작하는 줄(`tests/wji/js-api/generated/`의 `report-shim.js` 컨벤션) 없음"으로
 판단합니다 — 비동기 테스트도 엔진 프로세스 자신이 종료 전에 알아서 전부 드레인해주므로
 타이밍을 맞추는 별도 코드가 필요 없습니다. `$ENGINES_DIR`에서 못 찾은 엔진은 조용히
 스킵됩니다(하드 실패 아님).
+
+기본 대상(인자 없을 때)은 `manual/`+`complementary/`지만, 파일을 직접 지정하면 공식
+`tests/wji/js-api/generated/*.any.js`(이미 self-contained라 그대로 돌아감)도 똑같이
+교차검증할 수 있습니다: `tests/wji/scripts/diff-engines tests/wji/js-api/generated/*.any.js`.
 
 **일부 DIVERGE는 진짜 버그가 아닐 수 있습니다** — 한쪽 엔진이 아직 해당 기능(특히
 js-string-builtins의 `builtins`/`importedStringConstants` 옵션처럼 비교적 최근/계속

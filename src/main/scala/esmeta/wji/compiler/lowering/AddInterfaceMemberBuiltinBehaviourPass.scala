@@ -138,49 +138,6 @@ object AddInterfaceMemberBuiltinBehaviourPass extends LoweringPass:
   private def stripPipes(s: String): String =
     s.stripPrefix("|").stripSuffix("|")
 
-  /** the WebIDL dictionary types this pass already knew about before
-    * required-member validation moved into `converted_to_an_idl_value` itself
-    * (`esmeta.wji.interpreter.WebIdlConversion.readDictionary`, which now
-    * genuinely throws — see its own doc) — kept here only for the *other* guard
-    * dictionary conversion needs first, [[nonObjectCheck]]. `ExceptionOptions`
-    * was never in this set either, before or after: it has no required members,
-    * and never got the non-`Object` guard (a pre-existing gap,
-    * `docs/hardcodes.md` #2, not newly introduced by this pass).
-    */
-  private val knownDictionaryTypes: Set[String] =
-    Set("MemoryDescriptor", "TableDescriptor", "GlobalDescriptor", "TagType")
-
-  /** WebIDL dictionary conversion's own first step: "if Type(V) is not
-    * Undefined, Null, or Object, throw a TypeError" — run before
-    * `converted_to_an_idl_value` for `ty`'s in [[knownDictionaryTypes]], since
-    * that function itself only ever reads `argument` as `Undefined`/`Null`/an
-    * `Object` (its `Get` calls would crash on anything else, e.g. a `false`/
-    * number/string/`Symbol()` argument — just as valid a WPT "invalid
-    * descriptor" case as `undefined`, see
-    * `spectec/test/js-api/memory/constructor.any.js`'s "Invalid descriptor
-    * argument"). Also covers a bare `sequence<T>` param (so far only
-    * `Exception`'s constructor's `payload`) — sequence conversion actually
-    * requires an Object even more strictly (no `Undefined`/`Null` collapsing),
-    * but the same "throw unless Object" check is a safe (if slightly
-    * stricter-than-spec on paper) stand-in: `WebIdlConversion. toSequence`
-    * reads `argument`'s own `"__MAP__"` field directly, which crashes on a
-    * non-`Addr` value (e.g. `123n`,
-    * `spectec/test/js-api/exception/constructor.tentative.any.js`'s "Invalid
-    * exception argument") instead of throwing `TypeError`.
-    */
-  private def nonObjectCheck(ty: String, name: String): List[Instr] =
-    if !(knownDictionaryTypes(ty) || ty.startsWith("sequence<")) then Nil
-    else
-      List(
-        Instr.IfChain(
-          List(
-            Cond.IsType(Expr.Var(name), "Object", negated = true) ->
-            List(Instr.Throw(Expr.New("TypeError"))),
-          ),
-          Nil,
-        ),
-      )
-
   /** the `params.zipWithIndex` prefix instructions that unpack `ArgumentsList`
     * positionally into the algorithm's own originally-declared parameter names
     * — mirrors [[AddBuiltinBehaviourPass.unpackArgumentsList]] (see that
@@ -192,19 +149,21 @@ object AddInterfaceMemberBuiltinBehaviourPass extends LoweringPass:
     * (`manuals/funcs/overload_resolution_algorithm.ir`): one entry per declared
     * param, each already converted to its declared IDL type, with a missing
     * optional argument already replaced by `undefined` or its default — so
-    * nothing but the binding itself (and [[nonObjectCheck]]) is left to do
-    * here. Converting the return value back to a JavaScript value, and
+    * nothing but the binding itself is left to do here (a dictionary/sequence
+    * argument's non-object check is part of that conversion,
+    * `WebIdlConversion.toDictionary`). Converting the return value back to a
+    * JavaScript value, and
     * rejecting instead of throwing for a promise-typed operation, are that
     * same caller's own steps too.
     */
   private def unpackArgumentsList(params: List[WjiParam]): List[Instr] =
-    params.zipWithIndex.flatMap {
+    params.zipWithIndex.map {
       case (p, i) =>
         val name = stripPipes(p.name)
         Instr.Let(
           Expr.Var(name),
           Expr.Index(Expr.Var("ArgumentsList"), Expr.Num(i.toString)),
-        ) :: p.idlType.toList.flatMap(nonObjectCheck(_, name))
+        )
     }
 
   /** The matching epilogue for an algorithm whose spec prose never ends in an

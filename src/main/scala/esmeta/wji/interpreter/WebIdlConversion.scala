@@ -43,8 +43,9 @@ object WebIdlConversion:
     * *abrupt* case -- a required member found absent, an invalid enum value, or
     * a getter/`toString` that itself threw -- returns a genuine
     * `ThrowCompletion` Record instead of the plain value; a caller that cares
-    * (`AddInterfaceMemberBuiltinBehaviourPass.convertedIdlValueBinding`) tells
-    * the two apart with `Cond.IsType(_, "AbruptCompletion")`, which is false
+    * (`manuals/funcs/overload_resolution_algorithm.ir`'s per-argument
+    * conversion, `AddInstantiateOverloadDispatchPass.convert`) tells the two
+    * apart with an abrupt-completion check, which is false
     * for every ordinary converted value (a `MapObj` address, `Number`, `Str`,
     * ... -- none of them a `CompletionRecord`).
     * `converted_to_a_javascript_value` can't throw either (unlike `Get`,
@@ -184,17 +185,31 @@ object WebIdlConversion:
         case Some(v) => st.context.locals += pinVar -> v
         case None    => st.context.locals -= pinVar
 
-  /** mirrors `Interpreter.eval`'s `EImplements` case exactly (flat
-    * `RecordObj.tname` comparison, bypassing `esmeta.ty.TyModel` -- see
-    * `docs/hardcodes.md` #11) -- native here since it's a pure local check, no
-    * reentrant call needed.
+  /** WebIDL's "implements" (`webidl/index.bs:13799-13802`), the same check
+    * `ExpandImplementsPass` compiles `Cond.Implements` into: `v` is a platform
+    * object (an Object with a `[[PrimaryInterface]]` slot, set by "internally
+    * create a new object implementing the interface" -- its `tname` is just
+    * `MakeBasicObject`'s generic `"Object"`) and `iface` is among the
+    * [=inclusive inherited interfaces=] of that slot's value, walked via each
+    * interface record's `inherit` field exactly like
+    * `inclusive_inherited_interfaces` does (see `Initialize.seedHostDefined`).
+    * Native here since it's a pure heap walk, no reentrant call needed.
     */
   private def implementsInterface(st: State, v: Value, iface: String): Boolean =
+    def inherits(interface: Value): Boolean = interface match
+      case addr: Addr =>
+        st(addr) match
+          case r: RecordObj =>
+            r.get("id") == Some(Str(iface)) ||
+            r.get("inherit").exists(inherits)
+          case _ => false
+      case _ => false
     v match
       case addr: Addr =>
         st(addr) match
-          case r: RecordObj => r.tname == iface
-          case _            => false
+          case r: RecordObj if r.tname != "Symbol" =>
+            r.get("PrimaryInterface").exists(inherits)
+          case _ => false
       case _ => false
 
   /** `AllowSharedBufferSource`'s own union-membership test -- see that case in
@@ -369,9 +384,9 @@ object WebIdlConversion:
     Member("importedStringConstants"),
   )
 
-  /** `ty` names the declared IDL type — almost always a literal `Str` (from
-    * `AddInterfaceMemberBuiltinBehaviourPass.unpackArgumentsList`'s
-    * `WjiParam.idlType`-driven call), but a direct spec-text "converted to an
+  /** `ty` names the declared IDL type — almost always a literal `Str` (a
+    * param record's `ty`, `Initialize.seedHostDefined`'s `paramRecord`, read
+    * by `overload_resolution_algorithm.ir`), but a direct spec-text "converted to an
     * IDL value of type X" reference (e.g. inside a hoisted `react` closure)
     * compiles the type name as `Expr.SpecTerm`/`EEnum` instead. Matching on
     * either shape (never coercing/crashing on a third one) mirrors the old
@@ -387,17 +402,17 @@ object WebIdlConversion:
     case Str("unsigned long") | Enum("unsigned long") =>
       toUnsignedLong(interp, callSite, argument)
     case Str("MemoryDescriptor") | Enum("MemoryDescriptor") =>
-      readDictionary(interp, callSite, argument, memoryDescriptorMembers)
+      toDictionary(interp, callSite, argument, memoryDescriptorMembers)
     case Str("TableDescriptor") | Enum("TableDescriptor") =>
-      readDictionary(interp, callSite, argument, tableDescriptorMembers)
+      toDictionary(interp, callSite, argument, tableDescriptorMembers)
     case Str("GlobalDescriptor") | Enum("GlobalDescriptor") =>
-      readDictionary(interp, callSite, argument, globalDescriptorMembers)
+      toDictionary(interp, callSite, argument, globalDescriptorMembers)
     case Str("TagType") | Enum("TagType") =>
-      readDictionary(interp, callSite, argument, tagTypeMembers)
+      toDictionary(interp, callSite, argument, tagTypeMembers)
     case Str("ExceptionOptions") | Enum("ExceptionOptions") =>
-      readDictionary(interp, callSite, argument, exceptionOptionsMembers)
+      toDictionary(interp, callSite, argument, exceptionOptionsMembers)
     case Str("WebAssemblyCompileOptions") | Enum("WebAssemblyCompileOptions") =>
-      readDictionary(
+      toDictionary(
         interp,
         callSite,
         argument,
@@ -407,10 +422,10 @@ object WebIdlConversion:
     // `moduleObject`, and `Exception`'s constructor's `exceptionTag`): real
     // WebIDL interface-type conversion requires the value to actually
     // implement the named interface, throwing `TypeError` otherwise --
-    // `implementsInterface` is the same flat record-tag check
-    // `Cond.Implements`/`EImplements` already does at the IR level
-    // (`docs/hardcodes.md` #11), just run natively here since there's no
-    // reentrant call needed for it (no getter/JS execution involved).
+    // `implementsInterface` is the same `[[PrimaryInterface]]` check
+    // `ExpandImplementsPass` compiles `Cond.Implements` into, just run
+    // natively here since there's no reentrant call needed for it (no
+    // getter/JS execution involved).
     case Str("Module") | Enum("Module") =>
       if implementsInterface(interp.st, argument, "Module") then Right(argument)
       else Left(typeError(interp, callSite))
@@ -420,8 +435,8 @@ object WebIdlConversion:
     // `typedef (ArrayBuffer or SharedArrayBuffer or [AllowShared]
     // ArrayBufferView) AllowSharedBufferSource` (webidl/index.bs:15087) --
     // unlike `Module`/`Tag` above, a union of *built-in* ES types, which
-    // mainline constructs as plain `"Object"`-tagged records (no per-type
-    // tname `implementsInterface` could key off) -- so this checks the same
+    // aren't platform objects (no `[[PrimaryInterface]]` slot
+    // `implementsInterface` could key off) -- so this checks the same
     // internal slot `get_a_copy_of_the_buffer_source`
     // (webidl/index.bs:9312-9327) itself keys off: `[[ArrayBufferData]]` for
     // an ArrayBuffer/SharedArrayBuffer, `[[ViewedArrayBuffer]]` for any typed
@@ -446,11 +461,11 @@ object WebIdlConversion:
     // accepted instead of throwing the `TypeError` real WebIDL "convert
     // ECMAScript value to object" conversion requires (`1. If Type(V) is not
     // Object, throw a TypeError.`). `Undef` is special-cased to pass through
-    // rather than throw: unlike a truly-omitted argument (which never
-    // reaches `toIdlValue` at all -- `AddInterfaceMemberBuiltinBehaviourPass.
-    // omittedBranch` binds `undefined` directly for an optional parameter
-    // with no default), an argument *explicitly* supplied as `undefined`
-    // still goes through the "supplied" path and does reach here -- and the
+    // rather than throw: `overload_resolution_algorithm.ir` already binds
+    // `undefined` without converting for an omitted or explicitly-`undefined`
+    // optional argument, but `AddInstantiateOverloadDispatchPass.convert`
+    // converts `instantiate`'s `importObject` unconditionally, so an
+    // `undefined` one does reach here -- and the
     // spec text itself (`read the imports`, index.bs:485: "If ... and
     // |importObject| is undefined, throw a TypeError exception" -- only when
     // the module actually has imports) treats that as a legitimate, later-
@@ -469,11 +484,46 @@ object WebIdlConversion:
     // `Exception`'s constructor's `sequence<any> payload`. Matched by prefix
     // rather than the exact element type, same "identity passthrough for the
     // element type" simplification as everywhere else in this object.
+    // Sequence conversion's own first step, "If V is not an Object, throw a
+    // TypeError", runs first: `toSequence` reads `argument`'s `"__MAP__"`
+    // field directly, which would crash natively on a non-object (e.g.
+    // `123n`, `exception/constructor.tentative.any.js`'s "Invalid exception
+    // argument").
     case Str(t) if t.startsWith("sequence<") =>
-      Right(toSequence(interp.st, argument))
+      toBareSequence(interp, callSite, argument)
     case Enum(t) if t.startsWith("sequence<") =>
-      Right(toSequence(interp.st, argument))
+      toBareSequence(interp, callSite, argument)
     case _ => Right(argument)
+
+  private def toBareSequence(
+    interp: Interpreter,
+    callSite: Call,
+    argument: Value,
+  ): Either[Value, Value] =
+    if isObjectValue(interp.st, argument) then
+      Right(toSequence(interp.st, argument))
+    else Left(typeError(interp, callSite))
+
+  /** WebIDL dictionary conversion's own first step, "If V is not undefined,
+    * null or an Object, then throw a TypeError", ahead of [[readDictionary]]
+    * -- whose `Get` calls would crash natively on anything else (a `false`/
+    * number/string/`Symbol()` argument, `memory/constructor.any.js`'s "Invalid
+    * descriptor argument"). Used to be a separate guard injected after
+    * argument unpacking (`AddInterfaceMemberBuiltinBehaviourPass`'s former
+    * `nonObjectCheck`), which broke once `overload_resolution_algorithm.ir`
+    * started converting arguments first: by then the value is already the
+    * converted dictionary (a `MapObj`), never an Object.
+    */
+  private def toDictionary(
+    interp: Interpreter,
+    callSite: Call,
+    argument: Value,
+    members: List[Member],
+  ): Either[Value, Value] = argument match
+    case Undef | Null => readDictionary(interp, callSite, argument, members)
+    case _ if isObjectValue(interp.st, argument) =>
+      readDictionary(interp, callSite, argument, members)
+    case _ => Left(typeError(interp, callSite))
 
   private def toMathValue(v: Value): Math = v match
     case n: Math   => n

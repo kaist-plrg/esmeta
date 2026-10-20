@@ -824,11 +824,6 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Memory(
   ArgumentsList: Unknown,
 ): Unknown = {
   let descriptor = ArgumentsList[0]
-  if (! (? descriptor: Record[Object])) {
-    call _err1 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-    call _ret2 = clo<"ThrowCompletion">(_err1)
-    return _ret2
-  } else nop
   if (exists descriptor.address) {
     call addrtype = clo<"ToValueType">(descriptor.address)
   } else {
@@ -854,27 +849,27 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Memory(
   let memtype = (case "PAGE" addrtype (case "[" initial maximum))
   call-embed _call4 = <valid_memtype>(memtype)
   if (! (= _call4 true)) {
-    call _err3 = clo<"__NEW_ERROR_OBJ__">("%RangeError.prototype%")
-    call _ret4 = clo<"ThrowCompletion">(_err3)
-    return _ret4
+    call _err1 = clo<"__NEW_ERROR_OBJ__">("%RangeError.prototype%")
+    call _ret2 = clo<"ThrowCompletion">(_err1)
+    return _ret2
   } else nop
   let store = @AGENT_RECORD["associated store"]
   call-embed _tuple1 = <mem_alloc>(store, memtype)
   let store = _tuple1[0]
   let memaddr = _tuple1[1]
   if (= memaddr (case "ERROR" )) {
-    call _err5 = clo<"__NEW_ERROR_OBJ__">("%RangeError.prototype%")
-    call _ret6 = clo<"ThrowCompletion">(_err5)
-    return _ret6
+    call _err3 = clo<"__NEW_ERROR_OBJ__">("%RangeError.prototype%")
+    call _ret4 = clo<"ThrowCompletion">(_err3)
+    return _ret4
   } else nop
   @AGENT_RECORD["associated store"] = store
   call _ = clo<"initialize_a_memory_object">(this, memaddr)
-  let _v7 = this
-  if (? _v7: Completion) {
-    return _v7
+  let _v5 = this
+  if (? _v5: Completion) {
+    return _v5
   } else {
-    call _ret8 = clo<"NormalCompletion">(_v7)
-    return _ret8
+    call _ret6 = clo<"NormalCompletion">(_v5)
+    return _ret6
   }
 }
 def refresh_the_memory_buffer(
@@ -1125,17 +1120,12 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Table(
   ArgumentsList: Unknown,
 ): Unknown = {
   let descriptor = ArgumentsList[0]
-  if (! (? descriptor: Record[Object])) {
-    call _err1 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-    call _ret2 = clo<"ThrowCompletion">(_err1)
-    return _ret2
-  } else nop
   let value = ArgumentsList[1]
   call elementtype = clo<"ToValueType">(descriptor.element)
   if (! (= (case-tag elementtype) "REF")) {
-    call _err3 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-    call _ret4 = clo<"ThrowCompletion">(_err3)
-    return _ret4
+    call _err1 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
+    call _ret2 = clo<"ThrowCompletion">(_err1)
+    return _ret2
   } else nop
   if (exists descriptor.address) {
     call addrtype = clo<"ToValueType">(descriptor.address)
@@ -1162,9 +1152,9 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Table(
   let type = (case "" addrtype (case "[" initial maximum) elementtype)
   call-embed _call4 = <valid_tabletype>(type)
   if (! (= _call4 true)) {
-    call _err5 = clo<"__NEW_ERROR_OBJ__">("%RangeError.prototype%")
-    call _ret6 = clo<"ThrowCompletion">(_err5)
-    return _ret6
+    call _err3 = clo<"__NEW_ERROR_OBJ__">("%RangeError.prototype%")
+    call _ret4 = clo<"ThrowCompletion">(_err3)
+    return _ret4
   } else nop
   if (= value undefined) {
     call ref = clo<"DefaultValue">(elementtype)
@@ -1182,18 +1172,18 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Table(
   let store = _tuple1[0]
   let tableaddr = _tuple1[1]
   if (= tableaddr (case "ERROR" )) {
-    call _err7 = clo<"__NEW_ERROR_OBJ__">("%RangeError.prototype%")
-    call _ret8 = clo<"ThrowCompletion">(_err7)
-    return _ret8
+    call _err5 = clo<"__NEW_ERROR_OBJ__">("%RangeError.prototype%")
+    call _ret6 = clo<"ThrowCompletion">(_err5)
+    return _ret6
   } else nop
   @AGENT_RECORD["associated store"] = store
   call _ = clo<"initialize_a_table_object">(this, tableaddr)
-  let _v9 = this
-  if (? _v9: Completion) {
-    return _v9
+  let _v7 = this
+  if (? _v7: Completion) {
+    return _v7
   } else {
-    call _ret10 = clo<"NormalCompletion">(_v9)
-    return _ret10
+    call _ret8 = clo<"NormalCompletion">(_v7)
+    return _ret8
   }
 }
 def <BUILTIN>:INTRINSICS.WebAssembly.Table.prototype.grow(
@@ -1426,20 +1416,15 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Global(
   ArgumentsList: Unknown,
 ): Unknown = {
   let descriptor = ArgumentsList[0]
-  if (! (? descriptor: Record[Object])) {
-    call _err1 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-    call _ret2 = clo<"ThrowCompletion">(_err1)
-    return _ret2
-  } else nop
   let v = ArgumentsList[1]
   let mutable = descriptor.mutable
   call valuetype = clo<"ToValueType">(descriptor.value)
   call-embed _m1 = <match_valtype>(valuetype, (case "V128" ))
   call-embed _m2 = <match_valtype>(valuetype, (case "REF" (opt (case "NULL" )) (case "EXN" )))
   if (|| (= _m1 true) (= _m2 true)) {
-    call _err3 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-    call _ret4 = clo<"ThrowCompletion">(_err3)
-    return _ret4
+    call _err1 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
+    call _ret2 = clo<"ThrowCompletion">(_err1)
+    return _ret2
   } else nop
   if (= v undefined) {
     call value = clo<"DefaultValue">(valuetype)
@@ -1463,12 +1448,12 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Global(
   let globaladdr = _tuple1[1]
   @AGENT_RECORD["associated store"] = store
   call _ = clo<"initialize_a_global_object">(this, globaladdr)
-  let _v5 = this
-  if (? _v5: Completion) {
-    return _v5
+  let _v3 = this
+  if (? _v3: Completion) {
+    return _v3
   } else {
-    call _ret6 = clo<"NormalCompletion">(_v5)
-    return _ret6
+    call _ret4 = clo<"NormalCompletion">(_v3)
+    return _ret4
   }
 }
 def getglobalvalue(
@@ -2165,11 +2150,6 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Tag(
   ArgumentsList: Unknown,
 ): Unknown = {
   let type = ArgumentsList[0]
-  if (! (? type: Record[Object])) {
-    call _err1 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-    call _ret2 = clo<"ThrowCompletion">(_err1)
-    return _ret2
-  } else nop
   let parameters = type.parameters
   let wasmParameters = (list [])
   let _iterList1 = parameters
@@ -2187,12 +2167,12 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Tag(
   let tagAddress = _tuple1[1]
   @AGENT_RECORD["associated store"] = store
   call _ = clo<"initialize_a_Tag_object">(this, tagAddress)
-  let _v3 = this
-  if (? _v3: Completion) {
-    return _v3
+  let _v1 = this
+  if (? _v1: Completion) {
+    return _v1
   } else {
-    call _ret4 = clo<"NormalCompletion">(_v3)
-    return _ret4
+    call _ret2 = clo<"NormalCompletion">(_v1)
+    return _ret2
   }
 }
 def [[getprototypeof]]_internal_method_of_an_exported_gc_object(
@@ -2350,17 +2330,12 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Exception(
 ): Unknown = {
   let exceptionTag = ArgumentsList[0]
   let payload = ArgumentsList[1]
-  if (! (? payload: Record[Object])) {
-    call _err1 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-    call _ret2 = clo<"ThrowCompletion">(_err1)
-    return _ret2
-  } else nop
   let options = ArgumentsList[2]
   call JSTagAddr = clo<"get_the_JavaScript_exception_tag">()
   if (= exceptionTag.Address JSTagAddr) {
-    call _err3 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-    call _ret4 = clo<"ThrowCompletion">(_err3)
-    return _ret4
+    call _err1 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
+    call _ret2 = clo<"ThrowCompletion">(_err1)
+    return _ret2
   } else nop
   let store = @AGENT_RECORD["associated store"]
   call-embed _call1 = <tag_type>(store, exceptionTag.Address)
@@ -2368,9 +2343,9 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Exception(
   assert (= (case-tag _tuple1) "->")
   let types = _tuple1[0]
   if (! (= (sizeof types) (sizeof payload))) {
-    call _err5 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-    call _ret6 = clo<"ThrowCompletion">(_err5)
-    return _ret6
+    call _err3 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
+    call _ret4 = clo<"ThrowCompletion">(_err3)
+    return _ret4
   } else nop
   let wasmPayload = (list [])
   let _iterList1 = payload
@@ -2382,9 +2357,9 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Exception(
     call-embed _m1 = <match_valtype>(resultType, (case "V128" ))
     call-embed _m2 = <match_valtype>(resultType, (case "REF" (opt (case "NULL" )) (case "EXN" )))
     if (|| (= _m1 true) (= _m2 true)) {
-      call _err7 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-      call _ret8 = clo<"ThrowCompletion">(_err7)
-      return _ret8
+      call _err5 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
+      call _ret6 = clo<"ThrowCompletion">(_err5)
+      return _ret6
     } else nop
     call _call2 = clo<"ToWebAssemblyValue">(value, resultType)
     if (&& (? _call2: Completion) (! (= _call2.Type ~normal~))) {
@@ -2403,12 +2378,12 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Exception(
   if (= options.traceStack true) {
     this.Stack = (yet "a {{DOMString}} representation of the current call stack or undefined")
   } else nop
-  let _v9 = this
-  if (? _v9: Completion) {
-    return _v9
+  let _v7 = this
+  if (? _v7: Completion) {
+    return _v7
   } else {
-    call _ret10 = clo<"NormalCompletion">(_v9)
-    return _ret10
+    call _ret8 = clo<"NormalCompletion">(_v7)
+    return _ret8
   }
 }
 def <BUILTIN>:INTRINSICS.WebAssembly.Exception.prototype.getArg(

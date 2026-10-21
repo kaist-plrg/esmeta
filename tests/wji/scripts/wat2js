@@ -6,10 +6,18 @@
 # JS snippet printed to stdout, ready to paste into a tests/wji/manual/*.js
 # fixture.
 #
-# Requires `wat2wasm` (from the WABT toolchain) on PATH. This is NOT a build
-# dependency of this project -- it's an authoring-time convenience only. If a
-# .wat sidecar changes, re-run this and paste the new array into the .js by
-# hand; nothing verifies automatically that the two stay in sync.
+# Uses `wasm-tools` (https://github.com/bytecodealliance/wasm-tools) if it's
+# on PATH, else falls back to `wat2wasm` (WABT). Prefer wasm-tools: WABT's
+# wat2wasm can't compile GC types/instructions (e.g. `(array (mut i16))`,
+# `array.new_default`) at all, even with --enable-all. For modules both can
+# compile, `wasm-tools parse | wasm-tools strip --all` is byte-identical to
+# plain `wat2wasm` (checked against every .wat under tests/wji/), so which one
+# ran doesn't change the output.
+#
+# This is NOT a build dependency of this project -- it's an authoring-time
+# convenience only. If a .wat sidecar changes, re-run this and paste the new
+# array into the .js by hand; nothing verifies automatically that the two
+# stay in sync.
 # ------------------------------------------------------------------------------
 
 set -euo pipefail
@@ -19,10 +27,27 @@ if [ $# -ne 1 ]; then
   exit 1
 fi
 
-if ! command -v wat2wasm >/dev/null 2>&1; then
-  echo "error: wat2wasm not found on PATH (install WABT: https://github.com/WebAssembly/wabt)" >&2
+if command -v wasm-tools >/dev/null 2>&1; then
+  # `parse` alone doesn't type-check (wat2wasm does), so validate first.
+  # `strip --all` drops the name section wasm-tools emits for $identifiers,
+  # which plain wat2wasm never emits.
+  compile() {
+    wasm-tools parse "$1" | wasm-tools validate
+    wasm-tools parse "$1" | wasm-tools strip --all
+  }
+elif command -v wat2wasm >/dev/null 2>&1; then
+  echo "note: wasm-tools not found, falling back to wat2wasm (no GC support)" >&2
+  compile() { wat2wasm --output=- "$1"; }
+else
+  echo "error: neither wasm-tools nor wat2wasm found on PATH (install wasm-tools: https://github.com/bytecodealliance/wasm-tools)" >&2
   exit 1
 fi
 
-wat2wasm --output=- "$1" | xxd -i | sed -n '/^ /p' | sed 's/^ */  /' \
+# Compile fully before printing anything, so a failure doesn't still emit an
+# empty `new Uint8Array([` ... `])` shell around the error.
+wasm="$(mktemp -t wat2js)"
+trap 'rm -f "$wasm"' EXIT
+compile "$1" >"$wasm"
+
+xxd -i <"$wasm" | sed -n '/^ /p' | sed 's/^ */  /' \
   | { echo "new Uint8Array(["; cat; echo "])"; }

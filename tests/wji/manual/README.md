@@ -41,16 +41,19 @@ standalone 테스트입니다. 규칙은 하나: **모든 체크(동기든 비�
 
 ## `.wat`에서 `.js`용 바이트 만들기
 
-저장소 자체엔 WAT 컴파일러가 없습니다. 외부 `wat2wasm`(WABT 툴체인)이 PATH에
+저장소 자체엔 WAT 컴파일러가 없습니다. 외부 `wasm-tools`나 `wat2wasm`(WABT)이 PATH에
 있다면:
 
 ```
 tests/wji/scripts/wat2js tests/wji/manual/<name>.wat
 ```
 
-가 `new Uint8Array([...])` 스니펫을 stdout에 출력합니다 — 그걸 `.js` 테스트 케이스에
-직접 붙여넣으세요. 이건 저작 시점 편의 도구일 뿐 빌드 의존성이 아닙니다:
-`wat2wasm`이 없어도 `sbt compile`/`sbt test`엔 전혀 영향 없습니다.
+가 `new Uint8Array([...])` 스니펫을 stdout에 출력합니다. 그걸 `.js` 테스트 케이스에
+직접 붙여넣으세요. `wasm-tools`가 있으면 그걸 우선 쓰고, 없으면 `wat2wasm`으로
+대신합니다. GC 타입/명령어(`(array (mut i16))`, `array.new_default` 등)가 들어간
+모듈은 `wat2wasm`으로는 컴파일이 안 되니 `wasm-tools`가 필요합니다. 둘 다 컴파일할 수
+있는 모듈이면 출력 바이트는 같습니다. 이건 저작 시점 편의 도구일 뿐 빌드 의존성이
+아닙니다: 둘 다 없어도 `sbt compile`/`sbt test`엔 전혀 영향 없습니다.
 
 `.wat`을 수정했다면 `.js`에 inline된 바이트 배열도 손으로 다시 붙여넣어야
 합니다 — 이 두 파일이 서로 일치하는지 자동으로 검증하는 장치는 없습니다.

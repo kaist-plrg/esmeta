@@ -101,6 +101,11 @@ object CondParser:
   // determines polarity, not a separate positive/negative pattern pair.
   private val ListIsEmpty =
     """(?si)^(.+)\s+\[=list/is empty(?:\|([^\]]+))?=\]$""".r
+  // "any arguments were passed" (webidl/index.bs:12402, `attribute setter`,
+  // the only occurrence) — i.e. the passed arguments (Expr.ArgumentsList) are
+  // not empty; same `Length`-vs-0 shape as ListIsEmpty above.
+  private val AnyArgumentsPassed =
+    """(?si)^any\s+arguments\s+were\s+passed$""".r
   // "|builtinSetName| does not refer to a builtin set" (index.bs:1848, the
   // only occurrence) — "a builtin set" implicitly means "one of the builtin
   // sets defined in this section", the same self-reference
@@ -717,6 +722,8 @@ object CondParser:
     case ListIsEmpty(baseRaw, alias) =>
       val negated = Option(alias).exists(_.toLowerCase.contains("not"))
       Eq(Length(ExprParser.parse(baseRaw)), Num("0"), negated)
+    case AnyArgumentsPassed() =>
+      Eq(Length(ArgumentsList), Num("0"), negated = true)
     case RefersToBuiltinSetNeg(lhsRaw) =>
       val lhs = ExprParser.parse(lhsRaw)
       KnownBuiltinSetNames

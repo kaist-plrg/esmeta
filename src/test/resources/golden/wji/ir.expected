@@ -4755,8 +4755,8 @@ def attribute_setter_closure1(
   newTarget: Unknown,
 ): Unknown = {
   let V = undefined
-  if (yet "any arguments were passed") {
-    V = (yet "the value of the first argument passed")
+  if (! (= (sizeof argumentsList) 0)) {
+    V = argumentsList[0]
   } else nop
   let id = attribute.id
   let idlObject = null

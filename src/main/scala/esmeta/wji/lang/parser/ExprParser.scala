@@ -476,6 +476,11 @@ object ExprParser:
   private val ThisValue = """(?si)^the\s+<emu-val>this</emu-val>\s+value$""".r
   // "the passed arguments" — see Expr.ArgumentsList.
   private val PassedArguments = """(?si)^the\s+passed\s+arguments$""".r
+  // "the value of the first argument passed" (webidl/index.bs:12402,
+  // `attribute setter`, the only occurrence) — element 0 of
+  // Expr.ArgumentsList; guarded by CondParser's AnyArgumentsPassed.
+  private val FirstArgumentPassed =
+    """(?si)^the\s+value\s+of\s+the\s+first\s+argument\s+passed$""".r
   // "{{NewTarget}}" — see Expr.NewTarget — must precede the generic
   // BracedTerm below, which would otherwise turn it into a SpecTerm.
   private val NewTargetOnly = """(?s)^\{\{NewTarget\}\}$""".r
@@ -1270,6 +1275,7 @@ object ExprParser:
       case ThisOnly()       => This
       case ThisValue()       => This
       case PassedArguments() => ArgumentsList
+      case FirstArgumentPassed() => Index(ArgumentsList, Num("0"))
       case NewTargetOnly()   => NewTarget
       case PronounOnly()     => Pronoun
       case GivenValueOnly()  => GivenValue

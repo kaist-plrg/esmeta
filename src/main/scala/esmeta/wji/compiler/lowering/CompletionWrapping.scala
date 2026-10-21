@@ -181,7 +181,9 @@ object CompletionWrapping:
     * `SpecTerm` is safe whatever its name: every one of `Compiler`'s `SpecTerm`
     * cases yields a literal (`true`/`null`/...), a Realm/Agent record, a
     * symbol, or otherwise an `EEnum` (e.g. `~handled~`), never a Completion
-    * Record.
+    * Record. Likewise `Length`/`Keys`/`Concat`/`BinOp`/`Pow`/`Neg`/`Enum`
+    * compile to `ESizeOf`/`EKeys`/`EVariadic(Concat)`/arithmetic/`EEnum`, i.e.
+    * a number, list, string, or enum.
     *
     * `RecordLit(tname, _)`/`New(iface)` are safe for the same reason a
     * `pure`-tracked `Var` bound to one survives arbitrary intervening calls
@@ -231,15 +233,17 @@ object CompletionWrapping:
     * this field name anywhere in the corpus holds a completion-shaped value.
     */
   private def neverCompletion(expr: Expr): Boolean = expr match
-    case _: Expr.Bool | _: Expr.Num | _: Expr.Str | _: Expr.Byte => true
-    case _: Expr.SpecTerm                                        => true
-    case _: Expr.AsMath                                          => true
-    case _: Expr.List_                                           => true
-    case _: Expr.RecordLit                                       => true
-    case _: Expr.New                                             => true
-    case _: Expr.Case                                            => true
-    case _: Expr.Tuple                                           => true
-    case Expr.Field(_, "Value")                                  => true
+    case _: Expr.Bool | _: Expr.Num | _: Expr.Str | _: Expr.Byte  => true
+    case _: Expr.SpecTerm                                         => true
+    case _: Expr.AsMath                                           => true
+    case _: Expr.List_                                            => true
+    case _: Expr.RecordLit                                        => true
+    case _: Expr.New                                              => true
+    case _: Expr.Case                                             => true
+    case _: Expr.Tuple                                            => true
+    case _: Expr.Length | _: Expr.Keys | _: Expr.Concat           => true
+    case _: Expr.BinOp | _: Expr.Pow | _: Expr.Neg | _: Expr.Enum => true
+    case Expr.Field(_, "Value")                                   => true
     case Expr.AsWasm(inner, _) => neverCompletion(inner)
     case _                     => false
 
@@ -354,21 +358,22 @@ object CompletionWrapping:
     instrs
       .foldLeft((List.empty[Instr], known, pure)) {
         case ((acc, k, p), instr) =>
-          val clearedP = invalidate(p, instr)
+          // A var only loses `pure` if `instr` (or anything nested in it, e.g.
+          // a loop body) may assign it a value not provably pure. Nested pure
+          // reassignments keep it pure if it already was: a loop running zero
+          // times leaves the old value, otherwise the last write is pure.
+          val impure = impurelyReassignedVars(instr, pureCallees)
+          val clearedP = p -- impure
           val nextP = instr match
-            case Instr.Let(lhs, rhs, _) if neverCompletion(rhs) =>
-              clearedP + lhs
-            case Instr.Set(lhs, rhs, _) if neverCompletion(rhs) =>
-              clearedP + lhs
-            case Instr.Perform(func, _, PerformOutcome.BindResult(v), _, _)
-                if isProvablyPure(func, pureCallees) =>
-              clearedP + Expr.Var(v)
             case i: Instr.IfChain
                 if i.branches.forall((_, b) => terminatesControlFlow(b)) =>
-              clearedP ++ i.branches.flatMap((c, _) =>
-                provenNeverCompletionPastBranch(c),
-              )
-            case _ => clearedP
+              clearedP ++ i.branches
+                .flatMap((c, _) => provenNeverCompletionPastBranch(c))
+                .filterNot(impure)
+            case _ =>
+              pureAssignment(instr, pureCallees)
+                .filterNot(impure)
+                .fold(clearedP)(clearedP + _)
           val clearedK = invalidate(k, instr)
           val nextK = instr match
             case Instr.Perform(func, _, PerformOutcome.BindResult(v), _, _)
@@ -390,40 +395,63 @@ object CompletionWrapping:
       }
       ._1
 
-  /** Every name `instr` itself rebinds -- `Let`/`Set`'s own `lhs`,
-    * `Perform`/`PerformClosure`'s `PerformOutcome.BindResult(name)` (e.g. a
-    * `call-convert`'s `name = <converted_to_a_javascript_value>(name)`, which
-    * reassigns `name` in place), and `Pop`'s `lhs`. Recurses into `instr`'s own
-    * nested body -- needed since `expand`'s fold only ever sees sibling
-    * instructions at one level: a `While`/`ForEach`/... loop body that
-    * reassigns a var partway through (e.g. `js-string-fromcharcodearray`'s `let
-    * result = ""` before the loop, then `let result = (concat result
-    * charCodeString)` *inside* it) must still invalidate that var for whatever
-    * comes *after* the whole loop, even though the loop itself is a single
-    * opaque sibling as far as the outer fold is concerned. `IfChain` needs its
-    * own case since its `body` is always `Nil` (its real nested instructions
-    * live in `branches`/`fallback` instead, see its own doc). Over-collecting
-    * here (treating a name as "reassigned" when it's actually a fresh,
-    * branch-local `Let` that only shadows outer scope) is harmless -- it just
-    * forgoes an optimization, never produces a wrong one -- so this never needs
-    * to distinguish the two.
+  /** The name `instr` itself (not anything nested in it) rebinds, if any:
+    * `Let`/`Set`'s `lhs`, `Perform`/`PerformClosure`'s `BindResult(name)` (e.g.
+    * a `call-convert` reassigning `name` in place), `Pop`'s `lhs`.
+    */
+  private def directlyAssigned(instr: Instr): Option[Expr] = instr match
+    case Instr.Let(lhs, _, _) => Some(lhs)
+    case Instr.Set(lhs, _, _) => Some(lhs)
+    case Instr.Perform(_, _, PerformOutcome.BindResult(v), _, _) =>
+      Some(Expr.Var(v))
+    case Instr.PerformClosure(_, _, PerformOutcome.BindResult(v), _) =>
+      Some(Expr.Var(v))
+    case Instr.Pop(lhs, _, _) => Some(lhs)
+    case _                    => None
+
+  /** `directlyAssigned(instr)`, if the value it assigns is provably never a
+    * Completion Record.
+    */
+  private def pureAssignment(
+    instr: Instr,
+    pureCallees: Set[String],
+  ): Option[Expr] = instr match
+    case Instr.Let(lhs, rhs, _) if neverCompletion(rhs) => Some(lhs)
+    case Instr.Set(lhs, rhs, _) if neverCompletion(rhs) => Some(lhs)
+    case Instr.Perform(func, _, PerformOutcome.BindResult(v), _, _)
+        if isProvablyPure(func, pureCallees) =>
+      Some(Expr.Var(v))
+    case _ => None
+
+  /** `instr`'s own nested instructions. `IfChain` needs its own case since its
+    * `body` is always `Nil` (see its own doc).
+    */
+  private def nestedInstrs(instr: Instr): List[Instr] = instr match
+    case i: Instr.IfChain => i.branches.flatMap(_._2) ++ i.fallback
+    case _                => instr.body
+
+  /** Every name `instr` or anything nested in it rebinds. Recursing matters
+    * since `expand`'s fold only sees one level: a loop body reassigning a var
+    * must still count for whatever comes after the whole loop. Over-collecting
+    * a branch-local `Let` that merely shadows is harmless (a missed
+    * optimization, never a wrong one).
     */
   private def reassignedVars(instr: Instr): Set[Expr] =
-    val direct: Set[Expr] = instr match
-      case Instr.Let(lhs, _, _) => Set(lhs)
-      case Instr.Set(lhs, _, _) => Set(lhs)
-      case Instr.Perform(_, _, PerformOutcome.BindResult(v), _, _) =>
-        Set(Expr.Var(v))
-      case Instr.PerformClosure(_, _, PerformOutcome.BindResult(v), _) =>
-        Set(Expr.Var(v))
-      case Instr.Pop(lhs, _, _) => Set(lhs)
-      case _                    => Set.empty
-    val nested = instr match
-      case i: Instr.IfChain =>
-        i.branches.flatMap((_, b) => b.flatMap(reassignedVars)).toSet
-        ++ i.fallback.flatMap(reassignedVars)
-      case _ => instr.body.flatMap(reassignedVars).toSet
-    direct ++ nested
+    directlyAssigned(instr).toSet ++ nestedInstrs(instr).flatMap(reassignedVars)
+
+  /** Like [[reassignedVars]], but only names assigned a value *not* provably
+    * pure somewhere in `instr`. E.g. for `js-string-fromcharcodearray`'s loop
+    * `while ... { let result = (concat result c) }`, `result` isn't included.
+    */
+  private def impurelyReassignedVars(
+    instr: Instr,
+    pureCallees: Set[String],
+  ): Set[Expr] =
+    val direct = directlyAssigned(instr)
+      .filter(_ => pureAssignment(instr, pureCallees).isEmpty)
+    direct.toSet ++ nestedInstrs(instr).flatMap(
+      impurelyReassignedVars(_, pureCallees),
+    )
 
   private def invalidate(known: Set[Expr], instr: Instr): Set[Expr] =
     known -- reassignedVars(instr)

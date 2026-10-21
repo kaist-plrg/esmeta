@@ -3378,12 +3378,8 @@ def js-string-fromcharcodearray(
     let result = (concat result charCodeString)
     i = (+ i 1)
   }
-  if (? result: Completion) {
-    return result
-  } else {
-    call _ret3 = clo<"NormalCompletion">(result)
-    return _ret3
-  }
+  call _ret3 = clo<"NormalCompletion">(result)
+  return _ret3
 }
 def js-string-intocharcodearray(
   string: Unknown,
@@ -3423,12 +3419,8 @@ def js-string-intocharcodearray(
     @AGENT_RECORD["associated store"] = store
     i = (+ i 1)
   }
-  if (? stringLength: Completion) {
-    return stringLength
-  } else {
-    call _ret3 = clo<"NormalCompletion">(stringLength)
-    return _ret3
-  }
+  call _ret3 = clo<"NormalCompletion">(stringLength)
+  return _ret3
 }
 def js-string-fromcharcode(
   v: Unknown,

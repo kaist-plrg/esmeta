@@ -111,7 +111,9 @@ class CondParserSpec extends AnyFunSuite:
     )
     // `creating an operation function`'s "the interface |target|" lead-in.
     assert(
-      CondParser.parse("|jsValue| does not [=implement=] the interface |target|")
+      CondParser.parse(
+        "|jsValue| does not [=implement=] the interface |target|",
+      )
       == Implements(Var("jsValue"), Var("target"), negated = true),
     )
   }

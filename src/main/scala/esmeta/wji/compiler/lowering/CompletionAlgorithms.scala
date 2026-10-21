@@ -132,7 +132,7 @@ object CompletionAlgorithms:
       // function`, whose own top-level steps never use ?/! at all, only its
       // nested hostfunc closure does — wrongly inherited before this guard).
       case Instr.Let(_, Expr.FollowingSteps(_, _, _), _) => false
-      case i                                          =>
+      case i                                             =>
         // only `?` is a signal that *this* algorithm can itself abruptly
         // complete — ExpandAbruptPass's `!` handling never introduces a
         // Return at all (`Assert` the value is normal, then unconditionally

@@ -78,14 +78,14 @@ import esmeta.wji.lang.walker.Walker
   * `wellKnownIntrinsics` becomes an [[Expr.Intrinsic]] (its remaining segments
   * are a property path, ECMA-262 §6.1.7.4). The two spellings differ in what
   * happens when the base is in neither table:
-  *   - `%X%` (`ExprParser.BracedIntrinsic`, from `{{%X%}}`) is unambiguously
-  *     an intrinsic/symbol reference, so it throws
+  *   - `%X%` (`ExprParser.BracedIntrinsic`, from `{{%X%}}`) is unambiguously an
+  *     intrinsic/symbol reference, so it throws
   *     [[esmeta.error.UnsupportedSpecShape]] — a misspelled or nonexistent
   *     intrinsic is a static error here rather than a failed lookup at run
   *     time.
   *   - a zero-arg dotted PascalCase dfn link (`[=String.fromCharCode=]`, see
-  *     `IntrinsicRef`) only *looks* like one, so it falls back to a
-  *     `SpecTerm` like any other unknown zero-arg link.
+  *     `IntrinsicRef`) only *looks* like one, so it falls back to a `SpecTerm`
+  *     like any other unknown zero-arg link.
   *
   * A [[Cond.IsOfForm]]'s `form` field is the one exception to the first rule
   * above: it's always a pattern to destructure against (`ExpandIsOfFormPass`
@@ -188,41 +188,106 @@ object ResolveLinksPass extends LoweringPass:
   // and `table-well-known-symbols` (`esmeta.spec.Spec`) instead of
   // hardcoding them, once WJI compilation has access to the ECMA-262 spec.
 
-  /** The names (without `%`) in ECMA-262's Table "Well-Known Intrinsic
-    * Objects" (ecma262/spec.html, `table-well-known-intrinsic-objects`).
+  /** The names (without `%`) in ECMA-262's Table "Well-Known Intrinsic Objects"
+    * (ecma262/spec.html, `table-well-known-intrinsic-objects`).
     */
   private val wellKnownIntrinsics: Set[String] = Set(
-    "AggregateError", "Array", "ArrayBuffer", "ArrayIteratorPrototype",
-    "AsyncFromSyncIteratorPrototype", "AsyncFunction",
-    "AsyncGeneratorFunction", "AsyncGeneratorPrototype",
-    "AsyncIteratorPrototype", "Atomics", "BigInt", "BigInt64Array",
-    "BigUint64Array", "Boolean", "DataView", "Date", "decodeURI",
-    "decodeURIComponent", "encodeURI", "encodeURIComponent", "Error", "eval",
-    "EvalError", "FinalizationRegistry", "Float16Array", "Float32Array",
-    "Float64Array", "ForInIteratorPrototype", "Function", "GeneratorFunction",
-    "GeneratorPrototype", "Int8Array", "Int16Array", "Int32Array", "isFinite",
-    "isNaN", "Iterator", "IteratorHelperPrototype", "JSON", "Map",
-    "MapIteratorPrototype", "Math", "Number", "Object", "parseFloat",
-    "parseInt", "Promise", "Proxy", "RangeError", "ReferenceError", "Reflect",
-    "RegExp", "RegExpStringIteratorPrototype", "Set", "SetIteratorPrototype",
-    "SharedArrayBuffer", "String", "StringIteratorPrototype", "Symbol",
-    "SyntaxError", "ThrowTypeError", "TypedArray", "TypeError", "Uint8Array",
-    "Uint8ClampedArray", "Uint16Array", "Uint32Array", "URIError", "WeakMap",
-    "WeakRef", "WeakSet", "WrapForValidIteratorPrototype",
+    "AggregateError",
+    "Array",
+    "ArrayBuffer",
+    "ArrayIteratorPrototype",
+    "AsyncFromSyncIteratorPrototype",
+    "AsyncFunction",
+    "AsyncGeneratorFunction",
+    "AsyncGeneratorPrototype",
+    "AsyncIteratorPrototype",
+    "Atomics",
+    "BigInt",
+    "BigInt64Array",
+    "BigUint64Array",
+    "Boolean",
+    "DataView",
+    "Date",
+    "decodeURI",
+    "decodeURIComponent",
+    "encodeURI",
+    "encodeURIComponent",
+    "Error",
+    "eval",
+    "EvalError",
+    "FinalizationRegistry",
+    "Float16Array",
+    "Float32Array",
+    "Float64Array",
+    "ForInIteratorPrototype",
+    "Function",
+    "GeneratorFunction",
+    "GeneratorPrototype",
+    "Int8Array",
+    "Int16Array",
+    "Int32Array",
+    "isFinite",
+    "isNaN",
+    "Iterator",
+    "IteratorHelperPrototype",
+    "JSON",
+    "Map",
+    "MapIteratorPrototype",
+    "Math",
+    "Number",
+    "Object",
+    "parseFloat",
+    "parseInt",
+    "Promise",
+    "Proxy",
+    "RangeError",
+    "ReferenceError",
+    "Reflect",
+    "RegExp",
+    "RegExpStringIteratorPrototype",
+    "Set",
+    "SetIteratorPrototype",
+    "SharedArrayBuffer",
+    "String",
+    "StringIteratorPrototype",
+    "Symbol",
+    "SyntaxError",
+    "ThrowTypeError",
+    "TypedArray",
+    "TypeError",
+    "Uint8Array",
+    "Uint8ClampedArray",
+    "Uint16Array",
+    "Uint32Array",
+    "URIError",
+    "WeakMap",
+    "WeakRef",
+    "WeakSet",
+    "WrapForValidIteratorPrototype",
   )
 
   /** The `NAME`s of `%Symbol.NAME%` in ECMA-262's Table "Well-known Symbols"
     * (ecma262/spec.html, `table-well-known-symbols`).
     */
   private val wellKnownSymbols: Set[String] = Set(
-    "asyncIterator", "hasInstance", "isConcatSpreadable", "iterator", "match",
-    "matchAll", "replace", "search", "species", "split", "toPrimitive",
-    "toStringTag", "unscopables",
+    "asyncIterator",
+    "hasInstance",
+    "isConcatSpreadable",
+    "iterator",
+    "match",
+    "matchAll",
+    "replace",
+    "search",
+    "species",
+    "split",
+    "toPrimitive",
+    "toStringTag",
+    "unscopables",
   )
 
   /** Classifies a `%`-stripped intrinsic/symbol name (`Promise.reject`,
-    * `Symbol.iterator`) against the well-known tables, or `None` if its base
-    * is in neither — see this object's own doc.
+    * `Symbol.iterator`) against the well-known tables, or `None` if its base is
+    * in neither — see this object's own doc.
     */
   private def lookupIntrinsic(name: String): Option[Expr] =
     name.split('.').toList match

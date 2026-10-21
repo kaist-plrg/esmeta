@@ -14,15 +14,14 @@ import esmeta.error.UnsupportedSpecShape
   * {{{
   *   ClosureCall(Field(base, name), base :: args)
   * }}}
-  * — the same thing mainline's `Compiler` does for an
-  * `InvokeMethodExpression` (`call %0 = O.GetOwnProperty(O, P)`), and what
-  * every internal method's own definition expects (its receiver is always its
-  * first parameter, see `AlgorithmExtractor.InternalMethodSignature`).
+  * — the same thing mainline's `Compiler` does for an `InvokeMethodExpression`
+  * (`call %0 = O.GetOwnProperty(O, P)`), and what every internal method's own
+  * definition expects (its receiver is always its first parameter, see
+  * `AlgorithmExtractor.InternalMethodSignature`).
   *
   * `base` appears twice in the result, so it must be a plain variable — the
-  * only receiver ECMA-262 or WebIDL ever writes a method call on. Anything
-  * else throws `UnsupportedSpecShape` rather than being silently evaluated
-  * twice.
+  * only receiver ECMA-262 or WebIDL ever writes a method call on. Anything else
+  * throws `UnsupportedSpecShape` rather than being silently evaluated twice.
   *
   * Category: Structural desugaring — Elimination.
   */

@@ -1624,7 +1624,14 @@ object SpecPatch:
       #                return <emu-val>undefined</emu-val>.
       #            1.  Set |idlValue| to |S|.
       #        1.  Otherwise, set |idlValue| to the result of [=converted to an IDL value|converting=]
-      #            |V| to an IDL value of |attribute|'s type.""".stripMargin('#'),
+      #            |V| to an IDL value of |attribute|'s type.""".stripMargin(
+      '#',
+    ),
+    """1.  Return the result of [=converted to a JavaScript value|converting=] |R| to a
+                JavaScript value of the type |attribute| is declared as."""
+    ->
+    """1.  Return the result of [=converted to a JavaScript value|converting=] |R| to a
+                JavaScript value.""",
   )
 
   def apply(source: String): String =

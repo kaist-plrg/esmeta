@@ -1279,15 +1279,15 @@ object ExprParser:
         Link(normalizeLink(link), List(parse(valueRaw)))
 
       // ---- Bare references ----
-      case ThisOnly()       => This
-      case ThisValue()       => This
-      case PassedArguments() => ArgumentsList
+      case ThisOnly()            => This
+      case ThisValue()           => This
+      case PassedArguments()     => ArgumentsList
       case FirstArgumentPassed() => Index(ArgumentsList, Num("0"))
-      case NewTargetOnly()   => NewTarget
-      case PronounOnly()     => Pronoun
-      case GivenValueOnly()  => GivenValue
-      case VarOnly(name)     => Var(name)
-      case VarIgnore(name)   => Var(name.trim)
+      case NewTargetOnly()       => NewTarget
+      case PronounOnly()         => Pronoun
+      case GivenValueOnly()      => GivenValue
+      case VarOnly(name)         => Var(name)
+      case VarIgnore(name)       => Var(name.trim)
 
       // tried before "---- Arithmetic & casts ----" below, unlike every other
       // structural-access pattern (e.g. ElementAt further down) -- its own

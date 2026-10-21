@@ -109,9 +109,9 @@ case class Definition(
 )
 
 /** A WebIDL `enum Name { "a", "b", ... }` block (e.g. `ImportExportKind`,
-  * `AddressType`, `TableKind`, `ValueType`) — `values` are its
-  * [=enumeration values=], in declaration order. Extracted from the same
-  * `<pre class="idl">` blocks as [[Definition]], but a separate WebIDL
-  * construct (see [[esmeta.wji.extractor.DefinitionExtractor]]).
+  * `AddressType`, `TableKind`, `ValueType`) — `values` are its [=enumeration
+  * values=], in declaration order. Extracted from the same `<pre class="idl">`
+  * blocks as [[Definition]], but a separate WebIDL construct (see
+  * [[esmeta.wji.extractor.DefinitionExtractor]]).
   */
 case class Enumeration(name: String, values: List[String])

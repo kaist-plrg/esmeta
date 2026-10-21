@@ -30,7 +30,8 @@ import esmeta.wji.lang.{Algorithm, AlgorithmKind, Cond, Expr, Instr, WjiParam}
   * does still apply to a `NamespaceMethod`, in principle — no corpus occurrence
   * has that declared return type today, but nothing about it depends on having
   * a receiver) but still goes through [[unpackArgumentsList]] exactly like a
-  * `Method` does — and, in `Compiler`, registers under `INTRINSICS.<namespace>.<name>` (no `.prototype` segment:
+  * `Method` does — and, in `Compiler`, registers under
+  * `INTRINSICS.<namespace>.<name>` (no `.prototype` segment:
   * `WebAssembly.instantiate`, never `WebAssembly.prototype.instantiate`) — see
   * `Compiler.compileAlgo`'s own `NamespaceMethod` case.
   *
@@ -77,10 +78,10 @@ import esmeta.wji.lang.{Algorithm, AlgorithmKind, Cond, Expr, Instr, WjiParam}
   *     - `Getter`/`NamespaceGetter`: `(this)` — "the [=getter steps=] of
   * |attribute| with |idlObject| as [=this=]".
   *   - `Setter`: `(this, givenValue)` — "... with |idlObject| as [=this=] and
-  *     |idlValue| as [=the given value=]". `**the given value**`
-  *     (`Expr.GivenValue`) compiles directly to the `givenValue` local that
-  *     parameter declares (`esmeta.wji.compiler.Compiler`'s `Expr.GivenValue`
-  *     case), so no binding prefix is needed.
+  * |idlValue| as [=the given value=]". `**the given value**`
+  * (`Expr.GivenValue`) compiles directly to the `givenValue` local that
+  * parameter declares (`esmeta.wji.compiler.Compiler`'s `Expr.GivenValue`
+  * case), so no binding prefix is needed.
   *   - `Constructor`/`Method`/`NamespaceMethod`: `(this, ArgumentsList)` — "...
   *     with |object| as [=this=] and |values| as the argument values". Every
   *     originally-declared `|param|` is unpacked from `ArgumentsList`
@@ -152,9 +153,8 @@ object AddInterfaceMemberBuiltinBehaviourPass extends LoweringPass:
     * nothing but the binding itself is left to do here (a dictionary/sequence
     * argument's non-object check is part of that conversion,
     * `WebIdlConversion.toDictionary`). Converting the return value back to a
-    * JavaScript value, and
-    * rejecting instead of throwing for a promise-typed operation, are that
-    * same caller's own steps too.
+    * JavaScript value, and rejecting instead of throwing for a promise-typed
+    * operation, are that same caller's own steps too.
     */
   private def unpackArgumentsList(params: List[WjiParam]): List[Instr] =
     params.zipWithIndex.map {

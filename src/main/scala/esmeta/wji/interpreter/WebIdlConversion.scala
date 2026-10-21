@@ -45,13 +45,13 @@ object WebIdlConversion:
     * `ThrowCompletion` Record instead of the plain value; a caller that cares
     * (`manuals/funcs/overload_resolution_algorithm.ir`'s per-argument
     * conversion, `AddInstantiateOverloadDispatchPass.convert`) tells the two
-    * apart with an abrupt-completion check, which is false
-    * for every ordinary converted value (a `MapObj` address, `Number`, `Str`,
-    * ... -- none of them a `CompletionRecord`).
-    * `converted_to_a_javascript_value` can't throw either (unlike `Get`,
-    * `CreateArrayFromList` -- the one reentrant call `toJsValue` itself makes,
-    * see its own doc -- is always `!`-marked in real spec text, never abrupt)
-    * and was never affected by the completion-wrapping question above.
+    * apart with an abrupt-completion check, which is false for every ordinary
+    * converted value (a `MapObj` address, `Number`, `Str`, ... -- none of them
+    * a `CompletionRecord`). `converted_to_a_javascript_value` can't throw
+    * either (unlike `Get`, `CreateArrayFromList` -- the one reentrant call
+    * `toJsValue` itself makes, see its own doc -- is always `!`-marked in real
+    * spec text, never abrupt) and was never affected by the completion-wrapping
+    * question above.
     */
   def call(
     interp: Interpreter,
@@ -384,10 +384,10 @@ object WebIdlConversion:
     Member("importedStringConstants"),
   )
 
-  /** `ty` names the declared IDL type — almost always a literal `Str` (a
-    * param record's `ty`, `Initialize.seedHostDefined`'s `paramRecord`, read
-    * by `overload_resolution_algorithm.ir`), but a direct spec-text "converted to an
-    * IDL value of type X" reference (e.g. inside a hoisted `react` closure)
+  /** `ty` names the declared IDL type — almost always a literal `Str` (a param
+    * record's `ty`, `Initialize.seedHostDefined`'s `paramRecord`, read by
+    * `overload_resolution_algorithm.ir`), but a direct spec-text "converted to
+    * an IDL value of type X" reference (e.g. inside a hoisted `react` closure)
     * compiles the type name as `Expr.SpecTerm`/`EEnum` instead. Matching on
     * either shape (never coercing/crashing on a third one) mirrors the old
     * `.ir` version's own tolerance: `if (= T "...")` just evaluates false —
@@ -508,8 +508,8 @@ object WebIdlConversion:
     * null or an Object, then throw a TypeError", ahead of [[readDictionary]]
     * -- whose `Get` calls would crash natively on anything else (a `false`/
     * number/string/`Symbol()` argument, `memory/constructor.any.js`'s "Invalid
-    * descriptor argument"). Used to be a separate guard injected after
-    * argument unpacking (`AddInterfaceMemberBuiltinBehaviourPass`'s former
+    * descriptor argument"). Used to be a separate guard injected after argument
+    * unpacking (`AddInterfaceMemberBuiltinBehaviourPass`'s former
     * `nonObjectCheck`), which broke once `overload_resolution_algorithm.ir`
     * started converting arguments first: by then the value is already the
     * converted dictionary (a `MapObj`), never an Object.

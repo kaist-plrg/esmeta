@@ -42,12 +42,12 @@ import esmeta.error.UnsupportedSpecShape
   * additionally needs the fixed 3-argument builtin signature, but that
   * adaptation is a separate concern already applied to the `FollowingSteps`
   * itself by [[AddBuiltinBehaviourPass]] *before* this pass runs, so that
-  * `captured` is computed against the closure's final parameter list: a
-  * builtin behaviour's own `this` parameter is then excluded from `captured`
-  * exactly like any other declared parameter, while any other closure reading
-  * `Expr.This` captures it from its enclosing algorithm. All this pass does
-  * for that convention is carry `FollowingSteps.isBuiltinBehaviour` over onto
-  * the hoisted `Algorithm`.
+  * `captured` is computed against the closure's final parameter list: a builtin
+  * behaviour's own `this` parameter is then excluded from `captured` exactly
+  * like any other declared parameter, while any other closure reading
+  * `Expr.This` captures it from its enclosing algorithm. All this pass does for
+  * that convention is carry `FollowingSteps.isBuiltinBehaviour` over onto the
+  * hoisted `Algorithm`.
   *
   * Assumes at most one `Expr.FollowingSteps` per instruction (throws if
   * [[findOne]] finds more), and makes no assumption about exactly where within

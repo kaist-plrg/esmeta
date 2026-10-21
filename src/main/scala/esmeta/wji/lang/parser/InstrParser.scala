@@ -30,8 +30,8 @@ object InstrParser:
 
   /** whether `sentence` is, as a whole, one parenthesized remark -- the spec
     * author's aside trailing the sentence it comments on, e.g. `attribute
-    * getter`'s "Let |jsValue| be ... otherwise. (This will subsequently cause
-    * a {{TypeError}} in a few steps, if the global object does not implement
+    * getter`'s "Let |jsValue| be ... otherwise. (This will subsequently cause a
+    * {{TypeError}} in a few steps, if the global object does not implement
     * |target|.)" (webidl/index.bs:12358). Editorial like [[BareCitation]], so
     * dropped the same way.
     */

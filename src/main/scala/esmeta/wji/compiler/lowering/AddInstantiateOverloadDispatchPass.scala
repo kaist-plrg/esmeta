@@ -16,12 +16,11 @@ import esmeta.wji.lang.{Algorithm, AlgorithmKind, Cond, Expr, Instr, WjiParam}
   * overload-resolution mechanism (`docs/hardcodes.md` #23): it just checks
   * whether `ArgumentsList[0]` [[Cond.Implements]] `Module`, converts the
   * arguments to whichever real overload matches's declared IDL types (see
-  * [[convert]]), and forwards to it — the same distinguishing check real
-  * WebIDL overload resolution would make for this `(Module or
-  * BufferSource)`-shaped ambiguity, since `Module` is a real interface type
-  * and every non-`Module` argument is rejected by the buffer overload's own
-  * `AllowSharedBufferSource` conversion (`TODO.md` #57's reject-not-throw fix
-  * included).
+  * [[convert]]), and forwards to it — the same distinguishing check real WebIDL
+  * overload resolution would make for this `(Module or BufferSource)`-shaped
+  * ambiguity, since `Module` is a real interface type and every non-`Module`
+  * argument is rejected by the buffer overload's own `AllowSharedBufferSource`
+  * conversion (`TODO.md` #57's reject-not-throw fix included).
   *
   * Runs right after [[AddInterfaceMemberBuiltinBehaviourPass]], once both real
   * overloads already have the final `(this, ArgumentsList)` `<BUILTIN>:`
@@ -85,9 +84,9 @@ object AddInstantiateOverloadDispatchPass extends LoweringPass:
     * `undefined` to `WebAssemblyCompileOptions` yields the empty dictionary
     * `{}` would, and to `object` stays `undefined` (see
     * `WebIdlConversion.toIdlValue`), so missing and explicit `undefined`
-    * arguments need no separate branch. A failed conversion's
-    * `ThrowCompletion` is returned as-is, which WebIDL's own caller turns
-    * into a rejected promise.
+    * arguments need no separate branch. A failed conversion's `ThrowCompletion`
+    * is returned as-is, which WebIDL's own caller turns into a rejected
+    * promise.
     */
   private def convert(name: String, idx: Int, ty: String): List[Instr] =
     List(

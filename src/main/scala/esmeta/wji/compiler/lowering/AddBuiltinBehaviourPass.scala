@@ -175,8 +175,9 @@ object AddBuiltinBehaviourPass extends LoweringPass:
     val found = collection.mutable.ListBuffer.empty[Expr.FollowingSteps]
     val finder = new UnitWalker:
       override def walk(expr: Expr): Unit = expr match
-        case fs: Expr.FollowingSteps => if fs.isBuiltinBehaviour then found += fs
-        case other                   => super.walk(other)
+        case fs: Expr.FollowingSteps =>
+          if fs.isBuiltinBehaviour then found += fs
+        case other => super.walk(other)
     finder.walk(expr)
     found.toList
 

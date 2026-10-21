@@ -70,7 +70,7 @@ object FreeVarAnalysis:
       // to.
       case Expr.ArgumentsList => referenced += "argumentsList"
       // likewise for the `newTarget` local `Expr.NewTarget` compiles to.
-      case Expr.NewTarget => referenced += "newTarget"
+      case Expr.NewTarget            => referenced += "newTarget"
       case Expr.Closure(_, captured) => referenced ++= captured
       case other                     => super.walk(other)
 

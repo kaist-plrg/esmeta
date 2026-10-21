@@ -436,11 +436,11 @@ object Compiler:
     // steps (see AddInterfaceMemberBuiltinBehaviourPass), which always
     // declares a same-named parameter — so these compile as plain local
     // references, exactly like any other Var, not a global.
-    case metalang.Expr.This                  => ERef(Name("this"))
-    case metalang.Expr.GivenValue            => ERef(Name("givenValue"))
+    case metalang.Expr.This       => ERef(Name("this"))
+    case metalang.Expr.GivenValue => ERef(Name("givenValue"))
     // Likewise a plain local reference: the `argumentsList` parameter
     // AddBuiltinBehaviourPass gives every builtin-behaviour closure.
-    case metalang.Expr.ArgumentsList         => ERef(Name("argumentsList"))
+    case metalang.Expr.ArgumentsList => ERef(Name("argumentsList"))
     // Likewise for the `newTarget` parameter.
     case metalang.Expr.NewTarget             => ERef(Name("newTarget"))
     case metalang.Expr.Num(s)                => compileNum(s)
@@ -859,12 +859,12 @@ object Compiler:
     * "AbruptCompletion", _)` case for why it can't just reuse `ty.AbruptT` the
     * way this map's other entries reuse their own `ty` singleton.
     *
-    * `promise type`/`observable array type`/`enumeration` are WebIDL type
-    * kinds (webidl_yet_categorized.md category II-G), checked against the IDL
-    * type value `esmeta.wji.Initialize.seedHostDefined` stores in an
-    * attribute's `ty`/an operation's `returnType`: a record named after its
-    * kind for these three, a plain string for every other type — so the check
-    * is simply false for the latter. `Promise` is also `manuals/types`' own ECMA-262 promise
+    * `promise type`/`observable array type`/`enumeration` are WebIDL type kinds
+    * (webidl_yet_categorized.md category II-G), checked against the IDL type
+    * value `esmeta.wji.Initialize.seedHostDefined` stores in an attribute's
+    * `ty`/an operation's `returnType`: a record named after its kind for these
+    * three, a plain string for every other type — so the check is simply false
+    * for the latter. `Promise` is also `manuals/types`' own ECMA-262 promise
     * object type; the two never meet, since an IDL type value never flows into
     * a JS-value position.
     */

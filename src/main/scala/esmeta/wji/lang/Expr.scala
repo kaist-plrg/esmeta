@@ -24,8 +24,8 @@ object Expr:
 
   /** "it" — a pronoun referring back to the value stated just before it, e.g.
     * the guard of "the <emu-val>this</emu-val> value, if it is not
-    * <emu-val>null</emu-val> or <emu-val>undefined</emu-val>, or ...
-    * otherwise" (webidl/index.bs:12355). Has no meaning of its own:
+    * <emu-val>null</emu-val> or <emu-val>undefined</emu-val>, or ... otherwise"
+    * (webidl/index.bs:12355). Has no meaning of its own:
     * `esmeta.wji.compiler.lowering.ExpandConditionalPass` substitutes each
     * [[Conditional]] branch's own value for every `Pronoun` in that branch's
     * guard before `Compiler` ever sees one.
@@ -47,9 +47,9 @@ object Expr:
   case class Index(base: Expr, key: Expr) extends Expr
 
   /** A raw `[=...=]` Bikeshed autolink, or a `%...%` well-known
-    * intrinsic/symbol reference (`{{%Promise.reject%}}`, `{{%Symbol.iterator%}}`).
-    * `ResolveLinksPass` resolves every `Link` into an [[AlgoCall]], [[Case]],
-    * [[SpecTerm]], [[Intrinsic]], or [[Symbol]].
+    * intrinsic/symbol reference (`{{%Promise.reject%}}`,
+    * `{{%Symbol.iterator%}}`). `ResolveLinksPass` resolves every `Link` into an
+    * [[AlgoCall]], [[Case]], [[SpecTerm]], [[Intrinsic]], or [[Symbol]].
     */
   case class Link(link: String, args: List[Expr]) extends Expr
   case class AlgoCall(link: String, args: List[Expr]) extends Expr
@@ -74,9 +74,10 @@ object Expr:
   case class SpecTerm(name: String) extends Expr
 
   /** `%base.props%` — an ECMA-262 well-known intrinsic (`%Promise%`), or a
-    * property path rooted at one (`%Array.prototype.values%`, ECMA-262 §6.1.7.4).
-    * Mirrors `esmeta.lang.Intrinsic`. Produced only by `ResolveLinksPass`,
-    * which rejects a `base` that isn't a well-known intrinsic.
+    * property path rooted at one (`%Array.prototype.values%`, ECMA-262
+    * §6.1.7.4). Mirrors `esmeta.lang.Intrinsic`. Produced only by
+    * `ResolveLinksPass`, which rejects a `base` that isn't a well-known
+    * intrinsic.
     */
   case class Intrinsic(base: String, props: List[String]) extends Expr
 
@@ -347,8 +348,8 @@ object Expr:
     */
   case class ClosureCall(closure: Expr, args: List[Expr]) extends Expr
 
-  /** "BASE.[[NAME]](ARG, ...)" — invoking an internal method of an object,
-    * e.g. `|unforgeables|.[[GetOwnProperty]](|key|)`. Mirrors mainline's
+  /** "BASE.[[NAME]](ARG, ...)" — invoking an internal method of an object, e.g.
+    * `|unforgeables|.[[GetOwnProperty]](|key|)`. Mirrors mainline's
     * `esmeta.lang.InvokeMethodExpression`: the method receives `base` itself as
     * an implicit first argument (every `[[...]]` internal method declares its
     * receiver `O` first), unlike a [[ClosureCall]] on a closure-valued field

@@ -58,9 +58,9 @@ object DefinitionExtractor:
     extract(SpecPatch(Files.readString(path)))
 
   /** extracts every `enum Name { ... }` declaration. Line comments are dropped
-    * before collecting the quoted values — `TableKind`'s body holds a `//
-    * Note: ...` comment (index.bs:992), and a body may end in a trailing
-    * comma (`AddressType`, `ValueType`), which needs no special handling here.
+    * before collecting the quoted values — `TableKind`'s body holds a `// Note:
+    * ...` comment (index.bs:992), and a body may end in a trailing comma
+    * (`AddressType`, `ValueType`), which needs no special handling here.
     */
   def extractEnumerations(source: String): List[Enumeration] =
     idlBlocks(source).flatMap { block =>

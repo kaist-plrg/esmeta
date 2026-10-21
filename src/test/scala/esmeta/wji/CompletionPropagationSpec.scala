@@ -401,10 +401,10 @@ class CompletionPropagationSpec extends AnyFunSuite:
     * `ExpandTryPass` into the same `Cond.Throws` shape scenario 3 exercises),
     * shaped after its only two real occurrences (`attribute getter` / `create
     * an operation function`): the try-body's own `Return` must become this
-    * algorithm's return, and the catch clause either handles |E| itself or
-    * lets it propagate (parsed as `Instr.Throw`, which makes this algorithm
-    * itself `completionAlgos`-classified -- every outcome below comes back as
-    * a Completion Record). The `Try` step and the catch clause's last step are
+    * algorithm's return, and the catch clause either handles |E| itself or lets
+    * it propagate (parsed as `Instr.Throw`, which makes this algorithm itself
+    * `completionAlgos`-classified -- every outcome below comes back as a
+    * Completion Record). The `Try` step and the catch clause's last step are
     * run through the real `InstrParser` (and, for the latter, `SpecPatch` #75,
     * which spells out the |E| the spec's own text leaves implicit) rather than
     * hand-built, so the spec's actual phrasing is what's under test.
@@ -449,7 +449,7 @@ class CompletionPropagationSpec extends AnyFunSuite:
         ),
         Nil,
       ),
-    )
+    ),
   )
 
   /** All scenario algorithms declared above, merged into the SAME shared

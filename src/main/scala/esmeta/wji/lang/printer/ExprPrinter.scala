@@ -6,29 +6,29 @@ import Expr.*
 
 object ExprPrinter:
   def render(expr: Expr): String = expr match
-    case Var(name)            => s"|$name|"
-    case This                 => "**this**"
-    case GivenValue           => "**the given value**"
-    case ArgumentsList        => "the passed arguments"
-    case NewTarget            => "{{NewTarget}}"
-    case Pronoun              => "it"
-    case Num(value)           => value
-    case Byte(v)              => s"0x$v"
-    case Bool(v)              => v.toString
-    case Str(v)               => s""""$v""""
-    case SpecTerm(name)       => name
+    case Var(name)              => s"|$name|"
+    case This                   => "**this**"
+    case GivenValue             => "**the given value**"
+    case ArgumentsList          => "the passed arguments"
+    case NewTarget              => "{{NewTarget}}"
+    case Pronoun                => "it"
+    case Num(value)             => value
+    case Byte(v)                => s"0x$v"
+    case Bool(v)                => v.toString
+    case Str(v)                 => s""""$v""""
+    case SpecTerm(name)         => name
     case Intrinsic(base, props) => (base :: props).mkString("%", ".", "%")
-    case Symbol(name)         => s"%Symbol.$name%"
-    case Field(base, name)    => s"${render(base)}.[[${name}]]"
-    case Index(base, key)     => s"${render(base)}[${render(key)}]"
-    case Link(link, Nil)      => link
-    case Link(link, args)     => s"$link(${args.map(render).mkString(", ")})"
-    case AlgoCall(link, Nil)  => link
-    case AlgoCall(link, args) => s"$link(${args.map(render).mkString(", ")})"
-    case AlgoRef(link)        => s"ref($link)"
-    case Case(tag, Nil)       => tag
-    case Case(tag, args)      => s"$tag(${args.map(render).mkString(", ")})"
-    case JSCall(name, Nil)    => s"[$$${name}$$]()"
+    case Symbol(name)           => s"%Symbol.$name%"
+    case Field(base, name)      => s"${render(base)}.[[${name}]]"
+    case Index(base, key)       => s"${render(base)}[${render(key)}]"
+    case Link(link, Nil)        => link
+    case Link(link, args)       => s"$link(${args.map(render).mkString(", ")})"
+    case AlgoCall(link, Nil)    => link
+    case AlgoCall(link, args)   => s"$link(${args.map(render).mkString(", ")})"
+    case AlgoRef(link)          => s"ref($link)"
+    case Case(tag, Nil)         => tag
+    case Case(tag, args)        => s"$tag(${args.map(render).mkString(", ")})"
+    case JSCall(name, Nil)      => s"[$$${name}$$]()"
     case JSCall(name, args) =>
       s"[$$${name}$$](${args.map(render).mkString(", ")})"
     case Abrupt(check, e) => s"[=$check=] ${render(e)}"

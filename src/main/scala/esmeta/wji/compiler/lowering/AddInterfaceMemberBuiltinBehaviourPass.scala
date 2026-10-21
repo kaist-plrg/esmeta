@@ -742,5 +742,5 @@ object AddInterfaceMemberBuiltinBehaviourPass extends LoweringPass:
               givenValueBinding(a.kind) ++ createThisBinding(a.kind) ++
               wrapReturnValues(a.kind, a.body) ++ returnEpilogue(a),
           )
-        case AlgorithmKind.Plain => a
+        case AlgorithmKind.Plain | AlgorithmKind.Redefinition => a
     }

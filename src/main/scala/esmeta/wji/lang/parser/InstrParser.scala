@@ -52,8 +52,9 @@ object InstrParser:
     """(?is)^(?:Else\s+if\b|Otherwise,\s*if\b)\s+(.+)$""".r
   private val IfPrefix = """(?is)^If\b\s+(.+)$""".r
   private val ElsePrefix = """(?is)^(?:Else|Otherwise)\b\s*,?\s*(.*)$""".r
+  // group 1: the link target, e.g. "list/iterate" or "map/iterate"
   private val ForEachPrefix =
-    """(?is)^(?:\[=\S*[/|])?For each(?:=\])?\s+(.+)$""".r
+    """(?is)^(?:\[=(\S*)[/|])?For each(?:=\])?\s+(.+)$""".r
 
   // a `[=Type=]` xref (or the bare word "element") tagging the loop
   // variable's type, e.g. "[=operation=] |op|" or "element |key|" — carries
@@ -289,7 +290,7 @@ object InstrParser:
           List(Return(Some(Expr.Str(lit)), trailingBody)),
         )
       case ElsePrefix(rest) => Else(deriveBody(rest.trim, trailingBody))
-      case ForEachPrefix(rest) =>
+      case ForEachPrefix(link, rest) =>
         findTopLevelAny(rest, Seq(" of ", " in ")) match
           case Some((i, sep)) =>
             val elem = rest.substring(0, i).trim match
@@ -304,7 +305,17 @@ object InstrParser:
             // (e.g. js-api's Exception constructor). Only ever seen with
             // exactly two variables/collections, so a single top-level
             // " and " split on each side is enough -- see Instr.ForEachPaired.
-            if tail.trim
+            if link == "map/iterate" then
+              splitTopLevel(elem, " &rarr; ") match
+                case Some((k, v)) =>
+                  ForEachEntry(
+                    ExprParser.parse(k.trim),
+                    ExprParser.parse(v.trim),
+                    ExprParser.parse(collection.trim.stripSuffix(":").trim),
+                    trailingBody,
+                  )
+                case None => Unknown(text, trailingBody)
+            else if tail.trim
                 .stripSuffix(",")
                 .trim
                 .equalsIgnoreCase(

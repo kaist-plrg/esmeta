@@ -87,6 +87,12 @@ object Expr:
   /** The length/size of a string, list, or map (entry count). */
   case class Length(expr: Expr) extends Expr
 
+  /** The keys of a map, as a list. Only produced by
+    * `esmeta.wji.compiler.lowering.ExpandForEachPass` for
+    * [[esmeta.wji.lang.Instr.ForEachEntry]].
+    */
+  case class Keys(map: Expr) extends Expr
+
   /** String concatenation of two or more parts, e.g. "X prefixed with LITERAL".
     * Compiles to mainline's `EVariadic(VOp.Concat, ...)` — the same op
     * `StringConcatExpression` and `manuals/rule.json`'s hand-written

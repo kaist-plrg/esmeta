@@ -26,6 +26,7 @@ trait Walker:
     case Expr.Map_(entries) =>
       Expr.Map_(entries.map((k, v) => (walk(k), walk(v))))
     case Expr.Length(e)               => Expr.Length(walk(e))
+    case Expr.Keys(map)               => Expr.Keys(walk(map))
     case Expr.BinOp(l, op, r)         => Expr.BinOp(walk(l), op, walk(r))
     case Expr.Pow(base, exp)          => Expr.Pow(walk(base), walk(exp))
     case Expr.Neg(e)                  => Expr.Neg(walk(e))
@@ -103,6 +104,13 @@ trait Walker:
         walk(i.elem2),
         walk(i.collection1),
         walk(i.collection2),
+        i.body.map(walk),
+      )
+    case i: Instr.ForEachEntry =>
+      Instr.ForEachEntry(
+        walk(i.key),
+        walk(i.value),
+        walk(i.map),
         i.body.map(walk),
       )
     case i: Instr.For =>

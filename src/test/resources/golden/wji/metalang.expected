@@ -541,13 +541,14 @@
   Set(**this**.[[BufferObject]], |resizableBuffer|)
   Return(|resizableBuffer|)
 
-# abstract operation [=HostResizeArrayBuffer=]
+# HostResizeArrayBuffer
+  kind: redefinition
   params: |buffer|, |newLength|
   head: The <dfn id=HostResizeArrayBuffer export>abstract operation [=HostResizeArrayBuffer=]</dfn> takes arguments |buffer| (an {{ArrayBuffer}}) and |newLength|. It performs the following steps when called.
   If(|buffer|.[[ArrayBufferDetachKey]] is "WebAssembly.Memory")
     Let(|map|, [=surrounding agent=].[[memory object cache]])
     Assert(|buffer| is ?(the \[[BufferObject]] of exactly one value in |map|))
-    ForEach(?(|memaddr| &rarr; |mem|), |map|)
+    ForEachEntry(|memaddr|, |mem|, |map|)
       If([=SameValue=](|mem|.[[BufferObject]], |buffer|) is true)
         Assert(|buffer|.[[ArrayBufferByteLength]] modulo 65536 is 0)
         Let(|lengthDelta|, |newLength| - |buffer|.[[ArrayBufferByteLength]])

@@ -41,7 +41,7 @@ object WjiTest:
     * re-extracting/re-compiling the spec per test.
     */
   lazy val mergedCfg: CFG =
-    MergeWithMainline(ESMetaTest.cfg.program, wjiProgram)
+    MergeWithMainline(ESMetaTest.cfg.program, wjiProgram, spec.redefinedNames)
 
   /** names of every function WJI itself compiled (as opposed to a mainline
     * ECMA-262 one) — lets a caller (e.g. `WjiCoverage`) restrict a

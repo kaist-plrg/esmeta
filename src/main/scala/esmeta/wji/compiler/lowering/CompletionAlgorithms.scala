@@ -271,7 +271,7 @@ object CompletionAlgorithms:
             _,
           ) =>
         true
-      case AlgorithmKind.Plain => false
+      case AlgorithmKind.Plain | AlgorithmKind.Redefinition => false
 
   /** A `Plain`-kind algorithm implementing one of ECMA-262's fixed fundamental
     * internal methods (e.g. `Exported GC Object`'s `[[Get]]`/`[[Set]]`/...,

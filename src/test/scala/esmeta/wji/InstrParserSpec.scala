@@ -60,6 +60,23 @@ class InstrParserSpec extends AnyFunSuite:
     )
   }
 
+  test("for each over a map, decided by its map/iterate link") {
+    assert(
+      parse(
+        "[=map/iterate|For each=] |k| &rarr; |v| in |map|,",
+        List(Return(Some(Var("v")))),
+      ) ==
+      List(
+        ForEachEntry(
+          Var("k"),
+          Var("v"),
+          Var("map"),
+          List(Return(Some(Var("v")))),
+        ),
+      ),
+    )
+  }
+
   test("for-in-range, with an inline trailing action") {
     assert(
       parse("For |i| in [=the range=] |a| to |b|, inclusive, return |i|.") ==

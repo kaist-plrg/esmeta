@@ -56,7 +56,8 @@ case object WjiInterp extends Phase[CFG, Value] {
     // must happen before the interpreter runs below (see RecordTy's doc)
     spec.registerDefinitionTypes()
     val wjiProgram = Compiler.compile(Lowering.run(spec.algorithms))
-    val mergedCfg = MergeWithMainline(cfg.program, wjiProgram)
+    val mergedCfg =
+      MergeWithMainline(cfg.program, wjiProgram, spec.redefinedNames)
     given CFG = mergedCfg
 
     // run a script to completion so the real ECMA-262 bootstrap wires up the

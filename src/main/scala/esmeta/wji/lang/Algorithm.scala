@@ -96,6 +96,15 @@ enum AlgorithmKind:
     */
   case NamespaceGetter(namespace: String)
 
+  /** an algorithm redefining a mainline ECMA-262 abstract operation, whose
+    * `<dfn>` names it by linking to that operation, e.g. "The <dfn
+    * id=HostResizeArrayBuffer export>abstract operation
+    * [=HostResizeArrayBuffer=]</dfn> ..." -- `name` is that operation's exact
+    * name, so the compiled function replaces the mainline one (see
+    * `esmeta.wji.util.MergeWithMainline`).
+    */
+  case Redefinition
+
 /** A formal parameter of an [[Algorithm]], as declared in its `head` prose.
   *
   * @param name

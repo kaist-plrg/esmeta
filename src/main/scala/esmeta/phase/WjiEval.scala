@@ -42,7 +42,8 @@ case object WjiEval extends Phase[CFG, State] {
     val compileConfig = WjiCompile.defaultConfig
     val wjiProgram = WjiCompile(spec, cmdConfig, compileConfig)
 
-    val mergedCfg = MergeWithMainline(cfg.program, wjiProgram)
+    val mergedCfg =
+      MergeWithMainline(cfg.program, wjiProgram, spec.redefinedNames)
 
     val st = mergedCfg.init.fromFile(filename)
     val (host, connection) = wji.Initialize(st, spec)

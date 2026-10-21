@@ -1,7 +1,13 @@
 package esmeta.wji.spec
 
 import esmeta.util.ManualInfo
-import esmeta.wji.lang.{Algorithm, Anchor, Definition, DefinitionKind}
+import esmeta.wji.lang.{
+  Algorithm,
+  AlgorithmKind,
+  Anchor,
+  Definition,
+  DefinitionKind,
+}
 
 /** The WebAssembly JS-API specification, mirroring mainline's
   * `esmeta.spec.Spec` — a plain container for everything
@@ -15,6 +21,13 @@ case class Spec(
 
   lazy val definitionMap: Map[String, Definition] =
     definitions.map(d => d.name -> d).toMap
+
+  /** names of the mainline functions this spec redefines */
+  lazy val redefinedNames: Set[String] =
+    algorithms
+      .filter(_.kind == AlgorithmKind.Redefinition)
+      .flatMap(_.name)
+      .toSet
 
   /** Registers every extracted interface *and* namespace as a dynamic subtype
     * of `"Object"` (see `esmeta.ty.TyModel.registerDynamicSubtype`) — fixes

@@ -152,3 +152,11 @@ class AlgorithmExtractorSpec extends AnyFunSuite:
       algorithms.find(_.name.contains("get the JavaScript exception tag")).get
     assert(algo.params.isEmpty)
   }
+
+  test(
+    "extracts a <dfn> linking to a mainline operation as its redefinition",
+  ) {
+    val algo = algorithms.find(_.kind == AlgorithmKind.Redefinition).get
+    assert(algo.name.contains("HostResizeArrayBuffer"))
+    assert(algo.params == List(WjiParam("|buffer|"), WjiParam("|newLength|")))
+  }

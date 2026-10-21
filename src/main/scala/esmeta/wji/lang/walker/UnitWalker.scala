@@ -22,6 +22,7 @@ trait UnitWalker:
     case Expr.List_(elems)      => elems.foreach(walk)
     case Expr.Map_(entries)  => entries.foreach((k, v) => { walk(k); walk(v) })
     case Expr.Length(e)      => walk(e)
+    case Expr.Keys(map)      => walk(map)
     case Expr.BinOp(l, _, r) => walk(l); walk(r)
     case Expr.Pow(base, exp) => walk(base); walk(exp)
     case Expr.Neg(e)         => walk(e)
@@ -88,6 +89,8 @@ trait UnitWalker:
     case i: Instr.ForEachPaired =>
       walk(i.elem1); walk(i.elem2); walk(i.collection1); walk(i.collection2)
       i.body.foreach(walk)
+    case i: Instr.ForEachEntry =>
+      walk(i.key); walk(i.value); walk(i.map); i.body.foreach(walk)
     case i: Instr.For =>
       walk(i.elem); walk(i.collection); i.body.foreach(walk)
     case i: Instr.While         => walk(i.cond); i.body.foreach(walk)

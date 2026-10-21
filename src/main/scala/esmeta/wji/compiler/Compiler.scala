@@ -220,6 +220,16 @@ object Compiler:
             retTy = UnknownType,
             body = body,
           )
+        // exact case, to replace the mainline function of the same name
+        case AlgorithmKind.Redefinition =>
+          Func(
+            main = false,
+            kind = FuncKind.AbsOp,
+            name = name,
+            params = params,
+            retTy = UnknownType,
+            body = body,
+          )
     }
 
   // ── Instruction sequence ─────────────────────────────────────────────────────
@@ -295,6 +305,8 @@ object Compiler:
     // stops holding.
     case i: Instr.ForEachPaired =>
       impossible(s"ForEachPaired not eliminated by ExpandForEachPass: $i")
+    case i: Instr.ForEachEntry =>
+      impossible(s"ForEachEntry not eliminated by ExpandForEachPass: $i")
 
     case Instr.For(elem, collection, body) =>
       // TODO: proper counting loop — needs a real IWhile over the collection
@@ -473,6 +485,7 @@ object Compiler:
     case metalang.Expr.Enum(s)      => EEnum(s)
     case metalang.Expr.List_(elems) => EList(elems.map(compileExpr))
     case metalang.Expr.Length(e)    => ESizeOf(compileExpr(e))
+    case metalang.Expr.Keys(map)    => EKeys(compileExpr(map), false)
     case metalang.Expr.Concat(parts) =>
       EVariadic(VOp.Concat, parts.map(compileExpr))
     case metalang.Expr.BinOp(l, op, r) => compileBinOp(op, l, r)

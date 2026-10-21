@@ -1375,31 +1375,37 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Memory.prototype.toResizableBuffer(
   call _ret6 = clo<"NormalCompletion">(resizableBuffer)
   return _ret6
 }
-def abstract_operation_[=hostresizearraybuffer=](
+def HostResizeArrayBuffer(
   buffer: Unknown,
   newLength: Unknown,
 ): Unknown = {
   if (= buffer.ArrayBufferDetachKey "WebAssembly.Memory") {
     let map = @AGENT_RECORD["memory object cache"]
     assert (= buffer (yet "the \\[[BufferObject]] of exactly one value in |map|"))
-    (yet "foreach ?(|memaddr| &rarr; |mem|) in |map|")
-    call _call1 = clo<"SameValue">(mem.BufferObject, buffer)
-    if (= _call1 true) {
-      assert (= (% buffer.ArrayBufferByteLength 65536) 0)
-      let lengthDelta = (- newLength buffer.ArrayBufferByteLength)
-      if (|| (< lengthDelta 0) (! (= (% lengthDelta 65536) 0))) {
-        call _err1 = clo<"__NEW_ERROR_OBJ__">("%RangeError.prototype%")
-        call _ret2 = clo<"ThrowCompletion">(_err1)
-        return _ret2
+    let _iterList1 = (keys map)
+    let _iterIdx2 = 0
+    while (< _iterIdx2 (sizeof _iterList1)) {
+      let memaddr = _iterList1[_iterIdx2]
+      let mem = map[memaddr]
+      call _call1 = clo<"SameValue">(mem.BufferObject, buffer)
+      if (= _call1 true) {
+        assert (= (% buffer.ArrayBufferByteLength 65536) 0)
+        let lengthDelta = (- newLength buffer.ArrayBufferByteLength)
+        if (|| (< lengthDelta 0) (! (= (% lengthDelta 65536) 0))) {
+          call _err1 = clo<"__NEW_ERROR_OBJ__">("%RangeError.prototype%")
+          call _ret2 = clo<"ThrowCompletion">(_err1)
+          return _ret2
+        } else nop
+        let delta = (/ lengthDelta 65536)
+        call _guard1 = clo<"Grow_the_memory_buffer">(memaddr, delta)
+        if (&& (? _guard1: Completion) (! (= _guard1.Type ~normal~))) {
+          return _guard1
+        } else {
+          _guard1 = _guard1.Value
+        }
       } else nop
-      let delta = (/ lengthDelta 65536)
-      call _guard1 = clo<"Grow_the_memory_buffer">(memaddr, delta)
-      if (&& (? _guard1: Completion) (! (= _guard1.Type ~normal~))) {
-        return _guard1
-      } else {
-        _guard1 = _guard1.Value
-      }
-    } else nop
+      _iterIdx2 = (+ _iterIdx2 1)
+    }
     let _v3 = ~handled~
     if (? _v3: Completion) {
       return _v3

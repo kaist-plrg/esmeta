@@ -3,9 +3,7 @@ package esmeta.wji
 import org.scalatest.funsuite.AnyFunSuite
 import esmeta.ESMetaTest
 import esmeta.cfg.CFG
-import esmeta.cfgBuilder.CFGBuilder
 import esmeta.interpreter.{Interpreter => EsInterpreter}
-import esmeta.ir.Program
 import esmeta.state.{
   Addr,
   Bool,
@@ -21,6 +19,7 @@ import esmeta.state.{
 import esmeta.wji.compiler.Compiler
 import esmeta.wji.compiler.lowering.Lowering
 import esmeta.wji.lang.*
+import esmeta.wji.util.MergeWithMainline
 import scala.collection.mutable.{Map => MMap}
 
 /** Scenario tests for how the lowering pipeline handles abrupt-completion
@@ -422,8 +421,7 @@ class CompletionPropagationSpec extends AnyFunSuite:
       performExplodeWithCatch,
     )
     val wjiProgram = Compiler.compile(Lowering.run(allAlgos))
-    val mainline = ESMetaTest.cfg.program
-    CFGBuilder(Program(mainline.funcs ++ wjiProgram.funcs, mainline.spec))
+    MergeWithMainline(ESMetaTest.cfg.program, wjiProgram)
 
   /** Invokes `fname` directly with `args` and returns `(State, top-level return
     * value)` via `GLOBAL_RESULT` — mirrors `esmeta.phase.WjiInterp.callAO`'s

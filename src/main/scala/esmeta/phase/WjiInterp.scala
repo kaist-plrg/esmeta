@@ -3,18 +3,17 @@ package esmeta.phase
 import esmeta.*
 import esmeta.util.*
 import esmeta.cfg.CFG
-import esmeta.cfgBuilder.CFGBuilder
 import esmeta.error.ESMetaError
 import esmeta.es.Initialize
 import esmeta.es.builtin.{AGENT_RECORD, EXECUTION_STACK, realmAddr}
 import esmeta.interpreter.{Interpreter => EsInterpreter}
-import esmeta.ir.{FuncKind, Local, Program}
+import esmeta.ir.{FuncKind, Local}
 import esmeta.state.*
 import esmeta.wji
 import esmeta.wji.compiler.Compiler
 import esmeta.wji.compiler.lowering.Lowering
 import esmeta.wji.extractor.Extractor
-import esmeta.wji.util.AlgoCallStack
+import esmeta.wji.util.{AlgoCallStack, MergeWithMainline}
 import scala.collection.mutable.{Map => MMap}
 
 /** `wji-interp` phase
@@ -57,9 +56,7 @@ case object WjiInterp extends Phase[CFG, Value] {
     // must happen before the interpreter runs below (see RecordTy's doc)
     spec.registerDefinitionTypes()
     val wjiProgram = Compiler.compile(Lowering.run(spec.algorithms))
-    val merged =
-      Program(cfg.program.funcs ++ wjiProgram.funcs, cfg.program.spec)
-    val mergedCfg = CFGBuilder(merged)
+    val mergedCfg = MergeWithMainline(cfg.program, wjiProgram)
     given CFG = mergedCfg
 
     // run a script to completion so the real ECMA-262 bootstrap wires up the

@@ -82,6 +82,15 @@ object CompletionAlgorithms:
         Some(CallInfo(Some(normalize(link)), None, bound))
       case Expr.Abrupt(marker, Expr.AlgoCall(link, _)) =>
         Some(CallInfo(Some(normalize(link)), Some(marker), bound))
+      // `[$Name$](...)`/`<a abstract-op>Name</a>(...)`: still a JSCall here,
+      // since NormalizeEvaluationOrderPass (which turns it into a Perform)
+      // only runs after this. Missing it once misjudged e.g. js-string-length
+      // (whose only abrupt source is `? [$UnwrapString$](v)`) as never
+      // returning a completion.
+      case Expr.JSCall(name, _) =>
+        Some(CallInfo(Some(normalize(name)), None, bound))
+      case Expr.Abrupt(marker, Expr.JSCall(name, _)) =>
+        Some(CallInfo(Some(normalize(name)), Some(marker), bound))
       case Expr.ClosureCall(closure, _) =>
         Some(CallInfo(closureCallee(closure), None, bound))
       case Expr.Abrupt(marker, Expr.ClosureCall(closure, _)) =>

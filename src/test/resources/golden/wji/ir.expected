@@ -136,10 +136,20 @@ def asynchronously_compile_a_webassembly_module(
   options: Unknown,
   taskSource?: Unknown,
 ): Unknown = {
-  call promise = clo<"a_new_promise">(~Module~, @EXECUTION_STACK[0].Realm)
+  call _guard1 = clo<"a_new_promise">(~Module~, @EXECUTION_STACK[0].Realm)
+  if (&& (? _guard1: Completion) (! (= _guard1.Type ~normal~))) {
+    return _guard1
+  } else {
+    let promise = _guard1.Value
+  }
   call module = clo<"compile_a_WebAssembly_module">(bytes)
   call _ = clo<"HostEnqueuePromiseJob">(clo<"asynchronously_compile_a_webassembly_module_closure1", [bytes, module, options, promise]>, @EXECUTION_STACK[0].Realm)
-  return promise
+  if (? promise: Completion) {
+    return promise
+  } else {
+    call _ret1 = clo<"NormalCompletion">(promise)
+    return _ret1
+  }
 }
 def <BUILTIN>:INTRINSICS.WebAssembly.compile(
   this: Unknown,
@@ -150,7 +160,12 @@ def <BUILTIN>:INTRINSICS.WebAssembly.compile(
     let bytes = ArgumentsList[0]
     call-convert bytes = <converted_to_an_idl_value>(bytes, "AllowSharedBufferSource")
     if (&& (? bytes: Completion) (! (= bytes.Type ~normal~))) {
-      call _promiseCapability = clo<"a_new_promise">(~Module~, @EXECUTION_STACK[0].Realm)
+      call _guard1 = clo<"a_new_promise">(~Module~, @EXECUTION_STACK[0].Realm)
+      if (&& (? _guard1: Completion) (! (= _guard1.Type ~normal~))) {
+        return _guard1
+      } else {
+        let _promiseCapability = _guard1.Value
+      }
       call _ = clo<"reject">(~Module~, _promiseCapability, bytes.Value)
       let _v1 = _promiseCapability.Promise
       if (? _v1: Completion) {
@@ -162,7 +177,12 @@ def <BUILTIN>:INTRINSICS.WebAssembly.compile(
     } else nop
   } else {
     call _typeErr = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-    call _promiseCapability = clo<"a_new_promise">(~Module~, @EXECUTION_STACK[0].Realm)
+    call _guard2 = clo<"a_new_promise">(~Module~, @EXECUTION_STACK[0].Realm)
+    if (&& (? _guard2: Completion) (! (= _guard2.Type ~normal~))) {
+      return _guard2
+    } else {
+      let _promiseCapability = _guard2.Value
+    }
     call _ = clo<"reject">(~Module~, _promiseCapability, _typeErr)
     let _v3 = _promiseCapability.Promise
     if (? _v3: Completion) {
@@ -176,7 +196,12 @@ def <BUILTIN>:INTRINSICS.WebAssembly.compile(
     let options = ArgumentsList[1]
     call-convert options = <converted_to_an_idl_value>(options, "WebAssemblyCompileOptions")
     if (&& (? options: Completion) (! (= options.Type ~normal~))) {
-      call _promiseCapability = clo<"a_new_promise">(~Module~, @EXECUTION_STACK[0].Realm)
+      call _guard3 = clo<"a_new_promise">(~Module~, @EXECUTION_STACK[0].Realm)
+      if (&& (? _guard3: Completion) (! (= _guard3.Type ~normal~))) {
+        return _guard3
+      } else {
+        let _promiseCapability = _guard3.Value
+      }
       call _ = clo<"reject">(~Module~, _promiseCapability, options.Value)
       let _v5 = _promiseCapability.Promise
       if (? _v5: Completion) {
@@ -190,7 +215,12 @@ def <BUILTIN>:INTRINSICS.WebAssembly.compile(
     call options = clo<"OrdinaryObjectCreate">(null)
     call-convert options = <converted_to_an_idl_value>(options, "WebAssemblyCompileOptions")
     if (&& (? options: Completion) (! (= options.Type ~normal~))) {
-      call _promiseCapability = clo<"a_new_promise">(~Module~, @EXECUTION_STACK[0].Realm)
+      call _guard4 = clo<"a_new_promise">(~Module~, @EXECUTION_STACK[0].Realm)
+      if (&& (? _guard4: Completion) (! (= _guard4.Type ~normal~))) {
+        return _guard4
+      } else {
+        let _promiseCapability = _guard4.Value
+      }
       call _ = clo<"reject">(~Module~, _promiseCapability, options.Value)
       let _v7 = _promiseCapability.Promise
       if (? _v7: Completion) {
@@ -203,6 +233,11 @@ def <BUILTIN>:INTRINSICS.WebAssembly.compile(
   }
   call stableBytes = clo<"get_a_copy_of_the_buffer_source">(bytes)
   call _returnValue1 = clo<"Asynchronously_compile_a_WebAssembly_module">(stableBytes, options)
+  if (&& (? _returnValue1: Completion) (! (= _returnValue1.Type ~normal~))) {
+    return _returnValue1
+  } else {
+    _returnValue1 = _returnValue1.Value
+  }
   call-convert _returnValue1 = <converted_to_a_javascript_value>(_returnValue1)
   call _ret9 = clo<"NormalCompletion">(_returnValue1)
   return _ret9
@@ -534,7 +569,12 @@ def asynchronously_instantiate_a_webassembly_module(
   moduleObject: Unknown,
   importObject: Unknown,
 ): Unknown = {
-  call promise = clo<"a_new_promise">(~Instance~, @EXECUTION_STACK[0].Realm)
+  call _guard1 = clo<"a_new_promise">(~Instance~, @EXECUTION_STACK[0].Realm)
+  if (&& (? _guard1: Completion) (! (= _guard1.Type ~normal~))) {
+    return _guard1
+  } else {
+    let promise = _guard1.Value
+  }
   let module = moduleObject.Module
   let builtinSetNames = moduleObject.BuiltinSets
   let importedStringModule = moduleObject.ImportedStringModule
@@ -542,22 +582,47 @@ def asynchronously_instantiate_a_webassembly_module(
   if (= _throwComp1.Type ~throw~) {
     let exception = _throwComp1.Value
     call _ = clo<"reject">(~Instance~, promise, exception)
-    return promise
+    if (? promise: Completion) {
+      return promise
+    } else {
+      call _ret1 = clo<"NormalCompletion">(promise)
+      return _ret1
+    }
   } else {
     let imports = _throwComp1.Value
   }
   call _ = clo<"HostEnqueuePromiseJob">(clo<"asynchronously_instantiate_a_webassembly_module_closure1", [imports, module, promise]>, @EXECUTION_STACK[0].Realm)
-  return promise
+  if (? promise: Completion) {
+    return promise
+  } else {
+    call _ret2 = clo<"NormalCompletion">(promise)
+    return _ret2
+  }
 }
 def instantiate_a_promise_of_a_module(
   promiseOfModule: Unknown,
   importObject: Unknown,
 ): Unknown = {
-  call promise = clo<"a_new_promise">(~WebAssemblyInstantiatedSource~, @EXECUTION_STACK[0].Realm)
+  call _guard1 = clo<"a_new_promise">(~WebAssemblyInstantiatedSource~, @EXECUTION_STACK[0].Realm)
+  if (&& (? _guard1: Completion) (! (= _guard1.Type ~normal~))) {
+    return _guard1
+  } else {
+    let promise = _guard1.Value
+  }
   let onFullfilledSteps = clo<"instantiate_a_promise_of_a_module_closure1", [importObject, promise]>
   let onRejectedSteps = clo<"instantiate_a_promise_of_a_module_closure4", [promise]>
-  call _ = clo<"React">(~WebAssemblyInstantiatedSource~, promiseOfModule, onFullfilledSteps, onRejectedSteps, @EXECUTION_STACK[0].Realm)
-  return promise
+  call _guard2 = clo<"React">(~WebAssemblyInstantiatedSource~, promiseOfModule, onFullfilledSteps, onRejectedSteps, @EXECUTION_STACK[0].Realm)
+  if (&& (? _guard2: Completion) (! (= _guard2.Type ~normal~))) {
+    return _guard2
+  } else {
+    _guard2 = _guard2.Value
+  }
+  if (? promise: Completion) {
+    return promise
+  } else {
+    call _ret1 = clo<"NormalCompletion">(promise)
+    return _ret1
+  }
 }
 def <BUILTIN>:INTRINSICS.WebAssembly.instantiate_bytes(
   this: Unknown,
@@ -568,7 +633,12 @@ def <BUILTIN>:INTRINSICS.WebAssembly.instantiate_bytes(
     let bytes = ArgumentsList[0]
     call-convert bytes = <converted_to_an_idl_value>(bytes, "AllowSharedBufferSource")
     if (&& (? bytes: Completion) (! (= bytes.Type ~normal~))) {
-      call _promiseCapability = clo<"a_new_promise">(~WebAssemblyInstantiatedSource~, @EXECUTION_STACK[0].Realm)
+      call _guard1 = clo<"a_new_promise">(~WebAssemblyInstantiatedSource~, @EXECUTION_STACK[0].Realm)
+      if (&& (? _guard1: Completion) (! (= _guard1.Type ~normal~))) {
+        return _guard1
+      } else {
+        let _promiseCapability = _guard1.Value
+      }
       call _ = clo<"reject">(~WebAssemblyInstantiatedSource~, _promiseCapability, bytes.Value)
       let _v1 = _promiseCapability.Promise
       if (? _v1: Completion) {
@@ -580,7 +650,12 @@ def <BUILTIN>:INTRINSICS.WebAssembly.instantiate_bytes(
     } else nop
   } else {
     call _typeErr = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-    call _promiseCapability = clo<"a_new_promise">(~WebAssemblyInstantiatedSource~, @EXECUTION_STACK[0].Realm)
+    call _guard2 = clo<"a_new_promise">(~WebAssemblyInstantiatedSource~, @EXECUTION_STACK[0].Realm)
+    if (&& (? _guard2: Completion) (! (= _guard2.Type ~normal~))) {
+      return _guard2
+    } else {
+      let _promiseCapability = _guard2.Value
+    }
     call _ = clo<"reject">(~WebAssemblyInstantiatedSource~, _promiseCapability, _typeErr)
     let _v3 = _promiseCapability.Promise
     if (? _v3: Completion) {
@@ -594,7 +669,12 @@ def <BUILTIN>:INTRINSICS.WebAssembly.instantiate_bytes(
     let importObject = ArgumentsList[1]
     call-convert importObject = <converted_to_an_idl_value>(importObject, "object")
     if (&& (? importObject: Completion) (! (= importObject.Type ~normal~))) {
-      call _promiseCapability = clo<"a_new_promise">(~WebAssemblyInstantiatedSource~, @EXECUTION_STACK[0].Realm)
+      call _guard3 = clo<"a_new_promise">(~WebAssemblyInstantiatedSource~, @EXECUTION_STACK[0].Realm)
+      if (&& (? _guard3: Completion) (! (= _guard3.Type ~normal~))) {
+        return _guard3
+      } else {
+        let _promiseCapability = _guard3.Value
+      }
       call _ = clo<"reject">(~WebAssemblyInstantiatedSource~, _promiseCapability, importObject.Value)
       let _v5 = _promiseCapability.Promise
       if (? _v5: Completion) {
@@ -611,7 +691,12 @@ def <BUILTIN>:INTRINSICS.WebAssembly.instantiate_bytes(
     let options = ArgumentsList[2]
     call-convert options = <converted_to_an_idl_value>(options, "WebAssemblyCompileOptions")
     if (&& (? options: Completion) (! (= options.Type ~normal~))) {
-      call _promiseCapability = clo<"a_new_promise">(~WebAssemblyInstantiatedSource~, @EXECUTION_STACK[0].Realm)
+      call _guard4 = clo<"a_new_promise">(~WebAssemblyInstantiatedSource~, @EXECUTION_STACK[0].Realm)
+      if (&& (? _guard4: Completion) (! (= _guard4.Type ~normal~))) {
+        return _guard4
+      } else {
+        let _promiseCapability = _guard4.Value
+      }
       call _ = clo<"reject">(~WebAssemblyInstantiatedSource~, _promiseCapability, options.Value)
       let _v7 = _promiseCapability.Promise
       if (? _v7: Completion) {
@@ -625,7 +710,12 @@ def <BUILTIN>:INTRINSICS.WebAssembly.instantiate_bytes(
     call options = clo<"OrdinaryObjectCreate">(null)
     call-convert options = <converted_to_an_idl_value>(options, "WebAssemblyCompileOptions")
     if (&& (? options: Completion) (! (= options.Type ~normal~))) {
-      call _promiseCapability = clo<"a_new_promise">(~WebAssemblyInstantiatedSource~, @EXECUTION_STACK[0].Realm)
+      call _guard5 = clo<"a_new_promise">(~WebAssemblyInstantiatedSource~, @EXECUTION_STACK[0].Realm)
+      if (&& (? _guard5: Completion) (! (= _guard5.Type ~normal~))) {
+        return _guard5
+      } else {
+        let _promiseCapability = _guard5.Value
+      }
       call _ = clo<"reject">(~WebAssemblyInstantiatedSource~, _promiseCapability, options.Value)
       let _v9 = _promiseCapability.Promise
       if (? _v9: Completion) {
@@ -638,7 +728,17 @@ def <BUILTIN>:INTRINSICS.WebAssembly.instantiate_bytes(
   }
   call stableBytes = clo<"get_a_copy_of_the_buffer_source">(bytes)
   call promiseOfModule = clo<"Asynchronously_compile_a_WebAssembly_module">(stableBytes, options)
+  if (&& (? promiseOfModule: Completion) (! (= promiseOfModule.Type ~normal~))) {
+    return promiseOfModule
+  } else {
+    promiseOfModule = promiseOfModule.Value
+  }
   call _returnValue1 = clo<"Instantiate_a_promise_of_a_module">(promiseOfModule, importObject)
+  if (&& (? _returnValue1: Completion) (! (= _returnValue1.Type ~normal~))) {
+    return _returnValue1
+  } else {
+    _returnValue1 = _returnValue1.Value
+  }
   call-convert _returnValue1 = <converted_to_a_javascript_value>(_returnValue1)
   call _ret11 = clo<"NormalCompletion">(_returnValue1)
   return _ret11
@@ -652,7 +752,12 @@ def <BUILTIN>:INTRINSICS.WebAssembly.instantiate_object(
     let moduleObject = ArgumentsList[0]
     call-convert moduleObject = <converted_to_an_idl_value>(moduleObject, "Module")
     if (&& (? moduleObject: Completion) (! (= moduleObject.Type ~normal~))) {
-      call _promiseCapability = clo<"a_new_promise">(~Instance~, @EXECUTION_STACK[0].Realm)
+      call _guard1 = clo<"a_new_promise">(~Instance~, @EXECUTION_STACK[0].Realm)
+      if (&& (? _guard1: Completion) (! (= _guard1.Type ~normal~))) {
+        return _guard1
+      } else {
+        let _promiseCapability = _guard1.Value
+      }
       call _ = clo<"reject">(~Instance~, _promiseCapability, moduleObject.Value)
       let _v1 = _promiseCapability.Promise
       if (? _v1: Completion) {
@@ -664,7 +769,12 @@ def <BUILTIN>:INTRINSICS.WebAssembly.instantiate_object(
     } else nop
   } else {
     call _typeErr = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-    call _promiseCapability = clo<"a_new_promise">(~Instance~, @EXECUTION_STACK[0].Realm)
+    call _guard2 = clo<"a_new_promise">(~Instance~, @EXECUTION_STACK[0].Realm)
+    if (&& (? _guard2: Completion) (! (= _guard2.Type ~normal~))) {
+      return _guard2
+    } else {
+      let _promiseCapability = _guard2.Value
+    }
     call _ = clo<"reject">(~Instance~, _promiseCapability, _typeErr)
     let _v3 = _promiseCapability.Promise
     if (? _v3: Completion) {
@@ -678,7 +788,12 @@ def <BUILTIN>:INTRINSICS.WebAssembly.instantiate_object(
     let importObject = ArgumentsList[1]
     call-convert importObject = <converted_to_an_idl_value>(importObject, "object")
     if (&& (? importObject: Completion) (! (= importObject.Type ~normal~))) {
-      call _promiseCapability = clo<"a_new_promise">(~Instance~, @EXECUTION_STACK[0].Realm)
+      call _guard3 = clo<"a_new_promise">(~Instance~, @EXECUTION_STACK[0].Realm)
+      if (&& (? _guard3: Completion) (! (= _guard3.Type ~normal~))) {
+        return _guard3
+      } else {
+        let _promiseCapability = _guard3.Value
+      }
       call _ = clo<"reject">(~Instance~, _promiseCapability, importObject.Value)
       let _v5 = _promiseCapability.Promise
       if (? _v5: Completion) {
@@ -692,6 +807,11 @@ def <BUILTIN>:INTRINSICS.WebAssembly.instantiate_object(
     let importObject = undefined
   }
   call _returnValue1 = clo<"asynchronously_instantiate_a_WebAssembly_module">(moduleObject, importObject)
+  if (&& (? _returnValue1: Completion) (! (= _returnValue1.Type ~normal~))) {
+    return _returnValue1
+  } else {
+    _returnValue1 = _returnValue1.Value
+  }
   call-convert _returnValue1 = <converted_to_a_javascript_value>(_returnValue1)
   call _ret7 = clo<"NormalCompletion">(_returnValue1)
   return _ret7
@@ -3334,7 +3454,8 @@ def js-string-cast(
   if (&& (? _call1: Completion) (! (= _call1.Type ~normal~))) {
     return _call1
   } else {
-    return _call1.Value
+    call _ret1 = clo<"NormalCompletion">(_call1.Value)
+    return _ret1
   }
 }
 def js-string-test(
@@ -3491,7 +3612,8 @@ def js-string-length(
   } else {
     let string = _call1.Value
   }
-  return (sizeof string)
+  call _ret1 = clo<"NormalCompletion">((sizeof string))
+  return _ret1
 }
 def js-string-concat(
   first: Unknown,
@@ -3511,7 +3633,8 @@ def js-string-concat(
   }
   call _call3 = clo<"Call">(@EXECUTION_STACK[0].Realm.Intrinsics["%String.prototype.concat%"], first, (list [second]))
   assert (= _call3.Type ~normal~)
-  return _call3.Value
+  call _ret1 = clo<"NormalCompletion">(_call3.Value)
+  return _ret1
 }
 def js-string-substring(
   string: Unknown,
@@ -3528,11 +3651,13 @@ def js-string-substring(
   let startNum = ([math] start)
   let endNum = ([math] end)
   if (|| (< endNum startNum) (< length startNum)) {
-    return ""
+    call _ret1 = clo<"NormalCompletion">("")
+    return _ret1
   } else nop
   call _call2 = clo<"Call">(@EXECUTION_STACK[0].Realm.Intrinsics["%String.prototype.substring%"], string, (list [start, end]))
   assert (= _call2.Type ~normal~)
-  return _call2.Value
+  call _ret2 = clo<"NormalCompletion">(_call2.Value)
+  return _ret2
 }
 def js-string-equals(
   first: Unknown,
@@ -3572,15 +3697,18 @@ def js-string-compare(
   }
   call _call3 = clo<"IsStrictlyEqual">(first, second)
   if (= _call3 true) {
-    return 0
+    call _ret1 = clo<"NormalCompletion">(0)
+    return _ret1
   } else nop
   call _call4 = clo<"IsLessThan">(first, second, true)
   assert (= _call4.Type ~normal~)
   let _call5 = _call4.Value
   if (= _call5 true) {
-    return (- 1)
+    call _ret2 = clo<"NormalCompletion">((- 1))
+    return _ret2
   } else nop
-  return 1
+  call _ret3 = clo<"NormalCompletion">(1)
+  return _ret3
 }
 def inclusive_inherited_interfaces(
   I: Unknown,
@@ -3606,7 +3734,8 @@ def a_new_promise(
   if (&& (? _call1: Completion) (! (= _call1.Type ~normal~))) {
     return _call1
   } else {
-    return _call1.Value
+    call _ret1 = clo<"NormalCompletion">(_call1.Value)
+    return _ret1
   }
 }
 def resolve(
@@ -3655,7 +3784,12 @@ def react(
     let newCapability = _call1.Value
   }
   call _ = clo<"PerformPromiseThen">(promise.Promise, onFulfilled, onRejected, newCapability)
-  return newCapability
+  if (? newCapability: Completion) {
+    return newCapability
+  } else {
+    call _ret1 = clo<"NormalCompletion">(newCapability)
+    return _ret1
+  }
 }
 def get_a_copy_of_the_buffer_source(
   bufferSource: Unknown,
@@ -4626,10 +4760,21 @@ def instantiate_a_promise_of_a_module_closure1(
   module: Unknown,
 ): Unknown = {
   call innerPromise = clo<"asynchronously_instantiate_a_WebAssembly_module">(module, importObject)
+  if (&& (? innerPromise: Completion) (! (= innerPromise.Type ~normal~))) {
+    return innerPromise
+  } else {
+    innerPromise = innerPromise.Value
+  }
   let innerOnFullfilledSteps = clo<"instantiate_a_promise_of_a_module_closure2", [module, promise]>
   let innerOnRejectedSteps = clo<"instantiate_a_promise_of_a_module_closure3", [promise]>
-  call _ = clo<"React">(~WebAssemblyInstantiatedSource~, innerPromise, innerOnFullfilledSteps, innerOnRejectedSteps, @EXECUTION_STACK[0].Realm)
-  return ~unused~
+  call _guard1 = clo<"React">(~WebAssemblyInstantiatedSource~, innerPromise, innerOnFullfilledSteps, innerOnRejectedSteps, @EXECUTION_STACK[0].Realm)
+  if (&& (? _guard1: Completion) (! (= _guard1.Type ~normal~))) {
+    return _guard1
+  } else {
+    _guard1 = _guard1.Value
+  }
+  call _ret1 = clo<"NormalCompletion">(~unused~)
+  return _ret1
 }
 def instantiate_a_promise_of_a_module_closure4(
   reason: Unknown,

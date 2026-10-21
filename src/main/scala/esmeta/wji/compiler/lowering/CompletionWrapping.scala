@@ -176,9 +176,12 @@ object CompletionWrapping:
     * constructors, not a general "does this ever produce a completion"
     * analysis) and conservative: every one of these compiles straight to a
     * definite ECMAScript/Math/List/record value (see `Compiler`'s own cases for
-    * `Bool`/`Num`/`Str`/`Byte`/`AsMath`/`List_`/`RecordLit`, and
-    * `SpecTerm("true"|"false"|"null"|"undefined")`'s direct
-    * `EBool`/`ENull`/`EUndef` compilation).
+    * `Bool`/`Num`/`Str`/`Byte`/`AsMath`/`List_`/`RecordLit`).
+    *
+    * `SpecTerm` is safe whatever its name: every one of `Compiler`'s `SpecTerm`
+    * cases yields a literal (`true`/`null`/...), a Realm/Agent record, a
+    * symbol, or otherwise an `EEnum` (e.g. `~handled~`), never a Completion
+    * Record.
     *
     * `RecordLit(tname, _)`/`New(iface)` are safe for the same reason a
     * `pure`-tracked `Var` bound to one survives arbitrary intervening calls
@@ -229,7 +232,7 @@ object CompletionWrapping:
     */
   private def neverCompletion(expr: Expr): Boolean = expr match
     case _: Expr.Bool | _: Expr.Num | _: Expr.Str | _: Expr.Byte => true
-    case Expr.SpecTerm("true" | "false" | "null" | "undefined")  => true
+    case _: Expr.SpecTerm                                        => true
     case _: Expr.AsMath                                          => true
     case _: Expr.List_                                           => true
     case _: Expr.RecordLit                                       => true

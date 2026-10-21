@@ -1406,21 +1406,11 @@ def HostResizeArrayBuffer(
       } else nop
       _iterIdx2 = (+ _iterIdx2 1)
     }
-    let _v3 = ~handled~
-    if (? _v3: Completion) {
-      return _v3
-    } else {
-      call _ret4 = clo<"NormalCompletion">(_v3)
-      return _ret4
-    }
+    call _ret3 = clo<"NormalCompletion">(~handled~)
+    return _ret3
   } else {
-    let _v5 = ~unhandled~
-    if (? _v5: Completion) {
-      return _v5
-    } else {
-      call _ret6 = clo<"NormalCompletion">(_v5)
-      return _ret6
-    }
+    call _ret4 = clo<"NormalCompletion">(~unhandled~)
+    return _ret4
   }
 }
 def <BUILTIN>:INTRINSICS.get:WebAssembly.Memory.prototype.buffer(

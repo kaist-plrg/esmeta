@@ -172,11 +172,10 @@ object CompletionWrapping:
   /** `expr`'s own constructor already fixes its compiled runtime type to
     * something other than a Completion Record, regardless of what any nested
     * sub-expression evaluates to -- so a `Cond.IsType(_, "Completion")` check
-    * on it can never be true. Deliberately narrow (a fixed list of
-    * constructors, not a general "does this ever produce a completion"
-    * analysis) and conservative: every one of these compiles straight to a
-    * definite ECMAScript/Math/List/record value (see `Compiler`'s own cases for
-    * `Bool`/`Num`/`Str`/`Byte`/`AsMath`/`List_`/`RecordLit`).
+    * on it can never be true. Decided per constructor (not a general "does this
+    * ever produce a completion" analysis), by what `Compiler` turns each one
+    * into: a `true` case compiles straight to a definite
+    * ECMAScript/Math/List/record value.
     *
     * `SpecTerm` is safe whatever its name: every one of `Compiler`'s `SpecTerm`
     * cases yields a literal (`true`/`null`/...), a Realm/Agent record, a
@@ -232,20 +231,48 @@ object CompletionWrapping:
     * is just as plainly never completion-shaped (a `u64`). No occurrence of
     * this field name anywhere in the corpus holds a completion-shaped value.
     */
+  // Deliberately exhaustive (no `case _`): a new `Expr` constructor gets a
+  // non-exhaustive-match warning here instead of silently defaulting either
+  // way. When unsure, answer `false`: that only leaves a dead check behind,
+  // while a wrong `true` would double-wrap a real completion.
   private def neverCompletion(expr: Expr): Boolean = expr match
-    case _: Expr.Bool | _: Expr.Num | _: Expr.Str | _: Expr.Byte  => true
-    case _: Expr.SpecTerm                                         => true
-    case _: Expr.AsMath                                           => true
-    case _: Expr.List_                                            => true
-    case _: Expr.RecordLit                                        => true
-    case _: Expr.New                                              => true
-    case _: Expr.Case                                             => true
-    case _: Expr.Tuple                                            => true
-    case _: Expr.Length | _: Expr.Keys | _: Expr.Concat           => true
-    case _: Expr.BinOp | _: Expr.Pow | _: Expr.Neg | _: Expr.Enum => true
-    case Expr.Field(_, "Value")                                   => true
-    case Expr.AsWasm(inner, _) => neverCompletion(inner)
-    case _                     => false
+    // literals / enums
+    case _: Expr.Num | _: Expr.Bool | _: Expr.Str | _: Expr.Byte => true
+    case _: Expr.SpecTerm | _: Expr.Enum                         => true
+    // value constructors
+    case _: Expr.List_ | _: Expr.Map_ | _: Expr.RecordLit | _: Expr.New => true
+    case _: Expr.Case | _: Expr.Tuple | _: Expr.Closure | _: Expr.AlgoRef =>
+      true
+    // operations / conversions
+    case _: Expr.Length | _: Expr.Keys | _: Expr.Concat | _: Expr.CaseTag =>
+      true
+    case _: Expr.BinOp | _: Expr.Pow | _: Expr.Neg            => true
+    case _: Expr.AsMath | _: Expr.AsNumber | _: Expr.AsBigInt => true
+    // transparent wrappers: as safe as what they wrap
+    case Expr.AsWasm(inner, _)           => neverCompletion(inner)
+    case Expr.TypeAnnotated(_, inner)    => neverCompletion(inner)
+    case Expr.WasmFloatPayload(_, inner) => neverCompletion(inner)
+    case Expr.Opt(inner)                 => inner.forall(neverCompletion)
+    case Expr.Conditional(branches, otherwise) =>
+      branches.forall((_, e) => neverCompletion(e)) &&
+      otherwise.forall(neverCompletion)
+    // container reads: only a completion's own payload is known safe
+    case Expr.Field(_, name)               => name == "Value"
+    case _: Expr.Index | _: Expr.TupleProj => false
+    // variables (tracked separately, via `pure`)
+    case _: Expr.Var | Expr.This | Expr.GivenValue => false
+    // calls
+    case _: Expr.AlgoCall | _: Expr.JSCall | _: Expr.ClosureCall => false
+    case _: Expr.Abrupt                                          => false
+    // not yet mechanized (`EYet`)
+    case _: Expr.Unknown | _: Expr.UnknownNew | _: Expr.Described => false
+    case _: Expr.SuchThat | _: Expr.Seq_                          => false
+    // should already be lowered away by this point
+    case _: Expr.Link | _: Expr.FollowingSteps | _: Expr.GetMember => false
+    case _: Expr.NewByteSequence | _: Expr.DataBlockOf             => false
+    case Expr.NewArrayBuffer                                       => false
+    case _: Expr.Range | _: Expr.IndexOf | _: Expr.ShortestArgumentList =>
+      false
 
   /** `cond`, as an `IfChain` branch's own condition, already proves `e`
     * [[IsType is a Completion/AbruptCompletion]] for every instruction inside

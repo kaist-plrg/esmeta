@@ -1772,7 +1772,7 @@
     Let(|idlValue|, null)
     If(|attribute|.[[ty]] is an enumeration)
       Let(|S|, [=?=] [$ToString$](|V|))
-      If(|S| is not ?(one of |attribute|'s type's [=enumeration values=]))
+      If(|S| is not contained in |attribute|.[[ty]].[[values]])
         Return(undefined)
       Set(|idlValue|, |S|)
     Else

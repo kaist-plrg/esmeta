@@ -28,6 +28,7 @@ object Extractor:
       .extractFromFile(SpecFile.webidlIndex)
       .filter(a => a.name.orElse(a.id).exists(SpecFile.webidlFilter.contains))
     val definitions = DefinitionExtractor.extract(jsApiSource)
+    val enumerations = DefinitionExtractor.extractEnumerations(jsApiSource)
     val anchors = AnchorExtractor.extract(jsApiSource)
     // `AlgorithmExtractor` produces `AlgorithmKind.Method(for)` for any "The
     // <dfn method for="X">..." dfn uniformly, without knowing whether `X` is a
@@ -65,7 +66,7 @@ object Extractor:
           case _ => a
       }
       .map(enrichParamTypes(_, definitions))
-    Spec(algorithms, definitions, anchors)
+    Spec(algorithms, definitions, anchors, enumerations)
 
   /** Finds `algo`'s matching WebIDL operation (its interface's or namespace's
     * `Definition`, looked up by `AlgorithmKind.Method`/`NamespaceMethod`/

@@ -411,6 +411,13 @@ object CondParser:
   // (index.bs:1254), handled by parseRhs alongside "missing"/"given"/"of the
   // form ...".
   private val ContainedIn = """(?si)^contained in (.+)$""".r
+  // "one of LIST" where LIST is a single collection expression — the list-
+  // membership counterpart `IsOneOfNeg`/`Pos` above leave out (`attribute
+  // setter`'s "|S| is not one of |attribute|'s type's [=enumeration values=]",
+  // `SpecPatch` #80). Reached only once those didn't match, i.e. LIST isn't an
+  // enumerated "[=A=], [=B=] or [=C=]" disjunction; same `Contains` as
+  // ContainedIn.
+  private val OneOfCollection = """(?si)^one of (.+)$""".r
 
   // "[=exposed=] in REALM" — the RHS of "SUBJECT is [not] [=exposed=] in
   // REALM" (webidl/index.bs:12276,12325,12523, and the interface-construction
@@ -839,6 +846,12 @@ object CondParser:
         case "given"           => IsMissing(ExprParser.parse(lhsRaw), !negated)
         case IsOfFormRhs(text) => parseIsOfForm(lhsRaw.trim, text, negated)
         case ContainedIn(listRaw) =>
+          Contains(
+            ExprParser.parse(lhsRaw),
+            ExprParser.parse(listRaw),
+            negated,
+          )
+        case OneOfCollection(listRaw) =>
           Contains(
             ExprParser.parse(lhsRaw),
             ExprParser.parse(listRaw),

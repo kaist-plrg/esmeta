@@ -43,11 +43,41 @@ object DefinitionExtractor:
   private val DefOpen =
     """\b(interface|namespace)\s+([A-Za-z][A-Za-z0-9]*)\s*(?::\s*([A-Za-z][A-Za-z0-9]*)\s*)?\{""".r
 
+  /** matches the start of an `enum Name {` declaration; the body end is found
+    * by [[findBodyEnd]], same as [[DefOpen]]
+    */
+  private val EnumOpen = """\benum\s+([A-Za-z][A-Za-z0-9]*)\s*\{""".r
+
+  /** an enumeration value — a WebIDL string literal (no escapes in WebIDL) */
+  private val EnumValue = "\"([^\"]*)\"".r
+
   def extract(source: String): List[Definition] =
     idlBlocks(source).flatMap(extractFromBlock)
 
   def extractFromFile(path: Path): List[Definition] =
     extract(SpecPatch(Files.readString(path)))
+
+  /** extracts every `enum Name { ... }` declaration. Line comments are dropped
+    * before collecting the quoted values — `TableKind`'s body holds a `//
+    * Note: ...` comment (index.bs:992), and a body may end in a trailing
+    * comma (`AddressType`, `ValueType`), which needs no special handling here.
+    */
+  def extractEnumerations(source: String): List[Enumeration] =
+    idlBlocks(source).flatMap { block =>
+      EnumOpen.findAllMatchIn(block).toList.flatMap { m =>
+        for bodyEnd <- findBodyEnd(block, m.end) yield
+          val body = block
+            .substring(m.end, bodyEnd)
+            .linesIterator
+            .map(_.replaceFirst("//.*$", ""))
+            .mkString("\n")
+          val values = EnumValue.findAllMatchIn(body).map(_.group(1)).toList
+          Enumeration(m.group(1), values)
+      }
+    }
+
+  def extractEnumerationsFromFile(path: Path): List[Enumeration] =
+    extractEnumerations(SpecPatch(Files.readString(path)))
 
   private def idlBlocks(source: String): List[String] =
     IdlPreOpen

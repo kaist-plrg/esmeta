@@ -662,6 +662,13 @@ object ExprParser:
   // Restricted to a bare variable base: "... to an IDL value of |attribute|'s
   // type" (index.bs:12459) ends the same way but isn't this field read.
   private val PossessiveType = """(?si)^(\|[^|]+\|)'s type$""".r
+  // "|attribute|'s type's [=enumeration values=]" — an enumeration type's
+  // values (`attribute setter`, `SpecPatch` #80), stored under `values` on the
+  // `Enumeration` record `Initialize.seedHostDefined`'s `typeValue` builds.
+  // Its own mapping rather than `fieldFromLink`, which would read the dfn
+  // text ("enumeration values") as the field name.
+  private val PossessiveEnumValues =
+    """(?si)^(.+)'s \[=enumeration values=\]$""".r
   // "the string "<code>get </code>" prepended to |attribute|'s
   // [=identifier=]" — the name `attribute getter`/`attribute setter`
   // (webidl/index.bs:12382, 12466) give the function they create
@@ -1334,6 +1341,7 @@ object ExprParser:
         ShortestArgumentList(parse(baseRaw))
       case StringPrependedTo(prefixRaw, restRaw) =>
         Concat(List(parse(prefixRaw), parse(restRaw)))
+      case PossessiveEnumValues(baseRaw) => Field(parse(baseRaw), "values")
       case PossessiveIdentifier(baseRaw) => Field(parse(baseRaw), "id")
       case PossessiveType(varRaw)        => Field(parse(varRaw), "ty")
       case IdentifierOfType(varRaw)      => Field(parse(varRaw), "id")

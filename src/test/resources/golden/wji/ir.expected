@@ -4877,14 +4877,14 @@ def attribute_setter_closure1(
     } else nop
   } else nop
   let idlValue = null
-  if (? attribute.ty: Unknown["enumeration"]) {
+  if (? attribute.ty: Record[Enumeration]) {
     call _call8 = clo<"ToString">(V)
     if (&& (? _call8: Completion) (! (= _call8.Type ~normal~))) {
       return _call8
     } else {
       let S = _call8.Value
     }
-    if (! (= S (yet "one of |attribute|'s type's [=enumeration values=]"))) {
+    if (! (contains attribute.ty.values S)) {
       call _ret10 = clo<"NormalCompletion">(undefined)
       return _ret10
     } else nop

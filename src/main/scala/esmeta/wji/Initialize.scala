@@ -205,14 +205,28 @@ object Initialize:
 
     // An IDL type as a runtime value: a record named after its kind for the
     // kinds a mechanized WebIDL algorithm actually asks about ("X's type is a
-    // [=promise type=]"/"an [=observable array type=]" — see
-    // `Compiler.typeOf`), the type's own text otherwise.
+    // [=promise type=]"/"an [=observable array type=]"/"an [=enumeration=]" —
+    // see `Compiler.typeOf`), the type's own text otherwise. An enumeration's
+    // record also carries its [=enumeration values=] (`values`, read by
+    // `attribute setter`'s "|S| is not one of |attribute|'s type's
+    // [=enumeration values=]").
     def typeValue(ty: String): Value =
-      val kind =
-        if ty.startsWith("Promise<") then Some("Promise")
-        else if ty.startsWith("ObservableArray<") then Some("ObservableArray")
-        else None
-      kind.fold[Value](Str(ty))(st.allocRecord(_, List("id" -> Str(ty))))
+      spec.enumerationMap.get(ty) match
+        case Some(e) =>
+          st.allocRecord(
+            "Enumeration",
+            List(
+              "id" -> Str(ty),
+              "values" -> st.allocList(e.values.map(Str(_))),
+            ),
+          )
+        case None =>
+          val kind =
+            if ty.startsWith("Promise<") then Some("Promise")
+            else if ty.startsWith("ObservableArray<") then
+              Some("ObservableArray")
+            else None
+          kind.fold[Value](Str(ty))(st.allocRecord(_, List("id" -> Str(ty))))
 
     def operationRecord(defId: String, op: WjiOperation): Addr =
       // `id` here is the WebIDL identifier itself (e.g. "validate") — this is

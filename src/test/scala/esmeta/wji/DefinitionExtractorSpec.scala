@@ -143,3 +143,22 @@ class DefinitionExtractorSpec extends AnyFunSuite:
       ),
     )
   }
+
+  test("extracts every enum, ignoring comments and trailing commas") {
+    val enumerations =
+      DefinitionExtractor.extractEnumerationsFromFile(SpecFile.jsApiIndex)
+    assert(
+      enumerations == List(
+        Enumeration(
+          "ImportExportKind",
+          List("function", "table", "memory", "global", "tag"),
+        ),
+        Enumeration("AddressType", List("i32", "i64")),
+        Enumeration("TableKind", List("externref", "anyfunc")),
+        Enumeration(
+          "ValueType",
+          List("i32", "i64", "f32", "f64", "v128", "externref", "anyfunc"),
+        ),
+      ),
+    )
+  }

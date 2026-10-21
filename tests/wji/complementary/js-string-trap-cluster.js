@@ -28,11 +28,9 @@
 // NOT covered here (left as a documented gap, personal/TODO.md #71): a
 // *negative* index (e.g. `codePointAt(-1)`) crashes the interpreter outright
 // instead of trapping -- a real bug, not something a passing test should
-// assert. Also not covered: intoCharCodeArray/fromCharCodeArray's own
-// "array too short for start/end" trap -- constructing a real (non-null),
-// deliberately-undersized array from this builder requires a GC-typed local
-// variable, which the vendored wasm-module-builder.js's `addLocals` doesn't
-// support (only i32/i64/f32/f64/s128/anyref/anyfunc) -- left as a follow-up.
+// assert. The out-of-range traps (charCodeAt past the end, and
+// intoCharCodeArray/fromCharCodeArray's start/end checks against a real,
+// non-null array) live in js-string-range-trap-cluster.js instead.
 function assertEq(actual, expected, msg) {
   if (actual !== expected)
     throw new Error(msg + ": expected " + expected + ", got " + actual);

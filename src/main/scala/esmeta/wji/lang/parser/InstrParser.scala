@@ -51,6 +51,8 @@ object InstrParser:
   private val ElseIfPrefix =
     """(?is)^(?:Else\s+if\b|Otherwise,\s*if\b)\s+(.+)$""".r
   private val IfPrefix = """(?is)^If\b\s+(.+)$""".r
+  private val RespectivelyReturn =
+    """(?is)^return\s+(.+?)\s+or\s+(.+?),\s+respectively\.?$""".r
   private val ElsePrefix = """(?is)^(?:Else|Otherwise)\b\s*,?\s*(.*)$""".r
   // group 1: the link target, e.g. "list/iterate" or "map/iterate"
   private val ForEachPrefix =
@@ -282,8 +284,20 @@ object InstrParser:
         val (cond, tail) = splitCondAndRest(rest)
         ElseIf(CondParser.parse(cond), deriveBody(tail, trailingBody))
       case IfPrefix(rest) =>
-        val (cond, tail) = splitCondAndRest(rest)
-        If(CondParser.parse(cond), deriveBody(tail, trailingBody))
+        val (condRaw, tail) = splitCondAndRest(rest)
+        (CondParser.parse(condRaw), tail) match
+          // "If |x| is A or B, return A' or B', respectively." -> under the
+          // whole condition, A returns A' and otherwise (B) B'
+          case (cond @ Cond.Or(first, _), RespectivelyReturn(a, b))
+              if trailingBody.isEmpty =>
+            If(
+              cond,
+              List(
+                If(first, List(Return(Some(ExprParser.parse(a))))),
+                Else(List(Return(Some(ExprParser.parse(b))))),
+              ),
+            )
+          case (cond, _) => If(cond, deriveBody(tail, trailingBody))
       case LiteralIfPrefix(lit, cond) =>
         If(
           CondParser.parse(cond),

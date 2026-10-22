@@ -2440,21 +2440,29 @@ def tojsvalue(
   } else nop
   if (&& (= (case-tag w) "CONST") (= (case-tag w[0]) "F32")) {
     let f32 = w[1]
-    if (|| (= f32 ~+∞~) (= f32 ~−∞~)) {
-      return (yet "**+∞**<sub>𝔽</sub> or **-∞**<sub>𝔽</sub>, respectively")
+    if (|| (= f32 (case "POS" (case "INF" ))) (= f32 (case "NEG" (case "INF" )))) {
+      if (= f32 (case "POS" (case "INF" ))) {
+        return +NUM_INF
+      } else {
+        return -NUM_INF
+      }
     } else nop
-    if (= f32 ~nan~) {
-      return ~**NaN**~
+    if (= (case-tag f32[0]) "NAN") {
+      return NaN
     } else nop
     return ([number] ([math-f32] f32))
   } else nop
   if (&& (= (case-tag w) "CONST") (= (case-tag w[0]) "F64")) {
     let f64 = w[1]
-    if (|| (= f64 ~+∞~) (= f64 ~−∞~)) {
-      return (yet "**+∞**<sub>𝔽</sub> or **-∞**<sub>𝔽</sub>, respectively")
+    if (|| (= f64 (case "POS" (case "INF" ))) (= f64 (case "NEG" (case "INF" )))) {
+      if (= f64 (case "POS" (case "INF" ))) {
+        return +NUM_INF
+      } else {
+        return -NUM_INF
+      }
     } else nop
-    if (= f64 ~nan~) {
-      return ~**NaN**~
+    if (= (case-tag f64[0]) "NAN") {
+      return NaN
     } else nop
     return ([number] ([math-f64] f64))
   } else nop
@@ -2536,7 +2544,7 @@ def towebassemblyvalue(
     } else {
       let number = _call3.Value
     }
-    if (= number ~**NaN**~) {
+    if (= number NaN) {
       call-embed n = <canon_32>()
       let f32 = (case "POS" (case "NAN" n))
     } else {
@@ -2552,7 +2560,7 @@ def towebassemblyvalue(
     } else {
       let number = _call4.Value
     }
-    if (= number ~**NaN**~) {
+    if (= number NaN) {
       call-embed n = <canon_64>()
       let f64 = (case "POS" (case "NAN" n))
     } else {

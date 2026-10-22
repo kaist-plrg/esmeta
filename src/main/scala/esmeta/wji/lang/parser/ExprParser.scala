@@ -773,6 +773,11 @@ object ExprParser:
   private val BoolTrue = """(?i)^true$""".r
   private val BoolFalse = """(?i)^false$""".r
   private val BoldConst = """(?s)^\*\*([^*]+)\*\*$""".r
+  // ECMA-262 Number values in Bikeshed markup: "**NaN**", "**+∞**<sub>𝔽</sub>",
+  // "**-∞**<sub>𝔽</sub>" -> SpecTerm("NaN"/"+∞𝔽"/"-∞𝔽"), compiled to Number
+  // literals the way SpecTerm("null")/("undefined") are.
+  private val NaNLit = """^\*\*NaN\*\*$""".r
+  private val InfinityLit = """^\*\*([+\-−])∞\*\*<sub>𝔽</sub>$""".r
   // "[=canon=]<sub>32</sub>": a Wasm Core numeric rendered with its width as a
   // subscript -> a call to its per-width name ("canon_32"), the same naming
   // as `[=signed_32=]`.
@@ -1130,15 +1135,18 @@ object ExprParser:
       case TrapException()                => Case("TRAP", Nil)
       case BoolTrue()                     => Bool(true)
       case BoolFalse()                    => Bool(false)
-      case BoldConst(_)                   => SpecTerm(s)
-      case SpecTermPat()                  => SpecTerm(s)
-      case PageKeyword()                  => SpecTerm("page")
-      case EmuConst(v)                    => SpecTerm(v)
-      case EmuVal(v)                      => SpecTerm(v)
-      case BracedTerm(inner)              => SpecTerm(inner)
-      case BracketRange(low, high)        => Seq_(List(parse(low), parse(high)))
-      case CrossSpecRef(text)             => SpecTerm(text)
-      case RealmSettingsObject()          => SpecTerm("realm/settings object")
+      case NaNLit()                       => SpecTerm("NaN")
+      case InfinityLit(sign) =>
+        SpecTerm(if sign == "+" then "+∞𝔽" else "-∞𝔽")
+      case BoldConst(_)            => SpecTerm(s)
+      case SpecTermPat()           => SpecTerm(s)
+      case PageKeyword()           => SpecTerm("page")
+      case EmuConst(v)             => SpecTerm(v)
+      case EmuVal(v)               => SpecTerm(v)
+      case BracedTerm(inner)       => SpecTerm(inner)
+      case BracketRange(low, high) => Seq_(List(parse(low), parse(high)))
+      case CrossSpecRef(text)      => SpecTerm(text)
+      case RealmSettingsObject()   => SpecTerm("realm/settings object")
 
       case _ =>
         if allowSeqFallback then parseAsSeq(s).getOrElse(Unknown(s))

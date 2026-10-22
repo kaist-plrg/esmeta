@@ -454,6 +454,9 @@ object Compiler:
     case metalang.Expr.SpecTerm("false")     => EBool(false)
     case metalang.Expr.SpecTerm("null")      => ENull()
     case metalang.Expr.SpecTerm("undefined") => EUndef()
+    case metalang.Expr.SpecTerm("NaN")       => ENumber(Double.NaN)
+    case metalang.Expr.SpecTerm("+∞𝔽")      => ENumber(Double.PositiveInfinity)
+    case metalang.Expr.SpecTerm("-∞𝔽")      => ENumber(Double.NegativeInfinity)
     // "the current Realm Record" (ECMA-262 9.4 Execution Contexts): the Realm
     // component of the running execution context, i.e. the top frame of the
     // execution context stack. Mirrors `esmeta.compiler.currentRealm`.

@@ -11,12 +11,10 @@
 // genuinely unreachable from JS until that slot was added alongside this
 // test.
 //
-// Can't cross-check against real Node/V8 here the way other complementary
-// tests in this directory do -- `toFixedLengthBuffer`/`toResizableBuffer`
-// aren't implemented in any shipping engine yet (confirmed: Node 24.2.0
-// throws "mem.toFixedLengthBuffer is not a function"). Kept deliberately
-// close to the spec algorithms' own literal steps instead, to minimize the
-// risk of encoding a wrong expectation with no engine oracle to catch it.
+// Node 24.2.0 doesn't implement `toFixedLengthBuffer`/`toResizableBuffer`
+// ("mem.toFixedLengthBuffer is not a function"), so this is cross-checked with
+// tests/wji/scripts/diff-engines instead: V8 and SpiderMonkey pass; JSC fails
+// the no-maximum TypeError check (docs/engine_bugs.md #5).
 function assertEq(actual, expected, msg) {
   if (actual !== expected)
     throw new Error(msg + ": expected " + expected + ", got " + actual);
@@ -77,5 +75,30 @@ function throwsRangeError(f) {
 assertEq(throwsRangeError(() => resizable.resize(2 * PAGE)), true, "shrinking must throw RangeError");
 assertEq(throwsRangeError(() => resizable.resize(3 * PAGE + 1)), true, "a non-page-multiple size must throw RangeError");
 assertEq(resizable.byteLength, 3 * PAGE, "a rejected resize() leaves byteLength unchanged");
+
+// toResizableBuffer() step 6: the buffer is already resizable -> returned as-is.
+assertEq(mem.toResizableBuffer(), resizable, "toResizableBuffer on an already-resizable buffer returns it as-is");
+
+// toFixedLengthBuffer() steps 3-7: converting back detaches the resizable
+// buffer and installs a new fixed-length one of the same size.
+const fixedAgain = mem.toFixedLengthBuffer();
+assertEq(fixedAgain === resizable, false, "toFixedLengthBuffer on a resizable buffer must create a new buffer");
+assertEq(fixedAgain.resizable, false, "the new buffer must be fixed-length");
+assertEq(fixedAgain.byteLength, 3 * PAGE, "the new fixed buffer keeps the memory's current size");
+assertEq(mem.buffer, fixedAgain, "the Memory's own .buffer must now be the fixed one");
+assertEq(resizable.detached, true, "the old resizable buffer must be detached");
+
+// Both methods are brand-checked: a non-Memory `this` throws TypeError.
+function throwsTypeError(f) {
+  try {
+    f();
+  } catch (e) {
+    return e instanceof TypeError;
+  }
+  return false;
+}
+const proto = WebAssembly.Memory.prototype;
+assertEq(throwsTypeError(() => proto.toFixedLengthBuffer.call({})), true, "toFixedLengthBuffer on a non-Memory must throw TypeError");
+assertEq(throwsTypeError(() => proto.toResizableBuffer.call({})), true, "toResizableBuffer on a non-Memory must throw TypeError");
 
 globalThis.__wjiOk = true;

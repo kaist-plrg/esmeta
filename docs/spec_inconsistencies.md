@@ -292,3 +292,11 @@ Retracted — its premise was wrong. This entry claimed the document consistentl
 - **Expected**: `1. Let |memtype| be the [=memory type=] |addrtype| { ... }.` — `Table` 쪽과 같은 관사.
 - **Reason**: 둘 다 "formal-grammar 값을 이름 붙은 필드로 구성"하는 동일한 패턴인데(`docs/spec_errors.md` #40 참고 — 이 필드 자체도 실제로는 `limits ::= [min .. max?]` range라 또 다른 문제가 있음, 이 항목과는 별개), `Table` 쪽만 "the"로 시작하고 `Memory` 쪽은 바로 링크로 시작합니다. 문장 자체는 "the" 유무와 무관하게 독립적으로 읽어도 의미가 똑같아 spec error가 아니라 inconsistency로 분류합니다.
 - **WJI 쪽 처리**: `SpecPatch` #77 — #40의 `{min,max}` → `[min .. max]` 교체와 같은 패치가 `Memory` 쪽 텍스트에 "the "도 같이 끼워 넣습니다. (예전엔 `SpecPatch` #45가 이 "the" 하나만 따로 고쳤었는데, #77로 통합되며 제거됨 — `docs/hardcodes.md` #15 참고.) "the"가 없으면 `ResolveLinksPass`가 `[=memory type=] |addrtype| ...` 전체를 존재하지 않는 "memory_type" 함수로의 호출로 잘못 읽어서(`TypeAnnotatedPrefix` 경로를 안 탐), 런타임에 `unknown function: memory_type`으로 죽습니다.
+
+## 24. `intoCharCodeArray`의 `ToWebAssemblyValue` 호출만 `?`/`!` 표기가 없음
+
+- **File**: `spectec/document/js-api/index.bs`, line 2019 (`js-string-intoCharCodeArray`).
+- **Current**: `1. Set the element at index |start| + |i| in |array| to [=ToWebAssemblyValue=](|charCode|, [=i32=]).`
+- **Expected**: `1. Set the element at index |start| + |i| in |array| to [=!=] [=ToWebAssemblyValue=](|charCode|, [=i32=]).`
+- **Reason**: `ToWebAssemblyValue`는 abrupt completion을 반환할 수 있는 연산이라(`i32`면 `ToInt32`, 참조 타입이면 `TypeError` 등), 이 문서의 다른 호출 13곳 중 12곳은 `[=?=]`(실패 가능, 예: line 1049/1199/1292/1331) 또는 `[=!=]`(실패 불가, 예: line 1185/1364/1451)를 붙이고, 나머지 1곳(line 525)은 "If this operation throws a {{TypeError}}, catch it, ..." 관용구로 throw를 명시적으로 처리함. 실패 여부를 아무것도 표시하지 않은 건 이 한 곳뿐. `charCode`는 `CharCodeAt`의 결과라 항상 Number이고 `ToInt32`가 실패할 수 없으므로 `[=!=]`가 맞음. 표기가 없어도 의미가 모호하진 않아서(실제로 실패할 수 없음) spec error가 아니라 inconsistency로 분류함.
+- **WJI 쪽 처리**: `SpecPatch` #79로 `[=!=]` 추가. 표기가 없으면 WJI는 completion을 반환하는 연산의 호출을 보수적으로 `?`처럼 처리해서(`PropagateUnguardedCallsPass`), 영원히 안 타는 abrupt 분기가 생겼음(`WjiCoverage`로 발견). `!`로는 `assert` 하나로 내려가서 그 분기가 사라짐.

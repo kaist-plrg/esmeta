@@ -1394,7 +1394,7 @@
   Let(|i|, 0)
   While(|i| < |stringLength|)
     Let(|charCode|, [$CharCodeAt$](|string|, AsNumber(|i|)))
-    Set(|array|[|start| + |i|], [=ToWebAssemblyValue=](|charCode|, [=i32=]))
+    Set(|array|[|start| + |i|], [=!=] [=ToWebAssemblyValue=](|charCode|, [=i32=]))
     Set(|i|, |i| + 1)
   Return(|stringLength|)
 

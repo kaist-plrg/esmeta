@@ -1577,6 +1577,15 @@ object SpecPatch:
     """prototype object=] of [=interface=] |I| in |realm|.
       #    1.  Perform [$MakeConstructor$](|F|, <emu-val>false</emu-val>, |proto|).
       #""".stripMargin('#'),
+
+    // #79 (spec inconsistency, docs/spec_inconsistencies.md #24) —
+    // `intoCharCodeArray`'s `ToWebAssemblyValue` call is the only one in this
+    // document that says nothing about failure (no `?`/`!`, no "if this
+    // throws" clause). It can't fail (`charCode` is always a Number), so `!`,
+    // as for the other can't-fail calls (e.g. index.bs:1185/1364).
+    "to [=ToWebAssemblyValue=](|charCode|, [=i32=])."
+    ->
+    "to [=!=] [=ToWebAssemblyValue=](|charCode|, [=i32=]).",
   )
 
   def apply(source: String): String =

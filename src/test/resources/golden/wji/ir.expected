@@ -3514,13 +3514,9 @@ def js-string-intocharcodearray(
   let i = 0
   while (< i stringLength) {
     call charCode = clo<"charcodeat">(string, ([number] i))
-    call _guard1 = clo<"ToWebAssemblyValue">(charCode, (case "I32" ))
-    if (&& (? _guard1: Completion) (! (= _guard1.Type ~normal~))) {
-      return _guard1
-    } else {
-      let _call2 = _guard1.Value
-    }
-    call-embed store = <array_write>(store, arrayaddr, (+ start i), (case "PACK" (case "I16" ) _call2[1]))
+    call _call2 = clo<"ToWebAssemblyValue">(charCode, (case "I32" ))
+    assert (= _call2.Type ~normal~)
+    call-embed store = <array_write>(store, arrayaddr, (+ start i), (case "PACK" (case "I16" ) _call2.Value[1]))
     @AGENT_RECORD["associated store"] = store
     i = (+ i 1)
   }

@@ -608,7 +608,7 @@ def instantiate_a_promise_of_a_module(
   call _ret1 = clo<"NormalCompletion">(promise)
   return _ret1
 }
-def <BUILTIN>:INTRINSICS.WebAssembly.instantiate_bytes(
+def instantiate_bytes(
   this: Unknown,
   ArgumentsList: Unknown,
   NewTarget: Unknown,
@@ -727,7 +727,7 @@ def <BUILTIN>:INTRINSICS.WebAssembly.instantiate_bytes(
   call _ret11 = clo<"NormalCompletion">(_returnValue1)
   return _ret11
 }
-def <BUILTIN>:INTRINSICS.WebAssembly.instantiate_object(
+def instantiate_object(
   this: Unknown,
   ArgumentsList: Unknown,
   NewTarget: Unknown,
@@ -5580,20 +5580,10 @@ def <BUILTIN>:INTRINSICS.WebAssembly.instantiate(
   NewTarget: Unknown,
 ): Unknown = {
   if (&& (< 0 (sizeof ArgumentsList)) (implements ArgumentsList[0] "Module")) {
-    call _result1 = clo<"INTRINSICS.WebAssembly.instantiate_object">(this, ArgumentsList, NewTarget)
-    if (? _result1: Completion) {
-      return _result1
-    } else {
-      call _ret1 = clo<"NormalCompletion">(_result1)
-      return _ret1
-    }
+    call _result1 = clo<"instantiate_object">(this, ArgumentsList, NewTarget)
+    return _result1
   } else {
-    call _result2 = clo<"INTRINSICS.WebAssembly.instantiate_bytes">(this, ArgumentsList, NewTarget)
-    if (? _result2: Completion) {
-      return _result2
-    } else {
-      call _ret2 = clo<"NormalCompletion">(_result2)
-      return _ret2
-    }
+    call _result2 = clo<"instantiate_bytes">(this, ArgumentsList, NewTarget)
+    return _result2
   }
 }

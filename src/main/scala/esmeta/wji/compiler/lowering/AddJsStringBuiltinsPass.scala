@@ -221,15 +221,17 @@ object AddJsStringBuiltinsPass extends LoweringPass:
     * same shape `ToWebAssemblyValue`'s own `i32`-branch builds internally, just
     * without the JS-coercion steps that don't apply to an already-wasm-domain
     * value.
-    *   - Otherwise (the remaining 5 `RefExtern`-returning builtins, e.g.
+    *   - Otherwise (the remaining 6 `RefExtern`-returning builtins, e.g.
     *     `js-string-fromCharCode`'s "Return FromCharCode(v)."): `result` is a
     *     genuinely new or unwrapped JS string -- `ToWebAssemblyValue` is the
     *     only existing mechanism that allocates it a real host address (`[=host
-    *     value cache=]`), so it's the right call here.
+    *     value cache=]`), so it's the right call here. Marked `!`, as the spec
+    *     itself does for an externref conversion (js-api/index.bs:1364): a
+    *     string can't fail it.
     *
-    * Both calls are written unmarked, as if they returned a plain value:
+    * The builtin call is written unmarked, as if it returned a plain value:
     * `PropagateUnguardedCallsPass` inserts the "if abrupt, return it; else
-    * unwrap `.Value`" guard exactly for the ones `CompletionAlgorithms` proves
+    * unwrap `.Value`" guard exactly when `CompletionAlgorithms` proves it
     * completion-returning (e.g. `length`, via `unwrapstring`), and none for a
     * plain-valued one (e.g. `test`). The wrapper itself is
     * `alwaysReturnsCompletion`, so its hostfunc caller always gets a Completion
@@ -257,6 +259,7 @@ object AddJsStringBuiltinsPass extends LoweringPass:
             "ToWebAssemblyValue",
             List(result, b.results.head),
             Instr.PerformOutcome.BindResult("result"),
+            marker = Some("!"),
           ),
           Instr.Return(Some(Expr.List_(List(result)))),
         )

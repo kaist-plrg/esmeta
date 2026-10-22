@@ -4427,12 +4427,9 @@ def js-string-cast-steps(
   } else {
     result = result.Value
   }
-  call result = clo<"towebassemblyvalue">(result, (case "REF" (opt) (case "EXTERN" )))
-  if (&& (? result: Completion) (! (= result.Type ~normal~))) {
-    return result
-  } else {
-    result = result.Value
-  }
+  call _call1 = clo<"towebassemblyvalue">(result, (case "REF" (opt) (case "EXTERN" )))
+  assert (= _call1.Type ~normal~)
+  let result = _call1.Value
   call _ret1 = clo<"NormalCompletion">((list [result]))
   return _ret1
 }
@@ -4447,12 +4444,9 @@ def js-string-fromcharcode-steps(
   arguments: Unknown,
 ): Unknown = {
   call result = clo<"js-string-fromcharcode">(arguments[0])
-  call result = clo<"towebassemblyvalue">(result, (case "REF" (opt) (case "EXTERN" )))
-  if (&& (? result: Completion) (! (= result.Type ~normal~))) {
-    return result
-  } else {
-    result = result.Value
-  }
+  call _call1 = clo<"towebassemblyvalue">(result, (case "REF" (opt) (case "EXTERN" )))
+  assert (= _call1.Type ~normal~)
+  let result = _call1.Value
   call _ret1 = clo<"NormalCompletion">((list [result]))
   return _ret1
 }
@@ -4465,12 +4459,9 @@ def js-string-fromcodepoint-steps(
   } else {
     result = result.Value
   }
-  call result = clo<"towebassemblyvalue">(result, (case "REF" (opt) (case "EXTERN" )))
-  if (&& (? result: Completion) (! (= result.Type ~normal~))) {
-    return result
-  } else {
-    result = result.Value
-  }
+  call _call1 = clo<"towebassemblyvalue">(result, (case "REF" (opt) (case "EXTERN" )))
+  assert (= _call1.Type ~normal~)
+  let result = _call1.Value
   call _ret1 = clo<"NormalCompletion">((list [result]))
   return _ret1
 }
@@ -4519,12 +4510,9 @@ def js-string-concat-steps(
   } else {
     result = result.Value
   }
-  call result = clo<"towebassemblyvalue">(result, (case "REF" (opt) (case "EXTERN" )))
-  if (&& (? result: Completion) (! (= result.Type ~normal~))) {
-    return result
-  } else {
-    result = result.Value
-  }
+  call _call1 = clo<"towebassemblyvalue">(result, (case "REF" (opt) (case "EXTERN" )))
+  assert (= _call1.Type ~normal~)
+  let result = _call1.Value
   call _ret1 = clo<"NormalCompletion">((list [result]))
   return _ret1
 }
@@ -4537,12 +4525,9 @@ def js-string-substring-steps(
   } else {
     result = result.Value
   }
-  call result = clo<"towebassemblyvalue">(result, (case "REF" (opt) (case "EXTERN" )))
-  if (&& (? result: Completion) (! (= result.Type ~normal~))) {
-    return result
-  } else {
-    result = result.Value
-  }
+  call _call1 = clo<"towebassemblyvalue">(result, (case "REF" (opt) (case "EXTERN" )))
+  assert (= _call1.Type ~normal~)
+  let result = _call1.Value
   call _ret1 = clo<"NormalCompletion">((list [result]))
   return _ret1
 }
@@ -4579,12 +4564,9 @@ def js-string-fromcharcodearray-steps(
   } else {
     result = result.Value
   }
-  call result = clo<"towebassemblyvalue">(result, (case "REF" (opt) (case "EXTERN" )))
-  if (&& (? result: Completion) (! (= result.Type ~normal~))) {
-    return result
-  } else {
-    result = result.Value
-  }
+  call _call1 = clo<"towebassemblyvalue">(result, (case "REF" (opt) (case "EXTERN" )))
+  assert (= _call1.Type ~normal~)
+  let result = _call1.Value
   call _ret1 = clo<"NormalCompletion">((list [result]))
   return _ret1
 }

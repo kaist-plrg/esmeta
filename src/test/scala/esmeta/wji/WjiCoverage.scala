@@ -4,7 +4,6 @@ import esmeta.{
   WJI_COMPLEMENTARY_TEST_DIR,
   WJI_COVERAGE_LOG_DIR,
   WJI_JS_API_TEST_DIR,
-  WJI_MANUAL_TEST_DIR,
 }
 import esmeta.cfg.{Block, Branch, BranchKind, Call, Func, Node}
 import esmeta.interpreter.{Interpreter => EsInterpreter}
@@ -49,10 +48,11 @@ import scala.collection.mutable
   * it's never silently replaced by a combined one -- the two measure different
   * things, see the "a function at 0% here isn't necessarily an actual gap"
   * paragraph below), then *continues* the same run by also executing
-  * `tests/wji/manual` and `tests/wji/complementary` on top of the
-  * already-accumulated hit counts and dumps that combined total to
-  * `$WJI_COVERAGE_LOG_DIR-full` -- the official corpus is only ever executed
-  * once per invocation either way; `--full` doesn't re-run it.
+  * `tests/wji/complementary` on top of the already-accumulated hit counts and
+  * dumps that combined total to `$WJI_COVERAGE_LOG_DIR-full` -- the official
+  * corpus is only ever executed once per invocation either way; `--full`
+  * doesn't re-run it. `tests/wji/manual` is left out: it's `EvalSpec`'s
+  * regression suite, not written to fill coverage gaps.
   *
   * Every file under `tests/wji/js-api/generated` is attempted, including ones
   * `EvalSpec` itself skips or cancels (`skippedEntirely`/`slowFiles`) -- a
@@ -64,14 +64,13 @@ import scala.collection.mutable
   *
   * A function at 0% here isn't necessarily an actual gap -- it only means the
   * *official* corpus never reaches it. Two other reasons a function can show up
-  * there: it's exercised only by `tests/wji/manual/` or
-  * `tests/wji/complementary/` (visible with `--full`), or it's a hook WJI never
-  * dispatches as a compiled algorithm, so no fixture can change its count even
-  * with `--full`. Examples of the latter: "create the WebAssembly namespace
-  * object" (bootstrap hardcodes its result, `docs/hardcodes.md` #10), and the
-  * wasm core `memory.grow` instruction hook (Wasm-side growth reaches JS
-  * through `WasmMemoryBridge`'s length-mismatch refresh instead, which
-  * `tests/wji/manual/memory-grow.js` does exercise).
+  * there: it's exercised only by `tests/wji/complementary/` (visible with
+  * `--full`), or it's a hook WJI never dispatches as a compiled algorithm, so
+  * no fixture can change its count even with `--full`. Examples of the latter:
+  * "create the WebAssembly namespace object" (bootstrap hardcodes its result,
+  * `docs/hardcodes.md` #10), and the wasm core `memory.grow` instruction hook
+  * (Wasm-side growth reaches JS through `WasmMemoryBridge`'s length-mismatch
+  * refresh instead).
   */
 object WjiCoverage:
 
@@ -161,7 +160,7 @@ object WjiCoverage:
     val cfg = WjiTest.mergedCfg
     var connection = Initialize.startProcess()
     // accumulated across every call to `runFiles` below -- `--full`'s second
-    // (manual/complementary) batch adds onto the official batch's hits rather
+    // (complementary) batch adds onto the official batch's hits rather
     // than starting over, so the official corpus is only ever executed once
     // even though two reports get dumped.
     val nodeHits: mutable.Map[Node, Int] = mutable.Map().withDefaultValue(0)
@@ -195,7 +194,7 @@ object WjiCoverage:
     /** computes a [[CoverageReport]] from whatever `nodeHits`/`condHits` have
       * accumulated so far and dumps it to `outDir` -- called once after the
       * official batch and, under `--full`, a second time after the
-      * manual/complementary batch has added onto the same running totals.
+      * complementary batch has added onto the same running totals.
       */
     def report(outDir: String): Unit =
       val perFunc = cfg.funcs
@@ -267,7 +266,7 @@ object WjiCoverage:
     report(WJI_COVERAGE_LOG_DIR)
 
     if full then
-      runFiles(List(WJI_MANUAL_TEST_DIR, WJI_COMPLEMENTARY_TEST_DIR))
+      runFiles(List(WJI_COMPLEMENTARY_TEST_DIR))
       report(s"$WJI_COVERAGE_LOG_DIR-full")
 
     connection.close()

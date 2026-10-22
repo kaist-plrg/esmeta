@@ -144,12 +144,8 @@ def asynchronously_compile_a_webassembly_module(
   }
   call module = clo<"compile_a_WebAssembly_module">(bytes)
   call _ = clo<"HostEnqueuePromiseJob">(clo<"asynchronously_compile_a_webassembly_module_closure1", [bytes, module, options, promise]>, @EXECUTION_STACK[0].Realm)
-  if (? promise: Completion) {
-    return promise
-  } else {
-    call _ret1 = clo<"NormalCompletion">(promise)
-    return _ret1
-  }
+  call _ret1 = clo<"NormalCompletion">(promise)
+  return _ret1
 }
 def <BUILTIN>:INTRINSICS.WebAssembly.compile(
   this: Unknown,
@@ -582,22 +578,14 @@ def asynchronously_instantiate_a_webassembly_module(
   if (= _throwComp1.Type ~throw~) {
     let exception = _throwComp1.Value
     call _ = clo<"reject">(~Instance~, promise, exception)
-    if (? promise: Completion) {
-      return promise
-    } else {
-      call _ret1 = clo<"NormalCompletion">(promise)
-      return _ret1
-    }
+    call _ret1 = clo<"NormalCompletion">(promise)
+    return _ret1
   } else {
     let imports = _throwComp1.Value
   }
   call _ = clo<"HostEnqueuePromiseJob">(clo<"asynchronously_instantiate_a_webassembly_module_closure1", [imports, module, promise]>, @EXECUTION_STACK[0].Realm)
-  if (? promise: Completion) {
-    return promise
-  } else {
-    call _ret2 = clo<"NormalCompletion">(promise)
-    return _ret2
-  }
+  call _ret2 = clo<"NormalCompletion">(promise)
+  return _ret2
 }
 def instantiate_a_promise_of_a_module(
   promiseOfModule: Unknown,
@@ -617,12 +605,8 @@ def instantiate_a_promise_of_a_module(
   } else {
     _guard2 = _guard2.Value
   }
-  if (? promise: Completion) {
-    return promise
-  } else {
-    call _ret1 = clo<"NormalCompletion">(promise)
-    return _ret1
-  }
+  call _ret1 = clo<"NormalCompletion">(promise)
+  return _ret1
 }
 def <BUILTIN>:INTRINSICS.WebAssembly.instantiate_bytes(
   this: Unknown,
@@ -3784,12 +3768,8 @@ def react(
     let newCapability = _call1.Value
   }
   call _ = clo<"PerformPromiseThen">(promise.Promise, onFulfilled, onRejected, newCapability)
-  if (? newCapability: Completion) {
-    return newCapability
-  } else {
-    call _ret1 = clo<"NormalCompletion">(newCapability)
-    return _ret1
-  }
+  call _ret1 = clo<"NormalCompletion">(newCapability)
+  return _ret1
 }
 def get_a_copy_of_the_buffer_source(
   bufferSource: Unknown,

@@ -385,22 +385,7 @@ object CompletionWrapping:
     instrs
       .foldLeft((List.empty[Instr], known, pure)) {
         case ((acc, k, p), instr) =>
-          // A var only loses `pure` if `instr` (or anything nested in it, e.g.
-          // a loop body) may assign it a value not provably pure. Nested pure
-          // reassignments keep it pure if it already was: a loop running zero
-          // times leaves the old value, otherwise the last write is pure.
-          val impure = impurelyReassignedVars(instr, pureCallees)
-          val clearedP = p -- impure
-          val nextP = instr match
-            case i: Instr.IfChain
-                if i.branches.forall((_, b) => terminatesControlFlow(b)) =>
-              clearedP ++ i.branches
-                .flatMap((c, _) => provenNeverCompletionPastBranch(c))
-                .filterNot(impure)
-            case _ =>
-              pureAssignment(instr, pureCallees)
-                .filterNot(impure)
-                .fold(clearedP)(clearedP + _)
+          val nextP = nextPure(p, instr, pureCallees)
           val clearedK = invalidate(k, instr)
           val nextK = instr match
             case Instr.Perform(func, _, PerformOutcome.BindResult(v), _, _)
@@ -421,6 +406,36 @@ object CompletionWrapping:
           )
       }
       ._1
+
+  /** The `pure` set right after `instr` runs, given `p` right before it.
+    *
+    * Past an `IfChain` whose every branch exits (e.g. `ExpandAbruptPass`'s `if
+    * (x is abrupt) return x; else let v = x.Value`), control must have come
+    * through the fallback with every branch condition false, so the result is
+    * exactly the fallback's own effect, starting from `p` plus what those false
+    * conditions prove (see [[provenNeverCompletionPastBranch]]).
+    *
+    * Otherwise a var only loses `pure` if `instr` (or anything nested in it,
+    * e.g. a loop body) may assign it a value not provably pure. Nested pure
+    * reassignments keep it pure if it already was: a loop running zero times
+    * leaves the old value, otherwise the last write is pure.
+    */
+  private def nextPure(
+    p: Set[Expr],
+    instr: Instr,
+    pureCallees: Set[String],
+  ): Set[Expr] = instr match
+    case i: Instr.IfChain
+        if i.branches.forall((_, b) => terminatesControlFlow(b)) =>
+      val facts =
+        i.branches.flatMap((c, _) => provenNeverCompletionPastBranch(c))
+      i.fallback.foldLeft(p ++ facts)(nextPure(_, _, pureCallees))
+    case _ =>
+      val impure = impurelyReassignedVars(instr, pureCallees)
+      val cleared = p -- impure
+      pureAssignment(instr, pureCallees)
+        .filterNot(impure)
+        .fold(cleared)(cleared + _)
 
   /** The name `instr` itself (not anything nested in it) rebinds, if any:
     * `Let`/`Set`'s `lhs`, `Perform`/`PerformClosure`'s `BindResult(name)` (e.g.

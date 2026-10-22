@@ -2537,9 +2537,8 @@ def towebassemblyvalue(
       let number = _call3.Value
     }
     if (= number ~**NaN**~) {
-      call _call4 = clo<"signif">(32)
-      let n = (yet "implementation-defined integer such that ?([=canon=]<sub>32</sub> &leq; |n|) < 2 ** |_call4|")
-      call f32 = clo<"nan">((yet "n"))
+      call-embed n = <canon_32>()
+      let f32 = (case "POS" (case "NAN" n))
     } else {
       let f32 = number
     }
@@ -2547,16 +2546,15 @@ def towebassemblyvalue(
     return _ret3
   } else nop
   if (= type (case "F64" )) {
-    call _call5 = clo<"ToNumber">(v)
-    if (&& (? _call5: Completion) (! (= _call5.Type ~normal~))) {
-      return _call5
+    call _call4 = clo<"ToNumber">(v)
+    if (&& (? _call4: Completion) (! (= _call4.Type ~normal~))) {
+      return _call4
     } else {
-      let number = _call5.Value
+      let number = _call4.Value
     }
     if (= number ~**NaN**~) {
-      call _call6 = clo<"signif">(64)
-      let n = (yet "implementation-defined integer such that ?([=canon=]<sub>64</sub> &leq; |n|) < 2 ** |_call6|")
-      call f64 = clo<"nan">((yet "n"))
+      call-embed n = <canon_64>()
+      let f64 = (case "POS" (case "NAN" n))
     } else {
       let f64 = number
     }
@@ -2569,42 +2567,42 @@ def towebassemblyvalue(
   if (= v null) {
     let r = (case "REF.NULL_ADDR" )
   } else {
-    call-embed _call7 = <match_valtype>(type, (case "REF" null (case "EXTERN" )))
-    if (= _call7 true) {
-      call _call8 = clo<"ToWebAssemblyValue">(v, (case "REF" (opt) (case "ANY" )))
-      assert (= _call8.Type ~normal~)
-      let ref = _call8.Value
+    call-embed _call5 = <match_valtype>(type, (case "REF" null (case "EXTERN" )))
+    if (= _call5 true) {
+      call _call6 = clo<"ToWebAssemblyValue">(v, (case "REF" (opt) (case "ANY" )))
+      assert (= _call6.Type ~normal~)
+      let ref = _call6.Value
       let r = (case "REF.EXTERN" ref)
     } else {
-      let _cond10 = false
+      let _cond8 = false
       if (&& (? v: Record[Object]) (exists v.FunctionAddress)) {
-        call-embed _call9 = <match_valtype>(type, (case "REF" null (case "FUNC" )))
-        if (= _call9 true) {
-          _cond10 = true
+        call-embed _call7 = <match_valtype>(type, (case "REF" null (case "FUNC" )))
+        if (= _call7 true) {
+          _cond8 = true
         } else nop
       } else nop
-      if (= _cond10 true) {
+      if (= _cond8 true) {
         let funcaddr = v.FunctionAddress
         let r = (case "REF.FUNC_ADDR" funcaddr)
       } else {
-        let _cond13 = false
+        let _cond11 = false
         if (? v: Number) {
-          call _call11 = clo<"ToInt32">(v)
-          if (&& (? _call11: Completion) (! (= _call11.Type ~normal~))) {
-            return _call11
+          call _call9 = clo<"ToInt32">(v)
+          if (&& (? _call9: Completion) (! (= _call9.Type ~normal~))) {
+            return _call9
           } else {
-            let _call12 = _call11.Value
+            let _call10 = _call9.Value
           }
-          if (&& (= v _call12) (&& (< ([math] v) (** 2 30)) (! (< ([math] v) (- (** 2 30)))))) {
-            _cond13 = true
+          if (&& (= v _call10) (&& (< ([math] v) (** 2 30)) (! (< ([math] v) (- (** 2 30)))))) {
+            _cond11 = true
           } else nop
         } else nop
-        if (= _cond13 true) {
-          call _call14 = clo<"ToInt32">(v)
-          if (&& (? _call14: Completion) (! (= _call14.Type ~normal~))) {
-            return _call14
+        if (= _cond11 true) {
+          call _call12 = clo<"ToInt32">(v)
+          if (&& (? _call12: Completion) (! (= _call12.Type ~normal~))) {
+            return _call12
           } else {
-            let i31 = _call14.Value
+            let i31 = _call12.Value
           }
           call-embed u31 = <inv_signed_31>(([math] i31))
           let r = (case "REF.I31_NUM" u31)
@@ -2642,8 +2640,8 @@ def towebassemblyvalue(
   }
   let store = @AGENT_RECORD["associated store"]
   call-embed actualtype = <ref_type>(store, r)
-  call-embed _call15 = <match_valtype>(actualtype, type)
-  if (= _call15 false) {
+  call-embed _call13 = <match_valtype>(actualtype, type)
+  if (= _call13 false) {
     call _err5 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
     call _ret6 = clo<"ThrowCompletion">(_err5)
     return _ret6

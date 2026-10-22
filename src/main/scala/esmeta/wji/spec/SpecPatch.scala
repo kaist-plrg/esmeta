@@ -1586,6 +1586,15 @@ object SpecPatch:
     "to [=ToWebAssemblyValue=](|charCode|, [=i32=])."
     ->
     "to [=!=] [=ToWebAssemblyValue=](|charCode|, [=i32=]).",
+
+    // #80 (spec bug, docs/spec_errors.md #43 and #44) — `ToWebAssemblyValue`'s
+    // NaN case writes `[=nan=](n)`: `n` is missing its `|...|` (#43), and
+    // `nan(n)` is a float *magnitude* (`fNmag`) while |f32|/|f64| needs a
+    // signed `fN` (#44). Fixed
+    // with the sign in the core spec's own rendering (`+nan(n)` is SpecTec's
+    // `POS (NAN n)`), positive as engines produce. Hits both the f32 and the
+    // f64 case.
+    "be [=nan=](n)." -> "be +[=nan=](|n|).",
   )
 
   def apply(source: String): String =

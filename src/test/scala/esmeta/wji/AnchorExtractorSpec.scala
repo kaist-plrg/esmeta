@@ -58,6 +58,9 @@ class AnchorExtractorSpec extends AnyFunSuite:
     * to `table_write`/`global_write`/`mem_write`, which `embedding.rst` never
     * defines at all (it predates the GC proposal's arrays/structs) — see
     * `embedding.ml`'s own doc on `array_write` and `docs/spec_errors.md`.
+    * `canon_32`/`canon_64` are like `signed_N`: a Wasm Core numeric
+    * (`$canon_(N)`, rendered `[=canon=]<sub>N</sub>`) the server translates
+    * itself (`server.ml`'s `call_canon`).
     */
   private val bridgeOnlyNames: Set[String] =
     Set(
@@ -74,6 +77,8 @@ class AnchorExtractorSpec extends AnyFunSuite:
       "valid_memtype",
       "valid_tabletype",
       "array_write",
+      "canon_32",
+      "canon_64",
     )
 
   test(

@@ -84,13 +84,18 @@ import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr}
   * exactly the kind of structural pattern recognition this pass already does
   * for `Expr.SuchThat`, not a mechanical materialization.
   *
-  * All three only fire for the one narrow shape actually seen in the corpus
+  *   - The "implementation-defined integer in a range" shape (e.g. "Let |n| be
+  *     an implementation-defined integer such that [=canon=]<sub>32</sub> ≤ |n|
+  *     < 2<sup>[=signif=](32)</sup>.", `ToWebAssemblyValue`'s NaN payload,
+  *     index.bs:1434/1442) becomes the range's lower bound: any value in range
+  *     is allowed, so deterministically picking one is a valid implementation
+  *     (`docs/hardcodes.md` #25).
+  *
+  * All of these only fire for the one narrow shape actually seen in the corpus
   * today — the `SuchThat` cases require the clause's own bound variable (the
   * `Let` it's the RHS of) be exactly the variable the condition constrains; the
   * `Exists` case requires `body` be exactly an equality test against a
-  * `map[binder]` read. Every other shape — implementation-defined choices
-  * constrained to a range (the NaN-payload `SuchThat` cases, index.bs:1434/
-  * 1442) and any other kind of `Exists` — is left untouched: `Compiler` reports
+  * `map[binder]` read. Every other shape is left untouched: `Compiler` reports
   * it as `EYet`.
   *
   * Category: Spec-dependent — SpecTec.
@@ -166,6 +171,15 @@ object ExpandExistentialsPass extends LoweringPass:
             // is always exactly 0..size-1; the smallest missing address is
             // therefore just its current size, with no search needed.
             Expr.Length(mapExpr)
+          // "an implementation-defined integer such that L ≤ |n| < H": any
+          // value in range will do, so deterministically its lower bound
+          case Cond.And(
+                Cond.Compare(lower, Cond.CompareOp.Le, Expr.Var(boundVar)),
+                Cond.Compare(Expr.Var(boundVar2), _, _),
+              )
+              if desc.startsWith("implementation-defined") &&
+              boundVar == lhsName && boundVar2 == lhsName =>
+            lower
           case _ => Expr.SuchThat(desc, cond)
         List(Instr.Let(lhs, newRhs, transform(body, counter)))
       case Instr.Assert(cond, body) if needsHoist(cond) =>

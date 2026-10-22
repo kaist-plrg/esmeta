@@ -773,6 +773,13 @@ object ExprParser:
   private val BoolTrue = """(?i)^true$""".r
   private val BoolFalse = """(?i)^false$""".r
   private val BoldConst = """(?s)^\*\*([^*]+)\*\*$""".r
+  // "[=canon=]<sub>32</sub>": a Wasm Core numeric rendered with its width as a
+  // subscript -> a call to its per-width name ("canon_32"), the same naming
+  // as `[=signed_32=]`.
+  private val LinkSubscript = """^\[=([^=\]]+)=\]<sub>(\d+)</sub>$""".r
+  // "+[=nan=](|n|)": a signed Wasm float, rendered as the sign in front of its
+  // magnitude -> SpecTec's `POS`/`NEG` case around the magnitude's own case.
+  private val SignedMagnitude = """(?s)^([+\-−])(\[=[^=\]]+=\])\((.+)\)$""".r
   private val SpecTermPat = """(?i)^(?:undefined|null|empty|absent)$""".r
   // `memtype`'s own grammar (`addrtype limits PAGE`) ends in a literal
   // keyword, unlike `SpecTermPat`'s generic Infra/ECMA-262 sentinels above —
@@ -1006,6 +1013,13 @@ object ExprParser:
           case _                    => Unknown(callRaw)
       case PassingToCall(argsRaw, link) =>
         AlgoCall(normalizeLink(link), parseArgs(argsRaw))
+      case LinkSubscript(name, width) =>
+        AlgoCall(s"[=${name}_$width=]", Nil)
+      case SignedMagnitude(sign, link, argsRaw) =>
+        Case(
+          if sign == "+" then "POS" else "NEG",
+          List(Case(normalizeLink(link), splitComma(argsRaw).map(parse))),
+        )
       case LinkFull(link, argsRaw) =>
         normalizeLink(link).stripPrefix("[=").stripSuffix("=]") match
           // "[=𝔽=](x)"/"[=ℤ=](x)"/"[=ℝ=](x)" — ECMA-262's Number/BigInt/

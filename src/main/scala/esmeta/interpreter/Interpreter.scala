@@ -589,12 +589,15 @@ class Interpreter(
                 value,
               ),
             ) =>
-          val d = value match
-            case Number(n) => n
-            case Math(n)   => n.toDouble
-            case other     => throw NoWasmValue(other)
-          val floatValue =
-            if numTag == "F32" then wasmF32Const(d) else wasmF64Const(d)
+          val floatValue = value match
+            // already a SpecTec float, e.g. ToWebAssemblyValue's `+nan(n)`
+            case Wasm(v) => v
+            case _ =>
+              val d = value match
+                case Number(n) => n
+                case Math(n)   => n.toDouble
+                case other     => throw NoWasmValue(other)
+              if numTag == "F32" then wasmF32Const(d) else wasmF64Const(d)
           List(toAL(st, numType), floatValue)
         case _ => argVals.map(toAL(st, _))
       Wasm(ALValue.CaseV(tag, alArgs))

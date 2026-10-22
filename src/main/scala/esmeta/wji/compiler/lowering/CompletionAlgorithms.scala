@@ -320,10 +320,13 @@ object CompletionAlgorithms:
     *     `Call`/`BuiltinCallOrConstruct` machinery always expects one), not
     *     conditional on whether the closure itself has a real abrupt path — see
     *     `AddBuiltinBehaviourPass`'s own doc for the same reasoning.
+    *   - `alwaysReturnsCompletion`: the same kind of calling-convention
+    *     requirement, for an algorithm a pass synthesized for such a caller
+    *     itself (see that field's own doc).
     *
-    * Both flags are already stamped by the time this runs
-    * (`MarkBuiltinBehaviourPass` and the algorithm's own `kind`), so no
-    * separate traversal is needed.
+    * All of these are already stamped by the time this runs
+    * (`MarkBuiltinBehaviourPass`, the synthesizing pass, and the algorithm's
+    * own `kind`), so no separate traversal is needed.
     */
   def compute(algos: List[Algorithm]): Set[String] =
     def nameOf(a: Algorithm): Option[String] =
@@ -337,7 +340,7 @@ object CompletionAlgorithms:
               hasOwnAbrupt(
                 a.body,
               ) || usesBuiltinCallConvention(a.kind) || a.isBuiltinBehaviour ||
-              isFundamentalInternalMethod(a),
+              a.alwaysReturnsCompletion || isFundamentalInternalMethod(a),
             )(nameOf(a))
             .flatten,
         )

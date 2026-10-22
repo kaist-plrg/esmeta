@@ -209,6 +209,14 @@ case class WjiParam(
   * which have no declared return type of their own to look up). Currently only
   * consumed to detect the single `"undefined"` case -- see
   * `esmeta.wji.compiler.lowering.AddInterfaceMemberBuiltinBehaviourPass.returnEpilogue`.
+  * @param alwaysReturnsCompletion
+  *   set by a pass that synthesizes this algorithm for a caller whose calling
+  *   convention expects a Completion Record back, whether or not this
+  *   algorithm's own body can abruptly complete (e.g.
+  *   `AddJsStringBuiltinsPass`'s `js-string-X-steps`, called by
+  *   `AddBuiltinFunctionHostfuncPass`'s hostfunc). Seeds
+  *   `esmeta.wji.compiler.lowering.CompletionAlgorithms.compute`, which then
+  *   sets `returnsCompletion`.
   */
 case class Algorithm(
   id: Option[String],
@@ -220,4 +228,5 @@ case class Algorithm(
   returnsCompletion: Boolean = false,
   isBuiltinBehaviour: Boolean = false,
   idlReturnType: Option[String] = None,
+  alwaysReturnsCompletion: Boolean = false,
 )

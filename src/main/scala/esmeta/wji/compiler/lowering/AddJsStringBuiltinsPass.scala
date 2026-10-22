@@ -225,83 +225,52 @@ object AddJsStringBuiltinsPass extends LoweringPass:
     *     `js-string-fromCharCode`'s "Return FromCharCode(v)."): `result` is a
     *     genuinely new or unwrapped JS string -- `ToWebAssemblyValue` is the
     *     only existing mechanism that allocates it a real host address (`[=host
-    *     value cache=]`), so it's the right call here. Both cases can
-    *     themselves abruptly complete (an abrupt
-    *     `js-string-NAME`/`ToWebAssemblyValue` result skips straight to
-    *     `Return`ing it, same as `convertedIdlValueBinding`'s own
-    *     `AbruptCompletion` check elsewhere).
+    *     value cache=]`), so it's the right call here.
+    *
+    * Both calls are written unmarked, as if they returned a plain value:
+    * `PropagateUnguardedCallsPass` inserts the "if abrupt, return it; else
+    * unwrap `.Value`" guard exactly for the ones `CompletionAlgorithms` proves
+    * completion-returning (e.g. `length`, via `unwrapstring`), and none for a
+    * plain-valued one (e.g. `test`). The wrapper itself is
+    * `alwaysReturnsCompletion`, so its hostfunc caller always gets a Completion
+    * Record back, whichever builtin it wraps.
     */
   private def stepsAlgo(b: Builtin): Algorithm =
     val argumentsVar = Expr.Var("arguments")
+    val result = Expr.Var("result")
     val positional = b.params.indices.map { i =>
       Expr.Index(argumentsVar, Expr.Num(i.toString))
     }.toList
-    val listWrap = (e: Expr) => Expr.List_(List(e))
     // `b.results.head` is still raw, unresolved link text at this point
-    // (`ExprParser.parse` alone doesn't run `ResolveLinksPass`) -- compared
-    // by value against the same `I32` constant every numeric entry in
-    // `builtins` is built from, rather than destructured as a `Case`
-    // (`Case("I32", Nil)` never matches here, only after the later passes
-    // this pass's own class doc says *do* eventually see this same node).
-    // A numeric `result` may or may not itself be wrapped in a Completion
-    // Record at this point, independent of the abrupt check just above:
-    // `CompletionWrapping` only wraps an algorithm's *every* exit (success
-    // path included) when it has at least one throw-capable exit of its own
-    // (e.g. `equals`/`length`, via `unwrapstring`) -- an algorithm with none
-    // at all (e.g. `test`, whose only steps are a plain `? v: String` check)
-    // returns its bare value directly. Both shapes reach here, so this
-    // branches once more before wrapping.
-    def i32Result(e: Expr): Instr =
-      Instr.Return(Some(listWrap(Expr.Case("CONST", List(I32, e)))))
-    val onNormalResult: List[Instr] =
+    // (`ExprParser.parse` alone doesn't run `ResolveLinksPass`), so it's
+    // compared by value against the same `I32` constant `builtins` uses.
+    val convertResult: List[Instr] =
       if b.results.head == I32 then
         List(
-          Instr.IfChain(
-            List(
-              Cond.IsType(Expr.Var("result"), "Completion") ->
-              List(i32Result(Expr.Field(Expr.Var("result"), "Value"))),
-            ),
-            List(i32Result(Expr.Var("result"))),
+          Instr.Return(
+            Some(Expr.List_(List(Expr.Case("CONST", List(I32, result))))),
           ),
         )
       else
         List(
           Instr.Perform(
             "ToWebAssemblyValue",
-            List(Expr.Var("result"), b.results.head),
+            List(result, b.results.head),
             Instr.PerformOutcome.BindResult("result"),
           ),
-          Instr.IfChain(
-            List(
-              Cond.IsType(Expr.Var("result"), "AbruptCompletion") ->
-              List(Instr.Return(Some(Expr.Var("result")))),
-            ),
-            List(
-              Instr.Return(
-                Some(listWrap(Expr.Field(Expr.Var("result"), "Value"))),
-              ),
-            ),
-          ),
+          Instr.Return(Some(Expr.List_(List(result)))),
         )
     Algorithm(
       id = Some(s"${b.algoName}-steps"),
       name = None,
       params = List(WjiParam("|arguments|")),
       head = "<synthesized by AddJsStringBuiltinsPass>",
-      body = List(
-        Instr.Perform(
-          b.algoName,
-          positional,
-          Instr.PerformOutcome.BindResult("result"),
-        ),
-        Instr.IfChain(
-          List(
-            Cond.IsType(Expr.Var("result"), "AbruptCompletion") ->
-            List(Instr.Return(Some(Expr.Var("result")))),
-          ),
-          onNormalResult,
-        ),
-      ),
+      body = Instr.Perform(
+        b.algoName,
+        positional,
+        Instr.PerformOutcome.BindResult("result"),
+      ) :: convertResult,
+      alwaysReturnsCompletion = true,
     )
 
   /** the `Instr.Perform("fold", ..., BindResult(v))` that materializes `b`'s

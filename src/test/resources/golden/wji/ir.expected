@@ -4425,40 +4425,36 @@ def js-string-cast-steps(
   if (&& (? result: Completion) (! (= result.Type ~normal~))) {
     return result
   } else {
-    call result = clo<"towebassemblyvalue">(result, (case "REF" (opt) (case "EXTERN" )))
-    if (&& (? result: Completion) (! (= result.Type ~normal~))) {
-      return result
-    } else {
-      return (list [result.Value])
-    }
+    result = result.Value
   }
+  call result = clo<"towebassemblyvalue">(result, (case "REF" (opt) (case "EXTERN" )))
+  if (&& (? result: Completion) (! (= result.Type ~normal~))) {
+    return result
+  } else {
+    result = result.Value
+  }
+  call _ret1 = clo<"NormalCompletion">((list [result]))
+  return _ret1
 }
 def js-string-test-steps(
   arguments: Unknown,
 ): Unknown = {
   call result = clo<"js-string-test">(arguments[0])
-  if (&& (? result: Completion) (! (= result.Type ~normal~))) {
-    return result
-  } else if (? result: Completion) {
-    return (list [(case "CONST" (case "I32" ) result.Value)])
-  } else {
-    return (list [(case "CONST" (case "I32" ) result)])
-  }
+  call _ret1 = clo<"NormalCompletion">((list [(case "CONST" (case "I32" ) result)]))
+  return _ret1
 }
 def js-string-fromcharcode-steps(
   arguments: Unknown,
 ): Unknown = {
   call result = clo<"js-string-fromcharcode">(arguments[0])
+  call result = clo<"towebassemblyvalue">(result, (case "REF" (opt) (case "EXTERN" )))
   if (&& (? result: Completion) (! (= result.Type ~normal~))) {
     return result
   } else {
-    call result = clo<"towebassemblyvalue">(result, (case "REF" (opt) (case "EXTERN" )))
-    if (&& (? result: Completion) (! (= result.Type ~normal~))) {
-      return result
-    } else {
-      return (list [result.Value])
-    }
+    result = result.Value
   }
+  call _ret1 = clo<"NormalCompletion">((list [result]))
+  return _ret1
 }
 def js-string-fromcodepoint-steps(
   arguments: Unknown,
@@ -4467,13 +4463,16 @@ def js-string-fromcodepoint-steps(
   if (&& (? result: Completion) (! (= result.Type ~normal~))) {
     return result
   } else {
-    call result = clo<"towebassemblyvalue">(result, (case "REF" (opt) (case "EXTERN" )))
-    if (&& (? result: Completion) (! (= result.Type ~normal~))) {
-      return result
-    } else {
-      return (list [result.Value])
-    }
+    result = result.Value
   }
+  call result = clo<"towebassemblyvalue">(result, (case "REF" (opt) (case "EXTERN" )))
+  if (&& (? result: Completion) (! (= result.Type ~normal~))) {
+    return result
+  } else {
+    result = result.Value
+  }
+  call _ret1 = clo<"NormalCompletion">((list [result]))
+  return _ret1
 }
 def js-string-charcodeat-steps(
   arguments: Unknown,
@@ -4481,11 +4480,11 @@ def js-string-charcodeat-steps(
   call result = clo<"js-string-charcodeat">(arguments[0], arguments[1])
   if (&& (? result: Completion) (! (= result.Type ~normal~))) {
     return result
-  } else if (? result: Completion) {
-    return (list [(case "CONST" (case "I32" ) result.Value)])
   } else {
-    return (list [(case "CONST" (case "I32" ) result)])
+    result = result.Value
   }
+  call _ret1 = clo<"NormalCompletion">((list [(case "CONST" (case "I32" ) result)]))
+  return _ret1
 }
 def js-string-codepointat-steps(
   arguments: Unknown,
@@ -4493,11 +4492,11 @@ def js-string-codepointat-steps(
   call result = clo<"js-string-codepointat">(arguments[0], arguments[1])
   if (&& (? result: Completion) (! (= result.Type ~normal~))) {
     return result
-  } else if (? result: Completion) {
-    return (list [(case "CONST" (case "I32" ) result.Value)])
   } else {
-    return (list [(case "CONST" (case "I32" ) result)])
+    result = result.Value
   }
+  call _ret1 = clo<"NormalCompletion">((list [(case "CONST" (case "I32" ) result)]))
+  return _ret1
 }
 def js-string-length-steps(
   arguments: Unknown,
@@ -4505,11 +4504,11 @@ def js-string-length-steps(
   call result = clo<"js-string-length">(arguments[0])
   if (&& (? result: Completion) (! (= result.Type ~normal~))) {
     return result
-  } else if (? result: Completion) {
-    return (list [(case "CONST" (case "I32" ) result.Value)])
   } else {
-    return (list [(case "CONST" (case "I32" ) result)])
+    result = result.Value
   }
+  call _ret1 = clo<"NormalCompletion">((list [(case "CONST" (case "I32" ) result)]))
+  return _ret1
 }
 def js-string-concat-steps(
   arguments: Unknown,
@@ -4518,13 +4517,16 @@ def js-string-concat-steps(
   if (&& (? result: Completion) (! (= result.Type ~normal~))) {
     return result
   } else {
-    call result = clo<"towebassemblyvalue">(result, (case "REF" (opt) (case "EXTERN" )))
-    if (&& (? result: Completion) (! (= result.Type ~normal~))) {
-      return result
-    } else {
-      return (list [result.Value])
-    }
+    result = result.Value
   }
+  call result = clo<"towebassemblyvalue">(result, (case "REF" (opt) (case "EXTERN" )))
+  if (&& (? result: Completion) (! (= result.Type ~normal~))) {
+    return result
+  } else {
+    result = result.Value
+  }
+  call _ret1 = clo<"NormalCompletion">((list [result]))
+  return _ret1
 }
 def js-string-substring-steps(
   arguments: Unknown,
@@ -4533,13 +4535,16 @@ def js-string-substring-steps(
   if (&& (? result: Completion) (! (= result.Type ~normal~))) {
     return result
   } else {
-    call result = clo<"towebassemblyvalue">(result, (case "REF" (opt) (case "EXTERN" )))
-    if (&& (? result: Completion) (! (= result.Type ~normal~))) {
-      return result
-    } else {
-      return (list [result.Value])
-    }
+    result = result.Value
   }
+  call result = clo<"towebassemblyvalue">(result, (case "REF" (opt) (case "EXTERN" )))
+  if (&& (? result: Completion) (! (= result.Type ~normal~))) {
+    return result
+  } else {
+    result = result.Value
+  }
+  call _ret1 = clo<"NormalCompletion">((list [result]))
+  return _ret1
 }
 def js-string-equals-steps(
   arguments: Unknown,
@@ -4547,11 +4552,11 @@ def js-string-equals-steps(
   call result = clo<"js-string-equals">(arguments[0], arguments[1])
   if (&& (? result: Completion) (! (= result.Type ~normal~))) {
     return result
-  } else if (? result: Completion) {
-    return (list [(case "CONST" (case "I32" ) result.Value)])
   } else {
-    return (list [(case "CONST" (case "I32" ) result)])
+    result = result.Value
   }
+  call _ret1 = clo<"NormalCompletion">((list [(case "CONST" (case "I32" ) result)]))
+  return _ret1
 }
 def js-string-compare-steps(
   arguments: Unknown,
@@ -4559,11 +4564,11 @@ def js-string-compare-steps(
   call result = clo<"js-string-compare">(arguments[0], arguments[1])
   if (&& (? result: Completion) (! (= result.Type ~normal~))) {
     return result
-  } else if (? result: Completion) {
-    return (list [(case "CONST" (case "I32" ) result.Value)])
   } else {
-    return (list [(case "CONST" (case "I32" ) result)])
+    result = result.Value
   }
+  call _ret1 = clo<"NormalCompletion">((list [(case "CONST" (case "I32" ) result)]))
+  return _ret1
 }
 def js-string-fromcharcodearray-steps(
   arguments: Unknown,
@@ -4572,13 +4577,16 @@ def js-string-fromcharcodearray-steps(
   if (&& (? result: Completion) (! (= result.Type ~normal~))) {
     return result
   } else {
-    call result = clo<"towebassemblyvalue">(result, (case "REF" (opt) (case "EXTERN" )))
-    if (&& (? result: Completion) (! (= result.Type ~normal~))) {
-      return result
-    } else {
-      return (list [result.Value])
-    }
+    result = result.Value
   }
+  call result = clo<"towebassemblyvalue">(result, (case "REF" (opt) (case "EXTERN" )))
+  if (&& (? result: Completion) (! (= result.Type ~normal~))) {
+    return result
+  } else {
+    result = result.Value
+  }
+  call _ret1 = clo<"NormalCompletion">((list [result]))
+  return _ret1
 }
 def js-string-intocharcodearray-steps(
   arguments: Unknown,
@@ -4586,11 +4594,11 @@ def js-string-intocharcodearray-steps(
   call result = clo<"js-string-intocharcodearray">(arguments[0], arguments[1], arguments[2])
   if (&& (? result: Completion) (! (= result.Type ~normal~))) {
     return result
-  } else if (? result: Completion) {
-    return (list [(case "CONST" (case "I32" ) result.Value)])
   } else {
-    return (list [(case "CONST" (case "I32" ) result)])
+    result = result.Value
   }
+  call _ret1 = clo<"NormalCompletion">((list [(case "CONST" (case "I32" ) result)]))
+  return _ret1
 }
 def create_a_builtin_function_hostfunc(
   state: Unknown,
@@ -4614,7 +4622,7 @@ def create_a_builtin_function_hostfunc(
   if (&& (? result: Completion) (! (= result.Type ~normal~))) {
     return (tup store (list [(case "TRAP" )]))
   } else {
-    return (tup store result)
+    return (tup store result.Value)
   }
 }
 def asynchronously_compile_a_webassembly_module_closure1(

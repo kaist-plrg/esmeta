@@ -291,17 +291,11 @@ object AddInterfaceMemberBuiltinBehaviourPass extends LoweringPass:
     errorExpr: Expr,
   ): List[Instr] =
     List(
-      // "[=a new promise=]" actually returns a PromiseCapabilityRecord, not a
-      // real Promise object directly (its own extracted body:
-      // `? NewPromiseCapability(realm.Intrinsics.%Promise%)`) -- `[=reject=]`
-      // operates on that capability record directly (its own body calls
-      // `p.[[Reject]]`), but the value handed back to actual JS code must be
-      // the real object underneath, same unwrap
-      // `WebIdlConversion.toJsValue`'s `PromiseCapabilityRecord` case already
-      // does for every OTHER Promise-returning operation's own `Return
-      // |promise|.` -- that generic unwrap only fires for a `Return` inside
-      // the algorithm's own declared body (`wrapReturnValues` never revisits
-      // this pass's own injected instructions), so it's done explicitly here.
+      // "[=a new promise=]" returns a PromiseCapabilityRecord, not the Promise
+      // itself. `wrapReturnValues` never revisits these injected instructions,
+      // so the same `converted_to_a_javascript_value` it gives every other
+      // `Return |promise|.` (which unwraps the record's `.Promise`) is applied
+      // here explicitly.
       Instr.Let(
         Expr.Var("_promiseCapability"),
         Expr.AlgoCall(
@@ -313,9 +307,12 @@ object AddInterfaceMemberBuiltinBehaviourPass extends LoweringPass:
         "[=reject=]",
         List(Expr.SpecTerm(typeName), Expr.Var("_promiseCapability"), errorExpr),
       ),
-      Instr.Return(
-        Some(Expr.Field(Expr.Var("_promiseCapability"), "Promise")),
+      Instr.Perform(
+        "converted_to_a_javascript_value",
+        List(Expr.Var("_promiseCapability")),
+        Instr.PerformOutcome.BindResult("_promiseCapability"),
       ),
+      Instr.Return(Some(Expr.Var("_promiseCapability"))),
     )
 
   private def convertedIdlValueBinding(

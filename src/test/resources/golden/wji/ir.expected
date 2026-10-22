@@ -163,13 +163,9 @@ def <BUILTIN>:INTRINSICS.WebAssembly.compile(
         let _promiseCapability = _guard1.Value
       }
       call _ = clo<"reject">(~Module~, _promiseCapability, bytes.Value)
-      let _v1 = _promiseCapability.Promise
-      if (? _v1: Completion) {
-        return _v1
-      } else {
-        call _ret2 = clo<"NormalCompletion">(_v1)
-        return _ret2
-      }
+      call-convert _promiseCapability = <converted_to_a_javascript_value>(_promiseCapability)
+      call _ret1 = clo<"NormalCompletion">(_promiseCapability)
+      return _ret1
     } else nop
   } else {
     call _typeErr = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
@@ -180,13 +176,9 @@ def <BUILTIN>:INTRINSICS.WebAssembly.compile(
       let _promiseCapability = _guard2.Value
     }
     call _ = clo<"reject">(~Module~, _promiseCapability, _typeErr)
-    let _v3 = _promiseCapability.Promise
-    if (? _v3: Completion) {
-      return _v3
-    } else {
-      call _ret4 = clo<"NormalCompletion">(_v3)
-      return _ret4
-    }
+    call-convert _promiseCapability = <converted_to_a_javascript_value>(_promiseCapability)
+    call _ret2 = clo<"NormalCompletion">(_promiseCapability)
+    return _ret2
   }
   if (< 1 (sizeof ArgumentsList)) {
     let options = ArgumentsList[1]
@@ -199,13 +191,9 @@ def <BUILTIN>:INTRINSICS.WebAssembly.compile(
         let _promiseCapability = _guard3.Value
       }
       call _ = clo<"reject">(~Module~, _promiseCapability, options.Value)
-      let _v5 = _promiseCapability.Promise
-      if (? _v5: Completion) {
-        return _v5
-      } else {
-        call _ret6 = clo<"NormalCompletion">(_v5)
-        return _ret6
-      }
+      call-convert _promiseCapability = <converted_to_a_javascript_value>(_promiseCapability)
+      call _ret3 = clo<"NormalCompletion">(_promiseCapability)
+      return _ret3
     } else nop
   } else {
     call options = clo<"OrdinaryObjectCreate">(null)
@@ -218,13 +206,9 @@ def <BUILTIN>:INTRINSICS.WebAssembly.compile(
         let _promiseCapability = _guard4.Value
       }
       call _ = clo<"reject">(~Module~, _promiseCapability, options.Value)
-      let _v7 = _promiseCapability.Promise
-      if (? _v7: Completion) {
-        return _v7
-      } else {
-        call _ret8 = clo<"NormalCompletion">(_v7)
-        return _ret8
-      }
+      call-convert _promiseCapability = <converted_to_a_javascript_value>(_promiseCapability)
+      call _ret4 = clo<"NormalCompletion">(_promiseCapability)
+      return _ret4
     } else nop
   }
   call stableBytes = clo<"get_a_copy_of_the_buffer_source">(bytes)
@@ -235,8 +219,8 @@ def <BUILTIN>:INTRINSICS.WebAssembly.compile(
     _returnValue1 = _returnValue1.Value
   }
   call-convert _returnValue1 = <converted_to_a_javascript_value>(_returnValue1)
-  call _ret9 = clo<"NormalCompletion">(_returnValue1)
-  return _ret9
+  call _ret5 = clo<"NormalCompletion">(_returnValue1)
+  return _ret5
 }
 def instantiate_imported_strings(
   module: Unknown,
@@ -624,13 +608,9 @@ def instantiate_bytes(
         let _promiseCapability = _guard1.Value
       }
       call _ = clo<"reject">(~WebAssemblyInstantiatedSource~, _promiseCapability, bytes.Value)
-      let _v1 = _promiseCapability.Promise
-      if (? _v1: Completion) {
-        return _v1
-      } else {
-        call _ret2 = clo<"NormalCompletion">(_v1)
-        return _ret2
-      }
+      call-convert _promiseCapability = <converted_to_a_javascript_value>(_promiseCapability)
+      call _ret1 = clo<"NormalCompletion">(_promiseCapability)
+      return _ret1
     } else nop
   } else {
     call _typeErr = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
@@ -641,13 +621,9 @@ def instantiate_bytes(
       let _promiseCapability = _guard2.Value
     }
     call _ = clo<"reject">(~WebAssemblyInstantiatedSource~, _promiseCapability, _typeErr)
-    let _v3 = _promiseCapability.Promise
-    if (? _v3: Completion) {
-      return _v3
-    } else {
-      call _ret4 = clo<"NormalCompletion">(_v3)
-      return _ret4
-    }
+    call-convert _promiseCapability = <converted_to_a_javascript_value>(_promiseCapability)
+    call _ret2 = clo<"NormalCompletion">(_promiseCapability)
+    return _ret2
   }
   if (< 1 (sizeof ArgumentsList)) {
     let importObject = ArgumentsList[1]
@@ -660,13 +636,9 @@ def instantiate_bytes(
         let _promiseCapability = _guard3.Value
       }
       call _ = clo<"reject">(~WebAssemblyInstantiatedSource~, _promiseCapability, importObject.Value)
-      let _v5 = _promiseCapability.Promise
-      if (? _v5: Completion) {
-        return _v5
-      } else {
-        call _ret6 = clo<"NormalCompletion">(_v5)
-        return _ret6
-      }
+      call-convert _promiseCapability = <converted_to_a_javascript_value>(_promiseCapability)
+      call _ret3 = clo<"NormalCompletion">(_promiseCapability)
+      return _ret3
     } else nop
   } else {
     let importObject = undefined
@@ -682,13 +654,9 @@ def instantiate_bytes(
         let _promiseCapability = _guard4.Value
       }
       call _ = clo<"reject">(~WebAssemblyInstantiatedSource~, _promiseCapability, options.Value)
-      let _v7 = _promiseCapability.Promise
-      if (? _v7: Completion) {
-        return _v7
-      } else {
-        call _ret8 = clo<"NormalCompletion">(_v7)
-        return _ret8
-      }
+      call-convert _promiseCapability = <converted_to_a_javascript_value>(_promiseCapability)
+      call _ret4 = clo<"NormalCompletion">(_promiseCapability)
+      return _ret4
     } else nop
   } else {
     call options = clo<"OrdinaryObjectCreate">(null)
@@ -701,13 +669,9 @@ def instantiate_bytes(
         let _promiseCapability = _guard5.Value
       }
       call _ = clo<"reject">(~WebAssemblyInstantiatedSource~, _promiseCapability, options.Value)
-      let _v9 = _promiseCapability.Promise
-      if (? _v9: Completion) {
-        return _v9
-      } else {
-        call _ret10 = clo<"NormalCompletion">(_v9)
-        return _ret10
-      }
+      call-convert _promiseCapability = <converted_to_a_javascript_value>(_promiseCapability)
+      call _ret5 = clo<"NormalCompletion">(_promiseCapability)
+      return _ret5
     } else nop
   }
   call stableBytes = clo<"get_a_copy_of_the_buffer_source">(bytes)
@@ -724,8 +688,8 @@ def instantiate_bytes(
     _returnValue1 = _returnValue1.Value
   }
   call-convert _returnValue1 = <converted_to_a_javascript_value>(_returnValue1)
-  call _ret11 = clo<"NormalCompletion">(_returnValue1)
-  return _ret11
+  call _ret6 = clo<"NormalCompletion">(_returnValue1)
+  return _ret6
 }
 def instantiate_object(
   this: Unknown,
@@ -743,13 +707,9 @@ def instantiate_object(
         let _promiseCapability = _guard1.Value
       }
       call _ = clo<"reject">(~Instance~, _promiseCapability, moduleObject.Value)
-      let _v1 = _promiseCapability.Promise
-      if (? _v1: Completion) {
-        return _v1
-      } else {
-        call _ret2 = clo<"NormalCompletion">(_v1)
-        return _ret2
-      }
+      call-convert _promiseCapability = <converted_to_a_javascript_value>(_promiseCapability)
+      call _ret1 = clo<"NormalCompletion">(_promiseCapability)
+      return _ret1
     } else nop
   } else {
     call _typeErr = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
@@ -760,13 +720,9 @@ def instantiate_object(
       let _promiseCapability = _guard2.Value
     }
     call _ = clo<"reject">(~Instance~, _promiseCapability, _typeErr)
-    let _v3 = _promiseCapability.Promise
-    if (? _v3: Completion) {
-      return _v3
-    } else {
-      call _ret4 = clo<"NormalCompletion">(_v3)
-      return _ret4
-    }
+    call-convert _promiseCapability = <converted_to_a_javascript_value>(_promiseCapability)
+    call _ret2 = clo<"NormalCompletion">(_promiseCapability)
+    return _ret2
   }
   if (< 1 (sizeof ArgumentsList)) {
     let importObject = ArgumentsList[1]
@@ -779,13 +735,9 @@ def instantiate_object(
         let _promiseCapability = _guard3.Value
       }
       call _ = clo<"reject">(~Instance~, _promiseCapability, importObject.Value)
-      let _v5 = _promiseCapability.Promise
-      if (? _v5: Completion) {
-        return _v5
-      } else {
-        call _ret6 = clo<"NormalCompletion">(_v5)
-        return _ret6
-      }
+      call-convert _promiseCapability = <converted_to_a_javascript_value>(_promiseCapability)
+      call _ret3 = clo<"NormalCompletion">(_promiseCapability)
+      return _ret3
     } else nop
   } else {
     let importObject = undefined
@@ -797,8 +749,8 @@ def instantiate_object(
     _returnValue1 = _returnValue1.Value
   }
   call-convert _returnValue1 = <converted_to_a_javascript_value>(_returnValue1)
-  call _ret7 = clo<"NormalCompletion">(_returnValue1)
-  return _ret7
+  call _ret4 = clo<"NormalCompletion">(_returnValue1)
+  return _ret4
 }
 def <BUILTIN>:INTRINSICS.get:WebAssembly.JSTag(
   this: Unknown,

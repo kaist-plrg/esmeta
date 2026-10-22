@@ -64,15 +64,14 @@ import scala.collection.mutable
   *
   * A function at 0% here isn't necessarily an actual gap -- it only means the
   * *official* corpus never reaches it. Two other reasons a function can show up
-  * there, found while triaging its first real run (2026-10-07): it's already
-  * exercised by a `tests/wji/manual/` fixture instead (e.g. the wasm core
-  * `memory.grow` instruction hook, covered by
-  * `tests/wji/manual/memory-grow.js`'s `wasmGrow` export, a scope this tool
-  * deliberately excludes -- see the class doc above), or it's a lifecycle hook
-  * WJI's own bootstrap never dispatches at all and hardcodes the result of
-  * instead (e.g. "create the WebAssembly namespace object" --
-  * `docs/hardcodes.md` #10 -- no JS code can retrigger realm creation, so no
-  * `tests/wji/complementary/` fixture could ever change this one's count).
+  * there: it's exercised only by `tests/wji/manual/` or
+  * `tests/wji/complementary/` (visible with `--full`), or it's a hook WJI never
+  * dispatches as a compiled algorithm, so no fixture can change its count even
+  * with `--full`. Examples of the latter: "create the WebAssembly namespace
+  * object" (bootstrap hardcodes its result, `docs/hardcodes.md` #10), and the
+  * wasm core `memory.grow` instruction hook (Wasm-side growth reaches JS
+  * through `WasmMemoryBridge`'s length-mismatch refresh instead, which
+  * `tests/wji/manual/memory-grow.js` does exercise).
   */
 object WjiCoverage:
 

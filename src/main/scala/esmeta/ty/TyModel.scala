@@ -27,10 +27,10 @@ case class TyModel(decls: List[TyDecl] = Nil) extends TyElem {
     * (eager, non-lazy) `tyModel` field forces this whole model while compiling
     * any `RecordExpression` (i.e. during the ordinary "compile" phase, for any
     * ECMA-262 algorithm with a record literal) — long before a downstream phase
-    * like `wji-eval`/`wji-interp` gets a chance to register anything.
-    * Registering into this separate piece of mutable state instead works
-    * correctly regardless of that ordering, as long as it happens before the
-    * interpreter actually evaluates `Type(v)` on an affected value.
+    * like `wji-eval` gets a chance to register anything. Registering into this
+    * separate piece of mutable state instead works correctly regardless of that
+    * ordering, as long as it happens before the interpreter actually evaluates
+    * `Type(v)` on an affected value.
     */
   private var dynamicParents: Map[String, String] = Map()
 

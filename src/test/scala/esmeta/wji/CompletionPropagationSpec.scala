@@ -33,9 +33,8 @@ import scala.collection.mutable.{Map => MMap}
   * mirrors [[LoweringBehaviorSpec]]'s pattern of running hand-built
   * `Algorithm`s through the real `Lowering.run` -> `Compiler.compile` ->
   * `CFGBuilder` -> `Interpreter`, but checks the top-level *return value* (via
-  * `GLOBAL_RESULT`, same as `esmeta.phase.WjiInterp.callAO`) rather than
-  * reachability of a poison marker — what matters here is which value comes
-  * out, not whether some line ran at all.
+  * `GLOBAL_RESULT`) rather than reachability of a poison marker — what matters
+  * here is which value comes out, not whether some line ran at all.
   *
   * Most scenario algorithms below are built so their own call site of interest
   * either (a) is genuinely unguarded/unmarked — the exact shape
@@ -424,12 +423,11 @@ class CompletionPropagationSpec extends AnyFunSuite:
     MergeWithMainline(ESMetaTest.cfg.program, wjiProgram)
 
   /** Invokes `fname` directly with `args` and returns `(State, top-level return
-    * value)` via `GLOBAL_RESULT` — mirrors `esmeta.phase.WjiInterp.callAO`'s
-    * call-construction (fresh `Context`, empty `callStack`), minus the
-    * `CompletionRecord` unwrapping it also does (most scenarios above are
-    * deliberately built so their own top-level return is already a plain value
-    * — see class doc; the last scenario below is the exception, and inspects
-    * the raw completion record on `st.heap` directly instead). No
+    * value)` via `GLOBAL_RESULT` (fresh `Context`, empty `callStack`), without
+    * unwrapping a `CompletionRecord` (most scenarios above are deliberately
+    * built so their own top-level return is already a plain value — see class
+    * doc; the last scenario below is the exception, and inspects the raw
+    * completion record on `st.heap` directly instead). No
     * `Realm`/`@EXECUTION_STACK` bootstrap needed — see
     * [[makeThrowCompletion]]'s doc for why every algorithm here deliberately
     * avoids anything that would require one.

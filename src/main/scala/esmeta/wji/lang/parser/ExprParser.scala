@@ -857,10 +857,10 @@ object ExprParser:
     * bug: `Initialize.scala`'s `AgentRecord` fields would need to be stored
     * under every use site's own idiosyncratic casing to ever be found again,
     * rather than one canonical spelling. Lowercasing both here and at every
-    * field-defining site (`Initialize.scala`, `WjiInterp.scala`,
-    * `WasmMemoryBridge.scala`) sidesteps the whole class of mismatch the same
-    * way Bikeshed's own resolution does, rather than chasing down each future
-    * one-off typo as it's discovered.
+    * field-defining site (`Initialize.scala`, `WasmMemoryBridge.scala`)
+    * sidesteps the whole class of mismatch the same way Bikeshed's own
+    * resolution does, rather than chasing down each future one-off typo as it's
+    * discovered.
     */
   private def fieldFromLink(baseRaw: String, link: String): Expr =
     Field(

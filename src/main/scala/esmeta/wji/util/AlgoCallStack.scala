@@ -3,8 +3,8 @@ package esmeta.wji.util
 import esmeta.state.State
 
 /** Helpers for inspecting the call stack of compiled WJI algorithms during
-  * interpretation — used by the `wji-interp`/`wji-eval` debugging phases, but
-  * not tied to error reporting specifically.
+  * interpretation — used by the `wji-eval` debugging phase, but not tied to
+  * error reporting specifically.
   */
 object AlgoCallStack:
 

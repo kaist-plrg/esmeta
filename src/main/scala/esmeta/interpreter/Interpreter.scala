@@ -369,7 +369,7 @@ class Interpreter(
     *
     * On failure, the nested context's own function/cursor is logged to stderr
     * before rethrowing — the `finally` below always restores the outer context
-    * first, so a caller's own crash report (e.g. `WjiInterp`'s) only ever sees
+    * first, so a caller's own crash report (e.g. `WjiEval`'s) only ever sees
     * the *outer* frame that happened to be suspended here, never where inside
     * the reentrant call things actually went wrong.
     *

@@ -11,12 +11,11 @@ import esmeta.wji.lang.Instr.PerformOutcome
   *
   * A name is in the result when, anywhere in its own body (recursively through
   * nested branches, but not through other algorithms):
-  *   - it has a `Throw` step, a `?`/`!`-marked call (`Expr.Abrupt`), or
-  *     constructs a WebIDL object (`Expr.New` — "create a new object
-  *     implementing the interface" can itself throw, e.g. `initialize an
-  *     instance object`'s transitive `Let |global| be a new Global.` step) —
-  *     direct, local signals the spec text itself gives (no transitivity needed
-  *     to know these, unlike the case below); or
+  *   - it has a `Throw` step or a `?`/`!`-marked call (`Expr.Abrupt`) — direct,
+  *     local signals the spec text itself gives (no transitivity needed to know
+  *     these, unlike the case below). A WebIDL `[=/new=]` (`Expr.New`) is not
+  *     one: it internally creates the object with an undefined newTarget, and
+  *     its only `?` steps read newTarget; or
   *   - it makes an *unmarked* call to another algorithm already known to be in
   *     the set, and that call's result isn't itself manually handled — either
   *     inspected directly (a `.[[Type]]`/`.Type` field read anywhere afterward,
@@ -148,13 +147,6 @@ object CompletionAlgorithms:
         // unwrap `.Value`), so a `!`-marked call creates no new exit path
         // here, unlike `?`'s early "if abrupt, propagate" Return.
         callInfo(i).exists(_.marker.contains("?")) ||
-        // `Expr.New` — WebIDL's real "create a new object implementing the
-        // interface" can itself throw, even though `Compiler` currently
-        // compiles it as an infallible record literal (see `docs/hardcodes.md`
-        // #7) — treated as abrupt here anyway, ahead of that gap actually
-        // closing, since nothing marks a `New` step with `?`/`!` the way a
-        // real call would be.
-        exprsOf(i).exists(_.containsWhere(_.isInstanceOf[Expr.New])) ||
         (i match
           case _: Instr.Throw => true
           case c: Instr.IfChain =>
@@ -306,9 +298,8 @@ object CompletionAlgorithms:
   /** The fixed point itself: lowercased names of every algorithm that must
     * return a Completion Record.
     *
-    * Seeded with two calling-convention-driven cases besides `hasOwnAbrupt`,
-    * same idea as the `Expr.New` signal above (a real abrupt path the body's
-    * own text doesn't show yet, ahead of that gap closing):
+    * Seeded with calling-convention-driven cases besides `hasOwnAbrupt` (a real
+    * abrupt path the body's own text doesn't show):
     *   - a WebIDL interface member or namespace operation (Getter/Setter/
     *     Constructor/Method/NamespaceMethod, per
     *     [[usesBuiltinCallConvention]]): every one is invoked through the same

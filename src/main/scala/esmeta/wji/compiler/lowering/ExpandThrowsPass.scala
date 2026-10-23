@@ -62,8 +62,12 @@ import esmeta.wji.lang.Instr.PerformOutcome
   * Record: the "not a completion at all" fallback can then never actually
   * trigger, so emitting the check for it at all would just be permanently dead
   * code (confirmed via `esmeta.wji.WjiCoverage` — `personal/coverage-gaps.md`).
-  * A `PerformClosure` call has no statically-known target name to look up this
-  * way, so it always keeps the full three-way check.
+  * Mirroring that, when the target is a WJI algorithm known *never* to return
+  * one (it has no abrupt path at all), the catch can never fire, so the call is
+  * left as is with no check. A `PerformClosure` call has no statically-known
+  * target name to look up either way, so it always keeps the full three-way
+  * check, as does a call to anything outside the WJI algorithms (e.g. an
+  * ECMA-262 abstract operation).
   *
   * Category: Completion-record convention.
   */
@@ -76,7 +80,8 @@ object ExpandThrowsPass extends LoweringPass:
     *     converted to `Instr.Perform`.
     *   - [[MarkCompletionAlgorithmsPass]]: needs `returnsCompletion` already
     *     stamped onto every `Algorithm` to know which named-link targets can
-    *     skip the outer `Cond.HasField` check (see the class doc above).
+    *     skip the outer `Cond.HasField` check, or the whole check (see the
+    *     class doc above).
     */
   override def requires: Set[LoweringPass] =
     Set(
@@ -98,19 +103,17 @@ object ExpandThrowsPass extends LoweringPass:
     def freshComp(): String = { n += 1; s"_throwComp$n" }
 
   def run(algos: List[Algorithm]): List[Algorithm] =
-    // names (normalized, lowercased) of every WJI algorithm already proven,
-    // via MarkCompletionAlgorithmsPass's own fixed point, to always return a
-    // Completion Record — see this class's own doc on what that buys a named
-    // call site below.
-    val alwaysCompletion: Set[String] =
-      algos
-        .filter(_.returnsCompletion)
-        .flatMap(a => a.name.orElse(a.id))
-        .map(_.toLowerCase)
-        .toSet
+    // every WJI algorithm's name (normalized, lowercased) to whether
+    // MarkCompletionAlgorithmsPass's own fixed point proved it always returns
+    // a Completion Record — see this class's own doc on what that buys a
+    // named call site below.
+    val returnsCompletion: Map[String, Boolean] =
+      algos.flatMap { a =>
+        a.name.orElse(a.id).map(_.toLowerCase -> a.returnsCompletion)
+      }.toMap
     algos.map { a =>
       val counter = Counter()
-      a.copy(body = transform(a.body, counter, alwaysCompletion))
+      a.copy(body = transform(a.body, counter, returnsCompletion))
     }
 
   private def stripPipes(s: String): String =
@@ -131,7 +134,7 @@ object ExpandThrowsPass extends LoweringPass:
     catchBody: List[Instr],
     rest: List[Instr],
     counter: Counter,
-    alwaysCompletion: Set[String],
+    returnsCompletion: Map[String, Boolean],
   ): List[Instr] =
     val tmpName = counter.freshComp()
     val tmp = Expr.Var(tmpName)
@@ -151,28 +154,29 @@ object ExpandThrowsPass extends LoweringPass:
       bindTo match
         case Some(name) =>
           Instr.Let(Expr.Var(stripPipes(name)), Expr.Field(tmp, "Value")) ::
-          transform(catchBody, counter, alwaysCompletion)
+          transform(catchBody, counter, returnsCompletion)
         case None =>
-          transform(catchBody, counter, alwaysCompletion)
+          transform(catchBody, counter, returnsCompletion)
     val completionCheck = Instr.IfChain(
       List((isThrow, catchBranch)),
       bind(Expr.Field(tmp, "Value")), // a completion, but not a throw
     )
 
-    val knownAlwaysCompletion =
-      calleeName.exists(n =>
-        alwaysCompletion.contains(CompletionAlgorithms.normalize(n)),
-      )
+    val knownReturnsCompletion = calleeName.flatMap(n =>
+      returnsCompletion.get(CompletionAlgorithms.normalize(n)),
+    )
 
-    val afterCall =
-      if knownAlwaysCompletion then
-        // the "not a completion at all" fallback below can never trigger —
-        // skip the outer HasField wrapper and its dead bind(tmp) branch
-        // entirely rather than emitting then relying on a later pass to
-        // eliminate it.
-        List(completionCheck)
-      else
+    val expanded = knownReturnsCompletion match
+      // the "not a completion at all" fallback below can never trigger —
+      // skip the outer HasField wrapper and its dead bind(tmp) branch
+      // entirely rather than emitting then relying on a later pass to
+      // eliminate it.
+      case Some(true) => List(completionCall, completionCheck)
+      // the callee can never throw, so there is nothing to catch
+      case Some(false) => List(reconstruct(outcome))
+      case None =>
         List(
+          completionCall,
           Instr.IfChain(
             List(
               (Cond.HasField(Expr.Field(tmp, "Type")), List(completionCheck)),
@@ -181,12 +185,12 @@ object ExpandThrowsPass extends LoweringPass:
           ),
         )
 
-    completionCall :: afterCall ++ transform(rest, counter, alwaysCompletion)
+    expanded ++ transform(rest, counter, returnsCompletion)
 
   private def transform(
     instrs: List[Instr],
     counter: Counter,
-    alwaysCompletion: Set[String],
+    returnsCompletion: Map[String, Boolean],
   ): List[Instr] =
     instrs match
       case Nil => Nil
@@ -201,7 +205,7 @@ object ExpandThrowsPass extends LoweringPass:
           catchBody,
           rest,
           counter,
-          alwaysCompletion,
+          returnsCompletion,
         )
       case (call: Instr.PerformClosure) ::
           Instr.IfChain(List((Cond.Throws(_, bindTo), catchBody)), Nil) ::
@@ -214,8 +218,8 @@ object ExpandThrowsPass extends LoweringPass:
           catchBody,
           rest,
           counter,
-          alwaysCompletion,
+          returnsCompletion,
         )
       case instr :: rest =>
-        instr.mapBody(transform(_, counter, alwaysCompletion)) ::
-        transform(rest, counter, alwaysCompletion)
+        instr.mapBody(transform(_, counter, returnsCompletion)) ::
+        transform(rest, counter, returnsCompletion)

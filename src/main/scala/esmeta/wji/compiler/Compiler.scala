@@ -608,6 +608,8 @@ object Compiler:
         s"unlowered conditional expression: ${ExprPrinter
           .render(metalang.Expr.Conditional(branches, otherwise))}",
       )
+    case c: metalang.Expr.Choice =>
+      impossible(s"unresolved choice: ${ExprPrinter.render(c)}")
     case metalang.Expr.Link(link, _) => impossible(s"unresolved link: $link")
     case metalang.Expr.JSCall(name, args) =>
       impossible(s"$$${name}(${args.mkString})")

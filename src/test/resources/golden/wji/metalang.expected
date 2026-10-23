@@ -1220,7 +1220,7 @@
   Set([=surrounding agent=].[[associated store]], |store|)
   Perform([=initialize an Exception object=](**this**, |exceptionAddr|))
   If(|options|["traceStack"] is true)
-    Set(**this**.[[Stack]], ?(a {{DOMString}} representation of the current call stack or undefined))
+    Set(**this**.[[Stack]], either ?(a {{DOMString}} representation of the current call stack) or undefined)
 
 # getArg
   kind: method for Exception

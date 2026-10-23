@@ -902,9 +902,15 @@ object ExprParser:
     val s = raw.trim
     s match
       // ---- Wrappers ----
-      case AbruptPrefix(check, rest)       => Abrupt(check, parse(rest))
-      case ResultOf(rest)                  => parse(rest)
-      case EitherPat(rest)                 => parse(rest)
+      case AbruptPrefix(check, rest) => Abrupt(check, parse(rest))
+      case ResultOf(rest)            => parse(rest)
+      case EitherPat(rest) =>
+        findTopLevel(rest, " or ") match
+          case Some(i) =>
+            Choice(
+              List(parse(rest.substring(0, i)), parse(rest.substring(i + 4))),
+            )
+          case None => parse(rest)
       case TypeAnnotatedPrefix(term, rest) => TypeAnnotated(term, parse(rest))
       case BracedTermValuePrefix(rest)     => parse(rest)
       case BracedTermValueOnly(term)       => SpecTerm(term)

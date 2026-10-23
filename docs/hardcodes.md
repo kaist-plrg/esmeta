@@ -224,3 +224,10 @@
 - **Spec source**: `spectec/document/js-api/index.bs:1434`/`1442` — `ToWebAssemblyValue`의 NaN payload: `"Let |n| be an implementation-defined integer such that [=canon=]<sub>32</sub> &leq; |n| &lt; 2<sup>[=signif=](32)</sup>."`(f64도 같은 모양).
 - **What's hardcoded**: 범위 안의 어떤 값이든 허용되는 implementation-defined 선택을, 항상 하한(`canon_N`)으로 고정. 그 결과 JS의 NaN은 언제나 양수 canonical NaN(`+nan(canon_N)`, `docs/spec_errors.md` #44)으로 변환됨 — 실제 엔진들이 만드는 값(f32 `0x7fc00000`)과 같음.
 - **Why not mechanized**: "implementation-defined"는 명세가 구현에 선택을 맡긴 자리라, 하나를 결정적으로 고르는 것 자체가 올바른 구현임. 기계화할 "정답"이 따로 있는 게 아니라 선택만 남는 경우.
+
+## 26. "either A or B"(구현이 고르는 선택)를 기계화된 첫 선택지로 정함
+
+- **File**: `src/main/scala/esmeta/wji/lang/parser/ExprParser.scala`(`EitherPat` → `Expr.Choice`), `src/main/scala/esmeta/wji/compiler/lowering/ResolveChoicePass.scala`.
+- **Spec source**: 지금은 한 곳 — `spectec/document/js-api/index.bs:1742`, `Exception` 생성자: `"Set **this**.\[[Stack]] to either a {{DOMString}} representation of the current call stack or undefined."`
+- **What's hardcoded**: 명세가 구현에 맡긴 "either A or B"를 `Expr.Choice`로 파싱한 뒤, 선택지 중 아직 파싱 안 된 부분(`Unknown`/`Described` 등)이 없는 첫 선택지를 고름. 위 경우는 call stack 문자열 표현이 기계화돼 있지 않아 `undefined`가 됨.
+- **Why not mechanized**: 어느 선택지든 명세가 허용한 값이라, 실제로 실행 가능한 것을 고르는 게 올바른 구현. call stack의 문자열 표현은 명세가 형식을 정하지 않아(엔진마다 다름) 기계화할 대상이 없음.

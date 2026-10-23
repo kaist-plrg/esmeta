@@ -3088,7 +3088,7 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Exception(
   @AGENT_RECORD["associated store"] = store
   call _ = clo<"initialize_an_Exception_object">(this, exceptionAddr)
   if (= options.traceStack true) {
-    this.Stack = (yet "a {{DOMString}} representation of the current call stack or undefined")
+    this.Stack = undefined
   } else nop
   call _ret15 = clo<"NormalCompletion">(this)
   return _ret15

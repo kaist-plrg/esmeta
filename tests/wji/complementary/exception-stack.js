@@ -11,8 +11,9 @@
 // only checks the getter doesn't throw and returns one of the two allowed
 // shapes -- not a specific value.
 //
-// Also covers the getter's brand check: called on a non-Exception `this`, it
-// throws a TypeError.
+// Also covers `traceStack: true` (index.bs:1742, the same either-or choice),
+// and the getter's brand check: called on a non-Exception `this`, it throws a
+// TypeError.
 //
 // Confirmed against real Node 26.12.1.
 function assertEq(actual, expected, msg) {
@@ -27,6 +28,13 @@ assertEq(
   stack === undefined || typeof stack === "string",
   true,
   "Exception.prototype.stack must be undefined or a string",
+);
+
+const traced = new WebAssembly.Exception(tag, [], { traceStack: true }).stack;
+assertEq(
+  traced === undefined || typeof traced === "string",
+  true,
+  "with traceStack, Exception.prototype.stack must be undefined or a string",
 );
 
 const getter = Object.getOwnPropertyDescriptor(

@@ -260,6 +260,7 @@ object CompletionWrapping:
     case _: Expr.SuchThat | _: Expr.Seq_                          => false
     // should already be lowered away by this point
     case _: Expr.Link | _: Expr.FollowingSteps | _: Expr.GetMember => false
+    case _: Expr.Choice                                            => false
     case _: Expr.NewByteSequence | _: Expr.DataBlockOf             => false
     case Expr.NewArrayBuffer                                       => false
     case _: Expr.Range | _: Expr.IndexOf | _: Expr.ShortestArgumentList =>

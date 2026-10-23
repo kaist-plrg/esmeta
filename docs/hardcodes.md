@@ -231,3 +231,10 @@
 - **Spec source**: 지금은 한 곳 — `spectec/document/js-api/index.bs:1742`, `Exception` 생성자: `"Set **this**.\[[Stack]] to either a {{DOMString}} representation of the current call stack or undefined."`
 - **What's hardcoded**: 명세가 구현에 맡긴 "either A or B"를 `Expr.Choice`로 파싱한 뒤, 선택지 중 아직 파싱 안 된 부분(`Unknown`/`Described` 등)이 없는 첫 선택지를 고름. 위 경우는 call stack 문자열 표현이 기계화돼 있지 않아 `undefined`가 됨.
 - **Why not mechanized**: 어느 선택지든 명세가 허용한 값이라, 실제로 실행 가능한 것을 고르는 게 올바른 구현. call stack의 문자열 표현은 명세가 형식을 정하지 않아(엔진마다 다름) 기계화할 대상이 없음.
+
+## 27. wasm `memory.grow` 직후 훅을 호출하지 않고, JS/wasm 경계에서 길이 불일치로 감지해 버퍼를 갱신
+
+- **File**: `src/main/scala/esmeta/interpreter/WasmMemoryBridge.scala`(`applyPulledBytes`).
+- **Spec source**: `spectec/document/js-api/index.bs:923`: `"Immediately after a WebAssembly [=memory.grow=] |x| instruction executes, perform the following steps:"`, 본문은 grow가 성공했으면 해당 메모리에 [=Refresh the memory buffer=].
+- **What's hardcoded**: wasm 명령어는 SpecTec 프로세스 안에서 실행돼 명령어 단위로 끼어들 방법이 없으므로, 이 `memory.grow` 알고리즘은 호출되지 않음. 대신 wasm 실행이 JS로 돌아오는 두 지점(`func_invoke`/`module_instantiate` 반환, wasm→JS host 호출)에서 각 메모리의 바이트 길이가 JS 쪽 `[[ArrayBufferData]]`와 다르면 grow가 있었다고 보고 `refresh_the_memory_buffer`를 직접 부름.
+- **Why not mechanized**: JS가 메모리를 관찰할 수 있는 건 그 두 지점뿐이라, "직후" 대신 "다음 경계에서" 갱신해도 관찰 가능한 결과는 같음. 진짜로 훅을 태우려면 SpecTec 인터프리터가 `memory.grow` 실행 시 호스트로 콜백하는 경로가 필요함.

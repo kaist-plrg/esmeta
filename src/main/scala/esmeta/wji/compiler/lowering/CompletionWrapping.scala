@@ -223,7 +223,10 @@ object CompletionWrapping:
   // non-exhaustive-match warning here instead of silently defaulting either
   // way. When unsure, answer `false`: that only leaves a dead check behind,
   // while a wrong `true` would double-wrap a real completion.
-  private def neverCompletion(expr: Expr): Boolean = expr match
+  private def neverCompletion(
+    expr: Expr,
+    pure: Set[Expr] = Set.empty,
+  ): Boolean = expr match
     // literals / enums
     case _: Expr.Num | _: Expr.Bool | _: Expr.Str | _: Expr.Byte => true
     case _: Expr.SpecTerm | _: Expr.Enum                         => true
@@ -237,18 +240,18 @@ object CompletionWrapping:
     case _: Expr.BinOp | _: Expr.Pow | _: Expr.Neg            => true
     case _: Expr.AsMath | _: Expr.AsNumber | _: Expr.AsBigInt => true
     // transparent wrappers: as safe as what they wrap
-    case Expr.AsWasm(inner, _)           => neverCompletion(inner)
-    case Expr.TypeAnnotated(_, inner)    => neverCompletion(inner)
-    case Expr.WasmFloatPayload(_, inner) => neverCompletion(inner)
-    case Expr.Opt(inner)                 => inner.forall(neverCompletion)
+    case Expr.AsWasm(inner, _)           => neverCompletion(inner, pure)
+    case Expr.TypeAnnotated(_, inner)    => neverCompletion(inner, pure)
+    case Expr.WasmFloatPayload(_, inner) => neverCompletion(inner, pure)
+    case Expr.Opt(inner) => inner.forall(neverCompletion(_, pure))
     case Expr.Conditional(branches, otherwise) =>
-      branches.forall((_, e) => neverCompletion(e)) &&
-      otherwise.forall(neverCompletion)
+      branches.forall((_, e) => neverCompletion(e, pure)) &&
+      otherwise.forall(neverCompletion(_, pure))
     // container reads: only a completion's own payload is known safe
     case Expr.Field(_, name)               => name == "Value"
     case _: Expr.Index | _: Expr.TupleProj => false
-    // variables (tracked separately, via `pure`)
-    case _: Expr.Var | Expr.This | Expr.GivenValue => false
+    // variables: proven by `pure` (see `expand`), e.g. `r` in `AsWasm(r, u64)`
+    case e @ (_: Expr.Var | Expr.This | Expr.GivenValue) => pure.contains(e)
     // calls
     case _: Expr.AlgoCall | _: Expr.JSCall | _: Expr.ClosureCall => false
     case _: Expr.Abrupt                                          => false
@@ -546,16 +549,15 @@ object CompletionWrapping:
       // at 0 hits, e.g. the nine `[[...]] internal method of an exported GC
       // object` algorithms, personal/coverage-gaps.md). Skipping the check
       // entirely avoids generating it in the first place, rather than
-      // emitting then eliminating it with a separate pass. `pure.contains
-      // (expr)` is the same proof, just reached indirectly: `expr` is a `Var`
+      // emitting then eliminating it with a separate pass. `pure` gives the
+      // same proof for a variable, just reached indirectly: `expr` is a `Var`
       // most recently bound (in this same flat instruction list) to a
       // `neverCompletion` expr, with no reassignment since -- e.g. `Let(global,
       // RecordLit("Global", _)); Perform("initialize_a_global_object", [global,
       // ...], BindResult(_)); Return(global)` (the intervening call only
       // mutates `global`'s *fields*, never its type tag, so the proof survives
       // it -- see `neverCompletion`'s own doc on `RecordLit`).
-      case Instr.Return(Some(expr), _)
-          if neverCompletion(expr) || pure.contains(expr) =>
+      case Instr.Return(Some(expr), _) if neverCompletion(expr, pure) =>
         val ret = counter.freshRet()
         List(
           Instr.Perform(

@@ -2685,13 +2685,8 @@ def addressvaluetou64(
     call _ret3 = clo<"ThrowCompletion">(_err2)
     return _ret3
   } else nop
-  let _v4 = r
-  if (? _v4: Completion) {
-    return _v4
-  } else {
-    call _ret5 = clo<"NormalCompletion">(_v4)
-    return _ret5
-  }
+  call _ret4 = clo<"NormalCompletion">(r)
+  return _ret4
 }
 def u64toaddressvalue(
   v: Unknown,

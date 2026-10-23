@@ -263,3 +263,31 @@ WJI가 뭘 어떻게 할지 결정할 필요는 없다(WJI는 스펙대로 기�
   기록.
 - **확인한 엔진 버전**: 위 1번과 동일.
 - **상태**: 후보, 확신도 낮음 — 업스트림 제보 안 함.
+
+## 15. V8: `WebAssembly.validate`가 `options` 인자를 아예 읽지 않음
+
+- **발견 경로**: `tests/wji/scripts/diff-engines tests/wji/complementary/validate-options.js`
+  — SpiderMonkey/JSC PASS, V8만 FAIL.
+- **기대 동작**: `validate(bytes, optional WebAssemblyCompileOptions options = {})`의 `options`는
+  다른 WebIDL dictionary와 똑같이 변환되므로, 멤버 getter가 던지면 그 예외가 전파돼야 함.
+  SpiderMonkey/JSC는 그대로 전파.
+- **실제 동작(V8)**: `WebAssembly.validate(emptyModule, { get builtins() { throw err; } })`가
+  getter를 호출조차 하지 않고 `true`를 반환. Node 24.2.0도 같음.
+- **의미**: #7(V8이 `builtins` 중복 검증을 안 함)의 더 근본적인 원인으로 보임 — 중복 검사 이전에
+  `validate`가 `options` 자체를 무시함. `compile`/`Module` 쪽은 V8도 `options`를 읽음.
+- **확인한 엔진 버전**: 위 1번과 동일(V8은 Node 24.2.0으로도 확인).
+- **상태**: 재현 확인, 업스트림 제보 안 함.
+
+## 16. SpiderMonkey: funcref global import에 함수 아닌 값을 주면 LinkError 대신 TypeError
+
+- **발견 경로**: `tests/wji/scripts/diff-engines tests/wji/complementary/global-import-ref-conversion-fails.js`
+  — V8/JSC PASS, SpiderMonkey만 FAIL.
+- **기대 동작**: `read the imports`의 global import 처리에서 `ToWebAssemblyValue(v, valtype)`이
+  TypeError를 던지면 "catch it, and throw a LinkError exception"(js-api index.bs). `(import "env" "g"
+  (global funcref))`에 `{ env: { g: 5 } }`를 주면 LinkError. V8/JSC는 LinkError.
+- **실제 동작(SpiderMonkey)**: `TypeError: can only pass WebAssembly exported functions to funcref`가
+  그대로 나옴 — 변환 실패를 LinkError로 바꾸는 단계가 없음.
+- **의미**: #4(v128 global import에서 같은 문제)와 같은 원인으로 보임 — SpiderMonkey가 global import
+  값 변환 실패를 LinkError로 감싸지 않음.
+- **확인한 엔진 버전**: 위 1번과 동일.
+- **상태**: 재현 확인, 업스트림 제보 안 함.

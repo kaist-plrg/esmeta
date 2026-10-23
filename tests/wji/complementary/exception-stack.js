@@ -12,10 +12,9 @@
 // shapes -- not a specific value.
 //
 // Also covers the getter's brand check: called on a non-Exception `this`, it
-// throws a TypeError. Node 24.2.0's older V8 defines `stack` as an own
-// accessor on each Exception instead of this prototype getter
-// (index.bs:1683), so this part is cross-checked with
-// tests/wji/scripts/diff-engines instead: V8, SpiderMonkey and JSC pass.
+// throws a TypeError.
+//
+// Confirmed against real Node 26.12.1.
 function assertEq(actual, expected, msg) {
   if (actual !== expected)
     throw new Error(msg + ": expected " + expected + ", got " + actual);

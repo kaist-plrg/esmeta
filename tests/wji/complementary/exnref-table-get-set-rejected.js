@@ -6,10 +6,7 @@
 // annotated IR: both sat at 0 hits -- no existing test builds a Table with
 // an exnref element type.
 //
-// Confirmed against real Node 24.2.0 (run with --experimental-wasm-exnref --
-// this Node version still gates exnref behind that flag for module
-// compilation itself; the JS-API rejection behavior under test is otherwise
-// unaffected by the flag): both `.get(0)` and `.set(0, null)` throw a
+// Confirmed against real Node 26.12.1: both `.get(0)` and `.set(0, null)` throw a
 // TypeError ("invalid type exnref" / "invalid type (ref null exn)").
 function assertEq(actual, expected, msg) {
   if (actual !== expected)

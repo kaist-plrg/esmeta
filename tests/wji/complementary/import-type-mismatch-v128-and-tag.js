@@ -16,7 +16,7 @@
 // import of the right shape, built directly from WAT (wat2wasm), no
 // WasmModuleBuilder needed.
 //
-// Confirmed against real Node 24.2.0:
+// Confirmed against real Node 26.12.1:
 // - v128 global import + plain Number value -> LinkError ("global import of
 //   type v128 must be a WebAssembly.Global").
 // - Tag import + plain object value -> LinkError ("tag import requires a

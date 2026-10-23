@@ -12,7 +12,7 @@
 // whose type doesn't match the builtin's ("If validating builtins and
 // imported string ... returns false, reject |promise| with a CompileError").
 //
-// Confirmed against real Node 24.2.0: resolves to a real Module with both
+// Confirmed against real Node 26.12.1: resolves to a real Module with both
 // options present, and rejects with a CompileError for the mismatched import.
 function assertEq(actual, expected, msg) {
   if (actual !== expected)

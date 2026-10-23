@@ -7,7 +7,7 @@
 // annotated IR: this branch sat at 0 hits -- no existing test's importObject
 // has a trapping getter for an ordinary (non-builtin) module name.
 //
-// Confirmed against real Node 24.2.0: the thrown error propagates verbatim
+// Confirmed against real Node 26.12.1: the thrown error propagates verbatim
 // (by reference equality) as the Instance constructor's own thrown error.
 function assertEq(actual, expected, msg) {
   if (actual !== expected)

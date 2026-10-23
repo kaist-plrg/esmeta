@@ -13,7 +13,7 @@ WJI 쪽에서 실제 관찰된 동작에 맞춰 의도적으로 스펙 문구를
 ## 1. `WebAssembly.Table.prototype.set`/`grow`의 `optional any value` — 명시적 `undefined`와 생략을 실제 엔진이 다르게 취급함
 
 - **관련 스펙 텍스트**: `spectec/document/js-api/index.bs`의 `Table.prototype.set`(line 1100-1113)/`grow`(line 1057-1071) — 둘 다 `"If |value| is missing, Let |ref| be [=DefaultValue=](|elementtype|). ... Otherwise, Let |ref| be [=?=] [=ToWebAssemblyValue=](|value|, |elementtype|)."` 형태. `|value|`가 "missing"이 되는 조건은 `webidl/index.bs`의 overload resolution algorithm(line 11540-11780)이 정의: `optional` 인자에 대해 실제로 넘어온 JS 값 `V`가 (default value가 없다면) 리터럴 `undefined`이면 — **생략됐든 명시적으로 `undefined`를 넘겼든 값 비교만으로 판정하므로 둘을 구분하지 않고** — "missing" sentinel로 수렴한다.
-- **실제 동작(Node v24.2.0, V8)**:
+- **실제 동작(Node v26.12.1, V8)**:
   ```js
   const table = new WebAssembly.Table({element: "anyfunc", initial: 1});
   table.grow(1);            // 성공 — missing → DefaultValue(funcref) → null ref

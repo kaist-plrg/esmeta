@@ -11,10 +11,8 @@
 // genuinely unreachable from JS until that slot was added alongside this
 // test.
 //
-// Node 24.2.0 doesn't implement `toFixedLengthBuffer`/`toResizableBuffer`
-// ("mem.toFixedLengthBuffer is not a function"), so this is cross-checked with
-// tests/wji/scripts/diff-engines instead: V8 and SpiderMonkey pass; JSC fails
-// the no-maximum TypeError check (docs/engine_bugs.md #5).
+// Confirmed against real Node 26.12.1. JSC fails the no-maximum TypeError
+// check (docs/engine_bugs.md #5).
 function assertEq(actual, expected, msg) {
   if (actual !== expected)
     throw new Error(msg + ": expected " + expected + ", got " + actual);

@@ -272,10 +272,10 @@ WJI가 뭘 어떻게 할지 결정할 필요는 없다(WJI는 스펙대로 기�
   다른 WebIDL dictionary와 똑같이 변환되므로, 멤버 getter가 던지면 그 예외가 전파돼야 함.
   SpiderMonkey/JSC는 그대로 전파.
 - **실제 동작(V8)**: `WebAssembly.validate(emptyModule, { get builtins() { throw err; } })`가
-  getter를 호출조차 하지 않고 `true`를 반환. Node 24.2.0도 같음.
+  getter를 호출조차 하지 않고 `true`를 반환. Node 26.12.1도 같음.
 - **의미**: #7(V8이 `builtins` 중복 검증을 안 함)의 더 근본적인 원인으로 보임 — 중복 검사 이전에
   `validate`가 `options` 자체를 무시함. `compile`/`Module` 쪽은 V8도 `options`를 읽음.
-- **확인한 엔진 버전**: 위 1번과 동일(V8은 Node 24.2.0으로도 확인).
+- **확인한 엔진 버전**: 위 1번과 동일(V8은 Node 26.12.1로도 확인).
 - **상태**: 재현 확인, 업스트림 제보 안 함.
 
 ## 16. SpiderMonkey: funcref global import에 함수 아닌 값을 주면 LinkError 대신 TypeError

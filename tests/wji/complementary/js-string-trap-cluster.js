@@ -22,7 +22,7 @@
 // that imports exactly these four builtins and re-exports one wrapper
 // function per builtin.
 //
-// Confirmed against real Node 24.2.0: all four throw a WebAssembly.
+// Confirmed against real Node 26.12.1: all four throw a WebAssembly.
 // RuntimeError (trap), not a TypeError/RangeError -- these are genuine wasm
 // traps, not JS-level exceptions.
 //

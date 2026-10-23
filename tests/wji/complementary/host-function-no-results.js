@@ -5,7 +5,7 @@
 // official corpus nor any other complementary test calls such an import to
 // completion, so this branch sat at 0 hits.
 //
-// Confirmed against real Node 24.2.0.
+// Confirmed against real Node 26.12.1.
 function assertEq(actual, expected, msg) {
   if (actual !== expected)
     throw new Error(msg + ": expected " + expected + ", got " + actual);

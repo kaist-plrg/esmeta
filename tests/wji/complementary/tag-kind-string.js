@@ -14,7 +14,7 @@
 //     (import "m" "t" (tag $imported (param i32)))
 //     (tag $exported (param i32))
 //     (export "t" (tag $exported)))
-// Confirmed against real Node 24.2.0: both Module.imports/exports report
+// Confirmed against real Node 26.12.1: both Module.imports/exports report
 // `kind: "tag"` for these.
 function assertEq(actual, expected, msg) {
   if (actual !== expected)

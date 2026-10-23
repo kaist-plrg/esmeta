@@ -7,7 +7,7 @@
 // corpus/complementary test that supplies a `builtins` option always uses
 // exactly `["js-string"]`, never an unrecognized name.
 //
-// Confirmed against real Node 24.2.0: `WebAssembly.instantiate(bytes, {},
+// Confirmed against real Node 26.12.1: `WebAssembly.instantiate(bytes, {},
 // {builtins: ["unknown-builtin-xyz"]})` resolves normally (the unrecognized
 // name is simply ignored, not rejected).
 //

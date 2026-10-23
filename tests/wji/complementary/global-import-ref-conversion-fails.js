@@ -8,7 +8,7 @@
 // 0 hits -- the earlier Number/BigInt/v128 checks catch every numeric case
 // before ToWebAssemblyValue is ever reached.
 //
-// Confirmed against real Node 24.2.0. SpiderMonkey throws the TypeError itself
+// Confirmed against real Node 26.12.1. SpiderMonkey throws the TypeError itself
 // instead of a LinkError (docs/engine_bugs.md #16).
 function assertEq(actual, expected, msg) {
   if (actual !== expected)

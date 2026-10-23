@@ -13,7 +13,7 @@
 // internally throws a v128-carrying tag is enough to trigger it; no v128
 // value ever has to cross the JS/wasm boundary directly.
 //
-// Confirmed against real Node 24.2.0: the caught value is a real
+// Confirmed against real Node 26.12.1: the caught value is a real
 // WebAssembly.Exception, and calling `.getArg(tag, 0)` on it throws a
 // TypeError ("Invalid type v128").
 function assertEq(actual, expected, msg) {

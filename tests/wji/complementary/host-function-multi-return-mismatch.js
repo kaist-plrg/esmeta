@@ -11,7 +11,7 @@
 // itself only executes once, and that one case already returns a
 // correctly-shaped array.
 //
-// Confirmed against real Node 24.2.0: a non-iterable return ("number 42 is
+// Confirmed against real Node 26.12.1: a non-iterable return ("number 42 is
 // not iterable") and a too-short iterable ("multi-return length mismatch")
 // both throw TypeError; a correctly-shaped array (sanity check) succeeds.
 function assertEq(actual, expected, msg) {

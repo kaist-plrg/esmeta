@@ -9,7 +9,7 @@
 //    tag" check -- the corpus never calls getArg with a *different* Tag than
 //    the one the Exception was actually constructed with.
 //
-// Confirmed against real Node 24.2.0 (messages differ, but all three throw
+// Confirmed against real Node 26.12.1 (messages differ, but all three throw
 // a TypeError either way, which is all this checks).
 function assertThrowsTypeError(fn, msg) {
   try {

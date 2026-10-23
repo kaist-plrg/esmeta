@@ -13,7 +13,7 @@
 // an explicit `options` argument always passes a plain object whose own
 // property reads never throw.
 //
-// Confirmed against real Node 24.2.0: both `WebAssembly.compile(bytes, {get
+// Confirmed against real Node 26.12.1: both `WebAssembly.compile(bytes, {get
 // builtins() { throw ... }})` and `WebAssembly.instantiate(bytes, {}, {get
 // builtins() { throw ... }})`'s returned promises reject with that exact
 // error.

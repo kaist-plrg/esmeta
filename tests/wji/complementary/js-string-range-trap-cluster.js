@@ -14,7 +14,7 @@
 // Bytes generated from js-string-range-trap-cluster.wat via tests/wji/scripts/
 // wat2js (needs wasm-tools: WABT's wat2wasm can't compile GC types).
 //
-// Confirmed against real Node 24.2.0: every out-of-range case throws a
+// Confirmed against real Node 26.12.1: every out-of-range case throws a
 // WebAssembly.RuntimeError (trap), every valid case returns normally.
 function assertEq(actual, expected, msg) {
   if (actual !== expected)

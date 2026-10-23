@@ -8,7 +8,7 @@
 //
 // Built the same way as js-string-trap-cluster.js (WasmModuleBuilder loaded
 // via Node's `vm` module -- see that file's own doc for why). Confirmed
-// against real Node 24.2.0: all three throw a WebAssembly.RuntimeError
+// against real Node 26.12.1: all three throw a WebAssembly.RuntimeError
 // (trap), not a TypeError.
 function assertEq(actual, expected, msg) {
   if (actual !== expected)

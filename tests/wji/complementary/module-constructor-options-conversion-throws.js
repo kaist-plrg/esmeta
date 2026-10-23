@@ -17,7 +17,7 @@
 // prototype and no own properties, so the conversion can never actually
 // observe a throw -- structurally unreachable from any JS input.
 //
-// Confirmed against real Node 24.2.0: the thrown error propagates verbatim
+// Confirmed against real Node 26.12.1: the thrown error propagates verbatim
 // (by reference equality) out of the `new WebAssembly.Module(...)` call.
 function assertEq(actual, expected, msg) {
   if (actual !== expected)

@@ -9,7 +9,7 @@
 // Found via esmeta.wji.WjiCoverage's annotated IR: all of these sat at 0 hits,
 // and returning an infinity from wasm crashed WJI outright.
 //
-// Confirmed against real Node 24.2.0.
+// Confirmed against real Node 26.12.1.
 function assertEq(actual, expected, msg) {
   if (actual !== expected)
     throw new Error(msg + ": expected " + expected + ", got " + actual);

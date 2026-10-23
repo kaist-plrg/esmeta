@@ -16,7 +16,7 @@
 // argument) since a plain function's own `.prototype` own-property is
 // non-configurable and can't be made to throw directly.
 //
-// Confirmed against real Node 24.2.0: the thrown error propagates verbatim
+// Confirmed against real Node 26.12.1: the thrown error propagates verbatim
 // (by reference equality, not just "some TypeError") for all seven.
 function assertEq(actual, expected, msg) {
   if (actual !== expected)

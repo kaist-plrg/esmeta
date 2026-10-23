@@ -206,21 +206,14 @@ object CompletionWrapping:
     * (AsWasm(AsMath(Var(n)), "u64")))` match here, not a special case of its
     * own.
     *
-    * `Expr.Field(_, "Value")` is safe regardless of the base expression or how
-    * it was computed -- not because of anything about the base, but because
-    * Completion Records never nest in this entire system: a `NormalCompletion`/
-    * `ThrowCompletion`'s own `[[Value]]` is, by construction, always the real
-    * payload itself, never *another* Completion Record one level further in.
-    * Checked against every actual `Expr.Field(_, "Value")` site this pipeline
-    * ever compiles a WJI algorithm body to contain -- `ExpandAbruptPass`'s own
-    * `?`/`!` unwrap, `ExpandThrowsPass`'s catch-idiom unwrap,
-    * `AddInterfaceMemberBuiltinBehaviourPass`'s `converted_to_an_idl_value`
-    * abrupt-value extraction -- all three pull a Completion Record's payload,
-    * never anything else; `ExprParser`'s "the max value in X" idiom compiles
-    * the *same* field name onto a `limits` record's `maximum` `Opt` wrapper
-    * instead (a different, unrelated use of the name "Value"), but that payload
-    * is just as plainly never completion-shaped (a `u64`). No occurrence of
-    * this field name anywhere in the corpus holds a completion-shaped value.
+    * A container read (`Field`/`Index`/`TupleProj`) is safe regardless of its
+    * base: a Completion Record only ever carries a call's own outcome, from
+    * that call to the `?`/`!`/guard that unwraps it, and is never stored inside
+    * a list, record or map. Spec text doing so would be an editorial slip, not
+    * something to mechanize (ECMA-262 does it in a few async machinery records
+    * like `AsyncGeneratorRequest.[[Completion]]`, none of which WJI's own
+    * algorithms touch). That also covers a Completion Record's own `[[Value]]`,
+    * always the real payload, never another Completion Record.
     */
   // Deliberately exhaustive (no `case _`): a new `Expr` constructor gets a
   // non-exhaustive-match warning here instead of silently defaulting either
@@ -250,9 +243,8 @@ object CompletionWrapping:
     case Expr.Conditional(branches, otherwise) =>
       branches.forall((_, e) => neverCompletion(e, pure)) &&
       otherwise.forall(neverCompletion(_, pure))
-    // container reads: only a completion's own payload is known safe
-    case Expr.Field(_, name)               => name == "Value"
-    case _: Expr.Index | _: Expr.TupleProj => false
+    // container reads: no Completion Record is ever stored in a container
+    case _: Expr.Field | _: Expr.Index | _: Expr.TupleProj => true
     // variables: proven by `pure` (see `expand`), e.g. `r` in `AsWasm(r, u64)`
     case e @ (_: Expr.Var | Expr.This | Expr.GivenValue) => pure.contains(e)
     // calls

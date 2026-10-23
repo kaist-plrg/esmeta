@@ -534,12 +534,8 @@ def instantiate_the_core_of_a_webassembly_module(
     return _ret2
   } else nop
   @AGENT_RECORD["associated store"] = store
-  if (? result: Completion) {
-    return result
-  } else {
-    call _ret3 = clo<"NormalCompletion">(result)
-    return _ret3
-  }
+  call _ret3 = clo<"NormalCompletion">(result)
+  return _ret3
 }
 def asynchronously_instantiate_a_webassembly_module(
   moduleObject: Unknown,
@@ -1139,13 +1135,8 @@ def create_a_memory_object(
 ): Unknown = {
   let map = @AGENT_RECORD["memory object cache"]
   if (exists map[memaddr]) {
-    let _v1 = map[memaddr]
-    if (? _v1: Completion) {
-      return _v1
-    } else {
-      call _ret2 = clo<"NormalCompletion">(_v1)
-      return _ret2
-    }
+    call _ret1 = clo<"NormalCompletion">(map[memaddr])
+    return _ret1
   } else nop
   let memory = (record [Memory] {
     "GetPrototypeOf" : clo<"Record[OrdinaryObject].GetPrototypeOf">,
@@ -1165,8 +1156,8 @@ def create_a_memory_object(
     "__MAP__" : (map[Unknown, Unknown]),
   })
   call _ = clo<"initialize_a_memory_object">(memory, memaddr)
-  call _ret3 = clo<"NormalCompletion">(memory)
-  return _ret3
+  call _ret2 = clo<"NormalCompletion">(memory)
+  return _ret2
 }
 def <BUILTIN>:INTRINSICS.WebAssembly.Memory(
   this: Unknown,
@@ -1491,13 +1482,8 @@ def create_a_table_object(
 ): Unknown = {
   let map = @AGENT_RECORD["table object cache"]
   if (exists map[tableaddr]) {
-    let _v1 = map[tableaddr]
-    if (? _v1: Completion) {
-      return _v1
-    } else {
-      call _ret2 = clo<"NormalCompletion">(_v1)
-      return _ret2
-    }
+    call _ret1 = clo<"NormalCompletion">(map[tableaddr])
+    return _ret1
   } else nop
   let table = (record [Table] {
     "GetPrototypeOf" : clo<"Record[OrdinaryObject].GetPrototypeOf">,
@@ -1517,8 +1503,8 @@ def create_a_table_object(
     "__MAP__" : (map[Unknown, Unknown]),
   })
   call _ = clo<"initialize_a_table_object">(table, tableaddr)
-  call _ret3 = clo<"NormalCompletion">(table)
-  return _ret3
+  call _ret2 = clo<"NormalCompletion">(table)
+  return _ret2
 }
 def <BUILTIN>:INTRINSICS.WebAssembly.Table(
   this: Unknown,
@@ -1869,13 +1855,8 @@ def create_a_global_object(
 ): Unknown = {
   let map = @AGENT_RECORD["global object cache"]
   if (exists map[globaladdr]) {
-    let _v1 = map[globaladdr]
-    if (? _v1: Completion) {
-      return _v1
-    } else {
-      call _ret2 = clo<"NormalCompletion">(_v1)
-      return _ret2
-    }
+    call _ret1 = clo<"NormalCompletion">(map[globaladdr])
+    return _ret1
   } else nop
   let global = (record [Global] {
     "GetPrototypeOf" : clo<"Record[OrdinaryObject].GetPrototypeOf">,
@@ -1895,8 +1876,8 @@ def create_a_global_object(
     "__MAP__" : (map[Unknown, Unknown]),
   })
   call _ = clo<"initialize_a_global_object">(global, globaladdr)
-  call _ret3 = clo<"NormalCompletion">(global)
-  return _ret3
+  call _ret2 = clo<"NormalCompletion">(global)
+  return _ret2
 }
 def tovaluetype(
   s: Unknown,
@@ -2710,13 +2691,8 @@ def create_a_tag_object(
 ): Unknown = {
   let map = @AGENT_RECORD["tag object cache"]
   if (exists map[tagAddress]) {
-    let _v1 = map[tagAddress]
-    if (? _v1: Completion) {
-      return _v1
-    } else {
-      call _ret2 = clo<"NormalCompletion">(_v1)
-      return _ret2
-    }
+    call _ret1 = clo<"NormalCompletion">(map[tagAddress])
+    return _ret1
   } else nop
   let tag = (record [Tag] {
     "GetPrototypeOf" : clo<"Record[OrdinaryObject].GetPrototypeOf">,
@@ -2736,8 +2712,8 @@ def create_a_tag_object(
     "__MAP__" : (map[Unknown, Unknown]),
   })
   call _ = clo<"initialize_a_Tag_object">(tag, tagAddress)
-  call _ret3 = clo<"NormalCompletion">(tag)
-  return _ret3
+  call _ret2 = clo<"NormalCompletion">(tag)
+  return _ret2
 }
 def <BUILTIN>:INTRINSICS.WebAssembly.Tag(
   this: Unknown,
@@ -2936,13 +2912,8 @@ def create_an_exception_object(
 ): Unknown = {
   let map = @AGENT_RECORD["exception object cache"]
   if (exists map[exnAddress]) {
-    let _v1 = map[exnAddress]
-    if (? _v1: Completion) {
-      return _v1
-    } else {
-      call _ret2 = clo<"NormalCompletion">(_v1)
-      return _ret2
-    }
+    call _ret1 = clo<"NormalCompletion">(map[exnAddress])
+    return _ret1
   } else nop
   let exn = (record [Exception] {
     "GetPrototypeOf" : clo<"Record[OrdinaryObject].GetPrototypeOf">,
@@ -2962,8 +2933,8 @@ def create_an_exception_object(
     "__MAP__" : (map[Unknown, Unknown]),
   })
   call _ = clo<"initialize_an_Exception_object">(exn, exnAddress)
-  call _ret3 = clo<"NormalCompletion">(exn)
-  return _ret3
+  call _ret2 = clo<"NormalCompletion">(exn)
+  return _ret2
 }
 def <BUILTIN>:INTRINSICS.WebAssembly.Exception(
   this: Unknown,

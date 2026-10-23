@@ -1296,12 +1296,8 @@ def grow_the_memory_buffer(
   } else nop
   @AGENT_RECORD["associated store"] = store
   call _ = clo<"Refresh_the_memory_buffer">(memaddr)
-  if (? ret: Completion) {
-    return ret
-  } else {
-    call _ret3 = clo<"NormalCompletion">(ret)
-    return _ret3
-  }
+  call _ret3 = clo<"NormalCompletion">(ret)
+  return _ret3
 }
 def <BUILTIN>:INTRINSICS.WebAssembly.Memory.prototype.grow(
   this: Unknown,

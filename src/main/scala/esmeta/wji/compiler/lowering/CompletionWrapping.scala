@@ -1,5 +1,6 @@
 package esmeta.wji.compiler.lowering
 
+import esmeta.wji.bridge.host.WasmHost
 import esmeta.wji.lang.{Cond, Expr, Instr}
 import esmeta.wji.lang.Instr.PerformOutcome
 
@@ -135,11 +136,13 @@ object CompletionWrapping:
   /** Whether a `Perform`/`PerformClosure` call target `func` (still in its
     * original, possibly-bracketed link-text form -- see
     * [[CompletionAlgorithms.normalize]]'s own doc) is known, one way or the
-    * other, to never itself produce a Completion Record.
+    * other, to never itself produce a Completion Record. An embedding function
+    * (`WasmHost.names`) returns a Wasm value from SpecTec, never one.
     */
   private def isProvablyPure(func: String, pureCallees: Set[String]): Boolean =
     val name = CompletionAlgorithms.normalize(func)
-    pureCallees.contains(name) || neverCompletionNatives.contains(name)
+    pureCallees.contains(name) || neverCompletionNatives.contains(name) ||
+    WasmHost.names.contains(name)
 
   /** The mirror image of [[isProvablyPure]]: whether `func` is a WJI algorithm
     * already proven to *always* return a Completion Record. No native-routine

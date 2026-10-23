@@ -5,11 +5,11 @@ import esmeta.wji.lang.walker.{UnitWalker, Walker}
 
 /** Resolves every `Expr.Choice` ("either A or B", a choice the spec leaves to
   * the implementation) to its first option that is fully mechanized, i.e.
-  * contains nothing still unparsed (`Unknown`/`Described`/...): any option is
-  * a valid result, so one that can actually run is the one to take. E.g.
-  * "either a {{DOMString}} representation of the current call stack or
-  * undefined" becomes `undefined` (`docs/hardcodes.md` #26). With no such
-  * option, the first one is kept, so it surfaces as not yet mechanized.
+  * contains nothing still unparsed (`Unknown`/`Described`/...): any option is a
+  * valid result, so one that can actually run is the one to take. E.g. "either
+  * a {{DOMString}} representation of the current call stack or undefined"
+  * becomes `undefined` (`docs/hardcodes.md` #26). With no such option, the
+  * first one is kept, so it surfaces as not yet mechanized.
   *
   * Category: Spec-dependent — WJI.
   */

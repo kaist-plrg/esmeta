@@ -43,12 +43,15 @@ object WrapCompletionReturnsPass extends LoweringPass:
     // with a plain, non-Completion value -- and `alwaysCompletionCallees` is
     // every one it *did* -- proven to always exit with one (see
     // CompletionWrapping.expandAlgorithm's own doc on both parameters for why
-    // that's sound to pass down here).
+    // that's sound to pass down here). ECMA-262 operations that never return a
+    // Completion Record (EcmaAbstractOps) count as pure callees too, unless a
+    // WJI algorithm of the same name says otherwise.
     def namesOf(as: List[Algorithm]): Set[String] =
       as.flatMap(a => a.name.orElse(a.id)).map(_.toLowerCase).toSet
     val (completionAlgos, pureAlgos) = algos.partition(_.returnsCompletion)
-    val pureCallees = namesOf(pureAlgos)
     val alwaysCompletionCallees = namesOf(completionAlgos)
+    val pureCallees = namesOf(pureAlgos) ++
+      (EcmaAbstractOps.neverCompletion -- alwaysCompletionCallees)
     algos.map { a =>
       if a.returnsCompletion then
         a.copy(body =

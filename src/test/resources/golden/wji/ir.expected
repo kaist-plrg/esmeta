@@ -501,12 +501,8 @@ def create_an_exports_object(
   call _call2 = clo<"SetIntegrityLevel">(exportsObject, ~frozen~)
   assert (= _call2.Type ~normal~)
   let _call3 = _call2.Value
-  if (? exportsObject: Completion) {
-    return exportsObject
-  } else {
-    call _ret1 = clo<"NormalCompletion">(exportsObject)
-    return _ret1
-  }
+  call _ret1 = clo<"NormalCompletion">(exportsObject)
+  return _ret1
 }
 def initialize_an_instance_object(
   instanceObject: Unknown,
@@ -3803,12 +3799,8 @@ def create_an_interface_object(
   call _ = clo<"Define_the_constants">(I, F, realm)
   call _ = clo<"Define_the_static_attributes">(I, F, realm)
   call _ = clo<"Define_the_static_operations">(I, F, realm)
-  if (? F: Completion) {
-    return F
-  } else {
-    call _ret1 = clo<"NormalCompletion">(F)
-    return _ret1
-  }
+  call _ret1 = clo<"NormalCompletion">(F)
+  return _ret1
 }
 def create_an_interface_prototype_object(
   interface: Unknown,
@@ -4365,12 +4357,8 @@ def internally_create_a_new_object_implementing_the_interface(
     (yet "Set |instance|.\\[[PreventExtensions]] as defined in [[#legacy-platform-object-preventextensions]]")
     (yet "Set |instance|.\\[[OwnPropertyKeys]] as defined in [[#legacy-platform-object-ownpropertykeys]]")
   } else nop
-  if (? instance: Completion) {
-    return instance
-  } else {
-    call _ret1 = clo<"NormalCompletion">(instance)
-    return _ret1
-  }
+  call _ret1 = clo<"NormalCompletion">(instance)
+  return _ret1
 }
 def js-string-cast-steps(
   arguments: Unknown,

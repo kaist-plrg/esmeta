@@ -291,3 +291,27 @@ WJI가 뭘 어떻게 할지 결정할 필요는 없다(WJI는 스펙대로 기�
   값 변환 실패를 LinkError로 감싸지 않음.
 - **확인한 엔진 버전**: 위 1번과 동일.
 - **상태**: 재현 확인, 업스트림 제보 안 함.
+
+## 17. V8: `sequence<T>` 인자를 iterable이 아니라 array-like로 읽음
+
+- **발견 경로**: `tests/wji/scripts/diff-engines tests/wji/complementary/sequence-conversion.js`
+  — SpiderMonkey PASS, V8 FAIL(JSC는 #18 때문에 FAIL).
+- **기대 동작**: WebIDL의 ES→IDL `sequence<T>` 변환("create a sequence from an iterable")은
+  `@@iterator`로 순회함. 그래서 `Set` 같은 iterable도 받고, `@@iterator`가 던지면 그 예외가 전파됨.
+  SpiderMonkey/JSC는 그대로 동작.
+- **실제 동작(V8)**: `length`와 인덱스로 읽음 — `new WebAssembly.Exception(tag, new Set([7]))`이
+  `TypeError: Exception values argument has no length`, `new WebAssembly.Tag({ parameters: new
+  Set(["i32"]) })`도 `contains parameters without 'length'`로 실패. `@@iterator`가 던지는 객체도
+  `@@iterator`를 부르지 않고 같은 TypeError. Node 26.12.1도 같음.
+- **확인한 엔진 버전**: 위 1번과 동일.
+- **상태**: 재현 확인, 업스트림 제보 안 함.
+
+## 18. JSC: `Exception`의 payload로 문자열을 받아들임
+
+- **발견 경로**: 위와 같은 테스트 — JSC FAIL.
+- **기대 동작**: `sequence<T>` 변환의 첫 단계가 "V가 Object가 아니면 TypeError"라서, 문자열은
+  iterable이어도 TypeError. V8/SpiderMonkey는 TypeError.
+- **실제 동작(JSC)**: `new WebAssembly.Exception(tag, "a")`가 성공함(문자열을 순회하는 것으로 보임).
+  숫자(`5`)나 `{}`는 TypeError로 정상.
+- **확인한 엔진 버전**: 위 1번과 동일.
+- **상태**: 재현 확인, 업스트림 제보 안 함.

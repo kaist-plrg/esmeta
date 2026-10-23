@@ -1,7 +1,8 @@
 package esmeta.wji.interpreter
 
 import esmeta.cfg.{CFG, Call}
-import esmeta.error.{NoMathValue, UnknownConversion}
+import esmeta.es.builtin.symbolAddr
+import esmeta.error.{NoAddr, NoList, NoMathValue, UnknownConversion}
 import esmeta.interpreter.{%%, Interpreter}
 import esmeta.ir.{GLOBAL_EXECUTION_STACK, Name}
 import esmeta.parser.ESValueParser
@@ -470,9 +471,9 @@ object WebIdlConversion:
     // rather than the exact element type, same "identity passthrough for the
     // element type" simplification as everywhere else in this object.
     case Str(t) if t.startsWith("sequence<") =>
-      Right(toSequence(interp.st, argument))
+      toSequence(interp, callSite, argument)
     case Enum(t) if t.startsWith("sequence<") =>
-      Right(toSequence(interp.st, argument))
+      toSequence(interp, callSite, argument)
     case _ => Right(argument)
 
   private def toMathValue(v: Value): Math = v match
@@ -658,35 +659,75 @@ object WebIdlConversion:
                 // silently losing.
                 case raw if member.isBoolean =>
                   addPair(key, toBooleanValue(interp, callSite, raw))
-                case raw =>
-                  val value =
-                    if member.isSequence then toSequence(st, raw) else raw
-                  addPair(key, value)
+                case raw if member.isSequence =>
+                  toSequence(interp, callSite, raw) match
+                    case Left(a)     => abrupt = Some(a)
+                    case Right(list) => addPair(key, list)
+                case raw => addPair(key, raw)
     }
     abrupt match
       case Some(a) => Left(a)
       case None    => Right(st.allocMap(pairs.toList))
 
-  /** converts a JS array-like `value` (own `"length"` + own indexed properties,
-    * e.g. a real `Array` literal) into a genuine internal `List` — mirrors
-    * `CreateListFromArrayLike`'s own simple read loop (length, then each index
-    * in turn), rather than the full WebIDL "sequence" conversion (which
-    * iterates via `Symbol.iterator`): every actual call site so far passes a
-    * literal array, so the two agree, and this avoids driving the iterator
-    * protocol from native code just for that.
+  /** WebIDL's ES-to-IDL `sequence<T>` conversion ("create a sequence from an
+    * iterable"): a non-object, or an object with no `@@iterator`, is a
+    * TypeError; otherwise the elements come from the real iterator protocol
+    * (`GetMethod`, `GetIteratorFromMethod`, `IteratorToList`, reentrantly), so
+    * any iterable works and a throwing iterator propagates. `Left` is the
+    * abrupt completion.
     */
-  private def toSequence(st: State, value: Value): Value =
-    val mapField = st(value, Str("__MAP__"))
-    val length = toMathValue(st(st(mapField, Str("length")), Str("Value")))
-    val elements = (0 until length.decimal.toInt).toList.map { i =>
-      st(st(mapField, Str(i.toString)), Str("Value"))
-    }
-    st.allocList(elements)
+  private def iterateSequence(
+    interp: Interpreter,
+    callSite: Call,
+    value: Value,
+  ): Either[Value, List[Value]] =
+    val st = interp.st
+    def callAO(name: String, args: List[Value]): Value =
+      interp.invokeCallable(
+        Clo(st.cfg.getFunc(name), Map.empty),
+        args,
+        callSite,
+      )
+    if !isObjectValue(st, value) then Left(typeError(interp, callSite))
+    else
+      withGcPin(interp) { pin =>
+        val method = callAO("GetMethod", List(value, symbolAddr("iterator")))
+        if isAbrupt(st, method) then Left(method)
+        else
+          st(method, Str("Value")) match
+            case Undef => Left(typeError(interp, callSite))
+            case m =>
+              pin(List(m))
+              val iter = callAO("GetIteratorFromMethod", List(value, m))
+              if isAbrupt(st, iter) then Left(iter)
+              else
+                val record = st(iter, Str("Value"))
+                pin(List(m, record))
+                val list = callAO("IteratorToList", List(record))
+                if isAbrupt(st, list) then Left(list)
+                else
+                  st(list, Str("Value")) match
+                    case addr: Addr =>
+                      st(addr) match
+                        case l: ListObj => Right(l.values.toList)
+                        case other      => throw NoList(other)
+                    case other => throw NoAddr(other)
+      }
 
-  /** same array-like reading as [[toSequence]], but for a `sequence<T>` whose
-    * element type `T` is itself a WebIDL enum (so far only `TagType.
-    * parameters`'s `sequence<ValueType>`) -- each raw element goes through the
-    * same `? ToString` + membership check as a scalar enum member (see
+  /** [[iterateSequence]] into a genuine internal `List`, the element type
+    * (`any`) passing through as is.
+    */
+  private def toSequence(
+    interp: Interpreter,
+    callSite: Call,
+    value: Value,
+  ): Either[Value, Value] =
+    iterateSequence(interp, callSite, value).map(interp.st.allocList(_))
+
+  /** same iteration as [[toSequence]], but for a `sequence<T>` whose element
+    * type `T` is itself a WebIDL enum (so far only `TagType. parameters`'s
+    * `sequence<ValueType>`) -- each raw element goes through the same `?
+    * ToString` + membership check as a scalar enum member (see
     * `Member.enumValues`'s doc), short-circuiting on the first abrupt result or
     * invalid value.
     */
@@ -697,30 +738,29 @@ object WebIdlConversion:
     allowed: Set[String],
   ): Either[Value, Value] =
     val st = interp.st
-    val mapField = st(value, Str("__MAP__"))
-    val length = toMathValue(st(st(mapField, Str("length")), Str("Value")))
-    val raws = (0 until length.decimal.toInt).toList.map { i =>
-      st(st(mapField, Str(i.toString)), Str("Value"))
+    iterateSequence(interp, callSite, value).flatMap { raws =>
+      val converted = scala.collection.mutable.ListBuffer.empty[Value]
+      var abrupt: Option[Value] = None
+      val it = raws.iterator
+      // same reentrant-accumulator hazard as `readDictionary`'s `pairs` (see
+      // `withGcPin`); `raws` come from a fresh list nothing else holds, so
+      // they're pinned too.
+      withGcPin(interp) { pin =>
+        pin(raws)
+        while abrupt.isEmpty && it.hasNext do
+          val strResult = toStringValue(interp, callSite, it.next())
+          if isAbrupt(st, strResult) then abrupt = Some(strResult)
+          else
+            st(strResult, Str("Value")) match
+              case s @ Str(v) if allowed(v) =>
+                converted += s
+                pin(raws ++ converted)
+              case _ => abrupt = Some(typeError(interp, callSite))
+      }
+      abrupt match
+        case Some(a) => Left(a)
+        case None    => Right(st.allocList(converted.toList))
     }
-    val converted = scala.collection.mutable.ListBuffer.empty[Value]
-    var abrupt: Option[Value] = None
-    val it = raws.iterator
-    // same reentrant-accumulator hazard as `readDictionary`'s `pairs` -- see
-    // `withGcPin`'s own doc (`personal/TODO.md` #67).
-    withGcPin(interp) { pin =>
-      while abrupt.isEmpty && it.hasNext do
-        val strResult = toStringValue(interp, callSite, it.next())
-        if isAbrupt(st, strResult) then abrupt = Some(strResult)
-        else
-          st(strResult, Str("Value")) match
-            case s @ Str(v) if allowed(v) =>
-              converted += s
-              pin(converted)
-            case _ => abrupt = Some(typeError(interp, callSite))
-    }
-    abrupt match
-      case Some(a) => Left(a)
-      case None    => Right(st.allocList(converted.toList))
 
   // ── converted to a JavaScript value ────────────────────────────────────────
 

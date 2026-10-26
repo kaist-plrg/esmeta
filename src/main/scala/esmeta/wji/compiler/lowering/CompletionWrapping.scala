@@ -106,15 +106,30 @@ object CompletionWrapping:
     * complement — see [[CompletionAlgorithms]]'s own doc for what that fixed
     * point actually establishes either way). Both default to empty for any
     * future caller that can't supply them.
+    *
+    * `pure` starts out with every non-parameter variable that is only ever
+    * assigned provably pure values anywhere in `instrs`: on a path where it was
+    * never assigned it is unbound, never a Completion Record. E.g.
+    * `ToWebAssemblyValue`'s `r`, bound to a `Case` value in each of many nested
+    * branches.
     */
   def expandAlgorithm(
     instrs: List[Instr],
+    params: List[String],
     pureCallees: Set[String] = Set.empty,
     alwaysCompletionCallees: Set[String] = Set.empty,
   ): List[Instr] =
+    val paramVars: Set[Expr] =
+      params.map(p => Expr.Var(p.stripPrefix("|").stripSuffix("|"))).toSet
+    val alwaysPure = instrs
+      .flatMap(reassignedVars)
+      .toSet
+      .filter(_.isInstanceOf[Expr.Var])
+      -- instrs.flatMap(impurelyReassignedVars(_, pureCallees)) -- paramVars
     expand(
       instrs,
       Counter(),
+      pure = alwaysPure,
       pureCallees = pureCallees,
       alwaysCompletionCallees = alwaysCompletionCallees,
     )

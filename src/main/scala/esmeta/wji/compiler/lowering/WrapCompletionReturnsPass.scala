@@ -57,6 +57,7 @@ object WrapCompletionReturnsPass extends LoweringPass:
         a.copy(body =
           CompletionWrapping.expandAlgorithm(
             a.body,
+            a.params.map(_.name),
             pureCallees,
             alwaysCompletionCallees,
           ),

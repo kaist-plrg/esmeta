@@ -164,21 +164,23 @@ object WebIdlConversion:
     * `st.context` is exactly the object `Interpreter.invokeCallable` saves and
     * restores intact across reentrant calls, however deep -- so this needs no
     * mainline change at all. `sync` is called after every accumulation step to
-    * keep the pinned list's contents current; the previous value (if any) at
-    * the same key is restored in `finally`, so a nested dictionary/sequence
-    * conversion (reentrant WebIDL conversion calling back into this same
-    * function) doesn't clobber an outer pin.
+    * keep the pinned list's contents current. A nested dictionary/sequence
+    * conversion (e.g. `WebAssemblyCompileOptions.builtins`) shadows an outer
+    * pin under the same key, so the inner list also holds the outer one, and
+    * the outer one is restored in `finally`.
     */
   private def withGcPin[T](
     interp: Interpreter,
   )(body: (Iterable[Value] => Unit) => T): T =
     val st = interp.st
     val pinVar = Name("__wjiGcPin")
-    val pinAddr = st.allocList(Nil)
     val previous = st.context.locals.get(pinVar)
+    // holds the outer pin, which would otherwise be unreachable (and
+    // collected) while this one shadows it
+    val pinAddr = st.allocList(previous.toList)
     st.context.locals += pinVar -> pinAddr
     def sync(values: Iterable[Value]): Unit = st(pinAddr) match
-      case l: ListObj => l.values = values.toVector
+      case l: ListObj => l.values = (previous ++ values).toVector
       case _          => ()
     try body(sync)
     finally

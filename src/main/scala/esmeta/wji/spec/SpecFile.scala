@@ -28,6 +28,7 @@ object SpecFile:
     "new",
     "internally create a new object implementing the interface",
     "inclusive inherited interfaces",
+    "qualified name",
     "create an interface prototype object",
     "create an interface object",
     "define the regular attributes",

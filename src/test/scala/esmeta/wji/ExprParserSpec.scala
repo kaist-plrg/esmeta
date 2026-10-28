@@ -32,6 +32,30 @@ class ExprParserSpec extends AnyFunSuite:
     )
   }
 
+  test("'the [=concatenation=] of « ... » with separator' interleaves it") {
+    assert(
+      ExprParser.parse(
+        "the [=concatenation=] of « |namespace|, |identifier| » with separator U+002E (.)",
+      ) == Concat(List(Var("namespace"), Str("."), Var("identifier"))),
+    )
+  }
+
+  test("'the [=identifier=] of X' is X's id field, not a call") {
+    assert(
+      ExprParser.parse("the [=identifier=] of |interface|") ==
+      Field(Var("interface"), "id"),
+    )
+  }
+
+  test("'the identifier argument of the [{{X}}] extended attribute'") {
+    // subject left empty for ExpandExtAttrArgumentPass to resolve
+    assert(
+      ExprParser.parse(
+        "the identifier argument of the [{{LegacyNamespace}}] [=extended attribute=]",
+      ) == ExtAttrArgument("LegacyNamespace"),
+    )
+  }
+
   test("'it' is a pronoun, substituted later by ExpandConditionalPass") {
     assert(ExprParser.parse("it") == Pronoun)
     assert(

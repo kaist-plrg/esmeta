@@ -1,4 +1,4 @@
-138 algorithm(s)
+139 algorithm(s)
 # compile a WebAssembly module
   params: |bytes|
   head: To <dfn>compile a WebAssembly module</dfn> from source bytes |bytes|, perform the following steps:
@@ -1495,6 +1495,15 @@
     Set(|interface|, |interface|.[[inherit]])
   Return(|result|)
 
+# qualified name
+  params: |interface|
+  head: The <dfn>qualified name</dfn> of an [=interface=] |interface| is defined as follows:
+  Let(|identifier|, |interface|.[[id]])
+  If(any ea in |interface|.[[extendedAttributes]] |ea|.[[id]] is "LegacyNamespace")
+    Let(|namespace|, ExtAttrArgument(LegacyNamespace))
+    Return(concat(|namespace|, ".", |identifier|))
+  Return(|identifier|)
+
 # a new promise
   params: |T|, |realm|
   head: To <dfn export lt="a new promise">create</dfn> a new <code><a interface>Promise</a>&lt;<var ignore>T</var>&gt;</code> in a [=realm=] |realm|, perform the following steps:
@@ -1646,6 +1655,8 @@
     Let(|constructor|, [=interface object=](|interface|, |realm|))
     Let(|desc|, PropertyDescriptor{[[Writable]]: true, [[Enumerable]]: false, [[Configurable]]: true, [[Value]]: |constructor|})
     Perform([=!=] DefinePropertyOrThrow(|interfaceProtoObj|, "constructor", |desc|))
+  Let(|classString|, [=qualified name=](|interface|))
+  Perform([=!=] DefinePropertyOrThrow(|interfaceProtoObj|, %Symbol.toStringTag%, PropertyDescriptor{[[Writable]]: false, [[Enumerable]]: false, [[Configurable]]: true, [[Value]]: |classString|}))
   Return(|interfaceProtoObj|)
 
 # define the constants
@@ -1713,7 +1724,7 @@
           Return(?(|jsValue|'s [=backing observable array exotic object=] for |attribute|))
         Set(|idlObject|, |jsValue|)
       Let(|R|, |attribute|.[[getterSteps]](|idlObject|))
-      Return([=converted to a JavaScript value=](|R|, |attribute|))
+      Return([=converted to a JavaScript value=](|R|))
     Catch(|E|)
       If(|attribute|.[[ty]] is a promise type)
         Return([=!=] [$Call$](%Promise.reject%, %Promise%, « |E| »))
@@ -1756,7 +1767,7 @@
         Let(|Q|, [=?=] [$Get$](|jsValue|, |id|))
         If(|Q| is not an Object)
           Throw(new {{TypeError}})
-        Let(|forwardId|, ?(the identifier argument of the [{{PutForwards}}] [=extended attribute=]))
+        Let(|forwardId|, ExtAttrArgument(PutForwards))
         Perform([=?=] Set(|Q|, |forwardId|, |V|, false))
         Return(undefined)
       Set(|idlObject|, |jsValue|)

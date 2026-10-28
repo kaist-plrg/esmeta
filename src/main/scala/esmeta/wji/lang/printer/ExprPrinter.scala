@@ -91,6 +91,9 @@ object ExprPrinter:
     case GetMember(definition, member, unforgeable) =>
       val flag = if (unforgeable) ", unforgeable" else ""
       s"GetMember($definition, $member$flag)"
+    case ExtAttrArgument(attr, subject) =>
+      val of = subject.fold("")(e => s", ${render(e)}")
+      s"ExtAttrArgument($attr$of)"
 
   private def renderBOp(op: BOp): String = op match
     case BOp.Add => "+"

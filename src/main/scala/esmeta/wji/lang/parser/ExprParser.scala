@@ -693,6 +693,25 @@ object ExprParser:
   // type.
   private val IdentifierOfType =
     """(?si)^the identifier of \w+ (\|[^|]+\|)$""".r
+  // "the [=identifier=] of |X|" — the linked spelling of IdentifierOfType /
+  // PossessiveIdentifier's same `id` field (webidl/index.bs:806 `qualified
+  // name`; also 8012, 8043, 12653). Matched before the generic link rules,
+  // which would otherwise read it as a call to an algorithm named
+  // "identifier".
+  private val LinkedIdentifierOf =
+    """(?si)^the \[=identifier=\] of (\|[^|]+\|)$""".r
+  // "the identifier argument of the [{{X}}] [=extended attribute=]"
+  // (webidl/index.bs:808, 12428) — see `Expr.ExtAttrArgument` for why its
+  // subject is left for a lowering pass to resolve.
+  private val ExtAttrIdentifierArgument =
+    """(?si)^the identifier argument of the \[\{\{([^}]+)\}\}\]\s+\[=extended attribute=\]$""".r
+  // "the [=concatenation=] of « A, B, ... » with separator U+XXXX (c)" —
+  // Infra's list concatenation with a separator (webidl/index.bs:810
+  // `qualified name`). Only a literal «...» list is matched, so the separator
+  // can be interleaved between its elements at parse time into the same
+  // `Expr.Concat` the other concatenation idioms here build.
+  private val ConcatenationWithSeparator =
+    """(?si)^the \[=concatenation=\] of («.*»)\s+with separator U\+([0-9A-Fa-f]{4,6})(?:\s*\([^)]*\))?$""".r
   // "the [=interface=] that |I| [=interface/inherits=] from, if any, and null
   // otherwise" — webidl/index.bs's "inclusive inherited interfaces"
   // (line 715) reads the interface |I| was declared to inherit from (e.g.
@@ -1153,6 +1172,14 @@ object ExprParser:
       case BracedTermValueOnly(term)       => SpecTerm(term)
       case BacktickedQuotedStr(v)          => SpecTerm(v)
       case Backticked(inner)               => parse(inner)
+      case LinkedIdentifierOf(varRaw)      => Field(parse(varRaw), "id")
+      case ExtAttrIdentifierArgument(attr) => ExtAttrArgument(attr)
+      case ConcatenationWithSeparator(listRaw, hex) =>
+        parse(listRaw) match
+          case List_(parts) =>
+            val sep = Str(new String(Character.toChars(Integer.parseInt(hex, 16))))
+            Concat(parts.flatMap(p => List(sep, p)).drop(1))
+          case _ => Unknown(s)
 
       // ---- Closures ----
       case VariadicStepsClosurePrefix(v) =>

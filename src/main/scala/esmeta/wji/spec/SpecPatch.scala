@@ -14,11 +14,14 @@ package esmeta.wji.spec
   *   - *(spec bug)* fixes an actual defect in the spec prose itself — a typo,
   *     stale phrasing, or markup that violates the surrounding file's own
   *     conventions.
-  *   - *(suggestion)* makes an already-valid elision explicit — a spot where
-  *     Bikeshed prose conventionally omits an argument (e.g. a generic type
-  *     parameter) that this project's extractor/compiler needs spelled out in
-  *     order to compile. Nothing here is wrong in the spec as written; it's
-  *     just not explicit enough for this tool.
+  *   - *(suggestion)* makes something the spec already says explicit — a spot
+  *     where Bikeshed prose conventionally omits an argument (e.g. a generic
+  *     type parameter) that this project's extractor/compiler needs spelled
+  *     out in order to compile, or a normative requirement stated outside an
+  *     algorithm (a declarative "must have a property ..." rule) that is moved
+  *     into it as an explicit step. Nothing here is wrong in the spec as
+  *     written; it's just not explicit enough for this tool. Suggestions worth
+  *     proposing upstream get a matching section in `docs/spec_suggestions.md`.
   *   - *(hardcoding)* invents a call convention with no literal counterpart in
   *     the spec prose at all — needed where this project can't yet parse a
   *     shape the spec actually uses, rather than just an elided argument.
@@ -1627,6 +1630,33 @@ object SpecPatch:
       #            |V| to an IDL value of |attribute|'s type.""".stripMargin(
       '#',
     ),
+
+    // #81 (suggestion, docs/spec_suggestions.md #1) — `create an interface
+    // prototype object` (webidl/index.bs:12044-12100) never defines
+    // %Symbol.toStringTag%: the property comes only from the declarative
+    // "class string" rule (webidl/index.bs:7182, "must, at the time it is
+    // created, have a property ...") plus the sentence after the algorithm
+    // naming the interface's [=qualified name=] as the class string
+    // (webidl/index.bs:12140), so following the steps alone gives
+    // `Object.prototype.toString.call(WebAssembly.Module.prototype)` ===
+    // "[object Object]". whatwg/webidl#494 made this algorithm imperative and
+    // already turned the sibling %Symbol.unscopables% rule into steps; this
+    // adds the missing one the same way, just before the return. Uses
+    // [=qualified name=] (now in `SpecFile.webidlFilter`) rather than the
+    // identifier, since every JS-API interface is [LegacyNamespace=WebAssembly]
+    // ("[object WebAssembly.Module]"). The namespace object's half of the same
+    // gap is filled in `manuals/funcs/create_a_namespace_object.ir`, since that
+    // algorithm is hand-written rather than extracted.
+    """"<code>constructor</code>", |desc|).
+      #    1.  Return |interfaceProtoObj|.""".stripMargin('#')
+    ->
+    """"<code>constructor</code>", |desc|).
+      #    1.  Let |classString| be the [=qualified name=] of |interface|.
+      #    1.  Perform [=!=] <a abstract-op>DefinePropertyOrThrow</a>(|interfaceProtoObj|, {{%Symbol.toStringTag%}},
+      #        PropertyDescriptor{\[[Writable]]: <emu-val>false</emu-val>, \[[Enumerable]]: <emu-val>false</emu-val>, \[[Configurable]]: <emu-val>true</emu-val>, \[[Value]]: |classString|}).
+      #    1.  Return |interfaceProtoObj|.""".stripMargin('#'),
+
+    // #82 (hardcoding)
     """1.  Return the result of [=converted to a JavaScript value|converting=] |R| to a
                 JavaScript value of the type |attribute| is declared as."""
     ->

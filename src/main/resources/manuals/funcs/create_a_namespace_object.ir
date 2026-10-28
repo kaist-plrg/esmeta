@@ -23,5 +23,12 @@ def create_a_namespace_object(
     call _ = clo<"DefineMethodProperty">(namespaceObject, errors[i], nativeError, false)
     i = (+ i 1)
   }
+  desc = (record [PropertyDescriptor] {
+    "Writable" : false,
+    "Enumerable" : false,
+    "Configurable" : true,
+    "Value" : namespace.id,
+  })
+  call _ = clo<"DefinePropertyOrThrow">(namespaceObject, @SYMBOL.toStringTag, desc)
   return namespaceObject
 }

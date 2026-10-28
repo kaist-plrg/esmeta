@@ -57,6 +57,8 @@ trait Walker:
       )
     case Expr.GetMember(def_, mem, unforgeable) =>
       Expr.GetMember(def_, mem, unforgeable)
+    case Expr.ExtAttrArgument(attr, subject) =>
+      Expr.ExtAttrArgument(attr, subject.map(walk))
     case Expr.Seq_(exprs)            => Expr.Seq_(exprs.map(walk))
     case Expr.TypeAnnotated(term, e) => Expr.TypeAnnotated(term, walk(e))
     // leaves with no nested Expr: Var, This, GivenValue, ArgumentsList,

@@ -96,6 +96,7 @@ object Lowering:
     ExpandRemovePass,
     ExpandConditionalPass,
     ExpandGetMemberPass,
+    ExpandExtAttrArgumentPass,
     ExpandForEachPass,
     ExpandForPass,
     ExpandNewByteSequencePass,

@@ -478,6 +478,18 @@ object Expr:
     unforgeable: Boolean = false,
   ) extends Expr
 
+  /** "the identifier argument of the [{{ATTR}}] [=extended attribute=]" —
+    * the argument of an `[ATTR=identifier]` extended attribute
+    * (webidl/index.bs:808 `qualified name`, 12428 `attribute setter`). The
+    * spec never names whose extended attribute it is: it's always the one an
+    * enclosing "If |X| has a/is declared with the [{{ATTR}}] [=extended
+    * attribute=]" just tested, so `ExprParser` leaves `subject` empty and
+    * `esmeta.wji.compiler.lowering.ExpandExtAttrArgumentPass` fills it in from
+    * that guard before expanding the whole read.
+    */
+  case class ExtAttrArgument(attr: String, subject: Option[Expr] = None)
+    extends Expr
+
   extension (expr: Expr)
     /** Every `Expr` directly nested one level inside this one — used for
       * generic "is a residual X still anywhere in here" invariant checks (e.g.
@@ -518,6 +530,7 @@ object Expr:
       case Conditional(branches, otherwise) =>
         branches.map(_._2) ++ otherwise.toList
       case GetMember(e, _, _)   => List(e)
+      case ExtAttrArgument(_, subject) => subject.toList
       case Seq_(exprs)          => exprs
       case TypeAnnotated(_, e)  => List(e)
       case RecordLit(_, fields) => fields.map(_._2)

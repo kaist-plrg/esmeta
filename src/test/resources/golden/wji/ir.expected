@@ -1,4 +1,4 @@
-175 func(s)
+176 func(s)
 def compile_a_webassembly_module(
   bytes: Unknown,
 ): Unknown = {
@@ -2918,6 +2918,32 @@ def inclusive_inherited_interfaces(
   }
   return result
 }
+def qualified_name(
+  interface: Unknown,
+): Unknown = {
+  let identifier = interface.id
+  let _found1 = false
+  let _i2 = 0
+  while (&& (= _found1 false) (< _i2 (sizeof interface.extendedAttributes))) {
+    let ea = interface.extendedAttributes[_i2]
+    if (= ea.id "LegacyNamespace") {
+      _found1 = true
+    } else nop
+    _i2 = (+ _i2 1)
+  }
+  if (= _found1 true) {
+    let namespace = undefined
+    let _extAttrIdx = 0
+    while (< _extAttrIdx (sizeof interface.extendedAttributes)) {
+      if (= interface.extendedAttributes[_extAttrIdx].id "LegacyNamespace") {
+        namespace = interface.extendedAttributes[_extAttrIdx].value
+      } else nop
+      _extAttrIdx = (+ _extAttrIdx 1)
+    }
+    return (concat namespace "." identifier)
+  } else nop
+  return identifier
+}
 def a_new_promise(
   T: Unknown,
   realm: Unknown,
@@ -3256,6 +3282,15 @@ def create_an_interface_prototype_object(
     assert (= _call10.Type ~normal~)
     let _call11 = _call10.Value
   } else nop
+  call classString = clo<"qualified_name">(interface)
+  call _call12 = clo<"DefinePropertyOrThrow">(interfaceProtoObj, @SYMBOL.toStringTag, (record [PropertyDescriptor] {
+    "Writable" : false,
+    "Enumerable" : false,
+    "Configurable" : true,
+    "Value" : classString,
+  }))
+  assert (= _call12.Type ~normal~)
+  let _call13 = _call12.Value
   if (? interfaceProtoObj: Completion) {
     return interfaceProtoObj
   } else {
@@ -4700,7 +4735,7 @@ def attribute_getter_closure2(
   } else {
     let R = _guard1
   }
-  call-convert _result1 = <converted_to_a_javascript_value>(R, attribute)
+  call-convert _result1 = <converted_to_a_javascript_value>(R)
   if (? _result1: Completion) {
     return _result1
   } else {
@@ -4852,7 +4887,14 @@ def attribute_setter_closure1(
         call _ret7 = clo<"ThrowCompletion">(_err6)
         return _ret7
       } else nop
-      let forwardId = (yet "the identifier argument of the [{{PutForwards}}] [=extended attribute=]")
+      let forwardId = undefined
+      let _extAttrIdx = 0
+      while (< _extAttrIdx (sizeof attribute.extendedAttributes)) {
+        if (= attribute.extendedAttributes[_extAttrIdx].id "PutForwards") {
+          forwardId = attribute.extendedAttributes[_extAttrIdx].value
+        } else nop
+        _extAttrIdx = (+ _extAttrIdx 1)
+      }
       call _call6 = clo<"Set">(Q, forwardId, V, false)
       if (&& (? _call6: Completion) (! (= _call6.Type ~normal~))) {
         return _call6

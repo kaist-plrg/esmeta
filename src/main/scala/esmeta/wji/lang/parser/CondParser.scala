@@ -213,6 +213,13 @@ object CondParser:
     """(?si)^(\|[^|]+\|)\s+was\s+specified with\s+(?:the|an?)\s+\[\{\{([^}]+)\}\}\]\s+\[=extended attribute=\]$""".r
   private val SpecifiedWithAttrNeg =
     """(?si)^(\|[^|]+\|)\s+was not\s+specified with\s+(?:the|an?)\s+\[\{\{([^}]+)\}\}\]\s+\[=extended attribute=\]$""".r
+  // "X has a [{{Y}}] [=extended attribute=]" — another verb synonym of
+  // DeclaredWithAttrPos, seen only in `qualified name` (webidl/index.bs:807).
+  // Same subject/shape restrictions; routes to the same `declaredWithAttr`
+  // helper. Distinct from HasAnyMemberDeclaredWithAttr below ("has any
+  // [=member=] declared with ...").
+  private val HasAttrPos =
+    """(?si)^(\|[^|]+\|)\s+has\s+an?\s+\[\{\{([^}]+)\}\}\]\s+\[=extended attribute=\]$""".r
   // "the [{{Y}}] extended attribute was not specified on X" — DeclaredWithAttrNeg
   // with subject and attribute-name swapped (webidl_yet_categorized.md category
   // II-A's `#2-8`, webidl/index.bs:12093). Only this negative, reversed-order
@@ -764,6 +771,8 @@ object CondParser:
       declaredWithAttr(exprRaw, attrName)
     case SpecifiedWithAttrNeg(exprRaw, attrName) =>
       declaredWithAttr(exprRaw, attrName, negated = true)
+    case HasAttrPos(exprRaw, attrName) =>
+      declaredWithAttr(exprRaw, attrName)
     case AttrSpecifiedOnNeg(attrName, exprRaw) =>
       declaredWithAttr(exprRaw, attrName, negated = true)
     case HasAnyMemberDeclaredWithAttr(exprRaw, attrName) =>

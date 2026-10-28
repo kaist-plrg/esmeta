@@ -155,6 +155,17 @@ class CondParserSpec extends AnyFunSuite:
         negated = true,
       ),
     )
+    // "has a" — same search, `qualified name`'s phrasing
+    assert(
+      CondParser.parse(
+        "|interface| has a [{{LegacyNamespace}}] [=extended attribute=]",
+      ) ==
+      Any(
+        "ea",
+        List(Field(Var("interface"), "extendedAttributes")),
+        Eq(Field(Var("ea"), "id"), Str("LegacyNamespace")),
+      ),
+    )
   }
 
   test("in the set of inherited interfaces of an interface that ...") {

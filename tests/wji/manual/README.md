@@ -41,16 +41,19 @@ standalone 테스트입니다. 규칙은 하나: **모든 체크(동기든 비�
 
 ## `.wat`에서 `.js`용 바이트 만들기
 
-저장소 자체엔 WAT 컴파일러가 없습니다. 외부 `wat2wasm`(WABT 툴체인)이 PATH에
+저장소 자체엔 WAT 컴파일러가 없습니다. 외부 `wasm-tools`나 `wat2wasm`(WABT)이 PATH에
 있다면:
 
 ```
 tests/wji/scripts/wat2js tests/wji/manual/<name>.wat
 ```
 
-가 `new Uint8Array([...])` 스니펫을 stdout에 출력합니다 — 그걸 `.js` 테스트 케이스에
-직접 붙여넣으세요. 이건 저작 시점 편의 도구일 뿐 빌드 의존성이 아닙니다:
-`wat2wasm`이 없어도 `sbt compile`/`sbt test`엔 전혀 영향 없습니다.
+가 `new Uint8Array([...])` 스니펫을 stdout에 출력합니다. 그걸 `.js` 테스트 케이스에
+직접 붙여넣으세요. `wasm-tools`가 있으면 그걸 우선 쓰고, 없으면 `wat2wasm`으로
+대신합니다. GC 타입/명령어(`(array (mut i16))`, `array.new_default` 등)가 들어간
+모듈은 `wat2wasm`으로는 컴파일이 안 되니 `wasm-tools`가 필요합니다. 둘 다 컴파일할 수
+있는 모듈이면 출력 바이트는 같습니다. 이건 저작 시점 편의 도구일 뿐 빌드 의존성이
+아닙니다: 둘 다 없어도 `sbt compile`/`sbt test`엔 전혀 영향 없습니다.
 
 `.wat`을 수정했다면 `.js`에 inline된 바이트 배열도 손으로 다시 붙여넣어야
 합니다 — 이 두 파일이 서로 일치하는지 자동으로 검증하는 장치는 없습니다.
@@ -83,6 +86,40 @@ Node의 `WebAssembly` 구현으로 테스트 케이스마다 별도 프로세스
 잘못된 것 — WJI 쪽 문제라면 여기선 PASS하고 `wjiEvalTest`에서만
 실패/cancel돼야 정상입니다. Node가 PATH에 있어야 하고, `sbt
 compile`/`test`와는 무관한 별도 검증 도구입니다.
+
+## 실제 엔진 3종으로 교차검증하기 (differential testing)
+
+`wji-node-check`가 "테스트 케이스가 Node(V8) 기준으로 올바른가"를 확인하는 도구라면,
+`diff-engines`는 목적이 다릅니다 — **같은 테스트 파일을 V8/SpiderMonkey/JavaScriptCore
+세 엔진에 똑같이 돌려서, 서로 다른 결과가 나오면(DIVERGE) 그게 실제 엔진 버그일 수
+있다**는 걸 잡아내는 도구입니다. `tests/wji/scripts/install_engine/*.sh`로 세 엔진을
+미리 빌드해둬야 합니다:
+
+```
+tests/wji/scripts/diff-engines                              # manual/+complementary/ 전부
+tests/wji/scripts/diff-engines tests/wji/manual/foo.js       # 특정 테스트 케이스만
+tests/wji/scripts/diff-engines tests/wji/js-api/generated    # 디렉터리를 주면 재귀적으로 전부
+tests/wji/scripts/diff-engines --verbose                     # DIVERGE난 파일의 전체 출력도 같이 덤프
+```
+
+테스트 파일을 수정하거나 다른 코드와 합치지 않고 원본 그대로 각 엔진 바이너리에 넘겨
+실행합니다. PASS/FAIL 판정은 `__wjiOk`를 직접 읽는 게 아니라 "정상 종료 + stdout/stderr에
+`uncaught:`(모든 테스트 케이스의 `.catch(e => print("uncaught: " + e))` 컨벤션) 또는
+`FAIL `로 시작하는 줄(`tests/wji/js-api/generated/`의 `report-shim.js` 컨벤션) 없음"으로
+판단합니다 — 비동기 테스트도 엔진 프로세스 자신이 종료 전에 알아서 전부 드레인해주므로
+타이밍을 맞추는 별도 코드가 필요 없습니다. `$ENGINES_DIR`에서 못 찾은 엔진은 조용히
+스킵됩니다(하드 실패 아님).
+
+기본 대상(인자 없을 때)은 `manual/`+`complementary/`지만, 디렉터리를 인자로 주면 그 안의
+`*.js`를 재귀적으로 전부 모아서 돕니다 — 공식 `tests/wji/js-api/generated/`(이미
+self-contained라 그대로 돌아감, spectec 쪽 디렉터리 구조를 그대로 미러링해서
+`module/`/`table/`/`gc/`/... 서브디렉터리에 나뉘어 있음)도 위 예시처럼 디렉터리
+하나만 주면 전부 교차검증됩니다.
+
+**일부 DIVERGE는 진짜 버그가 아닐 수 있습니다** — 한쪽 엔진이 아직 해당 기능(특히
+js-string-builtins의 `builtins`/`importedStringConstants` 옵션처럼 비교적 최근/계속
+진화 중인 제안)을 완전히 구현 안 했을 수 있습니다. `--verbose`로 각 엔진의 실제 출력을
+보고 먼저 triage한 뒤, 진짜 버그로 보이면 `docs/engine_bugs.md`에 기록하세요.
 
 ## 아직 기계화가 안 된 부분에 막힌 테스트 케이스
 

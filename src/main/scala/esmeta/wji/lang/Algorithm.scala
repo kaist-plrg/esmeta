@@ -96,6 +96,15 @@ enum AlgorithmKind:
     */
   case NamespaceGetter(namespace: String)
 
+  /** an algorithm redefining a mainline ECMA-262 abstract operation, whose
+    * `<dfn>` names it by linking to that operation, e.g. "The <dfn
+    * id=HostResizeArrayBuffer export>abstract operation
+    * [=HostResizeArrayBuffer=]</dfn> ..." -- `name` is that operation's exact
+    * name, so the compiled function replaces the mainline one (see
+    * `esmeta.wji.util.MergeWithMainline`).
+    */
+  case Redefinition
+
 /** A formal parameter of an [[Algorithm]], as declared in its `head` prose.
   *
   * @param name
@@ -202,6 +211,14 @@ case class WjiParam(
   * which have no declared return type of their own to look up). Currently only
   * consumed to detect the single `"undefined"` case -- see
   * `esmeta.wji.compiler.lowering.AddInterfaceMemberBuiltinBehaviourPass.returnEpilogue`.
+  * @param alwaysReturnsCompletion
+  *   set by a pass that synthesizes (or repurposes) this algorithm for a caller
+  *   whose calling convention expects a Completion Record back, whether or not
+  *   this algorithm's own body can abruptly complete (e.g.
+  *   `AddJsStringBuiltinsPass`'s `js-string-X-steps`, called by
+  *   `AddBuiltinFunctionHostfuncPass`'s hostfunc). Seeds
+  *   `esmeta.wji.compiler.lowering.CompletionAlgorithms.compute`, which then
+  *   sets `returnsCompletion`.
   */
 case class Algorithm(
   id: Option[String],
@@ -213,4 +230,5 @@ case class Algorithm(
   returnsCompletion: Boolean = false,
   isBuiltinBehaviour: Boolean = false,
   idlReturnType: Option[String] = None,
+  alwaysReturnsCompletion: Boolean = false,
 )

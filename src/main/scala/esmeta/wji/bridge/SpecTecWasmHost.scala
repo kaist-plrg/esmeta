@@ -42,6 +42,20 @@ final class SpecTecWasmHost(connection: JsonRpcConnection) extends WasmHost:
     */
   private val nextHostFuncId = new AtomicLong(0)
 
+  /** The store most recently sent to SpecTec in full, and the id it was sent
+    * under. SpecTec keeps the same pair (server.ml's `cached_store`), so
+    * passing that very same store again sends only the id: stores only grow
+    * over a session, and resending them in full dominated RPC time.
+    */
+  private var lastStore: Option[(ALValue, Long)] = None
+
+  private def encodeStore(store: ALValue): Json = lastStore match
+    case Some((last, id)) if last eq store => Json.obj("cached" -> id.asJson)
+    case _ =>
+      val id = SpecTecWasmHost.nextStoreId.getAndIncrement()
+      lastStore = Some((store, id))
+      Json.obj("id" -> id.asJson, "value" -> store.asJson)
+
   // Serve reentrant `host_func_invoke` calls initiated by SpecTec: look up the
   // registered HostFunction by id, run it, and encode its result back.
   connection.onRequest {
@@ -116,7 +130,9 @@ final class SpecTecWasmHost(connection: JsonRpcConnection) extends WasmHost:
       name,
       throw new IllegalArgumentException(s"unknown embedding function: $name"),
     )
-    val fields = paramNames.zip(args).map((n, a) => n -> a.asJson)
+    val fields = paramNames.zip(args).map { (n, a) =>
+      n -> (if n == "store" then encodeStore(a) else a.asJson)
+    }
     request(name, Json.obj(fields*))
 
   /** Registers `hostFunc` in [[hostFunctions]] under a fresh id, then calls
@@ -135,8 +151,14 @@ final class SpecTecWasmHost(connection: JsonRpcConnection) extends WasmHost:
     request(
       "func_alloc",
       Json.obj(
-        "store" -> store.asJson,
+        "store" -> encodeStore(store),
         "deftype" -> defType.asJson,
         "hostfunc" -> hostfunc.asJson,
       ),
     )
+
+object SpecTecWasmHost:
+  /** Store ids are unique per JVM, not per host: every host on a connection
+    * shares the one SpecTec process, and so its one cached store.
+    */
+  private val nextStoreId = new AtomicLong(0)

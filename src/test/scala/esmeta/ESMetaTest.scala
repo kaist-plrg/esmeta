@@ -218,7 +218,7 @@ trait ESMetaTest extends funsuite.AnyFunSuite with BeforeAndAfterAll {
 }
 object ESMetaTest {
   // extract specifications
-  lazy val spec = Extractor()
+  lazy val spec = Extractor.default
   lazy val grammar = spec.grammar
   lazy val compiler = new Compiler(spec)
   lazy val program = compiler.result

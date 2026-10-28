@@ -22,7 +22,9 @@ case object Extract extends Phase[Unit, Spec] {
     cmdConfig: CommandConfig,
     config: Config,
   ): Spec = if (!config.repl) {
-    lazy val spec = Extractor(config.target, config.eval)
+    lazy val spec =
+      if (config.target.isEmpty && !config.eval) Extractor.default
+      else Extractor(config.target, config.eval)
     if (config.strict && config.log) warnInvalidPath(config.allowedYets)
     if (config.eval)
       time("extracting specification", spec)

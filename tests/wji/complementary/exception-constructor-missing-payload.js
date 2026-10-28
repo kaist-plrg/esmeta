@@ -9,7 +9,7 @@
 // arguments" side -- every exception/*.any.js subtest always supplies a
 // payload (even an empty array).
 //
-// Confirmed against real Node 24.2.0: `new WebAssembly.Exception(tag)`
+// Confirmed against real Node 26.12.1: `new WebAssembly.Exception(tag)`
 // throws a TypeError (message differs -- V8 treats the omitted `payload` as
 // `undefined` and reports "must be an iterable object" rather than WebIDL's
 // own "not enough arguments", but the observable TypeError is the same

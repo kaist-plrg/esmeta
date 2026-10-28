@@ -499,11 +499,13 @@ object CondParser:
     " >= " -> CompareOp.Ge,
     " <= " -> CompareOp.Le,
     " ≥ " -> CompareOp.Ge,
+    " ≤ " -> CompareOp.Le,
     " ⩾ " -> CompareOp.Ge,
     " > " -> CompareOp.Gt,
     " < " -> CompareOp.Lt,
     " &gt;= " -> CompareOp.Ge,
     " &lt;= " -> CompareOp.Le,
+    " &leq; " -> CompareOp.Le,
     " &gt; " -> CompareOp.Gt,
     " &lt; " -> CompareOp.Lt,
   )
@@ -933,11 +935,21 @@ object CondParser:
       )
       .orElse(findTopLevelAny(s, CompareOpSeps).map {
         case (i, op) =>
-          Compare(
-            ExprParser.parse(s.substring(0, i)),
-            NormalizeOp(op),
-            ExprParser.parse(s.substring(i + op.length)),
-          )
+          val lhs = ExprParser.parse(s.substring(0, i))
+          val rest = s.substring(i + op.length)
+          findTopLevelAny(rest, CompareOpSeps) match
+            // a chained comparison, e.g. "a ≤ |n| < b"
+            case Some((j, op2)) =>
+              val mid = ExprParser.parse(rest.substring(0, j))
+              And(
+                Compare(lhs, NormalizeOp(op), mid),
+                Compare(
+                  mid,
+                  NormalizeOp(op2),
+                  ExprParser.parse(rest.substring(j + op2.length)),
+                ),
+              )
+            case None => Compare(lhs, NormalizeOp(op), ExprParser.parse(rest))
       })
       .getOrElse(s match
         case IsTypeNeg(exprRaw, t) =>

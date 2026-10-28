@@ -127,6 +127,12 @@ object Expr:
   /** The length/size of a string, list, or map (entry count). */
   case class Length(expr: Expr) extends Expr
 
+  /** The keys of a map, as a list. Only produced by
+    * `esmeta.wji.compiler.lowering.ExpandForEachPass` for
+    * [[esmeta.wji.lang.Instr.ForEachEntry]].
+    */
+  case class Keys(map: Expr) extends Expr
+
   /** String concatenation of two or more parts, e.g. "X prefixed with LITERAL".
     * Compiles to mainline's `EVariadic(VOp.Concat, ...)` — the same op
     * `StringConcatExpression` and `manuals/rule.json`'s hand-written
@@ -268,6 +274,14 @@ object Expr:
     */
   case class Conditional(branches: List[(Cond, Expr)], otherwise: Option[Expr])
     extends Expr
+
+  /** "either A or B": a choice the spec leaves to the implementation, any of
+    * `options` being a valid result (e.g. `Exception`'s `[[Stack]]`, "either a
+    * {{DOMString}} representation of the current call stack or undefined").
+    * `esmeta.wji.compiler.lowering.ResolveChoicePass` picks one before
+    * `Compiler` ever sees it.
+    */
+  case class Choice(options: List[Expr]) extends Expr
 
   /** "a new [=byte sequence=] of [=byte sequence/length=] equal to LENGTH" — a
     * freshly allocated byte sequence of the given length (each byte 0, per the
@@ -529,6 +543,7 @@ object Expr:
       case Opt(inner)                 => inner.toList
       case Conditional(branches, otherwise) =>
         branches.map(_._2) ++ otherwise.toList
+      case Choice(options)             => options
       case GetMember(e, _, _)          => List(e)
       case ExtAttrArgument(_, subject) => subject.toList
       case Seq_(exprs)                 => exprs

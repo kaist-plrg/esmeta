@@ -7,16 +7,12 @@
 // exported-gc-object-reflection.js/exception-stack.js in this same
 // directory, this one wasn't just "uncalled by the official corpus": both
 // methods compiled but had no `manuals/intrinsics` property slot at all (see
-// docs/hardcodes.md #18's own trailing note, and personal/TODO.md #6) --
+// docs/hardcodes.md #18's own trailing note) --
 // genuinely unreachable from JS until that slot was added alongside this
 // test.
 //
-// Can't cross-check against real Node/V8 here the way other complementary
-// tests in this directory do -- `toFixedLengthBuffer`/`toResizableBuffer`
-// aren't implemented in any shipping engine yet (confirmed: Node 24.2.0
-// throws "mem.toFixedLengthBuffer is not a function"). Kept deliberately
-// close to the spec algorithms' own literal steps instead, to minimize the
-// risk of encoding a wrong expectation with no engine oracle to catch it.
+// Confirmed against real Node 26.12.1. JSC fails the no-maximum TypeError
+// check (docs/engine_bugs.md #5).
 function assertEq(actual, expected, msg) {
   if (actual !== expected)
     throw new Error(msg + ": expected " + expected + ", got " + actual);
@@ -26,7 +22,7 @@ const PAGE = 65536;
 
 // toFixedLengthBuffer() step 2: IsFixedLengthArrayBuffer(buffer) is true ->
 // return it as-is (a fresh Memory's [[BufferObject]] always starts fixed).
-const mem = new WebAssembly.Memory({ initial: 1, maximum: 3 });
+const mem = new WebAssembly.Memory({ initial: 1, maximum: 4 });
 const fixed = mem.toFixedLengthBuffer();
 assertEq(fixed, mem.buffer, "toFixedLengthBuffer on an already-fixed buffer returns it as-is");
 assertEq(fixed.resizable, false, "a fixed buffer must report resizable === false");
@@ -48,25 +44,59 @@ assertEq(threwForNoMax, true, "toResizableBuffer without a declared maximum must
 const resizable = mem.toResizableBuffer();
 assertEq(resizable.resizable, true, "toResizableBuffer's result must report resizable === true");
 assertEq(resizable.byteLength, PAGE, "resizable buffer starts at the memory's current size");
-assertEq(resizable.maxByteLength, 3 * PAGE, "maxByteLength must be declared maximum * page size");
+assertEq(resizable.maxByteLength, 4 * PAGE, "maxByteLength must be declared maximum * page size");
 assertEq(mem.buffer, resizable, "the Memory's own .buffer must now be the resizable one");
 
-// HostResizeArrayBuffer's WebAssembly-specific redefinition is *supposed* to
-// grow the underlying linear memory itself when a resizable buffer backed by
-// a Memory is resize()'d (index.bs:963-981), not just the JS-visible
-// ArrayBuffer -- observed through this *same* object growing in place,
-// unlike a plain Memory.prototype.grow()/the raw memory.grow instruction,
-// which both detach-and-replace .buffer instead. This only checks the
-// in-place-identity/byteLength part of that, which mainline's own default
-// HostResizeArrayBuffer fallback (CreateByteDataBlock + swap the fields of
-// the *same* object) already satisfies on its own, with no real connection
-// to wasm's actual memory -- it is NOT proof that the real linear memory grew
-// (`personal/TODO.md` #68: the WJI-compiled redefinition that would actually
-// do that is never invoked at all, a confirmed real bug, not a coverage gap
-// -- left unverified here on purpose rather than asserting something that's
-// currently false).
+// HostResizeArrayBuffer's WebAssembly-specific redefinition (index.bs:963-981)
+// grows the underlying linear memory itself, in place: the same buffer object
+// grows, and Memory.prototype.grow() then sees the new page count.
 resizable.resize(2 * PAGE);
 assertEq(resizable.byteLength, 2 * PAGE, "resize() grows byteLength in place");
-assertEq(mem.buffer.byteLength, 2 * PAGE, "mem.buffer (the same object) reflects the new byteLength too");
+assertEq(mem.buffer, resizable, "resize() keeps the same buffer object");
+assertEq(mem.grow(1), 2, "resize() must grow the real wasm memory, not just the buffer");
+
+// refresh the memory buffer's "Otherwise" branch (index.bs:884-894): growing
+// a Memory whose buffer is resizable updates that buffer in place.
+assertEq(mem.buffer, resizable, "grow() on a resizable-backed Memory keeps the same buffer");
+assertEq(resizable.byteLength, 3 * PAGE, "grow() updates the resizable buffer's byteLength");
+
+// HostResizeArrayBuffer step 1.3.1.3: a shrink or a non-page-multiple delta
+// throws RangeError.
+function throwsRangeError(f) {
+  try {
+    f();
+  } catch (e) {
+    return e instanceof RangeError;
+  }
+  return false;
+}
+assertEq(throwsRangeError(() => resizable.resize(2 * PAGE)), true, "shrinking must throw RangeError");
+assertEq(throwsRangeError(() => resizable.resize(3 * PAGE + 1)), true, "a non-page-multiple size must throw RangeError");
+assertEq(resizable.byteLength, 3 * PAGE, "a rejected resize() leaves byteLength unchanged");
+
+// toResizableBuffer() step 6: the buffer is already resizable -> returned as-is.
+assertEq(mem.toResizableBuffer(), resizable, "toResizableBuffer on an already-resizable buffer returns it as-is");
+
+// toFixedLengthBuffer() steps 3-7: converting back detaches the resizable
+// buffer and installs a new fixed-length one of the same size.
+const fixedAgain = mem.toFixedLengthBuffer();
+assertEq(fixedAgain === resizable, false, "toFixedLengthBuffer on a resizable buffer must create a new buffer");
+assertEq(fixedAgain.resizable, false, "the new buffer must be fixed-length");
+assertEq(fixedAgain.byteLength, 3 * PAGE, "the new fixed buffer keeps the memory's current size");
+assertEq(mem.buffer, fixedAgain, "the Memory's own .buffer must now be the fixed one");
+assertEq(resizable.detached, true, "the old resizable buffer must be detached");
+
+// Both methods are brand-checked: a non-Memory `this` throws TypeError.
+function throwsTypeError(f) {
+  try {
+    f();
+  } catch (e) {
+    return e instanceof TypeError;
+  }
+  return false;
+}
+const proto = WebAssembly.Memory.prototype;
+assertEq(throwsTypeError(() => proto.toFixedLengthBuffer.call({})), true, "toFixedLengthBuffer on a non-Memory must throw TypeError");
+assertEq(throwsTypeError(() => proto.toResizableBuffer.call({})), true, "toResizableBuffer on a non-Memory must throw TypeError");
 
 globalThis.__wjiOk = true;

@@ -14,6 +14,11 @@ import org.jsoup.nodes.*
 
 /** specification extractor from ECMA-262 */
 object Extractor:
+  /** the default specification, extracted once per JVM and shared: extracting
+    * patches `spec.html` in place, so two concurrent extractions would collide.
+    */
+  lazy val default: Spec = apply()
+
   /** extracts a specification */
   def apply(
     document: Document,

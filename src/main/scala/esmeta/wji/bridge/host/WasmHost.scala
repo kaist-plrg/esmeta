@@ -193,6 +193,12 @@ object WasmHost:
     "inv_signed_32" -> List("i"),
     // inv_signed_64(i: i64) : u64
     "inv_signed_64" -> List("i"),
+    // Also a Wasm Core spec numeric, for `ToWebAssemblyValue`'s NaN payload:
+    // `[=canon=]<sub>N</sub>`, per-width like signed_N. See server.ml's
+    // `call_canon`.
+    // canon_32() : nat / canon_64() : nat
+    "canon_32" -> Nil,
+    "canon_64" -> Nil,
   )
 
   /** The embedding function names this trait implements (`paramNames`'s keys,

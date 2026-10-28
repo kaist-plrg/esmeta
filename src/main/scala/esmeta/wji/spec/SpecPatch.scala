@@ -1662,6 +1662,24 @@ object SpecPatch:
     ->
     """1.  Return the result of [=converted to a JavaScript value|converting=] |R| to a
                 JavaScript value.""",
+
+    // #83 (spec inconsistency, docs/spec_inconsistencies.md #24) —
+    // `intoCharCodeArray`'s `ToWebAssemblyValue` call is the only one in this
+    // document that says nothing about failure (no `?`/`!`, no "if this
+    // throws" clause). It can't fail (`charCode` is always a Number), so `!`,
+    // as for the other can't-fail calls (e.g. index.bs:1185/1364).
+    "to [=ToWebAssemblyValue=](|charCode|, [=i32=])."
+    ->
+    "to [=!=] [=ToWebAssemblyValue=](|charCode|, [=i32=]).",
+
+    // #84 (spec bug, docs/spec_errors.md #43 and #44) — `ToWebAssemblyValue`'s
+    // NaN case writes `[=nan=](n)`: `n` is missing its `|...|` (#43), and
+    // `nan(n)` is a float *magnitude* (`fNmag`) while |f32|/|f64| needs a
+    // signed `fN` (#44). Fixed
+    // with the sign in the core spec's own rendering (`+nan(n)` is SpecTec's
+    // `POS (NAN n)`), positive as engines produce. Hits both the f32 and the
+    // f64 case.
+    "be [=nan=](n)." -> "be +[=nan=](|n|).",
   )
 
   def apply(source: String): String =

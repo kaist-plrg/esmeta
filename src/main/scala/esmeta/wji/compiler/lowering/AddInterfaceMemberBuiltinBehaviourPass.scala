@@ -243,5 +243,5 @@ object AddInterfaceMemberBuiltinBehaviourPass extends LoweringPass:
             params = builtinParams(a.kind),
             body = unpackArgumentsList(a.params) ++ a.body ++ returnEpilogue(a),
           )
-        case AlgorithmKind.Plain => a
+        case AlgorithmKind.Plain | AlgorithmKind.Redefinition => a
     }

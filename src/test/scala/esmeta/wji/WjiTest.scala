@@ -2,7 +2,6 @@ package esmeta.wji
 
 import esmeta.ESMetaTest
 import esmeta.cfg.CFG
-import esmeta.cfgBuilder.CFGBuilder
 import esmeta.interpreter.{Interpreter => EsInterpreter}
 import esmeta.ir.{Global, Program}
 import esmeta.state.{Bool, State, Str, Value}
@@ -12,6 +11,7 @@ import esmeta.wji.compiler.Compiler
 import esmeta.wji.compiler.lowering.Lowering
 import esmeta.wji.extractor.Extractor
 import esmeta.wji.spec.Spec
+import esmeta.wji.util.MergeWithMainline
 import org.scalatest.Assertions.*
 import scala.util.{Success, Try}
 
@@ -41,8 +41,7 @@ object WjiTest:
     * re-extracting/re-compiling the spec per test.
     */
   lazy val mergedCfg: CFG =
-    val mainline = ESMetaTest.cfg.program
-    CFGBuilder(Program(mainline.funcs ++ wjiProgram.funcs, mainline.spec))
+    MergeWithMainline(ESMetaTest.cfg.program, wjiProgram, spec.redefinedNames)
 
   /** names of every function WJI itself compiled (as opposed to a mainline
     * ECMA-262 one) — lets a caller (e.g. `WjiCoverage`) restrict a

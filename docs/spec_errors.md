@@ -600,3 +600,25 @@ Retracted — its premise was wrong. This entry claimed the Wasm Core Spec's `fu
   - https://github.com/tc39/ecma262/issues/2209 — how Web IDL should mark a `CreateBuiltinFunction` result as a constructor. The basis for using `MakeConstructor`, whose signature accepts a built-in function object.
 - Fixed via `SpecPatch` #78.
 
+## 43. `ToWebAssemblyValue`'s NaN case writes `[=nan=](n)` with `n` unpiped
+
+- **File**: `spectec/document/js-api/index.bs`, lines 1435 and 1443 (`ToWebAssemblyValue`'s f32 and f64 cases).
+- **Current**:
+  ```
+  1. Let |n| be an implementation-defined integer such that [=canon=]<sub>32</sub> &leq; |n| &lt; 2<sup>[=signif=](32)</sup>.
+  1. Let |f32| be [=nan=](n).
+  ```
+  (the f64 case is identical with 64 and |f64|)
+- **Expected**: `1. Let |f32| be [=nan=](|n|).` (and the same for |f64|)
+- **Reason**: `n` is the variable bound one line above as `|n|`, but is written without its `|...|`, so it reads as an unrelated bare word rather than that variable.
+
+  Fixed via `SpecPatch` #84, together with #44 on the same text.
+
+## 44. `ToWebAssemblyValue`'s NaN case assigns a float magnitude, `nan(n)`, where a signed float is needed
+
+- **File**: `spectec/document/js-api/index.bs`, lines 1435 and 1443 (same steps as #43).
+- **Current**: `1. Let |f32| be [=nan=](n).` (and the same for |f64|)
+- **Expected**: `1. Let |f32| be +[=nan=](|n|).` (and the same for |f64|; the `|n|` is #43)
+- **Reason**: in the Core Spec, `nan(n)` is a floating-point *magnitude* (`fNmag ::= ... | NAN(m)`), while a floating-point number is a signed magnitude (`fN ::= POS fNmag | NEG fNmag`, `specification/wasm-latest/1.1-syntax.values.spectec:46-55`, rendered `+fNmag`/`−fNmag`). So `nan(n)` alone is not an `f32`/`f64` value, and `[=f32.const=] |f32|` in the next step gets the wrong kind of value. This document already writes signed floats in the Core Spec's rendering (`[=+∞=]`, `[=−∞=]` in `ToJSValue`), so the sign is written the same way. Positive, since that is what engines produce when converting a JavaScript NaN (e.g. `0x7fc00000` for f32, the positive canonical NaN), and since the payload `n` is already the implementation-defined part.
+
+  Fixed via `SpecPatch` #84 (together with #43). Mechanizing the step also needed `ExprParser.SignedMagnitude` (a sign in front of a magnitude becomes `POS`/`NEG` around it), the NaN-payload range choice (`docs/hardcodes.md` #25), and `canon_N` exposed by the SpecTec server, the same way `signed_N` is.

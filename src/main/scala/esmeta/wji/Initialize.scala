@@ -16,7 +16,7 @@ import esmeta.wji.lang.{Param => WjiParam}
 import esmeta.wji.lang.ExtendedAttribute
 
 /** WJI runtime initialization, shared by every phase that runs compiled WJI IR
-  * against a live SpecTec process (`wji-eval`, `wji-interp`).
+  * against a live SpecTec process (`wji-eval`).
   *
   * Builds the SpecTec process/connection/[[SpecTecWasmHost]] and seeds the
   * agent's associated store: "Each agent has an associated store. When a new
@@ -396,12 +396,11 @@ object Initialize:
     * store" field in place, and returns the host + connection for the
     * interpreter run (the caller owns the connection and must close it).
     *
-    * For callers that only ever run ONE `State` per JVM run (`wji-eval`,
-    * `wji-interp` — see `esmeta.phase.WjiEval`/`WjiInterp`), one process per
-    * run is already optimal, so this just composes [[startProcess]] and the
-    * two-arg [[apply]] rather than something reused across calls — see
-    * `esmeta.wji.WjiTest`/`EvalSpec` for the multi-`State`-per-process case
-    * those were split out to support.
+    * For callers that only ever run ONE `State` per JVM run (`wji-eval`, see
+    * `esmeta.phase.WjiEval`), one process per run is already optimal, so this
+    * just composes [[startProcess]] and the two-arg [[apply]] rather than
+    * something reused across calls — see `esmeta.wji.WjiTest`/`EvalSpec` for
+    * the multi-`State`-per-process case those were split out to support.
     */
   def apply(st: State, spec: Spec): (SpecTecWasmHost, JsonRpcConnection) =
     val connection = startProcess()

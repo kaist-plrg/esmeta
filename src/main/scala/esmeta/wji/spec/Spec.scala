@@ -3,6 +3,7 @@ package esmeta.wji.spec
 import esmeta.util.ManualInfo
 import esmeta.wji.lang.{
   Algorithm,
+  AlgorithmKind,
   Anchor,
   Definition,
   DefinitionKind,
@@ -25,6 +26,13 @@ case class Spec(
 
   lazy val enumerationMap: Map[String, Enumeration] =
     enumerations.map(e => e.name -> e).toMap
+
+  /** names of the mainline functions this spec redefines */
+  lazy val redefinedNames: Set[String] =
+    algorithms
+      .filter(_.kind == AlgorithmKind.Redefinition)
+      .flatMap(_.name)
+      .toSet
 
   /** Registers every extracted interface *and* namespace as a dynamic subtype
     * of `"Object"` (see `esmeta.ty.TyModel.registerDynamicSubtype`) — fixes

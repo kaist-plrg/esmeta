@@ -1,6 +1,6 @@
 package esmeta.wji.compiler.lowering
 
-import esmeta.wji.lang.{Algorithm, Expr, Instr}
+import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr}
 import esmeta.wji.lang.walker.Walker
 
 /** Finalizes every `Expr.Case`'s `tag` into SpecTec's real runtime
@@ -221,6 +221,17 @@ object NormalizeSpecTecCaseShapePass extends LoweringPass:
     * the handful with mismatched nesting, its shape)
     */
   private object reshaper extends Walker:
+    // "|f32| is [=nan=]": any NaN, whatever its sign or payload -- a check of
+    // the magnitude's tag rather than an equality
+    override def walk(cond: Cond): Cond = cond match
+      case Cond.Eq(x, Expr.SpecTerm("nan"), negated) =>
+        Cond.Eq(
+          Expr.CaseTag(Expr.Index(walk(x), Expr.Num("0"))),
+          Expr.Str("NAN"),
+          negated,
+        )
+      case other => super.walk(other)
+
     override def walk(expr: Expr): Expr = expr match
       case Expr.TypeAnnotated(term, Expr.Seq_(args)) =>
         // `memtype`'s own grammar (`addrtype limits PAGE`) ends in a fixed
@@ -256,6 +267,9 @@ object NormalizeSpecTecCaseShapePass extends LoweringPass:
       // `Opt` either way -- nothing downstream needs to know "empty" was
       // ever a bare word at all.
       case Expr.SpecTerm("empty") => Expr.Opt(None)
+      // `[=+∞=]`/`[=−∞=]`: `fN`'s `POS`/`NEG` around the `INF` magnitude
+      case Expr.SpecTerm("+∞") => Expr.Case("POS", List(Expr.Case("INF", Nil)))
+      case Expr.SpecTerm("−∞") => Expr.Case("NEG", List(Expr.Case("INF", Nil)))
       case Expr.SpecTerm(ShorthandReftype(heaptype)) =>
         Expr.Case(
           "REF",

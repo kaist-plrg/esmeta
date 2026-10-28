@@ -10,11 +10,10 @@
 // never actually runs: its outer index starts at 1, and `1 < length` is false
 // for any list of length <= 1.
 //
-// No engine oracle here either (same situation as memory-resizable-buffer.js
-// in this directory): confirmed Node 24.2.0 returns `true` even for
-// `{ builtins: ["js-string", "js-string"] }` -- it doesn't implement this
-// option's validation at all yet. Kept to the spec's own literal, unambiguous
-// wording instead.
+// Node 26.12.1 can't confirm this: V8 returns `true` even for
+// `{ builtins: ["js-string", "js-string"] }`, never validating this option
+// (docs/engine_bugs.md #7). Cross-checked with tests/wji/scripts/diff-engines
+// instead: JSC passes.
 function assertEq(actual, expected, msg) {
   if (actual !== expected)
     throw new Error(msg + ": expected " + expected + ", got " + actual);

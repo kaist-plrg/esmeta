@@ -170,9 +170,19 @@ object AddBuiltinFunctionHostfuncPass extends LoweringPass:
               ),
             ),
           ),
+          // `steps` is always `alwaysReturnsCompletion` (see
+          // AddJsStringBuiltinsPass.stepsAlgo), so a normal result is still
+          // wrapped.
           List(
             Instr.Return(
-              Some(Expr.Tuple(List(Expr.Var("store"), Expr.Var("result")))),
+              Some(
+                Expr.Tuple(
+                  List(
+                    Expr.Var("store"),
+                    Expr.Field(Expr.Var("result"), "Value"),
+                  ),
+                ),
+              ),
             ),
           ),
         ),

@@ -1,5 +1,6 @@
 package esmeta.wji.compiler.lowering
 
+import esmeta.wji.bridge.host.WasmHost
 import esmeta.wji.lang.{Cond, Expr, Instr}
 import esmeta.wji.lang.Instr.PerformOutcome
 
@@ -55,17 +56,21 @@ import esmeta.wji.lang.Instr.PerformOutcome
   *
   * Kept as a plain object rather than folded into [[WrapCompletionReturnsPass]]
   * itself — mirrors [[CompletionAlgorithms]]'s own split from
-  * [[MarkCompletionAlgorithmsPass]] — because it has two independent callers
-  * that decide *which* algorithms need it in very different ways:
-  *   - [[WrapCompletionReturnsPass]] targets every `Algorithm` with
-  *     `returnsCompletion = true`, a whole-program fixed point over "can this
-  *     algorithm itself abruptly complete" (see [[CompletionAlgorithms]]).
-  *   - [[AddBuiltinBehaviourPass]] targets a `CreateBuiltinFunction`-behaviour
-  *     closure unconditionally, regardless of that fixed point (mainline's own
-  *     `esmeta.compiler.Compiler.compile`'s `Builtin => needRetComp = true` — a
-  *     calling-convention requirement, not a "can it throw" one), for an
-  *     `Algorithm` that didn't even exist yet when
-  *     `WrapCompletionReturnsPass`'s own `algos.map` ran.
+  * [[MarkCompletionAlgorithmsPass]]: this object is the rewrite logic itself,
+  * [[WrapCompletionReturnsPass]] is just the thin driver deciding *which*
+  * algorithms (every one with `returnsCompletion = true`, the whole-program
+  * fixed point over "can this algorithm itself abruptly complete" — see
+  * [[CompletionAlgorithms]]) to run it on, same division of labor as that other
+  * pair. [[AddBuiltinBehaviourPass]] does *not* call this directly, despite
+  * seeding `returnsCompletion = true` unconditionally for every
+  * `isBuiltinBehaviour` closure (mainline's own `esmeta.compiler.Compiler.
+  * compile`'s `Builtin => needRetComp = true` — a calling-convention
+  * requirement, not a "can it throw" one): it runs well before
+  * `MarkCompletionAlgorithmsPass` even stamps that flag (see
+  * `AddBuiltinBehaviourPass`'s own doc), so a closure it creates just reaches
+  * `WrapCompletionReturnsPass` later looking like any other algorithm with
+  * `returnsCompletion = true` — `WrapCompletionReturnsPass` really is this
+  * object's one and only caller today.
   */
 object CompletionWrapping:
 
@@ -89,20 +94,86 @@ object CompletionWrapping:
     * nested bodies, e.g. `Return(None, body)`'s `body` — those inner calls
     * reuse the same `Counter` passed down from here, rather than each getting
     * their own).
+    *
+    * `pureCallees`/`alwaysCompletionCallees` (both normalized, lowercased
+    * names) let this object's one caller, [[WrapCompletionReturnsPass]] — which
+    * runs well after [[MarkCompletionAlgorithmsPass]]'s fixed point, see this
+    * class's own doc — tell this pass about *other* WJI algorithms whose own
+    * completion-ness is already settled one way or the other: `pureCallees`
+    * names every algorithm proven to never itself return a Completion Record
+    * (`returnsCompletion = false`), `alwaysCompletionCallees` every algorithm
+    * proven to always return one (`returnsCompletion = true`, the exact
+    * complement — see [[CompletionAlgorithms]]'s own doc for what that fixed
+    * point actually establishes either way). Both default to empty for any
+    * future caller that can't supply them.
     */
-  def expandAlgorithm(instrs: List[Instr]): List[Instr] =
-    expand(instrs, Counter())
+  def expandAlgorithm(
+    instrs: List[Instr],
+    pureCallees: Set[String] = Set.empty,
+    alwaysCompletionCallees: Set[String] = Set.empty,
+  ): List[Instr] =
+    expand(
+      instrs,
+      Counter(),
+      pureCallees = pureCallees,
+      alwaysCompletionCallees = alwaysCompletionCallees,
+    )
+
+  /** Native WebIDL conversions that never produce a Completion Record --
+    * neither a WJI `Algorithm` nor an ECMA-262 abstract operation, so neither
+    * `pureCallees`' fixed point nor `EcmaAbstractOps` covers them:
+    *
+    *   - `converted_to_a_javascript_value` (see `WebIdlConversion.scala`'s own
+    *     doc: "can't throw either ... and was never affected by the
+    *     completion-wrapping question"). Its sibling
+    *     `converted_to_an_idl_value` is deliberately *not* here: that one
+    *     genuinely can be abrupt (a required dictionary member found absent, an
+    *     invalid enum value, a getter that itself throws), unlike this one.
+    */
+  private val neverCompletionNatives: Set[String] =
+    Set("converted_to_a_javascript_value")
+
+  /** Whether a `Perform`/`PerformClosure` call target `func` (still in its
+    * original, possibly-bracketed link-text form -- see
+    * [[CompletionAlgorithms.normalize]]'s own doc) is known, one way or the
+    * other, to never itself produce a Completion Record. An embedding function
+    * (`WasmHost.names`) returns a Wasm value from SpecTec, never one.
+    */
+  private def isProvablyPure(func: String, pureCallees: Set[String]): Boolean =
+    val name = CompletionAlgorithms.normalize(func)
+    pureCallees.contains(name) || neverCompletionNatives.contains(name) ||
+    WasmHost.names.contains(name)
+
+  /** The mirror image of [[isProvablyPure]]: whether `func` is a WJI algorithm
+    * already proven to *always* return a Completion Record. No native-routine
+    * allowlist here the way [[neverCompletionNatives]] backs the pure side --
+    * `converted_to_an_idl_value` (the one native conversion that can genuinely
+    * be abrupt) returns a *plain* value on its ordinary success path, only a
+    * real `ThrowCompletion` on failure (see `WebIdlConversion.scala`'s own
+    * doc), so it's dual-shaped rather than always-wrapped and doesn't qualify
+    * either way -- "always a Completion Record no matter what" only actually
+    * holds for a WJI `Algorithm` [[WrapCompletionReturnsPass]] itself wrapped.
+    */
+  private def isProvablyCompletion(
+    func: String,
+    alwaysCompletionCallees: Set[String],
+  ): Boolean =
+    alwaysCompletionCallees.contains(CompletionAlgorithms.normalize(func))
 
   /** `expr`'s own constructor already fixes its compiled runtime type to
     * something other than a Completion Record, regardless of what any nested
     * sub-expression evaluates to -- so a `Cond.IsType(_, "Completion")` check
-    * on it can never be true. Deliberately narrow (a fixed list of
-    * constructors, not a general "does this ever produce a completion"
-    * analysis) and conservative: every one of these compiles straight to a
-    * definite ECMAScript/Math/List/record value (see `Compiler`'s own cases for
-    * `Bool`/`Num`/`Str`/`Byte`/`AsMath`/`List_`/`RecordLit`, and
-    * `SpecTerm("true"|"false"|"null"|"undefined")`'s direct
-    * `EBool`/`ENull`/`EUndef` compilation).
+    * on it can never be true. Decided per constructor (not a general "does this
+    * ever produce a completion" analysis), by what `Compiler` turns each one
+    * into: a `true` case compiles straight to a definite
+    * ECMAScript/Math/List/record value.
+    *
+    * `SpecTerm` is safe whatever its name: every one of `Compiler`'s `SpecTerm`
+    * cases yields a literal (`true`/`null`/...), a Realm/Agent record, a
+    * symbol, or otherwise an `EEnum` (e.g. `~handled~`), never a Completion
+    * Record. Likewise `Length`/`Keys`/`Concat`/`BinOp`/`Pow`/`Neg`/`Enum`
+    * compile to `ESizeOf`/`EKeys`/`EVariadic(Concat)`/arithmetic/`EEnum`, i.e.
+    * a number, list, string, or enum.
     *
     * `RecordLit(tname, _)`/`New(iface)` are safe for the same reason a
     * `pure`-tracked `Var` bound to one survives arbitrary intervening calls
@@ -134,18 +205,65 @@ object CompletionWrapping:
     * one -- this is what actually lets `addressvaluetou64`'s `Return(Some
     * (AsWasm(AsMath(Var(n)), "u64")))` match here, not a special case of its
     * own.
+    *
+    * A container read (`Field`/`Index`/`TupleProj`) is safe regardless of its
+    * base: a Completion Record only ever carries a call's own outcome, from
+    * that call to the `?`/`!`/guard that unwraps it, and is never stored inside
+    * a list, record or map. Spec text doing so would be an editorial slip, not
+    * something to mechanize (ECMA-262 does it in a few async machinery records
+    * like `AsyncGeneratorRequest.[[Completion]]`, none of which WJI's own
+    * algorithms touch). That also covers a Completion Record's own `[[Value]]`,
+    * always the real payload, never another Completion Record.
     */
-  private def neverCompletion(expr: Expr): Boolean = expr match
-    case _: Expr.Bool | _: Expr.Num | _: Expr.Str | _: Expr.Byte => true
-    case Expr.SpecTerm("true" | "false" | "null" | "undefined")  => true
-    case _: Expr.AsMath                                          => true
-    case _: Expr.List_                                           => true
-    case _: Expr.RecordLit                                       => true
-    case _: Expr.New                                             => true
-    case _: Expr.Case                                            => true
-    case _: Expr.Tuple                                           => true
-    case Expr.AsWasm(inner, _) => neverCompletion(inner)
-    case _                     => false
+  // Deliberately exhaustive (no `case _`): a new `Expr` constructor gets a
+  // non-exhaustive-match warning here instead of silently defaulting either
+  // way. When unsure, answer `false`: that only leaves a dead check behind,
+  // while a wrong `true` would double-wrap a real completion.
+  private def neverCompletion(
+    expr: Expr,
+    pure: Set[Expr] = Set.empty,
+  ): Boolean = expr match
+    // literals / enums
+    case _: Expr.Num | _: Expr.Bool | _: Expr.Str | _: Expr.Byte => true
+    case _: Expr.SpecTerm | _: Expr.Enum                         => true
+    // value constructors
+    case _: Expr.List_ | _: Expr.Map_ | _: Expr.RecordLit | _: Expr.New => true
+    case _: Expr.Case | _: Expr.Tuple | _: Expr.Closure | _: Expr.AlgoRef =>
+      true
+    // operations / conversions
+    case _: Expr.Length | _: Expr.Keys | _: Expr.Concat | _: Expr.CaseTag =>
+      true
+    case _: Expr.BinOp | _: Expr.Pow | _: Expr.Neg            => true
+    case _: Expr.AsMath | _: Expr.AsNumber | _: Expr.AsBigInt => true
+    // transparent wrappers: as safe as what they wrap
+    case Expr.AsWasm(inner, _)           => neverCompletion(inner, pure)
+    case Expr.TypeAnnotated(_, inner)    => neverCompletion(inner, pure)
+    case Expr.WasmFloatPayload(_, inner) => neverCompletion(inner, pure)
+    case Expr.Opt(inner) => inner.forall(neverCompletion(_, pure))
+    case Expr.Conditional(branches, otherwise) =>
+      branches.forall((_, e) => neverCompletion(e, pure)) &&
+      otherwise.forall(neverCompletion(_, pure))
+    // container reads: no Completion Record is ever stored in a container
+    case _: Expr.Field | _: Expr.Index | _: Expr.TupleProj => true
+    case _: Expr.Intrinsic | _: Expr.Symbol                => true
+    // variables: proven by `pure` (see `expand`), e.g. `r` in `AsWasm(r, u64)`
+    case e @ (_: Expr.Var | Expr.This | Expr.GivenValue | Expr.ArgumentsList |
+        Expr.NewTarget) =>
+      pure.contains(e)
+    // calls
+    case _: Expr.AlgoCall | _: Expr.JSCall | _: Expr.ClosureCall => false
+    case _: Expr.MethodCall                                      => false
+    case _: Expr.Abrupt                                          => false
+    // not yet mechanized (`EYet`)
+    case _: Expr.Unknown | _: Expr.UnknownNew | _: Expr.Described => false
+    case _: Expr.SuchThat | _: Expr.Seq_                          => false
+    // should already be lowered away by this point
+    case _: Expr.Link | _: Expr.FollowingSteps | _: Expr.GetMember => false
+    case _: Expr.Choice | _: Expr.ExtAttrArgument | Expr.Pronoun   => false
+    case _: Expr.NewByteSequence | _: Expr.DataBlockOf             => false
+    case Expr.NewArrayBuffer                                       => false
+    case _: Expr.Range | _: Expr.IndexOf | _: Expr.ShortestArgumentList =>
+      false
 
   /** `cond`, as an `IfChain` branch's own condition, already proves `e`
     * [[IsType is a Completion/AbruptCompletion]] for every instruction inside
@@ -159,11 +277,73 @@ object CompletionWrapping:
     case Cond.IsType(e, "AbruptCompletion" | "Completion", false) => Set(e)
     case _                                                        => Set.empty
 
+  /** Type names from `Cond.IsType` known, via `esmeta.ty`'s own type lattice,
+    * to be disjoint from `Completion` -- a value proven to have one of these
+    * types can therefore never itself be a Completion Record. Limited to the
+    * subset of `esmeta.wji.compiler.Compiler.typeOf`'s own type-name table
+    * whose `esmeta.ty` singleton sets a single, independent `ValueTy` field and
+    * leaves every other field (including `record`, the one field `CompT` itself
+    * sets) at `Bot` -- `ValueTy.isBottom`'s own field-by-field definition makes
+    * their meet with `CompT` `Bot` componentwise, hence disjoint. Deliberately
+    * excludes `"Object"`: `ObjectT = RecordT("Object")` is, like `CompT`,
+    * itself `record`-based, and this pipeline hasn't independently confirmed
+    * the two `RecordTy`s don't overlap the way it has for these three.
+    */
+  private val disjointFromCompletionTypes: Set[String] =
+    Set("String", "Number", "BigInt")
+
+  /** What a single `IfChain` branch condition `cond` proves once control has
+    * passed *all the way by* that `IfChain` -- used in [[expand]]'s own
+    * sibling-instruction fold, not inside the branch itself (contrast
+    * [[provenCompletion]]), since the spec idiom this targets ("If |v| [=is not
+    * a String=], Throw ...." followed by a *separate* numbered step "Return
+    * |v|.") parses as two flat sibling `Instr`s -- an `IfChain` whose one
+    * branch is `(Cond.IsType(v, "String", negated = true), [Throw(...)])` with
+    * an empty `fallback`, then a `Return(Some(Var(v)))` right after it -- not
+    * one `IfChain` whose `fallback` already contains the `Return` (see
+    * [[terminatesControlFlow]]'s own doc for why that distinction is what makes
+    * this a fold-level fact rather than a branch-recursion one). `cond` being
+    * `Cond.IsType(e, tname, negated = true)` for a `tname`
+    * [[disjointFromCompletionTypes]] covers means: having passed this `IfChain`
+    * at all, `cond` must have tested false, so `e` really *is* that type after
+    * all -- e.g. `unwrapstring`'s own branch: reaching its `Return(v)` means
+    * `v` already passed the "is not a String" check, so it really is a String,
+    * hence never a Completion, proving the later `(? v: Completion)` dead the
+    * same way [[neverCompletion]] would for a literal of fixed shape.
+    */
+  private def provenNeverCompletionPastBranch(cond: Cond): Set[Expr] =
+    cond match
+      case Cond.IsType(e, tname, true)
+          if disjointFromCompletionTypes.contains(tname) =>
+        Set(e)
+      case _ => Set.empty
+
+  /** Whether every control-flow path through `body` ends in a `Throw`/ `Return`
+    * -- conservatively checked by just `body`'s own last instruction, not a
+    * full reachability analysis (a `body` whose last instruction is itself an
+    * `IfChain` isn't recursed into, so this can under- but never
+    * over-approximate "always terminates"). Used by [[expand]]'s fold to decide
+    * whether an `IfChain` instruction's *own* branch conditions are safe to
+    * treat as "proven false" for whatever sibling instruction comes right after
+    * it in the same flat list -- sound only when *every* branch is guaranteed
+    * to never fall through to that next sibling itself (if a branch could fall
+    * through, reaching the next sibling wouldn't prove that branch's own
+    * condition was false, since it might have been true and simply continued
+    * on).
+    */
+  private def terminatesControlFlow(body: List[Instr]): Boolean =
+    body.lastOption.exists {
+      case _: Instr.Throw | _: Instr.Return => true
+      case _                                => false
+    }
+
   private def expand(
     instrs: List[Instr],
     counter: Counter,
     known: Set[Expr] = Set.empty,
     pure: Set[Expr] = Set.empty,
+    pureCallees: Set[String] = Set.empty,
+    alwaysCompletionCallees: Set[String] = Set.empty,
   ): List[Instr] =
     // a left-to-right fold, not a plain `flatMap` with a single shared
     // `known`/`pure` -- a `Let`/`Set` reassigning one of their vars partway
@@ -172,62 +352,139 @@ object CompletionWrapping:
     // pass currently reassigns a var `provenCompletion` tracked --
     // ExpandAbruptPass's own branch body is always the single instruction
     // `[Return(inner)]` -- this keeps that invariant enforced structurally
-    // rather than merely assumed). `pure` additionally *gains* a var right
-    // here, the moment a `Let` binds it to a `neverCompletion` expr (e.g.
-    // `Let(global, RecordLit("Global", _))`) -- unlike `known`, which only
-    // ever shrinks (nothing produces new completion-proofs mid-list; those
-    // only ever come from an enclosing `IfChain`'s own condition, see
-    // [[provenCompletion]]).
+    // rather than merely assumed). `pure` *gains* a var the moment a `Let`
+    // *or* `Set` binds it to a `neverCompletion` expr (e.g. `Let(global,
+    // RecordLit("Global", _))`, or `Set(This, New(iface))` -- the latter is
+    // exactly how `AddInterfaceMemberBuiltinBehaviourPass.createThisBinding`
+    // seeds every WebIDL constructor's `**this**`, a reassignment of an
+    // existing param rather than a fresh `Let`, but `neverCompletion(rhs)`
+    // already proves the same thing about the *value* regardless of which
+    // instruction wrote it), a `Perform` binds it to the result of a
+    // provably-pure callee (see [[isProvablyPure]]), or an `IfChain` whose
+    // every branch is proven to terminate control flow (see
+    // [[terminatesControlFlow]]) is itself the instruction just folded over --
+    // reaching whatever comes right after it proves each of its own branch
+    // conditions false (see [[provenNeverCompletionPastBranch]]); `known`
+    // *also* gains a
+    // var now, the mirror case -- a `Perform` binding the result of a callee
+    // already proven to *always* return a Completion Record (see
+    // [[isProvablyCompletion]]) -- on top of its original source (an
+    // enclosing `IfChain`'s own condition, see [[provenCompletion]]).
+    // `pureCallees`/`alwaysCompletionCallees` themselves never change across
+    // the fold -- just threaded through unchanged, same as into every
+    // recursive `expand` call in `expandInstr` below.
     instrs
       .foldLeft((List.empty[Instr], known, pure)) {
         case ((acc, k, p), instr) =>
-          val clearedP = invalidate(p, instr)
-          val nextP = instr match
-            case Instr.Let(lhs, rhs, _) if neverCompletion(rhs) =>
-              clearedP + lhs
-            case _ => clearedP
+          val nextP = nextPure(p, instr, pureCallees)
+          val clearedK = invalidate(k, instr)
+          val nextK = instr match
+            case Instr.Perform(func, _, PerformOutcome.BindResult(v), _, _)
+                if isProvablyCompletion(func, alwaysCompletionCallees) =>
+              clearedK + Expr.Var(v)
+            case _ => clearedK
           (
-            acc ++ expandInstr(instr, counter, k, p),
-            invalidate(k, instr),
+            acc ++ expandInstr(
+              instr,
+              counter,
+              k,
+              p,
+              pureCallees,
+              alwaysCompletionCallees,
+            ),
+            nextK,
             nextP,
           )
       }
       ._1
 
-  /** Every name `instr` itself rebinds -- `Let`/`Set`'s own `lhs`,
-    * `Perform`/`PerformClosure`'s `PerformOutcome.BindResult(name)` (e.g. a
-    * `call-convert`'s `name = <converted_to_a_javascript_value>(name)`, which
-    * reassigns `name` in place), and `Pop`'s `lhs`. Recurses into `instr`'s own
-    * nested body -- needed since `expand`'s fold only ever sees sibling
-    * instructions at one level: a `While`/`ForEach`/... loop body that
-    * reassigns a var partway through (e.g. `js-string-fromcharcodearray`'s `let
-    * result = ""` before the loop, then `let result = (concat result
-    * charCodeString)` *inside* it) must still invalidate that var for whatever
-    * comes *after* the whole loop, even though the loop itself is a single
-    * opaque sibling as far as the outer fold is concerned. `IfChain` needs its
-    * own case since its `body` is always `Nil` (its real nested instructions
-    * live in `branches`/`fallback` instead, see its own doc). Over-collecting
-    * here (treating a name as "reassigned" when it's actually a fresh,
-    * branch-local `Let` that only shadows outer scope) is harmless -- it just
-    * forgoes an optimization, never produces a wrong one -- so this never needs
-    * to distinguish the two.
+  /** The `pure` set right after `instr` runs, given `p` right before it.
+    *
+    * Past an `IfChain` whose every branch exits (e.g. `ExpandAbruptPass`'s `if
+    * (x is abrupt) return x; else let v = x.Value`), control must have come
+    * through the fallback with every branch condition false, so the result is
+    * exactly the fallback's own effect, starting from `p` plus what those false
+    * conditions prove (see [[provenNeverCompletionPastBranch]]).
+    *
+    * Otherwise a var only loses `pure` if `instr` (or anything nested in it,
+    * e.g. a loop body) may assign it a value not provably pure. Nested pure
+    * reassignments keep it pure if it already was: a loop running zero times
+    * leaves the old value, otherwise the last write is pure.
+    */
+  private def nextPure(
+    p: Set[Expr],
+    instr: Instr,
+    pureCallees: Set[String],
+  ): Set[Expr] = instr match
+    case i: Instr.IfChain
+        if i.branches.forall((_, b) => terminatesControlFlow(b)) =>
+      val facts =
+        i.branches.flatMap((c, _) => provenNeverCompletionPastBranch(c))
+      i.fallback.foldLeft(p ++ facts)(nextPure(_, _, pureCallees))
+    case _ =>
+      val impure = impurelyReassignedVars(instr, pureCallees)
+      val cleared = p -- impure
+      pureAssignment(instr, pureCallees)
+        .filterNot(impure)
+        .fold(cleared)(cleared + _)
+
+  /** The name `instr` itself (not anything nested in it) rebinds, if any:
+    * `Let`/`Set`'s `lhs`, `Perform`/`PerformClosure`'s `BindResult(name)` (e.g.
+    * a `call-convert` reassigning `name` in place), `Pop`'s `lhs`.
+    */
+  private def directlyAssigned(instr: Instr): Option[Expr] = instr match
+    case Instr.Let(lhs, _, _) => Some(lhs)
+    case Instr.Set(lhs, _, _) => Some(lhs)
+    case Instr.Perform(_, _, PerformOutcome.BindResult(v), _, _) =>
+      Some(Expr.Var(v))
+    case Instr.PerformClosure(_, _, PerformOutcome.BindResult(v), _) =>
+      Some(Expr.Var(v))
+    case Instr.Pop(lhs, _, _) => Some(lhs)
+    case _                    => None
+
+  /** `directlyAssigned(instr)`, if the value it assigns is provably never a
+    * Completion Record.
+    */
+  private def pureAssignment(
+    instr: Instr,
+    pureCallees: Set[String],
+  ): Option[Expr] = instr match
+    case Instr.Let(lhs, rhs, _) if neverCompletion(rhs) => Some(lhs)
+    case Instr.Set(lhs, rhs, _) if neverCompletion(rhs) => Some(lhs)
+    case Instr.Perform(func, _, PerformOutcome.BindResult(v), _, _)
+        if isProvablyPure(func, pureCallees) =>
+      Some(Expr.Var(v))
+    case _ => None
+
+  /** `instr`'s own nested instructions. `IfChain` needs its own case since its
+    * `body` is always `Nil` (see its own doc).
+    */
+  private def nestedInstrs(instr: Instr): List[Instr] = instr match
+    case i: Instr.IfChain => i.branches.flatMap(_._2) ++ i.fallback
+    case _                => instr.body
+
+  /** Every name `instr` or anything nested in it rebinds. Recursing matters
+    * since `expand`'s fold only sees one level: a loop body reassigning a var
+    * must still count for whatever comes after the whole loop. Over-collecting
+    * a branch-local `Let` that merely shadows is harmless (a missed
+    * optimization, never a wrong one).
     */
   private def reassignedVars(instr: Instr): Set[Expr] =
-    val direct: Set[Expr] = instr match
-      case Instr.Let(lhs, _, _) => Set(lhs)
-      case Instr.Set(lhs, _, _) => Set(lhs)
-      case Instr.Perform(_, _, PerformOutcome.BindResult(v), _, _) =>
-        Set(Expr.Var(v))
-      case Instr.PerformClosure(_, _, PerformOutcome.BindResult(v), _) =>
-        Set(Expr.Var(v))
-      case Instr.Pop(lhs, _, _) => Set(lhs)
-      case _                    => Set.empty
-    val nested = instr match
-      case i: Instr.IfChain =>
-        i.branches.flatMap((_, b) => b.flatMap(reassignedVars)).toSet
-        ++ i.fallback.flatMap(reassignedVars)
-      case _ => instr.body.flatMap(reassignedVars).toSet
-    direct ++ nested
+    directlyAssigned(instr).toSet ++ nestedInstrs(instr).flatMap(reassignedVars)
+
+  /** Like [[reassignedVars]], but only names assigned a value *not* provably
+    * pure somewhere in `instr`. E.g. for `js-string-fromcharcodearray`'s loop
+    * `while ... { let result = (concat result c) }`, `result` isn't included.
+    */
+  private def impurelyReassignedVars(
+    instr: Instr,
+    pureCallees: Set[String],
+  ): Set[Expr] =
+    val direct = directlyAssigned(instr)
+      .filter(_ => pureAssignment(instr, pureCallees).isEmpty)
+    direct.toSet ++ nestedInstrs(instr).flatMap(
+      impurelyReassignedVars(_, pureCallees),
+    )
 
   private def invalidate(known: Set[Expr], instr: Instr): Set[Expr] =
     known -- reassignedVars(instr)
@@ -237,6 +494,8 @@ object CompletionWrapping:
     counter: Counter,
     known: Set[Expr],
     pure: Set[Expr],
+    pureCallees: Set[String],
+    alwaysCompletionCallees: Set[String],
   ): List[Instr] =
     instr match
       // a "the following steps..." closure's substeps are a separate
@@ -290,16 +549,15 @@ object CompletionWrapping:
       // at 0 hits, e.g. the nine `[[...]] internal method of an exported GC
       // object` algorithms, personal/coverage-gaps.md). Skipping the check
       // entirely avoids generating it in the first place, rather than
-      // emitting then eliminating it with a separate pass. `pure.contains
-      // (expr)` is the same proof, just reached indirectly: `expr` is a `Var`
+      // emitting then eliminating it with a separate pass. `pure` gives the
+      // same proof for a variable, just reached indirectly: `expr` is a `Var`
       // most recently bound (in this same flat instruction list) to a
       // `neverCompletion` expr, with no reassignment since -- e.g. `Let(global,
       // RecordLit("Global", _)); Perform("initialize_a_global_object", [global,
       // ...], BindResult(_)); Return(global)` (the intervening call only
       // mutates `global`'s *fields*, never its type tag, so the proof survives
       // it -- see `neverCompletion`'s own doc on `RecordLit`).
-      case Instr.Return(Some(expr), _)
-          if neverCompletion(expr) || pure.contains(expr) =>
+      case Instr.Return(Some(expr), _) if neverCompletion(expr, pure) =>
         val ret = counter.freshRet()
         List(
           Instr.Perform(
@@ -347,7 +605,17 @@ object CompletionWrapping:
             List(Expr.SpecTerm("unused")),
             PerformOutcome.BindResult(ret),
           ),
-          Instr.Return(Some(Expr.Var(ret)), expand(body, counter, known, pure)),
+          Instr.Return(
+            Some(Expr.Var(ret)),
+            expand(
+              body,
+              counter,
+              known,
+              pure,
+              pureCallees,
+              alwaysCompletionCallees,
+            ),
+          ),
         )
       // Not handled via the generic `mapBody` catch-all below (unlike every
       // other `Instr`) -- `mapBody` applies one function uniformly to every
@@ -357,10 +625,38 @@ object CompletionWrapping:
         List(
           i.copy(
             branches = i.branches.map((c, b) =>
-              (c, expand(b, counter, known ++ provenCompletion(c), pure)),
+              (
+                c,
+                expand(
+                  b,
+                  counter,
+                  known ++ provenCompletion(c),
+                  pure,
+                  pureCallees,
+                  alwaysCompletionCallees,
+                ),
+              ),
             ),
-            fallback = expand(i.fallback, counter, known, pure),
+            fallback = expand(
+              i.fallback,
+              counter,
+              known,
+              pure,
+              pureCallees,
+              alwaysCompletionCallees,
+            ),
           ),
         )
       case other =>
-        List(other.mapBody(expand(_, counter, known, pure)))
+        List(
+          other.mapBody(
+            expand(
+              _,
+              counter,
+              known,
+              pure,
+              pureCallees,
+              alwaysCompletionCallees,
+            ),
+          ),
+        )

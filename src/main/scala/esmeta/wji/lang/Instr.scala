@@ -76,6 +76,14 @@ object Instr:
     body: List[Instr],
   ) extends Instr
 
+  /** `[=map/iterate|For each=] KEY &rarr; VALUE in MAP, ...` -- WHATWG Infra's
+    * map iteration, distinct from [[ForEach]]'s list iteration (Infra's
+    * `list/iterate`). Fully eliminated by
+    * `esmeta.wji.compiler.lowering.ExpandForEachPass`.
+    */
+  case class ForEachEntry(key: Expr, value: Expr, map: Expr, body: List[Instr])
+    extends Instr
+
   /** `For ELEM in COLLECTION, ...` — distinct from [[ForEach]] since the spec
     * phrases it without "each" (e.g. "For |i| in [=the range=] |offset| to
     * |offset| + |length| &minus; 1, inclusive, ..."). `collection` is commonly
@@ -234,6 +242,7 @@ object Instr:
       case i: Throw          => i.copy(body = f(i.body))
       case i: ForEach        => i.copy(body = f(i.body))
       case i: ForEachPaired  => i.copy(body = f(i.body))
+      case i: ForEachEntry   => i.copy(body = f(i.body))
       case i: For            => i.copy(body = f(i.body))
       case i: While          => i.copy(body = f(i.body))
       case i: RunInParallel  => i.copy(body = f(i.body))

@@ -224,6 +224,16 @@ object Compiler:
             retTy = UnknownType,
             body = body,
           )
+        // exact case, to replace the mainline function of the same name
+        case AlgorithmKind.Redefinition =>
+          Func(
+            main = false,
+            kind = FuncKind.AbsOp,
+            name = name,
+            params = params,
+            retTy = UnknownType,
+            body = body,
+          )
     }
 
   // ── Instruction sequence ─────────────────────────────────────────────────────
@@ -299,6 +309,8 @@ object Compiler:
     // stops holding.
     case i: Instr.ForEachPaired =>
       impossible(s"ForEachPaired not eliminated by ExpandForEachPass: $i")
+    case i: Instr.ForEachEntry =>
+      impossible(s"ForEachEntry not eliminated by ExpandForEachPass: $i")
 
     case Instr.For(elem, collection, body) =>
       // TODO: proper counting loop — needs a real IWhile over the collection
@@ -451,6 +463,9 @@ object Compiler:
     case metalang.Expr.SpecTerm("false")     => EBool(false)
     case metalang.Expr.SpecTerm("null")      => ENull()
     case metalang.Expr.SpecTerm("undefined") => EUndef()
+    case metalang.Expr.SpecTerm("NaN")       => ENumber(Double.NaN)
+    case metalang.Expr.SpecTerm("+∞𝔽")      => ENumber(Double.PositiveInfinity)
+    case metalang.Expr.SpecTerm("-∞𝔽")      => ENumber(Double.NegativeInfinity)
     // "the current Realm Record" (ECMA-262 9.4 Execution Contexts): the Realm
     // component of the running execution context, i.e. the top frame of the
     // execution context stack. Mirrors `esmeta.compiler.currentRealm`.
@@ -501,6 +516,7 @@ object Compiler:
     case metalang.Expr.Enum(s)      => EEnum(s)
     case metalang.Expr.List_(elems) => EList(elems.map(compileExpr))
     case metalang.Expr.Length(e)    => ESizeOf(compileExpr(e))
+    case metalang.Expr.Keys(map)    => EKeys(compileExpr(map), false)
     case metalang.Expr.Concat(parts) =>
       EVariadic(VOp.Concat, parts.map(compileExpr))
     case metalang.Expr.BinOp(l, op, r) => compileBinOp(op, l, r)
@@ -620,7 +636,9 @@ object Compiler:
         s"unlowered conditional expression: ${ExprPrinter
           .render(metalang.Expr.Conditional(branches, otherwise))}",
       )
-    case metalang.Expr.Pronoun       => impossible("unresolved pronoun: it")
+    case metalang.Expr.Pronoun => impossible("unresolved pronoun: it")
+    case c: metalang.Expr.Choice =>
+      impossible(s"unresolved choice: ${ExprPrinter.render(c)}")
     case metalang.Expr.Link(link, _) => impossible(s"unresolved link: $link")
     case metalang.Expr.JSCall(name, args) =>
       impossible(s"$$${name}(${args.mkString})")

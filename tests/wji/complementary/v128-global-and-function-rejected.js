@@ -18,7 +18,7 @@
 //   v128 argument -> `run a host function`'s own identical check, triggered
 //   from the *wasm-calls-into-JS* direction instead.
 //
-// Confirmed against real Node 24.2.0: all five observable call sites below
+// Confirmed against real Node 26.12.1: all five observable call sites below
 // throw a TypeError (the getter/setter/valueOf's messages literally say
 // "Can't get/set the value of s128 WebAssembly.Global"; the two function-call
 // sites say "type incompatibility when transforming from/to JS").

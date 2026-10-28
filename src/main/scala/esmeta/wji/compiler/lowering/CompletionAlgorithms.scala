@@ -89,6 +89,15 @@ object CompletionAlgorithms:
         Some(CallInfo(Some(normalize(link)), None, bound))
       case Expr.Abrupt(marker, Expr.AlgoCall(link, _)) =>
         Some(CallInfo(Some(normalize(link)), Some(marker), bound))
+      // `[$Name$](...)`/`<a abstract-op>Name</a>(...)`: still a JSCall here,
+      // since NormalizeEvaluationOrderPass (which turns it into a Perform)
+      // only runs after this. Missing it once misjudged e.g. js-string-length
+      // (whose only abrupt source is `? [$UnwrapString$](v)`) as never
+      // returning a completion.
+      case Expr.JSCall(name, _) =>
+        Some(CallInfo(Some(normalize(name)), None, bound))
+      case Expr.Abrupt(marker, Expr.JSCall(name, _)) =>
+        Some(CallInfo(Some(normalize(name)), Some(marker), bound))
       case Expr.ClosureCall(closure, _) =>
         Some(CallInfo(closureCallee(closure), None, bound))
       case Expr.Abrupt(marker, Expr.ClosureCall(closure, _)) =>
@@ -278,7 +287,7 @@ object CompletionAlgorithms:
             _,
           ) =>
         true
-      case AlgorithmKind.Plain => false
+      case AlgorithmKind.Plain | AlgorithmKind.Redefinition => false
 
   /** A `Plain`-kind algorithm implementing one of ECMA-262's fixed fundamental
     * internal methods (e.g. `Exported GC Object`'s `[[Get]]`/`[[Set]]`/...,
@@ -318,10 +327,13 @@ object CompletionAlgorithms:
     *     `Call`/`BuiltinCallOrConstruct` machinery always expects one), not
     *     conditional on whether the closure itself has a real abrupt path — see
     *     `AddBuiltinBehaviourPass`'s own doc for the same reasoning.
+    *   - `alwaysReturnsCompletion`: the same kind of calling-convention
+    *     requirement, for an algorithm a pass synthesized for such a caller
+    *     itself (see that field's own doc).
     *
-    * Both flags are already stamped by the time this runs
-    * (`MarkBuiltinBehaviourPass` and the algorithm's own `kind`), so no
-    * separate traversal is needed.
+    * All of these are already stamped by the time this runs
+    * (`MarkBuiltinBehaviourPass`, the synthesizing pass, and the algorithm's
+    * own `kind`), so no separate traversal is needed.
     */
   def compute(algos: List[Algorithm]): Set[String] =
     def nameOf(a: Algorithm): Option[String] =
@@ -335,7 +347,7 @@ object CompletionAlgorithms:
               hasOwnAbrupt(
                 a.body,
               ) || usesBuiltinCallConvention(a.kind) || a.isBuiltinBehaviour ||
-              isFundamentalInternalMethod(a),
+              a.alwaysReturnsCompletion || isFundamentalInternalMethod(a),
             )(nameOf(a))
             .flatten,
         )

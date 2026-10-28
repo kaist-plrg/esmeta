@@ -90,7 +90,6 @@ object ESMeta extends Git(BASE_DIR) {
     // WJI (WebAssembly JS Interface) Mechanization
     CmdWjiExtract,
     CmdWjiCompile,
-    CmdWjiInterp,
     CmdWjiBridgeDemo,
     CmdWjiEval,
   )
@@ -124,7 +123,6 @@ object ESMeta extends Git(BASE_DIR) {
     // WJI (WebAssembly JS Interface) Mechanization
     WjiExtract,
     WjiCompile,
-    WjiInterp,
     WjiBridgeDemo,
     WjiEval,
   )

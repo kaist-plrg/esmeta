@@ -369,7 +369,7 @@ class Interpreter(
     *
     * On failure, the nested context's own function/cursor is logged to stderr
     * before rethrowing — the `finally` below always restores the outer context
-    * first, so a caller's own crash report (e.g. `WjiInterp`'s) only ever sees
+    * first, so a caller's own crash report (e.g. `WjiEval`'s) only ever sees
     * the *outer* frame that happened to be suspended here, never where inside
     * the reentrant call things actually went wrong.
     *
@@ -589,12 +589,15 @@ class Interpreter(
                 value,
               ),
             ) =>
-          val d = value match
-            case Number(n) => n
-            case Math(n)   => n.toDouble
-            case other     => throw NoWasmValue(other)
-          val floatValue =
-            if numTag == "F32" then wasmF32Const(d) else wasmF64Const(d)
+          val floatValue = value match
+            // already a SpecTec float, e.g. ToWebAssemblyValue's `+nan(n)`
+            case Wasm(v) => v
+            case _ =>
+              val d = value match
+                case Number(n) => n
+                case Math(n)   => n.toDouble
+                case other     => throw NoWasmValue(other)
+              if numTag == "F32" then wasmF32Const(d) else wasmF64Const(d)
           List(toAL(st, numType), floatValue)
         case _ => argVals.map(toAL(st, _))
       Wasm(ALValue.CaseV(tag, alArgs))

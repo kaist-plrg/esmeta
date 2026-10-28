@@ -31,6 +31,8 @@ object InstrPrinter:
         sb.append(s"  kind: method for namespace $namespace\n")
       case AlgorithmKind.NamespaceGetter(namespace) =>
         sb.append(s"  kind: getter for namespace $namespace\n")
+      case AlgorithmKind.Redefinition =>
+        sb.append("  kind: redefinition\n")
     if algo.params.nonEmpty then
       val params =
         algo.params.map(p => p.name + (if p.optional then "?" else ""))
@@ -75,6 +77,9 @@ object InstrPrinter:
     case ForEachPaired(elem1, elem2, coll1, coll2, _) =>
       s"ForEachPaired(${ExprPrinter.render(elem1)}, ${ExprPrinter.render(elem2)}, " +
       s"${ExprPrinter.render(coll1)}, ${ExprPrinter.render(coll2)})"
+    case ForEachEntry(key, value, map, _) =>
+      s"ForEachEntry(${ExprPrinter.render(key)}, ${ExprPrinter.render(value)}, " +
+      s"${ExprPrinter.render(map)})"
     case Instr.For(elem, coll, _) =>
       s"For(${ExprPrinter.render(elem)}, ${ExprPrinter.render(coll)})"
     case While(cond, _)   => s"While(${CondPrinter.render(cond)})"

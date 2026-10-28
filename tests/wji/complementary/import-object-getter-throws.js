@@ -7,7 +7,11 @@
 // annotated IR: this branch sat at 0 hits -- no existing test's importObject
 // has a trapping getter for an ordinary (non-builtin) module name.
 //
-// Confirmed against real Node 24.2.0: the thrown error propagates verbatim
+// Also covers the next lookup, "Let v be ?Get(o, componentName).": a getter
+// for the component name on the module object throwing, which no test
+// reached either.
+//
+// Confirmed against real Node 26.12.1: the thrown error propagates verbatim
 // (by reference equality) as the Instance constructor's own thrown error.
 function assertEq(actual, expected, msg) {
   if (actual !== expected)
@@ -35,5 +39,20 @@ try {
   caught = e;
 }
 assertEq(caught, thrown, "a throwing importObject getter for a plain module name must propagate verbatim");
+
+const componentThrown = new TypeError("boom from regularModule's own x getter");
+caught = undefined;
+try {
+  new WebAssembly.Instance(mod, {
+    regularModule: {
+      get x() {
+        throw componentThrown;
+      },
+    },
+  });
+} catch (e) {
+  caught = e;
+}
+assertEq(caught, componentThrown, "a throwing getter for a component name must propagate verbatim");
 
 globalThis.__wjiOk = true;

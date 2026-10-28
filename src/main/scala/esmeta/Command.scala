@@ -252,17 +252,6 @@ case object CmdWjiCompile
   )
 }
 
-/** `wji-interp` command */
-case object CmdWjiInterp
-  extends Command("wji-interp", CmdBuildCFG >> WjiInterp) {
-  val help =
-    "invokes a single compiled WJI function against a live ECMA-262 realm (needs SpecTec)."
-  val examples = List(
-    "esmeta wji-interp                       # run instantiate_object() on empty input.",
-    "esmeta wji-interp -wji-interp:entry=foo # invoke a different WJI function.",
-  )
-}
-
 /** `wji-bridge-demo` command */
 case object CmdWjiBridgeDemo
   extends Command("wji-bridge-demo", CmdBuildCFG >> WjiBridgeDemo) {

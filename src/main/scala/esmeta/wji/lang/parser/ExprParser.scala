@@ -1039,6 +1039,18 @@ object ExprParser:
   private val BoolTrue = """(?i)^true$""".r
   private val BoolFalse = """(?i)^false$""".r
   private val BoldConst = """(?s)^\*\*([^*]+)\*\*$""".r
+  // ECMA-262 Number values in Bikeshed markup: "**NaN**", "**+∞**<sub>𝔽</sub>",
+  // "**-∞**<sub>𝔽</sub>" -> SpecTerm("NaN"/"+∞𝔽"/"-∞𝔽"), compiled to Number
+  // literals the way SpecTerm("null")/("undefined") are.
+  private val NaNLit = """^\*\*NaN\*\*$""".r
+  private val InfinityLit = """^\*\*([+\-−])∞\*\*<sub>𝔽</sub>$""".r
+  // "[=canon=]<sub>32</sub>": a Wasm Core numeric rendered with its width as a
+  // subscript -> a call to its per-width name ("canon_32"), the same naming
+  // as `[=signed_32=]`.
+  private val LinkSubscript = """^\[=([^=\]]+)=\]<sub>(\d+)</sub>$""".r
+  // "+[=nan=](|n|)": a signed Wasm float, rendered as the sign in front of its
+  // magnitude -> SpecTec's `POS`/`NEG` case around the magnitude's own case.
+  private val SignedMagnitude = """(?s)^([+\-−])(\[=[^=\]]+=\])\((.+)\)$""".r
   private val SpecTermPat = """(?i)^(?:undefined|null|empty|absent)$""".r
   // `memtype`'s own grammar (`addrtype limits PAGE`) ends in a literal
   // keyword, unlike `SpecTermPat`'s generic Infra/ECMA-262 sentinels above —
@@ -1129,10 +1141,10 @@ object ExprParser:
     * bug: `Initialize.scala`'s `AgentRecord` fields would need to be stored
     * under every use site's own idiosyncratic casing to ever be found again,
     * rather than one canonical spelling. Lowercasing both here and at every
-    * field-defining site (`Initialize.scala`, `WjiInterp.scala`,
-    * `WasmMemoryBridge.scala`) sidesteps the whole class of mismatch the same
-    * way Bikeshed's own resolution does, rather than chasing down each future
-    * one-off typo as it's discovered.
+    * field-defining site (`Initialize.scala`, `WasmMemoryBridge.scala`)
+    * sidesteps the whole class of mismatch the same way Bikeshed's own
+    * resolution does, rather than chasing down each future one-off typo as it's
+    * discovered.
     */
   private def fieldFromLink(baseRaw: String, link: String): Expr =
     Field(
@@ -1165,8 +1177,14 @@ object ExprParser:
       case AbruptPrefix(check, rest) => Abrupt(check, parse(rest))
       case CreatingLinkGivenCall(link, argsRaw) =>
         AlgoCall(normalizeLink(link), parseArgs(argsRaw))
-      case ResultOf(rest)                  => parse(rest)
-      case EitherPat(rest)                 => parse(rest)
+      case ResultOf(rest) => parse(rest)
+      case EitherPat(rest) =>
+        findTopLevel(rest, " or ") match
+          case Some(i) =>
+            Choice(
+              List(parse(rest.substring(0, i)), parse(rest.substring(i + 4))),
+            )
+          case None => parse(rest)
       case TypeAnnotatedPrefix(term, rest) => TypeAnnotated(term, parse(rest))
       case BracedTermValuePrefix(rest)     => parse(rest)
       case BracedTermValueOnly(term)       => SpecTerm(term)
@@ -1278,6 +1296,13 @@ object ExprParser:
         AlgoCall(normalizeLink(link), parseArgs(argsRaw))
       case LinkPassingCall(link, argsRaw) =>
         AlgoCall(normalizeLink(link), parsePassingArgs(argsRaw))
+      case LinkSubscript(name, width) =>
+        AlgoCall(s"[=${name}_$width=]", Nil)
+      case SignedMagnitude(sign, link, argsRaw) =>
+        Case(
+          if sign == "+" then "POS" else "NEG",
+          List(Case(normalizeLink(link), splitComma(argsRaw).map(parse))),
+        )
       case LinkFull(link, argsRaw) =>
         normalizeLink(link).stripPrefix("[=").stripSuffix("=]") match
           // "[=𝔽=](x)"/"[=ℤ=](x)"/"[=ℝ=](x)" — ECMA-262's Number/BigInt/
@@ -1422,16 +1447,19 @@ object ExprParser:
       case TrapException()                => Case("TRAP", Nil)
       case BoolTrue()                     => Bool(true)
       case BoolFalse()                    => Bool(false)
-      case BoldConst(_)                   => SpecTerm(s)
-      case SpecTermPat()                  => SpecTerm(s)
-      case PageKeyword()                  => SpecTerm("page")
-      case EmuConst(v)                    => SpecTerm(v)
-      case EmuVal(v)                      => SpecTerm(v)
-      case BracedIntrinsic(name)          => Link(name, Nil)
-      case BracedTerm(inner)              => SpecTerm(inner)
-      case BracketRange(low, high)        => Seq_(List(parse(low), parse(high)))
-      case CrossSpecRef(text)             => SpecTerm(text)
-      case RealmSettingsObject()          => SpecTerm("realm/settings object")
+      case NaNLit()                       => SpecTerm("NaN")
+      case InfinityLit(sign) =>
+        SpecTerm(if sign == "+" then "+∞𝔽" else "-∞𝔽")
+      case BoldConst(_)            => SpecTerm(s)
+      case SpecTermPat()           => SpecTerm(s)
+      case PageKeyword()           => SpecTerm("page")
+      case EmuConst(v)             => SpecTerm(v)
+      case EmuVal(v)               => SpecTerm(v)
+      case BracedIntrinsic(name)   => Link(name, Nil)
+      case BracedTerm(inner)       => SpecTerm(inner)
+      case BracketRange(low, high) => Seq_(List(parse(low), parse(high)))
+      case CrossSpecRef(text)      => SpecTerm(text)
+      case RealmSettingsObject()   => SpecTerm("realm/settings object")
 
       case _ =>
         if allowSeqFallback then parseAsSeq(s).getOrElse(Unknown(s))

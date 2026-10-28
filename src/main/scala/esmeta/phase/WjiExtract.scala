@@ -24,7 +24,7 @@ case object WjiExtract extends Phase[Unit, Spec] {
   ): Spec =
     val spec = Extractor()
     // must happen before the interpreter runs (see RecordTy's doc) — done
-    // here since every wji-eval/wji-interp run passes through this phase
+    // here since every wji-eval run passes through this phase
     spec.registerDefinitionTypes()
     val selected = select(spec.algorithms, config.filter)
     if (config.log)

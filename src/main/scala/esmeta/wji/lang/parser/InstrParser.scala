@@ -79,9 +79,12 @@ object InstrParser:
   private val ElseIfPrefix =
     """(?is)^(?:Else\s+if\b|Otherwise,\s*if\b)\s+(.+)$""".r
   private val IfPrefix = """(?is)^If\b\s+(.+)$""".r
+  private val RespectivelyReturn =
+    """(?is)^return\s+(.+?)\s+or\s+(.+?),\s+respectively\.?$""".r
   private val ElsePrefix = """(?is)^(?:Else|Otherwise)\b\s*,?\s*(.*)$""".r
+  // group 1: the link target, e.g. "list/iterate" or "map/iterate"
   private val ForEachPrefix =
-    """(?is)^(?:\[=\S*[/|])?For (?:each|every)(?:=\])?\s+(.+)$""".r
+    """(?is)^(?:\[=(\S*)[/|])?For (?:each|every)(?:=\])?\s+(.+)$""".r
 
   // "[=constant=] |const| that is a [=const=] of |definition|" — the
   // `SpecPatch` #57 rewrite of webidl_yet_categorized.md category I-O's
@@ -381,21 +384,33 @@ object InstrParser:
         val (cond, tail) = splitCondAndRest(rest)
         ElseIf(CondParser.parse(cond), deriveBody(tail, trailingBody))
       case IfPrefix(rest) =>
-        val (cond, tail) = splitCondAndRest(rest)
-        If(CondParser.parse(cond), deriveBody(tail, trailingBody))
+        val (condRaw, tail) = splitCondAndRest(rest)
+        (CondParser.parse(condRaw), tail) match
+          // "If |x| is A or B, return A' or B', respectively." -> under the
+          // whole condition, A returns A' and otherwise (B) B'
+          case (cond @ Cond.Or(first, _), RespectivelyReturn(a, b))
+              if trailingBody.isEmpty =>
+            If(
+              cond,
+              List(
+                If(first, List(Return(Some(ExprParser.parse(a))))),
+                Else(List(Return(Some(ExprParser.parse(b))))),
+              ),
+            )
+          case (cond, _) => If(cond, deriveBody(tail, trailingBody))
       case LiteralIfPrefix(lit, cond) =>
         If(
           CondParser.parse(cond),
           List(Return(Some(Expr.Str(lit)), trailingBody)),
         )
       case ElsePrefix(rest) => Else(deriveBody(rest.trim, trailingBody))
-      case ForEachPrefix(ForEachConstantOf(elemRaw, defRaw)) =>
+      case ForEachPrefix(_, ForEachConstantOf(elemRaw, defRaw)) =>
         ForEach(
           ExprParser.parse(elemRaw),
           Expr.GetMember(ExprParser.parse(defRaw), MemberKind.Constant),
           trailingBody,
         )
-      case ForEachPrefix(rest) =>
+      case ForEachPrefix(link, rest) =>
         findTopLevelAny(rest, Seq(" of ", " in ")) match
           case Some((i, sep)) =>
             val elemRaw = rest.substring(0, i).trim
@@ -411,7 +426,17 @@ object InstrParser:
             // (e.g. js-api's Exception constructor). Only ever seen with
             // exactly two variables/collections, so a single top-level
             // " and " split on each side is enough -- see Instr.ForEachPaired.
-            if tail.trim
+            if link == "map/iterate" then
+              splitTopLevel(elem, " &rarr; ") match
+                case Some((k, v)) =>
+                  ForEachEntry(
+                    ExprParser.parse(k.trim),
+                    ExprParser.parse(v.trim),
+                    ExprParser.parse(collection.trim.stripSuffix(":").trim),
+                    trailingBody,
+                  )
+                case None => Unknown(text, trailingBody)
+            else if tail.trim
                 .stripSuffix(",")
                 .trim
                 .equalsIgnoreCase(

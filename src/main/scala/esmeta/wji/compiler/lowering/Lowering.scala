@@ -78,6 +78,7 @@ object Lowering:
     ElideHtmlHostHooksPass,
     DropNotesPass,
     ResolveLinksPass,
+    ResolveChoicePass,
     GroupIfChainPass,
     ExpandContinuePass,
     NormalizeSpecTecCaseShapePass,

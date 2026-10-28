@@ -15,7 +15,7 @@
 // 2. importObject's own "wasm:js-string" getter throws -- that abrupt
 //    Get(importObject, moduleName) must propagate (the ?Get idiom).
 //
-// Confirmed against real Node 24.2.0: both behave as asserted below (the
+// Confirmed against real Node 26.12.1: both behave as asserted below (the
 // first instantiates successfully, the second rejects by reference equality
 // with the getter's own thrown error).
 function assertEq(actual, expected, msg) {

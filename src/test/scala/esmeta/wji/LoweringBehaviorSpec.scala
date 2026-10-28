@@ -276,10 +276,9 @@ class LoweringBehaviorSpec extends AnyFunSuite:
   )
 
   /** Compiles `algos` through the full pipeline and invokes `fname` directly
-    * with `args` — no JS entry point or builtin calling convention involved,
-    * mirroring `esmeta.phase.WjiInterp`'s own `callAO` helper. Returns the
-    * algorithm's return value, read the same way `WjiInterp.callAO` reads it
-    * (`st.globals(GLOBAL_RESULT)`, set once the top-level context returns).
+    * with `args` — no JS entry point or builtin calling convention involved.
+    * Returns the algorithm's return value (`st.globals(GLOBAL_RESULT)`, set
+    * once the top-level context returns).
     */
   private def invoke(
     algos: List[Algorithm],

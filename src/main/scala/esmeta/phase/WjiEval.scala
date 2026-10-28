@@ -2,7 +2,6 @@ package esmeta.phase
 
 import esmeta.*
 import esmeta.cfg.CFG
-import esmeta.cfgBuilder.CFGBuilder
 import esmeta.error.ESMetaError
 import esmeta.interpreter.{Interpreter => EsInterpreter}
 import esmeta.ir.Program
@@ -10,7 +9,7 @@ import esmeta.state.State
 import esmeta.util.*
 import esmeta.util.SystemUtils.*
 import esmeta.wji
-import esmeta.wji.util.AlgoCallStack
+import esmeta.wji.util.{AlgoCallStack, MergeWithMainline}
 
 /** `wji-eval` phase
   *
@@ -43,9 +42,8 @@ case object WjiEval extends Phase[CFG, State] {
     val compileConfig = WjiCompile.defaultConfig
     val wjiProgram = WjiCompile(spec, cmdConfig, compileConfig)
 
-    val merged =
-      Program(cfg.program.funcs ++ wjiProgram.funcs, cfg.program.spec)
-    val mergedCfg = CFGBuilder(merged)
+    val mergedCfg =
+      MergeWithMainline(cfg.program, wjiProgram, spec.redefinedNames)
 
     val st = mergedCfg.init.fromFile(filename)
     val (host, connection) = wji.Initialize(st, spec)

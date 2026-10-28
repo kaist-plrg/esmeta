@@ -41,11 +41,23 @@ import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr}
   * the two collections' sizes are equal immediately before a "paired linearly"
   * step (e.g. js-api's `Exception` constructor), so either length works.
   *
-  * Only handles `elem`/`elem1`/`elem2` shapes of `Var` or `Tuple` of `Var`s.
-  * Other forms seen in the spec — map iteration ("`k` &rarr; `v` in `map`"), or
-  * a typed qualifier ("`[=custom section=] x` of `y`") — parse to something
-  * other than a bare `Var`/`Tuple` and are left as `ForEach` for a future pass,
-  * so the compiler still reports them as unsupported instead of silently
+  * Also expands `Instr.ForEachEntry(key, value, map, body)` (Infra's map
+  * iteration) by iterating over the map's keys:
+  * {{{
+  *   Let(_iterListN, keys(map))
+  *   Let(_iterIdxN, 0)
+  *   While(_iterIdxN < length(_iterListN),
+  *     Let(key, _iterListN[_iterIdxN])
+  *     Let(value, map[key])
+  *     ...body...
+  *     Set(_iterIdxN, _iterIdxN + 1))
+  * }}}
+  *
+  * Only handles `elem`/`elem1`/`elem2` shapes of `Var` or `Tuple` of `Var`s
+  * (`key`/`value`: `Var` only). Other forms seen in the spec, e.g. a typed
+  * qualifier ("`[=custom section=] x` of `y`"), parse to something other than a
+  * bare `Var`/`Tuple` and are left as `ForEach` for a future pass, so the
+  * compiler still reports them as unsupported instead of silently
   * mis-compiling.
   *
   * Category: Structural desugaring — Elimination.
@@ -107,6 +119,25 @@ object ExpandForEachPass extends LoweringPass:
             Cond.Compare(idxVar, Cond.CompareOp.Lt, Expr.Length(listVar1)),
             Instr.Let(elem1, Expr.Index(listVar1, idxVar)) ::
             Instr.Let(elem2, Expr.Index(listVar2, idxVar)) ::
+            transform(body, counter) :::
+            List(
+              Instr.Set(
+                idxVar,
+                Expr.BinOp(idxVar, Expr.BOp.Add, Expr.Num("1")),
+              ),
+            ),
+          ),
+        )
+      case Instr.ForEachEntry(key: Expr.Var, value: Expr.Var, map, body) =>
+        val listVar = Expr.Var(counter.freshList())
+        val idxVar = Expr.Var(counter.freshIdx())
+        List(
+          Instr.Let(listVar, Expr.Keys(map)),
+          Instr.Let(idxVar, Expr.Num("0")),
+          Instr.While(
+            Cond.Compare(idxVar, Cond.CompareOp.Lt, Expr.Length(listVar)),
+            Instr.Let(key, Expr.Index(listVar, idxVar)) ::
+            Instr.Let(value, Expr.Index(map, key)) ::
             transform(body, counter) :::
             List(
               Instr.Set(

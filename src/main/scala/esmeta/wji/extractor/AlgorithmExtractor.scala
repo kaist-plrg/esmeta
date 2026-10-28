@@ -114,6 +114,11 @@ object AlgorithmExtractor:
     */
   private val TrailingParamsPlain = """^(.+?)\s*\([^)]*\)$""".r
 
+  /** matches a `[=...=]` link inside a `<dfn>`'s inner text, capturing its
+    * target -- see [[extractRedefinedName]]
+    */
+  private val DfnTextLink = """\[=([^=\]]+)=\]""".r
+
   /** matches a `<dfn method|attribute|constructor for="...">` opening tag,
     * capturing the kind word and the `for` value — double-quoted,
     * single-quoted, or (valid, if unusual, HTML) bare/unquoted (e.g. `<dfn
@@ -152,14 +157,18 @@ object AlgorithmExtractor:
       for bodyEnd <- findBodyEnd(source, m.end) yield
         val body = source.substring(m.end, bodyEnd)
         val (head, instrs) = parseBody(body)
-        val kind = extractKind(head)
-        // a setter has no <dfn> of its own for extractName to find (see
-        // SetterOfAttribute's doc) — its name is the attribute name that
-        // same prose match already captured.
-        val name = kind match
-          case AlgorithmKind.Setter(_) =>
-            SetterOfAttribute.findFirstMatchIn(head).map(_.group(1).trim)
-          case _ => extractName(head)
+        val (kind, name) = extractRedefinedName(head) match
+          case Some(redefined) => (AlgorithmKind.Redefinition, Some(redefined))
+          case None =>
+            val kind = extractKind(head)
+            // a setter has no <dfn> of its own for extractName to find (see
+            // SetterOfAttribute's doc) — its name is the attribute name that
+            // same prose match already captured.
+            val name = kind match
+              case AlgorithmKind.Setter(_) =>
+                SetterOfAttribute.findFirstMatchIn(head).map(_.group(1).trim)
+              case _ => extractName(head)
+            (kind, name)
         Algorithm(id, name, extractParams(head), head, instrs, kind)
     }
 
@@ -273,6 +282,19 @@ object AlgorithmExtractor:
     * first one is used. Falls back to the inner text (with any trailing
     * parameter list stripped) when no `lt` is present.
     */
+  /** the name of the operation this algorithm redefines, if its `<dfn>` (with
+    * no `lt`) links to it, e.g. `HostResizeArrayBuffer` for `<dfn
+    * id=HostResizeArrayBuffer export>abstract operation
+    * [=HostResizeArrayBuffer=]</dfn>`
+    */
+  private def extractRedefinedName(head: String): Option[String] =
+    for
+      m <- Dfn.findFirstMatchIn(head)
+      openTag = m.matched.substring(0, m.matched.indexOf('>') + 1)
+      if DfnLtAttr.findFirstMatchIn(openTag).isEmpty
+      link <- DfnTextLink.findFirstMatchIn(m.group(1))
+    yield link.group(1).trim
+
   private def extractName(head: String): Option[String] =
     Dfn.findFirstMatchIn(head).map { m =>
       val openTag = m.matched.substring(0, m.matched.indexOf('>') + 1)

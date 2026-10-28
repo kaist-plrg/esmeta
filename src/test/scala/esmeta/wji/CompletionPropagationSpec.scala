@@ -3,9 +3,7 @@ package esmeta.wji
 import org.scalatest.funsuite.AnyFunSuite
 import esmeta.ESMetaTest
 import esmeta.cfg.CFG
-import esmeta.cfgBuilder.CFGBuilder
 import esmeta.interpreter.{Interpreter => EsInterpreter}
-import esmeta.ir.Program
 import esmeta.state.{
   Addr,
   Bool,
@@ -23,6 +21,7 @@ import esmeta.wji.compiler.lowering.Lowering
 import esmeta.wji.lang.*
 import esmeta.wji.lang.parser.InstrParser
 import esmeta.wji.spec.SpecPatch
+import esmeta.wji.util.MergeWithMainline
 import scala.collection.mutable.{Map => MMap}
 
 /** Scenario tests for how the lowering pipeline handles abrupt-completion
@@ -36,9 +35,8 @@ import scala.collection.mutable.{Map => MMap}
   * mirrors [[LoweringBehaviorSpec]]'s pattern of running hand-built
   * `Algorithm`s through the real `Lowering.run` -> `Compiler.compile` ->
   * `CFGBuilder` -> `Interpreter`, but checks the top-level *return value* (via
-  * `GLOBAL_RESULT`, same as `esmeta.phase.WjiInterp.callAO`) rather than
-  * reachability of a poison marker — what matters here is which value comes
-  * out, not whether some line ran at all.
+  * `GLOBAL_RESULT`) rather than reachability of a poison marker — what matters
+  * here is which value comes out, not whether some line ran at all.
   *
   * Most scenario algorithms below are built so their own call site of interest
   * either (a) is genuinely unguarded/unmarked — the exact shape
@@ -481,16 +479,14 @@ class CompletionPropagationSpec extends AnyFunSuite:
       tryExplode,
     )
     val wjiProgram = Compiler.compile(Lowering.run(allAlgos))
-    val mainline = ESMetaTest.cfg.program
-    CFGBuilder(Program(mainline.funcs ++ wjiProgram.funcs, mainline.spec))
+    MergeWithMainline(ESMetaTest.cfg.program, wjiProgram)
 
   /** Invokes `fname` directly with `args` and returns `(State, top-level return
-    * value)` via `GLOBAL_RESULT` — mirrors `esmeta.phase.WjiInterp.callAO`'s
-    * call-construction (fresh `Context`, empty `callStack`), minus the
-    * `CompletionRecord` unwrapping it also does (most scenarios above are
-    * deliberately built so their own top-level return is already a plain value
-    * — see class doc; the last scenario below is the exception, and inspects
-    * the raw completion record on `st.heap` directly instead). No
+    * value)` via `GLOBAL_RESULT` (fresh `Context`, empty `callStack`), without
+    * unwrapping a `CompletionRecord` (most scenarios above are deliberately
+    * built so their own top-level return is already a plain value — see class
+    * doc; the last scenario below is the exception, and inspects the raw
+    * completion record on `st.heap` directly instead). No
     * `Realm`/`@EXECUTION_STACK` bootstrap needed — see
     * [[makeThrowCompletion]]'s doc for why every algorithm here deliberately
     * avoids anything that would require one.

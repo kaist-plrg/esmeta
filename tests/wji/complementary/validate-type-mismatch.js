@@ -14,7 +14,7 @@
 // bytes below were produced with `wat2wasm --no-check` to force emission of
 // a structurally well-formed but type-invalid binary.
 //
-// Confirmed against real Node 24.2.0: `WebAssembly.validate` returns
+// Confirmed against real Node 26.12.1: `WebAssembly.validate` returns
 // `false` and `WebAssembly.compile`'s promise rejects with a `CompileError`
 // (not a `TypeError`/`CompileError` from a decode-level problem) for these
 // exact bytes.

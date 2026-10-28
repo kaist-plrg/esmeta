@@ -37,8 +37,29 @@ object WrapCompletionReturnsPass extends LoweringPass:
   )
 
   def run(algos: List[Algorithm]): List[Algorithm] =
+    // a partition of MarkCompletionAlgorithmsPass's own fixed point
+    // (CompletionAlgorithms.compute) by name: `pureCallees` is every algorithm
+    // it did *not* mark `returnsCompletion = true` -- proven to only ever exit
+    // with a plain, non-Completion value -- and `alwaysCompletionCallees` is
+    // every one it *did* -- proven to always exit with one (see
+    // CompletionWrapping.expandAlgorithm's own doc on both parameters for why
+    // that's sound to pass down here). ECMA-262 operations that never return a
+    // Completion Record (EcmaAbstractOps) count as pure callees too, unless a
+    // WJI algorithm of the same name says otherwise.
+    def namesOf(as: List[Algorithm]): Set[String] =
+      as.flatMap(a => a.name.orElse(a.id)).map(_.toLowerCase).toSet
+    val (completionAlgos, pureAlgos) = algos.partition(_.returnsCompletion)
+    val alwaysCompletionCallees = namesOf(completionAlgos)
+    val pureCallees = namesOf(pureAlgos) ++
+      (EcmaAbstractOps.neverCompletion -- alwaysCompletionCallees)
     algos.map { a =>
       if a.returnsCompletion then
-        a.copy(body = CompletionWrapping.expandAlgorithm(a.body))
+        a.copy(body =
+          CompletionWrapping.expandAlgorithm(
+            a.body,
+            pureCallees,
+            alwaysCompletionCallees,
+          ),
+        )
       else a
     }

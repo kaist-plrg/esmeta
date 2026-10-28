@@ -1,0 +1,38 @@
+// Targets `call an Exported Function` (spectec/document/js-api/index.bs):
+//   - a v128 in the function's *result* types (not its parameters) throws a
+//     TypeError -- v128-global-and-function-rejected.js's function has a v128
+//     parameter too, so the check stops at the parameters before ever looking
+//     at the results;
+//   - fewer arguments than parameters: each missing one is undefined, so an
+//     i32 parameter becomes ToInt32(undefined) = 0.
+// Found via esmeta.wji.WjiCoverage's annotated IR: both sat at 0 hits.
+//
+// Confirmed against real Node 26.12.1.
+function assertEq(actual, expected, msg) {
+  if (actual !== expected)
+    throw new Error(msg + ": expected " + expected + ", got " + actual);
+}
+
+// exported-function-call-edges.wat
+const bytes = new Uint8Array([
+  0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00, 0x01, 0x0a, 0x02, 0x60,
+  0x00, 0x01, 0x7b, 0x60, 0x01, 0x7f, 0x01, 0x7f, 0x03, 0x03, 0x02, 0x00,
+  0x01, 0x07, 0x18, 0x02, 0x0b, 0x72, 0x65, 0x74, 0x75, 0x72, 0x6e, 0x73,
+  0x56, 0x31, 0x32, 0x38, 0x00, 0x00, 0x06, 0x61, 0x64, 0x64, 0x4f, 0x6e,
+  0x65, 0x00, 0x01, 0x0a, 0x1e, 0x02, 0x14, 0x00, 0xfd, 0x0c, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x0b, 0x07, 0x00, 0x20, 0x00, 0x41, 0x01, 0x6a, 0x0b,
+]);
+const { returnsV128, addOne } = new WebAssembly.Instance(new WebAssembly.Module(bytes)).exports;
+
+let threw = false;
+try {
+  returnsV128();
+} catch (e) {
+  threw = e instanceof TypeError;
+}
+assertEq(threw, true, "a v128 result must throw TypeError");
+
+assertEq(addOne(), 1, "a missing i32 argument is undefined, i.e. 0");
+
+globalThis.__wjiOk = true;

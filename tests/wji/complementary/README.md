@@ -9,7 +9,10 @@
 
 `tests/wji/manual/`과 완전히 같은 컨벤션입니다 — `.js` 하나가 standalone
 self-checking 테스트(`globalThis.__wjiOk = true`로 통과 표시, 자세한 건
-`tests/wji/manual/README.md` 참고). 별도 디렉터리로 분리한 이유는 "WJI 자체
+`tests/wji/manual/README.md` 참고). 같은 컨벤션이라 `tests/wji/scripts/diff-engines`
+(실제 V8/SpiderMonkey/JavaScriptCore 세 엔진으로 교차검증하는 도구, `manual/README.md`
+참고)도 이 디렉터리를 `manual/`과 함께 기본 대상으로 돕니다. 별도 디렉터리로 분리한
+이유는 "WJI 자체
 개발용 수작업 테스트"(manual)와 "공식 코퍼스의 커버리지 구멍을 메우는 수작업
 테스트"(complementary)를 서로 다른 동기로 구분해서 관리하기 위함 — `EvalSpec`의
 `roots`에 둘 다 등록돼 있어서 `wjiEvalTest`는 기존처럼 전체를 한 번에 돈다는 점은

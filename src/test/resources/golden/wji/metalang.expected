@@ -541,13 +541,14 @@
   Set(**this**.[[BufferObject]], |resizableBuffer|)
   Return(|resizableBuffer|)
 
-# abstract operation [=HostResizeArrayBuffer=]
+# HostResizeArrayBuffer
+  kind: redefinition
   params: |buffer|, |newLength|
   head: The <dfn id=HostResizeArrayBuffer export>abstract operation [=HostResizeArrayBuffer=]</dfn> takes arguments |buffer| (an {{ArrayBuffer}}) and |newLength|. It performs the following steps when called.
   If(|buffer|.[[ArrayBufferDetachKey]] is "WebAssembly.Memory")
     Let(|map|, [=surrounding agent=].[[memory object cache]])
     Assert(|buffer| is ?(the \[[BufferObject]] of exactly one value in |map|))
-    ForEach(?(|memaddr| &rarr; |mem|), |map|)
+    ForEachEntry(|memaddr|, |mem|, |map|)
       If([=SameValue=](|mem|.[[BufferObject]], |buffer|) is true)
         Assert(|buffer|.[[ArrayBufferByteLength]] modulo 65536 is 0)
         Let(|lengthDelta|, |newLength| - |buffer|.[[ArrayBufferByteLength]])
@@ -933,15 +934,21 @@
     Return(AsNumber(AsMath(|i32|)))
   If(|w| is of the form [=f32.const=](|f32|))
     If(|f32| is [=+∞=] or [=−∞=])
-      Return(?(**+∞**<sub>𝔽</sub> or **-∞**<sub>𝔽</sub>, respectively))
+      If(|f32| is [=+∞=])
+        Return(+∞𝔽)
+      Else
+        Return(-∞𝔽)
     If(|f32| is [=nan=])
-      Return(**NaN**)
+      Return(NaN)
     Return(AsNumber(AsMath(|f32|)))
   If(|w| is of the form [=f64.const=](|f64|))
     If(|f64| is [=+∞=] or [=−∞=])
-      Return(?(**+∞**<sub>𝔽</sub> or **-∞**<sub>𝔽</sub>, respectively))
+      If(|f64| is [=+∞=])
+        Return(+∞𝔽)
+      Else
+        Return(-∞𝔽)
     If(|f64| is [=nan=])
-      Return(**NaN**)
+      Return(NaN)
     Return(AsNumber(AsMath(|f64|)))
   If(|w| is of the form [=ref.null=])
     Return(null)
@@ -982,17 +989,17 @@
     Return([=i32.const=](|u32|))
   If(|type| is [=f32=])
     Let(|number|, [=?=] [$ToNumber$](|v|))
-    If(|number| is **NaN**)
-      Let(|n|, implementation-defined integer such that ?([=canon=]<sub>32</sub> &leq; |n|) < 2 ** [=signif=](32))
-      Let(|f32|, [=nan=](?(n)))
+    If(|number| is NaN)
+      Let(|n|, implementation-defined integer such that [=canon_32=] <= |n|, and |n| < 2 ** [=signif=](32))
+      Let(|f32|, POS([=nan=](|n|)))
     Else
       Let(|f32|, |number|)
     Return([=f32.const=](|f32|))
   If(|type| is [=f64=])
     Let(|number|, [=?=] [$ToNumber$](|v|))
-    If(|number| is **NaN**)
-      Let(|n|, implementation-defined integer such that ?([=canon=]<sub>64</sub> &leq; |n|) < 2 ** [=signif=](64))
-      Let(|f64|, [=nan=](?(n)))
+    If(|number| is NaN)
+      Let(|n|, implementation-defined integer such that [=canon_64=] <= |n|, and |n| < 2 ** [=signif=](64))
+      Let(|f64|, POS([=nan=](|n|)))
     Else
       Let(|f64|, |number|)
     Return([=f64.const=](|f64|))
@@ -1213,7 +1220,7 @@
   Set([=surrounding agent=].[[associated store]], |store|)
   Perform([=initialize an Exception object=](**this**, |exceptionAddr|))
   If(|options|["traceStack"] is true)
-    Set(**this**.[[Stack]], ?(a {{DOMString}} representation of the current call stack or undefined))
+    Set(**this**.[[Stack]], either ?(a {{DOMString}} representation of the current call stack) or undefined)
 
 # getArg
   kind: method for Exception
@@ -1393,7 +1400,7 @@
   Let(|i|, 0)
   While(|i| < |stringLength|)
     Let(|charCode|, [$CharCodeAt$](|string|, AsNumber(|i|)))
-    Set(|array|[|start| + |i|], [=ToWebAssemblyValue=](|charCode|, [=i32=]))
+    Set(|array|[|start| + |i|], [=!=] [=ToWebAssemblyValue=](|charCode|, [=i32=]))
     Set(|i|, |i| + 1)
   Return(|stringLength|)
 

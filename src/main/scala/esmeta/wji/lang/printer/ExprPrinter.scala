@@ -36,6 +36,7 @@ object ExprPrinter:
     case UnknownNew(raw)  => s"?($raw)"
     case NewArrayBuffer   => "new {{ArrayBuffer}}(with slots)"
     case Length(e)        => s"length(${render(e)})"
+    case Keys(map)        => s"keys(${render(map)})"
     case Concat(parts)    => s"concat(${parts.map(render).mkString(", ")})"
     case BinOp(lhs, op, rhs) =>
       s"${render(lhs)} ${renderBOp(op)} ${render(rhs)}"
@@ -61,6 +62,7 @@ object ExprPrinter:
         .mkString(" else ")
       val otherwiseStr = otherwise.map(e => s" else ${render(e)}").getOrElse("")
       branchesStr + otherwiseStr
+    case Choice(options) => s"either ${options.map(render).mkString(" or ")}"
     case NewByteSequence(length) => s"ByteSequence(${render(length)})"
     case DataBlockOf(memaddr)    => s"dataBlockOf(${render(memaddr)})"
     case Range(low, high)        => s"Range(${render(low)}, ${render(high)})"

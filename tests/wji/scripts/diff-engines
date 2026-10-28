@@ -1,0 +1,270 @@
+#!/bin/bash
+# ------------------------------------------------------------------------------
+# Usage: tests/wji/scripts/diff-engines [--verbose] [file.js|dir ...]
+#
+# Cross-checks tests/wji/manual/*.js + tests/wji/complementary/*.js fixtures
+# against THREE real engines -- V8 (d8), SpiderMonkey (js), JavaScriptCore
+# (jsc) -- built via tests/wji/scripts/install_engine/*.sh, one fresh
+# subprocess per (fixture, engine) pair. With no arguments, checks every
+# fixture under both directories. A directory argument (e.g.
+# tests/wji/js-api/generated, which mirrors spectec's own nested layout) is
+# recursed into for every *.js file under it -- no need to `find` it
+# yourself first.
+#
+# Unlike wji-node-check (which validates a fixture against ONE engine, to tell
+# a WJI gap apart from a bad test case), this is about catching real ENGINE
+# bugs: if the same fixture passes on two engines but fails on the third, that
+# divergence is the interesting signal -- flagged as DIVERGE below. A fixture
+# is run completely unmodified (no wrapper/epilogue injected, no required
+# `--wasm-*`/`--experimental-*` flags passed) -- see README.md for why some
+# DIVERGEs are a missing feature/flag on one engine rather than a real bug,
+# and how to tell the two apart with --verbose.
+#
+# Requires at least one engine built under install_engine/'s $ENGINES_DIR;
+# skips (doesn't fail) any engine that isn't found there.
+# ------------------------------------------------------------------------------
+
+set -euo pipefail
+
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+repo_root="$(cd "$script_dir/../../.." && pwd)"
+
+# shellcheck source=./install_engine/common.sh
+. "$script_dir/install_engine/common.sh"
+
+verbose=0
+args=()
+for arg in "$@"; do
+  if [ "$arg" = "--verbose" ]; then
+    verbose=1
+  else
+    args+=("$arg")
+  fi
+done
+if [ ${#args[@]} -eq 0 ]; then
+  args=("$repo_root/tests/wji/manual" "$repo_root/tests/wji/complementary")
+fi
+
+# Expand any directory argument into every *.js file under it (recursively --
+# tests/wji/js-api/generated/ mirrors spectec's own nested-by-category
+# layout, so a plain glob would silently miss everything but its top level).
+# A plain file argument passes through unchanged.
+files=()
+for arg in "${args[@]}"; do
+  if [ -d "$arg" ]; then
+    while IFS= read -r f; do
+      files+=("$f")
+    done < <(find "$arg" -name "*.js" -type f | sort)
+  else
+    files+=("$arg")
+  fi
+done
+
+# Ordered (name, path) pairs for whichever engines are actually built --
+# order here is also the order each fixture's result line prints them in.
+engine_names=()
+engine_bins=()
+for pair in "V8:$(locate_v8)" "SpiderMonkey:$(locate_sm)" "JSC:$(locate_jsc)"; do
+  name="${pair%%:*}"
+  bin="${pair#*:}"
+  if [ -n "$bin" ]; then
+    engine_names+=("$name")
+    engine_bins+=("$bin")
+  else
+    echo "note: $name not found under \$ENGINES_DIR ($ENGINES_DIR) -- skipping (see install_engine/README.md)" >&2
+  fi
+done
+if [ ${#engine_names[@]} -eq 0 ]; then
+  echo "error: no engines found under \$ENGINES_DIR ($ENGINES_DIR) -- build at least one via install_engine/*.sh first" >&2
+  exit 1
+fi
+if [ ${#engine_names[@]} -eq 1 ]; then
+  echo "note: only ${engine_names[0]} found -- running it alone, no cross-engine divergence is possible" >&2
+fi
+
+# How long to let one (fixture, engine) run before giving up on it as hung --
+# a starting guess, not tuned against real data yet; bump if real fixtures
+# legitimately need longer.
+TIMEOUT_SECS=10
+
+# usage: run_with_timeout <secs> <outfile> <bin> <fixture> -- runs <bin>
+# <fixture> with stdout+stderr captured to <outfile>, killing it after <secs>
+# if it hasn't finished. Prints the exit status (130 if killed) on stdout.
+# macOS has no built-in timeout(1) (GNU coreutils' timeout/gtimeout isn't
+# guaranteed present), hence this small watchdog instead of depending on one.
+run_with_timeout() {
+  local secs="$1" outfile="$2" bin="$3" fixture="$4"
+  "$bin" "$fixture" <"/dev/null" >"$outfile" 2>&1 &
+  local pid=$!
+  # Redirected to /dev/null, not just left to inherit this function's own
+  # stdout -- callers capture this function's result via `$(run_with_timeout
+  # ...)`, and bash command substitution doesn't see EOF on its pipe (so
+  # doesn't return) until *every* process holding its write end closes it,
+  # background ones included. Without this redirect, this subshell holds that
+  # pipe open for its entire `sleep "$secs"` regardless of how fast "$bin"
+  # itself finishes -- silently turning every single call into a flat
+  # $secs-second wait (confirmed directly: timestamped manually, `$(...)`
+  # calls each took exactly $secs end to end even though "$bin" itself exited
+  # in ~0.1s; calling the same function without $(...) was instant).
+  (sleep "$secs" && kill -9 "$pid" 2>/dev/null) >/dev/null 2>&1 &
+  local watchdog=$!
+  local status=0
+  wait "$pid" 2>/dev/null || status=$?
+  kill "$watchdog" 2>/dev/null || true
+  wait "$watchdog" 2>/dev/null || true
+  echo "$status"
+}
+
+# usage: verdict_of <exit-status> <outfile>
+#
+# A fixture prints nothing on its own success path and uniformly
+# `print("uncaught: " + e)` on any caught async failure (checked across every
+# manual/complementary fixture); a sync throw just aborts with a nonzero exit
+# and the engine's own error text. So "exited cleanly and said nothing about
+# an uncaught error" is PASS -- this deliberately never reads `__wjiOk`
+# itself: doing so would need the fixture modified (a wrapper/epilogue)
+# appended after it, and nothing here needs to know in what order an engine's
+# shell drains pending async work relative to that, since each engine's own
+# process naturally doesn't exit until it does.
+#
+# `tests/wji/js-api/generated/*.any.js` (the official corpus) uses the same
+# __wjiOk convention but a different on-failure print shape: report-shim.js
+# prints one `FAIL <subtest name> - <message>` line per failed subtest
+# instead of `uncaught: ...` -- checked for too, since a file in that corpus
+# can fail a subtest and still exit 0 with no "uncaught:" text anywhere
+# (report-shim.js's own completion callback runs to the end either way).
+verdict_of() {
+  local status="$1" outfile="$2"
+  if [ "$status" = "137" ] || [ "$status" = "130" ]; then
+    echo "TIMEOUT"
+  elif [ "$status" = "0" ] && ! grep -qE "uncaught:|^FAIL " "$outfile"; then
+    echo "PASS"
+  else
+    echo "FAIL"
+  fi
+}
+
+tmp_outfiles=()
+cleanup() {
+  rm -f "${tmp_outfiles[@]}" 2>/dev/null || true
+}
+trap cleanup EXIT
+
+# Color only when stdout is an actual terminal -- piping to a file/another
+# tool should get plain text, no escape codes to strip.
+if [ -t 1 ]; then
+  c_green=$'\033[32m' c_red=$'\033[31m' c_yellow=$'\033[33m'
+  c_bold_red=$'\033[1;31m' c_bold=$'\033[1m' c_dim=$'\033[2m' c_reset=$'\033[0m'
+else
+  c_green="" c_red="" c_yellow="" c_bold_red="" c_bold="" c_dim="" c_reset=""
+fi
+
+color_of() {
+  case "$1" in
+    PASS) echo "$c_green" ;;
+    FAIL) echo "$c_red" ;;
+    TIMEOUT) echo "$c_yellow" ;;
+  esac
+}
+
+# usage: display_name <fixture-path> -- a bare basename is ambiguous once
+# tests/wji/js-api/generated/ is in the mix (it mirrors spectec's own
+# directory layout, so e.g. "constructor.any.js" alone names four different
+# files -- module/, instance/, exception/, tag/). Strip the common
+# tests/wji/ prefix instead of basename-ing, so every row stays unambiguous
+# while not dragging the whole absolute path into the table.
+display_name() {
+  local f="$1"
+  case "$f" in
+    "$repo_root"/tests/wji/*) echo "${f#"$repo_root"/tests/wji/}" ;;
+    tests/wji/*) echo "${f#tests/wji/}" ;;
+    *) echo "$f" ;;
+  esac
+}
+
+# Column widths, computed up front so every row lines up -- the fixture-name
+# column fits the longest display name actually being run, each engine's own
+# column fits its name or the longest possible verdict ("TIMEOUT"), whichever
+# is wider.
+name_width=8
+for fixture in "${files[@]}"; do
+  f="$(display_name "$fixture")"
+  [ ${#f} -gt "$name_width" ] && name_width=${#f}
+done
+verdict_width=7 # len("TIMEOUT")
+engine_widths=()
+for name in "${engine_names[@]}"; do
+  w=$verdict_width
+  [ ${#name} -gt "$w" ] && w=${#name}
+  engine_widths+=("$w")
+done
+
+print_header() {
+  printf "  %-*s" "$name_width" ""
+  for i in "${!engine_names[@]}"; do
+    printf "  %-*s" "${engine_widths[$i]}" "${engine_names[$i]}"
+  done
+  printf "\n"
+}
+
+diverge_files=()
+print_header
+total=0
+diverged=0
+for fixture in "${files[@]}"; do
+  total=$((total + 1))
+  verdicts=()
+  outfiles=()
+  for bin in "${engine_bins[@]}"; do
+    outfile="$(mktemp -t wji-diff-engines)"
+    tmp_outfiles+=("$outfile")
+    outfiles+=("$outfile")
+    status="$(run_with_timeout "$TIMEOUT_SECS" "$outfile" "$bin" "$fixture")"
+    verdicts+=("$(verdict_of "$status" "$outfile")")
+  done
+
+  diverge=0
+  for v in "${verdicts[@]}"; do
+    [ "$v" != "${verdicts[0]}" ] && diverge=1
+  done
+  all_pass=1
+  for v in "${verdicts[@]}"; do
+    [ "$v" != "PASS" ] && all_pass=0
+  done
+
+  if [ "$diverge" = 1 ]; then
+    diverged=$((diverged + 1))
+    diverge_files+=("$(display_name "$fixture")")
+    mark="${c_bold_red}✗${c_reset}"
+  elif [ "$all_pass" = 1 ]; then
+    mark="${c_green}✓${c_reset}"
+  else
+    mark="${c_yellow}!${c_reset}"
+  fi
+
+  printf "%s %-*s" "$mark" "$name_width" "$(display_name "$fixture")"
+  for i in "${!engine_names[@]}"; do
+    v="${verdicts[$i]}"
+    col="$(color_of "$v")"
+    printf "  %s%-*s%s" "$col" "${engine_widths[$i]}" "$v" "$c_reset"
+  done
+  printf "\n"
+
+  if [ "$diverge" = 1 ] && [ "$verbose" = 1 ]; then
+    for i in "${!engine_names[@]}"; do
+      printf "    %s--- %s ---%s\n" "$c_dim" "${engine_names[$i]}" "$c_reset"
+      sed 's/^/    /' "${outfiles[$i]}"
+    done
+    printf "\n"
+  fi
+done
+
+echo ""
+if [ "$diverged" = 0 ]; then
+  printf "%s✓ %d files, 0 divergences%s\n" "$c_green" "$total" "$c_reset"
+else
+  printf "%s✗ %d files, %d divergence(s)%s: %s\n" \
+    "$c_bold_red" "$total" "$diverged" "$c_reset" "${diverge_files[*]}"
+  echo "(run with --verbose to see each engine's full output for these, and triage before assuming a real bug -- see README.md)"
+fi
+[ "$diverged" = 0 ]

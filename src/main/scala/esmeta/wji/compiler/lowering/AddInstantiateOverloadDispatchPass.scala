@@ -24,18 +24,19 @@ import esmeta.wji.lang.{Algorithm, AlgorithmKind, Cond, Expr, Instr, WjiParam}
   *
   * Runs right after [[AddInterfaceMemberBuiltinBehaviourPass]], once both real
   * overloads already have the final `(this, ArgumentsList)` `<BUILTIN>:`
-  * calling convention and their final, non-colliding
-  * `INTRINSICS.WebAssembly.instantiate_bytes`/`instantiate_object` names — this
-  * pass's own synthetic `Algorithm` is hand-built directly in that same
-  * already-final shape (mirrors [[AddJsStringBuiltinsPass]]'s own "append a
-  * synthesized `Algorithm`" pattern), so it needs no reshaping of its own and
-  * is never itself seen by `AddInterfaceMemberBuiltinBehaviourPass`.
-  * `Instr.Perform`'s `func` field isn't restricted to `[=link=]`/`[$jscall$]`
-  * syntax — a bare string that already equals a real registered `Func` name (as
-  * both of these now are) resolves directly (`Compiler.nameFromLink` is a no-op
-  * on an already-bare string; `Interpreter.EClo` looks it up in `cfg.fnameMap`
-  * by that exact string) — so forwarding is a plain cross-function call, no
-  * closure/capture machinery needed.
+  * calling convention — this pass's own synthetic `Algorithm` is hand-built
+  * directly in that same already-final shape (mirrors
+  * [[AddJsStringBuiltinsPass]]'s own "append a synthesized `Algorithm`"
+  * pattern), so it needs no reshaping of its own and is never itself seen by
+  * `AddInterfaceMemberBuiltinBehaviourPass`.
+  *
+  * The two overloads are only ever called by this dispatcher, never exposed to
+  * JS, so they're restamped `Plain` (compiled under their plain lowercased
+  * names, not `INTRINSICS.WebAssembly.*`) and forwarded to by those names, the
+  * same names `WrapCompletionReturnsPass` knows them by. Losing their
+  * builtin-convention `kind` loses `CompletionAlgorithms`'s seed for them, so
+  * `alwaysReturnsCompletion` takes its place: the dispatcher still returns
+  * their result as its own builtin result.
   *
   * `0 < |ArgumentsList|` is checked before ever reading `ArgumentsList[0]` —
   * unlike [[Cond.Implements]] itself (safely `false` for any non-`Addr` value),
@@ -54,9 +55,8 @@ import esmeta.wji.lang.{Algorithm, AlgorithmKind, Cond, Expr, Instr, WjiParam}
   *
   * Requires:
   *   - [[AddInterfaceMemberBuiltinBehaviourPass]]: needs both real overloads
-  *     already reshaped into the `(this, ArgumentsList)` calling convention,
-  *     under their final, non-colliding `INTRINSICS.WebAssembly.*` names,
-  *     before this pass's forwarding calls can reference them.
+  *     already reshaped into the `(this, ArgumentsList)` calling convention
+  *     before this pass restamps them `Plain`.
   *
   * Category: Structural desugaring — Injection.
   */
@@ -64,6 +64,9 @@ object AddInstantiateOverloadDispatchPass extends LoweringPass:
 
   override def requires: Set[LoweringPass] =
     Set(AddInterfaceMemberBuiltinBehaviourPass)
+
+  private val ObjectOverload = "instantiate_object"
+  private val BytesOverload = "instantiate_bytes"
 
   private val BuiltinParams =
     List(
@@ -123,10 +126,7 @@ object AddInstantiateOverloadDispatchPass extends LoweringPass:
       Expr.Var("moduleObject"),
       Expr.Index(Expr.Var("ArgumentsList"), Expr.Num("0")),
     ) :: convert("importObject", 1, "object") :::
-    forward(
-      "INTRINSICS.WebAssembly.instantiate_object",
-      List("moduleObject", "importObject"),
-    )
+    forward(ObjectOverload, List("moduleObject", "importObject"))
 
   // `instantiate(AllowSharedBufferSource bytes, optional object importObject,
   // optional WebAssemblyCompileOptions options = {})`
@@ -134,10 +134,7 @@ object AddInstantiateOverloadDispatchPass extends LoweringPass:
     convert("bytes", 0, "AllowSharedBufferSource") :::
     convert("importObject", 1, "object") :::
     convert("options", 2, "WebAssemblyCompileOptions") :::
-    forward(
-      "INTRINSICS.WebAssembly.instantiate_bytes",
-      List("bytes", "importObject", "options"),
-    )
+    forward(BytesOverload, List("bytes", "importObject", "options"))
 
   private val dispatcher: Algorithm =
     Algorithm(
@@ -167,4 +164,10 @@ object AddInstantiateOverloadDispatchPass extends LoweringPass:
       kind = AlgorithmKind.NamespaceMethod("WebAssembly"),
     )
 
-  def run(algos: List[Algorithm]): List[Algorithm] = algos :+ dispatcher
+  def run(algos: List[Algorithm]): List[Algorithm] =
+    val overloads = algos.map { a =>
+      if a.name.exists(n => n == ObjectOverload || n == BytesOverload) then
+        a.copy(kind = AlgorithmKind.Plain, alwaysReturnsCompletion = true)
+      else a
+    }
+    overloads :+ dispatcher

@@ -4,9 +4,9 @@ import esmeta.error.UnsupportedSpecShape
 import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr}
 
 /** Expands `Expr.ExtAttrArgument(attr)` — webidl/index.bs's "the identifier
-  * argument of the [{{ATTR}}] [=extended attribute=]" (index.bs:808
-  * `qualified name`, 12428 `attribute setter`) — into an explicit search over
-  * the subject's `extendedAttributes` list for the entry whose `id` is `attr`,
+  * argument of the [{{ATTR}}] [=extended attribute=]" (index.bs:808 `qualified
+  * name`, 12428 `attribute setter`) — into an explicit search over the
+  * subject's `extendedAttributes` list for the entry whose `id` is `attr`,
   * reading its `value` (`esmeta.wji.Initialize.seedHostDefined`'s
   * `extAttrRecord`).
   *

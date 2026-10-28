@@ -1177,7 +1177,9 @@ object ExprParser:
       case ConcatenationWithSeparator(listRaw, hex) =>
         parse(listRaw) match
           case List_(parts) =>
-            val sep = Str(new String(Character.toChars(Integer.parseInt(hex, 16))))
+            val sep = Str(
+              new String(Character.toChars(Integer.parseInt(hex, 16))),
+            )
             Concat(parts.flatMap(p => List(sep, p)).drop(1))
           case _ => Unknown(s)
 

@@ -100,7 +100,7 @@ class Initialize(cfg: CFG) {
       NamedAddr(JOB_QUEUE) -> ListObj(),
       NamedAddr(SYMBOL_REGISTRY) -> ListObj(),
       NamedAddr(HOST_DEFINED) -> recordObj("HostDefined")(
-        "IsWJIContext" -> Bool(false)
+        "IsWJIContext" -> Bool(false),
       ),
     )
 

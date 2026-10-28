@@ -16,8 +16,8 @@ package esmeta.wji.spec
   *     conventions.
   *   - *(suggestion)* makes something the spec already says explicit — a spot
   *     where Bikeshed prose conventionally omits an argument (e.g. a generic
-  *     type parameter) that this project's extractor/compiler needs spelled
-  *     out in order to compile, or a normative requirement stated outside an
+  *     type parameter) that this project's extractor/compiler needs spelled out
+  *     in order to compile, or a normative requirement stated outside an
   *     algorithm (a declarative "must have a property ..." rule) that is moved
   *     into it as an explicit step. Nothing here is wrong in the spec as
   *     written; it's just not explicit enough for this tool. Suggestions worth

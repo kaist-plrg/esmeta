@@ -1,7 +1,7 @@
 # Out of Scope
 
 `docs/spec_errors.md`/`docs/spec_inconsistencies.md`/`docs/underspecified-behaviors.md`/
-`docs/engine_deviations.md`가 전부 "이 gap의 원인이 무엇인가"를 분류하는 문서라면,
+`docs/test_spec_mismatches.md`가 전부 "이 gap의 원인이 무엇인가"를 분류하는 문서라면,
 여기는 그 원인 분석과는 별개로 **"이 gap을 더 이상 고치지 않기로 명시적으로
 결정했다"**는 사실 자체와 그 근거를 기록한다. 단순히 "지금은 미지원"(아직 안
 고쳤을 뿐, 나중에 다시 볼 후보)인 것과는 다르다 — 여기 등록된 항목은 재검토

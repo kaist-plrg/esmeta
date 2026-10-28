@@ -1,16 +1,15 @@
 # Engine Bugs
 
-`docs/engine_deviations.md`와는 성격이 다른 목록이다 — 그쪽은 "스펙은 멀쩡한데 실제 엔진이
-스펙과 다르게 동작해서, WJI가 의도적으로 스펙 문구를 벗어나 실제 엔진에 맞추기로 한 선택"을
-기록하는 곳이고, 여기는 `tests/wji/scripts/diff-engines`(V8/SpiderMonkey/JavaScriptCore
-세 엔진에 같은 테스트를 돌려 교차검증하는 도구 — 기본 대상은
+실제 엔진(V8/SpiderMonkey/JavaScriptCore)이 **스펙과 다르게 동작하는 경우**를 기록한다 —
+공식 테스트가 그 동작을 검사하는지, 몇 개의 엔진이 어긋나는지와 무관하게. 대부분은
+`tests/wji/scripts/diff-engines`(세 엔진에 같은 테스트를 돌려 교차검증하는 도구 — 기본 대상은
 `tests/wji/manual/`+`tests/wji/complementary/`지만 파일 인자로 `tests/wji/js-api/generated/`
-(공식 wpt 코퍼스)도 돌려볼 수 있음)로 발견한, **세 엔진 중 하나(또는 둘)만 다른 둘과 다르게
-동작하는 경우**를 기록한다.
+(공식 wpt 코퍼스)도 돌려볼 수 있음)로 발견했다. 공식 테스트 자체가 스펙과 다른 동작을
+기대하는 경우는 그 테스트 쪽 문제를 `docs/test_spec_mismatches.md`에 따로 적는다.
 WJI가 뭘 어떻게 할지 결정할 필요는 없다(WJI는 스펙대로 기계화하면 그만) — 이건 순수하게
 "실제 엔진 버그일 가능성이 있다, 업스트림에 제보할 가치가 있어 보인다"는 관찰 기록.
 
-항목마다: 어떤 엔진이 다른지, 최소 재현, 기대 동작(스펙 + 다른 두 엔진의 합의) vs 실제 동작,
+항목마다: 어떤 엔진이 다른지, 최소 재현, 기대 동작(스펙) vs 실제 동작,
 확인한 엔진 버전/커밋, 확신도(재현 확인 여부, 업스트림 제보 여부).
 
 ## 1. SpiderMonkey: `new.target.prototype` getter가 던진 예외를 WebAssembly 생성자 7개 전부에서 "out of memory"로 뭉갬
@@ -315,3 +314,29 @@ WJI가 뭘 어떻게 할지 결정할 필요는 없다(WJI는 스펙대로 기�
   숫자(`5`)나 `{}`는 TypeError로 정상.
 - **확인한 엔진 버전**: 위 1번과 동일.
 - **상태**: 재현 확인, 업스트림 제보 안 함.
+
+## 19. V8/SpiderMonkey/JSC: `optional any` 인자에 넘긴 명시적 `undefined`를 "missing"으로 취급하지 않음
+
+- **발견 경로**: 공식 테스트 `table/get-set.any.js` "Setting non-function"에서 WJI만 실패한 원인을
+  추적하다 발견(`docs/test_spec_mismatches.md` #1). 이후 같은 패턴의 API를 직접 probe.
+- **기대 동작**: `Table.set`/`grow`, `Table`/`Global` 생성자는 모두 `optional any` 인자에 대해
+  "If |value| is missing → DefaultValue / Otherwise → ToWebAssemblyValue"로 갈린다. Web IDL overload
+  resolution에서 default 없는 `optional` 인자에 넘어온 `undefined`는 생략과 구분 없이 "missing"이
+  되므로, 명시적 `undefined`는 `DefaultValue` 경로를 타야 한다.
+- **실제 동작** (두 경로의 결과가 갈리는 타입만; `externref`/`i32` 등은 구분 불가):
+
+  | 호출 | 스펙 | V8 / Node | SpiderMonkey | JSC |
+  |---|---|---|---|---|
+  | `table.set(0, undefined)` (anyfunc) | null 저장 | TypeError | TypeError | TypeError |
+  | `table.grow(1, undefined)` (anyfunc) | null로 확장 | TypeError | TypeError | TypeError |
+  | `new Table({element: "anyfunc", initial: 1}, undefined)` | null | null | TypeError | TypeError |
+  | `new Global({value: "anyfunc"}, undefined)` | null | TypeError | TypeError | null |
+  | `new Global({value: "i64"}, undefined)` | `0n` | `0n` | `0n` | `0n` |
+
+  (인자를 아예 생략하면 모든 엔진이 스펙대로 동작.) 같은 엔진 안에서도 API마다 다르다 —
+  `Global` i64에서는 세 엔진 모두 "missing"으로 collapse하지만(실제 변환이었다면
+  `ToBigInt64(undefined)`가 던짐), `Table.set`/`grow`에서는 셋 다 실제 값 변환을 태운다.
+- **확인한 엔진 버전** (2026-10-28): d8 15.5.35.25, SpiderMonkey FIREFOX_158_0_RELEASE, JSC 6de1d825,
+  Node v26.12.1.
+- **상태**: 재현 확인, 엔진 쪽 제보 안 함. 규칙 자체는 WebAssembly/spec#1660(2023, `Global` 생성자
+  중심)에서 질문됐으나 결론 없이 열려 있음. 테스트 쪽 수정은 WebAssembly/spec#2307.

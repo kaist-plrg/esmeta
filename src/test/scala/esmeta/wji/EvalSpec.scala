@@ -59,12 +59,12 @@ private val skippedEntirely: Set[String] =
   */
 private val expectedFailingSubtests: Map[String, String] =
   Map(
-    // "Setting non-function": table.set(0, undefined)/.grow(1, undefined)
-    // expect a real ToWebAssemblyValue conversion (TypeError), but WJI
+    // "Setting non-function": table.set(0, undefined) expects a real
+    // ToWebAssemblyValue conversion (TypeError), but WJI
     // faithfully compiles the spec's "value is missing" check, which treats
     // an explicit undefined the same as omission — real engines deviate from
     // the spec text here, so this is intentionally left spec-faithful rather
-    // than patched to match them (docs/engine_deviations.md #1).
+    // than patched to match them (docs/test_spec_mismatches.md #1).
     "tests/wji/js-api/generated/table/get-set.any.js" -> "Setting non-function",
   )
 

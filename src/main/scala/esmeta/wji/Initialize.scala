@@ -86,7 +86,7 @@ object Initialize:
 
     st.heap.update(
       NamedAddr(HOST_DEFINED),
-      Str("__wji__"),
+      Str("IsWJIContext"),
       Bool(true),
     )
 

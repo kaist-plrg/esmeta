@@ -99,7 +99,9 @@ class Initialize(cfg: CFG) {
       NamedAddr(EXECUTION_STACK) -> ListObj(),
       NamedAddr(JOB_QUEUE) -> ListObj(),
       NamedAddr(SYMBOL_REGISTRY) -> ListObj(),
-      NamedAddr(HOST_DEFINED) -> recordObj("HostDefined"),
+      NamedAddr(HOST_DEFINED) -> recordObj("HostDefined")(
+        "IsWJIContext" -> Bool(false)
+      ),
     )
 
     // add symbols

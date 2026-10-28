@@ -2688,4 +2688,7 @@ __NEW_OBJ__
 __REMOVE_ELEM__
 __UTF8_ENCODE__
 compute_the_effective_overload_set
+create_a_namespace_object
 exposed
+overload_resolution_algorithm
+perform_a_security_check

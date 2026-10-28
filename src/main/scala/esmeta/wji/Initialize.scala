@@ -85,6 +85,12 @@ object Initialize:
     val host = SpecTecWasmHost(connection)
 
     st.heap.update(
+      NamedAddr(HOST_DEFINED),
+      Str("__wji__"),
+      Bool(true)
+    )
+
+    st.heap.update(
       realmAddr,
       Str("is global prototype chain mutable"),
       Bool(false),

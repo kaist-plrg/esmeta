@@ -11,10 +11,15 @@ object GC {
     * `Interpreter.suspendedFrames`'s own doc) — `st` alone doesn't reach them
     * while `st.context`/`st.callStack` hold a reentrant call's own callee
     * instead, so they're walked as extra roots here too.
+    *
+    * `extraValues`: values held only outside the heap (e.g. the callees of
+    * Wasm host functions, see `Interpreter.hostFuncCallees`), walked as extra
+    * roots as well.
     */
   def apply(
     st: State,
     extraFrames: List[(Context, List[CallContext])] = Nil,
+    extraValues: List[Value] = Nil,
   ): Unit = {
     var addrSet: Set[Addr] = Set()
     val walker = new UnitWalker {
@@ -25,6 +30,7 @@ object GC {
     for (context, callStack) <- extraFrames do
       walker.walk(context)
       callStack.foreach(walker.walk)
+    extraValues.foreach(walker.walk)
 
     val heap = st.heap
     val map = heap.map

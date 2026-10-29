@@ -63,6 +63,17 @@ class Interpreter(
     */
   private var suspendedFrames: List[(Context, List[CallContext])] = Nil
 
+  /** the callee of every [[HostFunction]] built by [[toHostFunc]] — SpecTec's
+    * store names a host function only by its id (`HOSTFUNC "<id>"`), and the
+    * callee itself lives in a Scala closure in the [[WasmHost]]'s registry, so
+    * nothing on the heap keeps it (or what it captured, e.g. the imported JS
+    * function) alive once instantiation returns. Periodic GC (`step`, below)
+    * walks these as extra roots so a later Wasm -> JS call doesn't hit a swept
+    * address. Never shrinks: a host function stays callable for as long as the
+    * store that holds it, and the store never drops one.
+    */
+  private var hostFuncCallees: List[Value] = Nil
+
   /** final state */
   lazy val result: State =
     while (step) {}
@@ -94,7 +105,7 @@ class Interpreter(
         for (limit <- timeLimit)
           val duration = System.currentTimeMillis - startTime
           if (duration / 1000 > limit) throw TimeoutException("interp")
-        if (!detail) GC(st, suspendedFrames)
+        if (!detail) GC(st, suspendedFrames, hostFuncCallees)
       }
 
       // cursor
@@ -325,6 +336,7 @@ class Interpreter(
     */
   private def toHostFunc(v: Value, call: Call): HostFunction =
     val callee = v.asCallable
+    hostFuncCallees ::= v
     (state: ALValue, vals: List[ALValue]) =>
       wasmMemoryBridge.pullMemoriesFromStore(state, call)
       invokeCallable(

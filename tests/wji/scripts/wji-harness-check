@@ -1,14 +1,18 @@
 #!/bin/bash
 # ------------------------------------------------------------------------------
-# Usage: tests/wji/scripts/wji-harness-check [file.any.js ...]
+# Usage: tests/wji/scripts/wji-harness-check [--node] [file.any.js ...]
 #
 # Validates tests/wji/js-api/testharness-lite.js against the real
-# testharness.js, one fresh `node` subprocess per fixture for isolation. With
-# no arguments, checks every spectec/test/js-api/**/*.any.js file.
+# testharness.js, one fresh engine subprocess per fixture for isolation. With
+# no file arguments, checks every spectec/test/js-api/**/*.any.js file.
+#
+# Runs under V8's d8 (built via install_engine/v8.sh) by default; --node runs
+# under Node.js instead. Node lacks the JS string builtins, so
+# js-string/basic.any.js never completes there and is reported as SKIP.
 #
 # See wji-harness-check.js (same directory) for what this actually compares
-# (our harness vs. the real one, both under Node -- not a WJI check).
-# Requires Node.js on PATH.
+# (our harness vs. the real one, both under the same engine -- not a WJI
+# check). Requires Node.js on PATH to drive the comparison either way.
 # ------------------------------------------------------------------------------
 
 set -euo pipefail
@@ -21,10 +25,28 @@ if ! command -v node >/dev/null 2>&1; then
   exit 1
 fi
 
-if [ $# -gt 0 ]; then
-  files=("$@")
+use_node=0
+files=()
+for arg in "$@"; do
+  if [ "$arg" = "--node" ]; then
+    use_node=1
+  else
+    files+=("$arg")
+  fi
+done
+
+if [ $use_node -eq 1 ]; then
+  engine=node
 else
-  files=()
+  # shellcheck source=./install_engine/common.sh
+  . "$script_dir/install_engine/common.sh"
+  if ! engine="$(locate_v8)"; then
+    echo "error: d8 not found under $ENGINES_DIR (build it with install_engine/v8.sh, or pass --node)" >&2
+    exit 1
+  fi
+fi
+
+if [ ${#files[@]} -eq 0 ]; then
   while IFS= read -r f; do
     files+=("$f")
   done < <(find "$repo_root/spectec/test/js-api" -name '*.any.js' | sort)
@@ -32,7 +54,7 @@ fi
 
 fail=0
 for f in "${files[@]}"; do
-  if ! node "$script_dir/wji-harness-check.js" "$f"; then
+  if ! WJI_HARNESS_ENGINE="$engine" node "$script_dir/wji-harness-check.js" "$f"; then
     fail=1
   fi
 done

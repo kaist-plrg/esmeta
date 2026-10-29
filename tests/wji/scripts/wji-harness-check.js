@@ -1,6 +1,9 @@
 #!/usr/bin/env node
 // ------------------------------------------------------------------------------
-// Usage: node tests/wji/scripts/wji-harness-check.js <spectec/test/js-api/foo.any.js>
+// Usage: [WJI_HARNESS_ENGINE=<shell binary>] node tests/wji/scripts/wji-harness-check.js <spectec/test/js-api/foo.any.js>
+//
+// Runs both variants under WJI_HARNESS_ENGINE (e.g. a d8 binary), or under
+// `node` if unset. wji-harness-check (same directory) defaults to d8.
 //
 // Validates tests/wji/js-api/testharness-lite.js (our from-scratch,
 // regex-free reimplementation of the small slice of
@@ -13,7 +16,7 @@
 // This can't run under WJI itself: real testharness.js hits ESMeta's
 // unmechanized-RegExp gap immediately (see testharness-lite.js's own doc
 // comment) -- that's the whole reason it exists. So this only tells you
-// "does our harness agree with the real one", under Node for both sides;
+// "does our harness agree with the real one", under one engine for both sides;
 // whether WJI itself passes a given test is a separate question (`sbt run
 // wji-eval <concatenated file> -silent`).
 //
@@ -37,6 +40,7 @@ if (!testFile) {
   process.exit(2);
 }
 const testFilePath = path.resolve(testFile);
+const engine = process.env.WJI_HARNESS_ENGINE || "node";
 
 let resolved;
 try {
@@ -79,7 +83,7 @@ function run(src, label) {
   const tmp = path.join(os.tmpdir(), `wji-harness-check-${label}-${process.pid}.js`);
   fs.writeFileSync(tmp, src);
   try {
-    const result = spawnSync("node", [tmp], { encoding: "utf8", timeout: 15000 });
+    const result = spawnSync(engine, [tmp], { encoding: "utf8", timeout: 15000 });
     const lines = (result.stdout || "").split("\n");
     const results = [];
     let completed = false;
@@ -103,7 +107,7 @@ function run(src, label) {
 const relPath = path.relative(repoRoot, testFilePath);
 const real = run(realSrc, "real");
 if (real.crashed || !real.completed) {
-  // A pending promise alone doesn't keep Node's event loop alive, so a
+  // A pending promise alone doesn't keep the engine's event loop alive, so a
   // promise_test whose body never settles (e.g. missing host support for
   // something the test needs) exits cleanly with no output, not a crash --
   // distinguish that from an actual thrown/uncaught error for a clearer message.

@@ -140,15 +140,21 @@ sbt "testOnly esmeta.wji.EvalSpec -- -Dverbose=true"
 
 `tests/wji/scripts/wji-harness-check`가 `spectec/test/js-api`의 각 테스트
 파일을 real `testharness.js`와 `testharness-lite.js` 양쪽에 그대로 붙여
-Node에서 돌리고, subtest별 PASS/FAIL이 일치하는지 자동 비교합니다 — WJI가
-아니라 우리 하네스 구현 자체가 맞는지만 보는 도구입니다:
+같은 엔진(기본은 V8 `d8`, `--node`면 Node)에서 돌리고, subtest별 PASS/FAIL이
+일치하는지 자동 비교합니다 — WJI가 아니라 우리 하네스 구현 자체가 맞는지만
+보는 도구입니다. 생성기의 파일별 패치는 적용하지 않은 원본 파일 기준입니다:
 
 ```
-tests/wji/scripts/wji-harness-check                              # 전체 corpus
-node tests/wji/scripts/wji-harness-check.js <file.any.js>        # 파일 하나만
+tests/wji/scripts/wji-harness-check                              # 전체 corpus, d8
+tests/wji/scripts/wji-harness-check --node                       # 전체 corpus, Node
+WJI_HARNESS_ENGINE=<d8 경로> node tests/wji/scripts/wji-harness-check.js <file.any.js>   # 파일 하나만
 ```
 
-작성 시점 기준 52개 중 51개 MATCH, 1개(`js-string/basic.any.js`)는 SKIP —
-이 파일은 host의 js-string builtins 미지원으로 real 쪽 `promise_test` 체인
-자체가 끝나지 않아 ground truth를 세울 수 없는 케이스입니다(우리 하네스
-문제 아님). `testharness-lite.js`를 고칠 때마다 이 스크립트로 재검증하세요.
+2026-10-29 기준 `d8`에서 52개 중 51개 MATCH, 1개(`limits.any.js`) FAIL.
+`limits.any.js`는 real `testharness.js`에서 이미 빠진 레거시 `assert_throws`/
+`promise_rejects`를 호출해서 real 쪽이 "not defined"로 실패하고, 우리 하네스는
+이 둘을 호환용으로 제공해서 통과하는 차이입니다(이 파일은 어차피 스코프 밖,
+`docs/out_of_scope.md` #8). 스코프 안 50개는 전부 MATCH. Node에서는 여기에 더해
+`js-string/basic.any.js`가 SKIP — Node가 js-string builtins를 지원하지 않아
+real 쪽 `promise_test` 체인이 끝나지 않으므로 ground truth를 세울 수 없습니다.
+`testharness-lite.js`를 고칠 때마다 이 스크립트로 재검증하세요.

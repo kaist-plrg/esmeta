@@ -75,9 +75,10 @@
 ## 10. `CompileError`/`LinkError`/`RuntimeError` intrinsic을 정적으로 하드코딩
 
 - **File**: `src/main/resources/manuals/intrinsics` (`_NativeError_` family), `src/main/resources/manuals/funcs/create_a_namespace_object.ir` (`errors` 루프, #29)
-- **Web IDL 머지 이후**: 정적 `WebAssembly` intrinsic 블록은 삭제됐고, 세 프로퍼티는 이제 realm 초기화 때 `create_a_namespace_object.ir`가 `%CompileError%` 등을 `DefineMethodProperty`로 namespace 객체에 설치합니다. 아래 JS API 훅("create the WebAssembly namespace object")은 여전히 컴파일만 되고 호출되지 않으며(`yet` 하나 포함), 세 생성자 자체도 여전히 정적 `_NativeError_` intrinsic입니다. 아래 "`WebAssembly` 블록" 언급은 머지 전 기록입니다.
-- **Spec source**: `spectec/document/js-api/index.bs:1810-1816` — "create the WebAssembly namespace object": `{{WebAssembly}}` 네임스페이스 객체가 생성될 때 `«"CompileError", "LinkError", "RuntimeError"»` 각각에 대해 "a new object, implementing the [=NativeError Object Structure=]"를 만들어 `DefineMethodProperty`로 설치하는 동적 알고리즘입니다.
-- **What's hardcoded**: 이 알고리즘 자체가 어디서도 호출되지 않습니다(`ir.expected`에 콜사이트가 아예 없음) — WebIDL의 "네임스페이스 객체 생성 시점" 같은 lifecycle hook을 WJI가 아직 전혀 인식/디스패치하지 않기 때문입니다. 이 항목은 그 동적 실행 자체를 우회하고, 결과물(`%CompileError%`/`%LinkError%`/`%RuntimeError%`와 그 `.prototype`, `WebAssembly.CompileError`/`LinkError`/`RuntimeError` 프로퍼티)을 realm 초기화 시점에 정적으로 미리 만들어 둡니다. `_NativeError_` family에 세 이름을 추가해서(같은 스펙 문장이 "NativeError Object Structure"라고 명시하므로 기존 `TypeError` 등과 완전히 같은 shape 재사용) `%X%`/`%X.prototype%`를 자동 생성시키고, `WebAssembly` 블록에 `LinkError`/`RuntimeError` 필드를 추가했습니다(`CompileError` 필드는 이미 있었지만 가리키는 intrinsic 자체가 없어서 죽어있었음).
+- **Spec source**: `spectec/document/js-api/index.bs:1810-1816` — "create the WebAssembly namespace object": `{{WebAssembly}}` 네임스페이스 객체가 생성될 때 `«"CompileError", "LinkError", "RuntimeError"»` 각각에 대해 "a new object, implementing the [=NativeError Object Structure=]"를 만들어 `DefineMethodProperty`로 설치하는 훅입니다.
+- **What's hardcoded**: 이 훅은 컴파일만 되고 어디서도 호출되지 않습니다(`ir.expected`에 콜사이트가 없음, 본문에 `yet` 하나 포함). Web IDL의 "네임스페이스 객체가 생성될 때" 같은 lifecycle 훅을 WJI가 찾아 호출하지 않기 때문입니다. 대신 훅이 하는 일을 두 부분으로 나눠 처리합니다.
+  - 생성자 만들기: `manuals/intrinsics`의 `_NativeError_` family에 세 이름을 추가해서(명세가 "NativeError Object Structure"라고 명시하므로 `TypeError` 등과 같은 shape) `%X%`/`%X.prototype%`를 realm 초기화 때 정적으로 만듭니다.
+  - 네임스페이스에 붙이기: 손으로 쓴 `create_a_namespace_object.ir`(#29)의 `errors` 루프가 `%CompileError%` 등을 `DefineMethodProperty`로 네임스페이스 객체에 설치합니다. Web IDL 머지 전에는 삭제된 정적 `WebAssembly` intrinsic 블록이 이 일을 했습니다.
 - **Why not mechanized**: WebIDL의 "네임스페이스 객체가 생성될 때 다음 단계를 실행해야 한다" 같은 lifecycle-hook 알고리즘을 realm/네임스페이스 초기화 순서에 맞춰 자동으로 찾아 호출하는 범용 메커니즘이 WJI 파이프라인에 아직 없습니다. 지금 필요한 건 결과물(세 개의 에러 클래스가 존재하는 것)뿐이라 정적 하드코딩으로 충분하지만, 앞으로 이런 "생성 시점 훅" 알고리즘이 더 등장하면 범용 메커니즘을 만들 가치가 생길 수 있습니다.
 
 ## 11. ~~`Cond.Implements`(`X [=implements=] {{Iface}}`)를 flat한 record-tag 비교로 대충 구현~~

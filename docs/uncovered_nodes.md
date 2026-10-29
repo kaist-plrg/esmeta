@@ -35,8 +35,10 @@ WJI IR 노드와, 각각이 남은 이유를 기록한다. 여기 있는 노드�
   (`spectec/document/js-api/index.bs:923`)인데, WJI는 이걸 호출하지 않고 JS/wasm
   경계에서 길이 불일치로 감지해 버퍼를 갱신한다 (`docs/hardcodes.md` #27).
 - **`create the WebAssembly namespace object` (6, 함수 전체)**: 네임스페이스 객체가
-  만들어질 때 부르는 훅(`index.bs:1810`)인데, WJI는 이걸 호출하지 않고 그 결과인
-  `CompileError`/`LinkError`/`RuntimeError`를 정적으로 만든다 (`docs/hardcodes.md` #10).
+  만들어질 때 부르는 훅(`index.bs:1810`)인데, WJI는 이 훅을 호출하지 않는다. 대신
+  `CompileError`/`LinkError`/`RuntimeError` 생성자는 정적 `_NativeError_` intrinsic으로
+  미리 만들고(`docs/hardcodes.md` #10), 그것을 네임스페이스 객체에 붙이는 일은 손으로 쓴
+  namespace 생성 IR이 한다(#29).
 - **할당 실패 (6)**: `WebAssembly.Table` 생성자의 `table_alloc` ERROR → RangeError
   (39789-39791), `WebAssembly.Memory` 생성자의 `mem_alloc` ERROR → RangeError
   (39629-39631). implementation-defined 한계라 실제 엔진은 이 분기로 들어간다 (Node

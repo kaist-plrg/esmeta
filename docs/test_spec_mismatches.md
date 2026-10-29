@@ -31,4 +31,5 @@
   `undefined`를 넘기는 경우는 공식 테스트가 없다.)
 - **업스트림**: 규칙 자체는 WebAssembly/spec#1660(2023, `Global` 생성자 중심)에서 질문됐으나 결론
   없이 열려 있음. get-set 테스트를 스펙에 맞추고 `table.grow(2, undefined)` 테스트를 추가하는 수정을
-  WebAssembly/spec#2307로 제출(2026-10-28, open).
+  WebAssembly/spec#2307로 제출, 2026-10-28 머지됨 — 테스트가 틀린 쪽으로 확정. WJI가 고정한 commit의
+  코퍼스엔 아직 수정 전 테스트가 있어서, 해당 subtest는 알려진 실패로 그대로 둔다.

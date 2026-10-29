@@ -12,9 +12,9 @@ object GC {
     * while `st.context`/`st.callStack` hold a reentrant call's own callee
     * instead, so they're walked as extra roots here too.
     *
-    * `extraValues`: values held only outside the heap (e.g. the callees of
-    * Wasm host functions, see `Interpreter.hostFuncCallees`), walked as extra
-    * roots as well.
+    * `extraValues`: values held only outside the heap (e.g. the callees of Wasm
+    * host functions, see `Interpreter.hostFuncCallees`), walked as extra roots
+    * as well.
     */
   def apply(
     st: State,

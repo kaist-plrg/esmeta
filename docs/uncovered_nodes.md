@@ -19,9 +19,8 @@ WJI IR 노드와, 각각이 남은 이유를 기록한다. 여기 있는 노드�
 | 분류 | 노드 |
 |---|---|
 | 1. 범위 밖 | 36 |
-| 2. 앞단 검사가 이미 걸러냄 | 9 |
-| 3. 값을 만드는 쪽이 이미 보장함 | 3 |
-| 4. 경우를 전부 다룬 뒤의 fallthrough | 5 |
+| 2. 앞단 검사가 이미 걸러냄 | 11 |
+| 3. 값의 불변 조건이 보장함 | 6 |
 
 분류는 "왜 실행될 수 없는가"를 기준으로 한다. 노드가 명세에 적힌 분기인지, 호출 결과의
 `?` 가드인지(명세나 `SpecPatch`가 붙인 것), Infra의 암묵적 재throw 규칙으로
@@ -46,7 +45,7 @@ WJI IR 노드와, 각각이 남은 이유를 기록한다. 여기 있는 노드�
   `initial: 300000n` 둘 다 RangeError). 하지만 SpecTec의 할당은 실패하지 않고, 이 한계를
   다루는 공식 테스트도 범위 밖이다 (`docs/out_of_scope.md` #4, #7, #8).
 
-## 2. 앞단 검사가 이미 걸러냄 (9)
+## 2. 앞단 검사가 이미 걸러냄 (11)
 
 앞선 단계의 검사나 변환이 이 노드에 이르는 경우를 이미 막는다.
 
@@ -64,10 +63,17 @@ WJI IR 노드와, 각각이 남은 이유를 기록한다. 여기 있는 노드�
   HostResizeArrayBuffer 전에 RangeError로 거른다. 그래서 grow는 max 안에서만 일어나 실패하지
   않는다. 같은 `Grow the memory buffer`가 `Memory.prototype.grow`에서는 실제로 실패할 수
   있어서, 호출 지점과 무관한 규칙으로는 지울 수 없다.
+- **`tojsvalue`의 끝 fallthrough (40235-40236)**: 명세 분기가 다루지 않는 값은 v128과
+  exnref뿐인데, 이 둘을 막는 명세의 assert는 기계화되지 않아(`assert (yet …)`) 실제로는
+  검사하지 않는다. 대신 호출하는 쪽(`Table.prototype.get`, `GetGlobalValue`,
+  `Exception.prototype.getArg`, exported function 호출과 host function 실행)이 모두
+  v128/exnref를 먼저 TypeError로 거르므로 (`index.bs` 1090, 1209, 1324, 1759) 이 끝에 닿는
+  값이 없다.
 
-## 3. 값을 만드는 쪽이 이미 보장함 (3)
+## 3. 값의 불변 조건이 보장함 (6)
 
-검사 대상 값이 만들어지는 곳이 정해져 있어서, 그 값이 노드에 이르는 모양일 수 없다.
+검사 대상 값이 늘 만족하는 성질(타입 정의나 그 값을 만드는 곳에서 오는)이 이 노드에 이르는
+경우를 없앤다.
 
 - **`read_the_imports`의 "|o|가 Object가 아님" (39299, 명세 분기)과 `? HasProperty(o, …)`
   가드 (39302)**: `index.bs:500`의 "If |o| is not an Object or if [=?=] [$HasProperty$](|o|, …)
@@ -79,17 +85,11 @@ WJI IR 노드와, 각각이 남은 이유를 기록한다. 여기 있는 노드�
 - **`towebassemblyvalue`의 objectkind가 array/struct 둘 다 아닌 경우 (40322, 명세 분기의
   else)**: Exported GC Object는 `ToJSValue`에서 "struct"나 "array"로만 만들어진다
   (`index.bs` 1398-1399, 1575, 1649).
+- **`string_value_of_the_extern_type`의 끝 fallthrough (39514-39515)**: extern type은 SpecTec
+  정의상 function/table/memory/global/tag 다섯 가지뿐이라, 다섯 경우를 모두 확인한 뒤에 남는
+  값이 없다.
+- **`getglobalvalue`의 globaltype 모양 검사가 거짓인 경우 (39957)**: globaltype은 SpecTec
+  정의상 생성자가 하나뿐인 튜플이라 이 검사는 늘 참이다.
 
-## 4. 경우를 전부 다룬 뒤의 fallthrough (5)
-
-- **`tojsvalue` (40235-40236)**: 명세 분기가 다루지 않는 값은 v128과 exnref뿐인데, 이 둘을
-  막는 명세의 assert는 기계화되지 않아(`assert (yet …)`) 실제로는 검사하지 않는다. 대신
-  호출하는 쪽(`Table.prototype.get`, `GetGlobalValue`, `Exception.prototype.getArg`, exported
-  function 호출과 host function 실행)이 모두 v128/exnref를 먼저 TypeError로 거르므로
-  (`index.bs` 1090, 1209, 1324, 1759) 이 끝에 닿는 값이 없다.
-- **`string_value_of_the_extern_type` (39514-39515)**: function/table/memory/global/tag
-  다섯 가지 extern type을 모두 확인한 뒤의 끝.
-- **`getglobalvalue` (39957)**: globaltype의 모양 검사가 거짓인 경우. globaltype은
-  생성자가 하나뿐인 튜플이라 늘 참이다.
-- **지우려면**: lowering이 SpecTec syntax 정의를 참조해 생성자가 전부 다뤄졌는지 알아야
+  위 두 개를 지우려면 lowering이 SpecTec syntax 정의를 보고 생성자가 전부 다뤄졌는지 알아야
   한다. 노드 수에 비해 비용이 커서 하지 않았다.

@@ -83,8 +83,13 @@ WJI IR 노드와, 각각이 남은 이유를 기록한다. 여기 있는 노드�
   Object이고 Proxy일 수 없어 `HasProperty`가 사용자 코드를 부르지 않는다. `?` 대신 `!`가 더
   정확하지만, 업스트림에 막 머지된 표기라 그대로 둔다.
 - **`towebassemblyvalue`의 objectkind가 array/struct 둘 다 아닌 경우 (40322, 명세 분기의
-  else)**: Exported GC Object는 `ToJSValue`에서 "struct"나 "array"로만 만들어진다
-  (`index.bs` 1398-1399, 1575, 1649).
+  else)**: 이 분기는 "|v| is an Exported GC Object"(`index.bs:1460`)일 때만 들어오고, WJI는
+  이를 `[[ObjectAddress]]` 내부 슬롯이 있는지로 검사한다(`ExpandWjiIsTypePass`). 이 슬롯과
+  `[[ObjectKind]]`를 가진 객체를 만드는 곳은 "a new Exported GC Object"(1653) 하나뿐이고, 그
+  호출은 `ToJSValue`의 두 곳(1398-1399)뿐이며 둘 다 "struct"나 "array"를 넘긴다.
+  `[[ObjectKind]]`는 생성 때(1655) 말고는 바뀌지 않고, JS 코드는 객체에 내부 슬롯을 붙일 수
+  없다(같은 이름의 프로퍼티를 만들어도 슬롯이 되지 않는다). 그래서 이 분기에 이르는 값의
+  objectkind는 늘 둘 중 하나다.
 - **`string_value_of_the_extern_type`의 끝 fallthrough (39514-39515)**: extern type은 SpecTec
   정의상 function/table/memory/global/tag 다섯 가지뿐이라, 다섯 경우를 모두 확인한 뒤에 남는
   값이 없다.

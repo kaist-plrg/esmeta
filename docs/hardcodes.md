@@ -238,3 +238,21 @@
 - **Spec source**: `spectec/document/js-api/index.bs:923`: `"Immediately after a WebAssembly [=memory.grow=] |x| instruction executes, perform the following steps:"`, 본문은 grow가 성공했으면 해당 메모리에 [=Refresh the memory buffer=].
 - **What's hardcoded**: wasm 명령어는 SpecTec 프로세스 안에서 실행돼 명령어 단위로 끼어들 방법이 없으므로, 이 `memory.grow` 알고리즘은 호출되지 않음. 대신 wasm 실행이 JS로 돌아오는 두 지점(`func_invoke`/`module_instantiate` 반환, wasm→JS host 호출)에서 각 메모리의 바이트 길이가 JS 쪽 `[[ArrayBufferData]]`와 다르면 grow가 있었다고 보고 `refresh_the_memory_buffer`를 직접 부름.
 - **Why not mechanized**: JS가 메모리를 관찰할 수 있는 건 그 두 지점뿐이라, "직후" 대신 "다음 경계에서" 갱신해도 관찰 가능한 결과는 같음. 진짜로 훅을 태우려면 SpecTec 인터프리터가 `memory.grow` 실행 시 호스트로 콜백하는 경로가 필요함.
+
+## 28. 특정 인자로는 실패할 수 없는 호출 3개에 `!`를 붙임
+
+- **File**: `src/main/scala/esmeta/wji/compiler/lowering/AssertInfallibleCallsPass.scala`.
+- **Spec source**:
+  - `webidl/index.bs:13821`, `new`("create a new object implementing the interface"): `Return the result of [=internally create a new object implementing the interface|internally creating a new object implementing=] |interface|, with |realm| and undefined.` (표시 없음, Infra의 암묵적 전파)
+  - `webidl/index.bs:8612`, `a new promise`: `Return [=?=] [$NewPromiseCapability$](|constructor|).`
+  - `webidl/index.bs:8688`, `react`: `Let |newCapability| be [=?=] [$NewPromiseCapability$](|constructor|).`
+- **What's hardcoded**: 알고리즘 이름과 호출 대상의 짝 3개를 표로 두고, 그 호출을 `!`(정상 완료 assert)로 바꿈. 그러면 세 알고리즘이 Completion Record를 반환하지 않게 되어, 호출 쪽으로 이어지던 "abrupt면 전파" 가드(`create a {global,memory,Table,Tag,Exception} object`, `create an exports object`, `instantiate a promise of a module` 등)가 사라짐. 커버리지로는 미방문 노드 27개(`docs/uncovered_nodes.md`).
+- **Why not mechanized**: 세 호출 모두 호출 대상 자체는 실패할 수 있고, 넘기는 인자 때문에 실패하지 않음.
+  - `internally create`의 `?` 두 개는 newTarget이 undefined가 아닐 때만 실행되고, `new`는 늘 undefined를 넘김. 나머지 abrupt 경로(`Define the iteration methods`)는 `[Global]` 인터페이스에서만 실행되는데, js-api에는 `[Global]` 인터페이스가 없음.
+  - `NewPromiseCapability(C)`는 C가 realm의 `%Promise%`면 실패하지 않음(`IsConstructor`가 참이고, `Get(%Promise%, "prototype")`은 쓰기·재설정 불가 데이터 프로퍼티라 throw하지 않으며, executor의 resolve/reject는 늘 callable).
+
+  어떤 알고리즘이 Completion Record를 반환하는지는 호출 대상 단위로 정해지고(`CompletionAlgorithms`) 인자 값은 보지 않으므로, 이걸 자동으로 알아내려면 상수 인자로 특수화하는 식의 인자 민감 분석이 필요함. `!`는 실행 중에 assert하므로 가정이 깨지면(예: `[Global]` 인터페이스 추가) 조용히 넘어가지 않고 바로 드러남.
+- **명세 쪽 여지 (패치·업스트림 제보 후보)**:
+  - `a new promise`/`react`: ECMA-262는 같은 호출을 언제나 `! NewPromiseCapability(%Promise%)`로 씀(`ecma262/spec.html`에 14곳, `?`는 0곳). WebIDL의 `?`는 이 관례와 어긋나므로 `?` → `!` *(inconsistency)* SpecPatch로 바꾸고 WebIDL에 editorial 이슈로 제보할 여지가 있음.
+  - `new`: 명세가 틀린 건 아니지만, `Return [=!=] the result of …`처럼 실패하지 않음을 명시하면 읽는 쪽이 newTarget 분기를 따져볼 필요가 없어짐. editorial 제안 수준.
+  - 명세 텍스트를 고치는 대신 하드코딩으로 둔 이유: 명세가 의미상 틀리지 않았고(동작은 같음), 위 수정은 표기 관례의 문제라 업스트림 판단을 기다릴 일이기 때문.

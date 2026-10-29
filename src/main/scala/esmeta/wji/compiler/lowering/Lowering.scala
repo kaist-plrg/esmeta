@@ -79,6 +79,7 @@ object Lowering:
     DropNotesPass,
     ResolveLinksPass,
     ResolveChoicePass,
+    AssertInfallibleCallsPass,
     GroupIfChainPass,
     ExpandContinuePass,
     NormalizeSpecTecCaseShapePass,

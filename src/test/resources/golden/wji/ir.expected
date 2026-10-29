@@ -78,34 +78,22 @@ def construct_a_webassembly_module_object(
   builtinSetNames: Unknown,
   importedStringModule: Unknown,
 ): Unknown = {
-  call _guard1 = clo<"new">(@HOST_DEFINED.Module, @EXECUTION_STACK[0].Realm)
-  if (&& (? _guard1: Completion) (! (= _guard1.Type ~normal~))) {
-    return _guard1
-  } else {
-    let moduleObject = _guard1.Value
-  }
+  call moduleObject = clo<"new">(@HOST_DEFINED.Module, @EXECUTION_STACK[0].Realm)
   moduleObject.Module = module
   moduleObject.Bytes = bytes
   moduleObject.BuiltinSets = builtinSetNames
   moduleObject.ImportedStringModule = importedStringModule
-  call _ret1 = clo<"NormalCompletion">(moduleObject)
-  return _ret1
+  return moduleObject
 }
 def asynchronously_compile_a_webassembly_module(
   bytes: Unknown,
   options: Unknown,
   taskSource?: Unknown,
 ): Unknown = {
-  call _guard1 = clo<"a_new_promise">(@HOST_DEFINED.Module, @EXECUTION_STACK[0].Realm)
-  if (&& (? _guard1: Completion) (! (= _guard1.Type ~normal~))) {
-    return _guard1
-  } else {
-    let promise = _guard1.Value
-  }
+  call promise = clo<"a_new_promise">(@HOST_DEFINED.Module, @EXECUTION_STACK[0].Realm)
   call module = clo<"compile_a_WebAssembly_module">(bytes)
   call _ = clo<"HostEnqueuePromiseJob">(clo<"asynchronously_compile_a_webassembly_module_closure1", [bytes, module, options, promise]>, @EXECUTION_STACK[0].Realm)
-  call _ret1 = clo<"NormalCompletion">(promise)
-  return _ret1
+  return promise
 }
 def <BUILTIN>:INTRINSICS.WebAssembly.compile(
   this: Unknown,
@@ -115,7 +103,8 @@ def <BUILTIN>:INTRINSICS.WebAssembly.compile(
   let options = ArgumentsList[1]
   call stableBytes = clo<"get_a_copy_of_the_buffer_source">(bytes)
   call _result1 = clo<"Asynchronously_compile_a_WebAssembly_module">(stableBytes, options)
-  return _result1
+  call _ret1 = clo<"NormalCompletion">(_result1)
+  return _ret1
 }
 def instantiate_imported_strings(
   module: Unknown,
@@ -374,12 +363,7 @@ def create_an_exports_object(
       assert (yet "is of form Case(GLOBAL,List(Var(globaladdr)))")
       assert (= (case-tag externval) "GLOBAL")
       let globaladdr = externval[0]
-      call _guard1 = clo<"create_a_global_object">(globaladdr)
-      if (&& (? _guard1: Completion) (! (= _guard1.Type ~normal~))) {
-        return _guard1
-      } else {
-        let global = _guard1.Value
-      }
+      call global = clo<"create_a_global_object">(globaladdr)
       let value = global
     } else nop
     if (= (case-tag externtype) "MEM") {
@@ -387,12 +371,7 @@ def create_an_exports_object(
       assert (yet "is of form Case(MEM,List(Var(memaddr)))")
       assert (= (case-tag externval) "MEM")
       let memaddr = externval[0]
-      call _guard2 = clo<"create_a_memory_object">(memaddr)
-      if (&& (? _guard2: Completion) (! (= _guard2.Type ~normal~))) {
-        return _guard2
-      } else {
-        let memory = _guard2.Value
-      }
+      call memory = clo<"create_a_memory_object">(memaddr)
       let value = memory
     } else nop
     if (= (case-tag externtype) "TABLE") {
@@ -400,12 +379,7 @@ def create_an_exports_object(
       assert (yet "is of form Case(TABLE,List(Var(tableaddr)))")
       assert (= (case-tag externval) "TABLE")
       let tableaddr = externval[0]
-      call _guard3 = clo<"create_a_Table_object">(tableaddr)
-      if (&& (? _guard3: Completion) (! (= _guard3.Type ~normal~))) {
-        return _guard3
-      } else {
-        let table = _guard3.Value
-      }
+      call table = clo<"create_a_Table_object">(tableaddr)
       let value = table
     } else nop
     if (= (case-tag externtype) "TAG") {
@@ -413,12 +387,7 @@ def create_an_exports_object(
       assert (yet "is of form Case(TAG,List(Var(tagaddr)))")
       assert (= (case-tag externval) "TAG")
       let tagaddr = externval[0]
-      call _guard4 = clo<"create_a_Tag_object">(tagaddr)
-      if (&& (? _guard4: Completion) (! (= _guard4.Type ~normal~))) {
-        return _guard4
-      } else {
-        let tag = _guard4.Value
-      }
+      call tag = clo<"create_a_Tag_object">(tagaddr)
       let value = tag
     } else nop
     call _call1 = clo<"CreateDataProperty">(exportsObject, name, value)
@@ -430,8 +399,7 @@ def create_an_exports_object(
   call _call2 = clo<"SetIntegrityLevel">(exportsObject, ~frozen~)
   assert (= _call2.Type ~normal~)
   let _call3 = _call2.Value
-  call _ret1 = clo<"NormalCompletion">(exportsObject)
-  return _ret1
+  return exportsObject
 }
 def initialize_an_instance_object(
   instanceObject: Unknown,
@@ -439,15 +407,9 @@ def initialize_an_instance_object(
   instance: Unknown,
 ): Unknown = {
   call exportsObject = clo<"Create_an_exports_object">(module, instance)
-  if (&& (? exportsObject: Completion) (! (= exportsObject.Type ~normal~))) {
-    return exportsObject
-  } else {
-    exportsObject = exportsObject.Value
-  }
   instanceObject.Instance = instance
   instanceObject.Exports = exportsObject
-  call _ret1 = clo<"NormalCompletion">(~unused~)
-  return _ret1
+  return ~unused~
 }
 def instantiate_the_core_of_a_webassembly_module(
   module: Unknown,
@@ -470,12 +432,7 @@ def asynchronously_instantiate_a_webassembly_module(
   moduleObject: Unknown,
   importObject: Unknown,
 ): Unknown = {
-  call _guard1 = clo<"a_new_promise">(@HOST_DEFINED.Instance, @EXECUTION_STACK[0].Realm)
-  if (&& (? _guard1: Completion) (! (= _guard1.Type ~normal~))) {
-    return _guard1
-  } else {
-    let promise = _guard1.Value
-  }
+  call promise = clo<"a_new_promise">(@HOST_DEFINED.Instance, @EXECUTION_STACK[0].Realm)
   let module = moduleObject.Module
   let builtinSetNames = moduleObject.BuiltinSets
   let importedStringModule = moduleObject.ImportedStringModule
@@ -483,35 +440,22 @@ def asynchronously_instantiate_a_webassembly_module(
   if (= _throwComp1.Type ~throw~) {
     let exception = _throwComp1.Value
     call _ = clo<"reject">(@HOST_DEFINED.Instance, promise, exception)
-    call _ret1 = clo<"NormalCompletion">(promise)
-    return _ret1
+    return promise
   } else {
     let imports = _throwComp1.Value
   }
   call _ = clo<"HostEnqueuePromiseJob">(clo<"asynchronously_instantiate_a_webassembly_module_closure1", [imports, module, promise]>, @EXECUTION_STACK[0].Realm)
-  call _ret2 = clo<"NormalCompletion">(promise)
-  return _ret2
+  return promise
 }
 def instantiate_a_promise_of_a_module(
   promiseOfModule: Unknown,
   importObject: Unknown,
 ): Unknown = {
-  call _guard1 = clo<"a_new_promise">(~WebAssemblyInstantiatedSource~, @EXECUTION_STACK[0].Realm)
-  if (&& (? _guard1: Completion) (! (= _guard1.Type ~normal~))) {
-    return _guard1
-  } else {
-    let promise = _guard1.Value
-  }
+  call promise = clo<"a_new_promise">(~WebAssemblyInstantiatedSource~, @EXECUTION_STACK[0].Realm)
   let onFullfilledSteps = clo<"instantiate_a_promise_of_a_module_closure1", [importObject, promise]>
   let onRejectedSteps = clo<"instantiate_a_promise_of_a_module_closure4", [promise]>
-  call _guard2 = clo<"React">(~WebAssemblyInstantiatedSource~, promiseOfModule, onFullfilledSteps, onRejectedSteps, @EXECUTION_STACK[0].Realm)
-  if (&& (? _guard2: Completion) (! (= _guard2.Type ~normal~))) {
-    return _guard2
-  } else {
-    _guard2 = _guard2.Value
-  }
-  call _ret1 = clo<"NormalCompletion">(promise)
-  return _ret1
+  call _ = clo<"React">(~WebAssemblyInstantiatedSource~, promiseOfModule, onFullfilledSteps, onRejectedSteps, @EXECUTION_STACK[0].Realm)
+  return promise
 }
 def instantiate_bytes(
   this: Unknown,
@@ -522,13 +466,9 @@ def instantiate_bytes(
   let options = ArgumentsList[2]
   call stableBytes = clo<"get_a_copy_of_the_buffer_source">(bytes)
   call promiseOfModule = clo<"Asynchronously_compile_a_WebAssembly_module">(stableBytes, options)
-  if (&& (? promiseOfModule: Completion) (! (= promiseOfModule.Type ~normal~))) {
-    return promiseOfModule
-  } else {
-    promiseOfModule = promiseOfModule.Value
-  }
   call _result1 = clo<"Instantiate_a_promise_of_a_module">(promiseOfModule, importObject)
-  return _result1
+  call _ret1 = clo<"NormalCompletion">(_result1)
+  return _ret1
 }
 def instantiate_object(
   this: Unknown,
@@ -537,18 +477,14 @@ def instantiate_object(
   let moduleObject = ArgumentsList[0]
   let importObject = ArgumentsList[1]
   call _result1 = clo<"asynchronously_instantiate_a_WebAssembly_module">(moduleObject, importObject)
-  return _result1
+  call _ret1 = clo<"NormalCompletion">(_result1)
+  return _ret1
 }
 def <BUILTIN>:INTRINSICS.get:WebAssembly.JSTag(
   this: Unknown,
 ): Unknown = {
   call JSTagAddr = clo<"get_the_JavaScript_exception_tag">()
-  call _guard1 = clo<"create_a_Tag_object">(JSTagAddr)
-  if (&& (? _guard1: Completion) (! (= _guard1.Type ~normal~))) {
-    return _guard1
-  } else {
-    let JSTagObject = _guard1.Value
-  }
+  call JSTagObject = clo<"create_a_Tag_object">(JSTagAddr)
   call _ret1 = clo<"NormalCompletion">(JSTagObject)
   return _ret1
 }
@@ -713,12 +649,7 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Instance(
   } else {
     instance = instance.Value
   }
-  call _guard1 = clo<"initialize_an_instance_object">(this, module, instance)
-  if (&& (? _guard1: Completion) (! (= _guard1.Type ~normal~))) {
-    return _guard1
-  } else {
-    _guard1 = _guard1.Value
-  }
+  call _ = clo<"initialize_an_instance_object">(this, module, instance)
   call _ret1 = clo<"NormalCompletion">(this)
   return _ret1
 }
@@ -772,18 +703,11 @@ def create_a_memory_object(
 ): Unknown = {
   let map = @AGENT_RECORD["memory object cache"]
   if (exists map[memaddr]) {
-    call _ret1 = clo<"NormalCompletion">(map[memaddr])
-    return _ret1
+    return map[memaddr]
   } else nop
-  call _guard1 = clo<"new">(@HOST_DEFINED.Memory, @EXECUTION_STACK[0].Realm)
-  if (&& (? _guard1: Completion) (! (= _guard1.Type ~normal~))) {
-    return _guard1
-  } else {
-    let memory = _guard1.Value
-  }
+  call memory = clo<"new">(@HOST_DEFINED.Memory, @EXECUTION_STACK[0].Realm)
   call _ = clo<"initialize_a_memory_object">(memory, memaddr)
-  call _ret2 = clo<"NormalCompletion">(memory)
-  return _ret2
+  return memory
 }
 def <BUILTIN>:INTRINSICS.WebAssembly.Memory(
   this: Unknown,
@@ -1021,18 +945,11 @@ def create_a_table_object(
 ): Unknown = {
   let map = @AGENT_RECORD["table object cache"]
   if (exists map[tableaddr]) {
-    call _ret1 = clo<"NormalCompletion">(map[tableaddr])
-    return _ret1
+    return map[tableaddr]
   } else nop
-  call _guard1 = clo<"new">(@HOST_DEFINED.Table, @EXECUTION_STACK[0].Realm)
-  if (&& (? _guard1: Completion) (! (= _guard1.Type ~normal~))) {
-    return _guard1
-  } else {
-    let table = _guard1.Value
-  }
+  call table = clo<"new">(@HOST_DEFINED.Table, @EXECUTION_STACK[0].Realm)
   call _ = clo<"initialize_a_table_object">(table, tableaddr)
-  call _ret2 = clo<"NormalCompletion">(table)
-  return _ret2
+  return table
 }
 def <BUILTIN>:INTRINSICS.WebAssembly.Table(
   this: Unknown,
@@ -1256,18 +1173,11 @@ def create_a_global_object(
 ): Unknown = {
   let map = @AGENT_RECORD["global object cache"]
   if (exists map[globaladdr]) {
-    call _ret1 = clo<"NormalCompletion">(map[globaladdr])
-    return _ret1
+    return map[globaladdr]
   } else nop
-  call _guard1 = clo<"new">(@HOST_DEFINED.Global, @EXECUTION_STACK[0].Realm)
-  if (&& (? _guard1: Completion) (! (= _guard1.Type ~normal~))) {
-    return _guard1
-  } else {
-    let global = _guard1.Value
-  }
+  call global = clo<"new">(@HOST_DEFINED.Global, @EXECUTION_STACK[0].Realm)
   call _ = clo<"initialize_a_global_object">(global, globaladdr)
-  call _ret2 = clo<"NormalCompletion">(global)
-  return _ret2
+  return global
 }
 def tovaluetype(
   s: Unknown,
@@ -1536,12 +1446,7 @@ def call_an_exported_function(
       call _ret5 = clo<"ThrowCompletion">(_call3)
       return _ret5
     } else {
-      call _guard1 = clo<"create_an_Exception_object">(exnaddr)
-      if (&& (? _guard1: Completion) (! (= _guard1.Type ~normal~))) {
-        return _guard1
-      } else {
-        let exception = _guard1.Value
-      }
+      call exception = clo<"create_an_Exception_object">(exnaddr)
       call _ret6 = clo<"ThrowCompletion">(exception)
       return _ret6
     }
@@ -1986,18 +1891,11 @@ def create_a_tag_object(
 ): Unknown = {
   let map = @AGENT_RECORD["tag object cache"]
   if (exists map[tagAddress]) {
-    call _ret1 = clo<"NormalCompletion">(map[tagAddress])
-    return _ret1
+    return map[tagAddress]
   } else nop
-  call _guard1 = clo<"new">(@HOST_DEFINED.Tag, @EXECUTION_STACK[0].Realm)
-  if (&& (? _guard1: Completion) (! (= _guard1.Type ~normal~))) {
-    return _guard1
-  } else {
-    let tag = _guard1.Value
-  }
+  call tag = clo<"new">(@HOST_DEFINED.Tag, @EXECUTION_STACK[0].Realm)
   call _ = clo<"initialize_a_Tag_object">(tag, tagAddress)
-  call _ret2 = clo<"NormalCompletion">(tag)
-  return _ret2
+  return tag
 }
 def <BUILTIN>:INTRINSICS.WebAssembly.Tag(
   this: Unknown,
@@ -2151,18 +2049,11 @@ def create_an_exception_object(
 ): Unknown = {
   let map = @AGENT_RECORD["exception object cache"]
   if (exists map[exnAddress]) {
-    call _ret1 = clo<"NormalCompletion">(map[exnAddress])
-    return _ret1
+    return map[exnAddress]
   } else nop
-  call _guard1 = clo<"new">(@HOST_DEFINED.Exception, @EXECUTION_STACK[0].Realm)
-  if (&& (? _guard1: Completion) (! (= _guard1.Type ~normal~))) {
-    return _guard1
-  } else {
-    let exn = _guard1.Value
-  }
+  call exn = clo<"new">(@HOST_DEFINED.Exception, @EXECUTION_STACK[0].Realm)
   call _ = clo<"initialize_an_Exception_object">(exn, exnAddress)
-  call _ret2 = clo<"NormalCompletion">(exn)
-  return _ret2
+  return exn
 }
 def <BUILTIN>:INTRINSICS.WebAssembly.Exception(
   this: Unknown,
@@ -2754,12 +2645,8 @@ def a_new_promise(
 ): Unknown = {
   let constructor = realm.Intrinsics["%Promise%"]
   call _call1 = clo<"NewPromiseCapability">(constructor)
-  if (&& (? _call1: Completion) (! (= _call1.Type ~normal~))) {
-    return _call1
-  } else {
-    call _ret1 = clo<"NormalCompletion">(_call1.Value)
-    return _ret1
-  }
+  assert (= _call1.Type ~normal~)
+  return _call1.Value
 }
 def resolve(
   T: Unknown,
@@ -2801,14 +2688,10 @@ def react(
   call onRejected = clo<"CreateBuiltinFunction">(onRejectedSteps, 1, "", (list []))
   let constructor = realm.Intrinsics["%Promise%"]
   call _call1 = clo<"NewPromiseCapability">(constructor)
-  if (&& (? _call1: Completion) (! (= _call1.Type ~normal~))) {
-    return _call1
-  } else {
-    let newCapability = _call1.Value
-  }
+  assert (= _call1.Type ~normal~)
+  let newCapability = _call1.Value
   call _ = clo<"PerformPromiseThen">(promise.Promise, onFulfilled, onRejected, newCapability)
-  call _ret1 = clo<"NormalCompletion">(newCapability)
-  return _ret1
+  return newCapability
 }
 def get_a_copy_of_the_buffer_source(
   bufferSource: Unknown,
@@ -3610,8 +3493,9 @@ def new(
   interface: Unknown,
   realm: Unknown,
 ): Unknown = {
-  call _result1 = clo<"internally_create_a_new_object_implementing_the_interface">(interface, realm, undefined)
-  return _result1
+  call _call1 = clo<"internally_create_a_new_object_implementing_the_interface">(interface, realm, undefined)
+  assert (= _call1.Type ~normal~)
+  return _call1.Value
 }
 def internally_create_a_new_object_implementing_the_interface(
   interface: Unknown,
@@ -4168,8 +4052,7 @@ def asynchronously_compile_a_webassembly_module_closure1(
       "PrivateElements" : (list []),
       "__MAP__" : (map[Unknown, Unknown]),
     }))
-    call _ret1 = clo<"NormalCompletion">(~unused~)
-    return _ret1
+    return ~unused~
   } else nop
   if (exists options.builtins) {
     let builtinSetNames = options.builtins
@@ -4202,15 +4085,9 @@ def asynchronously_compile_a_webassembly_module_closure1(
     }))
   } else {
     call moduleObject = clo<"Construct_a_WebAssembly_module_object">(module, bytes, builtinSetNames, importedStringModule)
-    if (&& (? moduleObject: Completion) (! (= moduleObject.Type ~normal~))) {
-      return moduleObject
-    } else {
-      moduleObject = moduleObject.Value
-    }
     call _ = clo<"Resolve">(@HOST_DEFINED.Module, promise, moduleObject)
   }
-  call _ret2 = clo<"NormalCompletion">(~unused~)
-  return _ret2
+  return ~unused~
 }
 def asynchronously_instantiate_a_webassembly_module_closure1(
 ): Unknown = {
@@ -4218,27 +4095,14 @@ def asynchronously_instantiate_a_webassembly_module_closure1(
   if (= _throwComp1.Type ~throw~) {
     let exception = _throwComp1.Value
     call _ = clo<"reject">(@HOST_DEFINED.Instance, promise, exception)
-    call _ret1 = clo<"NormalCompletion">(~unused~)
-    return _ret1
+    return ~unused~
   } else {
     let instance = _throwComp1.Value
   }
-  call _guard1 = clo<"new">(@HOST_DEFINED.Instance, @EXECUTION_STACK[0].Realm)
-  if (&& (? _guard1: Completion) (! (= _guard1.Type ~normal~))) {
-    return _guard1
-  } else {
-    let instanceObject = _guard1.Value
-  }
-  call _throwComp2 = clo<"initialize_an_instance_object">(instanceObject, module, instance)
-  if (= _throwComp2.Type ~throw~) {
-    let exception = _throwComp2.Value
-    call _ = clo<"reject">(@HOST_DEFINED.Instance, promise, exception)
-    call _ret2 = clo<"NormalCompletion">(~unused~)
-    return _ret2
-  } else nop
+  call instanceObject = clo<"new">(@HOST_DEFINED.Instance, @EXECUTION_STACK[0].Realm)
+  call _ = clo<"initialize_an_instance_object">(instanceObject, module, instance)
   call _ = clo<"Resolve">(@HOST_DEFINED.Instance, promise, instanceObject)
-  call _ret3 = clo<"NormalCompletion">(~unused~)
-  return _ret3
+  return ~unused~
 }
 def instantiate_a_promise_of_a_module_closure2(
   instance: Unknown,
@@ -4260,21 +4124,10 @@ def instantiate_a_promise_of_a_module_closure1(
   module: Unknown,
 ): Unknown = {
   call innerPromise = clo<"asynchronously_instantiate_a_WebAssembly_module">(module, importObject)
-  if (&& (? innerPromise: Completion) (! (= innerPromise.Type ~normal~))) {
-    return innerPromise
-  } else {
-    innerPromise = innerPromise.Value
-  }
   let innerOnFullfilledSteps = clo<"instantiate_a_promise_of_a_module_closure2", [module, promise]>
   let innerOnRejectedSteps = clo<"instantiate_a_promise_of_a_module_closure3", [promise]>
-  call _guard1 = clo<"React">(~WebAssemblyInstantiatedSource~, innerPromise, innerOnFullfilledSteps, innerOnRejectedSteps, @EXECUTION_STACK[0].Realm)
-  if (&& (? _guard1: Completion) (! (= _guard1.Type ~normal~))) {
-    return _guard1
-  } else {
-    _guard1 = _guard1.Value
-  }
-  call _ret1 = clo<"NormalCompletion">(~unused~)
-  return _ret1
+  call _ = clo<"React">(~WebAssemblyInstantiatedSource~, innerPromise, innerOnFullfilledSteps, innerOnRejectedSteps, @EXECUTION_STACK[0].Realm)
+  return ~unused~
 }
 def instantiate_a_promise_of_a_module_closure4(
   reason: Unknown,

@@ -261,10 +261,12 @@ object CompletionWrapping:
     // container reads: no Completion Record is ever stored in a container
     case _: Expr.Field | _: Expr.Index | _: Expr.TupleProj => true
     case _: Expr.Intrinsic | _: Expr.Symbol                => true
+    // the calling convention's own inputs: `this`, the arguments List,
+    // NewTarget and a setter's given value are values, never Completion Records
+    case Expr.This | Expr.GivenValue | Expr.ArgumentsList | Expr.NewTarget =>
+      true
     // variables: proven by `pure` (see `expand`), e.g. `r` in `AsWasm(r, u64)`
-    case e @ (_: Expr.Var | Expr.This | Expr.GivenValue | Expr.ArgumentsList |
-        Expr.NewTarget) =>
-      pure.contains(e)
+    case e: Expr.Var => pure.contains(e)
     // calls
     case _: Expr.AlgoCall | _: Expr.JSCall | _: Expr.ClosureCall => false
     case _: Expr.MethodCall                                      => false

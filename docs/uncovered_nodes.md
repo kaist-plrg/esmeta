@@ -19,9 +19,13 @@ WJI IR 노드와, 각각이 남은 이유를 기록한다. 여기 있는 노드�
 | 분류 | 노드 |
 |---|---|
 | 1. 범위 밖 | 36 |
-| 2. 앞단 검사가 이미 걸러낸 분기 | 10 |
-| 3. 생성자를 전부 다룬 뒤의 fallthrough | 5 |
-| 4. 실패할 수 없는 호출에 붙은 암묵 전파 가드 | 2 |
+| 2. 앞단 검사가 이미 걸러냄 | 9 |
+| 3. 값을 만드는 쪽이 이미 보장함 | 3 |
+| 4. 경우를 전부 다룬 뒤의 fallthrough | 5 |
+
+분류는 "왜 실행될 수 없는가"를 기준으로 한다. 노드가 명세에 적힌 분기인지, 호출 결과의
+`?` 가드인지(명세나 `SpecPatch`가 붙인 것), Infra의 암묵적 재throw 규칙으로
+`PropagateUnguardedCallsPass`가 넣은 가드인지는 각 항목에 적는다.
 
 ## 1. 범위 밖 (36)
 
@@ -40,28 +44,41 @@ WJI IR 노드와, 각각이 남은 이유를 기록한다. 여기 있는 노드�
   `initial: 300000n` 둘 다 RangeError). 하지만 SpecTec의 할당은 실패하지 않고, 이 한계를
   다루는 공식 테스트도 범위 밖이다 (`docs/out_of_scope.md` #4, #7, #8).
 
-## 2. 앞단 검사가 이미 걸러낸 분기 (10)
+## 2. 앞단 검사가 이미 걸러냄 (9)
 
-명세에 적힌 분기지만, 그 조건이 앞선 단계나 값을 만든 쪽에서 이미 정해져 있어 거짓이 될
-수 없다. `ToInt32` 두 개만 호출 결과 가드다.
-
-- **`read_the_imports`의 "|o|가 Object가 아님" (39299)**: `index.bs:500`의 "If |o| is not an
-  Object or …"에서 앞쪽 조건이 참인 경우. `o`는 늘 `instantiate a builtin set`/`instantiate
-  imported strings`가 `OrdinaryObjectCreate(null)`로 만든 객체라 Object다.
+앞선 단계의 검사나 변환이 이 노드에 이르는 경우를 이미 막는다.
 
 - **`set:WebAssembly.Global.prototype.value`의 `global_write` ERROR → RangeError
-  (39985-39987)**: 앞에서 mut이 아닌 global을 이미 TypeError로 거르고
+  (39985-39987, 명세 분기)**: 앞에서 mut이 아닌 global을 이미 TypeError로 거르고
   (`index.bs:1226`), `ToWebAssemblyValue`가 값의 타입을 맞춘다. global의 타입은 바뀌지
   않으므로 사용자 `valueOf`가 끼어들어도 쓰기는 실패하지 않는다.
 - **`WebAssembly.Table` 생성자의 "elementtype이 REF가 아님" → TypeError
-  (39753-39755)**: `TableDescriptor.element`가 IDL enum (`"externref"`/`"anyfunc"`)으로
-  먼저 검증되어 `ToValueType`이 늘 REF를 돌려준다.
-- **`towebassemblyvalue`의 `? ToInt32(v)` 가드 2개 (40303, 40312)**: 둘 다 `v`가
-  Number임을 확인한 뒤의 호출이라 `ToNumber`가 항등이고 실패하지 않는다.
-- **`towebassemblyvalue`의 objectkind가 array/struct 둘 다 아닌 경우 (40322)**: Exported
-  GC Object는 이 두 kind로만 만들어진다.
+  (39753-39755, 명세 분기)**: `TableDescriptor.element`가 IDL enum
+  (`"externref"`/`"anyfunc"`)으로 먼저 검증되어 `ToValueType`이 늘 REF를 돌려준다.
+- **`towebassemblyvalue`의 `? ToInt32(v)` 가드 2개 (40303, 40312, 명세의 `?`)**: 둘 다
+  `v`가 Number임을 확인한 뒤의 호출이라 `ToNumber`가 항등이고 실패하지 않는다.
+- **`HostResizeArrayBuffer`의 `Grow the memory buffer` 가드 (39732, 암묵 전파)**: resizable
+  buffer의 `maxByteLength`는 memory의 max에서 오고, ECMA-262의 `resize`가 그보다 큰 크기를
+  HostResizeArrayBuffer 전에 RangeError로 거른다. 그래서 grow는 max 안에서만 일어나 실패하지
+  않는다. 같은 `Grow the memory buffer`가 `Memory.prototype.grow`에서는 실제로 실패할 수
+  있어서, 호출 지점과 무관한 규칙으로는 지울 수 없다.
 
-## 3. 생성자를 전부 다룬 뒤의 fallthrough (5)
+## 3. 값을 만드는 쪽이 이미 보장함 (3)
+
+검사 대상 값이 만들어지는 곳이 정해져 있어서, 그 값이 노드에 이르는 모양일 수 없다.
+
+- **`read_the_imports`의 "|o|가 Object가 아님" (39299, 명세 분기)과 `? HasProperty(o, …)`
+  가드 (39302)**: `index.bs:500`의 "If |o| is not an Object or if [=?=] [$HasProperty$](|o|, …)
+  is false". `?`는 `SpecPatch` #57로 붙이며(`docs/spec_errors.md` #29), 업스트림에도
+  WebAssembly/spec#2256로 반영됐다. `o`는 늘 `instantiate a builtin set`/`instantiate
+  imported strings`가 `OrdinaryObjectCreate(null)`로 만들고 데이터 프로퍼티만 채운 객체라,
+  Object이고 Proxy일 수 없어 `HasProperty`가 사용자 코드를 부르지 않는다. `?` 대신 `!`가 더
+  정확하지만, 업스트림에 막 머지된 표기라 그대로 둔다.
+- **`towebassemblyvalue`의 objectkind가 array/struct 둘 다 아닌 경우 (40322, 명세 분기의
+  else)**: Exported GC Object는 `ToJSValue`에서 "struct"나 "array"로만 만들어진다
+  (`index.bs` 1398-1399, 1575, 1649).
+
+## 4. 경우를 전부 다룬 뒤의 fallthrough (5)
 
 - **`tojsvalue` (40235-40236)**: 명세 분기가 다루지 않는 값은 v128과 exnref뿐인데, 이 둘을
   막는 명세의 assert는 기계화되지 않아(`assert (yet …)`) 실제로는 검사하지 않는다. 대신
@@ -74,17 +91,3 @@ WJI IR 노드와, 각각이 남은 이유를 기록한다. 여기 있는 노드�
   생성자가 하나뿐인 튜플이라 늘 참이다.
 - **지우려면**: lowering이 SpecTec syntax 정의를 참조해 생성자가 전부 다뤄졌는지 알아야
   한다. 노드 수에 비해 비용이 커서 하지 않았다.
-
-## 4. 실패할 수 없는 호출에 붙은 암묵 전파 가드 (2)
-
-명세 텍스트에는 `?`가 없지만, Infra의 "호출이 throw하면 다시 throw한다" 규칙에 따라
-`PropagateUnguardedCallsPass`가 넣은 가드다.
-
-- **`read_the_imports`의 `HasProperty(o, …)` 가드 (39302)**: `o`는 2번의 39299에서 본
-  null-prototype 객체로, 데이터 프로퍼티만 있다. 그래서 `HasProperty`는 사용자 코드를
-  부르지 않는다.
-- **`HostResizeArrayBuffer`의 `Grow the memory buffer` 가드 (39732)**: resizable buffer의
-  `maxByteLength`는 memory의 max에서 오고, ECMA-262의 `resize`가 그보다 큰 크기를
-  HostResizeArrayBuffer 전에 RangeError로 거른다. 그래서 grow는 max 안에서만 일어나 실패하지
-  않는다. 같은 `Grow the memory buffer`가 `Memory.prototype.grow`에서는 실제로 실패할 수
-  있어서, 호출 지점과 무관한 규칙으로는 지울 수 없다.

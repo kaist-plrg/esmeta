@@ -38,15 +38,10 @@ import esmeta.wji.lang.{Algorithm, AlgorithmKind, Cond, Expr, Instr, WjiParam}
   * `alwaysReturnsCompletion` takes its place: the dispatcher still returns
   * their result as its own builtin result.
   *
-  * `0 < |ArgumentsList|` is checked before ever reading `ArgumentsList[0]` —
-  * unlike [[Cond.Implements]] itself (safely `false` for any non-`Addr` value),
-  * out-of-range indexing on `ArgumentsList` throws `InvalidObjField` rather
-  * than gracefully reading as `undefined` (mirrors every other
-  * `ArgumentsList[i]` read in [[AddInterfaceMemberBuiltinBehaviourPass]], e.g.
-  * its own `unpackArgumentsList`). A zero-argument call falls to
-  * `instantiate_bytes` — an arbitrary choice, harmless since both overloads'
-  * first parameter is required, so either one correctly rejects with a
-  * `TypeError` promise either way (`TODO.md` #57).
+  * `ArgumentsList[0]` is read without a length check: a zero-argument call is
+  * rejected by `overload_resolution_algorithm` before the dispatcher runs, and
+  * otherwise `ArgumentsList` is padded to all 3 folded params (see
+  * [[convert]]).
   *
   * `manuals/intrinsics`'s `instantiate: [TTT] #INTRINSICS.WebAssembly.
   * instantiate;` descriptor and its `length: 1` override are both keyed by this
@@ -146,16 +141,9 @@ object AddInstantiateOverloadDispatchPass extends LoweringPass:
       body = List(
         Instr.IfChain(
           List(
-            Cond.And(
-              Cond.Compare(
-                Expr.Num("0"),
-                Cond.CompareOp.Lt,
-                Expr.Length(Expr.Var("ArgumentsList")),
-              ),
-              Cond.Implements(
-                Expr.Index(Expr.Var("ArgumentsList"), Expr.Num("0")),
-                Expr.SpecTerm("Module"),
-              ),
+            Cond.Implements(
+              Expr.Index(Expr.Var("ArgumentsList"), Expr.Num("0")),
+              Expr.SpecTerm("Module"),
             ) -> moduleBranch,
           ),
           bytesBranch,

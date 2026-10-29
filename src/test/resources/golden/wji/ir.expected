@@ -5073,20 +5073,14 @@ def <BUILTIN>:INTRINSICS.WebAssembly.instantiate(
   this: Unknown,
   ArgumentsList: Unknown,
 ): Unknown = {
-  let _cond3 = false
-  if (< 0 (sizeof ArgumentsList)) {
-    let _cond2 = false
-    if (&& (? ArgumentsList[0]: Record[Object]) (&& (? ArgumentsList[0]: Record[Object]) (exists ArgumentsList[0].PrimaryInterface))) {
-      call _call1 = clo<"inclusive_inherited_interfaces">(ArgumentsList[0].PrimaryInterface)
-      if (contains _call1 @HOST_DEFINED.Module) {
-        _cond2 = true
-      } else nop
-    } else nop
-    if (= _cond2 true) {
-      _cond3 = true
+  let _cond2 = false
+  if (&& (? ArgumentsList[0]: Record[Object]) (&& (? ArgumentsList[0]: Record[Object]) (exists ArgumentsList[0].PrimaryInterface))) {
+    call _call1 = clo<"inclusive_inherited_interfaces">(ArgumentsList[0].PrimaryInterface)
+    if (contains _call1 @HOST_DEFINED.Module) {
+      _cond2 = true
     } else nop
   } else nop
-  if (= _cond3 true) {
+  if (= _cond2 true) {
     let moduleObject = ArgumentsList[0]
     call-convert importObject = <converted_to_an_idl_value>(ArgumentsList[1], "object")
     if (&& (? importObject: Completion) (! (= importObject.Type ~normal~))) {

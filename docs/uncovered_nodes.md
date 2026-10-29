@@ -9,7 +9,8 @@ WJI IR 노드와, 각각이 남은 이유를 기록한다. 여기 있는 노드�
   알고리즘(`webidl/index.bs`에서 온 것)과 `manuals/funcs`의 손으로 쓴 IR은 측정 대상이
   아니다.
 - **결과 (2026-10-29)**: 함수 127/130, 노드 1756/1837 (95.6%), 분기 616/666 (92.5%).
-  미방문 노드 81개, 31개 함수.
+  미방문 노드 81개, 31개 함수. 측정 뒤 `WebAssembly.instantiate` 디스패처의 늘 참인 인자 개수
+  검사를 지워, 그 거짓 분기 1개(42290)가 없어졌다. 아래는 남은 80개.
 - **노드 번호**: 아래 번호는 그 측정의 IR 기준이다. IR이 바뀌면 번호도 바뀌므로,
   `logs/wji-coverage-full/annotated-ir/<함수>.ir`에서 `[0]`으로 표시된 줄을 내용으로
   다시 찾는다.
@@ -22,7 +23,6 @@ WJI IR 노드와, 각각이 남은 이유를 기록한다. 여기 있는 노드�
 | 4. `a new promise`/`react`의 `?` 가드 | 7 |
 | 5. 생성자를 전부 다룬 뒤의 fallthrough | 5 |
 | 6. 실패할 수 없는 호출에 붙은 암묵 전파 가드 | 2 |
-| 7. 오버로드 해석이 먼저 거른 분기 | 1 |
 
 2, 4, 6은 대부분 "호출이 abrupt면 전파"하는 가드다 (2의 41721-41724만 "If this throws"
 catch 처리). 어떤 알고리즘이 Completion Record를 반환하는지는 호출 그래프 위의 고정점으로
@@ -147,13 +147,3 @@ Record를 반환하는 알고리즘이 된다.
   HostResizeArrayBuffer 전에 RangeError로 거른다. 그래서 grow는 max 안에서만 일어나 실패하지
   않는다. 같은 `Grow the memory buffer`가 `Memory.prototype.grow`에서는 실제로 실패할 수
   있어서, 호출 지점과 무관한 규칙으로는 지울 수 없다.
-
-## 7. 오버로드 해석이 먼저 거른 분기 (1)
-
-- **`INTRINSICS.WebAssembly.instantiate`의 "인자가 0개" 분기 (42290)**: `instantiate`의 두
-  오버로드는 `Initialize.foldInstantiateOverloads`가 하나의 all-`any` 연산으로 접은 뒤
-  오버로드 해석을 거친다. 인자가 0개면 맞는 항목이 없어서 오버로드 해석
-  (`manuals/funcs/overload_resolution_algorithm.ir` 5단계)이 본문에 들어가기 전에 TypeError를
-  던진다. 통과했다면 `ArgumentsList`는 선언된 파라미터 수만큼 채워져 있으므로, 디스패처
-  (`AddInstantiateOverloadDispatchPass`)의 `0 < |ArgumentsList|` 검사는 늘 참이다.
-  `tests/wji/complementary/instantiate-non-module-arguments.js`가 이 동작을 확인한다.

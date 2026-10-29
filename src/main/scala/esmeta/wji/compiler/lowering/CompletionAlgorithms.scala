@@ -13,9 +13,9 @@ import esmeta.wji.lang.Instr.PerformOutcome
   * nested branches, but not through other algorithms):
   *   - it has a `Throw` step or a `?`/`!`-marked call (`Expr.Abrupt`) — direct,
   *     local signals the spec text itself gives (no transitivity needed to know
-  *     these, unlike the case below). A WebIDL `[=/new=]` (`Expr.New`) is not
-  *     one: it internally creates the object with an undefined newTarget, and
-  *     its only `?` steps read newTarget; or
+  *     these, unlike the case below). Creating an exception object (`Expr.New`)
+  *     is not one by itself, and `[=/new=]` is a call to WebIDL's `new`
+  *     algorithm, analyzed like any other call; or
   *   - it makes an *unmarked* call to another algorithm already known to be in
   *     the set, and that call's result isn't itself manually handled — either
   *     inspected directly (a `.[[Type]]`/`.Type` field read anywhere afterward,

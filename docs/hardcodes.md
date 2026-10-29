@@ -246,7 +246,7 @@
   - `webidl/index.bs:13821`, `new`("create a new object implementing the interface"): `Return the result of [=internally create a new object implementing the interface|internally creating a new object implementing=] |interface|, with |realm| and undefined.` (표시 없음, Infra의 암묵적 전파)
   - `webidl/index.bs:8612`, `a new promise`: `Return [=?=] [$NewPromiseCapability$](|constructor|).`
   - `webidl/index.bs:8688`, `react`: `Let |newCapability| be [=?=] [$NewPromiseCapability$](|constructor|).`
-- **What's hardcoded**: 알고리즘 이름과 호출 대상의 짝 3개를 표로 두고, 그 호출을 `!`(정상 완료 assert)로 바꿈. 그러면 세 알고리즘이 Completion Record를 반환하지 않게 되어, 호출 쪽으로 이어지던 "abrupt면 전파" 가드(`create a {global,memory,Table,Tag,Exception} object`, `create an exports object`, `instantiate a promise of a module` 등)가 사라짐. 커버리지로는 미방문 노드 27개(`docs/uncovered_nodes.md`).
+- **What's hardcoded**: 알고리즘 이름과 호출 대상의 짝 3개를 표로 두고, 그 호출을 `!`(정상 완료 assert)로 바꿈. 그러면 세 알고리즘이 Completion Record를 반환하지 않게 되어, 호출 쪽으로 이어지던 "abrupt면 전파" 가드(`create a {global,memory,Table,Tag,Exception} object`, `create an exports object`, `instantiate a promise of a module` 등)가 사라짐. 커버리지로는 미방문 노드 27개가 줄어듦(2026-10-29, 80 → 53).
 - **Why not mechanized**: 세 호출 모두 호출 대상 자체는 실패할 수 있고, 넘기는 인자 때문에 실패하지 않음.
   - `internally create`의 `?` 두 개는 newTarget이 undefined가 아닐 때만 실행되고, `new`는 늘 undefined를 넘김. 나머지 abrupt 경로(`Define the iteration methods`)는 `[Global]` 인터페이스에서만 실행되는데, js-api에는 `[Global]` 인터페이스가 없음.
   - `NewPromiseCapability(C)`는 C가 realm의 `%Promise%`면 실패하지 않음(`IsConstructor`가 참이고, `Get(%Promise%, "prototype")`은 쓰기·재설정 불가 데이터 프로퍼티라 throw하지 않으며, executor의 resolve/reject는 늘 callable).

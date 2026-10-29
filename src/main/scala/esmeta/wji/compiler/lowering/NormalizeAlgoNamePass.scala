@@ -16,7 +16,7 @@ import esmeta.wji.lang.walker.Walker
   * A Getter/Setter/Constructor/Method-kind algorithm's `name` is left exactly
   * as extracted instead — `Compiler.compileAlgo` registers all four
   * case-preserved (see `AddInterfaceMemberBuiltinBehaviourPass`), matching the
-  * real, case-sensitive JS property names `manuals/intrinsics` expects (e.g.
+  * real, case-sensitive JS property names `seedHostDefined` expects (e.g.
   * `Global.value`'s setter, `Module.customSections`'s real casing rather than
   * `customsections`) — every one of those kinds is only ever reached via real
   * property/call access, never via a `[=link=]`-style reference

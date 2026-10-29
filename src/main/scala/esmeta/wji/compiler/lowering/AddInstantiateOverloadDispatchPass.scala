@@ -43,10 +43,9 @@ import esmeta.wji.lang.{Algorithm, AlgorithmKind, Cond, Expr, Instr, WjiParam}
   * otherwise `ArgumentsList` is padded to all 3 folded params (see
   * [[convert]]).
   *
-  * `manuals/intrinsics`'s `instantiate: [TTT] #INTRINSICS.WebAssembly.
-  * instantiate;` descriptor and its `length: 1` override are both keyed by this
-  * final intrinsic name, not by which `Algorithm` produced it, so this pass's
-  * synthetic dispatcher inherits both automatically — nothing to change there.
+  * Web IDL's "define the operations" installs the dispatcher (and computes its
+  * `length`) via the folded `instantiate` member, which
+  * `Initialize.seedHostDefined` resolves to this final name.
   *
   * Requires:
   *   - [[AddInterfaceMemberBuiltinBehaviourPass]]: needs both real overloads

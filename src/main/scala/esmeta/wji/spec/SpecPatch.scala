@@ -1657,7 +1657,9 @@ object SpecPatch:
       #        PropertyDescriptor{\[[Writable]]: <emu-val>false</emu-val>, \[[Enumerable]]: <emu-val>false</emu-val>, \[[Configurable]]: <emu-val>true</emu-val>, \[[Value]]: |classString|}).
       #    1.  Return |interfaceProtoObj|.""".stripMargin('#'),
 
-    // #82 (hardcoding)
+    // #82 (hardcoding) — the parser takes `|attribute|` in "of the type
+    // |attribute| is declared as" as an extra argument of the conversion,
+    // although it only describes the target type, so the clause is dropped.
     """1.  Return the result of [=converted to a JavaScript value|converting=] |R| to a
                 JavaScript value of the type |attribute| is declared as."""
     ->

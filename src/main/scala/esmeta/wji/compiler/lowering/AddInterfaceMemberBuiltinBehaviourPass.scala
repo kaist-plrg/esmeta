@@ -62,12 +62,10 @@ import esmeta.wji.lang.{Algorithm, AlgorithmKind, Cond, Expr, Instr, WjiParam}
   * computes `.length` from `func.head` (`None` for a hand-written glue file
   * with no spec prose behind it, so always `0`). This pass now produces a real
   * `<BUILTIN>:INTRINSICS.WebAssembly.<name>` function for all three uniformly,
-  * the same way it already does for every interface member —
-  * `manuals/intrinsics` still needs an explicit `[TTT]`-flagged declaration
-  * (mirroring `Module.exports`'s own entry) to get the correct descriptor
-  * instead of falling through to that generic fallback, and an explicit
-  * `length` override (same pattern as `Memory.prototype.grow`'s own), but no
-  * more hand-written call-unpacking glue. See `docs/hardcodes.md` #7.
+  * the same way it already does for every interface member. The compiled Web
+  * IDL "define the operations"/"define the attributes" steps install them as
+  * properties (descriptor and `length` included); `Initialize.seedHostDefined`
+  * points each member record at the function by that name.
   *
   *   - '''parameters''': each kind takes exactly what WebIDL's own caller of
   *     its steps closure passes (`Initialize.seedHostDefined`'s
@@ -114,7 +112,7 @@ import esmeta.wji.lang.{Algorithm, AlgorithmKind, Cond, Expr, Instr, WjiParam}
   *
   * `esmeta.wji.compiler.Compiler.compileAlgo` handles the remaining, genuinely
   * compiler-level half — registering the result under the exact case-preserved
-  * name `manuals/intrinsics` references for each kind (e.g.
+  * name `Initialize.seedHostDefined` looks up for each kind (e.g.
   * `INTRINSICS.get:WebAssembly.Instance.prototype.exports`,
   * `INTRINSICS.set:WebAssembly.Global.prototype.value`, `INTRINSICS.
   * WebAssembly.Instance`) with `FuncKind.Builtin` — since naming/`FuncKind`

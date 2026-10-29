@@ -110,14 +110,11 @@ object WjiCoverage:
     * underscore, lower-cased -- reproduced here rather than reached into, since
     * it's a private one-liner) base names of every algorithm WJI pulls in from
     * `webidl/index.bs` (`SpecFile.webidlFilter`) rather than from
-    * `js-api/index.bs` itself. Excluded from the coverage report below: WJI
-    * mechanizes almost none of these as real, invoked algorithms -- their
-    * actual runtime effect is hardcoded directly by lowering passes
-    * (`AddBuiltinBehaviourPass`/`AddInterfaceMemberBuiltinBehaviourPass`/...)
-    * instead, so whether one of these compiled-but-uncalled functions is
-    * "covered" says nothing about the WebAssembly JS API surface this tool
-    * exists to measure -- counting them in the denominator would just dilute
-    * that signal.
+    * `js-api/index.bs` itself. Excluded from the coverage report below: they
+    * are Web IDL's generic binding machinery, shared by every Web IDL
+    * specification, so whether a test reaches them says nothing about the
+    * WebAssembly JS API surface this tool exists to measure -- counting them in
+    * the denominator would just dilute that signal.
     */
   private val webidlBaseNames: Set[String] =
     SpecFile.webidlFilter.map(_.replace(' ', '_').toLowerCase)

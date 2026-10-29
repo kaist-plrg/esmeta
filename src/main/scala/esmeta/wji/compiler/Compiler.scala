@@ -43,25 +43,13 @@ object Compiler:
 
   /** *(hardcoding)* A quick stand-in for the base ordinary-object shape
     * (`Prototype`/`Extensible`/`__MAP__`/every standard internal method,
-    * mirroring `manuals/funcs/__NEW_OBJ__.ir`) every `Expr.New(iface)`
-    * -constructed WJI object (`Instance`, `Module`, `CompileError`, ...) needs
-    * to behave like a real JS object — e.g. so `.Get`/`.Set` don't fail with
-    * "invalid object field" once `Type(v)` correctly classifies it as an Object
-    * (see `esmeta.ty.TyModel.registerDynamicSubtype`). `Prototype` points at
-    * the real prototype intrinsic only for the names where `manuals/intrinsics`
-    * actually declares one today — `Instance`, `Global`, and `Memory` (true
-    * WebIDL interfaces) under `%WebAssembly.<iface>.prototype%` (their getter/
-    * setter/constructor members, compiled from the real spec text via
-    * `compileAlgo`'s `AlgorithmKind.Getter`/`Setter`/`Constructor` cases below
-    * and `esmeta.wji.compiler.lowering.AddInterfaceMemberBuiltinBehaviourPass`,
-    * resolve against these), plus `CompileError`/`LinkError`/`RuntimeError`
-    * (WebIDL `<dfn exception>`s, not interfaces — `Expr.New` doesn't
-    * distinguish the two, so they share this same map) under the bare
-    * `%<iface>.prototype%` (the `_NativeError_` family in `manuals/intrinsics`
-    * — these aren't `WebAssembly`-namespaced). Every other name has no such
-    * intrinsic declared at all, so referencing it would itself crash, and falls
-    * back to `null` as before. The rest of WebIDL's "internally create a new
-    * object implementing the interface" preamble is left for later.
+    * mirroring `manuals/funcs/__NEW_OBJ__.ir`) of an `Expr.New(iface)` object.
+    * Platform objects now come from Web IDL's compiled `new`, so `Expr.New`
+    * only remains for a non-thrown "a {{X}} exception" (e.g. "reject |promise|
+    * with a {{CompileError}} exception"), whose `Prototype` is the
+    * `_NativeError_` intrinsic `%<iface>.prototype%`. The interface entries'
+    * `%WebAssembly.<iface>.prototype%` intrinsics no longer exist; their keys
+    * are still used for `{{X}}` resolution (`compileExpr`'s `SpecTerm` case).
     *
     * Documented in `docs/hardcodes.md` (#7) — when this gets properly
     * implemented, delete that entry too.
@@ -154,15 +142,11 @@ object Compiler:
       // the real `<BUILTIN>:` calling convention (ArgumentsList unpacking,
       // every Return wrapped in a Completion) by the time lowering hands it
       // here — compiled exactly like any other algorithm, just registered
-      // under the exact case-preserved name `manuals/intrinsics` references
-      // for that kind (e.g. `INTRINSICS.get:WebAssembly.Instance.prototype.
-      // exports`, `INTRINSICS.WebAssembly.Instance`,
+      // under the exact case-preserved name `Initialize.seedHostDefined`
+      // looks up for that kind (e.g. `INTRINSICS.get:WebAssembly.Instance.
+      // prototype.exports`, `INTRINSICS.WebAssembly.Instance`,
       // `INTRINSICS.WebAssembly.Global.prototype.valueOf`) with
-      // `FuncKind.Builtin`, instead of the usual lowercased/AbsOp shape — so
-      // a real `instance.exports` property read (or `new
-      // WebAssembly.Instance(...)`, once the rest of `docs/hardcodes.md` #7's
-      // gap is closed) reaches it directly, no hand-written
-      // `manuals/funcs/...` stub needed.
+      // `FuncKind.Builtin`, instead of the usual lowercased/AbsOp shape.
       def builtinFunc(fname: String): Func =
         Func(
           main = false,

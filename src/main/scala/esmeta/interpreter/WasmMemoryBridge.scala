@@ -10,17 +10,21 @@ import esmeta.state.util.{fromALNum, toAL}
   * ESMeta (JVM) / SpecTec (separate OCaml process) boundary. True aliasing —
   * what js-api's own "identified with" phrasing assumes — is architecturally
   * impossible here, since the two only ever talk over JSON-RPC; instead, the
-  * whole byte content of every live memory is resynced at each of the two
-  * points where JS and wasm execution can actually observe each other:
-  * [[Interpreter.callEmbedding]]'s `func_invoke`/`module_instantiate` case (JS
-  * calls into wasm) and [[Interpreter.toHostFunc]] (wasm reentrantly calls back
-  * into JS). Both call sites now have an explicit `store` value in hand
+  * bridge keeps one invariant: whenever SpecTec acts on a store, the store
+  * holds every byte JS has written. JS-side bytes are pushed into the `store`
+  * argument of every embedding call that takes one
+  * ([[Interpreter.callEmbedding]]; not only `func_invoke`/`module_instantiate`
+  * -- e.g. a JS write followed by `Memory.prototype.grow` would otherwise be
+  * lost by `mem_grow`), and pulled back after `func_invoke`/
+  * `module_instantiate` and around [[Interpreter.toHostFunc]] (wasm reentrantly
+  * calls back into JS). These call sites have an explicit `store` value in hand
   * (`create a host function`'s closure was `SpecPatch`-corrected to take/
   * return `state` explicitly, same as every other store-touching js-api
-  * algorithm — see `docs/spec_inconsistencies.md` #7), so both go through the
-  * same pure-local, RPC-free pair below: [[pushMemoriesIntoStore]]/
-  * [[pullMemoriesFromStore]]. No separate `mem_read_bytes`/`mem_write_bytes`
-  * RPC-based pair is needed any more.
+  * algorithm — see `docs/spec_inconsistencies.md` #7), so all of them go
+  * through the same pure-local, RPC-free pair below: [[pushMemoriesIntoStore]]/
+  * [[pullMemoriesFromStore]]. `mem_read_bytes`, which only builds a new
+  * buffer's data block, reads SpecTec's live store instead, so it prefers an
+  * attached same-length JS buffer ([[currentJsBytes]]).
   *
   * Takes the owning [[Interpreter]] rather than just its [[State]] because
   * [[applyPulledBytes]]'s growable-memory path needs a genuine reentrant call
@@ -95,36 +99,65 @@ private[interpreter] class WasmMemoryBridge(interp: Interpreter):
   def pushMemoriesIntoStore(storeVal: Value): Value =
     toAL(st, storeVal) match
       case ALValue.StrV(fields) =>
+        var changed = false
         val patched = fields.map {
           case (name, ALValue.ListV(meminsts))
               if name.equalsIgnoreCase("MEMS") =>
             var result = meminsts
-            for (memaddr, memoryObjAddr) <- memoryObjectCacheEntries() do
-              arrayBufferDataAddr(memoryObjAddr).foreach { addr =>
-                val i = memaddrIndex(memaddr)
-                val bytes =
-                  st(addr)
-                    .asInstanceOf[ListObj]
-                    .values
-                    .map(toAL(st, _))
-                    .toList
-                result.lift(i).foreach {
-                  case ALValue.StrV(miFields) =>
-                    val patchedMi = ALValue.StrV(miFields.map {
-                      case (fn, _) if fn.equalsIgnoreCase("BYTES") =>
-                        (fn, ALValue.ListV(bytes))
-                      case other => other
-                    })
-                    result = result.updated(i, patchedMi)
-                  case _ => ()
-                }
-              }
+            for
+              (memaddr, memoryObjAddr) <- memoryObjectCacheEntries()
+              js <- jsBytes(memoryObjAddr)
+              i = memaddrIndex(memaddr)
+              mi <- result.lift(i)
+            do
+              mi match
+                case ALValue.StrV(miFields) =>
+                  val patchedMi = ALValue.StrV(miFields.map {
+                    // a buffer of a different length is awaiting "refresh the
+                    // Memory buffer" after a grow; the store is newer there
+                    case (fn, ALValue.ListV(old))
+                        if fn.equalsIgnoreCase("BYTES") &&
+                        old.length == js.length &&
+                        !old.iterator.zip(js.iterator).forall(_ == _) =>
+                      changed = true
+                      (fn, ALValue.ListV(js.toList))
+                    case other => other
+                  })
+                  result = result.updated(i, patchedMi)
+                case _ => ()
             (name, ALValue.ListV(result))
           case other => other
         }
-        Wasm(ALValue.StrV(patched))
+        // keep the very same value when nothing changed, so that
+        // `SpecTecWasmHost.encodeStore` can still send just its cached id
+        if changed then Wasm(ALValue.StrV(patched)) else storeVal
       case _ =>
         storeVal // not a StrV store shape -- leave untouched (defensive)
+
+  /** `memoryObjAddr`'s current JS-side bytes as AL values, or `None` if its
+    * buffer is detached.
+    */
+  private def jsBytes(memoryObjAddr: Value): Option[Vector[ALValue]] =
+    arrayBufferDataAddr(memoryObjAddr).map(addr =>
+      st(addr).asInstanceOf[ListObj].values.map(toAL(st, _)),
+    )
+
+  /** the current JS-side bytes of the memory at `memaddr`, if its buffer is
+    * attached and holds exactly `length` bytes. `mem_read_bytes` reads
+    * SpecTec's live store, which has not seen JS writes made since the last
+    * push; a same-length attached buffer is always at least as new.
+    */
+  def currentJsBytes(memaddr: Value, length: Int): Option[Vector[Value]] =
+    val i = memaddrIndex(memaddr)
+    memoryObjectCacheEntries()
+      .collectFirst {
+        case (addr, memoryObjAddr) if memaddrIndex(addr) == i => memoryObjAddr
+      }
+      .flatMap(arrayBufferDataAddr)
+      .map(st(_))
+      .collect {
+        case list: ListObj if list.values.length == length => list.values
+      }
 
   /** Applies freshly-pulled `bytes` (however they were obtained — an RPC result
     * or a slice of an already-in-hand store value) to `memoryObjAddr`'s

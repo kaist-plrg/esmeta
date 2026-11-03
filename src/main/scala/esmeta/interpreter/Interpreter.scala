@@ -253,10 +253,10 @@ class Interpreter(
     * handles a heap-allocated `val*`/`externval*` list argument, e.g.
     * `func_invoke`'s `args`) and forwarded to [[WasmHost.call]].
     *
-    * `func_invoke`/`module_instantiate` additionally sync the JS `ArrayBuffer`
-    * mirror of any live Wasm memory with the crossing `store` value — see
-    * [[WasmMemoryBridge]] for why those two are the only embedding calls that
-    * need this (they're the only ones that can actually execute Wasm code).
+    * Every call whose first parameter is the `store` first gets JS-side
+    * `ArrayBuffer` writes pushed into it, so SpecTec never acts on a store
+    * missing them; `func_invoke`/`module_instantiate`, which run Wasm code,
+    * also pull the returned store's bytes back. See [[WasmMemoryBridge]].
     */
   private def callEmbedding(
     fname: String,
@@ -269,7 +269,7 @@ class Interpreter(
       case "func_alloc" =>
         one(
           host.funcAlloc(
-            toAL(st, args(0)),
+            toAL(st, wasmMemoryBridge.pushMemoriesIntoStore(args(0))),
             toAL(st, args(1)),
             toHostFunc(args(2), call),
           ),
@@ -284,7 +284,11 @@ class Interpreter(
       // whole runtime.
       case "mem_read_bytes" =>
         host.call(fname, args.map(toAL(st, _))) match
-          case Right(ALValue.ListV(bytes)) => st.allocList(bytes.map(fromALNum))
+          case Right(ALValue.ListV(bytes)) =>
+            val current = args.headOption.flatMap(
+              wasmMemoryBridge.currentJsBytes(_, bytes.length),
+            )
+            st.allocList(current.getOrElse(bytes.map(fromALNum)))
           case Right(other) =>
             throw WasmHostFailure(
               s"mem_read_bytes: expected byte list, got $other",
@@ -305,7 +309,11 @@ class Interpreter(
             )
           case Left(err) => throw WasmHostFailure(err.toString)
       case name if WasmHost.names.contains(name) =>
-        one(host.call(name, args.map(toAL(st, _))))
+        val patchedArgs = WasmHost.paramNames.get(name) match
+          case Some("store" :: _) =>
+            wasmMemoryBridge.pushMemoriesIntoStore(args.head) :: args.tail
+          case _ => args
+        one(host.call(name, patchedArgs.map(toAL(st, _))))
       case other => throw UnknownEmbedding(other)
 
   private def one(e: Either[WasmError, ALValue]): Value =

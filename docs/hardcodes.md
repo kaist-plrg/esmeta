@@ -197,6 +197,7 @@
   3. 이 pass가 `INTRINSICS.WebAssembly.instantiate`라는 synthetic 디스패처를 만들어 "첫 인자가 `Module`을 implements하면 module 오버로드, 아니면 buffer 오버로드"로 분기하고, 고른 오버로드의 선언 타입으로 인자를 직접 변환(`convert`)한 뒤 forward.
 - **왜 이게 하드코딩인지**: `AlgorithmExtractor`/`Compiler`는 같은 이름의 `Algorithm` 두 개를 구분하지 못함(같은 `Func` 이름으로 컴파일되며 나중 것이 앞의 것을 덮어씀). 이 코퍼스에서 실제로 오버로드된 오퍼레이션은 `instantiate` 하나뿐이라, 범용 오버로드 해석보다 이 특례가 훨씬 저렴함.
 - **왜 지금은 이 특례로 충분한지**: `Module`은 실제 interface 타입이라 `Cond.Implements`(이제 `ExpandImplementsPass`가 Web IDL 정의대로 lowering)로 정확히 구분되고, `Module`이 아닌 값은 buffer 오버로드의 `AllowSharedBufferSource` 변환이 `TypeError`로 reject함. "타입만으로 구분되는 단일 필수 인자"라는 가장 쉬운 오버로드 케이스임.
+- **스펙과 다른 점**: 인자 3개에 첫 인자가 `Module`이면(`instantiate(module, {}, {})`) 스펙의 overload resolution은 bytes 오버로드만 남겨 `TypeError`로 reject하지만, 이 디스패처는 module 오버로드로 보내 fulfill함. 공식 테스트와 세 엔진도 fulfill을 기대함(`docs/test_spec_mismatches.md` #2).
 - **해결 방향(나중에 필요해지면)**: 다른 오퍼레이션도 진짜로 오버로드되면, #30/#31의 손으로 쓴 overload resolution/effective overload set을 실제 알고리즘으로 교체하면서 이 항목도 함께 지움.
 
 ## 24. `|memtype| has/does not have a max` / `the max value in |memtype|`를 `memtype`/`limits`의 positional `CaseV` 인덱스로 직접 하드코딩

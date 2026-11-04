@@ -33,3 +33,25 @@
   없이 열려 있음. get-set 테스트를 스펙에 맞추고 `table.grow(2, undefined)` 테스트를 추가하는 수정을
   WebAssembly/spec#2307로 제출, 2026-10-28 머지됨 — 테스트가 틀린 쪽으로 확정. WJI가 고정한 commit의
   코퍼스엔 아직 수정 전 테스트가 있어서, 해당 subtest는 알려진 실패로 그대로 둔다.
+
+## 2. `constructor/instantiate.any.js` "stray argument: Module argument" — `WebAssembly.instantiate(module, {}, {})`의 fulfill을 기대함
+
+- **테스트**: `instanceTestFactory.js`의 "stray argument" 케이스(`args: [{}, {}]`)를 `instantiate.any.js`가
+  `WebAssembly.instantiate(module, ...args)`로 돌리고, `Instance`로 fulfill되기를 기대한다.
+- **스펙**: `instantiate`는 `(AllowSharedBufferSource bytes, optional object importObject, optional
+  WebAssemblyCompileOptions options = {})`와 `(Module moduleObject, optional object importObject)` 두
+  오버로드다(`spectec/document/js-api/index.bs:374-378`). `webidl/index.bs`의 overload resolution
+  algorithm은 argcount = min(maxarg, n) = 3으로 두고 type list 길이가 3이 아닌 entry를 모두 지우므로,
+  `Module` 오버로드(길이 1, 2)는 사라지고 bytes 오버로드만 남는다. 그러면 `Module` 객체를
+  `AllowSharedBufferSource`로 변환하다 `TypeError`가 나고, promise를 반환하는 연산이라 rejected
+  promise가 된다. 세 번째 인자가 `undefined`여도(`instantiate(module, {}, undefined)`) argcount는 3이라
+  결과가 같다.
+- **엔진 동작**: V8, SpiderMonkey, JavaScriptCore 모두 `instantiate(module, {}, {})`,
+  `instantiate(module, {}, undefined)`, `instantiate(module, undefined, {})`를 `Instance`로 fulfill한다.
+  테스트 이름("stray argument")대로 남는 인자를 무시하는 쪽이며, `docs/engine_bugs.md`에는 올리지
+  않았다. `options`를 bytes 오버로드에만 추가하면서 생긴 스펙 쪽 실수일 가능성이 커 보이기 때문.
+- **WJI 동작**: 테스트와 같이 fulfill해서, 이 subtest는 통과한다. 스펙을 그대로 따른 결과가 아니라
+  `docs/hardcodes.md` #23이 두 오버로드를 파라미터 3개짜리 하나로 접고 첫 인자가 `Module`인지로만
+  디스패치하기 때문이다. 오버로드 해석을 실제 알고리즘대로 기계화하면 이 subtest는 알려진 실패가 된다.
+- **업스트림**: 아직 리포트 안 함. 고친다면 스펙 쪽(`Module` 오버로드에도 세 번째 인자를 두거나, 남는
+  인자를 무시한다고 명시)이 자연스러워 보인다.

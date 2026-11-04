@@ -207,6 +207,21 @@ object NormalizeSpecTecCaseShapePass extends LoweringPass:
     def unapply(s: String): Option[String] = heaptypes.get(s.toUpperCase)
 
   /** Extract numtype from raw const tags */
+  /** a negative integer literal as the operand of `iN.const` denotes its two's
+    * complement, the unsigned value SpecTec stores (the core rule for a failing
+    * `memory.grow` pushes `$inv_signed_(N, -1)`), e.g. `[=i32.const=] (−1)` ->
+    * `CONST(I32, 4294967295)`
+    */
+  private def unsignedLiteral(numTag: String, arg: Expr): Expr =
+    val width = numTag match
+      case "I32" => Some(32)
+      case "I64" => Some(64)
+      case _     => None
+    (width, arg) match
+      case (Some(w), Expr.Neg(Expr.Num(n))) if n.forall(_.isDigit) =>
+        Expr.Num((BigInt(2).pow(w) - BigInt(n)).toString)
+      case _ => arg
+
   private object ShorthandConst:
     private val numtypes: Map[String, String] = Map(
       "I32.CONST" -> "I32",
@@ -289,7 +304,12 @@ object NormalizeSpecTecCaseShapePass extends LoweringPass:
 
           // [=i32.const=] u32 -> CONST(I32, u32)
           case ShorthandConst(numTag) =>
-            Expr.Case("CONST", Expr.Case(numTag, Nil) :: reshapedArgs)
+            Expr.Case(
+              "CONST",
+              Expr.Case(numTag, Nil) :: reshapedArgs.map(
+                unsignedLiteral(numTag, _),
+              ),
+            )
 
           // [=ref=] heaptype -> REF(Opt(None), heaptype)
           case "REF" if reshapedArgs.size == 1 =>

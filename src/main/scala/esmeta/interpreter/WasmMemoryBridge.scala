@@ -1,6 +1,5 @@
 package esmeta.interpreter
 
-import esmeta.cfg.Call
 import esmeta.error.WasmHostFailure
 import esmeta.ir.GLOBAL_AGENT_RECORD
 import esmeta.state.*
@@ -25,11 +24,6 @@ import esmeta.state.util.{fromALNum, toAL}
   * [[pullMemoriesFromStore]]. `mem_read_bytes`, which only builds a new
   * buffer's data block, reads SpecTec's live store instead, so it prefers an
   * attached same-length JS buffer ([[currentJsBytes]]).
-  *
-  * Takes the owning [[Interpreter]] rather than just its [[State]] because
-  * [[applyPulledBytes]]'s growable-memory path needs a genuine reentrant call
-  * (`invokeCallable`) to reuse "refresh the Memory buffer"'s own mechanized
-  * branching — see [[invokeNamedWji]].
   */
 private[interpreter] class WasmMemoryBridge(interp: Interpreter):
   private def st: State = interp.st
@@ -63,20 +57,6 @@ private[interpreter] class WasmMemoryBridge(interp: Interpreter):
     st(bufferAddr, Str("ArrayBufferData")) match
       case addr: Addr => Some(addr)
       case _          => None
-
-  /** invoke the already-mechanized WJI algorithm `fname` (its real compiled,
-    * underscored `cfg.fnameMap` name, e.g. `"refresh_the_memory_buffer"`) as an
-    * ordinary reentrant call — see [[Interpreter.invokeCallable]]. Used by
-    * [[applyPulledBytes]] to reuse "refresh the Memory buffer"'s own
-    * `IsFixedLengthArrayBuffer`/`DetachArrayBuffer` branching instead of
-    * duplicating it here.
-    */
-  private def invokeNamedWji(
-    fname: String,
-    args: List[Value],
-    call: Call,
-  ): Value =
-    interp.invokeCallable(Clo(st.cfg.getFunc(fname), Map()), args, call)
 
   private def memaddrIndex(memaddr: Value): Int = toAL(st, memaddr) match
     case ALValue.NumV(ALNum.Nat(n)) => n.toInt
@@ -113,11 +93,16 @@ private[interpreter] class WasmMemoryBridge(interp: Interpreter):
               mi match
                 case ALValue.StrV(miFields) =>
                   val patchedMi = ALValue.StrV(miFields.map {
-                    // a buffer of a different length is awaiting "refresh the
-                    // Memory buffer" after a grow; the store is newer there
                     case (fn, ALValue.ListV(old))
                         if fn.equalsIgnoreCase("BYTES") &&
-                        old.length == js.length &&
+                        old.length != js.length =>
+                      throw resizedWithoutRefresh(
+                        memaddr,
+                        old.length,
+                        Some(js.length),
+                      )
+                    case (fn, ALValue.ListV(old))
+                        if fn.equalsIgnoreCase("BYTES") &&
                         !old.iterator.zip(js.iterator).forall(_ == _) =>
                       changed = true
                       (fn, ALValue.ListV(js.toList))
@@ -159,29 +144,38 @@ private[interpreter] class WasmMemoryBridge(interp: Interpreter):
         case list: ListObj if list.values.length == length => list.values
       }
 
-  /** Applies freshly-pulled `bytes` (however they were obtained — an RPC result
-    * or a slice of an already-in-hand store value) to `memoryObjAddr`'s
-    * `ArrayBuffer`: an in-place refresh if the byte count matches the current
-    * `ListObj`, or a real invocation of "refresh the Memory buffer" (via
-    * [[invokeNamedWji]]) if it doesn't — grown, or never initialized. Matches
-    * the real spec's own invocation discipline (that algorithm is only ever
-    * invoked after an actual grow, never for a same-size content refresh),
-    * rather than reimplementing its
-    * `IsFixedLengthArrayBuffer`/`DetachArrayBuffer` branching natively here.
+  /** Copies freshly-pulled `bytes` into `memoryObjAddr`'s `ArrayBuffer` in
+    * place.
     */
   private def applyPulledBytes(
     memaddr: Value,
     memoryObjAddr: Value,
     bytes: List[ALValue],
-    call: Call,
   ): Unit =
-    arrayBufferDataAddr(memoryObjAddr) match
-      case Some(addr)
-          if st(addr).isInstanceOf[ListObj] &&
-          st(addr).asInstanceOf[ListObj].values.length == bytes.length =>
-        st(addr).asInstanceOf[ListObj].values = bytes.map(fromALNum).toVector
-      case _ =>
-        invokeNamedWji("refresh_the_memory_buffer", List(memaddr), call)
+    arrayBufferDataAddr(memoryObjAddr).map(st(_)) match
+      case Some(list: ListObj) if list.values.length == bytes.length =>
+        list.values = bytes.map(fromALNum).toVector
+      case other =>
+        val bufferLength = other.collect {
+          case list: ListObj =>
+            list.values.length
+        }
+        throw resizedWithoutRefresh(memaddr, bytes.length, bufferLength)
+
+  /** Every size change refreshes the buffer right away, either in
+    * `Memory.prototype.grow` itself or in the `memory.grow` hook
+    * ([[Interpreter.memoryGrowHook]]), so the store and the JS buffer always
+    * agree on a memory's length; a mismatch means some path skipped both.
+    */
+  private def resizedWithoutRefresh(
+    memaddr: Value,
+    storeLength: Int,
+    bufferLength: Option[Int],
+  ): WasmHostFailure = WasmHostFailure(
+    s"memory $memaddr resized without refreshing its buffer: " +
+    s"$storeLength bytes in the store, " +
+    bufferLength.fold("detached buffer")(n => s"$n bytes in the buffer"),
+  )
 
   /** wasm→JS: pull every live memory's current bytes straight out of an
     * already-in-hand `store` [[ALValue]] — the mirror image of
@@ -190,7 +184,7 @@ private[interpreter] class WasmMemoryBridge(interp: Interpreter):
     * already have a `store` value in hand by the time they call this — no
     * separate RPC needed either way.
     */
-  def pullMemoriesFromStore(storeAL: ALValue, call: Call): Unit =
+  def pullMemoriesFromStore(storeAL: ALValue): Unit =
     val mems: Option[List[ALValue]] = storeAL match
       case ALValue.StrV(fields) =>
         fields.collectFirst {
@@ -212,5 +206,5 @@ private[interpreter] class WasmMemoryBridge(interp: Interpreter):
                   if name.equalsIgnoreCase("BYTES") =>
                 bytes
             }
-            .foreach(applyPulledBytes(memaddr, memoryObjAddr, _, call))
+            .foreach(applyPulledBytes(memaddr, memoryObjAddr, _))
         case _ => ()

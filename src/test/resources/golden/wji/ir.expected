@@ -822,19 +822,12 @@ def <BUILTIN>:INTRINSICS.WebAssembly.Memory.prototype.grow(
   return _ret1
 }
 def memory.grow(
+  x: Unknown,
 ): Unknown = {
-  call _call1 = clo<"i32.const">((- 1))
-  let _cond3 = false
-  if (! (= (yet "the top of the stack") _call1)) {
-    call _call2 = clo<"i64.const">((- 1))
-    if (! (= (yet "the top of the stack") _call2)) {
-      _cond3 = true
-    } else nop
-  } else nop
-  if (= _cond3 true) {
-    let frame = ~current frame~
-    assert (yet "due to validation, |frame|.[=frame/module=].[=moduleinst/memaddrs=][|x|] exists")
-    let memaddr = frame["frame/module"]["moduleinst/memaddrs"][x]
+  if (&& (! (= @HOST_DEFINED["top of the stack"] (case "CONST" (case "I32" ) 4294967295))) (! (= @HOST_DEFINED["top of the stack"] (case "CONST" (case "I64" ) 18446744073709551615)))) {
+    let frame = @HOST_DEFINED["current frame"]
+    assert (yet "due to validation, |frame|.[=frame/module=].[=moduleinst/mems=][|x|] exists")
+    let memaddr = frame.module.mems[x]
     call _ = clo<"Refresh_the_memory_buffer">(memaddr)
   } else nop
   return ~unused~

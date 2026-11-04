@@ -22,7 +22,13 @@ import esmeta.ty.*
 import esmeta.util.Loc
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
-import esmeta.wji.bridge.host.{HostFunction, WasmError, WasmHost}
+import esmeta.es.builtin.HOST_DEFINED
+import esmeta.wji.bridge.host.{
+  HostFunction,
+  MemoryGrowHook,
+  WasmError,
+  WasmHost,
+}
 import esmeta.wji.interpreter.WebIdlConversion
 import java.io.PrintWriter
 import java.math.MathContext.DECIMAL128
@@ -299,9 +305,11 @@ class Interpreter(
           case storeVal :: rest =>
             wasmMemoryBridge.pushMemoriesIntoStore(storeVal) :: rest
           case Nil => args
-        host.call(name, patchedArgs.map(toAL(st, _))) match
+        host.withMemoryGrowHook(memoryGrowHook(call)) {
+          host.call(name, patchedArgs.map(toAL(st, _)))
+        } match
           case Right(tup @ ALValue.TupV(storeAL :: _)) =>
-            wasmMemoryBridge.pullMemoriesFromStore(storeAL, call)
+            wasmMemoryBridge.pullMemoriesFromStore(storeAL)
             Wasm(tup)
           case Right(other) =>
             throw WasmHostFailure(
@@ -320,6 +328,29 @@ class Interpreter(
     e match
       case Right(a)  => Wasm(a)
       case Left(err) => throw WasmHostFailure(err.toString)
+
+  /** runs the js-api's compiled `memory.grow` hook when SpecTec reports a
+    * `memory.grow x` instruction, in the same interpreter state as a host
+    * function's callback. "the top of the stack" and "the current frame" are
+    * served from `HOST_DEFINED` while the hook runs (see
+    * `wji.compiler.Compiler`). The buffers are not pulled first: a refreshed
+    * buffer takes its bytes from SpecTec's live store, and the pull after
+    * `func_invoke`/`module_instantiate` covers the rest.
+    */
+  private def memoryGrowHook(call: Call): MemoryGrowHook =
+    (x, top, frame) =>
+      val ctx = NamedAddr(HOST_DEFINED)
+      val fields = List("top of the stack" -> top, "current frame" -> frame)
+      fields.foreach((k, v) => st.heap.update(ctx, Str(k), Wasm(v)))
+      try
+        invokeCallable(
+          Clo(st.cfg.getFunc("memory.grow"), Map()),
+          List(Wasm(x)),
+          call,
+        )
+        Right(())
+      catch case e: Throwable => Left(WasmError.ProtocolError(e.toString))
+      finally fields.foreach((k, _) => st.heap.update(ctx, Str(k), Undef))
 
   /** build a [[HostFunction]] from a [[Value.Clo]]/[[Value.Cont]] so SpecTec
     * can call back into this SAME interpreter (on the SAME `st`) during Wasm
@@ -346,7 +377,7 @@ class Interpreter(
     val callee = v.asCallable
     hostFuncCallees ::= v
     (state: ALValue, vals: List[ALValue]) =>
-      wasmMemoryBridge.pullMemoriesFromStore(state, call)
+      wasmMemoryBridge.pullMemoriesFromStore(state)
       invokeCallable(
         callee,
         List(Wasm(state), Wasm(ALValue.ListV(vals))),
@@ -400,10 +431,8 @@ class Interpreter(
     * `st.context`/`st.callStack` get replaced below. Popped in the same
     * `finally` that restores them.
     *
-    * `private[esmeta]` (rather than `private`) so [[WasmMemoryBridge]] can
-    * reuse this as its own sole reentrant-call primitive (via `invokeNamedWji`)
-    * instead of duplicating the `st.context`/`st.callStack` save-restore dance,
-    * and so `esmeta.wji.interpreter.WebIdlConversion` can genuinely invoke
+    * `private[esmeta]` (rather than `private`) so
+    * `esmeta.wji.interpreter.WebIdlConversion` can genuinely invoke
     * `Get`/`NormalCompletion` (a real, possibly-getter-triggering property
     * read, see its own doc) rather than reading `__MAP__` fields directly.
     */

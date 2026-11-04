@@ -1683,6 +1683,13 @@ object SpecPatch:
     // `POS (NAN n)`), positive as engines produce. Hits both the f32 and the
     // f64 case.
     "be [=nan=](n)." -> "be +[=nan=](|n|).",
+
+    // #85 (spec bug, docs/spec_errors.md #45) — the `memory.grow` hook reads
+    // `moduleinst.memaddrs`, the Wasm 2.0 name of the module instance's memory
+    // addresses; the runtime record has `MEMS` (same drift as #10's
+    // `funcaddrs`). Hits the anchor and both steps.
+    "text: memaddrs; for: moduleinst;" -> "text: mems; for: moduleinst;",
+    "[=moduleinst/memaddrs=]" -> "[=moduleinst/mems=]",
   )
 
   def apply(source: String): String =

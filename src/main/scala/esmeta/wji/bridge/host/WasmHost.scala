@@ -231,3 +231,9 @@ trait WasmHost:
     defType: ALValue,
     hostFunc: HostFunction,
   ): Either[WasmError, ALValue]
+
+  /** runs `body` (a `func_invoke`/`module_instantiate` call) with `hook`
+    * serving SpecTec's `memory_grow_hook` requests, restoring the previous hook
+    * afterward so nested calls each use their own
+    */
+  def withMemoryGrowHook[A](hook: MemoryGrowHook)(body: => A): A

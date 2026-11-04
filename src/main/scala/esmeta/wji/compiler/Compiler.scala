@@ -475,6 +475,11 @@ object Compiler:
     // `Initialize.seedHostDefined` (category II-C's registry).
     case metalang.Expr.SpecTerm("all interfaces") =>
       ERef(Field(Global("HOST_DEFINED"), EStr("interfaces")))
+    // The Wasm execution state that the memory.grow hook reads. The bridge
+    // sets both fields from SpecTec's request while it runs the hook
+    // (`Interpreter.runMemoryGrowHook`).
+    case metalang.Expr.SpecTerm(s @ ("top of the stack" | "current frame")) =>
+      ERef(Field(Global("HOST_DEFINED"), EStr(s)))
     // Mirrors mainline ESMeta's `IntrinsicExpression`/`SymbolLiteral`; both
     // are already checked against ECMA-262's well-known tables by
     // `ResolveLinksPass`.

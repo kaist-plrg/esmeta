@@ -358,7 +358,11 @@ object ExprParser:
   // unambiguous call syntax (mirrors JSCallFull) — no term/value
   // reference is ever written this way — so this can go straight to
   // AlgoCall without waiting for ResolveLinksPass.
-  private val LinkFull = """(?s)^(\[=(?:(?!=\]).)+?=\])\s*\((.*)\)$""".r
+  private val LinkFull = """(?s)^(\[=(?:(?!=\]).)+?=\])\((.*)\)$""".r
+  // "[=i32.const=] (−1)": with a space before the parenthesis, the link is a
+  // notation applied to a parenthesized operand, like "[=i32.const=] |u32|",
+  // not an algorithm call (contrast LinkFull)
+  private val LinkSpacedParen = """(?s)^(\[=(?:(?!=\]).)+?=\])\s+\((.*)\)$""".r
   // "passing ARG1[, ARG2, ...] to the [=LINK=]" — WebIDL's own idiom for
   // invoking an algorithm with an unnamed positional argument list, the
   // link named *last* rather than first (contrast LinkProse/LinkFull, and
@@ -1059,6 +1063,9 @@ object ExprParser:
   // structural, no SpecTec-runtime knowledge); it's `NormalizeSpecTecCaseShapePass`
   // that actually knows this token carries no data and drops it.
   private val PageKeyword = """(?i)^page$""".r
+  // "the top of the stack" in the memory.grow hook: the Wasm value stack,
+  // supplied by the embedder like `[=current frame=]` (see `Compiler`)
+  private val TopOfTheStack = """(?i)^the top of the stack$""".r
   // captures just the inner text (e.g. "throw"/"normal") — the enum value a
   // real completion record's [[Type]] actually holds, not the markup itself.
   private val EmuConst = """(?s)^<emu-const>([^<]*)</emu-const>$""".r
@@ -1151,6 +1158,13 @@ object ExprParser:
       parse(baseRaw),
       normalizeLink(link).stripPrefix("[=").stripSuffix("=]").toLowerCase,
     )
+
+  // in `base.[=type/field=]` (a Wasm runtime record), the `for`-scoped link
+  // names the field by its last segment, e.g. `|frame|.[=frame/module=]`
+  private def dotFieldFromLink(baseRaw: String, link: String): Expr =
+    fieldFromLink(baseRaw, link) match
+      case Field(base, name) => Field(base, name.split('/').last)
+      case other             => other
 
   def parse(raw: String): Expr = parseWith(raw, allowSeqFallback = true)
 
@@ -1303,6 +1317,8 @@ object ExprParser:
           if sign == "+" then "POS" else "NEG",
           List(Case(normalizeLink(link), splitComma(argsRaw).map(parse))),
         )
+      case LinkSpacedParen(link, argsRaw) =>
+        Link(normalizeLink(link), splitComma(argsRaw).map(parse))
       case LinkFull(link, argsRaw) =>
         normalizeLink(link).stripPrefix("[=").stripSuffix("=]") match
           // "[=𝔽=](x)"/"[=ℤ=](x)"/"[=ℝ=](x)" — ECMA-262's Number/BigInt/
@@ -1380,7 +1396,7 @@ object ExprParser:
       case TheSlotOf(slot, baseRaw) => Field(parse(baseRaw), stripBraces(slot))
       case MaxValueIn(baseRaw) =>
         AsMath(Field(TupleProj(TupleProj(parse(baseRaw), 1), 1), "Value"))
-      case DotFieldLink(baseRaw, link) => fieldFromLink(baseRaw, link)
+      case DotFieldLink(baseRaw, link) => dotFieldFromLink(baseRaw, link)
       case DotField(baseRaw, field)    => Field(parse(baseRaw), field)
       case LengthOf(inner)             => Length(parse(inner))
       case ElementCount(inner)         => Length(parse(inner))
@@ -1453,6 +1469,7 @@ object ExprParser:
       case BoldConst(_)            => SpecTerm(s)
       case SpecTermPat()           => SpecTerm(s)
       case PageKeyword()           => SpecTerm("page")
+      case TopOfTheStack()         => SpecTerm("top of the stack")
       case EmuConst(v)             => SpecTerm(v)
       case EmuVal(v)               => SpecTerm(v)
       case BracedIntrinsic(name)   => Link(name, Nil)

@@ -586,3 +586,12 @@ Retracted — its premise was wrong. This entry claimed the Wasm Core Spec's `fu
 - **Reason**: in the Core Spec, `nan(n)` is a floating-point *magnitude* (`fNmag ::= ... | NAN(m)`), while a floating-point number is a signed magnitude (`fN ::= POS fNmag | NEG fNmag`, `specification/wasm-latest/1.1-syntax.values.spectec:46-55`, rendered `+fNmag`/`−fNmag`). So `nan(n)` alone is not an `f32`/`f64` value, and `[=f32.const=] |f32|` in the next step gets the wrong kind of value. This document already writes signed floats in the Core Spec's rendering (`[=+∞=]`, `[=−∞=]` in `ToJSValue`), so the sign is written the same way. Positive, since that is what engines produce when converting a JavaScript NaN (e.g. `0x7fc00000` for f32, the positive canonical NaN), and since the payload `n` is already the implementation-defined part.
 
   Fixed via `SpecPatch` #84 (together with #43). Mechanizing the step also needed `ExprParser.SignedMagnitude` (a sign in front of a magnitude becomes `POS`/`NEG` around it), the NaN-payload range choice (`docs/hardcodes.md` #25), and `canon_N` exposed by the SpecTec server, the same way `signed_N` is.
+
+## 45. The `memory.grow` hook reads `moduleinst.memaddrs`, a field the runtime `moduleinst` record doesn't have
+
+- **File**: `spectec/document/js-api/index.bs`, line 245 (anchor `text: memaddrs; for: moduleinst`) and lines 928-929 (the `memory.grow` hook)
+- **Current**: `1. Let |memaddr| be the memory address |frame|.[=frame/module=].[=moduleinst/memaddrs=][|x|].` (and the same path in the preceding Assert)
+- **Expected**: `1. Let |memaddr| be the memory address |frame|.[=frame/module=].[=moduleinst/mems=][|x|].`
+- **Reason**: `memaddrs` is the Wasm 2.0 name of the module instance's memory addresses. In Wasm 3.0 the record is `{TYPES, TAGS, GLOBALS, MEMS, TABLES, FUNCS, DATAS, ELEMS, EXPORTS}` (`specification/wasm-3.0/4.0-execution.configurations.spectec:101-110`, spliced into `core/exec/runtime.rst`), so the field is `mems`. Same drift as #10 (`funcaddrs` vs. `FUNCS`).
+
+  Fixed via `SpecPatch` #85 (anchor and both steps). Found when the hook was first executed (`docs/hardcodes.md` #27).

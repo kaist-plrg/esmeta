@@ -3,7 +3,12 @@ package esmeta.wji.bridge
 import io.circe.Json
 import io.circe.syntax.*
 import java.util.concurrent.atomic.AtomicLong
-import esmeta.wji.bridge.host.{HostFunction, WasmError, WasmHost}
+import esmeta.wji.bridge.host.{
+  HostFunction,
+  MemoryGrowHook,
+  WasmError,
+  WasmHost,
+}
 import esmeta.wji.bridge.rpc.{Response, RpcError}
 import esmeta.state.ALValue
 import esmeta.state.util.ALValueJson.given
@@ -49,6 +54,14 @@ final class SpecTecWasmHost(connection: JsonRpcConnection) extends WasmHost:
     */
   private var lastStore: Option[(ALValue, Long)] = None
 
+  private var memoryGrowHook: Option[MemoryGrowHook] = None
+
+  def withMemoryGrowHook[A](hook: MemoryGrowHook)(body: => A): A =
+    val previous = memoryGrowHook
+    memoryGrowHook = Some(hook)
+    try body
+    finally memoryGrowHook = previous
+
   private def encodeStore(store: ALValue): Json = lastStore match
     case Some((last, id)) if last eq store => Json.obj("cached" -> id.asJson)
     case _ =>
@@ -91,6 +104,34 @@ final class SpecTecWasmHost(connection: JsonRpcConnection) extends WasmHost:
                   )
                 case Left(WasmError.ProtocolError(msg)) =>
                   Left(RpcError(-32603, msg, None))
+    case ("memory_grow_hook", params) =>
+      val c = params.hcursor
+      val decoded =
+        for
+          x <- c.get[ALValue]("x")
+          top <- c.get[ALValue]("top")
+          frame <- c.get[ALValue]("frame")
+        yield (x, top, frame)
+      (decoded, memoryGrowHook) match
+        case (Left(e), _) =>
+          Left(
+            RpcError(
+              -32602,
+              s"invalid memory_grow_hook params: ${e.getMessage}",
+              None,
+            ),
+          )
+        case (_, None) =>
+          Left(RpcError(-32603, "memory_grow_hook outside a Wasm call", None))
+        case (Right((x, top, frame)), Some(hook)) =>
+          hook(x, top, frame) match
+            // any AL value; server.ml's send_request reads a null result as
+            // an error
+            case Right(()) => Right((ALValue.TupV(Nil): ALValue).asJson)
+            case Left(WasmError.ProtocolError(msg)) =>
+              Left(RpcError(-32603, msg, None))
+            case Left(WasmError.Trap(value)) =>
+              Left(RpcError(-32603, s"memory_grow_hook trapped: $value", None))
     case (other, _) =>
       Left(RpcError(-32601, s"unknown reverse call: $other", None))
   }

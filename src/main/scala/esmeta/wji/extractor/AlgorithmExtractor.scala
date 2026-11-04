@@ -156,7 +156,10 @@ object AlgorithmExtractor:
         Option(m.group(1)).orElse(Option(m.group(2))).orElse(Option(m.group(3)))
       for bodyEnd <- findBodyEnd(source, m.end) yield
         val body = source.substring(m.end, bodyEnd)
-        val (head, instrs) = parseBody(body)
+        val (ownHead, instrs) = parseBody(body)
+        val head =
+          if ownHead.trim.nonEmpty then ownHead
+          else precedingIntro(source, m.start).getOrElse(ownHead)
         val (kind, name) = extractRedefinedName(head) match
           case Some(redefined) => (AlgorithmKind.Redefinition, Some(redefined))
           case None =>
@@ -171,6 +174,17 @@ object AlgorithmExtractor:
             (kind, name)
         Algorithm(id, name, extractParams(head), head, instrs, kind)
     }
+
+  /** the paragraph right before a `<div algorithm>` whose own head is empty, if
+    * it introduces the steps, e.g. "Immediately after a WebAssembly
+    * [=memory.grow=] |x| instruction executes, perform the following steps:"
+    * (the only such case in js-api/index.bs).
+    */
+  private def precedingIntro(source: String, divStart: Int): Option[String] =
+    val paragraph = source.substring(0, divStart).trim.split("\n\\s*\n").last
+    Option.when(FollowingSteps.findFirstIn(paragraph).isDefined)(paragraph)
+
+  private val FollowingSteps = """(?s)following steps:\s*$""".r
 
   def extractFromFile(path: Path): List[Algorithm] =
     extract(SpecPatch(Files.readString(path)))

@@ -503,10 +503,12 @@
 
 # memory.grow
   id: memory.grow
-  If(?(the top of the stack) is not [=i32.const=](-1), and ?(the top of the stack) is not [=i64.const=](-1))
+  params: |x|
+  head: Immediately after a WebAssembly [=memory.grow=] |x| instruction executes, perform the following steps:
+  If(top of the stack is not [=i32.const=](-1), and top of the stack is not [=i64.const=](-1))
     Let(|frame|, [=current frame=])
-    Assert(?(due to validation, |frame|.[=frame/module=].[=moduleinst/memaddrs=][|x|] exists))
-    Let(|memaddr|, |frame|.[[frame/module]].[[moduleinst/memaddrs]][|x|])
+    Assert(?(due to validation, |frame|.[=frame/module=].[=moduleinst/mems=][|x|] exists))
+    Let(|memaddr|, |frame|.[[module]].[[mems]][|x|])
     Perform([=Refresh the memory buffer=](|memaddr|))
 
 # toFixedLengthBuffer

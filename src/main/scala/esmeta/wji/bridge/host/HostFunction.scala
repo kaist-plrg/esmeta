@@ -34,3 +34,10 @@ import esmeta.state.ALValue
   */
 type HostFunction =
   (ALValue, List[ALValue]) => Either[WasmError, (ALValue, List[ALValue])]
+
+/** The js-api's `memory.grow` hook ("Immediately after a WebAssembly
+  * memory.grow |x| instruction executes, ..."), which SpecTec requests right
+  * after the instruction runs: `(x, top of the stack, current frame)`.
+  */
+type MemoryGrowHook =
+  (ALValue, ALValue, ALValue) => Either[WasmError, Unit]

@@ -7,8 +7,8 @@ import esmeta.wji.lang.{Algorithm, AlgorithmKind, Cond, Expr, Instr, WjiParam}
   * shape `AlgorithmExtractor`/`Compiler` have no general support for (two
   * `Algorithm`s with the same `name`/`kind` collide on the same compiled
   * function name, `esmeta.cfg.CFG.fnameMap`'s `.toMap` silently keeping only
-  * the later one; `personal/TODO.md` #58). `SpecPatch` #3 already renames both
-  * dfns (`instantiate_bytes`/`instantiate_object`) purely to stop them from
+  * the later one). `SpecPatch` #3 already renames both dfns
+  * (`instantiate_bytes`/`instantiate_object`) purely to stop them from
   * colliding with each other, freeing the literal `instantiate` name entirely.
   *
   * This pass reclaims that name for one hand-built, `WebAssembly.instantiate`
@@ -20,7 +20,7 @@ import esmeta.wji.lang.{Algorithm, AlgorithmKind, Cond, Expr, Instr, WjiParam}
   * overload resolution would make for this `(Module or BufferSource)`-shaped
   * ambiguity, since `Module` is a real interface type and every non-`Module`
   * argument is rejected by the buffer overload's own `AllowSharedBufferSource`
-  * conversion (`TODO.md` #57's reject-not-throw fix included).
+  * conversion, which rejects the returned promise rather than throwing.
   *
   * Runs right after [[AddInterfaceMemberBuiltinBehaviourPass]], once both real
   * overloads already have the final `(this, ArgumentsList)` `<BUILTIN>:`
@@ -135,8 +135,7 @@ object AddInstantiateOverloadDispatchPass extends LoweringPass:
       id = None,
       name = Some("instantiate"),
       params = BuiltinParams,
-      head =
-        "<synthesized by AddInstantiateOverloadDispatchPass — TODO.md #58>",
+      head = "<synthesized by AddInstantiateOverloadDispatchPass>",
       body = List(
         Instr.IfChain(
           List(

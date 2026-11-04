@@ -266,7 +266,7 @@
   constants.any.js`(WJI)를 다시 돌려서 두 gap 다 완전히 사라진 것 확인
   — 그 파일은 이후 또 다른 별개 gap들에 부딪혀 여전히 `knownFailing`
   이었다가, 남은 gap들도 모두 풀리면서 최종적으로 40/40 완전 통과함
-  (`docs/out_of_scope.md` #6, `personal/DONE.md` 참고).
+  (`docs/out_of_scope.md` #6 참고).
 
 ## 7. `ir.ETup`이 원소 전부를 무조건 `ALValue`로 변환하도록 스코프가 좁혀져 있었음
 
@@ -320,5 +320,4 @@
   exhaustivity 경고까지 전부 해소). `js-string/basic.any.js`를 리팩터링
   전/후로 각각 `-wji-eval:log`로 돌려서 `match_externtype` 호출까지 정확히
   같은 지점(같은 StepCnt)에 도달하는 것 확인 — 동작 회귀 없음(이 파일 자체는
-  `match_externtype` 불일치라는 별개 미해결 gap 때문에 여전히 `knownFailing`,
-  `personal/TODO.md` #54 참고).
+  `match_externtype` 불일치라는 별개 미해결 gap 때문에 여전히 `knownFailing`).

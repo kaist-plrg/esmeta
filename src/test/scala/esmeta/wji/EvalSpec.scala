@@ -71,10 +71,9 @@ private val expectedFailingSubtests: Map[String, String] =
 /** test cases that are correct but too slow to run on every `wjiEvalTest` —
   * unlike [[skippedEntirely]] (a settled scope exclusion), these just take a
   * while (275-290s for the corpus's two largest files, 55/208 subtests,
-  * `TODO.md` #58's `WebAssembly.instantiate` overload-dispatch fix,
-  * `personal/DONE.md` #63; ~330s for `js-string/basic.any.js`, `TODO.md` #56's
-  * own resolution — every one of its 6 `test()` blocks exercises all 13
-  * builtins against a large combinatorial input set) once actually run to
+  * reachable since the `WebAssembly.instantiate` overload dispatch; ~330s for
+  * `js-string/basic.any.js` — every one of its 6 `test()` blocks exercises all
+  * 13 builtins against a large combinatorial input set) once actually run to
   * completion rather than crashing early. Cancelled by default, same as
   * [[skippedEntirely]], unless `-Dslow=true` is passed — see [[EvalSpec.slow]].
   */

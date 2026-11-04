@@ -90,8 +90,7 @@ object SpecPatch:
     // literal `instantiate` name this way (rather than just the module-first
     // one, as before) lets `AddInstantiateOverloadDispatchPass` claim it for a
     // synthetic third algorithm that dispatches to whichever of these two by
-    // checking its first argument's runtime type (`personal/TODO.md` #58,
-    // `docs/hardcodes.md` #23).
+    // checking its first argument's runtime type (`docs/hardcodes.md` #23).
     "The <dfn method for=\"WebAssembly\">instantiate(|moduleObject|, |importObject|)</dfn> method, when invoked, performs the following steps:"
     ->
     "The <dfn method for=\"WebAssembly\">instantiate_object(|moduleObject|, |importObject|)</dfn> method, when invoked, performs the following steps:",
@@ -1246,7 +1245,7 @@ object SpecPatch:
     // machinery for exactly this distinction (`Exception.Trap` -> generic
     // `error`, `Exception.Throw v` -> a separate `EXCEPTION exnaddr`
     // sentinel carrying the real payload) that `module_instantiate` could
-    // eventually reuse (`personal/TODO.md`) — but every currently in-scope
+    // eventually reuse — but every currently in-scope
     // fixture that reaches this code path is a "bad imports" test, i.e.
     // purely `Exception.Fail` (a precondition failure = linking failure),
     // so "always LinkError" is not just pragmatic but describes 100% of

@@ -21,8 +21,7 @@ import esmeta.wji.lang.Instr.PerformOutcome
   * guarding exactly `Return(inner)` — otherwise has this pass immediately
   * re-ask the very question its enclosing `if` was just built to answer). Both
   * were found via `esmeta.wji.WjiCoverage`'s per-branch hit counts against the
-  * official corpus always landing 0 on the redundant check's dead side — see
-  * `personal/coverage-gaps.md`.
+  * official corpus always landing 0 on the redundant check's dead side.
   *
   * {{{
   *   If(cond, [Throw(New("TypeError"))])
@@ -564,7 +563,7 @@ object CompletionWrapping:
       // permanently dead code (confirmed by esmeta.wji.WjiCoverage against the
       // official corpus: every occurrence of this shape had its `then` branch
       // at 0 hits, e.g. the nine `[[...]] internal method of an exported GC
-      // object` algorithms, personal/coverage-gaps.md). Skipping the check
+      // object` algorithms). Skipping the check
       // entirely avoids generating it in the first place, rather than
       // emitting then eliminating it with a separate pass. `pure` gives the
       // same proof for a variable, just reached indirectly: `expr` is a `Var`

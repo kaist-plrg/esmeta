@@ -26,7 +26,7 @@
 // RuntimeError (trap), not a TypeError/RangeError -- these are genuine wasm
 // traps, not JS-level exceptions.
 //
-// NOT covered here (left as a documented gap, personal/TODO.md #71): a
+// NOT covered here (left as a known gap): a
 // *negative* index (e.g. `codePointAt(-1)`) crashes the interpreter outright
 // instead of trapping -- a real bug, not something a passing test should
 // assert. The out-of-range traps (charCodeAt past the end, and

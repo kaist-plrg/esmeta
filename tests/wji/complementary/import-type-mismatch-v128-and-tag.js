@@ -5,8 +5,7 @@
 // 1. A GLOBAL import declared with value type v128: "If valtype is v128,
 //    throw a LinkError exception" -- unconditional, since JS has no way to
 //    supply a v128 value directly (only via a WebAssembly.Global wrapping
-//    one, which is its own separate untested v128 cluster -- see
-//    personal/coverage-gaps.md). Here we only need the *import declaration*
+//    one, which is its own separate v128 cluster). Here we only need the *import declaration*
 //    itself to be v128-typed; the supplied JS value can be anything that
 //    doesn't implement Global.
 // 2. A TAG import whose supplied JS value doesn't implement {{Tag}}: "If v

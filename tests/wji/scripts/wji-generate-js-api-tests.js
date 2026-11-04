@@ -181,8 +181,7 @@ const perFilePatches = {
   // `skip-known-gaps.js` can't help (the expensive work isn't inside any
   // `test()` callback to filter out). Only the ones that actually build
   // something proportional to a huge count are neutered here for that
-  // reason; `memories` (capped at 1) is harmless perf-wise and left alone
-  // (it exercises a real, still-open WJI gap, `personal/TODO.md` #64).
+  // reason; `memories` (capped at 1) is harmless perf-wise and left alone.
   // `function locals`/`function params`/`function params+locals`/`function
   // returns` are ALSO disabled below, but for an unrelated reason (see
   // docs/out_of_scope.md #7, not a perf/OOM issue) -- they only exist to
@@ -193,7 +192,7 @@ const perFilePatches = {
   // over it in JS -- one `testDynamicLimit` and the final `test()` are
   // disabled below for the unrelated `Table` OOM reason (docs/out_of_scope.md
   // #4), the other `testDynamicLimit` ("maximum table size") is harmless and
-  // left alone (confirmed by isolated execution, `personal/DONE.md` #58).
+  // left alone (confirmed by isolated execution).
   "limits.any.js": [
     [
       'testLimit("types", 1, kJSEmbeddingMaxTypes, (builder, count) => {',
@@ -313,7 +312,7 @@ const perFilePatches = {
   ],
 
   // `memory/grow.any.js`'s one genuinely thread-proposal-dependent subtest
-  // (docs/out_of_scope.md #5, personal/TODO.md #65) -- `{shared: true}` isn't
+  // (docs/out_of_scope.md #5) -- `{shared: true}` isn't
   // a declared `MemoryDescriptor` member in this repo's js-api spec text at
   // all, so it's silently ignored and `.buffer` comes back as a plain
   // (non-shared) ArrayBuffer instead of the SharedArrayBuffer this subtest

@@ -400,8 +400,7 @@ class Interpreter(
               // patch fresh ArrayBuffer bytes into newState *before* handing
               // it back -- not a separate mem_write_bytes RPC afterward,
               // which would race against SpecTec's own `Ds.Store.set` of this
-              // same returned state (see `personal` plan notes on the
-              // ordering hazard this sidesteps).
+              // same returned state.
               val patchedState =
                 wasmMemoryBridge.pushMemoriesIntoStore(newState)
               Right((toAL(st, patchedState), returnVals))

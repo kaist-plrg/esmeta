@@ -61,13 +61,12 @@ import esmeta.wji.lang.Instr.PerformOutcome
   * fixed point, see [[CompletionAlgorithms]]) to always return a Completion
   * Record: the "not a completion at all" fallback can then never actually
   * trigger, so emitting the check for it at all would just be permanently dead
-  * code (confirmed via `esmeta.wji.WjiCoverage` — `personal/coverage-gaps.md`).
-  * Mirroring that, when the target is a WJI algorithm known *never* to return
-  * one (it has no abrupt path at all), the catch can never fire, so the call is
-  * left as is with no check. A `PerformClosure` call has no statically-known
-  * target name to look up either way, so it always keeps the full three-way
-  * check, as does a call to anything outside the WJI algorithms (e.g. an
-  * ECMA-262 abstract operation).
+  * code (confirmed via `esmeta.wji.WjiCoverage`). Mirroring that, when the
+  * target is a WJI algorithm known *never* to return one (it has no abrupt path
+  * at all), the catch can never fire, so the call is left as is with no check.
+  * A `PerformClosure` call has no statically-known target name to look up
+  * either way, so it always keeps the full three-way check, as does a call to
+  * anything outside the WJI algorithms (e.g. an ECMA-262 abstract operation).
   *
   * Category: Completion-record convention.
   */

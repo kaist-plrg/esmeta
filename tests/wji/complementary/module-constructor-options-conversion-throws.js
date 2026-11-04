@@ -10,7 +10,7 @@
 // no existing test constructs `new WebAssembly.Module` with an explicit
 // `options` argument whose own property reads can throw.
 //
-// NOT covered here (documented in personal/coverage-gaps.md instead): the
+// NOT covered here: the
 // *other* half of this same step -- when no `options` argument is supplied
 // at all, the spec still converts a freshly created `OrdinaryObjectCreate(null)`
 // object through the same dictionary conversion. That object has a null

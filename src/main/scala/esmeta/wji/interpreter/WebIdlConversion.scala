@@ -157,17 +157,17 @@ object WebIdlConversion:
     * `invokeCallable` calls (`readDictionary`'s `pairs`/`readEnumSequence`'s
     * `converted`) so a `GC` firing mid-loop can't sweep an already-converted
     * member before this function gets a chance to store it anywhere `GC` itself
-    * walks (`personal/TODO.md` #67's root cause). Rather than extending
-    * `Interpreter`/`GC` with a notion of "extra roots", this binds a real
-    * heap-allocated `ListObj` into `st.context.locals` -- `GC` already walks
-    * `st.context` (`UnitWalker.walk(context)` covers `locals`), and
-    * `st.context` is exactly the object `Interpreter.invokeCallable` saves and
-    * restores intact across reentrant calls, however deep -- so this needs no
-    * mainline change at all. `sync` is called after every accumulation step to
-    * keep the pinned list's contents current. A nested dictionary/sequence
-    * conversion (e.g. `WebAssemblyCompileOptions.builtins`) shadows an outer
-    * pin under the same key, so the inner list also holds the outer one, and
-    * the outer one is restored in `finally`.
+    * walks. Rather than extending `Interpreter`/`GC` with a notion of "extra
+    * roots", this binds a real heap-allocated `ListObj` into
+    * `st.context.locals` -- `GC` already walks `st.context`
+    * (`UnitWalker.walk(context)` covers `locals`), and `st.context` is exactly
+    * the object `Interpreter.invokeCallable` saves and restores intact across
+    * reentrant calls, however deep -- so this needs no mainline change at all.
+    * `sync` is called after every accumulation step to keep the pinned list's
+    * contents current. A nested dictionary/sequence conversion (e.g.
+    * `WebAssemblyCompileOptions.builtins`) shadows an outer pin under the same
+    * key, so the inner list also holds the outer one, and the outer one is
+    * restored in `finally`.
     */
   private def withGcPin[T](
     interp: Interpreter,
@@ -613,9 +613,8 @@ object WebIdlConversion:
     // `toBooleanValue`, each a real `invokeCallable`) -- a GC firing mid-loop
     // must see everything converted *so far*, or it can collect an already-
     // converted member's value before this function ever gets to store it
-    // somewhere `GC` itself tracks (`personal/TODO.md` #67's root cause: `pin`
-    // below keeps a real heap root current with exactly that, see
-    // `withGcPin`'s own doc).
+    // somewhere `GC` itself tracks (`pin` below keeps a real heap root current
+    // with exactly that, see `withGcPin`'s own doc).
     withGcPin(interp) { pin =>
       def addPair(key: Value, value: Value): Unit =
         pairs += key -> value

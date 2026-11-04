@@ -17,8 +17,8 @@ import esmeta.wji.lang.parser.ExprParser
   * value/reftypes (externref/i32/(ref extern)), plus `fromCharCodeArray`/
   * `intoCharCodeArray`, whose `funcType` additionally references a shared Wasm
   * GC array type (`(rec (type (array (mut i16)))).0`,
-  * [[foldArrayType]]/[[refNullArrayType]] — `personal/TODO.md` #56, a kind of
-  * deftype construction not attempted anywhere else in WJI).
+  * [[foldArrayType]]/[[refNullArrayType]], a kind of deftype construction not
+  * attempted anywhere else in WJI).
   *
   * For each of the 13, this synthesizes:
   *   - a `funcType` value, built the same way `get_the_javascript_exception_

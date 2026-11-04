@@ -66,11 +66,9 @@ import scala.collection.mutable
   * *official* corpus never reaches it. Two other reasons a function can show up
   * there: it's exercised only by `tests/wji/complementary/` (visible with
   * `--full`), or it's a hook WJI never dispatches as a compiled algorithm, so
-  * no fixture can change its count even with `--full`. Examples of the latter:
+  * no fixture can change its count even with `--full`. Example of the latter:
   * "create the WebAssembly namespace object" (bootstrap hardcodes its result,
-  * `docs/hardcodes.md` #10), and the wasm core `memory.grow` instruction hook
-  * (Wasm-side growth reaches JS through `WasmMemoryBridge`'s length-mismatch
-  * refresh instead).
+  * `docs/hardcodes.md` #10).
   */
 object WjiCoverage:
 

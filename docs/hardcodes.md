@@ -225,7 +225,7 @@
 
 ## 27. ~~wasm `memory.grow` 직후 훅을 호출하지 않고, JS/wasm 경계에서 길이 불일치로 감지해 버퍼를 갱신~~
 
-**제거됨.** 이 대체는 관찰 가능한 차이가 있었음: 훅은 결과가 -1이 아니면 늘 refresh하므로, 성공한 `memory.grow 0`도 fixed-length buffer를 detach하는데(세 엔진 모두 그렇게 동작), 길이 불일치로는 이 경우를 알아낼 수 없었음. 이제 SpecTec 인터프리터가 `MEMORY.GROW` 실행 직후 `Host.Memory_grow_hook` effect를 내고, 서버가 `memory_grow_hook` 역방향 요청(store, `x`, 스택 꼭대기, current frame)을 보내면, WJI가 버퍼를 store에 맞춘 뒤 컴파일된 훅 알고리즘을 그대로 실행함(`Interpreter.memoryGrowHook`). "the top of the stack"과 "[=current frame=]"은 그동안 `HOST_DEFINED`에서 읽음. 회귀 테스트: `tests/wji/manual/memory-grow-zero.js`.
+**제거됨.** 이 대체는 관찰 가능한 차이가 있었음: 훅은 결과가 -1이 아니면 늘 refresh하므로, 성공한 `memory.grow 0`도 fixed-length buffer를 detach하는데(세 엔진 모두 그렇게 동작), 길이 불일치로는 이 경우를 알아낼 수 없었음. 이제 SpecTec 인터프리터가 `MEMORY.GROW` 실행 직후 `Host.Memory_grow_hook` effect를 내고, 서버가 `memory_grow_hook` 역방향 요청(store, `x`, 스택 꼭대기, current frame)을 보내면, WJI가 버퍼를 store에 맞춘 뒤 컴파일된 훅 알고리즘을 그대로 실행함(`Interpreter.memoryGrowHook`). "the top of the stack"과 "[=current frame=]"은 그동안 `HOST_DEFINED`에서 읽음. 회귀 테스트: `tests/wji/complementary/memory-grow-zero.js`.
 
 ## 28. 특정 인자로는 실패할 수 없는 호출 3개에 `!`를 붙임
 

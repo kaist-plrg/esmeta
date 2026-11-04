@@ -103,3 +103,55 @@
   문제를 해결하고 있으므로, 명세도 "realm마다 interface → interface object /
   interface prototype object 맵을 두고, 생성 시 등록하고 참조 시 조회
   (없으면 생성)한다"는 규칙을 명시하는 편이 낫다.
+
+## 3. Interface object가 constructor라는 사실(`[[Construct]]` internal method)이 알고리즘 어디에도 적혀있지 않음
+
+- **File**: `webidl/index.bs`, lines 11979-11984 (`create an interface object`);
+  upstream https://webidl.spec.whatwg.org/#create-an-interface-object
+- **현재 텍스트**:
+  ```
+  1.  Let |F| be CreateBuiltinFunction(|steps|, |length|, |id|, « [[Unforgeables]] », |realm|, |constructorProto|).
+  1.  Let |proto| be the result of creating an interface prototype object of interface |I| in |realm|.
+  1.  Perform ! DefinePropertyOrThrow(|F|, "prototype",
+      PropertyDescriptor{[[Value]]: |proto|, [[Writable]]: false, [[Enumerable]]: false, [[Configurable]]: false}).
+  ```
+- **문제**: ECMA-262는 built-in function object가 `[[Construct]]` internal
+  method를 가지는 경우를 "'constructor'라고 기술되어 있거나, 어떤 알고리즘이
+  명시적으로 `[[Construct]]`를 설정한 경우"로 한정한다. `CreateBuiltinFunction`
+  자체는 `[[Construct]]`를 설치하지 않는다. ECMA-262는 고정된 이름의 intrinsic에는
+  전자를, 런타임에 알고리즘이 만드는 constructor에는 후자(`MakeConstructor`,
+  `BoundFunctionCreate`, `ProxyCreate`)를 쓴다.
+
+  Interface object는 이 알고리즘이 런타임에 만드는 객체인데, 이 알고리즘(과
+  여기서 호출하는 알고리즘) 어디에서도 `[[Construct]]`를 설정하지 않는다. 섹션
+  prose는 "the interface object can be called as a constructor"(line 11904)라고
+  말하지만, 이를 실현하는 단계가 없다. 문자 그대로 따르면 `IsConstructor(|F|)`가
+  거짓이라 `new`가 `EvaluateNew`에서 `|steps|`에 도달하기 전에 `TypeError`를
+  던진다. 스펙 본문에도 이 공백이 `Issue(whatwg/webidl#698)`(line 2475)로 남아
+  있다 — 즉 "틀린 단계"라기보다 아직 정해지지 않은 부분이다.
+
+  같은 공백이 `legacy factory functions`(line 12029-12032)에도 있다. js-api는
+  legacy factory function을 선언하지 않으므로 여기서는 손대지 않았다.
+- **우리가 추론한 것**: 모든 interface object를 constructor로 본다. constructor
+  operation이 없는 interface도 마찬가지다 — 그 경우 `|steps|`가 처음부터
+  `TypeError`를 던지고, WPT도 이를 전제로 모든 interface에 대해
+  `IsConstructor`를 검사한다(web-platform-tests/wpt#28089). `"prototype"`을
+  정의하는 단계를 `[$MakeConstructor$](|F|, false, |proto|)`로 바꿔
+  처리했다(`SpecPatch` #78). `MakeConstructor`의 built-in function object 분기
+  (tc39/ecma262#2209)는 `[[Construct]]`를 설정한 뒤 기존
+  `DefinePropertyOrThrow`와 똑같은 descriptor로 `"prototype"`을 정의하므로,
+  다른 동작은 바뀌지 않는다. 섹션 prose도 "interface object는 built-in
+  function object이자 constructor이다"와 "constructor operation이 있을 때만
+  생성이 성공한다"를 분리해 적는 편이 자연스럽다.
+- **왜 좋은 명세가 아니라고 보는지**: "interface object는 constructor"라는
+  전제가 prose와 WPT, 구현체 모두에 깔려 있지만, ECMA-262가 요구하는 방식(명시적
+  `[[Construct]]` 설정)으로는 어디에도 적혀 있지 않다. 어떤 방식으로 표시할지
+  (`MakeConstructor` 재사용 여부 등)도 아직 열려 있으므로, 명세 저자에게
+  명시를 요청할 가치가 있다.
+- **관련 이슈**:
+  - https://github.com/whatwg/webidl/issues/698 — "Define that interface
+    objects are constructors" (open)
+  - https://github.com/web-platform-tests/wpt/pull/28089 — "Test
+    IsConstructor for all interfaces" (merged)
+  - https://github.com/tc39/ecma262/issues/2209 — Web IDL이
+    `CreateBuiltinFunction` 결과를 constructor로 표시하는 방법

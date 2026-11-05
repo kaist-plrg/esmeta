@@ -564,7 +564,11 @@ Retracted — its premise was wrong. This entry claimed the Wasm Core Spec's `fu
 
   Fixed via `SpecPatch` #77 (bundled into the same line's own patch, since it sits on the same text #40 already touches). Unlike most entries in this file, this one *did* need a small mechanization extension to keep executing correctly — not because the runtime tag itself changed (`NormalizeSpecTecCaseShapePass`'s `typeAnnotationTag` already derives the real `"PAGE"` tag from the `"memory type"` TERM alone, same as before), but because the bare word `page` wasn't parseable at all: `ExprParser`'s generic sequence fallback (`parseAsSeq`) requires every space-separated token in a juxtaposed value to parse individually, and `page` matched nothing, so the whole line fell to `Unknown`/`EYet`. `ExprParser.PageKeyword` is a new, narrowly-scoped rule parsing the bare word into a plain `Expr.SpecTerm("page")` — purely structural, no SpecTec-runtime knowledge of its own — and `NormalizeSpecTecCaseShapePass` is what actually knows this token carries no data: when promoting `TypeAnnotated("memory type", Seq_(args))`, it drops a trailing `SpecTerm("page")` from `args` before building the real 2-arg `CaseV("PAGE", [addrtype; limits])` (`docs/hardcodes.md` #12). Validated end to end: `ir.expected` (the full compiled `Program`, the same artifact `wji-eval` executes) came back byte-identical to before this entire entry's fix, confirming the compiled output — and therefore runtime behavior — is unchanged; `memory/constructor.any.js` (29/29) still passes.
 
-## 42. `ToWebAssemblyValue`'s NaN case writes `[=nan=](n)` with `n` unpiped
+## 42. (moved) `create an interface object` never gives the interface object a `[[Construct]]` internal method
+
+Moved to `docs/underspecified-behaviors.md` #3. Left as a numbered gap (not renumbering the rest of this file) since other entries and `SpecPatch` cite entries here by number.
+
+## 43. `ToWebAssemblyValue`'s NaN case writes `[=nan=](n)` with `n` unpiped
 
 - **File**: `spectec/document/js-api/index.bs`, lines 1435 and 1443 (`ToWebAssemblyValue`'s f32 and f64 cases).
 - **Current**:
@@ -578,7 +582,7 @@ Retracted — its premise was wrong. This entry claimed the Wasm Core Spec's `fu
 
   Fixed via `SpecPatch` #84, together with #44 on the same text.
 
-## 43. `ToWebAssemblyValue`'s NaN case assigns a float magnitude, `nan(n)`, where a signed float is needed
+## 44. `ToWebAssemblyValue`'s NaN case assigns a float magnitude, `nan(n)`, where a signed float is needed
 
 - **File**: `spectec/document/js-api/index.bs`, lines 1435 and 1443 (same steps as #43).
 - **Current**: `1. Let |f32| be [=nan=](n).` (and the same for |f64|)

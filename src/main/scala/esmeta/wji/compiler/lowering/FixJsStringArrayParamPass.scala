@@ -21,7 +21,7 @@ import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr}
   * relations for every other store-addressed collection this corpus reads this
   * way (`table_read`, `global_read`, `mem_read`) but none for GC arrays at all,
   * since those postdate the embedding appendix's own last update
-  * (`docs/spec_errors.md` #36) — no interpreter change needed for *this*
+  * (`docs/hardcodes.md` #36) — no interpreter change needed for *this*
   * direction though: `store` is already a plain, fully-marshalled
   * `ALValue.StrV` on the WJI side by the time a hostfunc call runs (confirmed
   * by `esmeta.interpreter.WasmMemoryBridge`'s own direct `ARRAYS`/`MEMS`-field
@@ -66,7 +66,7 @@ import esmeta.wji.lang.{Algorithm, Cond, Expr, Instr}
   *     is `Expr.Case`/`ECase` — positional (`ALValue.CaseV`), not named-field.
   *     `array_write` closes this the same way
   *     `table_write`/`global_write`/`mem_write` already do for every *other*
-  *     store-addressed collection (`docs/spec_errors.md` #36) — it mutates the
+  *     store-addressed collection (`docs/hardcodes.md` #36) — it mutates the
   *     real store on the OCaml side and hands back the (same, now-updated)
   *     store value, which this pass immediately reassigns to `[=surrounding
   *     agent=]'s [=associated store=]` so `create_a_builtin_function_hostfunc`

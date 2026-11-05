@@ -295,3 +295,10 @@
   - **#80** `attribute setter`(12445-12461): `<dl class="switch">`로 쓴 `|idlValue|` 정의를 같은 뜻의 If/Otherwise 스텝으로 재작성.
   - **#82** `attribute getter`: 반환값 변환의 "of the type |attribute| is declared as"를 지움. 파서가 이 구절의 `|attribute|`를 변환 호출의 인자로 읽어버리는데, 실제로는 대상 타입을 설명할 뿐 인자로 의도된 게 아닙니다.
 - **Why not mechanized**: 각 문장 모양이 코퍼스에서 한두 번만 나와서, 파서를 일반화하기보다 스펙 텍스트를 고치는 쪽이 저렴합니다.
+
+## 35. `index of the host function`(런타임 값에 붙인 dfn)을 agent 소유의 `Function Import List`로 대체 (`SpecPatch` #13)
+
+- **File**: `src/main/scala/esmeta/wji/spec/SpecPatch.scala`(#13)
+- **Spec source**: `spectec/document/js-api/index.bs`의 `read the imports`(512줄, "Let |index| be the number of external functions in |imports|. This value |index| is known as the <dfn>index of the host function</dfn> |funcaddr|.")와, 그 dfn으로 값을 다시 찾는 `name of the WebAssembly function`(1251줄, `[=index of the host function=] |funcaddr|`).
+- **What's hardcoded**: 명세는 알고리즘 실행 중 계산한 값에 그 자리에서 dfn을 붙이고, 다른 알고리즘이 그 dfn으로 값을 다시 찾습니다. WJI는 런타임 값에 묶인 dfn을 기계화하지 못해서, 명세에 없는 `[=surrounding agent=]`의 `[=Function Import List=]`를 새로 둡니다. `read the imports`는 여기에 `|funcaddr|`을 append하고, `name of the WebAssembly function`은 module-defined 분기와 같은 "the index of X where Y is found"로 위치를 복원합니다. Exported Function cache 등 이 문서의 agent 소유 캐시와 같은 관용구지만, 개념 자체는 업스트림에 없습니다.
+- **Why not mechanized**: 이 "값에 붙인 dfn" 모양이 코퍼스에 이 한 곳뿐이라 일반화할 이유가 약합니다. 명세 텍스트가 틀린 건 아니어서 업스트림 리포트 대상은 아닙니다. 같은 블록에 있던 호스트 함수 판별 조건의 버그는 별도로 `docs/spec_errors.md` #46(`SpecPatch` #86)입니다.

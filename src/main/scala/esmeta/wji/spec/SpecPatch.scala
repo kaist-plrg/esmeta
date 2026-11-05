@@ -365,60 +365,30 @@ object SpecPatch:
     )} to |promiseOfModule| with |onFullfilledSteps|, and |onRejectedSteps| in the [=current Realm=]."""
       .stripMargin('#'),
 
-    // #13 (spec inconsistency, docs/spec_inconsistencies.md #11) — a host
-    // function's "name" (used for Function.prototype.name/.length-style
-    // introspection) needs its position among the module's function-typed
-    // imports, computed once when the host function is created (`read the
-    // imports`) and needed again later, keyed by |funcaddr|, by an unrelated
-    // algorithm (`name of the WebAssembly function`). The original prose
-    // wrote this as an ad-hoc "Let |index| be N. This value |index| is known
-    // as the index of the host function |funcaddr|." — an inline dfn
-    // introduced mid-algorithm, a shape nothing else in this document uses
-    // and this project doesn't mechanize. Every structurally identical need
-    // elsewhere in this same document (funcaddr -> JS object, keyed lookup
-    // from a completely different algorithm) instead uses an explicit
-    // "surrounding agent's associated <ordered map/list>" (see the "Exported
-    // Function cache" family, index.bs:346-353) — rewritten here the same
-    // way, using a plain list rather than a map since the value being
-    // recovered later isn't a cached object, just a position, and "the index
-    // of X where Y is found" (already used by the sibling module-defined
-    // branch just below) recovers it without needing map/exists+map/Set.
-    // Also fixes the host/module-defined dispatch itself: the original `If
-    // |funcinst| is of the form {type functype, hostcode |hostfunc|}`
-    // pattern-matches a funcinst shape the Wasm Core Spec no longer has —
-    // funcinst is uniformly {TYPE deftype, MODULE moduleinst, CODE funccode}
-    // now (4.4-execution.modules.spectec:74-75), so this dispatches on
-    // |funcinst|.code's own HOSTFUNC-vs-FUNC shape instead
-    // (funccode = func | hostfunc, 4.0-execution.configurations.spectec:60-61).
-    // The dropped "Assert: |hostfunc| is a JavaScript object..." step is
-    // dropped for the same reason: a host function's CODE payload is an
-    // opaque id (`HOSTFUNC text`), not the JS object itself, so asserting
-    // that no longer makes sense either. Both branches converge on binding
-    // |funcaddrs| to just that one list — the sanity-check Assert (still
-    // meaningful either way: a funcaddr found this way is always actually in
-    // that list, by construction) and the final index lookup are each
-    // written once, after the branch, instead of duplicated per branch.
-    // Writes `|funcinst|.module.funcs` directly (chained field access,
-    // already a general `ExprParser`/`DotField` capability, no `|moduleinst|`
-    // intermediate needed) rather than `.funcaddrs` — this rewrite already
-    // produces the field name `docs/spec_errors.md` #10 separately fixes, so
-    // that patch's own `"|moduleinst|.funcaddrs"` text no longer occurs here
-    // for it to match; #10 stays (still an accurate, reportable bug against
-    // the *unpatched* spec text) but is now a no-op for this occurrence.
+    // #13 (hardcoding, docs/hardcodes.md #35) — `read the imports` names a
+    // value mid-algorithm ("Let |index| be N. This value |index| is known as
+    // the <dfn>index of the host function</dfn> |funcaddr|."), and `name of
+    // the WebAssembly function` later looks it up by that dfn. Nothing here
+    // mechanizes a dfn bound to a runtime value, so the value is kept in a
+    // new agent-owned [=Function Import List=] instead (the same idiom as the
+    // Exported Function cache family, index.bs:346-353; a list, since only
+    // the position is needed), and recovered with "the index of X where Y is
+    // found", as the module-defined branch already does. Both branches then
+    // bind |funcaddrs| and share one Assert and one lookup after the branch.
+    // Writes `|funcinst|.module.funcs` directly, so #10's
+    // `"|moduleinst|.funcaddrs"` patch is a no-op here. The branch condition
+    // itself (and the Assert under it) is #86's, applied after this one.
     "    1. Let |index| be the number of external functions in |imports|. This value |index| is known as the <dfn>index of the host function</dfn> |funcaddr|."
     ->
     "1. [=list/Append=] |funcaddr| to the [=surrounding agent=]'s associated [=Function Import List=].",
-    """    1. If |funcinst| is of the form {type <var ignore>functype</var>, hostcode |hostfunc|},
-      #        1. Assert: |hostfunc| is a JavaScript object and [$IsCallable$](|hostfunc|) is true.
-      #        1. Let |index| be the [=index of the host function=] |funcaddr|.
+    """        1. Let |index| be the [=index of the host function=] |funcaddr|.
       #    1. Otherwise,
       #        1. Let |moduleinst| be |funcinst|.module.
       #        1. Assert: |funcaddr| is contained in |moduleinst|.funcaddrs.
       #        1. Let |index| be the index of |moduleinst|.funcaddrs where |funcaddr| is found."""
       .stripMargin('#')
     ->
-    """    1. If |funcinst|.code is of the form [=hostfunc=] <var ignore>hostfunc</var>,
-      #        1. Let |funcaddrs| be the [=surrounding agent=]'s associated [=Function Import List=].
+    """        1. Let |funcaddrs| be the [=surrounding agent=]'s associated [=Function Import List=].
       #    1. Otherwise,
       #        1. Let |funcaddrs| be |funcinst|.module.funcs.
       #    1. Assert: |funcaddr| is contained in |funcaddrs|.
@@ -1689,6 +1659,21 @@ object SpecPatch:
     // `funcaddrs`). Hits the anchor and both steps.
     "text: memaddrs; for: moduleinst;" -> "text: mems; for: moduleinst;",
     "[=moduleinst/memaddrs=]" -> "[=moduleinst/mems=]",
+
+    // #86 (spec bug, docs/spec_errors.md #46) — `name of the WebAssembly
+    // function` tells host functions apart by matching `{type functype,
+    // hostcode |hostfunc|}`, a funcinst shape the Core Spec no longer has:
+    // funcinst is `{TYPE deftype, MODULE moduleinst, CODE funccode}` with
+    // `funccode = func | hostfunc` (4.0-execution.configurations.spectec:60,
+    // 74-75), so the branch checks |funcinst|.code instead. The Assert under
+    // it goes too: per `create a host function`, |hostfunc| is the host
+    // function wrapping the JS object, never the JS object itself. Applied
+    // after #13, which rewrites the rest of this block.
+    """    1. If |funcinst| is of the form {type <var ignore>functype</var>, hostcode |hostfunc|},
+      #        1. Assert: |hostfunc| is a JavaScript object and [$IsCallable$](|hostfunc|) is true."""
+      .stripMargin('#')
+    ->
+    "    1. If |funcinst|.code is of the form [=hostfunc=] <var ignore>hostfunc</var>,",
   )
 
   def apply(source: String): String =

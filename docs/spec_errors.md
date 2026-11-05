@@ -54,7 +54,7 @@
 
 ## 7. (retracted) Dead host-function/module-function branch in `name of the WebAssembly function`
 
-Retracted — its premise was wrong. This entry claimed the Wasm Core Spec's `funcinst` representation changed so that a host function's instance now carries a real `module` field, making the host-function branch (and `read the imports`'s "index of the host function" tracking that fed it) dead code. It doesn't: `embedding.rst`'s `func_alloc(store, deftype, hostfunc)` (the actual current Embedding API text) still allocates a host function with an *empty* module instance (`$allocfunc(S, dt, code, {})`) — `funcinst` does uniformly carry a `MODULE` field now, but for a host function that field's *value* is still empty, so the module-defined branch's `|funcinst|.module.funcaddrs` lookup this entry collapsed onto doesn't work for host functions after all. Left as a numbered gap (not renumbering the rest of this file) since other entries and `SpecPatch` cite entries here by number. See `docs/spec_inconsistencies.md` #11 for the actual fix.
+Retracted — its premise was wrong. This entry claimed the Wasm Core Spec's `funcinst` representation changed so that a host function's instance now carries a real `module` field, making the host-function branch (and `read the imports`'s "index of the host function" tracking that fed it) dead code. It doesn't: `embedding.rst`'s `func_alloc(store, deftype, hostfunc)` (the actual current Embedding API text) still allocates a host function with an *empty* module instance (`$allocfunc(S, dt, code, {})`) — `funcinst` does uniformly carry a `MODULE` field now, but for a host function that field's *value* is still empty, so the module-defined branch's `|funcinst|.module.funcaddrs` lookup this entry collapsed onto doesn't work for host functions after all. Left as a numbered gap (not renumbering the rest of this file) since other entries and `SpecPatch` cite entries here by number. See #46 (the dispatch) and `docs/hardcodes.md` #35 (the `index of the host function` tracking) for the actual fix.
 
 ## 8. `is of the form [=external-type/tag=] |attribute| ...` binds a field the runtime representation no longer has
 
@@ -599,3 +599,21 @@ Moved to `docs/underspecified-behaviors.md` #3. Left as a numbered gap (not renu
 - **Reason**: `memaddrs` is the Wasm 2.0 name of the module instance's memory addresses. In Wasm 3.0 the record is `{TYPES, TAGS, GLOBALS, MEMS, TABLES, FUNCS, DATAS, ELEMS, EXPORTS}` (`specification/wasm-3.0/4.0-execution.configurations.spectec:101-110`, spliced into `core/exec/runtime.rst`), so the field is `mems`. Same drift as #10 (`funcaddrs` vs. `FUNCS`).
 
   Fixed via `SpecPatch` #85 (anchor and both steps). Found when the hook was first executed (`docs/hardcodes.md` #27).
+
+## 46. `name of the WebAssembly function` tells host functions apart by a `funcinst` shape the Core Spec no longer has
+
+- **File**: `spectec/document/js-api/index.bs`, lines 1249-1250 (`name of the WebAssembly function`).
+- **Current**:
+  ```
+  1. If |funcinst| is of the form {type <var ignore>functype</var>, hostcode |hostfunc|},
+      1. Assert: |hostfunc| is a JavaScript object and [$IsCallable$](|hostfunc|) is true.
+      1. Let |index| be the [=index of the host function=] |funcaddr|.
+  ```
+- **Expected**:
+  ```
+  1. If |funcinst|.code is of the form [=hostfunc=] <var ignore>hostfunc</var>,
+      1. Let |index| be the [=index of the host function=] |funcaddr|.
+  ```
+- **Reason**: in the Core Spec a function instance is `{TYPE deftype, MODULE moduleinst, CODE funccode}` with `funccode = func | hostfunc` (`specification/wasm-latest/4.0-execution.configurations.spectec:60, 74-75`). A host function is told apart by its `code`; there is no `hostcode` field, so the pattern never matches. Same drift as #10 (`funcaddrs`) and #45 (`memaddrs`). The Assert goes with the old shape, and could not hold anyway: `create a host function` (index.bs:1348) makes |hostfunc| a [=host function=] whose steps call the JS object |func|, so |hostfunc| is never the JS object itself.
+
+  Fixed via `SpecPatch` #86. The rest of the same block (`index of the host function`) is a separate hardcoding, `docs/hardcodes.md` #35.

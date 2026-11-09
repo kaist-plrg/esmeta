@@ -151,16 +151,15 @@ WJI가 뭘 어떻게 할지 결정할 필요는 없다(WJI는 스펙대로 기�
 
 - **발견 경로**: `tests/wji/scripts/diff-engines tests/wji/complementary/validate-duplicate-builtins.js`
   — JSC만 PASS, V8/SpiderMonkey 둘 다 FAIL.
-- **배경**: 이미 테스트 작성 시점(이번 세션 이전 스윕)에 "Node 24.2.0은 이 옵션 검증
-  자체를 전혀 구현 안 함"이 테스트 파일 자신의 doc에 기록돼 있던, **사실상 이미 알려진
-  gap** — 새 발견이라기보단 세 엔진 교차비교로 범위가 더 분명해진 경우.
+- **배경**: 이전 테스트 스윕에서 이미 "Node 24.2.0은 이 옵션 검증 자체를 전혀 구현 안 함"으로
+  관찰해 테스트 파일 doc에 기록해 둔 건. 세 엔진 교차 비교로 범위(V8, SpiderMonkey)가 더 분명해짐.
 - **실제 동작**: `WebAssembly.validate(module, { builtins: ["js-string", "js-string"] })`가
   스펙대로면 중복 때문에 `false`를 반환해야 하는데 — V8은 그냥 `true`를 반환(검증
   자체를 안 함), SpiderMonkey는 `false`를 반환하는 대신 **`TypeError: duplicate
   builtin`을 던짐**(검증은 하지만 반환값이 아니라 예외로 처리 — 이것도 스펙과 다른
   모양). JSC만 스펙대로 `false`를 반환.
 - **확인한 엔진 버전**: 위 1번과 동일.
-- **상태**: 이미 알려진 gap(V8 쪽)의 재확인 + SpiderMonkey 쪽 추가 관찰 — 업스트림
+- **상태**: V8 쪽은 이전 스윕에서 관찰한 건의 재확인 + SpiderMonkey 쪽 추가 관찰. 업스트림
   제보 안 함.
 
 ## 8. SpiderMonkey: `Table.prototype.set`의 `.length`가 1이 아니라 2
@@ -263,7 +262,7 @@ WJI가 뭘 어떻게 할지 결정할 필요는 없다(WJI는 스펙대로 기�
 - **확인한 엔진 버전**: 위 1번과 동일.
 - **상태**: 후보, 확신도 낮음 — 업스트림 제보 안 함.
 
-## 15. V8: `WebAssembly.validate`가 `options` 인자를 아예 읽지 않음
+## 15. V8: `WebAssembly.validate`가 `options` 변환 중 던져진 예외를 삼키고 `false`를 반환
 
 - **발견 경로**: `tests/wji/scripts/diff-engines tests/wji/complementary/validate-options.js`
   — SpiderMonkey/JSC PASS, V8만 FAIL.
@@ -271,9 +270,10 @@ WJI가 뭘 어떻게 할지 결정할 필요는 없다(WJI는 스펙대로 기�
   다른 WebIDL dictionary와 똑같이 변환되므로, 멤버 getter가 던지면 그 예외가 전파돼야 함.
   SpiderMonkey/JSC는 그대로 전파.
 - **실제 동작(V8)**: `WebAssembly.validate(emptyModule, { get builtins() { throw err; } })`가
-  getter를 호출조차 하지 않고 `true`를 반환. Node 26.12.1도 같음.
-- **의미**: #7(V8이 `builtins` 중복 검증을 안 함)의 더 근본적인 원인으로 보임 — 중복 검사 이전에
-  `validate`가 `options` 자체를 무시함. `compile`/`Module` 쪽은 V8도 `options`를 읽음.
+  getter를 호출하지만, 던져진 예외를 전파하지 않고 삼킨 뒤 `false`를 반환. Node 26.12.1도 같음.
+  `compile`/`Module` 쪽은 같은 getter의 예외를 그대로 전파함.
+- **의미**: #7(V8이 `builtins` 중복 검증을 안 함)과는 별개 — `validate`도 `options`를 읽기는
+  하지만(getter가 호출됨), 중복된 set 이름에는 여전히 `true`를 반환함.
 - **확인한 엔진 버전**: 위 1번과 동일(V8은 Node 26.12.1로도 확인).
 - **상태**: 재현 확인, 업스트림 제보 안 함.
 

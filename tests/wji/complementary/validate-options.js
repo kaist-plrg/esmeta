@@ -7,8 +7,8 @@
 // and the "options has importedStringConstants" branch sat at 0 hits.
 //
 // Cross-checked with tests/wji/scripts/diff-engines: SpiderMonkey and JSC
-// pass; V8 (including Node 26.12.1) never reads validate's options at all, so
-// the getter never runs (docs/engine_bugs.md #15).
+// pass; V8 (including Node 26.12.1) calls the getter but swallows its
+// exception and returns false (docs/engine_bugs.md #15).
 function assertEq(actual, expected, msg) {
   if (actual !== expected)
     throw new Error(msg + ": expected " + expected + ", got " + actual);

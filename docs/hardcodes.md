@@ -312,3 +312,12 @@
   - 쓰기: appendix에 없는 `array_write(store, arrayaddr, i, fieldval)`를 SpecTec 백엔드에 직접 추가(`table_write`를 본뜸). WJI는 named-field인 store 값을 새로 만들 수 없어서 쓰기만은 RPC가 필요합니다.
   - 포장: 이 배열은 `(array (mut i16))`라 원소가 `PACK I16 n` 모양입니다. 읽을 땐 payload를 꺼내 JS Number로, 쓸 땐 `ToWebAssemblyValue` 결과(`CONST I32 n`)의 payload를 `PACK I16`으로 다시 감쌉니다. Core Spec의 `$unpackfield_`/`$packfield_`를 거치지 않고, i16 전용으로 손으로 합니다.
 - **Why not mechanized**: 명세 어디에도 js-api가 GC 배열에 접근하는 정식 경로가 없어서, 기계화할 대상 자체가 없습니다. 필요한 곳도 이 두 builtin뿐입니다. Core Spec appendix에 array 함수가 생기면 그걸 부르는 형태로 바꾸고, 포장도 그쪽(`ARRAY.SET`처럼 값을 받아 안에서 pack)으로 넘기는 게 자연스럽습니다.
+
+## 37. "identified with"(Data Block과 Wasm memory의 동일시)를 두 복사본의 경계 동기화와 `mem_read_bytes`로 대체
+
+- **File**: `src/main/scala/esmeta/wji/compiler/lowering/ExpandDataBlockOfPass.scala`, `src/main/scala/esmeta/interpreter/WasmMemoryBridge.scala`, `src/main/scala/esmeta/interpreter/Interpreter.scala`(`callEmbedding`, `toHostFunc`), `src/main/scala/esmeta/wji/bridge/host/WasmHost.scala`(`paramNames`의 `mem_read_bytes`), `spectec/spectec/src/backend-interpreter/embedding.ml`/`backend-server/server.ml`(`mem_read_bytes`)
+- **Spec source**: `spectec/document/js-api/index.bs`의 "identified with" 정의(338줄: "each WebAssembly memory instance with a corresponding Memory object is identified with a JavaScript Data Block; modifications to this Data Block are identified to updating the agent's store ..., and vice versa.")와, 그 정의를 쓰는 buffer 생성 스텝 3곳(829, 840, 896줄: "Let |block| be a [=Data Block=] which is [=identified with=] the underlying memory of |memaddr|.").
+- **What's hardcoded**: 명세는 buffer의 Data Block과 Wasm memory를 같은 바이트 저장소로 정의하고, 한쪽의 수정이 곧 다른 쪽의 수정이라고 선언만 합니다(이를 수행하는 알고리즘 스텝은 없음). WJI는 ESMeta(JS 힙)와 SpecTec(store)이 별도 프로세스라 진짜 앨리어싱이 불가능해서, 두 가지로 대신합니다.
+  - 생성: `ExpandDataBlockOfPass`가 "a Data Block identified with the underlying memory"를, appendix에 없는 `mem_read_bytes(memaddr)` 호출(SpecTec의 현재 store에서 그 memory의 바이트를 읽어 옴)로 lowering합니다. 즉 동일시 대신 그 시점의 복사본을 만듭니다.
+  - 동기화: `WasmMemoryBridge`가 경계를 넘을 때마다 바이트를 복사합니다. store를 받는 모든 embedding 호출 직전에 JS buffer 바이트를 그 store 인자에 반영하고(push), `func_invoke`/`module_instantiate` 직후와 host function 콜백 전에는 store의 바이트를 buffer로 가져오며(pull), 콜백 후 reply 직전에 다시 push합니다. 한 번에 한쪽만 실행되므로 이것만으로 관찰 가능한 동작은 명세와 같습니다. 길이가 다르면(refresh 없이 크기가 바뀐 경우) 오류를 냅니다.
+- **Why not mechanized**: "identified with"는 스텝이 아니라 두 상태가 같다는 선언이라, 컴파일할 알고리즘이 없습니다. 게다가 두 런타임이 별도 프로세스라 같은 바이트를 공유하는 구현 자체가 불가능합니다.

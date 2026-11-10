@@ -607,9 +607,9 @@ Moved to `docs/underspecified-behaviors.md` #3. Left as a numbered gap (not renu
   ```
 - **Expected**:
   ```
-  1. If |funcinst|.code is of the form [=hostfunc=] <var ignore>hostfunc</var>,
+  1. If |funcinst|.code is a [=host function=],
       1. Let |index| be the [=index of the host function=] |funcaddr|.
   ```
 - **Reason**: in the Core Spec a function instance is `{TYPE deftype, MODULE moduleinst, CODE funccode}` with `funccode = func | hostfunc` (`specification/wasm-latest/4.0-execution.configurations.spectec:60, 74-75`). A host function is told apart by its `code`; there is no `hostcode` field, so the pattern never matches. Same drift as #10 (`funcaddrs`) and #45 (`memaddrs`). The Assert goes with the old shape, and could not hold anyway: `create a host function` (index.bs:1348) makes |hostfunc| a [=host function=] whose steps call the JS object |func|, so |hostfunc| is never the JS object itself.
 
-  Fixed via `SpecPatch` #86. The rest of the same block (`index of the host function`) is a separate hardcoding, `docs/hardcodes.md` #35.
+  Fixed via `SpecPatch` #86. The patch writes the condition as `|funcinst|.code is of the form [=hostfunc=] <var ignore>hostfunc</var>`, the shape WJI's parser expects, rather than the `[=host function=]` wording above. The rest of the same block (`index of the host function`) is a separate hardcoding, `docs/hardcodes.md` #35.

@@ -334,7 +334,7 @@ Retracted — its premise was wrong. This entry claimed the Wasm Core Spec's `fu
 
 ## 26. `"a new Exported GC Object"`'s cache keys purely by `|objectaddr|`, but struct/array addresses aren't unique together
 
-- **File**: `spectec/document/js-api/index.bs`, lines 1646-1669 (`"a new Exported GC Object"`)
+- **File**: `spectec/document/js-api/index.bs`, line 349 (the Exported GC Object cache's declaration) and lines 1646-1669 (`"a new Exported GC Object"`)
 - **Current**:
   ```
   1. Let |map| be the [=surrounding agent=]'s associated [=exported GC object cache=].
@@ -343,12 +343,12 @@ Retracted — its premise was wrong. This entry claimed the Wasm Core Spec's `fu
   ...
   1. [=map/Set=] |map|[|objectaddr|] to |object|.
   ```
-- **Expected**: every `|map|[|objectaddr|]` becomes `|map|[(|objectkind|, |objectaddr|)]`:
+- **Expected**: one cache per address space, like every other cache in the same list (index.bs:346-353), with the algorithm picking the map by `|objectkind|` and its lookups unchanged:
   ```
-  1. If |map|[(|objectkind|, |objectaddr|)] [=map/exists=],
-      1. Return |map|[(|objectkind|, |objectaddr|)].
+  * The <dfn>Exported struct cache</dfn>, mapping [=struct address=]es to [=Exported GC Object=] objects.
+  * The <dfn>Exported array cache</dfn>, mapping [=array address=]es to [=Exported GC Object=] objects.
   ...
-  1. [=map/Set=] |map|[(|objectkind|, |objectaddr|)] to |object|.
+  1. If |objectkind| is "array", let |map| be the [=surrounding agent=]'s associated [=Exported array cache=]; otherwise, let |map| be the [=surrounding agent=]'s associated [=Exported struct cache=].
   ```
 - **Reason**: this algorithm takes both a WebAssembly [=object address=] `|objectaddr|` and a string `|objectkind|` (`"array"` or `"struct"`), asserted right at the top, but the cache lookup/store only ever uses `|objectaddr|` — as if it alone were enough to identify the object. It isn't: the Wasm Core spec's own `structaddr`/`arrayaddr` (`4.0-execution.configurations.spectec:15-16`) are each just `= addr`, allocated independently from 0 in their own separate store component (structs and arrays are never in the same list) — so the *first* struct ever created and the *first* array ever created legitimately share `objectaddr` 0. With the cache keyed on `objectaddr` alone, creating the array after the struct finds the struct's entry already "exists" at that same key and returns the *struct's* wrapper object instead of creating a new one for the array — observable as `struct === array` (same JS object identity) for the results of `WebAssembly.Module`-instantiated `struct.new`/`array.new` exports, which then makes both `gc/exported-object.tentative.any.js`'s "GC objects as map keys" and "... as weak map keys" subtests fail (`map.get(struct)` returns the array's stored value, since `map.set(array, ...)` silently overwrote the same cache-collided key). Fixed via `SpecPatch` #53.
 

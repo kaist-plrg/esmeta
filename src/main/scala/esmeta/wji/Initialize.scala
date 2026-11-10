@@ -126,7 +126,13 @@ object Initialize:
 
     st.heap.update(
       NamedAddr(AGENT_RECORD),
-      Str("exported gc object cache"),
+      Str("exported struct cache"),
+      st.heap.allocMap(Nil),
+    )
+
+    st.heap.update(
+      NamedAddr(AGENT_RECORD),
+      Str("exported array cache"),
       st.heap.allocMap(Nil),
     )
 

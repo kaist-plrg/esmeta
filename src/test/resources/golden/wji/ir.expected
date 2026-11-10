@@ -2000,9 +2000,13 @@ def a_new_exported_gc_object(
   objectkind: Unknown,
 ): Unknown = {
   assert (|| (= objectkind "array") (= objectkind "struct"))
-  let map = @AGENT_RECORD["exported gc object cache"]
-  if (exists map[(tup objectkind objectaddr)]) {
-    return map[(tup objectkind objectaddr)]
+  if (= objectkind "array") {
+    let map = @AGENT_RECORD["exported array cache"]
+  } else {
+    let map = @AGENT_RECORD["exported struct cache"]
+  }
+  if (exists map[objectaddr]) {
+    return map[objectaddr]
   } else nop
   call object = clo<"MakeBasicObject">((list ["ObjectAddress", "ObjectKind"]))
   object.ObjectAddress = objectaddr
@@ -2018,7 +2022,7 @@ def a_new_exported_gc_object(
   object.Set = clo<"[[Set]]_internal_method_of_an_Exported_GC_Object">
   object.Delete = clo<"[[Delete]]_internal_method_of_an_Exported_GC_Object">
   object.OwnPropertyKeys = clo<"[[OwnPropertyKeys]]_internal_method_of_an_Exported_GC_Object">
-  map[(tup objectkind objectaddr)] = object
+  map[objectaddr] = object
   return object
 }
 def initialize_an_exception_object(

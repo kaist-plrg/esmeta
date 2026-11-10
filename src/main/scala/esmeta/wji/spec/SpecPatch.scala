@@ -1062,20 +1062,22 @@ object SpecPatch:
     ->
     "1. Return |JSTagObject|.\n</div>",
 
-    // #53 (spec bug, docs/spec_errors.md #26) — "a new Exported GC Object"
-    // (index.bs:1646-1669) caches purely by |objectaddr|, but Wasm Core's
-    // structaddr/arrayaddr are separate address spaces (4.0-execution.
-    // configurations.spectec:15-16 -- each just `= addr`, independently
-    // allocated from 0 in its own store component), so the first struct and
-    // the first array legitimately share objectaddr 0 -- the cache then
-    // treats them as the same object (`struct === array`,
-    // gc/exported-object.tentative.any.js's "GC objects as map/weak map
-    // keys"). Every one of the 3 |map|[|objectaddr|] occurrences in this one
-    // algorithm needs the same fix, so one from/to pair (not scoped to a
-    // single line) covers the whole thing.
-    "|map|[|objectaddr|]"
+    // #53 (spec bug, docs/spec_errors.md #26) — the Exported GC Object cache
+    // maps struct addresses and array addresses in one map, but Wasm Core's
+    // structaddr/arrayaddr are separate address spaces, each allocated from
+    // 0 in its own store component (4.0-execution.configurations.spectec:
+    // 15-16), so the first struct and the first array share key 0 and come
+    // back as the same JS object (gc/exported-object.tentative.any.js's "GC
+    // objects as map/weak map keys"). Split into one cache per address
+    // space, like every other cache here; "a new Exported GC Object" picks
+    // the map by |objectkind| and its lookups stay keyed by |objectaddr|.
+    "    * The <dfn>Exported GC Object cache</dfn>, mapping [=struct address=]es and [=array address=]es to [=Exported GC Object=] objects."
     ->
-    "|map|[(|objectkind|, |objectaddr|)]",
+    ("    * The <dfn>Exported struct cache</dfn>, mapping [=struct address=]es to [=Exported GC Object=] objects.\n" +
+    "    * The <dfn>Exported array cache</dfn>, mapping [=array address=]es to [=Exported GC Object=] objects."),
+    "    1. Let |map| be the [=surrounding agent=]'s associated [=exported GC object cache=]."
+    ->
+    "    1. If |objectkind| is \"array\", let |map| be the [=surrounding agent=]'s associated [=Exported array cache=]; otherwise, let |map| be the [=surrounding agent=]'s associated [=Exported struct cache=].",
 
     // #54 (spec bug, docs/spec_errors.md #27) — `define the asynchronous
     // iteration methods` (webidl/index.bs:12981) duplicates the article

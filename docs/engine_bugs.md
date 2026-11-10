@@ -341,3 +341,29 @@ WJI가 뭘 어떻게 할지 결정할 필요는 없다(WJI는 스펙대로 기�
 - **상태**: 재현 확인, 엔진 쪽 제보 안 함. 규칙 자체는 WebAssembly/spec#1660(2023, `Global` 생성자
   중심)에서 질문됐으나 결론 없이 열려 있음. 테스트 쪽 수정은 WebAssembly/spec#2307(2026-10-28 머지)로
   스펙 해석이 확정됨 — 이제 세 엔진 모두 수정된 공식 테스트에서 실패할 것.
+
+## 20. JSC: JS 함수를 import해서 그대로 re-export하면 Exported Function의 `name`이 빈 문자열
+
+- **발견 경로**: WJI의 `index of the host function` 기계화(`docs/hardcodes.md` #35)를 점검하다
+  세 엔진에 직접 probe. `diff-engines` 테스트에서 나온 것이 아님.
+- **최소 재현**:
+  ```js
+  // (module (import "m" "f" (func $f)) (export "f" (func $f)))
+  var bytes = new Uint8Array([
+    0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00, 0x01, 0x04, 0x01, 0x60,
+    0x00, 0x00, 0x02, 0x07, 0x01, 0x01, 0x6d, 0x01, 0x66, 0x00, 0x00, 0x07,
+    0x05, 0x01, 0x01, 0x66, 0x00, 0x00]);
+  var mod = new WebAssembly.Module(bytes);
+  var f = function hello() {};
+  var inst = new WebAssembly.Instance(mod, { m: { f } });
+  print(inst.exports.f === f);   // 모든 엔진: false (새 Exported Function)
+  print(inst.exports.f.name);    // V8, SpiderMonkey: "0" / JSC: ""
+  ```
+- **기대 동작**: `name of the WebAssembly function`은 host function이면
+  `[=index of the host function=]`(`read the imports`에서 그 instantiation의 `|imports|` 안 앞선
+  함수 import 개수)를 `ToString`한 값을 이름으로 쓴다. 위 예시는 `"0"`이어야 하고, 같은 모듈을 다시
+  instantiate해도 `"0"`이다(V8/SpiderMonkey 모두 그렇게 동작).
+- **실제 동작**: JSC는 새 래퍼를 만들고 own `name` 프로퍼티도 두지만 값이 항상 `""`이다. 원래
+  함수의 이름(`hello`)을 쓰는 것도 아니어서, 이 경우의 이름 계산 자체를 구현하지 않은 것으로 보인다.
+- **확인한 엔진 버전**: 19번과 동일.
+- **상태**: 재현 확인, 업스트림 제보 안 함.

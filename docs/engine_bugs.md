@@ -105,7 +105,8 @@ WJI가 뭘 어떻게 할지 결정할 필요는 없다(WJI는 스펙대로 기�
   JSC가 구현한 초안 버전에선 아직 없었을 가능성도 있음(버그라기보단 아직 안 따라잡은
   스펙 revision일 수도) — 확신도를 낮춰서 기록.
 - **확인한 엔진 버전**: 위 1번과 동일.
-- **상태**: 후보, 확신도 낮음(스펙 revision 차이일 가능성 있음) — 업스트림 제보 안 함.
+- **재확인 (2026-11-11)**: revision 차이일 가능성은 낮음. 이 폴백 규칙은 js-string builtins가 명세 main에 합쳐질 때(2026-05)부터 있었고, 컴파일 단계도 builtin을 못 찾으면 통과시킴(`validate an import for builtins`: "If |maybeBuiltin| is null, return true."). 원 제안서 Overview도 "any imports that refer to a builtin are not looked up on the instantiation import object"라고만 해서, builtin이 아닌 이름은 import object에서 찾는 것과 맞음.
+- **상태**: 재현 확인, 확신도 높음. 업스트림 제보 안 함.
 
 ## 4. SpiderMonkey: v128 타입 GLOBAL import에 일반 값을 주면 LinkError 대신 TypeError
 
@@ -132,8 +133,8 @@ WJI가 뭘 어떻게 할지 결정할 필요는 없다(WJI는 스펙대로 기�
   특정 케이스까지 맞게 구현했는데, JSC는 메서드 자체는 있지만(`typeof === "function"`
   확인) 이 TypeError 케이스를 안 챙김(그냥 성공해서 resizable `ArrayBuffer`를 반환).
 - **확인한 엔진 버전**: 위 1번과 동일.
-- **상태**: 후보, 확신도 중간(아직 계속 구현 중인 최신 기능이라 "버그"보다 "미완성"에
-  가까울 수 있음) — 업스트림 제보 안 함.
+- **재확인 (2026-11-11)**: "미완성"이 아니라 옛 명세 텍스트를 따른 것. JSC 구현(`Source/JavaScriptCore/wasm/js/JSWebAssemblyMemory.cpp`의 `toResizableBuffer`)은 주석으로 threads proposal의 js-api를 가리키는데, 그 텍스트엔 `maximum` 검사가 없음. main 명세엔 "If |memtype| does not have a max, throw a {{TypeError}} exception."이 있고 V8/SpiderMonkey는 이를 따름. 공식 테스트(`test/js-api`)엔 `toResizableBuffer` 테스트가 없음.
+- **상태**: 재현 확인, 확신도 높음. 업스트림 제보 안 함.
 
 ## 6. JSC: v128 global `.value` 읽기가 TypeError 대신 RuntimeError를 던짐
 

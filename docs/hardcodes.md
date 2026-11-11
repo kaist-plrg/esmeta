@@ -330,3 +330,11 @@
 - **왜 inconsistency가 아니라 하드코딩인지**: 원래 `docs/spec_inconsistencies.md` #22로 "다른 자리는 전부 `of X in |realm|` 순서"라고 봤으나, 같은 문서의 `create a named properties object`(12156)도 `the [=interface prototype object=] in |realm| for the [=inherited interface=]`처럼 realm 절을 먼저 씀. 즉 절 순서는 문서 안에서 하나로 정해진 관용구가 아니고, 어느 순서든 뜻은 모호하지 않음. 순서를 바꾸는 이유는 WJI 파서가 한 가지 순서만 읽기 때문.
 - **Why not mechanized**: 절 순서에 무관하게 "the X of Y in realm"류 표현을 읽는 일반 규칙은 아직 없음. 12156은 그 알고리즘(named properties object)이 지금 코퍼스에서 실행되지 않아 손대지 않음.
 
+## 39. `create an operation function`의 `if |op| is a regular operation`/`static operation`에 링크를 달아 술어로 읽음 (`SpecPatch` #42)
+
+- **File**: `src/main/scala/esmeta/wji/spec/SpecPatch.scala`(#42), `CondParser.ArticleLink`, `ExpandWjiIsTypePass`.
+- **Spec source**: `webidl/index.bs` 12558-12559, 12581-12582(`create an operation function`의 "compute the effective overload set" 두 스텝): `for [=regular operations=] (if |op| is a regular operation) or for [=static operations=] (if |op| is a static operation)`.
+- **What's hardcoded**: 괄호 안의 `regular operation`/`static operation`을 `[=regular operation=]`/`[=static operation=]`로 링크해서, `CondParser.ArticleLink`가 `|op| is a [=regular operation=]`을 `Cond.IsType(op, "regular operation")`로 읽게 함. `ExpandWjiIsTypePass`가 이를 `esmeta.wji.Initialize`가 `operation` 레코드에 심어둔 `kind` 필드와의 비교로 낮춤.
+- **왜 inconsistency가 아니라 하드코딩인지**: 원래 `docs/spec_inconsistencies.md` #15로 "이 두 자리만 링크가 없다"고 봤으나, 같은 문장 바로 앞에 `[=regular operations=]`/`[=static operations=]`가 이미 링크돼 있어 괄호 안에서 다시 링크하지 않은 건 의도로 볼 수 있음(업스트림 리포트를 진행한 쪽에서도 일부러 뺐음). 링크를 다는 이유는 WJI 파서가 링크된 형태의 술어만 읽기 때문.
+- **Why not mechanized**: 링크 없는 dfn 이름을 술어로 인식하려면 dfn 목록과 대조하는 일반 규칙이 필요한데, 지금은 이 두 자리뿐이라 패치로 충분.
+

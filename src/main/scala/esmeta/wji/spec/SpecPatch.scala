@@ -815,28 +815,17 @@ object SpecPatch:
     // lowercased, so this resolves correctly regardless of which link syntax
     // the spec text happens to use.
 
-    // #42 (spec inconsistency, docs/spec_inconsistencies.md #15) — "if |op|
-    // is a regular operation"/"... a static operation" (2 call sites, both
-    // inside "create an operation function") write "regular operation"/
-    // "static operation" as plain prose instead of linking them. Just 14
-    // lines above the first site, the identical predicate is already written
-    // linked ("|op| is not a [=static operation=]", index.bs:12544), and both
-    // terms are export'ed dfns (`dfn-regular-operation` line 1883,
-    // `dfn-static-operation` line 3002) linked at 15+ other sites throughout
-    // this file — these two are the only unlinked occurrences. Linking lets
+    // #42 (hardcoding, docs/hardcodes.md #39) — "create an operation
+    // function" writes "(if |op| is a regular operation)"/"(... a static
+    // operation)" unlinked, right after the linked [=regular operations=]/
+    // [=static operations=] in the same sentence. Linking them lets
     // `CondParser.ArticleLink` parse "|op| is a [=regular operation=]" into
-    // `Cond.IsType(op, "regular operation")` instead of falling through to
-    // `Cond.Unknown`/`EYet("a regular operation")`; `ExpandWjiIsTypePass`
-    // resolves that `IsType` against the `kind` field `esmeta.wji.Initialize`
-    // already seeds onto every `operation` record. The two sites are indented
-    // differently (index.bs:12558-60 sits 12 spaces in, inside a nested
-    // sub-step list; 12581-2 sits 4 spaces in, at the outer step list), which
-    // shifts Bikeshed's own line-wrapping to a different column at each site
-    // and so splits "regular operation" apart at a different point in the
-    // source text (after "is a" at 12558-9, mid-word after "regular" at
-    // 12581-2) — two byte-distinct strings, so one replacement can't match
-    // both. Both reflow the line break so "regular operation" ends up inside
-    // one link span instead of split across lines.
+    // `Cond.IsType(op, "regular operation")`, which `ExpandWjiIsTypePass`
+    // resolves against the `kind` field `esmeta.wji.Initialize` seeds onto
+    // every `operation` record. The two sites wrap at different columns
+    // (index.bs:12558-9 and 12581-2), so they are two byte-distinct strings
+    // and need two replacements; each reflows the line break so the term
+    // sits inside one link span.
     """if |op| is a
       #                regular operation) or for [=static operations=] (if |op| is a static operation)"""
       .stripMargin('#')

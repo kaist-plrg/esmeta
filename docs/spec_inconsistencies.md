@@ -198,13 +198,9 @@
 
 Retracted — its premise was wrong. This entry claimed the document consistently uses `[$...$]` for every external ECMA-262 AO call and reserves `[=...=]` for local dfns/values, making `IsFixedLengthArrayBuffer`'s use of `[=...=]` the one exception. It isn't: `MakeBasicObject`(line 1653), `SameValue`(971), `IsStrictlyEqual`(2141/2157), and `IsLessThan`(2159) are all genuine external AOs called via `[=...=]` too — five more counter-examples to the "always `[$...$]`" claim, found while chasing the identical `UnknownFunc` symptom for `MakeBasicObject`. Both syntaxes are just equally valid, interchangeable Bikeshed cross-reference forms; nothing here is actually inconsistent on the document's own terms. The real problem was entirely on WJI's side — `Compiler.nameFromLink` guessed "local vs. external" from bracket punctuation alone, an unreliable proxy. Fixed generally instead: `nameFromLink` no longer touches case at all, and `Interpreter.EClo` retries a failed lookup with the name lowercased, so a `[=link=]` resolves correctly whichever of the two it actually names, without needing every individual case fixed as it's found. `SpecPatch` #41 (the `[=IsFixedLengthArrayBuffer=]` → `[$IsFixedLengthArrayBuffer$]` rewrite this entry prompted) is removed as redundant, now that the general fix covers it too. Left as a numbered gap (not renumbering the rest of this file) since other entries and `SpecPatch` cite entries here by number.
 
-## 15. `create an operation function`의 두 곳에서만 `regular operation`/`static operation`이 링크 안 된 채로 쓰임
+## 15. (moved) `create an operation function`의 두 곳에서만 `regular operation`/`static operation`이 링크 안 된 채로 쓰임
 
-- **File**: `webidl/index.bs`, lines 12558-9, 12581-2 (`create an operation function`)
-- **Current**: `"...(if |op| is a regular operation) or for [=static operations=] (if |op| is a static operation)..."` (두 자리, 줄바꿈 위치만 다름 — 12558-9는 `|n|`-인자 호출, 12581-2는 `0`-인자 호출).
-- **Expected**: `"...(if |op| is a [=regular operation=]) or for [=static operations=] (if |op| is a [=static operation=])..."`
-- **Reason**: 같은 알고리즘 안, 겨우 14줄 위(line 12544)에서 이미 동일한 술어를 링크된 형태로 씁니다 — `"|target| is an [=interface=], and |op| is not a [=static operation=]"`. `regular operation`/`static operation`은 이 파일에서 export된 진짜 dfn이고(`dfn-regular-operation` line 1883, `dfn-static-operation` line 3002), 이 파일 전체에서 15곳 넘게(lines 1067, 1229, 1899, 1911, 2321, 2324, 2344, 2383, 3071-2, 9787, 9793, 10725, 10742, 12592, 12611) 링크된 형태로 쓰이는데, 이 두 자리만 예외적으로 plain text입니다 — `[= =]` 마크업에 의존하는 기계화된 추출이 이 두 자리에서만 깨집니다.
-- **WJI 쪽 처리**: `SpecPatch` #42로 우회 — 두 자리 모두 링크. 링크되면 `CondParser.ArticleLink`가 `"|op| is a [=regular operation=]"`을 `Cond.IsType(op, "regular operation")`로 파싱하고, `ExpandWjiIsTypePass`가 `esmeta.wji.Initialize`가 이미 `operation` 레코드에 심어둔 `kind` 필드(`Enum("RegularOperation"|"StaticOperation")`)와 비교하는 `Cond.Eq`로 낮춥니다.
+`docs/hardcodes.md` #39로 옮김. 같은 문장 바로 앞에 `[=regular operations=]`/`[=static operations=]`가 이미 링크돼 있어, 괄호 안에서 다시 링크하지 않은 건 의도로 볼 수 있음(업스트림 리포트를 진행한 쪽에서도 일부러 뺌). 링크를 다는 건 WJI 파서 사정이라 하드코딩. 번호 유지를 위해 남겨 둠.
 
 ## 16. `read the imports`의 인자 누락 체크만 "is missing" 대신 "is undefined"를 씀
 

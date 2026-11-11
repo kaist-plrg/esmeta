@@ -367,3 +367,23 @@ WJI가 뭘 어떻게 할지 결정할 필요는 없다(WJI는 스펙대로 기�
   함수의 이름(`hello`)을 쓰는 것도 아니어서, 이 경우의 이름 계산 자체를 구현하지 않은 것으로 보인다.
 - **확인한 엔진 버전**: 19번과 동일.
 - **상태**: 재현 확인, 업스트림 제보 안 함.
+
+## 21. JSC: js-string builtin `substring`이 i32 인자 `start`/`end`를 signed로 해석
+
+- **발견 경로**: builtin 섹션의 값 영역 혼용(`docs/spec_errors.md` #32)을 조사하면서 세 엔진에 직접 probe. `diff-engines` 테스트에서 나온 것이 아님.
+- **최소 재현**:
+  ```js
+  // (module
+  //   (import "wasm:js-string" "substring" (func $sub (param externref i32 i32) (result (ref extern))))
+  //   (func (export "sub") (param externref i32 i32) (result externref)
+  //     (call $sub (local.get 0) (local.get 1) (local.get 2))))
+  var bytes = /* 위 모듈을 wasm-tools로 컴파일한 바이트 */;
+  var m = new WebAssembly.Module(bytes, { builtins: ["js-string"] });
+  var sub = new WebAssembly.Instance(m, {}).exports.sub;
+  print(sub("hello", 1, -1));   // V8, SpiderMonkey: "ello" / JSC: ""
+  print(sub("hello", -1, 3));   // V8, SpiderMonkey: ""     / JSC: "hel"
+  ```
+- **기대 동작**: 명세 원문은 i32를 unsigned로 읽을지 signed로 읽을지 정하지 않음(`docs/spec_errors.md` #32. 원문을 payload 그대로 읽으면 첫 호출은 `"h"`가 되어 어느 엔진과도 다름). 다만 원 제안서(`js-string-builtins` Overview)는 `start >>>= 0; end >>>= 0;`으로 unsigned 재해석을 명시하고, V8/SpiderMonkey는 그대로 동작함: `end`가 `4294967295`가 되어 길이로 clamp되거나(`"ello"`), `start`가 `end`보다 커서 빈 문자열(`""`).
+- **실제 동작**: JSC는 `start`/`end`를 signed로 다뤄서 `-1`을 JS `substring`의 음수 인자처럼 0으로 clamp함. 같은 JSC에서도 `codePointAt("hi", -1)`, `charCodeAt("hi", -1)`, `fromCodePoint(-1)`은 trap해서(unsigned 해석과 일치) builtin마다 일관되지 않음.
+- **확인한 엔진 버전**: 19번과 동일.
+- **상태**: 재현 확인, 업스트림 제보 안 함. 명세 쪽 규약이 정해지면(#32의 업스트림 이슈) 그 결과에 따라 제보 여부 판단.

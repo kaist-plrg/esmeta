@@ -47,6 +47,8 @@
 
 ## 3. `WasmContext.is_value`의 `REF.`-prefix 체크가 아직 안 풀린 ref 생성 명령어를 이미 값인 것처럼 오판
 
+> **업스트림 버그로 세지 않음 (2026-11-12)**: 업스트림 `WebAssembly/spec` `main`에서 `is_value`는 `push_value`의 안전 검사에만 쓰이고, `step_wasm`은 `CONST`/`VCONST`만 값으로 직접 고른 뒤 나머지(`REF.FUNC` 같은 명령어 포함)를 `create_context`로 보내 정상적으로 reduction함. 그래서 업스트림에서는 관찰되는 잘못된 동작이 없고, 이 프로젝트의 커밋 `3f199fb74`(`fork/embedding`에만 있음)가 `step_wasm`의 값 판정을 `is_value` 기반으로 바꾸면서 처음 드러남. `REF.` 접두사 검사가 목적(값 판정)에 비춰 부정확한 건 맞지만, 값 태그 목록은 `il2al/translate.ml`의 `is_wasm_value`에도 따로 하드코딩돼 있어 근본 해법은 명세의 `val` 정의에서 목록을 뽑는 구조 개선이고, 아래 Expected는 Wasm 2.0 이하의 값 `REF.NULL`을 빠뜨려 업스트림 `spec-test-2` 테스트를 깨뜨림. 그래서 업스트림에 제보하지 않고, 이 프로젝트의 포크 쪽 수정 기록으로만 남김.
+
 - **File**: `spectec/spectec/src/backend-interpreter/ds.ml`, `WasmContext.is_value`
 - **Current**:
   ```ocaml
@@ -76,6 +78,8 @@
   `table-mutation.js`의 `table.get(0)()`가 `typeof`의 최종 `assert (? val: Record[Object])`에서 크래시하는 걸로 발견 — `table_read`가 실제로 리턴한 값을 찍어보니 `CaseV(REF.FUNC, [NumV(Nat(1))])`였고(진짜 `REF.FUNC_ADDR`이 아님), wasm 자신의 `call_indirect`(embedding 레이어를 안 거침)로 접근해도 SpecTec 자신의 `Assert (case(val') == REF.FUNC_ADDR)`가 실패하는 걸로 재확인. `git bisect`(로컬 `official` 브랜치 — 실제 업스트림 `WebAssembly/spec`의 `main` — 기준, spectec 자신의 `--interpreter` 모드로 최소 `.wast` 재현 스크립트를 오라클 삼아 자동 실행)로 정확한 도입 커밋을 특정: `3f199fb74f25b0e3da20a0aad5559a91061b873b`("Give call_ref-host a real thrown-exception outcome")이 `step_wasm`의 `CaseV ("CONST", _) | CaseV ("VCONST", _)`(그리고 버전<=2의 `REF.NULL` 특수 케이스)만 값으로 인정하던 좁은 매칭을, 런타임에 계산된 `$callhostfunc`의 결과 instr*도 커버하려고 `WasmContext.is_value` 기반의 범용 체크로 넓히면서 이 prefix 체크의 부정확함이 처음으로 실제 실행 경로에 노출된 것으로 보임(그 전엔 `il2al/translate.ml`의 컴파일 타임 `is_wasm_value`/`is_wasm_instr` 분리가 항상 먼저 걸러줘서 `step_wasm`의 이 런타임 fallback 자체가 CONST/VCONST 말고는 실행될 일이 없었음).
 
 ## 2. `xl/num.ml`의 `bin`/`cmp`가 타입이 섞인 피연산자(`` `Nat ``/`` `Int ``)를 처리 못 함 — 이미 있던 `widen`이 죽은 코드였음
+
+> **#1과 하나로 셈 (2026-11-12)**: #1과 같은 원인(`xl/num.ml`이 선언한 `Nat` ⊂ `Int` 관계를 구현이 안 지킴)이라 업스트림에는 한 PR로 내고 한 버그로 셈. 업스트림 테스트로는 드러나지 않음(IL이 `nat`/`int` 변환을 명시적으로 넣어서 섞인 값이 이 함수들에 오지 않음, 수정 전 `main`도 `make test` 통과). 인터프리터 밖(임베딩)에서 `` `Nat `` 값을 넘길 때만 드러나는 잠재적 불일치.
 
 - **File**: `spectec/spectec/src/xl/num.ml`, `bin`/`cmp`
 - **Current**:

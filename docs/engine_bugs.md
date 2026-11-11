@@ -12,6 +12,8 @@ WJI가 뭘 어떻게 할지 결정할 필요는 없다(WJI는 스펙대로 기�
 항목마다: 어떤 엔진이 다른지, 최소 재현, 기대 동작(스펙) vs 실제 동작,
 확인한 엔진 버전/커밋, 확신도(재현 확인 여부, 업스트림 제보 여부).
 
+**세는 단위**: 엔진별로 원인 하나를 버그 하나로 센다. 여러 엔진에 걸친 항목(#2, #7 등)은 엔진 수만큼 세고, 같은 엔진에서 같은 원인으로 보이는 항목들(#4와 #16)은 하나로 센다. 업스트림 제보도 같은 단위로 낸다.
+
 ## 1. SpiderMonkey: `new.target.prototype` getter가 던진 예외를 WebAssembly 생성자 7개 전부에서 "out of memory"로 뭉갬
 
 - **발견 경로**: `tests/wji/scripts/diff-engines tests/wji/complementary/constructor-prototype-getter-throws.js`
@@ -56,8 +58,8 @@ WJI가 뭘 어떻게 할지 결정할 필요는 없다(WJI는 스펙대로 기�
 - **확인한 엔진 버전**: SpiderMonkey, `FIREFOX_158_0_RELEASE`
   (`3c71aeacdb296402e41fb2084b13e797d1770642`, `tests/wji/scripts/install_engine/sm.sh`로
   빌드) vs V8 15.5.35.25(`v8.sh`)/WebKit `main` HEAD 2026-10-16(`jsc.sh`) — 둘 다 정상.
-- **상태**: 후보(candidate) — 로컬 재현만 확인, 업스트림(Bugzilla) 제보는 아직 안 함, 최신
-  Firefox 안정 버전/Nightly에서도 재현되는지는 미확인.
+- **원인 (2026-11-11, 소스 확인)**: `js/src/wasm/WasmJS.cpp`(`FIREFOX_158_0_RELEASE`)의 공통 헬퍼 `GetWasmConstructorPrototype`은 `GetPrototypeFromBuiltinConstructor`가 실패하면(getter가 던진 예외가 이미 걸린 상태로) `nullptr`를 반환하는데, 이를 부르는 생성자들(예: `Table` 3585, `Module` 2022, `Exception` 4473; 모두 11곳)이 `if (!proto) { ReportOutOfMemory(cx); return false; }`로 실패 원인을 묻지 않고 OOM을 보고함. 던져지는 값은 `Error`가 아니라 문자열 `"out of memory"`(`typeof` string, SpiderMonkey의 OOM 보고 방식, Bugzilla 1861434 참고). 제보에는 넣지 않음.
+- **상태**: 재현 확인(2026-11-11 재확인 시 7개 생성자 모두 그대로). 제보함([bug 2091706](https://bugzilla.mozilla.org/show_bug.cgi?id=2091706), 2026-11-11).
 
 ## 2. SpiderMonkey/JSC: `WebAssembly.compile`/`.instantiate`의 `options` 변환 실패가 Promise reject 대신 동기 throw로 escape
 
@@ -88,7 +90,7 @@ WJI가 뭘 어떻게 할지 결정할 필요는 없다(WJI는 스펙대로 기�
   아닌 두 개의 별개 버그로 보임(JSC가 더 넓은 범위). 둘 다 "Promise 반환 오퍼레이션은
   인자 변환 실패도 reject로"라는 같은 WebIDL 관례를 어김.
 - **확인한 엔진 버전**: 위 1번과 동일.
-- **상태**: 후보 — 로컬 재현만 확인, 업스트림 제보 안 함.
+- **상태**: 재현 확인. SpiderMonkey: 제보함([bug 2091709](https://bugzilla.mozilla.org/show_bug.cgi?id=2091709), 2026-11-11). JSC: 제보함([webkit 331105](https://bugs.webkit.org/show_bug.cgi?id=331105), 2026-11-11).
 
 ## 3. JSC: 활성화된 builtin set에 없는 컴포넌트 이름을 import하면 `importObject`로 폴백하지 않고 바로 실패
 
@@ -105,8 +107,8 @@ WJI가 뭘 어떻게 할지 결정할 필요는 없다(WJI는 스펙대로 기�
   JSC가 구현한 초안 버전에선 아직 없었을 가능성도 있음(버그라기보단 아직 안 따라잡은
   스펙 revision일 수도) — 확신도를 낮춰서 기록.
 - **확인한 엔진 버전**: 위 1번과 동일.
-- **재확인 (2026-11-11)**: revision 차이일 가능성은 낮음. 이 폴백 규칙은 js-string builtins가 명세 main에 합쳐질 때(2026-05)부터 있었고, 컴파일 단계도 builtin을 못 찾으면 통과시킴(`validate an import for builtins`: "If |maybeBuiltin| is null, return true."). 원 제안서 Overview도 "any imports that refer to a builtin are not looked up on the instantiation import object"라고만 해서, builtin이 아닌 이름은 import object에서 찾는 것과 맞음.
-- **상태**: 재현 확인, 확신도 높음. 업스트림 제보 안 함.
+- **재확인 (2026-11-11)**: 명세 main은 폴백을 명시함(`read the imports`: "If |o| is not an Object or if ? HasProperty(|o|, |componentName|) is false, Set |o| to ? Get(|importObject|, |moduleName|)."), V8/SpiderMonkey도 폴백. 원 제안서 Overview("Using builtins")는 켜진 specifier를 가리키는 import에 "No property lookup on the instantiation imports object"라고 해서 다르게 읽힐 여지가 있음(어느 쪽이 의도인지는 미확인). 다만 JSC는 그 해석과도 맞지 않음: 세 엔진 모두 이 모듈을 컴파일하고(`validate` true) `WebAssembly.Module.imports()`에 `wasm:js-string` `nonExistentFn`을 보여주는데, JSC만 그걸 넘기면 instantiate에서 거부함.
+- **상태**: 재현 확인, 확신도 높음(명세와 다르고, JSC 자체 동작도 앞뒤가 안 맞음). 제보함([webkit 331108](https://bugs.webkit.org/show_bug.cgi?id=331108), 2026-11-11).
 
 ## 4. SpiderMonkey: v128 타입 GLOBAL import에 일반 값을 주면 LinkError 대신 TypeError
 
@@ -120,7 +122,8 @@ WJI가 뭘 어떻게 할지 결정할 필요는 없다(WJI는 스펙대로 기�
   JS: expected true, got false`를 던짐 — 에러 **타입 자체**가 스펙과 다름(이 "early,
   무조건 LinkError" 규칙을 안 타고, 더 뒤쪽의 범용 타입 변환 체크로 떨어지는 것으로 보임).
 - **확인한 엔진 버전**: 위 1번과 동일.
-- **상태**: 후보 — 로컬 재현만 확인, 업스트림 제보 안 함.
+- **범위 재확인 (2026-11-11)**: 같은 원인으로 보이는 #4(v128)와 #16(funcref)을 한 제보로 합침. 숫자 타입(`i32` ← `"x"`, `i64` ← `1`, `f32` ← `1n`)은 SpiderMonkey도 `LinkError`를 던지고, v128과 참조 타입(`funcref` ← `5`, `(ref extern)` ← `null`, `(ref func)` ← `null`)만 `TypeError`. V8/JSC는 전부 `LinkError`.
+- **상태**: 재현 확인. 제보함(#4와 #16을 한 버그로: [bug 2091717](https://bugzilla.mozilla.org/show_bug.cgi?id=2091717), 2026-11-11).
 
 ## 5. JSC: `Memory.prototype.toResizableBuffer()`가 `maximum` 미선언 시 TypeError를 안 던짐
 
@@ -134,7 +137,7 @@ WJI가 뭘 어떻게 할지 결정할 필요는 없다(WJI는 스펙대로 기�
   확인) 이 TypeError 케이스를 안 챙김(그냥 성공해서 resizable `ArrayBuffer`를 반환).
 - **확인한 엔진 버전**: 위 1번과 동일.
 - **재확인 (2026-11-11)**: "미완성"이 아니라 옛 명세 텍스트를 따른 것. JSC 구현(`Source/JavaScriptCore/wasm/js/JSWebAssemblyMemory.cpp`의 `toResizableBuffer`)은 주석으로 threads proposal의 js-api를 가리키는데, 그 텍스트엔 `maximum` 검사가 없음. main 명세엔 "If |memtype| does not have a max, throw a {{TypeError}} exception."이 있고 V8/SpiderMonkey는 이를 따름. 공식 테스트(`test/js-api`)엔 `toResizableBuffer` 테스트가 없음.
-- **상태**: 재현 확인, 확신도 높음. 업스트림 제보 안 함.
+- **상태**: 재현 확인, 확신도 높음. 제보함([webkit 331109](https://bugs.webkit.org/show_bug.cgi?id=331109), 2026-11-11).
 
 ## 6. JSC: v128 global `.value` 읽기가 TypeError 대신 RuntimeError를 던짐
 
@@ -146,7 +149,7 @@ WJI가 뭘 어떻게 할지 결정할 필요는 없다(WJI는 스펙대로 기�
   global`을 던짐 — 4번 항목과 같은 패턴의 "에러 타입 자체가 다름"(wasm 레벨 trap처럼
   보이는 `RuntimeError`를 쓰는데, 이건 JS-API 레벨의 타입 변환 실패지 wasm 트랩이 아님).
 - **확인한 엔진 버전**: 위 1번과 동일.
-- **상태**: 후보 — 로컬 재현만 확인, 업스트림 제보 안 함.
+- **상태**: 재현 확인. 제보함([webkit 331111](https://bugs.webkit.org/show_bug.cgi?id=331111), 2026-11-11).
 
 ## 7. V8/SpiderMonkey: `options.builtins` 리스트의 중복 이름 검증 미구현(JSC는 구현됨)
 
@@ -160,8 +163,8 @@ WJI가 뭘 어떻게 할지 결정할 필요는 없다(WJI는 스펙대로 기�
   builtin`을 던짐**(검증은 하지만 반환값이 아니라 예외로 처리 — 이것도 스펙과 다른
   모양). JSC만 스펙대로 `false`를 반환.
 - **확인한 엔진 버전**: 위 1번과 동일.
-- **상태**: V8 쪽은 이전 스윕에서 관찰한 건의 재확인 + SpiderMonkey 쪽 추가 관찰. 업스트림
-  제보 안 함.
+- **범위 재확인 (2026-11-11)**: `validate`만이 아니라 같은 중복 검증을 거치는 `new Module`(명세: `CompileError`)과 `compile`(명세: `CompileError`로 reject)도 같음. SpiderMonkey는 셋 다 `TypeError`(options를 읽는 공통 단계에서 거르는 것으로 보임), V8은 셋 다 중복을 그냥 받아들임, JSC는 셋 다 명세대로. V8 쪽 제보(crbug 584546286)는 `validate`만 다뤘음.
+- **상태**: 재현 확인. V8: 제보함([crbug 584546286](https://issues.chromium.org/issues/584546286), 2026-11-11). SpiderMonkey: 제보함([bug 2091731](https://bugzilla.mozilla.org/show_bug.cgi?id=2091731), 2026-11-11).
 
 ## 8. SpiderMonkey: `Table.prototype.set`의 `.length`가 1이 아니라 2
 
@@ -276,7 +279,7 @@ WJI가 뭘 어떻게 할지 결정할 필요는 없다(WJI는 스펙대로 기�
 - **의미**: #7(V8이 `builtins` 중복 검증을 안 함)과는 별개 — `validate`도 `options`를 읽기는
   하지만(getter가 호출됨), 중복된 set 이름에는 여전히 `true`를 반환함.
 - **확인한 엔진 버전**: 위 1번과 동일(V8은 Node 26.12.1로도 확인).
-- **상태**: 재현 확인, 업스트림 제보 안 함.
+- **상태**: 재현 확인. 제보함([crbug 584503575](https://issues.chromium.org/issues/584503575), 2026-11-11).
 
 ## 16. SpiderMonkey: funcref global import에 함수 아닌 값을 주면 LinkError 대신 TypeError
 
@@ -290,7 +293,8 @@ WJI가 뭘 어떻게 할지 결정할 필요는 없다(WJI는 스펙대로 기�
 - **의미**: #4(v128 global import에서 같은 문제)와 같은 원인으로 보임 — SpiderMonkey가 global import
   값 변환 실패를 LinkError로 감싸지 않음.
 - **확인한 엔진 버전**: 위 1번과 동일.
-- **상태**: 재현 확인, 업스트림 제보 안 함.
+- **범위 재확인 (2026-11-11)**: 같은 원인으로 보이는 #4(v128)와 #16(funcref)을 한 제보로 합침. 숫자 타입(`i32` ← `"x"`, `i64` ← `1`, `f32` ← `1n`)은 SpiderMonkey도 `LinkError`를 던지고, v128과 참조 타입(`funcref` ← `5`, `(ref extern)` ← `null`, `(ref func)` ← `null`)만 `TypeError`. V8/JSC는 전부 `LinkError`.
+- **상태**: 재현 확인. 제보함(#4와 #16을 한 버그로: [bug 2091717](https://bugzilla.mozilla.org/show_bug.cgi?id=2091717), 2026-11-11).
 
 ## 17. V8: `sequence<T>` 인자를 iterable이 아니라 array-like로 읽음
 
@@ -304,7 +308,7 @@ WJI가 뭘 어떻게 할지 결정할 필요는 없다(WJI는 스펙대로 기�
   Set(["i32"]) })`도 `contains parameters without 'length'`로 실패. `@@iterator`가 던지는 객체도
   `@@iterator`를 부르지 않고 같은 TypeError. Node 26.12.1도 같음.
 - **확인한 엔진 버전**: 위 1번과 동일.
-- **상태**: 재현 확인, 업스트림 제보 안 함.
+- **상태**: 재현 확인. 제보함([crbug 584546288](https://issues.chromium.org/issues/584546288), 2026-11-11).
 
 ## 18. JSC: `Exception`의 payload로 문자열을 받아들임
 
@@ -314,7 +318,7 @@ WJI가 뭘 어떻게 할지 결정할 필요는 없다(WJI는 스펙대로 기�
 - **실제 동작(JSC)**: `new WebAssembly.Exception(tag, "a")`가 성공함(문자열을 순회하는 것으로 보임).
   숫자(`5`)나 `{}`는 TypeError로 정상.
 - **확인한 엔진 버전**: 위 1번과 동일.
-- **상태**: 재현 확인, 업스트림 제보 안 함.
+- **상태**: 재현 확인. 제보함([webkit 331112](https://bugs.webkit.org/show_bug.cgi?id=331112), 2026-11-11).
 
 ## 19. V8/SpiderMonkey/JSC: `optional any` 인자에 넘긴 명시적 `undefined`를 "missing"으로 취급하지 않음
 

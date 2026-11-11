@@ -321,3 +321,12 @@
   - 생성: `ExpandDataBlockOfPass`가 "a Data Block identified with the underlying memory"를, appendix에 없는 `mem_read_bytes(memaddr)` 호출(SpecTec의 현재 store에서 그 memory의 바이트를 읽어 옴)로 lowering합니다. 즉 동일시 대신 그 시점의 복사본을 만듭니다.
   - 동기화: `WasmMemoryBridge`가 경계를 넘을 때마다 바이트를 복사합니다. store를 받는 모든 embedding 호출 직전에 JS buffer 바이트를 그 store 인자에 반영하고(push), `func_invoke`/`module_instantiate` 직후와 host function 콜백 전에는 store의 바이트를 buffer로 가져오며(pull), 콜백 후 reply 직전에 다시 push합니다. 한 번에 한쪽만 실행되므로 이것만으로 관찰 가능한 동작은 명세와 같습니다. 길이가 다르면(refresh 없이 크기가 바뀐 경우) 오류를 냅니다.
 - **Why not mechanized**: "identified with"는 스텝이 아니라 두 상태가 같다는 선언이라, 컴파일할 알고리즘이 없습니다. 게다가 두 런타임이 별도 프로세스라 같은 바이트를 공유하는 구현 자체가 불가능합니다.
+
+## 38. `create an interface prototype object`의 재귀 호출 스텝을 파서가 읽는 절 순서로 재배열 (`SpecPatch` #70)
+
+- **File**: `src/main/scala/esmeta/wji/spec/SpecPatch.scala`(#70), `src/main/scala/esmeta/wji/lang/parser/ExprParser.scala`(`LinkOfInheritedInterfaceIn`).
+- **Spec source**: `webidl/index.bs` 12055-12056(`create an interface prototype object`): `then set |proto| to the [=interface prototype object=] in |realm|` / `of that [=inherited interface=].`
+- **What's hardcoded**: `in |realm|`과 `of that [=inherited interface=]` 두 절의 순서를 바꿔 `the [=interface prototype object=] of that [=inherited interface=] in |realm|`로 만들고, `ExprParser.LinkOfInheritedInterfaceIn`이 이를 다른 "of X in |realm|" 자리(`LinkOfForIn`)와 같은 방식으로 읽음.
+- **왜 inconsistency가 아니라 하드코딩인지**: 원래 `docs/spec_inconsistencies.md` #22로 "다른 자리는 전부 `of X in |realm|` 순서"라고 봤으나, 같은 문서의 `create a named properties object`(12156)도 `the [=interface prototype object=] in |realm| for the [=inherited interface=]`처럼 realm 절을 먼저 씀. 즉 절 순서는 문서 안에서 하나로 정해진 관용구가 아니고, 어느 순서든 뜻은 모호하지 않음. 순서를 바꾸는 이유는 WJI 파서가 한 가지 순서만 읽기 때문.
+- **Why not mechanized**: 절 순서에 무관하게 "the X of Y in realm"류 표현을 읽는 일반 규칙은 아직 없음. 12156은 그 알고리즘(named properties object)이 지금 코퍼스에서 실행되지 않아 손대지 않음.
+

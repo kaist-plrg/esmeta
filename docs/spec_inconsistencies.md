@@ -265,17 +265,9 @@ Retracted — its premise was wrong. This entry claimed the document consistentl
 - **Reason**: 텍스트 자체는 독립적으로 봐도 무슨 뜻인지 명확하지만(Wasm 텍스트 포맷을 아는 사람이라면), 이 문서 자신이 세워둔 "formal grammar 값은 링크된 term으로 조립한다"는 패턴에서 이 한 자리만 벗어남 — `externtype`/`reftype`을 만드는 다른 모든 자리(`[=ref=]`/`[=external-type/global=]`)가 예외 없이 링크된 term 조합인데, 정확히 같은 개념(글로벌 상수 externref 타입)을 만드는 이 한 스텝만 단일 백틱 리터럴로 축약함. `AlgorithmExtractor`/`ExprParser`는 이 리터럴을 통째로 `Unknown`(→ `EYet`)으로 처리해서, `js-string/constants.any.js`가 `WebAssemblyCompileOptions.importedStringConstants`를 실제로 쓰는 첫 순간(`docs/hardcodes.md` #2로 이 옵션이 identity passthrough에서 벗어나면서 처음 도달) 바로 여기서 막힘.
 - **WJI 쪽 처리**: `SpecPatch` #56 — `[=ref=]`/`[=external-type/global=]` 둘 다 이미 다른 자리에서 검증된 채로 작동 중인 관용구라 새 파싱 지원 없이 그대로 재조립. `[=ref=] [=heap-type/extern=]`가 `ResolveLinksPass`에 의해 먼저 하나의 결합된 1-인자 결과로 greedy하게 묶여서, `external-type/global`은 그 결과 하나만 인자로 받게 됨 — `NormalizeSpecTecCaseShapePass`의 `external-type/global` 전용 처리가 이 1-인자 모양도 따로 알아보고(`Global` 생성자의 bare `|valuetype|` immutable 분기와 같은 `wrapGlobaltype` 헬퍼 재사용), absent mut를 암묵적으로 채워 넣음. `js-string/constants.any.js`의 `badGlobalTypes` 루프 10개 subtest 전부 통과 확인, 그 뒤의 `String.prototype.repeat` 미기계화(mainline, 별개)까지 다시 진행.
 
-## 22. `create an interface prototype object`의 재귀 호출 스텝만 `in |realm|`/`of X` 절 순서가 뒤바뀜
+## 22. (moved) `create an interface prototype object`의 재귀 호출 스텝만 `in |realm|`/`of X` 절 순서가 뒤바뀜
 
-- **File**: `webidl/index.bs`, line 12055-12056 (`create an interface prototype object`의 `#2-2` 분기, webidl_yet_categorized.md category II-C).
-- **Current**:
-  ```
-          then set |proto| to the [=interface prototype object=] in |realm|
-          of that [=inherited interface=].
-  ```
-- **Expected**: `then set |proto| to the [=interface prototype object=] of that [=inherited interface=] in |realm|.`
-- **Reason**: 이 문서에서 같은 "the interface (prototype) object of X in realm" 구성을 쓰는 다른 모든 자리 — line 11963의 `of |P| in |realm|`, line 12030의 `of [=interface=] |I| in |realm|`, line 12094의 `of |interface| in |realm|` — 는 전부 주어(subject)를 realm보다 먼저 씁니다. 이 한 자리만 두 절이 뒤바뀌어 있습니다(realm이 먼저, 주어 절이 그 뒤, 사이에 줄바꿈). 문장 자체는 독립적으로 봐도 틀린 게 아닙니다 — 절 순서가 어느 쪽이든 realm과 주어가 모호하지 않아서 스텝의 의미는 그대로입니다. 문제라고 판단할 수 있는 유일한 근거는 같은 문서가 구조적으로 동일한 다른 자리에서 세워둔 "of X in |realm|" 순서에서 이 자리만 벗어났다는 것뿐이라, spec error가 아니라 inconsistency로 분류합니다 (원래 `docs/spec_errors.md` #37이었다가 옮겨옴).
-- **WJI 쪽 처리**: `SpecPatch` #70으로 다른 자리와 같은 순서로 재배열. 그 결과는 `ExprParser.LinkOfInheritedInterfaceIn`이, 다른 자리들을 `LinkOfForIn`이 파싱하는 것과 같은 방식으로 파싱합니다.
+`docs/hardcodes.md` #38로 옮김. 같은 문서의 `create a named properties object`(12156)도 realm 절을 먼저 써서 "이 자리만 순서가 다르다"는 전제가 틀렸음(업스트림 리포트 과정에서도 inconsistency로 보지 않기로 함). 순서를 바꾸는 건 WJI 파서 사정이라 하드코딩. 번호 유지를 위해 남겨 둠.
 
 ## 23. `Memory` 생성자만 `memtype`을 구성하며 "the"를 안 씀 — `Table` 생성자의 구조적으로 동일한 `tabletype` 구성은 씀
 

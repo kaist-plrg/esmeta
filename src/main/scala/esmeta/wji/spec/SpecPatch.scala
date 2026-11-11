@@ -1354,15 +1354,13 @@ object SpecPatch:
     ->
     "1. Let |charCode| be [$CharCodeAt$](|string|, [=𝔽=](|i|)).",
 
-    // #70 (spec inconsistency, docs/spec_inconsistencies.md #22) — `create an
-    // interface prototype object`'s own `#2-2` recursive-call step
-    // (webidl/index.bs:12055-12056) has its "of X"/"in |realm|" clauses
-    // transposed relative to every other "the interface (prototype) object
-    // of X in realm" reference in this document (lines 11963/12030/12094, all
-    // "of X in realm"): "... in |realm|\n        of that [=inherited
-    // interface=]." Reordered to match; `ExprParser.LinkOfInheritedInterfaceIn`
-    // parses the result the same way `LinkOfForIn` already parses those other
-    // sites.
+    // #70 (hardcoding, docs/hardcodes.md #38) — `create an interface
+    // prototype object`'s recursive-call step (webidl/index.bs:12055-12056)
+    // puts "in |realm|" before "of that [=inherited interface=]". Both orders
+    // occur in the document (12156 also puts the realm first), but the parser
+    // reads only "of X in |realm|", so the clauses are swapped;
+    // `ExprParser.LinkOfInheritedInterfaceIn` parses the result the same way
+    // `LinkOfForIn` parses the other sites.
     "[=interface prototype object=] in |realm|\n        of that [=inherited interface=]."
     ->
     "[=interface prototype object=] of that [=inherited interface=] in |realm|.",

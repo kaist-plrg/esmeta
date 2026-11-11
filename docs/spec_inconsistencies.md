@@ -296,3 +296,11 @@ Retracted — its premise was wrong. This entry claimed the document consistentl
 - **Expected**: `1. Set the element at index |start| + |i| in |array| to [=!=] [=ToWebAssemblyValue=](|charCode|, [=i32=]).`
 - **Reason**: `ToWebAssemblyValue`는 abrupt completion을 반환할 수 있는 연산이라(`i32`면 `ToInt32`, 참조 타입이면 `TypeError` 등), 이 문서의 다른 호출 13곳 중 12곳은 `[=?=]`(실패 가능, 예: line 1049/1199/1292/1331) 또는 `[=!=]`(실패 불가, 예: line 1185/1364/1451)를 붙이고, 나머지 1곳(line 525)은 "If this operation throws a {{TypeError}}, catch it, ..." 관용구로 throw를 명시적으로 처리함. 실패 여부를 아무것도 표시하지 않은 건 이 한 곳뿐. `charCode`는 `CharCodeAt`의 결과라 항상 Number이고 `ToInt32`가 실패할 수 없으므로 `[=!=]`가 맞음. 표기가 없어도 의미가 모호하진 않아서(실제로 실패할 수 없음) spec error가 아니라 inconsistency로 분류함.
 - **WJI 쪽 처리**: `SpecPatch` #83로 `[=!=]` 추가. 표기가 없으면 WJI는 completion을 반환하는 연산의 호출을 보수적으로 `?`처럼 처리해서(`PropagateUnguardedCallsPass`), 영원히 안 타는 abrupt 분기가 생겼음(`WjiCoverage`로 발견). `!`로는 `assert` 하나로 내려가서 그 분기가 사라짐.
+
+## 25. `charCodeAt`/`codePointAt`만 builtin의 타입을 `The type of this function is`로 선언함
+
+- **File**: `spectec/document/js-api/index.bs`, lines 2054 (`js-string-charCodeAt`), 2070 (`js-string-codePointAt`).
+- **Current**: ``The type of this function is `(rec (type (func (param externref i32) (result i32)))).0`.``
+- **Expected**: ``The |funcType| of this builtin is `(rec (type (func (param externref i32) (result i32)))).0`.``
+- **Reason**: 나머지 builtin 11개는 전부 ``The |funcType| of this builtin is `...`.``로 씀. 이 문구는 장식이 아니라, `get the builtins for a builtin set`(line 1836)의 "Return a list of (|name|, |funcType|, |steps|) for the set ... defined within this section."이 각 builtin의 `|funcType|`을 어디서 가져오는지 이어주는 유일한 연결 고리임(이 섹션엔 타입을 따로 모아 둔 표가 없음). 두 곳만 변수 이름도, "builtin"이라는 말도 쓰지 않아 그 연결이 끊김. 뜻이 모호하진 않아서 spec error가 아니라 inconsistency로 분류.
+- **WJI 쪽 처리**: 없음. builtin 타입은 `AddJsStringBuiltinsPass`의 손으로 옮긴 표(`docs/hardcodes.md` #21)에서 오고, 이 문장은 추출을 거치지 않음. `docs/spec_errors.md` #30(같은 종류의 줄, `fromCodePoint`의 결과 타입)을 정리하다 발견.

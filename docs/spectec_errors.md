@@ -4,46 +4,9 @@
 
 **범위 밖(중요)**: `spectec/spectec/src/backend-interpreter/embedding.ml`/`relation.ml`/`server.ml` — 이 세 파일은 `official`(업스트림 `WebAssembly/spec`) 브랜치엔 아예 존재하지 않는, 이 프로젝트가 JS-API embedding 브릿지용으로 직접 새로 작성한 코드입니다. 여기서 발견되는 버그는 mainline spectec의 결함이 아니라 **우리 자신의 구현 실수**라서 이 문서 대상이 아닙니다(문서화해봐야 남 탓할 게 없는, 그냥 우리 커밋 이력으로 충분한 내용). 한때 `mem_grow`/`table_grow`/`module_instantiate`(전부 `embedding.ml`)의 버그를 여기 잘못 기록했다가 삭제한 적이 있으니(`9fdab2c9`), 헷갈리면 "이 파일이 `official` 브랜치에도 있는가"부터 확인할 것.
 
-## 1. `` `Int ``만 받고 `` `Nat ``은 거부하는 지점들이 `xl/num.ml`이 선언한 subtype 관계를 어김
+## 1. (moved) `` `Int ``만 받고 `` `Nat ``은 거부하는 지점들이 `xl/num.ml`이 선언한 subtype 관계를 어김
 
-- **File**:
-  - `spectec/spectec/src/al/al_util.ml`, `unwrap_intv`
-  - `spectec/spectec/src/backend-interpreter/numerics.ml`, `inv_signed`/`sat`
-- **Current**:
-  ```ocaml
-  (* al_util.ml *)
-  let unwrap_intv v =
-    match unwrap_numv v with
-    | `Int i -> i
-    | n -> fail_value "unwrap_natv" (NumV n)  (* 에러 메시지도 복붙 실수로 "unwrap_natv" *)
-
-  (* numerics.ml — inv_signed *)
-  | [ NumV (`Nat z); NumV (`Int n) ] -> ...
-
-  (* numerics.ml — sat *)
-  | [ NumV (`Nat z); CaseV ("U", []); NumV (`Int i) ] -> ...
-  | [ NumV (`Nat z); CaseV ("S", []); NumV (`Int i) ] -> ...
-  ```
-- **Expected**:
-  ```ocaml
-  (* al_util.ml *)
-  let unwrap_intv v =
-    match unwrap_numv v with
-    | `Int i | `Nat i -> i
-    | n -> fail_value "unwrap_intv" (NumV n)
-
-  (* numerics.ml — inv_signed *)
-  | [ NumV (`Nat z); NumV (`Nat n | `Int n) ] -> ...
-
-  (* numerics.ml — sat *)
-  | [ NumV (`Nat z); CaseV ("U", []); NumV (`Nat i | `Int i) ] -> ...
-  | [ NumV (`Nat z); CaseV ("S", []); NumV (`Nat i | `Int i) ] -> ...
-  ```
-- **Reason**: `xl/num.ml`의 `sub` 함수(AL 자신의 숫자 타입 subtype 관계)는 `` `NatT, _ -> true ``로, `Nat`이 `Int`(뿐 아니라 `Rat`/`Real`도) 전부의 subtype이라고 명시적으로 선언합니다 — 같은 파일의 `cvt`도 `` `Nat n, `IntT -> Some (`Int n) ``로 이 승격을 이미 지원합니다. 하지만 위 지점들은 `NumV (\`Int n)` 형태의 정확한 태그 일치만 허용하는 naive pattern match라서, 이 subtype 관계를 무시하고 실제로는 항상 유효한 `` `Nat ``-태깅된 인자를 거부합니다(`nat`/`int` 둘 다 OCaml 표현이 `Z.t`로 동일해서, `n`을 non-negative로 강제하지 않는 이상 값 손실 없이 그대로 받아들일 수 있습니다).
-
-  `table-mutation.js` 디버깅 중 실제로 크래시를 만난 건 이것과 **반대 방향**인 `table_read`(`` `Nat ``만 받고 `` `Int ``는 거부 — `docs/hardcodes.md`/커밋 이력 참고)였습니다. 그 크래시를 분석하면서 "esmeta 쪽 `toAL`(`Math(n) => ALValue.NumV(ALNum.Int(n.toBigInt))`, `state/util/ALValueConversion.scala`)이 새로 계산된 수학값을 항상 `` `Int ``로 태깅하니, 반대로 `` `Int ``만 받고 `` `Nat ``은 거부하는 지점도 있을 것"이라는 가설로 코드베이스를 훑다가 `unwrap_intv`/`inv_signed`/`sat`를 발견한 것으로, **이 지점들 자체가 실제로 크래시하는 걸 실행 중에 관찰한 적은 없습니다** — `AddressValueToU64`가 계산한 값은 `inv_signed`로 흘러가지 않고 `table_read`로 흘러가므로 서로 다른 호출 경로입니다. 정적 코드 검사로 발견한, subtype 관계를 어기는 별개의 잠재적 버그로 예방적으로 고친 것입니다.
-
-  같은 파일(`xl/num.ml`)의 범용 산술/비교 연산자(`bin`/`cmp`/`un`)도 구조적으로 똑같은 문제를 갖고 있었습니다 — `` `Nat 3 `` + `` `Int 5 `` 같은 타입이 섞인 연산은 그냥 `None`(실패)으로 떨어졌습니다. 처음엔 이 부분을 "embedding 경계뿐 아니라 Wasm 인터프리터의 일반 산술 전체에 영향을 미치는, 훨씬 큰 범위"라는 이유로 별도 작업으로 미뤘는데, 바로 다음(#2)에서 실제로 고쳤습니다 — 미뤘던 이유("Wasm 실행 내부는 esmeta의 `toAL`을 안 거치니 안전할 것")가 실은 틀렸다는 게 곧바로 실증되었기 때문입니다.
+`docs/hardcodes.md` #40으로 옮김. 업스트림에 PR(WebAssembly/spec#2332, #2와 함께)을 냈으나, IL에서 `nat`과 `int`는 하위 타입 관계가 아니고 변환을 명시적으로 넣는 게 의도된 설계라는 답을 받고 닫힘(2026-11-12). 문제는 SpecTec이 아니라 ESMeta 쪽 `toAL`이 IL 타입과 상관없이 `` `Int ``로 태깅하는 데 있고, 포크의 수정은 그걸 덮는 우회책. 번호 유지를 위해 남겨 둠.
 
 ## 3. `WasmContext.is_value`의 `REF.`-prefix 체크가 아직 안 풀린 ref 생성 명령어를 이미 값인 것처럼 오판
 
@@ -77,47 +40,9 @@
 - **Reason**: `construct.ml`의 `al_of_ref`/`al_to_ref`를 보면 ref 관련 `CaseV` 태그는 **명령어(아직 안 풀린 구문)**와 **값(resolve된 런타임 레퍼런스)**이 항상 짝을 이룹니다 — `REF.FUNC`(`ref.func $idx` 명령어, 모듈 상대 함수 인덱스)/`REF.FUNC_ADDR`(resolve된 funcaddr), `REF.STRUCT`/`REF.STRUCT_ADDR`, `REF.ARRAY`/`REF.ARRAY_ADDR`, `REF.I31`/`REF.I31_NUM`, `REF.EXN`/`REF.EXN_ADDR`, `REF.HOST`/`REF.HOST_ADDR`(6쌍 전부 `NormalizeSpecTecCaseShapePass.scala`의 `RenamedTag` 매핑과 정확히 일치). `is_value`의 `String.starts_with ~prefix:"REF."` 체크는 이 둘을 전혀 구분 못 하고 — 명령어 태그도 값 태그도 똑같이 `"REF."`로 시작하니까요 — 아직 reduce가 안 된 `ref.func $idx` 같은 명령어를 이미 값인 것처럼 판단해 `step_wasm`이 `create_context`(실제 reduction 실행)를 안 태우고 그냥 값 스택에 그대로 push해버립니다. 결과적으로 `4.3-execution.instructions.spectec`의 진짜 reduction rule(`z; (REF.FUNC x) ~> (REF.FUNC_ADDR $moduleinst(z).FUNCS[x])`)이 아예 실행되지 않아, active element segment로 채운 테이블 슬롯이 resolve 안 된 `REF.FUNC`(인덱스) 상태로 store에 그대로 남습니다.
   `table-mutation.js`의 `table.get(0)()`가 `typeof`의 최종 `assert (? val: Record[Object])`에서 크래시하는 걸로 발견 — `table_read`가 실제로 리턴한 값을 찍어보니 `CaseV(REF.FUNC, [NumV(Nat(1))])`였고(진짜 `REF.FUNC_ADDR`이 아님), wasm 자신의 `call_indirect`(embedding 레이어를 안 거침)로 접근해도 SpecTec 자신의 `Assert (case(val') == REF.FUNC_ADDR)`가 실패하는 걸로 재확인. `git bisect`(로컬 `official` 브랜치 — 실제 업스트림 `WebAssembly/spec`의 `main` — 기준, spectec 자신의 `--interpreter` 모드로 최소 `.wast` 재현 스크립트를 오라클 삼아 자동 실행)로 정확한 도입 커밋을 특정: `3f199fb74f25b0e3da20a0aad5559a91061b873b`("Give call_ref-host a real thrown-exception outcome")이 `step_wasm`의 `CaseV ("CONST", _) | CaseV ("VCONST", _)`(그리고 버전<=2의 `REF.NULL` 특수 케이스)만 값으로 인정하던 좁은 매칭을, 런타임에 계산된 `$callhostfunc`의 결과 instr*도 커버하려고 `WasmContext.is_value` 기반의 범용 체크로 넓히면서 이 prefix 체크의 부정확함이 처음으로 실제 실행 경로에 노출된 것으로 보임(그 전엔 `il2al/translate.ml`의 컴파일 타임 `is_wasm_value`/`is_wasm_instr` 분리가 항상 먼저 걸러줘서 `step_wasm`의 이 런타임 fallback 자체가 CONST/VCONST 말고는 실행될 일이 없었음).
 
-## 2. `xl/num.ml`의 `bin`/`cmp`가 타입이 섞인 피연산자(`` `Nat ``/`` `Int ``)를 처리 못 함 — 이미 있던 `widen`이 죽은 코드였음
+## 2. (moved) `xl/num.ml`의 `bin`/`cmp`가 타입이 섞인 피연산자(`` `Nat ``/`` `Int ``)를 처리 못 함
 
-> **#1과 별개로 셈 (2026-11-12)**: #1과 원리는 같지만(`xl/num.ml`이 선언한 `Nat` ⊂ `Int` 관계를 구현이 안 지킴) 고치는 코드와 방법이 따로라, 하나를 고쳐도 다른 하나는 남음. 그래서 별개의 버그로 세고, 업스트림에는 한 PR 안의 커밋 두 개로 냄(WebAssembly/spec#2332). 업스트림 테스트로는 드러나지 않음(IL이 `nat`/`int` 변환을 명시적으로 넣어서 섞인 값이 이 함수들에 오지 않음, 수정 전 `main`도 `make test` 통과). 인터프리터 밖(임베딩)에서 `` `Nat `` 값을 넘길 때만 드러나는 잠재적 불일치.
-
-- **File**: `spectec/spectec/src/xl/num.ml`, `bin`/`cmp`
-- **Current**:
-  ```ocaml
-  let rec bin (op : binop) num1 num2 : num option =
-    ...
-    match op, num1, num2 with
-    | `AddOp, `Nat n1, `Nat n2 -> Some (`Nat Z.(n1 + n2))
-    | `AddOp, `Int i1, `Int i2 -> Some (`Int Z.(i1 + i2))
-    ...
-    | _, _, _ -> None
-
-  let cmp (op : cmpop) num1 num2 : bool option =
-    ...
-    match op, num1, num2 with
-    | `LtOp, `Nat n1, `Nat n2 -> Some (n1 < n2)
-    | `LtOp, `Int i1, `Int i2 -> Some (i1 < i2)
-    ...
-    | _, _, _ -> None
-  ```
-- **Expected**: 타입이 다르면 `widen`(같은 파일에 이미 정의돼 있던, `sub`의 subtype 순서 — Nat < Int < Rat < Real — 대로 작은 쪽을 큰 쪽에 맞춰 승격하는 함수)으로 한 번 맞춘 뒤 재시도:
-  ```ocaml
-  let rec bin (op : binop) num1 num2 : num option =
-    ...
-    | _, _, _ when to_typ num1 <> to_typ num2 ->
-      let num1', num2' = widen num1 num2 in
-      bin op num1' num2'
-    | _, _, _ -> None
-
-  let rec cmp (op : cmpop) num1 num2 : bool option =
-    ...
-    | _, _, _ when to_typ num1 <> to_typ num2 ->
-      let num1', num2' = widen num1 num2 in
-      cmp op num1' num2'
-    | _, _, _ -> None
-  ```
-  (`widen`은 타입이 이미 같으면 그대로 반환하므로, `to_typ num1 <> to_typ num2`로 진짜 타입 불일치일 때만 타도록 guard해야 무한 재귀를 피할 수 있습니다 — 타입이 같은데 그 연산 조합 자체가 정의 안 된 경우는 이 guard에 안 걸리고 바로 `None`으로 떨어집니다.)
-- **Reason**: #1과 같은 근본 원인 — `sub`가 선언한 subtype 관계를 `bin`/`cmp`가 안 지킴 — 인데, 이번엔 esmeta 쪽 `toAL`(WJI가 값을 embedding 경계로 넘길 때 쓰는 변환 함수)이 non-negative `Math` 값을 `` `Nat ``으로 태깅하도록 고쳐보다가 직접 실증됨. `tests/wji`의 5개 테스트가 `$inv_signed_: ... comparison operation <= not defined for +0, 123`류의 에러로 깨졌습니다. 원인을 추적해보니 `signed_31`/`inv_signed_31` 등(`server.ml`의 `call_signed`/`call_inv_signed`)은 `numerics.ml`의 OCaml shortcut(`unwrap_intv`/`inv_signed`/`sat`, #1에서 고친 바로 그 함수들)을 안 거치고 있었습니다 — `call_inv_signed`가 `Interpreter.call_func "inv_signed_"`(끝에 `_`)로 찾는데 `numerics.ml`엔 `"inv_signed"`(언더스코어 없음)로 등록돼 있어 이름이 안 맞았기 때문입니다. 그래서 매번 공식 `.spectec` 정의를 일반 AL 인터프리터로 해석해왔고, 그 정의 안의 `$int$(0) <= i`(리터럴 `int` 상수)가 이제 `` `Nat ``으로 넘어온 인자 `i`와 비교되면서 `cmp`의 same-type-only 제약에 걸린 것입니다. 즉 "Wasm 실행 내부는 esmeta의 `toAL`을 거치지 않는다"는 #1의 가정이 이 경로(공식 spec 정의의 제너릭 해석)에는 안 맞았던 것으로 드러났습니다.
+#1과 같은 이유로 `docs/hardcodes.md` #40으로 옮김(WebAssembly/spec#2332, 의도된 설계라는 답을 받고 닫힘). 번호 유지를 위해 남겨 둠.
 
 ## 4. `test/js-api/limits.any.js`가 정의된 적 없는 `assertEquals`(camelCase)를 호출 — WPT 표준은 `assert_equals`(snake_case)
 

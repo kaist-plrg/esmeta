@@ -338,3 +338,10 @@
 - **왜 inconsistency가 아니라 하드코딩인지**: 원래 `docs/spec_inconsistencies.md` #15로 "이 두 자리만 링크가 없다"고 봤으나, 같은 문장 바로 앞에 `[=regular operations=]`/`[=static operations=]`가 이미 링크돼 있어 괄호 안에서 다시 링크하지 않은 건 의도로 볼 수 있음(업스트림 리포트를 진행한 쪽에서도 일부러 뺐음). 링크를 다는 이유는 WJI 파서가 링크된 형태의 술어만 읽기 때문.
 - **Why not mechanized**: 링크 없는 dfn 이름을 술어로 인식하려면 dfn 목록과 대조하는 일반 규칙이 필요한데, 지금은 이 두 자리뿐이라 패치로 충분.
 
+## 40. `spectec` 포크에서 `Nat`/`Int`를 서로 받아주게 고쳐, 경계에서 태그를 맞추지 않는 문제를 덮음
+
+- **File**: `spectec` 서브모듈(`embedding` 브랜치)의 `spectec/src/al/al_util.ml`(`unwrap_intv`), `spectec/src/backend-interpreter/numerics.ml`(`inv_signed`, `sat`), `spectec/src/xl/num.ml`(`bin`, `cmp`). 커밋 `c9bbc765d`, `3f7fb40ca`.
+- **What's hardcoded**: SpecTec 인터프리터가 정확한 태그만 받던 자리에서 `` `Nat ``도 `` `Int ``처럼 받고(`unwrap_intv`, `inv_signed`, `sat`), 태그가 섞인 피연산자를 `widen`으로 맞춘 뒤 계산하게(`bin`, `cmp`) 고쳤음.
+- **왜 하드코딩인지**: 원래 `docs/spectec_errors.md` #1, #2로 "SpecTec이 `xl/num.ml`의 `Nat` ⊂ `Int` 선언을 안 지킨다"고 보고 업스트림에 PR(WebAssembly/spec#2332)을 냈으나, IL에서 `nat`과 `int`는 하위 타입 관계가 아니고 변환을 명시적으로 넣는 게 의도된 설계라는 답을 받고 닫힘(백엔드마다 두 타입의 표현이 다를 수 있어서). 즉 문제는 SpecTec이 아니라, ESMeta 쪽 `toAL`(`src/main/scala/esmeta/state/util/ALValueConversion.scala`, `case Math(n) => ALValue.NumV(ALNum.Int(n.toBigInt))`)이 수학값을 IL이 기대하는 타입과 상관없이 늘 `` `Int ``로 태깅하는 데 있음. 포크의 수정은 그 불일치를 SpecTec 쪽에서 덮는 우회책.
+- **제대로 고치려면**: 경계에서 SpecTec이 기대하는 IL 타입(`nat`/`int`)에 맞춰 태그를 정해 넘기고, 포크의 위 수정을 되돌림. 지금은 이 우회로 충분해서 그대로 둠.
+

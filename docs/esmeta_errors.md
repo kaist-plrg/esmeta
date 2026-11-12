@@ -4,6 +4,8 @@ ESMeta 자체(스펙이 아니라 mainline 구현) 코드에서 발견한 버그
 
 ## 1. `getLocals`의 부족한 인자 케이스가 예외를 던지지 않음
 
+- **업스트림**: 제보함(es-meta/esmeta#405, 2026-11-12).
+
 - **File**: `src/main/scala/esmeta/interpreter/Interpreter.scala`, `getLocals`'s `aux` helper
 - **Current**: `else RemainingParams(ps)`
 - **Expected**:
@@ -38,6 +40,8 @@ ESMeta 자체(스펙이 아니라 mainline 구현) 코드에서 발견한 버그
 
 ## 3. 조건문 문법에 "X is TYPE that has a [[SLOT]] internal slot" 관계절 형태가 없음
 
+- **업스트림**: 제보함(es-meta/esmeta#405, 2026-11-12).
+
 - **File**: `src/main/scala/esmeta/lang/util/Parser.scala`, `baseCond`/`typeCheckCond`
 - **Current**: `typeCheckCond = expr ~ isEither(singleLangType)` — "EXPR is/is not TYPE"만 소비하고 끝남. `hasFieldCond`가 "EXPR has a [[SLOT]] internal slot"은 따로 지원하지만, 이 둘을 "TYPE **that** has a [[SLOT]] ..."처럼 관계절로 묶는 규칙은 아예 없었다.
 - **Expected**: `typeCheckWithFieldCond`라는 새 alternative를 `baseCond`(전부 `|||`, longest-match)에 추가 — `ref ~ isEither(singleLangType) ~ ("that" ~> hasNeg) ~ field ~ form ~ fieldType`를 파싱해 `CompoundCondition(TypeCheckCondition(...), And, HasFieldCondition(...))`로 구성한다. 컴파일러 쪽(`esmeta.compiler.Compiler`)은 `CompoundCondition`을 이미 범용으로 처리하므로 추가 작업이 필요 없었다.
@@ -46,6 +50,8 @@ ESMeta 자체(스펙이 아니라 mainline 구현) 코드에서 발견한 버그
   발견 경위: `[[SyncIteratorRecord]]` 3곳은 `src/main/resources/manuals/rule.json`에 손으로 넣어둔 "manual rule"(정규식으로 못 잡는 조건을 문자열 그대로 매칭해 대체 IR을 주입하는 우회)로 이미 우회돼 있었다 — 고치고 나니 `compilerTest`(`esmeta.compiler.ValiditySmallTest`)가 "there are unused manual rules"로 정확히 이 사실을 잡아내서, 이제 안 쓰는 그 rule.json 항목을 지웠다. `extractorValidityTest`가 자동 갱신한 `src/main/resources/result/spec-summary` 골든에 개선폭이 그대로 남는다: `algorithms complete 2503 → 2507`, `algorithm steps complete 21358 → 21362`(`equals` 지표는 2662 → 2658로 소폭 하락하는데, 이건 `CompoundCondition`으로 재구성된 조건의 pretty-print가 원문 "that" 어투를 그대로 복원하지 않아서 생기는 예상된 결과 — `TypeCheckCondition(...) and HasFieldCondition(...)`로 렌더링되므로 원문과 글자 그대로는 달라지지만 의미상 동등하고, 관련 함수는 여전히 "complete"로 잡힘).
 
 ## 4. `EContains`가 List만 상정하고 String을 못 받음
+
+- **업스트림**: 제보함(es-meta/esmeta#405, 2026-11-12).
 
 - **File**: `src/main/scala/esmeta/interpreter/Interpreter.scala`, `eval(Expr)`의 `EContains` 케이스
 - **Before**:
@@ -61,6 +67,8 @@ ESMeta 자체(스펙이 아니라 mainline 구현) 코드에서 발견한 버그
   다만 이 gap은 지금까지 한 번도 관측된 적이 없었다 — `parseInt`는 이 "contains" 스텝보다 앞선 다른 스텝들(코드 유닛 리터럴 비교 등)이 이미 미기계화 상태라 실행이 그 앞에서 먼저 멈췄고, `escape`/`Encode`는 애초에 이번 세션 전까지 `escape`/`unescape` 자체가 추출조차 안 됐다(`docs/esmeta_changes.md` #1/#2/#3 참고) — 세 겹의 이전 gap을 차례로 걷어내고 나서야 `gc/casts.tentative.any.js`(WJI js-api 테스트)를 통해 처음으로 이 코드 경로에 도달해 드러났다.
 
 ## 5. `Math.apply(n: Double)`가 double의 진짜 이진값이 아니라 `Double.toString()`을 거친 "짧은" 소수로 변환됨
+
+- **업스트림**: 제보함(es-meta/esmeta#405, 2026-11-12).
 
 - **File**: `src/main/scala/esmeta/state/Value.scala`, `Math` companion object
 - **Before**: `inline def apply(n: Double): Math = Math(BigDecimal(n, UNLIMITED))`

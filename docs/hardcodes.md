@@ -6,6 +6,35 @@
 `docs/spec_errors.md`(명세 자체의 결함)나 `docs/esmeta_errors.md`와는 별개로,
 "명세는 맞는데 우리가 아직 자동으로 못 읽어서 대신 손으로 박아넣은 것"만 다룹니다.
 
+## 집계 (논문의 "hand-written parts")
+
+논문은 아래 **19개 부분**을 손으로 작성한 부분으로 센다. 같은 메커니즘에 속하는 항목은 한 부분으로 묶었고, 항목 번호는 다른 문서와 코드 주석이 참조하므로 바꾸지 않았다.
+
+| 부분 | 항목 |
+|---|---|
+| Web IDL 값 변환 (`call-convert` 등) | #1, #2, #3, #14 |
+| 오버로드 해석 (`instantiate`만 처리) | #23, #30, #31 |
+| namespace 객체 생성 | #10, #29, #33 |
+| HTML 호스트 훅 생략 | #5, #13, #32 |
+| SpecTec 값 표현 | #12, #24 |
+| (단독) | #7 |
+| (단독) | #16 |
+| (단독) | #17 |
+| (단독) | #19 |
+| (단독) | #20 |
+| (단독) | #21 |
+| (단독) | #25 |
+| (단독) | #26 |
+| (단독) | #28 |
+| (단독) | #36 |
+| (단독) | #37 |
+| (단독) | #38 |
+| (단독) | #39 |
+| (단독) | #40 |
+
+- **SpecPatch로만 구현되어 패치 수에서 세는 항목**: #6, #8, #9, #22, #34, #35.
+- **취소된 항목**: #4, #11, #15, #18, #27.
+
 ## 1. WebIDL dictionary → JavaScript value 변환 (`converted_to_a_javascript_value`)
 
 - **File**: `src/main/scala/esmeta/wji/interpreter/WebIdlConversion.scala`(`toJsValue`) — 원래 `manuals/funcs/converted_to_a_javascript_value.ir`로 손으로 짠 `.ir` 스텁이었던 것을, `esmeta.ir.Inst.ICallConvert`(Wasm embedding 호출이 쓰는 `ICallEmbed`와 같은 패턴)를 통해 네이티브 Scala 코드로 dispatch하도록 옮겼습니다 — IR 텍스트 DSL엔 진짜 함수/재귀/컬렉션 순회 같은 추상화가 없어서, IDL 타입별 dispatch table을 짜기엔 Scala `match`가 훨씬 유지보수하기 편합니다. **동작 자체는 그대로**(순수 메커니즘 이전), 아래 하드코딩 내용도 안 바뀜.

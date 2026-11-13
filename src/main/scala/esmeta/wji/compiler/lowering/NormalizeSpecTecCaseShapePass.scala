@@ -184,6 +184,7 @@ object NormalizeSpecTecCaseShapePass extends LoweringPass:
       case "F64"        => "F64"
       case "V128"       => "V128"
       case "ERROR"      => "ERROR"
+      case "TRAP"       => "TRAP"
       case "REF.NULL"   => "REF.NULL_ADDR"
       case "REF.I31"    => "REF.I31_NUM"
       case "REF.STRUCT" => "REF.STRUCT_ADDR"

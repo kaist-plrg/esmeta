@@ -1190,34 +1190,34 @@ object SpecPatch:
     ->
     "    1. Return |result|.",
 
-    // #59 (hardcoding, docs/hardcodes.md #22) — collapses the 3-way bulleted
-    // exception-type list right after #58's fix into a flat "throw
-    // LinkError" — not a spec bug/inconsistency fix, since the bulleted
-    // list is itself a perfectly valid (if unusual) description of real
-    // WebAssembly embedder behavior; this is a genuine simplification this
-    // project can't yet do better than. `spectec`'s own `Embedding.
-    // module_instantiate` collapses all three of `$instantiate`'s possible
-    // failure modes (a precondition check like `Externaddr_ok` failing
-    // *before* any instruction runs; a genuine Wasm trap *during* start-
-    // function execution; the start function itself doing a real Wasm
-    // `throw`) into one undifferentiated `ERROR` sentinel — its own comment
-    // admits "distinguishing them ... is unaddressed; no fixture exercises
-    // a throwing start function yet". `func_invoke` already has the
-    // machinery for exactly this distinction (`Exception.Trap` -> generic
-    // `error`, `Exception.Throw v` -> a separate `EXCEPTION exnaddr`
-    // sentinel carrying the real payload) that `module_instantiate` could
-    // eventually reuse — but every currently in-scope
-    // fixture that reaches this code path is a "bad imports" test, i.e.
-    // purely `Exception.Fail` (a precondition failure = linking failure),
-    // so "always LinkError" is not just pragmatic but describes 100% of
-    // what's actually reachable today; revisit once a fixture with a
-    // trapping/throwing start function shows up.
+    // #59 (hardcoding, docs/hardcodes.md #22) — rewrites the bulleted
+    // "throw an appropriate exception type" list into steps. The bullets
+    // tell a link failure apart from an error "when running the start
+    // function", which `module_instantiate`'s `error` alone cannot, so
+    // `spectec`'s `Embedding.module_instantiate` reports a trap as `trap` and
+    // a Wasm exception as `exception exnaddr`. A link failure throws
+    // LinkError, a trap RuntimeError, and an exception is thrown the same way
+    // `call an Exported Function` throws one, including a JS exception
+    // propagated from inner ECMAScript code. The store is installed first,
+    // as in `call an Exported Function`, since the exception lives in it.
     """    1. If |result| is [=error=], throw an appropriate exception type:
         * A {{LinkError}} exception for most cases which occur during linking.
         * If the error came when running the start function, throw a {{RuntimeError}} for most errors which occur from WebAssembly, or the error object propagated from inner ECMAScript code.
-        * Another error type if appropriate, for example an out-of-memory exception, as documented in <a href="#errors">the WebAssembly error mapping</a>."""
+        * Another error type if appropriate, for example an out-of-memory exception, as documented in <a href="#errors">the WebAssembly error mapping</a>.
+    1. Set the [=surrounding agent=]'s [=associated store=] to |store|."""
     ->
-    "    1. If |result| is [=error=], throw a {{LinkError}} exception.",
+    """    1. Set the [=surrounding agent=]'s [=associated store=] to |store|.
+    1. If |result| is [=error=], throw a {{LinkError}} exception.
+    1. If |result| is [=trap=], throw a {{RuntimeError}} exception.
+    1. If |result| is of the form [=exception=] |exnaddr|, then
+        1. Let |tagaddr| be [=exn_tag=](|store|, |exnaddr|).
+        1. Let |payload| be [=exn_read=](|store|, |exnaddr|).
+        1. Let |jsTagAddr| be the result of [=get the JavaScript exception tag|getting the JavaScript exception tag=].
+        1. If |tagaddr| is equal to |jsTagAddr|,
+            1. Throw [=ToJSValue=](|payload|[0]).
+        1. Otherwise,
+            1. Let |exception| be [=create an Exception object|a new Exception=] created from |exnaddr|.
+            1. Throw |exception|.""",
 
     // #60 (spec bug, docs/spec_errors.md #33) — `FromCharCode`'s own
     // `ToJSValue(v)` call is now redundant: `create_a_builtin_function_

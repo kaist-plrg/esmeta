@@ -419,14 +419,34 @@ def instantiate_the_core_of_a_webassembly_module(
   call-embed _tuple1 = <module_instantiate>(store, module, imports)
   let store = _tuple1[0]
   let result = _tuple1[1]
+  @AGENT_RECORD["associated store"] = store
   if (= result (case "ERROR" )) {
     call _err1 = clo<"__NEW_ERROR_OBJ__">("%LinkError.prototype%")
     call _ret2 = clo<"ThrowCompletion">(_err1)
     return _ret2
   } else nop
-  @AGENT_RECORD["associated store"] = store
-  call _ret3 = clo<"NormalCompletion">(result)
-  return _ret3
+  if (= result (case "TRAP" )) {
+    call _err3 = clo<"__NEW_ERROR_OBJ__">("%RuntimeError.prototype%")
+    call _ret4 = clo<"ThrowCompletion">(_err3)
+    return _ret4
+  } else nop
+  if (= (case-tag result) "EXCEPTION") {
+    let exnaddr = result[0]
+    call-embed tagaddr = <exn_tag>(store, exnaddr)
+    call-embed payload = <exn_read>(store, exnaddr)
+    call jsTagAddr = clo<"get_the_JavaScript_exception_tag">()
+    if (= tagaddr jsTagAddr) {
+      call _call1 = clo<"ToJSValue">(payload[0])
+      call _ret5 = clo<"ThrowCompletion">(_call1)
+      return _ret5
+    } else {
+      call exception = clo<"create_an_Exception_object">(exnaddr)
+      call _ret6 = clo<"ThrowCompletion">(exception)
+      return _ret6
+    }
+  } else nop
+  call _ret7 = clo<"NormalCompletion">(result)
+  return _ret7
 }
 def asynchronously_instantiate_a_webassembly_module(
   moduleObject: Unknown,

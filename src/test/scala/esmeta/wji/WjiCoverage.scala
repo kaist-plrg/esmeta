@@ -10,6 +10,7 @@ import esmeta.interpreter.{Interpreter => EsInterpreter}
 import esmeta.state.State
 import esmeta.util.SystemUtils.*
 import esmeta.wji.bridge.host.WasmHost
+import esmeta.wji.extractor.AlgorithmExtractor
 import esmeta.wji.spec.SpecFile
 import io.circe.*, io.circe.syntax.*, io.circe.generic.semiauto.*
 import scala.collection.mutable
@@ -129,6 +130,22 @@ object WjiCoverage:
       funcName == base || funcName.startsWith(s"${base}_closure"),
     )
 
+  /** every algorithm `webidl/index.bs` defines, by normalized name -- wider
+    * than [[webidlBaseNames]], so the separate Web IDL report also covers the
+    * hand-written `manuals/funcs` stand-ins for Web IDL algorithms WJI doesn't
+    * compile itself (e.g. `overload_resolution_algorithm`).
+    */
+  private lazy val allWebidlNames: Set[String] =
+    AlgorithmExtractor
+      .extractFromFile(SpecFile.webidlIndex)
+      .flatMap(_.name)
+      .map(_.replace(' ', '_').toLowerCase)
+      .toSet
+
+  private def inWebIdlReport(funcName: String): Boolean =
+    val base = funcName.replaceAll("_closure\\d+$", "")
+    allWebidlNames(base) || webidlBaseNames(base)
+
   private case class FuncCoverage(
     name: String,
     nodesTouched: Int,
@@ -186,14 +203,13 @@ object WjiCoverage:
               s"FAILED (poisoned=$poisoned) -- ${e.getClass.getSimpleName}: ${e.getMessage}",
             )
 
-    /** computes a [[CoverageReport]] from whatever `nodeHits`/`condHits` have
-      * accumulated so far and dumps it to `outDir` -- called once after the
-      * official batch and, under `--full`, a second time after the
-      * complementary batch has added onto the same running totals.
+    /** computes a [[CoverageReport]] over the functions `select` picks from
+      * whatever `nodeHits`/`condHits` have accumulated so far and dumps it to
+      * `outDir` -- see [[reportAll]] for when.
       */
-    def report(outDir: String): Unit =
+    def report(outDir: String, select: Func => Boolean): Unit =
       val perFunc = cfg.funcs
-        .filter(f => WjiTest.wjiFuncNames(f.name) && !isWebIdlDerived(f.name))
+        .filter(select)
         .map { f =>
           val branchIds = f.nodes.collect { case b: Branch => b.id }
           FuncCoverage(
@@ -257,12 +273,25 @@ object WjiCoverage:
         condHits,
       )
 
+    /** the WebAssembly JS API report into `outDir`, plus a separate report of
+      * the Web IDL algorithms (excluded from the first one) into
+      * `outDir/webidl` -- called once after the official batch and, under
+      * `--full`, a second time after the complementary batch has added onto the
+      * same running totals.
+      */
+    def reportAll(outDir: String): Unit =
+      report(
+        outDir,
+        f => WjiTest.wjiFuncNames(f.name) && !isWebIdlDerived(f.name),
+      )
+      report(s"$outDir/webidl", f => inWebIdlReport(f.name))
+
     runFiles(List(WJI_JS_API_TEST_DIR))
-    report(WJI_COVERAGE_LOG_DIR)
+    reportAll(WJI_COVERAGE_LOG_DIR)
 
     if full then
       runFiles(List(WJI_COMPLEMENTARY_TEST_DIR))
-      report(s"$WJI_COVERAGE_LOG_DIR-full")
+      reportAll(s"$WJI_COVERAGE_LOG_DIR-full")
 
     connection.close()
 
